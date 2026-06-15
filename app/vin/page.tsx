@@ -84,7 +84,7 @@ export default async function VinPage({
       "@type": "ListItem",
       position: i + 1,
       name: w.wine_name,
-      url: `${config.baseUrl}/product/${w.handle}`,
+      url: `${config.baseUrl}/produkt/${w.handle}`,
     })),
   };
 

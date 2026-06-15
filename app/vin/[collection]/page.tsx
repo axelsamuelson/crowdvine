@@ -8,6 +8,7 @@ import { fetchProductsData } from "@/lib/crowdvine/products-data";
 import { getSourceSlugsByWineIds } from "@/lib/external-prices/db";
 import { mapProductDataToShopProducts } from "@/lib/map-product-data-to-shop-product";
 import { generateProducerSlug } from "@/lib/producer-handle";
+import { producerPageUrls } from "@/lib/i18n/localized-routes";
 import { getCollection } from "@/lib/shopify";
 import { getSiteConfig } from "@/lib/site-config";
 import {
@@ -58,7 +59,7 @@ export async function generateMetadata(props: {
   if (!collection) return notFound();
 
   const producerSlug = generateProducerSlug(collection.title);
-  const producerUrl = `${config.baseUrl}/producer/${producerSlug}`;
+  const producerUrls = producerPageUrls(producerSlug);
 
   return {
     title: collection.title,
@@ -67,16 +68,16 @@ export async function generateMetadata(props: {
       collection.description ||
       `${collection.title} products`,
     alternates: {
-      canonical: producerUrl,
+      canonical: producerUrls.sv,
       languages: {
-        sv: `https://pactwines.com/producer/${producerSlug}`,
-        en: `https://pactwines.com/producer/${producerSlug}`,
-        "x-default": `https://pactwines.com/producer/${producerSlug}`,
+        sv: producerUrls.sv,
+        en: producerUrls.en,
+        "x-default": producerUrls.xDefault,
       },
     },
     openGraph: {
       title: `${collection.title} — Naturvin från Languedoc | PACT Wines`,
-      url: producerUrl,
+      url: producerUrls.sv,
       type: "website",
     },
     robots: {
@@ -243,7 +244,7 @@ export default async function VinCollectionPage(props: {
   if (!collection) return notFound();
 
   const producerSlug = generateProducerSlug(collection.title);
-  const canonicalUrl = `https://pactwines.com/producer/${producerSlug}`;
+  const producerUrls = producerPageUrls(producerSlug);
 
   const breadcrumbJsonLd = {
     "@context": "https://schema.org",
@@ -259,7 +260,7 @@ export default async function VinCollectionPage(props: {
         "@type": "ListItem",
         position: 2,
         name: collection.title,
-        item: canonicalUrl,
+        item: producerUrls.sv,
       },
     ],
   };
