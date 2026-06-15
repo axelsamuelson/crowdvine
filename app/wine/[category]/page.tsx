@@ -15,6 +15,7 @@ import { getCollection } from "@/lib/shopify";
 import { getShoppingContextFromRequest } from "@/lib/shopping-context/server";
 import { fallbackShoppingContext } from "@/lib/shopping-context/defaults";
 import { getSiteConfig } from "@/lib/site-config";
+import { shopSearchParamsRobots } from "@/lib/seo/shop-search-robots";
 import {
   WINE_CATEGORIES_EN,
 } from "@/lib/wine-categories";
@@ -29,8 +30,14 @@ export async function generateStaticParams() {
 
 export async function generateMetadata(props: {
   params: Promise<{ category: string }>;
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
 }): Promise<Metadata> {
-  const { category: slug } = await props.params;
+  const [{ category: slug }, searchParams] = await Promise.all([
+    props.params,
+    props.searchParams ?? Promise.resolve({}),
+  ]);
+  const robots = shopSearchParamsRobots(searchParams);
+
   const category = await resolveGrapeCategoryBySlug(slug, "en");
   if (category) {
     const config = await getSiteConfig();
@@ -39,6 +46,7 @@ export async function generateMetadata(props: {
     return {
       title: category.title,
       description: category.metaDescription,
+      robots,
       alternates: {
         canonical: pageUrl,
         languages: {
@@ -69,6 +77,7 @@ export async function generateMetadata(props: {
       collection.seo?.description ||
       collection.description ||
       `${shopHeading} — natural wine direct from Languedoc.`,
+    robots,
     alternates: {
       canonical: shopUrl,
       languages: {

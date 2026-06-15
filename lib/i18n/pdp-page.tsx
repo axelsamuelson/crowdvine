@@ -1,14 +1,16 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { headers } from "next/headers";
 
 import { ProductViewTracker } from "@/app/product/[handle]/components/product-view-tracker";
 import { ProductPdpLayout } from "@/components/product/product-pdp-layout";
 import { WineBoxDiscountInfo } from "@/components/products/wine-box-discount-info";
+import {
+  fetchCachedProductForLocale,
+  getPdpRequestHost,
+} from "@/lib/crowdvine/pdp-product-cache";
 import { isProductPdpIndexable } from "@/lib/seo/product-indexable";
 import { fetchPdpRecommendationsForWine } from "@/lib/crowdvine/pdp-recommendations-data";
 import { getOffersByWineId } from "@/lib/external-prices/db";
-import { getCrowdvineProductByHandle } from "@/lib/crowdvine/product-by-handle-data";
 import type { AppLocale } from "@/lib/i18n/locale";
 import {
   PACT_PUBLIC_ORIGIN,
@@ -33,9 +35,8 @@ export async function fetchProductForLocale(
   handle: string,
   locale: AppLocale,
 ): Promise<Product | null> {
-  const headerList = await headers();
-  const host = headerList.get("x-forwarded-host") ?? headerList.get("host");
-  return getCrowdvineProductByHandle({ handle, locale, host });
+  const host = await getPdpRequestHost();
+  return fetchCachedProductForLocale(handle, locale, host);
 }
 
 export async function buildProductPdpMetadata(
@@ -102,15 +103,14 @@ export async function renderProductPdpPage(options: {
   pathSegment: ProductPathSegment;
 }) {
   const { handle, locale, pathSegment } = options;
+  const host = await getPdpRequestHost();
   const [product, config] = await Promise.all([
-    fetchProductForLocale(handle, locale),
+    fetchCachedProductForLocale(handle, locale, host),
     getSiteConfig(),
   ]);
 
   if (!product) notFound();
 
-  const headerList = await headers();
-  const host = headerList.get("x-forwarded-host") ?? headerList.get("host");
   const productUrl = `${PACT_PUBLIC_ORIGIN}${productPagePath(handle, pathSegment)}`;
 
   const productJsonLd = {

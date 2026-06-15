@@ -81,8 +81,6 @@ function buildRootMetadata(
       template: `%s | ${config.siteName}`,
     },
     description: overrides?.description ?? config.defaultDescription,
-    generator: "v0.app",
-    alternates: { canonical: config.baseUrl },
     openGraph: buildRootOpenGraph(config),
   };
 }

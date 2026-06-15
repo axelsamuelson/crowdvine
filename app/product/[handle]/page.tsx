@@ -4,11 +4,16 @@ import {
   buildProductPdpMetadata,
   renderProductPdpPage,
 } from "@/lib/i18n/pdp-page";
+import {
+  generateIndexablePdpStaticParams,
+  PDP_REVALIDATE_SECONDS,
+} from "@/lib/crowdvine/pdp-static-params";
 
-export const dynamic = "force-dynamic";
+export const revalidate = PDP_REVALIDATE_SECONDS;
+export const dynamicParams = true;
 
 export async function generateStaticParams() {
-  return [];
+  return generateIndexablePdpStaticParams();
 }
 
 export async function generateMetadata(props: {

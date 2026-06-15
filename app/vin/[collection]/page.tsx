@@ -15,6 +15,7 @@ import {
 } from "@/lib/i18n/producer-shop-page";
 import { getCollection } from "@/lib/shopify";
 import { getSiteConfig } from "@/lib/site-config";
+import { shopSearchParamsRobots } from "@/lib/seo/shop-search-robots";
 import {
   WINE_CATEGORIES_SV,
 } from "@/lib/wine-categories";
@@ -29,8 +30,13 @@ export async function generateStaticParams() {
 
 export async function generateMetadata(props: {
   params: Promise<{ collection: string }>;
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
 }): Promise<Metadata> {
-  const { collection: slug } = await props.params;
+  const [{ collection: slug }, searchParams] = await Promise.all([
+    props.params,
+    props.searchParams ?? Promise.resolve({}),
+  ]);
+  const robots = shopSearchParamsRobots(searchParams);
 
   const category = await resolveGrapeCategoryBySlug(slug, "sv");
   if (category) {
@@ -40,6 +46,7 @@ export async function generateMetadata(props: {
     return {
       title: category.title,
       description: category.metaDescription,
+      robots,
       alternates: {
         canonical: pageUrl,
         languages: {
@@ -74,6 +81,7 @@ export async function generateMetadata(props: {
       collection.seo?.description ||
       collection.description ||
       `${shopHeading} — naturvin direkt från Languedoc.`,
+    robots,
     alternates: {
       canonical: shopUrl,
       languages: {
