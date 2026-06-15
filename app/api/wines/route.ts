@@ -10,6 +10,7 @@ import {
   isCatalogCertification,
   isCatalogWineColor,
   isCatalogWineType,
+  isUuid,
 } from "@/lib/catalog-types";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
