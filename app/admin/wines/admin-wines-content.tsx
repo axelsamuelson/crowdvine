@@ -44,6 +44,50 @@ function extractGrapes(wines: Wine[]): string[] {
   return Array.from(set).sort((a, b) => a.localeCompare(b));
 }
 
+function WineStatusBadges({
+  isLive,
+  availableForSale,
+}: {
+  isLive?: boolean;
+  availableForSale?: boolean;
+}) {
+  const live = isLive !== false;
+  const available = availableForSale !== false;
+
+  return (
+    <div className="flex flex-col gap-1">
+      <span
+        className={cn(
+          "inline-flex w-fit items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium",
+          live
+            ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400"
+            : "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400",
+        )}
+      >
+        <span
+          className={cn(
+            "h-1.5 w-1.5 rounded-full",
+            live ? "bg-emerald-500" : "bg-amber-500",
+          )}
+        />
+        {live ? "Live" : "Dold"}
+      </span>
+      {live ? (
+        <span
+          className={cn(
+            "inline-flex w-fit items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium",
+            available
+              ? "bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-400"
+              : "bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400",
+          )}
+        >
+          {available ? "Tillgänglig" : "Slut"}
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
 export function AdminWinesContent({
   wines,
   initialMargin,
@@ -515,6 +559,7 @@ export function AdminWinesContent({
                   <th className="text-left p-3 font-medium text-xs text-gray-600 dark:text-zinc-400">Wine</th>
                   <th className="text-left p-3 font-medium text-xs text-gray-600 dark:text-zinc-400">Producer</th>
                   <th className="text-left p-3 font-medium text-xs text-gray-600 dark:text-zinc-400">Color</th>
+                  <th className="text-left p-3 font-medium text-xs text-gray-600 dark:text-zinc-400">Status</th>
                   <th className="text-left p-3 font-medium text-xs text-gray-600 dark:text-zinc-400">Price</th>
                   <th className="text-left p-3 font-medium text-xs text-gray-600 dark:text-zinc-400">Actions</th>
                 </tr>
@@ -551,6 +596,12 @@ export function AdminWinesContent({
                       >
                         {wine.color}
                       </span>
+                    </td>
+                    <td className="p-3">
+                      <WineStatusBadges
+                        isLive={wine.is_live}
+                        availableForSale={wine.available_for_sale}
+                      />
                     </td>
                     <td className="p-3 font-medium text-sm text-gray-900 dark:text-zinc-100">
                       {Math.ceil(wine.base_price_cents / 100)} SEK

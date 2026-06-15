@@ -155,6 +155,7 @@ export default function WineForm({ wine, producers, isProducerView = false, init
     b2b_stock: wine?.b2b_stock ?? null,
     // Visibility (only when editing; new wines default to live)
     is_live: wine?.is_live ?? true,
+    available_for_sale: wine?.available_for_sale ?? true,
   });
 
   const [images, setImages] = useState<File[]>([]);
@@ -473,6 +474,7 @@ export default function WineForm({ wine, producers, isProducerView = false, init
         label_image_path:
           imagePaths.length > 0 ? imagePaths[0] : formData.label_image_path,
         is_live: formData.is_live ?? true,
+        available_for_sale: formData.available_for_sale ?? true,
         b2b_price_cents,
         b2b_cost_sek,
       };
@@ -528,6 +530,7 @@ export default function WineForm({ wine, producers, isProducerView = false, init
   };
 
   const isLiveInShop = formData.is_live ?? true;
+  const isAvailableForSale = formData.available_for_sale ?? true;
 
   return (
     <div className="space-y-6">
@@ -1040,6 +1043,50 @@ export default function WineForm({ wine, producers, isProducerView = false, init
                       checked={isLiveInShop}
                       onCheckedChange={(checked) => handleChange("is_live", checked)}
                       aria-label="Vin synligt i shop"
+                      className={ADMIN_ACTIVE_SWITCH_CLASS}
+                    />
+                  </div>
+                </div>
+                <div
+                  className={cn(
+                    ADMIN_TOGGLE_ROW_CLASS,
+                    isAvailableForSale
+                      ? "border-emerald-500/40 bg-emerald-500/5 dark:border-emerald-500/30 dark:bg-emerald-500/10"
+                      : "border-amber-500/40 bg-amber-500/5 dark:border-amber-500/30 dark:bg-amber-500/10",
+                  )}
+                >
+                  <div>
+                    <Label className="text-sm font-medium text-gray-900 dark:text-zinc-100">
+                      Tillgänglig för köp
+                    </Label>
+                    <p className={ADMIN_HELP_TEXT_CLASS}>
+                      Av = synligt i shop men markerat som slut (ingen köpknapp).
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-3">
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium",
+                        isAvailableForSale
+                          ? "bg-emerald-500/15 text-emerald-800 dark:text-emerald-300"
+                          : "bg-amber-500/15 text-amber-800 dark:text-amber-300",
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "inline-flex h-2 w-2 rounded-full",
+                          isAvailableForSale ? "bg-emerald-500" : "bg-amber-500",
+                        )}
+                      />
+                      {isAvailableForSale ? "Tillgänglig" : "Slut"}
+                    </span>
+                    <Switch
+                      checked={isAvailableForSale}
+                      onCheckedChange={(checked) =>
+                        handleChange("available_for_sale", checked)
+                      }
+                      disabled={!isLiveInShop}
+                      aria-label="Vin tillgängligt för köp"
                       className={ADMIN_ACTIVE_SWITCH_CLASS}
                     />
                   </div>

@@ -61,7 +61,7 @@ export async function POST(request: Request) {
     const sb = getSupabaseAdmin();
     const { data: wines, error: wErr } = await sb
       .from("wines")
-      .select("id, producer_id, is_live")
+      .select("id, producer_id, is_live, available_for_sale")
       .in("id", wineIds);
 
     if (wErr || !wines?.length) {
@@ -92,6 +92,12 @@ export async function POST(request: Request) {
       if (w.is_live === false) {
         return NextResponse.json(
           { error: "One or more wines are not available" },
+          { status: 400 },
+        );
+      }
+      if (w.available_for_sale === false) {
+        return NextResponse.json(
+          { error: "One or more wines are sold out" },
           { status: 400 },
         );
       }

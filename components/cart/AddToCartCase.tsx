@@ -55,6 +55,7 @@ export type ProducerWineRow = {
   summary?: string | null;
   producer_name?: string | null;
   producer_region?: string | null;
+  available_for_sale?: boolean;
 };
 
 const getBaseProductVariant = (product: Product): ProductVariant => {
@@ -400,6 +401,8 @@ export function AddToCartCase({
   }, [sheetOpen, loadProducerWines]);
 
   const bumpQty = (wineId: string, delta: number) => {
+    const wine = wines.find((w) => w.id === wineId);
+    if (wine?.available_for_sale === false) return;
     setQuantities((prev) => {
       const cur = prev[wineId] ?? 0;
       const sumOthers = Object.entries(prev).reduce(
@@ -666,16 +669,26 @@ export function AddToCartCase({
     return mixedCaseSheet;
   }
 
+  const isSoldOut = !product.availableForSale;
+
   return (
     <div className={cn("w-full", className)}>
       <CaseModeSelector
         mode={mode}
         onModeChange={setMode}
         onConfirm={handleMainCta}
-        disabled={!resolvedVariant || (mode === "mixed" && isBatchPending)}
+        disabled={
+          !resolvedVariant ||
+          isSoldOut ||
+          (mode === "mixed" && isBatchPending)
+        }
         pending={mode === "same" && isSamePending}
         label={
-          !resolvedVariant ? t("product.selectOne") : t("shop.addCase")
+          !resolvedVariant
+            ? t("product.selectOne")
+            : isSoldOut
+              ? t("product.outOfStock")
+              : t("shop.addCase")
         }
       />
 
@@ -739,11 +752,15 @@ function MixedCaseWineListPanel({
         <ul className="space-y-4">
           {wines.map((w) => {
             const q = quantities[w.id] ?? 0;
-            const blockPlus = q >= 6 || totalSelected >= 6;
+            const soldOut = w.available_for_sale === false;
+            const blockPlus = soldOut || q >= 6 || totalSelected >= 6;
             return (
               <li
                 key={w.id}
-                className="flex items-stretch gap-2 rounded-lg border border-border"
+                className={cn(
+                  "flex items-stretch gap-2 rounded-lg border border-border",
+                  soldOut && "opacity-60",
+                )}
               >
                 <div
                   role="button"
@@ -777,9 +794,13 @@ function MixedCaseWineListPanel({
                       </span>
                     </p>
                     <p className="mt-0.5 text-xs text-muted-foreground">
-                      {formatPrice(
-                        String(Math.ceil(w.base_price_cents / 100)),
-                        "SEK",
+                      {soldOut ? (
+                        t("product.outOfStock")
+                      ) : (
+                        formatPrice(
+                          String(Math.ceil(w.base_price_cents / 100)),
+                          "SEK",
+                        )
                       )}
                     </p>
                   </div>
@@ -789,12 +810,14 @@ function MixedCaseWineListPanel({
                   />
                 </div>
                 <div className="flex shrink-0 items-center pr-2">
+                  {!soldOut ? (
                   <MixedCaseQuantityStepper
                     wineId={w.id}
                     quantity={q}
                     blockPlus={blockPlus}
                     onBump={bumpQty}
                   />
+                  ) : null}
                 </div>
               </li>
             );

@@ -2,6 +2,7 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getAppUrl, getInternalFetchHeaders } from "@/lib/app-url";
 import { DEFAULT_WINE_IMAGE_PATH } from "@/lib/constants";
 import { extractWineText } from "@/lib/i18n/wine-locale";
+import { resolveProductAvailableForSale } from "@/lib/wine-availability";
 import { getAllWineBoxCalculations } from "@/lib/wine-box-calculations";
 import { calculateB2BPriceExclVat } from "@/lib/price-breakdown";
 import { convertSekForDisplay } from "@/lib/shopping-context/currency-convert";
@@ -335,6 +336,7 @@ export async function fetchProductsData(params?: {
       description_html,
       tags,
       is_natural,
+      available_for_sale,
       created_at,
       producers!inner(name, is_live, boost_active)
     `;
@@ -533,9 +535,11 @@ export async function fetchProductsData(params?: {
         : i.b2b_stock != null
           ? Number(i.b2b_stock)
           : null;
-    const availableForSale = isB2BSite
-      ? b2bStock != null && b2bStock > 0
-      : true;
+    const availableForSale = resolveProductAvailableForSale({
+      isB2BSite,
+      b2bStock,
+      availableForSale: i.available_for_sale,
+    });
     const images =
       wineImages.length > 0
         ? wineImages.map((img: any) => ({
@@ -824,6 +828,7 @@ export async function fetchCollectionProductsData(
       label_image_path,
       producer_id,
       description,
+      available_for_sale,
       producers(name, boost_active)
     `;
   let collQuery = applyWineCollectionSearch(
@@ -888,9 +893,11 @@ export async function fetchCollectionProductsData(
         : i.b2b_stock != null
           ? Number(i.b2b_stock)
           : null;
-    const availableForSale = isB2BSite
-      ? b2bStock != null && b2bStock > 0
-      : true;
+    const availableForSale = resolveProductAvailableForSale({
+      isB2BSite,
+      b2bStock,
+      availableForSale: i.available_for_sale,
+    });
 
     const rawDesc = extractWineText(
       i.description as Record<string, string> | string | null,

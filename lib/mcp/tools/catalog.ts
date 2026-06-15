@@ -267,16 +267,16 @@ export function registerCatalogTools(server: McpServer, sb: SupabaseClient) {
     "create_wine",
     {
       description:
-        "Skapa vin i catalog (public.wines). Stödjer alla PDP-innehållsfält: summary, specs-rutor, smaknoter och expanderbara sektioner. Kräver producer_id, name, appellation, type eller color, price_sek.",
+        "Skapa vin i catalog (public.wines). Stödjer alla PDP-innehållsfält: summary, specs-rutor, smaknoter och expanderbara sektioner. Kräver producer_id, name, appellation, type eller color. Ange price_sek ELLER import_price_eur — vid import_price_eur beräknas listpris (SEK) automatiskt från kostnad + marginal + moms.",
       inputSchema: {
         producer_id: z.string(),
         name: z.string(),
         appellation: z.string(),
         type: wineTypeSchema.optional(),
-        price_sek: z.number().int().nonnegative(),
+        price_sek: z.number().int().nonnegative().optional(),
         vintage: z.number().int().nullable().optional(),
         bottle_size_ml: z.number().int().optional(),
-        import_price_eur: z.number().optional(),
+        import_price_eur: z.number().positive().optional(),
         yield_hl_ha: z.number().optional(),
         is_published: z.boolean().optional(),
         locale: z.enum(["sv", "en"]).default("sv").optional(),

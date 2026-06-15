@@ -12,6 +12,7 @@ import {
   aggregateB2BPalletStock,
   B2B_PALLET_ITEM_STOCK_SELECT,
 } from "@/lib/b2b-pallet-stock";
+import { resolveProductAvailableForSale } from "@/lib/wine-availability";
 
 function parseWineTasteTags(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
@@ -215,6 +216,7 @@ export async function GET(
         ageing,
         soil_type,
         tags,
+        available_for_sale,
         producers!inner(name, region, boost_active)
       `;
 
@@ -252,6 +254,7 @@ export async function GET(
         winemaker_notes,
         awards,
         tags,
+        available_for_sale,
         producers!inner(name, region, boost_active)
       `;
 
@@ -470,9 +473,11 @@ export async function GET(
   }
   const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
   const isB2BSite = isB2BHost(host);
-  const availableForSale = isB2BSite
-    ? b2bStock != null && b2bStock > 0
-    : true;
+  const availableForSale = resolveProductAvailableForSale({
+    isB2BSite,
+    b2bStock,
+    availableForSale: (i as { available_for_sale?: boolean }).available_for_sale,
+  });
 
   const specs: Record<string, string> = {};
   const producerEmbed = i.producers as {

@@ -78,7 +78,10 @@ export type WineApiRow = {
 type ProducerDbRow = Record<string, unknown>;
 type WineDbRow = Record<string, unknown>;
 
-export function producerRowToApi(row: ProducerDbRow): ProducerApiRow {
+export function producerRowToApi(
+  row: ProducerDbRow,
+  locale: WineLocale = "sv",
+): ProducerApiRow {
   return {
     id: row.id as string,
     name: row.name as string,
@@ -86,8 +89,14 @@ export function producerRowToApi(row: ProducerDbRow): ProducerApiRow {
     subregion: (row.subregion as string | null) ?? null,
     country: (row.country_code as string) ?? "",
     founded_year: (row.founded_year as number | null) ?? null,
-    bio_short: (row.short_description as string | null) ?? null,
-    bio_long: (row.bio_long as string | null) ?? null,
+    bio_short: extractWineText(
+      row.short_description as Record<string, string> | string | null,
+      locale,
+    ),
+    bio_long: extractWineText(
+      row.bio_long as Record<string, string> | string | null,
+      locale,
+    ),
     certification: (row.certification as string | null) ?? null,
     contact_name: (row.contact_name as string | null) ?? null,
     contact_email: (row.contact_email as string | null) ?? null,

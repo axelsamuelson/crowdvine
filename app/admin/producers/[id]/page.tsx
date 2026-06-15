@@ -50,7 +50,7 @@ export default async function EditProducerPage({
           .order("email"),
         sb
           .from("wines")
-          .select("id, wine_name, vintage, handle, base_price_cents, is_live, label_image_path")
+          .select("id, wine_name, vintage, handle, base_price_cents, cost_amount, cost_currency, is_live, label_image_path")
           .eq("producer_id", id)
           .order("wine_name", { ascending: true }),
       ]);
@@ -76,6 +76,8 @@ export default async function EditProducerPage({
       vintage: string;
       handle: string;
       base_price_cents: number;
+      cost_amount?: number | null;
+      cost_currency?: string | null;
       is_live?: boolean;
       label_image_path?: string | null;
     }>;
@@ -142,7 +144,8 @@ export default async function EditProducerPage({
                       <TableHead className="text-xs font-medium text-gray-600 dark:text-zinc-400">Namn</TableHead>
                       <TableHead className="text-xs font-medium text-gray-600 dark:text-zinc-400">Vintage</TableHead>
                       <TableHead className="text-xs font-medium text-gray-600 dark:text-zinc-400">Handle</TableHead>
-                      <TableHead className="text-xs font-medium text-gray-600 dark:text-zinc-400">Pris</TableHead>
+                      <TableHead className="text-xs font-medium text-gray-600 dark:text-zinc-400">Listpris</TableHead>
+                      <TableHead className="text-xs font-medium text-gray-600 dark:text-zinc-400">Kostnad</TableHead>
                       <TableHead className="text-xs font-medium text-gray-600 dark:text-zinc-400">Status</TableHead>
                       <TableHead className="text-right text-xs font-medium text-gray-600 dark:text-zinc-400">Åtgärder</TableHead>
                     </TableRow>
@@ -173,6 +176,11 @@ export default async function EditProducerPage({
                         <TableCell className="text-sm text-gray-700 dark:text-zinc-300">
                           {wine.base_price_cents != null
                             ? `${(wine.base_price_cents / 100).toFixed(0)} kr`
+                            : "—"}
+                        </TableCell>
+                        <TableCell className="text-sm text-gray-700 dark:text-zinc-300">
+                          {wine.cost_amount != null && wine.cost_amount > 0
+                            ? `${wine.cost_amount} ${wine.cost_currency ?? "EUR"}`
                             : "—"}
                         </TableCell>
                         <TableCell>

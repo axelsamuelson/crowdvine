@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, Fragment } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Trash2, ChevronsUpDown } from "lucide-react";
+import { ArrowLeft, Trash2, ChevronsUpDown, ChevronRight } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import {
@@ -102,6 +102,9 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
   const [wineProducerFilter, setWineProducerFilter] = useState("");
   const [wineColorFilter, setWineColorFilter] = useState("");
   const [showProducerSummary, setShowProducerSummary] = useState(false);
+  const [expandedProducers, setExpandedProducers] = useState<Set<string>>(
+    new Set(),
+  );
   const [fxRates, setFxRates] = useState<Record<string, number>>({ SEK: 1 });
 
   useEffect(() => {
@@ -341,24 +344,60 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
   );
 
   const producerSummary = useMemo(() => {
-    const map = new Map<string, { bottles: number; wineCount: number }>();
+    const map = new Map<
+      string,
+      {
+        bottles: number;
+        wines: Array<{
+          wine_id: string;
+          wine: Wine | undefined;
+          quantity: number;
+        }>;
+      }
+    >();
     for (const item of items) {
       const wineForCost =
         wines.find((w) => w.id === item.wine_id) ?? item.wine;
       const producer =
         wineForCost?.producers?.name?.trim() || "Okänd producent";
-      const curr = map.get(producer) ?? { bottles: 0, wineCount: 0 };
+      const curr = map.get(producer) ?? { bottles: 0, wines: [] };
       curr.bottles += item.quantity;
-      curr.wineCount += 1;
+      curr.wines.push({
+        wine_id: item.wine_id,
+        wine: wineForCost,
+        quantity: item.quantity,
+      });
       map.set(producer, curr);
     }
     return Array.from(map.entries())
-      .map(([name, stats]) => ({ name, ...stats }))
+      .map(([name, stats]) => ({
+        name,
+        bottles: stats.bottles,
+        wineCount: stats.wines.length,
+        wines: [...stats.wines].sort((a, b) => {
+          const labelA = a.wine
+            ? `${a.wine.wine_name} ${a.wine.vintage}`
+            : a.wine_id;
+          const labelB = b.wine
+            ? `${b.wine.wine_name} ${b.wine.vintage}`
+            : b.wine_id;
+          return labelA.localeCompare(labelB, "sv");
+        }),
+      }))
       .sort(
         (a, b) =>
           b.bottles - a.bottles || a.name.localeCompare(b.name, "sv"),
       );
   }, [items, wines]);
+
+  const toggleProducerExpanded = (producerName: string) => {
+    setExpandedProducers((prev) => {
+      const next = new Set(prev);
+      if (next.has(producerName)) next.delete(producerName);
+      else next.add(producerName);
+      return next;
+    });
+  };
 
   if (loading && !isEdit) {
     return (
@@ -693,6 +732,7 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
                       <Table>
                         <TableHeader>
                           <TableRow className="border-gray-200 hover:bg-transparent dark:border-zinc-800">
+                            <TableHead className="w-10" />
                             <TableHead className="min-w-[200px] text-gray-600 dark:text-zinc-400">
                               Producent
                             </TableHead>
@@ -705,22 +745,81 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {producerSummary.map((row) => (
-                            <TableRow
-                              key={row.name}
-                              className="border-gray-100 hover:bg-gray-50/80 dark:border-zinc-800/80 dark:hover:bg-zinc-900/50"
-                            >
-                              <TableCell className="font-medium text-gray-900 dark:text-zinc-100">
-                                {row.name}
-                              </TableCell>
-                              <TableCell className="text-right tabular-nums text-sm text-gray-600 dark:text-zinc-400">
-                                {row.wineCount}
-                              </TableCell>
-                              <TableCell className="text-right tabular-nums text-sm font-semibold text-gray-900 dark:text-zinc-100">
-                                {row.bottles}
-                              </TableCell>
-                            </TableRow>
-                          ))}
+                          {producerSummary.map((row) => {
+                            const expanded = expandedProducers.has(row.name);
+                            return (
+                              <Fragment key={row.name}>
+                                <TableRow
+                                  role="button"
+                                  tabIndex={0}
+                                  aria-expanded={expanded}
+                                  onClick={() => toggleProducerExpanded(row.name)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter" || e.key === " ") {
+                                      e.preventDefault();
+                                      toggleProducerExpanded(row.name);
+                                    }
+                                  }}
+                                  className="cursor-pointer border-gray-100 hover:bg-gray-50/80 dark:border-zinc-800/80 dark:hover:bg-zinc-900/50"
+                                >
+                                  <TableCell className="w-10 py-2">
+                                    <ChevronRight
+                                      className={cn(
+                                        "h-4 w-4 text-gray-500 transition-transform dark:text-zinc-400",
+                                        expanded && "rotate-90",
+                                      )}
+                                      aria-hidden
+                                    />
+                                  </TableCell>
+                                  <TableCell className="font-medium text-gray-900 dark:text-zinc-100">
+                                    {row.name}
+                                  </TableCell>
+                                  <TableCell className="text-right tabular-nums text-sm text-gray-600 dark:text-zinc-400">
+                                    {row.wineCount}
+                                  </TableCell>
+                                  <TableCell className="text-right tabular-nums text-sm font-semibold text-gray-900 dark:text-zinc-100">
+                                    {row.bottles}
+                                  </TableCell>
+                                </TableRow>
+                                {expanded &&
+                                  row.wines.map((entry) => (
+                                    <TableRow
+                                      key={`${row.name}-${entry.wine_id}`}
+                                      className="border-gray-100 bg-gray-50/60 hover:bg-gray-50 dark:border-zinc-800/80 dark:bg-zinc-900/40 dark:hover:bg-zinc-900/60"
+                                    >
+                                      <TableCell />
+                                      <TableCell
+                                        colSpan={2}
+                                        className="py-2 pl-8"
+                                      >
+                                        <div className="flex min-w-0 items-center gap-2 text-sm">
+                                          <span
+                                            className={cn(
+                                              "inline-block h-2.5 w-2.5 shrink-0 rounded-full",
+                                              wineColorDotClass(entry.wine?.color),
+                                            )}
+                                            aria-hidden
+                                          />
+                                          <span className="truncate font-medium text-gray-800 dark:text-zinc-200">
+                                            {entry.wine
+                                              ? `${entry.wine.wine_name} ${entry.wine.vintage}`
+                                              : entry.wine_id}
+                                          </span>
+                                          {entry.wine?.color?.trim() && (
+                                            <span className="shrink-0 text-xs text-gray-500 dark:text-zinc-500">
+                                              {entry.wine.color}
+                                            </span>
+                                          )}
+                                        </div>
+                                      </TableCell>
+                                      <TableCell className="text-right tabular-nums text-sm text-gray-700 dark:text-zinc-300">
+                                        {entry.quantity} st
+                                      </TableCell>
+                                    </TableRow>
+                                  ))}
+                              </Fragment>
+                            );
+                          })}
                         </TableBody>
                       </Table>
                     ) : (

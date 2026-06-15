@@ -76,6 +76,8 @@ export interface Wine {
   b2b_stock?: number | null;
   // Visibility
   is_live?: boolean;
+  /** When false, visible in shop but not purchasable. */
+  available_for_sale?: boolean;
 }
 
 export interface CreateWineData {
@@ -131,6 +133,7 @@ export interface CreateWineData {
   b2b_stock?: number | null;
   // Visibility
   is_live?: boolean;
+  available_for_sale?: boolean;
 }
 
 const WINES_SELECT_FULL = `
@@ -181,6 +184,7 @@ const WINES_SELECT_FULL = `
   b2b_margin_percentage,
   b2b_stock,
   is_live,
+  available_for_sale,
   created_at,
   updated_at
 `;
@@ -228,6 +232,7 @@ const WINES_SELECT_WITHOUT_B2B = `
   vinification,
   abv,
   is_live,
+  available_for_sale,
   created_at,
   updated_at
 `;
@@ -279,6 +284,7 @@ const WINES_SELECT_WITHOUT_EXTENDED_ENRICHMENT = `
   b2b_margin_percentage,
   b2b_stock,
   is_live,
+  available_for_sale,
   created_at,
   updated_at
 `;
@@ -325,6 +331,7 @@ const WINES_SELECT_WITHOUT_B2B_NO_EXTENDED = `
   vinification,
   abv,
   is_live,
+  available_for_sale,
   created_at,
   updated_at
 `;
@@ -355,6 +362,7 @@ const WINES_SELECT_FULL_NO_SUMMARY = `
   b2b_margin_percentage,
   b2b_stock,
   is_live,
+  available_for_sale,
   created_at,
   updated_at
 `;
@@ -382,6 +390,7 @@ const WINES_SELECT_LEGACY = `
   description,
   description_html,
   is_live,
+  available_for_sale,
   created_at,
   updated_at
 `;
@@ -408,6 +417,7 @@ const WINES_SELECT_WITHOUT_B2B_NO_SUMMARY = `
   description,
   description_html,
   is_live,
+  available_for_sale,
   created_at,
   updated_at
 `;
@@ -770,6 +780,7 @@ export async function createWine(data: CreateWineData, locale: WineLocale = "sv"
     b2b_margin_percentage: data.b2b_margin_percentage ?? null,
     b2b_stock: data.b2b_stock ?? null,
     is_live: data.is_live ?? true,
+    available_for_sale: data.available_for_sale ?? true,
   };
 
   let result = await sb.from("wines").insert(insertData).select(WINES_SELECT_FULL).single();
@@ -993,6 +1004,8 @@ export async function updateWine(
     updateData.b2b_cost_sek = data.b2b_cost_sek;
   if (data.is_live !== undefined)
     updateData.is_live = data.is_live;
+  if (data.available_for_sale !== undefined)
+    updateData.available_for_sale = data.available_for_sale;
 
   // Get current wine data for calculation if needed
   let currentWine = null;

@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getAppUrl } from "@/lib/app-url";
 import { DEFAULT_WINE_IMAGE_PATH } from "@/lib/constants";
+import {
+  extractWineText,
+  type WineLocale,
+} from "@/lib/i18n/wine-locale";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -38,6 +42,7 @@ const WINES_SELECT_FULL = `
   vinification,
   abv,
   summary,
+  available_for_sale,
   producers ( name, region )
 `;
 
@@ -58,6 +63,7 @@ const WINES_SELECT_NO_SUMMARY = `
   terroir,
   vinification,
   abv,
+  available_for_sale,
   producers ( name, region )
 `;
 
@@ -69,6 +75,7 @@ const WINES_SELECT_MINIMAL = `
   base_price_cents,
   label_image_path,
   is_live,
+  available_for_sale,
   producers ( name, region )
 `;
 
@@ -87,7 +94,11 @@ function producerFromRow(w: any): { name: string | null; region: string | null }
   };
 }
 
-function mapWineRow(w: any, images: { url: string; alt: string }[]) {
+function mapWineRow(
+  w: any,
+  images: { url: string; alt: string }[],
+  locale: WineLocale,
+) {
   const { name: producer_name, region: producer_region } = producerFromRow(w);
   return {
     id: w.id,
@@ -98,16 +109,17 @@ function mapWineRow(w: any, images: { url: string; alt: string }[]) {
     label_image_path: w.label_image_path ?? null,
     image_url: images[0]?.url ?? toImageUrl(w.label_image_path),
     images,
-    description: w.description ?? null,
+    description: extractWineText(w.description, locale),
     description_html: w.description_html ?? null,
-    tasting_notes: w.tasting_notes ?? null,
+    tasting_notes: extractWineText(w.tasting_notes, locale),
     grape_varieties: w.grape_varieties ?? null,
     color: w.color ?? null,
     appellation: w.appellation ?? null,
     terroir: w.terroir ?? null,
     vinification: w.vinification ?? null,
     abv: w.abv ?? null,
-    summary: w.summary ?? null,
+    summary: extractWineText(w.summary, locale),
+    available_for_sale: w.available_for_sale !== false,
     producer_name,
     producer_region,
   };
@@ -118,10 +130,11 @@ function mapWineRow(w: any, images: { url: string; alt: string }[]) {
  * Live wines for a producer (B2C mixed-case builder + mini-PDP).
  */
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ producerId: string }> },
 ) {
   const { producerId } = await params;
+  const locale = (request.headers.get("x-pact-locale") ?? "sv") as WineLocale;
 
   if (!producerId || !UUID_RE.test(producerId)) {
     return NextResponse.json({ error: "Invalid producer id" }, { status: 400 });
@@ -215,7 +228,7 @@ export async function GET(
             },
           ];
 
-    const mapped = mapWineRow(w, images);
+    const mapped = mapWineRow(w, images, locale);
     if (!mapped.producer_name && producerFallbackName) {
       mapped.producer_name = producerFallbackName;
     }

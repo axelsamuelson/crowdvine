@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getProducers } from "@/lib/actions/producers";
+import { extractWineText } from "@/lib/i18n/wine-locale";
 import { Button } from "@/components/ui/button";
 import { DeleteProducerButton } from "@/components/admin/delete-producer-button";
 import {
@@ -76,53 +77,76 @@ export default async function ProducersPage() {
             <h2 className="text-lg font-bold text-gray-900 dark:text-white">All Producers</h2>
             <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">Complete list of all producers</p>
           </div>
-          <div className="overflow-x-auto">
-            <Table>
+          <div className="min-w-0">
+            <Table className="table-fixed">
               <TableHeader>
                 <TableRow className="bg-gray-50 dark:bg-zinc-900/70 hover:bg-gray-50 dark:hover:bg-zinc-900/70 border-b border-gray-200 dark:border-zinc-800">
-                  <TableHead className="text-xs font-medium text-gray-600 dark:text-zinc-400">Producer</TableHead>
-                  <TableHead className="text-xs font-medium text-gray-600 dark:text-zinc-400">Region</TableHead>
-                  <TableHead className="hidden md:table-cell text-xs font-medium text-gray-600 dark:text-zinc-400">Country</TableHead>
-                  <TableHead className="hidden lg:table-cell text-xs font-medium text-gray-600 dark:text-zinc-400">Address</TableHead>
-                  <TableHead className="hidden xl:table-cell text-xs font-medium text-gray-600 dark:text-zinc-400">Pall</TableHead>
-                  <TableHead className="text-right text-xs font-medium text-gray-600 dark:text-zinc-400">Actions</TableHead>
+                  <TableHead className="w-[min(280px,32%)] text-xs font-medium text-gray-600 dark:text-zinc-400">
+                    Producer
+                  </TableHead>
+                  <TableHead className="w-[14%] text-xs font-medium text-gray-600 dark:text-zinc-400">
+                    Region
+                  </TableHead>
+                  <TableHead className="hidden md:table-cell w-[12%] text-xs font-medium text-gray-600 dark:text-zinc-400">
+                    Country
+                  </TableHead>
+                  <TableHead className="hidden lg:table-cell w-[18%] text-xs font-medium text-gray-600 dark:text-zinc-400">
+                    Address
+                  </TableHead>
+                  <TableHead className="hidden xl:table-cell w-[12%] text-xs font-medium text-gray-600 dark:text-zinc-400">
+                    Pall
+                  </TableHead>
+                  <TableHead className="sticky right-0 z-10 w-[148px] bg-gray-50 text-right text-xs font-medium text-gray-600 dark:bg-zinc-900/70 dark:text-zinc-400">
+                    Actions
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {producers.map((producer) => (
-                  <TableRow key={producer.id} className="hover:bg-gray-50 dark:hover:bg-zinc-800/50 border-b border-gray-100 dark:border-zinc-800/50">
-                    <TableCell className="min-w-[240px]">
-                      <div className="min-w-0 flex items-center gap-2 flex-wrap">
-                        <div className="font-medium text-gray-900 dark:text-zinc-100 truncate">
+                {producers.map((producer) => {
+                  const bio = extractWineText(
+                    producer.short_description as
+                      | Record<string, string>
+                      | string
+                      | null,
+                    "sv",
+                  );
+                  return (
+                  <TableRow key={producer.id} className="group hover:bg-gray-50 dark:hover:bg-zinc-800/50 border-b border-gray-100 dark:border-zinc-800/50">
+                    <TableCell className="max-w-0">
+                      <div className="min-w-0 flex items-center gap-2">
+                        <div className="min-w-0 font-medium text-gray-900 dark:text-zinc-100 truncate">
                           {producer.name}
                         </div>
                         {(producer as any).is_live === false ? (
-                          <span className="inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">
+                          <span className="inline-flex shrink-0 px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">
                             Offline
                           </span>
                         ) : (
-                          <span className="inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400">
+                          <span className="inline-flex shrink-0 px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400">
                             Live
                           </span>
                         )}
                       </div>
-                      <div className="min-w-0 mt-0.5">
-                        {producer.short_description ? (
-                          <div className="text-xs text-gray-500 dark:text-zinc-400 truncate">
-                            {producer.short_description}
-                          </div>
-                        ) : null}
-                      </div>
+                      {bio ? (
+                        <p
+                          className="mt-0.5 line-clamp-2 text-xs text-gray-500 dark:text-zinc-400 break-words"
+                          title={bio}
+                        >
+                          {bio}
+                        </p>
+                      ) : null}
                     </TableCell>
-                    <TableCell className="text-sm text-gray-700 dark:text-zinc-300">
-                      {producer.region || "—"}
+                    <TableCell className="max-w-0 text-sm text-gray-700 dark:text-zinc-300">
+                      <span className="block truncate">{producer.region || "—"}</span>
                     </TableCell>
-                    <TableCell className="hidden md:table-cell text-sm text-gray-700 dark:text-zinc-300">
-                      {producer.country_code
-                        ? countryNameByCode.get(producer.country_code) ?? producer.country_code
-                        : "—"}
+                    <TableCell className="hidden md:table-cell max-w-0 text-sm text-gray-700 dark:text-zinc-300">
+                      <span className="block truncate">
+                        {producer.country_code
+                          ? countryNameByCode.get(producer.country_code) ?? producer.country_code
+                          : "—"}
+                      </span>
                     </TableCell>
-                    <TableCell className="hidden lg:table-cell text-sm text-gray-700 dark:text-zinc-300">
+                    <TableCell className="hidden lg:table-cell max-w-0 text-sm text-gray-700 dark:text-zinc-300">
                       <div className="min-w-0">
                         <div className="truncate">{producer.address_street || "—"}</div>
                         <div className="text-xs text-gray-500 dark:text-zinc-400 truncate">
@@ -131,12 +155,14 @@ export default async function ProducersPage() {
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="hidden xl:table-cell text-sm text-gray-700 dark:text-zinc-300">
-                      {producer.pickup_zone_id
-                        ? pickupZoneNameById.get(producer.pickup_zone_id) || "—"
-                        : "—"}
+                    <TableCell className="hidden xl:table-cell max-w-0 text-sm text-gray-700 dark:text-zinc-300">
+                      <span className="block truncate">
+                        {producer.pickup_zone_id
+                          ? pickupZoneNameById.get(producer.pickup_zone_id) || "—"
+                          : "—"}
+                      </span>
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="sticky right-0 z-10 w-[148px] bg-white text-right group-hover:bg-gray-50 dark:bg-[#0F0F12] dark:group-hover:bg-zinc-800/50">
                       <div className="flex justify-end gap-2">
                         <Link href={`/admin/producers/${producer.id}`}>
                           <Button variant="outline" size="sm" className="rounded-lg text-xs font-medium border-gray-200 dark:border-zinc-700">
@@ -150,7 +176,8 @@ export default async function ProducersPage() {
                       </div>
                     </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           </div>

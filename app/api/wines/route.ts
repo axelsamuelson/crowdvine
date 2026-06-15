@@ -13,6 +13,7 @@ import {
   isUuid,
 } from "@/lib/catalog-types";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { applyCostBasedRetailPricing } from "@/lib/wine-retail-pricing";
 
 function parseBoolQuery(value: string | null): boolean | undefined {
   if (value === null || value === "") return undefined;
@@ -82,6 +83,11 @@ export async function POST(request: NextRequest) {
     const type = body.type;
     const color = body.color;
     const priceSek = body.price_sek;
+    const importPriceEur = body.import_price_eur;
+    const hasImportCost =
+      typeof importPriceEur === "number" &&
+      Number.isFinite(importPriceEur) &&
+      importPriceEur > 0;
 
     if (!producerId || !isUuid(producerId)) {
       return NextResponse.json(
@@ -107,9 +113,17 @@ export async function POST(request: NextRequest) {
         { status: 400 },
       );
     }
-    if (typeof priceSek !== "number" || !Number.isInteger(priceSek) || priceSek < 0) {
+    if (
+      !hasImportCost &&
+      (typeof priceSek !== "number" ||
+        !Number.isInteger(priceSek) ||
+        priceSek < 0)
+    ) {
       return NextResponse.json(
-        { error: "price_sek must be a non-negative integer" },
+        {
+          error:
+            "price_sek must be a non-negative integer (or provide import_price_eur)",
+        },
         { status: 400 },
       );
     }
@@ -141,12 +155,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const row = buildWineInsert(body);
+    const row = buildWineInsert({
+      ...body,
+      price_sek: hasImportCost ? 0 : priceSek,
+    });
     row.handle = await ensureUniqueWineHandle(sb, row.handle as string);
+
+    const pricedRow = await applyCostBasedRetailPricing(row, null, {
+      origin: request.headers.get("origin") ?? undefined,
+      costWasUpdated: hasImportCost,
+    });
 
     const { data, error } = await sb
       .from("wines")
-      .insert(row)
+      .insert(pricedRow)
       .select(WINE_DB_SELECT)
       .single();
 

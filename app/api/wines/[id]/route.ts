@@ -13,6 +13,7 @@ import {
   isUuid,
 } from "@/lib/catalog-types";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { applyCostBasedRetailPricing } from "@/lib/wine-retail-pricing";
 
 function parseWineId(raw: string | undefined): string | null {
   const id = raw?.trim();
@@ -91,7 +92,7 @@ export async function PATCH(
     const { data: existing } = await sb
       .from("wines")
       .select(
-        "summary, description, tasting_notes, ageing, winemaker_notes, food_pairing, awards, soil_type, additives",
+        "summary, description, tasting_notes, ageing, winemaker_notes, food_pairing, awards, soil_type, additives, cost_amount, cost_currency, margin_percentage, price_includes_vat, alcohol_tax_cents, exchange_rate, base_price_cents",
       )
       .eq("id", id)
       .single();
@@ -105,6 +106,15 @@ export async function PATCH(
         { status: 400 },
       );
     }
+
+    const pricedPatch = await applyCostBasedRetailPricing(
+      patch,
+      existing ?? undefined,
+      {
+        origin: request.headers.get("origin") ?? undefined,
+        costWasUpdated: body.import_price_eur !== undefined,
+      },
+    );
 
     if (
       body.farming !== undefined &&
@@ -143,11 +153,11 @@ export async function PATCH(
       }
     }
 
-    patch.updated_at = new Date().toISOString();
+    pricedPatch.updated_at = new Date().toISOString();
 
     const { data, error } = await sb
       .from("wines")
-      .update(patch)
+      .update(pricedPatch)
       .eq("id", id)
       .select(WINE_DB_SELECT)
       .maybeSingle();

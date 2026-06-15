@@ -1,8 +1,25 @@
 "use server";
 
+import { extractWineText } from "@/lib/i18n/wine-locale";
 import { supabaseServer } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { revalidatePath } from "next/cache";
+
+function normalizeProducerRow(row: Record<string, unknown>) {
+  return {
+    ...row,
+    short_description:
+      extractWineText(
+        row.short_description as Record<string, string> | string | null,
+        "sv",
+      ) ?? "",
+    bio_long:
+      extractWineText(
+        row.bio_long as Record<string, string> | string | null,
+        "sv",
+      ) ?? "",
+  };
+}
 
 export interface Producer {
   id: string;
@@ -54,7 +71,7 @@ export async function getProducers() {
   const { data, error } = await sb.from("producers").select("*").order("name");
 
   if (error) throw new Error(error.message);
-  return data;
+  return (data ?? []).map((row) => normalizeProducerRow(row));
 }
 
 export async function getProducer(id: string) {
@@ -68,7 +85,7 @@ export async function getProducer(id: string) {
     .single();
 
   if (error) throw new Error(error.message);
-  return data;
+  return normalizeProducerRow(data);
 }
 
 export async function createProducer(data: CreateProducerData) {
