@@ -1,6 +1,6 @@
 import { ProductListContent } from "@/app/vin/components/product-list-content";
 import { ProductListLcpPreload } from "@/app/vin/components/product-list-lcp-preload";
-import { ProductListStaticGrid } from "@/app/vin/components/product-list-static-grid";
+import { ResultsCountBridge } from "@/app/vin/components/results-count-bridge";
 import type { AppLocale } from "@/lib/i18n/locale";
 import type { Collection, Product } from "@/lib/shopify/types";
 
@@ -15,10 +15,10 @@ type ProductListShellProps = {
   breadcrumbLabel?: string;
 };
 
-/** Server shell: LCP preload + static grid passed into client ProductListContent. */
+/** Server shell: LCP preload + client product grid. */
 export function ProductListShell({
   products,
-  locale,
+  locale: _locale,
   collections = [],
   selectedProducers = [],
   collectionHandle,
@@ -29,6 +29,7 @@ export function ProductListShell({
   return (
     <>
       <ProductListLcpPreload products={products} />
+      <ResultsCountBridge count={products.length} />
       <ProductListContent
         products={products}
         collections={collections}
@@ -37,9 +38,7 @@ export function ProductListShell({
         wineSourceSlugs={wineSourceSlugs}
         searchQuery={searchQuery}
         breadcrumbLabel={breadcrumbLabel}
-      >
-        <ProductListStaticGrid products={products} locale={locale} />
-      </ProductListContent>
+      />
     </>
   );
 }

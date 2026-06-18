@@ -5,24 +5,17 @@ import {
   useLayoutEffect,
   useMemo,
   useRef,
-  useState,
-  type ReactNode,
 } from "react";
-import dynamic from "next/dynamic";
 import { Product, Collection } from "@/lib/shopify/types";
 import ResultsControls from "./results-controls";
 import { useProducts } from "@/components/shop/products-provider";
 import { useQueryState, parseAsArrayOf, parseAsString } from "nuqs";
 import { ProductGrid } from "./product-grid";
+import { ProductCard } from "./product-card";
 import { Card } from "../../../components/ui/card";
 import { useTranslations } from "@/lib/hooks/use-translations";
 import { filterProductsByGrapes } from "@/lib/shop/filter-products-by-grape";
 import { filterProductsByFarming } from "@/lib/shop/farming-filter";
-
-const ProductCard = dynamic(
-  () => import("./product-card").then((mod) => ({ default: mod.ProductCard })),
-  { loading: () => null },
-);
 
 interface ProductListContentProps {
   products: Product[];
@@ -35,8 +28,6 @@ interface ProductListContentProps {
   searchQuery?: string;
   /** Override last breadcrumb segment (e.g. wine category h1). */
   breadcrumbLabel?: string;
-  /** Server-rendered grid — shown until filters apply or idle enhancement. */
-  children?: ReactNode;
 }
 
 // Normalize color string for comparison: "Red & White", "Red/White", "red-&-white" → canonical form
@@ -125,12 +116,10 @@ export function ProductListContent({
   wineSourceSlugs = {},
   searchQuery = "",
   breadcrumbLabel,
-  children,
 }: ProductListContentProps & { collectionHandle?: string }) {
   const { t } = useTranslations();
   const { setProducts, setOriginalProducts, setAvailableSourceSlugs } = useProducts();
   const lastSearchTracked = useRef<string | null>(null);
-  const [interactiveReady, setInteractiveReady] = useState(false);
 
   // Tell the sidebar which "Buy at" sources have at least one wine in this list (hide empty options)
   useLayoutEffect(() => {
@@ -162,36 +151,6 @@ export function ProductListContent({
     "ffarming",
     parseAsArrayOf(parseAsString).withDefault([]),
   );
-
-  const hasActiveFilters =
-    (colorFilters?.length ?? 0) > 0 ||
-    (grapeFilters?.length ?? 0) > 0 ||
-    (farmingFilters?.length ?? 0) > 0 ||
-    (sourceFilters?.length ?? 0) > 0;
-
-  // After first paint, swap server grid for interactive cards (add-to-cart, etc.)
-  useEffect(() => {
-    if (hasActiveFilters) {
-      setInteractiveReady(true);
-      return;
-    }
-
-    const idle = window.requestIdleCallback
-      ? window.requestIdleCallback(() => setInteractiveReady(true), {
-          timeout: 2500,
-        })
-      : window.setTimeout(() => setInteractiveReady(true), 2500);
-
-    return () => {
-      if (window.requestIdleCallback) {
-        window.cancelIdleCallback(idle as number);
-      } else {
-        window.clearTimeout(idle as number);
-      }
-    };
-  }, [hasActiveFilters]);
-
-  const showInteractiveGrid = hasActiveFilters || interactiveReady || !children;
 
   // Apply client-side filtering whenever products or filters change
   const filteredProducts = useMemo(() => {
@@ -338,20 +297,16 @@ export function ProductListContent({
       />
 
       {filteredProducts.length > 0 ? (
-        showInteractiveGrid ? (
-          <ProductGrid>
-            {filteredProducts.map((product, index) => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                index={index}
-                listSearchQuery={searchQuery}
-              />
-            ))}
-          </ProductGrid>
-        ) : (
-          children
-        )
+        <ProductGrid>
+          {filteredProducts.map((product, index) => (
+            <ProductCard
+              key={product.id}
+              product={product}
+              index={index}
+              listSearchQuery={searchQuery}
+            />
+          ))}
+        </ProductGrid>
       ) : (
         <Card className="flex mr-sides flex-1 items-center justify-center">
           <p className="text text-muted-foreground font-medium">

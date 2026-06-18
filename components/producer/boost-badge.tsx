@@ -17,3 +17,24 @@ export function BoostBadge({ className }: { className?: string }) {
     </span>
   );
 }
+
+/** Reserves overlay space for boosted producers before badge renders. */
+export function BoostBadgeSlot({
+  active,
+  className,
+}: {
+  active: boolean;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "mt-0.5 min-h-[18px] md:min-h-[22px]",
+        !active && "min-h-0",
+        className,
+      )}
+    >
+      {active ? <BoostBadge /> : null}
+    </div>
+  );
+}

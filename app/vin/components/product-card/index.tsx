@@ -13,7 +13,7 @@ import { ArrowRightIcon, CirclePlus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { MemberPrice } from "@/components/ui/member-price";
 import { StockBadge } from "@/components/product/stock-badge";
-import { BoostBadge } from "@/components/producer/boost-badge";
+import { BoostBadgeSlot } from "@/components/producer/boost-badge";
 import { PeekTabAnchor } from "@/components/pdp/peek-tab-anchor";
 import type { RecommendationReason } from "@/lib/product/recommendations";
 import { useCartOptional } from "@/components/cart/cart-context";
@@ -786,16 +786,13 @@ export const ProductCard = memo(
                 {product.producerName}
               </p>
             )}
-            {product.producerBoostActive === true ? (
-              <div className="mt-0.5">
-                <BoostBadge />
-              </div>
-            ) : null}
-            <StockBadge
-              b2bStock={(product as any).b2bStock}
-              availableForSale={product.availableForSale}
-              className="mt-0.5"
-            />
+            <BoostBadgeSlot active={product.producerBoostActive === true} />
+            <div className="mt-0.5 min-h-[14px] md:min-h-[18px]">
+              <StockBadge
+                b2bStock={(product as any).b2bStock}
+                availableForSale={product.availableForSale}
+              />
+            </div>
           </div>
           <div className="flex gap-1 md:gap-2 items-center justify-end min-w-0 shrink md:max-w-[35%] md:shrink-0 text-[9px] md:text-sm uppercase 2xl:text-base text-right overflow-hidden">
             <MemberPrice
@@ -996,11 +993,10 @@ export const ProductCard = memo(
                   {product.producerName}
                 </p>
               )}
-              {product.producerBoostActive === true ? (
-                <div className="mt-1">
-                  <BoostBadge />
-                </div>
-              ) : null}
+              <BoostBadgeSlot
+                active={product.producerBoostActive === true}
+                className="mt-1"
+              />
               {wineColor && (
                 <div className="mt-1">
                   <ColorSwatch
@@ -1019,11 +1015,12 @@ export const ProductCard = memo(
                   />
                 </div>
               )}
-              <StockBadge
-                b2bStock={(product as any).b2bStock}
-                availableForSale={product.availableForSale}
-                className="mt-0.5"
-              />
+              <div className="mt-0.5 min-h-[14px] md:min-h-[18px]">
+                <StockBadge
+                  b2bStock={(product as any).b2bStock}
+                  availableForSale={product.availableForSale}
+                />
+              </div>
             </div>
             <div className="flex gap-2 items-center place-self-end text-lg font-semibold">
               <MemberPrice

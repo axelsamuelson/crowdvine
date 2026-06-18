@@ -47,14 +47,24 @@ interface MobileFiltersProps {
   collections: Collection[];
   priceSources?: PriceSourceForFilter[];
   className?: string;
+  /** SSR product count from server parent — avoids 0 → N jump on hydration. */
+  resultsCount?: number;
+  /** SSR active filter count parsed from URL search params. */
+  initialFilterCount?: number;
 }
 
-export function MobileFilters({ collections, priceSources = [], className }: MobileFiltersProps) {
+export function MobileFilters({
+  collections,
+  priceSources = [],
+  className,
+  resultsCount: resultsCountProp,
+  initialFilterCount = 0,
+}: MobileFiltersProps) {
   const { t } = useTranslations();
   const paths = useLocalizedPaths();
-  const filterCount = useFilterCount();
-  const { products, originalProducts, setProducts } = useProducts();
-  const [isMounted, setIsMounted] = React.useState(false);
+  const clientFilterCount = useFilterCount();
+  const { products, originalProducts, setProducts, serverResultsCount } =
+    useProducts();
   const pathname = usePathname();
   const router = useRouter();
   const isColorCategoryPage =
@@ -123,13 +133,11 @@ export function MobileFilters({ collections, priceSources = [], className }: Mob
     return true;
   };
 
-  React.useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  // Avoid hydration mismatch: products/filter state may update before this component hydrates.
-  const safeResultsCount = isMounted ? products.length : 0;
-  const safeFilterCount = isMounted ? filterCount : 0;
+  const displayResultsCount =
+    resultsCountProp ??
+    (products.length > 0 ? products.length : serverResultsCount);
+  const displayFilterCount =
+    clientFilterCount > 0 ? clientFilterCount : initialFilterCount;
 
   return (
     <div className="bg-transparent md:hidden overflow-x-clip">
@@ -144,14 +152,19 @@ export function MobileFilters({ collections, priceSources = [], className }: Mob
               className="justify-self-start text-sm font-semibold text-foreground"
             >
               {t("shop.filters")}{" "}
-              {safeFilterCount > 0 && (
-                <span className="text-foreground/50">({safeFilterCount})</span>
-              )}
+              <span
+                className={cn(
+                  "text-foreground/50 tabular-nums min-w-[2ch] inline-block text-center",
+                  displayFilterCount === 0 && "invisible",
+                )}
+              >
+                ({displayFilterCount || 0})
+              </span>
             </Button>
           </DrawerTrigger>
 
           {/* Results count */}
-          <ResultsCount count={safeResultsCount} />
+          <ResultsCount count={displayResultsCount} />
 
           {/* Sort by */}
           <SortDropdown className="justify-self-end" />
@@ -162,19 +175,24 @@ export function MobileFilters({ collections, priceSources = [], className }: Mob
           <DrawerHeader className="flex justify-between items-center">
             <DrawerTitle>
               {t("shop.filters")}{" "}
-              {safeFilterCount > 0 && (
-                <span className="text-muted-foreground">({safeFilterCount})</span>
-              )}
+              <span
+                className={cn(
+                  "text-muted-foreground tabular-nums",
+                  displayFilterCount === 0 && "invisible",
+                )}
+              >
+                ({displayFilterCount || 0})
+              </span>
             </DrawerTitle>
             <Button
               size="sm"
               variant="ghost"
               className={cn(
                 "font-medium text-foreground/50 hover:text-foreground/60 transition-opacity",
-                safeFilterCount === 0 && "opacity-0 pointer-events-none",
+                displayFilterCount === 0 && "opacity-0 pointer-events-none",
               )}
-              disabled={safeFilterCount === 0}
-              asChild={safeFilterCount > 0}
+              disabled={displayFilterCount === 0}
+              asChild={displayFilterCount > 0}
             >
               <Link href={paths.shop} prefetch>
                 {t("shop.clear")}

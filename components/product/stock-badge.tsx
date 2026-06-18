@@ -16,6 +16,21 @@ interface StockBadgeProps {
   className?: string;
 }
 
+const badgeShellClassName =
+  "inline-flex items-center justify-center gap-0.5 md:gap-1 rounded-full px-1 md:px-1.5 py-0.5 text-[7px] md:text-[9px] font-medium w-[52px] md:w-[70px]";
+
+function StockBadgePlaceholder({ className }: { className?: string }) {
+  return (
+    <span
+      aria-hidden
+      className={cn(badgeShellClassName, "invisible shrink-0", className)}
+    >
+      <span className="size-1 md:size-1.5 rounded-full shrink-0" />
+      <span className="whitespace-nowrap">In stock</span>
+    </span>
+  );
+}
+
 /**
  * In stock / Few left / Out of stock badge. Only visible on dirtywine.se for business members
  * and on business invite pages. Premium design with configurable few-left threshold.
@@ -31,7 +46,6 @@ export function StockBadge({
   const [isMounted, setIsMounted] = useState(false);
   const [fewLeftThreshold, setFewLeftThreshold] = useState(5);
 
-  // Hydration safety: only show badge after client-side mount
   useEffect(() => {
     setIsMounted(true);
   }, []);
@@ -45,11 +59,17 @@ export function StockBadge({
       .catch(() => {});
   }, []);
 
-  // Show badge in B2B mode or on tasting summary (so all cards show In stock / Out of stock)
   const onTastingSummary = pathname?.includes("/tasting/");
+  const mayShowBadge =
+    onTastingSummary || typeof b2bStock === "number" || isB2B;
   const showBadge = isMounted && (isB2B || onTastingSummary);
 
-  if (!showBadge) return null;
+  if (!showBadge) {
+    if (mayShowBadge && !isMounted) {
+      return <StockBadgePlaceholder className={className} />;
+    }
+    return null;
+  }
 
   // In stock endast när b2b_stock är ett tal och >= 1. Null, undefined och 0 = Out of stock.
   const stock = b2bStock;
@@ -72,7 +92,7 @@ export function StockBadge({
   return (
     <span
       className={cn(
-        "inline-flex items-center justify-center gap-0.5 md:gap-1 rounded-full px-1 md:px-1.5 py-0.5 text-[7px] md:text-[9px] font-medium",
+        badgeShellClassName,
         status === "out" &&
           "bg-muted text-muted-foreground w-[62px] md:w-[80px]",
         status === "few" &&

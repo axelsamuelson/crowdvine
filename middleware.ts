@@ -32,6 +32,7 @@ function nextWithPathname(req: NextRequest): NextResponse {
   const pathname = req.nextUrl.pathname;
   const requestHeaders = new Headers(req.headers);
   requestHeaders.set("x-pathname", pathname);
+  requestHeaders.set("x-search", req.nextUrl.search);
 
   const pathLocale = localeFromShopPath(pathname);
   if (pathLocale) {

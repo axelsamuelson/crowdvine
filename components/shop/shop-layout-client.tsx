@@ -13,10 +13,12 @@ export function ShopLayoutClient({
   children,
   collections,
   priceSources,
+  initialFilterCount = 0,
 }: {
   children: ReactNode;
   collections: Collection[];
   priceSources: PriceSourceForFilter[];
+  initialFilterCount?: number;
 }) {
   return (
     <ProductsProvider>
@@ -28,17 +30,20 @@ export function ShopLayoutClient({
             className="col-span-3 max-md:hidden"
           />
         </Suspense>
-        <div className="md:hidden sticky top-top-spacing z-40 bg-transparent">
+        <div className="col-span-9 flex flex-col">
+          <Suspense fallback={null}>{children}</Suspense>
+        </div>
+        <div className="md:hidden sticky top-top-spacing z-40 bg-transparent order-first md:order-none col-span-12">
           <div className="px-sides pt-1">
             <CompleteOrderRail showMobile />
           </div>
           <Suspense fallback={null}>
-            <MobileFilters collections={collections} priceSources={priceSources} />
+            <MobileFilters
+              collections={collections}
+              priceSources={priceSources}
+              initialFilterCount={initialFilterCount}
+            />
           </Suspense>
-        </div>
-
-        <div className="col-span-9 flex flex-col">
-          <Suspense fallback={null}>{children}</Suspense>
         </div>
       </div>
     </ProductsProvider>
