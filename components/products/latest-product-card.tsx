@@ -44,12 +44,12 @@ export function LatestProductCard({
         >
           {hasImage ? (
             <Image
-              priority
               src={product.featuredImage.url}
               alt={product.featuredImage.altText || product.title}
               width={1000}
               height={100}
               quality={100}
+              sizes="(max-width: 768px) 100vw, 66vw"
               className="object-cover size-full flex-1"
             />
           ) : (

@@ -31,11 +31,6 @@ export async function generateMetadata(): Promise<Metadata> {
     description,
     alternates: {
       canonical: producersUrl,
-      languages: {
-        sv: "https://pactwines.com/producers",
-        en: "https://pactwines.com/producers",
-        "x-default": "https://pactwines.com/producers",
-      },
     },
     openGraph: {
       title,

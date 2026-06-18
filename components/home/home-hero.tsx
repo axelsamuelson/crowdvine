@@ -51,23 +51,22 @@ export function HomeHero({ className }: { className?: string }) {
     >
       <div className="relative min-h-fold w-full overflow-hidden rounded-[12px]">
         <Image
-          src="/images/hero_bild_4.png"
+          src="/images/hero_bild_4.webp"
           alt=""
           aria-hidden
           fill
           priority
           fetchPriority="high"
           className="pointer-events-none object-cover md:hidden"
-          sizes="(max-width: 768px) 100vw, 96vw"
+          sizes="(max-width: 767px) calc(100vw - 2rem), 1px"
         />
         <Image
-          src="/images/hero_bild_5.png"
+          src="/images/hero_bild_5.webp"
           alt=""
           aria-hidden
           fill
-          priority
           className="pointer-events-none hidden object-cover md:block"
-          sizes="(max-width: 768px) 100vw, 96vw"
+          sizes="(min-width: 768px) calc(100vw - 3rem), 1px"
         />
 
         <div

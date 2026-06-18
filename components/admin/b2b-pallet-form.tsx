@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, Fragment } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -76,6 +77,7 @@ import {
   resolveEffectiveB2bPickupProducer,
   type B2bPickupProducerInfo,
 } from "@/lib/b2b-pallet-pickup";
+import { DEFAULT_WINE_IMAGE_PATH } from "@/lib/constants";
 
 const inputClass =
   "h-10 border-gray-200 bg-white text-gray-900 placeholder:text-gray-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder:text-zinc-500";
@@ -93,12 +95,56 @@ interface Wine {
   wine_name: string;
   vintage: string;
   color?: string | null;
+  label_image_path?: string | null;
   cost_amount?: number;
   cost_currency?: string;
   exchange_rate?: number;
   alcohol_tax_cents?: number;
   producers?: B2bPickupProducerInfo | null;
   costCentsExVat?: number;
+}
+
+function getWineImageSrc(path: string | null | undefined): string {
+  if (!path) return DEFAULT_WINE_IMAGE_PATH;
+  const clean = path.trim().replace(/\n/g, "");
+  if (clean.startsWith("http")) return clean;
+  if (clean.startsWith("/uploads/")) {
+    return `/api/images/${clean.replace("/uploads/", "")}`;
+  }
+  if (clean.startsWith("/")) return clean;
+  return `/api/images/${clean}`;
+}
+
+function WineThumb({
+  wine,
+  size = 40,
+  className,
+}: {
+  wine?: Pick<Wine, "wine_name" | "vintage" | "label_image_path"> | null;
+  size?: number;
+  className?: string;
+}) {
+  const alt = wine
+    ? `${wine.wine_name} ${wine.vintage}`.trim()
+    : "Vin";
+
+  return (
+    <div
+      className={cn(
+        "relative shrink-0 overflow-hidden rounded-md bg-gray-100 dark:bg-zinc-800",
+        className,
+      )}
+      style={{ width: size, height: size }}
+    >
+      <Image
+        src={getWineImageSrc(wine?.label_image_path)}
+        alt={alt}
+        fill
+        className="object-cover"
+        sizes={`${size}px`}
+      />
+    </div>
+  );
 }
 
 interface PalletItem {
@@ -1072,9 +1118,10 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
                         }}
                         className="flex w-full items-start gap-2 px-3 py-2.5 text-left text-sm text-gray-900 hover:bg-gray-100 dark:text-zinc-100 dark:hover:bg-zinc-800"
                       >
+                        <WineThumb wine={w} size={36} className="mt-0.5" />
                         <span
                           className={cn(
-                            "mt-1.5 inline-block h-2.5 w-2.5 shrink-0 rounded-full",
+                            "mt-2.5 inline-block h-2.5 w-2.5 shrink-0 rounded-full",
                             wineColorDotClass(w.color),
                           )}
                           aria-hidden
@@ -1289,6 +1336,7 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
                                           className="py-2 pl-8"
                                         >
                                           <div className="flex min-w-0 items-center gap-2 text-sm">
+                                            <WineThumb wine={entry.wine} size={32} />
                                             <span
                                               className={cn(
                                                 "inline-block h-2.5 w-2.5 shrink-0 rounded-full",
@@ -1388,6 +1436,7 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
                                                     key={wine.id}
                                                     className="flex items-center gap-3 border-b border-gray-100 px-4 py-2.5 pl-16 last:border-b-0 dark:border-zinc-800/80"
                                                   >
+                                                    <WineThumb wine={wine} size={32} />
                                                     <span
                                                       className={cn(
                                                         "inline-block h-2.5 w-2.5 shrink-0 rounded-full",
@@ -1481,10 +1530,13 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
                               className="border-gray-100 hover:bg-gray-50/80 dark:border-zinc-800/80 dark:hover:bg-zinc-900/50"
                             >
                               <TableCell>
-                                <div className="font-medium text-gray-900 dark:text-zinc-100">
-                                  {wineForCost
-                                    ? `${wineForCost.wine_name} ${wineForCost.vintage}`
-                                    : item.wine_id}
+                                <div className="flex min-w-0 items-center gap-3">
+                                  <WineThumb wine={wineForCost} size={48} />
+                                  <div className="min-w-0 font-medium text-gray-900 dark:text-zinc-100">
+                                    {wineForCost
+                                      ? `${wineForCost.wine_name} ${wineForCost.vintage}`
+                                      : item.wine_id}
+                                  </div>
                                 </div>
                               </TableCell>
                               <TableCell className="text-sm text-gray-600 dark:text-zinc-400">

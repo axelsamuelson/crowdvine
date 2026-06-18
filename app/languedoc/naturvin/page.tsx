@@ -31,11 +31,6 @@ export async function generateMetadata(): Promise<Metadata> {
       "Languedoc är hjärtat i den franska naturvinsrörelsen. Köp naturvin direkt från små producenter i Saint-Chinian och Faugères. Hemleverans i Stockholm.",
     alternates: {
       canonical: pageUrl,
-      languages: {
-        sv: "https://pactwines.com/languedoc/naturvin",
-        en: "https://pactwines.com/languedoc/naturvin",
-        "x-default": "https://pactwines.com/languedoc/naturvin",
-      },
     },
     openGraph: {
       title: "Naturvin från Languedoc — köp direkt från producenten",
@@ -310,7 +305,7 @@ export default async function LanguedocNaturvinPage() {
               href={paths.shopCategory("naturvin-languedoc")}
               className="rounded-full border border-background/30 px-6 py-2.5 text-sm font-medium text-background transition-colors hover:border-background/60"
             >
-              Se naturvin från Languedoc i butiken →
+              Se alla naturviner från Languedoc
             </Link>
           </div>
         </div>

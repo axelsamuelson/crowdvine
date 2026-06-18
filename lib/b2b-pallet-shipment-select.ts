@@ -23,6 +23,7 @@ export const B2B_PALLET_SHIPMENT_SELECT = `
       wine_name,
       vintage,
       color,
+      label_image_path,
       cost_amount,
       cost_currency,
       exchange_rate,

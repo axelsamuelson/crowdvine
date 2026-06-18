@@ -25,11 +25,6 @@ export async function generateMetadata(): Promise<Metadata> {
       "Languedoc är Frankrikes största vinregion med 240 000 hektar vingårdar. Lär dig om appellationer, druvor, klimat och varför regionen producerar några av Frankrikes bästa naturviner.",
     alternates: {
       canonical: pageUrl,
-      languages: {
-        sv: "https://pactwines.com/languedoc",
-        en: "https://pactwines.com/languedoc",
-        "x-default": "https://pactwines.com/languedoc",
-      },
     },
     openGraph: {
       title: "Languedoc — Frankrikes mest spännande vinregion",

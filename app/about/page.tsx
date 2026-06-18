@@ -2,36 +2,54 @@ import type { Metadata } from "next";
 import { Footer } from "@/components/layout/footer";
 import { getSiteConfig } from "@/lib/site-config";
 
+const ABOUT_TITLE =
+  "Om PACT Wines — Direktimport av naturvin från Languedoc till Stockholm";
+const ABOUT_DESCRIPTION =
+  "PACT är en direktimportör av naturvin från småproducenter i Languedoc. Vi samlar beställningar tills en pall är full — sedan skickar producenten direkt till dig.";
+
 export async function generateMetadata(): Promise<Metadata> {
   const config = await getSiteConfig();
   const aboutUrl = `${config.baseUrl}/about`;
-  const title =
-    "Om PACT Wines — Direktimport av naturvin från Languedoc till Stockholm";
-  const description =
-    "PACT är en direktimportör av naturvin från småproducenter i Languedoc. Vi samlar beställningar tills en pall är full — sedan skickar producenten direkt till dig.";
   return {
-    title,
-    description,
+    title: ABOUT_TITLE,
+    description: ABOUT_DESCRIPTION,
     alternates: {
       canonical: aboutUrl,
-      languages: {
-        sv: "https://pactwines.com/about",
-        en: "https://pactwines.com/about",
-        "x-default": "https://pactwines.com/about",
-      },
     },
     openGraph: {
-      title,
-      description,
+      title: ABOUT_TITLE,
+      description: ABOUT_DESCRIPTION,
       url: aboutUrl,
       type: "website",
     },
   };
 }
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  const config = await getSiteConfig();
+  const aboutUrl = `${config.baseUrl}/about`;
+
+  const webPageJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    name: ABOUT_TITLE,
+    description: ABOUT_DESCRIPTION,
+    url: aboutUrl,
+    isPartOf: {
+      "@type": "WebSite",
+      name: config.name,
+      url: config.baseUrl,
+    },
+  };
+
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(webPageJsonLd),
+        }}
+      />
       <main className="min-h-screen bg-gradient-to-b from-background to-muted/20">
         {/* Hero Section */}
         <section className="p-sides pt-top-spacing pb-24 md:pb-32">
