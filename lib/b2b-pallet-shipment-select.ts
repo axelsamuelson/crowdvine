@@ -28,6 +28,8 @@ export const B2B_PALLET_SHIPMENT_SELECT = `
       cost_currency,
       exchange_rate,
       alcohol_tax_cents,
+      b2b_margin_percentage,
+      available_for_sale,
       producers(
         id,
         name,

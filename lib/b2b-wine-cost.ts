@@ -1,3 +1,5 @@
+import { resolveWineAlcoholTaxCents } from "@/lib/wine-retail-pricing";
+
 export type WineCostFields = {
   cost_amount?: number;
   cost_currency?: string | null;
@@ -30,7 +32,7 @@ export function getWineCostCentsExVat(
 ): number {
   const costAmount = wine.cost_amount ?? 0;
   const exchangeRate = getEffectiveExchangeRate(wine, rateMap);
-  const alcoholTaxCents = wine.alcohol_tax_cents ?? 0;
+  const alcoholTaxCents = resolveWineAlcoholTaxCents(wine.alcohol_tax_cents);
   const costInSek = costAmount * exchangeRate + alcoholTaxCents / 100;
   return Math.round(costInSek * 100);
 }
@@ -47,7 +49,7 @@ export function getWinePurchaseCostCentsPerBottle(
 
 /** Alkoholskatt per flaska i öre. */
 export function getWineAlcoholTaxCentsPerBottle(wine: WineCostFields): number {
-  return wine.alcohol_tax_cents ?? 0;
+  return resolveWineAlcoholTaxCents(wine.alcohol_tax_cents);
 }
 
 export type PalletLineCost = {

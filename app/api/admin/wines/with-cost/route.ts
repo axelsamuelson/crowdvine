@@ -3,6 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getCurrentAdmin } from "@/lib/admin-auth-server";
 import { getCurrentUser } from "@/lib/auth";
 import { getAppUrl } from "@/lib/app-url";
+import { resolveWineAlcoholTaxCents } from "@/lib/wine-retail-pricing";
 
 /**
  * GET /api/admin/wines/with-cost
@@ -50,6 +51,8 @@ export async function GET(request: NextRequest) {
         cost_currency,
         exchange_rate,
         alcohol_tax_cents,
+        b2b_margin_percentage,
+        available_for_sale,
         producers(id, name, is_pallet_zone, address_street, address_city, address_postcode, region, subregion, lat, lon)
       `)
       .order("wine_name")
@@ -99,7 +102,7 @@ export async function GET(request: NextRequest) {
       const costCurrency = (w.cost_currency || "SEK") as string;
       const exchangeRate =
         w.exchange_rate ?? rateMap.get(costCurrency) ?? 1;
-      const alcoholTaxCents = w.alcohol_tax_cents ?? 0;
+      const alcoholTaxCents = resolveWineAlcoholTaxCents(w.alcohol_tax_cents);
 
       const costInSek = costAmount * exchangeRate + alcoholTaxCents / 100;
       const costCentsExVat = Math.round(costInSek * 100);
@@ -107,6 +110,7 @@ export async function GET(request: NextRequest) {
       return {
         ...w,
         exchange_rate: exchangeRate,
+        alcohol_tax_cents: alcoholTaxCents,
         costCentsExVat,
       };
     });

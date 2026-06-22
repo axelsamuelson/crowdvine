@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, Fragment } from "react";
+import { useState, useEffect, useMemo, useCallback, Fragment } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -34,7 +34,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { ArrowLeft, Trash2, ChevronsUpDown, ChevronRight, Plus } from "lucide-react";
+import { ArrowLeft, Trash2, ChevronsUpDown, ChevronRight, Plus, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
@@ -78,6 +78,21 @@ import {
   type B2bPickupProducerInfo,
 } from "@/lib/b2b-pallet-pickup";
 import { DEFAULT_WINE_IMAGE_PATH } from "@/lib/constants";
+import { isWineAvailableForSale } from "@/lib/wine-availability";
+import {
+  sortPalletItems,
+  sortProducerSummaryRows,
+  toggleSortDirection,
+  type PalletProducerSortKey,
+  type PalletWineSortKey,
+  type SortDirection,
+} from "@/lib/b2b-pallet-item-sort";
+import {
+  commercialLineColumnLabel,
+  commercialPriceColumnLabel,
+  computePalletCommercialSummary,
+  DEFAULT_B2B_MARGIN_PERCENT,
+} from "@/lib/b2b-pallet-commercial";
 
 const inputClass =
   "h-10 border-gray-200 bg-white text-gray-900 placeholder:text-gray-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder:text-zinc-500";
@@ -100,6 +115,8 @@ interface Wine {
   cost_currency?: string;
   exchange_rate?: number;
   alcohol_tax_cents?: number;
+  b2b_margin_percentage?: number | null;
+  available_for_sale?: boolean | null;
   producers?: B2bPickupProducerInfo | null;
   costCentsExVat?: number;
 }
@@ -160,6 +177,70 @@ function getWineSearchLabel(w: Wine): string {
   return producer ? `${name} — ${producer}` : name;
 }
 
+function WineOosBadge({ className }: { className?: string }) {
+  return (
+    <Badge
+      variant="outline"
+      className={cn(
+        "shrink-0 border-red-300 bg-red-50 px-1.5 py-0 text-[10px] font-semibold uppercase tracking-wide text-red-700 dark:border-red-800 dark:bg-red-950/50 dark:text-red-400",
+        className,
+      )}
+    >
+      OOS
+    </Badge>
+  );
+}
+
+function canAddWineToPallet(wine: Pick<Wine, "available_for_sale">): boolean {
+  return isWineAvailableForSale(wine.available_for_sale);
+}
+
+function SortableTableHead({
+  label,
+  sortKey,
+  activeKey,
+  direction,
+  onSort,
+  align = "left",
+  className,
+}: {
+  label: string;
+  sortKey: string;
+  activeKey: string;
+  direction: SortDirection;
+  onSort: (key: string) => void;
+  align?: "left" | "right";
+  className?: string;
+}) {
+  const active = activeKey === sortKey;
+  return (
+    <TableHead className={className}>
+      <button
+        type="button"
+        onClick={() => onSort(sortKey)}
+        className={cn(
+          "inline-flex w-full items-center gap-1 text-xs font-medium transition-colors hover:text-gray-900 dark:hover:text-zinc-100",
+          align === "right" ? "justify-end" : "justify-start",
+          active
+            ? "text-gray-900 dark:text-zinc-100"
+            : "text-gray-600 dark:text-zinc-400",
+        )}
+      >
+        <span>{label}</span>
+        {active ? (
+          direction === "asc" ? (
+            <ArrowUp className="h-3.5 w-3.5 shrink-0" aria-hidden />
+          ) : (
+            <ArrowDown className="h-3.5 w-3.5 shrink-0" aria-hidden />
+          )
+        ) : (
+          <ArrowUpDown className="h-3.5 w-3.5 shrink-0 opacity-40" aria-hidden />
+        )}
+      </button>
+    </TableHead>
+  );
+}
+
 export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
   const router = useRouter();
   const isEdit = !!shipmentId;
@@ -179,6 +260,8 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
   const [wineSearchQuery, setWineSearchQuery] = useState("");
   const [wineProducerFilter, setWineProducerFilter] = useState("");
   const [wineColorFilter, setWineColorFilter] = useState("");
+  const [palletColorFilter, setPalletColorFilter] = useState("");
+  const [palletProducerFilter, setPalletProducerFilter] = useState("");
   const [showProducerSummary, setShowProducerSummary] = useState(false);
   const [expandedProducers, setExpandedProducers] = useState<Set<string>>(
     new Set(),
@@ -193,6 +276,13 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
     null,
   );
   const [optimalPickupLoading, setOptimalPickupLoading] = useState(false);
+  const [wineSortKey, setWineSortKey] = useState<PalletWineSortKey>("wine");
+  const [wineSortDir, setWineSortDir] = useState<SortDirection>("asc");
+  const [producerSortKey, setProducerSortKey] =
+    useState<PalletProducerSortKey>("bottles");
+  const [producerSortDir, setProducerSortDir] = useState<SortDirection>("desc");
+  const [commercialMarginPercent, setCommercialMarginPercent] = useState("");
+  const [showInclVat, setShowInclVat] = useState(false);
 
   useEffect(() => {
     const fetchWines = async () => {
@@ -270,6 +360,10 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
   }, [isEdit, shipmentId]);
 
   const addWine = (wine: Wine, options?: { keepComboboxOpen?: boolean }) => {
+    if (!canAddWineToPallet(wine)) {
+      toast.error("Vinet är otillgängligt (OOS) och kan inte läggas till på pallen");
+      return;
+    }
     if (items.some((i) => i.wine_id === wine.id)) {
       toast.error("Vinet finns redan i listan");
       return;
@@ -354,9 +448,18 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
         throw new Error(data.error || "Något gick fel");
       }
 
+      const data = await res.json().catch(() => null);
       toast.success(isEdit ? "Pallen uppdaterad" : "Pallen skapad");
-      router.push(`/admin/pallets?tab=b2b&_=${Date.now()}`);
-      router.refresh();
+
+      if (isEdit) {
+        router.refresh();
+      } else if (data?.id) {
+        router.push(`/admin/pallets/b2b/${data.id}/edit`);
+        router.refresh();
+      } else {
+        router.push(`/admin/pallets?tab=b2b&_=${Date.now()}`);
+        router.refresh();
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Något gick fel");
     } finally {
@@ -434,6 +537,31 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
     [items, wines, palletCostCentsNum, fxRates],
   );
 
+  const marginOverrideNum = useMemo(() => {
+    const raw = commercialMarginPercent.trim();
+    if (!raw) return null;
+    const n = parseFloat(raw);
+    if (Number.isNaN(n) || n < 0 || n >= 100) return null;
+    return n;
+  }, [commercialMarginPercent]);
+
+  const commercialSummary = useMemo(
+    () =>
+      computePalletCommercialSummary(
+        items.map((item) => ({
+          wine_id: item.wine_id,
+          quantity: item.quantity,
+          cost_cents_override: item.cost_cents_override,
+          wine: wines.find((w) => w.id === item.wine_id) ?? item.wine,
+        })),
+        palletCostCentsNum,
+        marginOverrideNum,
+        showInclVat,
+        fxRates,
+      ),
+    [items, wines, palletCostCentsNum, marginOverrideNum, showInclVat, fxRates],
+  );
+
   const colorCounts = useMemo(
     () =>
       computePalletColorCounts(
@@ -491,12 +619,77 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
             : b.wine_id;
           return labelA.localeCompare(labelB, "sv");
         }),
-      }))
-      .sort(
-        (a, b) =>
-          b.bottles - a.bottles || a.name.localeCompare(b.name, "sv"),
-      );
+      }));
   }, [items, wines]);
+
+  const sortedItems = useMemo(() => {
+    const withWine = items.map((item) => ({
+      ...item,
+      wine: wines.find((w) => w.id === item.wine_id) ?? item.wine,
+    }));
+    return sortPalletItems(
+      withWine,
+      wineSortKey,
+      wineSortDir,
+      fxRates,
+      commercialSummary.lineByWineId,
+    );
+  }, [
+    items,
+    wines,
+    wineSortKey,
+    wineSortDir,
+    fxRates,
+    commercialSummary.lineByWineId,
+  ]);
+
+  const palletColorOptions = useMemo(() => {
+    const colors = new Set<string>();
+    for (const item of sortedItems) {
+      const c = item.wine?.color?.trim();
+      if (c) colors.add(c);
+    }
+    return Array.from(colors).sort((a, b) => a.localeCompare(b, "sv"));
+  }, [sortedItems]);
+
+  const palletProducerOptions = useMemo(() => {
+    const names = new Set<string>();
+    for (const item of sortedItems) {
+      const n = item.wine?.producers?.name?.trim();
+      if (n) names.add(n);
+    }
+    return Array.from(names).sort((a, b) => a.localeCompare(b, "sv"));
+  }, [sortedItems]);
+
+  const itemMatchesPalletFilter = useCallback(
+    (wine: Wine | undefined) => {
+      if (
+        palletProducerFilter &&
+        wine?.producers?.name !== palletProducerFilter
+      ) {
+        return false;
+      }
+      if (
+        palletColorFilter &&
+        (wine?.color?.trim() || "") !== palletColorFilter
+      ) {
+        return false;
+      }
+      return true;
+    },
+    [palletProducerFilter, palletColorFilter],
+  );
+
+  const filteredSortedItems = useMemo(
+    () => sortedItems.filter((item) => itemMatchesPalletFilter(item.wine)),
+    [sortedItems, itemMatchesPalletFilter],
+  );
+
+  const handleWineSort = (key: string) => {
+    const nextKey = key as PalletWineSortKey;
+    setWineSortDir((dir) => toggleSortDirection(wineSortKey, nextKey, dir));
+    setWineSortKey(nextKey);
+  };
 
   const pickupResolution = useMemo(() => {
     return resolveB2bPickupProducer(
@@ -531,6 +724,65 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
       autoResolution: pickupResolution,
     });
   }, [pickupProducerId, producersOnPallet, pickupResolution]);
+
+  const sortedProducerSummary = useMemo(() => {
+    return sortProducerSummaryRows(
+      producerSummary,
+      producerSortKey,
+      producerSortDir,
+      {
+        drivingRoutes,
+        pickupProducerId: effectivePickup.producer?.id ?? null,
+      },
+    );
+  }, [
+    producerSummary,
+    producerSortKey,
+    producerSortDir,
+    drivingRoutes,
+    effectivePickup.producer?.id,
+  ]);
+
+  const filteredProducerSummary = useMemo(() => {
+    if (!palletProducerFilter && !palletColorFilter) {
+      return sortedProducerSummary;
+    }
+    return sortedProducerSummary
+      .map((row) => {
+        const matchingWines = row.wines.filter((w) =>
+          itemMatchesPalletFilter(w.wine),
+        );
+        return {
+          ...row,
+          wines: matchingWines,
+          wineCount: matchingWines.length,
+          bottles: matchingWines.reduce((s, w) => s + w.quantity, 0),
+        };
+      })
+      .filter((row) => row.wines.length > 0);
+  }, [
+    sortedProducerSummary,
+    palletProducerFilter,
+    palletColorFilter,
+    itemMatchesPalletFilter,
+  ]);
+
+  const hasPalletFilters =
+    palletProducerFilter !== "" || palletColorFilter !== "";
+
+  const filteredPalletWineCount = useMemo(
+    () =>
+      filteredProducerSummary.reduce((sum, row) => sum + row.wineCount, 0),
+    [filteredProducerSummary],
+  );
+
+  const handleProducerSort = (key: string) => {
+    const nextKey = key as PalletProducerSortKey;
+    setProducerSortDir((dir) =>
+      toggleSortDirection(producerSortKey, nextKey, dir),
+    );
+    setProducerSortKey(nextKey);
+  };
 
   useEffect(() => {
     if (
@@ -1108,43 +1360,67 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
                         : "Inga viner hittades."}
                     </p>
                   ) : (
-                    filteredAvailableWines.map((w) => (
-                      <button
-                        key={w.id}
-                        type="button"
-                        onClick={() => {
-                          addWine(w);
-                          setWineSearchQuery("");
-                        }}
-                        className="flex w-full items-start gap-2 px-3 py-2.5 text-left text-sm text-gray-900 hover:bg-gray-100 dark:text-zinc-100 dark:hover:bg-zinc-800"
-                      >
-                        <WineThumb wine={w} size={36} className="mt-0.5" />
-                        <span
-                          className={cn(
-                            "mt-2.5 inline-block h-2.5 w-2.5 shrink-0 rounded-full",
-                            wineColorDotClass(w.color),
-                          )}
-                          aria-hidden
-                        />
-                        <span className="min-w-0 flex-1 truncate">
-                          <span className="font-medium">
-                            {w.wine_name} {w.vintage}
+                    filteredAvailableWines.map((w) => {
+                      const addable = canAddWineToPallet(w);
+                      const rowClass = cn(
+                        "flex w-full items-start gap-2 px-3 py-2.5 text-left text-sm",
+                        addable
+                          ? "text-gray-900 hover:bg-gray-100 dark:text-zinc-100 dark:hover:bg-zinc-800"
+                          : "cursor-not-allowed bg-gray-50/80 text-gray-500 dark:bg-zinc-900/40 dark:text-zinc-500",
+                      );
+                      const content = (
+                        <>
+                          <WineThumb wine={w} size={36} className="mt-0.5" />
+                          <span
+                            className={cn(
+                              "mt-2.5 inline-block h-2.5 w-2.5 shrink-0 rounded-full",
+                              wineColorDotClass(w.color),
+                            )}
+                            aria-hidden
+                          />
+                          <span className="min-w-0 flex-1 truncate">
+                            <span className={cn("font-medium", !addable && "opacity-80")}>
+                              {w.wine_name} {w.vintage}
+                            </span>
+                            {w.producers?.name && (
+                              <span className="text-gray-500 dark:text-zinc-400">
+                                {" "}
+                                · {w.producers.name}
+                              </span>
+                            )}
+                            {w.color?.trim() && (
+                              <span className="text-gray-400 dark:text-zinc-500">
+                                {" "}
+                                · {w.color}
+                              </span>
+                            )}
                           </span>
-                          {w.producers?.name && (
-                            <span className="text-gray-500 dark:text-zinc-400">
-                              {" "}
-                              · {w.producers.name}
-                            </span>
-                          )}
-                          {w.color?.trim() && (
-                            <span className="text-gray-400 dark:text-zinc-500">
-                              {" "}
-                              · {w.color}
-                            </span>
-                          )}
-                        </span>
-                      </button>
-                    ))
+                          {!addable ? <WineOosBadge className="mt-1.5" /> : null}
+                        </>
+                      );
+                      return addable ? (
+                        <button
+                          key={w.id}
+                          type="button"
+                          onClick={() => {
+                            addWine(w);
+                            setWineSearchQuery("");
+                          }}
+                          className={rowClass}
+                        >
+                          {content}
+                        </button>
+                      ) : (
+                        <div
+                          key={w.id}
+                          className={rowClass}
+                          aria-disabled
+                          title="Otillgängligt – kan inte läggas till på pallen"
+                        >
+                          {content}
+                        </div>
+                      );
+                    })
                   )}
                 </div>
               </PopoverContent>
@@ -1174,7 +1450,165 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
                   </TabsList>
                 </Tabs>
               )}
+              {items.length > 0 && (
+                <p className={cn("shrink-0", hintClass)}>
+                  Klicka på kolumnrubriker för att sortera.
+                </p>
+              )}
             </div>
+
+            {items.length > 0 &&
+            (palletColorOptions.length > 0 ||
+              palletProducerOptions.length > 0) ? (
+              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+                <div className="grid w-full grid-cols-1 gap-2 sm:max-w-md sm:grid-cols-2">
+                  {palletProducerOptions.length > 0 ? (
+                    <div className="space-y-1">
+                      <Label className="text-xs text-gray-500 dark:text-zinc-400">
+                        Filtrera producent
+                      </Label>
+                      <Select
+                        value={palletProducerFilter || "__all__"}
+                        onValueChange={(v) =>
+                          setPalletProducerFilter(v === "__all__" ? "" : v)
+                        }
+                      >
+                        <SelectTrigger className={selectTriggerClass}>
+                          <SelectValue placeholder="Alla producenter" />
+                        </SelectTrigger>
+                        <SelectContent className="border-gray-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
+                          <SelectItem value="__all__">
+                            Alla producenter
+                          </SelectItem>
+                          {palletProducerOptions.map((name) => (
+                            <SelectItem key={name} value={name}>
+                              {name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  ) : null}
+                  {palletColorOptions.length > 0 ? (
+                    <div className="space-y-1">
+                      <Label className="text-xs text-gray-500 dark:text-zinc-400">
+                        Filtrera färg
+                      </Label>
+                      <Select
+                        value={palletColorFilter || "__all__"}
+                        onValueChange={(v) =>
+                          setPalletColorFilter(v === "__all__" ? "" : v)
+                        }
+                      >
+                        <SelectTrigger className={selectTriggerClass}>
+                          <SelectValue placeholder="Alla färger" />
+                        </SelectTrigger>
+                        <SelectContent className="border-gray-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
+                          <SelectItem value="__all__">Alla färger</SelectItem>
+                          {palletColorOptions.map((color) => (
+                            <SelectItem key={color} value={color}>
+                              <span className="inline-flex items-center gap-2">
+                                <span
+                                  className={cn(
+                                    "inline-block h-2.5 w-2.5 shrink-0 rounded-full",
+                                    wineColorDotClass(color),
+                                  )}
+                                  aria-hidden
+                                />
+                                {color}
+                              </span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  ) : null}
+                </div>
+                {hasPalletFilters ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-9 text-xs"
+                    onClick={() => {
+                      setPalletColorFilter("");
+                      setPalletProducerFilter("");
+                    }}
+                  >
+                    Rensa filter
+                  </Button>
+                ) : null}
+                {hasPalletFilters ? (
+                  <p className={cn("sm:ml-auto", hintClass)}>
+                    Visar {filteredPalletWineCount} av {sortedItems.length}{" "}
+                    viner
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+
+            {items.length > 0 && !showProducerSummary && (
+              <div className="flex flex-col gap-4 rounded-xl border border-gray-200 bg-gray-50/60 p-4 dark:border-zinc-800 dark:bg-zinc-900/40 sm:flex-row sm:flex-wrap sm:items-end">
+                <div className="space-y-2 sm:w-40">
+                  <Label htmlFor="commercial_margin" className={labelClass}>
+                    B2B-marginal (%)
+                  </Label>
+                  <Input
+                    id="commercial_margin"
+                    type="number"
+                    min={0}
+                    max={99.9}
+                    step={0.5}
+                    placeholder={`${DEFAULT_B2B_MARGIN_PERCENT} (standard)`}
+                    value={commercialMarginPercent}
+                    onChange={(e) => setCommercialMarginPercent(e.target.value)}
+                    className={inputSmClass}
+                  />
+                  <p className={hintClass}>
+                    Tomt = varje vins B2B-marginal (annars {DEFAULT_B2B_MARGIN_PERCENT}{" "}
+                    %).
+                  </p>
+                </div>
+                <div className="flex items-center gap-3 pb-1">
+                  <span
+                    className={cn(
+                      "text-xs font-medium",
+                      !showInclVat
+                        ? "text-gray-900 dark:text-zinc-100"
+                        : "text-gray-500 dark:text-zinc-500",
+                    )}
+                  >
+                    Ex moms
+                  </span>
+                  <Switch
+                    checked={showInclVat}
+                    onCheckedChange={setShowInclVat}
+                    className={ADMIN_ACTIVE_SWITCH_CLASS}
+                    aria-label="Visa priser inklusive moms"
+                  />
+                  <span
+                    className={cn(
+                      "text-xs font-medium",
+                      showInclVat
+                        ? "text-gray-900 dark:text-zinc-100"
+                        : "text-gray-500 dark:text-zinc-500",
+                    )}
+                  >
+                    Inkl. moms
+                  </span>
+                </div>
+                <div className="sm:ml-auto sm:text-right">
+                  <p className="text-xs text-gray-500 dark:text-zinc-400">
+                    Frakt per flaska i pris
+                  </p>
+                  <p className="text-sm font-semibold tabular-nums text-gray-900 dark:text-zinc-100">
+                    {formatSekFromCents(
+                      Math.round(commercialSummary.shippingPerBottleSek * 100),
+                    )}
+                  </p>
+                </div>
+              </div>
+            )}
 
             {items.length > 0 && (
               <>
@@ -1185,25 +1619,64 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
                         <TableHeader>
                           <TableRow className="border-gray-200 hover:bg-transparent dark:border-zinc-800">
                             <TableHead className="w-10" />
-                            <TableHead className="min-w-[200px] text-gray-600 dark:text-zinc-400">
-                              Producent
-                            </TableHead>
-                            <TableHead className="w-28 text-right text-gray-600 dark:text-zinc-400">
-                              Viner
-                            </TableHead>
-                            <TableHead className="w-32 text-right text-gray-600 dark:text-zinc-400">
-                              Flaskor
-                            </TableHead>
-                            <TableHead className="w-28 text-right text-gray-600 dark:text-zinc-400">
-                              Distans
-                            </TableHead>
-                            <TableHead className="w-28 text-right text-gray-600 dark:text-zinc-400">
-                              Bil
-                            </TableHead>
+                            <SortableTableHead
+                              label="Producent"
+                              sortKey="producer"
+                              activeKey={producerSortKey}
+                              direction={producerSortDir}
+                              onSort={handleProducerSort}
+                              className="min-w-[200px]"
+                            />
+                            <SortableTableHead
+                              label="Viner"
+                              sortKey="wine_count"
+                              activeKey={producerSortKey}
+                              direction={producerSortDir}
+                              onSort={handleProducerSort}
+                              align="right"
+                              className="w-28"
+                            />
+                            <SortableTableHead
+                              label="Flaskor"
+                              sortKey="bottles"
+                              activeKey={producerSortKey}
+                              direction={producerSortDir}
+                              onSort={handleProducerSort}
+                              align="right"
+                              className="w-32"
+                            />
+                            <SortableTableHead
+                              label="Distans"
+                              sortKey="distance"
+                              activeKey={producerSortKey}
+                              direction={producerSortDir}
+                              onSort={handleProducerSort}
+                              align="right"
+                              className="w-28"
+                            />
+                            <SortableTableHead
+                              label="Bil"
+                              sortKey="drive_time"
+                              activeKey={producerSortKey}
+                              direction={producerSortDir}
+                              onSort={handleProducerSort}
+                              align="right"
+                              className="w-28"
+                            />
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {producerSummary.map((row) => {
+                          {filteredProducerSummary.length === 0 ? (
+                            <TableRow>
+                              <TableCell
+                                colSpan={6}
+                                className="py-8 text-center text-sm text-gray-500 dark:text-zinc-400"
+                              >
+                                Inga viner matchar filtren på pallen.
+                              </TableCell>
+                            </TableRow>
+                          ) : (
+                          filteredProducerSummary.map((row) => {
                             const expanded = expandedProducers.has(row.name);
                             const isPickupProducer =
                               Boolean(effectivePickup.producer?.id) &&
@@ -1431,10 +1904,17 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
                                                 {getAvailableWinesForProducer(
                                                   row.producerId,
                                                   row.name,
-                                                ).map((wine) => (
+                                                ).map((wine) => {
+                                                  const addable =
+                                                    canAddWineToPallet(wine);
+                                                  return (
                                                   <div
                                                     key={wine.id}
-                                                    className="flex items-center gap-3 border-b border-gray-100 px-4 py-2.5 pl-16 last:border-b-0 dark:border-zinc-800/80"
+                                                    className={cn(
+                                                      "flex items-center gap-3 border-b border-gray-100 px-4 py-2.5 pl-16 last:border-b-0 dark:border-zinc-800/80",
+                                                      !addable &&
+                                                        "bg-gray-50/60 dark:bg-zinc-900/30",
+                                                    )}
                                                   >
                                                     <WineThumb wine={wine} size={32} />
                                                     <span
@@ -1452,22 +1932,27 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
                                                         </span>
                                                       ) : null}
                                                     </span>
-                                                    <Button
-                                                      type="button"
-                                                      variant="outline"
-                                                      size="sm"
-                                                      className="h-8 shrink-0 gap-1 border-gray-200 text-xs dark:border-zinc-700"
-                                                      onClick={() =>
-                                                        addWine(wine, {
-                                                          keepComboboxOpen: true,
-                                                        })
-                                                      }
-                                                    >
-                                                      <Plus className="h-3.5 w-3.5" />
-                                                      Lägg till
-                                                    </Button>
+                                                    {!addable ? (
+                                                      <WineOosBadge />
+                                                    ) : (
+                                                      <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="h-8 shrink-0 gap-1 border-gray-200 text-xs dark:border-zinc-700"
+                                                        onClick={() =>
+                                                          addWine(wine, {
+                                                            keepComboboxOpen: true,
+                                                          })
+                                                        }
+                                                      >
+                                                        <Plus className="h-3.5 w-3.5" />
+                                                        Lägg till
+                                                      </Button>
+                                                    )}
                                                   </div>
-                                                ))}
+                                                  );
+                                                })}
                                               </div>
                                             )}
                                           </CollapsibleContent>
@@ -1478,48 +1963,117 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
                                 ) : null}
                               </Fragment>
                             );
-                          })}
+                          })
+                          )}
                         </TableBody>
                       </Table>
                     ) : (
                     <Table>
                       <TableHeader>
                         <TableRow className="border-gray-200 hover:bg-transparent dark:border-zinc-800">
-                          <TableHead className="min-w-[180px] text-gray-600 dark:text-zinc-400">
-                            Vin
-                          </TableHead>
-                          <TableHead className="min-w-[120px] text-gray-600 dark:text-zinc-400">
-                            Producent
-                          </TableHead>
-                          <TableHead className="w-16 text-right text-gray-600 dark:text-zinc-400">
-                            Antal
-                          </TableHead>
-                          <TableHead className="w-24 text-right text-gray-600 dark:text-zinc-400">
-                            Inköp/fl
-                          </TableHead>
-                          <TableHead className="w-24 text-right text-gray-600 dark:text-zinc-400">
-                            Alk.skatt/fl
-                          </TableHead>
-                          <TableHead className="w-28 text-right text-gray-600 dark:text-zinc-400">
-                            Totalt/fl
-                          </TableHead>
-                          <TableHead className="w-28 text-right text-gray-600 dark:text-zinc-400">
-                            Rad totalt
-                          </TableHead>
+                          <SortableTableHead
+                            label="Vin"
+                            sortKey="wine"
+                            activeKey={wineSortKey}
+                            direction={wineSortDir}
+                            onSort={handleWineSort}
+                            className="min-w-[180px]"
+                          />
+                          <SortableTableHead
+                            label="Producent"
+                            sortKey="producer"
+                            activeKey={wineSortKey}
+                            direction={wineSortDir}
+                            onSort={handleWineSort}
+                            className="min-w-[120px]"
+                          />
+                          <SortableTableHead
+                            label="Antal"
+                            sortKey="quantity"
+                            activeKey={wineSortKey}
+                            direction={wineSortDir}
+                            onSort={handleWineSort}
+                            align="right"
+                            className="w-16"
+                          />
+                          <SortableTableHead
+                            label="Inköp/fl"
+                            sortKey="purchase"
+                            activeKey={wineSortKey}
+                            direction={wineSortDir}
+                            onSort={handleWineSort}
+                            align="right"
+                            className="w-24"
+                          />
+                          <SortableTableHead
+                            label="Alk.skatt/fl"
+                            sortKey="alcohol_tax"
+                            activeKey={wineSortKey}
+                            direction={wineSortDir}
+                            onSort={handleWineSort}
+                            align="right"
+                            className="w-24"
+                          />
+                          <SortableTableHead
+                            label="Totalt/fl"
+                            sortKey="unit_total"
+                            activeKey={wineSortKey}
+                            direction={wineSortDir}
+                            onSort={handleWineSort}
+                            align="right"
+                            className="w-28"
+                          />
+                          <SortableTableHead
+                            label="Rad totalt"
+                            sortKey="line_total"
+                            activeKey={wineSortKey}
+                            direction={wineSortDir}
+                            onSort={handleWineSort}
+                            align="right"
+                            className="w-28"
+                          />
+                          <SortableTableHead
+                            label={commercialPriceColumnLabel(showInclVat)}
+                            sortKey="customer_price"
+                            activeKey={wineSortKey}
+                            direction={wineSortDir}
+                            onSort={handleWineSort}
+                            align="right"
+                            className="w-32"
+                          />
+                          <SortableTableHead
+                            label={commercialLineColumnLabel(showInclVat)}
+                            sortKey="line_customer_value"
+                            activeKey={wineSortKey}
+                            direction={wineSortDir}
+                            onSort={handleWineSort}
+                            align="right"
+                            className="w-32"
+                          />
                           <TableHead className="w-10" />
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {items.map((item) => {
-                          const wineForCost =
-                            wines.find((w) => w.id === item.wine_id) ??
-                            item.wine;
+                        {filteredSortedItems.length === 0 ? (
+                          <TableRow>
+                            <TableCell
+                              colSpan={10}
+                              className="py-8 text-center text-sm text-gray-500 dark:text-zinc-400"
+                            >
+                              Inga viner matchar filtren på pallen.
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                        filteredSortedItems.map((item) => {
+                          const wineForCost = item.wine;
                           const lineCost = getPalletLineCost(
                             item.quantity,
                             item.cost_cents_override,
                             wineForCost,
                             fxRates,
                           );
+                          const commercialLine =
+                            commercialSummary.lineByWineId.get(item.wine_id);
                           const defaultUnitTotal = wineForCost
                             ? (wineForCost.costCentsExVat ??
                               getWineCostCentsExVat(wineForCost, fxRates))
@@ -1536,6 +2090,10 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
                                     {wineForCost
                                       ? `${wineForCost.wine_name} ${wineForCost.vintage}`
                                       : item.wine_id}
+                                    {wineForCost &&
+                                    !canAddWineToPallet(wineForCost) ? (
+                                      <WineOosBadge className="ml-2 align-middle" />
+                                    ) : null}
                                   </div>
                                 </div>
                               </TableCell>
@@ -1603,6 +2161,21 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
                               <TableCell className="text-right tabular-nums text-sm font-medium text-gray-900 dark:text-zinc-100">
                                 {formatSekFromCents(lineCost.lineTotalCents)}
                               </TableCell>
+                              <TableCell className="text-right tabular-nums text-sm text-emerald-700 dark:text-emerald-400">
+                                {commercialLine?.unitCustomerDisplayCents !=
+                                null
+                                  ? formatSekFromCents(
+                                      commercialLine.unitCustomerDisplayCents,
+                                    )
+                                  : "—"}
+                              </TableCell>
+                              <TableCell className="text-right tabular-nums text-sm font-semibold text-emerald-800 dark:text-emerald-300">
+                                {commercialLine?.lineCustomerValueCents
+                                  ? formatSekFromCents(
+                                      commercialLine.lineCustomerValueCents,
+                                    )
+                                  : "—"}
+                              </TableCell>
                               <TableCell className="p-2">
                                 <Button
                                   type="button"
@@ -1616,7 +2189,8 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
                               </TableCell>
                             </TableRow>
                           );
-                        })}
+                        })
+                        )}
                       </TableBody>
                     </Table>
                     )}
@@ -1719,12 +2293,46 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
                     )}
                     <div className="flex justify-between gap-4 sm:col-span-2 border-t border-gray-200 pt-2 dark:border-zinc-700">
                       <dt className="font-semibold text-gray-900 dark:text-zinc-100">
-                        Totalt
+                        Lagerkostnad totalt (ex moms)
                       </dt>
                       <dd className="text-base font-bold tabular-nums text-gray-900 dark:text-zinc-100">
                         {formatSekFromCents(costSummary.grandTotalCents)}
                       </dd>
                     </div>
+                    <div className="flex justify-between gap-4 sm:col-span-2 border-t border-gray-200 pt-3 dark:border-zinc-700">
+                      <dt className="font-medium text-emerald-800 dark:text-emerald-300">
+                        Kommersiellt värde{" "}
+                        {showInclVat ? "(inkl. moms)" : "(ex moms)"}
+                      </dt>
+                      <dd className="font-semibold tabular-nums text-emerald-800 dark:text-emerald-300">
+                        {formatSekFromCents(
+                          commercialSummary.totalCommercialValueCents,
+                        )}
+                      </dd>
+                    </div>
+                    <div className="flex justify-between gap-4 sm:col-span-2">
+                      <dt className="font-medium text-gray-700 dark:text-zinc-300">
+                        Potentiell vinst{" "}
+                        {showInclVat ? "(inkl. moms)" : "(ex moms)"}
+                      </dt>
+                      <dd
+                        className={cn(
+                          "font-semibold tabular-nums",
+                          commercialSummary.totalProfitDisplayCents >= 0
+                            ? "text-emerald-700 dark:text-emerald-400"
+                            : "text-red-600 dark:text-red-400",
+                        )}
+                      >
+                        {formatSekFromCents(
+                          commercialSummary.totalProfitDisplayCents,
+                        )}
+                      </dd>
+                    </div>
+                    <p className="sm:col-span-2 text-xs text-gray-500 dark:text-zinc-500">
+                      Kundvärde beräknas med B2B-formeln (kostnad + frakt +
+                      marginal). Vinst = kundvärde − lagerkostnad inkl.
+                      palkostnad per flaska.
+                    </p>
                   </dl>
                   {producerSummary.length > 0 ? (
                     <div className="mt-4 border-t border-gray-200 pt-4 dark:border-zinc-700">
