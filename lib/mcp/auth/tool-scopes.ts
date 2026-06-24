@@ -23,6 +23,9 @@ const WRITE_TOOLS = new Set<string>([
   "update_producer",
   "create_wine",
   "update_wine",
+  "create_b2b_pallet",
+  "add_wine_to_b2b_pallet",
+  "update_b2b_pallet_item",
 ]);
 
 /** @returns true if the tool mutates data and needs mcp:write */
