@@ -112,11 +112,22 @@ const LONG_TAIL_WINE_CATEGORIES_SV: WineCategory[] = [
     h1: "Carignan — Languedocs rebelliska druvsort",
     title: "Carignan naturvin från Languedoc | PACT Wines",
     metaDescription:
-      "Carignan är Languedocs mest missförstådda druvsort. Gamla stockar på skifferjord ger mörka frukter, hög syra och mineralisk karaktär. Direktimporterat till Stockholm.",
+      "Carignan från gamla gobeletstockar på skiffersluttningarna i Faugères och kalkjorden i Saint-Chinian. Direktimporterat naturvin utan tillsatser till Stockholm.",
     description:
-      "Carignan odlas i Languedoc sedan romartiden. Gamla stockar kräver handskörd och ger låga skördar — men vinerna är komplexa, strukturerade och mineral-drivna.",
+      "Carignan har ett oförtjänt dåligt rykte. Unga stockar på bördig jord ger tunna bulkviner — det stämmer. Men gamla gobeletstockar på skiffersluttningarna i Faugères, kalkjorden i Puisserguier eller gnejs-terrasserna på 305 meters höjd förändrar allt. Det är den Carignan vi importerar.",
     longDescription:
-      "Carignan kommer ursprungligen från Aragonien i Spanien och har odlats i Languedoc sedan medeltiden. Under 1900-talets massproduktion fick druvsorten dåligt rykte för höga skördar och tunna viner — men det berättar bara halva sanningen. Gamla stockar med låga skördar på skiffer- och kalkstenjordar ger något helt annat: mörka frukter, fast syra, markerade tanniner och den karakteristiska doften av Languedocs garrigue. Naturvinsrörelsen har rehabiliterat Carignan. Producenter som Peira Levada, Thomas Chany och Clos Fantine visar vad hundra år gamla stockar kan åstadkomma när de hanteras med respekt och minimalt med intervention.",
+      "Carignan härstammar från Aragonien i nordöstra Spanien och etablerade sig i Languedoc under romartiden. Under 1900-talets stora produktionsexpansion planterades den över hela södra Frankrike för ett enda syfte: volym. Druvan är produktiv, tålig och ger höga skördar — men kvaliteten på det stora flertalet viner var därefter. På 1990-talet halverades odlingsarealen av EU-subventioner, och de gamla stockarna lämnades i stort sett ensamma kvar.\n\nDet var naturvinsgenerationens producenter som insåg vad dessa övergivna gamla stockar faktiskt kunde ge. En gobelet-Carignan på 65, 80 eller 100 år producerar en bråkdel av vad en ung stock ger — men det som produceras är koncentrerat, mineraliskt och komplext på ett sätt som yngre stockar aldrig uppnår. Alexandre Durand på Pèira Levada i Faugères låter sin 80-åriga Carignan genomgå 90 dagars maceration utan en enda tillsats. Thomas Chany i Puisserguier visar hur kalkjorden ger druvan en kridig, distinkt mineralitet. Pierre Regnault i Assignan skördar tidigt och macererar hela klasar för maximal friskhet.\n\nPå smakprofilen skiljer sig Languedoc-Carignan från blandnings-versionen: mörka körsbär, björnbär och torkade örter från garriguen — den typiska Languedoc-buskvegetationen av timjan, rosmarin och vildlavendel. Hög fruktsyra som ger fräschör och struktur som håller i tio år. En mineralisk kärna som varierar med terroiret: skiffer i Faugères, kalk i Saint-Chinian, gnejs och granit i Haute Vallée de l'Orb.\n\nAlla Carignan-viner på PACT kommer från producenter som arbetar ekologiskt eller biodynamiskt, utan tillsatser och utan filtrering. Direktimporterat från Languedoc till din dörr.",
+    tastingProfile: [
+      "Mörka körsbär, björnbär och plommon",
+      "Garrigue-toner — timjan, rosmarin, vildlavendel",
+      "Hög fruktsyra och mineralisk eftersmak",
+      "Skiffer, kalk eller granit beroende på terroir",
+      "Gamla stockar: mer koncentration, mer komplexitet",
+    ],
+    foodPairing:
+      "Carignan är ett utpräglat matvin. Syran och tanninerna skär igenom fett och lyfter umami. Tänk lammgryta med rosmarin, cassoulet, grillad entrecôte eller mogna ostar som Comté och Ossau-Iraty. Servera vid 15–17°C — karaferas gärna 30 minuter om vinet är ungt.",
+    aboutText:
+      "Vi importerar Carignan direkt från småproducenter i Faugères, Saint-Chinian och Haute Vallée de l'Orb. Gamla gobeletstockar, ekologisk eller biodynamisk odling, inga tillsatser. Reservera innan pallen fylls — när den är full skickar producenten direkt till Stockholm.",
     filter: { filterGrape: "Carignan" },
     hreflang: "carignan",
     canonical: "/vin/carignan",
@@ -135,6 +146,21 @@ const LONG_TAIL_WINE_CATEGORIES_SV: WineCategory[] = [
     filter: { filterGrape: "Grenache" },
     hreflang: "grenache",
     canonical: "/vin/grenache",
+  },
+  {
+    slug: "grenache-blanc",
+    locale: "sv",
+    h1: "Grenache Blanc — friskt och blommigt naturvin från Languedoc",
+    title: "Grenache Blanc naturvin från Languedoc | PACT Wines",
+    metaDescription:
+      "Grenache Blanc är Languedocs fräschaste vita druvsort. Naturligt låg alkohol, blommig doft och krispig syra — direktimporterat till Stockholm.",
+    description:
+      "Grenache Blanc är Languedocs fräschaste vita druvsort med naturligt låg alkohol, blommig doft och krispig mineralisk syra.",
+    longDescription:
+      "Grenache Blanc odlas framför allt i södra Frankrike och Spanien men har hittat sin moderna röst bland Languedocs naturvinproducenter. Druvan ger viner med låg till medelhög alkohol, blommig arom med inslag av persika och citrus, och en frisk syra som gör dem till utmärkta matvin. På PACT importerar vi Grenache Blanc direkt från småproducenter som arbetar ekologiskt eller biodynamiskt — utan tillsatser, utan filtrering.",
+    filter: { filterGrape: "Grenache Blanc" },
+    hreflang: "grenache-blanc",
+    canonical: "/vin/grenache-blanc",
   },
   {
     slug: "syrah",
@@ -271,11 +297,22 @@ const LONG_TAIL_WINE_CATEGORIES_EN: WineCategory[] = [
     h1: "Carignan — Languedoc's rebellious grape",
     title: "Carignan Natural Wine from Languedoc | PACT Wines",
     metaDescription:
-      "Carignan is Languedoc's most misunderstood grape. Old vines on schist soil give dark fruit, high acidity and mineral character. Direct import to Stockholm.",
+      "Carignan from old goblet vines on schist slopes in Faugères and limestone soils in Saint-Chinian. Direct import natural wine, no additives, delivered to Stockholm.",
     description:
-      "Carignan has been grown in Languedoc since Roman times. Old vines require hand harvesting and give low yields — but the wines are complex, structured and mineral-driven.",
+      "Carignan has an undeserved reputation. Young vines on fertile soil produce thin bulk wine — that's true. But old goblet vines on the schist slopes of Faugères, the limestone soils of Puisserguier or the gneiss terraces at 305 metres altitude change everything. That's the Carignan we import.",
     longDescription:
-      "Carignan originates from Aragon in Spain and has been cultivated in Languedoc since the Middle Ages. During the era of mass production it gained a reputation for high yields and thin wines — but that tells only half the story. Old vines with low yields on schist and limestone soils produce something entirely different: dark fruit, firm acidity, marked tannins and the characteristic scent of Languedoc garrigue. The natural wine movement has rehabilitated Carignan. Producers like Peira Levada, Thomas Chany and Clos Fantine show what hundred-year-old vines can achieve when handled with respect and minimal intervention.",
+      "Carignan originates from Aragon in northeastern Spain and established itself in Languedoc during Roman times. During the 20th century's great production expansion, it was planted across southern France for a single purpose: volume. The grape is productive, hardy and gives high yields — but the quality of most wines reflected that. In the 1990s, EU subsidies halved the planted area, and the old vines were largely left alone.\n\nIt was the natural wine generation's producers who recognised what these abandoned old vines could actually give. A gobelet Carignan of 65, 80 or 100 years produces a fraction of what a young vine gives — but what it produces is concentrated, mineral and complex in a way younger vines never achieve. Alexandre Durand at Pèira Levada in Faugères gives his 80-year-old Carignan 90 days of maceration without a single additive. Thomas Chany in Puisserguier shows how limestone soil gives the grape a chalky, distinctive minerality. Pierre Regnault in Assignan harvests early and macerates whole clusters for maximum freshness.\n\nIn terms of flavour profile, Languedoc Carignan differs from the blending version: dark cherries, blackberries and dried herbs from the garrigue — the typical Languedoc scrubland of thyme, rosemary and wild lavender. High fruit acidity that gives freshness and structure that lasts ten years. A mineral core that varies with the terroir: schist in Faugères, limestone in Saint-Chinian, gneiss and granite in Haute Vallée de l'Orb.\n\nAll Carignan wines at PACT come from producers working organically or biodynamically, without additives and without filtration. Direct import from Languedoc to your door.",
+    tastingProfile: [
+      "Dark cherries, blackberries and plums",
+      "Garrigue notes — thyme, rosemary, wild lavender",
+      "High fruit acidity and mineral finish",
+      "Schist, limestone or granite depending on terroir",
+      "Old vines: more concentration, more complexity",
+    ],
+    foodPairing:
+      "Carignan is a quintessential food wine. The acidity and tannins cut through fat and lift umami. Think lamb stew with rosemary, cassoulet, grilled entrecôte or aged cheeses like Comté and Ossau-Iraty. Serve at 15–17°C — decant for 30 minutes if the wine is young.",
+    aboutText:
+      "We import Carignan directly from small producers in Faugères, Saint-Chinian and Haute Vallée de l'Orb. Old gobelet vines, organic or biodynamic farming, no additives. Reserve before the pallet fills — when it's full, the producer ships directly to Stockholm.",
     filter: { filterGrape: "Carignan" },
     hreflang: "carignan",
     canonical: "/wine/carignan",
@@ -294,6 +331,21 @@ const LONG_TAIL_WINE_CATEGORIES_EN: WineCategory[] = [
     filter: { filterGrape: "Grenache" },
     hreflang: "grenache",
     canonical: "/wine/grenache",
+  },
+  {
+    slug: "grenache-blanc",
+    locale: "en",
+    h1: "Grenache Blanc — fresh and floral natural wine from Languedoc",
+    title: "Grenache Blanc Natural Wine from Languedoc | PACT Wines",
+    metaDescription:
+      "Grenache Blanc is Languedoc's freshest white grape. Naturally low alcohol, floral aromas and crisp acidity — direct import to Stockholm.",
+    description:
+      "Grenache Blanc is Languedoc's freshest white grape with naturally low alcohol, floral aromas and crisp mineral acidity.",
+    longDescription:
+      "Grenache Blanc is grown mainly in southern France and Spain but has found its modern voice among Languedoc's natural wine producers. The grape gives wines with low to medium alcohol, floral aromas with notes of peach and citrus, and a fresh acidity that makes them excellent food wines. At PACT we import Grenache Blanc directly from small producers working organically or biodynamically — no additives, no filtration.",
+    filter: { filterGrape: "Grenache Blanc" },
+    hreflang: "grenache-blanc",
+    canonical: "/wine/grenache-blanc",
   },
   {
     slug: "syrah",

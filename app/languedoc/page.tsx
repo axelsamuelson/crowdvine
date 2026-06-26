@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import type React from "react";
 
 import {
   Breadcrumb,
@@ -36,7 +37,7 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-function SpecCell({ label, value }: { label: string; value: string }) {
+function SpecCell({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="rounded-xl border border-border border-l-[3px] border-l-amber-500 bg-background px-4 py-3">
       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -176,7 +177,20 @@ export default async function LanguedocPage() {
           <SpecCell label="Yta" value="~240 000 ha vingård" />
           <SpecCell label="Land" value="Frankrike" />
           <SpecCell label="Klimat" value="Medelhavsklimat" />
-          <SpecCell label="Huvuddruvor" value="Grenache, Syrah, Carignan" />
+          <SpecCell
+            label="Huvuddruvor"
+            value={
+              <>
+                Grenache, Syrah,{" "}
+                <Link
+                  href="/vin/carignan"
+                  className="underline underline-offset-4 hover:text-foreground"
+                >
+                  Carignan
+                </Link>
+              </>
+            }
+          />
           <SpecCell label="Appellationer" value="Saint-Chinian, Faugères m.fl." />
           <SpecCell label="Stil" value="Naturvin, ekologiskt, terroir" />
         </div>
@@ -203,7 +217,14 @@ export default async function LanguedocPage() {
             Languedoc har både breda IGP-etiketter och mer strikta AOP:er.
             Saint-Chinian och Faugères i norr är kända för strukturerade röda
             från schist och kalksten. Minervois, Corbières och Fitou erbjuder
-            allt från rustika carignan-dominanta viner till eleganta
+            allt från rustika{" "}
+            <Link
+              href="/vin/carignan"
+              className="underline underline-offset-4 hover:text-foreground"
+            >
+              carignan
+            </Link>
+            -dominanta viner till eleganta
             grenache-syrah-blandningar. Pic Saint-Loup och La Clape vid kusten
             ger mineraliska vita och friska roséer. För naturvin-entusiaster
             är just dessa mindre, producentdrivna appellationer ofta mest
@@ -216,8 +237,21 @@ export default async function LanguedocPage() {
             Druvor och stilar
           </h2>
           <p className="text-sm leading-relaxed text-muted-foreground">
-            Röda viner dominerar, med grenache, syrah, carignan och mourvèdre
-            som ryggraden. Carignan från gamla stockar ger djup och syra;
+            Röda viner dominerar, med grenache, syrah,{" "}
+            <Link
+              href="/vin/carignan"
+              className="underline underline-offset-4 hover:text-foreground"
+            >
+              carignan
+            </Link>{" "}
+            och mourvèdre som ryggraden.{" "}
+            <Link
+              href="/vin/carignan"
+              className="underline underline-offset-4 hover:text-foreground"
+            >
+              Carignan
+            </Link>{" "}
+            från gamla stockar ger djup och syra;
             grenache bidrar med röd frukt och alkohol; syrah tillför krydda
             och struktur. Vita viner byggs ofta på grenache blanc, roussanne,
             marsanne och vermentino. Orangevin och macererade vita har stark

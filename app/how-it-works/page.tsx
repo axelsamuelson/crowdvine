@@ -22,7 +22,7 @@ export async function generateMetadata(): Promise<Metadata> {
     title: HOW_IT_WORKS_TITLE,
     description: HOW_IT_WORKS_DESCRIPTION,
     alternates: {
-      canonical: pageUrl,
+      canonical: "/how-it-works",
     },
     openGraph: {
       title: HOW_IT_WORKS_TITLE,

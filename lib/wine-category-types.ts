@@ -15,6 +15,12 @@ export type WineCategory = {
   metaDescription: string;
   description: string;
   longDescription?: string;
+  /** Bullet list for grape category "taste & character" section. */
+  tastingProfile?: string[];
+  /** Grape category food pairing copy. */
+  foodPairing?: string;
+  /** Footer "about" copy — replaces duplicated description. */
+  aboutText?: string;
   filter: WineCategoryFilter;
   hreflang?: string;
   canonical: string;

@@ -18,6 +18,7 @@ import {
 } from "@/lib/i18n/producer-shop-page";
 import { getCollection } from "@/lib/shopify";
 import { getSiteConfig } from "@/lib/site-config";
+import { categoryPageTitle } from "@/lib/seo/category-page-title";
 import { shopSearchParamsRobots } from "@/lib/seo/shop-search-robots";
 import {
   WINE_CATEGORIES_SV,
@@ -46,8 +47,10 @@ export async function generateMetadata(props: {
     const config = await getSiteConfig();
     const pageUrl = `${config.baseUrl}/vin/${slug}`;
 
+    const title = categoryPageTitle(category.title, config.siteName);
+
     return {
-      title: category.title,
+      title,
       description: category.metaDescription,
       robots,
       alternates: {
@@ -165,13 +168,20 @@ export default async function VinCollectionPage(props: {
       ],
     };
 
+    const isGrapeCategory = Boolean(category.filter.filterGrape);
     const relatedCategories = WINE_CATEGORIES_SV.filter(
       (c) =>
         c.slug !== slug &&
         !c.slug.includes("languedoc") &&
         !c.slug.includes("frankrike") &&
         !c.slug.includes("stockholm") &&
-        !c.slug.includes("direktimport"),
+        !c.slug.includes("direktimport") &&
+        (isGrapeCategory
+          ? Boolean(c.filter.filterGrape) &&
+            !c.filter.color?.length &&
+            !c.filter.farming?.length &&
+            !c.filter.tags?.length
+          : true),
     ).slice(0, 4);
 
     return (
@@ -200,9 +210,31 @@ export default async function VinCollectionPage(props: {
 
           {category.longDescription && (
             <div className="prose prose-stone mb-8 max-w-2xl text-sm">
-              <p>{category.longDescription}</p>
+              {category.longDescription.split("\n\n").map((paragraph) => (
+                <p key={paragraph.slice(0, 32)}>{paragraph}</p>
+              ))}
             </div>
           )}
+
+          {category.filter.filterGrape && category.tastingProfile?.length ? (
+            <div className="mb-8 max-w-2xl">
+              <h2 className="mb-3 text-base font-medium">
+                Vad smakar {category.filter.filterGrape} från gamla stockar?
+              </h2>
+              <ul className="list-none space-y-1 text-sm text-stone-600">
+                {category.tastingProfile.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
+          {category.foodPairing ? (
+            <div className="mb-8 max-w-2xl">
+              <h2 className="mb-3 text-base font-medium">Passar till</h2>
+              <p className="text-sm text-stone-600">{category.foodPairing}</p>
+            </div>
+          ) : null}
 
           <ProductListShell
             products={mappedProducts}
@@ -213,13 +245,16 @@ export default async function VinCollectionPage(props: {
           />
 
           <div className="mt-16 max-w-2xl border-t border-stone-200 pt-8">
-            <h2 className="mb-3 text-lg font-medium text-stone-900">
-              Om {category.h1.toLowerCase()}
-            </h2>
-            <p className="mb-4 text-sm leading-relaxed text-stone-600">
-              {category.description} Alla viner är ekologiskt eller biodynamiskt
-              odlade utan tillsatser.
-            </p>
+            {category.aboutText ? (
+              <>
+                <h2 className="mb-3 text-lg font-medium text-stone-900">
+                  Om {category.h1.toLowerCase()}
+                </h2>
+                <p className="mb-4 text-sm leading-relaxed text-stone-600">
+                  {category.aboutText}
+                </p>
+              </>
+            ) : null}
             <div className="mt-8">
               <h3 className="mb-3 text-sm font-medium text-stone-900">
                 Utforska mer

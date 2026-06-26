@@ -229,6 +229,23 @@ export default async function LanguedocNaturvinPage() {
 
         <section className="space-y-4">
           <h2 className="mt-12 mb-4 border-b border-border pb-3 text-xl font-semibold">
+            Vilka druvor används i Languedoc?
+          </h2>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            De vanligaste druvorna i Languedoc är{" "}
+            <Link
+              href="/vin/carignan"
+              className="underline underline-offset-4 hover:text-foreground"
+            >
+              Carignan
+            </Link>
+            , Grenache, Syrah, Cinsault och Mourvèdre för röda viner, samt
+            Vermentino, Chardonnay och Terret för vita viner.
+          </p>
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="mt-12 mb-4 border-b border-border pb-3 text-xl font-semibold">
             Köp direkt via PACT
           </h2>
           <p className="text-sm leading-relaxed text-muted-foreground">
