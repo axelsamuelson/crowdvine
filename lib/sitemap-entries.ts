@@ -57,7 +57,6 @@ function staticPagesForProfile(
 
   if (profile === "pact") {
     pages.push(
-      weeklyEntry(`${baseUrl}/how-it-works`, 0.7),
       weeklyEntry(`${baseUrl}/languedoc`, 0.7),
       weeklyEntry(`${baseUrl}/languedoc/naturvin`, 0.7),
       weeklyEntry(`${baseUrl}/vin/wine-boxes`, 0.75),

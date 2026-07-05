@@ -29,7 +29,6 @@ function shouldHideHeader(pathname: string): boolean {
     pathname.startsWith("/c/");
   const isSignupRoute = pathname === "/signup";
   const isOnboardingRoute = pathname === "/onboarding";
-  const isHowItWorksRoute = pathname === "/how-it-works";
 
   return (
     isTastingRoute ||
@@ -40,8 +39,7 @@ function shouldHideHeader(pathname: string): boolean {
     isMapTopoRoute ||
     isInvitationRoute ||
     isSignupRoute ||
-    isOnboardingRoute ||
-    isHowItWorksRoute
+    isOnboardingRoute
   );
 }
 

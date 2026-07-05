@@ -215,7 +215,13 @@ export default async function LanguedocPage() {
           </h2>
           <p className="text-sm leading-relaxed text-muted-foreground">
             Languedoc har både breda IGP-etiketter och mer strikta AOP:er.
-            Saint-Chinian och Faugères i norr är kända för strukturerade röda
+            Saint-Chinian och Faugères i norr är kända för strukturerade{" "}
+            <Link
+              href="/vin/rott-naturvin"
+              className="underline underline-offset-4 hover:text-foreground"
+            >
+              röda
+            </Link>{" "}
             från schist och kalksten. Minervois, Corbières och Fitou erbjuder
             allt från rustika{" "}
             <Link
@@ -226,7 +232,14 @@ export default async function LanguedocPage() {
             </Link>
             -dominanta viner till eleganta
             grenache-syrah-blandningar. Pic Saint-Loup och La Clape vid kusten
-            ger mineraliska vita och friska roséer. För naturvin-entusiaster
+            ger mineraliska{" "}
+            <Link
+              href="/vin/vitt-naturvin"
+              className="underline underline-offset-4 hover:text-foreground"
+            >
+              vita
+            </Link>{" "}
+            och friska roséer. För naturvin-entusiaster
             är just dessa mindre, producentdrivna appellationer ofta mest
             intressanta.
           </p>
@@ -274,7 +287,14 @@ export default async function LanguedocPage() {
             >
               grenache blanc
             </Link>
-            , roussanne, marsanne och vermentino. Orangevin och macererade vita har stark
+            , roussanne, marsanne och vermentino.{" "}
+            <Link
+              href="/vin/orange-naturvin"
+              className="underline underline-offset-4 hover:text-foreground"
+            >
+              Orangevin
+            </Link>{" "}
+            och macererade vita har stark
             förankring här — särskilt bland oberoende producenter som experimenterar
             med skinkontakt och spontanjäsning.
           </p>

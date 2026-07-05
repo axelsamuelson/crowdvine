@@ -207,8 +207,14 @@ export default async function LanguedocNaturvinPage() {
             Naturvin i Languedoc handlar om ärligt jordbruk och tydlig
             ursprung. Druvor skördas för hand eller selektivt, jäser med
             vildjäst och buteljeras ofta utan klarificering eller filtrering.
-            Resultatet kan variera från friska, lättdruckna röda till
-            strukturerade viner med skiffer-mineralitet från Faugères — alltid
+            Resultatet kan variera från friska, lättdruckna{" "}
+            <Link
+              href="/vin/rott-naturvin"
+              className="underline underline-offset-4 hover:text-foreground"
+            >
+              röda
+            </Link>{" "}
+            till strukturerade viner med skiffer-mineralitet från Faugères — alltid
             med producentens avtryck i glaset.
           </p>
         </section>
@@ -240,7 +246,14 @@ export default async function LanguedocNaturvinPage() {
               Carignan
             </Link>
             , Grenache, Syrah, Cinsault och Mourvèdre för röda viner, samt
-            Vermentino, Chardonnay och Terret för vita viner.
+            Vermentino, Chardonnay och Terret för{" "}
+            <Link
+              href="/vin/vitt-naturvin"
+              className="underline underline-offset-4 hover:text-foreground"
+            >
+              vita viner
+            </Link>
+            .
           </p>
         </section>
 

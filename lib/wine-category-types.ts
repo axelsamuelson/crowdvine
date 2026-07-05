@@ -21,6 +21,8 @@ export type WineCategory = {
   foodPairing?: string;
   /** Footer "about" copy — replaces duplicated description. */
   aboutText?: string;
+  /** Editorial longDescription section heading (merged from content overrides). */
+  contentHeading?: string;
   filter: WineCategoryFilter;
   hreflang?: string;
   canonical: string;

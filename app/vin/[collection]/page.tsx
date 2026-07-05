@@ -25,11 +25,14 @@ import {
 import { getCollection } from "@/lib/shopify";
 import { getSiteConfig } from "@/lib/site-config";
 import { categoryPageTitle } from "@/lib/seo/category-page-title";
+import { shopCategoryCanonicalUrl } from "@/lib/wine-category-canonical";
 import { categoryPageRobots } from "@/lib/seo/noindex-robots";
 import { shopSearchParamsRobots } from "@/lib/seo/shop-search-robots";
 import {
-  WINE_CATEGORIES_SV,
-} from "@/lib/wine-categories";
+  getCategoryExploreLinks,
+  getCategoryLongDescriptionHeading,
+} from "@/lib/wine-category-explore-links";
+import { WINE_CATEGORIES_SV } from "@/lib/wine-categories";
 import { resolveGrapeCategoryBySlug } from "@/lib/wine-grape-categories";
 
 export const revalidate = 300;
@@ -52,6 +55,7 @@ export async function generateMetadata(props: {
   if (category) {
     const config = await getSiteConfig();
     const pageUrl = `${config.baseUrl}/vin/${slug}`;
+    const canonicalUrl = shopCategoryCanonicalUrl(slug, "sv", config.baseUrl);
 
     const title = categoryPageTitle(category.title, config.siteName);
 
@@ -60,7 +64,7 @@ export async function generateMetadata(props: {
       description: category.metaDescription,
       robots: categoryPageRobots(slug, "sv", searchParams),
       alternates: {
-        canonical: pageUrl,
+        canonical: canonicalUrl,
         languages: {
           sv: pageUrl,
           en: `${config.baseUrl}/wine/${category.hreflang ?? ""}`,
@@ -70,7 +74,7 @@ export async function generateMetadata(props: {
       openGraph: {
         title: category.title,
         description: category.metaDescription,
-        url: pageUrl,
+        url: canonicalUrl,
         type: "website",
       },
     };
@@ -145,7 +149,7 @@ export default async function VinCollectionPage(props: {
       wineIds,
     );
 
-    const canonical = `${config.baseUrl}/vin/${slug}`;
+    const canonical = shopCategoryCanonicalUrl(slug, "sv", config.baseUrl);
 
     const collectionJsonLd = {
       "@context": "https://schema.org",
@@ -175,21 +179,7 @@ export default async function VinCollectionPage(props: {
       ],
     };
 
-    const isGrapeCategory = Boolean(category.filter.filterGrape);
-    const relatedCategories = WINE_CATEGORIES_SV.filter(
-      (c) =>
-        c.slug !== slug &&
-        !c.slug.includes("languedoc") &&
-        !c.slug.includes("frankrike") &&
-        !c.slug.includes("stockholm") &&
-        !c.slug.includes("direktimport") &&
-        (isGrapeCategory
-          ? Boolean(c.filter.filterGrape) &&
-            !c.filter.color?.length &&
-            !c.filter.farming?.length &&
-            !c.filter.tags?.length
-          : true),
-    ).slice(0, 4);
+    const exploreLinks = getCategoryExploreLinks(category);
 
     return (
       <>
@@ -226,7 +216,7 @@ export default async function VinCollectionPage(props: {
           {category.longDescription ? (
             <div className="mt-16 pt-12">
               <h2 className="mb-6 text-sm font-medium uppercase tracking-widest text-stone-400">
-                Om druvsorten
+                {getCategoryLongDescriptionHeading(category)}
               </h2>
               <div className="prose prose-stone prose-sm max-w-2xl">
                 {category.longDescription.split("\n\n").map((paragraph) => (
@@ -265,8 +255,7 @@ export default async function VinCollectionPage(props: {
             </div>
           ) : null}
 
-          {(category.aboutText ||
-            relatedCategories.length > 0) && (
+          {(category.aboutText || exploreLinks.length > 0) && (
             <div className="mt-12 pt-12">
               {category.aboutText ? (
                 <p className="mb-8 max-w-xl text-sm text-stone-600">
@@ -278,13 +267,13 @@ export default async function VinCollectionPage(props: {
                   Utforska mer
                 </h3>
                 <div className="flex flex-wrap gap-2">
-                  {relatedCategories.map((c) => (
+                  {exploreLinks.map((link) => (
                     <Link
-                      key={c.slug}
-                      href={c.canonical}
+                      key={link.href}
+                      href={link.href}
                       className="text-sm text-stone-600 underline underline-offset-4 hover:text-stone-900"
                     >
-                      {c.h1}
+                      {link.label}
                     </Link>
                   ))}
                   <Link
@@ -292,12 +281,6 @@ export default async function VinCollectionPage(props: {
                     className="text-sm text-stone-600 underline underline-offset-4 hover:text-stone-900"
                   >
                     Läs mer om naturvin från Languedoc
-                  </Link>
-                  <Link
-                    href="/how-it-works"
-                    className="text-sm text-stone-600 underline underline-offset-4 hover:text-stone-900"
-                  >
-                    Hur det fungerar
                   </Link>
                 </div>
               </div>

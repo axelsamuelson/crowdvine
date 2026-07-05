@@ -15,7 +15,6 @@ export function pathnameNeedsVaulDrawerWrapper(pathname: string): boolean {
     pathname.startsWith("/c/");
   const isSignupRoute = pathname === "/signup";
   const isOnboardingRoute = pathname === "/onboarding";
-  const isHowItWorksRoute = pathname === "/how-it-works";
 
   return (
     !isAdminRoute &&
@@ -25,7 +24,6 @@ export function pathnameNeedsVaulDrawerWrapper(pathname: string): boolean {
     !isMapTopoRoute &&
     !isInvitationRoute &&
     !isSignupRoute &&
-    !isOnboardingRoute &&
-    !isHowItWorksRoute
+    !isOnboardingRoute
   );
 }

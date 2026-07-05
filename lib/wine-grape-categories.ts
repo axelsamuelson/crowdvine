@@ -1,5 +1,6 @@
 import { generateProducerSlug } from "@/lib/producer-handle";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { mergeWineCategoryContent } from "@/lib/wine-category-content";
 import type { WineCategory } from "@/lib/wine-category-types";
 import {
   getWineCategoryEn,
@@ -133,6 +134,13 @@ async function findGrapeNameBySlug(slug: string): Promise<string | null> {
   );
 }
 
+function finalizeResolvedCategory(
+  category: WineCategory | undefined,
+): WineCategory | undefined {
+  if (!category) return undefined;
+  return mergeWineCategoryContent(category);
+}
+
 export async function resolveGrapeCategoryBySlug(
   slug: string,
   locale: "sv" | "en",
@@ -146,7 +154,7 @@ export async function resolveGrapeCategoryBySlug(
     locale === "en"
       ? getWineCategoryEn(slug)
       : getWineCategorySv(slug);
-  if (staticCategory) return staticCategory;
+  if (staticCategory) return finalizeResolvedCategory(staticCategory);
 
   if (locale === "en" && isWineCategoryEnAlias(slug)) return undefined;
   if (locale === "sv" && isWineCategorySvAlias(slug)) return undefined;
@@ -155,12 +163,12 @@ export async function resolveGrapeCategoryBySlug(
   if (categories.some((c) => c.slug === canonicalSlug)) return undefined;
 
   const staticGrape = staticGrapeCategoryBySlug(canonicalSlug, locale);
-  if (staticGrape) return staticGrape;
+  if (staticGrape) return finalizeResolvedCategory(staticGrape);
 
   const grapeName = await findGrapeNameBySlug(canonicalSlug);
   if (!grapeName) return undefined;
 
-  return buildDynamicGrapeCategory(grapeName, locale);
+  return finalizeResolvedCategory(buildDynamicGrapeCategory(grapeName, locale));
 }
 
 export function isGrapeOnlyCategory(category: WineCategory): boolean {
