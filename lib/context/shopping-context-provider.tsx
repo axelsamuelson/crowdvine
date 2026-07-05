@@ -17,6 +17,7 @@ import {
   type AppLocale,
 } from "@/lib/i18n/locale";
 import { translate } from "@/lib/i18n/messages";
+import { switchAboutPath } from "@/lib/i18n/about-page-content";
 import {
   getHreflangPath,
   getWineCategoryEn,
@@ -63,6 +64,9 @@ function getLocalizedPath(
 ): string | null {
   const productOrProducer = switchProductOrProducerPath(pathname, newLocale);
   if (productOrProducer) return productOrProducer;
+
+  const about = switchAboutPath(pathname, newLocale);
+  if (about) return about;
 
   // /vin → /wine och vice versa
   if (pathname === "/vin" && newLocale === "en") return "/wine";

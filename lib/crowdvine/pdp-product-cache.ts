@@ -17,12 +17,18 @@ export async function fetchCachedProductForLocale(
   locale: AppLocale,
   host: string | null,
 ): Promise<Product | null> {
+  const fetchProduct = () =>
+    getCrowdvineProductByHandle({ handle, locale, host });
+
+  // Skip persistent cache in dev so PDP mapping/metadata changes show immediately.
+  if (process.env.NODE_ENV === "development") {
+    return fetchProduct();
+  }
+
   const isB2BSite = isB2BHost(host);
   const cacheKey = isB2BSite ? "b2b" : "b2c";
 
-  return unstable_cache(
-    async () => getCrowdvineProductByHandle({ handle, locale, host }),
-    ["pdp-product", handle, locale, cacheKey],
-    { revalidate: PDP_REVALIDATE_SECONDS },
-  )();
+  return unstable_cache(fetchProduct, ["pdp-product", handle, locale, cacheKey], {
+    revalidate: PDP_REVALIDATE_SECONDS,
+  })();
 }

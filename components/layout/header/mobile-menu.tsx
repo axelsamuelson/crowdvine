@@ -30,7 +30,7 @@ export function MobileMenu({
   const navItems = [
     { href: paths.shop, label: t("common.shop") },
     { href: "/profile", label: t("common.profile"), icon: User },
-    { href: "/about", label: t("common.about") },
+    { href: paths.about, label: t("common.about") },
     { href: "/", label: t("common.home") },
   ];
   const pathname = usePathname();

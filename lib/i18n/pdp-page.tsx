@@ -310,6 +310,7 @@ export async function renderProductPdpPage(options: {
 
       <ProductPdpLayout
         product={product}
+        locale={locale}
         competitorOffers={competitorOffers}
         recommendations={recommendations}
         compareAtPrice={

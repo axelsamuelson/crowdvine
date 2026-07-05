@@ -28,6 +28,8 @@ interface ProductListContentProps {
   searchQuery?: string;
   /** Override last breadcrumb segment (e.g. wine category h1). */
   breadcrumbLabel?: string;
+  producerProfileHref?: string;
+  producerProfileLabel?: string;
 }
 
 // Normalize color string for comparison: "Red & White", "Red/White", "red-&-white" → canonical form
@@ -116,6 +118,8 @@ export function ProductListContent({
   wineSourceSlugs = {},
   searchQuery = "",
   breadcrumbLabel,
+  producerProfileHref,
+  producerProfileLabel,
 }: ProductListContentProps & { collectionHandle?: string }) {
   const { t } = useTranslations();
   const { setProducts, setOriginalProducts, setAvailableSourceSlugs } = useProducts();
@@ -294,6 +298,8 @@ export function ProductListContent({
         collections={collections}
         products={filteredProducts}
         breadcrumbLabel={breadcrumbLabel}
+        producerProfileHref={producerProfileHref}
+        producerProfileLabel={producerProfileLabel}
       />
 
       {filteredProducts.length > 0 ? (

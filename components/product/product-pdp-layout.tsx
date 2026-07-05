@@ -26,10 +26,13 @@ import { ProductHeroPrice } from "@/app/product/[handle]/components/product-hero
 import { PdpRecommendationsSection } from "@/components/product/pdp-recommendations-section";
 import { WineProducerMap } from "@/components/product/wine-producer-map";
 import type { PdpRecommendationsResult } from "@/lib/product/recommendations";
+import type { AppLocale } from "@/lib/i18n/locale";
+import { generateProducerSlug } from "@/lib/producer-handle";
 import type { Product } from "@/lib/shopify/types";
 
 interface ProductPdpLayoutProps {
   product: Product;
+  locale?: AppLocale;
   competitorOffers?: CompetitorOffer[];
   recommendations?: PdpRecommendationsResult | null;
   compareAtPrice?: ReactNode;
@@ -43,6 +46,7 @@ interface ProductPdpLayoutProps {
 
 export function ProductPdpLayout({
   product,
+  locale = "en",
   competitorOffers = [],
   recommendations = null,
   compareAtPrice,
@@ -72,6 +76,12 @@ export function ProductPdpLayout({
     />
   ) : null;
 
+  const producerSlug =
+    product.producerName?.trim() &&
+    product.producerName.trim() !== "Unknown Producer"
+      ? generateProducerSlug(product.producerName)
+      : null;
+
   return (
     <CartSourceProviderConditional>
       <PageLayoutServer className="bg-muted" noPadding>
@@ -99,6 +109,9 @@ export function ProductPdpLayout({
                   <WinePdpHeroBox
                     title={product.title}
                     leadText={product.summary || product.description}
+                    producerName={product.producerName}
+                    producerSlug={producerSlug}
+                    locale={locale}
                     topLeftBadges={<PdpHeroBadges />}
                     showCaseHelp={
                       product.productType === "wine" && Boolean(product.producerId)

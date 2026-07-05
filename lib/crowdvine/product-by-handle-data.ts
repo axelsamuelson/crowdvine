@@ -17,12 +17,94 @@ import {
   isWineAvailableForSale,
   resolveProductAvailableForSale,
 } from "@/lib/wine-availability";
+import { firstSentence } from "@/lib/text/first-sentence";
 
 function parseWineTasteTags(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
   return value.filter(
     (tag): tag is string => typeof tag === "string" && tag.trim().length > 0,
   );
+}
+
+const META_DESCRIPTION_MAX_LENGTH = 155;
+const UNKNOWN_PRODUCER_LABEL = "Unknown Producer";
+
+function isKnownProducerName(name: string | null | undefined): boolean {
+  const trimmed = name?.trim();
+  return Boolean(trimmed && trimmed !== UNKNOWN_PRODUCER_LABEL);
+}
+
+function buildPdpSeoTitle(
+  wineName: string,
+  vintage: string | null | undefined,
+  producerName: string,
+): string {
+  const base = [wineName, vintage].filter(Boolean).join(" ").trim();
+  if (!isKnownProducerName(producerName)) return base;
+  return `${base} — ${producerName.trim()}`;
+}
+
+function buildPdpSeoDescription(
+  locale: "sv" | "en",
+  options: {
+    summaryText: string | null;
+    tastingNotesText: string | null;
+    grapeVarieties: string[];
+    producerName: string;
+  },
+): string {
+  const { summaryText, tastingNotesText, grapeVarieties, producerName } =
+    options;
+  const grapeFallback = grapeVarieties.join(", ") || "";
+  const lead =
+    firstSentence(summaryText) || firstSentence(tastingNotesText) || null;
+
+  if (!lead) return grapeFallback;
+
+  const producer = isKnownProducerName(producerName)
+    ? producerName.trim()
+    : null;
+
+  const fullSuffix =
+    locale === "sv"
+      ? producer
+        ? ` Naturvin från ${producer}, Languedoc. Hemleverans i Stockholm.`
+        : " Naturvin från Languedoc. Hemleverans i Stockholm."
+      : producer
+        ? ` Natural wine from ${producer}, Languedoc. Home delivery in Stockholm.`
+        : " Natural wine from Languedoc. Home delivery in Stockholm.";
+
+  const shortSuffix =
+    locale === "sv"
+      ? producer
+        ? ` Naturvin från ${producer}, Languedoc.`
+        : " Naturvin från Languedoc."
+      : producer
+        ? ` Natural wine from ${producer}, Languedoc.`
+        : " Natural wine from Languedoc.";
+
+  const withFull = `${lead}${fullSuffix}`;
+  if (withFull.length <= META_DESCRIPTION_MAX_LENGTH) return withFull;
+
+  const withShort = `${lead}${shortSuffix}`;
+  if (withShort.length <= META_DESCRIPTION_MAX_LENGTH) return withShort;
+
+  const budget = META_DESCRIPTION_MAX_LENGTH - shortSuffix.length;
+  if (budget <= 10) return grapeFallback || lead.slice(0, META_DESCRIPTION_MAX_LENGTH);
+
+  const truncated =
+    lead.length <= budget
+      ? lead
+      : `${lead.slice(0, budget - 1).trimEnd()}…`;
+  return `${truncated}${shortSuffix}`;
+}
+
+function englishDescriptionBoilerplate(
+  color: string | null | undefined,
+  vintage: string | null | undefined,
+  grapeVarieties: string | null | undefined,
+): string {
+  return `This exceptional ${color || "wine"} wine from ${vintage} showcases the unique characteristics of ${grapeVarieties || "carefully selected grapes"}. Crafted with precision and passion, this wine offers a perfect balance of flavors and aromas that will delight your palate.`;
 }
 
 /** Direct DB lookup — bypasses HTTP and Deployment Protection. */
@@ -429,10 +511,17 @@ export async function getCrowdvineProductByHandle(options: {
 
   const localeForWine = locale as "sv" | "en";
 
+  const tastingNotesText = extractWineText(i.tasting_notes, localeForWine);
+  const summaryText = extractWineText(i.summary, localeForWine);
+  const tastingLead = firstSentence(tastingNotesText);
+
   const rawDescription = extractWineText(i.description, localeForWine);
   const wineDescription =
     rawDescription ||
-    `This exceptional ${i.color || "wine"} wine from ${i.vintage} showcases the unique characteristics of ${i.grape_varieties || "carefully selected grapes"}. Crafted with precision and passion, this wine offers a perfect balance of flavors and aromas that will delight your palate.`;
+    tastingLead ||
+    (localeForWine === "en"
+      ? englishDescriptionBoilerplate(i.color, i.vintage, i.grape_varieties)
+      : "");
 
   const wineDescriptionHtml = i.description_html || `<p>${wineDescription}</p>`;
 
@@ -502,9 +591,17 @@ export async function getCrowdvineProductByHandle(options: {
   if (resolvedAbv) specs["ABV"] = resolvedAbv;
 
   const tasteTags = parseWineTasteTags(i.tags);
+  const producerName = producerEmbed?.name || UNKNOWN_PRODUCER_LABEL;
+  const seoTitle = buildPdpSeoTitle(i.wine_name, i.vintage, producerName);
+  const seoDescription = buildPdpSeoDescription(localeForWine, {
+    summaryText,
+    tastingNotesText,
+    grapeVarieties,
+    producerName,
+  });
 
   const wineEnrichment = {
-    tasting_notes: extractWineText(i.tasting_notes, localeForWine),
+    tasting_notes: tastingNotesText,
     appellation: i.appellation?.trim() ? i.appellation.trim() : null,
     farming: i.farming?.trim() ? i.farming.trim() : null,
     additives: extractWineText(i.additives, localeForWine),
@@ -546,7 +643,7 @@ export async function getCrowdvineProductByHandle(options: {
     description: wineDescription,
     descriptionHtml: wineDescriptionHtml,
     /** Short summary for PDP white box; null if not set. */
-    summary: extractWineText(i.summary, localeForWine),
+    summary: summaryText || tastingLead || null,
     /** Wine specs for bullet list under description (Region, Appellation, Terroir, Vinification, ABV). */
     specs: Object.keys(specs).length > 0 ? specs : null,
     /** Enrichment fields for PDP sections (tasting notes, farming, food pairing, etc.). */
@@ -556,7 +653,7 @@ export async function getCrowdvineProductByHandle(options: {
     productType: "wine",
     categoryId: i.producer_id,
     producerId: i.producer_id,
-    producerName: producerEmbed?.name || "Unknown Producer",
+    producerName,
     producerLocation: producerEmbed
       ? {
           lat: producerEmbed.lat ?? null,
@@ -629,7 +726,7 @@ export async function getCrowdvineProductByHandle(options: {
     },
     featuredImage,
     images,
-    seo: { title: i.wine_name, description: grapeVarieties.join(", ") || "" },
+    seo: { title: seoTitle, description: seoDescription },
     tags: [
       // Add grape varieties as tags
       ...grapeVarieties,

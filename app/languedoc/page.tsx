@@ -237,7 +237,21 @@ export default async function LanguedocPage() {
             Druvor och stilar
           </h2>
           <p className="text-sm leading-relaxed text-muted-foreground">
-            Röda viner dominerar, med grenache, syrah,{" "}
+            Röda viner dominerar, med{" "}
+            <Link
+              href="/vin/grenache"
+              className="underline underline-offset-4 hover:text-foreground"
+            >
+              grenache
+            </Link>
+            ,{" "}
+            <Link
+              href="/vin/syrah"
+              className="underline underline-offset-4 hover:text-foreground"
+            >
+              syrah
+            </Link>
+            ,{" "}
             <Link
               href="/vin/carignan"
               className="underline underline-offset-4 hover:text-foreground"
@@ -253,8 +267,14 @@ export default async function LanguedocPage() {
             </Link>{" "}
             från gamla stockar ger djup och syra;
             grenache bidrar med röd frukt och alkohol; syrah tillför krydda
-            och struktur. Vita viner byggs ofta på grenache blanc, roussanne,
-            marsanne och vermentino. Orangevin och macererade vita har stark
+            och struktur. Vita viner byggs ofta på{" "}
+            <Link
+              href="/vin/grenache-blanc"
+              className="underline underline-offset-4 hover:text-foreground"
+            >
+              grenache blanc
+            </Link>
+            , roussanne, marsanne och vermentino. Orangevin och macererade vita har stark
             förankring här — särskilt bland oberoende producenter som experimenterar
             med skinkontakt och spontanjäsning.
           </p>

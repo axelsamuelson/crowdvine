@@ -154,18 +154,32 @@ type SupabaseOrBuilder = {
 };
 
 /**
+ * PostgREST `.or(...)` clause for shop search.
+ * `description` is JSONB (`{ sv, en }`) — cannot use `description.ilike` directly.
+ */
+function wineCatalogSearchOrClause(rawSearch: string): string | null {
+  const t = normalizeShopSearchInput(rawSearch);
+  if (!t) return null;
+  const p = postgrestIlikeValue(`%${escapeForIlikePattern(t)}%`);
+  return [
+    `wine_name.ilike.${p}`,
+    `handle.ilike.${p}`,
+    `grape_varieties.ilike.${p}`,
+    `description->>sv.ilike.${p}`,
+    `description->>en.ilike.${p}`,
+  ].join(",");
+}
+
+/**
  * Full catalog: wine fields + joined producer name (`producers!inner` is on the same query).
  */
 function applyWineCatalogSearch<Q extends SupabaseOrBuilder>(
   qb: Q,
   rawSearch: string | undefined,
 ): Q {
-  const t = normalizeShopSearchInput(rawSearch ?? "");
-  if (!t) return qb;
-  const p = postgrestIlikeValue(`%${escapeForIlikePattern(t)}%`);
-  return qb.or(
-    `wine_name.ilike.${p},handle.ilike.${p},description.ilike.${p},grape_varieties.ilike.${p}`,
-  ) as Q;
+  const clause = wineCatalogSearchOrClause(rawSearch ?? "");
+  if (!clause) return qb;
+  return qb.or(clause) as Q;
 }
 
 function applyProducerNameSearch<Q extends SupabaseOrBuilder>(
@@ -183,12 +197,9 @@ function applyWineCollectionSearch<Q extends SupabaseOrBuilder>(
   qb: Q,
   rawSearch: string | undefined,
 ): Q {
-  const t = normalizeShopSearchInput(rawSearch ?? "");
-  if (!t) return qb;
-  const p = postgrestIlikeValue(`%${escapeForIlikePattern(t)}%`);
-  return qb.or(
-    `wine_name.ilike.${p},handle.ilike.${p},description.ilike.${p},grape_varieties.ilike.${p}`,
-  ) as Q;
+  const clause = wineCatalogSearchOrClause(rawSearch ?? "");
+  if (!clause) return qb;
+  return qb.or(clause) as Q;
 }
 
 function applyProducerNameSearchForCollection<Q extends SupabaseOrBuilder>(

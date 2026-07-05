@@ -24,8 +24,10 @@ import type { WineEnrichment } from "@/lib/shopify/types";
 import { generateProducerSlug } from "@/lib/producer-handle";
 import { producerPublicPath } from "@/lib/i18n/localized-routes";
 import { wineColorDotClass } from "@/lib/wine-color";
+import { isCuratedGrape } from "@/lib/curated-grape-categories";
 import { useTranslations } from "@/lib/hooks/use-translations";
 import type { AppLocale } from "@/lib/i18n/locale";
+import { getCategoryUrlForGrape } from "@/lib/wine-categories";
 import { cn } from "@/lib/utils";
 
 const SPEC_ICONS: Record<EnrichmentSpecKey, LucideIcon> = {
@@ -66,6 +68,36 @@ interface WineEnrichmentSpecsProps {
   producerName?: string | null;
   className?: string;
   tasteTags?: string[];
+}
+
+function GrapeVarietyLinks({
+  grapes,
+  locale,
+}: {
+  grapes: string[];
+  locale: AppLocale;
+}) {
+  if (grapes.length === 0) return null;
+
+  return (
+    <>
+      {grapes.map((grape, index) => (
+        <span key={`${grape}-${index}`}>
+          {index > 0 ? ", " : null}
+          {isCuratedGrape(grape) ? (
+            <Link
+              href={getCategoryUrlForGrape(grape, locale)}
+              className="underline underline-offset-2 hover:text-foreground"
+            >
+              {grape}
+            </Link>
+          ) : (
+            grape
+          )}
+        </span>
+      ))}
+    </>
+  );
 }
 
 function SpecItem({
@@ -115,6 +147,11 @@ function SpecItem({
             >
               {value}
             </Link>
+          ) : specKey === "grapeVariety" ? (
+            <GrapeVarietyLinks
+              grapes={enrichment?.grapeVarieties ?? []}
+              locale={locale}
+            />
           ) : (
             value
           )}

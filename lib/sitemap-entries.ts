@@ -1,6 +1,10 @@
 import type { MetadataRoute } from "next";
 
 import { generateProducerSlug } from "@/lib/producer-handle";
+import {
+  NOINDEX_CATEGORY_SLUGS_EN,
+  NOINDEX_CATEGORY_SLUGS_SV,
+} from "@/lib/seo/noindex-robots";
 import { WINE_CATEGORIES_EN, WINE_CATEGORIES_SV } from "@/lib/wine-categories";
 import {
   dedupeSitemapEntries,
@@ -48,6 +52,7 @@ function staticPagesForProfile(
     },
     weeklyEntry(`${baseUrl}/producers`, 0.8),
     weeklyEntry(`${baseUrl}/about`, 0.5),
+    weeklyEntry(`${baseUrl}/om-oss`, 0.5),
   ];
 
   if (profile === "pact") {
@@ -103,13 +108,13 @@ export async function buildSitemapEntries(
       ];
     });
 
-  const vinCategories: MetadataRoute.Sitemap = WINE_CATEGORIES_SV.map((c) =>
-    weeklyEntry(`${baseUrl}/vin/${c.slug}`, 0.8),
-  );
+  const vinCategories: MetadataRoute.Sitemap = WINE_CATEGORIES_SV.filter(
+    (c) => !NOINDEX_CATEGORY_SLUGS_SV.has(c.slug),
+  ).map((c) => weeklyEntry(`${baseUrl}/vin/${c.slug}`, 0.8));
 
-  const wineCategories: MetadataRoute.Sitemap = WINE_CATEGORIES_EN.map((c) =>
-    weeklyEntry(`${baseUrl}/wine/${c.slug}`, 0.7),
-  );
+  const wineCategories: MetadataRoute.Sitemap = WINE_CATEGORIES_EN.filter(
+    (c) => !NOINDEX_CATEGORY_SLUGS_EN.has(c.slug),
+  ).map((c) => weeklyEntry(`${baseUrl}/wine/${c.slug}`, 0.7));
 
   const knownCategorySlugs = getKnownCategorySlugs();
 

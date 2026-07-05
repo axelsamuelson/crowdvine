@@ -16,12 +16,17 @@ interface ShopBreadcrumbProps {
   collections: Pick<Collection, "handle" | "title">[];
   className?: string;
   breadcrumbLabel?: string;
+  /** Producer profile page — set on producer shop PLPs only. */
+  producerProfileHref?: string;
+  producerProfileLabel?: string;
 }
 
 export function ShopBreadcrumb({
   collections,
   className,
   breadcrumbLabel,
+  producerProfileHref,
+  producerProfileLabel,
 }: ShopBreadcrumbProps) {
   const { t } = useTranslations();
   const paths = useLocalizedPaths();
@@ -60,9 +65,26 @@ export function ShopBreadcrumb({
           </BreadcrumbLink>
         </BreadcrumbItem>
         <BreadcrumbSeparator />
-        <BreadcrumbPage className="font-semibold">
-          {renderCategoryBreadcrumb()}
-        </BreadcrumbPage>
+        {producerProfileHref ? (
+          <>
+            <BreadcrumbItem>
+              <BreadcrumbLink
+                href={producerProfileHref}
+                className="font-semibold"
+              >
+                {producerProfileLabel ?? producerProfileHref}
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbPage className="font-semibold">
+              {renderCategoryBreadcrumb()}
+            </BreadcrumbPage>
+          </>
+        ) : (
+          <BreadcrumbPage className="font-semibold">
+            {renderCategoryBreadcrumb()}
+          </BreadcrumbPage>
+        )}
       </BreadcrumbList>
     </Breadcrumb>
   );

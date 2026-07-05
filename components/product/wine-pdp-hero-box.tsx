@@ -1,12 +1,18 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
 import { CasePurchaseHelpTrigger } from "@/components/cart/case-purchase-help-trigger";
 import { PeekTabAnchor } from "@/components/pdp/peek-tab-anchor";
+import type { AppLocale } from "@/lib/i18n/locale";
+import { producerPublicPath } from "@/lib/i18n/localized-routes";
 import { cn } from "@/lib/utils";
 
 interface WinePdpHeroBoxProps {
   title: string;
   /** Short summary / description for the white box. */
   leadText?: string | null;
+  producerName?: string | null;
+  producerSlug?: string | null;
+  locale?: AppLocale;
   price: React.ReactNode;
   compareAtPrice?: React.ReactNode;
   /** Privilege / Early bird tabs behind the top-left corner of the white box. */
@@ -16,10 +22,15 @@ interface WinePdpHeroBoxProps {
   className?: string;
 }
 
+const UNKNOWN_PRODUCER_LABEL = "Unknown Producer";
+
 /** White box: title + price on top row, full-width description below. */
 export function WinePdpHeroBox({
   title,
   leadText,
+  producerName,
+  producerSlug,
+  locale = "en",
   price,
   compareAtPrice,
   topLeftBadges,
@@ -27,6 +38,11 @@ export function WinePdpHeroBox({
   className,
 }: WinePdpHeroBoxProps) {
   const lead = leadText?.trim();
+  const showProducerByline =
+    Boolean(producerSlug?.trim()) &&
+    Boolean(producerName?.trim()) &&
+    producerName!.trim() !== UNKNOWN_PRODUCER_LABEL;
+  const leadRowStart = showProducerByline ? "md:row-start-3" : "md:row-start-2";
 
   return (
     <div
@@ -48,13 +64,29 @@ export function WinePdpHeroBox({
           {title}
         </h1>
 
+        {showProducerByline ? (
+          <div className="max-md:mt-1 md:col-start-1 md:row-start-2">
+            <Link
+              href={producerPublicPath(producerSlug!, locale)}
+              className="text-sm text-stone-600 underline underline-offset-2 hover:text-foreground"
+            >
+              {producerName}
+            </Link>
+          </div>
+        ) : null}
+
         <div className="flex flex-wrap items-center gap-3 max-md:mt-4 md:col-start-2 md:row-start-1 md:justify-self-end md:self-start">
           {price}
           {compareAtPrice}
         </div>
 
         {lead ? (
-          <p className="text-sm font-medium max-md:mt-3 md:col-span-2 md:row-start-2 md:w-full md:pt-1">
+          <p
+            className={cn(
+              "text-sm font-medium max-md:mt-3 md:col-span-2 md:w-full md:pt-1",
+              leadRowStart,
+            )}
+          >
             {lead}
           </p>
         ) : null}

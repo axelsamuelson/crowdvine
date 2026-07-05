@@ -8,12 +8,15 @@ import {
 import {
   getActiveColorFromPathname,
   getActiveFarmingFromPathname,
+  getActiveGrapeFromPathname,
+  getCategoryUrlForGrape,
+  getCategoryUrlForGrapeAndFarming,
   getWineCategoryFromPathname,
   isShopFilterNavigationPath,
 } from "@/lib/wine-categories";
 import {
   getShopSegmentSlug,
-  isGrapeOnlyCategory,
+  isGrapeCategory,
   resolveGrapeNameFromSlug,
 } from "@/lib/wine-grape-categories";
 
@@ -67,7 +70,7 @@ export function shouldNavigateShopFilters(pathname: string): boolean {
   return isShopFilterNavigationPath(pathname);
 }
 
-/** Navigate to grape PLP only from main shop or grape-only category pages. */
+/** Navigate to grape PLP from main shop or any grape category page. */
 export function shouldNavigateGrapeFilter(
   pathname: string,
   grapeCandidates: string[] = [],
@@ -75,7 +78,7 @@ export function shouldNavigateGrapeFilter(
   if (pathname === "/vin" || pathname === "/wine") return true;
 
   const category = getWineCategoryFromPathname(pathname);
-  if (category && isGrapeOnlyCategory(category)) return true;
+  if (category && isGrapeCategory(category)) return true;
 
   const slug = getShopSegmentSlug(pathname);
   if (slug && grapeCandidates.length > 0) {
@@ -83,6 +86,45 @@ export function shouldNavigateGrapeFilter(
   }
 
   return false;
+}
+
+export function resolveGrapePageUrl(
+  locale: "sv" | "en",
+  pathname: string,
+  grapeName: string,
+  grapeCandidates: string[] = [],
+): string {
+  const activeFarming = getActiveFarmingFromPathname(pathname);
+  if (activeFarming) {
+    const combo = getCategoryUrlForGrapeAndFarming(
+      grapeName,
+      activeFarming,
+      locale,
+    );
+    if (combo) return combo;
+  }
+
+  return getCategoryUrlForGrape(grapeName, locale);
+}
+
+export function resolveGrapePageFarmingUrl(
+  locale: "sv" | "en",
+  pathname: string,
+  farming: ShopFarmingFilterValue,
+  clearFarming: boolean,
+  grapeCandidates: string[] = [],
+): string | null {
+  const activeGrape = getActiveGrapeFromPathname(pathname, grapeCandidates);
+  if (!activeGrape) return null;
+
+  if (clearFarming) {
+    return getCategoryUrlForGrape(activeGrape, locale);
+  }
+
+  return (
+    getCategoryUrlForGrapeAndFarming(activeGrape, farming, locale) ??
+    getCategoryUrlForGrape(activeGrape, locale)
+  );
 }
 
 export function localeFromShopPathname(pathname: string): "sv" | "en" {

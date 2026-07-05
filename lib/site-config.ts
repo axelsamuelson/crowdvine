@@ -22,7 +22,7 @@ export const DIRTY_WINE_CONFIG: SiteConfig = {
   name: "Dirty Wine",
   baseUrl: "https://dirtywine.se",
   siteName: "Dirty Wine",
-  defaultTitle: "Dirty Wine — Naturvin från Languedoc, B2B import",
+  defaultTitle: "Dirty Wine — Naturvin till Stockholms restauranger",
   defaultDescription:
     "Naturvin direkt från Languedoc för restauranger och sommelierer i Stockholm. B2B-import via Dirty Wine.",
 };

@@ -171,3 +171,7 @@ export function isGrapeOnlyCategory(category: WineCategory): boolean {
       !category.filter.tags?.length,
   );
 }
+
+export function isGrapeCategory(category: WineCategory): boolean {
+  return Boolean(category.filter.filterGrape);
+}

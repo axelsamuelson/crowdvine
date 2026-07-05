@@ -9,7 +9,17 @@ export interface CollectionData {
   updatedAt: string;
   createdAt: string;
   seo?: { title: string; description: string };
+  /** Raw JSONB from producers.short_description — locale resolved at render. */
+  shortDescription?: Record<string, string> | string | null;
+  certification?: string | null;
+  subregion?: string | null;
+  foundedYear?: number | null;
+  /** Producer region (also embedded in legacy description). */
+  region?: string | null;
 }
+
+const PRODUCER_SELECT =
+  "id, name, region, short_description, certification, subregion, founded_year";
 
 /**
  * Fetch collections (producers + wine boxes) directly from DB.
@@ -21,18 +31,24 @@ export async function fetchCollectionsData(): Promise<CollectionData[]> {
   try {
     const { data: producers, error } = await sb
       .from("producers")
-      .select("id, name, region")
+      .select(PRODUCER_SELECT)
       .order("name")
       .eq("is_live", true);
     if (error && /is_live|column.*does not exist/i.test(error.message)) {
-      const fallback = await sb.from("producers").select("id, name, region").order("name");
+      const fallback = await sb
+        .from("producers")
+        .select(PRODUCER_SELECT)
+        .order("name");
       if (fallback.error) throw fallback.error;
       return buildCollectionsFromProducers(fallback.data ?? []);
     }
     if (error) throw error;
     return buildCollectionsFromProducers(producers ?? []);
   } catch {
-    const { data: producers, error } = await sb.from("producers").select("id, name, region").order("name");
+    const { data: producers, error } = await sb
+      .from("producers")
+      .select(PRODUCER_SELECT)
+      .order("name");
     if (error) throw error;
     return buildCollectionsFromProducers(producers ?? []);
   }
@@ -43,7 +59,12 @@ function buildCollectionsFromProducers(producers: any[]): CollectionData[] {
     id: producer.id,
     handle: generateProducerSlug(producer.name),
     title: producer.name,
+    region: producer.region ?? null,
     description: `Wines from ${producer.name} in ${producer.region}`,
+    shortDescription: producer.short_description ?? null,
+    certification: producer.certification ?? null,
+    subregion: producer.subregion ?? null,
+    foundedYear: producer.founded_year ?? null,
     updatedAt: new Date().toISOString(),
     createdAt: new Date().toISOString(),
   }));
@@ -59,4 +80,11 @@ function buildCollectionsFromProducers(producers: any[]): CollectionData[] {
   };
 
   return [wineBoxesCollection, ...producerCollections];
+}
+
+/** Read producer shop fields from a collection returned by getCollection(). */
+export function asProducerCollectionData(
+  collection: { id: string; handle: string; title: string; description: string },
+): CollectionData {
+  return collection as CollectionData;
 }

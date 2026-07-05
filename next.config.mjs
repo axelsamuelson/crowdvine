@@ -53,7 +53,6 @@ const nextConfig = {
     // Enable experimental features for better performance
     inlineCss: true,
     useCache: true,
-    clientSegmentCache: true,
   },
   images: {
     formats: ["image/avif", "image/webp"],

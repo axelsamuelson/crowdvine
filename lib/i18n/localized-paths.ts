@@ -1,3 +1,4 @@
+import { aboutPathForLocale } from "@/lib/i18n/about-page-content";
 import type { AppLocale } from "@/lib/i18n/locale";
 import {
   getWineCategoryEn,
@@ -13,6 +14,7 @@ import {
 
 export type LocalizedPaths = {
   locale: AppLocale;
+  about: string;
   shop: string;
   shopCollection: (slug: string) => string;
   shopCategory: (slug: string) => string;
@@ -46,6 +48,7 @@ export function localizedPathsForLocale(locale: AppLocale): LocalizedPaths {
   const shop = shopPathForLocale(locale);
   return {
     locale,
+    about: aboutPathForLocale(locale),
     shop,
     shopCollection: (slug) => `${shop}/${slug}`,
     shopCategory: (slug) => shopCategoryPath(slug, locale),

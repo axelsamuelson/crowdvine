@@ -11,14 +11,21 @@ import {
 } from "@/lib/external-prices/cached-source-slugs";
 import { mapProductDataToShopProducts } from "@/lib/map-product-data-to-shop-product";
 import { generateProducerSlug } from "@/lib/producer-handle";
-import { producerPageUrls } from "@/lib/i18n/localized-routes";
+import { producerPageUrls, producerPublicPath } from "@/lib/i18n/localized-routes";
 import {
   producerShopPageHeading,
   producerShopPagePath,
 } from "@/lib/i18n/producer-shop-page";
+import { asProducerCollectionData } from "@/lib/crowdvine/collections-data";
+import { ProducerShopEditorialBlock } from "@/components/producer/producer-shop-editorial";
+import {
+  producerShopMetaDescription,
+  producerShopPageTitle,
+} from "@/lib/seo/producer-shop-metadata";
 import { getCollection } from "@/lib/shopify";
 import { getSiteConfig } from "@/lib/site-config";
 import { categoryPageTitle } from "@/lib/seo/category-page-title";
+import { categoryPageRobots } from "@/lib/seo/noindex-robots";
 import { shopSearchParamsRobots } from "@/lib/seo/shop-search-robots";
 import {
   WINE_CATEGORIES_SV,
@@ -40,7 +47,6 @@ export async function generateMetadata(props: {
     props.params,
     props.searchParams ?? Promise.resolve({}),
   ]);
-  const robots = shopSearchParamsRobots(searchParams);
 
   const category = await resolveGrapeCategoryBySlug(slug, "sv");
   if (category) {
@@ -52,7 +58,7 @@ export async function generateMetadata(props: {
     return {
       title,
       description: category.metaDescription,
-      robots,
+      robots: categoryPageRobots(slug, "sv", searchParams),
       alternates: {
         canonical: pageUrl,
         languages: {
@@ -80,14 +86,18 @@ export async function generateMetadata(props: {
   const shopUrl = `${config.baseUrl}${producerShopPagePath(collection.title, "sv")}`;
   const producerSlug = generateProducerSlug(collection.title);
   const producerUrls = producerPageUrls(producerSlug);
+  const producerCollection = asProducerCollectionData(collection);
+  const shopTitle = producerShopPageTitle(collection.title, "sv");
+  const shopDescription = producerShopMetaDescription("sv", {
+    producerName: collection.title,
+    region: producerCollection.region,
+    shortDescription: producerCollection.shortDescription,
+  });
 
   return {
-    title: shopHeading,
-    description:
-      collection.seo?.description ||
-      collection.description ||
-      `${shopHeading} — naturvin direkt från Languedoc.`,
-    robots,
+    title: shopTitle,
+    description: shopDescription,
+    robots: shopSearchParamsRobots(searchParams),
     alternates: {
       canonical: shopUrl,
       languages: {
@@ -97,11 +107,8 @@ export async function generateMetadata(props: {
       },
     },
     openGraph: {
-      title: `${shopHeading} | PACT Wines`,
-      description:
-        collection.seo?.description ||
-        collection.description ||
-        `${shopHeading} — naturvin direkt från Languedoc.`,
+      title: shopTitle,
+      description: shopDescription,
       url: shopUrl,
       type: "website",
     },
@@ -208,34 +215,6 @@ export default async function VinCollectionPage(props: {
             </p>
           </div>
 
-          {category.longDescription && (
-            <div className="prose prose-stone mb-8 max-w-2xl text-sm">
-              {category.longDescription.split("\n\n").map((paragraph) => (
-                <p key={paragraph.slice(0, 32)}>{paragraph}</p>
-              ))}
-            </div>
-          )}
-
-          {category.filter.filterGrape && category.tastingProfile?.length ? (
-            <div className="mb-8 max-w-2xl">
-              <h2 className="mb-3 text-base font-medium">
-                Vad smakar {category.filter.filterGrape} från gamla stockar?
-              </h2>
-              <ul className="list-none space-y-1 text-sm text-stone-600">
-                {category.tastingProfile.map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-
-          {category.foodPairing ? (
-            <div className="mb-8 max-w-2xl">
-              <h2 className="mb-3 text-base font-medium">Passar till</h2>
-              <p className="text-sm text-stone-600">{category.foodPairing}</p>
-            </div>
-          ) : null}
-
           <ProductListShell
             products={mappedProducts}
             locale="sv"
@@ -244,46 +223,86 @@ export default async function VinCollectionPage(props: {
             breadcrumbLabel={category.h1}
           />
 
-          <div className="mt-16 max-w-2xl border-t border-stone-200 pt-8">
-            {category.aboutText ? (
-              <>
-                <h2 className="mb-3 text-lg font-medium text-stone-900">
-                  Om {category.h1.toLowerCase()}
-                </h2>
-                <p className="mb-4 text-sm leading-relaxed text-stone-600">
-                  {category.aboutText}
-                </p>
-              </>
-            ) : null}
-            <div className="mt-8">
-              <h3 className="mb-3 text-sm font-medium text-stone-900">
-                Utforska mer
-              </h3>
-              <div className="flex flex-wrap gap-2">
-                {relatedCategories.map((c) => (
-                  <Link
-                    key={c.slug}
-                    href={c.canonical}
-                    className="text-sm text-stone-600 underline underline-offset-4 hover:text-stone-900"
-                  >
-                    {c.h1}
-                  </Link>
+          {category.longDescription ? (
+            <div className="mt-16 pt-12">
+              <h2 className="mb-6 text-sm font-medium uppercase tracking-widest text-stone-400">
+                Om druvsorten
+              </h2>
+              <div className="prose prose-stone prose-sm max-w-2xl">
+                {category.longDescription.split("\n\n").map((paragraph) => (
+                  <p key={paragraph.slice(0, 32)}>{paragraph}</p>
                 ))}
-                <Link
-                  href="/languedoc/naturvin"
-                  className="text-sm text-stone-600 underline underline-offset-4 hover:text-stone-900"
-                >
-                  Läs mer om naturvin från Languedoc
-                </Link>
-                <Link
-                  href="/how-it-works"
-                  className="text-sm text-stone-600 underline underline-offset-4 hover:text-stone-900"
-                >
-                  Hur det fungerar
-                </Link>
               </div>
             </div>
-          </div>
+          ) : null}
+
+          {category.tastingProfile?.length ? (
+            <div className="mt-12">
+              <h2 className="mb-6 text-sm font-medium uppercase tracking-widest text-stone-400">
+                Smakprofil
+              </h2>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+                {category.tastingProfile.map((item, i) => (
+                  <div
+                    key={i}
+                    className="rounded-xl border border-stone-100 bg-stone-50 p-4 text-sm leading-snug text-stone-700"
+                  >
+                    {item}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          {category.foodPairing ? (
+            <div className="mt-12">
+              <h2 className="mb-4 text-sm font-medium uppercase tracking-widest text-stone-400">
+                Passar till
+              </h2>
+              <p className="max-w-xl text-sm text-stone-600">
+                {category.foodPairing}
+              </p>
+            </div>
+          ) : null}
+
+          {(category.aboutText ||
+            relatedCategories.length > 0) && (
+            <div className="mt-12 pt-12">
+              {category.aboutText ? (
+                <p className="mb-8 max-w-xl text-sm text-stone-600">
+                  {category.aboutText}
+                </p>
+              ) : null}
+              <div>
+                <h3 className="mb-3 text-sm font-medium text-stone-900">
+                  Utforska mer
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {relatedCategories.map((c) => (
+                    <Link
+                      key={c.slug}
+                      href={c.canonical}
+                      className="text-sm text-stone-600 underline underline-offset-4 hover:text-stone-900"
+                    >
+                      {c.h1}
+                    </Link>
+                  ))}
+                  <Link
+                    href="/languedoc/naturvin"
+                    className="text-sm text-stone-600 underline underline-offset-4 hover:text-stone-900"
+                  >
+                    Läs mer om naturvin från Languedoc
+                  </Link>
+                  <Link
+                    href="/how-it-works"
+                    className="text-sm text-stone-600 underline underline-offset-4 hover:text-stone-900"
+                  >
+                    Hur det fungerar
+                  </Link>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </>
     );
@@ -301,6 +320,8 @@ export default async function VinCollectionPage(props: {
   const producerUrls = producerPageUrls(producerSlug);
   const shopHeading = producerShopPageHeading(collection.title, "sv");
   const shopUrl = `${config.baseUrl}${producerShopPagePath(collection.title, "sv")}`;
+  const producerCollection = asProducerCollectionData(collection);
+  const profilePath = producerPublicPath(producerSlug, "sv");
 
   const breadcrumbJsonLd = {
     "@context": "https://schema.org",
@@ -342,6 +363,12 @@ export default async function VinCollectionPage(props: {
         collection={slug}
         searchParams={searchParams}
         breadcrumbLabel={shopHeading}
+        producerProfileHref={profilePath}
+        producerProfileLabel={collection.title}
+      />
+      <ProducerShopEditorialBlock
+        collection={producerCollection}
+        locale="sv"
       />
     </>
   );

@@ -9,11 +9,15 @@ export default function ResultsControls({
   products,
   className,
   breadcrumbLabel,
+  producerProfileHref,
+  producerProfileLabel,
 }: {
   collections: Pick<Collection, "handle" | "title">[];
   products: Product[];
   className?: string;
   breadcrumbLabel?: string;
+  producerProfileHref?: string;
+  producerProfileLabel?: string;
 }) {
   return (
     <div
@@ -27,6 +31,8 @@ export default function ResultsControls({
         collections={collections}
         className="ml-1"
         breadcrumbLabel={breadcrumbLabel}
+        producerProfileHref={producerProfileHref}
+        producerProfileLabel={producerProfileLabel}
       />
 
       {/* Results count */}

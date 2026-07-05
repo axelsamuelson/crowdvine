@@ -44,6 +44,8 @@ interface ProductListProps {
   collection: string;
   searchParams?: { [key: string]: string | string[] | undefined };
   breadcrumbLabel?: string;
+  producerProfileHref?: string;
+  producerProfileLabel?: string;
 }
 
 async function fetchProductsForList(params: {
@@ -132,6 +134,8 @@ export default async function ProductList({
   collection,
   searchParams,
   breadcrumbLabel,
+  producerProfileHref,
+  producerProfileLabel,
 }: ProductListProps) {
   const resolvedSearchParams = searchParams ?? {};
   const query =
@@ -234,6 +238,8 @@ export default async function ProductList({
       wineSourceSlugs={wineSourceSlugs}
       searchQuery={query ?? ""}
       breadcrumbLabel={breadcrumbLabel}
+      producerProfileHref={producerProfileHref}
+      producerProfileLabel={producerProfileLabel}
     />
   );
 }

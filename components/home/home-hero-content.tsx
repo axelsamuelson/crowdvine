@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 
 import { useLocalizedPaths } from "@/lib/hooks/use-localized-paths";
@@ -9,70 +8,52 @@ import { cn } from "@/lib/utils";
 
 import { useOptionalTasteQuizPanel } from "./home-taste-quiz-panel";
 
-const titleClasses =
-  "max-w-none text-center text-2xl font-medium leading-none tracking-tighter whitespace-nowrap text-white sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl";
-
 const heroButtonBaseClassName =
-  "inline-flex h-10 w-full min-w-0 items-center justify-center rounded-sm px-3 text-center text-sm font-medium sm:px-4";
-
-const heroButtonClassName = cn(
-  heroButtonBaseClassName,
-  "border border-white/35 bg-white/10 text-white backdrop-blur-md transition-colors hover:border-white/55 hover:bg-white/15",
-);
+  "inline-flex h-11 min-w-[10rem] items-center justify-center rounded-full px-6 text-sm font-medium transition-colors";
 
 const heroButtonPrimaryClassName = cn(
   heroButtonBaseClassName,
-  "border border-white bg-white text-stone-900 transition-colors hover:bg-white/90",
+  "bg-stone-900 text-white hover:bg-stone-800",
 );
 
-function HeroFavicon() {
-  return (
-    <Image
-      src="/favicon.png"
-      alt=""
-      aria-hidden
-      width={18}
-      height={18}
-      className="h-[18px] w-[18px] brightness-0 invert sm:h-5 sm:w-5"
-    />
-  );
-}
+const heroButtonSecondaryClassName = cn(
+  heroButtonBaseClassName,
+  "border border-stone-300 bg-white text-stone-900 hover:border-stone-400 hover:bg-stone-50",
+);
 
 export function HomeHeroContent() {
   const { t } = useTranslations();
   const paths = useLocalizedPaths();
   const tasteQuizPanel = useOptionalTasteQuizPanel();
-  const title = t("home.heroTitle");
 
   return (
-    <>
-      <div
-        aria-hidden
-        className="absolute inset-0 bg-gradient-to-b from-black/25 via-black/10 to-black/55"
-      />
+    <div className="order-2 flex min-h-0 flex-col justify-center px-6 py-6 sm:px-8 md:order-1 md:px-10 md:py-10">
+      <div className="pointer-events-auto flex max-w-lg flex-col gap-5 md:gap-6">
+        <div>
+          <h1 className="text-balance text-3xl font-semibold uppercase leading-[0.95] tracking-tight text-foreground sm:text-4xl lg:text-5xl">
+            <span className="block">{t("home.heroTitleBefore")}</span>
+            <span className="block">{t("home.heroTitleMiddle")}</span>
+          </h1>
+          <p className="mt-3 max-w-md text-base leading-relaxed text-stone-600 md:mt-4">
+            {t("home.heroSubtitle")}
+          </p>
+        </div>
 
-      <div className="absolute inset-0 flex items-center justify-center px-4 sm:px-6 md:px-11">
-        <div className="pointer-events-auto flex flex-col items-center gap-5 sm:gap-6">
-          <h1 className={titleClasses}>{title}</h1>
-          <div className="grid w-full max-w-xs grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 sm:max-w-sm sm:gap-4">
-            {tasteQuizPanel ? (
-              <button
-                type="button"
-                onClick={tasteQuizPanel.openTasteQuiz}
-                className={heroButtonPrimaryClassName}
-              >
-                {t("tasteQuiz.intro.title")}
-              </button>
-            ) : (
-              <span aria-hidden />
-            )}
-            <HeroFavicon />
-            <Link href={paths.shop} className={heroButtonClassName}>
-              {t("nav.shopAll")}
-            </Link>
-          </div>
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+          {tasteQuizPanel ? (
+            <button
+              type="button"
+              onClick={tasteQuizPanel.openTasteQuiz}
+              className={heroButtonPrimaryClassName}
+            >
+              {t("tasteQuiz.intro.title")}
+            </button>
+          ) : null}
+          <Link href={paths.shop} className={heroButtonSecondaryClassName}>
+            {t("nav.shopAll")}
+          </Link>
         </div>
       </div>
-    </>
+    </div>
   );
 }

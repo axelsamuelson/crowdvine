@@ -46,7 +46,7 @@ export function Footer({ initialLogos }: { initialLogos?: SiteLogos }) {
                       {t("common.shop")}
                     </Link>
                     <Link
-                      href="/about"
+                      href={paths.about}
                       className="text-sm text-background/70 hover:text-background transition-colors hover:underline"
                     >
                       {t("common.about")}

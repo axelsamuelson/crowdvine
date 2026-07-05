@@ -6,7 +6,7 @@ import {
 } from "@/lib/i18n/about-page-content";
 import { getSiteConfig } from "@/lib/site-config";
 
-const content = aboutPageContentForLocale("en");
+const content = aboutPageContentForLocale("sv");
 
 export async function generateMetadata(): Promise<Metadata> {
   const config = await getSiteConfig();
@@ -15,7 +15,7 @@ export async function generateMetadata(): Promise<Metadata> {
     title: content.title,
     description: content.description,
     alternates: {
-      canonical: urls.en,
+      canonical: urls.sv,
       languages: {
         en: urls.en,
         sv: urls.sv,
@@ -25,20 +25,20 @@ export async function generateMetadata(): Promise<Metadata> {
     openGraph: {
       title: content.title,
       description: content.description,
-      url: urls.en,
+      url: urls.sv,
       type: "website",
     },
   };
 }
 
-export default async function AboutPage() {
+export default async function OmOssPage() {
   const config = await getSiteConfig();
   const urls = aboutPageUrls(config.baseUrl);
 
   return (
     <AboutPageView
       content={content}
-      pageUrl={urls.en}
+      pageUrl={urls.sv}
       siteName={config.name}
     />
   );

@@ -24,8 +24,18 @@ import {
 } from "@/lib/i18n/localized-routes";
 import { localizedPathsForLocale } from "@/lib/i18n/localized-paths";
 import { translate } from "@/lib/i18n/messages";
+import {
+  isCuratedGrape,
+  parseGrapeVarieties,
+  uniqueGrapesPreserveCasing,
+} from "@/lib/curated-grape-categories";
 import { buildProducerWineryJsonLd } from "@/lib/seo/producer-json-ld";
+import {
+  producerProfileMetaDescription,
+  producerProfilePageTitle,
+} from "@/lib/seo/producer-profile-metadata";
 import { getSiteConfig } from "@/lib/site-config";
+import { getCategoryUrlForGrape } from "@/lib/wine-categories";
 
 type ProducerPayload = {
   id: string;
@@ -51,6 +61,7 @@ type WinePayload = {
   description?: string | null;
   color?: string | null;
   type?: string | null;
+  grape_varieties?: string | null;
 };
 
 type ProducerBySlugResponse = {
@@ -132,10 +143,15 @@ export async function buildProducerPublicMetadata(
   const { name, region, bio_short } = data.producer;
   const urls = producerPageUrls(slug);
   const canonical = `${PACT_PUBLIC_ORIGIN}${producerPagePath(slug, pathSegment)}`;
+  const pageTitle = producerProfilePageTitle(name, locale, region);
+  const pageDescription = producerProfileMetaDescription(locale, {
+    producerName: name,
+    bioShort: bio_short,
+  });
 
   return {
-    title: name,
-    description: bio_short?.slice(0, 155) ?? undefined,
+    title: pageTitle,
+    description: pageDescription,
     alternates: {
       canonical,
       languages: {
@@ -145,12 +161,8 @@ export async function buildProducerPublicMetadata(
       },
     },
     openGraph: {
-      title: name,
-      description:
-        bio_short?.slice(0, 155) ??
-        (locale === "sv"
-          ? `Naturvin direkt från ${region?.trim() || "Languedoc"}.`
-          : `Natural wine direct from ${region?.trim() || "Languedoc"}.`),
+      title: pageTitle,
+      description: pageDescription,
       url: canonical,
       type: "website",
     },
@@ -215,6 +227,10 @@ export async function renderProducerPublicPage(options: {
     locale === "sv"
       ? `${producer.name} viner`
       : `${producer.name} wines`;
+  const producerShopLinkLabel =
+    locale === "sv"
+      ? `Köp ${producer.name}s viner →`
+      : `Shop ${producer.name}'s wines →`;
   const producerShopUrl = `${config.baseUrl}${producerShopPathFromName(producer.name, locale)}`;
 
   const breadcrumbJsonLd = {
@@ -256,6 +272,10 @@ export async function renderProducerPublicPage(options: {
     locale === "sv"
       ? "Inga publicerade viner just nu."
       : "No published wines at the moment.";
+
+  const producerGrapes = uniqueGrapesPreserveCasing(
+    wines.flatMap((wine) => parseGrapeVarieties(wine.grape_varieties)),
+  );
 
   return (
     <>
@@ -322,7 +342,7 @@ export async function renderProducerPublicPage(options: {
               href={producerShopPathFromName(producer.name, locale)}
               className="text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground"
             >
-              {producerWinesLabel}
+              {producerShopLinkLabel}
             </Link>
           </div>
           {wines.length > 0 ? (
@@ -338,6 +358,32 @@ export async function renderProducerPublicPage(options: {
           ) : (
             <p className="text-sm text-muted-foreground">{noWinesMessage}</p>
           )}
+
+          {producerGrapes.length > 0 ? (
+            <section className="mt-10">
+              <h2 className="text-xl font-semibold">
+                {locale === "sv"
+                  ? "Druvor vi arbetar med"
+                  : "Grapes we work with"}
+              </h2>
+              <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-sm text-stone-600">
+                {producerGrapes.map((grape) => (
+                  <span key={grape}>
+                    {isCuratedGrape(grape) ? (
+                      <Link
+                        href={getCategoryUrlForGrape(grape, locale)}
+                        className="underline underline-offset-4 hover:text-foreground"
+                      >
+                        {grape}
+                      </Link>
+                    ) : (
+                      grape
+                    )}
+                  </span>
+                ))}
+              </div>
+            </section>
+          ) : null}
 
           {producer.bio_long ? (
             <section className="mt-12 border-t pt-10">

@@ -13,6 +13,8 @@ type ProductListShellProps = {
   wineSourceSlugs?: Record<string, string[]>;
   searchQuery?: string;
   breadcrumbLabel?: string;
+  producerProfileHref?: string;
+  producerProfileLabel?: string;
 };
 
 /** Server shell: LCP preload + client product grid. */
@@ -25,6 +27,8 @@ export function ProductListShell({
   wineSourceSlugs = {},
   searchQuery = "",
   breadcrumbLabel,
+  producerProfileHref,
+  producerProfileLabel,
 }: ProductListShellProps) {
   return (
     <>
@@ -38,6 +42,8 @@ export function ProductListShell({
         wineSourceSlugs={wineSourceSlugs}
         searchQuery={searchQuery}
         breadcrumbLabel={breadcrumbLabel}
+        producerProfileHref={producerProfileHref}
+        producerProfileLabel={producerProfileLabel}
       />
     </>
   );

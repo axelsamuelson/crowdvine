@@ -13,7 +13,10 @@ export function WineTastingNotes({ text }: WineTastingNotesProps) {
   if (!trimmed) return null;
 
   return (
-    <WineEnrichmentCollapsible title={t("product.pdp.tastingNotes")}>
+    <WineEnrichmentCollapsible
+      title={t("product.pdp.tastingNotes")}
+      defaultOpen
+    >
       <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
         {trimmed}
       </p>

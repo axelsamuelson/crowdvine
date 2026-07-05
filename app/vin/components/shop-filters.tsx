@@ -22,12 +22,13 @@ import {
   getActiveColorFromPathname,
   getActiveFarmingFromPathname,
   getActiveGrapeFromPathname,
-  getCategoryUrlForGrape,
 } from "@/lib/wine-categories";
 import {
   isSameColorSelection,
   isSameFarmingSelection,
   localeFromShopPathname,
+  resolveGrapePageFarmingUrl,
+  resolveGrapePageUrl,
   resolveShopFilterNavigationUrl,
   shouldNavigateGrapeFilter,
   shouldNavigateShopFilters,
@@ -82,6 +83,18 @@ export function DesktopFilters({
   };
 
   const handleFarmingSelect = (farming: ShopFarmingFilterValue): boolean => {
+    const grapeUrl = resolveGrapePageFarmingUrl(
+      locale,
+      pathname,
+      farming,
+      isSameFarmingSelection(pathname, farming),
+      grapeCandidates,
+    );
+    if (grapeUrl) {
+      router.push(grapeUrl);
+      return true;
+    }
+
     if (!shouldNavigateShopFilters(pathname)) return false;
 
     const url = isSameFarmingSelection(pathname, farming)
@@ -104,7 +117,12 @@ export function DesktopFilters({
       return false;
     }
 
-    const url = getCategoryUrlForGrape(grapeName, locale);
+    const url = resolveGrapePageUrl(
+      locale,
+      pathname,
+      grapeName,
+      grapeCandidates,
+    );
 
     if (pathname === url) {
       router.push(locale === "en" ? "/wine" : "/vin");
