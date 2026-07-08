@@ -21,6 +21,10 @@ export function useAdminStatus(): AdminStatus {
     const checkAdmin = async () => {
       try {
         const response = await fetch("/api/me/admin");
+        if (!response.ok) {
+          setState({ loading: false, isAdmin: false });
+          return;
+        }
         const data = await response.json();
         setState({
           loading: false,

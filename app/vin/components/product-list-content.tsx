@@ -14,8 +14,7 @@ import { ProductGrid } from "./product-grid";
 import { ProductCard } from "./product-card";
 import { Card } from "../../../components/ui/card";
 import { useTranslations } from "@/lib/hooks/use-translations";
-import { filterProductsByGrapes } from "@/lib/shop/filter-products-by-grape";
-import { filterProductsByFarming } from "@/lib/shop/farming-filter";
+import { applyShopUrlFilters } from "@/lib/shop/apply-shop-url-filters";
 
 interface ProductListContentProps {
   products: Product[];
@@ -30,84 +29,6 @@ interface ProductListContentProps {
   breadcrumbLabel?: string;
   producerProfileHref?: string;
   producerProfileLabel?: string;
-}
-
-// Normalize color string for comparison: "Red & White", "Red/White", "red-&-white" → canonical form
-function normalizeColorForCompare(s: string | undefined | null): string {
-  if (!s || typeof s !== "string") return "";
-  return s
-    .trim()
-    .toLowerCase()
-    .replace(/\s*[\/&]\s*/g, " & ")
-    .replace(/-/g, " ")
-    .replace(/\s+/g, " ");
-}
-
-// Client-side color filtering function
-function filterProductsByColors(
-  products: Product[],
-  colors: string[],
-): Product[] {
-  if (!colors || colors.length === 0) {
-    return products;
-  }
-
-  const filteredProducts = products.filter((product) => {
-    const matchColor = (variantOrOptionColor: string | undefined | null) =>
-      colors.some(
-        (selectedColor) =>
-          normalizeColorForCompare(selectedColor) ===
-          normalizeColorForCompare(variantOrOptionColor),
-      );
-
-    // Check if product has any variants with the selected colors
-    const hasMatchingColor = product.variants?.some((variant: any) => {
-      if (!variant.selectedOptions) return false;
-      return variant.selectedOptions.some((option: any) => {
-        const isColorOption =
-          option.name?.toLowerCase().includes("color") ||
-          option.name?.toLowerCase().includes("colour");
-        if (!isColorOption) return false;
-        const variantColor = option.value ?? option.name;
-        return matchColor(variantColor);
-      });
-    });
-
-    // Also check product-level options as fallback
-    if (!hasMatchingColor && product.options) {
-      const colorOption = product.options.find(
-        (opt: any) =>
-          opt.name?.toLowerCase().includes("color") ||
-          opt.name?.toLowerCase().includes("colour"),
-      );
-      if (colorOption?.values?.length) {
-        const optionMatches = colorOption.values.some((value: any) => {
-          const colorValue =
-            typeof value === "string" ? value : value.name ?? value.id ?? "";
-          return matchColor(colorValue);
-        });
-        if (optionMatches) return true;
-      }
-    }
-
-    return !!hasMatchingColor;
-  });
-
-  return filteredProducts;
-}
-
-function filterProductsBySource(
-  products: Product[],
-  sourceSlugs: string[],
-  wineSourceSlugs: Record<string, string[]>,
-): Product[] {
-  if (!sourceSlugs || sourceSlugs.length === 0 || !wineSourceSlugs) return products;
-  const wanted = new Set(sourceSlugs);
-  return products.filter((product) => {
-    const slugs = wineSourceSlugs[product.id];
-    if (!slugs || slugs.length === 0) return false;
-    return slugs.some((s) => wanted.has(s));
-  });
 }
 
 export function ProductListContent({
@@ -157,15 +78,20 @@ export function ProductListContent({
   );
 
   // Apply client-side filtering whenever products or filters change
-  const filteredProducts = useMemo(() => {
-    let out = products;
-    if (colorFilters?.length) out = filterProductsByColors(out, colorFilters);
-    if (grapeFilters?.length) out = filterProductsByGrapes(out, grapeFilters);
-    if (farmingFilters?.length) out = filterProductsByFarming(out, farmingFilters);
-    if (sourceFilters?.length)
-      out = filterProductsBySource(out, sourceFilters, wineSourceSlugs);
-    return out;
-  }, [products, colorFilters, grapeFilters, farmingFilters, sourceFilters, wineSourceSlugs]);
+  const filteredProducts = useMemo(
+    () =>
+      applyShopUrlFilters(
+        products,
+        {
+          fcolor: colorFilters,
+          fgrape: grapeFilters,
+          ffarming: farmingFilters,
+          fsource: sourceFilters,
+        },
+        wineSourceSlugs,
+      ),
+    [products, colorFilters, grapeFilters, farmingFilters, sourceFilters, wineSourceSlugs],
+  );
 
   // Set both original and filtered products in the provider whenever they change
   useLayoutEffect(() => {

@@ -58,7 +58,9 @@ async function main(): Promise<void> {
 
   const { runBatchedCrawlSession } = await import("@/lib/menu-extraction/crawler");
   console.warn("[crawl-local] Batched crawl, size:", batchSize, "city=stockholm");
-  const summary = await runBatchedCrawlSession("stockholm", false, batchSize);
+  const summary = await runBatchedCrawlSession("stockholm", false, {
+    maxSources: batchSize,
+  });
   console.log(JSON.stringify(summary, null, 2));
   const failed = (summary.failed ?? 0) + (summary.partial ?? 0);
   process.exit(failed > 0 && (summary.new_pdfs ?? 0) === 0 ? 1 : 0);

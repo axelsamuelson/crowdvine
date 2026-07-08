@@ -2,9 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin-auth-server";
 import {
   ADMIN_STALE_CRAWLING_MS,
-  CRON_CRAWL_BATCH_SIZE,
-  crawlSingleRestaurant,
   runBatchedCrawlSession,
+  crawlSingleRestaurant,
   runCrawlForSlugs,
 } from "@/lib/menu-extraction/crawler";
 
@@ -51,8 +50,10 @@ export async function POST(request: NextRequest) {
     const summary = await runBatchedCrawlSession(
       city === "stockholm" ? "stockholm" : "stockholm",
       false,
-      CRON_CRAWL_BATCH_SIZE,
-      ADMIN_STALE_CRAWLING_MS,
+      {
+        staleCrawlingMs: ADMIN_STALE_CRAWLING_MS,
+        maxSources: 3,
+      },
     );
     return NextResponse.json({ summary });
   } catch (err) {

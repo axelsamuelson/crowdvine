@@ -2,6 +2,7 @@ import {
   displayFractionDigits,
   roundAmountForDisplay,
 } from "@/lib/shopping-context/format";
+import { resolveWineAlcoholTaxCents } from "@/lib/wine-alcohol-tax";
 
 export interface WinePricingData {
   cost_amount: number;
@@ -40,9 +41,10 @@ export function calculateB2BPriceExclVat(
   b2bMarginPercentage: number,
   shippingPerBottleSek: number = 0,
 ): number {
+  const resolvedAlcoholTaxCents = resolveWineAlcoholTaxCents(alcoholTaxCents);
   const costInSek =
     costAmount * exchangeRate +
-    alcoholTaxCents / 100 +
+    resolvedAlcoholTaxCents / 100 +
     shippingPerBottleSek;
   return costInSek / (1 - b2bMarginPercentage / 100);
 }
@@ -115,8 +117,9 @@ export function calculateB2BPriceBreakdown(
   memberDiscountPercent: number = 0,
   shippingPerBottleSek: number = 0,
 ): PriceBreakdownResult {
+  const resolvedAlcoholTaxCents = resolveWineAlcoholTaxCents(alcoholTaxCents);
   // Convert alcohol tax from öre to SEK and round up
-  const alcoholTax = Math.ceil((alcoholTaxCents / 100) * 100) / 100;
+  const alcoholTax = Math.ceil((resolvedAlcoholTaxCents / 100) * 100) / 100;
   
   // Calculate cost in SEK and round up
   const costInSek = Math.ceil((costAmount * exchangeRate) * 100) / 100;
@@ -189,26 +192,56 @@ export function calculateB2BPriceBreakdown(
 }
 
 /**
- * Decompose B2C retail price inkl. moms into cost, alcohol tax, margin, VAT
- * using the business margin % (no member discount — list price is the anchor).
+ * Decompose B2C retail price inkl. moms into cost, alcohol tax, margin, VAT.
+ * Uses stored import cost when available; otherwise derives cost from list price.
  */
 function decomposeRetailPriceInclVat(
   totalInclVat: number,
   wine: Pick<
     WinePricingData,
-    "alcohol_tax_cents" | "margin_percentage"
+    "cost_amount" | "exchange_rate" | "alcohol_tax_cents" | "margin_percentage"
   >,
 ): Pick<
   PriceBreakdownResult,
   "cost" | "alcoholTax" | "margin" | "vat" | "total"
 > {
-  const marginPercent = wine.margin_percentage;
-
-  const alcoholTax = Math.ceil((wine.alcohol_tax_cents / 100) * 100) / 100;
+  const alcoholTaxCents = resolveWineAlcoholTaxCents(wine.alcohol_tax_cents);
+  const alcoholTax = Math.ceil((alcoholTaxCents / 100) * 100) / 100;
 
   const priceBeforeVat = totalInclVat / 1.25;
   const vat = Math.ceil((totalInclVat - priceBeforeVat) * 100) / 100;
 
+  const bottleCostRaw = (wine.cost_amount || 0) * (wine.exchange_rate || 0);
+  const useImportCost =
+    wine.cost_amount > 0 &&
+    wine.exchange_rate > 0 &&
+    Number.isFinite(bottleCostRaw) &&
+    bottleCostRaw > 0;
+
+  if (useImportCost) {
+    const cost = Math.ceil(bottleCostRaw * 100) / 100;
+    let margin = Math.ceil((priceBeforeVat - cost - alcoholTax) * 100) / 100;
+
+    let calculatedTotal = Math.ceil(
+      (cost + alcoholTax + margin + vat) * 100,
+    ) / 100;
+
+    const diff = totalInclVat - calculatedTotal;
+    if (Math.abs(diff) >= 0.01) {
+      margin = Math.ceil((margin + diff) * 100) / 100;
+      calculatedTotal = totalInclVat;
+    }
+
+    return {
+      cost,
+      alcoholTax,
+      margin,
+      vat,
+      total: calculatedTotal,
+    };
+  }
+
+  const marginPercent = wine.margin_percentage;
   const costInSek = Math.ceil(
     ((priceBeforeVat - alcoholTax) / (1 + marginPercent / 100)) * 100,
   ) / 100;

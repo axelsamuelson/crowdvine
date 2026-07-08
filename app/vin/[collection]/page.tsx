@@ -94,8 +94,7 @@ export async function generateMetadata(props: {
   const shopTitle = producerShopPageTitle(collection.title, "sv");
   const shopDescription = producerShopMetaDescription("sv", {
     producerName: collection.title,
-    region: producerCollection.region,
-    shortDescription: producerCollection.shortDescription,
+    handle: collection.handle,
   });
 
   return {

@@ -13,7 +13,9 @@ async function main(): Promise<void> {
   const batch = Number(process.argv[2] ?? 12);
   const { runBatchedCrawlSession } = await import("@/lib/menu-extraction/crawler");
   console.warn("[trigger-batched-crawl] Starting batch of", batch, "sources...");
-  const summary = await runBatchedCrawlSession("stockholm", false, batch);
+  const summary = await runBatchedCrawlSession("stockholm", false, {
+    maxSources: batch,
+  });
   console.log(JSON.stringify(summary, null, 2));
 }
 

@@ -152,8 +152,9 @@ export function MobileFilters({
   };
 
   const displayResultsCount =
-    resultsCountProp ??
-    (products.length > 0 ? products.length : serverResultsCount);
+    products.length > 0
+      ? products.length
+      : (resultsCountProp ?? serverResultsCount);
   const displayFilterCount =
     clientFilterCount > 0 ? clientFilterCount : initialFilterCount;
 

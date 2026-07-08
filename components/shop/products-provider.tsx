@@ -37,7 +37,13 @@ const ProductsContext = createContext<ProductsContextType | undefined>(
   undefined,
 );
 
-export function ProductsProvider({ children }: { children: ReactNode }) {
+export function ProductsProvider({
+  children,
+  initialServerResultsCount = 0,
+}: {
+  children: ReactNode;
+  initialServerResultsCount?: number;
+}) {
   const pathname = usePathname();
   const prevPathnameRef = useRef(pathname);
   const [products, setProducts] = useState<Product[]>([]);
@@ -45,7 +51,9 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
   const [availableSourceSlugs, setAvailableSourceSlugs] = useState<string[]>(
     [],
   );
-  const [serverResultsCount, setServerResultsCount] = useState(0);
+  const [serverResultsCount, setServerResultsCount] = useState(
+    initialServerResultsCount,
+  );
 
   useLayoutEffect(() => {
     if (prevPathnameRef.current === pathname) return;

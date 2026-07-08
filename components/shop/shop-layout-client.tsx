@@ -14,14 +14,17 @@ export function ShopLayoutClient({
   collections,
   priceSources,
   initialFilterCount = 0,
+  initialResultsCount,
 }: {
   children: ReactNode;
   collections: Collection[];
   priceSources: PriceSourceForFilter[];
   initialFilterCount?: number;
+  /** SSR product count for mobile bar — avoids hydration mismatch. */
+  initialResultsCount?: number;
 }) {
   return (
-    <ProductsProvider>
+    <ProductsProvider initialServerResultsCount={initialResultsCount ?? 0}>
       <div className="flex flex-col md:grid grid-cols-12 md:gap-4">
         <Suspense fallback={null}>
           <DesktopFilters
@@ -42,6 +45,7 @@ export function ShopLayoutClient({
               collections={collections}
               priceSources={priceSources}
               initialFilterCount={initialFilterCount}
+              resultsCount={initialResultsCount}
             />
           </Suspense>
         </div>

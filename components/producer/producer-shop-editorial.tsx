@@ -5,12 +5,17 @@ import { extractWineText } from "@/lib/i18n/wine-locale";
 import type { AppLocale } from "@/lib/i18n/locale";
 import { producerPublicPath } from "@/lib/i18n/localized-routes";
 import { generateProducerSlug } from "@/lib/producer-handle";
+import { getProducerShopEditorialOverride } from "@/lib/producer-shop-content";
 import { formatProducerCertification } from "@/lib/product/wine-enrichment";
+import { producerShopEditorialHeading } from "@/lib/seo/producer-shop-metadata";
 
 export function producerShopEditorialBio(
-  collection: Pick<CollectionData, "shortDescription">,
+  collection: Pick<CollectionData, "handle" | "shortDescription">,
   locale: AppLocale,
 ): string | null {
+  const override = getProducerShopEditorialOverride(collection.handle, locale);
+  if (override) return override;
+
   const text = extractWineText(collection.shortDescription ?? null, locale);
   return text?.trim() ? text.trim() : null;
 }
@@ -53,9 +58,13 @@ export function ProducerShopEditorialBlock({
   return (
     <div className="p-sides mt-16 max-w-2xl border-t border-stone-100 pt-12">
       <h2 className="text-sm font-medium uppercase tracking-widest text-stone-400">
-        {locale === "sv" ? `Om ${producerName}` : `About ${producerName}`}
+        {producerShopEditorialHeading(producerName, locale)}
       </h2>
-      <p className="mt-4 text-sm leading-relaxed text-stone-600">{bio}</p>
+      <div className="mt-4 space-y-4 text-sm leading-relaxed text-stone-600">
+        {bio.split("\n\n").map((paragraph) => (
+          <p key={paragraph.slice(0, 48)}>{paragraph}</p>
+        ))}
+      </div>
       {specParts.length > 0 ? (
         <p className="mt-3 text-sm text-stone-500">{specParts.join(" · ")}</p>
       ) : null}

@@ -35,7 +35,7 @@ const MENU_EXTRACTED_ROWS_SELECT =
   "id, created_at, updated_at, document_id, section_id, row_index, page_number, raw_text, row_type, wine_type, producer, wine_name, vintage, region, country, grapes, attributes, format_label, price_glass, price_bottle, price_other, currency, confidence, confidence_label, needs_review, review_reasons, normalized_payload, validation_flags, extraction_version, auto_corrected, extraction_iterations, critic_approved";
 
 const STARWINELIST_SOURCES_SELECT =
-  "id, created_at, updated_at, slug, name, city, source_url, swl_updated_at, swl_updated_at_parsed, pdf_url, pdf_last_seen_at, crawl_status, last_crawled_at, last_error, crawl_attempts, latest_document_id";
+  "id, created_at, updated_at, slug, name, city, source_url, swl_updated_at, swl_updated_at_parsed, sitemap_lastmod, pdf_url, pdf_last_seen_at, crawl_status, last_crawled_at, last_checked_at, last_error, crawl_attempts, crawl_priority, latest_document_id";
 
 function confidenceToLabel(confidence: number): ConfidenceLabel {
   if (confidence >= 0.85) return "high";
@@ -585,6 +585,9 @@ export async function upsertStarwinelistSource(
     last_crawled_at: data.last_crawled_at ?? existing?.last_crawled_at ?? null,
     last_error: data.last_error ?? existing?.last_error ?? null,
     crawl_attempts: data.crawl_attempts ?? existing?.crawl_attempts ?? 0,
+    crawl_priority: data.crawl_priority ?? existing?.crawl_priority ?? 0,
+    last_checked_at: data.last_checked_at ?? existing?.last_checked_at ?? null,
+    sitemap_lastmod: data.sitemap_lastmod ?? existing?.sitemap_lastmod ?? null,
     latest_document_id: data.latest_document_id ?? existing?.latest_document_id ?? null,
   };
   if (existing?.id) {
@@ -656,18 +659,24 @@ export async function listPendingCrawlSources(
   return list.filter((s) => !isStarwinelist404Slug(s.slug));
 }
 
-/** Oldest-first rotation for batched cron crawls (skips in-flight crawling). */
+/** Rotation queue: priority DESC, then oldest last_checked_at (nulls first). */
 export async function listStarwinelistSourcesForCrawlBatch(
   limit: number,
   city: string = "stockholm",
+  options?: { boostedOnly?: boolean },
 ): Promise<StarwinelistSource[]> {
   const sb = getSupabaseAdmin();
-  const { data, error } = await sb
+  let q = sb
     .from("starwinelist_sources")
     .select(STARWINELIST_SOURCES_SELECT)
     .eq("city", city)
-    .neq("crawl_status", "crawling")
-    .order("last_crawled_at", { ascending: true, nullsFirst: true })
+    .neq("crawl_status", "crawling");
+  if (options?.boostedOnly) {
+    q = q.gt("crawl_priority", 0);
+  }
+  const { data, error } = await q
+    .order("crawl_priority", { ascending: false })
+    .order("last_checked_at", { ascending: true, nullsFirst: true })
     .limit(Math.max(limit * 2, limit));
   if (error) {
     throw new Error(`listStarwinelistSourcesForCrawlBatch: ${error.message}`);
@@ -675,6 +684,15 @@ export async function listStarwinelistSourcesForCrawlBatch(
   return ((data ?? []) as StarwinelistSource[])
     .filter((s) => !isStarwinelist404Slug(s.slug))
     .slice(0, limit);
+}
+
+/** True when latest_document_id points to an existing menu_document. */
+export async function sourceHasStoredDocument(
+  source: StarwinelistSource,
+): Promise<boolean> {
+  if (!source.latest_document_id) return false;
+  const doc = await getMenuDocumentById(source.latest_document_id);
+  return doc !== null;
 }
 
 /** Reset sources stuck in crawling (e.g. after a crashed serverless invocation). */

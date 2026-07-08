@@ -5,6 +5,7 @@ import { extractWineText } from "@/lib/i18n/wine-locale";
 import { resolveProductAvailableForSale } from "@/lib/wine-availability";
 import { getAllWineBoxCalculations } from "@/lib/wine-box-calculations";
 import { calculateB2BPriceExclVat } from "@/lib/price-breakdown";
+import { resolveWineAlcoholTaxCents } from "@/lib/wine-alcohol-tax";
 import { convertSekForDisplay } from "@/lib/shopping-context/currency-convert";
 import {
   getSekToDisplayRate,
@@ -680,7 +681,7 @@ export async function fetchProductsData(params?: {
                   rateMap[(i.cost_currency || "EUR") as string] ??
                     i.exchange_rate ??
                     1,
-                  i.alcohol_tax_cents || 0,
+                  resolveWineAlcoholTaxCents(i.alcohol_tax_cents),
                   i.b2b_margin_percentage,
                   b2bShippingMap.get(i.id) ?? 0,
                 ) * 100,
@@ -691,7 +692,7 @@ export async function fetchProductsData(params?: {
       priceBreakdown: {
         costAmount: i.cost_amount || 0,
         exchangeRate: rateMap[(i.cost_currency || "EUR") as string] ?? i.exchange_rate ?? 1,
-        alcoholTaxCents: i.alcohol_tax_cents || 0,
+        alcoholTaxCents: resolveWineAlcoholTaxCents(i.alcohol_tax_cents),
         marginPercentage: i.margin_percentage || 0,
         basePriceCents: i.base_price_cents,
         b2bMarginPercentage: i.b2b_margin_percentage ?? undefined,
@@ -706,7 +707,7 @@ export async function fetchProductsData(params?: {
                   rateMap[(i.cost_currency || "EUR") as string] ??
                     i.exchange_rate ??
                     1,
-                  i.alcohol_tax_cents || 0,
+                  resolveWineAlcoholTaxCents(i.alcohol_tax_cents),
                   i.b2b_margin_percentage,
                   b2bShippingMap.get(i.id) ?? 0,
                 ) * 100,
@@ -1020,7 +1021,7 @@ export async function fetchCollectionProductsData(
                   collRateMap[(i.cost_currency || "EUR") as string] ??
                     i.exchange_rate ??
                     1,
-                  i.alcohol_tax_cents || 0,
+                  resolveWineAlcoholTaxCents(i.alcohol_tax_cents),
                   i.b2b_margin_percentage,
                   collB2bShippingMap.get(i.id) ?? 0,
                 ) * 100,

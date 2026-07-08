@@ -1,10 +1,10 @@
 import type { AppLocale } from "@/lib/i18n/locale";
-import { getWineCategoryContentOverride } from "@/lib/wine-category-content";
 import type { WineCategory } from "@/lib/wine-category-types";
 import {
   WINE_CATEGORIES_EN,
   WINE_CATEGORIES_SV,
 } from "@/lib/wine-categories";
+import { GENERATED_SHOP_FILTER_SLUGS } from "@/lib/wine-shop-filter-categories";
 import { isGrapeOnlyCategory } from "@/lib/wine-grape-categories";
 
 export type CategoryExploreLink = {
@@ -117,6 +117,87 @@ function colorHubExploreLinks(category: WineCategory): CategoryExploreLink[] {
   return [...hubLinks, ...grapeLinks];
 }
 
+const LONG_TAIL_GEO_SLUGS = new Set([
+  "naturvin-languedoc",
+  "naturvin-frankrike",
+  "rott-naturvin-languedoc",
+  "vitt-naturvin-languedoc",
+  "orange-naturvin-languedoc",
+  "naturvin-hemleverans-stockholm",
+  "direktimport-vin",
+  "natural-wine-languedoc",
+  "natural-wine-france",
+  "red-natural-wine-languedoc",
+  "white-natural-wine-languedoc",
+  "orange-natural-wine-languedoc",
+  "natural-wine-delivery-stockholm",
+  "direct-import-wine",
+]);
+
+function geoLongTailExploreLinks(
+  category: WineCategory,
+): CategoryExploreLink[] {
+  const locale = category.locale;
+  const links: CategoryExploreLink[] = [];
+  const seen = new Set<string>();
+
+  const push = (slug: string | null) => {
+    if (!slug || slug === category.slug || seen.has(slug)) return;
+    seen.add(slug);
+    links.push(categoryLink(slug, locale));
+  };
+
+  const pushHref = (href: string, label: string) => {
+    if (seen.has(href)) return;
+    seen.add(href);
+    links.push({ href, label });
+  };
+
+  push(locale === "sv" ? "naturvin" : "natural-wine");
+
+  if (category.slug.includes("languedoc") || category.slug.includes("frankrike") || category.slug.includes("france")) {
+    push(locale === "sv" ? "naturvin-languedoc" : "natural-wine-languedoc");
+    pushHref("/languedoc", "Languedoc");
+  }
+
+  const color = category.filter.color?.[0];
+  if (color === "Red") {
+    push(locale === "sv" ? "rott-naturvin" : "red-natural-wine");
+  } else if (color === "White") {
+    push(locale === "sv" ? "vitt-naturvin" : "white-natural-wine");
+  } else if (color === "Orange") {
+    push(locale === "sv" ? "orange-naturvin" : "orange-natural-wine");
+  }
+
+  if (
+    category.slug.includes("stockholm") ||
+    category.slug.includes("delivery")
+  ) {
+    push(locale === "sv" ? "direktimport-vin" : "direct-import-wine");
+  }
+
+  if (
+    category.slug.includes("direktimport") ||
+    category.slug.includes("direct-import")
+  ) {
+    push(
+      locale === "sv"
+        ? "naturvin-hemleverans-stockholm"
+        : "natural-wine-delivery-stockholm",
+    );
+  }
+
+  if (category.slug.includes("frankrike") || category.slug.includes("france")) {
+    push(locale === "sv" ? "naturvin-frankrike" : "natural-wine-france");
+  }
+
+  return links.slice(0, 6);
+}
+
+export function isGeoLongTailCategory(category: WineCategory): boolean {
+  return LONG_TAIL_GEO_SLUGS.has(category.slug);
+}
+
 function legacyRelatedLinks(
   category: WineCategory,
   limit = 4,
@@ -135,6 +216,92 @@ function legacyRelatedLinks(
     )
     .slice(0, limit)
     .map((c) => ({ href: c.canonical, label: c.h1 }));
+}
+
+function farmingHubSlug(
+  farming: string,
+  locale: AppLocale,
+): string | null {
+  if (farming === "natural") {
+    return locale === "sv" ? "naturvin" : "natural-wine";
+  }
+  if (farming === "organic_certified") {
+    return locale === "sv" ? "ekologiskt-vin" : "organic-wine";
+  }
+  if (farming === "biodynamic_certified") {
+    return locale === "sv" ? "biodynamiskt-vin" : "biodynamic-wine";
+  }
+  return null;
+}
+
+function colorHubSlugForFilter(
+  color: string,
+  farming: string | undefined,
+  locale: AppLocale,
+): string | null {
+  if (color === "Red" && farming === "natural") {
+    return locale === "sv" ? "rott-naturvin" : "red-natural-wine";
+  }
+  if (color === "White" && farming === "natural") {
+    return locale === "sv" ? "vitt-naturvin" : "white-natural-wine";
+  }
+  if (color === "Orange" && farming === "natural") {
+    return locale === "sv" ? "orange-naturvin" : "orange-natural-wine";
+  }
+  if (color === "Red") {
+    return locale === "sv" ? "rott-vin" : "red-wine";
+  }
+  if (color === "White") {
+    return locale === "sv" ? "vitt-vin" : "white-wine";
+  }
+  if (color === "Orange") {
+    return locale === "sv" ? "orange-vin" : "orange-wine";
+  }
+  if (color === "Red & White") {
+    return null;
+  }
+  if (color === "Red & Orange") {
+    return locale === "sv" ? "rod-och-orange-vin" : "red-and-orange-wine";
+  }
+  return null;
+}
+
+function generatedFilterExploreLinks(
+  category: WineCategory,
+): CategoryExploreLink[] {
+  const locale = category.locale;
+  const links: CategoryExploreLink[] = [];
+  const seen = new Set<string>();
+
+  const push = (slug: string | null) => {
+    if (!slug || slug === category.slug || seen.has(slug)) return;
+    seen.add(slug);
+    links.push(categoryLink(slug, locale));
+  };
+
+  const color = category.filter.color?.[0];
+  const farming = category.filter.farming?.[0];
+
+  if (farming) {
+    push(farmingHubSlug(farming, locale));
+  }
+  if (color) {
+    push(colorHubSlugForFilter(color, farming, locale));
+  }
+  if (color === "Red & Orange" && farming === "natural") {
+    push(locale === "sv" ? "orange-naturvin" : "orange-natural-wine");
+  }
+  if (color === "Red & White" && farming === "natural") {
+    push(locale === "sv" ? "rott-naturvin" : "red-natural-wine");
+    push(locale === "sv" ? "vitt-naturvin" : "white-natural-wine");
+  }
+  if (!farming && color === "Red & White") {
+    push(locale === "sv" ? "rott-vin" : "red-wine");
+    push(locale === "sv" ? "vitt-vin" : "white-wine");
+    push(locale === "sv" ? "naturvin" : "natural-wine");
+  }
+
+  return links.slice(0, 6);
 }
 
 export function getCategoryLongDescriptionHeading(
@@ -168,6 +335,16 @@ export function getCategoryExploreLinks(
       seen.add(link.href);
       return true;
     });
+  }
+
+  if (GENERATED_SHOP_FILTER_SLUGS.has(category.slug)) {
+    const filterLinks = generatedFilterExploreLinks(category);
+    if (filterLinks.length > 0) return filterLinks;
+  }
+
+  if (isGeoLongTailCategory(category)) {
+    const geoLinks = geoLongTailExploreLinks(category);
+    if (geoLinks.length > 0) return geoLinks;
   }
 
   return legacyRelatedLinks(category);

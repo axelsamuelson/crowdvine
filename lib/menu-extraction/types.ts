@@ -340,8 +340,14 @@ export interface StarwinelistSource {
   pdf_last_seen_at: string | null;
   crawl_status: CrawlStatus;
   last_crawled_at: string | null;
+  /** Last venue HTML check (including fast-skip without PDF download). */
+  last_checked_at: string | null;
   last_error: string | null;
   crawl_attempts: number;
+  /** Higher values are crawled first (widget feed sets 100). */
+  crawl_priority: number;
+  /** Last observed sitemap lastmod calendar date (YYYY-MM-DD). */
+  sitemap_lastmod: string | null;
   latest_document_id: string | null;
 }
 
@@ -360,6 +366,8 @@ export interface CrawlResult {
   rate_limit_429?: boolean;
   /** True when AI extraction completed successfully for this document. */
   extracted?: boolean;
+  /** True when PDF download was attempted (past fast-skip). */
+  full_crawl?: boolean;
   /** Reason extraction was skipped (e.g. scanned PDF, no raw text, or extraction error). */
   extraction_skipped_reason?: "scanned_pdf" | "no_raw_text" | "extraction_error";
   /** Auto-correction result when extraction ran and auto-correction was attempted. */
@@ -378,9 +386,17 @@ export interface CrawlSessionSummary {
   /** Slugs returned from Starwinelist map (0 if discovery failed). */
   slug_discovery_count?: number;
   new_sources_registered?: number;
-  crawl_mode?: "discovery_batch" | "db_rotation";
+  crawl_mode?: "discovery_batch" | "db_rotation" | "boosted_rotation" | "full_rotation";
   /** Count of sources where page was fetched but PDF download failed (status partial). */
   partial?: number;
+  /** Venue HTML checked this run (including fast-skip). */
+  sources_checked?: number;
+  /** Fast-skipped because max Updated date unchanged. */
+  skipped_not_updated?: number;
+  /** Full PDF download + document creation this run. */
+  fully_crawled?: number;
+  /** Elapsed wall time for the crawl loop (ms). */
+  elapsed_ms?: number;
   /** True if any request failed with HTTP 429 from the browser layer. */
   rate_limit_429?: boolean;
   document_ids: string[];

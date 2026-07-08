@@ -160,6 +160,510 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
         "A small, curated selection of orange natural wines from Languedoc — skin-contact wines from experimenting producers, imported directly without additives.",
     },
   },
+  "rod-och-orange-naturvin": {
+    sv: {
+      contentHeading: "Om rött & orange naturvin",
+      longDescription:
+        "Rött & orange naturvin är flaskor där producenten arbetar med både röda druvor och orangevinifiering — antingen som fältblandningar, parallella skördar i samma cuvée, eller viner som rör sig mellan lätt skalkontakt och klassisk röd jäsning. Kategorin fångar den experimentella sidan av Languedoc: samma vingård, samma filosofi, men flera uttryck i ett sortiment.\n\nI praktiken hittar du här allt från lättdruckna röda med en hint av skalkontakt till mer amberfärgade viner med tydlig tannin. Gemensamt är naturvinsmetoden — vild jäsning, inga tillsatser, ekologisk eller biodynamisk odling — och den sydfranska druvbasen: Grenache, Carignan, Syrah och lokala vita druvor som får kort eller lång skalkontakt.\n\nPå PACT är urvalet litet och kuraterat. Vi listar bara viner från producenter vi själva står bakom, direktimporterade från Languedoc utan mellanhänder.",
+      tastingProfile: [
+        "Spektrum från saftigt rött till amber och skalkontakt",
+        "Tydlig frukt, levande syra, låg eller ingen tillsatt svavel",
+        "Ofta drickbart ungt — ibland med lätt grumlighet",
+        "Sydfranska druvor: Grenache, Carignan, Syrah m.fl.",
+        "Naturvin utan tillsatser från små producenter",
+      ],
+      foodPairing:
+        "Den här typen av vin är mångsidig vid bordet. De rödare exemplaren passar chark, grillat och medelhavsinspirerade rätter; de mer orangea klarar kryddstark mat, ugnsrostade grönsaker och hårdost. Servera svalare än ett tungt rött — ofta 12–16°C beroende på stil.",
+      aboutText:
+        "Kurerat urval rött & orange naturvin från Languedoc — direktimporterat till Stockholm när pallen fylls.",
+    },
+  },
+  "red-and-orange-natural-wine": {
+    en: {
+      contentHeading: "About red & orange natural wine",
+      longDescription:
+        "Red & orange natural wine covers bottles where the producer works with both red grapes and orange winemaking — field blends, parallel harvests in the same cuvée, or wines that move between light skin contact and classic red fermentation. The category captures Languedoc's experimental side: the same vineyard, the same philosophy, but several expressions in one range.\n\nIn practice you'll find everything from easy-drinking reds with a hint of skin contact to more amber wines with clear tannin. What they share is the natural wine method — wild fermentation, no additives, organic or biodynamic farming — and the southern French grape base: Grenache, Carignan, Syrah and local white grapes given short or long skin contact.\n\nAt PACT the selection is small and curated. We list only wines from producers we stand behind, direct imported from Languedoc without middlemen.",
+      tastingProfile: [
+        "Spectrum from juicy red to amber and skin contact",
+        "Clear fruit, lively acidity, low or no added sulphur",
+        "Often drinkable young — sometimes lightly cloudy",
+        "Southern French grapes: Grenache, Carignan, Syrah and more",
+        "Natural wine without additives from small producers",
+      ],
+      foodPairing:
+        "This type of wine is versatile at the table. The redder examples suit charcuterie, grilled dishes and Mediterranean food; the more orange ones handle spice, roasted vegetables and hard cheese. Serve cooler than a heavy red — often 12–16°C depending on style.",
+      aboutText:
+        "Curated red & orange natural wine from Languedoc — direct imported to Stockholm when the pallet fills.",
+    },
+  },
+  "rod-och-vit-vin": {
+    sv: {
+      contentHeading: "Om rött & vitt vin",
+      longDescription:
+        "Rött & vitt vin — ibland kallat field blend eller co-fermentation — är viner där röda och vita druvor skördas och jäser tillsammans. Det är en gammal medelhavs tradition som ger flaskor med färg och struktur någonstans mellan rosé och lätt rött: mer kropp än ett vitt, mer frukt och fräschör än många tunga röda.\n\nI Languedoc blandas ofta Grenache, Carignan eller Cinsault med vita druvor som Grenache Blanc eller Macabeu. Resultatet kan variera från nästan roséfärgade viner till djupare granat — alltid med den sydfranska solmognade frukten och den levande syran som kännetecknar regionen. Många av producenterna på PACT arbetar dessutom ekologiskt eller biodynamiskt, och flera gör vin utan tillsatser.\n\nHär hittar du flaskor för dig som vill ha något annorlunda vid bordet utan att gå fullt orange eller tungt rött — perfekt till vardagsmat och sammankomster där ett vin ska passa flera rätter.",
+      tastingProfile: [
+        "Fältblandningar av röda och vita druvor",
+        "Färg från ljus granat till nästan rosé",
+        "Fruktig, drickbar och matvänlig",
+        "Typiska druvor: Grenache, Carignan, Grenache Blanc",
+        "Ofta från ekologiska småproducenter i Languedoc",
+      ],
+      foodPairing:
+        "Ett av de mest flexibla vinerna till middag. Passar grillat, pizza, kyckling, fisk i ugn och medelhavssallader. Fungerar även till lättare chark. Servera lätt kyld, runt 12–14°C, för maximal fräschör.",
+      aboutText:
+        "Rött & vitt vin direktimporterat från Languedoc — field blends från småproducenter, hemleverans i Stockholm via PACT.",
+    },
+  },
+  "red-and-white-wine": {
+    en: {
+      contentHeading: "About red & white wine",
+      longDescription:
+        "Red & white wine — sometimes called a field blend or co-fermentation — is wine where red and white grapes are harvested and fermented together. It is an old Mediterranean tradition that gives bottles with colour and structure somewhere between rosé and light red: more body than a white, more fruit and freshness than many heavy reds.\n\nIn Languedoc, Grenache, Carignan or Cinsault are often blended with white grapes like Grenache Blanc or Macabeu. The result can range from almost rosé-coloured wines to deeper garnet — always with the sun-ripened southern French fruit and lively acidity that define the region. Many producers on PACT also farm organically or biodynamically, and several make wine without additives.\n\nHere you'll find bottles for anyone who wants something different at the table without going fully orange or heavy red — perfect for everyday food and gatherings where one wine needs to suit several dishes.",
+      tastingProfile: [
+        "Field blends of red and white grapes",
+        "Colour from light garnet to almost rosé",
+        "Fruity, drinkable and food-friendly",
+        "Typical grapes: Grenache, Carignan, Grenache Blanc",
+        "Often from organic small producers in Languedoc",
+      ],
+      foodPairing:
+        "One of the most flexible wines for dinner. Suits grilled food, pizza, chicken, baked fish and Mediterranean salads. Works with lighter charcuterie too. Serve lightly chilled, around 12–14°C, for maximum freshness.",
+      aboutText:
+        "Red & white wine direct imported from Languedoc — field blends from small producers, home delivery in Stockholm via PACT.",
+    },
+  },
+  "rott-biodynamiskt-vin": {
+    sv: {
+      contentHeading: "Om rött biodynamiskt vin",
+      longDescription:
+        "Biodynamiskt vin går ett steg längre än ekologiskt: vingården sköts enligt biodynamiska principer med fokus på jordhälsa, biodiversitet och en helhetssyn på vingården som levande system. Rött biodynamiskt vin från Languedoc kombinerar den filosofin med regionens naturliga styrkor — gamla Carignan-stockar, Grenache på stenig mark och Syrah med pepprig precision.\n\nI glaset möter du ofta ren frukt, tydlig mineralitet och en känsla av plats som kommer från låga skördar och manuellt arbete. Biodynamisk certifiering (t.ex. Demeter) är inte garanti för smak, men signalerar att producenten investerat djupt i vingården — något som syns särskilt i torra, solutsatta lägen i södra Frankrike.\n\nAlla röda biodynamiska viner på PACT kommer direkt från oberoende producenter vi samarbetar med i Languedoc. Direktimport innebär bättre pris och kortare väg från vingård till glas.",
+      tastingProfile: [
+        "Certifierad biodynamisk odling (t.ex. Demeter)",
+        "Rena, platsdrivna röda viner",
+        "Carignan, Grenache, Syrah från Languedoc",
+        "Mineralitet och struktur utan tung ek",
+        "Direkt från små producenter utan mellanhänder",
+      ],
+      foodPairing:
+        "Passar till det som rött vin från Medelhavet gör bäst: lamm, grytor, grillat, svamp och mogna ostar. Lättare stilar fungerar även till chark och pizza. Servera något svalare om vinet känns saftigt och ungt.",
+      aboutText:
+        "Rött biodynamiskt vin från Languedoc — direktimporterat från certifierade småproducenter till Stockholm.",
+    },
+  },
+  "red-biodynamic-wine": {
+    en: {
+      contentHeading: "About red biodynamic wine",
+      longDescription:
+        "Biodynamic wine goes a step beyond organic: the vineyard is managed on biodynamic principles with a focus on soil health, biodiversity and seeing the vineyard as a living system. Red biodynamic wine from Languedoc combines that philosophy with the region's natural strengths — old Carignan vines, Grenache on stony ground and Syrah with peppery precision.\n\nIn the glass you often meet clean fruit, clear minerality and a sense of place that comes from low yields and manual work. Biodynamic certification (e.g. Demeter) is no guarantee of taste, but signals that the producer has invested deeply in the vineyard — especially visible in dry, sun-exposed sites in southern France.\n\nAll red biodynamic wines at PACT come directly from independent producers we work with in Languedoc. Direct import means better value and a shorter path from vineyard to glass.",
+      tastingProfile: [
+        "Certified biodynamic farming (e.g. Demeter)",
+        "Clean, place-driven red wines",
+        "Carignan, Grenache, Syrah from Languedoc",
+        "Minerality and structure without heavy oak",
+        "Direct from small producers without middlemen",
+      ],
+      foodPairing:
+        "Suits what Mediterranean red does best: lamb, stews, grilled food, mushrooms and aged cheeses. Lighter styles also work with charcuterie and pizza. Serve slightly cooler if the wine feels juicy and young.",
+      aboutText:
+        "Red biodynamic wine from Languedoc — direct imported from certified small producers to Stockholm.",
+    },
+  },
+  "vitt-ekologiskt-vin": {
+    sv: {
+      contentHeading: "Om vitt ekologiskt vin",
+      longDescription:
+        "Ekologiskt vin innebär att druvorna odlas utan syntetiska bekämpningsmedel, konstgödsel och med respekt för jord och ekosystem — certifierat enligt EU:s ekologiska regler. Vitt ekologiskt vin från Languedoc utnyttjar regionens långa växtsäsong och kustnära eller höjdbelägna vingårdar för att ge friska, aromatiska viner med tydlig frukt.\n\nHär hittar du allt från rena, friska viner på Vermentino och Grenache Blanc till mer texturala stilar med kort skalkontakt. Många producenter arbetar också med minimal intervention i källaren, även om ekologisk certifiering i sig handlar om vingården. Det ger vita viner som är lätta att dricka men ändå har personlighet.\n\nPACT importerar ekologiskt vitt vin direkt från små producenter i Languedoc. När tillräckligt många reserverat fylls en pall och vinet skickas direkt till Stockholm — utan onödiga lagerled.",
+      tastingProfile: [
+        "EU-certifierad ekologisk odling",
+        "Friska vita viner med tydlig frukt",
+        "Vermentino, Grenache Blanc, Roussanne m.fl.",
+        "Från kust- och höjdlägesvingårdar",
+        "Direktimport från oberoende producenter",
+      ],
+      foodPairing:
+        "Perfekt till fisk, skaldjur, sallader, getost och lättare kycklingrätter. Viner med mer kropp klarar även grönsaksrätter i ugn och medelhavsinspirerad mat. Servera kallt men inte iskallt — 10–12°C är ofta idealiskt.",
+      aboutText:
+        "Vitt ekologiskt vin från Languedoc — certifierat odlat, direktimporterat till Stockholm via PACT.",
+    },
+  },
+  "white-organic-wine": {
+    en: {
+      contentHeading: "About white organic wine",
+      longDescription:
+        "Organic wine means grapes grown without synthetic pesticides or fertilisers, with respect for soil and ecosystem — certified under EU organic rules. White organic wine from Languedoc uses the region's long growing season and coastal or altitude vineyards to produce fresh, aromatic wines with clear fruit.\n\nHere you'll find everything from clean, crisp wines on Vermentino and Grenache Blanc to more textured styles with short skin contact. Many producers also work with minimal intervention in the cellar, even though organic certification itself concerns the vineyard. That gives white wines that are easy to drink but still have personality.\n\nPACT imports organic white wine directly from small producers in Languedoc. When enough people reserve, a pallet fills and the wine ships directly to Stockholm — without unnecessary warehousing.",
+      tastingProfile: [
+        "EU-certified organic farming",
+        "Fresh white wines with clear fruit",
+        "Vermentino, Grenache Blanc, Roussanne and more",
+        "From coastal and altitude vineyards",
+        "Direct import from independent producers",
+      ],
+      foodPairing:
+        "Perfect with fish, shellfish, salads, goat's cheese and lighter chicken dishes. Wines with more body also handle baked vegetables and Mediterranean food. Serve cold but not ice-cold — 10–12°C is often ideal.",
+      aboutText:
+        "White organic wine from Languedoc — certified farming, direct imported to Stockholm via PACT.",
+    },
+  },
+  "rod-och-orange-ekologiskt-vin": {
+    sv: {
+      contentHeading: "Om rött & orange ekologiskt vin",
+      longDescription:
+        "Den här kategorin samlar ekologiskt odlade viner som rör sig mellan rött och orange — antingen genom fältblandningar, kort skalkontakt på vita druvor kombinerat med röda, eller producenters experimentella cuvéer. Det är en nisch, men en viktig en: den visar hur Languedocs producenter uttrycker samma ekologiska vingård på flera sätt.\n\nEkologisk certifiering säkerställer att druvorna odlats utan syntetiska medel i vingården. I källaren varierar stilen — vissa flaskor är lättdruckna och rödfruktiga, andra har tydlig amberfärg och tannin från skalkontakt. Gemensamt är den sydfranska druvbasen och den direkta, fruktiga profilen.\n\nUrval på PACT är litet och speglar vad våra producenter faktiskt gör just nu. Allt direktimporterat från Languedoc till Stockholm.",
+      tastingProfile: [
+        "EU-certifierad ekologisk odling",
+        "Spektrum mellan rött och orange",
+        "Fältblandningar och skalkontakt vanligt",
+        "Grenache, Carignan och lokala vita druvor",
+        "Direkt från små producenter i Languedoc",
+      ],
+      foodPairing:
+        "Fungerar till medelhavsmat, grillade grönsaker, chark och rätter med kryddor som kräver både frukt och struktur. Servera svalt — testa 12–15°C och justera efter hur orange vinet känns.",
+      aboutText:
+        "Rött & orange ekologiskt vin från Languedoc — kurerat urval, direktimport till Stockholm.",
+    },
+  },
+  "red-and-orange-organic-wine": {
+    en: {
+      contentHeading: "About red & orange organic wine",
+      longDescription:
+        "This category gathers organically farmed wines that move between red and orange — through field blends, short skin contact on white grapes combined with reds, or producers' experimental cuvées. It is a niche, but an important one: it shows how Languedoc producers express the same organic vineyard in several ways.\n\nOrganic certification ensures grapes were grown without synthetic inputs in the vineyard. In the cellar styles vary — some bottles are easy-drinking and red-fruited, others have clear amber colour and tannin from skin contact. What they share is the southern French grape base and a direct, fruity profile.\n\nThe selection at PACT is small and reflects what our producers are actually making right now. All direct imported from Languedoc to Stockholm.",
+      tastingProfile: [
+        "EU-certified organic farming",
+        "Spectrum between red and orange",
+        "Field blends and skin contact common",
+        "Grenache, Carignan and local white grapes",
+        "Direct from small producers in Languedoc",
+      ],
+      foodPairing:
+        "Works with Mediterranean food, grilled vegetables, charcuterie and dishes with spice that need both fruit and structure. Serve cool — try 12–15°C and adjust depending on how orange the wine feels.",
+      aboutText:
+        "Red & orange organic wine from Languedoc — curated selection, direct import to Stockholm.",
+    },
+  },
+  "rott-ekologiskt-vin": {
+    sv: {
+      contentHeading: "Om rött ekologiskt vin",
+      longDescription:
+        "Rött ekologiskt vin från Languedoc bygger på sydfransk druvtradition — Carignan, Grenache, Syrah, Cinsault — odlad enligt EU:s ekologiska regler. Utan syntetiska bekämpningsmedel och med fokus på jordhälsa får vingårdarna uttrycka plats tydligare, vilket ofta syns i renare frukt och mer transparent smak.\n\nStilarna spänner från lätta, nästan svalserverade röda till mer strukturerade viner från gamla stockar. Ekologisk certifiering handlar om vingården; i källaren kan producenterna fortfarande arbeta med minimal intervention eller mer klassiska metoder. På PACT väljer vi producenter vars ekologiska röda viner vi tycker är genuint bra — inte bara korrekt certifierade.\n\nDirektimport från Languedoc ger bättre pris och färskare flaskor till Stockholm. Reservera innan pallen fylls.",
+      tastingProfile: [
+        "EU-certifierad ekologisk odling",
+        "Carignan, Grenache, Syrah från Languedoc",
+        "Från lättdrucket till strukturerat",
+        "Tydlig frukt och medelhavskaraktär",
+        "Direktimporterat utan mellanhänder",
+      ],
+      foodPairing:
+        "Klassiska röda kombinationer: lamm, gryta, grillat, svamp och ost. Lättare viner till chark och pizza. Servera något svalare för unga, fruktiga stilar.",
+      aboutText:
+        "Rött ekologiskt vin från Languedoc — direkt från småproducenter till Stockholm via PACT.",
+    },
+  },
+  "red-organic-wine": {
+    en: {
+      contentHeading: "About red organic wine",
+      longDescription:
+        "Red organic wine from Languedoc builds on southern French grape tradition — Carignan, Grenache, Syrah, Cinsault — grown under EU organic rules. Without synthetic pesticides and with a focus on soil health, vineyards express place more clearly, which often shows in cleaner fruit and more transparent flavour.\n\nStyles range from light, almost chillable reds to more structured wines from old vines. Organic certification concerns the vineyard; in the cellar producers may still work with minimal intervention or more classic methods. At PACT we choose producers whose organic reds we think are genuinely good — not just correctly certified.\n\nDirect import from Languedoc gives better value and fresher bottles in Stockholm. Reserve before the pallet fills.",
+      tastingProfile: [
+        "EU-certified organic farming",
+        "Carignan, Grenache, Syrah from Languedoc",
+        "From easy-drinking to structured",
+        "Clear fruit and Mediterranean character",
+        "Direct imported without middlemen",
+      ],
+      foodPairing:
+        "Classic red pairings: lamb, stew, grilled food, mushrooms and cheese. Lighter wines with charcuterie and pizza. Serve slightly cooler for young, fruity styles.",
+      aboutText:
+        "Red organic wine from Languedoc — direct from small producers to Stockholm via PACT.",
+    },
+  },
+  "rod-och-vit-naturvin": {
+    sv: {
+      contentHeading: "Om rött & vitt naturvin",
+      longDescription:
+        "Naturvin gjort på både röda och vita druvor — co-fermentation eller fältblandning — kombinerar två av naturvinsrörelsens mest tillgängliga idéer: ärligt jordnära vinifiering utan tillsatser, och den drickbara, matvänliga stil som uppstår när rött och vitt möts i samma tank.\n\nI Languedoc är detta inget gimmick utan en levande tradition bland unga producenter som vill fånga hela vingårdens skörd i en flaska. Du kan få allt från nästan roséfärgade naturviner till djupare, saftiga röda med en friskhet som kommer från de vita druvorna. Vild jäsning, ingen filtrering och låg eller ingen svavel är norm.\n\nPACTs urval är litet. Vi importerar bara flaskor från producenter vi litar på — direkt från Languedoc till Stockholm.",
+      tastingProfile: [
+        "Co-fermentation av röda och vita druvor",
+        "Naturvin: vild jäsning, inga tillsatser",
+        "Drickbar, fruktig och matvänlig",
+        "Låg eller ingen tillsatt svavel",
+        "Direkt från små producenter i Languedoc",
+      ],
+      foodPairing:
+        "Ett naturvin för hela bordet — chark, fisk, kyckling, pizza och grönsaker. Servera lätt kyld för bästa balans mellan frukt och syra.",
+      aboutText:
+        "Rött & vitt naturvin från Languedoc — field blends utan tillsatser, direktimporterat via PACT.",
+    },
+  },
+  "red-and-white-natural-wine": {
+    en: {
+      contentHeading: "About red & white natural wine",
+      longDescription:
+        "Natural wine made from both red and white grapes — co-fermentation or field blend — combines two of the natural wine movement's most accessible ideas: honest, earthy winemaking without additives, and the drinkable, food-friendly style that emerges when red and white meet in the same tank.\n\nIn Languedoc this is not a gimmick but a living tradition among young producers who want to capture the whole vineyard harvest in one bottle. You can get everything from almost rosé-coloured natural wines to deeper, juicier reds with freshness from the white grapes. Wild fermentation, no filtration and low or no sulphur is the norm.\n\nPACT's selection is small. We import only bottles from producers we trust — direct from Languedoc to Stockholm.",
+      tastingProfile: [
+        "Co-fermentation of red and white grapes",
+        "Natural wine: wild fermentation, no additives",
+        "Drinkable, fruity and food-friendly",
+        "Low or no added sulphur",
+        "Direct from small producers in Languedoc",
+      ],
+      foodPairing:
+        "A natural wine for the whole table — charcuterie, fish, chicken, pizza and vegetables. Serve lightly chilled for the best balance of fruit and acidity.",
+      aboutText:
+        "Red & white natural wine from Languedoc — field blends without additives, direct imported via PACT.",
+    },
+  },
+  "naturvin-languedoc": {
+    sv: {
+      contentHeading: "Om naturvin från Languedoc",
+      longDescription:
+        "Languedoc-Roussillon är Frankrikes största vinregion och samtidigt den mest dynamiska när det gäller naturvin. Här finns allt från kalkiga sluttningar i Minervois och Saint-Chinian till skiffer i Faugères och höjdläge i Haute Vallée de l'Orb — terroir som ger distinkta, drickbara viner utan att behöva tung ekfatshantering.\n\nNaturvinsrörelsen i Languedoc växte fram när unga producenter tog över gamla vingårdar och började arbeta ekologiskt eller biodynamiskt med vild jäsning och minimal intervention i källaren. Resultatet är ett ekosystem av små, oberoende producenter som gör allt från lätta Cinsault-viner till koncentrerad Carignan och experimentella orangeviner.\n\nPACT importerar uteslutande från Languedoc — direkt från producenten till Stockholm. När tillräckligt många reserverat fylls en pall och flaskorna skickas utan mellanhänder. Det ger bättre pris, färskare vin och en äkta koppling mellan vingård och drickare.",
+      tastingProfile: [
+        "Medelhavsklimat med svalare nätter i höjdläge",
+        "Carignan, Grenache, Syrah, Cinsault och lokala vita druvor",
+        "Vild jäsning, låg eller ingen tillsatt svavel",
+        "Från lättdrucket till strukturerat och mineraliskt",
+        "Direktimporterat utan mellanhänder",
+      ],
+      foodPairing:
+        "Languedoc-naturvin är gjort för mat — från grillat lamm och cassoulet till chark, pizza och grönsaksrätter. De lätta röda och orangeviner kan serveras något svalare; de fylligare röda passar till långkok och ost.",
+      aboutText:
+        "Naturvin från Languedoc — direkt från småproducenter till Stockholm via PACT.",
+    },
+  },
+  "natural-wine-languedoc": {
+    en: {
+      contentHeading: "About natural wine from Languedoc",
+      longDescription:
+        "Languedoc-Roussillon is France's largest wine region and at the same time the most dynamic for natural wine. Here you'll find everything from limestone slopes in Minervois and Saint-Chinian to schist in Faugères and altitude in Haute Vallée de l'Orb — terroir that gives distinctive, drinkable wines without heavy oak ageing.\n\nThe natural wine movement in Languedoc grew when young producers took over old vineyards and began farming organically or biodynamically with wild fermentation and minimal intervention in the cellar. The result is an ecosystem of small, independent producers making everything from light Cinsault wines to concentrated Carignan and experimental orange wines.\n\nPACT imports exclusively from Languedoc — direct from producer to Stockholm. When enough people have reserved, a pallet fills and bottles ship without middlemen. That means better value, fresher wine and a real connection between vineyard and drinker.",
+      tastingProfile: [
+        "Mediterranean climate with cooler nights at altitude",
+        "Carignan, Grenache, Syrah, Cinsault and local white grapes",
+        "Wild fermentation, low or no added sulphur",
+        "From easy-drinking to structured and mineral",
+        "Direct imported without middlemen",
+      ],
+      foodPairing:
+        "Languedoc natural wine is made for food — from grilled lamb and cassoulet to charcuterie, pizza and vegetable dishes. Light reds and orange wines can be served slightly chilled; fuller reds suit slow-cooked dishes and cheese.",
+      aboutText:
+        "Natural wine from Languedoc — direct from small producers to Stockholm via PACT.",
+    },
+  },
+  "naturvin-frankrike": {
+    sv: {
+      contentHeading: "Om naturvin från Frankrike",
+      longDescription:
+        "Frankrike är naturvinets hemland — från Beaujolais och Loire till Jura och Rhône. Men för svenska köpare som vill ha tillgång till franskt naturvin utan dyra importkedjor är Languedoc den mest praktiska ingången: en region med enorm mångfald, rimliga priser och ett tätt nätverk av små producenter som arbetar ekologiskt och utan tillsatser.\n\nPACT fokuserar på Languedoc eftersom det är där vi har byggt relationer med producenter vi litar på — vingårdar som gör ärligt vin med vild jäsning, minimal svavel och tydlig platskaraktär. Du får alltså franskt naturvin i ordets sanna bemärkelse, även om sortimentet kommer från en region snarare än hela landet.\n\nBeställning sker via direktimport: vi samlar reserveringar till Stockholm tills en pall är full, sedan skickar producenten flaskorna direkt till dig. Ingen Systembolagsmonopol, inga onödiga lagerled.",
+      tastingProfile: [
+        "Franskt naturvin från Languedoc — PACTs fokusregion",
+        "Ekologisk eller biodynamisk odling",
+        "Vild jäsning utan tillsatser i källaren",
+        "Klassiska sydfranska druvor och lokala sorter",
+        "Hemleverans i Stockholm via direktimport",
+      ],
+      foodPairing:
+        "Franskt naturvin passar till det mesta på bordet — från ostbricka och chark till fisk, fågel och grönsaksrätter. Låt syran och frukten balansera fet mat och kryddor.",
+      aboutText:
+        "Köp naturvin från Frankrike via PACT — direktimporterat från Languedoc till Stockholm.",
+    },
+  },
+  "natural-wine-france": {
+    en: {
+      contentHeading: "About natural wine from France",
+      longDescription:
+        "France is the homeland of natural wine — from Beaujolais and the Loire to the Jura and the Rhône. But for buyers in Sweden who want French natural wine without expensive import chains, Languedoc is the most practical entry point: a region with enormous diversity, fair prices and a dense network of small producers working organically and without additives.\n\nPACT focuses on Languedoc because that is where we have built relationships with producers we trust — vineyards making honest wine with wild fermentation, minimal sulphur and clear sense of place. You get French natural wine in the true sense, even though the range comes from one region rather than the whole country.\n\nOrders work via direct import: we aggregate reservations to Stockholm until a pallet is full, then the producer ships bottles directly to you. No unnecessary warehousing or markups.",
+      tastingProfile: [
+        "French natural wine from Languedoc — PACT's focus region",
+        "Organic or biodynamic farming",
+        "Wild fermentation without cellar additives",
+        "Classic southern French grapes and local varieties",
+        "Home delivery in Stockholm via direct import",
+      ],
+      foodPairing:
+        "French natural wine suits most of the table — from cheese boards and charcuterie to fish, poultry and vegetable dishes. Let the acidity and fruit balance rich food and spice.",
+      aboutText:
+        "Buy natural wine from France via PACT — direct imported from Languedoc to Stockholm.",
+    },
+  },
+  "rott-naturvin-languedoc": {
+    sv: {
+      contentHeading: "Om rött naturvin från Languedoc",
+      longDescription:
+        "Rött naturvin från Languedoc bygger på sydfransk druvtradition — Carignan, Grenache, Syrah, Cinsault och Mourvèdre — odlad ekologiskt och vinifierad utan tillsatser. Regionens varma dagar och svalare nätter i höjdläge ger mogen frukt med behållen syra, vilket är perfekt för drickbara, matvänliga röda viner.\n\nStilarna varierar enormt. Cinsault från Haute Vallée de l'Orb ger lätta, nästan svalserverade röda. Gamla Carignan-stockar i Faugères och Saint-Chinian ger struktur och mineralitet. Grenache bidrar med saftighet och värme. Producenterna bestämmer om vinet ska vara fruktigt och omedelbart eller mer seriöst och lagringsdugligt.\n\nPACT importerar rött naturvin direkt från dessa producenter till Stockholm. Reservera innan pallen fylls — du får bättre pris och färskare flaskor än via traditionella kedjor.",
+      tastingProfile: [
+        "Carignan, Grenache, Syrah, Cinsault från Languedoc",
+        "Vild jäsning, låg eller ingen svavel",
+        "Från lättdrucket till strukturerat",
+        "Ofta kolsyremaceration för mjukare tannin",
+        "Direktimporterat till Stockholm",
+      ],
+      foodPairing:
+        "Grillat lamm, gryta, chark och pizza. Lättare röda serveras gärna något svalare; fylligare passar till långkok och ost.",
+      aboutText:
+        "Rött naturvin från Languedoc — direkt från småproducenter via PACT.",
+    },
+  },
+  "red-natural-wine-languedoc": {
+    en: {
+      contentHeading: "About red natural wine from Languedoc",
+      longDescription:
+        "Red natural wine from Languedoc builds on southern French grape tradition — Carignan, Grenache, Syrah, Cinsault and Mourvèdre — grown organically and vinified without additives. The region's warm days and cooler nights at altitude give ripe fruit with retained acidity, perfect for drinkable, food-friendly reds.\n\nStyles vary enormously. Cinsault from Haute Vallée de l'Orb gives light, almost chillable reds. Old Carignan vines in Faugères and Saint-Chinian give structure and minerality. Grenache contributes juiciness and warmth. Producers decide whether the wine should be fruity and immediate or more serious and age-worthy.\n\nPACT imports red natural wine direct from these producers to Stockholm. Reserve before the pallet fills — you get better value and fresher bottles than through traditional chains.",
+      tastingProfile: [
+        "Carignan, Grenache, Syrah, Cinsault from Languedoc",
+        "Wild fermentation, low or no sulphur",
+        "From easy-drinking to structured",
+        "Often carbonic maceration for softer tannin",
+        "Direct imported to Stockholm",
+      ],
+      foodPairing:
+        "Grilled lamb, stew, charcuterie and pizza. Lighter reds are often served slightly chilled; fuller styles suit slow-cooked dishes and cheese.",
+      aboutText:
+        "Red natural wine from Languedoc — direct from small producers via PACT.",
+    },
+  },
+  "vitt-naturvin-languedoc": {
+    sv: {
+      contentHeading: "Om vitt naturvin från Languedoc",
+      longDescription:
+        "Vitt naturvin från Languedoc är en underskattad kategori — ofta gjord på lokala druvor som Terret, Bourboulenc, Grenache Blanc och Vermentino, med vild jäsning och minimal intervention. Klimatet ger solmogen frukt, men höjdläge och havsnärhet kan ge den fräschör som gör vinerna levande snarare än tunga.\n\nUtan tillsatt jäst och med låg eller ingen svavel får de vita druvorna uttrycka sin plats tydligt. Stilarna spänner från lätt och citrusdriven till mer texturrik och nästan nötig när producenten arbetar med längre skalkontakt eller äldre ekfat — men alltid inom naturvinets ramar.\n\nPACTs vita naturviner kommer direkt från små producenter i Languedoc. Beställ via direktimport till Stockholm och reservera innan pallen fylls.",
+      tastingProfile: [
+        "Terret, Bourboulenc, Grenache Blanc, Vermentino",
+        "Vild jäsning utan tillsatser",
+        "Frisk syra och medelhavsfrukt",
+        "Låg eller ingen tillsatt svavel",
+        "Direktimporterat från Languedoc",
+      ],
+      foodPairing:
+        "Skaldjur, grillad fisk, sallader och getost. Servera svalt — ofta 10–12°C för bästa balans.",
+      aboutText:
+        "Vitt naturvin från Languedoc — direkt från producenten till Stockholm.",
+    },
+  },
+  "white-natural-wine-languedoc": {
+    en: {
+      contentHeading: "About white natural wine from Languedoc",
+      longDescription:
+        "White natural wine from Languedoc is an underrated category — often made from local grapes such as Terret, Bourboulenc, Grenache Blanc and Vermentino, with wild fermentation and minimal intervention. The climate gives sun-ripe fruit, but altitude and proximity to the sea can provide the freshness that keeps the wines alive rather than heavy.\n\nWithout added yeast and with low or no sulphur, the white grapes express their place clearly. Styles range from light and citrus-driven to more textured and almost nutty when the producer works with longer skin contact or older oak — but always within natural wine's boundaries.\n\nPACT's white natural wines come direct from small producers in Languedoc. Order via direct import to Stockholm and reserve before the pallet fills.",
+      tastingProfile: [
+        "Terret, Bourboulenc, Grenache Blanc, Vermentino",
+        "Wild fermentation without additives",
+        "Fresh acidity and Mediterranean fruit",
+        "Low or no added sulphur",
+        "Direct imported from Languedoc",
+      ],
+      foodPairing:
+        "Shellfish, grilled fish, salads and goat's cheese. Serve chilled — often 10–12°C for the best balance.",
+      aboutText:
+        "White natural wine from Languedoc — direct from producer to Stockholm.",
+    },
+  },
+  "orange-naturvin-languedoc": {
+    sv: {
+      contentHeading: "Om orange naturvin från Languedoc",
+      longDescription:
+        "Orange naturvin från Languedoc görs på vita druvor med skalkontakt — dagar eller veckor på skalet ger färg, tannin och textur som ett rött vin skulle ha, men med vit druvas frukt och syra. I en region där producenter redan arbetar utan tillsatser är orangevin en naturlig förlängning av filosofin: mer druva, mindre manipulation.\n\nLanguedocs orangeviner kan vara lätta och te-liknande eller mer strukturerade med kryddig garrigue och fast tannin. Grenache Blanc, Macabeu och andra lokala sorter är vanliga. Många flaskor är gjorda för att drickas nu — perfekta till mat med krydda, umami och ost.\n\nVia PACT köper du orange naturvin direkt från producenten i Languedoc. Reservera till Stockholm-pallen innan den fylls.",
+      tastingProfile: [
+        "Vita druvor med skalkontakt",
+        "Textur, tannin och medelhavsörter",
+        "Vild jäsning, inga tillsatser",
+        "Från lätt och teigt till strukturerat",
+        "Direktimporterat till Stockholm",
+      ],
+      foodPairing:
+        "Moroccan-inspirerad mat, curry, grillad fisk, hårdost och svamp. Servera lätt kyld, runt 12–14°C.",
+      aboutText:
+        "Orange naturvin från Languedoc — skalkontakt och karaktär, direkt via PACT.",
+    },
+  },
+  "orange-natural-wine-languedoc": {
+    en: {
+      contentHeading: "About orange natural wine from Languedoc",
+      longDescription:
+        "Orange natural wine from Languedoc is made from white grapes with skin contact — days or weeks on the skins give colour, tannin and texture like a red wine would, but with a white grape's fruit and acidity. In a region where producers already work without additives, orange wine is a natural extension of the philosophy: more grape, less manipulation.\n\nLanguedoc orange wines can be light and tea-like or more structured with spicy garrigue and firm tannin. Grenache Blanc, Macabeu and other local varieties are common. Many bottles are made to drink now — perfect with spiced food, umami and cheese.\n\nVia PACT you buy orange natural wine direct from the producer in Languedoc. Reserve for the Stockholm pallet before it fills.",
+      tastingProfile: [
+        "White grapes with skin contact",
+        "Texture, tannin and Mediterranean herbs",
+        "Wild fermentation, no additives",
+        "From light and tea-like to structured",
+        "Direct imported to Stockholm",
+      ],
+      foodPairing:
+        "Moroccan-inspired food, curry, grilled fish, hard cheese and mushrooms. Serve lightly chilled, around 12–14°C.",
+      aboutText:
+        "Orange natural wine from Languedoc — skin contact and character, direct via PACT.",
+    },
+  },
+  "naturvin-hemleverans-stockholm": {
+    sv: {
+      contentHeading: "Om naturvin med hemleverans i Stockholm",
+      longDescription:
+        "Att köpa naturvin i Stockholm har historiskt varit begränsat — Systembolagets sortiment täcker bara en bråkdel av vad som faktiskt produceras i Languedoc och andra naturvinsregioner. PACT erbjuder ett alternativ: direktimport från små producenter med hemleverans när pallen till Stockholm är klar.\n\nSå fungerar det: du reserverar flaskor online. När tillräckligt många beställt fylls en pall hos producenten i Languedoc och skickas direkt till Sverige — utan mellanhänder och utan att vinet legat månader i centrallager. Du får bättre pris, färskare flaskor och tillgång till producenter som sällan når den svenska marknaden.\n\nLeveransen sker hem till dig i Stockholm. Sortimentet är fokuserat på naturvin från Languedoc — rött, vitt, orange och blandade stilar från producenter vi känner personligen.",
+      tastingProfile: [
+        "Hemleverans i Stockholm när pallen fylls",
+        "Direktimport från Languedoc utan mellanhänder",
+        "Naturvin: ekologiskt, vild jäsning, minimal svavel",
+        "Små producenter utanför Systembolaget",
+        "Reservera online — pallen skickas från producenten",
+      ],
+      foodPairing:
+        "PACTs naturvin passar till vardagsmat och fest — chark, fisk, grill, ost och vegetariskt. Välj stil efter måltid: lätt rött till pizza, vitt till skaldjur, orange till kryddig mat.",
+      aboutText:
+        "Beställ naturvin med hemleverans i Stockholm — direktimporterat från Languedoc via PACT.",
+    },
+  },
+  "natural-wine-delivery-stockholm": {
+    en: {
+      contentHeading: "About natural wine home delivery in Stockholm",
+      longDescription:
+        "Buying natural wine in Stockholm has historically been limited — the state monopoly's range covers only a fraction of what is actually produced in Languedoc and other natural wine regions. PACT offers an alternative: direct import from small producers with home delivery when the Stockholm pallet is ready.\n\nHow it works: you reserve bottles online. When enough people have ordered, a pallet fills at the producer in Languedoc and ships directly to Sweden — without middlemen and without the wine sitting for months in central warehouses. You get better value, fresher bottles and access to producers that rarely reach the Swedish market.\n\nDelivery is to your home in Stockholm. The range focuses on natural wine from Languedoc — red, white, orange and mixed styles from producers we know personally.",
+      tastingProfile: [
+        "Home delivery in Stockholm when the pallet fills",
+        "Direct import from Languedoc without middlemen",
+        "Natural wine: organic, wild fermentation, minimal sulphur",
+        "Small producers outside the monopoly",
+        "Reserve online — pallet ships from the producer",
+      ],
+      foodPairing:
+        "PACT's natural wines suit everyday meals and celebrations — charcuterie, fish, grilled food, cheese and vegetarian dishes. Choose style by meal: light red for pizza, white for shellfish, orange for spiced food.",
+      aboutText:
+        "Order natural wine with home delivery in Stockholm — direct imported from Languedoc via PACT.",
+    },
+  },
+  "direktimport-vin": {
+    sv: {
+      contentHeading: "Om direktimport av vin",
+      longDescription:
+        "Direktimport innebär att vinet köps direkt från producenten utan att passera importör, grossist och butikskedja. PACT är byggt kring den modellen: vi samlar beställningar från köpare i Stockholm tills en hel pall är reserverad, sedan skickar vingården i Languedoc flaskorna direkt till Sverige.\n\nFör dig som köpare betyder det lägre pris — mellanhändernas påslag försvinner — och färskare vin som inte legat i lager i månader. För producenten betyder det bättre marginal och en direkt relation med dem som faktiskt dricker vinet. Det är en win-win som traditionella vinimportkedjor inte kan erbjuda.\n\nPACT fokuserar på naturvin från små producenter i Languedoc. Du reserverar flaskor online; när pallen fylls får du hemleverans i Stockholm. Ingen prenumeration, inget lager hos oss — bara ärlig direktimport.",
+      tastingProfile: [
+        "Köp direkt från producenten i Languedoc",
+        "Pallen fylls genom gemensamma reserveringar",
+        "Lägre pris utan mellanhänder",
+        "Färskare flaskor utan långa lagerled",
+        "Hemleverans i Stockholm",
+      ],
+      foodPairing:
+        "Direktimporterat vin från Languedoc passar till samma mat som naturvin generellt — lokala rätter, grill, ost och vardagsmat. Välj producent och stil efter vad du ska äta.",
+      aboutText:
+        "Direktimport av vin från Languedoc till Stockholm — reservera via PACT.",
+    },
+  },
+  "direct-import-wine": {
+    en: {
+      contentHeading: "About direct import wine",
+      longDescription:
+        "Direct import means wine is bought directly from the producer without passing through importer, wholesaler and retail chain. PACT is built around that model: we aggregate orders from buyers in Stockholm until a full pallet is reserved, then the vineyard in Languedoc ships bottles directly to Sweden.\n\nFor you as a buyer that means lower price — middlemen's markups disappear — and fresher wine that has not sat in warehouse for months. For the producer it means better margin and a direct relationship with those who actually drink the wine. It is a win-win that traditional wine import chains cannot offer.\n\nPACT focuses on natural wine from small producers in Languedoc. You reserve bottles online; when the pallet fills you get home delivery in Stockholm. No subscription, no warehouse on our side — just honest direct import.",
+      tastingProfile: [
+        "Buy direct from the producer in Languedoc",
+        "Pallet fills through shared reservations",
+        "Lower price without middlemen",
+        "Fresher bottles without long supply chains",
+        "Home delivery in Stockholm",
+      ],
+      foodPairing:
+        "Direct imported wine from Languedoc suits the same food as natural wine generally — local dishes, grilled food, cheese and everyday meals. Choose producer and style by what you're eating.",
+      aboutText:
+        "Direct import wine from Languedoc to Stockholm — reserve via PACT.",
+    },
+  },
 };
 
 export function getWineCategoryContentOverride(

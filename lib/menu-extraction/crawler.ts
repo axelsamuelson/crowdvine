@@ -11,18 +11,19 @@ import {
   isStarwinelist404Slug,
   listStarwinelistSourcesForCrawlBatch,
   resetStaleCrawlingSources,
+  sourceHasStoredDocument,
   updateStarwinelistSource,
   upsertStarwinelistSource,
 } from "./db";
 import { extractMenuFromDocument } from "./service";
 import { BrowserAdapterError } from "./browser-adapter-error";
+import { alertZeroSlugDiscovery } from "./pipeline-alerts";
 import { uploadPdfToStorage } from "./storage";
 import { sha256Hex } from "./checksum";
 import {
   fetchRestaurantSlugsByCity,
   fetchRestaurantPage,
   downloadPdf,
-  parseSwlUpdatedAt,
   CRAWL_DELAY_MS,
 } from "./starwinelist-scraper";
 import type { StarwinelistSource, CrawlResult, CrawlSessionSummary } from "./types";
@@ -37,8 +38,14 @@ const STARWINELIST_BASE = "https://starwinelist.com";
 const STALE_CRAWLING_MS = 2 * 60 * 60 * 1000;
 /** Reset crawling faster on manual admin runs (serverless timeout). */
 export const ADMIN_STALE_CRAWLING_MS = 5 * 60 * 1000;
-/** ~90s per source with BrowserQL PDF; fits Vercel maxDuration=300. */
+/** Hard stop for cron crawl loop (fits maxDuration=300 with buffer). */
+export const CRON_CRAWL_TIME_BUDGET_MS = 240_000;
+/** Do not start a new source after this elapsed time. */
+export const CRON_CRAWL_SOFT_STOP_MS = 200_000;
+/** @deprecated Use time-boxed crawl loop; kept for admin smoke references. */
 export const CRON_CRAWL_BATCH_SIZE = 3;
+
+const PDF_POST_DOWNLOAD_PAUSE_MS = 8000;
 
 function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
@@ -51,9 +58,9 @@ function resolvedCityFromPage(
   return normalizeSwlCitySlug(page.swl_location?.slug ?? null) ?? fallback;
 }
 
-function emptyCrawlSummary(totalFound: number): CrawlSessionSummary {
+function emptyCrawlSummary(): CrawlSessionSummary {
   return {
-    total_found: totalFound,
+    total_found: 0,
     new_pdfs: 0,
     updated_pdfs: 0,
     skipped: 0,
@@ -66,6 +73,10 @@ function emptyCrawlSummary(totalFound: number): CrawlSessionSummary {
     auto_correction_attempted: 0,
     auto_correction_improved: 0,
     auto_correction_still_review: 0,
+    sources_checked: 0,
+    skipped_not_updated: 0,
+    fully_crawled: 0,
+    elapsed_ms: 0,
   };
 }
 
@@ -73,6 +84,14 @@ function applyCrawlResult(
   summary: CrawlSessionSummary,
   result: CrawlResult,
 ): void {
+  summary.sources_checked = (summary.sources_checked ?? 0) + 1;
+
+  if (result.skip_reason === "not_updated") {
+    summary.skipped_not_updated = (summary.skipped_not_updated ?? 0) + 1;
+    summary.skipped += 1;
+    return;
+  }
+
   if (result.skipped) {
     summary.skipped += 1;
     if (result.skip_reason === "no_update") summary.updated_pdfs += 1;
@@ -87,6 +106,11 @@ function applyCrawlResult(
     summary.failed += 1;
     return;
   }
+
+  if (result.full_crawl) {
+    summary.fully_crawled = (summary.fully_crawled ?? 0) + 1;
+  }
+
   if (result.document_id) {
     summary.document_ids.push(result.document_id);
     summary.new_pdfs += 1;
@@ -108,12 +132,10 @@ function applyCrawlResult(
   }
 }
 
-function pdfCoversMenuUpdate(
-  source: StarwinelistSource,
-  parsedDate: Date | null,
-): boolean {
-  if (!parsedDate || !source.pdf_last_seen_at) return false;
-  return new Date(source.pdf_last_seen_at).getTime() >= parsedDate.getTime();
+function parsedMs(iso: string | null | undefined): number | null {
+  if (!iso) return null;
+  const ms = new Date(iso).getTime();
+  return Number.isNaN(ms) ? null : ms;
 }
 
 /**
@@ -144,11 +166,14 @@ export async function crawlRestaurant(
 
   try {
     const page = await fetchRestaurantPage(source.slug);
+    const checkedAt = new Date().toISOString();
+
     if (!page) {
       await updateStarwinelistSource(source.id, {
         crawl_status: "failed",
         last_error: "Could not fetch restaurant page (403/timeout)",
-        last_crawled_at: new Date().toISOString(),
+        last_crawled_at: checkedAt,
+        last_checked_at: checkedAt,
         crawl_attempts: source.crawl_attempts + 1,
       });
       result.error = "Could not fetch restaurant page";
@@ -160,6 +185,8 @@ export async function crawlRestaurant(
     result.swl_updated_at = page.swl_updated_at;
 
     const resolvedCity = resolvedCityFromPage(page, source.city);
+    const pageParsedMs = parsedMs(page.swl_updated_at_parsed);
+    const storedParsedMs = parsedMs(source.swl_updated_at_parsed);
 
     if (expectedCity && page.swl_location) {
       if (isWrongCityForScope(page.swl_location, expectedCity)) {
@@ -167,13 +194,12 @@ export async function crawlRestaurant(
         await updateStarwinelistSource(source.id, {
           city: resolvedCity,
           crawl_status: "skipped",
-          last_crawled_at: new Date().toISOString(),
+          last_crawled_at: checkedAt,
+          last_checked_at: checkedAt,
           name: page.name,
           pdf_url: page.pdf_url,
           swl_updated_at: page.swl_updated_at,
-          swl_updated_at_parsed: page.swl_updated_at
-            ? parseSwlUpdatedAt(page.swl_updated_at)?.toISOString() ?? null
-            : null,
+          swl_updated_at_parsed: page.swl_updated_at_parsed,
           last_error: `Restaurangen tillhör ${label}, inte ${expectedCity}`,
           crawl_attempts: source.crawl_attempts + 1,
         });
@@ -191,41 +217,44 @@ export async function crawlRestaurant(
       }
     }
 
-    const parsedDate = page.swl_updated_at
-      ? parseSwlUpdatedAt(page.swl_updated_at)
-      : null;
-    const sameUpdate =
-      source.swl_updated_at_parsed &&
-      parsedDate &&
-      new Date(source.swl_updated_at_parsed).getTime() === parsedDate.getTime();
+    const hasDocument = await sourceHasStoredDocument(source);
     if (
-      sameUpdate &&
-      source.latest_document_id &&
-      pdfCoversMenuUpdate(source, parsedDate)
+      pageParsedMs !== null &&
+      storedParsedMs !== null &&
+      pageParsedMs <= storedParsedMs &&
+      hasDocument
     ) {
       await updateStarwinelistSource(source.id, {
         crawl_status: "completed",
-        last_crawled_at: new Date().toISOString(),
+        last_checked_at: checkedAt,
         city: resolvedCity,
         name: page.name,
         pdf_url: page.pdf_url,
         swl_updated_at: page.swl_updated_at,
-        swl_updated_at_parsed: parsedDate?.toISOString() ?? null,
+        swl_updated_at_parsed: page.swl_updated_at_parsed,
+        last_error: null,
+        crawl_priority: 0,
       });
       result.skipped = true;
-      result.skip_reason = "no_update";
-      console.log("[crawler] Skipped", source.slug, "– reason:", result.skip_reason, "(latest_document_id:", source.latest_document_id, ")");
+      result.skip_reason = "not_updated";
+      console.log(
+        "[crawler] Fast-skip",
+        source.slug,
+        "– max Updated unchanged:",
+        page.swl_updated_at_parsed,
+      );
       return result;
     }
 
     if (!page.pdf_url) {
       await updateStarwinelistSource(source.id, {
         crawl_status: "skipped",
-        last_crawled_at: new Date().toISOString(),
+        last_crawled_at: checkedAt,
+        last_checked_at: checkedAt,
         city: resolvedCity,
         name: page.name,
         swl_updated_at: page.swl_updated_at,
-        swl_updated_at_parsed: parsedDate?.toISOString() ?? null,
+        swl_updated_at_parsed: page.swl_updated_at_parsed,
         last_error: "No PDF link on page",
       });
       result.skipped = true;
@@ -236,24 +265,27 @@ export async function crawlRestaurant(
 
     const restaurantUrl = `${STARWINELIST_BASE}/wine-place/${source.slug}`;
     const pdfBuffer = await downloadPdf(restaurantUrl, page.pdf_url);
+    result.full_crawl = true;
+
     if (!pdfBuffer || pdfBuffer.length === 0) {
       console.warn("[crawler] PDF download failed for", source.slug, "– URL saved for retry");
       await updateStarwinelistSource(source.id, {
         crawl_status: "partial",
-        last_crawled_at: new Date().toISOString(),
+        last_crawled_at: checkedAt,
+        last_checked_at: checkedAt,
         last_error: "PDF download failed – URL saved for retry",
         crawl_attempts: source.crawl_attempts + 1,
         city: resolvedCity,
         name: page.name,
         pdf_url: page.pdf_url,
         swl_updated_at: page.swl_updated_at,
-        swl_updated_at_parsed: parsedDate?.toISOString() ?? null,
+        swl_updated_at_parsed: page.swl_updated_at_parsed,
       });
       result.partial = true;
       return result;
     }
 
-    await sleep(8000);
+    await sleep(PDF_POST_DOWNLOAD_PAUSE_MS);
     const timestamp = new Date().toISOString();
     const contentHash = sha256Hex(pdfBuffer);
 
@@ -265,15 +297,17 @@ export async function crawlRestaurant(
       await updateStarwinelistSource(source.id, {
         crawl_status: "completed",
         last_crawled_at: timestamp,
+        last_checked_at: timestamp,
         last_error: null,
         city: resolvedCity,
         name: page.name,
         pdf_url: page.pdf_url,
         pdf_last_seen_at: timestamp,
         swl_updated_at: page.swl_updated_at,
-        swl_updated_at_parsed: parsedDate?.toISOString() ?? null,
+        swl_updated_at_parsed: page.swl_updated_at_parsed,
         latest_document_id: alreadyExtracted.id,
         crawl_attempts: source.crawl_attempts + 1,
+        crawl_priority: 0,
       });
       result.skipped = true;
       result.skip_reason = "no_update";
@@ -294,15 +328,17 @@ export async function crawlRestaurant(
       await updateStarwinelistSource(source.id, {
         crawl_status: "completed",
         last_crawled_at: timestamp,
+        last_checked_at: timestamp,
         last_error: null,
         city: resolvedCity,
         name: page.name,
         pdf_url: page.pdf_url,
         pdf_last_seen_at: timestamp,
         swl_updated_at: page.swl_updated_at,
-        swl_updated_at_parsed: parsedDate?.toISOString() ?? null,
+        swl_updated_at_parsed: page.swl_updated_at_parsed,
         latest_document_id: existingSameHash.id,
         crawl_attempts: source.crawl_attempts + 1,
+        crawl_priority: 0,
       });
       result.skipped = true;
       result.skip_reason = "no_update";
@@ -344,16 +380,18 @@ export async function crawlRestaurant(
 
     await updateStarwinelistSource(source.id, {
       crawl_status: "completed",
-      last_crawled_at: new Date().toISOString(),
+      last_crawled_at: timestamp,
+      last_checked_at: timestamp,
       last_error: null,
       city: resolvedCity,
       name: page.name,
       pdf_url: page.pdf_url,
       pdf_last_seen_at: timestamp,
       swl_updated_at: page.swl_updated_at,
-      swl_updated_at_parsed: parsedDate?.toISOString() ?? null,
+      swl_updated_at_parsed: page.swl_updated_at_parsed,
       latest_document_id: doc.id,
       crawl_attempts: source.crawl_attempts + 1,
+      crawl_priority: 0,
     });
 
     result.document_id = doc.id;
@@ -364,6 +402,7 @@ export async function crawlRestaurant(
     await updateStarwinelistSource(source.id, {
       crawl_status: "failed",
       last_crawled_at: new Date().toISOString(),
+      last_checked_at: new Date().toISOString(),
       last_error: message,
       crawl_attempts: source.crawl_attempts + 1,
     });
@@ -408,7 +447,7 @@ export async function runCrawlSession(
   city: "stockholm",
   extractAfterCrawl: boolean = true
 ): Promise<CrawlSessionSummary> {
-  const summary = emptyCrawlSummary(0);
+  const summary = emptyCrawlSummary();
 
   const allSlugs = await fetchRestaurantSlugsByCity(city);
   const slugs = allSlugs.filter((s) => !isStarwinelist404Slug(s));
@@ -428,16 +467,35 @@ export async function runCrawlSession(
   return summary;
 }
 
+export interface BatchedCrawlOptions {
+  staleCrawlingMs?: number;
+  timeBudgetMs?: number;
+  softStopMs?: number;
+  maxSources?: number;
+  /** When true, only sources with crawl_priority > 0 are rotated. */
+  boostedOnly?: boolean;
+}
+
+export function isCrawlBoostedOnlyEnabled(): boolean {
+  const raw = process.env.CRAWL_BOOSTED_ONLY?.trim().toLowerCase();
+  return raw === "true" || raw === "1";
+}
+
 /**
- * Batched crawl for serverless cron: register new slugs from discovery (best effort),
- * then crawl the oldest N sources from DB so a run completes within maxDuration.
+ * Time-boxed crawl for serverless cron: register new slugs from discovery (best effort),
+ * then rotate sources by crawl_priority DESC, last_checked_at ASC until budget expires.
  */
 export async function runBatchedCrawlSession(
   city: "stockholm",
   extractAfterCrawl: boolean = false,
-  batchSize: number = CRON_CRAWL_BATCH_SIZE,
-  staleCrawlingMs: number = STALE_CRAWLING_MS,
+  options: BatchedCrawlOptions = {},
 ): Promise<CrawlSessionSummary> {
+  const staleCrawlingMs = options.staleCrawlingMs ?? STALE_CRAWLING_MS;
+  const timeBudgetMs = options.timeBudgetMs ?? CRON_CRAWL_TIME_BUDGET_MS;
+  const softStopMs = options.softStopMs ?? CRON_CRAWL_SOFT_STOP_MS;
+  const maxSources = options.maxSources;
+  const boostedOnly = options.boostedOnly ?? isCrawlBoostedOnlyEnabled();
+
   const staleReset = await resetStaleCrawlingSources(staleCrawlingMs);
   if (staleReset > 0) {
     console.warn("[crawler] Reset", staleReset, "stale crawling source(s)");
@@ -447,7 +505,11 @@ export async function runBatchedCrawlSession(
   let newSourcesRegistered = 0;
   try {
     const discovered = await fetchRestaurantSlugsByCity(city);
+
     slugDiscoveryCount = discovered.length;
+    if (slugDiscoveryCount === 0) {
+      await alertZeroSlugDiscovery(city);
+    }
     for (const slug of discovered) {
       if (isStarwinelist404Slug(slug)) continue;
       const existing = await getStarwinelistSourceBySlug(slug);
@@ -468,20 +530,54 @@ export async function runBatchedCrawlSession(
     );
   }
 
-  const batch = await listStarwinelistSourcesForCrawlBatch(batchSize, city);
-  const summary = emptyCrawlSummary(batch.length);
-  summary.batch_size = batchSize;
-  summary.sources_attempted = batch.length;
+  const summary = emptyCrawlSummary();
   summary.slug_discovery_count = slugDiscoveryCount;
   summary.new_sources_registered = newSourcesRegistered;
-  summary.crawl_mode =
-    slugDiscoveryCount > 0 ? "discovery_batch" : "db_rotation";
+  summary.crawl_mode = boostedOnly
+    ? "boosted_rotation"
+    : slugDiscoveryCount > 0
+      ? "full_rotation"
+      : "db_rotation";
 
-  for (const source of batch) {
+  const sessionStart = Date.now();
+  const processedIds = new Set<string>();
+
+  while (Date.now() - sessionStart < timeBudgetMs) {
+    if (Date.now() - sessionStart > softStopMs) {
+      console.warn("[crawler] Soft stop – not starting another source");
+      break;
+    }
+    if (maxSources != null && (summary.sources_checked ?? 0) >= maxSources) {
+      break;
+    }
+
+    const batch = await listStarwinelistSourcesForCrawlBatch(5, city, {
+      boostedOnly,
+    });
+    const source = batch.find((s) => !processedIds.has(s.id));
+    if (!source) break;
+    processedIds.add(source.id);
+
     await sleep(CRAWL_DELAY_MS);
     const result = await crawlRestaurant(source, extractAfterCrawl, city);
     applyCrawlResult(summary, result);
+
+    if (result.rate_limit_429) {
+      console.warn("[crawler] Rate limit 429 – stopping session early");
+      break;
+    }
   }
+
+  summary.elapsed_ms = Date.now() - sessionStart;
+  summary.sources_attempted = summary.sources_checked;
+  console.warn("[crawler] Session done:", {
+    sources_checked: summary.sources_checked,
+    skipped_not_updated: summary.skipped_not_updated,
+    fully_crawled: summary.fully_crawled,
+    failed: summary.failed,
+    partial: summary.partial,
+    elapsed_ms: summary.elapsed_ms,
+  });
 
   return summary;
 }
@@ -494,7 +590,8 @@ export async function runCrawlForSlugs(
   extractAfterCrawl: boolean = true,
   expectedCity: "stockholm" | null = "stockholm",
 ): Promise<CrawlSessionSummary> {
-  const summary = emptyCrawlSummary(slugs.length);
+  const summary = emptyCrawlSummary();
+  summary.total_found = slugs.length;
 
   for (const slug of slugs) {
     const trimmed = typeof slug === "string" ? slug.trim() : "";

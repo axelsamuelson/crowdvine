@@ -1,4 +1,12 @@
 import type { MenuPipelineHealth } from "./health";
+import { sendMenuPipelineAlert } from "./pipeline-alert-transport";
+
+export {
+  deliverMenuPipelineAlerts,
+  resolveMenuPipelineAlertTransport,
+  sendMenuPipelineAlert,
+  withMenuPipelineAlertBatch,
+} from "./pipeline-alert-transport";
 
 const DEFAULT_THRESHOLDS = {
   maxPendingExtraction: 20,
@@ -6,35 +14,6 @@ const DEFAULT_THRESHOLDS = {
   maxExtractionFailedRecent: 15,
   maxStuckProcessing: 3,
 };
-
-function formatSlackText(title: string, lines: string[]): string {
-  return [`*${title}*`, ...lines.map((l) => `• ${l}`)].join("\n");
-}
-
-/**
- * POST JSON to MENU_PIPELINE_ALERT_WEBHOOK_URL (Slack incoming webhook or compatible).
- * No-op when env var is unset.
- */
-export async function sendMenuPipelineAlert(
-  title: string,
-  lines: string[],
-): Promise<void> {
-  const url = process.env.MENU_PIPELINE_ALERT_WEBHOOK_URL?.trim();
-  if (!url) return;
-
-  try {
-    await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: formatSlackText(title, lines) }),
-    });
-  } catch (err) {
-    console.warn(
-      "[menu-pipeline-alert] Webhook failed:",
-      err instanceof Error ? err.message : err,
-    );
-  }
-}
 
 export async function evaluateMenuPipelineAlerts(
   health: MenuPipelineHealth,
