@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin-auth-server";
-import { getMenuDocumentById, getExtractedRowsByDocumentId } from "@/lib/menu-extraction/db";
+import {
+  getMenuDocumentById,
+  getExtractedRowsByDocumentId,
+  getStarwinelistSourceBySlug,
+} from "@/lib/menu-extraction/db";
 import { extractMenuFromDocument } from "@/lib/menu-extraction/service";
+import {
+  isJsonMenuDocument,
+  JSON_MENU_SOURCE_ERROR,
+} from "@/lib/menu-extraction/json-source-guard";
 
 /**
  * POST /api/admin/menu-extraction/documents/:id/extract
@@ -17,6 +25,12 @@ export async function POST(
     const document = await getMenuDocumentById(id);
     if (!document) {
       return NextResponse.json({ error: "Document not found" }, { status: 404 });
+    }
+    const source = document.source_slug
+      ? await getStarwinelistSourceBySlug(document.source_slug)
+      : null;
+    if (isJsonMenuDocument(document, source)) {
+      return NextResponse.json({ error: JSON_MENU_SOURCE_ERROR }, { status: 400 });
     }
     if (!document.file_path?.trim()) {
       return NextResponse.json(

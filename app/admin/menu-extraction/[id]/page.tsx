@@ -51,6 +51,7 @@ interface MenuDocument {
   id: string;
   file_name: string;
   file_path: string;
+  source_type?: string;
   source_slug?: string | null;
   extraction_status: ExtractionStatus;
   created_at?: string;
@@ -528,6 +529,7 @@ export default function MenuExtractionDetailPage() {
   }
 
   const { document: doc, sections, rows, stats } = data;
+  const isJsonMenuSource = doc.source_type === "savantbar_flasklista";
   const rowsBySection = new Map<string, MenuExtractedRow[]>();
   for (const s of sections) {
     rowsBySection.set(s.id, rows.filter((r) => r.section_id === s.id));
@@ -575,25 +577,31 @@ export default function MenuExtractionDetailPage() {
                   )}
                 </div>
               </div>
-              <Button
-                onClick={handleExtract}
-                disabled={extracting}
-                className="rounded-lg text-xs font-medium bg-gray-900 dark:bg-zinc-50 text-white dark:text-zinc-900 hover:opacity-90"
-              >
-                {extracting ? (
-                  <span className="flex items-center gap-2">
-                    <span className="animate-spin rounded-full h-4 w-4 border-2 border-white dark:border-zinc-900 border-t-transparent" />
-                    Kör extraction…
-                  </span>
-                ) : (
-                  <>
-                    <Play className="h-3.5 w-3.5 mr-2" />
-                    Kör extraction
-                  </>
-                )}
-              </Button>
+              {!isJsonMenuSource ? (
+                <Button
+                  onClick={handleExtract}
+                  disabled={extracting}
+                  className="rounded-lg text-xs font-medium bg-gray-900 dark:bg-zinc-50 text-white dark:text-zinc-900 hover:opacity-90"
+                >
+                  {extracting ? (
+                    <span className="flex items-center gap-2">
+                      <span className="animate-spin rounded-full h-4 w-4 border-2 border-white dark:border-zinc-900 border-t-transparent" />
+                      Kör extraction…
+                    </span>
+                  ) : (
+                    <>
+                      <Play className="h-3.5 w-3.5 mr-2" />
+                      Kör extraction
+                    </>
+                  )}
+                </Button>
+              ) : (
+                <p className="text-xs text-gray-500 dark:text-zinc-400 max-w-xs">
+                  JSON-källa (Systemless) — rader importeras via API-sync, ingen PDF-extraktion.
+                </p>
+              )}
             </div>
-            {!doc.raw_text?.trim() && (
+            {!isJsonMenuSource && !doc.raw_text?.trim() && (
               <div className="p-4 border-b border-amber-200 dark:border-amber-800/50 bg-amber-50 dark:bg-amber-900/20 text-sm space-y-2">
                 <p className="font-medium text-amber-900 dark:text-amber-200">Raw text saknas</p>
                 <p className="text-amber-800 dark:text-amber-300/90 text-xs">

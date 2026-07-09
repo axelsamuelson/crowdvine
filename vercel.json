@@ -35,6 +35,10 @@
     {
       "path": "/api/cron/retry-failed-payments",
       "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/sync-savantbar-menu",
+      "schedule": "0 5 * * *"
     }
   ]
 }
