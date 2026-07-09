@@ -1,5 +1,8 @@
 import type { MenuPipelineHealth } from "./health";
-import { sendMenuPipelineAlert } from "./pipeline-alert-transport";
+import {
+  clearAlertSuppression,
+  sendManagedPipelineAlert,
+} from "./pipeline-alert-suppression";
 
 export {
   deliverMenuPipelineAlerts,
@@ -15,42 +18,62 @@ const DEFAULT_THRESHOLDS = {
   maxStuckProcessing: 3,
 };
 
+const HEALTH_ALERT_KEYS = {
+  extractionPending: "health_extraction_pending",
+  crawlProblems: "health_crawl_problems",
+  extractionFailedRecent: "health_extraction_failed_recent",
+  stuckProcessing: "health_stuck_processing",
+} as const;
+
 export async function evaluateMenuPipelineAlerts(
   health: MenuPipelineHealth,
   context?: { cronJob?: string },
 ): Promise<string[]> {
   const t = DEFAULT_THRESHOLDS;
+  const prefix = context?.cronJob ? `[${context.cronJob}] ` : "";
   const triggered: string[] = [];
 
-  if (health.extraction.pending > t.maxPendingExtraction) {
-    triggered.push(
-      `${health.extraction.pending} dokument väntar på extraktion (tröskel ${t.maxPendingExtraction})`,
-    );
-  }
-  const crawlProblems =
-    health.sources.failed + health.sources.partial + health.sources.pending;
-  if (crawlProblems > t.maxCrawlFailedOrPartial) {
-    triggered.push(
-      `${crawlProblems} crawl-källor behöver åtgärd (failed/partial/pending, tröskel ${t.maxCrawlFailedOrPartial})`,
-    );
-  }
-  if (health.extraction.failed_recent > t.maxExtractionFailedRecent) {
-    triggered.push(
-      `${health.extraction.failed_recent} misslyckade extraktioner senaste 7 dagarna (tröskel ${t.maxExtractionFailedRecent})`,
-    );
-  }
-  if (health.extraction.stuck_processing > t.maxStuckProcessing) {
-    triggered.push(
-      `${health.extraction.stuck_processing} dokument fastnat i processing >2h (tröskel ${t.maxStuckProcessing})`,
-    );
-  }
+  const checks: Array<{
+    key: (typeof HEALTH_ALERT_KEYS)[keyof typeof HEALTH_ALERT_KEYS];
+    active: boolean;
+    line: string;
+  }> = [
+    {
+      key: HEALTH_ALERT_KEYS.extractionPending,
+      active: health.extraction.pending > t.maxPendingExtraction,
+      line: `${health.extraction.pending} dokument väntar på extraktion (tröskel ${t.maxPendingExtraction})`,
+    },
+    {
+      key: HEALTH_ALERT_KEYS.crawlProblems,
+      active:
+        health.sources.failed + health.sources.partial + health.sources.pending >
+        t.maxCrawlFailedOrPartial,
+      line: `${health.sources.failed + health.sources.partial + health.sources.pending} crawl-källor behöver åtgärd (failed/partial/pending, tröskel ${t.maxCrawlFailedOrPartial})`,
+    },
+    {
+      key: HEALTH_ALERT_KEYS.extractionFailedRecent,
+      active: health.extraction.failed_recent > t.maxExtractionFailedRecent,
+      line: `${health.extraction.failed_recent} misslyckade extraktioner senaste 7 dagarna (tröskel ${t.maxExtractionFailedRecent})`,
+    },
+    {
+      key: HEALTH_ALERT_KEYS.stuckProcessing,
+      active: health.extraction.stuck_processing > t.maxStuckProcessing,
+      line: `${health.extraction.stuck_processing} dokument fastnat i processing >2h (tröskel ${t.maxStuckProcessing})`,
+    },
+  ];
 
-  if (triggered.length > 0) {
-    const prefix = context?.cronJob ? `[${context.cronJob}] ` : "";
-    await sendMenuPipelineAlert(
-      `${prefix}Meny-pipeline behöver uppmärksamhet`,
-      triggered,
-    );
+  for (const check of checks) {
+    if (check.active) {
+      triggered.push(check.line);
+      await sendManagedPipelineAlert(
+        check.key,
+        `${prefix}Meny-pipeline behöver uppmärksamhet`,
+        [check.line],
+        "chronic",
+      );
+    } else {
+      await clearAlertSuppression(check.key);
+    }
   }
 
   return triggered;
