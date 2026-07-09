@@ -312,6 +312,150 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
         "Red biodynamic wine from Languedoc — direct imported from certified small producers to Stockholm.",
     },
   },
+  "vitt-biodynamiskt-vin": {
+    sv: {
+      contentHeading: "Om vitt biodynamiskt vin",
+      longDescription:
+        "Vitt biodynamiskt vin kombinerar biodynamisk vingårdsfilosofi — jordhälsa, biodiversitet och certifiering enligt t.ex. Demeter — med Languedocs naturliga fördelar för vita druvor: lång växtsäsong, kustnärhet och svalare höjdlägen som ger fräschör och arom.\n\nI glaset hittar du allt från rena, citrusdrivna viner på Vermentino och Grenache Blanc till mer texturala flaskor med kort skalkontakt eller oxidativ hantering. Biodynamisk odling handlar om helheten i vingården; i källaren arbetar producenterna ofta med låg intervention, vilket ger vita viner med tydlig platskaraktär snarare än standardiserad stil.\n\nPACT importerar vitt biodynamiskt vin direkt från små producenter i Languedoc till Stockholm. Reservera innan pallen fylls — utan mellanhänder och utan onödiga lagerled.",
+      tastingProfile: [
+        "Demeter eller annan biodynamisk certifiering",
+        "Frisk syra och medelhavsfrukt",
+        "Vermentino, Grenache Blanc, Roussanne m.fl.",
+        "Från kust- och höjdlägesvingårdar",
+        "Direktimporterat till Stockholm",
+      ],
+      foodPairing:
+        "Skaldjur, grillad fisk, sallader, getost och lättare kycklingrätter. Viner med mer textur passar även till grönsaksrätter i ugn. Servera kallt, runt 10–12°C.",
+      aboutText:
+        "Vitt biodynamiskt vin från Languedoc — direkt från certifierade producenter via PACT.",
+    },
+  },
+  "white-biodynamic-wine": {
+    en: {
+      contentHeading: "About white biodynamic wine",
+      longDescription:
+        "White biodynamic wine combines biodynamic vineyard philosophy — soil health, biodiversity and certification such as Demeter — with Languedoc's natural strengths for white grapes: long growing season, coastal influence and cooler altitude sites that give freshness and aroma.\n\nIn the glass you'll find everything from clean, citrus-driven wines on Vermentino and Grenache Blanc to more textured bottles with short skin contact or oxidative handling. Biodynamic farming is about the whole vineyard; in the cellar producers often work with low intervention, giving whites with clear sense of place rather than a standardised style.\n\nPACT imports white biodynamic wine direct from small producers in Languedoc to Stockholm. Reserve before the pallet fills — no middlemen and no unnecessary warehousing.",
+      tastingProfile: [
+        "Demeter or other biodynamic certification",
+        "Fresh acidity and Mediterranean fruit",
+        "Vermentino, Grenache Blanc, Roussanne and more",
+        "From coastal and altitude vineyards",
+        "Direct imported to Stockholm",
+      ],
+      foodPairing:
+        "Shellfish, grilled fish, salads, goat's cheese and lighter chicken dishes. More textured wines also suit baked vegetable dishes. Serve chilled, around 10–12°C.",
+      aboutText:
+        "White biodynamic wine from Languedoc — direct from certified producers via PACT.",
+    },
+  },
+  "orange-biodynamiskt-vin": {
+    sv: {
+      contentHeading: "Om orange biodynamiskt vin",
+      longDescription:
+        "Orange biodynamiskt vin förenar två idéer som passar varandra: skalkontakt på vita druvor som ger färg, tannin och textur — och biodynamisk odling som stärker vingårdens ekosystem och ger sunda, koncentrerade druvor att arbeta med.\n\nI Languedoc görs orangevin ofta på Grenache Blanc, Macabeu och andra lokala sorter med dagar eller veckor på skalet. Biodynamisk certifiering signalerar att producenten investerat djupt i vingården; resultatet kan variera från lätt, te-liknande viner till mer strukturerade flaskor med kryddig garrigue och fast tannin.\n\nUrval på PACT är litet och kuraterat. Vi importerar direkt från oberoende producenter i Languedoc till Stockholm — reservera innan pallen fylls.",
+      tastingProfile: [
+        "Biodynamisk certifiering (t.ex. Demeter)",
+        "Vita druvor med skalkontakt",
+        "Amberfärg, textur och medelhavsörter",
+        "Grenache Blanc, Macabeu och lokala sorter",
+        "Direktimporterat utan mellanhänder",
+      ],
+      foodPairing:
+        "Kryddstark mat, moroccan-inspirerade rätter, grillad fisk, svamp och hårdost. Servera lätt kyld, runt 12–14°C.",
+      aboutText:
+        "Orange biodynamiskt vin från Languedoc — skalkontakt och biodynamisk odling, direkt via PACT.",
+    },
+  },
+  "orange-biodynamic-wine": {
+    en: {
+      contentHeading: "About orange biodynamic wine",
+      longDescription:
+        "Orange biodynamic wine brings together two ideas that suit each other: skin contact on white grapes for colour, tannin and texture — and biodynamic farming that strengthens the vineyard ecosystem and gives sound, concentrated grapes to work with.\n\nIn Languedoc, orange wines are often made from Grenache Blanc, Macabeu and other local varieties with days or weeks on the skins. Biodynamic certification signals deep investment in the vineyard; results can range from light, tea-like wines to more structured bottles with spicy garrigue and firm tannin.\n\nPACT's selection is small and curated. We import direct from independent producers in Languedoc to Stockholm — reserve before the pallet fills.",
+      tastingProfile: [
+        "Biodynamic certification (e.g. Demeter)",
+        "White grapes with skin contact",
+        "Amber colour, texture and Mediterranean herbs",
+        "Grenache Blanc, Macabeu and local varieties",
+        "Direct imported without middlemen",
+      ],
+      foodPairing:
+        "Spiced food, Moroccan-inspired dishes, grilled fish, mushrooms and hard cheese. Serve lightly chilled, around 12–14°C.",
+      aboutText:
+        "Orange biodynamic wine from Languedoc — skin contact and biodynamic farming, direct via PACT.",
+    },
+  },
+  "rod-och-vit-biodynamiskt-vin": {
+    sv: {
+      contentHeading: "Om rött & vitt biodynamiskt vin",
+      longDescription:
+        "Rött & vitt biodynamiskt vin — field blends eller co-fermentation — är flaskor där röda och vita druvor skördas och jäser tillsammans, från vingårdar som sköts enligt biodynamiska principer. Det ger viner med färg och struktur någonstans mellan rosé och lätt rött, ofta med mer frukt och fräschör än tunga röda.\n\nI Languedoc blandas ofta Grenache, Carignan eller Cinsault med vita druvor som Grenache Blanc eller Macabeu. Biodynamisk certifiering gäller vingården; stilen i glaset kan variera från nästan roséfärgat till djupare granat. Gemensamt är låga skördar, manuellt arbete och producenter som ser vingården som ett levande system.\n\nPACTs urval är litet. Allt direktimporterat från Languedoc till Stockholm — reservera innan pallen fylls.",
+      tastingProfile: [
+        "Biodynamisk certifiering i vingården",
+        "Co-fermentation av röda och vita druvor",
+        "Drickbar, fruktig och matvänlig",
+        "Grenache, Carignan, Grenache Blanc m.fl.",
+        "Direkt från små producenter i Languedoc",
+      ],
+      foodPairing:
+        "Ett vin för hela bordet — chark, fisk, kyckling, pizza och grönsaker. Servera lätt kyld för bästa balans.",
+      aboutText:
+        "Rött & vitt biodynamiskt vin från Languedoc — field blends, direktimporterat via PACT.",
+    },
+  },
+  "red-and-white-biodynamic-wine": {
+    en: {
+      contentHeading: "About red & white biodynamic wine",
+      longDescription:
+        "Red & white biodynamic wine — field blends or co-fermentation — is wine where red and white grapes are harvested and fermented together, from vineyards managed on biodynamic principles. That gives bottles with colour and structure somewhere between rosé and light red, often with more fruit and freshness than heavy reds.\n\nIn Languedoc, Grenache, Carignan or Cinsault are often blended with white grapes like Grenache Blanc or Macabeu. Biodynamic certification applies to the vineyard; styles in the glass can range from almost rosé-coloured to deeper garnet. What they share is low yields, manual work and producers who see the vineyard as a living system.\n\nPACT's selection is small. All direct imported from Languedoc to Stockholm — reserve before the pallet fills.",
+      tastingProfile: [
+        "Biodynamic certification in the vineyard",
+        "Co-fermentation of red and white grapes",
+        "Drinkable, fruity and food-friendly",
+        "Grenache, Carignan, Grenache Blanc and more",
+        "Direct from small producers in Languedoc",
+      ],
+      foodPairing:
+        "A wine for the whole table — charcuterie, fish, chicken, pizza and vegetables. Serve lightly chilled for the best balance.",
+      aboutText:
+        "Red & white biodynamic wine from Languedoc — field blends, direct imported via PACT.",
+    },
+  },
+  "rod-och-orange-biodynamiskt-vin": {
+    sv: {
+      contentHeading: "Om rött & orange biodynamiskt vin",
+      longDescription:
+        "Rött & orange biodynamiskt vin samlar flaskor där producenten arbetar biodynamiskt i vingården och uttrycker sig genom både röda druvor och orangevinifiering — fältblandningar, parallella skördar i samma cuvée, eller viner som rör sig mellan lätt skalkontakt och klassisk röd jäsning.\n\nKategorin fångar den experimentella sidan av Languedoc: samma vingård, samma biodynamiska filosofi, men flera uttryck i sortimentet. Du kan hitta allt från lättdruckna röda med en hint av skalkontakt till amberfärgade viner med tydlig tannin. Druvbasen är sydfransk — Grenache, Carignan, Syrah och lokala vita sorter.\n\nPACT importerar direkt från oberoende producenter vi samarbetar med. Reservera innan pallen till Stockholm fylls.",
+      tastingProfile: [
+        "Biodynamisk odling (t.ex. Demeter)",
+        "Spektrum mellan rött och orange",
+        "Fältblandningar och skalkontakt",
+        "Grenache, Carignan, Syrah och lokala vita druvor",
+        "Direktimporterat till Stockholm",
+      ],
+      foodPairing:
+        "Medelhavsmat, grillade grönsaker, chark och kryddiga rätter. Servera svalt — testa 12–15°C.",
+      aboutText:
+        "Rött & orange biodynamiskt vin från Languedoc — direkt från certifierade producenter via PACT.",
+    },
+  },
+  "red-and-orange-biodynamic-wine": {
+    en: {
+      contentHeading: "About red & orange biodynamic wine",
+      longDescription:
+        "Red & orange biodynamic wine brings together bottles where the producer farms biodynamically and expresses both red grapes and orange winemaking — field blends, parallel harvests in the same cuvée, or wines that move between light skin contact and classic red fermentation.\n\nThe category captures Languedoc's experimental side: the same vineyard, the same biodynamic philosophy, but several expressions in the range. You can find everything from easy-drinking reds with a hint of skin contact to amber wines with clear tannin. The grape base is southern French — Grenache, Carignan, Syrah and local white varieties.\n\nPACT imports direct from independent producers we work with. Reserve before the pallet to Stockholm fills.",
+      tastingProfile: [
+        "Biodynamic farming (e.g. Demeter)",
+        "Spectrum between red and orange",
+        "Field blends and skin contact",
+        "Grenache, Carignan, Syrah and local white grapes",
+        "Direct imported to Stockholm",
+      ],
+      foodPairing:
+        "Mediterranean food, grilled vegetables, charcuterie and spiced dishes. Serve slightly chilled — try 12–15°C.",
+      aboutText:
+        "Red & orange biodynamic wine from Languedoc — direct from certified producers via PACT.",
+    },
+  },
   "vitt-ekologiskt-vin": {
     sv: {
       contentHeading: "Om vitt ekologiskt vin",
@@ -346,6 +490,42 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
         "Perfect with fish, shellfish, salads, goat's cheese and lighter chicken dishes. Wines with more body also handle baked vegetables and Mediterranean food. Serve cold but not ice-cold — 10–12°C is often ideal.",
       aboutText:
         "White organic wine from Languedoc — certified farming, direct imported to Stockholm via PACT.",
+    },
+  },
+  "orange-ekologiskt-vin": {
+    sv: {
+      contentHeading: "Om orange ekologiskt vin",
+      longDescription:
+        "Orange ekologiskt vin förenar skalkontakt på vita druvor med ekologisk odling enligt EU:s regler — utan syntetiska bekämpningsmedel i vingården och med fokus på jordhälsa och biodiversitet. Skalkontakten ger färg, tannin och textur som ett rött vin skulle ha, men med vit druvas frukt och syra.\n\nI Languedoc görs orangevin ofta på Grenache Blanc, Macabeu och andra lokala sorter. Ekologisk certifiering gäller vingården; i källaren arbetar många producenter med minimal intervention, vilket ger flaskor med tydlig platskaraktär. Stilarna spänner från lätt och te-liknande till mer strukturerade viner med kryddig garrigue.\n\nPACT importerar orange ekologiskt vin direkt från små producenter i Languedoc till Stockholm. Reservera innan pallen fylls — utan mellanhänder.",
+      tastingProfile: [
+        "EU-certifierad ekologisk odling",
+        "Vita druvor med skalkontakt",
+        "Amberfärg, textur och medelhavsörter",
+        "Grenache Blanc, Macabeu och lokala sorter",
+        "Direktimporterat till Stockholm",
+      ],
+      foodPairing:
+        "Kryddstark mat, grillad fisk, svamp, hårdost och medelhavsinspirerade rätter. Servera lätt kyld, runt 12–14°C.",
+      aboutText:
+        "Orange ekologiskt vin från Languedoc — certifierat odlat, direkt via PACT.",
+    },
+  },
+  "orange-organic-wine": {
+    en: {
+      contentHeading: "About orange organic wine",
+      longDescription:
+        "Orange organic wine combines skin contact on white grapes with organic farming under EU rules — no synthetic pesticides in the vineyard and a focus on soil health and biodiversity. Skin contact gives colour, tannin and texture like a red wine would, but with a white grape's fruit and acidity.\n\nIn Languedoc, orange wines are often made from Grenache Blanc, Macabeu and other local varieties. Organic certification applies to the vineyard; in the cellar many producers work with minimal intervention, giving bottles with clear sense of place. Styles range from light and tea-like to more structured wines with spicy garrigue.\n\nPACT imports orange organic wine direct from small producers in Languedoc to Stockholm. Reserve before the pallet fills — no middlemen.",
+      tastingProfile: [
+        "EU-certified organic farming",
+        "White grapes with skin contact",
+        "Amber colour, texture and Mediterranean herbs",
+        "Grenache Blanc, Macabeu and local varieties",
+        "Direct imported to Stockholm",
+      ],
+      foodPairing:
+        "Spiced food, grilled fish, mushrooms, hard cheese and Mediterranean-inspired dishes. Serve lightly chilled, around 12–14°C.",
+      aboutText:
+        "Orange organic wine from Languedoc — certified farming, direct via PACT.",
     },
   },
   "rod-och-orange-ekologiskt-vin": {

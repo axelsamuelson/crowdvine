@@ -14,33 +14,32 @@ export const NOINDEX_FOLLOW_ROBOTS: NonNullable<Metadata["robots"]> = {
   follow: true,
 };
 
-export const NOINDEX_CATEGORY_SLUGS_SV = new Set([
-  "rod-och-orange-biodynamiskt-vin",
-  "rod-och-vit-biodynamiskt-vin",
-  "rod-och-orange-ekologiskt-vin",
-  "rod-och-vit-ekologiskt-vin",
-  "orange-biodynamiskt-vin",
-  "vitt-biodynamiskt-vin",
-  "orange-ekologiskt-vin",
-]);
+/** Red & White / Red & Orange filter pages (any farming combo). */
+const TWO_COLOR_SLUG_PREFIXES: Record<"sv" | "en", readonly string[]> = {
+  sv: ["rod-och-vit", "rod-och-orange"],
+  en: ["red-and-white", "red-and-orange"],
+};
 
-export const NOINDEX_CATEGORY_SLUGS_EN = new Set([
-  "red-and-orange-biodynamic-wine",
-  "red-and-white-biodynamic-wine",
-  "red-and-orange-organic-wine",
-  "red-and-white-organic-wine",
-  "orange-biodynamic-wine",
-  "white-biodynamic-wine",
-  "orange-organic-wine",
-]);
+export function isTwoColorCategorySlug(
+  slug: string,
+  locale: "sv" | "en",
+): boolean {
+  return TWO_COLOR_SLUG_PREFIXES[locale].some(
+    (prefix) =>
+      slug === `${prefix}-vin` ||
+      slug === `${prefix}-wine` ||
+      slug.startsWith(`${prefix}-`),
+  );
+}
+
+export function isNoindexCategorySlug(
+  slug: string,
+  locale: "sv" | "en",
+): boolean {
+  return isTwoColorCategorySlug(slug, locale);
+}
 
 type ShopSearchParams = { [key: string]: string | string[] | undefined };
-
-function isNoindexCategorySlug(slug: string, locale: "sv" | "en"): boolean {
-  return locale === "sv"
-    ? NOINDEX_CATEGORY_SLUGS_SV.has(slug)
-    : NOINDEX_CATEGORY_SLUGS_EN.has(slug);
-}
 
 export function categoryPageRobots(
   slug: string,

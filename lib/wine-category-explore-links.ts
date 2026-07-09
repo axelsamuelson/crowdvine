@@ -40,11 +40,11 @@ const FARMING_HUB_SLUGS_EN = [
 
 const FARMING_HUB_COLOR_SLUGS: Record<string, readonly string[]> = {
   naturvin: ["rott-naturvin", "vitt-naturvin", "orange-naturvin"],
-  "ekologiskt-vin": ["rott-ekologiskt-vin", "vitt-ekologiskt-vin"],
-  "biodynamiskt-vin": ["rott-biodynamiskt-vin"],
+  "ekologiskt-vin": ["rott-ekologiskt-vin", "vitt-ekologiskt-vin", "orange-ekologiskt-vin"],
+  "biodynamiskt-vin": ["rott-biodynamiskt-vin", "vitt-biodynamiskt-vin", "orange-biodynamiskt-vin"],
   "natural-wine": ["red-natural-wine", "white-natural-wine", "orange-natural-wine"],
-  "organic-wine": ["red-organic-wine", "white-organic-wine"],
-  "biodynamic-wine": ["red-biodynamic-wine"],
+  "organic-wine": ["red-organic-wine", "white-organic-wine", "orange-organic-wine"],
+  "biodynamic-wine": ["red-biodynamic-wine", "white-biodynamic-wine", "orange-biodynamic-wine"],
 };
 
 const RED_GRAPE_SLUGS = new Set([

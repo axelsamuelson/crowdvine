@@ -2,8 +2,7 @@ import type { MetadataRoute } from "next";
 
 import { generateProducerSlug } from "@/lib/producer-handle";
 import {
-  NOINDEX_CATEGORY_SLUGS_EN,
-  NOINDEX_CATEGORY_SLUGS_SV,
+  isNoindexCategorySlug,
 } from "@/lib/seo/noindex-robots";
 import { WINE_CATEGORIES_EN, WINE_CATEGORIES_SV } from "@/lib/wine-categories";
 import {
@@ -108,11 +107,11 @@ export async function buildSitemapEntries(
     });
 
   const vinCategories: MetadataRoute.Sitemap = WINE_CATEGORIES_SV.filter(
-    (c) => !NOINDEX_CATEGORY_SLUGS_SV.has(c.slug),
+    (c) => !isNoindexCategorySlug(c.slug, "sv"),
   ).map((c) => weeklyEntry(`${baseUrl}/vin/${c.slug}`, 0.8));
 
   const wineCategories: MetadataRoute.Sitemap = WINE_CATEGORIES_EN.filter(
-    (c) => !NOINDEX_CATEGORY_SLUGS_EN.has(c.slug),
+    (c) => !isNoindexCategorySlug(c.slug, "en"),
   ).map((c) => weeklyEntry(`${baseUrl}/wine/${c.slug}`, 0.7));
 
   const knownCategorySlugs = getKnownCategorySlugs();
