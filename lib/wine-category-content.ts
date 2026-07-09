@@ -102,6 +102,48 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
         "Biodynamic wine from Languedoc — direct from certified small producers to Stockholm via PACT.",
     },
   },
+  "ekologiskt-vin": {
+    sv: {
+      title: "Ekologiskt vin i Sverige — köp direkt från Languedoc | PACT Wines",
+      metaDescription:
+        "Köp ekologiskt vin i Sverige med hemleverans Stockholm. EU-certifierade producenter i Languedoc — direktimport utan mellanhänder via PACT.",
+      contentHeading: "Om ekologiskt vin",
+      longDescription:
+        "Ekologiskt vin innebär att druvorna odlas enligt EU:s ekologiska regler — utan syntetiska bekämpningsmedel, utan konstgödsel och med krav på jordhälsa och biodiversitet i vingården. Certifieringen (t.ex. AB-märket) gäller odlingsmetoden; i källaren får producenten fortfarande arbeta på olika sätt, från klassisk vinifiering till minimal intervention.\n\nSkillnaden mot biodynamiskt vin är tydlig: ekologiskt definierar vad som inte får användas i vingården; biodynamiskt lägger till en helhetssyn med kompostpreparat, dynamiska sprayningar och vingårdens rytm. Skillnaden mot naturvin är också viktig — naturvin ställer krav både i vingård och källare (vild jäsning, inga tillsatser), medan ekologiskt vin i första hand handlar om hur druvorna odlas. Många av våra producenter gör både och, men det är inte samma sak.\n\nAtt köpa ekologiskt vin i Sverige via Systembolaget eller importörer ger ofta begränsat urval och höga priser. PACT importerar direkt från ekologiskt certifierade småproducenter i Languedoc till Stockholm — utan mellanhänder och utan centrallager. Du reserverar flaskor online; när pallen fylls skickas vinet direkt från vingården.",
+      tastingProfile: [
+        "EU-certifierad ekologisk odling (AB-märke)",
+        "Inga syntetiska bekämpningsmedel i vingården",
+        "Rött, vitt och orange från Languedoc",
+        "Tydlig frukt och platskaraktär",
+        "Direktimporterat till Stockholm",
+      ],
+      foodPairing:
+        "Ekologiskt vin från Languedoc passar till medelhavsmat — grillat lamm, ratatouille, fisk, chark och grönsaksrätter. Lättare röda och orangeviner kan serveras något svalare; fylligare röda till grytor och ost.",
+      aboutText:
+        "Ekologiskt vin från Languedoc — direkt från certifierade småproducenter till Stockholm via PACT.",
+    },
+  },
+  "organic-wine": {
+    en: {
+      title: "Organic Wine in Sweden — Buy Direct from Languedoc | PACT Wines",
+      metaDescription:
+        "Buy organic wine in Sweden with home delivery in Stockholm. EU-certified producers in Languedoc — direct import without middlemen via PACT.",
+      contentHeading: "About organic wine",
+      longDescription:
+        "Organic wine means grapes grown under EU organic rules — no synthetic pesticides, no chemical fertilisers and requirements for soil health and biodiversity in the vineyard. Certification (e.g. the EU organic logo) covers farming; in the cellar producers may still work in different ways, from classic winemaking to minimal intervention.\n\nThe difference from biodynamic wine is clear: organic defines what cannot be used in the vineyard; biodynamic adds a holistic view with compost preparations, dynamic sprays and the vineyard's rhythms. The difference from natural wine matters too — natural wine sets rules in both vineyard and cellar (wild fermentation, no additives), while organic wine primarily concerns how grapes are grown. Many of our producers do both, but they are not the same thing.\n\nBuying organic wine in Sweden through the monopoly or traditional importers often means limited choice and high prices. PACT imports direct from organically certified small producers in Languedoc to Stockholm — without middlemen and without central warehousing. You reserve bottles online; when the pallet fills, wine ships direct from the vineyard.",
+      tastingProfile: [
+        "EU-certified organic farming",
+        "No synthetic pesticides in the vineyard",
+        "Red, white and orange from Languedoc",
+        "Clear fruit and sense of place",
+        "Direct imported to Stockholm",
+      ],
+      foodPairing:
+        "Organic wine from Languedoc suits Mediterranean food — grilled lamb, ratatouille, fish, charcuterie and vegetable dishes. Lighter reds and orange wines can be served slightly chilled; fuller reds with stews and cheese.",
+      aboutText:
+        "Organic wine from Languedoc — direct from certified small producers to Stockholm via PACT.",
+    },
+  },
   "rott-naturvin": {
     sv: {
       title: "Rött naturvin — köp direkt från Languedoc | PACT Wines",
@@ -626,6 +668,9 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
   },
   "rott-ekologiskt-vin": {
     sv: {
+      title: "Rött ekologiskt vin — köp direkt från Languedoc | PACT Wines",
+      metaDescription:
+        "Köp rött ekologiskt vin online. Carignan, Grenache och Syrah från Languedoc — EU-certifierat, hemleverans Stockholm via PACT.",
       contentHeading: "Om rött ekologiskt vin",
       longDescription:
         "Rött ekologiskt vin från Languedoc bygger på sydfransk druvtradition — Carignan, Grenache, Syrah, Cinsault — odlad enligt EU:s ekologiska regler. Utan syntetiska bekämpningsmedel och med fokus på jordhälsa får vingårdarna uttrycka plats tydligare, vilket ofta syns i renare frukt och mer transparent smak.\n\nStilarna spänner från lätta, nästan svalserverade röda till mer strukturerade viner från gamla stockar. Ekologisk certifiering handlar om vingården; i källaren kan producenterna fortfarande arbeta med minimal intervention eller mer klassiska metoder. På PACT väljer vi producenter vars ekologiska röda viner vi tycker är genuint bra — inte bara korrekt certifierade.\n\nDirektimport från Languedoc ger bättre pris och färskare flaskor till Stockholm. Reservera innan pallen fylls.",
@@ -644,6 +689,9 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
   },
   "red-organic-wine": {
     en: {
+      title: "Red Organic Wine — Buy Direct from Languedoc | PACT Wines",
+      metaDescription:
+        "Buy red organic wine online. Carignan, Grenache and Syrah from Languedoc — EU-certified, home delivery Stockholm via PACT.",
       contentHeading: "About red organic wine",
       longDescription:
         "Red organic wine from Languedoc builds on southern French grape tradition — Carignan, Grenache, Syrah, Cinsault — grown under EU organic rules. Without synthetic pesticides and with a focus on soil health, vineyards express place more clearly, which often shows in cleaner fruit and more transparent flavour.\n\nStyles range from light, almost chillable reds to more structured wines from old vines. Organic certification concerns the vineyard; in the cellar producers may still work with minimal intervention or more classic methods. At PACT we choose producers whose organic reds we think are genuinely good — not just correctly certified.\n\nDirect import from Languedoc gives better value and fresher bottles in Stockholm. Reserve before the pallet fills.",
