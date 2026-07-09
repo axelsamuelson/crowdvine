@@ -5,6 +5,10 @@
  * TODO(menu-extraction): Add Insert/Update helper types if needed for stricter create/update APIs.
  */
 
+import type { BrowserlessUsageSummary } from "./browserless-usage";
+
+export type { BrowserlessUsageSummary };
+
 export type ExtractionStatus =
   | "pending"
   | "processing"
@@ -397,6 +401,8 @@ export interface CrawlSessionSummary {
   fully_crawled?: number;
   /** Elapsed wall time for the crawl loop (ms). */
   elapsed_ms?: number;
+  /** Browserless calls this invocation (compare to dashboard units). */
+  browserless?: BrowserlessUsageSummary;
   /** True if any request failed with HTTP 429 from the browser layer. */
   rate_limit_429?: boolean;
   document_ids: string[];

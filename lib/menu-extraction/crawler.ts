@@ -19,6 +19,9 @@ import { extractMenuFromDocument } from "./service";
 import { BrowserAdapterError } from "./browser-adapter-error";
 import { alertZeroSlugDiscovery } from "./pipeline-alerts";
 import { uploadPdfToStorage } from "./storage";
+import {
+  withBrowserlessUsageTracking,
+} from "./browserless-usage";
 import { sha256Hex } from "./checksum";
 import {
   fetchRestaurantSlugsByCity,
@@ -490,6 +493,7 @@ export async function runBatchedCrawlSession(
   extractAfterCrawl: boolean = false,
   options: BatchedCrawlOptions = {},
 ): Promise<CrawlSessionSummary> {
+  const { result, browserless } = await withBrowserlessUsageTracking(async () => {
   const staleCrawlingMs = options.staleCrawlingMs ?? STALE_CRAWLING_MS;
   const timeBudgetMs = options.timeBudgetMs ?? CRON_CRAWL_TIME_BUDGET_MS;
   const softStopMs = options.softStopMs ?? CRON_CRAWL_SOFT_STOP_MS;
@@ -577,9 +581,13 @@ export async function runBatchedCrawlSession(
     failed: summary.failed,
     partial: summary.partial,
     elapsed_ms: summary.elapsed_ms,
+    browserless,
   });
 
   return summary;
+  });
+
+  return { ...result, browserless };
 }
 
 /**

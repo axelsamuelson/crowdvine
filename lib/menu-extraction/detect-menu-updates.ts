@@ -25,6 +25,11 @@ import {
   type SitemapWinePlaceEntry,
 } from "./sitemap-discovery";
 import { runDetectMenuUpdatesFromWidget } from "./detect-menu-updates-widget";
+import {
+  getBrowserlessUsage,
+  withBrowserlessUsageTracking,
+  type BrowserlessUsageSummary,
+} from "./browserless-usage";
 
 export const DEFAULT_SITEMAP_LASTMOD_DEGENERATE_THRESHOLD = 0.8;
 
@@ -47,6 +52,7 @@ export interface DetectMenuUpdatesSummary {
   widget_matched?: number;
   unmatched_names?: string[];
   error?: string;
+  browserless?: BrowserlessUsageSummary;
 }
 
 export interface SitemapLastmodDegeneracyAnalysis {
@@ -256,32 +262,48 @@ async function runSitemapLane(
   };
 }
 
+function attachBrowserlessUsage<T extends DetectMenuUpdatesSummary>(
+  summary: T,
+): T {
+  const browserless = getBrowserlessUsage();
+  if (!browserless) return summary;
+  return { ...summary, browserless };
+}
+
 export async function runDetectMenuUpdates(
   city: string = "stockholm",
 ): Promise<DetectMenuUpdatesSummary> {
-  const widget = await runDetectMenuUpdatesFromWidget(city);
+  const { result } = await withBrowserlessUsageTracking(async () => {
+    const widget = await runDetectMenuUpdatesFromWidget(city);
 
-  try {
-    return await runSitemapLane(city, widget);
-  } catch (err) {
-    if (err instanceof BrowserAdapterError && (err.status === 401 || err.status === 429)) {
-      throw err;
+    try {
+      return await runSitemapLane(city, widget);
+    } catch (err) {
+      if (err instanceof BrowserAdapterError && (err.status === 401 || err.status === 429)) {
+        throw err;
+      }
+      const message = err instanceof Error ? err.message : String(err);
+      await alertDetectMenuUpdatesFailure(message);
+      return {
+        mode: "widget_only" as const,
+        sitemap_urls: 0,
+        wine_place_entries: 0,
+        entries_with_lastmod: 0,
+        unknown_slug_skipped: 0,
+        sitemap_lastmods_recorded: 0,
+        sitemap_priority_boosted: 0,
+        priority_boosted: widget.priority_boosted,
+        error: message,
+        ...widgetSummaryFields(widget),
+      };
     }
-    const message = err instanceof Error ? err.message : String(err);
-    await alertDetectMenuUpdatesFailure(message);
-    return {
-      mode: "widget_only",
-      sitemap_urls: 0,
-      wine_place_entries: 0,
-      entries_with_lastmod: 0,
-      unknown_slug_skipped: 0,
-      sitemap_lastmods_recorded: 0,
-      sitemap_priority_boosted: 0,
-      priority_boosted: widget.priority_boosted,
-      error: message,
-      ...widgetSummaryFields(widget),
-    };
+  });
+
+  const summary = attachBrowserlessUsage(result);
+  if (summary.browserless) {
+    console.warn("[detect-menu-updates] Browserless usage:", summary.browserless);
   }
+  return summary;
 }
 
 /** @deprecated Use runDetectMenuUpdates — widget is always primary. */

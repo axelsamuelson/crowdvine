@@ -1,9 +1,18 @@
 /**
  * Browserless.io adapter – /unblock for Cloudflare-protected Starwinelist pages.
- * Used when BROWSERLESS_API_KEY is set (preferred over headless Chromium on serverless IPs).
+ * Connection URLs include &timeout= to cap billed units per session.
  */
 
 import { BrowserAdapterError } from "./browser-adapter-error";
+import {
+  browserlessGotoTimeoutMs,
+  buildBrowserlessApiUrl,
+  getBrowserlessTimeoutFullMs,
+  getBrowserlessTimeoutHtmlMs,
+  getBrowserlessTimeoutMs,
+  type BrowserlessTimeoutMode,
+} from "./browserless-config";
+import { recordBrowserlessCall } from "./browserless-usage";
 
 const BROWSERLESS_BASE =
   process.env.BROWSERLESS_BASE_URL?.trim() || "https://chrome.browserless.io";
@@ -35,6 +44,33 @@ const PDF_BQL_EVAL_SCRIPT = `
 
 function getApiKey(): string | null {
   return process.env.BROWSERLESS_API_KEY?.trim() || null;
+}
+
+function requireApiKey(): string {
+  const key = getApiKey();
+  if (!key) throw new Error("BROWSERLESS_API_KEY is not set");
+  return key;
+}
+
+/**
+ * Wrap a Browserless REST/BQL call: record usage, cap session via URL timeout,
+ * ensure abort timers are cleared in finally (no client WS — server closes on response end).
+ */
+async function withBrowserlessRequest<T>(
+  kind: BrowserlessTimeoutMode,
+  endpoint: string,
+  run: (apiUrl: string, connectionTimeoutMs: number) => Promise<T>,
+): Promise<T> {
+  const key = requireApiKey();
+  const connectionTimeoutMs = getBrowserlessTimeoutMs(kind);
+  const apiUrl = buildBrowserlessApiUrl(endpoint, key, kind);
+  recordBrowserlessCall(kind, endpoint);
+  try {
+    return await run(apiUrl, connectionTimeoutMs);
+  } finally {
+    // REST/BQL: server closes the browser when the HTTP response ends.
+    // &timeout= on the URL caps billed units (no client-side disconnect).
+  }
 }
 
 async function retryWithBackoff<T>(
@@ -73,14 +109,14 @@ async function retryWithBackoff<T>(
   throw lastErr;
 }
 
-function buildContentRequest(url: string): object {
+function buildContentRequest(url: string, connectionTimeoutMs: number): object {
   return {
     url,
     waitForTimeout: 3000,
     bestAttempt: true,
     gotoOptions: {
       waitUntil: "domcontentloaded",
-      timeout: 60000,
+      timeout: browserlessGotoTimeoutMs(connectionTimeoutMs),
     },
     rejectRequestPattern: [
       "*.png",
@@ -104,6 +140,7 @@ type UnblockCookie = {
 async function fetchViaUnblock(
   apiUrl: string,
   url: string,
+  connectionTimeoutMs: number,
   options: { content: boolean; cookies?: boolean },
 ): Promise<{ content: string; cookies: UnblockCookie[] }> {
   const body = {
@@ -112,7 +149,10 @@ async function fetchViaUnblock(
     cookies: options.cookies ?? false,
     screenshot: false,
     browserWSEndpoint: false,
-    gotoOptions: { waitUntil: "domcontentloaded" as const, timeout: 45000 },
+    gotoOptions: {
+      waitUntil: "domcontentloaded" as const,
+      timeout: browserlessGotoTimeoutMs(connectionTimeoutMs),
+    },
     bestAttempt: true,
   };
   const res = await fetch(apiUrl, {
@@ -138,8 +178,14 @@ async function fetchViaUnblock(
   };
 }
 
-async function fetchHtmlViaUnblock(apiUrl: string, url: string): Promise<string> {
-  const { content } = await fetchViaUnblock(apiUrl, url, { content: true });
+async function fetchHtmlViaUnblock(
+  apiUrl: string,
+  url: string,
+  connectionTimeoutMs: number,
+): Promise<string> {
+  const { content } = await fetchViaUnblock(apiUrl, url, connectionTimeoutMs, {
+    content: true,
+  });
   if (!content.trim()) {
     throw new BrowserAdapterError("Unblock returned empty content", 502, url);
   }
@@ -161,41 +207,37 @@ async function fetchPdfWithSessionCookies(
   restaurantUrl: string,
   pdfUrl: string,
 ): Promise<Buffer | null> {
-  const key = getApiKey();
-  if (!key) return null;
-  const unblockUrl = `${BROWSERLESS_UNBLOCK_URL}?token=${encodeURIComponent(key)}`;
-  const { cookies } = await fetchViaUnblock(unblockUrl, restaurantUrl, {
-    content: false,
-    cookies: true,
-  });
-  if (!cookies.length) return null;
+  return withBrowserlessRequest("full", BROWSERLESS_UNBLOCK_URL, async (apiUrl, timeoutMs) => {
+    const { cookies } = await fetchViaUnblock(apiUrl, restaurantUrl, timeoutMs, {
+      content: false,
+      cookies: true,
+    });
+    if (!cookies.length) return null;
 
-  const res = await fetch(pdfUrl, {
-    redirect: "follow",
-    headers: {
-      Cookie: cookiesToHeader(cookies),
-      Accept: "application/pdf,*/*",
-      Referer: restaurantUrl,
-    },
+    const res = await fetch(pdfUrl, {
+      redirect: "follow",
+      headers: {
+        Cookie: cookiesToHeader(cookies),
+        Accept: "application/pdf,*/*",
+        Referer: restaurantUrl,
+      },
+    });
+    if (!res.ok) return null;
+    const buf = Buffer.from(await res.arrayBuffer());
+    return buf.length > 0 ? buf : null;
   });
-  if (!res.ok) return null;
-  const buf = Buffer.from(await res.arrayBuffer());
-  return buf.length > 0 ? buf : null;
 }
 
 export async function fetchRenderedHtml(url: string): Promise<string> {
-  const key = getApiKey();
-  if (!key) {
-    throw new Error("BROWSERLESS_API_KEY is not set");
-  }
-
+  requireApiKey();
   const start = Date.now();
-  const token = encodeURIComponent(key);
 
   try {
-    const unblockUrl = `${BROWSERLESS_UNBLOCK_URL}?token=${token}`;
-    const html = await retryWithBackoff(() =>
-      fetchHtmlViaUnblock(unblockUrl, url),
+    const html = await withBrowserlessRequest(
+      "html",
+      BROWSERLESS_UNBLOCK_URL,
+      (apiUrl, timeoutMs) =>
+        retryWithBackoff(() => fetchHtmlViaUnblock(apiUrl, url, timeoutMs)),
     );
     console.warn(
       "[browserless-adapter] Fetched (unblock)",
@@ -203,6 +245,7 @@ export async function fetchRenderedHtml(url: string): Promise<string> {
       "in",
       Date.now() - start,
       "ms",
+      `timeout=${getBrowserlessTimeoutHtmlMs()}`,
     );
     return html;
   } catch (e) {
@@ -216,24 +259,30 @@ export async function fetchRenderedHtml(url: string): Promise<string> {
     }
   }
 
-  const apiUrl = `${BROWSERLESS_CONTENT_URL}?token=${token}`;
-  const res = await retryWithBackoff(async () => {
-    const r = await fetch(apiUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(buildContentRequest(url)),
-    });
-    if (!r.ok) {
-      const body = await r.text();
-      throw new BrowserAdapterError(
-        `Browserless ${r.status}: ${body.slice(0, 200)}`,
-        r.status,
-        url,
-      );
-    }
-    return r;
-  });
-  const html = await res.text();
+  const html = await withBrowserlessRequest(
+    "html",
+    BROWSERLESS_CONTENT_URL,
+    async (apiUrl, timeoutMs) => {
+      const res = await retryWithBackoff(async () => {
+        const r = await fetch(apiUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(buildContentRequest(url, timeoutMs)),
+        });
+        if (!r.ok) {
+          const body = await r.text();
+          throw new BrowserAdapterError(
+            `Browserless ${r.status}: ${body.slice(0, 200)}`,
+            r.status,
+            url,
+          );
+        }
+        return r;
+      });
+      return res.text();
+    },
+  );
+
   if (html.includes("Just a moment")) {
     throw new BrowserAdapterError(
       "Cloudflare challenge not resolved (content)",
@@ -247,6 +296,7 @@ export async function fetchRenderedHtml(url: string): Promise<string> {
     "in",
     Date.now() - start,
     "ms",
+    `timeout=${getBrowserlessTimeoutHtmlMs()}`,
   );
   return html;
 }
@@ -273,59 +323,59 @@ async function fetchPdfViaBrowserQL(
   restaurantUrl: string,
   pdfUrl: string,
 ): Promise<Buffer | null> {
-  const key = getApiKey();
-  if (!key) return null;
-
-  const apiUrl = `${BROWSERLESS_BQL_URL}?token=${encodeURIComponent(key)}`;
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 120_000);
-
-  try {
-    const res = await fetch(apiUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query: buildPdfBqlMutation(restaurantUrl, pdfUrl) }),
-      signal: controller.signal,
-    });
-    const text = await res.text();
-    if (!res.ok) {
-      throw new BrowserAdapterError(
-        `BrowserQL ${res.status}: ${text.slice(0, 200)}`,
-        res.status,
-        pdfUrl,
-      );
-    }
-    let json: {
-      errors?: { message?: string }[];
-      data?: { pdfData?: { value?: string | null } };
-    };
+  return withBrowserlessRequest("full", BROWSERLESS_BQL_URL, async (apiUrl, timeoutMs) => {
+    const controller = new AbortController();
+    const abortTimer = setTimeout(() => controller.abort(), timeoutMs + 5_000);
     try {
-      json = JSON.parse(text) as typeof json;
-    } catch {
-      throw new BrowserAdapterError(
-        `BrowserQL invalid JSON: ${text.slice(0, 120)}`,
-        502,
-        pdfUrl,
-      );
+      const res = await fetch(apiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: buildPdfBqlMutation(restaurantUrl, pdfUrl) }),
+        signal: controller.signal,
+      });
+      const text = await res.text();
+      if (!res.ok) {
+        throw new BrowserAdapterError(
+          `BrowserQL ${res.status}: ${text.slice(0, 200)}`,
+          res.status,
+          pdfUrl,
+        );
+      }
+      let json: {
+        errors?: { message?: string }[];
+        data?: { pdfData?: { value?: string | null } };
+      };
+      try {
+        json = JSON.parse(text) as typeof json;
+      } catch {
+        throw new BrowserAdapterError(
+          `BrowserQL invalid JSON: ${text.slice(0, 120)}`,
+          502,
+          pdfUrl,
+        );
+      }
+      if (json.errors?.length) {
+        throw new BrowserAdapterError(
+          `BrowserQL: ${json.errors.map((e) => e.message ?? "error").join("; ")}`,
+          502,
+          pdfUrl,
+        );
+      }
+      const raw = json.data?.pdfData?.value;
+      if (!raw) return null;
+      const payload = JSON.parse(raw) as BqlPdfPayload;
+      if (payload.status !== 200 || payload.head !== "%PDF" || !payload.b64) {
+        return null;
+      }
+      const buf = Buffer.from(payload.b64, "base64");
+      return buf.length > 0 ? buf : null;
+    } finally {
+      clearTimeout(abortTimer);
+      if (!controller.signal.aborted) {
+        controller.abort();
+      }
     }
-    if (json.errors?.length) {
-      throw new BrowserAdapterError(
-        `BrowserQL: ${json.errors.map((e) => e.message ?? "error").join("; ")}`,
-        502,
-        pdfUrl,
-      );
-    }
-    const raw = json.data?.pdfData?.value;
-    if (!raw) return null;
-    const payload = JSON.parse(raw) as BqlPdfPayload;
-    if (payload.status !== 200 || payload.head !== "%PDF" || !payload.b64) {
-      return null;
-    }
-    const buf = Buffer.from(payload.b64, "base64");
-    return buf.length > 0 ? buf : null;
-  } finally {
-    clearTimeout(timeoutId);
-  }
+  });
 }
 
 const PDF_VIA_FUNCTION_CODE = `export default async ({ page, context }) => {
@@ -343,8 +393,7 @@ export async function fetchPdfViaFunction(
   restaurantUrl: string,
   pdfUrl: string,
 ): Promise<Buffer> {
-  const key = getApiKey();
-  if (!key) throw new Error("BROWSERLESS_API_KEY is not set");
+  requireApiKey();
 
   const direct = await fetch(pdfUrl, { redirect: "follow" });
   if (direct.ok) {
@@ -377,6 +426,7 @@ export async function fetchPdfViaFunction(
         "[browserless-adapter] PDF via BrowserQL:",
         viaBql.length,
         "bytes",
+        `timeout=${getBrowserlessTimeoutFullMs()}`,
       );
       return viaBql;
     }
@@ -389,37 +439,45 @@ export async function fetchPdfViaFunction(
   }
 
   console.warn("[browserless-adapter] PDF via /function:", pdfUrl);
-  const apiUrl = `${BROWSERLESS_FUNCTION_URL}?token=${encodeURIComponent(key)}`;
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 60000);
-  try {
-    const res = await retryWithBackoff(async () => {
-      const r = await fetch(apiUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          code: PDF_VIA_FUNCTION_CODE,
-          context: { restaurantUrl, pdfUrl },
-        }),
-        signal: controller.signal,
-      });
-      if (!r.ok) {
-        const body = await r.text();
-        throw new BrowserAdapterError(
-          `Browserless /function ${r.status}: ${body.slice(0, 200)}`,
-          r.status,
-          pdfUrl,
-        );
+  return withBrowserlessRequest(
+    "full",
+    BROWSERLESS_FUNCTION_URL,
+    async (apiUrl, timeoutMs) => {
+      const controller = new AbortController();
+      const abortTimer = setTimeout(() => controller.abort(), timeoutMs + 5_000);
+      try {
+        const res = await retryWithBackoff(async () => {
+          const r = await fetch(apiUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              code: PDF_VIA_FUNCTION_CODE,
+              context: { restaurantUrl, pdfUrl },
+            }),
+            signal: controller.signal,
+          });
+          if (!r.ok) {
+            const body = await r.text();
+            throw new BrowserAdapterError(
+              `Browserless /function ${r.status}: ${body.slice(0, 200)}`,
+              r.status,
+              pdfUrl,
+            );
+          }
+          return r;
+        });
+        const json = (await res.json()) as { data?: string; type?: string };
+        const data = json?.data;
+        if (data == null || (typeof data === "string" && data.trim() === "")) {
+          throw new BrowserAdapterError("PDF response was empty", 502, pdfUrl);
+        }
+        return Buffer.from(typeof data === "string" ? data : String(data), "base64");
+      } finally {
+        clearTimeout(abortTimer);
+        if (!controller.signal.aborted) {
+          controller.abort();
+        }
       }
-      return r;
-    });
-    const json = (await res.json()) as { data?: string; type?: string };
-    const data = json?.data;
-    if (data == null || (typeof data === "string" && data.trim() === "")) {
-      throw new BrowserAdapterError("PDF response was empty", 502, pdfUrl);
-    }
-    return Buffer.from(typeof data === "string" ? data : String(data), "base64");
-  } finally {
-    clearTimeout(timeoutId);
-  }
+    },
+  );
 }
