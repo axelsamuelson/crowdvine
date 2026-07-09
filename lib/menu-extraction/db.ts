@@ -28,14 +28,14 @@ import type {
 } from "./types";
 
 const MENU_DOCUMENTS_SELECT =
-  "id, created_at, updated_at, file_path, file_name, mime_type, source_type, upload_status, extraction_status, page_count, raw_text, ai_raw_response, model_version, prompt_version, workflow_version, extracted_at, last_extraction_attempt_at, error_message, content_hash, source_slug, extraction_input_tokens, extraction_output_tokens, extraction_cache_read_input_tokens, extraction_cache_creation_input_tokens, critic_stats, used_batch_api, extraction_trace, extraction_retry_count";
+  "id, created_at, updated_at, file_path, file_name, mime_type, source_type, upload_status, extraction_status, page_count, raw_text, ai_raw_response, model_version, prompt_version, workflow_version, extracted_at, last_extraction_attempt_at, error_message, content_hash, source_slug, extraction_input_tokens, extraction_output_tokens, extraction_cache_read_input_tokens, extraction_cache_creation_input_tokens, critic_stats, used_batch_api, extraction_trace, extraction_retry_count, is_current";
 const MENU_DOCUMENT_SECTIONS_SELECT =
   "id, created_at, document_id, section_name, normalized_section, page_number, section_order";
 const MENU_EXTRACTED_ROWS_SELECT =
   "id, created_at, updated_at, document_id, section_id, row_index, page_number, raw_text, row_type, wine_type, producer, wine_name, vintage, region, country, grapes, attributes, format_label, price_glass, price_bottle, price_other, currency, confidence, confidence_label, needs_review, review_reasons, normalized_payload, validation_flags, extraction_version, auto_corrected, extraction_iterations, critic_approved";
 
 const STARWINELIST_SOURCES_SELECT =
-  "id, created_at, updated_at, slug, name, city, source_url, swl_updated_at, swl_updated_at_parsed, sitemap_lastmod, pdf_url, pdf_last_seen_at, crawl_status, last_crawled_at, last_checked_at, last_error, crawl_attempts, crawl_priority, latest_document_id";
+  "id, created_at, updated_at, slug, name, city, source_url, swl_updated_at, swl_updated_at_parsed, sitemap_lastmod, pdf_url, pdf_last_seen_at, crawl_status, last_crawled_at, last_checked_at, last_error, crawl_attempts, crawl_priority, latest_document_id, menu_provider, api_base_url, last_synced_at";
 
 function confidenceToLabel(confidence: number): ConfidenceLabel {
   if (confidence >= 0.85) return "high";
@@ -170,6 +170,22 @@ export async function getCompletedMenuDocumentByContentHash(
   if (error) {
     throw new Error(`getCompletedMenuDocumentByContentHash: ${error.message}`);
   }
+  return data as MenuDocument | null;
+}
+
+/** Completed searchable snapshot for a slug (is_current=true). */
+export async function getCurrentMenuDocumentBySlug(
+  sourceSlug: string,
+): Promise<MenuDocument | null> {
+  const sb = getSupabaseAdmin();
+  const { data, error } = await sb
+    .from("menu_documents")
+    .select(MENU_DOCUMENTS_SELECT)
+    .eq("source_slug", sourceSlug)
+    .eq("extraction_status", "completed")
+    .eq("is_current", true)
+    .maybeSingle();
+  if (error) throw new Error(`getCurrentMenuDocumentBySlug: ${error.message}`);
   return data as MenuDocument | null;
 }
 
@@ -349,6 +365,22 @@ export async function saveMenuExtractionResult(params: {
     workflow_version: meta.workflowVersion,
     error_message: null,
   });
+  await promoteMenuDocumentToCurrent(documentId);
+}
+
+/**
+ * Mark one completed document as the searchable snapshot for its slug.
+ * Same source_slug: demotes prior completed docs (is_current=false) in one transaction.
+ * source_slug NULL: only marks this doc current; does not demote other null-slug docs.
+ */
+export async function promoteMenuDocumentToCurrent(documentId: string): Promise<void> {
+  const sb = getSupabaseAdmin();
+  const { error } = await sb.rpc("promote_menu_document_to_current", {
+    p_document_id: documentId,
+  });
+  if (error) {
+    throw new Error(`promoteMenuDocumentToCurrent(${documentId}): ${error.message}`);
+  }
 }
 
 export async function getExtractedRowsByDocumentId(
@@ -589,6 +621,9 @@ export async function upsertStarwinelistSource(
     last_checked_at: data.last_checked_at ?? existing?.last_checked_at ?? null,
     sitemap_lastmod: data.sitemap_lastmod ?? existing?.sitemap_lastmod ?? null,
     latest_document_id: data.latest_document_id ?? existing?.latest_document_id ?? null,
+    menu_provider: data.menu_provider ?? existing?.menu_provider ?? "starwinelist",
+    api_base_url: data.api_base_url ?? existing?.api_base_url ?? null,
+    last_synced_at: data.last_synced_at ?? existing?.last_synced_at ?? null,
   };
   if (existing?.id) {
     return updateStarwinelistSource(existing.id, merged);

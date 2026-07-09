@@ -90,6 +90,8 @@ export interface MenuDocument {
   extraction_trace?: ExtractionTrace | null;
   /** Incremented when automated retry cron re-queues extraction; null if never retried by cron. */
   extraction_retry_count?: number | null;
+  /** Sole searchable snapshot for this source_slug; older completed docs are false. */
+  is_current?: boolean;
 }
 
 export interface MenuDocumentSection {
@@ -330,6 +332,8 @@ export type CrawlStatus =
   | "skipped"
   | "partial";
 
+export type MenuProvider = "starwinelist" | "systemless";
+
 export interface StarwinelistSource {
   id: string;
   created_at?: string;
@@ -353,6 +357,9 @@ export interface StarwinelistSource {
   /** Last observed sitemap lastmod calendar date (YYYY-MM-DD). */
   sitemap_lastmod: string | null;
   latest_document_id: string | null;
+  menu_provider: MenuProvider;
+  api_base_url: string | null;
+  last_synced_at: string | null;
 }
 
 export interface CrawlResult {
