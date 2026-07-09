@@ -19,14 +19,9 @@ export const NOINDEX_CATEGORY_SLUGS_SV = new Set([
   "rod-och-vit-biodynamiskt-vin",
   "rod-och-orange-ekologiskt-vin",
   "rod-och-vit-ekologiskt-vin",
-  "rod-och-orange-naturvin",
-  "rod-och-vit-naturvin",
   "orange-biodynamiskt-vin",
   "vitt-biodynamiskt-vin",
-  "rott-biodynamiskt-vin",
   "orange-ekologiskt-vin",
-  "vitt-ekologiskt-vin",
-  "biodynamiskt-vin",
 ]);
 
 export const NOINDEX_CATEGORY_SLUGS_EN = new Set([
@@ -34,14 +29,9 @@ export const NOINDEX_CATEGORY_SLUGS_EN = new Set([
   "red-and-white-biodynamic-wine",
   "red-and-orange-organic-wine",
   "red-and-white-organic-wine",
-  "red-and-orange-natural-wine",
-  "red-and-white-natural-wine",
   "orange-biodynamic-wine",
   "white-biodynamic-wine",
-  "red-biodynamic-wine",
   "orange-organic-wine",
-  "white-organic-wine",
-  "biodynamic-wine",
 ]);
 
 type ShopSearchParams = { [key: string]: string | string[] | undefined };

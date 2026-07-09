@@ -26,6 +26,27 @@ const COLOR_HUB_SLUGS_EN = [
   "orange-natural-wine",
 ] as const;
 
+const FARMING_HUB_SLUGS_SV = [
+  "naturvin",
+  "ekologiskt-vin",
+  "biodynamiskt-vin",
+] as const;
+
+const FARMING_HUB_SLUGS_EN = [
+  "natural-wine",
+  "organic-wine",
+  "biodynamic-wine",
+] as const;
+
+const FARMING_HUB_COLOR_SLUGS: Record<string, readonly string[]> = {
+  naturvin: ["rott-naturvin", "vitt-naturvin", "orange-naturvin"],
+  "ekologiskt-vin": ["rott-ekologiskt-vin", "vitt-ekologiskt-vin"],
+  "biodynamiskt-vin": ["rott-biodynamiskt-vin"],
+  "natural-wine": ["red-natural-wine", "white-natural-wine", "orange-natural-wine"],
+  "organic-wine": ["red-organic-wine", "white-organic-wine"],
+  "biodynamic-wine": ["red-biodynamic-wine"],
+};
+
 const RED_GRAPE_SLUGS = new Set([
   "carignan",
   "grenache",
@@ -50,6 +71,26 @@ function categoriesForLocale(locale: AppLocale) {
 
 function colorHubSlugs(locale: AppLocale): readonly string[] {
   return locale === "sv" ? COLOR_HUB_SLUGS_SV : COLOR_HUB_SLUGS_EN;
+}
+
+function farmingHubSlugs(locale: AppLocale): readonly string[] {
+  return locale === "sv" ? FARMING_HUB_SLUGS_SV : FARMING_HUB_SLUGS_EN;
+}
+
+export function isFarmingMethodHub(category: WineCategory): boolean {
+  return farmingHubSlugs(category.locale).includes(
+    category.slug as (typeof FARMING_HUB_SLUGS_SV)[number],
+  );
+}
+
+function farmingHubExploreLinks(category: WineCategory): CategoryExploreLink[] {
+  const locale = category.locale;
+  const hubSlugs = farmingHubSlugs(locale).filter((s) => s !== category.slug);
+  const hubLinks = hubSlugs.map((s) => categoryLink(s, locale));
+  const colorSlugs = FARMING_HUB_COLOR_SLUGS[category.slug] ?? [];
+  const colorLinks = colorSlugs.map((s) => categoryLink(s, locale));
+
+  return [...hubLinks, ...colorLinks];
 }
 
 export function isColorNaturvinHub(category: WineCategory): boolean {
@@ -325,6 +366,10 @@ export function getCategoryExploreLinks(
 ): CategoryExploreLink[] {
   if (isColorNaturvinHub(category)) {
     return colorHubExploreLinks(category);
+  }
+
+  if (isFarmingMethodHub(category)) {
+    return farmingHubExploreLinks(category);
   }
 
   if (isGrapeOnlyCategory(category)) {

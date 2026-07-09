@@ -9,6 +9,8 @@ export type WineCategoryContentOverride = Pick<
   | "foodPairing"
   | "aboutText"
   | "contentHeading"
+  | "title"
+  | "metaDescription"
 >;
 
 /** Editorial overrides keyed by slug; locale nested under each slug. */
@@ -50,6 +52,48 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
         "Natural wine is made for food. The high freshness and living acidity make it a rewarding food wine — from light reds with charcuterie and grilled dishes, whites with shellfish and fish, orange with spiced food and hard cheeses. Serve generally a little cooler than conventional wine.",
       aboutText:
         "We import natural wine directly from small producers in Languedoc — organically and biodynamically grown, without additives. Reserve before the pallet fills, and the producer ships directly to Stockholm.",
+    },
+  },
+  "biodynamiskt-vin": {
+    sv: {
+      title: "Biodynamiskt vin i Sverige — köp direkt från Languedoc | PACT Wines",
+      metaDescription:
+        "Köp biodynamiskt vin i Sverige med hemleverans i Stockholm. Demeter-certifierade producenter i Languedoc — direktimport utan mellanhänder via PACT.",
+      contentHeading: "Om biodynamiskt vin",
+      longDescription:
+        "Biodynamiskt vin bygger på en helhetssyn av vingården som levande ekosystem — inte bara att undvika kemiska medel, utan att aktivt stärka jordhälsa, biodiversitet och balans mellan jord, planta och djur. Odlingsmetoden följer ofta Demeters regler: kompostpreparat, dynamiska sprayningar och skörd som planeras efter vingårdens rytm snarare än enbart kalendern.\n\nSkillnaden mot ekologiskt vin ligger i metoden. Ekologiskt fokuserar på vad du inte får använda; biodynamiskt lägger till en aktiv vingårdsfilosofi där jorden, stockarna och till och med månfaserna är en del av besluten. I Languedoc har biodynamisk odling blivit särskilt stark bland små, oberoende producenter som redan arbetar med låga skördar och minimal intervention i källaren.\n\nAtt köpa biodynamiskt vin i Sverige via traditionella kanaler är ofta dyrt och sortimentet begränsat. PACT importerar direkt från certifierade producenter i Languedoc till Stockholm — utan importörskedja och utan centrallager. Du reserverar flaskor online; när pallen fylls skickas vinet direkt från vingården.",
+      tastingProfile: [
+        "Demeter eller annan biodynamisk certifiering",
+        "Tydlig platskaraktär och mineralitet",
+        "Låga skördar och manuellt vingårdsarbete",
+        "Rött, vitt och orange från Languedoc",
+        "Direktimporterat till Stockholm",
+      ],
+      foodPairing:
+        "Biodynamiskt vin från Languedoc passar till medelhavsmat — grillat lamm, ratatouille, svamp, chark och mogna ostar. Lättare röda och orangeviner kan serveras något svalare; fylligare röda till långkok och grytor.",
+      aboutText:
+        "Biodynamiskt vin från Languedoc — direkt från certifierade småproducenter till Stockholm via PACT.",
+    },
+  },
+  "biodynamic-wine": {
+    en: {
+      title: "Biodynamic Wine in Sweden — Buy Direct from Languedoc | PACT Wines",
+      metaDescription:
+        "Buy biodynamic wine in Sweden with home delivery in Stockholm. Demeter-certified producers in Languedoc — direct import without middlemen via PACT.",
+      contentHeading: "About biodynamic wine",
+      longDescription:
+        "Biodynamic wine is built on seeing the vineyard as a living ecosystem — not just avoiding chemicals, but actively strengthening soil health, biodiversity and balance between soil, plant and animal life. The method often follows Demeter rules: compost preparations, dynamic sprays and harvest timed to the vineyard's rhythms rather than the calendar alone.\n\nThe difference from organic wine is in the approach. Organic focuses on what you cannot use; biodynamic adds an active vineyard philosophy where soil, vines and even lunar phases inform decisions. In Languedoc, biodynamic farming has become especially strong among small, independent producers already working with low yields and minimal cellar intervention.\n\nBuying biodynamic wine in Sweden through traditional channels is often expensive with limited choice. PACT imports direct from certified producers in Languedoc to Stockholm — no import chain and no central warehouse. You reserve bottles online; when the pallet fills, wine ships direct from the vineyard.",
+      tastingProfile: [
+        "Demeter or other biodynamic certification",
+        "Clear sense of place and minerality",
+        "Low yields and manual vineyard work",
+        "Red, white and orange from Languedoc",
+        "Direct imported to Stockholm",
+      ],
+      foodPairing:
+        "Biodynamic wine from Languedoc suits Mediterranean food — grilled lamb, ratatouille, mushrooms, charcuterie and mature cheeses. Lighter reds and orange wines can be served slightly chilled; fuller reds with slow-cooked dishes and stews.",
+      aboutText:
+        "Biodynamic wine from Languedoc — direct from certified small producers to Stockholm via PACT.",
     },
   },
   "rott-naturvin": {
@@ -678,7 +722,9 @@ export function getWineCategoryContentOverride(
     Boolean(override.tastingProfile?.length) ||
     Boolean(override.foodPairing?.trim()) ||
     Boolean(override.aboutText?.trim()) ||
-    Boolean(override.contentHeading?.trim());
+    Boolean(override.contentHeading?.trim()) ||
+    Boolean(override.title?.trim()) ||
+    Boolean(override.metaDescription?.trim());
 
   return hasContent ? override : undefined;
 }
@@ -708,6 +754,10 @@ export function mergeWineCategoryContent(
       : {}),
     ...(override.contentHeading !== undefined
       ? { contentHeading: override.contentHeading }
+      : {}),
+    ...(override.title !== undefined ? { title: override.title } : {}),
+    ...(override.metaDescription !== undefined
+      ? { metaDescription: override.metaDescription }
       : {}),
   };
 }
