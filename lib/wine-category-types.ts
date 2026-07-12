@@ -1,3 +1,8 @@
+export type WineCategoryFaqItem = {
+  question: string;
+  answer: string;
+};
+
 export type WineCategoryFilter = {
   color?: string[];
   tags?: string[];
@@ -23,6 +28,8 @@ export type WineCategory = {
   aboutText?: string;
   /** Editorial longDescription section heading (merged from content overrides). */
   contentHeading?: string;
+  /** Optional FAQ items for editorial section + FAQPage JSON-LD. */
+  faq?: WineCategoryFaqItem[];
   filter: WineCategoryFilter;
   hreflang?: string;
   canonical: string;

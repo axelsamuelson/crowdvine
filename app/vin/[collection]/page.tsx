@@ -32,6 +32,8 @@ import {
   getCategoryExploreLinks,
   getCategoryLongDescriptionHeading,
 } from "@/lib/wine-category-explore-links";
+import { buildFaqPageJsonLd } from "@/lib/wine-category-faq";
+import { CategoryFaqSection } from "@/components/shop/category-faq-section";
 import { WINE_CATEGORIES_SV } from "@/lib/wine-categories";
 import { resolveGrapeCategoryBySlug } from "@/lib/wine-grape-categories";
 
@@ -179,6 +181,10 @@ export default async function VinCollectionPage(props: {
     };
 
     const exploreLinks = getCategoryExploreLinks(category);
+    const faqJsonLd =
+      category.faq && category.faq.length > 0
+        ? buildFaqPageJsonLd(category.faq)
+        : null;
 
     return (
       <>
@@ -194,6 +200,14 @@ export default async function VinCollectionPage(props: {
             __html: JSON.stringify(breadcrumbJsonLd),
           }}
         />
+        {faqJsonLd ? (
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{
+              __html: JSON.stringify(faqJsonLd),
+            }}
+          />
+        ) : null}
         <div className="p-sides py-8">
           <div className="mb-8 max-w-2xl">
             <h1 className="mb-3 text-3xl font-medium text-stone-900">
@@ -285,6 +299,14 @@ export default async function VinCollectionPage(props: {
               </div>
             </div>
           )}
+
+          {category.faq?.length ? (
+            <CategoryFaqSection
+              h1={category.h1}
+              locale="sv"
+              faq={category.faq}
+            />
+          ) : null}
         </div>
       </>
     );

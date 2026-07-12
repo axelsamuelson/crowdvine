@@ -11,6 +11,7 @@ export type WineCategoryContentOverride = Pick<
   | "contentHeading"
   | "title"
   | "metaDescription"
+  | "faq"
 >;
 
 /** Editorial overrides keyed by slug; locale nested under each slug. */
@@ -20,7 +21,7 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
 > = {
   naturvin: {
     sv: {
-      title: "Köp naturvin online i Sverige — direkt från Languedoc | PACT Wines",
+      title: "Naturvin online — från Languedocs producenter | PACT Wines",
       metaDescription:
         "Naturvin direktimporterat från småproducenter i Languedoc. Ekologiskt och utan tillsatser — hemleverans Stockholm. Billigare än butik.",
       contentHeading: "Om naturvin",
@@ -37,11 +38,33 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
         "Naturvin är gjort för mat. Den höga fräschören och de levande syrorna gör det till ett tacksamt matvin — från lätta röda till chark och grillat, vita till skaldjur och fisk, orange till kryddstark mat och hårdostar. Servera generellt något svalare än konventionellt vin.",
       aboutText:
         "Vi importerar naturvin direkt från småproducenter i Languedoc — ekologiskt och biodynamiskt odlat, utan tillsatser. Reservera innan pallen fylls, så skickar producenten direkt till Stockholm.",
+      faq: [
+        {
+          question: "Vad är naturvin?",
+          answer:
+            "Naturvin är vin gjort av ekologiskt eller biodynamiskt odlade druvor, jäst med druvans egna vilda jästsvampar och utan tillsatser i källaren. Ingen tillsatt jäst, inget socker, inga enzymer, ingen filtrering — på sin höjd lite svavel vid buteljering.",
+        },
+        {
+          question: "Är naturvin ekologiskt?",
+          answer:
+            "Naturvin är alltid gjort av ekologiskt eller biodynamiskt odlade druvor, men allt ekologiskt vin är inte naturvin. Skillnaden ligger i källaren: ekologiskt vin får använda vissa tillsatser som naturvin undviker helt.",
+        },
+        {
+          question: "Ger naturvin mindre huvudvärk?",
+          answer:
+            "Det finns inga vetenskapliga bevis för att naturvin ger mindre huvudvärk än annat vin. Naturvin innehåller ofta mindre tillsatt svavel, men huvudvärk av vin beror på flera faktorer, främst alkoholen själv.",
+        },
+        {
+          question: "Hur köper jag naturvin online?",
+          answer:
+            "På PACT reserverar du naturviner du vill ha och får dem levererade hem. Vinerna kommer direkt från småproducenter i Languedoc — inga mellanhänder, vilket ger lägre pris och viner du sällan hittar någon annanstans.",
+        },
+      ],
     },
   },
   "natural-wine": {
     en: {
-      title: "Buy Natural Wine in Sweden — Direct from Languedoc | PACT Wines",
+      title: "Natural Wine Online — from Languedoc Producers | PACT Wines",
       metaDescription:
         "Natural wine direct imported from small producers in Languedoc. Organic, biodynamic and without additives — home delivery in Stockholm. Better value than retail.",
       contentHeading: "About natural wine",
@@ -58,6 +81,28 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
         "Natural wine is made for food. The high freshness and living acidity make it a rewarding food wine — from light reds with charcuterie and grilled dishes, whites with shellfish and fish, orange with spiced food and hard cheeses. Serve generally a little cooler than conventional wine.",
       aboutText:
         "We import natural wine directly from small producers in Languedoc — organically and biodynamically grown, without additives. Reserve before the pallet fills, and the producer ships directly to Stockholm.",
+      faq: [
+        {
+          question: "What is natural wine?",
+          answer:
+            "Natural wine is wine made from organically or biodynamically farmed grapes, fermented with the grape's own wild yeasts and without additives in the cellar. No added yeast, no sugar, no enzymes, no filtration — at most a little sulphur at bottling.",
+        },
+        {
+          question: "Is natural wine organic?",
+          answer:
+            "Natural wine is always made from organically or biodynamically farmed grapes, but not all organic wine is natural wine. The difference is in the cellar: organic wine may use certain additives that natural wine avoids entirely.",
+        },
+        {
+          question: "Does natural wine cause fewer headaches?",
+          answer:
+            "There is no scientific evidence that natural wine causes fewer headaches than other wine. Natural wine often contains less added sulphur, but headaches from wine depend on several factors, primarily the alcohol itself.",
+        },
+        {
+          question: "How do I buy natural wine online?",
+          answer:
+            "On PACT you reserve the natural wines you want and have them delivered to your door. The wines come directly from small producers in Languedoc — no middlemen, which means lower prices and wines you rarely find elsewhere.",
+        },
+      ],
     },
   },
   "biodynamiskt-vin": {
@@ -146,7 +191,7 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
   },
   "rott-naturvin": {
     sv: {
-      title: "Rött naturvin — köp direkt från Languedoc | PACT Wines",
+      title: "Rött naturvin online — från Languedoc | PACT Wines",
       metaDescription:
         "Köp rött naturvin online. Carignan, Grenache och Syrah från Languedoc — utan tillsatser, hemleverans Stockholm. Reservera innan pallen fylls.",
       contentHeading: "Om rött naturvin",
@@ -163,11 +208,38 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
         "Rött naturvin är utpräglat matvänligt. De lätta stilarna passar chark, pizza och grillad kyckling — gärna lätt kylda. De fylligare passar lammgryta, grillat rött kött och mogna ostar. Som regel: ju lättare vin, desto svalare servering.",
       aboutText:
         "Vi importerar rött naturvin direkt från Languedoc — Carignan, Grenache, Syrah och Cinsault från småproducenter som arbetar utan tillsatser. Reservera innan pallen fylls.",
+      faq: [
+        {
+          question: "Vad är rött naturvin?",
+          answer:
+            "Rött naturvin är rött vin gjort av ekologiskt eller biodynamiskt odlade druvor, jäst med vilda jästsvampar och utan tillsatser i källaren. Ingen tillsatt jäst, inget socker, ingen filtrering — på sin höjd en liten mängd svavel vid buteljering. Resultatet är ett levande vin som smakar av sin plats och årgång.",
+        },
+        {
+          question: "Hur skiljer sig rött naturvin från vanligt rött vin?",
+          answer:
+            "Konventionellt rött vin får innehålla tillsatser som odlad jäst, socker, syra och högre halter svavel, och filtreras ofta för klarhet. Rött naturvin görs med minimal påverkan — druvan och platsen ska komma till uttryck utan att maskeras av tillsatser eller teknik.",
+        },
+        {
+          question: "Hur serverar man rött naturvin?",
+          answer:
+            "Många röda naturviner, särskilt lätta stilar som Cinsault, vinner på att serveras lätt kylda vid 13–15°C. Fylligare röda som Carignan från gamla stockar serveras vid 15–17°C. Eftersom vinerna ofta är ofiltrerade kan lite fällning förekomma — häll försiktigt.",
+        },
+        {
+          question: "Vilka druvor används i rött naturvin från Languedoc?",
+          answer:
+            "De vanligaste är Carignan, Grenache, Syrah, Cinsault och Mourvèdre. Cinsault ger lätta, saftiga viner, Carignan struktur och mineralitet, Syrah mörk frukt och peppar. Många röda naturviner är blandningar av flera druvor.",
+        },
+        {
+          question: "Håller rött naturvin länge?",
+          answer:
+            "Det varierar. Lätta, fruktdrivna röda naturviner är gjorda för att drickas unga och färska. Röda naturviner från gamla stockar med mer struktur — som Carignan från Faugères — kan utvecklas i glaset och lagras i flera år.",
+        },
+      ],
     },
   },
   "red-natural-wine": {
     en: {
-      title: "Red Natural Wine — Buy Direct from Languedoc | PACT Wines",
+      title: "Red Natural Wine Online — from Languedoc | PACT Wines",
       metaDescription:
         "Buy red natural wine online. Carignan, Grenache and Syrah direct imported from Languedoc — without additives, home delivery Stockholm. Reserve before the pallet fills.",
       contentHeading: "About red natural wine",
@@ -184,11 +256,38 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
         "Red natural wine is highly food-friendly. The light styles suit charcuterie, pizza and grilled chicken — ideally lightly chilled. The fuller ones suit lamb stew, grilled red meat and aged cheeses. As a rule: the lighter the wine, the cooler the serving.",
       aboutText:
         "We import red natural wine directly from Languedoc — Carignan, Grenache, Syrah and Cinsault from small producers working without additives. Reserve before the pallet fills.",
+      faq: [
+        {
+          question: "What is red natural wine?",
+          answer:
+            "Red natural wine is red wine made from organically or biodynamically farmed grapes, fermented with wild yeasts and without additives in the cellar. No added yeast, no sugar, no filtration — at most a small amount of sulphur at bottling. The result is a living wine that tastes of its place and vintage.",
+        },
+        {
+          question: "How does red natural wine differ from regular red wine?",
+          answer:
+            "Conventional red wine can contain additives such as cultured yeast, sugar, acid and higher levels of sulphur, and is often filtered for clarity. Red natural wine is made with minimal intervention — the grape and place should come through without being masked by additives or technology.",
+        },
+        {
+          question: "How should you serve red natural wine?",
+          answer:
+            "Many red natural wines, especially lighter styles like Cinsault, benefit from being served lightly chilled at 13–15°C. Fuller reds like Carignan from old vines are best at 15–17°C. Because the wines are often unfiltered, a little sediment may appear — pour carefully.",
+        },
+        {
+          question: "Which grapes are used in red natural wine from Languedoc?",
+          answer:
+            "The most common are Carignan, Grenache, Syrah, Cinsault and Mourvèdre. Cinsault gives light, juicy wines, Carignan structure and minerality, Syrah dark fruit and pepper. Many red natural wines are blends of several grapes.",
+        },
+        {
+          question: "Does red natural wine age well?",
+          answer:
+            "It varies. Light, fruit-driven red natural wines are made to be drunk young and fresh. Red natural wines from old vines with more structure — like Carignan from Faugères — can develop in the glass and be cellared for several years.",
+        },
+      ],
     },
   },
   "vitt-naturvin": {
     sv: {
-      title: "Vitt naturvin — köp direkt från Languedoc | PACT Wines",
+      title: "Vitt naturvin online — från Languedoc | PACT Wines",
       metaDescription:
         "Köp vitt naturvin online. Handplockade flaskor från Languedoc — mineralitet och skalkontakt utan tillsatser. Hemleverans Stockholm via PACT.",
       contentHeading: "Om vitt naturvin",
@@ -209,7 +308,7 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
   },
   "white-natural-wine": {
     en: {
-      title: "White Natural Wine — Buy Direct from Languedoc | PACT Wines",
+      title: "White Natural Wine Online — from Languedoc | PACT Wines",
       metaDescription:
         "Buy white natural wine online. Hand-picked bottles from Languedoc — minerality and skin contact without additives. Home delivery Stockholm via PACT.",
       contentHeading: "About white natural wine",
@@ -230,7 +329,7 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
   },
   "orange-naturvin": {
     sv: {
-      title: "Orange naturvin — köp skalkontaktvin direkt | PACT Wines",
+      title: "Orange naturvin online — från Languedoc | PACT Wines",
       metaDescription:
         "Köp orange naturvin och skalkontaktvin från Languedoc. Direktimporterat till Stockholm — utan tillsatser, utan mellanhänder. Reservera online.",
       contentHeading: "Om orange naturvin",
@@ -251,7 +350,7 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
   },
   "orange-natural-wine": {
     en: {
-      title: "Orange Natural Wine — Buy Skin-Contact Wine Direct | PACT Wines",
+      title: "Orange Natural Wine Online — from Languedoc | PACT Wines",
       metaDescription:
         "Buy orange natural wine and skin-contact wine from Languedoc. Direct imported to Stockholm — without additives or middlemen. Reserve online.",
       contentHeading: "About orange wine",
@@ -1030,7 +1129,8 @@ export function getWineCategoryContentOverride(
     Boolean(override.aboutText?.trim()) ||
     Boolean(override.contentHeading?.trim()) ||
     Boolean(override.title?.trim()) ||
-    Boolean(override.metaDescription?.trim());
+    Boolean(override.metaDescription?.trim()) ||
+    Boolean(override.faq?.length);
 
   return hasContent ? override : undefined;
 }
@@ -1065,5 +1165,6 @@ export function mergeWineCategoryContent(
     ...(override.metaDescription !== undefined
       ? { metaDescription: override.metaDescription }
       : {}),
+    ...(override.faq !== undefined ? { faq: override.faq } : {}),
   };
 }

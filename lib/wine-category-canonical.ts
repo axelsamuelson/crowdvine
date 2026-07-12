@@ -6,12 +6,17 @@ const CANONICAL_TARGET_SLUG_SV: Record<string, string> = {
   "rott-naturvin-languedoc": "rott-naturvin",
   "vitt-naturvin-languedoc": "vitt-naturvin",
   "orange-naturvin-languedoc": "orange-naturvin",
+  /** Noindexed two-color naturvin combos → single-color red hub. */
+  "rod-och-orange-naturvin": "rott-naturvin",
+  "rod-och-vit-naturvin": "rott-naturvin",
 };
 
 const CANONICAL_TARGET_SLUG_EN: Record<string, string> = {
   "red-natural-wine-languedoc": "red-natural-wine",
   "white-natural-wine-languedoc": "white-natural-wine",
   "orange-natural-wine-languedoc": "orange-natural-wine",
+  "red-and-orange-natural-wine": "red-natural-wine",
+  "red-and-white-natural-wine": "red-natural-wine",
 };
 
 export function shopCategoryCanonicalSlug(

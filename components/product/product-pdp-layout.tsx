@@ -112,6 +112,8 @@ export function ProductPdpLayout({
                     producerName={product.producerName}
                     producerSlug={producerSlug}
                     locale={locale}
+                    wineColor={product.wineEnrichment?.color}
+                    wineFarming={product.farming ?? product.wineEnrichment?.farming}
                     topLeftBadges={<PdpHeroBadges />}
                     showCaseHelp={
                       product.productType === "wine" && Boolean(product.producerId)

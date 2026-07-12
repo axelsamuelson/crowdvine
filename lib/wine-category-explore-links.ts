@@ -323,6 +323,13 @@ function generatedFilterExploreLinks(
   const color = category.filter.color?.[0];
   const farming = category.filter.farming?.[0];
 
+  if (
+    farming === "natural" &&
+    (color === "Red & Orange" || color === "Red & White")
+  ) {
+    push(locale === "sv" ? "rott-naturvin" : "red-natural-wine");
+  }
+
   if (farming) {
     push(farmingHubSlug(farming, locale));
   }
@@ -333,7 +340,6 @@ function generatedFilterExploreLinks(
     push(locale === "sv" ? "orange-naturvin" : "orange-natural-wine");
   }
   if (color === "Red & White" && farming === "natural") {
-    push(locale === "sv" ? "rott-naturvin" : "red-natural-wine");
     push(locale === "sv" ? "vitt-naturvin" : "white-natural-wine");
   }
   if (!farming && color === "Red & White") {

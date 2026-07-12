@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { CasePurchaseHelpTrigger } from "@/components/cart/case-purchase-help-trigger";
 import { PeekTabAnchor } from "@/components/pdp/peek-tab-anchor";
+import { WinePdpColorCategoryLink } from "@/components/product/wine-pdp-color-category-link";
 import type { AppLocale } from "@/lib/i18n/locale";
 import { producerPublicPath } from "@/lib/i18n/localized-routes";
 import { cn } from "@/lib/utils";
@@ -19,6 +20,8 @@ interface WinePdpHeroBoxProps {
   topLeftBadges?: ReactNode;
   /** Show case-purchase help (?) in bottom-right of the white box. */
   showCaseHelp?: boolean;
+  wineColor?: string | null;
+  wineFarming?: string | null;
   className?: string;
 }
 
@@ -35,6 +38,8 @@ export function WinePdpHeroBox({
   compareAtPrice,
   topLeftBadges,
   showCaseHelp = false,
+  wineColor,
+  wineFarming,
   className,
 }: WinePdpHeroBoxProps) {
   const lead = leadText?.trim();
@@ -42,7 +47,11 @@ export function WinePdpHeroBox({
     Boolean(producerSlug?.trim()) &&
     Boolean(producerName?.trim()) &&
     producerName!.trim() !== UNKNOWN_PRODUCER_LABEL;
-  const leadRowStart = showProducerByline ? "md:row-start-3" : "md:row-start-2";
+  const showColorCategoryLink =
+    wineFarming?.trim() === "natural" &&
+    (wineColor === "Red" || wineColor === "White" || wineColor === "Orange");
+  const showBylineRow = showProducerByline || showColorCategoryLink;
+  const leadRowStart = showBylineRow ? "md:row-start-3" : "md:row-start-2";
 
   return (
     <div
@@ -64,14 +73,23 @@ export function WinePdpHeroBox({
           {title}
         </h1>
 
-        {showProducerByline ? (
-          <div className="max-md:mt-1 md:col-start-1 md:row-start-2">
-            <Link
-              href={producerPublicPath(producerSlug!, locale)}
-              className="text-sm text-stone-600 underline underline-offset-2 hover:text-foreground"
-            >
-              {producerName}
-            </Link>
+        {showBylineRow ? (
+          <div className="max-md:mt-1 space-y-1 md:col-start-1 md:row-start-2">
+            {showProducerByline ? (
+              <Link
+                href={producerPublicPath(producerSlug!, locale)}
+                className="text-sm text-stone-600 underline underline-offset-2 hover:text-foreground"
+              >
+                {producerName}
+              </Link>
+            ) : null}
+            {showColorCategoryLink ? (
+              <WinePdpColorCategoryLink
+                locale={locale}
+                color={wineColor}
+                farming={wineFarming}
+              />
+            ) : null}
           </div>
         ) : null}
 

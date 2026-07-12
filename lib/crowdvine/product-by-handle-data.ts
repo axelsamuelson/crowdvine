@@ -649,6 +649,8 @@ export async function getCrowdvineProductByHandle(options: {
     specs: Object.keys(specs).length > 0 ? specs : null,
     /** Enrichment fields for PDP sections (tasting notes, farming, food pairing, etc.). */
     wineEnrichment,
+    /** wines.farming certification (shop filter). */
+    farming: i.farming?.trim() ? i.farming.trim() : null,
     taste_tags: tasteTags,
     handle: i.handle,
     productType: "wine",
