@@ -31,6 +31,8 @@ export type WineSimilaritySignals = {
 const DEFAULT_MAX_TOTAL = 4;
 const DEFAULT_SAME_PRODUCER = 4;
 const DEFAULT_SIMILAR = 4;
+/** Keep a wider same-producer pool for PDP sibling internal links. */
+const SAME_PRODUCER_LINK_POOL = 12;
 
 function normalizeToken(value: string | null | undefined): string {
   return (value ?? "").trim().toLowerCase();
@@ -198,18 +200,20 @@ export function buildPdpRecommendations(params: {
   const maxSimilar = params.maxSimilar ?? DEFAULT_SIMILAR;
   const maxTotal = params.maxTotal ?? DEFAULT_MAX_TOTAL;
 
-  const sameProducer = params.sameProducerCandidates
+  const sameProducerPool = params.sameProducerCandidates
     .filter(
       (p) =>
         p.id !== params.anchor.wineId &&
         p.handle !== params.anchor.handle &&
         p.productType === "wine",
     )
-    .slice(0, maxSameProducer)
+    .slice(0, SAME_PRODUCER_LINK_POOL)
     .map((product) => ({
       product,
       reason: "same_producer" as const,
     }));
+
+  const sameProducer = sameProducerPool.slice(0, maxSameProducer);
 
   const scoredSimilar = params.similarCandidates
     .map((product) => ({
@@ -226,7 +230,7 @@ export function buildPdpRecommendations(params: {
   }));
 
   return {
-    sameProducer,
+    sameProducer: sameProducerPool,
     similar,
     items: interleaveRecommendations(sameProducer, similar, maxTotal),
   };

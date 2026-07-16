@@ -24,8 +24,10 @@ import { DesktopGallery } from "@/app/product/[handle]/components/desktop-galler
 import { DesktopGalleryWrapper } from "@/app/product/[handle]/components/desktop-gallery-wrapper";
 import { ProductHeroPrice } from "@/app/product/[handle]/components/product-hero-price";
 import { PdpRecommendationsSection } from "@/components/product/pdp-recommendations-section";
+import { PdpSiblingWinesSection } from "@/components/product/pdp-sibling-wines-section";
 import { WineProducerMap } from "@/components/product/wine-producer-map";
 import type { PdpRecommendationsResult } from "@/lib/product/recommendations";
+import { pickPdpSiblingWines } from "@/lib/product/pdp-sibling-wines";
 import type { AppLocale } from "@/lib/i18n/locale";
 import { generateProducerSlug } from "@/lib/producer-handle";
 import type { Product } from "@/lib/shopify/types";
@@ -81,6 +83,15 @@ export function ProductPdpLayout({
     product.producerName.trim() !== "Unknown Producer"
       ? generateProducerSlug(product.producerName)
       : null;
+
+  const siblingWines =
+    product.productType === "wine" && recommendations?.sameProducer?.length
+      ? pickPdpSiblingWines(
+          product,
+          recommendations.sameProducer.map((r) => r.product),
+          3,
+        )
+      : [];
 
   return (
     <CartSourceProviderConditional>
@@ -194,6 +205,14 @@ export function ProductPdpLayout({
 
         {producerMap ? (
           <div className="md:hidden">{producerMap}</div>
+        ) : null}
+
+        {siblingWines.length > 0 && product.producerName ? (
+          <PdpSiblingWinesSection
+            producerName={product.producerName}
+            locale={locale}
+            wines={siblingWines}
+          />
         ) : null}
 
         {recommendations && recommendations.items.length > 0 ? (

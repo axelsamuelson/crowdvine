@@ -33,6 +33,7 @@ import { buildProducerWineryJsonLd } from "@/lib/seo/producer-json-ld";
 import {
   producerProfileMetaDescription,
   producerProfilePageTitle,
+  resolveProducerWinemakerForTitle,
 } from "@/lib/seo/producer-profile-metadata";
 import { getSiteConfig } from "@/lib/site-config";
 import { getCategoryUrlForGrape } from "@/lib/wine-categories";
@@ -140,10 +141,13 @@ export async function buildProducerPublicMetadata(
     notFound();
   }
 
-  const { name, region, bio_short } = data.producer;
+  const { name, region, bio_short, contact_name } = data.producer;
   const urls = producerPageUrls(slug);
   const canonical = `${PACT_PUBLIC_ORIGIN}${producerPagePath(slug, pathSegment)}`;
-  const pageTitle = producerProfilePageTitle(name, locale, region);
+  const winemakerName = resolveProducerWinemakerForTitle(slug, contact_name);
+  const pageTitle = producerProfilePageTitle(name, locale, region, {
+    winemakerName,
+  });
   const pageDescription = producerProfileMetaDescription(locale, {
     producerName: name,
     bioShort: bio_short,
