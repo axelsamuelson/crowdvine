@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getCurrentAdmin } from "@/lib/admin-auth-server";
+import {
+  dominantSessionSite,
+  parseSiteParam,
+} from "@/lib/analytics/analytics-site";
 
 type Channel = "Organic" | "Social" | "Referral" | "Direct";
 
@@ -79,6 +83,7 @@ export async function GET(request: Request) {
   const days = Number.isFinite(daysRaw)
     ? Math.min(365, Math.max(7, Math.round(daysRaw)))
     : 90;
+  const site = parseSiteParam(searchParams.get("site"));
 
   const sb = getSupabaseAdmin();
   const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
@@ -95,6 +100,7 @@ export async function GET(request: Request) {
       created_at: string;
       user_agent?: string | null;
       user_id?: string | null;
+      site?: string | null;
     };
 
     const pageSize = 1000;
@@ -125,9 +131,13 @@ export async function GET(request: Request) {
     }
 
     let events: TrafficEvent[] = [];
+    const cleanExtra =
+      site === "all" ? undefined : (q: any) => q.eq("site", site);
+
     const clean = await fetchPaged(
       "analytics_sessions_clean",
-      "session_id, event_type, event_metadata, page_url, referrer, created_at",
+      "session_id, event_type, event_metadata, page_url, referrer, created_at, site",
+      cleanExtra,
     );
 
     if (clean.error) {
@@ -142,6 +152,7 @@ export async function GET(request: Request) {
       );
       if (fallback.error) throw fallback.error;
       const internalSessions = new Set<string>();
+      const urlsBySession = new Map<string, (string | null)[]>();
       for (const e of fallback.rows) {
         const md =
           e.event_metadata && typeof e.event_metadata === "object"
@@ -150,22 +161,35 @@ export async function GET(request: Request) {
         if (md.internal === true) {
           internalSessions.add(String(e.session_id));
         }
+        if (!urlsBySession.has(e.session_id)) {
+          urlsBySession.set(e.session_id, []);
+        }
+        urlsBySession.get(e.session_id)!.push(e.page_url);
       }
-      events = fallback.rows.filter((e) => {
-        if (internalSessions.has(String(e.session_id))) return false;
-        const ua = (e.user_agent as string) || "";
-        if (/bot|crawl|spider|headless|lighthouse|slurp/i.test(ua)) return false;
-        const ref = (e.referrer as string) || "";
-        if (ref.toLowerCase().includes("localhost")) return false;
-        return true;
-      });
+      const sessionSite = new Map<string, string>();
+      for (const [sid, urls] of urlsBySession) {
+        const s = dominantSessionSite(urls);
+        if (s) sessionSite.set(sid, s);
+      }
+      events = fallback.rows
+        .filter((e) => {
+          if (internalSessions.has(String(e.session_id))) return false;
+          const ua = (e.user_agent as string) || "";
+          if (/bot|crawl|spider|headless|lighthouse|slurp/i.test(ua)) return false;
+          const ref = (e.referrer as string) || "";
+          if (ref.toLowerCase().includes("localhost")) return false;
+          const s = sessionSite.get(e.session_id);
+          if (!s) return false;
+          if (site !== "all" && s !== site) return false;
+          return true;
+        })
+        .map((e) => ({ ...e, site: sessionSite.get(e.session_id) ?? null }));
     } else {
       events = clean.rows;
     }
 
     const rows = events;
 
-    // First page_view date — chart starts here (no fake history).
     const pageViewDates = rows
       .filter((e) => e.event_type === "page_view")
       .map((e) => toDateKey(String(e.created_at)));
@@ -174,7 +198,6 @@ export async function GET(request: Request) {
         ? pageViewDates.reduce((a, b) => (a < b ? a : b))
         : null;
 
-    // Daily unique sessions (any clean event counts as a session visit that day)
     const dailySessionSets = new Map<string, Set<string>>();
     for (const e of rows) {
       const day = toDateKey(String(e.created_at));
@@ -183,7 +206,6 @@ export async function GET(request: Request) {
       dailySessionSets.get(day)!.add(String(e.session_id));
     }
 
-    // Build continuous day series from firstPageViewDate (or since) to today
     const seriesStart = firstPageViewDate
       ? new Date(`${firstPageViewDate}T00:00:00.000Z`)
       : since;
@@ -212,7 +234,6 @@ export async function GET(request: Request) {
       daily.push({ date: key, visitors, rolling7 });
     }
 
-    // Channel breakdown: first-touch referrer per session (from chart start onward)
     const sessionFirst = new Map<
       string,
       { referrer: string | null; pageUrl: string | null }
@@ -251,7 +272,6 @@ export async function GET(request: Request) {
       }),
     );
 
-    // Top pages from page_view last 28 days
     const pageCounts = new Map<string, number>();
     for (const e of rows) {
       if (e.event_type !== "page_view") continue;
@@ -281,6 +301,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       days,
+      site,
       firstPageViewDate,
       daily,
       channels,

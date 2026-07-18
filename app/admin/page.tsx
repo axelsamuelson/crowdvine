@@ -302,7 +302,7 @@ export default async function AdminDashboard() {
                   href="/admin"
                   className="w-full flex items-center justify-center gap-2 py-2.5 px-3 text-xs font-medium text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-zinc-100 hover:bg-gray-100 dark:hover:bg-zinc-800/50 transition-colors"
                 >
-                  Dashboard
+                  Översikt
                   <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
               </div>

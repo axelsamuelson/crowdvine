@@ -56,15 +56,13 @@ interface NavGroup {
   items: NavItem[];
 }
 
+/** Top-level links (not nested under a folder group). */
+const topLevelNav: NavItem[] = [
+  { name: "Översikt", href: "/admin", icon: LayoutDashboard },
+  { name: "Analytics", href: "/admin/analytics", icon: BarChart3 },
+];
+
 const navigationGroups: NavGroup[] = [
-  {
-    name: "Översikt",
-    icon: LayoutDashboard,
-    items: [
-      { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
-      { name: "Analytics", href: "/admin/analytics", icon: BarChart3 },
-    ],
-  },
   {
     name: "Användare",
     icon: Users,
@@ -188,9 +186,31 @@ export function Sidebar({ userEmail, onSignOut, mobileOpen, onMobileClose }: Sid
         </Link>
       </div>
 
-      {/* Navigation – template: section labels + flat nav items */}
+      {/* Navigation – top-level links + collapsible groups */}
       <ScrollArea className="flex-1 py-4 px-4">
         <nav className="space-y-3">
+          <div className="space-y-1">
+            {topLevelNav.map((item) => {
+              const isActive = isItemActive(item);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={onMobileClose}
+                  className={cn(
+                    "flex items-center px-3 py-2 text-[15px] rounded-md transition-colors",
+                    isActive
+                      ? "text-gray-900 dark:text-white font-medium bg-gray-100 dark:bg-[#1F1F23]"
+                      : "text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-[#1F1F23]",
+                  )}
+                >
+                  <item.icon className="mr-3 h-4 w-4 shrink-0" />
+                  {item.name}
+                </Link>
+              );
+            })}
+          </div>
+
           {navigationGroups.map((group) => (
             <div key={group.name}>
               <button
@@ -270,15 +290,24 @@ export function Sidebar({ userEmail, onSignOut, mobileOpen, onMobileClose }: Sid
         {SidebarContent}
       </aside>
 
-      <Sheet open={mobileOpen} onOpenChange={(open) => !open && onMobileClose?.()}>
-        <SheetContent
-          side="left"
-          className="w-64 p-0 bg-white dark:bg-[#0F0F12] border-r border-gray-200 dark:border-[#1F1F23]"
+      {/*
+        Only mount the Sheet while open. Radix portals SSR in-place but client
+        portals to document.body, which causes hydration mismatches under admin.
+      */}
+      {mobileOpen ? (
+        <Sheet
+          open
+          onOpenChange={(open) => !open && onMobileClose?.()}
         >
-          <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
-          <div className="flex h-full flex-col">{SidebarContent}</div>
-        </SheetContent>
-      </Sheet>
+          <SheetContent
+            side="left"
+            className="w-64 p-0 bg-white dark:bg-[#0F0F12] border-r border-gray-200 dark:border-[#1F1F23]"
+          >
+            <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
+            <div className="flex h-full flex-col">{SidebarContent}</div>
+          </SheetContent>
+        </Sheet>
+      ) : null}
     </>
   );
 }

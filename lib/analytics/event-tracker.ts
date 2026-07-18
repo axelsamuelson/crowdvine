@@ -138,6 +138,10 @@ export class AnalyticsTracker {
       }
     }
 
+    const rawReferrer = referrer || document.referrer || "";
+    const safeReferrer =
+      /localhost|127\.0\.0\.1/i.test(rawReferrer) ? "" : rawReferrer;
+
     const eventMetadata = isInternalDevice()
       ? { ...metadata, internal: true }
       : metadata;
@@ -149,7 +153,7 @@ export class AnalyticsTracker {
       event_category: eventCategory,
       event_metadata: eventMetadata,
       page_url: pageUrl || window.location.href,
-      referrer: referrer || document.referrer,
+      referrer: safeReferrer || null,
       user_agent: navigator.userAgent,
     };
 

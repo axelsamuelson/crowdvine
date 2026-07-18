@@ -19,6 +19,7 @@ interface AdminTopNavProps {
 
 /** Tydliga etiketter för vanliga admin-segment (UUID:er m.m. lämnas som korta stubbar). */
 const SEGMENT_LABELS: Record<string, string> = {
+  analytics: "Analytics",
   operations: "Operations",
   projects: "Projects",
   tasks: "Tasks",
@@ -71,11 +72,11 @@ function getBreadcrumbs(
   detailOverride: { path: string; title: string } | null
 ): { label: string; href: string }[] {
   const norm = normalizePath(pathname);
-  /** Endast på själva dashboard-root ska "Dashboard" visas. */
+  /** Endast på själva översikt-root ska "Översikt" visas. */
   if (norm === "/admin") {
     return [
       { label: "CrowdVine", href: "/admin" },
-      { label: "Dashboard", href: "/admin" },
+      { label: "Översikt", href: "/admin" },
     ];
   }
 

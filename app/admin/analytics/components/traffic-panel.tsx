@@ -53,16 +53,23 @@ const CATEGORY_COLOR: Record<string, string> = {
   other: "#6b7280",
 };
 
-export function TrafficPanel() {
+export function TrafficPanel({
+  site = "all",
+}: {
+  site?: import("@/lib/analytics/analytics-site").AnalyticsSiteFilter;
+}) {
   const [data, setData] = useState<TrafficPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
+    setLoading(true);
     (async () => {
       try {
-        const res = await fetch("/api/admin/analytics/traffic?days=90");
+        const res = await fetch(
+          `/api/admin/analytics/traffic?days=90&site=${site}`,
+        );
         const json = await res.json();
         if (!res.ok) throw new Error(json.error || "Failed to load traffic");
         if (!cancelled) setData(json);
@@ -77,7 +84,7 @@ export function TrafficPanel() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [site]);
 
   const chartData = useMemo(() => {
     if (!data?.daily) return [];

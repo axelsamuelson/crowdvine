@@ -25,9 +25,12 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
+import { SiteBadge } from "./site-switcher";
+import { analyticsSite } from "@/lib/analytics/analytics-site";
 
 interface EventTimelineProps {
   events: any[];
+  showSiteBadge?: boolean;
 }
 
 interface User {
@@ -36,7 +39,10 @@ interface User {
   full_name?: string;
 }
 
-export function EventTimeline({ events }: EventTimelineProps) {
+export function EventTimeline({
+  events,
+  showSiteBadge = false,
+}: EventTimelineProps) {
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -291,6 +297,13 @@ export function EventTimeline({ events }: EventTimelineProps) {
                         >
                           {event.event_type}
                         </span>
+                        {showSiteBadge ? (
+                          <SiteBadge
+                            site={
+                              event.site ?? analyticsSite(event.page_url)
+                            }
+                          />
+                        ) : null}
                         <span className="text-xs text-gray-500 dark:text-gray-400">
                           {format(new Date(event.created_at), "MMM d, HH:mm:ss")}
                         </span>
