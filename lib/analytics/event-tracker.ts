@@ -1,3 +1,4 @@
+import { isInternalDevice } from "@/lib/analytics/internal-device";
 import { isStaleRefreshTokenError, isAuthNetworkError } from "@/lib/auth/session-errors";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
@@ -87,6 +88,13 @@ export class AnalyticsTracker {
     return sessionId;
   }
 
+  private static isBotClient(): boolean {
+    if (typeof navigator === "undefined") return false;
+    if (navigator.webdriver) return true;
+    const ua = navigator.userAgent || "";
+    return /bot|crawl|spider|headless|lighthouse|slurp/i.test(ua);
+  }
+
   static async trackEvent({
     eventType,
     eventCategory,
@@ -95,6 +103,7 @@ export class AnalyticsTracker {
     referrer,
   }: TrackEventParams): Promise<void> {
     if (typeof window === "undefined") return;
+    if (this.isBotClient()) return;
 
     let supabase;
     try {
@@ -129,12 +138,16 @@ export class AnalyticsTracker {
       }
     }
 
+    const eventMetadata = isInternalDevice()
+      ? { ...metadata, internal: true }
+      : metadata;
+
     const eventData = {
       user_id: userId,
       session_id: this.getSessionId(),
       event_type: eventType,
       event_category: eventCategory,
-      event_metadata: metadata,
+      event_metadata: eventMetadata,
       page_url: pageUrl || window.location.href,
       referrer: referrer || document.referrer,
       user_agent: navigator.userAgent,
@@ -168,11 +181,22 @@ export class AnalyticsTracker {
     });
   }
 
-  static trackAddToCart(productId: string, productName: string, price: number) {
+  static trackAddToCart(
+    productId: string,
+    productName: string,
+    price: number,
+    extras?: { quantity?: number; source?: string },
+  ) {
     return this.trackEvent({
       eventType: "add_to_cart",
       eventCategory: "cart",
-      metadata: { productId, productName, price },
+      metadata: {
+        productId,
+        productName,
+        price,
+        ...(extras?.quantity != null ? { quantity: extras.quantity } : {}),
+        ...(extras?.source ? { source: extras.source } : {}),
+      },
     });
   }
 

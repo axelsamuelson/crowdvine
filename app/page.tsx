@@ -153,7 +153,7 @@ export default async function Home() {
               locale={shoppingContext.locale}
             />
           )}
-          <div className="contents md:grid md:grid-cols-12 md:gap-sides">
+          <div className="grid grid-cols-1 md:grid-cols-12 md:gap-sides">
           <HomeSidebar collections={collections} />
           <div className="flex relative flex-col grid-cols-2 col-span-8 w-full md:grid">
             {featuredProducts.length > 0 && (

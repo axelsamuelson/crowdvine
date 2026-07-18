@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getCurrentAdmin } from "@/lib/admin-auth-server";
+import {
+  getExcludedProfileIds,
+  isExcludedUserId,
+} from "@/lib/analytics/excluded-profile-ids";
 
 export async function GET(request: Request) {
   const admin = await getCurrentAdmin();
@@ -9,17 +13,14 @@ export async function GET(request: Request) {
   }
 
   const { searchParams } = new URL(request.url);
-  const timeRange = searchParams.get("timeRange") || "30d";
   const metric = searchParams.get("metric") || "funnel";
 
   const sb = getSupabaseAdmin();
+  const excluded = await getExcludedProfileIds(sb);
 
   try {
     if (metric === "funnel") {
-      // Get funnel data from view with user names
-      const { data, error } = await sb
-        .from("user_journey_funnel")
-        .select(`
+      const { data, error } = await sb.from("user_journey_funnel").select(`
           user_id,
           access_requested_at,
           access_approved_at,
@@ -34,175 +35,234 @@ export async function GET(request: Request) {
 
       if (error) {
         console.error("Analytics funnel error:", error);
-        // If view doesn't exist or error, try to get data directly from user_events
         const { data: eventsData, error: eventsError } = await sb
           .from("user_events")
           .select("user_id, event_type, created_at")
           .not("user_id", "is", null);
-        
+
         if (eventsError) {
           console.error("Could not fetch from user_events:", eventsError);
-          return NextResponse.json({ 
-            error: "Analytics tables not found. Please run the migration.",
-            details: error.message 
-          }, { status: 404 });
+          return NextResponse.json(
+            {
+              error: "Analytics tables not found. Please run the migration.",
+              details: error.message,
+            },
+            { status: 404 },
+          );
         }
 
-        // Calculate funnel from raw events
         const usersMap = new Map();
-        eventsData.forEach((event: any) => {
+        (eventsData ?? []).forEach((event: any) => {
+          if (isExcludedUserId(event.user_id, excluded)) return;
           if (!usersMap.has(event.user_id)) {
-            usersMap.set(event.user_id, { user_id: event.user_id, product_list_view_count: 0 });
+            usersMap.set(event.user_id, {
+              user_id: event.user_id,
+              product_list_view_count: 0,
+            });
           }
           const user = usersMap.get(event.user_id);
-          
-          if (event.event_type === 'access_request_submitted' && !user.access_requested_at) {
+
+          if (
+            event.event_type === "access_request_submitted" &&
+            !user.access_requested_at
+          ) {
             user.access_requested_at = event.created_at;
-          } else if (event.event_type === 'access_approved' && !user.access_approved_at) {
+          } else if (
+            event.event_type === "access_approved" &&
+            !user.access_approved_at
+          ) {
             user.access_approved_at = event.created_at;
-          } else if (event.event_type === 'user_first_login' && !user.first_login_at) {
+          } else if (
+            event.event_type === "user_first_login" &&
+            !user.first_login_at
+          ) {
             user.first_login_at = event.created_at;
-          } else if (event.event_type === 'product_viewed' && !user.first_product_view_at) {
+          } else if (
+            event.event_type === "product_viewed" &&
+            !user.first_product_view_at
+          ) {
             user.first_product_view_at = event.created_at;
-          } else if (event.event_type === 'product_list_viewed') {
+          } else if (event.event_type === "product_list_viewed") {
             if (!user.product_list_view_count) {
               user.product_list_view_count = 0;
             }
             user.product_list_view_count++;
-          } else if (event.event_type === 'add_to_cart' && !user.first_add_to_cart_at) {
+          } else if (
+            event.event_type === "add_to_cart" &&
+            !user.first_add_to_cart_at
+          ) {
             user.first_add_to_cart_at = event.created_at;
-          } else if (event.event_type === 'cart_validation_passed' && !user.cart_validation_passed_at) {
+          } else if (
+            event.event_type === "cart_validation_passed" &&
+            !user.cart_validation_passed_at
+          ) {
             user.cart_validation_passed_at = event.created_at;
-          } else if (event.event_type === 'checkout_started' && !user.checkout_started_at) {
+          } else if (
+            event.event_type === "checkout_started" &&
+            !user.checkout_started_at
+          ) {
             user.checkout_started_at = event.created_at;
-          } else if (event.event_type === 'reservation_completed' && !user.reservation_completed_at) {
+          } else if (
+            event.event_type === "reservation_completed" &&
+            !user.reservation_completed_at
+          ) {
             user.reservation_completed_at = event.created_at;
           }
         });
 
         const funnelUsers = Array.from(usersMap.values());
-        
-        // Get profiles for users
-        const userIds = [...new Set(funnelUsers.map(u => u.user_id))];
+
+        const userIds = [...new Set(funnelUsers.map((u) => u.user_id))];
         let profilesMap: Record<string, any> = {};
-        
+
         if (userIds.length > 0) {
           try {
             const { data: profiles, error: profilesError } = await sb
               .from("profiles")
               .select("id, full_name, email")
               .in("id", userIds);
-            
+
             if (!profilesError && profiles) {
-              profilesMap = profiles.reduce((acc, profile) => {
-                acc[profile.id] = profile;
-                return acc;
-              }, {} as Record<string, any>);
+              profilesMap = profiles.reduce(
+                (acc, profile) => {
+                  acc[profile.id] = profile;
+                  return acc;
+                },
+                {} as Record<string, any>,
+              );
             }
           } catch (profilesError) {
             console.error("Error fetching profiles:", profilesError);
           }
         }
 
-        // Attach profile data to users
-        const usersWithProfiles = funnelUsers.map(user => ({
+        const usersWithProfiles = funnelUsers.map((user) => ({
           ...user,
-          profiles: profilesMap[user.user_id]
+          profiles: profilesMap[user.user_id],
         }));
-        
-        // Now get ALL profiles and add users without events
+
         const { data: allProfiles, error: allProfilesError } = await sb
           .from("profiles")
           .select("id, full_name, email");
-        
+
         if (!allProfilesError && allProfiles) {
-          const usersWithEventIds = new Set(funnelUsers.map(u => u.user_id));
+          const usersWithEventIds = new Set(funnelUsers.map((u) => u.user_id));
           const usersWithoutEvents = allProfiles
-            .filter(p => !usersWithEventIds.has(p.id))
-            .map(p => ({
+            .filter(
+              (p) =>
+                !usersWithEventIds.has(p.id) && !isExcludedUserId(p.id, excluded),
+            )
+            .map((p) => ({
               user_id: p.id,
               has_no_events: true,
               product_list_view_count: 0,
-              profiles: { full_name: p.full_name, email: p.email }
+              profiles: { full_name: p.full_name, email: p.email },
             }));
-          
+
           usersWithProfiles.push(...usersWithoutEvents);
         }
-        
+
         const metrics = {
           total_users: usersWithProfiles.length,
-          access_requested: funnelUsers.filter(u => u.access_requested_at).length,
-          access_approved: funnelUsers.filter(u => u.access_approved_at).length,
-          first_login: funnelUsers.filter(u => u.first_login_at).length,
-          first_product_view: funnelUsers.filter(u => u.first_product_view_at).length,
-          first_add_to_cart: funnelUsers.filter(u => u.first_add_to_cart_at).length,
-          cart_validation_passed: funnelUsers.filter(u => u.cart_validation_passed_at).length,
-          checkout_started: funnelUsers.filter(u => u.checkout_started_at).length,
-          reservation_completed: funnelUsers.filter(u => u.reservation_completed_at).length,
+          access_requested: funnelUsers.filter((u) => u.access_requested_at)
+            .length,
+          access_approved: funnelUsers.filter((u) => u.access_approved_at)
+            .length,
+          first_login: funnelUsers.filter((u) => u.first_login_at).length,
+          first_product_view: funnelUsers.filter((u) => u.first_product_view_at)
+            .length,
+          first_add_to_cart: funnelUsers.filter((u) => u.first_add_to_cart_at)
+            .length,
+          cart_validation_passed: funnelUsers.filter(
+            (u) => u.cart_validation_passed_at,
+          ).length,
+          checkout_started: funnelUsers.filter((u) => u.checkout_started_at)
+            .length,
+          reservation_completed: funnelUsers.filter(
+            (u) => u.reservation_completed_at,
+          ).length,
         };
 
-        return NextResponse.json({ funnel: metrics, users: usersWithProfiles });
+        return NextResponse.json({
+          funnel: metrics,
+          users: usersWithProfiles,
+        });
       }
 
-      // Calculate funnel metrics
+      const filtered = (data ?? []).filter(
+        (u) => !isExcludedUserId(u.user_id as string, excluded),
+      );
+
       const metrics = {
-        total_users: data.length,
-        access_requested: data.filter(u => u.access_requested_at).length,
-        access_approved: data.filter(u => u.access_approved_at).length,
-        first_login: data.filter(u => u.first_login_at).length,
-        first_product_view: data.filter(u => u.first_product_view_at).length,
-        first_add_to_cart: data.filter(u => u.first_add_to_cart_at).length,
-        cart_validation_passed: data.filter(u => u.cart_validation_passed_at).length,
-        checkout_started: data.filter(u => u.checkout_started_at).length,
-        reservation_completed: data.filter(u => u.reservation_completed_at).length,
+        total_users: filtered.length,
+        access_requested: filtered.filter((u) => u.access_requested_at).length,
+        access_approved: filtered.filter((u) => u.access_approved_at).length,
+        first_login: filtered.filter((u) => u.first_login_at).length,
+        first_product_view: filtered.filter((u) => u.first_product_view_at)
+          .length,
+        first_add_to_cart: filtered.filter((u) => u.first_add_to_cart_at)
+          .length,
+        cart_validation_passed: filtered.filter(
+          (u) => u.cart_validation_passed_at,
+        ).length,
+        checkout_started: filtered.filter((u) => u.checkout_started_at).length,
+        reservation_completed: filtered.filter(
+          (u) => u.reservation_completed_at,
+        ).length,
       };
 
-      // Get profiles separately to ensure we have the data
-      const userIds = [...new Set(data.map(u => u.user_id))];
+      const userIds = [...new Set(filtered.map((u) => u.user_id))];
       let profilesMap: Record<string, any> = {};
-      
+
       if (userIds.length > 0) {
         try {
           const { data: profiles, error: profilesError } = await sb
             .from("profiles")
             .select("id, full_name, email")
             .in("id", userIds);
-          
+
           if (!profilesError && profiles) {
-            profilesMap = profiles.reduce((acc, profile) => {
-              acc[profile.id] = profile;
-              return acc;
-            }, {} as Record<string, any>);
+            profilesMap = profiles.reduce(
+              (acc, profile) => {
+                acc[profile.id] = profile;
+                return acc;
+              },
+              {} as Record<string, any>,
+            );
           }
         } catch (profilesError) {
           console.error("Error fetching profiles:", profilesError);
         }
       }
 
-      // Attach profile data to users (use profiles from map if view didn't return it)
-      const usersWithProfiles = data.map(user => ({
+      const usersWithProfiles = filtered.map((user) => ({
         ...user,
-        profiles: profilesMap[user.user_id] || user.profiles
+        profiles: profilesMap[user.user_id as string] || user.profiles,
       }));
-      
-      // Now get ALL profiles and add users without events
+
       const { data: allProfiles, error: allProfilesError } = await sb
         .from("profiles")
         .select("id, full_name, email");
-      
+
       if (!allProfilesError && allProfiles) {
-        const usersWithEventIds = new Set(data.map(u => u.user_id));
+        const usersWithEventIds = new Set(filtered.map((u) => u.user_id));
         const usersWithoutEvents = allProfiles
-          .filter(p => !usersWithEventIds.has(p.id))
-          .map(p => ({
+          .filter(
+            (p) =>
+              !usersWithEventIds.has(p.id) && !isExcludedUserId(p.id, excluded),
+          )
+          .map((p) => ({
             user_id: p.id,
             has_no_events: true,
             product_list_view_count: 0,
-            profiles: { full_name: p.full_name, email: p.email }
+            profiles: { full_name: p.full_name, email: p.email },
           }));
-        
+
         usersWithProfiles.push(...usersWithoutEvents);
       }
+
+      // Recompute total after appending profiles without events
+      metrics.total_users = usersWithProfiles.length;
 
       return NextResponse.json({ funnel: metrics, users: usersWithProfiles });
     }
@@ -212,36 +272,48 @@ export async function GET(request: Request) {
         .from("user_events")
         .select("*")
         .order("created_at", { ascending: false })
-        .limit(1000);
+        .limit(2000);
 
       if (error) throw error;
 
-      // Get user profile data separately to avoid join errors
-      const userIds = [...new Set(data.filter(e => e.user_id).map(e => e.user_id))];
+      const filteredEvents = (data ?? []).filter(
+        (e) => !isExcludedUserId(e.user_id as string | null, excluded),
+      );
+      const events = filteredEvents.slice(0, 1000);
+
+      const userIds = [
+        ...new Set(
+          events.filter((e) => e.user_id).map((e) => e.user_id as string),
+        ),
+      ];
       let profilesMap: Record<string, any> = {};
-      
+
       if (userIds.length > 0) {
         try {
           const { data: profiles, error: profilesError } = await sb
             .from("profiles")
             .select("id, full_name, email")
             .in("id", userIds);
-          
+
           if (!profilesError && profiles) {
-            profilesMap = profiles.reduce((acc, profile) => {
-              acc[profile.id] = profile;
-              return acc;
-            }, {} as Record<string, any>);
+            profilesMap = profiles.reduce(
+              (acc, profile) => {
+                acc[profile.id] = profile;
+                return acc;
+              },
+              {} as Record<string, any>,
+            );
           }
         } catch (profilesError) {
           console.error("Error fetching profiles:", profilesError);
         }
       }
 
-      // Attach profile data to events
-      const eventsWithProfiles = data.map(event => ({
+      const eventsWithProfiles = events.map((event) => ({
         ...event,
-        profiles: event.user_id ? profilesMap[event.user_id] : undefined
+        profiles: event.user_id
+          ? profilesMap[event.user_id as string]
+          : undefined,
       }));
 
       return NextResponse.json({ events: eventsWithProfiles });
@@ -252,7 +324,7 @@ export async function GET(request: Request) {
     console.error("Analytics API error:", error);
     return NextResponse.json(
       { error: "Failed to fetch analytics" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

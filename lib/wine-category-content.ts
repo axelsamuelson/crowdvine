@@ -304,6 +304,28 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
         "Vitt naturvin med kropp passar rejäl mat — fet fisk, skaldjur i gräddsås, kyckling och medelhavsgrönsaker. De med skalkontakt klarar även kryddstark mat och hårdostar. Servera inte för kallt, då tappar man texturen.",
       aboutText:
         "Ett litet, handplockat urval vita naturviner från Languedoc — direktimporterat från producenter som Sybil Baldassarre, utan tillsatser.",
+      faq: [
+        {
+          question: "Vad är vitt naturvin?",
+          answer:
+            "Vitt naturvin är vitt vin gjort av ekologiskt eller biodynamiskt odlade druvor, jäst med vilda jästsvampar och utan tillsatser. Utan tillsatt svavel att skydda de känsliga vita druvorna krävs stor precision av producenten — men resultatet är viner med textur, salinitet och mineralitet som konventionella vita viner sällan når.",
+        },
+        {
+          question: "Varför är vitt naturvin ofta grumligt?",
+          answer:
+            "Vitt naturvin filtreras oftast inte, vilket gör att naturliga jästrester och partiklar kan finnas kvar i flaskan. Grumligheten är helt ofarlig och ses av många som ett kvalitetstecken — det betyder att vinet inte har manipulerats i onödan.",
+        },
+        {
+          question: "Vad är skillnaden mellan vitt naturvin och orange vin?",
+          answer:
+            "Båda görs av vita druvor, men orange vin jäser tillsammans med skalen — ibland i månader — vilket ger bärnstensfärg, tanniner och en helt annan smakprofil. Vitt naturvin pressas som regel utan lång skalkontakt och behåller en ljusare, friskare stil.",
+        },
+        {
+          question: "Hur serverar man vitt naturvin?",
+          answer:
+            "Servera vid 10–12 grader — inte iskallt, då försvinner texturen och komplexiteten. Vita naturviner med kropp och skalkontakt kan gärna serveras något varmare, runt 12 grader, och passar rejäl mat som fet fisk, kyckling och mjuka ostar.",
+        },
+      ],
     },
   },
   "white-natural-wine": {
@@ -325,6 +347,28 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
         "White natural wine with body suits substantial food — oily fish, shellfish in cream sauce, chicken and Mediterranean vegetables. Those with skin contact also handle spiced food and hard cheeses. Do not serve too cold, or you lose the texture.",
       aboutText:
         "A small, hand-picked selection of white natural wines from Languedoc — direct imported from producers like Sybil Baldassarre, without additives.",
+      faq: [
+        {
+          question: "What is white natural wine?",
+          answer:
+            "White natural wine is white wine made from organically or biodynamically farmed grapes, fermented with wild yeasts and without additives. Without added sulphur to protect the delicate white grapes, the producer needs great precision — but the result is wines with texture, salinity and minerality that conventional whites rarely reach.",
+        },
+        {
+          question: "Why is white natural wine often cloudy?",
+          answer:
+            "White natural wine is usually unfiltered, so natural yeast sediment and particles can remain in the bottle. The cloudiness is completely harmless and many see it as a quality sign — it means the wine has not been unnecessarily manipulated.",
+        },
+        {
+          question: "What is the difference between white natural wine and orange wine?",
+          answer:
+            "Both are made from white grapes, but orange wine ferments with the skins — sometimes for months — which gives amber colour, tannins and a completely different flavour profile. White natural wine is generally pressed without long skin contact and keeps a lighter, fresher style.",
+        },
+        {
+          question: "How should you serve white natural wine?",
+          answer:
+            "Serve at 10–12°C — not ice-cold, or you lose the texture and complexity. Fuller white natural wines with skin contact can be served a little warmer, around 12°C, and suit substantial food such as oily fish, chicken and soft cheeses.",
+        },
+      ],
     },
   },
   "orange-naturvin": {
@@ -346,6 +390,28 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
         "Orange vin är ett av de mest matvänliga vinerna som finns — tanninerna och strukturen klarar rätter som slår ut både vitt och rött. Tänk kryddstark asiatisk mat, marockanska tagines, hårdostar och chark. Servera vid 12–14°C.",
       aboutText:
         "Ett litet, kurerat urval orange naturviner från Languedoc — skalkontaktviner från producenter som experimenterar, importerade direkt utan tillsatser.",
+      faq: [
+        {
+          question: "Vad är orange vin?",
+          answer:
+            "Orange vin är vitt vin gjort som rött — de vita druvorna jäser tillsammans med sina skal, ibland i dagar, ibland i månader. Skalkontakten ger vinet dess bärnstensfärg, tanninstruktur och aromer av torkade aprikoser, te, nötter och kryddor.",
+        },
+        {
+          question: "Smakar orange vin som vitt eller rött vin?",
+          answer:
+            "Ingetdera — orange vin är en egen kategori. Det har det vita vinets fruktighet men det röda vinets struktur och tanniner. Många beskriver det som ett vin med det bästa av två världar, särskilt till mat.",
+        },
+        {
+          question: "Är orange vin alltid naturvin?",
+          answer:
+            "Nej, men de hör tätt ihop. Orange vin är en metod (skalkontakt), naturvin en filosofi (inga tillsatser). De flesta orangeviner görs dock av naturvinsproducenter eftersom skalkontakten ger ett naturligt skydd som minskar behovet av tillsatt svavel.",
+        },
+        {
+          question: "Vad passar orange vin till?",
+          answer:
+            "Orange vin är ett av de mest matvänliga viner som finns. Tanninerna och strukturen klarar rätter som slår ut både vitt och rött — kryddstark asiatisk mat, marockanska tagines, hårdostar och chark. Servera vid 12–14 grader.",
+        },
+      ],
     },
   },
   "orange-natural-wine": {
@@ -367,6 +433,28 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
         "Orange wine is one of the most food-friendly wines there is — the tannins and structure handle dishes that defeat both white and red. Think spicy Asian food, Moroccan tagines, hard cheeses and charcuterie. Serve at 12–14°C.",
       aboutText:
         "A small, curated selection of orange natural wines from Languedoc — skin-contact wines from experimenting producers, imported directly without additives.",
+      faq: [
+        {
+          question: "What is orange wine?",
+          answer:
+            "Orange wine is white wine made like red — the white grapes ferment together with their skins, sometimes for days, sometimes for months. The skin contact gives the wine its amber colour, tannin structure and aromas of dried apricots, tea, nuts and spice.",
+        },
+        {
+          question: "Does orange wine taste like white or red wine?",
+          answer:
+            "Neither — orange wine is its own category. It has the fruitiness of white wine but the structure and tannins of red. Many describe it as a wine with the best of both worlds, especially with food.",
+        },
+        {
+          question: "Is orange wine always natural wine?",
+          answer:
+            "No, but they are closely linked. Orange wine is a method (skin contact); natural wine is a philosophy (no additives). Most orange wines are made by natural wine producers, though, because skin contact provides natural protection that reduces the need for added sulphur.",
+        },
+        {
+          question: "What does orange wine pair with?",
+          answer:
+            "Orange wine is one of the most food-friendly wines there is. The tannins and structure handle dishes that defeat both white and red — spicy Asian food, Moroccan tagines, hard cheeses and charcuterie. Serve at 12–14°C.",
+        },
+      ],
     },
   },
   "rod-och-orange-naturvin": {

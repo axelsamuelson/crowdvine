@@ -11,6 +11,7 @@ import { Loader } from "../ui/loader";
 import { cn } from "@/lib/utils";
 import { useCartSource } from "./cart-source-context";
 import { useTranslations } from "@/lib/hooks/use-translations";
+import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 
 export type CartSource = "producer" | "warehouse";
 
@@ -116,6 +117,13 @@ export function AddToCartWithSource({
               );
               console.log("🛒 [PDP] Dispatched cart-refresh event");
             }
+
+            void AnalyticsTracker.trackAddToCart(
+              product.id,
+              product.title,
+              parseFloat(product.priceRange.minVariantPrice.amount),
+              { quantity, source: "b2b" },
+            );
 
             // Reset quantity to 1 after successful add
             setQuantity(1);

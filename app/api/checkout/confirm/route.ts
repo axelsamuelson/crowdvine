@@ -60,6 +60,7 @@ import {
 import { assertClientMarketDropIdAllowed } from "@/lib/market/resolve-market-drop";
 import { resolveOrCreateMarketDropIdForCheckout } from "@/lib/market/get-or-create-market-drop";
 import { resolveActiveGeoZoneForUser } from "@/lib/market/resolve-active-geo-zone";
+import { logUserEventServer } from "@/lib/analytics/log-user-event-server";
 
 type ProducerGroup = {
   producerId: string;
@@ -1056,6 +1057,7 @@ export async function POST(request: Request) {
       producerId: string;
       palletId: string | null;
       amountSek: number;
+      bottleCount: number;
     };
 
     let reservation: { id: string };
@@ -1205,6 +1207,10 @@ export async function POST(request: Request) {
           producerId: group.producerId,
           palletId: groupPalletId,
           amountSek,
+          bottleCount: group.lines.reduce(
+            (sum, line) => sum + (Number(line.quantity) || 0),
+            0,
+          ),
         });
         reservationIdsForPayment.push(rid);
       }
@@ -2042,6 +2048,34 @@ export async function POST(request: Request) {
     const successUrl = `/checkout/success?success=true&reservationId=${reservation.id}${checkoutGroupQuery}&message=${encodeURIComponent(
       successMessage,
     )}`;
+
+    const reservationEvents =
+      b2cProducerCheckout && createdReservations.length > 0
+        ? createdReservations.map((r) => ({
+            reservation_id: r.id,
+            bottle_count: r.bottleCount,
+          }))
+        : [
+            {
+              reservation_id: reservation.id,
+              bottle_count: (cart.lines || []).reduce(
+                (sum, line) => sum + (Number(line.quantity) || 0),
+                0,
+              ),
+            },
+          ];
+
+    for (const ev of reservationEvents) {
+      void logUserEventServer({
+        userId: currentUser?.id ?? null,
+        eventType: "reservation_completed",
+        eventCategory: "checkout",
+        metadata: {
+          reservation_id: ev.reservation_id,
+          bottle_count: ev.bottle_count,
+        },
+      });
+    }
 
     return NextResponse.json({
       success: true,

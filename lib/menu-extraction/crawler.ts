@@ -10,6 +10,7 @@ import {
   getStarwinelistSourceBySlug,
   isStarwinelist404Slug,
   listStarwinelistSourcesForCrawlBatch,
+  promoteMenuDocumentToCurrent,
   resetStaleCrawlingSources,
   sourceHasStoredDocument,
   updateStarwinelistSource,
@@ -312,6 +313,7 @@ export async function crawlRestaurant(
         crawl_attempts: source.crawl_attempts + 1,
         crawl_priority: 0,
       });
+      await promoteMenuDocumentToCurrent(alreadyExtracted.id);
       result.skipped = true;
       result.skip_reason = "no_update";
       result.document_id = alreadyExtracted.id;
@@ -343,6 +345,7 @@ export async function crawlRestaurant(
         crawl_attempts: source.crawl_attempts + 1,
         crawl_priority: 0,
       });
+      await promoteMenuDocumentToCurrent(existingSameHash.id);
       result.skipped = true;
       result.skip_reason = "no_update";
       result.document_id = existingSameHash.id;

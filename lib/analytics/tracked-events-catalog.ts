@@ -160,7 +160,8 @@ export const TRACKED_USER_EVENTS_CATALOG: TrackedEventCatalogEntry[] = [
   {
     eventType: "add_to_cart",
     category: "cart",
-    description: "Item added to cart from PDP or product card.",
+    description:
+      "Item added to cart (PDP case, shop sheet, B2B quantity, or legacy AddToCart).",
     sources: ["client"],
   },
   {
@@ -210,8 +211,9 @@ export const TRACKED_USER_EVENTS_CATALOG: TrackedEventCatalogEntry[] = [
   {
     eventType: "reservation_completed",
     category: "checkout",
-    description: "Reservation flow completed (reserved).",
-    sources: ["client"],
+    description:
+      "Reservation created successfully (server: checkout confirm).",
+    sources: ["server"],
   },
   {
     eventType: "checkout_abandoned",

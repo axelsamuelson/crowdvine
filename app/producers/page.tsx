@@ -22,10 +22,10 @@ import { getSiteConfig } from "@/lib/site-config";
 export async function generateMetadata(): Promise<Metadata> {
   const config = await getSiteConfig();
   const producersUrl = `${config.baseUrl}/producers`;
-  const title =
-    "Naturvinsproducenter i Languedoc — direktimport via PACT Wines";
+  // Layout title.template appends " | PACT Wines" — do not include suffix here.
+  const title = "Naturvinproducenter i Languedoc — alla våra producenter";
   const description =
-    "Möt producenterna bakom PACTs sortiment. Småskaliga vinmakare i Languedoc som odlar ekologiskt och vinifierar utan tillsatser.";
+    "Möt småproducenterna bakom PACTs naturviner — från Faugères till Saint-Chinian. Ekologisk och biodynamisk odling, inga tillsatser.";
   return {
     title,
     description,
@@ -33,7 +33,7 @@ export async function generateMetadata(): Promise<Metadata> {
       canonical: producersUrl,
     },
     openGraph: {
-      title,
+      title: `${title} | ${config.siteName}`,
       description,
       url: producersUrl,
       type: "website",

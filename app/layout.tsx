@@ -49,6 +49,9 @@ import { SiteLogoProvider } from "@/lib/context/site-logo-provider";
 import { resolveSiteLogosFromRequest } from "@/lib/site-logos-server";
 import { getCachedShoppingContextFromRequest } from "@/lib/shopping-context/server";
 import { getSiteConfig, type SiteConfig } from "@/lib/site-config";
+import { Analytics } from "@vercel/analytics/react";
+import { PageViewTracker } from "@/components/analytics/page-view-tracker";
+import { InternalDeviceMarker } from "@/components/analytics/internal-device-marker";
 
 const defaultOpenGraphImages: NonNullable<
   Metadata["openGraph"]
@@ -200,6 +203,9 @@ export default async function RootLayout({
                       </main>
                       {isDevelopment && <DebugGrid />}
                       <Toaster closeButton position="bottom-right" />
+                      <InternalDeviceMarker />
+                      <PageViewTracker />
+                      <Analytics />
                     </MembershipProvider>
                   </PortalProvider>
                 </MobileMenuProvider>

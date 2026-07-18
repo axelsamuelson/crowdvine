@@ -8,6 +8,7 @@ import { CohortAnalysis } from "./components/cohort-analysis";
 import { UserJourneyTable } from "./components/user-journey-table";
 import { MetricsCards } from "./components/metrics-cards";
 import { ViewsTable } from "./components/views-table";
+import { TrafficPanel } from "./components/traffic-panel";
 import { BarChart2 } from "lucide-react";
 
 export function AnalyticsDashboard() {
@@ -53,13 +54,19 @@ export function AnalyticsDashboard() {
       <MetricsCards data={funnelData?.funnel} />
 
       <div className="bg-white dark:bg-[#0F0F12] rounded-xl border border-gray-200 dark:border-[#1F1F23]">
-        <Tabs defaultValue="funnel" className="w-full">
+        <Tabs defaultValue="traffic" className="w-full">
           <div className="p-6 border-b border-gray-200 dark:border-[#1F1F23]">
             <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
               <BarChart2 className="w-3.5 h-3.5 text-zinc-900 dark:text-zinc-50" />
               Reports
             </h2>
             <TabsList className="w-full justify-start h-auto p-0 bg-transparent border-0 rounded-none gap-1 flex flex-wrap">
+              <TabsTrigger
+                value="traffic"
+                className="rounded-lg data-[state=active]:bg-gray-100 dark:data-[state=active]:bg-[#1F1F23] data-[state=active]:text-gray-900 dark:data-[state=active]:text-white"
+              >
+                Trafik
+              </TabsTrigger>
               <TabsTrigger
                 value="funnel"
                 className="rounded-lg data-[state=active]:bg-gray-100 dark:data-[state=active]:bg-[#1F1F23] data-[state=active]:text-gray-900 dark:data-[state=active]:text-white"
@@ -94,6 +101,9 @@ export function AnalyticsDashboard() {
           </div>
 
           <div className="p-6">
+            <TabsContent value="traffic" className="mt-0">
+              <TrafficPanel />
+            </TabsContent>
             <TabsContent value="funnel" className="mt-0">
               <FunnelChart data={funnelData?.funnel} />
             </TabsContent>

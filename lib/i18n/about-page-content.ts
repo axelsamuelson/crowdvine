@@ -23,10 +23,9 @@ export type AboutPageContent = {
 };
 
 const ABOUT_CONTENT_EN: AboutPageContent = {
-  title:
-    "About PACT Wines — Direct Import of Natural Wine from Languedoc to Stockholm",
+  title: "How PACT Works — Natural Wine Direct from the Producer",
   description:
-    "PACT is a direct importer of natural wine from small producers in Languedoc. We collect orders until a pallet is full — then the producer ships directly to you.",
+    "Reserve natural wine online and get it delivered straight from the producer in Languedoc to your door in Stockholm. How PACT works.",
   h1: "About",
   heroSubtitle: "A smarter way to buy wine together.",
   cards: [
@@ -84,10 +83,9 @@ const ABOUT_CONTENT_EN: AboutPageContent = {
 };
 
 const ABOUT_CONTENT_SV: AboutPageContent = {
-  title:
-    "Om PACT Wines — Direktimport av naturvin från Languedoc till Stockholm",
+  title: "Så fungerar PACT — naturvin direkt från producenten",
   description:
-    "PACT är en direktimportör av naturvin från småproducenter i Languedoc. Vi samlar beställningar tills en pall är full — sedan skickar producenten direkt till dig.",
+    "Reservera naturvin online och få det levererat direkt från producenten i Languedoc till din dörr i Stockholm. Så fungerar PACT.",
   h1: "Om PACT",
   heroSubtitle: "Ett smartare sätt att köpa naturvin tillsammans.",
   cards: [
@@ -153,7 +151,7 @@ export function aboutPageUrls(baseUrl: string): {
   return {
     en: `${baseUrl}/about`,
     sv: `${baseUrl}/om-oss`,
-    xDefault: `${baseUrl}/about`,
+    xDefault: `${baseUrl}/om-oss`,
   };
 }
 

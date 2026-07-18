@@ -30,21 +30,29 @@ export async function GET(request: Request) {
 
   const sb = getSupabaseAdmin();
   const sinceIso = getSinceIso(timeRange);
+  const { getExcludedProfileIds, isExcludedUserId } = await import(
+    "@/lib/analytics/excluded-profile-ids"
+  );
+  const excluded = await getExcludedProfileIds(sb);
 
   try {
     // Fetch the relevant events and aggregate in JS.
     // This is intentionally bounded to avoid huge payloads; we can move to SQL later if needed.
     let query = sb
       .from("user_events")
-      .select("event_type, event_metadata, created_at")
+      .select("event_type, event_metadata, created_at, user_id")
       .in("event_type", ["product_list_viewed", "product_viewed"])
       .order("created_at", { ascending: false })
       .limit(5000);
 
     if (sinceIso) query = query.gte("created_at", sinceIso);
 
-    const { data: events, error } = await query;
+    const { data: eventsRaw, error } = await query;
     if (error) throw error;
+
+    const events = (eventsRaw || []).filter(
+      (e) => !isExcludedUserId(e.user_id as string | null, excluded),
+    );
 
     type Row = {
       key: string;

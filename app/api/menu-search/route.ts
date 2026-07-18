@@ -353,11 +353,13 @@ async function legacyMenuSearch(
     .from("menu_documents")
     .select("id, source_slug, updated_at, extracted_at, file_name")
     .eq("extraction_status", "completed")
+    .eq("is_current", true)
     .in("source_slug", slugList);
   const { data: docsNoSlug, error: docsErr2 } = await sb
     .from("menu_documents")
     .select("id, source_slug, updated_at, extracted_at, file_name")
     .eq("extraction_status", "completed")
+    .eq("is_current", true)
     .is("source_slug", null);
   if (docsErr1) throw new Error(docsErr1.message);
   if (docsErr2) throw new Error(docsErr2.message);

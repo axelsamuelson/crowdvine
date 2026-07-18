@@ -15,6 +15,9 @@ import {
   TRACKED_EVENTS_CATEGORY_ORDER,
   type TrackedEventCatalogEntry,
 } from "@/lib/analytics/tracked-events-catalog";
+import { AnnotationCreateForm } from "../components/annotation-create-form";
+import { DeviceExclusionToggle } from "../components/device-exclusion-toggle";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 export const dynamic = "force-dynamic";
 
@@ -25,8 +28,29 @@ function formatSources(entry: TrackedEventCatalogEntry) {
   return labels.join(" · ");
 }
 
-export default function AnalyticsSettingsPage() {
+export default async function AnalyticsSettingsPage() {
   const byCategory = groupTrackedEventsByCategory();
+
+  let initialAnnotations: {
+    id: string;
+    date: string;
+    label: string;
+    category: string;
+    created_at: string;
+  }[] = [];
+  try {
+    const sb = getSupabaseAdmin();
+    const { data, error } = await sb
+      .from("admin_analytics_annotations")
+      .select("id, date, label, category, created_at")
+      .order("date", { ascending: false })
+      .limit(50);
+    if (!error) {
+      initialAnnotations = (data ?? []) as typeof initialAnnotations;
+    }
+  } catch {
+    initialAnnotations = [];
+  }
 
   return (
     <div className="space-y-6">
@@ -66,6 +90,10 @@ export default function AnalyticsSettingsPage() {
           </Link>
         </Button>
       </div>
+
+      <DeviceExclusionToggle />
+
+      <AnnotationCreateForm initialAnnotations={initialAnnotations} />
 
       <div className="space-y-8">
         {TRACKED_EVENTS_CATEGORY_ORDER.map((category) => {

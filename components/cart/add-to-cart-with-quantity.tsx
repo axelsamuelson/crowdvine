@@ -10,6 +10,7 @@ import { useParams, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
 import { Loader } from "../ui/loader";
 import { cn } from "@/lib/utils";
+import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 
 interface AddToCartWithQuantityProps {
   product: Product;
@@ -103,6 +104,13 @@ export function AddToCartWithQuantity({
               );
               console.log("🛒 [PDP] Dispatched cart-refresh event");
             }
+
+            void AnalyticsTracker.trackAddToCart(
+              product.id,
+              product.title,
+              parseFloat(product.priceRange.minVariantPrice.amount),
+              { quantity, source: "b2b" },
+            );
 
             // Reset quantity to 1 after successful add
             setQuantity(1);

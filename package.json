@@ -25,6 +25,7 @@
     "crawl:batch": "tsx scripts/trigger-batched-crawl.ts",
     "crawl:local": "tsx scripts/crawl-local.ts",
     "crawl:local:warmup": "tsx scripts/crawl-local-warmup.ts",
+    "import:savantbar": "tsx scripts/import-savantbar-bottle-list.ts",
     "compress-wine-images": "tsx scripts/compress-wine-images.ts",
     "extraction:test-haiku": "tsx scripts/menu-extraction-test-haiku.ts",
     "seed:v3": "tsx scripts/seed-v3-framework.ts",

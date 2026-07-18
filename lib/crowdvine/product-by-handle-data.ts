@@ -19,6 +19,10 @@ import {
   resolveProductAvailableForSale,
 } from "@/lib/wine-availability";
 import { firstSentence } from "@/lib/text/first-sentence";
+import {
+  buildWineBoxSeoDescription,
+  buildWineBoxSeoTitle,
+} from "@/lib/seo/wine-box-metadata";
 
 function parseWineTasteTags(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
@@ -221,8 +225,8 @@ export async function getCrowdvineProductByHandle(options: {
           `${calc.discountPercentage}-discount`,
         ],
         seo: {
-          title: calc.name,
-          description: calc.description,
+          title: buildWineBoxSeoTitle(calc.name, locale),
+          description: buildWineBoxSeoDescription(locale, calc.description),
         },
         availableForSale: true,
         currencyCode: "SEK",

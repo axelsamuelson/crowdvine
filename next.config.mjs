@@ -46,6 +46,11 @@ const nextConfig = {
         destination: "/admin/b2b-orders",
         permanent: true,
       },
+      {
+        source: "/how-it-works",
+        destination: "/om-oss",
+        permanent: true,
+      },
     ];
   },
   /* Vercel configuration */

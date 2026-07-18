@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { ensureInternalDeviceFromAdmin } from "@/lib/analytics/internal-device";
 
 interface AdminStatus {
   loading: boolean;
@@ -26,9 +27,13 @@ export function useAdminStatus(): AdminStatus {
           return;
         }
         const data = await response.json();
+        const isAdmin = data.isAdmin === true;
+        if (isAdmin) {
+          ensureInternalDeviceFromAdmin();
+        }
         setState({
           loading: false,
-          isAdmin: data.isAdmin === true,
+          isAdmin,
         });
       } catch (error) {
         console.error("Error checking admin status:", error);

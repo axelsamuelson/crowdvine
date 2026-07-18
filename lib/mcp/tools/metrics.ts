@@ -25,8 +25,8 @@ function aggregateFunnel(rows: FunnelRow[]) {
   return {
     users_tracked: rows.length,
     signups_first_login: rows.filter((r) => r.first_login_at).length,
-    product_views: rows.filter((r) => r.first_product_view_at).length,
-    add_to_cart: rows.filter((r) => r.first_add_to_cart_at).length,
+    users_with_product_view: rows.filter((r) => r.first_product_view_at).length,
+    users_with_add_to_cart: rows.filter((r) => r.first_add_to_cart_at).length,
     orders_reservation_completed: rows.filter((r) => r.reservation_completed_at)
       .length,
   };
@@ -356,7 +356,7 @@ export function registerMetricsTools(server: McpServer, sb: SupabaseClient) {
     "get_funnel_overview",
     {
       description:
-        "Hämta en översikt av hela funneln: signups, product views, add to cart, orders, flaskor.",
+        "Hämta funnel-översikt (all-time): distinct autentiserade användare med first login / product view / add to cart / reservation, plus flaskor. users_with_product_view och users_with_add_to_cart är unika users — inte råa event counts.",
       inputSchema: z.object({}),
     },
     async () => {

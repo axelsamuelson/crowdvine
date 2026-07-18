@@ -31,6 +31,7 @@ import { MixedCaseWineGallery } from "./mixed-case-wine-gallery";
 import { WineSpecsList } from "@/components/product/wine-specs-list";
 import Prose from "@/components/prose";
 import { useTranslations } from "@/lib/hooks/use-translations";
+import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 
 type PurchaseMode = "same" | "mixed";
 
@@ -437,6 +438,12 @@ export function AddToCartCase({
         if (response.ok) {
           const result = (await response.json()) as { cart?: unknown };
           if (result.cart) dispatchCartRefresh(result.cart);
+          void AnalyticsTracker.trackAddToCart(
+            product.id,
+            product.title,
+            parseFloat(product.priceRange.minVariantPrice.amount),
+            { quantity: 6, source: "pdp_case" },
+          );
         }
       } catch {
         /* noop */
@@ -477,6 +484,12 @@ export function AddToCartCase({
         if (result.cart) {
           dispatchCartRefresh(result.cart);
         }
+        void AnalyticsTracker.trackAddToCart(
+          product.id,
+          product.title,
+          parseFloat(product.priceRange.minVariantPrice.amount),
+          { quantity: totalSelected, source: "pdp_case" },
+        );
         setDetailWineId(null);
         setSheetOpen(false);
       } catch {

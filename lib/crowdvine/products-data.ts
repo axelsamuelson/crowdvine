@@ -4,6 +4,10 @@ import { DEFAULT_WINE_IMAGE_PATH } from "@/lib/constants";
 import { extractWineText } from "@/lib/i18n/wine-locale";
 import { resolveProductAvailableForSale } from "@/lib/wine-availability";
 import { getAllWineBoxCalculations } from "@/lib/wine-box-calculations";
+import {
+  buildWineBoxSeoDescription,
+  buildWineBoxSeoTitle,
+} from "@/lib/seo/wine-box-metadata";
 import { calculateB2BPriceExclVat } from "@/lib/price-breakdown";
 import { resolveWineAlcoholTaxCents } from "@/lib/wine-alcohol-tax";
 import { convertSekForDisplay } from "@/lib/shopping-context/currency-convert";
@@ -809,7 +813,10 @@ export async function fetchCollectionProductsData(
           altText: calc.name,
         },
       ],
-      seo: { title: calc.name, description: "" },
+      seo: {
+        title: buildWineBoxSeoTitle(calc.name, "sv"),
+        description: buildWineBoxSeoDescription("sv", calc.description),
+      },
       tags: [`${calc.bottleCount}-bottles`, `${calc.discountPercentage}-discount`],
       availableForSale: true,
       currencyCode: displayCurrencyCode,
