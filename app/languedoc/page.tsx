@@ -328,6 +328,15 @@ export default async function LanguedocPage() {
             direkt — precis den modell PACT bygger på: från vingård till
             Stockholm utan onödiga mellanhänder.
           </p>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            <Link
+              href="/guider/varldens-basta-naturvinsproducenter"
+              className="underline underline-offset-4 hover:text-foreground"
+            >
+              Tio producenter från Languedoc och Roussillon finns med på vår
+              lista över världens 100 bästa naturvinsproducenter →
+            </Link>
+          </p>
         </section>
 
         <div className="mt-16 rounded-xl bg-foreground p-8 text-center text-background">

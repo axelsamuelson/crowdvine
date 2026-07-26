@@ -29,6 +29,7 @@ import {
   parseGrapeVarieties,
   uniqueGrapesPreserveCasing,
 } from "@/lib/curated-grape-categories";
+import { getProducerGuideNote } from "@/lib/guides/producer-guide-notes";
 import { buildProducerWineryJsonLd } from "@/lib/seo/producer-json-ld";
 import {
   producerProfileMetaDescription,
@@ -280,6 +281,7 @@ export async function renderProducerPublicPage(options: {
   const producerGrapes = uniqueGrapesPreserveCasing(
     wines.flatMap((wine) => parseGrapeVarieties(wine.grape_varieties)),
   );
+  const guideNote = getProducerGuideNote(slug, locale);
 
   return (
     <>
@@ -330,6 +332,18 @@ export async function renderProducerPublicPage(options: {
                 {producer.bio_short}
               </p>
             </div>
+          ) : null}
+
+          {guideNote ? (
+            <p className="mt-4 text-sm text-stone-500">
+              {guideNote.beforeLink}
+              <Link
+                href={guideNote.href}
+                className="underline underline-offset-4 hover:text-stone-700"
+              >
+                {guideNote.linkLabel}
+              </Link>
+            </p>
           ) : null}
 
           {specEntries.length > 0 ? (

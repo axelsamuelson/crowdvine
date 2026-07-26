@@ -8,5 +8,7 @@ export function localeFromShopPath(pathname: string): AppLocale | null {
   if (pathname.startsWith("/product/")) return "en";
   if (pathname.startsWith("/producent/")) return "sv";
   if (pathname.startsWith("/producer/")) return "en";
+  if (pathname === "/guider" || pathname.startsWith("/guider/")) return "sv";
+  if (pathname === "/guides" || pathname.startsWith("/guides/")) return "en";
   return null;
 }

@@ -62,6 +62,49 @@ export function Footer({ initialLogos }: { initialLogos?: SiteLogos }) {
               </nav>
 
               {!isDirtywineSite ? (
+                <nav className="min-w-0">
+                  <div className="flex flex-col gap-3">
+                    <h3 className="text-sm font-semibold text-background">
+                      {paths.shop.startsWith("/wine") ? "Guides" : "Guider"}
+                    </h3>
+                    <div className="flex flex-col gap-2">
+                      {paths.shop.startsWith("/wine") ? (
+                        <>
+                          <Link
+                            href="/guides/worlds-best-natural-wines"
+                            className="text-sm text-background/70 hover:text-background transition-colors hover:underline"
+                          >
+                            The World&apos;s 100 Best Natural Wines
+                          </Link>
+                          <Link
+                            href="/guides/worlds-best-natural-wine-producers"
+                            className="text-sm text-background/70 hover:text-background transition-colors hover:underline"
+                          >
+                            The World&apos;s 100 Best Natural Wine Producers
+                          </Link>
+                        </>
+                      ) : (
+                        <>
+                          <Link
+                            href="/guider/varldens-basta-naturviner"
+                            className="text-sm text-background/70 hover:text-background transition-colors hover:underline"
+                          >
+                            Världens 100 bästa naturviner
+                          </Link>
+                          <Link
+                            href="/guider/varldens-basta-naturvinsproducenter"
+                            className="text-sm text-background/70 hover:text-background transition-colors hover:underline"
+                          >
+                            Världens 100 bästa naturvinsproducenter
+                          </Link>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </nav>
+              ) : null}
+
+              {!isDirtywineSite ? (
                 <div className="flex shrink-0 items-start sm:ml-auto">
                   <FooterShoppingContext />
                 </div>

@@ -58,6 +58,18 @@ function staticPagesForProfile(
     pages.push(
       weeklyEntry(`${baseUrl}/languedoc`, 0.7),
       weeklyEntry(`${baseUrl}/languedoc/naturvin`, 0.7),
+      weeklyEntry(`${baseUrl}/guider`, 0.7),
+      weeklyEntry(`${baseUrl}/guider/varldens-basta-naturviner`, 0.75),
+      weeklyEntry(
+        `${baseUrl}/guider/varldens-basta-naturvinsproducenter`,
+        0.75,
+      ),
+      weeklyEntry(`${baseUrl}/guides`, 0.7),
+      weeklyEntry(`${baseUrl}/guides/worlds-best-natural-wines`, 0.75),
+      weeklyEntry(
+        `${baseUrl}/guides/worlds-best-natural-wine-producers`,
+        0.75,
+      ),
       weeklyEntry(`${baseUrl}/vin/wine-boxes`, 0.75),
       weeklyEntry(`${baseUrl}/wine/wine-boxes`, 0.75),
     );

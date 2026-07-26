@@ -217,6 +217,15 @@ export default async function LanguedocNaturvinPage() {
             till strukturerade viner med skiffer-mineralitet från Faugères — alltid
             med producentens avtryck i glaset.
           </p>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            <Link
+              href="/guider/varldens-basta-naturvinsproducenter"
+              className="underline underline-offset-4 hover:text-foreground"
+            >
+              Tio producenter från Languedoc och Roussillon finns med på vår
+              lista över världens 100 bästa naturvinsproducenter →
+            </Link>
+          </p>
         </section>
 
         <section className="space-y-4">

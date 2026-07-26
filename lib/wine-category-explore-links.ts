@@ -154,8 +154,23 @@ function colorHubExploreLinks(category: WineCategory): CategoryExploreLink[] {
   const hubLinks = hubSlugs.map((s) => categoryLink(s, locale));
   const grapeSlugs = COLOR_HUB_GRAPE_SLUGS[category.slug] ?? [];
   const grapeLinks = grapeSlugs.map((s) => categoryLink(s, locale));
+  const links = [...hubLinks, ...grapeLinks];
 
-  return [...hubLinks, ...grapeLinks];
+  if (category.slug === "naturvin") {
+    links.push({
+      href: "/guider/varldens-basta-naturviner",
+      label: "Världens 100 bästa naturviner",
+    });
+  }
+
+  if (category.slug === "natural-wine") {
+    links.push({
+      href: "/guides/worlds-best-natural-wines",
+      label: "The World's 100 Best Natural Wines",
+    });
+  }
+
+  return links;
 }
 
 const LONG_TAIL_GEO_SLUGS = new Set([

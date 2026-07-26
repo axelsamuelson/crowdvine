@@ -18,6 +18,8 @@ const PUBLIC_PATH_PREFIXES = [
   "/about",
   "/om-oss",
   "/languedoc",
+  "/guider",
+  "/guides",
   "/sitemap-b2b",
   "/robots-b2b",
   "/sitemap.xml",
