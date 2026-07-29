@@ -5,7 +5,17 @@ import { getProducerHandle } from "@/lib/producer-handle";
 export const PACT_PUBLIC_ORIGIN = "https://pactwines.com" as const;
 
 export type ProductPathSegment = "product" | "produkt";
-export type ProducerPathSegment = "producer" | "producent";
+/** Public profile paths — EN nested under /producers, SV under /producent. */
+export type ProducerPathSegment = "producers" | "producent";
+
+/** Portal-only segments under /producer — not public profile slugs. */
+export const PRODUCER_PORTAL_SEGMENTS = new Set([
+  "wines",
+  "labels",
+  "profile",
+  "settings",
+  "orders",
+]);
 
 export function productPagePath(
   handle: string,
@@ -39,7 +49,7 @@ export function producerPageUrls(slug: string): {
   xDefault: string;
 } {
   return {
-    en: `${PACT_PUBLIC_ORIGIN}${producerPagePath(slug, "producer")}`,
+    en: `${PACT_PUBLIC_ORIGIN}${producerPagePath(slug, "producers")}`,
     sv: `${PACT_PUBLIC_ORIGIN}${producerPagePath(slug, "producent")}`,
     xDefault: `${PACT_PUBLIC_ORIGIN}${producerPagePath(slug, "producent")}`,
   };
@@ -55,10 +65,16 @@ export function switchProductOrProducerPath(
     return productPagePath(handle, newLocale === "sv" ? "produkt" : "product");
   }
 
-  const producerMatch = pathname.match(/^\/(producer|producent)\/([^/?#]+)\/?$/);
+  const producerMatch = pathname.match(
+    /^\/(producers|producer|producent)\/([^/?#]+)\/?$/,
+  );
   if (producerMatch) {
     const slug = decodeURIComponent(producerMatch[2]);
-    return producerPagePath(slug, newLocale === "sv" ? "producent" : "producer");
+    if (PRODUCER_PORTAL_SEGMENTS.has(slug)) return null;
+    return producerPagePath(
+      slug,
+      newLocale === "sv" ? "producent" : "producers",
+    );
   }
 
   return null;
@@ -69,7 +85,7 @@ export function shopPathForLocale(locale: AppLocale): "/vin" | "/wine" {
 }
 
 export function producerPublicPath(slug: string, locale: AppLocale): string {
-  return producerPagePath(slug, locale === "sv" ? "producent" : "producer");
+  return producerPagePath(slug, locale === "sv" ? "producent" : "producers");
 }
 
 /** Producer-filtered shop PLP — /vin/{handle} or /wine/{handle}. */

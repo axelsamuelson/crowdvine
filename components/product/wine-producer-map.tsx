@@ -16,9 +16,12 @@ export type WineProducerMapLocation = {
   region?: string | null;
 };
 
+export type WineProducerMapVariant = "inline" | "panel";
+
 type Props = {
   producer: WineProducerMapLocation;
   className?: string;
+  variant?: WineProducerMapVariant;
 };
 
 type ResolvedCoords = {
@@ -38,7 +41,11 @@ function initialCoords(
   };
 }
 
-export function WineProducerMap({ producer, className }: Props) {
+export function WineProducerMap({
+  producer,
+  className,
+  variant = "inline",
+}: Props) {
   const [resolvedCoords, setResolvedCoords] = useState<ResolvedCoords | null>(
     () => initialCoords(producer),
   );
@@ -88,11 +95,25 @@ export function WineProducerMap({ producer, className }: Props) {
     !topoFailed &&
     isInMetropolitanFrance(resolvedCoords.lat, resolvedCoords.lon);
 
+  const isPanel = variant === "panel";
+
   return (
-    <div className={cn("space-y-2", className)}>
-      <div className="overflow-hidden rounded-none border-t border-border/60 bg-card">
+    <div className={cn(isPanel ? "h-full w-full" : "space-y-2", className)}>
+      <div
+        className={cn(
+          "overflow-hidden bg-card",
+          isPanel
+            ? "h-full w-full"
+            : "rounded-none border-t border-border/60",
+        )}
+      >
         {geocoding ? (
-          <div className="flex h-52 w-full items-center justify-center bg-muted/20 text-sm text-muted-foreground sm:h-60">
+          <div
+            className={cn(
+              "flex w-full items-center justify-center bg-muted/20 text-sm text-muted-foreground",
+              isPanel ? "h-full" : "h-52 sm:h-60",
+            )}
+          >
             Hämtar position…
           </div>
         ) : resolvedCoords && useTopo ? (
@@ -102,6 +123,7 @@ export function WineProducerMap({ producer, className }: Props) {
             name={producer.name}
             regionName={producer.region}
             approximate={resolvedCoords.approximate}
+            variant={variant}
             onError={() => setTopoFailed(true)}
           />
         ) : resolvedCoords ? (
@@ -110,6 +132,7 @@ export function WineProducerMap({ producer, className }: Props) {
             lon={resolvedCoords.lon}
             name={producer.name}
             approximate={resolvedCoords.approximate}
+            variant={variant}
           />
         ) : null}
       </div>

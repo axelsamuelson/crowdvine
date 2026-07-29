@@ -2,10 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
+  applyMapboxAccessToken,
   getMapboxGl,
   getMapStyle,
   ignoreMapboxAuthErrors,
   preloadMapboxGl,
+  safeRemoveMapboxMap,
 } from "@/lib/mapbox-client";
 import { cn } from "@/lib/utils";
 
@@ -15,6 +17,7 @@ type Props = {
   name: string;
   approximate?: boolean;
   className?: string;
+  variant?: "inline" | "panel";
 };
 
 const DEFAULT_ZOOM = 8;
@@ -26,11 +29,13 @@ export function WineProducerMapboxMap({
   name,
   approximate = false,
   className,
+  variant = "inline",
 }: Props) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const markerRef = useRef<any>(null);
   const [mapReady, setMapReady] = useState(false);
+  const isPanel = variant === "panel";
 
   useEffect(() => {
     preloadMapboxGl();
@@ -50,7 +55,7 @@ export function WineProducerMapboxMap({
         process.env.NEXT_PUBLIC_MAPBOX_TOKEN,
         PDP_MAP_STYLE,
       );
-      mapboxgl.accessToken = accessToken;
+      applyMapboxAccessToken(mapboxgl, accessToken);
 
       if (!mapRef.current) {
         mapRef.current = new mapboxgl.Map({
@@ -64,7 +69,11 @@ export function WineProducerMapboxMap({
           fadeDuration: 0,
         });
 
-        mapRef.current.scrollZoom.disable();
+        if (isPanel) {
+          mapRef.current.scrollZoom.enable();
+        } else {
+          mapRef.current.scrollZoom.disable();
+        }
         mapRef.current.addControl(
           new mapboxgl.NavigationControl({ showCompass: false }),
           "top-right",
@@ -96,6 +105,8 @@ export function WineProducerMapboxMap({
           duration: 300,
         });
         setMapReady(true);
+        // Panel maps need resize after sticky container settles
+        mapRef.current?.resize();
       };
 
       if (mapRef.current.loaded()) {
@@ -116,14 +127,25 @@ export function WineProducerMapboxMap({
     return () => {
       markerRef.current?.remove();
       markerRef.current = null;
-      mapRef.current?.remove();
+      safeRemoveMapboxMap(mapRef.current);
       mapRef.current = null;
     };
   }, []);
 
+  useEffect(() => {
+    if (!isPanel || !mapReady || !mapRef.current) return;
+    mapRef.current.resize();
+  }, [isPanel, mapReady]);
+
   return (
-    <div className={cn("relative", className)}>
-      <div ref={mapContainer} className="h-52 w-full sm:h-60 bg-muted/30" />
+    <div className={cn("relative", isPanel && "h-full w-full", className)}>
+      <div
+        ref={mapContainer}
+        className={cn(
+          "w-full bg-muted/30",
+          isPanel ? "h-full" : "h-52 sm:h-60",
+        )}
+      />
       {!mapReady ? (
         <div className="absolute inset-0 flex items-center justify-center bg-muted/20 text-sm text-muted-foreground">
           Laddar karta…

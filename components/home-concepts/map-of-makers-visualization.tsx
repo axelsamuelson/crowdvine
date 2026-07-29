@@ -5,6 +5,13 @@ import { motion, AnimatePresence } from "motion/react";
 import Link from "next/link";
 import Image from "next/image";
 import { X, Filter, Search, RotateCcw } from "lucide-react";
+import {
+  applyMapboxAccessToken,
+  getMapboxGl,
+  getMapStyle,
+  preloadMapboxGl,
+  safeRemoveMapboxMap,
+} from "@/lib/mapbox-client";
 
 interface Wine {
   id: string;
@@ -217,52 +224,15 @@ export function MapOfMakersVisualization() {
 
     const initMap = async () => {
       try {
-        // Import CSS dynamically
-        await import("mapbox-gl/dist/mapbox-gl.css");
-        
-        const mapboxgl = (await import("mapbox-gl")).default;
+        preloadMapboxGl();
+        const mapboxgl = await getMapboxGl();
         mapboxglRef.current = mapboxgl;
 
-        // Set Mapbox access token (optional - can use free OSM style without token)
-        const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
-        
-        // Always use OSM tiles (free, no token required)
-        // Only use Mapbox style if token is explicitly provided
-        let mapStyle: string | object;
-        
-        if (mapboxToken) {
-          // Use Mapbox style if token is provided
-          mapboxgl.accessToken = mapboxToken;
-          mapStyle = "mapbox://styles/mapbox/light-v11";
-        } else {
-          // Use OSM tiles (no token required)
-          // Don't set accessToken at all to avoid auth errors
-          // Set a dummy token to prevent Mapbox from trying to authenticate
-          mapboxgl.accessToken = "pk.dummy";
-          mapStyle = {
-            version: 8,
-            sources: {
-              "osm-tiles": {
-                type: "raster",
-                tiles: [
-                  "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-                ],
-                tileSize: 256,
-                attribution:
-                  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-              },
-            },
-            layers: [
-              {
-                id: "osm-layer",
-                type: "raster",
-                source: "osm-tiles",
-                minzoom: 0,
-                maxzoom: 19,
-              },
-            ],
-          };
-        }
+        const { accessToken, style: mapStyle } = getMapStyle(
+          process.env.NEXT_PUBLIC_MAPBOX_TOKEN,
+          "light",
+        );
+        applyMapboxAccessToken(mapboxgl, accessToken);
 
         map.current = new mapboxgl.Map({
           container: mapContainer.current,
@@ -310,10 +280,8 @@ export function MapOfMakersVisualization() {
     checkAndInit();
 
     return () => {
-      if (map.current) {
-        map.current.remove();
-        map.current = null;
-      }
+      safeRemoveMapboxMap(map.current);
+      map.current = null;
     };
   }, []);
 

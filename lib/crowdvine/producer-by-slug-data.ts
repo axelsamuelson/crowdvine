@@ -8,6 +8,8 @@ import { fetchIndexableProducersFromDb } from "@/lib/crowdvine/indexable-produce
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import type { AppLocale } from "@/lib/i18n/locale";
 
+const PRODUCER_BY_SLUG_SELECT = `${PRODUCER_DB_SELECT}, lat, lon` as const;
+
 type ProducerRow = {
   id: string;
   name: string;
@@ -19,6 +21,8 @@ type ProducerRow = {
   bio_long: unknown;
   certification: string | null;
   contact_name: string | null;
+  lat: number | null;
+  lon: number | null;
 };
 
 type WineRow = {
@@ -48,6 +52,8 @@ export type ProducerBySlugPayload = {
     bio_short: string | null;
     bio_long: string | null;
     slug: string;
+    lat: number | null;
+    lon: number | null;
   };
   wines: Array<{
     id: string;
@@ -99,7 +105,7 @@ export async function getProducerBySlugForLocale(
   const wineLocale: WineLocale = locale === "en" ? "en" : "sv";
   const sb = getSupabaseAdmin();
 
-  const producers = await fetchIndexableProducersFromDb(PRODUCER_DB_SELECT);
+  const producers = await fetchIndexableProducersFromDb(PRODUCER_BY_SLUG_SELECT);
 
   const producer = producers.find(
     (row) => generateProducerSlug(String((row as ProducerRow).name)) === slug,
@@ -136,6 +142,8 @@ export async function getProducerBySlugForLocale(
         wineLocale,
       ),
       slug: generateProducerSlug(producer.name),
+      lat: producer.lat,
+      lon: producer.lon,
     },
     wines: (wines ?? []).map((row) => mapWineRow(row as WineRow, wineLocale)),
   };

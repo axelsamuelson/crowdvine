@@ -11,8 +11,11 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Footer } from "@/components/layout/footer";
-import { ProducerWineCard } from "@/components/producer/producer-wine-card";
+import { ProducersDirectoryMap } from "@/components/producer/producers-directory-map";
+import { ProducerWineList } from "@/components/producer/producer-wine-list";
+import { fetchIndexableProducersFromDb } from "@/lib/crowdvine/indexable-producers";
 import { getProducerBySlugForLocale } from "@/lib/crowdvine/producer-by-slug-data";
+import { generateProducerSlug } from "@/lib/producer-handle";
 import type { AppLocale } from "@/lib/i18n/locale";
 import { intlLocaleForAppLocale } from "@/lib/i18n/locale";
 import {
@@ -51,6 +54,8 @@ type ProducerPayload = {
   bio_short: string | null;
   bio_long: string | null;
   slug: string;
+  lat: number | null;
+  lon: number | null;
 };
 
 type WinePayload = {
@@ -76,15 +81,6 @@ export async function fetchProducerBySlugForLocale(
   locale: AppLocale,
 ): Promise<ProducerBySlugResponse | null> {
   return getProducerBySlugForLocale(slug, locale);
-}
-
-function producerInitials(name: string): string {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() ?? "")
-    .join("");
 }
 
 function formatCertification(
@@ -180,9 +176,12 @@ export async function renderProducerPublicPage(options: {
   pathSegment: ProducerPathSegment;
 }) {
   const { slug, locale, pathSegment } = options;
-  const [data, config] = await Promise.all([
+  const [data, config, producersForMapRaw] = await Promise.all([
     fetchProducerBySlugForLocale(slug, locale),
     getSiteConfig(),
+    fetchIndexableProducersFromDb(
+      "id, name, region, subregion, lat, lon",
+    ),
   ]);
 
   if (!data?.producer) notFound();
@@ -191,6 +190,28 @@ export async function renderProducerPublicPage(options: {
   const t = (key: string) => translate(locale, key);
   const intlLocale = intlLocaleForAppLocale(locale);
   const paths = localizedPathsForLocale(locale);
+
+  const mapProducers = (
+    producersForMapRaw as Array<{
+      id: string;
+      name: string;
+      region: string | null;
+      subregion: string | null;
+      lat: number | null;
+      lon: number | null;
+    }>
+  ).map((row) => {
+    const rowSlug = generateProducerSlug(row.name);
+    return {
+      id: row.id,
+      name: row.name,
+      href: paths.producer(rowSlug),
+      lat: row.lat,
+      lon: row.lon,
+      region: row.region,
+      subregion: row.subregion,
+    };
+  });
 
   const heroParts = heroMetaParts(producer, locale);
   const foundedLabel =
@@ -220,7 +241,7 @@ export async function renderProducerPublicPage(options: {
   );
 
   const producerPageUrl = `${PACT_PUBLIC_ORIGIN}${producerPagePath(slug, pathSegment)}`;
-  const productPathSegment = pathSegment === "producer" ? "product" : "produkt";
+  const productPathSegment = pathSegment === "producers" ? "product" : "produkt";
 
   const producerJsonLd = buildProducerWineryJsonLd(
     { ...producer, pageUrl: producerPageUrl },
@@ -297,8 +318,8 @@ export async function renderProducerPublicPage(options: {
           __html: JSON.stringify(breadcrumbJsonLd),
         }}
       />
-      <div className="grid min-h-screen grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,35%)]">
-        <div className="max-w-2xl px-6 pb-12 pt-top-spacing">
+      <div className="grid min-h-screen grid-cols-1 pt-top-spacing lg:grid-cols-2">
+        <div className="w-full px-6 pb-12 lg:px-10 xl:px-14">
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem>
@@ -363,19 +384,12 @@ export async function renderProducerPublicPage(options: {
               {producerShopLinkLabel}
             </Link>
           </div>
-          {wines.length > 0 ? (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              {wines.map((wine) => (
-                <ProducerWineCard
-                  key={wine.id}
-                  wine={wine}
-                  intlLocale={intlLocale}
-                />
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">{noWinesMessage}</p>
-          )}
+          <ProducerWineList
+            wines={wines}
+            locale={locale}
+            intlLocale={intlLocale}
+            emptyMessage={noWinesMessage}
+          />
 
           {producerGrapes.length > 0 ? (
             <section className="mt-10">
@@ -417,10 +431,14 @@ export async function renderProducerPublicPage(options: {
           ) : null}
         </div>
 
-        <div className="sticky top-top-spacing flex h-[calc(100vh-var(--top-spacing))] items-center justify-center bg-gradient-to-b from-zinc-800 to-zinc-950 max-lg:hidden">
-          <span className="text-6xl font-bold text-white opacity-20">
-            {producerInitials(producer.name)}
-          </span>
+        <div className="sticky top-top-spacing h-[calc(100vh-var(--top-spacing))] max-lg:hidden">
+          <div className="relative h-full w-full overflow-hidden bg-gradient-to-b from-zinc-800 to-zinc-950">
+            <ProducersDirectoryMap
+              producers={mapProducers}
+              highlightedProducerId={producer.id}
+              className="h-full w-full"
+            />
+          </div>
         </div>
       </div>
       <Footer />

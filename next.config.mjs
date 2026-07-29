@@ -51,6 +51,13 @@ const nextConfig = {
         destination: "/om-oss",
         permanent: true,
       },
+      // Legacy EN public profiles → /producers/:slug (portal segments excluded)
+      {
+        source:
+          "/producer/:slug((?!wines|labels|profile|settings|orders)[^/]+)",
+        destination: "/producers/:slug",
+        permanent: true,
+      },
     ];
   },
   /* Vercel configuration */

@@ -113,7 +113,7 @@ export async function buildSitemapEntries(
         priority: 0.7,
       };
       return [
-        { url: `${baseUrl}/producer/${slug}`, ...entry },
+        { url: `${baseUrl}/producers/${slug}`, ...entry },
         { url: `${baseUrl}/producent/${slug}`, ...entry },
       ];
     });

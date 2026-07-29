@@ -28,6 +28,9 @@ const SEGMENT_LABELS: Record<string, string> = {
   "my-work": "My work",
   "strategy-map": "Strategy map",
   "menu-extraction": "Menu extraction",
+  content: "Site content",
+  images: "Images",
+  "home-concepts": "Home concepts",
 };
 
 function looksLikeUuid(seg: string): boolean {

@@ -11,7 +11,10 @@ import {
   getCategoryUrlForGrape,
 } from "@/lib/wine-categories";
 import { LOCALE_COOKIE, parseLocaleCookie } from "@/lib/i18n/locale";
-import { redirectLocalePathMismatch } from "@/lib/i18n/locale-path-redirect";
+import {
+  redirectLegacyProducerProfilePath,
+  redirectLocalePathMismatch,
+} from "@/lib/i18n/locale-path-redirect";
 import { localeFromShopPath } from "@/lib/i18n/shop-path-locale";
 
 const LOCALE_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
@@ -26,6 +29,9 @@ export async function middleware(req: NextRequest) {
 }
 
 function nextWithPathname(req: NextRequest): NextResponse {
+  const legacyProducerRedirect = redirectLegacyProducerProfilePath(req);
+  if (legacyProducerRedirect) return legacyProducerRedirect;
+
   const localeRedirect = redirectLocalePathMismatch(req);
   if (localeRedirect) return localeRedirect;
 

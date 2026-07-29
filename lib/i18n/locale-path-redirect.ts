@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import type { AppLocale } from "@/lib/i18n/locale";
 import { LOCALE_COOKIE, parseLocaleCookie } from "@/lib/i18n/locale";
 import {
+  PRODUCER_PORTAL_SEGMENTS,
   producerPagePath,
   productPagePath,
   type ProducerPathSegment,
@@ -11,23 +12,35 @@ import {
 } from "@/lib/i18n/localized-routes";
 import { localeFromShopPath } from "@/lib/i18n/shop-path-locale";
 
-/** Producer portal routes under /producer — not public slug pages. */
-const PRODUCER_PORTAL_SEGMENTS = new Set([
-  "wines",
-  "labels",
-  "profile",
-  "settings",
-  "orders",
-]);
-
 export function isPublicProductPath(pathname: string): boolean {
   return /^\/(product|produkt)\/[^/?#]+\/?$/.test(pathname);
 }
 
+/** True for public profile URLs (current + legacy /producer/:slug). */
 export function isPublicProducerSlugPath(pathname: string): boolean {
-  const match = pathname.match(/^\/(producer|producent)\/([^/?#]+)\/?$/);
+  const match = pathname.match(
+    /^\/(producers|producer|producent)\/([^/?#]+)\/?$/,
+  );
   if (!match) return false;
-  return !PRODUCER_PORTAL_SEGMENTS.has(match[2]);
+  if (match[1] === "producer" && PRODUCER_PORTAL_SEGMENTS.has(match[2])) {
+    return false;
+  }
+  return true;
+}
+
+/** Legacy EN public profiles under /producer/:slug → /producers/:slug */
+export function redirectLegacyProducerProfilePath(
+  req: NextRequest,
+): NextResponse | null {
+  const { pathname } = req.nextUrl;
+  const match = pathname.match(/^\/producer\/([^/?#]+)\/?$/);
+  if (!match) return null;
+  const slug = decodeURIComponent(match[1]);
+  if (PRODUCER_PORTAL_SEGMENTS.has(slug)) return null;
+
+  const u = req.nextUrl.clone();
+  u.pathname = producerPagePath(slug, "producers");
+  return NextResponse.redirect(u, 308);
 }
 
 function preferredLocaleFromRequest(req: NextRequest): AppLocale | null {
@@ -69,7 +82,7 @@ export function redirectLocalePathMismatch(
   if (!isPublicProducerSlugPath(pathname)) return null;
 
   const producerMatch = pathname.match(
-    /^\/(producer|producent)\/([^/?#]+)\/?$/,
+    /^\/(producers|producer|producent)\/([^/?#]+)\/?$/,
   );
   if (producerMatch) {
     const [, segment, rawSlug] = producerMatch;
@@ -78,7 +91,7 @@ export function redirectLocalePathMismatch(
     if (pathLocale === preferredLocale) return null;
 
     const targetSegment: ProducerPathSegment =
-      preferredLocale === "sv" ? "producent" : "producer";
+      preferredLocale === "sv" ? "producent" : "producers";
     const u = req.nextUrl.clone();
     u.pathname = producerPagePath(slug, targetSegment);
     return NextResponse.redirect(u, 308);

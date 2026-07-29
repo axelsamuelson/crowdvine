@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
   useTransition,
+  type ReactNode,
 } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { ChevronRight, Minus, Plus, X } from "lucide-react";
@@ -254,14 +255,16 @@ function MixedCaseWineDetailBody({
 export interface AddToCartCaseProps {
   product: Product;
   className?: string;
-  /** Opens the mixed-case drawer once after mount (e.g. shop → mixed handoff). */
+  /** Opens the mixed-case drawer once after mount (e.g. shop -> mixed handoff). */
   initialMixedSheetOpen?: boolean;
   /** Fired when the mixed-case sheet `open` state changes (for shop handoff cleanup). */
   onMixedSheetOpenChange?: (open: boolean) => void;
-  /** Only render the mixed-case sheet (no PDP segmented control) — shop handoff. */
+  /** Only render the mixed-case sheet (no PDP segmented control) - shop handoff. */
   sheetOnly?: boolean;
   /** Renders live UI but blocks cart mutations (dev PDP preview). */
   previewDisabled?: boolean;
+  /** Rendered beside the Add case CTA. */
+  ctaAside?: ReactNode;
 }
 
 /**
@@ -274,6 +277,7 @@ export function AddToCartCase({
   onMixedSheetOpenChange,
   sheetOnly = false,
   previewDisabled = false,
+  ctaAside,
 }: AddToCartCaseProps) {
   if (!product.producerId || product.productType !== "wine") {
     return (
@@ -696,6 +700,7 @@ export function AddToCartCase({
           (mode === "mixed" && isBatchPending)
         }
         pending={mode === "same" && isSamePending}
+        ctaAside={ctaAside}
         label={
           !resolvedVariant
             ? t("product.selectOne")
@@ -783,7 +788,7 @@ function MixedCaseWineListPanel({
                     "focus-visible:ring-2 focus-visible:ring-ring",
                     "hover:bg-[color:var(--color-background-secondary,hsl(var(--secondary)))]",
                   )}
-                  aria-label={`${w.wine_name} ${w.vintage} — wine details`}
+                  aria-label={`${w.wine_name} ${w.vintage} - wine details`}
                   onClick={() => onOpenDetail(w.id)}
                   onKeyDown={(e) => {
                     if (e.key !== "Enter" && e.key !== " ") return;
@@ -944,7 +949,7 @@ function MixedCaseWineDetailPanel({
           className="-ml-2 gap-1 px-2 text-foreground"
           onClick={onBack}
         >
-          ← Back
+          ? Back
         </Button>
         {layout === "mobile-fullscreen" ? (
           <p

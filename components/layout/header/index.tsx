@@ -94,7 +94,8 @@ export function Header({
                   href="/producer"
                   className={cn(
                     "font-semibold text-base transition-colors duration-200 uppercase",
-                    pathname?.startsWith("/producer")
+                    pathname === "/producer" ||
+                      pathname?.startsWith("/producer/")
                       ? "text-foreground"
                       : "text-foreground/50",
                   )}

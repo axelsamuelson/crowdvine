@@ -35,6 +35,9 @@ import {
   ChevronDown,
   Mail,
   Wrench,
+  Image,
+  LayoutTemplate,
+  PenSquare,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -111,6 +114,15 @@ const navigationGroups: NavGroup[] = [
       { name: "Tasks", href: "/admin/operations/tasks", icon: ListTodo },
       { name: "Strategy map", href: "/admin/strategy-map", icon: Waypoints },
       { name: "My Work", href: "/admin/operations/my-work", icon: UserCheck },
+    ],
+  },
+  {
+    name: "CMS",
+    icon: PenSquare,
+    items: [
+      { name: "Site content", href: "/admin/content", icon: FileText },
+      { name: "Images", href: "/admin/images", icon: Image },
+      { name: "Home concepts", href: "/admin/home-concepts", icon: LayoutTemplate },
     ],
   },
   {

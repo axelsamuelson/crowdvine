@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { AddToCartCase } from "./AddToCartCase";
 import { AddToCartWithSource } from "./add-to-cart-with-source";
 import { Product } from "@/lib/shopify/types";
@@ -10,6 +11,8 @@ interface AddToCartConditionalProps {
   className?: string;
   /** Renders live UI but blocks cart mutations (dev PDP preview). */
   previewDisabled?: boolean;
+  /** Rendered beside the B2C Add case CTA. */
+  ctaAside?: ReactNode;
 }
 
 /**
@@ -20,6 +23,7 @@ export function AddToCartConditional({
   product,
   className,
   previewDisabled = false,
+  ctaAside,
 }: AddToCartConditionalProps) {
   const isB2B = useB2BPriceMode();
 
@@ -38,6 +42,7 @@ export function AddToCartConditional({
       product={product}
       className={className}
       previewDisabled={previewDisabled}
+      ctaAside={ctaAside}
     />
   );
 }

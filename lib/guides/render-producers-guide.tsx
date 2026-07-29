@@ -47,7 +47,7 @@ function linkLanguedocMentions(text: string): ReactNode {
 }
 
 function ProducersLanguedocConnections({ locale }: { locale: AppLocale }) {
-  const producerBase = locale === "sv" ? "/producent" : "/producer";
+  const producerBase = locale === "sv" ? "/producent" : "/producers";
   const linkClass = "underline underline-offset-4 hover:text-foreground";
 
   if (locale === "en") {
@@ -66,11 +66,9 @@ function ProducersLanguedocConnections({ locale }: { locale: AppLocale }) {
           Le Bouc à Trois Pattes
         </Link>
         , and helped Olga Ivanova and Antoine Monod get started when they
-        founded Hors Saison in 2021. Didier Barral in Faugères (#71) taught{" "}
-        <Link href={`${producerBase}/yannick-pelletier`} className={linkClass}>
-          Yannick Pelletier
-        </Link>
-        , whose domaine sits on the border between Saint-Chinian and Faugères.
+        founded Hors Saison in 2021. Didier Barral in Faugères (#71) taught
+        Yannick Pelletier, whose domaine sits on the border between
+        Saint-Chinian and Faugères.
       </p>
     );
   }
@@ -90,11 +88,9 @@ function ProducersLanguedocConnections({ locale }: { locale: AppLocale }) {
         Le Bouc à Trois Pattes
       </Link>
       , och hjälpte Olga Ivanova och Antoine Monod igång när de startade Hors
-      Saison 2021. Didier Barral i Faugères (#71) var lärare åt{" "}
-      <Link href={`${producerBase}/yannick-pelletier`} className={linkClass}>
-        Yannick Pelletier
-      </Link>
-      , vars domän ligger på gränsen mellan Saint-Chinian och Faugères.
+      Saison 2021. Didier Barral i Faugères (#71) var lärare åt Yannick
+      Pelletier, vars domän ligger på gränsen mellan Saint-Chinian och
+      Faugères.
     </p>
   );
 }

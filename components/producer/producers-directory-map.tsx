@@ -13,33 +13,33 @@ import { hasValidGeoCoords } from "@/lib/geo-distance";
 import { resolveManyProducerCoordinates } from "@/lib/producer-geocode-client";
 import { cn } from "@/lib/utils";
 
-export type B2bPalletMapProducerInput = {
+export type ProducersDirectoryMapItem = {
   id: string;
   name: string;
+  href: string;
   lat?: number | null;
   lon?: number | null;
-  bottles: number;
-  isPickup: boolean;
-  subregion?: string | null;
   region?: string | null;
+  subregion?: string | null;
 };
 
-export type B2bPalletMapProducer = B2bPalletMapProducerInput & {
+type ResolvedProducer = ProducersDirectoryMapItem & {
   lat: number;
   lon: number;
   approximate?: boolean;
 };
 
 type Props = {
-  producers: B2bPalletMapProducerInput[];
-  missingLocationNames?: string[];
+  producers: ProducersDirectoryMapItem[];
   className?: string;
+  /** When set, that producer’s marker is emphasized (profile pages). */
+  highlightedProducerId?: string | null;
 };
 
-function toResolvedProducer(
-  producer: B2bPalletMapProducerInput,
+function toResolved(
+  producer: ProducersDirectoryMapItem,
   approximate: boolean,
-): B2bPalletMapProducer | null {
+): ResolvedProducer | null {
   if (!hasValidGeoCoords(producer.lat, producer.lon)) return null;
   return {
     ...producer,
@@ -49,34 +49,43 @@ function toResolvedProducer(
   };
 }
 
-function resolveKnownProducers(
-  producers: B2bPalletMapProducerInput[],
-): B2bPalletMapProducer[] {
+function resolveKnown(
+  producers: ProducersDirectoryMapItem[],
+): ResolvedProducer[] {
   return producers
-    .map((producer) => toResolvedProducer(producer, false))
-    .filter((producer): producer is B2bPalletMapProducer => producer != null);
+    .map((producer) => toResolved(producer, false))
+    .filter((producer): producer is ResolvedProducer => producer != null);
 }
 
-export function B2bPalletProducersMap({
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+}
+
+/** Full-bleed Mapbox panel for the public /producers directory. */
+export function ProducersDirectoryMap({
   producers,
-  missingLocationNames = [],
   className,
+  highlightedProducerId = null,
 }: Props) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
-  const [resolvedProducers, setResolvedProducers] = useState<
-    B2bPalletMapProducer[]
-  >(() => resolveKnownProducers(producers));
-  const [unresolvedNames, setUnresolvedNames] = useState<string[]>([]);
+  const [resolvedProducers, setResolvedProducers] = useState<ResolvedProducer[]>(
+    () => resolveKnown(producers),
+  );
   const [mapReady, setMapReady] = useState(false);
+  const [geocoding, setGeocoding] = useState(false);
 
   const producersKey = useMemo(
     () =>
       producers
         .map(
           (p) =>
-            `${p.id}:${p.lat},${p.lon}:${p.isPickup}:${p.bottles}:${p.subregion}:${p.region}`,
+            `${p.id}:${p.lat},${p.lon}:${p.subregion}:${p.region}:${p.href}`,
         )
         .sort()
         .join("|"),
@@ -88,30 +97,26 @@ export function B2bPalletProducersMap({
   }, []);
 
   useEffect(() => {
-    const known = resolveKnownProducers(producers);
+    const known = resolveKnown(producers);
     setResolvedProducers(known);
 
     const needsGeocode = producers.filter(
       (producer) => !hasValidGeoCoords(producer.lat, producer.lon),
     );
     if (needsGeocode.length === 0) {
-      setUnresolvedNames([]);
+      setGeocoding(false);
       return;
     }
 
     let cancelled = false;
+    setGeocoding(true);
 
     void resolveManyProducerCoordinates(needsGeocode).then((results) => {
       if (cancelled) return;
 
-      const geocoded: B2bPalletMapProducer[] = [];
-      const unresolved: string[] = [];
-
+      const geocoded: ResolvedProducer[] = [];
       for (const result of results) {
-        if ("unresolved" in result) {
-          unresolved.push(result.producer.name);
-          continue;
-        }
+        if ("unresolved" in result) continue;
         geocoded.push({
           ...result.producer,
           lat: result.lat,
@@ -121,7 +126,7 @@ export function B2bPalletProducersMap({
       }
 
       setResolvedProducers([...known, ...geocoded]);
-      setUnresolvedNames(unresolved);
+      setGeocoding(false);
     });
 
     return () => {
@@ -141,6 +146,7 @@ export function B2bPalletProducersMap({
 
       const { accessToken, style } = getMapStyle(
         process.env.NEXT_PUBLIC_MAPBOX_TOKEN,
+        "outdoors",
       );
       applyMapboxAccessToken(mapboxgl, accessToken);
 
@@ -151,7 +157,7 @@ export function B2bPalletProducersMap({
           center: [3.2, 43.3],
           zoom: 7.5,
           minZoom: 5,
-          maxZoom: 15,
+          maxZoom: 14,
           fadeDuration: 0,
         });
 
@@ -173,35 +179,44 @@ export function B2bPalletProducersMap({
         const bounds = new mapboxgl.LngLatBounds();
 
         for (const producer of resolvedProducers) {
+          const isHighlighted = producer.id === highlightedProducerId;
           const el = document.createElement("div");
           el.className = cn(
-            "flex h-4 w-4 items-center justify-center rounded-full border-2 border-white shadow-md",
-            producer.isPickup
-              ? "bg-green-500 ring-2 ring-green-300"
-              : producer.approximate
+            "cursor-pointer items-center justify-center rounded-full border-2 border-white shadow-md",
+            isHighlighted
+              ? "flex h-5 w-5 bg-foreground ring-2 ring-foreground/30"
+              : "flex h-3.5 w-3.5",
+            !isHighlighted &&
+              (producer.approximate
                 ? "border-dashed bg-amber-400"
-                : "bg-sky-600",
+                : "bg-sky-600"),
           );
           el.title = producer.name;
 
+          const meta = [producer.subregion, producer.region]
+            .filter(Boolean)
+            .join(" · ");
           const popup = new mapboxgl.Popup({
             offset: 12,
             closeButton: false,
-            className: "b2b-pallet-map-popup",
+            maxWidth: "220px",
           }).setHTML(
-            `<div style="font: 13px/1.4 system-ui,sans-serif;padding:2px 0">
-              <strong>${producer.name}</strong><br/>
-              ${producer.bottles} flaskor${
-                producer.isPickup
-                  ? "<br/><span style='color:#16a34a'>Upphämtningsplats</span>"
-                  : producer.approximate
-                    ? "<br/><span style='color:#d97706'>Uppskattad position (subregion)</span>"
-                    : ""
+            `<div style="font:13px/1.4 system-ui,sans-serif;padding:2px 0">
+              <a href="${escapeHtml(producer.href)}" style="color:inherit;font-weight:600;text-decoration:underline;text-underline-offset:3px">
+                ${escapeHtml(producer.name)}
+              </a>
+              ${
+                meta
+                  ? `<div style="margin-top:2px;color:#78716c;font-size:12px">${escapeHtml(meta)}</div>`
+                  : ""
               }
             </div>`,
           );
 
-          const marker = new mapboxgl.Marker({ element: el })
+          const marker = new mapboxgl.Marker({
+            element: el,
+            zIndexOffset: isHighlighted ? 10 : 0,
+          })
             .setLngLat([producer.lon, producer.lat])
             .setPopup(popup)
             .addTo(mapRef.current);
@@ -213,17 +228,18 @@ export function B2bPalletProducersMap({
         if (resolvedProducers.length === 1) {
           mapRef.current.easeTo({
             center: [resolvedProducers[0].lon, resolvedProducers[0].lat],
-            zoom: 10,
+            zoom: 9,
             duration: 300,
           });
-        } else if (resolvedProducers.length > 1) {
+        } else {
           mapRef.current.fitBounds(bounds, {
-            padding: 48,
-            maxZoom: 11,
+            padding: 56,
+            maxZoom: 10,
             duration: 300,
           });
         }
 
+        mapRef.current.resize();
         if (!cancelled) setMapReady(true);
       };
 
@@ -239,7 +255,7 @@ export function B2bPalletProducersMap({
     return () => {
       cancelled = true;
     };
-  }, [resolvedProducers]);
+  }, [resolvedProducers, highlightedProducerId]);
 
   useEffect(() => {
     return () => {
@@ -252,74 +268,35 @@ export function B2bPalletProducersMap({
     };
   }, []);
 
-  const allMissing = [...missingLocationNames, ...unresolvedNames];
-
-  if (producers.length === 0) {
-    return (
-      <div
-        className={cn(
-          "rounded-lg border border-dashed border-gray-200 bg-white px-4 py-8 text-center text-sm text-gray-500 dark:border-zinc-700 dark:bg-zinc-900/40 dark:text-zinc-400",
-          className,
-        )}
-      >
-        Inga producenter på pallen.
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (!mapReady || !mapRef.current) return;
+    mapRef.current.resize();
+  }, [mapReady]);
 
   if (resolvedProducers.length === 0) {
     return (
       <div
         className={cn(
-          "rounded-lg border border-dashed border-gray-200 bg-white px-4 py-8 text-center text-sm text-gray-500 dark:border-zinc-700 dark:bg-zinc-900/40 dark:text-zinc-400",
+          "flex h-full w-full items-center justify-center bg-gradient-to-b from-zinc-800 to-zinc-950 text-sm text-white/50",
           className,
         )}
       >
-        {allMissing.length > 0 ? (
-          <>
-            Hämtar kartpositioner…
-            <p className="mt-2 text-xs">
-              Saknar koordinater: {allMissing.join(", ")}
-            </p>
-          </>
-        ) : (
-          "Hämtar kartpositioner…"
-        )}
+        {geocoding ? "Hämtar positioner…" : "Karta saknas"}
       </div>
     );
   }
 
   return (
-    <div className={cn("space-y-2", className)}>
-      <div className="relative overflow-hidden rounded-lg border border-gray-200 dark:border-zinc-700">
-        <div ref={mapContainer} className="h-64 w-full sm:h-72 bg-muted/30" />
-        {!mapReady ? (
-          <div className="absolute inset-0 flex items-center justify-center bg-muted/20 text-sm text-gray-500 dark:text-zinc-400">
-            Laddar karta…
-          </div>
-        ) : null}
-        <div className="absolute bottom-2 left-2 flex flex-wrap gap-2 rounded-md bg-white/90 px-2 py-1 text-xs shadow-sm dark:bg-zinc-900/90">
-          <span className="inline-flex items-center gap-1.5 text-gray-700 dark:text-zinc-300">
-            <span className="inline-block h-2.5 w-2.5 rounded-full bg-sky-600" />
-            Producent
-          </span>
-          <span className="inline-flex items-center gap-1.5 text-gray-700 dark:text-zinc-300">
-            <span className="inline-block h-2.5 w-2.5 rounded-full border border-dashed border-amber-600 bg-amber-400" />
-            Uppskattad
-          </span>
-          <span className="inline-flex items-center gap-1.5 text-gray-700 dark:text-zinc-300">
-            <span className="inline-block h-2.5 w-2.5 rounded-full bg-green-500 ring-1 ring-green-300" />
-            Upphämtningsplats
-          </span>
+    <div className={cn("relative h-full w-full", className)}>
+      <div ref={mapContainer} className="h-full w-full bg-muted/30" />
+      {!mapReady ? (
+        <div className="absolute inset-0 flex items-center justify-center bg-muted/20 text-sm text-muted-foreground">
+          Laddar karta…
         </div>
-      </div>
-      {allMissing.length > 0 ? (
-        <p className={hintClass}>
-          Saknar kartposition: {allMissing.join(", ")}
-        </p>
       ) : null}
+      <div className="absolute bottom-3 left-3 rounded-md bg-background/90 px-2 py-1 text-xs text-muted-foreground shadow-sm backdrop-blur-sm">
+        {resolvedProducers.length} producenter
+      </div>
     </div>
   );
 }
-
-const hintClass = "text-xs text-gray-500 dark:text-zinc-400";

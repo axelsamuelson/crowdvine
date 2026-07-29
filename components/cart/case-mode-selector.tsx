@@ -1,6 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
+import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader } from "@/components/ui/loader";
 import { cn } from "@/lib/utils";
@@ -17,6 +18,8 @@ export interface CaseModeSelectorProps {
   label?: string;
   /** Shows loading state on the CTA */
   pending?: boolean;
+  /** Optional control rendered beside the primary CTA (e.g. B2B link on PDP). */
+  ctaAside?: ReactNode;
   className?: string;
 }
 
@@ -30,6 +33,7 @@ export function CaseModeSelector({
   disabled = false,
   label,
   pending = false,
+  ctaAside,
   className,
 }: CaseModeSelectorProps) {
   const { t } = useTranslations();
@@ -39,26 +43,31 @@ export function CaseModeSelector({
 
   return (
     <div className={cn("flex w-full flex-col gap-2", className)}>
-      <Button
-        type="button"
-        size="lg"
-        disabled={disabled || pending}
-        onClick={onConfirm}
-        className="h-11 w-full rounded-md bg-black text-white hover:bg-black/90 border-0"
-      >
-        <AnimatePresence initial={false} mode="wait">
-          <motion.span
-            key={pending ? "loading" : "label"}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.12 }}
-            className="flex items-center justify-center gap-2"
-          >
-            {pending ? <Loader size="default" /> : ctaLabel}
-          </motion.span>
-        </AnimatePresence>
-      </Button>
+      <div className="flex w-full items-center gap-3">
+        <Button
+          type="button"
+          size="lg"
+          disabled={disabled || pending}
+          onClick={onConfirm}
+          className="h-11 min-w-0 flex-1 rounded-md border-0 bg-black text-white hover:bg-black/90"
+        >
+          <AnimatePresence initial={false} mode="wait">
+            <motion.span
+              key={pending ? "loading" : "label"}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.12 }}
+              className="flex items-center justify-center gap-2"
+            >
+              {pending ? <Loader size="default" /> : ctaLabel}
+            </motion.span>
+          </AnimatePresence>
+        </Button>
+        {ctaAside ? (
+          <div className="shrink-0 whitespace-nowrap">{ctaAside}</div>
+        ) : null}
+      </div>
 
       <div
         className="flex w-full gap-1 rounded-md p-1"

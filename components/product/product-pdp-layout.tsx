@@ -26,6 +26,7 @@ import { ProductHeroPrice } from "@/app/product/[handle]/components/product-hero
 import { PdpRecommendationsSection } from "@/components/product/pdp-recommendations-section";
 import { PdpSiblingWinesSection } from "@/components/product/pdp-sibling-wines-section";
 import { WineProducerMap } from "@/components/product/wine-producer-map";
+import { PdpB2BLink } from "@/components/product/pdp-b2b-link";
 import type { PdpRecommendationsResult } from "@/lib/product/recommendations";
 import { pickPdpSiblingWines } from "@/lib/product/pdp-sibling-wines";
 import type { AppLocale } from "@/lib/i18n/locale";
@@ -143,6 +144,11 @@ export function ProductPdpLayout({
                       product={product}
                       className="w-full"
                       previewDisabled={addToCartPreviewDisabled}
+                      ctaAside={
+                        product.productType === "wine" ? (
+                          <PdpB2BLink locale={locale} />
+                        ) : null
+                      }
                     />
                     {product.productType === "wine" &&
                     (

@@ -27,6 +27,7 @@ type Props = {
   regionName?: string | null;
   approximate?: boolean;
   className?: string;
+  variant?: "inline" | "panel";
   onError?: () => void;
 };
 
@@ -45,8 +46,9 @@ type ProjectedRegionLabel = {
 };
 
 const MIN_ZOOM = 1;
-const MAX_ZOOM = 6;
-const WHEEL_ZOOM_SENSITIVITY = 0.00035;
+const MAX_ZOOM = 8;
+const PANEL_INITIAL_ZOOM = 2.75;
+const WHEEL_ZOOM_SENSITIVITY = 0.00055;
 
 function getWheelZoomFactor(event: WheelEvent): number {
   let delta = event.deltaY;
@@ -54,7 +56,11 @@ function getWheelZoomFactor(event: WheelEvent): number {
   else if (event.deltaMode === WheelEvent.DOM_DELTA_PAGE) delta *= 400;
 
   const factor = Math.exp(-delta * WHEEL_ZOOM_SENSITIVITY);
-  return Math.max(0.97, Math.min(1.03, factor));
+  return Math.max(0.94, Math.min(1.06, factor));
+}
+
+function screenSize(base: number, zoomK: number): number {
+  return base / Math.max(zoomK, 0.001);
 }
 
 export function WineProducerTopoMap({
@@ -64,8 +70,10 @@ export function WineProducerTopoMap({
   regionName,
   approximate = false,
   className,
+  variant = "inline",
   onError,
 }: Props) {
+  const isPanel = variant === "panel";
   const svgRef = useRef<SVGSVGElement>(null);
   const zoomGroupRef = useRef<SVGGElement>(null);
   const zoomBehaviorRef = useRef<d3.ZoomBehavior<
@@ -76,6 +84,7 @@ export function WineProducerTopoMap({
   const [regions, setRegions] = useState<FranceGeoFeature[] | null>(null);
   const [loadError, setLoadError] = useState(false);
   const [mapVisible, setMapVisible] = useState(false);
+  const [zoomK, setZoomK] = useState(1);
 
   useEffect(() => {
     let cancelled = false;
@@ -184,12 +193,13 @@ export function WineProducerTopoMap({
     const svg = d3.select(svgElement);
     const zoomGroup = d3.select(zoomGroupRef.current);
 
+    const pad = isPanel ? 120 : 0;
     const zoom = d3
       .zoom<SVGSVGElement, unknown>()
       .scaleExtent([MIN_ZOOM, MAX_ZOOM])
       .translateExtent([
-        [0, 0],
-        [FRANCE_TOPO_WIDTH, FRANCE_TOPO_HEIGHT],
+        [-pad, -pad],
+        [FRANCE_TOPO_WIDTH + pad, FRANCE_TOPO_HEIGHT + pad],
       ])
       .filter((event) => {
         // Wheel handled via non-passive native listener (React/Safari block preventDefault otherwise).
@@ -204,6 +214,7 @@ export function WineProducerTopoMap({
       })
       .on("zoom", (event) => {
         zoomGroup.attr("transform", event.transform.toString());
+        setZoomK(event.transform.k);
       });
 
     svg.call(zoom);
@@ -219,6 +230,20 @@ export function WineProducerTopoMap({
     };
 
     svgElement.addEventListener("wheel", handleWheel, { passive: false });
+
+    // Panel: start focused on the producer pin so the side map feels alive.
+    if (isPanel && pin) {
+      const k = PANEL_INITIAL_ZOOM;
+      const transform = d3.zoomIdentity
+        .translate(FRANCE_TOPO_WIDTH / 2, FRANCE_TOPO_HEIGHT / 2)
+        .scale(k)
+        .translate(-pin.x, -pin.y);
+      svg.call(zoom.transform, transform);
+      setZoomK(k);
+    } else {
+      setZoomK(1);
+    }
+
     setMapVisible(true);
 
     return () => {
@@ -226,7 +251,7 @@ export function WineProducerTopoMap({
       svgElement.removeEventListener("wheel", handleWheel);
       zoomBehaviorRef.current = null;
     };
-  }, [geoPath]);
+  }, [geoPath, isPanel, pin]);
 
   const zoomBy = (factor: number) => {
     if (!svgRef.current || !zoomBehaviorRef.current) return;
@@ -238,6 +263,18 @@ export function WineProducerTopoMap({
 
   const resetZoom = () => {
     if (!svgRef.current || !zoomBehaviorRef.current) return;
+    if (isPanel && pin) {
+      const k = PANEL_INITIAL_ZOOM;
+      const transform = d3.zoomIdentity
+        .translate(FRANCE_TOPO_WIDTH / 2, FRANCE_TOPO_HEIGHT / 2)
+        .scale(k)
+        .translate(-pin.x, -pin.y);
+      d3.select(svgRef.current)
+        .transition()
+        .duration(250)
+        .call(zoomBehaviorRef.current.transform, transform);
+      return;
+    }
     d3.select(svgRef.current)
       .transition()
       .duration(250)
@@ -250,7 +287,8 @@ export function WineProducerTopoMap({
     return (
       <div
         className={cn(
-          "flex h-52 w-full items-center justify-center bg-muted/20 text-sm text-muted-foreground sm:h-60",
+          "flex w-full items-center justify-center bg-muted/20 text-sm text-muted-foreground",
+          isPanel ? "h-full" : "h-52 sm:h-60",
           className,
         )}
       >
@@ -259,18 +297,41 @@ export function WineProducerTopoMap({
     );
   }
 
+  const showWideRegionLabels = zoomK < 2.4;
+  const showCities = zoomK >= 1.15;
+  const showCityLabels = zoomK >= 1.8;
+  const outlineBase = screenSize(isPanel ? 1.35 : 1.1, zoomK);
+  const outlineHi = screenSize(isPanel ? 2.4 : 2, zoomK);
+  const dotBase = screenSize(1, zoomK);
+  const dotHi = screenSize(1.35, zoomK);
+  const labelBase = screenSize(11, zoomK);
+  const labelHi = screenSize(13, zoomK);
+  const cityR = screenSize(2.2, zoomK);
+  const cityLabel = screenSize(10, zoomK);
+  const pinOuter = screenSize(approximate ? 11 : 9, zoomK);
+  const pinInner = screenSize(approximate ? 5 : 4.5, zoomK);
+  const pinStroke = screenSize(1.75, zoomK);
+  const pinInnerStroke = screenSize(2.25, zoomK);
+
   return (
-    <div className={cn("relative text-foreground", className)}>
+    <div
+      className={cn(
+        "relative text-foreground",
+        isPanel && "h-full w-full bg-card",
+        className,
+      )}
+    >
       <svg
         ref={svgRef}
         viewBox={`0 0 ${FRANCE_TOPO_WIDTH} ${FRANCE_TOPO_HEIGHT}`}
         className={cn(
-          "h-52 w-full touch-none sm:h-60",
+          "w-full touch-none",
+          isPanel ? "h-full" : "h-52 sm:h-60",
           "cursor-grab active:cursor-grabbing",
           mapVisible ? "opacity-100" : "opacity-0",
           "transition-opacity duration-300",
         )}
-        preserveAspectRatio="xMidYMid meet"
+        preserveAspectRatio={isPanel ? "xMidYMid slice" : "xMidYMid meet"}
         role="img"
         aria-label={`Karta över ${name}${highlightedRegion ? ` i ${getName(highlightedRegion)}` : ""}`}
       >
@@ -285,7 +346,7 @@ export function WineProducerTopoMap({
                 d={geoPath(region as d3.GeoPermissibleObjects) || ""}
                 fill="transparent"
                 stroke="currentColor"
-                strokeWidth={isHighlighted ? 2 : 1.1}
+                strokeWidth={isHighlighted ? outlineHi : outlineBase}
                 opacity={isHighlighted ? 0.8 : 0.32}
               />
             );
@@ -304,7 +365,7 @@ export function WineProducerTopoMap({
                     key={index}
                     cx={dot.x}
                     cy={dot.y}
-                    r={isHighlighted ? 1.25 : 1}
+                    r={isHighlighted ? dotHi : dotBase}
                     fill="currentColor"
                     opacity={baseOpacity}
                   />
@@ -313,76 +374,88 @@ export function WineProducerTopoMap({
             );
           })}
 
-          {regionLabels.map((label) => (
-            <text
-              key={`region-label-${label.code}`}
-              x={label.x}
-              y={label.y}
-              textAnchor="middle"
-              dominantBaseline="middle"
-              fill="currentColor"
-              opacity={label.isHighlighted ? 0.9 : 0.42}
-              fontSize={label.isHighlighted ? 13 : 11}
-              fontWeight={label.isHighlighted ? 600 : 500}
-              style={{
-                pointerEvents: "none",
-                fontFamily: "ui-sans-serif, system-ui, sans-serif",
-              }}
-            >
-              {label.name}
-            </text>
-          ))}
-
-          {cities.map((city) => (
-            <g key={`city-${city.name}`} style={{ pointerEvents: "none" }}>
-              <circle
-                cx={city.x}
-                cy={city.y}
-                r={2.2}
-                fill="currentColor"
-                opacity={0.55}
-              />
+          {regionLabels.map((label) => {
+            if (!label.isHighlighted && !showWideRegionLabels) return null;
+            return (
               <text
-                x={city.x + 7}
-                y={city.y + 3}
+                key={`region-label-${label.code}`}
+                x={label.x}
+                y={label.y}
+                textAnchor="middle"
+                dominantBaseline="middle"
                 fill="currentColor"
-                opacity={0.5}
-                fontSize={10}
-                fontWeight={500}
+                opacity={label.isHighlighted ? 0.9 : 0.42}
+                fontSize={label.isHighlighted ? labelHi : labelBase}
+                fontWeight={label.isHighlighted ? 600 : 500}
                 style={{
+                  pointerEvents: "none",
                   fontFamily: "ui-sans-serif, system-ui, sans-serif",
                 }}
               >
-                {city.name}
+                {label.name}
               </text>
-            </g>
-          ))}
+            );
+          })}
+
+          {showCities
+            ? cities.map((city) => (
+                <g key={`city-${city.name}`} style={{ pointerEvents: "none" }}>
+                  <circle
+                    cx={city.x}
+                    cy={city.y}
+                    r={cityR}
+                    fill="currentColor"
+                    opacity={0.55}
+                  />
+                  {showCityLabels ? (
+                    <text
+                      x={city.x + screenSize(7, zoomK)}
+                      y={city.y + screenSize(3, zoomK)}
+                      fill="currentColor"
+                      opacity={0.5}
+                      fontSize={cityLabel}
+                      fontWeight={500}
+                      style={{
+                        fontFamily: "ui-sans-serif, system-ui, sans-serif",
+                      }}
+                    >
+                      {city.name}
+                    </text>
+                  ) : null}
+                </g>
+              ))
+            : null}
 
           {pin ? (
             <g style={{ pointerEvents: "none" }}>
               <circle
                 cx={pin.x}
                 cy={pin.y}
-                r={approximate ? 11 : 9}
+                r={pinOuter}
                 fill="none"
                 stroke="currentColor"
-                strokeWidth={1.75}
+                strokeWidth={pinStroke}
                 opacity={0.4}
               />
               <circle
                 cx={pin.x}
                 cy={pin.y}
-                r={approximate ? 5 : 4.5}
+                r={pinInner}
                 fill="currentColor"
                 stroke="hsl(var(--background))"
-                strokeWidth={2.25}
+                strokeWidth={pinInnerStroke}
               />
             </g>
           ) : null}
         </g>
       </svg>
 
-      <div className="absolute right-2 top-2 flex flex-col overflow-hidden rounded-md border border-border/60 bg-background/90 shadow-sm backdrop-blur-sm">
+      <div
+        className={cn(
+          "absolute right-2 flex flex-col overflow-hidden rounded-md border border-border/60 bg-background/90 shadow-sm backdrop-blur-sm",
+          isPanel ? "top-3" : "top-2",
+        )}
+      >
         <button
           type="button"
           aria-label="Zooma in"
@@ -403,7 +476,10 @@ export function WineProducerTopoMap({
 
       <button
         type="button"
-        className="absolute right-2 top-[4.75rem] rounded-md border border-border/60 bg-background/90 px-2 py-1 text-[10px] font-medium text-muted-foreground shadow-sm backdrop-blur-sm transition-colors hover:bg-muted hover:text-foreground sm:top-[5.25rem]"
+        className={cn(
+          "absolute right-2 rounded-md border border-border/60 bg-background/90 px-2 py-1 text-[10px] font-medium text-muted-foreground shadow-sm backdrop-blur-sm transition-colors hover:bg-muted hover:text-foreground",
+          isPanel ? "top-[5.25rem]" : "top-[4.75rem] sm:top-[5.25rem]",
+        )}
         onClick={resetZoom}
       >
         Återställ
