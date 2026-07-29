@@ -6,8 +6,13 @@ export function localeFromShopPath(pathname: string): AppLocale | null {
   if (pathname === "/wine" || pathname.startsWith("/wine/")) return "en";
   if (pathname.startsWith("/produkt/")) return "sv";
   if (pathname.startsWith("/product/")) return "en";
+  if (pathname === "/producenter" || pathname.startsWith("/producenter/")) {
+    return "sv";
+  }
   if (pathname.startsWith("/producent/")) return "sv";
-  if (pathname.match(/^\/producers\/[^/]+/)) return "en";
+  if (pathname === "/producers" || pathname.startsWith("/producers/")) {
+    return "en";
+  }
   if (pathname.startsWith("/producer/")) return "en";
   if (pathname === "/guider" || pathname.startsWith("/guider/")) return "sv";
   if (pathname === "/guides" || pathname.startsWith("/guides/")) return "en";

@@ -65,7 +65,7 @@ function escapeHtml(value: string): string {
     .replaceAll('"', "&quot;");
 }
 
-/** Full-bleed Mapbox panel for the public /producers directory. */
+/** Full-bleed Mapbox panel for the public producers directory. */
 export function ProducersDirectoryMap({
   producers,
   className,

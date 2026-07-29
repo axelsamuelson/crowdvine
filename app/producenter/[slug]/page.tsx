@@ -11,16 +11,16 @@ export async function generateMetadata(props: {
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await props.params;
-  return buildProducerPublicMetadata(slug, "sv", "producent");
+  return buildProducerPublicMetadata(slug, "sv", "producenter");
 }
 
-export default async function ProducentPage(props: {
+export default async function ProducentPublicPage(props: {
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await props.params;
   return renderProducerPublicPage({
     slug,
     locale: "sv",
-    pathSegment: "producent",
+    pathSegment: "producenter",
   });
 }

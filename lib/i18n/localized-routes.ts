@@ -5,8 +5,8 @@ import { getProducerHandle } from "@/lib/producer-handle";
 export const PACT_PUBLIC_ORIGIN = "https://pactwines.com" as const;
 
 export type ProductPathSegment = "product" | "produkt";
-/** Public profile paths — EN nested under /producers, SV under /producent. */
-export type ProducerPathSegment = "producers" | "producent";
+/** Public profile paths — EN under /producers, SV under /producenter. */
+export type ProducerPathSegment = "producers" | "producenter";
 
 /** Portal-only segments under /producer — not public profile slugs. */
 export const PRODUCER_PORTAL_SEGMENTS = new Set([
@@ -50,8 +50,8 @@ export function producerPageUrls(slug: string): {
 } {
   return {
     en: `${PACT_PUBLIC_ORIGIN}${producerPagePath(slug, "producers")}`,
-    sv: `${PACT_PUBLIC_ORIGIN}${producerPagePath(slug, "producent")}`,
-    xDefault: `${PACT_PUBLIC_ORIGIN}${producerPagePath(slug, "producent")}`,
+    sv: `${PACT_PUBLIC_ORIGIN}${producerPagePath(slug, "producenter")}`,
+    xDefault: `${PACT_PUBLIC_ORIGIN}${producerPagePath(slug, "producenter")}`,
   };
 }
 
@@ -66,14 +66,14 @@ export function switchProductOrProducerPath(
   }
 
   const producerMatch = pathname.match(
-    /^\/(producers|producer|producent)\/([^/?#]+)\/?$/,
+    /^\/(producers|producer|producenter|producent)\/([^/?#]+)\/?$/,
   );
   if (producerMatch) {
     const slug = decodeURIComponent(producerMatch[2]);
     if (PRODUCER_PORTAL_SEGMENTS.has(slug)) return null;
     return producerPagePath(
       slug,
-      newLocale === "sv" ? "producent" : "producers",
+      newLocale === "sv" ? "producenter" : "producers",
     );
   }
 
@@ -85,7 +85,7 @@ export function shopPathForLocale(locale: AppLocale): "/vin" | "/wine" {
 }
 
 export function producerPublicPath(slug: string, locale: AppLocale): string {
-  return producerPagePath(slug, locale === "sv" ? "producent" : "producers");
+  return producerPagePath(slug, locale === "sv" ? "producenter" : "producers");
 }
 
 /** Producer-filtered shop PLP — /vin/{handle} or /wine/{handle}. */

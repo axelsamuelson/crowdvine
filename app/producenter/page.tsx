@@ -8,9 +8,9 @@ import {
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
-  return buildProducersDirectoryMetadata("en");
+  return buildProducersDirectoryMetadata("sv");
 }
 
-export default async function ProducersPage() {
-  return renderProducersDirectoryPage("en");
+export default async function ProducenterPage() {
+  return renderProducersDirectoryPage("sv");
 }

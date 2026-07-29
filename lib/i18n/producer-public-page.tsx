@@ -273,7 +273,7 @@ export async function renderProducerPublicPage(options: {
         "@type": "ListItem",
         position: 2,
         name: t("shop.producers"),
-        item: `${config.baseUrl}/producers`,
+        item: `${config.baseUrl}${paths.producers}`,
       },
       {
         "@type": "ListItem",
@@ -330,7 +330,7 @@ export async function renderProducerPublicPage(options: {
               <BreadcrumbSeparator />
               <BreadcrumbItem>
                 <BreadcrumbLink asChild>
-                  <Link href="/producers">{t("shop.producers")}</Link>
+                  <Link href={paths.producers}>{t("shop.producers")}</Link>
                 </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />

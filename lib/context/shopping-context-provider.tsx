@@ -18,6 +18,7 @@ import {
 } from "@/lib/i18n/locale";
 import { translate } from "@/lib/i18n/messages";
 import { switchAboutPath } from "@/lib/i18n/about-page-content";
+import { switchProducersDirectoryPath } from "@/lib/i18n/producers-directory";
 import {
   getHreflangPath,
   getWineCategoryEn,
@@ -67,6 +68,9 @@ function getLocalizedPath(
 
   const about = switchAboutPath(pathname, newLocale);
   if (about) return about;
+
+  const producersDirectory = switchProducersDirectoryPath(pathname, newLocale);
+  if (producersDirectory) return producersDirectory;
 
   // /vin → /wine och vice versa
   if (pathname === "/vin" && newLocale === "en") return "/wine";

@@ -58,6 +58,12 @@ const nextConfig = {
         destination: "/producers/:slug",
         permanent: true,
       },
+      // Legacy SV public profiles → /producenter/:slug
+      {
+        source: "/producent/:slug",
+        destination: "/producenter/:slug",
+        permanent: true,
+      },
     ];
   },
   /* Vercel configuration */

@@ -50,6 +50,7 @@ function staticPagesForProfile(
       priority: 0.9,
     },
     weeklyEntry(`${baseUrl}/producers`, 0.8),
+    weeklyEntry(`${baseUrl}/producenter`, 0.8),
     weeklyEntry(`${baseUrl}/about`, 0.5),
     weeklyEntry(`${baseUrl}/om-oss`, 0.5),
   ];
@@ -114,7 +115,7 @@ export async function buildSitemapEntries(
       };
       return [
         { url: `${baseUrl}/producers/${slug}`, ...entry },
-        { url: `${baseUrl}/producent/${slug}`, ...entry },
+        { url: `${baseUrl}/producenter/${slug}`, ...entry },
       ];
     });
 

@@ -15,6 +15,7 @@ const PUBLIC_PATH_PREFIXES = [
   "/producer",
   "/producent",
   "/producers",
+  "/producenter",
   "/about",
   "/om-oss",
   "/languedoc",

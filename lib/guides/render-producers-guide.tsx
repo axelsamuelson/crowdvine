@@ -47,7 +47,7 @@ function linkLanguedocMentions(text: string): ReactNode {
 }
 
 function ProducersLanguedocConnections({ locale }: { locale: AppLocale }) {
-  const producerBase = locale === "sv" ? "/producent" : "/producers";
+  const producerBase = locale === "sv" ? "/producenter" : "/producers";
   const linkClass = "underline underline-offset-4 hover:text-foreground";
 
   if (locale === "en") {

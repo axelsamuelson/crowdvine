@@ -10,17 +10,19 @@ import {
   type ProducerPathSegment,
   type ProductPathSegment,
 } from "@/lib/i18n/localized-routes";
+import { producersDirectoryPathForLocale } from "@/lib/i18n/producers-directory";
 import { localeFromShopPath } from "@/lib/i18n/shop-path-locale";
+
+const PUBLIC_PRODUCER_SLUG_RE =
+  /^\/(producers|producer|producenter|producent)\/([^/?#]+)\/?$/;
 
 export function isPublicProductPath(pathname: string): boolean {
   return /^\/(product|produkt)\/[^/?#]+\/?$/.test(pathname);
 }
 
-/** True for public profile URLs (current + legacy /producer/:slug). */
+/** True for public profile URLs (current + legacy /producer|/producent/:slug). */
 export function isPublicProducerSlugPath(pathname: string): boolean {
-  const match = pathname.match(
-    /^\/(producers|producer|producent)\/([^/?#]+)\/?$/,
-  );
+  const match = pathname.match(PUBLIC_PRODUCER_SLUG_RE);
   if (!match) return false;
   if (match[1] === "producer" && PRODUCER_PORTAL_SEGMENTS.has(match[2])) {
     return false;
@@ -28,19 +30,34 @@ export function isPublicProducerSlugPath(pathname: string): boolean {
   return true;
 }
 
-/** Legacy EN public profiles under /producer/:slug → /producers/:slug */
+/**
+ * Legacy public profiles:
+ * - /producer/:slug → /producers/:slug (portal segments excluded)
+ * - /producent/:slug → /producenter/:slug
+ */
 export function redirectLegacyProducerProfilePath(
   req: NextRequest,
 ): NextResponse | null {
   const { pathname } = req.nextUrl;
-  const match = pathname.match(/^\/producer\/([^/?#]+)\/?$/);
-  if (!match) return null;
-  const slug = decodeURIComponent(match[1]);
-  if (PRODUCER_PORTAL_SEGMENTS.has(slug)) return null;
 
-  const u = req.nextUrl.clone();
-  u.pathname = producerPagePath(slug, "producers");
-  return NextResponse.redirect(u, 308);
+  const enMatch = pathname.match(/^\/producer\/([^/?#]+)\/?$/);
+  if (enMatch) {
+    const slug = decodeURIComponent(enMatch[1]);
+    if (PRODUCER_PORTAL_SEGMENTS.has(slug)) return null;
+    const u = req.nextUrl.clone();
+    u.pathname = producerPagePath(slug, "producers");
+    return NextResponse.redirect(u, 308);
+  }
+
+  const svMatch = pathname.match(/^\/producent\/([^/?#]+)\/?$/);
+  if (svMatch) {
+    const slug = decodeURIComponent(svMatch[1]);
+    const u = req.nextUrl.clone();
+    u.pathname = producerPagePath(slug, "producenter");
+    return NextResponse.redirect(u, 308);
+  }
+
+  return null;
 }
 
 function preferredLocaleFromRequest(req: NextRequest): AppLocale | null {
@@ -79,19 +96,27 @@ export function redirectLocalePathMismatch(
     return NextResponse.redirect(u, 308);
   }
 
+  if (pathname === "/producers" || pathname === "/producenter") {
+    const pathLocale: AppLocale =
+      pathname === "/producenter" ? "sv" : "en";
+    if (pathLocale === preferredLocale) return null;
+    const u = req.nextUrl.clone();
+    u.pathname = producersDirectoryPathForLocale(preferredLocale);
+    return NextResponse.redirect(u, 308);
+  }
+
   if (!isPublicProducerSlugPath(pathname)) return null;
 
-  const producerMatch = pathname.match(
-    /^\/(producers|producer|producent)\/([^/?#]+)\/?$/,
-  );
+  const producerMatch = pathname.match(PUBLIC_PRODUCER_SLUG_RE);
   if (producerMatch) {
     const [, segment, rawSlug] = producerMatch;
     const slug = decodeURIComponent(rawSlug);
-    const pathLocale: AppLocale = segment === "producent" ? "sv" : "en";
+    const pathLocale: AppLocale =
+      segment === "producent" || segment === "producenter" ? "sv" : "en";
     if (pathLocale === preferredLocale) return null;
 
     const targetSegment: ProducerPathSegment =
-      preferredLocale === "sv" ? "producent" : "producers";
+      preferredLocale === "sv" ? "producenter" : "producers";
     const u = req.nextUrl.clone();
     u.pathname = producerPagePath(slug, targetSegment);
     return NextResponse.redirect(u, 308);

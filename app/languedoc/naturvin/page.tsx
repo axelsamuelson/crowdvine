@@ -335,7 +335,7 @@ export default async function LanguedocNaturvinPage() {
               Se alla viner
             </Link>
             <Link
-              href="/producers"
+              href={paths.producers}
               className="rounded-full border border-background/30 px-6 py-2.5 text-sm font-medium text-background transition-colors hover:border-background/60"
             >
               Möt producenterna
