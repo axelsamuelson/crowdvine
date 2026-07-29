@@ -147,8 +147,6 @@ export async function getShopLayoutResultsCount(
     const locale = localeFromPathname(pathname);
     const segment = shopSegmentFromPathname(pathname);
 
-    const query =
-      typeof searchParams.q === "string" ? searchParams.q : undefined;
     let sort =
       typeof searchParams.sort === "string" ? searchParams.sort : undefined;
     if (!sort) {
@@ -187,7 +185,6 @@ export async function getShopLayoutResultsCount(
           collection: handle,
           producers: [],
           isRootCollection: false,
-          query,
           sortKey,
           reverse,
           host,
@@ -208,13 +205,12 @@ export async function getShopLayoutResultsCount(
       const effectiveSort = isStockSort || isPopularSort ? undefined : sort;
       const { sortKey, reverse } = mapSortKeys(effectiveSort, "product");
       const canUseProductCache =
-        isRootCollection && producers.length === 0 && !query && !isStockSort;
+        isRootCollection && producers.length === 0 && !isStockSort;
 
       products = await fetchProductsForRoute({
         collection,
         producers,
         isRootCollection,
-        query,
         sortKey,
         reverse,
         host,

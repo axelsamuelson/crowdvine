@@ -138,6 +138,8 @@ export default async function ProductList({
   producerProfileLabel,
 }: ProductListProps) {
   const resolvedSearchParams = searchParams ?? {};
+  // Search (`?q=`) is applied client-side with ranking (see shop-product-search).
+  // Keep the full catalog fetch so clearing search does not require a refetch.
   const query =
     typeof resolvedSearchParams.q === "string"
       ? resolvedSearchParams.q
@@ -180,7 +182,7 @@ export default async function ProductList({
     : mapSortKeys(effectiveSort, "collection");
 
   const canUseProductCache =
-    isRootCollection && producers.length === 0 && !query && !isStockSort;
+    isRootCollection && producers.length === 0 && !isStockSort;
 
   let products: Product[] = [];
   let collections: Awaited<ReturnType<typeof getCachedShopCollections>> = [];
@@ -193,7 +195,7 @@ export default async function ProductList({
           collection,
           producers,
           isRootCollection,
-          query,
+          // Intentionally omit `query` — search filters/ranks on the client.
           sortKey,
           reverse,
           host,

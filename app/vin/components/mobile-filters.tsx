@@ -160,6 +160,9 @@ export function MobileFilters({
 
   return (
     <div className="bg-transparent md:hidden overflow-x-clip">
+      <div className="px-sides pb-1 pt-1">
+        <ShopFilterSearch id="shop-search-mobile" />
+      </div>
       <Drawer>
         {/* 3 main items: Filters, Results count, Sort by */}
         <div className="grid grid-cols-3 items-center px-sides py-2">
@@ -168,7 +171,7 @@ export function MobileFilters({
             <Button
               variant="ghost"
               size="sm"
-              className="justify-self-start text-sm font-semibold text-foreground"
+              className="justify-self-start cursor-pointer text-sm font-semibold text-foreground"
             >
               {t("shop.filters")}{" "}
               <span
@@ -207,7 +210,7 @@ export function MobileFilters({
               size="sm"
               variant="ghost"
               className={cn(
-                "font-medium text-foreground/50 hover:text-foreground/60 transition-opacity",
+                "cursor-pointer font-medium text-foreground/50 transition-opacity hover:text-foreground/60",
                 displayFilterCount === 0 && "opacity-0 pointer-events-none",
               )}
               disabled={displayFilterCount === 0}
@@ -219,7 +222,7 @@ export function MobileFilters({
             </Button>
           </DrawerHeader>
           <div className="overflow-y-auto flex-1 px-4 pb-4 space-y-6">
-            <ShopFilterSearch />
+            <ShopFilterSearch id="shop-search-drawer" />
             <ColorFilter
               products={originalProducts}
               showAllColors={isColorCategoryPage}

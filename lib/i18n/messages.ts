@@ -24,7 +24,8 @@ export function translate(
   key: string,
   params?: Record<string, string | number>,
 ): string {
-  const raw = getNested(CATALOGS[locale], key) ?? getNested(CATALOGS.en, key) ?? key;
+  const raw =
+    getNested(CATALOGS[locale], key) ?? getNested(CATALOGS.en, key) ?? key;
   if (!params) return raw;
   return raw.replace(/\{(\w+)\}/g, (_, name: string) => {
     const v = params[name];

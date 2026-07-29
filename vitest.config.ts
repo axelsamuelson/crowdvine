@@ -6,6 +6,7 @@ export default defineConfig({
     include: [
       "lib/external-prices/__tests__/**/*.test.ts",
       "lib/menu-extraction/__tests__/**/*.test.ts",
+      "lib/shop/__tests__/**/*.test.ts",
     ],
     environment: "node",
   },

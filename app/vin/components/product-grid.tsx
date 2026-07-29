@@ -9,6 +9,7 @@ export const ProductGrid = ({
 }) => {
   return (
     <div
+      id="shop-product-grid"
       className={cn(
         "grid grid-cols-2 md:grid-cols-2 xl:grid-cols-3 gap-0",
         className,

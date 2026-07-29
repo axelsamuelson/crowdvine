@@ -165,7 +165,7 @@ export function DesktopFilters({
           </Button>
         </div>
         <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-y-contain pb-4 pr-1">
-          <ShopFilterSearch />
+          <ShopFilterSearch id="shop-search-desktop" />
           <Suspense fallback={null}>
             <ColorFilter
               products={originalProducts}
@@ -240,7 +240,7 @@ export function DesktopFilters({
 
             <div className="flex-1 min-h-0 overflow-y-auto px-6 py-6">
               <Suspense fallback={null}>
-                <ShopFilterSearch className="mb-6 max-w-md" />
+                <ShopFilterSearch className="mb-6 max-w-md" id="shop-search-overlay" />
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-start">
                   <ColorFilter
                     products={originalProducts}
