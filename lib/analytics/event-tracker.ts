@@ -1,4 +1,8 @@
 import { isInternalDevice } from "@/lib/analytics/internal-device";
+import {
+  ensureVisitorIdentity,
+  readFirstTouchForMetadata,
+} from "@/lib/analytics/visitor-identity";
 import { isStaleRefreshTokenError, isAuthNetworkError } from "@/lib/auth/session-errors";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
@@ -10,6 +14,9 @@ export type EventType =
   | "user_first_login"
   | "user_login"
   | "user_logout"
+  | "signup_started"
+  | "signup_completed"
+  | "signup_abandoned"
   // Invitations
   | "invitation_link_opened"
   | "invitation_signup_started"
@@ -44,6 +51,10 @@ export type EventType =
   | "checkout_abandoned"
   | "checkout_step_viewed"
   | "payment_failed"
+  | "age_verification_shown"
+  | "age_verification_passed"
+  | "age_verification_failed"
+  | "terms_accepted"
   // Engagement
   | "scroll_depth"
   | "time_on_page"
@@ -142,13 +153,27 @@ export class AnalyticsTracker {
     const safeReferrer =
       /localhost|127\.0\.0\.1/i.test(rawReferrer) ? "" : rawReferrer;
 
-    const eventMetadata = isInternalDevice()
-      ? { ...metadata, internal: true }
-      : metadata;
+    const { visitorId } = ensureVisitorIdentity();
+
+    let eventMetadata: Record<string, unknown> = { ...metadata };
+    if (
+      eventType === "reservation_completed" ||
+      eventType === "signup_completed"
+    ) {
+      const firstTouch = readFirstTouchForMetadata();
+      if (firstTouch) {
+        eventMetadata = { ...eventMetadata, first_touch: firstTouch };
+      }
+    }
+    // Internal devices are tagged, never skipped.
+    if (isInternalDevice()) {
+      eventMetadata = { ...eventMetadata, internal: true };
+    }
 
     const eventData = {
       user_id: userId,
       session_id: this.getSessionId(),
+      visitor_id: visitorId || null,
       event_type: eventType,
       event_category: eventCategory,
       event_metadata: eventMetadata,
@@ -161,6 +186,15 @@ export class AnalyticsTracker {
       const { error } = await supabase.from("user_events").insert(eventData);
       if (error) {
         const m = error.message || "";
+        // Pre-migration: visitor_id column may not exist yet.
+        if (/visitor_id|schema cache|Could not find/i.test(m)) {
+          const { visitor_id: _omit, ...withoutVisitor } = eventData;
+          const retry = await supabase.from("user_events").insert(withoutVisitor);
+          if (retry.error && process.env.NODE_ENV === "development") {
+            console.warn("[analytics] user_events insert:", retry.error.message);
+          }
+          return;
+        }
         if (
           process.env.NODE_ENV === "development" &&
           m &&
@@ -189,7 +223,12 @@ export class AnalyticsTracker {
     productId: string,
     productName: string,
     price: number,
-    extras?: { quantity?: number; source?: string },
+    extras?: {
+      quantity?: number;
+      source?: string;
+      unit_price?: number;
+      price_version?: string;
+    },
   ) {
     return this.trackEvent({
       eventType: "add_to_cart",
@@ -200,15 +239,41 @@ export class AnalyticsTracker {
         price,
         ...(extras?.quantity != null ? { quantity: extras.quantity } : {}),
         ...(extras?.source ? { source: extras.source } : {}),
+        ...(extras?.unit_price != null ? { unit_price: extras.unit_price } : {}),
+        ...(extras?.price_version
+          ? { price_version: extras.price_version }
+          : {}),
       },
     });
   }
 
-  static trackCheckoutStarted(cartValue: number, itemCount: number) {
+  static trackCheckoutStarted(
+    cartValue: number,
+    itemCount: number,
+    extras?: {
+      site?: string;
+      payment_method?: string;
+      unit_price?: number;
+      price_version?: string;
+      bottle_count?: number;
+      cart_value?: number;
+    },
+  ) {
     return this.trackEvent({
       eventType: "checkout_started",
       eventCategory: "checkout",
-      metadata: { cartValue, itemCount },
+      metadata: {
+        cartValue,
+        itemCount,
+        cart_value: extras?.cart_value ?? cartValue,
+        bottle_count: extras?.bottle_count ?? itemCount,
+        site: extras?.site ?? "pact",
+        payment_method: extras?.payment_method ?? "deferred_link",
+        ...(extras?.unit_price != null ? { unit_price: extras.unit_price } : {}),
+        ...(extras?.price_version
+          ? { price_version: extras.price_version }
+          : {}),
+      },
     });
   }
 }

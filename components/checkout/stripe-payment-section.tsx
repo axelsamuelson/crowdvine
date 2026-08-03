@@ -103,9 +103,8 @@ type Props = {
   userId?: string;
   onIntentCreated: (data: IntentCreated) => void;
   onConfirmReady: (confirmFn: () => Promise<StripeConfirmResult>) => void;
-  /** US conditional: include acks in /api/checkout/payment-intent body */
+  /** US conditional: include ack in /api/checkout/payment-intent body */
   usConditionalPayment?: boolean;
-  usAge21Confirmed?: boolean;
   usConditionalAck?: boolean;
 };
 
@@ -419,7 +418,6 @@ export function StripePaymentSection({
   onIntentCreated,
   onConfirmReady,
   usConditionalPayment = false,
-  usAge21Confirmed = false,
   usConditionalAck = false,
 }: Props) {
   const shoppingCtx = useShoppingContextOptional();
@@ -448,15 +446,11 @@ export function StripePaymentSection({
     cartTotalSek,
     pactPointsRedeem,
     usConditionalPayment,
-    usAge21Confirmed,
     usConditionalAck,
   ]);
 
   useEffect(() => {
-    if (
-      usConditionalPayment &&
-      (!usAge21Confirmed || !usConditionalAck)
-    ) {
+    if (usConditionalPayment && !usConditionalAck) {
       fetchedRef.current = false;
       setClientSecret(null);
       setPaymentMode(null);
@@ -486,7 +480,6 @@ export function StripePaymentSection({
             pact_points_redeem: pactPointsRedeem,
             ...(usConditionalPayment
               ? {
-                  us_age_21_confirmed: true,
                   us_conditional_ack: true,
                 }
               : {}),
@@ -563,7 +556,6 @@ export function StripePaymentSection({
     pactPointsRedeem,
     retryNonce,
     usConditionalPayment,
-    usAge21Confirmed,
     usConditionalAck,
   ]);
 
@@ -580,10 +572,7 @@ export function StripePaymentSection({
     );
   }
 
-  if (
-    usConditionalPayment &&
-    (!usAge21Confirmed || !usConditionalAck)
-  ) {
+  if (usConditionalPayment && !usConditionalAck) {
     return (
       <p className="text-sm text-muted-foreground">
         {t("checkout.stripeConfirmCheckboxes")}

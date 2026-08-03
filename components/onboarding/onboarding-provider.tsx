@@ -121,7 +121,7 @@ export function OnboardingProvider({
     return () => {
       cancelled = true;
       window.clearTimeout(timeoutId);
-      controller.abort();
+      controller.abort("unmount");
     };
   }, [pathname]);
 

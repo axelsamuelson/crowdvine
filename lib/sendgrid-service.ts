@@ -276,6 +276,7 @@ export async function buildOrderConfirmationHtml(
             
             <div class="footer">
               <p>This email was sent regarding your order ${data.orderId}.</p>
+              <p>Säljare: EURPACT OÜ (reg. 17538270), Estland</p>
               <p>Producers And Consumers Together</p>
             </div>
           </div>
@@ -325,6 +326,7 @@ The PACT Team
 
 ---
 This email was sent regarding your order ${data.orderId}.
+Säljare: EURPACT OÜ (reg. 17538270), Estland
 Producers And Consumers Together
     `;
 }

@@ -57,6 +57,13 @@ export function CompleteOrderRail({ showMobile = false }: { showMobile?: boolean
           cache: "no-store",
           signal: controller.signal,
         });
+        if (!res.ok) {
+          throw new Error(`cart validate HTTP ${res.status}`);
+        }
+        const contentType = res.headers.get("content-type") || "";
+        if (!contentType.includes("application/json")) {
+          throw new Error("cart validate returned non-JSON");
+        }
         const data = await res.json();
         const vals = (data?.producerValidations || []) as ProducerValidation[];
         if (attemptRef.current === attempt) {

@@ -220,6 +220,13 @@ export default function CartModal() {
 
         // Call API endpoint instead of running validation client-side
         const response = await fetch("/api/cart/validate");
+        if (!response.ok) {
+          throw new Error(`cart validate HTTP ${response.status}`);
+        }
+        const contentType = response.headers.get("content-type") || "";
+        if (!contentType.includes("application/json")) {
+          throw new Error("cart validate returned non-JSON");
+        }
         const result = await response.json();
 
         console.log("✅ [Cart Modal] Validation result:", result);

@@ -72,7 +72,6 @@ type RequestBody = {
   cart_total_sek: number;
   pact_points_redeem?: number;
   /** US conditional checkout: required when profile country is US */
-  us_age_21_confirmed?: boolean;
   us_conditional_ack?: boolean;
 };
 
@@ -268,14 +267,11 @@ export async function POST(request: Request) {
           { status: 400 },
         );
       }
-      if (
-        body?.us_age_21_confirmed !== true ||
-        body?.us_conditional_ack !== true
-      ) {
+      if (body?.us_conditional_ack !== true) {
         return NextResponse.json(
           {
             error:
-              "Confirm that you are 21 or older and that you understand this is a conditional reservation.",
+              "Confirm that you understand this is a conditional reservation.",
           },
           { status: 400 },
         );
@@ -452,7 +448,6 @@ export async function POST(request: Request) {
         metadata.region = usStateUpper;
         metadata.market_code = "US";
         metadata.reservation_mode = "conditional";
-        metadata.age_21_confirmed = "true";
         metadata.conditional_ack_confirmed = "true";
         metadata.terms_version = US_CONDITIONAL_TERMS_VERSION;
       }

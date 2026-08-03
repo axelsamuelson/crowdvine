@@ -24,6 +24,7 @@ import {
 type DailyPoint = {
   date: string;
   visitors: number;
+  sessions: number;
   rolling7: number | null;
 };
 
@@ -39,6 +40,7 @@ type Annotation = {
 type TrafficPayload = {
   firstPageViewDate: string | null;
   daily: DailyPoint[];
+  totals?: { visitors: number; sessions: number };
   channels: ChannelRow[];
   topPages: TopPage[];
   annotations: Annotation[];
@@ -133,6 +135,8 @@ export function TrafficPanel({
   }
 
   const totalSessions = data.channels.reduce((s, c) => s + c.sessions, 0);
+  const periodVisitors = data.totals?.visitors ?? data.daily.reduce((s, d) => s + d.visitors, 0);
+  const periodSessions = data.totals?.sessions ?? data.daily.reduce((s, d) => s + d.sessions, 0);
 
   return (
     <div className="space-y-8 text-gray-700 dark:text-gray-300">
@@ -141,15 +145,32 @@ export function TrafficPanel({
           Annotations unavailable — {data.annotationsError}
         </p>
       )}
+      <div className="grid grid-cols-2 gap-4 max-w-md">
+        <div className="rounded-lg border border-gray-200 dark:border-[#1F1F23] p-3">
+          <p className="text-xs text-gray-500 dark:text-gray-400">Besökare</p>
+          <p className="text-2xl font-semibold tabular-nums text-gray-900 dark:text-white">
+            {periodVisitors}
+          </p>
+          <p className="text-[11px] text-gray-400">Unika visitor_id i perioden</p>
+        </div>
+        <div className="rounded-lg border border-gray-200 dark:border-[#1F1F23] p-3">
+          <p className="text-xs text-gray-500 dark:text-gray-400">Sessioner</p>
+          <p className="text-2xl font-semibold tabular-nums text-gray-900 dark:text-white">
+            {periodSessions}
+          </p>
+          <p className="text-[11px] text-gray-400">Unika session_id i perioden</p>
+        </div>
+      </div>
       <div>
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
-          Daily visitors
+          Daily visitors & sessions
         </h3>
         <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
-          Unique clean sessions per day from{" "}
+          Besökare = unika <code className="text-[11px]">visitor_id</code>;
+          sessioner = unika <code className="text-[11px]">session_id</code> från{" "}
           <code className="text-[11px]">analytics_sessions_clean</code>. Chart
           starts {data.firstPageViewDate}. Bars = daily visitors; line = 7-day
-          average.
+          visitor average.
         </p>
         <ResponsiveContainer width="100%" height={360}>
           <ComposedChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 8 }}>
@@ -175,9 +196,10 @@ export function TrafficPanel({
                 return (
                   <div className="bg-white dark:bg-[#1F1F23] p-3 border border-gray-200 dark:border-zinc-700 rounded-lg shadow-lg text-gray-900 dark:text-white max-w-xs">
                     <p className="font-semibold text-sm">{point.date}</p>
-                    <p className="text-sm">Visitors: {point.visitors}</p>
+                    <p className="text-sm">Besökare: {point.visitors}</p>
+                    <p className="text-sm">Sessioner: {point.sessions}</p>
                     {point.rolling7 != null && (
-                      <p className="text-sm">7-day avg: {point.rolling7}</p>
+                      <p className="text-sm">7-day avg (besökare): {point.rolling7}</p>
                     )}
                     {anns.map((a) => (
                       <p key={a.id} className="text-xs mt-1 text-amber-700 dark:text-amber-300">
@@ -205,8 +227,15 @@ export function TrafficPanel({
             ))}
             <Bar
               dataKey="visitors"
-              name="Visitors"
+              name="Besökare"
               fill="#94a3b8"
+              radius={[2, 2, 0, 0]}
+              maxBarSize={28}
+            />
+            <Bar
+              dataKey="sessions"
+              name="Sessioner"
+              fill="#cbd5e1"
               radius={[2, 2, 0, 0]}
               maxBarSize={28}
             />

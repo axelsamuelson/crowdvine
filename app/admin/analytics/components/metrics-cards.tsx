@@ -14,6 +14,7 @@ import {
 
 export type Metrics28d = {
   visitors: number;
+  sessions?: number;
   intent_sessions: number;
   reservations: number;
   conversion_pct: number;
@@ -26,13 +27,15 @@ interface MetricsCardsProps {
 
 const DEFINITIONS: Record<string, string> = {
   Besökare:
-    "Unika rena sessioner (analytics_sessions_clean) senaste 28 dagarna.",
+    "Unika visitor_id i rena event (analytics_sessions_clean) senaste 28 dagarna. Skilt från sessioner.",
+  Sessioner:
+    "Unika session_id i rena event senaste 28 dagarna.",
   "Intent-sessioner":
     "Rena sessioner med varukorg eller checkout som inte konverterat (se Nära köp-definitionen).",
   Reservationer:
     "Rena sessioner som kopplats till en reservation (event eller order_reservations inom sessionfönstret) senaste 28 dagarna.",
   Konvertering:
-    "Reservationer ÷ besökare (rena sessioner) senaste 28 dagarna.",
+    "Reservationer ÷ besökare (unika visitor_id) senaste 28 dagarna.",
 };
 
 export function MetricsCards({ data, loading }: MetricsCardsProps) {
@@ -64,6 +67,15 @@ export function MetricsCards({ data, loading }: MetricsCardsProps) {
       icon: Users,
       color: "text-blue-600 dark:text-blue-400",
       bgColor: "bg-blue-50 dark:bg-blue-900/20",
+      footnote: "28 dagar · unika visitor_id",
+    },
+    {
+      title: "Sessioner",
+      value: data.sessions ?? "—",
+      icon: Users,
+      color: "text-slate-600 dark:text-slate-400",
+      bgColor: "bg-slate-50 dark:bg-slate-900/20",
+      footnote: "28 dagar · unika session_id",
     },
     {
       title: "Intent-sessioner",
@@ -71,6 +83,7 @@ export function MetricsCards({ data, loading }: MetricsCardsProps) {
       icon: ShoppingCart,
       color: "text-amber-600 dark:text-amber-400",
       bgColor: "bg-amber-50 dark:bg-amber-900/20",
+      footnote: "28 dagar · rena sessioner",
     },
     {
       title: "Reservationer",
@@ -78,6 +91,7 @@ export function MetricsCards({ data, loading }: MetricsCardsProps) {
       icon: CheckCircle,
       color: "text-emerald-600 dark:text-emerald-400",
       bgColor: "bg-emerald-50 dark:bg-emerald-900/20",
+      footnote: "28 dagar · rena sessioner",
     },
     {
       title: "Konvertering",
@@ -85,11 +99,12 @@ export function MetricsCards({ data, loading }: MetricsCardsProps) {
       icon: TrendingUp,
       color: "text-green-600 dark:text-green-400",
       bgColor: "bg-green-50 dark:bg-green-900/20",
+      footnote: "reservationer ÷ besökare",
     },
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
       {metrics.map((metric) => {
         const Icon = metric.icon;
         return (
@@ -105,7 +120,7 @@ export function MetricsCards({ data, loading }: MetricsCardsProps) {
                       {metric.value}
                     </p>
                     <p className="text-[11px] text-gray-400 dark:text-zinc-500 mt-1">
-                      28 dagar · rena sessioner
+                      {metric.footnote}
                     </p>
                   </div>
                   <div

@@ -93,6 +93,15 @@
   .admin-form-fields [data-slot="collapsible"] {
     @apply border-gray-200 dark:!border-zinc-700;
   }
+
+  /* Portaled select menus sit outside .admin-form-fields — keep them dark in admin. */
+  html.admin-app-root [data-slot="select-content"] {
+    @apply dark:!border-zinc-600 dark:!bg-zinc-900 dark:!text-zinc-100;
+  }
+
+  html.admin-app-root [data-slot="select-item"] {
+    @apply dark:!text-zinc-100 dark:data-[highlighted]:!bg-zinc-700 dark:data-[highlighted]:!text-zinc-50 dark:focus:!bg-zinc-700 dark:focus:!text-zinc-50;
+  }
 }
 
 @layer utilities {

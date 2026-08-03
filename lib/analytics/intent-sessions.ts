@@ -25,6 +25,7 @@ export type IntentSessionRow = {
 
 export type CleanEventRow = {
   session_id: string;
+  visitor_id?: string | null;
   user_id: string | null;
   event_type: string;
   event_metadata: unknown;

@@ -61,6 +61,14 @@ import { assertClientMarketDropIdAllowed } from "@/lib/market/resolve-market-dro
 import { resolveOrCreateMarketDropIdForCheckout } from "@/lib/market/get-or-create-market-drop";
 import { resolveActiveGeoZoneForUser } from "@/lib/market/resolve-active-geo-zone";
 import { logUserEventServer } from "@/lib/analytics/log-user-event-server";
+import { readVisitorIdentityFromCookies } from "@/lib/analytics/visitor-identity-server";
+import {
+  parseFirstTouchPayload,
+  type FirstTouch,
+} from "@/lib/analytics/visitor-identity";
+import { isPlatformOpen } from "@/lib/platform-open";
+import { validatePromoDiscountCode } from "@/lib/promo-discount-validate";
+import type { PromoDiscountCartItem } from "@/lib/discount-codes";
 
 type ProducerGroup = {
   producerId: string;
@@ -114,6 +122,10 @@ export async function POST(request: Request) {
   let voucherDiscountCents = 0;
   let pactPointsRedeemed = 0;
   let pactPointsRedeemedCents = 0;
+  let promoDiscountCodeId: string | null = null;
+  let promoDiscountAmountSek = 0;
+  let promoCodeApplied: string | null = null;
+  let promoIsTestkop = false;
 
   try {
     console.log("=== CHECKOUT CONFIRM START ===");
@@ -128,10 +140,14 @@ export async function POST(request: Request) {
       // Handle form data
       const formData = await request.formData();
       const voucherCodeField = formData.get("voucher_code");
+      const promoCodeField = formData.get("promo_code");
+      const promoDiscountCodeIdField = formData.get("discount_code_id");
       const pactPointsRedeemField = formData.get("pact_points_redeem");
       const stripeIntentIdField = formData.get("stripe_intent_id");
       const stripeIntentTypeField = formData.get("stripe_intent_type");
       const marketDropIdField = formData.get("market_drop_id");
+      const visitorIdField = formData.get("visitor_id");
+      const firstTouchField = formData.get("first_touch");
       body = {
         address: {
           fullName: formData.get("fullName"),
@@ -148,6 +164,12 @@ export async function POST(request: Request) {
         shareBottles: formData.get("shareBottles"),
         voucher_code:
           typeof voucherCodeField === "string" ? voucherCodeField : undefined,
+        promo_code:
+          typeof promoCodeField === "string" ? promoCodeField : undefined,
+        discount_code_id:
+          typeof promoDiscountCodeIdField === "string"
+            ? promoDiscountCodeIdField
+            : undefined,
         pact_points_redeem:
           typeof pactPointsRedeemField === "string"
             ? Number(pactPointsRedeemField)
@@ -166,6 +188,10 @@ export async function POST(request: Request) {
           typeof marketDropIdField === "string" && marketDropIdField.trim()
             ? marketDropIdField.trim()
             : undefined,
+        visitor_id:
+          typeof visitorIdField === "string" ? visitorIdField : undefined,
+        first_touch:
+          typeof firstTouchField === "string" ? firstTouchField : undefined,
         // paymentMethodId removed - using new payment flow
       };
     }
@@ -641,6 +667,15 @@ export async function POST(request: Request) {
         ? voucherCodeRaw.trim()
         : undefined;
 
+    const promoCodeRaw =
+      body && typeof body === "object" && "promo_code" in body
+        ? (body as { promo_code?: unknown }).promo_code
+        : undefined;
+    const promo_code =
+      typeof promoCodeRaw === "string" && promoCodeRaw.trim() !== ""
+        ? promoCodeRaw.trim()
+        : undefined;
+
     const pactPointsRedeemRaw =
       body && typeof body === "object" && "pact_points_redeem" in body
         ? (body as { pact_points_redeem?: unknown }).pact_points_redeem
@@ -655,7 +690,8 @@ export async function POST(request: Request) {
     // If voucher_code is present, validate/apply it before amount validation.
     // TODO: extend voucher ledger / use_discount_code to attribute redemption across all
     // order_reservations in checkout_group_id (today RPC is cart-total only; no reservation id).
-    if (voucher_code && user?.id) {
+    // Skip legacy voucher when a checkout promo code is applied (mutually exclusive).
+    if (voucher_code && user?.id && !promo_code) {
       try {
         // List-price subtotal (pre member / early-bird) for voucher eligibility — matches milestone mint comment.
         const { data: listPriceRows, error: listPriceError } = await sbAdmin
@@ -723,7 +759,7 @@ export async function POST(request: Request) {
       }
     }
 
-    // Phase 2.2.A: Attach Stripe intent to reservation
+    // Phase 2.2.A: Attach Stripe intent to reservation (or deferred payment link)
     const stripe_intent_id =
       body && typeof body === "object" && "stripe_intent_id" in body
         ? (body as { stripe_intent_id?: unknown }).stripe_intent_id
@@ -732,6 +768,13 @@ export async function POST(request: Request) {
       body && typeof body === "object" && "stripe_intent_type" in body
         ? (body as { stripe_intent_type?: unknown }).stripe_intent_type
         : undefined;
+    const paymentMethodHint =
+      body && typeof body === "object" && "payment_method" in body
+        ? (body as { payment_method?: unknown }).payment_method
+        : undefined;
+
+    const deferredLinkCheckout =
+      isPlatformOpen() && paymentMethodHint === "deferred_link";
 
     const intentId =
       typeof stripe_intent_id === "string" && stripe_intent_id.trim() !== ""
@@ -742,20 +785,47 @@ export async function POST(request: Request) {
         ? stripe_intent_type
         : null;
 
-    if (!intentId || !intentType) {
+    if (!deferredLinkCheckout && (!intentId || !intentType)) {
       return NextResponse.json(
         { error: "Missing stripe_intent_id or stripe_intent_type" },
         { status: 400 },
       );
     }
 
-    if (!stripe) {
+    if (!deferredLinkCheckout && !stripe) {
       console.error("[Checkout API] Stripe not configured");
       return NextResponse.json({ error: "Stripe not configured" }, { status: 503 });
     }
 
+    // Ensure profiles row exists (required for order_reservations FK)
+    if (user?.id) {
+      const { error: profileUpsertErr } = await sbAdmin.from("profiles").upsert(
+        {
+          id: user.id,
+          email: user.email ?? address.email ?? null,
+        },
+        { onConflict: "id" },
+      );
+      if (profileUpsertErr) {
+        console.error("[Checkout API] profiles upsert failed:", profileUpsertErr);
+        return NextResponse.json(
+          { error: "Failed to prepare user profile" },
+          { status: 500 },
+        );
+      }
+    }
+
     let profileRegionUpper: string | null = null;
     if (usConditionalCheckout) {
+      if (deferredLinkCheckout) {
+        return NextResponse.json(
+          {
+            error:
+              "US conditional reservations require card verification.",
+          },
+          { status: 400 },
+        );
+      }
       if (intentType !== "setup_intent") {
         return NextResponse.json(
           {
@@ -883,9 +953,51 @@ export async function POST(request: Request) {
     }
 
     const voucherSekOff = (Number(voucherDiscountCents) || 0) / 100;
+
+    // Admin promo codes (promo_discount_codes) — validate after shipping is known.
+    if (promo_code && user?.id) {
+      const promoItems: PromoDiscountCartItem[] = (cart.lines || []).map(
+        (line) => {
+          const qty = Number(line.quantity) || 0;
+          const lineTotal =
+            parseFloat(String(line.cost.totalAmount.amount)) || 0;
+          const unit_price = qty > 0 ? lineTotal / qty : 0;
+          return {
+            wine_id: String(line.merchandise.id),
+            quantity: qty,
+            unit_price,
+          };
+        },
+      );
+      const promoCartValue = Math.max(0, subtotalSek + shippingSek);
+      const promoResult = await validatePromoDiscountCode({
+        sb: sbAdmin,
+        userId: user.id,
+        code: promo_code,
+        cart_value_sek: promoCartValue,
+        items: promoItems,
+      });
+      if (!promoResult.ok) {
+        return NextResponse.json({ error: promoResult.error }, { status: 400 });
+      }
+      promoDiscountCodeId = promoResult.discount_code_id;
+      promoDiscountAmountSek = promoResult.discount_amount_sek;
+      promoCodeApplied = promoResult.code;
+      promoIsTestkop = promoResult.purpose === "testkop";
+      console.log("[Checkout API] Promo applied:", {
+        code: promoCodeApplied,
+        purpose: promoResult.purpose,
+        discount_amount_sek: promoDiscountAmountSek,
+      });
+    }
+
     const expectedFinalSek = Math.max(
       0,
-      subtotalSek + shippingSek - voucherSekOff - pactPointsSekOff,
+      subtotalSek +
+        shippingSek -
+        voucherSekOff -
+        pactPointsSekOff -
+        promoDiscountAmountSek,
     );
     const expectedAmountOre = Math.round(expectedFinalSek * 100);
 
@@ -901,8 +1013,9 @@ export async function POST(request: Request) {
 
     let stripePaymentMethodId: string | null = null;
 
+    if (!deferredLinkCheckout) {
     if (intentType === "setup_intent") {
-      const setupIntent = await stripe.setupIntents.retrieve(intentId);
+      const setupIntent = await stripe!.setupIntents.retrieve(intentId!);
       console.log("[Checkout API] Retrieved SetupIntent:", {
         id: setupIntent.id,
         status: setupIntent.status,
@@ -959,7 +1072,6 @@ export async function POST(request: Request) {
           m.reservation_mode !== "conditional" ||
           m.market_code !== "US" ||
           m.country_code !== "US" ||
-          m.age_21_confirmed !== "true" ||
           m.conditional_ack_confirmed !== "true" ||
           m.terms_version !== US_CONDITIONAL_TERMS_VERSION
         ) {
@@ -995,7 +1107,7 @@ export async function POST(request: Request) {
           { status: 400 },
         );
       }
-      const paymentIntent = await stripe.paymentIntents.retrieve(intentId);
+      const paymentIntent = await stripe!.paymentIntents.retrieve(intentId!);
       console.log("[Checkout API] Retrieved PaymentIntent:", {
         id: paymentIntent.id,
         status: paymentIntent.status,
@@ -1038,6 +1150,7 @@ export async function POST(request: Request) {
       }
       stripePaymentMethodId = paymentMethodId;
     }
+    } // end !deferredLinkCheckout
 
     const checkoutGroupId = b2cProducerCheckout ? crypto.randomUUID() : null;
 
@@ -1081,6 +1194,7 @@ export async function POST(request: Request) {
     if (b2cProducerCheckout) {
       const voucherPoolOre = Math.round(Number(voucherDiscountCents) || 0);
       const pactPoolOre = Math.round(pactPointsSekOff * 100);
+      const promoPoolOre = Math.round(promoDiscountAmountSek * 100);
       const subtotals = producerGroupsForB2C.map((g) => g.subtotalSek);
       const voucherOrePerGroup = splitDiscountPoolOreByCheckoutWeights(
         subtotals,
@@ -1091,6 +1205,11 @@ export async function POST(request: Request) {
         subtotals,
         shippingSek,
         pactPoolOre,
+      );
+      const promoOrePerGroup = splitDiscountPoolOreByCheckoutWeights(
+        subtotals,
+        shippingSek,
+        promoPoolOre,
       );
 
       for (let gi = 0; gi < producerGroupsForB2C.length; gi++) {
@@ -1123,9 +1242,10 @@ export async function POST(request: Request) {
 
         const groupVoucherSek = (voucherOrePerGroup[gi] ?? 0) / 100;
         const groupPactSek = (pactOrePerGroup[gi] ?? 0) / 100;
+        const groupPromoSek = (promoOrePerGroup[gi] ?? 0) / 100;
         const amountSek = Math.max(
           0,
-          group.subtotalSek - groupVoucherSek - groupPactSek,
+          group.subtotalSek - groupVoucherSek - groupPactSek - groupPromoSek,
         );
 
         const groupMarketDropId =
@@ -1161,6 +1281,10 @@ export async function POST(request: Request) {
             producer_id: group.producerId,
             checkout_group_id: checkoutGroupId,
             market_drop_id: groupMarketDropId,
+            discount_code_id: promoDiscountCodeId,
+            discount_amount_sek: groupPromoSek,
+            total_sek: amountSek,
+            is_test_purchase: promoIsTestkop,
             ...usReservationExtra,
           })
           .select("id")
@@ -1230,6 +1354,10 @@ export async function POST(request: Request) {
           shipping_region_id: reservationShippingRegionId,
           producer_id: producerIdForReservation,
           market_drop_id: serverMarketDropIdSingle,
+          discount_code_id: promoDiscountCodeId,
+          discount_amount_sek: promoDiscountAmountSek,
+          total_sek: expectedFinalSek,
+          is_test_purchase: promoIsTestkop,
           ...usReservationExtra,
         })
         .select("id")
@@ -1248,7 +1376,56 @@ export async function POST(request: Request) {
       console.log("Reservation created:", reservation);
     }
 
-    if (checkoutGroupId && stripe) {
+    // Record promo code use (must succeed with reservation or roll back).
+    if (promoDiscountCodeId && currentUser?.id && reservation?.id) {
+      const { error: useInsErr } = await sbAdmin
+        .from("promo_discount_code_uses")
+        .insert({
+          discount_code_id: promoDiscountCodeId,
+          user_id: currentUser.id,
+          reservation_id: reservation.id,
+          discount_amount_sek: promoDiscountAmountSek,
+        });
+      if (useInsErr) {
+        console.error("[Checkout API] promo use insert failed:", useInsErr);
+        if (b2cProducerCheckout) {
+          await rollbackCheckoutGroup();
+        } else {
+          await sbAdmin
+            .from("order_reservations")
+            .delete()
+            .eq("id", reservation.id);
+        }
+        return NextResponse.json(
+          { error: "Kunde inte registrera rabattkoden" },
+          { status: 500 },
+        );
+      }
+
+      // Testköp: exclude user from "clean" metrics + tag future/past user-bound events.
+      if (promoIsTestkop) {
+        const note = `Automatiskt via testköp-kod ${promoCodeApplied ?? ""}`.trim();
+        const { error: exclErr } = await sbAdmin
+          .from("admin_metrics_excluded_profiles")
+          .upsert(
+            {
+              profile_id: currentUser.id,
+              note,
+              reason: "testkop",
+              source_discount_code_id: promoDiscountCodeId,
+            },
+            { onConflict: "profile_id" },
+          );
+        if (exclErr) {
+          console.warn(
+            "[Checkout API] Failed to exclude testkop profile from metrics:",
+            exclErr,
+          );
+        }
+      }
+    }
+
+    if (checkoutGroupId && stripe && intentId && intentType) {
       try {
         if (intentType === "setup_intent") {
           const si = await stripe.setupIntents.retrieve(intentId);
@@ -1280,13 +1457,13 @@ export async function POST(request: Request) {
       (id): id is string => typeof id === "string" && id.trim().length > 0,
     );
     if (payIds.length === 0) {
-      console.error("[Checkout API] reservationIdsForPayment empty before Stripe attach");
+      console.error("[Checkout API] reservationIdsForPayment empty before payment attach");
       if (b2cProducerCheckout) await rollbackCheckoutGroup();
       else if (reservation?.id) {
         await sbAdmin.from("order_reservations").delete().eq("id", reservation.id);
       }
       return NextResponse.json(
-        { error: "Failed to attach Stripe intent" },
+        { error: "Failed to attach payment fields" },
         { status: 500 },
       );
     }
@@ -1300,8 +1477,14 @@ export async function POST(request: Request) {
           payment_method_last4: null,
         };
 
-    const siblingPayUpdate =
-      intentType === "setup_intent"
+    const siblingPayUpdate = deferredLinkCheckout
+      ? {
+          payment_method_id: null as string | null,
+          payment_mode: null as string | null,
+          payment_status: "pending" as const,
+          status: "pending_payment" as const,
+        }
+      : intentType === "setup_intent"
         ? {
             payment_method_id: stripePaymentMethodId,
             payment_mode: "setup_intent" as const,
@@ -1329,8 +1512,9 @@ export async function POST(request: Request) {
               : {}),
           };
 
-    const primaryPayUpdate =
-      intentType === "setup_intent"
+    const primaryPayUpdate = deferredLinkCheckout
+      ? siblingPayUpdate
+      : intentType === "setup_intent"
         ? { ...siblingPayUpdate, setup_intent_id: intentId }
         : { ...siblingPayUpdate, payment_intent_id: intentId };
 
@@ -1395,9 +1579,8 @@ export async function POST(request: Request) {
             user_agent: ua,
             metadata: {
               order_reservation_id: rid,
-              age_21_confirmed: true,
               conditional_reservation_ack: true,
-              setup_intent_id: intentId,
+              ...(intentId ? { setup_intent_id: intentId } : {}),
             },
           });
         if (termsErr) {
@@ -2065,14 +2248,29 @@ export async function POST(request: Request) {
             },
           ];
 
+    const fromCookies = await readVisitorIdentityFromCookies();
+    const visitorIdRaw =
+      typeof body.visitor_id === "string" ? body.visitor_id.trim() : "";
+    const visitorId = visitorIdRaw || fromCookies.visitorId;
+    const firstTouch: FirstTouch | null =
+      parseFirstTouchPayload(body.first_touch) || fromCookies.firstTouch;
+
     for (const ev of reservationEvents) {
+      if (process.env.NODE_ENV === "development") {
+        console.log("[dev] reservation_completed", ev);
+      }
       void logUserEventServer({
         userId: currentUser?.id ?? null,
+        visitorId,
         eventType: "reservation_completed",
         eventCategory: "checkout",
+        firstTouch,
         metadata: {
           reservation_id: ev.reservation_id,
           bottle_count: ev.bottle_count,
+          ...(promoIsTestkop
+            ? { internal: true, testkop: true, promo_code: promoCodeApplied }
+            : {}),
         },
       });
     }
@@ -2089,6 +2287,7 @@ export async function POST(request: Request) {
       ...(pactPointsRedeemed > 0
         ? { pactPointsRedeemed, pactPointsRedeemedCents }
         : {}),
+      ...(promoIsTestkop ? { testkop: true } : {}),
     });
   } catch (error) {
     console.error("=== CHECKOUT CONFIRM ERROR ===");

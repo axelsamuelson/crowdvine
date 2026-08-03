@@ -122,7 +122,14 @@ export function AddToCartWithSource({
               product.id,
               product.title,
               parseFloat(product.priceRange.minVariantPrice.amount),
-              { quantity, source: "b2b" },
+              {
+                quantity,
+                source: "b2b",
+                unit_price: parseFloat(
+                  product.priceRange.minVariantPrice.amount,
+                ),
+                price_version: "v1",
+              },
             );
 
             // Reset quantity to 1 after successful add

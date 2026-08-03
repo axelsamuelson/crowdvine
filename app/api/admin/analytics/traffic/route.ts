@@ -93,6 +93,7 @@ export async function GET(request: Request) {
   try {
     type TrafficEvent = {
       session_id: string;
+      visitor_id?: string | null;
       event_type: string;
       event_metadata: unknown;
       page_url: string | null;
@@ -134,22 +135,46 @@ export async function GET(request: Request) {
     const cleanExtra =
       site === "all" ? undefined : (q: any) => q.eq("site", site);
 
-    const clean = await fetchPaged(
+    let clean = await fetchPaged(
       "analytics_sessions_clean",
-      "session_id, event_type, event_metadata, page_url, referrer, created_at, site",
+      "session_id, visitor_id, event_type, event_metadata, page_url, referrer, created_at, site",
       cleanExtra,
     );
+
+    // Pre-migration: visitor_id column may not exist yet.
+    if (
+      clean.error &&
+      /visitor_id|schema cache|Could not find/i.test(clean.error.message || "")
+    ) {
+      clean = await fetchPaged(
+        "analytics_sessions_clean",
+        "session_id, event_type, event_metadata, page_url, referrer, created_at, site",
+        cleanExtra,
+      );
+    }
 
     if (clean.error) {
       console.warn(
         "[traffic] analytics_sessions_clean unavailable, falling back:",
         clean.error.message,
       );
-      const fallback = await fetchPaged(
+      let fallback = await fetchPaged(
         "user_events",
-        "session_id, event_type, event_metadata, page_url, referrer, created_at, user_agent, user_id",
+        "session_id, visitor_id, event_type, event_metadata, page_url, referrer, created_at, user_agent, user_id",
         (q) => q.not("session_id", "like", "server_%"),
       );
+      if (
+        fallback.error &&
+        /visitor_id|schema cache|Could not find/i.test(
+          fallback.error.message || "",
+        )
+      ) {
+        fallback = await fetchPaged(
+          "user_events",
+          "session_id, event_type, event_metadata, page_url, referrer, created_at, user_agent, user_id",
+          (q) => q.not("session_id", "like", "server_%"),
+        );
+      }
       if (fallback.error) throw fallback.error;
       const internalSessions = new Set<string>();
       const urlsBySession = new Map<string, (string | null)[]>();
@@ -199,11 +224,18 @@ export async function GET(request: Request) {
         : null;
 
     const dailySessionSets = new Map<string, Set<string>>();
+    const dailyVisitorSets = new Map<string, Set<string>>();
     for (const e of rows) {
       const day = toDateKey(String(e.created_at));
       if (firstPageViewDate && day < firstPageViewDate) continue;
       if (!dailySessionSets.has(day)) dailySessionSets.set(day, new Set());
+      if (!dailyVisitorSets.has(day)) dailyVisitorSets.set(day, new Set());
       dailySessionSets.get(day)!.add(String(e.session_id));
+      const vid =
+        typeof e.visitor_id === "string" && e.visitor_id.trim()
+          ? e.visitor_id.trim()
+          : `session:${e.session_id}`;
+      dailyVisitorSets.get(day)!.add(vid);
     }
 
     const seriesStart = firstPageViewDate
@@ -212,8 +244,12 @@ export async function GET(request: Request) {
     const today = new Date();
     today.setUTCHours(0, 0, 0, 0);
 
-    const daily: { date: string; visitors: number; rolling7: number | null }[] =
-      [];
+    const daily: {
+      date: string;
+      visitors: number;
+      sessions: number;
+      rolling7: number | null;
+    }[] = [];
     const visitorValues: number[] = [];
 
     for (
@@ -223,7 +259,8 @@ export async function GET(request: Request) {
     ) {
       const key = d.toISOString().slice(0, 10);
       if (firstPageViewDate && key < firstPageViewDate) continue;
-      const visitors = dailySessionSets.get(key)?.size ?? 0;
+      const visitors = dailyVisitorSets.get(key)?.size ?? 0;
+      const sessions = dailySessionSets.get(key)?.size ?? 0;
       visitorValues.push(visitors);
       const window = visitorValues.slice(-7);
       const rolling7 =
@@ -231,7 +268,7 @@ export async function GET(request: Request) {
           ? Math.round((window.reduce((a, b) => a + b, 0) / window.length) * 10) /
             10
           : null;
-      daily.push({ date: key, visitors, rolling7 });
+      daily.push({ date: key, visitors, sessions, rolling7 });
     }
 
     const sessionFirst = new Map<
@@ -304,6 +341,30 @@ export async function GET(request: Request) {
       site,
       firstPageViewDate,
       daily,
+      totals: {
+        visitors: (() => {
+          const set = new Set<string>();
+          for (const e of rows) {
+            const day = toDateKey(String(e.created_at));
+            if (firstPageViewDate && day < firstPageViewDate) continue;
+            const vid =
+              typeof e.visitor_id === "string" && e.visitor_id.trim()
+                ? e.visitor_id.trim()
+                : `session:${e.session_id}`;
+            set.add(vid);
+          }
+          return set.size;
+        })(),
+        sessions: (() => {
+          const set = new Set<string>();
+          for (const e of rows) {
+            const day = toDateKey(String(e.created_at));
+            if (firstPageViewDate && day < firstPageViewDate) continue;
+            set.add(String(e.session_id));
+          }
+          return set.size;
+        })(),
+      },
       channels,
       topPages,
       annotations: annErr ? [] : (annotations ?? []),

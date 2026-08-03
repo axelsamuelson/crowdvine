@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { logUserEventServer } from "@/lib/analytics/log-user-event-server";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import {
+  FIRST_TOUCH_KEY,
+  VISITOR_ID_KEY,
+  parseFirstTouchPayload,
+} from "@/lib/analytics/visitor-identity";
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
@@ -29,31 +36,50 @@ export async function GET(request: NextRequest) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error) {
-      // Check if this is a password reset flow
       const {
         data: { user },
       } = await supabase.auth.getUser();
 
       if (user) {
-        // Check if user needs to reset password (session has password reset flag)
+        try {
+          const sbAdmin = getSupabaseAdmin();
+          await sbAdmin.from("profiles").upsert(
+            {
+              id: user.id,
+              email: user.email ?? null,
+            },
+            { onConflict: "id" },
+          );
+          void logUserEventServer({
+            userId: user.id,
+            visitorId: cookieStore.get(VISITOR_ID_KEY)?.value ?? null,
+            firstTouch: parseFirstTouchPayload(
+              cookieStore.get(FIRST_TOUCH_KEY)?.value ?? null,
+            ),
+            eventType: "signup_completed",
+            eventCategory: "auth",
+            metadata: { user_id: user.id },
+          });
+        } catch (e) {
+          console.error("[auth/callback] profile upsert / signup_completed:", e);
+        }
+
         const {
           data: { session },
         } = await supabase.auth.getSession();
 
         if (
           session?.user?.app_metadata?.provider === "email" &&
-          session?.user?.aud === "authenticated"
+          session?.user?.aud === "authenticated" &&
+          next === "/reset-password"
         ) {
-          // Redirect to reset password page
           return NextResponse.redirect(`${origin}/reset-password`);
         }
       }
 
-      // Normal auth flow - redirect to intended page
       return NextResponse.redirect(`${origin}${next}`);
     }
   }
 
-  // Return the user to an error page with instructions
   return NextResponse.redirect(`${origin}/auth/auth-code-error`);
 }

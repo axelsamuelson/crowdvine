@@ -7,11 +7,11 @@ export function HomeHero({ className }: { className?: string }) {
   return (
     <section
       className={cn(
-        "bg-background px-sides pt-top-spacing pb-0 pointer-events-none",
+        "bg-background px-sides pt-top-spacing pb-0",
         className,
       )}
     >
-      <div className="grid min-h-[calc(100svh-var(--top-spacing))] w-full overflow-hidden rounded-[12px] bg-white grid-rows-[minmax(0,1fr)_auto] md:grid-cols-2 md:grid-rows-1">
+      <div className="grid min-h-[calc(100svh-var(--top-spacing))] w-full grid-rows-[auto_minmax(0,1fr)] gap-8 md:grid-cols-2 md:grid-rows-1 md:items-center md:gap-10 lg:gap-14">
         <HomeHeroContent />
         <HomeHeroImage />
       </div>

@@ -1,12 +1,25 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, Suspense, useCallback } from "react";
+import { CartMergeModal } from "@/components/cart/cart-merge-modal";
+import { CheckoutEmailAuth } from "@/components/checkout/checkout-email-auth";
+import { getAgeLimit } from "@/lib/age-limits";
+import { PRICE_VERSION } from "@/lib/analytics/price-version";
+import { CHECKOUT_TERMS_VERSION } from "@/lib/checkout/terms-version";
 import Link from "next/link";
 import type { Cart, CartItem } from "@/lib/shopify/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { ProfileInfoModal } from "@/components/checkout/profile-info-modal";
 import { PaymentMethodSelectorB2B } from "@/components/checkout/payment-method-selector-b2b";
 import {
@@ -32,6 +45,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { clearZoneCache } from "@/lib/zone-matching";
+import { ensureVisitorIdentity } from "@/lib/analytics/visitor-identity";
 import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
 import { calculateCartShippingCost } from "@/lib/shipping-calculations";
 import type { PalletInfo } from "@/lib/zone-matching";
@@ -40,6 +54,7 @@ import {
   type ShareAllocation,
 } from "@/components/checkout/share-bottles-dialog";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
+import { setInternalDevice } from "@/lib/analytics/internal-device";
 import {
   allocatePactRedemptionPoints,
   calculateBoostAwareMaxRedemption,
@@ -95,7 +110,7 @@ interface UserReward {
   used: boolean;
 }
 
-function CheckoutContent() {
+function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
   const { t, context: shopping } = useShoppingContext();
   const paths = localizedPathsForLocale(shopping.locale);
   const { formatDisplay, formatSek, toDisplay } = useDisplayMoney();
@@ -116,6 +131,11 @@ function CheckoutContent() {
   const [stripeError, setStripeError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [authReady, setAuthReady] = useState(!platformOpen);
+  const [authChecked, setAuthChecked] = useState(!platformOpen);
+  const [cartMergeOpen, setCartMergeOpen] = useState(false);
+  const [cartMergeLoading, setCartMergeLoading] = useState(false);
+  const checkoutStartedTracked = useRef(false);
   const [activeShop, setActiveShop] = useState<ResolvedActiveGeoZone | null>(
     null,
   );
@@ -134,11 +154,31 @@ function CheckoutContent() {
   const checkoutPhaseRef = useRef<"delivery" | "payment_ready">("delivery");
   const zoneInfoFetchInProgressRef = useRef(false);
   const [discountCodeInput, setDiscountCodeInput] = useState("");
+  const [appliedDiscount, setAppliedDiscount] = useState<{
+    code: string;
+    discount_code_id: string;
+    discount_amount_sek: number;
+    final_total_sek: number;
+    type: "percent" | "sek";
+    value: number;
+    purpose: "normal" | "testkop";
+  } | null>(null);
+  const [discountError, setDiscountError] = useState<string | null>(null);
+  const [discountApplying, setDiscountApplying] = useState(false);
+  const [pendingTestkopDiscount, setPendingTestkopDiscount] = useState<{
+    code: string;
+    discount_code_id: string;
+    discount_amount_sek: number;
+    final_total_sek: number;
+    type: "percent" | "sek";
+    value: number;
+    purpose: "testkop";
+  } | null>(null);
   const [postalCodeDraft, setPostalCodeDraft] = useState("");
+  const [postalModalOpen, setPostalModalOpen] = useState(false);
   const [budbeeAvailable, setBudbeeAvailable] = useState<boolean | null>(
     null,
   );
-  const postalModalTriggerRef = useRef<HTMLButtonElement | null>(null);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [shareAllocation, setShareAllocation] = useState<ShareAllocation | null>(
     null,
@@ -149,8 +189,10 @@ function CheckoutContent() {
   const [paymentMethod, setPaymentMethod] = useState<"card" | "invoice">("card");
   const [pactPointsBalance, setPactPointsBalance] = useState(0);
   const [redeemPoints, setRedeemPoints] = useState(0);
-  const [usAge21Confirmed, setUsAge21Confirmed] = useState(false);
+  const [ageConfirmed, setAgeConfirmed] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [usConditionalAck, setUsConditionalAck] = useState(false);
+  const ageShownTracked = useRef(false);
 
   // v2: Progression buffs state
   const [progressionBuffs, setProgressionBuffs] = useState<ProgressionBuffRow[]>(
@@ -198,6 +240,13 @@ function CheckoutContent() {
   const effectiveDelivery = useMemo(() => {
     return userZoneRowToDeliveryLines(zoneAddressRow) ?? deliveryDraft;
   }, [zoneAddressRow, deliveryDraft]);
+
+  const ageCountryCode = (
+    effectiveDelivery?.countryCode ||
+    checkoutMarketCountry ||
+    "SE"
+  ).toUpperCase();
+  const requiredAge = getAgeLimit(ageCountryCode);
 
   const hasZoneDeliveryReady = useMemo(() => {
     if (activeShop?.geoZoneId) {
@@ -249,10 +298,22 @@ function CheckoutContent() {
 
   useEffect(() => {
     if (!isUsConditional) {
-      setUsAge21Confirmed(false);
       setUsConditionalAck(false);
     }
   }, [isUsConditional]);
+
+  useEffect(() => {
+    if (!deliveryComplete || ageShownTracked.current) return;
+    ageShownTracked.current = true;
+    void AnalyticsTracker.trackEvent({
+      eventType: "age_verification_shown",
+      eventCategory: "checkout",
+      metadata: {
+        country_code: ageCountryCode,
+        required_age: requiredAge,
+      },
+    });
+  }, [deliveryComplete, ageCountryCode, requiredAge]);
 
   useEffect(() => {
     if (!isUsConditional) return;
@@ -266,6 +327,34 @@ function CheckoutContent() {
       );
     }
   }, [isUsConditional, selectedPallet?.delivery_zone_id, selectedPallet?.id]);
+
+  const handleAgeChecked = useCallback(
+    (checked: boolean) => {
+      setAgeConfirmed(checked);
+      void AnalyticsTracker.trackEvent({
+        eventType: checked
+          ? "age_verification_passed"
+          : "age_verification_failed",
+        eventCategory: "checkout",
+        metadata: {
+          country_code: ageCountryCode,
+          required_age: requiredAge,
+        },
+      });
+    },
+    [ageCountryCode, requiredAge],
+  );
+
+  const handleTermsChecked = useCallback((checked: boolean) => {
+    setTermsAccepted(checked);
+    if (checked) {
+      void AnalyticsTracker.trackEvent({
+        eventType: "terms_accepted",
+        eventCategory: "checkout",
+        metadata: { version: CHECKOUT_TERMS_VERSION },
+      });
+    }
+  }, []);
 
   const zoneOrUsPalletReady =
     Boolean(zoneInfo.selectedDeliveryZoneId) ||
@@ -281,6 +370,29 @@ function CheckoutContent() {
       metadata: { phase: checkoutPhaseRef.current },
     });
   }, [deliveryComplete]);
+
+  useEffect(() => {
+    if (checkoutStartedTracked.current || !cart || cart.totalQuantity <= 0) {
+      return;
+    }
+    checkoutStartedTracked.current = true;
+    const cartValue =
+      parseFloat(String(cart.cost?.totalAmount?.amount ?? "0")) || 0;
+    const bottleCount = cart.totalQuantity;
+    const unitPrice =
+      cart.lines[0] != null
+        ? parseFloat(String(cart.lines[0].cost.totalAmount.amount)) /
+            Math.max(1, cart.lines[0].quantity) || 0
+        : 0;
+    void AnalyticsTracker.trackCheckoutStarted(cartValue, bottleCount, {
+      cart_value: cartValue,
+      bottle_count: bottleCount,
+      site: "pact",
+      payment_method: platformOpen ? "deferred_link" : "card",
+      unit_price: unitPrice,
+      price_version: PRICE_VERSION,
+    });
+  }, [cart, platformOpen]);
 
   useEffect(() => {
     return () => {
@@ -320,11 +432,50 @@ function CheckoutContent() {
         const data = await response.json();
         const profileData = data.profile || data;
         setProfile(profileData);
+        if (profileData?.id || profileData?.email) {
+          setAuthReady(true);
+        }
       }
     } catch (error) {
       console.error("Failed to fetch profile:", error);
+    } finally {
+      if (platformOpen) setAuthChecked(true);
     }
-  }, []);
+  }, [platformOpen]);
+
+  const ensureProfileAfterAuth = useCallback(async () => {
+    setAuthReady(true);
+    await fetchProfile();
+    try {
+      const conflictRes = await fetch("/api/cart/merge");
+      const conflictData = await conflictRes.json().catch(() => null);
+      if (conflictData?.conflict) {
+        setCartMergeOpen(true);
+      } else {
+        await fetchCart();
+      }
+    } catch {
+      await fetchCart();
+    }
+  }, [fetchProfile, fetchCart]);
+
+  const handleCartMerge = useCallback(
+    async (strategy: "keep_session" | "keep_user" | "merge") => {
+      setCartMergeLoading(true);
+      try {
+        await fetch("/api/cart/merge", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ strategy }),
+        });
+        setCartMergeOpen(false);
+        await fetchCart();
+      } finally {
+        setCartMergeLoading(false);
+      }
+    },
+    [fetchCart],
+  );
 
   const fetchZoneShopContext = useCallback(async () => {
     setZoneTemplatesLoaded(false);
@@ -500,6 +651,13 @@ function CheckoutContent() {
           "bottles",
         );
         const response = await fetch("/api/cart/validate");
+        if (!response.ok) {
+          throw new Error(`cart validate HTTP ${response.status}`);
+        }
+        const contentType = response.headers.get("content-type") || "";
+        if (!contentType.includes("application/json")) {
+          throw new Error("cart validate returned non-JSON");
+        }
         const result = await response.json();
         console.log("✅ [Checkout] Validation complete:", {
           isValid: result.isValid,
@@ -1000,6 +1158,14 @@ function CheckoutContent() {
       formData.append("pact_points_redeem", String(Math.floor(redeemPoints)));
     }
 
+    {
+      const { visitorId, firstTouch } = ensureVisitorIdentity();
+      if (visitorId) formData.append("visitor_id", visitorId);
+      if (firstTouch) {
+        formData.append("first_touch", JSON.stringify(firstTouch));
+      }
+    }
+
     try {
       const response = await fetch("/api/checkout/confirm", {
         method: "POST",
@@ -1102,8 +1268,27 @@ function CheckoutContent() {
   const handlePlaceReservation = useCallback(async () => {
     setStripeError(null);
 
+    if (!ageConfirmed) {
+      void AnalyticsTracker.trackEvent({
+        eventType: "age_verification_failed",
+        eventCategory: "checkout",
+        metadata: {
+          country_code: ageCountryCode,
+          required_age: requiredAge,
+        },
+      });
+      toast.error(
+        t("checkout.ageConfirm", { age: String(requiredAge) }),
+      );
+      return;
+    }
+    if (!termsAccepted) {
+      toast.error(t("checkout.termsAccept"));
+      return;
+    }
+
     // Validate required fields
-    if (!profile?.email) {
+    if (!profile?.email && !platformOpen) {
       toast.error(t("checkout.addProfileFirst"));
       return;
     }
@@ -1120,6 +1305,124 @@ function CheckoutContent() {
     if (!deliveryComplete) return;
     if (!selectedPallet?.id) {
       toast.error(t("checkout.selectPalletContinue"));
+      return;
+    }
+
+    const submitConfirm = async (opts: {
+      stripeIntentId?: string;
+      paymentMode?: "setup_intent" | "payment_intent";
+      deferred?: boolean;
+    }) => {
+      setIsFinalizingReservation(true);
+      const formData = new FormData();
+
+      const effConfirm =
+        userZoneRowToDeliveryLines(zoneAddressRow) ?? deliveryDraft;
+
+      formData.append(
+        "fullName",
+        effConfirm?.fullName || profile?.full_name || "",
+      );
+      formData.append("email", effConfirm?.email || profile?.email || "");
+      formData.append("phone", effConfirm?.phone || profile?.phone || "");
+
+      if (effConfirm) {
+        formData.append("street", effConfirm.street);
+        formData.append("postcode", effConfirm.postal);
+        formData.append("city", effConfirm.city);
+        formData.append("countryCode", effConfirm.countryCode);
+        if (effConfirm.regionCode) {
+          formData.append("regionCode", effConfirm.regionCode);
+        }
+      }
+
+      if (zoneInfo.selectedDeliveryZoneId) {
+        formData.append(
+          "selectedDeliveryZoneId",
+          zoneInfo.selectedDeliveryZoneId,
+        );
+      }
+      if (selectedPallet?.id) {
+        formData.append("selectedPalletId", selectedPallet.id);
+      }
+      if (shareFriendIds && shareAllocation) {
+        formData.append(
+          "shareBottles",
+          JSON.stringify({
+            friendIds: shareFriendIds,
+            allocations: shareAllocation,
+          }),
+        );
+      }
+      if (appliedDiscount) {
+        formData.append("promo_code", appliedDiscount.code);
+        formData.append("discount_code_id", appliedDiscount.discount_code_id);
+      } else if (discountCodeInput.trim()) {
+        formData.append("voucher_code", discountCodeInput.trim());
+      }
+      if (redeemPoints > 0) {
+        formData.append("pact_points_redeem", String(redeemPoints));
+      }
+
+      if (opts.deferred) {
+        formData.append("payment_method", "deferred_link");
+      } else if (opts.stripeIntentId && opts.paymentMode) {
+        formData.append("stripe_intent_id", opts.stripeIntentId);
+        formData.append("stripe_intent_type", opts.paymentMode);
+      }
+
+      {
+        const { visitorId, firstTouch } = ensureVisitorIdentity();
+        if (visitorId) formData.append("visitor_id", visitorId);
+        if (firstTouch) {
+          formData.append("first_touch", JSON.stringify(firstTouch));
+        }
+      }
+
+      const response = await fetch("/api/checkout/confirm", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        let errorMessage = t("checkout.reservationFailed");
+        try {
+          const errorData = await response.json();
+          if (typeof errorData?.error === "string") {
+            errorMessage = errorData.error;
+          }
+        } catch {
+          // fall through
+        }
+        void AnalyticsTracker.trackEvent({
+          eventType: "payment_failed",
+          eventCategory: "checkout",
+          metadata: { status: response.status },
+        });
+        throw new Error(errorMessage);
+      }
+
+      const d = await response.json().catch(() => null);
+      const redirectUrl =
+        d && typeof d === "object" && typeof d.redirectUrl === "string"
+          ? d.redirectUrl
+          : null;
+      checkoutCompletedRef.current = true;
+      window.location.href = redirectUrl || "/checkout/success";
+    };
+
+    if (platformOpen) {
+      setIsSubmitting(true);
+      try {
+        await submitConfirm({ deferred: true });
+      } catch (e) {
+        const msg =
+          e instanceof Error ? e.message : t("checkout.reservationFailed");
+        setStripeError(msg);
+        toast.error(msg);
+        setIsSubmitting(false);
+        setIsFinalizingReservation(false);
+      }
       return;
     }
 
@@ -1157,147 +1460,46 @@ function CheckoutContent() {
 
     // Phase 2: Backend finalization (only after Stripe success)
     setIsStripeConfirming(false);
-    setIsFinalizingReservation(true);
-
-    const formData = new FormData();
-
-    const effConfirm =
-      userZoneRowToDeliveryLines(zoneAddressRow) ?? deliveryDraft;
-
-    formData.append(
-      "fullName",
-      effConfirm?.fullName || profile?.full_name || "",
-    );
-    formData.append("email", effConfirm?.email || profile?.email || "");
-    formData.append("phone", effConfirm?.phone || profile?.phone || "");
-
-    if (effConfirm) {
-      formData.append("street", effConfirm.street);
-      formData.append("postcode", effConfirm.postal);
-      formData.append("city", effConfirm.city);
-      formData.append("countryCode", effConfirm.countryCode);
-      if (effConfirm.regionCode) {
-        formData.append("regionCode", effConfirm.regionCode);
-      }
-    }
-
-    const zIdForConfirm =
-      zoneInfo.selectedDeliveryZoneId ||
-      (isUsConditional ? selectedPallet?.delivery_zone_id?.trim() ?? "" : "");
-    if (zIdForConfirm) {
-      formData.append("selectedDeliveryZoneId", zIdForConfirm);
-    }
-
-    // Pallet information
-    formData.append("selectedPalletId", selectedPallet.id);
-
-    // Optional: share allocations
-    if (shareAllocation && shareFriendIds && shareFriendIds.length > 0) {
-      formData.append(
-        "shareBottles",
-        JSON.stringify({
-          friendIds: shareFriendIds,
-          allocations: shareAllocation,
-        }),
-      );
-    }
-
-    if (Number.isFinite(redeemPoints) && redeemPoints > 0) {
-      formData.append("pact_points_redeem", String(Math.floor(redeemPoints)));
-    }
-
-    formData.append("stripe_intent_id", confirmed.intentId);
-    formData.append("stripe_intent_type", paymentMode);
-
     try {
-      const response = await fetch("/api/checkout/confirm", {
-        method: "POST",
-        body: formData,
+      await submitConfirm({
+        stripeIntentId: confirmed.intentId,
+        paymentMode,
       });
-
-      if (response.ok) {
-        const contentType = response.headers.get("content-type") || "";
-        let redirectUrl: string | null = null;
-        if (contentType.includes("application/json")) {
-          const data: unknown = await response.json().catch(() => null);
-          if (data && typeof data === "object") {
-            const d = data as Record<string, unknown>;
-            redirectUrl = typeof d.redirectUrl === "string" ? d.redirectUrl : null;
-          }
-        }
-
-        toast.success(t("checkout.reservationSuccess"));
-        checkoutCompletedRef.current = true;
-        window.location.href = redirectUrl || "/checkout/success";
-        return;
-      }
-
+    } catch (e) {
+      const msg =
+        e instanceof Error ? e.message : t("checkout.reservationFailed");
+      setStripeError(msg);
+      toast.error(msg);
       void AnalyticsTracker.trackEvent({
         eventType: "payment_failed",
         eventCategory: "checkout",
-        metadata: { phase: "confirm", status: response.status },
+        metadata: {},
       });
-
-      const contentType = response.headers.get("content-type") || "";
-      let errorMessage = t("checkout.reservationFailed");
-      if (contentType.includes("application/json")) {
-        try {
-          const errorData: unknown = await response.json();
-          if (errorData && typeof errorData === "object") {
-            const e = errorData as { error?: unknown; debug?: unknown };
-            if (typeof e.error === "string") errorMessage = e.error;
-            if (e.debug) {
-              console.error(
-                "❌ [Checkout] /api/checkout/confirm debug:",
-                e.debug,
-              );
-            }
-          }
-        } catch {
-          // fall through to generic message
-        }
-      } else {
-        const text = await response.text();
-        console.error(
-          `❌ [Checkout] /api/checkout/confirm returned non-JSON error: status=${response.status} content-type=${contentType} bodyStart=${JSON.stringify(
-            text.slice(0, 200),
-          )}`,
-        );
-      }
-
-      setStripeError(errorMessage);
-      toast.error(errorMessage);
-      setIsSubmitting(false);
-      setIsFinalizingReservation(false);
-    } catch (error) {
-      void AnalyticsTracker.trackEvent({
-        eventType: "payment_failed",
-        eventCategory: "checkout",
-        metadata: { phase: "confirm", status: 0, network: true },
-      });
-      console.error("Error placing reservation:", error);
-      setStripeError(t("checkout.reservationFailed"));
-      toast.error(t("checkout.reservationFailed"));
       setIsSubmitting(false);
       setIsFinalizingReservation(false);
     }
   }, [
-    deliveryComplete,
-    friendlyStripeErrorMessage,
-    isUsConditional,
-    isValidCart,
-    t,
-    paymentMode,
+    ageConfirmed,
+    ageCountryCode,
+    requiredAge,
+    termsAccepted,
     profile,
+    platformOpen,
+    isValidCart,
+    deliveryComplete,
+    selectedPallet,
+    stripeConfirmFn,
+    paymentMode,
     zoneAddressRow,
     deliveryDraft,
-    redeemPoints,
-    selectedPallet?.delivery_zone_id,
-    selectedPallet?.id,
-    shareAllocation,
-    shareFriendIds,
-    stripeConfirmFn,
     zoneInfo.selectedDeliveryZoneId,
+    shareFriendIds,
+    shareAllocation,
+    discountCodeInput,
+    appliedDiscount,
+    redeemPoints,
+    t,
+    friendlyStripeErrorMessage,
   ]);
 
   // Calculate shipping cost
@@ -1402,17 +1604,116 @@ function CheckoutContent() {
   const hasBoostedProducerInOrder = boostedLineTotal > 0;
 
   const totalAfterPactPoints = Math.max(0, total - pactPointsSekOff);
+  const displayTotal = appliedDiscount
+    ? Math.max(0, totalAfterPactPoints - appliedDiscount.discount_amount_sek)
+    : totalAfterPactPoints;
 
   // This is the value we send to /api/checkout/payment-intent as `cart_total_sek`.
   // We intentionally do NOT include client-only discounts here (voucher/rewards/progression),
   // because /api/checkout/confirm is the source of truth and validates the final amount.
+  // Applied admin promo codes ARE subtracted so Stripe metadata matches confirm.
   const finalAmountAfterVoucher = useMemo(() => {
     const subtotalSek = parseFloat(cart?.cost?.totalAmount?.amount ?? "0") || 0;
     const shippingSek = shippingCost
       ? shippingCost.totalShippingCostCents / 100
       : 0;
-    return subtotalSek + shippingSek;
-  }, [cart?.cost?.totalAmount?.amount, shippingCost]);
+    const promoOff = appliedDiscount?.discount_amount_sek ?? 0;
+    return Math.max(0, subtotalSek + shippingSek - promoOff);
+  }, [
+    cart?.cost?.totalAmount?.amount,
+    shippingCost,
+    appliedDiscount?.discount_amount_sek,
+  ]);
+
+  const commitAppliedDiscount = (data: {
+    code: string;
+    discount_code_id: string;
+    discount_amount_sek: number;
+    final_total_sek: number;
+    type: "percent" | "sek";
+    value: number;
+    purpose: "normal" | "testkop";
+  }) => {
+    setAppliedDiscount(data);
+    if (data.purpose === "testkop") {
+      setInternalDevice(true);
+    }
+    setDiscountError(null);
+    setPendingTestkopDiscount(null);
+  };
+
+  const applyDiscountCode = async () => {
+    const code = discountCodeInput.trim();
+    if (!code) return;
+    setDiscountError(null);
+    setDiscountApplying(true);
+    try {
+      const items =
+        cart?.lines?.map((line) => {
+          const qty = Number(line.quantity) || 0;
+          const lineTotal =
+            parseFloat(String(line.cost.totalAmount.amount)) || 0;
+          return {
+            wine_id: String(line.merchandise.id),
+            quantity: qty,
+            unit_price: qty > 0 ? lineTotal / qty : 0,
+          };
+        }) ?? [];
+      const cart_value_sek =
+        (parseFloat(cart?.cost?.totalAmount?.amount ?? "0") || 0) +
+        (shippingCost ? shippingCost.totalShippingCostCents / 100 : 0);
+
+      const res = await fetch("/api/discount/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code, cart_value_sek, items }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setAppliedDiscount(null);
+        setPendingTestkopDiscount(null);
+        setDiscountError(
+          typeof data?.error === "string"
+            ? data.error
+            : "Kunde inte tillämpa koden.",
+        );
+        return;
+      }
+
+      const next = {
+        code: String(data.code ?? code).toUpperCase(),
+        discount_code_id: String(data.discount_code_id),
+        discount_amount_sek: Number(data.discount_amount_sek) || 0,
+        final_total_sek: Number(data.final_total_sek) || 0,
+        type: (data.type === "sek" ? "sek" : "percent") as "percent" | "sek",
+        value: Number(data.value) || 0,
+        purpose: (data.purpose === "testkop" ? "testkop" : "normal") as
+          | "normal"
+          | "testkop",
+      };
+
+      if (next.purpose === "testkop") {
+        // Do not apply until the user confirms the permanent analytics exclusion.
+        setPendingTestkopDiscount({ ...next, purpose: "testkop" });
+        return;
+      }
+
+      commitAppliedDiscount(next);
+    } catch {
+      setDiscountError("Kunde inte tillämpa koden.");
+      setAppliedDiscount(null);
+      setPendingTestkopDiscount(null);
+    } finally {
+      setDiscountApplying(false);
+    }
+  };
+
+  const clearAppliedDiscount = () => {
+    setAppliedDiscount(null);
+    setDiscountError(null);
+    setDiscountCodeInput("");
+    setPendingTestkopDiscount(null);
+  };
 
   const handleStripeIntentCreated = useCallback(
     (data: {
@@ -1509,11 +1810,6 @@ function CheckoutContent() {
     );
   };
 
-  const openProfileModalForPostalCode = useCallback(() => {
-    // ProfileInfoModal manages its own open state; we open it by triggering its DialogTrigger.
-    postalModalTriggerRef.current?.click();
-  }, []);
-
   const checkBudbeeAvailability = useCallback(
     async (postalCode: string, countryCode: string = "SE") => {
       if (!/^\d{5}$/.test(postalCode)) return;
@@ -1534,16 +1830,16 @@ function CheckoutContent() {
     [],
   );
 
-  const handlePostalDraftCommit = useCallback(() => {
-    const v = postalCodeDraft.trim();
-    if (!/^\d{5}$/.test(v)) return;
-    void checkBudbeeAvailability(v);
-    openProfileModalForPostalCode();
-  }, [
-    openProfileModalForPostalCode,
-    postalCodeDraft,
-    checkBudbeeAvailability,
-  ]);
+  const handlePostalDraftCommit = useCallback(
+    (raw?: string) => {
+      const v = (raw ?? postalCodeDraft).trim().replace(/\s+/g, "");
+      if (!/^\d{5}$/.test(v)) return;
+      setPostalCodeDraft(v);
+      void checkBudbeeAvailability(v);
+      setPostalModalOpen(true);
+    },
+    [postalCodeDraft, checkBudbeeAvailability],
+  );
 
   const showPalletPicker = useMemo(
     () => (zoneInfo.pallets?.length ?? 0) > 1,
@@ -1637,6 +1933,59 @@ function CheckoutContent() {
 
   return (
     <>
+      <CartMergeModal
+        open={cartMergeOpen}
+        loading={cartMergeLoading}
+        onChoose={(s) => {
+          void handleCartMerge(s);
+        }}
+      />
+      <Dialog
+        open={pendingTestkopDiscount != null}
+        onOpenChange={(open) => {
+          if (!open) setPendingTestkopDiscount(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Detta är en testköpskod</DialogTitle>
+            <DialogDescription asChild>
+              <div className="space-y-3 text-sm text-muted-foreground">
+                <p>
+                  Kontot{" "}
+                  <span className="font-medium text-foreground">
+                    {profile?.email?.trim() || "okänt"}
+                  </span>{" "}
+                  kommer att exkluderas permanent från all analysdata. Alla
+                  framtida besök och köp från det här kontot räknas inte i
+                  statistiken.
+                </p>
+                <p>Använd endast dedikerade testkonton.</p>
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setPendingTestkopDiscount(null)}
+            >
+              Avbryt
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={() => {
+                if (pendingTestkopDiscount) {
+                  commitAppliedDiscount(pendingTestkopDiscount);
+                }
+              }}
+            >
+              Jag förstår, använd koden
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <ReservationLoadingModal
         open={isStripeConfirming || isFinalizingReservation}
         title={
@@ -1798,10 +2147,60 @@ function CheckoutContent() {
                     </span>
                   </div>
                 ) : null}
+
+                {appliedDiscount ? (
+                  <div className="flex items-center justify-between gap-2 text-emerald-700 dark:text-emerald-400">
+                    <span>
+                      {t("checkout.discountApplied", {
+                        code: appliedDiscount.code,
+                        amount:
+                          appliedDiscount.type === "percent"
+                            ? `−${Math.round(appliedDiscount.discount_amount_sek)} kr (−${appliedDiscount.value}%)`
+                            : `−${Math.round(appliedDiscount.discount_amount_sek)} kr`,
+                      })}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={clearAppliedDiscount}
+                      className="shrink-0 text-lg leading-none text-muted-foreground hover:text-foreground"
+                      aria-label={t("checkout.removeDiscount")}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-2 pt-1">
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder={t("checkout.discountCode")}
+                        value={discountCodeInput}
+                        onChange={(e) => {
+                          setDiscountCodeInput(e.target.value);
+                          setDiscountError(null);
+                        }}
+                        className="h-9 rounded-md border border-zinc-200 bg-white pl-3 text-sm text-zinc-900 shadow-sm placeholder:text-zinc-500 focus-visible:ring-zinc-300"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="shrink-0"
+                        disabled={discountApplying || !discountCodeInput.trim()}
+                        onClick={() => void applyDiscountCode()}
+                      >
+                        {t("checkout.applyDiscount")}
+                      </Button>
+                    </div>
+                    {discountError ? (
+                      <p className="text-xs text-red-600">{discountError}</p>
+                    ) : null}
+                  </div>
+                )}
+
                 <div className="flex items-center justify-between pt-2 text-base font-medium text-foreground">
                   <span>{t("checkout.total")}</span>
                   <span className="tabular-nums text-foreground">
-                    {formatDisplay(totalAfterPactPoints)}
+                    {formatDisplay(displayTotal)}
                   </span>
                 </div>
               </div>
@@ -1814,24 +2213,6 @@ function CheckoutContent() {
             />
 
             <div className="space-y-4">
-              <div className="flex gap-2">
-                <Input
-                  placeholder={t("checkout.discountCode")}
-                  value={discountCodeInput}
-                  onChange={(e) => setDiscountCodeInput(e.target.value)}
-                  className="h-9 rounded-md border border-zinc-200 bg-white pl-3 text-sm text-zinc-900 shadow-sm placeholder:text-zinc-500 focus-visible:ring-zinc-300 dark:bg-white dark:text-zinc-900 dark:border-zinc-200 dark:placeholder:text-zinc-500"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="shrink-0"
-                  onClick={() => {}}
-                >
-                  {t("checkout.add")}
-                </Button>
-              </div>
-
               <Button
                 type="button"
                 variant="ghost"
@@ -1984,13 +2365,18 @@ function CheckoutContent() {
                       </p>
                       <Input
                         value={postalCodeDraft}
-                        onChange={(e) =>
-                          setPostalCodeDraft(e.target.value.replace(/\s+/g, ""))
-                        }
+                        onChange={(e) => {
+                          const v = e.target.value.replace(/\s+/g, "");
+                          setPostalCodeDraft(v);
+                          if (/^\d{5}$/.test(v)) {
+                            handlePostalDraftCommit(v);
+                          }
+                        }}
                         placeholder={t("checkout.enterPostalCode")}
                         inputMode="numeric"
                         autoComplete="postal-code"
-                        onBlur={handlePostalDraftCommit}
+                        maxLength={5}
+                        onBlur={() => handlePostalDraftCommit()}
                         onKeyDown={(e) => {
                           if (e.key === "Enter") {
                             e.preventDefault();
@@ -2004,10 +2390,12 @@ function CheckoutContent() {
                     </div>
 
                     <ProfileInfoModal
+                      open={postalModalOpen}
+                      onOpenChange={setPostalModalOpen}
+                      initialPostalCode={postalCodeDraft}
                       onProfileSaved={handleProfileSaved}
                       trigger={
                         <Button
-                          ref={postalModalTriggerRef}
                           type="button"
                           variant="outline"
                           size="sm"
@@ -2353,21 +2741,6 @@ function CheckoutContent() {
                           <div className="space-y-3 rounded-md border border-border bg-background p-4">
                             <div className="flex items-start gap-3">
                               <Checkbox
-                                id="us-age-21"
-                                checked={usAge21Confirmed}
-                                onCheckedChange={(v) =>
-                                  setUsAge21Confirmed(v === true)
-                                }
-                              />
-                              <label
-                                htmlFor="us-age-21"
-                                className="text-sm leading-snug text-foreground"
-                              >
-                                {t("checkout.usAge21")}
-                              </label>
-                            </div>
-                            <div className="flex items-start gap-3">
-                              <Checkbox
                                 id="us-conditional-ack"
                                 checked={usConditionalAck}
                                 onCheckedChange={(v) =>
@@ -2383,6 +2756,58 @@ function CheckoutContent() {
                             </div>
                           </div>
                         ) : null}
+                        <div className="space-y-3 rounded-md border border-border bg-background p-4">
+                          <div className="flex items-start gap-3">
+                            <Checkbox
+                              id="age-confirm"
+                              checked={ageConfirmed}
+                              onCheckedChange={(v) =>
+                                handleAgeChecked(v === true)
+                              }
+                            />
+                            <label
+                              htmlFor="age-confirm"
+                              className="text-sm leading-snug text-foreground"
+                            >
+                              {t("checkout.ageConfirm", {
+                                age: String(requiredAge),
+                              })}
+                            </label>
+                          </div>
+                          <div className="flex items-start gap-3">
+                            <Checkbox
+                              id="terms-accept"
+                              checked={termsAccepted}
+                              onCheckedChange={(v) =>
+                                handleTermsChecked(v === true)
+                              }
+                            />
+                            <label
+                              htmlFor="terms-accept"
+                              className="text-sm leading-snug text-foreground"
+                            >
+                              {t("checkout.termsAccept")}{" "}
+                              <Link
+                                href="/vilkor"
+                                className="underline underline-offset-2"
+                              >
+                                Köpvillkor
+                              </Link>
+                            </label>
+                          </div>
+                        </div>
+                        {platformOpen && authChecked && !authReady ? (
+                          <CheckoutEmailAuth
+                            emailHint={t("checkout.otpEmailHint")}
+                            checkInbox={t("checkout.otpCheckInbox")}
+                            emailLabel={t("checkout.otpEmailLabel")}
+                            sendLinkLabel={t("checkout.otpSendLink")}
+                            onAuthenticated={() => {
+                              void ensureProfileAfterAuth();
+                            }}
+                          />
+                        ) : null}
+                        {!platformOpen ? (
                         <StripePaymentSection
                           palletId={selectedPallet.id}
                           cartTotalSek={finalAmountAfterVoucher}
@@ -2391,9 +2816,9 @@ function CheckoutContent() {
                           onIntentCreated={handleStripeIntentCreated}
                           onConfirmReady={handleStripeConfirmReady}
                           usConditionalPayment={isUsConditional}
-                          usAge21Confirmed={usAge21Confirmed}
                           usConditionalAck={usConditionalAck}
                         />
+                        ) : null}
 
                         {stripeError ? (
                           <p className="mt-3 text-sm text-destructive">
@@ -2402,12 +2827,15 @@ function CheckoutContent() {
                         ) : null}
 
                         <div className="mt-6 space-y-4 border-t border-border pt-4">
+                          <p className="text-xs text-muted-foreground">
+                            {t("checkout.sellingEntity")}
+                          </p>
                           <div className="flex items-center justify-between py-4">
                             <span className="text-base font-semibold text-foreground">
                               {t("checkout.total")}
                             </span>
                             <span className="text-2xl font-bold tabular-nums text-foreground">
-                              {formatDisplay(totalAfterPactPoints)}
+                              {formatDisplay(displayTotal)}
                             </span>
                           </div>
 
@@ -2415,13 +2843,15 @@ function CheckoutContent() {
                             type="button"
                             className="w-full border-transparent bg-black text-white shadow-none ring-0 hover:border-transparent hover:bg-black/90 hover:shadow-none focus-visible:border-transparent focus-visible:bg-black/90 focus-visible:ring-white/40"
                             disabled={
-                              !stripeConfirmFn ||
+                              (!platformOpen && !stripeConfirmFn) ||
                               isSubmitting ||
                               zoneLoading ||
                               isStripeConfirming ||
                               isFinalizingReservation ||
-                              (isUsConditional &&
-                                (!usAge21Confirmed || !usConditionalAck))
+                              !ageConfirmed ||
+                              !termsAccepted ||
+                              (platformOpen && !authReady) ||
+                              (isUsConditional && !usConditionalAck)
                             }
                             onClick={handlePlaceReservation}
                           >
@@ -2516,7 +2946,11 @@ function CheckoutContent() {
   );
 }
 
-export function CheckoutClient() {
+export function CheckoutClient({
+  platformOpen = false,
+}: {
+  platformOpen?: boolean;
+}) {
   return (
     <Suspense
       fallback={
@@ -2529,7 +2963,8 @@ export function CheckoutClient() {
       </div>
       }
     >
-      <CheckoutContent />
+      <CheckoutContent platformOpen={platformOpen} />
+      {/* merge modal portal host is inside CheckoutContent */}
     </Suspense>
   );
 }

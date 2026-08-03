@@ -471,7 +471,6 @@ export async function POST(request: Request) {
           m.reservation_mode !== "conditional" ||
           m.market_code !== "US" ||
           m.country_code !== "US" ||
-          m.age_21_confirmed !== "true" ||
           m.conditional_ack_confirmed !== "true" ||
           m.terms_version !== US_CONDITIONAL_TERMS_VERSION
         ) {

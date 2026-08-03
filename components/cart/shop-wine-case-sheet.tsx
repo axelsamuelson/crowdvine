@@ -123,7 +123,14 @@ export function ShopWineCaseSheet({
             product.id,
             product.title,
             parseFloat(product.priceRange.minVariantPrice.amount),
-            { quantity: 6, source: "pdp_case" },
+            {
+              quantity: 6,
+              source: "pdp_case",
+              unit_price: parseFloat(
+                product.priceRange.minVariantPrice.amount,
+              ),
+              price_version: "v1",
+            },
           );
           onOpenChange(false);
         }

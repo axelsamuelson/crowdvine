@@ -44,7 +44,7 @@ async function loadJourneyUsers(
     console.warn("[users] user_journey_funnel:", error.message);
     const { data: eventsData, error: eventsError } = await sb
       .from("user_events")
-      .select("user_id, event_type, created_at")
+      .select("user_id, event_type, created_at, event_metadata")
       .not("user_id", "is", null);
 
     if (eventsError) throw eventsError;
@@ -52,6 +52,8 @@ async function loadJourneyUsers(
     const usersMap = new Map<string, JourneyRow>();
     for (const event of eventsData ?? []) {
       if (isExcludedUserId(event.user_id, excluded)) continue;
+      const md = event.event_metadata as Record<string, unknown> | null;
+      if (md && md.internal === true) continue;
       if (!usersMap.has(event.user_id)) {
         usersMap.set(event.user_id, { user_id: event.user_id });
       }
@@ -240,7 +242,7 @@ export async function GET(request: Request) {
     for (let from = 0; from < 50000; from += pageSize) {
       const { data, error } = await sb
         .from("user_events")
-        .select("user_id, event_type, created_at")
+        .select("user_id, event_type, created_at, event_metadata")
         .not("user_id", "is", null)
         .order("created_at", { ascending: false })
         .range(from, from + pageSize - 1);
@@ -248,6 +250,8 @@ export async function GET(request: Request) {
       const batch = data ?? [];
       for (const e of batch) {
         if (isExcludedUserId(e.user_id, excluded)) continue;
+        const md = e.event_metadata as Record<string, unknown> | null;
+        if (md && md.internal === true) continue;
         let c = counts.get(e.user_id);
         if (!c) {
           c = {

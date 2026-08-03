@@ -37,7 +37,7 @@ export async function GET(request: Request) {
         console.error("Analytics funnel error:", error);
         const { data: eventsData, error: eventsError } = await sb
           .from("user_events")
-          .select("user_id, event_type, created_at")
+          .select("user_id, event_type, created_at, event_metadata")
           .not("user_id", "is", null);
 
         if (eventsError) {
@@ -54,6 +54,7 @@ export async function GET(request: Request) {
         const usersMap = new Map();
         (eventsData ?? []).forEach((event: any) => {
           if (isExcludedUserId(event.user_id, excluded)) return;
+          if (event.event_metadata?.internal === true) return;
           if (!usersMap.has(event.user_id)) {
             usersMap.set(event.user_id, {
               user_id: event.user_id,

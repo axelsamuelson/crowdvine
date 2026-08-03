@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
+import { ensureVisitorIdentity } from "@/lib/analytics/visitor-identity";
 
 /**
  * Site-wide traffic base layer. Fires page_view on mount and pathname changes,
@@ -16,6 +17,9 @@ export function PageViewTracker() {
     if (!pathname) return;
     if (lastPathRef.current === pathname) return;
     lastPathRef.current = pathname;
+
+    // Create visitor_id + first_touch once (localStorage); never rotate/overwrite.
+    ensureVisitorIdentity();
 
     void AnalyticsTracker.trackEvent({
       eventType: "page_view",

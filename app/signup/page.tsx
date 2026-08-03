@@ -23,6 +23,16 @@ function SignupPageContent() {
   const [tokenValid, setTokenValid] = useState<boolean | null>(null);
   const [membershipLevel, setMembershipLevel] = useState<string | null>(null);
 
+  useEffect(() => {
+    void import("@/lib/analytics/event-tracker").then(({ AnalyticsTracker }) => {
+      void AnalyticsTracker.trackEvent({
+        eventType: "signup_started",
+        eventCategory: "auth",
+        metadata: { source: "direct" },
+      });
+    });
+  }, []);
+
   // Map Swedish level names to English
   const getLevelName = (level: string) => {
     const levelMap: Record<string, string> = {

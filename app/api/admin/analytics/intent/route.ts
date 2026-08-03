@@ -22,18 +22,19 @@ async function fetchCleanEvents(
   const pageSize = 1000;
   const maxRows = 30000;
   const selectCols =
-    "session_id, user_id, event_type, event_metadata, created_at, page_url, site";
+    "session_id, visitor_id, user_id, event_type, event_metadata, created_at, page_url, site";
 
-  async function paged(table: string, extra?: (q: any) => any) {
+  async function paged(table: string, selectOverride?: string, extra?: (q: any) => any) {
     const out: CleanEventRow[] = [];
+    const cols =
+      selectOverride ??
+      (table === "user_events"
+        ? "session_id, visitor_id, user_id, event_type, event_metadata, created_at, page_url"
+        : selectCols);
     for (let from = 0; from < maxRows; from += pageSize) {
       let q = sb
         .from(table)
-        .select(
-          table === "user_events"
-            ? "session_id, user_id, event_type, event_metadata, created_at, page_url"
-            : selectCols,
-        )
+        .select(cols)
         .gte("created_at", sinceIso)
         .order("created_at", { ascending: true })
         .range(from, from + pageSize - 1);
@@ -47,10 +48,21 @@ async function fetchCleanEvents(
     return { rows: out, error: null as null };
   }
 
-  const clean = await paged(
+  let clean = await paged(
     "analytics_sessions_clean",
+    undefined,
     site === "all" ? undefined : (q) => q.eq("site", site),
   );
+  if (
+    clean.error &&
+    /visitor_id|schema cache|Could not find/i.test(clean.error.message || "")
+  ) {
+    clean = await paged(
+      "analytics_sessions_clean",
+      "session_id, user_id, event_type, event_metadata, created_at, page_url, site",
+      site === "all" ? undefined : (q) => q.eq("site", site),
+    );
+  }
   if (!clean.error) {
     return { rows: clean.rows, fromCleanView: true };
   }
@@ -59,9 +71,19 @@ async function fetchCleanEvents(
     "[intent] analytics_sessions_clean unavailable:",
     clean.error.message,
   );
-  const fallback = await paged("user_events", (q) =>
+  let fallback = await paged("user_events", undefined, (q) =>
     q.not("session_id", "like", "server_%"),
   );
+  if (
+    fallback.error &&
+    /visitor_id|schema cache|Could not find/i.test(fallback.error.message || "")
+  ) {
+    fallback = await paged(
+      "user_events",
+      "session_id, user_id, event_type, event_metadata, created_at, page_url",
+      (q) => q.not("session_id", "like", "server_%"),
+    );
+  }
   if (fallback.error) throw fallback.error;
 
   const internalSessions = new Set<string>();
@@ -262,7 +284,14 @@ export async function GET(request: Request) {
     });
 
     const events28 = cleanEvents.filter((e) => e.created_at >= since28);
-    const visitorSessions = new Set(events28.map((e) => e.session_id));
+    const visitorKeys = new Set(
+      events28.map((e) =>
+        e.visitor_id && String(e.visitor_id).trim()
+          ? String(e.visitor_id).trim()
+          : `session:${e.session_id}`,
+      ),
+    );
+    const sessionKeys = new Set(events28.map((e) => e.session_id));
     const intent28 = buildIntentSessionsFromCleanEvents(
       events28,
       reservationsByUser,
@@ -308,7 +337,8 @@ export async function GET(request: Request) {
       }
     }
 
-    const visitors = visitorSessions.size;
+    const visitors = visitorKeys.size;
+    const sessions28 = sessionKeys.size;
     const reservations = reservationSessions.size;
     const conversion_pct =
       visitors > 0
@@ -323,6 +353,7 @@ export async function GET(request: Request) {
       weeklyFunnel,
       metrics28d: {
         visitors,
+        sessions: sessions28,
         intent_sessions: intent28.length,
         reservations,
         conversion_pct,

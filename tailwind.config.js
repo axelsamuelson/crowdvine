@@ -110,10 +110,15 @@ const config = {
           from: { height: "var(--radix-collapsible-content-height)" },
           to: { height: "0" },
         },
+        "hero-ken-burns": {
+          from: { transform: "scale(1.06)" },
+          to: { transform: "scale(1.12)" },
+        },
       },
       animation: {
         "collapsible-down": "collapsible-down 0.2s ease-out",
         "collapsible-up": "collapsible-up 0.2s ease-out",
+        "hero-ken-burns": "hero-ken-burns 14s linear forwards",
       },
     },
   },

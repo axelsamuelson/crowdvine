@@ -62,7 +62,13 @@ export function useUserRole(): UserRoleState {
           });
         }
       } catch (error) {
-        if (
+        if (isStaleRefreshTokenError(error)) {
+          try {
+            await supabase.auth.signOut({ scope: "local" });
+          } catch {
+            /* ignore */
+          }
+        } else if (
           !isAuthNetworkError(error) &&
           process.env.NODE_ENV === "development"
         ) {

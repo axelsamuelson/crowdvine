@@ -2,7 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { isPlatformAdminProfile } from "@/lib/auth/platform-admin-profile";
 import { isStaleRefreshTokenError } from "@/lib/auth/session-errors";
-import { isPublicAppPath } from "@/lib/auth/public-paths";
+import {
+  isOpenPlatformBrowseOrCheckoutPath,
+  isPublicAppPath,
+} from "@/lib/auth/public-paths";
+import { isPlatformOpen } from "@/lib/platform-open";
 import { isDirtywineHost } from "@/lib/b2b-site";
 import { createClient as createSupabaseMiddlewareClient } from "@/utils/supabase/middleware";
 import {
@@ -119,7 +123,8 @@ async function runMiddleware(req: NextRequest) {
     return nextWithPathname(req);
   }
 
-  const isPublic = isPublicAppPath(pathname);
+  const platformOpen = isPlatformOpen();
+  const isPublic = isPublicAppPath(pathname, { platformOpen });
 
   // OAuth discovery (RFC 8414, RFC 9728) and MCP API — bypass Supabase session / membership gate.
   // /.well-known/* includes oauth-authorization-server and oauth-protected-resource/...
@@ -136,10 +141,6 @@ async function runMiddleware(req: NextRequest) {
   )
     return nextWithPathname(req);
 
-  if (isPublic) {
-    return nextWithPathname(req);
-  }
-
   const { supabase, response: res } = createSupabaseMiddlewareClient(
     req,
     pathname,
@@ -151,12 +152,21 @@ async function runMiddleware(req: NextRequest) {
   const { data: userData, error: userError } = await supabase.auth.getUser();
   if (userError) {
     if (isStaleRefreshTokenError(userError)) {
-      await supabase.auth.signOut();
+      try {
+        await supabase.auth.signOut();
+      } catch {
+        /* cookies cleared via signOut cookie handlers when possible */
+      }
       return res;
     }
     console.warn("MIDDLEWARE: auth.getUser failed:", userError.message);
   } else {
     user = userData.user;
+  }
+
+  // Public routes: allow through (after optional stale-session cleanup above).
+  if (isPublic) {
+    return res;
   }
 
   const adminAuthCookie = req.cookies.get("admin-auth")?.value;
@@ -206,6 +216,9 @@ async function runMiddleware(req: NextRequest) {
     }
 
     // pactwines.com / localhost (default): require login
+    // PLATFORM_OPEN: browse + checkout already treated as public above; other
+    // gated paths still require auth. Unauthenticated users never reach here
+    // for /checkout when PLATFORM_OPEN (isPublic includes it).
     if (!user) {
       console.log(
         "🚫 MIDDLEWARE: No user found, redirecting to access-request",
@@ -236,11 +249,17 @@ async function runMiddleware(req: NextRequest) {
       pathname,
       membershipLevel: membership?.level,
       profileRole: profile?.role,
+      platformOpen,
     });
+
+    // PLATFORM_OPEN: skip membership-level gate for browse and checkout paths
+    const skipMembershipGate =
+      platformOpen && isOpenPlatformBrowseOrCheckoutPath(pathname);
 
     // Redirect requesters to access-pending page (unless they're already there)
     // Producers/admins should not be blocked by membership gating.
     if (
+      !skipMembershipGate &&
       membership?.level === "requester" &&
       profile?.role !== "producer" &&
       !isPlatformAdmin &&
@@ -255,7 +274,12 @@ async function runMiddleware(req: NextRequest) {
 
     // If no membership exists, redirect to access-request
     // Producers/admins should not be blocked by membership gating.
-    if (!membership && profile?.role !== "producer" && !isPlatformAdmin) {
+    if (
+      !skipMembershipGate &&
+      !membership &&
+      profile?.role !== "producer" &&
+      !isPlatformAdmin
+    ) {
       console.log(
         "🚫 MIDDLEWARE: No membership found, redirecting to access-request",
       );

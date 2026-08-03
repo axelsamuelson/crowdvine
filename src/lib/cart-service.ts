@@ -51,13 +51,23 @@ export class CartService {
     const sb = await supabaseServer();
     console.log("🔧 Supabase client obtained in ensureCart");
 
+    let userId: string | null = null;
+    try {
+      const {
+        data: { user },
+      } = await sb.auth.getUser();
+      userId = user?.id ?? null;
+    } catch {
+      userId = null;
+    }
+
     // Check if cart exists, create if not
     console.log("🔧 Checking if cart exists...");
     const { data: existingCart, error: checkError } = await sb
       .from("carts")
-      .select("id")
+      .select("id, user_id")
       .eq("session_id", cartId)
-      .single();
+      .maybeSingle();
 
     if (checkError && checkError.code !== "PGRST116") {
       console.error("🔧 Error checking for existing cart:", checkError);
@@ -65,9 +75,19 @@ export class CartService {
 
     if (!existingCart) {
       console.log("🔧 No existing cart, creating new one...");
+      const insertPayload: {
+        session_id: string;
+        user_id?: string;
+        updated_at: string;
+      } = {
+        session_id: cartId,
+        updated_at: new Date().toISOString(),
+      };
+      if (userId) insertPayload.user_id = userId;
+
       const { data: newCart, error } = await sb
         .from("carts")
-        .insert({ session_id: cartId })
+        .insert(insertPayload)
         .select("id")
         .single();
 
@@ -80,8 +100,27 @@ export class CartService {
       return newCart.id;
     }
 
+    // Attach authenticated user_id if missing
+    if (userId && !existingCart.user_id) {
+      await sb
+        .from("carts")
+        .update({
+          user_id: userId,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", existingCart.id);
+    }
+
     console.log("🔧 Existing cart found with ID:", existingCart.id);
     return existingCart.id;
+  }
+
+  private static async touchCart(cartId: string) {
+    const sb = await supabaseServer();
+    await sb
+      .from("carts")
+      .update({ updated_at: new Date().toISOString() })
+      .eq("id", cartId);
   }
 
   static async getCart(): Promise<Cart | null> {
@@ -398,6 +437,8 @@ export class CartService {
         }
       }
 
+      await this.touchCart(cartId);
+
       // Return updated cart
       console.log("🔧 Getting updated cart...");
       const cart = await this.getCart();
@@ -423,6 +464,7 @@ export class CartService {
   ): Promise<Cart | null> {
     try {
       const sb = await supabaseServer();
+      const cartId = await this.ensureCart();
 
       if (quantity <= 0) {
         // Remove item if quantity is 0 or negative
@@ -445,6 +487,7 @@ export class CartService {
         }
       }
 
+      await this.touchCart(cartId);
       return await this.getCart();
     } catch (error) {
       console.error("CartService.updateItem error:", error);
@@ -455,6 +498,7 @@ export class CartService {
   static async removeItem(itemId: string): Promise<Cart | null> {
     try {
       const sb = await supabaseServer();
+      const cartId = await this.ensureCart();
 
       const { error } = await sb.from("cart_items").delete().eq("id", itemId);
 
@@ -463,6 +507,7 @@ export class CartService {
         throw new Error("Failed to remove cart item");
       }
 
+      await this.touchCart(cartId);
       return await this.getCart();
     } catch (error) {
       console.error("CartService.removeItem error:", error);
@@ -472,18 +517,19 @@ export class CartService {
 
   static async clearCart(): Promise<void> {
     try {
-      const cartId = await getOrSetCartId();
+      const cartDbId = await this.ensureCart();
       const sb = await supabaseServer();
 
       const { error } = await sb
         .from("cart_items")
         .delete()
-        .eq("cart_id", await this.ensureCart());
+        .eq("cart_id", cartDbId);
 
       if (error) {
         console.error("Failed to clear cart:", error);
         throw new Error("Failed to clear cart");
       }
+      await this.touchCart(cartDbId);
     } catch (error) {
       console.error("CartService.clearCart error:", error);
       throw error;

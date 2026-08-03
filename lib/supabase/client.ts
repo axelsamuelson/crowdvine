@@ -8,16 +8,28 @@ import {
 let client: SupabaseClient | null = null;
 
 function wrapAuthMethods(supabase: SupabaseClient) {
+  const clearLocalSession = async () => {
+    try {
+      await supabase.auth.signOut({ scope: "local" });
+    } catch {
+      /* ignore */
+    }
+  };
+
   const originalGetUser = supabase.auth.getUser.bind(supabase.auth);
   supabase.auth.getUser = async (jwt?) => {
     try {
       const result = await originalGetUser(jwt);
       if (result.error && isStaleRefreshTokenError(result.error)) {
-        await supabase.auth.signOut({ scope: "local" });
+        await clearLocalSession();
         return { data: { user: null }, error: null };
       }
       return result;
     } catch (error) {
+      if (isStaleRefreshTokenError(error)) {
+        await clearLocalSession();
+        return { data: { user: null }, error: null };
+      }
       if (isAuthNetworkError(error)) {
         return { data: { user: null }, error: null };
       }
@@ -30,11 +42,15 @@ function wrapAuthMethods(supabase: SupabaseClient) {
     try {
       const result = await originalGetSession();
       if (result.error && isStaleRefreshTokenError(result.error)) {
-        await supabase.auth.signOut({ scope: "local" });
+        await clearLocalSession();
         return { data: { session: null }, error: null };
       }
       return result;
     } catch (error) {
+      if (isStaleRefreshTokenError(error)) {
+        await clearLocalSession();
+        return { data: { session: null }, error: null };
+      }
       if (isAuthNetworkError(error)) {
         return { data: { session: null }, error: null };
       }

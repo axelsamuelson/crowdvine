@@ -40,14 +40,28 @@ interface ProfileInfo {
 interface ProfileModalProps {
   onProfileSaved: (profile: ProfileInfo) => void;
   trigger?: React.ReactNode;
+  /** Controlled open state (optional). */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  /** Prefill postal when opening (e.g. from checkout draft). */
+  initialPostalCode?: string;
 }
 
 export function ProfileInfoModal({
   onProfileSaved,
   trigger,
+  open: openProp,
+  onOpenChange,
+  initialPostalCode,
 }: ProfileModalProps) {
   const { t } = useShoppingContext();
-  const [open, setOpen] = useState(false);
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
+  const isControlled = openProp !== undefined;
+  const open = isControlled ? openProp : uncontrolledOpen;
+  const setOpen = (next: boolean) => {
+    if (!isControlled) setUncontrolledOpen(next);
+    onOpenChange?.(next);
+  };
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<ProfileInfo>({
     full_name: "",
@@ -59,37 +73,68 @@ export function ProfileInfoModal({
     region: "",
   });
 
-  // Load existing profile when modal opens
+  // Load existing profile when modal opens; keep draft postal if profile has none
   useEffect(() => {
-    if (open) {
-      loadProfile();
-    }
-  }, [open]);
+    if (!open) return;
 
-  const loadProfile = async () => {
-    try {
-      const response = await fetch("/api/user/profile");
-      if (response.ok) {
+    let cancelled = false;
+
+    const loadProfile = async () => {
+      const draftPostal = initialPostalCode?.trim() || "";
+      try {
+        const response = await fetch("/api/user/profile");
+        if (!response.ok) {
+          if (!cancelled && draftPostal) {
+            setFormData((prev) => ({
+              ...prev,
+              postal_code: prev.postal_code || draftPostal,
+            }));
+          }
+          return;
+        }
         const data = await response.json();
         const profile = data.profile || data;
 
-        if (profile) {
-          const countryCode =
-            getCountryCodeFromProfileCountry(profile.country ?? null) ?? "SE";
-          setFormData({
-            full_name: profile.full_name || "",
-            phone: profile.phone || "",
-            address: profile.address || "",
-            city: profile.city || "",
-            postal_code: profile.postal_code || "",
-            country: countryCode,
-          });
+        if (cancelled || !profile) {
+          if (!cancelled && draftPostal) {
+            setFormData((prev) => ({
+              ...prev,
+              postal_code: prev.postal_code || draftPostal,
+            }));
+          }
+          return;
+        }
+
+        const countryCode =
+          getCountryCodeFromProfileCountry(profile.country ?? null) ?? "SE";
+        setFormData({
+          full_name: profile.full_name || "",
+          phone: profile.phone || "",
+          address: profile.address || "",
+          city: profile.city || "",
+          postal_code: profile.postal_code || draftPostal,
+          country: countryCode,
+          region: profile.region || "",
+        });
+      } catch (error) {
+        if (!cancelled && draftPostal) {
+          setFormData((prev) => ({
+            ...prev,
+            postal_code: prev.postal_code || draftPostal,
+          }));
+        }
+        const msg = error instanceof Error ? error.message : String(error);
+        if (msg !== "Failed to fetch") {
+          console.error("Error loading profile:", error);
         }
       }
-    } catch (error) {
-      console.error("Error loading profile:", error);
-    }
-  };
+    };
+
+    void loadProfile();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, initialPostalCode]);
 
   const handleSave = async () => {
     setLoading(true);
@@ -245,7 +290,11 @@ export function ProfileInfoModal({
             <div>
               <Label htmlFor="region">{t("checkout.stateTerritory")}</Label>
               <Select
-                value={formData.region && formData.region.length > 0 ? formData.region : undefined}
+                value={
+                  formData.region && formData.region.length > 0
+                    ? formData.region
+                    : undefined
+                }
                 onValueChange={(value) =>
                   setFormData({ ...formData, region: value })
                 }

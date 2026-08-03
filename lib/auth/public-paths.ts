@@ -21,6 +21,8 @@ const PUBLIC_PATH_PREFIXES = [
   "/languedoc",
   "/guider",
   "/guides",
+  "/how-it-works",
+  "/vilkor",
   "/sitemap-b2b",
   "/robots-b2b",
   "/sitemap.xml",
@@ -41,8 +43,35 @@ const PUBLIC_PATH_PREFIXES = [
   "/dev",
 ] as const;
 
-export function isPublicAppPath(pathname: string): boolean {
-  return PUBLIC_PATH_PREFIXES.some(
+/**
+ * Extra public prefixes when PLATFORM_OPEN=true.
+ * /vin and /product are already public; /checkout is the critical addition.
+ */
+const PLATFORM_OPEN_PUBLIC_PREFIXES = ["/checkout"] as const;
+
+export function isPublicAppPath(
+  pathname: string,
+  opts?: { platformOpen?: boolean },
+): boolean {
+  const prefixes = opts?.platformOpen
+    ? [...PUBLIC_PATH_PREFIXES, ...PLATFORM_OPEN_PUBLIC_PREFIXES]
+    : PUBLIC_PATH_PREFIXES;
+  return prefixes.some(
+    (p) => pathname === p || pathname.startsWith(`${p}/`),
+  );
+}
+
+/** Browse + checkout paths that skip membership gate when PLATFORM_OPEN. */
+export function isOpenPlatformBrowseOrCheckoutPath(pathname: string): boolean {
+  const openPrefixes = [
+    "/checkout",
+    "/vin",
+    "/wine",
+    "/product",
+    "/produkt",
+    "/shop",
+  ] as const;
+  return openPrefixes.some(
     (p) => pathname === p || pathname.startsWith(`${p}/`),
   );
 }

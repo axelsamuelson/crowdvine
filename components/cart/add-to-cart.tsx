@@ -94,7 +94,13 @@ export function AddToCartButton({
             AnalyticsTracker.trackAddToCart(
               product.id,
               product.title,
-              parseFloat(product.priceRange.minVariantPrice.amount)
+              parseFloat(product.priceRange.minVariantPrice.amount),
+              {
+                unit_price: parseFloat(
+                  product.priceRange.minVariantPrice.amount,
+                ),
+                price_version: "v1",
+              },
             );
           });
         }

@@ -129,7 +129,7 @@ export function ShoppingContextProvider({
   }, [serverZoneKey]);
 
   const refresh = useCallback(async () => {
-    refreshAbortRef.current?.abort();
+    refreshAbortRef.current?.abort("refresh-superseded");
     const ac = new AbortController();
     refreshAbortRef.current = ac;
     try {
@@ -192,7 +192,7 @@ export function ShoppingContextProvider({
   }, [context.locale]);
 
   useEffect(() => {
-    return () => refreshAbortRef.current?.abort();
+    return () => refreshAbortRef.current?.abort("unmount");
   }, []);
 
   useEffect(() => {

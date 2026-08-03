@@ -52,18 +52,33 @@ export async function POST(request: Request) {
     }
     console.log("🔧 Cart ID:", cartId);
 
+    const {
+      data: { user: authUser },
+    } = await supabase.auth.getUser();
+    const userId = authUser?.id ?? null;
+
     // Ensure cart exists
     const { data: existingCart } = await supabase
       .from("carts")
-      .select("id")
+      .select("id, user_id")
       .eq("session_id", cartId)
-      .single();
+      .maybeSingle();
 
     let dbCartId;
     if (!existingCart) {
+      const insertPayload: {
+        session_id: string;
+        user_id?: string;
+        updated_at: string;
+      } = {
+        session_id: cartId,
+        updated_at: new Date().toISOString(),
+      };
+      if (userId) insertPayload.user_id = userId;
+
       const { data: newCart, error: createError } = await supabase
         .from("carts")
-        .insert({ session_id: cartId })
+        .insert(insertPayload)
         .select("id")
         .single();
 
@@ -80,6 +95,15 @@ export async function POST(request: Request) {
     } else {
       dbCartId = existingCart.id;
       console.log("🔧 Existing cart found:", dbCartId);
+      if (userId && !existingCart.user_id) {
+        await supabase
+          .from("carts")
+          .update({
+            user_id: userId,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", dbCartId);
+      }
     }
 
     // Check if item already exists with producer source (default for backwards compatibility)
@@ -128,6 +152,11 @@ export async function POST(request: Request) {
         );
       }
     }
+
+    await supabase
+      .from("carts")
+      .update({ updated_at: new Date().toISOString() })
+      .eq("id", dbCartId);
 
     console.log("🔧 Item added/updated successfully");
 

@@ -26,7 +26,7 @@ export function AlternativeLogoSvg({ className }: { className?: string }) {
     }
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 2000);
+    const timeoutId = setTimeout(() => controller.abort("timeout"), 2000);
 
     fetch(`/api/site-content/alternative_logo?t=${Date.now()}`, {
       signal: controller.signal,
@@ -60,7 +60,7 @@ export function AlternativeLogoSvg({ className }: { className?: string }) {
 
     return () => {
       clearTimeout(timeoutId);
-      controller.abort();
+      controller.abort("unmount");
     };
   }, [reloadTrigger]);
 

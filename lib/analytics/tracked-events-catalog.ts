@@ -51,6 +51,26 @@ export const TRACKED_USER_EVENTS_CATALOG: TrackedEventCatalogEntry[] = [
     description: "User logged out (reserved / use when wired).",
     sources: ["client"],
   },
+  {
+    eventType: "signup_started",
+    category: "auth",
+    description:
+      "Email/signup UI shown (mid-checkout magic link or standalone signup).",
+    sources: ["client"],
+  },
+  {
+    eventType: "signup_completed",
+    category: "auth",
+    description: "Magic-link / OTP session established (auth callback).",
+    sources: ["server"],
+  },
+  {
+    eventType: "signup_abandoned",
+    category: "auth",
+    description:
+      "Checkout email signup unmounted after email entered without completion.",
+    sources: ["client"],
+  },
   // invitation
   {
     eventType: "invitation_link_opened",
@@ -234,6 +254,30 @@ export const TRACKED_USER_EVENTS_CATALOG: TrackedEventCatalogEntry[] = [
       "Reservation / confirm step failed (HTTP error; no card details in metadata).",
     sources: ["client"],
   },
+  {
+    eventType: "age_verification_shown",
+    category: "checkout",
+    description: "Age confirmation checkbox shown at checkout.",
+    sources: ["client"],
+  },
+  {
+    eventType: "age_verification_passed",
+    category: "checkout",
+    description: "User checked the age confirmation checkbox.",
+    sources: ["client"],
+  },
+  {
+    eventType: "age_verification_failed",
+    category: "checkout",
+    description: "User unchecked age confirmation or blocked submit.",
+    sources: ["client"],
+  },
+  {
+    eventType: "terms_accepted",
+    category: "checkout",
+    description: "User accepted köpvillkor at checkout.",
+    sources: ["client"],
+  },
   // engagement
   {
     eventType: "why_modal_opened",
@@ -244,13 +288,13 @@ export const TRACKED_USER_EVENTS_CATALOG: TrackedEventCatalogEntry[] = [
   {
     eventType: "scroll_depth",
     category: "engagement",
-    description: "Scroll depth milestone (reserved).",
+    description: "Scroll depth milestone (25/50/75/100) on PDP / how-it-works.",
     sources: ["client"],
   },
   {
     eventType: "time_on_page",
     category: "engagement",
-    description: "Time on page / dwell (reserved).",
+    description: "Time on page / dwell on PDP / how-it-works.",
     sources: ["client"],
   },
   {

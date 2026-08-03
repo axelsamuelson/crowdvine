@@ -9,7 +9,9 @@ export function isStaleRefreshTokenError(error: unknown): boolean {
     "code" in error && typeof error.code === "string" ? error.code : "";
   return (
     code === "refresh_token_already_used" ||
+    code === "refresh_token_not_found" ||
     /invalid refresh token/i.test(msg) ||
+    /refresh token not found/i.test(msg) ||
     (/refresh token/i.test(msg) && /already used/i.test(msg))
   );
 }

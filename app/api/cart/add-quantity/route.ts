@@ -65,17 +65,32 @@ export async function POST(request: Request) {
     }
 
     // Ensure cart exists in database
+    const {
+      data: { user: authUser },
+    } = await supabase.auth.getUser();
+    const userId = authUser?.id ?? null;
+
     const { data: existingCart } = await supabase
       .from("carts")
-      .select("id")
+      .select("id, user_id")
       .eq("session_id", cartId)
-      .single();
+      .maybeSingle();
 
     let dbCartId;
     if (!existingCart) {
+      const insertPayload: {
+        session_id: string;
+        user_id?: string;
+        updated_at: string;
+      } = {
+        session_id: cartId,
+        updated_at: new Date().toISOString(),
+      };
+      if (userId) insertPayload.user_id = userId;
+
       const { data: newCart, error: createError } = await supabase
         .from("carts")
-        .insert({ session_id: cartId })
+        .insert(insertPayload)
         .select("id")
         .single();
 
@@ -92,6 +107,15 @@ export async function POST(request: Request) {
     } else {
       dbCartId = existingCart.id;
       console.log("🛒 [ADD-QUANTITY] Using existing cart:", dbCartId);
+      if (userId && !existingCart.user_id) {
+        await supabase
+          .from("carts")
+          .update({
+            user_id: userId,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", dbCartId);
+      }
     }
 
     // Check if item already exists in cart with same source
@@ -194,6 +218,11 @@ export async function POST(request: Request) {
     }
 
     console.log("🛒 [ADD-QUANTITY] Successfully added/updated item");
+
+    await supabase
+      .from("carts")
+      .update({ updated_at: new Date().toISOString() })
+      .eq("id", dbCartId);
 
     const cart = await CartService.getCart();
     if (!cart) {

@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
+import { EngagementTrackers } from "@/components/analytics/engagement-trackers";
 import { Product } from "@/lib/shopify/types";
 
 interface ProductViewTrackerProps {
@@ -114,5 +115,5 @@ export function ProductViewTracker({ product }: ProductViewTrackerProps) {
     storeLastViewed(product);
   }, [product.id, product.title, product.handle, product.productType]);
 
-  return null;
+  return <EngagementTrackers page={`product/${product.handle}`} />;
 }
