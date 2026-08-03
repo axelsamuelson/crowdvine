@@ -7,6 +7,7 @@ import { registerTaskTools } from "./tools/tasks";
 import { registerMetricsTools } from "./tools/metrics";
 import { registerCatalogTools } from "./tools/catalog";
 import { registerPalletTools } from "./tools/pallets";
+import { registerGscTools } from "./tools/gsc";
 
 export function createPactMcpServer(): McpServer {
   const sb = getMcpSupabase();
@@ -22,6 +23,7 @@ export function createPactMcpServer(): McpServer {
   registerMetricsTools(server, sb);
   registerCatalogTools(server, sb);
   registerPalletTools(server, sb);
+  registerGscTools(server);
 
   return server;
 }
