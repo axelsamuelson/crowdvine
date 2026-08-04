@@ -53,6 +53,38 @@
     @apply border-gray-200 bg-white text-gray-900 shadow-none dark:!border-zinc-700 dark:!bg-zinc-800 dark:!text-zinc-100;
   }
 
+  /*
+   * Select placeholder/value use text-muted-foreground / inherit from light :root
+   * tokens — force readable colors on admin dark surfaces.
+   */
+  .admin-form-fields [data-slot="select-trigger"],
+  .admin-form-fields [data-slot="select-trigger"][data-placeholder],
+  .admin-form-fields [data-slot="select-trigger"] [data-slot="select-value"],
+  .admin-form-fields [data-slot="select-trigger"] span {
+    @apply dark:!text-zinc-100;
+  }
+
+  .admin-form-fields [data-slot="select-trigger"][data-placeholder],
+  .admin-form-fields
+    [data-slot="select-trigger"][data-placeholder]
+    [data-slot="select-value"],
+  .admin-form-fields
+    [data-slot="select-trigger"][data-placeholder]
+    span {
+    @apply dark:!text-zinc-400;
+  }
+
+  .admin-form-fields [data-slot="select-trigger"] svg {
+    @apply dark:!text-zinc-400;
+  }
+
+  /* Native date inputs ignore text color unless color-scheme matches. */
+  .admin-form-fields input[type="date"],
+  .admin-form-fields input[type="datetime-local"],
+  .admin-form-fields input[type="time"] {
+    @apply dark:[color-scheme:dark];
+  }
+
   .admin-form-fields
     input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not(
       [type="hidden"]
@@ -69,12 +101,16 @@
     @apply text-gray-500 hover:!text-gray-900 dark:!text-zinc-300 dark:hover:!text-zinc-100;
   }
 
-  /* Semantic tokens stay light-theme in :root — force readable text in admin dark mode */
-  .admin-form-fields .text-foreground {
+  /*
+   * PDP enrichment “dropdowns” use text-foreground/70 etc. Those utilities do not
+   * flip with dark: because :root tokens stay light — override by attribute.
+   */
+  .admin-form-fields [class*="text-foreground"] {
     @apply !text-gray-900 dark:!text-zinc-100;
   }
 
-  .admin-form-fields .text-muted-foreground {
+  .admin-form-fields .text-muted-foreground,
+  .admin-form-fields [class*="text-muted-foreground"] {
     @apply !text-gray-500 dark:!text-zinc-400;
   }
 
@@ -82,15 +118,20 @@
     @apply text-gray-900 dark:!text-zinc-100;
   }
 
+  .admin-form-fields [data-slot="collapsible-trigger"] span {
+    @apply dark:!text-zinc-100;
+  }
+
   .admin-form-fields [data-slot="collapsible-trigger"] svg {
-    @apply text-gray-500 dark:!text-zinc-400;
+    @apply !text-gray-500 dark:!text-zinc-400;
   }
 
   .admin-form-fields [data-slot="collapsible-content"] {
     @apply text-gray-900 dark:!text-zinc-100;
   }
 
-  .admin-form-fields [data-slot="collapsible"] {
+  .admin-form-fields [data-slot="collapsible"],
+  .admin-form-fields [data-slot="collapsible"][class*="border-border"] {
     @apply border-gray-200 dark:!border-zinc-700;
   }
 
@@ -101,6 +142,11 @@
 
   html.admin-app-root [data-slot="select-item"] {
     @apply dark:!text-zinc-100 dark:data-[highlighted]:!bg-zinc-700 dark:data-[highlighted]:!text-zinc-50 dark:focus:!bg-zinc-700 dark:focus:!text-zinc-50;
+  }
+
+  html.admin-app-root [data-slot="select-item"][data-highlighted],
+  html.admin-app-root [data-slot="select-item"]:focus {
+    @apply dark:!bg-zinc-700 dark:!text-zinc-50;
   }
 }
 

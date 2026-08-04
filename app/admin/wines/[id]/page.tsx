@@ -1,11 +1,15 @@
 import { getWine } from "@/lib/actions/wines";
 import { getProducers } from "@/lib/actions/producers";
+import { getWineInternalRatings } from "@/lib/actions/wine-ratings";
 import WineForm from "@/components/admin/wine-form";
+import { WineInternalRatingCard } from "@/components/admin/wine-internal-rating-card";
 import { DeleteWineButton } from "@/components/admin/delete-wine-button";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ExternalLink, Wine } from "lucide-react";
+import { ADMIN_OUTLINE_BUTTON_CLASS, ADMIN_PRIMARY_BUTTON_CLASS } from "@/lib/admin-form-styles";
+import { cn } from "@/lib/utils";
 
 interface EditWinePageProps {
   params: Promise<{ id: string }>;
@@ -14,7 +18,11 @@ interface EditWinePageProps {
 export default async function EditWinePage({ params }: EditWinePageProps) {
   try {
     const { id } = await params;
-    const [wine, producers] = await Promise.all([getWine(id), getProducers()]);
+    const [wine, producers, ratings] = await Promise.all([
+      getWine(id),
+      getProducers(),
+      getWineInternalRatings(id),
+    ]);
 
     return (
       <div className="space-y-6">
@@ -22,7 +30,7 @@ export default async function EditWinePage({ params }: EditWinePageProps) {
           <Button
             variant="outline"
             size="sm"
-            className="rounded-lg border-gray-200 text-xs font-medium dark:border-zinc-700"
+            className={cn(ADMIN_OUTLINE_BUTTON_CLASS, "text-xs font-medium")}
           >
             <ArrowLeft className="mr-1.5 h-3.5 w-3.5" />
             Tillbaka till viner
@@ -49,7 +57,7 @@ export default async function EditWinePage({ params }: EditWinePageProps) {
                 asChild
                 variant="outline"
                 size="sm"
-                className="rounded-lg border-gray-200 text-xs font-medium dark:border-zinc-700"
+                className={cn(ADMIN_OUTLINE_BUTTON_CLASS, "text-xs font-medium")}
               >
                 <Link href={`/product/${wine.handle}`} target="_blank">
                   <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
@@ -61,8 +69,7 @@ export default async function EditWinePage({ params }: EditWinePageProps) {
               form="wine-edit-form"
               type="submit"
               size="sm"
-              variant="default"
-              className="bg-white text-stone-900 hover:bg-stone-100"
+              className={cn(ADMIN_PRIMARY_BUTTON_CLASS, "text-xs font-medium")}
             >
               Spara vin
             </Button>
@@ -70,7 +77,17 @@ export default async function EditWinePage({ params }: EditWinePageProps) {
           </div>
         </div>
 
-        <WineForm wine={wine} producers={producers} />
+        <WineForm
+          wine={wine}
+          producers={producers}
+          afterProductDropdowns={
+            <WineInternalRatingCard
+              key="wine-internal-ratings"
+              wineId={id}
+              ratings={ratings}
+            />
+          }
+        />
       </div>
     );
   } catch {

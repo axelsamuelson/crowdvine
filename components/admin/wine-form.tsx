@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,6 +18,9 @@ import {
   ADMIN_ACTIVE_SWITCH_CLASS,
   ADMIN_HELP_TEXT_CLASS,
   ADMIN_TOGGLE_ROW_CLASS,
+  ADMIN_OUTLINE_BUTTON_CLASS,
+  ADMIN_PRIMARY_BUTTON_CLASS,
+  ADMIN_FIELD_CLASS,
 } from "@/lib/admin-form-styles";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -106,9 +109,17 @@ interface WineFormProps {
   isProducerView?: boolean;
   /** Pre-select this producer when creating a new wine (e.g. from /admin/wines/new?producer_id=xxx) */
   initialProducerId?: string;
+  /** Optional content rendered under “Produktsida — dropdowns” (left column) */
+  afterProductDropdowns?: ReactNode;
 }
 
-export default function WineForm({ wine, producers, isProducerView = false, initialProducerId }: WineFormProps) {
+export default function WineForm({
+  wine,
+  producers,
+  isProducerView = false,
+  initialProducerId,
+  afterProductDropdowns,
+}: WineFormProps) {
   const [editLocale, setEditLocale] = useState<"sv" | "en">("sv");
 
   const [formData, setFormData] = useState<WineFormData>({
@@ -555,6 +566,11 @@ export default function WineForm({ wine, producers, isProducerView = false, init
             type="button"
             size="sm"
             variant={editLocale === "sv" ? "default" : "outline"}
+            className={
+              editLocale === "sv"
+                ? ADMIN_PRIMARY_BUTTON_CLASS
+                : ADMIN_OUTLINE_BUTTON_CLASS
+            }
             onClick={() => setEditLocale("sv")}
           >
             Svenska
@@ -563,6 +579,11 @@ export default function WineForm({ wine, producers, isProducerView = false, init
             type="button"
             size="sm"
             variant={editLocale === "en" ? "default" : "outline"}
+            className={
+              editLocale === "en"
+                ? ADMIN_PRIMARY_BUTTON_CLASS
+                : ADMIN_OUTLINE_BUTTON_CLASS
+            }
             onClick={() => setEditLocale("en")}
           >
             English
@@ -609,7 +630,7 @@ export default function WineForm({ wine, producers, isProducerView = false, init
                 onValueChange={(value) => handleChange("producer_id", value)}
                 required
               >
-                <SelectTrigger>
+                <SelectTrigger className={cn("w-full", ADMIN_FIELD_CLASS)}>
                   <SelectValue placeholder="Välj producent" />
                 </SelectTrigger>
                 <SelectContent>
@@ -631,7 +652,7 @@ export default function WineForm({ wine, producers, isProducerView = false, init
                   value={formData.color}
                   onValueChange={(value) => handleChange("color", value)}
                 >
-                  <SelectTrigger id="color">
+                  <SelectTrigger id="color" className={cn("w-full", ADMIN_FIELD_CLASS)}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -775,7 +796,7 @@ export default function WineForm({ wine, producers, isProducerView = false, init
                   handleChange("farming", value === "none" ? null : value)
                 }
               >
-                <SelectTrigger id="farming">
+                <SelectTrigger id="farming" className={cn("w-full", ADMIN_FIELD_CLASS)}>
                   <SelectValue placeholder="Välj odlingsfilosofi" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1004,6 +1025,10 @@ export default function WineForm({ wine, producers, isProducerView = false, init
             </WineEnrichmentCollapsible>
           </div>
         </AdminFormSection>
+
+        {afterProductDropdowns != null ? (
+          <div key="after-product-dropdowns">{afterProductDropdowns}</div>
+        ) : null}
           </div>
 
           <div className="space-y-4 self-start">

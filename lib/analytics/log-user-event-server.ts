@@ -7,6 +7,9 @@ import type { FirstTouch } from "./visitor-identity";
  * Insert into user_events from API routes (no browser session).
  * Uses a synthetic session_id; omit PII from metadata.
  * Prefer passing visitorId / firstTouch from the browser when available.
+ *
+ * For reservation_completed / signup_completed, sets metadata.internal when
+ * the caller marks it, or when the user is in admin_metrics_excluded_profiles.
  */
 export async function logUserEventServer(opts: {
   userId?: string | null;
@@ -15,45 +18,77 @@ export async function logUserEventServer(opts: {
   eventCategory: EventCategory;
   metadata?: Record<string, unknown>;
   firstTouch?: FirstTouch | null;
+  /** Caller already resolved internal (client flag / test purchase / etc.). */
+  internal?: boolean;
 }): Promise<void> {
   try {
     const sb = getSupabaseAdmin();
     let metadata: Record<string, unknown> = { ...(opts.metadata ?? {}) };
+    const visitorId = opts.visitorId?.trim() || null;
+
     if (
-      (opts.eventType === "reservation_completed" ||
-        opts.eventType === "signup_completed") &&
-      opts.firstTouch
+      opts.eventType === "reservation_completed" ||
+      opts.eventType === "signup_completed"
     ) {
-      metadata = { ...metadata, first_touch: opts.firstTouch };
-    }
-    await sb.from("user_events").insert({
-      user_id: opts.userId ?? null,
-      session_id: `server_${randomUUID()}`,
-      visitor_id: opts.visitorId?.trim() || null,
-      event_type: opts.eventType,
-      event_category: opts.eventCategory,
-      event_metadata: metadata,
-      page_url: null,
-      referrer: null,
-      user_agent: "server",
-    }).then(({ error }) => {
-      if (!error) return;
-      if (!/visitor_id|schema cache|Could not find/i.test(error.message || "")) {
-        console.error("logUserEventServer:", error.message);
-        return;
+      if (opts.firstTouch) {
+        metadata = { ...metadata, first_touch: opts.firstTouch };
       }
-      // Pre-migration fallback
-      void sb.from("user_events").insert({
+      if (visitorId) {
+        metadata = { ...metadata, visitor_id: visitorId };
+      }
+    }
+
+    let internal = opts.internal === true || metadata.internal === true;
+    if (
+      !internal &&
+      opts.userId &&
+      (opts.eventType === "reservation_completed" ||
+        opts.eventType === "signup_completed")
+    ) {
+      const { data: excl } = await sb
+        .from("admin_metrics_excluded_profiles")
+        .select("profile_id")
+        .eq("profile_id", opts.userId)
+        .maybeSingle();
+      if (excl?.profile_id) {
+        internal = true;
+      }
+    }
+    if (internal) {
+      metadata = { ...metadata, internal: true };
+    }
+
+    await sb
+      .from("user_events")
+      .insert({
         user_id: opts.userId ?? null,
         session_id: `server_${randomUUID()}`,
+        visitor_id: visitorId,
         event_type: opts.eventType,
         event_category: opts.eventCategory,
         event_metadata: metadata,
         page_url: null,
         referrer: null,
         user_agent: "server",
+      })
+      .then(({ error }) => {
+        if (!error) return;
+        if (!/visitor_id|schema cache|Could not find/i.test(error.message || "")) {
+          console.error("logUserEventServer:", error.message);
+          return;
+        }
+        // Pre-migration fallback
+        void sb.from("user_events").insert({
+          user_id: opts.userId ?? null,
+          session_id: `server_${randomUUID()}`,
+          event_type: opts.eventType,
+          event_category: opts.eventCategory,
+          event_metadata: metadata,
+          page_url: null,
+          referrer: null,
+          user_agent: "server",
+        });
       });
-    });
   } catch (e) {
     console.error("logUserEventServer:", e);
   }

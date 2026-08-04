@@ -11,6 +11,7 @@ import { ReactNode } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Loader } from "../ui/loader";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
+import { pricesFromCartAfterAdd } from "@/lib/analytics/cart-event-prices";
 import { useTranslations } from "@/lib/hooks/use-translations";
 
 interface AddToCartProps extends ButtonProps {
@@ -89,16 +90,19 @@ export function AddToCartButton({
 
         if (resolvedVariant) {
           startTransition(async () => {
-            addItem(resolvedVariant, product);
-            // Track add to cart event
-            AnalyticsTracker.trackAddToCart(
+            const cart = await addItem(resolvedVariant, product);
+            const { list_price, unit_price } = pricesFromCartAfterAdd(
+              cart,
+              product.id,
+              product,
+            );
+            void AnalyticsTracker.trackAddToCart(
               product.id,
               product.title,
-              parseFloat(product.priceRange.minVariantPrice.amount),
+              list_price,
               {
-                unit_price: parseFloat(
-                  product.priceRange.minVariantPrice.amount,
-                ),
+                list_price,
+                unit_price,
                 price_version: "v1",
               },
             );

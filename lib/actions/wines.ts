@@ -78,6 +78,10 @@ export interface Wine {
   is_live?: boolean;
   /** When false, visible in shop but not purchasable. */
   available_for_sale?: boolean;
+  /** Latest internal tasting score (1–100), if any. */
+  latest_rating_score?: number | null;
+  /** Latest internal verdict, if any. */
+  latest_rating_verdict?: "buy" | "maybe" | "pass" | null;
 }
 
 export interface CreateWineData {
@@ -559,11 +563,52 @@ export async function getWines() {
   // Create a map for quick lookup
   const producerMap = new Map(producers?.map((p) => [p.id, p]) || []);
 
-  // Combine wines with their producers
-  const winesWithProducers = wineList.map((wine) => ({
-    ...wine,
-    producer: producerMap.get(wine.producer_id),
-  }));
+  // Latest internal rating per wine (one query; service role — admin cookie has no JWT for RLS)
+  const latestRatingByWineId = new Map<
+    string,
+    {
+      score: number | null;
+      verdict: "buy" | "maybe" | "pass" | null;
+    }
+  >();
+  const wineIds = wineList.map((w) => w.id);
+  if (wineIds.length > 0) {
+    const adminSb = getSupabaseAdmin();
+    const { data: ratingRows, error: ratingError } = await adminSb
+      .from("wine_internal_ratings")
+      .select("wine_id, score, verdict, tasted_at, created_at")
+      .in("wine_id", wineIds)
+      .order("tasted_at", { ascending: false })
+      .order("created_at", { ascending: false });
+
+    if (ratingError) {
+      console.error("Failed to fetch wine_internal_ratings for list:", ratingError);
+    } else {
+      for (const row of ratingRows ?? []) {
+        const wineId = row.wine_id as string;
+        if (latestRatingByWineId.has(wineId)) continue;
+        const verdict = row.verdict as "buy" | "maybe" | "pass" | null;
+        latestRatingByWineId.set(wineId, {
+          score: (row.score as number | null) ?? null,
+          verdict:
+            verdict === "buy" || verdict === "maybe" || verdict === "pass"
+              ? verdict
+              : null,
+        });
+      }
+    }
+  }
+
+  // Combine wines with their producers and latest rating
+  const winesWithProducers = wineList.map((wine) => {
+    const rating = latestRatingByWineId.get(wine.id);
+    return {
+      ...wine,
+      producer: producerMap.get(wine.producer_id),
+      latest_rating_score: rating?.score ?? null,
+      latest_rating_verdict: rating?.verdict ?? null,
+    };
+  });
 
   return winesWithProducers;
 }

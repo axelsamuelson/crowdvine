@@ -7,12 +7,21 @@ import {
 
 let client: SupabaseClient | null = null;
 
+/** Drop singleton so the next client can store a fresh PKCE code verifier. */
+export function resetSupabaseBrowserClient() {
+  client = null;
+}
+
 function wrapAuthMethods(supabase: SupabaseClient) {
   const clearLocalSession = async () => {
     try {
       await supabase.auth.signOut({ scope: "local" });
     } catch {
       /* ignore */
+    } finally {
+      // @supabase/ssr can fail to write a new code-verifier after signOut on the
+      // same singleton — force a fresh client for the next auth start.
+      resetSupabaseBrowserClient();
     }
   };
 
@@ -57,6 +66,29 @@ function wrapAuthMethods(supabase: SupabaseClient) {
       throw error;
     }
   };
+
+  const originalRefreshSession = supabase.auth.refreshSession.bind(
+    supabase.auth,
+  );
+  supabase.auth.refreshSession = async (currentSession?) => {
+    try {
+      const result = await originalRefreshSession(currentSession);
+      if (result.error && isStaleRefreshTokenError(result.error)) {
+        await clearLocalSession();
+        return { data: { session: null, user: null }, error: null };
+      }
+      return result;
+    } catch (error) {
+      if (isStaleRefreshTokenError(error)) {
+        await clearLocalSession();
+        return { data: { session: null, user: null }, error: null };
+      }
+      if (isAuthNetworkError(error)) {
+        return { data: { session: null, user: null }, error: null };
+      }
+      throw error;
+    }
+  };
 }
 
 export function getSupabaseBrowserClient(): SupabaseClient {
@@ -72,4 +104,17 @@ export function getSupabaseBrowserClient(): SupabaseClient {
     wrapAuthMethods(client);
   }
   return client;
+}
+
+/** Clear local auth state and recreate client (for starting a new magic-link flow). */
+export async function prepareFreshBrowserAuth(): Promise<SupabaseClient> {
+  if (client) {
+    try {
+      await client.auth.signOut({ scope: "local" });
+    } catch {
+      /* ignore */
+    }
+  }
+  resetSupabaseBrowserClient();
+  return getSupabaseBrowserClient();
 }

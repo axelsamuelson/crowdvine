@@ -24,13 +24,26 @@ function SignupPageContent() {
   const [membershipLevel, setMembershipLevel] = useState<string | null>(null);
 
   useEffect(() => {
-    void import("@/lib/analytics/event-tracker").then(({ AnalyticsTracker }) => {
+    void (async () => {
+      try {
+        const { getSupabaseBrowserClient } = await import("@/lib/supabase/client");
+        const supabase = getSupabaseBrowserClient();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (user?.id) return;
+      } catch {
+        // proceed
+      }
+      const { claimOnce } = await import("@/lib/analytics/once-per-session");
+      if (!claimOnce("pact_signup_started_direct")) return;
+      const { AnalyticsTracker } = await import("@/lib/analytics/event-tracker");
       void AnalyticsTracker.trackEvent({
         eventType: "signup_started",
         eventCategory: "auth",
         metadata: { source: "direct" },
       });
-    });
+    })();
   }, []);
 
   // Map Swedish level names to English

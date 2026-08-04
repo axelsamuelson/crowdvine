@@ -99,10 +99,12 @@ type Props = {
   palletId: string;
   cartTotalSek: number;
   pactPointsRedeem: number;
+  /** Admin promo discount (SEK) already reflected in cartTotalSek. */
+  promoDiscountSek?: number;
   /** Logged on client-side Stripe confirm failures when present. */
   userId?: string;
   onIntentCreated: (data: IntentCreated) => void;
-  onConfirmReady: (confirmFn: () => Promise<StripeConfirmResult>) => void;
+  onConfirmReady: (confirmFn: (() => Promise<StripeConfirmResult>) | null) => void;
   /** US conditional: include ack in /api/checkout/payment-intent body */
   usConditionalPayment?: boolean;
   usConditionalAck?: boolean;
@@ -190,7 +192,7 @@ function StripeElementInner({
 }: {
   paymentMode: PaymentMode;
   clientSecret: string;
-  onConfirmReady: (confirmFn: () => Promise<StripeConfirmResult>) => void;
+  onConfirmReady: (confirmFn: (() => Promise<StripeConfirmResult>) | null) => void;
   onPaymentElementLoadError: (message: string) => void;
   knownIntentId: string;
   palletId: string;
@@ -384,6 +386,9 @@ function StripeElementInner({
 
   useEffect(() => {
     onConfirmReadyRef.current(confirm);
+    return () => {
+      onConfirmReadyRef.current(null);
+    };
   }, [confirm]);
 
   return (
@@ -414,6 +419,7 @@ export function StripePaymentSection({
   palletId,
   cartTotalSek,
   pactPointsRedeem,
+  promoDiscountSek = 0,
   userId,
   onIntentCreated,
   onConfirmReady,
@@ -445,6 +451,7 @@ export function StripePaymentSection({
     palletId,
     cartTotalSek,
     pactPointsRedeem,
+    promoDiscountSek,
     usConditionalPayment,
     usConditionalAck,
   ]);
@@ -478,6 +485,9 @@ export function StripePaymentSection({
             pallet_id: palletId,
             cart_total_sek: cartTotalSek,
             pact_points_redeem: pactPointsRedeem,
+            ...(promoDiscountSek > 0
+              ? { promo_discount_sek: promoDiscountSek }
+              : {}),
             ...(usConditionalPayment
               ? {
                   us_conditional_ack: true,
@@ -554,6 +564,7 @@ export function StripePaymentSection({
     palletId,
     cartTotalSek,
     pactPointsRedeem,
+    promoDiscountSek,
     retryNonce,
     usConditionalPayment,
     usConditionalAck,

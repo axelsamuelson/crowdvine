@@ -125,7 +125,10 @@ export async function POST(request: Request) {
       );
       const { error: updateError } = await supabase
         .from("cart_items")
-        .update({ quantity: existingItem.quantity + 1 })
+        .update({
+          quantity: existingItem.quantity + 1,
+          source: "producer",
+        })
         .eq("id", existingItem.id);
 
       if (updateError) {
@@ -142,6 +145,7 @@ export async function POST(request: Request) {
         cart_id: dbCartId,
         wine_id: baseId,
         quantity: 1,
+        source: "producer",
       });
 
       if (insertError) {

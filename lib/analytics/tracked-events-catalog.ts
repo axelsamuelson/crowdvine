@@ -61,8 +61,9 @@ export const TRACKED_USER_EVENTS_CATALOG: TrackedEventCatalogEntry[] = [
   {
     eventType: "signup_completed",
     category: "auth",
-    description: "Magic-link / OTP session established (auth callback).",
-    sources: ["server"],
+    description:
+      "Magic-link / OTP session established (auth callback route or checkout OTP).",
+    sources: ["server", "client"],
   },
   {
     eventType: "signup_abandoned",

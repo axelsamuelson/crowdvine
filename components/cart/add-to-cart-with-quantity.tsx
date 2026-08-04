@@ -3,6 +3,7 @@
 import { useState, useTransition, useMemo } from "react";
 import { CirclePlus, Minus, Plus } from "lucide-react";
 import { Product, ProductVariant } from "@/lib/shopify/types";
+import type { Cart } from "@/lib/shopify/types";
 import { useCart } from "./cart-context";
 import { Button } from "../ui/button";
 import { useSelectedVariant } from "@/components/products/variant-selector";
@@ -11,6 +12,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { Loader } from "../ui/loader";
 import { cn } from "@/lib/utils";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
+import { pricesFromCartAfterAdd } from "@/lib/analytics/cart-event-prices";
 
 interface AddToCartWithQuantityProps {
   product: Product;
@@ -105,16 +107,20 @@ export function AddToCartWithQuantity({
               console.log("🛒 [PDP] Dispatched cart-refresh event");
             }
 
+            const { list_price, unit_price } = pricesFromCartAfterAdd(
+              result.cart as Cart | undefined,
+              product.id,
+              product,
+            );
             void AnalyticsTracker.trackAddToCart(
               product.id,
               product.title,
-              parseFloat(product.priceRange.minVariantPrice.amount),
+              list_price,
               {
                 quantity,
                 source: "b2b",
-                unit_price: parseFloat(
-                  product.priceRange.minVariantPrice.amount,
-                ),
+                list_price,
+                unit_price,
                 price_version: "v1",
               },
             );

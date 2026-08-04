@@ -67,6 +67,40 @@ function nextWithPathname(req: NextRequest): NextResponse {
 
 async function runMiddleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
+
+  // Supabase auth sometimes lands on Site URL (/) when Redirect URL allow-list
+  // rejects emailRedirectTo. Forward PKCE `code` or OTP `token_hash` to callback.
+  if (pathname === "/") {
+    const authCode = req.nextUrl.searchParams.get("code");
+    const tokenHash = req.nextUrl.searchParams.get("token_hash");
+    const otpType = req.nextUrl.searchParams.get("type");
+    const isUuidCode =
+      !!authCode &&
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        authCode,
+      );
+    const isOtpHash = !!tokenHash && !!otpType;
+
+    if (isUuidCode || isOtpHash) {
+      const u = req.nextUrl.clone();
+      u.pathname = "/auth/callback";
+      const nextFromQuery = req.nextUrl.searchParams.get("next");
+      const nextFromCookie = req.cookies.get("cv_auth_next")?.value;
+      if (!u.searchParams.get("next")) {
+        const next =
+          (nextFromQuery && nextFromQuery.startsWith("/")
+            ? nextFromQuery
+            : null) ||
+          (nextFromCookie && nextFromCookie.startsWith("/")
+            ? nextFromCookie
+            : null) ||
+          "/checkout";
+        u.searchParams.set("next", next);
+      }
+      return NextResponse.redirect(u);
+    }
+  }
+
   const host = req.headers.get("host");
   const onDirtywineSite = isDirtywineHost(host, req.nextUrl.searchParams);
 

@@ -28,6 +28,10 @@ import {
   userZoneRowToDeliveryLines,
   type UserZoneAddressTemplate,
 } from "@/lib/checkout/user-zone-delivery-template";
+import {
+  amountsWithinTolerance,
+  computeExpectedAmountOre,
+} from "@/lib/checkout/expected-amount";
 
 type IntentType = "setup_intent" | "payment_intent";
 
@@ -56,7 +60,13 @@ export async function POST(request: Request) {
     const bodyUnknown: unknown = await request.json().catch(() => null);
     const body =
       bodyUnknown && typeof bodyUnknown === "object"
-        ? (bodyUnknown as { intentId?: unknown; intentType?: unknown })
+        ? (bodyUnknown as {
+            intentId?: unknown;
+            intentType?: unknown;
+            visitor_id?: unknown;
+            first_touch?: unknown;
+            internal?: unknown;
+          })
         : null;
 
     const intentId =
@@ -398,11 +408,6 @@ export async function POST(request: Request) {
     );
     const shippingSek = shipping?.totalShippingCostSek ?? 0;
 
-    const subtotalSek = cart.lines.reduce((sum: number, line: any) => {
-      const v = parseFloat(String(line?.cost?.totalAmount?.amount));
-      return sum + (Number.isFinite(v) ? v : 0);
-    }, 0);
-
     let boostedLineTotal = 0;
     let nonBoostedLineTotal = 0;
     for (const line of cart.lines as any[]) {
@@ -428,8 +433,40 @@ export async function POST(request: Request) {
     );
     const pactPointsSekOff = pactAlloc.sekDiscount;
 
-    const expectedFinalSek = Math.max(0, subtotalSek + shippingSek - pactPointsSekOff);
-    const expectedAmountOre = Math.round(expectedFinalSek * 100);
+    const voucherSek =
+      typeof meta.voucher_discount_sek === "string"
+        ? Math.max(0, Number(meta.voucher_discount_sek) || 0)
+        : 0;
+    const promoSek =
+      typeof meta.promo_discount_sek === "string"
+        ? Math.max(0, Number(meta.promo_discount_sek) || 0)
+        : 0;
+
+    let expectedAmountOre: number;
+    let amountComponents: Awaited<
+      ReturnType<typeof computeExpectedAmountOre>
+    >["components"];
+    try {
+      const computed = await computeExpectedAmountOre({
+        userId: user.id,
+        cartId: cart.id,
+        shippingSek,
+        voucherSek,
+        pactPointsSek: pactPointsSekOff,
+        promoSek,
+        displayMultiplier: 1,
+        cart,
+      });
+      expectedAmountOre = computed.amountOre;
+      amountComponents = computed.components;
+    } catch (amtErr) {
+      console.error("[confirm-stripe-return] Failed to compute expected amount:", amtErr);
+      return NextResponse.json(
+        { success: false, error: "Failed to compute order total" },
+        { status: 500 },
+      );
+    }
+
     if (expectedAmountOre <= 0) {
       return NextResponse.json(
         { success: false, error: "Order total cannot be zero" },
@@ -446,13 +483,14 @@ export async function POST(request: Request) {
         typeof si.metadata?.expected_amount_ore === "string"
           ? Number(si.metadata.expected_amount_ore)
           : NaN;
-      // Allow small drift vs payment-intent metadata (float/line-sum vs cart.total, rounding).
-      const amountDriftOre = Math.abs(expectedFromMeta - expectedAmountOre);
-      if (!Number.isFinite(expectedFromMeta) || amountDriftOre > 10) {
-        console.error("[confirm-stripe-return] setup amount mismatch", {
-          expectedFromMeta,
-          expectedAmountOre,
-          driftOre: amountDriftOre,
+      if (
+        !Number.isFinite(expectedFromMeta) ||
+        !amountsWithinTolerance(expectedAmountOre, expectedFromMeta)
+      ) {
+        console.error("[amount-mismatch]", {
+          expected: expectedAmountOre,
+          fromMetadata: expectedFromMeta,
+          components: amountComponents,
         });
         return NextResponse.json(
           { success: false, error: "Amount mismatch" },
@@ -507,10 +545,11 @@ export async function POST(request: Request) {
         return NextResponse.json({ success: false, error: retryableMessage() }, { status: 400 });
       }
       const piAmountOre = Number(pi.amount) || 0;
-      if (Math.abs(piAmountOre - expectedAmountOre) > 10) {
-        console.error("[confirm-stripe-return] payment_intent amount mismatch", {
-          piAmountOre,
-          expectedAmountOre,
+      if (!amountsWithinTolerance(expectedAmountOre, piAmountOre)) {
+        console.error("[amount-mismatch]", {
+          expected: expectedAmountOre,
+          fromMetadata: piAmountOre,
+          components: amountComponents,
         });
         return NextResponse.json(
           { success: false, error: "Amount mismatch" },
@@ -545,6 +584,21 @@ export async function POST(request: Request) {
     }
     form.append("stripe_intent_id", intentId);
     form.append("stripe_intent_type", intentType);
+
+    if (typeof body?.visitor_id === "string" && body.visitor_id.trim()) {
+      form.append("visitor_id", body.visitor_id.trim());
+    }
+    if (body?.first_touch != null) {
+      form.append(
+        "first_touch",
+        typeof body.first_touch === "string"
+          ? body.first_touch
+          : JSON.stringify(body.first_touch),
+      );
+    }
+    if (body?.internal === true || body?.internal === "true" || body?.internal === 1) {
+      form.append("internal", "true");
+    }
 
     const confirmUrl = new URL("/api/checkout/confirm", request.url);
     const cookie = request.headers.get("cookie") ?? "";

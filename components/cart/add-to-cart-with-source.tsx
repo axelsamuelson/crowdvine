@@ -12,6 +12,8 @@ import { cn } from "@/lib/utils";
 import { useCartSource } from "./cart-source-context";
 import { useTranslations } from "@/lib/hooks/use-translations";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
+import { pricesFromCartAfterAdd } from "@/lib/analytics/cart-event-prices";
+import type { Cart } from "@/lib/shopify/types";
 
 export type CartSource = "producer" | "warehouse";
 
@@ -118,16 +120,20 @@ export function AddToCartWithSource({
               console.log("🛒 [PDP] Dispatched cart-refresh event");
             }
 
+            const { list_price, unit_price } = pricesFromCartAfterAdd(
+              result.cart as Cart | undefined,
+              product.id,
+              product,
+            );
             void AnalyticsTracker.trackAddToCart(
               product.id,
               product.title,
-              parseFloat(product.priceRange.minVariantPrice.amount),
+              list_price,
               {
                 quantity,
                 source: "b2b",
-                unit_price: parseFloat(
-                  product.priceRange.minVariantPrice.amount,
-                ),
+                list_price,
+                unit_price,
                 price_version: "v1",
               },
             );

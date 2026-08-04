@@ -171,7 +171,10 @@ export async function POST(request: Request) {
 
       const { error: updateError } = await supabase
         .from("cart_items")
-        .update({ quantity: newQuantity })
+        .update({
+          quantity: newQuantity,
+          ...(hasSourceColumn ? { source } : {}),
+        })
         .eq("id", existingItem.id);
 
       if (updateError) {

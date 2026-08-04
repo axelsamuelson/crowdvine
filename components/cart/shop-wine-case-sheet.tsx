@@ -18,6 +18,8 @@ import { CaseModeSelector, type CaseMode } from "./case-mode-selector";
 import { CasePurchaseHelpTrigger } from "./case-purchase-help-trigger";
 import { AddToCartCase } from "./AddToCartCase";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
+import { pricesFromCartAfterAdd } from "@/lib/analytics/cart-event-prices";
+import type { Cart } from "@/lib/shopify/types";
 import { useTranslations } from "@/lib/hooks/use-translations";
 
 function dispatchCartRefresh(cart: unknown) {
@@ -117,18 +119,22 @@ export function ShopWineCaseSheet({
           }),
         });
         if (response.ok) {
-          const result = (await response.json()) as { cart?: unknown };
+          const result = (await response.json()) as { cart?: Cart };
           if (result.cart) dispatchCartRefresh(result.cart);
+          const { list_price, unit_price } = pricesFromCartAfterAdd(
+            result.cart,
+            product.id,
+            product,
+          );
           void AnalyticsTracker.trackAddToCart(
             product.id,
             product.title,
-            parseFloat(product.priceRange.minVariantPrice.amount),
+            list_price,
             {
               quantity: 6,
               source: "pdp_case",
-              unit_price: parseFloat(
-                product.priceRange.minVariantPrice.amount,
-              ),
+              list_price,
+              unit_price,
               price_version: "v1",
             },
           );

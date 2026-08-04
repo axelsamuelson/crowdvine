@@ -268,7 +268,7 @@ export function PricingCalculator({
               <Button
                 variant="outline"
                 size="sm"
-                className="rounded-lg border-gray-200 text-xs dark:border-zinc-700"
+                className="rounded-lg border-gray-200 text-xs text-gray-900 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700"
               >
                 Detaljer
                 <ChevronDown

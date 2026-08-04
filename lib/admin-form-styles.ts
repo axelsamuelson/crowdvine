@@ -12,6 +12,14 @@ export const ADMIN_LABEL_CLASS = "text-gray-700 dark:text-zinc-300";
 export const ADMIN_HELP_TEXT_CLASS =
   "text-xs text-gray-500 dark:text-zinc-400";
 
+/** Primary action on dark admin surfaces (Spara, etc.). */
+export const ADMIN_PRIMARY_BUTTON_CLASS =
+  "rounded-lg bg-white text-stone-900 hover:bg-stone-100";
+
+/** Outline / secondary on dark admin surfaces. */
+export const ADMIN_OUTLINE_BUTTON_CLASS =
+  "rounded-lg border-gray-200 text-gray-900 hover:bg-gray-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700";
+
 export const ADMIN_TOGGLE_ROW_CLASS =
   "admin-toggle-row flex items-center justify-between";
 

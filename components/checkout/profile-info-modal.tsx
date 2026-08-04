@@ -29,6 +29,7 @@ import {
 
 interface ProfileInfo {
   full_name?: string;
+  email?: string;
   phone?: string;
   address?: string;
   city?: string;
@@ -38,7 +39,7 @@ interface ProfileInfo {
 }
 
 interface ProfileModalProps {
-  onProfileSaved: (profile: ProfileInfo) => void;
+  onProfileSaved: (profile: ProfileInfo & { id?: string; created_at?: string }) => void;
   trigger?: React.ReactNode;
   /** Controlled open state (optional). */
   open?: boolean;
@@ -65,6 +66,7 @@ export function ProfileInfoModal({
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<ProfileInfo>({
     full_name: "",
+    email: "",
     phone: "",
     address: "",
     city: "",
@@ -109,6 +111,7 @@ export function ProfileInfoModal({
           getCountryCodeFromProfileCountry(profile.country ?? null) ?? "SE";
         setFormData({
           full_name: profile.full_name || "",
+          email: profile.email || "",
           phone: profile.phone || "",
           address: profile.address || "",
           city: profile.city || "",
@@ -139,34 +142,73 @@ export function ProfileInfoModal({
   const handleSave = async () => {
     setLoading(true);
     try {
+      const email = (formData.email ?? "").trim();
+      const fullName = (formData.full_name ?? "").trim();
+      const address = (formData.address ?? "").trim();
+      const city = (formData.city ?? "").trim();
+      const postal = (formData.postal_code ?? "").trim();
+
+      if (!fullName || !email || !address || !city || !postal) {
+        toast.warning(t("checkout.profileAddressIncomplete"));
+        return;
+      }
+
+      const payload = {
+        ...formData,
+        full_name: fullName,
+        email,
+        address,
+        city,
+        postal_code: postal,
+      };
+
       const response = await fetch("/api/user/profile", {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
 
+      // Guest / dirtywine local checkout: no session — keep address in client draft.
+      if (response.status === 401) {
+        onProfileSaved({
+          ...payload,
+          id: "",
+          created_at: new Date().toISOString(),
+        });
+        setOpen(false);
+        return;
+      }
+
       if (!response.ok) {
-        throw new Error("Failed to save profile");
+        let message = t("checkout.profileSaveFailed");
+        try {
+          const errBody = (await response.json()) as { error?: string };
+          if (typeof errBody?.error === "string" && errBody.error.trim()) {
+            message = errBody.error;
+          }
+        } catch {
+          /* ignore */
+        }
+        throw new Error(message);
       }
 
       const result = await response.json();
       const updatedProfile = result.profile || result;
 
-      // Check if address is complete
-      const hasAddress =
-        formData.address && formData.city && formData.postal_code;
-
-      if (!hasAddress) {
-        toast.warning(t("checkout.profileAddressIncomplete"));
-      }
-
       onProfileSaved(updatedProfile);
       setOpen(false);
     } catch (error) {
-      console.error("Error saving profile:", error);
-      toast.error(t("checkout.profileSaveFailed"));
+      const msg = error instanceof Error ? error.message : String(error);
+      if (msg !== "Failed to fetch") {
+        console.error("Error saving profile:", error);
+      }
+      toast.error(
+        msg === "Failed to fetch"
+          ? t("checkout.profileSaveFailed")
+          : msg || t("checkout.profileSaveFailed"),
+      );
     } finally {
       setLoading(false);
     }
@@ -209,6 +251,21 @@ export function ProfileInfoModal({
                 setFormData({ ...formData, full_name: e.target.value })
               }
               placeholder={t("checkout.enterFullName")}
+              autoComplete="name"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="email">{t("checkout.email")}</Label>
+            <Input
+              id="email"
+              type="email"
+              value={formData.email}
+              onChange={(e) =>
+                setFormData({ ...formData, email: e.target.value })
+              }
+              placeholder={t("checkout.otpEmailLabel")}
+              autoComplete="email"
             />
           </div>
 

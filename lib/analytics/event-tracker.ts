@@ -164,6 +164,9 @@ export class AnalyticsTracker {
       if (firstTouch) {
         eventMetadata = { ...eventMetadata, first_touch: firstTouch };
       }
+      if (visitorId) {
+        eventMetadata = { ...eventMetadata, visitor_id: visitorId };
+      }
     }
     // Internal devices are tagged, never skipped.
     if (isInternalDevice()) {
@@ -226,17 +229,20 @@ export class AnalyticsTracker {
     extras?: {
       quantity?: number;
       source?: string;
+      list_price?: number;
       unit_price?: number;
       price_version?: string;
     },
   ) {
+    const listPrice = extras?.list_price ?? price;
     return this.trackEvent({
       eventType: "add_to_cart",
       eventCategory: "cart",
       metadata: {
         productId,
         productName,
-        price,
+        price: listPrice,
+        list_price: listPrice,
         ...(extras?.quantity != null ? { quantity: extras.quantity } : {}),
         ...(extras?.source ? { source: extras.source } : {}),
         ...(extras?.unit_price != null ? { unit_price: extras.unit_price } : {}),
@@ -253,6 +259,7 @@ export class AnalyticsTracker {
     extras?: {
       site?: string;
       payment_method?: string;
+      list_price?: number;
       unit_price?: number;
       price_version?: string;
       bottle_count?: number;
@@ -269,6 +276,7 @@ export class AnalyticsTracker {
         bottle_count: extras?.bottle_count ?? itemCount,
         site: extras?.site ?? "pact",
         payment_method: extras?.payment_method ?? "deferred_link",
+        ...(extras?.list_price != null ? { list_price: extras.list_price } : {}),
         ...(extras?.unit_price != null ? { unit_price: extras.unit_price } : {}),
         ...(extras?.price_version
           ? { price_version: extras.price_version }

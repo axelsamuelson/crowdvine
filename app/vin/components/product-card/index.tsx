@@ -23,6 +23,7 @@ import { useTranslations } from "@/lib/hooks/use-translations";
 import { useLocalizedPaths } from "@/lib/hooks/use-localized-paths";
 import { getProductListPriceSek } from "@/lib/price-breakdown";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
+import { pricesFromCartAfterAdd } from "@/lib/analytics/cart-event-prices";
 
 const AddToCart = dynamic(
   () => import("@/components/cart/add-to-cart").then((m) => m.AddToCart),
@@ -290,17 +291,24 @@ export const ProductCard = memo(
     if (!cart) return;
     const variant = getBaseProductVariant();
     if (variant) {
-      cart.addItem(variant, product);
-      // Track add to cart event
-      AnalyticsTracker.trackAddToCart(
-        product.id,
-        product.title,
-        parseFloat(product.priceRange.minVariantPrice.amount),
-        {
-          unit_price: parseFloat(product.priceRange.minVariantPrice.amount),
-          price_version: "v1",
-        },
-      );
+      void (async () => {
+        const updated = await cart.addItem(variant, product);
+        const { list_price, unit_price } = pricesFromCartAfterAdd(
+          updated,
+          product.id,
+          product,
+        );
+        void AnalyticsTracker.trackAddToCart(
+          product.id,
+          product.title,
+          list_price,
+          {
+            list_price,
+            unit_price,
+            price_version: "v1",
+          },
+        );
+      })();
     }
   };
 

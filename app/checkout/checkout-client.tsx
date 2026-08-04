@@ -5,6 +5,7 @@ import { CartMergeModal } from "@/components/cart/cart-merge-modal";
 import { CheckoutEmailAuth } from "@/components/checkout/checkout-email-auth";
 import { getAgeLimit } from "@/lib/age-limits";
 import { PRICE_VERSION } from "@/lib/analytics/price-version";
+import { pricesFromCheckoutCart } from "@/lib/analytics/cart-event-prices";
 import { CHECKOUT_TERMS_VERSION } from "@/lib/checkout/terms-version";
 import Link from "next/link";
 import type { Cart, CartItem } from "@/lib/shopify/types";
@@ -46,6 +47,16 @@ import {
 } from "lucide-react";
 import { clearZoneCache } from "@/lib/zone-matching";
 import { ensureVisitorIdentity } from "@/lib/analytics/visitor-identity";
+import {
+  isInternalDevice,
+  setInternalDevice,
+} from "@/lib/analytics/internal-device";
+import {
+  CHECKOUT_STARTED_KEY,
+  claimOnce,
+  clearClaim,
+  SIGNUP_STARTED_CHECKOUT_KEY,
+} from "@/lib/analytics/once-per-session";
 import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
 import { calculateCartShippingCost } from "@/lib/shipping-calculations";
 import type { PalletInfo } from "@/lib/zone-matching";
@@ -54,7 +65,6 @@ import {
   type ShareAllocation,
 } from "@/components/checkout/share-bottles-dialog";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
-import { setInternalDevice } from "@/lib/analytics/internal-device";
 import {
   allocatePactRedemptionPoints,
   calculateBoostAwareMaxRedemption,
@@ -131,8 +141,8 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
   const [stripeError, setStripeError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [authReady, setAuthReady] = useState(!platformOpen);
-  const [authChecked, setAuthChecked] = useState(!platformOpen);
+  const [authReady, setAuthReady] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
   const [cartMergeOpen, setCartMergeOpen] = useState(false);
   const [cartMergeLoading, setCartMergeLoading] = useState(false);
   const checkoutStartedTracked = useRef(false);
@@ -235,11 +245,14 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
     checkoutMarketCountry != null &&
     getCountryMarketMode(checkoutMarketCountry) === "conditional_reservation";
 
-  const hasProfileInfo = Boolean(profile?.full_name && profile?.email);
-
   const effectiveDelivery = useMemo(() => {
     return userZoneRowToDeliveryLines(zoneAddressRow) ?? deliveryDraft;
   }, [zoneAddressRow, deliveryDraft]);
+
+  const hasProfileInfo = Boolean(
+    (profile?.full_name || effectiveDelivery?.fullName) &&
+      (profile?.email || effectiveDelivery?.email),
+  );
 
   const ageCountryCode = (
     effectiveDelivery?.countryCode ||
@@ -255,16 +268,26 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
           isZoneDeliveryCompleteForActiveGeo(activeShop, effectiveDelivery),
       );
     }
-    return Boolean(
+    const fromProfile = Boolean(
       profile?.address && profile?.city && profile?.postal_code,
     );
+    const fromDraft = Boolean(
+      effectiveDelivery?.street &&
+        effectiveDelivery?.city &&
+        effectiveDelivery?.postal,
+    );
+    return fromProfile || fromDraft;
   }, [activeShop, effectiveDelivery, profile]);
 
   const hasPostalCode = Boolean(
-    effectiveDelivery?.postal &&
-      (isUsConditional
-        ? effectiveDelivery.postal.trim().length >= 3
-        : /^\d{5}$/.test(effectiveDelivery.postal.trim())),
+    (() => {
+      const postal =
+        effectiveDelivery?.postal?.trim() ||
+        profile?.postal_code?.trim() ||
+        postalCodeDraft.trim();
+      if (!postal) return false;
+      return isUsConditional ? postal.length >= 3 : /^\d{5}$/.test(postal);
+    })(),
   );
   const hasFullAddress = hasZoneDeliveryReady;
   const hasUsState =
@@ -375,21 +398,22 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
     if (checkoutStartedTracked.current || !cart || cart.totalQuantity <= 0) {
       return;
     }
+    if (!claimOnce(CHECKOUT_STARTED_KEY)) {
+      checkoutStartedTracked.current = true;
+      return;
+    }
     checkoutStartedTracked.current = true;
     const cartValue =
       parseFloat(String(cart.cost?.totalAmount?.amount ?? "0")) || 0;
     const bottleCount = cart.totalQuantity;
-    const unitPrice =
-      cart.lines[0] != null
-        ? parseFloat(String(cart.lines[0].cost.totalAmount.amount)) /
-            Math.max(1, cart.lines[0].quantity) || 0
-        : 0;
+    const { list_price, unit_price } = pricesFromCheckoutCart(cart);
     void AnalyticsTracker.trackCheckoutStarted(cartValue, bottleCount, {
       cart_value: cartValue,
       bottle_count: bottleCount,
       site: "pact",
       payment_method: platformOpen ? "deferred_link" : "card",
-      unit_price: unitPrice,
+      list_price,
+      unit_price,
       price_version: PRICE_VERSION,
     });
   }, [cart, platformOpen]);
@@ -439,9 +463,9 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
     } catch (error) {
       console.error("Failed to fetch profile:", error);
     } finally {
-      if (platformOpen) setAuthChecked(true);
+      setAuthChecked(true);
     }
-  }, [platformOpen]);
+  }, []);
 
   const ensureProfileAfterAuth = useCallback(async () => {
     setAuthReady(true);
@@ -458,6 +482,26 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
       await fetchCart();
     }
   }, [fetchProfile, fetchCart]);
+
+  // After magic-link return: session is set, attach/merge anonymous cart once.
+  const cartMergedAfterAuthRef = useRef(false);
+  useEffect(() => {
+    if (!authReady || cartMergedAfterAuthRef.current) return;
+    cartMergedAfterAuthRef.current = true;
+    void (async () => {
+      try {
+        const conflictRes = await fetch("/api/cart/merge");
+        const conflictData = await conflictRes.json().catch(() => null);
+        if (conflictData?.conflict) {
+          setCartMergeOpen(true);
+        } else {
+          await fetchCart();
+        }
+      } catch {
+        // cart still available via cv_cart_id
+      }
+    })();
+  }, [authReady, fetchCart]);
 
   const handleCartMerge = useCallback(
     async (strategy: "keep_session" | "keep_user" | "merge") => {
@@ -1000,19 +1044,41 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
   const handleProfileSaved = async (updatedProfile: UserProfile) => {
     setProfile(updatedProfile);
 
-    if (activeShop?.geoZoneId) {
-      toast.success(t("checkout.saved"));
-      setDeliveryDraft((d) =>
-        d
-          ? {
-              ...d,
-              fullName: updatedProfile.full_name?.trim() || d.fullName,
-              phone: updatedProfile.phone?.trim() || d.phone,
-              email: updatedProfile.email?.trim() || d.email,
-            }
-          : d,
-      );
-      return;
+    const countryCode =
+      getCountryCodeFromProfileCountry(updatedProfile.country ?? null) ??
+      activeShop?.countryCode ??
+      "SE";
+
+    setDeliveryDraft((d) => {
+      const base = d ?? {
+        street: "",
+        city: "",
+        postal: "",
+        countryCode,
+        regionCode: activeShop?.regionCode ?? null,
+        fullName: "",
+        phone: "",
+        email: "",
+      };
+      return {
+        ...base,
+        fullName: updatedProfile.full_name?.trim() || base.fullName,
+        phone: updatedProfile.phone?.trim() || base.phone,
+        email: updatedProfile.email?.trim() || base.email,
+        street: updatedProfile.address?.trim() || base.street,
+        city: updatedProfile.city?.trim() || base.city,
+        postal: updatedProfile.postal_code?.trim() || base.postal,
+        countryCode: countryCode || base.countryCode,
+        regionCode:
+          updatedProfile.region?.trim() ||
+          base.regionCode ||
+          activeShop?.regionCode ||
+          null,
+      };
+    });
+
+    if (updatedProfile.postal_code) {
+      setPostalCodeDraft(updatedProfile.postal_code.trim());
     }
 
     const hasAddress =
@@ -1021,13 +1087,12 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
       updatedProfile.postal_code;
 
     if (hasAddress) {
-      toast.success(t("checkout.saving"));
-      setZoneLoading(true);
-      setTimeout(async () => {
-        await updateZoneInfo();
-        setZoneLoading(false);
-        toast.success(t("checkout.zoneUpdated"));
-      }, 100);
+      toast.success(t("checkout.saved"));
+      // Zone refresh runs via profile/deliveryDraft effect; nudge Budbee check.
+      void checkBudbeeAvailability(
+        updatedProfile.postal_code!.trim(),
+        countryCode,
+      );
     } else {
       toast.success(t("checkout.profileSavedAddAddress"));
     }
@@ -1164,6 +1229,9 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
       if (firstTouch) {
         formData.append("first_touch", JSON.stringify(firstTouch));
       }
+      if (isInternalDevice()) {
+        formData.append("internal", "true");
+      }
     }
 
     try {
@@ -1188,6 +1256,8 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
         toast.success(t("checkout.reservationSuccess"));
 
         checkoutCompletedRef.current = true;
+        clearClaim(CHECKOUT_STARTED_KEY);
+        clearClaim(SIGNUP_STARTED_CHECKOUT_KEY);
         window.location.href = redirectUrl || "/checkout/success";
       } else {
         setIsFinalizingReservation(false); // Hide modal on error
@@ -1377,6 +1447,9 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
         if (firstTouch) {
           formData.append("first_touch", JSON.stringify(firstTouch));
         }
+        if (isInternalDevice()) {
+          formData.append("internal", "true");
+        }
       }
 
       const response = await fetch("/api/checkout/confirm", {
@@ -1408,6 +1481,8 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
           ? d.redirectUrl
           : null;
       checkoutCompletedRef.current = true;
+      clearClaim(CHECKOUT_STARTED_KEY);
+      clearClaim(SIGNUP_STARTED_CHECKOUT_KEY);
       window.location.href = redirectUrl || "/checkout/success";
     };
 
@@ -1426,8 +1501,9 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
       return;
     }
 
-    if (!stripeConfirmFn || !paymentMode) {
+    if (!stripeConfirmFn || !paymentMode || !stripeIntentId) {
       setStripeError(t("checkout.paymentNotReady"));
+      toast.error(t("checkout.paymentNotReady"));
       return;
     }
 
@@ -1458,12 +1534,22 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
       return;
     }
 
+    const intentId = confirmed.intentId?.trim() || stripeIntentId;
+    const intentType = confirmed.intentType || paymentMode;
+    if (!intentId || !intentType) {
+      setStripeError(t("checkout.paymentNotReady"));
+      toast.error(t("checkout.paymentNotReady"));
+      setIsSubmitting(false);
+      setIsStripeConfirming(false);
+      return;
+    }
+
     // Phase 2: Backend finalization (only after Stripe success)
     setIsStripeConfirming(false);
     try {
       await submitConfirm({
-        stripeIntentId: confirmed.intentId,
-        paymentMode,
+        stripeIntentId: intentId,
+        paymentMode: intentType,
       });
     } catch (e) {
       const msg =
@@ -1490,6 +1576,7 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
     selectedPallet,
     stripeConfirmFn,
     paymentMode,
+    stripeIntentId,
     zoneAddressRow,
     deliveryDraft,
     zoneInfo.selectedDeliveryZoneId,
@@ -1728,11 +1815,20 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
   );
 
   const handleStripeConfirmReady = useCallback(
-    (fn: () => Promise<StripeConfirmResult>) => {
+    (fn: (() => Promise<StripeConfirmResult>) | null) => {
       setStripeConfirmFn(() => fn);
     },
     [],
   );
+
+  // After login / auth flip, drop any stale Stripe confirm closure from a prior mount.
+  useEffect(() => {
+    if (!authReady || platformOpen) {
+      setStripeConfirmFn(null);
+      setPaymentMode(null);
+      setStripeIntentId(null);
+    }
+  }, [authReady, platformOpen]);
 
   useEffect(() => {
     if (!Number.isFinite(maxRedemption)) return;
@@ -2796,7 +2892,7 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
                             </label>
                           </div>
                         </div>
-                        {platformOpen && authChecked && !authReady ? (
+                        {authChecked && !authReady ? (
                           <CheckoutEmailAuth
                             emailHint={t("checkout.otpEmailHint")}
                             checkInbox={t("checkout.otpCheckInbox")}
@@ -2807,11 +2903,15 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
                             }}
                           />
                         ) : null}
-                        {!platformOpen ? (
+                        {authReady && !platformOpen ? (
                         <StripePaymentSection
+                          key={`stripe-${selectedPallet.id}-${profile?.id ?? "anon"}`}
                           palletId={selectedPallet.id}
                           cartTotalSek={finalAmountAfterVoucher}
                           pactPointsRedeem={redeemPoints}
+                          promoDiscountSek={
+                            appliedDiscount?.discount_amount_sek ?? 0
+                          }
                           userId={profile?.id}
                           onIntentCreated={handleStripeIntentCreated}
                           onConfirmReady={handleStripeConfirmReady}
@@ -2843,14 +2943,17 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
                             type="button"
                             className="w-full border-transparent bg-black text-white shadow-none ring-0 hover:border-transparent hover:bg-black/90 hover:shadow-none focus-visible:border-transparent focus-visible:bg-black/90 focus-visible:ring-white/40"
                             disabled={
-                              (!platformOpen && !stripeConfirmFn) ||
+                              (!platformOpen &&
+                                (!stripeConfirmFn ||
+                                  !paymentMode ||
+                                  !stripeIntentId)) ||
                               isSubmitting ||
                               zoneLoading ||
                               isStripeConfirming ||
                               isFinalizingReservation ||
                               !ageConfirmed ||
                               !termsAccepted ||
-                              (platformOpen && !authReady) ||
+                              !authReady ||
                               (isUsConditional && !usConditionalAck)
                             }
                             onClick={handlePlaceReservation}

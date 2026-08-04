@@ -95,11 +95,24 @@ export function CheckoutStripeReturnClient() {
       }
 
       try {
+        const { ensureVisitorIdentity } = await import(
+          "@/lib/analytics/visitor-identity"
+        );
+        const { isInternalDevice } = await import(
+          "@/lib/analytics/internal-device"
+        );
+        const { visitorId, firstTouch } = ensureVisitorIdentity();
         const res = await fetch("/api/checkout/confirm-stripe-return", {
           method: "POST",
           credentials: "include",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ intentId, intentType }),
+          body: JSON.stringify({
+            intentId,
+            intentType,
+            ...(visitorId ? { visitor_id: visitorId } : {}),
+            ...(firstTouch ? { first_touch: firstTouch } : {}),
+            ...(isInternalDevice() ? { internal: true } : {}),
+          }),
         });
 
         const data: unknown = await res.json().catch(() => null);

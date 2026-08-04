@@ -74,34 +74,49 @@ export default async function WinesPage() {
     b2bAllSame && numericB2B.length > 0 ? b2bFirst : null;
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap justify-between items-start gap-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-gray-100 dark:bg-zinc-800">
-            <Wine className="w-5 h-5 text-gray-900 dark:text-zinc-50" />
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="rounded-lg bg-gray-100 p-2 dark:bg-zinc-800">
+            <Wine className="h-5 w-5 text-gray-900 dark:text-zinc-50" />
           </div>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Wines</h1>
-            <p className="text-sm text-gray-600 dark:text-zinc-400">Manage wine products</p>
+          <div className="min-w-0">
+            <h1 className="text-xl font-bold text-gray-900 dark:text-white sm:text-2xl">
+              Wines
+            </h1>
+            <p className="text-sm text-gray-600 dark:text-zinc-400">
+              Manage wine products
+            </p>
           </div>
         </div>
-        <div className="flex gap-2">
-          <Link href="/admin/wines/settings">
-            <Button variant="outline" size="sm" className="rounded-lg text-xs font-medium border-gray-200 dark:border-zinc-700">
-              <Settings className="w-3.5 h-3.5 mr-1.5" />
-              Settings
+        <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap">
+          <Link href="/admin/wines/settings" className="min-w-0">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 w-full gap-1.5 rounded-lg border-gray-200 text-xs font-medium dark:border-zinc-700 sm:w-auto"
+            >
+              <Settings className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">Settings</span>
             </Button>
           </Link>
-          <Link href="/admin/bulk-upload">
-            <Button variant="outline" size="sm" className="rounded-lg text-xs font-medium border-gray-200 dark:border-zinc-700">
-              <Upload className="w-3.5 h-3.5 mr-1.5" />
-              Bulk Upload
+          <Link href="/admin/bulk-upload" className="min-w-0">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 w-full gap-1.5 rounded-lg border-gray-200 text-xs font-medium dark:border-zinc-700 sm:w-auto"
+            >
+              <Upload className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">Upload</span>
             </Button>
           </Link>
-          <Link href="/admin/wines/new">
-            <Button size="sm" className="rounded-lg text-xs font-medium bg-gray-900 dark:bg-zinc-50 text-white dark:text-zinc-900 hover:bg-gray-800 dark:hover:bg-zinc-200">
-              <Plus className="w-3.5 h-3.5 mr-1.5" />
-              Add Wine
+          <Link href="/admin/wines/new" className="min-w-0">
+            <Button
+              size="sm"
+              className="h-9 w-full gap-1.5 rounded-lg bg-gray-900 text-xs font-medium text-white hover:bg-gray-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 sm:w-auto"
+            >
+              <Plus className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">Add</span>
             </Button>
           </Link>
         </div>

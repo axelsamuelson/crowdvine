@@ -32,7 +32,10 @@ type CartAction =
 type UseCartReturn = {
   isPending: boolean;
   cart: Cart | undefined;
-  addItem: (variant: ProductVariant, product: Product) => Promise<void>;
+  addItem: (
+    variant: ProductVariant,
+    product: Product,
+  ) => Promise<Cart | null>;
   updateItem: (
     lineId: string,
     merchandiseId: string,
@@ -386,7 +389,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
       // Perform server update using simple API route (optimized)
       console.log("🛒 Calling simple API route for addItem...");
-      let fresh = null;
+      let fresh: Cart | null = null;
       try {
         const response = await fetch("/api/cart/simple-add", {
           method: "POST",
@@ -396,7 +399,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
         if (response.ok) {
           const result = await response.json();
-          fresh = result.cart;
+          fresh = result.cart ?? null;
           console.log(
             "🛒 Simple API route returned:",
             fresh ? "success" : "null",
@@ -431,6 +434,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         // If add failed, revert optimistic update
         setCart(cart);
       }
+      return fresh;
     },
     [updateOptimisticCart, optimisticCart, cart],
   );

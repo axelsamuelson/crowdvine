@@ -69,6 +69,10 @@ import {
 import { isPlatformOpen } from "@/lib/platform-open";
 import { validatePromoDiscountCode } from "@/lib/promo-discount-validate";
 import type { PromoDiscountCartItem } from "@/lib/discount-codes";
+import {
+  amountsWithinTolerance,
+  computeExpectedAmountOre,
+} from "@/lib/checkout/expected-amount";
 
 type ProducerGroup = {
   producerId: string;
@@ -148,6 +152,7 @@ export async function POST(request: Request) {
       const marketDropIdField = formData.get("market_drop_id");
       const visitorIdField = formData.get("visitor_id");
       const firstTouchField = formData.get("first_touch");
+      const internalField = formData.get("internal");
       body = {
         address: {
           fullName: formData.get("fullName"),
@@ -184,6 +189,10 @@ export async function POST(request: Request) {
           typeof stripeIntentTypeField === "string"
             ? stripeIntentTypeField
             : undefined,
+        payment_method:
+          typeof formData.get("payment_method") === "string"
+            ? (formData.get("payment_method") as string)
+            : undefined,
         market_drop_id:
           typeof marketDropIdField === "string" && marketDropIdField.trim()
             ? marketDropIdField.trim()
@@ -192,6 +201,10 @@ export async function POST(request: Request) {
           typeof visitorIdField === "string" ? visitorIdField : undefined,
         first_touch:
           typeof firstTouchField === "string" ? firstTouchField : undefined,
+        internal:
+          typeof internalField === "string"
+            ? internalField === "true" || internalField === "1"
+            : undefined,
         // paymentMethodId removed - using new payment flow
       };
     }
@@ -869,13 +882,7 @@ export async function POST(request: Request) {
     // ------------------------------------------------------------
     // Server-side amount validation (never trust client totals)
     // ------------------------------------------------------------
-    // Expected amount is calculated from:
-    // - cart-service totals (member + early-bird already applied)
-    // + shipping (selected pallet)
-    // - voucher discount (if applied above)
-    // - PACT Points discount (boost-aware redemption math)
-    const subtotalSek = parseFloat(String(cart.cost.totalAmount.amount)) || 0;
-
+    // Shared with /api/checkout/payment-intent via computeExpectedAmountOre.
     let shippingSek = 0;
     try {
       if (palletId) {
@@ -953,6 +960,7 @@ export async function POST(request: Request) {
     }
 
     const voucherSekOff = (Number(voucherDiscountCents) || 0) / 100;
+    const subtotalSek = parseFloat(String(cart.cost.totalAmount.amount)) || 0;
 
     // Admin promo codes (promo_discount_codes) — validate after shipping is known.
     if (promo_code && user?.id) {
@@ -991,15 +999,32 @@ export async function POST(request: Request) {
       });
     }
 
-    const expectedFinalSek = Math.max(
-      0,
-      subtotalSek +
-        shippingSek -
-        voucherSekOff -
-        pactPointsSekOff -
-        promoDiscountAmountSek,
-    );
-    const expectedAmountOre = Math.round(expectedFinalSek * 100);
+    let expectedAmountOre: number;
+    let amountComponents: Awaited<
+      ReturnType<typeof computeExpectedAmountOre>
+    >["components"];
+    try {
+      const computed = await computeExpectedAmountOre({
+        userId: currentUser?.id ?? user?.id ?? "",
+        cartId: cart.id,
+        shippingSek,
+        voucherSek: voucherSekOff,
+        pactPointsSek: pactPointsSekOff,
+        promoSek: promoDiscountAmountSek,
+        displayMultiplier: 1,
+        cart,
+      });
+      expectedAmountOre = computed.amountOre;
+      amountComponents = computed.components;
+    } catch (amtErr) {
+      console.error("[Checkout API] Failed to compute expected amount:", amtErr);
+      return NextResponse.json(
+        { error: "Failed to compute order total" },
+        { status: 500 },
+      );
+    }
+
+    const expectedFinalSek = amountComponents.finalMajor;
 
     if (expectedAmountOre <= 0) {
       return NextResponse.json(
@@ -1007,9 +1032,6 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     }
-
-    // Keep in sync with /api/checkout/confirm-stripe-return (float / line-sum drift).
-    const withinTolerance = (a: number, b: number) => Math.abs(a - b) <= 10;
 
     let stripePaymentMethodId: string | null = null;
 
@@ -1039,15 +1061,11 @@ export async function POST(request: Request) {
           { status: 400 },
         );
       }
-      if (!withinTolerance(expectedAmountOre, expectedFromStripeRaw)) {
-        console.error("[Checkout API] Amount mismatch (setup_intent)", {
-          expectedAmountOre,
-          stripeExpectedAmountOre: expectedFromStripeRaw,
-          diff: expectedAmountOre - expectedFromStripeRaw,
-          subtotalSek,
-          shippingSek,
-          voucherDiscountCents,
-          pactPointsSekOff,
+      if (!amountsWithinTolerance(expectedAmountOre, expectedFromStripeRaw)) {
+        console.error("[amount-mismatch]", {
+          expected: expectedAmountOre,
+          fromMetadata: expectedFromStripeRaw,
+          components: amountComponents,
         });
         return NextResponse.json(
           { error: "Amount mismatch" },
@@ -1122,15 +1140,11 @@ export async function POST(request: Request) {
       }
 
       const stripeAmountOre = Number(paymentIntent.amount) || 0;
-      if (!withinTolerance(expectedAmountOre, stripeAmountOre)) {
-        console.error("[Checkout API] Amount mismatch (payment_intent)", {
-          expectedAmountOre,
-          stripeAmountOre,
-          diff: expectedAmountOre - stripeAmountOre,
-          subtotalSek,
-          shippingSek,
-          voucherDiscountCents,
-          pactPointsSekOff,
+      if (!amountsWithinTolerance(expectedAmountOre, stripeAmountOre)) {
+        console.error("[amount-mismatch]", {
+          expected: expectedAmountOre,
+          fromMetadata: stripeAmountOre,
+          components: amountComponents,
         });
         return NextResponse.json(
           { error: "Amount mismatch" },
@@ -2255,6 +2269,31 @@ export async function POST(request: Request) {
     const firstTouch: FirstTouch | null =
       parseFirstTouchPayload(body.first_touch) || fromCookies.firstTouch;
 
+    const clientInternal =
+      body.internal === true ||
+      body.internal === "true" ||
+      body.internal === 1 ||
+      body.internal === "1";
+
+    // Server-side internal resolution — do not trust client alone.
+    let reservationIsTestPurchase = promoIsTestkop === true;
+    if (!reservationIsTestPurchase) {
+      const ids = reservationEvents
+        .map((e) => e.reservation_id)
+        .filter((id): id is string => typeof id === "string" && id.length > 0);
+      if (ids.length > 0) {
+        const { data: testRows } = await sbAdmin
+          .from("order_reservations")
+          .select("id, is_test_purchase")
+          .in("id", ids);
+        reservationIsTestPurchase = (testRows ?? []).some(
+          (r) => r.is_test_purchase === true,
+        );
+      }
+    }
+
+    const markInternal = clientInternal || reservationIsTestPurchase;
+
     for (const ev of reservationEvents) {
       if (process.env.NODE_ENV === "development") {
         console.log("[dev] reservation_completed", ev);
@@ -2265,11 +2304,12 @@ export async function POST(request: Request) {
         eventType: "reservation_completed",
         eventCategory: "checkout",
         firstTouch,
+        internal: markInternal,
         metadata: {
           reservation_id: ev.reservation_id,
           bottle_count: ev.bottle_count,
-          ...(promoIsTestkop
-            ? { internal: true, testkop: true, promo_code: promoCodeApplied }
+          ...(reservationIsTestPurchase
+            ? { testkop: true, promo_code: promoCodeApplied }
             : {}),
         },
       });

@@ -11,7 +11,7 @@ import {
 } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { ChevronRight, Minus, Plus, X } from "lucide-react";
-import type { Product, ProductVariant } from "@/lib/shopify/types";
+import type { Product, ProductVariant, Cart } from "@/lib/shopify/types";
 import { useSelectedVariant } from "@/components/products/variant-selector";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -33,6 +33,7 @@ import { WineSpecsList } from "@/components/product/wine-specs-list";
 import Prose from "@/components/prose";
 import { useTranslations } from "@/lib/hooks/use-translations";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
+import { pricesFromCartAfterAdd } from "@/lib/analytics/cart-event-prices";
 
 type PurchaseMode = "same" | "mixed";
 
@@ -440,18 +441,22 @@ export function AddToCartCase({
           }),
         });
         if (response.ok) {
-          const result = (await response.json()) as { cart?: unknown };
+          const result = (await response.json()) as { cart?: Cart };
           if (result.cart) dispatchCartRefresh(result.cart);
+          const { list_price, unit_price } = pricesFromCartAfterAdd(
+            result.cart,
+            product.id,
+            product,
+          );
           void AnalyticsTracker.trackAddToCart(
             product.id,
             product.title,
-            parseFloat(product.priceRange.minVariantPrice.amount),
+            list_price,
             {
               quantity: 6,
               source: "pdp_case",
-              unit_price: parseFloat(
-                product.priceRange.minVariantPrice.amount,
-              ),
+              list_price,
+              unit_price,
               price_version: "v1",
             },
           );
@@ -495,16 +500,20 @@ export function AddToCartCase({
         if (result.cart) {
           dispatchCartRefresh(result.cart);
         }
+        const { list_price, unit_price } = pricesFromCartAfterAdd(
+          result.cart as Cart | undefined,
+          product.id,
+          product,
+        );
         void AnalyticsTracker.trackAddToCart(
           product.id,
           product.title,
-          parseFloat(product.priceRange.minVariantPrice.amount),
+          list_price,
           {
             quantity: totalSelected,
             source: "pdp_case",
-            unit_price: parseFloat(
-              product.priceRange.minVariantPrice.amount,
-            ),
+            list_price,
+            unit_price,
             price_version: "v1",
           },
         );

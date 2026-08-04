@@ -28,12 +28,20 @@ import {
   resolveShoppingContext,
   stripeCurrencyFromContext,
 } from "@/lib/shopping-context/resolve";
-import { getSekToDisplayRate } from "@/lib/shopping-context/display-currency";
 import {
   isZoneDeliveryCompleteForActiveGeo,
   userZoneRowToDeliveryLines,
   type UserZoneAddressTemplate,
 } from "@/lib/checkout/user-zone-delivery-template";
+import {
+  amountsWithinTolerance,
+  computeExpectedAmountOre,
+  majorToOre,
+} from "@/lib/checkout/expected-amount";
+import {
+  calculateCartShippingCost,
+  resolveLastMileCostCentsPerBottle,
+} from "@/lib/shipping-calculations";
 
 type PaymentMode = "setup_intent" | "payment_intent";
 
@@ -56,21 +64,16 @@ function palletUsesPaymentIntent(status: string | null | undefined): boolean {
 }
 
 /**
- * Contract: `cart_total_sek` must represent the server-calculable order total BEFORE PACT Points:
- *
- *   Subtotal (early-bird + member discounts already applied)
- * + Shipping
- * - Voucher discount (if active)
- * = cart_total_sek
- *
- * PACT Points are NOT subtracted at this point. This endpoint subtracts them based on `pact_points_redeem`.
- *
- * The server will re-calculate and validate the final amount during /api/checkout/confirm.
+ * Client may send `cart_total_sek` for sanity only (subtotal + shipping − promo).
+ * Server derives the charged amount via {@link computeExpectedAmountOre}.
  */
 type RequestBody = {
   pallet_id: string;
-  cart_total_sek: number;
+  /** Client estimate BEFORE PACT points — sanity check only. */
+  cart_total_sek?: number;
   pact_points_redeem?: number;
+  promo_discount_sek?: number;
+  voucher_discount_sek?: number;
   /** US conditional checkout: required when profile country is US */
   us_conditional_ack?: boolean;
 };
@@ -94,7 +97,6 @@ export async function POST(request: Request) {
       acceptLanguage: request.headers.get("accept-language"),
     });
     const stripeCurrency = stripeCurrencyFromContext(shoppingCtx);
-    const sekToDisplayRate = await getSekToDisplayRate(shoppingCtx.currencyCode);
 
     if (!stripe) {
       console.error("[payment-intent] Stripe not configured");
@@ -135,27 +137,32 @@ export async function POST(request: Request) {
     const body = bodyUnknown as Partial<RequestBody> | null;
 
     const pallet_id = typeof body?.pallet_id === "string" ? body.pallet_id : "";
-    const cart_total_sek =
+    const clientCartTotalSek =
       typeof body?.cart_total_sek === "number" ? body.cart_total_sek : NaN;
     const pact_points_redeem =
       typeof body?.pact_points_redeem === "number" ? body.pact_points_redeem : 0;
+    const promoDiscountSek =
+      typeof body?.promo_discount_sek === "number" &&
+      Number.isFinite(body.promo_discount_sek)
+        ? Math.max(0, body.promo_discount_sek)
+        : 0;
+    const voucherDiscountSek =
+      typeof body?.voucher_discount_sek === "number" &&
+      Number.isFinite(body.voucher_discount_sek)
+        ? Math.max(0, body.voucher_discount_sek)
+        : 0;
 
     if (!pallet_id) {
       return NextResponse.json({ error: "Missing pallet_id" }, { status: 400 });
-    }
-
-    if (!Number.isFinite(cart_total_sek) || cart_total_sek <= 0) {
-      return NextResponse.json(
-        { error: "cart_total_sek must be > 0" },
-        { status: 400 },
-      );
     }
 
     const sbAdmin = getSupabaseAdmin();
 
     const { data: palletRow, error: palletErr } = await sbAdmin
       .from("pallets")
-      .select("bottle_capacity, status")
+      .select(
+        "bottle_capacity, status, id, name, cost_cents, last_mile_cost_cents_per_bottle",
+      )
       .eq("id", pallet_id)
       .maybeSingle();
 
@@ -385,10 +392,63 @@ export async function POST(request: Request) {
       nonBoostedLineTotal,
     );
 
-    const finalAmountSek = Math.max(0, cart_total_sek - alloc.sekDiscount);
-    const displayMultiplier =
-      stripeCurrency === "sek" ? 1 : sekToDisplayRate;
-    const amountInOre = Math.round(finalAmountSek * displayMultiplier * 100);
+    const shipping = calculateCartShippingCost(
+      cart.lines.map((l) => ({ quantity: l.quantity })),
+      {
+        id: String(palletRow.id),
+        name: String(palletRow.name ?? ""),
+        costCents: Number(palletRow.cost_cents) || 0,
+        bottleCapacity: Number(palletRow.bottle_capacity) || 0,
+        currentBottles: 0,
+        remainingBottles: 0,
+        lastMileCostCentsPerBottle: resolveLastMileCostCentsPerBottle(
+          Number(palletRow.last_mile_cost_cents_per_bottle) || 0,
+        ),
+      },
+    );
+    const shippingSek = shipping?.totalShippingCostSek ?? 0;
+
+    const subtotal = parseFloat(String(cart.cost.totalAmount.amount)) || 0;
+    // Client cart_total_sek is before PACT points (subtotal + shipping − promo).
+    const serverPrePactMajor = Math.max(
+      0,
+      subtotal + shippingSek - promoDiscountSek - voucherDiscountSek,
+    );
+    if (Number.isFinite(clientCartTotalSek)) {
+      const clientOre = majorToOre(clientCartTotalSek);
+      const serverPrePactOre = majorToOre(serverPrePactMajor);
+      if (!amountsWithinTolerance(clientOre, serverPrePactOre)) {
+        console.error("[amount-mismatch]", {
+          expected: serverPrePactOre,
+          fromClient: clientOre,
+          components: {
+            subtotal,
+            shippingSek,
+            promoDiscountSek,
+            voucherDiscountSek,
+            clientCartTotalSek,
+          },
+        });
+        return NextResponse.json(
+          { error: "Amount mismatch" },
+          { status: 400 },
+        );
+      }
+    }
+
+    // CartService totals are already in charge/display currency → multiplier 1.
+    const { amountOre: amountInOre, components } = await computeExpectedAmountOre(
+      {
+        userId: user.id,
+        cartId: cart.id,
+        shippingSek,
+        voucherSek: voucherDiscountSek,
+        pactPointsSek: alloc.sekDiscount,
+        promoSek: promoDiscountSek,
+        displayMultiplier: 1,
+        cart,
+      },
+    );
 
     if (amountInOre <= 0) {
       return NextResponse.json(
@@ -396,6 +456,12 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     }
+
+    console.log("[payment-intent] Server amount:", {
+      amountInOre,
+      components,
+      pointsToRedeem,
+    });
 
     const customerId = await getOrCreateStripeCustomer(user.id);
 
@@ -442,6 +508,8 @@ export async function POST(request: Request) {
         pallet_id,
         pact_points_redeem: String(pointsToRedeem),
         expected_amount_ore: String(amountInOre),
+        voucher_discount_sek: String(voucherDiscountSek),
+        promo_discount_sek: String(promoDiscountSek),
       };
       if (usConditional && usStateUpper) {
         metadata.country_code = "US";
@@ -491,6 +559,9 @@ export async function POST(request: Request) {
         user_id: user.id,
         pallet_id,
         pact_points_redeem: String(pointsToRedeem),
+        expected_amount_ore: String(amountInOre),
+        voucher_discount_sek: String(voucherDiscountSek),
+        promo_discount_sek: String(promoDiscountSek),
       },
     });
 

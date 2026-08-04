@@ -382,12 +382,15 @@ export class CartService {
   static async addItem(
     wineId: string,
     quantity: number = 1,
+    source: "producer" | "warehouse" = "producer",
   ): Promise<Cart | null> {
     console.log(
       "🔧 CartService.addItem called with wineId:",
       wineId,
       "quantity:",
       quantity,
+      "source:",
+      source,
     );
 
     try {
@@ -405,6 +408,7 @@ export class CartService {
         .select("id, quantity")
         .eq("cart_id", cartId)
         .eq("wine_id", wineId)
+        .eq("source", source)
         .maybeSingle();
 
       if (selectError) {
@@ -416,7 +420,10 @@ export class CartService {
         console.log("🔧 Found existing item, updating quantity");
         const { error: updateError } = await sb
           .from("cart_items")
-          .update({ quantity: existingItem.quantity + quantity })
+          .update({
+            quantity: existingItem.quantity + quantity,
+            source,
+          })
           .eq("id", existingItem.id);
 
         if (updateError) {
@@ -429,6 +436,7 @@ export class CartService {
           cart_id: cartId,
           wine_id: wineId,
           quantity,
+          source,
         });
 
         if (insertError) {
