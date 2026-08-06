@@ -38,6 +38,8 @@ export async function GET(
         user_id,
         order_type,
         payment_method_type,
+        total_sek,
+        discount_amount_sek,
         pallet:pallets(name, cost_cents, bottle_capacity),
         order_reservation_items(
           item_id,
@@ -259,7 +261,24 @@ export async function GET(
     );
 
     const shippingCostCents = 0;
-    const totalAmountCents = wineSubtotalCents + shippingCostCents;
+    const storedTotalSek =
+      reservation.total_sek != null && Number.isFinite(Number(reservation.total_sek))
+        ? Number(reservation.total_sek)
+        : null;
+    const discountAmountSek = Math.max(
+      0,
+      Number(reservation.discount_amount_sek) || 0,
+    );
+    // Prefer the reservation's charged total (post-discount). Fall back to item sum
+    // only for legacy rows that predate total_sek.
+    const totalAmountCents =
+      storedTotalSek != null
+        ? Math.round(storedTotalSek * 100)
+        : wineSubtotalCents + shippingCostCents;
+    const subtotalSek =
+      storedTotalSek != null
+        ? storedTotalSek + discountAmountSek
+        : wineSubtotalCents / 100;
 
     // Transform the data to match the expected format
     const transformedReservation = {
@@ -275,6 +294,9 @@ export async function GET(
       pickup_zone: pickupZoneName || "Unknown Pickup Zone",
       delivery_zone: deliveryZoneName || "Unknown Delivery Zone",
       delivery_address: deliveryAddress,
+      total_sek: storedTotalSek,
+      discount_amount_sek: discountAmountSek,
+      subtotal_sek: subtotalSek,
       total_amount_cents: totalAmountCents,
       shipping_cost_cents: shippingCostCents,
       customer_email: profile?.email || user.email,

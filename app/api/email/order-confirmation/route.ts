@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sendGridService } from "@/lib/sendgrid-service";
+import { sendTransactionalEmailOnce } from "@/lib/email/claim-email-send";
 
 /** Provider-specific quota / billing exhaustion (SendGrid, Resend, etc.). */
 function isEmailQuotaExceededMessage(message: string): boolean {
@@ -14,6 +15,11 @@ function isEmailQuotaExceededMessage(message: string): boolean {
   );
 }
 
+/**
+ * Manual / admin / legacy entry for order confirmation.
+ * Prefer sending from /api/checkout/confirm (idempotent).
+ * This route still claims via email_sends so a double-call cannot resend.
+ */
 export async function POST(request: NextRequest) {
   try {
     const data = await request.json();
@@ -47,6 +53,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "items is required" }, { status: 400 });
     }
 
+    const reservationId =
+      (typeof data.reservationId === "string" && data.reservationId.trim()) ||
+      (typeof data.orderId === "string" && data.orderId.trim()) ||
+      "";
+    if (!reservationId) {
+      return NextResponse.json(
+        { error: "reservationId (or orderId) is required for idempotent send" },
+        { status: 400 },
+      );
+    }
+
     // Local / misconfigured hosts often omit Resend; treat as intentional skip (not a checkout failure).
     if (!process.env.RESEND_API_KEY?.trim()) {
       return NextResponse.json(
@@ -60,31 +77,68 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = await sendGridService.sendOrderConfirmationDetailed({
-      customerEmail: data.customerEmail,
-      customerName: data.customerName,
-      orderId: data.orderId,
-      orderDate: data.orderDate,
-      items: data.items,
-      subtotal: data.subtotal,
-      tax: data.tax,
-      shipping: data.shipping,
-      total: data.total,
-      shippingAddress: data.shippingAddress,
+    const sendResult = await sendTransactionalEmailOnce({
+      emailType: "order_confirmation",
+      recipient: String(data.customerEmail),
+      reservationId,
+      send: async () => {
+        const result = await sendGridService.sendOrderConfirmationDetailed({
+          customerEmail: data.customerEmail,
+          customerName: data.customerName,
+          orderId: data.orderId,
+          orderDate: data.orderDate,
+          items: data.items,
+          subtotal: data.subtotal,
+          tax: data.tax,
+          shipping: data.shipping,
+          discount:
+            typeof data.discount === "number" && Number.isFinite(data.discount)
+              ? Math.max(0, data.discount)
+              : undefined,
+          total: data.total,
+          shippingAddress: data.shippingAddress,
+        });
+        if (result.ok) return true;
+        if (
+          result.code === "send_failed" &&
+          typeof result.message === "string" &&
+          isEmailQuotaExceededMessage(result.message)
+        ) {
+          // Surface as skip-like failure so caller can treat reservation as valid
+          throw Object.assign(new Error(result.message), {
+            code: "email_quota_exceeded",
+          });
+        }
+        throw new Error(result.message || result.code || "send failed");
+      },
     });
 
-    if (result.ok) {
+    if (sendResult === "skipped") {
+      return NextResponse.json({
+        skipped: true,
+        reason: "already_sent",
+        message: "Order confirmation already sent for this reservation.",
+      });
+    }
+
+    if (sendResult === "sent") {
       return NextResponse.json({
         success: true,
         message: "Order confirmation email sent successfully",
       });
     }
 
-    if (
-      result.code === "send_failed" &&
-      typeof result.message === "string" &&
-      isEmailQuotaExceededMessage(result.message)
-    ) {
+    return NextResponse.json(
+      {
+        success: false,
+        code: "send_failed",
+        message: "Order confirmation email failed after claim",
+      },
+      { status: 502 },
+    );
+  } catch (error) {
+    const err = error as { code?: string; message?: string };
+    if (err?.code === "email_quota_exceeded") {
       return NextResponse.json(
         {
           skipped: true,
@@ -95,23 +149,6 @@ export async function POST(request: NextRequest) {
         { status: 200 },
       );
     }
-
-    const status =
-      result.code === "missing_api_key"
-        ? 503
-        : result.code === "template_error"
-          ? 500
-          : 502;
-
-    return NextResponse.json(
-      {
-        success: false,
-        code: result.code,
-        message: result.message,
-      },
-      { status },
-    );
-  } catch (error) {
     console.error("Order confirmation email API error:", error);
     return NextResponse.json(
       { error: "Internal server error" },

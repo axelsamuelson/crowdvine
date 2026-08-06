@@ -33,11 +33,8 @@ import {
   userZoneRowToDeliveryLines,
   type UserZoneAddressTemplate,
 } from "@/lib/checkout/user-zone-delivery-template";
-import {
-  amountsWithinTolerance,
-  computeExpectedAmountOre,
-  majorToOre,
-} from "@/lib/checkout/expected-amount";
+import { computeExpectedAmountOre } from "@/lib/checkout/expected-amount";
+import { buildCheckoutQuote } from "@/lib/checkout/checkout-quote";
 import {
   calculateCartShippingCost,
   resolveLastMileCostCentsPerBottle,
@@ -64,13 +61,12 @@ function palletUsesPaymentIntent(status: string | null | undefined): boolean {
 }
 
 /**
- * Client may send `cart_total_sek` for sanity only (subtotal + shipping − promo).
- * Server derives the charged amount via {@link computeExpectedAmountOre}.
+ * Charged amount is always derived server-side via {@link computeExpectedAmountOre}
+ * from CartService.getCart + shipping − promo − voucher − PACT points.
+ * Client must not send a total.
  */
 type RequestBody = {
   pallet_id: string;
-  /** Client estimate BEFORE PACT points — sanity check only. */
-  cart_total_sek?: number;
   pact_points_redeem?: number;
   promo_discount_sek?: number;
   voucher_discount_sek?: number;
@@ -137,8 +133,6 @@ export async function POST(request: Request) {
     const body = bodyUnknown as Partial<RequestBody> | null;
 
     const pallet_id = typeof body?.pallet_id === "string" ? body.pallet_id : "";
-    const clientCartTotalSek =
-      typeof body?.cart_total_sek === "number" ? body.cart_total_sek : NaN;
     const pact_points_redeem =
       typeof body?.pact_points_redeem === "number" ? body.pact_points_redeem : 0;
     const promoDiscountSek =
@@ -408,34 +402,6 @@ export async function POST(request: Request) {
     );
     const shippingSek = shipping?.totalShippingCostSek ?? 0;
 
-    const subtotal = parseFloat(String(cart.cost.totalAmount.amount)) || 0;
-    // Client cart_total_sek is before PACT points (subtotal + shipping − promo).
-    const serverPrePactMajor = Math.max(
-      0,
-      subtotal + shippingSek - promoDiscountSek - voucherDiscountSek,
-    );
-    if (Number.isFinite(clientCartTotalSek)) {
-      const clientOre = majorToOre(clientCartTotalSek);
-      const serverPrePactOre = majorToOre(serverPrePactMajor);
-      if (!amountsWithinTolerance(clientOre, serverPrePactOre)) {
-        console.error("[amount-mismatch]", {
-          expected: serverPrePactOre,
-          fromClient: clientOre,
-          components: {
-            subtotal,
-            shippingSek,
-            promoDiscountSek,
-            voucherDiscountSek,
-            clientCartTotalSek,
-          },
-        });
-        return NextResponse.json(
-          { error: "Amount mismatch" },
-          { status: 400 },
-        );
-      }
-    }
-
     // CartService totals are already in charge/display currency → multiplier 1.
     const { amountOre: amountInOre, components } = await computeExpectedAmountOre(
       {
@@ -449,6 +415,11 @@ export async function POST(request: Request) {
         cart,
       },
     );
+    const quote = buildCheckoutQuote({
+      components,
+      amountOre: amountInOre,
+      pactPointsRedeem: pointsToRedeem,
+    });
 
     if (amountInOre <= 0) {
       return NextResponse.json(
@@ -497,6 +468,7 @@ export async function POST(request: Request) {
           clientSecret: existing.client_secret,
           intentId: existing.id,
           amountInOre,
+          quote,
           bottlesFilled,
           palletStatus: palletStatusResponse,
           palletThreshold: PALLET_THRESHOLD,
@@ -536,6 +508,7 @@ export async function POST(request: Request) {
         clientSecret: intent.client_secret,
         intentId: intent.id,
         amountInOre,
+        quote,
         bottlesFilled,
         palletStatus: palletStatusResponse,
         palletThreshold: PALLET_THRESHOLD,
@@ -572,6 +545,7 @@ export async function POST(request: Request) {
       clientSecret: intent.client_secret,
       intentId: intent.id,
       amountInOre,
+      quote,
       bottlesFilled,
       palletStatus: palletStatusResponse,
       palletThreshold: PALLET_THRESHOLD,

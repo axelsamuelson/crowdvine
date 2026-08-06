@@ -97,14 +97,22 @@ function formatStripeErrorMessage(error: unknown, fallback: string): string {
 
 type Props = {
   palletId: string;
-  cartTotalSek: number;
   pactPointsRedeem: number;
-  /** Admin promo discount (SEK) already reflected in cartTotalSek. */
+  /** Admin promo discount (SEK) — server recomputes charged total. */
   promoDiscountSek?: number;
   /** Logged on client-side Stripe confirm failures when present. */
   userId?: string;
   onIntentCreated: (data: IntentCreated) => void;
   onConfirmReady: (confirmFn: (() => Promise<StripeConfirmResult>) | null) => void;
+  /** Called when payment-intent returns the authoritative quote. */
+  onQuote?: (quote: {
+    total_sek: number;
+    total_ore: number;
+    subtotal_sek: number;
+    shipping_sek: number;
+    promo_discount_sek: number;
+    pact_points_sek: number;
+  }) => void;
   /** US conditional: include ack in /api/checkout/payment-intent body */
   usConditionalPayment?: boolean;
   usConditionalAck?: boolean;
@@ -417,12 +425,12 @@ function StripeElementInner({
 
 export function StripePaymentSection({
   palletId,
-  cartTotalSek,
   pactPointsRedeem,
   promoDiscountSek = 0,
   userId,
   onIntentCreated,
   onConfirmReady,
+  onQuote,
   usConditionalPayment = false,
   usConditionalAck = false,
 }: Props) {
@@ -434,6 +442,7 @@ export function StripePaymentSection({
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [paymentMode, setPaymentMode] = useState<PaymentMode | null>(null);
   const [intentId, setIntentId] = useState<string | null>(null);
+  const [amountInOre, setAmountInOre] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [paymentElementLoadError, setPaymentElementLoadError] = useState<
     string | null
@@ -442,6 +451,8 @@ export function StripePaymentSection({
   const [retryNonce, setRetryNonce] = useState(0);
   const onIntentCreatedRef = useRef(onIntentCreated);
   onIntentCreatedRef.current = onIntentCreated;
+  const onQuoteRef = useRef(onQuote);
+  onQuoteRef.current = onQuote;
 
   /** When cart / pallet / points change, allow a fresh payment-intent fetch. */
   const fetchedRef = useRef(false);
@@ -449,7 +460,6 @@ export function StripePaymentSection({
     fetchedRef.current = false;
   }, [
     palletId,
-    cartTotalSek,
     pactPointsRedeem,
     promoDiscountSek,
     usConditionalPayment,
@@ -462,6 +472,7 @@ export function StripePaymentSection({
       setClientSecret(null);
       setPaymentMode(null);
       setIntentId(null);
+      setAmountInOre(null);
       setError(null);
       setPaymentElementLoadError(null);
       setLoading(false);
@@ -483,7 +494,6 @@ export function StripePaymentSection({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             pallet_id: palletId,
-            cart_total_sek: cartTotalSek,
             pact_points_redeem: pactPointsRedeem,
             ...(promoDiscountSek > 0
               ? { promo_discount_sek: promoDiscountSek }
@@ -511,6 +521,8 @@ export function StripePaymentSection({
           clientSecret?: unknown;
           intentId?: unknown;
           bottlesFilled?: unknown;
+          amountInOre?: unknown;
+          quote?: unknown;
         };
 
         const mode =
@@ -520,6 +532,10 @@ export function StripePaymentSection({
         const cs = typeof d.clientSecret === "string" ? d.clientSecret : null;
         const id = typeof d.intentId === "string" ? d.intentId : null;
         const filled = typeof d.bottlesFilled === "number" ? d.bottlesFilled : 0;
+        const ore =
+          typeof d.amountInOre === "number" && Number.isFinite(d.amountInOre)
+            ? d.amountInOre
+            : null;
 
         if (!mode || !cs || !id) {
           throw new Error("Invalid payment intent response");
@@ -528,6 +544,20 @@ export function StripePaymentSection({
         setPaymentMode(mode);
         setClientSecret(cs);
         setIntentId(id);
+        setAmountInOre(ore);
+        if (d.quote && typeof d.quote === "object") {
+          const q = d.quote as Record<string, unknown>;
+          const num = (v: unknown) =>
+            typeof v === "number" && Number.isFinite(v) ? v : 0;
+          onQuoteRef.current?.({
+            total_sek: num(q.total_sek),
+            total_ore: num(q.total_ore),
+            subtotal_sek: num(q.subtotal_sek),
+            shipping_sek: num(q.shipping_sek),
+            promo_discount_sek: num(q.promo_discount_sek),
+            pact_points_sek: num(q.pact_points_sek),
+          });
+        }
         onIntentCreatedRef.current({
           paymentMode: mode,
           intentId: id,
@@ -549,6 +579,7 @@ export function StripePaymentSection({
         setClientSecret(null);
         setPaymentMode(null);
         setIntentId(null);
+        setAmountInOre(null);
       } finally {
         setLoading(false);
       }
@@ -562,7 +593,6 @@ export function StripePaymentSection({
     };
   }, [
     palletId,
-    cartTotalSek,
     pactPointsRedeem,
     promoDiscountSek,
     retryNonce,
@@ -616,7 +646,7 @@ export function StripePaymentSection({
     return null;
   }
 
-  const amountOreHint = Math.round(cartTotalSek * 100);
+  const amountOreHint = amountInOre ?? undefined;
 
   return (
     <div className="space-y-3">

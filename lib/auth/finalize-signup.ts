@@ -1,0 +1,117 @@
+import { NextRequest, NextResponse } from "next/server";
+import { logUserEventServer } from "@/lib/analytics/log-user-event-server";
+import {
+  FIRST_TOUCH_KEY,
+  VISITOR_ID_KEY,
+  parseFirstTouchPayload,
+} from "@/lib/analytics/visitor-identity";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
+
+export type FinalizeSignupSource =
+  | "checkout_magic_link"
+  | "magic_link"
+  | "checkout_otp"
+  | "checkout";
+
+/**
+ * Shared post-auth steps for magic-link callback and mid-checkout OTP.
+ * Idempotent enough to call from both paths (profile upsert; cart attach only if unowned).
+ */
+export async function finalizeSignupAfterAuth(opts: {
+  userId: string;
+  email?: string | null;
+  /** Raw cookie header value or decoded visitor id */
+  visitorId?: string | null;
+  firstTouchCookie?: string | null;
+  cartSessionId?: string | null;
+  source: FinalizeSignupSource;
+  /** When false, skip analytics (caller emits client-side). Default true. */
+  emitSignupCompleted?: boolean;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    const sbAdmin = getSupabaseAdmin();
+    await sbAdmin.from("profiles").upsert(
+      {
+        id: opts.userId,
+        email: opts.email?.trim() ? opts.email.trim() : null,
+      },
+      { onConflict: "id" },
+    );
+
+    const cartSessionId = opts.cartSessionId?.trim() || null;
+    if (cartSessionId) {
+      const { error: cartErr } = await sbAdmin
+        .from("carts")
+        .update({
+          user_id: opts.userId,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("session_id", cartSessionId)
+        .is("user_id", null);
+      if (cartErr) {
+        console.warn("[finalize-signup] cart attach:", cartErr.message);
+      }
+    }
+
+    if (opts.emitSignupCompleted !== false) {
+      const visitorId =
+        typeof opts.visitorId === "string" && opts.visitorId.trim()
+          ? (() => {
+              try {
+                return decodeURIComponent(opts.visitorId.trim());
+              } catch {
+                return opts.visitorId.trim();
+              }
+            })()
+          : null;
+      const firstTouch = parseFirstTouchPayload(opts.firstTouchCookie ?? null);
+      void logUserEventServer({
+        userId: opts.userId,
+        visitorId,
+        firstTouch,
+        eventType: "signup_completed",
+        eventCategory: "auth",
+        metadata: {
+          user_id: opts.userId,
+          source: opts.source,
+          ...(visitorId ? { visitor_id: visitorId } : {}),
+        },
+      });
+    }
+
+    return { ok: true };
+  } catch (e) {
+    console.error("[finalize-signup]", e);
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : "finalize failed",
+    };
+  }
+}
+
+/** Read visitor / cart cookies from a Next request. */
+export function signupCookiesFromRequest(request: NextRequest): {
+  visitorId: string | null;
+  firstTouchCookie: string | null;
+  cartSessionId: string | null;
+} {
+  const visitorIdRaw = request.cookies.get(VISITOR_ID_KEY)?.value ?? null;
+  return {
+    visitorId: visitorIdRaw,
+    firstTouchCookie: request.cookies.get(FIRST_TOUCH_KEY)?.value ?? null,
+    cartSessionId: request.cookies.get("cv_cart_id")?.value ?? null,
+  };
+}
+
+export function clearAuthNextCookie(response: NextResponse): void {
+  response.cookies.set("cv_auth_next", "", {
+    path: "/",
+    maxAge: 0,
+    sameSite: "lax",
+  });
+  response.cookies.set("cv_auth_email", "", {
+    path: "/",
+    maxAge: 0,
+    sameSite: "lax",
+  });
+}

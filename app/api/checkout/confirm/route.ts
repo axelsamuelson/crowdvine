@@ -63,6 +63,13 @@ import { resolveActiveGeoZoneForUser } from "@/lib/market/resolve-active-geo-zon
 import { logUserEventServer } from "@/lib/analytics/log-user-event-server";
 import { readVisitorIdentityFromCookies } from "@/lib/analytics/visitor-identity-server";
 import {
+  buildReservationSuccessResponse,
+  findRecentDuplicateReservation,
+  findReservationByIdempotencyKey,
+  isUniqueViolation,
+  parseIdempotencyKey,
+} from "@/lib/checkout/reservation-idempotency";
+import {
   parseFirstTouchPayload,
   type FirstTouch,
 } from "@/lib/analytics/visitor-identity";
@@ -205,6 +212,10 @@ export async function POST(request: Request) {
           typeof internalField === "string"
             ? internalField === "true" || internalField === "1"
             : undefined,
+        idempotency_key:
+          typeof formData.get("idempotency_key") === "string"
+            ? (formData.get("idempotency_key") as string)
+            : undefined,
         // paymentMethodId removed - using new payment flow
       };
     }
@@ -281,6 +292,47 @@ export async function POST(request: Request) {
     if (!cart || cart.totalQuantity === 0) {
       console.error("Cart is empty");
       return NextResponse.json({ error: "Cart is empty" }, { status: 400 });
+    }
+
+    const sbAdminEarly = getSupabaseAdmin();
+    const idempotencyKey = parseIdempotencyKey(
+      body && typeof body === "object" && "idempotency_key" in body
+        ? (body as { idempotency_key?: unknown }).idempotency_key
+        : undefined,
+    );
+
+    // Layer 2: same idempotency_key → return existing (no second insert / no second event).
+    if (idempotencyKey) {
+      const byKey = await findReservationByIdempotencyKey(
+        sbAdminEarly,
+        idempotencyKey,
+      );
+      if (byKey) {
+        console.warn("[duplicate-reservation-blocked]", {
+          reason: "idempotency_key",
+          reservation_id: byKey.id,
+          idempotency_key: idempotencyKey,
+          user_id: user.id,
+        });
+        return NextResponse.json(buildReservationSuccessResponse(byKey));
+      }
+    }
+
+    // Layer 3: same user + cart within 60s → return existing.
+    const recentDup = await findRecentDuplicateReservation(sbAdminEarly, {
+      userId: user.id,
+      cartId: cart.id,
+      windowSeconds: 60,
+    });
+    if (recentDup) {
+      console.warn("[duplicate-reservation-blocked]", {
+        reason: "recent_same_cart",
+        reservation_id: recentDup.id,
+        cart_id: cart.id,
+        user_id: user.id,
+        idempotency_key: idempotencyKey,
+      });
+      return NextResponse.json(buildReservationSuccessResponse(recentDup));
     }
 
     console.log("Processing cart:", cart);
@@ -1299,12 +1351,37 @@ export async function POST(request: Request) {
             discount_amount_sek: groupPromoSek,
             total_sek: amountSek,
             is_test_purchase: promoIsTestkop,
+            // Only primary row carries the client idempotency key (UNIQUE).
+            ...(idempotencyKey && createdReservations.length === 0
+              ? { idempotency_key: idempotencyKey }
+              : {}),
             ...usReservationExtra,
           })
           .select("id")
           .single();
 
         if (insErr || !row?.id) {
+          if (
+            isUniqueViolation(insErr) &&
+            idempotencyKey &&
+            createdReservations.length === 0
+          ) {
+            const existing = await findReservationByIdempotencyKey(
+              sbAdmin,
+              idempotencyKey,
+            );
+            if (existing) {
+              console.warn("[duplicate-reservation-blocked]", {
+                reason: "idempotency_key_unique_violation",
+                reservation_id: existing.id,
+                idempotency_key: idempotencyKey,
+              });
+              await rollbackCheckoutGroup();
+              return NextResponse.json(
+                buildReservationSuccessResponse(existing),
+              );
+            }
+          }
           console.error("[CHECKOUT] Reservation insert failed:", insErr);
           await rollbackCheckoutGroup();
           return NextResponse.json(
@@ -1372,12 +1449,27 @@ export async function POST(request: Request) {
           discount_amount_sek: promoDiscountAmountSek,
           total_sek: expectedFinalSek,
           is_test_purchase: promoIsTestkop,
+          ...(idempotencyKey ? { idempotency_key: idempotencyKey } : {}),
           ...usReservationExtra,
         })
         .select("id")
         .single();
 
       if (reservationError || !resRow?.id) {
+        if (isUniqueViolation(reservationError) && idempotencyKey) {
+          const existing = await findReservationByIdempotencyKey(
+            sbAdmin,
+            idempotencyKey,
+          );
+          if (existing) {
+            console.warn("[duplicate-reservation-blocked]", {
+              reason: "idempotency_key_unique_violation",
+              reservation_id: existing.id,
+              idempotency_key: idempotencyKey,
+            });
+            return NextResponse.json(buildReservationSuccessResponse(existing));
+          }
+        }
         console.error("Failed to create reservation:", reservationError);
         return NextResponse.json(
           { error: "Failed to create reservation" },
@@ -1923,73 +2015,6 @@ export async function POST(request: Request) {
       }
     }
 
-    // Send order confirmation email immediately
-    try {
-      console.log("📧 Sending order confirmation email...");
-      console.log("📧 Address data:", {
-        email: address.email,
-        fullName: address.fullName,
-        street: address.street,
-        city: address.city,
-        postcode: address.postcode,
-        countryCode: address.countryCode,
-      });
-      console.log("📧 Cart data:", {
-        linesCount: cart.lines.length,
-        totalAmount: cart.cost.totalAmount.amount,
-        currency: cart.cost.totalAmount.currencyCode,
-      });
-      console.log("📧 Reservation ID:", reservation.id);
-
-      const { sendGridService } = await import("@/lib/sendgrid-service");
-
-      const emailData = {
-        customerEmail: address.email,
-        customerName: address.fullName,
-        orderId: reservation.id,
-        orderDate: new Date().toLocaleDateString(),
-        items: cart.lines.map((line) => ({
-          name: `${line.merchandise.product.title}`,
-          quantity: line.quantity,
-          price: parseFloat(
-            line.merchandise.product.priceRange.minVariantPrice.amount,
-          ),
-          image: undefined,
-        })),
-        subtotal: parseFloat(cart.cost.totalAmount.amount),
-        tax: 0,
-        shipping: 0, // Will be calculated based on zones
-        total: parseFloat(cart.cost.totalAmount.amount),
-        shippingAddress: {
-          name: address.fullName,
-          street: address.street,
-          city: address.city,
-          postalCode: address.postcode,
-          country: address.countryCode,
-        },
-      };
-
-      console.log("📧 Prepared email data:", emailData);
-
-      const emailSent = await sendGridService.sendOrderConfirmation(emailData);
-
-      if (emailSent) {
-        console.log(
-          "📧 Order confirmation email sent successfully to:",
-          address.email,
-        );
-      } else {
-        console.error(
-          "📧 Failed to send order confirmation email to:",
-          address.email,
-        );
-      }
-    } catch (emailError) {
-      console.error("📧 Error sending order confirmation email:", emailError);
-      console.error("📧 Error details:", emailError);
-      // Email failure should not break the checkout process
-    }
-
     // ============================================================
     // v2: PROGRESSION BUFFS & IP AWARDS
     // ============================================================
@@ -2293,6 +2318,74 @@ export async function POST(request: Request) {
     }
 
     const markInternal = clientInternal || reservationIsTestPurchase;
+
+    // Order confirmation: server-side only, once per reservation (email_sends claim).
+    try {
+      if (!process.env.RESEND_API_KEY?.trim()) {
+        console.info(
+          "📧 Order confirmation skipped (RESEND_API_KEY not set). Reservation is still saved.",
+        );
+      } else {
+        const { sendGridService } = await import("@/lib/sendgrid-service");
+        const { sendTransactionalEmailOnce } = await import(
+          "@/lib/email/claim-email-send"
+        );
+
+        const emailData = {
+          customerEmail: address.email,
+          customerName: address.fullName,
+          orderId: reservation.id,
+          orderDate: new Date().toLocaleDateString(),
+          items: cart.lines.map((line) => ({
+            name: `${line.merchandise.product.title}`,
+            quantity: line.quantity,
+            price: parseFloat(
+              line.merchandise.product.priceRange.minVariantPrice.amount,
+            ),
+            image: undefined,
+          })),
+          subtotal: Math.max(0, expectedFinalSek + promoDiscountAmountSek),
+          tax: 0,
+          shipping: 0,
+          discount:
+            promoDiscountAmountSek > 0 ? promoDiscountAmountSek : undefined,
+          total: expectedFinalSek,
+          shippingAddress: {
+            name: address.fullName,
+            street: address.street,
+            city: address.city,
+            postalCode: address.postcode,
+            country: address.countryCode,
+          },
+        };
+
+        const sendResult = await sendTransactionalEmailOnce({
+          emailType: "order_confirmation",
+          recipient: address.email,
+          reservationId: String(reservation.id),
+          send: () => sendGridService.sendOrderConfirmation(emailData),
+        });
+
+        if (sendResult === "sent") {
+          console.log(
+            "📧 Order confirmation email sent to:",
+            address.email,
+          );
+        } else if (sendResult === "skipped") {
+          console.warn(
+            "[email_sends] skip order_confirmation — already claimed for",
+            reservation.id,
+          );
+        } else {
+          console.error(
+            "📧 Order confirmation send failed for:",
+            address.email,
+          );
+        }
+      }
+    } catch (emailError) {
+      console.error("📧 Error sending order confirmation email:", emailError);
+    }
 
     for (const ev of reservationEvents) {
       if (process.env.NODE_ENV === "development") {

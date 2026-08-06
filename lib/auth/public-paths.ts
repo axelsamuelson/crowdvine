@@ -36,6 +36,7 @@ const PUBLIC_PATH_PREFIXES = [
   "/pallet",
   "/reset-password",
   "/auth/callback",
+  "/auth/pkce",
   "/auth/auth-code-error",
   "/forgot-password",
   "/tasting",

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState, Suspense } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -52,6 +52,12 @@ interface ReservationDetails {
   pickup_zone?: string;
   delivery_zone?: string;
   delivery_address?: string;
+  /** Charged total from order_reservations.total_sek (SEK). */
+  total_sek?: number | null;
+  /** Promo discount from order_reservations.discount_amount_sek (SEK). */
+  discount_amount_sek?: number;
+  /** Pre-discount amount (total_sek + discount_amount_sek) when totals are stored. */
+  subtotal_sek?: number;
   total_amount_cents?: number;
   shipping_cost_cents?: number;
   customer_email?: string;
@@ -155,113 +161,6 @@ function CheckoutConfirmationContent() {
   );
   const ambiguousLanding =
     !hasIdParams && loadError === "no_id" && !reservation;
-
-  const sendOrderConfirmationEmail = useCallback(async (
-    reservationData: ReservationDetails,
-  ) => {
-    try {
-      console.log("📧 Attempting to send order confirmation email...");
-      console.log("📧 Reservation data:", reservationData);
-
-      // Get user email from reservation data
-      const userEmail =
-        reservationData.customer_email ||
-        reservationData.items[0]?.customer_email ||
-        "customer@pactwines.com"; // Fallback
-      const userName =
-        reservationData.customer_name ||
-        reservationData.items[0]?.customer_name ||
-        "Valued Customer"; // Fallback
-
-      console.log("📧 Using email:", userEmail, "and name:", userName);
-
-      const emailData = {
-        customerEmail: userEmail,
-        customerName: userName,
-        orderId: reservationData.order_id || reservationData.id,
-        orderDate: new Date(reservationData.created_at).toLocaleDateString(),
-        items: reservationData.items.map((item) => ({
-          name: `${item.wine_name} ${item.vintage}`,
-          quantity: item.quantity,
-          price: item.price_cents / 100, // Convert to SEK
-          image: undefined, // Could add wine images if available
-        })),
-        subtotal:
-          reservationData.items.reduce(
-            (sum, item) => sum + item.price_cents * item.quantity,
-            0,
-          ) / 100,
-        tax: 0, // Could calculate tax if needed
-        shipping: (reservationData.shipping_cost_cents || 0) / 100,
-        total: (reservationData.total_amount_cents || 0) / 100,
-        shippingAddress: {
-          name: userName,
-          street: reservationData.delivery_address || "Address not provided",
-          city: "City", // Could extract from delivery address
-          postalCode: "12345", // Could extract from delivery address
-          country: "Sweden",
-        },
-      };
-
-      console.log("📧 Email data prepared:", emailData);
-
-      const response = await fetch("/api/email/order-confirmation", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(emailData),
-      });
-
-      if (response.ok) {
-        const result = (await response.json().catch(() => ({}))) as {
-          skipped?: boolean;
-          success?: boolean;
-          message?: string;
-          reason?: string;
-        };
-        if (result.skipped === true) {
-          if (
-            result.reason === "email_quota_exceeded" ||
-            result.reason === "sendgrid_quota_exceeded"
-          ) {
-            console.info(
-              "📧 Order confirmation skipped: email provider quota or billing limit reached — your reservation is still saved.",
-            );
-          } else {
-            console.info(
-              "📧 Order confirmation email skipped (RESEND_API_KEY not set). Add RESEND_API_KEY to .env.local and restart the dev server to send mail.",
-            );
-          }
-        } else {
-          console.log("📧 Order confirmation email sent successfully:", result);
-        }
-        // Quiet success: don't distract after checkout.
-      } else {
-        const errorText = await response.text();
-        try {
-          const parsed = JSON.parse(errorText) as {
-            code?: string;
-            message?: string;
-            error?: string;
-          };
-          const detail =
-            typeof parsed.message === "string" && parsed.message.trim()
-              ? parsed.code
-                ? `${parsed.code}: ${parsed.message.trim()}`
-                : parsed.message.trim()
-              : typeof parsed.error === "string"
-                ? parsed.error
-                : errorText;
-          console.error("📧 Failed to send order confirmation email:", detail);
-        } catch {
-          console.error("📧 Failed to send order confirmation email:", errorText);
-        }
-        // Fail open: email delivery issues must not look like checkout failed.
-      }
-    } catch (error) {
-      console.error("📧 Error sending order confirmation email:", error);
-      // Fail open: do not show user-facing error toasts here.
-    }
-  }, []);
 
   useEffect(() => {
     if (message) {
@@ -368,9 +267,7 @@ function CheckoutConfirmationContent() {
       }
 
       if (!cancelled) {
-        const details = payload as ReservationDetails;
-        setReservation(details);
-        await sendOrderConfirmationEmail(details);
+        setReservation(payload as ReservationDetails);
         setLoading(false);
       }
     }
@@ -380,12 +277,7 @@ function CheckoutConfirmationContent() {
     return () => {
       cancelled = true;
     };
-  }, [
-    checkoutGroupIdParam,
-    message,
-    reservationIdParam,
-    sendOrderConfirmationEmail,
-  ]);
+  }, [checkoutGroupIdParam, message, reservationIdParam]);
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
@@ -650,14 +542,68 @@ function CheckoutConfirmationContent() {
                     <DollarSign className="h-4 w-4 text-gray-600" />
                     {t("checkout.total")}
                   </div>
-                  <div className="flex items-baseline justify-between">
-                    <div className="text-sm text-gray-500">
-                      {t("checkout.successAmount")}
-                    </div>
-                    <div className="text-xl font-medium text-gray-900">
-                      {formatPrice(reservation.total_amount_cents || 0)}
-                    </div>
-                  </div>
+                  {(() => {
+                    const discountSek = Math.max(
+                      0,
+                      Number(reservation.discount_amount_sek) || 0,
+                    );
+                    const totalSek =
+                      reservation.total_sek != null &&
+                      Number.isFinite(Number(reservation.total_sek))
+                        ? Number(reservation.total_sek)
+                        : (reservation.total_amount_cents || 0) / 100;
+                    const subtotalSek =
+                      reservation.subtotal_sek != null &&
+                      Number.isFinite(Number(reservation.subtotal_sek))
+                        ? Number(reservation.subtotal_sek)
+                        : discountSek > 0
+                          ? totalSek + discountSek
+                          : totalSek;
+                    const formatSek = (sek: number) =>
+                      formatMoney(sek, currencyCode, appLocale);
+
+                    if (discountSek > 0) {
+                      return (
+                        <div className="space-y-2 text-sm">
+                          <div className="flex items-baseline justify-between gap-3">
+                            <span className="text-gray-500">
+                              {t("checkout.subtotal")}
+                            </span>
+                            <span className="tabular-nums text-gray-900">
+                              {formatSek(subtotalSek)}
+                            </span>
+                          </div>
+                          <div className="flex items-baseline justify-between gap-3">
+                            <span className="text-gray-500">
+                              {t("checkout.successDiscount")}
+                            </span>
+                            <span className="tabular-nums text-gray-900">
+                              −{formatSek(discountSek)}
+                            </span>
+                          </div>
+                          <div className="flex items-baseline justify-between gap-3 border-t border-gray-200 pt-2">
+                            <span className="font-medium text-gray-900">
+                              {t("checkout.total")}
+                            </span>
+                            <span className="text-xl font-medium tabular-nums text-gray-900">
+                              {formatSek(totalSek)}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div className="flex items-baseline justify-between">
+                        <div className="text-sm text-gray-500">
+                          {t("checkout.successAmount")}
+                        </div>
+                        <div className="text-xl font-medium text-gray-900">
+                          {formatSek(totalSek)}
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               </CardContent>
             </Card>

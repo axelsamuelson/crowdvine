@@ -7,7 +7,32 @@ import {
 
 let client: SupabaseClient | null = null;
 
-/** Drop singleton so the next client can store a fresh PKCE code verifier. */
+/**
+ * Cookie options for PKCE code-verifier storage.
+ *
+ * - sameSite: 'lax' — REQUIRED. Supabase redirects from *.supabase.co back to
+ *   our origin as a top-level GET; 'strict' would omit the verifier cookie.
+ * - secure: only on https (never on http://localhost or the cookie is dropped).
+ * - path: '/' — callback and checkout must see the same cookie.
+ * - no domain — host-only; setting a Domain on localhost breaks storage.
+ */
+export function getBrowserAuthCookieOptions(): {
+  path: string;
+  sameSite: "lax";
+  secure: boolean;
+} {
+  const secure =
+    typeof window !== "undefined"
+      ? window.location.protocol === "https:"
+      : process.env.NODE_ENV === "production";
+  return {
+    path: "/",
+    sameSite: "lax",
+    secure,
+  };
+}
+
+/** Drop our singleton so the next auth start can write a fresh PKCE cookie. */
 export function resetSupabaseBrowserClient() {
   client = null;
 }
@@ -19,8 +44,6 @@ function wrapAuthMethods(supabase: SupabaseClient) {
     } catch {
       /* ignore */
     } finally {
-      // @supabase/ssr can fail to write a new code-verifier after signOut on the
-      // same singleton — force a fresh client for the next auth start.
       resetSupabaseBrowserClient();
     }
   };
@@ -91,6 +114,20 @@ function wrapAuthMethods(supabase: SupabaseClient) {
   };
 }
 
+/**
+ * Browser Supabase client via @supabase/ssr createBrowserClient.
+ * Uses DEFAULT cookie storage (document.cookie) — no localStorage adapter.
+ * flowType defaults to pkce.
+ *
+ * isSingleton: false + our module `client` — prepareFreshBrowserAuth can
+ * null the module ref and create a NEW client that still shares document.cookie
+ * storage (same cookie name / path). It does NOT create a second parallel
+ * cookie jar; it avoids reusing an in-memory client whose auth state was
+ * signed out and may refuse to write a new code-verifier.
+ *
+ * detectSessionInUrl: false — we exchange ?code= only on /auth/pkce so a
+ * concurrent auto-detect cannot double-consume the auth code.
+ */
 export function getSupabaseBrowserClient(): SupabaseClient {
   if (!client) {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
@@ -100,13 +137,25 @@ export function getSupabaseBrowserClient(): SupabaseClient {
         "Missing Supabase env vars. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY. See docs/VERCEL_ENV_SETUP.md",
       );
     }
-    client = createBrowserClient(url, key);
+    client = createBrowserClient(url, key, {
+      isSingleton: false,
+      cookieOptions: getBrowserAuthCookieOptions(),
+      // Note: @supabase/ssr 0.7 hardcodes detectSessionInUrl: true after
+      // spreading options.auth — we cannot disable it here. /auth/pkce
+      // tolerates the race (getSession first, then exchange).
+    });
     wrapAuthMethods(client);
   }
   return client;
 }
 
-/** Clear local auth state and recreate client (for starting a new magic-link flow). */
+/**
+ * Clear local auth session cookies, drop the module singleton, return a fresh
+ * client. Used before signInWithOtp so a new PKCE code-verifier is written.
+ * Does NOT clear cv_auth_email / cv_auth_next (those are our cookies).
+ * signOut runs first (may remove the previous verifier); then a new client
+ * writes the next verifier on signInWithOtp — it does not clear after write.
+ */
 export async function prepareFreshBrowserAuth(): Promise<SupabaseClient> {
   if (client) {
     try {

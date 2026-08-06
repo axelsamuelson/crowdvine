@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, Suspense, useCallback } from "react";
 import { CartMergeModal } from "@/components/cart/cart-merge-modal";
 import { CheckoutEmailAuth } from "@/components/checkout/checkout-email-auth";
-import { getAgeLimit } from "@/lib/age-limits";
+import { getAgeLimit, meetsAgeRequirement } from "@/lib/age-limits";
 import { PRICE_VERSION } from "@/lib/analytics/price-version";
 import { pricesFromCheckoutCart } from "@/lib/analytics/cart-event-prices";
 import { CHECKOUT_TERMS_VERSION } from "@/lib/checkout/terms-version";
@@ -31,11 +31,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ReservationLoadingModal } from "@/components/checkout/reservation-loading-modal";
-import { ProgressionBuffDisplay } from "@/components/membership/progression-buff-display";
 import {
   StripePaymentSection,
   type StripeConfirmResult,
 } from "@/components/checkout/stripe-payment-section";
+import type { CheckoutQuote } from "@/lib/checkout/checkout-quote";
 import { toast } from "sonner";
 import {
   MapPin,
@@ -53,9 +53,11 @@ import {
 } from "@/lib/analytics/internal-device";
 import {
   CHECKOUT_STARTED_KEY,
-  claimOnce,
-  clearClaim,
-  SIGNUP_STARTED_CHECKOUT_KEY,
+  ageVerificationPassedKey,
+  ageVerificationShownKey,
+  clearCheckoutAnalyticsSession,
+  emitOnce,
+  termsAcceptedEmitKey,
 } from "@/lib/analytics/once-per-session";
 import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
 import { calculateCartShippingCost } from "@/lib/shipping-calculations";
@@ -91,11 +93,6 @@ import {
   type ZoneDeliveryLines,
 } from "@/lib/checkout/user-zone-delivery-template";
 
-interface ProgressionBuffRow {
-  buff_percentage: string;
-  buff_description?: string;
-  earned_at?: string;
-}
 
 interface UserProfile {
   id: string;
@@ -123,12 +120,13 @@ interface UserReward {
 function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
   const { t, context: shopping } = useShoppingContext();
   const paths = localizedPathsForLocale(shopping.locale);
-  const { formatDisplay, formatSek, toDisplay } = useDisplayMoney();
+  const { formatDisplay, formatSek } = useDisplayMoney();
   const countryDisplayLocale = shopping.locale === "sv" ? "sv" : "en";
   const uiLocalizationEnabled = shopping.uiLocalizationEnabled;
   const [cart, setCart] = useState<Cart | null>(null);
   const [loading, setLoading] = useState(true);
   const [zoneLoading, setZoneLoading] = useState(false);
+  const [addressSaving, setAddressSaving] = useState(false);
   const [isStripeConfirming, setIsStripeConfirming] = useState(false);
   const [isFinalizingReservation, setIsFinalizingReservation] = useState(false);
   const [paymentMode, setPaymentMode] = useState<
@@ -140,12 +138,18 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
   >(null);
   const [stripeError, setStripeError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const isSubmittingRef = useRef(false);
+  /** Stable for this checkout mount — sent on every confirm for server dedupe. */
+  const [idempotencyKey] = useState(() =>
+    typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+      ? crypto.randomUUID()
+      : `chk_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`,
+  );
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [authReady, setAuthReady] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
   const [cartMergeOpen, setCartMergeOpen] = useState(false);
   const [cartMergeLoading, setCartMergeLoading] = useState(false);
-  const checkoutStartedTracked = useRef(false);
   const [activeShop, setActiveShop] = useState<ResolvedActiveGeoZone | null>(
     null,
   );
@@ -163,6 +167,9 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
   const checkoutCompletedRef = useRef(false);
   const checkoutPhaseRef = useRef<"delivery" | "payment_ready">("delivery");
   const zoneInfoFetchInProgressRef = useRef(false);
+  const zoneInfoNeedsRefetchRef = useRef(false);
+  const pendingZoneOverrideRef = useRef<ZoneDeliveryLines | null>(null);
+  const lastZoneLocationKeyRef = useRef("");
   const [discountCodeInput, setDiscountCodeInput] = useState("");
   const [appliedDiscount, setAppliedDiscount] = useState<{
     code: string;
@@ -185,6 +192,12 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
     purpose: "testkop";
   } | null>(null);
   const [postalCodeDraft, setPostalCodeDraft] = useState("");
+  const [editingAddress, setEditingAddress] = useState(false);
+  const addressAutoSaveRef = useRef(false);
+  const addressPersistedRef = useRef(false);
+  const authAddressPersistRef = useRef(false);
+  const [paymentStepRevealed, setPaymentStepRevealed] = useState(false);
+  const paymentSectionRef = useRef<HTMLElement | null>(null);
   const [postalModalOpen, setPostalModalOpen] = useState(false);
   const [budbeeAvailable, setBudbeeAvailable] = useState<boolean | null>(
     null,
@@ -200,15 +213,13 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
   const [pactPointsBalance, setPactPointsBalance] = useState(0);
   const [redeemPoints, setRedeemPoints] = useState(0);
   const [ageConfirmed, setAgeConfirmed] = useState(false);
+  const [dateOfBirth, setDateOfBirth] = useState("");
+  const [ageDobError, setAgeDobError] = useState<string | null>(null);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [usConditionalAck, setUsConditionalAck] = useState(false);
-  const ageShownTracked = useRef(false);
 
-  // v2: Progression buffs state
-  const [progressionBuffs, setProgressionBuffs] = useState<ProgressionBuffRow[]>(
-    [],
-  );
-  const [totalBuffPercentage, setTotalBuffPercentage] = useState(0);
+  /** Authoritative totals from /api/checkout/quote (or payment-intent). */
+  const [serverQuote, setServerQuote] = useState<CheckoutQuote | null>(null);
 
   // 6-bottle validation state
   const [validations, setValidations] = useState<ProducerValidation[]>([]);
@@ -230,6 +241,8 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
     zoneError?: "NO_DELIVERY_ZONE" | "UNSUPPORTED_COUNTRY" | null;
     zoneErrorMessage?: string;
   }>({ pickupZone: null, deliveryZone: null, selectedDeliveryZoneId: null });
+  /** True after at least one /api/checkout/zones response was applied for current postal. */
+  const [zoneFetchCompleted, setZoneFetchCompleted] = useState(false);
 
   const formRef = useRef<HTMLFormElement | null>(null);
 
@@ -249,11 +262,6 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
     return userZoneRowToDeliveryLines(zoneAddressRow) ?? deliveryDraft;
   }, [zoneAddressRow, deliveryDraft]);
 
-  const hasProfileInfo = Boolean(
-    (profile?.full_name || effectiveDelivery?.fullName) &&
-      (profile?.email || effectiveDelivery?.email),
-  );
-
   const ageCountryCode = (
     effectiveDelivery?.countryCode ||
     checkoutMarketCountry ||
@@ -265,6 +273,9 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
     if (activeShop?.geoZoneId) {
       return Boolean(
         effectiveDelivery &&
+          effectiveDelivery.street?.trim() &&
+          effectiveDelivery.city?.trim() &&
+          effectiveDelivery.postal?.trim() &&
           isZoneDeliveryCompleteForActiveGeo(activeShop, effectiveDelivery),
       );
     }
@@ -272,9 +283,9 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
       profile?.address && profile?.city && profile?.postal_code,
     );
     const fromDraft = Boolean(
-      effectiveDelivery?.street &&
-        effectiveDelivery?.city &&
-        effectiveDelivery?.postal,
+      effectiveDelivery?.street?.trim() &&
+        effectiveDelivery?.city?.trim() &&
+        effectiveDelivery?.postal?.trim(),
     );
     return fromProfile || fromDraft;
   }, [activeShop, effectiveDelivery, profile]);
@@ -290,32 +301,73 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
     })(),
   );
   const hasFullAddress = hasZoneDeliveryReady;
+  const hasContactForCheckout = Boolean(
+    (
+      effectiveDelivery?.fullName?.trim() ||
+      profile?.full_name?.trim() ||
+      ""
+    ).length > 1 &&
+      (
+        effectiveDelivery?.email?.trim() ||
+        profile?.email?.trim() ||
+        ""
+      ).includes("@"),
+  );
+  const addressStepComplete = hasZoneDeliveryReady && hasContactForCheckout;
+  /** Address step unlocks as soon as postal is set — zone loading must not lock the form. */
+  const deliveryPreviewReady = hasPostalCode;
+
+  const zoneLocationKey = useMemo(() => {
+    const postal =
+      effectiveDelivery?.postal?.trim() || postalCodeDraft.trim() || "";
+    const city = effectiveDelivery?.city?.trim() || "";
+    const cc =
+      effectiveDelivery?.countryCode?.trim() ||
+      activeShop?.countryCode ||
+      "";
+    const rc = effectiveDelivery?.regionCode?.trim() || "";
+    return `${postal}|${city}|${cc}|${rc}`;
+  }, [
+    effectiveDelivery?.postal,
+    effectiveDelivery?.city,
+    effectiveDelivery?.countryCode,
+    effectiveDelivery?.regionCode,
+    postalCodeDraft,
+    activeShop?.countryCode,
+  ]);
   const hasUsState =
     !isUsConditional ||
     isValidUsStateCode(effectiveDelivery?.regionCode?.trim() ?? "");
   const hasZoneSelected = Boolean(zoneInfo.selectedDeliveryZoneId);
 
   const palletsLength = zoneInfo.pallets?.length ?? 0;
+  const deliveryZoneReady = useMemo(
+    () =>
+      Boolean(zoneInfo.selectedDeliveryZoneId) ||
+      (typeof selectedPallet?.delivery_zone_id === "string" &&
+        selectedPallet.delivery_zone_id.trim() !== ""),
+    [zoneInfo.selectedDeliveryZoneId, selectedPallet?.delivery_zone_id],
+  );
   const deliveryComplete = useMemo(
     () => {
-      if (!hasProfileInfo || !hasZoneDeliveryReady) return false;
+      // Contact (name/email) is collected in payment / auth — do not block step 3.
+      if (!hasZoneDeliveryReady) return false;
       if (isUsConditional) {
         if (!hasUsState) return false;
         return palletsLength === 0 || selectedPallet != null;
       }
       return (
-        Boolean(zoneInfo.selectedDeliveryZoneId) &&
+        deliveryZoneReady &&
         (palletsLength === 0 || selectedPallet != null)
       );
     },
     [
       hasZoneDeliveryReady,
-      hasProfileInfo,
       hasUsState,
       isUsConditional,
       palletsLength,
       selectedPallet,
-      zoneInfo.selectedDeliveryZoneId,
+      deliveryZoneReady,
     ],
   );
 
@@ -326,15 +378,16 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
   }, [isUsConditional]);
 
   useEffect(() => {
-    if (!deliveryComplete || ageShownTracked.current) return;
-    ageShownTracked.current = true;
-    void AnalyticsTracker.trackEvent({
-      eventType: "age_verification_shown",
-      eventCategory: "checkout",
-      metadata: {
-        country_code: ageCountryCode,
-        required_age: requiredAge,
-      },
+    if (!deliveryComplete) return;
+    emitOnce(ageVerificationShownKey(ageCountryCode), () => {
+      void AnalyticsTracker.trackEvent({
+        eventType: "age_verification_shown",
+        eventCategory: "checkout",
+        metadata: {
+          country_code: ageCountryCode,
+          required_age: requiredAge,
+        },
+      });
     });
   }, [deliveryComplete, ageCountryCode, requiredAge]);
 
@@ -351,39 +404,61 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
     }
   }, [isUsConditional, selectedPallet?.delivery_zone_id, selectedPallet?.id]);
 
-  const handleAgeChecked = useCallback(
-    (checked: boolean) => {
-      setAgeConfirmed(checked);
-      void AnalyticsTracker.trackEvent({
-        eventType: checked
-          ? "age_verification_passed"
-          : "age_verification_failed",
-        eventCategory: "checkout",
-        metadata: {
-          country_code: ageCountryCode,
-          required_age: requiredAge,
-        },
+  const handleAgeDobChange = useCallback(
+    (value: string) => {
+      setDateOfBirth(value);
+      if (!value.trim()) {
+        setAgeConfirmed(false);
+        setAgeDobError(null);
+        return;
+      }
+      const ok = meetsAgeRequirement(value, requiredAge);
+      if (!ok) {
+        setAgeConfirmed(false);
+        setAgeDobError(
+          t("checkout.ageUnderLimit", { age: String(requiredAge) }),
+        );
+        void AnalyticsTracker.trackEvent({
+          eventType: "age_verification_failed",
+          eventCategory: "checkout",
+          metadata: {
+            country_code: ageCountryCode,
+            required_age: requiredAge,
+            date_of_birth: value,
+          },
+        });
+        return;
+      }
+      setAgeDobError(null);
+      setAgeConfirmed(true);
+      emitOnce(ageVerificationPassedKey(ageCountryCode), () => {
+        void AnalyticsTracker.trackEvent({
+          eventType: "age_verification_passed",
+          eventCategory: "checkout",
+          metadata: {
+            country_code: ageCountryCode,
+            required_age: requiredAge,
+          },
+        });
       });
     },
-    [ageCountryCode, requiredAge],
+    [ageCountryCode, requiredAge, t],
   );
 
   const handleTermsChecked = useCallback((checked: boolean) => {
     setTermsAccepted(checked);
     if (checked) {
-      void AnalyticsTracker.trackEvent({
-        eventType: "terms_accepted",
-        eventCategory: "checkout",
-        metadata: { version: CHECKOUT_TERMS_VERSION },
+      emitOnce(termsAcceptedEmitKey(), () => {
+        void AnalyticsTracker.trackEvent({
+          eventType: "terms_accepted",
+          eventCategory: "checkout",
+          metadata: { version: CHECKOUT_TERMS_VERSION },
+        });
       });
     }
   }, []);
 
-  const zoneOrUsPalletReady =
-    Boolean(zoneInfo.selectedDeliveryZoneId) ||
-    (isUsConditional &&
-      typeof selectedPallet?.delivery_zone_id === "string" &&
-      selectedPallet.delivery_zone_id.trim() !== "");
+  const zoneOrUsPalletReady = deliveryZoneReady;
 
   useEffect(() => {
     checkoutPhaseRef.current = deliveryComplete ? "payment_ready" : "delivery";
@@ -395,26 +470,23 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
   }, [deliveryComplete]);
 
   useEffect(() => {
-    if (checkoutStartedTracked.current || !cart || cart.totalQuantity <= 0) {
+    if (!cart || cart.totalQuantity <= 0) {
       return;
     }
-    if (!claimOnce(CHECKOUT_STARTED_KEY)) {
-      checkoutStartedTracked.current = true;
-      return;
-    }
-    checkoutStartedTracked.current = true;
-    const cartValue =
-      parseFloat(String(cart.cost?.totalAmount?.amount ?? "0")) || 0;
-    const bottleCount = cart.totalQuantity;
-    const { list_price, unit_price } = pricesFromCheckoutCart(cart);
-    void AnalyticsTracker.trackCheckoutStarted(cartValue, bottleCount, {
-      cart_value: cartValue,
-      bottle_count: bottleCount,
-      site: "pact",
-      payment_method: platformOpen ? "deferred_link" : "card",
-      list_price,
-      unit_price,
-      price_version: PRICE_VERSION,
+    emitOnce(CHECKOUT_STARTED_KEY, () => {
+      const cartValue =
+        parseFloat(String(cart.cost?.totalAmount?.amount ?? "0")) || 0;
+      const bottleCount = cart.totalQuantity;
+      const { list_price, unit_price } = pricesFromCheckoutCart(cart);
+      void AnalyticsTracker.trackCheckoutStarted(cartValue, bottleCount, {
+        cart_value: cartValue,
+        bottle_count: bottleCount,
+        site: "pact",
+        payment_method: platformOpen ? "deferred_link" : "card",
+        list_price,
+        unit_price,
+        price_version: PRICE_VERSION,
+      });
     });
   }, [cart, platformOpen]);
 
@@ -474,10 +546,14 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
       const conflictRes = await fetch("/api/cart/merge");
       const conflictData = await conflictRes.json().catch(() => null);
       if (conflictData?.conflict) {
-        setCartMergeOpen(true);
-      } else {
-        await fetchCart();
+        // Mid-checkout auth: keep the cart the guest just built — don't interrupt.
+        await fetch("/api/cart/merge", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ strategy: "keep_session" }),
+        });
       }
+      await fetchCart();
     } catch {
       await fetchCart();
     }
@@ -493,10 +569,13 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
         const conflictRes = await fetch("/api/cart/merge");
         const conflictData = await conflictRes.json().catch(() => null);
         if (conflictData?.conflict) {
-          setCartMergeOpen(true);
-        } else {
-          await fetchCart();
+          await fetch("/api/cart/merge", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ strategy: "keep_session" }),
+          });
         }
+        await fetchCart();
       } catch {
         // cart still available via cv_cart_id
       }
@@ -551,6 +630,10 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
           ? (zj.address as UserZoneAddressTemplate)
           : null,
       );
+      if (zj.address && typeof zj.address === "object") {
+        addressPersistedRef.current = true;
+        addressAutoSaveRef.current = true;
+      }
     } catch (e) {
       console.error("Failed to load active zone / zone address:", e);
       setActiveShop(null);
@@ -559,6 +642,14 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
       setZoneTemplatesLoaded(true);
     }
   }, []);
+
+  // After auth, reload shopping geo + saved zone address (guest → logged-in).
+  const zoneContextAfterAuthRef = useRef(false);
+  useEffect(() => {
+    if (!authReady || zoneContextAfterAuthRef.current) return;
+    zoneContextAfterAuthRef.current = true;
+    void fetchZoneShopContext();
+  }, [authReady, fetchZoneShopContext]);
 
   const fetchUserRewards = useCallback(async () => {
     try {
@@ -569,26 +660,6 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
       }
     } catch (error) {
       console.error("Failed to fetch rewards:", error);
-    }
-  }, []);
-
-  const fetchProgressionBuffs = useCallback(async () => {
-    try {
-      const response = await fetch("/api/user/progression-buffs");
-      if (response.ok) {
-        const data = await response.json();
-        const buffs = (data.buffs || []) as ProgressionBuffRow[];
-        setProgressionBuffs(buffs);
-        const totalPercentage =
-          buffs.reduce(
-            (sum, buff) =>
-              sum + parseFloat(String(buff.buff_percentage ?? "0")),
-            0,
-          ) || 0;
-        setTotalBuffPercentage(totalPercentage);
-      }
-    } catch (error) {
-      console.error("Failed to fetch progression buffs:", error);
     }
   }, []);
 
@@ -621,7 +692,6 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
     fetchCart();
     void fetchProfile().then(() => void fetchZoneShopContext());
     fetchUserRewards();
-    fetchProgressionBuffs(); // v2: fetch progression buffs
     fetchPactPointsBalance();
 
     // Check if returning from Stripe payment method setup
@@ -637,44 +707,198 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
     fetchProfile,
     fetchZoneShopContext,
     fetchUserRewards,
-    fetchProgressionBuffs,
     fetchPactPointsBalance,
   ]);
 
   useEffect(() => {
-    if (!zoneTemplatesLoaded || !activeShop?.geoZoneId) return;
+    if (!hasPostalCode) return;
+
     const fromDb = userZoneRowToDeliveryLines(zoneAddressRow);
-    if (fromDb) {
+    const contactOk = Boolean(
+      (
+        fromDb?.fullName?.trim() ||
+        profile?.full_name?.trim() ||
+        ""
+      ).length > 1 &&
+        (fromDb?.email?.trim() || profile?.email?.trim() || "").includes("@"),
+    );
+
+    if (fromDb && contactOk && !editingAddress) {
       setDeliveryDraft(null);
       return;
     }
+
     setDeliveryDraft((prev) => {
-      if (prev) return prev;
+      if (prev) {
+        // Keep typing; only backfill postal/city if empty.
+        if (!prev.postal.trim() && (postalCodeDraft.trim() || fromDb?.postal)) {
+          return {
+            ...prev,
+            postal: postalCodeDraft.trim() || fromDb?.postal || prev.postal,
+          };
+        }
+        return prev;
+      }
+      if (fromDb) {
+        return {
+          ...fromDb,
+          fullName:
+            fromDb.fullName || profile?.full_name?.trim() || null,
+          email: fromDb.email || profile?.email?.trim() || null,
+          phone: fromDb.phone || profile?.phone?.trim() || null,
+        };
+      }
       return {
         street: "",
-        city: "",
-        postal: "",
-        countryCode: activeShop.countryCode,
-        regionCode: activeShop.regionCode ?? null,
-        fullName: profile?.full_name?.trim() || "",
-        phone: profile?.phone?.trim() || "",
-        email: profile?.email?.trim() || "",
+        city: activeShop?.city?.trim() || profile?.city?.trim() || "",
+        postal:
+          postalCodeDraft.trim() ||
+          profile?.postal_code?.trim() ||
+          "",
+        countryCode:
+          activeShop?.countryCode ||
+          checkoutMarketCountry ||
+          "SE",
+        regionCode: activeShop?.regionCode ?? null,
+        fullName: profile?.full_name?.trim() || null,
+        phone: profile?.phone?.trim() || null,
+        email: profile?.email?.trim() || null,
       };
     });
   }, [
-    zoneTemplatesLoaded,
-    activeShop,
+    hasPostalCode,
     zoneAddressRow,
+    activeShop,
     profile?.full_name,
     profile?.phone,
     profile?.email,
+    profile?.city,
+    profile?.postal_code,
+    postalCodeDraft,
+    editingAddress,
+    checkoutMarketCountry,
   ]);
+
+  // Auto-save progressive address when all required fields are filled.
+  // Short settle delay so the last field doesn't vanish the instant it's typed.
+  // Never auto-save while editing via "Byt", after payment is open, or once persisted.
+  useEffect(() => {
+    if (!hasPostalCode || !deliveryDraft || addressSaving) return;
+    if (editingAddress) return;
+    if (paymentStepRevealed || deliveryComplete) return;
+    if (addressPersistedRef.current || addressAutoSaveRef.current) return;
+
+    const nameOk = (deliveryDraft.fullName ?? "").trim().length > 1;
+    const emailOk = (deliveryDraft.email ?? "").includes("@");
+    const phoneOk = (deliveryDraft.phone ?? "").trim().length >= 6;
+    const streetOk = deliveryDraft.street.trim().length > 0;
+    const cityOk = deliveryDraft.city.trim().length > 0;
+    const postalOk = deliveryDraft.postal.trim().length > 0;
+    const stateOk =
+      !isUsConditional ||
+      isValidUsStateCode(deliveryDraft.regionCode?.trim() ?? "");
+
+    if (
+      !nameOk ||
+      !emailOk ||
+      !phoneOk ||
+      !streetOk ||
+      !cityOk ||
+      !postalOk ||
+      !stateOk
+    ) {
+      return;
+    }
+
+    const settleTimer = window.setTimeout(() => {
+      if (
+        addressAutoSaveRef.current ||
+        addressPersistedRef.current ||
+        editingAddress ||
+        paymentStepRevealed
+      ) {
+        return;
+      }
+      addressAutoSaveRef.current = true;
+      void handleSaveZoneDelivery({ silent: false });
+    }, 280);
+
+    return () => window.clearTimeout(settleTimer);
+  }, [
+    hasPostalCode,
+    deliveryDraft,
+    addressSaving,
+    editingAddress,
+    isUsConditional,
+    paymentStepRevealed,
+    deliveryComplete,
+  ]);
+
+  // After OTP in payment: persist guest draft to DB quietly (no toast flash).
+  useEffect(() => {
+    if (!authReady || !paymentStepRevealed) return;
+    if (editingAddress || addressSaving) return;
+    if (!activeShop?.geoZoneId || zoneAddressRow) return;
+    if (!deliveryDraft || authAddressPersistRef.current) return;
+
+    const nameOk = (deliveryDraft.fullName ?? "").trim().length > 1;
+    const emailOk = (deliveryDraft.email ?? "").includes("@");
+    const phoneOk = (deliveryDraft.phone ?? "").trim().length >= 6;
+    const streetOk = deliveryDraft.street.trim().length > 0;
+    const cityOk = deliveryDraft.city.trim().length > 0;
+    const postalOk = deliveryDraft.postal.trim().length > 0;
+    const stateOk =
+      !isUsConditional ||
+      isValidUsStateCode(deliveryDraft.regionCode?.trim() ?? "");
+    if (
+      !nameOk ||
+      !emailOk ||
+      !phoneOk ||
+      !streetOk ||
+      !cityOk ||
+      !postalOk ||
+      !stateOk
+    ) {
+      return;
+    }
+
+    authAddressPersistRef.current = true;
+    void handleSaveZoneDelivery({ silent: true });
+  }, [
+    authReady,
+    paymentStepRevealed,
+    editingAddress,
+    addressSaving,
+    activeShop?.geoZoneId,
+    zoneAddressRow,
+    deliveryDraft,
+    isUsConditional,
+  ]);
+
+  // Soft handoff: let step 2 confirmation land before revealing payment.
+  useEffect(() => {
+    if (!deliveryComplete) {
+      setPaymentStepRevealed(false);
+      return;
+    }
+    const revealTimer = window.setTimeout(() => {
+      setPaymentStepRevealed(true);
+      paymentSectionRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+      });
+    }, 420);
+    return () => window.clearTimeout(revealTimer);
+  }, [deliveryComplete]);
 
   // Initial zone matching when cart and zone context are loaded
   useEffect(() => {
     if (cart && cart.totalQuantity > 0 && !loading && zoneTemplatesLoaded) {
       console.log("🚀 Initial zone matching triggered");
-      updateZoneInfo();
+      void updateZoneInfo(undefined, {
+        // Avoid spinner flash when reloading zone context after OTP/auth.
+        silent: zoneFetchCompleted,
+      });
     }
   }, [cart, loading, zoneTemplatesLoaded]);
 
@@ -723,30 +947,68 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
   }, [cart]);
 
   useEffect(() => {
-    // Update zone info when address changes (with debouncing)
-    if (cart && cart.totalQuantity > 0) {
-      const timeoutId = setTimeout(() => {
-        console.log("🔄 Address change triggered zone matching");
-        updateZoneInfo();
-      }, 500); // 500ms debounce
-
-      return () => clearTimeout(timeoutId);
-    }
-  }, [profile, activeShop, zoneAddressRow, deliveryDraft]);
-
-  const updateZoneInfo = async () => {
+    // Only rematch zones when location fields change — not name/email/phone.
     if (!cart || cart.totalQuantity === 0) return;
+    const postal = zoneLocationKey.split("|")[0];
+    if (!postal) return;
+    if (zoneLocationKey === lastZoneLocationKeyRef.current) return;
 
-    // Prevent multiple simultaneous calls
+    const timeoutId = setTimeout(() => {
+      console.log("🔄 Location change triggered zone matching");
+      void updateZoneInfo();
+    }, 400);
+
+    return () => clearTimeout(timeoutId);
+  }, [zoneLocationKey, cart, activeShop?.geoZoneId]);
+
+  const updateZoneInfo = async (
+    overrideEff?: ZoneDeliveryLines | null,
+    opts?: { silent?: boolean },
+  ) => {
+    if (overrideEff) {
+      pendingZoneOverrideRef.current = overrideEff;
+    }
+
+    if (!cart || cart.totalQuantity === 0) {
+      setZoneLoading(false);
+      setZoneFetchCompleted(true);
+      return;
+    }
+
     if (zoneInfoFetchInProgressRef.current) {
-      console.log("⏳ Zone update already in progress, skipping...");
+      console.log("⏳ Zone update already in progress, queuing refetch...");
+      zoneInfoNeedsRefetchRef.current = true;
       return;
     }
     zoneInfoFetchInProgressRef.current = true;
-    setZoneLoading(true);
+
+    const queuedOverride = pendingZoneOverrideRef.current;
+    pendingZoneOverrideRef.current = null;
+
+    const eff =
+      overrideEff ??
+      queuedOverride ??
+      userZoneRowToDeliveryLines(zoneAddressRow) ??
+      deliveryDraft;
+
+    const nextLocationKey = [
+      eff?.postal?.trim() || "",
+      eff?.city?.trim() || "",
+      eff?.countryCode?.trim() || "",
+      eff?.regionCode?.trim() || "",
+    ].join("|");
+
+    const silent =
+      opts?.silent === true ||
+      (Boolean(nextLocationKey.split("|")[0]) &&
+        nextLocationKey === lastZoneLocationKeyRef.current &&
+        zoneFetchCompleted);
+
+    if (!silent) {
+      setZoneLoading(true);
+    }
 
     try {
-      const eff = userZoneRowToDeliveryLines(zoneAddressRow) ?? deliveryDraft;
       const isUsingFallback = Boolean(
         activeShop?.geoZoneId &&
           (!eff || !isZoneDeliveryCompleteForActiveGeo(activeShop, eff)),
@@ -765,8 +1027,20 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
       ) {
         deliveryAddress = {
           postcode: eff.postal,
-          city: eff.city,
+          city: eff.city?.trim() || activeShop.city?.trim() || eff.city,
           countryCode: eff.countryCode,
+        };
+      } else if (
+        !activeShop?.geoZoneId &&
+        eff?.postal?.trim() &&
+        eff?.city?.trim() &&
+        eff?.countryCode?.trim()
+      ) {
+        // Guest / no shopping geo: still match zones from draft or saved lines.
+        deliveryAddress = {
+          postcode: eff.postal.trim(),
+          city: eff.city.trim(),
+          countryCode: eff.countryCode.trim().toUpperCase(),
         };
       } else if (
         !activeShop?.geoZoneId &&
@@ -800,20 +1074,53 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
           countryCode,
         };
       } else {
-        console.log("⚠️ No complete zone delivery — cannot determine zones");
-        setZoneInfo({
-          pickupZone: null,
-          pickupZoneId: null,
-          deliveryZone: null,
-          selectedDeliveryZoneId: null,
-          availableDeliveryZones: [],
-          pallets: [],
-          usingFallbackAddress: isUsingFallback,
-          zoneError: null,
-          zoneErrorMessage: undefined,
-        });
-        setZoneLoading(false);
-        return;
+        // Postal-first: match delivery options before street is known.
+        const postalOnly = (
+          eff?.postal?.trim() ||
+          postalCodeDraft.trim() ||
+          profile?.postal_code?.trim() ||
+          ""
+        ).replace(/\s+/g, "");
+        const cityGuess =
+          eff?.city?.trim() ||
+          activeShop?.city?.trim() ||
+          profile?.city?.trim() ||
+          "";
+        const ccGuess = (
+          eff?.countryCode?.trim() ||
+          activeShop?.countryCode ||
+          getCountryCodeFromProfileCountry(profile?.country ?? "") ||
+          "SE"
+        ).toUpperCase();
+        const postalOk = isUsConditional
+          ? postalOnly.length >= 3
+          : /^\d{5}$/.test(postalOnly);
+
+        if (postalOk && cityGuess && ccGuess.length === 2) {
+          deliveryAddress = {
+            postcode: postalOnly,
+            city: cityGuess,
+            countryCode: ccGuess,
+          };
+        } else if (postalOk && ccGuess.length === 2) {
+          // City missing (e.g. guest / geo not loaded) — still geocode via postcode.
+          deliveryAddress = {
+            postcode: postalOnly,
+            city: ccGuess === "SE" ? "Stockholm" : postalOnly,
+            countryCode: ccGuess,
+          };
+        } else {
+          console.log(
+            "⚠️ No complete zone delivery — keeping previous zone info",
+          );
+          setZoneInfo((prev) => ({
+            ...prev,
+            usingFallbackAddress: isUsingFallback,
+          }));
+          setZoneFetchCompleted(true);
+          setZoneLoading(false);
+          return;
+        }
       }
 
       console.log("🚀 Sending zone request:", {
@@ -845,6 +1152,7 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
             : null;
 
         if (zd?.error === "UNSUPPORTED_COUNTRY") {
+          setZoneFetchCompleted(true);
           setZoneInfo({
             pickupZone:
               typeof zd.pickupZoneName === "string" ? zd.pickupZoneName : null,
@@ -873,6 +1181,7 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
               ? zd.message
               : t("checkout.noDeliveryArea");
           console.log("✅ Zone response: no delivery zone", { msg, zd });
+          setZoneFetchCompleted(true);
           setZoneInfo({
             pickupZone:
               typeof zd.pickupZoneName === "string" ? zd.pickupZoneName : null,
@@ -964,22 +1273,61 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
           selectedDeliveryZoneId,
           pallets: zoneData.pallets?.length || 0,
         });
-        
-        setZoneInfo({
-          pickupZone: zoneData.pickupZoneName ?? null,
-          pickupZoneId: zoneData.pickupZoneId ?? null,
-          deliveryZone: selectedDeliveryZoneName,
-          selectedDeliveryZoneId: selectedDeliveryZoneId,
-          availableDeliveryZones: zoneData.availableDeliveryZones || [],
-          pallets: zoneData.pallets || [],
-          usingFallbackAddress: isUsingFallback,
-          zoneError: null,
-          zoneErrorMessage: undefined,
-        });
 
-        // Auto-select the best pallet
-        if (autoSelectedPallet) {
-          setSelectedPallet(autoSelectedPallet);
+        const nextPickup =
+          typeof zoneData.pickupZoneName === "string" &&
+          zoneData.pickupZoneName.trim()
+            ? zoneData.pickupZoneName.trim()
+            : null;
+        const nextPallets = zoneData.pallets || [];
+        const hasRouting = Boolean(
+          nextPickup ||
+            nextPallets.length > 0 ||
+            selectedDeliveryZoneId ||
+            selectedDeliveryZoneName,
+        );
+
+        setZoneFetchCompleted(true);
+        lastZoneLocationKeyRef.current = nextLocationKey;
+
+        if (!hasRouting) {
+          // Empty result (e.g. cart race) — keep a previous successful match.
+          setZoneInfo((prev) => {
+            if (
+              prev.pickupZone ||
+              (prev.pallets?.length ?? 0) > 0 ||
+              prev.selectedDeliveryZoneId
+            ) {
+              return prev;
+            }
+            return {
+              pickupZone: null,
+              pickupZoneId: null,
+              deliveryZone: null,
+              selectedDeliveryZoneId: null,
+              availableDeliveryZones: [],
+              pallets: [],
+              usingFallbackAddress: isUsingFallback,
+              zoneError: null,
+              zoneErrorMessage: undefined,
+            };
+          });
+        } else {
+          setZoneInfo({
+            pickupZone: nextPickup,
+            pickupZoneId: zoneData.pickupZoneId ?? null,
+            deliveryZone: selectedDeliveryZoneName,
+            selectedDeliveryZoneId: selectedDeliveryZoneId,
+            availableDeliveryZones: zoneData.availableDeliveryZones || [],
+            pallets: nextPallets,
+            usingFallbackAddress: isUsingFallback,
+            zoneError: null,
+            zoneErrorMessage: undefined,
+          });
+
+          if (autoSelectedPallet) {
+            setSelectedPallet(autoSelectedPallet);
+          }
         }
       } else {
         console.error(
@@ -987,57 +1335,125 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
           zoneResponse.status,
           await zoneResponse.text(),
         );
+        setZoneFetchCompleted(true);
       }
     } catch (error) {
       console.error("Failed to update zone info:", error);
+      setZoneFetchCompleted(true);
     } finally {
       zoneInfoFetchInProgressRef.current = false;
       setZoneLoading(false);
+      if (zoneInfoNeedsRefetchRef.current) {
+        zoneInfoNeedsRefetchRef.current = false;
+        const again = pendingZoneOverrideRef.current;
+        void updateZoneInfo(again);
+      }
     }
   };
 
-  const handleSaveZoneDelivery = async () => {
+  const handleSaveZoneDelivery = async (opts?: { silent?: boolean }) => {
+    const silent = opts?.silent === true;
     const eff = deliveryDraft;
-    if (!activeShop?.geoZoneId || !eff) return;
-    if (!isZoneDeliveryCompleteForActiveGeo(activeShop, eff)) {
-      toast.error(t("checkout.completeZoneFields"));
+    if (!eff?.street?.trim() || !eff.city?.trim() || !eff.postal?.trim()) {
       return;
     }
-    setZoneLoading(true);
+    if (
+      activeShop?.geoZoneId &&
+      !isZoneDeliveryCompleteForActiveGeo(activeShop, eff)
+    ) {
+      if (!silent) toast.error(t("checkout.completeZoneFields"));
+      return;
+    }
+
+    setAddressSaving(true);
     try {
-      const res = await fetch(
-        `/api/user/zone-addresses/${encodeURIComponent(activeShop.geoZoneId)}`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            full_name: eff.fullName || undefined,
-            phone: eff.phone || undefined,
-            email: eff.email || undefined,
-            address_line1: eff.street,
-            city: eff.city,
-            postal_code: eff.postal,
-            country_code: eff.countryCode,
-            region_code: eff.regionCode || null,
-          }),
-        },
-      );
-      if (!res.ok) {
-        const j = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(j.error || t("checkout.saveFailed"));
+      if (activeShop?.geoZoneId) {
+        const res = await fetch(
+          `/api/user/zone-addresses/${encodeURIComponent(activeShop.geoZoneId)}`,
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              full_name: eff.fullName || undefined,
+              phone: eff.phone || undefined,
+              email: eff.email || undefined,
+              address_line1: eff.street,
+              city: eff.city,
+              postal_code: eff.postal,
+              country_code: eff.countryCode,
+              region_code: eff.regionCode || null,
+            }),
+          },
+        );
+        if (res.status === 401) {
+          // Guest: keep draft as source of truth
+          addressPersistedRef.current = true;
+          addressAutoSaveRef.current = true;
+          setEditingAddress(false);
+          if (!silent) toast.success(t("checkout.deliverySaved"));
+          await updateZoneInfo(eff, { silent: true });
+          if (eff.postal && eff.countryCode) {
+            void checkBudbeeAvailability(eff.postal, eff.countryCode);
+          }
+          return;
+        }
+        if (!res.ok) {
+          const j = (await res.json().catch(() => ({}))) as { error?: string };
+          throw new Error(j.error || t("checkout.saveFailed"));
+        }
+        const j = (await res.json()) as { address?: UserZoneAddressTemplate };
+        if (j.address) {
+          setZoneAddressRow({
+            ...j.address,
+            full_name: j.address.full_name || eff.fullName,
+            email: j.address.email || eff.email,
+            phone: j.address.phone || eff.phone,
+          });
+        }
+        setDeliveryDraft(null);
+        setEditingAddress(false);
+        addressPersistedRef.current = true;
+        addressAutoSaveRef.current = true;
+        if (!silent) toast.success(t("checkout.deliverySaved"));
+        const savedLines =
+          userZoneRowToDeliveryLines(
+            j.address && typeof j.address === "object"
+              ? {
+                  ...j.address,
+                  full_name: j.address.full_name || eff.fullName,
+                  email: j.address.email || eff.email,
+                  phone: j.address.phone || eff.phone,
+                }
+              : null,
+          ) ?? eff;
+        await updateZoneInfo(savedLines, { silent: true });
+        if (eff.postal && eff.countryCode) {
+          void checkBudbeeAvailability(eff.postal, eff.countryCode);
+        }
+        return;
       }
-      const j = (await res.json()) as { address?: UserZoneAddressTemplate };
-      if (j.address) setZoneAddressRow(j.address);
-      setDeliveryDraft(null);
-      toast.success(t("checkout.deliverySaved"));
-      await updateZoneInfo();
-      if (eff?.postal && eff?.countryCode) {
-        void checkBudbeeAvailability(eff.postal, eff.countryCode);
-      }
+
+      // No shopping geo — persist via profile (or guest draft).
+      await handleProfileSaved({
+        full_name: eff.fullName || "",
+        email: eff.email || "",
+        phone: eff.phone || "",
+        address: eff.street,
+        city: eff.city,
+        postal_code: eff.postal,
+        country: eff.countryCode,
+        region: eff.regionCode || "",
+      });
+      setEditingAddress(false);
+      addressPersistedRef.current = true;
+      addressAutoSaveRef.current = true;
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : t("checkout.saveFailed"));
+      addressAutoSaveRef.current = false;
+      if (!silent) {
+        toast.error(e instanceof Error ? e.message : t("checkout.saveFailed"));
+      }
     } finally {
-      setZoneLoading(false);
+      setAddressSaving(false);
     }
   };
 
@@ -1140,8 +1556,7 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
 
     const deliveryZoneReady =
       Boolean(zoneInfo.selectedDeliveryZoneId) ||
-      (isUsConditional &&
-        typeof selectedPallet?.delivery_zone_id === "string" &&
+      (typeof selectedPallet?.delivery_zone_id === "string" &&
         selectedPallet.delivery_zone_id.trim() !== "");
 
     if (hasZoneDeliveryReady && !deliveryZoneReady) {
@@ -1232,6 +1647,7 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
       if (isInternalDevice()) {
         formData.append("internal", "true");
       }
+      formData.append("idempotency_key", idempotencyKey);
     }
 
     try {
@@ -1256,8 +1672,7 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
         toast.success(t("checkout.reservationSuccess"));
 
         checkoutCompletedRef.current = true;
-        clearClaim(CHECKOUT_STARTED_KEY);
-        clearClaim(SIGNUP_STARTED_CHECKOUT_KEY);
+        clearCheckoutAnalyticsSession();
         window.location.href = redirectUrl || "/checkout/success";
       } else {
         setIsFinalizingReservation(false); // Hide modal on error
@@ -1336,7 +1751,18 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
   );
 
   const handlePlaceReservation = useCallback(async () => {
+    // Layer 1: sync ref blocks double-click before React re-renders disabled state.
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
+    setIsSubmitting(true);
     setStripeError(null);
+
+    const releaseSubmit = () => {
+      isSubmittingRef.current = false;
+      setIsSubmitting(false);
+      setIsFinalizingReservation(false);
+      setIsStripeConfirming(false);
+    };
 
     if (!ageConfirmed) {
       void AnalyticsTracker.trackEvent({
@@ -1345,21 +1771,29 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
         metadata: {
           country_code: ageCountryCode,
           required_age: requiredAge,
+          ...(dateOfBirth.trim()
+            ? { date_of_birth: dateOfBirth.trim() }
+            : {}),
         },
       });
       toast.error(
-        t("checkout.ageConfirm", { age: String(requiredAge) }),
+        dateOfBirth.trim() && ageDobError
+          ? ageDobError
+          : t("checkout.ageUnderLimit", { age: String(requiredAge) }),
       );
+      releaseSubmit();
       return;
     }
     if (!termsAccepted) {
       toast.error(t("checkout.termsAccept"));
+      releaseSubmit();
       return;
     }
 
     // Validate required fields
     if (!profile?.email && !platformOpen) {
       toast.error(t("checkout.addProfileFirst"));
+      releaseSubmit();
       return;
     }
 
@@ -1369,12 +1803,17 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
         "❌ [Checkout] Cart validation failed - button should be disabled",
       );
       toast.error(t("checkout.sixBottleRequirement"));
+      releaseSubmit();
       return;
     }
 
-    if (!deliveryComplete) return;
+    if (!deliveryComplete) {
+      releaseSubmit();
+      return;
+    }
     if (!selectedPallet?.id) {
       toast.error(t("checkout.selectPalletContinue"));
+      releaseSubmit();
       return;
     }
 
@@ -1441,6 +1880,8 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
         formData.append("stripe_intent_type", opts.paymentMode);
       }
 
+      formData.append("idempotency_key", idempotencyKey);
+
       {
         const { visitorId, firstTouch } = ensureVisitorIdentity();
         if (visitorId) formData.append("visitor_id", visitorId);
@@ -1481,13 +1922,12 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
           ? d.redirectUrl
           : null;
       checkoutCompletedRef.current = true;
-      clearClaim(CHECKOUT_STARTED_KEY);
-      clearClaim(SIGNUP_STARTED_CHECKOUT_KEY);
+      clearCheckoutAnalyticsSession();
+      // Do not releaseSubmit — navigate away; keep button disabled.
       window.location.href = redirectUrl || "/checkout/success";
     };
 
     if (platformOpen) {
-      setIsSubmitting(true);
       try {
         await submitConfirm({ deferred: true });
       } catch (e) {
@@ -1495,8 +1935,7 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
           e instanceof Error ? e.message : t("checkout.reservationFailed");
         setStripeError(msg);
         toast.error(msg);
-        setIsSubmitting(false);
-        setIsFinalizingReservation(false);
+        releaseSubmit();
       }
       return;
     }
@@ -1504,11 +1943,11 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
     if (!stripeConfirmFn || !paymentMode || !stripeIntentId) {
       setStripeError(t("checkout.paymentNotReady"));
       toast.error(t("checkout.paymentNotReady"));
+      releaseSubmit();
       return;
     }
 
     // Phase 1: Stripe confirmation/authentication
-    setIsSubmitting(true);
     setIsStripeConfirming(true);
 
     let confirmed: StripeConfirmResult;
@@ -1517,8 +1956,7 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
     } catch (e) {
       console.error("[Checkout] stripeConfirmFn threw:", e);
       setStripeError(t("checkout.paymentFailedTryCard"));
-      setIsSubmitting(false);
-      setIsStripeConfirming(false);
+      releaseSubmit();
       return;
     }
 
@@ -1529,8 +1967,7 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
       });
       setStripeError(friendlyStripeErrorMessage(confirmed));
       toast.error(friendlyStripeErrorMessage(confirmed));
-      setIsSubmitting(false);
-      setIsStripeConfirming(false);
+      releaseSubmit();
       return;
     }
 
@@ -1539,8 +1976,7 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
     if (!intentId || !intentType) {
       setStripeError(t("checkout.paymentNotReady"));
       toast.error(t("checkout.paymentNotReady"));
-      setIsSubmitting(false);
-      setIsStripeConfirming(false);
+      releaseSubmit();
       return;
     }
 
@@ -1561,13 +1997,14 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
         eventCategory: "checkout",
         metadata: {},
       });
-      setIsSubmitting(false);
-      setIsFinalizingReservation(false);
+      releaseSubmit();
     }
   }, [
     ageConfirmed,
     ageCountryCode,
     requiredAge,
+    dateOfBirth,
+    ageDobError,
     termsAccepted,
     profile,
     platformOpen,
@@ -1577,6 +2014,7 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
     stripeConfirmFn,
     paymentMode,
     stripeIntentId,
+    idempotencyKey,
     zoneAddressRow,
     deliveryDraft,
     zoneInfo.selectedDeliveryZoneId,
@@ -1631,25 +2069,12 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
     ? parseFloat(cart.cost.totalAmount.amount)
     : 0;
 
-  // Old rewards discount (being deprecated)
+  // Old rewards discount (being deprecated) — display only; not in payment total
   const rewardsDiscountAmount = useRewards
     ? selectedRewards.reduce((total, reward) => {
         return total + (bottleCost * reward.discount_percentage) / 100;
       }, 0)
     : 0;
-
-  // v2: Progression buff discount
-  const progressionBuffDiscountAmount =
-    totalBuffPercentage > 0 ? (bottleCost * totalBuffPercentage) / 100 : 0;
-
-  // Total discount from both sources
-  const discountAmount = rewardsDiscountAmount + progressionBuffDiscountAmount;
-
-  const subtotal = bottleCost - discountAmount;
-  const shippingDisplay = shippingCost
-    ? toDisplay(shippingCost.totalShippingCostSek)
-    : 0;
-  const total = subtotal + shippingDisplay;
 
   const { boostedLineTotal, nonBoostedLineTotal } = useMemo(() => {
     if (!cart?.lines?.length) {
@@ -1690,28 +2115,73 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
 
   const hasBoostedProducerInOrder = boostedLineTotal > 0;
 
-  const totalAfterPactPoints = Math.max(0, total - pactPointsSekOff);
-  const displayTotal = appliedDiscount
-    ? Math.max(0, totalAfterPactPoints - appliedDiscount.discount_amount_sek)
-    : totalAfterPactPoints;
+  const selectedPalletId = selectedPallet?.id ?? "";
+  const promoDiscountSek = appliedDiscount?.discount_amount_sek ?? 0;
 
-  // This is the value we send to /api/checkout/payment-intent as `cart_total_sek`.
-  // We intentionally do NOT include client-only discounts here (voucher/rewards/progression),
-  // because /api/checkout/confirm is the source of truth and validates the final amount.
-  // Applied admin promo codes ARE subtracted so Stripe metadata matches confirm.
-  const finalAmountAfterVoucher = useMemo(() => {
-    const subtotalSek = parseFloat(cart?.cost?.totalAmount?.amount ?? "0") || 0;
-    const shippingSek = shippingCost
-      ? shippingCost.totalShippingCostCents / 100
-      : 0;
-    const promoOff = appliedDiscount?.discount_amount_sek ?? 0;
-    return Math.max(0, subtotalSek + shippingSek - promoOff);
+  // Authoritative breakdown for display (same math as payment-intent).
+  useEffect(() => {
+    if (!cart?.lines?.length) {
+      setServerQuote(null);
+      return;
+    }
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => {
+      void (async () => {
+        try {
+          const res = await fetch("/api/checkout/quote", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              ...(selectedPalletId ? { pallet_id: selectedPalletId } : {}),
+              pact_points_redeem: redeemPoints,
+              ...(promoDiscountSek > 0
+                ? { promo_discount_sek: promoDiscountSek }
+                : {}),
+            }),
+            signal: controller.signal,
+          });
+          if (!res.ok) return;
+          const data: unknown = await res.json().catch(() => null);
+          if (
+            data &&
+            typeof data === "object" &&
+            "quote" in data &&
+            (data as { quote?: unknown }).quote &&
+            typeof (data as { quote: unknown }).quote === "object"
+          ) {
+            setServerQuote((data as { quote: CheckoutQuote }).quote);
+          }
+        } catch (e) {
+          if (e instanceof DOMException && e.name === "AbortError") return;
+          if (e instanceof Error && e.name === "AbortError") return;
+        }
+      })();
+    }, 150);
+    return () => {
+      controller.abort();
+      window.clearTimeout(timer);
+    };
   }, [
+    cart?.id,
     cart?.cost?.totalAmount?.amount,
-    shippingCost,
-    appliedDiscount?.discount_amount_sek,
+    cart?.lines?.length,
+    selectedPalletId,
+    redeemPoints,
+    promoDiscountSek,
   ]);
 
+  const displaySubtotal = serverQuote?.subtotal_sek ?? bottleCost;
+  const displayShippingSek = serverQuote?.shipping_sek;
+  const displayPactOff = serverQuote?.pact_points_sek ?? pactPointsSekOff;
+  const displayTotal =
+    serverQuote?.total_sek ??
+    Math.max(
+      0,
+      bottleCost +
+        (shippingCost ? shippingCost.totalShippingCostCents / 100 : 0) -
+        pactPointsSekOff -
+        promoDiscountSek,
+    );
   const commitAppliedDiscount = (data: {
     code: string;
     discount_code_id: string;
@@ -1926,16 +2396,42 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
     [],
   );
 
-  const handlePostalDraftCommit = useCallback(
-    (raw?: string) => {
-      const v = (raw ?? postalCodeDraft).trim().replace(/\s+/g, "");
-      if (!/^\d{5}$/.test(v)) return;
-      setPostalCodeDraft(v);
-      void checkBudbeeAvailability(v);
-      setPostalModalOpen(true);
-    },
-    [postalCodeDraft, checkBudbeeAvailability],
-  );
+  const handlePostalDraftCommit = (raw?: string) => {
+    const v = (raw ?? postalCodeDraft).trim().replace(/\s+/g, "");
+    const ok = isUsConditional ? v.length >= 3 : /^\d{5}$/.test(v);
+    if (!ok) return;
+    setPostalCodeDraft(v);
+    setZoneLoading(true);
+    setZoneFetchCompleted(false);
+
+    const countryCode =
+      deliveryDraft?.countryCode ||
+      activeShop?.countryCode ||
+      checkoutMarketCountry ||
+      "SE";
+    const city =
+      deliveryDraft?.city?.trim() ||
+      activeShop?.city?.trim() ||
+      (countryCode === "SE" ? "Stockholm" : "") ||
+      "Stockholm";
+
+    const lines: ZoneDeliveryLines = {
+      street: deliveryDraft?.street ?? "",
+      city,
+      postal: v,
+      countryCode,
+      regionCode:
+        deliveryDraft?.regionCode ?? activeShop?.regionCode ?? null,
+      fullName:
+        deliveryDraft?.fullName || profile?.full_name?.trim() || null,
+      phone: deliveryDraft?.phone || profile?.phone?.trim() || null,
+      email: deliveryDraft?.email || profile?.email?.trim() || null,
+    };
+    setDeliveryDraft(lines);
+    void checkBudbeeAvailability(v, countryCode);
+    // Match zones immediately so shipping + pallet show before address step.
+    void updateZoneInfo(lines);
+  };
 
   const showPalletPicker = useMemo(
     () => (zoneInfo.pallets?.length ?? 0) > 1,
@@ -2106,7 +2602,7 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
         currencyCode={currencyCode}
         discountRate={
           bottleCost > 0
-            ? Math.max(0, Math.min(1, discountAmount / bottleCost))
+            ? Math.max(0, Math.min(1, rewardsDiscountAmount / bottleCost))
             : 0
         }
         cartLines={(cart?.lines || []).map((l) => ({
@@ -2148,7 +2644,7 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
                     {t("checkout.subtotal")}
                   </span>
                   <span className="tabular-nums text-foreground">
-                    {formatDisplay(bottleCost)}
+                    {formatDisplay(displaySubtotal)}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
@@ -2156,7 +2652,9 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
                     {t("checkout.shipping")}
                   </span>
                   <span className="text-right tabular-nums text-foreground">
-                    {shippingCost ? (
+                    {displayShippingSek != null && selectedPalletId ? (
+                      formatDisplay(displayShippingSek)
+                    ) : shippingCost ? (
                       formatSek(shippingCost.totalShippingCostCents / 100)
                     ) : (
                       <span className="text-muted-foreground">
@@ -2215,19 +2713,7 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
                       {t("checkout.pactPointsDiscount")}
                     </span>
                     <span className="font-medium tabular-nums text-foreground">
-                      −{formatDisplay(pactPointsSekOff)}
-                    </span>
-                  </div>
-                ) : null}
-                {progressionBuffDiscountAmount > 0 ? (
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">
-                      {t("checkout.progressBonus", {
-                        percent: totalBuffPercentage.toFixed(1),
-                      })}
-                    </span>
-                    <span className="font-medium tabular-nums text-foreground">
-                      −{formatDisplay(progressionBuffDiscountAmount)}
+                      −{formatDisplay(displayPactOff)}
                     </span>
                   </div>
                 ) : null}
@@ -2327,284 +2813,107 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
           </aside>
 
           <div className="order-2 min-w-0 space-y-4 lg:order-1">
-            {progressionBuffs.length > 0 ? (
-              <ProgressionBuffDisplay
-                totalBuffPercentage={totalBuffPercentage}
-                buffDetails={progressionBuffs.map((buff) => ({
-                  percentage: parseFloat(String(buff.buff_percentage ?? "0")),
-                  description: buff.buff_description,
-                  earnedAt: buff.earned_at,
-                }))}
-                expiresOnUse={true}
-                compact={false}
-              />
-            ) : null}
-
+            {/* 1. Postnummer → leveransalternativ */}
             <section className="py-6 first:pt-0 border-b border-border last:border-0">
-              <div className="space-y-3">
-                {activeShop ? (
-                  <p className="text-sm text-muted-foreground">
-                    {t("checkout.shoppingIn")}{" "}
-                    <span className="font-medium text-foreground">
-                      {activeShop.displayName}
-                    </span>
-                    <span className="text-muted-foreground"> · </span>
-                    <span>{activeShop.currencyCode}</span>
-                  </p>
-                ) : !zoneTemplatesLoaded ? (
-                  <p className="text-xs text-muted-foreground">
-                    {t("checkout.loadingZone")}
-                  </p>
-                ) : null}
-
-                {activeShop?.geoZoneId &&
-                !userZoneRowToDeliveryLines(zoneAddressRow) &&
-                deliveryDraft ? (
-                  <div className="rounded-lg border border-border p-4 space-y-3">
-                    <p className="text-sm font-medium text-foreground">
-                      {t("checkout.addDeliveryFor", {
-                        zone: activeShop.displayName,
-                      })}
-                    </p>
+              <div className="space-y-4">
+                <div className="space-y-1">
+                  <h2 className="text-base font-semibold text-foreground">
+                    {t("checkout.deliveryDetails")}
+                  </h2>
+                  {activeShop ? (
                     <p className="text-xs text-muted-foreground">
-                      {t("checkout.addDeliveryHint")}
+                      {t("checkout.shoppingIn")}{" "}
+                      <span className="font-medium text-foreground/80">
+                        {activeShop.displayName}
+                      </span>
+                      <span> · </span>
+                      <span>{activeShop.currencyCode}</span>
                     </p>
-                    <div className="space-y-2">
-                      <Label htmlFor="zone-addr1">
-                        {t("checkout.streetAddress")}
-                      </Label>
-                      <Input
-                        id="zone-addr1"
-                        value={deliveryDraft.street}
-                        onChange={(e) =>
-                          setDeliveryDraft((d) =>
-                            d ? { ...d, street: e.target.value } : d,
-                          )
-                        }
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-2">
-                        <Label htmlFor="zone-city">{t("checkout.city")}</Label>
-                        <Input
-                          id="zone-city"
-                          value={deliveryDraft.city}
-                          onChange={(e) =>
-                            setDeliveryDraft((d) =>
-                              d ? { ...d, city: e.target.value } : d,
-                            )
-                          }
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="zone-postal">
-                          {t("checkout.postalCode")}
-                        </Label>
-                        <Input
-                          id="zone-postal"
-                          value={deliveryDraft.postal}
-                          onChange={(e) =>
-                            setDeliveryDraft((d) =>
-                              d ? { ...d, postal: e.target.value } : d,
-                            )
-                          }
-                        />
-                      </div>
-                    </div>
-                    {isUsConditional ? (
-                      <div className="space-y-2">
-                        <Label>{t("checkout.stateTerritory")}</Label>
-                        <Select
-                          value={deliveryDraft.regionCode ?? ""}
-                          onValueChange={(v) =>
-                            setDeliveryDraft((d) =>
-                              d ? { ...d, regionCode: v || null } : d,
-                            )
-                          }
-                        >
-                          <SelectTrigger>
-                            <SelectValue
-                              placeholder={t("checkout.selectState")}
-                            />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {listUsStateCodesSorted().map((c) => (
-                              <SelectItem key={c} value={c}>
-                                {c}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    ) : null}
-                    <Button
-                      type="button"
-                      variant="default"
-                      className="w-full"
-                      disabled={zoneLoading}
-                      onClick={() => void handleSaveZoneDelivery()}
-                    >
-                      {t("checkout.saveDeliveryDetails")}
-                    </Button>
-                  </div>
-                ) : null}
-
-                <h2 className="text-base font-semibold text-foreground">
-                  {t("checkout.deliveryDetails")}
-                </h2>
+                  ) : !zoneTemplatesLoaded ? (
+                    <p className="text-xs text-muted-foreground">
+                      {t("checkout.loadingZone")}
+                    </p>
+                  ) : null}
+                </div>
 
                 {!hasPostalCode ? (
-                  <div className="space-y-3">
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium text-foreground">
-                        {t("checkout.deliveryPostalCode")}
-                      </p>
-                      <Input
-                        value={postalCodeDraft}
-                        onChange={(e) => {
-                          const v = e.target.value.replace(/\s+/g, "");
-                          setPostalCodeDraft(v);
-                          if (/^\d{5}$/.test(v)) {
-                            handlePostalDraftCommit(v);
-                          }
-                        }}
-                        placeholder={t("checkout.enterPostalCode")}
-                        inputMode="numeric"
-                        autoComplete="postal-code"
-                        maxLength={5}
-                        onBlur={() => handlePostalDraftCommit()}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            e.preventDefault();
-                            handlePostalDraftCommit();
-                          }
-                        }}
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        {t("checkout.postalCodeHint")}
-                      </p>
-                    </div>
-
-                    <ProfileInfoModal
-                      open={postalModalOpen}
-                      onOpenChange={setPostalModalOpen}
-                      initialPostalCode={postalCodeDraft}
-                      onProfileSaved={handleProfileSaved}
-                      trigger={
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="w-full"
-                        >
-                          {t("checkout.addAddress")}
-                        </Button>
-                      }
-                    />
-                  </div>
-                ) : !hasFullAddress ? (
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between py-2">
-                      <div>
-                        <p className="text-xs text-muted-foreground">
-                          {t("checkout.postalCodeLabel")}
-                        </p>
-                        <p className="text-sm font-medium text-foreground">
-                          {effectiveDelivery?.postal ?? "—"}
-                        </p>
-                      </div>
-                      <ProfileInfoModal
-                        onProfileSaved={handleProfileSaved}
-                        trigger={
-                          <button
-                            type="button"
-                            className="text-xs underline underline-offset-2 text-foreground"
-                          >
-                            {t("checkout.edit")}
-                          </button>
+                  <div className="space-y-1">
+                    <Label htmlFor="checkout-postal">
+                      {t("checkout.deliveryPostalCode")}
+                    </Label>
+                    <Input
+                      id="checkout-postal"
+                      value={postalCodeDraft}
+                      onChange={(e) => {
+                        const v = e.target.value.replace(/\s+/g, "");
+                        setPostalCodeDraft(v);
+                        if (
+                          isUsConditional
+                            ? v.length >= 3
+                            : /^\d{5}$/.test(v)
+                        ) {
+                          handlePostalDraftCommit(v);
                         }
-                      />
-                    </div>
-
-                    <p className="text-sm text-muted-foreground">
-                      {t("checkout.needFullAddress")}
-                    </p>
-                    <ProfileInfoModal
-                      onProfileSaved={handleProfileSaved}
-                      trigger={
-                        <Button type="button" variant="outline" className="w-full">
-                          {t("checkout.addAddress")}
-                        </Button>
-                      }
+                      }}
+                      placeholder={t("checkout.enterPostalCode")}
+                      inputMode="numeric"
+                      autoComplete="postal-code"
+                      maxLength={isUsConditional ? 10 : 5}
+                      onBlur={() => handlePostalDraftCommit()}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handlePostalDraftCommit();
+                        }
+                      }}
                     />
+                    <p className="text-xs text-muted-foreground">
+                      {t("checkout.postalCodeHint")}
+                    </p>
                   </div>
                 ) : (
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between py-2">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between py-1">
                       <div>
                         <p className="text-xs text-muted-foreground">
                           {t("checkout.postalCodeLabel")}
                         </p>
                         <p className="text-sm font-medium text-foreground">
-                          {effectiveDelivery?.postal ?? "—"}
+                          {effectiveDelivery?.postal?.trim() ||
+                            postalCodeDraft.trim() ||
+                            "—"}
                         </p>
                       </div>
-                      <ProfileInfoModal
-                        onProfileSaved={handleProfileSaved}
-                        trigger={
-                          <button
-                            type="button"
-                            className="text-xs underline underline-offset-2 text-foreground"
-                          >
-                            {t("checkout.edit")}
-                          </button>
-                        }
-                      />
+                      {hasFullAddress ? (
+                        <ProfileInfoModal
+                          onProfileSaved={handleProfileSaved}
+                          trigger={
+                            <button
+                              type="button"
+                              className="text-xs underline underline-offset-2 text-foreground"
+                            >
+                              {t("checkout.edit")}
+                            </button>
+                          }
+                        />
+                      ) : (
+                        <button
+                          type="button"
+                          className="text-xs underline underline-offset-2 text-foreground"
+                          onClick={() => {
+                            setPostalCodeDraft("");
+                            setZoneFetchCompleted(false);
+                            setDeliveryDraft((d) =>
+                              d ? { ...d, postal: "" } : d,
+                            );
+                            setBudbeeAvailable(null);
+                          }}
+                        >
+                          {t("checkout.edit")}
+                        </button>
+                      )}
                     </div>
 
-                    <div className="flex items-start justify-between gap-3 py-2">
-                      <div className="min-w-0">
-                        <p className="text-xs text-muted-foreground">
-                          {t("checkout.addressLabel")}
-                        </p>
-                        <p className="text-sm font-medium text-foreground">
-                          {effectiveDelivery?.street ?? "—"}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {effectiveDelivery?.postal ?? ""}{" "}
-                          {effectiveDelivery?.city ?? ""}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {effectiveDelivery?.countryCode
-                            ? getCountryDisplayName(
-                                effectiveDelivery.countryCode,
-                                countryDisplayLocale,
-                              )
-                            : "—"}
-                        </p>
-                      </div>
-                      <ProfileInfoModal
-                        onProfileSaved={handleProfileSaved}
-                        trigger={
-                          <button
-                            type="button"
-                            className="text-xs underline underline-offset-2 text-foreground"
-                          >
-                            {t("checkout.change")}
-                          </button>
-                        }
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {hasFullAddress ? (
-                  <div className="space-y-3 pt-2">
-                    {isUsConditional && !hasUsState ? (
-                      <p className="text-sm text-destructive">
-                        {t("checkout.selectUsState")}
-                      </p>
-                    ) : null}
                     {zoneLoading ? (
                       <div className="flex items-center gap-3">
                         <div className="h-4 w-4 animate-spin rounded-full border-b-2 border-foreground" />
@@ -2614,7 +2923,100 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
                       </div>
                     ) : null}
 
-                    {!zoneLoading && !zoneInfo.pickupZone ? (
+                    {!isUsConditional &&
+                    (selectedPallet != null ||
+                      Boolean(zoneInfo.deliveryZone) ||
+                      zoneInfo.selectedDeliveryZoneId != null) ? (
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium text-foreground">
+                          {t("checkout.deliveryOptions")}
+                        </p>
+                        <div
+                          className="flex items-start justify-between border-b border-border py-3"
+                          role="group"
+                          aria-label={t("checkout.deliveryOptionAria")}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div
+                              className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 border-foreground"
+                              aria-hidden
+                            >
+                              <div className="h-1.5 w-1.5 rounded-full bg-foreground" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-foreground">
+                                {t("checkout.homeDeliveryBring")}
+                              </p>
+                              <p className="mt-0.5 text-xs text-muted-foreground">
+                                {t("checkout.deliveryBringHint", {
+                                  estimate: deliveryEstimateLabel,
+                                })}
+                              </p>
+                              {budbeeAvailable === false && (
+                                <p className="mt-1 text-xs text-amber-500">
+                                  {t("checkout.budbeeUnavailable")}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex shrink-0 items-center gap-2">
+                            <span className="whitespace-nowrap text-sm tabular-nums text-foreground">
+                              {deliveryOptionShippingLabel}
+                            </span>
+                            {/* eslint-disable-next-line @next/next/no-img-element -- static brand asset from /public */}
+                            <img
+                              src="/budbee-logo.png"
+                              alt="Budbee"
+                              width={96}
+                              height={36}
+                              className="h-5 w-auto max-w-[100px] shrink-0 object-contain object-right mix-blend-multiply"
+                              aria-hidden
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {selectedPallet != null ? (
+                      <div>
+                        <div className="mb-1.5 flex items-center justify-between">
+                          <p className="text-xs text-muted-foreground">
+                            {t("checkout.palletProgress")}
+                          </p>
+                          <p className="text-xs tabular-nums text-muted-foreground">
+                            {t("checkout.palletProgressCount", {
+                              filled: String(filledBottles),
+                              total: String(totalCapacity),
+                            })}
+                          </p>
+                        </div>
+                        <div className="flex h-3 w-full overflow-hidden rounded-full bg-muted/50">
+                          <div
+                            className="h-full min-w-[2px] rounded-full bg-foreground transition-all duration-300"
+                            style={{
+                              width: `${Math.min(100, Math.max(0, fillPercent))}%`,
+                            }}
+                          />
+                        </div>
+                        {selectedPallet.current_pickup_producer?.name ? (
+                          <p className="text-xs text-muted-foreground mt-2">
+                            {t("checkout.collectedFrom", {
+                              name: selectedPallet.current_pickup_producer.name,
+                            })}
+                          </p>
+                        ) : null}
+                      </div>
+                    ) : null}
+
+                    {!zoneLoading &&
+                    zoneFetchCompleted &&
+                    hasPostalCode &&
+                    !zoneInfo.pickupZone &&
+                    !zoneInfo.deliveryZone &&
+                    !zoneInfo.selectedDeliveryZoneId &&
+                    (zoneInfo.pallets?.length ?? 0) === 0 &&
+                    !selectedPallet &&
+                    zoneInfo.zoneError == null ? (
                       <div className="space-y-2">
                         <p className="text-sm text-muted-foreground">
                           {t("checkout.noPickupZone")}
@@ -2625,6 +3027,7 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
                           type="button"
                           onClick={() => {
                             clearZoneCache();
+                            setZoneFetchCompleted(false);
                             void updateZoneInfo();
                           }}
                           disabled={zoneLoading}
@@ -2634,8 +3037,9 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
                       </div>
                     ) : null}
 
-                    {!zoneLoading && zoneInfo.zoneError === "NO_DELIVERY_ZONE" ? (
-                      <p className="text-sm text-destructive mt-2">
+                    {!zoneLoading &&
+                    zoneInfo.zoneError === "NO_DELIVERY_ZONE" ? (
+                      <p className="text-sm text-destructive">
                         {isUsConditional
                           ? zoneInfo.zoneErrorMessage?.trim() ||
                             t("checkout.noPalletAvailable")
@@ -2645,22 +3049,15 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
 
                     {!zoneLoading &&
                     zoneInfo.zoneError === "UNSUPPORTED_COUNTRY" ? (
-                      <p className="text-sm text-amber-800 dark:text-amber-200 mt-2 whitespace-pre-line">
+                      <p className="text-sm text-amber-800 dark:text-amber-200 whitespace-pre-line">
                         {browseOnlyCountryMessage}
                       </p>
                     ) : null}
 
-                    {!zoneLoading &&
-                    !zoneInfo.zoneError &&
-                    !zoneInfo.deliveryZone &&
-                    !zoneInfo.usingFallbackAddress &&
-                    effectiveDelivery?.postal ? (
-                      <p className="text-sm text-muted-foreground">
-                        {t("checkout.noDeliveryZoneAddress")}
-                      </p>
-                    ) : null}
-
-                    {hasProducerItems && hasZoneSelected && !zoneLoading && showPalletPicker ? (
+                    {hasProducerItems &&
+                    hasZoneSelected &&
+                    !zoneLoading &&
+                    showPalletPicker ? (
                       <div className="space-y-1.5">
                         <Label
                           className="text-xs text-muted-foreground"
@@ -2691,126 +3088,406 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
                       </div>
                     ) : null}
 
-                    {hasProducerItems &&
-                    !hasZoneSelected &&
+                    {isUsConditional &&
                     !zoneLoading &&
-                    (zoneInfo.pallets?.length ?? 0) > 0 ? (
+                    deliveryPreviewReady ? (
                       <p className="text-sm text-muted-foreground">
-                        {t("checkout.noPalletSelected")}
+                        {t("checkout.usConditionalCopy")}
                       </p>
                     ) : null}
+                  </div>
+                )}
+              </div>
+            </section>
 
-                    {hasWarehouseItems && hasZoneSelected && !zoneLoading ? (
-                      <p className="text-sm text-muted-foreground">
-                        {t("checkout.warehouseDirectShip")}
+            {/* 2. Leveransadress — ett fält i taget */}
+            <section
+              className={cn(
+                "py-6 border-b border-border last:border-0",
+                !deliveryPreviewReady && "opacity-50",
+              )}
+            >
+              <div className="space-y-4">
+                <h2 className="text-base font-semibold text-foreground">
+                  {t("checkout.stepAddress")}
+                </h2>
+
+                {!hasPostalCode ? (
+                  <p className="text-sm text-muted-foreground">
+                    {t("checkout.stepAddressLocked")}
+                  </p>
+                ) : !deliveryPreviewReady ? (
+                  <p className="text-sm text-muted-foreground">
+                    {t("checkout.stepAddressWaitingDelivery")}
+                  </p>
+                ) : addressStepComplete && !editingAddress ? (
+                  <div className="space-y-3 animate-in fade-in-0 slide-in-from-bottom-1 duration-500 fill-mode-both">
+                    <div className="flex items-start justify-between gap-3 py-1">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-foreground">
+                          {effectiveDelivery?.fullName ||
+                            profile?.full_name ||
+                            "—"}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {effectiveDelivery?.email || profile?.email || ""}
+                        </p>
+                        <p className="text-sm font-medium text-foreground mt-2">
+                          {effectiveDelivery?.street ?? "—"}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {effectiveDelivery?.postal ?? ""}{" "}
+                          {effectiveDelivery?.city ?? ""}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {effectiveDelivery?.countryCode
+                            ? getCountryDisplayName(
+                                effectiveDelivery.countryCode,
+                                countryDisplayLocale,
+                              )
+                            : "—"}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        className="text-xs underline underline-offset-2 text-foreground"
+                        onClick={() => {
+                          addressAutoSaveRef.current = false;
+                          addressPersistedRef.current = false;
+                          setEditingAddress(true);
+                          const fromDb =
+                            userZoneRowToDeliveryLines(zoneAddressRow);
+                          setDeliveryDraft(
+                            fromDb ??
+                              deliveryDraft ?? {
+                                street: effectiveDelivery?.street || "",
+                                city: effectiveDelivery?.city || "",
+                                postal: effectiveDelivery?.postal || "",
+                                countryCode:
+                                  effectiveDelivery?.countryCode || "SE",
+                                regionCode:
+                                  effectiveDelivery?.regionCode ?? null,
+                                fullName:
+                                  effectiveDelivery?.fullName ||
+                                  profile?.full_name ||
+                                  null,
+                                phone:
+                                  effectiveDelivery?.phone ||
+                                  profile?.phone ||
+                                  null,
+                                email:
+                                  effectiveDelivery?.email ||
+                                  profile?.email ||
+                                  null,
+                              },
+                          );
+                        }}
+                      >
+                        {t("checkout.change")}
+                      </button>
+                    </div>
+                    {isUsConditional && !hasUsState ? (
+                      <p className="text-sm text-destructive">
+                        {t("checkout.selectUsState")}
                       </p>
                     ) : null}
+                    <p
+                      className={cn(
+                        "text-sm text-muted-foreground transition-opacity duration-300",
+                        deliveryComplete ? "opacity-100" : "opacity-70",
+                      )}
+                    >
+                      {t("checkout.deliveryConfirmed")}
+                    </p>
+                  </div>
+                ) : deliveryDraft ? (
+                  <div className="space-y-3">
+                    {(() => {
+                      const nameOk =
+                        (deliveryDraft.fullName ?? "").trim().length > 1;
+                      const emailOk = (deliveryDraft.email ?? "").includes(
+                        "@",
+                      );
+                      const phoneOk =
+                        (deliveryDraft.phone ?? "").trim().length >= 6;
+                      const streetOk = deliveryDraft.street.trim().length > 0;
+                      const cityOk = deliveryDraft.city.trim().length > 0;
+                      const stateOk =
+                        !isUsConditional ||
+                        isValidUsStateCode(
+                          deliveryDraft.regionCode?.trim() ?? "",
+                        );
+                      const editMode = editingAddress;
+                      const canSaveEdit =
+                        nameOk &&
+                        emailOk &&
+                        phoneOk &&
+                        streetOk &&
+                        cityOk &&
+                        stateOk;
 
-                    {hasFullAddress &&
-                    !zoneLoading &&
-                    zoneOrUsPalletReady &&
-                    selectedPallet != null ? (
-                      <div className="space-y-4 border-t border-border pt-3">
-                        {isUsConditional ? (
-                          <p className="text-sm text-muted-foreground">
-                            {t("checkout.usConditionalCopy")}
-                          </p>
-                        ) : (
-                          <div className="space-y-2">
-                            <p className="text-sm font-medium text-foreground">
-                              {t("checkout.deliveryOptions")}
-                            </p>
-                            <div
-                              className="flex items-start justify-between border-b border-border py-3"
-                              role="group"
-                              aria-label={t("checkout.deliveryOptionAria")}
-                            >
-                              <div className="flex items-center gap-3">
+                      type FieldId =
+                        | "fullName"
+                        | "email"
+                        | "phone"
+                        | "street"
+                        | "city"
+                        | "regionCode";
+
+                      const fields: Array<{
+                        id: FieldId;
+                        label: string;
+                        unlocked: boolean;
+                        done: boolean;
+                      }> = [
+                        {
+                          id: "fullName",
+                          label: t("checkout.fullName"),
+                          unlocked: true,
+                          done: nameOk,
+                        },
+                        {
+                          id: "email",
+                          label: t("checkout.email"),
+                          unlocked: editMode || nameOk,
+                          done: emailOk,
+                        },
+                        {
+                          id: "phone",
+                          label: t("checkout.phone"),
+                          unlocked: editMode || (nameOk && emailOk),
+                          done: phoneOk,
+                        },
+                        {
+                          id: "street",
+                          label: t("checkout.streetAddress"),
+                          unlocked:
+                            editMode || (nameOk && emailOk && phoneOk),
+                          done: streetOk,
+                        },
+                        {
+                          id: "city",
+                          label: t("checkout.city"),
+                          unlocked:
+                            editMode ||
+                            (nameOk && emailOk && phoneOk && streetOk),
+                          done: cityOk,
+                        },
+                      ];
+                      if (isUsConditional) {
+                        fields.push({
+                          id: "regionCode",
+                          label: t("checkout.stateTerritory"),
+                          unlocked:
+                            editMode ||
+                            (nameOk &&
+                              emailOk &&
+                              phoneOk &&
+                              streetOk &&
+                              cityOk),
+                          done: stateOk,
+                        });
+                      }
+
+                      const activeId = editMode
+                        ? null
+                        : (fields.find((f) => f.unlocked && !f.done)?.id ??
+                          null);
+
+                      const patch = (partial: Partial<ZoneDeliveryLines>) =>
+                        setDeliveryDraft((d) =>
+                          d ? { ...d, ...partial } : d,
+                        );
+
+                      return (
+                        <>
+                          {fields.map((field) => {
+                            const isActive = field.id === activeId;
+                            const isUpcoming = !editMode && !field.unlocked;
+                            const isDone =
+                              !editMode && field.unlocked && field.done;
+
+                            return (
+                              <div
+                                key={field.id}
+                                className={cn(
+                                  "transition-all duration-300 origin-top",
+                                  isUpcoming &&
+                                    "pointer-events-none select-none scale-[0.92] opacity-40",
+                                  isDone && "opacity-80",
+                                  (isActive || editMode) && "opacity-100",
+                                )}
+                                aria-hidden={isUpcoming || undefined}
+                              >
                                 <div
-                                  className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 border-foreground"
-                                  aria-hidden
+                                  className={cn(
+                                    "space-y-1.5",
+                                    isUpcoming && "space-y-1",
+                                  )}
                                 >
-                                  <div className="h-1.5 w-1.5 rounded-full bg-foreground" />
-                                </div>
-                                <div>
-                                  <p className="text-sm font-medium text-foreground">
-                                    {t("checkout.homeDeliveryBring")}
-                                  </p>
-                                  <p className="mt-0.5 text-xs text-muted-foreground">
-                                    {t("checkout.deliveryBringHint", {
-                                      estimate: deliveryEstimateLabel,
-                                    })}
-                                  </p>
-                                  {budbeeAvailable === false && (
-                                    <p className="mt-1 text-xs text-amber-500">
-                                      {t("checkout.budbeeUnavailable")}
-                                    </p>
+                                  <Label
+                                    htmlFor={
+                                      isUpcoming
+                                        ? undefined
+                                        : `checkout-${field.id}`
+                                    }
+                                    className={cn(
+                                      isUpcoming &&
+                                        "text-[10px] leading-none text-muted-foreground/80",
+                                      isDone && "text-xs text-muted-foreground",
+                                      (isActive || editMode) && "text-sm",
+                                    )}
+                                  >
+                                    {field.label}
+                                  </Label>
+
+                                  {field.id === "regionCode" ? (
+                                    isUpcoming ? (
+                                      <div className="h-7 rounded-md border border-border/60 bg-muted/20" />
+                                    ) : (
+                                      <Select
+                                        value={
+                                          deliveryDraft.regionCode ?? ""
+                                        }
+                                        onValueChange={(v) =>
+                                          patch({
+                                            regionCode: v || null,
+                                          })
+                                        }
+                                      >
+                                        <SelectTrigger
+                                          className={cn(
+                                            isDone && "h-8 text-sm",
+                                          )}
+                                        >
+                                          <SelectValue
+                                            placeholder={t(
+                                              "checkout.selectState",
+                                            )}
+                                          />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {listUsStateCodesSorted().map(
+                                            (c) => (
+                                              <SelectItem key={c} value={c}>
+                                                {c}
+                                              </SelectItem>
+                                            ),
+                                          )}
+                                        </SelectContent>
+                                      </Select>
+                                    )
+                                  ) : isUpcoming ? (
+                                    <div className="h-7 rounded-md border border-border/60 bg-muted/20" />
+                                  ) : (
+                                    <Input
+                                      id={`checkout-${field.id}`}
+                                      type={
+                                        field.id === "email"
+                                          ? "email"
+                                          : field.id === "phone"
+                                            ? "tel"
+                                            : "text"
+                                      }
+                                      value={
+                                        field.id === "fullName"
+                                          ? (deliveryDraft.fullName ?? "")
+                                          : field.id === "email"
+                                            ? (deliveryDraft.email ?? "")
+                                            : field.id === "phone"
+                                              ? (deliveryDraft.phone ?? "")
+                                              : field.id === "street"
+                                                ? deliveryDraft.street
+                                                : deliveryDraft.city
+                                      }
+                                      autoComplete={
+                                        field.id === "fullName"
+                                          ? "name"
+                                          : field.id === "email"
+                                            ? "email"
+                                            : field.id === "phone"
+                                              ? "tel"
+                                              : field.id === "street"
+                                                ? "street-address"
+                                                : "address-level2"
+                                      }
+                                      autoFocus={isActive}
+                                      className={cn(
+                                        isDone && "h-8 text-sm",
+                                      )}
+                                      onChange={(e) => {
+                                        const v = e.target.value;
+                                        if (field.id === "fullName")
+                                          patch({ fullName: v });
+                                        else if (field.id === "email")
+                                          patch({ email: v });
+                                        else if (field.id === "phone")
+                                          patch({ phone: v });
+                                        else if (field.id === "street")
+                                          patch({ street: v });
+                                        else if (field.id === "city")
+                                          patch({ city: v });
+                                      }}
+                                    />
                                   )}
                                 </div>
                               </div>
-                              <div className="flex shrink-0 items-center gap-2">
-                                <span className="whitespace-nowrap text-sm tabular-nums text-foreground">
-                                  {deliveryOptionShippingLabel}
-                                </span>
-                                {/* eslint-disable-next-line @next/next/no-img-element -- static brand asset from /public */}
-                                <img
-                                  src="/budbee-logo.png"
-                                  alt="Budbee"
-                                  width={96}
-                                  height={36}
-                                  className="h-5 w-auto max-w-[100px] shrink-0 object-contain object-right mix-blend-multiply"
-                                  aria-hidden
-                                />
-                              </div>
+                            );
+                          })}
+
+                          {editMode ? (
+                            <div className="flex items-center gap-3 pt-1">
+                              <Button
+                                type="button"
+                                size="sm"
+                                disabled={addressSaving || !canSaveEdit}
+                                onClick={() => void handleSaveZoneDelivery()}
+                              >
+                                {addressSaving
+                                  ? t("checkout.updatingDelivery")
+                                  : t("checkout.saveDeliveryDetails")}
+                              </Button>
+                              <button
+                                type="button"
+                                className="text-xs underline underline-offset-2 text-muted-foreground"
+                                disabled={addressSaving}
+                                onClick={() => {
+                                  setEditingAddress(false);
+                                  setDeliveryDraft(null);
+                                  addressAutoSaveRef.current = true;
+                                  addressPersistedRef.current = true;
+                                }}
+                              >
+                                {t("checkout.cancel")}
+                              </button>
                             </div>
-                          </div>
-                        )}
-
-                        <div>
-                          <div className="mb-1.5 flex items-center justify-between">
+                          ) : addressSaving ? (
                             <p className="text-xs text-muted-foreground">
-                              {t("checkout.palletProgress")}
+                              {t("checkout.updatingDelivery")}
                             </p>
-                            <p className="text-xs tabular-nums text-muted-foreground">
-                              {t("checkout.palletProgressCount", {
-                                filled: String(filledBottles),
-                                total: String(totalCapacity),
-                              })}
-                            </p>
-                          </div>
-                          <div className="flex h-3 w-full overflow-hidden rounded-full bg-muted/50">
-                            <div
-                              className="h-full min-w-[2px] rounded-full bg-foreground transition-all duration-300"
-                              style={{
-                                width: `${Math.min(100, Math.max(0, fillPercent))}%`,
-                              }}
-                            />
-                          </div>
-                        </div>
-                        {selectedPallet.current_pickup_producer?.name ? (
-                          <p className="text-xs text-muted-foreground mt-2">
-                            {t("checkout.collectedFrom", {
-                              name: selectedPallet.current_pickup_producer.name,
-                            })}
-                          </p>
-                        ) : null}
-                      </div>
-                    ) : null}
+                          ) : null}
+                        </>
+                      );
+                    })()}
                   </div>
-                ) : null}
-
-                {deliveryComplete ? (
-                  <p className="py-2 text-center text-sm text-muted-foreground">
-                    {t("checkout.deliveryConfirmed")}
-                  </p>
-                ) : null}
+                ) : (
+                  <div className="flex items-center gap-3">
+                    <div className="h-4 w-4 animate-spin rounded-full border-b-2 border-foreground" />
+                    <span className="text-sm text-muted-foreground">
+                      {t("checkout.loadingZone")}
+                    </span>
+                  </div>
+                )}
               </div>
             </section>
 
             <section
+              ref={paymentSectionRef}
               className={cn(
-                "py-6 border-b border-border last:border-0",
-                !deliveryComplete && "opacity-50",
+                "py-6 border-b border-border last:border-0 transition-[opacity,transform] duration-500 ease-out",
+                deliveryComplete && paymentStepRevealed
+                  ? "opacity-100 translate-y-0"
+                  : "opacity-50 translate-y-1",
               )}
             >
               <div className="space-y-3">
@@ -2818,8 +3495,16 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
                   {t("checkout.payment")}
                 </h2>
 
-                {deliveryComplete ? (
-                  <div className="space-y-3">
+                {!deliveryComplete ? (
+                  <p className="text-sm text-muted-foreground">
+                    {t("checkout.stepPaymentLocked")}
+                  </p>
+                ) : !paymentStepRevealed ? (
+                  <p className="text-sm text-muted-foreground animate-in fade-in-0 duration-300">
+                    {t("checkout.openingPayment")}
+                  </p>
+                ) : (
+                  <div className="space-y-3 animate-in fade-in-0 slide-in-from-bottom-1 duration-500 fill-mode-both">
                     {hasWarehouseItems ? (
                       <div className="mb-2">
                         <PaymentMethodSelectorB2B
@@ -2853,22 +3538,31 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
                           </div>
                         ) : null}
                         <div className="space-y-3 rounded-md border border-border bg-background p-4">
-                          <div className="flex items-start gap-3">
-                            <Checkbox
-                              id="age-confirm"
-                              checked={ageConfirmed}
-                              onCheckedChange={(v) =>
-                                handleAgeChecked(v === true)
+                          <div className="space-y-2">
+                            <Label htmlFor="age-dob" className="text-sm">
+                              {t("checkout.ageDateOfBirth")}
+                            </Label>
+                            <Input
+                              id="age-dob"
+                              type="date"
+                              value={dateOfBirth}
+                              max={new Date().toISOString().slice(0, 10)}
+                              onChange={(e) =>
+                                handleAgeDobChange(e.target.value)
                               }
+                              className="max-w-xs"
+                              autoComplete="bday"
                             />
-                            <label
-                              htmlFor="age-confirm"
-                              className="text-sm leading-snug text-foreground"
-                            >
+                            <p className="text-xs text-muted-foreground">
                               {t("checkout.ageConfirm", {
                                 age: String(requiredAge),
                               })}
-                            </label>
+                            </p>
+                            {ageDobError ? (
+                              <p className="text-xs text-destructive">
+                                {ageDobError}
+                              </p>
+                            ) : null}
                           </div>
                           <div className="flex items-start gap-3">
                             <Checkbox
@@ -2907,7 +3601,6 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
                         <StripePaymentSection
                           key={`stripe-${selectedPallet.id}-${profile?.id ?? "anon"}`}
                           palletId={selectedPallet.id}
-                          cartTotalSek={finalAmountAfterVoucher}
                           pactPointsRedeem={redeemPoints}
                           promoDiscountSek={
                             appliedDiscount?.discount_amount_sek ?? 0
@@ -2915,6 +3608,18 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
                           userId={profile?.id}
                           onIntentCreated={handleStripeIntentCreated}
                           onConfirmReady={handleStripeConfirmReady}
+                          onQuote={(q) =>
+                            setServerQuote({
+                              subtotal_sek: q.subtotal_sek,
+                              shipping_sek: q.shipping_sek,
+                              promo_discount_sek: q.promo_discount_sek,
+                              voucher_discount_sek: 0,
+                              pact_points_sek: q.pact_points_sek,
+                              pact_points_redeem: redeemPoints,
+                              total_sek: q.total_sek,
+                              total_ore: q.total_ore,
+                            })
+                          }
                           usConditionalPayment={isUsConditional}
                           usConditionalAck={usConditionalAck}
                         />
@@ -3038,7 +3743,7 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
                       </div>
                     ) : null}
                   </div>
-              ) : null}
+                )}
               </div>
             </section>
           </div>

@@ -6,15 +6,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 import {
-  claimOnce,
   claimSignupCompletedOnce,
   clearClaim,
+  emitOnce,
   SIGNUP_STARTED_CHECKOUT_KEY,
 } from "@/lib/analytics/once-per-session";
 import {
   getSupabaseBrowserClient,
   prepareFreshBrowserAuth,
 } from "@/lib/supabase/client";
+import {
+  setAuthEmailCookie,
+  setAuthNextCookie,
+} from "@/lib/auth/auth-flow-cookies";
 
 type Props = {
   emailHint: string;
@@ -24,28 +28,26 @@ type Props = {
   onAuthenticated: () => void;
 };
 
-const AUTH_NEXT_COOKIE = "cv_auth_next";
-
-function setAuthNextCookie(path: string) {
-  const secure =
-    typeof window !== "undefined" && window.location.protocol === "https:"
-      ? "; Secure"
-      : "";
-  document.cookie = `${AUTH_NEXT_COOKIE}=${encodeURIComponent(path)}; Path=/; Max-Age=3600; SameSite=Lax${secure}`;
-}
-
-async function emitSignupCompleted(userId: string, source: string) {
-  if (!claimSignupCompletedOnce(userId)) return;
-  clearClaim(SIGNUP_STARTED_CHECKOUT_KEY);
-  await AnalyticsTracker.trackEvent({
-    eventType: "signup_completed",
-    eventCategory: "auth",
-    metadata: { source, user_id: userId },
-  });
+async function finalizeClientSignup(source: string) {
+  await fetch("/api/auth/finalize-signup", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({
+      source,
+      emit_signup_completed: true,
+    }),
+  }).catch(() => {});
 }
 
 /**
  * Mid-checkout magic-link / OTP signup when user is anonymous.
+ *
+ * IMPORTANT — shared single-use OTP token:
+ * signInWithOtp emails ONE token used by BOTH the magic link and the 6-digit
+ * code. Clicking the link consumes that token at Supabase before PKCE returns
+ * here. If the link fails (wrong browser / PKCE), the code from that email is
+ * already burned — request a new OTP (see /auth/auth-code-error).
  */
 export function CheckoutEmailAuth({
   emailHint,
@@ -62,8 +64,16 @@ export function CheckoutEmailAuth({
   const [error, setError] = useState<string | null>(null);
   const lastFieldRef = useRef("email");
   const completedRef = useRef(false);
+  const notifiedRef = useRef(false);
   const emailEnteredRef = useRef(false);
   const shownRef = useRef(false);
+  const finalizedRef = useRef(false);
+
+  const notifyAuthenticated = () => {
+    if (notifiedRef.current) return;
+    notifiedRef.current = true;
+    onAuthenticated();
+  };
 
   useEffect(() => {
     if (shownRef.current) return;
@@ -74,16 +84,16 @@ export function CheckoutEmailAuth({
         const {
           data: { user },
         } = await supabase.auth.getUser();
-        // Already authenticated → never fire signup_started.
         if (user?.id) return;
       } catch {
         // proceed as anonymous
       }
-      if (!claimOnce(SIGNUP_STARTED_CHECKOUT_KEY)) return;
-      void AnalyticsTracker.trackEvent({
-        eventType: "signup_started",
-        eventCategory: "auth",
-        metadata: { source: "checkout" },
+      emitOnce(SIGNUP_STARTED_CHECKOUT_KEY, () => {
+        void AnalyticsTracker.trackEvent({
+          eventType: "signup_started",
+          eventCategory: "auth",
+          metadata: { source: "checkout" },
+        });
       });
     })();
   }, []);
@@ -93,12 +103,16 @@ export function CheckoutEmailAuth({
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session?.user && (event === "SIGNED_IN" || event === "TOKEN_REFRESHED")) {
+      if (session?.user && event === "SIGNED_IN") {
         completedRef.current = true;
-        if (event === "SIGNED_IN") {
-          void emitSignupCompleted(session.user.id, "checkout");
+        if (!finalizedRef.current) {
+          finalizedRef.current = true;
+          if (claimSignupCompletedOnce(session.user.id)) {
+            clearClaim(SIGNUP_STARTED_CHECKOUT_KEY);
+          }
+          void finalizeClientSignup("checkout");
         }
-        onAuthenticated();
+        notifyAuthenticated();
       }
     });
     return () => {
@@ -120,11 +134,11 @@ export function CheckoutEmailAuth({
     setSending(true);
     setError(null);
     try {
-      // Fresh client so PKCE code-verifier is written after any prior signOut.
       const supabase = await prepareFreshBrowserAuth();
       const origin = window.location.origin;
       const returnPath = "/checkout";
       setAuthNextCookie(returnPath);
+      setAuthEmailCookie(trimmed);
       const { error: otpErr } = await supabase.auth.signInWithOtp({
         email: trimmed,
         options: {
@@ -165,9 +179,14 @@ export function CheckoutEmailAuth({
       completedRef.current = true;
       const userId = data.user?.id;
       if (userId) {
-        await emitSignupCompleted(userId, "checkout_otp");
+        if (!finalizedRef.current) {
+          finalizedRef.current = true;
+          claimSignupCompletedOnce(userId);
+          clearClaim(SIGNUP_STARTED_CHECKOUT_KEY);
+          await finalizeClientSignup("checkout_otp");
+        }
       }
-      onAuthenticated();
+      notifyAuthenticated();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Kunde inte verifiera koden");
     } finally {
@@ -175,31 +194,19 @@ export function CheckoutEmailAuth({
     }
   };
 
-  const isLocalhost =
-    typeof window !== "undefined" &&
-    /^(localhost|127\.0\.0\.1)(:\d+)?$/i.test(window.location.hostname);
-
   return (
     <div className="space-y-3 rounded-md border border-border bg-background p-4">
       <p className="text-sm text-muted-foreground">{emailHint}</p>
       {sent ? (
         <div className="space-y-3">
           <p className="text-sm font-medium text-foreground">{checkInbox}</p>
-          {isLocalhost ? (
-            <p className="text-xs text-amber-700 dark:text-amber-300">
-              Lokal test: länken måste öppna{" "}
-              <span className="font-mono">localhost:3000</span>, inte
-              pactwines.com. Lägg till{" "}
-              <span className="font-mono">http://localhost:3000/**</span> under
-              Supabase → Authentication → URL Configuration → Redirect URLs.
-              Annars: ange 6-siffrig kod från mailet nedan (kräver{" "}
-              <span className="font-mono">{"{{ .Token }}"}</span> i
-              e-postmallen).
-            </p>
-          ) : null}
+          <p className="text-sm text-muted-foreground">
+            Fick du ingen länk att fungera? Ange den 6-siffriga koden från
+            mailet.
+          </p>
           <form onSubmit={handleVerifyOtp} className="space-y-3">
             <div className="space-y-1.5">
-              <Label htmlFor="checkout-otp-code">Kod från mailet</Label>
+              <Label htmlFor="checkout-otp-code">6-siffrig kod</Label>
               <Input
                 id="checkout-otp-code"
                 inputMode="numeric"
@@ -219,7 +226,7 @@ export function CheckoutEmailAuth({
               disabled={verifying || otp.trim().length < 6}
               className="w-full bg-black text-white hover:bg-black/90"
             >
-              {verifying ? "Verifierar…" : "Verifiera kod"}
+              {verifying ? "Verifierar…" : "Verifiera"}
             </Button>
           </form>
           <button

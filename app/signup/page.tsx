@@ -35,13 +35,18 @@ function SignupPageContent() {
       } catch {
         // proceed
       }
-      const { claimOnce } = await import("@/lib/analytics/once-per-session");
-      if (!claimOnce("pact_signup_started_direct")) return;
-      const { AnalyticsTracker } = await import("@/lib/analytics/event-tracker");
-      void AnalyticsTracker.trackEvent({
-        eventType: "signup_started",
-        eventCategory: "auth",
-        metadata: { source: "direct" },
+      const { emitOnce } = await import("@/lib/analytics/once-per-session");
+      emitOnce("pact_signup_started_direct", () => {
+        void (async () => {
+          const { AnalyticsTracker } = await import(
+            "@/lib/analytics/event-tracker"
+          );
+          void AnalyticsTracker.trackEvent({
+            eventType: "signup_started",
+            eventCategory: "auth",
+            metadata: { source: "direct" },
+          });
+        })();
       });
     })();
   }, []);

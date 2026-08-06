@@ -171,12 +171,32 @@ async function sendPaymentReadyEmail(params: {
   );
 
   try {
-    await sendEmail({
-      to: params.to,
-      subject: `🍷 Your Pallet is Ready`,
-      html: generatePaymentEmailHTML(params),
-      text: generatePaymentEmailText(params),
+    const { sendTransactionalEmailOnce } = await import(
+      "@/lib/email/claim-email-send"
+    );
+    const result = await sendTransactionalEmailOnce({
+      emailType: "payment_ready",
+      recipient: params.to,
+      reservationId: params.reservationId,
+      send: async () => {
+        await sendEmail({
+          to: params.to,
+          subject: `🍷 Your Pallet is Ready`,
+          html: generatePaymentEmailHTML(params),
+          text: generatePaymentEmailText(params),
+        });
+        return true;
+      },
     });
+    if (result === "skipped") {
+      console.warn(
+        `[email_sends] skip payment_ready for ${params.reservationId} — already claimed`,
+      );
+      return;
+    }
+    if (result === "failed") {
+      throw new Error("payment_ready send failed after claim");
+    }
     console.log(`✅ [Email] Payment ready email sent to ${params.to}`);
   } catch (error) {
     console.error(

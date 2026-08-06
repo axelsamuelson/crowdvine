@@ -10,6 +10,13 @@ if (!supabaseUrl || !supabaseKey) {
 }
 
 export const supabase = createBrowserClient(supabaseUrl, supabaseKey, {
+  isSingleton: false,
+  cookieOptions: {
+    path: "/",
+    sameSite: "lax",
+    // Never force Secure on http://localhost — the PKCE verifier would not stick.
+    secure: process.env.NODE_ENV === "production",
+  },
   realtime: {
     params: {
       eventsPerSecond: 10,

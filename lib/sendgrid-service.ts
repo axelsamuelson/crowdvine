@@ -81,6 +81,8 @@ export interface OrderConfirmationData {
   subtotal: number;
   tax: number;
   shipping: number;
+  /** Promo / code discount in major currency units (SEK). Shown when > 0. */
+  discount?: number;
   total: number;
   shippingAddress: {
     name: string;
@@ -247,6 +249,14 @@ export async function buildOrderConfirmationHtml(
                   <span>Shipping:</span>
                   <span>${data.shipping.toFixed(2)} SEK</span>
                 </div>
+                ${
+                  (data.discount ?? 0) > 0
+                    ? `<div style="display: flex; justify-content: space-between; margin: 5px 0;">
+                  <span>Discount:</span>
+                  <span>−${Number(data.discount).toFixed(2)} SEK</span>
+                </div>`
+                    : ""
+                }
                 <hr style="margin: 15px 0;">
                 <div style="display: flex; justify-content: space-between; margin: 5px 0; font-size: 18px; font-weight: bold;">
                   <span>Total:</span>
@@ -310,7 +320,11 @@ Order Summary:
 Subtotal: ${data.subtotal.toFixed(2)} SEK
 Tax: ${data.tax.toFixed(2)} SEK
 Shipping: ${data.shipping.toFixed(2)} SEK
-Total: ${data.total.toFixed(2)} SEK
+${
+  (data.discount ?? 0) > 0
+    ? `Discount: −${Number(data.discount).toFixed(2)} SEK\n`
+    : ""
+}Total: ${data.total.toFixed(2)} SEK
 
 Shipping Address:
 ${data.shippingAddress.name}
@@ -535,18 +549,28 @@ export async function sendPaymentConfirmedEmail({
   amountSek: number;
   palletName: string;
 }): Promise<boolean> {
+  const { sendTransactionalEmailOnce } = await import(
+    "@/lib/email/claim-email-send"
+  );
   const subject = "Payment confirmed — your PACT order is on its way";
   const body: PaymentConfirmedEmailBody = {
     reservationId,
     amountSek,
     palletName,
   };
-  return sendGridService.sendEmail({
-    to,
-    subject,
-    html: buildPaymentConfirmedHtml(body),
-    text: buildPaymentConfirmedText(body),
+  const result = await sendTransactionalEmailOnce({
+    emailType: "payment_confirmed",
+    recipient: to,
+    reservationId,
+    send: () =>
+      sendGridService.sendEmail({
+        to,
+        subject,
+        html: buildPaymentConfirmedHtml(body),
+        text: buildPaymentConfirmedText(body),
+      }),
   });
+  return result === "sent" || result === "skipped";
 }
 
 export async function sendPaymentFailedEmail({
@@ -562,6 +586,9 @@ export async function sendPaymentFailedEmail({
   retryHours: 24 | 72;
   profileUrl: string;
 }): Promise<boolean> {
+  const { sendTransactionalEmailOnce } = await import(
+    "@/lib/email/claim-email-send"
+  );
   const subject = "Action required — payment failed for your PACT order";
   const body: PaymentFailedEmailBody = {
     reservationId,
@@ -569,12 +596,19 @@ export async function sendPaymentFailedEmail({
     retryHours,
     profileUrl,
   };
-  return sendGridService.sendEmail({
-    to,
-    subject,
-    html: buildPaymentFailedHtml(body),
-    text: buildPaymentFailedText(body),
+  const result = await sendTransactionalEmailOnce({
+    emailType: "payment_failed",
+    recipient: to,
+    reservationId,
+    send: () =>
+      sendGridService.sendEmail({
+        to,
+        subject,
+        html: buildPaymentFailedHtml(body),
+        text: buildPaymentFailedText(body),
+      }),
   });
+  return result === "sent" || result === "skipped";
 }
 
 export async function sendPaymentCancelledEmail({
@@ -586,14 +620,24 @@ export async function sendPaymentCancelledEmail({
   reservationId: string;
   reason: string;
 }): Promise<boolean> {
+  const { sendTransactionalEmailOnce } = await import(
+    "@/lib/email/claim-email-send"
+  );
   const subject = "Your PACT reservation has been cancelled";
   const body: PaymentCancelledEmailBody = { reservationId, reason };
-  return sendGridService.sendEmail({
-    to,
-    subject,
-    html: buildPaymentCancelledHtml(body),
-    text: buildPaymentCancelledText(body),
+  const result = await sendTransactionalEmailOnce({
+    emailType: "payment_cancelled",
+    recipient: to,
+    reservationId,
+    send: () =>
+      sendGridService.sendEmail({
+        to,
+        subject,
+        html: buildPaymentCancelledHtml(body),
+        text: buildPaymentCancelledText(body),
+      }),
   });
+  return result === "sent" || result === "skipped";
 }
 
 export type PaymentAuthenticationRequiredBody = {
@@ -628,15 +672,25 @@ export async function sendPaymentAuthenticationRequiredEmail({
   reservationId: string;
   authenticateUrl: string;
 }): Promise<boolean> {
+  const { sendTransactionalEmailOnce } = await import(
+    "@/lib/email/claim-email-send"
+  );
   const subject = "Verifiera betalningen för din PACT-order";
   const body: PaymentAuthenticationRequiredBody = {
     reservationId,
     authenticateUrl,
   };
-  return sendGridService.sendEmail({
-    to,
-    subject,
-    html: buildPaymentAuthenticationRequiredHtml(body),
-    text: buildPaymentAuthenticationRequiredText(body),
+  const result = await sendTransactionalEmailOnce({
+    emailType: "payment_authentication_required",
+    recipient: to,
+    reservationId,
+    send: () =>
+      sendGridService.sendEmail({
+        to,
+        subject,
+        html: buildPaymentAuthenticationRequiredHtml(body),
+        text: buildPaymentAuthenticationRequiredText(body),
+      }),
   });
+  return result === "sent" || result === "skipped";
 }

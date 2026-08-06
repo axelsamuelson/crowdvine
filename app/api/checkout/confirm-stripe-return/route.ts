@@ -66,6 +66,7 @@ export async function POST(request: Request) {
             visitor_id?: unknown;
             first_touch?: unknown;
             internal?: unknown;
+            idempotency_key?: unknown;
           })
         : null;
 
@@ -598,6 +599,9 @@ export async function POST(request: Request) {
     }
     if (body?.internal === true || body?.internal === "true" || body?.internal === 1) {
       form.append("internal", "true");
+    }
+    if (typeof body?.idempotency_key === "string" && body.idempotency_key.trim()) {
+      form.append("idempotency_key", body.idempotency_key.trim());
     }
 
     const confirmUrl = new URL("/api/checkout/confirm", request.url);

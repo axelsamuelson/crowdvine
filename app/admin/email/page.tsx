@@ -126,7 +126,7 @@ const EMAIL_FLOWS: FlowRow[] = [
     recipient: "Kunden",
     template: "buildOrderConfirmationHtml",
     status: "active",
-    fileRef: "app/checkout/success/page.tsx → /api/email/order-confirmation",
+    fileRef: "app/api/checkout/confirm/route.ts (email_sends idempotent)",
   },
   {
     name: "Access godkänd",
