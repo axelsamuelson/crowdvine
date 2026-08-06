@@ -6,6 +6,7 @@ import {
   parseFirstTouchPayload,
 } from "@/lib/analytics/visitor-identity";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { reconcileSessionCartForUser } from "@/lib/cart/reconcile-on-auth";
 
 export type FinalizeSignupSource =
   | "checkout_magic_link"
@@ -15,7 +16,7 @@ export type FinalizeSignupSource =
 
 /**
  * Shared post-auth steps for magic-link callback and mid-checkout OTP.
- * Idempotent enough to call from both paths (profile upsert; cart attach only if unowned).
+ * Idempotent enough to call from both paths (profile upsert; cart reconcile).
  */
 export async function finalizeSignupAfterAuth(opts: {
   userId: string;
@@ -40,16 +41,16 @@ export async function finalizeSignupAfterAuth(opts: {
 
     const cartSessionId = opts.cartSessionId?.trim() || null;
     if (cartSessionId) {
-      const { error: cartErr } = await sbAdmin
-        .from("carts")
-        .update({
-          user_id: opts.userId,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("session_id", cartSessionId)
-        .is("user_id", null);
-      if (cartErr) {
-        console.warn("[finalize-signup] cart attach:", cartErr.message);
+      try {
+        await reconcileSessionCartForUser({
+          userId: opts.userId,
+          sessionId: cartSessionId,
+        });
+      } catch (cartErr) {
+        console.warn(
+          "[finalize-signup] cart reconcile:",
+          cartErr instanceof Error ? cartErr.message : cartErr,
+        );
       }
     }
 

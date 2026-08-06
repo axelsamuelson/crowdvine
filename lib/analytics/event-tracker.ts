@@ -85,6 +85,11 @@ interface TrackEventParams {
   metadata?: Record<string, any>;
   pageUrl?: string;
   referrer?: string;
+  /**
+   * Use fetch keepalive so the insert survives page unload
+   * (visibility hidden / pagehide / unmount). Skips auth lookup.
+   */
+  keepalive?: boolean;
 }
 
 export class AnalyticsTracker {
@@ -112,42 +117,10 @@ export class AnalyticsTracker {
     metadata = {},
     pageUrl,
     referrer,
+    keepalive = false,
   }: TrackEventParams): Promise<void> {
     if (typeof window === "undefined") return;
     if (this.isBotClient()) return;
-
-    let supabase;
-    try {
-      supabase = getSupabaseBrowserClient();
-    } catch {
-      return;
-    }
-
-    let userId: string | null = null;
-    try {
-      const {
-        data: { user },
-        error: authError,
-      } = await supabase.auth.getUser();
-      if (authError) {
-        if (isStaleRefreshTokenError(authError)) {
-          await supabase.auth.signOut({ scope: "local" });
-        } else if (process.env.NODE_ENV === "development") {
-          console.warn("[analytics] auth.getUser:", authError.message);
-        }
-      } else {
-        userId = user?.id ?? null;
-      }
-    } catch (e) {
-      if (isStaleRefreshTokenError(e)) {
-        await supabase.auth.signOut({ scope: "local" });
-      } else if (
-        !isAuthNetworkError(e) &&
-        process.env.NODE_ENV === "development"
-      ) {
-        console.warn("[analytics] auth.getUser:", e);
-      }
-    }
 
     const rawReferrer = referrer || document.referrer || "";
     const safeReferrer =
@@ -173,6 +146,42 @@ export class AnalyticsTracker {
       eventMetadata = { ...eventMetadata, internal: true };
     }
 
+    let userId: string | null = null;
+
+    if (!keepalive) {
+      let supabase;
+      try {
+        supabase = getSupabaseBrowserClient();
+      } catch {
+        return;
+      }
+
+      try {
+        const {
+          data: { user },
+          error: authError,
+        } = await supabase.auth.getUser();
+        if (authError) {
+          if (isStaleRefreshTokenError(authError)) {
+            await supabase.auth.signOut({ scope: "local" });
+          } else if (process.env.NODE_ENV === "development") {
+            console.warn("[analytics] auth.getUser:", authError.message);
+          }
+        } else {
+          userId = user?.id ?? null;
+        }
+      } catch (e) {
+        if (isStaleRefreshTokenError(e)) {
+          await supabase.auth.signOut({ scope: "local" });
+        } else if (
+          !isAuthNetworkError(e) &&
+          process.env.NODE_ENV === "development"
+        ) {
+          console.warn("[analytics] auth.getUser:", e);
+        }
+      }
+    }
+
     const eventData = {
       user_id: userId,
       session_id: this.getSessionId(),
@@ -184,6 +193,35 @@ export class AnalyticsTracker {
       referrer: safeReferrer || null,
       user_agent: navigator.userAgent,
     };
+
+    if (keepalive) {
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+      if (!supabaseUrl || !anonKey) return;
+      try {
+        void fetch(`${supabaseUrl}/rest/v1/user_events`, {
+          method: "POST",
+          headers: {
+            apikey: anonKey,
+            Authorization: `Bearer ${anonKey}`,
+            "Content-Type": "application/json",
+            Prefer: "return=minimal",
+          },
+          body: JSON.stringify(eventData),
+          keepalive: true,
+        });
+      } catch {
+        // unload — ignore
+      }
+      return;
+    }
+
+    let supabase;
+    try {
+      supabase = getSupabaseBrowserClient();
+    } catch {
+      return;
+    }
 
     try {
       const { error } = await supabase.from("user_events").insert(eventData);

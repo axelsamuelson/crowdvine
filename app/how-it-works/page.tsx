@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 export default function HowItWorksPage() {
   return (
     <main className="mx-auto min-h-[80vh] max-w-2xl px-4 py-16">
-      <EngagementTrackers page="how-it-works" />
+      <EngagementTrackers />
       <h1 className="mb-6 text-2xl font-semibold tracking-tight text-foreground">
         Så fungerar det
       </h1>

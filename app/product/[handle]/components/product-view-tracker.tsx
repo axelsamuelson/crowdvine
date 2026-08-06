@@ -115,5 +115,5 @@ export function ProductViewTracker({ product }: ProductViewTrackerProps) {
     storeLastViewed(product);
   }, [product.id, product.title, product.handle, product.productType]);
 
-  return <EngagementTrackers page={`product/${product.handle}`} />;
+  return <EngagementTrackers />;
 }

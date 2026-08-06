@@ -543,16 +543,11 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
     setAuthReady(true);
     await fetchProfile();
     try {
-      const conflictRes = await fetch("/api/cart/merge");
-      const conflictData = await conflictRes.json().catch(() => null);
-      if (conflictData?.conflict) {
-        // Mid-checkout auth: keep the cart the guest just built — don't interrupt.
-        await fetch("/api/cart/merge", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ strategy: "keep_session" }),
-        });
-      }
+      await fetch("/api/cart/merge", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ strategy: "auto" }),
+      });
       await fetchCart();
     } catch {
       await fetchCart();
@@ -566,15 +561,11 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
     cartMergedAfterAuthRef.current = true;
     void (async () => {
       try {
-        const conflictRes = await fetch("/api/cart/merge");
-        const conflictData = await conflictRes.json().catch(() => null);
-        if (conflictData?.conflict) {
-          await fetch("/api/cart/merge", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ strategy: "keep_session" }),
-          });
-        }
+        await fetch("/api/cart/merge", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ strategy: "auto" }),
+        });
         await fetchCart();
       } catch {
         // cart still available via cv_cart_id

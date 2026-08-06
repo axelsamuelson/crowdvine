@@ -222,10 +222,10 @@ export async function POST(request: Request) {
 
     console.log("🛒 [ADD-QUANTITY] Successfully added/updated item");
 
-    await supabase
-      .from("carts")
-      .update({ updated_at: new Date().toISOString() })
-      .eq("id", dbCartId);
+    const { bindCartOwnerAndTouch } = await import(
+      "@/lib/cart/reconcile-on-auth"
+    );
+    await bindCartOwnerAndTouch(dbCartId, userId);
 
     const cart = await CartService.getCart();
     if (!cart) {

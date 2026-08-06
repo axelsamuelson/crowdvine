@@ -47,25 +47,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: result.error }, { status: 500 });
   }
 
-  // Mid-checkout: prefer session cart over any older user cart.
+  // Mid-checkout: reconcile session cart (attach user_id, merge prior owned carts).
   try {
-    const mergeRes = await fetch(new URL("/api/cart/merge", request.url), {
-      method: "GET",
-      headers: { cookie: request.headers.get("cookie") ?? "" },
+    await fetch(new URL("/api/cart/merge", request.url), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        cookie: request.headers.get("cookie") ?? "",
+      },
+      body: JSON.stringify({ strategy: "auto" }),
     });
-    const mergeData = (await mergeRes.json().catch(() => null)) as {
-      conflict?: boolean;
-    } | null;
-    if (mergeData?.conflict) {
-      await fetch(new URL("/api/cart/merge", request.url), {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          cookie: request.headers.get("cookie") ?? "",
-        },
-        body: JSON.stringify({ strategy: "keep_session" }),
-      });
-    }
   } catch (e) {
     console.warn("[finalize-signup] cart merge:", e);
   }

@@ -9,6 +9,8 @@ import type { Cart, CartItem } from "../../lib/shopify/types";
 import { getOrSetCartId, clearCartId } from "./cookies";
 import { convertSekForDisplay } from "@/lib/shopping-context/currency-convert";
 import { resolveDisplayCurrency } from "@/lib/shopping-context/display-currency";
+import { bindCartOwnerAndTouch } from "@/lib/cart/reconcile-on-auth";
+import { getCurrentUser as getSessionUser } from "@/lib/supabase-server";
 
 type CartWineProducer = {
   id?: string;
@@ -53,9 +55,7 @@ export class CartService {
 
     let userId: string | null = null;
     try {
-      const {
-        data: { user },
-      } = await sb.auth.getUser();
+      const user = await getSessionUser();
       userId = user?.id ?? null;
     } catch {
       userId = null;
@@ -100,15 +100,9 @@ export class CartService {
       return newCart.id;
     }
 
-    // Attach authenticated user_id if missing
+    // Attach authenticated user_id if missing (service role — reliable after anon create)
     if (userId && !existingCart.user_id) {
-      await sb
-        .from("carts")
-        .update({
-          user_id: userId,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", existingCart.id);
+      await bindCartOwnerAndTouch(existingCart.id, userId);
     }
 
     console.log("🔧 Existing cart found with ID:", existingCart.id);
@@ -116,11 +110,14 @@ export class CartService {
   }
 
   private static async touchCart(cartId: string) {
-    const sb = await supabaseServer();
-    await sb
-      .from("carts")
-      .update({ updated_at: new Date().toISOString() })
-      .eq("id", cartId);
+    let userId: string | null = null;
+    try {
+      const user = await getSessionUser();
+      userId = user?.id ?? null;
+    } catch {
+      userId = null;
+    }
+    await bindCartOwnerAndTouch(cartId, userId);
   }
 
   static async getCart(): Promise<Cart | null> {

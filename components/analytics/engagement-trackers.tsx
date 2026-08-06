@@ -1,45 +1,67 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { usePathname } from "next/navigation";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 
 const SCROLL_THRESHOLDS = [25, 50, 75, 100] as const;
 
-type Props = {
-  page: string;
-};
-
 /**
- * Fires scroll_depth (25/50/75/100 once each) and time_on_page on unmount /
- * visibility hidden. Mount on PDP and /how-it-works.
+ * Fires scroll_depth (25/50/75/100 once each per page view) and time_on_page
+ * on unmount / visibility hidden / pagehide. Visible seconds only (pauses
+ * while the tab is hidden). Mount on PDP and /how-it-works.
+ *
+ * visitor_id + pact_internal_device tagging come from AnalyticsTracker.
  */
-export function EngagementTrackers({ page }: Props) {
+export function EngagementTrackers() {
+  const pathname = usePathname() || "/";
   const firedDepths = useRef(new Set<number>());
-  const startMs = useRef(
-    typeof performance !== "undefined" ? performance.now() : Date.now(),
-  );
+  const accumulatedMs = useRef(0);
+  const visibleSinceMs = useRef<number | null>(null);
   const timeSent = useRef(false);
 
   useEffect(() => {
     firedDepths.current = new Set();
+    accumulatedMs.current = 0;
     timeSent.current = false;
-    startMs.current =
+    visibleSinceMs.current =
       typeof performance !== "undefined" ? performance.now() : Date.now();
+
+    const now = () =>
+      typeof performance !== "undefined" ? performance.now() : Date.now();
+
+    const pauseVisibleClock = () => {
+      if (visibleSinceMs.current == null) return;
+      accumulatedMs.current += now() - visibleSinceMs.current;
+      visibleSinceMs.current = null;
+    };
+
+    const resumeVisibleClock = () => {
+      if (visibleSinceMs.current != null) return;
+      visibleSinceMs.current = now();
+    };
+
+    const visibleSeconds = () => {
+      let total = accumulatedMs.current;
+      if (visibleSinceMs.current != null) {
+        total += now() - visibleSinceMs.current;
+      }
+      return Math.max(0, Math.round(total / 1000));
+    };
 
     const sendTimeOnPage = () => {
       if (timeSent.current) return;
       timeSent.current = true;
-      const elapsed =
-        ((typeof performance !== "undefined" ? performance.now() : Date.now()) -
-          startMs.current) /
-        1000;
+      pauseVisibleClock();
       void AnalyticsTracker.trackEvent({
         eventType: "time_on_page",
         eventCategory: "engagement",
         metadata: {
-          seconds: Math.max(0, Math.round(elapsed)),
-          page,
+          seconds: visibleSeconds(),
+          path: pathname,
         },
+        // Survive navigation / tab close — normal supabase-js fetch is aborted.
+        keepalive: true,
       });
     };
 
@@ -58,26 +80,33 @@ export function EngagementTrackers({ page }: Props) {
           void AnalyticsTracker.trackEvent({
             eventType: "scroll_depth",
             eventCategory: "engagement",
-            metadata: { depth, page },
+            metadata: { depth, path: pathname },
           });
         }
       }
     };
 
     const onVisibility = () => {
-      if (document.visibilityState === "hidden") sendTimeOnPage();
+      if (document.visibilityState === "hidden") {
+        pauseVisibleClock();
+        sendTimeOnPage();
+      } else {
+        resumeVisibleClock();
+      }
     };
 
     window.addEventListener("scroll", onScroll, { passive: true });
     document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("pagehide", sendTimeOnPage);
     onScroll();
 
     return () => {
       window.removeEventListener("scroll", onScroll);
       document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("pagehide", sendTimeOnPage);
       sendTimeOnPage();
     };
-  }, [page]);
+  }, [pathname]);
 
   return null;
 }

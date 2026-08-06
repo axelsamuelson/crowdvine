@@ -157,10 +157,10 @@ export async function POST(request: Request) {
       }
     }
 
-    await supabase
-      .from("carts")
-      .update({ updated_at: new Date().toISOString() })
-      .eq("id", dbCartId);
+    const { bindCartOwnerAndTouch } = await import(
+      "@/lib/cart/reconcile-on-auth"
+    );
+    await bindCartOwnerAndTouch(dbCartId, userId);
 
     console.log("🔧 Item added/updated successfully");
 
