@@ -50,8 +50,6 @@ interface DiscountPriceLayoutProps {
   compactOnMobile: boolean;
   badgeRightOnMobile: boolean;
   badgeText: string;
-  /** Prefix member estimate so 1 kr drift vs checkout is not a trust problem. */
-  approxPrefix?: string;
 }
 
 /** Badge sits in the price column so its width matches the price, not price + strikethrough. */
@@ -68,13 +66,11 @@ function DiscountPriceLayout({
   compactOnMobile,
   badgeRightOnMobile,
   badgeText,
-  approxPrefix = "",
 }: DiscountPriceLayoutProps) {
   const primaryPrice = (
     <span className={className}>
       <span className="flex flex-col">
         <span className="whitespace-nowrap tabular-nums">
-          {approxPrefix}
           {displayPriceLabel}
         </span>
         {showVatLabel ? (
@@ -187,8 +183,6 @@ export function MemberPrice({
     percent: discountPercentage,
   });
 
-  const approxPrefix = t("common.approxPrefix");
-
   const discountLayoutProps = (
     displayPriceLabel: string,
     originalPriceLabel: string,
@@ -205,7 +199,6 @@ export function MemberPrice({
     compactOnMobile,
     badgeRightOnMobile,
     badgeText,
-    approxPrefix,
   });
 
   const parsedAmount =
