@@ -19,6 +19,7 @@ import { getLabelPosition } from "../lib/utils";
 import { Product } from "../lib/shopify/types";
 import { headers } from "next/headers";
 import { getSiteConfig } from "@/lib/site-config";
+import { getHomepageHeroImages } from "@/lib/actions/content";
 
 // Disable static generation for now - make it dynamic
 export const dynamic = "force-dynamic";
@@ -110,6 +111,8 @@ export default async function Home() {
 
   const [lastProduct, ...restProducts] = featuredProducts;
 
+  const heroImages = await getHomepageHeroImages().catch(() => undefined);
+
   const organizationJsonLd = {
     "@context": "https://schema.org",
     "@type": "Organization",
@@ -146,7 +149,7 @@ export default async function Home() {
       />
       <main>
         <HomeTasteQuizProvider enabled={quizWines.length > 0}>
-          {featuredProducts.length > 0 && <HomeHero />}
+          {featuredProducts.length > 0 && <HomeHero images={heroImages} />}
           {quizWines.length > 0 && (
             <HomeTasteQuizCollapsible
               wines={quizWines}

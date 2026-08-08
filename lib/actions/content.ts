@@ -1,9 +1,13 @@
 "use server";
 
-import { supabaseServer } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { revalidatePath } from "next/cache";
 import { getSiteUrl } from "@/lib/app-url";
+import {
+  HOMEPAGE_HERO_IMAGE_DEFAULTS,
+  HOMEPAGE_HERO_IMAGE_KEYS,
+  type HomepageHeroImageKey,
+} from "@/lib/homepage-hero-images";
 
 export interface SiteContent {
   id: string;
@@ -56,6 +60,19 @@ export async function getSiteContentByKey(key: string): Promise<string | null> {
   }
 }
 
+/** Resolved URLs for the three homepage hero image frames (CMS override or default). */
+export async function getHomepageHeroImages(): Promise<[string, string, string]> {
+  const values = await Promise.all(
+    HOMEPAGE_HERO_IMAGE_KEYS.map((key) => getSiteContentByKey(key)),
+  );
+
+  return [
+    values[0]?.trim() || HOMEPAGE_HERO_IMAGE_DEFAULTS[0],
+    values[1]?.trim() || HOMEPAGE_HERO_IMAGE_DEFAULTS[1],
+    values[2]?.trim() || HOMEPAGE_HERO_IMAGE_DEFAULTS[2],
+  ];
+}
+
 export async function updateSiteContent(
   key: string,
   value: string,
@@ -83,9 +100,16 @@ export async function updateSiteContent(
     if (updateError) throw new Error(updateError.message);
   } else {
     // Insert new record
-    const { error: insertError } = await sb
-      .from("site_content")
-      .insert({ key, value, updated_at: new Date().toISOString() });
+    const isHeroImage = HOMEPAGE_HERO_IMAGE_KEYS.includes(
+      key as HomepageHeroImageKey,
+    );
+    const { error: insertError } = await sb.from("site_content").insert({
+      key,
+      value,
+      type: isHeroImage ? "image" : "text",
+      description: isHeroImage ? `Homepage hero image (${key})` : null,
+      updated_at: new Date().toISOString(),
+    });
 
     if (insertError) throw new Error(insertError.message);
   }
@@ -93,19 +117,33 @@ export async function updateSiteContent(
   // Revalidate relevant paths
   revalidatePath("/admin/content");
   revalidatePath("/"); // Revalidate homepage
-  
+
   // För logo-nycklar, revalidate alla paths som kan visa loggan
-  const logoKeys = ["header_logo", "footer_logo", "alternative_logo", "header_logo_pact", "footer_logo_pact", "alternative_logo_pact", "header_logo_dirtywine", "footer_logo_dirtywine", "alternative_logo_dirtywine"];
+  const logoKeys = [
+    "header_logo",
+    "footer_logo",
+    "alternative_logo",
+    "header_logo_pact",
+    "footer_logo_pact",
+    "alternative_logo_pact",
+    "header_logo_dirtywine",
+    "footer_logo_dirtywine",
+    "alternative_logo_dirtywine",
+  ];
   if (logoKeys.includes(key)) {
     revalidatePath("/", "layout"); // Revalidate root layout
     // Force revalidation av API-routes
     try {
       await fetch(`${getSiteUrl()}/api/site-content/${key}`, {
-        method: 'GET',
-        headers: { 'Cache-Control': 'no-cache' },
+        method: "GET",
+        headers: { "Cache-Control": "no-cache" },
       });
     } catch (e) {
       // Ignore errors in revalidation fetch
     }
+  }
+
+  if (HOMEPAGE_HERO_IMAGE_KEYS.includes(key as HomepageHeroImageKey)) {
+    revalidatePath("/");
   }
 }

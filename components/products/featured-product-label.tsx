@@ -6,11 +6,14 @@ import { useLocalizedPaths } from "@/lib/hooks/use-localized-paths";
 import { cn } from "@/lib/utils";
 import { Product } from "@/lib/shopify/types";
 import { AddToCart, AddToCartButton } from "../cart/add-to-cart";
+import { ShopWineCasePicker } from "../cart/shop-wine-case-sheet";
 import { Suspense } from "react";
 import Link from "next/link";
 import { formatPrice } from "@/lib/shopify/utils";
 import { MemberPrice } from "@/components/ui/member-price";
 import { getProductListPriceSek } from "@/lib/price-breakdown";
+import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
+import { Button } from "@/components/ui/button";
 
 export function FeaturedProductLabel({
   product,
@@ -26,6 +29,62 @@ export function FeaturedProductLabel({
   const { t } = useTranslations();
   const paths = useLocalizedPaths();
   const listPriceSek = getProductListPriceSek(product);
+  const isB2B = useB2BPriceMode();
+  const productType = product.productType;
+  const isWineBox = productType === "wine-box";
+  // Match PLP: B2C producer wines use case purchase (6 bottles), not single-bottle ATC.
+  const shopCaseWineCta =
+    !isB2B && !isWineBox && productType === "wine" && Boolean(product.producerId);
+
+  const cartCta = shopCaseWineCta ? (
+    <Suspense
+      fallback={
+        <Button
+          type="button"
+          disabled
+          size={principal ? "lg" : "sm"}
+          className={cn(
+            "bg-black hover:bg-black/90 text-white border-black rounded-md",
+            principal ? "w-full" : "w-auto shrink-0",
+          )}
+        >
+          <span className={principal ? undefined : "text-xs"}>
+            {t("shop.addCase")}
+          </span>
+        </Button>
+      }
+    >
+      <ShopWineCasePicker
+        product={product}
+        size={principal ? "lg" : "sm"}
+        className={principal ? "w-full" : "w-auto shrink-0"}
+      />
+    </Suspense>
+  ) : (
+    <Suspense
+      fallback={
+        <AddToCartButton
+          className={
+            principal ? "flex gap-20 justify-between pr-2" : undefined
+          }
+          size={principal ? "lg" : undefined}
+          product={product}
+          iconOnly={!principal}
+          variant={principal ? undefined : "default"}
+        />
+      }
+    >
+      <AddToCart
+        className={
+          principal ? "flex gap-20 justify-between pr-2" : undefined
+        }
+        size={principal ? "lg" : undefined}
+        product={product}
+        iconOnly={!principal}
+        variant={principal ? undefined : "default"}
+      />
+    </Suspense>
+  );
 
   if (principal) {
     return (
@@ -80,21 +139,7 @@ export function FeaturedProductLabel({
             </span>
           )}
         </div>
-        <Suspense
-          fallback={
-            <AddToCartButton
-              className="flex gap-20 justify-between pr-2"
-              size="lg"
-              product={product}
-            />
-          }
-        >
-          <AddToCart
-            className="flex gap-20 justify-between pr-2"
-            size="lg"
-            product={product}
-          />
-        </Suspense>
+        {cartCta}
       </div>
     );
   }
@@ -106,7 +151,7 @@ export function FeaturedProductLabel({
         className,
       )}
     >
-      <div className="pr-6 leading-4 overflow-hidden">
+      <div className="pr-6 leading-4 overflow-hidden min-w-0 flex-1">
         <Link
           href={paths.product(product.handle)}
           className="inline-block w-full truncate text-base font-semibold opacity-80 mb-1.5"
@@ -136,13 +181,7 @@ export function FeaturedProductLabel({
           )}
         </div>
       </div>
-      <Suspense
-        fallback={
-          <AddToCartButton product={product} iconOnly variant="default" />
-        }
-      >
-        <AddToCart product={product} iconOnly variant="default" />
-      </Suspense>
+      {cartCta}
     </div>
   );
 }

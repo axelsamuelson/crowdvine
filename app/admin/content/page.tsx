@@ -21,6 +21,11 @@ import {
   SiteContent,
 } from "@/lib/actions/content";
 import {
+  HOMEPAGE_HERO_IMAGE_DEFAULTS,
+  HOMEPAGE_HERO_IMAGE_KEYS,
+  HOMEPAGE_HERO_IMAGE_LABELS,
+} from "@/lib/homepage-hero-images";
+import {
   FileText,
   Image,
   MapPin,
@@ -33,6 +38,18 @@ import { clearLogoCache } from "@/components/layout/header/logo-svg";
 import { clearFooterLogoCache } from "@/components/layout/footer-logo-svg";
 import { clearAlternativeLogoCache } from "@/components/layout/alternative-logo-svg";
 
+const emptyImageUploads = {
+  header_logo_pact: [] as File[],
+  footer_logo_pact: [] as File[],
+  alternative_logo_pact: [] as File[],
+  header_logo_dirtywine: [] as File[],
+  footer_logo_dirtywine: [] as File[],
+  alternative_logo_dirtywine: [] as File[],
+  homepage_hero_image_1: [] as File[],
+  homepage_hero_image_2: [] as File[],
+  homepage_hero_image_3: [] as File[],
+};
+
 export default function ContentPage() {
   const [content, setContent] = useState<SiteContent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,14 +57,8 @@ export default function ContentPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [formData, setFormData] = useState<Record<string, string>>({});
-  const [logoImages, setLogoImages] = useState<Record<string, File[]>>({
-    header_logo_pact: [],
-    footer_logo_pact: [],
-    alternative_logo_pact: [],
-    header_logo_dirtywine: [],
-    footer_logo_dirtywine: [],
-    alternative_logo_dirtywine: [],
-  });
+  const [logoImages, setLogoImages] =
+    useState<Record<string, File[]>>(emptyImageUploads);
 
   useEffect(() => {
     loadContent();
@@ -58,10 +69,15 @@ export default function ContentPage() {
       const data = await getSiteContent();
       setContent(data);
 
-      // Initialize form data
+      // Initialize form data (hero images fall back to static defaults in UI)
       const initialData: Record<string, string> = {};
       data.forEach((item) => {
         initialData[item.key] = item.value || "";
+      });
+      HOMEPAGE_HERO_IMAGE_KEYS.forEach((key, index) => {
+        if (!initialData[key]) {
+          initialData[key] = HOMEPAGE_HERO_IMAGE_DEFAULTS[index];
+        }
       });
       setFormData(initialData);
     } catch (err) {
@@ -431,6 +447,57 @@ export default function ContentPage() {
 
         <TabsContent value="homepage" className="space-y-6">
           <div className="grid grid-cols-1 gap-6">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">
+                Hero images
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                The three image frames on the homepage hero. Upload a new image
+                to replace each frame.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {HOMEPAGE_HERO_IMAGE_KEYS.map((key, index) => {
+                const label = HOMEPAGE_HERO_IMAGE_LABELS[key];
+                const previewSrc =
+                  formData[key]?.trim() || HOMEPAGE_HERO_IMAGE_DEFAULTS[index];
+                return (
+                  <Card key={key}>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-base">
+                        <Image className="h-5 w-5" />
+                        {label.title}
+                      </CardTitle>
+                      <CardDescription>{label.description}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="relative w-full aspect-[3/4] bg-gray-100 rounded-lg overflow-hidden">
+                        <img
+                          src={previewSrc}
+                          alt={label.title}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <ImageUpload
+                        images={logoImages[key] || []}
+                        onImagesChange={(images) =>
+                          setLogoImages((prev) => ({ ...prev, [key]: images }))
+                        }
+                      />
+                      <Button
+                        onClick={() => handleLogoUpload(key)}
+                        disabled={
+                          saving || (logoImages[key] || []).length === 0
+                        }
+                      >
+                        {saving ? "Uploading..." : "Upload image"}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+
             {/* Hero Title */}
             <Card>
               <CardHeader>
