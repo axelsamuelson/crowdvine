@@ -84,18 +84,18 @@ export function HomeHeroContent({
           transition={transition}
           className="flex flex-col gap-3 sm:flex-row sm:flex-wrap"
         >
+          <Link href={paths.shop} className={heroButtonPrimaryClassName}>
+            {t("nav.shopAll")}
+          </Link>
           {tasteQuizPanel ? (
             <button
               type="button"
               onClick={tasteQuizPanel.openTasteQuiz}
-              className={heroButtonPrimaryClassName}
+              className={heroButtonSecondaryClassName}
             >
               {t("tasteQuiz.intro.title")}
             </button>
           ) : null}
-          <Link href={paths.shop} className={heroButtonSecondaryClassName}>
-            {t("nav.shopAll")}
-          </Link>
         </motion.div>
       </motion.div>
     </div>
