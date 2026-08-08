@@ -14,6 +14,8 @@ import type { FirstTouch } from "./visitor-identity";
 export async function logUserEventServer(opts: {
   userId?: string | null;
   visitorId?: string | null;
+  /** ISO 3166-1 alpha-2 from pact_geo_country cookie. Never store IP. */
+  countryCode?: string | null;
   eventType: EventType;
   eventCategory: EventCategory;
   metadata?: Record<string, unknown>;
@@ -25,6 +27,11 @@ export async function logUserEventServer(opts: {
     const sb = getSupabaseAdmin();
     let metadata: Record<string, unknown> = { ...(opts.metadata ?? {}) };
     const visitorId = opts.visitorId?.trim() || null;
+    const countryRaw = opts.countryCode?.trim().toUpperCase() || null;
+    const countryCode =
+      countryRaw && /^[A-Z]{2}$/.test(countryRaw) && countryRaw !== "XX"
+        ? countryRaw
+        : null;
 
     if (
       opts.eventType === "reservation_completed" ||
@@ -58,35 +65,37 @@ export async function logUserEventServer(opts: {
       metadata = { ...metadata, internal: true };
     }
 
+    const row = {
+      user_id: opts.userId ?? null,
+      session_id: `server_${randomUUID()}`,
+      visitor_id: visitorId,
+      country_code: countryCode,
+      event_type: opts.eventType,
+      event_category: opts.eventCategory,
+      event_metadata: metadata,
+      page_url: null as string | null,
+      referrer: null as string | null,
+      user_agent: "server",
+    };
+
     await sb
       .from("user_events")
-      .insert({
-        user_id: opts.userId ?? null,
-        session_id: `server_${randomUUID()}`,
-        visitor_id: visitorId,
-        event_type: opts.eventType,
-        event_category: opts.eventCategory,
-        event_metadata: metadata,
-        page_url: null,
-        referrer: null,
-        user_agent: "server",
-      })
+      .insert(row)
       .then(({ error }) => {
         if (!error) return;
-        if (!/visitor_id|schema cache|Could not find/i.test(error.message || "")) {
+        if (
+          !/visitor_id|country_code|schema cache|Could not find/i.test(
+            error.message || "",
+          )
+        ) {
           console.error("logUserEventServer:", error.message);
           return;
         }
         // Pre-migration fallback
+        const { visitor_id: _v, country_code: _c, ...withoutNew } = row;
         void sb.from("user_events").insert({
-          user_id: opts.userId ?? null,
+          ...withoutNew,
           session_id: `server_${randomUUID()}`,
-          event_type: opts.eventType,
-          event_category: opts.eventCategory,
-          event_metadata: metadata,
-          page_url: null,
-          referrer: null,
-          user_agent: "server",
         });
       });
   } catch (e) {

@@ -15,8 +15,10 @@ const STEPS: {
 ];
 
 function formatWeek(weekStart: string): string {
-  const d = new Date(`${weekStart}T00:00:00.000Z`);
+  // week_start is already a Stockholm civil Monday (YYYY-MM-DD)
+  const d = new Date(`${weekStart}T12:00:00.000Z`);
   return d.toLocaleDateString("sv-SE", {
+    timeZone: "UTC",
     day: "numeric",
     month: "short",
   });

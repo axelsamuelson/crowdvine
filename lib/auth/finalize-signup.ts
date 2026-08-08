@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { logUserEventServer } from "@/lib/analytics/log-user-event-server";
 import {
   FIRST_TOUCH_KEY,
+  GEO_COUNTRY_COOKIE,
   VISITOR_ID_KEY,
   parseFirstTouchPayload,
 } from "@/lib/analytics/visitor-identity";
@@ -24,6 +25,7 @@ export async function finalizeSignupAfterAuth(opts: {
   /** Raw cookie header value or decoded visitor id */
   visitorId?: string | null;
   firstTouchCookie?: string | null;
+  countryCode?: string | null;
   cartSessionId?: string | null;
   source: FinalizeSignupSource;
   /** When false, skip analytics (caller emits client-side). Default true. */
@@ -69,6 +71,7 @@ export async function finalizeSignupAfterAuth(opts: {
       void logUserEventServer({
         userId: opts.userId,
         visitorId,
+        countryCode: opts.countryCode ?? null,
         firstTouch,
         eventType: "signup_completed",
         eventCategory: "auth",
@@ -94,12 +97,21 @@ export async function finalizeSignupAfterAuth(opts: {
 export function signupCookiesFromRequest(request: NextRequest): {
   visitorId: string | null;
   firstTouchCookie: string | null;
+  countryCode: string | null;
   cartSessionId: string | null;
 } {
   const visitorIdRaw = request.cookies.get(VISITOR_ID_KEY)?.value ?? null;
+  const countryRaw = request.cookies.get(GEO_COUNTRY_COOKIE)?.value ?? null;
+  const countryCode =
+    countryRaw &&
+    /^[A-Z]{2}$/i.test(countryRaw.trim()) &&
+    countryRaw.trim().toUpperCase() !== "XX"
+      ? countryRaw.trim().toUpperCase()
+      : null;
   return {
     visitorId: visitorIdRaw,
     firstTouchCookie: request.cookies.get(FIRST_TOUCH_KEY)?.value ?? null,
+    countryCode,
     cartSessionId: request.cookies.get("cv_cart_id")?.value ?? null,
   };
 }

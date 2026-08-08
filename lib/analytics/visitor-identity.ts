@@ -1,7 +1,17 @@
+import {
+  analyticsChannel,
+  type AnalyticsChannel,
+} from "@/lib/analytics/analytics-channel";
+
 /** Stable browser visitor id (localStorage). Never rotated. */
 export const VISITOR_ID_KEY = "pact_visitor_id";
 /** First-touch attribution blob (localStorage). Written once, never overwritten. */
 export const FIRST_TOUCH_KEY = "pact_first_touch";
+/**
+ * ISO 3166-1 alpha-2 country from Vercel geo header (set by middleware).
+ * Session-scoped cookie — browser cannot read x-vercel-ip-country directly.
+ */
+export const GEO_COUNTRY_COOKIE = "pact_geo_country";
 
 export type FirstTouch = {
   first_referrer: string;
@@ -9,6 +19,10 @@ export type FirstTouch = {
   first_utm_source: string | null;
   first_utm_medium: string | null;
   first_utm_campaign: string | null;
+  /** ISO 3166-1 alpha-2 at first visit; null if geo cookie unavailable. */
+  first_country: string | null;
+  /** Acquisition channel at first visit (mirrors analytics_channel). */
+  first_channel: AnalyticsChannel;
   first_seen_at: string;
 };
 
@@ -40,6 +54,15 @@ function readCookie(name: string): string | null {
   } catch {
     return null;
   }
+}
+
+/** Read middleware-set geo country (ISO 3166-1 alpha-2) or null. */
+export function readGeoCountryCode(): string | null {
+  const raw = readCookie(GEO_COUNTRY_COOKIE);
+  if (!raw) return null;
+  const code = raw.trim().toUpperCase();
+  if (!/^[A-Z]{2}$/.test(code) || code === "XX") return null;
+  return code;
 }
 
 function utmFromSearch(search: string): {
@@ -91,18 +114,44 @@ function parseFirstTouch(raw: string | null): FirstTouch | null {
     ) {
       return null;
     }
+    const first_country =
+      typeof obj.first_country === "string" &&
+      /^[A-Z]{2}$/i.test(obj.first_country.trim())
+        ? obj.first_country.trim().toUpperCase()
+        : null;
+    const first_referrer =
+      typeof obj.first_referrer === "string" ? obj.first_referrer : "";
+    const first_utm_source =
+      typeof obj.first_utm_source === "string" ? obj.first_utm_source : null;
+    const first_utm_medium =
+      typeof obj.first_utm_medium === "string" ? obj.first_utm_medium : null;
+    const first_utm_campaign =
+      typeof obj.first_utm_campaign === "string"
+        ? obj.first_utm_campaign
+        : null;
+    const storedChannel =
+      typeof obj.first_channel === "string" ? obj.first_channel.trim() : "";
+    const first_channel: AnalyticsChannel =
+      storedChannel &&
+      [
+        "internal",
+        "paid",
+        "social",
+        "organic",
+        "ai",
+        "referral",
+        "direct",
+      ].includes(storedChannel)
+        ? (storedChannel as AnalyticsChannel)
+        : analyticsChannel(first_referrer, first_utm_source, first_utm_medium);
     return {
-      first_referrer:
-        typeof obj.first_referrer === "string" ? obj.first_referrer : "",
+      first_referrer,
       first_landing_page: obj.first_landing_page,
-      first_utm_source:
-        typeof obj.first_utm_source === "string" ? obj.first_utm_source : null,
-      first_utm_medium:
-        typeof obj.first_utm_medium === "string" ? obj.first_utm_medium : null,
-      first_utm_campaign:
-        typeof obj.first_utm_campaign === "string"
-          ? obj.first_utm_campaign
-          : null,
+      first_utm_source,
+      first_utm_medium,
+      first_utm_campaign,
+      first_country,
+      first_channel,
       first_seen_at: obj.first_seen_at,
     };
   } catch {
@@ -135,6 +184,8 @@ export function getOrCreateFirstTouch(): FirstTouch | null {
       first_utm_source: utm.source,
       first_utm_medium: utm.medium,
       first_utm_campaign: utm.campaign,
+      first_country: readGeoCountryCode(),
+      first_channel: analyticsChannel(first_referrer, utm.source, utm.medium),
       first_seen_at: new Date().toISOString(),
     };
     localStorage.setItem(FIRST_TOUCH_KEY, JSON.stringify(touch));

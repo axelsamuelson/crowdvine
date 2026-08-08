@@ -38,6 +38,7 @@ export async function POST(request: NextRequest) {
     email: user.email ?? null,
     visitorId: cookies.visitorId,
     firstTouchCookie: cookies.firstTouchCookie,
+    countryCode: cookies.countryCode,
     cartSessionId: cookies.cartSessionId,
     source,
     emitSignupCompleted: body?.emit_signup_completed !== false,

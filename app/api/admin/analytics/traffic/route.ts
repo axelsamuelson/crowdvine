@@ -5,60 +5,22 @@ import {
   dominantSessionSite,
   parseSiteParam,
 } from "@/lib/analytics/analytics-site";
-
-type Channel = "Organic" | "Social" | "Referral" | "Direct";
+import {
+  ANALYTICS_CHANNELS,
+  analyticsChannel,
+  parseChannelFilter,
+  utmFromPageUrl,
+  type AnalyticsChannel,
+} from "@/lib/analytics/analytics-channel";
+import { normalizeUtmValue } from "@/lib/analytics/utm-normalize";
+import {
+  eachDateKeyInclusive,
+  stockholmTodayDateKey,
+  toStockholmDateKey,
+} from "@/lib/analytics/stockholm-time";
 
 function toDateKey(iso: string): string {
-  return iso.slice(0, 10);
-}
-
-function hostnameFromReferrer(referrer: string | null | undefined): string | null {
-  if (!referrer || !referrer.trim()) return null;
-  try {
-    const u = new URL(referrer);
-    return u.hostname.toLowerCase().replace(/^www\./, "");
-  } catch {
-    return null;
-  }
-}
-
-function classifyChannel(
-  referrer: string | null | undefined,
-  pageHost?: string | null,
-): Channel {
-  const host = hostnameFromReferrer(referrer);
-  if (!host) return "Direct";
-  if (pageHost && (host === pageHost || host.endsWith(`.${pageHost}`))) {
-    return "Direct";
-  }
-  if (
-    host.includes("google") ||
-    host.includes("bing") ||
-    host.includes("duckduckgo") ||
-    host.includes("yahoo") ||
-    host.includes("ecosia") ||
-    host.includes("baidu") ||
-    host.includes("yandex")
-  ) {
-    return "Organic";
-  }
-  if (
-    host.includes("facebook") ||
-    host.includes("instagram") ||
-    host.includes("tiktok") ||
-    host.includes("twitter") ||
-    host === "x.com" ||
-    host === "t.co" ||
-    host.includes("linkedin") ||
-    host.includes("reddit") ||
-    host.includes("youtube") ||
-    host.includes("youtu.be") ||
-    host.includes("pinterest") ||
-    host.includes("threads")
-  ) {
-    return "Social";
-  }
-  return "Referral";
+  return toStockholmDateKey(iso);
 }
 
 function pathFromPageUrl(pageUrl: string | null | undefined, metadata: unknown): string {
@@ -70,6 +32,128 @@ function pathFromPageUrl(pageUrl: string | null | undefined, metadata: unknown):
   } catch {
     return pageUrl.startsWith("/") ? pageUrl : "/";
   }
+}
+
+function normalizeCountryCode(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  const code = raw.trim().toUpperCase();
+  if (!/^[A-Z]{2}$/.test(code) || code === "XX") return null;
+  return code;
+}
+
+function parseCountryFilter(raw: string | null): string | null {
+  if (!raw || raw === "all") return null;
+  if (raw === "Unknown") return "Unknown";
+  return normalizeCountryCode(raw);
+}
+
+function visitorKey(e: {
+  visitor_id?: string | null;
+  session_id: string;
+}): string {
+  return typeof e.visitor_id === "string" && e.visitor_id.trim()
+    ? e.visitor_id.trim()
+    : `session:${e.session_id}`;
+}
+
+function utmFromMetadata(metadata: unknown): {
+  source: string | null;
+  medium: string | null;
+  campaign: string | null;
+} {
+  const md =
+    metadata && typeof metadata === "object"
+      ? (metadata as Record<string, unknown>)
+      : {};
+  const firstTouch =
+    md.first_touch && typeof md.first_touch === "object"
+      ? (md.first_touch as Record<string, unknown>)
+      : null;
+  const pick = (obj: Record<string, unknown> | null, k: string) =>
+    obj && typeof obj[k] === "string" && (obj[k] as string).trim()
+      ? (obj[k] as string).trim()
+      : null;
+  return {
+    source:
+      pick(md, "utm_source") ||
+      pick(md, "first_utm_source") ||
+      pick(firstTouch, "first_utm_source"),
+    medium:
+      pick(md, "utm_medium") ||
+      pick(md, "first_utm_medium") ||
+      pick(firstTouch, "first_utm_medium"),
+    campaign:
+      pick(md, "utm_campaign") ||
+      pick(md, "first_utm_campaign") ||
+      pick(firstTouch, "first_utm_campaign"),
+  };
+}
+
+function resolveSessionCampaign(e: {
+  page_url?: string | null;
+  event_metadata?: unknown;
+}): string | null {
+  const fromMeta = utmFromMetadata(e.event_metadata);
+  const fromUrl = utmFromPageUrl(e.page_url);
+  const raw = fromMeta.campaign || fromUrl.campaign;
+  if (!raw) return null;
+  const normalized = normalizeUtmValue(raw);
+  return normalized || null;
+}
+
+function classifyEventChannel(e: {
+  channel?: string | null;
+  referrer?: string | null;
+  page_url?: string | null;
+  event_metadata?: unknown;
+}): AnalyticsChannel {
+  if (
+    typeof e.channel === "string" &&
+    (ANALYTICS_CHANNELS as readonly string[]).includes(e.channel)
+  ) {
+    return e.channel as AnalyticsChannel;
+  }
+  const fromMeta = utmFromMetadata(e.event_metadata);
+  const fromUrl = utmFromPageUrl(e.page_url);
+  return analyticsChannel(
+    e.referrer,
+    fromMeta.source || fromUrl.source,
+    fromMeta.medium || fromUrl.medium,
+  );
+}
+
+type FunnelAgg = {
+  sessions: Set<string>;
+  visitors: Set<string>;
+  pdp: Set<string>;
+  cart: Set<string>;
+  reservation: Set<string>;
+};
+
+function emptyFunnel(): FunnelAgg {
+  return {
+    sessions: new Set(),
+    visitors: new Set(),
+    pdp: new Set(),
+    cart: new Set(),
+    reservation: new Set(),
+  };
+}
+
+function funnelToRow(
+  key: string,
+  keyName: "channel" | "country" | "campaign",
+  agg: FunnelAgg,
+) {
+  const sessions = agg.sessions.size;
+  return {
+    [keyName]: key,
+    sessions,
+    visitors: agg.visitors.size,
+    pdp_rate: sessions > 0 ? agg.pdp.size / sessions : 0,
+    add_to_cart_rate: sessions > 0 ? agg.cart.size / sessions : 0,
+    reservations: agg.reservation.size,
+  };
 }
 
 export async function GET(request: Request) {
@@ -84,6 +168,8 @@ export async function GET(request: Request) {
     ? Math.min(365, Math.max(7, Math.round(daysRaw)))
     : 90;
   const site = parseSiteParam(searchParams.get("site"));
+  const countryFilter = parseCountryFilter(searchParams.get("country"));
+  const channelFilter = parseChannelFilter(searchParams.get("channel"));
 
   const sb = getSupabaseAdmin();
   const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
@@ -94,6 +180,8 @@ export async function GET(request: Request) {
     type TrafficEvent = {
       session_id: string;
       visitor_id?: string | null;
+      country_code?: string | null;
+      channel?: string | null;
       event_type: string;
       event_metadata: unknown;
       page_url: string | null;
@@ -135,22 +223,27 @@ export async function GET(request: Request) {
     const cleanExtra =
       site === "all" ? undefined : (q: any) => q.eq("site", site);
 
-    let clean = await fetchPaged(
-      "analytics_sessions_clean",
+    const selects = [
+      "session_id, visitor_id, country_code, channel, event_type, event_metadata, page_url, referrer, created_at, site",
+      "session_id, visitor_id, country_code, event_type, event_metadata, page_url, referrer, created_at, site",
       "session_id, visitor_id, event_type, event_metadata, page_url, referrer, created_at, site",
-      cleanExtra,
-    );
+      "session_id, event_type, event_metadata, page_url, referrer, created_at, site",
+    ];
 
-    // Pre-migration: visitor_id column may not exist yet.
-    if (
-      clean.error &&
-      /visitor_id|schema cache|Could not find/i.test(clean.error.message || "")
-    ) {
-      clean = await fetchPaged(
-        "analytics_sessions_clean",
-        "session_id, event_type, event_metadata, page_url, referrer, created_at, site",
-        cleanExtra,
-      );
+    let clean: { rows: TrafficEvent[]; error: { message: string } | null } = {
+      rows: [],
+      error: { message: "not started" },
+    };
+    for (const cols of selects) {
+      clean = await fetchPaged("analytics_sessions_clean", cols, cleanExtra);
+      if (!clean.error) break;
+      if (
+        !/channel|country_code|visitor_id|schema cache|Could not find/i.test(
+          clean.error.message || "",
+        )
+      ) {
+        break;
+      }
     }
 
     if (clean.error) {
@@ -158,22 +251,27 @@ export async function GET(request: Request) {
         "[traffic] analytics_sessions_clean unavailable, falling back:",
         clean.error.message,
       );
-      let fallback = await fetchPaged(
-        "user_events",
+      const fallbackSelects = [
+        "session_id, visitor_id, country_code, event_type, event_metadata, page_url, referrer, created_at, user_agent, user_id",
         "session_id, visitor_id, event_type, event_metadata, page_url, referrer, created_at, user_agent, user_id",
-        (q) => q.not("session_id", "like", "server_%"),
-      );
-      if (
-        fallback.error &&
-        /visitor_id|schema cache|Could not find/i.test(
-          fallback.error.message || "",
-        )
-      ) {
-        fallback = await fetchPaged(
-          "user_events",
-          "session_id, event_type, event_metadata, page_url, referrer, created_at, user_agent, user_id",
-          (q) => q.not("session_id", "like", "server_%"),
+        "session_id, event_type, event_metadata, page_url, referrer, created_at, user_agent, user_id",
+      ];
+      let fallback: {
+        rows: TrafficEvent[];
+        error: { message: string } | null;
+      } = { rows: [], error: { message: "not started" } };
+      for (const cols of fallbackSelects) {
+        fallback = await fetchPaged("user_events", cols, (q) =>
+          q.not("session_id", "like", "server_%"),
         );
+        if (!fallback.error) break;
+        if (
+          !/country_code|visitor_id|schema cache|Could not find/i.test(
+            fallback.error.message || "",
+          )
+        ) {
+          break;
+        }
       }
       if (fallback.error) throw fallback.error;
       const internalSessions = new Set<string>();
@@ -213,7 +311,133 @@ export async function GET(request: Request) {
       events = clean.rows;
     }
 
-    const rows = events;
+    const allRows = events;
+
+    const allPageViewDates = allRows
+      .filter((e) => e.event_type === "page_view")
+      .map((e) => toDateKey(String(e.created_at)));
+    const globalFirstPageViewDate =
+      allPageViewDates.length > 0
+        ? allPageViewDates.reduce((a, b) => (a < b ? a : b))
+        : null;
+
+    const sessionCountry = new Map<string, string | null>();
+    const sessionChannel = new Map<string, AnalyticsChannel>();
+    const sessionCampaign = new Map<string, string | null>();
+    const sessionVisitors = new Map<string, string>();
+    const sessionHasPdp = new Set<string>();
+    const sessionHasCart = new Set<string>();
+    const sessionHasReservation = new Set<string>();
+
+    for (const e of allRows) {
+      const day = toDateKey(String(e.created_at));
+      if (globalFirstPageViewDate && day < globalFirstPageViewDate) continue;
+      const sid = String(e.session_id);
+
+      if (!sessionChannel.has(sid)) {
+        // First event in chronological fetch order (rows ordered by created_at ASC)
+        sessionChannel.set(sid, classifyEventChannel(e));
+        sessionCampaign.set(sid, resolveSessionCampaign(e));
+      }
+
+      if (!sessionCountry.has(sid)) {
+        sessionCountry.set(sid, null);
+      }
+      if (sessionCountry.get(sid) == null) {
+        const cc = normalizeCountryCode(e.country_code);
+        if (cc) sessionCountry.set(sid, cc);
+      }
+
+      if (!sessionVisitors.has(sid)) {
+        sessionVisitors.set(sid, visitorKey(e));
+      }
+      if (e.event_type === "product_viewed") sessionHasPdp.add(sid);
+      if (e.event_type === "add_to_cart") sessionHasCart.add(sid);
+      if (e.event_type === "reservation_completed") {
+        sessionHasReservation.add(sid);
+      }
+    }
+
+    const matchesCountry = (sid: string) => {
+      if (countryFilter == null) return true;
+      const cc = sessionCountry.get(sid) ?? null;
+      if (countryFilter === "Unknown") return cc == null;
+      return cc === countryFilter;
+    };
+
+    const matchesChannel = (sid: string) => {
+      if (channelFilter == null) return true;
+      return sessionChannel.get(sid) === channelFilter;
+    };
+
+    const addSessionToFunnel = (bucket: FunnelAgg, sid: string) => {
+      bucket.sessions.add(sid);
+      bucket.visitors.add(sessionVisitors.get(sid) ?? `session:${sid}`);
+      if (sessionHasPdp.has(sid)) bucket.pdp.add(sid);
+      if (sessionHasCart.has(sid)) bucket.cart.add(sid);
+      if (sessionHasReservation.has(sid)) bucket.reservation.add(sid);
+    };
+
+    // Channel breakdown respects country (+ site) filter
+    const byChannel = new Map<string, FunnelAgg>();
+    for (const ch of ANALYTICS_CHANNELS) byChannel.set(ch, emptyFunnel());
+    for (const [sid, ch] of sessionChannel) {
+      if (!matchesCountry(sid)) continue;
+      const bucket = byChannel.get(ch) ?? emptyFunnel();
+      if (!byChannel.has(ch)) byChannel.set(ch, bucket);
+      addSessionToFunnel(bucket, sid);
+    }
+    const channelRows = ANALYTICS_CHANNELS.map((ch) =>
+      funnelToRow(ch, "channel", byChannel.get(ch) ?? emptyFunnel()),
+    ).sort(
+      (a, b) =>
+        (b as { sessions: number }).sessions -
+        (a as { sessions: number }).sessions,
+    );
+
+    // Country breakdown respects channel (+ site) filter
+    const byCountry = new Map<string, FunnelAgg>();
+    for (const [sid, cc] of sessionCountry) {
+      if (!matchesChannel(sid)) continue;
+      if (!sessionChannel.has(sid)) continue;
+      const key = cc ?? "Unknown";
+      if (!byCountry.has(key)) byCountry.set(key, emptyFunnel());
+      addSessionToFunnel(byCountry.get(key)!, sid);
+    }
+    const countryRows = Array.from(byCountry.entries())
+      .map(([country, agg]) => funnelToRow(country, "country", agg))
+      .sort(
+        (a, b) =>
+          (b as { sessions: number }).sessions -
+          (a as { sessions: number }).sessions,
+      );
+
+    // Campaign breakdown: sessions with utm_campaign on first event
+    const byCampaign = new Map<string, FunnelAgg>();
+    for (const [sid, campaign] of sessionCampaign) {
+      if (!campaign) continue;
+      if (!matchesCountry(sid) || !matchesChannel(sid)) continue;
+      if (!byCampaign.has(campaign)) byCampaign.set(campaign, emptyFunnel());
+      addSessionToFunnel(byCampaign.get(campaign)!, sid);
+    }
+    const campaignRows = Array.from(byCampaign.entries())
+      .map(([campaign, agg]) => funnelToRow(campaign, "campaign", agg))
+      .sort(
+        (a, b) =>
+          (b as { sessions: number }).sessions -
+          (a as { sessions: number }).sessions,
+      );
+
+    // Combined filters for chart / top pages / totals
+    const filteredSessionIds = new Set(
+      [...sessionChannel.keys()].filter(
+        (sid) => matchesCountry(sid) && matchesChannel(sid),
+      ),
+    );
+
+    const rows = allRows.filter((e) =>
+      filteredSessionIds.has(String(e.session_id)),
+    );
 
     const pageViewDates = rows
       .filter((e) => e.event_type === "page_view")
@@ -221,7 +445,7 @@ export async function GET(request: Request) {
     const firstPageViewDate =
       pageViewDates.length > 0
         ? pageViewDates.reduce((a, b) => (a < b ? a : b))
-        : null;
+        : globalFirstPageViewDate;
 
     const dailySessionSets = new Map<string, Set<string>>();
     const dailyVisitorSets = new Map<string, Set<string>>();
@@ -231,18 +455,12 @@ export async function GET(request: Request) {
       if (!dailySessionSets.has(day)) dailySessionSets.set(day, new Set());
       if (!dailyVisitorSets.has(day)) dailyVisitorSets.set(day, new Set());
       dailySessionSets.get(day)!.add(String(e.session_id));
-      const vid =
-        typeof e.visitor_id === "string" && e.visitor_id.trim()
-          ? e.visitor_id.trim()
-          : `session:${e.session_id}`;
-      dailyVisitorSets.get(day)!.add(vid);
+      dailyVisitorSets.get(day)!.add(visitorKey(e));
     }
 
-    const seriesStart = firstPageViewDate
-      ? new Date(`${firstPageViewDate}T00:00:00.000Z`)
-      : since;
-    const today = new Date();
-    today.setUTCHours(0, 0, 0, 0);
+    const todayKey = stockholmTodayDateKey();
+    const seriesStartKey =
+      firstPageViewDate || toStockholmDateKey(since.toISOString());
 
     const daily: {
       date: string;
@@ -252,12 +470,7 @@ export async function GET(request: Request) {
     }[] = [];
     const visitorValues: number[] = [];
 
-    for (
-      let d = new Date(seriesStart);
-      d <= today;
-      d = new Date(d.getTime() + 24 * 60 * 60 * 1000)
-    ) {
-      const key = d.toISOString().slice(0, 10);
+    for (const key of eachDateKeyInclusive(seriesStartKey, todayKey)) {
       if (firstPageViewDate && key < firstPageViewDate) continue;
       const visitors = dailyVisitorSets.get(key)?.size ?? 0;
       const sessions = dailySessionSets.get(key)?.size ?? 0;
@@ -270,44 +483,6 @@ export async function GET(request: Request) {
           : null;
       daily.push({ date: key, visitors, sessions, rolling7 });
     }
-
-    const sessionFirst = new Map<
-      string,
-      { referrer: string | null; pageUrl: string | null }
-    >();
-    for (const e of rows) {
-      const day = toDateKey(String(e.created_at));
-      if (firstPageViewDate && day < firstPageViewDate) continue;
-      const sid = String(e.session_id);
-      if (sessionFirst.has(sid)) continue;
-      sessionFirst.set(sid, {
-        referrer: (e.referrer as string) || null,
-        pageUrl: (e.page_url as string) || null,
-      });
-    }
-
-    const channelCounts: Record<Channel, number> = {
-      Organic: 0,
-      Social: 0,
-      Referral: 0,
-      Direct: 0,
-    };
-    for (const { referrer, pageUrl } of sessionFirst.values()) {
-      let pageHost: string | null = null;
-      try {
-        if (pageUrl) pageHost = new URL(pageUrl).hostname.replace(/^www\./, "");
-      } catch {
-        pageHost = null;
-      }
-      channelCounts[classifyChannel(referrer, pageHost)] += 1;
-    }
-
-    const channels = (Object.keys(channelCounts) as Channel[]).map(
-      (name) => ({
-        channel: name,
-        sessions: channelCounts[name],
-      }),
-    );
 
     const pageCounts = new Map<string, number>();
     for (const e of rows) {
@@ -324,12 +499,13 @@ export async function GET(request: Request) {
       .sort((a, b) => b.views - a.views)
       .slice(0, 25);
 
-    const rangeStartDate = firstPageViewDate || sinceIso.slice(0, 10);
+    const rangeStartDate =
+      firstPageViewDate || toStockholmDateKey(sinceIso);
     const { data: annotations, error: annErr } = await sb
       .from("admin_analytics_annotations")
       .select("id, date, label, category, created_at")
       .gte("date", rangeStartDate)
-      .lte("date", today.toISOString().slice(0, 10))
+      .lte("date", todayKey)
       .order("date", { ascending: true });
 
     if (annErr) {
@@ -339,6 +515,8 @@ export async function GET(request: Request) {
     return NextResponse.json({
       days,
       site,
+      country: countryFilter,
+      channel: channelFilter,
       firstPageViewDate,
       daily,
       totals: {
@@ -347,25 +525,15 @@ export async function GET(request: Request) {
           for (const e of rows) {
             const day = toDateKey(String(e.created_at));
             if (firstPageViewDate && day < firstPageViewDate) continue;
-            const vid =
-              typeof e.visitor_id === "string" && e.visitor_id.trim()
-                ? e.visitor_id.trim()
-                : `session:${e.session_id}`;
-            set.add(vid);
+            set.add(visitorKey(e));
           }
           return set.size;
         })(),
-        sessions: (() => {
-          const set = new Set<string>();
-          for (const e of rows) {
-            const day = toDateKey(String(e.created_at));
-            if (firstPageViewDate && day < firstPageViewDate) continue;
-            set.add(String(e.session_id));
-          }
-          return set.size;
-        })(),
+        sessions: filteredSessionIds.size,
       },
-      channels,
+      channels: channelRows,
+      countries: countryRows,
+      campaigns: campaignRows,
       topPages,
       annotations: annErr ? [] : (annotations ?? []),
       annotationsError: annErr

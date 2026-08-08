@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { Settings } from "lucide-react";
+import { Link2, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AnalyticsDashboard } from "./analytics-dashboard";
 export const dynamic = "force-dynamic";
@@ -17,16 +17,28 @@ export default async function AnalyticsPage() {
             Track user behavior, conversion funnels, and identify bottlenecks
           </p>
         </div>
-        <Button
-          asChild
-          variant="outline"
-          className="shrink-0 border-gray-200 dark:border-zinc-700"
-        >
-          <Link href="/admin/analytics/settings">
-            <Settings className="mr-2 size-4" aria-hidden />
-            Settings
-          </Link>
-        </Button>
+        <div className="flex flex-wrap gap-2 shrink-0">
+          <Button
+            asChild
+            variant="outline"
+            className="border-gray-200 dark:border-zinc-700"
+          >
+            <Link href="/admin/analytics/links">
+              <Link2 className="mr-2 size-4" aria-hidden />
+              UTM links
+            </Link>
+          </Button>
+          <Button
+            asChild
+            variant="outline"
+            className="border-gray-200 dark:border-zinc-700"
+          >
+            <Link href="/admin/analytics/settings">
+              <Settings className="mr-2 size-4" aria-hidden />
+              Settings
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <Suspense

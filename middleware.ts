@@ -20,8 +20,32 @@ import {
   redirectLocalePathMismatch,
 } from "@/lib/i18n/locale-path-redirect";
 import { localeFromShopPath } from "@/lib/i18n/shop-path-locale";
+import { GEO_COUNTRY_COOKIE } from "@/lib/analytics/visitor-identity";
 
 const LOCALE_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
+
+/** ISO 3166-1 alpha-2 from Vercel; XX = unknown. Session cookie only — no IP. */
+function applyGeoCountryCookie(req: NextRequest, res: NextResponse): void {
+  const raw = req.headers.get("x-vercel-ip-country");
+  if (!raw) return;
+  const code = raw.trim().toUpperCase();
+  if (!/^[A-Z]{2}$/.test(code) || code === "XX") return;
+  const current = req.cookies.get(GEO_COUNTRY_COOKIE)?.value?.toUpperCase();
+  if (current === code) return;
+  res.cookies.set(GEO_COUNTRY_COOKIE, code, {
+    path: "/",
+    sameSite: "lax",
+    // Session-scoped (no maxAge) — cleared when the browser session ends.
+  });
+}
+
+function withGeoCountryCookie(
+  req: NextRequest,
+  res: NextResponse,
+): NextResponse {
+  applyGeoCountryCookie(req, res);
+  return res;
+}
 
 export async function middleware(req: NextRequest) {
   try {
@@ -62,7 +86,7 @@ function nextWithPathname(req: NextRequest): NextResponse {
     }
   }
 
-  return res;
+  return withGeoCountryCookie(req, res);
 }
 
 async function runMiddleware(req: NextRequest) {
@@ -191,7 +215,7 @@ async function runMiddleware(req: NextRequest) {
       } catch {
         /* cookies cleared via signOut cookie handlers when possible */
       }
-      return res;
+      return withGeoCountryCookie(req, res);
     }
     console.warn("MIDDLEWARE: auth.getUser failed:", userError.message);
   } else {
@@ -200,7 +224,7 @@ async function runMiddleware(req: NextRequest) {
 
   // Public routes: allow through (after optional stale-session cleanup above).
   if (isPublic) {
-    return res;
+    return withGeoCountryCookie(req, res);
   }
 
   const adminAuthCookie = req.cookies.get("admin-auth")?.value;
@@ -210,7 +234,7 @@ async function runMiddleware(req: NextRequest) {
     // dirtywine.se / localhost ?b2b=1: no login required – allow access without auth
     if (onDirtywineSite && !isAdminPath) {
       console.log("✅ MIDDLEWARE: Dirty Wine site – allowing without login:", pathname);
-      return res;
+      return withGeoCountryCookie(req, res);
     }
 
     // /admin: must match profiles (role / roles). Do not trust admin-auth cookies alone — they outlive demotions.
@@ -227,7 +251,7 @@ async function runMiddleware(req: NextRequest) {
           );
           return NextResponse.redirect(new URL("/", req.url));
         }
-        return res;
+        return withGeoCountryCookie(req, res);
       }
       // Legacy: /api/admin/auth sets cookies only; browser may not have Supabase session yet
       if (adminAuthCookie === "true" && adminEmailCookie) {
@@ -239,7 +263,7 @@ async function runMiddleware(req: NextRequest) {
             .eq("email", adminEmailCookie)
             .maybeSingle();
           if (isPlatformAdminProfile(p)) {
-            return res;
+            return withGeoCountryCookie(req, res);
           }
         } catch (e) {
           console.error("MIDDLEWARE: /admin cookie verify failed:", e);
@@ -327,7 +351,7 @@ async function runMiddleware(req: NextRequest) {
     pathname,
   );
 
-  return res;
+  return withGeoCountryCookie(req, res);
 }
 
 /** Legacy ?fgrape= query on main shop → grape PLP (301). */

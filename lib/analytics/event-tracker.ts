@@ -2,6 +2,7 @@ import { isInternalDevice } from "@/lib/analytics/internal-device";
 import {
   ensureVisitorIdentity,
   readFirstTouchForMetadata,
+  readGeoCountryCode,
 } from "@/lib/analytics/visitor-identity";
 import { isStaleRefreshTokenError, isAuthNetworkError } from "@/lib/auth/session-errors";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -127,6 +128,7 @@ export class AnalyticsTracker {
       /localhost|127\.0\.0\.1/i.test(rawReferrer) ? "" : rawReferrer;
 
     const { visitorId } = ensureVisitorIdentity();
+    const countryCode = readGeoCountryCode();
 
     let eventMetadata: Record<string, unknown> = { ...metadata };
     if (
@@ -186,6 +188,7 @@ export class AnalyticsTracker {
       user_id: userId,
       session_id: this.getSessionId(),
       visitor_id: visitorId || null,
+      country_code: countryCode,
       event_type: eventType,
       event_category: eventCategory,
       event_metadata: eventMetadata,
@@ -227,10 +230,21 @@ export class AnalyticsTracker {
       const { error } = await supabase.from("user_events").insert(eventData);
       if (error) {
         const m = error.message || "";
-        // Pre-migration: visitor_id column may not exist yet.
-        if (/visitor_id|schema cache|Could not find/i.test(m)) {
-          const { visitor_id: _omit, ...withoutVisitor } = eventData;
-          const retry = await supabase.from("user_events").insert(withoutVisitor);
+        // Pre-migration: visitor_id / country_code columns may not exist yet.
+        if (/visitor_id|country_code|schema cache|Could not find/i.test(m)) {
+          const {
+            visitor_id: _omitVisitor,
+            country_code: _omitCountry,
+            ...withoutNewCols
+          } = eventData;
+          let retryPayload: Record<string, unknown> = withoutNewCols;
+          if (/country_code/i.test(m) && !/visitor_id/i.test(m)) {
+            retryPayload = {
+              ...withoutNewCols,
+              visitor_id: eventData.visitor_id,
+            };
+          }
+          const retry = await supabase.from("user_events").insert(retryPayload);
           if (retry.error && process.env.NODE_ENV === "development") {
             console.warn("[analytics] user_events insert:", retry.error.message);
           }

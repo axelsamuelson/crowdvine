@@ -17,7 +17,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Search, X } from "lucide-react";
@@ -27,6 +26,10 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Label } from "@/components/ui/label";
 import { SiteBadge } from "./site-switcher";
 import { analyticsSite } from "@/lib/analytics/analytics-site";
+import {
+  formatStockholmCompact,
+  formatStockholmDateTime,
+} from "@/lib/analytics/stockholm-time";
 
 interface EventTimelineProps {
   events: any[];
@@ -305,7 +308,7 @@ export function EventTimeline({
                           />
                         ) : null}
                         <span className="text-xs text-gray-500 dark:text-gray-400">
-                          {format(new Date(event.created_at), "MMM d, HH:mm:ss")}
+                          {formatStockholmCompact(event.created_at)}
                         </span>
                         <span className="text-xs font-medium text-blue-600 dark:text-blue-400">
                           {userName}
@@ -378,7 +381,7 @@ export function EventTimeline({
               <div>
                 <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Timestamp</p>
                 <p className="text-sm text-gray-900 dark:text-white">
-                  {format(new Date(selectedEvent.created_at), "PPpp")}
+                  {formatStockholmDateTime(selectedEvent.created_at)}
                 </p>
               </div>
 

@@ -2293,6 +2293,7 @@ export async function POST(request: Request) {
     const visitorId = visitorIdRaw || fromCookies.visitorId;
     const firstTouch: FirstTouch | null =
       parseFirstTouchPayload(body.first_touch) || fromCookies.firstTouch;
+    const countryCode = fromCookies.countryCode;
 
     const clientInternal =
       body.internal === true ||
@@ -2394,6 +2395,7 @@ export async function POST(request: Request) {
       void logUserEventServer({
         userId: currentUser?.id ?? null,
         visitorId,
+        countryCode,
         eventType: "reservation_completed",
         eventCategory: "checkout",
         firstTouch,

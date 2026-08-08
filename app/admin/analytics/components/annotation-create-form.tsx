@@ -11,6 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { stockholmTodayDateKey } from "@/lib/analytics/stockholm-time";
 
 const CATEGORIES = [
   { value: "seo", label: "SEO" },
@@ -33,7 +34,7 @@ export function AnnotationCreateForm({
 }: {
   initialAnnotations?: Annotation[];
 }) {
-  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(() => stockholmTodayDateKey());
   const [label, setLabel] = useState("");
   const [category, setCategory] = useState<string>("seo");
   const [rows, setRows] = useState<Annotation[]>(initialAnnotations);

@@ -98,6 +98,7 @@ export async function GET(request: NextRequest) {
       email: user.email ?? null,
       visitorId: cookies.visitorId,
       firstTouchCookie: cookies.firstTouchCookie,
+      countryCode: cookies.countryCode,
       cartSessionId: cookies.cartSessionId,
       source: next.startsWith("/checkout")
         ? "checkout_magic_link"

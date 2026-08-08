@@ -1,7 +1,8 @@
+import { stockholmWeekStartKey } from "@/lib/analytics/stockholm-time";
+
 /** Verbatim intent-session definition (shown in Nära köp info popover). */
 export const INTENT_SESSION_DEFINITION =
   "clean session with add_to_cart or checkout, no reservation in-session, and for known users no reservation within 7 days";
-
 export type IntentWine = {
   productId: string;
   productName: string;
@@ -219,14 +220,8 @@ export type WeeklyFunnelRow = {
   sessions_with_reservation: number;
 };
 
-function weekStartUtc(iso: string): string {
-  const d = new Date(iso);
-  const day = d.getUTCDay(); // 0 Sun
-  const diff = (day + 6) % 7; // Monday-based
-  const monday = new Date(
-    Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - diff),
-  );
-  return monday.toISOString().slice(0, 10);
+function weekStartStockholm(iso: string): string {
+  return stockholmWeekStartKey(iso);
 }
 
 export function buildWeeklyFunnelFromCleanEvents(
@@ -292,7 +287,7 @@ export function buildWeeklyFunnelFromCleanEvents(
   };
 
   for (const [sid, agg] of sessions) {
-    const week = weekStartUtc(new Date(agg.minAt).toISOString());
+    const week = weekStartStockholm(new Date(agg.minAt).toISOString());
     const bucket = ensureWeek(week);
     bucket.sessions.add(sid);
     if (agg.types.has("product_viewed")) bucket.product.add(sid);
@@ -325,7 +320,7 @@ export function buildWeeklyFunnelFromCleanEvents(
   // Fill last N weeks continuously
   const result: WeeklyFunnelRow[] = [];
   const now = new Date();
-  const currentWeek = weekStartUtc(now.toISOString());
+  const currentWeek = weekStartStockholm(now.toISOString());
   const weeksNeeded = Math.max(1, Math.ceil(days / 7));
   for (let i = weeksNeeded - 1; i >= 0; i--) {
     const d = new Date(`${currentWeek}T00:00:00.000Z`);

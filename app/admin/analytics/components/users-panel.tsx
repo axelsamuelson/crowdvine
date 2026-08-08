@@ -5,6 +5,10 @@ import { Search, ArrowUpDown } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { FunnelBar } from "./funnel-bar";
 import { FunnelStepBadgeEl } from "./funnel-step-badge";
+import {
+  formatStockholmDate,
+  formatStockholmDateTime,
+} from "@/lib/analytics/stockholm-time";
 
 type UserRow = {
   user_id: string;
@@ -56,11 +60,7 @@ type SortKey =
 
 function formatDate(iso: string | null): string {
   if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("sv-SE", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
+  return formatStockholmDate(iso);
 }
 
 function eventContext(meta: unknown, pageUrl: string | null): string {
@@ -409,9 +409,9 @@ export function UsersPanel() {
                                           className="text-xs text-gray-700 dark:text-zinc-300"
                                         >
                                           <span className="text-gray-400 dark:text-zinc-500 mr-2">
-                                            {new Date(
+                                            {formatStockholmDateTime(
                                               ev.created_at,
-                                            ).toLocaleString("sv-SE")}
+                                            )}
                                           </span>
                                           <span className="font-mono">
                                             {ev.event_type}

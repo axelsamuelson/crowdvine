@@ -15,6 +15,10 @@ import {
 } from "@/lib/analytics/intent-sessions";
 import { FunnelStepBadgeEl } from "./funnel-step-badge";
 import { WeeklyIntentFunnel } from "./weekly-intent-funnel";
+import {
+  formatStockholmDate,
+  formatStockholmTime,
+} from "@/lib/analytics/stockholm-time";
 
 type IntentEvent = {
   event_type: string;
@@ -172,10 +176,7 @@ export function IntentPanel({
           <ul className="divide-y divide-gray-100 dark:divide-zinc-800 rounded-xl border border-gray-200 dark:border-[#1F1F23] overflow-hidden">
             {sessions.map((s) => {
               const open = expanded === s.session_id;
-              const dateLabel = new Date(s.started_at).toLocaleDateString(
-                "sv-SE",
-                { year: "numeric", month: "short", day: "numeric" },
-              );
+              const dateLabel = formatStockholmDate(s.started_at);
               return (
                 <li key={s.session_id}>
                   <button
@@ -257,9 +258,7 @@ export function IntentPanel({
                               className="text-xs font-mono text-gray-700 dark:text-zinc-300 flex flex-wrap gap-x-2"
                             >
                               <span className="text-gray-400 dark:text-zinc-500">
-                                {new Date(ev.created_at).toLocaleTimeString(
-                                  "sv-SE",
-                                )}
+                                {formatStockholmTime(ev.created_at)}
                               </span>
                               <span>{ev.event_type}</span>
                             </li>
