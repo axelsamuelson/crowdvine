@@ -25,6 +25,7 @@ import {
   HOMEPAGE_HERO_IMAGE_KEYS,
   HOMEPAGE_HERO_IMAGE_LABELS,
 } from "@/lib/homepage-hero-images";
+import { HOMEPAGE_HERO_COPY_FIELDS } from "@/lib/homepage-hero-copy";
 import {
   FileText,
   Image,
@@ -498,134 +499,81 @@ export default function ContentPage() {
               })}
             </div>
 
-            {/* Hero Title */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Hero Title</CardTitle>
-                <CardDescription>
-                  Main hero title displayed on the homepage sidebar
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="homepage_hero_title">Hero Title</Label>
-                  <Input
-                    id="homepage_hero_title"
-                    value={formData.homepage_hero_title || ""}
-                    onChange={(e) =>
-                      handleInputChange("homepage_hero_title", e.target.value)
-                    }
-                    placeholder="Refined. Minimal. Never boring."
-                  />
-                </div>
-                <Button
-                  onClick={() => handleSave("homepage_hero_title")}
-                  disabled={saving}
-                >
-                  {saving ? "Saving..." : "Save Hero Title"}
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Hero Subtitle */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Hero Subtitle</CardTitle>
-                <CardDescription>
-                  First subtitle line displayed below the hero title
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="homepage_hero_subtitle">Hero Subtitle</Label>
-                  <Input
-                    id="homepage_hero_subtitle"
-                    value={formData.homepage_hero_subtitle || ""}
-                    onChange={(e) =>
-                      handleInputChange(
-                        "homepage_hero_subtitle",
-                        e.target.value,
-                      )
-                    }
-                    placeholder="Furniture that speaks softly, but stands out loud."
-                  />
-                </div>
-                <Button
-                  onClick={() => handleSave("homepage_hero_subtitle")}
-                  disabled={saving}
-                >
-                  {saving ? "Saving..." : "Save Hero Subtitle"}
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Hero Description Line 1 */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Hero Description Line 1</CardTitle>
-                <CardDescription>
-                  Second description line on the homepage
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="homepage_hero_description_1">
-                    Description Line 1
-                  </Label>
-                  <Input
-                    id="homepage_hero_description_1"
-                    value={formData.homepage_hero_description_1 || ""}
-                    onChange={(e) =>
-                      handleInputChange(
-                        "homepage_hero_description_1",
-                        e.target.value,
-                      )
-                    }
-                    placeholder="Clean lines, crafted with wit."
-                  />
-                </div>
-                <Button
-                  onClick={() => handleSave("homepage_hero_description_1")}
-                  disabled={saving}
-                >
-                  {saving ? "Saving..." : "Save Description Line 1"}
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Hero Description Line 2 */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Hero Description Line 2</CardTitle>
-                <CardDescription>
-                  Third description line on the homepage
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="homepage_hero_description_2">
-                    Description Line 2
-                  </Label>
-                  <Input
-                    id="homepage_hero_description_2"
-                    value={formData.homepage_hero_description_2 || ""}
-                    onChange={(e) =>
-                      handleInputChange(
-                        "homepage_hero_description_2",
-                        e.target.value,
-                      )
-                    }
-                    placeholder="Elegance with a wink — style first"
-                  />
-                </div>
-                <Button
-                  onClick={() => handleSave("homepage_hero_description_2")}
-                  disabled={saving}
-                >
-                  {saving ? "Saving..." : "Save Description Line 2"}
-                </Button>
-              </CardContent>
-            </Card>
+            {/* Hero copy (title + subtitle + sidebar lines) */}
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">
+                Hero text
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Title and subtitle drive the main homepage hero. Swedish is used
+                on pactwines.com; English is the fallback locale. Use a line
+                break in the title for a second H1 line.
+              </p>
+            </div>
+            {HOMEPAGE_HERO_COPY_FIELDS.map((field) => (
+              <Card key={field.key}>
+                <CardHeader>
+                  <CardTitle>{field.label}</CardTitle>
+                  <CardDescription>{field.description}</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="space-y-2">
+                    <Label htmlFor={field.keySv}>Swedish</Label>
+                    {field.multiline ? (
+                      <Textarea
+                        id={field.keySv}
+                        rows={field.key.includes("title") ? 3 : 2}
+                        value={formData[field.keySv] || ""}
+                        onChange={(e) =>
+                          handleInputChange(field.keySv, e.target.value)
+                        }
+                      />
+                    ) : (
+                      <Input
+                        id={field.keySv}
+                        value={formData[field.keySv] || ""}
+                        onChange={(e) =>
+                          handleInputChange(field.keySv, e.target.value)
+                        }
+                      />
+                    )}
+                    <Button
+                      onClick={() => handleSave(field.keySv)}
+                      disabled={saving}
+                    >
+                      {saving ? "Saving..." : "Save Swedish"}
+                    </Button>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor={field.key}>English</Label>
+                    {field.multiline ? (
+                      <Textarea
+                        id={field.key}
+                        rows={field.key.includes("title") ? 3 : 2}
+                        value={formData[field.key] || ""}
+                        onChange={(e) =>
+                          handleInputChange(field.key, e.target.value)
+                        }
+                      />
+                    ) : (
+                      <Input
+                        id={field.key}
+                        value={formData[field.key] || ""}
+                        onChange={(e) =>
+                          handleInputChange(field.key, e.target.value)
+                        }
+                      />
+                    )}
+                    <Button
+                      onClick={() => handleSave(field.key)}
+                      disabled={saving}
+                    >
+                      {saving ? "Saving..." : "Save English"}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </TabsContent>
 

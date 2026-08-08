@@ -20,6 +20,7 @@ import { Product } from "../lib/shopify/types";
 import { headers } from "next/headers";
 import { getSiteConfig } from "@/lib/site-config";
 import { getHomepageHeroImages } from "@/lib/actions/content";
+import { getHomepageHeroCopy } from "@/lib/get-homepage-hero-copy";
 
 // Disable static generation for now - make it dynamic
 export const dynamic = "force-dynamic";
@@ -111,7 +112,10 @@ export default async function Home() {
 
   const [lastProduct, ...restProducts] = featuredProducts;
 
-  const heroImages = await getHomepageHeroImages().catch(() => undefined);
+  const [heroImages, heroCopy] = await Promise.all([
+    getHomepageHeroImages().catch(() => undefined),
+    getHomepageHeroCopy(shoppingContext.locale).catch(() => undefined),
+  ]);
 
   const organizationJsonLd = {
     "@context": "https://schema.org",
@@ -149,7 +153,9 @@ export default async function Home() {
       />
       <main>
         <HomeTasteQuizProvider enabled={quizWines.length > 0}>
-          {featuredProducts.length > 0 && <HomeHero images={heroImages} />}
+          {featuredProducts.length > 0 && (
+            <HomeHero images={heroImages} copy={heroCopy} />
+          )}
           {quizWines.length > 0 && (
             <HomeTasteQuizCollapsible
               wines={quizWines}

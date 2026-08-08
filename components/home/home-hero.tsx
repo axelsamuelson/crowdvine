@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import type { HomepageHeroCopy } from "@/lib/homepage-hero-copy";
 
 import { HomeHeroContent } from "./home-hero-content";
 import { HomeHeroImage } from "./home-hero-image";
@@ -6,9 +7,11 @@ import { HomeHeroImage } from "./home-hero-image";
 export function HomeHero({
   className,
   images,
+  copy,
 }: {
   className?: string;
   images?: readonly [string, string, string] | string[];
+  copy?: Pick<HomepageHeroCopy, "titleLines" | "subtitle">;
 }) {
   return (
     <section
@@ -18,7 +21,10 @@ export function HomeHero({
       )}
     >
       <div className="grid min-h-[calc(100svh-var(--top-spacing))] w-full grid-rows-[auto_minmax(0,1fr)] gap-8 md:grid-cols-2 md:grid-rows-1 md:items-center md:gap-10 lg:gap-14">
-        <HomeHeroContent />
+        <HomeHeroContent
+          titleLines={copy?.titleLines}
+          subtitle={copy?.subtitle}
+        />
         <HomeHeroImage images={images} />
       </div>
     </section>

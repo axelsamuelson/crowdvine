@@ -27,11 +27,23 @@ const fadeUp = {
   show: { opacity: 1, y: 0 },
 };
 
-export function HomeHeroContent() {
+export function HomeHeroContent({
+  titleLines,
+  subtitle,
+}: {
+  titleLines?: string[];
+  subtitle?: string;
+}) {
   const { t } = useTranslations();
   const paths = useLocalizedPaths();
   const tasteQuizPanel = useOptionalTasteQuizPanel();
   const reduceMotion = useReducedMotion();
+
+  const resolvedTitleLines =
+    titleLines && titleLines.length > 0
+      ? titleLines
+      : [t("home.heroTitleBefore"), t("home.heroTitleMiddle")].filter(Boolean);
+  const resolvedSubtitle = subtitle?.trim() || t("home.heroSubtitle");
 
   const transition = reduceMotion
     ? { duration: 0 }
@@ -54,14 +66,17 @@ export function HomeHeroContent() {
       >
         <motion.div variants={fadeUp} transition={transition}>
           <h1 className="text-balance text-3xl font-semibold uppercase leading-[0.95] tracking-tight text-foreground sm:text-4xl lg:text-5xl">
-            <span className="block">{t("home.heroTitleBefore")}</span>
-            {t("home.heroTitleMiddle") ? (
-              <span className="block">{t("home.heroTitleMiddle")}</span>
-            ) : null}
+            {resolvedTitleLines.map((line, index) => (
+              <span key={`${index}-${line}`} className="block">
+                {line}
+              </span>
+            ))}
           </h1>
-          <p className="mt-3 max-w-md text-base leading-relaxed text-stone-600 md:mt-4">
-            {t("home.heroSubtitle")}
-          </p>
+          {resolvedSubtitle ? (
+            <p className="mt-3 max-w-md text-base leading-relaxed text-stone-600 md:mt-4">
+              {resolvedSubtitle}
+            </p>
+          ) : null}
         </motion.div>
 
         <motion.div
