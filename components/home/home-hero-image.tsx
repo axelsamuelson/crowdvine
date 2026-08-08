@@ -7,17 +7,17 @@ import { HOMEPAGE_HERO_IMAGE_DEFAULTS } from "@/lib/homepage-hero-images";
 
 const HERO_FRAME_LAYOUT = [
   {
-    className: "mt-0 h-[58%] min-h-[12rem]",
+    className: "mt-0 h-44 min-h-0 md:h-[58%] md:min-h-[12rem]",
     sizes: "(max-width: 767px) 30vw, 16vw",
     priority: true,
   },
   {
-    className: "mt-[8%] h-[72%] min-h-[14rem]",
+    className: "mt-3 h-52 min-h-0 md:mt-[8%] md:h-[72%] md:min-h-[14rem]",
     sizes: "(max-width: 767px) 34vw, 18vw",
     priority: true,
   },
   {
-    className: "mt-[4%] h-[62%] min-h-[13rem]",
+    className: "mt-1.5 h-48 min-h-0 md:mt-[4%] md:h-[62%] md:min-h-[13rem]",
     sizes: "(max-width: 767px) 30vw, 16vw",
     priority: false,
   },
@@ -36,7 +36,8 @@ export function HomeHeroImage({
   }));
 
   return (
-    <div className="order-1 flex h-[min(52vh,28rem)] w-full items-end gap-2 sm:gap-3 md:order-2 md:h-full md:min-h-[28rem] md:items-center md:gap-4">
+    <div className="order-1 flex h-auto w-full items-end gap-2 sm:gap-3 md:order-2 md:h-full md:min-h-[28rem] md:items-center md:gap-4">
+
       {frames.map((frame, index) => (
         <motion.div
           key={`${frame.src}-${index}`}

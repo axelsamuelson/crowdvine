@@ -50,7 +50,7 @@ export function HomeHeroContent({
     : { duration: 0.65, ease: [0.22, 1, 0.36, 1] as const };
 
   return (
-    <div className="order-2 flex min-h-0 flex-col justify-center py-6 md:order-1 md:py-10">
+    <div className="order-2 flex min-h-0 flex-col justify-start py-2 md:order-1 md:justify-center md:py-10">
       <motion.div
         className="flex max-w-lg flex-col gap-5 md:gap-6"
         initial={reduceMotion ? false : "hidden"}

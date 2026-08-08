@@ -20,7 +20,7 @@ export function HomeHero({
         className,
       )}
     >
-      <div className="grid min-h-[calc(100svh-var(--top-spacing))] w-full grid-rows-[auto_minmax(0,1fr)] gap-8 md:grid-cols-2 md:grid-rows-1 md:items-center md:gap-10 lg:gap-14">
+      <div className="grid w-full grid-rows-[auto_auto] gap-4 md:min-h-[calc(100svh-var(--top-spacing))] md:grid-cols-2 md:grid-rows-1 md:items-center md:gap-10 lg:gap-14">
         <HomeHeroContent
           titleLines={copy?.titleLines}
           subtitle={copy?.subtitle}
