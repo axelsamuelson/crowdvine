@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyCronSecret } from "@/lib/menu-extraction/cron-auth";
+import { menuCronGate } from "@/lib/menu-extraction/cron-auth";
 import { importSavantbarBottleList } from "@/lib/menu-extraction/savantbar-import";
 import {
   formatSavantbarDiffSummary,
@@ -27,9 +27,8 @@ function summarizeDiff(diff: SavantbarSnapshotDiff | undefined) {
  * Schedule: 0 5 * * * (UTC)
  */
 export async function GET(request: NextRequest) {
-  if (!verifyCronSecret(request)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const gated = await menuCronGate(request);
+  if (gated) return gated;
 
   try {
     const result = await importSavantbarBottleList();

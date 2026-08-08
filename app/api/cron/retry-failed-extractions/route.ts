@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyCronSecret } from "@/lib/menu-extraction/cron-auth";
+import { menuCronGate } from "@/lib/menu-extraction/cron-auth";
 import { evaluateMenuPipelineAlerts } from "@/lib/menu-extraction/alerting";
 import { getMenuPipelineHealth } from "@/lib/menu-extraction/health";
 import {
@@ -18,9 +18,8 @@ const BATCH = 15;
  * Secured by CRON_SECRET. Schedule: every 6 hours (see vercel.json).
  */
 export async function GET(request: NextRequest) {
-  if (!verifyCronSecret(request)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const gated = await menuCronGate(request);
+  if (gated) return gated;
 
   const docs = await listMenuDocumentsForExtractionRetry(BATCH);
   let now_completed = 0;

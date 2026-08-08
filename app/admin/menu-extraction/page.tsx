@@ -34,6 +34,7 @@ import {
   MenuPipelineHealthPanel,
   type PipelineHealth,
 } from "@/components/admin/menu-pipeline-health-panel";
+import { MenuPipelineLiveToggle } from "@/components/admin/menu-pipeline-live-toggle";
 
 type ExtractionStatus = "pending" | "processing" | "completed" | "failed" | "skipped";
 type CrawlStatus = "pending" | "crawling" | "completed" | "failed" | "skipped" | "partial";
@@ -363,6 +364,8 @@ export default function MenuExtractionOverviewPage() {
           </p>
         </div>
       </div>
+
+      <MenuPipelineLiveToggle />
 
       <MenuPipelineHealthPanel
         health={pipelineHealth}

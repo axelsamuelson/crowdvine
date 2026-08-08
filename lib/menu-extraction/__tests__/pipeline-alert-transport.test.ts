@@ -23,10 +23,12 @@ describe("deliverMenuPipelineAlerts transport selection", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.stubEnv("MENU_PIPELINE_EMAILS", "true");
   });
 
   afterEach(() => {
     warnSpy.mockClear();
+    vi.unstubAllEnvs();
   });
 
   it("email-only → sends one Resend email, no webhook", async () => {
@@ -93,6 +95,24 @@ describe("deliverMenuPipelineAlerts transport selection", () => {
       expect.stringContaining("Alerting unconfigured"),
     );
   });
+
+  it("MENU_PIPELINE_EMAILS unset → skips email, logs once, webhook still fires", async () => {
+    vi.stubEnv("MENU_PIPELINE_EMAILS", "");
+    await deliverMenuPipelineAlerts([sampleAlert], {
+      transport: {
+        email: "ops@example.com",
+        webhook: "https://hooks.example/slack",
+      },
+      sendEmailFn: sendEmail,
+      fetchFn: fetchMock,
+    });
+
+    expect(sendEmail).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining("Email skipped (MENU_PIPELINE_EMAILS!=true)"),
+    );
+  });
 });
 
 describe("withMenuPipelineAlertBatch", () => {
@@ -102,6 +122,7 @@ describe("withMenuPipelineAlertBatch", () => {
     vi.clearAllMocks();
     vi.stubEnv("MENU_PIPELINE_ALERT_EMAIL", "ops@example.com");
     vi.stubEnv("MENU_PIPELINE_ALERT_WEBHOOK_URL", "");
+    vi.stubEnv("MENU_PIPELINE_EMAILS", "true");
   });
 
   afterEach(() => {

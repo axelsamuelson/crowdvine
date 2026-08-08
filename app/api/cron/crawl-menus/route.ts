@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyCronSecret } from "@/lib/menu-extraction/cron-auth";
+import { menuCronGate } from "@/lib/menu-extraction/cron-auth";
 import {
   evaluateMenuPipelineAlerts,
   withMenuPipelineAlertBatch,
@@ -15,9 +15,8 @@ export const maxDuration = 300;
  * Schedule: 15 6,18 * * * (UTC, 15 min after detect at 06:00 and 18:00)
  */
 export async function GET(request: NextRequest) {
-  if (!verifyCronSecret(request)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const gated = await menuCronGate(request);
+  if (gated) return gated;
   return withMenuPipelineAlertBatch(async () => {
     try {
       const summary = await runBatchedCrawlSession("stockholm", false);

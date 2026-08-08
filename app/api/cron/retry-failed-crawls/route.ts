@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyCronSecret } from "@/lib/menu-extraction/cron-auth";
+import { menuCronGate } from "@/lib/menu-extraction/cron-auth";
 import { evaluateMenuPipelineAlerts } from "@/lib/menu-extraction/alerting";
 import { getMenuPipelineHealth, listCrawlSourcesForRetry } from "@/lib/menu-extraction/health";
 import { updateStarwinelistSource } from "@/lib/menu-extraction/db";
@@ -14,9 +14,8 @@ const BATCH = 10;
  * Secured by CRON_SECRET. Schedule: 0 2,8,14,20 * * * (4× daily UTC)
  */
 export async function GET(request: NextRequest) {
-  if (!verifyCronSecret(request)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const gated = await menuCronGate(request);
+  if (gated) return gated;
 
   const sources = await listCrawlSourcesForRetry(BATCH);
   const results: Array<{

@@ -1,6 +1,7 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { sendEmail } from "@/lib/email";
 import { escapeHtmlBasic } from "@/lib/email/escape-html";
+import { isMenuPipelinePaused } from "@/lib/menu-extraction/pipeline-pause";
 
 export interface MenuPipelineAlertPayload {
   alertType: string;
@@ -109,6 +110,13 @@ export async function deliverMenuPipelineAlerts(
 ): Promise<void> {
   if (alerts.length === 0) return;
 
+  if (await isMenuPipelinePaused()) {
+    console.warn(
+      `[menu-pipeline-alert] Skipped (pipeline paused): ${buildEmailSubject(alerts)}`,
+    );
+    return;
+  }
+
   const transport = options.transport ?? resolveMenuPipelineAlertTransport();
   const sendEmailImpl = options.sendEmailFn ?? sendEmail;
   const fetchImpl = options.fetchFn ?? fetch;
@@ -123,19 +131,26 @@ export async function deliverMenuPipelineAlerts(
   }
 
   if (transport.email) {
-    try {
-      const body = buildEmailBody(alerts);
-      await sendEmailImpl({
-        to: transport.email,
-        subject: buildEmailSubject(alerts),
-        html: `<pre>${escapeHtmlBasic(body)}</pre>`,
-        text: body,
-      });
-    } catch (err) {
+    const MENU_EMAILS_ENABLED = process.env.MENU_PIPELINE_EMAILS === "true";
+    if (!MENU_EMAILS_ENABLED) {
       console.warn(
-        "[menu-pipeline-alert] Email failed:",
-        err instanceof Error ? err.message : err,
+        `[menu-pipeline-alert] Email skipped (MENU_PIPELINE_EMAILS!=true): ${buildEmailSubject(alerts)}`,
       );
+    } else {
+      try {
+        const body = buildEmailBody(alerts);
+        await sendEmailImpl({
+          to: transport.email,
+          subject: buildEmailSubject(alerts),
+          html: `<pre>${escapeHtmlBasic(body)}</pre>`,
+          text: body,
+        });
+      } catch (err) {
+        console.warn(
+          "[menu-pipeline-alert] Email failed:",
+          err instanceof Error ? err.message : err,
+        );
+      }
     }
   }
 
