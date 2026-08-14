@@ -18,6 +18,7 @@ export type EventType =
   | "auth_email_step_shown"
   | "auth_email_step_completed"
   | "auth_email_step_abandoned"
+  | "auth_email_link_sent"
   // Invitations
   | "invitation_link_opened"
   | "invitation_signup_started"
@@ -51,6 +52,7 @@ export type EventType =
   | "reservation_completed"
   | "checkout_abandoned"
   | "checkout_step_viewed"
+  | "checkout_delivery_captured"
   | "checkout_confirm_failed"
   | "age_confirmation_shown"
   | "age_confirmed"

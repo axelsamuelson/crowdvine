@@ -10,6 +10,7 @@ import {
   formatStockholmDateTime,
 } from "@/lib/analytics/stockholm-time";
 import { eventTypeLabelSv } from "@/lib/analytics/event-aliases";
+import { formatCheckoutDraftSummary } from "@/lib/analytics/checkout-draft-metadata";
 
 type UserRow = {
   user_id: string;
@@ -67,6 +68,8 @@ function formatDate(iso: string | null): string {
 function eventContext(meta: unknown, pageUrl: string | null): string {
   const m =
     meta && typeof meta === "object" ? (meta as Record<string, unknown>) : {};
+  const draft = formatCheckoutDraftSummary(m);
+  if (draft) return draft;
   if (typeof m.productName === "string") return m.productName;
   if (typeof m.path === "string") return m.path;
   if (typeof m.phase === "string") return `fas: ${m.phase}`;

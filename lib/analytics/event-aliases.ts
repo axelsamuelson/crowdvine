@@ -34,6 +34,8 @@ const EVENT_TYPE_LABELS_SV: Readonly<Record<string, string>> = {
   auth_email_step_shown: "Inloggningssteg visat (e-post)",
   auth_email_step_completed: "Inloggning via e-post klar",
   auth_email_step_abandoned: "Inloggningssteg övergivet",
+  auth_email_link_sent: "Inloggningslänk skickad",
+  checkout_delivery_captured: "Leveransuppgifter sparade",
   checkout_confirm_failed: "Checkout-bekräftelse misslyckades",
   age_confirmation_shown: "Åldersbekräftelse visad",
   age_confirmed: "Ålder bekräftad",

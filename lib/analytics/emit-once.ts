@@ -10,6 +10,8 @@ export const CHECKOUT_SESSION_ID_KEY = "pact_checkout_session_id";
 export const CHECKOUT_STARTED_KEY = "pact_checkout_started";
 export const SIGNUP_STARTED_CHECKOUT_KEY = "pact_signup_started_checkout";
 export const SIGNUP_COMPLETED_PREFIX = "pact_signup_completed_";
+export const CHECKOUT_DELIVERY_CAPTURED_KEY = "pact_checkout_delivery_captured";
+export const CHECKOUT_CONTACT_CAPTURED_KEY = "pact_checkout_contact_captured";
 
 function ageShownKey(sessionId: string, countryCode: string): string {
   return `age_shown:${sessionId}:${countryCode.toUpperCase()}`;
@@ -21,6 +23,14 @@ function agePassedKey(sessionId: string, countryCode: string): string {
 
 function termsAcceptedKey(sessionId: string): string {
   return `terms_accepted:${sessionId}`;
+}
+
+function deliveryCapturedKey(sessionId: string): string {
+  return `delivery_captured:${sessionId}`;
+}
+
+function contactCapturedKey(sessionId: string): string {
+  return `contact_captured:${sessionId}`;
 }
 
 /** Claim the key. Returns true only for the first successful claim. */
@@ -116,6 +126,14 @@ export function termsAcceptedEmitKey(): string {
   return termsAcceptedKey(getCheckoutSessionId());
 }
 
+export function deliveryCapturedEmitKey(): string {
+  return deliveryCapturedKey(getCheckoutSessionId());
+}
+
+export function contactCapturedEmitKey(): string {
+  return contactCapturedKey(getCheckoutSessionId());
+}
+
 /**
  * Clear checkout analytics guards after a successful reservation so a
  * second purchase in the same browser session can emit again.
@@ -124,8 +142,12 @@ export function clearCheckoutAnalyticsSession(): void {
   const sessionId = peekCheckoutSessionId();
   clearClaim(CHECKOUT_STARTED_KEY);
   clearClaim(SIGNUP_STARTED_CHECKOUT_KEY);
+  clearClaim(CHECKOUT_DELIVERY_CAPTURED_KEY);
+  clearClaim(CHECKOUT_CONTACT_CAPTURED_KEY);
   if (sessionId) {
     clearClaim(termsAcceptedKey(sessionId));
+    clearClaim(deliveryCapturedKey(sessionId));
+    clearClaim(contactCapturedKey(sessionId));
     clearClaimsWithPrefix(`age_shown:${sessionId}:`);
     clearClaimsWithPrefix(`age_passed:${sessionId}:`);
   }

@@ -20,6 +20,7 @@ import {
   formatStockholmTime,
 } from "@/lib/analytics/stockholm-time";
 import { eventTypeLabelSv } from "@/lib/analytics/event-aliases";
+import { formatCheckoutDraftSummary } from "@/lib/analytics/checkout-draft-metadata";
 
 type IntentEvent = {
   event_type: string;
@@ -262,6 +263,22 @@ export function IntentPanel({
                                 {formatStockholmTime(ev.created_at)}
                               </span>
                               <span>{eventTypeLabelSv(ev.event_type)}</span>
+                              {formatCheckoutDraftSummary(
+                                (ev.event_metadata &&
+                                typeof ev.event_metadata === "object"
+                                  ? ev.event_metadata
+                                  : {}) as Record<string, unknown>,
+                              ) ? (
+                                <span className="text-gray-500 dark:text-zinc-400 font-sans">
+                                  ·{" "}
+                                  {formatCheckoutDraftSummary(
+                                    (ev.event_metadata &&
+                                    typeof ev.event_metadata === "object"
+                                      ? ev.event_metadata
+                                      : {}) as Record<string, unknown>,
+                                  )}
+                                </span>
+                              ) : null}
                             </li>
                           ))}
                         </ol>

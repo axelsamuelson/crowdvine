@@ -14,4 +14,6 @@ export {
   ageVerificationShownKey,
   ageVerificationPassedKey,
   termsAcceptedEmitKey,
+  deliveryCapturedEmitKey,
+  contactCapturedEmitKey,
 } from "./emit-once";

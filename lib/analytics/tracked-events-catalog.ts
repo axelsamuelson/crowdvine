@@ -72,6 +72,13 @@ export const TRACKED_USER_EVENTS_CATALOG: TrackedEventCatalogEntry[] = [
       "Checkout e-poststeg lämnades efter att e-post angetts utan slutförd inloggning. Legacy: signup_abandoned.",
     sources: ["client"],
   },
+  {
+    eventType: "auth_email_link_sent",
+    category: "auth",
+    description:
+      "Användaren skickade magic link/OTP till en e-postadress i checkout (metadata.email).",
+    sources: ["client"],
+  },
   // invitation
   {
     eventType: "invitation_link_opened",
@@ -250,6 +257,13 @@ export const TRACKED_USER_EVENTS_CATALOG: TrackedEventCatalogEntry[] = [
     sources: ["client"],
   },
   {
+    eventType: "checkout_delivery_captured",
+    category: "checkout",
+    description:
+      "Leverans-/kontaktfält sparade till analytics när steget var komplett (även utan reservation). Metadata: namn, e-post, telefon, adress.",
+    sources: ["client"],
+  },
+  {
     eventType: "checkout_confirm_failed",
     category: "checkout",
     description:
@@ -267,7 +281,7 @@ export const TRACKED_USER_EVENTS_CATALOG: TrackedEventCatalogEntry[] = [
     eventType: "age_confirmed",
     category: "checkout",
     description:
-      "Användaren bekräftade ålder (giltigt födelsedatum). Legacy: age_verification_passed.",
+      "Användaren bekräftade ålder (giltigt födelsedatum). Metadata inkluderar date_of_birth. Legacy: age_verification_passed.",
     sources: ["client"],
   },
   {

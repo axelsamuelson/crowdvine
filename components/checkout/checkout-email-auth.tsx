@@ -57,6 +57,7 @@ export function CheckoutEmailAuth({
   onAuthenticated,
 }: Props) {
   const [email, setEmail] = useState("");
+  const emailRef = useRef("");
   const [otp, setOtp] = useState("");
   const [sent, setSent] = useState(false);
   const [sending, setSending] = useState(false);
@@ -68,6 +69,10 @@ export function CheckoutEmailAuth({
   const emailEnteredRef = useRef(false);
   const shownRef = useRef(false);
   const finalizedRef = useRef(false);
+
+  useEffect(() => {
+    emailRef.current = email;
+  }, [email]);
 
   const notifyAuthenticated = () => {
     if (notifiedRef.current) return;
@@ -118,10 +123,22 @@ export function CheckoutEmailAuth({
     return () => {
       subscription.unsubscribe();
       if (emailEnteredRef.current && !completedRef.current) {
+        const entered = emailRef.current.trim();
         void AnalyticsTracker.trackEvent({
           eventType: "auth_email_step_abandoned",
           eventCategory: "auth",
-          metadata: { last_field: lastFieldRef.current },
+          metadata: {
+            last_field: lastFieldRef.current,
+            ...(entered
+              ? {
+                  email: entered,
+                  email_domain: entered.includes("@")
+                    ? entered.split("@")[1]?.toLowerCase() ?? null
+                    : null,
+                }
+              : {}),
+          },
+          keepalive: true,
         });
       }
     };
@@ -151,6 +168,17 @@ export function CheckoutEmailAuth({
         return;
       }
       setSent(true);
+      void AnalyticsTracker.trackEvent({
+        eventType: "auth_email_link_sent",
+        eventCategory: "auth",
+        metadata: {
+          source: "checkout",
+          email: trimmed,
+          email_domain: trimmed.includes("@")
+            ? trimmed.split("@")[1]?.toLowerCase() ?? null
+            : null,
+        },
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Kunde inte skicka länk");
     } finally {

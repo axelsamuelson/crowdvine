@@ -56,9 +56,13 @@ import {
   ageVerificationPassedKey,
   ageVerificationShownKey,
   clearCheckoutAnalyticsSession,
+  deliveryCapturedEmitKey,
+  contactCapturedEmitKey,
   emitOnce,
   termsAcceptedEmitKey,
 } from "@/lib/analytics/once-per-session";
+import { deliveryLinesForAnalytics } from "@/lib/analytics/checkout-draft-metadata";
+import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
 import { calculateCartShippingCost } from "@/lib/shipping-calculations";
 import type { PalletInfo } from "@/lib/zone-matching";
@@ -66,7 +70,6 @@ import {
   ShareBottlesDialog,
   type ShareAllocation,
 } from "@/components/checkout/share-bottles-dialog";
-import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 import {
   allocatePactRedemptionPoints,
   calculateBoostAwareMaxRedemption,
@@ -438,6 +441,7 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
           metadata: {
             country_code: ageCountryCode,
             required_age: requiredAge,
+            date_of_birth: value.trim(),
           },
         });
       });
@@ -459,6 +463,48 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
   }, []);
 
   const zoneOrUsPalletReady = deliveryZoneReady;
+
+  // Keep latest draft/DOB for checkout_abandoned (unmount cannot read stale closures).
+  const deliverySnapshotRef = useRef<ZoneDeliveryLines | null>(null);
+  const dateOfBirthRef = useRef("");
+  useEffect(() => {
+    deliverySnapshotRef.current = effectiveDelivery;
+  }, [effectiveDelivery]);
+  useEffect(() => {
+    dateOfBirthRef.current = dateOfBirth;
+  }, [dateOfBirth]);
+
+  useEffect(() => {
+    if (!deliveryComplete || !effectiveDelivery) return;
+    emitOnce(deliveryCapturedEmitKey(), () => {
+      void AnalyticsTracker.trackEvent({
+        eventType: "checkout_delivery_captured",
+        eventCategory: "checkout",
+        metadata: {
+          ...deliveryLinesForAnalytics(effectiveDelivery),
+          phase: "payment_ready",
+          capture: "location",
+        },
+      });
+    });
+  }, [deliveryComplete, effectiveDelivery]);
+
+  useEffect(() => {
+    if (!deliveryComplete || !hasContactForCheckout || !effectiveDelivery) {
+      return;
+    }
+    emitOnce(contactCapturedEmitKey(), () => {
+      void AnalyticsTracker.trackEvent({
+        eventType: "checkout_delivery_captured",
+        eventCategory: "checkout",
+        metadata: {
+          ...deliveryLinesForAnalytics(effectiveDelivery),
+          phase: "payment_ready",
+          capture: "contact",
+        },
+      });
+    });
+  }, [deliveryComplete, hasContactForCheckout, effectiveDelivery]);
 
   useEffect(() => {
     checkoutPhaseRef.current = deliveryComplete ? "payment_ready" : "delivery";
@@ -493,10 +539,16 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
   useEffect(() => {
     return () => {
       if (checkoutCompletedRef.current) return;
+      const dob = dateOfBirthRef.current.trim();
       void AnalyticsTracker.trackEvent({
         eventType: "checkout_abandoned",
         eventCategory: "checkout",
-        metadata: { phase: checkoutPhaseRef.current },
+        metadata: {
+          phase: checkoutPhaseRef.current,
+          ...(dob ? { date_of_birth: dob } : {}),
+          ...deliveryLinesForAnalytics(deliverySnapshotRef.current),
+        },
+        keepalive: true,
       });
     };
   }, []);
