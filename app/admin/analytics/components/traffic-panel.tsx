@@ -334,7 +334,7 @@ export function TrafficPanel({
               type="monotone"
               dataKey="rolling7"
               name="7-day avg"
-              stroke="#0f172a"
+              stroke="#f97316"
               strokeWidth={2}
               dot={false}
               connectNulls={false}

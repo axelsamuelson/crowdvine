@@ -30,6 +30,10 @@ import {
   formatStockholmCompact,
   formatStockholmDateTime,
 } from "@/lib/analytics/stockholm-time";
+import {
+  canonicalizeEventType,
+  eventTypeLabelSv,
+} from "@/lib/analytics/event-aliases";
 
 interface EventTimelineProps {
   events: any[];
@@ -134,6 +138,8 @@ export function EventTimeline({
 
       // Search query filter
       if (searchQuery && !event.event_type.toLowerCase().includes(searchQuery.toLowerCase()) &&
+          !eventTypeLabelSv(event.event_type).toLowerCase().includes(searchQuery.toLowerCase()) &&
+          !canonicalizeEventType(event.event_type).toLowerCase().includes(searchQuery.toLowerCase()) &&
           !event.page_url?.toLowerCase().includes(searchQuery.toLowerCase())) {
         return false;
       }
@@ -298,7 +304,7 @@ export function EventTimeline({
                         <span
                           className={`px-2 py-1 rounded text-xs font-medium ${getEventColor(event.event_category)}`}
                         >
-                          {event.event_type}
+                          {eventTypeLabelSv(event.event_type)}
                         </span>
                         {showSiteBadge ? (
                           <SiteBadge
@@ -367,7 +373,10 @@ export function EventTimeline({
                 <div>
                   <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Event Type</p>
                   <Badge className={getEventColor(selectedEvent.event_category)}>
-                    {selectedEvent.event_type}
+                    {eventTypeLabelSv(selectedEvent.event_type)}
+                    <span className="ml-2 text-xs font-mono text-muted-foreground">
+                      ({canonicalizeEventType(selectedEvent.event_type)})
+                    </span>
                   </Badge>
                 </div>
                 <div>

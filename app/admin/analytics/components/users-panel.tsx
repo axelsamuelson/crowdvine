@@ -9,6 +9,7 @@ import {
   formatStockholmDate,
   formatStockholmDateTime,
 } from "@/lib/analytics/stockholm-time";
+import { eventTypeLabelSv } from "@/lib/analytics/event-aliases";
 
 type UserRow = {
   user_id: string;
@@ -414,7 +415,7 @@ export function UsersPanel() {
                                             )}
                                           </span>
                                           <span className="font-mono">
-                                            {ev.event_type}
+                                            {eventTypeLabelSv(ev.event_type)}
                                           </span>
                                           {eventContext(
                                             ev.event_metadata,

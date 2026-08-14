@@ -6,6 +6,7 @@ import {
   isExcludedUserId,
 } from "@/lib/analytics/excluded-profile-ids";
 import { furthestLoggedInStep } from "@/lib/analytics/funnel-step-badge";
+import { canonicalizeEventType } from "@/lib/analytics/event-aliases";
 
 type JourneyRow = {
   user_id: string;
@@ -201,7 +202,7 @@ export async function GET(request: Request) {
             session_id,
             last_seen_at: last,
             events: sorted.map((e) => ({
-              event_type: e.event_type,
+              event_type: canonicalizeEventType(e.event_type),
               event_category: e.event_category,
               event_metadata: e.event_metadata,
               page_url: e.page_url,

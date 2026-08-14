@@ -73,7 +73,7 @@ export async function finalizeSignupAfterAuth(opts: {
         visitorId,
         countryCode: opts.countryCode ?? null,
         firstTouch,
-        eventType: "signup_completed",
+        eventType: "auth_email_step_completed",
         eventCategory: "auth",
         metadata: {
           user_id: opts.userId,

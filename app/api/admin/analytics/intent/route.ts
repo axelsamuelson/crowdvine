@@ -13,6 +13,7 @@ import {
   parseSiteParam,
   type AnalyticsSiteFilter,
 } from "@/lib/analytics/analytics-site";
+import { canonicalizeEventType } from "@/lib/analytics/event-aliases";
 
 async function fetchCleanEvents(
   sb: ReturnType<typeof getSupabaseAdmin>,
@@ -274,7 +275,7 @@ export async function GET(request: Request) {
         email: profile?.email ?? null,
         full_name: profile?.full_name ?? null,
         events: (eventsBySession.get(s.session_id) ?? []).map((e) => ({
-          event_type: e.event_type,
+          event_type: canonicalizeEventType(e.event_type),
           event_metadata: e.event_metadata,
           created_at: e.created_at,
           page_url: e.page_url ?? null,

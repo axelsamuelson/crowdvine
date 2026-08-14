@@ -42,7 +42,7 @@ function SignupPageContent() {
             "@/lib/analytics/event-tracker"
           );
           void AnalyticsTracker.trackEvent({
-            eventType: "signup_started",
+            eventType: "auth_email_step_shown",
             eventCategory: "auth",
             metadata: { source: "direct" },
           });

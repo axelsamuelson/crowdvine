@@ -381,7 +381,7 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
     if (!deliveryComplete) return;
     emitOnce(ageVerificationShownKey(ageCountryCode), () => {
       void AnalyticsTracker.trackEvent({
-        eventType: "age_verification_shown",
+        eventType: "age_confirmation_shown",
         eventCategory: "checkout",
         metadata: {
           country_code: ageCountryCode,
@@ -419,7 +419,7 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
           t("checkout.ageUnderLimit", { age: String(requiredAge) }),
         );
         void AnalyticsTracker.trackEvent({
-          eventType: "age_verification_failed",
+          eventType: "age_confirmation_failed",
           eventCategory: "checkout",
           metadata: {
             country_code: ageCountryCode,
@@ -433,7 +433,7 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
       setAgeConfirmed(true);
       emitOnce(ageVerificationPassedKey(ageCountryCode), () => {
         void AnalyticsTracker.trackEvent({
-          eventType: "age_verification_passed",
+          eventType: "age_confirmed",
           eventCategory: "checkout",
           metadata: {
             country_code: ageCountryCode,
@@ -1668,7 +1668,7 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
       } else {
         setIsFinalizingReservation(false); // Hide modal on error
         void AnalyticsTracker.trackEvent({
-          eventType: "payment_failed",
+          eventType: "checkout_confirm_failed",
           eventCategory: "checkout",
           metadata: { phase: "confirm", status: response.status },
         });
@@ -1700,7 +1700,7 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
     } catch (error) {
       setIsFinalizingReservation(false); // Hide modal on error
       void AnalyticsTracker.trackEvent({
-        eventType: "payment_failed",
+        eventType: "checkout_confirm_failed",
         eventCategory: "checkout",
         metadata: { phase: "confirm", status: 0, network: true },
       });
@@ -1757,7 +1757,7 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
 
     if (!ageConfirmed) {
       void AnalyticsTracker.trackEvent({
-        eventType: "age_verification_failed",
+        eventType: "age_confirmation_failed",
         eventCategory: "checkout",
         metadata: {
           country_code: ageCountryCode,
@@ -1900,7 +1900,7 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
           // fall through
         }
         void AnalyticsTracker.trackEvent({
-          eventType: "payment_failed",
+          eventType: "checkout_confirm_failed",
           eventCategory: "checkout",
           metadata: { status: response.status },
         });
@@ -1984,7 +1984,7 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
       setStripeError(msg);
       toast.error(msg);
       void AnalyticsTracker.trackEvent({
-        eventType: "payment_failed",
+        eventType: "checkout_confirm_failed",
         eventCategory: "checkout",
         metadata: {},
       });

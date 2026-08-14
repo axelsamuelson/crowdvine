@@ -52,24 +52,24 @@ export const TRACKED_USER_EVENTS_CATALOG: TrackedEventCatalogEntry[] = [
     sources: ["client"],
   },
   {
-    eventType: "signup_started",
+    eventType: "auth_email_step_shown",
     category: "auth",
     description:
-      "Email/signup UI shown (mid-checkout magic link or standalone signup).",
+      "E-post/inloggnings-UI visades (checkout “Skicka inloggningslänk” eller /signup). Legacy: signup_started.",
     sources: ["client"],
   },
   {
-    eventType: "signup_completed",
+    eventType: "auth_email_step_completed",
     category: "auth",
     description:
-      "Magic-link / OTP session established (auth callback route or checkout OTP).",
+      "Magic-link/OTP lyckades — användaren har en autentiserad session. Legacy: signup_completed.",
     sources: ["server", "client"],
   },
   {
-    eventType: "signup_abandoned",
+    eventType: "auth_email_step_abandoned",
     category: "auth",
     description:
-      "Checkout email signup unmounted after email entered without completion.",
+      "Checkout e-poststeg lämnades efter att e-post angetts utan slutförd inloggning. Legacy: signup_abandoned.",
     sources: ["client"],
   },
   // invitation
@@ -245,32 +245,36 @@ export const TRACKED_USER_EVENTS_CATALOG: TrackedEventCatalogEntry[] = [
   {
     eventType: "checkout_step_viewed",
     category: "checkout",
-    description: "Checkout wizard step changed (metadata: step number).",
+    description:
+      "Checkout-fas ändrades (metadata.phase: delivery | payment_ready).",
     sources: ["client"],
   },
   {
-    eventType: "payment_failed",
+    eventType: "checkout_confirm_failed",
     category: "checkout",
     description:
-      "Reservation / confirm step failed (HTTP error; no card details in metadata).",
+      "POST /api/checkout/confirm misslyckades (HTTP/nätverk). Inte Stripe-kortnekat. Legacy: payment_failed.",
     sources: ["client"],
   },
   {
-    eventType: "age_verification_shown",
+    eventType: "age_confirmation_shown",
     category: "checkout",
-    description: "Age confirmation checkbox shown at checkout.",
+    description:
+      "Födelsedatum/åldersbekräftelse visades i checkout. Legacy: age_verification_shown.",
     sources: ["client"],
   },
   {
-    eventType: "age_verification_passed",
+    eventType: "age_confirmed",
     category: "checkout",
-    description: "User checked the age confirmation checkbox.",
+    description:
+      "Användaren bekräftade ålder (giltigt födelsedatum). Legacy: age_verification_passed.",
     sources: ["client"],
   },
   {
-    eventType: "age_verification_failed",
+    eventType: "age_confirmation_failed",
     category: "checkout",
-    description: "User unchecked age confirmation or blocked submit.",
+    description:
+      "Åldersbekräftelse underkänd eller avmarkerad. Legacy: age_verification_failed.",
     sources: ["client"],
   },
   {

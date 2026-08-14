@@ -90,7 +90,7 @@ export function CheckoutEmailAuth({
       }
       emitOnce(SIGNUP_STARTED_CHECKOUT_KEY, () => {
         void AnalyticsTracker.trackEvent({
-          eventType: "signup_started",
+          eventType: "auth_email_step_shown",
           eventCategory: "auth",
           metadata: { source: "checkout" },
         });
@@ -119,7 +119,7 @@ export function CheckoutEmailAuth({
       subscription.unsubscribe();
       if (emailEnteredRef.current && !completedRef.current) {
         void AnalyticsTracker.trackEvent({
-          eventType: "signup_abandoned",
+          eventType: "auth_email_step_abandoned",
           eventCategory: "auth",
           metadata: { last_field: lastFieldRef.current },
         });

@@ -10,7 +10,10 @@ export function getFunnelStepBadge(step: string): FunnelStepBadge {
     return {
       key: "abandoned",
       label: step.startsWith("abandoned:")
-        ? step.replace("abandoned:", "Övergiven · ")
+        ? step
+            .replace("abandoned:", "Övergiven · ")
+            .replace("payment_ready", "betalning")
+            .replace("delivery", "leverans")
         : "Övergiven",
       className:
         "border-transparent bg-red-100 text-red-800 dark:bg-red-950/50 dark:text-red-200",
@@ -20,7 +23,10 @@ export function getFunnelStepBadge(step: string): FunnelStepBadge {
     return {
       key: "checkout",
       label: step.startsWith("checkout:")
-        ? step.replace("checkout:", "Checkout · ")
+        ? step
+            .replace("checkout:", "Checkout · ")
+            .replace("payment_ready", "betalning")
+            .replace("delivery", "leverans")
         : "Checkout",
       className:
         "border-transparent bg-orange-100 text-orange-800 dark:bg-orange-950/50 dark:text-orange-200",

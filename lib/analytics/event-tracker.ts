@@ -15,9 +15,9 @@ export type EventType =
   | "user_first_login"
   | "user_login"
   | "user_logout"
-  | "signup_started"
-  | "signup_completed"
-  | "signup_abandoned"
+  | "auth_email_step_shown"
+  | "auth_email_step_completed"
+  | "auth_email_step_abandoned"
   // Invitations
   | "invitation_link_opened"
   | "invitation_signup_started"
@@ -51,10 +51,10 @@ export type EventType =
   | "reservation_completed"
   | "checkout_abandoned"
   | "checkout_step_viewed"
-  | "payment_failed"
-  | "age_verification_shown"
-  | "age_verification_passed"
-  | "age_verification_failed"
+  | "checkout_confirm_failed"
+  | "age_confirmation_shown"
+  | "age_confirmed"
+  | "age_confirmation_failed"
   | "terms_accepted"
   // Engagement
   | "scroll_depth"
@@ -133,7 +133,7 @@ export class AnalyticsTracker {
     let eventMetadata: Record<string, unknown> = { ...metadata };
     if (
       eventType === "reservation_completed" ||
-      eventType === "signup_completed"
+      eventType === "auth_email_step_completed"
     ) {
       const firstTouch = readFirstTouchForMetadata();
       if (firstTouch) {

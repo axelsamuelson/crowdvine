@@ -1,3 +1,4 @@
+import { canonicalizeEventType } from "@/lib/analytics/event-aliases";
 import { stockholmWeekStartKey } from "@/lib/analytics/stockholm-time";
 
 /** Verbatim intent-session definition (shown in Nära köp info popover). */
@@ -60,8 +61,14 @@ export function buildIntentSessionsFromCleanEvents(
   for (const e of events) {
     const meta = asMeta(e.event_metadata);
     if (meta.productId === "test") continue;
-    if (!bySession.has(e.session_id)) bySession.set(e.session_id, []);
-    bySession.get(e.session_id)!.push(e);
+    const normalized: CleanEventRow = {
+      ...e,
+      event_type: canonicalizeEventType(e.event_type),
+    };
+    if (!bySession.has(normalized.session_id)) {
+      bySession.set(normalized.session_id, []);
+    }
+    bySession.get(normalized.session_id)!.push(normalized);
   }
 
   const intentTypes = new Set([
@@ -245,6 +252,7 @@ export function buildWeeklyFunnelFromCleanEvents(
   for (const e of filtered) {
     const meta = asMeta(e.event_metadata);
     if (meta.productId === "test") continue;
+    const eventType = canonicalizeEventType(e.event_type);
     let agg = sessions.get(e.session_id);
     if (!agg) {
       agg = {
@@ -255,7 +263,7 @@ export function buildWeeklyFunnelFromCleanEvents(
       };
       sessions.set(e.session_id, agg);
     }
-    agg.types.add(e.event_type);
+    agg.types.add(eventType);
     if (e.user_id) agg.userIds.add(e.user_id);
     const t = new Date(e.created_at).getTime();
     if (t < agg.minAt) agg.minAt = t;

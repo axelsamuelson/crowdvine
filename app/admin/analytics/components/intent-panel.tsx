@@ -19,6 +19,7 @@ import {
   formatStockholmDate,
   formatStockholmTime,
 } from "@/lib/analytics/stockholm-time";
+import { eventTypeLabelSv } from "@/lib/analytics/event-aliases";
 
 type IntentEvent = {
   event_type: string;
@@ -260,7 +261,7 @@ export function IntentPanel({
                               <span className="text-gray-400 dark:text-zinc-500">
                                 {formatStockholmTime(ev.created_at)}
                               </span>
-                              <span>{ev.event_type}</span>
+                              <span>{eventTypeLabelSv(ev.event_type)}</span>
                             </li>
                           ))}
                         </ol>

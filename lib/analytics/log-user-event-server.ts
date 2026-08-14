@@ -8,7 +8,7 @@ import type { FirstTouch } from "./visitor-identity";
  * Uses a synthetic session_id; omit PII from metadata.
  * Prefer passing visitorId / firstTouch from the browser when available.
  *
- * For reservation_completed / signup_completed, sets metadata.internal when
+ * For reservation_completed / auth_email_step_completed, sets metadata.internal when
  * the caller marks it, or when the user is in admin_metrics_excluded_profiles.
  */
 export async function logUserEventServer(opts: {
@@ -35,7 +35,7 @@ export async function logUserEventServer(opts: {
 
     if (
       opts.eventType === "reservation_completed" ||
-      opts.eventType === "signup_completed"
+      opts.eventType === "auth_email_step_completed"
     ) {
       if (opts.firstTouch) {
         metadata = { ...metadata, first_touch: opts.firstTouch };
@@ -50,7 +50,7 @@ export async function logUserEventServer(opts: {
       !internal &&
       opts.userId &&
       (opts.eventType === "reservation_completed" ||
-        opts.eventType === "signup_completed")
+        opts.eventType === "auth_email_step_completed")
     ) {
       const { data: excl } = await sb
         .from("admin_metrics_excluded_profiles")
