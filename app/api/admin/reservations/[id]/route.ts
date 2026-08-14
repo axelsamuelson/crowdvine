@@ -5,6 +5,7 @@ import {
   releaseBookingsForReservationPallet,
   updatePickupProducerForPallet,
 } from "@/lib/pallet-auto-management";
+import { rescalePrePalletContributionCents } from "@/lib/pallet-contribution";
 
 export async function PATCH(
   request: NextRequest,
@@ -96,20 +97,31 @@ export async function PATCH(
       // First, get existing items
       const { data: existingItems } = await supabase
         .from("order_reservation_items")
-        .select("id")
+        .select("id, economics_snapshot, quantity")
         .eq("reservation_id", id);
 
-      const existingItemIds = existingItems?.map((item) => item.id) || [];
+      const existingById = new Map(
+        (existingItems ?? []).map((row) => [row.id as string, row]),
+      );
+      const existingItemIds = [...existingById.keys()];
 
       // Process each item
       for (const item of items) {
         if (item.id && existingItemIds.includes(item.id)) {
-          // Update existing item
+          const existing = existingById.get(item.id);
+          const nextQty = Math.max(0, Math.floor(Number(item.quantity) || 0));
+          const rescaled = rescalePrePalletContributionCents(
+            existing?.economics_snapshot,
+            nextQty,
+          );
           const { error: updateError } = await supabase
             .from("order_reservation_items")
             .update({
               item_id: item.item_id,
-              quantity: item.quantity,
+              quantity: nextQty,
+              ...(rescaled != null
+                ? { pre_pallet_contribution_cents: rescaled }
+                : {}),
               updated_at: new Date().toISOString(),
             })
             .eq("id", item.id);
@@ -118,7 +130,7 @@ export async function PATCH(
             console.error("Error updating reservation item:", updateError);
           }
         } else if (item.item_id) {
-          // Create new item
+          // Create new item (no economics snapshot — admin manual add; shadow incomplete)
           const { error: insertError } = await supabase
             .from("order_reservation_items")
             .insert({

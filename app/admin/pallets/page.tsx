@@ -87,10 +87,25 @@ interface Pallet {
   current_pickup_producer?: ProducerPickupEmbed | null;
   total_booked_bottles: number;
   remaining_bottles: number;
+  remaining_to_ship?: number;
+  min_bottles_to_complete?: number;
   completion_percentage: number;
   wine_summary: WineSummary[];
   is_complete: boolean;
   needs_ordering: boolean;
+  /** Phase 2 shadow contribution readiness (admin only). */
+  shadow_contribution?: {
+    accumulatedContributionCents: number;
+    freightTargetCents: number;
+    remainingContributionCents: number;
+    freightFundedPercent: number;
+    expectedContributionPerBottleCents: number | null;
+    estimatedBottlesRemaining: number | null;
+    isEconomicallyReady: boolean;
+    currentBottleRuleReady: boolean;
+    hasIncompleteSnapshots: boolean;
+    bottlesWithSnapshot: number;
+  };
 }
 
 interface B2BShipmentItem {
@@ -608,8 +623,35 @@ export default function PalletsPage() {
                       </div>
                       <p className="text-xs text-zinc-500 tabular-nums">
                         {pallet.total_booked_bottles} /{" "}
-                        {pallet.bottle_capacity} bottles
+                        {pallet.min_bottles_to_complete ?? 120} to ship
+                        <span className="text-zinc-600">
+                          {" "}
+                          · cap {pallet.bottle_capacity}
+                        </span>
                       </p>
+                      {pallet.shadow_contribution ? (
+                        <p
+                          className={`text-[11px] tabular-nums ${
+                            pallet.shadow_contribution.isEconomicallyReady
+                              ? "text-emerald-500/90"
+                              : "text-zinc-500"
+                          }`}
+                          title="Shadow contribution readiness — does not control live completion"
+                        >
+                          Freight funded{" "}
+                          {pallet.shadow_contribution.freightFundedPercent.toFixed(
+                            0,
+                          )}
+                          %
+                          {pallet.shadow_contribution
+                            .estimatedBottlesRemaining != null
+                            ? ` · ~${pallet.shadow_contribution.estimatedBottlesRemaining} btls econ.`
+                            : ""}
+                          {pallet.shadow_contribution.hasIncompleteSnapshots
+                            ? " · partial snap"
+                            : ""}
+                        </p>
+                      ) : null}
                     </div>
                     <div className="shrink-0 flex flex-col gap-3 lg:items-end lg:text-right min-w-[10rem]">
                       {pallet.wine_summary.length > 0 ? (
@@ -709,8 +751,32 @@ export default function PalletsPage() {
                       </div>
                       <p className="mt-2 text-xs text-zinc-500 tabular-nums">
                         {pallet.total_booked_bottles} /{" "}
-                        {pallet.bottle_capacity} bottles
+                        {pallet.min_bottles_to_complete ?? 120} to ship
+                        <span className="text-zinc-600">
+                          {" "}
+                          · cap {pallet.bottle_capacity}
+                        </span>
                       </p>
+                      {pallet.shadow_contribution ? (
+                        <p
+                          className={`mt-1 text-[11px] tabular-nums ${
+                            pallet.shadow_contribution.isEconomicallyReady
+                              ? "text-emerald-500/90"
+                              : "text-zinc-500"
+                          }`}
+                          title="Shadow contribution readiness — does not control live completion"
+                        >
+                          Freight funded{" "}
+                          {pallet.shadow_contribution.freightFundedPercent.toFixed(
+                            0,
+                          )}
+                          %
+                          {pallet.shadow_contribution
+                            .estimatedBottlesRemaining != null
+                            ? ` · ~${pallet.shadow_contribution.estimatedBottlesRemaining} btls econ.`
+                            : ""}
+                        </p>
+                      ) : null}
                     </div>
                     <p className="text-xs text-zinc-400 tabular-nums">
                       <span className="text-zinc-300">{delivery}</span>

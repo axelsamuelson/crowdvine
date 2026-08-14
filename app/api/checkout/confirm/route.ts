@@ -44,6 +44,11 @@ import { tryActivateReferralOnFirstOrder } from "@/lib/referral/activate-referra
 import { stripe } from "@/lib/stripe";
 import { resolvePaymentMethodDetailsFromId } from "@/lib/stripe/resolve-payment-method-details";
 import { calculateCartShippingCost, resolveLastMileCostCentsPerBottle } from "@/lib/shipping-calculations";
+import { getContributionAssumptions } from "@/lib/contribution-assumptions";
+import {
+  buildReservationItemEconomicsRows,
+  type WineEconomicsFields,
+} from "@/lib/reservation-economics-snapshot";
 import {
   CHECKOUT_UNSUPPORTED_COUNTRY_USER_MESSAGE,
   US_CHARGE_BLOCKED_REASON,
@@ -91,6 +96,51 @@ function sumLineAmountsSek(lines: readonly CartItem[]): number {
     const v = parseFloat(String(line.cost.totalAmount.amount));
     return sum + (Number.isFinite(v) ? v : 0);
   }, 0);
+}
+
+function cartLinesToEconomicsSources(lines: readonly CartItem[]) {
+  return lines.map((line) => ({
+    merchandiseId: String(line.merchandise.id),
+    quantity: Number(line.quantity) || 0,
+    lineTotalSek: parseFloat(String(line.cost.totalAmount.amount)) || 0,
+  }));
+}
+
+async function loadWineEconomicsByIds(
+  wineIds: string[],
+): Promise<Map<string, WineEconomicsFields>> {
+  const map = new Map<string, WineEconomicsFields>();
+  const ids = [...new Set(wineIds.filter(Boolean))];
+  if (ids.length === 0) return map;
+  const { data, error } = await getSupabaseAdmin()
+    .from("wines")
+    .select(
+      "id, cost_amount, cost_currency, exchange_rate, alcohol_tax_cents, price_includes_vat",
+    )
+    .in("id", ids);
+  if (error) {
+    console.error("[CHECKOUT] Failed to load wine economics for snapshot:", error);
+    return map;
+  }
+  for (const row of data ?? []) {
+    const id = String((row as { id: string }).id);
+    map.set(id, row as WineEconomicsFields);
+  }
+  return map;
+}
+
+async function resolveLastMileForPalletId(
+  palletId: string | null | undefined,
+): Promise<number> {
+  if (!palletId) return resolveLastMileCostCentsPerBottle(0);
+  const { data } = await getSupabaseAdmin()
+    .from("pallets")
+    .select("last_mile_cost_cents_per_bottle")
+    .eq("id", palletId)
+    .maybeSingle();
+  return resolveLastMileCostCentsPerBottle(
+    Number(data?.last_mile_cost_cents_per_bottle) || 0,
+  );
 }
 
 /**
@@ -1097,6 +1147,19 @@ export async function POST(request: Request) {
 
     let stripePaymentMethodId: string | null = null;
 
+    // Phase 2 shadow economics: freeze contribution inputs at reservation create
+    // (same lifecycle moment bottles enter PALLET_FILL_STATUSES).
+    const contributionAssumptions = getContributionAssumptions();
+    const wineEconomicsById = await loadWineEconomicsByIds(
+      (cart.lines || []).map((l) => String(l.merchandise.id)),
+    );
+    const checkoutBottleCount = (cart.lines || []).reduce(
+      (sum, l) => sum + (Number(l.quantity) || 0),
+      0,
+    );
+    const shippingGrossCentsTotal = Math.max(0, Math.round(shippingSek * 100));
+    const paymentFeeFixedTotal = contributionAssumptions.stripeFeeFixedCents;
+
     if (!deferredLinkCheckout) {
     if (intentType === "setup_intent") {
       const setupIntent = await stripe!.setupIntents.retrieve(intentId!);
@@ -1405,12 +1468,36 @@ export async function POST(request: Request) {
           `[CHECKOUT] Created reservation ${rid} for producer ${group.producerId} on pallet ${groupPalletId}`,
         );
 
-        const itemRows = group.lines.map((line) => ({
-          reservation_id: rid,
-          item_id: line.merchandise.id,
-          quantity: line.quantity,
-          price_band: "market" as const,
-        }));
+        const groupBottleCount = group.lines.reduce(
+          (sum, line) => sum + (Number(line.quantity) || 0),
+          0,
+        );
+        const groupShippingShare =
+          checkoutBottleCount > 0
+            ? Math.round(
+                (shippingGrossCentsTotal * groupBottleCount) /
+                  checkoutBottleCount,
+              )
+            : 0;
+        const groupFixedFeeShare =
+          checkoutBottleCount > 0
+            ? Math.round(
+                (paymentFeeFixedTotal * groupBottleCount) / checkoutBottleCount,
+              )
+            : 0;
+        const groupLastMile = await resolveLastMileForPalletId(groupPalletId);
+        const itemRows = buildReservationItemEconomicsRows({
+          reservationId: rid,
+          lines: cartLinesToEconomicsSources(group.lines),
+          wineById: wineEconomicsById,
+          orderLevelDiscountCents: Math.round(
+            (groupVoucherSek + groupPactSek + groupPromoSek) * 100,
+          ),
+          shippingRevenueGrossCents: groupShippingShare,
+          lastMileCostCentsPerBottle: groupLastMile,
+          paymentFeeFixedCents: groupFixedFeeShare,
+          assumptions: contributionAssumptions,
+        });
         const { error: itemsInsErr } = await sb
           .from("order_reservation_items")
           .insert(itemRows);
@@ -1724,12 +1811,18 @@ export async function POST(request: Request) {
             ? producerItems
             : cart.lines;
 
-      const reservationItems = itemsToAdd.map((line) => ({
-        reservation_id: reservation.id,
-        item_id: line.merchandise.id,
-        quantity: line.quantity,
-        price_band: "market",
-      }));
+      const reservationItems = buildReservationItemEconomicsRows({
+        reservationId: reservation.id,
+        lines: cartLinesToEconomicsSources(itemsToAdd),
+        wineById: wineEconomicsById,
+        orderLevelDiscountCents: Math.round(
+          (voucherSekOff + pactPointsSekOff + promoDiscountAmountSek) * 100,
+        ),
+        shippingRevenueGrossCents: shippingGrossCentsTotal,
+        lastMileCostCentsPerBottle: await resolveLastMileForPalletId(palletId),
+        paymentFeeFixedCents: paymentFeeFixedTotal,
+        assumptions: contributionAssumptions,
+      });
 
       const { error: itemsError } = await sb
         .from("order_reservation_items")

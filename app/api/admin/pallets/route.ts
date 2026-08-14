@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { PALLET_FILL_STATUSES } from "@/lib/pallet-fill-count";
+import { computePalletContributionProgress } from "@/lib/pallet-contribution";
 
 type WineSummaryRow = {
   wine_name: string;
@@ -34,6 +35,7 @@ type ItemRow = {
   reservation_id: string;
   item_id: string | null;
   quantity: number | null;
+  pre_pallet_contribution_cents?: number | null;
 };
 
 export async function GET() {
@@ -68,6 +70,8 @@ export async function GET() {
       .filter((id): id is string => typeof id === "string" && id.length > 0);
 
     const bottlesByPalletId = new Map<string, number>();
+    const snapshotBottlesByPalletId = new Map<string, number>();
+    const contributionByPalletId = new Map<string, number>();
     const wineAggByPalletId = new Map<string, Record<string, WineSummaryRow>>();
     const producerQtyByPalletKey = new Map<string, number>();
 
@@ -99,7 +103,7 @@ export async function GET() {
       } else {
         const { data: items, error: itemsErr } = await sb
           .from("order_reservation_items")
-          .select("reservation_id, item_id, quantity")
+          .select("reservation_id, item_id, quantity, pre_pallet_contribution_cents")
           .in("reservation_id", reservationIds);
 
         if (itemsErr) {
@@ -201,6 +205,18 @@ export async function GET() {
             palletId,
             (bottlesByPalletId.get(palletId) ?? 0) + qty,
           );
+          const contrib = it.pre_pallet_contribution_cents;
+          if (contrib != null && Number.isFinite(Number(contrib))) {
+            snapshotBottlesByPalletId.set(
+              palletId,
+              (snapshotBottlesByPalletId.get(palletId) ?? 0) + qty,
+            );
+            contributionByPalletId.set(
+              palletId,
+              (contributionByPalletId.get(palletId) ?? 0) +
+                Math.round(Number(contrib)),
+            );
+          }
 
           const wine = wineById.get(it.item_id);
           if (!wine?.producer_id) continue;
@@ -259,6 +275,17 @@ export async function GET() {
           ? Math.min(100, (totalBookedBottles / minToShip) * 100)
           : 0;
       const wineSummary = wineAggByPalletId.get(id) ?? {};
+      const shadowContribution = computePalletContributionProgress({
+        bottlesFilled: totalBookedBottles,
+        bottlesWithSnapshot: snapshotBottlesByPalletId.get(id) ?? 0,
+        accumulatedContributionCents: contributionByPalletId.get(id) ?? 0,
+        freightTargetCents:
+          Number(pallet.freight_target_cents) > 0
+            ? Number(pallet.freight_target_cents)
+            : Number(pallet.cost_cents) || 0,
+        minBottlesToShip: minToShip,
+        physicalBottleCapacity: cap,
+      });
 
       const shippingRegionId = pallet.shipping_region_id;
       const pallet_type: "region_based" | "zone_based" =
@@ -294,6 +321,8 @@ export async function GET() {
         wine_summary: Object.values(wineSummary),
         is_complete: totalBookedBottles >= minToShip,
         needs_ordering: remainingToShip > 0,
+        /** Phase 2 shadow only — does not control live completion. */
+        shadow_contribution: shadowContribution,
         pickup_is_fallback,
         needs_pallet_zone,
       };
