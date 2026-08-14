@@ -73,7 +73,6 @@ import {
   parseFirstTouchPayload,
   type FirstTouch,
 } from "@/lib/analytics/visitor-identity";
-import { isPlatformOpen } from "@/lib/platform-open";
 import { validatePromoDiscountCode } from "@/lib/promo-discount-validate";
 import type { PromoDiscountCartItem } from "@/lib/discount-codes";
 import {
@@ -838,8 +837,19 @@ export async function POST(request: Request) {
         ? (body as { payment_method?: unknown }).payment_method
         : undefined;
 
-    const deferredLinkCheckout =
-      isPlatformOpen() && paymentMethodHint === "deferred_link";
+    // Deferred payment-link checkout is retired; open platform still uses Stripe
+    // (SetupIntent / PaymentIntent) after mid-checkout OTP.
+    if (paymentMethodHint === "deferred_link") {
+      return NextResponse.json(
+        {
+          error:
+            "Card payment is required. Deferred payment links are no longer available.",
+        },
+        { status: 400 },
+      );
+    }
+
+    const deferredLinkCheckout = false;
 
     const intentId =
       typeof stripe_intent_id === "string" && stripe_intent_id.trim() !== ""

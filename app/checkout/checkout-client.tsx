@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState, Suspense, useCallback } from "react";
 import { CartMergeModal } from "@/components/cart/cart-merge-modal";
 import { CheckoutEmailAuth } from "@/components/checkout/checkout-email-auth";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { getAgeLimit, meetsAgeRequirement } from "@/lib/age-limits";
 import { PRICE_VERSION } from "@/lib/analytics/price-version";
 import { pricesFromCheckoutCart } from "@/lib/analytics/cart-event-prices";
@@ -151,6 +152,13 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [authReady, setAuthReady] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
+  /** Open-platform: last ensure-session error (no login wall). */
+  const [guestSessionError, setGuestSessionError] = useState<string | null>(
+    null,
+  );
+  const [guestSessionPending, setGuestSessionPending] = useState(false);
+  const [guestRetryNonce, setGuestRetryNonce] = useState(0);
+  const guestEnsureAttemptedRef = useRef<string | null>(null);
   const [cartMergeOpen, setCartMergeOpen] = useState(false);
   const [cartMergeLoading, setCartMergeLoading] = useState(false);
   const [activeShop, setActiveShop] = useState<ResolvedActiveGeoZone | null>(
@@ -168,7 +176,9 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
   const [selectedRewards, setSelectedRewards] = useState<UserReward[]>([]);
   const [useRewards, setUseRewards] = useState(false);
   const checkoutCompletedRef = useRef(false);
-  const checkoutPhaseRef = useRef<"delivery" | "payment_ready">("delivery");
+  const checkoutPhaseRef = useRef<"delivery" | "compliance" | "payment">(
+    "delivery",
+  );
   const zoneInfoFetchInProgressRef = useRef(false);
   const zoneInfoNeedsRefetchRef = useRef(false);
   const pendingZoneOverrideRef = useRef<ZoneDeliveryLines | null>(null);
@@ -199,7 +209,9 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
   const addressAutoSaveRef = useRef(false);
   const addressPersistedRef = useRef(false);
   const authAddressPersistRef = useRef(false);
-  const [paymentStepRevealed, setPaymentStepRevealed] = useState(false);
+  const [complianceStepRevealed, setComplianceStepRevealed] = useState(false);
+  const [paymentCardRevealed, setPaymentCardRevealed] = useState(false);
+  const complianceSectionRef = useRef<HTMLElement | null>(null);
   const paymentSectionRef = useRef<HTMLElement | null>(null);
   const [postalModalOpen, setPostalModalOpen] = useState(false);
   const [budbeeAvailable, setBudbeeAvailable] = useState<boolean | null>(
@@ -482,7 +494,7 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
         eventCategory: "checkout",
         metadata: {
           ...deliveryLinesForAnalytics(effectiveDelivery),
-          phase: "payment_ready",
+          phase: "compliance",
           capture: "location",
         },
       });
@@ -499,7 +511,7 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
         eventCategory: "checkout",
         metadata: {
           ...deliveryLinesForAnalytics(effectiveDelivery),
-          phase: "payment_ready",
+          phase: "compliance",
           capture: "contact",
         },
       });
@@ -507,13 +519,18 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
   }, [deliveryComplete, hasContactForCheckout, effectiveDelivery]);
 
   useEffect(() => {
-    checkoutPhaseRef.current = deliveryComplete ? "payment_ready" : "delivery";
+    const phase: "delivery" | "compliance" | "payment" = paymentCardRevealed
+      ? "payment"
+      : complianceStepRevealed
+        ? "compliance"
+        : "delivery";
+    checkoutPhaseRef.current = phase;
     void AnalyticsTracker.trackEvent({
       eventType: "checkout_step_viewed",
       eventCategory: "checkout",
-      metadata: { phase: checkoutPhaseRef.current },
+      metadata: { phase },
     });
-  }, [deliveryComplete]);
+  }, [complianceStepRevealed, paymentCardRevealed]);
 
   useEffect(() => {
     if (!cart || cart.totalQuantity <= 0) {
@@ -528,13 +545,13 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
         cart_value: cartValue,
         bottle_count: bottleCount,
         site: "pact",
-        payment_method: platformOpen ? "deferred_link" : "card",
+        payment_method: "card",
         list_price,
         unit_price,
         price_version: PRICE_VERSION,
       });
     });
-  }, [cart, platformOpen]);
+  }, [cart]);
 
   useEffect(() => {
     return () => {
@@ -593,6 +610,7 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
 
   const ensureProfileAfterAuth = useCallback(async () => {
     setAuthReady(true);
+    setGuestSessionError(null);
     await fetchProfile();
     try {
       await fetch("/api/cart/merge", {
@@ -605,6 +623,92 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
       await fetchCart();
     }
   }, [fetchProfile, fetchCart]);
+
+  // Open platform: silent session from delivery email — no mid-checkout login wall.
+  useEffect(() => {
+    if (!platformOpen) return;
+    setGuestSessionError(null);
+    guestEnsureAttemptedRef.current = null;
+  }, [platformOpen, deliveryDraft?.email]);
+
+  useEffect(() => {
+    if (!platformOpen) return;
+    if (!deliveryComplete || authReady || !authChecked) return;
+
+    const email = (deliveryDraft?.email ?? "").trim().toLowerCase();
+    if (!email.includes("@")) return;
+    if (guestEnsureAttemptedRef.current === email) return;
+    guestEnsureAttemptedRef.current = email;
+
+    let cancelled = false;
+    setGuestSessionPending(true);
+    setGuestSessionError(null);
+    void (async () => {
+      try {
+        const res = await fetch("/api/checkout/ensure-session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ email }),
+        });
+        const data = (await res.json().catch(() => null)) as {
+          ok?: boolean;
+          alreadyAuthenticated?: boolean;
+          autoSignedIn?: boolean;
+          session?: { access_token: string; refresh_token: string };
+          error?: string;
+        } | null;
+
+        if (cancelled) return;
+
+        if (data?.alreadyAuthenticated) {
+          await ensureProfileAfterAuth();
+          return;
+        }
+
+        if (data?.autoSignedIn && data.session?.access_token) {
+          const supabase = getSupabaseBrowserClient();
+          const { error } = await supabase.auth.setSession({
+            access_token: data.session.access_token,
+            refresh_token: data.session.refresh_token,
+          });
+          if (error) {
+            console.error("[Checkout] setSession after ensure-session:", error);
+            setGuestSessionError(t("checkout.guestSessionFailed"));
+            return;
+          }
+          await ensureProfileAfterAuth();
+          return;
+        }
+
+        console.warn(
+          "[Checkout] ensure-session failed:",
+          data?.error ?? res.status,
+        );
+        setGuestSessionError(
+          data?.error?.trim() || t("checkout.guestSessionFailed"),
+        );
+      } catch (err) {
+        console.error("[Checkout] ensure-session error:", err);
+        if (!cancelled) setGuestSessionError(t("checkout.guestSessionFailed"));
+      } finally {
+        if (!cancelled) setGuestSessionPending(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    platformOpen,
+    deliveryComplete,
+    authReady,
+    authChecked,
+    deliveryDraft?.email,
+    ensureProfileAfterAuth,
+    guestRetryNonce,
+    t,
+  ]);
 
   // After magic-link return: session is set, attach/merge anonymous cart once.
   const cartMergedAfterAuthRef = useRef(false);
@@ -828,7 +932,7 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
   useEffect(() => {
     if (!hasPostalCode || !deliveryDraft || addressSaving) return;
     if (editingAddress) return;
-    if (paymentStepRevealed || deliveryComplete) return;
+    if (complianceStepRevealed || deliveryComplete) return;
     if (addressPersistedRef.current || addressAutoSaveRef.current) return;
 
     const nameOk = (deliveryDraft.fullName ?? "").trim().length > 1;
@@ -858,7 +962,7 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
         addressAutoSaveRef.current ||
         addressPersistedRef.current ||
         editingAddress ||
-        paymentStepRevealed
+        complianceStepRevealed
       ) {
         return;
       }
@@ -873,13 +977,13 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
     addressSaving,
     editingAddress,
     isUsConditional,
-    paymentStepRevealed,
+    complianceStepRevealed,
     deliveryComplete,
   ]);
 
-  // After OTP in payment: persist guest draft to DB quietly (no toast flash).
+  // After auth in payment: persist guest draft to DB quietly (no toast flash).
   useEffect(() => {
-    if (!authReady || !paymentStepRevealed) return;
+    if (!authReady || !paymentCardRevealed) return;
     if (editingAddress || addressSaving) return;
     if (!activeShop?.geoZoneId || zoneAddressRow) return;
     if (!deliveryDraft || authAddressPersistRef.current) return;
@@ -909,7 +1013,7 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
     void handleSaveZoneDelivery({ silent: true });
   }, [
     authReady,
-    paymentStepRevealed,
+    paymentCardRevealed,
     editingAddress,
     addressSaving,
     activeShop?.geoZoneId,
@@ -918,21 +1022,45 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
     isUsConditional,
   ]);
 
-  // Soft handoff: let step 2 confirmation land before revealing payment.
+  // Soft handoff: reveal age/terms after delivery is complete.
   useEffect(() => {
     if (!deliveryComplete) {
-      setPaymentStepRevealed(false);
+      setComplianceStepRevealed(false);
+      setPaymentCardRevealed(false);
       return;
     }
     const revealTimer = window.setTimeout(() => {
-      setPaymentStepRevealed(true);
-      paymentSectionRef.current?.scrollIntoView({
+      setComplianceStepRevealed(true);
+      complianceSectionRef.current?.scrollIntoView({
         behavior: "smooth",
         block: "nearest",
       });
     }, 420);
     return () => window.clearTimeout(revealTimer);
   }, [deliveryComplete]);
+
+  const complianceComplete =
+    ageConfirmed &&
+    termsAccepted &&
+    (!isUsConditional || usConditionalAck);
+
+  // If age/terms become incomplete again, collapse payment.
+  useEffect(() => {
+    if (!complianceStepRevealed || !complianceComplete) {
+      setPaymentCardRevealed(false);
+    }
+  }, [complianceStepRevealed, complianceComplete]);
+
+  const handleContinueToPayment = useCallback(() => {
+    if (!complianceComplete) return;
+    setPaymentCardRevealed(true);
+    window.setTimeout(() => {
+      paymentSectionRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+      });
+    }, 80);
+  }, [complianceComplete]);
 
   // Initial zone matching when cart and zone context are loaded
   useEffect(() => {
@@ -1863,7 +1991,6 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
     const submitConfirm = async (opts: {
       stripeIntentId?: string;
       paymentMode?: "setup_intent" | "payment_intent";
-      deferred?: boolean;
     }) => {
       setIsFinalizingReservation(true);
       const formData = new FormData();
@@ -1916,9 +2043,7 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
         formData.append("pact_points_redeem", String(redeemPoints));
       }
 
-      if (opts.deferred) {
-        formData.append("payment_method", "deferred_link");
-      } else if (opts.stripeIntentId && opts.paymentMode) {
+      if (opts.stripeIntentId && opts.paymentMode) {
         formData.append("stripe_intent_id", opts.stripeIntentId);
         formData.append("stripe_intent_type", opts.paymentMode);
       }
@@ -1969,19 +2094,6 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
       // Do not releaseSubmit — navigate away; keep button disabled.
       window.location.href = redirectUrl || "/checkout/success";
     };
-
-    if (platformOpen) {
-      try {
-        await submitConfirm({ deferred: true });
-      } catch (e) {
-        const msg =
-          e instanceof Error ? e.message : t("checkout.reservationFailed");
-        setStripeError(msg);
-        toast.error(msg);
-        releaseSubmit();
-      }
-      return;
-    }
 
     if (!stripeConfirmFn || !paymentMode || !stripeIntentId) {
       setStripeError(t("checkout.paymentNotReady"));
@@ -2336,12 +2448,12 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
 
   // After login / auth flip, drop any stale Stripe confirm closure from a prior mount.
   useEffect(() => {
-    if (!authReady || platformOpen) {
+    if (!authReady) {
       setStripeConfirmFn(null);
       setPaymentMode(null);
       setStripeIntentId(null);
     }
-  }, [authReady, platformOpen]);
+  }, [authReady]);
 
   useEffect(() => {
     if (!Number.isFinite(maxRedemption)) return;
@@ -3525,40 +3637,29 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
             </section>
 
             <section
-              ref={paymentSectionRef}
+              ref={complianceSectionRef}
               className={cn(
                 "py-6 border-b border-border last:border-0 transition-[opacity,transform] duration-500 ease-out",
-                deliveryComplete && paymentStepRevealed
+                deliveryComplete && complianceStepRevealed
                   ? "opacity-100 translate-y-0"
                   : "opacity-50 translate-y-1",
               )}
             >
               <div className="space-y-3">
                 <h2 className="text-base font-semibold text-foreground">
-                  {t("checkout.payment")}
+                  {t("checkout.stepCompliance")}
                 </h2>
 
                 {!deliveryComplete ? (
                   <p className="text-sm text-muted-foreground">
-                    {t("checkout.stepPaymentLocked")}
+                    {t("checkout.stepComplianceLocked")}
                   </p>
-                ) : !paymentStepRevealed ? (
+                ) : !complianceStepRevealed ? (
                   <p className="text-sm text-muted-foreground animate-in fade-in-0 duration-300">
-                    {t("checkout.openingPayment")}
+                    {t("checkout.openingCompliance")}
                   </p>
                 ) : (
                   <div className="space-y-3 animate-in fade-in-0 slide-in-from-bottom-1 duration-500 fill-mode-both">
-                    {hasWarehouseItems ? (
-                      <div className="mb-2">
-                        <PaymentMethodSelectorB2B
-                          onPaymentMethodSelected={setPaymentMethod}
-                          selectedMethod={paymentMethod}
-                          hasWarehouseItems={hasWarehouseItems}
-                          hasProducerItems={hasProducerItems}
-                        />
-                      </div>
-                    ) : null}
-
                     {hasProducerItems && selectedPallet ? (
                       <>
                         {isUsConditional ? (
@@ -3629,92 +3730,16 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
                             </label>
                           </div>
                         </div>
-                        {authChecked && !authReady ? (
-                          <CheckoutEmailAuth
-                            emailHint={t("checkout.otpEmailHint")}
-                            checkInbox={t("checkout.otpCheckInbox")}
-                            emailLabel={t("checkout.otpEmailLabel")}
-                            sendLinkLabel={t("checkout.otpSendLink")}
-                            onAuthenticated={() => {
-                              void ensureProfileAfterAuth();
-                            }}
-                          />
-                        ) : null}
-                        {authReady && !platformOpen ? (
-                        <StripePaymentSection
-                          key={`stripe-${selectedPallet.id}-${profile?.id ?? "anon"}`}
-                          palletId={selectedPallet.id}
-                          pactPointsRedeem={redeemPoints}
-                          promoDiscountSek={
-                            appliedDiscount?.discount_amount_sek ?? 0
-                          }
-                          userId={profile?.id}
-                          onIntentCreated={handleStripeIntentCreated}
-                          onConfirmReady={handleStripeConfirmReady}
-                          onQuote={(q) =>
-                            setServerQuote({
-                              subtotal_sek: q.subtotal_sek,
-                              shipping_sek: q.shipping_sek,
-                              promo_discount_sek: q.promo_discount_sek,
-                              voucher_discount_sek: 0,
-                              pact_points_sek: q.pact_points_sek,
-                              pact_points_redeem: redeemPoints,
-                              total_sek: q.total_sek,
-                              total_ore: q.total_ore,
-                            })
-                          }
-                          usConditionalPayment={isUsConditional}
-                          usConditionalAck={usConditionalAck}
-                        />
-                        ) : null}
-
-                        {stripeError ? (
-                          <p className="mt-3 text-sm text-destructive">
-                            {stripeError}
-                          </p>
-                        ) : null}
-
-                        <div className="mt-6 space-y-4 border-t border-border pt-4">
-                          <p className="text-xs text-muted-foreground">
-                            {t("checkout.sellingEntity")}
-                          </p>
-                          <div className="flex items-center justify-between py-4">
-                            <span className="text-base font-semibold text-foreground">
-                              {t("checkout.total")}
-                            </span>
-                            <span className="text-2xl font-bold tabular-nums text-foreground">
-                              {formatDisplay(displayTotal)}
-                            </span>
-                          </div>
-
+                        {!paymentCardRevealed ? (
                           <Button
                             type="button"
                             className="w-full border-transparent bg-black text-white shadow-none ring-0 hover:border-transparent hover:bg-black/90 hover:shadow-none focus-visible:border-transparent focus-visible:bg-black/90 focus-visible:ring-white/40"
-                            disabled={
-                              (!platformOpen &&
-                                (!stripeConfirmFn ||
-                                  !paymentMode ||
-                                  !stripeIntentId)) ||
-                              isSubmitting ||
-                              zoneLoading ||
-                              isStripeConfirming ||
-                              isFinalizingReservation ||
-                              !ageConfirmed ||
-                              !termsAccepted ||
-                              !authReady ||
-                              (isUsConditional && !usConditionalAck)
-                            }
-                            onClick={handlePlaceReservation}
+                            disabled={!complianceComplete}
+                            onClick={handleContinueToPayment}
                           >
-                            {isSubmitting
-                              ? t("checkout.processing")
-                              : paymentMode === "payment_intent"
-                                ? t("checkout.payNow")
-                                : isUsConditional
-                                  ? t("checkout.usConditionalButton")
-                                  : t("checkout.placeReservation")}
+                            {t("checkout.continueToPayment")}
                           </Button>
-                        </div>
+                        ) : null}
                       </>
                     ) : null}
 
@@ -3784,6 +3809,156 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
                             })}
                         </div>
                       </div>
+                    ) : null}
+                  </div>
+                )}
+              </div>
+            </section>
+
+            <section
+              ref={paymentSectionRef}
+              className={cn(
+                "py-6 border-b border-border last:border-0 transition-[opacity,transform] duration-500 ease-out",
+                complianceComplete && paymentCardRevealed
+                  ? "opacity-100 translate-y-0"
+                  : "opacity-50 translate-y-1",
+              )}
+            >
+              <div className="space-y-3">
+                <h2 className="text-base font-semibold text-foreground">
+                  {t("checkout.payment")}
+                </h2>
+
+                {!paymentCardRevealed ? (
+                  <p className="text-sm text-muted-foreground">
+                    {t("checkout.stepPaymentLocked")}
+                  </p>
+                ) : (
+                  <div className="space-y-3 animate-in fade-in-0 slide-in-from-bottom-1 duration-500 fill-mode-both">
+                    {hasWarehouseItems ? (
+                      <div className="mb-2">
+                        <PaymentMethodSelectorB2B
+                          onPaymentMethodSelected={setPaymentMethod}
+                          selectedMethod={paymentMethod}
+                          hasWarehouseItems={hasWarehouseItems}
+                          hasProducerItems={hasProducerItems}
+                        />
+                      </div>
+                    ) : null}
+
+                    {hasProducerItems && selectedPallet ? (
+                      <>
+                        {authChecked && !authReady && !platformOpen ? (
+                          <CheckoutEmailAuth
+                            emailHint={t("checkout.otpEmailHint")}
+                            checkInbox={t("checkout.otpCheckInbox")}
+                            emailLabel={t("checkout.otpEmailLabel")}
+                            sendLinkLabel={t("checkout.otpSendLink")}
+                            onAuthenticated={() => {
+                              void ensureProfileAfterAuth();
+                            }}
+                          />
+                        ) : null}
+                        {authChecked && !authReady && platformOpen ? (
+                          <div className="space-y-2">
+                            <p className="text-sm text-muted-foreground">
+                              {guestSessionPending
+                                ? t("checkout.preparingCheckout")
+                                : guestSessionError
+                                  ? guestSessionError
+                                  : t("checkout.preparingCheckout")}
+                            </p>
+                            {guestSessionError ? (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  guestEnsureAttemptedRef.current = null;
+                                  setGuestSessionError(null);
+                                  setGuestRetryNonce((n) => n + 1);
+                                }}
+                              >
+                                {t("checkout.tryAgain")}
+                              </Button>
+                            ) : null}
+                          </div>
+                        ) : null}
+                        {authReady ? (
+                          <StripePaymentSection
+                            key={`stripe-${selectedPallet.id}`}
+                            palletId={selectedPallet.id}
+                            pactPointsRedeem={redeemPoints}
+                            promoDiscountSek={
+                              appliedDiscount?.discount_amount_sek ?? 0
+                            }
+                            userId={profile?.id}
+                            onIntentCreated={handleStripeIntentCreated}
+                            onConfirmReady={handleStripeConfirmReady}
+                            onQuote={(q) =>
+                              setServerQuote({
+                                subtotal_sek: q.subtotal_sek,
+                                shipping_sek: q.shipping_sek,
+                                promo_discount_sek: q.promo_discount_sek,
+                                voucher_discount_sek: 0,
+                                pact_points_sek: q.pact_points_sek,
+                                pact_points_redeem: redeemPoints,
+                                total_sek: q.total_sek,
+                                total_ore: q.total_ore,
+                              })
+                            }
+                            usConditionalPayment={isUsConditional}
+                            usConditionalAck={usConditionalAck}
+                          />
+                        ) : null}
+
+                        {stripeError ? (
+                          <p className="mt-3 text-sm text-destructive">
+                            {stripeError}
+                          </p>
+                        ) : null}
+
+                        <div className="mt-6 space-y-4 border-t border-border pt-4">
+                          <p className="text-xs text-muted-foreground">
+                            {t("checkout.sellingEntity")}
+                          </p>
+                          <div className="flex items-center justify-between py-4">
+                            <span className="text-base font-semibold text-foreground">
+                              {t("checkout.total")}
+                            </span>
+                            <span className="text-2xl font-bold tabular-nums text-foreground">
+                              {formatDisplay(displayTotal)}
+                            </span>
+                          </div>
+
+                          <Button
+                            type="button"
+                            className="w-full border-transparent bg-black text-white shadow-none ring-0 hover:border-transparent hover:bg-black/90 hover:shadow-none focus-visible:border-transparent focus-visible:bg-black/90 focus-visible:ring-white/40"
+                            disabled={
+                              !stripeConfirmFn ||
+                              !paymentMode ||
+                              !stripeIntentId ||
+                              isSubmitting ||
+                              zoneLoading ||
+                              isStripeConfirming ||
+                              isFinalizingReservation ||
+                              !ageConfirmed ||
+                              !termsAccepted ||
+                              !authReady ||
+                              (isUsConditional && !usConditionalAck)
+                            }
+                            onClick={handlePlaceReservation}
+                          >
+                            {isSubmitting
+                              ? t("checkout.processing")
+                              : paymentMode === "payment_intent"
+                                ? t("checkout.payNow")
+                                : isUsConditional
+                                  ? t("checkout.usConditionalButton")
+                                  : t("checkout.placeReservation")}
+                          </Button>
+                        </div>
+                      </>
                     ) : null}
                   </div>
                 )}

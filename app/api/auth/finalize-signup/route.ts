@@ -27,6 +27,7 @@ export async function POST(request: NextRequest) {
     "magic_link",
     "checkout_otp",
     "checkout",
+    "checkout_guest",
   ];
   const source = (allowed.includes(sourceRaw as FinalizeSignupSource)
     ? sourceRaw

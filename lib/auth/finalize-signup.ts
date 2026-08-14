@@ -13,7 +13,8 @@ export type FinalizeSignupSource =
   | "checkout_magic_link"
   | "magic_link"
   | "checkout_otp"
-  | "checkout";
+  | "checkout"
+  | "checkout_guest";
 
 /**
  * Shared post-auth steps for magic-link callback and mid-checkout OTP.

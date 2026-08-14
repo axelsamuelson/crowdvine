@@ -329,7 +329,7 @@ export class AnalyticsTracker {
         cart_value: extras?.cart_value ?? cartValue,
         bottle_count: extras?.bottle_count ?? itemCount,
         site: extras?.site ?? "pact",
-        payment_method: extras?.payment_method ?? "deferred_link",
+        payment_method: extras?.payment_method ?? "card",
         ...(extras?.list_price != null ? { list_price: extras.list_price } : {}),
         ...(extras?.unit_price != null ? { unit_price: extras.unit_price } : {}),
         ...(extras?.price_version

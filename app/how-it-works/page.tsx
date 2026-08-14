@@ -20,8 +20,8 @@ export default function HowItWorksPage() {
           en pall hos producenten och skickas direkt till dig.
         </p>
         <p>
-          Du betalar när pallen är full — vi skickar en betalningslänk till din
-          e-post.
+          Du betalar när pallen är full — vi debiterar kortet du sparade i
+          kassan.
         </p>
       </div>
       <p className="mt-8">

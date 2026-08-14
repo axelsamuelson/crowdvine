@@ -69,6 +69,7 @@ export function eventTypeLabelSv(raw: string): string {
 export function checkoutPhaseLabelSv(phase: string | null | undefined): string {
   if (!phase) return "okänd";
   if (phase === "delivery") return "leverans";
-  if (phase === "payment_ready") return "betalning";
+  if (phase === "compliance") return "ålder & villkor";
+  if (phase === "payment" || phase === "payment_ready") return "betalning";
   return phase;
 }

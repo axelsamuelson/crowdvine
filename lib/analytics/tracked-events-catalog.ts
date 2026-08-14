@@ -253,7 +253,7 @@ export const TRACKED_USER_EVENTS_CATALOG: TrackedEventCatalogEntry[] = [
     eventType: "checkout_step_viewed",
     category: "checkout",
     description:
-      "Checkout-fas ändrades (metadata.phase: delivery | payment_ready).",
+      "Checkout-fas ändrades (metadata.phase: delivery | compliance | payment). Legacy: payment_ready = payment.",
     sources: ["client"],
   },
   {
