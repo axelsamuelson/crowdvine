@@ -5,9 +5,7 @@ import {
   resolveWineIdForProductHandle,
 } from "@/lib/pallet-early-bird-context";
 import { deliveryEstimateLabelFromFillPercent } from "@/lib/pallet-delivery-estimate-label";
-import { computePalletFillPercentForDisplay } from "@/lib/pallet-fill-count";
 import { getPalletDiscountTier } from "@/lib/pallet-discount";
-import { sumFillBottlesOnMarketDrop } from "@/lib/market/market-drop-counts";
 import {
   resolveActiveGeoZoneAnonymous,
   resolveActiveGeoZoneForUser,
@@ -31,6 +29,11 @@ import {
   resolveGeoZone,
 } from "@/lib/market/resolve-geo-zone";
 import type { MarketDropRow } from "@/lib/market/market-drop-types";
+import {
+  DEFAULT_MIN_BOTTLES_TO_COMPLETE,
+  DEFAULT_PHYSICAL_BOTTLE_CAPACITY,
+  computePalletShipProgress,
+} from "@/lib/pallet-ship-progress";
 
 /** Shopping zone settings (PDP pallet destination link). */
 const SETTINGS_URL = "/settings/zone" as const;
@@ -43,11 +46,16 @@ type DropState = "existing" | "virtual_available" | "unavailable";
 
 type ZoneStatusBody = {
   bottlesFilled: number;
+  /** @deprecated Prefer physicalBottleCapacity — kept for older clients. */
   bottleCapacity: number;
-  /** Same as `bottlesFilled` (explicit name for clients). */
   bottlesCount: number;
-  /** Same as `bottleCapacity`. */
   capacityBottles: number;
+  physicalBottleCapacity: number;
+  minBottlesToShip: number;
+  bottlesRemainingToShip: number;
+  shipProgressPercent: number;
+  isReadyToShip: boolean;
+  /** Ship-ready progress % (same as shipProgressPercent). */
   fillPercent: number;
   discountTier: 0 | 10 | 20;
   estimatedDays: number | null;
@@ -70,10 +78,10 @@ type ZoneStatusBody = {
 function computeEstimatedDays(
   bottlesFilled: number,
   createdAtIso: string | null,
-  bottleCapacity: number,
+  minBottlesToShip: number,
 ): number | null {
-  if (bottleCapacity <= 0) return null;
-  if (bottlesFilled < (FILL_PERCENT_FOR_ETA / 100) * bottleCapacity) {
+  if (minBottlesToShip <= 0) return null;
+  if (bottlesFilled < (FILL_PERCENT_FOR_ETA / 100) * minBottlesToShip) {
     return null;
   }
   if (!createdAtIso) return null;
@@ -87,7 +95,7 @@ function computeEstimatedDays(
   const fillRate = bottlesFilled / ageHours;
   if (fillRate < MEANINGFUL_FILL_RATE_BOTTLES_PER_HOUR) return null;
 
-  const remaining = bottleCapacity - bottlesFilled;
+  const remaining = minBottlesToShip - bottlesFilled;
   if (remaining <= 0) return null;
 
   const days = remaining / (fillRate * 24);
@@ -119,12 +127,22 @@ function emptyOk(body: {
     countryCode,
     rawDestination,
   );
+  const shipProgress = computePalletShipProgress(
+    0,
+    DEFAULT_MIN_BOTTLES_TO_COMPLETE,
+    DEFAULT_PHYSICAL_BOTTLE_CAPACITY,
+  );
   const payload: ZoneStatusBody = {
     bottlesFilled: 0,
-    bottleCapacity: 0,
+    bottleCapacity: shipProgress.minBottlesToShip,
     bottlesCount: 0,
-    capacityBottles: 0,
-    fillPercent: 0,
+    capacityBottles: shipProgress.minBottlesToShip,
+    physicalBottleCapacity: shipProgress.physicalBottleCapacity,
+    minBottlesToShip: shipProgress.minBottlesToShip,
+    bottlesRemainingToShip: shipProgress.bottlesRemainingToShip,
+    shipProgressPercent: shipProgress.shipProgressPercent,
+    isReadyToShip: shipProgress.isReadyToShip,
+    fillPercent: shipProgress.shipProgressPercent,
     discountTier: 0,
     estimatedDays: null,
     estimatedDelivery: deliveryEstimateLabelFromFillPercent(0),
@@ -170,8 +188,24 @@ export async function GET(request: NextRequest) {
       user?.id ?? null,
     );
 
+    // Canonical progress: logistics pallet fill + pallet min_bottles_to_complete.
+    // Do not use market-drop-scoped counts for ship progress (aligns PDP with checkout).
     let bottlesFilled = ctx.bottlesFilled;
-    let bottleCapacity = ctx.bottleCapacity;
+    const physicalCapacity =
+      ctx.bottleCapacity > 0
+        ? ctx.bottleCapacity
+        : DEFAULT_PHYSICAL_BOTTLE_CAPACITY;
+    const minBottlesToShip =
+      ctx.minBottlesToShip > 0
+        ? ctx.minBottlesToShip
+        : DEFAULT_MIN_BOTTLES_TO_COMPLETE;
+    let shipProgress =
+      ctx.shipProgress ??
+      computePalletShipProgress(
+        bottlesFilled,
+        minBottlesToShip,
+        physicalCapacity,
+      );
     let discountTier = ctx.discountTier;
 
     let userZoneName = activeGeoSlice.displayName.trim() || "Stockholm, Sweden";
@@ -224,14 +258,9 @@ export async function GET(request: NextRequest) {
         if (drop && !dropBlockedByGeo) {
           dropState = "existing";
           marketDropId = drop.id;
-          const cap =
-            drop.capacity_bottles != null && drop.capacity_bottles > 0
-              ? drop.capacity_bottles
-              : ctx.bottleCapacity;
-          const fill = await sumFillBottlesOnMarketDrop(drop.id);
-          bottlesFilled = fill;
-          bottleCapacity = cap;
-          discountTier = getPalletDiscountTier(fill);
+          // Keep pallet-level fill/threshold (same as checkout). Market drop
+          // only drives messaging / conditional copy.
+          discountTier = getPalletDiscountTier(bottlesFilled);
           showEarlyBird = true;
           if (isCustomerConditionalDrop(drop)) {
             statusPrimary = statusPrimaryForExistingConditionalDrop(drop);
@@ -254,7 +283,11 @@ export async function GET(request: NextRequest) {
             "This wine is not currently available for reservations for your shopping zone.";
           bottlesVerb = "ordered";
           bottlesFilled = 0;
-          bottleCapacity = 0;
+          shipProgress = computePalletShipProgress(
+            0,
+            minBottlesToShip,
+            physicalCapacity,
+          );
           discountTier = 0;
           showProgressBar = false;
           showEarlyBird = false;
@@ -277,8 +310,11 @@ export async function GET(request: NextRequest) {
               "Be the first to reserve bottles for this pallet.";
           }
           bottlesFilled = 0;
-          bottleCapacity =
-            ctx.bottleCapacity > 0 ? ctx.bottleCapacity : 720;
+          shipProgress = computePalletShipProgress(
+            0,
+            minBottlesToShip,
+            physicalCapacity,
+          );
           discountTier = 0;
           showEarlyBird = false;
           canStartMarketDrop = true;
@@ -291,7 +327,11 @@ export async function GET(request: NextRequest) {
           bottlesVerb =
             resolvedMarket.countryCode === "US" ? "requested" : "ordered";
           bottlesFilled = 0;
-          bottleCapacity = 0;
+          shipProgress = computePalletShipProgress(
+            0,
+            minBottlesToShip,
+            physicalCapacity,
+          );
           discountTier = 0;
           showProgressBar = false;
           showEarlyBird = false;
@@ -302,18 +342,15 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const fillPercent = computePalletFillPercentForDisplay(
-      bottlesFilled,
-      bottleCapacity,
-    );
+    const fillPercent = shipProgress.shipProgressPercent;
     const estimatedDelivery =
       deliveryEstimateLabelFromFillPercent(fillPercent);
 
-    if (bottlesVerb === "ordered") {
+    if (bottlesVerb === "ordered" && !shipProgress.isReadyToShip) {
       estimatedDays = computeEstimatedDays(
         bottlesFilled,
         ctx.activePalletCreatedAt,
-        bottleCapacity,
+        shipProgress.minBottlesToShip,
       );
     }
 
@@ -322,11 +359,18 @@ export async function GET(request: NextRequest) {
         ? ""
         : shoppingZoneDisplayDestination(activeGeoSlice);
 
+    // bottleCapacity / capacityBottles expose ship-ready target for progress UI
+    // (legacy field names). physicalBottleCapacity is the freight capacity.
     const payload: ZoneStatusBody = {
       bottlesFilled,
-      bottleCapacity,
+      bottleCapacity: shipProgress.minBottlesToShip,
       bottlesCount: bottlesFilled,
-      capacityBottles: bottleCapacity,
+      capacityBottles: shipProgress.minBottlesToShip,
+      physicalBottleCapacity: shipProgress.physicalBottleCapacity,
+      minBottlesToShip: shipProgress.minBottlesToShip,
+      bottlesRemainingToShip: shipProgress.bottlesRemainingToShip,
+      shipProgressPercent: shipProgress.shipProgressPercent,
+      isReadyToShip: shipProgress.isReadyToShip,
       fillPercent,
       discountTier,
       estimatedDays,

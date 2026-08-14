@@ -130,6 +130,20 @@ export async function cancelFailedReservation(
     return;
   }
 
+  if (palletId) {
+    try {
+      const { syncPalletShipReadiness } = await import(
+        "@/lib/pallet-completion"
+      );
+      await syncPalletShipReadiness(palletId);
+    } catch (e) {
+      console.error(
+        `[RETRY] cancelFailedReservation sync ship readiness pallet=${palletId}:`,
+        e,
+      );
+    }
+  }
+
   const reverseResult = await reversePendingRedemption(reservationId);
   if (!reverseResult.success) {
     console.error(

@@ -31,6 +31,7 @@ interface CreatePalletData {
   pickup_zone_id: string;
   cost_cents: number;
   bottle_capacity: number;
+  min_bottles_to_complete: number;
   last_mile_cost_cents_per_bottle: number;
 }
 
@@ -42,6 +43,7 @@ interface Pallet {
   pickup_zone_id: string;
   cost_cents: number;
   bottle_capacity: number;
+  min_bottles_to_complete?: number;
   last_mile_cost_cents_per_bottle?: number;
   created_at: string;
   updated_at: string;
@@ -69,7 +71,8 @@ export default function PalletForm({ pallet }: PalletFormProps) {
     delivery_zone_id: pallet?.delivery_zone_id || "",
     pickup_zone_id: pallet?.pickup_zone_id || "",
     cost_cents: pallet?.cost_cents || 0,
-    bottle_capacity: pallet?.bottle_capacity || 0,
+    bottle_capacity: pallet?.bottle_capacity || 720,
+    min_bottles_to_complete: pallet?.min_bottles_to_complete || 120,
     last_mile_cost_cents_per_bottle:
       pallet?.last_mile_cost_cents_per_bottle ?? 0,
   });
@@ -120,6 +123,15 @@ export default function PalletForm({ pallet }: PalletFormProps) {
     if (!formData.pickup_zone_id) missingFields.push("Pickup Zone");
     if (formData.cost_cents < 0) missingFields.push("Cost");
     if (formData.bottle_capacity <= 0) missingFields.push("Bottle Capacity");
+    if (formData.min_bottles_to_complete <= 0)
+      missingFields.push("Minimum bottles to ship");
+    if (formData.min_bottles_to_complete > formData.bottle_capacity) {
+      setError(
+        "Minimum bottles to ship cannot exceed physical bottle capacity",
+      );
+      setLoading(false);
+      return;
+    }
 
     if (missingFields.length > 0) {
       setError(
@@ -317,7 +329,7 @@ export default function PalletForm({ pallet }: PalletFormProps) {
 
           <div className="space-y-2">
             <Label htmlFor="bottle_capacity" className="text-sm text-zinc-300">
-              Bottle Capacity
+              Bottle capacity (physical)
             </Label>
             <Input
               id="bottle_capacity"
@@ -327,9 +339,39 @@ export default function PalletForm({ pallet }: PalletFormProps) {
               onChange={(e) =>
                 handleChange("bottle_capacity", parseInt(e.target.value) || 0)
               }
-              placeholder="72"
+              placeholder="720"
               required
             />
+            <p className="text-xs text-zinc-500">
+              Physical pallet capacity used for freight amortization.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label
+              htmlFor="min_bottles_to_complete"
+              className="text-sm text-zinc-300"
+            >
+              Minimum bottles to ship
+            </Label>
+            <Input
+              id="min_bottles_to_complete"
+              type="number"
+              className={inputDarkClass}
+              value={formData.min_bottles_to_complete}
+              onChange={(e) =>
+                handleChange(
+                  "min_bottles_to_complete",
+                  parseInt(e.target.value) || 0,
+                )
+              }
+              placeholder="120"
+              required
+            />
+            <p className="text-xs text-zinc-500">
+              Threshold for ship-ready / completion. Independent of physical
+              capacity.
+            </p>
           </div>
 
           <div className="space-y-2 md:col-span-2">

@@ -20,6 +20,22 @@ type IntentCreated = {
   bottlesFilled: number;
 };
 
+export type PrefetchedStripeIntent = {
+  paymentMode: PaymentMode;
+  clientSecret: string;
+  intentId: string;
+  bottlesFilled: number;
+  amountInOre: number | null;
+  quote?: {
+    total_sek: number;
+    total_ore: number;
+    subtotal_sek: number;
+    shipping_sek: number;
+    promo_discount_sek: number;
+    pact_points_sek: number;
+  };
+};
+
 export type StripeConfirmStripeError = {
   type?: string;
   code?: string;
@@ -116,6 +132,8 @@ type Props = {
   /** US conditional: include ack in /api/checkout/payment-intent body */
   usConditionalPayment?: boolean;
   usConditionalAck?: boolean;
+  /** Intent created while user is still on age/terms — skips cold fetch. */
+  prefetchedIntent?: PrefetchedStripeIntent | null;
 };
 
 const publishableKey =
@@ -126,6 +144,11 @@ const publishableKey =
 /** Avoid calling `loadStripe("")` at module scope (causes Payment Element load failures). */
 const stripePromise =
   publishableKey.length > 0 ? loadStripe(publishableKey) : null;
+
+/** Start downloading Stripe.js during earlier checkout steps. */
+export function warmStripeJs(): void {
+  void stripePromise;
+}
 
 const pactAppearance = {
   theme: "flat",
@@ -433,16 +456,25 @@ export function StripePaymentSection({
   onQuote,
   usConditionalPayment = false,
   usConditionalAck = false,
+  prefetchedIntent = null,
 }: Props) {
   const shoppingCtx = useShoppingContextOptional();
   const t = shoppingCtx?.t ?? ((key: string) => key);
   const stripeLocale = stripeLocaleForAppLocale(
     shoppingCtx?.context.locale ?? "en",
   );
-  const [clientSecret, setClientSecret] = useState<string | null>(null);
-  const [paymentMode, setPaymentMode] = useState<PaymentMode | null>(null);
-  const [intentId, setIntentId] = useState<string | null>(null);
-  const [amountInOre, setAmountInOre] = useState<number | null>(null);
+  const [clientSecret, setClientSecret] = useState<string | null>(
+    prefetchedIntent?.clientSecret ?? null,
+  );
+  const [paymentMode, setPaymentMode] = useState<PaymentMode | null>(
+    prefetchedIntent?.paymentMode ?? null,
+  );
+  const [intentId, setIntentId] = useState<string | null>(
+    prefetchedIntent?.intentId ?? null,
+  );
+  const [amountInOre, setAmountInOre] = useState<number | null>(
+    prefetchedIntent?.amountInOre ?? null,
+  );
   const [error, setError] = useState<string | null>(null);
   const [paymentElementLoadError, setPaymentElementLoadError] = useState<
     string | null
@@ -453,11 +485,15 @@ export function StripePaymentSection({
   onIntentCreatedRef.current = onIntentCreated;
   const onQuoteRef = useRef(onQuote);
   onQuoteRef.current = onQuote;
+  const appliedPrefetchIdRef = useRef<string | null>(
+    prefetchedIntent?.intentId ?? null,
+  );
 
   /** When cart / pallet / points change, allow a fresh payment-intent fetch. */
-  const fetchedRef = useRef(false);
+  const fetchedRef = useRef(Boolean(prefetchedIntent?.clientSecret));
   useEffect(() => {
     fetchedRef.current = false;
+    appliedPrefetchIdRef.current = null;
   }, [
     palletId,
     pactPointsRedeem,
@@ -469,6 +505,7 @@ export function StripePaymentSection({
   useEffect(() => {
     if (usConditionalPayment && !usConditionalAck) {
       fetchedRef.current = false;
+      appliedPrefetchIdRef.current = null;
       setClientSecret(null);
       setPaymentMode(null);
       setIntentId(null);
@@ -476,6 +513,32 @@ export function StripePaymentSection({
       setError(null);
       setPaymentElementLoadError(null);
       setLoading(false);
+      return;
+    }
+
+    if (
+      prefetchedIntent?.clientSecret &&
+      prefetchedIntent.intentId &&
+      prefetchedIntent.paymentMode &&
+      appliedPrefetchIdRef.current !== prefetchedIntent.intentId
+    ) {
+      appliedPrefetchIdRef.current = prefetchedIntent.intentId;
+      fetchedRef.current = true;
+      setLoading(false);
+      setError(null);
+      setPaymentElementLoadError(null);
+      setPaymentMode(prefetchedIntent.paymentMode);
+      setClientSecret(prefetchedIntent.clientSecret);
+      setIntentId(prefetchedIntent.intentId);
+      setAmountInOre(prefetchedIntent.amountInOre);
+      if (prefetchedIntent.quote) {
+        onQuoteRef.current?.(prefetchedIntent.quote);
+      }
+      onIntentCreatedRef.current({
+        paymentMode: prefetchedIntent.paymentMode,
+        intentId: prefetchedIntent.intentId,
+        bottlesFilled: prefetchedIntent.bottlesFilled,
+      });
       return;
     }
 
@@ -598,6 +661,7 @@ export function StripePaymentSection({
     retryNonce,
     usConditionalPayment,
     usConditionalAck,
+    prefetchedIntent,
   ]);
 
   const requestRetry = useCallback(() => {

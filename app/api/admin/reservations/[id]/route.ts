@@ -78,6 +78,17 @@ export async function PATCH(
 
     if (clearingPallet && cleanupSnapshot.pallet_id) {
       await updatePickupProducerForPallet(cleanupSnapshot.pallet_id);
+      try {
+        const { syncPalletShipReadiness } = await import(
+          "@/lib/pallet-completion"
+        );
+        await syncPalletShipReadiness(cleanupSnapshot.pallet_id);
+      } catch (e) {
+        console.error(
+          "[Admin] syncPalletShipReadiness after cancel:",
+          e,
+        );
+      }
     }
 
     // Update reservation items

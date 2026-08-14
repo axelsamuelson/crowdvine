@@ -27,6 +27,13 @@ interface PalletDetailsProps {
     currentBottles: number;
     maxBottles: number;
     remainingBottles: number;
+    minBottlesToShip?: number;
+    shipProgress?: {
+      shipProgressPercent: number;
+      isReadyToShip: boolean;
+      minBottlesToShip: number;
+      bottlesRemainingToShip: number;
+    };
     pickupZoneName: string;
     deliveryZoneName: string;
     costCents: number;
@@ -37,13 +44,19 @@ interface PalletDetailsProps {
 export function PalletDetails({ pallet }: PalletDetailsProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
+  const minToShip =
+    pallet.shipProgress?.minBottlesToShip ??
+    pallet.minBottlesToShip ??
+    pallet.maxBottles;
   const capacityPercentage = Math.round(
-    (pallet.currentBottles / pallet.maxBottles) * 100,
+    pallet.shipProgress?.shipProgressPercent ??
+      (minToShip > 0 ? (pallet.currentBottles / minToShip) * 100 : 0),
   );
   const isAvailable = pallet.remainingBottles > 0;
   const lastMilePerBottle = resolveLastMileCostCentsPerBottle(
     pallet.lastMileCostCentsPerBottle,
   );
+  // Freight still amortized over physical capacity (maxBottles).
   const shippingBreakdown = calculateShippingCostBreakdown(
     pallet.costCents,
     pallet.maxBottles,
@@ -109,7 +122,7 @@ export function PalletDetails({ pallet }: PalletDetailsProps) {
               </div>
               <div className="flex justify-between text-xs text-gray-500 mt-1">
                 <span>{pallet.currentBottles} flaskor</span>
-                <span>{pallet.maxBottles} max</span>
+                <span>{minToShip} för leverans (kapacitet {pallet.maxBottles})</span>
               </div>
             </div>
 
@@ -172,9 +185,11 @@ export function PalletDetails({ pallet }: PalletDetailsProps) {
                   <span className="text-sm text-gray-900">Tillgänglighet</span>
                 </div>
                 <Badge variant="outline" className="text-gray-900">
-                  {isAvailable
-                    ? `${pallet.remainingBottles} flaskor kvar`
-                    : "Full"}
+                  {pallet.shipProgress?.isReadyToShip
+                    ? "Leveransen är redo"
+                    : isAvailable
+                      ? `${pallet.remainingBottles} flaskor kvar`
+                      : "Full"}
                 </Badge>
               </div>
             </div>

@@ -7,6 +7,11 @@ import {
   PALLET_FILL_STATUSES,
   sumReservedBottlesOnPallet,
 } from "@/lib/pallet-fill-count";
+import {
+  DEFAULT_MIN_BOTTLES_TO_COMPLETE,
+  DEFAULT_PHYSICAL_BOTTLE_CAPACITY,
+  PALLET_ACCEPTING_STATUSES,
+} from "@/lib/pallet-ship-progress";
 
 /** Cart line shape used by checkout and Shopify cart mapping. */
 export interface CartLine {
@@ -26,7 +31,11 @@ const PG_UNIQUE_VIOLATION = "23505";
 /** Minimum share of pallet bottles for a pallet-zone producer to win pickup (priority 1). */
 export const PALLET_ZONE_PRIORITY_THRESHOLD = 0.20;
 
-/** When reserved bottles reach this fraction of nominal capacity, the open pallet is closed and a new one is created. */
+/**
+ * When reserved bottles reach this fraction of *physical* bottle_capacity,
+ * stop assigning to this pallet and create a new one.
+ * Must NOT use min_bottles_to_complete — ship-ready pallets keep accepting until overflow or shipping_ordered.
+ */
 export const PALLET_OVERFLOW_THRESHOLD = 1.05;
 
 const MAX_FIND_OR_CREATE_SPINS = 16;
@@ -202,59 +211,55 @@ export async function findOrCreatePalletForRegion(
     const name = `${regionName} to ${deliveryName}`;
 
     for (let spin = 0; spin < MAX_FIND_OR_CREATE_SPINS; spin++) {
-      const { data: existing, error: findErr } = await sb
+      // Accept open / consolidating / complete (ship-ready) so a pallet at the
+      // min ship threshold keeps taking orders until physical overflow or admin
+      // marks shipping_ordered. shipping_ordered is intentionally excluded so
+      // new reservations open a fresh pallet.
+      const { data: existingRows, error: findErr } = await sb
         .from("pallets")
         .select("id, bottle_capacity, status")
         .eq("shipping_region_id", shippingRegionId)
         .eq("delivery_zone_id", deliveryZoneId)
-        .in("status", ["open", "consolidating", "shipping_ordered"])
+        .in("status", [...PALLET_ACCEPTING_STATUSES])
         .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .limit(8);
 
       if (findErr) {
         console.error("[findOrCreatePalletForRegion] select:", findErr.message);
         throw findErr;
       }
 
-      if (existing?.id) {
+      const candidates = existingRows ?? [];
+      let foundAssignable: string | null = null;
+
+      for (const existing of candidates) {
+        if (!existing?.id) continue;
         let bottles = 0;
         try {
           bottles = await sumReservedBottlesOnPallet(existing.id as string);
         } catch (e) {
           console.error("[findOrCreatePalletForRegion] sum bottles:", e);
-          return { palletId: existing.id as string, created: false };
+          foundAssignable = existing.id as string;
+          break;
         }
 
-        const cap = Math.max(0, Math.floor(Number(existing.bottle_capacity) || 0));
+        const cap = Math.max(
+          0,
+          Math.floor(Number(existing.bottle_capacity) || 0),
+        );
         const overflowCap = Math.floor(cap * PALLET_OVERFLOW_THRESHOLD);
 
-        const existingStatus = String(
-          (existing as { status?: string | null }).status ?? "",
-        ).toLowerCase();
-        const mayAutoCloseOnOverflow =
-          existingStatus === "open" || existingStatus === "consolidating";
-
-        if (cap > 0 && bottles >= overflowCap && mayAutoCloseOnOverflow) {
-          const { error: closeErr } = await sb
-            .from("pallets")
-            .update({
-              status: "complete",
-              is_complete: true,
-              completed_at: new Date().toISOString(),
-            })
-            .eq("id", existing.id);
-
-          if (closeErr) {
-            console.error(
-              "[findOrCreatePalletForRegion] overflow close:",
-              closeErr.message,
-            );
-          }
+        // Physical overflow only — never use min_bottles_to_complete here.
+        if (cap > 0 && bottles >= overflowCap) {
           continue;
         }
 
-        return { palletId: existing.id as string, created: false };
+        foundAssignable = existing.id as string;
+        break;
+      }
+
+      if (foundAssignable) {
+        return { palletId: foundAssignable, created: false };
       }
 
       const { data: inserted, error: insErr } = await sb
@@ -264,7 +269,8 @@ export async function findOrCreatePalletForRegion(
           shipping_region_id: shippingRegionId,
           delivery_zone_id: deliveryZoneId,
           pickup_zone_id: null,
-          bottle_capacity: 720,
+          bottle_capacity: DEFAULT_PHYSICAL_BOTTLE_CAPACITY,
+          min_bottles_to_complete: DEFAULT_MIN_BOTTLES_TO_COMPLETE,
           cost_cents: 50000,
           status: "open",
           current_pickup_producer_id: null,

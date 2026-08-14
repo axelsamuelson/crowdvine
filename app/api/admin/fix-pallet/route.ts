@@ -1,73 +1,50 @@
-import { NextResponse } from "next/server";
-import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { NextRequest, NextResponse } from "next/server";
+import { syncPalletShipReadiness } from "@/lib/pallet-completion";
 
-export async function POST() {
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+/**
+ * @deprecated Prefer POST /api/admin/fix-pallet-completion with `{ palletId }`.
+ * Kept as an alias that syncs ship-readiness (no hardcoded UUID, no force-uncomplete).
+ */
+export async function POST(request: NextRequest) {
   try {
-    console.log("🔧 [Fix Pallet] Starting pallet fix...");
+    let body: unknown = null;
+    try {
+      body = await request.json();
+    } catch {
+      body = null;
+    }
 
-    const supabase = getSupabaseAdmin();
+    const palletIdRaw =
+      body &&
+      typeof body === "object" &&
+      body !== null &&
+      "palletId" in body
+        ? (body as { palletId?: unknown }).palletId
+        : null;
+    const palletId =
+      typeof palletIdRaw === "string" ? palletIdRaw.trim() : "";
 
-    // Fix the specific problematic pallet
-    const palletId = "3985cbfe-178f-4fa1-a897-17183a1f18db";
-
-    console.log(`🔧 [Fix Pallet] Fixing pallet ${palletId}...`);
-
-    // Fix the pallet - set to not complete
-    const { error: palletError } = await supabase
-      .from("pallets")
-      .update({
-        is_complete: false,
-        status: "OPEN",
-        completed_at: null,
-        payment_deadline: null,
-      })
-      .eq("id", palletId);
-
-    if (palletError) {
-      console.error("❌ [Fix Pallet] Error updating pallet:", palletError);
+    if (!palletId || !UUID_RE.test(palletId)) {
       return NextResponse.json(
-        { error: "Failed to update pallet" },
-        { status: 500 },
+        {
+          error:
+            "Missing or invalid palletId. Pass JSON body: { \"palletId\": \"<uuid>\" }. This endpoint no longer hardcodes a pallet UUID.",
+        },
+        { status: 400 },
       );
     }
 
-    console.log("✅ [Fix Pallet] Pallet updated successfully");
-
-    // Fix reservations for this pallet
-    const { error: reservationError } = await supabase
-      .from("order_reservations")
-      .update({
-        status: "placed",
-        payment_status: null,
-        payment_deadline: null,
-      })
-      .eq("pallet_id", palletId)
-      .in("status", ["pending_payment"]);
-
-    if (reservationError) {
-      console.error(
-        "❌ [Fix Pallet] Error updating reservations:",
-        reservationError,
-      );
-      return NextResponse.json(
-        { error: "Failed to update reservations" },
-        { status: 500 },
-      );
-    }
-
-    console.log("✅ [Fix Pallet] Reservations updated successfully");
-
-    // Verify the fix
-    const { data: pallet } = await supabase
-      .from("pallets")
-      .select("id, name, is_complete, status")
-      .eq("id", palletId)
-      .single();
+    const sync = await syncPalletShipReadiness(palletId);
 
     return NextResponse.json({
       success: true,
-      message: "Pallet fix completed successfully",
-      pallet: pallet,
+      message:
+        "Delegated to syncPalletShipReadiness (use /api/admin/fix-pallet-completion for full diagnostics)",
+      palletId,
+      sync,
     });
   } catch (error) {
     console.error("❌ [Fix Pallet] Error:", error);

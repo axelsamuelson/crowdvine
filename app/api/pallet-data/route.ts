@@ -3,6 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { evaluateCompletionRules } from "@/lib/pallet-completion-rules";
 import { getAppUrl } from "@/lib/app-url";
 import { sumReservedBottlesOnPallet } from "@/lib/pallet-fill-count";
+import { DEFAULT_MIN_BOTTLES_TO_COMPLETE } from "@/lib/pallet-ship-progress";
 
 async function fetchExchangeRate(origin: string, from: string) {
   if (!from || from === "SEK") return 1.0;
@@ -374,15 +375,20 @@ export async function POST(request: NextRequest) {
       const profitCents = profitCentsByPalletId.get(pallet.id) || 0;
       const profitSek = Math.round(profitCents / 100);
 
-      // Optional rules stored on pallet (best effort; if missing, default to capacity)
+      // Optional rules stored on pallet (best effort; if missing, use ship-ready min).
       const rules = (pallet as any).completion_rules || null;
       const evaluated = evaluateCompletionRules(rules, {
         bottles: currentBottles,
         profit_sek: profitSek,
       });
+      const minToShip = Number((pallet as any).min_bottles_to_complete);
+      const shipReadyThreshold =
+        Number.isFinite(minToShip) && minToShip > 0
+          ? minToShip
+          : DEFAULT_MIN_BOTTLES_TO_COMPLETE;
       const isComplete =
         evaluated === null
-          ? currentBottles >= (Number(pallet.bottle_capacity) || 0)
+          ? currentBottles >= shipReadyThreshold
           : evaluated;
 
       return {
@@ -390,6 +396,7 @@ export async function POST(request: NextRequest) {
         name: pallet.name,
         status: pallet.status,
         bottle_capacity: pallet.bottle_capacity,
+        min_bottles_to_complete: shipReadyThreshold,
         current_bottles: currentBottles,
         profit_cents_ex_vat: profitCents,
         profit_sek_ex_vat: profitSek,

@@ -6,7 +6,9 @@ async function recomputeAutoPalletStatus(sb: ReturnType<typeof getSupabaseAdmin>
   // Load pallet zones + rules
   const { data: pallet, error: palletError } = await sb
     .from("pallets")
-    .select("id, pickup_zone_id, delivery_zone_id, bottle_capacity, completion_rules")
+    .select(
+      "id, pickup_zone_id, delivery_zone_id, bottle_capacity, min_bottles_to_complete, completion_rules",
+    )
     .eq("id", palletId)
     .maybeSingle();
 
@@ -103,9 +105,13 @@ async function recomputeAutoPalletStatus(sb: ReturnType<typeof getSupabaseAdmin>
 
   const rules = (pallet as any).completion_rules || null;
   const evaluated = evaluateCompletionRules(rules, { bottles: currentBottles, profit_sek: 0 });
+  const minToShip =
+    Number((pallet as any).min_bottles_to_complete) > 0
+      ? Number((pallet as any).min_bottles_to_complete)
+      : 120;
   const isComplete =
     evaluated === null
-      ? currentBottles >= (Number((pallet as any).bottle_capacity) || 0)
+      ? currentBottles >= minToShip
       : evaluated;
 
   const allPaid =

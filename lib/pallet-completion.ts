@@ -1,6 +1,10 @@
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { triggerPaymentNotifications } from "@/lib/email/pallet-complete";
 import { sumReservedBottlesOnPallet } from "@/lib/pallet-fill-count";
+import {
+  isPalletShippingLocked,
+  resolveMinBottlesToShip,
+} from "@/lib/pallet-ship-progress";
 
 export {
   PALLET_FILL_STATUSES,
@@ -10,96 +14,150 @@ export {
 } from "@/lib/pallet-fill-count";
 
 /**
- * Check if a pallet has reached completion (100% capacity)
- * and trigger completion process if so
+ * Sync pallet ship-readiness from live fill count.
+ *
+ * - `complete` / `is_complete` means "enough bottles for ship eligibility"
+ *   (min_bottles_to_complete), not physically full.
+ * - Before shipping_ordered: may complete or revert when fill crosses the threshold.
+ * - After shipping_ordered (and later lifecycle): never auto-revert.
+ *
+ * Decision: reuse existing `complete` / `is_complete` rather than adding
+ * `ready_to_ship` — those flags already mean "ready for payment/shipping ops".
  */
-export async function checkPalletCompletion(
+export async function syncPalletShipReadiness(
   palletId: string,
-): Promise<boolean> {
-  console.log(`🔍 [Pallet Completion] Checking pallet ${palletId}`);
+): Promise<{ becameReady: boolean; reverted: boolean; isReady: boolean }> {
+  console.log(`🔍 [Pallet Completion] Syncing ship readiness for ${palletId}`);
 
   const supabase = getSupabaseAdmin();
+  const noop = { becameReady: false, reverted: false, isReady: false };
 
   try {
     const { data: pallet, error: palletError } = await supabase
       .from("pallets")
-      .select("bottle_capacity, status, is_complete")
+      .select(
+        "bottle_capacity, min_bottles_to_complete, status, is_complete, status_mode",
+      )
       .eq("id", palletId)
       .single();
 
-    if (palletError) {
+    if (palletError || !pallet) {
       console.error(
         `❌ [Pallet Completion] Error fetching pallet ${palletId}:`,
         palletError,
       );
-      return false;
+      return noop;
     }
 
-    if (!pallet) {
-      console.error(`❌ [Pallet Completion] Pallet ${palletId} not found`);
-      return false;
+    const status = String(pallet.status ?? "").toLowerCase();
+    if (isPalletShippingLocked(status)) {
+      console.log(
+        `⏸️ [Pallet Completion] Pallet ${palletId} is shipping-locked (${status}); skip sync`,
+      );
+      return {
+        becameReady: false,
+        reverted: false,
+        isReady: Boolean(pallet.is_complete),
+      };
     }
 
-    if (pallet.is_complete) {
-      console.log(`✅ [Pallet Completion] Pallet ${palletId} already complete`);
-      return false;
-    }
-
-    const capacity = Number(pallet.bottle_capacity) || 0;
+    const minToShip = resolveMinBottlesToShip(pallet.min_bottles_to_complete);
     const totalBottles = await sumReservedBottlesOnPallet(palletId);
-    const percentage = capacity > 0 ? (totalBottles / capacity) * 100 : 0;
+    const shouldBeReady = totalBottles >= minToShip;
+    const currentlyComplete = Boolean(pallet.is_complete);
 
     console.log(
-      `📊 [Pallet Completion] Pallet ${palletId}: ${totalBottles}/${capacity} bottles (${percentage.toFixed(1)}%)`,
+      `📊 [Pallet Completion] Pallet ${palletId}: ${totalBottles}/${minToShip} bottles to ship (physical cap ${pallet.bottle_capacity})`,
     );
 
-    if (totalBottles >= capacity) {
-      console.log(
-        `🎉 [Pallet Completion] Pallet ${palletId} is complete! Triggering completion...`,
-      );
-      try {
-        await completePallet(palletId);
-        console.log(
-          `✅ [Pallet Completion] Successfully completed pallet ${palletId}`,
-        );
-
-        if (process.env.PALLET_AUTO_NOTIFICATIONS === "true") {
-          try {
-            await triggerPaymentNotifications(palletId);
-            console.log(
-              `📧 [Pallet Completion] Payment notifications sent for pallet ${palletId}`,
-            );
-          } catch (emailError) {
-            console.error(
-              `⚠️ [Pallet Completion] Payment notifications failed for pallet ${palletId}:`,
-              emailError,
-            );
-          }
-        } else {
-          console.log(
-            `⏸️ [Pallet Completion] Auto-notifications disabled — trigger manually from admin for pallet ${palletId}`,
+    if (shouldBeReady && !currentlyComplete) {
+      await completePallet(palletId);
+      if (process.env.PALLET_AUTO_NOTIFICATIONS === "true") {
+        try {
+          await triggerPaymentNotifications(palletId);
+        } catch (emailError) {
+          console.error(
+            `⚠️ [Pallet Completion] Payment notifications failed for pallet ${palletId}:`,
+            emailError,
           );
         }
-
-        return true;
-      } catch (error) {
-        console.error(
-          `❌ [Pallet Completion] Failed to complete pallet ${palletId}:`,
-          error,
+      } else {
+        console.log(
+          `⏸️ [Pallet Completion] Auto-notifications disabled — trigger manually from admin for pallet ${palletId}`,
         );
-        throw error;
       }
+      return { becameReady: true, reverted: false, isReady: true };
     }
 
-    console.log(`ℹ️ [Pallet Completion] Pallet ${palletId} not full yet`);
-    return false;
+    if (shouldBeReady && currentlyComplete) {
+      return { becameReady: false, reverted: false, isReady: true };
+    }
+
+    // Below threshold: revert readiness if previously marked complete.
+    if (!shouldBeReady && currentlyComplete) {
+      const mode =
+        typeof pallet.status_mode === "string" ? pallet.status_mode : "auto";
+      const nextStatus =
+        mode === "manual"
+          ? status
+          : totalBottles > 0
+            ? "consolidating"
+            : "open";
+
+      const { error: revertError } = await supabase
+        .from("pallets")
+        .update({
+          is_complete: false,
+          completed_at: null,
+          payment_deadline: null,
+          ...(mode === "auto" ? { status: nextStatus } : {}),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", palletId);
+
+      if (revertError) {
+        console.error(
+          `❌ [Pallet Completion] Failed to revert pallet ${palletId}:`,
+          revertError,
+        );
+        return { becameReady: false, reverted: false, isReady: true };
+      }
+
+      // Soft-revert reservation payment deadline state when still pre-shipping.
+      await supabase
+        .from("order_reservations")
+        .update({
+          payment_deadline: null,
+        })
+        .eq("pallet_id", palletId)
+        .eq("status", "pending_payment")
+        .is("payment_intent_id", null);
+
+      console.log(
+        `↩️ [Pallet Completion] Pallet ${palletId} reverted below ship threshold (${totalBottles}/${minToShip})`,
+      );
+      return { becameReady: false, reverted: true, isReady: false };
+    }
+
+    return { becameReady: false, reverted: false, isReady: false };
   } catch (error) {
     console.error(
-      `❌ [Pallet Completion] Unexpected error checking pallet ${palletId}:`,
+      `❌ [Pallet Completion] Unexpected error syncing pallet ${palletId}:`,
       error,
     );
-    return false;
+    return noop;
   }
+}
+
+/**
+ * Check if a pallet has reached ship-ready threshold and trigger completion.
+ * @returns true when the pallet newly became ready in this call
+ */
+export async function checkPalletCompletion(
+  palletId: string,
+): Promise<boolean> {
+  const result = await syncPalletShipReadiness(palletId);
+  return result.becameReady;
 }
 
 async function completePallet(palletId: string): Promise<void> {
@@ -129,7 +187,7 @@ async function completePallet(palletId: string): Promise<void> {
       throw reservationUpdateError;
     }
     console.log(
-      `✅ [Pallet Completion] Updated payment deadline for all pending reservations in pallet ${palletId}`,
+      `✅ [Pallet Completion] Updated payment deadline for eligible reservations in pallet ${palletId}`,
     );
 
     // Charge is no longer triggered by pallet completion.
@@ -156,7 +214,7 @@ async function completePallet(palletId: string): Promise<void> {
     }
 
     console.log(
-      `✅ [Pallet Completion] Pallet ${palletId} marked as complete with deadline ${paymentDeadline.toISOString()}`,
+      `✅ [Pallet Completion] Pallet ${palletId} marked ready to ship (complete) with deadline ${paymentDeadline.toISOString()}`,
     );
   } catch (error) {
     console.error(
@@ -208,10 +266,11 @@ export async function getPalletStatus(palletId: string) {
       stats.total += reservation.quantity;
     });
 
+    const minToShip = resolveMinBottlesToShip(
+      (pallet as { min_bottles_to_complete?: number }).min_bottles_to_complete,
+    );
     stats.percentage =
-      pallet.bottle_capacity > 0
-        ? (stats.total / pallet.bottle_capacity) * 100
-        : 0;
+      minToShip > 0 ? (stats.total / minToShip) * 100 : 0;
 
     return {
       pallet,

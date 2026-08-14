@@ -13,7 +13,7 @@ export function PalletStatusBar() {
     allowEta,
   } = usePalletZoneStatus();
 
-  const barPercent = data?.fillPercent ?? 0;
+  const barPercent = data?.shipProgressPercent ?? data?.fillPercent ?? 0;
   const palletDestination =
     data?.displayDestination?.trim() || data?.userZoneName?.trim() || null;
   const showDestinationLink =
@@ -25,14 +25,15 @@ export function PalletStatusBar() {
       ? t("product.pdp.palletLoadError")
       : isUnavailable && data.unavailableMessage
         ? data.unavailableMessage
-        : t("product.pdp.palletProgress", {
-            filled: data.bottlesFilled,
-            total: data.bottleCapacity,
-          });
+        : data.isReadyToShip
+          ? t("product.pdp.palletShipmentReady")
+          : t("product.pdp.palletBottlesToGo", {
+              remaining: data.bottlesRemainingToShip,
+            });
 
   return (
     <div className="w-full min-w-0 overflow-clip space-y-3">
-      {data && allowEta ? (
+      {data && allowEta && !data.isReadyToShip ? (
         <div className="flex min-w-0 justify-end">
           <p className="text-sm text-muted-foreground">
             {t("product.pdp.palletDeliveryEta", { days: data.estimatedDays })}

@@ -131,7 +131,7 @@ export default function AdminPalletDetails({
         groups: [
           {
             operator: "AND",
-            conditions: [{ metric: "bottles", op: ">=", value: 720 }],
+            conditions: [{ metric: "bottles", op: ">=", value: 120 }],
           },
         ],
       }

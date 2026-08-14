@@ -4,8 +4,14 @@ export type DropState = "existing" | "virtual_available" | "unavailable";
 
 export type ZoneStatusPayload = {
   bottlesFilled: number;
+  /** Ship-ready target (min bottles to ship). Legacy name kept for clients. */
   bottleCapacity: number;
   fillPercent: number;
+  physicalBottleCapacity: number;
+  minBottlesToShip: number;
+  bottlesRemainingToShip: number;
+  shipProgressPercent: number;
+  isReadyToShip: boolean;
   discountTier: DiscountTier;
   estimatedDays: number | null;
   userZoneName: string;
@@ -64,6 +70,27 @@ export function parseZoneStatusPayload(raw: unknown): ZoneStatusPayload | null {
     return null;
   }
 
+  const minBottlesToShip = Number.isFinite(Number(o.minBottlesToShip))
+    ? Number(o.minBottlesToShip)
+    : bottleCapacity;
+  const physicalBottleCapacity = Number.isFinite(
+    Number(o.physicalBottleCapacity),
+  )
+    ? Number(o.physicalBottleCapacity)
+    : bottleCapacity;
+  const bottlesRemainingToShip = Number.isFinite(
+    Number(o.bottlesRemainingToShip),
+  )
+    ? Number(o.bottlesRemainingToShip)
+    : Math.max(0, minBottlesToShip - bottlesFilled);
+  const shipProgressPercent = Number.isFinite(Number(o.shipProgressPercent))
+    ? Number(o.shipProgressPercent)
+    : fillPercent;
+  const isReadyToShip =
+    typeof o.isReadyToShip === "boolean"
+      ? o.isReadyToShip
+      : bottlesFilled >= minBottlesToShip;
+
   const statusPrimary =
     typeof statusPrimaryRaw === "string" && statusPrimaryRaw.trim()
       ? statusPrimaryRaw.trim()
@@ -105,8 +132,13 @@ export function parseZoneStatusPayload(raw: unknown): ZoneStatusPayload | null {
 
   return {
     bottlesFilled,
-    bottleCapacity,
-    fillPercent,
+    bottleCapacity: minBottlesToShip,
+    fillPercent: shipProgressPercent,
+    physicalBottleCapacity,
+    minBottlesToShip,
+    bottlesRemainingToShip,
+    shipProgressPercent,
+    isReadyToShip,
     discountTier: discountTierNum,
     estimatedDays,
     userZoneName,

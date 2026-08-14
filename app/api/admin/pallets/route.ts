@@ -250,10 +250,14 @@ export async function GET() {
     const transformedData = pallets.map((pallet) => {
       const id = String(pallet.id);
       const cap = Number(pallet.bottle_capacity) || 0;
+      const minToShip = Number(pallet.min_bottles_to_complete) || 120;
       const totalBookedBottles = bottlesByPalletId.get(id) ?? 0;
+      const remainingToShip = Math.max(0, minToShip - totalBookedBottles);
       const remainingBottles = Math.max(0, cap - totalBookedBottles);
       const completionPercentage =
-        cap > 0 ? Math.min(100, (totalBookedBottles / cap) * 100) : 0;
+        minToShip > 0
+          ? Math.min(100, (totalBookedBottles / minToShip) * 100)
+          : 0;
       const wineSummary = wineAggByPalletId.get(id) ?? {};
 
       const shippingRegionId = pallet.shipping_region_id;
@@ -284,10 +288,12 @@ export async function GET() {
         pallet_type,
         total_booked_bottles: totalBookedBottles,
         remaining_bottles: remainingBottles,
+        remaining_to_ship: remainingToShip,
+        min_bottles_to_complete: minToShip,
         completion_percentage: completionPercentage,
         wine_summary: Object.values(wineSummary),
-        is_complete: totalBookedBottles >= cap,
-        needs_ordering: remainingBottles > 0,
+        is_complete: totalBookedBottles >= minToShip,
+        needs_ordering: remainingToShip > 0,
         pickup_is_fallback,
         needs_pallet_zone,
       };

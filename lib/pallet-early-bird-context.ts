@@ -7,6 +7,11 @@ import {
   resolveDefaultStockholmDeliveryZoneId,
 } from "@/lib/pallet-zone-defaults";
 import {
+  DEFAULT_MIN_BOTTLES_TO_COMPLETE,
+  PALLET_ACCEPTING_STATUSES,
+  type PalletShipProgress,
+} from "@/lib/pallet-ship-progress";
+import {
   getCountryCodeFromProfileCountry,
   isSupportedCheckoutCountry,
 } from "@/lib/countries";
@@ -113,6 +118,9 @@ export type PalletEarlyBirdContext = {
   discountTier: DiscountTier;
   /** From `pallets.bottle_capacity` when an active pallet exists; otherwise 0. */
   bottleCapacity: number;
+  /** Ship-ready threshold from `pallets.min_bottles_to_complete`. */
+  minBottlesToShip: number;
+  shipProgress: PalletShipProgress | null;
   deliveryZoneName: string | null;
   pickupZoneId: string | null;
   deliveryZoneId: string | null;
@@ -128,6 +136,7 @@ type PalletRow = {
   id: string;
   created_at: string | null;
   bottle_capacity: number | string | null;
+  min_bottles_to_complete: number | string | null;
 };
 
 async function findOpenPalletByShippingRegion(
@@ -137,10 +146,10 @@ async function findOpenPalletByShippingRegion(
   const sb = getSupabaseAdmin();
   const { data, error } = await sb
     .from("pallets")
-    .select("id, created_at, bottle_capacity")
+    .select("id, created_at, bottle_capacity, min_bottles_to_complete")
     .eq("shipping_region_id", shippingRegionId)
     .eq("delivery_zone_id", deliveryZoneId)
-    .in("status", ["open", "consolidating", "shipping_ordered"])
+    .in("status", [...PALLET_ACCEPTING_STATUSES])
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -152,6 +161,9 @@ async function findOpenPalletByShippingRegion(
     id: data.id,
     created_at: data.created_at ?? null,
     bottle_capacity: data.bottle_capacity,
+    min_bottles_to_complete:
+      (data as { min_bottles_to_complete?: number | string | null })
+        .min_bottles_to_complete ?? null,
   };
 }
 
@@ -162,10 +174,10 @@ async function findLegacyOpenPalletByPickup(
   const sb = getSupabaseAdmin();
   const { data, error } = await sb
     .from("pallets")
-    .select("id, created_at, bottle_capacity")
+    .select("id, created_at, bottle_capacity, min_bottles_to_complete")
     .eq("pickup_zone_id", pickupZoneId)
     .eq("delivery_zone_id", deliveryZoneId)
-    .in("status", ["open", "consolidating", "shipping_ordered"])
+    .in("status", [...PALLET_ACCEPTING_STATUSES])
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -177,6 +189,9 @@ async function findLegacyOpenPalletByPickup(
     id: data.id,
     created_at: data.created_at ?? null,
     bottle_capacity: data.bottle_capacity,
+    min_bottles_to_complete:
+      (data as { min_bottles_to_complete?: number | string | null })
+        .min_bottles_to_complete ?? null,
   };
 }
 
@@ -188,6 +203,8 @@ export async function resolvePalletEarlyBirdContext(
     bottlesFilled: 0,
     discountTier: 0,
     bottleCapacity: 0,
+    minBottlesToShip: DEFAULT_MIN_BOTTLES_TO_COMPLETE,
+    shipProgress: null,
     deliveryZoneName: null,
     pickupZoneId: null,
     deliveryZoneId: null,
@@ -296,12 +313,17 @@ export async function resolvePalletEarlyBirdContext(
     const fill = await getPalletFillData(
       palletRow.id,
       Number(palletRow.bottle_capacity) || 0,
+      Number(palletRow.min_bottles_to_complete) ||
+        DEFAULT_MIN_BOTTLES_TO_COMPLETE,
     );
-    const { bottlesFilled, bottleCapacity } = fill;
+    const { bottlesFilled, bottleCapacity, minBottlesToShip, shipProgress } =
+      fill;
     return {
       bottlesFilled,
       discountTier: getPalletDiscountTier(bottlesFilled),
       bottleCapacity,
+      minBottlesToShip,
+      shipProgress,
       deliveryZoneName: ctx.deliveryZoneName,
       pickupZoneId: ctx.pickupZoneId,
       deliveryZoneId: ctx.deliveryZoneId,

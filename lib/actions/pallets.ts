@@ -17,6 +17,7 @@ export interface Pallet {
   pickup_zone_id: string;
   cost_cents: number;
   bottle_capacity: number;
+  min_bottles_to_complete?: number;
   created_at: string;
   updated_at: string;
   delivery_zone?: PalletZone;
@@ -30,6 +31,7 @@ export interface CreatePalletData {
   pickup_zone_id: string;
   cost_cents: number;
   bottle_capacity: number;
+  min_bottles_to_complete?: number;
 }
 
 export async function getPallets(): Promise<Pallet[]> {

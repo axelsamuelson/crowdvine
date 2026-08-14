@@ -34,6 +34,8 @@ import {
 import { ReservationLoadingModal } from "@/components/checkout/reservation-loading-modal";
 import {
   StripePaymentSection,
+  warmStripeJs,
+  type PrefetchedStripeIntent,
   type StripeConfirmResult,
 } from "@/components/checkout/stripe-payment-section";
 import type { CheckoutQuote } from "@/lib/checkout/checkout-quote";
@@ -211,6 +213,9 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
   const authAddressPersistRef = useRef(false);
   const [complianceStepRevealed, setComplianceStepRevealed] = useState(false);
   const [paymentCardRevealed, setPaymentCardRevealed] = useState(false);
+  const [prefetchedStripeIntent, setPrefetchedStripeIntent] =
+    useState<PrefetchedStripeIntent | null>(null);
+  const stripePrefetchKeyRef = useRef<string | null>(null);
   const complianceSectionRef = useRef<HTMLElement | null>(null);
   const paymentSectionRef = useRef<HTMLElement | null>(null);
   const [postalModalOpen, setPostalModalOpen] = useState(false);
@@ -232,6 +237,22 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
   const [ageDobError, setAgeDobError] = useState<string | null>(null);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [usConditionalAck, setUsConditionalAck] = useState(false);
+
+  // B2B vs B2C cart split — needed early for deliveryComplete / compliance gates.
+  // Keep a single definition here (do not redeclare later in the component).
+  const isB2BSite = useB2BPriceMode();
+  const producerItems = isB2BSite
+    ? cart?.lines?.filter(
+        (line) => line.source === "producer" || !line.source,
+      ) || []
+    : cart?.lines || [];
+  const warehouseItems = isB2BSite
+    ? cart?.lines?.filter((line) => line.source === "warehouse") || []
+    : [];
+  const hasProducerItems = isB2BSite
+    ? producerItems.length > 0
+    : (cart?.lines?.length || 0) > 0;
+  const hasWarehouseItems = isB2BSite && warehouseItems.length > 0;
 
   /** Authoritative totals from /api/checkout/quote (or payment-intent). */
   const [serverQuote, setServerQuote] = useState<CheckoutQuote | null>(null);
@@ -355,7 +376,6 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
     isValidUsStateCode(effectiveDelivery?.regionCode?.trim() ?? "");
   const hasZoneSelected = Boolean(zoneInfo.selectedDeliveryZoneId);
 
-  const palletsLength = zoneInfo.pallets?.length ?? 0;
   const deliveryZoneReady = useMemo(
     () =>
       Boolean(zoneInfo.selectedDeliveryZoneId) ||
@@ -369,20 +389,21 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
       if (!hasZoneDeliveryReady) return false;
       if (isUsConditional) {
         if (!hasUsState) return false;
-        return palletsLength === 0 || selectedPallet != null;
+        // US conditional always needs an active pallet for SetupIntent.
+        return selectedPallet != null;
       }
-      return (
-        deliveryZoneReady &&
-        (palletsLength === 0 || selectedPallet != null)
-      );
+      if (!deliveryZoneReady) return false;
+      // Producer wines need a matched pallet for shipping + Stripe; warehouse-only can continue.
+      if (hasProducerItems) return selectedPallet != null;
+      return true;
     },
     [
       hasZoneDeliveryReady,
       hasUsState,
       isUsConditional,
-      palletsLength,
       selectedPallet,
       deliveryZoneReady,
+      hasProducerItems,
     ],
   );
 
@@ -1044,6 +1065,125 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
     termsAccepted &&
     (!isUsConditional || usConditionalAck);
 
+  // Warm Stripe.js + create Setup/PaymentIntent while the customer is on age/terms.
+  useEffect(() => {
+    if (!deliveryComplete || !authReady || !selectedPallet?.id) {
+      return;
+    }
+    if (isUsConditional && !usConditionalAck) {
+      setPrefetchedStripeIntent(null);
+      stripePrefetchKeyRef.current = null;
+      return;
+    }
+
+    warmStripeJs();
+
+    const promoSek = appliedDiscount?.discount_amount_sek ?? 0;
+    const key = [
+      selectedPallet.id,
+      String(redeemPoints),
+      String(promoSek),
+      isUsConditional ? "1" : "0",
+    ].join("|");
+    if (stripePrefetchKeyRef.current === key) return;
+    stripePrefetchKeyRef.current = key;
+    setPrefetchedStripeIntent(null);
+
+    const controller = new AbortController();
+    void (async () => {
+      try {
+        const res = await fetch("/api/checkout/payment-intent", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            pallet_id: selectedPallet.id,
+            pact_points_redeem: redeemPoints,
+            ...(promoSek > 0 ? { promo_discount_sek: promoSek } : {}),
+            ...(isUsConditional ? { us_conditional_ack: true } : {}),
+          }),
+          signal: controller.signal,
+        });
+        const data: unknown = await res.json().catch(() => null);
+        if (!res.ok || !data || typeof data !== "object") return;
+
+        const d = data as {
+          paymentMode?: unknown;
+          clientSecret?: unknown;
+          intentId?: unknown;
+          bottlesFilled?: unknown;
+          amountInOre?: unknown;
+          quote?: unknown;
+        };
+        const mode =
+          d.paymentMode === "setup_intent" || d.paymentMode === "payment_intent"
+            ? d.paymentMode
+            : null;
+        const cs = typeof d.clientSecret === "string" ? d.clientSecret : null;
+        const id = typeof d.intentId === "string" ? d.intentId : null;
+        if (!mode || !cs || !id) return;
+
+        const filled =
+          typeof d.bottlesFilled === "number" ? d.bottlesFilled : 0;
+        const ore =
+          typeof d.amountInOre === "number" && Number.isFinite(d.amountInOre)
+            ? d.amountInOre
+            : null;
+
+        let quote: PrefetchedStripeIntent["quote"];
+        if (d.quote && typeof d.quote === "object") {
+          const q = d.quote as Record<string, unknown>;
+          const num = (v: unknown) =>
+            typeof v === "number" && Number.isFinite(v) ? v : 0;
+          quote = {
+            total_sek: num(q.total_sek),
+            total_ore: num(q.total_ore),
+            subtotal_sek: num(q.subtotal_sek),
+            shipping_sek: num(q.shipping_sek),
+            promo_discount_sek: num(q.promo_discount_sek),
+            pact_points_sek: num(q.pact_points_sek),
+          };
+          setServerQuote({
+            subtotal_sek: quote.subtotal_sek,
+            shipping_sek: quote.shipping_sek,
+            promo_discount_sek: quote.promo_discount_sek,
+            voucher_discount_sek: 0,
+            pact_points_sek: quote.pact_points_sek,
+            pact_points_redeem: redeemPoints,
+            total_sek: quote.total_sek,
+            total_ore: quote.total_ore,
+          });
+        }
+
+        setPrefetchedStripeIntent({
+          paymentMode: mode,
+          clientSecret: cs,
+          intentId: id,
+          bottlesFilled: filled,
+          amountInOre: ore,
+          quote,
+        });
+      } catch (e) {
+        if (e instanceof DOMException && e.name === "AbortError") return;
+        if (e instanceof Error && e.name === "AbortError") return;
+        if (stripePrefetchKeyRef.current === key) {
+          stripePrefetchKeyRef.current = null;
+        }
+      }
+    })();
+
+    return () => {
+      controller.abort();
+    };
+  }, [
+    deliveryComplete,
+    authReady,
+    selectedPallet?.id,
+    redeemPoints,
+    appliedDiscount?.discount_amount_sek,
+    isUsConditional,
+    usConditionalAck,
+  ]);
+
   // If age/terms become incomplete again, collapse payment.
   useEffect(() => {
     if (!complianceStepRevealed || !complianceComplete) {
@@ -1082,6 +1222,8 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
       return;
     }
 
+    const controller = new AbortController();
+
     const validateCart = async () => {
       try {
         console.log(
@@ -1089,7 +1231,9 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
           cart.totalQuantity,
           "bottles",
         );
-        const response = await fetch("/api/cart/validate");
+        const response = await fetch("/api/cart/validate", {
+          signal: controller.signal,
+        });
         if (!response.ok) {
           throw new Error(`cart validate HTTP ${response.status}`);
         }
@@ -1098,6 +1242,7 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
           throw new Error("cart validate returned non-JSON");
         }
         const result = await response.json();
+        if (controller.signal.aborted) return;
         console.log("✅ [Checkout] Validation complete:", {
           isValid: result.isValid,
           validations: result.producerValidations?.length || 0,
@@ -1108,13 +1253,27 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
         setIsValidCart(result.isValid);
         console.log("🎯 [Checkout] Updated isValidCart to:", result.isValid);
       } catch (error) {
+        if (controller.signal.aborted) return;
+        const isAbort =
+          (error instanceof DOMException && error.name === "AbortError") ||
+          (error instanceof Error && error.name === "AbortError");
+        if (isAbort) return;
+        // HMR / offline / transient network — fail open without red overlay noise.
+        const msg = error instanceof Error ? error.message : String(error);
+        if (/failed to fetch|networkerror|load failed/i.test(msg)) {
+          console.warn("[Checkout] Cart validation skipped (network):", msg);
+          setValidations([]);
+          setIsValidCart(true);
+          return;
+        }
         console.error("Validation error:", error);
         setValidations([]);
         setIsValidCart(true); // Fail open
       }
     };
 
-    validateCart();
+    void validateCart();
+    return () => controller.abort();
   }, [cart]);
 
   useEffect(() => {
@@ -1498,6 +1657,8 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
 
           if (autoSelectedPallet) {
             setSelectedPallet(autoSelectedPallet);
+          } else {
+            setSelectedPallet(null);
           }
         }
       } else {
@@ -2205,20 +2366,6 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
     return formatSek(shippingCost.totalShippingCostCents / 100);
   }, [shippingCost, t, formatSek]);
 
-  // Check if we're on B2B site (dirtywine.se)
-  const isB2BSite = useB2BPriceMode();
-
-  // Separate producer and warehouse items (only on B2B sites)
-  // On B2C sites (pactwines.com), all items are treated as producer items
-  const producerItems = isB2BSite ? (cart?.lines?.filter(
-    (line) => line.source === "producer" || !line.source
-  ) || []) : (cart?.lines || []);
-  const warehouseItems = isB2BSite ? (cart?.lines?.filter(
-    (line) => line.source === "warehouse"
-  ) || []) : [];
-  const hasProducerItems = isB2BSite ? producerItems.length > 0 : (cart?.lines?.length || 0) > 0;
-  const hasWarehouseItems = isB2BSite && warehouseItems.length > 0;
-
   // Merchandise total from cart (matches per-line line.cost.totalAmount, incl. member + pallet early-bird)
   const bottleCost = cart
     ? parseFloat(cart.cost.totalAmount.amount)
@@ -2593,7 +2740,7 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
     [zoneInfo.pallets],
   );
 
-  const { filledBottles, totalCapacity, fillPercent, deliveryEstimateLabel } =
+  const { fillPercent, deliveryEstimateLabel, isReadyToShip, bottlesRemaining } =
     useMemo(() => {
       const estimateFromFill = (fp: number) => {
         if (fp < 50) return t("checkout.deliveryEstimate2to4Weeks");
@@ -2603,37 +2750,51 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
 
       if (!selectedPallet) {
         return {
-          filledBottles: 0,
-          totalCapacity: 0,
           fillPercent: 0,
           deliveryEstimateLabel: t("checkout.deliveryEstimate2to4Weeks"),
+          isReadyToShip: false,
+          bottlesRemaining: 0,
         };
       }
-      const f = selectedPallet.currentBottles;
-      const cap = selectedPallet.maxBottles;
-      if (!Number.isFinite(f) || !Number.isFinite(cap) || cap <= 0) {
+
+      const progress = selectedPallet.shipProgress;
+      const f = progress?.bottlesFilled ?? selectedPallet.currentBottles;
+      const minToShip =
+        progress?.minBottlesToShip ??
+        selectedPallet.minBottlesToShip ??
+        selectedPallet.maxBottles;
+      if (!Number.isFinite(f) || !Number.isFinite(minToShip) || minToShip <= 0) {
         return {
-          filledBottles: 0,
-          totalCapacity: 0,
           fillPercent: 0,
           deliveryEstimateLabel: t("checkout.deliveryEstimate2to4Weeks"),
+          isReadyToShip: false,
+          bottlesRemaining: 0,
         };
       }
-      const fp = (f / cap) * 100;
+      const fp =
+        progress?.shipProgressPercent ??
+        Math.min(100, (f / minToShip) * 100);
+      const ready =
+        progress?.isReadyToShip ?? f >= minToShip;
+      const remaining =
+        progress?.bottlesRemainingToShip ??
+        Math.max(0, minToShip - f);
       const st = String(selectedPallet.status ?? "").toLowerCase();
       if (st === "shipping_ordered") {
         return {
-          filledBottles: f,
-          totalCapacity: cap,
           fillPercent: fp,
           deliveryEstimateLabel: t("checkout.deliveryEstimateShippingOrdered"),
+          isReadyToShip: true,
+          bottlesRemaining: 0,
         };
       }
       return {
-        filledBottles: f,
-        totalCapacity: cap,
         fillPercent: fp,
-        deliveryEstimateLabel: estimateFromFill(fp),
+        deliveryEstimateLabel: ready
+          ? t("checkout.palletShipmentReady")
+          : estimateFromFill(fp),
+        isReadyToShip: ready,
+        bottlesRemaining: remaining,
       };
     }, [selectedPallet, t]);
 
@@ -3139,10 +3300,11 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
                             {t("checkout.palletProgress")}
                           </p>
                           <p className="text-xs tabular-nums text-muted-foreground">
-                            {t("checkout.palletProgressCount", {
-                              filled: String(filledBottles),
-                              total: String(totalCapacity),
-                            })}
+                            {isReadyToShip
+                              ? t("checkout.palletShipmentReady")
+                              : t("checkout.palletBottlesToGo", {
+                                  remaining: String(bottlesRemaining),
+                                })}
                           </p>
                         </div>
                         <div className="flex h-3 w-full overflow-hidden rounded-full bg-muted/50">
@@ -3161,6 +3323,21 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
                           </p>
                         ) : null}
                       </div>
+                    ) : null}
+
+                    {!zoneLoading &&
+                    zoneFetchCompleted &&
+                    hasPostalCode &&
+                    hasProducerItems &&
+                    !selectedPallet &&
+                    (zoneInfo.pallets?.length ?? 0) === 0 &&
+                    (Boolean(zoneInfo.deliveryZone) ||
+                      zoneInfo.selectedDeliveryZoneId != null ||
+                      Boolean(zoneInfo.pickupZone)) &&
+                    zoneInfo.zoneError == null ? (
+                      <p className="text-sm text-destructive">
+                        {t("checkout.noPickupForCart")}
+                      </p>
                     ) : null}
 
                     {!zoneLoading &&
@@ -3741,6 +3918,10 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
                           </Button>
                         ) : null}
                       </>
+                    ) : hasProducerItems && !selectedPallet ? (
+                      <p className="text-sm text-destructive">
+                        {t("checkout.noPickupForCart")}
+                      </p>
                     ) : null}
 
                     {!isValidCart ? (
@@ -3909,6 +4090,7 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
                             }
                             usConditionalPayment={isUsConditional}
                             usConditionalAck={usConditionalAck}
+                            prefetchedIntent={prefetchedStripeIntent}
                           />
                         ) : null}
 

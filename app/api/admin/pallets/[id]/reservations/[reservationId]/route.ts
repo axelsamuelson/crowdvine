@@ -153,6 +153,14 @@ export async function DELETE(
 
   if (cleanupSnapshot.pallet_id) {
     await updatePickupProducerForPallet(cleanupSnapshot.pallet_id);
+    try {
+      const { syncPalletShipReadiness } = await import(
+        "@/lib/pallet-completion"
+      );
+      await syncPalletShipReadiness(cleanupSnapshot.pallet_id);
+    } catch (e) {
+      console.error("[Admin] syncPalletShipReadiness after delete:", e);
+    }
   }
 
   return NextResponse.json({ success: true });

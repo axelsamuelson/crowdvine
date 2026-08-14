@@ -1,5 +1,13 @@
 import { getSupabaseAdmin } from "./supabase-admin";
 import { sumReservedBottlesOnPallet } from "@/lib/pallet-fill-count";
+import {
+  DEFAULT_MIN_BOTTLES_TO_COMPLETE,
+  DEFAULT_PHYSICAL_BOTTLE_CAPACITY,
+  computePalletShipProgress,
+  resolveMinBottlesToShip,
+  resolvePhysicalBottleCapacity,
+  type PalletShipProgress,
+} from "@/lib/pallet-ship-progress";
 import { findOrCreatePalletForRegion } from "@/lib/pallet-auto-management";
 import { resolveLastMileCostCentsPerBottle } from "@/lib/shipping-calculations";
 import {
@@ -113,7 +121,9 @@ async function buildPalletInfosForDeliveryPair(
       );
       const { data: pRow, error: pe } = await sb
         .from("pallets")
-        .select("id, name, bottle_capacity, cost_cents, last_mile_cost_cents_per_bottle, status")
+        .select(
+          "id, name, bottle_capacity, min_bottles_to_complete, cost_cents, last_mile_cost_cents_per_bottle, status",
+        )
         .eq("id", palletId)
         .maybeSingle();
       if (pe || !pRow) {
@@ -123,7 +133,15 @@ async function buildPalletInfosForDeliveryPair(
       const id = String(pRow.id ?? "");
       if (!id) return pallets;
       const currentBottles = await sumReservedBottlesOnPallet(id);
-      const cap = Math.max(0, Math.floor(Number(pRow.bottle_capacity) || 0));
+      const cap = resolvePhysicalBottleCapacity(pRow.bottle_capacity);
+      const minToShip = resolveMinBottlesToShip(
+        (pRow as { min_bottles_to_complete?: number }).min_bottles_to_complete,
+      );
+      const shipProgress = computePalletShipProgress(
+        currentBottles,
+        minToShip,
+        cap,
+      );
       const statusRaw = pRow.status;
       const status =
         typeof statusRaw === "string" ? statusRaw : null;
@@ -132,7 +150,9 @@ async function buildPalletInfosForDeliveryPair(
         name: String(pRow.name ?? ""),
         currentBottles,
         maxBottles: cap,
-        remainingBottles: Math.max(0, cap - currentBottles),
+        remainingBottles: shipProgress.bottlesRemainingToShip,
+        minBottlesToShip: minToShip,
+        shipProgress,
         pickupZoneName: pickupZoneDisplayName || "Shipping region",
         deliveryZoneName,
         costCents: Number(pRow.cost_cents) || 0,
@@ -160,6 +180,7 @@ async function buildPalletInfosForDeliveryPair(
       id,
       name,
       bottle_capacity,
+      min_bottles_to_complete,
       cost_cents,
       last_mile_cost_cents_per_bottle,
       pickup_zone_id,
@@ -185,7 +206,8 @@ async function buildPalletInfosForDeliveryPair(
         name: newPalletName,
         pickup_zone_id: pickupZoneId,
         delivery_zone_id: deliveryZoneId,
-        bottle_capacity: 720,
+        bottle_capacity: DEFAULT_PHYSICAL_BOTTLE_CAPACITY,
+        min_bottles_to_complete: DEFAULT_MIN_BOTTLES_TO_COMPLETE,
         cost_cents: 50000,
         status: "open",
       })
@@ -205,14 +227,24 @@ async function buildPalletInfosForDeliveryPair(
       const pid = String(pallet.id ?? "");
       if (!pid) continue;
       const currentBottles = await sumReservedBottlesOnPallet(pid);
-      const cap = Math.max(0, Math.floor(Number(pallet.bottle_capacity) || 0));
+      const cap = resolvePhysicalBottleCapacity(pallet.bottle_capacity);
+      const minToShip = resolveMinBottlesToShip(
+        (pallet as { min_bottles_to_complete?: number }).min_bottles_to_complete,
+      );
+      const shipProgress = computePalletShipProgress(
+        currentBottles,
+        minToShip,
+        cap,
+      );
       const st = pallet.status;
       pallets.push({
         id: pid,
         name: String(pallet.name ?? ""),
         currentBottles,
         maxBottles: cap,
-        remainingBottles: Math.max(0, cap - currentBottles),
+        remainingBottles: shipProgress.bottlesRemainingToShip,
+        minBottlesToShip: minToShip,
+        shipProgress,
         pickupZoneName: pickupZoneDisplayName || "",
         deliveryZoneName,
         costCents: Number(pallet.cost_cents) || 0,
@@ -265,8 +297,12 @@ export interface PalletInfo {
   id: string;
   name: string;
   currentBottles: number;
+  /** Physical bottle capacity (freight denominator). */
   maxBottles: number;
+  /** Bottles remaining until ship-ready (min_bottles_to_complete). */
   remainingBottles: number;
+  minBottlesToShip?: number;
+  shipProgress?: PalletShipProgress;
   pickupZoneName: string;
   deliveryZoneName: string;
   costCents: number;
@@ -304,6 +340,7 @@ type PalletRowConditional = {
   id: string;
   name?: string | null;
   bottle_capacity?: number | null;
+  min_bottles_to_complete?: number | null;
   cost_cents?: number | null;
   last_mile_cost_cents_per_bottle?: number | null;
   status?: string | null;
@@ -332,14 +369,22 @@ async function palletInfosFromRows(
           ? String(dzJoin[0]?.name ?? "")
           : String((dzJoin as { name?: string | null }).name ?? "");
     const currentBottles = await sumReservedBottlesOnPallet(pid);
-    const cap = Math.max(0, Math.floor(Number(pallet.bottle_capacity) || 0));
+    const cap = resolvePhysicalBottleCapacity(pallet.bottle_capacity);
+    const minToShip = resolveMinBottlesToShip(pallet.min_bottles_to_complete);
+    const shipProgress = computePalletShipProgress(
+      currentBottles,
+      minToShip,
+      cap,
+    );
     const st = pallet.status;
     out.push({
       id: pid,
       name: String(pallet.name ?? ""),
       currentBottles,
       maxBottles: cap,
-      remainingBottles: Math.max(0, cap - currentBottles),
+      remainingBottles: shipProgress.bottlesRemainingToShip,
+      minBottlesToShip: minToShip,
+      shipProgress,
       pickupZoneName: pickupLabel || "Shipping region",
       deliveryZoneName: dzName,
       costCents: Number(pallet.cost_cents) || 0,
@@ -384,6 +429,7 @@ async function buildConditionalUsZoneResult(
         id,
         name,
         bottle_capacity,
+        min_bottles_to_complete,
         cost_cents,
         last_mile_cost_cents_per_bottle,
         status,
@@ -392,7 +438,7 @@ async function buildConditionalUsZoneResult(
       `,
       )
       .eq("shipping_region_id", shippingRegionIdForRouting)
-      .in("status", ["open", "consolidating", "shipping_ordered"]);
+      .in("status", ["open", "consolidating", "complete"]);
 
     if (error) {
       console.error(
@@ -448,6 +494,7 @@ async function buildConditionalUsZoneResult(
         id,
         name,
         bottle_capacity,
+        min_bottles_to_complete,
         cost_cents,
         last_mile_cost_cents_per_bottle,
         status,
@@ -456,7 +503,7 @@ async function buildConditionalUsZoneResult(
       `,
       )
       .eq("pickup_zone_id", pickupZoneId)
-      .in("status", ["open", "consolidating", "shipping_ordered"]);
+      .in("status", ["open", "consolidating", "complete"]);
 
     if (error) {
       console.error(

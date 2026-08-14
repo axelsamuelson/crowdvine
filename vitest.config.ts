@@ -4,6 +4,7 @@ import path from "path";
 export default defineConfig({
   test: {
     include: [
+      "lib/__tests__/**/*.test.ts",
       "lib/external-prices/__tests__/**/*.test.ts",
       "lib/menu-extraction/__tests__/**/*.test.ts",
       "lib/shop/__tests__/**/*.test.ts",

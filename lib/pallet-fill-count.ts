@@ -3,18 +3,26 @@ import {
   deliveryEstimateLabelFromFillPercent,
   type PalletEstimatedDeliveryBand,
 } from "@/lib/pallet-delivery-estimate-label";
+import {
+  DEFAULT_MIN_BOTTLES_TO_COMPLETE,
+  computePalletShipProgress,
+  resolveMinBottlesToShip,
+  resolvePhysicalBottleCapacity,
+  type PalletShipProgress,
+} from "@/lib/pallet-ship-progress";
 
 export type { PalletEstimatedDeliveryBand };
 export { deliveryEstimateLabelFromFillPercent };
+export type { PalletShipProgress };
 
-/** Same rounding as legacy zone-status / PDP (one decimal, capped at 100). */
+/** @deprecated Prefer shipProgressPercent from computePalletShipProgress for UI. */
 export function computePalletFillPercentForDisplay(
   bottlesFilled: number,
   bottleCapacity: number,
 ): number {
   if (bottleCapacity <= 0) return 0;
   return (
-    Math.round(Math.min(100, (bottlesFilled / bottleCapacity) * 1000)) / 10
+    Math.round(Math.min(100, (bottlesFilled / bottleCapacity) * 100) * 10) / 10
   );
 }
 
@@ -73,21 +81,35 @@ export async function sumReservedBottlesOnPallet(
 export async function getPalletFillData(
   palletId: string,
   bottleCapacity: number,
+  minBottlesToComplete?: number,
 ): Promise<{
   bottlesFilled: number;
   bottleCapacity: number;
+  minBottlesToShip: number;
   fillPercent: number;
+  shipProgress: PalletShipProgress;
   estimatedDelivery: PalletEstimatedDeliveryBand;
 }> {
   const bottlesFilled = await sumReservedBottlesOnPallet(palletId);
-  const cap = Number.isFinite(bottleCapacity) && bottleCapacity > 0
-    ? bottleCapacity
-    : 0;
-  const fillPercent = computePalletFillPercentForDisplay(bottlesFilled, cap);
+  const physical = resolvePhysicalBottleCapacity(bottleCapacity);
+  const minToShip = resolveMinBottlesToShip(
+    minBottlesToComplete ?? DEFAULT_MIN_BOTTLES_TO_COMPLETE,
+  );
+  const shipProgress = computePalletShipProgress(
+    bottlesFilled,
+    minToShip,
+    physical,
+  );
+
   return {
     bottlesFilled,
-    bottleCapacity: cap,
-    fillPercent,
-    estimatedDelivery: deliveryEstimateLabelFromFillPercent(fillPercent),
+    bottleCapacity: physical,
+    minBottlesToShip: shipProgress.minBottlesToShip,
+    /** Ship-ready progress % (toward min), not physical fill. */
+    fillPercent: shipProgress.shipProgressPercent,
+    shipProgress,
+    estimatedDelivery: deliveryEstimateLabelFromFillPercent(
+      shipProgress.shipProgressPercent,
+    ),
   };
 }
