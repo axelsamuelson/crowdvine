@@ -144,27 +144,31 @@ export default function LogInPage() {
         className="h-[100dvh] w-full rounded-lg overflow-hidden"
       />
 
-      {/* Center overlay (same style as /access-request) */}
-      <div className="h-[100dvh] inset-0 pointer-events-none fixed flex items-center justify-center text-center px-3 mix-blend-exclusion text-white">
+      {/* Center overlay — no mix-blend so form text stays readable over the gallery */}
+      <div className="h-[100dvh] inset-0 pointer-events-none fixed flex items-center justify-center text-center px-3 text-white">
         <div className="pointer-events-auto flex flex-col items-center justify-center w-full max-w-md gap-6">
           {/* Logo */}
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: DURATION, ease: EASE_OUT }}
-            className="flex justify-center"
+            className="flex justify-center drop-shadow-[0_2px_16px_rgba(0,0,0,0.85)]"
           >
             <FooterLogoSvg className="h-16 sm:h-20 lg:h-24 w-auto text-white" />
           </motion.div>
 
-          {/* Login Card */}
+          {/* Login Card — exclusion on the backdrop only, form stays readable */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: DURATION, ease: EASE_OUT, delay: DELAY }}
-            className="w-full"
+            className="relative w-full"
           >
-            <Card className="backdrop-blur-xl border-2 border-white/20 bg-white/10">
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 rounded-xl bg-white mix-blend-exclusion"
+            />
+            <Card className="relative isolate border-2 border-white/25 bg-zinc-950/50 shadow-[0_8px_40px_rgba(0,0,0,0.35)]">
               <CardHeader className="text-center pb-6">
                 <CardTitle className="text-2xl font-semibold text-white">
                   {isForgotPassword ? "Reset your password" : "Welcome back"}
@@ -195,7 +199,7 @@ export default function LogInPage() {
                         required
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className="pl-10 bg-white/20 border-white/30 text-white placeholder:text-white/50 focus:bg-white/30 focus:border-white/50"
+                        className="pl-10 bg-black/40 border-white/20 text-white placeholder:text-white/45 focus:bg-black/55 focus:border-white/40"
                         placeholder="Enter your email"
                       />
                     </div>
@@ -227,7 +231,7 @@ export default function LogInPage() {
                             required
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            className="pl-10 bg-white/20 border-white/30 text-white placeholder:text-white/50 focus:bg-white/30 focus:border-white/50"
+                            className="pl-10 bg-black/40 border-white/20 text-white placeholder:text-white/45 focus:bg-black/55 focus:border-white/40"
                             placeholder="Enter your password"
                           />
                         </div>
@@ -274,8 +278,8 @@ export default function LogInPage() {
                     type="submit"
                     disabled={loading}
                     className={cn(
-                      "w-full bg-white/20 hover:bg-white/30 border-white/30 text-white font-semibold",
-                      "backdrop-blur-sm shadow-lg",
+                      "w-full bg-white text-zinc-950 hover:bg-white/90 font-semibold",
+                      "shadow-lg",
                       "transition-all duration-300 ease-out",
                     )}
                     size="lg"
@@ -315,7 +319,7 @@ export default function LogInPage() {
                             setPassword("");
                           }}
                           variant="outline"
-                          className="w-full bg-transparent border-white/30 text-white hover:bg-white/20"
+                          className="w-full bg-white/10 border-white/20 text-white hover:bg-white/15"
                         >
                           Forgot password?
                         </Button>
@@ -339,7 +343,7 @@ export default function LogInPage() {
                             setPassword("");
                           }}
                           variant="outline"
-                          className="w-full bg-transparent border-white/30 text-white hover:bg-white/20"
+                          className="w-full bg-white/10 border-white/20 text-white hover:bg-white/15"
                         >
                           Back to sign in
                         </Button>
@@ -366,7 +370,7 @@ export default function LogInPage() {
 
       {/* Bottom instructions (template style) */}
       <div className="text-center fixed bottom-10 left-0 right-0 font-mono uppercase text-[11px] font-semibold text-white/90 mix-blend-exclusion">
-        <p>Wine, but not like this.</p>
+        <p>Wine has never been this accessible and transparent.</p>
         <p className="opacity-60">Membership by invitation.</p>
       </div>
     </main>

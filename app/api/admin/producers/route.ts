@@ -64,6 +64,15 @@ export async function POST(request: NextRequest) {
         ? body.shipping_region_id.trim()
         : null;
 
+    const contactEmail =
+      typeof body.contact_email === "string" && body.contact_email.trim()
+        ? body.contact_email.trim()
+        : null;
+    const contactPhone =
+      typeof body.contact_phone === "string" && body.contact_phone.trim()
+        ? body.contact_phone.trim()
+        : null;
+
     const { data: producer, error } = await supabase
       .from("producers")
       .insert({
@@ -85,6 +94,8 @@ export async function POST(request: NextRequest) {
         status: "active",
         is_live: body.is_live !== false,
         boost_active: body.boost_active === true,
+        contact_email: contactEmail,
+        contact_phone: contactPhone,
       })
       .select()
       .single();

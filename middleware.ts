@@ -8,7 +8,7 @@ import {
 } from "@/lib/auth/public-paths";
 import { isPlatformOpen } from "@/lib/platform-open";
 import { isDirtywineHost } from "@/lib/b2b-site";
-import { createClient as createSupabaseMiddlewareClient } from "@/utils/supabase/middleware";
+import { createClient as createSupabaseMiddlewareClient, clearSupabaseAuthCookies } from "@/utils/supabase/middleware";
 import {
   WINE_CATEGORY_EN_ALIASES,
   WINE_CATEGORY_SV_ALIASES,
@@ -211,10 +211,11 @@ async function runMiddleware(req: NextRequest) {
   if (userError) {
     if (isStaleRefreshTokenError(userError)) {
       try {
-        await supabase.auth.signOut();
+        await supabase.auth.signOut({ scope: "local" });
       } catch {
-        /* cookies cleared via signOut cookie handlers when possible */
+        /* ignore — clear cookies below either way */
       }
+      clearSupabaseAuthCookies(req, res);
       return withGeoCountryCookie(req, res);
     }
     console.warn("MIDDLEWARE: auth.getUser failed:", userError.message);
@@ -229,7 +230,9 @@ async function runMiddleware(req: NextRequest) {
 
   const adminAuthCookie = req.cookies.get("admin-auth")?.value;
     const adminEmailCookie = req.cookies.get("admin-email")?.value?.trim();
-    const isAdminPath = pathname.startsWith("/admin");
+    // /admin-auth must NOT match — otherwise login redirects to itself (404/loop).
+    const isAdminPath =
+      pathname === "/admin" || pathname.startsWith("/admin/");
 
     // dirtywine.se / localhost ?b2b=1: no login required – allow access without auth
     if (onDirtywineSite && !isAdminPath) {

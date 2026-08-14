@@ -26,3 +26,13 @@ export function isAuthNetworkError(error: unknown): boolean {
     /networkerror|failed to fetch/i.test(msg)
   );
 }
+
+/** Cookie names used by @supabase/ssr browser/server clients. */
+export function isSupabaseAuthCookieName(name: string): boolean {
+  if (!name.startsWith("sb-")) return false;
+  return (
+    name.includes("auth-token") ||
+    name.includes("code-verifier") ||
+    name.endsWith("-auth-token")
+  );
+}

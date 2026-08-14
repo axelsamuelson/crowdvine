@@ -1,11 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import {
   LayoutDashboard,
@@ -148,7 +147,6 @@ const navigationGroups: NavGroup[] = [
 
 export function Sidebar({ userEmail, onSignOut, mobileOpen, onMobileClose }: SidebarProps) {
   const pathname = usePathname();
-  const router = useRouter();
   const [openGroups, setOpenGroups] = useState<Set<string>>(() => new Set());
 
   const isItemActive = (item: NavItem) =>
@@ -204,8 +202,8 @@ export function Sidebar({ userEmail, onSignOut, mobileOpen, onMobileClose }: Sid
         </Link>
       </div>
 
-      {/* Navigation – top-level links + collapsible groups */}
-      <ScrollArea className="flex-1 py-4 px-4">
+      {/* Navigation – plain overflow avoids Radix ScrollArea SSR/client style drift */}
+      <div className="min-h-0 flex-1 overflow-y-auto py-4 px-4">
         <nav className="space-y-3">
           <div className="space-y-1">
             {topLevelNav.map((item) => {
@@ -275,7 +273,7 @@ export function Sidebar({ userEmail, onSignOut, mobileOpen, onMobileClose }: Sid
             </div>
           ))}
         </nav>
-      </ScrollArea>
+      </div>
 
       {/* User section – template footer style */}
       <div className="border-t border-gray-200 dark:border-[#1F1F23] px-4 py-4">

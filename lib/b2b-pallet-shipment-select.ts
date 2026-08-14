@@ -17,6 +17,7 @@ export const B2B_PALLET_SHIPMENT_SELECT = `
     id,
     wine_id,
     quantity,
+    created_at,
     cost_cents_override,
     wines(
       id,

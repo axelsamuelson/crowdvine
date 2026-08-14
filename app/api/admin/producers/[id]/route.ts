@@ -105,6 +105,18 @@ export async function PUT(
     if (body.is_live !== undefined) updateData.is_live = Boolean(body.is_live);
     if (body.boost_active !== undefined)
       updateData.boost_active = Boolean(body.boost_active);
+    if (body.contact_email !== undefined) {
+      updateData.contact_email =
+        typeof body.contact_email === "string" && body.contact_email.trim()
+          ? body.contact_email.trim()
+          : null;
+    }
+    if (body.contact_phone !== undefined) {
+      updateData.contact_phone =
+        typeof body.contact_phone === "string" && body.contact_phone.trim()
+          ? body.contact_phone.trim()
+          : null;
+    }
 
     const oldShippingRegionId =
       (currentProducer?.shipping_region_id as string | null | undefined) ??

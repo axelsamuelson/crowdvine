@@ -18,7 +18,7 @@ export default async function ProducerOrdersPage() {
           <div>
             <h1 className="text-2xl font-medium text-gray-900 mb-2">Orders</h1>
             <p className="text-gray-500">
-              Approve reservations before they can proceed to payment.
+              B2C reservations and B2B Dirty Wine pallets for your wines.
             </p>
           </div>
           <div className="flex gap-2">

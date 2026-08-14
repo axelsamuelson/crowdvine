@@ -1,10 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getCurrentAdmin } from "@/lib/admin-auth-server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { B2B_PALLET_SHIPMENT_SELECT } from "@/lib/b2b-pallet-shipment-select";
 import { validateB2bPickupProducerId } from "@/lib/b2b-pallet-shipment-validation";
 
 export async function GET() {
   try {
+    const admin = await getCurrentAdmin();
+    if (!admin) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const sb = getSupabaseAdmin();
 
     const { data: shipments, error } = await sb
@@ -32,6 +38,11 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    const admin = await getCurrentAdmin();
+    if (!admin) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const sb = getSupabaseAdmin();
     const body = await request.json();
 

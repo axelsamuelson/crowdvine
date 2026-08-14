@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextRequest, NextResponse } from "next/server";
+import { isSupabaseAuthCookieName } from "@/lib/auth/session-errors";
 
 function requestHeadersWithPathname(
   request: NextRequest,
@@ -19,6 +20,23 @@ function nextWithForwardedCookies(
   return NextResponse.next({
     request: { headers: requestHeadersWithPathname(request, pathname) },
   });
+}
+
+/** Drop stale Supabase session cookies so the next request does not retry refresh. */
+export function clearSupabaseAuthCookies(
+  request: NextRequest,
+  response: NextResponse,
+): void {
+  for (const cookie of request.cookies.getAll()) {
+    if (!isSupabaseAuthCookieName(cookie.name)) continue;
+    request.cookies.set({ name: cookie.name, value: "" });
+    response.cookies.set({
+      name: cookie.name,
+      value: "",
+      path: "/",
+      maxAge: 0,
+    });
+  }
 }
 
 export function createClient(request: NextRequest, pathname?: string) {

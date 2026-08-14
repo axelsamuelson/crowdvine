@@ -95,12 +95,12 @@ export default async function ProducerDashboardPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Card className="p-6 bg-white border border-gray-200 rounded-2xl lg:col-span-1">
+          <Card className="p-6 bg-white border border-gray-200 rounded-2xl lg:col-span-2">
             <div className="flex items-center justify-between gap-4">
               <div>
                 <div className="text-sm font-medium text-gray-900">Orders</div>
                 <div className="text-sm text-gray-500 mt-1">
-                  Incoming reservations for your wines
+                  B2C reservations and B2B Dirty Wine pallets
                 </div>
               </div>
               <Link href="/producer/orders">
@@ -115,7 +115,7 @@ export default async function ProducerDashboardPage() {
             </div>
           </Card>
 
-          <Card className="p-6 bg-white border border-gray-200 rounded-2xl lg:col-span-2">
+          <Card className="p-6 bg-white border border-gray-200 rounded-2xl lg:col-span-1">
             <div className="flex items-center justify-between gap-4">
               <div>
                 <div className="text-sm font-medium text-gray-900">Wines</div>
@@ -149,15 +149,7 @@ export default async function ProducerDashboardPage() {
                   <TableHeader>
                     <TableRow className="bg-gray-50 hover:bg-gray-50">
                       <TableHead className="text-gray-600">Wine</TableHead>
-                      <TableHead className="hidden sm:table-cell text-gray-600">
-                        Vintage
-                      </TableHead>
-                      <TableHead className="hidden md:table-cell text-gray-600">
-                        Handle
-                      </TableHead>
-                      <TableHead className="hidden lg:table-cell text-gray-600">
-                        Created
-                      </TableHead>
+                      <TableHead className="text-gray-600">Vintage</TableHead>
                       <TableHead className="text-right text-gray-600">
                         Actions
                       </TableHead>
@@ -166,24 +158,11 @@ export default async function ProducerDashboardPage() {
                   <TableBody>
                     {(wines || []).slice(0, 8).map((w) => (
                       <TableRow key={w.id} className="hover:bg-gray-50">
-                        <TableCell className="font-medium text-gray-900">
-                          <div className="min-w-0">
-                            <div className="truncate">{w.wine_name}</div>
-                            <div className="text-xs text-gray-500 truncate md:hidden">
-                              {w.handle}
-                            </div>
-                          </div>
+                        <TableCell className="font-medium text-gray-900 truncate">
+                          {w.wine_name}
                         </TableCell>
-                        <TableCell className="hidden sm:table-cell text-gray-700">
+                        <TableCell className="text-gray-700">
                           {w.vintage || "—"}
-                        </TableCell>
-                        <TableCell className="hidden md:table-cell font-mono text-xs text-gray-500">
-                          {w.handle}
-                        </TableCell>
-                        <TableCell className="hidden lg:table-cell text-gray-700">
-                          {w.created_at
-                            ? new Date(w.created_at).toLocaleDateString()
-                            : "—"}
                         </TableCell>
                         <TableCell className="text-right">
                           <Link href={`/producer/wines/${w.id}`}>

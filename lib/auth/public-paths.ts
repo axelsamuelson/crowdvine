@@ -7,6 +7,7 @@ const PUBLIC_PATH_PREFIXES = [
   "/code-signup",
   "/access-request",
   "/access-pending",
+  "/admin-auth",
   "/shop",
   "/vin",
   "/wine",

@@ -46,6 +46,8 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
     is_pallet_zone: producer?.is_pallet_zone === true,
     is_live: producer?.is_live ?? true,
     boost_active: producer?.boost_active === true,
+    contact_email: producer?.contact_email || "",
+    contact_phone: producer?.contact_phone || "",
   });
 
   const [error, setError] = useState("");
@@ -481,6 +483,37 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
                   handleChange("address_postcode", e.target.value)
                 }
                 required
+                className="border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="contact_email" className="text-gray-700 dark:text-zinc-300">
+                Email
+              </Label>
+              <Input
+                id="contact_email"
+                type="email"
+                value={formData.contact_email || ""}
+                onChange={(e) => handleChange("contact_email", e.target.value)}
+                placeholder="optional"
+                autoComplete="email"
+                className="border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="contact_phone" className="text-gray-700 dark:text-zinc-300">
+                Phone
+              </Label>
+              <Input
+                id="contact_phone"
+                type="tel"
+                value={formData.contact_phone || ""}
+                onChange={(e) => handleChange("contact_phone", e.target.value)}
+                placeholder="optional"
+                autoComplete="tel"
                 className="border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800"
               />
             </div>

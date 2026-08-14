@@ -52,9 +52,10 @@ const nextConfig = {
         permanent: true,
       },
       // Legacy EN public profiles → /producers/:slug (portal segments excluded)
+      // Keep in sync with PRODUCER_PORTAL_SEGMENTS in lib/i18n/localized-routes.ts
       {
         source:
-          "/producer/:slug((?!wines|labels|profile|settings|orders)[^/]+)",
+          "/producer/:slug((?!wines|labels|profile|settings|orders|pallets|signup)[^/]+)",
         destination: "/producers/:slug",
         permanent: true,
       },

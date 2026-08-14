@@ -1035,6 +1035,18 @@ export default function PalletsPage() {
                         className="rounded-lg text-xs font-medium h-8 flex-1 border-gray-200 dark:border-zinc-700"
                       >
                         <Link
+                          href={`/admin/pallets/b2b/${shipment.id}/status`}
+                        >
+                          Status
+                        </Link>
+                      </Button>
+                      <Button
+                        asChild
+                        variant="outline"
+                        size="sm"
+                        className="rounded-lg text-xs font-medium h-8 flex-1 border-gray-200 dark:border-zinc-700"
+                      >
+                        <Link
                           href={`/admin/pallets/b2b/${shipment.id}/edit`}
                         >
                           Redigera

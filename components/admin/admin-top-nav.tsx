@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useContext, useMemo } from "react";
+import { useContext, useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
 import { ChevronRight, LogOut } from "lucide-react";
 import { AdminBreadcrumbDetailContext } from "@/components/admin/admin-breadcrumb-detail-context";
@@ -118,6 +118,7 @@ function getBreadcrumbs(
 
 export function AdminTopNav({ userEmail, onSignOut }: AdminTopNavProps) {
   const pathname = usePathname();
+  const [menuOpen, setMenuOpen] = useState(false);
   const detailCtx = useContext(AdminBreadcrumbDetailContext);
   const breadcrumbs = useMemo(
     () => getBreadcrumbs(pathname, detailCtx?.detail ?? null),
@@ -149,7 +150,7 @@ export function AdminTopNav({ userEmail, onSignOut }: AdminTopNavProps) {
       </div>
 
       <div className="flex items-center gap-2 sm:gap-4 ml-auto">
-        <DropdownMenu>
+        <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
           <DropdownMenuTrigger asChild>
             <button
               type="button"
@@ -162,29 +163,35 @@ export function AdminTopNav({ userEmail, onSignOut }: AdminTopNavProps) {
               </div>
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent
-            align="end"
-            sideOffset={8}
-            className="w-72 bg-white dark:bg-[#0F0F12] border border-gray-200 dark:border-[#1F1F23] rounded-lg shadow-lg"
-          >
-            <div className="p-3 border-b border-gray-100 dark:border-[#1F1F23]">
-              <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                {userEmail}
-              </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Admin</p>
-            </div>
-            <div className="p-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full justify-start text-gray-700 dark:text-gray-300"
-                onClick={onSignOut}
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                Sign out
-              </Button>
-            </div>
-          </DropdownMenuContent>
+          {/*
+            Mount portal content only while open. Radix portals SSR in-place but
+            client-portals to document.body, which shifts the admin shell tree.
+          */}
+          {menuOpen ? (
+            <DropdownMenuContent
+              align="end"
+              sideOffset={8}
+              className="w-72 bg-white dark:bg-[#0F0F12] border border-gray-200 dark:border-[#1F1F23] rounded-lg shadow-lg"
+            >
+              <div className="p-3 border-b border-gray-100 dark:border-[#1F1F23]">
+                <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                  {userEmail}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Admin</p>
+              </div>
+              <div className="p-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-start text-gray-700 dark:text-gray-300"
+                  onClick={onSignOut}
+                >
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Sign out
+                </Button>
+              </div>
+            </DropdownMenuContent>
+          ) : null}
         </DropdownMenu>
       </div>
     </nav>

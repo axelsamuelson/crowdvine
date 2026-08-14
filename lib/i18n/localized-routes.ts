@@ -15,6 +15,8 @@ export const PRODUCER_PORTAL_SEGMENTS = new Set([
   "profile",
   "settings",
   "orders",
+  "pallets",
+  "signup",
 ]);
 
 export function productPagePath(

@@ -42,6 +42,10 @@ export interface Producer {
   is_live?: boolean;
   /** When true, PACT Points redeem at 2× SEK value against this producer's wines at checkout. */
   boost_active?: boolean;
+  /** Optional contact email (admin). */
+  contact_email?: string | null;
+  /** Optional contact phone (admin). */
+  contact_phone?: string | null;
 }
 
 export interface CreateProducerData {
@@ -60,6 +64,8 @@ export interface CreateProducerData {
   is_pallet_zone?: boolean;
   is_live?: boolean;
   boost_active?: boolean;
+  contact_email?: string;
+  contact_phone?: string;
 }
 
 export type UpdateProducerData = Partial<CreateProducerData>;

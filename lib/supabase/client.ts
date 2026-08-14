@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   isAuthNetworkError,
   isStaleRefreshTokenError,
+  isSupabaseAuthCookieName,
 } from "@/lib/auth/session-errors";
 
 let client: SupabaseClient | null = null;
@@ -44,6 +45,13 @@ function wrapAuthMethods(supabase: SupabaseClient) {
     } catch {
       /* ignore */
     } finally {
+      if (typeof document !== "undefined") {
+        for (const raw of document.cookie.split(";")) {
+          const name = raw.split("=")[0]?.trim();
+          if (!name || !isSupabaseAuthCookieName(name)) continue;
+          document.cookie = `${name}=; Max-Age=0; path=/`;
+        }
+      }
       resetSupabaseBrowserClient();
     }
   };

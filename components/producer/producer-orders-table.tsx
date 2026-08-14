@@ -47,33 +47,114 @@ type ProducerOrder = {
   }> | null;
 };
 
+type ProducerB2bPallet = {
+  shipmentId: string;
+  name: string;
+  shippedAt: string | null;
+  deliveredAt: string | null;
+  isActive: boolean;
+  createdAt: string | null;
+  bottleCount: number;
+  wineNames: string[];
+  decisionStatus: string;
+  processStepLabel?: string;
+  processStepTone?: "pending" | "active" | "done" | "rejected";
+};
+
+type UnifiedRow =
+  | { kind: "b2c"; sortAt: number; order: ProducerOrder }
+  | { kind: "b2b"; sortAt: number; pallet: ProducerB2bPallet };
+
 function formatDate(dateString: string) {
   const d = new Date(dateString);
   if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+  return d.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function processStepBadge(
+  label: string,
+  tone: "pending" | "active" | "done" | "rejected" = "pending",
+) {
+  if (tone === "done") {
+    return (
+      <Badge className="bg-emerald-100 text-emerald-900 border border-emerald-200">
+        {label}
+      </Badge>
+    );
+  }
+  if (tone === "active") {
+    return (
+      <Badge className="bg-amber-100 text-amber-900 border border-amber-200">
+        {label}
+      </Badge>
+    );
+  }
+  if (tone === "rejected") {
+    return (
+      <Badge className="bg-red-100 text-red-900 border border-red-200">
+        {label}
+      </Badge>
+    );
+  }
+  return <Badge variant="secondary">{label}</Badge>;
 }
 
 function statusBadge(status: string) {
   const s = String(status || "");
-  if (s === "pending_producer_approval") {
-    return <Badge className="bg-amber-100 text-amber-900 border border-amber-200">Pending</Badge>;
+  if (s === "pending_producer_approval" || s === "pending") {
+    return (
+      <Badge className="bg-amber-100 text-amber-900 border border-amber-200">
+        Pending
+      </Badge>
+    );
   }
   if (s === "approved" || s === "placed") {
     return <Badge variant="outline">Approved</Badge>;
   }
-  if (s === "partly_approved") {
-    return <Badge className="bg-amber-100 text-amber-900 border border-amber-200">Partly approved</Badge>;
+  if (s === "confirmed") {
+    return (
+      <Badge className="bg-emerald-100 text-emerald-900 border border-emerald-200">
+        Confirmed
+      </Badge>
+    );
+  }
+  if (s === "partly_approved" || s === "partial") {
+    return (
+      <Badge className="bg-amber-100 text-amber-900 border border-amber-200">
+        Partly approved
+      </Badge>
+    );
   }
   if (s === "declined" || s === "rejected") {
-    return <Badge className="bg-red-100 text-red-900 border border-red-200">Declined</Badge>;
+    return (
+      <Badge className="bg-red-100 text-red-900 border border-red-200">
+        Declined
+      </Badge>
+    );
   }
   if (s === "pending_payment") {
-    return <Badge className="bg-blue-100 text-blue-900 border border-blue-200">Payment pending</Badge>;
-  }
-  if (s === "confirmed") {
-    return <Badge className="bg-emerald-100 text-emerald-900 border border-emerald-200">Paid</Badge>;
+    return (
+      <Badge className="bg-blue-100 text-blue-900 border border-blue-200">
+        Payment pending
+      </Badge>
+    );
   }
   return <Badge variant="secondary">{s || "—"}</Badge>;
+}
+
+function b2cStatusBadge(status: string) {
+  if (status === "confirmed") {
+    return (
+      <Badge className="bg-emerald-100 text-emerald-900 border border-emerald-200">
+        Paid
+      </Badge>
+    );
+  }
+  return statusBadge(status);
 }
 
 export function ProducerOrdersTable({
@@ -89,6 +170,7 @@ export function ProducerOrdersTable({
 }) {
   const { toast } = useToast();
   const [orders, setOrders] = useState<ProducerOrder[]>([]);
+  const [pallets, setPallets] = useState<ProducerB2bPallet[]>([]);
   const [loading, setLoading] = useState(true);
   const [actingOn, setActingOn] = useState<string | null>(null);
   const [reviewOrder, setReviewOrder] = useState<ProducerOrder | null>(null);
@@ -106,12 +188,24 @@ export function ProducerOrdersTable({
   const load = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/producer/orders", { cache: "no-store" });
-      const json = await res.json();
-      if (!res.ok) {
-        throw new Error(json?.error || "Failed to load orders");
+      const [ordersRes, palletsRes] = await Promise.all([
+        fetch("/api/producer/orders", { cache: "no-store" }),
+        fetch("/api/producer/b2b-pallets", { cache: "no-store" }),
+      ]);
+      const ordersJson = await ordersRes.json();
+      if (!ordersRes.ok) {
+        throw new Error(ordersJson?.error || "Failed to load orders");
       }
-      setOrders(Array.isArray(json?.orders) ? json.orders : []);
+      setOrders(Array.isArray(ordersJson?.orders) ? ordersJson.orders : []);
+
+      if (palletsRes.ok) {
+        const palletsJson = await palletsRes.json();
+        setPallets(
+          Array.isArray(palletsJson?.pallets) ? palletsJson.pallets : [],
+        );
+      } else {
+        setPallets([]);
+      }
     } catch (e: any) {
       toast({
         title: "Could not load orders",
@@ -133,7 +227,8 @@ export function ProducerOrdersTable({
     (o.order_reservation_items || []).forEach((it) => {
       const max = Number(it.quantity) || 0;
       const existingQty =
-        it.producer_approved_quantity === null || it.producer_approved_quantity === undefined
+        it.producer_approved_quantity === null ||
+        it.producer_approved_quantity === undefined
           ? max
           : Number(it.producer_approved_quantity) || 0;
       const existingDecision =
@@ -142,7 +237,10 @@ export function ProducerOrdersTable({
           : "approved";
       nextDraft[it.id] = {
         decision: existingDecision,
-        approvedQuantity: existingDecision === "declined" ? 0 : Math.min(max, Math.max(0, existingQty)),
+        approvedQuantity:
+          existingDecision === "declined"
+            ? 0
+            : Math.min(max, Math.max(0, existingQty)),
         max,
       };
     });
@@ -240,10 +338,20 @@ export function ProducerOrdersTable({
     }
   };
 
-  const visibleOrders = useMemo(() => {
-    const list = orders || [];
-    return typeof limit === "number" ? list.slice(0, limit) : list;
-  }, [orders, limit]);
+  const visibleRows = useMemo(() => {
+    const b2c: UnifiedRow[] = (orders || []).map((order) => ({
+      kind: "b2c" as const,
+      order,
+      sortAt: new Date(order.created_at).getTime() || 0,
+    }));
+    const b2b: UnifiedRow[] = (pallets || []).map((pallet) => ({
+      kind: "b2b" as const,
+      pallet,
+      sortAt: pallet.createdAt ? new Date(pallet.createdAt).getTime() : 0,
+    }));
+    const merged = [...b2c, ...b2b].sort((a, b) => b.sortAt - a.sortAt);
+    return typeof limit === "number" ? merged.slice(0, limit) : merged;
+  }, [orders, pallets, limit]);
 
   const Wrapper: any = asCard ? Card : Fragment;
   const wrapperProps = asCard
@@ -257,7 +365,7 @@ export function ProducerOrdersTable({
           <div>
             <div className="text-lg font-medium text-gray-900">Orders</div>
             <div className="text-sm text-gray-500">
-              Approve reservations before they can move forward to payment.
+              B2C reservations and B2B Dirty Wine pallets.
             </div>
           </div>
           {showAllLink && (
@@ -275,7 +383,7 @@ export function ProducerOrdersTable({
           <TableHeader>
             <TableRow>
               <TableHead>Date</TableHead>
-              <TableHead>Customer</TableHead>
+              <TableHead>Type</TableHead>
               <TableHead className="text-right">Bottles</TableHead>
               <TableHead>Wines</TableHead>
               <TableHead>Status</TableHead>
@@ -290,14 +398,57 @@ export function ProducerOrdersTable({
                   Loading…
                 </TableCell>
               </TableRow>
-            ) : visibleOrders.length === 0 ? (
+            ) : visibleRows.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="text-sm text-gray-500">
                   No orders yet.
                 </TableCell>
               </TableRow>
             ) : (
-              visibleOrders.map((o) => {
+              visibleRows.map((row) => {
+                if (row.kind === "b2b") {
+                  const p = row.pallet;
+                  return (
+                    <TableRow key={`b2b-${p.shipmentId}`}>
+                      <TableCell className="whitespace-nowrap">
+                        {p.createdAt ? formatDate(p.createdAt) : "—"}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">B2B</Badge>
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {p.bottleCount}
+                      </TableCell>
+                      <TableCell className="max-w-[420px] truncate">
+                        {p.wineNames.length > 0
+                          ? p.wineNames.join(", ")
+                          : "—"}
+                      </TableCell>
+                      <TableCell>
+                        {p.processStepLabel
+                          ? processStepBadge(
+                              p.processStepLabel,
+                              p.processStepTone,
+                            )
+                          : statusBadge(p.decisionStatus)}
+                      </TableCell>
+                      <TableCell className="text-sm text-gray-700">—</TableCell>
+                      <TableCell className="text-right">
+                        <Link href={`/producer/pallets/${p.shipmentId}`}>
+                          <Button
+                            variant="outline"
+                            className="rounded-full"
+                            size="sm"
+                          >
+                            Status
+                          </Button>
+                        </Link>
+                      </TableCell>
+                    </TableRow>
+                  );
+                }
+
+                const o = row.order;
                 const bottles =
                   o.order_reservation_items?.reduce(
                     (sum, it) => sum + (Number(it.quantity) || 0),
@@ -312,20 +463,21 @@ export function ProducerOrdersTable({
                     })
                     .filter(Boolean) || [];
 
-                const customer =
-                  o.profiles?.full_name ||
-                  o.profiles?.email ||
-                  "—";
-
                 return (
-                  <TableRow key={o.id}>
-                    <TableCell className="whitespace-nowrap">{formatDate(o.created_at)}</TableCell>
-                    <TableCell className="max-w-[240px] truncate">{customer}</TableCell>
-                    <TableCell className="text-right tabular-nums">{bottles}</TableCell>
+                  <TableRow key={`b2c-${o.id}`}>
+                    <TableCell className="whitespace-nowrap">
+                      {formatDate(o.created_at)}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline">B2C</Badge>
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {bottles}
+                    </TableCell>
                     <TableCell className="max-w-[420px] truncate">
                       {wines.length > 0 ? wines.join(", ") : "—"}
                     </TableCell>
-                    <TableCell>{statusBadge(o.status)}</TableCell>
+                    <TableCell>{b2cStatusBadge(o.status)}</TableCell>
                     <TableCell className="text-sm text-gray-700">
                       {o.payment_status || "—"}
                     </TableCell>
@@ -348,7 +500,10 @@ export function ProducerOrdersTable({
         </Table>
       </div>
 
-      <Dialog open={Boolean(reviewOrder)} onOpenChange={(open) => (!open ? setReviewOrder(null) : null)}>
+      <Dialog
+        open={Boolean(reviewOrder)}
+        onOpenChange={(open) => (!open ? setReviewOrder(null) : null)}
+      >
         <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle>Review order</DialogTitle>
@@ -358,7 +513,8 @@ export function ProducerOrdersTable({
             <div className="space-y-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="text-sm text-gray-600">
-                  Approve or decline each wine line. You can also approve a partial quantity.
+                  Approve or decline each wine line. You can also approve a
+                  partial quantity.
                 </div>
                 <div className="flex gap-2">
                   <Button
@@ -402,18 +558,27 @@ export function ProducerOrdersTable({
                           <TableCell className="font-medium text-gray-900">
                             {vintage ? `${wineName} (${vintage})` : wineName}
                           </TableCell>
-                          <TableCell className="text-right tabular-nums">{max}</TableCell>
+                          <TableCell className="text-right tabular-nums">
+                            {max}
+                          </TableCell>
                           <TableCell>
                             <div className="flex gap-2">
                               <Button
                                 type="button"
                                 size="sm"
                                 className={`rounded-full ${d?.decision === "approved" ? "bg-black text-white hover:bg-black/90" : "bg-transparent"}`}
-                                variant={d?.decision === "approved" ? "default" : "outline"}
+                                variant={
+                                  d?.decision === "approved"
+                                    ? "default"
+                                    : "outline"
+                                }
                                 onClick={() =>
                                   setDraft((prev) => ({
                                     ...prev,
-                                    [it.id]: { ...prev[it.id], decision: "approved" },
+                                    [it.id]: {
+                                      ...prev[it.id],
+                                      decision: "approved",
+                                    },
                                   }))
                                 }
                               >
@@ -423,11 +588,19 @@ export function ProducerOrdersTable({
                                 type="button"
                                 size="sm"
                                 className="rounded-full"
-                                variant={d?.decision === "declined" ? "default" : "outline"}
+                                variant={
+                                  d?.decision === "declined"
+                                    ? "default"
+                                    : "outline"
+                                }
                                 onClick={() =>
                                   setDraft((prev) => ({
                                     ...prev,
-                                    [it.id]: { ...prev[it.id], decision: "declined", approvedQuantity: 0 },
+                                    [it.id]: {
+                                      ...prev[it.id],
+                                      decision: "declined",
+                                      approvedQuantity: 0,
+                                    },
                                   }))
                                 }
                               >
@@ -442,14 +615,23 @@ export function ProducerOrdersTable({
                               min={0}
                               max={max}
                               disabled={d?.decision === "declined"}
-                              value={d?.decision === "declined" ? 0 : d?.approvedQuantity ?? 0}
+                              value={
+                                d?.decision === "declined"
+                                  ? 0
+                                  : (d?.approvedQuantity ?? 0)
+                              }
                               onChange={(e) => {
-                                const next = Math.floor(Number(e.target.value) || 0);
+                                const next = Math.floor(
+                                  Number(e.target.value) || 0,
+                                );
                                 setDraft((prev) => ({
                                   ...prev,
                                   [it.id]: {
                                     ...prev[it.id],
-                                    approvedQuantity: Math.min(max, Math.max(0, next)),
+                                    approvedQuantity: Math.min(
+                                      max,
+                                      Math.max(0, next),
+                                    ),
                                   },
                                 }));
                               }}
@@ -488,4 +670,3 @@ export function ProducerOrdersTable({
     </Wrapper>
   );
 }
-

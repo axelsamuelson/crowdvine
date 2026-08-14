@@ -65,7 +65,10 @@ import type {
   DrivingRoutesResponse,
   OptimalPickupResult,
 } from "@/lib/driving-routes";
-import { ADMIN_ACTIVE_SWITCH_CLASS } from "@/lib/admin-form-styles";
+import {
+  ADMIN_ACTIVE_SWITCH_CLASS,
+  ADMIN_OUTLINE_BUTTON_CLASS,
+} from "@/lib/admin-form-styles";
 import { B2bPalletProducersMap,
   type B2bPalletMapProducerInput,
 } from "@/components/admin/b2b-pallet-producers-map";
@@ -1050,7 +1053,7 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
             <ArrowLeft className="h-4 w-4" />
           </Link>
         </Button>
-        <div>
+        <div className="min-w-0 flex-1">
           <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
             {isEdit ? "Redigera pall" : "Ny pall"}
           </h1>
@@ -1058,6 +1061,21 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
             Dirty Wine · Vinleverans
           </p>
         </div>
+        {isEdit && shipmentId ? (
+          <Button
+            asChild
+            variant="outline"
+            size="sm"
+            className={cn(
+              ADMIN_OUTLINE_BUTTON_CLASS,
+              "text-xs font-medium h-8 shrink-0",
+            )}
+          >
+            <Link href={`/admin/pallets/b2b/${shipmentId}/status`}>
+              Status
+            </Link>
+          </Button>
+        ) : null}
       </header>
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -1242,289 +1260,278 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
             </p>
           </div>
           <div className="space-y-4">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch">
-              <Popover
-                open={wineComboboxOpen}
-                onOpenChange={(open) => {
-                  setWineComboboxOpen(open);
-                  if (!open) {
-                    setWineSearchQuery("");
-                    setWineProducerFilter("");
-                    setWineColorFilter("");
-                  }
-                }}
-              >
-                <PopoverTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={wineComboboxOpen}
-                    className="h-11 w-full justify-between border-gray-200 bg-white font-normal text-gray-900 hover:bg-gray-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700/80 sm:flex-1"
-                  >
-                    <span className="truncate text-gray-500 dark:text-zinc-400">
-                      Sök vin att lägga till...
-                    </span>
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-              <PopoverContent
-                className="w-[var(--radix-popover-trigger-width)] border-gray-200 bg-white p-0 dark:border-zinc-700 dark:bg-zinc-900"
-                align="start"
-                onWheelCapture={(e) => e.stopPropagation()}
-              >
-                <div className="space-y-2 border-b border-gray-200 p-2 dark:border-zinc-700">
-                  <Input
-                    placeholder="Sök namn, årgång eller producent..."
-                    value={wineSearchQuery}
-                    onChange={(e) => setWineSearchQuery(e.target.value)}
-                    className={cn(inputClass, "h-10")}
-                    autoFocus
-                  />
-                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                    <div className="space-y-1">
-                      <Label className="text-xs text-gray-500 dark:text-zinc-400">
-                        Producent
-                      </Label>
-                      <Select
-                        value={wineProducerFilter || "__all__"}
-                        onValueChange={(v) =>
-                          setWineProducerFilter(v === "__all__" ? "" : v)
-                        }
-                      >
-                        <SelectTrigger className={selectTriggerClass}>
-                          <SelectValue placeholder="Alla producenter" />
-                        </SelectTrigger>
-                        <SelectContent className="border-gray-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
-                          <SelectItem value="__all__">Alla producenter</SelectItem>
-                          {producerOptions.map((name) => (
-                            <SelectItem key={name} value={name}>
-                              {name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs text-gray-500 dark:text-zinc-400">
-                        Färg
-                      </Label>
-                      <Select
-                        value={wineColorFilter || "__all__"}
-                        onValueChange={(v) =>
-                          setWineColorFilter(v === "__all__" ? "" : v)
-                        }
-                      >
-                        <SelectTrigger className={selectTriggerClass}>
-                          <SelectValue placeholder="Alla färger" />
-                        </SelectTrigger>
-                        <SelectContent className="border-gray-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
-                          <SelectItem value="__all__">Alla färger</SelectItem>
-                          {colorOptions.map((color) => (
-                            <SelectItem key={color} value={color}>
-                              <span className="inline-flex items-center gap-2">
-                                <span
-                                  className={cn(
-                                    "inline-block h-2.5 w-2.5 shrink-0 rounded-full",
-                                    wineColorDotClass(color),
-                                  )}
-                                  aria-hidden
-                                />
-                                {color}
-                              </span>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  {hasWineFilters && filteredAvailableWines.length > 0 && (
-                    <p className={hintClass}>
-                      {filteredAvailableWines.length} av {availableWines.length}{" "}
-                      viner
-                    </p>
-                  )}
-                </div>
-                <div
-                  className="max-h-[min(70vh,20rem)] overflow-y-auto overscroll-contain"
-                  onWheel={(e) => e.stopPropagation()}
-                >
-                  {availableWines.length === 0 ? (
-                    <p className="py-6 text-center text-sm text-gray-500 dark:text-zinc-400">
-                      Alla viner är tillagda
-                    </p>
-                  ) : filteredAvailableWines.length === 0 ? (
-                    <p className="py-6 text-center text-sm text-gray-500 dark:text-zinc-400">
-                      {hasWineFilters
-                        ? "Inga viner matchar filtren."
-                        : "Inga viner hittades."}
-                    </p>
-                  ) : (
-                    filteredAvailableWines.map((w) => {
-                      const addable = canAddWineToPallet(w);
-                      const rowClass = cn(
-                        "flex w-full items-start gap-2 px-3 py-2.5 text-left text-sm",
-                        addable
-                          ? "text-gray-900 hover:bg-gray-100 dark:text-zinc-100 dark:hover:bg-zinc-800"
-                          : "cursor-not-allowed bg-gray-50/80 text-gray-500 dark:bg-zinc-900/40 dark:text-zinc-500",
-                      );
-                      const content = (
-                        <>
-                          <WineThumb wine={w} size={36} className="mt-0.5" />
-                          <span
-                            className={cn(
-                              "mt-2.5 inline-block h-2.5 w-2.5 shrink-0 rounded-full",
-                              wineColorDotClass(w.color),
-                            )}
-                            aria-hidden
-                          />
-                          <span className="min-w-0 flex-1 truncate">
-                            <span className={cn("font-medium", !addable && "opacity-80")}>
-                              {w.wine_name} {w.vintage}
-                            </span>
-                            {w.producers?.name && (
-                              <span className="text-gray-500 dark:text-zinc-400">
-                                {" "}
-                                · {w.producers.name}
-                              </span>
-                            )}
-                            {w.color?.trim() && (
-                              <span className="text-gray-400 dark:text-zinc-500">
-                                {" "}
-                                · {w.color}
-                              </span>
-                            )}
-                          </span>
-                          {!addable ? <WineOosBadge className="mt-1.5" /> : null}
-                        </>
-                      );
-                      return addable ? (
-                        <button
-                          key={w.id}
-                          type="button"
-                          onClick={() => {
-                            addWine(w);
-                            setWineSearchQuery("");
-                          }}
-                          className={rowClass}
-                        >
-                          {content}
-                        </button>
-                      ) : (
-                        <div
-                          key={w.id}
-                          className={rowClass}
-                          aria-disabled
-                          title="Otillgängligt – kan inte läggas till på pallen"
-                        >
-                          {content}
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              </PopoverContent>
-            </Popover>
-
-              {items.length > 0 && (
-                <Tabs
-                  value={showProducerSummary ? "producers" : "wines"}
-                  onValueChange={(v) =>
-                    setShowProducerSummary(v === "producers")
-                  }
-                  className="shrink-0"
-                >
-                  <TabsList className="h-auto rounded-lg border border-zinc-800 bg-zinc-900/70 p-1">
-                    <TabsTrigger
-                      value="wines"
-                      className="rounded-md px-3 py-1.5 text-xs font-medium text-zinc-500 data-[state=active]:bg-[#0F0F12] data-[state=active]:text-zinc-100"
-                    >
-                      Viner
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="producers"
-                      className="rounded-md px-3 py-1.5 text-xs font-medium text-zinc-500 data-[state=active]:bg-[#0F0F12] data-[state=active]:text-zinc-100"
-                    >
-                      Producenter
-                    </TabsTrigger>
-                  </TabsList>
-                </Tabs>
-              )}
-              {items.length > 0 && (
-                <p className={cn("shrink-0", hintClass)}>
-                  Klicka på kolumnrubriker för att sortera.
-                </p>
-              )}
-            </div>
-
-            {items.length > 0 &&
-            (palletColorOptions.length > 0 ||
-              palletProducerOptions.length > 0) ? (
+            <div className="flex flex-col gap-3">
               <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
-                <div className="grid w-full grid-cols-1 gap-2 sm:max-w-md sm:grid-cols-2">
-                  {palletProducerOptions.length > 0 ? (
-                    <div className="space-y-1">
-                      <Label className="text-xs text-gray-500 dark:text-zinc-400">
-                        Filtrera producent
-                      </Label>
-                      <Select
-                        value={palletProducerFilter || "__all__"}
-                        onValueChange={(v) =>
-                          setPalletProducerFilter(v === "__all__" ? "" : v)
-                        }
+                <div className="min-w-0 flex-1 space-y-1 sm:min-w-[14rem]">
+                  <Label className="text-xs text-gray-500 dark:text-zinc-400">
+                    Sök vin
+                  </Label>
+                  <Popover
+                    open={wineComboboxOpen}
+                    onOpenChange={(open) => {
+                      setWineComboboxOpen(open);
+                      if (!open) {
+                        setWineSearchQuery("");
+                        setWineProducerFilter("");
+                        setWineColorFilter("");
+                      }
+                    }}
+                  >
+                    <PopoverTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={wineComboboxOpen}
+                        className="h-9 w-full justify-between border-gray-200 bg-white font-normal text-gray-900 hover:bg-gray-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700/80"
                       >
-                        <SelectTrigger className={selectTriggerClass}>
-                          <SelectValue placeholder="Alla producenter" />
-                        </SelectTrigger>
-                        <SelectContent className="border-gray-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
-                          <SelectItem value="__all__">
-                            Alla producenter
-                          </SelectItem>
-                          {palletProducerOptions.map((name) => (
-                            <SelectItem key={name} value={name}>
-                              {name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  ) : null}
-                  {palletColorOptions.length > 0 ? (
-                    <div className="space-y-1">
-                      <Label className="text-xs text-gray-500 dark:text-zinc-400">
-                        Filtrera färg
-                      </Label>
-                      <Select
-                        value={palletColorFilter || "__all__"}
-                        onValueChange={(v) =>
-                          setPalletColorFilter(v === "__all__" ? "" : v)
-                        }
+                        <span className="truncate text-gray-500 dark:text-zinc-400">
+                          Sök vin att lägga till...
+                        </span>
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent
+                      className="w-[var(--radix-popover-trigger-width)] border-gray-200 bg-white p-0 dark:border-zinc-700 dark:bg-zinc-900"
+                      align="start"
+                      onWheelCapture={(e) => e.stopPropagation()}
+                    >
+                      <div className="space-y-2 border-b border-gray-200 p-2 dark:border-zinc-700">
+                        <Input
+                          placeholder="Sök namn, årgång eller producent..."
+                          value={wineSearchQuery}
+                          onChange={(e) => setWineSearchQuery(e.target.value)}
+                          className={cn(inputClass, "h-10")}
+                          autoFocus
+                        />
+                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                          <div className="space-y-1">
+                            <Label className="text-xs text-gray-500 dark:text-zinc-400">
+                              Producent
+                            </Label>
+                            <Select
+                              value={wineProducerFilter || "__all__"}
+                              onValueChange={(v) =>
+                                setWineProducerFilter(
+                                  v === "__all__" ? "" : v,
+                                )
+                              }
+                            >
+                              <SelectTrigger className={selectTriggerClass}>
+                                <SelectValue placeholder="Alla producenter" />
+                              </SelectTrigger>
+                              <SelectContent className="border-gray-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
+                                <SelectItem value="__all__">
+                                  Alla producenter
+                                </SelectItem>
+                                {producerOptions.map((name) => (
+                                  <SelectItem key={name} value={name}>
+                                    {name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs text-gray-500 dark:text-zinc-400">
+                              Färg
+                            </Label>
+                            <Select
+                              value={wineColorFilter || "__all__"}
+                              onValueChange={(v) =>
+                                setWineColorFilter(v === "__all__" ? "" : v)
+                              }
+                            >
+                              <SelectTrigger className={selectTriggerClass}>
+                                <SelectValue placeholder="Alla färger" />
+                              </SelectTrigger>
+                              <SelectContent className="border-gray-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
+                                <SelectItem value="__all__">
+                                  Alla färger
+                                </SelectItem>
+                                {colorOptions.map((color) => (
+                                  <SelectItem key={color} value={color}>
+                                    <span className="inline-flex items-center gap-2">
+                                      <span
+                                        className={cn(
+                                          "inline-block h-2.5 w-2.5 shrink-0 rounded-full",
+                                          wineColorDotClass(color),
+                                        )}
+                                        aria-hidden
+                                      />
+                                      {color}
+                                    </span>
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                        {hasWineFilters &&
+                          filteredAvailableWines.length > 0 && (
+                            <p className={hintClass}>
+                              {filteredAvailableWines.length} av{" "}
+                              {availableWines.length} viner
+                            </p>
+                          )}
+                      </div>
+                      <div
+                        className="max-h-[min(70vh,20rem)] overflow-y-auto overscroll-contain"
+                        onWheel={(e) => e.stopPropagation()}
                       >
-                        <SelectTrigger className={selectTriggerClass}>
-                          <SelectValue placeholder="Alla färger" />
-                        </SelectTrigger>
-                        <SelectContent className="border-gray-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
-                          <SelectItem value="__all__">Alla färger</SelectItem>
-                          {palletColorOptions.map((color) => (
-                            <SelectItem key={color} value={color}>
-                              <span className="inline-flex items-center gap-2">
+                        {availableWines.length === 0 ? (
+                          <p className="py-6 text-center text-sm text-gray-500 dark:text-zinc-400">
+                            Alla viner är tillagda
+                          </p>
+                        ) : filteredAvailableWines.length === 0 ? (
+                          <p className="py-6 text-center text-sm text-gray-500 dark:text-zinc-400">
+                            {hasWineFilters
+                              ? "Inga viner matchar filtren."
+                              : "Inga viner hittades."}
+                          </p>
+                        ) : (
+                          filteredAvailableWines.map((w) => {
+                            const addable = canAddWineToPallet(w);
+                            const rowClass = cn(
+                              "flex w-full items-start gap-2 px-3 py-2.5 text-left text-sm",
+                              addable
+                                ? "text-gray-900 hover:bg-gray-100 dark:text-zinc-100 dark:hover:bg-zinc-800"
+                                : "cursor-not-allowed bg-gray-50/80 text-gray-500 dark:bg-zinc-900/40 dark:text-zinc-500",
+                            );
+                            const content = (
+                              <>
+                                <WineThumb
+                                  wine={w}
+                                  size={36}
+                                  className="mt-0.5"
+                                />
                                 <span
                                   className={cn(
-                                    "inline-block h-2.5 w-2.5 shrink-0 rounded-full",
-                                    wineColorDotClass(color),
+                                    "mt-2.5 inline-block h-2.5 w-2.5 shrink-0 rounded-full",
+                                    wineColorDotClass(w.color),
                                   )}
                                   aria-hidden
                                 />
-                                {color}
-                              </span>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  ) : null}
+                                <span className="min-w-0 flex-1 truncate">
+                                  <span
+                                    className={cn(
+                                      "font-medium",
+                                      !addable && "opacity-80",
+                                    )}
+                                  >
+                                    {w.wine_name} {w.vintage}
+                                  </span>
+                                  {w.producers?.name && (
+                                    <span className="text-gray-500 dark:text-zinc-400">
+                                      {" "}
+                                      · {w.producers.name}
+                                    </span>
+                                  )}
+                                  {w.color?.trim() && (
+                                    <span className="text-gray-400 dark:text-zinc-500">
+                                      {" "}
+                                      · {w.color}
+                                    </span>
+                                  )}
+                                </span>
+                                {!addable ? (
+                                  <WineOosBadge className="mt-1.5" />
+                                ) : null}
+                              </>
+                            );
+                            return addable ? (
+                              <button
+                                key={w.id}
+                                type="button"
+                                onClick={() => {
+                                  addWine(w);
+                                  setWineSearchQuery("");
+                                }}
+                                className={rowClass}
+                              >
+                                {content}
+                              </button>
+                            ) : (
+                              <div
+                                key={w.id}
+                                className={rowClass}
+                                aria-disabled
+                                title="Otillgängligt – kan inte läggas till på pallen"
+                              >
+                                {content}
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
                 </div>
-                {hasPalletFilters ? (
+
+                {items.length > 0 && palletProducerOptions.length > 0 ? (
+                  <div className="w-full space-y-1 sm:w-48">
+                    <Label className="text-xs text-gray-500 dark:text-zinc-400">
+                      Filtrera producent
+                    </Label>
+                    <Select
+                      value={palletProducerFilter || "__all__"}
+                      onValueChange={(v) =>
+                        setPalletProducerFilter(v === "__all__" ? "" : v)
+                      }
+                    >
+                      <SelectTrigger className={selectTriggerClass}>
+                        <SelectValue placeholder="Alla producenter" />
+                      </SelectTrigger>
+                      <SelectContent className="border-gray-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
+                        <SelectItem value="__all__">
+                          Alla producenter
+                        </SelectItem>
+                        {palletProducerOptions.map((name) => (
+                          <SelectItem key={name} value={name}>
+                            {name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ) : null}
+
+                {items.length > 0 && palletColorOptions.length > 0 ? (
+                  <div className="w-full space-y-1 sm:w-40">
+                    <Label className="text-xs text-gray-500 dark:text-zinc-400">
+                      Filtrera färg
+                    </Label>
+                    <Select
+                      value={palletColorFilter || "__all__"}
+                      onValueChange={(v) =>
+                        setPalletColorFilter(v === "__all__" ? "" : v)
+                      }
+                    >
+                      <SelectTrigger className={selectTriggerClass}>
+                        <SelectValue placeholder="Alla färger" />
+                      </SelectTrigger>
+                      <SelectContent className="border-gray-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
+                        <SelectItem value="__all__">Alla färger</SelectItem>
+                        {palletColorOptions.map((color) => (
+                          <SelectItem key={color} value={color}>
+                            <span className="inline-flex items-center gap-2">
+                              <span
+                                className={cn(
+                                  "inline-block h-2.5 w-2.5 shrink-0 rounded-full",
+                                  wineColorDotClass(color),
+                                )}
+                                aria-hidden
+                              />
+                              {color}
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ) : null}
+
+                {items.length > 0 && hasPalletFilters ? (
                   <Button
                     type="button"
                     variant="ghost"
@@ -1538,77 +1545,45 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
                     Rensa filter
                   </Button>
                 ) : null}
-                {hasPalletFilters ? (
-                  <p className={cn("sm:ml-auto", hintClass)}>
+
+                {items.length > 0 && hasPalletFilters ? (
+                  <p className={cn("sm:ml-auto sm:pb-2", hintClass)}>
                     Visar {filteredPalletWineCount} av {sortedItems.length}{" "}
                     viner
                   </p>
                 ) : null}
               </div>
-            ) : null}
 
-            {items.length > 0 && !showProducerSummary && (
-              <div className="flex flex-col gap-4 rounded-xl border border-gray-200 bg-gray-50/60 p-4 dark:border-zinc-800 dark:bg-zinc-900/40 sm:flex-row sm:flex-wrap sm:items-end">
-                <div className="space-y-2 sm:w-40">
-                  <Label htmlFor="commercial_margin" className={labelClass}>
-                    B2B-marginal (%)
-                  </Label>
-                  <Input
-                    id="commercial_margin"
-                    type="number"
-                    min={0}
-                    max={99.9}
-                    step={0.5}
-                    placeholder={`${DEFAULT_B2B_MARGIN_PERCENT} (standard)`}
-                    value={commercialMarginPercent}
-                    onChange={(e) => setCommercialMarginPercent(e.target.value)}
-                    className={inputSmClass}
-                  />
+              {items.length > 0 ? (
+                <div className="flex flex-wrap items-center gap-3">
+                  <Tabs
+                    value={showProducerSummary ? "producers" : "wines"}
+                    onValueChange={(v) =>
+                      setShowProducerSummary(v === "producers")
+                    }
+                    className="w-fit"
+                  >
+                    <TabsList className="h-auto rounded-lg border border-zinc-800 bg-zinc-900/70 p-1">
+                      <TabsTrigger
+                        value="wines"
+                        className="rounded-md px-3 py-1.5 text-xs font-medium text-zinc-500 data-[state=active]:bg-[#0F0F12] data-[state=active]:text-zinc-100"
+                      >
+                        Viner
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="producers"
+                        className="rounded-md px-3 py-1.5 text-xs font-medium text-zinc-500 data-[state=active]:bg-[#0F0F12] data-[state=active]:text-zinc-100"
+                      >
+                        Producenter
+                      </TabsTrigger>
+                    </TabsList>
+                  </Tabs>
                   <p className={hintClass}>
-                    Tomt = varje vins B2B-marginal (annars {DEFAULT_B2B_MARGIN_PERCENT}{" "}
-                    %).
+                    Klicka på kolumnrubriker för att sortera.
                   </p>
                 </div>
-                <div className="flex items-center gap-3 pb-1">
-                  <span
-                    className={cn(
-                      "text-xs font-medium",
-                      !showInclVat
-                        ? "text-gray-900 dark:text-zinc-100"
-                        : "text-gray-500 dark:text-zinc-500",
-                    )}
-                  >
-                    Ex moms
-                  </span>
-                  <Switch
-                    checked={showInclVat}
-                    onCheckedChange={setShowInclVat}
-                    className={ADMIN_ACTIVE_SWITCH_CLASS}
-                    aria-label="Visa priser inklusive moms"
-                  />
-                  <span
-                    className={cn(
-                      "text-xs font-medium",
-                      showInclVat
-                        ? "text-gray-900 dark:text-zinc-100"
-                        : "text-gray-500 dark:text-zinc-500",
-                    )}
-                  >
-                    Inkl. moms
-                  </span>
-                </div>
-                <div className="sm:ml-auto sm:text-right">
-                  <p className="text-xs text-gray-500 dark:text-zinc-400">
-                    Frakt per flaska i pris
-                  </p>
-                  <p className="text-sm font-semibold tabular-nums text-gray-900 dark:text-zinc-100">
-                    {formatSekFromCents(
-                      Math.round(commercialSummary.shippingPerBottleSek * 100),
-                    )}
-                  </p>
-                </div>
-              </div>
-            )}
+              ) : null}
+            </div>
 
             {items.length > 0 && (
               <>
@@ -2212,6 +2187,73 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
                     </p>
                   ) : null}
                 </div>
+
+                {!showProducerSummary ? (
+                  <div className="flex flex-col gap-4 rounded-xl border border-gray-200 bg-gray-50/60 p-4 dark:border-zinc-800 dark:bg-zinc-900/40 sm:flex-row sm:flex-wrap sm:items-end">
+                    <div className="space-y-2 sm:w-40">
+                      <Label htmlFor="commercial_margin" className={labelClass}>
+                        B2B-marginal (%)
+                      </Label>
+                      <Input
+                        id="commercial_margin"
+                        type="number"
+                        min={0}
+                        max={99.9}
+                        step={0.5}
+                        placeholder={`${DEFAULT_B2B_MARGIN_PERCENT} (standard)`}
+                        value={commercialMarginPercent}
+                        onChange={(e) =>
+                          setCommercialMarginPercent(e.target.value)
+                        }
+                        className={inputSmClass}
+                      />
+                      <p className={hintClass}>
+                        Tomt = varje vins B2B-marginal (annars{" "}
+                        {DEFAULT_B2B_MARGIN_PERCENT} %).
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3 pb-1">
+                      <span
+                        className={cn(
+                          "text-xs font-medium",
+                          !showInclVat
+                            ? "text-gray-900 dark:text-zinc-100"
+                            : "text-gray-500 dark:text-zinc-500",
+                        )}
+                      >
+                        Ex moms
+                      </span>
+                      <Switch
+                        checked={showInclVat}
+                        onCheckedChange={setShowInclVat}
+                        className={ADMIN_ACTIVE_SWITCH_CLASS}
+                        aria-label="Visa priser inklusive moms"
+                      />
+                      <span
+                        className={cn(
+                          "text-xs font-medium",
+                          showInclVat
+                            ? "text-gray-900 dark:text-zinc-100"
+                            : "text-gray-500 dark:text-zinc-500",
+                        )}
+                      >
+                        Inkl. moms
+                      </span>
+                    </div>
+                    <div className="sm:ml-auto sm:text-right">
+                      <p className="text-xs text-gray-500 dark:text-zinc-400">
+                        Frakt per flaska i pris
+                      </p>
+                      <p className="text-sm font-semibold tabular-nums text-gray-900 dark:text-zinc-100">
+                        {formatSekFromCents(
+                          Math.round(
+                            commercialSummary.shippingPerBottleSek * 100,
+                          ),
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                ) : null}
 
                 <div className="rounded-xl border border-gray-200 bg-gray-50/80 p-4 dark:border-zinc-800 dark:bg-zinc-900/50">
                   <h3 className="text-sm font-semibold text-gray-900 dark:text-zinc-100 mb-3">

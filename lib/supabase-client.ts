@@ -1,25 +1,22 @@
-import { createBrowserClient } from "@supabase/ssr";
+/**
+ * Shared browser Supabase client.
+ * Prefer `@/lib/supabase/client` (`getSupabaseBrowserClient`) for new code —
+ * that path clears stale refresh tokens instead of throwing.
+ */
+export {
+  getSupabaseBrowserClient as getSupabaseClient,
+  getSupabaseBrowserClient,
+  prepareFreshBrowserAuth,
+  resetSupabaseBrowserClient,
+} from "@/lib/supabase/client";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
-if (!supabaseUrl || !supabaseKey) {
-  throw new Error(
-    "Missing Supabase env vars. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY. See docs/VERCEL_ENV_SETUP.md",
-  );
-}
-
-export const supabase = createBrowserClient(supabaseUrl, supabaseKey, {
-  isSingleton: false,
-  cookieOptions: {
-    path: "/",
-    sameSite: "lax",
-    // Never force Secure on http://localhost — the PKCE verifier would not stick.
-    secure: process.env.NODE_ENV === "production",
-  },
-  realtime: {
-    params: {
-      eventsPerSecond: 10,
-    },
+/** Lazy singleton with stale-refresh handling (same as getSupabaseBrowserClient). */
+export const supabase = new Proxy({} as ReturnType<typeof getSupabaseBrowserClient>, {
+  get(_target, prop, receiver) {
+    const client = getSupabaseBrowserClient();
+    const value = Reflect.get(client, prop, receiver);
+    return typeof value === "function" ? value.bind(client) : value;
   },
 });
