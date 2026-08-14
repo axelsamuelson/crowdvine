@@ -53,6 +53,13 @@ export function PalletDetails({ pallet }: PalletDetailsProps) {
       (minToShip > 0 ? (pallet.currentBottles / minToShip) * 100 : 0),
   );
   const isAvailable = pallet.remainingBottles > 0;
+  const availabilityLabel = pallet.shipProgress?.isReadyToShip
+    ? "Leveransen är redo"
+    : pallet.shipProgress
+      ? `${pallet.shipProgress.bottlesRemainingToShip} flaskor kvar tills leverans`
+      : isAvailable
+        ? `${pallet.remainingBottles} flaskor kvar`
+        : "Full";
   const lastMilePerBottle = resolveLastMileCostCentsPerBottle(
     pallet.lastMileCostCentsPerBottle,
   );
@@ -185,11 +192,7 @@ export function PalletDetails({ pallet }: PalletDetailsProps) {
                   <span className="text-sm text-gray-900">Tillgänglighet</span>
                 </div>
                 <Badge variant="outline" className="text-gray-900">
-                  {pallet.shipProgress?.isReadyToShip
-                    ? "Leveransen är redo"
-                    : isAvailable
-                      ? `${pallet.remainingBottles} flaskor kvar`
-                      : "Full"}
+                  {availabilityLabel}
                 </Badge>
               </div>
             </div>
