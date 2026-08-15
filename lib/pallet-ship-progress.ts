@@ -86,3 +86,27 @@ export const PALLET_ACCEPTING_STATUSES = [
   "consolidating",
   "complete",
 ] as const;
+
+/** Pre-shipping operational statuses that auto-mode may realign. */
+export const PALLET_PRE_SHIPPING_AUTO_STATUSES = [
+  "open",
+  "consolidating",
+  "complete",
+] as const;
+
+export type PreShippingAutoStatus = "open" | "consolidating" | "complete";
+
+/**
+ * Canonical pre-shipping auto operational status from counted pallet fill.
+ * Must NOT use zone/producer mapping — only bottlesFilled vs minBottlesToShip.
+ */
+export function derivePreShippingAutoStatus(input: {
+  bottlesFilled: number;
+  minBottlesToShip: number;
+}): PreShippingAutoStatus {
+  const filled = Math.max(0, Math.floor(Number(input.bottlesFilled) || 0));
+  const minToShip = resolveMinBottlesToShip(input.minBottlesToShip);
+  if (filled <= 0) return "open";
+  if (filled < minToShip) return "consolidating";
+  return "complete";
+}

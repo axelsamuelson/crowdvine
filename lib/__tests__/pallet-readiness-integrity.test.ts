@@ -4,15 +4,42 @@ import { computePalletShipProgress } from "../pallet-ship-progress";
 import { computePalletContributionProgress } from "../pallet-contribution";
 
 describe("decidePalletShipReadinessSync — integrity", () => {
-  it("119 bottles → not ready (noop when already false)", () => {
+  it("119 bottles → not ready (noop when already consolidating)", () => {
     const d = decidePalletShipReadinessSync({
       status: "consolidating",
       currentlyComplete: false,
       bottlesFilled: 119,
       minBottlesToShip: 120,
+      statusMode: "auto",
     });
     expect(d.action).toBe("noop");
     expect(d.isReady).toBe(false);
+  });
+
+  it("30 bottles + open + auto → align consolidating (not open)", () => {
+    const d = decidePalletShipReadinessSync({
+      status: "open",
+      currentlyComplete: false,
+      bottlesFilled: 30,
+      minBottlesToShip: 120,
+      statusMode: "auto",
+    });
+    expect(d.action).toBe("align_status");
+    if (d.action === "align_status") {
+      expect(d.nextStatus).toBe("consolidating");
+    }
+  });
+
+  it("fill unavailable must not revert", () => {
+    const d = decidePalletShipReadinessSync({
+      status: "complete",
+      currentlyComplete: true,
+      bottlesFilled: 0,
+      minBottlesToShip: 120,
+      fillUnavailable: true,
+      fillError: "db down",
+    });
+    expect(d.action).toBe("unavailable");
   });
 
   it("120 bottles → complete when not yet marked", () => {

@@ -1,5 +1,5 @@
 import { getSupabaseAdmin } from "./supabase-admin";
-import { sumReservedBottlesOnPallet } from "@/lib/pallet-fill-count";
+import { sumReservedBottlesOnPalletResult } from "@/lib/pallet-fill-count";
 import {
   DEFAULT_MIN_BOTTLES_TO_COMPLETE,
   DEFAULT_PHYSICAL_BOTTLE_CAPACITY,
@@ -132,7 +132,12 @@ async function buildPalletInfosForDeliveryPair(
       }
       const id = String(pRow.id ?? "");
       if (!id) return pallets;
-      const currentBottles = await sumReservedBottlesOnPallet(id);
+      const fillResult = await sumReservedBottlesOnPalletResult(id);
+      if (!fillResult.ok) {
+        console.error("[determineZones] fill unavailable:", fillResult.error);
+        return pallets;
+      }
+      const currentBottles = fillResult.bottles;
       const cap = resolvePhysicalBottleCapacity(pRow.bottle_capacity);
       const minToShip = resolveMinBottlesToShip(
         (pRow as { min_bottles_to_complete?: number }).min_bottles_to_complete,
@@ -226,7 +231,12 @@ async function buildPalletInfosForDeliveryPair(
     for (const pallet of matchingPallets) {
       const pid = String(pallet.id ?? "");
       if (!pid) continue;
-      const currentBottles = await sumReservedBottlesOnPallet(pid);
+      const fillResult = await sumReservedBottlesOnPalletResult(pid);
+      if (!fillResult.ok) {
+        console.error("[determineZones] fill unavailable:", fillResult.error);
+        continue;
+      }
+      const currentBottles = fillResult.bottles;
       const cap = resolvePhysicalBottleCapacity(pallet.bottle_capacity);
       const minToShip = resolveMinBottlesToShip(
         (pallet as { min_bottles_to_complete?: number }).min_bottles_to_complete,
@@ -368,7 +378,12 @@ async function palletInfosFromRows(
         : Array.isArray(dzJoin)
           ? String(dzJoin[0]?.name ?? "")
           : String((dzJoin as { name?: string | null }).name ?? "");
-    const currentBottles = await sumReservedBottlesOnPallet(pid);
+    const fillResult = await sumReservedBottlesOnPalletResult(pid);
+    if (!fillResult.ok) {
+      console.error("[mapPalletRows] fill unavailable:", fillResult.error);
+      continue;
+    }
+    const currentBottles = fillResult.bottles;
     const cap = resolvePhysicalBottleCapacity(pallet.bottle_capacity);
     const minToShip = resolveMinBottlesToShip(pallet.min_bottles_to_complete);
     const shipProgress = computePalletShipProgress(

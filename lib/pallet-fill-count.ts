@@ -40,13 +40,18 @@ export const PALLET_FILL_STATUSES = [
 /** @deprecated Use PALLET_FILL_STATUSES — kept for existing re-exports. */
 export const ORDER_RESERVATION_STATUSES_FOR_PALLET_FILL = PALLET_FILL_STATUSES;
 
+export type SumReservedBottlesResult =
+  | { ok: true; bottles: number }
+  | { ok: false; error: string };
+
 /**
- * Sum `order_reservation_items.quantity` for reservations on this pallet
- * with status in {@link PALLET_FILL_STATUSES}. No MOQ.
+ * Canonical fill aggregation with explicit success vs failure.
+ * Real empty pallet: `{ ok: true, bottles: 0 }`.
+ * Query/aggregation failure: `{ ok: false, error }` — never silent zero.
  */
-export async function sumReservedBottlesOnPallet(
+export async function sumReservedBottlesOnPalletResult(
   palletId: string,
-): Promise<number> {
+): Promise<SumReservedBottlesResult> {
   const sb = getSupabaseAdmin();
 
   const { data: reservations, error: reservationsError } = await sb
@@ -55,27 +60,58 @@ export async function sumReservedBottlesOnPallet(
     .eq("pallet_id", palletId)
     .in("status", [...PALLET_FILL_STATUSES]);
 
-  if (reservationsError || !reservations?.length) {
-    return 0;
+  if (reservationsError) {
+    const message = `Failed to load reservations for pallet ${palletId}: ${reservationsError.message}`;
+    console.error(`[pallet-fill-count] ${message}`);
+    return { ok: false, error: message };
+  }
+
+  if (!reservations?.length) {
+    return { ok: true, bottles: 0 };
   }
 
   const reservationIds = reservations
     .map((r) => r.id)
     .filter((id): id is string => typeof id === "string" && id.length > 0);
 
+  if (reservationIds.length === 0) {
+    return { ok: true, bottles: 0 };
+  }
+
   const { data: items, error: itemsError } = await sb
     .from("order_reservation_items")
     .select("quantity")
     .in("reservation_id", reservationIds);
 
-  if (itemsError || !items?.length) {
-    return 0;
+  if (itemsError) {
+    const message = `Failed to load reservation items for pallet ${palletId}: ${itemsError.message}`;
+    console.error(`[pallet-fill-count] ${message}`);
+    return { ok: false, error: message };
   }
 
-  return items.reduce(
+  if (!items?.length) {
+    return { ok: true, bottles: 0 };
+  }
+
+  const bottles = items.reduce(
     (sum, row) => sum + (Number(row.quantity) || 0),
     0,
   );
+  return { ok: true, bottles };
+}
+
+/**
+ * Sum bottles on this pallet. Throws on query failure (never silent 0).
+ * Real empty → `0`.
+ */
+export async function sumReservedBottlesOnPallet(
+  palletId: string,
+): Promise<number> {
+  const result = await sumReservedBottlesOnPalletResult(palletId);
+  if (!result.ok) {
+    throw new Error(result.error);
+  }
+  return result.bottles;
 }
 
 export async function getPalletFillData(

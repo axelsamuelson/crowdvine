@@ -1,9 +1,13 @@
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { triggerPaymentNotifications } from "@/lib/email/pallet-complete";
-import { sumReservedBottlesOnPallet } from "@/lib/pallet-fill-count";
 import {
+  sumReservedBottlesOnPalletResult,
+} from "@/lib/pallet-fill-count";
+import {
+  derivePreShippingAutoStatus,
   isPalletShippingLocked,
   resolveMinBottlesToShip,
+  type PreShippingAutoStatus,
 } from "@/lib/pallet-ship-progress";
 
 export {
@@ -11,7 +15,17 @@ export {
   ORDER_RESERVATION_STATUSES_FOR_PALLET_FILL,
   getPalletFillData,
   sumReservedBottlesOnPallet,
+  sumReservedBottlesOnPalletResult,
 } from "@/lib/pallet-fill-count";
+
+export { derivePreShippingAutoStatus } from "@/lib/pallet-ship-progress";
+
+const ALIGNABLE_PRE_SHIPPING = new Set([
+  "open",
+  "consolidating",
+  "complete",
+  "",
+]);
 
 /**
  * Pure decision for ship-readiness sync (testable without DB).
@@ -28,6 +42,20 @@ export type ShipReadinessSyncDecision =
       becameReady: false;
       reverted: true;
       nextStatus: string | null;
+    }
+  | {
+      action: "align_status";
+      isReady: false;
+      becameReady: false;
+      reverted: false;
+      nextStatus: PreShippingAutoStatus;
+    }
+  | {
+      action: "unavailable";
+      isReady: boolean;
+      becameReady: false;
+      reverted: false;
+      reason: string;
     };
 
 export function decidePalletShipReadinessSync(input: {
@@ -36,7 +64,20 @@ export function decidePalletShipReadinessSync(input: {
   bottlesFilled: number;
   minBottlesToShip: number;
   statusMode?: string | null;
+  /** When true, fill could not be established — never mutate. */
+  fillUnavailable?: boolean;
+  fillError?: string;
 }): ShipReadinessSyncDecision {
+  if (input.fillUnavailable) {
+    return {
+      action: "unavailable",
+      isReady: Boolean(input.currentlyComplete),
+      becameReady: false,
+      reverted: false,
+      reason: input.fillError || "Fill aggregation unavailable",
+    };
+  }
+
   const status = String(input.status ?? "").toLowerCase();
   if (isPalletShippingLocked(status)) {
     return {
@@ -51,6 +92,12 @@ export function decidePalletShipReadinessSync(input: {
   const filled = Math.max(0, Math.floor(Number(input.bottlesFilled) || 0));
   const shouldBeReady = filled >= minToShip;
   const currentlyComplete = Boolean(input.currentlyComplete);
+  const mode =
+    typeof input.statusMode === "string" ? input.statusMode : "auto";
+  const derived = derivePreShippingAutoStatus({
+    bottlesFilled: filled,
+    minBottlesToShip: minToShip,
+  });
 
   if (shouldBeReady && !currentlyComplete) {
     return {
@@ -71,10 +118,7 @@ export function decidePalletShipReadinessSync(input: {
   }
 
   if (!shouldBeReady && currentlyComplete) {
-    const mode =
-      typeof input.statusMode === "string" ? input.statusMode : "auto";
-    const nextStatus =
-      mode === "manual" ? null : filled > 0 ? "consolidating" : "open";
+    const nextStatus = mode === "manual" ? null : derived;
     return {
       action: "revert",
       isReady: false,
@@ -82,6 +126,23 @@ export function decidePalletShipReadinessSync(input: {
       reverted: true,
       nextStatus,
     };
+  }
+
+  // Below threshold, readiness already false: may still need auto status align.
+  if (mode === "auto" && ALIGNABLE_PRE_SHIPPING.has(status)) {
+    const nextStatus: PreShippingAutoStatus =
+      derived === "complete" ? "consolidating" : derived;
+    // derived is complete only when filled >= min; we're in !shouldBeReady so
+    // derived is open | consolidating. Guard keeps types honest if inputs drift.
+    if (status !== nextStatus) {
+      return {
+        action: "align_status",
+        isReady: false,
+        becameReady: false,
+        reverted: false,
+        nextStatus,
+      };
+    }
   }
 
   return {
@@ -99,9 +160,7 @@ export function decidePalletShipReadinessSync(input: {
  *   (min_bottles_to_complete), not physically full.
  * - Before shipping_ordered: may complete or revert when fill crosses the threshold.
  * - After shipping_ordered (and later lifecycle): never auto-revert.
- *
- * Decision: reuse existing `complete` / `is_complete` rather than adding
- * `ready_to_ship` — those flags already mean "ready for payment/shipping ops".
+ * - Fill aggregation failure: fail closed — no readiness/status mutation.
  */
 export async function syncPalletShipReadiness(
   palletId: string,
@@ -129,7 +188,17 @@ export async function syncPalletShipReadiness(
     }
 
     const minToShip = resolveMinBottlesToShip(pallet.min_bottles_to_complete);
-    const totalBottles = await sumReservedBottlesOnPallet(palletId);
+    const fillResult = await sumReservedBottlesOnPalletResult(palletId);
+
+    if (!fillResult.ok) {
+      console.error(
+        `❌ [Pallet Completion] Fill unavailable for ${palletId}; skipping mutation:`,
+        fillResult.error,
+      );
+      return noop;
+    }
+
+    const totalBottles = fillResult.bottles;
     const decision = decidePalletShipReadinessSync({
       status: pallet.status,
       currentlyComplete: Boolean(pallet.is_complete),
@@ -142,7 +211,11 @@ export async function syncPalletShipReadiness(
       `📊 [Pallet Completion] Pallet ${palletId}: ${totalBottles}/${minToShip} bottles to ship (physical cap ${pallet.bottle_capacity}) action=${decision.action}`,
     );
 
-    if (decision.action === "locked" || decision.action === "noop") {
+    if (
+      decision.action === "locked" ||
+      decision.action === "noop" ||
+      decision.action === "unavailable"
+    ) {
       return {
         becameReady: decision.becameReady,
         reverted: decision.reverted,
@@ -167,6 +240,29 @@ export async function syncPalletShipReadiness(
         );
       }
       return { becameReady: true, reverted: false, isReady: true };
+    }
+
+    if (decision.action === "align_status") {
+      const { error: alignError } = await supabase
+        .from("pallets")
+        .update({
+          status: decision.nextStatus,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", palletId);
+
+      if (alignError) {
+        console.error(
+          `❌ [Pallet Completion] Failed to align status for pallet ${palletId}:`,
+          alignError,
+        );
+        return noop;
+      }
+
+      console.log(
+        `🧭 [Pallet Completion] Pallet ${palletId} status aligned to ${decision.nextStatus} (${totalBottles}/${minToShip})`,
+      );
+      return { becameReady: false, reverted: false, isReady: false };
     }
 
     // revert
@@ -352,6 +448,7 @@ export async function getPalletStatus(palletId: string) {
 /**
  * Read-only diagnostic: pre-shipping pallets where persisted `is_complete`
  * disagrees with canonical bottle readiness. Does not mutate.
+ * Skips pallets where fill aggregation fails (unknown ≠ empty).
  */
 export async function findStalePreShippingPalletReadiness(): Promise<
   Array<{
@@ -386,7 +483,15 @@ export async function findStalePreShippingPalletReadiness(): Promise<
   for (const pallet of pallets) {
     if (isPalletShippingLocked(pallet.status)) continue;
     const minToShip = resolveMinBottlesToShip(pallet.min_bottles_to_complete);
-    const bottlesFilled = await sumReservedBottlesOnPallet(pallet.id);
+    const fillResult = await sumReservedBottlesOnPalletResult(pallet.id);
+    if (!fillResult.ok) {
+      console.error(
+        `[findStalePreShippingPalletReadiness] skip ${pallet.id}:`,
+        fillResult.error,
+      );
+      continue;
+    }
+    const bottlesFilled = fillResult.bottles;
     const canonicalIsReady = bottlesFilled >= minToShip;
     const persistedIsComplete = Boolean(pallet.is_complete);
     if (persistedIsComplete !== canonicalIsReady) {

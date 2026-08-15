@@ -83,12 +83,21 @@ export async function POST(
       `[revert-shipping] reverted pallet=${palletId} to open adminUserId=${user?.id ?? "null"}`,
     );
 
-    // Re-enter pre-shipping semantics: recompute is_complete from current fill.
+    // Re-enter pre-shipping semantics from canonical fill (may be consolidating, not open).
+    let reconciledStatus = "open";
     try {
       const { syncPalletShipReadiness } = await import(
         "@/lib/pallet-completion"
       );
       await syncPalletShipReadiness(palletId);
+      const { data: after } = await sb
+        .from("pallets")
+        .select("status")
+        .eq("id", palletId)
+        .maybeSingle();
+      if (typeof after?.status === "string" && after.status) {
+        reconciledStatus = after.status;
+      }
     } catch (e) {
       console.error("[revert-shipping] syncPalletShipReadiness:", e);
     }
@@ -96,7 +105,7 @@ export async function POST(
     return NextResponse.json({
       success: true,
       palletId,
-      status: "open",
+      status: reconciledStatus,
     });
   } catch (e) {
     console.error("[revert-shipping]", e);

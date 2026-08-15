@@ -71,7 +71,13 @@ export async function GET(request: NextRequest) {
                 .eq("id", pallet.delivery_zone_id)
                 .maybeSingle()
             : Promise.resolve({ data: null }),
-          sumReservedBottlesOnPallet(pallet.id),
+          sumReservedBottlesOnPallet(pallet.id).catch((err) => {
+            console.error(
+              `[pallet-data] fill unavailable for ${pallet.id}:`,
+              err,
+            );
+            return null;
+          }),
         ]);
 
         return {
@@ -80,6 +86,7 @@ export async function GET(request: NextRequest) {
           to_zone_name: deliveryZone.data?.name || "Unknown",
           capacity_bottles: pallet.bottle_capacity || 720,
           total_bottles_on_pallet: totalBottles,
+          fill_unavailable: totalBottles === null,
           status: pallet.status,
         };
       }),

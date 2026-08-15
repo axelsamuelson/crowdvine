@@ -62,9 +62,12 @@ Final verification: 2026-08-15 (read-only DB checks; no production mutations).
 ## Completion rules
 
 - Still stored / editable under Advanced / Legacy
-- Evaluated in `pallet-data` and auto `recomputeAutoPalletStatus`
+- Preview only in `pallet-data` (`completion_rules_would_match`)
+- **`recomputeAutoPalletStatus` uses canonical pallet fill only** (not zone mapping, not completion_rules)
 - **`syncPalletShipReadiness` does NOT use completion_rules**
 - UI copy states live readiness is `min_bottles_to_complete`
+
+See also: `docs/audits/PALLET_STATUS_INTEGRITY_FOLLOWUP.md`
 
 ## Status model
 

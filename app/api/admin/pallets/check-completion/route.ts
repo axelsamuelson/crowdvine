@@ -6,8 +6,9 @@ import {
   findStalePreShippingPalletReadiness,
   syncPalletShipReadiness,
 } from "@/lib/pallet-completion";
-import { sumReservedBottlesOnPallet } from "@/lib/pallet-fill-count";
+import { sumReservedBottlesOnPalletResult } from "@/lib/pallet-fill-count";
 import {
+  derivePreShippingAutoStatus,
   resolveMinBottlesToShip,
   isPalletShippingLocked,
 } from "@/lib/pallet-ship-progress";
@@ -39,10 +40,32 @@ async function checkAllPallets(shouldFix: boolean) {
           (pallet as { min_bottles_to_complete?: number })
             .min_bottles_to_complete,
         );
-        const totalBottles = await sumReservedBottlesOnPallet(pallet.id);
+        const fillResult = await sumReservedBottlesOnPalletResult(pallet.id);
+        if (!fillResult.ok) {
+          results.push({
+            palletId: pallet.id,
+            palletName: pallet.name,
+            error: fillResult.error,
+            fillUnavailable: true,
+          });
+          continue;
+        }
+        const totalBottles = fillResult.bottles;
         const locked = isPalletShippingLocked(pallet.status);
         const canonicalReady = totalBottles >= minToShip;
         const persistedComplete = Boolean(pallet.is_complete);
+        const expectedStatus = derivePreShippingAutoStatus({
+          bottlesFilled: totalBottles,
+          minBottlesToShip: minToShip,
+        });
+        const currentStatus = String(pallet.status || "").toLowerCase();
+        const statusMismatch =
+          !locked &&
+          (currentStatus === "open" ||
+            currentStatus === "consolidating" ||
+            currentStatus === "complete" ||
+            currentStatus === "") &&
+          currentStatus !== expectedStatus;
         const isStale =
           !locked && persistedComplete !== canonicalReady;
 
@@ -50,12 +73,15 @@ async function checkAllPallets(shouldFix: boolean) {
         let wasCompleted = false;
 
         if (shouldFix && !locked) {
-          if (isStale || (!persistedComplete && canonicalReady)) {
+          if (isStale || statusMismatch || (!persistedComplete && canonicalReady)) {
             if (persistedComplete && !canonicalReady) {
               await syncPalletShipReadiness(pallet.id);
               wasFixed = true;
             } else if (!persistedComplete && canonicalReady) {
               wasCompleted = await checkPalletCompletion(pallet.id);
+            } else if (statusMismatch) {
+              await syncPalletShipReadiness(pallet.id);
+              wasFixed = true;
             }
           }
         }
@@ -78,9 +104,15 @@ async function checkAllPallets(shouldFix: boolean) {
               ? shouldFix && wasFixed
                 ? `🔧 Fixed stale readiness (${totalBottles}/${minToShip})`
                 : `⚠️ Stale readiness persisted=${persistedComplete} canonical=${canonicalReady} (${totalBottles}/${minToShip})`
-              : canonicalReady
-                ? "✅ Ready to ship"
-                : `⏳ Not ready (${totalBottles}/${minToShip})`,
+              : statusMismatch
+                ? shouldFix && wasFixed
+                  ? `🔧 Fixed status ${currentStatus} → ${expectedStatus}`
+                  : `⚠️ Status mismatch ${currentStatus} vs expected ${expectedStatus}`
+                : canonicalReady
+                  ? "✅ Ready to ship"
+                  : `⏳ Not ready (${totalBottles}/${minToShip})`,
+          expectedStatus,
+          statusMismatch,
         });
       } catch (error) {
         console.error(`Error checking pallet ${pallet.id}:`, error);

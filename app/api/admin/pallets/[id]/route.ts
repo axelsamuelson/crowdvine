@@ -1,15 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin-auth-server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { sumReservedBottlesOnPalletResult } from "@/lib/pallet-fill-count";
+import {
+  derivePreShippingAutoStatus,
+  resolveMinBottlesToShip,
+} from "@/lib/pallet-ship-progress";
 
-async function recomputeAutoPalletStatus(sb: ReturnType<typeof getSupabaseAdmin>, palletId: string) {
-  // Load pallet zones — live readiness uses min_bottles_to_complete only
-  // (completion_rules must not drive operational status / is_complete).
+/**
+ * Canonical auto-status from pallet fill (not zone/producer mapping).
+ * Used when switching status_mode to auto.
+ */
+async function recomputeAutoPalletStatus(
+  sb: ReturnType<typeof getSupabaseAdmin>,
+  palletId: string,
+) {
   const { data: pallet, error: palletError } = await sb
     .from("pallets")
-    .select(
-      "id, pickup_zone_id, delivery_zone_id, bottle_capacity, min_bottles_to_complete",
-    )
+    .select("id, bottle_capacity, min_bottles_to_complete")
     .eq("id", palletId)
     .maybeSingle();
 
@@ -17,112 +25,28 @@ async function recomputeAutoPalletStatus(sb: ReturnType<typeof getSupabaseAdmin>
     throw new Error("Pallet not found");
   }
 
-  // Find candidate reservations by delivery zone (like other data-driven code)
-  const statusesAll = [
-    "pending_producer_approval",
-    "placed",
-    "approved",
-    "partly_approved",
-    "pending_payment",
-    "confirmed",
-  ];
-
-  const { data: reservations, error: resErr } = await sb
-    .from("order_reservations")
-    .select("id, status, payment_status, delivery_zone_id")
-    .eq("delivery_zone_id", (pallet as any).delivery_zone_id)
-    .in("status", statusesAll);
-
-  if (resErr) throw new Error(resErr.message);
-
-  const reservationIds = (reservations || []).map((r: any) => r.id);
-  if (reservationIds.length === 0) {
-    return { nextStatus: "open" as const, reservationCount: 0, isComplete: false, allPaid: false };
+  const fillResult = await sumReservedBottlesOnPalletResult(palletId);
+  if (!fillResult.ok) {
+    throw new Error(fillResult.error);
   }
 
-  const { data: items, error: itemsErr } = await sb
-    .from("order_reservation_items")
-    .select(
-      `
-      reservation_id,
-      quantity,
-      producer_approved_quantity,
-      wines(
-        producers(pickup_zone_id)
-      )
-    `,
-    )
-    .in("reservation_id", reservationIds);
-
-  if (itemsErr) throw new Error(itemsErr.message);
-
-  // Determine which reservations actually map to this pallet (derived pickup zone must match)
-  const pickupZonesByReservation = new Map<string, Set<string>>();
-  (items || []).forEach((it: any) => {
-    const rid = it.reservation_id as string;
-    const pz = it?.wines?.producers?.pickup_zone_id as string | undefined;
-    if (!rid || !pz) return;
-    const set = pickupZonesByReservation.get(rid) || new Set<string>();
-    set.add(pz);
-    pickupZonesByReservation.set(rid, set);
+  const bottlesFilled = fillResult.bottles;
+  const minToShip = resolveMinBottlesToShip(
+    (pallet as { min_bottles_to_complete?: number }).min_bottles_to_complete,
+  );
+  const nextStatus = derivePreShippingAutoStatus({
+    bottlesFilled,
+    minBottlesToShip: minToShip,
   });
+  const isComplete = bottlesFilled >= minToShip;
 
-  const mappedReservationIds = reservationIds.filter((rid) => {
-    const set = pickupZonesByReservation.get(rid);
-    return set && set.size === 1 && Array.from(set)[0] === (pallet as any).pickup_zone_id;
-  });
-
-  if (mappedReservationIds.length === 0) {
-    return { nextStatus: "open" as const, reservationCount: 0, isComplete: false, allPaid: false };
-  }
-
-  // Count bottles in "counted" statuses only (same model as pallet-data)
-  const countedStatuses = new Set([
-    "placed",
-    "approved",
-    "partly_approved",
-    "pending_payment",
-    "confirmed",
-  ]);
-
-  const statusByReservationId = new Map<string, string>();
-  const paymentByReservationId = new Map<string, string>();
-  (reservations || []).forEach((r: any) => {
-    statusByReservationId.set(r.id, String(r.status || ""));
-    paymentByReservationId.set(r.id, String(r.payment_status || ""));
-  });
-
-  let currentBottles = 0;
-  (items || []).forEach((it: any) => {
-    const rid = it.reservation_id as string;
-    if (!mappedReservationIds.includes(rid)) return;
-    if (!countedStatuses.has(statusByReservationId.get(rid) || "")) return;
-    const qty =
-      it.producer_approved_quantity === null || it.producer_approved_quantity === undefined
-        ? Number(it.quantity) || 0
-        : Number(it.producer_approved_quantity) || 0;
-    currentBottles += qty;
-  });
-
-  const minToShip =
-    Number((pallet as any).min_bottles_to_complete) > 0
-      ? Number((pallet as any).min_bottles_to_complete)
-      : 120;
-  // Canonical live readiness: bottle threshold only (not completion_rules / profit).
-  const isComplete = currentBottles >= minToShip;
-
-  const allPaid =
-    mappedReservationIds.length > 0 &&
-    mappedReservationIds.every((rid) => {
-      const ps = paymentByReservationId.get(rid) || "";
-      const st = statusByReservationId.get(rid) || "";
-      return ps === "paid" || st === "confirmed";
-    });
-
-  if (mappedReservationIds.length === 0) return { nextStatus: "open" as const, reservationCount: 0, isComplete, allPaid };
-  if (!isComplete) return { nextStatus: "consolidating" as const, reservationCount: mappedReservationIds.length, isComplete, allPaid };
-  if (isComplete && !allPaid) return { nextStatus: "complete" as const, reservationCount: mappedReservationIds.length, isComplete, allPaid };
-  return { nextStatus: "awaiting_pickup" as const, reservationCount: mappedReservationIds.length, isComplete, allPaid };
+  return {
+    nextStatus,
+    bottlesFilled,
+    reservationCount: bottlesFilled > 0 ? 1 : 0,
+    isComplete,
+    allPaid: false,
+  };
 }
 
 export async function GET(
@@ -196,6 +120,7 @@ export async function PUT(
 
   // Guard: pallet.status should be auto-driven by default.
   // Only allow changing status when status_mode is manual, or when switching status_mode to manual in the same request.
+  // When switching to auto, body.status is set by recompute above and must be written.
   if (body && (body.status !== undefined || body.status_mode !== undefined)) {
     const { data: existing, error: existingError } = await sb
       .from("pallets")
@@ -208,12 +133,16 @@ export async function PUT(
     }
 
     const existingMode =
-      typeof (existing as any).status_mode === "string" ? (existing as any).status_mode : "auto";
+      typeof (existing as { status_mode?: string }).status_mode === "string"
+        ? (existing as { status_mode: string }).status_mode
+        : "auto";
     const requestedMode =
       typeof body.status_mode === "string" ? body.status_mode : undefined;
 
     const allowStatusUpdate =
-      existingMode === "manual" || requestedMode === "manual";
+      existingMode === "manual" ||
+      requestedMode === "manual" ||
+      requestedMode === "auto";
 
     if (body.status !== undefined && !allowStatusUpdate) {
       return NextResponse.json(
@@ -234,7 +163,7 @@ export async function PUT(
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // Keep persisted is_complete aligned with bottle threshold after status/mode changes.
+  // Keep persisted is_complete + auto status aligned with bottle threshold.
   try {
     const { syncPalletShipReadiness } = await import("@/lib/pallet-completion");
     await syncPalletShipReadiness(resolvedParams.id);
