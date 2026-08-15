@@ -1,16 +1,21 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("@/lib/email", () => ({
+  sendEmail: vi.fn().mockResolvedValue({ id: "email-1" }),
+}));
+
+vi.mock("@/lib/menu-extraction/pipeline-pause", () => ({
+  isMenuPipelinePaused: vi.fn().mockResolvedValue(false),
+}));
+
+import { sendEmail } from "@/lib/email";
+import { isMenuPipelinePaused } from "@/lib/menu-extraction/pipeline-pause";
 import {
   buildMenuPipelineAlertPayload,
   deliverMenuPipelineAlerts,
   sendMenuPipelineAlert,
   withMenuPipelineAlertBatch,
 } from "../pipeline-alert-transport";
-
-vi.mock("@/lib/email", () => ({
-  sendEmail: vi.fn().mockResolvedValue({ id: "email-1" }),
-}));
-
-import { sendEmail } from "@/lib/email";
 
 const sampleAlert = buildMenuPipelineAlertPayload(
   "[detect-menu-updates] Sitemap lastmod degenerate: 90% share on date 2026-06-15",
@@ -23,6 +28,7 @@ describe("deliverMenuPipelineAlerts transport selection", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(isMenuPipelinePaused).mockResolvedValue(false);
     vi.stubEnv("MENU_PIPELINE_EMAILS", "true");
   });
 
@@ -113,6 +119,24 @@ describe("deliverMenuPipelineAlerts transport selection", () => {
       expect.stringContaining("Email skipped (MENU_PIPELINE_EMAILS!=true)"),
     );
   });
+
+  it("pipeline paused → skips all transports and warns", async () => {
+    vi.mocked(isMenuPipelinePaused).mockResolvedValue(true);
+    await deliverMenuPipelineAlerts([sampleAlert], {
+      transport: {
+        email: "ops@example.com",
+        webhook: "https://hooks.example/slack",
+      },
+      sendEmailFn: sendEmail,
+      fetchFn: fetchMock,
+    });
+
+    expect(sendEmail).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining("Skipped (pipeline paused)"),
+    );
+  });
 });
 
 describe("withMenuPipelineAlertBatch", () => {
@@ -120,6 +144,7 @@ describe("withMenuPipelineAlertBatch", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(isMenuPipelinePaused).mockResolvedValue(false);
     vi.stubEnv("MENU_PIPELINE_ALERT_EMAIL", "ops@example.com");
     vi.stubEnv("MENU_PIPELINE_ALERT_WEBHOOK_URL", "");
     vi.stubEnv("MENU_PIPELINE_EMAILS", "true");

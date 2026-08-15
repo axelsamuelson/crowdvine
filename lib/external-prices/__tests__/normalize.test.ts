@@ -64,9 +64,15 @@ describe("normalize", () => {
   });
 
   describe("normalizePdpTitle", () => {
-    it("strips content after | (store suffix), keeps Producer - Wine Name", () => {
-      expect(normalizePdpTitle("Wine Name 2022 | Shop Name")).toBe("wine name 2022");
-      expect(normalizePdpTitle("Le Bouc - Miss Piggy Blues 2019")).toBe("le bouc - miss piggy blues 2019");
+    it("strips store suffix after | and strips vintage years for matching", () => {
+      // Vintage is stripped so "Rocalhas 2020" matches "Rocalhas (2020)" (see stripVintageFromString).
+      expect(normalizePdpTitle("Wine Name 2022 | Shop Name")).toBe("wine name");
+      expect(normalizePdpTitle("Le Bouc - Miss Piggy Blues 2019")).toBe(
+        "le bouc - miss piggy blues",
+      );
+      expect(normalizePdpTitle("Rocalhas (2020) | MORE Natural Wine")).toBe(
+        "rocalhas",
+      );
     });
   });
 });
