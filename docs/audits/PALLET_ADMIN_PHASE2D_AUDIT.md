@@ -167,8 +167,8 @@ None remaining under `app/api/admin/pallets/**`.
 
 ### Unresolved / follow-ups
 
-1. Stale `pallets.is_complete=true` on 30-bottle pallet `3985cbfe-…`  
-2. Public zone-status 0 vs admin 30 — market-drop resolution investigation  
+1. Stale `pallets.is_complete=true` on 30-bottle pallet `3985cbfe-…` — **code hardened** (see readiness-integrity commit). Do **not** mutate production in-repo; after deploy use explicit `POST /api/admin/pallets/check-completion` or `syncPalletShipReadiness`.  
+2. Public zone-status 0 vs admin 30 — market-drop resolution (**separate follow-up; not investigated here**)  
 3. Configure `WINE_BOX_6` dimensions (ops, not code)  
 4. Select inbound Hillebrand quote for this pallet when ready  
 5. Optional: fix unrelated `normalizePdpTitle` test drift  

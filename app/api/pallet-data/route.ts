@@ -375,7 +375,8 @@ export async function POST(request: NextRequest) {
       const profitCents = profitCentsByPalletId.get(pallet.id) || 0;
       const profitSek = Math.round(profitCents / 100);
 
-      // Optional rules stored on pallet (best effort; if missing, use ship-ready min).
+      // Optional rules stored on pallet are legacy/preview only.
+      // Live readiness is always min_bottles_to_complete (not profit rules).
       const rules = (pallet as any).completion_rules || null;
       const evaluated = evaluateCompletionRules(rules, {
         bottles: currentBottles,
@@ -386,10 +387,7 @@ export async function POST(request: NextRequest) {
         Number.isFinite(minToShip) && minToShip > 0
           ? minToShip
           : DEFAULT_MIN_BOTTLES_TO_COMPLETE;
-      const isComplete =
-        evaluated === null
-          ? currentBottles >= shipReadyThreshold
-          : evaluated;
+      const isComplete = currentBottles >= shipReadyThreshold;
 
       return {
         id: pallet.id,
@@ -401,6 +399,8 @@ export async function POST(request: NextRequest) {
         profit_cents_ex_vat: profitCents,
         profit_sek_ex_vat: profitSek,
         is_complete: isComplete,
+        /** Legacy rule preview only — does not control live readiness. */
+        completion_rules_would_match: evaluated,
       };
     });
 

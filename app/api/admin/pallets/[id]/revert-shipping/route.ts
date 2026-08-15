@@ -83,6 +83,16 @@ export async function POST(
       `[revert-shipping] reverted pallet=${palletId} to open adminUserId=${user?.id ?? "null"}`,
     );
 
+    // Re-enter pre-shipping semantics: recompute is_complete from current fill.
+    try {
+      const { syncPalletShipReadiness } = await import(
+        "@/lib/pallet-completion"
+      );
+      await syncPalletShipReadiness(palletId);
+    } catch (e) {
+      console.error("[revert-shipping] syncPalletShipReadiness:", e);
+    }
+
     return NextResponse.json({
       success: true,
       palletId,

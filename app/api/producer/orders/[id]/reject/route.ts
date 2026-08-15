@@ -89,6 +89,14 @@ export async function POST(
 
     if (snapshot.pallet_id) {
       await updatePickupProducerForPallet(snapshot.pallet_id);
+      try {
+        const { syncPalletShipReadiness } = await import(
+          "@/lib/pallet-completion"
+        );
+        await syncPalletShipReadiness(snapshot.pallet_id);
+      } catch (e) {
+        console.error("[Producer reject] syncPalletShipReadiness:", e);
+      }
     }
 
     return NextResponse.json({ success: true, order: updated });

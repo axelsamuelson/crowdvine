@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin-auth-server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
-import { evaluateCompletionRules } from "@/lib/pallet-completion-rules";
 
 async function recomputeAutoPalletStatus(sb: ReturnType<typeof getSupabaseAdmin>, palletId: string) {
-  // Load pallet zones + rules
+  // Load pallet zones — live readiness uses min_bottles_to_complete only
+  // (completion_rules must not drive operational status / is_complete).
   const { data: pallet, error: palletError } = await sb
     .from("pallets")
     .select(
-      "id, pickup_zone_id, delivery_zone_id, bottle_capacity, min_bottles_to_complete, completion_rules",
+      "id, pickup_zone_id, delivery_zone_id, bottle_capacity, min_bottles_to_complete",
     )
     .eq("id", palletId)
     .maybeSingle();
@@ -104,16 +104,12 @@ async function recomputeAutoPalletStatus(sb: ReturnType<typeof getSupabaseAdmin>
     currentBottles += qty;
   });
 
-  const rules = (pallet as any).completion_rules || null;
-  const evaluated = evaluateCompletionRules(rules, { bottles: currentBottles, profit_sek: 0 });
   const minToShip =
     Number((pallet as any).min_bottles_to_complete) > 0
       ? Number((pallet as any).min_bottles_to_complete)
       : 120;
-  const isComplete =
-    evaluated === null
-      ? currentBottles >= minToShip
-      : evaluated;
+  // Canonical live readiness: bottle threshold only (not completion_rules / profit).
+  const isComplete = currentBottles >= minToShip;
 
   const allPaid =
     mappedReservationIds.length > 0 &&
@@ -191,6 +187,13 @@ export async function PUT(
     }
   }
 
+  // is_complete is owned exclusively by syncPalletShipReadiness / completePallet.
+  // Never accept client writes of this flag (prevents silent divergence).
+  if (body && typeof body === "object") {
+    delete body.is_complete;
+    delete body.completed_at;
+  }
+
   // Guard: pallet.status should be auto-driven by default.
   // Only allow changing status when status_mode is manual, or when switching status_mode to manual in the same request.
   if (body && (body.status !== undefined || body.status_mode !== undefined)) {
@@ -229,6 +232,14 @@ export async function PUT(
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  // Keep persisted is_complete aligned with bottle threshold after status/mode changes.
+  try {
+    const { syncPalletShipReadiness } = await import("@/lib/pallet-completion");
+    await syncPalletShipReadiness(resolvedParams.id);
+  } catch (e) {
+    console.error("[Admin pallet PUT] syncPalletShipReadiness:", e);
   }
 
   return NextResponse.json(data);

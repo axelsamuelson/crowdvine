@@ -166,6 +166,24 @@ export async function PATCH(
           console.error("Error deleting reservation items:", deleteError);
         }
       }
+
+      // Quantity edits change fill — resync readiness before shipping_ordered.
+      const palletForSync =
+        (updatedReservation?.pallet_id as string | null | undefined) ??
+        cleanupSnapshot.pallet_id;
+      if (palletForSync && !clearingPallet) {
+        try {
+          const { syncPalletShipReadiness } = await import(
+            "@/lib/pallet-completion"
+          );
+          await syncPalletShipReadiness(palletForSync);
+        } catch (e) {
+          console.error(
+            "[Admin] syncPalletShipReadiness after quantity edit:",
+            e,
+          );
+        }
+      }
     }
 
     // Return the updated reservation with items

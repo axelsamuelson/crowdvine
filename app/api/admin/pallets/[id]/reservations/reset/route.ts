@@ -44,6 +44,14 @@ export async function POST(
 
     const reservationIds = (reservations || []).map((r: any) => r.id);
     if (reservationIds.length === 0) {
+      try {
+        const { syncPalletShipReadiness } = await import(
+          "@/lib/pallet-completion"
+        );
+        await syncPalletShipReadiness(palletId);
+      } catch (e) {
+        console.error("[Admin pallet reset] syncPalletShipReadiness:", e);
+      }
       return NextResponse.json({ success: true, deleted: 0 });
     }
 
@@ -81,6 +89,14 @@ export async function POST(
     });
 
     if (toDelete.length === 0) {
+      try {
+        const { syncPalletShipReadiness } = await import(
+          "@/lib/pallet-completion"
+        );
+        await syncPalletShipReadiness(palletId);
+      } catch (e) {
+        console.error("[Admin pallet reset] syncPalletShipReadiness:", e);
+      }
       return NextResponse.json({ success: true, deleted: 0 });
     }
 
@@ -116,6 +132,15 @@ export async function POST(
     const delZ = pallet.delivery_zone_id as string | null | undefined;
     if (srId && delZ) {
       await cleanupEmptyPallets(srId, delZ);
+    }
+
+    try {
+      const { syncPalletShipReadiness } = await import(
+        "@/lib/pallet-completion"
+      );
+      await syncPalletShipReadiness(palletId);
+    } catch (e) {
+      console.error("[Admin pallet reset] syncPalletShipReadiness:", e);
     }
 
     return NextResponse.json({ success: true, deleted: toDelete.length });

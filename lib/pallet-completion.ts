@@ -14,6 +14,85 @@ export {
 } from "@/lib/pallet-fill-count";
 
 /**
+ * Pure decision for ship-readiness sync (testable without DB).
+ * Live rule: bottlesFilled >= minBottlesToShip. Economics / completion_rules
+ * must never influence this decision.
+ */
+export type ShipReadinessSyncDecision =
+  | { action: "noop"; isReady: boolean; becameReady: false; reverted: false }
+  | { action: "locked"; isReady: boolean; becameReady: false; reverted: false }
+  | { action: "complete"; isReady: true; becameReady: true; reverted: false }
+  | {
+      action: "revert";
+      isReady: false;
+      becameReady: false;
+      reverted: true;
+      nextStatus: string | null;
+    };
+
+export function decidePalletShipReadinessSync(input: {
+  status: string | null | undefined;
+  currentlyComplete: boolean;
+  bottlesFilled: number;
+  minBottlesToShip: number;
+  statusMode?: string | null;
+}): ShipReadinessSyncDecision {
+  const status = String(input.status ?? "").toLowerCase();
+  if (isPalletShippingLocked(status)) {
+    return {
+      action: "locked",
+      isReady: Boolean(input.currentlyComplete),
+      becameReady: false,
+      reverted: false,
+    };
+  }
+
+  const minToShip = resolveMinBottlesToShip(input.minBottlesToShip);
+  const filled = Math.max(0, Math.floor(Number(input.bottlesFilled) || 0));
+  const shouldBeReady = filled >= minToShip;
+  const currentlyComplete = Boolean(input.currentlyComplete);
+
+  if (shouldBeReady && !currentlyComplete) {
+    return {
+      action: "complete",
+      isReady: true,
+      becameReady: true,
+      reverted: false,
+    };
+  }
+
+  if (shouldBeReady && currentlyComplete) {
+    return {
+      action: "noop",
+      isReady: true,
+      becameReady: false,
+      reverted: false,
+    };
+  }
+
+  if (!shouldBeReady && currentlyComplete) {
+    const mode =
+      typeof input.statusMode === "string" ? input.statusMode : "auto";
+    const nextStatus =
+      mode === "manual" ? null : filled > 0 ? "consolidating" : "open";
+    return {
+      action: "revert",
+      isReady: false,
+      becameReady: false,
+      reverted: true,
+      nextStatus,
+    };
+  }
+
+  return {
+    action: "noop",
+    isReady: false,
+    becameReady: false,
+    reverted: false,
+  };
+}
+
+/**
  * Sync pallet ship-readiness from live fill count.
  *
  * - `complete` / `is_complete` means "enough bottles for ship eligibility"
@@ -49,28 +128,29 @@ export async function syncPalletShipReadiness(
       return noop;
     }
 
-    const status = String(pallet.status ?? "").toLowerCase();
-    if (isPalletShippingLocked(status)) {
-      console.log(
-        `⏸️ [Pallet Completion] Pallet ${palletId} is shipping-locked (${status}); skip sync`,
-      );
+    const minToShip = resolveMinBottlesToShip(pallet.min_bottles_to_complete);
+    const totalBottles = await sumReservedBottlesOnPallet(palletId);
+    const decision = decidePalletShipReadinessSync({
+      status: pallet.status,
+      currentlyComplete: Boolean(pallet.is_complete),
+      bottlesFilled: totalBottles,
+      minBottlesToShip: minToShip,
+      statusMode: pallet.status_mode,
+    });
+
+    console.log(
+      `📊 [Pallet Completion] Pallet ${palletId}: ${totalBottles}/${minToShip} bottles to ship (physical cap ${pallet.bottle_capacity}) action=${decision.action}`,
+    );
+
+    if (decision.action === "locked" || decision.action === "noop") {
       return {
-        becameReady: false,
-        reverted: false,
-        isReady: Boolean(pallet.is_complete),
+        becameReady: decision.becameReady,
+        reverted: decision.reverted,
+        isReady: decision.isReady,
       };
     }
 
-    const minToShip = resolveMinBottlesToShip(pallet.min_bottles_to_complete);
-    const totalBottles = await sumReservedBottlesOnPallet(palletId);
-    const shouldBeReady = totalBottles >= minToShip;
-    const currentlyComplete = Boolean(pallet.is_complete);
-
-    console.log(
-      `📊 [Pallet Completion] Pallet ${palletId}: ${totalBottles}/${minToShip} bottles to ship (physical cap ${pallet.bottle_capacity})`,
-    );
-
-    if (shouldBeReady && !currentlyComplete) {
+    if (decision.action === "complete") {
       await completePallet(palletId);
       if (process.env.PALLET_AUTO_NOTIFICATIONS === "true") {
         try {
@@ -89,57 +169,39 @@ export async function syncPalletShipReadiness(
       return { becameReady: true, reverted: false, isReady: true };
     }
 
-    if (shouldBeReady && currentlyComplete) {
+    // revert
+    const { error: revertError } = await supabase
+      .from("pallets")
+      .update({
+        is_complete: false,
+        completed_at: null,
+        payment_deadline: null,
+        ...(decision.nextStatus ? { status: decision.nextStatus } : {}),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", palletId);
+
+    if (revertError) {
+      console.error(
+        `❌ [Pallet Completion] Failed to revert pallet ${palletId}:`,
+        revertError,
+      );
       return { becameReady: false, reverted: false, isReady: true };
     }
 
-    // Below threshold: revert readiness if previously marked complete.
-    if (!shouldBeReady && currentlyComplete) {
-      const mode =
-        typeof pallet.status_mode === "string" ? pallet.status_mode : "auto";
-      const nextStatus =
-        mode === "manual"
-          ? status
-          : totalBottles > 0
-            ? "consolidating"
-            : "open";
+    await supabase
+      .from("order_reservations")
+      .update({
+        payment_deadline: null,
+      })
+      .eq("pallet_id", palletId)
+      .eq("status", "pending_payment")
+      .is("payment_intent_id", null);
 
-      const { error: revertError } = await supabase
-        .from("pallets")
-        .update({
-          is_complete: false,
-          completed_at: null,
-          payment_deadline: null,
-          ...(mode === "auto" ? { status: nextStatus } : {}),
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", palletId);
-
-      if (revertError) {
-        console.error(
-          `❌ [Pallet Completion] Failed to revert pallet ${palletId}:`,
-          revertError,
-        );
-        return { becameReady: false, reverted: false, isReady: true };
-      }
-
-      // Soft-revert reservation payment deadline state when still pre-shipping.
-      await supabase
-        .from("order_reservations")
-        .update({
-          payment_deadline: null,
-        })
-        .eq("pallet_id", palletId)
-        .eq("status", "pending_payment")
-        .is("payment_intent_id", null);
-
-      console.log(
-        `↩️ [Pallet Completion] Pallet ${palletId} reverted below ship threshold (${totalBottles}/${minToShip})`,
-      );
-      return { becameReady: false, reverted: true, isReady: false };
-    }
-
-    return { becameReady: false, reverted: false, isReady: false };
+    console.log(
+      `↩️ [Pallet Completion] Pallet ${palletId} reverted below ship threshold (${totalBottles}/${minToShip})`,
+    );
+    return { becameReady: false, reverted: true, isReady: false };
   } catch (error) {
     console.error(
       `❌ [Pallet Completion] Unexpected error syncing pallet ${palletId}:`,
@@ -285,4 +347,60 @@ export async function getPalletStatus(palletId: string) {
     );
     throw error;
   }
+}
+
+/**
+ * Read-only diagnostic: pre-shipping pallets where persisted `is_complete`
+ * disagrees with canonical bottle readiness. Does not mutate.
+ */
+export async function findStalePreShippingPalletReadiness(): Promise<
+  Array<{
+    palletId: string;
+    name: string;
+    status: string | null;
+    persistedIsComplete: boolean;
+    bottlesFilled: number;
+    minBottlesToShip: number;
+    canonicalIsReady: boolean;
+  }>
+> {
+  const sb = getSupabaseAdmin();
+  const { data: pallets, error } = await sb
+    .from("pallets")
+    .select(
+      "id, name, status, is_complete, min_bottles_to_complete, bottle_capacity",
+    );
+
+  if (error || !pallets?.length) return [];
+
+  const stale: Array<{
+    palletId: string;
+    name: string;
+    status: string | null;
+    persistedIsComplete: boolean;
+    bottlesFilled: number;
+    minBottlesToShip: number;
+    canonicalIsReady: boolean;
+  }> = [];
+
+  for (const pallet of pallets) {
+    if (isPalletShippingLocked(pallet.status)) continue;
+    const minToShip = resolveMinBottlesToShip(pallet.min_bottles_to_complete);
+    const bottlesFilled = await sumReservedBottlesOnPallet(pallet.id);
+    const canonicalIsReady = bottlesFilled >= minToShip;
+    const persistedIsComplete = Boolean(pallet.is_complete);
+    if (persistedIsComplete !== canonicalIsReady) {
+      stale.push({
+        palletId: pallet.id,
+        name: String(pallet.name ?? ""),
+        status: typeof pallet.status === "string" ? pallet.status : null,
+        persistedIsComplete,
+        bottlesFilled,
+        minBottlesToShip: minToShip,
+        canonicalIsReady,
+      });
+    }
+  }
+
+  return stale;
 }

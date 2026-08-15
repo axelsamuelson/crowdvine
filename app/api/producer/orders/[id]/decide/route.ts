@@ -190,6 +190,14 @@ export async function POST(
 
     if (originalPalletId) {
       await updatePickupProducerForPallet(originalPalletId);
+      try {
+        const { syncPalletShipReadiness } = await import(
+          "@/lib/pallet-completion"
+        );
+        await syncPalletShipReadiness(originalPalletId);
+      } catch (e) {
+        console.error("[Producer decide] syncPalletShipReadiness:", e);
+      }
     }
 
     return NextResponse.json({
