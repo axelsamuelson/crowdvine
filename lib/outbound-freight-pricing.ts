@@ -1,14 +1,17 @@
 /**
- * Outbound / Instabee (Budbee Light) freight pricing (Phase 2C).
+ * Outbound / Instabee (Budbee Light) freight pricing (Phase 2C+).
  *
  * Pure helpers — no DB. Money in integer öre (SEK cents).
  *
- * Budbee Light SE:
- *   volumetric kg = L×W×H (m) × 280, round UP to nearest 0.5 kg
+ * Budbee Light SE (catalogue):
+ *   volumetric kg = L×W×H (m) × volumetricFactor, round UP to nearest 0.5 kg
  *   79 SEK for first 0.5 kg + 1 SEK per additional 0.5 kg
  *
+ * Volumetric factor 280 is a CONFIGURABLE ASSUMPTION for Home Delivery
+ * (appeared under Locker section in source PDF) — not independently verified.
+ *
  * Do NOT apply max(actual, volumetric) unless pricing_basis says so.
- * Do NOT invent packaging dimensions.
+ * Do NOT invent packaging dimensions or treat missing data as 0 SEK.
  */
 
 export type OutboundPricingBasis =
@@ -17,6 +20,70 @@ export type OutboundPricingBasis =
   | "MAX_ACTUAL_OR_VOLUMETRIC"
   | "FIXED_PER_PARCEL";
 
+/** Machine-readable incomplete reasons (never collapse UNKNOWN → 0 SEK). */
+export const OutboundIncompleteReasonCode = {
+  MISSING_PACKAGING_DIMENSIONS: "MISSING_PACKAGING_DIMENSIONS",
+  MISSING_PRODUCT_WEIGHT: "MISSING_PRODUCT_WEIGHT",
+  MISSING_VOLUMETRIC_WEIGHT: "MISSING_VOLUMETRIC_WEIGHT",
+  RATE_EXPIRED: "RATE_EXPIRED",
+  NO_ACTIVE_RATE: "NO_ACTIVE_RATE",
+  DESTINATION_NOT_COVERED: "DESTINATION_NOT_COVERED",
+  NO_BOTTLES: "NO_BOTTLES",
+  PARCEL_COUNT_UNRESOLVED: "PARCEL_COUNT_UNRESOLVED",
+  UNKNOWN_PRICING_BASIS: "UNKNOWN_PRICING_BASIS",
+  BOTH_WEIGHTS_REQUIRED: "BOTH_WEIGHTS_REQUIRED",
+} as const;
+
+export type OutboundIncompleteReasonCode =
+  (typeof OutboundIncompleteReasonCode)[keyof typeof OutboundIncompleteReasonCode];
+
+export function classifyOutboundIncompleteReason(
+  reason: string,
+): OutboundIncompleteReasonCode | null {
+  const r = reason.toLowerCase();
+  if (r.includes("packaging dimensions missing")) {
+    return OutboundIncompleteReasonCode.MISSING_PACKAGING_DIMENSIONS;
+  }
+  if (r.includes("actual weight required")) {
+    return OutboundIncompleteReasonCode.MISSING_PRODUCT_WEIGHT;
+  }
+  if (r.includes("volumetric weight required")) {
+    return OutboundIncompleteReasonCode.MISSING_VOLUMETRIC_WEIGHT;
+  }
+  if (r.includes("rate expired") || r.includes("expired")) {
+    return OutboundIncompleteReasonCode.RATE_EXPIRED;
+  }
+  if (r.includes("no active instabee") || r.includes("missing or expired")) {
+    return OutboundIncompleteReasonCode.NO_ACTIVE_RATE;
+  }
+  if (r.includes("not covered by rate")) {
+    return OutboundIncompleteReasonCode.DESTINATION_NOT_COVERED;
+  }
+  if (r.includes("no bottles")) {
+    return OutboundIncompleteReasonCode.NO_BOTTLES;
+  }
+  if (r.includes("parcel count")) {
+    return OutboundIncompleteReasonCode.PARCEL_COUNT_UNRESOLVED;
+  }
+  if (r.includes("unknown pricing basis")) {
+    return OutboundIncompleteReasonCode.UNKNOWN_PRICING_BASIS;
+  }
+  if (r.includes("both actual and volumetric")) {
+    return OutboundIncompleteReasonCode.BOTH_WEIGHTS_REQUIRED;
+  }
+  return null;
+}
+
+export function incompleteReasonCodesFromMessages(
+  reasons: string[],
+): OutboundIncompleteReasonCode[] {
+  const codes: OutboundIncompleteReasonCode[] = [];
+  for (const reason of reasons) {
+    const code = classifyOutboundIncompleteReason(reason);
+    if (code && !codes.includes(code)) codes.push(code);
+  }
+  return codes;
+}
 export type OutboundSurchargeInput = {
   code: string;
   name: string;
@@ -63,6 +130,8 @@ export type OutboundFreightQuoteBreakdown = {
   totalAmountCents: number | null;
   canCalculate: boolean;
   incompleteReasons: string[];
+  /** Structured codes derived from incompleteReasons (stable for admin/API). */
+  incompleteReasonCodes: OutboundIncompleteReasonCode[];
 };
 
 /** Round UP to nearest 0.5 kg. */
@@ -301,6 +370,7 @@ export function calculateOutboundFreightQuoteBreakdown(input: {
       totalAmountCents: null,
       canCalculate: false,
       incompleteReasons,
+      incompleteReasonCodes: incompleteReasonCodesFromMessages(incompleteReasons),
     };
   }
 
@@ -384,10 +454,15 @@ export function calculateOutboundFreightQuoteBreakdown(input: {
     totalAmountCents,
     canCalculate: true,
     incompleteReasons: [],
+    incompleteReasonCodes: [],
   };
 }
 
-/** Budbee Light Sweden rate card from Instabee offer (öre). */
+/**
+ * Budbee Light Sweden rate card from Instabee offer (öre).
+ * volumetricFactor 280 = CONFIGURABLE ASSUMPTION for Home (Locker-section evidence).
+ * Tax/VAT basis = UNKNOWN.
+ */
 export function budbeeLightSwedenRateCard(): OutboundRateCard {
   return {
     currency: "SEK",
@@ -401,3 +476,21 @@ export function budbeeLightSwedenRateCard(): OutboundRateCard {
     destinationCountry: "SE",
   };
 }
+
+/** Provenance labels for Instabee Home catalogue fields (docs + admin). */
+export const INSTABEE_HOME_FIELD_PROVENANCE = {
+  basePriceCents: "VERIFIED",
+  includedWeightKg: "VERIFIED",
+  weightIncrementKg: "VERIFIED",
+  incrementPriceCents: "VERIFIED",
+  volumetricFactor: "ASSUMPTION",
+  volumetricFactorNote:
+    "Factor 280 appeared under Locker deliveries in source PDF; not independently verified for Home Delivery.",
+  maxPackageWeightKg: "UNKNOWN",
+  homeMaxDimensions: "UNKNOWN",
+  taxVatBasis: "UNKNOWN",
+  fuelIncluded: "VERIFIED",
+  remoteAreaSweden: "VERIFIED",
+  validTo: "VERIFIED",
+  multiBoxCeilBottlesPerMax: "ASSUMPTION",
+} as const;

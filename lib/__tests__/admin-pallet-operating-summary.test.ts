@@ -116,6 +116,9 @@ describe("AdminPalletOperatingSummary helpers (Phase 2D)", () => {
         packagingConfigured: false,
         incompleteQuoteCount: 0,
         usableQuoteCount: 0,
+        rateValidTo: "2026-08-18",
+        volumetricFactorProvenance: "ASSUMPTION",
+        primaryIncompleteReason: "MISSING_PACKAGING_DIMENSIONS",
       },
     });
 

@@ -155,7 +155,7 @@ describe("Budbee Light pricing", () => {
     );
   });
 
-  it("missing dimensions → cannot calculate", () => {
+  it("missing dimensions → cannot calculate with MISSING_PACKAGING_DIMENSIONS code", () => {
     const b = calculateOutboundFreightQuoteBreakdown({
       rate,
       destinationCountry: "SE",
@@ -166,6 +166,53 @@ describe("Budbee Light pricing", () => {
     expect(b.canCalculate).toBe(false);
     expect(b.totalAmountCents).toBeNull();
     expect(b.incompleteReasons.length).toBeGreaterThan(0);
+    expect(b.incompleteReasonCodes).toContain("MISSING_PACKAGING_DIMENSIONS");
+  });
+
+  it("offer still valid on valid_to date 2026-08-18 (inclusive)", () => {
+    const b = calculateOutboundFreightQuoteBreakdown({
+      rate,
+      destinationCountry: "SE",
+      bottleCount: 6,
+      maxBottlesPerParcel: 6,
+      lengthM: 0.1,
+      widthM: 0.1,
+      heightM: 0.1,
+      asOfDate: "2026-08-18",
+    });
+    expect(b.canCalculate).toBe(true);
+    expect(b.totalAmountCents).toBe(7900);
+  });
+
+  it("offer expiry after 2026-08-18 → RATE_EXPIRED", () => {
+    const b = calculateOutboundFreightQuoteBreakdown({
+      rate,
+      destinationCountry: "SE",
+      bottleCount: 6,
+      maxBottlesPerParcel: 6,
+      lengthM: 0.1,
+      widthM: 0.1,
+      heightM: 0.1,
+      asOfDate: "2026-08-19",
+    });
+    expect(b.canCalculate).toBe(false);
+    expect(b.incompleteReasons.some((r) => r.includes("expired"))).toBe(true);
+    expect(b.incompleteReasonCodes).toContain("RATE_EXPIRED");
+  });
+
+  it("rejects zero/negative dimensions as missing packaging", () => {
+    const b = calculateOutboundFreightQuoteBreakdown({
+      rate,
+      destinationCountry: "SE",
+      bottleCount: 6,
+      maxBottlesPerParcel: 6,
+      lengthM: 0,
+      widthM: 0.1,
+      heightM: 0.1,
+      asOfDate: "2026-08-01",
+    });
+    expect(b.canCalculate).toBe(false);
+    expect(b.incompleteReasonCodes).toContain("MISSING_PACKAGING_DIMENSIONS");
   });
 
   it("DK destination rejected for SE rate", () => {
@@ -180,21 +227,24 @@ describe("Budbee Light pricing", () => {
       asOfDate: "2026-08-01",
     });
     expect(b.canCalculate).toBe(false);
+    expect(b.incompleteReasonCodes).toContain("DESTINATION_NOT_COVERED");
   });
 
-  it("offer expiry after 2026-08-18", () => {
+  it("TEST-ONLY fixture: synthetic dims calculate without claiming production WINE_BOX_6", () => {
+    // Synthetic geometry for unit tests only — not a production packaging seed.
     const b = calculateOutboundFreightQuoteBreakdown({
       rate,
       destinationCountry: "SE",
       bottleCount: 6,
       maxBottlesPerParcel: 6,
-      lengthM: 0.1,
-      widthM: 0.1,
-      heightM: 0.1,
-      asOfDate: "2026-08-19",
+      lengthM: 0.35,
+      widthM: 0.25,
+      heightM: 0.18,
+      asOfDate: "2026-08-01",
     });
-    expect(b.canCalculate).toBe(false);
-    expect(b.incompleteReasons.some((r) => r.includes("expired"))).toBe(true);
+    expect(b.canCalculate).toBe(true);
+    expect(b.totalAmountCents).toBeGreaterThan(0);
+    expect(b.incompleteReasonCodes).toEqual([]);
   });
 
   it("historical frozen total unchanged when catalogue rate changes", () => {

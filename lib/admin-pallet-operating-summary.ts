@@ -14,7 +14,7 @@ import {
   computePalletContributionProgress,
   resolveFreightTargetCents,
 } from "@/lib/pallet-contribution";
-import { loadDefaultPackagingProfile } from "@/lib/outbound-freight-quotes";
+import { loadDefaultPackagingProfile, loadActiveBudbeeLightSwedenRate } from "@/lib/outbound-freight-quotes";
 
 export type FreightTargetSource =
   | "manual_override"
@@ -68,6 +68,11 @@ export type AdminPalletOperatingSummary = {
     packagingConfigured: boolean;
     incompleteQuoteCount: number;
     usableQuoteCount: number;
+    /** ISO date or null when no live rate. */
+    rateValidTo: string | null;
+    /** ASSUMPTION | VERIFIED | UNKNOWN for Home volumetric factor. */
+    volumetricFactorProvenance: "ASSUMPTION" | "VERIFIED" | "UNKNOWN";
+    primaryIncompleteReason: string | null;
   };
 
   warnings: string[];
@@ -315,6 +320,7 @@ export function serializeOperatingSummary(input: {
   outboundCounts: { incomplete: number; usable: number };
   packagingConfigured: boolean;
   packagingCode: string | null;
+  rateValidTo?: string | null;
   needsPalletZone?: boolean;
   pickupIsFallback?: boolean;
 }): AdminPalletOperatingSummary {
@@ -374,6 +380,11 @@ export function serializeOperatingSummary(input: {
     packagingConfigured: input.packagingConfigured,
     incompleteQuoteCount: input.outboundCounts.incomplete,
     usableQuoteCount: input.outboundCounts.usable,
+    rateValidTo: input.rateValidTo ?? null,
+    volumetricFactorProvenance: "ASSUMPTION" as const,
+    primaryIncompleteReason: input.packagingConfigured
+      ? null
+      : "MISSING_PACKAGING_DIMENSIONS",
   };
 
   const economics = {
@@ -439,6 +450,7 @@ export async function buildAdminPalletOperatingSummaries(
     .filter((id): id is string => typeof id === "string");
   const maps = await loadAggregateMaps(ids);
   const packaging = await loadDefaultPackagingProfile();
+  const catalogue = await loadActiveBudbeeLightSwedenRate();
   const packagingConfigured =
     packaging != null &&
     packaging.length_m != null &&
@@ -463,6 +475,7 @@ export async function buildAdminPalletOperatingSummaries(
       },
       packagingConfigured,
       packagingCode: packaging?.code ?? null,
+      rateValidTo: catalogue?.validTo ?? null,
       needsPalletZone: pallet.needs_pallet_zone === true,
       pickupIsFallback: pallet.pickup_is_fallback === true,
     });
@@ -492,6 +505,7 @@ export async function buildAdminPalletOperatingSummaryForId(
 
   const maps = await loadAggregateMaps([palletId]);
   const packaging = await loadDefaultPackagingProfile();
+  const catalogue = await loadActiveBudbeeLightSwedenRate();
   const packagingConfigured =
     packaging != null &&
     packaging.length_m != null &&
@@ -528,6 +542,7 @@ export async function buildAdminPalletOperatingSummaryForId(
     },
     packagingConfigured,
     packagingCode: packaging?.code ?? null,
+    rateValidTo: catalogue?.validTo ?? null,
     needsPalletZone,
     pickupIsFallback,
   });

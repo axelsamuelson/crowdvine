@@ -1067,14 +1067,34 @@ export default function AdminPalletDetails({
                   : ""}
               </dd>
             </div>
+            <div>
+              <dt className="text-xs text-gray-500 dark:text-zinc-500">
+                Rate valid to
+              </dt>
+              <dd className="mt-0.5 font-medium text-gray-900 dark:text-zinc-100">
+                {operatingSummary.outbound.rateValidTo ?? "No active rate"}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs text-gray-500 dark:text-zinc-500">
+                Volumetric factor provenance
+              </dt>
+              <dd className="mt-0.5 font-medium text-gray-900 dark:text-zinc-100">
+                {operatingSummary.outbound.volumetricFactorProvenance}
+                {" · not verified for Home"}
+              </dd>
+            </div>
           </dl>
         ) : (
           <p className="mt-3 text-sm text-gray-500">Loading outbound summary…</p>
         )}
         {operatingSummary && !operatingSummary.outbound.packagingConfigured ? (
           <p className="mt-3 rounded-lg border border-amber-500/25 bg-amber-50/70 px-3 py-2 text-xs text-amber-900 dark:bg-amber-500/10 dark:text-amber-200">
-            Outbound pricing incomplete — WINE_BOX_6 dimensions are not
-            configured. Do not treat missing carrier cost as 0 SEK.
+            Outbound pricing incomplete (
+            {operatingSummary.outbound.primaryIncompleteReason ??
+              "MISSING_PACKAGING_DIMENSIONS"}
+            ) — WINE_BOX_6 outer dimensions/tare are not configured from an
+            authoritative source. Do not treat missing carrier cost as 0 SEK.
           </p>
         ) : null}
       </section>

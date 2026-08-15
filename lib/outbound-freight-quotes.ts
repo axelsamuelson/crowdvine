@@ -6,6 +6,7 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import {
   budbeeLightSwedenRateCard,
   calculateOutboundFreightQuoteBreakdown,
+  incompleteReasonCodesFromMessages,
   isRemoteAreaBlockedForCountry,
   type OutboundFreightQuoteBreakdown,
   type OutboundRateCard,
@@ -212,6 +213,9 @@ export async function createOrGetOutboundFreightQuote(
   );
 
   if (!catalogue) {
+    const incompleteReasons = [
+      "No active Instabee Budbee Light Sweden rate (missing or expired)",
+    ];
     const breakdown: OutboundFreightQuoteBreakdown = {
       currency: "SEK",
       parcelCount: 0,
@@ -224,9 +228,8 @@ export async function createOrGetOutboundFreightQuote(
       components: [],
       totalAmountCents: null,
       canCalculate: false,
-      incompleteReasons: [
-        "No active Instabee Budbee Light Sweden rate (missing or expired)",
-      ],
+      incompleteReasons,
+      incompleteReasonCodes: incompleteReasonCodesFromMessages(incompleteReasons),
     };
     const row = await insertIncompleteQuote(input, breakdown, null, packaging);
     return {
@@ -267,7 +270,7 @@ export async function createOrGetOutboundFreightQuote(
     breakdown.totalAmountCents > 0;
 
   const quoteSnapshot = {
-    schema_version: 1,
+    schema_version: 2,
     provider_code: catalogue.providerCode,
     provider_id: catalogue.providerId,
     service_id: catalogue.serviceId,
@@ -275,8 +278,26 @@ export async function createOrGetOutboundFreightQuote(
     rate_id: catalogue.rateId,
     packaging_profile_id: packaging?.id ?? null,
     packaging_code: packaging?.code ?? null,
+    /** Frozen packaging geometry at quote time (nulls allowed — incomplete). */
+    packaging_snapshot: packaging
+      ? {
+          code: packaging.code,
+          length_m: packaging.length_m,
+          width_m: packaging.width_m,
+          height_m: packaging.height_m,
+          tare_weight_kg: packaging.tare_weight_kg,
+          max_bottles: packaging.max_bottles,
+          min_bottles: packaging.min_bottles,
+        }
+      : null,
     destination_country: input.destinationCountry,
     rate: catalogue.rate,
+    rate_provenance: {
+      volumetric_factor: "ASSUMPTION",
+      volumetric_factor_note:
+        "Factor 280 appeared under Locker deliveries in source PDF; not independently verified for Home Delivery.",
+      tax_vat_basis: "UNKNOWN",
+    },
     breakdown,
     customer_shipping_note:
       "Customer shipping revenue is separate from this carrier cost",
@@ -365,7 +386,21 @@ async function insertIncompleteQuote(
       bottle_count: input.bottleCount,
       currency: "SEK",
       component_snapshot: [],
-      quote_snapshot: { incompleteReasons: breakdown.incompleteReasons },
+      quote_snapshot: {
+        schema_version: 2,
+        incompleteReasons: breakdown.incompleteReasons,
+        incompleteReasonCodes: breakdown.incompleteReasonCodes,
+        packaging_snapshot: packaging
+          ? {
+              code: packaging.code,
+              length_m: packaging.length_m,
+              width_m: packaging.width_m,
+              height_m: packaging.height_m,
+              tare_weight_kg: packaging.tare_weight_kg,
+              max_bottles: packaging.max_bottles,
+            }
+          : null,
+      },
       can_calculate: false,
       economically_usable: false,
       incomplete_reasons: breakdown.incompleteReasons,
@@ -389,6 +424,7 @@ function mapExistingQuote(row: Record<string, unknown>): PersistedOutboundQuoteR
         ? estimated + adjustments
         : null;
   const usable = row.economically_usable === true && effective != null && effective > 0;
+  const reasons = (row.incomplete_reasons as string[]) || [];
   const breakdown = (row.quote_snapshot as { breakdown?: OutboundFreightQuoteBreakdown })
     ?.breakdown ?? {
     currency: String(row.currency || "SEK"),
@@ -411,8 +447,14 @@ function mapExistingQuote(row: Record<string, unknown>): PersistedOutboundQuoteR
     components: [],
     totalAmountCents: estimated,
     canCalculate: row.can_calculate === true,
-    incompleteReasons: (row.incomplete_reasons as string[]) || [],
+    incompleteReasons: reasons,
+    incompleteReasonCodes: incompleteReasonCodesFromMessages(reasons),
   };
+  if (!breakdown.incompleteReasonCodes) {
+    breakdown.incompleteReasonCodes = incompleteReasonCodesFromMessages(
+      breakdown.incompleteReasons || [],
+    );
+  }
 
   return {
     quoteId: String(row.id),
