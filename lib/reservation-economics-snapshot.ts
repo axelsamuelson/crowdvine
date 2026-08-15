@@ -4,6 +4,9 @@
  * Lifecycle: snapshot when reservation items are inserted — the same moment
  * bottles enter PALLET_FILL_STATUSES (pending_producer_approval / conditional_pending).
  * Earlier would allow price/COGS drift; later would lag the bottle fill meter.
+ *
+ * Outbound carrier cost (Phase 2C): prefer allocated outbound_freight_quotes total.
+ * Never invent zero outbound cost when the engine was expected but incomplete.
  */
 
 import {
@@ -36,8 +39,9 @@ export type ReservationItemEconomicsRow = {
   quantity: number;
   price_band: "market";
   economics_snapshot: UnitEconomicsSnapshot;
-  /** Null when snapshot incomplete (e.g. missing FX) — excluded from economic meter. */
+  /** Null when snapshot incomplete (e.g. missing FX / outbound) — excluded from economic meter. */
   pre_pallet_contribution_cents: number | null;
+  outbound_freight_quote_id?: string | null;
 };
 
 /**
@@ -93,6 +97,26 @@ export function stripePercentFeeCents(
   return Math.round(base * stripeFeePercent);
 }
 
+export type OutboundEconomicsInput =
+  | {
+      mode: "quote";
+      /** Total outbound carrier cost for this reservation's share, öre. */
+      allocatedOutboundCostCents: number;
+      quoteId: string;
+      providerCode?: string | null;
+      serviceName?: string | null;
+    }
+  | {
+      mode: "incomplete";
+      reason: string;
+      quoteId?: string | null;
+    }
+  | {
+      /** Legacy only — avoid for new SE Instabee checkouts. */
+      mode: "legacy_last_mile";
+      lastMileCostCentsPerBottle: number;
+    };
+
 export function buildReservationItemEconomicsRows(input: {
   reservationId: string;
   lines: CartLineEconomicsSource[];
@@ -101,7 +125,8 @@ export function buildReservationItemEconomicsRows(input: {
   orderLevelDiscountCents: number;
   /** Customer shipping charged allocated to this reservation, öre inkl moms. */
   shippingRevenueGrossCents: number;
-  lastMileCostCentsPerBottle: number;
+  /** Outbound carrier economics (separate from customer shipping revenue). */
+  outbound: OutboundEconomicsInput;
   /** Share of checkout Stripe fixed fee allocated to this reservation, öre. */
   paymentFeeFixedCents: number;
   /** Live/stored FX map for non-SEK wines (currency → SEK). */
@@ -132,6 +157,32 @@ export function buildReservationItemEconomicsRows(input: {
     quantities,
   );
 
+  let outboundLineAlloc: number[] = quantities.map(() => 0);
+  let outboundIncomplete = false;
+  let outboundIncompleteReason: string | null = null;
+  let outboundQuoteId: string | null = null;
+  let outboundSource: UnitEconomicsSnapshot["outbound_cost_source"] = null;
+  let outboundProvider: string | null = null;
+  let outboundService: string | null = null;
+
+  if (input.outbound.mode === "incomplete") {
+    outboundIncomplete = true;
+    outboundIncompleteReason = input.outbound.reason;
+    outboundQuoteId = input.outbound.quoteId ?? null;
+    outboundSource = "incomplete";
+  } else if (input.outbound.mode === "quote") {
+    outboundLineAlloc = allocatePoolByWeights(
+      Math.max(0, Math.round(input.outbound.allocatedOutboundCostCents)),
+      quantities,
+    );
+    outboundQuoteId = input.outbound.quoteId;
+    outboundSource = "outbound_quote";
+    outboundProvider = input.outbound.providerCode ?? null;
+    outboundService = input.outbound.serviceName ?? null;
+  } else {
+    outboundSource = "legacy_last_mile";
+  }
+
   return lines.map((line, i) => {
     const qty = quantities[i]!;
     const grossLine = lineGrossCents[i]!;
@@ -148,6 +199,11 @@ export function buildReservationItemEconomicsRows(input: {
     );
     const unitPaymentFee = unitPercentFee + unitFixedFee;
 
+    const unitOutbound =
+      input.outbound.mode === "legacy_last_mile"
+        ? Math.max(0, Math.round(input.outbound.lastMileCostCentsPerBottle))
+        : Math.round((outboundLineAlloc[i] ?? 0) / qty);
+
     const wine = input.wineById.get(line.merchandiseId) ?? {};
     const priceIncludesVat = wine.price_includes_vat !== false;
     const purchase = resolvePurchaseCostCentsForContribution(
@@ -156,6 +212,48 @@ export function buildReservationItemEconomicsRows(input: {
     );
     const unitExcise = getWineAlcoholTaxCentsPerBottle(wine);
 
+    const markIncomplete = (
+      snapshot: UnitEconomicsSnapshot,
+      reason: string,
+    ): ReservationItemEconomicsRow => {
+      snapshot.incomplete = true;
+      snapshot.incomplete_reason = reason;
+      snapshot.unit_pre_pallet_contribution_cents = 0;
+      snapshot.outbound_quote_id = outboundQuoteId;
+      snapshot.outbound_cost_source = outboundSource;
+      snapshot.outbound_provider_code = outboundProvider;
+      snapshot.outbound_service_name = outboundService;
+      snapshot.outbound_allocation_method =
+        outboundSource === "outbound_quote" ? "by_bottle_quantity" : null;
+      return {
+        reservation_id: input.reservationId,
+        item_id: line.merchandiseId,
+        quantity: qty,
+        price_band: "market" as const,
+        economics_snapshot: snapshot,
+        pre_pallet_contribution_cents: null,
+        outbound_freight_quote_id: outboundQuoteId,
+      };
+    };
+
+    if (outboundIncomplete) {
+      const snap = buildUnitEconomicsSnapshot({
+        unitGrossRevenueCents: unitGross,
+        unitDiscountCents: unitDiscount,
+        unitPurchaseCostCents: purchase.ok ? purchase.cents : 0,
+        unitExciseCents: unitExcise,
+        unitShippingRevenueGrossCents: unitShipGross,
+        unitLastMileCostCents: 0,
+        unitPaymentFeeCents: unitPaymentFee,
+        priceIncludesVat,
+        assumptions,
+      });
+      return markIncomplete(
+        snap,
+        outboundIncompleteReason || "Outbound freight incomplete",
+      );
+    }
+
     if (!purchase.ok) {
       const incompleteSnapshot = buildUnitEconomicsSnapshot({
         unitGrossRevenueCents: unitGross,
@@ -163,25 +261,14 @@ export function buildReservationItemEconomicsRows(input: {
         unitPurchaseCostCents: 0,
         unitExciseCents: unitExcise,
         unitShippingRevenueGrossCents: unitShipGross,
-        unitLastMileCostCents: input.lastMileCostCentsPerBottle,
+        unitLastMileCostCents: unitOutbound,
         unitPaymentFeeCents: unitPaymentFee,
         priceIncludesVat,
         assumptions,
       });
-      incompleteSnapshot.incomplete = true;
-      incompleteSnapshot.incomplete_reason = purchase.reason;
       incompleteSnapshot.purchase_cost_currency = purchase.currency;
       incompleteSnapshot.purchase_fx_rate = null;
-      incompleteSnapshot.unit_pre_pallet_contribution_cents = 0;
-
-      return {
-        reservation_id: input.reservationId,
-        item_id: line.merchandiseId,
-        quantity: qty,
-        price_band: "market" as const,
-        economics_snapshot: incompleteSnapshot,
-        pre_pallet_contribution_cents: null,
-      };
+      return markIncomplete(incompleteSnapshot, purchase.reason);
     }
 
     const snapshot = buildUnitEconomicsSnapshot({
@@ -190,13 +277,19 @@ export function buildReservationItemEconomicsRows(input: {
       unitPurchaseCostCents: purchase.cents,
       unitExciseCents: unitExcise,
       unitShippingRevenueGrossCents: unitShipGross,
-      unitLastMileCostCents: input.lastMileCostCentsPerBottle,
+      unitLastMileCostCents: unitOutbound,
       unitPaymentFeeCents: unitPaymentFee,
       priceIncludesVat,
       assumptions,
     });
     snapshot.purchase_fx_rate = purchase.fxRate;
     snapshot.purchase_cost_currency = purchase.currency;
+    snapshot.outbound_quote_id = outboundQuoteId;
+    snapshot.outbound_cost_source = outboundSource;
+    snapshot.outbound_provider_code = outboundProvider;
+    snapshot.outbound_service_name = outboundService;
+    snapshot.outbound_allocation_method =
+      outboundSource === "outbound_quote" ? "by_bottle_quantity" : null;
 
     return {
       reservation_id: input.reservationId,
@@ -208,6 +301,7 @@ export function buildReservationItemEconomicsRows(input: {
         snapshot,
         qty,
       ),
+      outbound_freight_quote_id: outboundQuoteId,
     };
   });
 }

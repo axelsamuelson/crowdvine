@@ -3,6 +3,9 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 type Catalogue = {
   providers: Array<{
@@ -179,6 +182,112 @@ export default function FreightAdminPage() {
           })}
         </div>
       )}
+
+      <OutboundDiagnostic />
     </div>
+  );
+}
+
+function OutboundDiagnostic() {
+  const [lengthM, setLengthM] = useState("");
+  const [widthM, setWidthM] = useState("");
+  const [heightM, setHeightM] = useState("");
+  const [bottles, setBottles] = useState("6");
+  const [result, setResult] = useState<Record<string, unknown> | null>(null);
+  const [meta, setMeta] = useState<Record<string, unknown> | null>(null);
+
+  useEffect(() => {
+    void (async () => {
+      const res = await fetch("/api/admin/freight/outbound");
+      if (res.ok) setMeta(await res.json());
+    })();
+  }, []);
+
+  const run = async () => {
+    const res = await fetch("/api/admin/freight/outbound", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        destination_country: "SE",
+        bottle_count: Number(bottles) || 0,
+        max_bottles: 6,
+        length_m: lengthM ? Number(lengthM) : null,
+        width_m: widthM ? Number(widthM) : null,
+        height_m: heightM ? Number(heightM) : null,
+        as_of_date: "2026-08-01",
+      }),
+    });
+    if (res.ok) setResult(await res.json());
+  };
+
+  const packaging = meta?.packaging as
+    | {
+        code?: string;
+        length_m?: number | null;
+        width_m?: number | null;
+        height_m?: number | null;
+        max_bottles?: number | null;
+      }
+    | null
+    | undefined;
+
+  return (
+    <section className="rounded-lg border border-zinc-800 bg-zinc-950/50 p-4 space-y-3">
+      <h2 className="text-base font-semibold text-zinc-100">
+        Outbound diagnostic (Budbee Light SE)
+      </h2>
+      <p className="text-xs text-zinc-500">
+        Customer shipping revenue is separate from Instabee carrier cost. Packaging
+        profile{" "}
+        <span className="text-zinc-300">{packaging?.code ?? "—"}</span>
+        {packaging?.length_m == null
+          ? " — dimensions not configured (pricing incomplete until set)."
+          : ` — ${packaging.length_m}×${packaging.width_m}×${packaging.height_m} m`}
+        . Rate valid to 2026-08-18. Phase 2D will redesign pallet admin around these
+        fields.
+      </p>
+      <div className="grid gap-2 sm:grid-cols-4">
+        <div>
+          <Label className="text-xs text-zinc-500">L (m)</Label>
+          <Input
+            value={lengthM}
+            onChange={(e) => setLengthM(e.target.value)}
+            className="bg-zinc-900 border-zinc-700"
+          />
+        </div>
+        <div>
+          <Label className="text-xs text-zinc-500">W (m)</Label>
+          <Input
+            value={widthM}
+            onChange={(e) => setWidthM(e.target.value)}
+            className="bg-zinc-900 border-zinc-700"
+          />
+        </div>
+        <div>
+          <Label className="text-xs text-zinc-500">H (m)</Label>
+          <Input
+            value={heightM}
+            onChange={(e) => setHeightM(e.target.value)}
+            className="bg-zinc-900 border-zinc-700"
+          />
+        </div>
+        <div>
+          <Label className="text-xs text-zinc-500">Bottles</Label>
+          <Input
+            value={bottles}
+            onChange={(e) => setBottles(e.target.value)}
+            className="bg-zinc-900 border-zinc-700"
+          />
+        </div>
+      </div>
+      <Button type="button" size="sm" onClick={() => void run()}>
+        Calculate
+      </Button>
+      {result?.breakdown ? (
+        <pre className="text-[11px] text-zinc-400 overflow-auto rounded bg-zinc-900 p-3">
+          {JSON.stringify(result.breakdown, null, 2)}
+        </pre>
+      ) : null}
+    </section>
   );
 }

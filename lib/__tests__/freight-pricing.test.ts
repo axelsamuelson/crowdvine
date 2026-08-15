@@ -374,7 +374,10 @@ describe("Stripe fee correction", () => {
       ]),
       orderLevelDiscountCents: 0,
       shippingRevenueGrossCents: 7900,
-      lastMileCostCentsPerBottle: 833,
+      outbound: {
+        mode: "legacy_last_mile",
+        lastMileCostCentsPerBottle: 833,
+      },
       paymentFeeFixedCents: 180,
       assumptions: getContributionAssumptions({}),
     });
@@ -425,7 +428,10 @@ describe("contribution FX safety", () => {
       ]),
       orderLevelDiscountCents: 0,
       shippingRevenueGrossCents: 0,
-      lastMileCostCentsPerBottle: 0,
+      outbound: {
+        mode: "legacy_last_mile",
+        lastMileCostCentsPerBottle: 0,
+      },
       paymentFeeFixedCents: 0,
       rateMap: {},
       assumptions: getContributionAssumptions({}),

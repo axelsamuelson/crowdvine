@@ -21,7 +21,7 @@ import {
 } from "@/lib/pallet-ship-progress";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
-export const ECONOMICS_SNAPSHOT_SCHEMA_VERSION = 1;
+export const ECONOMICS_SNAPSHOT_SCHEMA_VERSION = 2;
 
 export type UnitEconomicsSnapshot = {
   schema_version: number;
@@ -34,6 +34,11 @@ export type UnitEconomicsSnapshot = {
   unit_excise_cents: number;
   unit_epr_cents: number;
   unit_payment_fee_cents: number;
+  /**
+   * Allocated outbound carrier cost (öre/bottle).
+   * New checkouts: from outbound_freight_quotes allocation.
+   * Legacy: last_mile_cost_cents_per_bottle estimate.
+   */
   unit_last_mile_cost_cents: number;
   unit_shipping_revenue_gross_cents: number;
   unit_shipping_revenue_net_cents: number;
@@ -47,6 +52,15 @@ export type UnitEconomicsSnapshot = {
   /** When true, pre_pallet_contribution must not count toward economic readiness. */
   incomplete?: boolean;
   incomplete_reason?: string | null;
+  outbound_quote_id?: string | null;
+  outbound_cost_source?:
+    | "outbound_quote"
+    | "legacy_last_mile"
+    | "incomplete"
+    | null;
+  outbound_provider_code?: string | null;
+  outbound_service_name?: string | null;
+  outbound_allocation_method?: "by_bottle_quantity" | null;
 };
 
 export type PalletContributionProgress = {

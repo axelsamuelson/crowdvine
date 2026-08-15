@@ -162,7 +162,10 @@ describe("reservation economics snapshot builder", () => {
       ]),
       orderLevelDiscountCents: 0,
       shippingRevenueGrossCents: 7900,
-      lastMileCostCentsPerBottle: 833,
+      outbound: {
+        mode: "legacy_last_mile",
+        lastMileCostCentsPerBottle: 833,
+      },
       paymentFeeFixedCents: 180,
       assumptions: getContributionAssumptions({}),
     });

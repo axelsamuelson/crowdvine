@@ -47,9 +47,12 @@ import { calculateCartShippingCost, resolveLastMileCostCentsPerBottle } from "@/
 import { getContributionAssumptions } from "@/lib/contribution-assumptions";
 import { fetchExchangeRateToSekStrict } from "@/lib/exchange-rate-strict";
 import {
+  allocatePoolByWeights,
   buildReservationItemEconomicsRows,
+  type OutboundEconomicsInput,
   type WineEconomicsFields,
 } from "@/lib/reservation-economics-snapshot";
+import { createOrGetOutboundFreightQuote } from "@/lib/outbound-freight-quotes";
 import {
   CHECKOUT_UNSUPPORTED_COUNTRY_USER_MESSAGE,
   US_CHARGE_BLOCKED_REASON,
@@ -128,20 +131,6 @@ async function loadWineEconomicsByIds(
     map.set(id, row as WineEconomicsFields);
   }
   return map;
-}
-
-async function resolveLastMileForPalletId(
-  palletId: string | null | undefined,
-): Promise<number> {
-  if (!palletId) return resolveLastMileCostCentsPerBottle(0);
-  const { data } = await getSupabaseAdmin()
-    .from("pallets")
-    .select("last_mile_cost_cents_per_bottle")
-    .eq("id", palletId)
-    .maybeSingle();
-  return resolveLastMileCostCentsPerBottle(
-    Number(data?.last_mile_cost_cents_per_bottle) || 0,
-  );
 }
 
 /**
@@ -1308,6 +1297,93 @@ export async function POST(request: Request) {
     } // end !deferredLinkCheckout
 
     const checkoutGroupId = b2cProducerCheckout ? crypto.randomUUID() : null;
+    const outboundCheckoutGroupId = checkoutGroupId ?? crypto.randomUUID();
+
+    // Phase 2C: freeze outbound carrier estimate once per checkout (idempotent).
+    // Customer shipping revenue remains separate (linehaul + legacy last-mile charge).
+    let outboundQuoteResult: Awaited<
+      ReturnType<typeof createOrGetOutboundFreightQuote>
+    >;
+    try {
+      outboundQuoteResult = await createOrGetOutboundFreightQuote({
+        checkoutGroupId: outboundCheckoutGroupId,
+        idempotencyKey: idempotencyKey
+          ? `outbound:${idempotencyKey}`
+          : `outbound-group:${outboundCheckoutGroupId}`,
+        destinationCountry: String(address.countryCode || "SE"),
+        destinationPostalCode:
+          typeof (address as { postalCode?: string }).postalCode === "string"
+            ? (address as { postalCode: string }).postalCode
+            : typeof (address as { zip?: string }).zip === "string"
+              ? (address as { zip: string }).zip
+              : null,
+        bottleCount: checkoutBottleCount,
+      });
+    } catch (outboundErr) {
+      console.error("[CHECKOUT] Outbound freight quote failed:", outboundErr);
+      outboundQuoteResult = {
+        quoteId: null,
+        breakdown: {
+          currency: "SEK",
+          parcelCount: 0,
+          actualWeightKg: null,
+          volumetricWeightKg: null,
+          roundedVolumetricWeightKg: null,
+          chargeableWeightKg: null,
+          baseAmountCents: null,
+          weightIncrementAmountCents: null,
+          components: [],
+          totalAmountCents: null,
+          canCalculate: false,
+          incompleteReasons: ["Outbound quote creation failed"],
+        },
+        catalogue: null,
+        packaging: null,
+        economicallyUsable: false,
+        effectiveTotalCents: null,
+      };
+    }
+
+    const outboundGroupShares = (() => {
+      if (!outboundQuoteResult.economicallyUsable) return null;
+      if (b2cProducerCheckout) {
+        const weights = producerGroupsForB2C.map((g) =>
+          g.lines.reduce((s, l) => s + (Number(l.quantity) || 0), 0),
+        );
+        return allocatePoolByWeights(
+          outboundQuoteResult.effectiveTotalCents ?? 0,
+          weights,
+        );
+      }
+      return [outboundQuoteResult.effectiveTotalCents ?? 0];
+    })();
+
+    const buildOutboundEconomics = (
+      groupIndex: number,
+    ): OutboundEconomicsInput => {
+      if (
+        outboundQuoteResult.economicallyUsable &&
+        outboundQuoteResult.quoteId &&
+        outboundGroupShares
+      ) {
+        return {
+          mode: "quote",
+          allocatedOutboundCostCents: outboundGroupShares[groupIndex] ?? 0,
+          quoteId: outboundQuoteResult.quoteId,
+          providerCode: outboundQuoteResult.catalogue?.providerCode ?? "INSTABEE",
+          serviceName:
+            outboundQuoteResult.catalogue?.serviceName ??
+            "Budbee Light Home Delivery – Sweden",
+        };
+      }
+      return {
+        mode: "incomplete",
+        reason:
+          outboundQuoteResult.breakdown.incompleteReasons.join("; ") ||
+          "Outbound freight incomplete",
+        quoteId: outboundQuoteResult.quoteId,
+      };
+    };
 
     const rollbackCheckoutGroup = async () => {
       if (!checkoutGroupId) return;
@@ -1501,7 +1577,6 @@ export async function POST(request: Request) {
                 (paymentFeeFixedTotal * groupBottleCount) / checkoutBottleCount,
               )
             : 0;
-        const groupLastMile = await resolveLastMileForPalletId(groupPalletId);
         const itemRows = buildReservationItemEconomicsRows({
           reservationId: rid,
           lines: cartLinesToEconomicsSources(group.lines),
@@ -1510,7 +1585,7 @@ export async function POST(request: Request) {
             (groupVoucherSek + groupPactSek + groupPromoSek) * 100,
           ),
           shippingRevenueGrossCents: groupShippingShare,
-          lastMileCostCentsPerBottle: groupLastMile,
+          outbound: buildOutboundEconomics(gi),
           paymentFeeFixedCents: groupFixedFeeShare,
           rateMap: contributionRateMap,
           assumptions: contributionAssumptions,
@@ -1836,7 +1911,7 @@ export async function POST(request: Request) {
           (voucherSekOff + pactPointsSekOff + promoDiscountAmountSek) * 100,
         ),
         shippingRevenueGrossCents: shippingGrossCentsTotal,
-        lastMileCostCentsPerBottle: await resolveLastMileForPalletId(palletId),
+        outbound: buildOutboundEconomics(0),
         paymentFeeFixedCents: paymentFeeFixedTotal,
         rateMap: contributionRateMap,
         assumptions: contributionAssumptions,
