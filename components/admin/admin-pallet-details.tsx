@@ -46,6 +46,7 @@ import {
   type CompletionCondition,
   formatCompletionRules,
 } from "@/lib/pallet-completion-rules";
+import { PalletInboundFreightPanel } from "@/components/admin/pallet-inbound-freight-panel";
 
 // Format currency in SEK
 const formatCurrency = (amount: number) => {
@@ -718,6 +719,7 @@ export default function AdminPalletDetails({
 
       <div className="grid items-start gap-10 lg:grid-cols-5">
         <div className="space-y-10 lg:col-span-3">
+      <PalletInboundFreightPanel palletId={palletId} />
       {/* Completion Rules (Klaviyo-like segment builder) */}
       <Card className="rounded-lg border border-[#1F1F23] bg-[#0F0F12] p-6 shadow-none">
         <div className="flex items-start justify-between gap-4">

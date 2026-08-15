@@ -21,6 +21,12 @@ const layers = [
     body: "Endast vingård/upphämtning. Leverans hanteras under Vinzoner & leverans.",
   },
   {
+    href: "/admin/freight",
+    icon: Truck,
+    title: "Inbound freight",
+    body: "Providers, rate cards, surcharges — Hillebrand and future carriers.",
+  },
+  {
     href: "/admin/pallets",
     icon: Package,
     title: "Pallar",
@@ -32,7 +38,7 @@ export function LogisticsHelpBanner() {
   return (
     <div className="rounded-xl border border-blue-200/80 bg-blue-50/80 p-4 dark:border-blue-900/40 dark:bg-blue-950/20">
       <p className="text-sm font-medium text-gray-900 dark:text-zinc-100">
-        Lager & frakt — fyra ställen
+        Lager & frakt — logistics layers
       </p>
       <ul className="mt-3 grid gap-2 sm:grid-cols-2">
         {layers.map((layer) => (

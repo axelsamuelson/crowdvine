@@ -263,6 +263,23 @@ export async function GET() {
       }
     }
 
+    const selectedQuoteSekByPalletId = new Map<string, number>();
+    if (palletIds.length > 0) {
+      const { data: selectedQuotes } = await sb
+        .from("pallet_freight_quotes")
+        .select("pallet_id, total_cost_sek_cents")
+        .in("pallet_id", palletIds)
+        .eq("selected", true)
+        .eq("economically_usable", true);
+      for (const q of selectedQuotes ?? []) {
+        const pid = String(q.pallet_id);
+        const sek = Number(q.total_cost_sek_cents);
+        if (Number.isFinite(sek) && sek > 0) {
+          selectedQuoteSekByPalletId.set(pid, Math.round(sek));
+        }
+      }
+    }
+
     const transformedData = pallets.map((pallet) => {
       const id = String(pallet.id);
       const cap = Number(pallet.bottle_capacity) || 0;
@@ -279,10 +296,15 @@ export async function GET() {
         bottlesFilled: totalBookedBottles,
         bottlesWithSnapshot: snapshotBottlesByPalletId.get(id) ?? 0,
         accumulatedContributionCents: contributionByPalletId.get(id) ?? 0,
-        freightTargetCents:
-          Number(pallet.freight_target_cents) > 0
-            ? Number(pallet.freight_target_cents)
-            : Number(pallet.cost_cents) || 0,
+        freightTargetCents: (() => {
+          const override = Number(pallet.freight_target_cents);
+          if (Number.isFinite(override) && override > 0) {
+            return Math.round(override);
+          }
+          const quoteSek = selectedQuoteSekByPalletId.get(id);
+          if (quoteSek != null && quoteSek > 0) return quoteSek;
+          return Number(pallet.cost_cents) || 0;
+        })(),
         minBottlesToShip: minToShip,
         physicalBottleCapacity: cap,
       });

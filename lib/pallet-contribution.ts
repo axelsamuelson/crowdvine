@@ -41,6 +41,12 @@ export type UnitEconomicsSnapshot = {
   unit_pre_pallet_contribution_cents: number;
   vat_rate: number;
   price_includes_vat: boolean;
+  /** Frozen FX used for purchase cost (1 for SEK). */
+  purchase_fx_rate?: number | null;
+  purchase_cost_currency?: string | null;
+  /** When true, pre_pallet_contribution must not count toward economic readiness. */
+  incomplete?: boolean;
+  incomplete_reason?: string | null;
 };
 
 export type PalletContributionProgress = {
@@ -201,9 +207,18 @@ export function rescalePrePalletContributionCents(
 export function resolveFreightTargetCents(pallet: {
   cost_cents?: number | null;
   freight_target_cents?: number | null;
+  /** Frozen SEK öre from selected inbound freight quote (economically usable). */
+  selected_inbound_freight_quote_total_sek_cents?: number | null;
 }): number {
+  // 1. Explicit manual override
   const override = Number(pallet.freight_target_cents);
   if (Number.isFinite(override) && override > 0) return Math.round(override);
+
+  // 2. Selected inbound freight quote (shadow target)
+  const quote = Number(pallet.selected_inbound_freight_quote_total_sek_cents);
+  if (Number.isFinite(quote) && quote > 0) return Math.round(quote);
+
+  // 3. Legacy pallet.cost_cents
   return Math.max(0, Math.round(Number(pallet.cost_cents) || 0));
 }
 
@@ -273,10 +288,43 @@ export async function getPalletContributionProgress(
     freight_target_cents?: number | null;
     bottle_capacity?: number | null;
     min_bottles_to_complete?: number | null;
+    selected_inbound_freight_quote_id?: string | null;
   },
 ): Promise<PalletContributionProgress> {
   const sb = getSupabaseAdmin();
-  const freightTargetCents = resolveFreightTargetCents(pallet);
+
+  let selectedQuoteSek: number | null = null;
+  const quoteId = pallet.selected_inbound_freight_quote_id;
+  if (quoteId) {
+    const { data: quote } = await sb
+      .from("pallet_freight_quotes")
+      .select("total_cost_sek_cents, economically_usable, selected")
+      .eq("id", quoteId)
+      .maybeSingle();
+    if (
+      quote?.economically_usable === true &&
+      quote.selected === true &&
+      Number(quote.total_cost_sek_cents) > 0
+    ) {
+      selectedQuoteSek = Math.round(Number(quote.total_cost_sek_cents));
+    }
+  } else {
+    const { data: selected } = await sb
+      .from("pallet_freight_quotes")
+      .select("total_cost_sek_cents, economically_usable")
+      .eq("pallet_id", palletId)
+      .eq("selected", true)
+      .eq("economically_usable", true)
+      .maybeSingle();
+    if (selected && Number(selected.total_cost_sek_cents) > 0) {
+      selectedQuoteSek = Math.round(Number(selected.total_cost_sek_cents));
+    }
+  }
+
+  const freightTargetCents = resolveFreightTargetCents({
+    ...pallet,
+    selected_inbound_freight_quote_total_sek_cents: selectedQuoteSek,
+  });
 
   const { data: reservations, error: reservationsError } = await sb
     .from("order_reservations")

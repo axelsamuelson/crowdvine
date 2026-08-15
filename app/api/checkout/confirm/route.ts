@@ -45,6 +45,7 @@ import { stripe } from "@/lib/stripe";
 import { resolvePaymentMethodDetailsFromId } from "@/lib/stripe/resolve-payment-method-details";
 import { calculateCartShippingCost, resolveLastMileCostCentsPerBottle } from "@/lib/shipping-calculations";
 import { getContributionAssumptions } from "@/lib/contribution-assumptions";
+import { fetchExchangeRateToSekStrict } from "@/lib/exchange-rate-strict";
 import {
   buildReservationItemEconomicsRows,
   type WineEconomicsFields,
@@ -1153,6 +1154,21 @@ export async function POST(request: Request) {
     const wineEconomicsById = await loadWineEconomicsByIds(
       (cart.lines || []).map((l) => String(l.merchandise.id)),
     );
+    const contributionRateMap: Record<string, number> = {};
+    for (const wine of wineEconomicsById.values()) {
+      const cur = String(wine.cost_currency || "SEK").toUpperCase();
+      if (cur === "SEK" || contributionRateMap[cur] != null) continue;
+      if (
+        wine.exchange_rate != null &&
+        Number.isFinite(Number(wine.exchange_rate)) &&
+        Number(wine.exchange_rate) > 0
+      ) {
+        contributionRateMap[cur] = Number(wine.exchange_rate);
+        continue;
+      }
+      const live = await fetchExchangeRateToSekStrict(cur);
+      if (live?.rate) contributionRateMap[cur] = live.rate;
+    }
     const checkoutBottleCount = (cart.lines || []).reduce(
       (sum, l) => sum + (Number(l.quantity) || 0),
       0,
@@ -1496,6 +1512,7 @@ export async function POST(request: Request) {
           shippingRevenueGrossCents: groupShippingShare,
           lastMileCostCentsPerBottle: groupLastMile,
           paymentFeeFixedCents: groupFixedFeeShare,
+          rateMap: contributionRateMap,
           assumptions: contributionAssumptions,
         });
         const { error: itemsInsErr } = await sb
@@ -1821,6 +1838,7 @@ export async function POST(request: Request) {
         shippingRevenueGrossCents: shippingGrossCentsTotal,
         lastMileCostCentsPerBottle: await resolveLastMileForPalletId(palletId),
         paymentFeeFixedCents: paymentFeeFixedTotal,
+        rateMap: contributionRateMap,
         assumptions: contributionAssumptions,
       });
 

@@ -15,11 +15,9 @@ import {
   linePrePalletContributionCents,
   type UnitEconomicsSnapshot,
 } from "@/lib/pallet-contribution";
-import {
-  getWineAlcoholTaxCentsPerBottle,
-  getWinePurchaseCostCentsPerBottle,
-  type WineCostFields,
-} from "@/lib/b2b-wine-cost";
+import { getWineAlcoholTaxCentsPerBottle } from "@/lib/b2b-wine-cost";
+import { resolvePurchaseCostCentsForContribution } from "@/lib/exchange-rate-strict";
+import type { WineCostFields } from "@/lib/b2b-wine-cost";
 
 export type CartLineEconomicsSource = {
   merchandiseId: string;
@@ -38,7 +36,8 @@ export type ReservationItemEconomicsRow = {
   quantity: number;
   price_band: "market";
   economics_snapshot: UnitEconomicsSnapshot;
-  pre_pallet_contribution_cents: number;
+  /** Null when snapshot incomplete (e.g. missing FX) — excluded from economic meter. */
+  pre_pallet_contribution_cents: number | null;
 };
 
 /**
@@ -78,6 +77,22 @@ export function allocatePoolByWeights(
   return out;
 }
 
+/**
+ * Stripe % fee base = paid product gross + allocated customer shipping gross.
+ * Fixed fee is allocated once per checkout via paymentFeeFixedCents (caller must
+ * split the single checkout fixed fee across reservations by bottle weight).
+ */
+export function stripePercentFeeCents(
+  productGrossCents: number,
+  shippingGrossCents: number,
+  stripeFeePercent: number,
+): number {
+  const base =
+    Math.max(0, Math.round(productGrossCents)) +
+    Math.max(0, Math.round(shippingGrossCents));
+  return Math.round(base * stripeFeePercent);
+}
+
 export function buildReservationItemEconomicsRows(input: {
   reservationId: string;
   lines: CartLineEconomicsSource[];
@@ -89,6 +104,8 @@ export function buildReservationItemEconomicsRows(input: {
   lastMileCostCentsPerBottle: number;
   /** Share of checkout Stripe fixed fee allocated to this reservation, öre. */
   paymentFeeFixedCents: number;
+  /** Live/stored FX map for non-SEK wines (currency → SEK). */
+  rateMap?: Record<string, number>;
   assumptions?: ContributionAssumptions;
 }): ReservationItemEconomicsRow[] {
   const assumptions = input.assumptions ?? getContributionAssumptions();
@@ -124,18 +141,53 @@ export function buildReservationItemEconomicsRows(input: {
     const unitDiscount = Math.round(discountLine / qty);
     const unitShipGross = Math.round((shippingAlloc[i] ?? 0) / qty);
     const unitFixedFee = Math.round((fixedFeeAlloc[i] ?? 0) / qty);
-    const unitPercentFee = Math.round(unitGross * assumptions.stripeFeePercent);
+    const unitPercentFee = stripePercentFeeCents(
+      unitGross,
+      unitShipGross,
+      assumptions.stripeFeePercent,
+    );
     const unitPaymentFee = unitPercentFee + unitFixedFee;
 
     const wine = input.wineById.get(line.merchandiseId) ?? {};
     const priceIncludesVat = wine.price_includes_vat !== false;
-    const unitPurchase = getWinePurchaseCostCentsPerBottle(wine);
+    const purchase = resolvePurchaseCostCentsForContribution(
+      wine,
+      input.rateMap,
+    );
     const unitExcise = getWineAlcoholTaxCentsPerBottle(wine);
+
+    if (!purchase.ok) {
+      const incompleteSnapshot = buildUnitEconomicsSnapshot({
+        unitGrossRevenueCents: unitGross,
+        unitDiscountCents: unitDiscount,
+        unitPurchaseCostCents: 0,
+        unitExciseCents: unitExcise,
+        unitShippingRevenueGrossCents: unitShipGross,
+        unitLastMileCostCents: input.lastMileCostCentsPerBottle,
+        unitPaymentFeeCents: unitPaymentFee,
+        priceIncludesVat,
+        assumptions,
+      });
+      incompleteSnapshot.incomplete = true;
+      incompleteSnapshot.incomplete_reason = purchase.reason;
+      incompleteSnapshot.purchase_cost_currency = purchase.currency;
+      incompleteSnapshot.purchase_fx_rate = null;
+      incompleteSnapshot.unit_pre_pallet_contribution_cents = 0;
+
+      return {
+        reservation_id: input.reservationId,
+        item_id: line.merchandiseId,
+        quantity: qty,
+        price_band: "market" as const,
+        economics_snapshot: incompleteSnapshot,
+        pre_pallet_contribution_cents: null,
+      };
+    }
 
     const snapshot = buildUnitEconomicsSnapshot({
       unitGrossRevenueCents: unitGross,
       unitDiscountCents: unitDiscount,
-      unitPurchaseCostCents: unitPurchase,
+      unitPurchaseCostCents: purchase.cents,
       unitExciseCents: unitExcise,
       unitShippingRevenueGrossCents: unitShipGross,
       unitLastMileCostCents: input.lastMileCostCentsPerBottle,
@@ -143,6 +195,8 @@ export function buildReservationItemEconomicsRows(input: {
       priceIncludesVat,
       assumptions,
     });
+    snapshot.purchase_fx_rate = purchase.fxRate;
+    snapshot.purchase_cost_currency = purchase.currency;
 
     return {
       reservation_id: input.reservationId,
