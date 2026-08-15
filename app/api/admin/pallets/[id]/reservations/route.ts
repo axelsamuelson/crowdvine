@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/admin-auth-server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { PALLET_FILL_STATUSES } from "@/lib/pallet-fill-count";
 
@@ -11,11 +12,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    // Admin auth cookie check (consistent with other admin routes)
-    const cookie = request.headers.get("cookie") || "";
-    if (!cookie.includes("admin-auth=true")) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    await requireAdmin();
 
     const supabase = getSupabaseAdmin();
     const palletId = (await params).id;

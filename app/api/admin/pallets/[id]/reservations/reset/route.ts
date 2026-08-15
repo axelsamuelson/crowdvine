@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/admin-auth-server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { cleanupEmptyPallets } from "@/lib/pallet-auto-management";
 
@@ -7,10 +8,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const cookie = request.headers.get("cookie") || "";
-    if (!cookie.includes("admin-auth=true")) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    await requireAdmin();
 
     const body = await request.json().catch(() => ({}));
     if (body?.confirm !== "RESET") {

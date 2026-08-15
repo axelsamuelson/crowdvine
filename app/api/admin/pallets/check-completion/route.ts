@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/admin-auth-server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import {
   checkPalletCompletion,
@@ -9,6 +10,7 @@ import { resolveMinBottlesToShip, isPalletShippingLocked } from "@/lib/pallet-sh
 
 async function checkAllPallets(shouldFix = false) {
   try {
+    await requireAdmin();
     const supabase = getSupabaseAdmin();
 
     const { data: pallets, error: palletsError } = await supabase

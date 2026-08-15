@@ -1,7 +1,16 @@
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/admin-auth-server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 export async function GET(request: Request) {
+  try {
+    await requireAdmin();
+  } catch {
+    return NextResponse.json(
+      { error: "Admin authentication required" },
+      { status: 401 },
+    );
+  }
   const { searchParams } = new URL(request.url);
   const palletId = searchParams.get("palletId");
 

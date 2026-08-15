@@ -13,15 +13,22 @@ export interface Pallet {
   id: string;
   name: string;
   description?: string;
+  status?: string | null;
+  status_mode?: string | null;
   delivery_zone_id: string;
   pickup_zone_id: string;
   cost_cents: number;
   bottle_capacity: number;
   min_bottles_to_complete?: number;
+  freight_target_cents?: number | null;
+  last_mile_cost_cents_per_bottle?: number | null;
+  shipping_ordered_at?: string | null;
   created_at: string;
   updated_at: string;
   delivery_zone?: PalletZone;
   pickup_zone?: PalletZone;
+  shipping_region?: { id?: string; name?: string | null } | null;
+  current_pickup_producer?: { id?: string; name?: string | null } | null;
 }
 
 export interface CreatePalletData {
@@ -59,7 +66,9 @@ export async function getPallet(id: string): Promise<Pallet | null> {
       `
       *,
       delivery_zone:pallet_zones!delivery_zone_id(id, name, zone_type),
-      pickup_zone:pallet_zones!pickup_zone_id(id, name, zone_type)
+      pickup_zone:pallet_zones!pickup_zone_id(id, name, zone_type),
+      shipping_region:shipping_regions(id, name),
+      current_pickup_producer:producers!current_pickup_producer_id(id, name)
     `,
     )
     .eq("id", id)

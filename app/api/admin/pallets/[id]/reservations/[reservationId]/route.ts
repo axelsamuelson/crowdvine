@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/admin-auth-server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import {
   cleanupEmptyPalletsAfterReservationChange,
@@ -6,20 +7,15 @@ import {
   updatePickupProducerForPallet,
 } from "@/lib/pallet-auto-management";
 
-async function assertAdmin(request: Request) {
-  const cookie = request.headers.get("cookie") || "";
-  if (!cookie.includes("admin-auth=true")) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  return null;
-}
-
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string; reservationId: string }> },
 ) {
-  const unauthorized = await assertAdmin(request);
-  if (unauthorized) return unauthorized;
+  try {
+    await requireAdmin();
+  } catch {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   const { id: palletId, reservationId } = await params;
   const sb = getSupabaseAdmin();

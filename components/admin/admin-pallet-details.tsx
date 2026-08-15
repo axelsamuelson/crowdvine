@@ -34,12 +34,9 @@ import {
   Trash2,
   GripVertical,
   ArrowLeft,
+  ChevronDown,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
-import {
-  getPercentFilled,
-  shouldShowPercent,
-} from "@/lib/utils/pallet-progress";
 import {
   type CompletionRules,
   type CompletionGroup,
@@ -47,6 +44,9 @@ import {
   formatCompletionRules,
 } from "@/lib/pallet-completion-rules";
 import { PalletInboundFreightPanel } from "@/components/admin/pallet-inbound-freight-panel";
+import { AdminPactPalletStatusSummary } from "@/components/admin/admin-pact-pallet-status-summary";
+import type { AdminPalletOperatingSummary } from "@/lib/admin-pallet-operating-summary";
+import { cn } from "@/lib/utils";
 
 // Format currency in SEK
 const formatCurrency = (amount: number) => {
@@ -74,6 +74,9 @@ interface Pallet {
   pickup_zone_id: string;
   cost_cents: number;
   bottle_capacity: number;
+  min_bottles_to_complete?: number;
+  freight_target_cents?: number | null;
+  last_mile_cost_cents_per_bottle?: number | null;
   current_bottles?: number;
   completion_rules?: CompletionRules | null;
   created_at: string;
@@ -158,6 +161,9 @@ export default function AdminPalletDetails({
   const [orderingShipping, setOrderingShipping] = useState(false);
   const [revertingShipping, setRevertingShipping] = useState(false);
   const [sendingNotifications, setSendingNotifications] = useState(false);
+  const [operatingSummary, setOperatingSummary] =
+    useState<AdminPalletOperatingSummary | null>(null);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -175,7 +181,7 @@ export default function AdminPalletDetails({
     try {
       setLoading(true);
 
-      // Fetch reservations for this pallet (admin endpoint)
+      // Fetch reservations for this pallet (admin endpoint) — display only
       const resResponse = await fetch(
         `/api/admin/pallets/${palletId}/reservations`,
       );
@@ -189,7 +195,22 @@ export default function AdminPalletDetails({
       const reservationsList = Array.isArray(resData) ? resData : [];
       setReservations(reservationsList);
 
-      // Fetch pallet metrics (data-driven totals + profit) for rule preview
+      // Canonical fill / readiness / economics (same source as list)
+      const summaryRes = await fetch(
+        `/api/admin/pallets/${palletId}/operating-summary`,
+      );
+      if (summaryRes.ok) {
+        const summaryJson = await summaryRes.json();
+        if (summaryJson?.operating_summary) {
+          setOperatingSummary(
+            summaryJson.operating_summary as AdminPalletOperatingSummary,
+          );
+        }
+      } else {
+        setOperatingSummary(null);
+      }
+
+      // Fetch pallet metrics (data-driven totals + profit) for legacy rule preview
       const metricRes = await fetch("/api/pallet-data", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -207,7 +228,7 @@ export default function AdminPalletDetails({
         }
       }
 
-      // Calculate stats
+      // Display stats from reservation table (not used for ship readiness)
       const uniqueUsers = new Set(
         reservationsList.map((r: Reservation) => r.user_email),
       ).size;
@@ -217,7 +238,7 @@ export default function AdminPalletDetails({
         ),
       ).size;
 
-      const totalBottles = reservationsList.reduce(
+      const displayBottles = reservationsList.reduce(
         (sum: number, r: Reservation) => sum + r.total_bottles,
         0,
       );
@@ -227,21 +248,13 @@ export default function AdminPalletDetails({
         0,
       );
 
-      const percentageFilled =
-        pallet.bottle_capacity > 0
-          ? Math.min(
-              Math.round((totalBottles / pallet.bottle_capacity) * 100),
-              100,
-            )
-          : 0;
-
       setStats({
         total_reservations: reservationsList.length,
-        total_bottles: totalBottles,
+        total_bottles: displayBottles,
         total_revenue_cents: totalRevenue,
         unique_users: uniqueUsers,
         unique_wines: uniqueWines,
-        percentage_filled: percentageFilled,
+        percentage_filled: 0, // replaced by operatingSummary.shipProgressPercent
       });
     } catch (err) {
       console.error("Failed to fetch pallet data:", err);
@@ -492,7 +505,8 @@ export default function AdminPalletDetails({
     const raw = palletStatus;
     const s =
       raw !== null && raw !== undefined ? String(raw).toLowerCase() : "";
-    const bottles = stats?.total_bottles ?? 0;
+    const bottles =
+      operatingSummary?.bottlesFilled ?? stats?.total_bottles ?? 0;
     return (
       (s === "open" || s === "consolidating") && bottles > 0
     );
@@ -595,11 +609,11 @@ export default function AdminPalletDetails({
 
   if (loading) {
     return (
-      <div className="rounded-lg border border-[#1F1F23] bg-[#0F0F12] p-10">
+      <div className="rounded-xl border border-gray-200 bg-white p-10 dark:border-[#1F1F23] dark:bg-[#0F0F12]">
         <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-zinc-800 rounded w-1/3" />
-          <div className="h-4 bg-zinc-800 rounded w-1/2" />
-          <div className="h-4 bg-zinc-800 rounded w-2/3" />
+          <div className="h-8 w-1/3 rounded bg-gray-200 dark:bg-zinc-800" />
+          <div className="h-4 w-1/2 rounded bg-gray-200 dark:bg-zinc-800" />
+          <div className="h-4 w-2/3 rounded bg-gray-200 dark:bg-zinc-800" />
         </div>
       </div>
     );
@@ -614,79 +628,105 @@ export default function AdminPalletDetails({
   const shippingOrderedAt = palletExt.shipping_ordered_at;
   const regionMeta =
     palletExt.shipping_region?.name ?? pallet.pickup_zone?.name ?? "—";
-  const fillPct = stats?.percentage_filled ?? 0;
-  const fillBarClass =
-    fillPct > 80 ? "bg-emerald-500" : fillPct >= 30 ? "bg-blue-500" : "bg-amber-500";
-  const totalBookedBottles = stats?.total_bottles ?? 0;
+  const deliveryName = pallet.delivery_zone?.name ?? "—";
+  const bottlesFilled =
+    operatingSummary?.bottlesFilled ?? stats?.total_bottles ?? 0;
+  const minToShip =
+    operatingSummary?.minBottlesToShip ??
+    pallet.min_bottles_to_complete ??
+    120;
+  const shipPct = operatingSummary?.shipProgressPercent ?? 0;
+  const isReady = operatingSummary?.isReadyToShip ?? false;
   const showMissingPalletZonePickupMessage =
-    !shipsFromName && totalBookedBottles > 0;
+    !shipsFromName && bottlesFilled > 0;
+  const warnings = [
+    ...(operatingSummary?.warnings ?? []),
+    ...(showMissingPalletZonePickupMessage
+      ? [
+          "No producer marked as pallet zone has orders on this pallet yet.",
+        ]
+      : []),
+  ];
 
   return (
-    <div className="space-y-10 pb-10">
-      {error && (
+    <div className="mx-auto max-w-5xl space-y-6 pb-10">
+      {error ? (
         <Alert
           variant="destructive"
-          className="border-red-500/30 bg-red-950/30 text-red-200"
+          className="border-red-500/30 bg-red-50 text-red-800 dark:bg-red-950/30 dark:text-red-200"
         >
           <AlertDescription>{error}</AlertDescription>
         </Alert>
-      )}
+      ) : null}
 
       <header className="space-y-4">
-        <Button
-          asChild
-          variant="ghost"
-          size="sm"
-          className="-ml-2 h-8 gap-2 px-2 text-sm font-normal text-zinc-400 hover:bg-zinc-900 hover:text-zinc-100"
-        >
-          <Link href="/admin/pallets">
-            <ArrowLeft className="h-4 w-4 shrink-0" />
-            Back to Pallets
-          </Link>
-        </Button>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0 space-y-2">
-            <div className="flex flex-wrap items-center gap-3">
-              <h1 className="text-2xl font-bold tracking-tight text-zinc-100">
-                {pallet.name}
-              </h1>
-              <span className="inline-flex rounded-full border border-[#1F1F23] bg-zinc-900 px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide text-zinc-400">
-                {palletStatus}
+            <Button
+              asChild
+              variant="ghost"
+              size="sm"
+              className="-ml-2 h-8 gap-2 px-2 text-sm font-normal text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-100"
+            >
+              <Link href="/admin/pallets?tab=pact">
+                <ArrowLeft className="h-4 w-4 shrink-0" />
+                Back
+              </Link>
+            </Button>
+            <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
+              {pallet.name}
+            </h1>
+            <p className="text-sm text-gray-600 dark:text-zinc-400">
+              <span className="font-medium text-gray-800 dark:text-zinc-200">
+                {deliveryName}
               </span>
-            </div>
-            {pallet.description ? (
-              <p className="text-sm text-zinc-500">{pallet.description}</p>
-            ) : null}
-            <p className="text-sm text-zinc-400">
-              <span className="tabular-nums">{stats?.total_bottles ?? 0}</span>
-              <span> / </span>
-              <span className="tabular-nums">{pallet.bottle_capacity}</span>
-              <span> bottles · </span>
-              <span className="tabular-nums">{fillPct}%</span>
-              <span> full · </span>
-              <span>{pallet.delivery_zone?.name ?? "—"}</span>
-              <span> · Ships from </span>
-              {shipsFromName ? (
-                <span className="font-medium text-zinc-200">
-                  {shipsFromName}
+              <span className="mx-1.5 text-gray-400">→</span>
+              <span className="font-medium text-gray-800 dark:text-zinc-200">
+                {regionMeta}
+              </span>
+            </p>
+            <p className="text-sm text-gray-500 dark:text-zinc-500 tabular-nums">
+              {bottlesFilled} bottles · {shipPct}% to ship-ready
+              <span className="mx-2 text-gray-300 dark:text-zinc-700">·</span>
+              Operational status:{" "}
+              <span className="capitalize text-gray-700 dark:text-zinc-300">
+                {(palletStatus || "open").replace(/_/g, " ")}
+              </span>
+              {isReady ? (
+                <span className="ml-2 inline-flex rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium uppercase text-emerald-700 dark:text-emerald-300">
+                  Ready to ship
                 </span>
-              ) : showMissingPalletZonePickupMessage ? (
-                <span className="font-medium text-zinc-300">—</span>
               ) : (
-                <span className="font-medium text-amber-500/90">TBD</span>
+                <span className="ml-2 inline-flex rounded-full bg-zinc-500/10 px-2 py-0.5 text-[10px] font-medium uppercase text-zinc-600 dark:text-zinc-400">
+                  Not ready
+                </span>
               )}
             </p>
-            {showMissingPalletZonePickupMessage ? (
-              <p className="text-xs text-amber-500/90 max-w-xl">
-                No producer marked as pallet zone has orders on this pallet yet.
-                Mark a producer as pallet zone in producer settings.
+            {shipsFromName ? (
+              <p className="text-xs text-gray-500 dark:text-zinc-500">
+                Ships from{" "}
+                <span className="font-medium text-gray-800 dark:text-zinc-200">
+                  {shipsFromName}
+                </span>
               </p>
             ) : null}
           </div>
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className="h-9 rounded-lg border-gray-200 dark:border-zinc-700"
+            >
+              <Link href={`/admin/pallets/${palletId}/edit`}>
+                <Edit className="mr-2 h-3.5 w-3.5" />
+                Edit pallet
+              </Link>
+            </Button>
             <Button
               variant="outline"
               size="sm"
+              className="h-9 rounded-lg border-gray-200 dark:border-zinc-700"
               onClick={() => void handleTriggerNotifications()}
               disabled={sendingNotifications}
             >
@@ -700,26 +740,515 @@ export default function AdminPalletDetails({
                 size="sm"
                 disabled={orderingShipping}
                 onClick={() => void handleOrderShipping()}
-                className="h-8 shrink-0 bg-amber-600 text-xs font-medium text-white hover:bg-amber-500"
+                className="h-9 shrink-0 bg-amber-600 text-xs font-medium text-white hover:bg-amber-500"
               >
                 {orderingShipping ? "Ordering…" : "Order Shipping"}
               </Button>
             ) : null}
+            {palletStatusIsShippingOrdered ? (
+              <button
+                type="button"
+                disabled={revertingShipping}
+                onClick={() => void handleRevertShipping()}
+                className="text-xs text-amber-600 underline underline-offset-2 hover:text-amber-500 disabled:opacity-50 dark:text-amber-500"
+              >
+                Revert to open
+              </button>
+            ) : null}
           </div>
-        </div>
-        <div className="h-1 w-full overflow-hidden rounded-full bg-[#1F1F23]">
-          <div
-            className={`h-full rounded-full transition-all ${fillBarClass}`}
-            style={{
-              width: `${Math.min(100, Math.max(0, fillPct))}%`,
-            }}
-          />
         </div>
       </header>
 
-      <div className="grid items-start gap-10 lg:grid-cols-5">
-        <div className="space-y-10 lg:col-span-3">
-      <PalletInboundFreightPanel palletId={palletId} />
+      {operatingSummary ? (
+        <AdminPactPalletStatusSummary summary={operatingSummary} />
+      ) : null}
+
+      {warnings.length > 0 ? (
+        <section className="rounded-xl border border-amber-500/30 bg-amber-50/80 p-4 dark:bg-amber-500/10">
+          <h2 className="text-sm font-semibold text-amber-900 dark:text-amber-200">
+            Attention
+          </h2>
+          <ul className="mt-2 space-y-1 text-sm text-amber-800 dark:text-amber-200/90">
+            {Array.from(new Set(warnings)).map((w) => (
+              <li key={w}>⚠ {w}</li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      <section className="space-y-3">
+        <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
+          Inbound logistics
+        </h2>
+        <PalletInboundFreightPanel palletId={palletId} />
+      </section>
+
+      {/* Reservations */}
+      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-200 dark:border-[#1F1F23] dark:bg-[#0F0F12]">
+        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-gray-200 dark:border-[#1F1F23] px-5 py-4">
+            <div>
+              <h2 className="text-sm font-semibold text-gray-900 dark:text-zinc-100">
+                Reservations ({reservations.length})
+              </h2>
+              <p className="text-xs text-gray-500 dark:text-zinc-500">
+                Display list of customer reservations. Ship readiness uses
+                canonical fill statuses from the operating summary — not a raw
+                sum of this table.
+              </p>
+            </div>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 text-xs text-red-400 hover:bg-red-500/10 hover:text-red-300"
+                  disabled={resettingReservations || reservations.length === 0}
+                >
+                  {resettingReservations ? "Resetting..." : "Reset reservations"}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Reset all reservations?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will permanently delete all reservations currently mapped
+                    to this pallet (including their line items and tracking rows).
+                    This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={resetAllReservations}
+                    className="bg-red-600 hover:bg-red-700"
+                    disabled={resettingReservations}
+                  >
+                    {resettingReservations ? "Resetting..." : "Reset"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        <div className="px-2 pb-2">
+          {reservations.length === 0 ? (
+            <div className="px-4 py-10 text-center text-sm text-zinc-500">
+              No reservations yet
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-200 dark:border-[#1F1F23]">
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-zinc-500">
+                      Customer
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-zinc-500">
+                      Wines
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-zinc-500">
+                      Bottles
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-zinc-500">
+                      Status
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-zinc-500">
+                      Payment
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-zinc-500">
+                      Date
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-zinc-500">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {reservations.map((reservation) => (
+                    <tr
+                      key={reservation.id}
+                      className="border-b border-gray-200 dark:border-[#1F1F23] text-sm text-zinc-300 hover:bg-[#0F0F12]/50"
+                    >
+                      <td className="px-4 py-3">
+                        <div>
+                          <div className="font-medium text-gray-900 dark:text-zinc-100">
+                            {reservation.user_name || "Unknown"}
+                          </div>
+                          <div className="text-xs text-zinc-500">
+                            {reservation.user_email}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="max-w-[200px] px-4 py-3 text-xs text-zinc-400">
+                        {reservation.items
+                          .map((it) => `${it.wine_name} ×${it.quantity}`)
+                          .join(", ")}
+                      </td>
+                      <td className="px-4 py-3 font-medium tabular-nums text-gray-900 dark:text-zinc-100">
+                        {reservation.total_bottles}
+                      </td>
+                      <td className="px-4 py-3">
+                        {getStatusBadge(reservation.status)}
+                      </td>
+                      <td className="px-4 py-3">
+                        {getPaymentBadge(reservation.status)}
+                      </td>
+                      <td className="px-4 py-3 tabular-nums text-zinc-500">
+                        {new Date(reservation.created_at).toLocaleDateString()}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-1">
+                          <Link href={`/admin/b2c-orders/${reservation.id}`}>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 px-2 text-xs text-zinc-400 hover:text-gray-900 dark:text-zinc-100"
+                            >
+                              View
+                            </Button>
+                          </Link>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 px-2 text-xs text-zinc-500 hover:bg-red-500/10 hover:text-red-400"
+                                disabled={deletingReservationId === reservation.id}
+                              >
+                                {deletingReservationId === reservation.id ? "Deleting..." : "Delete"}
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete reservation?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This will permanently delete this reservation and its line items.
+                                  This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => deleteReservation(reservation.id)}
+                                  className="bg-red-600 hover:bg-red-700"
+                                  disabled={deletingReservationId === reservation.id}
+                                >
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-gray-200 bg-white dark:border-[#1F1F23] dark:bg-[#0F0F12] px-5 py-5">
+        <h2 className="mb-3 text-xs font-medium uppercase tracking-widest text-gray-500 dark:text-zinc-500">
+          Wine allocation
+        </h2>
+        {reservations.length === 0 ? (
+          <p className="text-sm text-zinc-500">No wines yet</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-[#1F1F23]">
+                  <th className="py-2 pr-4 text-left text-xs font-medium uppercase tracking-wide text-zinc-500">
+                    Wine name
+                  </th>
+                  <th className="py-2 pr-4 text-left text-xs font-medium uppercase tracking-wide text-zinc-500">
+                    Producer
+                  </th>
+                  <th className="py-2 pr-4 text-left text-xs font-medium uppercase tracking-wide text-zinc-500">
+                    Bottles
+                  </th>
+                  <th className="py-2 text-left text-xs font-medium uppercase tracking-wide text-zinc-500">
+                    % of physical pallet
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {Array.from(
+                  reservations
+                    .flatMap((r) => r.items)
+                    .reduce((acc, item) => {
+                      const key = `${item.producer_name}-${item.wine_name}`;
+                      if (!acc.has(key)) {
+                        acc.set(key, {
+                          producer: item.producer_name,
+                          wine: item.wine_name,
+                          quantity: 0,
+                          price: item.price_cents,
+                        });
+                      }
+                      const existing = acc.get(key)!;
+                      existing.quantity += item.quantity;
+                      return acc;
+                    }, new Map())
+                    .values(),
+                )
+                  .sort((a, b) => b.quantity - a.quantity)
+                  .map((wine, idx) => {
+                    const cap = pallet.bottle_capacity || 1;
+                    const pct = Math.round((wine.quantity / cap) * 1000) / 10;
+                    return (
+                      <tr
+                        key={idx}
+                        className="border-b border-[#1F1F23] text-zinc-300 last:border-0"
+                      >
+                        <td className="py-2 pr-4 font-medium text-zinc-100">
+                          {wine.wine}
+                        </td>
+                        <td className="py-2 pr-4 text-zinc-400">{wine.producer}</td>
+                        <td className="py-2 pr-4 tabular-nums text-zinc-200">
+                          {wine.quantity}
+                        </td>
+                        <td className="py-2 tabular-nums text-zinc-500">
+                          {pct}%
+                        </td>
+                      </tr>
+                    );
+                  })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      <section className="rounded-xl border border-gray-200 bg-white p-5 dark:border-[#1F1F23] dark:bg-[#0F0F12]">
+        <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
+          Outbound economics
+        </h2>
+        <p className="mt-1 text-xs text-gray-500 dark:text-zinc-500">
+          Instabee / Budbee Light — improves contribution inputs only; does not
+          control live readiness.
+        </p>
+        {operatingSummary ? (
+          <dl className="mt-4 grid gap-3 sm:grid-cols-2 text-sm">
+            <div>
+              <dt className="text-xs text-gray-500 dark:text-zinc-500">Provider</dt>
+              <dd className="mt-0.5 font-medium text-gray-900 dark:text-zinc-100">
+                {operatingSummary.outbound.providerName ?? "Instabee"}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs text-gray-500 dark:text-zinc-500">Service</dt>
+              <dd className="mt-0.5 font-medium text-gray-900 dark:text-zinc-100">
+                {operatingSummary.outbound.serviceName ??
+                  "Budbee Light Home Delivery – Sweden"}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs text-gray-500 dark:text-zinc-500">
+                Packaging profile
+              </dt>
+              <dd className="mt-0.5 font-medium text-gray-900 dark:text-zinc-100">
+                {operatingSummary.outbound.packagingCode ?? "WINE_BOX_6"}
+                {" · "}
+                {operatingSummary.outbound.packagingConfigured
+                  ? "Configured"
+                  : "Incomplete"}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs text-gray-500 dark:text-zinc-500">
+                Quote health
+              </dt>
+              <dd className="mt-0.5 font-medium text-gray-900 dark:text-zinc-100">
+                {operatingSummary.outbound.usableQuoteCount} usable
+                {operatingSummary.outbound.incompleteQuoteCount > 0
+                  ? ` · ${operatingSummary.outbound.incompleteQuoteCount} incomplete`
+                  : ""}
+              </dd>
+            </div>
+          </dl>
+        ) : (
+          <p className="mt-3 text-sm text-gray-500">Loading outbound summary…</p>
+        )}
+        {operatingSummary && !operatingSummary.outbound.packagingConfigured ? (
+          <p className="mt-3 rounded-lg border border-amber-500/25 bg-amber-50/70 px-3 py-2 text-xs text-amber-900 dark:bg-amber-500/10 dark:text-amber-200">
+            Outbound pricing incomplete — WINE_BOX_6 dimensions are not
+            configured. Do not treat missing carrier cost as 0 SEK.
+          </p>
+        ) : null}
+      </section>
+
+
+      <section className="rounded-xl border border-gray-200 bg-white p-5 dark:border-[#1F1F23] dark:bg-[#0F0F12]">
+        <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
+          Operational status
+        </h2>
+        <p className="mt-1 text-xs text-gray-500 dark:text-zinc-500">
+          Separate from ship readiness ({minToShip} bottles). Status string{" "}
+          <code className="text-[11px]">complete</code> is not the same as live{" "}
+          <code className="text-[11px]">is_complete</code> / ready-to-ship.
+        </p>
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <span className="text-xs text-gray-500 dark:text-zinc-500">Auto</span>
+          <Switch
+            checked={palletStatusMode === "manual"}
+            onCheckedChange={(checked) =>
+              void savePalletStatusMode(checked ? "manual" : "auto")
+            }
+            disabled={savingStatus}
+          />
+          <span className="text-xs text-gray-500 dark:text-zinc-500">Manual</span>
+          <Select
+            value={palletStatus}
+            onValueChange={(v) => void savePalletStatus(v)}
+            disabled={savingStatus || palletStatusMode !== "manual"}
+          >
+            <SelectTrigger className="h-8 w-[200px] border-gray-200 bg-white text-xs dark:border-zinc-700 dark:bg-zinc-900">
+              <SelectValue placeholder="Select status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="open">open</SelectItem>
+              <SelectItem value="consolidating">consolidating</SelectItem>
+              <SelectItem value="complete">complete (legacy label)</SelectItem>
+              <SelectItem value="shipping_ordered">shipping_ordered</SelectItem>
+              <SelectItem value="awaiting_pickup">awaiting_pickup</SelectItem>
+              <SelectItem value="picked_up">picked_up</SelectItem>
+              <SelectItem value="in_transit">in_transit</SelectItem>
+              <SelectItem value="out_for_delivery">out_for_delivery</SelectItem>
+              <SelectItem value="delivered">delivered</SelectItem>
+              <SelectItem value="cancelled">cancelled</SelectItem>
+            </SelectContent>
+          </Select>
+          {savingStatus ? (
+            <span className="text-xs text-gray-500">Saving…</span>
+          ) : null}
+        </div>
+        <dl className="mt-4 grid gap-3 sm:grid-cols-2 text-sm">
+          <div>
+            <dt className="text-xs text-gray-500 dark:text-zinc-500">Region</dt>
+            <dd className="mt-0.5 font-medium text-gray-900 dark:text-zinc-100">
+              {regionMeta}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs text-gray-500 dark:text-zinc-500">Delivery</dt>
+            <dd className="mt-0.5 font-medium text-gray-900 dark:text-zinc-100">
+              {deliveryName}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs text-gray-500 dark:text-zinc-500">Ships from</dt>
+            <dd className="mt-0.5 font-medium text-gray-900 dark:text-zinc-100">
+              {shipsFromName && shipsFromName.length > 0
+                ? shipsFromName
+                : showMissingPalletZonePickupMessage
+                  ? "—"
+                  : "Not determined"}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs text-gray-500 dark:text-zinc-500">
+              Shipping ordered
+            </dt>
+            <dd className="mt-0.5 font-medium tabular-nums text-gray-900 dark:text-zinc-100">
+              {shippingOrderedAt
+                ? format(new Date(shippingOrderedAt), "PPp")
+                : "—"}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs text-gray-500 dark:text-zinc-500">
+              Customers / revenue (display)
+            </dt>
+            <dd className="mt-0.5 font-medium tabular-nums text-gray-900 dark:text-zinc-100">
+              {stats?.unique_users ?? 0} ·{" "}
+              {formatCurrency((stats?.total_revenue_cents ?? 0) / 100)}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs text-gray-500 dark:text-zinc-500">Created</dt>
+            <dd className="mt-0.5 font-medium tabular-nums text-gray-900 dark:text-zinc-100">
+              {new Date(pallet.created_at).toLocaleDateString()}
+            </dd>
+          </div>
+        </dl>
+      </section>
+
+      <section className="rounded-xl border border-dashed border-gray-300 bg-gray-50/50 p-5 dark:border-zinc-700 dark:bg-zinc-900/30">
+        <button
+          type="button"
+          className="flex w-full items-center justify-between gap-2 text-left"
+          onClick={() => setAdvancedOpen((v) => !v)}
+          aria-expanded={advancedOpen}
+        >
+          <div>
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
+              Advanced / legacy settings
+            </h2>
+            <p className="mt-0.5 text-xs text-gray-500 dark:text-zinc-500">
+              Legacy freight estimate, last-mile assumption, and custom completion
+              rules. Live PACT readiness uses min_bottles_to_complete.
+            </p>
+          </div>
+          <ChevronDown
+            className={cn(
+              "h-4 w-4 shrink-0 text-gray-500 transition-transform",
+              advancedOpen && "rotate-180",
+            )}
+          />
+        </button>
+        {advancedOpen ? (
+          <div className="mt-4 space-y-6">
+            <dl className="grid gap-3 sm:grid-cols-2 text-sm">
+              <div>
+                <dt className="text-xs text-gray-500 dark:text-zinc-500">
+                  Legacy pallet freight estimate (cost_cents)
+                </dt>
+                <dd className="mt-0.5 font-medium tabular-nums text-gray-900 dark:text-zinc-100">
+                  {formatCurrency(pallet.cost_cents / 100)}
+                </dd>
+                <p className="mt-0.5 text-[11px] text-gray-500">
+                  Fallback only — not used when a selected inbound quote or manual
+                  freight_target_cents exists.
+                </p>
+              </div>
+              <div>
+                <dt className="text-xs text-gray-500 dark:text-zinc-500">
+                  Legacy last-mile (last_mile_cost_cents_per_bottle)
+                </dt>
+                <dd className="mt-0.5 font-medium tabular-nums text-gray-900 dark:text-zinc-100">
+                  {pallet.last_mile_cost_cents_per_bottle != null
+                    ? `${(pallet.last_mile_cost_cents_per_bottle / 100).toFixed(2)} SEK / bottle`
+                    : "—"}
+                </dd>
+                <p className="mt-0.5 text-[11px] text-gray-500">
+                  Fallback for historical/incomplete outbound economics.
+                </p>
+              </div>
+              <div>
+                <dt className="text-xs text-gray-500 dark:text-zinc-500">
+                  Status mode
+                </dt>
+                <dd className="mt-0.5 font-medium text-gray-900 dark:text-zinc-100">
+                  {palletStatusMode}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs text-gray-500 dark:text-zinc-500">
+                  Physical capacity
+                </dt>
+                <dd className="mt-0.5 font-medium tabular-nums text-gray-900 dark:text-zinc-100">
+                  {pallet.bottle_capacity} bottles
+                </dd>
+              </div>
+            </dl>
+            <div>
+              <p className="mb-2 text-xs text-gray-500 dark:text-zinc-500">
+                Legacy/custom completion configuration. Live PACT readiness is
+                currently controlled by min_bottles_to_complete ({minToShip}
+                bottles). Profit conditions must not be treated as live readiness.
+              </p>
       {/* Completion Rules (Klaviyo-like segment builder) */}
       <Card className="rounded-lg border border-[#1F1F23] bg-[#0F0F12] p-6 shadow-none">
         <div className="flex items-start justify-between gap-4">
@@ -946,437 +1475,18 @@ export default function AdminPalletDetails({
         </div>
       </Card>
 
-      {/* Reservations */}
-      <div className="overflow-hidden rounded-lg border border-[#1F1F23] bg-[#0F0F12]">
-        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-[#1F1F23] px-5 py-4">
-            <div>
-              <h2 className="text-sm font-semibold text-zinc-100">
-                Reservations ({reservations.length})
-              </h2>
-              <p className="text-xs text-zinc-500">
-                All customer reservations for this pallet
-              </p>
-            </div>
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 text-xs text-red-400 hover:bg-red-500/10 hover:text-red-300"
-                  disabled={resettingReservations || reservations.length === 0}
-                >
-                  {resettingReservations ? "Resetting..." : "Reset reservations"}
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Reset all reservations?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This will permanently delete all reservations currently mapped
-                    to this pallet (including their line items and tracking rows).
-                    This action cannot be undone.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={resetAllReservations}
-                    className="bg-red-600 hover:bg-red-700"
-                    disabled={resettingReservations}
-                  >
-                    {resettingReservations ? "Resetting..." : "Reset"}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </div>
-        <div className="px-2 pb-2">
-          {reservations.length === 0 ? (
-            <div className="px-4 py-10 text-center text-sm text-zinc-500">
-              No reservations yet
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-[#1F1F23]">
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-zinc-500">
-                      Customer
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-zinc-500">
-                      Wines
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-zinc-500">
-                      Bottles
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-zinc-500">
-                      Status
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-zinc-500">
-                      Payment
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-zinc-500">
-                      Date
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-zinc-500">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {reservations.map((reservation) => (
-                    <tr
-                      key={reservation.id}
-                      className="border-b border-[#1F1F23] text-sm text-zinc-300 hover:bg-[#0F0F12]/50"
-                    >
-                      <td className="px-4 py-3">
-                        <div>
-                          <div className="font-medium text-zinc-100">
-                            {reservation.user_name || "Unknown"}
-                          </div>
-                          <div className="text-xs text-zinc-500">
-                            {reservation.user_email}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="max-w-[200px] px-4 py-3 text-xs text-zinc-400">
-                        {reservation.items
-                          .map((it) => `${it.wine_name} ×${it.quantity}`)
-                          .join(", ")}
-                      </td>
-                      <td className="px-4 py-3 font-medium tabular-nums text-zinc-100">
-                        {reservation.total_bottles}
-                      </td>
-                      <td className="px-4 py-3">
-                        {getStatusBadge(reservation.status)}
-                      </td>
-                      <td className="px-4 py-3">
-                        {getPaymentBadge(reservation.status)}
-                      </td>
-                      <td className="px-4 py-3 tabular-nums text-zinc-500">
-                        {new Date(reservation.created_at).toLocaleDateString()}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-1">
-                          <Link href={`/admin/b2c-orders/${reservation.id}`}>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 px-2 text-xs text-zinc-400 hover:text-zinc-100"
-                            >
-                              View
-                            </Button>
-                          </Link>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-8 px-2 text-xs text-zinc-500 hover:bg-red-500/10 hover:text-red-400"
-                                disabled={deletingReservationId === reservation.id}
-                              >
-                                {deletingReservationId === reservation.id ? "Deleting..." : "Delete"}
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Delete reservation?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  This will permanently delete this reservation and its line items.
-                                  This action cannot be undone.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => deleteReservation(reservation.id)}
-                                  className="bg-red-600 hover:bg-red-700"
-                                  disabled={deletingReservationId === reservation.id}
-                                >
-                                  Delete
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      </div>
 
-      <div className="rounded-lg border border-[#1F1F23] bg-[#0F0F12] px-5 py-5">
-        <h2 className="mb-3 text-xs font-medium uppercase tracking-widest text-zinc-500">
-          Wine allocation
-        </h2>
-        {reservations.length === 0 ? (
-          <p className="text-sm text-zinc-500">No wines yet</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-[#1F1F23]">
-                  <th className="py-2 pr-4 text-left text-xs font-medium uppercase tracking-wide text-zinc-500">
-                    Wine name
-                  </th>
-                  <th className="py-2 pr-4 text-left text-xs font-medium uppercase tracking-wide text-zinc-500">
-                    Producer
-                  </th>
-                  <th className="py-2 pr-4 text-left text-xs font-medium uppercase tracking-wide text-zinc-500">
-                    Bottles
-                  </th>
-                  <th className="py-2 text-left text-xs font-medium uppercase tracking-wide text-zinc-500">
-                    % of pallet
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {Array.from(
-                  reservations
-                    .flatMap((r) => r.items)
-                    .reduce((acc, item) => {
-                      const key = `${item.producer_name}-${item.wine_name}`;
-                      if (!acc.has(key)) {
-                        acc.set(key, {
-                          producer: item.producer_name,
-                          wine: item.wine_name,
-                          quantity: 0,
-                          price: item.price_cents,
-                        });
-                      }
-                      const existing = acc.get(key)!;
-                      existing.quantity += item.quantity;
-                      return acc;
-                    }, new Map())
-                    .values(),
-                )
-                  .sort((a, b) => b.quantity - a.quantity)
-                  .map((wine, idx) => {
-                    const cap = pallet.bottle_capacity || 1;
-                    const pct = Math.round((wine.quantity / cap) * 1000) / 10;
-                    return (
-                      <tr
-                        key={idx}
-                        className="border-b border-[#1F1F23] text-zinc-300 last:border-0"
-                      >
-                        <td className="py-2 pr-4 font-medium text-zinc-100">
-                          {wine.wine}
-                        </td>
-                        <td className="py-2 pr-4 text-zinc-400">{wine.producer}</td>
-                        <td className="py-2 pr-4 tabular-nums text-zinc-200">
-                          {wine.quantity}
-                        </td>
-                        <td className="py-2 tabular-nums text-zinc-500">
-                          {pct}%
-                        </td>
-                      </tr>
-                    );
-                  })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-        </div>
-
-        <aside className="space-y-6 lg:col-span-2 lg:sticky lg:top-6 lg:self-start">
-          <div className="rounded-lg border border-[#1F1F23] bg-[#0F0F12]">
-            <div className="border-b border-[#1F1F23] px-4 py-3">
-              <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
-                Pallet status
-              </p>
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                <span className="text-xs text-zinc-500">Auto</span>
-                <Switch
-                  checked={palletStatusMode === "manual"}
-                  onCheckedChange={(checked) =>
-                    void savePalletStatusMode(checked ? "manual" : "auto")
-                  }
-                  disabled={savingStatus}
-                />
-                <span className="text-xs text-zinc-500">Manual</span>
-                <Select
-                  value={palletStatus}
-                  onValueChange={(v) => void savePalletStatus(v)}
-                  disabled={savingStatus || palletStatusMode !== "manual"}
-                >
-                  <SelectTrigger className="h-8 w-[200px] border-[#1F1F23] bg-zinc-900 text-xs text-zinc-200">
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="open">open</SelectItem>
-                    <SelectItem value="consolidating">consolidating</SelectItem>
-                    <SelectItem value="complete">complete</SelectItem>
-                    <SelectItem value="awaiting_pickup">awaiting_pickup</SelectItem>
-                    <SelectItem value="picked_up">picked_up</SelectItem>
-                    <SelectItem value="in_transit">in_transit</SelectItem>
-                    <SelectItem value="out_for_delivery">out_for_delivery</SelectItem>
-                    <SelectItem value="delivered">delivered</SelectItem>
-                    <SelectItem value="cancelled">cancelled</SelectItem>
-                  </SelectContent>
-                </Select>
-                {savingStatus ? (
-                  <span className="text-xs text-zinc-500">Saving…</span>
-                ) : null}
-              </div>
             </div>
-            <div className="divide-y divide-[#1F1F23] px-4">
-              <div className="py-3">
-                <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
-                  Region
-                </p>
-                <p className="mt-1 text-sm font-medium text-zinc-100">
-                  {regionMeta}
-                </p>
-              </div>
-              <div className="py-3">
-                <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
-                  Delivery
-                </p>
-                <p className="mt-1 text-sm font-medium text-zinc-100">
-                  {pallet.delivery_zone?.name ?? "—"}
-                </p>
-              </div>
-              <div className="py-3">
-                <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
-                  Ships from
-                </p>
-                <p className="mt-1 text-sm font-medium text-zinc-100">
-                  {shipsFromName && shipsFromName.length > 0 ? (
-                    shipsFromName
-                  ) : showMissingPalletZonePickupMessage ? (
-                    "—"
-                  ) : (
-                    <span className="text-amber-500/90">Not determined</span>
-                  )}
-                </p>
-                {showMissingPalletZonePickupMessage ? (
-                  <p className="mt-1 text-xs text-amber-500/90">
-                    No producer marked as pallet zone has orders on this pallet yet.
-                    Mark a producer as pallet zone in producer settings.
-                  </p>
-                ) : null}
-              </div>
-              <div className="py-3">
-                <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
-                  Capacity
-                </p>
-                <p className="mt-1 text-sm font-medium tabular-nums text-zinc-100">
-                  {pallet.bottle_capacity} bottles
-                </p>
-              </div>
-              <div className="py-3">
-                <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
-                  Shipping cost
-                </p>
-                <p className="mt-1 text-sm font-medium tabular-nums text-zinc-100">
-                  {formatCurrency(pallet.cost_cents / 100)}
-                </p>
-              </div>
-              <div className="py-3">
-                <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
-                  Created
-                </p>
-                <p className="mt-1 text-sm font-medium tabular-nums text-zinc-100">
-                  {new Date(pallet.created_at).toLocaleDateString()}
-                </p>
-              </div>
-              <div className="py-3">
-                <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
-                  Shipping ordered
-                </p>
-                <p className="mt-1 text-sm font-medium tabular-nums text-zinc-100">
-                  {shippingOrderedAt
-                    ? format(new Date(shippingOrderedAt), "PPp")
-                    : "—"}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {stats ? (
-            <div className="grid grid-cols-2 gap-3 rounded-lg border border-[#1F1F23] bg-[#0F0F12] p-4">
-              <div>
-                <p className="text-[10px] font-medium uppercase tracking-wide text-zinc-500">
-                  Fill
-                </p>
-                <p className="mt-0.5 text-lg font-semibold tabular-nums text-zinc-100">
-                  {stats.percentage_filled}%
-                </p>
-              </div>
-              <div>
-                <p className="text-[10px] font-medium uppercase tracking-wide text-zinc-500">
-                  Revenue
-                </p>
-                <p className="mt-0.5 text-lg font-semibold tabular-nums text-zinc-100">
-                  {formatCurrency(stats.total_revenue_cents / 100)}
-                </p>
-              </div>
-              <div>
-                <p className="text-[10px] font-medium uppercase tracking-wide text-zinc-500">
-                  Customers
-                </p>
-                <p className="mt-0.5 text-lg font-semibold tabular-nums text-zinc-100">
-                  {stats.unique_users}
-                </p>
-              </div>
-              <div>
-                <p className="text-[10px] font-medium uppercase tracking-wide text-zinc-500">
-                  Wine SKUs
-                </p>
-                <p className="mt-0.5 text-lg font-semibold tabular-nums text-zinc-100">
-                  {stats.unique_wines}
-                </p>
-              </div>
-            </div>
-          ) : null}
-
-          <div className="flex flex-col gap-2">
-            {palletStatusAllowsOrderShipping() ? (
-              <Button
-                type="button"
-                size="sm"
-                disabled={orderingShipping}
-                onClick={() => void handleOrderShipping()}
-                className="h-9 w-full bg-amber-600 text-xs font-medium text-white hover:bg-amber-500"
-              >
-                {orderingShipping ? "Ordering…" : "Order Shipping"}
-              </Button>
-            ) : null}
-            {palletStatusIsShippingOrdered ? (
-              <button
-                type="button"
-                disabled={revertingShipping}
-                onClick={() => void handleRevertShipping()}
-                className="text-xs text-amber-500 hover:text-amber-400 underline underline-offset-2 mt-2 disabled:opacity-50 text-left"
-              >
-                Revert to open
-              </button>
-            ) : null}
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-9 border-[#1F1F23] bg-transparent text-xs text-zinc-200 hover:bg-zinc-900"
-              onClick={() => router.push(`/admin/pallets/${palletId}/edit`)}
-            >
-              <Edit className="mr-2 h-3.5 w-3.5" />
-              Edit pallet
-            </Button>
-            <div className="pt-1 [&>button]:h-8 [&>button]:w-full [&>button]:justify-center [&>button]:border-0 [&>button]:bg-transparent [&>button]:text-xs [&>button]:font-normal [&>button]:text-red-400 [&>button]:shadow-none [&>button]:hover:bg-red-500/10 [&>button]:hover:text-red-300">
+            <div className="pt-2">
               <DeletePalletButton
                 palletId={palletId}
                 palletName={pallet.name}
-                onDeleted={() => router.push("/admin/pallets")}
+                onDeleted={() => router.push("/admin/pallets?tab=pact")}
               />
             </div>
           </div>
-        </aside>
-      </div>
+        ) : null}
+      </section>
     </div>
   );
 }

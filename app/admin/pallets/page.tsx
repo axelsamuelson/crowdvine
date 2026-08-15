@@ -4,18 +4,10 @@ import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Package,
-  CheckCircle,
-  Wine,
-  AlertCircle,
-  Plus,
-  ChevronDown,
-  Truck,
-} from "lucide-react";
+import { Package, AlertCircle, Plus, ChevronDown, Truck } from "lucide-react";
 import Link from "next/link";
-import { DeletePalletButton } from "@/components/admin/delete-pallet-button";
 import { DeleteB2BPalletButton } from "@/components/admin/delete-b2b-pallet-button";
+import { PactPalletListCard } from "@/components/admin/pact-pallet-list-card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   collectCurrenciesNeedingRates,
@@ -30,7 +22,7 @@ import {
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { sv } from "date-fns/locale";
-import { toast } from "sonner";
+import type { AdminPalletOperatingSummary } from "@/lib/admin-pallet-operating-summary";
 
 interface PalletZone {
   id: string;
@@ -106,6 +98,8 @@ interface Pallet {
     hasIncompleteSnapshots: boolean;
     bottlesWithSnapshot: number;
   };
+  /** Phase 2D canonical operating summary (list + detail share this). */
+  operating_summary?: AdminPalletOperatingSummary | null;
 }
 
 interface B2BShipmentItem {
@@ -150,12 +144,6 @@ export default function PalletsPage() {
     SEK: 1,
   });
   const [error, setError] = useState("");
-  const [orderingShippingPalletId, setOrderingShippingPalletId] = useState<
-    string | null
-  >(null);
-  const [revertingShippingPalletId, setRevertingShippingPalletId] = useState<
-    string | null
-  >(null);
 
   useEffect(() => {
     const fetchPallets = async () => {
@@ -211,127 +199,6 @@ export default function PalletsPage() {
     };
     fetchB2b();
   }, [activeTab, searchParams.toString()]);
-
-  const formatPrice = (priceCents: number) => {
-    return new Intl.NumberFormat("sv-SE", {
-      style: "currency",
-      currency: "SEK",
-    }).format(priceCents / 100);
-  };
-
-  const getStatusText = (pallet: Pallet) => {
-    if (pallet.is_complete) return "Complete";
-    if (pallet.completion_percentage >= 75) return "Nearly Full";
-    if (pallet.completion_percentage >= 50) return "In Progress";
-    return "Needs Orders";
-  };
-
-  const fillBarClass = (pct: number) => {
-    if (pct > 80) return "bg-emerald-500";
-    if (pct >= 30) return "bg-blue-500";
-    return "bg-amber-500";
-  };
-
-  const statusPillClass = (pallet: Pallet) => {
-    if (pallet.is_complete) {
-      return "bg-emerald-500/15 text-emerald-400 border border-emerald-500/25";
-    }
-    return "bg-zinc-800 text-zinc-300 border border-[#1F1F23]";
-  };
-
-  const palletStatusAllowsOrderShipping = (pallet: Pallet) => {
-    const raw = pallet.status;
-    const s =
-      raw !== null && raw !== undefined ? String(raw).toLowerCase() : "";
-    return (
-      (s === "open" || s === "consolidating") &&
-      pallet.total_booked_bottles > 0
-    );
-  };
-
-  const palletStatusIsShippingOrdered = (pallet: Pallet) =>
-    String(pallet.status ?? "").toLowerCase().trim() === "shipping_ordered";
-
-  const handleOrderShipping = async (palletId: string) => {
-    const confirmed = window.confirm(
-      "Are you sure? This will charge all customers with saved cards on this pallet. This cannot be undone.",
-    );
-    if (!confirmed) return;
-
-    setOrderingShippingPalletId(palletId);
-    try {
-      const res = await fetch(`/api/admin/pallets/${palletId}/order-shipping`, {
-        method: "POST",
-      });
-      const data: unknown = await res.json().catch(() => null);
-      const errMsg =
-        data &&
-        typeof data === "object" &&
-        "error" in data &&
-        typeof (data as { error: unknown }).error === "string"
-          ? (data as { error: string }).error
-          : "Request failed";
-
-      if (!res.ok) {
-        toast.error(errMsg);
-        return;
-      }
-
-      toast.success("Shipping ordered. Customers are being charged.");
-      const refresh = await fetch("/api/admin/pallets");
-      if (refresh.ok) {
-        const list: unknown = await refresh.json();
-        if (Array.isArray(list)) {
-          setPallets(list as Pallet[]);
-        }
-      }
-    } catch {
-      toast.error("Request failed");
-    } finally {
-      setOrderingShippingPalletId(null);
-    }
-  };
-
-  const handleRevertShipping = async (palletId: string) => {
-    const confirmed = window.confirm(
-      "Revert shipping order? The pallet will return to open status and customers can place new reservations at the setup_intent rate.",
-    );
-    if (!confirmed) return;
-
-    setRevertingShippingPalletId(palletId);
-    try {
-      const res = await fetch(
-        `/api/admin/pallets/${palletId}/revert-shipping`,
-        { method: "POST" },
-      );
-      const data: unknown = await res.json().catch(() => null);
-      const errMsg =
-        data &&
-        typeof data === "object" &&
-        "error" in data &&
-        typeof (data as { error: unknown }).error === "string"
-          ? (data as { error: string }).error
-          : "Request failed";
-
-      if (!res.ok) {
-        toast.error(errMsg);
-        return;
-      }
-
-      toast.success("Pallet reverted to open");
-      const refresh = await fetch("/api/admin/pallets");
-      if (refresh.ok) {
-        const list: unknown = await refresh.json();
-        if (Array.isArray(list)) {
-          setPallets(list as Pallet[]);
-        }
-      }
-    } catch {
-      toast.error("Request failed");
-    } finally {
-      setRevertingShippingPalletId(null);
-    }
-  };
 
   const handlePalletDeleted = () => {
     // Refresh the pallet list
@@ -426,39 +293,6 @@ export default function PalletsPage() {
     window.history.replaceState({}, "", url.toString());
   };
 
-  const stats = [
-    {
-      label: "TOTAL PALLETS",
-      value: pallets.length,
-      bar: "border-l-zinc-400",
-      icon: Package,
-      description: "Aktiva pallar",
-    },
-    {
-      label: "COMPLETE",
-      value: pallets.filter((p) => p.is_complete).length,
-      bar: "border-l-emerald-500",
-      icon: CheckCircle,
-      description: "Klara att skicka",
-    },
-    {
-      label: "TOTAL BOTTLES",
-      value: pallets.reduce((s, p) => s + (p.total_booked_bottles ?? 0), 0),
-      bar: "border-l-violet-500",
-      icon: Wine,
-      description: "Reserverade flaskor",
-    },
-    {
-      label: "NEEDS ORDERING",
-      value: pallets.filter((p) => p.needs_ordering).length,
-      bar: "border-l-amber-500",
-      icon: AlertCircle,
-      description: "Inväntar beställning",
-    },
-  ];
-
-  const pactLayoutWide = pallets.length > 0 && pallets.length < 3;
-
   return (
     <div className="space-y-10">
       <div className="flex justify-between items-start gap-4">
@@ -495,431 +329,33 @@ export default function PalletsPage() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="pact" className="mt-10 space-y-10">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {stats.map((stat) => (
-              <div
-                key={stat.label}
-                className={`bg-[#0F0F12] rounded-xl p-5 border border-[#1F1F23] border-l-[3px] ${stat.bar}`}
-              >
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="rounded-lg bg-zinc-800 p-2">
-                    <stat.icon className="h-4 w-4 text-zinc-400" />
-                  </div>
-                  <p className="text-xs uppercase tracking-widest text-zinc-500">
-                    {stat.label}
-                  </p>
-                </div>
-                <p className="text-3xl font-semibold tabular-nums text-zinc-100 mb-1">
-                  {stat.value}
-                </p>
-                <p className="text-xs text-zinc-500">{stat.description}</p>
-              </div>
-            ))}
-          </div>
-
-          <div
-            className={
-              pactLayoutWide
-                ? "flex flex-col gap-4"
-                : "grid gap-4 md:grid-cols-2 lg:grid-cols-3"
-            }
-          >
-            {pallets.map((pallet) => {
-              const delivery = pallet.delivery_zone?.name ?? "—";
-              const origin =
-                pallet.shipping_region?.name ??
-                pallet.pickup_zone?.name ??
-                "—";
-              const pct = pallet.completion_percentage;
-              const fillClass = fillBarClass(pct);
-              const cardInner =
-                pactLayoutWide ? (
-                  <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between lg:gap-10">
-                    <div className="min-w-0 flex-1 space-y-3">
-                      <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-2">
-                        <div className="flex flex-wrap items-center gap-2 min-w-0">
-                          <h3 className="text-sm font-semibold text-zinc-100 truncate">
-                            {pallet.name}
-                          </h3>
-                          {pallet.pallet_type === "region_based" ? (
-                            <span className="text-[9px] font-medium uppercase tracking-wide bg-violet-500/10 text-violet-400 border border-violet-500/20 rounded px-1.5 py-0.5 shrink-0">
-                              Auto
-                            </span>
-                          ) : null}
-                        </div>
-                        <span
-                          className={`inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium shrink-0 ${statusPillClass(pallet)}`}
-                        >
-                          {getStatusText(pallet)}
-                        </span>
-                      </div>
-                      <p className="text-xs text-zinc-400 tabular-nums">
-                        <span className="text-zinc-300">{delivery}</span>
-                        <span className="mx-1.5 text-zinc-600">→</span>
-                        <span className="text-zinc-300">{origin}</span>
-                      </p>
-                      {pallet.current_pickup_producer?.name ||
-                      pallet.shipping_region_id ||
-                      pallet.shipping_region?.id ? (
-                        <>
-                          <p className="text-xs text-zinc-400">
-                            Ships from{" "}
-                            <span className="font-medium text-zinc-200">
-                              {pallet.current_pickup_producer?.name ?? "—"}
-                            </span>
-                          </p>
-                          {(pallet.needs_pallet_zone === true ||
-                            pallet.pickup_is_fallback === true) && (
-                            <p className="text-xs text-amber-500 mt-0.5">
-                              ⚠ No pallet zone producer has orders yet
-                            </p>
-                          )}
-                        </>
-                      ) : null}
-                      {palletStatusIsShippingOrdered(pallet) ||
-                      (typeof pallet.shipping_ordered_at === "string" &&
-                        pallet.shipping_ordered_at.length > 0) ? (
-                        <div className="space-y-1">
-                          {typeof pallet.shipping_ordered_at === "string" &&
-                          pallet.shipping_ordered_at.length > 0 ? (
-                            <p className="text-xs font-medium text-amber-400/90">
-                              Shipping ordered:{" "}
-                              {format(
-                                new Date(pallet.shipping_ordered_at),
-                                "PPp",
-                                { locale: sv },
-                              )}
-                            </p>
-                          ) : null}
-                          {palletStatusIsShippingOrdered(pallet) ? (
-                            <button
-                              type="button"
-                              onClick={() =>
-                                void handleRevertShipping(pallet.id)
-                              }
-                              disabled={
-                                revertingShippingPalletId === pallet.id
-                              }
-                              className="text-xs text-amber-500 hover:text-amber-400 underline underline-offset-2 disabled:opacity-50"
-                            >
-                              Revert to open
-                            </button>
-                          ) : null}
-                        </div>
-                      ) : null}
-                    </div>
-                    <div className="shrink-0 w-full lg:w-44 space-y-2">
-                      <p className="text-2xl font-semibold tabular-nums text-zinc-100">
-                        {pct.toFixed(0)}%
-                      </p>
-                      <div className="h-0.5 w-full bg-[#1F1F23] rounded-full overflow-hidden">
-                        <div
-                          className={`h-full rounded-full transition-all ${fillClass}`}
-                          style={{
-                            width: `${Math.min(100, Math.max(0, pct))}%`,
-                          }}
-                        />
-                      </div>
-                      <p className="text-xs text-zinc-500 tabular-nums">
-                        {pallet.total_booked_bottles} /{" "}
-                        {pallet.min_bottles_to_complete ?? 120} to ship
-                        <span className="text-zinc-600">
-                          {" "}
-                          · cap {pallet.bottle_capacity}
-                        </span>
-                      </p>
-                      {pallet.shadow_contribution ? (
-                        <p
-                          className={`text-[11px] tabular-nums ${
-                            pallet.shadow_contribution.isEconomicallyReady
-                              ? "text-emerald-500/90"
-                              : "text-zinc-500"
-                          }`}
-                          title="Shadow contribution readiness — does not control live completion"
-                        >
-                          Freight funded{" "}
-                          {pallet.shadow_contribution.freightFundedPercent.toFixed(
-                            0,
-                          )}
-                          %
-                          {pallet.shadow_contribution
-                            .estimatedBottlesRemaining != null
-                            ? ` · ~${pallet.shadow_contribution.estimatedBottlesRemaining} btls econ.`
-                            : ""}
-                          {pallet.shadow_contribution.hasIncompleteSnapshots
-                            ? " · partial snap"
-                            : ""}
-                        </p>
-                      ) : null}
-                    </div>
-                    <div className="shrink-0 flex flex-col gap-3 lg:items-end lg:text-right min-w-[10rem]">
-                      {pallet.wine_summary.length > 0 ? (
-                        <details className="group text-left lg:text-right">
-                          <summary className="flex cursor-pointer list-none items-center gap-1 text-xs text-zinc-400 lg:ml-auto [&::-webkit-details-marker]:hidden">
-                            <ChevronDown className="h-3.5 w-3.5 shrink-0 text-zinc-500 transition-transform group-open:rotate-180" />
-                            <span className="tabular-nums">
-                              {pallet.wine_summary.length} wine types
-                            </span>
-                          </summary>
-                          <ul className="mt-2 space-y-0.5 text-xs text-zinc-500 lg:text-right">
-                            {pallet.wine_summary.map((wine, index) => (
-                              <li key={index}>
-                                {wine.wine_name} {wine.vintage} ·{" "}
-                                {wine.total_quantity} st
-                              </li>
-                            ))}
-                          </ul>
-                        </details>
-                      ) : null}
-                      <div className="flex flex-col gap-2 w-full lg:w-auto lg:min-w-[11rem]">
-                        {palletStatusAllowsOrderShipping(pallet) ? (
-                          <Button
-                            type="button"
-                            size="sm"
-                            disabled={orderingShippingPalletId === pallet.id}
-                            onClick={() => void handleOrderShipping(pallet.id)}
-                            className="h-8 w-full text-xs font-medium bg-amber-600 text-white hover:bg-amber-500 border-0 shadow-none"
-                          >
-                            {orderingShippingPalletId === pallet.id
-                              ? "Ordering…"
-                              : "Order Shipping"}
-                          </Button>
-                        ) : null}
-                        <div className="flex flex-wrap gap-1 justify-start lg:justify-end">
-                          <Button
-                            asChild
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 px-2 text-xs text-zinc-400 hover:text-zinc-100"
-                          >
-                            <Link href={`/admin/pallets/${pallet.id}`}>
-                              Details
-                            </Link>
-                          </Button>
-                          <Button
-                            asChild
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 px-2 text-xs text-zinc-400 hover:text-zinc-100"
-                          >
-                            <Link href={`/admin/pallets/${pallet.id}`}>
-                              Edit
-                            </Link>
-                          </Button>
-                          <span className="inline-flex [&>button]:h-8 [&>button]:w-8 [&>button]:p-0 [&>button]:text-xs [&>button]:border-0 [&>button]:bg-transparent [&>button]:text-zinc-500 [&>button]:shadow-none [&>button]:hover:text-red-400 [&>button]:hover:bg-red-500/10">
-                            <DeletePalletButton
-                              palletId={pallet.id}
-                              palletName={pallet.name}
-                              onDeleted={handlePalletDeleted}
-                            />
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex flex-wrap items-center gap-2 min-w-0">
-                        <h3 className="text-sm font-semibold text-zinc-100 truncate">
-                          {pallet.name}
-                        </h3>
-                        {pallet.pallet_type === "region_based" ? (
-                          <span className="text-[9px] font-medium uppercase tracking-wide bg-violet-500/10 text-violet-400 border border-violet-500/20 rounded px-1.5 py-0.5 shrink-0">
-                            Auto
-                          </span>
-                        ) : null}
-                      </div>
-                      <span
-                        className={`inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium shrink-0 ${statusPillClass(pallet)}`}
-                      >
-                        {getStatusText(pallet)}
-                      </span>
-                    </div>
-                    <div>
-                      <p className="text-2xl font-semibold tabular-nums text-zinc-100">
-                        {pct.toFixed(0)}%
-                      </p>
-                      <div className="mt-2 h-0.5 w-full bg-[#1F1F23] rounded-full overflow-hidden">
-                        <div
-                          className={`h-full rounded-full ${fillClass}`}
-                          style={{
-                            width: `${Math.min(100, Math.max(0, pct))}%`,
-                          }}
-                        />
-                      </div>
-                      <p className="mt-2 text-xs text-zinc-500 tabular-nums">
-                        {pallet.total_booked_bottles} /{" "}
-                        {pallet.min_bottles_to_complete ?? 120} to ship
-                        <span className="text-zinc-600">
-                          {" "}
-                          · cap {pallet.bottle_capacity}
-                        </span>
-                      </p>
-                      {pallet.shadow_contribution ? (
-                        <p
-                          className={`mt-1 text-[11px] tabular-nums ${
-                            pallet.shadow_contribution.isEconomicallyReady
-                              ? "text-emerald-500/90"
-                              : "text-zinc-500"
-                          }`}
-                          title="Shadow contribution readiness — does not control live completion"
-                        >
-                          Freight funded{" "}
-                          {pallet.shadow_contribution.freightFundedPercent.toFixed(
-                            0,
-                          )}
-                          %
-                          {pallet.shadow_contribution
-                            .estimatedBottlesRemaining != null
-                            ? ` · ~${pallet.shadow_contribution.estimatedBottlesRemaining} btls econ.`
-                            : ""}
-                        </p>
-                      ) : null}
-                    </div>
-                    <p className="text-xs text-zinc-400 tabular-nums">
-                      <span className="text-zinc-300">{delivery}</span>
-                      <span className="mx-1.5 text-zinc-600">→</span>
-                      <span className="text-zinc-300">{origin}</span>
-                    </p>
-                    {pallet.current_pickup_producer?.name ||
-                    pallet.shipping_region_id ||
-                    pallet.shipping_region?.id ? (
-                      <>
-                        <p className="text-xs text-zinc-400">
-                          Ships from{" "}
-                          <span className="font-medium text-zinc-200">
-                            {pallet.current_pickup_producer?.name ?? "—"}
-                          </span>
-                        </p>
-                        {(pallet.needs_pallet_zone === true ||
-                          pallet.pickup_is_fallback === true) && (
-                          <p className="text-xs text-amber-500 mt-0.5">
-                            ⚠ No pallet zone producer has orders yet
-                          </p>
-                        )}
-                      </>
-                    ) : null}
-                    {palletStatusIsShippingOrdered(pallet) ||
-                    (typeof pallet.shipping_ordered_at === "string" &&
-                      pallet.shipping_ordered_at.length > 0) ? (
-                      <div className="space-y-1">
-                        {typeof pallet.shipping_ordered_at === "string" &&
-                        pallet.shipping_ordered_at.length > 0 ? (
-                          <p className="text-xs font-medium text-amber-400/90">
-                            Shipping ordered:{" "}
-                            {format(
-                              new Date(pallet.shipping_ordered_at),
-                              "PPp",
-                              { locale: sv },
-                            )}
-                          </p>
-                        ) : null}
-                        {palletStatusIsShippingOrdered(pallet) ? (
-                          <button
-                            type="button"
-                            onClick={() => void handleRevertShipping(pallet.id)}
-                            disabled={revertingShippingPalletId === pallet.id}
-                            className="text-xs text-amber-500 hover:text-amber-400 underline underline-offset-2 disabled:opacity-50"
-                          >
-                            Revert to open
-                          </button>
-                        ) : null}
-                      </div>
-                    ) : null}
-                    {pallet.wine_summary.length > 0 ? (
-                      <details className="group border-t border-[#1F1F23] pt-3">
-                        <summary className="flex cursor-pointer list-none items-center gap-1 text-xs text-zinc-400 [&::-webkit-details-marker]:hidden">
-                          <ChevronDown className="h-3.5 w-3.5 text-zinc-500 transition-transform group-open:rotate-180" />
-                          <span className="tabular-nums">
-                            {pallet.wine_summary.length} wine types
-                          </span>
-                        </summary>
-                        <ul className="mt-2 space-y-0.5 text-xs text-zinc-500">
-                          {pallet.wine_summary.map((wine, index) => (
-                            <li key={index}>
-                              {wine.wine_name} {wine.vintage} ·{" "}
-                              {wine.total_quantity} st
-                            </li>
-                          ))}
-                        </ul>
-                      </details>
-                    ) : null}
-                    <div className="flex flex-col gap-2 pt-3 border-t border-[#1F1F23]">
-                      {palletStatusAllowsOrderShipping(pallet) ? (
-                        <Button
-                          type="button"
-                          size="sm"
-                          disabled={orderingShippingPalletId === pallet.id}
-                          onClick={() => void handleOrderShipping(pallet.id)}
-                          className="h-8 w-full text-xs font-medium bg-amber-600 text-white hover:bg-amber-500 border-0 shadow-none"
-                        >
-                          {orderingShippingPalletId === pallet.id
-                            ? "Ordering…"
-                            : "Order Shipping"}
-                        </Button>
-                      ) : null}
-                      <div className="flex flex-wrap gap-1">
-                        <Button
-                          asChild
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 px-2 text-xs text-zinc-400 hover:text-zinc-100"
-                        >
-                          <Link href={`/admin/pallets/${pallet.id}`}>
-                            Details
-                          </Link>
-                        </Button>
-                        <Button
-                          asChild
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 px-2 text-xs text-zinc-400 hover:text-zinc-100"
-                        >
-                          <Link href={`/admin/pallets/${pallet.id}`}>
-                            Edit
-                          </Link>
-                        </Button>
-                        <span className="inline-flex [&>button]:h-8 [&>button]:w-8 [&>button]:p-0 [&>button]:text-xs [&>button]:border-0 [&>button]:bg-transparent [&>button]:text-zinc-500 [&>button]:shadow-none [&>button]:hover:text-red-400 [&>button]:hover:bg-red-500/10">
-                          <DeletePalletButton
-                            palletId={pallet.id}
-                            palletName={pallet.name}
-                            onDeleted={handlePalletDeleted}
-                          />
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                );
-
-              return (
-                <div
-                  key={pallet.id}
-                  className="bg-[#0F0F12] rounded-xl border border-[#1F1F23] p-5"
-                >
-                  {cardInner}
-                </div>
-              );
-            })}
-          </div>
-
-          {pallets.length === 0 && (
-            <div className="bg-[#0F0F12] rounded-lg p-12 border border-[#1F1F23] flex flex-col items-center justify-center">
-              <Package className="h-14 w-14 mx-auto mb-4 text-zinc-600" />
-              <h3 className="text-sm font-semibold text-zinc-100 mb-1">
+        <TabsContent value="pact" className="mt-6 space-y-6">
+          {pallets.length === 0 ? (
+            <div className="bg-white dark:bg-[#0F0F12] rounded-xl p-12 border border-gray-200 dark:border-[#1F1F23] flex flex-col items-center justify-center">
+              <Package className="h-14 w-14 mx-auto mb-4 text-gray-400 dark:text-zinc-600" />
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-zinc-100 mb-1">
                 No pallets found
               </h3>
-              <p className="text-xs text-zinc-500 mb-4 text-center max-w-sm">
+              <p className="text-xs text-gray-500 dark:text-zinc-500 mb-4 text-center max-w-sm">
                 Create your first pallet to manage wine allocations and track
-                bottle capacity.
+                ship readiness.
               </p>
               <Link
                 href="/admin/pallets/new"
-                className="text-xs text-zinc-400 hover:text-zinc-200 underline underline-offset-2"
+                className="text-xs text-gray-500 dark:text-zinc-400 hover:text-gray-800 dark:hover:text-zinc-200 underline underline-offset-2"
               >
                 + Add pallet
               </Link>
+            </div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {pallets.map((pallet) => (
+                <PactPalletListCard
+                  key={pallet.id}
+                  pallet={pallet}
+                  onDeleted={handlePalletDeleted}
+                />
+              ))}
             </div>
           )}
         </TabsContent>

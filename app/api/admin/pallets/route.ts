@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/admin-auth-server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { PALLET_FILL_STATUSES } from "@/lib/pallet-fill-count";
-import { computePalletContributionProgress } from "@/lib/pallet-contribution";
+import { buildAdminPalletOperatingSummaries } from "@/lib/admin-pallet-operating-summary";
 
 type WineSummaryRow = {
   wine_name: string;
@@ -40,6 +41,7 @@ type ItemRow = {
 
 export async function GET() {
   try {
+    await requireAdmin();
     const sb = getSupabaseAdmin();
 
     const { data, error } = await sb
@@ -263,23 +265,6 @@ export async function GET() {
       }
     }
 
-    const selectedQuoteSekByPalletId = new Map<string, number>();
-    if (palletIds.length > 0) {
-      const { data: selectedQuotes } = await sb
-        .from("pallet_freight_quotes")
-        .select("pallet_id, total_cost_sek_cents")
-        .in("pallet_id", palletIds)
-        .eq("selected", true)
-        .eq("economically_usable", true);
-      for (const q of selectedQuotes ?? []) {
-        const pid = String(q.pallet_id);
-        const sek = Number(q.total_cost_sek_cents);
-        if (Number.isFinite(sek) && sek > 0) {
-          selectedQuoteSekByPalletId.set(pid, Math.round(sek));
-        }
-      }
-    }
-
     const transformedData = pallets.map((pallet) => {
       const id = String(pallet.id);
       const cap = Number(pallet.bottle_capacity) || 0;
@@ -292,22 +277,6 @@ export async function GET() {
           ? Math.min(100, (totalBookedBottles / minToShip) * 100)
           : 0;
       const wineSummary = wineAggByPalletId.get(id) ?? {};
-      const shadowContribution = computePalletContributionProgress({
-        bottlesFilled: totalBookedBottles,
-        bottlesWithSnapshot: snapshotBottlesByPalletId.get(id) ?? 0,
-        accumulatedContributionCents: contributionByPalletId.get(id) ?? 0,
-        freightTargetCents: (() => {
-          const override = Number(pallet.freight_target_cents);
-          if (Number.isFinite(override) && override > 0) {
-            return Math.round(override);
-          }
-          const quoteSek = selectedQuoteSekByPalletId.get(id);
-          if (quoteSek != null && quoteSek > 0) return quoteSek;
-          return Number(pallet.cost_cents) || 0;
-        })(),
-        minBottlesToShip: minToShip,
-        physicalBottleCapacity: cap,
-      });
 
       const shippingRegionId = pallet.shipping_region_id;
       const pallet_type: "region_based" | "zone_based" =
@@ -343,21 +312,63 @@ export async function GET() {
         wine_summary: Object.values(wineSummary),
         is_complete: totalBookedBottles >= minToShip,
         needs_ordering: remainingToShip > 0,
-        /** Phase 2 shadow only — does not control live completion. */
-        shadow_contribution: shadowContribution,
         pickup_is_fallback,
         needs_pallet_zone,
       };
     });
 
-    return NextResponse.json(transformedData);
+    const operatingById = await buildAdminPalletOperatingSummaries(
+      transformedData as Record<string, unknown>[],
+    );
+
+    const withOperating = transformedData.map((row) => {
+      const id = String(row.id);
+      const operating_summary = operatingById.get(id);
+      const shadow = operating_summary?.economics;
+      return {
+        ...row,
+        operating_summary: operating_summary ?? null,
+        shadow_contribution: shadow
+          ? {
+              bottlesFilled: operating_summary!.bottlesFilled,
+              bottlesWithSnapshot: shadow.bottlesWithSnapshot,
+              accumulatedContributionCents: shadow.accumulatedContributionCents,
+              freightTargetCents: shadow.freightTargetCents,
+              remainingContributionCents: shadow.remainingContributionCents,
+              freightFundedPercent: shadow.freightFundedPercent,
+              expectedContributionPerBottleCents:
+                shadow.bottlesWithSnapshot > 0
+                  ? Math.round(
+                      shadow.accumulatedContributionCents /
+                        shadow.bottlesWithSnapshot,
+                    )
+                  : null,
+              estimatedBottlesRemaining: shadow.estimatedBottlesRemaining,
+              isEconomicallyReady: shadow.isEconomicallyReady,
+              currentBottleRuleReady: operating_summary!.isReadyToShip,
+              hasIncompleteSnapshots: shadow.hasIncompleteSnapshots,
+            }
+          : null,
+      };
+    });
+
+    return NextResponse.json(withOperating);
   } catch (error) {
+    const msg = error instanceof Error ? error.message : "Unexpected error";
+    if (msg.includes("Admin authentication")) {
+      return NextResponse.json({ error: msg }, { status: 401 });
+    }
     console.error("Unexpected error in pallets API:", error);
     return NextResponse.json([]);
   }
 }
 
 export async function POST(request: NextRequest) {
+  try {
+    await requireAdmin();
+  } catch {
+    return NextResponse.json({ error: "Admin authentication required" }, { status: 401 });
+  }
   const sb = getSupabaseAdmin();
   const body = await request.json();
 
