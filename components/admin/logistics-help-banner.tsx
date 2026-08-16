@@ -23,8 +23,8 @@ const layers = [
   {
     href: "/admin/freight",
     icon: Truck,
-    title: "Inbound freight",
-    body: "Providers, rate cards, surcharges — Hillebrand and future carriers.",
+    title: "Fraktalternativ",
+    body: "Inbound- och outbound-leverantörer, rate cards, surcharges och förpackningar.",
   },
   {
     href: "/admin/pallets",

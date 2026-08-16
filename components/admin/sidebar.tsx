@@ -91,6 +91,7 @@ const navigationGroups: NavGroup[] = [
     items: [
       { name: "Vinzoner & leverans", href: "/admin/geo-zones", icon: Globe2 },
       { name: "Fraktregioner", href: "/admin/shipping-regions", icon: Truck },
+      { name: "Fraktalternativ", href: "/admin/freight", icon: Truck },
       { name: "Upphämtningszoner", href: "/admin/zones", icon: MapPin },
       { name: "Pallar", href: "/admin/pallets", icon: Package },
     ],

@@ -260,7 +260,7 @@ export function PalletInboundFreightPanel({ palletId }: { palletId: string }) {
           href="/admin/freight"
           className="text-xs text-zinc-400 underline underline-offset-2 hover:text-zinc-200"
         >
-          Manage catalogue
+          Fraktalternativ
         </a>
       </div>
 
