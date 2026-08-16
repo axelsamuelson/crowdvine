@@ -5,9 +5,9 @@ Parent: Phase 2C (`bcad930a`) + status/CI baseline (`26b1233f`)
 
 ## Result of this phase
 
-**BLOCKED** for production packaging mutation: no authoritative outer dimensions or tare weight for `WINE_BOX_6` found in repo, docs, PDFs, supplier sheets, or production DB.
+Packaging outer dimensions configured from ops (2026-08-15): **264 × 171 × 335 mm** → `0.264 × 0.171 × 0.335` m on `WINE_BOX_6`.
 
-Code/docs/tests hardened so incomplete pricing stays explicit and fail-safe.
+`tare_weight_kg` remains **NULL** (unknown; not required for current `VOLUMETRIC_WEIGHT` Instabee basis).
 
 ## Packaging profile
 
@@ -16,16 +16,15 @@ Code/docs/tests hardened so incomplete pricing stays explicit and fail-safe.
 | code | `WINE_BOX_6` | VERIFIED |
 | max_bottles | 6 | VERIFIED (seed) |
 | min_bottles | 1 | VERIFIED |
-| length_m / width_m / height_m | **NULL** | UNKNOWN — not inventable |
-| tare_weight_kg | **NULL** | UNKNOWN — not inventable |
+| length_m / width_m / height_m | **0.264 / 0.171 / 0.335** (264×171×335 mm) | VERIFIED — ops-provided 2026-08-15 |
+| tare_weight_kg | **NULL** | UNKNOWN |
 | supplier / SKU | — | UNKNOWN |
 
-### What is needed from ops
+### What is still needed from ops
 
-1. Outer carton L × W × H (shipping exterior, not internal cells)
-2. Empty carton tare kg (state whether dividers/inserts included)
-3. Supplier product sheet / invoice / measured PACT record with date
-4. Confirmation this is the carton used for Instabee Home parcels
+1. Empty carton tare kg (state whether dividers/inserts included) — optional for current volumetric-only pricing
+2. Supplier product sheet / invoice / measured PACT record with date (provenance for the mm values above)
+3. Confirmation this is the carton used for Instabee Home parcels
 
 ## Instabee Home Delivery evidence
 
@@ -76,16 +75,17 @@ Locker-only / locker-section material must not be applied as verified Home rules
 
 ## Production configuration mutation
 
-**None** for packaging dimensions/tare.  
-Migration `198_outbound_instabee_provenance_notes.sql` only updates **notes** text on placeholder profile + Instabee rate.
+Migration `199_wine_box_6_outer_dimensions.sql` sets outer L×W×H from ops mm values.  
+`tare_weight_kg` unchanged (NULL).
 
 ## Remaining blockers
 
-1. Authoritative WINE_BOX_6 outer dims + tare
+1. ~~Authoritative WINE_BOX_6 outer dims~~ → set 264×171×335 mm
 2. Verified Home Delivery volumetric factor (or confirm 280)
 3. Tax/VAT basis for 79 SEK
 4. Replacement rate after 2026-08-18
 5. Product gross bottle weights if switching to actual / max(actual, vol)
+6. Optional: tare_weight_kg when/if pricing uses actual weight
 
 ## Non-goals preserved
 

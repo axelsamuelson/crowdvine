@@ -10,11 +10,7 @@ import { getQuizWines } from "@/lib/taste-quiz/get-quiz-wines";
 import { getShoppingContextFromRequest } from "@/lib/shopping-context/server";
 import { fallbackShoppingContext } from "@/lib/shopping-context/defaults";
 import type { Metadata } from "next";
-import {
-  getCollectionProducts,
-  getCollections,
-  getProducts,
-} from "@/lib/shopify";
+import { getCollections, getProducts } from "@/lib/shopify";
 import { getLabelPosition } from "../lib/utils";
 import { Product } from "../lib/shopify/types";
 import { headers } from "next/headers";
@@ -56,51 +52,48 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function Home() {
-  const [h, config] = await Promise.all([headers(), getSiteConfig()]);
+  const [h, config, shoppingContext] = await Promise.all([
+    headers(),
+    getSiteConfig(),
+    getShoppingContextFromRequest().catch(() => fallbackShoppingContext()),
+  ]);
   const host = h.get("x-forwarded-host") ?? h.get("host");
-  const shoppingContext = await getShoppingContextFromRequest().catch(() =>
-    fallbackShoppingContext(),
-  );
   const productCurrencyParams = {
     displayCurrencyCode: shoppingContext.currencyCode,
     sekToDisplayRate: shoppingContext.sekToDisplayRate,
   };
 
-  let collections = [];
-  try {
-    collections = await getCollections();
-  } catch (error) {
-    console.warn("Failed to fetch collections in home page:", error);
-    collections = [];
-  }
+  const [
+    collections,
+    quizWines,
+    featuredProductsRaw,
+    heroImages,
+    heroCopy,
+  ] = await Promise.all([
+    getCollections().catch((error) => {
+      console.warn("Failed to fetch collections in home page:", error);
+      return [] as Awaited<ReturnType<typeof getCollections>>;
+    }),
+    getQuizWines(shoppingContext.locale).catch((error) => {
+      console.warn("Failed to fetch taste quiz wines:", error);
+      return [] as Awaited<ReturnType<typeof getQuizWines>>;
+    }),
+    getProducts({
+      limit: 5,
+      sortKey: "CREATED_AT",
+      reverse: true,
+      host,
+      ...productCurrencyParams,
+    }).catch((error) => {
+      console.error("Error fetching featured products:", error);
+      return [] as Product[];
+    }),
+    getHomepageHeroImages().catch(() => undefined),
+    getHomepageHeroCopy(shoppingContext.locale).catch(() => undefined),
+  ]);
 
-  let featuredProducts: Product[] = [];
-  let quizWines: Awaited<ReturnType<typeof getQuizWines>> = [];
-
-  try {
-    quizWines = await getQuizWines(shoppingContext.locale);
-  } catch (error) {
-    console.warn("Failed to fetch taste quiz wines:", error);
-    quizWines = [];
-  }
-
-  try {
-    if (collections.length > 0) {
-      // Get the 5 most recent products from all producers
-      featuredProducts = await getProducts({
-        limit: 5,
-        sortKey: "CREATED_AT",
-        reverse: true,
-        host,
-        ...productCurrencyParams,
-      });
-    } else {
-      const allProducts = await getProducts({ host, ...productCurrencyParams });
-      featuredProducts = allProducts.slice(0, 8);
-    }
-  } catch (error) {
-    console.error("Error fetching featured products:", error);
-    // Fallback to all products if collection products fail
+  let featuredProducts = featuredProductsRaw;
+  if (featuredProducts.length === 0) {
     try {
       const allProducts = await getProducts({ host, ...productCurrencyParams });
       featuredProducts = allProducts.slice(0, 8);
@@ -111,11 +104,6 @@ export default async function Home() {
   }
 
   const [lastProduct, ...restProducts] = featuredProducts;
-
-  const [heroImages, heroCopy] = await Promise.all([
-    getHomepageHeroImages().catch(() => undefined),
-    getHomepageHeroCopy(shoppingContext.locale).catch(() => undefined),
-  ]);
 
   const organizationJsonLd = {
     "@context": "https://schema.org",

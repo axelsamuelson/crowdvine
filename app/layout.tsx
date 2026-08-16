@@ -99,15 +99,14 @@ export async function generateMetadata(): Promise<Metadata> {
       return buildRootMetadata(config);
     }
 
-    const siteTitle =
-      (await getSiteContentByKey("site_title")) || config.defaultTitle;
-    const siteDescription =
-      (await getSiteContentByKey("site_description")) ||
-      config.defaultDescription;
+    const [rawTitle, rawDescription] = await Promise.all([
+      getSiteContentByKey("site_title"),
+      getSiteContentByKey("site_description"),
+    ]);
 
     return buildRootMetadata(config, {
-      title: siteTitle,
-      description: siteDescription,
+      title: rawTitle || config.defaultTitle,
+      description: rawDescription || config.defaultDescription,
     });
   } catch (error) {
     console.error("Error generating metadata:", error);
@@ -132,38 +131,35 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Fetch collections for header/navigation
-  let collections = [];
-  try {
-    collections = await getCachedShopCollections();
-  } catch (error) {
-    console.warn("Failed to fetch collections in root layout:", error);
-    collections = [];
-  }
-
-  const isDirtywineSite = await getIsDirtywineSiteFromHeaders();
   const requestHeaders = await headers();
   const ssrPathname = requestHeaders.get("x-pathname")?.trim() || "/";
   const needsVaulDrawerWrapper = pathnameNeedsVaulDrawerWrapper(ssrPathname);
-  let shoppingContext = fallbackShoppingContext();
-  try {
-    shoppingContext = await getCachedShoppingContextFromRequest({
-      skipUser:
-        isPublicAppPath(ssrPathname) &&
-        !publicPathUsesUserShoppingContext(ssrPathname),
-    });
-  } catch (error) {
-    console.warn("Failed to resolve shopping context in layout:", error);
-  }
-
   const host =
     requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host");
-  let siteLogos = { headerLogo: null as string | null, footerLogo: null as string | null };
-  try {
-    siteLogos = await resolveSiteLogosFromRequest({ host });
-  } catch (error) {
-    console.warn("Failed to resolve site logos in layout:", error);
-  }
+
+  const [collections, isDirtywineSite, shoppingContext, siteLogos] =
+    await Promise.all([
+      getCachedShopCollections().catch((error) => {
+        console.warn("Failed to fetch collections in root layout:", error);
+        return [] as Awaited<ReturnType<typeof getCachedShopCollections>>;
+      }),
+      getIsDirtywineSiteFromHeaders(),
+      getCachedShoppingContextFromRequest({
+        skipUser:
+          isPublicAppPath(ssrPathname) &&
+          !publicPathUsesUserShoppingContext(ssrPathname),
+      }).catch((error) => {
+        console.warn("Failed to resolve shopping context in layout:", error);
+        return fallbackShoppingContext();
+      }),
+      resolveSiteLogosFromRequest({ host }).catch((error) => {
+        console.warn("Failed to resolve site logos in layout:", error);
+        return {
+          headerLogo: null as string | null,
+          footerLogo: null as string | null,
+        };
+      }),
+    ]);
 
   return (
     <html lang={shoppingContext.locale}>
@@ -197,6 +193,7 @@ export default async function RootLayout({
                           <ConditionalHeaderServer
                             collections={collections}
                             ssrPathname={ssrPathname}
+                            initialLogos={siteLogos}
                           />
                           {children}
                         </div>

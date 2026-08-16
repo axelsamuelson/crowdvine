@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  aggregateContributionEconomicsBreakdown,
   buildWarnings,
   resolveFreightTargetSource,
 } from "../admin-pallet-operating-summary";
@@ -7,6 +8,37 @@ import { computePalletShipProgress } from "../pallet-ship-progress";
 import { computePalletContributionProgress } from "../pallet-contribution";
 
 describe("AdminPalletOperatingSummary helpers (Phase 2D)", () => {
+  it("aggregates snapshot P/L lines × quantity", () => {
+    const b = aggregateContributionEconomicsBreakdown([
+      {
+        quantity: 2,
+        economics_snapshot: {
+          unit_gross_revenue_cents: 10000,
+          unit_net_revenue_cents: 8000,
+          unit_discount_cents: 0,
+          unit_shipping_revenue_gross_cents: 1250,
+          unit_shipping_revenue_net_cents: 1000,
+          unit_purchase_cost_cents: 3000,
+          unit_excise_cents: 500,
+          unit_payment_fee_cents: 200,
+          unit_last_mile_cost_cents: 1150,
+          unit_epr_cents: 50,
+          unit_refund_reserve_cents: 80,
+          unit_pre_pallet_contribution_cents: 4020,
+        },
+      },
+      { quantity: 1, economics_snapshot: null },
+    ]);
+    expect(b.bottlesWithSnapshot).toBe(2);
+    expect(b.bottlesWithoutSnapshot).toBe(1);
+    expect(b.productNetRevenueCents).toBe(16000);
+    expect(b.lastMileCostCents).toBe(2300);
+    expect(b.prePalletContributionCents).toBe(8040);
+    // GM1 = 16000 − 6000 − 1000 = 9000
+    expect(b.gm1Cents).toBe(9000);
+    // GM2 = 9000 + 2000 − 400 − 2300 − 100 − 160 = 8040
+    expect(b.gm2Cents).toBe(8040);
+  });
   it("freight target precedence: manual > selected quote > legacy cost", () => {
     expect(
       resolveFreightTargetSource({
@@ -96,6 +128,7 @@ describe("AdminPalletOperatingSummary helpers (Phase 2D)", () => {
         freightTargetSource: "legacy_cost",
         freightFundedPercent: 2,
         remainingContributionCents: 590000,
+        expectedContributionPerBottleCents: null,
         isEconomicallyReady: false,
         hasIncompleteSnapshots: true,
         estimatedBottlesRemaining: null,

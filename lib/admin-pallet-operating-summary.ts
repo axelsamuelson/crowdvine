@@ -22,6 +22,62 @@ export type FreightTargetSource =
   | "legacy_cost"
   | "none";
 
+/** Aggregated P/L lines from frozen unit economics snapshots (detail only). */
+export type ContributionEconomicsBreakdown = {
+  bottlesWithSnapshot: number;
+  bottlesWithoutSnapshot: number;
+  /** Product gross revenue (öre), qty × unit_gross */
+  productGrossRevenueCents: number;
+  productNetRevenueCents: number;
+  discountCents: number;
+  shippingRevenueGrossCents: number;
+  shippingRevenueNetCents: number;
+  purchaseCostCents: number;
+  exciseCents: number;
+  paymentFeeCents: number;
+  lastMileCostCents: number;
+  eprCents: number;
+  refundReserveCents: number;
+  prePalletContributionCents: number;
+  /**
+   * GM1 = product net − purchase − excise (product margin before fulfillment OpEx).
+   * Inbound pallet freight is not included.
+   */
+  gm1Cents: number;
+  /**
+   * GM2 = GM1 + shipping net − payment − last-mile − EPR − refund
+   * (= pre-pallet contribution). Still before inbound pallet freight target.
+   */
+  gm2Cents: number;
+  /** True when any snapshotted bottle was marked incomplete. */
+  hasIncompleteUnitSnapshots: boolean;
+};
+
+/** Derive GM1 / GM2 from rolled-up snapshot lines. */
+export function deriveContributionMargins(input: {
+  productNetRevenueCents: number;
+  shippingRevenueNetCents: number;
+  purchaseCostCents: number;
+  exciseCents: number;
+  paymentFeeCents: number;
+  lastMileCostCents: number;
+  eprCents: number;
+  refundReserveCents: number;
+}): { gm1Cents: number; gm2Cents: number } {
+  const gm1Cents =
+    Math.round(input.productNetRevenueCents) -
+    Math.round(input.purchaseCostCents) -
+    Math.round(input.exciseCents);
+  const gm2Cents =
+    gm1Cents +
+    Math.round(input.shippingRevenueNetCents) -
+    Math.round(input.paymentFeeCents) -
+    Math.round(input.lastMileCostCents) -
+    Math.round(input.eprCents) -
+    Math.round(input.refundReserveCents);
+  return { gm1Cents, gm2Cents };
+}
+
 export type AdminPalletOperatingSummary = {
   palletId: string;
   name: string;
@@ -46,10 +102,14 @@ export type AdminPalletOperatingSummary = {
     freightTargetSource: FreightTargetSource;
     freightFundedPercent: number;
     remainingContributionCents: number;
+    expectedContributionPerBottleCents: number | null;
     isEconomicallyReady: boolean;
     hasIncompleteSnapshots: boolean;
     estimatedBottlesRemaining: number | null;
   };
+
+  /** Full revenue/cost rollup from snapshots — populated on detail summary only. */
+  economicsBreakdown: ContributionEconomicsBreakdown | null;
 
   inbound: {
     providerName: string | null;
@@ -95,6 +155,7 @@ export function resolveFreightTargetSource(pallet: {
 export function buildWarnings(input: {
   needsPalletZone?: boolean;
   pickupIsFallback?: boolean;
+  bottlesFilled?: number;
   economics: AdminPalletOperatingSummary["economics"];
   inbound: AdminPalletOperatingSummary["inbound"];
   outbound: AdminPalletOperatingSummary["outbound"];
@@ -109,9 +170,12 @@ export function buildWarnings(input: {
     w.push("Partial contribution economics snapshots");
   } else if (
     input.economics.bottlesWithSnapshot === 0 &&
-    input.economics.freightTargetCents > 0
+    input.economics.freightTargetCents > 0 &&
+    (input.bottlesFilled ?? 0) > 0
   ) {
-    // only warn if there are bottles — caller can pass bottlesFilled separately
+    w.push(
+      "No contribution economics snapshots on fill-eligible bottles (shadow stays 0% until backfilled or new checkouts)",
+    );
   }
   if (input.economics.freightTargetSource === "legacy_cost") {
     w.push("Using legacy pallet freight estimate (no selected inbound quote)");
@@ -306,6 +370,98 @@ async function loadAggregateMaps(
   };
 }
 
+function oreField(snapshot: Record<string, unknown>, key: string): number {
+  const n = Number(snapshot[key]);
+  return Number.isFinite(n) ? Math.round(n) : 0;
+}
+
+/**
+ * Roll up unit economics snapshots × quantity into pallet-level P/L lines.
+ * Inbound pallet freight is NOT a line here — it is the shadow target.
+ */
+export function aggregateContributionEconomicsBreakdown(
+  rows: Array<{
+    quantity: number | null;
+    economics_snapshot: unknown;
+  }>,
+): ContributionEconomicsBreakdown {
+  const empty: ContributionEconomicsBreakdown = {
+    bottlesWithSnapshot: 0,
+    bottlesWithoutSnapshot: 0,
+    productGrossRevenueCents: 0,
+    productNetRevenueCents: 0,
+    discountCents: 0,
+    shippingRevenueGrossCents: 0,
+    shippingRevenueNetCents: 0,
+    purchaseCostCents: 0,
+    exciseCents: 0,
+    paymentFeeCents: 0,
+    lastMileCostCents: 0,
+    eprCents: 0,
+    refundReserveCents: 0,
+    prePalletContributionCents: 0,
+    gm1Cents: 0,
+    gm2Cents: 0,
+    hasIncompleteUnitSnapshots: false,
+  };
+
+  for (const row of rows) {
+    const qty = Math.max(0, Math.floor(Number(row.quantity) || 0));
+    if (qty <= 0) continue;
+    const snap = row.economics_snapshot;
+    if (!snap || typeof snap !== "object") {
+      empty.bottlesWithoutSnapshot += qty;
+      continue;
+    }
+    const s = snap as Record<string, unknown>;
+    empty.bottlesWithSnapshot += qty;
+    if (s.incomplete === true) empty.hasIncompleteUnitSnapshots = true;
+
+    empty.productGrossRevenueCents += oreField(s, "unit_gross_revenue_cents") * qty;
+    empty.productNetRevenueCents += oreField(s, "unit_net_revenue_cents") * qty;
+    empty.discountCents += oreField(s, "unit_discount_cents") * qty;
+    empty.shippingRevenueGrossCents +=
+      oreField(s, "unit_shipping_revenue_gross_cents") * qty;
+    empty.shippingRevenueNetCents +=
+      oreField(s, "unit_shipping_revenue_net_cents") * qty;
+    empty.purchaseCostCents += oreField(s, "unit_purchase_cost_cents") * qty;
+    empty.exciseCents += oreField(s, "unit_excise_cents") * qty;
+    empty.paymentFeeCents += oreField(s, "unit_payment_fee_cents") * qty;
+    empty.lastMileCostCents += oreField(s, "unit_last_mile_cost_cents") * qty;
+    empty.eprCents += oreField(s, "unit_epr_cents") * qty;
+    empty.refundReserveCents += oreField(s, "unit_refund_reserve_cents") * qty;
+    empty.prePalletContributionCents +=
+      oreField(s, "unit_pre_pallet_contribution_cents") * qty;
+  }
+
+  const margins = deriveContributionMargins(empty);
+  empty.gm1Cents = margins.gm1Cents;
+  empty.gm2Cents = margins.gm2Cents;
+  return empty;
+}
+
+export async function loadContributionEconomicsBreakdownForPallet(
+  palletId: string,
+): Promise<ContributionEconomicsBreakdown> {
+  const sb = getSupabaseAdmin();
+  const { data: reservations } = await sb
+    .from("order_reservations")
+    .select("id")
+    .eq("pallet_id", palletId)
+    .in("status", [...PALLET_FILL_STATUSES]);
+  const ids = (reservations ?? [])
+    .map((r) => r.id as string)
+    .filter(Boolean);
+  if (ids.length === 0) {
+    return aggregateContributionEconomicsBreakdown([]);
+  }
+  const { data: items } = await sb
+    .from("order_reservation_items")
+    .select("quantity, economics_snapshot")
+    .in("reservation_id", ids);
+  return aggregateContributionEconomicsBreakdown(items ?? []);
+}
+
 export function serializeOperatingSummary(input: {
   pallet: Record<string, unknown>;
   bottlesFilled: number;
@@ -320,9 +476,10 @@ export function serializeOperatingSummary(input: {
   outboundCounts: { incomplete: number; usable: number };
   packagingConfigured: boolean;
   packagingCode: string | null;
-  rateValidTo?: string | null;
+  rateValidTo: string | null;
   needsPalletZone?: boolean;
   pickupIsFallback?: boolean;
+  economicsBreakdown?: ContributionEconomicsBreakdown | null;
 }): AdminPalletOperatingSummary {
   const id = String(input.pallet.id);
   const physical = resolvePhysicalBottleCapacity(input.pallet.bottle_capacity);
@@ -394,6 +551,7 @@ export function serializeOperatingSummary(input: {
     freightTargetSource,
     freightFundedPercent: econ.freightFundedPercent,
     remainingContributionCents: econ.remainingContributionCents,
+    expectedContributionPerBottleCents: econ.expectedContributionPerBottleCents,
     isEconomicallyReady: econ.isEconomicallyReady,
     hasIncompleteSnapshots: econ.hasIncompleteSnapshots,
     estimatedBottlesRemaining: econ.estimatedBottlesRemaining,
@@ -402,16 +560,11 @@ export function serializeOperatingSummary(input: {
   const warnings = buildWarnings({
     needsPalletZone: input.needsPalletZone,
     pickupIsFallback: input.pickupIsFallback,
+    bottlesFilled: input.bottlesFilled,
     economics,
     inbound,
     outbound,
   });
-  if (
-    input.bottlesFilled > 0 &&
-    economics.bottlesWithSnapshot === 0
-  ) {
-    warnings.push("No contribution economics snapshots on fill-eligible bottles");
-  }
 
   return {
     palletId: id,
@@ -435,6 +588,7 @@ export function serializeOperatingSummary(input: {
         ? input.pallet.shipping_ordered_at
         : null,
     economics,
+    economicsBreakdown: input.economicsBreakdown ?? null,
     inbound,
     outbound,
     warnings,
@@ -463,23 +617,26 @@ export async function buildAdminPalletOperatingSummaries(
   const out = new Map<string, AdminPalletOperatingSummary>();
   for (const pallet of pallets) {
     const id = String(pallet.id);
-    const summary = serializeOperatingSummary({
-      pallet,
-      bottlesFilled: maps.bottlesByPalletId.get(id) ?? 0,
-      bottlesWithSnapshot: maps.snapshotBottlesByPalletId.get(id) ?? 0,
-      accumulatedContributionCents: maps.contributionByPalletId.get(id) ?? 0,
-      selectedQuote: maps.selectedQuoteByPalletId.get(id),
-      outboundCounts: maps.outboundByPalletId.get(id) ?? {
-        incomplete: 0,
-        usable: 0,
-      },
-      packagingConfigured,
-      packagingCode: packaging?.code ?? null,
-      rateValidTo: catalogue?.validTo ?? null,
-      needsPalletZone: pallet.needs_pallet_zone === true,
-      pickupIsFallback: pallet.pickup_is_fallback === true,
-    });
-    out.set(id, summary);
+    out.set(
+      id,
+      serializeOperatingSummary({
+        pallet,
+        bottlesFilled: maps.bottlesByPalletId.get(id) ?? 0,
+        bottlesWithSnapshot: maps.snapshotBottlesByPalletId.get(id) ?? 0,
+        accumulatedContributionCents: maps.contributionByPalletId.get(id) ?? 0,
+        selectedQuote: maps.selectedQuoteByPalletId.get(id),
+        outboundCounts: maps.outboundByPalletId.get(id) ?? {
+          incomplete: 0,
+          usable: 0,
+        },
+        packagingConfigured,
+        packagingCode: packaging?.code ?? null,
+        rateValidTo: catalogue?.validTo ?? null,
+        needsPalletZone: pallet.needs_pallet_zone === true,
+        pickupIsFallback: pallet.pickup_is_fallback === true,
+        economicsBreakdown: null,
+      }),
+    );
   }
   return out;
 }
@@ -529,6 +686,9 @@ export async function buildAdminPalletOperatingSummaryForId(
       ? cpp.is_pallet_zone !== true
       : false;
 
+  const economicsBreakdown =
+    await loadContributionEconomicsBreakdownForPallet(palletId);
+
   return serializeOperatingSummary({
     pallet: pallet as Record<string, unknown>,
     bottlesFilled: bottles,
@@ -545,5 +705,6 @@ export async function buildAdminPalletOperatingSummaryForId(
     rateValidTo: catalogue?.validTo ?? null,
     needsPalletZone,
     pickupIsFallback,
+    economicsBreakdown,
   });
 }

@@ -163,10 +163,12 @@ export function PactPalletListCard({ pallet, onDeleted }: Props) {
                 }
               >
                 Shadow freight {freightFunded.toFixed(0)}%
-                {op?.economics.hasIncompleteSnapshots ||
-                pallet.shadow_contribution?.hasIncompleteSnapshots
-                  ? " · partial"
-                  : ""}
+                {op?.economics.bottlesWithSnapshot === 0 && filled > 0
+                  ? " · no snapshots"
+                  : op?.economics.hasIncompleteSnapshots ||
+                      pallet.shadow_contribution?.hasIncompleteSnapshots
+                    ? " · partial"
+                    : ""}
               </span>
             ) : null}
           </div>

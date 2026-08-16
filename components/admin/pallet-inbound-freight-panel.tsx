@@ -18,6 +18,7 @@ type Catalogue = {
     id: string;
     provider_id: string;
     name: string;
+    direction: string;
     transport_mode: string;
     pricing_type: string;
     route_description: string | null;
@@ -79,7 +80,6 @@ export function PalletInboundFreightPanel({ palletId }: { palletId: string }) {
   );
   const [addonSpot, setAddonSpot] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
-  const [preview, setPreview] = useState<FreightQuoteBreakdown | null>(null);
 
   const load = useCallback(async () => {
     const [catRes, qRes] = await Promise.all([
@@ -101,27 +101,36 @@ export function PalletInboundFreightPanel({ palletId }: { palletId: string }) {
     () =>
       (catalogue?.services ?? []).filter(
         (s) =>
-          catalogue?.providers.some((p) => p.id === s.provider_id) &&
-          true,
+          s.direction === "INBOUND" &&
+          catalogue?.providers.some((p) => p.id === s.provider_id),
       ),
     [catalogue],
   );
 
   const selectedService = inboundServices.find((s) => s.id === serviceId);
-  const ratesForService = (catalogue?.rates ?? []).filter(
-    (r) => r.freight_service_id === serviceId && r.active,
+  const ratesForService = useMemo(
+    () =>
+      (catalogue?.rates ?? []).filter(
+        (r) => r.freight_service_id === serviceId && r.active,
+      ),
+    [catalogue?.rates, serviceId],
   );
   const selectedRate =
     ratesForService.find((r) => r.id === rateId) ?? ratesForService[0] ?? null;
+  const selectedRateId = selectedRate?.id ?? "";
 
   useEffect(() => {
-    if (selectedRate && selectedRate.id !== rateId) {
-      setRateId(selectedRate.id);
+    if (selectedRateId && selectedRateId !== rateId) {
+      setRateId(selectedRateId);
     }
-  }, [selectedRate, rateId]);
+  }, [selectedRateId, rateId]);
 
-  const rateComponents = (catalogue?.components ?? []).filter(
-    (c) => c.freight_rate_id === selectedRate?.id,
+  const rateComponents = useMemo(
+    () =>
+      (catalogue?.components ?? []).filter(
+        (c) => c.freight_rate_id === selectedRateId,
+      ),
+    [catalogue?.components, selectedRateId],
   );
 
   const buildComponents = useCallback((): FreightComponentInput[] => {
@@ -146,13 +155,12 @@ export function PalletInboundFreightPanel({ palletId }: { palletId: string }) {
     }));
   }, [rateComponents, addonSelected, addonSpot]);
 
-  useEffect(() => {
-    if (!selectedService) {
-      setPreview(null);
-      return;
-    }
+  // Derive preview — do not setState in an effect (unstable deps caused
+  // Maximum update depth / storefront error boundary when selecting a service).
+  const preview: FreightQuoteBreakdown | null = useMemo(() => {
+    if (!selectedService) return null;
     const isSpot = selectedService.pricing_type === "SPOT_QUOTE";
-    const breakdown = calculateFreightQuoteBreakdown({
+    return calculateFreightQuoteBreakdown({
       currency: selectedRate?.currency ?? "EUR",
       baseAmountMajor: isSpot
         ? null
@@ -164,7 +172,6 @@ export function PalletInboundFreightPanel({ palletId }: { palletId: string }) {
       servicePricingType: isSpot ? "SPOT_QUOTE" : "RATE_CARD",
       serviceSpotAmountMajor: isSpot && spotMajor ? Number(spotMajor) : null,
     });
-    setPreview(breakdown);
   }, [selectedService, selectedRate, buildComponents, spotMajor]);
 
   const createQuote = async (selectIfUsable: boolean) => {

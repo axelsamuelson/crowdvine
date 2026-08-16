@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { isPlatformAdminProfile } from "@/lib/auth/platform-admin-profile";
-import { isStaleRefreshTokenError } from "@/lib/auth/session-errors";
+import {
+  isStaleRefreshTokenError,
+  isSupabaseAuthCookieName,
+} from "@/lib/auth/session-errors";
 import {
   isOpenPlatformBrowseOrCheckoutPath,
   isPublicAppPath,
@@ -45,6 +48,13 @@ function withGeoCountryCookie(
 ): NextResponse {
   applyGeoCountryCookie(req, res);
   return res;
+}
+
+/** True when the request may carry a Supabase session worth refreshing. */
+function hasSupabaseAuthCookies(req: NextRequest): boolean {
+  return req.cookies
+    .getAll()
+    .some((cookie) => isSupabaseAuthCookieName(cookie.name));
 }
 
 export async function middleware(req: NextRequest) {
@@ -198,6 +208,13 @@ async function runMiddleware(req: NextRequest) {
     pathname.match(/\.(svg|png|jpg|jpeg|gif|webp|ico)$/)
   )
     return nextWithPathname(req);
+
+  // Public browse with no session cookies: skip auth.getUser() network RTT.
+  // Logged-in visitors still hit getUser below so cookies can refresh / stale
+  // refresh tokens can be cleared.
+  if (isPublic && !hasSupabaseAuthCookies(req)) {
+    return nextWithPathname(req);
+  }
 
   const { supabase, response: res } = createSupabaseMiddlewareClient(
     req,
