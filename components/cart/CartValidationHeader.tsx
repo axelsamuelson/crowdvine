@@ -2,7 +2,7 @@
 
 import { motion } from "motion/react";
 import { CheckCircle2, ChevronDown, ChevronUp } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ProducerValidation } from "@/lib/checkout-validation";
 import { WhySixBottlesModal } from "./WhySixBottlesModal";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
@@ -44,6 +44,47 @@ export function CartValidationHeader({
 
   // Check if all validations are valid
   const allValid = validations.every((v) => v.isValid);
+  const invalidCount = validations.filter((v) => !v.isValid).length;
+
+  const shownRef = useRef(false);
+  const passedRef = useRef(false);
+  const failedRef = useRef(false);
+
+  useEffect(() => {
+    // Only track when validation UI has settled.
+    if (isValidating) return;
+    if (validations.length === 0) return;
+
+    const neededTotal = validations.reduce(
+      (sum, v) => sum + (v.isValid ? 0 : v.needed),
+      0,
+    );
+
+    if (!shownRef.current) {
+      shownRef.current = true;
+      void AnalyticsTracker.trackEvent({
+        eventType: "cart_validation_shown",
+        eventCategory: "validation",
+        metadata: { invalid_count: invalidCount, needed_total: neededTotal },
+      });
+    }
+
+    if (invalidCount === 0 && !passedRef.current) {
+      passedRef.current = true;
+      void AnalyticsTracker.trackEvent({
+        eventType: "cart_validation_passed",
+        eventCategory: "validation",
+        metadata: { invalid_count: 0, needed_total: 0 },
+      });
+    } else if (invalidCount > 0 && !failedRef.current) {
+      failedRef.current = true;
+      void AnalyticsTracker.trackEvent({
+        eventType: "cart_validation_failed",
+        eventCategory: "validation",
+        metadata: { invalid_count: invalidCount, needed_total: neededTotal },
+      });
+    }
+  }, [isValidating, validations, invalidCount]);
 
   if (allValid && validations.length > 0) {
     return (

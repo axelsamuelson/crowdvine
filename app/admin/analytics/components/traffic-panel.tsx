@@ -11,6 +11,7 @@ import {
   Tooltip,
   ResponsiveContainer,
   ReferenceLine,
+  Cell,
 } from "recharts";
 import {
   Table,
@@ -60,6 +61,7 @@ type TrafficPayload = {
   campaigns?: CampaignRow[];
   country?: string | null;
   channel?: string | null;
+  dates?: string[];
   topPages: TopPage[];
   annotations: Annotation[];
   annotationsError?: string;
@@ -88,6 +90,13 @@ export function TrafficPanel({
   const [error, setError] = useState<string | null>(null);
   const [countryFilter, setCountryFilter] = useState<string>("all");
   const [channelFilter, setChannelFilter] = useState<string>("all");
+  const [selectedDates, setSelectedDates] = useState<string[]>([]);
+
+  const toggleDate = (date: string) => {
+    setSelectedDates((prev) =>
+      prev.includes(date) ? prev.filter((d) => d !== date) : [...prev, date].sort(),
+    );
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -103,6 +112,9 @@ export function TrafficPanel({
         }
         if (channelFilter && channelFilter !== "all") {
           params.set("channel", channelFilter);
+        }
+        if (selectedDates.length > 0) {
+          params.set("dates", selectedDates.join(","));
         }
         const res = await fetch(
           `/api/admin/analytics/traffic?${params.toString()}`,
@@ -121,7 +133,11 @@ export function TrafficPanel({
     return () => {
       cancelled = true;
     };
-  }, [site, countryFilter, channelFilter]);
+  }, [site, countryFilter, channelFilter, selectedDates]);
+
+  useEffect(() => {
+    setSelectedDates((prev) => (prev.length === 0 ? prev : []));
+  }, [site]);
 
   const chartData = useMemo(() => {
     if (!data?.daily) return [];
@@ -146,7 +162,7 @@ export function TrafficPanel({
     return rows.map((c) => c.country).filter((c) => c !== "Unknown");
   }, [data]);
 
-  if (loading) {
+  if (loading && !data) {
     return (
       <p className="text-sm text-gray-500 dark:text-gray-400">
         Loading traffic…
@@ -185,12 +201,19 @@ export function TrafficPanel({
   const filterNote = [
     channelFilter !== "all" ? channelLabel(channelFilter) : null,
     countryFilter !== "all" ? countryFilter : null,
+    selectedDates.length > 0
+      ? selectedDates.length === 1
+        ? selectedDates[0]
+        : `${selectedDates.length} dagar`
+      : null,
   ]
     .filter(Boolean)
     .join(" + ");
 
   return (
-    <div className="space-y-8 text-gray-700 dark:text-gray-300">
+    <div
+      className={`space-y-8 text-gray-700 dark:text-gray-300 ${loading ? "opacity-60" : ""}`}
+    >
       {data.annotationsError && (
         <p className="text-xs text-amber-700 dark:text-amber-300 rounded-md border border-amber-200 dark:border-amber-800/50 bg-amber-50 dark:bg-amber-900/20 px-3 py-2">
           Annotations unavailable — {data.annotationsError}
@@ -203,14 +226,18 @@ export function TrafficPanel({
             <p className="text-2xl font-semibold tabular-nums text-gray-900 dark:text-white">
               {periodVisitors}
             </p>
-            <p className="text-[11px] text-gray-400">Unika visitor_id i perioden</p>
+            <p className="text-[11px] text-gray-400">
+              Unika visitor_id i {selectedDates.length > 0 ? "valda dagar" : "perioden"}
+            </p>
           </div>
           <div className="rounded-lg border border-gray-200 dark:border-[#1F1F23] p-3">
             <p className="text-xs text-gray-500 dark:text-gray-400">Sessioner</p>
             <p className="text-2xl font-semibold tabular-nums text-gray-900 dark:text-white">
               {periodSessions}
             </p>
-            <p className="text-[11px] text-gray-400">Unika session_id i perioden</p>
+            <p className="text-[11px] text-gray-400">
+              Unika session_id i {selectedDates.length > 0 ? "valda dagar" : "perioden"}
+            </p>
           </div>
         </div>
         <div className="flex flex-wrap gap-3">
@@ -260,11 +287,35 @@ export function TrafficPanel({
           sessioner = unika <code className="text-[11px]">session_id</code> från{" "}
           <code className="text-[11px]">analytics_sessions_clean</code>. Dagar
           räknas i Europe/Stockholm. Chart starts {data.firstPageViewDate}. Bars
-          = daily visitors; line = 7-day visitor average.
+          = daily visitors; line = 7-day visitor average. Klicka på ett eller
+          flera datum för att filtrera kanaler, kampanjer, länder och sidor.
           {filterNote ? ` Filtrerat på ${filterNote}.` : ""}
         </p>
+        {selectedDates.length > 0 ? (
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <p className="text-xs text-gray-600 dark:text-zinc-400">
+              Valda datum: {selectedDates.join(", ")}
+            </p>
+            <button
+              type="button"
+              className="text-xs underline underline-offset-2 text-gray-500 hover:text-gray-800 dark:hover:text-zinc-200"
+              onClick={() => setSelectedDates([])}
+            >
+              Rensa datum
+            </button>
+          </div>
+        ) : null}
         <ResponsiveContainer width="100%" height={360}>
-          <ComposedChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 8 }}>
+          <ComposedChart
+            data={chartData}
+            margin={{ top: 8, right: 8, left: 0, bottom: 8 }}
+            onClick={(state) => {
+              const date = (state?.activePayload?.[0]?.payload as DailyPoint | undefined)
+                ?.date;
+              if (date) toggleDate(date);
+            }}
+            style={{ cursor: "pointer" }}
+          >
             <CartesianGrid strokeDasharray="3 3" stroke="currentColor" opacity={0.25} />
             <XAxis
               dataKey="label"
@@ -297,6 +348,9 @@ export function TrafficPanel({
                         {a.category}: {a.label}
                       </p>
                     ))}
+                    <p className="text-[11px] mt-1.5 text-gray-400">
+                      Klicka för att {selectedDates.includes(point.date) ? "avmarkera" : "filtrera"}
+                    </p>
                     <span className="sr-only">{label}</span>
                   </div>
                 );
@@ -322,14 +376,38 @@ export function TrafficPanel({
               fill="#94a3b8"
               radius={[2, 2, 0, 0]}
               maxBarSize={28}
-            />
+              cursor="pointer"
+            >
+              {chartData.map((d) => {
+                const active =
+                  selectedDates.length === 0 || selectedDates.includes(d.date);
+                return (
+                  <Cell
+                    key={`visitors-${d.date}`}
+                    fill={active ? "#94a3b8" : "#94a3b833"}
+                  />
+                );
+              })}
+            </Bar>
             <Bar
               dataKey="sessions"
               name="Sessioner"
               fill="#cbd5e1"
               radius={[2, 2, 0, 0]}
               maxBarSize={28}
-            />
+              cursor="pointer"
+            >
+              {chartData.map((d) => {
+                const active =
+                  selectedDates.length === 0 || selectedDates.includes(d.date);
+                return (
+                  <Cell
+                    key={`sessions-${d.date}`}
+                    fill={active ? "#cbd5e1" : "#cbd5e133"}
+                  />
+                );
+              })}
+            </Bar>
             <Line
               type="monotone"
               dataKey="rolling7"
@@ -433,8 +511,8 @@ export function TrafficPanel({
             UTM links
           </a>
           .
-          {channelFilter !== "all" || countryFilter !== "all"
-            ? ` Respects channel/country filters.`
+          {channelFilter !== "all" || countryFilter !== "all" || selectedDates.length > 0
+            ? ` Respects channel/country/date filters.`
             : ""}
         </p>
         <Table>
@@ -554,7 +632,7 @@ export function TrafficPanel({
 
         <div>
           <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
-            Top pages (28 days)
+            Top pages {selectedDates.length > 0 ? "(valda dagar)" : "(28 days)"}
           </h3>
           <Table>
             <TableHeader>

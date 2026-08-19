@@ -5,6 +5,7 @@ import { useContext, useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
 import { ChevronRight, LogOut } from "lucide-react";
 import { AdminBreadcrumbDetailContext } from "@/components/admin/admin-breadcrumb-detail-context";
+import { ThemeToggle } from "@/components/admin/theme-toggle";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -150,6 +151,7 @@ export function AdminTopNav({ userEmail, onSignOut }: AdminTopNavProps) {
       </div>
 
       <div className="flex items-center gap-2 sm:gap-4 ml-auto">
+        <ThemeToggle />
         <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
           <DropdownMenuTrigger asChild>
             <button

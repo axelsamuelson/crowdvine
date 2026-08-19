@@ -16,4 +16,5 @@ export {
   termsAcceptedEmitKey,
   deliveryCapturedEmitKey,
   contactCapturedEmitKey,
+  postalStartedEmitKey,
 } from "./emit-once";

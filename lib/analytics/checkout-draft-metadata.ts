@@ -32,6 +32,25 @@ export function deliveryLinesForAnalytics(
   };
 }
 
+export function normalizePostalDraft(raw: string | null | undefined): string {
+  return (raw ?? "").trim().replace(/\s+/g, "");
+}
+
+export function postalDraftAnalytics(raw: string | null | undefined): {
+  postal: string;
+  digits: number;
+  complete: boolean;
+} | null {
+  const postal = normalizePostalDraft(raw);
+  if (!postal) return null;
+  const digits = postal.replace(/\D/g, "").length;
+  return {
+    postal,
+    digits,
+    complete: /^\d{5}$/.test(postal),
+  };
+}
+
 export function emailDomain(email: string | null | undefined): string | null {
   const e = (email ?? "").trim().toLowerCase();
   const at = e.lastIndexOf("@");
@@ -51,10 +70,28 @@ export function formatCheckoutDraftSummary(meta: Record<string, unknown>): strin
   if (typeof meta.full_name === "string" && meta.full_name.trim()) {
     parts.push(meta.full_name.trim());
   }
-  const loc = [meta.street, meta.postal, meta.city]
+
+  const postal = typeof meta.postal === "string" ? meta.postal.trim() : "";
+  const postalIncomplete =
+    Boolean(postal) &&
+    (meta.postal_complete === false || meta.complete === false);
+  const loc = (postalIncomplete
+    ? [meta.street, meta.city]
+    : [meta.street, meta.postal, meta.city]
+  )
     .filter((v) => typeof v === "string" && v.trim())
     .join(", ");
   if (loc) parts.push(loc);
+  if (postalIncomplete) {
+    const digits =
+      typeof meta.digits === "number"
+        ? meta.digits
+        : postal.replace(/\D/g, "").length;
+    parts.push(`postnr ${postal} (${digits} siffror, ofullständigt)`);
+  } else if (postal && !loc.includes(postal)) {
+    parts.push(`postnr ${postal}`);
+  }
+
   if (typeof meta.phone === "string" && meta.phone.trim()) {
     parts.push(meta.phone.trim());
   }

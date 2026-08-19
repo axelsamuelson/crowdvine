@@ -12,6 +12,7 @@ export const SIGNUP_STARTED_CHECKOUT_KEY = "pact_signup_started_checkout";
 export const SIGNUP_COMPLETED_PREFIX = "pact_signup_completed_";
 export const CHECKOUT_DELIVERY_CAPTURED_KEY = "pact_checkout_delivery_captured";
 export const CHECKOUT_CONTACT_CAPTURED_KEY = "pact_checkout_contact_captured";
+export const CHECKOUT_POSTAL_STARTED_KEY = "pact_checkout_postal_started";
 
 function ageShownKey(sessionId: string, countryCode: string): string {
   return `age_shown:${sessionId}:${countryCode.toUpperCase()}`;
@@ -31,6 +32,10 @@ function deliveryCapturedKey(sessionId: string): string {
 
 function contactCapturedKey(sessionId: string): string {
   return `contact_captured:${sessionId}`;
+}
+
+function postalStartedKey(sessionId: string): string {
+  return `postal_started:${sessionId}`;
 }
 
 /** Claim the key. Returns true only for the first successful claim. */
@@ -134,6 +139,10 @@ export function contactCapturedEmitKey(): string {
   return contactCapturedKey(getCheckoutSessionId());
 }
 
+export function postalStartedEmitKey(): string {
+  return postalStartedKey(getCheckoutSessionId());
+}
+
 /**
  * Clear checkout analytics guards after a successful reservation so a
  * second purchase in the same browser session can emit again.
@@ -144,10 +153,12 @@ export function clearCheckoutAnalyticsSession(): void {
   clearClaim(SIGNUP_STARTED_CHECKOUT_KEY);
   clearClaim(CHECKOUT_DELIVERY_CAPTURED_KEY);
   clearClaim(CHECKOUT_CONTACT_CAPTURED_KEY);
+  clearClaim(CHECKOUT_POSTAL_STARTED_KEY);
   if (sessionId) {
     clearClaim(termsAcceptedKey(sessionId));
     clearClaim(deliveryCapturedKey(sessionId));
     clearClaim(contactCapturedKey(sessionId));
+    clearClaim(postalStartedKey(sessionId));
     clearClaimsWithPrefix(`age_shown:${sessionId}:`);
     clearClaimsWithPrefix(`age_passed:${sessionId}:`);
   }

@@ -257,10 +257,31 @@ export const TRACKED_USER_EVENTS_CATALOG: TrackedEventCatalogEntry[] = [
     sources: ["client"],
   },
   {
+    eventType: "checkout_postal_started",
+    category: "checkout",
+    description:
+      "Besökaren började skriva postnummer i checkout (första tecknet). Metadata: postal, digits, complete.",
+    sources: ["client"],
+  },
+  {
     eventType: "checkout_delivery_captured",
     category: "checkout",
     description:
       "Leverans-/kontaktfält sparade till analytics när steget var komplett (även utan reservation). Metadata: namn, e-post, telefon, adress.",
+    sources: ["client"],
+  },
+  {
+    eventType: "checkout_zone_error",
+    category: "checkout",
+    description:
+      "Leveranszon kunde inte matchas under checkout (NO_DELIVERY_ZONE eller UNSUPPORTED_COUNTRY). Metadata: zoneError, zoneErrorMessage, postal, country.",
+    sources: ["client"],
+  },
+  {
+    eventType: "checkout_stripe_confirm_failed",
+    category: "checkout",
+    description:
+      "Kort-/betalningsfel vid Stripe confirmation (deklinetsvar). Metadata: intentStatus, code, type, decline_code, paymentMode.",
     sources: ["client"],
   },
   {

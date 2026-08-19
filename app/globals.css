@@ -15,11 +15,9 @@
   body.admin-app-root {
     background-color: #ffffff;
   }
-  @media (prefers-color-scheme: dark) {
-    html.admin-app-root,
-    body.admin-app-root {
-      background-color: #0f0f12;
-    }
+  html.admin-app-root.dark,
+  html.admin-app-root.dark body.admin-app-root {
+    background-color: #0f0f12;
   }
 }
 

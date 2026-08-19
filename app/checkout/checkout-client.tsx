@@ -62,9 +62,13 @@ import {
   deliveryCapturedEmitKey,
   contactCapturedEmitKey,
   emitOnce,
+  postalStartedEmitKey,
   termsAcceptedEmitKey,
 } from "@/lib/analytics/once-per-session";
-import { deliveryLinesForAnalytics } from "@/lib/analytics/checkout-draft-metadata";
+import {
+  deliveryLinesForAnalytics,
+  postalDraftAnalytics,
+} from "@/lib/analytics/checkout-draft-metadata";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
 import { calculateCartShippingCost } from "@/lib/shipping-calculations";
@@ -305,6 +309,33 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
   ).toUpperCase();
   const requiredAge = getAgeLimit(ageCountryCode);
 
+  // Track delivery-zone errors as soon as they appear so Nära köp can answer
+  // "why did checkout fail?" instead of just "checkout abandoned".
+  const zoneErrorTrackRef = useRef<string | null>(null);
+  useEffect(() => {
+    const err = zoneInfo.zoneError ?? null;
+    if (!err) {
+      zoneErrorTrackRef.current = null;
+      return;
+    }
+    if (zoneErrorTrackRef.current === err) return;
+    zoneErrorTrackRef.current = err;
+
+    const postalDraft = postalDraftAnalytics(postalCodeDraft);
+    void AnalyticsTracker.trackEvent({
+      eventType: "checkout_zone_error",
+      eventCategory: "checkout",
+      metadata: {
+        zoneError: err,
+        zoneErrorMessage: zoneInfo.zoneErrorMessage ?? null,
+        postal: postalDraft?.postal ?? postalCodeDraft || null,
+        digits: postalDraft?.digits ?? null,
+        postal_complete: postalDraft?.complete ?? false,
+        country_code: ageCountryCode,
+      },
+    });
+  }, [zoneInfo.zoneError, zoneInfo.zoneErrorMessage, postalCodeDraft, ageCountryCode]);
+
   const hasZoneDeliveryReady = useMemo(() => {
     if (activeShop?.geoZoneId) {
       return Boolean(
@@ -500,12 +531,16 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
   // Keep latest draft/DOB for checkout_abandoned (unmount cannot read stale closures).
   const deliverySnapshotRef = useRef<ZoneDeliveryLines | null>(null);
   const dateOfBirthRef = useRef("");
+  const postalCodeDraftRef = useRef("");
   useEffect(() => {
     deliverySnapshotRef.current = effectiveDelivery;
   }, [effectiveDelivery]);
   useEffect(() => {
     dateOfBirthRef.current = dateOfBirth;
   }, [dateOfBirth]);
+  useEffect(() => {
+    postalCodeDraftRef.current = postalCodeDraft;
+  }, [postalCodeDraft]);
 
   useEffect(() => {
     if (!deliveryComplete || !effectiveDelivery) return;
@@ -578,13 +613,25 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
     return () => {
       if (checkoutCompletedRef.current) return;
       const dob = dateOfBirthRef.current.trim();
+      const delivery = deliveryLinesForAnalytics(deliverySnapshotRef.current);
+      const postalDraft = postalDraftAnalytics(postalCodeDraftRef.current);
+      const postalComplete = Boolean(delivery.postal);
+      if (!delivery.postal && postalDraft) {
+        delivery.postal = postalDraft.postal;
+      }
       void AnalyticsTracker.trackEvent({
         eventType: "checkout_abandoned",
         eventCategory: "checkout",
         metadata: {
           phase: checkoutPhaseRef.current,
           ...(dob ? { date_of_birth: dob } : {}),
-          ...deliveryLinesForAnalytics(deliverySnapshotRef.current),
+          ...delivery,
+          ...(postalDraft
+            ? {
+                digits: postalDraft.digits,
+                postal_complete: postalComplete,
+              }
+            : {}),
         },
         keepalive: true,
       });
@@ -2281,6 +2328,20 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
         intentStatus: confirmed.intentStatus,
         stripeError: confirmed.stripeError,
       });
+      void AnalyticsTracker.trackEvent({
+        eventType: "checkout_stripe_confirm_failed",
+        eventCategory: "checkout",
+        metadata: {
+          phase: "stripe_confirm",
+          intentStatus: confirmed.intentStatus,
+          paymentMode,
+          code: confirmed.stripeError?.code ?? null,
+          type: confirmed.stripeError?.type ?? null,
+          decline_code: confirmed.stripeError?.decline_code ?? null,
+          // Helpful high-level signal for Nära köp (card_declined, do_not_honor, etc).
+          success: false,
+        },
+      });
       setStripeError(friendlyStripeErrorMessage(confirmed));
       toast.error(friendlyStripeErrorMessage(confirmed));
       releaseSubmit();
@@ -2697,6 +2758,18 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
     },
     [],
   );
+
+  const emitCheckoutPostalStarted = (raw: string) => {
+    const draft = postalDraftAnalytics(raw);
+    if (!draft) return;
+    emitOnce(postalStartedEmitKey(), () => {
+      void AnalyticsTracker.trackEvent({
+        eventType: "checkout_postal_started",
+        eventCategory: "checkout",
+        metadata: draft,
+      });
+    });
+  };
 
   const handlePostalDraftCommit = (raw?: string) => {
     const v = (raw ?? postalCodeDraft).trim().replace(/\s+/g, "");
@@ -3163,6 +3236,7 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
                       onChange={(e) => {
                         const v = e.target.value.replace(/\s+/g, "");
                         setPostalCodeDraft(v);
+                        emitCheckoutPostalStarted(v);
                         if (
                           isUsConditional
                             ? v.length >= 3

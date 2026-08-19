@@ -47,6 +47,17 @@ function parseCountryFilter(raw: string | null): string | null {
   return normalizeCountryCode(raw);
 }
 
+/** Comma-separated YYYY-MM-DD (Stockholm civil dates). */
+function parseDateFilter(raw: string | null): Set<string> | null {
+  if (!raw || !raw.trim()) return null;
+  const dates = raw
+    .split(",")
+    .map((s) => s.trim())
+    .filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d));
+  if (dates.length === 0) return null;
+  return new Set(dates.slice(0, 90));
+}
+
 function visitorKey(e: {
   visitor_id?: string | null;
   session_id: string;
@@ -170,6 +181,7 @@ export async function GET(request: Request) {
   const site = parseSiteParam(searchParams.get("site"));
   const countryFilter = parseCountryFilter(searchParams.get("country"));
   const channelFilter = parseChannelFilter(searchParams.get("channel"));
+  const dateFilter = parseDateFilter(searchParams.get("dates"));
 
   const sb = getSupabaseAdmin();
   const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
@@ -328,11 +340,13 @@ export async function GET(request: Request) {
     const sessionHasPdp = new Set<string>();
     const sessionHasCart = new Set<string>();
     const sessionHasReservation = new Set<string>();
+    const sessionOnSelectedDates = new Set<string>();
 
     for (const e of allRows) {
       const day = toDateKey(String(e.created_at));
       if (globalFirstPageViewDate && day < globalFirstPageViewDate) continue;
       const sid = String(e.session_id);
+      const onSelectedDay = !dateFilter || dateFilter.has(day);
 
       if (!sessionChannel.has(sid)) {
         // First event in chronological fetch order (rows ordered by created_at ASC)
@@ -351,10 +365,13 @@ export async function GET(request: Request) {
       if (!sessionVisitors.has(sid)) {
         sessionVisitors.set(sid, visitorKey(e));
       }
-      if (e.event_type === "product_viewed") sessionHasPdp.add(sid);
-      if (e.event_type === "add_to_cart") sessionHasCart.add(sid);
-      if (e.event_type === "reservation_completed") {
-        sessionHasReservation.add(sid);
+      if (onSelectedDay) {
+        sessionOnSelectedDates.add(sid);
+        if (e.event_type === "product_viewed") sessionHasPdp.add(sid);
+        if (e.event_type === "add_to_cart") sessionHasCart.add(sid);
+        if (e.event_type === "reservation_completed") {
+          sessionHasReservation.add(sid);
+        }
       }
     }
 
@@ -370,6 +387,11 @@ export async function GET(request: Request) {
       return sessionChannel.get(sid) === channelFilter;
     };
 
+    const matchesDates = (sid: string) => {
+      if (!dateFilter) return true;
+      return sessionOnSelectedDates.has(sid);
+    };
+
     const addSessionToFunnel = (bucket: FunnelAgg, sid: string) => {
       bucket.sessions.add(sid);
       bucket.visitors.add(sessionVisitors.get(sid) ?? `session:${sid}`);
@@ -382,7 +404,7 @@ export async function GET(request: Request) {
     const byChannel = new Map<string, FunnelAgg>();
     for (const ch of ANALYTICS_CHANNELS) byChannel.set(ch, emptyFunnel());
     for (const [sid, ch] of sessionChannel) {
-      if (!matchesCountry(sid)) continue;
+      if (!matchesCountry(sid) || !matchesDates(sid)) continue;
       const bucket = byChannel.get(ch) ?? emptyFunnel();
       if (!byChannel.has(ch)) byChannel.set(ch, bucket);
       addSessionToFunnel(bucket, sid);
@@ -398,7 +420,7 @@ export async function GET(request: Request) {
     // Country breakdown respects channel (+ site) filter
     const byCountry = new Map<string, FunnelAgg>();
     for (const [sid, cc] of sessionCountry) {
-      if (!matchesChannel(sid)) continue;
+      if (!matchesChannel(sid) || !matchesDates(sid)) continue;
       if (!sessionChannel.has(sid)) continue;
       const key = cc ?? "Unknown";
       if (!byCountry.has(key)) byCountry.set(key, emptyFunnel());
@@ -416,7 +438,9 @@ export async function GET(request: Request) {
     const byCampaign = new Map<string, FunnelAgg>();
     for (const [sid, campaign] of sessionCampaign) {
       if (!campaign) continue;
-      if (!matchesCountry(sid) || !matchesChannel(sid)) continue;
+      if (!matchesCountry(sid) || !matchesChannel(sid) || !matchesDates(sid)) {
+        continue;
+      }
       if (!byCampaign.has(campaign)) byCampaign.set(campaign, emptyFunnel());
       addSessionToFunnel(byCampaign.get(campaign)!, sid);
     }
@@ -431,15 +455,28 @@ export async function GET(request: Request) {
     // Combined filters for chart / top pages / totals
     const filteredSessionIds = new Set(
       [...sessionChannel.keys()].filter(
-        (sid) => matchesCountry(sid) && matchesChannel(sid),
+        (sid) => matchesCountry(sid) && matchesChannel(sid) && matchesDates(sid),
       ),
     );
 
-    const rows = allRows.filter((e) =>
-      filteredSessionIds.has(String(e.session_id)),
+    const rows = allRows.filter((e) => {
+      if (!filteredSessionIds.has(String(e.session_id))) return false;
+      if (!dateFilter) return true;
+      return dateFilter.has(toDateKey(String(e.created_at)));
+    });
+
+    // Full daily series still uses channel/country (not date) so the chart
+    // stays clickable for multi-select.
+    const chartSessionIds = new Set(
+      [...sessionChannel.keys()].filter(
+        (sid) => matchesCountry(sid) && matchesChannel(sid),
+      ),
+    );
+    const chartRows = allRows.filter((e) =>
+      chartSessionIds.has(String(e.session_id)),
     );
 
-    const pageViewDates = rows
+    const pageViewDates = chartRows
       .filter((e) => e.event_type === "page_view")
       .map((e) => toDateKey(String(e.created_at)));
     const firstPageViewDate =
@@ -449,7 +486,7 @@ export async function GET(request: Request) {
 
     const dailySessionSets = new Map<string, Set<string>>();
     const dailyVisitorSets = new Map<string, Set<string>>();
-    for (const e of rows) {
+    for (const e of chartRows) {
       const day = toDateKey(String(e.created_at));
       if (firstPageViewDate && day < firstPageViewDate) continue;
       if (!dailySessionSets.has(day)) dailySessionSets.set(day, new Set());
@@ -487,7 +524,7 @@ export async function GET(request: Request) {
     const pageCounts = new Map<string, number>();
     for (const e of rows) {
       if (e.event_type !== "page_view") continue;
-      if (String(e.created_at) < topPagesSince) continue;
+      if (!dateFilter && String(e.created_at) < topPagesSince) continue;
       const path = pathFromPageUrl(
         e.page_url as string | null,
         e.event_metadata,
@@ -517,6 +554,7 @@ export async function GET(request: Request) {
       site,
       country: countryFilter,
       channel: channelFilter,
+      dates: dateFilter ? [...dateFilter].sort() : [],
       firstPageViewDate,
       daily,
       totals: {

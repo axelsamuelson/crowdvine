@@ -4,6 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Sidebar } from "@/components/admin/sidebar";
 import { AdminTopNav } from "@/components/admin/admin-top-nav";
 import { AdminBreadcrumbDetailProvider } from "@/components/admin/admin-breadcrumb-detail-context";
+import { ThemeProvider } from "@/components/theme-provider";
 import { Button } from "@/components/ui/button";
 import { Menu } from "lucide-react";
 
@@ -85,7 +86,7 @@ export function AdminLayoutClient({
     document.documentElement.classList.add("admin-app-root");
     document.body.classList.add("admin-app-root");
     return () => {
-      document.documentElement.classList.remove("admin-app-root");
+      document.documentElement.classList.remove("admin-app-root", "dark");
       document.body.classList.remove("admin-app-root");
     };
   }, []);
@@ -164,41 +165,49 @@ export function AdminLayoutClient({
   }, []);
 
   return (
-    <AdminBreadcrumbDetailProvider>
-    <div className="flex h-dvh max-h-dvh min-h-0 w-full bg-white pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)] dark:bg-[#0F0F12]">
-      <Sidebar
-        userEmail={userEmail}
-        onSignOut={handleSignOut}
-        mobileOpen={mobileOpen}
-        onMobileClose={() => setMobileOpen(false)}
-      />
+    <ThemeProvider
+      attribute="class"
+      defaultTheme="system"
+      enableSystem
+      storageKey="crowdvine-admin-theme"
+      disableTransitionOnChange
+    >
+      <AdminBreadcrumbDetailProvider>
+        <div className="flex h-dvh max-h-dvh min-h-0 w-full bg-white pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)] dark:bg-[#0F0F12]">
+          <Sidebar
+            userEmail={userEmail}
+            onSignOut={handleSignOut}
+            mobileOpen={mobileOpen}
+            onMobileClose={() => setMobileOpen(false)}
+          />
 
-      <div className="flex min-h-0 min-w-0 w-full flex-1 flex-col">
-        <header className="h-16 flex-shrink-0 border-b border-gray-200 dark:border-[#1F1F23] flex items-center">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="lg:hidden ml-2"
-            onClick={() => setMobileOpen(true)}
-            aria-label="Open menu"
-          >
-            <Menu className="h-5 w-5 text-gray-600 dark:text-gray-300" />
-          </Button>
-          <div className="flex-1 min-w-0">
-            <AdminTopNav userEmail={userEmail} onSignOut={handleSignOut} />
+          <div className="flex min-h-0 min-w-0 w-full flex-1 flex-col">
+            <header className="h-16 flex-shrink-0 border-b border-gray-200 dark:border-[#1F1F23] flex items-center">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="lg:hidden ml-2"
+                onClick={() => setMobileOpen(true)}
+                aria-label="Open menu"
+              >
+                <Menu className="h-5 w-5 text-gray-600 dark:text-gray-300" />
+              </Button>
+              <div className="flex-1 min-w-0">
+                <AdminTopNav userEmail={userEmail} onSignOut={handleSignOut} />
+              </div>
+            </header>
+            {/* min-h-0: flex child must shrink so overflow-auto on main is the scroll container (fixes wheel over tables). */}
+            <div
+              ref={(node) => {
+                mainRef.current = node;
+              }}
+              className="min-h-0 flex-1 overflow-auto bg-white px-3 pb-6 pt-4 text-gray-900 [-webkit-overflow-scrolling:touch] sm:px-6 sm:pt-6 dark:bg-[#0F0F12] dark:text-zinc-100"
+            >
+              <div className="mx-auto min-h-0 max-w-5xl">{children}</div>
+            </div>
           </div>
-        </header>
-        {/* min-h-0: flex child must shrink so overflow-auto on main is the scroll container (fixes wheel over tables). */}
-        <div
-          ref={(node) => {
-            mainRef.current = node;
-          }}
-          className="min-h-0 flex-1 overflow-auto bg-white px-3 pb-6 pt-4 text-gray-900 [-webkit-overflow-scrolling:touch] sm:px-6 sm:pt-6 dark:bg-[#0F0F12] dark:text-zinc-100"
-        >
-          <div className="mx-auto min-h-0 max-w-5xl">{children}</div>
         </div>
-      </div>
-    </div>
-    </AdminBreadcrumbDetailProvider>
+      </AdminBreadcrumbDetailProvider>
+    </ThemeProvider>
   );
 }
