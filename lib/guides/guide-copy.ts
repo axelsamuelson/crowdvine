@@ -1,6 +1,10 @@
 import type { AppLocale } from "@/lib/i18n/locale";
 import { GUIDE_PATHS } from "@/lib/guides/guide-routes";
+import { jeanFoillardGuide } from "@/lib/guides/jean-foillard";
+import { jeanFrancoisGanevatGuide } from "@/lib/guides/jean-francois-ganevat";
+import { joskoGravnerGuide } from "@/lib/guides/josko-gravner";
 import { pierreOvernoyGuide } from "@/lib/guides/pierre-overnoy";
+import { thierryAllemandGuide } from "@/lib/guides/thierry-allemand";
 
 export type GuideLocaleCopy = {
   home: string;
@@ -142,6 +146,26 @@ const EN: GuideLocaleCopy = {
       href: pierreOvernoyGuide.hubCard.href,
       title: pierreOvernoyGuide.hubCard.title,
       description: pierreOvernoyGuide.hubCard.description,
+    },
+    {
+      href: thierryAllemandGuide.hubCard.href,
+      title: thierryAllemandGuide.hubCard.title,
+      description: thierryAllemandGuide.hubCard.description,
+    },
+    {
+      href: joskoGravnerGuide.hubCard.href,
+      title: joskoGravnerGuide.hubCard.title,
+      description: joskoGravnerGuide.hubCard.description,
+    },
+    {
+      href: jeanFrancoisGanevatGuide.hubCard.href,
+      title: jeanFrancoisGanevatGuide.hubCard.title,
+      description: jeanFrancoisGanevatGuide.hubCard.description,
+    },
+    {
+      href: jeanFoillardGuide.hubCard.href,
+      title: jeanFoillardGuide.hubCard.title,
+      description: jeanFoillardGuide.hubCard.description,
     },
   ],
   top10: "Top 10",

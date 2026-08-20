@@ -88,6 +88,30 @@ export function Footer({ initialLogos }: { initialLogos?: SiteLogos }) {
                           >
                             Pierre Overnoy
                           </Link>
+                          <Link
+                            href="/guides/thierry-allemand"
+                            className="text-sm text-background/70 hover:text-background transition-colors hover:underline"
+                          >
+                            Thierry Allemand
+                          </Link>
+                          <Link
+                            href="/guides/josko-gravner"
+                            className="text-sm text-background/70 hover:text-background transition-colors hover:underline"
+                          >
+                            Joško Gravner
+                          </Link>
+                          <Link
+                            href="/guides/jean-francois-ganevat"
+                            className="text-sm text-background/70 hover:text-background transition-colors hover:underline"
+                          >
+                            Jean-François Ganevat
+                          </Link>
+                          <Link
+                            href="/guides/jean-foillard"
+                            className="text-sm text-background/70 hover:text-background transition-colors hover:underline"
+                          >
+                            Jean Foillard
+                          </Link>
                         </>
                       ) : (
                         <>

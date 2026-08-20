@@ -72,6 +72,10 @@ function staticPagesForProfile(
         0.75,
       ),
       weeklyEntry(`${baseUrl}/guides/pierre-overnoy`, 0.75),
+      weeklyEntry(`${baseUrl}/guides/thierry-allemand`, 0.75),
+      weeklyEntry(`${baseUrl}/guides/josko-gravner`, 0.75),
+      weeklyEntry(`${baseUrl}/guides/jean-francois-ganevat`, 0.75),
+      weeklyEntry(`${baseUrl}/guides/jean-foillard`, 0.75),
       weeklyEntry(`${baseUrl}/vin/wine-boxes`, 0.75),
       weeklyEntry(`${baseUrl}/wine/wine-boxes`, 0.75),
     );
