@@ -71,6 +71,7 @@ function staticPagesForProfile(
         `${baseUrl}/guides/worlds-best-natural-wine-producers`,
         0.75,
       ),
+      weeklyEntry(`${baseUrl}/guides/pierre-overnoy`, 0.75),
       weeklyEntry(`${baseUrl}/vin/wine-boxes`, 0.75),
       weeklyEntry(`${baseUrl}/wine/wine-boxes`, 0.75),
     );

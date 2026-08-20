@@ -1,5 +1,6 @@
 import type { AppLocale } from "@/lib/i18n/locale";
 import { GUIDE_PATHS } from "@/lib/guides/guide-routes";
+import { pierreOvernoyGuide } from "@/lib/guides/pierre-overnoy";
 
 export type GuideLocaleCopy = {
   home: string;
@@ -136,6 +137,11 @@ const EN: GuideLocaleCopy = {
       title: "The World's 100 Best Natural Wines",
       description:
         "A hundred bottles that changed how people think about what wine can be.",
+    },
+    {
+      href: pierreOvernoyGuide.hubCard.href,
+      title: pierreOvernoyGuide.hubCard.title,
+      description: pierreOvernoyGuide.hubCard.description,
     },
   ],
   top10: "Top 10",

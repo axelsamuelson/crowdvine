@@ -82,6 +82,12 @@ export function Footer({ initialLogos }: { initialLogos?: SiteLogos }) {
                           >
                             The World&apos;s 100 Best Natural Wine Producers
                           </Link>
+                          <Link
+                            href="/guides/pierre-overnoy"
+                            className="text-sm text-background/70 hover:text-background transition-colors hover:underline"
+                          >
+                            Pierre Overnoy
+                          </Link>
                         </>
                       ) : (
                         <>
