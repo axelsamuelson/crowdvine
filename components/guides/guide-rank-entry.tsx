@@ -1,9 +1,12 @@
+import Link from "next/link";
+
 type GuideRankEntryProps = {
   rank: number;
   title: string;
   meta: string;
   description?: string;
   compact?: boolean;
+  href?: string;
 };
 
 export function GuideRankEntry({
@@ -12,6 +15,7 @@ export function GuideRankEntry({
   meta,
   description,
   compact = false,
+  href,
 }: GuideRankEntryProps) {
   return (
     <article
@@ -39,7 +43,16 @@ export function GuideRankEntry({
                 : "text-xl font-semibold tracking-tight text-foreground"
             }
           >
-            {title}
+            {href ? (
+              <Link
+                href={href}
+                className="underline underline-offset-4 hover:text-foreground"
+              >
+                {title}
+              </Link>
+            ) : (
+              title
+            )}
           </h3>
           <p className="mt-1 text-sm text-muted-foreground">{meta}</p>
           {description ? (

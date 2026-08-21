@@ -23,6 +23,7 @@ import {
   guidePath,
 } from "@/lib/guides/guide-routes";
 import { filterLanguedocRoussillonEntries } from "@/lib/guides/languedoc-region";
+import { producerGuideHref } from "@/lib/guides/producer-guide-links";
 import { TOP_100_PRODUCERS } from "@/lib/guides/top-100-producers";
 import type { AppLocale } from "@/lib/i18n/locale";
 import { categoryPageTitle } from "@/lib/seo/category-page-title";
@@ -168,11 +169,17 @@ export async function renderProducersGuidePage(locale: AppLocale) {
     description: copy.producers.metaDescription,
     numberOfItems: 100,
     itemListOrder: "https://schema.org/ItemListOrderDescending",
-    itemListElement: TOP_100_PRODUCERS.map((producer) => ({
-      "@type": "ListItem",
-      position: producer.rank,
-      name: producer.name,
-    })),
+    itemListElement: TOP_100_PRODUCERS.map((producer) => {
+      const guideHref = producerGuideHref(producer.rank);
+      return {
+        "@type": "ListItem",
+        position: producer.rank,
+        name: producer.name,
+        ...(guideHref
+          ? { url: `${config.baseUrl}${guideHref}` }
+          : {}),
+      };
+    }),
   };
 
   return (
@@ -235,6 +242,7 @@ export async function renderProducersGuidePage(locale: AppLocale) {
                 title={producer.name}
                 meta={producerMetaLine(producer)}
                 description={entryDescription(producer, locale)}
+                href={producerGuideHref(producer.rank)}
               />
             ))}
           </div>
@@ -252,6 +260,7 @@ export async function renderProducersGuidePage(locale: AppLocale) {
                 title={producer.name}
                 meta={producerMetaLine(producer)}
                 description={entryDescription(producer, locale)}
+                href={producerGuideHref(producer.rank)}
                 compact
               />
             ))}
