@@ -328,7 +328,7 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
       metadata: {
         zoneError: err,
         zoneErrorMessage: zoneInfo.zoneErrorMessage ?? null,
-        postal: postalDraft?.postal ?? postalCodeDraft || null,
+        postal: (postalDraft?.postal ?? postalCodeDraft) || null,
         digits: postalDraft?.digits ?? null,
         postal_complete: postalDraft?.complete ?? false,
         country_code: ageCountryCode,
