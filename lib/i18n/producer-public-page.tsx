@@ -429,6 +429,17 @@ export async function renderProducerPublicPage(options: {
               </p>
             </section>
           ) : null}
+
+          <nav className="mt-12 space-y-3 border-t border-border pt-8 text-sm">
+            <Link
+              href={locale === "sv" ? "/guider" : "/guides"}
+              className="underline underline-offset-4 hover:text-foreground"
+            >
+              {locale === "sv"
+                ? "Utforska alla våra naturvinsguider →"
+                : "Explore all our natural wine guides →"}
+            </Link>
+          </nav>
         </div>
 
         <div className="sticky top-top-spacing h-[calc(100vh-var(--top-spacing))] max-lg:hidden">

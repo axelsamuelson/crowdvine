@@ -71,61 +71,43 @@ export function Footer({ initialLogos }: { initialLogos?: SiteLogos }) {
                       {paths.shop.startsWith("/wine") ? (
                         <>
                           <Link
-                            href="/guides/worlds-best-natural-wines"
+                            href="/guides"
                             className="text-sm text-background/70 hover:text-background transition-colors hover:underline"
                           >
-                            The World&apos;s 100 Best Natural Wines
+                            All guides
                           </Link>
                           <Link
                             href="/guides/worlds-best-natural-wine-producers"
                             className="text-sm text-background/70 hover:text-background transition-colors hover:underline"
                           >
-                            The World&apos;s 100 Best Natural Wine Producers
+                            100 best producers
                           </Link>
                           <Link
-                            href="/guides/pierre-overnoy"
+                            href="/guides/worlds-best-natural-wines"
                             className="text-sm text-background/70 hover:text-background transition-colors hover:underline"
                           >
-                            Pierre Overnoy
-                          </Link>
-                          <Link
-                            href="/guides/thierry-allemand"
-                            className="text-sm text-background/70 hover:text-background transition-colors hover:underline"
-                          >
-                            Thierry Allemand
-                          </Link>
-                          <Link
-                            href="/guides/josko-gravner"
-                            className="text-sm text-background/70 hover:text-background transition-colors hover:underline"
-                          >
-                            Joško Gravner
-                          </Link>
-                          <Link
-                            href="/guides/jean-francois-ganevat"
-                            className="text-sm text-background/70 hover:text-background transition-colors hover:underline"
-                          >
-                            Jean-François Ganevat
-                          </Link>
-                          <Link
-                            href="/guides/jean-foillard"
-                            className="text-sm text-background/70 hover:text-background transition-colors hover:underline"
-                          >
-                            Jean Foillard
+                            100 best wines
                           </Link>
                         </>
                       ) : (
                         <>
                           <Link
-                            href="/guider/varldens-basta-naturviner"
+                            href="/guider"
                             className="text-sm text-background/70 hover:text-background transition-colors hover:underline"
                           >
-                            Världens 100 bästa naturviner
+                            Alla guider
                           </Link>
                           <Link
                             href="/guider/varldens-basta-naturvinsproducenter"
                             className="text-sm text-background/70 hover:text-background transition-colors hover:underline"
                           >
-                            Världens 100 bästa naturvinsproducenter
+                            100 bästa producenterna
+                          </Link>
+                          <Link
+                            href="/guider/varldens-basta-naturviner"
+                            className="text-sm text-background/70 hover:text-background transition-colors hover:underline"
+                          >
+                            100 bästa vinerna
                           </Link>
                         </>
                       )}

@@ -76,6 +76,13 @@ function staticPagesForProfile(
       weeklyEntry(`${baseUrl}/guides/josko-gravner`, 0.75),
       weeklyEntry(`${baseUrl}/guides/jean-francois-ganevat`, 0.75),
       weeklyEntry(`${baseUrl}/guides/jean-foillard`, 0.75),
+      weeklyEntry(`${baseUrl}/guides/marcel-lapierre`, 0.75),
+      weeklyEntry(`${baseUrl}/guides/radikon`, 0.75),
+      weeklyEntry(`${baseUrl}/guides/jura-natural-wine`, 0.75),
+      weeklyEntry(`${baseUrl}/guides/beaujolais-natural-wine`, 0.75),
+      weeklyEntry(`${baseUrl}/guides/worlds-best-orange-wines`, 0.75),
+      weeklyEntry(`${baseUrl}/guides/worlds-best-natural-champagne`, 0.75),
+      weeklyEntry(`${baseUrl}/guides/georgia-natural-wine`, 0.75),
       weeklyEntry(`${baseUrl}/vin/wine-boxes`, 0.75),
       weeklyEntry(`${baseUrl}/wine/wine-boxes`, 0.75),
     );

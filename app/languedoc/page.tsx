@@ -339,6 +339,21 @@ export default async function LanguedocPage() {
           </p>
         </section>
 
+        <section className="space-y-4">
+          <h2 className="mt-12 mb-4 border-b border-border pb-3 text-xl font-semibold">
+            Naturvinsvärldens bästa
+          </h2>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            <Link
+              href="/guider/varldens-basta-naturvinsproducenter"
+              className="underline underline-offset-4 hover:text-foreground"
+            >
+              Tio av producenterna på vår lista över världens 100 bästa
+              naturvinsproducenter verkar i Languedoc och Roussillon. →
+            </Link>
+          </p>
+        </section>
+
         <div className="mt-16 rounded-xl bg-foreground p-8 text-center text-background">
           <h2 className="mb-2 text-xl font-semibold">
             Utforska naturvin från Languedoc

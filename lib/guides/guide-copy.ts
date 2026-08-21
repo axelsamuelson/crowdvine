@@ -1,10 +1,28 @@
 import type { AppLocale } from "@/lib/i18n/locale";
 import { GUIDE_PATHS } from "@/lib/guides/guide-routes";
+import { beaujolaisNaturalWineGuide } from "@/lib/guides/beaujolais-natural-wine";
+import { georgiaNaturalWineGuide } from "@/lib/guides/georgia-natural-wine";
 import { jeanFoillardGuide } from "@/lib/guides/jean-foillard";
 import { jeanFrancoisGanevatGuide } from "@/lib/guides/jean-francois-ganevat";
 import { joskoGravnerGuide } from "@/lib/guides/josko-gravner";
+import { juraNaturalWineGuide } from "@/lib/guides/jura-natural-wine";
+import { marcelLapierreGuide } from "@/lib/guides/marcel-lapierre";
 import { pierreOvernoyGuide } from "@/lib/guides/pierre-overnoy";
+import { radikonGuide } from "@/lib/guides/radikon";
 import { thierryAllemandGuide } from "@/lib/guides/thierry-allemand";
+import { worldsBestNaturalChampagneGuide } from "@/lib/guides/worlds-best-natural-champagne";
+import { worldsBestOrangeWinesGuide } from "@/lib/guides/worlds-best-orange-wines";
+
+export type GuideHubCard = {
+  href: string;
+  title: string;
+  description: string;
+};
+
+export type GuideHubSection = {
+  title: string;
+  cards: GuideHubCard[];
+};
 
 export type GuideLocaleCopy = {
   home: string;
@@ -12,7 +30,9 @@ export type GuideLocaleCopy = {
   hubMetaTitle: string;
   hubMetaDescription: string;
   hubIntro: string;
-  hubCards: Array<{ href: string; title: string; description: string }>;
+  /** @deprecated Prefer hubSections; kept for any flat consumers. */
+  hubCards: GuideHubCard[];
+  hubSections: GuideHubSection[];
   top10: string;
   mid: string;
   rest: string;
@@ -48,6 +68,21 @@ export type GuideLocaleCopy = {
   };
 };
 
+const SV_LIST_CARDS: GuideHubCard[] = [
+  {
+    href: GUIDE_PATHS.producers.sv,
+    title: "Världens 100 bästa naturvinsproducenter",
+    description:
+      "Vår kurerade lista över de hundra producenter som format naturvinets moderna historia.",
+  },
+  {
+    href: GUIDE_PATHS.wines.sv,
+    title: "Världens 100 bästa naturviner",
+    description:
+      "Hundra flaskor som förändrat hur människor tänker om vad vin kan vara.",
+  },
+];
+
 const SV: GuideLocaleCopy = {
   home: "Hem",
   hubTitle: "Guider",
@@ -55,19 +90,12 @@ const SV: GuideLocaleCopy = {
   hubMetaDescription:
     "Kurerade guider om naturvin — världens bästa naturvinsproducenter och naturviner.",
   hubIntro:
-    "Djupgående guider om naturvin — kurerade listor, regionkunskap och sammanhang bakom de flaskor och producenter som format rörelsen.",
-  hubCards: [
+    "Våra guider täcker producenterna, regionerna och vinerna som betyder något i naturvinsvärlden — från pionjärerna som startade rörelsen till regionerna som definierar den idag. Varje guide bygger på verifierad information, skriven för dig som vill förstå naturvin bortom etiketten.",
+  hubCards: SV_LIST_CARDS,
+  hubSections: [
     {
-      href: GUIDE_PATHS.producers.sv,
-      title: "Världens 100 bästa naturvinsproducenter",
-      description:
-        "Vår kurerade lista över de hundra producenter som format naturvinets moderna historia.",
-    },
-    {
-      href: GUIDE_PATHS.wines.sv,
-      title: "Världens 100 bästa naturviner",
-      description:
-        "Hundra flaskor som förändrat hur människor tänker om vad vin kan vara.",
+      title: "Listor",
+      cards: SV_LIST_CARDS,
     },
   ],
   top10: "Topp 10",
@@ -121,52 +149,100 @@ const SV: GuideLocaleCopy = {
   },
 };
 
+const EN_PRODUCER_CARDS: GuideHubCard[] = [
+  {
+    href: pierreOvernoyGuide.hubCard.href,
+    title: pierreOvernoyGuide.hubCard.title,
+    description: pierreOvernoyGuide.hubCard.description,
+  },
+  {
+    href: thierryAllemandGuide.hubCard.href,
+    title: thierryAllemandGuide.hubCard.title,
+    description: thierryAllemandGuide.hubCard.description,
+  },
+  {
+    href: joskoGravnerGuide.hubCard.href,
+    title: joskoGravnerGuide.hubCard.title,
+    description: joskoGravnerGuide.hubCard.description,
+  },
+  {
+    href: jeanFrancoisGanevatGuide.hubCard.href,
+    title: jeanFrancoisGanevatGuide.hubCard.title,
+    description: jeanFrancoisGanevatGuide.hubCard.description,
+  },
+  {
+    href: jeanFoillardGuide.hubCard.href,
+    title: jeanFoillardGuide.hubCard.title,
+    description: jeanFoillardGuide.hubCard.description,
+  },
+  {
+    href: marcelLapierreGuide.hubCard.href,
+    title: marcelLapierreGuide.hubCard.title,
+    description: marcelLapierreGuide.hubCard.description,
+  },
+  {
+    href: radikonGuide.hubCard.href,
+    title: radikonGuide.hubCard.title,
+    description: radikonGuide.hubCard.description,
+  },
+];
+
+const EN_REGION_CARDS: GuideHubCard[] = [
+  {
+    href: juraNaturalWineGuide.hubCard.href,
+    title: juraNaturalWineGuide.hubCard.title,
+    description: juraNaturalWineGuide.hubCard.description,
+  },
+  {
+    href: beaujolaisNaturalWineGuide.hubCard.href,
+    title: beaujolaisNaturalWineGuide.hubCard.title,
+    description: beaujolaisNaturalWineGuide.hubCard.description,
+  },
+  {
+    href: georgiaNaturalWineGuide.hubCard.href,
+    title: georgiaNaturalWineGuide.hubCard.title,
+    description: georgiaNaturalWineGuide.hubCard.description,
+  },
+];
+
+const EN_LIST_CARDS: GuideHubCard[] = [
+  {
+    href: GUIDE_PATHS.producers.en,
+    title: "The World's 100 Best Natural Wine Producers",
+    description:
+      "Our curated list of the hundred producers who shaped the modern history of natural wine.",
+  },
+  {
+    href: GUIDE_PATHS.wines.en,
+    title: "The World's 100 Best Natural Wines",
+    description:
+      "A hundred bottles that changed how people think about what wine can be.",
+  },
+  {
+    href: worldsBestOrangeWinesGuide.hubCard.href,
+    title: worldsBestOrangeWinesGuide.hubCard.title,
+    description: worldsBestOrangeWinesGuide.hubCard.description,
+  },
+  {
+    href: worldsBestNaturalChampagneGuide.hubCard.href,
+    title: worldsBestNaturalChampagneGuide.hubCard.title,
+    description: worldsBestNaturalChampagneGuide.hubCard.description,
+  },
+];
+
 const EN: GuideLocaleCopy = {
   home: "Home",
-  hubTitle: "Guides",
+  hubTitle: "Natural Wine Guides",
   hubMetaTitle: "Natural Wine Guides | PACT Wines",
   hubMetaDescription:
-    "Curated guides to natural wine — the world's best natural wine producers and natural wines.",
+    "Guides to the producers, regions and wines that define the natural wine world — from Pierre Overnoy to Georgian qvevri.",
   hubIntro:
-    "In-depth guides to natural wine — curated lists, regional knowledge and context behind the bottles and producers that shaped the movement.",
-  hubCards: [
-    {
-      href: GUIDE_PATHS.producers.en,
-      title: "The World's 100 Best Natural Wine Producers",
-      description:
-        "Our curated list of the hundred producers who shaped the modern history of natural wine.",
-    },
-    {
-      href: GUIDE_PATHS.wines.en,
-      title: "The World's 100 Best Natural Wines",
-      description:
-        "A hundred bottles that changed how people think about what wine can be.",
-    },
-    {
-      href: pierreOvernoyGuide.hubCard.href,
-      title: pierreOvernoyGuide.hubCard.title,
-      description: pierreOvernoyGuide.hubCard.description,
-    },
-    {
-      href: thierryAllemandGuide.hubCard.href,
-      title: thierryAllemandGuide.hubCard.title,
-      description: thierryAllemandGuide.hubCard.description,
-    },
-    {
-      href: joskoGravnerGuide.hubCard.href,
-      title: joskoGravnerGuide.hubCard.title,
-      description: joskoGravnerGuide.hubCard.description,
-    },
-    {
-      href: jeanFrancoisGanevatGuide.hubCard.href,
-      title: jeanFrancoisGanevatGuide.hubCard.title,
-      description: jeanFrancoisGanevatGuide.hubCard.description,
-    },
-    {
-      href: jeanFoillardGuide.hubCard.href,
-      title: jeanFoillardGuide.hubCard.title,
-      description: jeanFoillardGuide.hubCard.description,
-    },
+    "Our guides cover the producers, regions and wines that matter in the natural wine world — from the pioneers who started the movement to the regions that define it today. Each guide is built on verified information, written for people who want to understand natural wine beyond the label.",
+  hubCards: [...EN_PRODUCER_CARDS, ...EN_REGION_CARDS, ...EN_LIST_CARDS],
+  hubSections: [
+    { title: "Producers", cards: EN_PRODUCER_CARDS },
+    { title: "Regions", cards: EN_REGION_CARDS },
+    { title: "Lists", cards: EN_LIST_CARDS },
   ],
   top10: "Top 10",
   mid: "11–30",

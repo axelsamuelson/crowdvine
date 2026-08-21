@@ -96,23 +96,32 @@ export async function renderGuideHubPage(locale: AppLocale) {
           {copy.hubIntro}
         </p>
 
-        <ul className="mt-10 space-y-4">
-          {copy.hubCards.map((guide) => (
-            <li key={guide.href}>
-              <Link
-                href={guide.href}
-                className="block rounded-xl border border-border bg-background px-5 py-5 transition-colors hover:border-foreground/30"
-              >
-                <h2 className="text-lg font-semibold tracking-tight text-foreground">
-                  {guide.title}
-                </h2>
-                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                  {guide.description}
-                </p>
-              </Link>
-            </li>
+        <div className="mt-12 space-y-14">
+          {copy.hubSections.map((section) => (
+            <section key={section.title}>
+              <h2 className="mb-4 border-b border-border pb-3 text-xl font-semibold tracking-tight">
+                {section.title}
+              </h2>
+              <ul className="space-y-4">
+                {section.cards.map((guide) => (
+                  <li key={guide.href}>
+                    <Link
+                      href={guide.href}
+                      className="block rounded-xl border border-border bg-background px-5 py-5 transition-colors hover:border-foreground/30"
+                    >
+                      <h3 className="text-lg font-semibold tracking-tight text-foreground">
+                        {guide.title}
+                      </h3>
+                      <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                        {guide.description}
+                      </p>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
           ))}
-        </ul>
+        </div>
       </div>
 
       <Footer />

@@ -159,14 +159,28 @@ function colorHubExploreLinks(category: WineCategory): CategoryExploreLink[] {
   if (category.slug === "naturvin") {
     links.push({
       href: "/guider/varldens-basta-naturviner",
-      label: "Världens 100 bästa naturviner",
+      label: "Världens 100 bästa naturviner →",
     });
   }
 
   if (category.slug === "natural-wine") {
     links.push({
       href: "/guides/worlds-best-natural-wines",
-      label: "The World's 100 Best Natural Wines",
+      label: "The world's 100 best natural wines →",
+    });
+  }
+
+  if (category.slug === "red-natural-wine") {
+    links.push({
+      href: "/guides/worlds-best-natural-wine-producers",
+      label: "The world's 100 best natural wine producers →",
+    });
+  }
+
+  if (category.slug === "rott-naturvin") {
+    links.push({
+      href: "/guider/varldens-basta-naturvinsproducenter",
+      label: "Världens 100 bästa naturvinsproducenter →",
     });
   }
 
