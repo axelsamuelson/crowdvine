@@ -63,9 +63,6 @@ export async function renderWorldsBestOrangeWinesPage() {
   const wineMetaLine = (entry: (typeof TOP_100_WINES)[number]) =>
     `${entry.producer} · ${entry.region} · ${countryLabel(entry.country, "en")} · ${wineTypeLabel(entry.type, "en")} · ${entry.grapes}`;
 
-  const featured = orangeWines.filter((wine) => Boolean(wine.descriptionEn));
-  const compact = orangeWines.filter((wine) => !wine.descriptionEn);
-
   const breadcrumbJsonLd = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
@@ -158,22 +155,14 @@ export async function renderWorldsBestOrangeWinesPage() {
             {worldsBestOrangeWinesGuide.listHeading(orangeWines.length)}
           </h2>
           <div>
-            {featured.map((wine) => (
+            {orangeWines.map((wine, index) => (
               <GuideRankEntry
                 key={wine.rank}
-                rank={wine.rank}
+                rank={index + 1}
                 title={wine.wine}
                 meta={wineMetaLine(wine)}
                 description={entryDescription(wine, "en")}
-              />
-            ))}
-            {compact.map((wine) => (
-              <GuideRankEntry
-                key={wine.rank}
-                rank={wine.rank}
-                title={wine.wine}
-                meta={wineMetaLine(wine)}
-                compact
+                compact={!wine.descriptionEn}
               />
             ))}
           </div>
