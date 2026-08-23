@@ -38,7 +38,9 @@ export function FunnelBar({
       ? "grid-cols-4"
       : bars.length === 5
         ? "grid-cols-5"
-        : "grid-cols-5 sm:grid-cols-6";
+        : bars.length === 6
+          ? "grid-cols-3 sm:grid-cols-6"
+          : "grid-cols-5 sm:grid-cols-6";
 
   if (bars.length === 0) {
     return (

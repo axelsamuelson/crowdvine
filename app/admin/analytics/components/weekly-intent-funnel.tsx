@@ -8,6 +8,7 @@ const STEPS: {
   label: string;
 }[] = [
   { key: "sessions", label: "Sessioner" },
+  { key: "sessions_with_product_list_view", label: "PLP" },
   { key: "sessions_with_product_view", label: "Produktvy" },
   { key: "sessions_with_add_to_cart", label: "Varukorg" },
   { key: "sessions_with_checkout", label: "Checkout" },

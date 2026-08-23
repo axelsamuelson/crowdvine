@@ -221,6 +221,7 @@ export function buildIntentSessionsFromCleanEvents(
 export type WeeklyFunnelRow = {
   week_start: string;
   sessions: number;
+  sessions_with_product_list_view: number;
   sessions_with_product_view: number;
   sessions_with_add_to_cart: number;
   sessions_with_checkout: number;
@@ -274,6 +275,7 @@ export function buildWeeklyFunnelFromCleanEvents(
     string,
     {
       sessions: Set<string>;
+      productList: Set<string>;
       product: Set<string>;
       cart: Set<string>;
       checkout: Set<string>;
@@ -285,6 +287,7 @@ export function buildWeeklyFunnelFromCleanEvents(
     if (!byWeek.has(key)) {
       byWeek.set(key, {
         sessions: new Set(),
+        productList: new Set(),
         product: new Set(),
         cart: new Set(),
         checkout: new Set(),
@@ -298,6 +301,7 @@ export function buildWeeklyFunnelFromCleanEvents(
     const week = weekStartStockholm(new Date(agg.minAt).toISOString());
     const bucket = ensureWeek(week);
     bucket.sessions.add(sid);
+    if (agg.types.has("product_list_viewed")) bucket.productList.add(sid);
     if (agg.types.has("product_viewed")) bucket.product.add(sid);
     if (agg.types.has("add_to_cart")) bucket.cart.add(sid);
     if (
@@ -338,6 +342,7 @@ export function buildWeeklyFunnelFromCleanEvents(
     result.push({
       week_start: key,
       sessions: b?.sessions.size ?? 0,
+      sessions_with_product_list_view: b?.productList.size ?? 0,
       sessions_with_product_view: b?.product.size ?? 0,
       sessions_with_add_to_cart: b?.cart.size ?? 0,
       sessions_with_checkout: b?.checkout.size ?? 0,
