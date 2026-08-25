@@ -42,6 +42,7 @@ import {
 import { checkAndMintMilestoneVouchers } from "@/lib/membership/milestone-vouchers";
 import { tryActivateReferralOnFirstOrder } from "@/lib/referral/activate-referral-on-first-order";
 import { stripe } from "@/lib/stripe";
+import { legalSnapshotFromStripeMetadata } from "@/lib/legal/age-check";
 import { resolvePaymentMethodDetailsFromId } from "@/lib/stripe/resolve-payment-method-details";
 import { calculateCartShippingCost, resolveLastMileCostCentsPerBottle } from "@/lib/shipping-calculations";
 import { getContributionAssumptions } from "@/lib/contribution-assumptions";
@@ -1165,9 +1166,20 @@ export async function POST(request: Request) {
     const shippingGrossCentsTotal = Math.max(0, Math.round(shippingSek * 100));
     const paymentFeeFixedTotal = contributionAssumptions.stripeFeeFixedCents;
 
+    let reservationLegalExtra: {
+      age_verified_at: string;
+      age_verified_dob: string;
+      age_verification_method: string;
+      terms_version: string;
+      terms_accepted_at: string;
+    } | null = null;
+
     if (!deferredLinkCheckout) {
+    let stripeIntentMetadata: Record<string, string | undefined> | null = null;
+
     if (intentType === "setup_intent") {
       const setupIntent = await stripe!.setupIntents.retrieve(intentId!);
+      stripeIntentMetadata = setupIntent.metadata ?? {};
       console.log("[Checkout API] Retrieved SetupIntent:", {
         id: setupIntent.id,
         status: setupIntent.status,
@@ -1256,6 +1268,7 @@ export async function POST(request: Request) {
         );
       }
       const paymentIntent = await stripe!.paymentIntents.retrieve(intentId!);
+      stripeIntentMetadata = paymentIntent.metadata ?? {};
       console.log("[Checkout API] Retrieved PaymentIntent:", {
         id: paymentIntent.id,
         status: paymentIntent.status,
@@ -1293,6 +1306,22 @@ export async function POST(request: Request) {
         );
       }
       stripePaymentMethodId = paymentMethodId;
+    }
+
+    if (!usConditionalCheckout) {
+      const reservationLegalSnapshot = legalSnapshotFromStripeMetadata(
+        stripeIntentMetadata,
+      );
+      if (!reservationLegalSnapshot) {
+        return NextResponse.json(
+          {
+            error:
+              "Missing age or terms verification on payment setup. Refresh checkout and try again.",
+          },
+          { status: 400 },
+        );
+      }
+      reservationLegalExtra = reservationLegalSnapshot;
     }
     } // end !deferredLinkCheckout
 
@@ -1520,6 +1549,7 @@ export async function POST(request: Request) {
             ...(idempotencyKey && createdReservations.length === 0
               ? { idempotency_key: idempotencyKey }
               : {}),
+            ...(reservationLegalExtra ?? {}),
             ...usReservationExtra,
           })
           .select("id")
@@ -1639,6 +1669,7 @@ export async function POST(request: Request) {
           total_sek: expectedFinalSek,
           is_test_purchase: promoIsTestkop,
           ...(idempotencyKey ? { idempotency_key: idempotencyKey } : {}),
+          ...(reservationLegalExtra ?? {}),
           ...usReservationExtra,
         })
         .select("id")

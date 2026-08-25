@@ -1,2 +1,2 @@
-/** Bump manually when köpvillkor / terms copy changes. */
-export const CHECKOUT_TERMS_VERSION = "2025-08-01";
+/** @deprecated Use LEGAL_VERSIONS.terms from @/lib/legal/versions */
+export const CHECKOUT_TERMS_VERSION = "2026-08-25";

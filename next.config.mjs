@@ -51,6 +51,11 @@ const nextConfig = {
         destination: "/om-oss",
         permanent: true,
       },
+      {
+        source: "/vilkor",
+        destination: "/villkor",
+        permanent: true,
+      },
       // Legacy EN public profiles → /producers/:slug (portal segments excluded)
       // Keep in sync with PRODUCER_PORTAL_SEGMENTS in lib/i18n/localized-routes.ts
       {

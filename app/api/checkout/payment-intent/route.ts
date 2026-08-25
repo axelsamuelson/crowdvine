@@ -39,6 +39,14 @@ import {
   calculateCartShippingCost,
   resolveLastMileCostCentsPerBottle,
 } from "@/lib/shipping-calculations";
+import {
+  evaluateLegalGate,
+  legalGateInputSchema,
+  legalGateStripeMetadata,
+  parseIsoDateOnly,
+  calculateAge,
+  MINIMUM_AGE,
+} from "@/lib/legal/age-check";
 
 type PaymentMode = "setup_intent" | "payment_intent";
 
@@ -72,7 +80,29 @@ type RequestBody = {
   voucher_discount_sek?: number;
   /** US conditional checkout: required when profile country is US */
   us_conditional_ack?: boolean;
+  dateOfBirth?: string;
+  acceptedTermsVersion?: string;
 };
+
+function evaluateAgeOnlyGate(
+  dateOfBirth: string | undefined,
+  now: Date = new Date(),
+):
+  | { ok: true; dateOfBirth: string; verifiedAt: Date }
+  | { ok: false; reason: "validation_error" | "age_requirement_not_met" } {
+  const parsedDob = legalGateInputSchema.shape.dateOfBirth.safeParse(dateOfBirth);
+  if (!parsedDob.success) {
+    return { ok: false, reason: "validation_error" };
+  }
+  const dob = parseIsoDateOnly(parsedDob.data);
+  if (!dob) {
+    return { ok: false, reason: "validation_error" };
+  }
+  if (calculateAge(dob, now) < MINIMUM_AGE) {
+    return { ok: false, reason: "age_requirement_not_met" };
+  }
+  return { ok: true, dateOfBirth: parsedDob.data, verifiedAt: now };
+}
 
 export async function POST(request: Request) {
   const PALLET_THRESHOLD = 300;
@@ -428,6 +458,72 @@ export async function POST(request: Request) {
       );
     }
 
+    const legalNow = new Date();
+    const legalGate = usConditional
+      ? evaluateAgeOnlyGate(
+          typeof body?.dateOfBirth === "string" ? body.dateOfBirth : undefined,
+          legalNow,
+        )
+      : evaluateLegalGate(
+          {
+            dateOfBirth: body?.dateOfBirth,
+            acceptedTermsVersion: body?.acceptedTermsVersion,
+          },
+          legalNow,
+        );
+
+    if (!legalGate.ok) {
+      if (legalGate.reason === "validation_error") {
+        return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+      }
+      if (legalGate.reason === "age_requirement_not_met") {
+        console.warn("[payment-intent] Age gate rejected:", {
+          at: legalNow.toISOString(),
+          user_id: user.id,
+          reason: legalGate.reason,
+        });
+        return NextResponse.json(
+          { error: "age_requirement_not_met" },
+          { status: 403 },
+        );
+      }
+      console.warn("[payment-intent] Terms version stale:", {
+        at: legalNow.toISOString(),
+        user_id: user.id,
+        reason: legalGate.reason,
+      });
+      return NextResponse.json(
+        {
+          error: "terms_version_stale",
+          currentVersion: legalGate.currentVersion,
+        },
+        { status: 409 },
+      );
+    }
+
+    const { error: profileDobErr } = await sbAdmin
+      .from("profiles")
+      .update({
+        date_of_birth: legalGate.dateOfBirth,
+        updated_at: legalNow.toISOString(),
+      })
+      .eq("id", user.id);
+
+    if (profileDobErr) {
+      console.error("[payment-intent] Failed to save date_of_birth:", profileDobErr);
+      return NextResponse.json(
+        { error: "Failed to save age verification" },
+        { status: 500 },
+      );
+    }
+
+    const purchaseLegalMetadata = usConditional
+      ? {
+          age_verified_dob: legalGate.dateOfBirth,
+          age_verification_method: "self_declared_dob",
+        }
+      : legalGateStripeMetadata(legalGate);
+
     console.log("[payment-intent] Server amount:", {
       amountInOre,
       components,
@@ -451,6 +547,19 @@ export async function POST(request: Request) {
           (meta.region !== usStateUpper ||
             meta.country_code !== "US" ||
             meta.market_code !== "US")
+        ) {
+          return false;
+        }
+        if (
+          meta.age_verified_dob !== purchaseLegalMetadata.age_verified_dob ||
+          meta.age_verification_method !==
+            purchaseLegalMetadata.age_verification_method
+        ) {
+          return false;
+        }
+        if (
+          !usConditional &&
+          meta.purchase_terms_version !== purchaseLegalMetadata.purchase_terms_version
         ) {
           return false;
         }
@@ -482,6 +591,7 @@ export async function POST(request: Request) {
         expected_amount_ore: String(amountInOre),
         voucher_discount_sek: String(voucherDiscountSek),
         promo_discount_sek: String(promoDiscountSek),
+        ...purchaseLegalMetadata,
       };
       if (usConditional && usStateUpper) {
         metadata.country_code = "US";
@@ -535,6 +645,7 @@ export async function POST(request: Request) {
         expected_amount_ore: String(amountInOre),
         voucher_discount_sek: String(voucherDiscountSek),
         promo_discount_sek: String(promoDiscountSek),
+        ...purchaseLegalMetadata,
       },
     });
 

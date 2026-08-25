@@ -132,8 +132,17 @@ type Props = {
   /** US conditional: include ack in /api/checkout/payment-intent body */
   usConditionalPayment?: boolean;
   usConditionalAck?: boolean;
+  /** Required for B2C checkout before creating Stripe intents. */
+  legalGate?: {
+    dateOfBirth: string;
+    acceptedTermsVersion: string;
+  } | null;
   /** Intent created while user is still on age/terms — skips cold fetch. */
   prefetchedIntent?: PrefetchedStripeIntent | null;
+  onLegalGateError?: (error: {
+    status: 403 | 409 | 400;
+    currentVersion?: string;
+  }) => void;
 };
 
 const publishableKey =
@@ -456,7 +465,9 @@ export function StripePaymentSection({
   onQuote,
   usConditionalPayment = false,
   usConditionalAck = false,
+  legalGate = null,
   prefetchedIntent = null,
+  onLegalGateError,
 }: Props) {
   const shoppingCtx = useShoppingContextOptional();
   const t = shoppingCtx?.t ?? ((key: string) => key);
@@ -500,6 +511,8 @@ export function StripePaymentSection({
     promoDiscountSek,
     usConditionalPayment,
     usConditionalAck,
+    legalGate?.dateOfBirth,
+    legalGate?.acceptedTermsVersion,
   ]);
 
   useEffect(() => {
@@ -512,6 +525,28 @@ export function StripePaymentSection({
       setAmountInOre(null);
       setError(null);
       setPaymentElementLoadError(null);
+      setLoading(false);
+      return;
+    }
+
+    if (!legalGate?.dateOfBirth?.trim()) {
+      fetchedRef.current = false;
+      appliedPrefetchIdRef.current = null;
+      setClientSecret(null);
+      setPaymentMode(null);
+      setIntentId(null);
+      setAmountInOre(null);
+      setLoading(false);
+      return;
+    }
+
+    if (!usConditionalPayment && !legalGate.acceptedTermsVersion?.trim()) {
+      fetchedRef.current = false;
+      appliedPrefetchIdRef.current = null;
+      setClientSecret(null);
+      setPaymentMode(null);
+      setIntentId(null);
+      setAmountInOre(null);
       setLoading(false);
       return;
     }
@@ -558,6 +593,10 @@ export function StripePaymentSection({
           body: JSON.stringify({
             pallet_id: palletId,
             pact_points_redeem: pactPointsRedeem,
+            dateOfBirth: legalGate.dateOfBirth,
+            ...(legalGate.acceptedTermsVersion
+              ? { acceptedTermsVersion: legalGate.acceptedTermsVersion }
+              : {}),
             ...(promoDiscountSek > 0
               ? { promo_discount_sek: promoDiscountSek }
               : {}),
@@ -572,6 +611,21 @@ export function StripePaymentSection({
 
         const data: unknown = await res.json().catch(() => null);
         if (!res.ok || !data || typeof data !== "object") {
+          if (res.status === 403) {
+            onLegalGateError?.({ status: 403 });
+          } else if (res.status === 409) {
+            const currentVersion =
+              data &&
+              typeof data === "object" &&
+              "currentVersion" in data &&
+              typeof (data as { currentVersion?: unknown }).currentVersion ===
+                "string"
+                ? (data as { currentVersion: string }).currentVersion
+                : undefined;
+            onLegalGateError?.({ status: 409, currentVersion });
+          } else if (res.status === 400) {
+            onLegalGateError?.({ status: 400 });
+          }
           const msg =
             data && typeof data === "object" && "error" in data
               ? String((data as { error?: unknown }).error ?? "Failed to create intent")
@@ -661,7 +715,10 @@ export function StripePaymentSection({
     retryNonce,
     usConditionalPayment,
     usConditionalAck,
+    legalGate?.dateOfBirth,
+    legalGate?.acceptedTermsVersion,
     prefetchedIntent,
+    onLegalGateError,
   ]);
 
   const requestRetry = useCallback(() => {

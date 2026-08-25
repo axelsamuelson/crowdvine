@@ -117,6 +117,61 @@ export function Footer({ initialLogos }: { initialLogos?: SiteLogos }) {
               ) : null}
 
               {!isDirtywineSite ? (
+                <nav className="min-w-0">
+                  <div className="flex flex-col gap-3">
+                    <h3 className="text-sm font-semibold text-background">
+                      {paths.shop.startsWith("/wine") ? "Legal" : "Juridik"}
+                    </h3>
+                    <div className="flex flex-col gap-2">
+                      {paths.shop.startsWith("/wine") ? (
+                        <>
+                          <Link
+                            href="/terms"
+                            className="text-sm text-background/70 hover:text-background transition-colors hover:underline"
+                          >
+                            Terms of purchase
+                          </Link>
+                          <Link
+                            href="/privacy"
+                            className="text-sm text-background/70 hover:text-background transition-colors hover:underline"
+                          >
+                            Privacy policy
+                          </Link>
+                          <Link
+                            href="/cookie-policy"
+                            className="text-sm text-background/70 hover:text-background transition-colors hover:underline"
+                          >
+                            Cookies
+                          </Link>
+                        </>
+                      ) : (
+                        <>
+                          <Link
+                            href="/villkor"
+                            className="text-sm text-background/70 hover:text-background transition-colors hover:underline"
+                          >
+                            Köpvillkor
+                          </Link>
+                          <Link
+                            href="/integritetspolicy"
+                            className="text-sm text-background/70 hover:text-background transition-colors hover:underline"
+                          >
+                            Integritetspolicy
+                          </Link>
+                          <Link
+                            href="/cookies"
+                            className="text-sm text-background/70 hover:text-background transition-colors hover:underline"
+                          >
+                            Cookies
+                          </Link>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </nav>
+              ) : null}
+
+              {!isDirtywineSite ? (
                 <div className="flex shrink-0 items-start sm:ml-auto">
                   <FooterShoppingContext />
                 </div>

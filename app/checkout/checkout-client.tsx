@@ -7,7 +7,7 @@ import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { getAgeLimit, meetsAgeRequirement } from "@/lib/age-limits";
 import { PRICE_VERSION } from "@/lib/analytics/price-version";
 import { pricesFromCheckoutCart } from "@/lib/analytics/cart-event-prices";
-import { CHECKOUT_TERMS_VERSION } from "@/lib/checkout/terms-version";
+import { LEGAL_VERSIONS } from "@/lib/legal/versions";
 import Link from "next/link";
 import type { Cart, CartItem } from "@/lib/shopify/types";
 import { Button } from "@/components/ui/button";
@@ -114,6 +114,7 @@ interface UserProfile {
   postal_code?: string;
   country?: string;
   region?: string;
+  date_of_birth?: string;
   created_at: string;
 }
 
@@ -240,6 +241,7 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [ageDobError, setAgeDobError] = useState<string | null>(null);
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const [termsStale, setTermsStale] = useState(false);
   const [usConditionalAck, setUsConditionalAck] = useState(false);
 
   // B2B vs B2C cart split — needed early for deliveryComplete / compliance gates.
@@ -516,15 +518,50 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
   const handleTermsChecked = useCallback((checked: boolean) => {
     setTermsAccepted(checked);
     if (checked) {
+      setTermsStale(false);
       emitOnce(termsAcceptedEmitKey(), () => {
         void AnalyticsTracker.trackEvent({
           eventType: "terms_accepted",
           eventCategory: "checkout",
-          metadata: { version: CHECKOUT_TERMS_VERSION },
+          metadata: { version: LEGAL_VERSIONS.terms },
         });
       });
     }
   }, []);
+
+  const handleLegalGateError = useCallback(
+    (error: { status: 403 | 409 | 400; currentVersion?: string }) => {
+      if (error.status === 403) {
+        setAgeDobError(t("checkout.ageGateBlocked"));
+        setAgeConfirmed(false);
+        setPaymentCardRevealed(false);
+        return;
+      }
+      if (error.status === 409) {
+        setTermsAccepted(false);
+        setTermsStale(true);
+        setPaymentCardRevealed(false);
+        toast.error(t("checkout.termsVersionStale"));
+        return;
+      }
+      toast.error(t("checkout.paymentNotReady"));
+      setPaymentCardRevealed(false);
+    },
+    [t],
+  );
+
+  const legalGatePayload = useMemo(() => {
+    const dob = dateOfBirth.trim();
+    if (!dob) return null;
+    if (isUsConditional) {
+      return { dateOfBirth: dob, acceptedTermsVersion: "" };
+    }
+    if (!termsAccepted) return null;
+    return {
+      dateOfBirth: dob,
+      acceptedTermsVersion: LEGAL_VERSIONS.terms,
+    };
+  }, [dateOfBirth, isUsConditional, termsAccepted]);
 
   const zoneOrUsPalletReady = deliveryZoneReady;
 
@@ -665,6 +702,17 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
         const data = await response.json();
         const profileData = data.profile || data;
         setProfile(profileData);
+        const profileDob =
+          typeof profileData?.date_of_birth === "string"
+            ? profileData.date_of_birth.slice(0, 10)
+            : "";
+        if (profileDob) {
+          setDateOfBirth(profileDob);
+          if (meetsAgeRequirement(profileDob, requiredAge)) {
+            setAgeConfirmed(true);
+            setAgeDobError(null);
+          }
+        }
         if (profileData?.id || profileData?.email) {
           setAuthReady(true);
         }
@@ -674,7 +722,7 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
     } finally {
       setAuthChecked(true);
     }
-  }, []);
+  }, [requiredAge]);
 
   const ensureProfileAfterAuth = useCallback(async () => {
     setAuthReady(true);
@@ -1112,9 +1160,14 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
     termsAccepted &&
     (!isUsConditional || usConditionalAck);
 
-  // Warm Stripe.js + create Setup/PaymentIntent while the customer is on age/terms.
+  // Warm Stripe.js + create Setup/PaymentIntent after compliance is complete.
   useEffect(() => {
-    if (!deliveryComplete || !authReady || !selectedPallet?.id) {
+    if (!paymentCardRevealed || !authReady || !selectedPallet?.id) {
+      return;
+    }
+    if (!complianceComplete || !legalGatePayload) {
+      setPrefetchedStripeIntent(null);
+      stripePrefetchKeyRef.current = null;
       return;
     }
     if (isUsConditional && !usConditionalAck) {
@@ -1131,6 +1184,8 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
       String(redeemPoints),
       String(promoSek),
       isUsConditional ? "1" : "0",
+      legalGatePayload.dateOfBirth,
+      legalGatePayload.acceptedTermsVersion,
     ].join("|");
     if (stripePrefetchKeyRef.current === key) return;
     stripePrefetchKeyRef.current = key;
@@ -1145,13 +1200,34 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
           body: JSON.stringify({
             pallet_id: selectedPallet.id,
             pact_points_redeem: redeemPoints,
+            dateOfBirth: legalGatePayload.dateOfBirth,
+            ...(legalGatePayload.acceptedTermsVersion
+              ? {
+                  acceptedTermsVersion: legalGatePayload.acceptedTermsVersion,
+                }
+              : {}),
             ...(promoSek > 0 ? { promo_discount_sek: promoSek } : {}),
             ...(isUsConditional ? { us_conditional_ack: true } : {}),
           }),
           signal: controller.signal,
         });
         const data: unknown = await res.json().catch(() => null);
-        if (!res.ok || !data || typeof data !== "object") return;
+        if (!res.ok || !data || typeof data !== "object") {
+          if (res.status === 403) {
+            handleLegalGateError({ status: 403 });
+          } else if (res.status === 409) {
+            const currentVersion =
+              data &&
+              typeof data === "object" &&
+              "currentVersion" in data &&
+              typeof (data as { currentVersion?: unknown }).currentVersion ===
+                "string"
+                ? (data as { currentVersion: string }).currentVersion
+                : undefined;
+            handleLegalGateError({ status: 409, currentVersion });
+          }
+          return;
+        }
 
         const d = data as {
           paymentMode?: unknown;
@@ -1222,13 +1298,16 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
       controller.abort();
     };
   }, [
-    deliveryComplete,
+    paymentCardRevealed,
+    complianceComplete,
+    legalGatePayload,
     authReady,
     selectedPallet?.id,
     redeemPoints,
     appliedDiscount?.discount_amount_sek,
     isUsConditional,
     usConditionalAck,
+    handleLegalGateError,
   ]);
 
   // If age/terms become incomplete again, collapse payment.
@@ -3945,13 +4024,11 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
                               onChange={(e) =>
                                 handleAgeDobChange(e.target.value)
                               }
-                              className="max-w-xs"
+                              className="max-w-xs min-h-[44px]"
                               autoComplete="bday"
                             />
                             <p className="text-xs text-muted-foreground">
-                              {t("checkout.ageConfirm", {
-                                age: String(requiredAge),
-                              })}
+                              {t("checkout.ageDeliveryIdHint")}
                             </p>
                             {ageDobError ? (
                               <p className="text-xs text-destructive">
@@ -3959,27 +4036,52 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
                               </p>
                             ) : null}
                           </div>
-                          <div className="flex items-start gap-3">
+                          <div className="flex items-start gap-3 min-h-[44px]">
                             <Checkbox
                               id="terms-accept"
                               checked={termsAccepted}
                               onCheckedChange={(v) =>
                                 handleTermsChecked(v === true)
                               }
+                              className="mt-1 min-h-[44px] min-w-[44px]"
                             />
                             <label
                               htmlFor="terms-accept"
-                              className="text-sm leading-snug text-foreground"
+                              className="text-sm leading-snug text-foreground pt-2"
                             >
-                              {t("checkout.termsAccept")}{" "}
+                              {t("checkout.termsAcceptPrefix")}{" "}
                               <Link
-                                href="/vilkor"
+                                href="/villkor"
+                                target="_blank"
+                                rel="noopener noreferrer"
                                 className="underline underline-offset-2"
                               >
-                                Köpvillkor
+                                {t("checkout.termsLinkPurchase")}
+                              </Link>{" "}
+                              {t("checkout.termsAcceptAnd")}{" "}
+                              <Link
+                                href="/integritetspolicy"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="underline underline-offset-2"
+                              >
+                                {t("checkout.termsLinkPrivacy")}
                               </Link>
                             </label>
                           </div>
+                          {termsStale ? (
+                            <p className="text-xs text-destructive">
+                              {t("checkout.termsVersionStale")}{" "}
+                              <Link
+                                href="/villkor"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="underline underline-offset-2"
+                              >
+                                {t("checkout.termsLinkPurchase")}
+                              </Link>
+                            </p>
+                          ) : null}
                         </div>
                         {!paymentCardRevealed ? (
                           <Button
@@ -4164,6 +4266,8 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
                             }
                             usConditionalPayment={isUsConditional}
                             usConditionalAck={usConditionalAck}
+                            legalGate={legalGatePayload}
+                            onLegalGateError={handleLegalGateError}
                             prefetchedIntent={prefetchedStripeIntent}
                           />
                         ) : null}
@@ -4186,6 +4290,10 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
                               {formatDisplay(displayTotal)}
                             </span>
                           </div>
+
+                          <p className="text-sm text-stone-600">
+                            {t("checkout.noChargeUntilPalletCloses")}
+                          </p>
 
                           <Button
                             type="button"
@@ -4211,7 +4319,9 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
                                 ? t("checkout.payNow")
                                 : isUsConditional
                                   ? t("checkout.usConditionalButton")
-                                  : t("checkout.placeReservation")}
+                                  : t("checkout.placeReservationWithPayment", {
+                                      amount: formatDisplay(displayTotal),
+                                    })}
                           </Button>
                         </div>
                       </>
