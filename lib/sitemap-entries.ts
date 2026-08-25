@@ -31,6 +31,19 @@ function weeklyEntry(
   };
 }
 
+function yearlyEntry(
+  url: string,
+  priority: number,
+  lastModified = new Date(),
+): SitemapEntry {
+  return {
+    url,
+    lastModified,
+    changeFrequency: "yearly",
+    priority,
+  };
+}
+
 function staticPagesForProfile(
   baseUrl: string,
   profile: SitemapSiteProfile,
@@ -53,6 +66,12 @@ function staticPagesForProfile(
     weeklyEntry(`${baseUrl}/producenter`, 0.8),
     weeklyEntry(`${baseUrl}/about`, 0.5),
     weeklyEntry(`${baseUrl}/om-oss`, 0.5),
+    yearlyEntry(`${baseUrl}/villkor`, 0.3),
+    yearlyEntry(`${baseUrl}/integritetspolicy`, 0.3),
+    yearlyEntry(`${baseUrl}/cookies`, 0.3),
+    yearlyEntry(`${baseUrl}/terms`, 0.3),
+    yearlyEntry(`${baseUrl}/privacy`, 0.3),
+    yearlyEntry(`${baseUrl}/cookie-policy`, 0.3),
   ];
 
   if (profile === "pact") {
