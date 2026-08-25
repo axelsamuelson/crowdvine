@@ -5,6 +5,7 @@ export const PRODUCER_GUIDE_HREF_BY_RANK: Readonly<Record<number, string>> = {
   2: "/guides/thierry-allemand",
   3: "/guides/josko-gravner",
   4: "/guides/jean-francois-ganevat",
+  5: "/guides/jacques-selosse",
   8: "/guides/radikon",
   10: "/guides/jean-foillard",
   12: "/guides/marcel-lapierre",

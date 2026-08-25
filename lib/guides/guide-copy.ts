@@ -2,6 +2,7 @@ import type { AppLocale } from "@/lib/i18n/locale";
 import { GUIDE_PATHS } from "@/lib/guides/guide-routes";
 import { beaujolaisNaturalWineGuide } from "@/lib/guides/beaujolais-natural-wine";
 import { georgiaNaturalWineGuide } from "@/lib/guides/georgia-natural-wine";
+import { jacquesSelosseGuide } from "@/lib/guides/jacques-selosse";
 import { jeanFoillardGuide } from "@/lib/guides/jean-foillard";
 import { jeanFrancoisGanevatGuide } from "@/lib/guides/jean-francois-ganevat";
 import { joskoGravnerGuide } from "@/lib/guides/josko-gravner";
@@ -169,6 +170,11 @@ const EN_PRODUCER_CARDS: GuideHubCard[] = [
     href: jeanFrancoisGanevatGuide.hubCard.href,
     title: jeanFrancoisGanevatGuide.hubCard.title,
     description: jeanFrancoisGanevatGuide.hubCard.description,
+  },
+  {
+    href: jacquesSelosseGuide.hubCard.href,
+    title: jacquesSelosseGuide.hubCard.title,
+    description: jacquesSelosseGuide.hubCard.description,
   },
   {
     href: jeanFoillardGuide.hubCard.href,
