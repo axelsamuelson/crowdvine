@@ -10,25 +10,25 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Footer } from "@/components/layout/footer";
-import { beaujolaisNaturalWineGuide } from "@/lib/guides/beaujolais-natural-wine";
+import { gangOfFourWineGuide } from "@/lib/guides/gang-of-four-wine";
 import { guideCopy } from "@/lib/guides/guide-copy";
 import { guidePath } from "@/lib/guides/guide-routes";
 import { categoryPageTitle } from "@/lib/seo/category-page-title";
 import { getSiteConfig } from "@/lib/site-config";
 
-const PAGE_PATH = beaujolaisNaturalWineGuide.path;
+const PAGE_PATH = gangOfFourWineGuide.path;
 
-export async function buildBeaujolaisNaturalWineGuideMetadata(): Promise<Metadata> {
+export async function buildGangOfFourWineGuideMetadata(): Promise<Metadata> {
   const config = await getSiteConfig();
   const pageUrl = `${config.baseUrl}${PAGE_PATH}`;
   const title = categoryPageTitle(
-    beaujolaisNaturalWineGuide.metaTitle,
+    gangOfFourWineGuide.metaTitle,
     config.siteName,
   );
 
   return {
     title,
-    description: beaujolaisNaturalWineGuide.metaDescription,
+    description: gangOfFourWineGuide.metaDescription,
     alternates: {
       canonical: pageUrl,
       languages: {
@@ -38,7 +38,7 @@ export async function buildBeaujolaisNaturalWineGuideMetadata(): Promise<Metadat
     },
     openGraph: {
       title,
-      description: beaujolaisNaturalWineGuide.metaDescription,
+      description: gangOfFourWineGuide.metaDescription,
       url: pageUrl,
       type: "article",
       locale: "en_US",
@@ -46,7 +46,7 @@ export async function buildBeaujolaisNaturalWineGuideMetadata(): Promise<Metadat
   };
 }
 
-export async function renderBeaujolaisNaturalWineGuidePage() {
+export async function renderGangOfFourWineGuidePage() {
   const config = await getSiteConfig();
   const copy = guideCopy("en");
   const hubPath = guidePath("hub", "en");
@@ -55,18 +55,32 @@ export async function renderBeaujolaisNaturalWineGuidePage() {
   const articleJsonLd = {
     "@context": "https://schema.org",
     "@type": "Article",
-    headline: beaujolaisNaturalWineGuide.h1,
-    description: beaujolaisNaturalWineGuide.metaDescription,
+    headline: gangOfFourWineGuide.h1,
+    description: gangOfFourWineGuide.metaDescription,
     url: pageUrl,
     isPartOf: {
       "@type": "WebSite",
       name: "PACT",
       url: config.baseUrl,
     },
-    about: {
-      "@type": "Place",
-      name: "Beaujolais, France",
-    },
+    about: [
+      {
+        "@type": "Person",
+        name: "Jean Foillard",
+        jobTitle: "Vigneron",
+      },
+      {
+        "@type": "Person",
+        name: "Marcel Lapierre",
+        jobTitle: "Vigneron",
+      },
+      {
+        "@type": "Thing",
+        name: "The Gang of Four",
+        description:
+          "Jean Foillard, Marcel Lapierre, Jean-Paul Thévenet and Guy Breton — four Beaujolais producers in Villié-Morgon who turned away from industrial Nouveau and helped redefine natural Gamay.",
+      },
+    ],
   };
 
   const breadcrumbJsonLd = {
@@ -88,7 +102,7 @@ export async function renderBeaujolaisNaturalWineGuidePage() {
       {
         "@type": "ListItem",
         position: 3,
-        name: beaujolaisNaturalWineGuide.breadcrumbShort,
+        name: gangOfFourWineGuide.breadcrumbShort,
         item: pageUrl,
       },
     ],
@@ -126,17 +140,17 @@ export async function renderBeaujolaisNaturalWineGuidePage() {
             <BreadcrumbSeparator />
             <BreadcrumbItem>
               <BreadcrumbPage>
-                {beaujolaisNaturalWineGuide.breadcrumbShort}
+                {gangOfFourWineGuide.breadcrumbShort}
               </BreadcrumbPage>
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
 
         <h1 className="mt-6 text-3xl font-bold tracking-tight md:text-4xl">
-          {beaujolaisNaturalWineGuide.h1}
+          {gangOfFourWineGuide.h1}
         </h1>
 
-        {beaujolaisNaturalWineGuide.sections.map((section) => (
+        {gangOfFourWineGuide.sections.map((section) => (
           <section key={section.heading} className="mt-14">
             <h2 className="mb-4 border-b border-border pb-3 text-xl font-semibold">
               {section.heading}
@@ -145,37 +159,31 @@ export async function renderBeaujolaisNaturalWineGuidePage() {
               {section.paragraphs.map((paragraph) => (
                 <p key={paragraph.slice(0, 48)}>{paragraph}</p>
               ))}
-              {"cta" in section && section.cta ? (
-                <p>
-                  <Link
-                    href={section.cta.href}
-                    className="underline underline-offset-4 hover:text-foreground"
-                  >
-                    {section.cta.label}
-                  </Link>
-                </p>
-              ) : null}
             </div>
           </section>
         ))}
 
         <section className="mt-14">
           <h2 className="mb-4 border-b border-border pb-3 text-xl font-semibold">
-            {beaujolaisNaturalWineGuide.producersHeading}
+            {gangOfFourWineGuide.producersHeading}
           </h2>
           <p className="mb-8 text-base leading-relaxed text-muted-foreground">
-            {beaujolaisNaturalWineGuide.producersIntro}
+            {gangOfFourWineGuide.producersIntro}
           </p>
           <div className="space-y-8">
-            {beaujolaisNaturalWineGuide.producers.map((producer) => (
+            {gangOfFourWineGuide.producers.map((producer) => (
               <div key={producer.name}>
                 <h3 className="text-lg font-semibold tracking-tight text-foreground">
-                  <Link
-                    href={producer.href}
-                    className="underline underline-offset-4 hover:text-foreground"
-                  >
-                    #{producer.rank} {producer.name}
-                  </Link>
+                  {"href" in producer && producer.href ? (
+                    <Link
+                      href={producer.href}
+                      className="underline underline-offset-4 hover:text-foreground"
+                    >
+                      {producer.name}
+                    </Link>
+                  ) : (
+                    producer.name
+                  )}
                 </h3>
                 <div className="mt-2 space-y-3 text-base leading-relaxed text-muted-foreground">
                   {producer.paragraphs.map((paragraph) => (
@@ -187,7 +195,7 @@ export async function renderBeaujolaisNaturalWineGuidePage() {
           </div>
         </section>
 
-        {beaujolaisNaturalWineGuide.closingSections.map((section) => (
+        {gangOfFourWineGuide.closingSections.map((section) => (
           <section key={section.heading} className="mt-14">
             <h2 className="mb-4 border-b border-border pb-3 text-xl font-semibold">
               {section.heading}
@@ -202,9 +210,9 @@ export async function renderBeaujolaisNaturalWineGuidePage() {
 
         <nav className="mt-14 space-y-3 border-t border-border pt-8 text-sm">
           <h2 className="mb-4 text-xl font-semibold text-foreground">
-            {beaujolaisNaturalWineGuide.furtherReadingHeading}
+            {gangOfFourWineGuide.furtherReadingHeading}
           </h2>
-          {beaujolaisNaturalWineGuide.links.map((link) => (
+          {gangOfFourWineGuide.links.map((link) => (
             <p key={link.href}>
               <Link
                 href={link.href}

@@ -5,18 +5,16 @@ export const BEAUJOLAIS_NATURAL_WINE_GUIDE_PATH =
 
 export const beaujolaisNaturalWineGuide = {
   path: BEAUJOLAIS_NATURAL_WINE_GUIDE_PATH,
-  h1: "Beaujolais natural wine — the Gang of Four and the redemption of Gamay",
-  metaTitle:
-    "Beaujolais natural wine — the Gang of Four and the redemption of Gamay",
+  h1: "Beaujolais natural wine — the complete regional guide",
+  metaTitle: "Beaujolais natural wine — the complete regional guide",
   metaDescription:
-    "Beaujolais was dismissed for decades. Then four producers changed everything. The complete guide to natural Beaujolais, the Gang of Four and why Gamay deserves to be taken seriously.",
+    "Beaujolais is one of France's most exciting natural wine regions. Gamay, granite, ten crus and the producers who changed everything. The complete guide to natural Beaujolais.",
   breadcrumbShort: "Beaujolais Natural Wine",
   hubCard: {
     href: BEAUJOLAIS_NATURAL_WINE_GUIDE_PATH,
-    title:
-      "Beaujolais natural wine — the Gang of Four and the redemption of Gamay",
+    title: "Beaujolais natural wine — the complete regional guide",
     description:
-      "Nouveau, carbonic maceration, the Gang of Four and why Gamay on granite can be serious wine.",
+      "Gamay, granite, ten crus and why natural Beaujolais belongs in the same conversation as village Burgundy.",
   },
   sections: [
     {
@@ -28,39 +26,51 @@ export const beaujolaisNaturalWineGuide = {
       ],
     },
     {
+      heading: "Gamay the grape",
+      paragraphs: [
+        "For reds the region is essentially a single grape: Gamay, with only a tiny amount of Chardonnay and Aligoté. Philip the Bold banned Gamay from Burgundy in 1395 — a political rejection that helped push the variety south into Beaujolais, where it found its true home.",
+        "On granite in the northern crus Gamay builds depth, fragrance and structure; on clay and limestone further south it tends toward softer, earlier drinking fruit. Few major red grapes show their ground so transparently — thin skins, naturally high acidity, and a fermentation that can run cleanly with indigenous yeasts and little or no added sulphur.",
+        "That is why Gamay suits natural wine philosophy particularly well. When farming and cellar step back, the grape does not hide behind heavy extraction. It shows the hill — or fails honestly. Cru Beaujolais at its best belongs in the same conversation as village Burgundy: not as imitation, but as another argument that a named place and a single grape can carry seriousness.",
+      ],
+    },
+    {
+      heading: "The ten crus",
+      paragraphs: [
+        "The appellation structure is regional Beaujolais plus ten crus — named villages that are not interchangeable. Granite dominates the north; clay and limestone appear further south. Knowing which cru you are tasting tells you which register of Gamay you are hearing.",
+        "Morgon is the most structured and age-worthy of the crus. Blue granite and volcanic soils give Gamay unusual depth; Côte du Py, the blue granite volcanic hill at the heart of the appellation, is the most prized site. Fleurie is lighter and more perfumed than Morgon — aromatic and immediately charming, often called the more floral face of the crus.",
+        "Moulin-à-Vent is the most powerful and tannic — sometimes called the Burgundy of Beaujolais for its structure and ageing potential. Chiroubles sits at the highest altitude and gives the lightest, most floral expression. Régnié, the newest cru (added in 1988), is known for soft, fruit-forward wines. Brouilly is the largest cru; Côte de Brouilly its hillside counterpart — both rounded and approachable.",
+        "Saint-Amour, Juliénas and Chénas complete the ten. Together they map a region where the same grape changes character with altitude, granite and slope — the geography natural producers still argue with every vintage.",
+      ],
+    },
+    {
       heading: "Jules Chauvet and the idea",
       paragraphs: [
-        "Jules Chauvet was a chemist and négociant who researched fermentation without additives. His work gave an intellectual foundation to growers who wanted another path than industrial Beaujolais — not a slogan, but a technical argument that wine could be made without the additive routine that had become normal.",
-        "The connection between science and farming practice mattered. Chauvet's ideas reached the cellars that would later be called the Gang of Four: proof that turning away from industrial production was not nostalgia, but a different reading of how Gamay ferments and ages. Without that foundation, the redemption of Beaujolais would have been harder to defend.",
+        "Jules Chauvet was a chemist and négociant who researched fermentation without additives. His work gave an intellectual foundation to growers who wanted another path than industrial Beaujolais — a technical argument that Gamay could be made without the additive routine that had become normal.",
+        "Those ideas reached the cellars that would later be called the Gang of Four. Without that foundation, turning away from Nouveau would have been harder to defend as farming practice rather than nostalgia.",
       ],
     },
     {
       heading: "The Gang of Four",
       paragraphs: [
-        "In the 1980s four producers turned away from industrial production: Jean Foillard, Marcel Lapierre, Jean-Paul Thévenet and Guy Breton. They were influenced by Chauvet, and they worked in a region whose commercial identity was still Nouveau and speed. Mutual support mattered — a shared project in a place organised around a different idea of success.",
-        "They are known as the Gang of Four. The name stuck to a small group that proved Gamay did not have to be thin or forgettable — that the same region could make serious, age-worthy, terroir-driven wine. Working together was part of the point: four domaines holding a line that one alone would have found harder to defend.",
-        "Within that shared project each had a distinct place. Foillard became inseparable from Morgon's Côte du Py. Lapierre became the most influential of the four — the template many drinkers still mean when they say natural Beaujolais. Thévenet was one of the four who held the line against industrial Beaujolais. Breton — known as P'tit Max — completed the group with Morgon that reads as immediately charming. Together they shifted what the word Beaujolais could mean.",
+        "In the 1980s four producers — Jean Foillard, Marcel Lapierre, Jean-Paul Thévenet and Guy Breton — turned their backs on industrial Beaujolais production and began farming organically, harvesting late and fermenting without additives. Inspired by the chemist Jules Chauvet, they proved that Gamay could be serious, age-worthy and genuinely expressive of place. The American importer Kermit Lynch named them the Gang of Four.",
       ],
-    },
-    {
-      heading: "Gamay and the crus",
-      paragraphs: [
-        "For reds the region is essentially a single grape: Gamay, with only a tiny amount of Chardonnay and Aligoté. Gamay was unfairly dismissed for decades, yet on the right soil it is capable of genuine complexity. Soils split the map: granite in the north among the crus, clay and limestone in the south.",
-        "The appellation structure is regional Beaujolais plus ten crus — Morgon, Fleurie, Moulin-à-Vent, Brouilly, Côte de Brouilly, Chiroubles, Chénas, Juliénas, Saint-Amour and Régnié. They are not interchangeable villages. Morgon is the cru most associated with structure and ageing; granite and volcanic soils give Gamay unusual depth. Côte du Py, the blue granite volcanic hill at the heart of Morgon, is Foillard's most prized terroir. Fleurie is lighter and more perfumed than Morgon — another register of the same grape on different ground.",
-        "That is why cru Beaujolais belongs in the same conversation as village Burgundy: not as an imitation, but as another argument that a named hill and a single grape can carry seriousness when farming and cellar stop racing the calendar.",
-      ],
+      cta: {
+        href: "/guides/gang-of-four-wine",
+        label:
+          "Read the full story: The Gang of Four — the producers who saved Beaujolais →",
+      },
     },
   ],
   producersHeading: "The producers",
   producersIntro:
-    "Four Beaujolais domaines on PACT's list of the world's 100 best natural wine producers show what the Gang of Four started — and how far the region travelled after Nouveau stopped being the only story.",
+    "Four Beaujolais domaines on PACT's list of the world's 100 best natural wine producers sketch the region's range — from Morgon's structure to Fleurie's perfume.",
   producers: [
     {
       name: "Jean Foillard",
       rank: 10,
       href: "/guides/jean-foillard",
       paragraphs: [
-        "Ranked #10. Foillard made Côte du Py the benchmark for serious natural Morgon — blue granite, volcanic hill, Gamay with structure rather than Nouveau fruit. Read our full guide to Foillard and the Gang of Four.",
+        "Ranked #10. Foillard made Côte du Py the benchmark for serious natural Morgon — blue granite, volcanic hill, Gamay with structure rather than Nouveau fruit.",
       ],
     },
     {
@@ -68,7 +78,7 @@ export const beaujolaisNaturalWineGuide = {
       rank: 12,
       href: "/guides/marcel-lapierre",
       paragraphs: [
-        "Ranked #12. The most influential of the four, and the template for natural Beaujolais for a generation of drinkers. Lapierre turned Chauvet's ideas into bottles that travelled — Morgon that proved the method could be everyday and still serious.",
+        "Ranked #12. The most influential of the Gang of Four, and the template for natural Beaujolais for a generation of drinkers — Morgon that proved the method could be everyday and still serious.",
       ],
     },
     {
@@ -76,15 +86,15 @@ export const beaujolaisNaturalWineGuide = {
       rank: 16,
       href: "/guides/worlds-best-natural-wine-producers",
       paragraphs: [
-        "Ranked #16. A Fleurie cult producer working with near-zero sulphur — among the hardest wines to find in the region. Métras shows the lighter, more perfumed cru register at its most sought-after. See his entry on our top 100 producers list.",
+        "Ranked #16. A Fleurie cult producer working with near-zero sulphur — among the hardest wines to find in the region. See his entry on our top 100 producers list.",
       ],
     },
     {
       name: "Guy Breton",
       rank: 29,
-      href: "/guides/worlds-best-natural-wine-producers",
+      href: "/guides/guy-breton",
       paragraphs: [
-        "Ranked #29. Known as P'tit Max, the fourth member of the Gang of Four — Morgon that is immediately charming, completing the group that turned the region away from industrial production. Find him on our top 100 producers list.",
+        "Ranked #29. Known as P'tit Max — Morgon that is immediately charming, and the pleasure side of the Gang of Four.",
       ],
     },
   ],
@@ -92,33 +102,37 @@ export const beaujolaisNaturalWineGuide = {
     {
       heading: "Natural Beaujolais today",
       paragraphs: [
-        "What the Gang of Four proved still frames the region: Gamay can be serious, age-worthy and terroir-driven. After them, Beaujolais became a reference point for the natural wine world — not as Nouveau, but as a place where low-intervention Gamay from granite crus travels as a global category.",
-        "The generation that followed works in a landscape the four helped make imaginable: farming and cellar practice without the industrial additive routine, wines that ask to be taken as seriously as the hills they come from. Recognition followed. Bottles that once sat in the cheap aisle are now sought after — which is both the point of the redemption story and a complication for drinkers who discovered the region when it was still easy to buy.",
-        "Natural Beaujolais today means cru names, Gamay depth and a debt to Chauvet and the Gang of Four. Foillard, Lapierre, Métras and Breton on our top 100 list are not the whole story — they are the clearest proof that the Nouveau calendar no longer owns the word. The Nouveau machine still exists. It is no longer the whole story.",
+        "Natural Beaujolais today means cru names, granite Gamay and a living map of ten villages rather than a November calendar. After the turn away from industrial Nouveau, the region became a reference point for the natural wine world — low-intervention Gamay that travels as a global category.",
+        "The generation that followed works in a landscape that made that shift imaginable: farming and cellar practice without the industrial additive routine, wines that ask to be taken as seriously as the hills they come from. Recognition followed. Bottles that once sat in the cheap aisle are now sought after — which is both recognition and a complication for drinkers who discovered the region when it was still easy to buy.",
+        "The Nouveau machine still exists on the calendar. It is no longer the whole story. Knowing Morgon from Fleurie, granite from clay, and Gamay from the industrial shortcut is how the region reads now.",
       ],
     },
   ],
   furtherReadingHeading: "Further reading",
   links: [
     {
-      href: "/guides/worlds-best-natural-wine-producers",
-      label: "Explore the world's 100 best natural wine producers →",
+      href: "/guides/gang-of-four-wine",
+      label: "The Gang of Four →",
     },
     {
       href: "/guides/jean-foillard",
-      label: "Jean Foillard and the Gang of Four →",
+      label: "Jean Foillard →",
     },
     {
       href: "/guides/marcel-lapierre",
       label: "Marcel Lapierre →",
     },
     {
+      href: "/guides/guy-breton",
+      label: "Guy Breton (P'tit Max) →",
+    },
+    {
       href: "/guides/jura-natural-wine",
       label: "Jura natural wine →",
     },
     {
-      href: "/guides/worlds-best-natural-wines",
-      label: "The world's 100 best natural wines →",
+      href: "/guides/worlds-best-natural-wine-producers",
+      label: "The world's 100 best natural wine producers →",
     },
   ],
 } as const;

@@ -9,6 +9,7 @@ export const PRODUCER_GUIDE_HREF_BY_RANK: Readonly<Record<number, string>> = {
   8: "/guides/radikon",
   10: "/guides/jean-foillard",
   12: "/guides/marcel-lapierre",
+  29: "/guides/guy-breton",
 };
 
 export function producerGuideHref(rank: number): string | undefined {

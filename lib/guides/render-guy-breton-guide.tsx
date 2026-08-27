@@ -10,25 +10,22 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Footer } from "@/components/layout/footer";
-import { beaujolaisNaturalWineGuide } from "@/lib/guides/beaujolais-natural-wine";
 import { guideCopy } from "@/lib/guides/guide-copy";
 import { guidePath } from "@/lib/guides/guide-routes";
+import { guyBretonGuide } from "@/lib/guides/guy-breton";
 import { categoryPageTitle } from "@/lib/seo/category-page-title";
 import { getSiteConfig } from "@/lib/site-config";
 
-const PAGE_PATH = beaujolaisNaturalWineGuide.path;
+const PAGE_PATH = guyBretonGuide.path;
 
-export async function buildBeaujolaisNaturalWineGuideMetadata(): Promise<Metadata> {
+export async function buildGuyBretonGuideMetadata(): Promise<Metadata> {
   const config = await getSiteConfig();
   const pageUrl = `${config.baseUrl}${PAGE_PATH}`;
-  const title = categoryPageTitle(
-    beaujolaisNaturalWineGuide.metaTitle,
-    config.siteName,
-  );
+  const title = categoryPageTitle(guyBretonGuide.metaTitle, config.siteName);
 
   return {
     title,
-    description: beaujolaisNaturalWineGuide.metaDescription,
+    description: guyBretonGuide.metaDescription,
     alternates: {
       canonical: pageUrl,
       languages: {
@@ -38,7 +35,7 @@ export async function buildBeaujolaisNaturalWineGuideMetadata(): Promise<Metadat
     },
     openGraph: {
       title,
-      description: beaujolaisNaturalWineGuide.metaDescription,
+      description: guyBretonGuide.metaDescription,
       url: pageUrl,
       type: "article",
       locale: "en_US",
@@ -46,7 +43,7 @@ export async function buildBeaujolaisNaturalWineGuideMetadata(): Promise<Metadat
   };
 }
 
-export async function renderBeaujolaisNaturalWineGuidePage() {
+export async function renderGuyBretonGuidePage() {
   const config = await getSiteConfig();
   const copy = guideCopy("en");
   const hubPath = guidePath("hub", "en");
@@ -55,8 +52,8 @@ export async function renderBeaujolaisNaturalWineGuidePage() {
   const articleJsonLd = {
     "@context": "https://schema.org",
     "@type": "Article",
-    headline: beaujolaisNaturalWineGuide.h1,
-    description: beaujolaisNaturalWineGuide.metaDescription,
+    headline: guyBretonGuide.h1,
+    description: guyBretonGuide.metaDescription,
     url: pageUrl,
     isPartOf: {
       "@type": "WebSite",
@@ -64,8 +61,9 @@ export async function renderBeaujolaisNaturalWineGuidePage() {
       url: config.baseUrl,
     },
     about: {
-      "@type": "Place",
-      name: "Beaujolais, France",
+      "@type": "Person",
+      name: "Guy Breton",
+      jobTitle: "Vigneron",
     },
   };
 
@@ -88,7 +86,7 @@ export async function renderBeaujolaisNaturalWineGuidePage() {
       {
         "@type": "ListItem",
         position: 3,
-        name: beaujolaisNaturalWineGuide.breadcrumbShort,
+        name: guyBretonGuide.breadcrumbShort,
         item: pageUrl,
       },
     ],
@@ -125,69 +123,16 @@ export async function renderBeaujolaisNaturalWineGuidePage() {
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
-              <BreadcrumbPage>
-                {beaujolaisNaturalWineGuide.breadcrumbShort}
-              </BreadcrumbPage>
+              <BreadcrumbPage>{guyBretonGuide.breadcrumbShort}</BreadcrumbPage>
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
 
         <h1 className="mt-6 text-3xl font-bold tracking-tight md:text-4xl">
-          {beaujolaisNaturalWineGuide.h1}
+          {guyBretonGuide.h1}
         </h1>
 
-        {beaujolaisNaturalWineGuide.sections.map((section) => (
-          <section key={section.heading} className="mt-14">
-            <h2 className="mb-4 border-b border-border pb-3 text-xl font-semibold">
-              {section.heading}
-            </h2>
-            <div className="space-y-4 text-base leading-relaxed text-muted-foreground">
-              {section.paragraphs.map((paragraph) => (
-                <p key={paragraph.slice(0, 48)}>{paragraph}</p>
-              ))}
-              {"cta" in section && section.cta ? (
-                <p>
-                  <Link
-                    href={section.cta.href}
-                    className="underline underline-offset-4 hover:text-foreground"
-                  >
-                    {section.cta.label}
-                  </Link>
-                </p>
-              ) : null}
-            </div>
-          </section>
-        ))}
-
-        <section className="mt-14">
-          <h2 className="mb-4 border-b border-border pb-3 text-xl font-semibold">
-            {beaujolaisNaturalWineGuide.producersHeading}
-          </h2>
-          <p className="mb-8 text-base leading-relaxed text-muted-foreground">
-            {beaujolaisNaturalWineGuide.producersIntro}
-          </p>
-          <div className="space-y-8">
-            {beaujolaisNaturalWineGuide.producers.map((producer) => (
-              <div key={producer.name}>
-                <h3 className="text-lg font-semibold tracking-tight text-foreground">
-                  <Link
-                    href={producer.href}
-                    className="underline underline-offset-4 hover:text-foreground"
-                  >
-                    #{producer.rank} {producer.name}
-                  </Link>
-                </h3>
-                <div className="mt-2 space-y-3 text-base leading-relaxed text-muted-foreground">
-                  {producer.paragraphs.map((paragraph) => (
-                    <p key={paragraph.slice(0, 48)}>{paragraph}</p>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {beaujolaisNaturalWineGuide.closingSections.map((section) => (
+        {guyBretonGuide.sections.map((section) => (
           <section key={section.heading} className="mt-14">
             <h2 className="mb-4 border-b border-border pb-3 text-xl font-semibold">
               {section.heading}
@@ -202,9 +147,9 @@ export async function renderBeaujolaisNaturalWineGuidePage() {
 
         <nav className="mt-14 space-y-3 border-t border-border pt-8 text-sm">
           <h2 className="mb-4 text-xl font-semibold text-foreground">
-            {beaujolaisNaturalWineGuide.furtherReadingHeading}
+            {guyBretonGuide.furtherReadingHeading}
           </h2>
-          {beaujolaisNaturalWineGuide.links.map((link) => (
+          {guyBretonGuide.links.map((link) => (
             <p key={link.href}>
               <Link
                 href={link.href}

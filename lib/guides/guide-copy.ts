@@ -1,10 +1,13 @@
 import type { AppLocale } from "@/lib/i18n/locale";
 import { GUIDE_PATHS } from "@/lib/guides/guide-routes";
 import { beaujolaisNaturalWineGuide } from "@/lib/guides/beaujolais-natural-wine";
+import { gangOfFourWineGuide } from "@/lib/guides/gang-of-four-wine";
 import { georgiaNaturalWineGuide } from "@/lib/guides/georgia-natural-wine";
+import { guyBretonGuide } from "@/lib/guides/guy-breton";
 import { jacquesSelosseGuide } from "@/lib/guides/jacques-selosse";
 import { jeanFoillardGuide } from "@/lib/guides/jean-foillard";
 import { jeanFrancoisGanevatGuide } from "@/lib/guides/jean-francois-ganevat";
+import { jeanPaulThevenetGuide } from "@/lib/guides/jean-paul-thevenet";
 import { joskoGravnerGuide } from "@/lib/guides/josko-gravner";
 import { juraNaturalWineGuide } from "@/lib/guides/jura-natural-wine";
 import { marcelLapierreGuide } from "@/lib/guides/marcel-lapierre";
@@ -185,6 +188,21 @@ const EN_PRODUCER_CARDS: GuideHubCard[] = [
     href: marcelLapierreGuide.hubCard.href,
     title: marcelLapierreGuide.hubCard.title,
     description: marcelLapierreGuide.hubCard.description,
+  },
+  {
+    href: gangOfFourWineGuide.hubCard.href,
+    title: gangOfFourWineGuide.hubCard.title,
+    description: gangOfFourWineGuide.hubCard.description,
+  },
+  {
+    href: guyBretonGuide.hubCard.href,
+    title: guyBretonGuide.hubCard.title,
+    description: guyBretonGuide.hubCard.description,
+  },
+  {
+    href: jeanPaulThevenetGuide.hubCard.href,
+    title: jeanPaulThevenetGuide.hubCard.title,
+    description: jeanPaulThevenetGuide.hubCard.description,
   },
   {
     href: radikonGuide.hubCard.href,
