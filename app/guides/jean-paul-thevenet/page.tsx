@@ -1,16 +1,17 @@
 import type { Metadata } from "next";
 
+import { jeanPaulThevenetArticle } from "@/lib/guides/articles/jean-paul-thevenet";
 import {
-  buildJeanPaulThevenetGuideMetadata,
-  renderJeanPaulThevenetGuidePage,
-} from "@/lib/guides/render-jean-paul-thevenet-guide";
+  buildArticleGuideMetadata,
+  renderArticleGuidePage,
+} from "@/lib/guides/render-article-guide";
 
 export const dynamic = "force-dynamic";
 
 export function generateMetadata(): Promise<Metadata> {
-  return buildJeanPaulThevenetGuideMetadata();
+  return buildArticleGuideMetadata(jeanPaulThevenetArticle, "en");
 }
 
 export default function JeanPaulThevenetGuidePage() {
-  return renderJeanPaulThevenetGuidePage();
+  return renderArticleGuidePage(jeanPaulThevenetArticle, "en");
 }

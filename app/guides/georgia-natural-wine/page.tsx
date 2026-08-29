@@ -1,16 +1,17 @@
 import type { Metadata } from "next";
 
+import { georgiaNaturalWineArticle } from "@/lib/guides/articles/georgia-natural-wine";
 import {
-  buildGeorgiaNaturalWineGuideMetadata,
-  renderGeorgiaNaturalWineGuidePage,
-} from "@/lib/guides/render-georgia-natural-wine-guide";
+  buildArticleGuideMetadata,
+  renderArticleGuidePage,
+} from "@/lib/guides/render-article-guide";
 
 export const dynamic = "force-dynamic";
 
 export function generateMetadata(): Promise<Metadata> {
-  return buildGeorgiaNaturalWineGuideMetadata();
+  return buildArticleGuideMetadata(georgiaNaturalWineArticle, "en");
 }
 
 export default function GeorgiaNaturalWineGuidePage() {
-  return renderGeorgiaNaturalWineGuidePage();
+  return renderArticleGuidePage(georgiaNaturalWineArticle, "en");
 }

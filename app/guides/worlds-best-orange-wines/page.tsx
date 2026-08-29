@@ -8,9 +8,9 @@ import {
 export const dynamic = "force-dynamic";
 
 export function generateMetadata(): Promise<Metadata> {
-  return buildWorldsBestOrangeWinesMetadata();
+  return buildWorldsBestOrangeWinesMetadata("en");
 }
 
 export default function WorldsBestOrangeWinesPage() {
-  return renderWorldsBestOrangeWinesPage();
+  return renderWorldsBestOrangeWinesPage("en");
 }

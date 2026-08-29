@@ -202,8 +202,8 @@ export const whatIsOrangeWineArticle: GuideArticleContent = {
       },
       href: {
         en: "/guides/georgia-natural-wine",
-        // No SV Georgia page yet.
-        sv: "/guides/georgia-natural-wine",
+        // Georgia SV page exists.
+        sv: "/guider/georgia-natural-wine",
       },
     },
     {
@@ -213,7 +213,7 @@ export const whatIsOrangeWineArticle: GuideArticleContent = {
       },
       href: {
         en: "/guides/worlds-best-orange-wines",
-        sv: "/guider/varldens-basta-naturviner",
+        sv: "/guider/varldens-basta-orange-viner",
       },
     },
     {

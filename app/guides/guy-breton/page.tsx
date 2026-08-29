@@ -1,16 +1,17 @@
 import type { Metadata } from "next";
 
+import { guyBretonArticle } from "@/lib/guides/articles/guy-breton";
 import {
-  buildGuyBretonGuideMetadata,
-  renderGuyBretonGuidePage,
-} from "@/lib/guides/render-guy-breton-guide";
+  buildArticleGuideMetadata,
+  renderArticleGuidePage,
+} from "@/lib/guides/render-article-guide";
 
 export const dynamic = "force-dynamic";
 
 export function generateMetadata(): Promise<Metadata> {
-  return buildGuyBretonGuideMetadata();
+  return buildArticleGuideMetadata(guyBretonArticle, "en");
 }
 
 export default function GuyBretonGuidePage() {
-  return renderGuyBretonGuidePage();
+  return renderArticleGuidePage(guyBretonArticle, "en");
 }

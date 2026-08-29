@@ -1,16 +1,17 @@
 import type { Metadata } from "next";
 
+import { juraNaturalWineArticle } from "@/lib/guides/articles/jura-natural-wine";
 import {
-  buildJuraNaturalWineGuideMetadata,
-  renderJuraNaturalWineGuidePage,
-} from "@/lib/guides/render-jura-natural-wine-guide";
+  buildArticleGuideMetadata,
+  renderArticleGuidePage,
+} from "@/lib/guides/render-article-guide";
 
 export const dynamic = "force-dynamic";
 
 export function generateMetadata(): Promise<Metadata> {
-  return buildJuraNaturalWineGuideMetadata();
+  return buildArticleGuideMetadata(juraNaturalWineArticle, "en");
 }
 
 export default function JuraNaturalWineGuidePage() {
-  return renderJuraNaturalWineGuidePage();
+  return renderArticleGuidePage(juraNaturalWineArticle, "en");
 }

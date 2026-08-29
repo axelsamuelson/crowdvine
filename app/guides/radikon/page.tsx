@@ -1,16 +1,17 @@
 import type { Metadata } from "next";
 
+import { radikonArticle } from "@/lib/guides/articles/radikon";
 import {
-  buildRadikonGuideMetadata,
-  renderRadikonGuidePage,
-} from "@/lib/guides/render-radikon-guide";
+  buildArticleGuideMetadata,
+  renderArticleGuidePage,
+} from "@/lib/guides/render-article-guide";
 
 export const dynamic = "force-dynamic";
 
 export function generateMetadata(): Promise<Metadata> {
-  return buildRadikonGuideMetadata();
+  return buildArticleGuideMetadata(radikonArticle, "en");
 }
 
 export default function RadikonGuidePage() {
-  return renderRadikonGuidePage();
+  return renderArticleGuidePage(radikonArticle, "en");
 }

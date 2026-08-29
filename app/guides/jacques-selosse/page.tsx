@@ -1,16 +1,17 @@
 import type { Metadata } from "next";
 
+import { jacquesSelosseArticle } from "@/lib/guides/articles/jacques-selosse";
 import {
-  buildJacquesSelosseGuideMetadata,
-  renderJacquesSelosseGuidePage,
-} from "@/lib/guides/render-jacques-selosse-guide";
+  buildArticleGuideMetadata,
+  renderArticleGuidePage,
+} from "@/lib/guides/render-article-guide";
 
 export const dynamic = "force-dynamic";
 
 export function generateMetadata(): Promise<Metadata> {
-  return buildJacquesSelosseGuideMetadata();
+  return buildArticleGuideMetadata(jacquesSelosseArticle, "en");
 }
 
 export default function JacquesSelosseGuidePage() {
-  return renderJacquesSelosseGuidePage();
+  return renderArticleGuidePage(jacquesSelosseArticle, "en");
 }

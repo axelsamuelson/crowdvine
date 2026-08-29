@@ -1,16 +1,17 @@
 import type { Metadata } from "next";
 
+import { pierreOvernoyArticle } from "@/lib/guides/articles/pierre-overnoy";
 import {
-  buildPierreOvernoyGuideMetadata,
-  renderPierreOvernoyGuidePage,
-} from "@/lib/guides/render-pierre-overnoy-guide";
+  buildArticleGuideMetadata,
+  renderArticleGuidePage,
+} from "@/lib/guides/render-article-guide";
 
 export const dynamic = "force-dynamic";
 
 export function generateMetadata(): Promise<Metadata> {
-  return buildPierreOvernoyGuideMetadata();
+  return buildArticleGuideMetadata(pierreOvernoyArticle, "en");
 }
 
 export default function PierreOvernoyGuidePage() {
-  return renderPierreOvernoyGuidePage();
+  return renderArticleGuidePage(pierreOvernoyArticle, "en");
 }

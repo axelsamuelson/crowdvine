@@ -1,16 +1,17 @@
 import type { Metadata } from "next";
 
+import { jeanFrancoisGanevatArticle } from "@/lib/guides/articles/jean-francois-ganevat";
 import {
-  buildJeanFrancoisGanevatGuideMetadata,
-  renderJeanFrancoisGanevatGuidePage,
-} from "@/lib/guides/render-jean-francois-ganevat-guide";
+  buildArticleGuideMetadata,
+  renderArticleGuidePage,
+} from "@/lib/guides/render-article-guide";
 
 export const dynamic = "force-dynamic";
 
 export function generateMetadata(): Promise<Metadata> {
-  return buildJeanFrancoisGanevatGuideMetadata();
+  return buildArticleGuideMetadata(jeanFrancoisGanevatArticle, "en");
 }
 
 export default function JeanFrancoisGanevatGuidePage() {
-  return renderJeanFrancoisGanevatGuidePage();
+  return renderArticleGuidePage(jeanFrancoisGanevatArticle, "en");
 }

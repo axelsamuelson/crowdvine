@@ -13,6 +13,14 @@ export const GUIDE_PATHS = {
     sv: "/guider/varldens-basta-naturvinsproducenter",
     en: "/guides/worlds-best-natural-wine-producers",
   },
+  orangeWines: {
+    sv: "/guider/varldens-basta-orange-viner",
+    en: "/guides/worlds-best-orange-wines",
+  },
+  naturalChampagne: {
+    sv: "/guider/varldens-basta-naturliga-champagne",
+    en: "/guides/worlds-best-natural-champagne",
+  },
 } as const;
 
 export function guidePath(

@@ -1,16 +1,17 @@
 import type { Metadata } from "next";
 
+import { marcelLapierreArticle } from "@/lib/guides/articles/marcel-lapierre";
 import {
-  buildMarcelLapierreGuideMetadata,
-  renderMarcelLapierreGuidePage,
-} from "@/lib/guides/render-marcel-lapierre-guide";
+  buildArticleGuideMetadata,
+  renderArticleGuidePage,
+} from "@/lib/guides/render-article-guide";
 
 export const dynamic = "force-dynamic";
 
 export function generateMetadata(): Promise<Metadata> {
-  return buildMarcelLapierreGuideMetadata();
+  return buildArticleGuideMetadata(marcelLapierreArticle, "en");
 }
 
 export default function MarcelLapierreGuidePage() {
-  return renderMarcelLapierreGuidePage();
+  return renderArticleGuidePage(marcelLapierreArticle, "en");
 }

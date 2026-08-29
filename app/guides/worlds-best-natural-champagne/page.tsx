@@ -8,9 +8,9 @@ import {
 export const dynamic = "force-dynamic";
 
 export function generateMetadata(): Promise<Metadata> {
-  return buildWorldsBestNaturalChampagneMetadata();
+  return buildWorldsBestNaturalChampagneMetadata("en");
 }
 
 export default function WorldsBestNaturalChampagnePage() {
-  return renderWorldsBestNaturalChampagnePage();
+  return renderWorldsBestNaturalChampagnePage("en");
 }

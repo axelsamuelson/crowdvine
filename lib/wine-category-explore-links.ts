@@ -138,15 +138,38 @@ function grapeHubLinks(category: WineCategory): CategoryExploreLink[] {
     if (locale === "en") {
       links[0] = categoryLink("red-natural-wine", locale);
     }
+    if (locale === "sv") {
+      links.push({
+        href: "/guider/vad-ar-rott-naturvin",
+        label: "Vad är rött naturvin? Den kompletta guiden →",
+      });
+    } else {
+      links.push({
+        href: "/guides/what-is-red-natural-wine",
+        label: "What is red natural wine? The complete guide →",
+      });
+    }
   } else if (category.slug === "grenache-blanc") {
     links.unshift(categoryLink("vitt-naturvin", locale));
     if (locale === "en") {
       links[0] = categoryLink("white-natural-wine", locale);
     }
+    if (locale === "sv") {
+      links.push({
+        href: "/guider/vad-ar-vitt-naturvin",
+        label: "Vad är vitt naturvin? Den kompletta guiden →",
+      });
+    } else {
+      links.push({
+        href: "/guides/what-is-white-natural-wine",
+        label: "What is white natural wine? The complete guide →",
+      });
+    }
   }
 
   return links;
 }
+
 
 function colorHubExploreLinks(category: WineCategory): CategoryExploreLink[] {
   const locale = category.locale;
@@ -180,6 +203,10 @@ function colorHubExploreLinks(category: WineCategory): CategoryExploreLink[] {
 
   if (category.slug === "red-natural-wine") {
     links.push({
+      href: "/guides/what-is-red-natural-wine",
+      label: "What is red natural wine? The complete guide →",
+    });
+    links.push({
       href: "/guides/worlds-best-natural-wine-producers",
       label: "The world's 100 best natural wine producers →",
     });
@@ -187,8 +214,26 @@ function colorHubExploreLinks(category: WineCategory): CategoryExploreLink[] {
 
   if (category.slug === "rott-naturvin") {
     links.push({
+      href: "/guider/vad-ar-rott-naturvin",
+      label: "Vad är rött naturvin? Den kompletta guiden →",
+    });
+    links.push({
       href: "/guider/varldens-basta-naturvinsproducenter",
       label: "Världens 100 bästa naturvinsproducenter →",
+    });
+  }
+
+  if (category.slug === "white-natural-wine") {
+    links.push({
+      href: "/guides/what-is-white-natural-wine",
+      label: "What is white natural wine? The complete guide →",
+    });
+  }
+
+  if (category.slug === "vitt-naturvin") {
+    links.push({
+      href: "/guider/vad-ar-vitt-naturvin",
+      label: "Vad är vitt naturvin? Den kompletta guiden →",
     });
   }
 

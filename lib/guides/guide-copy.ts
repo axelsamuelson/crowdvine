@@ -1,22 +1,25 @@
 import type { AppLocale } from "@/lib/i18n/locale";
 import { GUIDE_PATHS } from "@/lib/guides/guide-routes";
-import { beaujolaisNaturalWineGuide } from "@/lib/guides/beaujolais-natural-wine";
-import { gangOfFourWineGuide } from "@/lib/guides/gang-of-four-wine";
-import { georgiaNaturalWineGuide } from "@/lib/guides/georgia-natural-wine";
-import { guyBretonGuide } from "@/lib/guides/guy-breton";
-import { jacquesSelosseGuide } from "@/lib/guides/jacques-selosse";
-import { jeanFoillardGuide } from "@/lib/guides/jean-foillard";
-import { jeanFrancoisGanevatGuide } from "@/lib/guides/jean-francois-ganevat";
-import { jeanPaulThevenetGuide } from "@/lib/guides/jean-paul-thevenet";
+import { beaujolaisNaturalWineArticle } from "@/lib/guides/articles/beaujolais-natural-wine";
+import { gangOfFourWineArticle } from "@/lib/guides/articles/gang-of-four-wine";
+import { georgiaNaturalWineArticle } from "@/lib/guides/articles/georgia-natural-wine";
+import { guyBretonArticle } from "@/lib/guides/articles/guy-breton";
+import { jacquesSelosseArticle } from "@/lib/guides/articles/jacques-selosse";
+import { jeanFoillardArticle } from "@/lib/guides/articles/jean-foillard";
+import { jeanFrancoisGanevatArticle } from "@/lib/guides/articles/jean-francois-ganevat";
+import { jeanPaulThevenetArticle } from "@/lib/guides/articles/jean-paul-thevenet";
 import { joskoGravnerArticle } from "@/lib/guides/articles/josko-gravner";
+import { juraNaturalWineArticle } from "@/lib/guides/articles/jura-natural-wine";
+import { marcelLapierreArticle } from "@/lib/guides/articles/marcel-lapierre";
+import { pierreOvernoyArticle } from "@/lib/guides/articles/pierre-overnoy";
+import { radikonArticle } from "@/lib/guides/articles/radikon";
+import { thierryAllemandArticle } from "@/lib/guides/articles/thierry-allemand";
 import { whatIsNaturalWineArticle } from "@/lib/guides/articles/what-is-natural-wine";
 import { whatIsOrangeWineArticle } from "@/lib/guides/articles/what-is-orange-wine";
+import { whatIsRedNaturalWineArticle } from "@/lib/guides/articles/what-is-red-natural-wine";
+import { whatIsWhiteNaturalWineArticle } from "@/lib/guides/articles/what-is-white-natural-wine";
 import { articleHubCard } from "@/lib/guides/guide-types";
-import { juraNaturalWineGuide } from "@/lib/guides/jura-natural-wine";
-import { marcelLapierreGuide } from "@/lib/guides/marcel-lapierre";
-import { pierreOvernoyGuide } from "@/lib/guides/pierre-overnoy";
-import { radikonGuide } from "@/lib/guides/radikon";
-import { thierryAllemandGuide } from "@/lib/guides/thierry-allemand";
+
 import { worldsBestNaturalChampagneGuide } from "@/lib/guides/worlds-best-natural-champagne";
 import { worldsBestOrangeWinesGuide } from "@/lib/guides/worlds-best-orange-wines";
 
@@ -79,15 +82,28 @@ export type GuideLocaleCopy = {
 
 const SV_PRODUCER_CARDS: GuideHubCard[] = [
   {
-    ...articleHubCard(joskoGravnerArticle, "sv"),
+    ...articleHubCard(pierreOvernoyArticle, "sv"),
     featured: true,
   },
+  articleHubCard(thierryAllemandArticle, "sv"),
+  articleHubCard(jeanFrancoisGanevatArticle, "sv"),
+  articleHubCard(jeanFoillardArticle, "sv"),
+  articleHubCard(marcelLapierreArticle, "sv"),
+  articleHubCard(guyBretonArticle, "sv"),
+  articleHubCard(jeanPaulThevenetArticle, "sv"),
+  articleHubCard(gangOfFourWineArticle, "sv"),
+  articleHubCard(radikonArticle, "sv"),
+  articleHubCard(jacquesSelosseArticle, "sv"),
+  articleHubCard(joskoGravnerArticle, "sv"),
 ];
 
 const SV_GUIDE_CARDS: GuideHubCard[] = [
   articleHubCard(whatIsNaturalWineArticle, "sv"),
+  articleHubCard(whatIsRedNaturalWineArticle, "sv"),
+  articleHubCard(whatIsWhiteNaturalWineArticle, "sv"),
   articleHubCard(whatIsOrangeWineArticle, "sv"),
 ];
+
 
 const SV_LIST_CARDS: GuideHubCard[] = [
   {
@@ -102,6 +118,22 @@ const SV_LIST_CARDS: GuideHubCard[] = [
     description:
       "Hundra flaskor som förändrat hur människor tänker om vad vin kan vara.",
   },
+  {
+    href: GUIDE_PATHS.orangeWines.sv,
+    title: worldsBestOrangeWinesGuide.hubCard.title.sv,
+    description: worldsBestOrangeWinesGuide.hubCard.description.sv,
+  },
+  {
+    href: GUIDE_PATHS.naturalChampagne.sv,
+    title: worldsBestNaturalChampagneGuide.hubCard.title.sv,
+    description: worldsBestNaturalChampagneGuide.hubCard.description.sv,
+  },
+];
+
+const SV_REGION_CARDS: GuideHubCard[] = [
+  articleHubCard(juraNaturalWineArticle, "sv"),
+  articleHubCard(beaujolaisNaturalWineArticle, "sv"),
+  articleHubCard(georgiaNaturalWineArticle, "sv"),
 ];
 
 const SV: GuideLocaleCopy = {
@@ -112,11 +144,20 @@ const SV: GuideLocaleCopy = {
     "Kurerade guider om naturvin — världens bästa naturvinsproducenter och naturviner.",
   hubIntro:
     "Våra guider täcker producenterna, regionerna och vinerna som betyder något i naturvinsvärlden — från pionjärerna som startade rörelsen till regionerna som definierar den idag. Varje guide bygger på verifierad information, skriven för dig som vill förstå naturvin bortom etiketten.",
-  hubCards: [...SV_PRODUCER_CARDS, ...SV_GUIDE_CARDS, ...SV_LIST_CARDS],
+  hubCards: [
+    ...SV_PRODUCER_CARDS,
+    ...SV_REGION_CARDS,
+    ...SV_GUIDE_CARDS,
+    ...SV_LIST_CARDS,
+  ],
   hubSections: [
     {
       title: "Producenter",
       cards: SV_PRODUCER_CARDS,
+    },
+    {
+      title: "Regioner",
+      cards: SV_REGION_CARDS,
     },
     {
       title: "Guider",
@@ -180,75 +221,25 @@ const SV: GuideLocaleCopy = {
 
 const EN_PRODUCER_CARDS: GuideHubCard[] = [
   {
-    href: pierreOvernoyGuide.hubCard.href,
-    title: pierreOvernoyGuide.hubCard.title,
-    description: pierreOvernoyGuide.hubCard.description,
+    ...articleHubCard(pierreOvernoyArticle, "en"),
     featured: true,
   },
-  {
-    href: thierryAllemandGuide.hubCard.href,
-    title: thierryAllemandGuide.hubCard.title,
-    description: thierryAllemandGuide.hubCard.description,
-  },
+  articleHubCard(thierryAllemandArticle, "en"),
   articleHubCard(joskoGravnerArticle, "en"),
-  {
-    href: jeanFrancoisGanevatGuide.hubCard.href,
-    title: jeanFrancoisGanevatGuide.hubCard.title,
-    description: jeanFrancoisGanevatGuide.hubCard.description,
-  },
-  {
-    href: jeanFoillardGuide.hubCard.href,
-    title: jeanFoillardGuide.hubCard.title,
-    description: jeanFoillardGuide.hubCard.description,
-  },
-  {
-    href: marcelLapierreGuide.hubCard.href,
-    title: marcelLapierreGuide.hubCard.title,
-    description: marcelLapierreGuide.hubCard.description,
-  },
-  {
-    href: radikonGuide.hubCard.href,
-    title: radikonGuide.hubCard.title,
-    description: radikonGuide.hubCard.description,
-  },
-  {
-    href: jacquesSelosseGuide.hubCard.href,
-    title: jacquesSelosseGuide.hubCard.title,
-    description: jacquesSelosseGuide.hubCard.description,
-  },
-  {
-    href: guyBretonGuide.hubCard.href,
-    title: guyBretonGuide.hubCard.title,
-    description: guyBretonGuide.hubCard.description,
-  },
-  {
-    href: jeanPaulThevenetGuide.hubCard.href,
-    title: jeanPaulThevenetGuide.hubCard.title,
-    description: jeanPaulThevenetGuide.hubCard.description,
-  },
-  {
-    href: gangOfFourWineGuide.hubCard.href,
-    title: gangOfFourWineGuide.hubCard.title,
-    description: gangOfFourWineGuide.hubCard.description,
-  },
+  articleHubCard(jeanFrancoisGanevatArticle, "en"),
+  articleHubCard(jeanFoillardArticle, "en"),
+  articleHubCard(marcelLapierreArticle, "en"),
+  articleHubCard(radikonArticle, "en"),
+  articleHubCard(jacquesSelosseArticle, "en"),
+  articleHubCard(guyBretonArticle, "en"),
+  articleHubCard(jeanPaulThevenetArticle, "en"),
+  articleHubCard(gangOfFourWineArticle, "en"),
 ];
 
 const EN_REGION_CARDS: GuideHubCard[] = [
-  {
-    href: juraNaturalWineGuide.hubCard.href,
-    title: juraNaturalWineGuide.hubCard.title,
-    description: juraNaturalWineGuide.hubCard.description,
-  },
-  {
-    href: beaujolaisNaturalWineGuide.hubCard.href,
-    title: beaujolaisNaturalWineGuide.hubCard.title,
-    description: beaujolaisNaturalWineGuide.hubCard.description,
-  },
-  {
-    href: georgiaNaturalWineGuide.hubCard.href,
-    title: georgiaNaturalWineGuide.hubCard.title,
-    description: georgiaNaturalWineGuide.hubCard.description,
-  },
+  articleHubCard(juraNaturalWineArticle, "en"),
+  articleHubCard(beaujolaisNaturalWineArticle, "en"),
+  articleHubCard(georgiaNaturalWineArticle, "en"),
 ];
 
 const EN_LIST_CARDS: GuideHubCard[] = [
@@ -265,21 +256,24 @@ const EN_LIST_CARDS: GuideHubCard[] = [
       "A hundred bottles that changed how people think about what wine can be.",
   },
   {
-    href: worldsBestOrangeWinesGuide.hubCard.href,
-    title: worldsBestOrangeWinesGuide.hubCard.title,
-    description: worldsBestOrangeWinesGuide.hubCard.description,
+    href: GUIDE_PATHS.orangeWines.en,
+    title: worldsBestOrangeWinesGuide.hubCard.title.en,
+    description: worldsBestOrangeWinesGuide.hubCard.description.en,
   },
   {
-    href: worldsBestNaturalChampagneGuide.hubCard.href,
-    title: worldsBestNaturalChampagneGuide.hubCard.title,
-    description: worldsBestNaturalChampagneGuide.hubCard.description,
+    href: GUIDE_PATHS.naturalChampagne.en,
+    title: worldsBestNaturalChampagneGuide.hubCard.title.en,
+    description: worldsBestNaturalChampagneGuide.hubCard.description.en,
   },
 ];
 
 const EN_GUIDE_CARDS: GuideHubCard[] = [
   articleHubCard(whatIsNaturalWineArticle, "en"),
+  articleHubCard(whatIsRedNaturalWineArticle, "en"),
+  articleHubCard(whatIsWhiteNaturalWineArticle, "en"),
   articleHubCard(whatIsOrangeWineArticle, "en"),
 ];
+
 
 const EN: GuideLocaleCopy = {
   home: "Home",

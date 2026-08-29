@@ -1,16 +1,17 @@
 import type { Metadata } from "next";
 
+import { beaujolaisNaturalWineArticle } from "@/lib/guides/articles/beaujolais-natural-wine";
 import {
-  buildBeaujolaisNaturalWineGuideMetadata,
-  renderBeaujolaisNaturalWineGuidePage,
-} from "@/lib/guides/render-beaujolais-natural-wine-guide";
+  buildArticleGuideMetadata,
+  renderArticleGuidePage,
+} from "@/lib/guides/render-article-guide";
 
 export const dynamic = "force-dynamic";
 
 export function generateMetadata(): Promise<Metadata> {
-  return buildBeaujolaisNaturalWineGuideMetadata();
+  return buildArticleGuideMetadata(beaujolaisNaturalWineArticle, "en");
 }
 
 export default function BeaujolaisNaturalWineGuidePage() {
-  return renderBeaujolaisNaturalWineGuidePage();
+  return renderArticleGuidePage(beaujolaisNaturalWineArticle, "en");
 }

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { GuideRankEntry } from "@/components/guides/guide-rank-entry";
+import { GuideRankTable } from "@/components/guides/guide-rank-table";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -11,57 +11,58 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Footer } from "@/components/layout/footer";
-import { entryDescription, guideCopy } from "@/lib/guides/guide-copy";
-import { countryLabel, wineTypeLabel } from "@/lib/guides/guide-labels";
-import { guidePath } from "@/lib/guides/guide-routes";
+import { guideCopy } from "@/lib/guides/guide-copy";
+import { countryLabel } from "@/lib/guides/guide-labels";
+import { guideHreflang, guidePath } from "@/lib/guides/guide-routes";
 import { TOP_100_WINES } from "@/lib/guides/top-100-wines";
-import { worldsBestOrangeWinesGuide } from "@/lib/guides/worlds-best-orange-wines";
+import {
+  WORLDS_BEST_ORANGE_WINES_PATHS,
+  worldsBestOrangeWinesGuide,
+} from "@/lib/guides/worlds-best-orange-wines";
+import type { AppLocale } from "@/lib/i18n/locale";
 import { categoryPageTitle } from "@/lib/seo/category-page-title";
 import { getSiteConfig } from "@/lib/site-config";
-
-const PAGE_PATH = worldsBestOrangeWinesGuide.path;
 
 export function getOrangeWinesFromTop100() {
   return TOP_100_WINES.filter((wine) => wine.type === "Orange");
 }
 
-export async function buildWorldsBestOrangeWinesMetadata(): Promise<Metadata> {
+export async function buildWorldsBestOrangeWinesMetadata(
+  locale: AppLocale,
+): Promise<Metadata> {
   const config = await getSiteConfig();
-  const pageUrl = `${config.baseUrl}${PAGE_PATH}`;
+  const pageUrl = `${config.baseUrl}${WORLDS_BEST_ORANGE_WINES_PATHS[locale]}`;
   const title = categoryPageTitle(
-    worldsBestOrangeWinesGuide.metaTitle,
+    worldsBestOrangeWinesGuide.metaTitle[locale],
     config.siteName,
   );
+  const description = worldsBestOrangeWinesGuide.metaDescription[locale];
 
   return {
     title,
-    description: worldsBestOrangeWinesGuide.metaDescription,
+    description,
     alternates: {
       canonical: pageUrl,
-      languages: {
-        en: pageUrl,
-        "x-default": pageUrl,
-      },
+      languages: guideHreflang("orangeWines", config.baseUrl),
     },
     openGraph: {
       title,
-      description: worldsBestOrangeWinesGuide.metaDescription,
+      description,
       url: pageUrl,
       type: "article",
-      locale: "en_US",
+      locale: locale === "sv" ? "sv_SE" : "en_US",
     },
   };
 }
 
-export async function renderWorldsBestOrangeWinesPage() {
+export async function renderWorldsBestOrangeWinesPage(locale: AppLocale) {
   const config = await getSiteConfig();
-  const copy = guideCopy("en");
-  const hubPath = guidePath("hub", "en");
-  const pageUrl = `${config.baseUrl}${PAGE_PATH}`;
+  const copy = guideCopy(locale);
+  const hubPath = guidePath("hub", locale);
+  const pagePath = WORLDS_BEST_ORANGE_WINES_PATHS[locale];
+  const pageUrl = `${config.baseUrl}${pagePath}`;
   const orangeWines = getOrangeWinesFromTop100();
-
-  const wineMetaLine = (entry: (typeof TOP_100_WINES)[number]) =>
-    `${entry.producer} · ${entry.region} · ${countryLabel(entry.country, "en")} · ${wineTypeLabel(entry.type, "en")} · ${entry.grapes}`;
+  const guide = worldsBestOrangeWinesGuide;
 
   const breadcrumbJsonLd = {
     "@context": "https://schema.org",
@@ -82,7 +83,7 @@ export async function renderWorldsBestOrangeWinesPage() {
       {
         "@type": "ListItem",
         position: 3,
-        name: worldsBestOrangeWinesGuide.breadcrumbShort,
+        name: guide.breadcrumbShort[locale],
         item: pageUrl,
       },
     ],
@@ -91,8 +92,8 @@ export async function renderWorldsBestOrangeWinesPage() {
   const itemListJsonLd = {
     "@context": "https://schema.org",
     "@type": "ItemList",
-    name: worldsBestOrangeWinesGuide.h1,
-    description: worldsBestOrangeWinesGuide.metaDescription,
+    name: guide.h1[locale],
+    description: guide.metaDescription[locale],
     numberOfItems: orangeWines.length,
     itemListOrder: "https://schema.org/ItemListOrderDescending",
     itemListElement: orangeWines.map((wine, index) => ({
@@ -133,52 +134,60 @@ export async function renderWorldsBestOrangeWinesPage() {
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
-              <BreadcrumbPage>
-                {worldsBestOrangeWinesGuide.breadcrumbShort}
-              </BreadcrumbPage>
+              <BreadcrumbPage>{guide.breadcrumbShort[locale]}</BreadcrumbPage>
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
 
         <h1 className="mt-6 text-3xl font-bold tracking-tight md:text-4xl">
-          {worldsBestOrangeWinesGuide.h1}
+          {guide.h1[locale]}
         </h1>
 
         <div className="mt-6 space-y-4 text-base leading-relaxed text-muted-foreground">
-          {worldsBestOrangeWinesGuide.intro.map((paragraph) => (
+          {guide.intro[locale].map((paragraph) => (
             <p key={paragraph.slice(0, 48)}>{paragraph}</p>
           ))}
         </div>
 
         <section className="mt-14">
           <h2 className="mb-4 border-b border-border pb-3 text-xl font-semibold">
-            {worldsBestOrangeWinesGuide.listHeading(orangeWines.length)}
+            {guide.listHeading[locale](orangeWines.length)}
           </h2>
-          <div>
-            {orangeWines.map((wine, index) => (
-              <GuideRankEntry
-                key={wine.rank}
-                rank={index + 1}
-                title={wine.wine}
-                meta={wineMetaLine(wine)}
-                description={entryDescription(wine, "en")}
-                compact={!wine.descriptionEn}
-              />
-            ))}
-          </div>
+          <GuideRankTable
+            columns={[
+              {
+                key: "rank",
+                label: copy.rank,
+                className: "w-14 tabular-nums",
+              },
+              { key: "wine", label: copy.wine },
+              { key: "producer", label: copy.producer },
+              { key: "region", label: copy.region },
+              { key: "country", label: copy.country },
+            ]}
+            rows={orangeWines.map((wine, index) => ({
+              rank: index + 1,
+              wine: wine.wine,
+              producer: wine.producer,
+              region: wine.region,
+              country: countryLabel(wine.country, locale),
+            }))}
+          />
         </section>
 
         <nav className="mt-14 space-y-3 border-t border-border pt-8 text-sm">
-          {worldsBestOrangeWinesGuide.links.map((link) => (
-            <p key={link.href}>
-              <Link
-                href={link.href}
-                className="underline underline-offset-4 hover:text-foreground"
-              >
-                {link.label}
-              </Link>
-            </p>
-          ))}
+          {guide.links
+            .filter((link) => link.label[locale].trim().length > 0)
+            .map((link) => (
+              <p key={`${locale}-${link.href[locale]}`}>
+                <Link
+                  href={link.href[locale]}
+                  className="underline underline-offset-4 hover:text-foreground"
+                >
+                  {link.label[locale]}
+                </Link>
+              </p>
+            ))}
         </nav>
       </div>
 

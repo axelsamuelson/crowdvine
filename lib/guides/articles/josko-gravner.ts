@@ -134,8 +134,7 @@ export const joskoGravnerArticle: GuideArticleContent = {
       },
       href: {
         en: "/guides/pierre-overnoy",
-        // SV page not migrated yet — keep EN URL until /guider/pierre-overnoy exists.
-        sv: "/guides/pierre-overnoy",
+        sv: "/guider/pierre-overnoy",
       },
     },
     {
@@ -145,7 +144,7 @@ export const joskoGravnerArticle: GuideArticleContent = {
       },
       href: {
         en: "/guides/thierry-allemand",
-        sv: "/guides/thierry-allemand",
+        sv: "/guider/thierry-allemand",
       },
     },
     {

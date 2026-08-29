@@ -1,16 +1,17 @@
 import type { Metadata } from "next";
 
+import { jeanFoillardArticle } from "@/lib/guides/articles/jean-foillard";
 import {
-  buildJeanFoillardGuideMetadata,
-  renderJeanFoillardGuidePage,
-} from "@/lib/guides/render-jean-foillard-guide";
+  buildArticleGuideMetadata,
+  renderArticleGuidePage,
+} from "@/lib/guides/render-article-guide";
 
 export const dynamic = "force-dynamic";
 
 export function generateMetadata(): Promise<Metadata> {
-  return buildJeanFoillardGuideMetadata();
+  return buildArticleGuideMetadata(jeanFoillardArticle, "en");
 }
 
 export default function JeanFoillardGuidePage() {
-  return renderJeanFoillardGuidePage();
+  return renderArticleGuidePage(jeanFoillardArticle, "en");
 }

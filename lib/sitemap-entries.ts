@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 
 import { BILINGUAL_ARTICLE_GUIDES } from "@/lib/guides/bilingual-article-guides";
+import { GUIDE_PATHS } from "@/lib/guides/guide-routes";
 import { articlePath } from "@/lib/guides/guide-types";
 import { generateProducerSlug } from "@/lib/producer-handle";
 import {
@@ -92,25 +93,14 @@ function staticPagesForProfile(
         `${baseUrl}/guides/worlds-best-natural-wine-producers`,
         0.75,
       ),
-      weeklyEntry(`${baseUrl}/guides/pierre-overnoy`, 0.75),
-      weeklyEntry(`${baseUrl}/guides/thierry-allemand`, 0.75),
       ...BILINGUAL_ARTICLE_GUIDES.flatMap((guide) => [
         weeklyEntry(`${baseUrl}${articlePath(guide, "en")}`, 0.75),
         weeklyEntry(`${baseUrl}${articlePath(guide, "sv")}`, 0.75),
       ]),
-      weeklyEntry(`${baseUrl}/guides/jean-francois-ganevat`, 0.75),
-      weeklyEntry(`${baseUrl}/guides/jacques-selosse`, 0.75),
-      weeklyEntry(`${baseUrl}/guides/jean-foillard`, 0.75),
-      weeklyEntry(`${baseUrl}/guides/marcel-lapierre`, 0.75),
-      weeklyEntry(`${baseUrl}/guides/gang-of-four-wine`, 0.75),
-      weeklyEntry(`${baseUrl}/guides/guy-breton`, 0.75),
-      weeklyEntry(`${baseUrl}/guides/jean-paul-thevenet`, 0.75),
-      weeklyEntry(`${baseUrl}/guides/radikon`, 0.75),
-      weeklyEntry(`${baseUrl}/guides/jura-natural-wine`, 0.75),
-      weeklyEntry(`${baseUrl}/guides/beaujolais-natural-wine`, 0.75),
-      weeklyEntry(`${baseUrl}/guides/worlds-best-orange-wines`, 0.75),
-      weeklyEntry(`${baseUrl}/guides/worlds-best-natural-champagne`, 0.75),
-      weeklyEntry(`${baseUrl}/guides/georgia-natural-wine`, 0.75),
+      weeklyEntry(`${baseUrl}${GUIDE_PATHS.orangeWines.en}`, 0.75),
+      weeklyEntry(`${baseUrl}${GUIDE_PATHS.orangeWines.sv}`, 0.75),
+      weeklyEntry(`${baseUrl}${GUIDE_PATHS.naturalChampagne.en}`, 0.75),
+      weeklyEntry(`${baseUrl}${GUIDE_PATHS.naturalChampagne.sv}`, 0.75),
       weeklyEntry(`${baseUrl}/vin/wine-boxes`, 0.75),
       weeklyEntry(`${baseUrl}/wine/wine-boxes`, 0.75),
     );
