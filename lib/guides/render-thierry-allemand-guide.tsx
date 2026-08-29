@@ -9,7 +9,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { Footer } from "@/components/layout/footer";
+import { ArticleGuideShell } from "@/lib/guides/article-guide-shell";
 import { guideCopy } from "@/lib/guides/guide-copy";
 import { guidePath } from "@/lib/guides/guide-routes";
 import { thierryAllemandGuide } from "@/lib/guides/thierry-allemand";
@@ -110,64 +110,34 @@ export async function renderThierryAllemandGuidePage() {
         }}
       />
 
-      <div className="mx-auto max-w-3xl px-6 py-16">
-        <Breadcrumb>
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink asChild>
-                <Link href="/">{copy.home}</Link>
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbLink asChild>
-                <Link href={hubPath}>{copy.hubTitle}</Link>
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbPage>
-                {thierryAllemandGuide.breadcrumbShort}
-              </BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
-
-        <h1 className="mt-6 text-3xl font-bold tracking-tight md:text-4xl">
-          {thierryAllemandGuide.h1}
-        </h1>
-
-        {thierryAllemandGuide.sections.map((section) => (
-          <section key={section.heading} className="mt-14">
-            <h2 className="mb-4 border-b border-border pb-3 text-xl font-semibold">
-              {section.heading}
-            </h2>
-            <div className="space-y-4 text-base leading-relaxed text-muted-foreground">
-              {section.paragraphs.map((paragraph) => (
-                <p key={paragraph.slice(0, 48)}>{paragraph}</p>
-              ))}
-            </div>
-          </section>
-        ))}
-
-        <nav className="mt-14 space-y-3 border-t border-border pt-8 text-sm">
-          <h2 className="mb-4 text-xl font-semibold text-foreground">
-            {thierryAllemandGuide.furtherReadingHeading}
-          </h2>
-          {thierryAllemandGuide.links.map((link) => (
-            <p key={link.href}>
-              <Link
-                href={link.href}
-                className="underline underline-offset-4 hover:text-foreground"
-              >
-                {link.label}
-              </Link>
-            </p>
-          ))}
-        </nav>
-      </div>
-
-      <Footer />
+      <ArticleGuideShell
+        h1={thierryAllemandGuide.h1}
+        lede={thierryAllemandGuide.hubCard.description}
+        sections={thierryAllemandGuide.sections}
+        furtherReadingHeading={thierryAllemandGuide.furtherReadingHeading}
+        internalLinks={thierryAllemandGuide.links}
+        breadcrumb={
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link href="/">{copy.home}</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link href={hubPath}>{copy.hubTitle}</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>{thierryAllemandGuide.breadcrumbShort}</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+        }
+      />
     </>
   );
 }

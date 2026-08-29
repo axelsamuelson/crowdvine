@@ -360,7 +360,7 @@ export async function renderProducerPublicPage(options: {
               {guideNote.beforeLink}
               <Link
                 href={guideNote.href}
-                className="underline underline-offset-4 hover:text-stone-700"
+                className="underline underline-offset-4 hover:text-foreground"
               >
                 {guideNote.linkLabel}
               </Link>

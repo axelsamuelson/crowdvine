@@ -219,6 +219,14 @@ export default async function LanguedocNaturvinPage() {
           </p>
           <p className="text-sm leading-relaxed text-muted-foreground">
             <Link
+              href="/guider/vad-ar-naturvin"
+              className="underline underline-offset-4 hover:text-foreground"
+            >
+              Vad är naturvin? Läs den kompletta guiden →
+            </Link>
+          </p>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            <Link
               href="/guider/varldens-basta-naturvinsproducenter"
               className="underline underline-offset-4 hover:text-foreground"
             >

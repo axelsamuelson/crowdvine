@@ -158,12 +158,20 @@ function colorHubExploreLinks(category: WineCategory): CategoryExploreLink[] {
 
   if (category.slug === "naturvin") {
     links.push({
+      href: "/guider/vad-ar-naturvin",
+      label: "Vad är naturvin? Den kompletta guiden →",
+    });
+    links.push({
       href: "/guider/varldens-basta-naturviner",
       label: "Världens 100 bästa naturviner →",
     });
   }
 
   if (category.slug === "natural-wine") {
+    links.push({
+      href: "/guides/what-is-natural-wine",
+      label: "What is natural wine? The complete guide →",
+    });
     links.push({
       href: "/guides/worlds-best-natural-wines",
       label: "The world's 100 best natural wines →",

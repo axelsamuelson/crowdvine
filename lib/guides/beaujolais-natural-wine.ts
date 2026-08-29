@@ -127,6 +127,10 @@ export const beaujolaisNaturalWineGuide = {
       label: "Guy Breton (P'tit Max) →",
     },
     {
+      href: "/guides/jean-paul-thevenet",
+      label: "Jean-Paul Thévenet →",
+    },
+    {
       href: "/guides/jura-natural-wine",
       label: "Jura natural wine →",
     },

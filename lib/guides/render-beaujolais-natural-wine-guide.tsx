@@ -9,7 +9,12 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { Footer } from "@/components/layout/footer";
+import {
+  ARTICLE_GUIDE_BODY_CLASS,
+  ARTICLE_GUIDE_H2_CLASS,
+  ARTICLE_GUIDE_H3_CLASS,
+  ArticleGuideShell,
+} from "@/lib/guides/article-guide-shell";
 import { beaujolaisNaturalWineGuide } from "@/lib/guides/beaujolais-natural-wine";
 import { guideCopy } from "@/lib/guides/guide-copy";
 import { guidePath } from "@/lib/guides/guide-routes";
@@ -94,6 +99,12 @@ export async function renderBeaujolaisNaturalWineGuidePage() {
     ],
   };
 
+  const openingSections = beaujolaisNaturalWineGuide.sections.slice(0, -1);
+  const gangOfFourSection =
+    beaujolaisNaturalWineGuide.sections[
+      beaujolaisNaturalWineGuide.sections.length - 1
+    ];
+
   return (
     <>
       <script
@@ -109,115 +120,104 @@ export async function renderBeaujolaisNaturalWineGuidePage() {
         }}
       />
 
-      <div className="mx-auto max-w-3xl px-6 py-16">
-        <Breadcrumb>
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink asChild>
-                <Link href="/">{copy.home}</Link>
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbLink asChild>
-                <Link href={hubPath}>{copy.hubTitle}</Link>
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbPage>
-                {beaujolaisNaturalWineGuide.breadcrumbShort}
-              </BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
+      <ArticleGuideShell
+        h1={beaujolaisNaturalWineGuide.h1}
+        lede={beaujolaisNaturalWineGuide.hubCard.description}
+        sections={openingSections.map((section) => ({
+          heading: section.heading,
+          paragraphs: section.paragraphs,
+        }))}
+        afterSections={
+          <>
+            <section>
+              <h2 className={ARTICLE_GUIDE_H2_CLASS}>
+                {gangOfFourSection.heading}
+              </h2>
+              <div className={ARTICLE_GUIDE_BODY_CLASS}>
+                {gangOfFourSection.paragraphs.map((paragraph) => (
+                  <p key={paragraph.slice(0, 48)}>{paragraph}</p>
+                ))}
+                {"cta" in gangOfFourSection && gangOfFourSection.cta ? (
+                  <p>
+                    <Link
+                      href={gangOfFourSection.cta.href}
+                      className="underline underline-offset-4 hover:text-foreground"
+                    >
+                      {gangOfFourSection.cta.label}
+                    </Link>
+                  </p>
+                ) : null}
+              </div>
+            </section>
 
-        <h1 className="mt-6 text-3xl font-bold tracking-tight md:text-4xl">
-          {beaujolaisNaturalWineGuide.h1}
-        </h1>
+            <section>
+              <h2 className={ARTICLE_GUIDE_H2_CLASS}>
+                {beaujolaisNaturalWineGuide.producersHeading}
+              </h2>
+              <p className="mb-8 text-[17px] leading-[1.75] text-foreground/80">
+                {beaujolaisNaturalWineGuide.producersIntro}
+              </p>
+              <div className="space-y-8">
+                {beaujolaisNaturalWineGuide.producers.map((producer) => (
+                  <div key={producer.name}>
+                    <h3 className={ARTICLE_GUIDE_H3_CLASS}>
+                      <Link
+                        href={producer.href}
+                        className="underline underline-offset-4 hover:text-foreground"
+                      >
+                        #{producer.rank} {producer.name}
+                      </Link>
+                    </h3>
+                    <div className={`mt-2 ${ARTICLE_GUIDE_BODY_CLASS}`}>
+                      {producer.paragraphs.map((paragraph) => (
+                        <p key={paragraph.slice(0, 48)}>{paragraph}</p>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
 
-        {beaujolaisNaturalWineGuide.sections.map((section) => (
-          <section key={section.heading} className="mt-14">
-            <h2 className="mb-4 border-b border-border pb-3 text-xl font-semibold">
-              {section.heading}
-            </h2>
-            <div className="space-y-4 text-base leading-relaxed text-muted-foreground">
-              {section.paragraphs.map((paragraph) => (
-                <p key={paragraph.slice(0, 48)}>{paragraph}</p>
-              ))}
-              {"cta" in section && section.cta ? (
-                <p>
-                  <Link
-                    href={section.cta.href}
-                    className="underline underline-offset-4 hover:text-foreground"
-                  >
-                    {section.cta.label}
-                  </Link>
-                </p>
-              ) : null}
-            </div>
-          </section>
-        ))}
-
-        <section className="mt-14">
-          <h2 className="mb-4 border-b border-border pb-3 text-xl font-semibold">
-            {beaujolaisNaturalWineGuide.producersHeading}
-          </h2>
-          <p className="mb-8 text-base leading-relaxed text-muted-foreground">
-            {beaujolaisNaturalWineGuide.producersIntro}
-          </p>
-          <div className="space-y-8">
-            {beaujolaisNaturalWineGuide.producers.map((producer) => (
-              <div key={producer.name}>
-                <h3 className="text-lg font-semibold tracking-tight text-foreground">
-                  <Link
-                    href={producer.href}
-                    className="underline underline-offset-4 hover:text-foreground"
-                  >
-                    #{producer.rank} {producer.name}
-                  </Link>
-                </h3>
-                <div className="mt-2 space-y-3 text-base leading-relaxed text-muted-foreground">
-                  {producer.paragraphs.map((paragraph) => (
+            {beaujolaisNaturalWineGuide.closingSections.map((section) => (
+              <section key={section.heading}>
+                <h2 className={ARTICLE_GUIDE_H2_CLASS}>{section.heading}</h2>
+                <div className={ARTICLE_GUIDE_BODY_CLASS}>
+                  {section.paragraphs.map((paragraph) => (
                     <p key={paragraph.slice(0, 48)}>{paragraph}</p>
                   ))}
                 </div>
-              </div>
+              </section>
             ))}
-          </div>
-        </section>
-
-        {beaujolaisNaturalWineGuide.closingSections.map((section) => (
-          <section key={section.heading} className="mt-14">
-            <h2 className="mb-4 border-b border-border pb-3 text-xl font-semibold">
-              {section.heading}
-            </h2>
-            <div className="space-y-4 text-base leading-relaxed text-muted-foreground">
-              {section.paragraphs.map((paragraph) => (
-                <p key={paragraph.slice(0, 48)}>{paragraph}</p>
-              ))}
-            </div>
-          </section>
-        ))}
-
-        <nav className="mt-14 space-y-3 border-t border-border pt-8 text-sm">
-          <h2 className="mb-4 text-xl font-semibold text-foreground">
-            {beaujolaisNaturalWineGuide.furtherReadingHeading}
-          </h2>
-          {beaujolaisNaturalWineGuide.links.map((link) => (
-            <p key={link.href}>
-              <Link
-                href={link.href}
-                className="underline underline-offset-4 hover:text-foreground"
-              >
-                {link.label}
-              </Link>
-            </p>
-          ))}
-        </nav>
-      </div>
-
-      <Footer />
+          </>
+        }
+        furtherReadingHeading={
+          beaujolaisNaturalWineGuide.furtherReadingHeading
+        }
+        internalLinks={beaujolaisNaturalWineGuide.links}
+        breadcrumb={
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link href="/">{copy.home}</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link href={hubPath}>{copy.hubTitle}</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>
+                  {beaujolaisNaturalWineGuide.breadcrumbShort}
+                </BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+        }
+      />
     </>
   );
 }

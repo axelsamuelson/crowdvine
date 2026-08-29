@@ -8,7 +8,10 @@ import { jacquesSelosseGuide } from "@/lib/guides/jacques-selosse";
 import { jeanFoillardGuide } from "@/lib/guides/jean-foillard";
 import { jeanFrancoisGanevatGuide } from "@/lib/guides/jean-francois-ganevat";
 import { jeanPaulThevenetGuide } from "@/lib/guides/jean-paul-thevenet";
-import { joskoGravnerGuide } from "@/lib/guides/josko-gravner";
+import { joskoGravnerArticle } from "@/lib/guides/articles/josko-gravner";
+import { whatIsNaturalWineArticle } from "@/lib/guides/articles/what-is-natural-wine";
+import { whatIsOrangeWineArticle } from "@/lib/guides/articles/what-is-orange-wine";
+import { articleHubCard } from "@/lib/guides/guide-types";
 import { juraNaturalWineGuide } from "@/lib/guides/jura-natural-wine";
 import { marcelLapierreGuide } from "@/lib/guides/marcel-lapierre";
 import { pierreOvernoyGuide } from "@/lib/guides/pierre-overnoy";
@@ -21,6 +24,8 @@ export type GuideHubCard = {
   href: string;
   title: string;
   description: string;
+  featured?: boolean;
+  kicker?: string;
 };
 
 export type GuideHubSection = {
@@ -72,6 +77,18 @@ export type GuideLocaleCopy = {
   };
 };
 
+const SV_PRODUCER_CARDS: GuideHubCard[] = [
+  {
+    ...articleHubCard(joskoGravnerArticle, "sv"),
+    featured: true,
+  },
+];
+
+const SV_GUIDE_CARDS: GuideHubCard[] = [
+  articleHubCard(whatIsNaturalWineArticle, "sv"),
+  articleHubCard(whatIsOrangeWineArticle, "sv"),
+];
+
 const SV_LIST_CARDS: GuideHubCard[] = [
   {
     href: GUIDE_PATHS.producers.sv,
@@ -95,8 +112,16 @@ const SV: GuideLocaleCopy = {
     "Kurerade guider om naturvin — världens bästa naturvinsproducenter och naturviner.",
   hubIntro:
     "Våra guider täcker producenterna, regionerna och vinerna som betyder något i naturvinsvärlden — från pionjärerna som startade rörelsen till regionerna som definierar den idag. Varje guide bygger på verifierad information, skriven för dig som vill förstå naturvin bortom etiketten.",
-  hubCards: SV_LIST_CARDS,
+  hubCards: [...SV_PRODUCER_CARDS, ...SV_GUIDE_CARDS, ...SV_LIST_CARDS],
   hubSections: [
+    {
+      title: "Producenter",
+      cards: SV_PRODUCER_CARDS,
+    },
+    {
+      title: "Guider",
+      cards: SV_GUIDE_CARDS,
+    },
     {
       title: "Listor",
       cards: SV_LIST_CARDS,
@@ -158,26 +183,18 @@ const EN_PRODUCER_CARDS: GuideHubCard[] = [
     href: pierreOvernoyGuide.hubCard.href,
     title: pierreOvernoyGuide.hubCard.title,
     description: pierreOvernoyGuide.hubCard.description,
+    featured: true,
   },
   {
     href: thierryAllemandGuide.hubCard.href,
     title: thierryAllemandGuide.hubCard.title,
     description: thierryAllemandGuide.hubCard.description,
   },
-  {
-    href: joskoGravnerGuide.hubCard.href,
-    title: joskoGravnerGuide.hubCard.title,
-    description: joskoGravnerGuide.hubCard.description,
-  },
+  articleHubCard(joskoGravnerArticle, "en"),
   {
     href: jeanFrancoisGanevatGuide.hubCard.href,
     title: jeanFrancoisGanevatGuide.hubCard.title,
     description: jeanFrancoisGanevatGuide.hubCard.description,
-  },
-  {
-    href: jacquesSelosseGuide.hubCard.href,
-    title: jacquesSelosseGuide.hubCard.title,
-    description: jacquesSelosseGuide.hubCard.description,
   },
   {
     href: jeanFoillardGuide.hubCard.href,
@@ -190,9 +207,14 @@ const EN_PRODUCER_CARDS: GuideHubCard[] = [
     description: marcelLapierreGuide.hubCard.description,
   },
   {
-    href: gangOfFourWineGuide.hubCard.href,
-    title: gangOfFourWineGuide.hubCard.title,
-    description: gangOfFourWineGuide.hubCard.description,
+    href: radikonGuide.hubCard.href,
+    title: radikonGuide.hubCard.title,
+    description: radikonGuide.hubCard.description,
+  },
+  {
+    href: jacquesSelosseGuide.hubCard.href,
+    title: jacquesSelosseGuide.hubCard.title,
+    description: jacquesSelosseGuide.hubCard.description,
   },
   {
     href: guyBretonGuide.hubCard.href,
@@ -205,9 +227,9 @@ const EN_PRODUCER_CARDS: GuideHubCard[] = [
     description: jeanPaulThevenetGuide.hubCard.description,
   },
   {
-    href: radikonGuide.hubCard.href,
-    title: radikonGuide.hubCard.title,
-    description: radikonGuide.hubCard.description,
+    href: gangOfFourWineGuide.hubCard.href,
+    title: gangOfFourWineGuide.hubCard.title,
+    description: gangOfFourWineGuide.hubCard.description,
   },
 ];
 
@@ -254,6 +276,11 @@ const EN_LIST_CARDS: GuideHubCard[] = [
   },
 ];
 
+const EN_GUIDE_CARDS: GuideHubCard[] = [
+  articleHubCard(whatIsNaturalWineArticle, "en"),
+  articleHubCard(whatIsOrangeWineArticle, "en"),
+];
+
 const EN: GuideLocaleCopy = {
   home: "Home",
   hubTitle: "Natural Wine Guides",
@@ -262,10 +289,16 @@ const EN: GuideLocaleCopy = {
     "Guides to the producers, regions and wines that define the natural wine world — from Pierre Overnoy to Georgian qvevri.",
   hubIntro:
     "Our guides cover the producers, regions and wines that matter in the natural wine world — from the pioneers who started the movement to the regions that define it today. Each guide is built on verified information, written for people who want to understand natural wine beyond the label.",
-  hubCards: [...EN_PRODUCER_CARDS, ...EN_REGION_CARDS, ...EN_LIST_CARDS],
+  hubCards: [
+    ...EN_PRODUCER_CARDS,
+    ...EN_REGION_CARDS,
+    ...EN_GUIDE_CARDS,
+    ...EN_LIST_CARDS,
+  ],
   hubSections: [
     { title: "Producers", cards: EN_PRODUCER_CARDS },
     { title: "Regions", cards: EN_REGION_CARDS },
+    { title: "Guides", cards: EN_GUIDE_CARDS },
     { title: "Lists", cards: EN_LIST_CARDS },
   ],
   top10: "Top 10",

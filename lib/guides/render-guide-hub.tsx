@@ -10,11 +10,30 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Footer } from "@/components/layout/footer";
-import { guideCopy } from "@/lib/guides/guide-copy";
+import {
+  guideCopy,
+  type GuideHubCard,
+} from "@/lib/guides/guide-copy";
 import { guideHreflang, guidePath } from "@/lib/guides/guide-routes";
 import type { AppLocale } from "@/lib/i18n/locale";
 import { categoryPageTitle } from "@/lib/seo/category-page-title";
 import { getSiteConfig } from "@/lib/site-config";
+import { cn } from "@/lib/utils";
+
+function hubSectionId(title: string): string {
+  return title
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function orderHubCards(cards: GuideHubCard[]): GuideHubCard[] {
+  const featured = cards.filter((card) => card.featured);
+  const rest = cards.filter((card) => !card.featured);
+  return [...featured, ...rest];
+}
 
 export async function buildGuideHubMetadata(
   locale: AppLocale,
@@ -96,31 +115,77 @@ export async function renderGuideHubPage(locale: AppLocale) {
           {copy.hubIntro}
         </p>
 
-        <div className="mt-12 space-y-14">
+        <nav
+          aria-label={copy.hubTitle}
+          className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground"
+        >
           {copy.hubSections.map((section) => (
-            <section key={section.title}>
-              <h2 className="mb-4 border-b border-border pb-3 text-xl font-semibold tracking-tight">
-                {section.title}
-              </h2>
-              <ul className="space-y-4">
-                {section.cards.map((guide) => (
-                  <li key={guide.href}>
-                    <Link
-                      href={guide.href}
-                      className="block rounded-xl border border-border bg-background px-5 py-5 transition-colors hover:border-foreground/30"
-                    >
-                      <h3 className="text-lg font-semibold tracking-tight text-foreground">
-                        {guide.title}
-                      </h3>
-                      <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                        {guide.description}
-                      </p>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </section>
+            <Link
+              key={section.title}
+              href={`#${hubSectionId(section.title)}`}
+              className="hover:text-foreground"
+            >
+              {section.title}
+            </Link>
           ))}
+        </nav>
+
+        <div>
+          {copy.hubSections.map((section) => {
+            const sectionId = hubSectionId(section.title);
+            const cards = orderHubCards(section.cards);
+
+            return (
+              <section key={section.title} className="mt-16">
+                <h2
+                  id={sectionId}
+                  className="mb-6 scroll-mt-24 border-b border-border pb-3 text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground"
+                >
+                  {section.title}
+                </h2>
+                <ul className="grid gap-y-6 md:grid-cols-2 md:gap-x-10">
+                  {cards.map((guide) => {
+                    const featured = Boolean(guide.featured);
+
+                    return (
+                      <li
+                        key={guide.href}
+                        className={cn(
+                          "min-w-0 border-b border-border pb-6",
+                          featured && "md:col-span-2",
+                        )}
+                      >
+                        <Link href={guide.href} className="group block">
+                          {guide.kicker ? (
+                            <span className="text-xs uppercase tracking-[0.12em] text-muted-foreground">
+                              {guide.kicker}
+                            </span>
+                          ) : null}
+                          <h3
+                            className={cn(
+                              "font-semibold tracking-tight text-foreground/80 transition-colors group-hover:text-foreground",
+                              featured ? "text-2xl" : "text-lg",
+                              guide.kicker && "mt-1",
+                            )}
+                          >
+                            {guide.title}
+                          </h3>
+                          <p
+                            className={cn(
+                              "mt-2 leading-relaxed text-muted-foreground",
+                              featured ? "text-base" : "text-sm",
+                            )}
+                          >
+                            {guide.description}
+                          </p>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            );
+          })}
         </div>
       </div>
 

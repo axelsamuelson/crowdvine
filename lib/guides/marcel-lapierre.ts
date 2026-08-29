@@ -70,6 +70,18 @@ export const marcelLapierreGuide = {
       label: "Jean Foillard and the Gang of Four →",
     },
     {
+      href: "/guides/gang-of-four-wine",
+      label: "The Gang of Four →",
+    },
+    {
+      href: "/guides/guy-breton",
+      label: "Guy Breton →",
+    },
+    {
+      href: "/guides/jean-paul-thevenet",
+      label: "Jean-Paul Thévenet →",
+    },
+    {
       href: "/guides/worlds-best-natural-wines",
       label: "The world's 100 best natural wines →",
     },

@@ -9,9 +9,9 @@ import {
 export const dynamic = "force-dynamic";
 
 export function generateMetadata(): Promise<Metadata> {
-  return buildArticleGuideMetadata(joskoGravnerArticle, "en");
+  return buildArticleGuideMetadata(joskoGravnerArticle, "sv");
 }
 
-export default function JoskoGravnerGuidePage() {
-  return renderArticleGuidePage(joskoGravnerArticle, "en");
+export default function JoskoGravnerGuidePageSv() {
+  return renderArticleGuidePage(joskoGravnerArticle, "sv");
 }

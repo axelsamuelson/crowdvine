@@ -75,6 +75,18 @@ export const jeanFoillardGuide = {
         "Jean Foillard is ranked #10 on our list of the world's 100 best natural wine producers →",
     },
     {
+      href: "/guides/gang-of-four-wine",
+      label: "The Gang of Four →",
+    },
+    {
+      href: "/guides/guy-breton",
+      label: "Guy Breton →",
+    },
+    {
+      href: "/guides/jean-paul-thevenet",
+      label: "Jean-Paul Thévenet →",
+    },
+    {
       href: "/guides/pierre-overnoy",
       label: "Pierre Overnoy — the producer who started natural wine →",
     },
