@@ -1,16 +1,11 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
 import { ArticleGuideShell } from "@/lib/guides/article-guide-shell";
 import { buildArticleGuideMeta } from "@/lib/guides/guide-article-seo";
+import {
+  GuideBreadcrumbs,
+  buildGuideBreadcrumbJsonLd,
+} from "@/lib/guides/guide-breadcrumbs";
 import { guideCopy } from "@/lib/guides/guide-copy";
 import { guidePath } from "@/lib/guides/guide-routes";
 import {
@@ -78,30 +73,11 @@ export async function renderArticleGuidePage(
     about,
   };
 
-  const breadcrumbJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    itemListElement: [
-      {
-        "@type": "ListItem",
-        position: 1,
-        name: copy.home,
-        item: config.baseUrl,
-      },
-      {
-        "@type": "ListItem",
-        position: 2,
-        name: copy.hubTitle,
-        item: `${config.baseUrl}${hubPath}`,
-      },
-      {
-        "@type": "ListItem",
-        position: 3,
-        name: content.breadcrumbShort[locale],
-        item: pageUrl,
-      },
-    ],
-  };
+  const breadcrumbJsonLd = buildGuideBreadcrumbJsonLd([
+    { name: copy.home, item: config.baseUrl },
+    { name: copy.hubTitle, item: `${config.baseUrl}${hubPath}` },
+    { name: content.breadcrumbShort[locale] },
+  ]);
 
   return (
     <>
@@ -133,27 +109,13 @@ export async function renderArticleGuidePage(
             href: link.href[locale],
           }))}
         breadcrumb={
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem>
-                <BreadcrumbLink asChild>
-                  <Link href="/">{copy.home}</Link>
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbLink asChild>
-                  <Link href={hubPath}>{copy.hubTitle}</Link>
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbPage>
-                  {content.breadcrumbShort[locale]}
-                </BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
+          <GuideBreadcrumbs
+            crumbs={[
+              { label: copy.home, href: "/" },
+              { label: copy.hubTitle, href: hubPath },
+              { label: content.breadcrumbShort[locale] },
+            ]}
+          />
         }
       />
     </>

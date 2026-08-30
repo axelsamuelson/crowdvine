@@ -127,6 +127,7 @@ const navigationGroups: NavGroup[] = [
     icon: PenSquare,
     items: [
       { name: "Site content", href: "/admin/content", icon: FileText },
+      { name: "Systembolaget", href: "/admin/systembolaget", icon: Wine },
       { name: "Images", href: "/admin/images", icon: Image },
       { name: "Home concepts", href: "/admin/home-concepts", icon: LayoutTemplate },
     ],

@@ -4,15 +4,11 @@ import type { ReactNode } from "react";
 
 import { GuideRankEntry } from "@/components/guides/guide-rank-entry";
 import { GuideRankTable } from "@/components/guides/guide-rank-table";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
 import { Footer } from "@/components/layout/footer";
+import {
+  GuideBreadcrumbs,
+  buildGuideBreadcrumbJsonLd,
+} from "@/lib/guides/guide-breadcrumbs";
 import {
   entryDescription,
   guideCopy,
@@ -123,7 +119,6 @@ export async function buildProducersGuideMetadata(
 export async function renderProducersGuidePage(locale: AppLocale) {
   const config = await getSiteConfig();
   const copy = guideCopy(locale);
-  const pageUrl = `${config.baseUrl}${guidePath("producers", locale)}`;
   const hubPath = guidePath("hub", locale);
   const winesPath = guidePath("wines", locale);
   const shopNatural =
@@ -137,30 +132,11 @@ export async function renderProducersGuidePage(locale: AppLocale) {
   const producerMetaLine = (entry: (typeof TOP_100_PRODUCERS)[number]) =>
     `${entry.region} · ${countryLabel(entry.country, locale)} · ${entry.grapes}`;
 
-  const breadcrumbJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    itemListElement: [
-      {
-        "@type": "ListItem",
-        position: 1,
-        name: copy.home,
-        item: config.baseUrl,
-      },
-      {
-        "@type": "ListItem",
-        position: 2,
-        name: copy.hubTitle,
-        item: `${config.baseUrl}${hubPath}`,
-      },
-      {
-        "@type": "ListItem",
-        position: 3,
-        name: copy.producers.h1,
-        item: pageUrl,
-      },
-    ],
-  };
+  const breadcrumbJsonLd = buildGuideBreadcrumbJsonLd([
+    { name: copy.home, item: config.baseUrl },
+    { name: copy.hubTitle, item: `${config.baseUrl}${hubPath}` },
+    { name: copy.producers.breadcrumbShort },
+  ]);
 
   const itemListJsonLd = {
     "@context": "https://schema.org",
@@ -197,26 +173,14 @@ export async function renderProducersGuidePage(locale: AppLocale) {
         }}
       />
 
-      <div className="mx-auto max-w-3xl px-6 py-16">
-        <Breadcrumb>
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink asChild>
-                <Link href="/">{copy.home}</Link>
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbLink asChild>
-                <Link href={hubPath}>{copy.hubTitle}</Link>
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbPage>{copy.producers.breadcrumbShort}</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
+      <div className="mx-auto max-w-3xl px-6 pt-top-spacing pb-16">
+        <GuideBreadcrumbs
+          crumbs={[
+            { label: copy.home, href: "/" },
+            { label: copy.hubTitle, href: hubPath },
+            { label: copy.producers.breadcrumbShort },
+          ]}
+        />
 
         <h1 className="mt-6 text-3xl font-bold tracking-tight md:text-4xl">
           {copy.producers.h1}

@@ -1,6 +1,7 @@
 import type { AppLocale } from "@/lib/i18n/locale";
 import { GUIDE_PATHS } from "@/lib/guides/guide-routes";
 import { beaujolaisNaturalWineArticle } from "@/lib/guides/articles/beaujolais-natural-wine";
+import { bestRedNaturalWinesSystembolagetArticle } from "@/lib/guides/articles/best-red-natural-wines-systembolaget";
 import { gangOfFourWineArticle } from "@/lib/guides/articles/gang-of-four-wine";
 import { georgiaNaturalWineArticle } from "@/lib/guides/articles/georgia-natural-wine";
 import { guyBretonArticle } from "@/lib/guides/articles/guy-breton";
@@ -136,6 +137,10 @@ const SV_REGION_CARDS: GuideHubCard[] = [
   articleHubCard(georgiaNaturalWineArticle, "sv"),
 ];
 
+const SV_SYSTEMBOLAGET_CARDS: GuideHubCard[] = [
+  articleHubCard(bestRedNaturalWinesSystembolagetArticle, "sv"),
+];
+
 const SV: GuideLocaleCopy = {
   home: "Hem",
   hubTitle: "Guider",
@@ -149,6 +154,7 @@ const SV: GuideLocaleCopy = {
     ...SV_REGION_CARDS,
     ...SV_GUIDE_CARDS,
     ...SV_LIST_CARDS,
+    ...SV_SYSTEMBOLAGET_CARDS,
   ],
   hubSections: [
     {
@@ -166,6 +172,10 @@ const SV: GuideLocaleCopy = {
     {
       title: "Listor",
       cards: SV_LIST_CARDS,
+    },
+    {
+      title: "Systembolaget",
+      cards: SV_SYSTEMBOLAGET_CARDS,
     },
   ],
   top10: "Topp 10",
@@ -274,6 +284,9 @@ const EN_GUIDE_CARDS: GuideHubCard[] = [
   articleHubCard(whatIsOrangeWineArticle, "en"),
 ];
 
+const EN_SYSTEMBOLAGET_CARDS: GuideHubCard[] = [
+  articleHubCard(bestRedNaturalWinesSystembolagetArticle, "en"),
+];
 
 const EN: GuideLocaleCopy = {
   home: "Home",
@@ -288,12 +301,14 @@ const EN: GuideLocaleCopy = {
     ...EN_REGION_CARDS,
     ...EN_GUIDE_CARDS,
     ...EN_LIST_CARDS,
+    ...EN_SYSTEMBOLAGET_CARDS,
   ],
   hubSections: [
     { title: "Producers", cards: EN_PRODUCER_CARDS },
     { title: "Regions", cards: EN_REGION_CARDS },
     { title: "Guides", cards: EN_GUIDE_CARDS },
     { title: "Lists", cards: EN_LIST_CARDS },
+    { title: "Systembolaget", cards: EN_SYSTEMBOLAGET_CARDS },
   ],
   top10: "Top 10",
   mid: "11–30",

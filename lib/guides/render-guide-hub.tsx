@@ -1,15 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
 import { Footer } from "@/components/layout/footer";
+import {
+  GuideBreadcrumbs,
+  buildGuideBreadcrumbJsonLd,
+} from "@/lib/guides/guide-breadcrumbs";
 import {
   guideCopy,
   type GuideHubCard,
@@ -62,26 +58,11 @@ export async function buildGuideHubMetadata(
 export async function renderGuideHubPage(locale: AppLocale) {
   const config = await getSiteConfig();
   const copy = guideCopy(locale);
-  const hubPath = guidePath("hub", locale);
 
-  const breadcrumbJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    itemListElement: [
-      {
-        "@type": "ListItem",
-        position: 1,
-        name: copy.home,
-        item: config.baseUrl,
-      },
-      {
-        "@type": "ListItem",
-        position: 2,
-        name: copy.hubTitle,
-        item: `${config.baseUrl}${hubPath}`,
-      },
-    ],
-  };
+  const breadcrumbJsonLd = buildGuideBreadcrumbJsonLd([
+    { name: copy.home, item: config.baseUrl },
+    { name: copy.hubTitle },
+  ]);
 
   return (
     <>
@@ -92,20 +73,13 @@ export async function renderGuideHubPage(locale: AppLocale) {
         }}
       />
 
-      <div className="mx-auto max-w-3xl px-6 py-16">
-        <Breadcrumb>
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink asChild>
-                <Link href="/">{copy.home}</Link>
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbPage>{copy.hubTitle}</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
+      <div className="mx-auto max-w-3xl px-6 pt-top-spacing pb-16">
+        <GuideBreadcrumbs
+          crumbs={[
+            { label: copy.home, href: "/" },
+            { label: copy.hubTitle },
+          ]}
+        />
 
         <h1 className="mt-6 text-3xl font-bold tracking-tight md:text-4xl">
           {copy.hubTitle}

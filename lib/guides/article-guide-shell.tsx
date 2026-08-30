@@ -3,6 +3,32 @@ import Link from "next/link";
 
 import { Footer } from "@/components/layout/footer";
 
+const URL_IN_TEXT = /(https?:\/\/[^\s]+)/g;
+
+/** Render body paragraphs with bare http(s) URLs as external links. */
+function ArticleParagraph({ text }: { text: string }) {
+  const parts = text.split(URL_IN_TEXT);
+  return (
+    <p>
+      {parts.map((part, index) =>
+        /^https?:\/\//.test(part) ? (
+          <a
+            key={`url-${index}`}
+            href={part}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline underline-offset-4 hover:text-foreground"
+          >
+            {part}
+          </a>
+        ) : (
+          <span key={`text-${index}`}>{part}</span>
+        ),
+      )}
+    </p>
+  );
+}
+
 export type ArticleGuideShellSection = {
   heading?: string;
   paragraphs: string[];
@@ -52,7 +78,7 @@ export function ArticleGuideShell({
 }: ArticleGuideShellProps) {
   return (
     <>
-      <div className="mx-auto max-w-3xl px-6 py-16">
+      <div className="mx-auto max-w-3xl px-6 pt-top-spacing pb-16">
         {breadcrumb}
 
         <div className="max-w-[68ch]">
@@ -75,7 +101,10 @@ export function ArticleGuideShell({
                 ) : null}
                 <div className={ARTICLE_GUIDE_BODY_CLASS}>
                   {section.paragraphs.map((paragraph) => (
-                    <p key={paragraph.slice(0, 48)}>{paragraph}</p>
+                    <ArticleParagraph
+                      key={paragraph.slice(0, 48)}
+                      text={paragraph}
+                    />
                   ))}
                 </div>
               </section>
