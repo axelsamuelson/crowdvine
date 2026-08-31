@@ -3,6 +3,10 @@ import { headers } from "next/headers";
 
 import { getCrowdvineProductByHandle } from "@/lib/crowdvine/product-by-handle-data";
 import { PDP_REVALIDATE_SECONDS } from "@/lib/crowdvine/pdp-static-params";
+import {
+  PDP_PRODUCT_CACHE_TAG,
+  pdpProductHandleTag,
+} from "@/lib/crowdvine/revalidate-wine-storefront";
 import { isB2BHost } from "@/lib/b2b-site";
 import type { AppLocale } from "@/lib/i18n/locale";
 import type { Product } from "@/lib/shopify/types";
@@ -30,5 +34,6 @@ export async function fetchCachedProductForLocale(
 
   return unstable_cache(fetchProduct, ["pdp-product", handle, locale, cacheKey], {
     revalidate: PDP_REVALIDATE_SECONDS,
+    tags: [PDP_PRODUCT_CACHE_TAG, pdpProductHandleTag(handle)],
   })();
 }

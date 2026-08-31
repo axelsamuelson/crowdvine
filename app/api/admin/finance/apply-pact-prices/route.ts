@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin-auth-server";
+import { revalidateWineStorefrontCaches } from "@/lib/crowdvine/revalidate-wine-storefront";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { resolveWineAlcoholTaxCents } from "@/lib/wine-alcohol-tax";
 
@@ -74,7 +75,7 @@ export async function POST(request: NextRequest) {
     const { data: wines, error } = await sb
       .from("wines")
       .select(
-        "id, wine_name, cost_amount, cost_currency, exchange_rate, alcohol_tax_cents, price_includes_vat",
+        "id, handle, wine_name, cost_amount, cost_currency, exchange_rate, alcohol_tax_cents, price_includes_vat",
       )
       .in("id", ids);
 
@@ -84,6 +85,7 @@ export async function POST(request: NextRequest) {
 
     const byId = new Map((wines || []).map((w) => [String(w.id), w]));
     let updated = 0;
+    const updatedHandles: string[] = [];
     const failures: Array<{ wineId: string; error: string }> = [];
 
     for (const item of prices) {
@@ -135,7 +137,13 @@ export async function POST(request: NextRequest) {
         failures.push({ wineId: item.wineId, error: updateError.message });
       } else {
         updated++;
+        const handle = String(wine.handle || "").trim();
+        if (handle) updatedHandles.push(handle);
       }
+    }
+
+    if (updated > 0) {
+      revalidateWineStorefrontCaches(updatedHandles);
     }
 
     return NextResponse.json({
@@ -144,6 +152,7 @@ export async function POST(request: NextRequest) {
       failed: failures.length,
       failures: failures.slice(0, 20),
       exciseRateMultiplier,
+      revalidatedHandles: updatedHandles.length,
     });
   } catch (e) {
     console.error("[finance] apply-pact-prices:", e);

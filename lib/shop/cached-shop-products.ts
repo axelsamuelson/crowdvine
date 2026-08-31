@@ -1,6 +1,7 @@
 import { unstable_cache } from "next/cache";
 
 import { fetchProductsData } from "@/lib/crowdvine/products-data";
+import { SHOP_PRODUCTS_CACHE_TAG } from "@/lib/crowdvine/revalidate-wine-storefront";
 import type { ProductSortKey } from "@/lib/shopify/types";
 
 type CachedShopProductsParams = {
@@ -22,5 +23,5 @@ export const getCachedShopProducts = unstable_cache(
     });
   },
   ["shop-root-products"],
-  { revalidate: 300, tags: ["shop-products"] },
+  { revalidate: 300, tags: [SHOP_PRODUCTS_CACHE_TAG] },
 );
