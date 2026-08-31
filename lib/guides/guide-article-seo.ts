@@ -16,7 +16,8 @@ export function articleGuideHreflang(
   return {
     sv,
     en,
-    "x-default": sv,
+    // EN pages rank internationally; SV twins are often still unindexed.
+    "x-default": en,
   } as const;
 }
 

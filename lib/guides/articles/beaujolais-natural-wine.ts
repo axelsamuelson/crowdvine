@@ -98,9 +98,12 @@ export const beaujolaisNaturalWineArticle: GuideArticleContent = {
       body: {
         en: [
           "In the 1980s four producers — Jean Foillard, Marcel Lapierre, Jean-Paul Thévenet and Guy Breton — turned their backs on industrial Beaujolais production and began farming organically, harvesting late and fermenting without additives. Inspired by the chemist Jules Chauvet, they proved that Gamay could be serious, age-worthy and genuinely expressive of place. The American importer Kermit Lynch named them the Gang of Four.",
-          "Read the full story: The Gang of Four — the producers who saved Beaujolais →",
+          "Read the full story: [Gang of Four](/guides/gang-of-four-wine) — the producers who saved Beaujolais →",
         ],
-        sv: "De fyra: Foillard, Lapierre, Thévenet, Breton. Vad de beslutade och när. Det kollektiva i projektet. Varför det var viktigt att arbeta tillsammans.\n\nLäs hela historien: Gang of Four — producenterna som räddade Beaujolais →",
+        sv: [
+          "De fyra: Foillard, Lapierre, Thévenet, Breton. Vad de beslutade och när. Det kollektiva i projektet. Varför det var viktigt att arbeta tillsammans.",
+          "Läs hela historien: [Gang of Four](/guider/gang-of-four-wine) — producenterna som räddade Beaujolais →",
+        ],
       },
     },
     {

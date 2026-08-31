@@ -15,6 +15,8 @@ interface LatestProductCardProps {
   showLatestDrop?: boolean;
   className?: string;
   labelPosition?: "top-left" | "top-right" | "bottom-left" | "bottom-right";
+  /** Preload the image. Use only for the first above-the-fold card. */
+  priority?: boolean;
 }
 
 export function LatestProductCard({
@@ -23,6 +25,7 @@ export function LatestProductCard({
   showLatestDrop = false,
   className,
   labelPosition = "bottom-right",
+  priority = false,
 }: LatestProductCardProps) {
   const { t } = useTranslations();
   const paths = useLocalizedPaths();
@@ -51,6 +54,7 @@ export function LatestProductCard({
               quality={100}
               sizes="(max-width: 768px) 100vw, 66vw"
               className="object-cover size-full flex-1"
+              priority={priority}
             />
           ) : (
             <div className="size-full flex-1 bg-muted flex items-center justify-center">
@@ -87,6 +91,7 @@ export function LatestProductCard({
             width={1000}
             height={100}
             className="object-cover size-full"
+            priority={priority}
           />
         ) : (
           <div className="size-full bg-muted flex items-center justify-center">

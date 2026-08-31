@@ -161,6 +161,7 @@ export default async function Home() {
                   product={lastProduct}
                   principal
                   showLatestDrop
+                  priority
                 />
 
                 {restProducts.map((product: any, index: number) => (
