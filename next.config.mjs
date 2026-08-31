@@ -71,6 +71,17 @@ const nextConfig = {
         destination: "/villkor",
         permanent: true,
       },
+      // Legacy Languedoc editorial pages → merged guide under /guider
+      {
+        source: "/languedoc",
+        destination: "/guider/naturvin-languedoc",
+        permanent: true,
+      },
+      {
+        source: "/languedoc/naturvin",
+        destination: "/guider/naturvin-languedoc",
+        permanent: true,
+      },
       // Legacy EN public profiles → /producers/:slug (portal segments excluded)
       // Keep in sync with PRODUCER_PORTAL_SEGMENTS in lib/i18n/localized-routes.ts
       {

@@ -19,6 +19,7 @@ const PUBLIC_PATH_PREFIXES = [
   "/producenter",
   "/about",
   "/om-oss",
+  // Kept so 301s in next.config reach guests before auth gates
   "/languedoc",
   "/guider",
   "/guides",

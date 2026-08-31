@@ -211,8 +211,8 @@ export const whatIsNaturalWineArticle: GuideArticleContent = {
         sv: "Naturvin från Languedoc →",
       },
       href: {
-        en: "/languedoc/naturvin",
-        sv: "/languedoc/naturvin",
+        en: "/guides/languedoc-natural-wine",
+        sv: "/guider/naturvin-languedoc",
       },
     },
   ],

@@ -12,6 +12,7 @@ import { jeanFrancoisGanevatArticle } from "@/lib/guides/articles/jean-francois-
 import { jeanPaulThevenetArticle } from "@/lib/guides/articles/jean-paul-thevenet";
 import { joskoGravnerArticle } from "@/lib/guides/articles/josko-gravner";
 import { juraNaturalWineArticle } from "@/lib/guides/articles/jura-natural-wine";
+import { languedocNaturalWineArticle } from "@/lib/guides/articles/languedoc-natural-wine";
 import { marcelLapierreArticle } from "@/lib/guides/articles/marcel-lapierre";
 import { pierreOvernoyArticle } from "@/lib/guides/articles/pierre-overnoy";
 import { radikonArticle } from "@/lib/guides/articles/radikon";
@@ -133,6 +134,7 @@ const SV_LIST_CARDS: GuideHubCard[] = [
 ];
 
 const SV_REGION_CARDS: GuideHubCard[] = [
+  articleHubCard(languedocNaturalWineArticle, "sv"),
   articleHubCard(juraNaturalWineArticle, "sv"),
   articleHubCard(beaujolaisNaturalWineArticle, "sv"),
   articleHubCard(georgiaNaturalWineArticle, "sv"),
@@ -255,6 +257,7 @@ const EN_PRODUCER_CARDS: GuideHubCard[] = [
 ];
 
 const EN_REGION_CARDS: GuideHubCard[] = [
+  articleHubCard(languedocNaturalWineArticle, "en"),
   articleHubCard(juraNaturalWineArticle, "en"),
   articleHubCard(beaujolaisNaturalWineArticle, "en"),
   articleHubCard(georgiaNaturalWineArticle, "en"),

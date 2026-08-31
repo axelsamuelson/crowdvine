@@ -280,7 +280,12 @@ function geoLongTailExploreLinks(
 
   if (category.slug.includes("languedoc") || category.slug.includes("frankrike") || category.slug.includes("france")) {
     push(locale === "sv" ? "naturvin-languedoc" : "natural-wine-languedoc");
-    pushHref("/languedoc", "Languedoc");
+    pushHref(
+      locale === "sv"
+        ? "/guider/naturvin-languedoc"
+        : "/guides/languedoc-natural-wine",
+      "Languedoc",
+    );
   }
 
   const color = category.filter.color?.[0];

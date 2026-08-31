@@ -24,7 +24,14 @@ import type { AppLocale } from "@/lib/i18n/locale";
 import { categoryPageTitle } from "@/lib/seo/category-page-title";
 import { getSiteConfig } from "@/lib/site-config";
 
-function linkLanguedocMentions(text: string): ReactNode {
+function linkLanguedocMentions(
+  text: string,
+  locale: AppLocale,
+): ReactNode {
+  const href =
+    locale === "sv"
+      ? "/guider/naturvin-languedoc"
+      : "/guides/languedoc-natural-wine";
   const parts = text.split("Languedoc");
   if (parts.length === 1) return text;
   return parts.flatMap((part, index) => {
@@ -33,7 +40,7 @@ function linkLanguedocMentions(text: string): ReactNode {
       part,
       <Link
         key={`languedoc-${index}`}
-        href="/languedoc"
+        href={href}
         className="underline underline-offset-4 hover:text-foreground"
       >
         Languedoc
@@ -137,7 +144,7 @@ export async function renderWinesGuidePage(locale: AppLocale) {
         <div className="mt-6 space-y-4 text-base leading-relaxed text-muted-foreground">
           {copy.wines.intro.map((paragraph) => (
             <p key={paragraph.slice(0, 40)}>
-              {linkLanguedocMentions(paragraph)}
+              {linkLanguedocMentions(paragraph, locale)}
             </p>
           ))}
         </div>
@@ -208,7 +215,7 @@ export async function renderWinesGuidePage(locale: AppLocale) {
             {copy.languedocHeading}
           </h2>
           <p className="text-sm leading-relaxed text-muted-foreground md:text-base">
-            {linkLanguedocMentions(copy.wines.languedocBody)}{" "}
+            {linkLanguedocMentions(copy.wines.languedocBody, locale)}{" "}
             <Link
               href={languedocShop}
               className="underline underline-offset-4 hover:text-foreground"

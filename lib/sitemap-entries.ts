@@ -84,8 +84,6 @@ function staticPagesForProfile(
 
   if (profile === "pact") {
     pages.push(
-      weeklyEntry(`${baseUrl}/languedoc`, 0.7),
-      weeklyEntry(`${baseUrl}/languedoc/naturvin`, 0.7),
       weeklyEntry(`${baseUrl}/guider`, 0.7),
       weeklyEntry(`${baseUrl}/guider/varldens-basta-naturviner`, 0.75),
       weeklyEntry(

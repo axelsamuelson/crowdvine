@@ -290,7 +290,7 @@ export default async function VinCollectionPage(props: {
                     </Link>
                   ))}
                   <Link
-                    href="/languedoc/naturvin"
+                    href="/guider/naturvin-languedoc"
                     className="text-sm text-stone-600 underline underline-offset-4 hover:text-stone-900"
                   >
                     Läs mer om naturvin från Languedoc

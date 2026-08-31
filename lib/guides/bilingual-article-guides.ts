@@ -11,6 +11,7 @@ import { jeanFrancoisGanevatArticle } from "@/lib/guides/articles/jean-francois-
 import { jeanPaulThevenetArticle } from "@/lib/guides/articles/jean-paul-thevenet";
 import { joskoGravnerArticle } from "@/lib/guides/articles/josko-gravner";
 import { juraNaturalWineArticle } from "@/lib/guides/articles/jura-natural-wine";
+import { languedocNaturalWineArticle } from "@/lib/guides/articles/languedoc-natural-wine";
 import { marcelLapierreArticle } from "@/lib/guides/articles/marcel-lapierre";
 import { pierreOvernoyArticle } from "@/lib/guides/articles/pierre-overnoy";
 import { radikonArticle } from "@/lib/guides/articles/radikon";
@@ -38,6 +39,7 @@ export const BILINGUAL_ARTICLE_GUIDES: readonly GuideArticleContent[] = [
   jacquesSelosseArticle,
   joskoGravnerArticle,
   juraNaturalWineArticle,
+  languedocNaturalWineArticle,
   beaujolaisNaturalWineArticle,
   georgiaNaturalWineArticle,
   whatIsOrangeWineArticle,

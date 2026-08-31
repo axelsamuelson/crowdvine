@@ -363,7 +363,7 @@ export default async function WineCategoryPage(props: PageProps) {
                   </Link>
                 ))}
                 <Link
-                  href="/languedoc/naturvin"
+                  href="/guides/languedoc-natural-wine"
                   className="text-sm text-stone-600 underline underline-offset-4 hover:text-stone-900"
                 >
                   About natural wine from Languedoc
