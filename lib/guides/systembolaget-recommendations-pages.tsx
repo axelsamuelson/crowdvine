@@ -90,6 +90,8 @@ export async function buildRecommendationIndexMetadata(
 ): Promise<Metadata> {
   const config = await getSiteConfig();
   const path = recommendationIndexPath(locale);
+  const issues = await listIssues();
+  const hasIssues = issues.length > 0;
   const title =
     locale === "sv"
       ? "Rekommenderade naturviner | PACT Wines"
@@ -102,6 +104,14 @@ export async function buildRecommendationIndexMetadata(
   return {
     title,
     description,
+    ...(hasIssues
+      ? {}
+      : {
+          robots: {
+            index: false,
+            follow: true,
+          },
+        }),
     alternates: {
       canonical: `${config.baseUrl}${path}`,
       languages: {
@@ -292,11 +302,43 @@ export async function renderRecommendationIndexPage(locale: AppLocale) {
 
           <div className="mt-14">
             {issues.length === 0 ? (
-              <p className="text-[17px] leading-[1.75] text-foreground/80">
-                {locale === "sv"
-                  ? "Inga nummer publicerade ännu."
-                  : "No issues published yet."}
-              </p>
+              <div className={`${ARTICLE_GUIDE_BODY_CLASS} space-y-6`}>
+                <p>
+                  {locale === "sv"
+                    ? "Vi har inte publicerat något veckonummer ännu. Under tiden finns våra kurerade listor över naturvin på Systembolaget:"
+                    : "We have not published a weekly issue yet. In the meantime, explore our curated Systembolaget natural wine lists:"}
+                </p>
+                <ul className="space-y-3">
+                  <li>
+                    <Link
+                      href={
+                        locale === "sv"
+                          ? "/guider/basta-roda-naturviner-systembolaget"
+                          : "/guides/best-red-natural-wines-systembolaget"
+                      }
+                      className="underline underline-offset-4 hover:text-foreground"
+                    >
+                      {locale === "sv"
+                        ? "Bästa röda naturviner på Systembolaget →"
+                        : "Best red natural wines at Systembolaget →"}
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      href={
+                        locale === "sv"
+                          ? "/guider/basta-orange-naturviner-systembolaget"
+                          : "/guides/best-orange-natural-wines-systembolaget"
+                      }
+                      className="underline underline-offset-4 hover:text-foreground"
+                    >
+                      {locale === "sv"
+                        ? "Bästa orange naturviner på Systembolaget →"
+                        : "Best orange natural wines at Systembolaget →"}
+                    </Link>
+                  </li>
+                </ul>
+              </div>
             ) : (
               <ul className="space-y-4">
                 {issues.map((issue) => (

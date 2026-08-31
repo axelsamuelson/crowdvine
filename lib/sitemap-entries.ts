@@ -100,8 +100,6 @@ function staticPagesForProfile(
         weeklyEntry(`${baseUrl}${articlePath(guide, "en")}`, 0.75),
         weeklyEntry(`${baseUrl}${articlePath(guide, "sv")}`, 0.75),
       ]),
-      weeklyEntry(`${baseUrl}${recommendationIndexPath("sv")}`, 0.7),
-      weeklyEntry(`${baseUrl}${recommendationIndexPath("en")}`, 0.7),
       weeklyEntry(`${baseUrl}${GUIDE_PATHS.orangeWines.en}`, 0.75),
       weeklyEntry(`${baseUrl}${GUIDE_PATHS.orangeWines.sv}`, 0.75),
       weeklyEntry(`${baseUrl}${GUIDE_PATHS.naturalChampagne.en}`, 0.75),
@@ -125,6 +123,12 @@ export async function buildSitemapEntries(
   if (profile === "pact") {
     try {
       const issues = await listIssues();
+      if (issues.length > 0) {
+        recommendationPages.push(
+          weeklyEntry(`${baseUrl}${recommendationIndexPath("sv")}`, 0.7),
+          weeklyEntry(`${baseUrl}${recommendationIndexPath("en")}`, 0.7),
+        );
+      }
       for (const issue of issues) {
         recommendationPages.push(
           weeklyEntry(

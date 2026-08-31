@@ -9,11 +9,13 @@ import {
 import {
   guideCopy,
   type GuideHubCard,
+  type GuideHubSection,
 } from "@/lib/guides/guide-copy";
 import { guideHreflang, guidePath } from "@/lib/guides/guide-routes";
 import type { AppLocale } from "@/lib/i18n/locale";
 import { categoryPageTitle } from "@/lib/seo/category-page-title";
 import { getSiteConfig } from "@/lib/site-config";
+import { recommendationIndexPath, listIssues } from "@/lib/systembolaget/recommendations";
 import { cn } from "@/lib/utils";
 
 function hubSectionId(title: string): string {
@@ -29,6 +31,29 @@ function orderHubCards(cards: GuideHubCard[]): GuideHubCard[] {
   const featured = cards.filter((card) => card.featured);
   const rest = cards.filter((card) => !card.featured);
   return [...featured, ...rest];
+}
+
+function isWeeklyRecommendationsHref(href: string): boolean {
+  return (
+    href === recommendationIndexPath("sv") ||
+    href === recommendationIndexPath("en")
+  );
+}
+
+/** Hide empty weekly archive from the hub until the first issue ships. */
+function hubSectionsForDisplay(
+  sections: GuideHubSection[],
+  hasRecommendationIssues: boolean,
+): GuideHubSection[] {
+  if (hasRecommendationIssues) return sections;
+  return sections
+    .map((section) => ({
+      ...section,
+      cards: section.cards.filter(
+        (card) => !isWeeklyRecommendationsHref(card.href),
+      ),
+    }))
+    .filter((section) => section.cards.length > 0);
 }
 
 export async function buildGuideHubMetadata(
@@ -58,6 +83,11 @@ export async function buildGuideHubMetadata(
 export async function renderGuideHubPage(locale: AppLocale) {
   const config = await getSiteConfig();
   const copy = guideCopy(locale);
+  const issues = await listIssues();
+  const hubSections = hubSectionsForDisplay(
+    copy.hubSections,
+    issues.length > 0,
+  );
 
   const breadcrumbJsonLd = buildGuideBreadcrumbJsonLd([
     { name: copy.home, item: config.baseUrl },
@@ -93,7 +123,7 @@ export async function renderGuideHubPage(locale: AppLocale) {
           aria-label={copy.hubTitle}
           className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground"
         >
-          {copy.hubSections.map((section) => (
+          {hubSections.map((section) => (
             <Link
               key={section.title}
               href={`#${hubSectionId(section.title)}`}
@@ -105,7 +135,7 @@ export async function renderGuideHubPage(locale: AppLocale) {
         </nav>
 
         <div>
-          {copy.hubSections.map((section) => {
+          {hubSections.map((section) => {
             const sectionId = hubSectionId(section.title);
             const cards = orderHubCards(section.cards);
 
