@@ -118,6 +118,16 @@ export const marcelLapierreArticle: GuideArticleContent = {
     },
     {
       label: {
+        en: "Best red natural wines at Systembolaget →",
+        sv: "Bästa röda naturviner på Systembolaget →",
+      },
+      href: {
+        en: "/guides/best-red-natural-wines-systembolaget",
+        sv: "/guider/basta-roda-naturviner-systembolaget",
+      },
+    },
+    {
+      label: {
         en: "Jean Foillard and the Gang of Four →",
         sv: "Jean Foillard och Gang of Four →",
       },

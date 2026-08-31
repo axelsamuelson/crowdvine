@@ -129,6 +129,16 @@ export const radikonArticle: GuideArticleContent = {
     },
     {
       label: {
+        en: "Best orange natural wines at Systembolaget →",
+        sv: "Bästa orange naturviner på Systembolaget →",
+      },
+      href: {
+        en: "/guides/best-orange-natural-wines-systembolaget",
+        sv: "/guider/basta-orange-naturviner-systembolaget",
+      },
+    },
+    {
+      label: {
         en: "Joško Gravner — how one trip to Georgia changed wine forever →",
         sv: "Joško Gravner — hur en resa till Georgien förändrade vinet →",
       },

@@ -64,11 +64,43 @@ export const bestOrangeNaturalWinesSystembolagetArticle: GuideArticleContent = {
       },
       body: {
         en: [
-          "Short macerations on industrial white-wine lines, or skin contact without the farming and cellar discipline behind it, do not belong here. If the producer lacks a recognised name and a verifiable history, choose one of the wines above instead.",
+          "Short macerations on industrial white-wine lines, or skin contact without the farming and cellar discipline behind it, do not belong here. Concrete examples we leave out: Nanit Orange, Iconic Wines Petite Orange, Côté Mas Orange and Santa Julia \"Orange Natural\". If the producer lacks a recognised name and a verifiable history, choose one of the wines above instead.",
         ],
         sv: [
-          "Korta macerationer på industriella vitvinslinjer, eller skalkontakt utan odlings- och källardisciplin bakom, hör inte hemma här. Saknar producenten ett erkänt namn och verifierbar historia, välj ett av vinerna ovan istället.",
+          "Korta macerationer på industriella vitvinslinjer, eller skalkontakt utan odlings- och källardisciplin bakom, hör inte hemma här. Konkreta exempel vi lämnar utanför: Nanit Orange, Iconic Wines Petite Orange, Côté Mas Orange och Santa Julia \"Orange Natural\". Saknar producenten ett erkänt namn och verifierbar historia, välj ett av vinerna ovan istället.",
         ],
+      },
+    },
+  ],
+  faqs: [
+    {
+      question: {
+        en: "Is everything labelled orange wine at Systembolaget natural wine?",
+        sv: "Är allt som kallas orangevin på Systembolaget naturvin?",
+      },
+      answer: {
+        en: "No. Short industrial macerations and trading-brand \"orange\" lines sit in the same filter as serious skin-contact domaines. We only list producers with a recognised reputation — and we name industrial examples we leave out.",
+        sv: "Nej. Korta industriella macerationer och handelsmärken med \"orange\"-linjer ligger i samma filter som seriösa skalkontaktdomäner. Vi listar bara producenter med erkänt rykte — och vi namnger industriella exempel vi lämnar utanför.",
+      },
+    },
+    {
+      question: {
+        en: "How do you choose the wines on this list?",
+        sv: "Hur väljer ni vinerna på listan?",
+      },
+      answer: {
+        en: "Organic or biodynamic farming, spontaneous fermentation, meaningful skin contact on white grapes, minimal or no added sulphur, and a producer with a verifiable history. Checked against live Systembolaget data. PACT does not sell at Systembolaget.",
+        sv: "Ekologisk eller biodynamisk odling, spontanjäsning, meningsfull skalkontakt på gröna druvor, minimal eller ingen tillsatt svavel, och en producent med verifierbar historia. Kontrolleras mot live Systembolaget-data. PACT säljer inte på Systembolaget.",
+      },
+    },
+    {
+      question: {
+        en: "Why are many of these bottles order assortment?",
+        sv: "Varför är många av flaskorna ordervara?",
+      },
+      answer: {
+        en: "The most interesting natural orange wines rarely sit in every store. Order assortment and temporary listings are where domaines like Radikon and Binner usually appear — order online or via your local store.",
+        sv: "De mest intressanta naturliga orangevinerna ligger sällan i varje butik. Ordervara och tillfälligt sortiment är där domäner som Radikon och Binner oftast syns — beställ online eller via din lokala butik.",
       },
     },
   ],

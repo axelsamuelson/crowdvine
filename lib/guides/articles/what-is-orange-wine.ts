@@ -218,6 +218,16 @@ export const whatIsOrangeWineArticle: GuideArticleContent = {
     },
     {
       label: {
+        en: "Best orange natural wines at Systembolaget →",
+        sv: "Bästa orange naturviner på Systembolaget →",
+      },
+      href: {
+        en: "/guides/best-orange-natural-wines-systembolaget",
+        sv: "/guider/basta-orange-naturviner-systembolaget",
+      },
+    },
+    {
+      label: {
         en: "",
         sv: "Världens 100 bästa naturvinsproducenter →",
       },

@@ -36,6 +36,11 @@ export type GuideArticleHubCard = {
   description: LocalizedString;
 };
 
+export type GuideArticleFaq = {
+  question: LocalizedString;
+  answer: LocalizedString;
+};
+
 /**
  * Dual-locale article guide content.
  * Paths: `/guides/{slug.en}` and `/guider/{slug.sv}`.
@@ -51,6 +56,8 @@ export type GuideArticleContent = {
   furtherReadingHeading: LocalizedString;
   hubCard: GuideArticleHubCard;
   sections: GuideArticleSection[];
+  /** Optional FAQ block + FAQPage JSON-LD (e.g. Systembolaget guides). */
+  faqs?: GuideArticleFaq[];
   internalLinks: GuideArticleInternalLink[];
   jsonLdAbout: GuideArticleJsonLdAbout;
 };

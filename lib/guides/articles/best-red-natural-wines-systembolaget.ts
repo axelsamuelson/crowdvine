@@ -64,11 +64,43 @@ export const bestRedNaturalWinesSystembolagetArticle: GuideArticleContent = {
       },
       body: {
         en: [
-          "Systembolaget's natural wine filter also includes wines we cannot recommend with the same conviction — especially large industrial producers launching a \"natural\" line. If the producer lacks a recognised name and a verifiable history, choose one of the wines above instead.",
+          "Systembolaget's natural wine filter also includes wines we cannot recommend with the same conviction — especially large industrial producers launching a \"natural\" or organic line. Concrete examples we leave out: Jacob's Creek Organic Shiraz Cabernet, Santa Julia \"Natural\" Clarete, and Hands Off Garnatxa. Organic farming alone is not enough; if the producer lacks a recognised name and a verifiable history in natural wine, choose one of the wines above instead.",
         ],
         sv: [
-          "Systembolagets naturvinsfilter inkluderar också viner vi inte kan rekommendera med samma övertygelse — särskilt stora industriella producenter som lanserar en \"naturvin\"-linje. Saknar producenten ett erkänt namn och verifierbar historia, välj ett av vinerna ovan istället.",
+          "Systembolagets naturvinsfilter inkluderar också viner vi inte kan rekommendera med samma övertygelse — särskilt stora industriella producenter som lanserar en \"naturvin\"- eller ekolinje. Konkreta exempel vi lämnar utanför: Jacob's Creek Organic Shiraz Cabernet, Santa Julia \"Natural\" Clarete och Hands Off Garnatxa. Ekologisk odling räcker inte; saknar producenten ett erkänt namn och verifierbar historia i naturvinsvärlden, välj ett av vinerna ovan istället.",
         ],
+      },
+    },
+  ],
+  faqs: [
+    {
+      question: {
+        en: "Is everything in Systembolaget's natural wine filter worth buying?",
+        sv: "Är allt i Systembolagets naturvinsfilter värt att köpa?",
+      },
+      answer: {
+        en: "No. The filter mixes serious low-intervention domaines with large industrial brands that launch an organic or \"natural\" line. We only list producers with a recognised reputation in natural wine — and we name examples we leave out.",
+        sv: "Nej. Filtret blandar seriösa låginterventionsdomäner med stora industriella varumärken som lanserar en ekologisk eller \"naturvin\"-linje. Vi listar bara producenter med erkänt rykte i naturvinsvärlden — och vi namnger exempel vi lämnar utanför.",
+      },
+    },
+    {
+      question: {
+        en: "How do you choose the wines on this list?",
+        sv: "Hur väljer ni vinerna på listan?",
+      },
+      answer: {
+        en: "Organic or biodynamic farming, spontaneous fermentation, minimal or no added sulphur, and a producer with a verifiable history in natural wine. The list is checked against live Systembolaget assortment data. PACT does not sell at Systembolaget and has no affiliate links.",
+        sv: "Ekologisk eller biodynamisk odling, spontanjäsning, minimal eller ingen tillsatt svavel, och en producent med verifierbar historia i naturvinsvärlden. Listan kontrolleras mot live sortimentsdata från Systembolaget. PACT säljer inte på Systembolaget och har inga provisionslänkar.",
+      },
+    },
+    {
+      question: {
+        en: "What is the difference between fixed assortment and order assortment?",
+        sv: "Vad är skillnaden mellan fast sortiment och ordervara?",
+      },
+      answer: {
+        en: "Fixed assortment is stocked in stores. Order assortment (ordervara) and temporary listings can be ordered online or via the store — often where the most interesting natural wines sit. Many bottles on this list are order or temporary assortment.",
+        sv: "Fast sortiment finns i butik. Ordervara och tillfälligt sortiment beställs online eller via butiken — ofta där de mest intressanta naturvinerna ligger. Många flaskor på den här listan är ordervara eller tillfälligt sortiment.",
       },
     },
   ],

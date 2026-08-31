@@ -313,6 +313,8 @@ export async function buildSystembolagetRankedListMetadata(
     locale,
     config.baseUrl,
     config.siteName,
+    // Systembolaget demand is Sweden-first — prefer SV as the unmatched default.
+    { xDefault: "sv" },
   );
 }
 
@@ -325,6 +327,7 @@ export async function renderSystembolagetRankedListPage(
   category: GuideWineCategory,
 ) {
   const wines = await getGuideWines(category, "recommended");
+  const avoidWines = await getGuideWines(category, "avoid");
   const config = await getSiteConfig();
   const copy = guideCopy(locale);
   const hubPath = guidePath("hub", locale);
@@ -332,7 +335,17 @@ export async function renderSystembolagetRankedListPage(
   const pageUrl = `${config.baseUrl}${pagePath}`;
   const intro =
     content.lede?.[locale] ?? content.hubCard.description[locale];
-  const syncedLabel = formatSyncedAtLabel(freshestSyncedAt(wines), locale);
+  const syncedAt = freshestSyncedAt(wines);
+  const syncedLabel = formatSyncedAtLabel(syncedAt, locale);
+  const dateModified = (() => {
+    let best: string | null = syncedAt;
+    for (const wine of wines) {
+      const reviewed = wine.last_reviewed_at;
+      if (!reviewed) continue;
+      if (!best || reviewed > best) best = reviewed;
+    }
+    return best;
+  })();
 
   const about =
     content.jsonLdAbout.type === "Person"
@@ -366,6 +379,7 @@ export async function renderSystembolagetRankedListPage(
       url: config.baseUrl,
     },
     about,
+    ...(dateModified ? { dateModified } : {}),
   };
 
   const breadcrumbJsonLd = buildGuideBreadcrumbJsonLd([
@@ -376,6 +390,23 @@ export async function renderSystembolagetRankedListPage(
 
   const itemListJsonLd =
     wines.length > 0 ? buildItemListJsonLd(wines, pageUrl) : null;
+
+  const faqs = content.faqs ?? [];
+  const faqJsonLd =
+    faqs.length > 0
+      ? {
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          mainEntity: faqs.map((faq) => ({
+            "@type": "Question",
+            name: faq.question[locale],
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: faq.answer[locale],
+            },
+          })),
+        }
+      : null;
 
   return (
     <>
@@ -393,6 +424,12 @@ export async function renderSystembolagetRankedListPage(
           dangerouslySetInnerHTML={{
             __html: JSON.stringify(itemListJsonLd),
           }}
+        />
+      ) : null}
+      {faqJsonLd ? (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
         />
       ) : null}
 
@@ -454,8 +491,63 @@ export async function renderSystembolagetRankedListPage(
                     <p key={paragraph.slice(0, 48)}>{paragraph}</p>
                   ))}
                 </div>
+                {section.heading?.en === "What we don't list" &&
+                avoidWines.length > 0 ? (
+                  <ul className="mt-6 space-y-4">
+                    {avoidWines.map((wine) => {
+                      const { producer, secondary } = wineNameParts(wine);
+                      const note =
+                        locale === "en"
+                          ? wine.editorial_note_en?.trim() ||
+                            wine.editorial_note_sv.trim()
+                          : wine.editorial_note_sv.trim();
+                      return (
+                        <li key={wine.id} className="text-[15px] leading-relaxed">
+                          <p className="font-medium text-foreground">
+                            {producer}
+                            {secondary ? (
+                              <span className="font-normal text-muted-foreground">
+                                {" "}
+                                {secondary}
+                              </span>
+                            ) : null}
+                            {wine.price != null ? (
+                              <span className="font-normal text-muted-foreground">
+                                {" "}
+                                · {wine.price} kr
+                              </span>
+                            ) : null}
+                          </p>
+                          {note ? (
+                            <p className="mt-1 text-foreground/80">{note}</p>
+                          ) : null}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                ) : null}
               </section>
             ))}
+
+            {faqs.length > 0 ? (
+              <section>
+                <h2 className={ARTICLE_GUIDE_H2_CLASS}>
+                  {locale === "sv" ? "Vanliga frågor" : "Frequently asked questions"}
+                </h2>
+                <div className="mt-6 space-y-8">
+                  {faqs.map((faq) => (
+                    <div key={faq.question[locale]}>
+                      <h3 className="text-base font-semibold tracking-tight text-foreground">
+                        {faq.question[locale]}
+                      </h3>
+                      <p className="mt-2 text-[15px] leading-relaxed text-foreground/80">
+                        {faq.answer[locale]}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            ) : null}
           </div>
         </div>
 

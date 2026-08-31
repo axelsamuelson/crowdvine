@@ -10,14 +10,17 @@ import { categoryPageTitle } from "@/lib/seo/category-page-title";
 export function articleGuideHreflang(
   content: GuideArticleContent,
   baseUrl: string,
+  /** Default locale for unmatched language preferences. */
+  xDefault: AppLocale = "en",
 ) {
   const sv = `${baseUrl}${articlePath(content, "sv")}`;
   const en = `${baseUrl}${articlePath(content, "en")}`;
   return {
     sv,
     en,
-    // EN pages rank internationally; SV twins are often still unindexed.
-    "x-default": en,
+    // Most bilingual articles: EN as x-default (international ranking).
+    // Sweden-specific topics (e.g. Systembolaget) should pass xDefault: "sv".
+    "x-default": xDefault === "sv" ? sv : en,
   } as const;
 }
 
@@ -26,6 +29,7 @@ export function buildArticleGuideMeta(
   locale: AppLocale,
   baseUrl: string,
   siteName: string,
+  options?: { xDefault?: AppLocale },
 ): Metadata {
   const pageUrl = `${baseUrl}${articlePath(content, locale)}`;
   const title = categoryPageTitle(content.title[locale], siteName);
@@ -36,7 +40,11 @@ export function buildArticleGuideMeta(
     description,
     alternates: {
       canonical: pageUrl,
-      languages: articleGuideHreflang(content, baseUrl),
+      languages: articleGuideHreflang(
+        content,
+        baseUrl,
+        options?.xDefault ?? "en",
+      ),
     },
     openGraph: {
       title,

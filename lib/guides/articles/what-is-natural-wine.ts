@@ -215,6 +215,16 @@ export const whatIsNaturalWineArticle: GuideArticleContent = {
         sv: "/guider/naturvin-languedoc",
       },
     },
+    {
+      label: {
+        en: "Best red natural wines at Systembolaget →",
+        sv: "Bästa röda naturviner på Systembolaget →",
+      },
+      href: {
+        en: "/guides/best-red-natural-wines-systembolaget",
+        sv: "/guider/basta-roda-naturviner-systembolaget",
+      },
+    },
   ],
   jsonLdAbout: {
     type: "Thing",
