@@ -1528,6 +1528,18 @@ export async function POST(request: Request) {
           );
         }
 
+        const groupBottleCountForShip = group.lines.reduce(
+          (sum, line) => sum + (Number(line.quantity) || 0),
+          0,
+        );
+        const groupShippingShareForPersist =
+          checkoutBottleCount > 0
+            ? Math.round(
+                (shippingGrossCentsTotal * groupBottleCountForShip) /
+                  checkoutBottleCount,
+              )
+            : 0;
+
         const { data: row, error: insErr } = await sbAdmin
           .from("order_reservations")
           .insert({
@@ -1544,6 +1556,8 @@ export async function POST(request: Request) {
             discount_code_id: promoDiscountCodeId,
             discount_amount_sek: groupPromoSek,
             total_sek: amountSek,
+            /** Persist charged shipping for Finance audit (öre). Does not rewrite snapshots. */
+            shipping_revenue_gross_cents: groupShippingShareForPersist,
             is_test_purchase: promoIsTestkop,
             // Only primary row carries the client idempotency key (UNIQUE).
             ...(idempotencyKey && createdReservations.length === 0
@@ -1667,6 +1681,8 @@ export async function POST(request: Request) {
           discount_code_id: promoDiscountCodeId,
           discount_amount_sek: promoDiscountAmountSek,
           total_sek: expectedFinalSek,
+          /** Persist charged shipping for Finance audit (öre). Does not rewrite snapshots. */
+          shipping_revenue_gross_cents: shippingGrossCentsTotal,
           is_test_purchase: promoIsTestkop,
           ...(idempotencyKey ? { idempotency_key: idempotencyKey } : {}),
           ...(reservationLegalExtra ?? {}),

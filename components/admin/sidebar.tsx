@@ -37,6 +37,7 @@ import {
   Image,
   LayoutTemplate,
   PenSquare,
+  Wallet,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -62,6 +63,7 @@ interface NavGroup {
 const topLevelNav: NavItem[] = [
   { name: "Översikt", href: "/admin", icon: LayoutDashboard },
   { name: "Analytics", href: "/admin/analytics", icon: BarChart3 },
+  { name: "Finance", href: "/admin/finance", icon: Wallet },
 ];
 
 const navigationGroups: NavGroup[] = [
