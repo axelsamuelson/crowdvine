@@ -19,6 +19,7 @@ import {
   type GuideArticleContent,
 } from "@/lib/guides/guide-types";
 import type { AppLocale } from "@/lib/i18n/locale";
+import { DEFAULT_WINE_IMAGE_PATH } from "@/lib/constants";
 import { getSiteConfig } from "@/lib/site-config";
 import {
   formatRankBadge,
@@ -113,27 +114,21 @@ function BottleImage({
 }) {
   const { producer, secondary } = wineNameParts(wine);
   const alt = [producer, secondary].filter(Boolean).join(" ");
-  const src = systembolagetImageUrl(wine.image_url, size);
+  const src =
+    systembolagetImageUrl(wine.image_url, size) ?? DEFAULT_WINE_IMAGE_PATH;
 
   return (
-    <div
-      className="flex h-[120px] w-16 shrink-0 items-center justify-center md:h-[300px] md:w-40"
-      aria-hidden={src ? undefined : true}
-    >
-      {src ? (
-        <Image
-          src={src}
-          alt={alt}
-          width={BOTTLE_WIDTH_DESKTOP}
-          height={BOTTLE_HEIGHT_DESKTOP}
-          className="block h-full w-full object-contain object-top"
-          sizes="(min-width: 768px) 160px, 64px"
-          priority={priority}
-          loading={priority ? undefined : "lazy"}
-        />
-      ) : (
-        <span className="sr-only">{alt}</span>
-      )}
+    <div className="flex h-[120px] w-16 shrink-0 items-center justify-center md:h-[300px] md:w-40">
+      <Image
+        src={src}
+        alt={alt}
+        width={BOTTLE_WIDTH_DESKTOP}
+        height={BOTTLE_HEIGHT_DESKTOP}
+        className="block h-full w-full object-contain object-top"
+        sizes="(min-width: 768px) 160px, 64px"
+        priority={priority}
+        loading={priority ? undefined : "lazy"}
+      />
     </div>
   );
 }
@@ -173,8 +168,11 @@ function RankedWineRow({
   return (
     <article className="border-b border-border py-6 last:border-b-0 md:min-h-[calc(300px+3rem)]">
       <div className="grid grid-cols-[auto_auto_minmax(0,1fr)] items-start gap-x-3 gap-y-3 md:gap-x-4">
-        <div className="row-start-1 flex flex-col items-center gap-1 md:pt-0 pt-0.5">
-          <span className="text-4xl font-light leading-none text-muted-foreground/40 tabular-nums md:text-3xl">
+        <div className="row-start-1 flex flex-col items-center gap-1.5 md:pt-0 pt-0.5">
+          <span
+            className="inline-flex h-9 min-w-9 items-center justify-center rounded-full bg-foreground px-2.5 text-sm font-semibold tabular-nums leading-none text-background md:h-10 md:min-w-10 md:text-base"
+            aria-label={locale === "sv" ? `Plats ${rank}` : `Rank ${rank}`}
+          >
             {rank}
           </span>
           {showRankBadge ? (
