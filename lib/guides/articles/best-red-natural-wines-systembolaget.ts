@@ -36,8 +36,8 @@ export const bestRedNaturalWinesSystembolagetArticle: GuideArticleContent = {
       sv: "Bästa röda naturviner på Systembolaget 2026",
     },
     description: {
-      en: "An independent shortlist of red natural wines at Systembolaget — Occhipinti, Lapierre, Cornelissen and more.",
-      sv: "En oberoende shortlist av röda naturviner på Systembolaget — Occhipinti, Lapierre, Cornelissen och fler.",
+      en: "An independent shortlist of red natural wines at Systembolaget — Loire to Etna, Gredos to Burgenland.",
+      sv: "En oberoende shortlist av röda naturviner på Systembolaget — Loire till Etna, Gredos till Burgenland.",
     },
   },
   sections: [
