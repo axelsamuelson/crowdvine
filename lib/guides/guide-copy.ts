@@ -1,6 +1,7 @@
 import type { AppLocale } from "@/lib/i18n/locale";
 import { GUIDE_PATHS } from "@/lib/guides/guide-routes";
 import { beaujolaisNaturalWineArticle } from "@/lib/guides/articles/beaujolais-natural-wine";
+import { bestOrangeNaturalWinesSystembolagetArticle } from "@/lib/guides/articles/best-orange-natural-wines-systembolaget";
 import { bestRedNaturalWinesSystembolagetArticle } from "@/lib/guides/articles/best-red-natural-wines-systembolaget";
 import { gangOfFourWineArticle } from "@/lib/guides/articles/gang-of-four-wine";
 import { georgiaNaturalWineArticle } from "@/lib/guides/articles/georgia-natural-wine";
@@ -139,6 +140,13 @@ const SV_REGION_CARDS: GuideHubCard[] = [
 
 const SV_SYSTEMBOLAGET_CARDS: GuideHubCard[] = [
   articleHubCard(bestRedNaturalWinesSystembolagetArticle, "sv"),
+  articleHubCard(bestOrangeNaturalWinesSystembolagetArticle, "sv"),
+  {
+    href: "/guider/rekommenderade-naturviner",
+    title: "Rekommenderade naturviner",
+    description:
+      "Veckans oberoende urval av naturviner på Systembolaget — korta redaktionella noter, uppdaterat varje vecka.",
+  },
 ];
 
 const SV: GuideLocaleCopy = {
@@ -286,6 +294,13 @@ const EN_GUIDE_CARDS: GuideHubCard[] = [
 
 const EN_SYSTEMBOLAGET_CARDS: GuideHubCard[] = [
   articleHubCard(bestRedNaturalWinesSystembolagetArticle, "en"),
+  articleHubCard(bestOrangeNaturalWinesSystembolagetArticle, "en"),
+  {
+    href: "/guides/recommended-natural-wines",
+    title: "Recommended natural wines",
+    description:
+      "Our weekly independent picks of natural wines at Systembolaget — short editorial notes, updated every week.",
+  },
 ];
 
 const EN: GuideLocaleCopy = {

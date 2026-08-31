@@ -1,13 +1,13 @@
 import type { GuideArticleContent, GuideArticleSection } from "@/lib/guides/guide-types";
 import {
+  formatRankBadge,
   formatSyncedAtLabel,
   freshestSyncedAt,
   getGuideWines,
   systembolagetProductUrl,
+  type GuideWineCategory,
   type SystembolagetGuideWine,
 } from "@/lib/systembolaget/guide-wines";
-
-const WINE_LIST_HEADING_EN = "The best red natural wines at Systembolaget";
 
 function wineDisplayName(wine: SystembolagetGuideWine): string {
   const producer = wine.producer_name?.trim() || "Unknown producer";
@@ -48,9 +48,19 @@ function wineSectionsFromRows(
       wine.editorial_note_sv.trim();
     const noteSv = wine.editorial_note_sv.trim();
     const url = systembolagetProductUrl(wine.product_number);
+    const badgeEn = formatRankBadge(wine, "en");
+    const badgeSv = formatRankBadge(wine, "sv");
 
     return {
       heading: { en: heading, sv: heading },
+      ...(badgeEn || badgeSv
+        ? {
+            headingBadge: {
+              en: badgeEn ?? "",
+              sv: badgeSv ?? "",
+            },
+          }
+        : {}),
       body: {
         en: [meta, noteEn, url].filter((p) => p.trim().length > 0),
         sv: [meta, noteSv, url].filter((p) => p.trim().length > 0),
@@ -60,15 +70,21 @@ function wineSectionsFromRows(
 }
 
 /**
- * Merge live curated red wines into the static Systembolaget guide article.
+ * Merge live curated Systembolaget wines into a static guide article.
  * Keeps methodology / criteria / "what we don't list" as static copy.
+ * Inserts wine sections immediately after the section whose English
+ * heading matches `listHeadingEn`.
  */
-export async function withLiveRedSystembolagetWines(
+export async function withLiveSystembolagetGuideWines(
   article: GuideArticleContent,
+  options: {
+    category: GuideWineCategory;
+    listHeadingEn: string;
+  },
 ): Promise<GuideArticleContent> {
-  const wines = await getGuideWines("red", "recommended");
+  const wines = await getGuideWines(options.category, "recommended");
   const listHeadingIndex = article.sections.findIndex(
-    (section) => section.heading?.en === WINE_LIST_HEADING_EN,
+    (section) => section.heading?.en === options.listHeadingEn,
   );
 
   if (listHeadingIndex < 0) {
@@ -115,4 +131,14 @@ export async function withLiveRedSystembolagetWines(
     ...article,
     sections: [...before, ...wineBlock, ...after],
   };
+}
+
+/** @deprecated Prefer withLiveSystembolagetGuideWines — kept for existing red pages. */
+export async function withLiveRedSystembolagetWines(
+  article: GuideArticleContent,
+): Promise<GuideArticleContent> {
+  return withLiveSystembolagetGuideWines(article, {
+    category: "red",
+    listHeadingEn: "The best red natural wines at Systembolaget",
+  });
 }

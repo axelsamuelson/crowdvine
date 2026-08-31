@@ -14,6 +14,8 @@ export type GuideArticleJsonLdAbout = {
 
 export type GuideArticleSection = {
   heading?: LocalizedString;
+  /** Subtle muted badge next to the heading (e.g. rank movement). */
+  headingBadge?: LocalizedString;
   /**
    * Body copy for the section. Each locale may be a `\n\n`-separated
    * string or an array of paragraphs.

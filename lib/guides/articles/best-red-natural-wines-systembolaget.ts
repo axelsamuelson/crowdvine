@@ -18,6 +18,10 @@ export const bestRedNaturalWinesSystembolagetArticle: GuideArticleContent = {
     en: "Best red natural wines at Systembolaget 2026",
     sv: "Bästa röda naturviner på Systembolaget 2026",
   },
+  lede: {
+    en: "The best red natural wines you can actually buy at Systembolaget right now. This list is independent — PACT does not sell at Systembolaget and earns nothing from what you choose.",
+    sv: "De bästa röda naturvinerna som faktiskt går att köpa på Systembolaget just nu. Listan är oberoende — PACT säljer inte på Systembolaget och tjänar ingenting på vad du väljer.",
+  },
   breadcrumbShort: {
     en: "Best red natural wines at Systembolaget",
     sv: "Bästa röda naturviner på Systembolaget",
@@ -32,94 +36,38 @@ export const bestRedNaturalWinesSystembolagetArticle: GuideArticleContent = {
       sv: "Bästa röda naturviner på Systembolaget 2026",
     },
     description: {
-      en: "An independent shortlist of red natural wines at Systembolaget — Occhipinti, La Baronne, Henriot and Colombaia.",
-      sv: "En oberoende shortlist av röda naturviner på Systembolaget — Occhipinti, La Baronne, Henriot och Colombaia.",
+      en: "An independent shortlist of red natural wines at Systembolaget — Occhipinti, Lapierre, Cornelissen and more.",
+      sv: "En oberoende shortlist av röda naturviner på Systembolaget — Occhipinti, Lapierre, Cornelissen och fler.",
     },
   },
   sections: [
     {
       heading: {
-        en: "Why this list exists",
-        sv: "Varför den här listan finns",
+        en: "How we choose",
+        sv: "Så har vi valt",
       },
       body: {
         en: [
-          "Most lists of natural wines at Systembolaget are made by importers, shops or sites that profit from what you buy. We don't — PACT imports directly from producers in Languedoc and is not sold at Systembolaget.",
-          "This list uses the same methodology as our list of the world's 100 best natural wine producers: general consensus within the natural wine world, verified producer background and documented winemaking practice. No conflict of interest, no affiliate links.",
-          "Updated quarterly. Last updated: August 2026.",
+          "Most Systembolaget natural-wine lists are written by importers or shops that profit from what you buy. We don't — PACT imports from Languedoc and is not sold at Systembolaget. No affiliate links.",
+          "A wine must have organic or biodynamic farming, spontaneous fermentation, minimal or no added sulphur (around 30 mg/l added), and a producer with a recognised reputation in the natural wine world — not just a certificate. Large anonymous producers launching a \"natural wine\" line are out. Updated against live assortment data.",
         ],
         sv: [
-          "Det finns många listor över naturviner på Systembolaget. De flesta görs av importörer, butiker eller sajter som tjänar pengar på att du köper de viner de listar. Vi gör inte det — PACT säljer direkt från producenter i Languedoc och finns inte på Systembolaget.",
-          "Den här listan görs enligt samma metodik som vi använder för vår lista över världens 100 bästa naturvinsproducenter: allmän uppfattning inom naturvinsrörelsen, verifierad producentbakgrund och dokumenterad vinifieringsmetodik. Inget egenintresse, inga provisionslänkar.",
-          "Vi uppdaterar listan kvartalsvis. Senast uppdaterad: augusti 2026.",
+          "De flesta listor över naturvin på Systembolaget görs av importörer eller butiker som tjänar på vad du köper. Vi gör inte det — PACT säljer från Languedoc och finns inte på Systembolaget. Inga provisionslänkar.",
+          "Ett vin måste ha ekologisk eller biodynamisk odling, spontanjäsning, minimal eller ingen tillsatt svavel (runt 30 mg/l tillsatt) och en producent med erkänt rykte i naturvinsvärlden — inte bara ett certifikat. Stora anonyma producenter med ett \"naturvin\"-segment diskas. Listan filtreras mot live sortimentsdata.",
         ],
       },
     },
     {
       heading: {
-        en: "The criteria",
-        sv: "Kriterierna",
+        en: "What we don't list",
+        sv: "Vad vi inte listar",
       },
       body: {
         en: [
-          "To appear on this list a wine must have:",
-          "Organic or biodynamic farming — not just a claim but certification or verifiable practice.",
-          "Spontaneous fermentation with wild yeasts — no added commercial yeast.",
-          "Minimal or no added sulphur — we draw the line at around 30 mg/l added. Natural sulphur from fermentation is not counted.",
-          "A producer with a recognised reputation in the natural wine world — not just an organic certificate. Large anonymous producers launching a \"natural wine\" line are disqualified regardless of certification.",
+          "Systembolaget's natural wine filter also includes wines we cannot recommend with the same conviction — especially large industrial producers launching a \"natural\" line. If the producer lacks a recognised name and a verifiable history, choose one of the wines above instead.",
         ],
         sv: [
-          "För att komma med på den här listan krävs:",
-          "Ekologisk eller biodynamisk odling — inte bara ett påstående utan certifiering eller verifierbar praktik.",
-          "Spontanjäsning med vilda jästsvampar — ingen tillsatt odlad jäst.",
-          "Minimal eller ingen tillsatt svavel — vi sätter gränsen vid runt 30 mg/l tillsatt. Naturliga svavelnivåer från jäsningen räknas inte.",
-          "Producenten ska ha ett erkänt rykte inom naturvinsrörelsen — inte bara ett eko-certifikat. Stora anonyma producenter som gör ett \"naturvin\"-segment diskvalificeras oavsett certifiering.",
-        ],
-      },
-    },
-    {
-      heading: {
-        en: "The best red natural wines at Systembolaget",
-        sv: "De bästa röda naturvinerna på Systembolaget",
-      },
-      body: {
-        en: [
-          "Red wines currently available through Systembolaget that meet the criteria above. The list is filtered against live assortment data — discontinued or out-of-stock bottles drop out automatically.",
-        ],
-        sv: [
-          "Röda viner som just nu finns via Systembolaget och som uppfyller kriterierna ovan. Listan filtreras mot live sortimentsdata — utgångna eller slutartiklar faller bort automatiskt.",
-        ],
-      },
-    },
-    {
-      heading: {
-        en: "What we don't list — and why",
-        sv: "Vad vi inte listar — och varför",
-      },
-      body: {
-        en: [
-          "Systembolaget's natural wine assortment also includes wines from producers we cannot recommend with the same conviction. One thing to watch for:",
-          "Large S.p.A. producers with a \"natural wine\" segment are rarely what they claim to be. When a company with industrial production launches a natural wine line to ride the trend, ask why they are doing it — and whether the philosophy actually runs through the work in the vineyard.",
-          "We do not name individual wines in this section, but the advice is simple: if the producer does not have a recognised name in the natural wine world and lacks a verifiable producer history, choose one of the wines above instead.",
-        ],
-        sv: [
-          "Systembolagets naturvinssortiment innehåller också viner från producenter vi inte kan rekommendera med samma övertygelse. En sak att se upp med:",
-          "Stora S.P.A.-producenter med ett \"naturvin\"-segment är sällan det de utger sig för att vara. När ett bolag med industriell produktion lanserar en naturvinslinje för att rida på trenden bör man ställa sig frågan varför de gör det — och om filosofin faktiskt genomsyrar arbetet i vingården.",
-          "Vi namnger inga enskilda viner i den här sektionen, men rådet är enkelt: om producenten inte har ett erkänt namn i naturvinsvärlden och saknar verifierbar producenthistoria, välj ett av vinerna ovan istället.",
-        ],
-      },
-    },
-    {
-      heading: {
-        en: "Finding more natural wines",
-        sv: "Hitta fler naturviner",
-      },
-      body: {
-        en: [
-          "Systembolaget lists wines under the \"Natural wine\" filter but also includes wines that do not meet stricter criteria. The best way to find good wines: start from the producer, not the filter.",
-        ],
-        sv: [
-          "Systembolaget listar sina viner under filtret \"Naturvin\" men inkluderar också viner som inte uppfyller stricter kriterier. Bäst sätt att hitta bra viner: utgå från producenten, inte filtret.",
+          "Systembolagets naturvinsfilter inkluderar också viner vi inte kan rekommendera med samma övertygelse — särskilt stora industriella producenter som lanserar en \"naturvin\"-linje. Saknar producenten ett erkänt namn och verifierbar historia, välj ett av vinerna ovan istället.",
         ],
       },
     },
@@ -143,6 +91,16 @@ export const bestRedNaturalWinesSystembolagetArticle: GuideArticleContent = {
       href: {
         en: "/guides/what-is-red-natural-wine",
         sv: "/guider/vad-ar-rott-naturvin",
+      },
+    },
+    {
+      label: {
+        en: "Best orange natural wines at Systembolaget →",
+        sv: "Bästa orange naturviner på Systembolaget →",
+      },
+      href: {
+        en: "/guides/best-orange-natural-wines-systembolaget",
+        sv: "/guider/basta-orange-naturviner-systembolaget",
       },
     },
     {

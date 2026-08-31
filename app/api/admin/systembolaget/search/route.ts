@@ -52,5 +52,38 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ results: data ?? [] });
+  const numbers = (data ?? []).map((row) => row.product_number as string);
+  const featuredByNumber = new Map<
+    string,
+    Array<{ source: string; context: string | null; featured_at: string }>
+  >();
+
+  if (numbers.length > 0) {
+    const { data: featured, error: featuredError } = await sb
+      .from("systembolaget_featured_history")
+      .select("product_number, source, context, featured_at")
+      .in("product_number", numbers);
+
+    if (featuredError) {
+      console.error("[systembolaget search featured]", featuredError.message);
+    } else {
+      for (const row of featured ?? []) {
+        const pn = row.product_number as string;
+        const list = featuredByNumber.get(pn) ?? [];
+        list.push({
+          source: row.source as string,
+          context: (row.context as string | null) ?? null,
+          featured_at: row.featured_at as string,
+        });
+        featuredByNumber.set(pn, list);
+      }
+    }
+  }
+
+  return NextResponse.json({
+    results: (data ?? []).map((row) => ({
+      ...row,
+      featuredHistory: featuredByNumber.get(row.product_number as string) ?? [],
+    })),
+  });
 }

@@ -9,6 +9,21 @@ const nextConfig = {
   },
   /** Bundled Chromium (@sparticuz/chromium) must not be webpack-bundled into serverless chunks. */
   serverExternalPackages: ["@sparticuz/chromium", "playwright-core", "sharp"],
+  async rewrites() {
+    return [
+      // Pretty weekly-issue URLs → nested App Router segments.
+      // Folders like `…-v[slug]` break Next route discovery; keep public paths
+      // via rewrite onto valid `/v/[slug]` and `/w/[slug]` pages.
+      {
+        source: "/guider/rekommenderade-naturviner-v:slug",
+        destination: "/guider/rekommenderade-naturviner/v/:slug",
+      },
+      {
+        source: "/guides/recommended-natural-wines-w:slug",
+        destination: "/guides/recommended-natural-wines/w/:slug",
+      },
+    ];
+  },
   async redirects() {
     return [
       {
@@ -108,6 +123,11 @@ const nextConfig = {
       {
         protocol: "https",
         hostname: "pactwines.com",
+      },
+      {
+        protocol: "https",
+        hostname: "product-cdn.systembolaget.se",
+        pathname: "/**",
       },
     ],
   },

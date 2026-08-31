@@ -10,6 +10,8 @@ export type GuideWineCategory =
 
 export type GuideWineVerdict = "recommended" | "avoid";
 
+export type GuideWineRankStatus = "new" | "up" | "down" | "unchanged";
+
 /** Row shape from systembolaget_guide_wines. */
 export type SystembolagetGuideWine = {
   id: number;
@@ -21,6 +23,11 @@ export type SystembolagetGuideWine = {
   producer_note_sv: string | null;
   producer_note_en: string | null;
   sort_order: number;
+  previous_sort_order: number | null;
+  first_published_at: string | null;
+  last_reviewed_at: string | null;
+  rank_status: GuideWineRankStatus;
+  rank_delta: number | null;
   name_bold: string | null;
   name_thin: string | null;
   producer_name: string | null;
@@ -40,6 +47,59 @@ export type SystembolagetGuideWine = {
 
 export function systembolagetProductUrl(productNumber: string): string {
   return `https://www.systembolaget.se/produkt/vin/${productNumber}/`;
+}
+
+/**
+ * Build a renderable Systembolaget bottle image URL.
+ *
+ * `image_url` from the API / `systembolaget_guide_wines` is a bare CDN path
+ * (no extension). That bare URL **404s**. The CDN only serves sized assets as
+ * `{id}_{size}.png` (100 | 200 | 400). Do not "simplify" this back to the bare
+ * path or to query params — both fail.
+ */
+export function systembolagetImageUrl(
+  baseUrl: string | null,
+  size: 100 | 200 | 400 = 200,
+): string | null {
+  if (!baseUrl) return null;
+  const base = baseUrl.trim().replace(/\/+$/, "");
+  if (!base) return null;
+  // Already a sized/derived asset — leave alone.
+  if (/_\d+\.(png|jpe?g)(\?|$)/i.test(base)) return base;
+  if (/\.(png|jpe?g|webp)(\?|$)/i.test(base)) return base;
+  return `${base}_${size}.png`;
+}
+
+
+/**
+ * Subtle rank movement label for list headings.
+ * unchanged → null (render nothing).
+ */
+export function formatRankBadge(
+  wine: Pick<SystembolagetGuideWine, "rank_status" | "rank_delta">,
+  locale: "en" | "sv",
+): string | null {
+  switch (wine.rank_status) {
+    case "new":
+      return locale === "sv" ? "Ny" : "New";
+    case "up": {
+      const delta =
+        wine.rank_delta !== null && wine.rank_delta !== undefined
+          ? Math.abs(wine.rank_delta)
+          : null;
+      return delta !== null ? `↑ ${delta}` : "↑";
+    }
+    case "down": {
+      const delta =
+        wine.rank_delta !== null && wine.rank_delta !== undefined
+          ? Math.abs(wine.rank_delta)
+          : null;
+      return delta !== null ? `↓ ${delta}` : "↓";
+    }
+    case "unchanged":
+    default:
+      return null;
+  }
 }
 
 /**
@@ -78,6 +138,11 @@ export async function getGuideWines(
         "producer_note_sv",
         "producer_note_en",
         "sort_order",
+        "previous_sort_order",
+        "first_published_at",
+        "last_reviewed_at",
+        "rank_status",
+        "rank_delta",
         "name_bold",
         "name_thin",
         "producer_name",

@@ -2,23 +2,23 @@ import type { Metadata } from "next";
 
 import { bestRedNaturalWinesSystembolagetArticle } from "@/lib/guides/articles/best-red-natural-wines-systembolaget";
 import {
-  buildArticleGuideMetadata,
-  renderArticleGuidePage,
-} from "@/lib/guides/render-article-guide";
-import { withLiveRedSystembolagetWines } from "@/lib/guides/systembolaget-red-guide";
+  buildSystembolagetRankedListMetadata,
+  renderSystembolagetRankedListPage,
+} from "@/lib/guides/systembolaget-ranked-list";
 
 export const dynamic = "force-dynamic";
 
 export function generateMetadata(): Promise<Metadata> {
-  return buildArticleGuideMetadata(
+  return buildSystembolagetRankedListMetadata(
     bestRedNaturalWinesSystembolagetArticle,
     "sv",
   );
 }
 
-export default async function BastaRodaNaturvinerSystembolagetGuidePage() {
-  const content = await withLiveRedSystembolagetWines(
+export default function BastaRodaNaturvinerSystembolagetGuidePage() {
+  return renderSystembolagetRankedListPage(
     bestRedNaturalWinesSystembolagetArticle,
+    "sv",
+    "red",
   );
-  return renderArticleGuidePage(content, "sv");
 }

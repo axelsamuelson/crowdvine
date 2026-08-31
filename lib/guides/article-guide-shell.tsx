@@ -4,8 +4,54 @@ import Link from "next/link";
 import { Footer } from "@/components/layout/footer";
 
 const URL_IN_TEXT = /(https?:\/\/[^\s]+)/g;
+/** Inline markdown links: [Gang of Four](/guides/gang-of-four-wine) */
+const MD_LINK = /\[([^\]]+)\]\(([^)\s]+)\)/g;
 
-/** Render body paragraphs with bare http(s) URLs as external links. */
+function renderInline(text: string, keyPrefix: string): ReactNode[] {
+  const nodes: ReactNode[] = [];
+  let last = 0;
+  let match: RegExpExecArray | null;
+  const re = new RegExp(MD_LINK.source, "g");
+  while ((match = re.exec(text)) !== null) {
+    if (match.index > last) {
+      nodes.push(
+        <span key={`${keyPrefix}-t-${last}`}>{text.slice(last, match.index)}</span>,
+      );
+    }
+    const [, label, href] = match;
+    const external = /^https?:\/\//.test(href);
+    if (external) {
+      nodes.push(
+        <a
+          key={`${keyPrefix}-a-${match.index}`}
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline underline-offset-4 hover:text-foreground"
+        >
+          {label}
+        </a>,
+      );
+    } else {
+      nodes.push(
+        <Link
+          key={`${keyPrefix}-a-${match.index}`}
+          href={href}
+          className="underline underline-offset-4 hover:text-foreground"
+        >
+          {label}
+        </Link>,
+      );
+    }
+    last = match.index + match[0].length;
+  }
+  if (last < text.length) {
+    nodes.push(<span key={`${keyPrefix}-t-${last}`}>{text.slice(last)}</span>);
+  }
+  return nodes;
+}
+
+/** Render body paragraphs with markdown links and bare http(s) URLs. */
 function ArticleParagraph({ text }: { text: string }) {
   const parts = text.split(URL_IN_TEXT);
   return (
@@ -22,7 +68,7 @@ function ArticleParagraph({ text }: { text: string }) {
             {part}
           </a>
         ) : (
-          <span key={`text-${index}`}>{part}</span>
+          <span key={`text-${index}`}>{renderInline(part, `p${index}`)}</span>
         ),
       )}
     </p>
@@ -31,6 +77,8 @@ function ArticleParagraph({ text }: { text: string }) {
 
 export type ArticleGuideShellSection = {
   heading?: string;
+  /** Subtle muted text next to the heading (rank badges, etc.). */
+  headingBadge?: string;
   paragraphs: string[];
 };
 
@@ -97,7 +145,14 @@ export function ArticleGuideShell({
             {sections.map((section, sectionIndex) => (
               <section key={section.heading ?? `section-${sectionIndex}`}>
                 {section.heading ? (
-                  <h2 className={ARTICLE_GUIDE_H2_CLASS}>{section.heading}</h2>
+                  <h2 className={ARTICLE_GUIDE_H2_CLASS}>
+                    <span>{section.heading}</span>
+                    {section.headingBadge ? (
+                      <span className="ml-2 align-middle text-xs font-normal text-muted-foreground">
+                        {section.headingBadge}
+                      </span>
+                    ) : null}
+                  </h2>
                 ) : null}
                 <div className={ARTICLE_GUIDE_BODY_CLASS}>
                   {section.paragraphs.map((paragraph) => (

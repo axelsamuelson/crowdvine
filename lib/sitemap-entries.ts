@@ -7,6 +7,11 @@ import { generateProducerSlug } from "@/lib/producer-handle";
 import {
   isNoindexCategorySlug,
 } from "@/lib/seo/noindex-robots";
+import {
+  listIssues,
+  recommendationIndexPath,
+  recommendationIssuePath,
+} from "@/lib/systembolaget/recommendations";
 import { WINE_CATEGORIES_EN, WINE_CATEGORIES_SV } from "@/lib/wine-categories";
 import {
   dedupeSitemapEntries,
@@ -97,6 +102,8 @@ function staticPagesForProfile(
         weeklyEntry(`${baseUrl}${articlePath(guide, "en")}`, 0.75),
         weeklyEntry(`${baseUrl}${articlePath(guide, "sv")}`, 0.75),
       ]),
+      weeklyEntry(`${baseUrl}${recommendationIndexPath("sv")}`, 0.7),
+      weeklyEntry(`${baseUrl}${recommendationIndexPath("en")}`, 0.7),
       weeklyEntry(`${baseUrl}${GUIDE_PATHS.orangeWines.en}`, 0.75),
       weeklyEntry(`${baseUrl}${GUIDE_PATHS.orangeWines.sv}`, 0.75),
       weeklyEntry(`${baseUrl}${GUIDE_PATHS.naturalChampagne.en}`, 0.75),
@@ -115,6 +122,29 @@ export async function buildSitemapEntries(
   profile: SitemapSiteProfile,
 ): Promise<MetadataRoute.Sitemap> {
   const staticPages = staticPagesForProfile(baseUrl, profile);
+
+  const recommendationPages: SitemapEntry[] = [];
+  if (profile === "pact") {
+    try {
+      const issues = await listIssues();
+      for (const issue of issues) {
+        recommendationPages.push(
+          weeklyEntry(
+            `${baseUrl}${recommendationIssuePath(issue.year, issue.week, "sv")}`,
+            0.65,
+            new Date(issue.published_at),
+          ),
+          weeklyEntry(
+            `${baseUrl}${recommendationIssuePath(issue.year, issue.week, "en")}`,
+            0.65,
+            new Date(issue.published_at),
+          ),
+        );
+      }
+    } catch (err) {
+      console.error("[sitemap] recommendation issues", err);
+    }
+  }
 
   const indexableWines = await fetchIndexableWines();
 
@@ -177,6 +207,7 @@ export async function buildSitemapEntries(
 
   return dedupeSitemapEntries([
     ...staticPages,
+    ...recommendationPages,
     ...vinCategories,
     ...wineCategories,
     ...dynamicGrapePages,

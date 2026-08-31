@@ -99,6 +99,7 @@ export async function renderArticleGuidePage(
         lede={content.lede?.[locale] ?? content.hubCard.description[locale]}
         sections={content.sections.map((section) => ({
           heading: section.heading?.[locale],
+          headingBadge: section.headingBadge?.[locale],
           paragraphs: articleParagraphs(section.body, locale),
         }))}
         furtherReadingHeading={content.furtherReadingHeading[locale]}

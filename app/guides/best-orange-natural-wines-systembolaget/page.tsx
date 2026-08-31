@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { bestRedNaturalWinesSystembolagetArticle } from "@/lib/guides/articles/best-red-natural-wines-systembolaget";
+import { bestOrangeNaturalWinesSystembolagetArticle } from "@/lib/guides/articles/best-orange-natural-wines-systembolaget";
 import {
   buildSystembolagetRankedListMetadata,
   renderSystembolagetRankedListPage,
@@ -10,15 +10,15 @@ export const dynamic = "force-dynamic";
 
 export function generateMetadata(): Promise<Metadata> {
   return buildSystembolagetRankedListMetadata(
-    bestRedNaturalWinesSystembolagetArticle,
+    bestOrangeNaturalWinesSystembolagetArticle,
     "en",
   );
 }
 
-export default function BestRedNaturalWinesSystembolagetGuidePage() {
+export default function BestOrangeNaturalWinesSystembolagetGuidePage() {
   return renderSystembolagetRankedListPage(
-    bestRedNaturalWinesSystembolagetArticle,
+    bestOrangeNaturalWinesSystembolagetArticle,
     "en",
-    "red",
+    "orange",
   );
 }
