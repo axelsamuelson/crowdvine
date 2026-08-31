@@ -162,7 +162,7 @@ export default async function RootLayout({
     ]);
 
   return (
-    <html lang={shoppingContext.locale}>
+    <html lang={shoppingContext.locale} suppressHydrationWarning>
       <body
         className={cn(
           geistSans.variable,
@@ -182,9 +182,15 @@ export default async function RootLayout({
                 <MobileMenuProvider>
                   <PortalProvider>
                     <MembershipProvider>
-                      <main>
+                      {/*
+                        Use a div (not <main>) here: many routes render their own
+                        <main>, and nested mains make the browser rewrite the DOM
+                        before hydration (seen as div vs script mismatches).
+                      */}
+                      <div>
                         <div
                           id={VAUL_DRAWER_WRAPPER_ID}
+                          suppressHydrationWarning
                           {...(needsVaulDrawerWrapper
                             ? { "data-vaul-drawer-wrapper": "true" }
                             : {})}
@@ -197,7 +203,7 @@ export default async function RootLayout({
                           />
                           {children}
                         </div>
-                      </main>
+                      </div>
                       {isDevelopment && <DebugGrid />}
                       <Toaster closeButton position="bottom-right" />
                       <InternalDeviceMarker />

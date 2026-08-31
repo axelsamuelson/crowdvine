@@ -2,10 +2,7 @@
  * Server-side Finance aggregation (admin). Uses service-role after requireAdmin().
  */
 
-import { getSupabaseAdmin } from "@/lib/supabase-admin";
-import { PALLET_FILL_STATUSES } from "@/lib/pallet-fill-count";
 import { resolveFreightTargetCents } from "@/lib/pallet-contribution";
-import { inboundFreightCentsPerBottle } from "@/lib/finance/margins";
 import { aggregatePactActuals } from "@/lib/finance/pact-actuals";
 import { aggregateDirtywineActuals } from "@/lib/finance/dirtywine-actuals";
 import {
@@ -20,6 +17,9 @@ import {
 import type { FinanceBreakdown, FinanceChannel } from "@/lib/finance/types";
 import type { InvoiceData } from "@/types/invoice";
 import { buildFinanceBreakdown } from "@/lib/finance/margins";
+import { loadAssortmentPurchaseCostDefaults } from "@/lib/finance/assortment-defaults";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { PALLET_FILL_STATUSES } from "@/lib/pallet-fill-count";
 
 function mapOpexRow(r: Record<string, unknown>): FinanceOpexEntry {
   return {
@@ -57,7 +57,7 @@ export async function loadPactFinanceOverview(input: {
   start: Date;
   end: Date;
   opexAllocatedCents: number;
-  /** Forecast ship qty for open-pallet GM3; null = no inbound allocation. */
+  /** @deprecated Actuals inbound uses full pallet freight; kept for API compat. */
   forecastShipQty?: number | null;
 }): Promise<{
   breakdown: FinanceBreakdown;
@@ -72,6 +72,7 @@ export async function loadPactFinanceOverview(input: {
   shippingAudit: ReturnType<typeof summarizeShippingAudit>;
 }> {
   const sb = getSupabaseAdmin();
+  void input.forecastShipQty;
   const startIso = input.start.toISOString();
   const endIso = input.end.toISOString();
 
@@ -134,7 +135,9 @@ export async function loadPactFinanceOverview(input: {
     });
   });
 
-  // Optional forecast inbound: average selected freight across pallets in set
+  // Inbound: full pallet freight for each distinct pallet in the period
+  // (not prorated by forecast ship qty × bottles). Outbound stays bottle-dynamic
+  // via frozen unit_last_mile_cost_cents × quantity.
   let inboundCents = 0;
   let inboundKind: FinanceBreakdown["inboundAllocationKind"] = "none";
   const palletIds = [
@@ -145,7 +148,7 @@ export async function loadPactFinanceOverview(input: {
     ),
   ];
 
-  if (input.forecastShipQty && input.forecastShipQty > 0 && palletIds.length) {
+  if (palletIds.length) {
     const { data: pallets } = await sb
       .from("pallets")
       .select(
@@ -182,17 +185,8 @@ export async function loadPactFinanceOverview(input: {
       }
     }
     if (freightN > 0) {
-      const avgFreight = Math.round(freightSum / freightN);
-      const perBottle = inboundFreightCentsPerBottle(
-        avgFreight,
-        input.forecastShipQty,
-      );
-      const totalBottles = rows.reduce(
-        (s, r) => s + Math.max(0, Math.floor(Number(r.quantity) || 0)),
-        0,
-      );
-      inboundCents = perBottle * totalBottles;
-      inboundKind = "forecast";
+      inboundCents = freightSum;
+      inboundKind = "actual";
     }
   }
 
@@ -204,7 +198,17 @@ export async function loadPactFinanceOverview(input: {
     opexAllocatedCents: input.opexAllocatedCents,
   });
 
-  // Wine rollup (known only)
+  // Wine rollup (known only). Inbound allocated by bottle share of period total.
+  const knownBottleTotal = Math.max(
+    1,
+    rows.reduce((s, r) => {
+      const qty = Math.max(0, Math.floor(Number(r.quantity) || 0));
+      const snap = r.economics_snapshot;
+      if (!snap || typeof snap !== "object") return s;
+      if ((snap as { incomplete?: boolean }).incomplete === true) return s;
+      return s + qty;
+    }, 0),
+  );
   const byWine = new Map<
     string,
     { bottles: number; productNet: number; gm1: number; gm2: number; incomplete: boolean }
@@ -229,8 +233,9 @@ export async function loadPactFinanceOverview(input: {
     const out = (Number(snap.unit_last_mile_cost_cents) || 0) * qty;
     const epr = (Number(snap.unit_epr_cents) || 0) * qty;
     const refund = (Number(snap.unit_refund_reserve_cents) || 0) * qty;
+    const inboundShare = Math.round((inboundCents * qty) / knownBottleTotal);
     const gm1 = net - purchase - excise;
-    const gm2 = gm1 + ship - pay - out - epr - refund;
+    const gm2 = gm1 + ship - pay - out - inboundShare - epr - refund;
     cur.bottles += qty;
     cur.productNet += net;
     cur.gm1 += gm1;
@@ -402,6 +407,8 @@ export async function buildFinanceOverviewPayload(input: {
     gm3PercentOfProductNet: breakdown.gm3PercentOfProductNet,
   });
 
+  const assortmentPurchase = await loadAssortmentPurchaseCostDefaults();
+
   return {
     breakdown,
     wineRows: pact?.wineRows ?? [],
@@ -423,7 +430,13 @@ export async function buildFinanceOverviewPayload(input: {
             : allOpex.byCategory,
     },
     breakEven,
+    scenarioDefaults: {
+      medianPurchaseCostSek: assortmentPurchase.medianPurchaseCostSek,
+      medianPurchaseCostCents: assortmentPurchase.medianPurchaseCostCents,
+      purchaseSampleSize: assortmentPurchase.sampleSize,
+      purchaseSkippedCount: assortmentPurchase.skippedCount,
+    },
     disclaimer:
-      "Management economics — not statutory accounting, tax return, or audited P&L.",
+      "Intern redovisning — inte bokslut, momsdeklaration eller reviderad resultaträkning.",
   };
 }

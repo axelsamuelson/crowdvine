@@ -168,7 +168,7 @@ export function calculateBreakEven(input: {
   const opex = Math.max(0, Math.round(input.opexCents));
   const perBottle = Math.round(input.gm3CentsPerBottle);
   if (perBottle <= 0) {
-    return { ok: false, reason: "No break-even at current unit economics" };
+    return { ok: false, reason: "Ingen nollpunkt med nuvarande styckekonomi" };
   }
   const bottlesRequired = Math.ceil(opex / perBottle);
   let netRevenueRequiredCents: number | null = null;

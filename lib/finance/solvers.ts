@@ -7,6 +7,7 @@ import { deriveContributionMargins } from "@/lib/admin-pallet-operating-summary"
 import { grossToNetCents } from "@/lib/pallet-contribution";
 import {
   deriveGm3,
+  gm2WithInboundFreight,
   inboundFreightCentsPerBottle,
   percentOf,
 } from "@/lib/finance/margins";
@@ -15,6 +16,8 @@ export type MarginTargetKind =
   | "gm1_percent"
   | "gm2_percent"
   | "gm3_percent"
+  | "gm1_sek_per_bottle"
+  | "gm2_sek_per_bottle"
   | "gm3_sek_per_bottle";
 
 export type SolverCostAssumptions = {
@@ -45,6 +48,8 @@ export type RequiredPriceResult =
       gm1Cents: number;
       gm2Cents: number;
       gm3Cents: number;
+      gm1Percent: number | null;
+      gm2Percent: number | null;
     }
   | { ok: false; reason: string };
 
@@ -118,7 +123,7 @@ function evaluateAtGross(
     a.assumedShipQuantity,
   );
 
-  const { gm1Cents, gm2Cents } = deriveContributionMargins({
+  const { gm1Cents, gm2Cents: gm2BeforeInbound } = deriveContributionMargins({
     productNetRevenueCents: productNet,
     shippingRevenueNetCents: shipNetPer,
     purchaseCostCents: purchase,
@@ -128,10 +133,8 @@ function evaluateAtGross(
     eprCents: epr,
     refundReserveCents: refund,
   });
-  const gm3Cents = deriveGm3({
-    gm2Cents,
-    inboundFreightCents: inboundPer,
-  });
+  const gm2Cents = gm2WithInboundFreight(gm2BeforeInbound, inboundPer);
+  const gm3Cents = deriveGm3({ gm2Cents });
 
   return {
     productNet,
@@ -148,6 +151,12 @@ function meetsTarget(
   target: number,
   ev: { productNet: number; gm1: number; gm2: number; gm3: number },
 ): boolean {
+  if (kind === "gm1_sek_per_bottle") {
+    return ev.gm1 >= Math.round(target * 100);
+  }
+  if (kind === "gm2_sek_per_bottle") {
+    return ev.gm2 >= Math.round(target * 100);
+  }
   if (kind === "gm3_sek_per_bottle") {
     return ev.gm3 >= Math.round(target * 100);
   }
@@ -166,7 +175,7 @@ function meetsTarget(
  */
 export function solveRequiredRetailPrice(input: {
   targetKind: MarginTargetKind;
-  /** Percent points (e.g. 30) or SEK major for gm3_sek_per_bottle. */
+  /** Percent points (e.g. 30) or SEK major for *_sek_per_bottle. */
   target: number;
   assumptions: SolverCostAssumptions;
   /** Search ceiling in öre (default 200_000 = 2000 SEK). */
@@ -220,6 +229,8 @@ export function solveRequiredRetailPrice(input: {
     gm1Cents: finalEv.gm1,
     gm2Cents: finalEv.gm2,
     gm3Cents: finalEv.gm3,
+    gm1Percent: percentOf(finalEv.gm1, finalEv.productNet),
+    gm2Percent: percentOf(finalEv.gm2, finalEv.productNet),
   };
 }
 

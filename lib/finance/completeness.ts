@@ -33,7 +33,7 @@ export function classifyUnitSnapshot(
     return {
       status: "missing",
       warnings: [
-        warn("missing_snapshot", "No economics_snapshot on reservation item"),
+        warn("missing_snapshot", "Saknar economics_snapshot på reservationsrad"),
       ],
       includeInKnownMargins: false,
     };
@@ -53,7 +53,7 @@ export function classifyUnitSnapshot(
     warnings.push(
       warn(
         "incomplete_unit",
-        s.incomplete_reason || "Unit snapshot marked incomplete",
+        s.incomplete_reason || "Enhetssnapshot markerad som ofullständig",
       ),
     );
     if (
@@ -61,11 +61,13 @@ export function classifyUnitSnapshot(
         .toLowerCase()
         .includes("fx")
     ) {
-      warnings.push(warn("missing_fx", s.incomplete_reason || "Missing FX"));
+      warnings.push(
+        warn("missing_fx", s.incomplete_reason || "Saknar växelkurs (FX)"),
+      );
     }
     if (s.outbound_cost_source === "incomplete") {
       warnings.push(
-        warn("missing_outbound", "Outbound carrier cost incomplete"),
+        warn("missing_outbound", "Utgående fraktkostnad ofullständig"),
       );
     }
   }
@@ -78,13 +80,13 @@ export function classifyUnitSnapshot(
     warnings.push(
       warn(
         "shipping_zero_with_outbound",
-        "Customer shipping revenue is 0 while outbound carrier cost is positive — verify charge vs snapshot",
+        "Kundfraktintäkt är 0 medan utgående fraktkostnad är positiv — kontrollera debitering vs snapshot",
       ),
     );
     warnings.push(
       warn(
         "legacy_shipping_revenue_ambiguous",
-        "Zero shipping with positive outbound may be legacy amortization/backfill — not proven free shipping",
+        "Noll frakt med positiv utgående kan vara äldre amortering/backfill — inte bevisad gratis frakt",
       ),
     );
   }
@@ -92,7 +94,9 @@ export function classifyUnitSnapshot(
   const schema = Number(s.schema_version);
   if (!Number.isFinite(schema) || schema < 2) {
     status = "legacy";
-    warnings.push(warn("legacy_snapshot", "Legacy or pre-v2 economics snapshot"));
+    warnings.push(
+      warn("legacy_snapshot", "Äldre eller pre-v2 economics-snapshot"),
+    );
   }
 
   // Incomplete units must not be treated as precise GM2 knowns

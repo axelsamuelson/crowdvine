@@ -45,7 +45,7 @@ export function aggregateDirtywineActuals(input: {
     if (!inv || !Array.isArray(inv.items)) {
       warnings.push({
         code: "missing_snapshot",
-        message: `Dirtywine order ${order.orderId} missing invoice_data`,
+        message: `Dirtywine-order ${order.orderId} saknar invoice_data`,
       });
       continue;
     }
@@ -110,7 +110,7 @@ export function aggregateDirtywineActuals(input: {
     warnings.push({
       code: "dirtywine_no_frozen_cogs",
       message:
-        "Dirtywine invoices have no frozen purchase/excise snapshots — COGS incomplete",
+        "Dirtywine-fakturor saknar frysta inköps-/alkoholskatt-snapshots — COGS ofullständig",
     });
   }
 

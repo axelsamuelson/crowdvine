@@ -34,6 +34,7 @@ const SEGMENT_LABELS: Record<string, string> = {
   "home-concepts": "Home concepts",
   rabattkoder: "Rabattkoder",
   "exkluderade-profiler": "Exkluderade profiler",
+  finance: "Finans",
 };
 
 function looksLikeUuid(seg: string): boolean {

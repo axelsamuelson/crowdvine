@@ -8,6 +8,7 @@ import {
   classifyShippingRevenueOnSnapshot,
   classifyUnitSnapshot,
   deriveGm3,
+  gm2WithInboundFreight,
   inboundFreightCentsPerBottle,
   normalizeOpexCentsForPeriod,
   allocateOpexByChannel,
@@ -15,6 +16,7 @@ import {
   solveMaxPurchaseCost,
   solveRequiredRetailPrice,
   summarizeShippingAudit,
+  medianOf,
   type FinanceOpexEntry,
 } from "@/lib/finance";
 import { deriveContributionMargins } from "@/lib/admin-pallet-operating-summary";
@@ -65,21 +67,20 @@ describe("Finance GM1/GM2 regression (30-bottle pallet)", () => {
     expect(withShip.gm2Cents).toBe(296 + 40_000);
   });
 
-  it("GM3 forecast at ship qty 120 is deterministic", () => {
-    const gm2 = 296;
+  it("inbound freight is included in GM2; GM3 equals GM2", () => {
+    const gm2BeforeInbound = 296;
     const perBottle = inboundFreightCentsPerBottle(EXAMPLE.inbound, 120);
     expect(perBottle).toBe(Math.floor(426_263 / 120)); // 3552
-    // Scenario total GM3 for 30 bottles using per-bottle inbound at 120 fill:
     const inboundAllocatedTo30 = perBottle * 30;
-    const gm3 = deriveGm3({
-      gm2Cents: gm2,
-      inboundFreightCents: inboundAllocatedTo30,
-    });
-    expect(gm3).toBe(296 - inboundAllocatedTo30);
+    const gm2 = gm2WithInboundFreight(gm2BeforeInbound, inboundAllocatedTo30);
+    const gm3 = deriveGm3({ gm2Cents: gm2 });
+    expect(gm2).toBe(296 - inboundAllocatedTo30);
+    expect(gm3).toBe(gm2);
   });
 
   it("does not present pre-ship 30-bottle state as realized full-pallet inbound", () => {
     // Actual inbound allocation kind should be forecast when not shipped
+    const inbound = inboundFreightCentsPerBottle(EXAMPLE.inbound, 120) * 30;
     const b = buildFinanceBreakdown({
       channel: "pact",
       mode: "scenario",
@@ -98,14 +99,15 @@ describe("Finance GM1/GM2 regression (30-bottle pallet)", () => {
       outboundCarrierCostCents: EXAMPLE.outbound,
       eprCents: EXAMPLE.epr,
       refundBreakageReserveCents: EXAMPLE.refund,
-      inboundFreightCents: inboundFreightCentsPerBottle(EXAMPLE.inbound, 120) * 30,
+      inboundFreightCents: inbound,
       inboundAllocationKind: "forecast",
       opexAllocatedCents: 0,
       completeness: "partial",
       warnings: [],
     });
     expect(b.inboundAllocationKind).toBe("forecast");
-    expect(b.gm2Cents).toBe(296);
+    expect(b.gm2Cents).toBe(296 - inbound);
+    expect(b.gm3Cents).toBe(b.gm2Cents);
   });
 });
 
@@ -377,5 +379,19 @@ describe("aggregatePactActuals", () => {
     expect(b.bottlesKnown).toBe(2);
     expect(b.bottlesIncomplete).toBe(1);
     expect(b.gm1Cents).toBe((8000 - 3000 - 500) * 2);
+  });
+});
+
+describe("medianOf (assortment purchase defaults)", () => {
+  it("returns null for empty", () => {
+    expect(medianOf([])).toBeNull();
+  });
+
+  it("returns middle for odd count", () => {
+    expect(medianOf([3, 1, 2])).toBe(2);
+  });
+
+  it("averages two middles for even count", () => {
+    expect(medianOf([10, 40, 20, 30])).toBe(25);
   });
 });

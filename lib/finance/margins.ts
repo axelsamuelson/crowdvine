@@ -75,9 +75,23 @@ export function allocateInboundFreightByBottles(
 
 export function deriveGm3(input: {
   gm2Cents: number;
-  inboundFreightCents: number;
+  /** @deprecated Inbound is included in finance GM2; ignored. */
+  inboundFreightCents?: number;
 }): number {
-  return Math.round(input.gm2Cents) - Math.max(0, Math.round(input.inboundFreightCents));
+  // All freight (outbound + inbound) sits in GM2; GM3 equals GM2.
+  void input.inboundFreightCents;
+  return Math.round(input.gm2Cents);
+}
+
+/** Fold inbound freight into GM2 (finance definition: all freight in GM2). */
+export function gm2WithInboundFreight(
+  gm2BeforeInboundCents: number,
+  inboundFreightCents: number,
+): number {
+  return (
+    Math.round(gm2BeforeInboundCents) -
+    Math.max(0, Math.round(inboundFreightCents))
+  );
 }
 
 export function buildFinanceBreakdown(input: {
@@ -104,7 +118,7 @@ export function buildFinanceBreakdown(input: {
   completeness: FinanceCompletenessStatus;
   warnings: FinanceWarning[];
 }): FinanceBreakdown {
-  const { gm1Cents, gm2Cents } = deriveContributionMargins({
+  const { gm1Cents, gm2Cents: gm2BeforeInbound } = deriveContributionMargins({
     productNetRevenueCents: input.productNetRevenueCents,
     shippingRevenueNetCents: input.shippingNetRevenueCents,
     purchaseCostCents: input.producerPurchaseCostCents,
@@ -116,7 +130,8 @@ export function buildFinanceBreakdown(input: {
   });
 
   const inbound = Math.max(0, Math.round(input.inboundFreightCents));
-  const gm3Cents = deriveGm3({ gm2Cents, inboundFreightCents: inbound });
+  const gm2Cents = gm2WithInboundFreight(gm2BeforeInbound, inbound);
+  const gm3Cents = deriveGm3({ gm2Cents });
   const opex = Math.max(0, Math.round(input.opexAllocatedCents));
   const productNet = Math.round(input.productNetRevenueCents);
   const totalNet =
@@ -226,7 +241,7 @@ export function calculateUnitScenario(
     input.assumedShipQuantity,
   );
 
-  const { gm1Cents, gm2Cents } = deriveContributionMargins({
+  const { gm1Cents, gm2Cents: gm2BeforeInbound } = deriveContributionMargins({
     productNetRevenueCents: productNet,
     shippingRevenueNetCents: shippingNetCentsPerBottle,
     purchaseCostCents: purchase,
@@ -237,10 +252,8 @@ export function calculateUnitScenario(
     refundReserveCents: refund,
   });
 
-  const gm3Cents = deriveGm3({
-    gm2Cents,
-    inboundFreightCents: inboundPer,
-  });
+  const gm2Cents = gm2WithInboundFreight(gm2BeforeInbound, inboundPer);
+  const gm3Cents = deriveGm3({ gm2Cents });
 
   // Silence unused volume for now — volume impact is applied by callers.
   void bottles;
