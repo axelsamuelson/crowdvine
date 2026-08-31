@@ -5,7 +5,7 @@ import { getMemberDiscountPercentForUserId } from "@/lib/membership/server-membe
 import { resolvePalletEarlyBirdContext } from "@/lib/pallet-early-bird-context";
 import { applyPalletDiscount } from "@/lib/pallet-discount";
 import { memberDiscountedTotalInclVat } from "@/lib/price-breakdown";
-import { calculateCartShippingCost, resolveLastMileCostCentsPerBottle } from "@/lib/shipping-calculations";
+import { resolveCheckoutShippingSek } from "@/lib/checkout/resolve-checkout-shipping";
 import { allocatePactRedemptionPoints } from "@/lib/membership/pact-points-redemption-math";
 
 type WineProducer = {
@@ -182,21 +182,17 @@ async function resolveReservationChargeAmountInOre(params: {
 
   let shippingSek = 0;
   if (palletRow) {
-    const shipping = calculateCartShippingCost(
-      rows.map((r) => ({ quantity: Math.max(0, Math.floor(Number(r.quantity) || 0)) })),
-      {
-        id: String(palletRow.id),
-        name: String(palletRow.name ?? ""),
-        costCents: Number(palletRow.cost_cents) || 0,
-        bottleCapacity: Number(palletRow.bottle_capacity) || 0,
-        currentBottles: 0,
-        remainingBottles: 0,
-        lastMileCostCentsPerBottle: resolveLastMileCostCentsPerBottle(
-          Number(palletRow.last_mile_cost_cents_per_bottle) || 0,
-        ),
-      },
+    const bottleCount = rows.reduce(
+      (s, r) => s + Math.max(0, Math.floor(Number(r.quantity) || 0)),
+      0,
     );
-    shippingSek = shipping?.totalShippingCostSek ?? 0;
+    const resolved = await resolveCheckoutShippingSek({
+      bottleCount,
+      productSubtotalSek: boostedLineTotal + nonBoostedLineTotal,
+      countryCode: "SE",
+      pallet: palletRow,
+    });
+    shippingSek = resolved.shippingSek;
   }
 
   const pendingPoints = await sumPendingRedemptionPointsForReservation(reservationId);

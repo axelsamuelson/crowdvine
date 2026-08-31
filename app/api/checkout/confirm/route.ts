@@ -44,7 +44,7 @@ import { tryActivateReferralOnFirstOrder } from "@/lib/referral/activate-referra
 import { stripe } from "@/lib/stripe";
 import { legalSnapshotFromStripeMetadata } from "@/lib/legal/age-check";
 import { resolvePaymentMethodDetailsFromId } from "@/lib/stripe/resolve-payment-method-details";
-import { calculateCartShippingCost, resolveLastMileCostCentsPerBottle } from "@/lib/shipping-calculations";
+import { resolveCheckoutShippingSek } from "@/lib/checkout/resolve-checkout-shipping";
 import { getContributionAssumptions } from "@/lib/contribution-assumptions";
 import { fetchExchangeRateToSekStrict } from "@/lib/exchange-rate-strict";
 import {
@@ -996,21 +996,19 @@ export async function POST(request: Request) {
           .maybeSingle();
         if (palletErr) throw palletErr;
         if (palletRow) {
-          const shipping = calculateCartShippingCost(
-            (cart.lines || []).map((l) => ({ quantity: l.quantity })),
-            {
-              id: String(palletRow.id),
-              name: String(palletRow.name ?? ""),
-              costCents: Number(palletRow.cost_cents) || 0,
-              bottleCapacity: Number(palletRow.bottle_capacity) || 0,
-              currentBottles: 0,
-              remainingBottles: 0,
-              lastMileCostCentsPerBottle: resolveLastMileCostCentsPerBottle(
-                Number(palletRow.last_mile_cost_cents_per_bottle) || 0,
-              ),
-            },
+          const bottleCount = (cart.lines || []).reduce(
+            (sum, l) => sum + (Number(l.quantity) || 0),
+            0,
           );
-          shippingSek = shipping?.totalShippingCostSek ?? 0;
+          const subtotalSek =
+            parseFloat(String(cart.cost.totalAmount.amount)) || 0;
+          const resolved = await resolveCheckoutShippingSek({
+            bottleCount,
+            productSubtotalSek: subtotalSek,
+            countryCode: String(address.countryCode || "SE"),
+            pallet: palletRow,
+          });
+          shippingSek = resolved.shippingSek;
         }
       }
     } catch (shipErr) {

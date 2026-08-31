@@ -10,3 +10,4 @@ export * from "@/lib/finance/pact-actuals";
 export * from "@/lib/finance/dirtywine-actuals";
 export * from "@/lib/finance/channel";
 export * from "@/lib/finance/period";
+export * from "@/lib/finance/historical-shipping-audit";

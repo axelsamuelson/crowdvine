@@ -5,7 +5,7 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { stripe } from "@/lib/stripe";
 import { CartService } from "@/src/lib/cart-service";
 import { determineZones, type DeliveryAddress } from "@/lib/zone-matching";
-import { calculateCartShippingCost, resolveLastMileCostCentsPerBottle } from "@/lib/shipping-calculations";
+import { resolveCheckoutShippingSek } from "@/lib/checkout/resolve-checkout-shipping";
 import {
   allocatePactRedemptionPoints,
   calculateBoostAwareMaxRedemption,
@@ -393,21 +393,19 @@ export async function POST(request: Request) {
       );
     }
 
-    const shipping = calculateCartShippingCost(
-      cart.lines.map((l: any) => ({ quantity: Number(l?.quantity) || 0 })),
-      {
-        id: String(palletRow.id),
-        name: String(palletRow.name ?? ""),
-        costCents: Number(palletRow.cost_cents) || 0,
-        bottleCapacity: Number(palletRow.bottle_capacity) || 0,
-        currentBottles: 0,
-        remainingBottles: 0,
-        lastMileCostCentsPerBottle: resolveLastMileCostCentsPerBottle(
-          Number(palletRow.last_mile_cost_cents_per_bottle) || 0,
-        ),
-      },
+    const bottleCount = cart.lines.reduce(
+      (s: number, l: { quantity?: number }) => s + (Number(l?.quantity) || 0),
+      0,
     );
-    const shippingSek = shipping?.totalShippingCostSek ?? 0;
+    const subtotalSek =
+      parseFloat(String(cart.cost?.totalAmount?.amount)) || 0;
+    const resolvedShipping = await resolveCheckoutShippingSek({
+      bottleCount,
+      productSubtotalSek: subtotalSek,
+      countryCode: "SE",
+      pallet: palletRow,
+    });
+    const shippingSek = resolvedShipping.shippingSek;
 
     let boostedLineTotal = 0;
     let nonBoostedLineTotal = 0;

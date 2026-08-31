@@ -35,10 +35,7 @@ import {
 } from "@/lib/checkout/user-zone-delivery-template";
 import { computeExpectedAmountOre } from "@/lib/checkout/expected-amount";
 import { buildCheckoutQuote } from "@/lib/checkout/checkout-quote";
-import {
-  calculateCartShippingCost,
-  resolveLastMileCostCentsPerBottle,
-} from "@/lib/shipping-calculations";
+import { resolveCheckoutShippingSek } from "@/lib/checkout/resolve-checkout-shipping";
 import {
   evaluateLegalGate,
   legalGateInputSchema,
@@ -416,21 +413,19 @@ export async function POST(request: Request) {
       nonBoostedLineTotal,
     );
 
-    const shipping = calculateCartShippingCost(
-      cart.lines.map((l) => ({ quantity: l.quantity })),
-      {
-        id: String(palletRow.id),
-        name: String(palletRow.name ?? ""),
-        costCents: Number(palletRow.cost_cents) || 0,
-        bottleCapacity: Number(palletRow.bottle_capacity) || 0,
-        currentBottles: 0,
-        remainingBottles: 0,
-        lastMileCostCentsPerBottle: resolveLastMileCostCentsPerBottle(
-          Number(palletRow.last_mile_cost_cents_per_bottle) || 0,
-        ),
-      },
+    const bottleCount = cart.lines.reduce(
+      (s, l) => s + (Number(l.quantity) || 0),
+      0,
     );
-    const shippingSek = shipping?.totalShippingCostSek ?? 0;
+    const subtotalSek =
+      parseFloat(String(cart.cost.totalAmount.amount)) || 0;
+    const resolvedShipping = await resolveCheckoutShippingSek({
+      bottleCount,
+      productSubtotalSek: subtotalSek,
+      countryCode: "SE",
+      pallet: palletRow,
+    });
+    const shippingSek = resolvedShipping.shippingSek;
 
     // CartService totals are already in charge/display currency → multiplier 1.
     const { amountOre: amountInOre, components } = await computeExpectedAmountOre(

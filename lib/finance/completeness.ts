@@ -74,10 +74,17 @@ export function classifyUnitSnapshot(
   const outbound = Number(s.unit_last_mile_cost_cents) || 0;
   if (shipGross === 0 && outbound > 0 && qty > 0) {
     status = status === "complete" ? "partial" : status;
+    // Without reservation.shipping_revenue_gross_cents we cannot prove intentional free shipping.
     warnings.push(
       warn(
         "shipping_zero_with_outbound",
         "Customer shipping revenue is 0 while outbound carrier cost is positive — verify charge vs snapshot",
+      ),
+    );
+    warnings.push(
+      warn(
+        "legacy_shipping_revenue_ambiguous",
+        "Zero shipping with positive outbound may be legacy amortization/backfill — not proven free shipping",
       ),
     );
   }

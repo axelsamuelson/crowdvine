@@ -20,6 +20,8 @@ export type FinanceWarningCode =
   | "missing_outbound"
   | "missing_shipping_revenue"
   | "shipping_zero_with_outbound"
+  | "legacy_shipping_revenue_ambiguous"
+  | "known_free_shipping"
   | "legacy_snapshot"
   | "missing_inbound_allocation"
   | "forecast_inbound_only"

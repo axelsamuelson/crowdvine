@@ -9,10 +9,7 @@ import {
 import { getRedeemableBalance } from "@/lib/membership/pact-points-engine";
 import { computeExpectedAmountOre } from "@/lib/checkout/expected-amount";
 import { buildCheckoutQuote } from "@/lib/checkout/checkout-quote";
-import {
-  calculateCartShippingCost,
-  resolveLastMileCostCentsPerBottle,
-} from "@/lib/shipping-calculations";
+import { resolveCheckoutShippingSek } from "@/lib/checkout/resolve-checkout-shipping";
 
 type RequestBody = {
   pallet_id?: string;
@@ -77,21 +74,19 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "Pallet not found" }, { status: 404 });
       }
 
-      const shipping = calculateCartShippingCost(
-        cart.lines.map((l) => ({ quantity: l.quantity })),
-        {
-          id: String(palletRow.id),
-          name: String(palletRow.name ?? ""),
-          costCents: Number(palletRow.cost_cents) || 0,
-          bottleCapacity: Number(palletRow.bottle_capacity) || 0,
-          currentBottles: 0,
-          remainingBottles: 0,
-          lastMileCostCentsPerBottle: resolveLastMileCostCentsPerBottle(
-            Number(palletRow.last_mile_cost_cents_per_bottle) || 0,
-          ),
-        },
+      const bottleCount = cart.lines.reduce(
+        (s, l) => s + (Number(l.quantity) || 0),
+        0,
       );
-      shippingSek = shipping?.totalShippingCostSek ?? 0;
+      const subtotalSek =
+        parseFloat(String(cart.cost.totalAmount.amount)) || 0;
+      const resolved = await resolveCheckoutShippingSek({
+        bottleCount,
+        productSubtotalSek: subtotalSek,
+        countryCode: "SE",
+        pallet: palletRow,
+      });
+      shippingSek = resolved.shippingSek;
     }
 
     let boostedLineTotal = 0;
