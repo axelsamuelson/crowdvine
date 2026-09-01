@@ -147,7 +147,7 @@ const CartItems = ({
             <p>{t("cart.total")}</p>
             <div className="text-right">
               <span className="text-base text-foreground block">
-                {formatPrice(displayTotal, cart.cost.totalAmount.currencyCode)}
+                {formatPrice(displayTotal)}
               </span>
               {showExclVat && (
                 <span className="text-[10px] font-normal text-muted-foreground">

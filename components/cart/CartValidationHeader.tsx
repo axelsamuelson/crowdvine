@@ -20,35 +20,14 @@ export function CartValidationHeader({
   const { t } = useTranslations();
   const [isExpanded, setIsExpanded] = useState(false);
   const [showWhyModal, setShowWhyModal] = useState(false);
-  if (isValidating) {
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="px-3 md:px-4 mb-2"
-      >
-        <div className="bg-background/95 backdrop-blur-md border border-border/30 rounded-lg p-2.5">
-          <div className="flex items-center gap-2">
-            <div className="w-1.5 h-1.5 rounded-full bg-foreground/50 animate-pulse" />
-            <span className="text-xs text-foreground/60 font-medium">
-              {t("cart.validatingCart")}
-            </span>
-          </div>
-        </div>
-      </motion.div>
-    );
-  }
-
-  // Always show header when there are items in cart, even if no validation errors
-  // This allows users to learn about the 6-bottle rule via the help icon
-
-  // Check if all validations are valid
-  const allValid = validations.every((v) => v.isValid);
-  const invalidCount = validations.filter((v) => !v.isValid).length;
-
+  // Hooks must stay above any early return — toggling isValidating used to
+  // change hook count and crash the root layout ("Something went wrong").
   const shownRef = useRef(false);
   const passedRef = useRef(false);
   const failedRef = useRef(false);
+
+  const allValid = validations.every((v) => v.isValid);
+  const invalidCount = validations.filter((v) => !v.isValid).length;
 
   useEffect(() => {
     // Only track when validation UI has settled.
@@ -85,6 +64,28 @@ export function CartValidationHeader({
       });
     }
   }, [isValidating, validations, invalidCount]);
+
+  if (isValidating) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="px-3 md:px-4 mb-2"
+      >
+        <div className="bg-background/95 backdrop-blur-md border border-border/30 rounded-lg p-2.5">
+          <div className="flex items-center gap-2">
+            <div className="w-1.5 h-1.5 rounded-full bg-foreground/50 animate-pulse" />
+            <span className="text-xs text-foreground/60 font-medium">
+              {t("cart.validatingCart")}
+            </span>
+          </div>
+        </div>
+      </motion.div>
+    );
+  }
+
+  // Always show header when there are items in cart, even if no validation errors
+  // This allows users to learn about the 6-bottle rule via the help icon
 
   if (allValid && validations.length > 0) {
     return (
