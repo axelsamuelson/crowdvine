@@ -22,6 +22,8 @@ export type SystembolagetGuideWine = {
   editorial_note_en: string | null;
   producer_note_sv: string | null;
   producer_note_en: string | null;
+  /** Exact TOP_100_PRODUCERS.name for {{rank}} resolution; null if not linked. */
+  top_100_producer_name: string | null;
   sort_order: number;
   previous_sort_order: number | null;
   first_published_at: string | null;
@@ -125,45 +127,64 @@ export async function getGuideWines(
   verdict: GuideWineVerdict = "recommended",
 ): Promise<SystembolagetGuideWine[]> {
   const sb = getSupabaseAdmin();
-  const { data, error } = await sb
-    .from("systembolaget_guide_wines")
-    .select(
-      [
-        "id",
-        "product_number",
-        "verdict",
-        "category",
-        "editorial_note_sv",
-        "editorial_note_en",
-        "producer_note_sv",
-        "producer_note_en",
-        "sort_order",
-        "previous_sort_order",
-        "first_published_at",
-        "last_reviewed_at",
-        "rank_status",
-        "rank_delta",
-        "name_bold",
-        "name_thin",
-        "producer_name",
-        "category_level_2",
-        "country",
-        "origin_level_1",
-        "vintage",
-        "price",
-        "volume",
-        "alcohol_percentage",
-        "grapes",
-        "assortment_text",
-        "is_organic",
-        "image_url",
-        "synced_at",
-      ].join(", "),
-    )
-    .eq("category", category)
-    .eq("verdict", verdict)
-    .order("sort_order", { ascending: true })
-    .order("price", { ascending: true });
+  const columns = [
+    "id",
+    "product_number",
+    "verdict",
+    "category",
+    "editorial_note_sv",
+    "editorial_note_en",
+    "producer_note_sv",
+    "producer_note_en",
+    "top_100_producer_name",
+    "sort_order",
+    "previous_sort_order",
+    "first_published_at",
+    "last_reviewed_at",
+    "rank_status",
+    "rank_delta",
+    "name_bold",
+    "name_thin",
+    "producer_name",
+    "category_level_2",
+    "country",
+    "origin_level_1",
+    "vintage",
+    "price",
+    "volume",
+    "alcohol_percentage",
+    "grapes",
+    "assortment_text",
+    "is_organic",
+    "image_url",
+    "synced_at",
+  ];
+
+  const run = (cols: string[]) =>
+    sb
+      .from("systembolaget_guide_wines")
+      .select(cols.join(", "))
+      .eq("category", category)
+      .eq("verdict", verdict)
+      .order("sort_order", { ascending: true })
+      .order("price", { ascending: true });
+
+  let { data, error } = await run(columns);
+
+  // Migration 207 may not be applied yet — retry without the new column.
+  if (
+    error &&
+    /top_100_producer_name/i.test(error.message)
+  ) {
+    const fallbackCols = columns.filter((c) => c !== "top_100_producer_name");
+    ({ data, error } = await run(fallbackCols));
+    if (!error && data) {
+      data = data.map((row) => ({
+        ...row,
+        top_100_producer_name: null,
+      }));
+    }
+  }
 
   if (error) {
     console.error("[getGuideWines]", error.message);

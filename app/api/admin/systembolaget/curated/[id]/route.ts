@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getCurrentAdmin } from "@/lib/admin-auth-server";
+import { TOP_100_PRODUCERS } from "@/lib/guides/top-100-producers";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 export const dynamic = "force-dynamic";
+
+const TOP_100_NAMES = new Set(TOP_100_PRODUCERS.map((p) => p.name));
 
 const patchSchema = z.object({
   verdict: z.enum(["recommended", "avoid"]).optional(),
@@ -14,6 +17,7 @@ const patchSchema = z.object({
   editorial_note_en: z.string().optional().nullable(),
   producer_note_sv: z.string().optional().nullable(),
   producer_note_en: z.string().optional().nullable(),
+  top_100_producer_name: z.string().optional().nullable(),
   sort_order: z.number().int().optional(),
   is_published: z.boolean().optional(),
 });
@@ -47,10 +51,29 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     );
   }
 
+  const patch: Record<string, unknown> = { ...parsed.data };
+  if ("top_100_producer_name" in patch) {
+    const raw = patch.top_100_producer_name;
+    if (raw == null || (typeof raw === "string" && !raw.trim())) {
+      patch.top_100_producer_name = null;
+    } else if (typeof raw === "string") {
+      const trimmed = raw.trim();
+      if (!TOP_100_NAMES.has(trimmed)) {
+        return NextResponse.json(
+          {
+            error: `top_100_producer_name must be an exact TOP_100_PRODUCERS name (got "${trimmed}")`,
+          },
+          { status: 400 },
+        );
+      }
+      patch.top_100_producer_name = trimmed;
+    }
+  }
+
   const sb = getSupabaseAdmin();
   const { data, error } = await sb
     .from("systembolaget_curated")
-    .update(parsed.data)
+    .update(patch)
     .eq("id", id)
     .select("*")
     .single();

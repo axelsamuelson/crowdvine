@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { TOP_100_PRODUCERS } from "@/lib/guides/top-100-producers";
 import { toast } from "sonner";
 
 type SyncStatus = {
@@ -40,6 +41,9 @@ type CuratedRow = {
   category: string;
   editorial_note_sv: string;
   editorial_note_en: string | null;
+  producer_note_sv: string | null;
+  producer_note_en: string | null;
+  top_100_producer_name: string | null;
   sort_order: number;
   is_published: boolean;
   unavailable: boolean;
@@ -59,6 +63,9 @@ type CurateForm = {
   category: "red" | "white" | "orange" | "sparkling" | "rose" | "budget";
   editorial_note_sv: string;
   editorial_note_en: string;
+  producer_note_sv: string;
+  producer_note_en: string;
+  top_100_producer_name: string;
   sort_order: string;
   is_published: boolean;
 };
@@ -98,9 +105,17 @@ const emptyForm = (): CurateForm => ({
   category: "red",
   editorial_note_sv: "",
   editorial_note_en: "",
+  producer_note_sv: "",
+  producer_note_en: "",
+  top_100_producer_name: "",
   sort_order: "100",
   is_published: false,
 });
+
+const TOP_100_PRODUCER_OPTIONS = TOP_100_PRODUCERS.map((p) => ({
+  name: p.name,
+  rank: p.rank,
+})).sort((a, b) => a.rank - b.rank);
 
 const emptyIssueForm = (): IssueForm => ({
   product_number: "",
@@ -372,6 +387,9 @@ export default function SystembolagetAdminPage() {
           category: form.category,
           editorial_note_sv: form.editorial_note_sv.trim(),
           editorial_note_en: form.editorial_note_en.trim() || null,
+          producer_note_sv: form.producer_note_sv.trim() || null,
+          producer_note_en: form.producer_note_en.trim() || null,
+          top_100_producer_name: form.top_100_producer_name.trim() || null,
           sort_order: Number.parseInt(form.sort_order, 10) || 100,
           is_published: form.is_published,
         }),
@@ -901,6 +919,67 @@ export default function SystembolagetAdminPage() {
                 }
               />
             </div>
+            <div>
+              <Label htmlFor="top-100-producer">Top 100 producer</Label>
+              <select
+                id="top-100-producer"
+                className="mt-1 w-full rounded border border-input bg-background px-3 py-2 text-sm"
+                value={form.top_100_producer_name}
+                onChange={(e) =>
+                  setForm((p) => ({
+                    ...p,
+                    top_100_producer_name: e.target.value,
+                  }))
+                }
+              >
+                <option value="">— None —</option>
+                {TOP_100_PRODUCER_OPTIONS.map((p) => (
+                  <option key={p.name} value={p.name}>
+                    #{p.rank} {p.name}
+                  </option>
+                ))}
+              </select>
+              {form.top_100_producer_name ? (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {"{{rank}}"} → #
+                  {TOP_100_PRODUCER_OPTIONS.find(
+                    (p) => p.name === form.top_100_producer_name,
+                  )?.rank ?? "?"}
+                </p>
+              ) : (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Leave empty if this wine is not from a top-100 producer.
+                </p>
+              )}
+            </div>
+            <div>
+              <Label htmlFor="producer-note-sv">Producer note (SV)</Label>
+              <textarea
+                id="producer-note-sv"
+                className="mt-1 w-full rounded border border-input bg-background px-3 py-2 text-sm min-h-[72px]"
+                value={form.producer_note_sv}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, producer_note_sv: e.target.value }))
+                }
+              />
+              <p className="mt-1 text-xs text-muted-foreground">
+                Använd {"{{rank}}"} istället för att skriva siffran.
+              </p>
+            </div>
+            <div>
+              <Label htmlFor="producer-note-en">Producer note (EN)</Label>
+              <textarea
+                id="producer-note-en"
+                className="mt-1 w-full rounded border border-input bg-background px-3 py-2 text-sm min-h-[72px]"
+                value={form.producer_note_en}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, producer_note_en: e.target.value }))
+                }
+              />
+              <p className="mt-1 text-xs text-muted-foreground">
+                Använd {"{{rank}}"} istället för att skriva siffran.
+              </p>
+            </div>
             <div className="grid grid-cols-2 gap-3 items-end">
               <div>
                 <Label htmlFor="sort">Sort order</Label>
@@ -969,6 +1048,9 @@ export default function SystembolagetAdminPage() {
                         {row.sort_order}
                         {row.product?.price != null
                           ? ` · ${row.product.price} kr`
+                          : ""}
+                        {row.top_100_producer_name
+                          ? ` · top100: ${row.top_100_producer_name}`
                           : ""}
                       </div>
                       <p className="mt-2 text-foreground/80">

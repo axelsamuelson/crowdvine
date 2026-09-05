@@ -1,9 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getCurrentAdmin } from "@/lib/admin-auth-server";
+import { TOP_100_PRODUCERS } from "@/lib/guides/top-100-producers";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 export const dynamic = "force-dynamic";
+
+const TOP_100_NAMES = new Set(TOP_100_PRODUCERS.map((p) => p.name));
+
+function normalizeTop100Name(
+  value: string | null | undefined,
+): string | null | undefined {
+  if (value === undefined) return undefined;
+  if (value == null) return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (!TOP_100_NAMES.has(trimmed)) {
+    throw new Error(
+      `top_100_producer_name must be an exact TOP_100_PRODUCERS name (got "${trimmed}")`,
+    );
+  }
+  return trimmed;
+}
 
 const curatedSchema = z.object({
   product_number: z.string().min(1),
@@ -20,6 +38,7 @@ const curatedSchema = z.object({
   editorial_note_en: z.string().optional().nullable(),
   producer_note_sv: z.string().optional().nullable(),
   producer_note_en: z.string().optional().nullable(),
+  top_100_producer_name: z.string().optional().nullable(),
   sort_order: z.number().int().optional(),
   is_published: z.boolean().optional(),
 });
@@ -114,6 +133,16 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  let top100: string | null;
+  try {
+    top100 = normalizeTop100Name(parsed.data.top_100_producer_name) ?? null;
+  } catch (err) {
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : String(err) },
+      { status: 400 },
+    );
+  }
+
   const sb = getSupabaseAdmin();
   const { data, error } = await sb
     .from("systembolaget_curated")
@@ -126,6 +155,7 @@ export async function POST(request: NextRequest) {
         editorial_note_en: parsed.data.editorial_note_en ?? null,
         producer_note_sv: parsed.data.producer_note_sv ?? null,
         producer_note_en: parsed.data.producer_note_en ?? null,
+        top_100_producer_name: top100,
         sort_order: parsed.data.sort_order ?? 100,
         is_published: parsed.data.is_published ?? false,
       },

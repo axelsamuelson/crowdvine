@@ -21,6 +21,7 @@ import {
 import type { AppLocale } from "@/lib/i18n/locale";
 import { DEFAULT_WINE_IMAGE_PATH } from "@/lib/constants";
 import { getSiteConfig } from "@/lib/site-config";
+import { resolveRankTokens } from "@/lib/guides/resolve-rank-tokens";
 import {
   formatRankBadge,
   formatSyncedAtLabel,
@@ -157,10 +158,14 @@ function RankedWineRow({
     locale === "en"
       ? wine.editorial_note_en?.trim() || wine.editorial_note_sv.trim()
       : wine.editorial_note_sv.trim();
-  const producerNote =
+  const rawProducerNote =
     locale === "en"
       ? wine.producer_note_en?.trim() || wine.producer_note_sv?.trim() || null
       : wine.producer_note_sv?.trim() || null;
+  const producerNote = resolveRankTokens(
+    rawProducerNote,
+    wine.top_100_producer_name,
+  );
   const url = systembolagetProductUrl(wine.product_number);
   const linkLabel =
     locale === "sv" ? "Visa på Systembolaget →" : "View at Systembolaget →";
