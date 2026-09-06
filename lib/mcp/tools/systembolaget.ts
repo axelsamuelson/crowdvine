@@ -171,25 +171,86 @@ export function registerSystembolagetTools(
     "search_systembolaget_products",
     {
       description:
-        "Search systembolaget_products by producer or wine name (ilike). Returns product_number needed to curate a wine.",
+        "Search/browse systembolaget_products for curation. query is optional when another filter is set. Returns count + results (cap 50).",
       inputSchema: {
-        query: z.string().min(2),
+        query: z
+          .string()
+          .min(2)
+          .optional()
+          .describe("Ilike on producer_name / name_bold / name_thin."),
         category: categorySchema.optional(),
+        country: z
+          .string()
+          .optional()
+          .describe("Exact country match, case-insensitive."),
+        origin: z.string().optional().describe("Ilike on origin_level_1."),
+        grapes: z
+          .string()
+          .optional()
+          .describe("Ilike against any grape in the grapes array."),
+        min_price: z.number().nonnegative().optional(),
         max_price: z.number().positive().optional(),
+        is_organic: z.boolean().optional(),
+        assortment: z
+          .string()
+          .optional()
+          .describe("Ilike on assortment_text (e.g. Ordervaror, Tillfälligt)."),
+        exclude_curated: z
+          .boolean()
+          .optional()
+          .default(false)
+          .describe(
+            "When true, omit products already in systembolaget_curated.",
+          ),
+        vintage: z.number().int().optional(),
+        min_alcohol: z.number().nonnegative().optional(),
+        max_alcohol: z.number().positive().optional(),
       },
     },
-    async ({ query, category, max_price }) => {
+    async (args) => {
       try {
-        const safe = sanitizeSearchQuery(query);
-        if (safe.length < 2) {
-          return mcpJsonResult([], {
-            tool: "search_systembolaget_products",
-            rowCount: 0,
-          });
+        const {
+          query,
+          category,
+          country,
+          origin,
+          grapes,
+          min_price,
+          max_price,
+          is_organic,
+          assortment,
+          exclude_curated = false,
+          vintage,
+          min_alcohol,
+          max_alcohol,
+        } = args;
+
+        const hasQuery = Boolean(query && query.trim().length >= 2);
+        const hasOtherFilter = Boolean(
+          category ||
+            country ||
+            origin ||
+            grapes ||
+            min_price != null ||
+            max_price != null ||
+            is_organic != null ||
+            assortment ||
+            exclude_curated ||
+            vintage != null ||
+            min_alcohol != null ||
+            max_alcohol != null,
+        );
+
+        if (!hasQuery && !hasOtherFilter) {
+          return mcpErrorResult(
+            "Provide query and/or at least one filter (country, origin, grapes, price, is_organic, assortment, exclude_curated, vintage, alcohol, category).",
+            "search_systembolaget_products",
+          );
         }
 
-        const pattern = `%${safe}%`;
-        const quoted = `"${pattern.replace(/"/g, "")}"`;
+        const RESULT_CAP = 50;
+        // When grapes is filtered client-side, over-fetch then trim.
+        const FETCH_CAP = grapes ? 400 : RESULT_CAP + 1;
 
         let q = sb
           .from("systembolaget_products")
@@ -199,33 +260,116 @@ export function registerSystembolagetTools(
               "name_bold",
               "name_thin",
               "producer_name",
+              "country",
+              "origin_level_1",
               "price",
               "vintage",
+              "alcohol_percentage",
+              "grapes",
+              "assortment_text",
               "is_available",
               "is_organic",
               "category_level_2",
             ].join(", "),
-          )
-          .or(
-            `producer_name.ilike.${quoted},name_bold.ilike.${quoted},name_thin.ilike.${quoted}`,
+            { count: grapes ? undefined : "exact" },
           )
           .order("producer_name", { ascending: true })
-          .limit(40);
+          .limit(FETCH_CAP);
+
+        if (hasQuery) {
+          const safe = sanitizeSearchQuery(query!);
+          if (safe.length < 2) {
+            return mcpErrorResult(
+              "query must be at least 2 characters after sanitising.",
+              "search_systembolaget_products",
+            );
+          }
+          const pattern = `%${safe}%`;
+          const quoted = `"${pattern.replace(/"/g, "")}"`;
+          q = q.or(
+            `producer_name.ilike.${quoted},name_bold.ilike.${quoted},name_thin.ilike.${quoted}`,
+          );
+        }
 
         if (category) {
           const pat = CATEGORY_LEVEL_2_PATTERNS[category];
           if (pat) q = q.ilike("category_level_2", pat);
         }
-        if (max_price != null) {
-          q = q.lte("price", max_price);
+        if (country) {
+          // ILIKE without wildcards = case-insensitive exact match
+          q = q.ilike("country", country.trim());
+        }
+        if (origin) {
+          q = q.ilike("origin_level_1", `%${sanitizeSearchQuery(origin)}%`);
+        }
+        if (assortment) {
+          q = q.ilike(
+            "assortment_text",
+            `%${sanitizeSearchQuery(assortment)}%`,
+          );
+        }
+        if (min_price != null) q = q.gte("price", min_price);
+        if (max_price != null) q = q.lte("price", max_price);
+        if (is_organic != null) q = q.eq("is_organic", is_organic);
+        if (vintage != null) q = q.eq("vintage", vintage);
+        if (min_alcohol != null) q = q.gte("alcohol_percentage", min_alcohol);
+        if (max_alcohol != null) q = q.lte("alcohol_percentage", max_alcohol);
+
+        if (exclude_curated) {
+          const { data: curatedRows, error: curatedError } = await sb
+            .from("systembolaget_curated")
+            .select("product_number");
+          if (curatedError) {
+            return mcpErrorResult(
+              curatedError.message,
+              "search_systembolaget_products",
+            );
+          }
+          const taken = (curatedRows ?? [])
+            .map((r) => r.product_number as string)
+            .filter(Boolean);
+          if (taken.length > 0) {
+            q = q.not(
+              "product_number",
+              "in",
+              `(${taken.map((n) => `"${n.replace(/"/g, "")}"`).join(",")})`,
+            );
+          }
         }
 
-        const { data, error } = await q;
+        // grapes is text[] — Postgres has no ilike on arrays; exclude empty when filtering
+        if (grapes) {
+          q = q.not("grapes", "eq", "{}");
+        }
+
+        const { data, error, count } = await q;
         if (error) {
           return mcpErrorResult(error.message, "search_systembolaget_products");
         }
 
-        const rows = (data ?? []).map((row) => {
+        const grapeNeedle = grapes?.trim().toLowerCase() ?? "";
+        let rows = data ?? [];
+        if (grapeNeedle) {
+          rows = rows.filter((row) => {
+            const list = row.grapes as string[] | null;
+            if (!list || list.length === 0) return false;
+            return list.some((g) => g.toLowerCase().includes(grapeNeedle));
+          });
+        }
+
+        const truncated =
+          grapeNeedle
+            ? (data?.length ?? 0) >= FETCH_CAP || rows.length > RESULT_CAP
+            : (count ?? 0) > RESULT_CAP;
+
+        const totalCount = grapeNeedle
+          ? rows.length >= RESULT_CAP && (data?.length ?? 0) >= FETCH_CAP
+            ? rows.length // lower bound when over-fetch saturated
+            : rows.length
+          : (count ?? rows.length);
+
+        const sliced = rows.slice(0, RESULT_CAP);
+        const results = sliced.map((row) => {
           const name = [row.name_bold, row.name_thin]
             .filter((p): p is string => Boolean(p && String(p).trim()))
             .join(" ")
@@ -234,17 +378,32 @@ export function registerSystembolagetTools(
             product_number: row.product_number,
             name: name || null,
             producer_name: row.producer_name,
+            country: row.country,
+            origin_level_1: row.origin_level_1,
             price: row.price,
             vintage: row.vintage,
+            alcohol_percentage: row.alcohol_percentage,
+            grapes: row.grapes,
+            assortment_text: row.assortment_text,
             is_available: row.is_available,
             is_organic: row.is_organic,
           };
         });
 
-        return mcpJsonResult(rows, {
-          tool: "search_systembolaget_products",
-          rowCount: rows.length,
-        });
+        return mcpJsonResult(
+          {
+            count: grapeNeedle ? rows.length : totalCount,
+            truncated,
+            truncated_note: truncated
+              ? `Results capped at ${RESULT_CAP}${grapeNeedle ? ` (grapes filter applied after fetch of up to ${FETCH_CAP})` : ""}.`
+              : null,
+            results,
+          },
+          {
+            tool: "search_systembolaget_products",
+            rowCount: results.length,
+          },
+        );
       } catch (e) {
         return mcpErrorResult(
           e instanceof Error ? e.message : String(e),
