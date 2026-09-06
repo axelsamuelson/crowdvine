@@ -1,8 +1,11 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
-import { TOP_100_PRODUCERS } from "@/lib/guides/top-100-producers";
 import { mcpErrorResult, mcpJsonResult } from "../utils/tool-result";
+import {
+  findTop100ProducerExact,
+  nearTop100ProducerMatches,
+} from "../utils/top-100-match";
 import { mcpWriteTool } from "../utils/write-tool";
 
 const categorySchema = z.enum([
@@ -50,22 +53,6 @@ const CATEGORY_LEVEL_2_PATTERNS: Record<
   budget: null,
 };
 
-function findTop100Exact(name: string) {
-  return TOP_100_PRODUCERS.find((p) => p.name === name) ?? null;
-}
-
-function nearTop100Matches(input: string): string[] {
-  const q = input.toLowerCase().trim();
-  if (!q) return [];
-  const words = q.split(/\s+/).filter((w) => w.length > 2);
-  const hits = TOP_100_PRODUCERS.filter((p) => {
-    const n = p.name.toLowerCase();
-    if (n.includes(q) || q.includes(n)) return true;
-    return words.some((w) => n.includes(w));
-  });
-  return hits.slice(0, 8).map((p) => `#${p.rank} ${p.name}`);
-}
-
 function rejectHardcodedRanks(
   producerNoteSv: string | null | undefined,
   producerNoteEn: string | null | undefined,
@@ -84,8 +71,8 @@ function rejectHardcodedRanks(
 function validateTop100Name(name: string | null | undefined): string | null {
   if (name == null || name.trim() === "") return null;
   const trimmed = name.trim();
-  if (findTop100Exact(trimmed)) return null;
-  const near = nearTop100Matches(trimmed);
+  if (findTop100ProducerExact(trimmed)) return null;
+  const near = nearTop100ProducerMatches(trimmed);
   const nearText =
     near.length > 0
       ? ` Near matches: ${near.join("; ")}.`
@@ -177,33 +164,6 @@ export function registerSystembolagetTools(
           "list_guide_wines",
         );
       }
-    },
-  );
-
-  server.registerTool(
-    "get_top_100_producer",
-    {
-      description:
-        "Look up an exact name in TOP_100_PRODUCERS. No fuzzy matching — used to validate top_100_producer_name before write.",
-      inputSchema: {
-        name: z.string().min(1).describe("Exact TopProducer.name"),
-      },
-    },
-    async ({ name }) => {
-      const match = findTop100Exact(name.trim());
-      if (!match) {
-        return mcpJsonResult(null, { tool: "get_top_100_producer", rowCount: 0 });
-      }
-      return mcpJsonResult(
-        {
-          rank: match.rank,
-          name: match.name,
-          region: match.region,
-          country: match.country,
-          grapes: match.grapes,
-        },
-        { tool: "get_top_100_producer", rowCount: 1 },
-      );
     },
   );
 

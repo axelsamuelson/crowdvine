@@ -9,6 +9,7 @@ export default defineConfig({
       "lib/menu-extraction/__tests__/**/*.test.ts",
       "lib/shop/__tests__/**/*.test.ts",
       "lib/analytics/__tests__/**/*.test.ts",
+      "lib/guides/__tests__/**/*.test.ts",
     ],
     environment: "node",
   },
