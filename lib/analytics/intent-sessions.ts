@@ -102,7 +102,13 @@ export function buildIntentSessionsFromCleanEvents(
     );
     if (!hasAdd && !reachedCheckout) continue;
 
-    if (sessionEvents.some((e) => e.event_type === "reservation_completed")) {
+    if (
+      sessionEvents.some(
+        (e) =>
+          e.event_type === "reservation_completed" ||
+          e.event_type === "checkout_completed",
+      )
+    ) {
       continue;
     }
 
@@ -311,7 +317,10 @@ export function buildWeeklyFunnelFromCleanEvents(
     ) {
       bucket.checkout.add(sid);
     }
-    if (agg.types.has("reservation_completed")) {
+    if (
+      agg.types.has("reservation_completed") ||
+      agg.types.has("checkout_completed")
+    ) {
       bucket.reservation.add(sid);
     } else {
       // Attribute conversion via order_reservations for known users in session window (+1d)

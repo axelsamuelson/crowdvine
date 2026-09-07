@@ -93,6 +93,8 @@ export type ArticleGuideShellProps = {
   sections: ArticleGuideShellSection[];
   /** Rendered after the deck, before the first section (inside the measure column). */
   beforeSections?: ReactNode;
+  /** Rendered after the first section when there are 2+ sections. */
+  afterFirstSection?: ReactNode;
   /** Rendered after the last section, before further reading (inside the measure column). */
   afterSections?: ReactNode;
   furtherReadingHeading?: string;
@@ -119,6 +121,7 @@ export function ArticleGuideShell({
   lede,
   sections,
   beforeSections,
+  afterFirstSection,
   afterSections,
   furtherReadingHeading,
   internalLinks = [],
@@ -162,6 +165,9 @@ export function ArticleGuideShell({
                     />
                   ))}
                 </div>
+                {sectionIndex === 0 && afterFirstSection
+                  ? afterFirstSection
+                  : null}
               </section>
             ))}
             {afterSections}

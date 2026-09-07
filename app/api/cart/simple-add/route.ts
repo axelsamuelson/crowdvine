@@ -3,7 +3,10 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { CartService } from "@/src/lib/cart-service";
 import { isB2BHost } from "@/lib/b2b-site";
-import { BOTTLE_PACK_SIZE } from "@/lib/cart/bottle-pack";
+import {
+  BOTTLE_PACK_SIZE,
+  mergeB2BPackQuantity,
+} from "@/lib/cart/bottle-pack";
 
 export async function POST(request: Request) {
   try {
@@ -23,10 +26,9 @@ export async function POST(request: Request) {
 
     // Dirty Wine: never add a single bottle — always a pack
     const host = request.headers.get("host");
-    const addQuantity =
-      body.enforcePack === true || isB2BHost(host)
-        ? BOTTLE_PACK_SIZE
-        : 1;
+    const enforcePack =
+      body.enforcePack === true || isB2BHost(host);
+    const addQuantity = enforcePack ? BOTTLE_PACK_SIZE : 1;
 
     // Extract base ID from variant ID (remove -default suffix)
     const baseId = variantId.replace("-default", "");
@@ -125,17 +127,20 @@ export async function POST(request: Request) {
       .maybeSingle();
 
     if (existingItem) {
+      const newQuantity = enforcePack
+        ? mergeB2BPackQuantity(existingItem.quantity, addQuantity)
+        : existingItem.quantity + addQuantity;
       // Increment existing quantity
       console.log(
         "🔧 Item exists, incrementing from",
         existingItem.quantity,
         "to",
-        existingItem.quantity + addQuantity,
+        newQuantity,
       );
       const { error: updateError } = await supabase
         .from("cart_items")
         .update({
-          quantity: existingItem.quantity + addQuantity,
+          quantity: newQuantity,
           source: "producer",
         })
         .eq("id", existingItem.id);

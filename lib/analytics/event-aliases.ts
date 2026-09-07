@@ -46,6 +46,7 @@ const EVENT_TYPE_LABELS_SV: Readonly<Record<string, string>> = {
   checkout_started: "Checkout startad",
   checkout_step_viewed: "Checkout-steg visat",
   checkout_abandoned: "Checkout övergiven",
+  checkout_completed: "Betalning genomförd",
   reservation_completed: "Reservation skapad",
   terms_accepted: "Köpvillkor godkända",
   add_to_cart: "Tillagd i varukorg",

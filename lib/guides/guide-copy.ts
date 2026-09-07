@@ -64,6 +64,8 @@ export type GuideLocaleCopy = {
   type: string;
   languedocHeading: string;
   shopNaturalWine: string;
+  /** Supporting line above the guide → shop CTA. */
+  shopCtaLead: string;
   producers: {
     h1: string;
     metaTitle: string;
@@ -207,6 +209,7 @@ const SV: GuideLocaleCopy = {
   type: "Typ",
   languedocHeading: "Languedoc och Roussillon bland världens bästa",
   shopNaturalWine: "Shoppa naturvin →",
+  shopCtaLead: "Redo att smaka? Utforska våra naturviner i shopen.",
   producers: {
     h1: "Världens 100 bästa naturvinsproducenter",
     metaTitle: "Världens 100 bästa naturvinsproducenter | PACT Wines",
@@ -350,6 +353,7 @@ const EN: GuideLocaleCopy = {
   type: "Type",
   languedocHeading: "Languedoc and Roussillon among the world's best",
   shopNaturalWine: "Shop natural wine →",
+  shopCtaLead: "Ready to taste? Explore our natural wines in the shop.",
   producers: {
     h1: "The World's 100 Best Natural Wine Producers",
     metaTitle: "The World's 100 Best Natural Wine Producers | PACT Wines",

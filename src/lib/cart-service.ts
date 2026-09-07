@@ -12,6 +12,7 @@ import { resolveDisplayCurrency } from "@/lib/shopping-context/display-currency"
 import { bindCartOwnerAndTouch } from "@/lib/cart/reconcile-on-auth";
 import { getCurrentUser as getSessionUser } from "@/lib/supabase-server";
 import { isB2BHost } from "@/lib/b2b-site";
+import { normalizeExistingB2BLineQuantity } from "@/lib/cart/bottle-pack";
 
 type CartWineProducer = {
   id?: string;
@@ -204,6 +205,27 @@ export class CartService {
       // Dirty Wine: no member discount and no pallet early-bird pricing.
       // Skipping early-bird avoids determineZones + Nominatim on every getCart/add.
       const isB2B = isB2BHost(requestHost, null);
+
+      // Self-heal legacy single-bottle lines so 6-pack validation can pass.
+      if (isB2B) {
+        for (const item of cartItems as CartItemRow[]) {
+          const next = normalizeExistingB2BLineQuantity(item.quantity);
+          if (next !== item.quantity) {
+            console.log(
+              "🔧 [B2B] Normalizing cart line",
+              item.id,
+              item.quantity,
+              "→",
+              next,
+            );
+            const { error: normErr } = await sb
+              .from("cart_items")
+              .update({ quantity: next })
+              .eq("id", item.id);
+            if (!normErr) item.quantity = next;
+          }
+        }
+      }
 
       let memberDiscountPercent = 0;
       let palletTier: DiscountTier = 0;
@@ -492,10 +514,20 @@ export class CartService {
           throw new Error("Failed to remove cart item");
         }
       } else {
+        let nextQuantity = quantity;
+        try {
+          const h = await headers();
+          const host = h.get("x-forwarded-host") ?? h.get("host");
+          if (isB2BHost(host, null)) {
+            nextQuantity = normalizeExistingB2BLineQuantity(quantity);
+          }
+        } catch {
+          /* ignore */
+        }
         // Update quantity
         const { error } = await sb
           .from("cart_items")
-          .update({ quantity })
+          .update({ quantity: nextQuantity })
           .eq("id", itemId);
 
         if (error) {

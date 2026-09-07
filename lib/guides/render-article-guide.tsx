@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { ArticleGuideShell } from "@/lib/guides/article-guide-shell";
+import { ArticleShopCta } from "@/lib/guides/article-shop-cta";
 import { buildArticleGuideMeta } from "@/lib/guides/guide-article-seo";
 import {
   GuideBreadcrumbs,
@@ -15,6 +16,26 @@ import {
 } from "@/lib/guides/guide-types";
 import type { AppLocale } from "@/lib/i18n/locale";
 import { getSiteConfig } from "@/lib/site-config";
+
+function resolveArticleShopHref(
+  content: GuideArticleContent,
+  locale: AppLocale,
+): string {
+  if (content.shopCta?.href[locale]) return content.shopCta.href[locale];
+
+  const shopLink = content.internalLinks.find((link) => {
+    const href = link.href[locale] || "";
+    return (
+      href === "/wine" ||
+      href === "/vin" ||
+      href.startsWith("/wine/") ||
+      href.startsWith("/vin/")
+    );
+  });
+  if (shopLink) return shopLink.href[locale];
+
+  return locale === "sv" ? "/vin/naturvin" : "/wine/natural-wine";
+}
 
 export async function buildArticleGuideMetadata(
   content: GuideArticleContent,
@@ -38,6 +59,17 @@ export async function renderArticleGuidePage(
   const hubPath = guidePath("hub", locale);
   const pagePath = articlePath(content, locale);
   const pageUrl = `${config.baseUrl}${pagePath}`;
+  const shopHref = resolveArticleShopHref(content, locale);
+  const shopLabel =
+    content.shopCta?.label?.[locale]?.trim() || copy.shopNaturalWine;
+
+  const shopCta = (
+    <ArticleShopCta
+      href={shopHref}
+      label={shopLabel}
+      lead={copy.shopCtaLead}
+    />
+  );
 
   const about =
     content.jsonLdAbout.type === "Person"
@@ -102,6 +134,10 @@ export async function renderArticleGuidePage(
           headingBadge: section.headingBadge?.[locale],
           paragraphs: articleParagraphs(section.body, locale),
         }))}
+        afterFirstSection={
+          content.sections.length >= 2 ? shopCta : undefined
+        }
+        afterSections={shopCta}
         furtherReadingHeading={content.furtherReadingHeading[locale]}
         internalLinks={content.internalLinks
           .filter((link) => link.label[locale].trim().length > 0)

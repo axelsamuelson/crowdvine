@@ -60,6 +60,14 @@ export type GuideArticleContent = {
   faqs?: GuideArticleFaq[];
   internalLinks: GuideArticleInternalLink[];
   jsonLdAbout: GuideArticleJsonLdAbout;
+  /**
+   * Optional end-of-article shop CTA override.
+   * Defaults to /wine/natural-wine | /vin/naturvin (or first shop link in internalLinks).
+   */
+  shopCta?: {
+    href: LocalizedString;
+    label?: LocalizedString;
+  };
 };
 
 export function articlePath(

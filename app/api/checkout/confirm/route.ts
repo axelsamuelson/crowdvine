@@ -71,6 +71,7 @@ import { assertClientMarketDropIdAllowed } from "@/lib/market/resolve-market-dro
 import { resolveOrCreateMarketDropIdForCheckout } from "@/lib/market/get-or-create-market-drop";
 import { resolveActiveGeoZoneForUser } from "@/lib/market/resolve-active-geo-zone";
 import { logUserEventServer } from "@/lib/analytics/log-user-event-server";
+import { emitCheckoutCompletedOnce } from "@/lib/analytics/emit-checkout-completed";
 import { readVisitorIdentityFromCookies } from "@/lib/analytics/visitor-identity-server";
 import {
   buildReservationSuccessResponse,
@@ -2633,6 +2634,13 @@ export async function POST(request: Request) {
       if (process.env.NODE_ENV === "development") {
         console.log("[dev] reservation_completed", ev);
       }
+      const paymentMode =
+        intentType === "setup_intent" ? "setup_intent" : "payment_intent";
+      const paymentStatus =
+        intentType === "payment_intent" && !deferredLinkCheckout
+          ? "paid"
+          : "pending";
+
       void logUserEventServer({
         userId: currentUser?.id ?? null,
         visitorId,
@@ -2644,11 +2652,32 @@ export async function POST(request: Request) {
         metadata: {
           reservation_id: ev.reservation_id,
           bottle_count: ev.bottle_count,
+          payment_mode: paymentMode,
+          payment_status: paymentStatus,
+          is_b2b: isB2BSite,
+          ...(checkoutGroupId ? { checkout_group_id: checkoutGroupId } : {}),
+          ...(intentId ? { intent_id: intentId } : {}),
           ...(reservationIsTestPurchase
             ? { testkop: true, promo_code: promoCodeApplied }
             : {}),
         },
       });
+
+      if (paymentStatus === "paid") {
+        void emitCheckoutCompletedOnce({
+          reservationId: ev.reservation_id,
+          bottleCount: ev.bottle_count,
+          amountSek: expectedFinalSek,
+          paymentIntentId: intentId,
+          source: "checkout_confirm",
+          userId: currentUser?.id ?? null,
+          visitorId,
+          countryCode,
+          firstTouch,
+          internal: markInternal,
+          isB2b: isB2BSite,
+        });
+      }
     }
 
     return NextResponse.json({

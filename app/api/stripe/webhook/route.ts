@@ -8,6 +8,7 @@ import {
   createInstabeeOrder,
 } from "@/lib/instabee/home-delivery";
 import { sendLabelsEmail } from "@/lib/email/instabee-labels";
+import { emitCheckoutCompletedOnce } from "@/lib/analytics/emit-checkout-completed";
 
 function paymentIntentLatestChargeId(
   paymentIntent: Stripe.PaymentIntent,
@@ -107,6 +108,43 @@ async function handlePaymentIntentSucceededWebhook(
       updateError,
     );
     return;
+  }
+
+  try {
+    const { data: reservationRow } = await supabase
+      .from("order_reservations")
+      .select("id, total_sek, is_test_purchase, user_id")
+      .eq("id", reservationId)
+      .maybeSingle();
+
+    const { data: itemRows } = await supabase
+      .from("order_reservation_items")
+      .select("quantity")
+      .eq("reservation_id", reservationId);
+
+    const bottleCount = (itemRows ?? []).reduce(
+      (sum, row) => sum + (Number(row.quantity) || 0),
+      0,
+    );
+
+    void emitCheckoutCompletedOnce({
+      reservationId,
+      bottleCount: bottleCount || null,
+      amountSek:
+        reservationRow?.total_sek != null
+          ? Number(reservationRow.total_sek)
+          : null,
+      paymentIntentId: paymentIntent.id,
+      chargeId,
+      source: "stripe_webhook",
+      userId: reservationRow?.user_id ?? null,
+      internal: reservationRow?.is_test_purchase === true,
+    });
+  } catch (analyticsError) {
+    console.error(
+      `[Stripe Webhook] reservation_id=${reservationId} checkout_completed emit failed:`,
+      analyticsError,
+    );
   }
 
   const { confirmPendingRedemption } = await import(

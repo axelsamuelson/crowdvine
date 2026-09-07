@@ -6,6 +6,7 @@ import { isB2BHost } from "@/lib/b2b-site";
 import {
   BOTTLE_PACK_SIZE,
   isBottlePackQuantity,
+  mergeB2BPackQuantity,
 } from "@/lib/cart/bottle-pack";
 
 /**
@@ -179,13 +180,17 @@ export async function POST(request: Request) {
     }
 
     if (existingItem) {
-      // Item exists - increment quantity by requested amount
-      const newQuantity = existingItem.quantity + quantity;
+      // Item exists - increment quantity by requested amount.
+      // B2B: drop legacy non-pack remainder so 1+6 → 6 (not 7).
+      const newQuantity = enforcePack
+        ? mergeB2BPackQuantity(existingItem.quantity, quantity)
+        : existingItem.quantity + quantity;
       console.log(
         "🛒 [ADD-QUANTITY] Item exists, incrementing from",
         existingItem.quantity,
         "to",
         newQuantity,
+        enforcePack ? "(B2B pack merge)" : "",
       );
 
       const { error: updateError } = await supabase

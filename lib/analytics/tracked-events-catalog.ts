@@ -233,14 +233,15 @@ export const TRACKED_USER_EVENTS_CATALOG: TrackedEventCatalogEntry[] = [
   {
     eventType: "checkout_completed",
     category: "checkout",
-    description: "Checkout completed successfully (reserved).",
-    sources: ["client"],
+    description:
+      "Payment captured successfully (server: checkout confirm payment_intent or Stripe webhook).",
+    sources: ["server"],
   },
   {
     eventType: "reservation_completed",
     category: "checkout",
     description:
-      "Reservation created successfully (server: checkout confirm).",
+      "Reservation created (server: checkout confirm). May be paid or pending setup_intent — see metadata.payment_status.",
     sources: ["server"],
   },
   {

@@ -7,6 +7,7 @@ import {
   ARTICLE_GUIDE_BODY_CLASS,
   ARTICLE_GUIDE_H2_CLASS,
 } from "@/lib/guides/article-guide-shell";
+import { ArticleShopCta } from "@/lib/guides/article-shop-cta";
 import {
   GuideBreadcrumbs,
   buildGuideBreadcrumbJsonLd,
@@ -27,6 +28,10 @@ import {
   type RecommendationIssueSummary,
   type SystembolagetRecommendationWine,
 } from "@/lib/systembolaget/recommendations";
+
+function shopHrefForLocale(locale: AppLocale): string {
+  return locale === "sv" ? "/vin/naturvin" : "/wine/natural-wine";
+}
 
 function issueTitle(week: number, year: number, locale: AppLocale): string {
   return locale === "sv"
@@ -235,6 +240,11 @@ export async function renderRecommendationIssuePage(
             {wines.map((wine) => (
               <WineBlock key={wine.id} wine={wine} locale={locale} />
             ))}
+            <ArticleShopCta
+              href={shopHrefForLocale(locale)}
+              label={copy.shopNaturalWine}
+              lead={copy.shopCtaLead}
+            />
           </div>
 
           <nav className="mt-16 space-y-3 border-t border-border pt-8 text-sm">
