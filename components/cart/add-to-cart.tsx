@@ -2,6 +2,7 @@
 
 import { CirclePlus } from "lucide-react";
 import { Product, ProductVariant } from "@/lib/shopify/types";
+import type { Cart } from "@/lib/shopify/types";
 import { useMemo, useTransition } from "react";
 import { useCart } from "./cart-context";
 import { Button, ButtonProps } from "../ui/button";
@@ -13,6 +14,8 @@ import { Loader } from "../ui/loader";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 import { pricesFromCartAfterAdd } from "@/lib/analytics/cart-event-prices";
 import { useTranslations } from "@/lib/hooks/use-translations";
+import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
+import { BOTTLE_PACK_SIZE } from "@/lib/cart/bottle-pack";
 
 interface AddToCartProps extends ButtonProps {
   product: Product;
@@ -40,6 +43,32 @@ const getBaseProductVariant = (product: Product): ProductVariant => {
   };
 };
 
+async function addB2BPack(
+  variantId: string,
+  quantity: number,
+): Promise<Cart | null> {
+  const response = await fetch("/api/cart/add-quantity", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      variantId,
+      quantity,
+      source: "producer",
+      enforcePack: true,
+    }),
+  });
+
+  if (!response.ok) return null;
+
+  const result = await response.json();
+  if (typeof window !== "undefined" && result.cart) {
+    window.dispatchEvent(
+      new CustomEvent("cart-refresh", { detail: result.cart }),
+    );
+  }
+  return (result.cart as Cart | undefined) ?? null;
+}
+
 export function AddToCartButton({
   product,
   selectedVariant,
@@ -51,6 +80,7 @@ export function AddToCartButton({
 }: AddToCartButtonProps) {
   const { t } = useTranslations();
   const { addItem } = useCart();
+  const isB2B = useB2BPriceMode();
   const [isLoading, startTransition] = useTransition();
 
   // Resolve variant locally only for variantless products (purely synchronous)
@@ -90,7 +120,9 @@ export function AddToCartButton({
 
         if (resolvedVariant) {
           startTransition(async () => {
-            const cart = await addItem(resolvedVariant, product);
+            const cart = isB2B
+              ? await addB2BPack(resolvedVariant.id, BOTTLE_PACK_SIZE)
+              : await addItem(resolvedVariant, product);
             const { list_price, unit_price } = pricesFromCartAfterAdd(
               cart,
               product.id,
@@ -101,6 +133,8 @@ export function AddToCartButton({
               product.title,
               list_price,
               {
+                quantity: isB2B ? BOTTLE_PACK_SIZE : 1,
+                ...(isB2B ? { source: "b2b" as const } : {}),
                 list_price,
                 unit_price,
                 price_version: "v1",

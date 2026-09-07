@@ -14,6 +14,10 @@ import { useTranslations } from "@/lib/hooks/use-translations";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 import { pricesFromCartAfterAdd } from "@/lib/analytics/cart-event-prices";
 import type { Cart } from "@/lib/shopify/types";
+import {
+  BOTTLE_PACK_SIZE,
+  B2B_MAX_PACK_BOTTLES,
+} from "@/lib/cart/bottle-pack";
 
 export type CartSource = "producer" | "warehouse";
 
@@ -39,7 +43,7 @@ export function AddToCartWithSource({
   previewDisabled = false,
 }: AddToCartWithSourceProps) {
   const { t } = useTranslations();
-  const [quantity, setQuantity] = useState(1);
+  const [quantity, setQuantity] = useState(BOTTLE_PACK_SIZE);
   const { selectedSource, setSelectedSource } = useCartSource();
   const [isLoading, startTransition] = useTransition();
   const selectedVariant = useSelectedVariant(product);
@@ -73,14 +77,14 @@ export function AddToCartWithSource({
   ]);
 
   const handleDecrease = () => {
-    if (quantity > 1) {
-      setQuantity(quantity - 1);
+    if (quantity > BOTTLE_PACK_SIZE) {
+      setQuantity(quantity - BOTTLE_PACK_SIZE);
     }
   };
 
   const handleIncrease = () => {
-    if (quantity < 99) {
-      setQuantity(quantity + 1);
+    if (quantity < B2B_MAX_PACK_BOTTLES) {
+      setQuantity(quantity + BOTTLE_PACK_SIZE);
     }
   };
 
@@ -101,6 +105,7 @@ export function AddToCartWithSource({
               variantId: resolvedVariant.id,
               quantity: quantity,
               source: source,
+              enforcePack: true,
             }),
           });
 
@@ -138,8 +143,8 @@ export function AddToCartWithSource({
               },
             );
 
-            // Reset quantity to 1 after successful add
-            setQuantity(1);
+            // Reset quantity to one pack after successful add
+            setQuantity(BOTTLE_PACK_SIZE);
           } else {
             const errorText = await response.text();
             console.error("🛒 [PDP] Failed to add items to cart", {
@@ -164,13 +169,9 @@ export function AddToCartWithSource({
     ? t("product.selectOne")
     : selectedSource === "warehouse" && isWarehouseDisabled
       ? t("product.outOfStock")
-      : quantity === 1
-        ? selectedSource === "producer"
-          ? t("product.pdp.addToCartProducer")
-          : t("product.pdp.addToCartWarehouse")
-        : selectedSource === "producer"
-          ? t("product.pdp.addQuantityToCartProducer", { count: quantity })
-          : t("product.pdp.addQuantityToCartWarehouse", { count: quantity });
+      : selectedSource === "producer"
+        ? t("product.pdp.addQuantityToCartProducer", { count: quantity })
+        : t("product.pdp.addQuantityToCartWarehouse", { count: quantity });
 
   return (
     <div className={cn("w-full space-y-3", className)}>
@@ -222,10 +223,10 @@ export function AddToCartWithSource({
             <button
               type="button"
               onClick={handleDecrease}
-              disabled={quantity <= 1 || isAddToCartDisabled}
+              disabled={quantity <= BOTTLE_PACK_SIZE || isAddToCartDisabled}
               className={cn(
                 "px-3 py-2 hover:bg-gray-900 transition-colors border-r border-gray-700",
-                quantity <= 1 || isAddToCartDisabled
+                quantity <= BOTTLE_PACK_SIZE || isAddToCartDisabled
                   ? "opacity-40 cursor-not-allowed"
                   : "cursor-pointer",
               )}
@@ -244,10 +245,10 @@ export function AddToCartWithSource({
             <button
               type="button"
               onClick={handleIncrease}
-              disabled={quantity >= 99 || isAddToCartDisabled}
+              disabled={quantity >= B2B_MAX_PACK_BOTTLES || isAddToCartDisabled}
               className={cn(
                 "px-3 py-2 hover:bg-gray-900 transition-colors border-l border-gray-700",
-                quantity >= 99 || isAddToCartDisabled
+                quantity >= B2B_MAX_PACK_BOTTLES || isAddToCartDisabled
                   ? "opacity-40 cursor-not-allowed"
                   : "cursor-pointer",
               )}

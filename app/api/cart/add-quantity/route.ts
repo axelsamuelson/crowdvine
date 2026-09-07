@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { CartService } from "@/src/lib/cart-service";
+import { isB2BHost } from "@/lib/b2b-site";
+import {
+  BOTTLE_PACK_SIZE,
+  isBottlePackQuantity,
+} from "@/lib/cart/bottle-pack";
 
 /**
  * POST /api/cart/add-quantity
@@ -31,6 +36,20 @@ export async function POST(request: Request) {
       1,
       Math.min(99, parseInt(String(requestedQuantity)) || 1),
     );
+
+    // Dirty Wine: only full packs (multiples of 6)
+    const host = request.headers.get("host");
+    const enforcePack =
+      body.enforcePack === true || isB2BHost(host);
+    if (enforcePack && !isBottlePackQuantity(quantity)) {
+      return NextResponse.json(
+        {
+          error: `Quantity must be a multiple of ${BOTTLE_PACK_SIZE} bottles`,
+        },
+        { status: 400 },
+      );
+    }
+
     console.log("🛒 [ADD-QUANTITY] Validated quantity:", quantity);
 
     // Extract base ID from variant ID (remove -default suffix)

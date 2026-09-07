@@ -13,6 +13,10 @@ import { Loader } from "../ui/loader";
 import { cn } from "@/lib/utils";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 import { pricesFromCartAfterAdd } from "@/lib/analytics/cart-event-prices";
+import {
+  BOTTLE_PACK_SIZE,
+  B2B_MAX_PACK_BOTTLES,
+} from "@/lib/cart/bottle-pack";
 
 interface AddToCartWithQuantityProps {
   product: Product;
@@ -33,7 +37,7 @@ export function AddToCartWithQuantity({
   product,
   className,
 }: AddToCartWithQuantityProps) {
-  const [quantity, setQuantity] = useState(1);
+  const [quantity, setQuantity] = useState(BOTTLE_PACK_SIZE);
   const { addItem } = useCart();
   const [isLoading, startTransition] = useTransition();
   const selectedVariant = useSelectedVariant(product);
@@ -61,15 +65,14 @@ export function AddToCartWithQuantity({
   ]);
 
   const handleDecrease = () => {
-    if (quantity > 1) {
-      setQuantity(quantity - 1);
+    if (quantity > BOTTLE_PACK_SIZE) {
+      setQuantity(quantity - BOTTLE_PACK_SIZE);
     }
   };
 
   const handleIncrease = () => {
-    if (quantity < 99) {
-      // Max 99 bottles
-      setQuantity(quantity + 1);
+    if (quantity < B2B_MAX_PACK_BOTTLES) {
+      setQuantity(quantity + BOTTLE_PACK_SIZE);
     }
   };
 
@@ -88,6 +91,7 @@ export function AddToCartWithQuantity({
             body: JSON.stringify({
               variantId: resolvedVariant.id,
               quantity: quantity,
+              enforcePack: true,
             }),
           });
 
@@ -125,8 +129,8 @@ export function AddToCartWithQuantity({
               },
             );
 
-            // Reset quantity to 1 after successful add
-            setQuantity(1);
+            // Reset quantity to one pack after successful add
+            setQuantity(BOTTLE_PACK_SIZE);
           } else {
             console.error("🛒 [PDP] Failed to add items to cart");
           }
@@ -148,10 +152,10 @@ export function AddToCartWithQuantity({
           <button
             type="button"
             onClick={handleDecrease}
-            disabled={quantity <= 1 || isDisabled}
+            disabled={quantity <= BOTTLE_PACK_SIZE || isDisabled}
             className={cn(
               "px-3 py-2 hover:bg-gray-900 transition-colors border-r border-gray-700",
-              quantity <= 1 || isDisabled
+              quantity <= BOTTLE_PACK_SIZE || isDisabled
                 ? "opacity-40 cursor-not-allowed"
                 : "cursor-pointer",
             )}
@@ -170,10 +174,10 @@ export function AddToCartWithQuantity({
           <button
             type="button"
             onClick={handleIncrease}
-            disabled={quantity >= 99 || isDisabled}
+            disabled={quantity >= B2B_MAX_PACK_BOTTLES || isDisabled}
             className={cn(
               "px-3 py-2 hover:bg-gray-900 transition-colors border-l border-gray-700",
-              quantity >= 99 || isDisabled
+              quantity >= B2B_MAX_PACK_BOTTLES || isDisabled
                 ? "opacity-40 cursor-not-allowed"
                 : "cursor-pointer",
             )}

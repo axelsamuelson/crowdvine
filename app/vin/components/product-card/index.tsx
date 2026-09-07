@@ -24,6 +24,8 @@ import { useLocalizedPaths } from "@/lib/hooks/use-localized-paths";
 import { getProductListPriceSek } from "@/lib/price-breakdown";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 import { pricesFromCartAfterAdd } from "@/lib/analytics/cart-event-prices";
+import { BOTTLE_PACK_SIZE } from "@/lib/cart/bottle-pack";
+import type { Cart } from "@/lib/shopify/types";
 
 const AddToCart = dynamic(
   () => import("@/components/cart/add-to-cart").then((m) => m.AddToCart),
@@ -292,7 +294,33 @@ export const ProductCard = memo(
     const variant = getBaseProductVariant();
     if (variant) {
       void (async () => {
-        const updated = await cart.addItem(variant, product);
+        let updated: Cart | null = null;
+
+        if (showExclVat) {
+          // Dirty Wine: always add a 6-bottle pack
+          const response = await fetch("/api/cart/add-quantity", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              variantId: variant.id,
+              quantity: BOTTLE_PACK_SIZE,
+              source: "producer",
+              enforcePack: true,
+            }),
+          });
+          if (response.ok) {
+            const result = await response.json();
+            updated = (result.cart as Cart | undefined) ?? null;
+            if (updated && typeof window !== "undefined") {
+              window.dispatchEvent(
+                new CustomEvent("cart-refresh", { detail: updated }),
+              );
+            }
+          }
+        } else {
+          updated = await cart.addItem(variant, product);
+        }
+
         const { list_price, unit_price } = pricesFromCartAfterAdd(
           updated,
           product.id,
@@ -303,6 +331,8 @@ export const ProductCard = memo(
           product.title,
           list_price,
           {
+            quantity: showExclVat ? BOTTLE_PACK_SIZE : 1,
+            ...(showExclVat ? { source: "b2b" as const } : {}),
             list_price,
             unit_price,
             price_version: "v1",

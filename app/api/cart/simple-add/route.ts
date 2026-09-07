@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { CartService } from "@/src/lib/cart-service";
+import { isB2BHost } from "@/lib/b2b-site";
+import { BOTTLE_PACK_SIZE } from "@/lib/cart/bottle-pack";
 
 export async function POST(request: Request) {
   try {
@@ -18,6 +20,13 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     }
+
+    // Dirty Wine: never add a single bottle — always a pack
+    const host = request.headers.get("host");
+    const addQuantity =
+      body.enforcePack === true || isB2BHost(host)
+        ? BOTTLE_PACK_SIZE
+        : 1;
 
     // Extract base ID from variant ID (remove -default suffix)
     const baseId = variantId.replace("-default", "");
@@ -121,12 +130,12 @@ export async function POST(request: Request) {
         "🔧 Item exists, incrementing from",
         existingItem.quantity,
         "to",
-        existingItem.quantity + 1,
+        existingItem.quantity + addQuantity,
       );
       const { error: updateError } = await supabase
         .from("cart_items")
         .update({
-          quantity: existingItem.quantity + 1,
+          quantity: existingItem.quantity + addQuantity,
           source: "producer",
         })
         .eq("id", existingItem.id);
@@ -140,11 +149,11 @@ export async function POST(request: Request) {
       }
     } else {
       // Insert new item
-      console.log("🔧 New item, inserting with quantity 1");
+      console.log("🔧 New item, inserting with quantity", addQuantity);
       const { error: insertError } = await supabase.from("cart_items").insert({
         cart_id: dbCartId,
         wine_id: baseId,
-        quantity: 1,
+        quantity: addQuantity,
         source: "producer",
       });
 

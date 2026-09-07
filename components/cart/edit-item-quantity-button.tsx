@@ -6,6 +6,8 @@ import { CartItem } from "@/lib/shopify/types";
 import { useCart } from "./cart-context";
 import { useRef, useCallback, useEffect } from "react";
 import { useTranslations } from "@/lib/hooks/use-translations";
+import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
+import { BOTTLE_PACK_SIZE } from "@/lib/cart/bottle-pack";
 
 function SubmitButton({
   type,
@@ -40,6 +42,20 @@ function SubmitButton({
   );
 }
 
+function nextB2BPackQuantity(current: number, type: "plus" | "minus"): number {
+  if (type === "plus") {
+    if (current % BOTTLE_PACK_SIZE === 0) {
+      return current + BOTTLE_PACK_SIZE;
+    }
+    return Math.ceil(current / BOTTLE_PACK_SIZE) * BOTTLE_PACK_SIZE;
+  }
+
+  if (current % BOTTLE_PACK_SIZE === 0) {
+    return Math.max(0, current - BOTTLE_PACK_SIZE);
+  }
+  return Math.floor(current / BOTTLE_PACK_SIZE) * BOTTLE_PACK_SIZE;
+}
+
 export function EditItemQuantityButton({
   item,
   type,
@@ -48,6 +64,7 @@ export function EditItemQuantityButton({
   type: "plus" | "minus";
 }) {
   const { updateItem } = useCart();
+  const isB2B = useB2BPriceMode();
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const pendingQuantityRef = useRef(item.quantity);
 
@@ -62,14 +79,15 @@ export function EditItemQuantityButton({
   }, [item.quantity]);
 
   const handleClick = useCallback(() => {
-    // Calculate next quantity
-    const nextQuantity =
-      type === "plus"
+    const nextQuantity = isB2B
+      ? nextB2BPackQuantity(pendingQuantityRef.current, type)
+      : type === "plus"
         ? pendingQuantityRef.current + 1
         : pendingQuantityRef.current - 1;
 
-    // Don't allow quantity below 1
-    if (nextQuantity < 1) return;
+    // Don't allow quantity below 1 (0 removes the line on B2B pack step-down)
+    if (nextQuantity < 0) return;
+    if (!isB2B && nextQuantity < 1) return;
 
     // Update pending quantity
     pendingQuantityRef.current = nextQuantity;
@@ -82,9 +100,14 @@ export function EditItemQuantityButton({
     // Set new timer - only call API after 300ms of no clicks
     debounceTimerRef.current = setTimeout(() => {
       console.log("🛒 [DEBOUNCE] Updating item to quantity:", nextQuantity);
-      updateItem(item.id, item.merchandise.id, nextQuantity, type);
+      updateItem(
+        item.id,
+        item.merchandise.id,
+        nextQuantity,
+        nextQuantity === 0 ? "delete" : type,
+      );
     }, 300);
-  }, [item.id, item.merchandise.id, type, updateItem]);
+  }, [item.id, item.merchandise.id, type, updateItem, isB2B]);
 
   return <SubmitButton type={type} onClick={handleClick} />;
 }
