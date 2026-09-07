@@ -4,6 +4,8 @@ import { beaujolaisNaturalWineArticle } from "@/lib/guides/articles/beaujolais-n
 import { bestNaturalWinesUnder200SystembolagetArticle } from "@/lib/guides/articles/best-natural-wines-under-200-systembolaget";
 import { bestOrangeNaturalWinesSystembolagetArticle } from "@/lib/guides/articles/best-orange-natural-wines-systembolaget";
 import { bestRedNaturalWinesSystembolagetArticle } from "@/lib/guides/articles/best-red-natural-wines-systembolaget";
+import { bestSparklingNaturalWinesSystembolagetArticle } from "@/lib/guides/articles/best-sparkling-natural-wines-systembolaget";
+import { bestWhiteNaturalWinesSystembolagetArticle } from "@/lib/guides/articles/best-white-natural-wines-systembolaget";
 import { gangOfFourWineArticle } from "@/lib/guides/articles/gang-of-four-wine";
 import { georgiaNaturalWineArticle } from "@/lib/guides/articles/georgia-natural-wine";
 import { guyBretonArticle } from "@/lib/guides/articles/guy-breton";
@@ -143,6 +145,8 @@ const SV_REGION_CARDS: GuideHubCard[] = [
 
 const SV_SYSTEMBOLAGET_CARDS: GuideHubCard[] = [
   articleHubCard(bestRedNaturalWinesSystembolagetArticle, "sv"),
+  articleHubCard(bestWhiteNaturalWinesSystembolagetArticle, "sv"),
+  articleHubCard(bestSparklingNaturalWinesSystembolagetArticle, "sv"),
   articleHubCard(bestOrangeNaturalWinesSystembolagetArticle, "sv"),
   articleHubCard(bestNaturalWinesUnder200SystembolagetArticle, "sv"),
   {
@@ -299,6 +303,8 @@ const EN_GUIDE_CARDS: GuideHubCard[] = [
 
 const EN_SYSTEMBOLAGET_CARDS: GuideHubCard[] = [
   articleHubCard(bestRedNaturalWinesSystembolagetArticle, "en"),
+  articleHubCard(bestWhiteNaturalWinesSystembolagetArticle, "en"),
+  articleHubCard(bestSparklingNaturalWinesSystembolagetArticle, "en"),
   articleHubCard(bestOrangeNaturalWinesSystembolagetArticle, "en"),
   articleHubCard(bestNaturalWinesUnder200SystembolagetArticle, "en"),
   {
