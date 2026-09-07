@@ -1,5 +1,6 @@
 import type { GuideArticleContent } from "@/lib/guides/guide-types";
 import { beaujolaisNaturalWineArticle } from "@/lib/guides/articles/beaujolais-natural-wine";
+import { bestNaturalWinesUnder200SystembolagetArticle } from "@/lib/guides/articles/best-natural-wines-under-200-systembolaget";
 import { bestOrangeNaturalWinesSystembolagetArticle } from "@/lib/guides/articles/best-orange-natural-wines-systembolaget";
 import { bestRedNaturalWinesSystembolagetArticle } from "@/lib/guides/articles/best-red-natural-wines-systembolaget";
 import { gangOfFourWineArticle } from "@/lib/guides/articles/gang-of-four-wine";
@@ -48,4 +49,5 @@ export const BILINGUAL_ARTICLE_GUIDES: readonly GuideArticleContent[] = [
   whatIsWhiteNaturalWineArticle,
   bestRedNaturalWinesSystembolagetArticle,
   bestOrangeNaturalWinesSystembolagetArticle,
+  bestNaturalWinesUnder200SystembolagetArticle,
 ];

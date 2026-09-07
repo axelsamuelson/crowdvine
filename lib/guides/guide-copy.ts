@@ -1,6 +1,7 @@
 import type { AppLocale } from "@/lib/i18n/locale";
 import { GUIDE_PATHS } from "@/lib/guides/guide-routes";
 import { beaujolaisNaturalWineArticle } from "@/lib/guides/articles/beaujolais-natural-wine";
+import { bestNaturalWinesUnder200SystembolagetArticle } from "@/lib/guides/articles/best-natural-wines-under-200-systembolaget";
 import { bestOrangeNaturalWinesSystembolagetArticle } from "@/lib/guides/articles/best-orange-natural-wines-systembolaget";
 import { bestRedNaturalWinesSystembolagetArticle } from "@/lib/guides/articles/best-red-natural-wines-systembolaget";
 import { gangOfFourWineArticle } from "@/lib/guides/articles/gang-of-four-wine";
@@ -143,6 +144,7 @@ const SV_REGION_CARDS: GuideHubCard[] = [
 const SV_SYSTEMBOLAGET_CARDS: GuideHubCard[] = [
   articleHubCard(bestRedNaturalWinesSystembolagetArticle, "sv"),
   articleHubCard(bestOrangeNaturalWinesSystembolagetArticle, "sv"),
+  articleHubCard(bestNaturalWinesUnder200SystembolagetArticle, "sv"),
   {
     href: "/guider/rekommenderade-naturviner",
     title: "Rekommenderade naturviner",
@@ -298,6 +300,7 @@ const EN_GUIDE_CARDS: GuideHubCard[] = [
 const EN_SYSTEMBOLAGET_CARDS: GuideHubCard[] = [
   articleHubCard(bestRedNaturalWinesSystembolagetArticle, "en"),
   articleHubCard(bestOrangeNaturalWinesSystembolagetArticle, "en"),
+  articleHubCard(bestNaturalWinesUnder200SystembolagetArticle, "en"),
   {
     href: "/guides/recommended-natural-wines",
     title: "Recommended natural wines",
