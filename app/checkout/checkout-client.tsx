@@ -1358,6 +1358,9 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
           "bottles",
         );
         const response = await fetch("/api/cart/validate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ cart }),
           signal: controller.signal,
         });
         if (!response.ok) {

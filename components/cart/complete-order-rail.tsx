@@ -54,6 +54,9 @@ export function CompleteOrderRail({ showMobile = false }: { showMobile?: boolean
       setIsValidating(true);
       try {
         const res = await fetch("/api/cart/validate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ cart }),
           cache: "no-store",
           signal: controller.signal,
         });

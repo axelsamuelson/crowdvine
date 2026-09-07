@@ -3,7 +3,7 @@ import { getCurrentUser } from "../../lib/auth";
 import { getMemberDiscountPercentForUserId } from "../../lib/membership/server-member-discount";
 import { memberDiscountedTotalInclVat } from "../../lib/price-breakdown";
 import { resolvePalletEarlyBirdContext } from "../../lib/pallet-early-bird-context";
-import { applyPalletDiscount } from "../../lib/pallet-discount";
+import { applyPalletDiscount, type DiscountTier } from "../../lib/pallet-discount";
 import { supabaseServer } from "../../lib/supabase-server";
 import type { Cart, CartItem } from "../../lib/shopify/types";
 import { getOrSetCartId, clearCartId } from "./cookies";
@@ -11,6 +11,7 @@ import { convertSekForDisplay } from "@/lib/shopping-context/currency-convert";
 import { resolveDisplayCurrency } from "@/lib/shopping-context/display-currency";
 import { bindCartOwnerAndTouch } from "@/lib/cart/reconcile-on-auth";
 import { getCurrentUser as getSessionUser } from "@/lib/supabase-server";
+import { isB2BHost } from "@/lib/b2b-site";
 
 type CartWineProducer = {
   id?: string;
@@ -193,7 +194,6 @@ export class CartService {
         return emptyCart;
       }
 
-      const user = await getCurrentUser();
       let requestHost: string | null = null;
       try {
         const h = await headers();
@@ -201,22 +201,34 @@ export class CartService {
       } catch {
         /* headers() unavailable outside request */
       }
-      const memberDiscountPercent = user
-        ? await getMemberDiscountPercentForUserId(user.id, { host: requestHost })
-        : 0;
+      // Dirty Wine: no member discount and no pallet early-bird pricing.
+      // Skipping early-bird avoids determineZones + Nominatim on every getCart/add.
+      const isB2B = isB2BHost(requestHost, null);
 
-      const wineIdsForPallet = cartItems
-        .map((item) => {
-          const w = (item as CartItemRow).wines;
-          return w?.id ?? "";
-        })
-        .filter((id): id is string => Boolean(id));
+      let memberDiscountPercent = 0;
+      let palletTier: DiscountTier = 0;
 
-      const palletEarlyBird = await resolvePalletEarlyBirdContext(
-        wineIdsForPallet,
-        user?.id ?? null,
-      );
-      const palletTier = palletEarlyBird.discountTier;
+      if (!isB2B) {
+        const user = await getCurrentUser();
+        memberDiscountPercent = user
+          ? await getMemberDiscountPercentForUserId(user.id, {
+              host: requestHost,
+            })
+          : 0;
+
+        const wineIdsForPallet = cartItems
+          .map((item) => {
+            const w = (item as CartItemRow).wines;
+            return w?.id ?? "";
+          })
+          .filter((id): id is string => Boolean(id));
+
+        const palletEarlyBird = await resolvePalletEarlyBirdContext(
+          wineIdsForPallet,
+          user?.id ?? null,
+        );
+        palletTier = palletEarlyBird.discountTier;
+      }
 
       const lines: CartItem[] = cartItems.map((item) => {
         const row = item as CartItemRow;
@@ -346,7 +358,7 @@ export class CartService {
       );
 
       const result = {
-        id: await this.ensureCart(), // Use the actual database cart ID
+        id: ensureCartId,
         checkoutUrl: "/checkout",
         cost: {
           subtotalAmount: {

@@ -78,7 +78,7 @@ export async function POST(request: Request) {
     if (!cart || !cart.lines || cart.lines.length === 0) {
       return NextResponse.json({
         isValid: true,
-        validations: [],
+        producerValidations: [],
         errors: [],
       });
     }

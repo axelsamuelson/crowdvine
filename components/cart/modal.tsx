@@ -218,8 +218,13 @@ export default function CartModal() {
           "items",
         );
 
-        // Call API endpoint instead of running validation client-side
-        const response = await fetch("/api/cart/validate");
+        // Call API with the cart we already have — avoids a second CartService.getCart()
+        // (which on PACT runs zone matching + geocoding).
+        const response = await fetch("/api/cart/validate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ cart }),
+        });
         if (!response.ok) {
           throw new Error(`cart validate HTTP ${response.status}`);
         }
