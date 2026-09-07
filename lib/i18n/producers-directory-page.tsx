@@ -10,7 +10,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Footer } from "@/components/layout/footer";
-import { ProducersDirectoryMap } from "@/components/producer/producers-directory-map";
+import { ProducersDirectoryMapLazy } from "@/components/producer/producers-directory-map-lazy";
 import { fetchIndexableProducersFromDb } from "@/lib/crowdvine/indexable-producers";
 import type { AppLocale } from "@/lib/i18n/locale";
 import { localizedPathsForLocale } from "@/lib/i18n/localized-paths";
@@ -190,7 +190,7 @@ export async function renderProducersDirectoryPage(locale: AppLocale) {
 
         <div className="sticky top-top-spacing h-[calc(100vh-var(--top-spacing))] max-lg:hidden">
           <div className="relative h-full w-full overflow-hidden bg-gradient-to-b from-zinc-800 to-zinc-950">
-            <ProducersDirectoryMap
+            <ProducersDirectoryMapLazy
               producers={mapProducers}
               className="h-full w-full"
             />

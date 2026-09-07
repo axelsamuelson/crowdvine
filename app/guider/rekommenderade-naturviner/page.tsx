@@ -5,7 +5,7 @@ import {
   renderRecommendationIndexPage,
 } from "@/lib/guides/systembolaget-recommendations-pages";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 600;
 
 export function generateMetadata(): Promise<Metadata> {
   return buildRecommendationIndexMetadata("sv");

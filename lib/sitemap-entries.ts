@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { unstable_cache } from "next/cache";
 
 import { catalogHasProducts } from "@/lib/crowdvine/products-data";
 import { BILINGUAL_ARTICLE_GUIDES } from "@/lib/guides/bilingual-article-guides";
@@ -115,6 +116,17 @@ function staticPagesForProfile(
 
 /** Build deduplicated sitemap entries for pactwines.com or dirtywine.se. */
 export async function buildSitemapEntries(
+  baseUrl: string,
+  profile: SitemapSiteProfile,
+): Promise<MetadataRoute.Sitemap> {
+  return unstable_cache(
+    () => buildSitemapEntriesUncached(baseUrl, profile),
+    ["sitemap-entries", baseUrl, profile],
+    { revalidate: 3600 },
+  )();
+}
+
+async function buildSitemapEntriesUncached(
   baseUrl: string,
   profile: SitemapSiteProfile,
 ): Promise<MetadataRoute.Sitemap> {

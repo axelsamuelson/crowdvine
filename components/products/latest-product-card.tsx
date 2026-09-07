@@ -49,9 +49,9 @@ export function LatestProductCard({
             <Image
               src={product.featuredImage.url}
               alt={product.featuredImage.altText || product.title}
-              width={1000}
-              height={100}
-              quality={100}
+              width={1200}
+              height={1600}
+              quality={80}
               sizes="(max-width: 768px) 100vw, 66vw"
               className="object-cover size-full flex-1"
               priority={priority}
@@ -88,8 +88,10 @@ export function LatestProductCard({
           <Image
             src={product.featuredImage.url}
             alt={product.featuredImage.altText || product.title}
-            width={1000}
-            height={100}
+            width={800}
+            height={800}
+            quality={75}
+            sizes="(max-width: 768px) 50vw, 25vw"
             className="object-cover size-full"
             priority={priority}
           />

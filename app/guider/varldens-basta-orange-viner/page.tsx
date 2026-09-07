@@ -5,7 +5,7 @@ import {
   renderWorldsBestOrangeWinesPage,
 } from "@/lib/guides/render-worlds-best-orange-wines";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 600;
 
 export function generateMetadata(): Promise<Metadata> {
   return buildWorldsBestOrangeWinesMetadata("sv");

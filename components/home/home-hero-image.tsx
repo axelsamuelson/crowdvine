@@ -14,7 +14,7 @@ const HERO_FRAME_LAYOUT = [
   {
     className: "mt-3 h-52 min-h-0 md:mt-[8%] md:h-[72%] md:min-h-[14rem]",
     sizes: "(max-width: 767px) 34vw, 18vw",
-    priority: true,
+    priority: false,
   },
   {
     className: "mt-1.5 h-48 min-h-0 md:mt-[4%] md:h-[62%] md:min-h-[13rem]",
@@ -45,10 +45,15 @@ export function HomeHeroImage({
             "relative min-w-0 flex-1 overflow-hidden rounded-2xl bg-stone-200",
             frame.className,
           )}
-          initial={reduceMotion ? false : { opacity: 0, y: 24 }}
+          // Keep the LCP frame visible in HTML — animate only secondary frames.
+          initial={
+            reduceMotion || frame.priority
+              ? false
+              : { opacity: 0, y: 24 }
+          }
           animate={{ opacity: 1, y: 0 }}
           transition={
-            reduceMotion
+            reduceMotion || frame.priority
               ? { duration: 0 }
               : {
                   duration: 0.7,
@@ -64,6 +69,7 @@ export function HomeHeroImage({
             fill
             priority={frame.priority}
             fetchPriority={frame.priority ? "high" : undefined}
+            quality={frame.priority ? 80 : 70}
             className="object-cover"
             sizes={frame.sizes}
           />

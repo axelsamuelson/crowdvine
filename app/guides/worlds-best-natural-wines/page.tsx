@@ -5,7 +5,7 @@ import {
   renderWinesGuidePage,
 } from "@/lib/guides/render-wines-guide";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 600;
 
 export function generateMetadata(): Promise<Metadata> {
   return buildWinesGuideMetadata("en");

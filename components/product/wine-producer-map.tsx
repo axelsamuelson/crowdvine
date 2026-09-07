@@ -1,12 +1,25 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { isInMetropolitanFrance } from "@/lib/france-topo-map";
 import { hasValidGeoCoords } from "@/lib/geo-distance";
 import { resolveProducerCoordinates } from "@/lib/producer-geocode-client";
 import { cn } from "@/lib/utils";
-import { WineProducerMapboxMap } from "@/components/product/wine-producer-mapbox-map";
 import { WineProducerTopoMap } from "@/components/product/wine-producer-topo-map";
+
+const WineProducerMapboxMap = dynamic(
+  () =>
+    import("@/components/product/wine-producer-mapbox-map").then(
+      (m) => m.WineProducerMapboxMap,
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-full min-h-52 w-full bg-muted/20" aria-hidden />
+    ),
+  },
+);
 
 export type WineProducerMapLocation = {
   name: string;

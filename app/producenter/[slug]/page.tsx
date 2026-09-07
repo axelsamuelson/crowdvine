@@ -5,7 +5,7 @@ import {
   renderProducerPublicPage,
 } from "@/lib/i18n/producer-public-page";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 600;
 
 export async function generateMetadata(props: {
   params: Promise<{ slug: string }>;

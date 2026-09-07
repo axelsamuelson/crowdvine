@@ -21,7 +21,6 @@ import { MembershipProvider } from "@/lib/context/membership-context";
 import { PortalProvider } from "@/lib/context/portal-context";
 import { OnboardingProvider } from "@/components/onboarding/onboarding-provider";
 import { cn } from "../lib/utils";
-import { B2BThemeEffect } from "../components/layout/b2b-theme-effect";
 import V0SetupLoader from "@/components/v0-setup-loader";
 
 const isV0 = process.env["VERCEL_URL"]?.includes("vusercontent.net") ?? false;

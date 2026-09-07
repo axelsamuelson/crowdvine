@@ -5,7 +5,7 @@ import {
   renderGuideHubPage,
 } from "@/lib/guides/render-guide-hub";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 600;
 
 export function generateMetadata(): Promise<Metadata> {
   return buildGuideHubMetadata("en");

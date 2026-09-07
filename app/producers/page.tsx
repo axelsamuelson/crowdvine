@@ -5,7 +5,7 @@ import {
   renderProducersDirectoryPage,
 } from "@/lib/i18n/producers-directory-page";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 600;
 
 export async function generateMetadata(): Promise<Metadata> {
   return buildProducersDirectoryMetadata("en");

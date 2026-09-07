@@ -18,8 +18,8 @@ import { getSiteConfig } from "@/lib/site-config";
 import { getHomepageHeroImages } from "@/lib/actions/content";
 import { getHomepageHeroCopy } from "@/lib/get-homepage-hero-copy";
 
-// Disable static generation for now - make it dynamic
-export const dynamic = "force-dynamic";
+// ISR: regenerate homepage HTML periodically (shopping prefs hydrate client-side).
+export const revalidate = 600;
 
 export async function generateMetadata(): Promise<Metadata> {
   const config = await getSiteConfig();
@@ -55,7 +55,9 @@ export default async function Home() {
   const [h, config, shoppingContext] = await Promise.all([
     headers(),
     getSiteConfig(),
-    getShoppingContextFromRequest().catch(() => fallbackShoppingContext()),
+    getShoppingContextFromRequest({ skipUser: true }).catch(() =>
+      fallbackShoppingContext(),
+    ),
   ]);
   const host = h.get("x-forwarded-host") ?? h.get("host");
   const productCurrencyParams = {

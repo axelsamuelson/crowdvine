@@ -5,7 +5,7 @@ import {
   renderRecommendationIssuePage,
 } from "@/lib/guides/systembolaget-recommendations-pages";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 600;
 
 type PageProps = {
   params: Promise<{ slug: string }>;

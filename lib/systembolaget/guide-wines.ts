@@ -1,4 +1,5 @@
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { unstable_cache } from "next/cache";
 
 export type GuideWineCategory =
   | "red"
@@ -121,10 +122,25 @@ export function freshestSyncedAt(
 /**
  * Published + available curated wines for a guide category.
  * Server-side only (uses service role for consistent reads).
+ * Cached 5 minutes — Systembolaget ranked guides use ISR with the same window.
  */
 export async function getGuideWines(
   category: GuideWineCategory,
   verdict: GuideWineVerdict = "recommended",
+): Promise<SystembolagetGuideWine[]> {
+  return unstable_cache(
+    () => fetchGuideWinesUncached(category, verdict),
+    ["systembolaget-guide-wines", category, verdict],
+    {
+      revalidate: 300,
+      tags: [`sb-guide-wines-${category}-${verdict}`],
+    },
+  )();
+}
+
+async function fetchGuideWinesUncached(
+  category: GuideWineCategory,
+  verdict: GuideWineVerdict,
 ): Promise<SystembolagetGuideWine[]> {
   const sb = getSupabaseAdmin();
   const columns = [
@@ -172,10 +188,7 @@ export async function getGuideWines(
   let { data, error } = await run(columns);
 
   // Migration 207 may not be applied yet — retry without the new column.
-  if (
-    error &&
-    /top_100_producer_name/i.test(error.message)
-  ) {
+  if (error && /top_100_producer_name/i.test(error.message)) {
     const fallbackCols = columns.filter((c) => c !== "top_100_producer_name");
     ({ data, error } = await run(fallbackCols));
     if (!error && data) {

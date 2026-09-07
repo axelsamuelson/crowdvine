@@ -11,7 +11,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Footer } from "@/components/layout/footer";
-import { ProducersDirectoryMap } from "@/components/producer/producers-directory-map";
+import { ProducersDirectoryMapLazy } from "@/components/producer/producers-directory-map-lazy";
 import { ProducerWineList } from "@/components/producer/producer-wine-list";
 import { fetchIndexableProducersFromDb } from "@/lib/crowdvine/indexable-producers";
 import { getProducerBySlugForLocale } from "@/lib/crowdvine/producer-by-slug-data";
@@ -452,7 +452,7 @@ export async function renderProducerPublicPage(options: {
 
         <div className="sticky top-top-spacing h-[calc(100vh-var(--top-spacing))] max-lg:hidden">
           <div className="relative h-full w-full overflow-hidden bg-gradient-to-b from-zinc-800 to-zinc-950">
-            <ProducersDirectoryMap
+            <ProducersDirectoryMapLazy
               producers={mapProducers}
               highlightedProducerId={producer.id}
               className="h-full w-full"
