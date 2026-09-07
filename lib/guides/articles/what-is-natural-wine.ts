@@ -7,12 +7,12 @@ export const whatIsNaturalWineArticle: GuideArticleContent = {
     sv: "vad-ar-naturvin",
   },
   title: {
-    en: "What is natural wine? The complete guide | PACT Wines",
-    sv: "Vad är naturvin? Den kompletta guiden | PACT Wines",
+    en: "What is natural wine? Complete guide",
+    sv: "Vad är naturvin? Kompletta guiden",
   },
   meta: {
-    en: "Natural wine is wine made with minimal intervention — organically farmed grapes, wild yeasts and nothing added in the cellar. Everything you need to know about natural wine, how it's made and what makes it different.",
-    sv: "Naturvin är vin gjort med minimal påverkan — ekologiskt odlade druvor, vilda jästsvampar och inga tillsatser i källaren. Allt du behöver veta om naturvin, hur det görs och vad som skiljer det från vanligt vin.",
+    en: "Natural wine means minimal intervention: organic grapes, wild yeasts, nothing added in the cellar. How it's made and how it differs.",
+    sv: "Naturvin betyder minimal påverkan: ekologiska druvor, vild jäst, inga tillsatser i källaren. Hur det görs och vad som skiljer.",
   },
   h1: {
     en: "What is natural wine? The complete guide",

@@ -4,12 +4,12 @@ import type { GuideArticleContent } from "@/lib/guides/guide-types";
 export const jacquesSelosseArticle: GuideArticleContent = {
   slug: { en: "jacques-selosse", sv: "jacques-selosse" },
   title: {
-    en: "Jacques Selosse — the producer who invented grower champagne | PACT Wines",
-    sv: "Jacques Selosse — producenten som uppfann grower champagne | PACT Wines",
+    en: "Jacques Selosse — grower champagne pioneer",
+    sv: "Jacques Selosse — grower champagne",
   },
   meta: {
-    en: "Anselme Selosse brought Burgundian thinking to Champagne and changed the region forever. The story of the producer who made grower champagne a serious category.",
-    sv: "Anselme Selosse tog med sig bourgognetänkandet till Champagne och förändrade regionen för alltid. Historien om producenten som gjorde grower champagne till en seriös kategori.",
+    en: "Anselme Selosse brought Burgundian thinking to Champagne and reinvented grower champagne.",
+    sv: "Anselme Selosse tog bourgognetänkandet till Champagne och omformade grower champagne.",
   },
   h1: {
     en: "Jacques Selosse — the producer who invented grower champagne",

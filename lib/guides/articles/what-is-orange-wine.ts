@@ -7,12 +7,12 @@ export const whatIsOrangeWineArticle: GuideArticleContent = {
     sv: "vad-ar-orange-vin",
   },
   title: {
-    en: "What is orange wine? The complete guide | PACT Wines",
-    sv: "Vad är orange vin? Den kompletta guiden | PACT Wines",
+    en: "What is orange wine? Complete guide",
+    sv: "Vad är orange vin? Kompletta guiden",
   },
   meta: {
-    en: "Orange wine is white wine made like red — fermented with grape skins to give amber colour, tannins and a completely different flavour world. Everything you need to know.",
-    sv: "Orange vin är vitt vin gjort som rött — jäst med druvskalen för att ge bärnstensfärg, tanniner och en helt annan smakprofil. Allt du behöver veta om orange vin.",
+    en: "Orange wine is white wine fermented on skins for amber colour, tannin and spice. How it's made and how it differs from white wine.",
+    sv: "Orange vin är vitt vin jäst på skalen — bärnstensfärg, tannin och krydda. Hur det görs och hur det skiljer sig från vitt vin.",
   },
   h1: {
     en: "What is orange wine? The complete guide",

@@ -4,12 +4,12 @@ import type { GuideArticleContent } from "@/lib/guides/guide-types";
 export const thierryAllemandArticle: GuideArticleContent = {
   slug: { en: "thierry-allemand", sv: "thierry-allemand" },
   title: {
-    en: "Thierry Allemand — the man who made Cornas great | PACT Wines",
-    sv: "Thierry Allemand — mannen som gjorde Cornas stort | PACT Wines",
+    en: "Thierry Allemand — who made Cornas great",
+    sv: "Thierry Allemand — som gjorde Cornas stort",
   },
   meta: {
-    en: "Thierry Allemand began by replanting abandoned terraces in Cornas. He ended up making some of the world's most revered natural Syrah. The story of a domaine built from scratch.",
-    sv: "Thierry Allemand började med att plantera om övergivna terrasser i Cornas. Han slutade med att göra några av världens mest hyllade naturliga Syrah-viner. Historien om ett domän byggt från grunden.",
+    en: "Thierry Allemand replanted abandoned Cornas terraces and made some of the Northern Rhône's purest Syrah.",
+    sv: "Thierry Allemand planerade om övergivna Cornas-terrasser och gjorde några av norra Rhônes renaste Syrah.",
   },
   h1: {
     en: "Thierry Allemand — the man who made Cornas great",

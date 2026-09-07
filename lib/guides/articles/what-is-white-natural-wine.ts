@@ -7,12 +7,12 @@ export const whatIsWhiteNaturalWineArticle: GuideArticleContent = {
     sv: "vad-ar-vitt-naturvin",
   },
   title: {
-    en: "What is white natural wine? The complete guide | PACT Wines",
-    sv: "Vad är vitt naturvin? Den kompletta guiden | PACT Wines",
+    en: "What is white natural wine?",
+    sv: "Vad är vitt naturvin?",
   },
   meta: {
-    en: "White natural wine is white wine made with minimal intervention — organic grapes, wild yeasts and no additives. More texture, more complexity and more site-character than conventional white. Everything you need to know.",
-    sv: "Vitt naturvin är vitt vin gjort med minimal påverkan — ekologiska druvor, vilda jästsvampar och inga tillsatser. Mer textur, mer komplexitet och mer platskaraktär än konventionellt vitt vin. Allt du behöver veta.",
+    en: "White natural wine is white wine with minimal intervention — organic grapes, wild yeasts, little or no sulphur. Styles, grapes and tasting tips.",
+    sv: "Vitt naturvin är vitt vin med minimal påverkan — ekologiska druvor, vild jäst, lite eller inget svavel. Stilar, druvor och smaktips.",
   },
   h1: {
     en: "What is white natural wine? The complete guide",

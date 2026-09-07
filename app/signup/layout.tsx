@@ -2,10 +2,10 @@ import { privatePageMetadata } from "@/lib/seo/private-page-metadata";
 
 export const metadata = {
   ...privatePageMetadata,
-  title: "Log in",
+  title: "Sign up",
 };
 
-export default function LogInLayout({
+export default function SignupLayout({
   children,
 }: {
   children: React.ReactNode;

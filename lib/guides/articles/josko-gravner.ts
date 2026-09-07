@@ -4,8 +4,8 @@ import type { GuideArticleContent } from "@/lib/guides/guide-types";
 export const joskoGravnerArticle: GuideArticleContent = {
   slug: { en: "josko-gravner", sv: "josko-gravner" },
   title: {
-    en: "Joško Gravner — how one trip to Georgia changed wine forever",
-    sv: "Joško Gravner — hur en resa till Georgien förändrade vinet för alltid",
+    en: "Joško Gravner — how one trip to Georgia…",
+    sv: "Joško Gravner — hur en resa till Georgien…",
   },
   meta: {
     en: "In 1997 Joško Gravner visited Georgia and came back with a completely different idea of what white wine could be. The story behind modern orange wine.",

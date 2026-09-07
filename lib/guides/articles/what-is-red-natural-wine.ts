@@ -7,12 +7,12 @@ export const whatIsRedNaturalWineArticle: GuideArticleContent = {
     sv: "vad-ar-rott-naturvin",
   },
   title: {
-    en: "What is red natural wine? The complete guide | PACT Wines",
-    sv: "Vad är rött naturvin? Den kompletta guiden | PACT Wines",
+    en: "What is red natural wine?",
+    sv: "Vad är rött naturvin?",
   },
   meta: {
-    en: "Red natural wine is red wine made with minimal intervention — organic grapes, wild yeasts and no additives. Lighter, fresher and more site-specific than conventional red. Everything you need to know.",
-    sv: "Rött naturvin är rött vin gjort med minimal påverkan — ekologiska druvor, vilda jästsvampar och inga tillsatser. Lättare, friskare och mer platsspecifikt än konventionellt rött vin. Allt du behöver veta.",
+    en: "Red natural wine is red wine with minimal intervention — organic grapes, wild yeasts, little sulphur. How it's made and how it tastes.",
+    sv: "Rött naturvin är rött vin med minimal påverkan — ekologiska druvor, vild jäst, lite svavel. Hur det görs och hur det smakar.",
   },
   h1: {
     en: "What is red natural wine? The complete guide",

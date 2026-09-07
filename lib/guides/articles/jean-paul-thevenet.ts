@@ -4,12 +4,12 @@ import type { GuideArticleContent } from "@/lib/guides/guide-types";
 export const jeanPaulThevenetArticle: GuideArticleContent = {
   slug: { en: "jean-paul-thevenet", sv: "jean-paul-thevenet" },
   title: {
-    en: "Jean-Paul Thévenet — Morgon's most generous natural wine producer | PACT Wines",
-    sv: "Jean-Paul Thévenet — Morgons mest generösa naturvinsproducent | PACT Wines",
+    en: "Jean-Paul Thévenet — Morgon natural wine",
+    sv: "Jean-Paul Thévenet — Morgons naturvin",
   },
   meta: {
-    en: "Jean-Paul Thévenet — known as Polpo — was one of the Gang of Four who transformed Beaujolais. His old-vine Morgon is among the most concentrated and generous in the region.",
-    sv: "Jean-Paul Thévenet — känd som Polpo — var en av Gang of Four som transformerade Beaujolais. Hans gamla stockar i Morgon ger några av regionens mest koncentrerade och generösa naturviner.",
+    en: "Jean-Paul Thévenet (Polpo) was one of the Gang of Four who transformed Beaujolais natural wine.",
+    sv: "Jean-Paul Thévenet (Polpo) var en av Gang of Four som förändrade Beaujolais naturvin.",
   },
   h1: {
     en: "Jean-Paul Thévenet — Polpo and the richness of Morgon",

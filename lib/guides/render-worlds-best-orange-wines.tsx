@@ -17,6 +17,10 @@ import {
 } from "@/lib/guides/worlds-best-orange-wines";
 import type { AppLocale } from "@/lib/i18n/locale";
 import { categoryPageTitle } from "@/lib/seo/category-page-title";
+import {
+  defaultOpenGraphImages,
+  pageTwitterCard,
+} from "@/lib/seo/default-social";
 import { getSiteConfig } from "@/lib/site-config";
 
 export function getOrangeWinesFromTop100() {
@@ -47,7 +51,9 @@ export async function buildWorldsBestOrangeWinesMetadata(
       url: pageUrl,
       type: "article",
       locale: locale === "sv" ? "sv_SE" : "en_US",
+      images: defaultOpenGraphImages(),
     },
+    twitter: pageTwitterCard(title, description),
   };
 }
 

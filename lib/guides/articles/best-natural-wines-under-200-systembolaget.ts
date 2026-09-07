@@ -15,8 +15,8 @@ export const bestNaturalWinesUnder200SystembolagetArticle: GuideArticleContent =
       sv: "basta-naturviner-under-200kr-systembolaget",
     },
     title: {
-      en: "Bästa naturvinerna under 200 kr på Systembolaget 2026 | PACT Wines",
-      sv: "Bästa naturvinerna under 200 kr på Systembolaget 2026 | PACT Wines",
+      en: "Bästa naturvinerna under 200 kr Systembolaget",
+      sv: "Bästa naturvinerna under 200 kr Systembolaget",
     },
     meta: {
       en: "En oberoende shortlist av naturvin under 200 kronor på Systembolaget — Burgenland till Swartland.",

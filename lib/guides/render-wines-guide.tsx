@@ -22,6 +22,10 @@ import { filterLanguedocRoussillonEntries } from "@/lib/guides/languedoc-region"
 import { TOP_100_WINES } from "@/lib/guides/top-100-wines";
 import type { AppLocale } from "@/lib/i18n/locale";
 import { categoryPageTitle } from "@/lib/seo/category-page-title";
+import {
+  defaultOpenGraphImages,
+  pageTwitterCard,
+} from "@/lib/seo/default-social";
 import { getSiteConfig } from "@/lib/site-config";
 
 function linkLanguedocMentions(
@@ -69,7 +73,9 @@ export async function buildWinesGuideMetadata(
       description: copy.wines.metaDescription,
       url: pageUrl,
       type: "article",
+      images: defaultOpenGraphImages(),
     },
+    twitter: pageTwitterCard(title, copy.wines.metaDescription),
   };
 }
 

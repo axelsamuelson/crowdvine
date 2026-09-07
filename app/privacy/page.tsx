@@ -1,5 +1,5 @@
 // TODO: Replace Swedish content with English legal copy when available.
-// Do not ship half-translated legal text.
+// Do not ship half-translated legal text. Indexed Swedish lives at /integritetspolicy.
 
 import type { Metadata } from "next";
 
@@ -19,8 +19,15 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: TITLE,
     description: DESCRIPTION,
+    // Body is still Swedish — keep URL for hreflang but do not index.
+    robots: { index: false, follow: true },
     alternates: {
       canonical,
+      languages: {
+        en: canonical,
+        sv: `${config.baseUrl}/integritetspolicy`,
+        "x-default": `${config.baseUrl}/integritetspolicy`,
+      },
     },
   };
 }

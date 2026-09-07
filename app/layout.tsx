@@ -51,24 +51,18 @@ import { getSiteConfig, type SiteConfig } from "@/lib/site-config";
 import { Analytics } from "@vercel/analytics/react";
 import { PageViewTracker } from "@/components/analytics/page-view-tracker";
 import { InternalDeviceMarker } from "@/components/analytics/internal-device-marker";
-
-const defaultOpenGraphImages: NonNullable<
-  Metadata["openGraph"]
->["images"] = [
-  {
-    url: "https://pactwines.com/pact-og-uploaded.jpg",
-    width: 1200,
-    height: 630,
-    alt: "PACT Wines — Naturvin direkt från Languedoc",
-  },
-];
+import {
+  buildRootTwitterMetadata,
+  defaultOpenGraphImages,
+} from "@/lib/seo/default-social";
 
 function buildRootOpenGraph(config: SiteConfig): Metadata["openGraph"] {
   return {
     siteName: config.siteName,
     locale: "sv_SE",
+    alternateLocale: ["en_US"],
     type: "website",
-    images: defaultOpenGraphImages,
+    images: defaultOpenGraphImages(),
   };
 }
 
@@ -84,6 +78,7 @@ function buildRootMetadata(
     },
     description: overrides?.description ?? config.defaultDescription,
     openGraph: buildRootOpenGraph(config),
+    twitter: buildRootTwitterMetadata(config.siteName, config.twitterHandle),
   };
 }
 

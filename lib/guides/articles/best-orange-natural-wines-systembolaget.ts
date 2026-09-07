@@ -7,12 +7,12 @@ export const bestOrangeNaturalWinesSystembolagetArticle: GuideArticleContent = {
     sv: "basta-orange-naturviner-systembolaget",
   },
   title: {
-    en: "Best orange natural wines at Systembolaget 2026 | PACT Wines",
-    sv: "Bästa orange naturviner på Systembolaget 2026 | PACT Wines",
+    en: "Best orange wines at Systembolaget 2026",
+    sv: "Bästa orange naturviner på Systembolaget",
   },
   meta: {
-    en: "An independent guide to the best orange natural wines at Systembolaget. Skin-contact wines from producers with a recognised reputation — Radikon, Binner, Faller and more.",
-    sv: "En oberoende guide till de bästa orange naturvinerna på Systembolaget. Skalkontaktviner från producenter med erkänt rykte — Radikon, Binner, Faller och fler.",
+    en: "Independent guide to the best orange natural wines at Systembolaget — skin-contact bottles worth buying.",
+    sv: "Oberoende guide till de bästa orange naturvinerna på Systembolaget — skalkontakt värd att köpa.",
   },
   h1: {
     en: "Best orange natural wines at Systembolaget 2026",

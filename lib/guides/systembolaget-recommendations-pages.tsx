@@ -15,6 +15,11 @@ import {
 import { guideCopy } from "@/lib/guides/guide-copy";
 import { guidePath } from "@/lib/guides/guide-routes";
 import type { AppLocale } from "@/lib/i18n/locale";
+import { categoryPageTitle } from "@/lib/seo/category-page-title";
+import {
+  defaultOpenGraphImages,
+  pageTwitterCard,
+} from "@/lib/seo/default-social";
 import { getSiteConfig } from "@/lib/site-config";
 import {
   getRecommendationIssue,
@@ -70,23 +75,36 @@ export async function buildRecommendationIssueMetadata(
   }
 
   const config = await getSiteConfig();
-  const title = `${issueTitle(parsed.week, parsed.year, locale)} | PACT Wines`;
+  const title = categoryPageTitle(
+    issueTitle(parsed.week, parsed.year, locale),
+    config.siteName,
+  );
   const description = issueMeta(parsed.week, parsed.year, locale);
   const path = recommendationIssuePath(parsed.year, parsed.week, locale);
   const alternateSv = recommendationIssuePath(parsed.year, parsed.week, "sv");
   const alternateEn = recommendationIssuePath(parsed.year, parsed.week, "en");
+  const pageUrl = `${config.baseUrl}${path}`;
 
   return {
     title,
     description,
     alternates: {
-      canonical: `${config.baseUrl}${path}`,
+      canonical: pageUrl,
       languages: {
         sv: `${config.baseUrl}${alternateSv}`,
         en: `${config.baseUrl}${alternateEn}`,
         "x-default": `${config.baseUrl}${alternateSv}`,
       },
     },
+    openGraph: {
+      title,
+      description,
+      url: pageUrl,
+      type: "article",
+      locale: locale === "sv" ? "sv_SE" : "en_US",
+      images: defaultOpenGraphImages(),
+    },
+    twitter: pageTwitterCard(title, description),
   };
 }
 
@@ -97,14 +115,17 @@ export async function buildRecommendationIndexMetadata(
   const path = recommendationIndexPath(locale);
   const issues = await listIssues();
   const hasIssues = issues.length > 0;
-  const title =
+  const title = categoryPageTitle(
     locale === "sv"
-      ? "Rekommenderade naturviner | PACT Wines"
-      : "Recommended natural wines | PACT Wines";
+      ? "Rekommenderade naturviner"
+      : "Recommended natural wines",
+    config.siteName,
+  );
   const description =
     locale === "sv"
       ? "Veckans oberoende urval av naturviner på Systembolaget — arkiv över alla publicerade nummer."
       : "Weekly independent picks of natural wines at Systembolaget — archive of all published issues.";
+  const pageUrl = `${config.baseUrl}${path}`;
 
   return {
     title,
@@ -118,13 +139,22 @@ export async function buildRecommendationIndexMetadata(
           },
         }),
     alternates: {
-      canonical: `${config.baseUrl}${path}`,
+      canonical: pageUrl,
       languages: {
         sv: `${config.baseUrl}${recommendationIndexPath("sv")}`,
         en: `${config.baseUrl}${recommendationIndexPath("en")}`,
         "x-default": `${config.baseUrl}${recommendationIndexPath("sv")}`,
       },
     },
+    openGraph: {
+      title,
+      description,
+      url: pageUrl,
+      type: "website",
+      locale: locale === "sv" ? "sv_SE" : "en_US",
+      images: defaultOpenGraphImages(),
+    },
+    twitter: pageTwitterCard(title, description),
   };
 }
 

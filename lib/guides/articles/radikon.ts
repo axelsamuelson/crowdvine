@@ -4,12 +4,12 @@ import type { GuideArticleContent } from "@/lib/guides/guide-types";
 export const radikonArticle: GuideArticleContent = {
   slug: { en: "radikon", sv: "radikon" },
   title: {
-    en: "Radikon — how a village in Friuli defined orange wine | PACT Wines",
-    sv: "Radikon — hur en by i Friuli definierade orange vin | PACT Wines",
+    en: "Radikon — Friuli orange wine pioneer",
+    sv: "Radikon — orangevin från Friuli",
   },
   meta: {
-    en: "Stanko Radikon returned to his grandfather's method in 1995 and helped define modern orange wine. The story of Oslavje, the village that changed white wine.",
-    sv: "Stanko Radikon återvände 1995 till sin farfars metod och hjälpte till att definiera modernt orange vin. Historien om Oslavje — byn som förändrade vitt vin.",
+    en: "Stanko Radikon revived his grandfather's method in 1995 and helped define modern orange wine in Friuli.",
+    sv: "Stanko Radikon återupptog farfaderns metod 1995 och hjälpte till att definiera modernt orangevin i Friuli.",
   },
   h1: {
     en: "Radikon — how a village in Friuli defined orange wine",

@@ -12,6 +12,8 @@ export function generateMetadata(): Promise<Metadata> {
   return buildSystembolagetRankedListMetadata(
     bestNaturalWinesUnder200SystembolagetArticle,
     "en",
+    // EN copy is still Swedish interim — keep URL for hreflang but do not index.
+    { noindex: true },
   );
 }
 

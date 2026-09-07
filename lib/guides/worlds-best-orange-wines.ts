@@ -20,8 +20,8 @@ export const worldsBestOrangeWinesGuide = {
     sv: "Världens bästa orange viner — en kurerad lista",
   },
   metaDescription: {
-    en: "Orange wine is white wine made like red — skin contact, tannins, amber colour. Our curated list of the world's finest orange wines, from Gravner to Radikon to Pheasant's Tears.",
-    sv: "Orange vin är vitt vin gjort som rött — skalkontakt, tanniner, bärnstensfärg. Vår kurerade lista över världens finaste orange viner, från Gravner till Radikon.",
+    en: "Orange wine is white wine made like red — skin contact, tannin, amber colour. Curated list from Gravner to Radikon to Pheasant's Tears.",
+    sv: "Orange vin är vitt vin gjort som rött — skalkontakt, tannin, bärnstensfärg. Kurerad lista från Gravner till Radikon.",
   },
   breadcrumbShort: {
     en: "Best Orange Wines",

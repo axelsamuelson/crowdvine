@@ -311,6 +311,7 @@ function buildItemListJsonLd(
 export async function buildSystembolagetRankedListMetadata(
   content: GuideArticleContent,
   locale: AppLocale,
+  options?: { noindex?: boolean },
 ): Promise<Metadata> {
   const config = await getSiteConfig();
   return buildArticleGuideMeta(
@@ -319,7 +320,7 @@ export async function buildSystembolagetRankedListMetadata(
     config.baseUrl,
     config.siteName,
     // Systembolaget demand is Sweden-first — prefer SV as the unmatched default.
-    { xDefault: "sv" },
+    { xDefault: "sv", noindex: options?.noindex },
   );
 }
 

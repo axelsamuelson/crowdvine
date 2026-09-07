@@ -14,6 +14,10 @@ import {
 import { guideHreflang, guidePath } from "@/lib/guides/guide-routes";
 import type { AppLocale } from "@/lib/i18n/locale";
 import { categoryPageTitle } from "@/lib/seo/category-page-title";
+import {
+  defaultOpenGraphImages,
+  pageTwitterCard,
+} from "@/lib/seo/default-social";
 import { getSiteConfig } from "@/lib/site-config";
 import { recommendationIndexPath, listIssues } from "@/lib/systembolaget/recommendations";
 import { cn } from "@/lib/utils";
@@ -76,7 +80,9 @@ export async function buildGuideHubMetadata(
       description: copy.hubMetaDescription,
       url: pageUrl,
       type: "website",
+      images: defaultOpenGraphImages(),
     },
+    twitter: pageTwitterCard(title, copy.hubMetaDescription),
   };
 }
 

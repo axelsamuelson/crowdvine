@@ -8,12 +8,12 @@ export const bestSparklingNaturalWinesSystembolagetArticle: GuideArticleContent 
       sv: "basta-mousserande-naturviner-systembolaget",
     },
     title: {
-      en: "The best sparkling natural wines at Systembolaget | PACT Wines",
-      sv: "Bästa mousserande naturviner på Systembolaget | PACT Wines",
+      en: "Best sparkling natural wines Systembolaget",
+      sv: "Bästa mousserande naturviner Systembolaget",
     },
     meta: {
-      en: "An independent shortlist of sparkling wines at Systembolaget from biodynamic, organic and low-intervention growers — including Corpinnat houses that left Cava for stricter rules.",
-      sv: "En oberoende shortlist av mousserande viner på Systembolaget från biodynamiska, ekologiska och låginterventionsodlare — inklusive Corpinnat-hus som lämnade Cava för strängare krav.",
+      en: "Independent shortlist of sparkling natural wines at Systembolaget — biodynamic, organic and low-intervention.",
+      sv: "Oberoende shortlist av mousserande naturviner på Systembolaget — biodynamiskt, ekologiskt och lågintervention.",
     },
     h1: {
       en: "The best sparkling natural wines at Systembolaget",

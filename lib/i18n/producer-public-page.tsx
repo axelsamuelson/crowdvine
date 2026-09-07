@@ -33,6 +33,11 @@ import {
   uniqueGrapesPreserveCasing,
 } from "@/lib/curated-grape-categories";
 import { getProducerGuideNote } from "@/lib/guides/producer-guide-notes";
+import { categoryPageTitle } from "@/lib/seo/category-page-title";
+import {
+  defaultOpenGraphImages,
+  pageTwitterCard,
+} from "@/lib/seo/default-social";
 import { buildProducerWineryJsonLd } from "@/lib/seo/producer-json-ld";
 import {
   producerProfileMetaDescription,
@@ -142,9 +147,12 @@ export async function buildProducerPublicMetadata(
   const urls = producerPageUrls(slug);
   const canonical = `${PACT_PUBLIC_ORIGIN}${producerPagePath(slug, pathSegment)}`;
   const winemakerName = resolveProducerWinemakerForTitle(slug, contact_name);
-  const pageTitle = producerProfilePageTitle(name, locale, region, {
-    winemakerName,
-  });
+  const pageTitle = categoryPageTitle(
+    producerProfilePageTitle(name, locale, region, {
+      winemakerName,
+    }),
+    "PACT Wines",
+  );
   const pageDescription = producerProfileMetaDescription(locale, {
     producerName: name,
     bioShort: bio_short,
@@ -174,7 +182,9 @@ export async function buildProducerPublicMetadata(
       description: pageDescription,
       url: canonical,
       type: "website",
+      images: defaultOpenGraphImages(),
     },
+    twitter: pageTwitterCard(pageTitle, pageDescription),
   };
 }
 

@@ -4,12 +4,12 @@ import type { GuideArticleContent } from "@/lib/guides/guide-types";
 export const beaujolaisNaturalWineArticle: GuideArticleContent = {
   slug: { en: "beaujolais-natural-wine", sv: "beaujolais-natural-wine" },
   title: {
-    en: "Beaujolais natural wine — the complete regional guide | PACT Wines",
-    sv: "Beaujolais naturvin — den kompletta regionala guiden | PACT Wines",
+    en: "Beaujolais natural wine — regional guide",
+    sv: "Beaujolais naturvin — regional guide",
   },
   meta: {
-    en: "Beaujolais is one of France's most exciting natural wine regions. Gamay, granite, ten crus and the producers who changed everything. The complete guide to natural Beaujolais.",
-    sv: "Beaujolais är en av Frankrikes mest spännande naturvinsregioner. Gamay, granit, tio crus och producenterna som förändrade allt. Den kompletta guiden till naturligt Beaujolais.",
+    en: "Beaujolais is one of France's most exciting natural wine regions — Gamay, granite, ten crus and the Gang of Four.",
+    sv: "Beaujolais är en av Frankrikes mest spännande naturvinsregioner — Gamay, granit, tio crus och Gang of Four.",
   },
   h1: {
     en: "Beaujolais natural wine — the complete regional guide",

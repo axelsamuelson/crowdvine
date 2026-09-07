@@ -110,7 +110,7 @@ const LONG_TAIL_WINE_CATEGORIES_SV: WineCategory[] = [
     slug: "carignan",
     locale: "sv",
     h1: "Carignan — rebellisk druvsort",
-    title: "Carignan | PACT Wines",
+    title: "Carignan från Languedoc | PACT Wines",
     metaDescription:
       "Carignan från gamla gobeletstockar på skiffer och kalk. Koncentrerade, mineraliska viner — direktimporterat till Stockholm.",
     description:
@@ -354,7 +354,7 @@ const LONG_TAIL_WINE_CATEGORIES_EN: WineCategory[] = [
     slug: "carignan",
     locale: "en",
     h1: "Carignan — rebellious grape",
-    title: "Carignan | PACT Wines",
+    title: "Carignan from Languedoc | PACT Wines",
     metaDescription:
       "Carignan from old goblet vines on schist and limestone. Concentrated, mineral wines — direct import to Stockholm.",
     description:

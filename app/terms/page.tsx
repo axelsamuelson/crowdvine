@@ -1,5 +1,5 @@
 // TODO: Replace Swedish content with English legal copy when available.
-// Do not ship half-translated legal text.
+// Do not ship half-translated legal text. Indexed Swedish lives at /villkor.
 
 import type { Metadata } from "next";
 
@@ -20,8 +20,14 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: TITLE,
     description: DESCRIPTION,
+    robots: { index: false, follow: true },
     alternates: {
       canonical,
+      languages: {
+        en: canonical,
+        sv: `${config.baseUrl}/villkor`,
+        "x-default": `${config.baseUrl}/villkor`,
+      },
     },
   };
 }

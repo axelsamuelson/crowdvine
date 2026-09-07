@@ -10,12 +10,12 @@ export const languedocNaturalWineArticle: GuideArticleContent = {
     sv: "naturvin-languedoc",
   },
   title: {
-    en: "Languedoc natural wine — France's most dynamic wine region | PACT Wines",
-    sv: "Naturvin från Languedoc — Frankrikes mest spännande vinregion | PACT Wines",
+    en: "Languedoc natural wine — France's dynamo",
+    sv: "Naturvin från Languedoc — komplett guide",
   },
   meta: {
-    en: "Languedoc-Roussillon is France's largest wine region and a hub for natural wine. Appellation, grapes, terroir and the producers behind direct import to Stockholm.",
-    sv: "Languedoc-Roussillon är Frankrikes största vinregion och ett nav för naturvin. Appellationer, druvor, terroir och producenterna bakom direktimport till Stockholm.",
+    en: "Languedoc-Roussillon is France's largest wine region and a hub for natural wine. Appellations, grapes and producers.",
+    sv: "Languedoc-Roussillon är Frankrikes största vinregion och ett nav för naturvin. Appellationer, druvor och producenter.",
   },
   h1: {
     en: "Languedoc natural wine — France's most dynamic wine region",

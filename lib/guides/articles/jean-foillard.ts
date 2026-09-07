@@ -4,8 +4,8 @@ import type { GuideArticleContent } from "@/lib/guides/guide-types";
 export const jeanFoillardArticle: GuideArticleContent = {
   slug: { en: "jean-foillard", sv: "jean-foillard" },
   title: {
-    en: "Jean Foillard and the Gang of Four — how Beaujolais found its soul | PACT Wines",
-    sv: "Jean Foillard och Gang of Four — hur Beaujolais hittade sin själ | PACT Wines",
+    en: "Jean Foillard and the Gang of Four",
+    sv: "Jean Foillard och Gang of Four",
   },
   meta: {
     en: "In the 1980s four producers turned their backs on Beaujolais nouveau and changed how the world thinks about Gamay. Jean Foillard and the Gang of Four.",

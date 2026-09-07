@@ -4,12 +4,12 @@ import type { GuideArticleContent } from "@/lib/guides/guide-types";
 export const guyBretonArticle: GuideArticleContent = {
   slug: { en: "guy-breton", sv: "guy-breton" },
   title: {
-    en: "Guy Breton (P'tit Max) — Beaujolais natural wine's most joyful producer | PACT Wines",
-    sv: "Guy Breton (P'tit Max) — Beaujolais naturvins gladaste producent | PACT Wines",
+    en: "Guy Breton — Beaujolais' joyful producer",
+    sv: "Guy Breton — Beaujolais gladaste producent",
   },
   meta: {
-    en: "Known as P'tit Max, Guy Breton makes some of the most immediately charming natural wine in Beaujolais. The story of the Gang of Four's fourth member and his old-vine Morgon.",
-    sv: "Känd som P'tit Max gör Guy Breton några av de mest omedelbart charmiga naturvinerna i Beaujolais. Historien om Gang of Fours fjärde medlem och hans gamla stockar i Morgon.",
+    en: "Known as P'tit Max, Guy Breton makes some of Beaujolais' most charming natural wines. Profile of the Gang of Four grower.",
+    sv: "Känd som P'tit Max gör Guy Breton några av Beaujolais mest charmiga naturviner. Profil av Gang of Four-odlaren.",
   },
   h1: {
     en: "Guy Breton — P'tit Max and the joy of natural Beaujolais",

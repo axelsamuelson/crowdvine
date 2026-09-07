@@ -4,12 +4,12 @@ import type { GuideArticleContent } from "@/lib/guides/guide-types";
 export const georgiaNaturalWineArticle: GuideArticleContent = {
   slug: { en: "georgia-natural-wine", sv: "georgia-natural-wine" },
   title: {
-    en: "Georgia natural wine — the oldest wine tradition in the world | PACT Wines",
-    sv: "Georgien naturvin — världens äldsta vintradition | PACT Wines",
+    en: "Georgia natural wine — 8,000-year tradition",
+    sv: "Georgien naturvin — världens äldsta tradition",
   },
   meta: {
-    en: "Georgia has been making wine in clay vessels buried in the ground for 8,000 years. The complete guide to Georgian natural wine, qvevri and the tradition that changed European winemaking.",
-    sv: "Georgien har gjort vin i lerkärl nedgrävda i marken i åtta tusen år. Den kompletta guiden till georgiskt naturvin, qvevri och den tradition som förändrade europeisk vinframställning.",
+    en: "Georgia has made wine in buried clay vessels for 8,000 years. Guide to qvevri, grapes, regions and producers.",
+    sv: "Georgien har gjort vin i nedgrävda lerkärl i 8 000 år. Guide till qvevri, druvor, regioner och producenter.",
   },
   h1: {
     en: "Georgia natural wine — the oldest wine tradition in the world",

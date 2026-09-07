@@ -23,6 +23,10 @@ import { producerGuideHref } from "@/lib/guides/producer-guide-links";
 import { TOP_100_PRODUCERS } from "@/lib/guides/top-100-producers";
 import type { AppLocale } from "@/lib/i18n/locale";
 import { categoryPageTitle } from "@/lib/seo/category-page-title";
+import {
+  defaultOpenGraphImages,
+  pageTwitterCard,
+} from "@/lib/seo/default-social";
 import { getSiteConfig } from "@/lib/site-config";
 
 function linkLanguedocMentions(
@@ -119,7 +123,9 @@ export async function buildProducersGuideMetadata(
       description: copy.producers.metaDescription,
       url: pageUrl,
       type: "article",
+      images: defaultOpenGraphImages(),
     },
+    twitter: pageTwitterCard(title, copy.producers.metaDescription),
   };
 }
 

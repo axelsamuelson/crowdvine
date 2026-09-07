@@ -3,7 +3,8 @@ import Link from "next/link";
 import { PageLayoutServer } from "@/components/layout/page-layout-server";
 
 export const metadata: Metadata = {
-  title: "Page Not Found",
+  title: "Sidan hittades inte",
+  description: "Sidan du letade efter finns inte på PACT Wines.",
   robots: {
     index: false,
     follow: false,
@@ -18,14 +19,14 @@ export default function NotFound() {
           <div className="mb-8">
             <h1 className="text-8xl font-bold text-primary/20 mb-4">404</h1>
             <h2 className="text-2xl font-semibold text-foreground mb-2">
-              Page Not Found.{" "}
+              Sidan hittades inte.{" "}
               <Link href="/" className="underline">
-                Go Back Home
+                Till startsidan
               </Link>
             </h2>
             <p className="text-muted-foreground text-sm leading-relaxed">
-              Sorry, we couldn&apos;t find the page you&apos;re looking for. The
-              page might have been moved, deleted, or you entered the wrong URL.
+              Vi kunde inte hitta sidan du letade efter. Den kan ha flyttats,
+              tagits bort, eller så har du skrivit fel adress.
             </p>
           </div>
         </div>

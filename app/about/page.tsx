@@ -4,6 +4,10 @@ import {
   aboutPageContentForLocale,
   aboutPageUrls,
 } from "@/lib/i18n/about-page-content";
+import {
+  defaultOpenGraphImages,
+  pageTwitterCard,
+} from "@/lib/seo/default-social";
 import { getSiteConfig } from "@/lib/site-config";
 
 const content = aboutPageContentForLocale("en");
@@ -27,7 +31,9 @@ export async function generateMetadata(): Promise<Metadata> {
       description: content.description,
       url: urls.en,
       type: "website",
+      images: defaultOpenGraphImages(),
     },
+    twitter: pageTwitterCard(content.title, content.description),
   };
 }
 

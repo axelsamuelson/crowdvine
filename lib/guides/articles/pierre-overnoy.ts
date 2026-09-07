@@ -4,12 +4,12 @@ import type { GuideArticleContent } from "@/lib/guides/guide-types";
 export const pierreOvernoyArticle: GuideArticleContent = {
   slug: { en: "pierre-overnoy", sv: "pierre-overnoy" },
   title: {
-    en: "Pierre Overnoy — the producer who started natural wine | PACT Wines",
-    sv: "Pierre Overnoy — producenten som startade naturvinet | PACT Wines",
+    en: "Pierre Overnoy — natural wine pioneer",
+    sv: "Pierre Overnoy — naturvinets pionjär",
   },
   meta: {
-    en: "Pierre Overnoy stopped adding sulphur in the 1980s and proved that wine without additives could age for decades. The story behind natural wine's most influential producer.",
-    sv: "Pierre Overnoy slutade tillsätta svavel på 1980-talet och bevisade att vin utan tillsatser kan åldras i decennier. Historien bakom naturvinets mest inflytelserika producent.",
+    en: "Pierre Overnoy stopped adding sulphur in the 1980s and proved wine without additives could age.",
+    sv: "Pierre Overnoy slutade tillsätta svavel på 1980-talet och bevisade att vin utan tillsatser kan lagras.",
   },
   h1: {
     en: "Pierre Overnoy — the producer who started natural wine",

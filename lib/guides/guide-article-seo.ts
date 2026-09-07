@@ -6,6 +6,10 @@ import {
 } from "@/lib/guides/guide-types";
 import type { AppLocale } from "@/lib/i18n/locale";
 import { categoryPageTitle } from "@/lib/seo/category-page-title";
+import {
+  defaultOpenGraphImages,
+  pageTwitterCard,
+} from "@/lib/seo/default-social";
 
 export function articleGuideHreflang(
   content: GuideArticleContent,
@@ -29,7 +33,11 @@ export function buildArticleGuideMeta(
   locale: AppLocale,
   baseUrl: string,
   siteName: string,
-  options?: { xDefault?: AppLocale },
+  options?: {
+    xDefault?: AppLocale;
+    /** When EN copy is still a Swedish placeholder. */
+    noindex?: boolean;
+  },
 ): Metadata {
   const pageUrl = `${baseUrl}${articlePath(content, locale)}`;
   const title = categoryPageTitle(content.title[locale], siteName);
@@ -38,6 +46,9 @@ export function buildArticleGuideMeta(
   return {
     title,
     description,
+    ...(options?.noindex
+      ? { robots: { index: false, follow: true } }
+      : {}),
     alternates: {
       canonical: pageUrl,
       languages: articleGuideHreflang(
@@ -52,6 +63,8 @@ export function buildArticleGuideMeta(
       url: pageUrl,
       type: "article",
       locale: locale === "sv" ? "sv_SE" : "en_US",
+      images: defaultOpenGraphImages(),
     },
+    twitter: pageTwitterCard(title, description),
   };
 }

@@ -79,9 +79,8 @@ function staticPagesForProfile(
     yearlyEntry(`${baseUrl}/villkor`, 0.3),
     yearlyEntry(`${baseUrl}/integritetspolicy`, 0.3),
     yearlyEntry(`${baseUrl}/cookies`, 0.3),
-    yearlyEntry(`${baseUrl}/terms`, 0.3),
-    yearlyEntry(`${baseUrl}/privacy`, 0.3),
-    yearlyEntry(`${baseUrl}/cookie-policy`, 0.3),
+    // EN legal URLs exist for hreflang but are noindex until English copy ships.
+    weeklyEntry(`${baseUrl}/how-it-works`, 0.4),
   ];
 
   if (profile === "pact") {
@@ -98,10 +97,17 @@ function staticPagesForProfile(
         `${baseUrl}/guides/worlds-best-natural-wine-producers`,
         0.75,
       ),
-      ...BILINGUAL_ARTICLE_GUIDES.flatMap((guide) => [
-        weeklyEntry(`${baseUrl}${articlePath(guide, "en")}`, 0.75),
-        weeklyEntry(`${baseUrl}${articlePath(guide, "sv")}`, 0.75),
-      ]),
+      ...BILINGUAL_ARTICLE_GUIDES.flatMap((guide) => {
+        const sv = weeklyEntry(`${baseUrl}${articlePath(guide, "sv")}`, 0.75);
+        // EN budget guide is interim Swedish copy + noindex — keep out of sitemap.
+        if (guide.slug.en === "best-natural-wines-under-200-systembolaget") {
+          return [sv];
+        }
+        return [
+          weeklyEntry(`${baseUrl}${articlePath(guide, "en")}`, 0.75),
+          sv,
+        ];
+      }),
       weeklyEntry(`${baseUrl}${GUIDE_PATHS.orangeWines.en}`, 0.75),
       weeklyEntry(`${baseUrl}${GUIDE_PATHS.orangeWines.sv}`, 0.75),
       weeklyEntry(`${baseUrl}${GUIDE_PATHS.naturalChampagne.en}`, 0.75),

@@ -4,12 +4,12 @@ import type { GuideArticleContent } from "@/lib/guides/guide-types";
 export const marcelLapierreArticle: GuideArticleContent = {
   slug: { en: "marcel-lapierre", sv: "marcel-lapierre" },
   title: {
-    en: "Marcel Lapierre — the man who made natural Beaujolais possible | PACT Wines",
-    sv: "Marcel Lapierre — mannen som gjorde naturligt Beaujolais möjligt | PACT Wines",
+    en: "Marcel Lapierre — natural Beaujolais pioneer",
+    sv: "Marcel Lapierre — naturligt Beaujolais",
   },
   meta: {
-    en: "Marcel Lapierre took Jules Chauvet's ideas and put them into practice. His Morgon became the template for natural Beaujolais — and changed how a generation thinks about Gamay.",
-    sv: "Marcel Lapierre tog Jules Chauvets idéer och omsatte dem i praktiken. Hans Morgon blev mallen för naturligt Beaujolais — och förändrade hur en generation tänker om Gamay.",
+    en: "Marcel Lapierre put Jules Chauvet's ideas into practice. His Morgon became the template for natural Beaujolais.",
+    sv: "Marcel Lapierre omsatte Jules Chauvets idéer i praktiken. Hans Morgon blev mallen för naturligt Beaujolais.",
   },
   h1: {
     en: "Marcel Lapierre — the man who made natural Beaujolais possible",

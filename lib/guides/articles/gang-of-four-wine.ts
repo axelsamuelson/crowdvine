@@ -4,12 +4,12 @@ import type { GuideArticleContent } from "@/lib/guides/guide-types";
 export const gangOfFourWineArticle: GuideArticleContent = {
   slug: { en: "gang-of-four-wine", sv: "gang-of-four-wine" },
   title: {
-    en: "The Gang of Four — the producers who saved Beaujolais | PACT Wines",
-    sv: "Gang of Four — producenterna som räddade Beaujolais | PACT Wines",
+    en: "The Gang of Four — who saved Beaujolais",
+    sv: "Gang of Four — som räddade Beaujolais",
   },
   meta: {
-    en: "Jean Foillard, Marcel Lapierre, Jean-Paul Thévenet and Guy Breton. The four producers who turned their backs on Beaujolais nouveau and changed how the world thinks about Gamay.",
-    sv: "Jean Foillard, Marcel Lapierre, Jean-Paul Thévenet och Guy Breton. De fyra producenter som vände ryggen åt Beaujolais nouveau och förändrade hur världen ser på Gamay.",
+    en: "Jean Foillard, Marcel Lapierre, Jean-Paul Thévenet and Guy Breton — the four who saved Beaujolais.",
+    sv: "Jean Foillard, Marcel Lapierre, Jean-Paul Thévenet och Guy Breton — de fyra som räddade Beaujolais.",
   },
   h1: {
     en: "The Gang of Four — the producers who saved Beaujolais",

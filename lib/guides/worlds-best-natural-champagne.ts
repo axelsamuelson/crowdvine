@@ -16,12 +16,12 @@ export const worldsBestNaturalChampagneGuide = {
     sv: "Världens bästa naturliga champagne",
   },
   metaTitle: {
-    en: "The world's best natural champagne — grower producers ranked",
-    sv: "Världens bästa naturliga champagne — grower-producenter rankade",
+    en: "World's best natural champagne",
+    sv: "Världens bästa naturliga champagne",
   },
   metaDescription: {
-    en: "Grower champagne made with natural wine principles — low dosage, no added yeast, minimal sulphur. Our curated list of the world's finest natural champagne.",
-    sv: "Grower champagne gjord med naturvinsprinciper — låg dosage, ingen tillsatt jäst, minimalt svavel. Vår kurerade lista över världens finaste naturliga champagne.",
+    en: "Grower champagne with natural wine principles — low dosage, no added yeast, minimal sulphur. Curated list of the finest bottles.",
+    sv: "Grower champagne med naturvinsprinciper — låg dosage, ingen tillsatt jäst, minimalt svavel. Kurerad lista över de finaste flaskorna.",
   },
   breadcrumbShort: {
     en: "Best Natural Champagne",

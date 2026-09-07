@@ -6,6 +6,10 @@ import {
   shopSkeleton,
 } from "@/app/vin/components/main-shop-content";
 import { shopSearchParamsRobots } from "@/lib/seo/shop-search-robots";
+import {
+  defaultOpenGraphImages,
+  pageTwitterCard,
+} from "@/lib/seo/default-social";
 import { getSiteConfig } from "@/lib/site-config";
 
 export const revalidate = 300;
@@ -37,7 +41,9 @@ export async function generateMetadata(props: {
       description,
       url: pageUrl,
       type: "website",
+      images: defaultOpenGraphImages(),
     },
+    twitter: pageTwitterCard(title, description),
   };
 }
 

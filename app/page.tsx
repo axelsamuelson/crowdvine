@@ -17,6 +17,10 @@ import { headers } from "next/headers";
 import { getSiteConfig } from "@/lib/site-config";
 import { getHomepageHeroImages } from "@/lib/actions/content";
 import { getHomepageHeroCopy } from "@/lib/get-homepage-hero-copy";
+import {
+  defaultOpenGraphImages,
+  pageTwitterCard,
+} from "@/lib/seo/default-social";
 
 // ISR: regenerate homepage HTML periodically (shopping prefs hydrate client-side).
 export const revalidate = 600;
@@ -37,9 +41,10 @@ export async function generateMetadata(): Promise<Metadata> {
     alternates: {
       canonical: config.baseUrl,
       languages: {
-        sv: "https://pactwines.com",
-        en: "https://pactwines.com",
-        "x-default": "https://pactwines.com",
+        sv: config.baseUrl,
+        // Home is Swedish-first; English shop is the bilingual entry point.
+        en: `${config.baseUrl}/wine`,
+        "x-default": config.baseUrl,
       },
     },
     openGraph: {
@@ -47,7 +52,10 @@ export async function generateMetadata(): Promise<Metadata> {
       description,
       url: config.baseUrl,
       type: "website",
+      locale: "sv_SE",
+      images: defaultOpenGraphImages(),
     },
+    twitter: pageTwitterCard(title, description),
   };
 }
 

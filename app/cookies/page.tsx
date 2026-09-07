@@ -18,6 +18,11 @@ export async function generateMetadata(): Promise<Metadata> {
     description: DESCRIPTION,
     alternates: {
       canonical,
+      languages: {
+        sv: canonical,
+        en: `${config.baseUrl}/cookie-policy`,
+        "x-default": canonical,
+      },
     },
   };
 }

@@ -4,12 +4,12 @@ import type { GuideArticleContent } from "@/lib/guides/guide-types";
 export const jeanFrancoisGanevatArticle: GuideArticleContent = {
   slug: { en: "jean-francois-ganevat", sv: "jean-francois-ganevat" },
   title: {
-    en: "Jean-François Ganevat — Jura's most obsessive vigneron | PACT Wines",
-    sv: "Jean-François Ganevat — Juras mest besatta vigneron | PACT Wines",
+    en: "Jean-François Ganevat — Jura vigneron",
+    sv: "Jean-François Ganevat — Jura-vigneron",
   },
   meta: {
-    en: "Jean-François Ganevat returned from Burgundy to his family's domaine in Rotalier and built one of natural wine's most extreme and sought-after ranges. The story of Jura's most obsessive vigneron.",
-    sv: "Jean-François Ganevat återvände från Bourgogne till familjens domän i Rotalier och byggde ett av naturvinets mest extrema och eftersökta sortiment. Historien om Juras mest besatta vigneron.",
+    en: "Jean-François Ganevat returned from Burgundy to Rotalier and built one of Jura's most obsessive domaines.",
+    sv: "Jean-François Ganevat återvände från Bourgogne till Rotalier och byggde en av Juras mest besatta domäner.",
   },
   h1: {
     en: "Jean-François Ganevat — Jura's most obsessive vigneron",

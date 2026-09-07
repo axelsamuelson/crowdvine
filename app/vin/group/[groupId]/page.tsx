@@ -8,6 +8,7 @@ import { DEFAULT_WINE_IMAGE_PATH } from "@/lib/constants";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
+  title: "Producer group",
   robots: {
     index: false,
     follow: true,

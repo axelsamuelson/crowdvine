@@ -5,6 +5,7 @@ export { default } from "@/app/vin/group/[groupId]/page";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
+  title: "Producer group",
   robots: {
     index: false,
     follow: true,

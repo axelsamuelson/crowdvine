@@ -7,12 +7,12 @@ export const bestWhiteNaturalWinesSystembolagetArticle: GuideArticleContent = {
     sv: "basta-vita-naturviner-systembolaget",
   },
   title: {
-    en: "The best white natural wines at Systembolaget | PACT Wines",
-    sv: "Bästa vita naturviner på Systembolaget | PACT Wines",
+    en: "Best white natural wines Systembolaget",
+    sv: "Bästa vita naturviner på Systembolaget",
   },
   meta: {
-    en: "An independent shortlist of white wines at Systembolaget from biodynamic, organic and low-intervention growers — not limited to strict natural-wine labels.",
-    sv: "En oberoende shortlist av vita viner på Systembolaget från biodynamiska, ekologiska och låginterventionsodlare — inte begränsad till strikt naturvinsetikett.",
+    en: "Independent shortlist of white natural wines at Systembolaget — biodynamic, organic and low-intervention.",
+    sv: "Oberoende shortlist av vita naturviner på Systembolaget — biodynamiskt, ekologiskt och lågintervention.",
   },
   h1: {
     en: "The best white natural wines at Systembolaget",

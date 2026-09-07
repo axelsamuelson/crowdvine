@@ -7,12 +7,12 @@ export const bestRedNaturalWinesSystembolagetArticle: GuideArticleContent = {
     sv: "basta-roda-naturviner-systembolaget",
   },
   title: {
-    en: "Best red natural wines at Systembolaget 2026 | PACT Wines",
-    sv: "Bästa röda naturviner på Systembolaget 2026 | PACT Wines",
+    en: "Best red natural wines at Systembolaget",
+    sv: "Bästa röda naturviner på Systembolaget",
   },
   meta: {
-    en: "An independent guide to the best red natural wines at Systembolaget. We only list producers with a recognised reputation in the natural wine world — and we also tell you which wines don't make the cut.",
-    sv: "En oberoende guide till de bästa röda naturvinerna på Systembolaget. Vi listar bara producenter med ett erkänt rykte inom naturvinsrörelsen — och vi säger också vilka viner som inte håller måttet.",
+    en: "Independent guide to the best red natural wines at Systembolaget — only producers with real low-intervention credibility.",
+    sv: "Oberoende guide till de bästa röda naturvinerna på Systembolaget — bara producenter med verklig trovärdighet.",
   },
   h1: {
     en: "Best red natural wines at Systembolaget 2026",

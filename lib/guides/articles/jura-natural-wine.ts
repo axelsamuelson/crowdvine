@@ -4,12 +4,12 @@ import type { GuideArticleContent } from "@/lib/guides/guide-types";
 export const juraNaturalWineArticle: GuideArticleContent = {
   slug: { en: "jura-natural-wine", sv: "jura-natural-wine" },
   title: {
-    en: "Jura natural wine — the complete guide to France's most exciting wine region | PACT Wines",
-    sv: "Jura naturvin — den kompletta guiden till Frankrikes mest spännande vinregion | PACT Wines",
+    en: "Jura natural wine — complete guide",
+    sv: "Jura naturvin — kompletta guiden",
   },
   meta: {
-    en: "The Jura is small, cold and unlike anywhere else in France. It is also the spiritual home of natural wine. A complete guide to Jura's grapes, styles, appellations and producers.",
-    sv: "Jura är litet, svalt och olikt någon annanstans i Frankrike. Det är också naturvinets andliga hem. Den kompletta guiden till Juras druvor, stilar, appellationer och producenter.",
+    en: "The Jura is small, cold and unlike anywhere else in France — and the spiritual home of natural wine. Grapes, styles and producers.",
+    sv: "Jura är litet, svalt och olikt någon annanstans i Frankrike — naturvinets andliga hem. Druvor, stilar och producenter.",
   },
   h1: {
     en: "Jura natural wine — the complete guide",

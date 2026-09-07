@@ -1,11 +1,40 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { EngagementTrackers } from "@/components/analytics/engagement-trackers";
+import {
+  defaultOpenGraphImages,
+  pageTwitterCard,
+} from "@/lib/seo/default-social";
+import { getSiteConfig } from "@/lib/site-config";
 
-export const metadata: Metadata = {
-  title: "Så fungerar det | PACT",
-  description: "Hur PACT fungerar — från reservation till leverans.",
-};
+const TITLE = "Så fungerar det";
+const DESCRIPTION =
+  "Hur PACT fungerar — från reservation till leverans. Du betalar när pallen är full.";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const config = await getSiteConfig();
+  const url = `${config.baseUrl}/how-it-works`;
+  return {
+    title: TITLE,
+    description: DESCRIPTION,
+    alternates: {
+      canonical: url,
+      languages: {
+        sv: url,
+        "x-default": url,
+      },
+    },
+    openGraph: {
+      title: TITLE,
+      description: DESCRIPTION,
+      url,
+      type: "website",
+      locale: "sv_SE",
+      images: defaultOpenGraphImages(),
+    },
+    twitter: pageTwitterCard(TITLE, DESCRIPTION),
+  };
+}
 
 export default function HowItWorksPage() {
   return (

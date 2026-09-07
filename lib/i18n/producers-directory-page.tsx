@@ -24,6 +24,11 @@ import {
   type WineLocale,
 } from "@/lib/i18n/wine-locale";
 import { generateProducerSlug } from "@/lib/producer-handle";
+import { categoryPageTitle } from "@/lib/seo/category-page-title";
+import {
+  defaultOpenGraphImages,
+  pageTwitterCard,
+} from "@/lib/seo/default-social";
 import { getSiteConfig } from "@/lib/site-config";
 
 type ProducerListRow = {
@@ -54,8 +59,10 @@ export async function buildProducersDirectoryMetadata(
   const urls = producersDirectoryUrls(config.baseUrl);
   const canonical = locale === "sv" ? urls.sv : urls.en;
 
+  const title = categoryPageTitle(content.title, config.siteName);
+
   return {
-    title: content.title,
+    title,
     description: content.description,
     alternates: {
       canonical,
@@ -66,11 +73,13 @@ export async function buildProducersDirectoryMetadata(
       },
     },
     openGraph: {
-      title: `${content.title} | ${config.siteName}`,
+      title,
       description: content.description,
       url: canonical,
       type: "website",
+      images: defaultOpenGraphImages(),
     },
+    twitter: pageTwitterCard(title, content.description),
   };
 }
 
