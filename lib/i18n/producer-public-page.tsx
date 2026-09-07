@@ -153,6 +153,14 @@ export async function buildProducerPublicMetadata(
   return {
     title: pageTitle,
     description: pageDescription,
+    ...(data.wines.length === 0
+      ? {
+          robots: {
+            index: false,
+            follow: true,
+          },
+        }
+      : {}),
     alternates: {
       canonical,
       languages: {

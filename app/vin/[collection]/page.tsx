@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 
 import ProductList from "../components/product-list";
 import { ProductListShell } from "../components/product-list-shell";
-import { fetchProductsData } from "@/lib/crowdvine/products-data";
+import {
+  catalogHasProducts,
+  fetchProductsData,
+} from "@/lib/crowdvine/products-data";
 import {
   getCachedAllWineSourceSlugs,
   pickWineSourceSlugsForProducts,
@@ -22,11 +25,14 @@ import {
   producerShopMetaDescription,
   producerShopPageTitle,
 } from "@/lib/seo/producer-shop-metadata";
-import { getCollection } from "@/lib/shopify";
+import { getCollection, getCollectionProducts } from "@/lib/shopify";
 import { getSiteConfig } from "@/lib/site-config";
 import { categoryPageTitle } from "@/lib/seo/category-page-title";
 import { shopCategoryCanonicalUrl } from "@/lib/wine-category-canonical";
-import { categoryPageRobots } from "@/lib/seo/noindex-robots";
+import {
+  categoryPageRobots,
+  emptyListingRobots,
+} from "@/lib/seo/noindex-robots";
 import { shopSearchParamsRobots } from "@/lib/seo/shop-search-robots";
 import {
   getCategoryExploreLinks,
@@ -55,7 +61,16 @@ export async function generateMetadata(props: {
 
   const category = await resolveGrapeCategoryBySlug(slug, "sv");
   if (category) {
-    const config = await getSiteConfig();
+    const [config, hasProducts] = await Promise.all([
+      getSiteConfig(),
+      catalogHasProducts({
+        filterColor: category.filter.color,
+        filterTags: category.filter.tags,
+        filterIsNatural: category.filter.isNatural,
+        filterFarming: category.filter.farming,
+        filterGrape: category.filter.filterGrape,
+      }),
+    ]);
     const pageUrl = `${config.baseUrl}/vin/${slug}`;
     const canonicalUrl = shopCategoryCanonicalUrl(slug, "sv", config.baseUrl);
 
@@ -64,7 +79,9 @@ export async function generateMetadata(props: {
     return {
       title,
       description: category.metaDescription,
-      robots: categoryPageRobots(slug, "sv", searchParams),
+      robots: categoryPageRobots(slug, "sv", searchParams, {
+        emptyListing: !hasProducts,
+      }),
       alternates: {
         canonical: canonicalUrl,
         languages: {
@@ -86,23 +103,28 @@ export async function generateMetadata(props: {
     getSiteConfig(),
     getCollection(slug),
   ]);
-  if (!collection) return {};
+  if (!collection) {
+    return { robots: { index: false, follow: false } };
+  }
 
-  const shopHeading = producerShopPageHeading(collection.title, "sv");
   const shopUrl = `${config.baseUrl}${producerShopPagePath(collection.title, "sv")}`;
-  const producerSlug = generateProducerSlug(collection.title);
-  const producerUrls = producerPageUrls(producerSlug);
-  const producerCollection = asProducerCollectionData(collection);
   const shopTitle = producerShopPageTitle(collection.title, "sv");
   const shopDescription = producerShopMetaDescription("sv", {
     producerName: collection.title,
     handle: collection.handle,
   });
+  const collectionProducts = await getCollectionProducts({
+    collection: slug,
+    limit: 1,
+  });
+  const emptyListing = collectionProducts.length === 0;
 
   return {
     title: shopTitle,
     description: shopDescription,
-    robots: shopSearchParamsRobots(searchParams),
+    robots: emptyListing
+      ? emptyListingRobots(searchParams)
+      : shopSearchParamsRobots(searchParams),
     alternates: {
       canonical: shopUrl,
       languages: {
@@ -313,10 +335,12 @@ export default async function VinCollectionPage(props: {
   }
 
   const collection = await getCollection(slug);
-  if (!collection) return notFound();
+  if (!collection) {
+    notFound();
+  }
 
   if (collection.handle !== slug) {
-    redirect(`/vin/${collection.handle}`);
+    permanentRedirect(`/vin/${collection.handle}`);
   }
 
   const config = await getSiteConfig();

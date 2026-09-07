@@ -178,6 +178,12 @@ async function runMiddleware(req: NextRequest) {
     return NextResponse.redirect(u, 301);
   }
 
+  if (pathname === "/boxes") {
+    const u = req.nextUrl.clone();
+    u.pathname = "/vin/wine-boxes";
+    return NextResponse.redirect(u, 301);
+  }
+
   const legacyGrapeRedirect = redirectLegacyShopGrapeFilter(req, pathname);
   if (legacyGrapeRedirect) return legacyGrapeRedirect;
 

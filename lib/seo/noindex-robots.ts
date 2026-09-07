@@ -41,14 +41,26 @@ export function isNoindexCategorySlug(
 
 type ShopSearchParams = { [key: string]: string | string[] | undefined };
 
+/**
+ * Robots for shop category / collection listings.
+ * Empty product sets are noindex,follow (still linked internally).
+ */
 export function categoryPageRobots(
   slug: string,
   locale: "sv" | "en",
   searchParams?: ShopSearchParams,
+  options?: { emptyListing?: boolean },
 ): NonNullable<Metadata["robots"]> | undefined {
-  if (isNoindexCategorySlug(slug, locale)) {
+  if (isNoindexCategorySlug(slug, locale) || options?.emptyListing) {
     return NOINDEX_FOLLOW_ROBOTS;
   }
 
   return shopSearchParamsRobots(searchParams);
+}
+
+/** Prefer noindex,follow when a listing has zero products. */
+export function emptyListingRobots(
+  searchParams?: ShopSearchParams,
+): NonNullable<Metadata["robots"]> {
+  return shopSearchParamsRobots(searchParams) ?? NOINDEX_FOLLOW_ROBOTS;
 }

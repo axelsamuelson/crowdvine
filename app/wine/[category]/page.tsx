@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { redirect } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 
 import ProductList from "@/app/vin/components/product-list";
 import { ProductListShell } from "@/app/vin/components/product-list-shell";
-import { fetchProductsData } from "@/lib/crowdvine/products-data";
+import {
+  catalogHasProducts,
+  fetchProductsData,
+} from "@/lib/crowdvine/products-data";
 import {
   getCachedAllWineSourceSlugs,
   pickWineSourceSlugsForProducts,
@@ -25,13 +28,16 @@ import {
   producerShopMetaDescription,
   producerShopPageTitle,
 } from "@/lib/seo/producer-shop-metadata";
-import { getCollection } from "@/lib/shopify";
+import { getCollection, getCollectionProducts } from "@/lib/shopify";
 import { getShoppingContextFromRequest } from "@/lib/shopping-context/server";
 import { fallbackShoppingContext } from "@/lib/shopping-context/defaults";
 import { getSiteConfig } from "@/lib/site-config";
 import { categoryPageTitle } from "@/lib/seo/category-page-title";
 import { shopCategoryCanonicalUrl } from "@/lib/wine-category-canonical";
-import { categoryPageRobots } from "@/lib/seo/noindex-robots";
+import {
+  categoryPageRobots,
+  emptyListingRobots,
+} from "@/lib/seo/noindex-robots";
 import { shopSearchParamsRobots } from "@/lib/seo/shop-search-robots";
 import {
   getCategoryExploreLinks,
@@ -60,7 +66,16 @@ export async function generateMetadata(props: {
 
   const category = await resolveGrapeCategoryBySlug(slug, "en");
   if (category) {
-    const config = await getSiteConfig();
+    const [config, hasProducts] = await Promise.all([
+      getSiteConfig(),
+      catalogHasProducts({
+        filterColor: category.filter.color,
+        filterTags: category.filter.tags,
+        filterIsNatural: category.filter.isNatural,
+        filterFarming: category.filter.farming,
+        filterGrape: category.filter.filterGrape,
+      }),
+    ]);
     const pageUrl = `${config.baseUrl}/wine/${slug}`;
     const canonicalUrl = shopCategoryCanonicalUrl(slug, "en", config.baseUrl);
 
@@ -69,7 +84,9 @@ export async function generateMetadata(props: {
     return {
       title,
       description: category.metaDescription,
-      robots: categoryPageRobots(slug, "en", searchParams),
+      robots: categoryPageRobots(slug, "en", searchParams, {
+        emptyListing: !hasProducts,
+      }),
       alternates: {
         canonical: canonicalUrl,
         languages: {
@@ -88,22 +105,29 @@ export async function generateMetadata(props: {
   }
 
   const collection = await getCollection(slug);
-  if (!collection) return {};
+  if (!collection) {
+    return { robots: { index: false, follow: false } };
+  }
 
   const config = await getSiteConfig();
-  const shopHeading = producerShopPageHeading(collection.title, "en");
   const shopUrl = `${config.baseUrl}${producerShopPagePath(collection.title, "en")}`;
-  const producerCollection = asProducerCollectionData(collection);
   const shopTitle = producerShopPageTitle(collection.title, "en");
   const shopDescription = producerShopMetaDescription("en", {
     producerName: collection.title,
     handle: collection.handle,
   });
+  const collectionProducts = await getCollectionProducts({
+    collection: slug,
+    limit: 1,
+  });
+  const emptyListing = collectionProducts.length === 0;
 
   return {
     title: shopTitle,
     description: shopDescription,
-    robots: shopSearchParamsRobots(searchParams),
+    robots: emptyListing
+      ? emptyListingRobots(searchParams)
+      : shopSearchParamsRobots(searchParams),
     alternates: {
       canonical: shopUrl,
       languages: {
@@ -133,11 +157,11 @@ export default async function WineCategoryPage(props: PageProps) {
   if (!category) {
     const collection = await getCollection(slug);
     if (!collection) {
-      return <ProductList collection={slug} searchParams={searchParams} />;
+      notFound();
     }
 
     if (collection.handle !== slug) {
-      redirect(`/wine/${collection.handle}`);
+      permanentRedirect(`/wine/${collection.handle}`);
     }
 
     const shopHeading = producerShopPageHeading(collection.title, "en");

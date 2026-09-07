@@ -122,12 +122,55 @@ export async function fetchDynamicGrapeSlugs(
   return Array.from(slugs).sort();
 }
 
-/** Producer shop collection slugs (/vin/{slug}, /wine/{slug}). */
+/**
+ * Producer shop collection slugs (/vin/{slug}, /wine/{slug}).
+ * Only producers that have at least one indexable wine (avoids empty PLPs in sitemap).
+ */
 export async function fetchProducerShopSlugs(): Promise<string[]> {
+  const sb = getSupabaseAdmin();
+  const { data, error } = await sb
+    .from("wines")
+    .select(
+      "handle, available_for_sale, tags, producers!inner(name, is_live, status)",
+    )
+    .eq("is_live", true)
+    .eq("producers.is_live", true)
+    .eq("producers.status", "active");
+
+  if (error) {
+    // Fallback: all indexable producers (previous behaviour)
+    const producers = await fetchIndexableProducers();
+    return producers
+      .map((p) => generateProducerSlug(String(p.name ?? "")))
+      .filter(Boolean);
+  }
+
+  const slugs = new Set<string>();
+  for (const row of data ?? []) {
+    if (!isIndexableWineRow(row as Parameters<typeof isIndexableWineRow>[0])) {
+      continue;
+    }
+    const producers = (
+      row as { producers?: { name?: string } | { name?: string }[] }
+    ).producers;
+    const producer = Array.isArray(producers) ? producers[0] : producers;
+    const name = producer?.name?.trim();
+    if (!name) continue;
+    const slug = generateProducerSlug(name);
+    if (slug) slugs.add(slug);
+  }
+  return Array.from(slugs).sort();
+}
+
+/** Indexable producer profile rows that currently have ≥1 shop wine. */
+export async function fetchIndexableProducersWithWines(): Promise<
+  IndexableProducerRow[]
+> {
+  const shopSlugs = new Set(await fetchProducerShopSlugs());
   const producers = await fetchIndexableProducers();
-  return producers
-    .map((p) => generateProducerSlug(String(p.name ?? "")))
-    .filter(Boolean);
+  return producers.filter((p) =>
+    shopSlugs.has(generateProducerSlug(String(p.name ?? ""))),
+  );
 }
 
 export function dedupeSitemapEntries<T extends { url: string }>(

@@ -1,7 +1,8 @@
-import { MetadataRoute } from "next";
+import type { MetadataRoute } from "next";
 
-// TODO: robots.ts är statisk och kan inte differentiera per domän. För dirtywine.se-specifik
-// robots: implementera en middleware-baserad lösning eller en separat /robots.txt-route.
+import { ROBOTS_DISALLOW_PATHS } from "@/lib/seo/robots-disallow";
+
+// B2B robots via middleware rewrite; pact uses app/robots.ts with the same disallow list.
 
 export default function robots(): MetadataRoute.Robots {
   return {
@@ -9,28 +10,7 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: "/",
-        disallow: [
-          "/admin",
-          "/api/",
-          "/checkout",
-          "/cart",
-          "/access-request",
-          "/access-pending",
-          "/profile",
-          "/log-in",
-          "/signup",
-          "/reset-password",
-          "/forgot-password",
-          "/auth/",
-          "/taste-quiz",
-          "/tasting/",
-          "/pallet/",
-          "/i/",
-          "/ib/",
-          "/b/",
-          "/p/",
-          "/c/",
-        ],
+        disallow: [...ROBOTS_DISALLOW_PATHS],
       },
     ],
     sitemap: "https://pactwines.com/sitemap.xml",

@@ -1038,3 +1038,19 @@ export async function fetchCollectionProductsData(
     };
   });
 }
+
+/** True when at least one live catalog wine matches the shop category filters. */
+export async function catalogHasProducts(filters?: {
+  filterColor?: string[];
+  filterTags?: string[];
+  filterIsNatural?: boolean;
+  filterFarming?: string[];
+  filterGrape?: string;
+}): Promise<boolean> {
+  const rows = await fetchProductsData({
+    ...filters,
+    limit: 1,
+    isB2BSite: false,
+  });
+  return rows.length > 0;
+}

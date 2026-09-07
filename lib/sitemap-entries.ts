@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 
+import { catalogHasProducts } from "@/lib/crowdvine/products-data";
 import { BILINGUAL_ARTICLE_GUIDES } from "@/lib/guides/bilingual-article-guides";
 import { GUIDE_PATHS } from "@/lib/guides/guide-routes";
 import { articlePath } from "@/lib/guides/guide-types";
@@ -16,7 +17,7 @@ import { WINE_CATEGORIES_EN, WINE_CATEGORIES_SV } from "@/lib/wine-categories";
 import {
   dedupeSitemapEntries,
   fetchDynamicGrapeSlugs,
-  fetchIndexableProducers,
+  fetchIndexableProducersWithWines,
   fetchIndexableWines,
   fetchProducerShopSlugs,
   getKnownCategorySlugs,
@@ -163,7 +164,7 @@ export async function buildSitemapEntries(
     ];
   });
 
-  const indexableProducers = await fetchIndexableProducers();
+  const indexableProducers = await fetchIndexableProducersWithWines();
 
   const producerProfilePages: MetadataRoute.Sitemap = indexableProducers
     .filter((p) => Boolean(p.name?.trim()))
@@ -181,14 +182,42 @@ export async function buildSitemapEntries(
       ];
     });
 
-  const vinCategories: MetadataRoute.Sitemap = WINE_CATEGORIES_SV.filter(
+  const vinCategoryCandidates = WINE_CATEGORIES_SV.filter(
     (c) => !isNoindexCategorySlug(c.slug, "sv"),
-  ).map((c) => weeklyEntry(`${baseUrl}/vin/${c.slug}`, 0.8));
-
-  const wineCategories: MetadataRoute.Sitemap = WINE_CATEGORIES_EN.filter(
+  );
+  const wineCategoryCandidates = WINE_CATEGORIES_EN.filter(
     (c) => !isNoindexCategorySlug(c.slug, "en"),
-  ).map((c) => weeklyEntry(`${baseUrl}/wine/${c.slug}`, 0.7));
+  );
 
+  const vinCategories: MetadataRoute.Sitemap = (
+    await Promise.all(
+      vinCategoryCandidates.map(async (c) => {
+        const hasProducts = await catalogHasProducts({
+          filterColor: c.filter.color,
+          filterTags: c.filter.tags,
+          filterIsNatural: c.filter.isNatural,
+          filterFarming: c.filter.farming,
+          filterGrape: c.filter.filterGrape,
+        });
+        return hasProducts ? weeklyEntry(`${baseUrl}/vin/${c.slug}`, 0.8) : null;
+      }),
+    )
+  ).filter((e): e is NonNullable<typeof e> => e != null);
+
+  const wineCategories: MetadataRoute.Sitemap = (
+    await Promise.all(
+      wineCategoryCandidates.map(async (c) => {
+        const hasProducts = await catalogHasProducts({
+          filterColor: c.filter.color,
+          filterTags: c.filter.tags,
+          filterIsNatural: c.filter.isNatural,
+          filterFarming: c.filter.farming,
+          filterGrape: c.filter.filterGrape,
+        });
+        return hasProducts ? weeklyEntry(`${baseUrl}/wine/${c.slug}`, 0.7) : null;
+      }),
+    )
+  ).filter((e): e is NonNullable<typeof e> => e != null);
   const knownCategorySlugs = getKnownCategorySlugs();
 
   const dynamicGrapeSlugs = await fetchDynamicGrapeSlugs(knownCategorySlugs);

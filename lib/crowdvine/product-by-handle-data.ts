@@ -421,12 +421,17 @@ export async function getCrowdvineProductByHandle(options: {
   if (error || !data)
     return null;
 
-  // Hide wines whose producer is offline
-  const producerId = (data as any).producer_id;
+  // Hide wines whose producer is offline / inactive (aligned with sitemap indexable wines)
+  const producerId = (data as { producer_id?: string | null }).producer_id;
   if (producerId) {
-    const { data: prod } = await sb.from("producers").select("is_live").eq("id", producerId).maybeSingle();
-    if (prod && (prod as any).is_live === false)
-      return null;
+    const { data: prod } = await sb
+      .from("producers")
+      .select("is_live, status")
+      .eq("id", producerId)
+      .maybeSingle();
+    const producer = prod as { is_live?: boolean | null; status?: string | null } | null;
+    if (producer?.is_live === false) return null;
+    if (producer?.status != null && producer.status !== "active") return null;
   }
 
   // Get wine images

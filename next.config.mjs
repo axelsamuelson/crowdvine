@@ -71,6 +71,11 @@ const nextConfig = {
         destination: "/villkor",
         permanent: true,
       },
+      {
+        source: "/boxes",
+        destination: "/vin/wine-boxes",
+        permanent: true,
+      },
       // Legacy Languedoc editorial pages → merged guide under /guider
       {
         source: "/languedoc",

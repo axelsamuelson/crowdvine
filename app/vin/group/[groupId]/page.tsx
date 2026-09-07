@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import { ProductListShell } from "../../components/product-list-shell";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
@@ -5,6 +6,13 @@ import { notFound } from "next/navigation";
 import { DEFAULT_WINE_IMAGE_PATH } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  robots: {
+    index: false,
+    follow: true,
+  },
+};
 
 interface PageProps {
   params: Promise<{ groupId: string }>;
