@@ -14,6 +14,11 @@ import {
 import { guideCopy } from "@/lib/guides/guide-copy";
 import { guidePath } from "@/lib/guides/guide-routes";
 import {
+  siblingSystembolagetLists,
+  systembolagetListHref,
+  systembolagetListLabel,
+} from "@/lib/guides/systembolaget-list-links";
+import {
   articleParagraphs,
   articlePath,
   type GuideArticleContent,
@@ -80,23 +85,76 @@ function wineListName(wine: SystembolagetGuideWine): string {
   return secondary ? `${producer} ${secondary}` : producer;
 }
 
-function wineMetaParts(wine: SystembolagetGuideWine): string[] {
-  const origin =
+function wineMetaParts(
+  wine: SystembolagetGuideWine,
+  locale: AppLocale,
+): string[] {
+  const rawOrigin =
     wine.origin_level_1?.trim() || wine.country?.trim() || null;
+  const origin = rawOrigin ? localizePlaceName(rawOrigin, locale) : null;
   return [
     wine.vintage != null ? String(wine.vintage) : null,
     origin,
   ].filter((part): part is string => Boolean(part));
 }
 
+/** Systembolaget product geography is Swedish; map common labels for EN UI. */
+function localizePlaceName(name: string, locale: AppLocale): string {
+  if (locale === "sv") return name;
+  const map: Record<string, string> = {
+    Österrike: "Austria",
+    Sydafrika: "South Africa",
+    Italien: "Italy",
+    Frankrike: "France",
+    Spanien: "Spain",
+    Tyskland: "Germany",
+    Portugal: "Portugal",
+    Georgien: "Georgia",
+    Grekland: "Greece",
+    Ungern: "Hungary",
+    Slovenien: "Slovenia",
+    Kroatien: "Croatia",
+    Australien: "Australia",
+    "Nya Zeeland": "New Zealand",
+    USA: "USA",
+    Chile: "Chile",
+    Argentina: "Argentina",
+  };
+  return map[name] ?? name;
+}
+
 /** Assortment channel as a quiet label (not part of the meta line). */
-function assortmentLabel(assortmentText: string | null): string | null {
+function assortmentLabel(
+  assortmentText: string | null,
+  locale: AppLocale,
+): string | null {
   const raw = assortmentText?.trim();
   if (!raw) return null;
   const lower = raw.toLocaleLowerCase("sv-SE");
-  if (lower.startsWith("ordervar")) return "ORDERVARA";
-  if (lower.includes("tillfälligt")) return "TILLFÄLLIGT SORTIMENT";
-  return raw.toLocaleUpperCase("sv-SE");
+
+  // SV keeps the existing uppercase labels; EN uses Systembolaget's English terms.
+  if (lower.startsWith("ordervar")) {
+    return locale === "sv" ? "ORDERVARA" : "Order range";
+  }
+  if (lower.includes("tillfälligt")) {
+    return locale === "sv" ? "TILLFÄLLIGT SORTIMENT" : "Temporary range";
+  }
+  if (lower.startsWith("fast ")) {
+    return locale === "sv" ? "FAST SORTIMENT" : "Fixed range";
+  }
+  if (lower.startsWith("webblansering")) {
+    return locale === "sv" ? "WEBBLANSERINGAR" : "Online release";
+  }
+  if (lower.includes("lokalt") && lower.includes("småskaligt")) {
+    return locale === "sv" ? "LOKALT & SMÅSKALIGT" : "Local & Small-scale";
+  }
+  if (lower.startsWith("säsong") || lower === "sasong") {
+    return locale === "sv" ? "SÄSONG" : "Seasonal";
+  }
+
+  return locale === "sv"
+    ? raw.toLocaleUpperCase("sv-SE")
+    : raw;
 }
 
 function formatPrice(price: number | null): string | null {
@@ -151,8 +209,8 @@ function RankedWineRow({
   // First-edition rows are all "new" with null previous_sort_order — hiding avoids
   // a meaningless "Ny" under every number.
   const showRankBadge = wine.previous_sort_order != null && Boolean(badge);
-  const meta = wineMetaParts(wine);
-  const assortment = assortmentLabel(wine.assortment_text);
+  const meta = wineMetaParts(wine, locale);
+  const assortment = assortmentLabel(wine.assortment_text, locale);
   const price = formatPrice(wine.price);
   const note =
     locale === "en"
@@ -230,7 +288,13 @@ function RankedWineRow({
             ) : null}
 
             {assortment ? (
-              <p className="mt-1 text-xs uppercase tracking-[0.08em] text-muted-foreground">
+              <p
+                className={
+                  locale === "sv"
+                    ? "mt-1 text-xs uppercase tracking-[0.08em] text-muted-foreground"
+                    : "mt-1 text-xs tracking-[0.02em] text-muted-foreground"
+                }
+              >
                 {assortment}
               </p>
             ) : null}
@@ -414,6 +478,12 @@ export async function renderSystembolagetRankedListPage(
         }
       : null;
 
+  const siblingLists = siblingSystembolagetLists(category);
+  const siblingHeading =
+    locale === "sv"
+      ? "Fler Systembolaget-listor"
+      : "More Systembolaget lists";
+
   return (
     <>
       <script
@@ -556,6 +626,22 @@ export async function renderSystembolagetRankedListPage(
             ) : null}
           </div>
         </div>
+
+        <nav className="mt-16 space-y-3 border-t border-border pt-8 text-sm">
+          <h2 className="mb-4 text-xl font-semibold text-foreground">
+            {siblingHeading}
+          </h2>
+          {siblingLists.map((list) => (
+            <p key={list.category}>
+              <Link
+                href={systembolagetListHref(list, locale)}
+                className="underline underline-offset-4 hover:text-foreground"
+              >
+                {systembolagetListLabel(list, locale)}
+              </Link>
+            </p>
+          ))}
+        </nav>
 
         {content.furtherReadingHeading ? (
           <nav className="mt-16 space-y-3 border-t border-border pt-8 text-sm">

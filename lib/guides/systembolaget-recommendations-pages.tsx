@@ -22,6 +22,11 @@ import {
 } from "@/lib/seo/default-social";
 import { getSiteConfig } from "@/lib/site-config";
 import {
+  SYSTEMBOLAGET_RANKED_LISTS,
+  systembolagetListHref,
+  systembolagetListLabel,
+} from "@/lib/guides/systembolaget-list-links";
+import {
   getRecommendationIssue,
   listIssues,
   parseRecommendationIssueSlug,
@@ -130,6 +135,9 @@ export async function buildRecommendationIndexMetadata(
   return {
     title,
     description,
+    // Empty archive stays noindex so thin placeholder content is not indexed.
+    // Once the first weekly issue ships (hasIssues), drop noindex and let this
+    // page become a normal indexable archive hub — do not leave it noindex by accident.
     ...(hasIssues
       ? {}
       : {
@@ -349,34 +357,16 @@ export async function renderRecommendationIndexPage(locale: AppLocale) {
                     : "We have not published a weekly issue yet. In the meantime, explore our curated Systembolaget natural wine lists:"}
                 </p>
                 <ul className="space-y-3">
-                  <li>
-                    <Link
-                      href={
-                        locale === "sv"
-                          ? "/guider/basta-roda-naturviner-systembolaget"
-                          : "/guides/best-red-natural-wines-systembolaget"
-                      }
-                      className="underline underline-offset-4 hover:text-foreground"
-                    >
-                      {locale === "sv"
-                        ? "Bästa röda naturviner på Systembolaget →"
-                        : "Best red natural wines at Systembolaget →"}
-                    </Link>
-                  </li>
-                  <li>
-                    <Link
-                      href={
-                        locale === "sv"
-                          ? "/guider/basta-orange-naturviner-systembolaget"
-                          : "/guides/best-orange-natural-wines-systembolaget"
-                      }
-                      className="underline underline-offset-4 hover:text-foreground"
-                    >
-                      {locale === "sv"
-                        ? "Bästa orange naturviner på Systembolaget →"
-                        : "Best orange natural wines at Systembolaget →"}
-                    </Link>
-                  </li>
+                  {SYSTEMBOLAGET_RANKED_LISTS.map((list) => (
+                    <li key={list.category}>
+                      <Link
+                        href={systembolagetListHref(list, locale)}
+                        className="underline underline-offset-4 hover:text-foreground"
+                      >
+                        {systembolagetListLabel(list, locale)}
+                      </Link>
+                    </li>
+                  ))}
                 </ul>
               </div>
             ) : (
@@ -391,6 +381,28 @@ export async function renderRecommendationIndexPage(locale: AppLocale) {
               </ul>
             )}
           </div>
+
+          {issues.length > 0 ? (
+            <div className={`${ARTICLE_GUIDE_BODY_CLASS} mt-16 space-y-6 border-t border-border pt-10`}>
+              <p>
+                {locale === "sv"
+                  ? "Kurerade listor över naturvin på Systembolaget:"
+                  : "Curated Systembolaget natural wine lists:"}
+              </p>
+              <ul className="space-y-3">
+                {SYSTEMBOLAGET_RANKED_LISTS.map((list) => (
+                  <li key={list.category}>
+                    <Link
+                      href={systembolagetListHref(list, locale)}
+                      className="underline underline-offset-4 hover:text-foreground"
+                    >
+                      {systembolagetListLabel(list, locale)}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
         </div>
       </div>
       <Footer />

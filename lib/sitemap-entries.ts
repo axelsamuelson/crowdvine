@@ -97,17 +97,10 @@ function staticPagesForProfile(
         `${baseUrl}/guides/worlds-best-natural-wine-producers`,
         0.75,
       ),
-      ...BILINGUAL_ARTICLE_GUIDES.flatMap((guide) => {
-        const sv = weeklyEntry(`${baseUrl}${articlePath(guide, "sv")}`, 0.75);
-        // EN budget guide is interim Swedish copy + noindex — keep out of sitemap.
-        if (guide.slug.en === "best-natural-wines-under-200-systembolaget") {
-          return [sv];
-        }
-        return [
-          weeklyEntry(`${baseUrl}${articlePath(guide, "en")}`, 0.75),
-          sv,
-        ];
-      }),
+      ...BILINGUAL_ARTICLE_GUIDES.flatMap((guide) => [
+        weeklyEntry(`${baseUrl}${articlePath(guide, "en")}`, 0.75),
+        weeklyEntry(`${baseUrl}${articlePath(guide, "sv")}`, 0.75),
+      ]),
       weeklyEntry(`${baseUrl}${GUIDE_PATHS.orangeWines.en}`, 0.75),
       weeklyEntry(`${baseUrl}${GUIDE_PATHS.orangeWines.sv}`, 0.75),
       weeklyEntry(`${baseUrl}${GUIDE_PATHS.naturalChampagne.en}`, 0.75),
