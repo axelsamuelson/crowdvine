@@ -18,8 +18,11 @@ import {
   defaultOpenGraphImages,
   pageTwitterCard,
 } from "@/lib/seo/default-social";
-import { getSiteConfig } from "@/lib/site-config";
-import { recommendationIndexPath, listIssues } from "@/lib/systembolaget/recommendations";
+import { getGuideSeoOwnership } from "@/lib/guides/guide-seo-ownership";
+import {
+  listIssues,
+  recommendationIndexPath,
+} from "@/lib/systembolaget/recommendations";
 import { cn } from "@/lib/utils";
 
 function hubSectionId(title: string): string {
@@ -63,17 +66,20 @@ function hubSectionsForDisplay(
 export async function buildGuideHubMetadata(
   locale: AppLocale,
 ): Promise<Metadata> {
-  const config = await getSiteConfig();
+  const { config, seoBaseUrl, noindexForHost } = await getGuideSeoOwnership();
   const copy = guideCopy(locale);
-  const pageUrl = `${config.baseUrl}${guidePath("hub", locale)}`;
+  const pageUrl = `${seoBaseUrl}${guidePath("hub", locale)}`;
   const title = categoryPageTitle(copy.hubMetaTitle, config.siteName);
 
   return {
     title,
     description: copy.hubMetaDescription,
+    ...(noindexForHost
+      ? { robots: { index: false, follow: true } }
+      : {}),
     alternates: {
       canonical: pageUrl,
-      languages: guideHreflang("hub", config.baseUrl),
+      languages: guideHreflang("hub", seoBaseUrl),
     },
     openGraph: {
       title,
@@ -87,7 +93,7 @@ export async function buildGuideHubMetadata(
 }
 
 export async function renderGuideHubPage(locale: AppLocale) {
-  const config = await getSiteConfig();
+  const { seoBaseUrl } = await getGuideSeoOwnership();
   const copy = guideCopy(locale);
   const issues = await listIssues();
   const hubSections = hubSectionsForDisplay(
@@ -96,7 +102,7 @@ export async function renderGuideHubPage(locale: AppLocale) {
   );
 
   const breadcrumbJsonLd = buildGuideBreadcrumbJsonLd([
-    { name: copy.home, item: config.baseUrl },
+    { name: copy.home, item: seoBaseUrl },
     { name: copy.hubTitle },
   ]);
 

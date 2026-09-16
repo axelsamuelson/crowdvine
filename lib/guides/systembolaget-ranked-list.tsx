@@ -25,7 +25,7 @@ import {
 } from "@/lib/guides/guide-types";
 import type { AppLocale } from "@/lib/i18n/locale";
 import { DEFAULT_WINE_IMAGE_PATH } from "@/lib/constants";
-import { getSiteConfig } from "@/lib/site-config";
+import { getGuideSeoOwnership } from "@/lib/guides/guide-seo-ownership";
 import { resolveRankTokens } from "@/lib/guides/resolve-rank-tokens";
 import {
   formatRankBadge,
@@ -377,14 +377,14 @@ export async function buildSystembolagetRankedListMetadata(
   locale: AppLocale,
   options?: { noindex?: boolean },
 ): Promise<Metadata> {
-  const config = await getSiteConfig();
+  const { config, seoBaseUrl, noindexForHost } = await getGuideSeoOwnership();
   return buildArticleGuideMeta(
     content,
     locale,
-    config.baseUrl,
+    seoBaseUrl,
     config.siteName,
     // Systembolaget demand is Sweden-first — prefer SV as the unmatched default.
-    { xDefault: "sv", noindex: options?.noindex },
+    { xDefault: "sv", noindex: Boolean(options?.noindex) || noindexForHost },
   );
 }
 
@@ -398,11 +398,11 @@ export async function renderSystembolagetRankedListPage(
 ) {
   const wines = await getGuideWines(category, "recommended");
   const avoidWines = await getGuideWines(category, "avoid");
-  const config = await getSiteConfig();
+  const { seoBaseUrl } = await getGuideSeoOwnership();
   const copy = guideCopy(locale);
   const hubPath = guidePath("hub", locale);
   const pagePath = articlePath(content, locale);
-  const pageUrl = `${config.baseUrl}${pagePath}`;
+  const pageUrl = `${seoBaseUrl}${pagePath}`;
   const intro =
     content.lede?.[locale] ?? content.hubCard.description[locale];
   const syncedAt = freshestSyncedAt(wines);
@@ -446,15 +446,15 @@ export async function renderSystembolagetRankedListPage(
     isPartOf: {
       "@type": "WebSite",
       name: "PACT",
-      url: config.baseUrl,
+      url: seoBaseUrl,
     },
     about,
     ...(dateModified ? { dateModified } : {}),
   };
 
   const breadcrumbJsonLd = buildGuideBreadcrumbJsonLd([
-    { name: copy.home, item: config.baseUrl },
-    { name: copy.hubTitle, item: `${config.baseUrl}${hubPath}` },
+    { name: copy.home, item: seoBaseUrl },
+    { name: copy.hubTitle, item: `${seoBaseUrl}${hubPath}` },
     { name: content.breadcrumbShort[locale] },
   ]);
 

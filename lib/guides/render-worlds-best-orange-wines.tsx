@@ -21,7 +21,7 @@ import {
   defaultOpenGraphImages,
   pageTwitterCard,
 } from "@/lib/seo/default-social";
-import { getSiteConfig } from "@/lib/site-config";
+import { getGuideSeoOwnership } from "@/lib/guides/guide-seo-ownership";
 
 export function getOrangeWinesFromTop100() {
   return TOP_100_WINES.filter((wine) => wine.type === "Orange");
@@ -30,8 +30,8 @@ export function getOrangeWinesFromTop100() {
 export async function buildWorldsBestOrangeWinesMetadata(
   locale: AppLocale,
 ): Promise<Metadata> {
-  const config = await getSiteConfig();
-  const pageUrl = `${config.baseUrl}${WORLDS_BEST_ORANGE_WINES_PATHS[locale]}`;
+  const { config, seoBaseUrl, noindexForHost } = await getGuideSeoOwnership();
+  const pageUrl = `${seoBaseUrl}${WORLDS_BEST_ORANGE_WINES_PATHS[locale]}`;
   const title = categoryPageTitle(
     worldsBestOrangeWinesGuide.metaTitle[locale],
     config.siteName,
@@ -41,9 +41,12 @@ export async function buildWorldsBestOrangeWinesMetadata(
   return {
     title,
     description,
+    ...(noindexForHost
+      ? { robots: { index: false, follow: true } }
+      : {}),
     alternates: {
       canonical: pageUrl,
-      languages: guideHreflang("orangeWines", config.baseUrl),
+      languages: guideHreflang("orangeWines", seoBaseUrl),
     },
     openGraph: {
       title,
@@ -58,15 +61,15 @@ export async function buildWorldsBestOrangeWinesMetadata(
 }
 
 export async function renderWorldsBestOrangeWinesPage(locale: AppLocale) {
-  const config = await getSiteConfig();
+  const { seoBaseUrl } = await getGuideSeoOwnership();
   const copy = guideCopy(locale);
   const hubPath = guidePath("hub", locale);
   const orangeWines = getOrangeWinesFromTop100();
   const guide = worldsBestOrangeWinesGuide;
 
   const breadcrumbJsonLd = buildGuideBreadcrumbJsonLd([
-    { name: copy.home, item: config.baseUrl },
-    { name: copy.hubTitle, item: `${config.baseUrl}${hubPath}` },
+    { name: copy.home, item: seoBaseUrl },
+    { name: copy.hubTitle, item: `${seoBaseUrl}${hubPath}` },
     { name: guide.breadcrumbShort[locale] },
   ]);
 

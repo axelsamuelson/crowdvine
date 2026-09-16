@@ -15,7 +15,7 @@ import {
   type GuideArticleContent,
 } from "@/lib/guides/guide-types";
 import type { AppLocale } from "@/lib/i18n/locale";
-import { getSiteConfig } from "@/lib/site-config";
+import { getGuideSeoOwnership } from "@/lib/guides/guide-seo-ownership";
 
 function resolveArticleShopHref(
   content: GuideArticleContent,
@@ -41,12 +41,13 @@ export async function buildArticleGuideMetadata(
   content: GuideArticleContent,
   locale: AppLocale,
 ): Promise<Metadata> {
-  const config = await getSiteConfig();
+  const { config, seoBaseUrl, noindexForHost } = await getGuideSeoOwnership();
   return buildArticleGuideMeta(
     content,
     locale,
-    config.baseUrl,
+    seoBaseUrl,
     config.siteName,
+    { noindex: noindexForHost },
   );
 }
 
@@ -54,11 +55,11 @@ export async function renderArticleGuidePage(
   content: GuideArticleContent,
   locale: AppLocale,
 ) {
-  const config = await getSiteConfig();
+  const { seoBaseUrl } = await getGuideSeoOwnership();
   const copy = guideCopy(locale);
   const hubPath = guidePath("hub", locale);
   const pagePath = articlePath(content, locale);
-  const pageUrl = `${config.baseUrl}${pagePath}`;
+  const pageUrl = `${seoBaseUrl}${pagePath}`;
   const shopHref = resolveArticleShopHref(content, locale);
   const shopLabel =
     content.shopCta?.label?.[locale]?.trim() || copy.shopNaturalWine;
@@ -100,14 +101,14 @@ export async function renderArticleGuidePage(
     isPartOf: {
       "@type": "WebSite",
       name: "PACT",
-      url: config.baseUrl,
+      url: seoBaseUrl,
     },
     about,
   };
 
   const breadcrumbJsonLd = buildGuideBreadcrumbJsonLd([
-    { name: copy.home, item: config.baseUrl },
-    { name: copy.hubTitle, item: `${config.baseUrl}${hubPath}` },
+    { name: copy.home, item: seoBaseUrl },
+    { name: copy.hubTitle, item: `${seoBaseUrl}${hubPath}` },
     { name: content.breadcrumbShort[locale] },
   ]);
 

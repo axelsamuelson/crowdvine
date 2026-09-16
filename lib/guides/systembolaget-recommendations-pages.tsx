@@ -20,7 +20,7 @@ import {
   defaultOpenGraphImages,
   pageTwitterCard,
 } from "@/lib/seo/default-social";
-import { getSiteConfig } from "@/lib/site-config";
+import { getGuideSeoOwnership } from "@/lib/guides/guide-seo-ownership";
 import {
   SYSTEMBOLAGET_RANKED_LISTS,
   systembolagetListHref,
@@ -79,7 +79,7 @@ export async function buildRecommendationIssueMetadata(
     return { title: "Not found" };
   }
 
-  const config = await getSiteConfig();
+  const { config, seoBaseUrl, noindexForHost } = await getGuideSeoOwnership();
   const title = categoryPageTitle(
     issueTitle(parsed.week, parsed.year, locale),
     config.siteName,
@@ -88,17 +88,20 @@ export async function buildRecommendationIssueMetadata(
   const path = recommendationIssuePath(parsed.year, parsed.week, locale);
   const alternateSv = recommendationIssuePath(parsed.year, parsed.week, "sv");
   const alternateEn = recommendationIssuePath(parsed.year, parsed.week, "en");
-  const pageUrl = `${config.baseUrl}${path}`;
+  const pageUrl = `${seoBaseUrl}${path}`;
 
   return {
     title,
     description,
+    ...(noindexForHost
+      ? { robots: { index: false, follow: true } }
+      : {}),
     alternates: {
       canonical: pageUrl,
       languages: {
-        sv: `${config.baseUrl}${alternateSv}`,
-        en: `${config.baseUrl}${alternateEn}`,
-        "x-default": `${config.baseUrl}${alternateSv}`,
+        sv: `${seoBaseUrl}${alternateSv}`,
+        en: `${seoBaseUrl}${alternateEn}`,
+        "x-default": `${seoBaseUrl}${alternateSv}`,
       },
     },
     openGraph: {
@@ -116,7 +119,7 @@ export async function buildRecommendationIssueMetadata(
 export async function buildRecommendationIndexMetadata(
   locale: AppLocale,
 ): Promise<Metadata> {
-  const config = await getSiteConfig();
+  const { config, seoBaseUrl, noindexForHost } = await getGuideSeoOwnership();
   const path = recommendationIndexPath(locale);
   const issues = await listIssues();
   const hasIssues = issues.length > 0;
@@ -130,7 +133,7 @@ export async function buildRecommendationIndexMetadata(
     locale === "sv"
       ? "Veckans oberoende urval av naturviner på Systembolaget — arkiv över alla publicerade nummer."
       : "Weekly independent picks of natural wines at Systembolaget — archive of all published issues.";
-  const pageUrl = `${config.baseUrl}${path}`;
+  const pageUrl = `${seoBaseUrl}${path}`;
 
   return {
     title,
@@ -138,7 +141,8 @@ export async function buildRecommendationIndexMetadata(
     // Empty archive stays noindex so thin placeholder content is not indexed.
     // Once the first weekly issue ships (hasIssues), drop noindex and let this
     // page become a normal indexable archive hub — do not leave it noindex by accident.
-    ...(hasIssues
+    // Dirtywine always noindexes guides (PACT owns organic SEO).
+    ...(hasIssues && !noindexForHost
       ? {}
       : {
           robots: {
@@ -149,9 +153,9 @@ export async function buildRecommendationIndexMetadata(
     alternates: {
       canonical: pageUrl,
       languages: {
-        sv: `${config.baseUrl}${recommendationIndexPath("sv")}`,
-        en: `${config.baseUrl}${recommendationIndexPath("en")}`,
-        "x-default": `${config.baseUrl}${recommendationIndexPath("sv")}`,
+        sv: `${seoBaseUrl}${recommendationIndexPath("sv")}`,
+        en: `${seoBaseUrl}${recommendationIndexPath("en")}`,
+        "x-default": `${seoBaseUrl}${recommendationIndexPath("sv")}`,
       },
     },
     openGraph: {
@@ -213,7 +217,7 @@ export async function renderRecommendationIssuePage(
   const wines = await getRecommendationIssue(parsed.year, parsed.week);
   if (wines.length === 0) notFound();
 
-  const config = await getSiteConfig();
+  const { seoBaseUrl } = await getGuideSeoOwnership();
   const copy = guideCopy(locale);
   const hubPath = guidePath("hub", locale);
   const indexPath = recommendationIndexPath(locale);
@@ -222,14 +226,14 @@ export async function renderRecommendationIssuePage(
   const publishedAt = wines[0]?.published_at ?? null;
 
   const breadcrumbJsonLd = buildGuideBreadcrumbJsonLd([
-    { name: copy.home, item: config.baseUrl },
-    { name: copy.hubTitle, item: `${config.baseUrl}${hubPath}` },
+    { name: copy.home, item: seoBaseUrl },
+    { name: copy.hubTitle, item: `${seoBaseUrl}${hubPath}` },
     {
       name:
         locale === "sv"
           ? "Rekommenderade naturviner"
           : "Recommended natural wines",
-      item: `${config.baseUrl}${indexPath}`,
+      item: `${seoBaseUrl}${indexPath}`,
     },
     { name: h1 },
   ]);
@@ -307,7 +311,7 @@ export async function renderRecommendationIssuePage(
 
 export async function renderRecommendationIndexPage(locale: AppLocale) {
   const issues = await listIssues();
-  const config = await getSiteConfig();
+  const { seoBaseUrl } = await getGuideSeoOwnership();
   const copy = guideCopy(locale);
   const hubPath = guidePath("hub", locale);
   const h1 =
@@ -316,8 +320,8 @@ export async function renderRecommendationIndexPage(locale: AppLocale) {
       : "Recommended natural wines";
 
   const breadcrumbJsonLd = buildGuideBreadcrumbJsonLd([
-    { name: copy.home, item: config.baseUrl },
-    { name: copy.hubTitle, item: `${config.baseUrl}${hubPath}` },
+    { name: copy.home, item: seoBaseUrl },
+    { name: copy.hubTitle, item: `${seoBaseUrl}${hubPath}` },
     { name: h1 },
   ]);
 

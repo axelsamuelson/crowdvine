@@ -27,7 +27,7 @@ import {
   defaultOpenGraphImages,
   pageTwitterCard,
 } from "@/lib/seo/default-social";
-import { getSiteConfig } from "@/lib/site-config";
+import { getGuideSeoOwnership } from "@/lib/guides/guide-seo-ownership";
 
 function linkLanguedocMentions(
   text: string,
@@ -106,17 +106,20 @@ function ProducersLanguedocConnections({ locale }: { locale: AppLocale }) {
 export async function buildProducersGuideMetadata(
   locale: AppLocale,
 ): Promise<Metadata> {
-  const config = await getSiteConfig();
+  const { config, seoBaseUrl, noindexForHost } = await getGuideSeoOwnership();
   const copy = guideCopy(locale);
-  const pageUrl = `${config.baseUrl}${guidePath("producers", locale)}`;
+  const pageUrl = `${seoBaseUrl}${guidePath("producers", locale)}`;
   const title = categoryPageTitle(copy.producers.metaTitle, config.siteName);
 
   return {
     title,
     description: copy.producers.metaDescription,
+    ...(noindexForHost
+      ? { robots: { index: false, follow: true } }
+      : {}),
     alternates: {
       canonical: pageUrl,
-      languages: guideHreflang("producers", config.baseUrl),
+      languages: guideHreflang("producers", seoBaseUrl),
     },
     openGraph: {
       title,
@@ -130,7 +133,7 @@ export async function buildProducersGuideMetadata(
 }
 
 export async function renderProducersGuidePage(locale: AppLocale) {
-  const config = await getSiteConfig();
+  const { seoBaseUrl } = await getGuideSeoOwnership();
   const copy = guideCopy(locale);
   const hubPath = guidePath("hub", locale);
   const winesPath = guidePath("wines", locale);
@@ -146,8 +149,8 @@ export async function renderProducersGuidePage(locale: AppLocale) {
     `${entry.region} · ${countryLabel(entry.country, locale)} · ${entry.grapes}`;
 
   const breadcrumbJsonLd = buildGuideBreadcrumbJsonLd([
-    { name: copy.home, item: config.baseUrl },
-    { name: copy.hubTitle, item: `${config.baseUrl}${hubPath}` },
+    { name: copy.home, item: seoBaseUrl },
+    { name: copy.hubTitle, item: `${seoBaseUrl}${hubPath}` },
     { name: copy.producers.breadcrumbShort },
   ]);
 
@@ -165,7 +168,7 @@ export async function renderProducersGuidePage(locale: AppLocale) {
         position: producer.rank,
         name: producer.name,
         ...(guideHref
-          ? { url: `${config.baseUrl}${guideHref}` }
+          ? { url: `${seoBaseUrl}${guideHref}` }
           : {}),
       };
     }),

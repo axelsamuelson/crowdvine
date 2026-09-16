@@ -26,7 +26,7 @@ import {
   defaultOpenGraphImages,
   pageTwitterCard,
 } from "@/lib/seo/default-social";
-import { getSiteConfig } from "@/lib/site-config";
+import { getGuideSeoOwnership } from "@/lib/guides/guide-seo-ownership";
 
 function linkLanguedocMentions(
   text: string,
@@ -56,17 +56,20 @@ function linkLanguedocMentions(
 export async function buildWinesGuideMetadata(
   locale: AppLocale,
 ): Promise<Metadata> {
-  const config = await getSiteConfig();
+  const { config, seoBaseUrl, noindexForHost } = await getGuideSeoOwnership();
   const copy = guideCopy(locale);
-  const pageUrl = `${config.baseUrl}${guidePath("wines", locale)}`;
+  const pageUrl = `${seoBaseUrl}${guidePath("wines", locale)}`;
   const title = categoryPageTitle(copy.wines.metaTitle, config.siteName);
 
   return {
     title,
     description: copy.wines.metaDescription,
+    ...(noindexForHost
+      ? { robots: { index: false, follow: true } }
+      : {}),
     alternates: {
       canonical: pageUrl,
-      languages: guideHreflang("wines", config.baseUrl),
+      languages: guideHreflang("wines", seoBaseUrl),
     },
     openGraph: {
       title,
@@ -80,7 +83,7 @@ export async function buildWinesGuideMetadata(
 }
 
 export async function renderWinesGuidePage(locale: AppLocale) {
-  const config = await getSiteConfig();
+  const { seoBaseUrl } = await getGuideSeoOwnership();
   const copy = guideCopy(locale);
   const hubPath = guidePath("hub", locale);
   const producersPath = guidePath("producers", locale);
@@ -100,8 +103,8 @@ export async function renderWinesGuidePage(locale: AppLocale) {
     `${entry.producer} · ${entry.region} · ${countryLabel(entry.country, locale)} · ${wineTypeLabel(entry.type, locale)} · ${entry.grapes}`;
 
   const breadcrumbJsonLd = buildGuideBreadcrumbJsonLd([
-    { name: copy.home, item: config.baseUrl },
-    { name: copy.hubTitle, item: `${config.baseUrl}${hubPath}` },
+    { name: copy.home, item: seoBaseUrl },
+    { name: copy.hubTitle, item: `${seoBaseUrl}${hubPath}` },
     { name: copy.wines.breadcrumbShort },
   ]);
 
