@@ -3,10 +3,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { Footer } from "@/components/layout/footer";
-import {
-  ARTICLE_GUIDE_BODY_CLASS,
-  ARTICLE_GUIDE_H2_CLASS,
-} from "@/lib/guides/article-guide-shell";
+import { ARTICLE_GUIDE_BODY_CLASS } from "@/lib/guides/article-guide-shell";
 import { ArticleShopCta } from "@/lib/guides/article-shop-cta";
 import {
   GuideBreadcrumbs,
@@ -14,13 +11,14 @@ import {
 } from "@/lib/guides/guide-breadcrumbs";
 import { guideCopy } from "@/lib/guides/guide-copy";
 import { guidePath } from "@/lib/guides/guide-routes";
+import { getGuideSeoOwnership } from "@/lib/guides/guide-seo-ownership";
+import { RankedWineRow } from "@/lib/guides/systembolaget-ranked-list";
 import type { AppLocale } from "@/lib/i18n/locale";
 import { categoryPageTitle } from "@/lib/seo/category-page-title";
 import {
   defaultOpenGraphImages,
   pageTwitterCard,
 } from "@/lib/seo/default-social";
-import { getGuideSeoOwnership } from "@/lib/guides/guide-seo-ownership";
 import {
   SYSTEMBOLAGET_RANKED_LISTS,
   systembolagetListHref,
@@ -32,11 +30,8 @@ import {
   parseRecommendationIssueSlug,
   recommendationIndexPath,
   recommendationIssuePath,
-  recommendationWineDisplayName,
-  recommendationWineMetaLine,
-  systembolagetProductUrl,
+  recommendationWineAsGuideWine,
   type RecommendationIssueSummary,
-  type SystembolagetRecommendationWine,
 } from "@/lib/systembolaget/recommendations";
 
 function shopHrefForLocale(locale: AppLocale): string {
@@ -170,43 +165,6 @@ export async function buildRecommendationIndexMetadata(
   };
 }
 
-function WineBlock({
-  wine,
-  locale,
-}: {
-  wine: SystembolagetRecommendationWine;
-  locale: AppLocale;
-}) {
-  const note =
-    locale === "en"
-      ? wine.editorial_note_en?.trim() || wine.editorial_note_sv.trim()
-      : wine.editorial_note_sv.trim();
-  const meta = recommendationWineMetaLine(wine);
-  const url = systembolagetProductUrl(wine.product_number);
-
-  return (
-    <section>
-      <h2 className={ARTICLE_GUIDE_H2_CLASS}>
-        {recommendationWineDisplayName(wine)}
-      </h2>
-      <div className={ARTICLE_GUIDE_BODY_CLASS}>
-        {meta ? <p>{meta}</p> : null}
-        {note ? <p>{note}</p> : null}
-        <p>
-          <a
-            href={url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="underline underline-offset-4 hover:text-foreground"
-          >
-            {url}
-          </a>
-        </p>
-      </div>
-    </section>
-  );
-}
-
 export async function renderRecommendationIssuePage(
   slug: string,
   locale: AppLocale,
@@ -224,6 +182,7 @@ export async function renderRecommendationIssuePage(
   const pagePath = recommendationIssuePath(parsed.year, parsed.week, locale);
   const h1 = issueTitle(parsed.week, parsed.year, locale);
   const publishedAt = wines[0]?.published_at ?? null;
+  const rankedWines = wines.map(recommendationWineAsGuideWine);
 
   const breadcrumbJsonLd = buildGuideBreadcrumbJsonLd([
     { name: copy.home, item: seoBaseUrl },
@@ -278,10 +237,22 @@ export async function renderRecommendationIssuePage(
             </p>
           ) : null}
 
-          <div className="mt-20 flex flex-col gap-14">
-            {wines.map((wine) => (
-              <WineBlock key={wine.id} wine={wine} locale={locale} />
-            ))}
+          <div className="mt-10">
+            <ol className="list-none p-0">
+              {rankedWines.map((wine, index) => (
+                <li key={wine.id}>
+                  <RankedWineRow
+                    wine={wine}
+                    rank={wine.sort_order || index + 1}
+                    locale={locale}
+                    priority={index < 3}
+                  />
+                </li>
+              ))}
+            </ol>
+          </div>
+
+          <div className="mt-14">
             <ArticleShopCta
               href={shopHrefForLocale(locale)}
               label={copy.shopNaturalWine}

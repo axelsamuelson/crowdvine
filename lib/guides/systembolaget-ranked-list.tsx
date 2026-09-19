@@ -192,7 +192,7 @@ function BottleImage({
   );
 }
 
-function RankedWineRow({
+export function RankedWineRow({
   wine,
   rank,
   locale,

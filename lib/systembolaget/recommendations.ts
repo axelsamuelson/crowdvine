@@ -1,5 +1,8 @@
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
-import { systembolagetProductUrl } from "@/lib/systembolaget/guide-wines";
+import {
+  systembolagetProductUrl,
+  type SystembolagetGuideWine,
+} from "@/lib/systembolaget/guide-wines";
 
 /** Row shape from systembolaget_recommendation_wines (published only). */
 export type SystembolagetRecommendationWine = {
@@ -127,6 +130,48 @@ export function recommendationWineMetaLine(
   return [price, wine.assortment_text, grapes, origin || null]
     .filter((part): part is string => Boolean(part))
     .join(" · ");
+}
+
+/**
+ * Map a weekly recommendation row into the ranked-list wine shape so we can
+ * reuse RankedWineRow (bottle image, rank badge, assortment, SB link).
+ * Rank movement fields are null — weekly issues are not a standing ladder.
+ */
+export function recommendationWineAsGuideWine(
+  wine: SystembolagetRecommendationWine,
+): SystembolagetGuideWine {
+  return {
+    id: wine.id,
+    product_number: wine.product_number,
+    verdict: "recommended",
+    category: "red",
+    editorial_note_sv: wine.editorial_note_sv,
+    editorial_note_en: wine.editorial_note_en,
+    producer_note_sv: null,
+    producer_note_en: null,
+    top_100_producer_name: null,
+    sort_order: wine.sort_order,
+    previous_sort_order: null,
+    first_published_at: null,
+    last_reviewed_at: null,
+    rank_status: "unchanged",
+    rank_delta: null,
+    name_bold: wine.name_bold,
+    name_thin: wine.name_thin,
+    producer_name: wine.producer_name,
+    category_level_2: wine.category_level_2,
+    country: wine.country,
+    origin_level_1: wine.origin_level_1,
+    vintage: wine.vintage,
+    price: wine.price,
+    volume: wine.volume,
+    alcohol_percentage: wine.alcohol_percentage,
+    grapes: wine.grapes,
+    assortment_text: wine.assortment_text,
+    is_organic: wine.is_organic,
+    image_url: wine.image_url,
+    synced_at: wine.synced_at ?? "",
+  };
 }
 
 export { systembolagetProductUrl };
