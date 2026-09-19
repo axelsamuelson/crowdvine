@@ -8,7 +8,9 @@ import {
   formatSekFromCents,
   computePalletCostSummary,
   getPalletLineCost,
+  collectCurrenciesNeedingRates,
 } from "@/lib/b2b-wine-cost";
+import { getAppUrl, getInternalFetchHeaders } from "@/lib/app-url";
 import {
   ADMIN_OUTLINE_BUTTON_CLASS,
 } from "@/lib/admin-form-styles";
@@ -159,6 +161,34 @@ function earliestIso(
   if (!a) return b ?? null;
   if (!b) return a;
   return new Date(a).getTime() <= new Date(b).getTime() ? a : b;
+}
+
+async function fetchExchangeRatesMap(
+  currencies: string[],
+): Promise<Record<string, number>> {
+  const map: Record<string, number> = { SEK: 1 };
+  const toFetch = [...new Set(currencies.filter((c) => c && c !== "SEK"))];
+  if (toFetch.length === 0) return map;
+  const base = getAppUrl();
+  const headers = getInternalFetchHeaders();
+  await Promise.all(
+    toFetch.map(async (currency) => {
+      try {
+        const res = await fetch(
+          `${base}/api/exchange-rates?from=${encodeURIComponent(currency)}&to=SEK`,
+          { cache: "no-store", headers },
+        );
+        if (!res.ok) return;
+        const data = (await res.json()) as { rate?: number };
+        if (data.rate != null && Number.isFinite(data.rate) && data.rate > 0) {
+          map[currency] = data.rate;
+        }
+      } catch {
+        /* keep fallback */
+      }
+    }),
+  );
+  return map;
 }
 
 function groupProducers(
@@ -340,21 +370,31 @@ export default async function B2BPalletStatusPage({
     new Map(producers.map((p) => [p.producerId, p.status])),
     { shippedAt: row.shipped_at },
   );
+  const wineCostFields = items.map((item) => ({
+    quantity: Number(item.quantity) || 0,
+    cost_cents_override:
+      item.cost_cents_override != null ? Number(item.cost_cents_override) : null,
+    wine: item.wines
+      ? {
+          cost_amount: item.wines.cost_amount ?? undefined,
+          cost_currency: item.wines.cost_currency ?? undefined,
+          exchange_rate: item.wines.exchange_rate ?? undefined,
+          alcohol_tax_cents: item.wines.alcohol_tax_cents ?? undefined,
+        }
+      : undefined,
+  }));
+  const rateMap = await fetchExchangeRatesMap(
+    collectCurrenciesNeedingRates(
+      wineCostFields.map((line) => line.wine).filter(Boolean) as Array<{
+        cost_currency?: string | null;
+        exchange_rate?: number | null;
+      }>,
+    ),
+  );
   const wineCostSummary = computePalletCostSummary(
-    items.map((item) => ({
-      quantity: Number(item.quantity) || 0,
-      cost_cents_override:
-        item.cost_cents_override != null ? Number(item.cost_cents_override) : null,
-      wine: item.wines
-        ? {
-            cost_amount: item.wines.cost_amount ?? undefined,
-            cost_currency: item.wines.cost_currency ?? undefined,
-            exchange_rate: item.wines.exchange_rate ?? undefined,
-            alcohol_tax_cents: item.wines.alcohol_tax_cents ?? undefined,
-          }
-        : undefined,
-    })),
+    wineCostFields,
     row.cost_cents ?? 0,
+    rateMap,
   );
   const invoiceTotalCents =
     palletProgress.invoiceTotalCents > 0
@@ -375,6 +415,7 @@ export default async function B2BPalletStatusPage({
             alcohol_tax_cents: item.wines.alcohol_tax_cents ?? undefined,
           }
         : undefined,
+      rateMap,
     );
     producerWineCostById.set(
       producerId,
