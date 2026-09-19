@@ -4,7 +4,11 @@ import { ArrowLeft, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { B2B_PALLET_SHIPMENT_SELECT } from "@/lib/b2b-pallet-shipment-select";
-import { formatSekFromCents } from "@/lib/b2b-wine-cost";
+import {
+  formatSekFromCents,
+  computePalletCostSummary,
+  getPalletLineCost,
+} from "@/lib/b2b-wine-cost";
 import {
   ADMIN_OUTLINE_BUTTON_CLASS,
 } from "@/lib/admin-form-styles";
@@ -32,10 +36,15 @@ type ItemRow = {
   wine_id: string;
   quantity: number;
   created_at?: string | null;
+  cost_cents_override?: number | null;
   wines?: {
     id: string;
     wine_name?: string | null;
     vintage?: string | null;
+    cost_amount?: number | null;
+    cost_currency?: string | null;
+    exchange_rate?: number | null;
+    alcohol_tax_cents?: number | null;
     producers?: {
       id: string;
       name?: string | null;
@@ -331,6 +340,47 @@ export default async function B2BPalletStatusPage({
     new Map(producers.map((p) => [p.producerId, p.status])),
     { shippedAt: row.shipped_at },
   );
+  const wineCostSummary = computePalletCostSummary(
+    items.map((item) => ({
+      quantity: Number(item.quantity) || 0,
+      cost_cents_override:
+        item.cost_cents_override != null ? Number(item.cost_cents_override) : null,
+      wine: item.wines
+        ? {
+            cost_amount: item.wines.cost_amount ?? undefined,
+            cost_currency: item.wines.cost_currency ?? undefined,
+            exchange_rate: item.wines.exchange_rate ?? undefined,
+            alcohol_tax_cents: item.wines.alcohol_tax_cents ?? undefined,
+          }
+        : undefined,
+    })),
+    row.cost_cents ?? 0,
+  );
+  const invoiceTotalCents =
+    palletProgress.invoiceTotalCents > 0
+      ? palletProgress.invoiceTotalCents
+      : wineCostSummary.wineTotalCents;
+  const producerWineCostById = new Map<string, number>();
+  for (const item of items) {
+    const producerId = item.wines?.producers?.id;
+    if (!producerId) continue;
+    const line = getPalletLineCost(
+      Number(item.quantity) || 0,
+      item.cost_cents_override != null ? Number(item.cost_cents_override) : null,
+      item.wines
+        ? {
+            cost_amount: item.wines.cost_amount ?? undefined,
+            cost_currency: item.wines.cost_currency ?? undefined,
+            exchange_rate: item.wines.exchange_rate ?? undefined,
+            alcohol_tax_cents: item.wines.alcohol_tax_cents ?? undefined,
+          }
+        : undefined,
+    );
+    producerWineCostById.set(
+      producerId,
+      (producerWineCostById.get(producerId) ?? 0) + line.lineTotalCents,
+    );
+  }
   const palletProducers = producers.map((p) => {
     const step = getProducerProcessStep(p.status);
     return {
@@ -390,6 +440,8 @@ export default async function B2BPalletStatusPage({
         costLabel={
           row.cost_cents != null ? formatSekFromCents(row.cost_cents) : null
         }
+        invoicePaidLabel={formatSekFromCents(palletProgress.invoicePaidCents)}
+        invoiceTotalLabel={formatSekFromCents(invoiceTotalCents)}
         progress={palletProgress}
         producers={palletProducers}
       />
@@ -415,6 +467,12 @@ export default async function B2BPalletStatusPage({
               s.producer_decision_status === "pending" &&
               group.wines.length > 0;
             const awaitingHubDelivery = orderAccepted && !s.delivered_to_hub_at;
+            const awaitingInvoiceReceived =
+              orderAccepted &&
+              !!s.delivered_to_hub_at &&
+              !s.invoice_received_at;
+            const awaitingInvoicePaid =
+              !!s.invoice_received_at && !s.invoice_paid_at;
             const processStep = getProducerProcessStep(s);
 
             return (
@@ -446,6 +504,12 @@ export default async function B2BPalletStatusPage({
                       orderSentAt={s.order_sent_at}
                       awaitingConfirm={awaitingConfirm}
                       awaitingHubDelivery={awaitingHubDelivery}
+                      awaitingInvoiceReceived={awaitingInvoiceReceived}
+                      awaitingInvoicePaid={awaitingInvoicePaid}
+                      invoiceAmountCents={s.invoice_amount_cents}
+                      defaultInvoiceAmountCents={
+                        producerWineCostById.get(group.producerId) ?? null
+                      }
                     />
                     <AdminB2bProducerWinesDialog
                       shipmentId={id}
@@ -545,13 +609,23 @@ export default async function B2BPalletStatusPage({
                     }
                   />
                   <StageChip
-                    label="Invoice received"
+                    label={
+                      awaitingInvoiceReceived
+                        ? "Awaiting Invoice Received"
+                        : "Invoice received"
+                    }
                     done={!!s.invoice_received_at}
+                    awaiting={awaitingInvoiceReceived}
                     dateLabel={formatDateTime(s.invoice_received_at)}
                   />
                   <StageChip
-                    label="Invoice paid"
+                    label={
+                      awaitingInvoicePaid
+                        ? "Awaiting Invoice Paid"
+                        : "Invoice paid"
+                    }
                     done={!!s.invoice_paid_at}
+                    awaiting={awaitingInvoicePaid}
                     dateLabel={formatDateTime(s.invoice_paid_at)}
                   />
                 </div>

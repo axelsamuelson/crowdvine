@@ -93,7 +93,7 @@ export function isProducerConfirmed(
 
 /**
  * Current process step for a producer on a B2B pallet
- * (Order sent → Confirmed → Hub Delivery).
+ * (Order sent → Confirmed → Hub Delivery → Invoice received → Invoice paid).
  */
 export function getProducerProcessStep(
   status: Pick<
@@ -101,6 +101,8 @@ export function getProducerProcessStep(
     | "order_sent_at"
     | "producer_decision_status"
     | "delivered_to_hub_at"
+    | "invoice_received_at"
+    | "invoice_paid_at"
   >,
 ): {
   label: string;
@@ -109,8 +111,14 @@ export function getProducerProcessStep(
   if (status.producer_decision_status === "declined") {
     return { label: "Rejected", tone: "rejected" };
   }
+  if (status.invoice_paid_at) {
+    return { label: "Invoice paid", tone: "done" };
+  }
+  if (status.invoice_received_at) {
+    return { label: "Awaiting invoice payment", tone: "active" };
+  }
   if (status.delivered_to_hub_at) {
-    return { label: "Delivered to Hub", tone: "done" };
+    return { label: "Awaiting invoice", tone: "active" };
   }
   if (isProducerConfirmed(status as B2bPalletProducerStatusRow)) {
     return { label: "Awaiting Hub Delivery", tone: "active" };
@@ -186,6 +194,10 @@ export type B2bPalletProgressSummary = {
   palletShipped: boolean;
   invoiceReceived: number;
   invoicePaid: number;
+  /** Sum of invoice_amount_cents for producers with invoice received. */
+  invoiceTotalCents: number;
+  /** Sum of invoice_amount_cents for producers with invoice paid. */
+  invoicePaidCents: number;
 };
 
 /** Aggregate fulfilment across all producers on a B2B pallet. */
@@ -208,6 +220,8 @@ export function summarizeB2bPalletProgress(
   let hubDoneAmongActive = 0;
   let invoiceReceived = 0;
   let invoicePaid = 0;
+  let invoiceTotalCents = 0;
+  let invoicePaidCents = 0;
 
   for (const producerId of uniqueIds) {
     const s = statusByProducer.get(producerId);
@@ -220,8 +234,18 @@ export function summarizeB2bPalletProgress(
       if (s?.delivered_to_hub_at) hubDoneAmongActive += 1;
     }
     if (s?.delivered_to_hub_at) hubDelivered += 1;
-    if (s?.invoice_received_at) invoiceReceived += 1;
-    if (s?.invoice_paid_at) invoicePaid += 1;
+    const amount =
+      s?.invoice_amount_cents != null && Number.isFinite(s.invoice_amount_cents)
+        ? Math.max(0, Number(s.invoice_amount_cents))
+        : 0;
+    if (s?.invoice_received_at) {
+      invoiceReceived += 1;
+      invoiceTotalCents += amount;
+    }
+    if (s?.invoice_paid_at) {
+      invoicePaid += 1;
+      invoicePaidCents += amount;
+    }
   }
 
   return {
@@ -234,5 +258,7 @@ export function summarizeB2bPalletProgress(
     palletShipped: !!options?.shippedAt,
     invoiceReceived,
     invoicePaid,
+    invoiceTotalCents,
+    invoicePaidCents,
   };
 }

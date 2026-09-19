@@ -182,6 +182,8 @@ export async function listProducerB2bPallets(
         order_sent_at: status?.order_sent_at ?? g.winesAddedAt ?? "on-pallet",
         producer_decision_status: status?.producer_decision_status ?? "pending",
         delivered_to_hub_at: status?.delivered_to_hub_at ?? null,
+        invoice_received_at: status?.invoice_received_at ?? null,
+        invoice_paid_at: status?.invoice_paid_at ?? null,
       });
       return {
         shipmentId,
@@ -410,6 +412,8 @@ export async function getProducerB2bPalletDetail(
         order_sent_at: stored?.order_sent_at ?? "on-pallet",
         producer_decision_status: stored?.producer_decision_status ?? "pending",
         delivered_to_hub_at: stored?.delivered_to_hub_at ?? null,
+        invoice_received_at: stored?.invoice_received_at ?? null,
+        invoice_paid_at: stored?.invoice_paid_at ?? null,
       });
       return {
         producerId: pid,

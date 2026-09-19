@@ -77,6 +77,10 @@ type Props = {
   hubName: string;
   hubAddress: string | null;
   costLabel: string | null;
+  /** Paid invoice amount label, e.g. "12 000 kr". */
+  invoicePaidLabel: string;
+  /** Total received invoice amount label (falls back to wine cost). */
+  invoiceTotalLabel: string;
   progress: B2bPalletProgressSummary;
   producers: B2bPalletProducerProgressRow[];
 };
@@ -87,6 +91,8 @@ export function AdminB2bPalletStatusSummary({
   hubName,
   hubAddress,
   costLabel,
+  invoicePaidLabel,
+  invoiceTotalLabel,
   progress,
   producers,
 }: Props) {
@@ -112,7 +118,7 @@ export function AdminB2bPalletStatusSummary({
         />
       </button>
 
-      <dl className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <dl className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <div>
           <dt className="text-xs text-gray-500 dark:text-zinc-400">Skickad</dt>
           <dd className="mt-0.5 text-sm text-gray-900 dark:text-zinc-100">
@@ -144,6 +150,14 @@ export function AdminB2bPalletStatusSummary({
             {costLabel ?? "—"}
           </dd>
         </div>
+        <div>
+          <dt className="text-xs text-gray-500 dark:text-zinc-400">
+            Betalt / totalt
+          </dt>
+          <dd className="mt-0.5 text-sm tabular-nums text-gray-900 dark:text-zinc-100">
+            {invoicePaidLabel} / {invoiceTotalLabel}
+          </dd>
+        </div>
       </dl>
 
       {producers.length > 0 ? (
@@ -165,6 +179,16 @@ export function AdminB2bPalletStatusSummary({
             <PalletCountChip
               label="Hub Delivery"
               count={progress.hubDelivered}
+              total={progress.producerCount}
+            />
+            <PalletCountChip
+              label="Invoice received"
+              count={progress.invoiceReceived}
+              total={progress.producerCount}
+            />
+            <PalletCountChip
+              label="Invoice paid"
+              count={progress.invoicePaid}
               total={progress.producerCount}
             />
             <PalletCountChip

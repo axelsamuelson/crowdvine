@@ -42,7 +42,18 @@ type StepActionProps = {
   awaitingConfirm: boolean;
   /** Confirmed/partial and not yet hub-delivered. */
   awaitingHubDelivery: boolean;
+  /** Hub delivered and invoice not yet received. */
+  awaitingInvoiceReceived: boolean;
+  /** Invoice received and not yet paid. */
+  awaitingInvoicePaid: boolean;
+  /** Existing invoice amount in öre, if set. */
+  invoiceAmountCents?: number | null;
+  /** Fallback invoice amount (wine cost) when confirming received. */
+  defaultInvoiceAmountCents?: number | null;
 };
+
+const AMBER_OUTLINE_BUTTON_CLASS =
+  "h-8 rounded-lg border-amber-500 bg-transparent text-xs font-medium text-amber-700 hover:bg-amber-50 hover:text-amber-800 dark:border-amber-500 dark:text-amber-400 dark:hover:bg-amber-500/10 dark:hover:text-amber-300";
 
 export function AdminB2bProducerStepAction({
   shipmentId,
@@ -51,6 +62,10 @@ export function AdminB2bProducerStepAction({
   orderSentAt,
   awaitingConfirm,
   awaitingHubDelivery,
+  awaitingInvoiceReceived,
+  awaitingInvoicePaid,
+  invoiceAmountCents = null,
+  defaultInvoiceAmountCents = null,
 }: StepActionProps) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
@@ -96,6 +111,47 @@ export function AdminB2bProducerStepAction({
     }
   };
 
+  const confirmInvoiceReceived = async () => {
+    setSaving(true);
+    try {
+      const amount =
+        invoiceAmountCents != null && invoiceAmountCents >= 0
+          ? invoiceAmountCents
+          : defaultInvoiceAmountCents != null && defaultInvoiceAmountCents > 0
+            ? defaultInvoiceAmountCents
+            : null;
+      await patchStatus({
+        shipment_id: shipmentId,
+        producer_id: producerId,
+        invoice_received_at: new Date().toISOString(),
+        ...(amount != null ? { invoice_amount_cents: amount } : {}),
+      });
+      toast.success("Faktura mottagen bekräftad");
+      router.refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Kunde inte spara");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const confirmInvoicePaid = async () => {
+    setSaving(true);
+    try {
+      await patchStatus({
+        shipment_id: shipmentId,
+        producer_id: producerId,
+        invoice_paid_at: new Date().toISOString(),
+      });
+      toast.success("Faktura betald bekräftad");
+      router.refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Kunde inte spara");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (awaitingConfirm) {
     return (
       <Button
@@ -117,11 +173,41 @@ export function AdminB2bProducerStepAction({
         type="button"
         variant="outline"
         size="sm"
-        className="h-8 rounded-lg border-amber-500 bg-transparent text-xs font-medium text-amber-700 hover:bg-amber-50 hover:text-amber-800 dark:border-amber-500 dark:text-amber-400 dark:hover:bg-amber-500/10 dark:hover:text-amber-300"
+        className={AMBER_OUTLINE_BUTTON_CLASS}
         disabled={saving}
         onClick={() => void confirmHubDelivery()}
       >
         {saving ? "Sparar…" : "Confirm Hub Delivery"}
+      </Button>
+    );
+  }
+
+  if (awaitingInvoiceReceived) {
+    return (
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className={AMBER_OUTLINE_BUTTON_CLASS}
+        disabled={saving}
+        onClick={() => void confirmInvoiceReceived()}
+      >
+        {saving ? "Sparar…" : "Confirm Invoice Received"}
+      </Button>
+    );
+  }
+
+  if (awaitingInvoicePaid) {
+    return (
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className={AMBER_OUTLINE_BUTTON_CLASS}
+        disabled={saving}
+        onClick={() => void confirmInvoicePaid()}
+      >
+        {saving ? "Sparar…" : "Confirm Invoice Paid"}
       </Button>
     );
   }
@@ -133,7 +219,10 @@ export function AdminB2bProducerStepAction({
 export function AdminB2bConfirmAllButton(
   props: Omit<
     StepActionProps,
-    "awaitingConfirm" | "awaitingHubDelivery"
+    | "awaitingConfirm"
+    | "awaitingHubDelivery"
+    | "awaitingInvoiceReceived"
+    | "awaitingInvoicePaid"
   > & { awaitingConfirm?: boolean },
 ) {
   return (
@@ -141,6 +230,8 @@ export function AdminB2bConfirmAllButton(
       {...props}
       awaitingConfirm={props.awaitingConfirm ?? true}
       awaitingHubDelivery={false}
+      awaitingInvoiceReceived={false}
+      awaitingInvoicePaid={false}
     />
   );
 }
