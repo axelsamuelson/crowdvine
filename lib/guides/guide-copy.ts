@@ -153,12 +153,6 @@ const SV_SYSTEMBOLAGET_CARDS: GuideHubCard[] = [
   articleHubCard(bestRoseNaturalWinesSystembolagetArticle, "sv"),
   articleHubCard(bestOrangeNaturalWinesSystembolagetArticle, "sv"),
   articleHubCard(bestNaturalWinesUnder200SystembolagetArticle, "sv"),
-  {
-    href: "/guider/rekommenderade-naturviner",
-    title: "Rekommenderade naturviner",
-    description:
-      "Veckans oberoende urval av naturviner på Systembolaget — korta redaktionella noter, uppdaterat varje vecka.",
-  },
 ];
 
 const SV: GuideLocaleCopy = {
@@ -313,12 +307,6 @@ const EN_SYSTEMBOLAGET_CARDS: GuideHubCard[] = [
   articleHubCard(bestRoseNaturalWinesSystembolagetArticle, "en"),
   articleHubCard(bestOrangeNaturalWinesSystembolagetArticle, "en"),
   articleHubCard(bestNaturalWinesUnder200SystembolagetArticle, "en"),
-  {
-    href: "/guides/recommended-natural-wines",
-    title: "Recommended natural wines",
-    description:
-      "Our weekly independent picks of natural wines at Systembolaget — short editorial notes, updated every week.",
-  },
 ];
 
 const EN: GuideLocaleCopy = {

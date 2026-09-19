@@ -9,11 +9,6 @@ import { generateProducerSlug } from "@/lib/producer-handle";
 import {
   isNoindexCategorySlug,
 } from "@/lib/seo/noindex-robots";
-import {
-  listIssues,
-  recommendationIndexPath,
-  recommendationIssuePath,
-} from "@/lib/systembolaget/recommendations";
 import { WINE_CATEGORIES_EN, WINE_CATEGORIES_SV } from "@/lib/wine-categories";
 import {
   dedupeSitemapEntries,
@@ -131,35 +126,6 @@ async function buildSitemapEntriesUncached(
 ): Promise<MetadataRoute.Sitemap> {
   const staticPages = staticPagesForProfile(baseUrl, profile);
 
-  const recommendationPages: SitemapEntry[] = [];
-  if (profile === "pact") {
-    try {
-      const issues = await listIssues();
-      if (issues.length > 0) {
-        recommendationPages.push(
-          weeklyEntry(`${baseUrl}${recommendationIndexPath("sv")}`, 0.7),
-          weeklyEntry(`${baseUrl}${recommendationIndexPath("en")}`, 0.7),
-        );
-      }
-      for (const issue of issues) {
-        recommendationPages.push(
-          weeklyEntry(
-            `${baseUrl}${recommendationIssuePath(issue.year, issue.week, "sv")}`,
-            0.65,
-            new Date(issue.published_at),
-          ),
-          weeklyEntry(
-            `${baseUrl}${recommendationIssuePath(issue.year, issue.week, "en")}`,
-            0.65,
-            new Date(issue.published_at),
-          ),
-        );
-      }
-    } catch (err) {
-      console.error("[sitemap] recommendation issues", err);
-    }
-  }
-
   const indexableWines = await fetchIndexableWines();
 
   const winePages: MetadataRoute.Sitemap = indexableWines.flatMap((w) => {
@@ -249,7 +215,6 @@ async function buildSitemapEntriesUncached(
 
   return dedupeSitemapEntries([
     ...staticPages,
-    ...recommendationPages,
     ...vinCategories,
     ...wineCategories,
     ...dynamicGrapePages,

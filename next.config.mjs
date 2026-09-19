@@ -9,21 +9,6 @@ const nextConfig = {
   },
   /** Bundled Chromium (@sparticuz/chromium) must not be webpack-bundled into serverless chunks. */
   serverExternalPackages: ["@sparticuz/chromium", "playwright-core", "sharp"],
-  async rewrites() {
-    return [
-      // Pretty weekly-issue URLs → nested App Router segments.
-      // Folders like `…-v[slug]` break Next route discovery; keep public paths
-      // via rewrite onto valid `/v/[slug]` and `/w/[slug]` pages.
-      {
-        source: "/guider/rekommenderade-naturviner-v:slug",
-        destination: "/guider/rekommenderade-naturviner/v/:slug",
-      },
-      {
-        source: "/guides/recommended-natural-wines-w:slug",
-        destination: "/guides/recommended-natural-wines/w/:slug",
-      },
-    ];
-  },
   async headers() {
     return [
       {
@@ -87,6 +72,37 @@ const nextConfig = {
       {
         source: "/boxes",
         destination: "/vin/wine-boxes",
+        permanent: true,
+      },
+      // Removed weekly recommendation guides (duplicate of ranked Systembolaget lists)
+      {
+        source: "/guider/rekommenderade-naturviner",
+        destination: "/guider",
+        permanent: true,
+      },
+      {
+        source: "/guider/rekommenderade-naturviner/:path*",
+        destination: "/guider",
+        permanent: true,
+      },
+      {
+        source: "/guider/rekommenderade-naturviner-v:slug",
+        destination: "/guider",
+        permanent: true,
+      },
+      {
+        source: "/guides/recommended-natural-wines",
+        destination: "/guides",
+        permanent: true,
+      },
+      {
+        source: "/guides/recommended-natural-wines/:path*",
+        destination: "/guides",
+        permanent: true,
+      },
+      {
+        source: "/guides/recommended-natural-wines-w:slug",
+        destination: "/guides",
         permanent: true,
       },
       // Legacy Languedoc editorial pages → merged guide under /guider

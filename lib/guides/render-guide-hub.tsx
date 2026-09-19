@@ -9,7 +9,6 @@ import {
 import {
   guideCopy,
   type GuideHubCard,
-  type GuideHubSection,
 } from "@/lib/guides/guide-copy";
 import { guideHreflang, guidePath } from "@/lib/guides/guide-routes";
 import type { AppLocale } from "@/lib/i18n/locale";
@@ -19,10 +18,6 @@ import {
   pageTwitterCard,
 } from "@/lib/seo/default-social";
 import { getGuideSeoOwnership } from "@/lib/guides/guide-seo-ownership";
-import {
-  listIssues,
-  recommendationIndexPath,
-} from "@/lib/systembolaget/recommendations";
 import { cn } from "@/lib/utils";
 
 function hubSectionId(title: string): string {
@@ -38,29 +33,6 @@ function orderHubCards(cards: GuideHubCard[]): GuideHubCard[] {
   const featured = cards.filter((card) => card.featured);
   const rest = cards.filter((card) => !card.featured);
   return [...featured, ...rest];
-}
-
-function isWeeklyRecommendationsHref(href: string): boolean {
-  return (
-    href === recommendationIndexPath("sv") ||
-    href === recommendationIndexPath("en")
-  );
-}
-
-/** Hide empty weekly archive from the hub until the first issue ships. */
-function hubSectionsForDisplay(
-  sections: GuideHubSection[],
-  hasRecommendationIssues: boolean,
-): GuideHubSection[] {
-  if (hasRecommendationIssues) return sections;
-  return sections
-    .map((section) => ({
-      ...section,
-      cards: section.cards.filter(
-        (card) => !isWeeklyRecommendationsHref(card.href),
-      ),
-    }))
-    .filter((section) => section.cards.length > 0);
 }
 
 export async function buildGuideHubMetadata(
@@ -95,11 +67,7 @@ export async function buildGuideHubMetadata(
 export async function renderGuideHubPage(locale: AppLocale) {
   const { seoBaseUrl } = await getGuideSeoOwnership();
   const copy = guideCopy(locale);
-  const issues = await listIssues();
-  const hubSections = hubSectionsForDisplay(
-    copy.hubSections,
-    issues.length > 0,
-  );
+  const hubSections = copy.hubSections;
 
   const breadcrumbJsonLd = buildGuideBreadcrumbJsonLd([
     { name: copy.home, item: seoBaseUrl },

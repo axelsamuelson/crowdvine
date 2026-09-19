@@ -636,7 +636,7 @@ export default function SystembolagetAdminPage() {
           </Button>
           {issuePublished ? (
             <span className="text-xs text-muted-foreground pb-2">
-              Live at /guider/rekommenderade-naturviner-v{issueWeek}-{issueYear}
+              Published (public weekly pages removed)
             </span>
           ) : null}
         </div>
