@@ -106,7 +106,7 @@ function ProducersLanguedocConnections({ locale }: { locale: AppLocale }) {
 export async function buildProducersGuideMetadata(
   locale: AppLocale,
 ): Promise<Metadata> {
-  const { config, seoBaseUrl, noindexForHost } = await getGuideSeoOwnership();
+  const { config, seoBaseUrl } = await getGuideSeoOwnership();
   const copy = guideCopy(locale);
   const pageUrl = `${seoBaseUrl}${guidePath("producers", locale)}`;
   const title = categoryPageTitle(copy.producers.metaTitle, config.siteName);
@@ -114,9 +114,6 @@ export async function buildProducersGuideMetadata(
   return {
     title,
     description: copy.producers.metaDescription,
-    ...(noindexForHost
-      ? { robots: { index: false, follow: true } }
-      : {}),
     alternates: {
       canonical: pageUrl,
       languages: guideHreflang("producers", seoBaseUrl),

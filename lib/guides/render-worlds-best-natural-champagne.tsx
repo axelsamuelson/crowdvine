@@ -30,7 +30,7 @@ export function getChampagneWinesFromTop100() {
 export async function buildWorldsBestNaturalChampagneMetadata(
   locale: AppLocale,
 ): Promise<Metadata> {
-  const { config, seoBaseUrl, noindexForHost } = await getGuideSeoOwnership();
+  const { config, seoBaseUrl } = await getGuideSeoOwnership();
   const pageUrl = `${seoBaseUrl}${WORLDS_BEST_NATURAL_CHAMPAGNE_PATHS[locale]}`;
   const title = categoryPageTitle(
     worldsBestNaturalChampagneGuide.metaTitle[locale],
@@ -41,9 +41,6 @@ export async function buildWorldsBestNaturalChampagneMetadata(
   return {
     title,
     description,
-    ...(noindexForHost
-      ? { robots: { index: false, follow: true } }
-      : {}),
     alternates: {
       canonical: pageUrl,
       languages: guideHreflang("naturalChampagne", seoBaseUrl),

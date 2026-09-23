@@ -377,14 +377,14 @@ export async function buildSystembolagetRankedListMetadata(
   locale: AppLocale,
   options?: { noindex?: boolean },
 ): Promise<Metadata> {
-  const { config, seoBaseUrl, noindexForHost } = await getGuideSeoOwnership();
+  const { config, seoBaseUrl } = await getGuideSeoOwnership();
   return buildArticleGuideMeta(
     content,
     locale,
     seoBaseUrl,
     config.siteName,
     // Systembolaget demand is Sweden-first — prefer SV as the unmatched default.
-    { xDefault: "sv", noindex: Boolean(options?.noindex) || noindexForHost },
+    { xDefault: "sv", noindex: options?.noindex },
   );
 }
 

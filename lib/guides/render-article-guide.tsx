@@ -41,13 +41,12 @@ export async function buildArticleGuideMetadata(
   content: GuideArticleContent,
   locale: AppLocale,
 ): Promise<Metadata> {
-  const { config, seoBaseUrl, noindexForHost } = await getGuideSeoOwnership();
+  const { config, seoBaseUrl } = await getGuideSeoOwnership();
   return buildArticleGuideMeta(
     content,
     locale,
     seoBaseUrl,
     config.siteName,
-    { noindex: noindexForHost },
   );
 }
 

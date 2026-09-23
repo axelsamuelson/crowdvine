@@ -38,7 +38,7 @@ function orderHubCards(cards: GuideHubCard[]): GuideHubCard[] {
 export async function buildGuideHubMetadata(
   locale: AppLocale,
 ): Promise<Metadata> {
-  const { config, seoBaseUrl, noindexForHost } = await getGuideSeoOwnership();
+  const { config, seoBaseUrl } = await getGuideSeoOwnership();
   const copy = guideCopy(locale);
   const pageUrl = `${seoBaseUrl}${guidePath("hub", locale)}`;
   const title = categoryPageTitle(copy.hubMetaTitle, config.siteName);
@@ -46,9 +46,6 @@ export async function buildGuideHubMetadata(
   return {
     title,
     description: copy.hubMetaDescription,
-    ...(noindexForHost
-      ? { robots: { index: false, follow: true } }
-      : {}),
     alternates: {
       canonical: pageUrl,
       languages: guideHreflang("hub", seoBaseUrl),

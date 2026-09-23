@@ -10,7 +10,10 @@ import {
   isPublicAppPath,
 } from "@/lib/auth/public-paths";
 import { isPlatformOpen } from "@/lib/platform-open";
-import { isDirtywineHost } from "@/lib/b2b-site";
+import {
+  isDirtywineHost,
+  isDirtywineProductionHost,
+} from "@/lib/b2b-site";
 import { createClient as createSupabaseMiddlewareClient, clearSupabaseAuthCookies } from "@/utils/supabase/middleware";
 import {
   WINE_CATEGORY_EN_ALIASES,
@@ -24,6 +27,10 @@ import {
 } from "@/lib/i18n/locale-path-redirect";
 import { localeFromShopPath } from "@/lib/i18n/shop-path-locale";
 import { GEO_COUNTRY_COOKIE } from "@/lib/analytics/visitor-identity";
+import {
+  isGuidePath,
+  pactGuideRedirectUrl,
+} from "@/lib/guides/dirtywine-guide-redirect";
 
 const LOCALE_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
 
@@ -137,6 +144,14 @@ async function runMiddleware(req: NextRequest) {
 
   const host = req.headers.get("host");
   const onDirtywineSite = isDirtywineHost(host, req.nextUrl.searchParams);
+
+  // Guides are PACT-owned — never serve them on dirtywine.se (301 to pact).
+  if (isDirtywineProductionHost(host) && isGuidePath(pathname)) {
+    return NextResponse.redirect(
+      pactGuideRedirectUrl(pathname, req.nextUrl.search),
+      301,
+    );
+  }
 
   if (onDirtywineSite) {
     if (pathname === "/robots.txt") {

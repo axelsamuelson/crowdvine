@@ -56,7 +56,7 @@ function linkLanguedocMentions(
 export async function buildWinesGuideMetadata(
   locale: AppLocale,
 ): Promise<Metadata> {
-  const { config, seoBaseUrl, noindexForHost } = await getGuideSeoOwnership();
+  const { config, seoBaseUrl } = await getGuideSeoOwnership();
   const copy = guideCopy(locale);
   const pageUrl = `${seoBaseUrl}${guidePath("wines", locale)}`;
   const title = categoryPageTitle(copy.wines.metaTitle, config.siteName);
@@ -64,9 +64,6 @@ export async function buildWinesGuideMetadata(
   return {
     title,
     description: copy.wines.metaDescription,
-    ...(noindexForHost
-      ? { robots: { index: false, follow: true } }
-      : {}),
     alternates: {
       canonical: pageUrl,
       languages: guideHreflang("wines", seoBaseUrl),

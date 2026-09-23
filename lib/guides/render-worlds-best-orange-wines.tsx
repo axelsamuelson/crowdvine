@@ -30,7 +30,7 @@ export function getOrangeWinesFromTop100() {
 export async function buildWorldsBestOrangeWinesMetadata(
   locale: AppLocale,
 ): Promise<Metadata> {
-  const { config, seoBaseUrl, noindexForHost } = await getGuideSeoOwnership();
+  const { config, seoBaseUrl } = await getGuideSeoOwnership();
   const pageUrl = `${seoBaseUrl}${WORLDS_BEST_ORANGE_WINES_PATHS[locale]}`;
   const title = categoryPageTitle(
     worldsBestOrangeWinesGuide.metaTitle[locale],
@@ -41,9 +41,6 @@ export async function buildWorldsBestOrangeWinesMetadata(
   return {
     title,
     description,
-    ...(noindexForHost
-      ? { robots: { index: false, follow: true } }
-      : {}),
     alternates: {
       canonical: pageUrl,
       languages: guideHreflang("orangeWines", seoBaseUrl),
