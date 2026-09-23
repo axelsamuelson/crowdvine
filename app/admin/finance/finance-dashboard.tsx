@@ -96,6 +96,37 @@ type OverviewPayload = {
     purchaseSampleSize: number;
     purchaseSkippedCount: number;
   };
+  marginHeatmap?: {
+    prices: number[];
+    shipQtys: number[];
+    cells: Array<{
+      price: number;
+      shipQty: number;
+      gm1CentsPerBottle?: number;
+      gm1Percent?: number | null;
+      gm2CentsPerBottle: number;
+      gm2Percent: number | null;
+      gm3CentsPerBottle?: number;
+      gm3Percent?: number | null;
+    }>;
+  } | null;
+  heatmapAnchor?: {
+    currentPrice: number;
+    currentShipQty: number;
+    inboundFreightPerPalletCents: number;
+    bottlesPerOrder: number;
+    purchaseCostCentsPerBottle: number;
+    exciseCentsPerBottle: number;
+    eprCentsPerBottle: number;
+    refundBreakageReserveRate: number;
+    shippingRevenueGrossCentsPerOrder: number;
+    outboundCarrierCostCentsPerOrder: number;
+    priceIncludesVat: boolean;
+    shippingPriceIncludesVat: boolean;
+    stripeFeePercent: number;
+    stripeFeeFixedCentsPerOrder: number;
+    vatRate: number;
+  } | null;
   disclaimer: string;
 };
 
@@ -352,6 +383,8 @@ function MarginHeatmap({
   opexAllocatedCents,
   scenarioAssumptions,
   onApplyScenario,
+  scaleOperatingByShipQty = false,
+  subtitle,
 }: {
   heatmap: {
     prices: number[];
@@ -388,6 +421,9 @@ function MarginHeatmap({
     exciseRateMultiplier?: number;
   };
   onApplyScenario: (selection: { price: number; shipQty: number }) => void;
+  /** When true, RR uses each cell's ship-qty as volume (pallet-fill view). */
+  scaleOperatingByShipQty?: boolean;
+  subtitle?: string;
 }) {
   type HeatMetric =
     | "gm1_sek"
@@ -395,7 +431,9 @@ function MarginHeatmap({
     | "gm2_sek"
     | "gm2_pct"
     | "operating_sek";
-  const [metric, setMetric] = useState<HeatMetric>("gm1_sek");
+  const [metric, setMetric] = useState<HeatMetric>(
+    scaleOperatingByShipQty ? "operating_sek" : "gm1_sek",
+  );
   const [selected, setSelected] = useState<{
     price: number;
     shipQty: number;
@@ -416,12 +454,15 @@ function MarginHeatmap({
   const vol = Math.max(1, Math.floor(volumeBottles) || 1);
   const opex = Math.max(0, Math.round(opexAllocatedCents));
 
+  const volumeForCell = (shipQty: number) =>
+    scaleOperatingByShipQty ? Math.max(1, Math.floor(shipQty) || 1) : vol;
+
   const operatingCentsFor = (
     c: (typeof heatmap.cells)[number] | undefined,
   ): number => {
     if (!c) return 0;
     const gm3 = c.gm3CentsPerBottle ?? c.gm2CentsPerBottle;
-    return gm3 * vol - opex;
+    return gm3 * volumeForCell(c.shipQty) - opex;
   };
 
   const byKey = useMemo(() => {
@@ -621,7 +662,7 @@ function MarginHeatmap({
           ? `GM2 ${sek(selected.gm2Cents)}/flaska`
           : metric === "gm2_pct"
             ? `GM2 ${pct(selected.gm2Percent)}`
-            : `Rörelseresultat ${sek(selected.operatingCents)} (GM3 ${sek(selected.gm3Cents)}/flaska × ${vol})`
+            : `Rörelseresultat ${sek(selected.operatingCents)} (GM3 ${sek(selected.gm3Cents)}/flaska × ${volumeForCell(selected.shipQty)})`
     : "";
 
   return (
@@ -632,9 +673,11 @@ function MarginHeatmap({
             Marginalkarta · pris × ship-antal
           </h3>
           <p className="text-xs text-amber-800/80 dark:text-amber-200/70 mt-0.5">
-            {isOperating
-              ? `Rörelseresultat = GM3 × ${vol} flaskor − OpEx (${sek(opex)}). Färg följer RR. Klicka för vinpriser med samma GM3.`
-              : "Siffror = vald metri (GM1/GM2). Färg följer GM2. Klicka en ruta för vinpriser med samma marginal."}
+            {subtitle
+              ? subtitle
+              : isOperating
+                ? `Rörelseresultat = GM3 × ${scaleOperatingByShipQty ? "ship-antal" : `${vol} flaskor`} − OpEx (${sek(opex)}). Färg följer RR. Klicka för vinpriser med samma GM3.`
+                : "Siffror = vald metri (GM1/GM2). Färg följer GM2. Klicka en ruta för vinpriser med samma marginal."}
           </p>
         </div>
         <div className="flex flex-wrap gap-1">
@@ -1082,20 +1125,30 @@ export function FinanceDashboard() {
     proposedPrice?: number;
     shipQty?: number;
     volumeBottles?: number;
+    currentPrice?: number;
+    purchaseSek?: number;
+    shipOrderSek?: number;
+    outboundSek?: number;
+    inboundSek?: number;
   }) => {
     const shipQty = overrides?.shipQty ?? simShipQty;
     const proposedPrice = overrides?.proposedPrice ?? simProposed;
+    const currentPrice = overrides?.currentPrice ?? simPrice;
+    const purchaseSek = overrides?.purchaseSek ?? simPurchase;
+    const shipOrderSek = overrides?.shipOrderSek ?? simShipOrder;
+    const outboundSek = overrides?.outboundSek ?? simOutbound;
+    const inboundSek = overrides?.inboundSek ?? simInbound;
     const volume = Math.max(
       1,
       Math.floor(overrides?.volumeBottles ?? simVolumeBottles) || 100,
     );
     const input = {
-      sellingPriceMajor: simPrice,
+      sellingPriceMajor: currentPrice,
       priceIncludesVat: channel !== "dirtywine",
       vatRate: 0.25,
       bottles: volume,
       bottlesPerOrder: 6,
-      purchaseCostCentsPerBottle: Math.round(simPurchase * 100),
+      purchaseCostCentsPerBottle: Math.round(purchaseSek * 100),
       purchaseCostCurrency: "SEK",
       purchaseFxRate: 1,
       exciseCentsPerBottle: simExciseCentsPerBottle,
@@ -1103,10 +1156,10 @@ export function FinanceDashboard() {
       refundBreakageReserveRate: 0.01,
       stripeFeePercent: channel === "dirtywine" ? 0 : 0.015,
       stripeFeeFixedCentsPerOrder: channel === "dirtywine" ? 0 : 180,
-      shippingRevenueGrossCentsPerOrder: Math.round(simShipOrder * 100),
+      shippingRevenueGrossCentsPerOrder: Math.round(shipOrderSek * 100),
       shippingPriceIncludesVat: channel !== "dirtywine",
-      outboundCarrierCostCentsPerOrder: Math.round(simOutbound * 100),
-      inboundFreightTotalCents: Math.round(simInbound * 100),
+      outboundCarrierCostCentsPerOrder: Math.round(outboundSek * 100),
+      inboundFreightTotalCents: Math.round(inboundSek * 100),
       assumedShipQuantity: shipQty,
     };
     const res = await fetch("/api/admin/finance/simulate", {
@@ -1136,6 +1189,50 @@ export function FinanceDashboard() {
       proposedPrice: selection.price,
       shipQty: selection.shipQty,
       volumeBottles: volume,
+    });
+  };
+
+  const applyActualsHeatmapSelection = (selection: {
+    price: number;
+    shipQty: number;
+  }) => {
+    const anchor = data?.heatmapAnchor;
+    const currentPrice = anchor?.currentPrice ?? simPrice;
+    const purchaseSek = anchor
+      ? Math.round(anchor.purchaseCostCentsPerBottle) / 100
+      : simPurchase;
+    const shipOrderSek = anchor
+      ? Math.round(anchor.shippingRevenueGrossCentsPerOrder) / 100
+      : simShipOrder;
+    const outboundSek = anchor
+      ? Math.round(anchor.outboundCarrierCostCentsPerOrder) / 100
+      : simOutbound;
+    const inboundSek = anchor
+      ? Math.round(anchor.inboundFreightPerPalletCents) / 100
+      : simInbound;
+
+    if (anchor) {
+      setSimPrice(currentPrice);
+      setSimPurchase(purchaseSek);
+      setSimPurchaseTouched(true);
+      setSimShipOrder(shipOrderSek);
+      setSimOutbound(outboundSek);
+      setSimInbound(inboundSek);
+    }
+    setSimProposed(selection.price);
+    setSimShipQty(selection.shipQty);
+    setSimVolumeTouched(false);
+    setSimVolumeBottles(selection.shipQty);
+    setParam("mode", "scenarios");
+    void runSimulate({
+      currentPrice,
+      purchaseSek,
+      shipOrderSek,
+      outboundSek,
+      inboundSek,
+      proposedPrice: selection.price,
+      shipQty: selection.shipQty,
+      volumeBottles: selection.shipQty,
     });
   };
 
@@ -1406,6 +1503,52 @@ export function FinanceDashboard() {
                   (fraktintäkt netto − utgående).
                 </p>
               </div>
+
+              {data?.marginHeatmap &&
+              data.heatmapAnchor &&
+              Array.isArray(data.marginHeatmap.prices) &&
+              data.marginHeatmap.prices.length > 0 ? (
+                <div className="mt-4">
+                  <MarginHeatmap
+                    heatmap={data.marginHeatmap}
+                    currentPrice={data.heatmapAnchor.currentPrice}
+                    proposedPrice={data.heatmapAnchor.currentPrice}
+                    currentShipQty={
+                      Number(forecastShipQty) ||
+                      data.heatmapAnchor.currentShipQty
+                    }
+                    volumeBottles={
+                      Number(forecastShipQty) ||
+                      data.heatmapAnchor.currentShipQty
+                    }
+                    opexAllocatedCents={data.opex.allocatedCents}
+                    scaleOperatingByShipQty
+                    subtitle={`Utfall: styckekonomi från perioden (snittpris ${data.heatmapAnchor.currentPrice} SEK). Ship-antal = flaskor för att skeppa pallen; RR = GM3 × ship − OpEx. Klicka för vinpriser / öppna i prisscenarier.`}
+                    onApplyScenario={(selection) => {
+                      applyActualsHeatmapSelection(selection);
+                    }}
+                    scenarioAssumptions={{
+                      priceIncludesVat: data.heatmapAnchor.priceIncludesVat,
+                      vatRate: data.heatmapAnchor.vatRate,
+                      bottlesPerOrder: data.heatmapAnchor.bottlesPerOrder,
+                      eprCentsPerBottle: data.heatmapAnchor.eprCentsPerBottle,
+                      refundBreakageReserveRate:
+                        data.heatmapAnchor.refundBreakageReserveRate,
+                      stripeFeePercent: data.heatmapAnchor.stripeFeePercent,
+                      stripeFeeFixedCentsPerOrder:
+                        data.heatmapAnchor.stripeFeeFixedCentsPerOrder,
+                      shippingRevenueGrossCentsPerOrder:
+                        data.heatmapAnchor.shippingRevenueGrossCentsPerOrder,
+                      shippingPriceIncludesVat:
+                        data.heatmapAnchor.shippingPriceIncludesVat,
+                      outboundCarrierCostCentsPerOrder:
+                        data.heatmapAnchor.outboundCarrierCostCentsPerOrder,
+                      inboundFreightTotalCents:
+                        data.heatmapAnchor.inboundFreightPerPalletCents,
+                    }}
+                  />
+                </div>
+              ) : null}
             </TabsContent>
 
             <TabsContent value="wines" className="mt-4">

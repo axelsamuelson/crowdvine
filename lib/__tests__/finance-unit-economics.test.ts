@@ -17,6 +17,8 @@ import {
   solveRequiredRetailPrice,
   summarizeShippingAudit,
   medianOf,
+  buildUnitScenarioFromActuals,
+  buildMarginHeatmap,
   type FinanceOpexEntry,
 } from "@/lib/finance";
 import { deriveContributionMargins } from "@/lib/admin-pallet-operating-summary";
@@ -393,5 +395,54 @@ describe("medianOf (assortment purchase defaults)", () => {
 
   it("averages two middles for even count", () => {
     expect(medianOf([10, 40, 20, 30])).toBe(25);
+  });
+});
+
+describe("margin heatmap from actuals", () => {
+  it("builds unit input and heatmap where higher ship qty improves GM3", () => {
+    const breakdown = buildFinanceBreakdown({
+      channel: "pact",
+      mode: "actuals",
+      bottles: 60,
+      orders: 10,
+      bottlesKnown: 60,
+      bottlesIncomplete: 0,
+      productGrossRevenueCents: 60 * 22900,
+      productNetRevenueCents: 60 * 18320,
+      shippingGrossRevenueCents: 10 * 9900,
+      shippingNetRevenueCents: 10 * 7920,
+      discountCents: 0,
+      producerPurchaseCostCents: 60 * 14337,
+      alcoholExciseCents: 60 * 2219,
+      paymentFeesCents: 60 * 400,
+      outboundCarrierCostCents: 10 * 6900,
+      eprCents: 60 * 50,
+      refundBreakageReserveCents: 60 * 183,
+      inboundFreightCents: 426_263,
+      inboundAllocationKind: "actual",
+      opexAllocatedCents: 50_000,
+      completeness: "complete",
+      warnings: [],
+    });
+
+    const unit = buildUnitScenarioFromActuals({
+      breakdown,
+      channel: "pact",
+      forecastShipQty: 120,
+      inboundFreightPerPalletCents: 426_263,
+    });
+    expect(unit).not.toBeNull();
+    if (!unit) return;
+    expect(unit.sellingPriceMajor).toBe(229);
+    expect(unit.assumedShipQuantity).toBe(120);
+
+    const heat = buildMarginHeatmap(
+      unit,
+      [229],
+      [120, 240],
+    );
+    const at120 = heat.cells.find((c) => c.shipQty === 120)!;
+    const at240 = heat.cells.find((c) => c.shipQty === 240)!;
+    expect(at240.gm3CentsPerBottle).toBeGreaterThan(at120.gm3CentsPerBottle);
   });
 });

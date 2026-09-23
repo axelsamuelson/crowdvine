@@ -12,3 +12,4 @@ export * from "@/lib/finance/channel";
 export * from "@/lib/finance/period";
 export * from "@/lib/finance/historical-shipping-audit";
 export * from "@/lib/finance/assortment-defaults";
+export * from "@/lib/finance/margin-heatmap";

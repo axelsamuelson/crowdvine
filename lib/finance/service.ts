@@ -18,6 +18,12 @@ import type { FinanceBreakdown, FinanceChannel } from "@/lib/finance/types";
 import type { InvoiceData } from "@/types/invoice";
 import { buildFinanceBreakdown } from "@/lib/finance/margins";
 import { loadAssortmentPurchaseCostDefaults } from "@/lib/finance/assortment-defaults";
+import {
+  buildHeatmapShipAxis,
+  buildMarginHeatmap,
+  buildPriceAxis,
+  buildUnitScenarioFromActuals,
+} from "@/lib/finance/margin-heatmap";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { PALLET_FILL_STATUSES } from "@/lib/pallet-fill-count";
 
@@ -70,6 +76,9 @@ export async function loadPactFinanceOverview(input: {
     completeness: string;
   }>;
   shippingAudit: ReturnType<typeof summarizeShippingAudit>;
+  /** Average one-pallet inbound freight in the period (öre), for ship-qty scenarios. */
+  inboundFreightPerPalletCents: number | null;
+  palletFreightCount: number;
 }> {
   const sb = getSupabaseAdmin();
   void input.forecastShipQty;
@@ -98,6 +107,8 @@ export async function loadPactFinanceOverview(input: {
       }),
       wineRows: [],
       shippingAudit: summarizeShippingAudit([]),
+      inboundFreightPerPalletCents: null,
+      palletFreightCount: 0,
     };
   }
 
@@ -140,6 +151,8 @@ export async function loadPactFinanceOverview(input: {
   // via frozen unit_last_mile_cost_cents × quantity.
   let inboundCents = 0;
   let inboundKind: FinanceBreakdown["inboundAllocationKind"] = "none";
+  let inboundFreightPerPalletCents: number | null = null;
+  let palletFreightCount = 0;
   const palletIds = [
     ...new Set(
       (reservations ?? [])
@@ -187,6 +200,8 @@ export async function loadPactFinanceOverview(input: {
     if (freightN > 0) {
       inboundCents = freightSum;
       inboundKind = "actual";
+      palletFreightCount = freightN;
+      inboundFreightPerPalletCents = Math.round(freightSum / freightN);
     }
   }
 
@@ -256,6 +271,8 @@ export async function loadPactFinanceOverview(input: {
     breakdown,
     wineRows,
     shippingAudit: summarizeShippingAudit(auditRows),
+    inboundFreightPerPalletCents,
+    palletFreightCount,
   };
 }
 
@@ -409,6 +426,36 @@ export async function buildFinanceOverviewPayload(input: {
 
   const assortmentPurchase = await loadAssortmentPurchaseCostDefaults();
 
+  const forecastShipQty = Math.max(
+    1,
+    Math.floor(input.forecastShipQty ?? 240) || 240,
+  );
+  const heatmapChannel: FinanceChannel =
+    input.channel === "dirtywine" ? "dirtywine" : "pact";
+  const heatmapBreakdown =
+    input.channel === "dirtywine"
+      ? breakdown
+      : (pact?.breakdown ?? breakdown);
+  const unitFromActuals = buildUnitScenarioFromActuals({
+    breakdown: heatmapBreakdown,
+    channel: heatmapChannel,
+    forecastShipQty,
+    inboundFreightPerPalletCents: pact?.inboundFreightPerPalletCents ?? null,
+  });
+  const marginHeatmap = unitFromActuals
+    ? buildMarginHeatmap(
+        unitFromActuals,
+        buildPriceAxis(
+          unitFromActuals.sellingPriceMajor,
+          unitFromActuals.sellingPriceMajor,
+        ),
+        buildHeatmapShipAxis(
+          unitFromActuals.assumedShipQuantity,
+          forecastShipQty,
+        ),
+      )
+    : null;
+
   return {
     breakdown,
     wineRows: pact?.wineRows ?? [],
@@ -436,6 +483,32 @@ export async function buildFinanceOverviewPayload(input: {
       purchaseSampleSize: assortmentPurchase.sampleSize,
       purchaseSkippedCount: assortmentPurchase.skippedCount,
     },
+    marginHeatmap,
+    heatmapAnchor: unitFromActuals
+      ? {
+          currentPrice: unitFromActuals.sellingPriceMajor,
+          currentShipQty: unitFromActuals.assumedShipQuantity,
+          inboundFreightPerPalletCents:
+            unitFromActuals.inboundFreightTotalCents,
+          bottlesPerOrder: unitFromActuals.bottlesPerOrder,
+          purchaseCostCentsPerBottle:
+            unitFromActuals.purchaseCostCentsPerBottle,
+          exciseCentsPerBottle: unitFromActuals.exciseCentsPerBottle,
+          eprCentsPerBottle: unitFromActuals.eprCentsPerBottle,
+          refundBreakageReserveRate:
+            unitFromActuals.refundBreakageReserveRate,
+          shippingRevenueGrossCentsPerOrder:
+            unitFromActuals.shippingRevenueGrossCentsPerOrder,
+          outboundCarrierCostCentsPerOrder:
+            unitFromActuals.outboundCarrierCostCentsPerOrder,
+          priceIncludesVat: unitFromActuals.priceIncludesVat,
+          shippingPriceIncludesVat: unitFromActuals.shippingPriceIncludesVat,
+          stripeFeePercent: unitFromActuals.stripeFeePercent,
+          stripeFeeFixedCentsPerOrder:
+            unitFromActuals.stripeFeeFixedCentsPerOrder,
+          vatRate: unitFromActuals.vatRate,
+        }
+      : null,
     disclaimer:
       "Intern redovisning — inte bokslut, momsdeklaration eller reviderad resultaträkning.",
   };

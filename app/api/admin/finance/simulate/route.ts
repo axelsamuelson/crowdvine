@@ -8,25 +8,15 @@ import {
   type FinanceUnitScenarioInput,
   type MarginTargetKind,
 } from "@/lib/finance";
+import {
+  SHIP_QTYS,
+  PRICE_DELTAS,
+  buildHeatmapShipAxis,
+  buildMarginHeatmap,
+  buildPriceAxis,
+} from "@/lib/finance/margin-heatmap";
 
 export const dynamic = "force-dynamic";
-
-/** Coarser steps for pallet-fill / sensitivity tables. */
-const SHIP_QTYS = [
-  60, 90, 120, 150, 180, 210, 240, 270, 300, 360, 420, 480, 540, 600, 660, 720,
-];
-/** Finer ship grid for the margin heatmap only. */
-const HEATMAP_SHIP_STEP = 15;
-const HEATMAP_SHIP_QTYS = (() => {
-  const qtys: number[] = [];
-  for (let q = 60; q <= 720; q += HEATMAP_SHIP_STEP) qtys.push(q);
-  return qtys;
-})();
-const HEATMAP_PRICE_STEP = 5;
-const PRICE_DELTAS = [
-  -80, -60, -50, -40, -30, -25, -20, -15, -10, -5, 0, 5, 10, 15, 20, 25, 30, 40,
-  50, 60, 80, 100,
-];
 
 function buildPalletFillTable(input: FinanceUnitScenarioInput) {
   return SHIP_QTYS.map((qty) => {
@@ -49,64 +39,6 @@ function buildPalletFillTable(input: FinanceUnitScenarioInput) {
       gm3Percent: atQty.gm3Percent,
     };
   });
-}
-
-function buildPriceAxis(baseA: number, baseB: number): number[] {
-  const a = Math.max(0, Math.round(Number(baseA) || 0));
-  const b = Math.max(0, Math.round(Number(baseB) || 0));
-  const lo = Math.max(50, Math.min(a, b) - 50);
-  const hi = Math.max(a, b) + 100;
-  const set = new Set<number>();
-  for (let p = lo; p <= hi; p += HEATMAP_PRICE_STEP) set.add(p);
-  set.add(a);
-  set.add(b);
-  return [...set].sort((x, y) => x - y);
-}
-
-function buildHeatmapShipAxis(...anchors: number[]): number[] {
-  const set = new Set(HEATMAP_SHIP_QTYS);
-  for (const raw of anchors) {
-    const q = Math.round(Number(raw) || 0);
-    if (q > 0) set.add(q);
-  }
-  return [...set].sort((x, y) => x - y);
-}
-
-function buildMarginHeatmap(
-  baseInput: FinanceUnitScenarioInput,
-  prices: number[],
-  shipQtys: number[],
-) {
-  const cells: Array<{
-    price: number;
-    shipQty: number;
-    gm1CentsPerBottle: number;
-    gm1Percent: number | null;
-    gm2CentsPerBottle: number;
-    gm2Percent: number | null;
-    gm3CentsPerBottle: number;
-    gm3Percent: number | null;
-  }> = [];
-  for (const shipQty of shipQtys) {
-    for (const price of prices) {
-      const at = calculateUnitScenario({
-        ...baseInput,
-        sellingPriceMajor: price,
-        assumedShipQuantity: shipQty,
-      });
-      cells.push({
-        price,
-        shipQty,
-        gm1CentsPerBottle: at.gm1CentsPerBottle,
-        gm1Percent: at.gm1Percent,
-        gm2CentsPerBottle: at.gm2CentsPerBottle,
-        gm2Percent: at.gm2Percent,
-        gm3CentsPerBottle: at.gm3CentsPerBottle,
-        gm3Percent: at.gm3Percent,
-      });
-    }
-  }
-  return { prices, shipQtys, cells };
 }
 
 function buildSensitivity(input: FinanceUnitScenarioInput) {
