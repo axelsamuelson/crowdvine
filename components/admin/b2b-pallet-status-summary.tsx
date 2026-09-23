@@ -145,14 +145,16 @@ export function AdminB2bPalletStatusSummary({
           </dd>
         </div>
         <div>
-          <dt className="text-xs text-gray-500 dark:text-zinc-400">Pallkostnad</dt>
+          <dt className="text-xs text-gray-500 dark:text-zinc-400">
+            Fraktkostnad pall
+          </dt>
           <dd className="mt-0.5 text-sm tabular-nums text-gray-900 dark:text-zinc-100">
             {costLabel ?? "—"}
           </dd>
         </div>
-        <div>
+        <div className="sm:border-l sm:border-gray-100 sm:pl-4 dark:sm:border-[#1F1F23]">
           <dt className="text-xs text-gray-500 dark:text-zinc-400">
-            Betalt / totalt
+            Producentfakturor, betalt / totalt
           </dt>
           <dd className="mt-0.5 text-sm tabular-nums text-gray-900 dark:text-zinc-100">
             {invoicePaidLabel} / {invoiceTotalLabel}

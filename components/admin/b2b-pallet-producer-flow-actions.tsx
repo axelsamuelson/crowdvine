@@ -241,7 +241,6 @@ type Props = {
   producerId: string;
   wines: B2bPalletStatusWine[];
   orderSentAt: string | null;
-  deliveredToHubAt: string | null;
 };
 
 export function AdminB2bProducerFlowActions({
@@ -249,7 +248,6 @@ export function AdminB2bProducerFlowActions({
   producerId,
   wines,
   orderSentAt,
-  deliveredToHubAt,
 }: Props) {
   const router = useRouter();
   const [expanded, setExpanded] = useState(false);
@@ -366,23 +364,6 @@ export function AdminB2bProducerFlowActions({
         order_sent_at: new Date().toISOString(),
       });
       toast.success("Order markerad som skickad");
-      router.refresh();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Kunde inte spara");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const clearHubDelivery = async () => {
-    setSaving(true);
-    try {
-      await patchStatus({
-        shipment_id: shipmentId,
-        producer_id: producerId,
-        delivered_to_hub_at: null,
-      });
-      toast.success("Hub Delivery ångrad");
       router.refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Kunde inte spara");
@@ -521,21 +502,6 @@ export function AdminB2bProducerFlowActions({
             onClick={() => void markOrderSent()}
           >
             Markera Order sent
-          </Button>
-        ) : null}
-        {deliveredToHubAt ? (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className={cn(
-              ADMIN_OUTLINE_BUTTON_CLASS,
-              "h-8 text-xs font-medium",
-            )}
-            disabled={saving}
-            onClick={() => void clearHubDelivery()}
-          >
-            Ångra Hub Delivery
           </Button>
         ) : null}
       </div>

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, AlertTriangle } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { B2B_PALLET_SHIPMENT_SELECT } from "@/lib/b2b-pallet-shipment-select";
@@ -23,15 +23,9 @@ import {
   type B2bPalletStatusProducerGroup,
 } from "@/lib/b2b-pallet-producer-status";
 import { formatProducerAddress } from "@/lib/b2b-pallet-pickup";
-import { B2bPalletProducerStatusEditor } from "@/components/admin/b2b-pallet-producer-status-editor";
-import {
-  AdminB2bProducerStepAction,
-  AdminB2bProducerFlowActions,
-} from "@/components/admin/b2b-pallet-producer-flow-actions";
 import { AdminB2bPalletStatusSummary } from "@/components/admin/b2b-pallet-status-summary";
-import { AdminB2bProducerWinesDialog } from "@/components/admin/b2b-pallet-producer-wines-dialog";
-import { B2bPalletProducerCopyLinkButton } from "@/components/admin/b2b-pallet-producer-copy-link-button";
 import { B2bPalletOverviewCopyLinkButton } from "@/components/admin/b2b-pallet-overview-copy-link-button";
+import { AdminB2bProducerStatusCard } from "@/components/admin/b2b-pallet-producer-status-card";
 import { cn } from "@/lib/utils";
 
 type ItemRow = {
@@ -83,76 +77,6 @@ function formatDate(value: string | null | undefined): string | null {
     month: "short",
     day: "numeric",
   });
-}
-
-function formatDateTime(value: string | null | undefined): string | null {
-  if (!value) return null;
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return value;
-  return d.toLocaleString("sv-SE", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-function StageChip({
-  label,
-  done,
-  awaiting,
-  dateLabel,
-}: {
-  label: string;
-  done: boolean;
-  /** Next action (orange). */
-  awaiting?: boolean;
-  dateLabel?: string | null;
-}) {
-  return (
-    <div
-      className={cn(
-        "min-w-[7.5rem] flex-1 rounded-lg border px-2.5 py-2",
-        done
-          ? "border-emerald-500/30 bg-emerald-500/10"
-          : awaiting
-            ? "border-amber-500/40 bg-amber-500/10"
-            : "border-gray-200 bg-gray-50 dark:border-zinc-800 dark:bg-zinc-900/50",
-      )}
-    >
-      <p
-        className={cn(
-          "text-[11px] font-medium",
-          done
-            ? "text-emerald-700 dark:text-emerald-300"
-            : awaiting
-              ? "text-amber-800 dark:text-amber-200"
-              : "text-gray-500 dark:text-zinc-500",
-        )}
-      >
-        {label}
-      </p>
-      {!(awaiting && !dateLabel) ? (
-        <p
-          className={cn(
-            "mt-0.5 text-xs tabular-nums",
-            done
-              ? "text-gray-900 dark:text-zinc-100"
-              : awaiting
-                ? "text-amber-800 dark:text-amber-200"
-                : "text-gray-400 dark:text-zinc-600",
-          )}
-        >
-          {done
-            ? dateLabel || "Klart"
-            : awaiting
-              ? dateLabel || "Väntar"
-              : "—"}
-        </p>
-      ) : null}
-    </div>
-  );
 }
 
 function earliestIso(
@@ -364,6 +288,28 @@ export default async function B2BPalletStatusPage({
     statusByProducer,
     wineStatusByWineId,
   );
+
+  const toneRank = (tone: ReturnType<typeof getProducerProcessStep>["tone"]) => {
+    if (tone === "active") return 0;
+    if (tone === "done") return 2;
+    return 1;
+  };
+
+  const producersSorted = [...producers].sort((a, b) => {
+    const toneA = getProducerProcessStep(a.status).tone;
+    const toneB = getProducerProcessStep(b.status).tone;
+    const rankDiff = toneRank(toneA) - toneRank(toneB);
+    if (rankDiff !== 0) return rankDiff;
+    return a.producerName.localeCompare(b.producerName, "sv");
+  });
+
+  const openProducers = producersSorted.filter(
+    (p) => getProducerProcessStep(p.status).tone !== "done",
+  );
+  const doneProducers = producersSorted.filter(
+    (p) => getProducerProcessStep(p.status).tone === "done",
+  );
+
   const totalBottles = producers.reduce((sum, p) => sum + p.orderedQuantity, 0);
   const confirmedCount = producers.filter((p) => isProducerConfirmed(p.status)).length;
   const palletProgress = summarizeB2bPalletProgress(
@@ -423,7 +369,7 @@ export default async function B2BPalletStatusPage({
       (producerWineCostById.get(producerId) ?? 0) + line.lineTotalCents,
     );
   }
-  const palletProducers = producers.map((p) => {
+  const palletProducers = producersSorted.map((p) => {
     const step = getProducerProcessStep(p.status);
     return {
       producerId: p.producerId,
@@ -492,216 +438,44 @@ export default async function B2BPalletStatusPage({
       />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        {producers.length === 0 ? (
+        {producersSorted.length === 0 ? (
           <div className="rounded-xl border border-dashed border-gray-200 p-8 text-center text-sm text-gray-500 dark:border-[#1F1F23] dark:text-zinc-400 lg:col-span-2">
             Inga viner på pallen — lägg till artiklar under Redigera.
           </div>
         ) : (
-          producers.map((group) => {
-            const s = group.status;
-            const confirmed =
-              s.confirmed_quantity != null ? s.confirmed_quantity : null;
-            const qtyDelta =
-              confirmed != null ? confirmed - group.orderedQuantity : null;
-            const confirmedDone =
-              s.producer_decision_status === "confirmed" ||
-              s.producer_decision_status === "partial" ||
-              s.producer_decision_status === "declined";
-            const orderAccepted = isProducerConfirmed(s);
-            const awaitingConfirm =
-              s.producer_decision_status === "pending" &&
-              group.wines.length > 0;
-            const awaitingHubDelivery = orderAccepted && !s.delivered_to_hub_at;
-            const awaitingInvoiceReceived =
-              orderAccepted &&
-              !!s.delivered_to_hub_at &&
-              !s.invoice_received_at;
-            const awaitingInvoicePaid =
-              !!s.invoice_received_at && !s.invoice_paid_at;
-            const processStep = getProducerProcessStep(s);
-
-            return (
-              <section
+          <>
+            {openProducers.map((group) => (
+              <AdminB2bProducerStatusCard
                 key={group.producerId}
-                className="rounded-xl border border-gray-200 bg-white p-5 dark:border-[#1F1F23] dark:bg-[#0F0F12]"
-              >
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <h3 className="text-base font-semibold text-gray-900 dark:text-white">
-                      {group.producerName}
-                    </h3>
-                    <p className="mt-0.5 text-sm text-gray-500 dark:text-zinc-400">
-                      {group.orderedQuantity} flaskor
-                    </p>
-                    <p className="mt-1 text-xs text-gray-500 dark:text-zinc-500">
-                      Status: {processStep.label}
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <B2bPalletProducerCopyLinkButton
-                      shipmentId={id}
-                      producerId={group.producerId}
-                    />
-                    <AdminB2bProducerStepAction
-                      shipmentId={id}
-                      producerId={group.producerId}
-                      wines={group.wines}
-                      orderSentAt={s.order_sent_at}
-                      awaitingConfirm={awaitingConfirm}
-                      awaitingHubDelivery={awaitingHubDelivery}
-                      awaitingInvoiceReceived={awaitingInvoiceReceived}
-                      awaitingInvoicePaid={awaitingInvoicePaid}
-                      invoiceAmountCents={s.invoice_amount_cents}
-                      defaultInvoiceAmountCents={
-                        producerWineCostById.get(group.producerId) ?? null
-                      }
-                    />
-                    <AdminB2bProducerWinesDialog
-                      shipmentId={id}
-                      producerId={group.producerId}
-                      producerName={group.producerName}
-                      initialWines={group.wines.map((w) => ({
-                        wineId: w.wineId,
-                        wineName: w.wineName,
-                        vintage: w.vintage,
-                        quantity: w.quantity,
-                      }))}
-                    />
-                    <B2bPalletProducerStatusEditor
-                      key={`${group.producerId}-${s.updated_at ?? s.id ?? "new"}`}
-                      shipmentId={id}
-                      producerId={group.producerId}
-                      producerName={group.producerName}
-                      orderedQuantity={group.orderedQuantity}
-                      initial={s}
-                    />
-                  </div>
+                shipmentId={id}
+                group={group}
+                defaultInvoiceAmountCents={
+                  producerWineCostById.get(group.producerId) ?? null
+                }
+              />
+            ))}
+            {doneProducers.length > 0 ? (
+              <>
+                <div className="col-span-full flex items-center gap-3 pt-2">
+                  <div className="h-px flex-1 bg-gray-200 dark:bg-[#1F1F23]" />
+                  <span className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+                    Klara
+                  </span>
+                  <div className="h-px flex-1 bg-gray-200 dark:bg-[#1F1F23]" />
                 </div>
-
-                <AdminB2bProducerFlowActions
-                  key={`flow-${group.producerId}-${s.updated_at ?? s.id ?? "new"}`}
-                  shipmentId={id}
-                  producerId={group.producerId}
-                  wines={group.wines}
-                  orderSentAt={s.order_sent_at}
-                  deliveredToHubAt={s.delivered_to_hub_at}
-                />
-
-                {qtyDelta != null && qtyDelta !== 0 ? (
-                  <div
-                    className={cn(
-                      "mt-4 rounded-lg border px-3 py-2 text-sm",
-                      qtyDelta < 0
-                        ? "border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-200"
-                        : "border-sky-500/40 bg-sky-500/10 text-sky-800 dark:text-sky-200",
-                    )}
-                  >
-                    Bekräftad kvantitet {confirmed} st (beställt{" "}
-                    {group.orderedQuantity}) · delta{" "}
-                    <span className="font-semibold tabular-nums">
-                      {qtyDelta > 0 ? `+${qtyDelta}` : qtyDelta}
-                    </span>
-                    {qtyDelta < 0
-                      ? " — bryter pallmatematiken"
-                      : null}
-                  </div>
-                ) : null}
-
-                {s.blocked_reason ? (
-                  <div className="mt-3 flex gap-2 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-800 dark:text-red-200">
-                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-                    <div>
-                      <p className="font-medium">Blockerad</p>
-                      <p className="mt-0.5">{s.blocked_reason}</p>
-                    </div>
-                  </div>
-                ) : null}
-
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <StageChip
-                    label="Order sent"
-                    done={!!s.order_sent_at}
-                    dateLabel={formatDateTime(s.order_sent_at)}
-                  />
-                  <StageChip
-                    label={
-                      awaitingConfirm ? "Awaiting confirmation" : "Confirmed"
-                    }
-                    done={confirmedDone && s.producer_decision_status !== "declined"}
-                    awaiting={awaitingConfirm}
-                    dateLabel={
-                      s.producer_decision_status === "declined"
-                        ? `Avböjd${formatDateTime(s.producer_decided_at) ? ` · ${formatDateTime(s.producer_decided_at)}` : ""}`
-                        : awaitingConfirm
-                          ? null
-                          : formatDateTime(s.producer_decided_at)
+                {doneProducers.map((group) => (
+                  <AdminB2bProducerStatusCard
+                    key={group.producerId}
+                    shipmentId={id}
+                    group={group}
+                    defaultInvoiceAmountCents={
+                      producerWineCostById.get(group.producerId) ?? null
                     }
                   />
-                  <StageChip
-                    label={
-                      awaitingHubDelivery
-                        ? "Awaiting Hub Delivery"
-                        : s.delivered_to_hub_at
-                          ? "Delivered to Hub"
-                          : "Hub Delivery"
-                    }
-                    done={!!s.delivered_to_hub_at}
-                    awaiting={awaitingHubDelivery}
-                    dateLabel={
-                      s.delivered_to_hub_at
-                        ? formatDateTime(s.delivered_to_hub_at)
-                        : null
-                    }
-                  />
-                  <StageChip
-                    label={
-                      awaitingInvoiceReceived
-                        ? "Awaiting Invoice Received"
-                        : "Invoice received"
-                    }
-                    done={!!s.invoice_received_at}
-                    awaiting={awaitingInvoiceReceived}
-                    dateLabel={formatDateTime(s.invoice_received_at)}
-                  />
-                  <StageChip
-                    label={
-                      awaitingInvoicePaid
-                        ? "Awaiting Invoice Paid"
-                        : "Invoice paid"
-                    }
-                    done={!!s.invoice_paid_at}
-                    awaiting={awaitingInvoicePaid}
-                    dateLabel={formatDateTime(s.invoice_paid_at)}
-                  />
-                </div>
-
-                {(s.producer_note || s.admin_note) && (
-                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                    {s.producer_note ? (
-                      <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 dark:border-zinc-800 dark:bg-zinc-900/50">
-                        <p className="text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-zinc-500">
-                          Producentanteckning
-                        </p>
-                        <p className="mt-1 text-sm text-gray-800 dark:text-zinc-200 whitespace-pre-wrap">
-                          {s.producer_note}
-                        </p>
-                      </div>
-                    ) : null}
-                    {s.admin_note ? (
-                      <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 dark:border-zinc-800 dark:bg-zinc-900/50">
-                        <p className="text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-zinc-500">
-                          Adminanteckning
-                        </p>
-                        <p className="mt-1 text-sm text-gray-800 dark:text-zinc-200 whitespace-pre-wrap">
-                          {s.admin_note}
-                        </p>
-                      </div>
-                    ) : null}
-                  </div>
-                )}
-              </section>
-            );
-          })
+                ))}
+              </>
+            ) : null}
+          </>
         )}
       </div>
     </div>

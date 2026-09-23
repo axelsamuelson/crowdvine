@@ -47,6 +47,10 @@ type Props = {
   producerId: string;
   producerName: string;
   initialWines: WineLine[];
+  /** When true, no standalone trigger button — parent controls open. */
+  hideTrigger?: boolean;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 };
 
 function wineLabel(w: { wineName?: string; wine_name?: string | null; vintage: string | null }) {
@@ -59,9 +63,17 @@ export function AdminB2bProducerWinesDialog({
   producerId,
   producerName,
   initialWines,
+  hideTrigger = false,
+  open: openControlled,
+  onOpenChange,
 }: Props) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const [openUncontrolled, setOpenUncontrolled] = useState(false);
+  const open = openControlled ?? openUncontrolled;
+  const setOpen = (next: boolean) => {
+    onOpenChange?.(next);
+    if (openControlled === undefined) setOpenUncontrolled(next);
+  };
   const [saving, setSaving] = useState(false);
   const [loadingWines, setLoadingWines] = useState(false);
   const [lines, setLines] = useState<WineLine[]>(initialWines);
@@ -184,17 +196,24 @@ export function AdminB2bProducerWinesDialog({
 
   return (
     <>
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        className={cn(ADMIN_OUTLINE_BUTTON_CLASS, "h-8 text-xs font-medium")}
-        onClick={() => setOpen(true)}
-      >
-        + Vin
-      </Button>
+      {!hideTrigger ? (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className={cn(ADMIN_OUTLINE_BUTTON_CLASS, "h-8 text-xs font-medium")}
+          onClick={() => setOpen(true)}
+        >
+          + Vin
+        </Button>
+      ) : null}
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog
+        open={open}
+        onOpenChange={(next) => {
+          setOpen(next);
+        }}
+      >
         <DialogContent className="max-w-lg border-gray-200 bg-white dark:border-[#1F1F23] dark:bg-[#0F0F12]">
           <DialogHeader>
             <DialogTitle className="text-gray-900 dark:text-white">

@@ -48,6 +48,10 @@ type Props = {
   producerName: string;
   orderedQuantity: number;
   initial: B2bPalletProducerStatusRow;
+  /** When true, no standalone trigger button — parent controls open. */
+  hideTrigger?: boolean;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 };
 
 export function B2bPalletProducerStatusEditor({
@@ -56,9 +60,17 @@ export function B2bPalletProducerStatusEditor({
   producerName,
   orderedQuantity,
   initial,
+  hideTrigger = false,
+  open: openControlled,
+  onOpenChange,
 }: Props) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const [openUncontrolled, setOpenUncontrolled] = useState(false);
+  const open = openControlled ?? openUncontrolled;
+  const setOpen = (next: boolean) => {
+    onOpenChange?.(next);
+    if (openControlled === undefined) setOpenUncontrolled(next);
+  };
   const [saving, setSaving] = useState(false);
 
   const [orderSentAt, setOrderSentAt] = useState(toDatetimeLocal(initial.order_sent_at));
@@ -154,6 +166,7 @@ export function B2bPalletProducerStatusEditor({
   };
 
   if (!open) {
+    if (hideTrigger) return null;
     return (
       <Button
         type="button"
