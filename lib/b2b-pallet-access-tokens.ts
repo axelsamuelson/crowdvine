@@ -8,7 +8,8 @@ const DEFAULT_TTL_DAYS = 180;
 export type B2bPalletAccessGrant = {
   tokenId: string;
   shipmentId: string;
-  producerId: string;
+  /** Set for producer-scoped shares; null for whole-pallet overview. */
+  producerId: string | null;
   expiresAt: string;
 };
 
@@ -34,6 +35,22 @@ export function buildProducerPalletShareUrl(
 ): string {
   const base = origin.replace(/\/$/, "");
   return `${base}${buildProducerPalletSharePath(shipmentId, rawToken)}`;
+}
+
+export function buildPalletOverviewSharePath(
+  shipmentId: string,
+  rawToken: string,
+): string {
+  return `/b2b-pallets/${shipmentId}/status?token=${encodeURIComponent(rawToken)}`;
+}
+
+export function buildPalletOverviewShareUrl(
+  origin: string,
+  shipmentId: string,
+  rawToken: string,
+): string {
+  const base = origin.replace(/\/$/, "");
+  return `${base}${buildPalletOverviewSharePath(shipmentId, rawToken)}`;
 }
 
 /** Create a new opaque share token for this producer on the shipment. */
@@ -78,7 +95,53 @@ export async function createB2bPalletAccessToken(opts: {
   };
 }
 
-/** Resolve a raw token to shipment + producer (no side effects). */
+/** Create a whole-pallet (all producers) read-only status share token. */
+export async function createB2bPalletOverviewAccessToken(opts: {
+  shipmentId: string;
+  createdBy?: string | null;
+  origin: string;
+}): Promise<{ url: string; path: string; expiresAt: string }> {
+  const sb = getSupabaseAdmin();
+  const { data: shipment, error: shipmentError } = await sb
+    .from("b2b_pallet_shipments")
+    .select("id")
+    .eq("id", opts.shipmentId)
+    .maybeSingle();
+
+  if (shipmentError) {
+    throw new Error(shipmentError.message);
+  }
+  if (!shipment) {
+    throw new Error("Pallet not found");
+  }
+
+  const rawToken = mintRawToken();
+  const tokenHash = hashToken(rawToken);
+  const expiresAt = new Date(
+    Date.now() + DEFAULT_TTL_DAYS * 24 * 60 * 60 * 1000,
+  ).toISOString();
+
+  const { error } = await sb.from("b2b_pallet_access_tokens").insert({
+    shipment_id: opts.shipmentId,
+    producer_id: null,
+    token_hash: tokenHash,
+    created_by: opts.createdBy ?? null,
+    expires_at: expiresAt,
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const path = buildPalletOverviewSharePath(opts.shipmentId, rawToken);
+  return {
+    path,
+    url: buildPalletOverviewShareUrl(opts.origin, opts.shipmentId, rawToken),
+    expiresAt,
+  };
+}
+
+/** Resolve a raw token to shipment + optional producer (no side effects). */
 export async function verifyB2bPalletAccessToken(
   rawToken: string,
 ): Promise<B2bPalletAccessGrant | null> {
@@ -99,10 +162,15 @@ export async function verifyB2bPalletAccessToken(
   if (data.revoked_at) return null;
   if (new Date(data.expires_at as string).getTime() <= Date.now()) return null;
 
+  const producerId =
+    typeof data.producer_id === "string" && data.producer_id.trim()
+      ? (data.producer_id as string)
+      : null;
+
   return {
     tokenId: data.id as string,
     shipmentId: data.shipment_id as string,
-    producerId: data.producer_id as string,
+    producerId,
     expiresAt: data.expires_at as string,
   };
 }

@@ -38,6 +38,7 @@ const PUBLIC_PATH_PREFIXES = [
   "/i",
   "/ib",
   "/b",
+  "/b2b-pallets",
   "/p",
   "/c",
   "/profile",

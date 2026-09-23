@@ -18,7 +18,7 @@ export async function getProducerShareSignupContext(
   rawToken: string,
 ): Promise<ProducerShareSignupContext | null> {
   const grant = await verifyB2bPalletAccessToken(rawToken);
-  if (!grant) return null;
+  if (!grant?.producerId) return null;
 
   const sb = getSupabaseAdmin();
   const { data } = await sb

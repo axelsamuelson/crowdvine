@@ -113,7 +113,7 @@ export default async function ProducerB2bPalletStatusPage({
 
   if (rawToken?.trim()) {
     const grant = await resolveB2bPalletAccessToken(rawToken.trim());
-    if (!grant || grant.shipmentId !== id) notFound();
+    if (!grant || grant.shipmentId !== id || !grant.producerId) notFound();
     producerId = grant.producerId;
     shareToken = rawToken.trim();
     isShareAccess = true;

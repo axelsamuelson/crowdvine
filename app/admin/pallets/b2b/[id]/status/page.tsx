@@ -31,6 +31,7 @@ import {
 import { AdminB2bPalletStatusSummary } from "@/components/admin/b2b-pallet-status-summary";
 import { AdminB2bProducerWinesDialog } from "@/components/admin/b2b-pallet-producer-wines-dialog";
 import { B2bPalletProducerCopyLinkButton } from "@/components/admin/b2b-pallet-producer-copy-link-button";
+import { B2bPalletOverviewCopyLinkButton } from "@/components/admin/b2b-pallet-overview-copy-link-button";
 import { cn } from "@/lib/utils";
 
 type ItemRow = {
@@ -440,7 +441,7 @@ export default async function B2BPalletStatusPage({
     : null;
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
+    <div className="mx-auto max-w-6xl space-y-6">
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex items-start gap-3">
           <Button
@@ -463,14 +464,17 @@ export default async function B2BPalletStatusPage({
             </p>
           </div>
         </div>
-        <Button
-          asChild
-          variant="outline"
-          size="sm"
-          className={cn(ADMIN_OUTLINE_BUTTON_CLASS, "text-xs font-medium h-8")}
-        >
-          <Link href={`/admin/pallets/b2b/${id}/edit`}>Redigera pall</Link>
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <B2bPalletOverviewCopyLinkButton shipmentId={id} />
+          <Button
+            asChild
+            variant="outline"
+            size="sm"
+            className={cn(ADMIN_OUTLINE_BUTTON_CLASS, "text-xs font-medium h-8")}
+          >
+            <Link href={`/admin/pallets/b2b/${id}/edit`}>Redigera pall</Link>
+          </Button>
+        </div>
       </header>
 
       <AdminB2bPalletStatusSummary
@@ -487,9 +491,9 @@ export default async function B2BPalletStatusPage({
         producers={palletProducers}
       />
 
-      <div className="space-y-4">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {producers.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-gray-200 p-8 text-center text-sm text-gray-500 dark:border-[#1F1F23] dark:text-zinc-400">
+          <div className="rounded-xl border border-dashed border-gray-200 p-8 text-center text-sm text-gray-500 dark:border-[#1F1F23] dark:text-zinc-400 lg:col-span-2">
             Inga viner på pallen — lägg till artiklar under Redigera.
           </div>
         ) : (
