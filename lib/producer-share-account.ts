@@ -18,19 +18,35 @@ export async function getProducerShareSignupContext(
   rawToken: string,
 ): Promise<ProducerShareSignupContext | null> {
   const grant = await verifyB2bPalletAccessToken(rawToken);
-  if (!grant?.producerId) return null;
+  if (!grant) return null;
 
   const sb = getSupabaseAdmin();
+
+  let producerId = grant.producerId;
+  // Whole-pallet overview tokens have producer_id NULL — link the hub producer.
+  if (!producerId) {
+    const { data: shipment } = await sb
+      .from("b2b_pallet_shipments")
+      .select("pickup_producer_id")
+      .eq("id", grant.shipmentId)
+      .maybeSingle();
+    const hubId = shipment?.pickup_producer_id;
+    producerId =
+      typeof hubId === "string" && hubId.trim() ? hubId.trim() : null;
+  }
+
+  if (!producerId) return null;
+
   const { data } = await sb
     .from("producers")
     .select("id, name, contact_email")
-    .eq("id", grant.producerId)
+    .eq("id", producerId)
     .maybeSingle();
 
   if (!data) return null;
 
   return {
-    producerId: grant.producerId,
+    producerId,
     shipmentId: grant.shipmentId,
     producerName: data.name?.trim() || "Producer",
     email: normalizeEmail(data.contact_email as string | null),

@@ -157,6 +157,8 @@ export type B2bPalletStatusOverview = {
   deliveredAt: string | null;
   hubName: string;
   hubAddress: string | null;
+  /** Consolidation hub producer (pickup); null when auto-assigned. */
+  hubProducerId: string | null;
   totalBottles: number;
   producers: B2bPalletStatusProducerGroup[];
   progress: B2bPalletProgressSummary;
@@ -248,9 +250,13 @@ export async function loadB2bPalletStatusOverview(
     };
   });
 
+  const hubProducerId =
+    typeof row.pickup_producer_id === "string" && row.pickup_producer_id.trim()
+      ? row.pickup_producer_id
+      : null;
   const hubName =
     row.pickup_producer?.name?.trim() ||
-    (row.pickup_producer_id ? "Unknown hub" : "Automatic (20% rule)");
+    (hubProducerId ? "Unknown hub" : "Automatic (20% rule)");
   const hubAddress = row.pickup_producer
     ? formatProducerAddress(row.pickup_producer)
     : null;
@@ -262,6 +268,7 @@ export async function loadB2bPalletStatusOverview(
     deliveredAt: row.delivered_at,
     hubName,
     hubAddress,
+    hubProducerId,
     totalBottles,
     producers,
     progress,

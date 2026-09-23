@@ -1,10 +1,15 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AlertTriangle } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ProducerB2bPalletSummary } from "@/components/producer/producer-b2b-pallet-summary";
+import { ProducerB2bWineTable } from "@/components/producer/producer-b2b-decision-actions";
 import { resolveB2bPalletAccessToken } from "@/lib/b2b-pallet-access-tokens";
 import { loadB2bPalletStatusOverview } from "@/lib/b2b-pallet-status-overview-data";
 import { isProducerConfirmed } from "@/lib/b2b-pallet-producer-status";
+import { getCurrentUser } from "@/lib/auth";
+import { linkProducerProfileIfEmailMatches } from "@/lib/producer-share-account";
 import { cn } from "@/lib/utils";
 
 function formatDate(value: string | null | undefined): string | null {
@@ -98,8 +103,9 @@ export default async function B2bPalletOverviewStatusPage({
   const { token: rawToken } = await searchParams;
 
   if (!rawToken?.trim()) notFound();
+  const shareToken = rawToken.trim();
 
-  const grant = await resolveB2bPalletAccessToken(rawToken.trim());
+  const grant = await resolveB2bPalletAccessToken(shareToken);
   // Whole-pallet shares only (producer_id null).
   if (!grant || grant.shipmentId !== id || grant.producerId != null) {
     notFound();
@@ -108,8 +114,29 @@ export default async function B2bPalletOverviewStatusPage({
   const overview = await loadB2bPalletStatusOverview(id);
   if (!overview) notFound();
 
+  const user = await getCurrentUser();
+  let canActAsHub = false;
+  if (overview.hubProducerId) {
+    canActAsHub =
+      !!user?.producer_id && user.producer_id === overview.hubProducerId;
+    if (!canActAsHub && user) {
+      canActAsHub = await linkProducerProfileIfEmailMatches({
+        userId: user.id,
+        userEmail: user.email,
+        producerId: overview.hubProducerId,
+      });
+    }
+  }
+
+  const overviewPath = `/b2b-pallets/${id}/status?token=${encodeURIComponent(shareToken)}`;
+  const signupHref = overview.hubProducerId
+    ? `/producer/signup?token=${encodeURIComponent(shareToken)}&next=${encodeURIComponent(overviewPath)}`
+    : null;
+  const loginHref = `/log-in?next=${encodeURIComponent(overviewPath)}`;
+  const showAccountCta = !!overview.hubProducerId && !canActAsHub;
+
   return (
-    <main className="min-h-screen bg-gray-50">
+    <main className={cn("min-h-screen bg-gray-50", showAccountCta && "pb-40")}>
       <div className="mx-auto max-w-4xl space-y-6 p-6 pt-top-spacing">
         <div>
           <h1 className="text-2xl font-medium text-gray-900">{overview.name}</h1>
@@ -117,6 +144,11 @@ export default async function B2bPalletOverviewStatusPage({
             {overview.totalBottles} bottles · {overview.producers.length}{" "}
             producers on this pallet
           </p>
+          {overview.hubProducerId ? (
+            <p className="mt-1 text-xs text-gray-500">
+              Consolidation hub: {overview.hubName}
+            </p>
+          ) : null}
         </div>
 
         <ProducerB2bPalletSummary
@@ -163,6 +195,17 @@ export default async function B2bPalletOverviewStatusPage({
                     <p className="mt-0.5 text-sm text-gray-500">
                       {group.orderedQuantity} bottles on this pallet
                     </p>
+                  </div>
+
+                  <div>
+                    <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-500">
+                      Ordered wines
+                    </p>
+                    <ProducerB2bWineTable
+                      shipmentId={overview.shipmentId}
+                      wines={group.wines}
+                      editable={false}
+                    />
                   </div>
 
                   {qtyDelta != null && qtyDelta !== 0 ? (
@@ -261,6 +304,31 @@ export default async function B2bPalletOverviewStatusPage({
           )}
         </div>
       </div>
+
+      {showAccountCta && signupHref ? (
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-gray-200 bg-white/95 px-4 py-4 backdrop-blur-sm">
+          <div className="mx-auto max-w-4xl text-center">
+            <Link href={signupHref}>
+              <Button className="h-11 w-full max-w-sm rounded-full bg-black text-white hover:bg-black/90">
+                Create Account
+              </Button>
+            </Link>
+            <p className="mx-auto mt-3 max-w-md text-sm text-gray-600">
+              Create an account for {overview.hubName} so you can always come
+              back to this pallet status page and keep track of the shipment.
+            </p>
+            <p className="mt-2 text-sm text-gray-500">
+              Already have an account?{" "}
+              <Link
+                href={loginHref}
+                className="font-medium text-gray-900 underline underline-offset-2"
+              >
+                Log in
+              </Link>
+            </p>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }
