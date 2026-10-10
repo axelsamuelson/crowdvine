@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
+import { switchGuidePath } from "@/lib/guides/switch-guide-path";
 import type { AppLocale } from "@/lib/i18n/locale";
 import { LOCALE_COOKIE, parseLocaleCookie } from "@/lib/i18n/locale";
 import {
@@ -102,6 +103,13 @@ export function redirectLocalePathMismatch(
     if (pathLocale === preferredLocale) return null;
     const u = req.nextUrl.clone();
     u.pathname = producersDirectoryPathForLocale(preferredLocale);
+    return NextResponse.redirect(u, 308);
+  }
+
+  const guideTarget = switchGuidePath(pathname, preferredLocale);
+  if (guideTarget && guideTarget !== pathname) {
+    const u = req.nextUrl.clone();
+    u.pathname = guideTarget;
     return NextResponse.redirect(u, 308);
   }
 

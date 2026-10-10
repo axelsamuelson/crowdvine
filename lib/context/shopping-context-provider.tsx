@@ -18,6 +18,7 @@ import {
 } from "@/lib/i18n/locale";
 import { translate } from "@/lib/i18n/messages";
 import { switchAboutPath } from "@/lib/i18n/about-page-content";
+import { switchGuidePath } from "@/lib/guides/switch-guide-path";
 import { switchProducersDirectoryPath } from "@/lib/i18n/producers-directory";
 import {
   getHreflangPath,
@@ -71,6 +72,9 @@ function getLocalizedPath(
 
   const producersDirectory = switchProducersDirectoryPath(pathname, newLocale);
   if (producersDirectory) return producersDirectory;
+
+  const guide = switchGuidePath(pathname, newLocale);
+  if (guide) return guide;
 
   // /vin → /wine och vice versa
   if (pathname === "/vin" && newLocale === "en") return "/wine";
@@ -154,36 +158,37 @@ export function ShoppingContextProvider({
     }
   }, []);
 
-  const setLocale = useCallback(async (locale: AppLocale) => {
-    let applied = false;
-    setContext((prev) => {
-      if (!prev.availableLocales.includes(locale)) return prev;
-      applied = true;
-      return applyLocalePolicyToContext({ ...prev, locale });
-    });
-    if (!applied) return;
+  const setLocale = useCallback(
+    async (locale: AppLocale) => {
+      if (!context.availableLocales.includes(locale)) return;
 
-    setLocaleCookie(locale);
+      setLocaleCookie(locale);
 
-    void fetch("/api/user/preferred-locale", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ locale }),
-      keepalive: true,
-    }).catch(() => {});
+      void fetch("/api/user/preferred-locale", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ locale }),
+        keepalive: true,
+      }).catch(() => {});
 
-    const localizedPath = getLocalizedPath(pathname, locale);
-    if (localizedPath && localizedPath !== pathname) {
-      // Full navigation avoids flaky RSC soft-nav when cookie + URL both change.
-      const search =
-        typeof window !== "undefined" ? window.location.search : "";
-      window.location.assign(`${localizedPath}${search}`);
-      return;
-    }
+      const localizedPath = getLocalizedPath(pathname, locale);
+      if (localizedPath && localizedPath !== pathname) {
+        // Full navigation remounts with server context — skip setState so we
+        // don't update fibers that are about to unmount / never finished mount.
+        const search =
+          typeof window !== "undefined" ? window.location.search : "";
+        window.location.assign(`${localizedPath}${search}`);
+        return;
+      }
 
-    router.refresh();
-    await refresh();
-  }, [pathname, refresh, router]);
+      setContext((prev) =>
+        applyLocalePolicyToContext({ ...prev, locale }),
+      );
+      router.refresh();
+      await refresh();
+    },
+    [context.availableLocales, pathname, refresh, router],
+  );
 
   useEffect(() => {
     if (typeof document !== "undefined") {

@@ -156,6 +156,7 @@ function SwedenZonePopover({
                     <button
                       type="button"
                       onClick={() => {
+                        setOpen(false);
                         void setLocale(loc).catch(() => {});
                       }}
                       className={cn(

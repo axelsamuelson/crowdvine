@@ -1,7 +1,7 @@
 import type { AppLocale } from "@/lib/i18n/locale";
 import type { GuideWineCategory } from "@/lib/systembolaget/guide-wines";
 
-/** All six ranked Systembolaget list pages — shared for index + cross-links. */
+/** All seven ranked Systembolaget list pages — shared for index + cross-links. */
 export const SYSTEMBOLAGET_RANKED_LISTS = [
   {
     category: "red" as const satisfies GuideWineCategory,
@@ -67,6 +67,17 @@ export const SYSTEMBOLAGET_RANKED_LISTS = [
     label: {
       en: "Best natural wines under 200 kr at Systembolaget →",
       sv: "Bästa naturvinerna under 200 kr på Systembolaget →",
+    },
+  },
+  {
+    category: "glouglou" as const satisfies GuideWineCategory,
+    href: {
+      en: "/guides/best-glou-glou-wines-systembolaget",
+      sv: "/guider/basta-glouglou-viner-systembolaget",
+    },
+    label: {
+      en: "Best glou-glou wines at Systembolaget →",
+      sv: "Bästa glou-glou-vinerna på Systembolaget →",
     },
   },
 ] as const;

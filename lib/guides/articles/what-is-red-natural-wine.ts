@@ -235,6 +235,16 @@ export const whatIsRedNaturalWineArticle: GuideArticleContent = {
         sv: "/guider/basta-roda-naturviner-systembolaget",
       },
     },
+    {
+      label: {
+        en: "Best glou-glou wines at Systembolaget →",
+        sv: "Bästa glou-glou-vinerna på Systembolaget →",
+      },
+      href: {
+        en: "/guides/best-glou-glou-wines-systembolaget",
+        sv: "/guider/basta-glouglou-viner-systembolaget",
+      },
+    },
   ],
   jsonLdAbout: {
     type: "Thing",

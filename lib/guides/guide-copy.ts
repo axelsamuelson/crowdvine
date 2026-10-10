@@ -1,6 +1,7 @@
 import type { AppLocale } from "@/lib/i18n/locale";
 import { GUIDE_PATHS } from "@/lib/guides/guide-routes";
 import { beaujolaisNaturalWineArticle } from "@/lib/guides/articles/beaujolais-natural-wine";
+import { bestGlouGlouWinesSystembolagetArticle } from "@/lib/guides/articles/best-glou-glou-wines-systembolaget";
 import { bestNaturalWinesUnder200SystembolagetArticle } from "@/lib/guides/articles/best-natural-wines-under-200-systembolaget";
 import { bestOrangeNaturalWinesSystembolagetArticle } from "@/lib/guides/articles/best-orange-natural-wines-systembolaget";
 import { bestRedNaturalWinesSystembolagetArticle } from "@/lib/guides/articles/best-red-natural-wines-systembolaget";
@@ -153,6 +154,7 @@ const SV_SYSTEMBOLAGET_CARDS: GuideHubCard[] = [
   articleHubCard(bestRoseNaturalWinesSystembolagetArticle, "sv"),
   articleHubCard(bestOrangeNaturalWinesSystembolagetArticle, "sv"),
   articleHubCard(bestNaturalWinesUnder200SystembolagetArticle, "sv"),
+  articleHubCard(bestGlouGlouWinesSystembolagetArticle, "sv"),
 ];
 
 const SV: GuideLocaleCopy = {
@@ -307,6 +309,7 @@ const EN_SYSTEMBOLAGET_CARDS: GuideHubCard[] = [
   articleHubCard(bestRoseNaturalWinesSystembolagetArticle, "en"),
   articleHubCard(bestOrangeNaturalWinesSystembolagetArticle, "en"),
   articleHubCard(bestNaturalWinesUnder200SystembolagetArticle, "en"),
+  articleHubCard(bestGlouGlouWinesSystembolagetArticle, "en"),
 ];
 
 const EN: GuideLocaleCopy = {
