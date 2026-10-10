@@ -7,11 +7,14 @@ export type GuideWineCategory =
   | "orange"
   | "sparkling"
   | "rose"
-  | "budget";
+  | "budget"
+  | "glouglou";
 
 export type GuideWineVerdict = "recommended" | "avoid";
 
 export type GuideWineRankStatus = "new" | "up" | "down" | "unchanged";
+
+export type AvailabilityState = "available" | "limited" | "unavailable";
 
 /** Row shape from systembolaget_guide_wines. */
 export type SystembolagetGuideWine = {
@@ -46,7 +49,18 @@ export type SystembolagetGuideWine = {
   is_organic: boolean | null;
   image_url: string | null;
   synced_at: string;
+  availability_state: AvailabilityState;
+  store_count: number | null;
 };
+
+/** Label for limited-availability wines; null when not limited. */
+export function limitedAvailabilityLabel(
+  state: AvailabilityState | string | null | undefined,
+  locale: "en" | "sv",
+): string | null {
+  if (state !== "limited") return null;
+  return locale === "sv" ? "Begränsad tillgång" : "Limited availability";
+}
 
 export function systembolagetProductUrl(productNumber: string): string {
   return `https://www.systembolaget.se/produkt/vin/${productNumber}/`;
@@ -174,6 +188,8 @@ async function fetchGuideWinesUncached(
     "is_organic",
     "image_url",
     "synced_at",
+    "availability_state",
+    "store_count",
   ];
 
   const run = (cols: string[]) =>
@@ -195,6 +211,24 @@ async function fetchGuideWinesUncached(
       data = data.map((row) => ({
         ...row,
         top_100_producer_name: null,
+      }));
+    }
+  }
+
+  // Migration 211 — availability_state / store_count may be absent locally.
+  if (
+    error &&
+    /availability_state|store_count/i.test(error.message)
+  ) {
+    const fallbackCols = columns.filter(
+      (c) => c !== "availability_state" && c !== "store_count",
+    );
+    ({ data, error } = await run(fallbackCols));
+    if (!error && data) {
+      data = data.map((row) => ({
+        ...row,
+        availability_state: "available",
+        store_count: null,
       }));
     }
   }

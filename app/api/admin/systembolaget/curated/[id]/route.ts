@@ -11,7 +11,15 @@ const TOP_100_NAMES = new Set(TOP_100_PRODUCERS.map((p) => p.name));
 const patchSchema = z.object({
   verdict: z.enum(["recommended", "avoid"]).optional(),
   category: z
-    .enum(["red", "white", "orange", "sparkling", "rose", "budget"])
+    .enum([
+      "red",
+      "white",
+      "orange",
+      "sparkling",
+      "rose",
+      "budget",
+      "glouglou",
+    ])
     .optional(),
   editorial_note_sv: z.string().min(1).optional(),
   editorial_note_en: z.string().optional().nullable(),

@@ -47,12 +47,15 @@ type CuratedRow = {
   sort_order: number;
   is_published: boolean;
   unavailable: boolean;
+  limited: boolean;
   product: {
     name_bold: string | null;
     name_thin: string | null;
     producer_name: string | null;
     price: number | null;
     is_available: boolean | null;
+    availability_state: string | null;
+    store_count: number | null;
   } | null;
 };
 
@@ -60,7 +63,14 @@ type CurateForm = {
   product_number: string;
   product_label: string;
   verdict: "recommended" | "avoid";
-  category: "red" | "white" | "orange" | "sparkling" | "rose" | "budget";
+  category:
+    | "red"
+    | "white"
+    | "orange"
+    | "sparkling"
+    | "rose"
+    | "budget"
+    | "glouglou";
   editorial_note_sv: string;
   editorial_note_en: string;
   producer_note_sv: string;
@@ -79,6 +89,7 @@ type IssueRow = {
   is_published: boolean;
   published_at: string | null;
   unavailable: boolean;
+  limited: boolean;
   featuredHistory: FeaturedHistoryHit[];
   product: {
     name_bold: string | null;
@@ -86,6 +97,8 @@ type IssueRow = {
     producer_name: string | null;
     price: number | null;
     is_available: boolean | null;
+    availability_state: string | null;
+    store_count: number | null;
   } | null;
 };
 
@@ -162,6 +175,22 @@ function productTitle(row: {
     .join(" ")}`;
 }
 
+function isShrinkGuard(
+  data: unknown,
+): data is { reason: "shrink_guard"; oldCount: number; newCount: number } {
+  if (typeof data !== "object" || data === null) return false;
+  const row = data as {
+    reason?: unknown;
+    oldCount?: unknown;
+    newCount?: unknown;
+  };
+  return (
+    row.reason === "shrink_guard" &&
+    typeof row.oldCount === "number" &&
+    typeof row.newCount === "number"
+  );
+}
+
 function FeaturedWarning({ hits }: { hits: FeaturedHistoryHit[] }) {
   if (hits.length === 0) return null;
   const summary = hits
@@ -182,6 +211,10 @@ function FeaturedWarning({ hits }: { hits: FeaturedHistoryHit[] }) {
 export default function SystembolagetAdminPage() {
   const [status, setStatus] = useState<SyncStatus | null>(null);
   const [syncing, setSyncing] = useState(false);
+  const [shrinkConfirm, setShrinkConfirm] = useState<{
+    oldCount: number;
+    newCount: number;
+  } | null>(null);
   const [query, setQuery] = useState("");
   const [searching, setSearching] = useState(false);
   const [hits, setHits] = useState<SearchHit[]>([]);
@@ -301,14 +334,28 @@ export default function SystembolagetAdminPage() {
 
   const issuePublished = issueRows.length > 0 && issueRows.every((r) => r.is_published);
 
-  async function runSync() {
+  async function runSync(confirmShrink = false) {
     setSyncing(true);
     try {
       const res = await fetch("/api/admin/systembolaget/sync", {
         method: "POST",
+        headers: confirmShrink
+          ? { "Content-Type": "application/json" }
+          : undefined,
+        body: confirmShrink
+          ? JSON.stringify({ confirmShrink: true })
+          : undefined,
       });
       const data: unknown = await res.json();
+      if (res.status === 409 && isShrinkGuard(data)) {
+        setShrinkConfirm({
+          oldCount: data.oldCount,
+          newCount: data.newCount,
+        });
+        return;
+      }
       if (!res.ok) {
+        setShrinkConfirm(null);
         const msg =
           typeof data === "object" &&
           data &&
@@ -323,6 +370,7 @@ export default function SystembolagetAdminPage() {
         toast.error(msg);
         return;
       }
+      setShrinkConfirm(null);
       const inserted =
         typeof data === "object" &&
         data &&
@@ -590,6 +638,31 @@ export default function SystembolagetAdminPage() {
         <Button onClick={() => void runSync()} disabled={syncing}>
           {syncing ? "Syncing… (up to 5 min)" : "Run sync now"}
         </Button>
+        {shrinkConfirm ? (
+          <div className="max-w-xl space-y-2 rounded border border-border p-3 text-sm">
+            <p>
+              Staging has {shrinkConfirm.newCount.toLocaleString("sv-SE")}{" "}
+              rows. The live table has{" "}
+              {shrinkConfirm.oldCount.toLocaleString("sv-SE")}. The drop is
+              more than 5%, so the Monday cron refuses this promote.
+            </p>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => void runSync(true)}
+                disabled={syncing}
+              >
+                Promote the smaller catalog
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setShrinkConfirm(null)}
+                disabled={syncing}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        ) : null}
       </section>
 
       <section className="space-y-4">
@@ -763,7 +836,11 @@ export default function SystembolagetAdminPage() {
                   <div className="font-medium">
                     {productTitle(row)}
                     <FeaturedWarning hits={row.featuredHistory} />
-                    {row.unavailable ? (
+                    {row.limited ? (
+                      <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-900">
+                        Begränsad tillgång
+                      </span>
+                    ) : row.unavailable ? (
                       <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-900">
                         unavailable
                       </span>
@@ -894,6 +971,7 @@ export default function SystembolagetAdminPage() {
                   <option value="sparkling">sparkling</option>
                   <option value="rose">rose</option>
                   <option value="budget">budget</option>
+                  <option value="glouglou">glouglou</option>
                 </select>
               </div>
             </div>
@@ -1032,7 +1110,11 @@ export default function SystembolagetAdminPage() {
                     <div>
                       <div className="font-medium">
                         {productTitle(row)}{" "}
-                        {row.unavailable ? (
+                        {row.limited ? (
+                          <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-900">
+                            Begränsad tillgång
+                          </span>
+                        ) : row.unavailable ? (
                           <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-900">
                             unavailable
                           </span>

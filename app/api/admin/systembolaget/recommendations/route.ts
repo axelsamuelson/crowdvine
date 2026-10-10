@@ -102,6 +102,8 @@ export async function GET(request: NextRequest) {
       producer_name: string | null;
       price: number | null;
       is_available: boolean | null;
+      availability_state: string | null;
+      store_count: number | null;
     }
   >();
 
@@ -109,7 +111,7 @@ export async function GET(request: NextRequest) {
     const { data: products, error: productsError } = await sb
       .from("systembolaget_products")
       .select(
-        "product_number, name_bold, name_thin, producer_name, price, is_available",
+        "product_number, name_bold, name_thin, producer_name, price, is_available, availability_state, store_count",
       )
       .in("product_number", numbers);
 
@@ -127,6 +129,8 @@ export async function GET(request: NextRequest) {
         producer_name: product.producer_name as string | null,
         price: product.price as number | null,
         is_available: product.is_available as boolean | null,
+        availability_state: product.availability_state as string | null,
+        store_count: product.store_count as number | null,
       });
     }
   }
@@ -138,10 +142,12 @@ export async function GET(request: NextRequest) {
     week: parsed.data.week,
     rows: (rows ?? []).map((row) => {
       const product = productByNumber.get(row.product_number as string) ?? null;
+      const state = product?.availability_state ?? null;
       return {
         ...row,
         product,
-        unavailable: !product || product.is_available !== true,
+        unavailable: !product || state === "unavailable" || state == null,
+        limited: state === "limited",
         featuredHistory: featured.get(row.product_number as string) ?? [],
       };
     }),

@@ -33,6 +33,7 @@ const curatedSchema = z.object({
     "sparkling",
     "rose",
     "budget",
+    "glouglou",
   ]),
   editorial_note_sv: z.string().min(1),
   editorial_note_en: z.string().optional().nullable(),
@@ -71,6 +72,8 @@ export async function GET() {
       producer_name: string | null;
       price: number | null;
       is_available: boolean | null;
+      availability_state: string | null;
+      store_count: number | null;
     }
   >();
 
@@ -78,7 +81,7 @@ export async function GET() {
     const { data: products, error: productsError } = await sb
       .from("systembolaget_products")
       .select(
-        "product_number, name_bold, name_thin, producer_name, price, is_available",
+        "product_number, name_bold, name_thin, producer_name, price, is_available, availability_state, store_count",
       )
       .in("product_number", numbers);
 
@@ -96,16 +99,20 @@ export async function GET() {
         producer_name: product.producer_name as string | null,
         price: product.price as number | null,
         is_available: product.is_available as boolean | null,
+        availability_state: product.availability_state as string | null,
+        store_count: product.store_count as number | null,
       });
     }
   }
 
   const rows = (curated ?? []).map((row) => {
     const product = productByNumber.get(row.product_number as string) ?? null;
+    const state = product?.availability_state ?? null;
     return {
       ...row,
       product,
-      unavailable: !product || product.is_available !== true,
+      unavailable: !product || state === "unavailable" || state == null,
+      limited: state === "limited",
     };
   });
 
@@ -159,7 +166,7 @@ export async function POST(request: NextRequest) {
         sort_order: parsed.data.sort_order ?? 100,
         is_published: parsed.data.is_published ?? false,
       },
-      { onConflict: "product_number" },
+      { onConflict: "product_number,category" },
     )
     .select("*")
     .single();

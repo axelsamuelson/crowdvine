@@ -32,6 +32,7 @@ import {
   formatSyncedAtLabel,
   freshestSyncedAt,
   getGuideWines,
+  limitedAvailabilityLabel,
   systembolagetImageUrl,
   systembolagetProductUrl,
   type GuideWineCategory,
@@ -211,6 +212,7 @@ export function RankedWineRow({
   const showRankBadge = wine.previous_sort_order != null && Boolean(badge);
   const meta = wineMetaParts(wine, locale);
   const assortment = assortmentLabel(wine.assortment_text, locale);
+  const limitedLabel = limitedAvailabilityLabel(wine.availability_state, locale);
   const price = formatPrice(wine.price);
   const note =
     locale === "en"
@@ -296,6 +298,12 @@ export function RankedWineRow({
                 }
               >
                 {assortment}
+              </p>
+            ) : null}
+
+            {limitedLabel ? (
+              <p className="mt-1 text-xs font-medium text-amber-800">
+                {limitedLabel}
               </p>
             ) : null}
           </div>

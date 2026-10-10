@@ -15,6 +15,7 @@ const categorySchema = z.enum([
   "sparkling",
   "rose",
   "budget",
+  "glouglou",
 ]);
 
 const verdictSchema = z.enum(["recommended", "avoid"]);
@@ -51,6 +52,7 @@ const CATEGORY_LEVEL_2_PATTERNS: Record<
   sparkling: "%Mousserande%",
   rose: "%Rosé%",
   budget: null,
+  glouglou: null,
 };
 
 function rejectHardcodedRanks(
@@ -455,12 +457,13 @@ export function registerSystembolagetTools(
             .from("systembolaget_curated")
             .select(CURATED_SELECT)
             .eq("product_number", productNumber)
+            .eq("category", args.category)
             .maybeSingle();
 
           if (existingError) throw new Error(existingError.message);
           if (existing) {
             throw new Error(
-              `product_number "${productNumber}" is already curated. Existing row: ${JSON.stringify(existing)}`,
+              `product_number "${productNumber}" is already curated in category "${args.category}". Existing row: ${JSON.stringify(existing)}`,
             );
           }
 
@@ -526,6 +529,16 @@ export function registerSystembolagetTools(
         async () => {
           const patch: Record<string, unknown> = {};
 
+          const { data: current, error: currentError } = await sb
+            .from("systembolaget_curated")
+            .select(CURATED_SELECT)
+            .eq("id", args.id)
+            .maybeSingle();
+          if (currentError) throw new Error(currentError.message);
+          if (!current) {
+            throw new Error(`No curated row with id ${args.id}.`);
+          }
+
           if (args.product_number !== undefined) {
             const productNumber = args.product_number.trim();
             const { data: product, error: productError } = await sb
@@ -539,23 +552,38 @@ export function registerSystembolagetTools(
                 `product_number "${productNumber}" does not exist in systembolaget_products.`,
               );
             }
+            patch.product_number = productNumber;
+          }
 
+          if (args.category !== undefined) patch.category = args.category;
+
+          const nextProductNumber =
+            typeof patch.product_number === "string"
+              ? patch.product_number
+              : (current.product_number as string);
+          const nextCategory =
+            typeof patch.category === "string"
+              ? patch.category
+              : (current.category as string);
+
+          if (
+            nextProductNumber !== current.product_number ||
+            nextCategory !== current.category
+          ) {
             const { data: conflict, error: conflictError } = await sb
               .from("systembolaget_curated")
               .select(CURATED_SELECT)
-              .eq("product_number", productNumber)
+              .eq("product_number", nextProductNumber)
+              .eq("category", nextCategory)
               .neq("id", args.id)
               .maybeSingle();
             if (conflictError) throw new Error(conflictError.message);
             if (conflict) {
               throw new Error(
-                `product_number "${productNumber}" is already curated on another row. Existing row: ${JSON.stringify(conflict)}`,
+                `product_number "${nextProductNumber}" is already curated in category "${nextCategory}". Existing row: ${JSON.stringify(conflict)}`,
               );
             }
-            patch.product_number = productNumber;
           }
-
-          if (args.category !== undefined) patch.category = args.category;
           if (args.verdict !== undefined) patch.verdict = args.verdict;
           if (args.editorial_note_sv !== undefined) {
             patch.editorial_note_sv = args.editorial_note_sv;
