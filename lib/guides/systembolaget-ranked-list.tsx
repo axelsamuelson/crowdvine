@@ -12,8 +12,12 @@ import {
   buildGuideBreadcrumbJsonLd,
 } from "@/lib/guides/guide-breadcrumbs";
 import { guideCopy } from "@/lib/guides/guide-copy";
+import { isIndexableGuideHref } from "@/lib/guides/guide-publication";
 import { guidePath } from "@/lib/guides/guide-routes";
 import {
+  SYSTEMBOLAGET_BEST_UPLINK,
+  SYSTEMBOLAGET_BY_STYLE_HEADING,
+  SYSTEMBOLAGET_RANKED_LISTS,
   siblingSystembolagetLists,
   systembolagetListHref,
   systembolagetListLabel,
@@ -33,6 +37,7 @@ import {
   freshestSyncedAt,
   getGuideWines,
   limitedAvailabilityLabel,
+  primaryStyleLabel,
   systembolagetImageUrl,
   systembolagetProductUrl,
   type GuideWineCategory,
@@ -163,6 +168,37 @@ function formatPrice(price: number | null): string | null {
   return `${price} kr`;
 }
 
+function formatAmount(price: number): string {
+  const asInt = Math.round(price);
+  if (Math.abs(price - asInt) < 0.001) return String(asInt);
+  return String(price);
+}
+
+/** Fill {min}/{max} from rendered wine prices. Empty lists keep a range-free answer. */
+export function answerWithPriceRange(
+  template: string,
+  wines: readonly Pick<SystembolagetGuideWine, "price">[],
+  locale: AppLocale,
+): string {
+  if (!template.includes("{min}") && !template.includes("{max}")) return template;
+  const prices: number[] = [];
+  for (const wine of wines) {
+    if (wine.price == null) continue;
+    const value = Number(wine.price);
+    if (Number.isFinite(value)) prices.push(value);
+  }
+  if (prices.length === 0) {
+    return locale === "sv"
+      ? "Prisintervallet visas när listan har viner."
+      : "The price range appears when the list has wines.";
+  }
+  const min = Math.min(...prices);
+  const max = Math.max(...prices);
+  return template
+    .replaceAll("{min}", formatAmount(min))
+    .replaceAll("{max}", formatAmount(max));
+}
+
 function BottleImage({
   wine,
   priority,
@@ -213,6 +249,7 @@ export function RankedWineRow({
   const meta = wineMetaParts(wine, locale);
   const assortment = assortmentLabel(wine.assortment_text, locale);
   const limitedLabel = limitedAvailabilityLabel(wine.availability_state, locale);
+  const styleLabel = primaryStyleLabel(wine.primary_style, locale);
   const price = formatPrice(wine.price);
   const note =
     locale === "en"
@@ -260,6 +297,9 @@ export function RankedWineRow({
         */}
         <div className="contents md:row-start-1 md:flex md:min-w-0 md:flex-col md:self-start md:pt-0">
           <div className="col-start-3 min-w-0 md:col-auto">
+            {styleLabel ? (
+              <p className="mb-1 text-xs text-muted-foreground">{styleLabel}</p>
+            ) : null}
             <div className="flex items-start justify-between gap-3">
               <h2 className="m-0 min-w-0 text-lg leading-none tracking-tight break-words md:leading-none">
                 <span className="font-semibold text-foreground">{producer}</span>
@@ -342,10 +382,12 @@ export function RankedWineRow({
 function buildItemListJsonLd(
   wines: SystembolagetGuideWine[],
   pageUrl: string,
+  name: string,
 ) {
   return {
     "@context": "https://schema.org",
     "@type": "ItemList",
+    name,
     url: pageUrl,
     numberOfItems: wines.length,
     itemListOrder: "https://schema.org/ItemListOrderAscending",
@@ -447,6 +489,7 @@ export async function renderSystembolagetRankedListPage(
   const articleJsonLd = {
     "@context": "https://schema.org",
     "@type": "Article",
+    name: content.h1[locale],
     headline: content.h1[locale],
     description: content.meta[locale],
     url: pageUrl,
@@ -467,14 +510,23 @@ export async function renderSystembolagetRankedListPage(
   ]);
 
   const itemListJsonLd =
-    wines.length > 0 ? buildItemListJsonLd(wines, pageUrl) : null;
+    wines.length > 0
+      ? buildItemListJsonLd(wines, pageUrl, content.h1[locale])
+      : null;
 
-  const faqs = content.faqs ?? [];
+  const faqs = (content.faqs ?? []).map((faq) => ({
+    ...faq,
+    answer: {
+      en: answerWithPriceRange(faq.answer.en, wines, "en"),
+      sv: answerWithPriceRange(faq.answer.sv, wines, "sv"),
+    },
+  }));
   const faqJsonLd =
     faqs.length > 0
       ? {
           "@context": "https://schema.org",
           "@type": "FAQPage",
+          name: content.h1[locale],
           mainEntity: faqs.map((faq) => ({
             "@type": "Question",
             name: faq.question[locale],
@@ -486,7 +538,13 @@ export async function renderSystembolagetRankedListPage(
         }
       : null;
 
-  const siblingLists = siblingSystembolagetLists(category);
+  const isParentList = category === "best";
+  const styleLists = isParentList ? siblingSystembolagetLists(category) : [];
+  const bestList = SYSTEMBOLAGET_RANKED_LISTS.find(
+    (list) => list.category === "best",
+  );
+  const showUpLink = !isParentList && bestList != null;
+  const siblingLists = isParentList ? [] : siblingSystembolagetLists(category);
   const siblingHeading =
     locale === "sv"
       ? "Fler Systembolaget-listor"
@@ -531,6 +589,18 @@ export async function renderSystembolagetRankedListPage(
             {content.h1[locale]}
           </h1>
 
+          {showUpLink && bestList ? (
+            <p className="mt-4 text-base leading-relaxed text-foreground">
+              {SYSTEMBOLAGET_BEST_UPLINK.prefix[locale]}
+              <Link
+                href={systembolagetListHref(bestList, locale)}
+                className="underline underline-offset-4 hover:text-foreground"
+              >
+                {SYSTEMBOLAGET_BEST_UPLINK.anchor[locale]}
+              </Link>
+            </p>
+          ) : null}
+
           <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
             {intro}
           </p>
@@ -560,6 +630,26 @@ export async function renderSystembolagetRankedListPage(
 
           {syncedLabel ? (
             <p className="mt-6 text-sm text-muted-foreground">{syncedLabel}</p>
+          ) : null}
+
+          {styleLists.length > 0 ? (
+            <nav className="mt-14 border-t border-border pt-14" aria-label={SYSTEMBOLAGET_BY_STYLE_HEADING[locale]}>
+              <h2 className={ARTICLE_GUIDE_H2_CLASS}>
+                {SYSTEMBOLAGET_BY_STYLE_HEADING[locale]}
+              </h2>
+              <div className="space-y-3 text-base">
+                {styleLists.map((list) => (
+                  <p key={list.category}>
+                    <Link
+                      href={systembolagetListHref(list, locale)}
+                      className="underline underline-offset-4 hover:text-foreground"
+                    >
+                      {list.h1[locale]}
+                    </Link>
+                  </p>
+                ))}
+              </div>
+            </nav>
           ) : null}
 
           <div className="mt-14 space-y-14 border-t border-border pt-14">
@@ -635,21 +725,23 @@ export async function renderSystembolagetRankedListPage(
           </div>
         </div>
 
-        <nav className="mt-16 space-y-3 border-t border-border pt-8 text-sm">
-          <h2 className="mb-4 text-xl font-semibold text-foreground">
-            {siblingHeading}
-          </h2>
-          {siblingLists.map((list) => (
-            <p key={list.category}>
-              <Link
-                href={systembolagetListHref(list, locale)}
-                className="underline underline-offset-4 hover:text-foreground"
-              >
-                {systembolagetListLabel(list, locale)}
-              </Link>
-            </p>
-          ))}
-        </nav>
+        {siblingLists.length > 0 ? (
+          <nav className="mt-16 space-y-3 border-t border-border pt-8 text-sm">
+            <h2 className="mb-4 text-xl font-semibold text-foreground">
+              {siblingHeading}
+            </h2>
+            {siblingLists.map((list) => (
+              <p key={list.category}>
+                <Link
+                  href={systembolagetListHref(list, locale)}
+                  className="underline underline-offset-4 hover:text-foreground"
+                >
+                  {systembolagetListLabel(list, locale)}
+                </Link>
+              </p>
+            ))}
+          </nav>
+        ) : null}
 
         {content.furtherReadingHeading ? (
           <nav className="mt-16 space-y-3 border-t border-border pt-8 text-sm">
@@ -657,7 +749,11 @@ export async function renderSystembolagetRankedListPage(
               {content.furtherReadingHeading[locale]}
             </h2>
             {content.internalLinks
-              .filter((link) => link.label[locale].trim().length > 0)
+              .filter(
+                (link) =>
+                  link.label[locale].trim().length > 0 &&
+                  isIndexableGuideHref(link.href[locale]),
+              )
               .map((link) => (
                 <p key={`${link.href[locale]}-${link.label[locale]}`}>
                   <Link

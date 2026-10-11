@@ -1,6 +1,7 @@
 import type { GuideArticleContent } from "@/lib/guides/guide-types";
 import { beaujolaisNaturalWineArticle } from "@/lib/guides/articles/beaujolais-natural-wine";
 import { bestGlouGlouWinesSystembolagetArticle } from "@/lib/guides/articles/best-glou-glou-wines-systembolaget";
+import { bestNaturalWinesSystembolagetArticle } from "@/lib/guides/articles/best-natural-wines-systembolaget";
 import { bestNaturalWinesUnder200SystembolagetArticle } from "@/lib/guides/articles/best-natural-wines-under-200-systembolaget";
 import { bestOrangeNaturalWinesSystembolagetArticle } from "@/lib/guides/articles/best-orange-natural-wines-systembolaget";
 import { bestRedNaturalWinesSystembolagetArticle } from "@/lib/guides/articles/best-red-natural-wines-systembolaget";
@@ -24,12 +25,13 @@ import { thierryAllemandArticle } from "@/lib/guides/articles/thierry-allemand";
 import { whatIsNaturalWineArticle } from "@/lib/guides/articles/what-is-natural-wine";
 import { whatIsOrangeWineArticle } from "@/lib/guides/articles/what-is-orange-wine";
 import { whatIsRedNaturalWineArticle } from "@/lib/guides/articles/what-is-red-natural-wine";
+import { buyNaturalWineOnlineSwedenArticle } from "@/lib/guides/articles/buy-natural-wine-online-sweden";
 import { whatIsWhiteNaturalWineArticle } from "@/lib/guides/articles/what-is-white-natural-wine";
 
 /**
  * Registry of bilingual article guides.
- * Sitemap + future hub helpers iterate this list.
- * Add new articles here when they ship in both locales.
+ * Sitemap and hub helpers iterate published entries only
+ * (`published !== false`). Add new articles here when both locales exist.
  */
 export const BILINGUAL_ARTICLE_GUIDES: readonly GuideArticleContent[] = [
   pierreOvernoyArticle,
@@ -51,6 +53,8 @@ export const BILINGUAL_ARTICLE_GUIDES: readonly GuideArticleContent[] = [
   whatIsNaturalWineArticle,
   whatIsRedNaturalWineArticle,
   whatIsWhiteNaturalWineArticle,
+  buyNaturalWineOnlineSwedenArticle,
+  bestNaturalWinesSystembolagetArticle,
   bestRedNaturalWinesSystembolagetArticle,
   bestWhiteNaturalWinesSystembolagetArticle,
   bestSparklingNaturalWinesSystembolagetArticle,

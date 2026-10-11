@@ -35,20 +35,25 @@ export function buildArticleGuideMeta(
   siteName: string,
   options?: {
     xDefault?: AppLocale;
-    /** When EN copy is still a Swedish placeholder. */
+    /** When EN copy is still a Swedish placeholder. follow stays true. */
     noindex?: boolean;
+    /** Unpublished guides: noindex and nofollow. */
+    nofollow?: boolean;
   },
 ): Metadata {
   const pageUrl = `${baseUrl}${articlePath(content, locale)}`;
   const title = categoryPageTitle(content.title[locale], siteName);
   const description = content.meta[locale];
+  const robots = options?.nofollow
+    ? { index: false as const, follow: false as const }
+    : options?.noindex
+      ? { index: false as const, follow: true as const }
+      : undefined;
 
   return {
     title,
     description,
-    ...(options?.noindex
-      ? { robots: { index: false, follow: true } }
-      : {}),
+    ...(robots ? { robots } : {}),
     alternates: {
       canonical: pageUrl,
       languages: articleGuideHreflang(

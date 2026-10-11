@@ -20,6 +20,12 @@ describe("switchGuidePath", () => {
     ).toBe("/guides/best-glou-glou-wines-systembolaget");
   });
 
+  it("switches the parent Systembolaget list SV → EN", () => {
+    expect(
+      switchGuidePath("/guider/basta-naturvinerna-pa-systembolaget", "en"),
+    ).toBe("/guides/best-natural-wines-systembolaget");
+  });
+
   it("switches glouglou EN → SV", () => {
     expect(
       switchGuidePath("/guides/best-glou-glou-wines-systembolaget", "sv"),

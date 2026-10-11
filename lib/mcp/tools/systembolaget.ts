@@ -16,6 +16,7 @@ const categorySchema = z.enum([
   "rose",
   "budget",
   "glouglou",
+  "best",
 ]);
 
 const verdictSchema = z.enum(["recommended", "avoid"]);
@@ -53,6 +54,7 @@ const CATEGORY_LEVEL_2_PATTERNS: Record<
   rose: "%Rosé%",
   budget: null,
   glouglou: null,
+  best: null,
 };
 
 function rejectHardcodedRanks(

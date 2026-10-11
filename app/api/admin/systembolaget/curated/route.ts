@@ -34,6 +34,7 @@ const curatedSchema = z.object({
     "rose",
     "budget",
     "glouglou",
+    "best",
   ]),
   editorial_note_sv: z.string().min(1),
   editorial_note_en: z.string().optional().nullable(),

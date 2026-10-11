@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 import { unstable_cache } from "next/cache";
 
 import { catalogHasProducts } from "@/lib/crowdvine/products-data";
-import { BILINGUAL_ARTICLE_GUIDES } from "@/lib/guides/bilingual-article-guides";
+import { publishedBilingualArticleGuides } from "@/lib/guides/guide-publication";
 import { GUIDE_PATHS } from "@/lib/guides/guide-routes";
 import { articlePath } from "@/lib/guides/guide-types";
 import { generateProducerSlug } from "@/lib/producer-handle";
@@ -92,7 +92,7 @@ function staticPagesForProfile(
         `${baseUrl}/guides/worlds-best-natural-wine-producers`,
         0.75,
       ),
-      ...BILINGUAL_ARTICLE_GUIDES.flatMap((guide) => [
+      ...publishedBilingualArticleGuides().flatMap((guide) => [
         weeklyEntry(`${baseUrl}${articlePath(guide, "en")}`, 0.75),
         weeklyEntry(`${baseUrl}${articlePath(guide, "sv")}`, 0.75),
       ]),

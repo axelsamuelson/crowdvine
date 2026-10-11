@@ -23,6 +23,11 @@ export const BILINGUAL_GUIDE_SLUG_PAIRS = [
   { en: "what-is-natural-wine", sv: "vad-ar-naturvin" },
   { en: "what-is-red-natural-wine", sv: "vad-ar-rott-naturvin" },
   { en: "what-is-white-natural-wine", sv: "vad-ar-vitt-naturvin" },
+  { en: "buy-natural-wine-online-sweden", sv: "kopa-naturvin-online" },
+  {
+    en: "best-natural-wines-systembolaget",
+    sv: "basta-naturvinerna-pa-systembolaget",
+  },
   { en: "best-red-natural-wines-systembolaget", sv: "basta-roda-naturviner-systembolaget" },
   { en: "best-white-natural-wines-systembolaget", sv: "basta-vita-naturviner-systembolaget" },
   {

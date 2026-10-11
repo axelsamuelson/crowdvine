@@ -145,7 +145,14 @@ const navigationGroups: NavGroup[] = [
   {
     name: "Verktyg",
     icon: Wrench,
-    items: [{ name: "E-post", href: "/admin/email", icon: Mail }],
+    items: [
+      { name: "E-post", href: "/admin/email", icon: Mail },
+      {
+        name: "Domain authority",
+        href: "/admin/seo/domain-authority",
+        icon: TrendingUp,
+      },
+    ],
   },
 ];
 

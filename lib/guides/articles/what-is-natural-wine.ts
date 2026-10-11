@@ -153,6 +153,24 @@ export const whatIsNaturalWineArticle: GuideArticleContent = {
         ],
       },
     },
+    {
+      heading: {
+        en: "More on the styles",
+        sv: "Läs mer om stilarna",
+      },
+      body: {
+        en: [
+          "[What is red natural wine?](/guides/what-is-red-natural-wine)",
+          "[What is white natural wine?](/guides/what-is-white-natural-wine)",
+          "[What is orange wine?](/guides/what-is-orange-wine)",
+        ],
+        sv: [
+          "[Vad är rött naturvin?](/guider/vad-ar-rott-naturvin)",
+          "[Vad är vitt naturvin?](/guider/vad-ar-vitt-naturvin)",
+          "[Vad är orange vin?](/guider/vad-ar-orange-vin)",
+        ],
+      },
+    },
   ],
   internalLinks: [
     {
@@ -217,12 +235,32 @@ export const whatIsNaturalWineArticle: GuideArticleContent = {
     },
     {
       label: {
+        en: "Natural wine at Systembolaget: the best 2026 →",
+        sv: "Naturvin på Systembolaget: de bästa 2026 →",
+      },
+      href: {
+        en: "/guides/best-natural-wines-systembolaget",
+        sv: "/guider/basta-naturvinerna-pa-systembolaget",
+      },
+    },
+    {
+      label: {
         en: "Best red natural wines at Systembolaget →",
         sv: "Bästa röda naturviner på Systembolaget →",
       },
       href: {
         en: "/guides/best-red-natural-wines-systembolaget",
         sv: "/guider/basta-roda-naturviner-systembolaget",
+      },
+    },
+    {
+      label: {
+        en: "Buying natural wine online in Sweden →",
+        sv: "Köpa naturvin online i Sverige →",
+      },
+      href: {
+        en: "/guides/buy-natural-wine-online-sweden",
+        sv: "/guider/kopa-naturvin-online",
       },
     },
   ],

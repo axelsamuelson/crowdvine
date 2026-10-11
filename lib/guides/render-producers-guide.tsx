@@ -19,7 +19,12 @@ import {
   guidePath,
 } from "@/lib/guides/guide-routes";
 import { filterLanguedocRoussillonEntries } from "@/lib/guides/languedoc-region";
-import { producerGuideHref } from "@/lib/guides/producer-guide-links";
+import {
+  ALL_PRODUCER_GUIDES,
+  producerGuideHref,
+  producerGuidePath,
+  splitProducerBlurbMentions,
+} from "@/lib/guides/producer-guide-links";
 import { TOP_100_PRODUCERS } from "@/lib/guides/top-100-producers";
 import type { AppLocale } from "@/lib/i18n/locale";
 import { categoryPageTitle } from "@/lib/seo/category-page-title";
@@ -28,6 +33,10 @@ import {
   pageTwitterCard,
 } from "@/lib/seo/default-social";
 import { getGuideSeoOwnership } from "@/lib/guides/guide-seo-ownership";
+import {
+  SYSTEMBOLAGET_BEST_UPLINK,
+  SYSTEMBOLAGET_RANKED_LISTS,
+} from "@/lib/guides/systembolaget-list-links";
 
 function linkLanguedocMentions(
   text: string,
@@ -52,6 +61,28 @@ function linkLanguedocMentions(
       </Link>,
     ];
   });
+}
+
+function linkedProducerBlurb(
+  text: string | undefined,
+  locale: AppLocale,
+): ReactNode | undefined {
+  if (!text) return undefined;
+  const parts = splitProducerBlurbMentions(text, locale);
+  if (!parts.some((part) => part.href)) return text;
+  return parts.map((part, index) =>
+    part.href ? (
+      <Link
+        key={`${part.href}-${index}`}
+        href={part.href}
+        className="underline underline-offset-4 hover:text-foreground"
+      >
+        {part.text}
+      </Link>
+    ) : (
+      <span key={`blurb-${index}`}>{part.text}</span>
+    ),
+  );
 }
 
 function ProducersLanguedocConnections({ locale }: { locale: AppLocale }) {
@@ -136,6 +167,9 @@ export async function renderProducersGuidePage(locale: AppLocale) {
   const winesPath = guidePath("wines", locale);
   const shopNatural =
     locale === "sv" ? "/vin/naturvin" : "/wine/natural-wine";
+  const bestList = SYSTEMBOLAGET_RANKED_LISTS.find(
+    (list) => list.category === "best",
+  );
 
   const top10 = TOP_100_PRODUCERS.filter((p) => p.rank <= 10);
   const mid = TOP_100_PRODUCERS.filter((p) => p.rank >= 11 && p.rank <= 30);
@@ -159,7 +193,7 @@ export async function renderProducersGuidePage(locale: AppLocale) {
     numberOfItems: 100,
     itemListOrder: "https://schema.org/ItemListOrderDescending",
     itemListElement: TOP_100_PRODUCERS.map((producer) => {
-      const guideHref = producerGuideHref(producer.rank);
+      const guideHref = producerGuideHref(producer.rank, locale);
       return {
         "@type": "ListItem",
         position: producer.rank,
@@ -218,8 +252,11 @@ export async function renderProducersGuidePage(locale: AppLocale) {
                 rank={producer.rank}
                 title={producer.name}
                 meta={producerMetaLine(producer)}
-                description={entryDescription(producer, locale)}
-                href={producerGuideHref(producer.rank)}
+                description={linkedProducerBlurb(
+                  entryDescription(producer, locale),
+                  locale,
+                )}
+                href={producerGuideHref(producer.rank, locale)}
               />
             ))}
           </div>
@@ -236,8 +273,11 @@ export async function renderProducersGuidePage(locale: AppLocale) {
                 rank={producer.rank}
                 title={producer.name}
                 meta={producerMetaLine(producer)}
-                description={entryDescription(producer, locale)}
-                href={producerGuideHref(producer.rank)}
+                description={linkedProducerBlurb(
+                  entryDescription(producer, locale),
+                  locale,
+                )}
+                href={producerGuideHref(producer.rank, locale)}
                 compact
               />
             ))}
@@ -290,6 +330,24 @@ export async function renderProducersGuidePage(locale: AppLocale) {
           </ul>
         </section>
 
+        <section className="mt-14">
+          <h2 className="mb-4 border-b border-border pb-3 text-xl font-semibold">
+            {copy.producers.allGuidesHeading}
+          </h2>
+          <ul className="space-y-2 text-base">
+            {ALL_PRODUCER_GUIDES.map((guide) => (
+              <li key={guide.slug}>
+                <Link
+                  href={producerGuidePath(guide.slug, locale)}
+                  className="underline underline-offset-4 hover:text-foreground"
+                >
+                  {guide.name[locale]}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+
         <nav className="mt-14 space-y-3 border-t border-border pt-8 text-sm">
           <p>
             <Link
@@ -299,6 +357,16 @@ export async function renderProducersGuidePage(locale: AppLocale) {
               {copy.producers.crossLinkWines}
             </Link>
           </p>
+          {bestList ? (
+            <p>
+              <Link
+                href={bestList.href[locale]}
+                className="underline underline-offset-4 hover:text-foreground"
+              >
+                {SYSTEMBOLAGET_BEST_UPLINK.anchor[locale]} →
+              </Link>
+            </p>
+          ) : null}
           <p>
             <Link
               href={shopNatural}

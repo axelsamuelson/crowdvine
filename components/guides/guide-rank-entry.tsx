@@ -1,10 +1,11 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 
 type GuideRankEntryProps = {
   rank: number;
   title: string;
   meta: string;
-  description?: string;
+  description?: ReactNode;
   compact?: boolean;
   href?: string;
 };

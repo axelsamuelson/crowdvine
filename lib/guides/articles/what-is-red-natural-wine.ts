@@ -245,6 +245,16 @@ export const whatIsRedNaturalWineArticle: GuideArticleContent = {
         sv: "/guider/basta-glouglou-viner-systembolaget",
       },
     },
+    {
+      label: {
+        en: "Buying natural wine online in Sweden →",
+        sv: "Köpa naturvin online i Sverige →",
+      },
+      href: {
+        en: "/guides/buy-natural-wine-online-sweden",
+        sv: "/guider/kopa-naturvin-online",
+      },
+    },
   ],
   jsonLdAbout: {
     type: "Thing",

@@ -27,6 +27,10 @@ import {
   pageTwitterCard,
 } from "@/lib/seo/default-social";
 import { getGuideSeoOwnership } from "@/lib/guides/guide-seo-ownership";
+import {
+  SYSTEMBOLAGET_BEST_UPLINK,
+  SYSTEMBOLAGET_RANKED_LISTS,
+} from "@/lib/guides/systembolaget-list-links";
 
 function linkLanguedocMentions(
   text: string,
@@ -86,6 +90,9 @@ export async function renderWinesGuidePage(locale: AppLocale) {
   const producersPath = guidePath("producers", locale);
   const shopNatural =
     locale === "sv" ? "/vin/naturvin" : "/wine/natural-wine";
+  const bestList = SYSTEMBOLAGET_RANKED_LISTS.find(
+    (list) => list.category === "best",
+  );
   const languedocShop =
     locale === "sv"
       ? "/vin/naturvin-languedoc"
@@ -255,6 +262,16 @@ export async function renderWinesGuidePage(locale: AppLocale) {
               {copy.wines.crossLinkProducers}
             </Link>
           </p>
+          {bestList ? (
+            <p>
+              <Link
+                href={bestList.href[locale]}
+                className="underline underline-offset-4 hover:text-foreground"
+              >
+                {SYSTEMBOLAGET_BEST_UPLINK.anchor[locale]} →
+              </Link>
+            </p>
+          ) : null}
           <p>
             <Link
               href={shopNatural}

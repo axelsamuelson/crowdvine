@@ -3,83 +3,139 @@ import Link from "next/link";
 
 import { Footer } from "@/components/layout/footer";
 
-const URL_IN_TEXT = /(https?:\/\/[^\s]+)/g;
-/** Inline markdown links: [Gang of Four](/guides/gang-of-four-wine) */
-const MD_LINK = /\[([^\]]+)\]\(([^)\s]+)\)/g;
+const RICH_TEXT =
+  /\[([^\]]+)\]\(([^)\s]+)\)|(https?:\/\/[^\s]+)/g;
 
-function renderInline(text: string, keyPrefix: string): ReactNode[] {
+const EXTERNAL_REL = "nofollow noopener noreferrer";
+const LINK_CLASS = "underline underline-offset-4 hover:text-foreground";
+
+/** Markdown links and bare http(s) URLs. External links are nofollow. */
+function renderRichText(text: string, keyPrefix: string): ReactNode[] {
   const nodes: ReactNode[] = [];
+  const re = new RegExp(RICH_TEXT.source, "g");
   let last = 0;
   let match: RegExpExecArray | null;
-  const re = new RegExp(MD_LINK.source, "g");
   while ((match = re.exec(text)) !== null) {
     if (match.index > last) {
       nodes.push(
-        <span key={`${keyPrefix}-t-${last}`}>{text.slice(last, match.index)}</span>,
+        <span key={`${keyPrefix}-t-${last}`}>
+          {text.slice(last, match.index)}
+        </span>,
       );
     }
-    const [, label, href] = match;
-    const external = /^https?:\/\//.test(href);
-    if (external) {
+    const label = match[1];
+    const markdownHref = match[2];
+    const bareUrl = match[3];
+    if (label && markdownHref) {
+      const external = /^https?:\/\//.test(markdownHref);
+      if (external) {
+        nodes.push(
+          <a
+            key={`${keyPrefix}-a-${match.index}`}
+            href={markdownHref}
+            target="_blank"
+            rel={EXTERNAL_REL}
+            className={LINK_CLASS}
+          >
+            {label}
+          </a>,
+        );
+      } else {
+        nodes.push(
+          <Link
+            key={`${keyPrefix}-a-${match.index}`}
+            href={markdownHref}
+            className={LINK_CLASS}
+          >
+            {label}
+          </Link>,
+        );
+      }
+    } else if (bareUrl) {
       nodes.push(
         <a
           key={`${keyPrefix}-a-${match.index}`}
-          href={href}
+          href={bareUrl}
           target="_blank"
-          rel="noopener noreferrer"
-          className="underline underline-offset-4 hover:text-foreground"
+          rel={EXTERNAL_REL}
+          className={LINK_CLASS}
         >
-          {label}
+          {bareUrl}
         </a>,
-      );
-    } else {
-      nodes.push(
-        <Link
-          key={`${keyPrefix}-a-${match.index}`}
-          href={href}
-          className="underline underline-offset-4 hover:text-foreground"
-        >
-          {label}
-        </Link>,
       );
     }
     last = match.index + match[0].length;
   }
   if (last < text.length) {
-    nodes.push(<span key={`${keyPrefix}-t-${last}`}>{text.slice(last)}</span>);
+    nodes.push(
+      <span key={`${keyPrefix}-t-${last}`}>{text.slice(last)}</span>,
+    );
+  }
+  if (nodes.length === 0) {
+    nodes.push(<span key={`${keyPrefix}-t-0`}>{text}</span>);
   }
   return nodes;
 }
 
 /** Render body paragraphs with markdown links and bare http(s) URLs. */
 function ArticleParagraph({ text }: { text: string }) {
-  const parts = text.split(URL_IN_TEXT);
+  return <p>{renderRichText(text, "p")}</p>;
+}
+
+function ArticleList({
+  ordered,
+  label,
+  items,
+  idPrefix,
+}: {
+  ordered?: boolean;
+  label?: string;
+  items: string[];
+  idPrefix: string;
+}) {
+  const ListTag = ordered ? "ol" : "ul";
+  const labelId = label ? `${idPrefix}-label` : undefined;
   return (
-    <p>
-      {parts.map((part, index) =>
-        /^https?:\/\//.test(part) ? (
-          <a
-            key={`url-${index}`}
-            href={part}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="underline underline-offset-4 hover:text-foreground"
-          >
-            {part}
-          </a>
-        ) : (
-          <span key={`text-${index}`}>{renderInline(part, `p${index}`)}</span>
-        ),
-      )}
-    </p>
+    <div>
+      {label ? (
+        <p id={labelId} className="mb-2">
+          <strong>{label}</strong>
+        </p>
+      ) : null}
+      <ListTag
+        aria-labelledby={labelId}
+        className={
+          ordered
+            ? "list-decimal space-y-2 pl-5"
+            : "list-disc space-y-2 pl-5"
+        }
+      >
+        {items.map((item, index) => (
+          <li key={`${idPrefix}-${index}`}>
+            {renderRichText(item, `${idPrefix}-li${index}`)}
+          </li>
+        ))}
+      </ListTag>
+    </div>
   );
 }
+
+export type ArticleGuideShellBlock =
+  | { type: "paragraph"; text: string }
+  | {
+      type: "list";
+      ordered?: boolean;
+      label?: string;
+      items: string[];
+    };
 
 export type ArticleGuideShellSection = {
   heading?: string;
   /** Subtle muted text next to the heading (rank badges, etc.). */
   headingBadge?: string;
   paragraphs: string[];
+  /** When set, rendered instead of paragraphs. */
+  blocks?: ArticleGuideShellBlock[];
 };
 
 export type ArticleGuideShellLink = {
@@ -158,12 +214,29 @@ export function ArticleGuideShell({
                   </h2>
                 ) : null}
                 <div className={ARTICLE_GUIDE_BODY_CLASS}>
-                  {section.paragraphs.map((paragraph) => (
-                    <ArticleParagraph
-                      key={paragraph.slice(0, 48)}
-                      text={paragraph}
-                    />
-                  ))}
+                  {section.blocks
+                    ? section.blocks.map((block, blockIndex) =>
+                        block.type === "list" ? (
+                          <ArticleList
+                            key={`list-${sectionIndex}-${blockIndex}`}
+                            idPrefix={`list-${sectionIndex}-${blockIndex}`}
+                            ordered={block.ordered}
+                            label={block.label}
+                            items={block.items}
+                          />
+                        ) : (
+                          <ArticleParagraph
+                            key={`p-${sectionIndex}-${blockIndex}`}
+                            text={block.text}
+                          />
+                        ),
+                      )
+                    : section.paragraphs.map((paragraph, paragraphIndex) => (
+                        <ArticleParagraph
+                          key={`p-${sectionIndex}-${paragraphIndex}`}
+                          text={paragraph}
+                        />
+                      ))}
                 </div>
                 {sectionIndex === 0 && afterFirstSection
                   ? afterFirstSection

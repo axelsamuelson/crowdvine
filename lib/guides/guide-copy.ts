@@ -1,7 +1,9 @@
 import type { AppLocale } from "@/lib/i18n/locale";
 import { GUIDE_PATHS } from "@/lib/guides/guide-routes";
 import { beaujolaisNaturalWineArticle } from "@/lib/guides/articles/beaujolais-natural-wine";
+import { buyNaturalWineOnlineSwedenArticle } from "@/lib/guides/articles/buy-natural-wine-online-sweden";
 import { bestGlouGlouWinesSystembolagetArticle } from "@/lib/guides/articles/best-glou-glou-wines-systembolaget";
+import { bestNaturalWinesSystembolagetArticle } from "@/lib/guides/articles/best-natural-wines-systembolaget";
 import { bestNaturalWinesUnder200SystembolagetArticle } from "@/lib/guides/articles/best-natural-wines-under-200-systembolaget";
 import { bestOrangeNaturalWinesSystembolagetArticle } from "@/lib/guides/articles/best-orange-natural-wines-systembolaget";
 import { bestRedNaturalWinesSystembolagetArticle } from "@/lib/guides/articles/best-red-natural-wines-systembolaget";
@@ -26,7 +28,7 @@ import { whatIsNaturalWineArticle } from "@/lib/guides/articles/what-is-natural-
 import { whatIsOrangeWineArticle } from "@/lib/guides/articles/what-is-orange-wine";
 import { whatIsRedNaturalWineArticle } from "@/lib/guides/articles/what-is-red-natural-wine";
 import { whatIsWhiteNaturalWineArticle } from "@/lib/guides/articles/what-is-white-natural-wine";
-import { articleHubCard } from "@/lib/guides/guide-types";
+import { articleHubCard, isGuideArticlePublished } from "@/lib/guides/guide-types";
 
 import { worldsBestNaturalChampagneGuide } from "@/lib/guides/worlds-best-natural-champagne";
 import { worldsBestOrangeWinesGuide } from "@/lib/guides/worlds-best-orange-wines";
@@ -77,6 +79,7 @@ export type GuideLocaleCopy = {
     languedocBeforeLinks: string;
     languedocAfterLinks: string;
     crossLinkWines: string;
+    allGuidesHeading: string;
   };
   wines: {
     h1: string;
@@ -112,6 +115,9 @@ const SV_GUIDE_CARDS: GuideHubCard[] = [
   articleHubCard(whatIsRedNaturalWineArticle, "sv"),
   articleHubCard(whatIsWhiteNaturalWineArticle, "sv"),
   articleHubCard(whatIsOrangeWineArticle, "sv"),
+  ...(isGuideArticlePublished(buyNaturalWineOnlineSwedenArticle)
+    ? [articleHubCard(buyNaturalWineOnlineSwedenArticle, "sv")]
+    : []),
 ];
 
 
@@ -148,6 +154,7 @@ const SV_REGION_CARDS: GuideHubCard[] = [
 ];
 
 const SV_SYSTEMBOLAGET_CARDS: GuideHubCard[] = [
+  articleHubCard(bestNaturalWinesSystembolagetArticle, "sv"),
   articleHubCard(bestRedNaturalWinesSystembolagetArticle, "sv"),
   articleHubCard(bestWhiteNaturalWinesSystembolagetArticle, "sv"),
   articleHubCard(bestSparklingNaturalWinesSystembolagetArticle, "sv"),
@@ -225,6 +232,7 @@ const SV: GuideLocaleCopy = {
     languedocAfterLinks:
       "Två kopplingar är särskilt direkta. Axel Prüfer i Le Bousquet-d'Orb (#38) är granne med både Hors Saison och Le Bouc à Trois Pattes, och hjälpte Olga Ivanova och Antoine Monod igång när de startade Hors Saison 2021. Didier Barral i Faugères (#71) var lärare åt Yannick Pelletier, vars domän ligger på gränsen mellan Saint-Chinian och Faugères.",
     crossLinkWines: "Världens 100 bästa naturviner →",
+    allGuidesHeading: "Alla producentguider",
   },
   wines: {
     h1: "Världens 100 bästa naturviner",
@@ -300,9 +308,13 @@ const EN_GUIDE_CARDS: GuideHubCard[] = [
   articleHubCard(whatIsRedNaturalWineArticle, "en"),
   articleHubCard(whatIsWhiteNaturalWineArticle, "en"),
   articleHubCard(whatIsOrangeWineArticle, "en"),
+  ...(isGuideArticlePublished(buyNaturalWineOnlineSwedenArticle)
+    ? [articleHubCard(buyNaturalWineOnlineSwedenArticle, "en")]
+    : []),
 ];
 
 const EN_SYSTEMBOLAGET_CARDS: GuideHubCard[] = [
+  articleHubCard(bestNaturalWinesSystembolagetArticle, "en"),
   articleHubCard(bestRedNaturalWinesSystembolagetArticle, "en"),
   articleHubCard(bestWhiteNaturalWinesSystembolagetArticle, "en"),
   articleHubCard(bestSparklingNaturalWinesSystembolagetArticle, "en"),
@@ -365,6 +377,7 @@ const EN: GuideLocaleCopy = {
     languedocAfterLinks:
       "Two connections are especially direct. Axel Prüfer in Le Bousquet-d'Orb (#38) is a neighbour of both Hors Saison and Le Bouc à Trois Pattes, and helped Olga Ivanova and Antoine Monod get started when they founded Hors Saison in 2021. Didier Barral in Faugères (#71) taught Yannick Pelletier, whose domaine sits on the border between Saint-Chinian and Faugères.",
     crossLinkWines: "The World's 100 Best Natural Wines →",
+    allGuidesHeading: "All producer guides",
   },
   wines: {
     h1: "The World's 100 Best Natural Wines",

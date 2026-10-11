@@ -159,7 +159,7 @@ export const jeanPaulThevenetArticle: GuideArticleContent = {
     {
       label: {
         en: "Explore the world's 100 best natural wine producers →",
-        sv: "",
+        sv: "Utforska världens 100 bästa naturvinsproducenter →",
       },
       href: {
         en: "/guides/worlds-best-natural-wine-producers",

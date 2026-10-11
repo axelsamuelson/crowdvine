@@ -8,7 +8,56 @@ export type GuideWineCategory =
   | "sparkling"
   | "rose"
   | "budget"
-  | "glouglou";
+  | "glouglou"
+  | "best";
+
+/** Colour, sparkling and budget styles shown on the parent list. Glou-glou is not a style label. */
+export const PRIMARY_STYLE_CATEGORIES = [
+  "red",
+  "orange",
+  "white",
+  "rose",
+  "sparkling",
+  "budget",
+] as const satisfies readonly GuideWineCategory[];
+
+export type PrimaryStyleCategory = (typeof PRIMARY_STYLE_CATEGORIES)[number];
+
+const PRIMARY_STYLE_LABELS: Record<
+  PrimaryStyleCategory,
+  { en: string; sv: string }
+> = {
+  red: { sv: "Rött", en: "Red" },
+  orange: { sv: "Orange", en: "Orange" },
+  white: { sv: "Vitt", en: "White" },
+  rose: { sv: "Rosé", en: "Rosé" },
+  sparkling: { sv: "Mousserande", en: "Sparkling" },
+  budget: { sv: "Budget", en: "Budget" },
+};
+
+/**
+ * When a product sits on more than one non-best list, prefer the style
+ * in PRIMARY_STYLE_CATEGORIES order. Glou-glou never becomes the label.
+ */
+export function pickPrimaryStyleCategory(
+  categories: readonly string[],
+): PrimaryStyleCategory | null {
+  for (const style of PRIMARY_STYLE_CATEGORIES) {
+    if (categories.includes(style)) return style;
+  }
+  return null;
+}
+
+export function primaryStyleLabel(
+  category: string | null | undefined,
+  locale: "en" | "sv",
+): string | null {
+  if (!category) return null;
+  if (!(PRIMARY_STYLE_CATEGORIES as readonly string[]).includes(category)) {
+    return null;
+  }
+  return PRIMARY_STYLE_LABELS[category as PrimaryStyleCategory][locale];
+}
 
 export type GuideWineVerdict = "recommended" | "avoid";
 
@@ -51,6 +100,8 @@ export type SystembolagetGuideWine = {
   synced_at: string;
   availability_state: AvailabilityState;
   store_count: number | null;
+  /** Set on the parent "best" list from the product's non-best curated row. */
+  primary_style?: PrimaryStyleCategory | null;
 };
 
 /** Label for limited-availability wines; null when not limited. */
@@ -238,7 +289,44 @@ async function fetchGuideWinesUncached(
     return [];
   }
 
-  return (data ?? []) as SystembolagetGuideWine[];
+  const wines = (data ?? []) as unknown as SystembolagetGuideWine[];
+  if (category !== "best" || wines.length === 0) return wines;
+  return attachPrimaryStyles(wines);
+}
+
+async function attachPrimaryStyles(
+  wines: SystembolagetGuideWine[],
+): Promise<SystembolagetGuideWine[]> {
+  const numbers = [...new Set(wines.map((wine) => wine.product_number))];
+  if (numbers.length === 0) return wines;
+
+  const sb = getSupabaseAdmin();
+  const { data, error } = await sb
+    .from("systembolaget_curated")
+    .select("product_number, category")
+    .in("product_number", numbers)
+    .neq("category", "best");
+
+  if (error || !data) {
+    console.error("[getGuideWines] primary style", error?.message);
+    return wines;
+  }
+
+  const byProduct = new Map<string, string[]>();
+  for (const row of data) {
+    const productNumber = String(row.product_number);
+    const styleCategory = String(row.category);
+    const list = byProduct.get(productNumber) ?? [];
+    list.push(styleCategory);
+    byProduct.set(productNumber, list);
+  }
+
+  return wines.map((wine) => ({
+    ...wine,
+    primary_style: pickPrimaryStyleCategory(
+      byProduct.get(wine.product_number) ?? [],
+    ),
+  }));
 }
 
 export function formatSyncedAtLabel(

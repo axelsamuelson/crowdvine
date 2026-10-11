@@ -236,6 +236,16 @@ export const whatIsOrangeWineArticle: GuideArticleContent = {
         sv: "/guider/varldens-basta-naturvinsproducenter",
       },
     },
+    {
+      label: {
+        en: "What is natural wine?",
+        sv: "Vad är naturvin?",
+      },
+      href: {
+        en: "/guides/what-is-natural-wine",
+        sv: "/guider/vad-ar-naturvin",
+      },
+    },
   ],
   jsonLdAbout: {
     type: "Thing",

@@ -4,6 +4,7 @@ import { SidebarLinks } from "./sidebar/product-sidebar-links";
 import { FooterLogoSvg } from "./footer-logo-svg";
 import { OnboardingButton } from "./onboarding-button";
 import Link from "next/link";
+import { SYSTEMBOLAGET_BEST_UPLINK } from "@/lib/guides/systembolaget-list-links";
 import { useTranslations } from "@/lib/hooks/use-translations";
 import { useLocalizedPaths } from "@/lib/hooks/use-localized-paths";
 import { FooterShoppingContext } from "@/components/market/header-shopping-context";
@@ -88,6 +89,12 @@ export function Footer({ initialLogos }: { initialLogos?: SiteLogos }) {
                           >
                             100 best wines
                           </Link>
+                          <Link
+                            href="/guides/best-natural-wines-systembolaget"
+                            className="text-sm text-background/70 hover:text-background transition-colors hover:underline"
+                          >
+                            {SYSTEMBOLAGET_BEST_UPLINK.anchor.en}
+                          </Link>
                         </>
                       ) : (
                         <>
@@ -108,6 +115,12 @@ export function Footer({ initialLogos }: { initialLogos?: SiteLogos }) {
                             className="text-sm text-background/70 hover:text-background transition-colors hover:underline"
                           >
                             100 bästa vinerna
+                          </Link>
+                          <Link
+                            href="/guider/basta-naturvinerna-pa-systembolaget"
+                            className="text-sm text-background/70 hover:text-background transition-colors hover:underline"
+                          >
+                            {SYSTEMBOLAGET_BEST_UPLINK.anchor.sv}
                           </Link>
                         </>
                       )}

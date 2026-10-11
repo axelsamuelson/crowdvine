@@ -11,6 +11,8 @@ describe("isGuidePath", () => {
     expect(isGuidePath("/guides/worlds-best-orange-wines")).toBe(true);
     expect(isGuidePath("/guider")).toBe(true);
     expect(isGuidePath("/guider/pierre-overnoy")).toBe(true);
+    expect(isGuidePath("/guides/buy-natural-wine-online-sweden")).toBe(true);
+    expect(isGuidePath("/guider/kopa-naturvin-online")).toBe(true);
   });
 
   it("does not match shop or other public routes", () => {
@@ -31,6 +33,12 @@ describe("pactGuideRedirectUrl", () => {
     );
     expect(pactGuideRedirectUrl("/guider/pierre-overnoy")).toBe(
       "https://pactwines.com/guider/pierre-overnoy",
+    );
+    expect(
+      pactGuideRedirectUrl("/guides/buy-natural-wine-online-sweden"),
+    ).toBe("https://pactwines.com/guides/buy-natural-wine-online-sweden");
+    expect(pactGuideRedirectUrl("/guider/kopa-naturvin-online")).toBe(
+      "https://pactwines.com/guider/kopa-naturvin-online",
     );
   });
 
