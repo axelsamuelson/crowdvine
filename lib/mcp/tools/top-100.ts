@@ -5,6 +5,7 @@ import { TOP_100_WINES } from "@/lib/guides/top-100-wines";
 import { mcpJsonResult } from "../utils/tool-result";
 import {
   exactCi,
+  findTop100ProducerByNameOrAlias,
   findTop100ProducerExact,
   findTop100WineExact,
   ilikeContains,
@@ -23,14 +24,17 @@ export function registerTop100Tools(server: McpServer) {
     "get_top_100_producer",
     {
       description:
-        "Exact lookup in TOP_100_PRODUCERS by name. On miss returns null match plus near_matches (never fuzzy-links).",
+        "Exact lookup in TOP_100_PRODUCERS by canonical name or a declared alias (such as a Systembolaget producer_name). Returns the canonical row. On miss returns null match plus near_matches (never fuzzy-links).",
       inputSchema: {
-        name: z.string().min(1).describe("Exact TopProducer.name"),
+        name: z
+          .string()
+          .min(1)
+          .describe("Exact TopProducer.name or a declared alias"),
       },
     },
     async ({ name }) => {
       const trimmed = name.trim();
-      const match = findTop100ProducerExact(trimmed);
+      const match = findTop100ProducerByNameOrAlias(trimmed);
       if (!match) {
         return mcpJsonResult(
           {
@@ -84,7 +88,11 @@ export function registerTop100Tools(server: McpServer) {
         rows = rows.filter((p) => p.rank <= max_rank);
       }
       if (query) {
-        rows = rows.filter((p) => ilikeContains(p.name, query));
+        rows = rows.filter(
+          (p) =>
+            ilikeContains(p.name, query) ||
+            (p.aliases ?? []).some((alias) => ilikeContains(alias, query)),
+        );
       }
 
       const entries = rows.map((p) => ({
@@ -93,6 +101,7 @@ export function registerTop100Tools(server: McpServer) {
         region: p.region,
         country: p.country,
         grapes: p.grapes,
+        ...(p.aliases?.length ? { aliases: [...p.aliases] } : {}),
       }));
 
       return mcpJsonResult(

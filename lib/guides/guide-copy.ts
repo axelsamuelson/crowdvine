@@ -418,11 +418,11 @@ export function guideCopy(locale: AppLocale): GuideLocaleCopy {
 }
 
 export function entryDescription(
-  entry: { description?: string; descriptionEn?: string },
+  entry: { description?: string | null; descriptionEn?: string | null },
   locale: AppLocale,
 ): string | undefined {
-  if (locale === "en") {
-    return entry.descriptionEn ?? entry.description;
-  }
-  return entry.description;
+  const swedish = entry.description ?? undefined;
+  const english = entry.descriptionEn ?? undefined;
+  if (locale === "en") return english ?? swedish;
+  return swedish;
 }

@@ -1,12 +1,16 @@
+import type { ReactNode } from "react";
+
 type GuideTableColumn = {
   key: string;
   label: string;
   className?: string;
+  /** Header is available to assistive tech and hidden visually. */
+  srOnlyLabel?: boolean;
 };
 
 type GuideRankTableProps = {
   columns: GuideTableColumn[];
-  rows: Array<Record<string, string | number>>;
+  rows: Array<Record<string, ReactNode> & { rank: number }>;
 };
 
 export function GuideRankTable({ columns, rows }: GuideRankTableProps) {
@@ -21,7 +25,11 @@ export function GuideRankTable({ columns, rows }: GuideRankTableProps) {
                 scope="col"
                 className={`whitespace-nowrap py-3 pr-4 text-xs font-medium uppercase tracking-wide text-muted-foreground ${column.className ?? ""}`}
               >
-                {column.label}
+                {column.srOnlyLabel ? (
+                  <span className="sr-only">{column.label}</span>
+                ) : (
+                  column.label
+                )}
               </th>
             ))}
           </tr>

@@ -1,16 +1,78 @@
 export interface TopProducer {
   rank: number;
+  /**
+   * Placement at the previous update. null or omitted means new to the list.
+   * Movement is previousRank - rank (positive means the producer moved up).
+   */
+  previousRank?: number | null;
+  /** Exact alternate names, including a Systembolaget producer_name. */
+  aliases?: readonly string[];
   name: string;
   region: string;
   country: string;
   grapes: string;
-  description?: string;
-  descriptionEn?: string;
+  description?: string | null;
+  descriptionEn?: string | null;
 }
 
+/** ISO date of the latest list edit. Page copy, JSON-LD dateModified and sitemap lastmod use this. */
+export const TOP_100_PRODUCERS_UPDATED_AT = "2026-10-12";
+
+/** Removed on TOP_100_PRODUCERS_UPDATED_AT. Only names that were actually taken off. */
+export const TOP_100_PRODUCERS_DEPARTED: readonly {
+  name: string;
+  noteSv?: string;
+  noteEn?: string;
+}[] = [
+  { name: "Gérard Gauby", noteSv: "dubblett", noteEn: "duplicate" },
+  { name: "Descendientes de J. Palacios" },
+  { name: "Stéphane Ogier" },
+];
+
+const UPDATED_MONTHS = {
+  sv: [
+    "januari",
+    "februari",
+    "mars",
+    "april",
+    "maj",
+    "juni",
+    "juli",
+    "augusti",
+    "september",
+    "oktober",
+    "november",
+    "december",
+  ],
+  en: [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ],
+} as const;
+
+export function formatTop100ProducersUpdatedDate(locale: "sv" | "en"): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(TOP_100_PRODUCERS_UPDATED_AT);
+  if (!match) return TOP_100_PRODUCERS_UPDATED_AT;
+  const month = UPDATED_MONTHS[locale][Number(match[2]) - 1];
+  return `${Number(match[3])} ${month} ${match[1]}`;
+}
+
+// Next update: set previousRank to the old rank, change rank, then update
+// TOP_100_PRODUCERS_UPDATED_AT. previousRank null means new on this update.
 export const TOP_100_PRODUCERS: TopProducer[] = [
   {
     rank: 1,
+    previousRank: 1,
     name: "Pierre Overnoy / Emmanuel Houillon",
     region: "Arbois-Pupillin, Jura",
     country: "Frankrike",
@@ -22,6 +84,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 2,
+    previousRank: 2,
     name: "Thierry Allemand",
     region: "Cornas, Rhône",
     country: "Frankrike",
@@ -33,6 +96,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 3,
+    previousRank: 3,
     name: "Joško Gravner",
     region: "Friuli Collio / Oslavje",
     country: "Italien",
@@ -44,6 +108,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 4,
+    previousRank: 4,
     name: "Jean-François Ganevat",
     region: "Côtes du Jura",
     country: "Frankrike",
@@ -55,6 +120,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 5,
+    previousRank: 5,
     name: "Jacques Selosse",
     region: "Avize, Champagne",
     country: "Frankrike",
@@ -66,6 +132,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 6,
+    previousRank: 6,
     name: "Pheasant's Tears",
     region: "Kakheti, Georgien",
     country: "Georgien",
@@ -77,6 +144,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 7,
+    previousRank: 7,
     name: "Domaine des Miroirs / Kenjiro Kagami",
     region: "Côtes du Jura",
     country: "Frankrike",
@@ -88,6 +156,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 8,
+    previousRank: 8,
     name: "Radikon",
     region: "Friuli Collio / Oslavje",
     country: "Italien",
@@ -99,6 +168,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 9,
+    previousRank: 9,
     name: "Clos Rougeard (Foucault)",
     region: "Saumur-Champigny, Loire",
     country: "Frankrike",
@@ -110,6 +180,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 10,
+    previousRank: 10,
     name: "Jean Foillard",
     region: "Morgon, Beaujolais",
     country: "Frankrike",
@@ -121,6 +192,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 11,
+    previousRank: 11,
     name: "Ramaz Nikoladze",
     region: "Imereti, Georgien",
     country: "Georgien",
@@ -132,6 +204,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 12,
+    previousRank: 12,
     name: "Marcel Lapierre",
     region: "Morgon, Beaujolais",
     country: "Frankrike",
@@ -143,6 +216,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 13,
+    previousRank: 13,
     name: "Frank Cornelissen",
     region: "Etna Nord, Sicilien",
     country: "Italien",
@@ -154,6 +228,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 14,
+    previousRank: 14,
     name: "Cédric Bouchard / Roses de Jeanne",
     region: "Aube, Champagne",
     country: "Frankrike",
@@ -165,6 +240,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 15,
+    previousRank: 15,
     name: "Nicolas Joly",
     region: "Savennières, Loire",
     country: "Frankrike",
@@ -176,6 +252,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 16,
+    previousRank: 16,
     name: "Yvon Métras",
     region: "Fleurie, Beaujolais",
     country: "Frankrike",
@@ -187,6 +264,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 17,
+    previousRank: 17,
     name: "Philippe Bornard",
     region: "Arbois-Pupillin, Jura",
     country: "Frankrike",
@@ -198,6 +276,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 18,
+    previousRank: 18,
     name: "Bénédicte & Stéphane Tissot",
     region: "Montigny-lès-Arsures, Arbois, Jura",
     country: "Frankrike",
@@ -209,6 +288,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 19,
+    previousRank: 19,
     name: "Renaud Bruyère & Adeline Houillon",
     region: "Arbois-Pupillin, Jura",
     country: "Frankrike",
@@ -220,6 +300,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 20,
+    previousRank: 20,
     name: "La Stoppa / Elena Pantaleoni",
     region: "Rivergaro, Colli Piacentini, Emilia-Romagna",
     country: "Italien",
@@ -231,6 +312,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 21,
+    previousRank: 21,
     name: "Jérôme Prévost / La Closerie",
     region: "Gueux, Montagne de Reims, Champagne",
     country: "Frankrike",
@@ -242,6 +324,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 22,
+    previousRank: 22,
     name: "Château Rayas",
     region: "Châteauneuf-du-Pape, Rhône",
     country: "Frankrike",
@@ -253,6 +336,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 23,
+    previousRank: 23,
     name: "Valentini",
     region: "Loreto Aprutino, Abruzzo",
     country: "Italien",
@@ -264,6 +348,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 24,
+    previousRank: 24,
     name: "Dard & Ribo",
     region: "Saint-Joseph / Crozes-Hermitage, Rhône",
     country: "Frankrike",
@@ -275,6 +360,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 25,
+    previousRank: 25,
     name: "Jean-Pierre Robinot",
     region: "Chahaignes, Jasnières / Coteaux du Loir, Loire",
     country: "Frankrike",
@@ -286,6 +372,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 26,
+    previousRank: 26,
     name: "Hervé Souhaut / Romaneaux-Destezet",
     region: "Ardèche",
     country: "Frankrike",
@@ -297,6 +384,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 27,
+    previousRank: 27,
     name: "Marie-Noëlle Ledru",
     region: "Ambonnay, Champagne",
     country: "Frankrike",
@@ -308,6 +396,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 28,
+    previousRank: 28,
     name: "Domaine Huet",
     region: "Vouvray, Loire",
     country: "Frankrike",
@@ -319,6 +408,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 29,
+    previousRank: 29,
     name: "Guy Breton",
     region: "Villié-Morgon, Beaujolais",
     country: "Frankrike",
@@ -330,6 +420,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 30,
+    previousRank: 30,
     name: "Paolo Bea",
     region: "Montefalco, Umbria",
     country: "Italien",
@@ -341,6 +432,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 31,
+    previousRank: 31,
     name: "Jean Macle",
     region: "Château-Chalon, Jura",
     country: "Frankrike",
@@ -348,6 +440,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 32,
+    previousRank: 32,
     name: "Mark Angeli / Ferme de la Sansonnière",
     region: "Anjou / Saumur, Loire",
     country: "Frankrike",
@@ -355,6 +448,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 33,
+    previousRank: 33,
     name: "Laherte Frères",
     region: "Chavot, Champagne",
     country: "Frankrike",
@@ -362,6 +456,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 34,
+    previousRank: 34,
     name: "Jean-Claude Lapalu",
     region: "Saint-Etienne-la-Varenne, Beaujolais",
     country: "Frankrike",
@@ -369,6 +464,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 35,
+    previousRank: 35,
     name: "Movia",
     region: "Brda, Slovenien",
     country: "Slovenien",
@@ -376,6 +472,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 36,
+    previousRank: 36,
     name: "Jacques Lassaigne / Emmanuel Lassaigne",
     region: "Montgueux, Aube, Champagne",
     country: "Frankrike",
@@ -383,6 +480,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 37,
+    previousRank: 37,
     name: "Michel Gahier",
     region: "Montigny-les-Arsures, Jura",
     country: "Frankrike",
@@ -390,6 +488,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 38,
+    previousRank: 38,
     name: "Axel Prüfer / Le Temps des Cerises",
     region: "Le Bousquet-d'Orb, Haut-Languedoc, Hérault",
     country: "Frankrike",
@@ -397,6 +496,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 39,
+    previousRank: 39,
     name: "Emmanuel Brochet",
     region: "Villers-Aux-Noeuds, Montagne de Reims, Champagne",
     country: "Frankrike",
@@ -404,6 +504,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 40,
+    previousRank: 40,
     name: "Pierre Frick",
     region: "Pfaffenheim, Alsace",
     country: "Frankrike",
@@ -411,6 +512,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 41,
+    previousRank: 41,
     name: "Gabrio Bini / Serragghia",
     region: "Pantelleria, Sicilien",
     country: "Italien",
@@ -418,6 +520,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 42,
+    previousRank: 42,
     name: "L'Octavin / Alice Bouvot",
     region: "Arbois, Jura",
     country: "Frankrike",
@@ -425,6 +528,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 43,
+    previousRank: 43,
     name: "Franz Strohmeier",
     region: "Weststeiermark, Österrike",
     country: "Österrike",
@@ -432,6 +536,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 44,
+    previousRank: 44,
     name: "Patrick Bouju / La Bohème",
     region: "Saint-Georges-sur-Allier, Puy-de-Dôme, Auvergne",
     country: "Frankrike",
@@ -439,6 +544,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 45,
+    previousRank: 45,
     name: "Domaine Gauby / Gérard & Lionel Gauby",
     region: "Calce, Roussillon",
     country: "Frankrike",
@@ -446,6 +552,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 46,
+    previousRank: 46,
     name: "Rudolf Fürst",
     region: "Bürgstadt, Franken",
     country: "Tyskland",
@@ -453,13 +560,17 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 47,
-    name: "Gérard Gauby",
-    region: "Calce, Roussillon",
+    previousRank: null,
+    name: "Jean-Paul Thévenet",
+    region: "Morgon, Beaujolais",
     country: "Frankrike",
-    grapes: "Grenache, Carignan, Macabeu",
+    grapes: "Gamay",
+    description: null,
+    descriptionEn: null,
   },
   {
     rank: 48,
+    previousRank: 48,
     name: "Gut Oggau",
     region: "Oggau, Burgenland",
     country: "Österrike",
@@ -467,6 +578,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 49,
+    previousRank: 49,
     name: "Domaine Matassa / Tom Lubbe",
     region: "Calce, Roussillon",
     country: "Frankrike",
@@ -474,6 +586,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 50,
+    previousRank: 50,
     name: "Envinate",
     region: "Galicien, Kanarieöarna & Bierzo, Spanien",
     country: "Spanien",
@@ -481,6 +594,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 51,
+    previousRank: 51,
     name: "Dario Prinčič",
     region: "Oslavia, Friuli Collio",
     country: "Italien",
@@ -488,6 +602,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 52,
+    previousRank: 52,
     name: "Clemens Busch",
     region: "Pünderich, Mosel",
     country: "Tyskland",
@@ -495,6 +610,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 53,
+    previousRank: 53,
     name: "Domaine Gérard Schueller & Fils / Bruno Schueller",
     region: "Husseren-les-Châteaux, Alsace",
     country: "Frankrike",
@@ -502,6 +618,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 54,
+    previousRank: 54,
     name: "Prieuré Roch",
     region: "Nuits-Saint-Georges, Bourgogne",
     country: "Frankrike",
@@ -509,6 +626,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 55,
+    previousRank: 55,
     name: "Anders Frederik Steen & Anne Bruun Blauert",
     region: "Valvignères, Ardèche",
     country: "Frankrike",
@@ -516,13 +634,16 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 56,
+    previousRank: 56,
     name: "Werlitsch / Ewald Tscheppe",
+    aliases: ["Weingut Werlitsch - Tscheppe Ewald u. Brigitte"],
     region: "Südsteiermark, Österrike",
     country: "Österrike",
     grapes: "Sauvignon Blanc, Morillon (Chardonnay)",
   },
   {
     rank: 57,
+    previousRank: 57,
     name: "Domaine Belluard",
     region: "Ayse, Savoie",
     country: "Frankrike",
@@ -530,6 +651,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 58,
+    previousRank: 58,
     name: "Jean-Yves Péron",
     region: "Conflans, Savoie",
     country: "Frankrike",
@@ -537,6 +659,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 59,
+    previousRank: 59,
     name: "Domaine Bizot / Jean-Yves Bizot",
     region: "Vosne-Romanée, Bourgogne",
     country: "Frankrike",
@@ -544,6 +667,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 60,
+    previousRank: 60,
     name: "L'Anglore / Éric Pfifferling",
     region: "Tavel, Rhône",
     country: "Frankrike",
@@ -551,6 +675,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 61,
+    previousRank: 61,
     name: "Le Mazel / Gérald & Jocelyne Oustric",
     region: "Valvignères, Ardèche",
     country: "Frankrike",
@@ -558,6 +683,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 62,
+    previousRank: 62,
     name: "Maxime Magnon",
     region: "Villeneuve-les-Corbières, Corbières",
     country: "Frankrike",
@@ -565,6 +691,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 63,
+    previousRank: 63,
     name: "Domaine des Ardoisières / Brice Omont",
     region: "Coteaux de Cévins, Savoie",
     country: "Frankrike",
@@ -572,6 +699,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 64,
+    previousRank: 64,
     name: "Les Foulards Rouges / Jean-François Nicq",
     region: "Roussillon",
     country: "Frankrike",
@@ -579,6 +707,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 65,
+    previousRank: 65,
     name: "Partida Creus / Massimo & Antonella",
     region: "Bonastre, Baix Penedès",
     country: "Spanien",
@@ -586,6 +715,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 66,
+    previousRank: 66,
     name: "Sébastien Riffault",
     region: "Sury-en-Vaux, Sancerre",
     country: "Frankrike",
@@ -593,6 +723,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 67,
+    previousRank: 67,
     name: "Benoît Courault",
     region: "Faye d'Anjou, Anjou, Loire",
     country: "Frankrike",
@@ -600,6 +731,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 68,
+    previousRank: 68,
     name: "Château Cambon / Marie Lapierre & Jean-Claude Chanudet",
     region: "Saint-Jean-d'Ardières, Beaujolais",
     country: "Frankrike",
@@ -607,6 +739,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 69,
+    previousRank: 69,
     name: "Pierre-Olivier Bonhomme",
     region: "Les Montils, Touraine, Loire",
     country: "Frankrike",
@@ -614,6 +747,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 70,
+    previousRank: 70,
     name: "Alexandre Bain",
     region: "Tracy-sur-Loire, Pouilly-Fumé",
     country: "Frankrike",
@@ -621,6 +755,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 71,
+    previousRank: 71,
     name: "Didier Barral / Domaine Léon Barral",
     region: "Lenthéric, Faugères",
     country: "Frankrike",
@@ -628,6 +763,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 72,
+    previousRank: 72,
     name: "Clos du Rouge Gorge / Cyril Fhal",
     region: "Latour-de-France, Roussillon",
     country: "Frankrike",
@@ -635,6 +771,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 73,
+    previousRank: 73,
     name: "Cantina Giardino / Antonio & Daniela De Gruttola",
     region: "Ariano Irpino, Campania",
     country: "Italien",
@@ -642,6 +779,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 74,
+    previousRank: 74,
     name: "Clos des Grillons / Nicolas Renaud",
     region: "Rochefort-du-Gard, Rhône",
     country: "Frankrike",
@@ -649,6 +787,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 75,
+    previousRank: 75,
     name: "João Pato aka Duckman / Maria Pato",
     region: "Bairrada, Portugal",
     country: "Portugal",
@@ -656,6 +795,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 76,
+    previousRank: 76,
     name: "Rémy Pédreno / Roc d'Anglade",
     region: "Nîmes, Gard, Languedoc",
     country: "Frankrike",
@@ -663,6 +803,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 77,
+    previousRank: 77,
     name: "Arnot-Roberts",
     region: "North Coast, Kalifornien",
     country: "USA",
@@ -670,6 +811,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 78,
+    previousRank: 78,
     name: "Milan Nestarec",
     region: "Velké Bílovice, Moravia",
     country: "Tjeckien",
@@ -677,6 +819,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 79,
+    previousRank: 79,
     name: "Domaine Gramenon / Michèle Aubéry-Laurent",
     region: "Montbrison-sur-Lez, Côtes du Rhône",
     country: "Frankrike",
@@ -684,6 +827,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 80,
+    previousRank: 80,
     name: "Ochota Barrels",
     region: "McLaren Vale / Basket Range, Australien",
     country: "Australien",
@@ -691,6 +835,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 81,
+    previousRank: 81,
     name: "Bartolo Mascarello / Maria Teresa Mascarello",
     region: "Barolo, Piemonte",
     country: "Italien",
@@ -698,6 +843,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 82,
+    previousRank: 82,
     name: "Emidio Pepe",
     region: "Torano Nuovo, Abruzzo",
     country: "Italien",
@@ -705,6 +851,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 83,
+    previousRank: 83,
     name: "Jeff Coutelou / Mas Coutelou",
     region: "Puimisson, Hérault, Languedoc",
     country: "Frankrike",
@@ -712,6 +859,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 84,
+    previousRank: 84,
     name: "Andrea Calek",
     region: "Alba-la-Romaine, Ardèche",
     country: "Frankrike",
@@ -719,6 +867,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 85,
+    previousRank: 85,
     name: "Antony Tortul / La Sorga",
     region: "Languedoc / Roussillon",
     country: "Frankrike",
@@ -726,6 +875,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 86,
+    previousRank: 86,
     name: "Éric Texier",
     region: "Brézème, Côtes du Rhône",
     country: "Frankrike",
@@ -733,13 +883,17 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 87,
-    name: "Descendientes de J. Palacios",
-    region: "Corullón, Bierzo",
-    country: "Spanien",
-    grapes: "Mencía",
+    previousRank: null,
+    name: "Catherine & Pierre Breton",
+    region: "Bourgueil, Loire",
+    country: "Frankrike",
+    grapes: "Cabernet Franc, Chenin Blanc",
+    description: null,
+    descriptionEn: null,
   },
   {
     rank: 88,
+    previousRank: 88,
     name: "Laureano Serres / Mendall",
     region: "Terra Alta, Katalonien",
     country: "Spanien",
@@ -747,6 +901,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 89,
+    previousRank: 89,
     name: "Aphros / Vasco Croft",
     region: "Lima, Vinho Verde",
     country: "Portugal",
@@ -754,6 +909,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 90,
+    previousRank: 90,
     name: "Domaine des Cavarodes / Étienne Thiébaud",
     region: "Cramans, Côtes du Jura",
     country: "Frankrike",
@@ -761,6 +917,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 91,
+    previousRank: 91,
     name: "Arianna Occhipinti",
     region: "Vittoria, Sicilien",
     country: "Italien",
@@ -768,6 +925,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 92,
+    previousRank: 92,
     name: "Christian Tschida",
     region: "Illmitz, Burgenland",
     country: "Österrike",
@@ -775,6 +933,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 93,
+    previousRank: 93,
     name: "Le Coste / Antonuzi & Bouveron",
     region: "Gradoli, Lago di Bolsena, Lazio",
     country: "Italien",
@@ -782,6 +941,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 94,
+    previousRank: 94,
     name: "Elisabetta Foradori",
     region: "Mezzolombardo, Trentino",
     country: "Italien",
@@ -789,6 +949,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 95,
+    previousRank: 95,
     name: "Les Bottes Rouges / Jean-Baptiste Menigoz",
     region: "Arbois & Abergement-le-Petit, Jura",
     country: "Frankrike",
@@ -796,6 +957,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 96,
+    previousRank: 96,
     name: "Jacques Puffeney",
     region: "Montigny-les-Arsures, Jura",
     country: "Frankrike",
@@ -803,13 +965,17 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 97,
-    name: "Stéphane Ogier",
-    region: "Ampuis, Côte-Rôtie",
+    previousRank: null,
+    name: "Alice & Olivier De Moor",
+    region: "Chablis, Bourgogne",
     country: "Frankrike",
-    grapes: "Syrah, Viognier",
+    grapes: "Chardonnay, Aligoté",
+    description: null,
+    descriptionEn: null,
   },
   {
     rank: 98,
+    previousRank: 98,
     name: "Domaine de la Tournelle / Evelyne Clairet",
     region: "Arbois, Jura",
     country: "Frankrike",
@@ -817,6 +983,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 99,
+    previousRank: 99,
     name: "La Grange de l'Oncle Charles / Jérôme François",
     region: "Ostheim, Alsace",
     country: "Frankrike",
@@ -824,6 +991,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
   },
   {
     rank: 100,
+    previousRank: 100,
     name: "François Pinon",
     region: "Vernou-sur-Brenne, Vouvray",
     country: "Frankrike",

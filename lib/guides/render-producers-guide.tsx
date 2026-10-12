@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 
 import { GuideRankEntry } from "@/components/guides/guide-rank-entry";
 import { GuideRankTable } from "@/components/guides/guide-rank-table";
+import { ProducerRankChange } from "@/components/guides/producer-rank-change";
 import { Footer } from "@/components/layout/footer";
 import {
   GuideBreadcrumbs,
@@ -25,7 +26,12 @@ import {
   producerGuidePath,
   splitProducerBlurbMentions,
 } from "@/lib/guides/producer-guide-links";
-import { TOP_100_PRODUCERS } from "@/lib/guides/top-100-producers";
+import {
+  formatTop100ProducersUpdatedDate,
+  TOP_100_PRODUCERS,
+  TOP_100_PRODUCERS_DEPARTED,
+  TOP_100_PRODUCERS_UPDATED_AT,
+} from "@/lib/guides/top-100-producers";
 import type { AppLocale } from "@/lib/i18n/locale";
 import { categoryPageTitle } from "@/lib/seo/category-page-title";
 import {
@@ -171,9 +177,10 @@ export async function renderProducersGuidePage(locale: AppLocale) {
     (list) => list.category === "best",
   );
 
-  const top10 = TOP_100_PRODUCERS.filter((p) => p.rank <= 10);
-  const mid = TOP_100_PRODUCERS.filter((p) => p.rank >= 11 && p.rank <= 30);
-  const rest = TOP_100_PRODUCERS.filter((p) => p.rank >= 31);
+  const byRank = [...TOP_100_PRODUCERS].sort((a, b) => a.rank - b.rank);
+  const top10 = byRank.filter((p) => p.rank <= 10);
+  const mid = byRank.filter((p) => p.rank >= 11 && p.rank <= 30);
+  const rest = byRank.filter((p) => p.rank >= 31);
   const languedoc = filterLanguedocRoussillonEntries(TOP_100_PRODUCERS);
 
   const producerMetaLine = (entry: (typeof TOP_100_PRODUCERS)[number]) =>
@@ -185,14 +192,43 @@ export async function renderProducersGuidePage(locale: AppLocale) {
     { name: copy.producers.breadcrumbShort },
   ]);
 
+  const pageUrl = `${seoBaseUrl}${guidePath("producers", locale)}`;
+  const updatedDate = formatTop100ProducersUpdatedDate(locale);
+  const updatedLine =
+    locale === "sv"
+      ? `Listan uppdaterades senast ${updatedDate}`
+      : `List last updated ${updatedDate}`;
+  const departedNames = TOP_100_PRODUCERS_DEPARTED.map((producer) => {
+    const note = locale === "sv" ? producer.noteSv : producer.noteEn;
+    return note ? `${producer.name} (${note})` : producer.name;
+  }).join(", ");
+  const departedLine =
+    departedNames.length > 0
+      ? locale === "sv"
+        ? `Lämnade listan ${updatedDate}: ${departedNames}`
+        : `Left the list ${updatedDate}: ${departedNames}`
+      : null;
+  const changeLegend =
+    locale === "sv"
+      ? "Pilarna visar förändring sedan föregående uppdatering."
+      : "Arrows show the change since the previous update.";
+
+  const pageJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    name: copy.producers.h1,
+    url: pageUrl,
+    dateModified: TOP_100_PRODUCERS_UPDATED_AT,
+  };
+
   const itemListJsonLd = {
     "@context": "https://schema.org",
     "@type": "ItemList",
     name: copy.producers.h1,
     description: copy.producers.metaDescription,
-    numberOfItems: 100,
+    numberOfItems: byRank.length,
     itemListOrder: "https://schema.org/ItemListOrderDescending",
-    itemListElement: TOP_100_PRODUCERS.map((producer) => {
+    itemListElement: byRank.map((producer) => {
       const guideHref = producerGuideHref(producer.rank, locale);
       return {
         "@type": "ListItem",
@@ -216,6 +252,12 @@ export async function renderProducersGuidePage(locale: AppLocale) {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
+          __html: JSON.stringify(pageJsonLd),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
           __html: JSON.stringify(itemListJsonLd),
         }}
       />
@@ -232,6 +274,7 @@ export async function renderProducersGuidePage(locale: AppLocale) {
         <h1 className="mt-6 text-3xl font-bold tracking-tight md:text-4xl">
           {copy.producers.h1}
         </h1>
+        <p className="mt-3 text-sm text-muted-foreground">{updatedLine}</p>
 
         <div className="mt-6 space-y-4 text-base leading-relaxed text-muted-foreground">
           {copy.producers.intro.map((paragraph) => (
@@ -250,6 +293,13 @@ export async function renderProducersGuidePage(locale: AppLocale) {
               <GuideRankEntry
                 key={producer.rank}
                 rank={producer.rank}
+                rankNote={
+                  <ProducerRankChange
+                    rank={producer.rank}
+                    previousRank={producer.previousRank}
+                    locale={locale}
+                  />
+                }
                 title={producer.name}
                 meta={producerMetaLine(producer)}
                 description={linkedProducerBlurb(
@@ -271,6 +321,13 @@ export async function renderProducersGuidePage(locale: AppLocale) {
               <GuideRankEntry
                 key={producer.rank}
                 rank={producer.rank}
+                rankNote={
+                  <ProducerRankChange
+                    rank={producer.rank}
+                    previousRank={producer.previousRank}
+                    locale={locale}
+                  />
+                }
                 title={producer.name}
                 meta={producerMetaLine(producer)}
                 description={linkedProducerBlurb(
@@ -290,7 +347,13 @@ export async function renderProducersGuidePage(locale: AppLocale) {
           </h2>
           <GuideRankTable
             columns={[
-              { key: "rank", label: copy.rank, className: "w-14 tabular-nums" },
+              { key: "rank", label: copy.rank, className: "w-12 tabular-nums" },
+              {
+                key: "change",
+                label: locale === "sv" ? "Förändring" : "Change",
+                className: "w-16",
+                srOnlyLabel: true,
+              },
               { key: "name", label: copy.name },
               { key: "region", label: copy.region },
               { key: "country", label: copy.country },
@@ -298,12 +361,23 @@ export async function renderProducersGuidePage(locale: AppLocale) {
             ]}
             rows={rest.map((producer) => ({
               rank: producer.rank,
+              change: (
+                <ProducerRankChange
+                  rank={producer.rank}
+                  previousRank={producer.previousRank}
+                  locale={locale}
+                />
+              ),
               name: producer.name,
               region: producer.region,
               country: countryLabel(producer.country, locale),
               grapes: producer.grapes,
             }))}
           />
+          <div className="mt-4 space-y-2 text-sm leading-relaxed text-muted-foreground">
+            <p>{changeLegend}</p>
+            {departedLine ? <p>{departedLine}</p> : null}
+          </div>
         </section>
 
         <section className="mt-14 space-y-4">

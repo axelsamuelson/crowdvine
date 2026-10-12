@@ -29,11 +29,40 @@ export function findTop100ProducerExact(name: string) {
   return TOP_100_PRODUCERS.find((p) => p.name === name) ?? null;
 }
 
-export function nearTop100ProducerMatches(input: string): string[] {
-  return nearRankedMatches(
-    input,
-    TOP_100_PRODUCERS.map((p) => ({ rank: p.rank, label: p.name })),
+/**
+ * Canonical name, or an exact declared alias (for example a Systembolaget
+ * producer_name). Returns the list row, whose `.name` stays the canonical one.
+ * Not a fuzzy match: the string must equal `name` or an `aliases` entry.
+ */
+export function findTop100ProducerByNameOrAlias(name: string) {
+  const trimmed = name.trim();
+  if (!trimmed) return null;
+  return (
+    findTop100ProducerExact(trimmed) ??
+    TOP_100_PRODUCERS.find((p) => p.aliases?.includes(trimmed)) ??
+    null
   );
+}
+
+export function nearTop100ProducerMatches(input: string): string[] {
+  const labels: RankedLabel[] = [];
+  for (const producer of TOP_100_PRODUCERS) {
+    labels.push({ rank: producer.rank, label: producer.name });
+    for (const alias of producer.aliases ?? []) {
+      labels.push({ rank: producer.rank, label: alias });
+    }
+  }
+  const hits = nearRankedMatches(input, labels);
+  const seen = new Set<number>();
+  const canonical: string[] = [];
+  for (const hit of hits) {
+    const rank = Number(/^#(\d+)\s/.exec(hit)?.[1]);
+    if (!Number.isFinite(rank) || seen.has(rank)) continue;
+    seen.add(rank);
+    const producer = TOP_100_PRODUCERS.find((row) => row.rank === rank);
+    canonical.push(producer ? `#${rank} ${producer.name}` : hit);
+  }
+  return canonical;
 }
 
 export function findTop100WineExact(wine: string) {

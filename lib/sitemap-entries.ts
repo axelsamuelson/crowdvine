@@ -4,6 +4,7 @@ import { unstable_cache } from "next/cache";
 import { catalogHasProducts } from "@/lib/crowdvine/products-data";
 import { publishedBilingualArticleGuides } from "@/lib/guides/guide-publication";
 import { GUIDE_PATHS } from "@/lib/guides/guide-routes";
+import { TOP_100_PRODUCERS_UPDATED_AT } from "@/lib/guides/top-100-producers";
 import { articlePath } from "@/lib/guides/guide-types";
 import { generateProducerSlug } from "@/lib/producer-handle";
 import {
@@ -86,12 +87,14 @@ function staticPagesForProfile(
       weeklyEntry(
         `${baseUrl}/guider/varldens-basta-naturvinsproducenter`,
         0.75,
+        new Date(`${TOP_100_PRODUCERS_UPDATED_AT}T00:00:00.000Z`),
       ),
       weeklyEntry(`${baseUrl}/guides`, 0.7),
       weeklyEntry(`${baseUrl}/guides/worlds-best-natural-wines`, 0.75),
       weeklyEntry(
         `${baseUrl}/guides/worlds-best-natural-wine-producers`,
         0.75,
+        new Date(`${TOP_100_PRODUCERS_UPDATED_AT}T00:00:00.000Z`),
       ),
       ...publishedBilingualArticleGuides().flatMap((guide) => {
         const lastModified = guide.updated

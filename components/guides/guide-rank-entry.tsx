@@ -8,6 +8,7 @@ type GuideRankEntryProps = {
   description?: ReactNode;
   compact?: boolean;
   href?: string;
+  rankNote?: ReactNode;
 };
 
 export function GuideRankEntry({
@@ -17,6 +18,7 @@ export function GuideRankEntry({
   description,
   compact = false,
   href,
+  rankNote,
 }: GuideRankEntryProps) {
   return (
     <article
@@ -27,15 +29,16 @@ export function GuideRankEntry({
       }
     >
       <div className="flex gap-4">
-        <span
+        <div
           className={
             compact
-              ? "w-8 shrink-0 text-sm font-medium tabular-nums text-muted-foreground"
-              : "w-10 shrink-0 text-lg font-semibold tabular-nums text-muted-foreground"
+              ? "flex w-14 shrink-0 flex-col gap-1 text-sm font-medium tabular-nums text-muted-foreground"
+              : "flex w-14 shrink-0 flex-col gap-1 text-lg font-semibold tabular-nums text-muted-foreground"
           }
         >
-          {rank}
-        </span>
+          <span>{rank}</span>
+          {rankNote}
+        </div>
         <div className="min-w-0 flex-1">
           <h3
             className={
