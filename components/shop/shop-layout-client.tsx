@@ -15,6 +15,7 @@ export function ShopLayoutClient({
   priceSources,
   initialFilterCount = 0,
   initialResultsCount,
+  ssrPathname,
 }: {
   children: ReactNode;
   collections: Collection[];
@@ -22,6 +23,8 @@ export function ShopLayoutClient({
   initialFilterCount?: number;
   /** SSR product count for mobile bar — avoids hydration mismatch. */
   initialResultsCount?: number;
+  /** Pathname from the request. The CTA uses it until the client has mounted. */
+  ssrPathname: string;
 }) {
   return (
     <ProductsProvider initialServerResultsCount={initialResultsCount ?? 0}>
@@ -31,6 +34,7 @@ export function ShopLayoutClient({
             collections={collections}
             priceSources={priceSources}
             className="col-span-3 max-md:hidden"
+            ssrPathname={ssrPathname}
           />
         </Suspense>
         <div className="col-span-9 flex flex-col">
@@ -46,6 +50,7 @@ export function ShopLayoutClient({
               priceSources={priceSources}
               initialFilterCount={initialFilterCount}
               resultsCount={initialResultsCount}
+              ssrPathname={ssrPathname}
             />
           </Suspense>
         </div>

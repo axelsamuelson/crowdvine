@@ -54,6 +54,8 @@ interface MobileFiltersProps {
   resultsCount?: number;
   /** SSR active filter count parsed from URL search params. */
   initialFilterCount?: number;
+  /** Pathname from the request. The box CTA uses it until the client has mounted. */
+  ssrPathname: string;
 }
 
 export function MobileFilters({
@@ -62,6 +64,7 @@ export function MobileFilters({
   className,
   resultsCount: resultsCountProp,
   initialFilterCount = 0,
+  ssrPathname,
 }: MobileFiltersProps) {
   const { t } = useTranslations();
   const paths = useLocalizedPaths();
@@ -253,7 +256,7 @@ export function MobileFilters({
         </DrawerContent>
       </Drawer>
       <div className="px-sides pb-2">
-        <ProducerBoxesCta />
+        <ProducerBoxesCta ssrPathname={ssrPathname} />
       </div>
     </div>
   );

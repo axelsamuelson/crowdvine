@@ -62,6 +62,7 @@ export async function ShopLayoutShell({
         priceSources={priceSources}
         initialFilterCount={initialFilterCount}
         initialResultsCount={initialResultsCount}
+        ssrPathname={pathname}
       >
         {children}
       </ShopLayoutClient>

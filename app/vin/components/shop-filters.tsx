@@ -43,10 +43,12 @@ export function DesktopFilters({
   collections,
   priceSources = [],
   className,
+  ssrPathname,
 }: {
   collections: Collection[];
   priceSources?: PriceSourceForFilter[];
   className?: string;
+  ssrPathname: string;
 }) {
   const { t } = useTranslations();
   const paths = useLocalizedPaths();
@@ -204,7 +206,7 @@ export function DesktopFilters({
               onSeeAll={openSeeAll}
             />
           </Suspense>
-          <ProducerBoxesCta className="mt-2" />
+          <ProducerBoxesCta className="mt-2" ssrPathname={ssrPathname} />
         </div>
       </aside>
 
