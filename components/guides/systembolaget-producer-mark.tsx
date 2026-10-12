@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { SystembolagetBagIcon } from "@/components/guides/systembolaget-bag-icon";
@@ -16,13 +16,16 @@ export function SystembolagetProducerMark({
   href,
 }: SystembolagetProducerMarkProps) {
   const tooltipId = useId();
-  const linkRef = useRef<HTMLAnchorElement>(null);
+  const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
   const [position, setPosition] = useState({ top: 0, left: 0 });
 
-  function place() {
-    const rect = linkRef.current?.getBoundingClientRect();
-    if (!rect) return;
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  function place(target: HTMLElement) {
+    const rect = target.getBoundingClientRect();
     const maxLeft = Math.max(8, window.innerWidth - 220);
     setPosition({
       top: rect.bottom + 6,
@@ -30,28 +33,29 @@ export function SystembolagetProducerMark({
     });
   }
 
-  function show() {
-    place();
+  function show(target: HTMLElement) {
+    place(target);
     setOpen(true);
   }
 
   return (
     <>
       <Link
-        ref={linkRef}
         href={href}
         className="inline-flex size-4 shrink-0 translate-y-px items-center justify-center align-middle text-muted-foreground hover:text-foreground"
         aria-label={label}
         aria-describedby={open ? tooltipId : undefined}
         onPointerEnter={(event) => {
           if (event.pointerType !== "mouse") return;
-          show();
+          show(event.currentTarget);
         }}
         onPointerLeave={(event) => {
           if (event.pointerType !== "mouse") return;
           setOpen(false);
         }}
-        onFocus={show}
+        onFocus={(event) => {
+          show(event.currentTarget);
+        }}
         onBlur={() => setOpen(false)}
         onKeyDown={(event) => {
           if (event.key === "Escape") setOpen(false);
@@ -59,7 +63,7 @@ export function SystembolagetProducerMark({
       >
         <SystembolagetBagIcon className="size-4" />
       </Link>
-      {open
+      {mounted && open
         ? createPortal(
             <span
               id={tooltipId}
