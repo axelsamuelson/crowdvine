@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { SYSTEMBOLAGET_PRODUCER_NAMES_BY_RANK } from "@/lib/guides/systembolaget-producer-availability";
 import {
+  isMixBoxProduct,
   ranksForProducerName,
   suggestCuratedCategoryFromLevel2,
 } from "@/lib/systembolaget/top-producer-coverage";
@@ -26,5 +27,29 @@ describe("top producer coverage helpers", () => {
     );
     expect(suggestCuratedCategoryFromLevel2("Rosévin")).toBe("rose");
     expect(suggestCuratedCategoryFromLevel2("Vinlåda")).toBeNull();
+  });
+
+  it("detects mix boxes such as Vinstereo and Mixtape", () => {
+    expect(
+      isMixBoxProduct({
+        categoryLevel2: "Vinlåda",
+        nameBold: "Gut Oggau",
+        nameThin: "Vinstereo",
+      }),
+    ).toBe(true);
+    expect(
+      isMixBoxProduct({
+        categoryLevel2: "Rött vin",
+        nameBold: "Christian Tschida",
+        nameThin: "Mixtape",
+      }),
+    ).toBe(true);
+    expect(
+      isMixBoxProduct({
+        categoryLevel2: "Orange vin",
+        nameBold: "TRBLMKR",
+        nameThin: "Milan Nestarec",
+      }),
+    ).toBe(false);
   });
 });

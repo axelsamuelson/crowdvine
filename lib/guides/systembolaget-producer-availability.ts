@@ -34,6 +34,38 @@ export const SYSTEMBOLAGET_PRODUCER_NAMES_BY_RANK: Readonly<
   114: ["Testalonga Banditskloof"],
 };
 
+/**
+ * Exact Systembolaget producer_name strings for Nestarec textQuery union.
+ * Currently only one verified name; kept separate so sync always covers Nestarec
+ * even if rank 78 is temporarily omitted from the map.
+ */
+export const NESTAREC_SYSTEMBOLAGET_PRODUCER_NAMES = [
+  "Milan Nestarec",
+] as const;
+
+/** Countries with at least one mapped top producer (Tillfälligt country walk). */
+export const TILLFALLIGT_SYNC_COUNTRIES = [
+  "Frankrike",
+  "Italien",
+  "Österrike",
+  "Portugal",
+  "Sydafrika",
+  "Tjeckien",
+  "Tyskland",
+] as const;
+
+/** Exact producer_name strings used by sync textQuery union (map + Nestarec). */
+export function syncProducerNameUnionList(): string[] {
+  return [
+    ...new Set([
+      ...Object.values(SYSTEMBOLAGET_PRODUCER_NAMES_BY_RANK).flatMap((names) => [
+        ...names,
+      ]),
+      ...NESTAREC_SYSTEMBOLAGET_PRODUCER_NAMES,
+    ]),
+  ].sort((a, b) => a.localeCompare(b));
+}
+
 const AVAILABILITY_REVALIDATE_SECONDS = 60 * 60 * 24;
 
 export type SystembolagetAvailabilityCounts = Readonly<Record<number, number>>;

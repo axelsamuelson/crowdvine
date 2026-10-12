@@ -184,26 +184,28 @@ export function registerSystembolagetTools(
     "list_top_producer_coverage_gaps",
     {
       description:
-        "Read-only: available systembolaget_products for TOP_100_PRODUCERS that have no curated row (draft or published). Uses the static rank->producer_name map only (no fuzzy match). Does not invent unavailable bottles missing from the mirror.",
+        "Read-only: available systembolaget_products for TOP_100_PRODUCERS with no curated row and no product_reviews row. Excludes mix boxes. Also reports missing_in_mirror per mapped producer via exact textQuery (API wines absent from the mirror). No fuzzy match.",
       inputSchema: {},
     },
     async () => {
       try {
-        const gaps = await listTopProducerCoverageGaps();
+        const coverage = await listTopProducerCoverageGaps();
         const top100NameSuggestions =
           await listMissingTop100ProducerNameSuggestions();
         return mcpJsonResult(
           {
             mapping: SYSTEMBOLAGET_PRODUCER_NAMES_BY_RANK,
-            gapCount: gaps.length,
-            gaps,
+            gapCount: coverage.gaps.length,
+            gaps: coverage.gaps,
+            missing_in_mirror_count: coverage.missingInMirrorCount,
+            missing_in_mirror: coverage.missingInMirrorByProducer,
             top100NameSuggestions,
             note:
-              "Gaps only cover products present and is_available=true in systembolaget_products. Bottles missing from the mirror are out of scope for this list.",
+              "Gaps exclude curated, product_reviews, and mix boxes. missing_in_mirror compares exact producer_name textQuery hits to the mirror.",
           },
           {
             tool: "list_top_producer_coverage_gaps",
-            rowCount: gaps.length,
+            rowCount: coverage.gaps.length,
           },
         );
       } catch (e) {
