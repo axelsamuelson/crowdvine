@@ -306,7 +306,8 @@ async function attachPrimaryStyles(
     .from("systembolaget_curated")
     .select("product_number, category")
     .in("product_number", numbers)
-    .neq("category", "best");
+    .neq("category", "best")
+    .neq("verdict", "skipped");
 
   if (error || !data) {
     console.error("[getGuideWines] primary style", error?.message);

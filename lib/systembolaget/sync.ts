@@ -1,7 +1,12 @@
 import { z } from "zod";
 
+import {
+  syncProducerNameUnionList,
+  TILLFALLIGT_SYNC_COUNTRIES,
+} from "@/lib/guides/systembolaget-producer-availability";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { alertSystembolagetPartitionCap } from "@/lib/systembolaget/sync-alert";
+import { listTopProducerCoverageGaps } from "@/lib/systembolaget/top-producer-coverage";
 
 const SB_API_BASE =
   "https://api-extern.systembolaget.se/sb-api-ecommerce/v1/productsearch/search";
@@ -13,17 +18,24 @@ const MAX_PAGES_PER_FILTER = 500;
 const INSERT_CHUNK_SIZE = 500;
 /**
  * Measured post-fetch work (direct fetch + staging + promote + raw backfill)
- * is about 55s. Route maxDuration is 300s. Abort the fetch phase at 220s so
- * the remaining budget covers that work with a small safety margin:
- * 300_000 - 55_000 - 25_000 = 220_000.
+ * is about 55s. Producer-name textQuery union needs ~20s. Route maxDuration is
+ * 300s. Abort assortment + country walks at 200s:
+ * 300_000 - 55_000 - 25_000 - 20_000 = 200_000.
+ * Tillfälligt-per-country runs in the same walk budget as Ordervaror countries.
+ * If that walk is incomplete or errors, promote is aborted.
  */
 const MEASURED_POST_FETCH_BUDGET_MS = 55_000;
 const ROUTE_MAX_DURATION_MS = 300_000;
+const PRODUCER_UNION_BUDGET_MS = 20_000;
 const FETCH_TIMEOUT_GUARD_MS =
-  ROUTE_MAX_DURATION_MS - MEASURED_POST_FETCH_BUDGET_MS - 25_000;
+  ROUTE_MAX_DURATION_MS -
+  MEASURED_POST_FETCH_BUDGET_MS -
+  25_000 -
+  PRODUCER_UNION_BUDGET_MS;
 const FETCH_RETRIES = 2;
 const DIRECT_FETCH_CONCURRENCY = 8;
 const COUNTRY_WALK_CONCURRENCY = 6;
+const PRODUCER_UNION_CONCURRENCY = 4;
 /**
  * Systembolaget caps a search at 333 pages (333 × 30 = 9,990 hits) and then
  * sets nextPage to -1. Page 334 repeats page 333 even when docCount is higher.
@@ -125,7 +137,11 @@ export function ordervarorCountryQuery(country: string): string {
   return `assortmentText=Ordervaror&country=${encodeURIComponent(country)}`;
 }
 
-/** Fetch-phase abort deadline in ms (220s). Exported for tests/reporting. */
+export function tillfalligtCountryQuery(country: string): string {
+  return `assortmentText=Tillf%C3%A4lligt%20sortiment&country=${encodeURIComponent(country)}`;
+}
+
+/** Fetch-phase abort deadline in ms (200s). Exported for tests/reporting. */
 export const FETCH_TIMEOUT_MS = FETCH_TIMEOUT_GUARD_MS;
 
 export type OrdervarorPartitionStat = {
@@ -418,6 +434,14 @@ export type SyncSuccessResult = {
   assortmentBreakdown: Record<string, number>;
   countryWineHits: number;
   countryOnlyAdded: number;
+  tillfalligtCountryWineHits: number;
+  tillfalligtCountryOnlyAdded: number;
+  tillfalligtCompleted: boolean;
+  producerUnionAdded: Record<string, number>;
+  producerUnionTotalAdded: number;
+  markedUnavailable: number;
+  coverageGapCount: number;
+  missingInMirrorCount: number;
   oldCount: number;
   newCount: number;
   directFetched: string[];
@@ -426,7 +450,7 @@ export type SyncSuccessResult = {
 
 export type SyncTimeoutResult = {
   ok: false;
-  reason: "timeout_guard";
+  reason: "timeout_guard" | "tillfalligt_incomplete";
   completedFilters: string[];
   remainingFilters: string[];
   durationMs: number;
@@ -471,13 +495,13 @@ function replacePriceBound(
 }
 
 /**
- * Client-side promote when the SQL function is blocked from unqualified DELETE.
- * Still only runs after a full staging load; clears staging at the end.
- * Must refuse empty input — same failure mode as unguarded RPC wipe.
+ * Soft client-side promote when the RPC is unavailable. Upserts seen rows,
+ * increments consecutive_misses for unseen rows, never wipe-deletes the table.
  */
 async function promoteProductsClientSide(
   sb: ReturnType<typeof getSupabaseAdmin>,
   rows: SystembolagetProductRow[],
+  protectedProducerNames: string[],
 ): Promise<number> {
   if (rows.length === 0) {
     throw new Error(
@@ -485,26 +509,79 @@ async function promoteProductsClientSide(
     );
   }
 
-  const { error: wipeErr } = await sb
-    .from("systembolaget_products")
-    .delete()
-    .neq("product_number", "");
-  if (wipeErr) {
-    throw new Error(`Client promote wipe failed: ${wipeErr.message}`);
-  }
+  const seen = new Set(rows.map((row) => row.product_number));
+  const nowIso = new Date().toISOString();
+  let upserted = 0;
 
-  let inserted = 0;
   for (let offset = 0; offset < rows.length; offset += INSERT_CHUNK_SIZE) {
-    const chunk = rows.slice(offset, offset + INSERT_CHUNK_SIZE);
-    const { error: insertErr } = await sb
+    const chunk = rows.slice(offset, offset + INSERT_CHUNK_SIZE).map((row) => ({
+      ...row,
+      last_seen_at: nowIso,
+      consecutive_misses: 0,
+    }));
+    const { error: upsertErr } = await sb
       .from("systembolaget_products")
-      .insert(chunk);
-    if (insertErr) {
+      .upsert(chunk, { onConflict: "product_number" });
+    if (upsertErr) {
       throw new Error(
-        `Client promote insert failed at offset ${offset}: ${insertErr.message}`,
+        `Client promote upsert failed at offset ${offset}: ${upsertErr.message}`,
       );
     }
-    inserted += chunk.length;
+    upserted += chunk.length;
+  }
+
+  const liveNumbers = await listAllProductNumbers(sb, "systembolaget_products");
+  const missed = liveNumbers.filter((productNumber) => !seen.has(productNumber));
+  for (let offset = 0; offset < missed.length; offset += 200) {
+    const chunk = missed.slice(offset, offset + 200);
+    const { data: current, error: readErr } = await sb
+      .from("systembolaget_products")
+      .select("product_number, consecutive_misses")
+      .in("product_number", chunk);
+    if (readErr) {
+      throw new Error(`Client promote miss read failed: ${readErr.message}`);
+    }
+    for (const row of current ?? []) {
+      const nextMisses = Number(row.consecutive_misses ?? 0) + 1;
+      const { error: missErr } = await sb
+        .from("systembolaget_products")
+        .update({ consecutive_misses: nextMisses })
+        .eq("product_number", row.product_number);
+      if (missErr) {
+        throw new Error(
+          `Client promote miss update failed for ${row.product_number}: ${missErr.message}`,
+        );
+      }
+    }
+  }
+
+  const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const protectedSet = new Set(protectedProducerNames);
+  const { data: stale, error: staleErr } = await sb
+    .from("systembolaget_products")
+    .select("product_number, producer_name, last_seen_at, consecutive_misses")
+    .lt("last_seen_at", cutoff)
+    .gte("consecutive_misses", 3);
+  if (staleErr) {
+    throw new Error(`Client promote stale read failed: ${staleErr.message}`);
+  }
+
+  const curated = new Set(await listProductNumbers(sb, "systembolaget_curated"));
+  for (const row of stale ?? []) {
+    const productNumber = String(row.product_number);
+    if (curated.has(productNumber)) continue;
+    if (row.producer_name && protectedSet.has(String(row.producer_name))) {
+      continue;
+    }
+    const { error: delErr } = await sb
+      .from("systembolaget_products")
+      .delete()
+      .eq("product_number", productNumber);
+    if (delErr) {
+      throw new Error(
+        `Client promote stale delete failed for ${productNumber}: ${delErr.message}`,
+      );
+    }
   }
 
   const { error: clearErr } = await sb
@@ -515,7 +592,7 @@ async function promoteProductsClientSide(
     throw new Error(`Client promote staging clear failed: ${clearErr.message}`);
   }
 
-  return inserted;
+  return upserted;
 }
 
 type FilterFetchResult = {
@@ -736,6 +813,8 @@ export async function runSystembolagetSync(
   console.log("[systembolaget-sync] start", {
     filters: ASSORTMENT_FILTERS.length,
     countryFilters: ORDERVAROR_COUNTRIES.length,
+    tillfalligtCountryFilters: TILLFALLIGT_SYNC_COUNTRIES.length,
+    producerUnionNames: syncProducerNameUnionList().length,
     mode: "parallel",
     fetchTimeoutGuardMs: FETCH_TIMEOUT_GUARD_MS,
     measuredPostFetchBudgetMs: MEASURED_POST_FETCH_BUDGET_MS,
@@ -747,7 +826,20 @@ export async function runSystembolagetSync(
 
   let countryWineHits = 0;
   let countryOnlyAdded = 0;
+  let tillfalligtCountryWineHits = 0;
+  let tillfalligtCountryOnlyAdded = 0;
+  let producerUnionAdded: Record<string, number> = {};
+  let producerUnionTotalAdded = 0;
   let largestPartition: OrdervarorPartitionStat | null = null;
+
+  const tillfalligtFilterKeys = TILLFALLIGT_SYNC_COUNTRIES.map(
+    (c) => `Tillfälligt · ${c}`,
+  );
+  const expectedWalkKeys = [
+    ...ASSORTMENT_FILTERS.map((f) => f.key),
+    ...ORDERVAROR_COUNTRIES.map((c) => `Ordervaror · ${c}`),
+    ...tillfalligtFilterKeys,
+  ];
 
   try {
     const logFilterDone = (result: FilterFetchResult) => {
@@ -791,16 +883,36 @@ export async function runSystembolagetSync(
       },
     );
 
+    const tillfalligtPromise = mapPool(
+      [...TILLFALLIGT_SYNC_COUNTRIES],
+      COUNTRY_WALK_CONCURRENCY,
+      async (country) => {
+        const result = await fetchQuery(
+          tillfalligtCountryQuery(country),
+          `Tillfälligt · ${country}`,
+          syncedAt,
+          () => timedOut,
+          0,
+        );
+        logFilterDone(result);
+        return result;
+      },
+    );
+
     let assortmentResults: FilterFetchResult[];
     let countryResults: FilterFetchResult[];
+    let tillfalligtResults: FilterFetchResult[];
     try {
-      const allWalks = Promise.all([assortmentPromise, countryPromise]).then(
-        ([assortment, country]) => ({
-          kind: "ok" as const,
-          assortment,
-          country,
-        }),
-      );
+      const allWalks = Promise.all([
+        assortmentPromise,
+        countryPromise,
+        tillfalligtPromise,
+      ]).then(([assortment, country, tillfalligt]) => ({
+        kind: "ok" as const,
+        assortment,
+        country,
+        tillfalligt,
+      }));
       const timeoutWatch = new Promise<{ kind: "timeout" }>((resolve) => {
         const wait = setInterval(() => {
           if (timedOut) {
@@ -814,22 +926,27 @@ export async function runSystembolagetSync(
       walkMs = Date.now() - started;
       if (winner.kind === "timeout") {
         void allWalks.catch(() => undefined);
-        const remainingFilters = [
-          ...ASSORTMENT_FILTERS.map((f) => f.key),
-          ...ORDERVAROR_COUNTRIES.map((c) => `Ordervaror · ${c}`),
-        ].filter((k) => !completedFilters.includes(k));
+        const remainingFilters = expectedWalkKeys.filter(
+          (k) => !completedFilters.includes(k),
+        );
+        const tillfalligtIncomplete = tillfalligtFilterKeys.some(
+          (k) => !completedFilters.includes(k),
+        );
         console.warn(
           "[systembolaget-sync] timeout_guard — aborting without write",
           {
             elapsedMs: walkMs,
             fetchTimeoutGuardMs: FETCH_TIMEOUT_GUARD_MS,
+            tillfalligtIncomplete,
             completedFilters: [...completedFilters],
             remainingFilters,
           },
         );
         const result: SyncTimeoutResult = {
           ok: false,
-          reason: "timeout_guard",
+          reason: tillfalligtIncomplete
+            ? "tillfalligt_incomplete"
+            : "timeout_guard",
           completedFilters: [...completedFilters],
           remainingFilters,
           durationMs: walkMs,
@@ -849,19 +966,24 @@ export async function runSystembolagetSync(
       }
       assortmentResults = winner.assortment;
       countryResults = winner.country;
+      tillfalligtResults = winner.tillfalligt;
     } catch (err) {
       walkMs = Date.now() - started;
       if (
         timedOut ||
         (err instanceof Error && err.message.startsWith("Aborted mid-filter"))
       ) {
-        const remainingFilters = [
-          ...ASSORTMENT_FILTERS.map((f) => f.key),
-          ...ORDERVAROR_COUNTRIES.map((c) => `Ordervaror · ${c}`),
-        ].filter((k) => !completedFilters.includes(k));
+        const remainingFilters = expectedWalkKeys.filter(
+          (k) => !completedFilters.includes(k),
+        );
+        const tillfalligtIncomplete = tillfalligtFilterKeys.some(
+          (k) => !completedFilters.includes(k),
+        );
         const result: SyncTimeoutResult = {
           ok: false,
-          reason: "timeout_guard",
+          reason: tillfalligtIncomplete
+            ? "tillfalligt_incomplete"
+            : "timeout_guard",
           completedFilters: [...completedFilters],
           remainingFilters,
           durationMs: walkMs,
@@ -877,7 +999,41 @@ export async function runSystembolagetSync(
         });
         return result;
       }
+      console.error(
+        "[systembolaget-sync] walk error — aborting promote",
+        err instanceof Error ? err.message : err,
+      );
       throw err;
+    }
+
+    const tillfalligtCompleted = tillfalligtFilterKeys.every((k) =>
+      completedFilters.includes(k),
+    );
+    if (!tillfalligtCompleted) {
+      const remainingFilters = tillfalligtFilterKeys.filter(
+        (k) => !completedFilters.includes(k),
+      );
+      console.warn(
+        "[systembolaget-sync] tillfalligt_incomplete — aborting without write",
+        { remainingFilters },
+      );
+      const result: SyncTimeoutResult = {
+        ok: false,
+        reason: "tillfalligt_incomplete",
+        completedFilters: [...completedFilters],
+        remainingFilters,
+        durationMs: Date.now() - started,
+        timing: { walkMs },
+      };
+      await writeSyncLog({
+        syncedAt,
+        outcome: "timeout",
+        wines: null,
+        filterCounts: assortmentBreakdown,
+        durationMs: result.durationMs,
+        timing: { walkMs },
+      });
+      return result;
     }
 
     const byNumber = new Map<string, SystembolagetProductRow>();
@@ -908,6 +1064,77 @@ export async function runSystembolagetSync(
       afterAssortment,
       countryWineHits,
       countryOnlyAdded,
+      union: byNumber.size,
+    });
+
+    const afterOrdervarorCountries = byNumber.size;
+    for (const result of tillfalligtResults) {
+      fetched += result.fetched;
+      assortmentBreakdown[result.key] = result.wineHits;
+      tillfalligtCountryWineHits += result.wineHits;
+      for (const row of result.rows) {
+        if (!byNumber.has(row.product_number)) {
+          tillfalligtCountryOnlyAdded += 1;
+        }
+        byNumber.set(row.product_number, row);
+      }
+    }
+    console.log("[systembolaget-sync] tillfalligt country union", {
+      afterOrdervarorCountries,
+      tillfalligtCountryWineHits,
+      tillfalligtCountryOnlyAdded,
+      union: byNumber.size,
+      completed: tillfalligtCompleted,
+    });
+
+    const producerNames = syncProducerNameUnionList();
+    const producerUnionStarted = Date.now();
+    const producerResults = await mapPool(
+      producerNames,
+      PRODUCER_UNION_CONCURRENCY,
+      async (producerName) => {
+        if (Date.now() - producerUnionStarted > PRODUCER_UNION_BUDGET_MS) {
+          throw new Error(`Producer union budget exceeded at ${producerName}`);
+        }
+        const result = await fetchQuery(
+          `textQuery=${encodeURIComponent(producerName)}`,
+          `Producer · ${producerName}`,
+          syncedAt,
+          () =>
+            timedOut ||
+            Date.now() - producerUnionStarted > PRODUCER_UNION_BUDGET_MS,
+          0,
+        );
+        // Keep only exact producer_name matches (no fuzzy).
+        const exactRows = result.rows.filter(
+          (row) => row.producer_name === producerName,
+        );
+        return { producerName, rows: exactRows, fetched: result.fetched };
+      },
+    );
+
+    for (const result of producerResults) {
+      let added = 0;
+      fetched += result.fetched;
+      for (const row of result.rows) {
+        if (!byNumber.has(row.product_number)) {
+          added += 1;
+          byNumber.set(row.product_number, row);
+        } else {
+          byNumber.set(row.product_number, row);
+        }
+      }
+      producerUnionAdded[result.producerName] = added;
+      producerUnionTotalAdded += added;
+      console.log("[systembolaget-sync] producer union", {
+        producerName: result.producerName,
+        wineHits: result.rows.length,
+        added,
+      });
+    }
+    console.log("[systembolaget-sync] producer union total", {
+      producers: producerNames.length,
+      totalAdded: producerUnionTotalAdded,
       union: byNumber.size,
     });
 
@@ -1065,9 +1292,11 @@ export async function runSystembolagetSync(
       });
     }
 
+    const protectedProducerNames = syncProducerNameUnionList();
     const promoteStarted = Date.now();
     const { data: insertedRaw, error: promoteErr } = await sb.rpc(
       "systembolaget_promote_products",
+      { p_protected_producer_names: protectedProducerNames },
     );
 
     let inserted: number;
@@ -1077,10 +1306,14 @@ export async function runSystembolagetSync(
       /DELETE requires a WHERE clause/i.test(promoteErr.message)
     ) {
       console.warn(
-        "[systembolaget-sync] promote RPC blocked unqualified DELETE — using client fallback",
+        "[systembolaget-sync] promote RPC blocked — using soft client fallback",
         { error: promoteErr.message },
       );
-      inserted = await promoteProductsClientSide(sb, rows);
+      inserted = await promoteProductsClientSide(
+        sb,
+        rows,
+        protectedProducerNames,
+      );
       promotePath = "client_fallback";
     } else if (promoteErr) {
       throw new Error(`Promote failed: ${promoteErr.message}`);
@@ -1094,11 +1327,26 @@ export async function runSystembolagetSync(
     }
     const promoteMs = Date.now() - promoteStarted;
 
+    const { count: markedUnavailableRaw, error: unavailableErr } = await sb
+      .from("systembolaget_products")
+      .select("*", { count: "exact", head: true })
+      .gte("consecutive_misses", 3);
+    if (unavailableErr) {
+      throw new Error(
+        `Failed to count soft-unavailable rows: ${unavailableErr.message}`,
+      );
+    }
+    const markedUnavailable = markedUnavailableRaw ?? 0;
+
     let backfillMs = 0;
     if (promotePath === "rpc") {
       const backfillStarted = Date.now();
       for (let offset = 0; offset < rows.length; offset += INSERT_CHUNK_SIZE) {
-        const chunk = rows.slice(offset, offset + INSERT_CHUNK_SIZE);
+        const chunk = rows.slice(offset, offset + INSERT_CHUNK_SIZE).map((row) => ({
+          ...row,
+          last_seen_at: new Date().toISOString(),
+          consecutive_misses: 0,
+        }));
         const { error: rawErr } = await sb
           .from("systembolaget_products")
           .upsert(chunk, { onConflict: "product_number" });
@@ -1112,6 +1360,23 @@ export async function runSystembolagetSync(
       console.log("[systembolaget-sync] raw backfill done", {
         rows: rows.length,
       });
+    }
+
+    let coverageGapCount = 0;
+    let missingInMirrorCount = 0;
+    try {
+      const coverage = await listTopProducerCoverageGaps();
+      coverageGapCount = coverage.gaps.length;
+      missingInMirrorCount = coverage.missingInMirrorCount;
+      console.log("[systembolaget-sync] coverage after promote", {
+        coverageGapCount,
+        missingInMirrorCount,
+      });
+    } catch (coverageErr) {
+      console.error(
+        "[systembolaget-sync] coverage probe failed",
+        coverageErr instanceof Error ? coverageErr.message : coverageErr,
+      );
     }
 
     const timing: SyncTiming = {
@@ -1132,6 +1397,14 @@ export async function runSystembolagetSync(
       assortmentBreakdown,
       countryWineHits,
       countryOnlyAdded,
+      tillfalligtCountryWineHits,
+      tillfalligtCountryOnlyAdded,
+      tillfalligtCompleted,
+      producerUnionAdded,
+      producerUnionTotalAdded,
+      markedUnavailable,
+      coverageGapCount,
+      missingInMirrorCount,
       oldCount,
       newCount,
       directFetched: direct.added,
@@ -1146,6 +1419,15 @@ export async function runSystembolagetSync(
         ...assortmentBreakdown,
         _countryWineHits: countryWineHits,
         _countryOnlyAdded: countryOnlyAdded,
+        _tillfalligtCountryWineHits: tillfalligtCountryWineHits,
+        _tillfalligtCountryOnlyAdded: tillfalligtCountryOnlyAdded,
+        _producerUnionTotalAdded: producerUnionTotalAdded,
+        ...Object.fromEntries(
+          Object.entries(producerUnionAdded).map(([name, n]) => [
+            `_producerUnion:${name}`,
+            n,
+          ]),
+        ),
       },
       durationMs,
       oldCount,
@@ -1155,6 +1437,8 @@ export async function runSystembolagetSync(
       previousProductNumbers,
       timing,
       largestOrdervarorPartition: largestPartition,
+      coverageGapCount,
+      missingInMirrorCount,
     });
 
     return {
@@ -1167,6 +1451,14 @@ export async function runSystembolagetSync(
       assortmentBreakdown,
       countryWineHits,
       countryOnlyAdded,
+      tillfalligtCountryWineHits,
+      tillfalligtCountryOnlyAdded,
+      tillfalligtCompleted,
+      producerUnionAdded,
+      producerUnionTotalAdded,
+      markedUnavailable,
+      coverageGapCount,
+      missingInMirrorCount,
       oldCount,
       newCount,
       directFetched: direct.added,
@@ -1273,6 +1565,8 @@ type SyncLogWrite = {
   timing: Record<string, number>;
   errorMessage?: string;
   largestOrdervarorPartition?: OrdervarorPartitionStat | null;
+  coverageGapCount?: number | null;
+  missingInMirrorCount?: number | null;
 };
 
 async function writeSyncLog(entry: SyncLogWrite): Promise<void> {
@@ -1292,6 +1586,8 @@ async function writeSyncLog(entry: SyncLogWrite): Promise<void> {
       error_message: entry.errorMessage ?? null,
       timing: entry.timing,
       largest_ordervaror_partition: entry.largestOrdervarorPartition ?? null,
+      coverage_gap_count: entry.coverageGapCount ?? null,
+      missing_in_mirror_count: entry.missingInMirrorCount ?? null,
     });
     if (error) {
       console.error("[systembolaget-sync] sync_log insert failed", error.message);

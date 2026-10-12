@@ -3,8 +3,11 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { GuideRankEntry } from "@/components/guides/guide-rank-entry";
+import { GuideRankNumber } from "@/components/guides/guide-rank-number";
 import { GuideRankTable } from "@/components/guides/guide-rank-table";
 import { ProducerRankChange } from "@/components/guides/producer-rank-change";
+import { SystembolagetBagIcon } from "@/components/guides/systembolaget-bag-icon";
+import { SystembolagetProducerMark } from "@/components/guides/systembolaget-producer-mark";
 import { Footer } from "@/components/layout/footer";
 import {
   GuideBreadcrumbs,
@@ -26,6 +29,11 @@ import {
   producerGuidePath,
   splitProducerBlurbMentions,
 } from "@/lib/guides/producer-guide-links";
+import {
+  getSystembolagetProducerAvailability,
+  systembolagetAvailabilityLabel,
+  systembolagetRangeNote,
+} from "@/lib/guides/systembolaget-producer-availability";
 import {
   formatTop100ProducersUpdatedDate,
   TOP_100_PRODUCERS,
@@ -167,7 +175,10 @@ export async function buildProducersGuideMetadata(
 }
 
 export async function renderProducersGuidePage(locale: AppLocale) {
-  const { seoBaseUrl } = await getGuideSeoOwnership();
+  const [{ seoBaseUrl }, availability] = await Promise.all([
+    getGuideSeoOwnership(),
+    getSystembolagetProducerAvailability(),
+  ]);
   const copy = guideCopy(locale);
   const hubPath = guidePath("hub", locale);
   const winesPath = guidePath("wines", locale);
@@ -178,6 +189,17 @@ export async function renderProducersGuidePage(locale: AppLocale) {
   );
 
   const byRank = [...TOP_100_PRODUCERS].sort((a, b) => a.rank - b.rank);
+  const rangeNote = systembolagetRangeNote(locale);
+  const systembolagetHref = bestList?.href[locale] ?? null;
+  const systembolagetMark = (rank: number) => {
+    if (!systembolagetHref) return null;
+    const label = systembolagetAvailabilityLabel(
+      availability[rank] ?? 0,
+      locale,
+    );
+    if (!label) return null;
+    return <SystembolagetProducerMark label={label} href={systembolagetHref} />;
+  };
   const top10 = byRank.filter((p) => p.rank <= 10);
   const mid = byRank.filter((p) => p.rank >= 11 && p.rank <= 30);
   const rest = byRank.filter((p) => p.rank >= 31);
@@ -212,6 +234,10 @@ export async function renderProducersGuidePage(locale: AppLocale) {
     locale === "sv"
       ? "Pilarna visar förändring sedan föregående uppdatering."
       : "Arrows show the change since the previous update.";
+  const extensionHeading =
+    locale === "sv"
+      ? "Fler producenter att känna till (plats 101-116)"
+      : "More producers worth knowing (ranks 101-116)";
 
   const pageJsonLd = {
     "@context": "https://schema.org",
@@ -284,6 +310,22 @@ export async function renderProducersGuidePage(locale: AppLocale) {
           ))}
         </div>
 
+        {bestList ? (
+          <p className="mt-8 flex items-start gap-2 text-sm leading-relaxed text-muted-foreground">
+            <SystembolagetBagIcon className="mt-0.5 size-4 shrink-0" />
+            <span>
+              {rangeNote.before}
+              <Link
+                href={bestList.href[locale]}
+                className="underline underline-offset-4 hover:text-foreground"
+              >
+                {rangeNote.link}
+              </Link>
+              {rangeNote.after}
+            </span>
+          </p>
+        ) : null}
+
         <section className="mt-14">
           <h2 className="mb-4 border-b border-border pb-3 text-xl font-semibold">
             {copy.top10}
@@ -307,6 +349,7 @@ export async function renderProducersGuidePage(locale: AppLocale) {
                   locale,
                 )}
                 href={producerGuideHref(producer.rank, locale)}
+                rankAdornment={systembolagetMark(producer.rank)}
               />
             ))}
           </div>
@@ -335,6 +378,7 @@ export async function renderProducersGuidePage(locale: AppLocale) {
                   locale,
                 )}
                 href={producerGuideHref(producer.rank, locale)}
+                rankAdornment={systembolagetMark(producer.rank)}
                 compact
               />
             ))}
@@ -347,7 +391,11 @@ export async function renderProducersGuidePage(locale: AppLocale) {
           </h2>
           <GuideRankTable
             columns={[
-              { key: "rank", label: copy.rank, className: "w-12 tabular-nums" },
+              {
+                key: "rankDisplay",
+                label: copy.rank,
+                className: "w-[4.5rem]",
+              },
               {
                 key: "change",
                 label: locale === "sv" ? "Förändring" : "Change",
@@ -359,8 +407,16 @@ export async function renderProducersGuidePage(locale: AppLocale) {
               { key: "country", label: copy.country },
               { key: "grapes", label: copy.grapes },
             ]}
+            dividerBeforeRank={101}
+            dividerLabel={extensionHeading}
             rows={rest.map((producer) => ({
               rank: producer.rank,
+              rankDisplay: (
+                <GuideRankNumber
+                  rank={producer.rank}
+                  adornment={systembolagetMark(producer.rank)}
+                />
+              ),
               change: (
                 <ProducerRankChange
                   rank={producer.rank}

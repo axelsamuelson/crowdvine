@@ -10,6 +10,8 @@ export const COUNTRY_EN: Record<string, string> = {
   "USA": "USA",
   "Tjeckien": "Czech Republic",
   "Australien": "Australia",
+  "Sydafrika": "South Africa",
+  "Chile": "Chile",
 };
 
 export const WINE_TYPE_EN: Record<string, string> = {

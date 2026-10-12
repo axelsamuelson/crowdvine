@@ -8,29 +8,42 @@ export const dynamic = "force-dynamic";
 
 const TOP_100_NAMES = new Set(TOP_100_PRODUCERS.map((p) => p.name));
 
-const patchSchema = z.object({
-  verdict: z.enum(["recommended", "avoid"]).optional(),
-  category: z
-    .enum([
-      "red",
-      "white",
-      "orange",
-      "sparkling",
-      "rose",
-      "budget",
-      "glouglou",
-      "petnat",
-      "best",
-    ])
-    .optional(),
-  editorial_note_sv: z.string().min(1).optional(),
-  editorial_note_en: z.string().optional().nullable(),
-  producer_note_sv: z.string().optional().nullable(),
-  producer_note_en: z.string().optional().nullable(),
-  top_100_producer_name: z.string().optional().nullable(),
-  sort_order: z.number().int().optional(),
-  is_published: z.boolean().optional(),
-});
+const patchSchema = z
+  .object({
+    verdict: z.enum(["recommended", "avoid", "skipped"]).optional(),
+    category: z
+      .enum([
+        "red",
+        "white",
+        "orange",
+        "sparkling",
+        "rose",
+        "budget",
+        "glouglou",
+        "petnat",
+        "best",
+      ])
+      .optional(),
+    editorial_note_sv: z.string().min(1).optional(),
+    editorial_note_en: z.string().optional().nullable(),
+    producer_note_sv: z.string().optional().nullable(),
+    producer_note_en: z.string().optional().nullable(),
+    top_100_producer_name: z.string().optional().nullable(),
+    skip_reason_sv: z.string().optional().nullable(),
+    skip_reason_en: z.string().optional().nullable(),
+    sort_order: z.number().int().optional(),
+    is_published: z.boolean().optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (value.verdict !== "skipped") return;
+    if (value.skip_reason_sv !== undefined && !value.skip_reason_sv?.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["skip_reason_sv"],
+        message: "skip_reason_sv is required when verdict is skipped",
+      });
+    }
+  });
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -62,6 +75,9 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   }
 
   const patch: Record<string, unknown> = { ...parsed.data };
+  if (parsed.data.verdict === "skipped") {
+    patch.is_published = false;
+  }
   if ("top_100_producer_name" in patch) {
     const raw = patch.top_100_producer_name;
     if (raw == null || (typeof raw === "string" && !raw.trim())) {

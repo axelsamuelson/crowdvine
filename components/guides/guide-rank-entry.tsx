@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 
+import { GuideRankNumber } from "@/components/guides/guide-rank-number";
+
 type GuideRankEntryProps = {
   rank: number;
   title: string;
@@ -9,6 +11,8 @@ type GuideRankEntryProps = {
   compact?: boolean;
   href?: string;
   rankNote?: ReactNode;
+  /** Sits to the left of the rank number. */
+  rankAdornment?: ReactNode;
 };
 
 export function GuideRankEntry({
@@ -19,6 +23,7 @@ export function GuideRankEntry({
   compact = false,
   href,
   rankNote,
+  rankAdornment,
 }: GuideRankEntryProps) {
   return (
     <article
@@ -32,12 +37,12 @@ export function GuideRankEntry({
         <div
           className={
             compact
-              ? "flex w-14 shrink-0 flex-col gap-1 text-sm font-medium tabular-nums text-muted-foreground"
-              : "flex w-14 shrink-0 flex-col gap-1 text-lg font-semibold tabular-nums text-muted-foreground"
+              ? "flex w-[4.25rem] shrink-0 flex-col gap-1 text-sm font-medium text-muted-foreground"
+              : "flex w-[4.25rem] shrink-0 flex-col gap-1 text-lg font-semibold text-muted-foreground"
           }
         >
-          <span>{rank}</span>
-          {rankNote}
+          <GuideRankNumber rank={rank} adornment={rankAdornment} />
+          {rankNote ? <div className="pl-[1.375rem]">{rankNote}</div> : null}
         </div>
         <div className="min-w-0 flex-1">
           <h3

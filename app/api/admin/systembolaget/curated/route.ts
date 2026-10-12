@@ -23,28 +23,41 @@ function normalizeTop100Name(
   return trimmed;
 }
 
-const curatedSchema = z.object({
-  product_number: z.string().min(1),
-  verdict: z.enum(["recommended", "avoid"]),
-  category: z.enum([
-    "red",
-    "white",
-    "orange",
-    "sparkling",
-    "rose",
-    "budget",
-    "glouglou",
-    "petnat",
-    "best",
-  ]),
-  editorial_note_sv: z.string().min(1),
-  editorial_note_en: z.string().optional().nullable(),
-  producer_note_sv: z.string().optional().nullable(),
-  producer_note_en: z.string().optional().nullable(),
-  top_100_producer_name: z.string().optional().nullable(),
-  sort_order: z.number().int().optional(),
-  is_published: z.boolean().optional(),
-});
+const curatedSchema = z
+  .object({
+    product_number: z.string().min(1),
+    verdict: z.enum(["recommended", "avoid", "skipped"]),
+    category: z.enum([
+      "red",
+      "white",
+      "orange",
+      "sparkling",
+      "rose",
+      "budget",
+      "glouglou",
+      "petnat",
+      "best",
+    ]),
+    editorial_note_sv: z.string().min(1),
+    editorial_note_en: z.string().optional().nullable(),
+    producer_note_sv: z.string().optional().nullable(),
+    producer_note_en: z.string().optional().nullable(),
+    top_100_producer_name: z.string().optional().nullable(),
+    skip_reason_sv: z.string().optional().nullable(),
+    skip_reason_en: z.string().optional().nullable(),
+    sort_order: z.number().int().optional(),
+    is_published: z.boolean().optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (value.verdict !== "skipped") return;
+    if (!value.skip_reason_sv?.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["skip_reason_sv"],
+        message: "skip_reason_sv is required when verdict is skipped",
+      });
+    }
+  });
 
 export async function GET() {
   const admin = await getCurrentAdmin();
@@ -152,6 +165,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const skipped = parsed.data.verdict === "skipped";
   const sb = getSupabaseAdmin();
   const { data, error } = await sb
     .from("systembolaget_curated")
@@ -165,8 +179,11 @@ export async function POST(request: NextRequest) {
         producer_note_sv: parsed.data.producer_note_sv ?? null,
         producer_note_en: parsed.data.producer_note_en ?? null,
         top_100_producer_name: top100,
+        skip_reason_sv: parsed.data.skip_reason_sv?.trim() || null,
+        skip_reason_en: parsed.data.skip_reason_en?.trim() || null,
         sort_order: parsed.data.sort_order ?? 100,
-        is_published: parsed.data.is_published ?? false,
+        // Skipped reviews must not appear on public lists.
+        is_published: skipped ? false : (parsed.data.is_published ?? false),
       },
       { onConflict: "product_number,category" },
     )
