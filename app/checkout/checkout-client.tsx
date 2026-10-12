@@ -2503,12 +2503,6 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
         )
       : null;
 
-  const deliveryOptionShippingLabel = useMemo(() => {
-    if (!shippingCost) return "—";
-    if (shippingCost.totalShippingCostCents === 0) return t("checkout.shippingFree");
-    return formatSek(shippingCost.totalShippingCostCents / 100);
-  }, [shippingCost, t, formatSek]);
-
   // Merchandise total from cart (matches per-line line.cost.totalAmount, incl. member + pallet early-bird)
   const bottleCost = cart
     ? parseFloat(cart.cost.totalAmount.amount)
@@ -2618,6 +2612,17 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
   const displaySubtotal = serverQuote?.subtotal_sek ?? bottleCost;
   const displayShippingSek = serverQuote?.shipping_sek;
   const displayPactOff = serverQuote?.pact_points_sek ?? pactPointsSekOff;
+  // Budbee row and the Frakt line must show the charged customer rate (99 kr),
+  // not the legacy pallet amortization in `shippingCost`.
+  const chargedShippingLabel = (() => {
+    if (displayShippingSek != null && selectedPalletId) {
+      if (displayShippingSek === 0) return t("checkout.shippingFree");
+      return formatDisplay(displayShippingSek);
+    }
+    if (!shippingCost) return null;
+    if (shippingCost.totalShippingCostCents === 0) return t("checkout.shippingFree");
+    return formatSek(shippingCost.totalShippingCostCents / 100);
+  })();
   const displayTotal =
     serverQuote?.total_sek ??
     Math.max(
@@ -3123,11 +3128,7 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
                     {t("checkout.shipping")}
                   </span>
                   <span className="text-right tabular-nums text-foreground">
-                    {displayShippingSek != null && selectedPalletId ? (
-                      formatDisplay(displayShippingSek)
-                    ) : shippingCost ? (
-                      formatSek(shippingCost.totalShippingCostCents / 100)
-                    ) : (
+                    {chargedShippingLabel ?? (
                       <span className="text-muted-foreground">
                         {t("checkout.shippingAfterAddress")}
                       </span>
@@ -3433,7 +3434,7 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
                           </div>
                           <div className="flex shrink-0 items-center gap-2">
                             <span className="whitespace-nowrap text-sm tabular-nums text-foreground">
-                              {deliveryOptionShippingLabel}
+                              {chargedShippingLabel ?? "—"}
                             </span>
                             {/* eslint-disable-next-line @next/next/no-img-element -- static brand asset from /public */}
                             <img
