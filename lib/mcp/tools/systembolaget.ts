@@ -1,6 +1,11 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
+import { SYSTEMBOLAGET_PRODUCER_NAMES_BY_RANK } from "@/lib/guides/systembolaget-producer-availability";
+import {
+  listMissingTop100ProducerNameSuggestions,
+  listTopProducerCoverageGaps,
+} from "@/lib/systembolaget/top-producer-coverage";
 import { mcpErrorResult, mcpJsonResult } from "../utils/tool-result";
 import {
   findTop100ProducerExact,
@@ -168,6 +173,41 @@ export function registerSystembolagetTools(
         return mcpErrorResult(
           e instanceof Error ? e.message : String(e),
           "list_guide_wines",
+        );
+      }
+    },
+  );
+
+  server.registerTool(
+    "list_top_producer_coverage_gaps",
+    {
+      description:
+        "Read-only: available systembolaget_products for TOP_100_PRODUCERS that have no curated row (draft or published). Uses the static rank->producer_name map only (no fuzzy match). Does not invent unavailable bottles missing from the mirror.",
+      inputSchema: {},
+    },
+    async () => {
+      try {
+        const gaps = await listTopProducerCoverageGaps();
+        const top100NameSuggestions =
+          await listMissingTop100ProducerNameSuggestions();
+        return mcpJsonResult(
+          {
+            mapping: SYSTEMBOLAGET_PRODUCER_NAMES_BY_RANK,
+            gapCount: gaps.length,
+            gaps,
+            top100NameSuggestions,
+            note:
+              "Gaps only cover products present and is_available=true in systembolaget_products. Bottles missing from the mirror are out of scope for this list.",
+          },
+          {
+            tool: "list_top_producer_coverage_gaps",
+            rowCount: gaps.length,
+          },
+        );
+      } catch (e) {
+        return mcpErrorResult(
+          e instanceof Error ? e.message : String(e),
+          "list_top_producer_coverage_gaps",
         );
       }
     },
