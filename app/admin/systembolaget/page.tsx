@@ -37,13 +37,15 @@ type SearchHit = {
 type CuratedRow = {
   id: number;
   product_number: string;
-  verdict: "recommended" | "avoid";
+  verdict: "recommended" | "avoid" | "skipped";
   category: string;
   editorial_note_sv: string;
   editorial_note_en: string | null;
   producer_note_sv: string | null;
   producer_note_en: string | null;
   top_100_producer_name: string | null;
+  skip_reason_sv: string | null;
+  skip_reason_en: string | null;
   sort_order: number;
   is_published: boolean;
   unavailable: boolean;
@@ -62,7 +64,7 @@ type CuratedRow = {
 type CurateForm = {
   product_number: string;
   product_label: string;
-  verdict: "recommended" | "avoid";
+  verdict: "recommended" | "avoid" | "skipped";
   category:
     | "red"
     | "white"
@@ -78,6 +80,8 @@ type CurateForm = {
   producer_note_sv: string;
   producer_note_en: string;
   top_100_producer_name: string;
+  skip_reason_sv: string;
+  skip_reason_en: string;
   sort_order: string;
   is_published: boolean;
 };
@@ -118,6 +122,8 @@ const emptyForm = (): CurateForm => ({
   product_label: "",
   verdict: "recommended",
   category: "red",
+  skip_reason_sv: "",
+  skip_reason_en: "",
   editorial_note_sv: "",
   editorial_note_en: "",
   producer_note_sv: "",
@@ -426,6 +432,10 @@ export default function SystembolagetAdminPage() {
       toast.error("Product and Swedish editorial note are required");
       return;
     }
+    if (form.verdict === "skipped" && !form.skip_reason_sv.trim()) {
+      toast.error("Swedish skip reason is required for skipped");
+      return;
+    }
     setSaving(true);
     try {
       const res = await fetch("/api/admin/systembolaget/curated", {
@@ -440,8 +450,10 @@ export default function SystembolagetAdminPage() {
           producer_note_sv: form.producer_note_sv.trim() || null,
           producer_note_en: form.producer_note_en.trim() || null,
           top_100_producer_name: form.top_100_producer_name.trim() || null,
+          skip_reason_sv: form.skip_reason_sv.trim() || null,
+          skip_reason_en: form.skip_reason_en.trim() || null,
           sort_order: Number.parseInt(form.sort_order, 10) || 100,
-          is_published: form.is_published,
+          is_published: form.verdict === "skipped" ? false : form.is_published,
         }),
       });
       if (!res.ok) {
@@ -952,6 +964,7 @@ export default function SystembolagetAdminPage() {
                 >
                   <option value="recommended">recommended</option>
                   <option value="avoid">avoid</option>
+                  <option value="skipped">skipped (reviewed, not listed)</option>
                 </select>
               </div>
               <div>
@@ -979,6 +992,38 @@ export default function SystembolagetAdminPage() {
                 </select>
               </div>
             </div>
+            {form.verdict === "skipped" ? (
+              <>
+                <div>
+                  <Label htmlFor="skip-sv">Skip reason (SV)</Label>
+                  <textarea
+                    id="skip-sv"
+                    className="mt-1 w-full rounded border border-input bg-background px-3 py-2 text-sm min-h-[72px]"
+                    value={form.skip_reason_sv}
+                    onChange={(e) =>
+                      setForm((p) => ({
+                        ...p,
+                        skip_reason_sv: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="skip-en">Skip reason (EN)</Label>
+                  <textarea
+                    id="skip-en"
+                    className="mt-1 w-full rounded border border-input bg-background px-3 py-2 text-sm min-h-[72px]"
+                    value={form.skip_reason_en}
+                    onChange={(e) =>
+                      setForm((p) => ({
+                        ...p,
+                        skip_reason_en: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
+              </>
+            ) : null}
             <div>
               <Label htmlFor="note-sv">Editorial note (SV)</Label>
               <textarea

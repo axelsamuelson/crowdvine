@@ -25,7 +25,7 @@ const categorySchema = z.enum([
   "best",
 ]);
 
-const verdictSchema = z.enum(["recommended", "avoid"]);
+const verdictSchema = z.enum(["recommended", "avoid", "skipped"]);
 
 const CURATED_SELECT = [
   "id",
@@ -37,6 +37,8 @@ const CURATED_SELECT = [
   "producer_note_sv",
   "producer_note_en",
   "top_100_producer_name",
+  "skip_reason_sv",
+  "skip_reason_en",
   "sort_order",
   "is_published",
   "previous_sort_order",
@@ -473,6 +475,8 @@ export function registerSystembolagetTools(
         producer_note_sv: z.string().optional().nullable(),
         producer_note_en: z.string().optional().nullable(),
         top_100_producer_name: z.string().optional().nullable(),
+        skip_reason_sv: z.string().optional().nullable(),
+        skip_reason_en: z.string().optional().nullable(),
         sort_order: z.number().int().optional(),
       },
     },
@@ -483,6 +487,12 @@ export function registerSystembolagetTools(
         args as Record<string, unknown>,
         async () => {
           const productNumber = args.product_number.trim();
+          const skipped = args.verdict === "skipped";
+          if (skipped && !args.skip_reason_sv?.trim()) {
+            throw new Error(
+              "skip_reason_sv is required when verdict is skipped",
+            );
+          }
 
           const { data: product, error: productError } = await sb
             .from("systembolaget_products")
@@ -534,6 +544,8 @@ export function registerSystembolagetTools(
               producer_note_sv: args.producer_note_sv ?? null,
               producer_note_en: args.producer_note_en ?? null,
               top_100_producer_name: top100,
+              skip_reason_sv: args.skip_reason_sv?.trim() || null,
+              skip_reason_en: args.skip_reason_en?.trim() || null,
               sort_order: args.sort_order ?? 100,
               is_published: false,
             })
@@ -562,6 +574,8 @@ export function registerSystembolagetTools(
         producer_note_sv: z.string().optional().nullable(),
         producer_note_en: z.string().optional().nullable(),
         top_100_producer_name: z.string().optional().nullable(),
+        skip_reason_sv: z.string().optional().nullable(),
+        skip_reason_en: z.string().optional().nullable(),
         sort_order: z.number().int().optional(),
       },
     },
@@ -581,6 +595,17 @@ export function registerSystembolagetTools(
           if (currentError) throw new Error(currentError.message);
           if (!current) {
             throw new Error(`No curated row with id ${args.id}.`);
+          }
+          if (args.verdict === "skipped" && !args.skip_reason_sv?.trim()) {
+            const existingReason =
+              typeof current.skip_reason_sv === "string"
+                ? current.skip_reason_sv.trim()
+                : "";
+            if (!existingReason) {
+              throw new Error(
+                "skip_reason_sv is required when verdict is skipped",
+              );
+            }
           }
 
           if (args.product_number !== undefined) {
@@ -628,7 +653,10 @@ export function registerSystembolagetTools(
               );
             }
           }
-          if (args.verdict !== undefined) patch.verdict = args.verdict;
+          if (args.verdict !== undefined) {
+            patch.verdict = args.verdict;
+            if (args.verdict === "skipped") patch.is_published = false;
+          }
           if (args.editorial_note_sv !== undefined) {
             patch.editorial_note_sv = args.editorial_note_sv;
           }
@@ -640,6 +668,12 @@ export function registerSystembolagetTools(
           }
           if (args.producer_note_en !== undefined) {
             patch.producer_note_en = args.producer_note_en;
+          }
+          if (args.skip_reason_sv !== undefined) {
+            patch.skip_reason_sv = args.skip_reason_sv?.trim() || null;
+          }
+          if (args.skip_reason_en !== undefined) {
+            patch.skip_reason_en = args.skip_reason_en?.trim() || null;
           }
           if (args.sort_order !== undefined) {
             patch.sort_order = args.sort_order;
