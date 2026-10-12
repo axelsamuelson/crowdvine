@@ -62,6 +62,11 @@ export type GuideArticleFaq = {
   answer: LocalizedString;
 };
 
+/** Visible anchor from a markdown link, without the URL. */
+export function articleLinkText(text: string): string {
+  return text.replace(/\[([^\]]+)\]\([^)\s]+\)/g, "$1");
+}
+
 /**
  * Dual-locale article guide content.
  * Paths: `/guides/{slug.en}` and `/guider/{slug.sv}`.
@@ -74,6 +79,11 @@ export type GuideArticleContent = {
    * Read only via `isGuideArticlePublished`.
    */
   published?: boolean;
+  /**
+   * Sitemap `<lastmod>` and Article `dateModified` (YYYY-MM-DD).
+   * Set only when the page copy actually changes.
+   */
+  updated?: string;
   /**
    * Cave Pur Jus on the Sweden online-buying guide.
    * Read in that content file when the section list and Sources are built.

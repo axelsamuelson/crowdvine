@@ -2,6 +2,7 @@ import type { GuideArticleContent } from "@/lib/guides/guide-types";
 
 /** Bilingual guide: best orange natural wines in Systembolaget assortment. */
 export const bestOrangeNaturalWinesSystembolagetArticle: GuideArticleContent = {
+  updated: "2026-10-12",
   slug: {
     en: "best-orange-natural-wines-systembolaget",
     sv: "basta-orange-naturviner-systembolaget",
@@ -105,6 +106,16 @@ export const bestOrangeNaturalWinesSystembolagetArticle: GuideArticleContent = {
     },
   ],
   internalLinks: [
+    {
+      label: {
+        en: "what is natural wine",
+        sv: "vad är naturvin",
+      },
+      href: {
+        en: "/guides/what-is-natural-wine",
+        sv: "/guider/vad-ar-naturvin",
+      },
+    },
     {
       label: {
         en: "What is orange wine? →",

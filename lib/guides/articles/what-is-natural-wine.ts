@@ -1,22 +1,31 @@
 import type { GuideArticleContent } from "@/lib/guides/guide-types";
 
-/** Bilingual educational guide: what is natural wine. */
+/**
+ * Sulphur figures are ceilings or charter limits, not a typical dose.
+ * EU 2019/934 Annex I Part B; EU 2021/1165 Annex V Part D (consolidated 2026-01-01);
+ * Vin Méthode Nature charter; EU 1169/2011 Annex II (label above 10 mg/l).
+ */
 export const whatIsNaturalWineArticle: GuideArticleContent = {
+  updated: "2026-10-12",
   slug: {
     en: "what-is-natural-wine",
     sv: "vad-ar-naturvin",
   },
   title: {
-    en: "What is natural wine? Complete guide",
-    sv: "Vad är naturvin? Kompletta guiden",
+    en: "What is natural wine? Definition, sulfites, how it's made",
+    sv: "Vad är naturvin? Definition, sulfiter och hur det görs",
   },
   meta: {
-    en: "Natural wine means minimal intervention: organic grapes, wild yeasts, nothing added in the cellar. How it's made and how it differs.",
-    sv: "Naturvin betyder minimal påverkan: ekologiska druvor, vild jäst, inga tillsatser i källaren. Hur det görs och vad som skiljer.",
+    en: "Natural wine means low intervention: organic grapes, spontaneous fermentation and little or no added sulphur. Sulfites, and how it differs from organic wine.",
+    sv: "Naturvin betyder låg intervention: ekologiska druvor, spontanjäsning och lite eller inget tillsatt svavel. Sulfiter och skillnaden mot ekologiskt vin.",
   },
   h1: {
-    en: "What is natural wine? The complete guide",
-    sv: "Vad är naturvin? Den kompletta guiden",
+    en: "What is natural wine?",
+    sv: "Vad är naturvin?",
+  },
+  lede: {
+    en: "Natural wine is wine made with low intervention. The grapes are typically farmed organically or biodynamically, and fermentation is spontaneous, with the grape's own yeast rather than inoculated fermentation. In the cellar, little or no sulphur is added, and few or no other additives.",
+    sv: "Naturvin är vin gjort med låg intervention. Druvorna odlas typiskt ekologiskt eller biodynamiskt, och jäsningen sker spontant med druvans egen jäst i stället för ympad jäsning. I källaren tillsätts oftast lite eller inget svavel, och få eller inga andra tillsatser.",
   },
   breadcrumbShort: {
     en: "What is natural wine?",
@@ -28,96 +37,126 @@ export const whatIsNaturalWineArticle: GuideArticleContent = {
   },
   hubCard: {
     title: {
-      en: "What is natural wine? The complete guide",
-      sv: "Vad är naturvin? Den kompletta guiden",
+      en: "What is natural wine?",
+      sv: "Vad är naturvin?",
     },
     description: {
-      en: "Minimal intervention from vineyard to bottle — organic farming, wild yeasts and nothing added in the cellar. How natural wine differs from conventional and organic wine.",
-      sv: "Minimal påverkan från vingård till flaska — ekologisk odling, vilda jästsvampar och inga tillsatser i källaren. Skillnaden mot vanligt och ekologiskt vin.",
+      en: "The definition of natural wine: low intervention, sulfites, spontaneous fermentation and how it differs from organic and biodynamic wine.",
+      sv: "Definitionen av naturvin: låg intervention, sulfiter, spontanjäsning och skillnaden mot ekologiskt och biodynamiskt vin.",
     },
   },
   sections: [
     {
       heading: {
-        en: "The short answer",
-        sv: "Det korta svaret",
+        en: "What is natural wine?",
+        sv: "Vad är naturvin?",
       },
       body: {
         en: [
-          "Natural wine is wine made with minimal intervention. The grapes are farmed organically or biodynamically — without synthetic pesticides or fertilisers. Fermentation happens with the grape's own wild yeasts rather than added commercial strains. And in the cellar, nothing is added: no sugar, no enzymes, no fining agents, no filtration. At most a small amount of sulphur at bottling — often not even that.",
-          "The result is wine that tastes of its place and its vintage rather than of a standardised process.",
+          "There is no shared legal definition of natural wine in Sweden or in the EU. Producers use the term for a way of working, not for a single rulebook.",
+          "France has had a label since 2020, Vin Méthode Nature, run by the Syndicat de défense des vins naturels. It requires certified organic grapes (Agriculture Biologique or Nature & Progrès), hand harvesting, yeast from the vineyard and no additives except a possible small sulphur adjustment in the finished wine. The label is voluntary. It does not cover everything that is called natural wine.",
+          "In practice, natural wine means few interventions from soil to bottle. The producer harvests and presses, then lets the grape and the place steer the fermentation. Clarity about farming and cellar work matters more than the word on the label, because anyone can use the word.",
         ],
         sv: [
-          "Naturvin är vin gjort med minimal påverkan. Druvorna odlas ekologiskt eller biodynamiskt — utan syntetiska bekämpningsmedel eller gödselmedel. Jäsningen sker med druvans egna vilda jästsvampar snarare än med tillsatt odlad jäst. Och i källaren tillsätts ingenting: inget socker, inga enzymer, inga klarningsmedel, ingen filtrering. På sin höjd en liten mängd svavel vid buteljering — ofta inte ens det.",
-          "Resultatet är ett vin som smakar av sin plats och sin årgång snarare än av en standardiserad process.",
+          "Det finns ingen gemensam lagdefinition av naturvin i Sverige eller i EU. Begreppet används av producenter som delar ett arbetssätt, men inte ett regelverk.",
+          "Frankrike har sedan 2020 en märkning, Vin Méthode Nature, via Syndicat de défense des vins naturels. Den kräver certifierat ekologiska druvor (Agriculture Biologique eller Nature & Progrès), handskörd, jäst från vingården och inga tillsatser utöver en möjlig liten svaveljustering på det färdiga vinet. Märkningen är frivillig och täcker inte allt som kallas naturvin.",
+          "I praktiken betyder naturvin att ingreppen är få från jord till flaska. Producenten skördar och pressar, och låter sedan druva och plats styra jäsningen. Transparens om odling och källare väger tyngre än ordet på etiketten, eftersom vem som helst kan använda ordet.",
         ],
       },
     },
     {
       heading: {
-        en: "How is natural wine different from conventional wine?",
-        sv: "Vad är skillnaden mot vanligt vin?",
+        en: "Natural wine and sulfites",
+        sv: "Naturvin och sulfiter",
       },
       body: {
         en: [
-          "Conventional wine is often made with a long list of additives and techniques: commercial yeasts for predictable fermentation, sugar to raise alcohol, acid to adjust balance, enzymes to accelerate extraction, fining agents from egg, milk or fish, and filtration for clarity and stability.",
-          "Natural wine avoids all of this. The winemaker plants, harvests and presses — then steps back and lets the grapes and the place do the work.",
+          "Sulphur dioxide is used in many wines as protection against oxidation and unwanted microbial activity. Natural wine often has little or no sulphur added, and when it is added that typically happens late, at bottling. There is no official typical dose for the term natural wine, and no shared ceiling.",
+          "What can be compared are legal ceilings, not an average addition. In the EU, total sulphur dioxide in wine other than sparkling wine and liqueur wine may not exceed 150 mg/l for red and 200 mg/l for white and rosé. When residual sugar is at least 5 g/l, those ceilings rise to 200 mg/l and 250 mg/l. Some styles have higher ceilings. Source: Commission Delegated Regulation (EU) 2019/934, Annex I, Part B.",
+          "Organic wine has lower ceilings. For red wine with residual sugar below 2 g/l the ceiling is 100 mg/l. For white and rosé with residual sugar below 2 g/l the ceiling is 150 mg/l. For other organic wines the ceiling sits 30 mg/l below the ceiling in Regulation (EU) 2019/934. Source: Commission Implementing Regulation (EU) 2021/1165, Annex V, Part D.",
+          "Vin Méthode Nature allows no added sulphur before or during fermentation. In the finished wine an adjustment may be made up to 30 mg/l total, measured as H2SO4 by Frantz Paul analysis, whatever the colour. Any addition has to be shown with its own logo. With no added sulphur the other logo is used, and analyses up to 20 mg/l of sulfites formed during fermentation can be accepted. Source: the charter at vinmethodenature.org.",
+          "Fermentation often forms sulfites even when no sulphur is added. In the EU the words \"contains sulfites\" are required on the bottle when the level exceeds 10 mg/l, counted as total sulphur dioxide (Regulation (EU) No 1169/2011, Annex II). The line does not say that sulphur was added.",
         ],
         sv: [
-          "Konventionellt vin tillverkas ofta med en lång lista tillsatser och tekniker: odlad jäst för förutsägbar jäsning, socker för att höja alkoholhalten, syra för att justera balansen, enzymer för att påskynda extraktion, klarningsmedel av ägg, mjölk eller fisk och filtrering för klarhet och stabilitet.",
-          "Naturvin undviker allt detta. Vinmakaren planterar, skördar och pressar — och sedan håller sig ur vägen och låter druvorna och platsen göra jobbet.",
+          "Svaveldioxid används i många viner som skydd mot oxidation och oönskad mikrobiell aktivitet. I naturvin tillsätts oftast lite eller inget svavel, och när det tillsätts sker det typiskt sent, vid buteljering. Det finns ingen officiell typisk dos för begreppet naturvin, och inget gemensamt tak.",
+          "Det som går att jämföra är lagstadgade tak, inte en genomsnittlig tillsats. I EU får totalt svaveldioxid i vin som inte är mousserande eller likörvin vara högst 150 mg/l för rött och 200 mg/l för vitt och rosé. När restsocker är minst 5 g/l höjs taken till 200 mg/l respektive 250 mg/l. Vissa stilar har högre tak. Källa: kommissionens delegerade förordning (EU) 2019/934, bilaga I, del B.",
+          "Ekologiskt vin har lägre tak. För rött med restsocker under 2 g/l är taket 100 mg/l. För vitt och rosé med restsocker under 2 g/l är taket 150 mg/l. För övriga ekologiska viner ligger taket 30 mg/l under taket i förordning (EU) 2019/934. Källa: kommissionens genomförandeförordning (EU) 2021/1165, bilaga V, del D.",
+          "Vin Méthode Nature tillåter inget tillsatt svavel före eller under jäsning. På färdigt vin får en justering göras upp till 30 mg/l totalt, mätt som H2SO4 med Frantz Paul-analys, oavsett färg. Tillsats ska synas med en egen logotyp. Utan tillsatt svavel används den andra logotypen, och analyser upp till 20 mg/l av sulfiter som bildats under jäsningen kan godkännas. Källa: chartern hos vinmethodenature.org.",
+          "Jäsning bildar ofta sulfiter även när inget svavel tillsätts. I EU ska \"innehåller sulfiter\" stå på flaskan när halten överstiger 10 mg/l, räknat som totalt svaveldioxid (förordning (EU) nr 1169/2011, bilaga II). Märkningen säger alltså inte att svavel har tillsatts.",
         ],
       },
     },
     {
       heading: {
-        en: "Is natural wine the same as organic wine?",
-        sv: "Är naturvin samma sak som ekologiskt vin?",
+        en: "Low intervention in the vineyard and the cellar",
+        sv: "Låg intervention i vingården och källaren",
       },
       body: {
         en: [
-          "No — and this is one of the most common misconceptions.",
-          "Organic wine requires organic farming in the vineyard but still permits a wide range of additives in the cellar, including commercial yeasts and relatively high levels of added sulphur.",
-          "Natural wine starts with organic or biodynamic farming but also requires discipline in the cellar. It is the whole chain — from soil to bottle — that happens with minimal intervention.",
+          "Low intervention means the winemaker skips steps that steer flavour, colour or stability. Low intervention wine is the working method the term natural wine usually points to. In the vineyard the grapes are typically grown without synthetic pesticides or fertilisers, often organically or biodynamically, with or without a certificate. The harvest is often by hand.",
+          "In the cellar, fermentation is typically spontaneous: the grape's own yeast starts it, rather than inoculated fermentation with a cultured yeast. Cultured yeast makes fermentation more predictable. Spontaneous fermentation varies more from one vintage to the next.",
+          "Low intervention in the cellar also means that sugar, acid, enzymes and fining agents are usually left out, and that the wine is often not filtered. Conventional wine often uses several of those steps to keep flavour and appearance steady from year to year.",
         ],
         sv: [
-          "Nej — och det är en av de vanligaste missuppfattningarna.",
-          "Ekologiskt vin kräver ekologisk odling i vingården men tillåter fortfarande ett brett spektrum av tillsatser i källaren, inklusive odlad jäst och relativt höga nivåer av tillsatt svavel.",
-          "Naturvin börjar med ekologisk eller biodynamisk odling men ställer också krav på källararbetet. Det är hela kedjan — från jord till flaska — som ska ske med minimal påverkan.",
+          "Låg intervention betyder att vinmakaren avstår från ingrepp som styr smak, färg eller stabilitet. Naturvin med låg intervention är det arbetssätt begreppet brukar peka på. I vingården odlas druvorna typiskt utan syntetiska bekämpningsmedel och konstgödsel, ofta ekologiskt eller biodynamiskt, med eller utan certifikat. Skörden är ofta manuell.",
+          "I källaren är jäsningen typiskt spontan: druvans egen jäst startar den, i stället för ympad jäsning med odlad jäst. Odlad jäst ger en mer förutsägbar jäsning. Spontanjäsning varierar mer mellan årgångar.",
+          "Låg intervention i källaren betyder också att socker, syra, enzymer och klarningsmedel oftast uteblir, och att vinet ofta inte filtreras. Konventionellt vin använder ofta flera av de stegen för att göra smak och utseende jämna från år till år.",
         ],
       },
     },
     {
       heading: {
-        en: "Is there an official definition?",
-        sv: "Finns det en officiell definition?",
+        en: "Natural wine, organic and biodynamic: the difference",
+        sv: "Naturvin, ekologiskt och biodynamiskt: skillnaden",
       },
       body: {
         en: [
-          "In most countries there is no legal definition of natural wine. It is a loose term used by producers with shared but not identical principles.",
-          'France introduced an official label in 2020 — "vin méthode nature" — which requires organic farming and permits no additives except a small amount of sulphur at bottling. It is a step toward standardisation but far from comprehensive.',
-          "The practical answer: natural wine is defined by the producer and by the trust you place in the source. Transparency is worth more than a label.",
+          "Organic, biodynamic and natural wine are three different things, even when they overlap.",
+          "Organic wine is a certification. Farming follows the EU rules for organic agriculture. In the cellar many additives are still allowed, including cultured yeast, and the sulphur ceiling is lower than for conventional wine but higher than what many natural-wine producers use.",
+          "Biodynamic wine builds on organic farming plus biodynamic methods, often certified by Demeter. It is first of all a way of farming, with preparations and the farm treated as a whole. A biodynamic bottle can be natural wine, but the certificate does not by itself require spontaneous fermentation or no added sulphur.",
+          "Natural wine sets expectations for the whole chain, but without a shared certificate. It typically includes organic or biodynamic farming and low intervention in the cellar. An organic bottle is therefore not automatically natural wine, and a natural wine is not always certified.",
         ],
         sv: [
-          "I de flesta länder finns ingen lagstadgad definition av naturvin. Det är ett löst begrepp som används av producenter med delade men inte identiska principer.",
-          'Frankrike introducerade 2020 ett officiellt märke — "vin méthode nature" — som kräver ekologisk odling och tillåter inga tillsatser förutom en liten mängd svavel vid buteljering. Det är ett steg mot standardisering men långt ifrån heltäckande.',
-          "Det praktiska svaret: naturvin definieras av producenten och av det förtroende man sätter till källan. Transparens är mer värt än en etikett.",
+          "Ekologiskt, biodynamiskt och naturvin är tre olika saker, även om de ofta överlappar.",
+          "Ekologiskt vin är en certifiering. Odlingen följer EU:s regler för ekologiskt jordbruk. I källaren är många tillsatser fortfarande tillåtna, inklusive odlad jäst, och svaveltaket är lägre än för konventionellt vin men högre än vad många naturvinsproducenter använder.",
+          "Biodynamiskt vin bygger på ekologisk odling plus biodynamiska metoder, ofta certifierat av Demeter. Det är i första hand ett odlingssätt, med preparat och gården sedd som en helhet. En biodynamisk flaska kan vara naturvin, men certifieringen styr inte i sig att jäsningen är spontan eller att svavel uteblir.",
+          "Naturvin ställer krav på hela kedjan, men utan ett gemensamt certifikat. Typiskt ingår ekologisk eller biodynamisk odling och låg intervention i källaren. En ekologisk flaska är därför inte automatiskt naturvin, och ett naturvin är inte alltid certifierat.",
         ],
       },
     },
     {
       heading: {
-        en: "Why is natural wine sometimes cloudy or fizzy?",
-        sv: "Varför är naturvin ibland grumligt eller fizzigt?",
+        en: "Is there natural wine at Systembolaget?",
+        sv: "Finns naturvin på Systembolaget?",
       },
       body: {
         en: [
-          "Natural wine is often unfiltered — the hazy appearance comes from natural yeast particles in the wine, not a fault. The clarity of conventional wine is the result of filtration and fining; removing that step is a deliberate choice.",
-          "A slight effervescence in a red or white natural wine is not necessarily a fault either. It can be a sign that the wine is alive — slow fermentation continuing in the bottle. Some producers choose this deliberately for freshness.",
+          "Yes. Systembolaget has a search filter for natural wine. The results are wines that the producer or the supplier itself describes that way, and the filter is not a certification.",
+          "An independent run-through of bottles in the assortment is in [Natural wine at Systembolaget 2026](/guides/best-natural-wines-systembolaget). The list is updated on an ongoing basis. PACT does not sell at Systembolaget and earns nothing from which wines are on it.",
         ],
         sv: [
-          "Naturvin filtreras ofta inte — det grumliga utseendet kommer från naturliga jästrester och partiklar i vinet, inte ett fel. Klarheten i konventionellt vin är resultatet av filtrering och klarning; att ta bort det filtreringssteget är ett medvetet val.",
-          "En lätt kolsyra i ett rött eller vitt naturvin är inte heller nödvändigtvis ett fel. Det kan vara ett tecken på att vinet är levande — aktiv jäsning som fortsätter långsamt i flaskan. Vissa producenter väljer detta medvetet för friskhetens skull.",
+          "Ja. Systembolaget har ett sökfilter för naturvin. Träffarna är viner som producenten eller leverantören själv beskriver så, och filtret är inte en certifiering.",
+          "En oberoende genomgång av flaskor i sortimentet finns i [Naturvin på Systembolaget 2026](/guider/basta-naturvinerna-pa-systembolaget). Listan uppdateras löpande. PACT säljer inte på Systembolaget och tjänar ingenting på vilka viner som står där.",
+        ],
+      },
+    },
+    {
+      heading: {
+        en: "What natural wine tastes like",
+        sv: "Så smakar naturvin",
+      },
+      body: {
+        en: [
+          "Natural wine does not taste like one thing. The difference sits in the grape, the place and the vintage, not in a shared flavour profile.",
+          "[Red natural wine](/guides/what-is-red-natural-wine) is often lighter in colour and has softer tannins than many conventional red wines. [White natural wine](/guides/what-is-white-natural-wine) can have more texture, because spontaneous fermentation and little sulphur leave more of the grape in the wine. [Orange wine](/guides/what-is-orange-wine) is white wine fermented on the skins. The colour runs from gold to amber, and it is not the same thing as natural wine.",
+          "Sparkling natural wine is often made as pét-nat (pet nat), where fermentation finishes in the bottle. More on that style is in the guide to [sparkling natural wine](/guides/best-sparkling-natural-wines-systembolaget).",
+          "Unfiltered wine can look cloudy. The particles are leftover yeast. A light spritz in a still wine can come from fermentation continuing slowly in the bottle. Both are common, and neither means by itself that the wine is faulty.",
+        ],
+        sv: [
+          "Naturvin smakar inte på ett sätt. Skillnaden sitter i druva, plats och årgång, inte i en gemensam smakprofil.",
+          "[Rött naturvin](/guider/vad-ar-rott-naturvin) är ofta ljusare i färgen och har mjukare tanniner än många konventionella röda viner. [Vitt naturvin](/guider/vad-ar-vitt-naturvin) kan ha mer textur, eftersom spontanjäsning och lite svavel lämnar mer av druvan kvar. [Orange vin](/guider/vad-ar-orange-vin) är vitt vin som jäst med skalen. Färgen går från guld till bärnsten, och det är inte samma sak som naturvin.",
+          "Mousserande naturvin görs ofta som pét-nat (pet nat), där jäsningen avslutas i flaskan. Mer om den stilen finns i genomgången av [mousserande naturvin](/guider/basta-mousserande-naturviner-systembolaget).",
+          "Ofiltrerat vin kan se grumligt ut. Partiklarna är jästrester. En lätt kolsyra i ett stilla vin kan komma av att jäsningen fortsätter långsamt i flaskan. Båda förekommer ofta, och ingen av dem betyder i sig att vinet är felaktigt.",
         ],
       },
     },
@@ -128,51 +167,109 @@ export const whatIsNaturalWineArticle: GuideArticleContent = {
       },
       body: {
         en: [
-          "Natural wine is made across the world today, but the movement has its roots in France — particularly in Beaujolais, the Jura and the Loire, where producers in the 1980s began farming organically and vinifying without additives under the influence of the chemist Jules Chauvet.",
-          "Languedoc has become one of the most exciting regions for natural wine — schist, limestone and old vines give Carignan, Grenache, Syrah and Cinsault character and complexity. This is where PACT imports from.",
+          "Natural wine is made in many countries today. The movement grew up in France, above all in Beaujolais, the Jura and the Loire. In the 1980s, producers influenced by the chemist Jules Chauvet began farming organically and vinifying without additives.",
+          "Languedoc is one of the regions where the approach is common. Schist, limestone and old vines give character to Carignan, Grenache, Syrah and Cinsault. That is where PACT imports from. Read more in the guide to [natural wine from Languedoc](/guides/languedoc-natural-wine).",
         ],
         sv: [
-          "Naturvin görs idag över hela världen, men rörelsen har sina rötter i Frankrike — framför allt i Beaujolais, Jura och Loire, där producenter på 1980-talet under inflytande av kemisten Jules Chauvet börjat odla ekologiskt och vinifiera utan tillsatser.",
-          "Languedoc har blivit en av de mest spännande regionerna för naturvin — skiffer, kalk och gamla stockar ger Carignan, Grenache, Syrah och Cinsault med karaktär och komplexitet. Det är härifrån PACT importerar.",
-        ],
-      },
-    },
-    {
-      heading: {
-        en: "What does natural wine taste like?",
-        sv: "Hur smakar naturvin?",
-      },
-      body: {
-        en: [
-          "Natural wine does not taste like one thing — that is the whole point. A natural wine from old Carignan vines in Faugères tastes different from a light Cinsault from Saint-Chinian, and both taste different from an orange Grenache Blanc from the Haute Vallée de l'Orb.",
-          "What unites them is authenticity: the taste of a specific place, a specific vintage and a specific effort — not the taste of a process designed to produce consistency at scale.",
-        ],
-        sv: [
-          "Naturvin smakar inte på ett enda sätt — det är hela poängen. Ett naturvin från gamla Carignan-stockar i Faugères smakar annorlunda än ett lätt Cinsault från Saint-Chinian, och båda smakar annorlunda än en orange Grenache Blanc från Haute Vallée de l'Orb.",
-          "Det som förenar dem är äkthet: smaken av en specifik plats, en specifik årgång och ett specifikt arbete — inte smaken av en process utformad för att producera konsistens i stor skala.",
-        ],
-      },
-    },
-    {
-      heading: {
-        en: "More on the styles",
-        sv: "Läs mer om stilarna",
-      },
-      body: {
-        en: [
-          "[What is red natural wine?](/guides/what-is-red-natural-wine)",
-          "[What is white natural wine?](/guides/what-is-white-natural-wine)",
-          "[What is orange wine?](/guides/what-is-orange-wine)",
-        ],
-        sv: [
-          "[Vad är rött naturvin?](/guider/vad-ar-rott-naturvin)",
-          "[Vad är vitt naturvin?](/guider/vad-ar-vitt-naturvin)",
-          "[Vad är orange vin?](/guider/vad-ar-orange-vin)",
+          "Naturvin görs i dag i många länder. Rörelsen växte fram i Frankrike, framför allt i Beaujolais, Jura och Loire. På 1980-talet började producenter, under inflytande av kemisten Jules Chauvet, odla ekologiskt och vinifiera utan tillsatser.",
+          "Languedoc är en av regionerna där arbetssättet är vanligt. Skiffer, kalk och gamla stockar ger karaktär åt Carignan, Grenache, Syrah och Cinsault. Det är därifrån PACT importerar. Läs mer i guiden om [naturvin från Languedoc](/guider/naturvin-languedoc).",
         ],
       },
     },
   ],
+  faqs: [
+    {
+      question: {
+        en: "What is natural wine?",
+        sv: "Vad är naturvin?",
+      },
+      answer: {
+        en: "Natural wine is low-intervention wine: the grapes are typically farmed organically or biodynamically, fermentation is spontaneous and the cellar usually adds little or no sulphur. There is no shared legal definition.",
+        sv: "Naturvin är vin med låg intervention: druvorna odlas typiskt ekologiskt eller biodynamiskt, jäsningen är spontan och i källaren tillsätts oftast lite eller inget svavel. Det finns ingen gemensam lagdefinition.",
+      },
+    },
+    {
+      question: {
+        en: "Does natural wine contain sulfites?",
+        sv: "Innehåller naturvin sulfiter?",
+      },
+      answer: {
+        en: "Often little or no added sulfites. Fermentation can still form sulfites, and the EU requires the words \"contains sulfites\" above 10 mg/l. Under Vin Méthode Nature, added sulphur in the finished wine may not take the total above 30 mg/l, measured as H2SO4.",
+        sv: "Ofta lite eller inga tillsatta sulfiter. Jäsning kan ändå bilda sulfiter, och märkningen \"innehåller sulfiter\" krävs i EU över 10 mg/l. Inom Vin Méthode Nature får tillsatt svavel på färdigt vin ge högst 30 mg/l totalt, mätt som H2SO4.",
+      },
+    },
+    {
+      question: {
+        en: "Is natural wine organic?",
+        sv: "Är naturvin ekologiskt?",
+      },
+      answer: {
+        en: "Not by definition. Many growers farm organically or biodynamically, with or without a certificate. Organic wine may still contain cellar additives, including cultured yeast.",
+        sv: "Inte per definition. Många odlar ekologiskt eller biodynamiskt, med eller utan certifikat. Ekologiskt vin får fortfarande innehålla tillsatser i källaren, inklusive odlad jäst.",
+      },
+    },
+    {
+      question: {
+        en: "Is natural wine the same as orange wine?",
+        sv: "Är naturvin samma som orange vin?",
+      },
+      answer: {
+        en: "No. Orange wine is white wine fermented on the skins. It can be natural wine, but skin contact is a method. Read more in [What is orange wine?](/guides/what-is-orange-wine).",
+        sv: "Nej. Orange vin är vitt vin som jäst med skalen. Det kan vara naturvin, men skalkontakt är en metod. Läs mer i [Vad är orange vin?](/guider/vad-ar-orange-vin).",
+      },
+    },
+    {
+      question: {
+        en: "Where do you buy natural wine in Sweden?",
+        sv: "Var köper man naturvin i Sverige?",
+      },
+      answer: {
+        en: "At Systembolaget, which has a filter for natural wine. See [Natural wine at Systembolaget 2026](/guides/best-natural-wines-systembolaget). It is also possible to order from some shops abroad. The rules are described in [Buying natural wine online in Sweden](/guides/buy-natural-wine-online-sweden).",
+        sv: "På Systembolaget, som har ett filter för naturvin. Se [Naturvin på Systembolaget 2026](/guider/basta-naturvinerna-pa-systembolaget). Det går också att beställa från vissa butiker utomlands. Reglerna beskrivs i [Köpa naturvin online i Sverige](/guider/kopa-naturvin-online).",
+      },
+    },
+  ],
   internalLinks: [
+    {
+      label: {
+        en: "What is red natural wine? →",
+        sv: "Vad är rött naturvin? →",
+      },
+      href: {
+        en: "/guides/what-is-red-natural-wine",
+        sv: "/guider/vad-ar-rott-naturvin",
+      },
+    },
+    {
+      label: {
+        en: "What is white natural wine? →",
+        sv: "Vad är vitt naturvin? →",
+      },
+      href: {
+        en: "/guides/what-is-white-natural-wine",
+        sv: "/guider/vad-ar-vitt-naturvin",
+      },
+    },
+    {
+      label: {
+        en: "What is orange wine? →",
+        sv: "Vad är orange vin? →",
+      },
+      href: {
+        en: "/guides/what-is-orange-wine",
+        sv: "/guider/vad-ar-orange-vin",
+      },
+    },
+    {
+      label: {
+        en: "Sparkling natural wine →",
+        sv: "Mousserande naturvin →",
+      },
+      href: {
+        en: "/guides/best-sparkling-natural-wines-systembolaget",
+        sv: "/guider/basta-mousserande-naturviner-systembolaget",
+      },
+    },
     {
       label: {
         en: "Explore natural wine online →",
@@ -201,16 +298,6 @@ export const whatIsNaturalWineArticle: GuideArticleContent = {
       href: {
         en: "/wine/orange-natural-wine",
         sv: "/vin/orange-naturvin",
-      },
-    },
-    {
-      label: {
-        en: "What is orange wine? →",
-        sv: "Vad är orange vin? →",
-      },
-      href: {
-        en: "/guides/what-is-orange-wine",
-        sv: "/guider/vad-ar-orange-vin",
       },
     },
     {

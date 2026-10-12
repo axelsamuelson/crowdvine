@@ -18,6 +18,7 @@ import { guideCopy } from "@/lib/guides/guide-copy";
 import { isIndexableGuideHref } from "@/lib/guides/guide-publication";
 import { guidePath } from "@/lib/guides/guide-routes";
 import {
+  articleLinkText,
   articleParagraphs,
   articlePath,
   isGuideArticlePublished,
@@ -141,7 +142,28 @@ export async function renderArticleGuidePage(
       url: seoBaseUrl,
     },
     about,
+    ...(content.updated ? { dateModified: content.updated } : {}),
   };
+
+  const faqs = (content.faqs ?? []).map((faq) => ({
+    question: faq.question[locale],
+    answer: faq.answer[locale],
+  }));
+  const faqJsonLd =
+    faqs.length > 0
+      ? {
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          mainEntity: faqs.map((faq) => ({
+            "@type": "Question",
+            name: faq.question,
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: articleLinkText(faq.answer),
+            },
+          })),
+        }
+      : null;
 
   const breadcrumbCrumbs = articleGuideCrumbs({
     locale,
@@ -169,6 +191,14 @@ export async function renderArticleGuidePage(
           __html: JSON.stringify(breadcrumbJsonLd),
         }}
       />
+      {faqJsonLd ? (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(faqJsonLd),
+          }}
+        />
+      ) : null}
 
       <ArticleGuideShell
         h1={content.h1[locale]}
@@ -185,6 +215,8 @@ export async function renderArticleGuidePage(
           content.sections.length >= 2 && shopCta ? shopCta : undefined
         }
         afterSections={shopCta ?? undefined}
+        faqs={faqs}
+        faqHeading={locale === "sv" ? "Vanliga frågor" : "Frequently asked questions"}
         furtherReadingHeading={content.furtherReadingHeading[locale]}
         internalLinks={content.internalLinks
           .filter((link) => link.label[locale].trim().length > 0)

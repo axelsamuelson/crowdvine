@@ -143,6 +143,11 @@ export type ArticleGuideShellLink = {
   href: string;
 };
 
+export type ArticleGuideShellFaq = {
+  question: string;
+  answer: string;
+};
+
 export type ArticleGuideShellProps = {
   h1: string;
   lede?: string;
@@ -153,6 +158,8 @@ export type ArticleGuideShellProps = {
   afterFirstSection?: ReactNode;
   /** Rendered after the last section, before further reading (inside the measure column). */
   afterSections?: ReactNode;
+  faqs?: ArticleGuideShellFaq[];
+  faqHeading?: string;
   furtherReadingHeading?: string;
   internalLinks?: ArticleGuideShellLink[];
   breadcrumb: ReactNode;
@@ -179,6 +186,8 @@ export function ArticleGuideShell({
   beforeSections,
   afterFirstSection,
   afterSections,
+  faqs = [],
+  faqHeading,
   furtherReadingHeading,
   internalLinks = [],
   breadcrumb,
@@ -244,6 +253,23 @@ export function ArticleGuideShell({
               </section>
             ))}
             {afterSections}
+            {faqs.length > 0 ? (
+              <section>
+                <h2 className={ARTICLE_GUIDE_H2_CLASS}>
+                  {faqHeading ?? "Frequently asked questions"}
+                </h2>
+                <div className="mt-6 space-y-8">
+                  {faqs.map((faq) => (
+                    <div key={faq.question}>
+                      <h3 className={ARTICLE_GUIDE_H3_CLASS}>{faq.question}</h3>
+                      <p className="mt-2 text-[17px] leading-[1.75] text-foreground/80">
+                        {renderRichText(faq.answer, faq.question)}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            ) : null}
           </div>
         </div>
 

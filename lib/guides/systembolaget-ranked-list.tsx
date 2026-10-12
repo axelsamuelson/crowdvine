@@ -458,7 +458,8 @@ export async function renderSystembolagetRankedListPage(
   const syncedAt = freshestSyncedAt(wines);
   const syncedLabel = formatSyncedAtLabel(syncedAt, locale);
   const dateModified = (() => {
-    let best: string | null = syncedAt;
+    let best: string | null = content.updated ?? null;
+    if (syncedAt && (!best || syncedAt > best)) best = syncedAt;
     for (const wine of wines) {
       const reviewed = wine.last_reviewed_at;
       if (!reviewed) continue;

@@ -2,6 +2,7 @@ import type { GuideArticleContent } from "@/lib/guides/guide-types";
 
 /** Bilingual guide: best white natural / low-intervention wines in Systembolaget assortment. */
 export const bestWhiteNaturalWinesSystembolagetArticle: GuideArticleContent = {
+  updated: "2026-10-12",
   slug: {
     en: "best-white-natural-wines-systembolaget",
     sv: "basta-vita-naturviner-systembolaget",
@@ -107,8 +108,8 @@ export const bestWhiteNaturalWinesSystembolagetArticle: GuideArticleContent = {
   internalLinks: [
     {
       label: {
-        en: "What is natural wine? →",
-        sv: "Vad är naturvin? →",
+        en: "what is natural wine",
+        sv: "vad är naturvin",
       },
       href: {
         en: "/guides/what-is-natural-wine",

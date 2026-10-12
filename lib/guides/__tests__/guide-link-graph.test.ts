@@ -149,22 +149,30 @@ describe("article breadcrumbs", () => {
 });
 
 describe("style and Thévenet links", () => {
-  it("adds the style heading and the orange back link", () => {
-    const section = whatIsNaturalWineArticle.sections.at(-1);
-    expect(section?.heading).toEqual({
-      en: "More on the styles",
-      sv: "Läs mer om stilarna",
-    });
-    expect(section?.body.en).toEqual([
-      "[What is red natural wine?](/guides/what-is-red-natural-wine)",
-      "[What is white natural wine?](/guides/what-is-white-natural-wine)",
-      "[What is orange wine?](/guides/what-is-orange-wine)",
-    ]);
-    expect(section?.body.sv).toEqual([
-      "[Vad är rött naturvin?](/guider/vad-ar-rott-naturvin)",
-      "[Vad är vitt naturvin?](/guider/vad-ar-vitt-naturvin)",
-      "[Vad är orange vin?](/guider/vad-ar-orange-vin)",
-    ]);
+  it("links the style explainers from the taste section", () => {
+    const section = whatIsNaturalWineArticle.sections.find(
+      (item) => item.heading?.en === "What natural wine tastes like",
+    );
+    const en = Array.isArray(section?.body.en)
+      ? section.body.en.join("\n")
+      : (section?.body.en ?? "");
+    const sv = Array.isArray(section?.body.sv)
+      ? section.body.sv.join("\n")
+      : (section?.body.sv ?? "");
+    expect(en).toContain("[Red natural wine](/guides/what-is-red-natural-wine)");
+    expect(en).toContain(
+      "[White natural wine](/guides/what-is-white-natural-wine)",
+    );
+    expect(en).toContain("[Orange wine](/guides/what-is-orange-wine)");
+    expect(en).toContain(
+      "[sparkling natural wine](/guides/best-sparkling-natural-wines-systembolaget)",
+    );
+    expect(sv).toContain("[Rött naturvin](/guider/vad-ar-rott-naturvin)");
+    expect(sv).toContain("[Vitt naturvin](/guider/vad-ar-vitt-naturvin)");
+    expect(sv).toContain("[Orange vin](/guider/vad-ar-orange-vin)");
+    expect(sv).toContain(
+      "[mousserande naturvin](/guider/basta-mousserande-naturviner-systembolaget)",
+    );
     expect(section?.heading?.en).not.toMatch(/[åäöÅÄÖ]/);
     expect(JSON.stringify(section?.heading)).not.toContain("—");
 

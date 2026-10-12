@@ -2,6 +2,7 @@ import type { GuideArticleContent } from "@/lib/guides/guide-types";
 
 /** Bilingual guide: best red natural wines in Systembolaget assortment. */
 export const bestRedNaturalWinesSystembolagetArticle: GuideArticleContent = {
+  updated: "2026-10-12",
   slug: {
     en: "best-red-natural-wines-systembolaget",
     sv: "basta-roda-naturviner-systembolaget",
@@ -107,8 +108,8 @@ export const bestRedNaturalWinesSystembolagetArticle: GuideArticleContent = {
   internalLinks: [
     {
       label: {
-        en: "What is natural wine? →",
-        sv: "Vad är naturvin? →",
+        en: "what is natural wine",
+        sv: "vad är naturvin",
       },
       href: {
         en: "/guides/what-is-natural-wine",

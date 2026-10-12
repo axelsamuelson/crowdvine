@@ -2,6 +2,7 @@ import type { GuideArticleContent } from "@/lib/guides/guide-types";
 
 /** Parent list: best natural wines at Systembolaget, across styles. */
 export const bestNaturalWinesSystembolagetArticle: GuideArticleContent = {
+  updated: "2026-10-12",
   slug: {
     en: "best-natural-wines-systembolaget",
     sv: "basta-naturvinerna-pa-systembolaget",
@@ -105,8 +106,8 @@ export const bestNaturalWinesSystembolagetArticle: GuideArticleContent = {
   internalLinks: [
     {
       label: {
-        en: "What is natural wine?",
-        sv: "Vad är naturvin?",
+        en: "what is natural wine",
+        sv: "vad är naturvin",
       },
       href: {
         en: "/guides/what-is-natural-wine",

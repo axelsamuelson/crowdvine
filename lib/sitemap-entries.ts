@@ -92,10 +92,15 @@ function staticPagesForProfile(
         `${baseUrl}/guides/worlds-best-natural-wine-producers`,
         0.75,
       ),
-      ...publishedBilingualArticleGuides().flatMap((guide) => [
-        weeklyEntry(`${baseUrl}${articlePath(guide, "en")}`, 0.75),
-        weeklyEntry(`${baseUrl}${articlePath(guide, "sv")}`, 0.75),
-      ]),
+      ...publishedBilingualArticleGuides().flatMap((guide) => {
+        const lastModified = guide.updated
+          ? new Date(`${guide.updated}T00:00:00.000Z`)
+          : new Date();
+        return [
+          weeklyEntry(`${baseUrl}${articlePath(guide, "en")}`, 0.75, lastModified),
+          weeklyEntry(`${baseUrl}${articlePath(guide, "sv")}`, 0.75, lastModified),
+        ];
+      }),
       weeklyEntry(`${baseUrl}${GUIDE_PATHS.orangeWines.en}`, 0.75),
       weeklyEntry(`${baseUrl}${GUIDE_PATHS.orangeWines.sv}`, 0.75),
       weeklyEntry(`${baseUrl}${GUIDE_PATHS.naturalChampagne.en}`, 0.75),
