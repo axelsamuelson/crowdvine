@@ -3,6 +3,10 @@ import { z } from "zod";
 import { getCurrentAdmin } from "@/lib/admin-auth-server";
 import { TOP_100_PRODUCERS } from "@/lib/guides/top-100-producers";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import {
+  publishCuratedById,
+  revalidateSystembolagetGuideCategory,
+} from "@/lib/systembolaget/publish-curated";
 
 export const dynamic = "force-dynamic";
 
@@ -74,6 +78,32 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     );
   }
 
+  // Admin publish toggle: same helper as scripted publishes (availability +
+  // first_published_at + cache revalidation).
+  const keys = Object.keys(parsed.data);
+  if (keys.length === 1 && parsed.data.is_published === true) {
+    const result = await publishCuratedById(id);
+    if (!result.ok) {
+      const status =
+        result.reason === "not_found"
+          ? 404
+          : result.reason === "unavailable" || result.reason === "skipped_verdict"
+            ? 409
+            : 500;
+      return NextResponse.json({ error: result.message, reason: result.reason }, { status });
+    }
+    const sb = getSupabaseAdmin();
+    const { data, error } = await sb
+      .from("systembolaget_curated")
+      .select("*")
+      .eq("id", id)
+      .single();
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    return NextResponse.json({ row: data });
+  }
+
   const patch: Record<string, unknown> = { ...parsed.data };
   if (parsed.data.verdict === "skipped") {
     patch.is_published = false;
@@ -97,6 +127,16 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   }
 
   const sb = getSupabaseAdmin();
+  const { data: before } = await sb
+    .from("systembolaget_curated")
+    .select("category, is_published, first_published_at")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (parsed.data.is_published === true && before && !before.is_published) {
+    patch.first_published_at = before.first_published_at ?? new Date().toISOString();
+  }
+
   const { data, error } = await sb
     .from("systembolaget_curated")
     .update(patch)
@@ -106,6 +146,13 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  const categories = new Set<string>();
+  if (before?.category) categories.add(String(before.category));
+  if (data?.category) categories.add(String(data.category));
+  for (const category of categories) {
+    revalidateSystembolagetGuideCategory(category);
   }
 
   return NextResponse.json({ row: data });
@@ -124,13 +171,20 @@ export async function DELETE(_request: NextRequest, context: RouteContext) {
   }
 
   const sb = getSupabaseAdmin();
-  const { error } = await sb
+  const { data: existing } = await sb
     .from("systembolaget_curated")
-    .delete()
-    .eq("id", id);
+    .select("category")
+    .eq("id", id)
+    .maybeSingle();
+
+  const { error } = await sb.from("systembolaget_curated").delete().eq("id", id);
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  if (existing?.category) {
+    revalidateSystembolagetGuideCategory(String(existing.category));
   }
 
   return NextResponse.json({ ok: true });

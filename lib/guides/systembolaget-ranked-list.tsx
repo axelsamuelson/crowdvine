@@ -93,6 +93,24 @@ function wineListName(wine: SystembolagetGuideWine): string {
   return secondary ? `${producer} ${secondary}` : producer;
 }
 
+/** Bottle size for the meta line; omit standard 750 ml to keep the line short. */
+export function formatBottleVolume(
+  volumeMl: number | null | undefined,
+  locale: AppLocale,
+): string | null {
+  if (volumeMl == null || !Number.isFinite(volumeMl) || volumeMl <= 0) {
+    return null;
+  }
+  const ml = Math.round(volumeMl);
+  if (ml === 750) return null;
+  if (ml === 1000) return locale === "sv" ? "1 liter" : "1 litre";
+  if (ml >= 1000 && ml % 1000 === 0) {
+    const litres = ml / 1000;
+    return locale === "sv" ? `${litres} liter` : `${litres} litres`;
+  }
+  return `${ml} ml`;
+}
+
 function wineMetaParts(
   wine: SystembolagetGuideWine,
   locale: AppLocale,
@@ -103,6 +121,7 @@ function wineMetaParts(
   return [
     wine.vintage != null ? String(wine.vintage) : null,
     origin,
+    formatBottleVolume(wine.volume, locale),
   ].filter((part): part is string => Boolean(part));
 }
 
