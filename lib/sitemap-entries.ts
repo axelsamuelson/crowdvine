@@ -9,6 +9,7 @@ import { generateProducerSlug } from "@/lib/producer-handle";
 import {
   isNoindexCategorySlug,
 } from "@/lib/seo/noindex-robots";
+import { producerBoxesSitemapPaths } from "@/lib/producer-boxes/config";
 import { WINE_CATEGORIES_EN, WINE_CATEGORIES_SV } from "@/lib/wine-categories";
 import {
   dedupeSitemapEntries,
@@ -107,6 +108,9 @@ function staticPagesForProfile(
       weeklyEntry(`${baseUrl}${GUIDE_PATHS.naturalChampagne.sv}`, 0.75),
       weeklyEntry(`${baseUrl}/vin/wine-boxes`, 0.75),
       weeklyEntry(`${baseUrl}/wine/wine-boxes`, 0.75),
+      ...producerBoxesSitemapPaths().map((path) =>
+        weeklyEntry(`${baseUrl}${path}`, 0.75),
+      ),
     );
   }
 

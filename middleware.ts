@@ -31,6 +31,10 @@ import {
   isGuidePath,
   pactGuideRedirectUrl,
 } from "@/lib/guides/dirtywine-guide-redirect";
+import {
+  isProducerBoxesPath,
+  pactProducerBoxesRedirectUrl,
+} from "@/lib/producer-boxes/config";
 
 const LOCALE_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
 
@@ -149,6 +153,13 @@ async function runMiddleware(req: NextRequest) {
   if (isDirtywineProductionHost(host) && isGuidePath(pathname)) {
     return NextResponse.redirect(
       pactGuideRedirectUrl(pathname, req.nextUrl.search),
+      301,
+    );
+  }
+
+  if (isDirtywineProductionHost(host) && isProducerBoxesPath(pathname)) {
+    return NextResponse.redirect(
+      pactProducerBoxesRedirectUrl(pathname, req.nextUrl.search),
       301,
     );
   }

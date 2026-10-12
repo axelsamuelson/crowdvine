@@ -47,6 +47,9 @@ import { buildFaqPageJsonLd } from "@/lib/wine-category-faq";
 import { CategoryFaqSection } from "@/components/shop/category-faq-section";
 import { WINE_CATEGORIES_EN } from "@/lib/wine-categories";
 import { resolveGrapeCategoryBySlug } from "@/lib/wine-grape-categories";
+import { ProducerBoxesPage } from "@/components/producer-boxes/producer-boxes-page";
+import { isProducerBoxesSlug } from "@/lib/producer-boxes/config";
+import { buildProducerBoxesMetadata } from "@/lib/producer-boxes/metadata";
 
 export const revalidate = 300;
 export const dynamicParams = true;
@@ -63,6 +66,10 @@ export async function generateMetadata(props: {
     props.params,
     props.searchParams ?? Promise.resolve({}),
   ]);
+
+  if (isProducerBoxesSlug(slug, "en")) {
+    return buildProducerBoxesMetadata("en");
+  }
 
   const category = await resolveGrapeCategoryBySlug(slug, "en");
   if (category) {
@@ -153,6 +160,11 @@ interface PageProps {
 export default async function WineCategoryPage(props: PageProps) {
   const { category: slug } = await props.params;
   const searchParams = await props.searchParams;
+
+  if (isProducerBoxesSlug(slug, "en")) {
+    return <ProducerBoxesPage locale="en" />;
+  }
+
   const category = await resolveGrapeCategoryBySlug(slug, "en");
   if (!category) {
     const collection = await getCollection(slug);
