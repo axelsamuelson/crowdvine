@@ -227,8 +227,8 @@ export const whatIsRedNaturalWineArticle: GuideArticleContent = {
     },
     {
       label: {
-        en: "Best red natural wines at Systembolaget →",
-        sv: "Bästa röda naturviner på Systembolaget →",
+        en: "Best red natural wines at Systembolaget 2026 →",
+        sv: "Bästa röda naturviner på Systembolaget 2026 →",
       },
       href: {
         en: "/guides/best-red-natural-wines-systembolaget",

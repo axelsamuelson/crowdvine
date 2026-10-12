@@ -7,24 +7,24 @@ export const bestWhiteNaturalWinesSystembolagetArticle: GuideArticleContent = {
     sv: "basta-vita-naturviner-systembolaget",
   },
   title: {
-    en: "Best white natural wines Systembolaget",
-    sv: "Bästa vita naturviner på Systembolaget",
+    en: "White natural wine at Systembolaget 2026: the best",
+    sv: "Vitt naturvin på Systembolaget 2026: de bästa",
   },
   meta: {
-    en: "Independent shortlist of white natural wines at Systembolaget — biodynamic, organic and low-intervention.",
-    sv: "Oberoende shortlist av vita naturviner på Systembolaget — biodynamiskt, ekologiskt och lågintervention.",
+    en: "White natural wine at Systembolaget: an independent shortlist of white natural wines, biodynamic, organic and low-intervention.",
+    sv: "Vitt naturvin på Systembolaget: oberoende shortlist av vita naturviner, biodynamiskt, ekologiskt och lågintervention.",
   },
   h1: {
-    en: "The best white natural wines at Systembolaget",
-    sv: "Bästa vita naturviner på Systembolaget",
+    en: "Best white natural wines at Systembolaget 2026",
+    sv: "Bästa vita naturviner på Systembolaget 2026",
   },
   lede: {
-    en: "White wines from growers who farm with conviction — biodynamic, organic and low-intervention — that you can actually buy at Systembolaget. The list is independent: PACT does not sell at Systembolaget and earns nothing from what you choose.",
-    sv: "Vita viner från odlare med övertygelse — biodynamiskt, ekologiskt och lågintervention — som faktiskt går att köpa på Systembolaget. Listan är oberoende: PACT säljer inte på Systembolaget och tjänar ingenting på vad du väljer.",
+    en: "Here is white natural wine at Systembolaget in one list: white natural wines from growers who farm with conviction (biodynamic, organic and low-intervention) that you can actually buy right now. The list is independent: PACT does not sell at Systembolaget and earns nothing from what you choose.",
+    sv: "Här är vitt naturvin på Systembolaget i en lista: vita naturviner från odlare med övertygelse (biodynamiskt, ekologiskt och lågintervention) som faktiskt går att köpa just nu. Listan är oberoende: PACT säljer inte på Systembolaget och tjänar ingenting på vad du väljer.",
   },
   breadcrumbShort: {
-    en: "Best white natural wines at Systembolaget",
-    sv: "Bästa vita naturviner på Systembolaget",
+    en: "Best white natural wines at Systembolaget 2026",
+    sv: "Bästa vita naturviner på Systembolaget 2026",
   },
   furtherReadingHeading: {
     en: "Further reading",
@@ -32,8 +32,8 @@ export const bestWhiteNaturalWinesSystembolagetArticle: GuideArticleContent = {
   },
   hubCard: {
     title: {
-      en: "The best white natural wines at Systembolaget",
-      sv: "Bästa vita naturviner på Systembolaget",
+      en: "Best white natural wines at Systembolaget 2026",
+      sv: "Bästa vita naturviner på Systembolaget 2026",
     },
     description: {
       en: "An independent shortlist of white wines at Systembolaget from biodynamic, organic and low-intervention growers.",
@@ -127,8 +127,8 @@ export const bestWhiteNaturalWinesSystembolagetArticle: GuideArticleContent = {
     },
     {
       label: {
-        en: "Best red natural wines at Systembolaget →",
-        sv: "Bästa röda naturviner på Systembolaget →",
+        en: "Best red natural wines at Systembolaget 2026 →",
+        sv: "Bästa röda naturviner på Systembolaget 2026 →",
       },
       href: {
         en: "/guides/best-red-natural-wines-systembolaget",

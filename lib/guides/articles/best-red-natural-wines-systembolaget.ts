@@ -7,24 +7,24 @@ export const bestRedNaturalWinesSystembolagetArticle: GuideArticleContent = {
     sv: "basta-roda-naturviner-systembolaget",
   },
   title: {
-    en: "Best red natural wines at Systembolaget",
-    sv: "Bästa röda naturviner på Systembolaget",
+    en: "Red natural wine at Systembolaget 2026: the best",
+    sv: "Rött naturvin på Systembolaget 2026: de bästa",
   },
   meta: {
-    en: "Independent guide to the best red natural wines at Systembolaget — only producers with real low-intervention credibility.",
-    sv: "Oberoende guide till de bästa röda naturvinerna på Systembolaget — bara producenter med verklig trovärdighet.",
+    en: "Independent guide to red natural wine at Systembolaget. Only producers with real low-intervention credibility.",
+    sv: "Oberoende guide till rött naturvin på Systembolaget. Bara producenter med verklig trovärdighet.",
   },
   h1: {
     en: "Best red natural wines at Systembolaget 2026",
     sv: "Bästa röda naturviner på Systembolaget 2026",
   },
   lede: {
-    en: "The best red natural wines you can actually buy at Systembolaget right now. This list is independent — PACT does not sell at Systembolaget and earns nothing from what you choose.",
-    sv: "De bästa röda naturvinerna som faktiskt går att köpa på Systembolaget just nu. Listan är oberoende — PACT säljer inte på Systembolaget och tjänar ingenting på vad du väljer.",
+    en: "Here is red natural wine at Systembolaget in one list: red natural wines you can actually buy right now. The list is independent: PACT does not sell at Systembolaget and earns nothing from what you choose.",
+    sv: "Här är rött naturvin på Systembolaget i en lista: röda naturviner som faktiskt går att köpa just nu. Listan är oberoende: PACT säljer inte på Systembolaget och tjänar ingenting på vad du väljer.",
   },
   breadcrumbShort: {
-    en: "Best red natural wines at Systembolaget",
-    sv: "Bästa röda naturviner på Systembolaget",
+    en: "Best red natural wines at Systembolaget 2026",
+    sv: "Bästa röda naturviner på Systembolaget 2026",
   },
   furtherReadingHeading: {
     en: "Further reading",

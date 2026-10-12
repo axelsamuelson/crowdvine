@@ -43,8 +43,8 @@ export const SYSTEMBOLAGET_RANKED_LISTS = [
       sv: "/guider/basta-roda-naturviner-systembolaget",
     },
     label: {
-      en: "Best red natural wines at Systembolaget →",
-      sv: "Bästa röda naturviner på Systembolaget →",
+      en: "Best red natural wines at Systembolaget 2026 →",
+      sv: "Bästa röda naturviner på Systembolaget 2026 →",
     },
     h1: {
       en: "Best red natural wines at Systembolaget 2026",
@@ -58,12 +58,12 @@ export const SYSTEMBOLAGET_RANKED_LISTS = [
       sv: "/guider/basta-vita-naturviner-systembolaget",
     },
     label: {
-      en: "Best white natural wines at Systembolaget →",
-      sv: "Bästa vita naturviner på Systembolaget →",
+      en: "Best white natural wines at Systembolaget 2026 →",
+      sv: "Bästa vita naturviner på Systembolaget 2026 →",
     },
     h1: {
-      en: "The best white natural wines at Systembolaget",
-      sv: "Bästa vita naturviner på Systembolaget",
+      en: "Best white natural wines at Systembolaget 2026",
+      sv: "Bästa vita naturviner på Systembolaget 2026",
     },
   },
   {

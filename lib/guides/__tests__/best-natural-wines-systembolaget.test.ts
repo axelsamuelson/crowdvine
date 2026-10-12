@@ -69,7 +69,7 @@ describe("best natural wines at Systembolaget", () => {
     ).map((list) => list.h1.sv);
     expect(styleH1s).toEqual([
       "Bästa röda naturviner på Systembolaget 2026",
-      "Bästa vita naturviner på Systembolaget",
+      "Bästa vita naturviner på Systembolaget 2026",
       "Bästa orange naturviner på Systembolaget 2026",
       "Bästa mousserande naturviner på Systembolaget",
       "Bästa rosé naturviner på Systembolaget",
