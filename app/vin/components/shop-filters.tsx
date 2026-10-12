@@ -171,40 +171,46 @@ export function DesktopFilters({
           </Button>
         </div>
         <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-y-contain pb-4 pr-1">
-          <ShopFilterSearch id="shop-search-desktop" />
+          {isProducerBoxesPage ? null : (
+            <ShopFilterSearch id="shop-search-desktop" />
+          )}
           <Suspense fallback={null}>
             {isProducerBoxesPage ? null : (
-              <ColorFilter
-                products={originalProducts}
-                showAllColors={isColorCategoryPage}
-                activeColor={activeColorName ?? undefined}
-                onColorSelect={handleColorSelect}
-              />
+              <>
+                <ColorFilter
+                  products={originalProducts}
+                  showAllColors={isColorCategoryPage}
+                  activeColor={activeColorName ?? undefined}
+                  onColorSelect={handleColorSelect}
+                />
+                <FarmingFilter
+                  products={originalProducts}
+                  mode="sidebar"
+                  onSeeAll={openSeeAll}
+                  onFarmingSelect={handleFarmingSelect}
+                  activeFarming={activeFarming ?? undefined}
+                />
+                <GrapesFilter
+                  products={originalProducts}
+                  mode="sidebar"
+                  onSeeAll={openSeeAll}
+                  onGrapeSelect={handleGrapeSelect}
+                  activeGrape={activeGrapeName ?? undefined}
+                />
+              </>
             )}
-            <FarmingFilter
-              products={originalProducts}
-              mode="sidebar"
-              onSeeAll={openSeeAll}
-              onFarmingSelect={handleFarmingSelect}
-              activeFarming={activeFarming ?? undefined}
-            />
-            <GrapesFilter
-              products={originalProducts}
-              mode="sidebar"
-              onSeeAll={openSeeAll}
-              onGrapeSelect={handleGrapeSelect}
-              activeGrape={activeGrapeName ?? undefined}
-            />
             <CategoryFilter
               collections={collections}
               mode="sidebar"
               onSeeAll={openSeeAll}
             />
-            <CompetitorFilter
-              sources={priceSources}
-              mode="sidebar"
-              onSeeAll={openSeeAll}
-            />
+            {isProducerBoxesPage ? null : (
+              <CompetitorFilter
+                sources={priceSources}
+                mode="sidebar"
+                onSeeAll={openSeeAll}
+              />
+            )}
           </Suspense>
           <ProducerBoxesCta className="mt-2" ssrPathname={ssrPathname} />
         </div>
@@ -249,30 +255,39 @@ export function DesktopFilters({
 
             <div className="flex-1 min-h-0 overflow-y-auto px-6 py-6">
               <Suspense fallback={null}>
-                <ShopFilterSearch className="mb-6 max-w-md" id="shop-search-overlay" />
+                {isProducerBoxesPage ? null : (
+                  <ShopFilterSearch
+                    className="mb-6 max-w-md"
+                    id="shop-search-overlay"
+                  />
+                )}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-start">
                   {isProducerBoxesPage ? null : (
-                    <ColorFilter
-                      products={originalProducts}
-                      showAllColors={isColorCategoryPage}
-                      activeColor={activeColorName ?? undefined}
-                      onColorSelect={handleColorSelect}
-                    />
+                    <>
+                      <ColorFilter
+                        products={originalProducts}
+                        showAllColors={isColorCategoryPage}
+                        activeColor={activeColorName ?? undefined}
+                        onColorSelect={handleColorSelect}
+                      />
+                      <FarmingFilter
+                        products={originalProducts}
+                        mode="overlay"
+                        onFarmingSelect={handleFarmingSelect}
+                        activeFarming={activeFarming ?? undefined}
+                      />
+                      <GrapesFilter
+                        products={originalProducts}
+                        mode="overlay"
+                        onGrapeSelect={handleGrapeSelect}
+                        activeGrape={activeGrapeName ?? undefined}
+                      />
+                    </>
                   )}
-                  <FarmingFilter
-                    products={originalProducts}
-                    mode="overlay"
-                    onFarmingSelect={handleFarmingSelect}
-                    activeFarming={activeFarming ?? undefined}
-                  />
-                  <GrapesFilter
-                    products={originalProducts}
-                    mode="overlay"
-                    onGrapeSelect={handleGrapeSelect}
-                    activeGrape={activeGrapeName ?? undefined}
-                  />
                   <CategoryFilter collections={collections} mode="overlay" />
-                  <CompetitorFilter sources={priceSources} mode="overlay" />
+                  {isProducerBoxesPage ? null : (
+                    <CompetitorFilter sources={priceSources} mode="overlay" />
+                  )}
                 </div>
               </Suspense>
             </div>

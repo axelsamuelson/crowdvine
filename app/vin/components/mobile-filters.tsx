@@ -167,12 +167,19 @@ export function MobileFilters({
 
   return (
     <div className="bg-transparent md:hidden overflow-x-clip">
-      <div className="px-sides pb-1 pt-1">
-        <ShopFilterSearch id="shop-search-mobile" />
-      </div>
+      {isProducerBoxesPage ? null : (
+        <div className="px-sides pb-1 pt-1">
+          <ShopFilterSearch id="shop-search-mobile" />
+        </div>
+      )}
       <Drawer>
         {/* 3 main items: Filters, Results count, Sort by */}
-        <div className="grid grid-cols-3 items-center px-sides py-2">
+        <div
+          className={cn(
+            "grid items-center px-sides py-2",
+            isProducerBoxesPage ? "grid-cols-1" : "grid-cols-3",
+          )}
+        >
           {/* Filters */}
           <DrawerTrigger asChild>
             <Button
@@ -184,7 +191,8 @@ export function MobileFilters({
               <span
                 className={cn(
                   "text-foreground/50 tabular-nums min-w-[2ch] inline-block text-center",
-                  displayFilterCount === 0 && "invisible",
+                  (isProducerBoxesPage || displayFilterCount === 0) &&
+                    "invisible",
                 )}
               >
                 ({displayFilterCount || 0})
@@ -192,11 +200,12 @@ export function MobileFilters({
             </Button>
           </DrawerTrigger>
 
-          {/* Results count */}
-          <ResultsCount count={displayResultsCount} />
-
-          {/* Sort by */}
-          <SortDropdown className="justify-self-end" />
+          {isProducerBoxesPage ? null : (
+            <>
+              <ResultsCount count={displayResultsCount} />
+              <SortDropdown className="justify-self-end" />
+            </>
+          )}
         </div>
 
         {/* Drawer content */}
@@ -207,51 +216,58 @@ export function MobileFilters({
               <span
                 className={cn(
                   "text-muted-foreground tabular-nums",
-                  displayFilterCount === 0 && "invisible",
+                  (isProducerBoxesPage || displayFilterCount === 0) &&
+                    "invisible",
                 )}
               >
                 ({displayFilterCount || 0})
               </span>
             </DrawerTitle>
-            <Button
-              size="sm"
-              variant="ghost"
-              className={cn(
-                "cursor-pointer font-medium text-foreground/50 transition-opacity hover:text-foreground/60",
-                displayFilterCount === 0 && "opacity-0 pointer-events-none",
-              )}
-              disabled={displayFilterCount === 0}
-              asChild={displayFilterCount > 0}
-            >
-              <Link href={paths.shop} prefetch>
-                {t("shop.clear")}
-              </Link>
-            </Button>
+            {isProducerBoxesPage ? null : (
+              <Button
+                size="sm"
+                variant="ghost"
+                className={cn(
+                  "cursor-pointer font-medium text-foreground/50 transition-opacity hover:text-foreground/60",
+                  displayFilterCount === 0 && "opacity-0 pointer-events-none",
+                )}
+                disabled={displayFilterCount === 0}
+                asChild={displayFilterCount > 0}
+              >
+                <Link href={paths.shop} prefetch>
+                  {t("shop.clear")}
+                </Link>
+              </Button>
+            )}
           </DrawerHeader>
           <div className="overflow-y-auto flex-1 px-4 pb-4 space-y-6">
-            <ShopFilterSearch id="shop-search-drawer" />
             {isProducerBoxesPage ? null : (
-              <ColorFilter
-                products={originalProducts}
-                showAllColors={isColorCategoryPage}
-                activeColor={activeColorName ?? undefined}
-                onColorSelect={handleColorSelect}
-              />
+              <>
+                <ShopFilterSearch id="shop-search-drawer" />
+                <ColorFilter
+                  products={originalProducts}
+                  showAllColors={isColorCategoryPage}
+                  activeColor={activeColorName ?? undefined}
+                  onColorSelect={handleColorSelect}
+                />
+                <FarmingFilter
+                  products={originalProducts}
+                  mode="drawer"
+                  onFarmingSelect={handleFarmingSelect}
+                  activeFarming={activeFarming ?? undefined}
+                />
+                <GrapesFilter
+                  products={originalProducts}
+                  mode="drawer"
+                  onGrapeSelect={handleGrapeSelect}
+                  activeGrape={activeGrapeName ?? undefined}
+                />
+              </>
             )}
-            <FarmingFilter
-              products={originalProducts}
-              mode="drawer"
-              onFarmingSelect={handleFarmingSelect}
-              activeFarming={activeFarming ?? undefined}
-            />
-            <GrapesFilter
-              products={originalProducts}
-              mode="drawer"
-              onGrapeSelect={handleGrapeSelect}
-              activeGrape={activeGrapeName ?? undefined}
-            />
             <CategoryFilter collections={collections} mode="drawer" />
-            <CompetitorFilter sources={priceSources} mode="drawer" />
+            {isProducerBoxesPage ? null : (
+              <CompetitorFilter sources={priceSources} mode="drawer" />
+            )}
           </div>
         </DrawerContent>
       </Drawer>

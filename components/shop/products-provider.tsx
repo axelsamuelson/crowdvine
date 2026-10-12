@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { usePathname } from "next/navigation";
+import { isProducerBoxesPath } from "@/lib/producer-boxes/config";
 
 function isShopPath(path: string): boolean {
   return (
@@ -59,7 +60,12 @@ export function ProductsProvider({
     if (prevPathnameRef.current === pathname) return;
     const previousPath = prevPathnameRef.current;
     prevPathnameRef.current = pathname;
-    if (isShopPath(previousPath) && isShopPath(pathname)) return;
+    const stayedInShop = isShopPath(previousPath) && isShopPath(pathname);
+    const crossedBoxPage =
+      isProducerBoxesPath(previousPath) !== isProducerBoxesPath(pathname);
+    // Keep PLP products across ordinary shop routes, but drop them when
+    // entering or leaving the box page so product filters do not leak in.
+    if (stayedInShop && !crossedBoxPage) return;
     setProducts([]);
     setOriginalProducts([]);
     setAvailableSourceSlugs([]);
