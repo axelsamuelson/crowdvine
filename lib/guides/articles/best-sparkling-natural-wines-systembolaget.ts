@@ -3,6 +3,7 @@ import type { GuideArticleContent } from "@/lib/guides/guide-types";
 /** Bilingual guide: best sparkling natural / low-intervention wines in Systembolaget assortment. */
 export const bestSparklingNaturalWinesSystembolagetArticle: GuideArticleContent =
   {
+    updated: "2026-10-12",
     slug: {
       en: "best-sparkling-natural-wines-systembolaget",
       sv: "basta-mousserande-naturviner-systembolaget",

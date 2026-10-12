@@ -5,6 +5,7 @@ import type { GuideArticleContent } from "@/lib/guides/guide-types";
  * Wine rows render from systembolaget_curated (category: "rose").
  */
 export const bestRoseNaturalWinesSystembolagetArticle: GuideArticleContent = {
+  updated: "2026-10-12",
   slug: {
     en: "best-rose-natural-wines-systembolaget",
     sv: "basta-rose-naturviner-systembolaget",
