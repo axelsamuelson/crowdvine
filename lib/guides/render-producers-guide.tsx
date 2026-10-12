@@ -189,13 +189,15 @@ export async function renderProducersGuidePage(locale: AppLocale) {
 
   const byRank = [...TOP_100_PRODUCERS].sort((a, b) => a.rank - b.rank);
   const rangeNote = systembolagetRangeNote(locale);
+  const systembolagetHref = bestList?.href[locale] ?? null;
   const systembolagetMark = (rank: number) => {
+    if (!systembolagetHref) return null;
     const label = systembolagetAvailabilityLabel(
       availability[rank] ?? 0,
       locale,
     );
     if (!label) return null;
-    return <SystembolagetProducerMark label={label} />;
+    return <SystembolagetProducerMark label={label} href={systembolagetHref} />;
   };
   const top10 = byRank.filter((p) => p.rank <= 10);
   const mid = byRank.filter((p) => p.rank >= 11 && p.rank <= 30);
@@ -346,7 +348,7 @@ export async function renderProducersGuidePage(locale: AppLocale) {
                   locale,
                 )}
                 href={producerGuideHref(producer.rank, locale)}
-                titleAdornment={systembolagetMark(producer.rank)}
+                rankAdornment={systembolagetMark(producer.rank)}
               />
             ))}
           </div>
@@ -375,7 +377,7 @@ export async function renderProducersGuidePage(locale: AppLocale) {
                   locale,
                 )}
                 href={producerGuideHref(producer.rank, locale)}
-                titleAdornment={systembolagetMark(producer.rank)}
+                rankAdornment={systembolagetMark(producer.rank)}
                 compact
               />
             ))}
@@ -388,7 +390,11 @@ export async function renderProducersGuidePage(locale: AppLocale) {
           </h2>
           <GuideRankTable
             columns={[
-              { key: "rank", label: copy.rank, className: "w-12 tabular-nums" },
+              {
+                key: "rankDisplay",
+                label: copy.rank,
+                className: "w-16 tabular-nums",
+              },
               {
                 key: "change",
                 label: locale === "sv" ? "Förändring" : "Change",
@@ -404,6 +410,12 @@ export async function renderProducersGuidePage(locale: AppLocale) {
             dividerLabel={extensionHeading}
             rows={rest.map((producer) => ({
               rank: producer.rank,
+              rankDisplay: (
+                <span className="inline-flex items-center gap-1.5">
+                  {systembolagetMark(producer.rank)}
+                  <span>{producer.rank}</span>
+                </span>
+              ),
               change: (
                 <ProducerRankChange
                   rank={producer.rank}
@@ -411,11 +423,7 @@ export async function renderProducersGuidePage(locale: AppLocale) {
                   locale={locale}
                 />
               ),
-              name: (
-                <span>
-                  {producer.name} {systembolagetMark(producer.rank)}
-                </span>
-              ),
+              name: producer.name,
               region: producer.region,
               country: countryLabel(producer.country, locale),
               grapes: producer.grapes,

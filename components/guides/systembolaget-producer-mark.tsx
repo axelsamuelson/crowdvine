@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -7,19 +8,20 @@ import { SystembolagetBagIcon } from "@/components/guides/systembolaget-bag-icon
 
 type SystembolagetProducerMarkProps = {
   label: string;
+  href: string;
 };
 
 export function SystembolagetProducerMark({
   label,
+  href,
 }: SystembolagetProducerMarkProps) {
   const tooltipId = useId();
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const openedAt = useRef(0);
+  const linkRef = useRef<HTMLAnchorElement>(null);
   const [open, setOpen] = useState(false);
   const [position, setPosition] = useState({ top: 0, left: 0 });
 
   function place() {
-    const rect = buttonRef.current?.getBoundingClientRect();
+    const rect = linkRef.current?.getBoundingClientRect();
     if (!rect) return;
     const maxLeft = Math.max(8, window.innerWidth - 220);
     setPosition({
@@ -29,26 +31,18 @@ export function SystembolagetProducerMark({
   }
 
   function show() {
-    openedAt.current = Date.now();
     place();
     setOpen(true);
   }
 
   return (
     <>
-      <button
-        ref={buttonRef}
-        type="button"
-        className="inline-flex size-4 shrink-0 translate-y-px items-center justify-center align-middle text-muted-foreground"
+      <Link
+        ref={linkRef}
+        href={href}
+        className="inline-flex size-4 shrink-0 translate-y-px items-center justify-center align-middle text-muted-foreground hover:text-foreground"
         aria-label={label}
         aria-describedby={open ? tooltipId : undefined}
-        onClick={() => {
-          if (open && Date.now() - openedAt.current > 400) {
-            setOpen(false);
-            return;
-          }
-          show();
-        }}
         onPointerEnter={(event) => {
           if (event.pointerType !== "mouse") return;
           show();
@@ -64,7 +58,7 @@ export function SystembolagetProducerMark({
         }}
       >
         <SystembolagetBagIcon className="size-4" />
-      </button>
+      </Link>
       {open
         ? createPortal(
             <span
