@@ -329,8 +329,11 @@ export async function fetchProductsData(params?: {
   filterFarming?: string[];
   /** Case-insensitive match on grape_varieties. */
   filterGrape?: string;
+  /** When set, only these wine ids. */
+  ids?: readonly string[];
 }): Promise<ProductData[]> {
-  const limit = params?.limit ?? 200;
+  const idList = (params?.ids ?? []).filter((id) => id.length > 0);
+  const limit = idList.length > 0 ? idList.length : (params?.limit ?? 200);
   const sortKey = params?.sortKey || "RELEVANCE";
   const reverse = params?.reverse ?? false;
   const isB2BSite = params?.isB2BSite ?? true;
@@ -386,15 +389,15 @@ export async function fetchProductsData(params?: {
     }
   };
 
-  const baseQuery = () =>
-    applyWineCatalogFilters(
-      sb
-        .from("wines")
-        .select(winesSelect)
-        .eq("is_live", true)
-        .eq("producers.is_live", true),
-      categoryFilters,
-    );
+  const baseQuery = () => {
+    let query = sb
+      .from("wines")
+      .select(winesSelect)
+      .eq("is_live", true)
+      .eq("producers.is_live", true);
+    if (idList.length > 0) query = query.in("id", idList);
+    return applyWineCatalogFilters(query, categoryFilters);
+  };
 
   const hasSearch = Boolean(normalizeShopSearchInput(params?.searchQuery ?? ""));
 

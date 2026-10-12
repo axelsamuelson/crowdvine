@@ -18,6 +18,7 @@ import {
   resolveProducerBox,
   type ProducerBoxWineRow,
 } from "@/lib/producer-boxes/match";
+import { getShopLayoutResultsCount } from "@/lib/shop/shop-results-count-server";
 
 const producers = [
   { id: "p-mesures", name: "Mas Des Mesures" },
@@ -40,9 +41,12 @@ function wine(
 }
 
 describe("producer boxes", () => {
-  it("stays unpublished and out of the sitemap", () => {
-    expect(PRODUCER_BOXES_PUBLISHED).toBe(false);
-    expect(producerBoxesSitemapPaths()).toEqual([]);
+  it("is published and listed on the pact sitemap", () => {
+    expect(PRODUCER_BOXES_PUBLISHED).toBe(true);
+    expect(producerBoxesSitemapPaths()).toEqual([
+      "/vin/naturvin-lada",
+      "/wine/natural-wine-box",
+    ]);
   });
 
   it("keeps meta within 155 characters and names the offer factually", () => {
@@ -196,6 +200,15 @@ describe("producer boxes", () => {
       box.wineNames.map((_, index) => ({ variantId: `w-${index}`, quantity: 1 })),
     );
     expect(resolved.totalCents).toBe(600);
+  });
+
+  it("does not look up producer-box slugs as shop collections", async () => {
+    await expect(
+      getShopLayoutResultsCount("/vin/naturvin-lada", {}),
+    ).resolves.toBeUndefined();
+    await expect(
+      getShopLayoutResultsCount("/wine/natural-wine-box", {}),
+    ).resolves.toBeUndefined();
   });
 
   it("redirects dirtywine paths to pactwines.com", () => {

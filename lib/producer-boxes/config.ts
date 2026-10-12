@@ -2,10 +2,10 @@ import type { AppLocale } from "@/lib/i18n/locale";
 import { PACT_CONFIG } from "@/lib/site-config";
 
 /**
- * Unpublished until Sofia (GC) has read the copy and this flag is set to true.
- * Sitemap, index, and nav stay off while this is false.
+ * Public page. Sitemap and index follow this flag. Keep it in code so an
+ * admin save of the wine list cannot unpublish the page.
  */
-export const PRODUCER_BOXES_PUBLISHED = false;
+export const PRODUCER_BOXES_PUBLISHED = true;
 
 export const PRODUCER_BOXES_CONTENT_KEY = "producer_boxes";
 
@@ -164,7 +164,7 @@ export function isProducerBoxesSlug(
   return slug === path.slice(path.lastIndexOf("/") + 1);
 }
 
-/** Empty until PRODUCER_BOXES_PUBLISHED is flipped. Pact sitemap only. */
+/** Pact sitemap only. Empty while PRODUCER_BOXES_PUBLISHED is false. */
 export function producerBoxesSitemapPaths(): readonly string[] {
   if (!PRODUCER_BOXES_PUBLISHED) return [];
   return [PRODUCER_BOXES_PATH.sv, PRODUCER_BOXES_PATH.en];

@@ -21,7 +21,7 @@ import {
   type ProductPathSegment,
 } from "@/lib/i18n/localized-routes";
 import { translate } from "@/lib/i18n/messages";
-import { getSiteConfig } from "@/lib/site-config";
+import { getSiteConfig } from "@/lib/site-config-server";
 import { formatPrice } from "@/lib/shopify/utils";
 import type { Product } from "@/lib/shopify/types";
 

@@ -44,7 +44,7 @@ import {
   producerProfilePageTitle,
   resolveProducerWinemakerForTitle,
 } from "@/lib/seo/producer-profile-metadata";
-import { getSiteConfig } from "@/lib/site-config";
+import { getSiteConfig } from "@/lib/site-config-server";
 import { getCategoryUrlForGrape } from "@/lib/wine-categories";
 
 type ProducerPayload = {

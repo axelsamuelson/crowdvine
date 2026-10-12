@@ -1,5 +1,3 @@
-import { getIsDirtywineSiteFromHeaders } from "@/lib/b2b-site-server";
-
 export type SiteConfig = {
   name: string;
   baseUrl: string;
@@ -26,8 +24,3 @@ export const DIRTY_WINE_CONFIG: SiteConfig = {
   defaultDescription:
     "Naturvin direkt från Languedoc för restauranger och sommelierer i Stockholm. B2B-import via Dirty Wine.",
 };
-
-export async function getSiteConfig(): Promise<SiteConfig> {
-  const isDirtywine = await getIsDirtywineSiteFromHeaders();
-  return isDirtywine ? DIRTY_WINE_CONFIG : PACT_CONFIG;
-}

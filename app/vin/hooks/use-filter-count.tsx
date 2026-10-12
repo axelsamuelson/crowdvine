@@ -3,6 +3,14 @@
 import { useQueryState, parseAsArrayOf, parseAsString } from "nuqs";
 import { useParams } from "next/navigation";
 
+/** Keep in sync with PRODUCER_BOXES_PATH. Not imported from config (that module is server-only). */
+const PRODUCER_BOX_SLUGS = new Set(["naturvin-lada", "natural-wine-box"]);
+
+function isShopCollectionSegment(segment: string | undefined): boolean {
+  if (!segment) return false;
+  return !PRODUCER_BOX_SLUGS.has(segment);
+}
+
 export function useFilterCount() {
   const params = useParams<{ collection: string }>();
   const [color] = useQueryState(
@@ -46,8 +54,9 @@ export function useFilterCount() {
     count += sources.length;
   }
 
-  // Count collection filter (if not on "all" products)
-  if (params.collection && params.collection !== undefined) {
+  // Count collection filter (if not on "all" products).
+  // Producer-box slugs share /vin/[collection] but are not a filter.
+  if (isShopCollectionSegment(params.collection)) {
     count += 1;
   }
 
@@ -62,7 +71,7 @@ export function useCategoryFilterCount() {
   const params = useParams<{ collection: string }>();
 
   // Return 1 if a category is selected, 0 if not
-  return params.collection && params.collection !== undefined ? 1 : 0;
+  return isShopCollectionSegment(params.collection) ? 1 : 0;
 }
 
 export function useColorFilterCount() {

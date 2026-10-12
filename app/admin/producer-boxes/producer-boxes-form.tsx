@@ -49,10 +49,8 @@ export function ProducerBoxesForm({ boxes, source }: ProducerBoxesFormProps) {
       <div>
         <h1 className="text-2xl font-medium text-stone-900">Producentlådor</h1>
         <p className="mt-2 text-sm leading-relaxed text-stone-600">
-          Sidan är opublicerad. Flaggan published sitter i koden och styr
-          sitemap och index. Här ändrar du vilka viner som ingår och
-          platshållartexten, utan deploy. Sofia (GC) ska läsa texten innan
-          sidan publiceras.
+          Sidan är publicerad. Här ändrar du vilka viner som ingår och
+          texten, utan deploy. Sitemap och index styrs av flaggan i koden.
         </p>
         <p className="mt-2 text-sm text-stone-500">
           {source === "site_content"
@@ -61,11 +59,11 @@ export function ProducerBoxesForm({ boxes, source }: ProducerBoxesFormProps) {
         </p>
         <p className="mt-3 text-sm">
           <a className="underline" href="/vin/naturvin-lada">
-            Förhandsvisning på svenska
+            Öppna svenska sidan
           </a>
           {" · "}
           <a className="underline" href="/wine/natural-wine-box">
-            Preview in English
+            Open the English page
           </a>
         </p>
       </div>

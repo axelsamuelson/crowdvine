@@ -14,7 +14,7 @@ import { getCollections, getProducts } from "@/lib/shopify";
 import { getLabelPosition } from "../lib/utils";
 import { Product } from "../lib/shopify/types";
 import { headers } from "next/headers";
-import { getSiteConfig } from "@/lib/site-config";
+import { getSiteConfig } from "@/lib/site-config-server";
 import { getHomepageHeroImages } from "@/lib/actions/content";
 import { getHomepageHeroCopy } from "@/lib/get-homepage-hero-copy";
 import {

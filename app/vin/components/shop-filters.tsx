@@ -14,6 +14,7 @@ import { CompetitorFilter, type PriceSourceForFilter } from "./competitor-filter
 import { ShopFilterSearch } from "./shop-filter-search";
 import { useProducts } from "@/components/shop/products-provider";
 import { useFilterCount } from "../hooks/use-filter-count";
+import { isProducerBoxesPath } from "@/lib/producer-boxes/config";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { X } from "lucide-react";
 import { useTranslations } from "@/lib/hooks/use-translations";
@@ -54,8 +55,10 @@ export function DesktopFilters({
   const openSeeAll = () => setSeeAllOpen(true);
   const pathname = usePathname();
   const router = useRouter();
+  const isProducerBoxesPage = isProducerBoxesPath(pathname);
   const isColorCategoryPage =
-    pathname.startsWith("/vin/") || pathname.startsWith("/wine/");
+    !isProducerBoxesPage &&
+    (pathname.startsWith("/vin/") || pathname.startsWith("/wine/"));
   const locale = localeFromShopPathname(pathname);
   const activeColorName = getActiveColorFromPathname(pathname);
   const activeFarming = getActiveFarmingFromPathname(pathname);
@@ -167,12 +170,14 @@ export function DesktopFilters({
         <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-y-contain pb-4 pr-1">
           <ShopFilterSearch id="shop-search-desktop" />
           <Suspense fallback={null}>
-            <ColorFilter
-              products={originalProducts}
-              showAllColors={isColorCategoryPage}
-              activeColor={activeColorName ?? undefined}
-              onColorSelect={handleColorSelect}
-            />
+            {isProducerBoxesPage ? null : (
+              <ColorFilter
+                products={originalProducts}
+                showAllColors={isColorCategoryPage}
+                activeColor={activeColorName ?? undefined}
+                onColorSelect={handleColorSelect}
+              />
+            )}
             <FarmingFilter
               products={originalProducts}
               mode="sidebar"
@@ -242,12 +247,14 @@ export function DesktopFilters({
               <Suspense fallback={null}>
                 <ShopFilterSearch className="mb-6 max-w-md" id="shop-search-overlay" />
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-start">
-                  <ColorFilter
-                    products={originalProducts}
-                    showAllColors={isColorCategoryPage}
-                    activeColor={activeColorName ?? undefined}
-                    onColorSelect={handleColorSelect}
-                  />
+                  {isProducerBoxesPage ? null : (
+                    <ColorFilter
+                      products={originalProducts}
+                      showAllColors={isColorCategoryPage}
+                      activeColor={activeColorName ?? undefined}
+                      onColorSelect={handleColorSelect}
+                    />
+                  )}
                   <FarmingFilter
                     products={originalProducts}
                     mode="overlay"

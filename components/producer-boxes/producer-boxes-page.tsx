@@ -1,35 +1,23 @@
 import Link from "next/link";
+import { ProductCard } from "@/app/vin/components/product-card";
 import { ShopBreadcrumb } from "@/app/vin/components/shop-breadcrumb";
 import { AddProducerBoxButton } from "@/components/producer-boxes/add-producer-box-button";
+import { fetchProductsData } from "@/lib/crowdvine/products-data";
 import type { AppLocale } from "@/lib/i18n/locale";
-import { productPagePath } from "@/lib/i18n/localized-routes";
 import { producerShopPagePath } from "@/lib/i18n/producer-shop-page";
-import { translate } from "@/lib/i18n/messages";
+import { mapProductDataToShopProducts } from "@/lib/map-product-data-to-shop-product";
 import {
   PRODUCER_BOXES_COPY,
   PRODUCER_BOXES_PUBLISHED,
 } from "@/lib/producer-boxes/config";
 import { loadResolvedProducerBoxes } from "@/lib/producer-boxes/load";
-import { batchAddItems, type ResolvedProducerBoxWine } from "@/lib/producer-boxes/match";
+import {
+  batchAddItems,
+  type ResolvedProducerBoxWine,
+} from "@/lib/producer-boxes/match";
 import { buildProducerBoxesJsonLd } from "@/lib/producer-boxes/metadata";
+import type { Product } from "@/lib/shopify/types";
 import { formatPrice } from "@/lib/shopify/utils";
-
-function wineTypeLabel(color: string | null | undefined, locale: AppLocale): string {
-  if (!color) return "";
-  const known: Record<string, string> = {
-    Red: "shop.wineColorRed",
-    White: "shop.wineColorWhite",
-    Orange: "shop.wineColorOrange",
-    Rose: "shop.wineColorRose",
-  };
-  const key = known[color];
-  if (key) return translate(locale, key);
-  if (color === "Sparkling") return locale === "sv" ? "Mousserande" : "Sparkling";
-  if (color === "Red & White") {
-    return locale === "sv" ? "Rött och vitt" : "Red and white";
-  }
-  return color;
-}
 
 function slotNote(
   slot: ResolvedProducerBoxWine,
@@ -51,10 +39,46 @@ function formatSek(cents: number): string {
   return formatPrice(cents / 100, "SEK", "sv-SE");
 }
 
+function MissingBoxWine({
+  label,
+  note,
+}: {
+  label: string;
+  note: string | null;
+}) {
+  return (
+    <div className="relative z-10 w-full aspect-[3/4] bg-muted md:aspect-square">
+      <div className="absolute inset-0 px-3 py-3 md:px-4">
+        <p className="line-clamp-2 text-[8px] font-semibold uppercase leading-tight md:text-sm">
+          {label}
+        </p>
+        {note ? (
+          <p className="mt-1 text-[7px] uppercase text-muted-foreground md:text-xs">
+            {note}
+          </p>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 export async function ProducerBoxesPage({ locale }: { locale: AppLocale }) {
   const copy = PRODUCER_BOXES_COPY[locale];
   const loaded = await loadResolvedProducerBoxes();
   const jsonLd = buildProducerBoxesJsonLd(locale, loaded.boxes);
+  const wineIds = loaded.boxes.flatMap((box) =>
+    box.slots.flatMap((slot) => (slot.wineId ? [slot.wineId] : [])),
+  );
+  const products = wineIds.length
+    ? mapProductDataToShopProducts(
+        await fetchProductsData({
+          ids: wineIds,
+          isB2BSite: false,
+        }),
+      )
+    : [];
+  const productById = new Map(products.map((product) => [product.id, product]));
+  let imageIndex = 0;
 
   return (
     <>
@@ -67,22 +91,28 @@ export async function ProducerBoxesPage({ locale }: { locale: AppLocale }) {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd.collection) }}
       />
       <div className="p-sides py-8">
-        <ShopBreadcrumb
-          collections={[]}
-          breadcrumbLabel={copy.breadcrumb}
-          className="mb-8"
-        />
-        {!PRODUCER_BOXES_PUBLISHED ? (
-          <p className="mb-6 max-w-2xl text-sm text-stone-500">{copy.draft}</p>
-        ) : null}
-        <div className="mb-10 max-w-2xl">
+        <div className="mb-8 max-w-2xl">
+          {!PRODUCER_BOXES_PUBLISHED ? (
+            <p className="mb-6 text-sm text-stone-500">{copy.draft}</p>
+          ) : null}
           <h1 className="mb-3 text-3xl font-medium text-stone-900">{copy.h1}</h1>
           <p className="leading-relaxed text-stone-600">{copy.intro}</p>
           {loaded.loadError ? (
             <p className="mt-3 text-sm text-stone-600">{copy.loadError}</p>
           ) : null}
         </div>
-        <div className="flex max-w-2xl flex-col gap-8">
+
+        <div className="mb-8 w-full pr-sides">
+          <div className="grid w-full grid-cols-3 items-center">
+            <ShopBreadcrumb
+              collections={[]}
+              breadcrumbLabel={copy.breadcrumb}
+              className="ml-1"
+            />
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-16">
           {loaded.boxes.map((box) => {
             const producerLabel = box.producerName ?? box.definition.producerName;
             const producerHref = box.producerFound
@@ -90,110 +120,79 @@ export async function ProducerBoxesPage({ locale }: { locale: AppLocale }) {
               : null;
             const items = batchAddItems(box);
             return (
-              <article
-                key={box.definition.id}
-                id={`box-${box.definition.id}`}
-                className="rounded-xl border border-stone-200 p-6"
-              >
-                <h2 className="text-xl font-medium text-stone-900">
-                  {box.definition.name[locale]}
-                </h2>
-                <p className="mt-2 text-sm text-stone-600">
-                  {copy.producer}:{" "}
-                  {producerHref ? (
-                    <Link
-                      href={producerHref}
-                      className="text-stone-900 underline underline-offset-4"
-                    >
-                      {producerLabel}
-                    </Link>
-                  ) : (
-                    <span>
-                      {producerLabel}. {copy.producerMissing}
-                    </span>
-                  )}
-                </p>
-                <p className="mt-4 max-w-xl text-sm leading-relaxed text-stone-700">
-                  {box.definition.story[locale]}
-                </p>
-                <div className="mt-5 overflow-x-auto">
-                  <table className="w-full text-left text-sm">
-                    <thead>
-                      <tr className="border-b border-stone-200 text-stone-500">
-                        <th scope="col" className="py-2 pr-4 font-medium">{copy.wine}</th>
-                        <th scope="col" className="py-2 pr-4 font-medium">{copy.type}</th>
-                        <th scope="col" className="py-2 text-right font-medium">{copy.price}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {box.slots.map((slot) => {
-                        const note = slotNote(slot, copy);
-                        const wineHref =
-                          slot.handle && slot.status !== "missing"
-                            ? productPagePath(
-                                slot.handle,
-                                locale === "sv" ? "produkt" : "product",
-                              )
-                            : null;
-                        const label = slot.wineName ?? slot.configuredName;
-                        return (
-                          <tr
-                            key={`${box.definition.id}-${slot.configuredName}`}
-                            className="border-b border-stone-100"
-                          >
-                            <td className="py-2 pr-4 text-stone-900">
-                              {wineHref ? (
-                                <Link href={wineHref} className="underline underline-offset-4">
-                                  {label}
-                                </Link>
-                              ) : (
-                                label
-                              )}
-                              {slot.vintage ? (
-                                <span className="text-stone-500"> {slot.vintage}</span>
-                              ) : null}
-                              {note ? (
-                                <span className="mt-0.5 block text-xs text-stone-500">
-                                  {note}
-                                </span>
-                              ) : null}
-                            </td>
-                            <td className="py-2 pr-4 text-stone-700">
-                              {wineTypeLabel(slot.color, locale)}
-                            </td>
-                            <td className="py-2 text-right text-stone-900">
-                              {slot.priceCents != null ? formatSek(slot.priceCents) : ""}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
+              <section key={box.definition.id} id={`box-${box.definition.id}`}>
+                <div className="mb-8 flex w-full flex-col gap-y-3 bg-white p-4 md:grid md:grid-cols-2 md:rounded-md">
+                  <div className="col-span-1">
+                    <h2 className="text-2xl font-semibold text-stone-900">
+                      {box.definition.name[locale]}
+                    </h2>
+                    <p className="mt-2 text-sm font-normal text-muted-foreground">
+                      {copy.producer}:{" "}
+                      {producerHref ? (
+                        <Link
+                          href={producerHref}
+                          className="text-stone-900 underline underline-offset-4 hover:text-stone-900"
+                        >
+                          {producerLabel}
+                        </Link>
+                      ) : (
+                        <span>
+                          {producerLabel}. {copy.producerMissing}
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                  <p className="col-span-1 text-sm font-medium leading-relaxed text-stone-900">
+                    {box.definition.story[locale]}
+                  </p>
+                  <div className="col-span-1 flex items-end text-2xl font-semibold text-stone-900">
                     {box.totalCents != null ? (
-                      <tfoot>
-                        <tr>
-                          <td className="pt-3 font-medium text-stone-900" colSpan={2}>
-                            {copy.total}
-                          </td>
-                          <td className="pt-3 text-right font-medium text-stone-900">
-                            {formatSek(box.totalCents)}
-                            <span className="mt-0.5 block text-xs font-normal text-stone-500">
-                              {copy.inclVat}
-                            </span>
-                          </td>
-                        </tr>
-                      </tfoot>
+                      <p>
+                        {formatSek(box.totalCents)}
+                        <span className="mt-0.5 block text-xs font-normal text-stone-500">
+                          {copy.inclVat}
+                        </span>
+                      </p>
                     ) : null}
-                  </table>
+                  </div>
+                  <div className="col-span-1 self-end">
+                    <AddProducerBoxButton
+                      boxId={box.definition.id}
+                      items={items}
+                      label={copy.add}
+                      pendingLabel={copy.adding}
+                      addedLabel={copy.added}
+                      unavailableLabel={copy.unavailable}
+                    />
+                  </div>
                 </div>
-                <AddProducerBoxButton
-                  boxId={box.definition.id}
-                  items={items}
-                  label={copy.add}
-                  pendingLabel={copy.adding}
-                  addedLabel={copy.added}
-                  unavailableLabel={copy.unavailable}
-                />
-              </article>
+
+                <div className="grid grid-cols-2 gap-0 md:grid-cols-2 xl:grid-cols-3">
+                  {box.slots.map((slot) => {
+                    const product: Product | undefined = slot.wineId
+                      ? productById.get(slot.wineId)
+                      : undefined;
+                    const index = imageIndex;
+                    imageIndex += 1;
+                    if (!product) {
+                      return (
+                        <MissingBoxWine
+                          key={`${box.definition.id}-${slot.configuredName}`}
+                          label={slot.wineName ?? slot.configuredName}
+                          note={slotNote(slot, copy)}
+                        />
+                      );
+                    }
+                    return (
+                      <ProductCard
+                        key={product.id}
+                        product={product}
+                        index={index}
+                      />
+                    );
+                  })}
+                </div>
+              </section>
             );
           })}
         </div>

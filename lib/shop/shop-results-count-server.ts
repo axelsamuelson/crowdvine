@@ -27,6 +27,7 @@ import type {
   ProductSortKey,
 } from "@/lib/shopify/types";
 import { mapSortKeys } from "@/lib/shopify/utils";
+import { isProducerBoxesPath } from "@/lib/producer-boxes/config";
 import { resolveGrapeCategoryBySlug } from "@/lib/wine-grape-categories";
 
 function shopSegmentFromPathname(pathname: string): string | undefined {
@@ -130,6 +131,10 @@ export async function getShopLayoutResultsCount(
   searchParams: Record<string, string | string[] | undefined>,
 ): Promise<number | undefined> {
   if (!/^\/(?:vin|wine)(?:\/|$)/.test(pathname)) {
+    return undefined;
+  }
+  // Curated producer-box pages are not shop collections.
+  if (isProducerBoxesPath(pathname)) {
     return undefined;
   }
 

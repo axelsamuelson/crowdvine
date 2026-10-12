@@ -6,7 +6,7 @@ import type { Metadata } from "next";
 import { LegalPageLayout } from "@/components/legal/legal-page-layout";
 import IntegritetspolicyContent from "@/content/legal/integritetspolicy";
 import { LEGAL_VERSIONS } from "@/lib/legal/versions";
-import { getSiteConfig } from "@/lib/site-config";
+import { getSiteConfig } from "@/lib/site-config-server";
 
 export const dynamic = "force-static";
 

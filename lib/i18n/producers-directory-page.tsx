@@ -29,7 +29,7 @@ import {
   defaultOpenGraphImages,
   pageTwitterCard,
 } from "@/lib/seo/default-social";
-import { getSiteConfig } from "@/lib/site-config";
+import { getSiteConfig } from "@/lib/site-config-server";
 
 type ProducerListRow = {
   id: string;

@@ -116,20 +116,12 @@ export async function POST(request: Request) {
       );
     }
 
-    for (const { wineId, quantity } of items) {
-      const cart = await CartService.addItem(wineId, quantity);
-      if (!cart) {
-        return NextResponse.json(
-          { error: "Failed to update cart" },
-          { status: 500 },
-        );
-      }
-    }
-
-    const cart = await CartService.getCart();
+    const cart = await CartService.addItems(
+      items.map(({ wineId, quantity }) => ({ wineId, quantity })),
+    );
     if (!cart) {
       return NextResponse.json(
-        { error: "Failed to load cart" },
+        { error: "Failed to update cart" },
         { status: 500 },
       );
     }

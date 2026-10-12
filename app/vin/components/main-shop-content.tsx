@@ -2,7 +2,7 @@ import { Suspense } from "react";
 
 import ProductList from "@/app/vin/components/product-list";
 import { storeCatalog } from "@/lib/shopify/constants";
-import { getSiteConfig } from "@/lib/site-config";
+import { getSiteConfig } from "@/lib/site-config-server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 type TopWineRow = {

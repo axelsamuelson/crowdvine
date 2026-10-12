@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { ChevronDownIcon } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -64,6 +65,24 @@ export function SortDropdown({ className }: SortDropdownProps) {
   const allOptions = safeIsB2B
     ? [...stockSortOptions, ...sortOptions]
     : sortOptions;
+
+  if (!isMounted) {
+    return (
+      <button
+        type="button"
+        className={cn(
+          "inline-flex h-8 items-center justify-between gap-2 rounded-md px-3 text-sm",
+          SHOP_SORT_TRIGGER,
+          className,
+        )}
+      >
+        <span className="line-clamp-1">
+          {t(sortOptionMessageKey(displayValue))}
+        </span>
+        <ChevronDownIcon className="size-4 opacity-50" />
+      </button>
+    );
+  }
 
   return (
     <Select value={displayValue ?? undefined} onValueChange={setSort}>

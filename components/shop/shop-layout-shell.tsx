@@ -7,6 +7,7 @@ import {
   countActiveShopFilters,
   parseSearchParamsFromQueryString,
 } from "@/lib/shop/filter-count-server";
+import { isProducerBoxesPath } from "@/lib/producer-boxes/config";
 import { getShopLayoutResultsCount } from "@/lib/shop/shop-results-count-server";
 import { ShopLayoutClient } from "@/components/shop/shop-layout-client";
 import { headers } from "next/headers";
@@ -44,9 +45,10 @@ export async function ShopLayoutShell({
   const pathname = headersList.get("x-pathname") ?? "";
   const search = headersList.get("x-search") ?? "";
   const parsedSearchParams = parseSearchParamsFromQueryString(search);
+  const collectionSegment = collectionSegmentFromPathname(pathname);
   const initialFilterCount = countActiveShopFilters(
     parsedSearchParams,
-    collectionSegmentFromPathname(pathname),
+    isProducerBoxesPath(pathname) ? undefined : collectionSegment,
   );
   const initialResultsCount = await getShopLayoutResultsCount(
     pathname,

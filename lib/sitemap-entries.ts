@@ -124,7 +124,7 @@ export async function buildSitemapEntries(
 ): Promise<MetadataRoute.Sitemap> {
   return unstable_cache(
     () => buildSitemapEntriesUncached(baseUrl, profile),
-    ["sitemap-entries", baseUrl, profile],
+    ["sitemap-entries", baseUrl, profile, ...producerBoxesSitemapPaths()],
     { revalidate: 3600 },
   )();
 }

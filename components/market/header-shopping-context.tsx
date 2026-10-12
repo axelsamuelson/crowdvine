@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Globe } from "lucide-react";
 import { getCountryDisplayName } from "@/lib/countries";
@@ -91,11 +91,16 @@ function SwedenZonePopover({
   currency?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const [ready, setReady] = useState(false);
   const { context: shopping, setLocale, t } = useTranslations();
   const appLocale = shopping.locale;
   const localeOptions = shopping.availableLocales;
   const activeLanguageLabel =
     appLocale === "en" ? t("shopping.english") : t("shopping.swedish");
+
+  useEffect(() => {
+    setReady(true);
+  }, []);
 
   const triggerClass = cn(
     "inline-flex shrink-0 items-center gap-2 transition-colors",
@@ -106,29 +111,33 @@ function SwedenZonePopover({
     className,
   );
 
+  const trigger = (
+    <button
+      type="button"
+      className={triggerClass}
+      aria-haspopup="dialog"
+      aria-expanded={open}
+      aria-label={t("shopping.ariaContext", {
+        country: label,
+        currency: currency ?? shopping.currencyCode,
+        language: activeLanguageLabel,
+      })}
+    >
+      <ZoneTriggerLabel
+        label={label}
+        isFooter={isFooter}
+        showCurrency={showCurrency}
+        currency={currency}
+        languageLabel={isFooter ? activeLanguageLabel : undefined}
+      />
+    </button>
+  );
+
+  if (!ready) return trigger;
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <button
-          type="button"
-          className={triggerClass}
-          aria-haspopup="dialog"
-          aria-expanded={open}
-          aria-label={t("shopping.ariaContext", {
-            country: label,
-            currency: currency ?? shopping.currencyCode,
-            language: activeLanguageLabel,
-          })}
-        >
-          <ZoneTriggerLabel
-            label={label}
-            isFooter={isFooter}
-            showCurrency={showCurrency}
-            currency={currency}
-            languageLabel={isFooter ? activeLanguageLabel : undefined}
-          />
-        </button>
-      </PopoverTrigger>
+      <PopoverTrigger asChild>{trigger}</PopoverTrigger>
       <PopoverContent
         align="end"
         side={isFooter ? "top" : "bottom"}

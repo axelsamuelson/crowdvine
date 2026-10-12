@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface AddProducerBoxButtonProps {
   boxId: string;
@@ -10,6 +11,7 @@ interface AddProducerBoxButtonProps {
   pendingLabel: string;
   addedLabel: string;
   unavailableLabel: string;
+  className?: string;
 }
 
 export function AddProducerBoxButton({
@@ -19,6 +21,7 @@ export function AddProducerBoxButton({
   pendingLabel,
   addedLabel,
   unavailableLabel,
+  className,
 }: AddProducerBoxButtonProps) {
   const [pending, setPending] = useState(false);
   const [added, setAdded] = useState(false);
@@ -64,14 +67,17 @@ export function AddProducerBoxButton({
   const unavailableId = `${boxId}-unavailable`;
 
   return (
-    <div className="mt-6 flex flex-col items-start gap-2">
+    <div className="flex flex-col items-start gap-2 md:items-end">
       <Button
         type="button"
         size="lg"
         disabled={disabled || pending}
         aria-describedby={disabled ? unavailableId : undefined}
         onClick={() => void onClick()}
-        className="h-11 rounded-md bg-black px-5 text-white hover:bg-black/90"
+        className={cn(
+          "h-11 w-full rounded-md bg-black px-5 text-white hover:bg-black/90 md:w-auto",
+          className,
+        )}
       >
         {pending ? pendingLabel : label}
       </Button>

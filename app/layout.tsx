@@ -47,7 +47,8 @@ import {
 import { SiteLogoProvider } from "@/lib/context/site-logo-provider";
 import { resolveSiteLogosFromRequest } from "@/lib/site-logos-server";
 import { getCachedShoppingContextFromRequest } from "@/lib/shopping-context/server";
-import { getSiteConfig, type SiteConfig } from "@/lib/site-config";
+import { type SiteConfig } from "@/lib/site-config";
+import { getSiteConfig } from "@/lib/site-config-server";
 import { Analytics } from "@vercel/analytics/react";
 import { PageViewTracker } from "@/components/analytics/page-view-tracker";
 import { InternalDeviceMarker } from "@/components/analytics/internal-device-marker";

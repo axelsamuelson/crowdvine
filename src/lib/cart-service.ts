@@ -497,6 +497,120 @@ export class CartService {
     }
   }
 
+  /**
+   * Add several wines in one cart read, one write, and one cart reload.
+   * Same quantity rules as addItem: existing lines are increased, new lines are inserted.
+   */
+  static async addItems(
+    entries: Array<{
+      wineId: string;
+      quantity: number;
+      source?: "producer" | "warehouse";
+    }>,
+  ): Promise<Cart | null> {
+    const lines = entries.filter((entry) => entry.wineId && entry.quantity > 0);
+    if (lines.length === 0) return null;
+
+    try {
+      const cartId = await this.ensureCart();
+      const sb = await supabaseServer();
+      const wineIds = [...new Set(lines.map((entry) => entry.wineId))];
+      const { data: existingItems, error: selectError } = await sb
+        .from("cart_items")
+        .select("id, wine_id, quantity, source")
+        .eq("cart_id", cartId)
+        .in("wine_id", wineIds);
+
+      if (selectError) {
+        console.error("🔧 Failed to read cart items:", selectError);
+        throw new Error("Failed to read cart items");
+      }
+
+      const merged = new Map<
+        string,
+        {
+          id: string | null;
+          wineId: string;
+          quantity: number;
+          source: "producer" | "warehouse";
+        }
+      >();
+
+      for (const row of existingItems ?? []) {
+        const source = row.source === "warehouse" ? "warehouse" : "producer";
+        merged.set(`${row.wine_id}:${source}`, {
+          id: row.id,
+          wineId: row.wine_id,
+          quantity: row.quantity,
+          source,
+        });
+      }
+
+      const touched = new Set<string>();
+      for (const entry of lines) {
+        const source = entry.source ?? "producer";
+        const key = `${entry.wineId}:${source}`;
+        touched.add(key);
+        const current = merged.get(key);
+        if (current) {
+          current.quantity += entry.quantity;
+        } else {
+          merged.set(key, {
+            id: null,
+            wineId: entry.wineId,
+            quantity: entry.quantity,
+            source,
+          });
+        }
+      }
+
+      const changed = [...merged.values()].filter((row) =>
+        touched.has(`${row.wineId}:${row.source}`),
+      );
+      const inserts = changed.filter((row) => row.id === null);
+      const updates = changed.filter(
+        (row): row is typeof row & { id: string } => row.id !== null,
+      );
+
+      if (inserts.length > 0) {
+        const { error: insertError } = await sb.from("cart_items").insert(
+          inserts.map((row) => ({
+            cart_id: cartId,
+            wine_id: row.wineId,
+            quantity: row.quantity,
+            source: row.source,
+          })),
+        );
+        if (insertError) {
+          console.error("🔧 Insert error:", insertError);
+          throw new Error("Failed to add cart items");
+        }
+      }
+
+      if (updates.length > 0) {
+        const updateResults = await Promise.all(
+          updates.map((row) =>
+            sb
+              .from("cart_items")
+              .update({ quantity: row.quantity, source: row.source })
+              .eq("id", row.id),
+          ),
+        );
+        const updateError = updateResults.find((result) => result.error)?.error;
+        if (updateError) {
+          console.error("🔧 Update error:", updateError);
+          throw new Error("Failed to update cart item");
+        }
+      }
+
+      await this.touchCart(cartId);
+      return await this.getCart();
+    } catch (error) {
+      console.error("🔧 CartService.addItems error:", error);
+      return null;
+    }
+  }
+
   static async updateItem(
     itemId: string,
     quantity: number,

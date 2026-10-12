@@ -17,6 +17,7 @@ import { GrapesFilter } from "./grapes-filter";
 import { FarmingFilter } from "./farming-filter";
 import { CompetitorFilter, type PriceSourceForFilter } from "./competitor-filter";
 import { useFilterCount } from "../hooks/use-filter-count";
+import { isProducerBoxesPath } from "@/lib/producer-boxes/config";
 import { useProducts } from "@/components/shop/products-provider";
 import { ResultsCount } from "./results-count";
 import { SortDropdown } from "./sort-dropdown";
@@ -68,8 +69,10 @@ export function MobileFilters({
     useProducts();
   const pathname = usePathname();
   const router = useRouter();
+  const isProducerBoxesPage = isProducerBoxesPath(pathname);
   const isColorCategoryPage =
-    pathname.startsWith("/vin/") || pathname.startsWith("/wine/");
+    !isProducerBoxesPage &&
+    (pathname.startsWith("/vin/") || pathname.startsWith("/wine/"));
   const locale = localeFromShopPathname(pathname);
   const activeColorName = getActiveColorFromPathname(pathname);
   const activeFarming = getActiveFarmingFromPathname(pathname);
@@ -223,12 +226,14 @@ export function MobileFilters({
           </DrawerHeader>
           <div className="overflow-y-auto flex-1 px-4 pb-4 space-y-6">
             <ShopFilterSearch id="shop-search-drawer" />
-            <ColorFilter
-              products={originalProducts}
-              showAllColors={isColorCategoryPage}
-              activeColor={activeColorName ?? undefined}
-              onColorSelect={handleColorSelect}
-            />
+            {isProducerBoxesPage ? null : (
+              <ColorFilter
+                products={originalProducts}
+                showAllColors={isColorCategoryPage}
+                activeColor={activeColorName ?? undefined}
+                onColorSelect={handleColorSelect}
+              />
+            )}
             <FarmingFilter
               products={originalProducts}
               mode="drawer"

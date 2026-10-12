@@ -26,7 +26,7 @@ import {
   producerShopPageTitle,
 } from "@/lib/seo/producer-shop-metadata";
 import { getCollection, getCollectionProducts } from "@/lib/shopify";
-import { getSiteConfig } from "@/lib/site-config";
+import { getSiteConfig } from "@/lib/site-config-server";
 import { categoryPageTitle } from "@/lib/seo/category-page-title";
 import { shopCategoryCanonicalUrl } from "@/lib/wine-category-canonical";
 import {
