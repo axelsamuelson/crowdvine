@@ -59,28 +59,35 @@ async function resolveCatalog(
   definitions: readonly ProducerBoxDefinition[],
 ): Promise<ResolvedProducerBox[]> {
   const sb = getSupabaseAdmin();
-  const { data: producers, error: producerError } = await sb
-    .from("producers")
-    .select("id, name");
-
-  if (producerError) throw new Error(producerError.message);
-
-  const producerRows = (producers ?? []) as ProducerBoxProducerRow[];
-  const matchedIds = definitions.flatMap((definition) => {
-    const resolved = resolveProducerBox(definition, producerRows, []);
-    return resolved.producerId ? [resolved.producerId] : [];
-  });
+  const wineIds = [
+    ...new Set(
+      definitions.flatMap((definition) =>
+        definition.lines.map((line) => line.wineId),
+      ),
+    ),
+  ];
 
   let wineRows: ProducerBoxWineRow[] = [];
-  if (matchedIds.length > 0) {
+  if (wineIds.length > 0) {
     const { data: wines, error: wineError } = await sb
       .from("wines")
       .select(
         "id, producer_id, wine_name, handle, color, vintage, base_price_cents, is_live, available_for_sale",
       )
-      .in("producer_id", matchedIds);
+      .in("id", wineIds);
     if (wineError) throw new Error(wineError.message);
     wineRows = (wines ?? []) as ProducerBoxWineRow[];
+  }
+
+  const producerIds = [...new Set(wineRows.map((wine) => wine.producer_id))];
+  let producerRows: ProducerBoxProducerRow[] = [];
+  if (producerIds.length > 0) {
+    const { data: producers, error: producerError } = await sb
+      .from("producers")
+      .select("id, name")
+      .in("id", producerIds);
+    if (producerError) throw new Error(producerError.message);
+    producerRows = (producers ?? []) as ProducerBoxProducerRow[];
   }
 
   return definitions.map((definition) =>

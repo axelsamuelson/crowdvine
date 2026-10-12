@@ -3,6 +3,10 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import {
+  PRODUCER_BOX_BOTTLE_COUNT,
+  PRODUCER_BOX_MAX_PER_WINE,
+} from "@/lib/producer-boxes/config";
 
 interface AddProducerBoxButtonProps {
   boxId: string;
@@ -26,7 +30,13 @@ export function AddProducerBoxButton({
   const [pending, setPending] = useState(false);
   const [added, setAdded] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const disabled = !items || items.length !== 6;
+  const bottleCount = items?.reduce((sum, item) => sum + item.quantity, 0) ?? 0;
+  const disabled =
+    !items ||
+    bottleCount !== PRODUCER_BOX_BOTTLE_COUNT ||
+    items.some(
+      (item) => item.quantity < 1 || item.quantity > PRODUCER_BOX_MAX_PER_WINE,
+    );
 
   async function onClick() {
     if (!items || pending) return;

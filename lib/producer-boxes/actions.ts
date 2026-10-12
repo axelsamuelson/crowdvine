@@ -36,13 +36,17 @@ export async function saveProducerBoxesCatalog(
   const parsed = parseProducerBoxesCatalog({
     boxes: boxes.map((box) => ({
       ...box,
-      wineNames: box.wineNames.map((name) => name.trim()).filter(Boolean),
+      lines: box.lines.map((line) => ({
+        wineId: line.wineId.trim(),
+        quantity: line.quantity,
+      })),
     })),
   });
   if (!parsed) {
     return {
       ok: false,
-      error: "Varje låda behöver producent, namn, två texter och exakt sex vinnamn.",
+      error:
+        "Varje låda behöver producent, namn, två texter och viner vars antal summerar till 6.",
     };
   }
   if (catalogContainsEmDash(parsed)) {

@@ -25,14 +25,35 @@ function slotNote(
     missing: string;
     unpublished: string;
     notForSale: string;
-    ambiguous: string;
+    wrongProducer: string;
   },
 ): string | null {
   if (slot.status === "missing" || slot.status === "producer_missing") return copy.missing;
   if (slot.status === "unpublished") return copy.unpublished;
   if (slot.status === "not_for_sale") return copy.notForSale;
-  if (slot.status === "ambiguous") return copy.ambiguous;
+  if (slot.status === "producer_mismatch") return copy.wrongProducer;
   return null;
+}
+
+function boxCardProduct(product: Product, slot: ResolvedProducerBoxWine): Product {
+  const catalogTitle =
+    slot.wineName && slot.vintage
+      ? `${slot.wineName} ${slot.vintage}`
+      : product.title;
+  const title =
+    slot.quantity > 1 ? `${slot.quantity} x ${catalogTitle}` : catalogTitle;
+  const withAlt = <T extends { altText?: string }>(image: T): T => ({
+    ...image,
+    altText: catalogTitle,
+  });
+  return {
+    ...product,
+    title,
+    featuredImage: product.featuredImage
+      ? withAlt(product.featuredImage)
+      : product.featuredImage,
+    images: product.images.map((image) => withAlt(image)),
+  };
 }
 
 function formatSek(cents: number): string {
@@ -174,19 +195,24 @@ export async function ProducerBoxesPage({ locale }: { locale: AppLocale }) {
                       : undefined;
                     const index = imageIndex;
                     imageIndex += 1;
+                    const note = slotNote(slot, copy);
+                    const quantityLabel =
+                      slot.quantity > 1
+                        ? `${slot.quantity} x ${slot.wineName ?? slot.wineId}`
+                        : null;
                     if (!product) {
                       return (
                         <MissingBoxWine
-                          key={`${box.definition.id}-${slot.configuredName}`}
-                          label={slot.wineName ?? slot.configuredName}
-                          note={slotNote(slot, copy)}
+                          key={`${box.definition.id}-${slot.wineId}`}
+                          label={quantityLabel ?? slot.wineName ?? slot.wineId}
+                          note={note}
                         />
                       );
                     }
                     return (
                       <ProductCard
-                        key={product.id}
-                        product={product}
+                        key={`${product.id}-${slot.quantity}`}
+                        product={boxCardProduct(product, slot)}
                         index={index}
                       />
                     );

@@ -6,6 +6,8 @@ import {
   isProducerBoxesPath,
   pactProducerBoxesRedirectUrl,
   producerBoxesSitemapPaths,
+  type ProducerBoxDefinition,
+  type ProducerBoxLine,
 } from "@/lib/producer-boxes/config";
 import {
   catalogContainsEmDash,
@@ -14,16 +16,24 @@ import {
 } from "@/lib/producer-boxes/catalog";
 import {
   batchAddItems,
-  normalizeCatalogName,
+  linesAreSixBottles,
   resolveProducerBox,
   type ProducerBoxWineRow,
 } from "@/lib/producer-boxes/match";
+import { buildProducerBoxesJsonLd } from "@/lib/producer-boxes/metadata";
 import { getShopLayoutResultsCount } from "@/lib/shop/shop-results-count-server";
+
+const FANTAISIE_ORANGE_2024 = "61a8806b-2771-4c0b-9572-4a1afee268ab";
+const LA_PLAGE = "68180a1e-2da7-40d7-81aa-02ecf2450e67";
+const POUCET = "1303dae7-927b-4664-b82d-057c2c38a33b";
+const GRENADE = "6bb433b2-d27b-466f-8b13-87e57e2304f9";
+const HIPPIE_KILLER = "523f6b93-8eaf-48f2-ad62-0cdddbb757b4";
 
 const producers = [
   { id: "p-mesures", name: "Mas Des Mesures" },
   { id: "p-marotte", name: "La Marotte" },
   { id: "p-fantine", name: "Clos Fantine" },
+  { id: "p-ranq", name: "Château del Ranq" },
 ];
 
 function wine(
@@ -38,6 +48,17 @@ function wine(
     available_for_sale: true,
     ...partial,
   };
+}
+
+function winesFor(box: ProducerBoxDefinition, producerId: string): ProducerBoxWineRow[] {
+  return box.lines.map((line) =>
+    wine({
+      id: line.wineId,
+      producer_id: producerId,
+      wine_name: line.wineId,
+      base_price_cents: 100,
+    }),
+  );
 }
 
 describe("producer boxes", () => {
@@ -68,7 +89,7 @@ describe("producer boxes", () => {
         box.story.sv,
         box.story.en,
         box.name.sv,
-        ...box.wineNames,
+        box.producerName,
       ]),
     ];
     for (const text of blobs) {
@@ -78,128 +99,140 @@ describe("producer boxes", () => {
     expect(catalogContainsEmDash(DEFAULT_PRODUCER_BOXES)).toBe(false);
   });
 
-  it("matches accents and apostrophes, and does not extend a shorter name", () => {
-    expect(normalizeCatalogName("Faugères Tradition")).toBe(
-      normalizeCatalogName("Faugeres Tradition"),
+  it("lists six boxes and resolves the replaced wines by id", () => {
+    expect(DEFAULT_PRODUCER_BOXES.map((box) => box.id)).toEqual([
+      "mas-des-mesures",
+      "la-marotte",
+      "clos-fantine",
+      "chateau-del-ranq",
+      "hors-saison",
+      "le-bouc-a-trois-pattes",
+    ]);
+    const fantine = DEFAULT_PRODUCER_BOXES[2]!;
+    const marotte = DEFAULT_PRODUCER_BOXES[1]!;
+    expect(fantine.lines.some((line) => line.wineId === FANTAISIE_ORANGE_2024)).toBe(true);
+    expect(marotte.lines.some((line) => line.wineId === LA_PLAGE)).toBe(true);
+    expect(marotte.lines.some((line) => line.wineId === "5ed54ddd-8451-42f8-ae92-04cb9cc08671")).toBe(
+      false,
     );
-    expect(normalizeCatalogName("Nuit d'Orage")).toBe(
-      normalizeCatalogName("Nuit d\u2019Orage"),
-    );
-    expect(normalizeCatalogName("Fantaisie Orange")).not.toBe(
-      normalizeCatalogName("Fantaisie Orange 2024"),
-    );
+    expect(DEFAULT_PRODUCER_BOXES[3]!.lines.find((line) => line.wineId === POUCET)?.quantity).toBe(2);
+    expect(DEFAULT_PRODUCER_BOXES[4]!.lines.find((line) => line.wineId === GRENADE)?.quantity).toBe(2);
+    expect(
+      DEFAULT_PRODUCER_BOXES[5]!.lines.find((line) => line.wineId === HIPPIE_KILLER)?.quantity,
+    ).toBe(2);
+    for (const box of DEFAULT_PRODUCER_BOXES) {
+      expect(linesAreSixBottles(box.lines)).toBe(true);
+    }
   });
 
-  it("does not substitute a missing or unpublished wine", () => {
+  it("matches Fantaisie Orange 2024 by id and prices the doubled bottle", () => {
     const fantine = DEFAULT_PRODUCER_BOXES[2]!;
+    const prices = [17200, 17700, 14900, 16200, 17700, 20600];
     const resolved = resolveProducerBox(
       fantine,
       producers,
-      [
+      fantine.lines.map((line, index) =>
         wine({
-          id: "tradition",
+          id: line.wineId,
           producer_id: "p-fantine",
-          wine_name: "Faugeres Tradition",
+          wine_name: index === 5 ? "Fantaisie Orange 2024" : `wine-${index}`,
+          vintage: "2024",
+          base_price_cents: prices[index],
         }),
-        wine({ id: "impro", producer_id: "p-fantine", wine_name: "Impro" }),
-        wine({
-          id: "lanterne",
-          producer_id: "p-fantine",
-          wine_name: "La Lanterne Rouge",
-        }),
-        wine({
-          id: "nuit",
-          producer_id: "p-fantine",
-          wine_name: "Nuit d\u2019Orage",
-        }),
-        wine({
-          id: "case",
-          producer_id: "p-fantine",
-          wine_name: "Une Case en Plus",
-        }),
-        wine({
-          id: "other-orange",
-          producer_id: "p-fantine",
-          wine_name: "Fantaisie Orange 2024",
-          is_live: true,
-        }),
-      ],
+      ),
     );
+    const orange = resolved.slots.find((slot) => slot.wineId === FANTAISIE_ORANGE_2024);
+    expect(orange?.status).toBe("ok");
+    expect(orange?.wineName).toBe("Fantaisie Orange 2024");
+    expect(resolved.purchasable).toBe(true);
+    expect(resolved.totalCents).toBe(104300);
+  });
 
-    const orange = resolved.slots.find(
-      (slot) => slot.configuredName === "Fantaisie Orange",
-    );
-    expect(orange?.status).toBe("missing");
-    expect(orange?.wineId).toBeUndefined();
+  it("leaves a missing wine id out of the total", () => {
+    const box = DEFAULT_PRODUCER_BOXES[0]!;
+    const resolved = resolveProducerBox(box, producers, winesFor(box, "p-mesures").slice(0, 5));
+    expect(resolved.slots.at(-1)?.status).toBe("missing");
     expect(resolved.purchasable).toBe(false);
     expect(resolved.totalCents).toBeNull();
     expect(batchAddItems(resolved)).toBeNull();
   });
 
-  it("keeps an unpublished exact match instead of a longer title", () => {
-    const fantine = DEFAULT_PRODUCER_BOXES[2]!;
-    const resolved = resolveProducerBox(fantine, producers, [
-      wine({
-        id: "draft",
-        producer_id: "p-fantine",
-        wine_name: "Fantaisie Orange",
-        is_live: false,
-      }),
-      wine({
-        id: "live-longer",
-        producer_id: "p-fantine",
-        wine_name: "Fantaisie Orange 2024",
-      }),
-    ]);
-    const orange = resolved.slots.find(
-      (slot) => slot.configuredName === "Fantaisie Orange",
-    );
-    expect(orange?.status).toBe("unpublished");
-    expect(orange?.wineId).toBe("draft");
-  });
-
-  it("disables the box when a wine is not for sale", () => {
-    const marotte = DEFAULT_PRODUCER_BOXES[1]!;
-    const resolved = resolveProducerBox(
-      marotte,
-      producers,
-      marotte.wineNames.map((name, index) =>
-        wine({
-          id: `m-${index}`,
-          producer_id: "p-marotte",
-          wine_name: name,
-          available_for_sale: name !== "Sorcières",
-          base_price_cents: 1000 * (index + 1),
-        }),
-      ),
-    );
-    expect(resolved.slots.find((slot) => slot.configuredName === "Sorcières")?.status).toBe(
-      "not_for_sale",
-    );
-    expect(resolved.purchasable).toBe(false);
-    expect(resolved.totalCents).toBe(21000);
-    expect(batchAddItems(resolved)).toBeNull();
-  });
-
-  it("builds a six-bottle batch for a complete box", () => {
+  it("disables the box when a wine is not for sale but still sums the list prices", () => {
     const box = DEFAULT_PRODUCER_BOXES[0]!;
     const resolved = resolveProducerBox(
       box,
       producers,
-      box.wineNames.map((name, index) =>
-        wine({
-          id: `w-${index}`,
-          producer_id: "p-mesures",
-          wine_name: name,
-          base_price_cents: 100,
-        }),
-      ),
+      winesFor(box, "p-mesures").map((row, index) => ({
+        ...row,
+        available_for_sale: index !== 2,
+        base_price_cents: 1000,
+      })),
+    );
+    expect(resolved.slots[2]?.status).toBe("not_for_sale");
+    expect(resolved.purchasable).toBe(false);
+    expect(resolved.totalCents).toBe(6000);
+    expect(batchAddItems(resolved)).toBeNull();
+  });
+
+  it("sends quantity 2 for a repeated wine and doubles that price", () => {
+    const ranq = DEFAULT_PRODUCER_BOXES[3]!;
+    const resolved = resolveProducerBox(
+      ranq,
+      producers,
+      winesFor(ranq, "p-ranq").map((row) => ({
+        ...row,
+        wine_name: row.id === POUCET ? "Poucèt" : "wine",
+        base_price_cents: row.id === POUCET ? 19000 : 10000,
+      })),
     );
     expect(resolved.purchasable).toBe(true);
+    expect(resolved.slots).toHaveLength(5);
+    expect(resolved.slots.find((slot) => slot.wineId === POUCET)?.quantity).toBe(2);
+    expect(resolved.totalCents).toBe(10000 * 4 + 19000 * 2);
     expect(batchAddItems(resolved)).toEqual(
-      box.wineNames.map((_, index) => ({ variantId: `w-${index}`, quantity: 1 })),
+      ranq.lines.map((line) => ({ variantId: line.wineId, quantity: line.quantity })),
     );
-    expect(resolved.totalCents).toBe(600);
+  });
+
+  it("rejects a box that is not exactly six bottles or mixes producers", () => {
+    const tooMany: ProducerBoxLine[] = [{ wineId: "a", quantity: 7 }];
+    expect(linesAreSixBottles(tooMany)).toBe(false);
+    const box: ProducerBoxDefinition = {
+      ...DEFAULT_PRODUCER_BOXES[0]!,
+      lines: [
+        { wineId: "a", quantity: 3 },
+        { wineId: "b", quantity: 3 },
+      ],
+    };
+    const resolved = resolveProducerBox(box, producers, [
+      wine({ id: "a", producer_id: "p-mesures", wine_name: "A" }),
+      wine({ id: "b", producer_id: "p-marotte", wine_name: "B" }),
+    ]);
+    expect(resolved.purchasable).toBe(false);
+    expect(resolved.slots.every((slot) => slot.status === "producer_mismatch")).toBe(true);
+    expect(batchAddItems(resolved)).toBeNull();
+  });
+
+  it("builds item list anchors for all six boxes", () => {
+    const resolved = DEFAULT_PRODUCER_BOXES.map((definition) =>
+      resolveProducerBox(definition, producers, winesFor(definition, "p-mesures")),
+    );
+    const jsonLd = buildProducerBoxesJsonLd("sv", resolved);
+    expect(jsonLd.collection.mainEntity).toMatchObject({
+      "@type": "ItemList",
+      numberOfItems: 6,
+    });
+    const items = (
+      jsonLd.collection.mainEntity as { itemListElement: { url: string }[] }
+    ).itemListElement;
+    expect(items.map((item) => item.url)).toEqual([
+      "https://pactwines.com/vin/naturvin-lada#box-mas-des-mesures",
+      "https://pactwines.com/vin/naturvin-lada#box-la-marotte",
+      "https://pactwines.com/vin/naturvin-lada#box-clos-fantine",
+      "https://pactwines.com/vin/naturvin-lada#box-chateau-del-ranq",
+      "https://pactwines.com/vin/naturvin-lada#box-hors-saison",
+      "https://pactwines.com/vin/naturvin-lada#box-le-bouc-a-trois-pattes",
+    ]);
   });
 
   it("does not look up producer-box slugs as shop collections", async () => {
@@ -224,11 +257,13 @@ describe("producer boxes", () => {
     const parsed = parseProducerBoxesCatalog(
       serializeProducerBoxesCatalog(DEFAULT_PRODUCER_BOXES),
     );
-    expect(parsed?.map((box) => box.id)).toEqual([
-      "mas-des-mesures",
-      "la-marotte",
-      "clos-fantine",
-    ]);
-    expect(parsed?.[2]?.wineNames[5]).toBe("Fantaisie Orange");
+    expect(parsed?.map((box) => box.id)).toEqual(
+      DEFAULT_PRODUCER_BOXES.map((box) => box.id),
+    );
+    expect(parsed?.[2]?.lines[5]).toEqual({
+      wineId: FANTAISIE_ORANGE_2024,
+      quantity: 1,
+    });
+    expect(parsed?.[3]?.lines[4]).toEqual({ wineId: POUCET, quantity: 2 });
   });
 });

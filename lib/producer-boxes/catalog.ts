@@ -1,13 +1,19 @@
 import {
   DEFAULT_PRODUCER_BOXES,
+  PRODUCER_BOX_BOTTLE_COUNT,
+  PRODUCER_BOX_MAX_PER_WINE,
   type ProducerBoxDefinition,
   type ProducerBoxId,
+  type ProducerBoxLine,
 } from "@/lib/producer-boxes/config";
 
 const BOX_IDS: readonly ProducerBoxId[] = [
   "mas-des-mesures",
   "la-marotte",
   "clos-fantine",
+  "chateau-del-ranq",
+  "hors-saison",
+  "le-bouc-a-trois-pattes",
 ];
 
 export type ProducerBoxesCatalogSource = "site_content" | "default";
@@ -31,7 +37,26 @@ function readLocalized(value: unknown): { sv: string; en: string } | null {
   return { sv, en };
 }
 
-/** Parse an admin JSON payload. Returns null when the shape is not the three boxes. */
+function readLines(value: unknown): ProducerBoxLine[] | null {
+  if (!Array.isArray(value) || value.length === 0) return null;
+  const lines: ProducerBoxLine[] = [];
+  for (const row of value) {
+    if (!row || typeof row !== "object") return null;
+    const wineId = (row as { wineId?: unknown }).wineId;
+    const quantity = (row as { quantity?: unknown }).quantity;
+    if (typeof wineId !== "string" || !wineId.trim()) return null;
+    if (typeof quantity !== "number" || !Number.isInteger(quantity)) return null;
+    if (quantity < 1 || quantity > PRODUCER_BOX_MAX_PER_WINE) return null;
+    lines.push({ wineId: wineId.trim(), quantity });
+  }
+  const ids = new Set(lines.map((line) => line.wineId));
+  if (ids.size !== lines.length) return null;
+  const total = lines.reduce((sum, line) => sum + line.quantity, 0);
+  if (total !== PRODUCER_BOX_BOTTLE_COUNT) return null;
+  return lines;
+}
+
+/** Parse an admin JSON payload. Returns null when a box is not six bottles. */
 export function parseProducerBoxesCatalog(
   raw: unknown,
 ): ProducerBoxDefinition[] | null {
@@ -48,24 +73,20 @@ export function parseProducerBoxesCatalog(
       producerName?: unknown;
       name?: unknown;
       story?: unknown;
-      wineNames?: unknown;
+      lines?: unknown;
     };
     if (typeof row.id !== "string" || !isBoxId(row.id)) return null;
     if (typeof row.producerName !== "string" || !row.producerName.trim()) return null;
     const name = readLocalized(row.name);
     const story = readLocalized(row.story);
-    if (!name || !story) return null;
-    if (!Array.isArray(row.wineNames) || row.wineNames.length !== 6) return null;
-    const wineNames = row.wineNames.map((wine) =>
-      typeof wine === "string" ? wine.trim() : "",
-    );
-    if (wineNames.some((wine) => wine.length === 0)) return null;
+    const lines = readLines(row.lines);
+    if (!name || !story || !lines) return null;
     parsed.push({
       id: row.id,
       producerName: row.producerName.trim(),
       name,
       story,
-      wineNames,
+      lines,
     });
   }
 
@@ -83,7 +104,10 @@ export function serializeProducerBoxesCatalog(
       producerName: box.producerName,
       name: box.name,
       story: box.story,
-      wineNames: [...box.wineNames],
+      lines: box.lines.map((line) => ({
+        wineId: line.wineId,
+        quantity: line.quantity,
+      })),
     })),
   });
 }
@@ -96,7 +120,7 @@ export function catalogContainsEmDash(
   boxes: readonly ProducerBoxDefinition[],
 ): boolean {
   return boxes.some((box) =>
-    [box.producerName, box.name.sv, box.name.en, box.story.sv, box.story.en, ...box.wineNames].some(
+    [box.producerName, box.name.sv, box.name.en, box.story.sv, box.story.en].some(
       containsEmDash,
     ),
   );
@@ -106,7 +130,7 @@ export function defaultProducerBoxesCatalog(): ProducerBoxesCatalog {
   return {
     boxes: DEFAULT_PRODUCER_BOXES.map((box) => ({
       ...box,
-      wineNames: [...box.wineNames],
+      lines: box.lines.map((line) => ({ ...line })),
     })),
     source: "default",
   };

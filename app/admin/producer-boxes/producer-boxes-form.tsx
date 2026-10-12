@@ -6,7 +6,29 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { saveProducerBoxesCatalog } from "@/lib/producer-boxes/actions";
-import type { ProducerBoxDefinition } from "@/lib/producer-boxes/config";
+import type {
+  ProducerBoxDefinition,
+  ProducerBoxLine,
+} from "@/lib/producer-boxes/config";
+
+function linesToText(lines: readonly ProducerBoxLine[]): string {
+  return lines
+    .map((line) =>
+      line.quantity > 1 ? `${line.wineId} ${line.quantity}` : line.wineId,
+    )
+    .join("\n");
+}
+
+function textToLines(value: string): ProducerBoxLine[] {
+  return value.split("\n").map((row) => {
+    const [wineId = "", quantityText] = row.trim().split(/\s+/);
+    const parsed = quantityText ? Number(quantityText) : 1;
+    return {
+      wineId,
+      quantity: Number.isInteger(parsed) ? parsed : 0,
+    };
+  });
+}
 
 interface ProducerBoxesFormProps {
   boxes: ProducerBoxDefinition[];
@@ -130,14 +152,16 @@ export function ProducerBoxesForm({ boxes, source }: ProducerBoxesFormProps) {
               }))
             }
           />
-          <Label htmlFor={`${box.id}-wines`}>Sex viner, ett namn per rad</Label>
+          <Label htmlFor={`${box.id}-wines`}>
+            Vin-id, ett per rad. Skriv antal efter id när flaskan ska med två gånger. Summan ska vara 6.
+          </Label>
           <Textarea
             id={`${box.id}-wines`}
             rows={7}
-            value={box.wineNames.join("\n")}
+            value={linesToText(box.lines)}
             onChange={(event) =>
               updateBox(box.id, {
-                wineNames: event.target.value.split("\n"),
+                lines: textToLines(event.target.value),
               })
             }
           />
