@@ -841,6 +841,7 @@ export const TOP_100_WINES: TopWine[] = [
     rank: 71,
     wine: "Chinuri Pétillant Naturel",
     producer: "Iago Bitarishvili",
+    topProducerName: "Iago Bitarishvili",
     region: "Kartli, Georgien",
     country: "Georgien",
     type: "Mousserande",

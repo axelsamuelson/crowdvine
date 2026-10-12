@@ -19,26 +19,41 @@ import {
   findTop100ProducerExact,
 } from "@/lib/mcp/utils/top-100-match";
 
-const REMOVED = [
-  "Gérard Gauby",
-  "Descendientes de J. Palacios",
-  "Stéphane Ogier",
+const EXTENSION = [
+  "Sylvain Pataille",
+  "Catherine & Pierre Breton",
+  "Alice & Olivier De Moor",
+  "Olivier Cousin",
+  "Thierry Puzelat / Clos du Tue-Boeuf",
+  "Agnès & René Mosse",
+  "Frédéric Cossard / Domaine de Chassorney",
+  "David Léclapart",
+  "Vouette et Sorbée / Bertrand Gautherot",
+  "Paolo Vodopivec",
+  "Stefano Bellotti / Cascina degli Ulivi",
+  "COS",
+  "Sepp Muster",
+  "Testalonga / Craig Hawkins",
+  "Louis-Antoine Luyt",
+  "Iago Bitarishvili",
 ];
 
 describe("TOP_100_PRODUCERS update 2026-10-12", () => {
-  it("keeps exactly ranks 1-100", () => {
-    expect(TOP_100_PRODUCERS).toHaveLength(100);
+  it("keeps ranks 1-100 and adds 101-116", () => {
+    expect(TOP_100_PRODUCERS).toHaveLength(116);
     const ranks = TOP_100_PRODUCERS.map((producer) => producer.rank).sort(
       (a, b) => a - b,
     );
-    expect(ranks).toEqual(Array.from({ length: 100 }, (_, index) => index + 1));
+    expect(ranks).toEqual(Array.from({ length: 116 }, (_, index) => index + 1));
     expect(new Set(TOP_100_PRODUCERS.map((producer) => producer.name)).size).toBe(
-      100,
+      116,
     );
   });
 
-  it("replaces the three producers with no wine link and keeps Bartolo", () => {
+  it("replaces only the Gauby duplicate and keeps the rest of the top 100", () => {
     const byRank = new Map(TOP_100_PRODUCERS.map((producer) => [producer.rank, producer]));
+    expect(byRank.get(45)?.name).toBe("Domaine Gauby / Gérard & Lionel Gauby");
+    expect(byRank.get(46)?.name).toBe("Rudolf Fürst");
     expect(byRank.get(47)).toMatchObject({
       name: "Jean-Paul Thévenet",
       region: "Morgon, Beaujolais",
@@ -48,32 +63,39 @@ describe("TOP_100_PRODUCERS update 2026-10-12", () => {
       description: null,
       descriptionEn: null,
     });
+    expect(byRank.get(48)?.name).toBe("Gut Oggau");
     expect(byRank.get(81)?.name).toBe(
       "Bartolo Mascarello / Maria Teresa Mascarello",
     );
-    expect(byRank.get(81)?.previousRank).toBe(81);
     expect(byRank.get(87)).toMatchObject({
-      name: "Catherine & Pierre Breton",
-      region: "Bourgueil, Loire",
-      country: "Frankrike",
-      grapes: "Cabernet Franc, Chenin Blanc",
-      previousRank: null,
-      description: null,
-      descriptionEn: null,
+      name: "Descendientes de J. Palacios",
+      previousRank: 87,
     });
     expect(byRank.get(97)).toMatchObject({
-      name: "Alice & Olivier De Moor",
-      region: "Chablis, Bourgogne",
-      country: "Frankrike",
-      grapes: "Chardonnay, Aligoté",
-      previousRank: null,
-      description: null,
-      descriptionEn: null,
+      name: "Stéphane Ogier",
+      previousRank: 97,
     });
-    for (const name of REMOVED) {
-      expect(TOP_100_PRODUCERS.some((producer) => producer.name === name)).toBe(
-        false,
-      );
+    expect(byRank.get(99)?.name).toBe(
+      "La Grange de l'Oncle Charles / Jérôme François",
+    );
+    expect(byRank.get(100)?.name).toBe("François Pinon");
+    expect(
+      TOP_100_PRODUCERS.some((producer) => producer.name === "Gérard Gauby"),
+    ).toBe(false);
+    for (let rank = 1; rank <= 31; rank += 1) {
+      expect(byRank.get(rank)?.previousRank).toBe(rank);
+    }
+  });
+
+  it("adds the extension with null descriptions and previousRank", () => {
+    const extension = TOP_100_PRODUCERS.filter((producer) => producer.rank >= 101);
+    expect(extension.map((producer) => producer.name)).toEqual(EXTENSION);
+    for (const producer of extension) {
+      expect(producer.previousRank).toBeNull();
+      expect(producer.description).toBeNull();
+      expect(producer.descriptionEn).toBeNull();
+      expect(entryDescription(producer, "sv")).toBeUndefined();
+      expect(entryDescription(producer, "en")).toBeUndefined();
     }
   });
 
@@ -81,10 +103,9 @@ describe("TOP_100_PRODUCERS update 2026-10-12", () => {
     const newcomers = TOP_100_PRODUCERS.filter(
       (producer) => producer.previousRank == null,
     );
-    expect(newcomers.map((producer) => producer.name).sort()).toEqual([
-      "Alice & Olivier De Moor",
-      "Catherine & Pierre Breton",
+    expect(newcomers.map((producer) => producer.name)).toEqual([
       "Jean-Paul Thévenet",
+      ...EXTENSION,
     ]);
     for (const producer of TOP_100_PRODUCERS) {
       if (producer.previousRank == null) continue;
@@ -106,7 +127,12 @@ describe("TOP_100_PRODUCERS update 2026-10-12", () => {
     expect(TOP_100_PRODUCERS_UPDATED_AT).toBe("2026-10-12");
     expect(formatTop100ProducersUpdatedDate("sv")).toBe("12 oktober 2026");
     expect(formatTop100ProducersUpdatedDate("en")).toBe("12 October 2026");
-    expect(TOP_100_PRODUCERS_DEPARTED.map((row) => row.name)).toEqual(REMOVED);
+    expect(TOP_100_PRODUCERS_DEPARTED.map((row) => row.name)).toEqual([
+      "Gérard Gauby",
+    ]);
+    expect(TOP_100_PRODUCERS_DEPARTED[0]?.noteSv).toBe(
+      "dubblett av Domaine Gauby",
+    );
     expect(
       TOP_100_PRODUCERS_DEPARTED.some((row) => row.name.includes("Mascarello")),
     ).toBe(false);
@@ -172,20 +198,22 @@ describe("TOP_100_PRODUCERS update 2026-10-12", () => {
     expect(thevenet).not.toMatch(/rankad #\d+|ranked #\d+/i);
   });
 
-  it("leaves Iago Bitarishvili as an unmatched wine without a list row", () => {
+  it("links every wine to a producer, including Chinuri via topProducerName", () => {
     const wine = TOP_100_WINES.find((row) => row.rank === 71);
     expect(wine).toMatchObject({
       wine: "Chinuri Pétillant Naturel",
       producer: "Iago Bitarishvili",
+      topProducerName: "Iago Bitarishvili",
     });
-    expect(wine?.topProducerName).toBeUndefined();
-    expect(
-      findTop100ProducerExact(wine?.producer ?? ""),
-    ).toBeNull();
-    expect(
-      TOP_100_PRODUCERS.some((producer) =>
-        producer.name.includes("Bitarishvili"),
-      ),
-    ).toBe(false);
+    expect(findTop100ProducerExact("Iago Bitarishvili")?.rank).toBe(116);
+
+    const unmatched = TOP_100_WINES.filter((row) => {
+      const key = row.topProducerName?.trim() || null;
+      const resolved = key
+        ? findTop100ProducerExact(key)
+        : findTop100ProducerExact(row.producer);
+      return resolved == null;
+    });
+    expect(unmatched).toEqual([]);
   });
 });

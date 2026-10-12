@@ -212,6 +212,10 @@ export async function renderProducersGuidePage(locale: AppLocale) {
     locale === "sv"
       ? "Pilarna visar förändring sedan föregående uppdatering."
       : "Arrows show the change since the previous update.";
+  const extensionHeading =
+    locale === "sv"
+      ? "Fler producenter att känna till (plats 101-116)"
+      : "More producers worth knowing (ranks 101-116)";
 
   const pageJsonLd = {
     "@context": "https://schema.org",
@@ -359,6 +363,8 @@ export async function renderProducersGuidePage(locale: AppLocale) {
               { key: "country", label: copy.country },
               { key: "grapes", label: copy.grapes },
             ]}
+            dividerBeforeRank={101}
+            dividerLabel={extensionHeading}
             rows={rest.map((producer) => ({
               rank: producer.rank,
               change: (
