@@ -9,6 +9,8 @@ type GuideRankEntryProps = {
   compact?: boolean;
   href?: string;
   rankNote?: ReactNode;
+  /** Sits after the name and stays outside the name link. */
+  titleAdornment?: ReactNode;
 };
 
 export function GuideRankEntry({
@@ -19,6 +21,7 @@ export function GuideRankEntry({
   compact = false,
   href,
   rankNote,
+  titleAdornment,
 }: GuideRankEntryProps) {
   return (
     <article
@@ -57,6 +60,11 @@ export function GuideRankEntry({
             ) : (
               title
             )}
+            {titleAdornment ? (
+              <span className="ml-1.5 inline-flex align-middle">
+                {titleAdornment}
+              </span>
+            ) : null}
           </h3>
           <p className="mt-1 text-sm text-muted-foreground">{meta}</p>
           {description ? (

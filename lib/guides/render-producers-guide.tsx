@@ -5,6 +5,8 @@ import type { ReactNode } from "react";
 import { GuideRankEntry } from "@/components/guides/guide-rank-entry";
 import { GuideRankTable } from "@/components/guides/guide-rank-table";
 import { ProducerRankChange } from "@/components/guides/producer-rank-change";
+import { SystembolagetBagIcon } from "@/components/guides/systembolaget-bag-icon";
+import { SystembolagetProducerMark } from "@/components/guides/systembolaget-producer-mark";
 import { Footer } from "@/components/layout/footer";
 import {
   GuideBreadcrumbs,
@@ -26,6 +28,11 @@ import {
   producerGuidePath,
   splitProducerBlurbMentions,
 } from "@/lib/guides/producer-guide-links";
+import {
+  getSystembolagetProducerAvailability,
+  systembolagetAvailabilityLabel,
+  systembolagetRangeNote,
+} from "@/lib/guides/systembolaget-producer-availability";
 import {
   formatTop100ProducersUpdatedDate,
   TOP_100_PRODUCERS,
@@ -167,7 +174,10 @@ export async function buildProducersGuideMetadata(
 }
 
 export async function renderProducersGuidePage(locale: AppLocale) {
-  const { seoBaseUrl } = await getGuideSeoOwnership();
+  const [{ seoBaseUrl }, availability] = await Promise.all([
+    getGuideSeoOwnership(),
+    getSystembolagetProducerAvailability(),
+  ]);
   const copy = guideCopy(locale);
   const hubPath = guidePath("hub", locale);
   const winesPath = guidePath("wines", locale);
@@ -178,6 +188,15 @@ export async function renderProducersGuidePage(locale: AppLocale) {
   );
 
   const byRank = [...TOP_100_PRODUCERS].sort((a, b) => a.rank - b.rank);
+  const rangeNote = systembolagetRangeNote(locale);
+  const systembolagetMark = (rank: number) => {
+    const label = systembolagetAvailabilityLabel(
+      availability[rank] ?? 0,
+      locale,
+    );
+    if (!label) return null;
+    return <SystembolagetProducerMark label={label} />;
+  };
   const top10 = byRank.filter((p) => p.rank <= 10);
   const mid = byRank.filter((p) => p.rank >= 11 && p.rank <= 30);
   const rest = byRank.filter((p) => p.rank >= 31);
@@ -288,6 +307,22 @@ export async function renderProducersGuidePage(locale: AppLocale) {
           ))}
         </div>
 
+        {bestList ? (
+          <p className="mt-8 flex items-start gap-2 text-sm leading-relaxed text-muted-foreground">
+            <SystembolagetBagIcon className="mt-0.5 size-4 shrink-0" />
+            <span>
+              {rangeNote.before}
+              <Link
+                href={bestList.href[locale]}
+                className="underline underline-offset-4 hover:text-foreground"
+              >
+                {rangeNote.link}
+              </Link>
+              {rangeNote.after}
+            </span>
+          </p>
+        ) : null}
+
         <section className="mt-14">
           <h2 className="mb-4 border-b border-border pb-3 text-xl font-semibold">
             {copy.top10}
@@ -311,6 +346,7 @@ export async function renderProducersGuidePage(locale: AppLocale) {
                   locale,
                 )}
                 href={producerGuideHref(producer.rank, locale)}
+                titleAdornment={systembolagetMark(producer.rank)}
               />
             ))}
           </div>
@@ -339,6 +375,7 @@ export async function renderProducersGuidePage(locale: AppLocale) {
                   locale,
                 )}
                 href={producerGuideHref(producer.rank, locale)}
+                titleAdornment={systembolagetMark(producer.rank)}
                 compact
               />
             ))}
@@ -374,7 +411,11 @@ export async function renderProducersGuidePage(locale: AppLocale) {
                   locale={locale}
                 />
               ),
-              name: producer.name,
+              name: (
+                <span>
+                  {producer.name} {systembolagetMark(producer.rank)}
+                </span>
+              ),
               region: producer.region,
               country: countryLabel(producer.country, locale),
               grapes: producer.grapes,
