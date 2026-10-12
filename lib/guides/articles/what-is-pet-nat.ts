@@ -1,8 +1,8 @@
 import type { GuideArticleContent } from "@/lib/guides/guide-types";
 
-/** Bilingual explainer: what pet nat is. Unpublished. */
+/** Bilingual explainer: what pet nat is. */
 export const whatIsPetNatArticle: GuideArticleContent = {
-  published: false,
+  published: true,
   updated: "2026-10-12",
   slug: {
     en: "what-is-pet-nat",

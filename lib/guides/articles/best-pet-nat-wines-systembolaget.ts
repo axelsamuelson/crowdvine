@@ -1,8 +1,8 @@
 import type { GuideArticleContent } from "@/lib/guides/guide-types";
 
-/** Bilingual guide: best pet nat in the Systembolaget assortment. Unpublished. */
+/** Bilingual guide: best pet nat in the Systembolaget assortment. */
 export const bestPetNatWinesSystembolagetArticle: GuideArticleContent = {
-  published: false,
+  published: true,
   updated: "2026-10-12",
   slug: {
     en: "best-pet-nat-systembolaget",

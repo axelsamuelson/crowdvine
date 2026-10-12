@@ -112,7 +112,7 @@ describe("buy natural wine online article", () => {
     for (const list of publicSystembolagetRankedLists()) {
       expect(hrefs.has(list.href.en)).toBe(true);
     }
-    expect(hrefs.has("/guides/best-pet-nat-systembolaget")).toBe(false);
+    expect(hrefs.has("/guides/best-pet-nat-systembolaget")).toBe(true);
   });
 
   it("has no em dashes in copy", () => {

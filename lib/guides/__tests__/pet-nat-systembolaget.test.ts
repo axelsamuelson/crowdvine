@@ -30,7 +30,7 @@ function collectStrings(value: unknown, out: string[] = []): string[] {
   return out;
 }
 
-const UNPUBLISHED_PATHS = [
+const PUBLISHED_PATHS = [
   "/guider/basta-pet-nat-systembolaget",
   "/guides/best-pet-nat-systembolaget",
   "/guider/vad-ar-pet-nat",
@@ -38,28 +38,28 @@ const UNPUBLISHED_PATHS = [
 ];
 
 describe("pet nat Systembolaget guides", () => {
-  it("keeps both guides unpublished and out of the hub, sitemap set and live lists", () => {
-    expect(bestPetNatWinesSystembolagetArticle.published).toBe(false);
-    expect(whatIsPetNatArticle.published).toBe(false);
-    expect(publishedBilingualArticleGuides()).not.toContain(
+  it("publishes both guides into the hub, sitemap set and live lists", () => {
+    expect(bestPetNatWinesSystembolagetArticle.published).toBe(true);
+    expect(whatIsPetNatArticle.published).toBe(true);
+    expect(publishedBilingualArticleGuides()).toContain(
       bestPetNatWinesSystembolagetArticle,
     );
-    expect(publishedBilingualArticleGuides()).not.toContain(whatIsPetNatArticle);
+    expect(publishedBilingualArticleGuides()).toContain(whatIsPetNatArticle);
 
-    for (const path of UNPUBLISHED_PATHS) {
-      expect(isIndexableGuideHref(path)).toBe(false);
+    for (const path of PUBLISHED_PATHS) {
+      expect(isIndexableGuideHref(path)).toBe(true);
     }
 
     for (const locale of ["sv", "en"] as const) {
       const hrefs = guideCopy(locale).hubCards.map((card) => card.href);
-      expect(hrefs).not.toContain(articlePath(bestPetNatWinesSystembolagetArticle, locale));
-      expect(hrefs).not.toContain(articlePath(whatIsPetNatArticle, locale));
+      expect(hrefs).toContain(articlePath(bestPetNatWinesSystembolagetArticle, locale));
+      expect(hrefs).toContain(articlePath(whatIsPetNatArticle, locale));
     }
 
     const publicCategories = publicSystembolagetRankedLists().map(
       (list) => list.category,
     );
-    expect(publicCategories).not.toContain("petnat");
+    expect(publicCategories).toContain("petnat");
     expect(
       SYSTEMBOLAGET_RANKED_LISTS.some((list) => list.category === "petnat"),
     ).toBe(true);
@@ -67,7 +67,7 @@ describe("pet nat Systembolaget guides", () => {
     const sparklingSiblings = siblingSystembolagetLists("sparkling").map(
       (list) => list.category,
     );
-    expect(sparklingSiblings).not.toContain("petnat");
+    expect(sparklingSiblings).toContain("petnat");
     expect(sparklingSiblings).toContain("glouglou");
     expect(siblingSystembolagetLists("petnat").map((list) => list.category)).toEqual(
       expect.arrayContaining(["best", "sparkling", "glouglou"]),
@@ -147,10 +147,13 @@ describe("pet nat Systembolaget guides", () => {
     }
   });
 
-  it("does not mention the unpublished URLs on the published buying guide", () => {
+  it("links the published list from the buying guide", () => {
     const strings = collectStrings(buyNaturalWineOnlineSwedenArticle);
-    for (const path of UNPUBLISHED_PATHS) {
-      expect(strings.some((text) => text.includes(path))).toBe(false);
-    }
+    expect(strings.some((text) => text.includes("/guides/best-pet-nat-systembolaget"))).toBe(
+      true,
+    );
+    expect(strings.some((text) => text.includes("/guider/basta-pet-nat-systembolaget"))).toBe(
+      true,
+    );
   });
 });
