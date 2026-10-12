@@ -62,6 +62,7 @@
   "shop": {
     "pageTitle": "Butik",
     "pageDescription": "Handla vin",
+    "producerBoxesCta": "Se lådorna",
     "results": "{count} resultat",
     "sortBy": "Sortera",
     "sort": "Sortering",

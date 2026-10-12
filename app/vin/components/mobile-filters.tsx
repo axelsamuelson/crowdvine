@@ -18,6 +18,7 @@ import { FarmingFilter } from "./farming-filter";
 import { CompetitorFilter, type PriceSourceForFilter } from "./competitor-filter";
 import { useFilterCount } from "../hooks/use-filter-count";
 import { isProducerBoxesPath } from "@/lib/producer-boxes/config";
+import { ProducerBoxesCta } from "./producer-boxes-cta";
 import { useProducts } from "@/components/shop/products-provider";
 import { ResultsCount } from "./results-count";
 import { SortDropdown } from "./sort-dropdown";
@@ -251,6 +252,9 @@ export function MobileFilters({
           </div>
         </DrawerContent>
       </Drawer>
+      <div className="px-sides pb-2">
+        <ProducerBoxesCta />
+      </div>
     </div>
   );
 }

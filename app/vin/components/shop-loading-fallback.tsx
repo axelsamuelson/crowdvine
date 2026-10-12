@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 
+import { isProducerBoxesPath } from "@/lib/producer-boxes/config";
 import { getWineCategoryEn, getWineCategorySv } from "@/lib/wine-categories";
 import { useProducts } from "@/components/shop/products-provider";
 import ResultsControls from "./results-controls";
@@ -31,31 +32,15 @@ function getCategoryFromPathname(path: string) {
 export function ShopLoadingFallback() {
   const pathname = usePathname();
   const { products } = useProducts();
-  const slug = getCategorySlugFromPathname(pathname);
   const category = getCategoryFromPathname(pathname);
 
-  if (products.length > 0) {
+  if (isProducerBoxesPath(pathname) || products.length === 0) {
     return (
-      <div className="p-sides py-8">
-        {category && (
-          <div className="mb-8 max-w-2xl">
-            <h1 className="mb-3 text-3xl font-medium text-stone-900">
-              {category.h1}
-            </h1>
-            <p className="leading-relaxed text-stone-600">
-              {category.description}
-            </p>
-          </div>
-        )}
-        <ResultsControls
-          className="max-md:hidden"
-          collections={[]}
-          products={products}
-          breadcrumbLabel={category?.h1}
-        />
+      <div>
+        <ResultsControls collections={[]} products={[]} />
         <ProductGrid>
-          {products.map((product, index) => (
-            <ProductCard key={product.id} product={product} index={index} />
+          {Array.from({ length: 12 }).map((_, index) => (
+            <ProductCardSkeleton key={index} />
           ))}
         </ProductGrid>
       </div>
@@ -63,11 +48,26 @@ export function ShopLoadingFallback() {
   }
 
   return (
-    <div>
-      <ResultsControls collections={[]} products={[]} />
+    <div className="p-sides py-8">
+      {category && (
+        <div className="mb-8 max-w-2xl">
+          <h1 className="mb-3 text-3xl font-medium text-stone-900">
+            {category.h1}
+          </h1>
+          <p className="leading-relaxed text-stone-600">
+            {category.description}
+          </p>
+        </div>
+      )}
+      <ResultsControls
+        className="max-md:hidden"
+        collections={[]}
+        products={products}
+        breadcrumbLabel={category?.h1}
+      />
       <ProductGrid>
-        {Array.from({ length: 12 }).map((_, index) => (
-          <ProductCardSkeleton key={index} />
+        {products.map((product, index) => (
+          <ProductCard key={product.id} product={product} index={index} />
         ))}
       </ProductGrid>
     </div>

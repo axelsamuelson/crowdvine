@@ -62,6 +62,7 @@
   "shop": {
     "pageTitle": "Shop",
     "pageDescription": "Shop for wines",
+    "producerBoxesCta": "See the boxes",
     "results": "{count} results",
     "sortBy": "Sort by",
     "sort": "Sort",

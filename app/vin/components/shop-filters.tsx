@@ -15,6 +15,7 @@ import { ShopFilterSearch } from "./shop-filter-search";
 import { useProducts } from "@/components/shop/products-provider";
 import { useFilterCount } from "../hooks/use-filter-count";
 import { isProducerBoxesPath } from "@/lib/producer-boxes/config";
+import { ProducerBoxesCta } from "./producer-boxes-cta";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { X } from "lucide-react";
 import { useTranslations } from "@/lib/hooks/use-translations";
@@ -203,6 +204,7 @@ export function DesktopFilters({
               onSeeAll={openSeeAll}
             />
           </Suspense>
+          <ProducerBoxesCta className="mt-2" />
         </div>
       </aside>
 
