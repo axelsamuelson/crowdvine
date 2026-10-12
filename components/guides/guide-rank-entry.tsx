@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 
+import { GuideRankNumber } from "@/components/guides/guide-rank-number";
+
 type GuideRankEntryProps = {
   rank: number;
   title: string;
@@ -35,15 +37,12 @@ export function GuideRankEntry({
         <div
           className={
             compact
-              ? "flex w-14 shrink-0 flex-col gap-1 text-sm font-medium tabular-nums text-muted-foreground"
-              : "flex w-14 shrink-0 flex-col gap-1 text-lg font-semibold tabular-nums text-muted-foreground"
+              ? "flex w-[4.25rem] shrink-0 flex-col gap-1 text-sm font-medium text-muted-foreground"
+              : "flex w-[4.25rem] shrink-0 flex-col gap-1 text-lg font-semibold text-muted-foreground"
           }
         >
-          <span className="inline-flex items-center gap-1.5">
-            {rankAdornment}
-            <span>{rank}</span>
-          </span>
-          {rankNote}
+          <GuideRankNumber rank={rank} adornment={rankAdornment} />
+          {rankNote ? <div className="pl-[1.375rem]">{rankNote}</div> : null}
         </div>
         <div className="min-w-0 flex-1">
           <h3

@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { GuideRankEntry } from "@/components/guides/guide-rank-entry";
+import { GuideRankNumber } from "@/components/guides/guide-rank-number";
 import { GuideRankTable } from "@/components/guides/guide-rank-table";
 import { ProducerRankChange } from "@/components/guides/producer-rank-change";
 import { SystembolagetBagIcon } from "@/components/guides/systembolaget-bag-icon";
@@ -393,7 +394,7 @@ export async function renderProducersGuidePage(locale: AppLocale) {
               {
                 key: "rankDisplay",
                 label: copy.rank,
-                className: "w-16 tabular-nums",
+                className: "w-[4.5rem]",
               },
               {
                 key: "change",
@@ -411,10 +412,10 @@ export async function renderProducersGuidePage(locale: AppLocale) {
             rows={rest.map((producer) => ({
               rank: producer.rank,
               rankDisplay: (
-                <span className="inline-flex items-center gap-1.5">
-                  {systembolagetMark(producer.rank)}
-                  <span>{producer.rank}</span>
-                </span>
+                <GuideRankNumber
+                  rank={producer.rank}
+                  adornment={systembolagetMark(producer.rank)}
+                />
               ),
               change: (
                 <ProducerRankChange
