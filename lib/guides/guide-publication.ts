@@ -11,6 +11,18 @@ export function publishedBilingualArticleGuides(): readonly GuideArticleContent[
 }
 
 /**
+ * Unpublished source pages may link to other unpublished guides, so a
+ * preview can be read end to end. Published pages drop those hrefs.
+ */
+export function isGuideHrefVisibleFrom(
+  source: { published?: boolean },
+  href: string,
+): boolean {
+  if (!isGuideArticlePublished(source)) return true;
+  return isIndexableGuideHref(href);
+}
+
+/**
  * False when href is a direct path of a guide with published: false.
  * Other hrefs, including shop and external URLs, stay linkable.
  */

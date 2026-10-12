@@ -1,6 +1,7 @@
 import type { GuideArticleContent } from "@/lib/guides/guide-types";
 import { beaujolaisNaturalWineArticle } from "@/lib/guides/articles/beaujolais-natural-wine";
 import { bestGlouGlouWinesSystembolagetArticle } from "@/lib/guides/articles/best-glou-glou-wines-systembolaget";
+import { bestPetNatWinesSystembolagetArticle } from "@/lib/guides/articles/best-pet-nat-wines-systembolaget";
 import { bestNaturalWinesSystembolagetArticle } from "@/lib/guides/articles/best-natural-wines-systembolaget";
 import { bestNaturalWinesUnder200SystembolagetArticle } from "@/lib/guides/articles/best-natural-wines-under-200-systembolaget";
 import { bestOrangeNaturalWinesSystembolagetArticle } from "@/lib/guides/articles/best-orange-natural-wines-systembolaget";
@@ -24,6 +25,7 @@ import { radikonArticle } from "@/lib/guides/articles/radikon";
 import { thierryAllemandArticle } from "@/lib/guides/articles/thierry-allemand";
 import { whatIsNaturalWineArticle } from "@/lib/guides/articles/what-is-natural-wine";
 import { whatIsOrangeWineArticle } from "@/lib/guides/articles/what-is-orange-wine";
+import { whatIsPetNatArticle } from "@/lib/guides/articles/what-is-pet-nat";
 import { whatIsRedNaturalWineArticle } from "@/lib/guides/articles/what-is-red-natural-wine";
 import { buyNaturalWineOnlineSwedenArticle } from "@/lib/guides/articles/buy-natural-wine-online-sweden";
 import { whatIsWhiteNaturalWineArticle } from "@/lib/guides/articles/what-is-white-natural-wine";
@@ -62,4 +64,6 @@ export const BILINGUAL_ARTICLE_GUIDES: readonly GuideArticleContent[] = [
   bestOrangeNaturalWinesSystembolagetArticle,
   bestNaturalWinesUnder200SystembolagetArticle,
   bestGlouGlouWinesSystembolagetArticle,
+  bestPetNatWinesSystembolagetArticle,
+  whatIsPetNatArticle,
 ];

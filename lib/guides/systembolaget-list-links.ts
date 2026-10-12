@@ -1,4 +1,6 @@
 import type { AppLocale } from "@/lib/i18n/locale";
+import { bestPetNatWinesSystembolagetArticle } from "@/lib/guides/articles/best-pet-nat-wines-systembolaget";
+import { isGuideArticlePublished } from "@/lib/guides/guide-types";
 import type { GuideWineCategory } from "@/lib/systembolaget/guide-wines";
 
 /** Up-link under the h1 on each of the seven style lists. */
@@ -19,7 +21,7 @@ export const SYSTEMBOLAGET_BY_STYLE_HEADING = {
   sv: "Efter färg och stil",
 } as const;
 
-/** Parent list first, then the seven style lists. Shared for index + cross-links. */
+/** Parent list first, then the style lists. Shared for index + cross-links. */
 export const SYSTEMBOLAGET_RANKED_LISTS = [
   {
     category: "best" as const satisfies GuideWineCategory,
@@ -141,7 +143,44 @@ export const SYSTEMBOLAGET_RANKED_LISTS = [
       sv: "Bästa glou-glou-vinerna på Systembolaget 2026",
     },
   },
+  {
+    category: "petnat" as const satisfies GuideWineCategory,
+    href: {
+      en: "/guides/best-pet-nat-systembolaget",
+      sv: "/guider/basta-pet-nat-systembolaget",
+    },
+    label: {
+      en: "Best pet nat at Systembolaget →",
+      sv: "Bästa pet nat på Systembolaget →",
+    },
+    h1: {
+      en: "Best pet nat at Systembolaget 2026",
+      sv: "Bästa pet nat på Systembolaget 2026",
+    },
+  },
 ] as const;
+
+/**
+ * Unpublished lists stay out of live cross-links. The article `published`
+ * flag is the switch: hub, sitemap and these links follow it together.
+ */
+const RANKED_LIST_ARTICLES: Partial<
+  Record<GuideWineCategory, { published?: boolean }>
+> = {
+  petnat: bestPetNatWinesSystembolagetArticle,
+};
+
+export function isSystembolagetRankedListPublic(list: {
+  category: GuideWineCategory;
+}): boolean {
+  const article = RANKED_LIST_ARTICLES[list.category];
+  if (!article) return true;
+  return isGuideArticlePublished(article);
+}
+
+export function publicSystembolagetRankedLists(): SystembolagetRankedList[] {
+  return SYSTEMBOLAGET_RANKED_LISTS.filter(isSystembolagetRankedListPublic);
+}
 
 export type SystembolagetRankedList = (typeof SYSTEMBOLAGET_RANKED_LISTS)[number];
 
@@ -149,7 +188,9 @@ export type SystembolagetRankedList = (typeof SYSTEMBOLAGET_RANKED_LISTS)[number
 export function siblingSystembolagetLists(
   category: GuideWineCategory,
 ): SystembolagetRankedList[] {
-  return SYSTEMBOLAGET_RANKED_LISTS.filter((list) => list.category !== category);
+  return publicSystembolagetRankedLists().filter(
+    (list) => list.category !== category,
+  );
 }
 
 export function systembolagetListHref(

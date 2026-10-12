@@ -5,6 +5,7 @@ import { Footer } from "@/components/layout/footer";
 import {
   ARTICLE_GUIDE_BODY_CLASS,
   ARTICLE_GUIDE_H2_CLASS,
+  renderArticleRichText,
 } from "@/lib/guides/article-guide-shell";
 import { buildArticleGuideMeta } from "@/lib/guides/guide-article-seo";
 import {
@@ -12,7 +13,7 @@ import {
   buildGuideBreadcrumbJsonLd,
 } from "@/lib/guides/guide-breadcrumbs";
 import { guideCopy } from "@/lib/guides/guide-copy";
-import { isIndexableGuideHref } from "@/lib/guides/guide-publication";
+import { isGuideHrefVisibleFrom } from "@/lib/guides/guide-publication";
 import { guidePath } from "@/lib/guides/guide-routes";
 import {
   SYSTEMBOLAGET_BEST_UPLINK,
@@ -25,6 +26,7 @@ import {
 import {
   articleParagraphs,
   articlePath,
+  isGuideArticlePublished,
   type GuideArticleContent,
 } from "@/lib/guides/guide-types";
 import type { AppLocale } from "@/lib/i18n/locale";
@@ -428,13 +430,18 @@ export async function buildSystembolagetRankedListMetadata(
   options?: { noindex?: boolean },
 ): Promise<Metadata> {
   const { config, seoBaseUrl } = await getGuideSeoOwnership();
+  const unpublished = !isGuideArticlePublished(content);
   return buildArticleGuideMeta(
     content,
     locale,
     seoBaseUrl,
     config.siteName,
-    // Systembolaget demand is Sweden-first — prefer SV as the unmatched default.
-    { xDefault: "sv", noindex: options?.noindex },
+    // Systembolaget demand is Sweden-first. Prefer SV as the unmatched default.
+    {
+      xDefault: "sv",
+      noindex: options?.noindex || unpublished,
+      nofollow: unpublished,
+    },
   );
 }
 
@@ -510,10 +517,11 @@ export async function renderSystembolagetRankedListPage(
     { name: content.breadcrumbShort[locale] },
   ]);
 
-  const itemListJsonLd =
-    wines.length > 0
-      ? buildItemListJsonLd(wines, pageUrl, content.h1[locale])
-      : null;
+  const itemListJsonLd = buildItemListJsonLd(
+    wines,
+    pageUrl,
+    content.h1[locale],
+  );
 
   const faqs = (content.faqs ?? []).map((faq) => ({
     ...faq,
@@ -561,14 +569,12 @@ export async function renderSystembolagetRankedListPage(
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
-      {itemListJsonLd ? (
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify(itemListJsonLd),
-          }}
-        />
-      ) : null}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(itemListJsonLd),
+        }}
+      />
       {faqJsonLd ? (
         <script
           type="application/ld+json"
@@ -662,9 +668,16 @@ export async function renderSystembolagetRankedListPage(
                   </h2>
                 ) : null}
                 <div className={ARTICLE_GUIDE_BODY_CLASS}>
-                  {articleParagraphs(section.body, locale).map((paragraph) => (
-                    <p key={paragraph.slice(0, 48)}>{paragraph}</p>
-                  ))}
+                  {articleParagraphs(section.body, locale).map(
+                    (paragraph, paragraphIndex) => (
+                      <p key={`${sectionIndex}-${paragraphIndex}`}>
+                        {renderArticleRichText(
+                          paragraph,
+                          `s${sectionIndex}p${paragraphIndex}`,
+                        )}
+                      </p>
+                    ),
+                  )}
                 </div>
                 {section.heading?.en === "What we don't list" &&
                 avoidWines.length > 0 ? (
@@ -753,7 +766,7 @@ export async function renderSystembolagetRankedListPage(
               .filter(
                 (link) =>
                   link.label[locale].trim().length > 0 &&
-                  isIndexableGuideHref(link.href[locale]),
+                  isGuideHrefVisibleFrom(content, link.href[locale]),
               )
               .map((link) => (
                 <p key={`${link.href[locale]}-${link.label[locale]}`}>

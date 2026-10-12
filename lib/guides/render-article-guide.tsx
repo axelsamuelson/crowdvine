@@ -15,7 +15,7 @@ import {
   buildGuideBreadcrumbJsonLd,
 } from "@/lib/guides/guide-breadcrumbs";
 import { guideCopy } from "@/lib/guides/guide-copy";
-import { isIndexableGuideHref } from "@/lib/guides/guide-publication";
+import { isGuideHrefVisibleFrom } from "@/lib/guides/guide-publication";
 import { guidePath } from "@/lib/guides/guide-routes";
 import {
   articleLinkText,
@@ -224,7 +224,7 @@ export async function renderArticleGuidePage(
             label: link.label[locale],
             href: link.href[locale],
           }))
-          .filter((link) => isIndexableGuideHref(link.href))}
+          .filter((link) => isGuideHrefVisibleFrom(content, link.href))}
         breadcrumb={<GuideBreadcrumbs crumbs={breadcrumbCrumbs} />}
       />
     </>

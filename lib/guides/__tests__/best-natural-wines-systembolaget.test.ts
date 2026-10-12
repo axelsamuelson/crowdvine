@@ -37,7 +37,7 @@ describe("best natural wines at Systembolaget", () => {
       en: "/guides/best-natural-wines-systembolaget",
       sv: "/guider/basta-naturvinerna-pa-systembolaget",
     });
-    expect(SYSTEMBOLAGET_RANKED_LISTS.filter((list) => list.category !== "best")).toHaveLength(7);
+    expect(SYSTEMBOLAGET_RANKED_LISTS.filter((list) => list.category !== "best")).toHaveLength(8);
 
     for (const locale of ["sv", "en"] as const) {
       const section = guideCopy(locale).hubSections.find(
@@ -75,6 +75,7 @@ describe("best natural wines at Systembolaget", () => {
       "Bästa rosé naturviner på Systembolaget",
       "Bästa naturvinerna under 200 kr på Systembolaget 2026",
       "Bästa glou-glou-vinerna på Systembolaget 2026",
+      "Bästa pet nat på Systembolaget 2026",
     ]);
   });
 
@@ -161,10 +162,13 @@ describe("best natural wines at Systembolaget", () => {
     expect(pickPrimaryStyleCategory(["budget"])).toBe("budget");
     expect(pickPrimaryStyleCategory(["glouglou", "orange"])).toBe("orange");
     expect(pickPrimaryStyleCategory(["glouglou"])).toBeNull();
+    expect(pickPrimaryStyleCategory(["petnat", "sparkling"])).toBe("sparkling");
+    expect(pickPrimaryStyleCategory(["petnat"])).toBeNull();
     expect(primaryStyleLabel("rose", "sv")).toBe("Rosé");
     expect(primaryStyleLabel("rose", "en")).toBe("Rosé");
     expect(primaryStyleLabel("sparkling", "en")).toBe("Sparkling");
     expect(primaryStyleLabel("white", "sv")).toBe("Vitt");
     expect(primaryStyleLabel("glouglou", "en")).toBeNull();
+    expect(primaryStyleLabel("petnat", "sv")).toBeNull();
   });
 });

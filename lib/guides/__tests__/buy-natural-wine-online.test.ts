@@ -11,7 +11,7 @@ import {
   articlePath,
   isGuideArticlePublished,
 } from "@/lib/guides/guide-types";
-import { SYSTEMBOLAGET_RANKED_LISTS } from "@/lib/guides/systembolaget-list-links";
+import { publicSystembolagetRankedLists } from "@/lib/guides/systembolaget-list-links";
 
 function collectStrings(value: unknown, out: string[] = []): string[] {
   if (typeof value === "string") {
@@ -109,9 +109,10 @@ describe("buy natural wine online article", () => {
         (link) => link.href.en,
       ),
     );
-    for (const list of SYSTEMBOLAGET_RANKED_LISTS) {
+    for (const list of publicSystembolagetRankedLists()) {
       expect(hrefs.has(list.href.en)).toBe(true);
     }
+    expect(hrefs.has("/guides/best-pet-nat-systembolaget")).toBe(false);
   });
 
   it("has no em dashes in copy", () => {

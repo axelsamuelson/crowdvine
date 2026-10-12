@@ -19,6 +19,7 @@ const patchSchema = z.object({
       "rose",
       "budget",
       "glouglou",
+      "petnat",
       "best",
     ])
     .optional(),

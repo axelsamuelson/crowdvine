@@ -26,6 +26,15 @@ describe("switchGuidePath", () => {
     ).toBe("/guides/best-natural-wines-systembolaget");
   });
 
+  it("switches pet nat SV → EN", () => {
+    expect(switchGuidePath("/guider/basta-pet-nat-systembolaget", "en")).toBe(
+      "/guides/best-pet-nat-systembolaget",
+    );
+    expect(switchGuidePath("/guider/vad-ar-pet-nat", "en")).toBe(
+      "/guides/what-is-pet-nat",
+    );
+  });
+
   it("switches glouglou EN → SV", () => {
     expect(
       switchGuidePath("/guides/best-glou-glou-wines-systembolaget", "sv"),

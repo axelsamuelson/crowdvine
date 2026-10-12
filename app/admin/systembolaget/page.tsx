@@ -71,6 +71,7 @@ type CurateForm = {
     | "rose"
     | "budget"
     | "glouglou"
+    | "petnat"
     | "best";
   editorial_note_sv: string;
   editorial_note_en: string;
@@ -973,6 +974,7 @@ export default function SystembolagetAdminPage() {
                   <option value="rose">rose</option>
                   <option value="budget">budget</option>
                   <option value="glouglou">glouglou</option>
+                  <option value="petnat">petnat</option>
                   <option value="best">best</option>
                 </select>
               </div>

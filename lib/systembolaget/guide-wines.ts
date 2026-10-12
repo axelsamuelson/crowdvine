@@ -9,9 +9,10 @@ export type GuideWineCategory =
   | "rose"
   | "budget"
   | "glouglou"
+  | "petnat"
   | "best";
 
-/** Colour, sparkling and budget styles shown on the parent list. Glou-glou is not a style label. */
+/** Colour, sparkling and budget styles shown on the parent list. Glou-glou and pet nat are not style labels. */
 export const PRIMARY_STYLE_CATEGORIES = [
   "red",
   "orange",
@@ -37,7 +38,7 @@ const PRIMARY_STYLE_LABELS: Record<
 
 /**
  * When a product sits on more than one non-best list, prefer the style
- * in PRIMARY_STYLE_CATEGORIES order. Glou-glou never becomes the label.
+ * in PRIMARY_STYLE_CATEGORIES order. Glou-glou and pet nat never become the label.
  */
 export function pickPrimaryStyleCategory(
   categories: readonly string[],

@@ -10,7 +10,10 @@ const EXTERNAL_REL = "nofollow noopener noreferrer";
 const LINK_CLASS = "underline underline-offset-4 hover:text-foreground";
 
 /** Markdown links and bare http(s) URLs. External links are nofollow. */
-function renderRichText(text: string, keyPrefix: string): ReactNode[] {
+export function renderArticleRichText(
+  text: string,
+  keyPrefix: string,
+): ReactNode[] {
   const nodes: ReactNode[] = [];
   const re = new RegExp(RICH_TEXT.source, "g");
   let last = 0;
@@ -79,7 +82,7 @@ function renderRichText(text: string, keyPrefix: string): ReactNode[] {
 
 /** Render body paragraphs with markdown links and bare http(s) URLs. */
 function ArticleParagraph({ text }: { text: string }) {
-  return <p>{renderRichText(text, "p")}</p>;
+  return <p>{renderArticleRichText(text, "p")}</p>;
 }
 
 function ArticleList({
@@ -112,7 +115,7 @@ function ArticleList({
       >
         {items.map((item, index) => (
           <li key={`${idPrefix}-${index}`}>
-            {renderRichText(item, `${idPrefix}-li${index}`)}
+            {renderArticleRichText(item, `${idPrefix}-li${index}`)}
           </li>
         ))}
       </ListTag>
@@ -263,7 +266,7 @@ export function ArticleGuideShell({
                     <div key={faq.question}>
                       <h3 className={ARTICLE_GUIDE_H3_CLASS}>{faq.question}</h3>
                       <p className="mt-2 text-[17px] leading-[1.75] text-foreground/80">
-                        {renderRichText(faq.answer, faq.question)}
+                        {renderArticleRichText(faq.answer, faq.question)}
                       </p>
                     </div>
                   ))}

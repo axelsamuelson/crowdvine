@@ -1,5 +1,5 @@
 import type { GuideArticleContent } from "@/lib/guides/guide-types";
-import { SYSTEMBOLAGET_RANKED_LISTS } from "@/lib/guides/systembolaget-list-links";
+import { publicSystembolagetRankedLists } from "@/lib/guides/systembolaget-list-links";
 import type { AppLocale } from "@/lib/i18n/locale";
 
 // TODO: Sofia legal review pending.
@@ -40,7 +40,7 @@ const includePurJus = true;
 const EMPTY_BODY = { en: [] as string[], sv: [] as string[] };
 
 function systembolagetListsSentence(locale: AppLocale): string {
-  const links = SYSTEMBOLAGET_RANKED_LISTS.map((list) => {
+  const links = publicSystembolagetRankedLists().map((list) => {
     const label = list.label[locale].replace(/ →$/, "");
     return `[${label}](${list.href[locale]})`;
   }).join(", ");
@@ -500,7 +500,7 @@ export const buyNaturalWineOnlineSwedenArticle: GuideArticleContent = {
         sv: "/guider/vad-ar-rott-naturvin",
       },
     },
-    ...SYSTEMBOLAGET_RANKED_LISTS.map((list) => ({
+    ...publicSystembolagetRankedLists().map((list) => ({
       label: { en: list.label.en, sv: list.label.sv },
       href: { en: list.href.en, sv: list.href.sv },
     })),

@@ -3,6 +3,7 @@ import { GUIDE_PATHS } from "@/lib/guides/guide-routes";
 import { beaujolaisNaturalWineArticle } from "@/lib/guides/articles/beaujolais-natural-wine";
 import { buyNaturalWineOnlineSwedenArticle } from "@/lib/guides/articles/buy-natural-wine-online-sweden";
 import { bestGlouGlouWinesSystembolagetArticle } from "@/lib/guides/articles/best-glou-glou-wines-systembolaget";
+import { bestPetNatWinesSystembolagetArticle } from "@/lib/guides/articles/best-pet-nat-wines-systembolaget";
 import { bestNaturalWinesSystembolagetArticle } from "@/lib/guides/articles/best-natural-wines-systembolaget";
 import { bestNaturalWinesUnder200SystembolagetArticle } from "@/lib/guides/articles/best-natural-wines-under-200-systembolaget";
 import { bestOrangeNaturalWinesSystembolagetArticle } from "@/lib/guides/articles/best-orange-natural-wines-systembolaget";
@@ -26,6 +27,7 @@ import { radikonArticle } from "@/lib/guides/articles/radikon";
 import { thierryAllemandArticle } from "@/lib/guides/articles/thierry-allemand";
 import { whatIsNaturalWineArticle } from "@/lib/guides/articles/what-is-natural-wine";
 import { whatIsOrangeWineArticle } from "@/lib/guides/articles/what-is-orange-wine";
+import { whatIsPetNatArticle } from "@/lib/guides/articles/what-is-pet-nat";
 import { whatIsRedNaturalWineArticle } from "@/lib/guides/articles/what-is-red-natural-wine";
 import { whatIsWhiteNaturalWineArticle } from "@/lib/guides/articles/what-is-white-natural-wine";
 import { articleHubCard, isGuideArticlePublished } from "@/lib/guides/guide-types";
@@ -118,6 +120,9 @@ const SV_GUIDE_CARDS: GuideHubCard[] = [
   ...(isGuideArticlePublished(buyNaturalWineOnlineSwedenArticle)
     ? [articleHubCard(buyNaturalWineOnlineSwedenArticle, "sv")]
     : []),
+  ...(isGuideArticlePublished(whatIsPetNatArticle)
+    ? [articleHubCard(whatIsPetNatArticle, "sv")]
+    : []),
 ];
 
 
@@ -162,6 +167,9 @@ const SV_SYSTEMBOLAGET_CARDS: GuideHubCard[] = [
   articleHubCard(bestOrangeNaturalWinesSystembolagetArticle, "sv"),
   articleHubCard(bestNaturalWinesUnder200SystembolagetArticle, "sv"),
   articleHubCard(bestGlouGlouWinesSystembolagetArticle, "sv"),
+  ...(isGuideArticlePublished(bestPetNatWinesSystembolagetArticle)
+    ? [articleHubCard(bestPetNatWinesSystembolagetArticle, "sv")]
+    : []),
 ];
 
 const SV: GuideLocaleCopy = {
@@ -311,6 +319,9 @@ const EN_GUIDE_CARDS: GuideHubCard[] = [
   ...(isGuideArticlePublished(buyNaturalWineOnlineSwedenArticle)
     ? [articleHubCard(buyNaturalWineOnlineSwedenArticle, "en")]
     : []),
+  ...(isGuideArticlePublished(whatIsPetNatArticle)
+    ? [articleHubCard(whatIsPetNatArticle, "en")]
+    : []),
 ];
 
 const EN_SYSTEMBOLAGET_CARDS: GuideHubCard[] = [
@@ -322,6 +333,9 @@ const EN_SYSTEMBOLAGET_CARDS: GuideHubCard[] = [
   articleHubCard(bestOrangeNaturalWinesSystembolagetArticle, "en"),
   articleHubCard(bestNaturalWinesUnder200SystembolagetArticle, "en"),
   articleHubCard(bestGlouGlouWinesSystembolagetArticle, "en"),
+  ...(isGuideArticlePublished(bestPetNatWinesSystembolagetArticle)
+    ? [articleHubCard(bestPetNatWinesSystembolagetArticle, "en")]
+    : []),
 ];
 
 const EN: GuideLocaleCopy = {
