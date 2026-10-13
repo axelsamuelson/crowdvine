@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import { useOptionalTasteQuizPanel } from "./home-taste-quiz-panel";
 
 const heroButtonBaseClassName =
-  "inline-flex h-11 flex-1 items-center justify-center rounded-full px-5 text-sm font-medium transition-colors sm:min-w-[10rem] sm:flex-none sm:px-6";
+  "inline-flex h-11 w-full items-center justify-center rounded-full px-6 text-sm font-medium transition-colors sm:w-auto sm:min-w-[10rem]";
 
 const heroButtonPrimaryClassName = cn(
   heroButtonBaseClassName,
@@ -50,9 +50,9 @@ export function HomeHeroContent({
     : { duration: 0.65, ease: [0.22, 1, 0.36, 1] as const };
 
   return (
-    <div className="order-2 flex min-h-0 flex-col justify-start py-1 md:order-1 md:justify-center md:py-10">
+    <div className="order-2 flex min-h-0 min-w-0 flex-col justify-start py-1 md:order-1 md:justify-center md:py-10">
       <motion.div
-        className="flex max-w-lg flex-col gap-4 md:gap-6"
+        className="flex w-full max-w-lg min-w-0 flex-col gap-4 md:gap-6"
         initial={reduceMotion ? false : "hidden"}
         animate="show"
         variants={{
@@ -64,8 +64,8 @@ export function HomeHeroContent({
           },
         }}
       >
-        <motion.div variants={fadeUp} transition={transition}>
-          <h1 className="text-balance text-[1.7rem] font-semibold uppercase leading-[1.05] tracking-[-0.03em] text-foreground sm:text-4xl sm:leading-[0.95] sm:tracking-tight lg:text-5xl">
+        <motion.div variants={fadeUp} transition={transition} className="min-w-0">
+          <h1 className="max-w-full text-balance break-words text-[1.55rem] font-semibold uppercase leading-[1.08] tracking-[-0.02em] text-foreground sm:text-4xl sm:leading-[0.95] sm:tracking-tight lg:text-5xl">
             {resolvedTitleLines.map((line, index) => (
               <span key={`${index}-${line}`} className="block">
                 {line}
@@ -73,7 +73,7 @@ export function HomeHeroContent({
             ))}
           </h1>
           {resolvedSubtitle ? (
-            <p className="mt-3 max-w-md text-[0.95rem] leading-relaxed text-stone-600 md:mt-4 md:text-base">
+            <p className="mt-3 max-w-md text-pretty text-[0.95rem] leading-relaxed text-stone-600 md:mt-4 md:text-base">
               {resolvedSubtitle}
             </p>
           ) : null}
@@ -82,7 +82,7 @@ export function HomeHeroContent({
         <motion.div
           variants={fadeUp}
           transition={transition}
-          className="flex flex-row flex-wrap gap-2.5 sm:gap-3"
+          className="flex w-full min-w-0 flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:gap-3"
         >
           <Link href={paths.shop} className={heroButtonPrimaryClassName}>
             {t("nav.shopAll")}

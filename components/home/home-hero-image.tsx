@@ -7,26 +7,26 @@ import { HOMEPAGE_HERO_IMAGE_DEFAULTS } from "@/lib/homepage-hero-images";
 
 const HERO_FRAMES = [
   {
-    className:
-      "md:mt-0 md:aspect-auto md:h-[58%] md:min-h-[12rem] md:w-auto md:min-w-0 md:flex-1 md:shrink",
-    sizes: "(max-width: 767px) 72vw, 16vw",
+    mobileClassName: "h-48",
+    desktopClassName: "md:mt-0 md:h-[58%] md:min-h-[12rem]",
+    sizes: "(max-width: 767px) 58vw, 16vw",
     priority: true,
   },
   {
-    className:
-      "md:mt-[8%] md:aspect-auto md:h-[72%] md:min-h-[14rem] md:w-auto md:min-w-0 md:flex-1 md:shrink",
-    sizes: "(max-width: 767px) 72vw, 18vw",
+    mobileClassName: "mt-2 h-56",
+    desktopClassName: "md:mt-[8%] md:h-[72%] md:min-h-[14rem]",
+    sizes: "(max-width: 767px) 58vw, 18vw",
     priority: false,
   },
   {
-    className:
-      "md:mt-[4%] md:aspect-auto md:h-[62%] md:min-h-[13rem] md:w-auto md:min-w-0 md:flex-1 md:shrink",
-    sizes: "(max-width: 767px) 72vw, 16vw",
+    mobileClassName: "mt-1 h-52",
+    desktopClassName: "md:mt-[4%] md:h-[62%] md:min-h-[13rem]",
+    sizes: "(max-width: 767px) 58vw, 16vw",
     priority: false,
   },
 ] as const;
 
-/** Three rounded image frames — snap carousel on mobile, staggered column on desktop. */
+/** Three rounded image frames — contained snap strip on mobile, staggered column on desktop. */
 export function HomeHeroImage({
   images = [...HOMEPAGE_HERO_IMAGE_DEFAULTS],
 }: {
@@ -39,17 +39,12 @@ export function HomeHeroImage({
   }));
 
   return (
-    <div
-      className={cn(
-        "order-1 w-full md:order-2 md:h-full md:min-h-[28rem]",
-        // Full-bleed strip on mobile; padded grid column on desktop.
-        "-mx-sides md:mx-0",
-      )}
-    >
+    <div className="order-1 min-w-0 w-full max-w-full md:order-2 md:h-full md:min-h-[28rem]">
       <div
         className={cn(
-          "flex snap-x snap-mandatory gap-2.5 overflow-x-auto overscroll-x-contain scroll-ps-sides px-sides pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
-          "md:h-full md:items-center md:gap-4 md:overflow-visible md:scroll-ps-0 md:px-0 md:pb-0 md:snap-none",
+          // Isolate horizontal scroll so wide slides cannot expand the page.
+          "flex w-full min-w-0 max-w-full snap-x snap-mandatory gap-2 overflow-x-auto overscroll-x-contain pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+          "md:h-full md:items-center md:gap-4 md:overflow-visible md:pb-0 md:snap-none",
         )}
         style={{ WebkitOverflowScrolling: "touch" }}
       >
@@ -58,11 +53,13 @@ export function HomeHeroImage({
             key={`${frame.src}-${index}`}
             className={cn(
               "relative shrink-0 overflow-hidden rounded-2xl bg-stone-200",
-              // Mobile: tall portrait cards with next-image peek
-              "aspect-[3/4] w-[min(72vw,18rem)] snap-start",
-              frame.className,
+              // Mobile: shorter cards with peek of the next slide
+              "w-[min(58vw,14.5rem)] snap-start",
+              frame.mobileClassName,
+              // Desktop: flex columns with staggered heights
+              "md:w-auto md:min-w-0 md:flex-1 md:shrink md:snap-align-none",
+              frame.desktopClassName,
             )}
-            // Keep the LCP frame visible in HTML — animate only secondary frames.
             initial={
               reduceMotion || frame.priority ? false : { opacity: 0, y: 24 }
             }
