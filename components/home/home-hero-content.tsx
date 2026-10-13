@@ -5,9 +5,8 @@ import { motion, useReducedMotion } from "motion/react";
 
 import { useLocalizedPaths } from "@/lib/hooks/use-localized-paths";
 import { useTranslations } from "@/lib/hooks/use-translations";
+import { producerBoxesPath } from "@/lib/producer-boxes/config";
 import { cn } from "@/lib/utils";
-
-import { useOptionalTasteQuizPanel } from "./home-taste-quiz-panel";
 
 const heroButtonBaseClassName =
   "inline-flex h-11 min-w-0 flex-1 items-center justify-center rounded-full px-3 text-sm font-medium transition-colors sm:flex-none sm:min-w-[10rem] sm:px-6";
@@ -24,9 +23,8 @@ export function HomeHeroContent({
   titleLines?: string[];
   subtitle?: string;
 }) {
-  const { t } = useTranslations();
+  const { t, context } = useTranslations();
   const paths = useLocalizedPaths();
-  const tasteQuizPanel = useOptionalTasteQuizPanel();
   const reduceMotion = useReducedMotion();
 
   const resolvedTitleLines =
@@ -34,6 +32,7 @@ export function HomeHeroContent({
       ? titleLines
       : [t("home.heroTitleBefore"), t("home.heroTitleMiddle")].filter(Boolean);
   const resolvedSubtitle = subtitle?.trim() || t("home.heroSubtitle");
+  const wineBoxesHref = producerBoxesPath(context.locale);
 
   const transition = reduceMotion
     ? { duration: 0 }
@@ -107,19 +106,16 @@ export function HomeHeroContent({
           >
             {t("nav.shopAll")}
           </Link>
-          {tasteQuizPanel ? (
-            <button
-              type="button"
-              onClick={tasteQuizPanel.openTasteQuiz}
-              className={cn(
-                heroButtonBaseClassName,
-                "border border-white/80 bg-transparent text-white hover:bg-white/10",
-                "md:border-stone-300 md:bg-white md:text-stone-900 md:hover:border-stone-400 md:hover:bg-stone-50",
-              )}
-            >
-              {t("tasteQuiz.intro.title")}
-            </button>
-          ) : null}
+          <Link
+            href={wineBoxesHref}
+            className={cn(
+              heroButtonBaseClassName,
+              "border border-white/80 bg-transparent text-white hover:bg-white/10",
+              "md:border-stone-300 md:bg-white md:text-stone-900 md:hover:border-stone-400 md:hover:bg-stone-50",
+            )}
+          >
+            {t("shop.producerBoxesCta")}
+          </Link>
         </motion.div>
       </motion.div>
     </div>
