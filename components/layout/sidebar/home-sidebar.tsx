@@ -22,6 +22,9 @@ export async function HomeSidebar({ collections }: HomeSidebarProps) {
         <p className="italic tracking-tighter text-base">
           {t("home.sidebarTagline")}
         </p>
+        <p className="mt-3 max-w-sm text-base leading-snug text-foreground/70">
+          {t("home.sidebarSupporting")}
+        </p>
       </div>
       <ShopLinks
         collections={collections}
