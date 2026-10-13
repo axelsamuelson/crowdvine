@@ -168,8 +168,12 @@ export function MobileFilters({
   return (
     <div className="bg-transparent md:hidden overflow-x-clip">
       {isProducerBoxesPage ? null : (
-        <div className="px-sides pb-1 pt-1">
-          <ShopFilterSearch id="shop-search-mobile" />
+        <div className="flex items-center gap-2 px-sides pb-1 pt-1">
+          <ShopFilterSearch
+            id="shop-search-mobile"
+            className="min-w-0 flex-1"
+          />
+          <ProducerBoxesCta ssrPathname={ssrPathname} />
         </div>
       )}
       <Drawer>
@@ -271,9 +275,6 @@ export function MobileFilters({
           </div>
         </DrawerContent>
       </Drawer>
-      <div className="px-sides pb-2">
-        <ProducerBoxesCta ssrPathname={ssrPathname} />
-      </div>
     </div>
   );
 }
