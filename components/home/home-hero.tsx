@@ -59,10 +59,7 @@ export function HomeHero({
           "md:min-h-[calc(100svh-var(--top-spacing))] md:grid-cols-2 md:grid-rows-1 md:items-center md:gap-10 md:px-0 md:pb-0 md:pt-0 lg:gap-14",
         )}
       >
-        <HomeHeroContent
-          titleLines={copy?.titleLines}
-          subtitle={copy?.subtitle}
-        />
+        <HomeHeroContent titleLines={copy?.titleLines} />
         <HomeHeroImage images={resolved} />
       </div>
     </section>
