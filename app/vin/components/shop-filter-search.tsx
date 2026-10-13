@@ -9,15 +9,32 @@ import { useTranslations } from "@/lib/hooks/use-translations";
 
 const DEBOUNCE_MS = 200;
 
-export function ShopFilterSearch({
-  className,
-  autoFocus = false,
-  id = "shop-search",
-}: {
-  className?: string;
-  autoFocus?: boolean;
-  id?: string;
-}) {
+export type ShopFilterSearchHandle = {
+  commit: () => void;
+  setQuery: (query: string) => void;
+};
+
+export const ShopFilterSearch = React.forwardRef<
+  ShopFilterSearchHandle,
+  {
+    className?: string;
+    autoFocus?: boolean;
+    id?: string;
+    /** Called after the current draft is flushed to the URL (Enter / confirm). */
+    onCommit?: (query: string) => void;
+    /** Fires on every keystroke with the local draft (before URL debounce). */
+    onDraftChange?: (draft: string) => void;
+  }
+>(function ShopFilterSearch(
+  {
+    className,
+    autoFocus = false,
+    id = "shop-search",
+    onCommit,
+    onDraftChange,
+  },
+  ref,
+) {
   const { t } = useTranslations();
   const [q, setQ] = useQueryState(
     "q",
@@ -31,10 +48,18 @@ export function ShopFilterSearch({
   const urlQ = q ?? "";
   const [draft, setDraft] = React.useState(urlQ);
   const inputRef = React.useRef<HTMLInputElement>(null);
+  const onCommitRef = React.useRef(onCommit);
+  onCommitRef.current = onCommit;
+  const onDraftChangeRef = React.useRef(onDraftChange);
+  onDraftChangeRef.current = onDraftChange;
 
   React.useEffect(() => {
     setDraft(urlQ);
   }, [urlQ]);
+
+  React.useEffect(() => {
+    onDraftChangeRef.current?.(draft);
+  }, [draft]);
 
   React.useEffect(() => {
     const trimmedDraft = draft.trim();
@@ -55,11 +80,28 @@ export function ShopFilterSearch({
     inputRef.current?.focus();
   };
 
-  const commitNow = () => {
+  const commitNow = React.useCallback(() => {
     const trimmed = draft.trim();
     void setQ(trimmed === "" ? null : trimmed);
     if (trimmed === "") void setQscope(null);
-  };
+    onCommitRef.current?.(trimmed);
+  }, [draft, setQ, setQscope]);
+
+  const setQuery = React.useCallback(
+    (query: string) => {
+      const trimmed = query.trim();
+      setDraft(trimmed);
+      void setQ(trimmed === "" ? null : trimmed);
+      if (trimmed === "") void setQscope(null);
+    },
+    [setQ, setQscope],
+  );
+
+  React.useImperativeHandle(
+    ref,
+    () => ({ commit: commitNow, setQuery }),
+    [commitNow, setQuery],
+  );
 
   return (
     <div className={cn("relative w-full", className)}>
@@ -116,4 +158,4 @@ export function ShopFilterSearch({
       ) : null}
     </div>
   );
-}
+});
