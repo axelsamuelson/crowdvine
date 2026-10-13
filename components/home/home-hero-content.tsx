@@ -43,9 +43,9 @@ export function HomeHeroContent({
       className={cn(
         "flex min-h-0 min-w-0 flex-col",
         // Mobile: fill the hero and pin CTAs to the bottom of the section
-        "h-full justify-between pt-2",
+        "h-full justify-between pt-10 sm:pt-12",
         // Desktop: left column, vertically centered
-        "md:order-1 md:h-auto md:justify-center md:py-10",
+        "md:order-1 md:h-auto md:justify-center md:pt-0 md:py-10",
       )}
     >
       <motion.div

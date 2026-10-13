@@ -172,6 +172,7 @@ export function MobileMenu({
                       <ShopLinks
                         label={t("home.popularProducers")}
                         locale={paths.locale}
+                        limit={10}
                         emptyMessage={t("home.noProducersFound", {
                           count: collections?.length ?? 0,
                         })}
