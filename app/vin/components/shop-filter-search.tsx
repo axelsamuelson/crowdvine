@@ -9,15 +9,23 @@ import { useTranslations } from "@/lib/hooks/use-translations";
 
 const DEBOUNCE_MS = 200;
 
-export function ShopFilterSearch({
-  className,
-  autoFocus = false,
-  id = "shop-search",
-}: {
-  className?: string;
-  autoFocus?: boolean;
-  id?: string;
-}) {
+export type ShopFilterSearchHandle = {
+  commit: () => void;
+};
+
+export const ShopFilterSearch = React.forwardRef<
+  ShopFilterSearchHandle,
+  {
+    className?: string;
+    autoFocus?: boolean;
+    id?: string;
+    /** Called after the current draft is flushed to the URL (Enter / confirm). */
+    onCommit?: (query: string) => void;
+  }
+>(function ShopFilterSearch(
+  { className, autoFocus = false, id = "shop-search", onCommit },
+  ref,
+) {
   const { t } = useTranslations();
   const [q, setQ] = useQueryState(
     "q",
@@ -31,6 +39,8 @@ export function ShopFilterSearch({
   const urlQ = q ?? "";
   const [draft, setDraft] = React.useState(urlQ);
   const inputRef = React.useRef<HTMLInputElement>(null);
+  const onCommitRef = React.useRef(onCommit);
+  onCommitRef.current = onCommit;
 
   React.useEffect(() => {
     setDraft(urlQ);
@@ -55,11 +65,14 @@ export function ShopFilterSearch({
     inputRef.current?.focus();
   };
 
-  const commitNow = () => {
+  const commitNow = React.useCallback(() => {
     const trimmed = draft.trim();
     void setQ(trimmed === "" ? null : trimmed);
     if (trimmed === "") void setQscope(null);
-  };
+    onCommitRef.current?.(trimmed);
+  }, [draft, setQ, setQscope]);
+
+  React.useImperativeHandle(ref, () => ({ commit: commitNow }), [commitNow]);
 
   return (
     <div className={cn("relative w-full", className)}>
@@ -116,4 +129,4 @@ export function ShopFilterSearch({
       ) : null}
     </div>
   );
-}
+});

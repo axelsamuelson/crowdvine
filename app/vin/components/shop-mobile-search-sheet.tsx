@@ -2,7 +2,11 @@
 
 import * as React from "react";
 import { createPortal } from "react-dom";
-import { ShopFilterSearch } from "./shop-filter-search";
+import { Button } from "@/components/ui/button";
+import {
+  ShopFilterSearch,
+  type ShopFilterSearchHandle,
+} from "./shop-filter-search";
 import { useTranslations } from "@/lib/hooks/use-translations";
 import { cn } from "@/lib/utils";
 
@@ -38,6 +42,7 @@ export function ShopMobileSearchSheet({
   const [dragOffset, setDragOffset] = React.useState(0);
   const [dragging, setDragging] = React.useState(false);
   const dragOffsetRef = React.useRef(0);
+  const searchRef = React.useRef<ShopFilterSearchHandle>(null);
   const dragRef = React.useRef<{
     startY: number;
     lastY: number;
@@ -191,14 +196,25 @@ export function ShopMobileSearchSheet({
           </h2>
         </div>
 
-        <div className="px-4 pb-10 pt-5">
+        <div className="flex flex-col gap-4 px-4 pb-8 pt-5">
           <ShopFilterSearch
+            ref={searchRef}
             id={INPUT_ID}
             autoFocus={false}
             className="[&_input]:h-12 [&_input]:text-base"
+            onCommit={() => close()}
           />
-          {/* Airy empty space under the field; also a drag target */}
-          <div className="h-20" aria-hidden />
+          <Button
+            type="button"
+            className="h-12 w-full cursor-pointer rounded-md bg-black text-base text-white hover:bg-black/90"
+            onClick={() => {
+              searchRef.current?.commit();
+            }}
+          >
+            {t("shop.searchConfirm")}
+          </Button>
+          {/* Extra drag target under the confirm action */}
+          <div className="h-8" aria-hidden />
         </div>
       </div>
     </div>,
