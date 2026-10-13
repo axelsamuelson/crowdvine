@@ -172,13 +172,7 @@ export function DesktopFilters({
         </div>
         <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-y-contain pb-4 pr-1">
           {isProducerBoxesPage ? null : (
-            <div className="flex items-center gap-2">
-              <ShopFilterSearch
-                id="shop-search-desktop"
-                className="min-w-0 flex-1"
-              />
-              <ProducerBoxesCta ssrPathname={ssrPathname} />
-            </div>
+            <ShopFilterSearch id="shop-search-desktop" />
           )}
           <Suspense fallback={null}>
             {isProducerBoxesPage ? null : (
@@ -218,6 +212,10 @@ export function DesktopFilters({
               />
             )}
           </Suspense>
+          <ProducerBoxesCta
+            className="mt-2 h-11 w-full px-5"
+            ssrPathname={ssrPathname}
+          />
         </div>
       </aside>
 
