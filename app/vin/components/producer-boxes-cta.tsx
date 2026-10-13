@@ -38,7 +38,7 @@ export function ProducerBoxesCta({
   if (isDirtywineSite) return null;
 
   return (
-    <div className={isRootShop ? "shrink-0" : "hidden"}>
+    <div className={isRootShop ? "w-full shrink-0" : "hidden"}>
       <Button
         asChild
         className={cn(

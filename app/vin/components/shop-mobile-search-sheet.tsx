@@ -26,7 +26,7 @@ export function ShopMobileSearchSheet({
         <DrawerHeader className="flex flex-row items-center justify-between space-y-0 px-4 pb-2">
           <DrawerTitle>{t("shop.searchTitle")}</DrawerTitle>
         </DrawerHeader>
-        <div className="px-4 pb-8">
+        <div className="px-4 pb-6">
           {open ? (
             <ShopFilterSearch id="shop-search-dock" autoFocus />
           ) : null}
