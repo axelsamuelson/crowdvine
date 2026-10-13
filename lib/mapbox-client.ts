@@ -118,17 +118,12 @@ const MAPBOX_STYLE_URLS: Record<MapStylePreset, string> = {
   satellite: "mapbox://styles/mapbox/satellite-streets-v12",
 };
 
-function getOsmFallbackStyle(preset: MapStylePreset) {
-  const voyagerTiles = [
-    "https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
-  ];
-  const osmTiles = ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"];
-
-  const tiles = preset === "light" ? osmTiles : voyagerTiles;
+function getOsmFallbackStyle(_preset: MapStylePreset) {
+  // CARTO's public raster endpoint now paints "API KEY REQUIRED" into every tile.
+  // PDP maps use the satellite preset, so a missing Mapbox token was rendering that watermark.
+  const tiles = ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"];
   const attribution =
-    preset === "light"
-      ? '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-      : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>';
+    '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
 
   return {
     version: 8 as const,
