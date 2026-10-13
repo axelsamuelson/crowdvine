@@ -54,7 +54,13 @@ export function ShopMobileDock({
       )}
       aria-label={t("shop.filtersTitle")}
     >
-      <div className="pointer-events-auto mx-auto flex w-[min(100%-1.5rem,22rem)] items-stretch justify-between gap-1 rounded-full border border-white/10 bg-stone-950/80 px-2 py-1.5 shadow-[0_8px_30px_rgba(0,0,0,0.35)] backdrop-blur-xl">
+      <div
+        className={cn(
+          // Match MENU button glass: bg-background/10 backdrop-blur-lg
+          "pointer-events-auto mx-auto flex w-fit max-w-[min(100%-2.5rem,16rem)] items-stretch justify-center gap-0.5",
+          "rounded-full border border-border/40 bg-background/10 px-1.5 py-1 shadow-sm backdrop-blur-lg",
+        )}
+      >
         {items.map((item) => {
           const Icon = item.icon;
           return (
@@ -63,14 +69,14 @@ export function ShopMobileDock({
               type="button"
               onClick={item.onClick}
               className={cn(
-                "relative flex min-w-0 flex-1 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-full px-2 py-1.5",
-                "text-white transition-colors hover:bg-white/10 active:bg-white/15",
+                "relative flex w-[4.25rem] cursor-pointer flex-col items-center justify-center gap-0.5 rounded-full px-1.5 py-1.5",
+                "text-foreground transition-colors hover:bg-background/20 active:bg-background/30",
               )}
             >
-              <span className="relative inline-flex h-6 w-6 items-center justify-center">
-                <Icon className="h-[1.15rem] w-[1.15rem]" strokeWidth={1.75} />
+              <span className="relative inline-flex h-5 w-5 items-center justify-center">
+                <Icon className="h-4 w-4" strokeWidth={1.75} />
                 {item.badge != null ? (
-                  <span className="absolute -right-1.5 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-white px-1 text-[10px] font-semibold leading-none text-stone-900">
+                  <span className="absolute -right-1.5 -top-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-foreground px-1 text-[9px] font-semibold leading-none text-background">
                     {item.badge > 9 ? "9+" : item.badge}
                   </span>
                 ) : null}
