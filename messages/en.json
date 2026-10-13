@@ -86,6 +86,7 @@
     "searchTitle": "Search",
     "searchAria": "Search wines, producers, and grapes",
     "searchConfirm": "Confirm",
+    "searchSuggestionsAria": "Search suggestions",
     "clearSearch": "Clear search",
     "noProductsFound": "No products found",
     "noSearchResults": "No wines match “{query}”",

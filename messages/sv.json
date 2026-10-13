@@ -86,6 +86,7 @@
     "searchTitle": "Sök",
     "searchAria": "Sök viner, producenter och druvor",
     "searchConfirm": "Bekräfta",
+    "searchSuggestionsAria": "Sökförslag",
     "clearSearch": "Rensa sökning",
     "noProductsFound": "Inga produkter hittades",
     "noSearchResults": "Inga viner matchar ”{query}”",

@@ -354,3 +354,77 @@ export function countProductsBySearchScope(
   }
   return counts;
 }
+
+export type ShopSearchSuggestionKind = "wine" | "producer" | "grape";
+
+export type ShopSearchSuggestion = {
+  id: string;
+  label: string;
+  kind: ShopSearchSuggestionKind;
+};
+
+/**
+ * Live typeahead suggestions from the current product set.
+ * Prefers prefix matches on wine title, producer, and grape names.
+ */
+export function buildShopSearchSuggestions(
+  products: Product[],
+  rawQuery: string | null | undefined,
+  limit = 8,
+): ShopSearchSuggestion[] {
+  const needle = foldShopSearchText((rawQuery ?? "").trim());
+  if (!needle) return [];
+
+  type Candidate = {
+    label: string;
+    kind: ShopSearchSuggestionKind;
+    score: number;
+    folded: string;
+  };
+  const byKey = new Map<string, Candidate>();
+
+  const consider = (
+    label: string,
+    kind: ShopSearchSuggestionKind,
+    baseScore: number,
+  ) => {
+    const trimmed = label.trim();
+    if (!trimmed) return;
+    const folded = foldShopSearchText(trimmed);
+    if (!folded || !folded.includes(needle)) return;
+
+    let score = baseScore;
+    if (folded === needle) score += 80;
+    else if (folded.startsWith(needle)) score += 50;
+    else if (folded.split(" ").some((part) => part.startsWith(needle)))
+      score += 30;
+
+    const key = `${kind}:${folded}`;
+    const prev = byKey.get(key);
+    if (!prev || score > prev.score) {
+      byKey.set(key, { label: trimmed, kind, score, folded });
+    }
+  };
+
+  for (const product of products) {
+    if (product.title) consider(product.title, "wine", 20);
+    if (product.producerName) consider(product.producerName, "producer", 18);
+    for (const grape of extractGrapeValues(product)) {
+      consider(grape, "grape", 16);
+    }
+  }
+
+  return Array.from(byKey.values())
+    .sort(
+      (a, b) =>
+        b.score - a.score ||
+        a.kind.localeCompare(b.kind) ||
+        a.label.localeCompare(b.label, "sv"),
+    )
+    .slice(0, limit)
+    .map((c) => ({
+      id: `${c.kind}:${c.folded}`,
+      label: c.label,
+      kind: c.kind,
+    }));
+}

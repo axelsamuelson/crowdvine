@@ -11,6 +11,7 @@ const DEBOUNCE_MS = 200;
 
 export type ShopFilterSearchHandle = {
   commit: () => void;
+  setQuery: (query: string) => void;
 };
 
 export const ShopFilterSearch = React.forwardRef<
@@ -21,9 +22,17 @@ export const ShopFilterSearch = React.forwardRef<
     id?: string;
     /** Called after the current draft is flushed to the URL (Enter / confirm). */
     onCommit?: (query: string) => void;
+    /** Fires on every keystroke with the local draft (before URL debounce). */
+    onDraftChange?: (draft: string) => void;
   }
 >(function ShopFilterSearch(
-  { className, autoFocus = false, id = "shop-search", onCommit },
+  {
+    className,
+    autoFocus = false,
+    id = "shop-search",
+    onCommit,
+    onDraftChange,
+  },
   ref,
 ) {
   const { t } = useTranslations();
@@ -41,10 +50,16 @@ export const ShopFilterSearch = React.forwardRef<
   const inputRef = React.useRef<HTMLInputElement>(null);
   const onCommitRef = React.useRef(onCommit);
   onCommitRef.current = onCommit;
+  const onDraftChangeRef = React.useRef(onDraftChange);
+  onDraftChangeRef.current = onDraftChange;
 
   React.useEffect(() => {
     setDraft(urlQ);
   }, [urlQ]);
+
+  React.useEffect(() => {
+    onDraftChangeRef.current?.(draft);
+  }, [draft]);
 
   React.useEffect(() => {
     const trimmedDraft = draft.trim();
@@ -72,7 +87,21 @@ export const ShopFilterSearch = React.forwardRef<
     onCommitRef.current?.(trimmed);
   }, [draft, setQ, setQscope]);
 
-  React.useImperativeHandle(ref, () => ({ commit: commitNow }), [commitNow]);
+  const setQuery = React.useCallback(
+    (query: string) => {
+      const trimmed = query.trim();
+      setDraft(trimmed);
+      void setQ(trimmed === "" ? null : trimmed);
+      if (trimmed === "") void setQscope(null);
+    },
+    [setQ, setQscope],
+  );
+
+  React.useImperativeHandle(
+    ref,
+    () => ({ commit: commitNow, setQuery }),
+    [commitNow, setQuery],
+  );
 
   return (
     <div className={cn("relative w-full", className)}>
