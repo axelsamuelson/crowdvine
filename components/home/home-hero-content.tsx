@@ -12,16 +12,6 @@ import { useOptionalTasteQuizPanel } from "./home-taste-quiz-panel";
 const heroButtonBaseClassName =
   "inline-flex h-11 w-full items-center justify-center rounded-full px-6 text-sm font-medium transition-colors sm:w-auto sm:min-w-[10rem]";
 
-const heroButtonPrimaryClassName = cn(
-  heroButtonBaseClassName,
-  "bg-stone-900 text-white hover:bg-stone-800",
-);
-
-const heroButtonSecondaryClassName = cn(
-  heroButtonBaseClassName,
-  "border border-stone-300 bg-white text-stone-900 hover:border-stone-400 hover:bg-stone-50",
-);
-
 const fadeUp = {
   hidden: { opacity: 0, y: 16 },
   show: { opacity: 1, y: 0 },
@@ -50,9 +40,17 @@ export function HomeHeroContent({
     : { duration: 0.65, ease: [0.22, 1, 0.36, 1] as const };
 
   return (
-    <div className="order-2 flex min-h-0 min-w-0 flex-col justify-start py-1 md:order-1 md:justify-center md:py-10">
+    <div
+      className={cn(
+        "flex min-h-0 min-w-0 flex-col",
+        // Mobile overlay: sit near top under the fixed header, like the reference
+        "justify-start pt-2",
+        // Desktop: left column, vertically centered on light bg
+        "md:order-1 md:justify-center md:py-10",
+      )}
+    >
       <motion.div
-        className="flex w-full max-w-lg min-w-0 flex-col gap-4 md:gap-6"
+        className="flex w-full max-w-lg min-w-0 flex-col gap-5 md:gap-6"
         initial={reduceMotion ? false : "hidden"}
         animate="show"
         variants={{
@@ -65,7 +63,15 @@ export function HomeHeroContent({
         }}
       >
         <motion.div variants={fadeUp} transition={transition} className="min-w-0">
-          <h1 className="max-w-full text-balance break-words text-[1.55rem] font-semibold uppercase leading-[1.08] tracking-[-0.02em] text-foreground sm:text-4xl sm:leading-[0.95] sm:tracking-tight lg:text-5xl">
+          <h1
+            className={cn(
+              "max-w-full text-balance break-words font-semibold uppercase tracking-[-0.02em]",
+              // Mobile: light type over the photo
+              "text-[1.75rem] leading-[1.08] text-white drop-shadow-sm",
+              // Desktop: original dark type
+              "md:text-4xl md:leading-[0.95] md:tracking-tight md:text-foreground md:drop-shadow-none lg:text-5xl",
+            )}
+          >
             {resolvedTitleLines.map((line, index) => (
               <span key={`${index}-${line}`} className="block">
                 {line}
@@ -73,7 +79,12 @@ export function HomeHeroContent({
             ))}
           </h1>
           {resolvedSubtitle ? (
-            <p className="mt-3 max-w-md text-pretty text-[0.95rem] leading-relaxed text-stone-600 md:mt-4 md:text-base">
+            <p
+              className={cn(
+                "mt-3 max-w-md text-pretty text-[0.95rem] leading-relaxed md:mt-4 md:text-base",
+                "text-white/90 md:text-stone-600",
+              )}
+            >
               {resolvedSubtitle}
             </p>
           ) : null}
@@ -84,14 +95,27 @@ export function HomeHeroContent({
           transition={transition}
           className="flex w-full min-w-0 flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:gap-3"
         >
-          <Link href={paths.shop} className={heroButtonPrimaryClassName}>
+          <Link
+            href={paths.shop}
+            className={cn(
+              heroButtonBaseClassName,
+              // Mobile: light primary on photo
+              "bg-white text-stone-900 hover:bg-white/90",
+              // Desktop: dark primary
+              "md:bg-stone-900 md:text-white md:hover:bg-stone-800",
+            )}
+          >
             {t("nav.shopAll")}
           </Link>
           {tasteQuizPanel ? (
             <button
               type="button"
               onClick={tasteQuizPanel.openTasteQuiz}
-              className={heroButtonSecondaryClassName}
+              className={cn(
+                heroButtonBaseClassName,
+                "border border-white/80 bg-transparent text-white hover:bg-white/10",
+                "md:border-stone-300 md:bg-white md:text-stone-900 md:hover:border-stone-400 md:hover:bg-stone-50",
+              )}
             >
               {t("tasteQuiz.intro.title")}
             </button>
