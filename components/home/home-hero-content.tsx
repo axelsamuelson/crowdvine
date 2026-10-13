@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import { useOptionalTasteQuizPanel } from "./home-taste-quiz-panel";
 
 const heroButtonBaseClassName =
-  "inline-flex h-11 w-full items-center justify-center rounded-full px-6 text-sm font-medium transition-colors sm:w-auto sm:min-w-[10rem]";
+  "inline-flex h-11 min-w-0 flex-1 items-center justify-center rounded-full px-3 text-sm font-medium transition-colors sm:flex-none sm:min-w-[10rem] sm:px-6";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 16 },
@@ -93,7 +93,7 @@ export function HomeHeroContent({
         <motion.div
           variants={fadeUp}
           transition={transition}
-          className="flex w-full min-w-0 flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:gap-3"
+          className="flex w-full min-w-0 flex-row gap-2.5 sm:gap-3"
         >
           <Link
             href={paths.shop}
