@@ -135,11 +135,11 @@ function SpecItem({
           <Icon className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
         )}
       </div>
-      <div className="min-w-0">
+      <div className="min-w-0 flex-1 overflow-hidden">
         <dt className={WINE_ENRICHMENT_SPEC_LABEL_CLASS}>
           {label}
         </dt>
-        <dd className="mt-0.5 text-sm leading-snug text-foreground">
+        <dd className="mt-0.5 break-words text-sm leading-snug text-foreground">
           {specKey === "producer" ? (
             <Link
               href={producerPublicPath(generateProducerSlug(value), locale)}
