@@ -67,7 +67,8 @@ export function MobileMenu({
         aria-label="Open mobile menu"
         variant="secondary"
         size="sm"
-        className="uppercase md:hidden"
+        // Match cart trigger corner radius on mobile (rounded-sm, not pill).
+        className="rounded-sm uppercase md:hidden"
       >
         Menu
       </Button>
