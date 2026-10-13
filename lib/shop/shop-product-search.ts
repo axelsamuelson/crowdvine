@@ -366,11 +366,13 @@ export type ShopSearchSuggestion = {
 /**
  * Live typeahead suggestions from the current product set.
  * Prefers prefix matches on wine title, producer, and grape names.
+ * When `scope` is wine/producer/grape, only that kind is returned.
  */
 export function buildShopSearchSuggestions(
   products: Product[],
   rawQuery: string | null | undefined,
   limit = 8,
+  scope: ShopSearchScope = "all",
 ): ShopSearchSuggestion[] {
   const needle = foldShopSearchText((rawQuery ?? "").trim());
   if (!needle) return [];
@@ -382,6 +384,9 @@ export function buildShopSearchSuggestions(
     folded: string;
   };
   const byKey = new Map<string, Candidate>();
+  const allowWine = scope === "all" || scope === "wine";
+  const allowProducer = scope === "all" || scope === "producer";
+  const allowGrape = scope === "all" || scope === "grape";
 
   const consider = (
     label: string,
@@ -407,10 +412,14 @@ export function buildShopSearchSuggestions(
   };
 
   for (const product of products) {
-    if (product.title) consider(product.title, "wine", 20);
-    if (product.producerName) consider(product.producerName, "producer", 18);
-    for (const grape of extractGrapeValues(product)) {
-      consider(grape, "grape", 16);
+    if (allowWine && product.title) consider(product.title, "wine", 20);
+    if (allowProducer && product.producerName) {
+      consider(product.producerName, "producer", 18);
+    }
+    if (allowGrape) {
+      for (const grape of extractGrapeValues(product)) {
+        consider(grape, "grape", 16);
+      }
     }
   }
 

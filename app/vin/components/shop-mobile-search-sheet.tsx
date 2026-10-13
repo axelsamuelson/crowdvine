@@ -90,8 +90,14 @@ export function ShopMobileSearchSheet({
   );
 
   const suggestions = React.useMemo(
-    () => buildShopSearchSuggestions(originalProducts, trimmedDraft, 8),
-    [originalProducts, trimmedDraft],
+    () =>
+      buildShopSearchSuggestions(
+        originalProducts,
+        trimmedDraft,
+        8,
+        activeScope,
+      ),
+    [originalProducts, trimmedDraft, activeScope],
   );
 
   React.useEffect(() => {

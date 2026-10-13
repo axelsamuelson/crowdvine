@@ -212,5 +212,9 @@ describe("shop-product-search", () => {
       suggestions.some((s) => s.kind === "producer" && s.label === "Domaine Carignan"),
     ).toBe(true);
     expect(buildShopSearchSuggestions(products, "", 8)).toEqual([]);
+
+    const grapeOnly = buildShopSearchSuggestions(products, "cari", 8, "grape");
+    expect(grapeOnly.length).toBeGreaterThan(0);
+    expect(grapeOnly.every((s) => s.kind === "grape")).toBe(true);
   });
 });
