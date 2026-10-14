@@ -431,10 +431,10 @@ export const buyNaturalWineOnlineSwedenArticle: GuideArticleContent = {
       },
       body: {
         en: [
-          "The information comes from the shops' own pages and the Swedish Tax Agency, reviewed in October 2026. We have not ordered from any of them. We ourselves work with natural wine import, so we do not list ourselves here, and none of the shops has paid to be included.",
+          "The information comes from the shops' own pages and the Swedish Tax Agency, reviewed in October 2026. We have not ordered from any of them. We ourselves work with natural wine import, so we do not list ourselves among the shops above, and none of the shops has paid to be included. Our own [natural wine box](/wine/natural-wine-box) is six bottles from one producer.",
         ],
         sv: [
-          "Uppgifterna kommer från butikernas egna sidor och Skatteverket, granskade i oktober 2026. Vi har inte beställt från någon av dem. Vi arbetar själva med naturvinsimport, så vi listar inte oss här, och ingen av butikerna har betalat för att vara med.",
+          "Uppgifterna kommer från butikernas egna sidor och Skatteverket, granskade i oktober 2026. Vi har inte beställt från någon av dem. Vi arbetar själva med naturvinsimport, så vi listar inte oss bland butikerna ovan, och ingen av butikerna har betalat för att vara med. Vår egen [naturvinslåda](/vin/naturvin-lada) är sex flaskor från en producent.",
         ],
       },
     },

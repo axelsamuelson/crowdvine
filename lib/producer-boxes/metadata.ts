@@ -1,13 +1,29 @@
 import type { Metadata } from "next";
 import type { AppLocale } from "@/lib/i18n/locale";
 import { PACT_CONFIG } from "@/lib/site-config";
+import { producerBoxContentsLine } from "@/lib/producer-boxes/contents-line";
 import {
   PRODUCER_BOXES_COPY,
+  PRODUCER_BOXES_FAQ,
   PRODUCER_BOXES_PATH,
   PRODUCER_BOXES_PUBLISHED,
   producerBoxesCanonical,
+  type ProducerBoxFaqItem,
 } from "@/lib/producer-boxes/config";
 import type { ResolvedProducerBox } from "@/lib/producer-boxes/match";
+
+const IN_STOCK = "https://schema.org/InStock";
+const OUT_OF_STOCK = "https://schema.org/OutOfStock";
+
+function schemaPrice(cents: number): string {
+  const kronor = cents / 100;
+  return Number.isInteger(kronor) ? String(kronor) : kronor.toFixed(2);
+}
+
+function faqAnswerText(item: ProducerBoxFaqItem): string {
+  if (!item.link) return item.answer;
+  return `${item.answer} ${PACT_CONFIG.baseUrl}${item.link.href}`;
+}
 
 export function buildProducerBoxesMetadata(locale: AppLocale): Metadata {
   const copy = PRODUCER_BOXES_COPY[locale];
@@ -40,7 +56,11 @@ export function buildProducerBoxesMetadata(locale: AppLocale): Metadata {
 export function buildProducerBoxesJsonLd(
   locale: AppLocale,
   boxes: readonly ResolvedProducerBox[],
-): { breadcrumb: Record<string, unknown>; collection: Record<string, unknown> } {
+): {
+  breadcrumb: Record<string, unknown>;
+  collection: Record<string, unknown>;
+  faq: Record<string, unknown>;
+} {
   const copy = PRODUCER_BOXES_COPY[locale];
   const pageUrl = producerBoxesCanonical(locale);
   const shopUrl = `${PACT_CONFIG.baseUrl}${locale === "sv" ? "/vin" : "/wine"}`;
@@ -73,16 +93,50 @@ export function buildProducerBoxesJsonLd(
     url: pageUrl,
     mainEntity: {
       "@type": "ItemList",
-      name: copy.h1,
+      name: copy.boxesHeading,
       numberOfItems: boxes.length,
-      itemListElement: boxes.map((box, index) => ({
-        "@type": "ListItem",
-        position: index + 1,
-        name: box.definition.name[locale],
-        url: `${pageUrl}#box-${box.definition.id}`,
-      })),
+      itemListElement: boxes.map((box, index) => {
+        const url = `${pageUrl}#box-${box.definition.id}`;
+        const offer: Record<string, unknown> = {
+          "@type": "Offer",
+          priceCurrency: "SEK",
+          availability: box.purchasable ? IN_STOCK : OUT_OF_STOCK,
+          url,
+        };
+        if (box.totalCents != null) {
+          offer.price = schemaPrice(box.totalCents);
+        }
+        const description = producerBoxContentsLine(box.slots, locale);
+        const product: Record<string, unknown> = {
+          "@type": "Product",
+          name: box.definition.name[locale],
+          url,
+          offers: offer,
+        };
+        if (description) product.description = description;
+        return {
+          "@type": "ListItem",
+          position: index + 1,
+          name: box.definition.name[locale],
+          url,
+          item: product,
+        };
+      }),
     },
   };
 
-  return { breadcrumb, collection };
+  const faq = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: PRODUCER_BOXES_FAQ[locale].map((item) => ({
+      "@type": "Question",
+      name: item.question,
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: faqAnswerText(item),
+      },
+    })),
+  };
+
+  return { breadcrumb, collection, faq };
 }

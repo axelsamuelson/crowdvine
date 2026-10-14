@@ -43,12 +43,14 @@ export interface ProducerBoxDefinition {
 
 export const PRODUCER_BOXES_COPY = {
   sv: {
-    title: "Naturvinslåda: 6 flaskor från en producent",
-    h1: "Naturvin i låda",
-    meta: "Naturvin låda med 6 flaskor från en och samma producent. Varje låda samlar sex viner från en gård i Languedoc.",
+    title: "Naturvin låda: 6 flaskor från en producent",
+    h1: "Naturvinslåda: sex flaskor från en producent",
+    meta: "Naturvinslåda med sex flaskor från en och samma producent i Languedoc. Se vad som ingår i varje låda och lägg hela lådan i varukorgen.",
     breadcrumb: "Naturvinlåda",
+    boxesHeading: "Våra naturvinslådor",
+    faqHeading: "Vanliga frågor",
     intro:
-      "Varje låda innehåller sex flaskor från en producent, till samma listpris som flaskorna var för sig.",
+      "En naturvinslåda hos PACT är sex flaskor från samma producent i Languedoc. Du lär känna en gård på djupet, med flera viner från samma händer och samma jordar. Lådorna är sammansatta av oss. Priset visas i kronor inklusive moms. Vill du hellre välja enskilda flaskor hittar du hela utbudet i butiken. Nytt för naturvin? Läs först vad naturvin är.",
     draft:
       "Utkast. Sidan är inte publicerad. Texten ska läsas av Sofia (GC) innan publicering.",
     producer: "Producent",
@@ -71,11 +73,13 @@ export const PRODUCER_BOXES_COPY = {
   },
   en: {
     title: "Natural wine box: 6 bottles from one producer",
-    h1: "Natural wine in a box",
-    meta: "A natural wine box of 6 bottles from a single producer. Each box holds six wines from one Languedoc estate.",
+    h1: "Natural wine box: six bottles from one producer",
+    meta: "A natural wine box of six bottles from one producer in Languedoc. See what each box contains and add the whole box to the cart.",
     breadcrumb: "Natural wine box",
+    boxesHeading: "Our natural wine boxes",
+    faqHeading: "Common questions",
     intro:
-      "Each box contains six bottles from one producer, at the same list price as the bottles on their own.",
+      "A natural wine box at PACT is six bottles from the same producer in Languedoc. You get to know one farm in depth, with several wines from the same hands and the same soils. We put the boxes together. The price is shown in kronor including VAT. If you would rather pick single bottles, the full range is in the shop. New to natural wine? Read what natural wine is first.",
     draft:
       "Draft. This page is not published. Sofia (GC) needs to read the copy before it goes live.",
     producer: "Producer",
@@ -97,6 +101,96 @@ export const PRODUCER_BOXES_COPY = {
     loadError: "The wine list could not be loaded.",
   },
 } as const;
+
+export interface ProducerBoxTextLink {
+  phrase: string;
+  href: string;
+}
+
+export interface ProducerBoxFaqItem {
+  question: string;
+  answer: string;
+  link?: ProducerBoxTextLink;
+}
+
+export const PRODUCER_BOXES_INTRO_LINKS: Record<
+  AppLocale,
+  readonly ProducerBoxTextLink[]
+> = {
+  sv: [
+    { phrase: "butiken", href: "/vin" },
+    { phrase: "vad naturvin är", href: "/guider/vad-ar-naturvin" },
+  ],
+  en: [
+    { phrase: "shop", href: "/wine" },
+    { phrase: "what natural wine is", href: "/guides/what-is-natural-wine" },
+  ],
+};
+
+export const PRODUCER_BOXES_FAQ: Record<
+  AppLocale,
+  readonly ProducerBoxFaqItem[]
+> = {
+  sv: [
+    {
+      question: "Vad är en naturvinslåda?",
+      answer: "Sex flaskor från samma producent, sammansatta av PACT.",
+    },
+    {
+      question: "Kan jag blanda flaskor från olika producenter i en låda?",
+      answer:
+        "Nej, varje låda innehåller sex flaskor från en producent. Enskilda flaskor kan du lägga i varukorgen från butiken.",
+      link: { phrase: "butiken", href: "/vin" },
+    },
+    {
+      question: "Vad ingår i lådan?",
+      answer:
+        "De sex flaskorna listas under varje låda, med namn och årgång. Priset gäller hela lådan.",
+    },
+    {
+      question: "Vad är naturvin?",
+      answer:
+        "Naturvin är vin gjort med låg intervention. Läs vad naturvin är.",
+      link: { phrase: "vad naturvin är", href: "/guider/vad-ar-naturvin" },
+    },
+    {
+      question: "Var hittar jag leverans- och köpvillkor?",
+      answer: "Leverans och köp beskrivs i köpvillkoren.",
+      link: { phrase: "köpvillkoren", href: "/villkor" },
+    },
+  ],
+  en: [
+    {
+      question: "What is a natural wine box?",
+      answer: "Six bottles from the same producer, put together by PACT.",
+    },
+    {
+      question: "Can I mix bottles from different producers in one box?",
+      answer:
+        "No. Each box holds six bottles from one producer. You can add single bottles to the cart from the shop.",
+      link: { phrase: "shop", href: "/wine" },
+    },
+    {
+      question: "What is in the box?",
+      answer:
+        "The six bottles are listed under each box, with name and vintage. The price is for the whole box.",
+    },
+    {
+      question: "What is natural wine?",
+      answer:
+        "Natural wine is wine made with low intervention. Read what natural wine is.",
+      link: {
+        phrase: "what natural wine is",
+        href: "/guides/what-is-natural-wine",
+      },
+    },
+    {
+      question: "Where are the delivery and purchase terms?",
+      answer: "Delivery and purchase are described on the terms page.",
+      link: { phrase: "terms page", href: "/terms" },
+    },
+  ],
+};
 
 /**
  * Code default. An admin save in site_content (key producer_boxes) overrides
