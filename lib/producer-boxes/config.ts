@@ -43,14 +43,14 @@ export interface ProducerBoxDefinition {
 
 export const PRODUCER_BOXES_COPY = {
   sv: {
-    title: "Naturvin låda: 6 flaskor från en producent",
+    title: "Naturvin låda: vinlåda med 6 flaskor från en gård",
     h1: "Naturvinslåda: sex flaskor från en producent",
-    meta: "Naturvinslåda med sex flaskor från en och samma producent i Languedoc. Se vad som ingår i varje låda och lägg hela lådan i varukorgen.",
+    meta: "Vinlåda med naturvin: sex flaskor från en och samma producent i Languedoc. Se vad som ingår i varje låda och lägg hela lådan i varukorgen.",
     breadcrumb: "Naturvinlåda",
     boxesHeading: "Våra naturvinslådor",
     faqHeading: "Vanliga frågor",
     intro:
-      "En naturvinslåda hos PACT är sex flaskor från samma producent i Languedoc. Du lär känna en gård på djupet, med flera viner från samma händer och samma jordar. Lådorna är sammansatta av oss. Priset visas i kronor inklusive moms. Vill du hellre välja enskilda flaskor hittar du hela utbudet i butiken. Nytt för naturvin? Läs först vad naturvin är.",
+      "En naturvinslåda hos PACT är en vinlåda med sex flaskor från samma producent i Languedoc. Du lär känna en gård på djupet, med flera viner från samma händer och samma jordar. Lådorna är sammansatta av oss. Priset visas i kronor inklusive moms. Vill du hellre välja enskilda flaskor hittar du hela utbudet i butiken. Nytt för naturvin? Läs först vad naturvin är.",
     draft:
       "Utkast. Sidan är inte publicerad. Texten ska läsas av Sofia (GC) innan publicering.",
     producer: "Producent",
@@ -134,7 +134,7 @@ export const PRODUCER_BOXES_FAQ: Record<
   sv: [
     {
       question: "Vad är en naturvinslåda?",
-      answer: "Sex flaskor från samma producent, sammansatta av PACT.",
+      answer: "En vinlåda med sex flaskor naturvin från samma producent, sammansatt av PACT.",
     },
     {
       question: "Kan jag blanda flaskor från olika producenter i en låda?",
