@@ -23,6 +23,7 @@ import {
 import { buildProducerBoxesJsonLd } from "@/lib/producer-boxes/metadata";
 import type { Product } from "@/lib/shopify/types";
 import { formatPrice } from "@/lib/shopify/utils";
+import { wineDisplayTitle } from "@/lib/wine-display-title";
 
 function slotNote(
   slot: ResolvedProducerBoxWine,
@@ -43,7 +44,7 @@ function slotNote(
 function boxCardProduct(product: Product, slot: ResolvedProducerBoxWine): Product {
   const catalogTitle =
     slot.wineName && slot.vintage
-      ? `${slot.wineName} ${slot.vintage}`
+      ? wineDisplayTitle(slot.wineName, slot.vintage)
       : product.title;
   const title =
     slot.quantity > 1 ? `${slot.quantity} x ${catalogTitle}` : catalogTitle;

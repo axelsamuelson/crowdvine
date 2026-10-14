@@ -4,6 +4,7 @@ import { ProductListShell } from "../../components/product-list-shell";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { notFound } from "next/navigation";
 import { DEFAULT_WINE_IMAGE_PATH } from "@/lib/constants";
+import { wineDisplayTitle } from "@/lib/wine-display-title";
 
 export const dynamic = "force-dynamic";
 
@@ -99,7 +100,7 @@ export default async function ProducerGroupPage({ params }: PageProps) {
 
     return {
       id: wine.id,
-      title: `${wine.wine_name} ${wine.vintage}`,
+      title: wineDisplayTitle(wine.wine_name, wine.vintage),
       handle: wine.handle,
       description: wine.description || "",
       descriptionHtml: wine.description_html || "",
@@ -149,7 +150,7 @@ export default async function ProducerGroupPage({ params }: PageProps) {
       ],
       availableForSale: true,
       seo: {
-        title: `${wine.wine_name} ${wine.vintage}`,
+        title: wineDisplayTitle(wine.wine_name, wine.vintage),
         description: wine.description || "",
       },
     };
