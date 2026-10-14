@@ -183,7 +183,7 @@ export function GuideHubBrowse({
         </div>
       </aside>
 
-      <div className="col-span-9 flex flex-col px-sides md:px-0 md:pr-sides">
+      <div className="col-span-8 flex flex-col px-sides md:px-0 md:pr-sides">
         <h1 className="text-3xl font-bold tracking-tight md:text-4xl">
           {hubTitle}
         </h1>
