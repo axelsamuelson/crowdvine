@@ -75,13 +75,9 @@ export async function renderGuideHubPage(locale: AppLocale) {
           hubIntro={copy.hubIntro}
           sections={copy.hubSections}
           labels={{
-            searchPlaceholder: copy.hubSearchPlaceholder,
-            searchAria: copy.hubSearchAria,
-            clearSearch: copy.hubClearSearch,
             clear: copy.hubClear,
             all: copy.hubAll,
             filter: copy.hubFilter,
-            noResults: copy.hubNoResults,
           }}
         />
       </div>

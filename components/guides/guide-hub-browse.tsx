@@ -1,15 +1,11 @@
 "use client";
 
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Search, X } from "lucide-react";
 
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 import type { GuideHubCard, GuideHubSection } from "@/lib/guides/guide-copy";
-import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-
-const SEARCH_DEBOUNCE_MS = 200;
 
 export function hubSectionId(title: string): string {
   return title
@@ -26,30 +22,10 @@ function orderHubCards(cards: GuideHubCard[]): GuideHubCard[] {
   return [...featured, ...rest];
 }
 
-function normalizeSearch(value: string): string {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .trim();
-}
-
-function cardMatchesQuery(guide: GuideHubCard, query: string): boolean {
-  if (!query) return true;
-  const haystack = normalizeSearch(
-    `${guide.title} ${guide.description} ${guide.kicker ?? ""}`,
-  );
-  return haystack.includes(query);
-}
-
 export type GuideHubBrowseLabels = {
-  searchPlaceholder: string;
-  searchAria: string;
-  clearSearch: string;
   clear: string;
   all: string;
   filter: string;
-  noResults: string;
 };
 
 export type GuideHubBrowseProps = {
@@ -90,79 +66,8 @@ function GuideHubCardLink({ guide }: { guide: GuideHubCard }) {
   );
 }
 
-function GuideHubSearchField({
-  id,
-  value,
-  onChange,
-  onClear,
-  labels,
-  className,
-}: {
-  id: string;
-  value: string;
-  onChange: (value: string) => void;
-  onClear: () => void;
-  labels: Pick<
-    GuideHubBrowseLabels,
-    "searchPlaceholder" | "searchAria" | "clearSearch"
-  >;
-  className?: string;
-}) {
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  return (
-    <div className={cn("relative w-full", className)}>
-      <Search
-        className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-500"
-        aria-hidden
-      />
-      <Input
-        ref={inputRef}
-        id={id}
-        type="search"
-        inputMode="search"
-        enterKeyHint="search"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Escape") {
-            e.preventDefault();
-            if (value) onClear();
-            else inputRef.current?.blur();
-          }
-        }}
-        placeholder={labels.searchPlaceholder}
-        className={cn(
-          "h-10 w-full rounded-md border border-neutral-200/90 bg-[#f3f4f6] pl-9 text-sm text-gray-900 shadow-none",
-          "placeholder:text-neutral-500",
-          "focus-visible:border-neutral-300 focus-visible:ring-2 focus-visible:ring-neutral-900/10",
-          "[&::-webkit-search-cancel-button]:hidden",
-          value.length > 0 ? "pr-9" : "pr-3",
-        )}
-        aria-label={labels.searchAria}
-        autoComplete="off"
-        autoCorrect="off"
-        spellCheck={false}
-      />
-      {value.length > 0 ? (
-        <button
-          type="button"
-          className="absolute right-1 top-1/2 flex h-8 w-8 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full text-neutral-500 transition-colors hover:bg-neutral-200/80 hover:text-neutral-900"
-          aria-label={labels.clearSearch}
-          onClick={() => {
-            onClear();
-            inputRef.current?.focus();
-          }}
-        >
-          <X className="h-3.5 w-3.5" strokeWidth={2} />
-        </button>
-      ) : null}
-    </div>
-  );
-}
-
 /**
- * Guides hub browse chrome: client-side search + section filter.
+ * Guides hub browse chrome: client-side section filter.
  * All cards stay in the DOM (SSR + hidden) with real guide links.
  * No URL query params.
  */
@@ -172,9 +77,6 @@ export function GuideHubBrowse({
   sections,
   labels,
 }: GuideHubBrowseProps) {
-  const searchId = useId();
-  const [draftQuery, setDraftQuery] = useState("");
-  const [query, setQuery] = useState("");
   /** null = all sections */
   const [activeSection, setActiveSection] = useState<string | null>(null);
 
@@ -188,49 +90,20 @@ export function GuideHubBrowse({
     [sections],
   );
 
-  const normalizedQuery = normalizeSearch(query);
-
-  useEffect(() => {
-    const trimmed = draftQuery.trim();
-    const timer = window.setTimeout(() => {
-      setQuery(trimmed);
-    }, SEARCH_DEBOUNCE_MS);
-    return () => window.clearTimeout(timer);
-  }, [draftQuery]);
-
-  useEffect(() => {
-    if (!normalizedQuery) return;
-    void AnalyticsTracker.trackEvent({
-      eventType: "guide_search",
-      eventCategory: "search",
-      metadata: { q: normalizedQuery },
-    });
-  }, [normalizedQuery]);
-
-  const hasActiveFilters = Boolean(activeSection) || Boolean(normalizedQuery);
+  const hasActiveFilters = Boolean(activeSection);
 
   const visibility = useMemo(() => {
-    const cardVisible = new Map<string, boolean>();
     const sectionVisible = new Map<string, boolean>();
     let visibleCount = 0;
 
     for (const section of orderedSections) {
-      const sectionOk =
-        activeSection === null || activeSection === section.title;
-      let anyCard = false;
-      for (const guide of section.cards) {
-        const ok = sectionOk && cardMatchesQuery(guide, normalizedQuery);
-        cardVisible.set(guide.href, ok);
-        if (ok) {
-          anyCard = true;
-          visibleCount += 1;
-        }
-      }
-      sectionVisible.set(section.title, anyCard);
+      const ok = activeSection === null || activeSection === section.title;
+      sectionVisible.set(section.title, ok);
+      if (ok) visibleCount += section.cards.length;
     }
 
-    return { cardVisible, sectionVisible, visibleCount };
-  }, [orderedSections, activeSection, normalizedQuery]);
+    return { sectionVisible, visibleCount };
+  }, [orderedSections, activeSection]);
 
   const selectSection = (title: string | null) => {
     setActiveSection(title);
@@ -242,8 +115,6 @@ export function GuideHubBrowse({
   };
 
   const clearFilters = () => {
-    setDraftQuery("");
-    setQuery("");
     setActiveSection(null);
   };
 
@@ -315,17 +186,7 @@ export function GuideHubBrowse({
             {labels.clear}
           </button>
         </div>
-        <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto overscroll-y-contain pb-4 pr-1 pl-2">
-          <GuideHubSearchField
-            id={`${searchId}-desktop`}
-            value={draftQuery}
-            onChange={setDraftQuery}
-            onClear={() => {
-              setDraftQuery("");
-              setQuery("");
-            }}
-            labels={labels}
-          />
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-y-contain pb-4 pr-1 pl-2">
           <nav aria-label={labels.filter}>{sectionFilterButtons}</nav>
         </div>
       </aside>
@@ -339,68 +200,48 @@ export function GuideHubBrowse({
           {hubIntro}
         </p>
 
-        <div className="mt-8 space-y-4 md:hidden">
-          <GuideHubSearchField
-            id={`${searchId}-mobile`}
-            value={draftQuery}
-            onChange={setDraftQuery}
-            onClear={() => {
-              setDraftQuery("");
-              setQuery("");
-            }}
-            labels={labels}
-          />
-          <div className="flex items-center justify-between gap-3">
-            <nav
-              aria-label={labels.filter}
-              className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-muted-foreground"
+        <div className="mt-8 flex items-center justify-between gap-3 md:hidden">
+          <nav
+            aria-label={labels.filter}
+            className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-muted-foreground"
+          >
+            <button
+              type="button"
+              onClick={() => selectSection(null)}
+              className={cn(
+                "hover:text-foreground",
+                activeSection === null && "font-medium text-foreground",
+              )}
+              aria-pressed={activeSection === null}
             >
+              {labels.all}
+            </button>
+            {orderedSections.map((section) => (
               <button
+                key={section.title}
                 type="button"
-                onClick={() => selectSection(null)}
+                onClick={() => selectSection(section.title)}
                 className={cn(
                   "hover:text-foreground",
-                  activeSection === null && "font-medium text-foreground",
+                  activeSection === section.title &&
+                    "font-medium text-foreground",
                 )}
-                aria-pressed={activeSection === null}
+                aria-pressed={activeSection === section.title}
               >
-                {labels.all}
+                {section.title}
               </button>
-              {orderedSections.map((section) => (
-                <button
-                  key={section.title}
-                  type="button"
-                  onClick={() => selectSection(section.title)}
-                  className={cn(
-                    "hover:text-foreground",
-                    activeSection === section.title &&
-                      "font-medium text-foreground",
-                  )}
-                  aria-pressed={activeSection === section.title}
-                >
-                  {section.title}
-                </button>
-              ))}
-            </nav>
-            {hasActiveFilters ? (
-              <button
-                type="button"
-                onClick={clearFilters}
-                className="shrink-0 text-sm font-medium text-foreground/50 hover:text-foreground/60"
-              >
-                {labels.clear}
-              </button>
-            ) : null}
-          </div>
+            ))}
+          </nav>
+          {hasActiveFilters ? (
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="shrink-0 text-sm font-medium text-foreground/50 hover:text-foreground/60"
+            >
+              {labels.clear}
+            </button>
+          ) : null}
         </div>
-
-        <p
-          className="mt-6 text-sm text-muted-foreground"
-          hidden={visibility.visibleCount > 0}
-          role="status"
-        >
-          {labels.noResults}
-        </p>
 
         <div className="mt-10 md:mt-12">
           {orderedSections.map((section) => {
@@ -427,13 +268,10 @@ export function GuideHubBrowse({
                 <ul className="grid grid-cols-1 gap-x-8 gap-y-8 sm:grid-cols-2 xl:grid-cols-3">
                   {section.cards.map((guide) => {
                     const featured = Boolean(guide.featured);
-                    const cardIsVisible =
-                      visibility.cardVisible.get(guide.href) ?? false;
 
                     return (
                       <li
                         key={guide.href}
-                        hidden={!cardIsVisible}
                         className={cn(
                           "min-w-0 border-b border-border pb-6",
                           featured && "sm:col-span-2 xl:col-span-3",

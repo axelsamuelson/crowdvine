@@ -57,14 +57,10 @@ export type GuideLocaleCopy = {
   /** @deprecated Prefer hubSections; kept for any flat consumers. */
   hubCards: GuideHubCard[];
   hubSections: GuideHubSection[];
-  /** Guide hub browse UI (client-side search/filter). */
-  hubSearchPlaceholder: string;
-  hubSearchAria: string;
-  hubClearSearch: string;
+  /** Guide hub browse UI (client-side section filter). */
   hubClear: string;
   hubAll: string;
   hubFilter: string;
-  hubNoResults: string;
   top10: string;
   mid: string;
   rest: string;
@@ -217,13 +213,9 @@ const SV: GuideLocaleCopy = {
       cards: SV_SYSTEMBOLAGET_CARDS,
     },
   ],
-  hubSearchPlaceholder: "Sök guider…",
-  hubSearchAria: "Sök guider",
-  hubClearSearch: "Rensa sökning",
   hubClear: "Rensa",
   hubAll: "Alla",
   hubFilter: "Filter",
-  hubNoResults: "Inga guider matchar.",
   top10: "Topp 10",
   mid: "11–30",
   rest: "31–100",
@@ -375,13 +367,9 @@ const EN: GuideLocaleCopy = {
     { title: "Lists", cards: EN_LIST_CARDS },
     { title: "Systembolaget", cards: EN_SYSTEMBOLAGET_CARDS },
   ],
-  hubSearchPlaceholder: "Search guides…",
-  hubSearchAria: "Search guides",
-  hubClearSearch: "Clear search",
   hubClear: "Clear",
   hubAll: "All",
   hubFilter: "Filter",
-  hubNoResults: "No guides match.",
   top10: "Top 10",
   mid: "11–30",
   rest: "31–100",
