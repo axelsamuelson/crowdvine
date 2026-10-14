@@ -4,12 +4,18 @@ import { supabaseServer } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { revalidatePath } from "next/cache";
 import { calculateSystembolagetPrice } from "@/lib/systembolaget-pricing";
-import { getAppUrl } from "@/lib/app-url";
 import {
   buildWineArrayJsonb,
   buildWineJsonb,
   type WineLocale,
 } from "@/lib/i18n/wine-locale";
+import {
+  calculateRetailPriceCents,
+  DEFAULT_ALCOHOL_TAX_CENTS,
+  fetchExchangeRateToSek,
+  resolveSekExchangeRateSync,
+  resolveWineAlcoholTaxCents,
+} from "@/lib/wine-retail-pricing";
 
 export interface Wine {
   id: string;
@@ -97,6 +103,7 @@ export interface CreateWineData {
   cost_currency: string;
   cost_amount: number;
   alcohol_tax_cents: number;
+  exchange_rate?: number | null;
   price_includes_vat: boolean;
   margin_percentage: number;
   // Systembolaget pricing
@@ -717,57 +724,46 @@ export async function createWine(data: CreateWineData, locale: WineLocale = "sv"
   // Calculate price if pricing data is provided
   let finalPriceCents = data.base_price_cents;
   let calculatedSbPrice = null;
+  let resolvedExchangeRate =
+    data.cost_currency?.toUpperCase() === "SEK"
+      ? 1
+      : data.exchange_rate != null && Number(data.exchange_rate) > 1.5
+        ? Number(data.exchange_rate)
+        : null;
+  const alcoholTaxCents = resolveWineAlcoholTaxCents(
+    data.alcohol_tax_cents ?? DEFAULT_ALCOHOL_TAX_CENTS,
+  );
 
   if (data.cost_amount && data.cost_amount > 0) {
-    let exchangeRate = 1.0; // Default for SEK
-
-    if (data.cost_currency !== "SEK") {
-      try {
-        // Fetch current exchange rate
-        const rateResponse = await fetch(
-          `${getAppUrl()}/api/exchange-rates?from=${data.cost_currency}&to=SEK`,
-        );
-
-        if (rateResponse.ok) {
-          const rateData = await rateResponse.json();
-          exchangeRate = rateData.rate;
-        } else {
-          console.warn(
-            `Failed to fetch exchange rate for ${data.cost_currency}, using 1.0`,
-          );
-        }
-      } catch (error) {
-        console.error("Error fetching exchange rate:", error);
-      }
-    }
-
-    // Calculate inclusive cost (C): cost_amount + alcohol_tax converted to SEK
-    const costAmountInSek = data.cost_amount * exchangeRate;
-    const alcoholTaxInSek = 22.19; // Fixed SEK 22.19 per bottle
-    const costInSek = costAmountInSek + alcoholTaxInSek; // C = Total cost ex VAT
-
-    // Gross margin as decimal (e.g., 10% = 0.10)
-    const marginDecimal = (data.margin_percentage || 10) / 100; // M
-
-    // VAT rate as decimal (Sweden = 25% = 0.25)
-    const vatRate = data.price_includes_vat !== false ? 0.25 : 0; // V
-
-    // Step 1: Price ex VAT using gross margin formula: P = C ÷ (1 - M)
-    const priceExVat = costInSek / (1 - marginDecimal); // P
-
-    // Step 2: Final price incl VAT: F = P × (1 + V)
-    const finalPrice = priceExVat * (1 + vatRate); // F
-
-    finalPriceCents = Math.round(finalPrice * 100); // Round to nearest whole number
-
-    // Calculate Systembolaget price if cost_amount is provided
-    if (data.cost_amount && data.cost_amount > 0) {
-      calculatedSbPrice = calculateSystembolagetPrice(
-        data.cost_amount,
-        exchangeRate,
-        2219, // Fixed 22.19 SEK = 2219 cents
+    if (resolvedExchangeRate == null) {
+      resolvedExchangeRate = await fetchExchangeRateToSek(
+        data.cost_currency || "EUR",
       );
     }
+    // Never price foreign currency as FX=1
+    if (
+      (data.cost_currency || "EUR").toUpperCase() !== "SEK" &&
+      !(resolvedExchangeRate > 1.5)
+    ) {
+      resolvedExchangeRate = resolveSekExchangeRateSync(
+        data.cost_currency || "EUR",
+      );
+    }
+
+    const calculated = calculateRetailPriceCents({
+      costAmount: data.cost_amount,
+      exchangeRate: resolvedExchangeRate,
+      priceIncludesVat: data.price_includes_vat !== false,
+      marginPercentage: data.margin_percentage || 10,
+      alcoholTaxCents,
+    });
+    if (calculated != null) finalPriceCents = calculated;
+
+    calculatedSbPrice = calculateSystembolagetPrice(
+      data.cost_amount,
+      resolvedExchangeRate,
+      alcoholTaxCents,
+    );
   }
 
   // Ensure handle is unique (avoid duplicate key on wines_handle_key)
@@ -790,7 +786,8 @@ export async function createWine(data: CreateWineData, locale: WineLocale = "sv"
     producer_id: data.producer_id,
     cost_currency: data.cost_currency,
     cost_amount: data.cost_amount,
-    alcohol_tax_cents: 2219,
+    alcohol_tax_cents: alcoholTaxCents,
+    exchange_rate: resolvedExchangeRate,
     price_includes_vat: data.price_includes_vat,
     margin_percentage: data.margin_percentage,
     calculated_price_cents: finalPriceCents,
@@ -946,6 +943,12 @@ export async function updateWine(
   if (data.cost_currency !== undefined)
     updateData.cost_currency = data.cost_currency;
   if (data.cost_amount !== undefined) updateData.cost_amount = data.cost_amount;
+  if (data.alcohol_tax_cents !== undefined)
+    updateData.alcohol_tax_cents = resolveWineAlcoholTaxCents(
+      data.alcohol_tax_cents,
+    );
+  if (data.exchange_rate !== undefined && data.exchange_rate != null)
+    updateData.exchange_rate = data.exchange_rate;
   if (data.price_includes_vat !== undefined)
     updateData.price_includes_vat = data.price_includes_vat;
   if (data.margin_percentage !== undefined)
@@ -1058,97 +1061,105 @@ export async function updateWine(
     updateData.cost_amount !== undefined ||
     updateData.price_includes_vat !== undefined ||
     updateData.margin_percentage !== undefined ||
-    updateData.cost_currency !== undefined
+    updateData.cost_currency !== undefined ||
+    updateData.alcohol_tax_cents !== undefined ||
+    updateData.exchange_rate !== undefined
   ) {
     const { data: wineData } = await sb
       .from("wines")
       .select(
-        "cost_amount, cost_currency, alcohol_tax_cents, price_includes_vat, margin_percentage",
+        "cost_amount, cost_currency, alcohol_tax_cents, price_includes_vat, margin_percentage, exchange_rate",
       )
       .eq("id", id)
       .single();
     currentWine = wineData;
   }
 
-  // Calculate price manually to avoid trigger loop
+  // Calculate price from cost + margin (same formula as admin calculator / PDP source)
   if (
     updateData.cost_amount !== undefined ||
     updateData.price_includes_vat !== undefined ||
     updateData.margin_percentage !== undefined ||
-    updateData.cost_currency !== undefined
+    updateData.cost_currency !== undefined ||
+    updateData.alcohol_tax_cents !== undefined ||
+    updateData.exchange_rate !== undefined
   ) {
-    // Use updated values or current values
-    const costAmount = updateData.cost_amount ?? currentWine?.cost_amount ?? 0;
-    const costCurrency =
-      updateData.cost_currency ?? currentWine?.cost_currency ?? "SEK";
+    const costAmount = Number(
+      updateData.cost_amount ?? currentWine?.cost_amount ?? 0,
+    );
+    const costCurrency = String(
+      updateData.cost_currency ?? currentWine?.cost_currency ?? "SEK",
+    );
     const priceIncludesVat =
       updateData.price_includes_vat ?? currentWine?.price_includes_vat ?? true;
-    const marginPercentage =
-      updateData.margin_percentage ?? currentWine?.margin_percentage ?? 10;
+    const marginPercentage = Number(
+      updateData.margin_percentage ?? currentWine?.margin_percentage ?? 10,
+    );
+    const alcoholTaxCents = resolveWineAlcoholTaxCents(
+      Number(
+        updateData.alcohol_tax_cents ??
+          currentWine?.alcohol_tax_cents ??
+          DEFAULT_ALCOHOL_TAX_CENTS,
+      ),
+    );
 
-    // Fetch current exchange rate if needed
-    let exchangeRate = 1.0;
-    if (costCurrency !== "SEK") {
-      try {
-        const rateResponse = await fetch(
-          `${getAppUrl()}/api/exchange-rates?from=${costCurrency}&to=SEK`,
-        );
+    let exchangeRate =
+      costCurrency.toUpperCase() === "SEK"
+        ? 1
+        : Number(
+            updateData.exchange_rate ?? currentWine?.exchange_rate ?? 0,
+          );
 
-        if (rateResponse.ok) {
-          const rateData = await rateResponse.json();
-          exchangeRate = rateData.rate;
-        }
-      } catch (error) {
-        console.error("Error fetching exchange rate:", error);
-      }
+    if (costCurrency.toUpperCase() !== "SEK" && !(exchangeRate > 1.5)) {
+      exchangeRate = await fetchExchangeRateToSek(costCurrency);
+    }
+    if (costCurrency.toUpperCase() !== "SEK" && !(exchangeRate > 1.5)) {
+      exchangeRate = resolveSekExchangeRateSync(costCurrency);
     }
 
-    // Use new gross margin formula
-    const costAmountInSek = costAmount * exchangeRate;
-    const alcoholTaxInSek = 22.19; // Fixed SEK 22.19 per bottle
-    const costInSek = costAmountInSek + alcoholTaxInSek; // C = Total cost ex VAT
+    if (costAmount > 0) {
+      const finalPriceCents = calculateRetailPriceCents({
+        costAmount,
+        exchangeRate,
+        priceIncludesVat: priceIncludesVat !== false,
+        marginPercentage,
+        alcoholTaxCents,
+      });
 
-    const marginDecimal = marginPercentage / 100; // M
-    const vatRate = priceIncludesVat ? 0.25 : 0; // V
-
-    // Step 1: Price ex VAT using gross margin formula: P = C ÷ (1 - M)
-    const priceExVat = costInSek / (1 - marginDecimal); // P
-
-    // Step 2: Final price incl VAT: F = P × (1 + V)
-
-    const finalPrice = priceExVat * (1 + vatRate); // F
-    const finalPriceCents = Math.round(finalPrice * 100); // Round to nearest whole number
-
-    // Add calculated price to update data
-    updateData.calculated_price_cents = finalPriceCents;
-    updateData.base_price_cents = finalPriceCents; // Also update base_price_cents for compatibility
+      if (finalPriceCents != null) {
+        updateData.calculated_price_cents = finalPriceCents;
+        updateData.base_price_cents = finalPriceCents;
+        updateData.exchange_rate = exchangeRate;
+        updateData.alcohol_tax_cents = alcoholTaxCents;
+      }
+    }
   }
 
   // Calculate Systembolaget price if cost_amount is updated
-  if (updateData.cost_amount !== undefined && updateData.cost_amount > 0) {
-    let exchangeRate = 1.0;
-    const costCurrency =
-      updateData.cost_currency ?? currentWine?.cost_currency ?? "SEK";
-
-    if (costCurrency !== "SEK") {
-      try {
-        const rateResponse = await fetch(
-          `${getAppUrl()}/api/exchange-rates?from=${costCurrency}&to=SEK`,
-        );
-
-        if (rateResponse.ok) {
-          const rateData = await rateResponse.json();
-          exchangeRate = rateData.rate;
-        }
-      } catch (error) {
-        console.error("Error fetching exchange rate:", error);
-      }
+  if (updateData.cost_amount !== undefined && Number(updateData.cost_amount) > 0) {
+    const costCurrency = String(
+      updateData.cost_currency ?? currentWine?.cost_currency ?? "SEK",
+    );
+    let exchangeRate = Number(updateData.exchange_rate ?? 0);
+    if (costCurrency.toUpperCase() === "SEK") {
+      exchangeRate = 1;
+    } else if (!(exchangeRate > 1.5)) {
+      exchangeRate = await fetchExchangeRateToSek(costCurrency);
+    }
+    if (costCurrency.toUpperCase() !== "SEK" && !(exchangeRate > 1.5)) {
+      exchangeRate = resolveSekExchangeRateSync(costCurrency);
     }
 
     updateData.sb_price = calculateSystembolagetPrice(
-      updateData.cost_amount,
+      Number(updateData.cost_amount),
       exchangeRate,
-      2219, // Fixed 22.19 SEK = 2219 cents
+      resolveWineAlcoholTaxCents(
+        Number(
+          updateData.alcohol_tax_cents ??
+            currentWine?.alcohol_tax_cents ??
+            DEFAULT_ALCOHOL_TAX_CENTS,
+        ),
+      ),
     );
   }
 

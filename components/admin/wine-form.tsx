@@ -132,7 +132,8 @@ export default function WineForm({
     // Simplified pricing fields
     cost_currency: wine?.cost_currency || "EUR",
     cost_amount: wine?.cost_amount ?? 0,
-    alcohol_tax_cents: 2219, // Fixed 22.19 SEK = 2219 cents
+    alcohol_tax_cents: wine?.alcohol_tax_cents ?? 2219,
+    exchange_rate: wine?.exchange_rate ?? null,
     price_includes_vat: true,
     // Producer view: fixed margin; admin can set margin
     margin_percentage: isProducerView ? DEFAULT_PRODUCER_MARGIN : (wine?.margin_percentage ?? 10.0),
@@ -252,7 +253,8 @@ export default function WineForm({
       producer_id: wine.producer_id || "",
       cost_currency: wine.cost_currency || "EUR",
       cost_amount: wine.cost_amount ?? 0,
-      alcohol_tax_cents: 2219,
+      alcohol_tax_cents: wine.alcohol_tax_cents ?? 2219,
+      exchange_rate: wine.exchange_rate ?? null,
       price_includes_vat: wine.price_includes_vat ?? true,
       margin_percentage: isProducerView ? DEFAULT_PRODUCER_MARGIN : (wine.margin_percentage ?? 10.0),
       base_price_cents: wine.base_price_cents ?? 0,
@@ -492,6 +494,14 @@ export default function WineForm({
         available_for_sale: formData.available_for_sale ?? true,
         b2b_price_cents,
         b2b_cost_sek,
+        // Persist the FX the admin calculator used so server save matches PDP
+        exchange_rate:
+          formData.cost_currency === "SEK"
+            ? 1
+            : exchangeRate > 1.5
+              ? exchangeRate
+              : formData.exchange_rate ?? undefined,
+        alcohol_tax_cents: formData.alcohol_tax_cents ?? 2219,
       };
 
       let savedWine;
@@ -1138,6 +1148,8 @@ export default function WineForm({
                     ? DEFAULT_PRODUCER_MARGIN
                     : formData.margin_percentage,
                   calculated_price_cents: formData.base_price_cents ?? 0,
+                  alcohol_tax_cents: formData.alcohol_tax_cents ?? 2219,
+                  exchange_rate: formData.exchange_rate,
                 }}
                 onPricingChange={(pricingData) => {
                   setFormData((prev) => ({
@@ -1149,7 +1161,17 @@ export default function WineForm({
                       ? DEFAULT_PRODUCER_MARGIN
                       : pricingData.margin_percentage,
                     base_price_cents: pricingData.calculated_price_cents,
+                    alcohol_tax_cents:
+                      pricingData.alcohol_tax_cents ?? prev.alcohol_tax_cents,
+                    exchange_rate:
+                      pricingData.exchange_rate ?? prev.exchange_rate,
                   }));
+                  if (
+                    pricingData.exchange_rate != null &&
+                    pricingData.exchange_rate > 0
+                  ) {
+                    setExchangeRate(pricingData.exchange_rate);
+                  }
                 }}
                 showMargin={!isProducerView}
               />

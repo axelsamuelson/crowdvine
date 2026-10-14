@@ -20,8 +20,12 @@ import {
 } from "@/components/ui/collapsible";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calculator, ChevronDown } from "lucide-react";
-import { DEFAULT_VAT_RATE } from "@/lib/constants";
 import { calculateSystembolagetPrice } from "@/lib/systembolaget-pricing";
+import {
+  buildRetailPriceBreakdown,
+  DEFAULT_ALCOHOL_TAX_CENTS,
+  resolveSekExchangeRateSync,
+} from "@/lib/wine-retail-pricing";
 
 interface PricingData {
   cost_currency: string;
@@ -29,6 +33,8 @@ interface PricingData {
   price_includes_vat: boolean;
   margin_percentage: number;
   calculated_price_cents: number;
+  alcohol_tax_cents?: number | null;
+  exchange_rate?: number | null;
 }
 
 interface PricingCalculatorProps {
@@ -50,6 +56,9 @@ export function PricingCalculator({
 }: PricingCalculatorProps) {
   const [currentRate, setCurrentRate] = useState<number | null>(null);
   const [loadingRate, setLoadingRate] = useState(false);
+  const [rateReady, setRateReady] = useState(
+    pricingData.cost_currency === "SEK",
+  );
   const [showDetails, setShowDetails] = useState(false);
 
   const currencies = [
@@ -63,7 +72,7 @@ export function PricingCalculator({
     ? pricingData.margin_percentage
     : DEFAULT_PRODUCER_MARGIN;
 
-  const updatePricingData = (field: keyof PricingData, value: any) => {
+  const updatePricingData = (field: keyof PricingData, value: unknown) => {
     if (!showMargin && field === "margin_percentage") return;
     onPricingChange({
       ...pricingData,
@@ -73,19 +82,31 @@ export function PricingCalculator({
   };
 
   const fetchCurrentRate = async (currency: string) => {
-    if (currency === "SEK") return;
+    if (currency === "SEK") {
+      setCurrentRate(1);
+      setRateReady(true);
+      return;
+    }
 
     setLoadingRate(true);
+    setRateReady(false);
     try {
       const response = await fetch(
         `/api/exchange-rates?from=${currency}&to=SEK`,
       );
       const data = await response.json();
-      setCurrentRate(data.rate);
+      const rate = Number(data?.rate);
+      if (Number.isFinite(rate) && rate > 0) {
+        setCurrentRate(rate);
+      } else {
+        setCurrentRate(resolveSekExchangeRateSync(currency));
+      }
     } catch (error) {
       console.error("Failed to fetch exchange rate:", error);
+      setCurrentRate(resolveSekExchangeRateSync(currency));
     } finally {
       setLoadingRate(false);
+      setRateReady(true);
     }
   };
 
@@ -93,64 +114,67 @@ export function PricingCalculator({
     if (pricingData.cost_currency) {
       fetchCurrentRate(pricingData.cost_currency);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pricingData.cost_currency]);
 
   const breakdown = useMemo(() => {
     const exchangeRate =
-      pricingData.cost_currency === "SEK" ? 1 : currentRate || 1;
-    const alcoholTaxInSek = 22.19;
-    const costAmountInSek = (pricingData.cost_amount || 0) * exchangeRate;
-    const costInSek = costAmountInSek + alcoholTaxInSek;
+      pricingData.cost_currency === "SEK"
+        ? 1
+        : currentRate && currentRate > 0
+          ? currentRate
+          : resolveSekExchangeRateSync(
+              pricingData.cost_currency,
+              pricingData.exchange_rate,
+            );
 
-    const marginDecimal = (effectiveMargin || 0) / 100;
-    const denom = 1 - marginDecimal;
-    const vatRate = DEFAULT_VAT_RATE;
-
-    const isValid = denom > 0;
-    const priceExVat = isValid ? costInSek / denom : 0;
-    const finalPrice = isValid ? priceExVat * (1 + vatRate) : 0;
-    const finalPriceCents = Math.round(finalPrice * 100);
-    // Profit should be calculated ex VAT (otherwise VAT looks like profit).
-    const netProfitSek = Math.max(0, priceExVat - costInSek);
-    const vatAmountSek = Math.max(0, finalPrice - priceExVat);
+    const retail = buildRetailPriceBreakdown({
+      costAmount: pricingData.cost_amount || 0,
+      exchangeRate,
+      priceIncludesVat: pricingData.price_includes_vat !== false,
+      marginPercentage: effectiveMargin || 0,
+      alcoholTaxCents:
+        pricingData.alcohol_tax_cents ?? DEFAULT_ALCOHOL_TAX_CENTS,
+    });
 
     const sbPrice = calculateSystembolagetPrice(
       pricingData.cost_amount || 0,
       exchangeRate,
-      2219,
+      DEFAULT_ALCOHOL_TAX_CENTS,
     );
 
-    return {
-      isValid,
-      exchangeRate,
-      alcoholTaxInSek,
-      costAmountInSek,
-      costInSek,
-      priceExVat,
-      finalPrice,
-      finalPriceCents,
-      netProfitSek,
-      vatAmountSek,
-      sbPrice,
-    };
+    return { ...retail, sbPrice };
   }, [
     pricingData.cost_amount,
     pricingData.cost_currency,
-    effectiveMargin,
+    pricingData.exchange_rate,
+    pricingData.alcohol_tax_cents,
     pricingData.price_includes_vat,
+    effectiveMargin,
     currentRate,
   ]);
 
-  // Keep parent in sync with computed final price (avoid infinite loops)
+  // Keep parent in sync with computed final price + FX used (avoid infinite loops)
   useEffect(() => {
-    if (!breakdown.isValid) return;
-    if (pricingData.calculated_price_cents === breakdown.finalPriceCents) return;
+    if (!breakdown.isValid || !rateReady) return;
+    if (
+      pricingData.calculated_price_cents === breakdown.finalPriceCents &&
+      pricingData.exchange_rate === breakdown.exchangeRate
+    ) {
+      return;
+    }
     onPricingChange({
       ...pricingData,
       calculated_price_cents: breakdown.finalPriceCents,
+      exchange_rate: breakdown.exchangeRate,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [breakdown.finalPriceCents, breakdown.isValid]);
+  }, [
+    breakdown.finalPriceCents,
+    breakdown.exchangeRate,
+    breakdown.isValid,
+    rateReady,
+  ]);
 
   const formBody = (
     <>
@@ -222,7 +246,7 @@ export function PricingCalculator({
           <div className="flex flex-col gap-3">
             <div>
               <div className="text-sm text-gray-500 dark:text-zinc-400">
-                Slutpris
+                Slutpris (ink. moms) — sparas till PDP
               </div>
               <div className="text-2xl font-semibold text-gray-900 dark:text-white">
                 {(breakdown.finalPriceCents / 100).toFixed(2)} SEK
@@ -232,6 +256,11 @@ export function PricingCalculator({
                   Marginalen måste vara under 100%.
                 </div>
               )}
+              {loadingRate && (
+                <div className="mt-1 text-xs text-zinc-400">
+                  Hämtar växelkurs…
+                </div>
+              )}
             </div>
             <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs">
               <span className="text-zinc-400">Pris exkl. moms</span>
@@ -239,7 +268,7 @@ export function PricingCalculator({
                 {breakdown.priceExVat.toFixed(2)} SEK
               </span>
               <span className="text-zinc-400">
-                Moms ({(DEFAULT_VAT_RATE * 100).toFixed(0)}%)
+                Moms ({(breakdown.vatRate * 100).toFixed(0)}%)
               </span>
               <span className="text-right font-medium text-zinc-100">
                 {breakdown.vatAmountSek.toFixed(2)} SEK
@@ -353,9 +382,11 @@ export function PricingCalculator({
   return (
     <Card className="rounded-2xl border border-gray-200 bg-white p-0 dark:border-zinc-800 dark:bg-[#0F0F12]">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-xl font-medium text-gray-900 dark:text-white">
-          <Calculator className="h-5 w-5 text-gray-500" />
-          Prissättning
+        <CardTitle className="flex items-center justify-between gap-2 text-xl font-medium text-gray-900 dark:text-white">
+          <span className="flex items-center gap-2">
+            <Calculator className="h-5 w-5 text-gray-500" />
+            Prissättning
+          </span>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">{formBody}</CardContent>
