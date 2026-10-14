@@ -21,12 +21,14 @@ import type { SiteLogos } from "@/lib/context/site-logo-provider";
 
 interface HeaderProps {
   collections: Collection[];
+  popularCollections: Collection[];
   isDirtywineSite: boolean;
   initialLogos?: SiteLogos;
 }
 
 export function Header({
   collections,
+  popularCollections,
   isDirtywineSite,
   initialLogos,
 }: HeaderProps) {
@@ -36,6 +38,7 @@ export function Header({
   const navItems: NavItem[] = [
     { label: t("nav.home"), href: "/" },
     { label: t("nav.shopAll"), href: paths.shop },
+    { label: t("nav.guides"), href: paths.guides },
   ];
   const { role } = useUserRole();
   const { showPortalToggle, isB2BOnly, loading } = usePortalAccess();
@@ -55,6 +58,7 @@ export function Header({
       <div className="block flex-none md:hidden">
         <MobileMenu
           collections={collections}
+          popularCollections={popularCollections}
           isDirtywineSite={isDirtywineSite}
         />
       </div>

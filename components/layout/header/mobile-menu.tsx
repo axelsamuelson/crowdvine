@@ -19,9 +19,11 @@ import { useLocalizedPaths } from "@/lib/hooks/use-localized-paths";
 
 export function MobileMenu({
   collections,
+  popularCollections,
   isDirtywineSite,
 }: {
   collections: any[];
+  popularCollections: any[];
   isDirtywineSite: boolean;
 }) {
   const { t } = useTranslations();
@@ -29,6 +31,7 @@ export function MobileMenu({
   const { isOpen, openMobileMenu, closeMobileMenu } = useMobileMenu();
   const navItems = [
     { href: paths.shop, label: t("common.shop") },
+    { href: paths.guides, label: t("common.guides") },
     { href: "/profile", label: t("common.profile"), icon: User },
     { href: paths.about, label: t("common.about") },
     { href: "/", label: t("common.home") },
@@ -176,7 +179,7 @@ export function MobileMenu({
                         emptyMessage={t("home.noProducersFound", {
                           count: collections?.length ?? 0,
                         })}
-                        collections={collections}
+                        collections={popularCollections}
                         onLinkClick={closeMobileMenu}
                       />
                     </div>

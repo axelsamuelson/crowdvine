@@ -27,13 +27,15 @@
     "saving": "Sparar…",
     "home": "Hem",
     "about": "Om oss",
-    "profile": "Profil"
+    "profile": "Profil",
+    "guides": "Guider"
   },
   "nav": {
     "home": "hem",
     "shopAll": "Alla viner",
     "producer": "producent",
-    "admin": "admin"
+    "admin": "admin",
+    "guides": "Guider"
   },
   "home": {
     "pageTitle": "Hem",
@@ -59,7 +61,11 @@
     "heroDescription2": "Upptäck nya producenter varje vecka.",
     "sidebarTagline": "vin på dina villkor",
     "sidebarSupporting": "import priser på både vin och frakt för privatpersoner",
-    "collapseTasteQuiz": "Stäng"
+    "collapseTasteQuiz": "Stäng",
+    "allWineBoxes": "Alla vinlådor",
+    "glassDirectFromProducer": "Garanterat lägsta pris",
+    "glassHomeDelivery": "Hemleverans i Stockholm",
+    "glassNoMiddlemen": "Inga mellanhänder"
   },
   "shop": {
     "pageTitle": "Butik",
@@ -235,7 +241,7 @@
       "appellation": "Appellation",
       "farmingAndAdditives": "Odling & tillsatser",
       "abv": "Alkohol",
-      "servingTemp": "Serverings\u00ADtemperatur",
+      "servingTemp": "Serverings­temperatur",
       "elevation": "Höjd",
       "soilType": "Jordtyp"
     },
@@ -597,50 +603,110 @@
         "label": "Tillfälle",
         "title": "Vad ska vinet passa till?",
         "options": {
-          "aperitif": { "label": "Aperitif", "desc": "Kylt, lätt, väcker aptit" },
-          "casual": { "label": "Vardagskväll", "desc": "Något att sträcka sig efter" },
-          "dinner": { "label": "Middag", "desc": "Mat i fokus — vinet följer med" },
-          "special": { "label": "Något speciellt", "desc": "En flaska som berättar något" }
+          "aperitif": {
+            "label": "Aperitif",
+            "desc": "Kylt, lätt, väcker aptit"
+          },
+          "casual": {
+            "label": "Vardagskväll",
+            "desc": "Något att sträcka sig efter"
+          },
+          "dinner": {
+            "label": "Middag",
+            "desc": "Mat i fokus — vinet följer med"
+          },
+          "special": {
+            "label": "Något speciellt",
+            "desc": "En flaska som berättar något"
+          }
         }
       },
       "style": {
         "label": "Smakstil",
         "title": "Hur gillar du ditt vin?",
         "options": {
-          "fresh_fruity": { "label": "Friskt och fruktig", "desc": "Lätt, saftigt, direkt" },
-          "mineral_dry": { "label": "Mineraliskt och torrt", "desc": "Terroir, salt, precision" },
-          "rich_complex": { "label": "Rikt och komplext", "desc": "Djup, struktur, lång finish" },
-          "aromatic_floral": { "label": "Aromatiskt och blommigt", "desc": "Doft i fokus, lekfullt" }
+          "fresh_fruity": {
+            "label": "Friskt och fruktig",
+            "desc": "Lätt, saftigt, direkt"
+          },
+          "mineral_dry": {
+            "label": "Mineraliskt och torrt",
+            "desc": "Terroir, salt, precision"
+          },
+          "rich_complex": {
+            "label": "Rikt och komplext",
+            "desc": "Djup, struktur, lång finish"
+          },
+          "aromatic_floral": {
+            "label": "Aromatiskt och blommigt",
+            "desc": "Doft i fokus, lekfullt"
+          }
         }
       },
       "color": {
         "label": "Färg",
         "title": "Vilken färg lockar?",
         "options": {
-          "red": { "label": "Rött", "desc": "Carignan, Grenache, Syrah..." },
-          "white": { "label": "Vitt", "desc": "Chardonnay, Vermentino, Terret..." },
-          "orange": { "label": "Orange", "desc": "Skalkontakt, textur, djup" },
-          "any": { "label": "Överraska mig", "desc": "Bästa matchning vinner" }
+          "red": {
+            "label": "Rött",
+            "desc": "Carignan, Grenache, Syrah..."
+          },
+          "white": {
+            "label": "Vitt",
+            "desc": "Chardonnay, Vermentino, Terret..."
+          },
+          "orange": {
+            "label": "Orange",
+            "desc": "Skalkontakt, textur, djup"
+          },
+          "any": {
+            "label": "Överraska mig",
+            "desc": "Bästa matchning vinner"
+          }
         }
       },
       "adventure": {
         "label": "Naturvinskaraktär",
         "title": "Hur äventyrlig är du?",
         "options": {
-          "1": { "label": "Rent & igenkännbart", "desc": "Klassiska, lättillgängliga stilar" },
-          "2": { "label": "Mest klassiskt", "desc": "Diskret karaktär, lättdrucket" },
-          "3": { "label": "Balanserat", "desc": "Öppen för lite naturvinskaraktär" },
-          "4": { "label": "Nyfiken", "desc": "Tydligt och uttrycksfullt" },
-          "5": { "label": "Vilt & oväntat", "desc": "Djärvt och okonventionellt" }
+          "1": {
+            "label": "Rent & igenkännbart",
+            "desc": "Klassiska, lättillgängliga stilar"
+          },
+          "2": {
+            "label": "Mest klassiskt",
+            "desc": "Diskret karaktär, lättdrucket"
+          },
+          "3": {
+            "label": "Balanserat",
+            "desc": "Öppen för lite naturvinskaraktär"
+          },
+          "4": {
+            "label": "Nyfiken",
+            "desc": "Tydligt och uttrycksfullt"
+          },
+          "5": {
+            "label": "Vilt & oväntat",
+            "desc": "Djärvt och okonventionellt"
+          }
         }
       },
       "budget": {
         "label": "Budget",
         "title": "Ungefärlig budget per flaska?",
         "options": {
-          "low": { "label": "Under 150 kr", "desc": "Håller det enkelt" },
-          "mid": { "label": "150–200 kr", "desc": "Bra balans" },
-          "high": { "label": "200+ kr", "desc": "Vill ha det bästa" }
+          "low": {
+            "label": "Under 150 kr",
+            "desc": "Håller det enkelt"
+          },
+          "mid": {
+            "label": "150–200 kr",
+            "desc": "Bra balans"
+          },
+          "high": {
+            "label": "200+ kr",
+            "desc": "Vill ha det bästa"
+          }
         }
       }
     },
@@ -897,7 +963,6 @@
     "perksSignInSubtitle": "Du behöver vara inloggad för att visa denna sida.",
     "perksLoadFailed": "Kunde inte ladda förmåner",
     "perksLoadFailedDesc": "Något gick fel när medlemsdata skulle laddas.",
-    "backToProfile": "Tillbaka till profil",
     "myPerksTitle": "Mina förmåner",
     "myPerksSubtitle": "Dina medlemsförmåner på ett ställe.",
     "membershipStatus": "Medlemsstatus",

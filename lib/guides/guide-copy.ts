@@ -57,6 +57,10 @@ export type GuideLocaleCopy = {
   /** @deprecated Prefer hubSections; kept for any flat consumers. */
   hubCards: GuideHubCard[];
   hubSections: GuideHubSection[];
+  /** Guide hub browse UI (client-side section filter). */
+  hubClear: string;
+  hubAll: string;
+  hubFilter: string;
   top10: string;
   mid: string;
   rest: string;
@@ -209,6 +213,9 @@ const SV: GuideLocaleCopy = {
       cards: SV_SYSTEMBOLAGET_CARDS,
     },
   ],
+  hubClear: "Rensa",
+  hubAll: "Alla",
+  hubFilter: "Filter",
   top10: "Topp 10",
   mid: "11–30",
   rest: "31–100",
@@ -360,6 +367,9 @@ const EN: GuideLocaleCopy = {
     { title: "Lists", cards: EN_LIST_CARDS },
     { title: "Systembolaget", cards: EN_SYSTEMBOLAGET_CARDS },
   ],
+  hubClear: "Clear",
+  hubAll: "All",
+  hubFilter: "Filter",
   top10: "Top 10",
   mid: "11–30",
   rest: "31–100",
