@@ -220,6 +220,7 @@ export function PricingCalculator({
     }
 
     setFinalPriceError(null);
+    // Keep the exact öre the user typed (do not re-display a drifted recalculation).
     setFinalPriceDraft((retailPriceCents / 100).toFixed(2));
     onPricingChange({
       ...pricingData,

@@ -53,6 +53,28 @@ describe("wine retail pricing", () => {
     expect(cents).toBe(16300);
   });
 
+  it("keeps exact öre when FX would otherwise round 163.00 to 163.01", () => {
+    for (const rate of [11.21, 11.22, 11.24]) {
+      const margin = implyMarginPercentageFromRetailPrice({
+        retailPriceCents: 16300,
+        costAmount: 7,
+        exchangeRate: rate,
+        priceIncludesVat: true,
+        alcoholTaxCents: 2219,
+      });
+      expect(margin).not.toBeNull();
+      expect(
+        calculateRetailPriceCents({
+          costAmount: 7,
+          exchangeRate: rate,
+          priceIncludesVat: true,
+          marginPercentage: margin!,
+          alcoholTaxCents: 2219,
+        }),
+      ).toBe(16300);
+    }
+  });
+
   it("buildRetailPriceBreakdown exposes inkl moms slutpris", () => {
     const b = buildRetailPriceBreakdown({
       costAmount: 7,
