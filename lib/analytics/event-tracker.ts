@@ -38,6 +38,8 @@ export type EventType =
   // Search
   | "search_submitted"
   | "search_result_clicked"
+  | "guide_search"
+  | "guide_filter"
   // Cart & Validation
   | "add_to_cart"
   | "remove_from_cart"

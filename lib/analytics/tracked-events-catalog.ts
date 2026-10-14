@@ -184,6 +184,18 @@ export const TRACKED_USER_EVENTS_CATALOG: TrackedEventCatalogEntry[] = [
     description: "User opened a product from PLP while a search query was active.",
     sources: ["client"],
   },
+  {
+    eventType: "guide_search",
+    category: "search",
+    description: "Guides hub search query applied (client-side, no URL param).",
+    sources: ["client"],
+  },
+  {
+    eventType: "guide_filter",
+    category: "navigation",
+    description: "Guides hub section filter applied (client-side, no URL param).",
+    sources: ["client"],
+  },
   // cart
   {
     eventType: "add_to_cart",
