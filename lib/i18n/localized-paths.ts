@@ -6,6 +6,7 @@ import {
   getWineCategorySv,
   getHreflangPath,
 } from "@/lib/wine-categories";
+import { guidePath } from "@/lib/guides/guide-routes";
 import {
   producerPublicPath,
   productPublicPath,
@@ -17,6 +18,7 @@ export type LocalizedPaths = {
   locale: AppLocale;
   about: string;
   producers: string;
+  guides: string;
   shop: string;
   shopCollection: (slug: string) => string;
   shopCategory: (slug: string) => string;
@@ -52,6 +54,7 @@ export function localizedPathsForLocale(locale: AppLocale): LocalizedPaths {
     locale,
     about: aboutPathForLocale(locale),
     producers: producersDirectoryPathForLocale(locale),
+    guides: guidePath("hub", locale),
     shop,
     shopCollection: (slug) => `${shop}/${slug}`,
     shopCategory: (slug) => shopCategoryPath(slug, locale),
