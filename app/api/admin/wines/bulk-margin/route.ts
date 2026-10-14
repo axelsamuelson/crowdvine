@@ -1,45 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getAppUrl } from "@/lib/app-url";
-
-function computeFinalPriceCents(opts: {
-  costAmount: number;
-  exchangeRate: number;
-  priceIncludesVat: boolean;
-  marginPercentage: number;
-}) {
-  const exchangeRate = opts.exchangeRate || 1.0;
-  const costAmountInSek = (opts.costAmount || 0) * exchangeRate;
-  const alcoholTaxInSek = 22.19; // fixed per bottle
-  const costInSek = costAmountInSek + alcoholTaxInSek; // ex VAT
-
-  const marginDecimal = (opts.marginPercentage || 0) / 100;
-  const vatRate = opts.priceIncludesVat ? 0.25 : 0;
-
-  // Guard against invalid margin (>= 100%)
-  const denom = 1 - marginDecimal;
-  if (denom <= 0) return null;
-
-  const priceExVat = costInSek / denom;
-  const finalPrice = priceExVat * (1 + vatRate);
-  return Math.round(finalPrice * 100);
-}
-
-async function fetchExchangeRate(origin: string, from: string) {
-  if (!from || from === "SEK") return 1.0;
-  try {
-    const url = new URL("/api/exchange-rates", origin);
-    url.searchParams.set("from", from);
-    url.searchParams.set("to", "SEK");
-    const res = await fetch(url.toString(), { cache: "no-store" });
-    if (!res.ok) return 1.0;
-    const data: any = await res.json();
-    const rate = Number(data?.rate);
-    return Number.isFinite(rate) && rate > 0 ? rate : 1.0;
-  } catch {
-    return 1.0;
-  }
-}
+import {
+  calculateRetailPriceCents,
+  DEFAULT_ALCOHOL_TAX_CENTS,
+  fetchExchangeRateToSek,
+  resolveSekExchangeRateSync,
+  resolveWineAlcoholTaxCents,
+} from "@/lib/wine-retail-pricing";
 
 export async function POST(req: NextRequest) {
   try {
@@ -90,7 +58,9 @@ export async function POST(req: NextRequest) {
 
     let query = sb
       .from("wines")
-      .select("id, cost_currency, cost_amount, price_includes_vat")
+      .select(
+        "id, cost_currency, cost_amount, price_includes_vat, alcohol_tax_cents, exchange_rate",
+      )
       .order("wine_name");
 
     if (hasFilteredIds) {
@@ -102,11 +72,19 @@ export async function POST(req: NextRequest) {
     if (error) throw error;
 
     const currencies = Array.from(
-      new Set((wines || []).map((w: any) => w.cost_currency).filter(Boolean)),
+      new Set((wines || []).map((w) => w.cost_currency).filter(Boolean)),
     ) as string[];
     const rateMap = new Map<string, number>();
     for (const c of currencies) {
-      rateMap.set(c, await fetchExchangeRate(origin, c));
+      const rate = await fetchExchangeRateToSek(c, origin);
+      rateMap.set(
+        c,
+        c.toUpperCase() === "SEK"
+          ? 1
+          : rate > 1.5
+            ? rate
+            : resolveSekExchangeRateSync(c),
+      );
     }
 
     let updated = 0;
@@ -119,7 +97,7 @@ export async function POST(req: NextRequest) {
     async function worker() {
       while (idx < (wines || []).length) {
         const i = idx++;
-        const w: any = (wines || [])[i];
+        const w = (wines || [])[i];
 
         const updateData: Record<string, unknown> = {
           updated_at: new Date().toISOString(),
@@ -132,14 +110,20 @@ export async function POST(req: NextRequest) {
             if (!hasB2B) continue;
           } else {
             const costCurrency = String(w.cost_currency || "SEK");
-            const exchangeRate = rateMap.get(costCurrency) ?? 1.0;
+            const exchangeRate =
+              rateMap.get(costCurrency) ??
+              resolveSekExchangeRateSync(costCurrency);
             const priceIncludesVat = w.price_includes_vat !== false;
+            const alcoholTaxCents = resolveWineAlcoholTaxCents(
+              w.alcohol_tax_cents ?? DEFAULT_ALCOHOL_TAX_CENTS,
+            );
 
-            const finalPriceCents = computeFinalPriceCents({
+            const finalPriceCents = calculateRetailPriceCents({
               costAmount,
               exchangeRate,
               priceIncludesVat,
               marginPercentage: marginNum,
+              alcoholTaxCents,
             });
 
             if (finalPriceCents === null) {
@@ -150,6 +134,8 @@ export async function POST(req: NextRequest) {
             updateData.margin_percentage = marginNum;
             updateData.calculated_price_cents = finalPriceCents;
             updateData.base_price_cents = finalPriceCents;
+            updateData.exchange_rate = exchangeRate;
+            updateData.alcohol_tax_cents = alcoholTaxCents;
           }
         }
 
@@ -183,7 +169,7 @@ export async function POST(req: NextRequest) {
       failed: failures.length,
       failures: failures.slice(0, 20),
     });
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error("Bulk margin update error:", e);
     return NextResponse.json(
       { error: "Internal server error" },
@@ -191,4 +177,3 @@ export async function POST(req: NextRequest) {
     );
   }
 }
-
