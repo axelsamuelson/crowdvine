@@ -2,6 +2,7 @@
 
 import { useState, useEffect, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -48,6 +49,8 @@ import {
   WINE_ENRICHMENT_DROPDOWN_LIST_CLASS,
 } from "@/components/product/wine-enrichment-collapsible";
 import { cn } from "@/lib/utils";
+
+export type WineSaveStatus = "idle" | "saving" | "saved" | "error";
 
 const DEFAULT_PRODUCER_MARGIN = 10;
 
@@ -111,6 +114,8 @@ interface WineFormProps {
   initialProducerId?: string;
   /** Optional content rendered under “Produktsida — dropdowns” (left column) */
   afterProductDropdowns?: ReactNode;
+  /** Optional save status for sticky header / external submit buttons */
+  onSaveStatusChange?: (status: WineSaveStatus) => void;
 }
 
 export default function WineForm({
@@ -119,6 +124,7 @@ export default function WineForm({
   isProducerView = false,
   initialProducerId,
   afterProductDropdowns,
+  onSaveStatusChange,
 }: WineFormProps) {
   const [editLocale, setEditLocale] = useState<"sv" | "en">("sv");
 
@@ -390,6 +396,7 @@ export default function WineForm({
     e.preventDefault();
     setLoading(true);
     setError("");
+    onSaveStatusChange?.("saving");
 
     // Generate handle from wine name and vintage
     const generatedHandle = `${formData.wine_name
@@ -410,6 +417,7 @@ export default function WineForm({
         `Please fill in the following required fields: ${missingFields.join(", ")}`,
       );
       setLoading(false);
+      onSaveStatusChange?.("error");
       return;
     }
 
@@ -534,13 +542,29 @@ export default function WineForm({
         await updateWineGrapeVarieties(savedWine.id, selectedGrapeVarietyIds);
       }
 
-      router.push("/admin/wines");
+      if (wine) {
+        // Stay on edit page; refresh server props so sticky title etc. stay in sync
+        onSaveStatusChange?.("saved");
+        toast.success("Ändringarna är sparade");
+        router.refresh();
+      } else if (savedWine?.id) {
+        onSaveStatusChange?.("saved");
+        toast.success("Vinet är skapat");
+        router.push(`/admin/wines/${savedWine.id}`);
+      } else {
+        onSaveStatusChange?.("saved");
+        toast.success("Sparat");
+        router.push("/admin/wines");
+      }
     } catch (err) {
       console.error("Wine creation error:", err);
+      onSaveStatusChange?.("error");
       if (err instanceof Error) {
         setError(`Failed to save wine: ${err.message}`);
+        toast.error(`Kunde inte spara: ${err.message}`);
       } else {
         setError("An unexpected error occurred while saving the wine");
+        toast.error("Kunde inte spara vinet");
       }
     } finally {
       setLoading(false);
