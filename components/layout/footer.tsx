@@ -28,11 +28,14 @@ export function Footer({ initialLogos }: { initialLogos?: SiteLogos }) {
             <FooterLogoSvg className={footerLogoClass} initialLogos={initialLogos} />
 
             <div className="flex min-w-0 flex-col gap-6 sm:flex-row sm:items-start sm:gap-10 lg:gap-14 md:pt-0.5">
-              <nav className="min-w-0">
+              <nav aria-labelledby="footer-navigation-label" className="min-w-0">
                 <div className="flex flex-col gap-3">
-                  <h3 className="text-sm font-semibold text-background">
+                  <p
+                    id="footer-navigation-label"
+                    className="text-sm font-semibold text-background"
+                  >
                     {t("home.navigation")}
-                  </h3>
+                  </p>
                   <div className="flex flex-col gap-2">
                     <Link
                       href="/"
@@ -63,11 +66,14 @@ export function Footer({ initialLogos }: { initialLogos?: SiteLogos }) {
               </nav>
 
               {!isDirtywineSite ? (
-                <nav className="min-w-0">
+                <nav aria-labelledby="footer-guides-label" className="min-w-0">
                   <div className="flex flex-col gap-3">
-                    <h3 className="text-sm font-semibold text-background">
+                    <p
+                      id="footer-guides-label"
+                      className="text-sm font-semibold text-background"
+                    >
                       {paths.shop.startsWith("/wine") ? "Guides" : "Guider"}
-                    </h3>
+                    </p>
                     <div className="flex flex-col gap-2">
                       {paths.shop.startsWith("/wine") ? (
                         <>
@@ -130,11 +136,14 @@ export function Footer({ initialLogos }: { initialLogos?: SiteLogos }) {
               ) : null}
 
               {!isDirtywineSite ? (
-                <nav className="min-w-0">
+                <nav aria-labelledby="footer-legal-label" className="min-w-0">
                   <div className="flex flex-col gap-3">
-                    <h3 className="text-sm font-semibold text-background">
+                    <p
+                      id="footer-legal-label"
+                      className="text-sm font-semibold text-background"
+                    >
                       {paths.shop.startsWith("/wine") ? "Legal" : "Juridik"}
-                    </h3>
+                    </p>
                     <div className="flex flex-col gap-2">
                       {paths.shop.startsWith("/wine") ? (
                         <>

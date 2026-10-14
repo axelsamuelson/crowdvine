@@ -146,18 +146,19 @@ export function DesktopFilters({
   return (
     <>
       <aside
+        aria-labelledby="shop-filter-label"
         className={cn(
           "sticky top-top-spacing self-start flex min-h-0 max-h-[calc(100vh-var(--top-spacing))] w-full flex-col pl-sides",
           className,
         )}
       >
         <div className="flex shrink-0 justify-between items-baseline pl-2 pb-2">
-          <h2 className="text-xl font-semibold">
+          <p id="shop-filter-label" className="text-xl font-semibold">
             {t("shop.filter")}{" "}
             {filterCount > 0 && (
               <span className="text-foreground/50">({filterCount})</span>
             )}
-          </h2>
+          </p>
           <Button
             size={"sm"}
             variant="ghost"

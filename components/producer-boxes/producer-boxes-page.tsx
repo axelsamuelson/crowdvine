@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { ProductCard } from "@/app/vin/components/product-card";
 import { ShopBreadcrumb } from "@/app/vin/components/shop-breadcrumb";
 import { AddProducerBoxButton } from "@/components/producer-boxes/add-producer-box-button";
@@ -6,9 +7,13 @@ import { fetchProductsData } from "@/lib/crowdvine/products-data";
 import type { AppLocale } from "@/lib/i18n/locale";
 import { producerShopPagePath } from "@/lib/i18n/producer-shop-page";
 import { mapProductDataToShopProducts } from "@/lib/map-product-data-to-shop-product";
+import { producerBoxContentsLine } from "@/lib/producer-boxes/contents-line";
 import {
   PRODUCER_BOXES_COPY,
+  PRODUCER_BOXES_FAQ,
+  PRODUCER_BOXES_INTRO_LINKS,
   PRODUCER_BOXES_PUBLISHED,
+  type ProducerBoxTextLink,
 } from "@/lib/producer-boxes/config";
 import { loadResolvedProducerBoxes } from "@/lib/producer-boxes/load";
 import {
@@ -58,6 +63,34 @@ function boxCardProduct(product: Product, slot: ResolvedProducerBoxWine): Produc
 
 function formatSek(cents: number): string {
   return formatPrice(cents / 100, "SEK", "sv-SE");
+}
+
+function LinkedCopy({
+  text,
+  links,
+}: {
+  text: string;
+  links: readonly ProducerBoxTextLink[];
+}) {
+  const nodes: ReactNode[] = [];
+  let rest = text;
+  links.forEach((link, index) => {
+    const at = rest.indexOf(link.phrase);
+    if (at < 0) return;
+    if (at > 0) nodes.push(rest.slice(0, at));
+    nodes.push(
+      <Link
+        key={`${link.href}-${index}`}
+        href={link.href}
+        className="text-stone-900 underline underline-offset-4"
+      >
+        {link.phrase}
+      </Link>,
+    );
+    rest = rest.slice(at + link.phrase.length);
+  });
+  if (rest) nodes.push(rest);
+  return <>{nodes}</>;
 }
 
 function MissingBoxWine({
@@ -111,13 +144,19 @@ export async function ProducerBoxesPage({ locale }: { locale: AppLocale }) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd.collection) }}
       />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd.faq) }}
+      />
       <div className="p-sides py-8">
         <div className="mb-8 max-w-2xl">
           {!PRODUCER_BOXES_PUBLISHED ? (
             <p className="mb-6 text-sm text-stone-500">{copy.draft}</p>
           ) : null}
           <h1 className="mb-3 text-3xl font-medium text-stone-900">{copy.h1}</h1>
-          <p className="leading-relaxed text-stone-600">{copy.intro}</p>
+          <p className="leading-relaxed text-stone-600">
+            <LinkedCopy text={copy.intro} links={PRODUCER_BOXES_INTRO_LINKS[locale]} />
+          </p>
           {loaded.loadError ? (
             <p className="mt-3 text-sm text-stone-600">{copy.loadError}</p>
           ) : null}
@@ -133,6 +172,9 @@ export async function ProducerBoxesPage({ locale }: { locale: AppLocale }) {
           </div>
         </div>
 
+        <h2 className="mb-8 text-2xl font-semibold text-stone-900">
+          {copy.boxesHeading}
+        </h2>
         <div className="flex flex-col gap-16">
           {loaded.boxes.map((box) => {
             const producerLabel = box.producerName ?? box.definition.producerName;
@@ -144,9 +186,12 @@ export async function ProducerBoxesPage({ locale }: { locale: AppLocale }) {
               <section key={box.definition.id} id={`box-${box.definition.id}`}>
                 <div className="mb-8 flex w-full flex-col gap-y-3 bg-white p-4 md:grid md:grid-cols-2 md:rounded-md">
                   <div className="col-span-1">
-                    <h2 className="text-2xl font-semibold text-stone-900">
+                    <h3 className="text-2xl font-semibold text-stone-900">
                       {box.definition.name[locale]}
-                    </h2>
+                    </h3>
+                    <p className="mt-2 text-sm leading-relaxed text-stone-700">
+                      {producerBoxContentsLine(box.slots, locale)}
+                    </p>
                     <p className="mt-2 text-sm font-normal text-muted-foreground">
                       {copy.producer}:{" "}
                       {producerHref ? (
@@ -222,6 +267,24 @@ export async function ProducerBoxesPage({ locale }: { locale: AppLocale }) {
             );
           })}
         </div>
+
+        <section className="mt-16 max-w-2xl border-t border-stone-200 pt-10">
+          <h2 className="mb-6 text-2xl font-semibold text-stone-900">
+            {copy.faqHeading}
+          </h2>
+          <div className="flex flex-col gap-8">
+            {PRODUCER_BOXES_FAQ[locale].map((item) => (
+              <div key={item.question}>
+                <h3 className="text-lg font-semibold text-stone-900">
+                  {item.question}
+                </h3>
+                <p className="mt-2 leading-relaxed text-stone-600">
+                  <LinkedCopy text={item.answer} links={item.link ? [item.link] : []} />
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
       </div>
     </>
   );
