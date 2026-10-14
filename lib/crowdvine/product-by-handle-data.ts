@@ -1,4 +1,5 @@
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { wineDisplayTitle } from "@/lib/wine-display-title";
 import { getAppUrl, getInternalFetchHeaders } from "@/lib/app-url";
 import { calculateB2BPriceExclVat } from "@/lib/price-breakdown";
 import { resolveWineAlcoholTaxCents } from "@/lib/wine-alcohol-tax";
@@ -44,7 +45,7 @@ function buildPdpSeoTitle(
   vintage: string | null | undefined,
   producerName: string,
 ): string {
-  const base = [wineName, vintage].filter(Boolean).join(" ").trim();
+  const base = wineDisplayTitle(wineName, vintage);
   if (!isKnownProducerName(producerName)) return base;
   return `${base} — ${producerName.trim()}`;
 }
@@ -649,7 +650,7 @@ export async function getCrowdvineProductByHandle(options: {
 
   const product = {
     id: i.id,
-    title: `${i.wine_name} ${i.vintage}`,
+    title: wineDisplayTitle(i.wine_name, i.vintage),
     description: wineDescription,
     descriptionHtml: wineDescriptionHtml,
     /** Short summary for PDP white box; null if not set. */
