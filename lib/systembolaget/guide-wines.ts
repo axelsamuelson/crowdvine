@@ -1,5 +1,9 @@
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { unstable_cache } from "next/cache";
+import {
+  isRankedGuideCategory,
+  orderCategoryWines,
+} from "@/lib/systembolaget/ranking";
 
 export type GuideWineCategory =
   | "red"
@@ -101,6 +105,9 @@ export type SystembolagetGuideWine = {
   synced_at: string;
   availability_state: AvailabilityState;
   store_count: number | null;
+  /** Editorial 0..100 score. Null keeps today's sort_order. */
+  wine_score: number | null;
+  score_adjust: number;
   /** Set on the parent "best" list from the product's non-best curated row. */
   primary_style?: PrimaryStyleCategory | null;
 };
@@ -242,6 +249,8 @@ async function fetchGuideWinesUncached(
     "synced_at",
     "availability_state",
     "store_count",
+    "wine_score",
+    "score_adjust",
   ];
 
   const run = (cols: string[]) =>
@@ -285,14 +294,35 @@ async function fetchGuideWinesUncached(
     }
   }
 
+  if (
+    error &&
+    /wine_score|score_adjust/i.test(error.message)
+  ) {
+    const fallbackCols = columns.filter(
+      (column) => column !== "wine_score" && column !== "score_adjust",
+    );
+    ({ data, error } = await run(fallbackCols));
+    if (!error && data) {
+      data = data.map((row) => ({
+        ...row,
+        wine_score: null,
+        score_adjust: 0,
+      }));
+    }
+  }
+
   if (error) {
     console.error("[getGuideWines]", error.message);
     return [];
   }
 
   const wines = (data ?? []) as unknown as SystembolagetGuideWine[];
-  if (category !== "best" || wines.length === 0) return wines;
-  return attachPrimaryStyles(wines);
+  const ordered =
+    verdict === "recommended" && isRankedGuideCategory(category)
+      ? orderCategoryWines(wines)
+      : wines;
+  if (category !== "best" || ordered.length === 0) return ordered;
+  return attachPrimaryStyles(ordered);
 }
 
 async function attachPrimaryStyles(
