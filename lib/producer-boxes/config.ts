@@ -145,7 +145,7 @@ export const PRODUCER_BOXES_FAQ: Record<
     {
       question: "Vad ingår i lådan?",
       answer:
-        "De sex flaskorna listas under varje låda, med årgång, typ och pris.",
+        "De sex flaskorna listas under varje låda, med namn och årgång. Priset gäller hela lådan.",
     },
     {
       question: "Vad är naturvin?",
@@ -173,7 +173,7 @@ export const PRODUCER_BOXES_FAQ: Record<
     {
       question: "What is in the box?",
       answer:
-        "The six bottles are listed under each box, with vintage, type and price.",
+        "The six bottles are listed under each box, with name and vintage. The price is for the whole box.",
     },
     {
       question: "What is natural wine?",

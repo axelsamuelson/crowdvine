@@ -182,6 +182,7 @@ export async function ProducerBoxesPage({ locale }: { locale: AppLocale }) {
               ? producerShopPagePath(producerLabel, locale)
               : null;
             const items = batchAddItems(box);
+            const contentsLine = producerBoxContentsLine(box.slots, locale);
             return (
               <section key={box.definition.id} id={`box-${box.definition.id}`}>
                 <div className="mb-8 flex w-full flex-col gap-y-3 bg-white p-4 md:grid md:grid-cols-2 md:rounded-md">
@@ -189,9 +190,11 @@ export async function ProducerBoxesPage({ locale }: { locale: AppLocale }) {
                     <h3 className="text-2xl font-semibold text-stone-900">
                       {box.definition.name[locale]}
                     </h3>
-                    <p className="mt-2 text-sm leading-relaxed text-stone-700">
-                      {producerBoxContentsLine(box.slots, locale)}
-                    </p>
+                    {contentsLine ? (
+                      <p className="mt-2 text-sm leading-relaxed text-stone-700">
+                        {contentsLine}
+                      </p>
+                    ) : null}
                     <p className="mt-2 text-sm font-normal text-muted-foreground">
                       {copy.producer}:{" "}
                       {producerHref ? (
