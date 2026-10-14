@@ -168,11 +168,11 @@ export const whatIsNaturalWineArticle: GuideArticleContent = {
       body: {
         en: [
           "Natural wine is made in many countries today. The movement grew up in France, above all in Beaujolais, the Jura and the Loire. In the 1980s, producers influenced by the chemist Jules Chauvet began farming organically and vinifying without additives.",
-          "Languedoc is one of the regions where the approach is common. Schist, limestone and old vines give character to Carignan, Grenache, Syrah and Cinsault. That is where PACT imports from. Read more in the guide to [natural wine from Languedoc](/guides/languedoc-natural-wine).",
+          "Languedoc is one of the regions where the approach is common. Schist, limestone and old vines give character to Carignan, Grenache, Syrah and Cinsault. That is where PACT imports from. Read more in the guide to [natural wine from Languedoc](/guides/languedoc-natural-wine). If you want to get to know one of those farms, start with a [natural wine box](/wine/natural-wine-box): six bottles from the same producer.",
         ],
         sv: [
           "Naturvin görs i dag i många länder. Rörelsen växte fram i Frankrike, framför allt i Beaujolais, Jura och Loire. På 1980-talet började producenter, under inflytande av kemisten Jules Chauvet, odla ekologiskt och vinifiera utan tillsatser.",
-          "Languedoc är en av regionerna där arbetssättet är vanligt. Skiffer, kalk och gamla stockar ger karaktär åt Carignan, Grenache, Syrah och Cinsault. Det är därifrån PACT importerar. Läs mer i guiden om [naturvin från Languedoc](/guider/naturvin-languedoc).",
+          "Languedoc är en av regionerna där arbetssättet är vanligt. Skiffer, kalk och gamla stockar ger karaktär åt Carignan, Grenache, Syrah och Cinsault. Det är därifrån PACT importerar. Läs mer i guiden om [naturvin från Languedoc](/guider/naturvin-languedoc). Vill du lära känna en gård därifrån kan du börja med en [naturvinslåda](/vin/naturvin-lada): sex flaskor från samma producent.",
         ],
       },
     },

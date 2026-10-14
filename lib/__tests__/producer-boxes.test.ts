@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   DEFAULT_PRODUCER_BOXES,
   PRODUCER_BOXES_COPY,
+  PRODUCER_BOXES_FAQ,
   PRODUCER_BOXES_PUBLISHED,
   isProducerBoxesPath,
   pactProducerBoxesRedirectUrl,
@@ -20,6 +21,7 @@ import {
   resolveProducerBox,
   type ProducerBoxWineRow,
 } from "@/lib/producer-boxes/match";
+import { producerBoxContentsLine } from "@/lib/producer-boxes/contents-line";
 import { buildProducerBoxesJsonLd } from "@/lib/producer-boxes/metadata";
 import { getShopLayoutResultsCount } from "@/lib/shop/shop-results-count-server";
 
@@ -71,13 +73,19 @@ describe("producer boxes", () => {
   });
 
   it("keeps meta within 155 characters and names the offer factually", () => {
+    expect(PRODUCER_BOXES_COPY.sv.title).toBe(
+      "Naturvin låda: 6 flaskor från en producent",
+    );
+    expect(PRODUCER_BOXES_COPY.sv.h1).toBe(
+      "Naturvinslåda: sex flaskor från en producent",
+    );
+    expect(PRODUCER_BOXES_COPY.sv.meta).toBe(
+      "Naturvinslåda med sex flaskor från en och samma producent i Languedoc. Se vad som ingår i varje låda och lägg hela lådan i varukorgen.",
+    );
     expect(PRODUCER_BOXES_COPY.sv.meta.length).toBeLessThanOrEqual(155);
     expect(PRODUCER_BOXES_COPY.en.meta.length).toBeLessThanOrEqual(155);
-    expect(PRODUCER_BOXES_COPY.sv.meta.toLowerCase()).toContain("naturvin låda");
-    expect(PRODUCER_BOXES_COPY.sv.meta).toContain("6 flaskor");
-    expect(PRODUCER_BOXES_COPY.sv.meta).toContain("producent");
     expect(PRODUCER_BOXES_COPY.en.meta.toLowerCase()).toContain("natural wine box");
-    expect(PRODUCER_BOXES_COPY.en.meta).toContain("6 bottles");
+    expect(PRODUCER_BOXES_COPY.en.meta).toContain("six bottles");
     expect(PRODUCER_BOXES_COPY.en.meta.toLowerCase()).toContain("producer");
   });
 
@@ -233,6 +241,93 @@ describe("producer boxes", () => {
       "https://pactwines.com/vin/naturvin-lada#box-hors-saison",
       "https://pactwines.com/vin/naturvin-lada#box-le-bouc-a-trois-pattes",
     ]);
+    const products = items as unknown as {
+      item: { "@type": string; offers: { availability: string; price?: string } };
+    }[];
+    expect(products.every((entry) => entry.item["@type"] === "Product")).toBe(true);
+    expect(
+      products.every(
+        (entry) =>
+          entry.item.offers.availability === "https://schema.org/InStock" &&
+          entry.item.offers.price != null,
+      ),
+    ).toBe(true);
+    expect(jsonLd.faq["@type"]).toBe("FAQPage");
+  });
+
+  it("marks a box that is not for sale as out of stock", () => {
+    const definition = DEFAULT_PRODUCER_BOXES[0]!;
+    const resolved = resolveProducerBox(
+      definition,
+      producers,
+      winesFor(definition, "p-mesures").map((row) => ({
+        ...row,
+        available_for_sale: false,
+      })),
+    );
+    expect(resolved.purchasable).toBe(false);
+    const jsonLd = buildProducerBoxesJsonLd("sv", [resolved]);
+    const offer = (
+      jsonLd.collection.mainEntity as {
+        itemListElement: { item: { offers: { availability: string } } }[];
+      }
+    ).itemListElement[0]?.item.offers;
+    expect(offer?.availability).toBe("https://schema.org/OutOfStock");
+    expect(JSON.stringify(offer)).not.toContain("InStock");
+  });
+
+  it("describes each box from the listed wine types", () => {
+    function slots(
+      rows: { color: string; quantity?: number; wineName?: string; vintage?: string }[],
+    ) {
+      return rows.map((row) => ({
+        wineId: row.wineName ?? row.color,
+        quantity: row.quantity ?? 1,
+        status: "ok" as const,
+        color: row.color,
+        wineName: row.wineName,
+        vintage: row.vintage,
+      }));
+    }
+    expect(
+      producerBoxContentsLine(
+        slots([
+          { color: "Sparkling" },
+          { color: "Rose" },
+          { color: "White" },
+          { color: "Orange" },
+          { color: "Red" },
+          { color: "Red" },
+        ]),
+        "sv",
+      ),
+    ).toBe(
+      "Sex viner: ett mousserande, ett rosé, ett vitt, ett orange och två röda.",
+    );
+    expect(
+      producerBoxContentsLine(
+        slots([
+          { color: "White", wineName: "Blanc de Noir", vintage: "2024" },
+          { color: "Red" },
+          { color: "Sparkling" },
+          { color: "Red" },
+          { color: "Red", quantity: 2, wineName: "Poucèt", vintage: "2024" },
+        ]),
+        "sv",
+      ),
+    ).toBe(
+      "Fem viner, sex flaskor: ett vitt, tre röda och ett mousserande. Två av flaskorna är Poucèt 2024.",
+    );
+  });
+
+  it("keeps faq answers free of savings, health and delivery claims", () => {
+    const answers = PRODUCER_BOXES_FAQ.sv.map((item) => item.answer).join("\n");
+    expect(answers).not.toMatch(/rabatt|bespar|hälsa|frakt|leveranstid/i);
+    expect(PRODUCER_BOXES_FAQ.sv[4]?.link?.href).toBe("/villkor");
+    for (const item of [...PRODUCER_BOXES_FAQ.sv, ...PRODUCER_BOXES_FAQ.en]) {
+      expect(item.question).not.toMatch(/[—–]/);
+      expect(item.answer).not.toMatch(/[—–]/);
+    }
   });
 
   it("does not look up producer-box slugs as shop collections", async () => {

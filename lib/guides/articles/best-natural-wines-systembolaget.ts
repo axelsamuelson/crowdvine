@@ -50,9 +50,11 @@ export const bestNaturalWinesSystembolagetArticle: GuideArticleContent = {
       body: {
         en: [
           "We choose one wine per producer and spread the selection across styles and price levels. The producer must have real credibility in natural wine: organic or biodynamic farming, minimal intervention and a reputation of its own. We have not tasted every wine. The texts rely on the producers' information, Systembolaget's product pages and independent sources. Availability is read from Systembolaget's assortment, so a wine that disappears drops off the list at the next update.",
+          "This list is about Systembolaget. We also sell a [natural wine box](/wine/natural-wine-box) of six bottles from one producer in Languedoc.",
         ],
         sv: [
           "Vi väljer ett vin per producent och sprider urvalet över stilar och prisklasser. Producenten ska ha verklig trovärdighet inom naturvin: ekologisk eller biodynamisk odling, minimal intervention och ett eget rykte. Vi har inte smakat alla viner. Texterna bygger på producenternas uppgifter, Systembolagets produktsidor och oberoende källor. Tillgängligheten hämtas från Systembolagets sortiment, så ett vin som försvinner faller bort vid nästa uppdatering.",
+          "Listan gäller Systembolaget. Hos oss finns en [naturvinslåda](/vin/naturvin-lada) med sex flaskor från en producent i Languedoc.",
         ],
       },
     },
