@@ -110,7 +110,7 @@ export function buildRetailPriceBreakdown(opts: {
 
 /**
  * Reverse-solve gross margin % so cost + FX + tax + margin reproduce a retail price.
- * Used to repair wines priced with FX=1 while keeping shop prices stable.
+ * Nudges margin so the forward formula lands on the exact öre amount (avoids 163.00 → 163.01).
  */
 export function implyMarginPercentageFromRetailPrice(opts: {
   retailPriceCents: number;
@@ -119,7 +119,8 @@ export function implyMarginPercentageFromRetailPrice(opts: {
   priceIncludesVat: boolean;
   alcoholTaxCents?: number | null;
 }): number | null {
-  const retail = (opts.retailPriceCents || 0) / 100;
+  const targetCents = Math.round(opts.retailPriceCents || 0);
+  const retail = targetCents / 100;
   if (!(retail > 0)) return null;
 
   const vatRate = opts.priceIncludesVat !== false ? 0.25 : 0;
@@ -128,17 +129,42 @@ export function implyMarginPercentageFromRetailPrice(opts: {
     opts.exchangeRate > 0 && Number.isFinite(opts.exchangeRate)
       ? opts.exchangeRate
       : 1;
-  const alcoholTaxInSek =
-    resolveWineAlcoholTaxCents(opts.alcoholTaxCents) / 100;
-  const costInSek = (opts.costAmount || 0) * exchangeRate + alcoholTaxInSek;
+  const alcoholTaxCents = resolveWineAlcoholTaxCents(opts.alcoholTaxCents);
+  const alcoholTaxInSek = alcoholTaxCents / 100;
+  const costAmount = opts.costAmount || 0;
+  const costInSek = costAmount * exchangeRate + alcoholTaxInSek;
 
   if (!(priceExVat > 0) || !(costInSek > 0) || costInSek >= priceExVat) {
     return null;
   }
 
-  const margin = (1 - costInSek / priceExVat) * 100;
-  if (!(margin >= 0) || !(margin < 100)) return null;
-  return Math.round(margin * 100) / 100;
+  const exact = (1 - costInSek / priceExVat) * 100;
+  if (!(exact >= 0) || !(exact < 100)) return null;
+
+  const priceAt = (marginPercentage: number) =>
+    calculateRetailPriceCents({
+      costAmount,
+      exchangeRate,
+      priceIncludesVat: opts.priceIncludesVat !== false,
+      marginPercentage,
+      alcoholTaxCents,
+    });
+
+  // 4 decimals keeps most round-trips exact; nudge if öre still drifts.
+  let margin = Math.round(exact * 10000) / 10000;
+  if (priceAt(margin) === targetCents) return margin;
+
+  for (let step = 1; step <= 500; step++) {
+    for (const sign of [-1, 1] as const) {
+      const candidate =
+        Math.round((margin + sign * step * 0.0001) * 10000) / 10000;
+      if (candidate < 0 || candidate >= 100) continue;
+      if (priceAt(candidate) === targetCents) return candidate;
+    }
+  }
+
+  // Last resort: 2-decimal margin (may be ±1 öre off)
+  return Math.round(exact * 100) / 100;
 }
 
 export async function fetchExchangeRateToSek(
