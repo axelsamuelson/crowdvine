@@ -1,0 +1,751 @@
+{
+  "generatedAt": "2026-08-25T21:05:31.274Z",
+  "site": "sc-domain:pactwines.com",
+  "note": "GSC data may lag 2–3 days; end date capped at latest available.",
+  "section1": {
+    "last7": {
+      "startDate": "2026-08-19",
+      "endDate": "2026-08-25",
+      "days": 7,
+      "clicks": 19,
+      "impressions": 549,
+      "clicksPerDay": 2.7142857142857144,
+      "impressionsPerDay": 78.42857142857143,
+      "ctr": 3.4608378870673953,
+      "position": 12.641165755919854,
+      "daily": [
+        {
+          "date": "2026-08-19",
+          "clicks": 2,
+          "impressions": 58,
+          "position": 15.586206896551724
+        },
+        {
+          "date": "2026-08-20",
+          "clicks": 3,
+          "impressions": 67,
+          "position": 13.82089552238806
+        },
+        {
+          "date": "2026-08-21",
+          "clicks": 0,
+          "impressions": 57,
+          "position": 12.456140350877194
+        },
+        {
+          "date": "2026-08-22",
+          "clicks": 7,
+          "impressions": 118,
+          "position": 10.161016949152541
+        },
+        {
+          "date": "2026-08-23",
+          "clicks": 3,
+          "impressions": 105,
+          "position": 12.152380952380952
+        },
+        {
+          "date": "2026-08-24",
+          "clicks": 4,
+          "impressions": 109,
+          "position": 12.880733944954128
+        },
+        {
+          "date": "2026-08-25",
+          "clicks": 0,
+          "impressions": 35,
+          "position": 14.885714285714286
+        }
+      ]
+    },
+    "prev7": {
+      "startDate": "2026-08-12",
+      "endDate": "2026-08-18",
+      "days": 7,
+      "clicks": 18,
+      "impressions": 355,
+      "clicksPerDay": 2.5714285714285716,
+      "impressionsPerDay": 50.714285714285715,
+      "ctr": 5.070422535211268,
+      "position": 13.825352112676056,
+      "daily": [
+        {
+          "date": "2026-08-12",
+          "clicks": 0,
+          "impressions": 53,
+          "position": 11.377358490566039
+        },
+        {
+          "date": "2026-08-13",
+          "clicks": 3,
+          "impressions": 45,
+          "position": 15.28888888888889
+        },
+        {
+          "date": "2026-08-14",
+          "clicks": 6,
+          "impressions": 57,
+          "position": 11.473684210526315
+        },
+        {
+          "date": "2026-08-15",
+          "clicks": 0,
+          "impressions": 40,
+          "position": 16.025
+        },
+        {
+          "date": "2026-08-16",
+          "clicks": 3,
+          "impressions": 48,
+          "position": 18.375
+        },
+        {
+          "date": "2026-08-17",
+          "clicks": 6,
+          "impressions": 62,
+          "position": 12.03225806451613
+        },
+        {
+          "date": "2026-08-18",
+          "clicks": 0,
+          "impressions": 50,
+          "position": 13.88
+        }
+      ]
+    },
+    "wow": {
+      "impressionsPerDay": {
+        "last7": 78.42857142857143,
+        "prev7": 50.714285714285715,
+        "changePct": 54.647887323943664,
+        "changeAbs": 27.714285714285715
+      },
+      "clicksPerDay": {
+        "last7": 2.7142857142857144,
+        "prev7": 2.5714285714285716,
+        "changePct": 5.555555555555553
+      },
+      "ctr": {
+        "last7": 3.4608378870673953,
+        "prev7": 5.070422535211268,
+        "changePp": -1.6095846481438727
+      },
+      "position": {
+        "last7": 12.641165755919854,
+        "prev7": 13.825352112676056,
+        "change": -1.1841863567562019
+      }
+    },
+    "target100ImpPerDayByAug31": {
+      "target": 100,
+      "last7Actual": 78.42857142857143,
+      "gap": 21.57142857142857
+    }
+  },
+  "section2": {
+    "period": {
+      "startDate": "2026-07-28",
+      "endDate": "2026-08-24"
+    },
+    "guidePages": [
+      {
+        "page": "https://pactwines.com/guides/worlds-best-natural-wines",
+        "path": "/guides/worlds-best-natural-wines",
+        "impressions": 392,
+        "clicks": 9,
+        "position": 20.084183673469386,
+        "ctr": 2.295918367346939
+      },
+      {
+        "page": "https://pactwines.com/guides/worlds-best-natural-wine-producers",
+        "path": "/guides/worlds-best-natural-wine-producers",
+        "impressions": 222,
+        "clicks": 16,
+        "position": 8.81981981981982,
+        "ctr": 7.207207207207207
+      },
+      {
+        "page": "https://pactwines.com/guides/beaujolais-natural-wine",
+        "path": "/guides/beaujolais-natural-wine",
+        "impressions": 52,
+        "clicks": 1,
+        "position": 9.096153846153847,
+        "ctr": 1.9230769230769231
+      },
+      {
+        "page": "https://pactwines.com/guides/jura-natural-wine",
+        "path": "/guides/jura-natural-wine",
+        "impressions": 47,
+        "clicks": 2,
+        "position": 8.212765957446809,
+        "ctr": 4.25531914893617
+      },
+      {
+        "page": "https://pactwines.com/guides/georgia-natural-wine",
+        "path": "/guides/georgia-natural-wine",
+        "impressions": 25,
+        "clicks": 1,
+        "position": 13.8,
+        "ctr": 4
+      },
+      {
+        "page": "https://pactwines.com/guides/radikon",
+        "path": "/guides/radikon",
+        "impressions": 19,
+        "clicks": 1,
+        "position": 16.263157894736842,
+        "ctr": 5.263157894736842
+      },
+      {
+        "page": "https://pactwines.com/guides/pierre-overnoy",
+        "path": "/guides/pierre-overnoy",
+        "impressions": 6,
+        "clicks": 0,
+        "position": 13.333333333333334,
+        "ctr": 0
+      },
+      {
+        "page": "https://pactwines.com/guides/worlds-best-natural-champagne",
+        "path": "/guides/worlds-best-natural-champagne",
+        "impressions": 6,
+        "clicks": 0,
+        "position": 14.833333333333334,
+        "ctr": 0
+      },
+      {
+        "page": "https://pactwines.com/guides/worlds-best-orange-wines",
+        "path": "/guides/worlds-best-orange-wines",
+        "impressions": 5,
+        "clicks": 1,
+        "position": 2.8,
+        "ctr": 20
+      },
+      {
+        "page": "https://pactwines.com/guides/marcel-lapierre",
+        "path": "/guides/marcel-lapierre",
+        "impressions": 3,
+        "clicks": 0,
+        "position": 7,
+        "ctr": 0
+      },
+      {
+        "page": "https://pactwines.com/guides/josko-gravner",
+        "path": "/guides/josko-gravner",
+        "impressions": 2,
+        "clicks": 0,
+        "position": 5,
+        "ctr": 0
+      },
+      {
+        "page": "https://pactwines.com/guides/jean-francois-ganevat",
+        "path": "/guides/jean-francois-ganevat",
+        "impressions": 1,
+        "clicks": 0,
+        "position": 82,
+        "ctr": 0
+      }
+    ],
+    "guidesZeroImpressions": [
+      "/guides/thierry-allemand",
+      "/guides/jean-foillard"
+    ],
+    "totalGuideImpressions": 780,
+    "totalGuideClicks": 31
+  },
+  "section3": {
+    "period": {
+      "startDate": "2026-07-28",
+      "endDate": "2026-08-24"
+    },
+    "pipelineDiff": [
+      {
+        "query": "hippie killer",
+        "baseline": {
+          "position": 15.5,
+          "impressions": 6
+        },
+        "current": {
+          "position": 15.5,
+          "impressions": 2,
+          "clicks": 0
+        },
+        "positionChange": 0,
+        "impressionsChange": -4
+      },
+      {
+        "query": "septentrion wein",
+        "baseline": {
+          "position": 8.4,
+          "impressions": 5
+        },
+        "current": {
+          "position": 29.4,
+          "impressions": 20,
+          "clicks": 0
+        },
+        "positionChange": 21,
+        "impressionsChange": 15
+      },
+      {
+        "query": "leno dolce sole",
+        "baseline": {
+          "position": 8.5,
+          "impressions": 4
+        },
+        "current": {
+          "position": 6.5,
+          "impressions": 4,
+          "clicks": 1
+        },
+        "positionChange": -2,
+        "impressionsChange": 0
+      },
+      {
+        "query": "la robina",
+        "baseline": {
+          "position": 9.7,
+          "impressions": 3
+        },
+        "current": {
+          "position": 6.5,
+          "impressions": 4,
+          "clicks": 0
+        },
+        "positionChange": -3.1999999999999993,
+        "impressionsChange": 1
+      },
+      {
+        "query": "rött naturvin",
+        "baseline": {
+          "position": 18,
+          "impressions": 2
+        },
+        "current": {
+          "position": 15.333333333333334,
+          "impressions": 3,
+          "clicks": 0
+        },
+        "positionChange": -2.666666666666666,
+        "impressionsChange": 1
+      },
+      {
+        "query": "thomas chany",
+        "baseline": {
+          "position": 11.5,
+          "impressions": 2
+        },
+        "current": {
+          "position": 6.857142857142857,
+          "impressions": 7,
+          "clicks": 0
+        },
+        "positionChange": -4.642857142857143,
+        "impressionsChange": 5
+      },
+      {
+        "query": "orange naturvin",
+        "baseline": {
+          "position": 12,
+          "impressions": 1
+        },
+        "current": {
+          "position": 11.5,
+          "impressions": 6,
+          "clicks": 0
+        },
+        "positionChange": -0.5,
+        "impressionsChange": 5
+      },
+      {
+        "query": "sybil baldassarre",
+        "baseline": {
+          "position": 10,
+          "impressions": 1
+        },
+        "current": null,
+        "positionChange": null,
+        "impressionsChange": null
+      },
+      {
+        "query": "best natural wines",
+        "baseline": {
+          "position": 30,
+          "impressions": 20
+        },
+        "current": {
+          "position": 27.06040268456376,
+          "impressions": 149,
+          "clicks": 1
+        },
+        "positionChange": -2.9395973154362416,
+        "impressionsChange": 129
+      }
+    ]
+  },
+  "section4": {
+    "periodSinceAug1": {
+      "startDate": "2026-08-01",
+      "endDate": "2026-08-24"
+    },
+    "uniqueQueries28d": 98,
+    "uniqueQueriesSinceAug1": 92,
+    "guideRelatedNew": [
+      {
+        "query": "best natural wines",
+        "impressions": 136,
+        "clicks": 1,
+        "position": 26.727941176470587
+      },
+      {
+        "query": "best natural wines 2023",
+        "impressions": 93,
+        "clicks": 0,
+        "position": 15.129032258064516
+      },
+      {
+        "query": "beaujolais natural wine",
+        "impressions": 11,
+        "clicks": 0,
+        "position": 9.363636363636363
+      },
+      {
+        "query": "natural wine georgia",
+        "impressions": 10,
+        "clicks": 0,
+        "position": 12.5
+      },
+      {
+        "query": "natural wine jura",
+        "impressions": 10,
+        "clicks": 0,
+        "position": 9
+      },
+      {
+        "query": "gang of four beaujolais",
+        "impressions": 9,
+        "clicks": 0,
+        "position": 6
+      },
+      {
+        "query": "radikon",
+        "impressions": 5,
+        "clicks": 0,
+        "position": 38.8
+      },
+      {
+        "query": "jura natural wine",
+        "impressions": 4,
+        "clicks": 0,
+        "position": 17
+      },
+      {
+        "query": "radikon orange wine",
+        "impressions": 4,
+        "clicks": 0,
+        "position": 8.5
+      },
+      {
+        "query": "gang of 4 beaujolais",
+        "impressions": 3,
+        "clicks": 0,
+        "position": 7.333333333333333
+      },
+      {
+        "query": "georgian natural wine",
+        "impressions": 3,
+        "clicks": 0,
+        "position": 11
+      },
+      {
+        "query": "natural champagne",
+        "impressions": 3,
+        "clicks": 0,
+        "position": 23.666666666666668
+      },
+      {
+        "query": "top natural wines",
+        "impressions": 3,
+        "clicks": 0,
+        "position": 14.333333333333334
+      },
+      {
+        "query": "gravner",
+        "impressions": 2,
+        "clicks": 1,
+        "position": 9
+      },
+      {
+        "query": "gang of four wine",
+        "impressions": 2,
+        "clicks": 0,
+        "position": 7.5
+      },
+      {
+        "query": "natural wine brand",
+        "impressions": 2,
+        "clicks": 0,
+        "position": 59
+      },
+      {
+        "query": "overnoy wine",
+        "impressions": 2,
+        "clicks": 0,
+        "position": 13.5
+      },
+      {
+        "query": "beaujolais gang of four",
+        "impressions": 1,
+        "clicks": 0,
+        "position": 8
+      },
+      {
+        "query": "best orange wine",
+        "impressions": 1,
+        "clicks": 0,
+        "position": 4
+      },
+      {
+        "query": "domaine jean françois ganevat",
+        "impressions": 1,
+        "clicks": 0,
+        "position": 82
+      },
+      {
+        "query": "jura wine",
+        "impressions": 1,
+        "clicks": 0,
+        "position": 59
+      },
+      {
+        "query": "natural wine brands",
+        "impressions": 1,
+        "clicks": 0,
+        "position": 67
+      },
+      {
+        "query": "natural wine producers",
+        "impressions": 1,
+        "clicks": 0,
+        "position": 46
+      },
+      {
+        "query": "overnoy",
+        "impressions": 1,
+        "clicks": 0,
+        "position": 15
+      },
+      {
+        "query": "pierre overnoy",
+        "impressions": 1,
+        "clicks": 0,
+        "position": 18
+      },
+      {
+        "query": "pierre overnoy wine",
+        "impressions": 1,
+        "clicks": 0,
+        "position": 11
+      },
+      {
+        "query": "the best natural wines",
+        "impressions": 1,
+        "clicks": 0,
+        "position": 36
+      }
+    ],
+    "topNewSinceAug1": [
+      {
+        "query": "best natural wines",
+        "impressions": 136,
+        "clicks": 1,
+        "position": 26.727941176470587
+      },
+      {
+        "query": "best natural wines 2023",
+        "impressions": 93,
+        "clicks": 0,
+        "position": 15.129032258064516
+      },
+      {
+        "query": "biodynamiska viner sverige",
+        "impressions": 47,
+        "clicks": 0,
+        "position": 36.361702127659576
+      },
+      {
+        "query": "biodynamiskt vin",
+        "impressions": 38,
+        "clicks": 0,
+        "position": 31.263157894736842
+      },
+      {
+        "query": "septentrion wein",
+        "impressions": 18,
+        "clicks": 0,
+        "position": 30.055555555555557
+      },
+      {
+        "query": "beaujolais natural wine",
+        "impressions": 11,
+        "clicks": 0,
+        "position": 9.363636363636363
+      },
+      {
+        "query": "natural wine georgia",
+        "impressions": 10,
+        "clicks": 0,
+        "position": 12.5
+      },
+      {
+        "query": "natural wine jura",
+        "impressions": 10,
+        "clicks": 0,
+        "position": 9
+      },
+      {
+        "query": "gang of four beaujolais",
+        "impressions": 9,
+        "clicks": 0,
+        "position": 6
+      },
+      {
+        "query": "la marotte",
+        "impressions": 7,
+        "clicks": 0,
+        "position": 6.285714285714286
+      },
+      {
+        "query": "thomas chany",
+        "impressions": 7,
+        "clicks": 0,
+        "position": 6.857142857142857
+      },
+      {
+        "query": "chateau del ranq",
+        "impressions": 5,
+        "clicks": 0,
+        "position": 18
+      },
+      {
+        "query": "radikon",
+        "impressions": 5,
+        "clicks": 0,
+        "position": 38.8
+      },
+      {
+        "query": "best wine producers in the world",
+        "impressions": 4,
+        "clicks": 0,
+        "position": 8.5
+      },
+      {
+        "query": "jura natural wine",
+        "impressions": 4,
+        "clicks": 0,
+        "position": 17
+      },
+      {
+        "query": "la robina",
+        "impressions": 4,
+        "clicks": 0,
+        "position": 6.5
+      },
+      {
+        "query": "orange naturvin",
+        "impressions": 4,
+        "clicks": 0,
+        "position": 10.25
+      },
+      {
+        "query": "radikon orange wine",
+        "impressions": 4,
+        "clicks": 0,
+        "position": 8.5
+      },
+      {
+        "query": "leno dolce sole",
+        "impressions": 3,
+        "clicks": 1,
+        "position": 6
+      },
+      {
+        "query": "renaud bruyere",
+        "impressions": 3,
+        "clicks": 1,
+        "position": 3.3333333333333335
+      },
+      {
+        "query": "barriquer",
+        "impressions": 3,
+        "clicks": 0,
+        "position": 36.333333333333336
+      },
+      {
+        "query": "clos fantine",
+        "impressions": 3,
+        "clicks": 0,
+        "position": 38
+      },
+      {
+        "query": "domaine des miroirs",
+        "impressions": 3,
+        "clicks": 0,
+        "position": 7
+      },
+      {
+        "query": "gang of 4 beaujolais",
+        "impressions": 3,
+        "clicks": 0,
+        "position": 7.333333333333333
+      },
+      {
+        "query": "georgian natural wine",
+        "impressions": 3,
+        "clicks": 0,
+        "position": 11
+      },
+      {
+        "query": "les cepheides",
+        "impressions": 3,
+        "clicks": 0,
+        "position": 6.666666666666667
+      },
+      {
+        "query": "natural champagne",
+        "impressions": 3,
+        "clicks": 0,
+        "position": 23.666666666666668
+      },
+      {
+        "query": "rött naturvin",
+        "impressions": 3,
+        "clicks": 0,
+        "position": 15.333333333333334
+      },
+      {
+        "query": "top natural wines",
+        "impressions": 3,
+        "clicks": 0,
+        "position": 14.333333333333334
+      },
+      {
+        "query": "ugo lestelle wine",
+        "impressions": 3,
+        "clicks": 0,
+        "position": 9
+      }
+    ]
+  },
+  "section5": {
+    "page": "/vin/rod-och-orange-naturvin",
+    "rows": [
+      {
+        "page": "https://pactwines.com/vin/rod-och-orange-naturvin",
+        "impressions": 5,
+        "clicks": 0,
+        "position": 8
+      }
+    ],
+    "stillGettingImpressions": true
+  }
+}

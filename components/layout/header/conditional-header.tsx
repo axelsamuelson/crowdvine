@@ -8,6 +8,7 @@ import type { SiteLogos } from "@/lib/context/site-logo-provider";
 
 interface ConditionalHeaderProps {
   collections: Collection[];
+  popularCollections: Collection[];
   isDirtywineSite: boolean;
   initialLogos?: SiteLogos;
   /** Request pathname from middleware — keeps SSR and hydration aligned. */
@@ -45,6 +46,7 @@ function shouldHideHeader(pathname: string): boolean {
 
 export function ConditionalHeader({
   collections,
+  popularCollections,
   isDirtywineSite,
   initialLogos,
   ssrPathname,
@@ -65,6 +67,7 @@ export function ConditionalHeader({
   return (
     <Header
       collections={collections}
+      popularCollections={popularCollections}
       isDirtywineSite={isDirtywineSite}
       initialLogos={initialLogos}
     />

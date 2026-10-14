@@ -1,0 +1,702 @@
+{
+  "w1016": {
+    "range": {
+      "startDate": "2026-08-10",
+      "endDate": "2026-08-16"
+    },
+    "queries": [
+      {
+        "query": "beaujolais natural wine",
+        "impressions": 0,
+        "clicks": 0,
+        "position": null,
+        "found": false
+      },
+      {
+        "query": "gang of four beaujolais",
+        "impressions": 0,
+        "clicks": 0,
+        "position": null,
+        "found": false
+      },
+      {
+        "query": "gang of 4 beaujolais",
+        "impressions": 0,
+        "clicks": 0,
+        "position": null,
+        "found": false
+      },
+      {
+        "query": "gang of four wine",
+        "impressions": 0,
+        "clicks": 0,
+        "position": null,
+        "found": false
+      },
+      {
+        "query": "best natural wines",
+        "impressions": 38,
+        "clicks": 0,
+        "position": 25.36842105263158,
+        "found": true
+      },
+      {
+        "query": "best natural wines 2023",
+        "impressions": 23,
+        "clicks": 0,
+        "position": 14.217391304347826,
+        "found": true
+      },
+      {
+        "query": "natural wine jura",
+        "impressions": 0,
+        "clicks": 0,
+        "position": null,
+        "found": false
+      },
+      {
+        "query": "natural wine georgia",
+        "impressions": 0,
+        "clicks": 0,
+        "position": null,
+        "found": false
+      }
+    ],
+    "pages": [
+      {
+        "page": "https://pactwines.com/guides/beaujolais-natural-wine",
+        "impressions": 0,
+        "clicks": 0,
+        "position": null,
+        "found": false
+      },
+      {
+        "page": "https://pactwines.com/guides/gang-of-four-wine",
+        "impressions": 0,
+        "clicks": 0,
+        "position": null,
+        "found": false
+      }
+    ]
+  },
+  "w1723": {
+    "range": {
+      "startDate": "2026-08-17",
+      "endDate": "2026-08-23"
+    },
+    "queries": [
+      {
+        "query": "beaujolais natural wine",
+        "impressions": 8,
+        "clicks": 0,
+        "position": 9.375,
+        "found": true
+      },
+      {
+        "query": "gang of four beaujolais",
+        "impressions": 4,
+        "clicks": 0,
+        "position": 4.25,
+        "found": true
+      },
+      {
+        "query": "gang of 4 beaujolais",
+        "impressions": 2,
+        "clicks": 0,
+        "position": 5.5,
+        "found": true
+      },
+      {
+        "query": "gang of four wine",
+        "impressions": 1,
+        "clicks": 0,
+        "position": 8,
+        "found": true
+      },
+      {
+        "query": "best natural wines",
+        "impressions": 41,
+        "clicks": 1,
+        "position": 26,
+        "found": true
+      },
+      {
+        "query": "best natural wines 2023",
+        "impressions": 27,
+        "clicks": 0,
+        "position": 13.296296296296296,
+        "found": true
+      },
+      {
+        "query": "natural wine jura",
+        "impressions": 7,
+        "clicks": 0,
+        "position": 8.714285714285715,
+        "found": true
+      },
+      {
+        "query": "natural wine georgia",
+        "impressions": 7,
+        "clicks": 0,
+        "position": 12.285714285714286,
+        "found": true
+      }
+    ],
+    "pages": [
+      {
+        "page": "https://pactwines.com/guides/beaujolais-natural-wine",
+        "impressions": 34,
+        "clicks": 0,
+        "position": 7.705882352941177,
+        "found": true
+      },
+      {
+        "page": "https://pactwines.com/guides/gang-of-four-wine",
+        "impressions": 0,
+        "clicks": 0,
+        "position": null,
+        "found": false
+      }
+    ]
+  },
+  "w2430": {
+    "range": {
+      "startDate": "2026-08-24",
+      "endDate": "2026-08-30"
+    },
+    "queries": [
+      {
+        "query": "beaujolais natural wine",
+        "impressions": 24,
+        "clicks": 0,
+        "position": 9.416666666666666,
+        "found": true
+      },
+      {
+        "query": "gang of four beaujolais",
+        "impressions": 28,
+        "clicks": 1,
+        "position": 8.642857142857142,
+        "found": true
+      },
+      {
+        "query": "gang of 4 beaujolais",
+        "impressions": 7,
+        "clicks": 0,
+        "position": 6.714285714285714,
+        "found": true
+      },
+      {
+        "query": "gang of four wine",
+        "impressions": 9,
+        "clicks": 0,
+        "position": 5,
+        "found": true
+      },
+      {
+        "query": "best natural wines",
+        "impressions": 36,
+        "clicks": 0,
+        "position": 27.416666666666668,
+        "found": true
+      },
+      {
+        "query": "best natural wines 2023",
+        "impressions": 22,
+        "clicks": 0,
+        "position": 16.18181818181818,
+        "found": true
+      },
+      {
+        "query": "natural wine jura",
+        "impressions": 22,
+        "clicks": 0,
+        "position": 10.5,
+        "found": true
+      },
+      {
+        "query": "natural wine georgia",
+        "impressions": 27,
+        "clicks": 0,
+        "position": 13.592592592592593,
+        "found": true
+      }
+    ],
+    "pages": [
+      {
+        "page": "https://pactwines.com/guides/beaujolais-natural-wine",
+        "impressions": 117,
+        "clicks": 1,
+        "position": 8.47008547008547,
+        "found": true
+      },
+      {
+        "page": "https://pactwines.com/guides/gang-of-four-wine",
+        "impressions": 24,
+        "clicks": 0,
+        "position": 7.833333333333333,
+        "found": true
+      }
+    ]
+  },
+  "dailyBeauPage": [
+    {
+      "date": "2026-08-17",
+      "impressions": 0,
+      "clicks": 0,
+      "position": 0
+    },
+    {
+      "date": "2026-08-18",
+      "impressions": 0,
+      "clicks": 0,
+      "position": 0
+    },
+    {
+      "date": "2026-08-19",
+      "impressions": 0,
+      "clicks": 0,
+      "position": 0
+    },
+    {
+      "date": "2026-08-20",
+      "impressions": 0,
+      "clicks": 0,
+      "position": 0
+    },
+    {
+      "date": "2026-08-21",
+      "impressions": 0,
+      "clicks": 0,
+      "position": 0
+    },
+    {
+      "date": "2026-08-22",
+      "impressions": 15,
+      "clicks": 0,
+      "position": 8
+    },
+    {
+      "date": "2026-08-23",
+      "impressions": 19,
+      "clicks": 0,
+      "position": 7.473684210526316
+    },
+    {
+      "date": "2026-08-24",
+      "impressions": 18,
+      "clicks": 1,
+      "position": 11.722222222222221
+    },
+    {
+      "date": "2026-08-25",
+      "impressions": 20,
+      "clicks": 0,
+      "position": 6.25
+    },
+    {
+      "date": "2026-08-26",
+      "impressions": 24,
+      "clicks": 0,
+      "position": 8.208333333333332
+    },
+    {
+      "date": "2026-08-27",
+      "impressions": 21,
+      "clicks": 0,
+      "position": 9.19047619047619
+    },
+    {
+      "date": "2026-08-28",
+      "impressions": 18,
+      "clicks": 0,
+      "position": 7.222222222222222
+    },
+    {
+      "date": "2026-08-29",
+      "impressions": 8,
+      "clicks": 0,
+      "position": 10.25
+    },
+    {
+      "date": "2026-08-30",
+      "impressions": 8,
+      "clicks": 0,
+      "position": 6.625
+    },
+    {
+      "date": "2026-08-31",
+      "impressions": 0,
+      "clicks": 0,
+      "position": 0
+    }
+  ],
+  "dailyGangPage": [
+    {
+      "date": "2026-08-17",
+      "impressions": 0,
+      "clicks": 0,
+      "position": 0
+    },
+    {
+      "date": "2026-08-18",
+      "impressions": 0,
+      "clicks": 0,
+      "position": 0
+    },
+    {
+      "date": "2026-08-19",
+      "impressions": 0,
+      "clicks": 0,
+      "position": 0
+    },
+    {
+      "date": "2026-08-20",
+      "impressions": 0,
+      "clicks": 0,
+      "position": 0
+    },
+    {
+      "date": "2026-08-21",
+      "impressions": 0,
+      "clicks": 0,
+      "position": 0
+    },
+    {
+      "date": "2026-08-22",
+      "impressions": 0,
+      "clicks": 0,
+      "position": 0
+    },
+    {
+      "date": "2026-08-23",
+      "impressions": 0,
+      "clicks": 0,
+      "position": 0
+    },
+    {
+      "date": "2026-08-24",
+      "impressions": 0,
+      "clicks": 0,
+      "position": 0
+    },
+    {
+      "date": "2026-08-25",
+      "impressions": 0,
+      "clicks": 0,
+      "position": 0
+    },
+    {
+      "date": "2026-08-26",
+      "impressions": 0,
+      "clicks": 0,
+      "position": 0
+    },
+    {
+      "date": "2026-08-27",
+      "impressions": 0,
+      "clicks": 0,
+      "position": 0
+    },
+    {
+      "date": "2026-08-28",
+      "impressions": 7,
+      "clicks": 0,
+      "position": 6.428571428571429
+    },
+    {
+      "date": "2026-08-29",
+      "impressions": 11,
+      "clicks": 0,
+      "position": 8.272727272727273
+    },
+    {
+      "date": "2026-08-30",
+      "impressions": 6,
+      "clicks": 0,
+      "position": 8.666666666666668
+    },
+    {
+      "date": "2026-08-31",
+      "impressions": 2,
+      "clicks": 0,
+      "position": 4.5
+    }
+  ],
+  "dailyBeauQuery": [
+    {
+      "date": "2026-08-17",
+      "impressions": 0,
+      "clicks": 0,
+      "position": 0
+    },
+    {
+      "date": "2026-08-18",
+      "impressions": 0,
+      "clicks": 0,
+      "position": 0
+    },
+    {
+      "date": "2026-08-19",
+      "impressions": 0,
+      "clicks": 0,
+      "position": 0
+    },
+    {
+      "date": "2026-08-20",
+      "impressions": 0,
+      "clicks": 0,
+      "position": 0
+    },
+    {
+      "date": "2026-08-21",
+      "impressions": 0,
+      "clicks": 0,
+      "position": 0
+    },
+    {
+      "date": "2026-08-22",
+      "impressions": 3,
+      "clicks": 0,
+      "position": 9
+    },
+    {
+      "date": "2026-08-23",
+      "impressions": 5,
+      "clicks": 0,
+      "position": 9.6
+    },
+    {
+      "date": "2026-08-24",
+      "impressions": 3,
+      "clicks": 0,
+      "position": 9.333333333333334
+    },
+    {
+      "date": "2026-08-25",
+      "impressions": 4,
+      "clicks": 0,
+      "position": 8.75
+    },
+    {
+      "date": "2026-08-26",
+      "impressions": 4,
+      "clicks": 0,
+      "position": 9.25
+    },
+    {
+      "date": "2026-08-27",
+      "impressions": 4,
+      "clicks": 0,
+      "position": 10
+    },
+    {
+      "date": "2026-08-28",
+      "impressions": 3,
+      "clicks": 0,
+      "position": 9.666666666666666
+    },
+    {
+      "date": "2026-08-29",
+      "impressions": 5,
+      "clicks": 0,
+      "position": 9.8
+    },
+    {
+      "date": "2026-08-30",
+      "impressions": 1,
+      "clicks": 0,
+      "position": 8
+    },
+    {
+      "date": "2026-08-31",
+      "impressions": 0,
+      "clicks": 0,
+      "position": 0
+    }
+  ],
+  "dailyGangFourBeau": [
+    {
+      "date": "2026-08-17",
+      "impressions": 0,
+      "clicks": 0,
+      "position": 0
+    },
+    {
+      "date": "2026-08-18",
+      "impressions": 0,
+      "clicks": 0,
+      "position": 0
+    },
+    {
+      "date": "2026-08-19",
+      "impressions": 0,
+      "clicks": 0,
+      "position": 0
+    },
+    {
+      "date": "2026-08-20",
+      "impressions": 0,
+      "clicks": 0,
+      "position": 0
+    },
+    {
+      "date": "2026-08-21",
+      "impressions": 0,
+      "clicks": 0,
+      "position": 0
+    },
+    {
+      "date": "2026-08-22",
+      "impressions": 4,
+      "clicks": 0,
+      "position": 4.25
+    },
+    {
+      "date": "2026-08-23",
+      "impressions": 0,
+      "clicks": 0,
+      "position": 0
+    },
+    {
+      "date": "2026-08-24",
+      "impressions": 5,
+      "clicks": 0,
+      "position": 7.4
+    },
+    {
+      "date": "2026-08-25",
+      "impressions": 3,
+      "clicks": 1,
+      "position": 9.333333333333334
+    },
+    {
+      "date": "2026-08-26",
+      "impressions": 3,
+      "clicks": 0,
+      "position": 8.666666666666668
+    },
+    {
+      "date": "2026-08-27",
+      "impressions": 8,
+      "clicks": 0,
+      "position": 10.125
+    },
+    {
+      "date": "2026-08-28",
+      "impressions": 6,
+      "clicks": 0,
+      "position": 8.666666666666668
+    },
+    {
+      "date": "2026-08-29",
+      "impressions": 3,
+      "clicks": 0,
+      "position": 6
+    },
+    {
+      "date": "2026-08-30",
+      "impressions": 0,
+      "clicks": 0,
+      "position": 0
+    },
+    {
+      "date": "2026-08-31",
+      "impressions": 0,
+      "clicks": 0,
+      "position": 0
+    }
+  ],
+  "dailyGangOf4": [
+    {
+      "date": "2026-08-17",
+      "impressions": 0,
+      "clicks": 0,
+      "position": 0
+    },
+    {
+      "date": "2026-08-18",
+      "impressions": 0,
+      "clicks": 0,
+      "position": 0
+    },
+    {
+      "date": "2026-08-19",
+      "impressions": 0,
+      "clicks": 0,
+      "position": 0
+    },
+    {
+      "date": "2026-08-20",
+      "impressions": 0,
+      "clicks": 0,
+      "position": 0
+    },
+    {
+      "date": "2026-08-21",
+      "impressions": 0,
+      "clicks": 0,
+      "position": 0
+    },
+    {
+      "date": "2026-08-22",
+      "impressions": 1,
+      "clicks": 0,
+      "position": 10
+    },
+    {
+      "date": "2026-08-23",
+      "impressions": 1,
+      "clicks": 0,
+      "position": 1
+    },
+    {
+      "date": "2026-08-24",
+      "impressions": 1,
+      "clicks": 0,
+      "position": 11
+    },
+    {
+      "date": "2026-08-25",
+      "impressions": 1,
+      "clicks": 0,
+      "position": 1
+    },
+    {
+      "date": "2026-08-26",
+      "impressions": 3,
+      "clicks": 0,
+      "position": 6
+    },
+    {
+      "date": "2026-08-27",
+      "impressions": 0,
+      "clicks": 0,
+      "position": 0
+    },
+    {
+      "date": "2026-08-28",
+      "impressions": 2,
+      "clicks": 0,
+      "position": 8.5
+    },
+    {
+      "date": "2026-08-29",
+      "impressions": 0,
+      "clicks": 0,
+      "position": 0
+    },
+    {
+      "date": "2026-08-30",
+      "impressions": 0,
+      "clicks": 0,
+      "position": 0
+    },
+    {
+      "date": "2026-08-31",
+      "impressions": 0,
+      "clicks": 0,
+      "position": 0
+    }
+  ]
+}

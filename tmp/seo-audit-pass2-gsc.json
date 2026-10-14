@@ -1,0 +1,316 @@
+{
+  "after": {
+    "range": {
+      "startDate": "2026-08-24",
+      "endDate": "2026-08-30"
+    },
+    "queries": [
+      {
+        "query": "beaujolais natural wine",
+        "impressions": 24,
+        "clicks": 0,
+        "position": 9.416666666666666,
+        "ctr": 0,
+        "found": true
+      },
+      {
+        "query": "gang of four beaujolais",
+        "impressions": 28,
+        "clicks": 1,
+        "position": 8.642857142857142,
+        "ctr": 0.03571428571428571,
+        "found": true
+      },
+      {
+        "query": "gang of 4 beaujolais",
+        "impressions": 7,
+        "clicks": 0,
+        "position": 6.714285714285714,
+        "ctr": 0,
+        "found": true
+      },
+      {
+        "query": "gang of four wine",
+        "impressions": 9,
+        "clicks": 0,
+        "position": 5,
+        "ctr": 0,
+        "found": true
+      },
+      {
+        "query": "best natural wines",
+        "impressions": 36,
+        "clicks": 0,
+        "position": 27.416666666666668,
+        "ctr": 0,
+        "found": true
+      },
+      {
+        "query": "best natural wines 2023",
+        "impressions": 22,
+        "clicks": 0,
+        "position": 16.18181818181818,
+        "ctr": 0,
+        "found": true
+      },
+      {
+        "query": "natural wine jura",
+        "impressions": 22,
+        "clicks": 0,
+        "position": 10.5,
+        "ctr": 0,
+        "found": true
+      },
+      {
+        "query": "natural wine georgia",
+        "impressions": 27,
+        "clicks": 0,
+        "position": 13.592592592592593,
+        "ctr": 0,
+        "found": true
+      }
+    ],
+    "pages": [
+      {
+        "page": "https://pactwines.com/guides/beaujolais-natural-wine",
+        "impressions": 117,
+        "clicks": 1,
+        "position": 8.47008547008547,
+        "found": true,
+        "matchedKey": "https://pactwines.com/guides/beaujolais-natural-wine"
+      },
+      {
+        "page": "https://pactwines.com/guides/gang-of-four-wine",
+        "impressions": 24,
+        "clicks": 0,
+        "position": 7.833333333333333,
+        "found": true,
+        "matchedKey": "https://pactwines.com/guides/gang-of-four-wine"
+      }
+    ],
+    "topQueriesOnBeaujolais": [
+      {
+        "q": "beaujolais natural wine",
+        "impressions": 24,
+        "clicks": 0,
+        "position": 9.416666666666666
+      },
+      {
+        "q": "gang of four beaujolais",
+        "impressions": 19,
+        "clicks": 0,
+        "position": 8.894736842105264
+      },
+      {
+        "q": "beaujolais gang of four",
+        "impressions": 9,
+        "clicks": 0,
+        "position": 8.555555555555555
+      },
+      {
+        "q": "gang of four wine",
+        "impressions": 6,
+        "clicks": 0,
+        "position": 5.833333333333333
+      },
+      {
+        "q": "gang of 4 beaujolais",
+        "impressions": 4,
+        "clicks": 0,
+        "position": 7.5
+      },
+      {
+        "q": "the gang of four beaujolais",
+        "impressions": 3,
+        "clicks": 0,
+        "position": 9
+      },
+      {
+        "q": "jeanne gang",
+        "impressions": 1,
+        "clicks": 0,
+        "position": 92
+      }
+    ],
+    "topQueriesOnGangOfFour": [
+      {
+        "q": "gang of four wine",
+        "impressions": 5,
+        "clicks": 0,
+        "position": 12
+      },
+      {
+        "q": "gang of four beaujolais",
+        "impressions": 3,
+        "clicks": 0,
+        "position": 6
+      },
+      {
+        "q": "beaujolais gang of four",
+        "impressions": 2,
+        "clicks": 0,
+        "position": 10.5
+      },
+      {
+        "q": "gang of 4 beaujolais",
+        "impressions": 1,
+        "clicks": 0,
+        "position": 10
+      },
+      {
+        "q": "the gang of four beaujolais",
+        "impressions": 1,
+        "clicks": 0,
+        "position": 11
+      }
+    ],
+    "nearBeau": [
+      {
+        "q": "gang of four beaujolais",
+        "impressions": 28,
+        "position": 8.642857142857142
+      },
+      {
+        "q": "beaujolais natural wine",
+        "impressions": 24,
+        "position": 9.416666666666666
+      },
+      {
+        "q": "beaujolais gang of four",
+        "impressions": 14,
+        "position": 8.285714285714285
+      },
+      {
+        "q": "gang of 4 beaujolais",
+        "impressions": 7,
+        "position": 6.714285714285714
+      },
+      {
+        "q": "the gang of four beaujolais",
+        "impressions": 6,
+        "position": 7.833333333333333
+      }
+    ],
+    "nearGang": [
+      {
+        "q": "gang of four beaujolais",
+        "impressions": 28,
+        "position": 8.642857142857142
+      },
+      {
+        "q": "beaujolais gang of four",
+        "impressions": 14,
+        "position": 8.285714285714285
+      },
+      {
+        "q": "gang of four wine",
+        "impressions": 9,
+        "position": 5
+      },
+      {
+        "q": "gang of 4 beaujolais",
+        "impressions": 7,
+        "position": 6.714285714285714
+      },
+      {
+        "q": "the gang of four beaujolais",
+        "impressions": 6,
+        "position": 7.833333333333333
+      }
+    ]
+  },
+  "before": {
+    "range": {
+      "startDate": "2026-08-10",
+      "endDate": "2026-08-16"
+    },
+    "queries": [
+      {
+        "query": "beaujolais natural wine",
+        "impressions": 0,
+        "clicks": 0,
+        "position": null,
+        "ctr": null,
+        "found": false
+      },
+      {
+        "query": "gang of four beaujolais",
+        "impressions": 0,
+        "clicks": 0,
+        "position": null,
+        "ctr": null,
+        "found": false
+      },
+      {
+        "query": "gang of 4 beaujolais",
+        "impressions": 0,
+        "clicks": 0,
+        "position": null,
+        "ctr": null,
+        "found": false
+      },
+      {
+        "query": "gang of four wine",
+        "impressions": 0,
+        "clicks": 0,
+        "position": null,
+        "ctr": null,
+        "found": false
+      },
+      {
+        "query": "best natural wines",
+        "impressions": 38,
+        "clicks": 0,
+        "position": 25.36842105263158,
+        "ctr": 0,
+        "found": true
+      },
+      {
+        "query": "best natural wines 2023",
+        "impressions": 23,
+        "clicks": 0,
+        "position": 14.217391304347826,
+        "ctr": 0,
+        "found": true
+      },
+      {
+        "query": "natural wine jura",
+        "impressions": 0,
+        "clicks": 0,
+        "position": null,
+        "ctr": null,
+        "found": false
+      },
+      {
+        "query": "natural wine georgia",
+        "impressions": 0,
+        "clicks": 0,
+        "position": null,
+        "ctr": null,
+        "found": false
+      }
+    ],
+    "pages": [
+      {
+        "page": "https://pactwines.com/guides/beaujolais-natural-wine",
+        "impressions": 0,
+        "clicks": 0,
+        "position": null,
+        "found": false,
+        "matchedKey": null
+      },
+      {
+        "page": "https://pactwines.com/guides/gang-of-four-wine",
+        "impressions": 0,
+        "clicks": 0,
+        "position": null,
+        "found": false,
+        "matchedKey": null
+      }
+    ],
+    "topQueriesOnBeaujolais": [],
+    "topQueriesOnGangOfFour": [],
+    "nearBeau": [],
+    "nearGang": []
+  }
+}

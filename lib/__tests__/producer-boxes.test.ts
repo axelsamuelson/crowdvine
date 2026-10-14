@@ -318,6 +318,15 @@ describe("producer boxes", () => {
     ).toBe(
       "Fem viner, sex flaskor: ett vitt, tre röda och ett mousserande. Två av flaskorna är Poucèt 2024.",
     );
+    expect(
+      producerBoxContentsLine(
+        slots([{ color: "Red" }, { color: "Red & White" }]),
+        "sv",
+      ),
+    ).toBeNull();
+    expect(
+      producerBoxContentsLine(slots([{ color: "Red & Orange" }]), "sv"),
+    ).toBeNull();
   });
 
   it("keeps faq answers free of savings, health and delivery claims", () => {
