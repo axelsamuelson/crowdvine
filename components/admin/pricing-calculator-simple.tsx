@@ -24,6 +24,7 @@ import { calculateSystembolagetPrice } from "@/lib/systembolaget-pricing";
 import {
   buildRetailPriceBreakdown,
   DEFAULT_ALCOHOL_TAX_CENTS,
+  implyMarginPercentageFromRetailPrice,
   resolveSekExchangeRateSync,
 } from "@/lib/wine-retail-pricing";
 
@@ -60,6 +61,11 @@ export function PricingCalculator({
     pricingData.cost_currency === "SEK",
   );
   const [showDetails, setShowDetails] = useState(false);
+  const [finalPriceDraft, setFinalPriceDraft] = useState(
+    ((pricingData.calculated_price_cents || 0) / 100).toFixed(2),
+  );
+  const [finalPriceError, setFinalPriceError] = useState<string | null>(null);
+  const [editingFinalPrice, setEditingFinalPrice] = useState(false);
 
   const currencies = [
     { code: "EUR", name: "Euro (EUR)" },
@@ -117,17 +123,20 @@ export function PricingCalculator({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pricingData.cost_currency]);
 
-  const breakdown = useMemo(() => {
-    const exchangeRate =
-      pricingData.cost_currency === "SEK"
-        ? 1
-        : currentRate && currentRate > 0
-          ? currentRate
-          : resolveSekExchangeRateSync(
-              pricingData.cost_currency,
-              pricingData.exchange_rate,
-            );
+  const exchangeRate = useMemo(() => {
+    if (pricingData.cost_currency === "SEK") return 1;
+    if (currentRate && currentRate > 0) return currentRate;
+    return resolveSekExchangeRateSync(
+      pricingData.cost_currency,
+      pricingData.exchange_rate,
+    );
+  }, [
+    pricingData.cost_currency,
+    pricingData.exchange_rate,
+    currentRate,
+  ]);
 
+  const breakdown = useMemo(() => {
     const retail = buildRetailPriceBreakdown({
       costAmount: pricingData.cost_amount || 0,
       exchangeRate,
@@ -146,12 +155,10 @@ export function PricingCalculator({
     return { ...retail, sbPrice };
   }, [
     pricingData.cost_amount,
-    pricingData.cost_currency,
-    pricingData.exchange_rate,
     pricingData.alcohol_tax_cents,
     pricingData.price_includes_vat,
     effectiveMargin,
-    currentRate,
+    exchangeRate,
   ]);
 
   // Keep parent in sync with computed final price + FX used (avoid infinite loops)
@@ -175,6 +182,52 @@ export function PricingCalculator({
     breakdown.isValid,
     rateReady,
   ]);
+
+  // Mirror computed slutpris into the editable field unless the user is typing
+  useEffect(() => {
+    if (editingFinalPrice) return;
+    setFinalPriceDraft((breakdown.finalPriceCents / 100).toFixed(2));
+    setFinalPriceError(null);
+  }, [breakdown.finalPriceCents, editingFinalPrice]);
+
+  const applyFinalPrice = (raw: string) => {
+    if (!showMargin) return;
+
+    const normalized = raw.trim().replace(",", ".");
+    const sek = Number(normalized);
+    if (!Number.isFinite(sek) || sek <= 0) {
+      setFinalPriceError("Ange ett giltigt slutpris över 0 SEK.");
+      setFinalPriceDraft((breakdown.finalPriceCents / 100).toFixed(2));
+      return;
+    }
+
+    const retailPriceCents = Math.round(sek * 100);
+    const implied = implyMarginPercentageFromRetailPrice({
+      retailPriceCents,
+      costAmount: pricingData.cost_amount || 0,
+      exchangeRate,
+      priceIncludesVat: pricingData.price_includes_vat !== false,
+      alcoholTaxCents:
+        pricingData.alcohol_tax_cents ?? DEFAULT_ALCOHOL_TAX_CENTS,
+    });
+
+    if (implied == null) {
+      setFinalPriceError(
+        "Slutpriset måste vara högre än kostnad + alkoholskatt (exkl. moms).",
+      );
+      setFinalPriceDraft((breakdown.finalPriceCents / 100).toFixed(2));
+      return;
+    }
+
+    setFinalPriceError(null);
+    setFinalPriceDraft((retailPriceCents / 100).toFixed(2));
+    onPricingChange({
+      ...pricingData,
+      margin_percentage: implied,
+      calculated_price_cents: retailPriceCents,
+      exchange_rate: exchangeRate,
+    });
+  };
 
   const formBody = (
     <>
@@ -244,13 +297,52 @@ export function PricingCalculator({
         {/* Summary */}
         <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800">
           <div className="flex flex-col gap-3">
-            <div>
-              <div className="text-sm text-gray-500 dark:text-zinc-400">
+            <div className="space-y-2">
+              <Label
+                htmlFor="final_price_sek"
+                className="text-sm text-gray-500 dark:text-zinc-400"
+              >
                 Slutpris (ink. moms) — sparas till PDP
-              </div>
-              <div className="text-2xl font-semibold text-gray-900 dark:text-white">
-                {(breakdown.finalPriceCents / 100).toFixed(2)} SEK
-              </div>
+              </Label>
+              {showMargin ? (
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="final_price_sek"
+                    type="number"
+                    step="0.01"
+                    min={0}
+                    className="no-spinner max-w-[10rem] text-2xl font-semibold h-12"
+                    value={finalPriceDraft}
+                    onFocus={() => setEditingFinalPrice(true)}
+                    onChange={(e) => {
+                      setFinalPriceDraft(e.target.value);
+                      setFinalPriceError(null);
+                    }}
+                    onBlur={() => {
+                      setEditingFinalPrice(false);
+                      applyFinalPrice(finalPriceDraft);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.currentTarget.blur();
+                      }
+                    }}
+                  />
+                  <span className="text-sm font-medium text-zinc-400">SEK</span>
+                </div>
+              ) : (
+                <div className="text-2xl font-semibold text-gray-900 dark:text-white">
+                  {(breakdown.finalPriceCents / 100).toFixed(2)} SEK
+                </div>
+              )}
+              {showMargin && (
+                <p className="text-xs text-zinc-400">
+                  Ändra slutpriset så räknas marginalen om automatiskt.
+                </p>
+              )}
+              {finalPriceError && (
+                <div className="text-sm text-red-600">{finalPriceError}</div>
+              )}
               {!breakdown.isValid && (
                 <div className="mt-1 text-sm text-red-600">
                   Marginalen måste vara under 100%.
