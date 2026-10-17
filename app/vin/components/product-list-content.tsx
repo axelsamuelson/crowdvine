@@ -317,8 +317,9 @@ export function ProductListContent({
         onClearSearch={clearSearch}
       />
 
+      {/* Mobile scope tabs live inside the search sheet; keep them on desktop. */}
       {activeSearchQuery ? (
-        <div className="mb-3 w-full px-sides md:pr-sides">
+        <div className="mb-3 hidden w-full px-sides md:block md:pr-sides">
           <ShopSearchScopeTabs
             value={activeScope}
             onChange={setScope}

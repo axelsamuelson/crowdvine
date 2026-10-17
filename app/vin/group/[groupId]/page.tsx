@@ -3,7 +3,11 @@ import { Suspense } from "react";
 import { ProductListShell } from "../../components/product-list-shell";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { notFound } from "next/navigation";
+import { headers } from "next/headers";
 import { DEFAULT_WINE_IMAGE_PATH } from "@/lib/constants";
+import { isB2BHost } from "@/lib/b2b-site";
+import { fetchHiddenB2BWineIds } from "@/lib/b2b-pallet-stock";
+import { wineDisplayTitle } from "@/lib/wine-display-title";
 
 export const dynamic = "force-dynamic";
 
@@ -89,8 +93,24 @@ export default async function ProducerGroupPage({ params }: PageProps) {
     notFound();
   }
 
+  const headerList = await headers();
+  const hiddenWineIds = isB2BHost(
+    headerList.get("x-forwarded-host") ?? headerList.get("host"),
+  )
+    ? await fetchHiddenB2BWineIds(
+        sb,
+        (wines || [])
+          .map((wine: { id?: unknown }) => wine.id)
+          .filter((id): id is string => typeof id === "string"),
+      )
+    : new Set<string>();
+  const visibleWines = (wines || []).filter(
+    (wine: { id?: unknown }) =>
+      typeof wine.id === "string" && !hiddenWineIds.has(wine.id),
+  );
+
   // Convert to Shopify-compatible product format
-  const products = (wines || []).map((wine: any) => {
+  const products = visibleWines.map((wine: any) => {
     const grapeVarieties = Array.isArray(wine.grape_varieties)
       ? wine.grape_varieties
       : wine.grape_varieties
@@ -99,7 +119,7 @@ export default async function ProducerGroupPage({ params }: PageProps) {
 
     return {
       id: wine.id,
-      title: `${wine.wine_name} ${wine.vintage}`,
+      title: wineDisplayTitle(wine.wine_name, wine.vintage),
       handle: wine.handle,
       description: wine.description || "",
       descriptionHtml: wine.description_html || "",
@@ -149,7 +169,7 @@ export default async function ProducerGroupPage({ params }: PageProps) {
       ],
       availableForSale: true,
       seo: {
-        title: `${wine.wine_name} ${wine.vintage}`,
+        title: wineDisplayTitle(wine.wine_name, wine.vintage),
         description: wine.description || "",
       },
     };

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Product } from "@/lib/shopify/types";
 import {
+  buildShopSearchSuggestions,
   filterAndRankProductsBySearch,
   foldShopSearchText,
   scoreProductAgainstSearchQuery,
@@ -184,5 +185,36 @@ describe("shop-product-search", () => {
         (p) => p.id,
       ),
     ).toEqual(["2"]);
+  });
+
+  it("builds typeahead suggestions for wines, producers, and grapes", () => {
+    const products = [
+      wine({ id: "1", title: "Carignan Vieilles Vignes", producerName: "Clos Fantine" }),
+      wine({
+        id: "2",
+        title: "Autre Chose",
+        producerName: "Domaine Carignan",
+        options: [
+          {
+            id: "grape",
+            name: "Grape Varieties",
+            values: [{ id: "g1", name: "Grenache" }],
+          },
+        ],
+        tags: ["Grenache"],
+      }),
+    ];
+    const suggestions = buildShopSearchSuggestions(products, "cari", 8);
+    expect(suggestions.some((s) => s.kind === "wine" && s.label.includes("Carignan"))).toBe(
+      true,
+    );
+    expect(
+      suggestions.some((s) => s.kind === "producer" && s.label === "Domaine Carignan"),
+    ).toBe(true);
+    expect(buildShopSearchSuggestions(products, "", 8)).toEqual([]);
+
+    const grapeOnly = buildShopSearchSuggestions(products, "cari", 8, "grape");
+    expect(grapeOnly.length).toBeGreaterThan(0);
+    expect(grapeOnly.every((s) => s.kind === "grape")).toBe(true);
   });
 });

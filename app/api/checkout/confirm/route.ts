@@ -10,6 +10,7 @@ import {
   type CartLine,
 } from "@/lib/pallet-auto-management";
 import { isB2BHost } from "@/lib/b2b-site";
+import { B2B_PRODUCER_ORDERS_ENABLED } from "@/lib/b2b/flags";
 import { headers } from "next/headers";
 import {
   awardPointsForOwnOrder,
@@ -262,6 +263,22 @@ export async function POST(request: Request) {
     }
 
     console.log("Checkout confirm body:", body);
+
+    const requestHost =
+      request.headers.get("x-forwarded-host") ?? request.headers.get("host");
+    if (isB2BHost(requestHost) && !B2B_PRODUCER_ORDERS_ENABLED) {
+      const cartForProducerGate = await CartService.getCart();
+      if (
+        (cartForProducerGate?.lines ?? []).some(
+          (line) => line.source === "producer",
+        )
+      ) {
+        return NextResponse.json(
+          { error: "producer_orders_paused" },
+          { status: 403 },
+        );
+      }
+    }
 
     const { address } = body;
 

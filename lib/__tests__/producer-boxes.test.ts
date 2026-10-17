@@ -74,15 +74,21 @@ describe("producer boxes", () => {
 
   it("keeps meta within 155 characters and names the offer factually", () => {
     expect(PRODUCER_BOXES_COPY.sv.title).toBe(
-      "Naturvin låda: 6 flaskor från en producent",
+      "Naturvin låda: vinlåda med 6 flaskor från en gård",
     );
     expect(PRODUCER_BOXES_COPY.sv.h1).toBe(
       "Naturvinslåda: sex flaskor från en producent",
     );
     expect(PRODUCER_BOXES_COPY.sv.meta).toBe(
-      "Naturvinslåda med sex flaskor från en och samma producent i Languedoc. Se vad som ingår i varje låda och lägg hela lådan i varukorgen.",
+      "Vinlåda med naturvin: sex flaskor från en och samma producent i Languedoc. Se vad som ingår i varje låda och lägg hela lådan i varukorgen.",
     );
     expect(PRODUCER_BOXES_COPY.sv.meta.length).toBeLessThanOrEqual(155);
+    expect(PRODUCER_BOXES_COPY.sv.intro.startsWith(
+      "En naturvinslåda hos PACT är en vinlåda med sex flaskor från samma producent i Languedoc.",
+    )).toBe(true);
+    expect(PRODUCER_BOXES_FAQ.sv[0]?.answer).toBe(
+      "En vinlåda med sex flaskor naturvin från samma producent, sammansatt av PACT.",
+    );
     expect(PRODUCER_BOXES_COPY.en.meta.length).toBeLessThanOrEqual(155);
     expect(PRODUCER_BOXES_COPY.en.meta.toLowerCase()).toContain("natural wine box");
     expect(PRODUCER_BOXES_COPY.en.meta).toContain("six bottles");
@@ -318,6 +324,15 @@ describe("producer boxes", () => {
     ).toBe(
       "Fem viner, sex flaskor: ett vitt, tre röda och ett mousserande. Två av flaskorna är Poucèt 2024.",
     );
+    expect(
+      producerBoxContentsLine(
+        slots([{ color: "Red" }, { color: "Red & White" }]),
+        "sv",
+      ),
+    ).toBeNull();
+    expect(
+      producerBoxContentsLine(slots([{ color: "Red & Orange" }]), "sv"),
+    ).toBeNull();
   });
 
   it("keeps faq answers free of savings, health and delivery claims", () => {

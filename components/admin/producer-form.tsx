@@ -16,7 +16,76 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Switch } from "@/components/ui/switch";
 import { CreateProducerData, Producer } from "@/lib/actions/producers";
+import {
+  ADMIN_ACTIVE_SWITCH_CLASS,
+  ADMIN_FORM_FIELDS_CLASS,
+  ADMIN_HELP_TEXT_CLASS,
+  ADMIN_OUTLINE_BUTTON_CLASS,
+  ADMIN_TOGGLE_ROW_CLASS,
+} from "@/lib/admin-form-styles";
 import { producerLinksInputSchema } from "@/lib/producer-links";
+import { cn } from "@/lib/utils";
+
+function StatusToggle({
+  id,
+  label,
+  description,
+  checked,
+  onCheckedChange,
+}: {
+  id: string;
+  label: string;
+  description: string;
+  checked: boolean;
+  onCheckedChange: (checked: boolean) => void;
+}) {
+  return (
+    <div
+      className={cn(
+        ADMIN_TOGGLE_ROW_CLASS,
+        "h-full gap-3",
+        checked
+          ? "border-emerald-500/40 bg-emerald-500/5 dark:border-emerald-500/30 dark:bg-emerald-500/10"
+          : "border-red-500/40 bg-red-500/5 dark:border-red-500/30 dark:bg-red-500/10",
+      )}
+    >
+      <div className="min-w-0">
+        <Label
+          htmlFor={id}
+          className="text-sm font-medium text-gray-900 dark:text-zinc-100"
+        >
+          {label}
+        </Label>
+        <p className={cn(ADMIN_HELP_TEXT_CLASS, "mt-0.5")}>{description}</p>
+      </div>
+      <div className="flex shrink-0 items-center gap-3">
+        <span
+          className={cn(
+            "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium",
+            checked
+              ? "bg-emerald-500/15 text-emerald-800 dark:text-emerald-300"
+              : "bg-red-500/15 text-red-800 dark:text-red-300",
+          )}
+        >
+          <span
+            className={cn(
+              "inline-flex h-2 w-2 rounded-full",
+              checked ? "bg-emerald-500" : "bg-red-500",
+            )}
+          />
+          {checked ? "På" : "Av"}
+        </span>
+        <Switch
+          id={id}
+          checked={checked}
+          onCheckedChange={onCheckedChange}
+          aria-label={label}
+          className={ADMIN_ACTIVE_SWITCH_CLASS}
+        />
+      </div>
+    </div>
+  );
+}
 
 function formatLinksVerifiedAt(iso: string): string {
   const date = new Date(iso);
@@ -301,7 +370,12 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
   };
 
   return (
-    <div className="bg-white dark:bg-[#0F0F12] rounded-xl p-6 border border-gray-200 dark:border-[#1F1F23]">
+    <div
+      className={cn(
+        "bg-white dark:bg-[#0F0F12] rounded-xl p-6 border border-gray-200 dark:border-[#1F1F23]",
+        ADMIN_FORM_FIELDS_CLASS,
+      )}
+    >
       <div className="mb-6">
         <h2 className="text-lg font-bold text-gray-900 dark:text-white">
           {producer ? "Edit Producer" : "Add Producer"}
@@ -319,35 +393,27 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
           </Alert>
         )}
 
-        {producer && (
-          <div className="flex items-center justify-between rounded-xl border border-gray-200 dark:border-zinc-800 p-4 bg-gray-50 dark:bg-zinc-900/70">
-            <div>
-              <Label htmlFor="is_live" className="text-sm font-medium text-gray-900 dark:text-zinc-100">Live på webbsidan</Label>
-              <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
-                När av är producenten och dess viner dolda i shop, sök och samlingar.
-              </p>
-            </div>
-            <Switch
+        <div
+          className={cn(
+            "grid grid-cols-1 gap-4",
+            producer ? "lg:grid-cols-2" : undefined,
+          )}
+        >
+          {producer ? (
+            <StatusToggle
               id="is_live"
+              label="Live på webbsidan"
+              description="När av är producenten och dess viner dolda i shop, sök och samlingar."
               checked={formData.is_live ?? true}
               onCheckedChange={(checked) =>
                 setFormData((prev) => ({ ...prev, is_live: !!checked }))
               }
             />
-          </div>
-        )}
-
-        <div className="flex items-center justify-between rounded-xl border border-gray-200 dark:border-zinc-800 p-4 bg-gray-50 dark:bg-zinc-900/70">
-          <div>
-            <Label htmlFor="boost_active" className="text-sm font-medium text-gray-900 dark:text-zinc-100">
-              Boost Active
-            </Label>
-            <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
-              When enabled, PACT Points redeemed against this producer&apos;s wines are worth 2× at checkout.
-            </p>
-          </div>
-          <Switch
+          ) : null}
+          <StatusToggle
             id="boost_active"
+            label="Boost Active"
+            description="When enabled, PACT Points redeemed against this producer’s wines are worth 2× at checkout."
             checked={formData.boost_active === true}
             onCheckedChange={(checked) =>
               setFormData((prev) => ({ ...prev, boost_active: !!checked }))
@@ -458,7 +524,10 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
                 onClick={handleGeocode}
                 disabled={geocoding || !formData.address_city}
                 variant="outline"
-                className="w-auto rounded-lg text-xs font-medium border-gray-200 dark:border-zinc-700"
+                className={cn(
+                  "w-auto text-xs font-medium",
+                  ADMIN_OUTLINE_BUTTON_CLASS,
+                )}
               >
                 {geocoding ? "Geocoding..." : "🌍 Get Coordinates from Address"}
               </Button>
@@ -566,7 +635,7 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
               autoComplete="url"
               className="border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800"
             />
-            <p className="text-xs text-gray-500 dark:text-zinc-400">
+            <p className={ADMIN_HELP_TEXT_CLASS}>
               Endast producentens egen sida. Inte importör, återförsäljare eller Facebook.
             </p>
           </div>
@@ -610,11 +679,12 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
               variant="outline"
               aria-pressed={markLinksVerified}
               onClick={() => setMarkLinksVerified((current) => !current)}
-              className={`rounded-lg text-xs font-medium border-gray-200 dark:border-zinc-700 ${
+              className={cn(
+                "text-xs font-medium",
                 markLinksVerified
-                  ? "bg-gray-900 text-white dark:bg-zinc-50 dark:text-zinc-900"
-                  : ""
-              }`}
+                  ? "rounded-lg bg-gray-900 text-white dark:bg-zinc-50 dark:text-zinc-900"
+                  : ADMIN_OUTLINE_BUTTON_CLASS,
+              )}
             >
               Markera som verifierad
             </Button>
@@ -673,35 +743,27 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
                 ))}
               </SelectContent>
             </Select>
-            <p className="text-xs text-gray-500 dark:text-zinc-400">
+            <p className={ADMIN_HELP_TEXT_CLASS}>
               Optional. Groups this producer for pallet automation (Phase 2.1).
             </p>
           </div>
 
-          <div className="flex items-center justify-between rounded-xl border border-gray-200 dark:border-zinc-800 p-4 bg-gray-50 dark:bg-zinc-900/70">
-            <div>
-              <Label htmlFor="is_pallet_zone" className="text-sm font-medium text-gray-900 dark:text-zinc-100">
-                Can handle full pallet
-              </Label>
-              <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
-                This producer can physically receive and ship a full pallet. The producer with the most orders becomes the pickup point.
-              </p>
-            </div>
-            <Switch
-              id="is_pallet_zone"
-              checked={formData.is_pallet_zone === true}
-              onCheckedChange={(checked) =>
-                setFormData((prev) => ({ ...prev, is_pallet_zone: !!checked }))
-              }
-            />
-          </div>
+          <StatusToggle
+            id="is_pallet_zone"
+            label="Can handle full pallet"
+            description="This producer can physically receive and ship a full pallet. The producer with the most orders becomes the pickup point."
+            checked={formData.is_pallet_zone === true}
+            onCheckedChange={(checked) =>
+              setFormData((prev) => ({ ...prev, is_pallet_zone: !!checked }))
+            }
+          />
 
           <div className="flex justify-end gap-2 pt-2">
             <Button
               type="button"
               variant="outline"
               onClick={() => router.back()}
-              className="rounded-lg text-xs font-medium border-gray-200 dark:border-zinc-700"
+              className={cn("text-xs font-medium", ADMIN_OUTLINE_BUTTON_CLASS)}
             >
               Cancel
             </Button>

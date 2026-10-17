@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { DEFAULT_WINE_IMAGE_PATH } from "@/lib/constants";
+import { isB2BHost } from "@/lib/b2b-site";
+import { fetchHiddenB2BWineIds } from "@/lib/b2b-pallet-stock";
+import { wineDisplayTitle } from "@/lib/wine-display-title";
 
 export async function GET(
   request: Request,
@@ -77,7 +80,21 @@ export async function GET(
       return NextResponse.json([]);
     }
 
-    const wines = winesResult.data ?? [];
+    const fetchedWines = winesResult.data ?? [];
+    const requestHost =
+      request.headers.get("x-forwarded-host") ?? request.headers.get("host");
+    const hiddenWineIds = isB2BHost(requestHost)
+      ? await fetchHiddenB2BWineIds(
+          sb,
+          fetchedWines
+            .map((wine: { id?: unknown }) => wine.id)
+            .filter((id): id is string => typeof id === "string"),
+        )
+      : new Set<string>();
+    const wines = fetchedWines.filter(
+      (wine: { id?: unknown }) =>
+        typeof wine.id === "string" && !hiddenWineIds.has(wine.id),
+    );
 
     // Convert to Shopify-compatible product format
     const products = (wines || []).map((wine: any) => {
@@ -89,7 +106,7 @@ export async function GET(
 
       return {
         id: wine.id,
-        title: `${wine.wine_name} ${wine.vintage}`,
+        title: wineDisplayTitle(wine.wine_name, wine.vintage),
         handle: wine.handle,
         description: wine.description || "",
         descriptionHtml: wine.description_html || "",
@@ -139,7 +156,7 @@ export async function GET(
         ],
         availableForSale: true,
         seo: {
-          title: `${wine.wine_name} ${wine.vintage}`,
+          title: wineDisplayTitle(wine.wine_name, wine.vintage),
           description: wine.description || "",
         },
       };

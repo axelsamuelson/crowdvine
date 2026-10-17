@@ -36,8 +36,6 @@ export type GuideHubBrowseProps = {
 };
 
 function GuideHubCardLink({ guide }: { guide: GuideHubCard }) {
-  const featured = Boolean(guide.featured);
-
   return (
     <Link href={guide.href} className="group block h-full">
       {guide.kicker ? (
@@ -47,19 +45,13 @@ function GuideHubCardLink({ guide }: { guide: GuideHubCard }) {
       ) : null}
       <h3
         className={cn(
-          "font-semibold tracking-tight text-foreground/80 transition-colors group-hover:text-foreground",
-          featured ? "text-2xl md:text-3xl" : "text-base md:text-lg",
+          "text-base font-semibold tracking-tight text-foreground/80 transition-colors group-hover:text-foreground md:text-lg",
           guide.kicker && "mt-1",
         )}
       >
         {guide.title}
       </h3>
-      <p
-        className={cn(
-          "mt-2 leading-relaxed text-muted-foreground",
-          featured ? "text-base max-w-[68ch]" : "text-sm line-clamp-3",
-        )}
-      >
+      <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-muted-foreground">
         {guide.description}
       </p>
     </Link>
@@ -191,7 +183,7 @@ export function GuideHubBrowse({
         </div>
       </aside>
 
-      <div className="col-span-9 flex flex-col px-sides md:px-0 md:pr-sides">
+      <div className="col-span-8 flex flex-col px-sides md:px-0 md:pr-sides">
         <h1 className="text-3xl font-bold tracking-tight md:text-4xl">
           {hubTitle}
         </h1>
@@ -266,21 +258,14 @@ export function GuideHubBrowse({
                   </a>
                 </h2>
                 <ul className="grid grid-cols-1 gap-x-8 gap-y-8 sm:grid-cols-2 xl:grid-cols-3">
-                  {section.cards.map((guide) => {
-                    const featured = Boolean(guide.featured);
-
-                    return (
-                      <li
-                        key={guide.href}
-                        className={cn(
-                          "min-w-0 border-b border-border pb-6",
-                          featured && "sm:col-span-2 xl:col-span-3",
-                        )}
-                      >
-                        <GuideHubCardLink guide={guide} />
-                      </li>
-                    );
-                  })}
+                  {section.cards.map((guide) => (
+                    <li
+                      key={guide.href}
+                      className="min-w-0 border-b border-border pb-6"
+                    >
+                      <GuideHubCardLink guide={guide} />
+                    </li>
+                  ))}
                 </ul>
               </section>
             );

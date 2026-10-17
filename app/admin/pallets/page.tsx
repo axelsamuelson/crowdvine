@@ -131,7 +131,7 @@ function B2BPalletStatusBadge({ status }: { status?: string }) {
   return (
     <span
       className={cn(
-        "shrink-0 inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide",
+        "shrink-0 inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium tracking-wide",
         resolved === "active" &&
           "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
         resolved === "in_transit" &&

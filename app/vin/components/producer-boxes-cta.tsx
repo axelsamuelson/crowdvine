@@ -38,11 +38,11 @@ export function ProducerBoxesCta({
   if (isDirtywineSite) return null;
 
   return (
-    <div className={isRootShop ? undefined : "hidden"}>
+    <div className={isRootShop ? "w-full shrink-0" : "hidden"}>
       <Button
         asChild
         className={cn(
-          "h-11 w-full rounded-md bg-black px-5 text-white hover:bg-black/90",
+          "h-10 whitespace-nowrap rounded-md bg-black px-3 text-sm text-white hover:bg-black/90 sm:px-4",
           className,
         )}
       >

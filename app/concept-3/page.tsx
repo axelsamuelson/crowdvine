@@ -12,6 +12,7 @@ import { Product } from "@/lib/shopify/types";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentAdmin } from "@/lib/admin-auth-server";
+import { getRequestHostFromHeaders } from "@/lib/b2b-site-server";
 import { MapClientWrapper } from "@/components/home-concepts/map-client-wrapper";
 
 export default async function Concept3Page() {
@@ -34,6 +35,8 @@ export default async function Concept3Page() {
     collections = [];
   }
 
+  const host = await getRequestHostFromHeaders();
+
   let featuredProducts: Product[] = [];
 
   try {
@@ -43,16 +46,17 @@ export default async function Concept3Page() {
         limit: 5,
         sortKey: "CREATED_AT",
         reverse: true,
+        host,
       });
     } else {
-      const allProducts = await getProducts({});
+      const allProducts = await getProducts({ host });
       featuredProducts = allProducts.slice(0, 8);
     }
   } catch (error) {
     console.error("Error fetching featured products:", error);
     // Fallback to all products if collection products fail
     try {
-      const allProducts = await getProducts({});
+      const allProducts = await getProducts({ host });
       featuredProducts = allProducts.slice(0, 8);
     } catch (fallbackError) {
       console.error("Error fetching fallback products:", fallbackError);

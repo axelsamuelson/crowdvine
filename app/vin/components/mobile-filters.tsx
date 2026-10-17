@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Collection } from "@/lib/shopify/types";
@@ -9,7 +9,6 @@ import {
   DrawerContent,
   DrawerHeader,
   DrawerTitle,
-  DrawerTrigger,
 } from "@/components/ui/drawer";
 import { CategoryFilter } from "./category-filter";
 import { ColorFilter } from "./color-filter";
@@ -21,8 +20,9 @@ import { isProducerBoxesPath } from "@/lib/producer-boxes/config";
 import { ProducerBoxesCta } from "./producer-boxes-cta";
 import { useProducts } from "@/components/shop/products-provider";
 import { ResultsCount } from "./results-count";
-import { SortDropdown } from "./sort-dropdown";
-import { ShopFilterSearch } from "./shop-filter-search";
+import { ShopMobileDock } from "./shop-mobile-dock";
+import { ShopMobileSearchSheet } from "./shop-mobile-search-sheet";
+import { ShopMobileSortSheet } from "./shop-mobile-sort-sheet";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useTranslations } from "@/lib/hooks/use-translations";
@@ -73,6 +73,9 @@ export function MobileFilters({
     useProducts();
   const pathname = usePathname();
   const router = useRouter();
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [sortOpen, setSortOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const isProducerBoxesPage = isProducerBoxesPath(pathname);
   const isColorCategoryPage =
     !isProducerBoxesPage &&
@@ -173,51 +176,29 @@ export function MobileFilters({
     clientFilterCount > 0 ? clientFilterCount : initialFilterCount;
 
   return (
-    <div className="bg-transparent md:hidden overflow-x-clip">
-      {isProducerBoxesPage ? null : (
-        <div className="px-sides pb-1 pt-1">
-          <ShopFilterSearch id="shop-search-mobile" />
+    <div className="overflow-x-clip bg-transparent md:hidden">
+      {isProducerBoxesPage ? (
+        <div className="px-sides py-2">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="cursor-pointer text-sm font-semibold text-foreground"
+            onClick={() => setFiltersOpen(true)}
+          >
+            {t("shop.filters")}
+          </Button>
+        </div>
+      ) : (
+        <div className="flex items-center justify-center px-sides py-1.5">
+          <ResultsCount count={displayResultsCount} />
         </div>
       )}
-      <Drawer>
-        {/* 3 main items: Filters, Results count, Sort by */}
-        <div
-          className={cn(
-            "grid items-center px-sides py-2",
-            isProducerBoxesPage ? "grid-cols-1" : "grid-cols-3",
-          )}
-        >
-          {/* Filters */}
-          <DrawerTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="justify-self-start cursor-pointer text-sm font-semibold text-foreground"
-            >
-              {t("shop.filters")}{" "}
-              <span
-                className={cn(
-                  "text-foreground/50 tabular-nums min-w-[2ch] inline-block text-center",
-                  (isProducerBoxesPage || displayFilterCount === 0) &&
-                    "invisible",
-                )}
-              >
-                ({displayFilterCount || 0})
-              </span>
-            </Button>
-          </DrawerTrigger>
 
-          {isProducerBoxesPage ? null : (
-            <>
-              <ResultsCount count={displayResultsCount} />
-              <SortDropdown className="justify-self-end" />
-            </>
-          )}
-        </div>
-
-        {/* Drawer content */}
+      {/* Filter drawer */}
+      <Drawer open={filtersOpen} onOpenChange={setFiltersOpen}>
         <DrawerContent className={cn("h-[80vh]", className)}>
-          <DrawerHeader className="flex justify-between items-center">
+          <DrawerHeader className="flex items-center justify-between">
             <DrawerTitle>
               {t("shop.filters")}{" "}
               <span
@@ -247,42 +228,60 @@ export function MobileFilters({
               </Button>
             )}
           </DrawerHeader>
-          <div className="overflow-y-auto flex-1 px-4 pb-4 space-y-6">
+          <div className="flex flex-1 flex-col overflow-y-auto px-4 pb-6">
+            <div className="flex-1 space-y-6">
+              {isProducerBoxesPage ? null : (
+                <>
+                  <ColorFilter
+                    products={originalProducts}
+                    showAllColors={isColorCategoryPage}
+                    activeColor={activeColorName ?? undefined}
+                    onColorSelect={handleColorSelect}
+                    getColorHref={resolveColorHref}
+                  />
+                  <FarmingFilter
+                    products={originalProducts}
+                    mode="drawer"
+                    onFarmingSelect={handleFarmingSelect}
+                    activeFarming={activeFarming ?? undefined}
+                    getFarmingHref={resolveFarmingHref}
+                  />
+                  <GrapesFilter
+                    products={originalProducts}
+                    mode="drawer"
+                    onGrapeSelect={handleGrapeSelect}
+                    activeGrape={activeGrapeName ?? undefined}
+                  />
+                </>
+              )}
+              <CategoryFilter collections={collections} mode="drawer" />
+              {isProducerBoxesPage ? null : (
+                <CompetitorFilter sources={priceSources} mode="drawer" />
+              )}
+            </div>
             {isProducerBoxesPage ? null : (
-              <>
-                <ShopFilterSearch id="shop-search-drawer" />
-                <ColorFilter
-                  products={originalProducts}
-                  showAllColors={isColorCategoryPage}
-                  activeColor={activeColorName ?? undefined}
-                  onColorSelect={handleColorSelect}
-                  getColorHref={resolveColorHref}
+              <div className="mt-6 border-t border-border pt-4">
+                <ProducerBoxesCta
+                  className="h-11 w-full px-5"
+                  ssrPathname={ssrPathname}
                 />
-                <FarmingFilter
-                  products={originalProducts}
-                  mode="drawer"
-                  onFarmingSelect={handleFarmingSelect}
-                  activeFarming={activeFarming ?? undefined}
-                  getFarmingHref={resolveFarmingHref}
-                />
-                <GrapesFilter
-                  products={originalProducts}
-                  mode="drawer"
-                  onGrapeSelect={handleGrapeSelect}
-                  activeGrape={activeGrapeName ?? undefined}
-                />
-              </>
-            )}
-            <CategoryFilter collections={collections} mode="drawer" />
-            {isProducerBoxesPage ? null : (
-              <CompetitorFilter sources={priceSources} mode="drawer" />
+              </div>
             )}
           </div>
         </DrawerContent>
       </Drawer>
-      <div className="px-sides pb-2">
-        <ProducerBoxesCta ssrPathname={ssrPathname} />
-      </div>
+
+      <ShopMobileSearchSheet open={searchOpen} onOpenChange={setSearchOpen} />
+      <ShopMobileSortSheet open={sortOpen} onOpenChange={setSortOpen} />
+
+      {isProducerBoxesPage ? null : (
+        <ShopMobileDock
+          filterCount={displayFilterCount}
+          onFilter={() => setFiltersOpen(true)}
+          onSort={() => setSortOpen(true)}
+          onSearch={() => setSearchOpen(true)}
+        />
+      )}
     </div>
   );
 }

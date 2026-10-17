@@ -74,7 +74,7 @@ async function fetchProductsForList(params: {
   } = params;
 
   const currencyParams = { displayCurrencyCode, sekToDisplayRate };
-  const isB2BSite = host != null ? isB2BHost(host) : true;
+  const isB2BSite = host != null ? isB2BHost(host) : false;
 
   if (producers.length > 0) {
     const allProducts: Product[] = [];

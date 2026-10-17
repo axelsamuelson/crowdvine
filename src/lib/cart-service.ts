@@ -13,6 +13,7 @@ import { bindCartOwnerAndTouch } from "@/lib/cart/reconcile-on-auth";
 import { getCurrentUser as getSessionUser } from "@/lib/supabase-server";
 import { isB2BHost } from "@/lib/b2b-site";
 import { normalizeExistingB2BLineQuantity } from "@/lib/cart/bottle-pack";
+import { wineDisplayTitle } from "@/lib/wine-display-title";
 
 type CartWineProducer = {
   id?: string;
@@ -310,11 +311,11 @@ export class CartService {
           ...(discountLabel !== undefined ? { discountLabel } : {}),
           merchandise: {
             id: wine.id,
-            title: `${wine.wine_name} ${wine.vintage}`,
+            title: wineDisplayTitle(wine.wine_name, wine.vintage),
             selectedOptions,
             product: {
               id: wine.id,
-              title: `${wine.wine_name} ${wine.vintage}`,
+              title: wineDisplayTitle(wine.wine_name, wine.vintage),
               handle: wine.handle,
               producerName: producerName,
               producerBoostActive,

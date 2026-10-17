@@ -6,4 +6,4 @@ export const WINE_ENRICHMENT_LINE_FRAME_CLASS =
 
 /** Spec labels (Color, Grape variety) and dropdown titles share this style. */
 export const WINE_ENRICHMENT_SPEC_LABEL_CLASS =
-  "text-[11px] font-medium uppercase tracking-[0.12em] text-foreground/70";
+  "break-words hyphens-auto text-[11px] font-medium uppercase tracking-[0.12em] text-foreground/70";

@@ -7,11 +7,17 @@ import {
   listTopProducerCoverageGaps,
 } from "@/lib/systembolaget/top-producer-coverage";
 import { mcpErrorResult, mcpJsonResult } from "../utils/tool-result";
+import { mcpWriteTool } from "../utils/write-tool";
 import {
   findTop100ProducerExact,
   nearTop100ProducerMatches,
 } from "../utils/top-100-match";
-import { mcpWriteTool } from "../utils/write-tool";
+import {
+  buildCuratedRanking,
+  rankingForView,
+  type RankingSource,
+  type RankingView,
+} from "@/lib/systembolaget/ranking";
 
 const categorySchema = z.enum([
   "red",
@@ -40,6 +46,8 @@ const CURATED_SELECT = [
   "skip_reason_sv",
   "skip_reason_en",
   "sort_order",
+  "wine_score",
+  "score_adjust",
   "is_published",
   "previous_sort_order",
   "first_published_at",
@@ -48,7 +56,19 @@ const CURATED_SELECT = [
   "updated_at",
 ].join(", ");
 
-const HARDCODED_RANK_RE = /Rankad\s*#|Ranked\s*#|#\d+/i;
+const wineScoreSchema = z
+  .number()
+  .int()
+  .min(0)
+  .max(100)
+  .optional()
+  .nullable();
+const scoreAdjustSchema = z
+  .number()
+  .int()
+  .min(-32768)
+  .max(32767)
+  .optional();
 
 /** Systembolaget category_level_2 filters for curated category enums. */
 const CATEGORY_LEVEL_2_PATTERNS: Record<
@@ -65,6 +85,8 @@ const CATEGORY_LEVEL_2_PATTERNS: Record<
   petnat: null,
   best: null,
 };
+
+const HARDCODED_RANK_RE = /Rankad\s*#|Ranked\s*#|#\d+/i;
 
 function rejectHardcodedRanks(
   producerNoteSv: string | null | undefined,
@@ -480,6 +502,8 @@ export function registerSystembolagetTools(
         skip_reason_sv: z.string().optional().nullable(),
         skip_reason_en: z.string().optional().nullable(),
         sort_order: z.number().int().optional(),
+        wine_score: wineScoreSchema,
+        score_adjust: scoreAdjustSchema,
       },
     },
     async (args) => {
@@ -549,6 +573,8 @@ export function registerSystembolagetTools(
               skip_reason_sv: args.skip_reason_sv?.trim() || null,
               skip_reason_en: args.skip_reason_en?.trim() || null,
               sort_order: args.sort_order ?? 100,
+              wine_score: args.wine_score ?? null,
+              score_adjust: args.score_adjust ?? 0,
               is_published: false,
             })
             .select(CURATED_SELECT)
@@ -579,6 +605,8 @@ export function registerSystembolagetTools(
         skip_reason_sv: z.string().optional().nullable(),
         skip_reason_en: z.string().optional().nullable(),
         sort_order: z.number().int().optional(),
+        wine_score: wineScoreSchema,
+        score_adjust: scoreAdjustSchema,
       },
     },
     async (args) => {
@@ -680,6 +708,12 @@ export function registerSystembolagetTools(
           if (args.sort_order !== undefined) {
             patch.sort_order = args.sort_order;
           }
+          if (args.wine_score !== undefined) {
+            patch.wine_score = args.wine_score;
+          }
+          if (args.score_adjust !== undefined) {
+            patch.score_adjust = args.score_adjust;
+          }
 
           if (args.top_100_producer_name !== undefined) {
             const top100Error = validateTop100Name(args.top_100_producer_name);
@@ -712,6 +746,127 @@ export function registerSystembolagetTools(
           return data;
         },
       );
+    },
+  );
+
+  server.registerTool(
+    "get_curated_ranking",
+    {
+      description:
+        "Rank published recommended Systembolaget wines. view=category needs category. view=country needs country. view=global dedupes product_number. Avoid wines are excluded. moved is true when the mix rule changed that wine's place in the requested view.",
+      inputSchema: {
+        view: z.enum(["category", "country", "global"]),
+        category: categorySchema.optional(),
+        country: z.string().optional(),
+      },
+    },
+    async ({ view, category, country }) => {
+      try {
+        if (view === "category" && !category) {
+          throw new Error("category is required when view is category");
+        }
+        if (view === "country" && !country?.trim()) {
+          throw new Error("country is required when view is country");
+        }
+
+        const { data, error } = await sb
+          .from("systembolaget_curated")
+          .select(
+            "product_number, category, verdict, is_published, wine_score, score_adjust, sort_order, top_100_producer_name",
+          )
+          .eq("is_published", true)
+          .eq("verdict", "recommended");
+        if (error) throw new Error(error.message);
+
+        const rows = data ?? [];
+        const numbers = [
+          ...new Set(rows.map((row) => String(row.product_number))),
+        ];
+        const productsByNumber = new Map<
+          string,
+          {
+            name_bold: string | null;
+            name_thin: string | null;
+            producer_name: string | null;
+            country: string | null;
+          }
+        >();
+        if (numbers.length > 0) {
+          const { data: products, error: productError } = await sb
+            .from("systembolaget_products")
+            .select("product_number, name_bold, name_thin, producer_name, country")
+            .in("product_number", numbers);
+          if (productError) throw new Error(productError.message);
+          for (const product of products ?? []) {
+            productsByNumber.set(String(product.product_number), {
+              name_bold: product.name_bold,
+              name_thin: product.name_thin,
+              producer_name: product.producer_name,
+              country: product.country,
+            });
+          }
+        }
+
+        const sources: RankingSource[] = rows.map((row) => {
+          const product = productsByNumber.get(String(row.product_number));
+          const name = [product?.name_bold, product?.name_thin]
+            .map((part) => part?.trim())
+            .filter(Boolean)
+            .join(" ");
+          return {
+            productNumber: String(row.product_number),
+            name: name || String(row.product_number),
+            category: String(row.category),
+            verdict: String(row.verdict),
+            isPublished: row.is_published === true,
+            wineScore:
+              row.wine_score == null ? null : Number(row.wine_score),
+            scoreAdjust: Number(row.score_adjust ?? 0),
+            sortOrder: Number(row.sort_order ?? 0),
+            top100ProducerName: row.top_100_producer_name,
+            producerName: product?.producer_name ?? null,
+            country: product?.country ?? null,
+          };
+        });
+
+        const ranked = buildCuratedRanking(sources);
+        const listed = rankingForView(ranked, view as RankingView, {
+          category,
+          country,
+        });
+
+        return mcpJsonResult(
+          {
+            view,
+            category: category ?? null,
+            country: country ?? null,
+            wines: listed.map((wine) => ({
+              product_number: wine.productNumber,
+              name: wine.name,
+              producer: wine.producerKey,
+              producer_rank: wine.producerRank,
+              wine_score: wine.wineScore,
+              score_adjust: wine.scoreAdjust,
+              score: wine.score,
+              scoreRank: wine.viewScoreRank,
+              rank: wine.viewRank,
+              categoryRank: wine.categoryRank,
+              countryRank: wine.countryRank,
+              globalRank: wine.globalRank,
+              moved: wine.viewMoved,
+            })),
+          },
+          {
+            tool: "get_curated_ranking",
+            rowCount: listed.length,
+          },
+        );
+      } catch (e) {
+        return mcpErrorResult(
+          e instanceof Error ? e.message : String(e),
+          "get_curated_ranking",
+        );
+      }
     },
   );
 }

@@ -99,6 +99,15 @@ const concepts = [
     status: "in-development",
     route: "/concept-12",
   },
+  {
+    id: 13,
+    title: "Titel på bakgrund",
+    subtitle: "Originalstartsidan plus en bild",
+    description:
+      "Samma startsida som idag, med en extra bild i produktgriden. Ingen vinprodukt — bara en bakgrundsbild med titel ovanpå.",
+    status: "in-development",
+    route: "/concept-13",
+  },
 ];
 
 export default function HomeConceptsIndex() {

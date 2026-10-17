@@ -28,10 +28,11 @@ export type WineSimilaritySignals = {
   basePriceSek?: number | null;
 };
 
-const DEFAULT_MAX_TOTAL = 4;
-const DEFAULT_SAME_PRODUCER = 4;
-const DEFAULT_SIMILAR = 4;
-/** Keep a wider same-producer pool for PDP sibling internal links. */
+const DEFAULT_MAX_TOTAL = 8;
+/** Visible carousel pages: 2 on mobile, 4 on desktop — keep a wider scroll pool. */
+const DEFAULT_SAME_PRODUCER = 12;
+const DEFAULT_SIMILAR = 12;
+/** Keep a wider same-producer pool for PDP sibling internal links + carousel. */
 const SAME_PRODUCER_LINK_POOL = 12;
 
 function normalizeToken(value: string | null | undefined): string {

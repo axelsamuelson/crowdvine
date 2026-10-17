@@ -1262,8 +1262,8 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
                 </SelectContent>
               </Select>
               <p className={hintClass}>
-                Planerad syns inte som lager. På väg visas som kommande på
-                dirtywine.se. Levererad räknas som lager.
+                Planerad syns inte i sortimentet. Kommande (packad eller på väg)
+                visas som kommande. Levererad räknas som lager.
               </p>
             </div>
           </div>

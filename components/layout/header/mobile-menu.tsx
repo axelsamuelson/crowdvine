@@ -70,7 +70,8 @@ export function MobileMenu({
         aria-label="Open mobile menu"
         variant="secondary"
         size="sm"
-        className="uppercase md:hidden"
+        // Match cart trigger corner radius on mobile (rounded-sm, not pill).
+        className="rounded-sm uppercase md:hidden"
       >
         Menu
       </Button>
@@ -174,6 +175,7 @@ export function MobileMenu({
                       <ShopLinks
                         label={t("home.popularProducers")}
                         locale={paths.locale}
+                        limit={10}
                         emptyMessage={t("home.noProducersFound", {
                           count: collections?.length ?? 0,
                         })}

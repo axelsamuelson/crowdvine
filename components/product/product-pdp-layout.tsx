@@ -172,7 +172,7 @@ export function ProductPdpLayout({
                     <StockBadge
                       b2bStock={product.b2bStock}
                       availableForSale={product.availableForSale}
-                      isIncoming={product.isIncoming === true}
+                      b2bAvailability={product.b2bAvailability}
                     />
                   </div>
 
@@ -222,7 +222,9 @@ export function ProductPdpLayout({
           />
         ) : null}
 
-        {recommendations && recommendations.items.length > 0 ? (
+        {recommendations &&
+        (recommendations.sameProducer.length > 0 ||
+          recommendations.similar.length > 0) ? (
           <PdpRecommendationsSection recommendations={recommendations} />
         ) : null}
       </PageLayoutServer>
