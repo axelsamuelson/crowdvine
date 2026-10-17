@@ -143,6 +143,7 @@
     "validating": "Validating…",
     "addMoreBottles": "Add more bottles to proceed to checkout",
     "proceedToCheckout": "Proceed to Checkout",
+    "producerOrdersPaused": "Producer orders are paused. Remove the line to continue.",
     "yourCart": "Your cart",
     "emptyCart": "Your cart is empty",
     "continueShopping": "Continue shopping",

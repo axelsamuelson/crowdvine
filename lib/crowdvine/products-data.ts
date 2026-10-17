@@ -340,7 +340,8 @@ export async function fetchProductsData(params?: {
   const limit = idList.length > 0 ? idList.length : (params?.limit ?? 200);
   const sortKey = params?.sortKey || "RELEVANCE";
   const reverse = params?.reverse ?? false;
-  const isB2BSite = params?.isB2BSite ?? true;
+  // Missing host / omitted flag must stay B2C so pact pages never hide wines.
+  const isB2BSite = params?.isB2BSite ?? false;
   // Hidden wines are removed after stock is known, so the SQL read has to
   // include the whole live catalog before the caller's limit is applied.
   const sqlLimit = isB2BSite ? Math.max(limit, 5000) : limit;
@@ -780,7 +781,7 @@ export async function fetchCollectionProductsData(
   },
 ): Promise<ProductData[]> {
   const limit = params?.limit ?? 200;
-  const isB2BSite = params?.isB2BSite ?? true;
+  const isB2BSite = params?.isB2BSite ?? false;
   const sqlLimit = isB2BSite ? Math.max(limit, 5000) : limit;
   const { displayCurrencyCode, sekToDisplayRate } =
     await resolveProductDisplayCurrency(params);

@@ -23,6 +23,7 @@ import { CartValidationDisplay } from "./cart-validation-display";
 import type { ProducerValidation } from "@/lib/checkout-validation";
 import { CartValidationHeader } from "./CartValidationHeader";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
+import { B2B_PRODUCER_ORDERS_ENABLED } from "@/lib/b2b/flags";
 
 const CartContainer = ({
   children,
@@ -161,6 +162,11 @@ const CartItems = ({
           closeCart={closeCart}
           validations={validations}
           isValidating={isValidating}
+          producerOrdersPaused={
+            showExclVat &&
+            !B2B_PRODUCER_ORDERS_ENABLED &&
+            (cart?.lines ?? []).some((line) => line.source === "producer")
+          }
         />
         </CartContainer>
       </div>
@@ -432,10 +438,12 @@ function CheckoutButton({
   closeCart,
   validations = [],
   isValidating = false,
+  producerOrdersPaused = false,
 }: {
   closeCart: () => void;
   validations?: ProducerValidation[];
   isValidating?: boolean;
+  producerOrdersPaused?: boolean;
 }) {
   const { t } = useTranslations();
   const paths = useLocalizedPaths();
@@ -476,7 +484,9 @@ function CheckoutButton({
   // 2. Normal checkout is disabled AND no validation errors (so user can't click checkout when it's disabled)
   // 3. But if there are validation errors, button should be clickable to redirect to producer page
   const shouldDisableButton =
-    isValidating || ((!checkoutUrl || isPending) && !hasValidationErrors);
+    producerOrdersPaused ||
+    isValidating ||
+    ((!checkoutUrl || isPending) && !hasValidationErrors);
 
   return (
     <Button
@@ -489,7 +499,7 @@ function CheckoutButton({
       }`}
       onClick={() => {
         // Don't allow clicks during validation
-        if (isValidating) {
+        if (isValidating || producerOrdersPaused) {
           return;
         }
 

@@ -69,7 +69,7 @@ async function fetchProductsForRoute(params: {
   } = params;
 
   const currencyParams = { displayCurrencyCode, sekToDisplayRate };
-  const isB2BSite = host != null ? isB2BHost(host) : true;
+  const isB2BSite = host != null ? isB2BHost(host) : false;
 
   if (producers.length > 0) {
     const allProducts: Product[] = [];
@@ -148,7 +148,7 @@ export async function getShopLayoutResultsCount(
       displayCurrencyCode: shoppingContext.currencyCode,
       sekToDisplayRate: shoppingContext.sekToDisplayRate,
     };
-    const isB2BSite = host != null ? isB2BHost(host) : true;
+    const isB2BSite = host != null ? isB2BHost(host) : false;
     const locale = localeFromPathname(pathname);
     const segment = shopSegmentFromPathname(pathname);
 
