@@ -23,6 +23,11 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { sv } from "date-fns/locale";
 import type { AdminPalletOperatingSummary } from "@/lib/admin-pallet-operating-summary";
+import {
+  B2B_PALLET_STATUS_LABELS,
+  b2bPalletStatusSchema,
+  type B2BPalletStatus,
+} from "@/lib/b2b/pallet-status";
 
 interface PalletZone {
   id: string;
@@ -120,13 +125,33 @@ interface B2BShipmentItem {
   };
 }
 
+function B2BPalletStatusBadge({ status }: { status?: string }) {
+  const parsed = b2bPalletStatusSchema.safeParse(status);
+  const resolved: B2BPalletStatus = parsed.success ? parsed.data : "inactive";
+  return (
+    <span
+      className={cn(
+        "shrink-0 inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium tracking-wide",
+        resolved === "active" &&
+          "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+        resolved === "in_transit" &&
+          "bg-sky-500/10 text-sky-700 dark:text-sky-300",
+        resolved === "inactive" &&
+          "bg-zinc-500/10 text-zinc-600 dark:text-zinc-400",
+      )}
+    >
+      {B2B_PALLET_STATUS_LABELS[resolved]}
+    </span>
+  );
+}
+
 interface B2BShipment {
   id: string;
   name: string;
   shipped_at: string | null;
   delivered_at: string | null;
   cost_cents: number | null;
-  is_active?: boolean;
+  status?: string;
   created_at: string;
   b2b_pallet_shipment_items?: B2BShipmentItem[];
 }
@@ -420,16 +445,7 @@ export default function PalletsPage() {
                         <h3 className="text-sm font-semibold text-gray-900 dark:text-zinc-100 truncate">
                           {shipment.name}
                         </h3>
-                        <span
-                          className={cn(
-                            "shrink-0 inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide",
-                            shipment.is_active
-                              ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-                              : "bg-zinc-500/10 text-zinc-600 dark:text-zinc-400",
-                          )}
-                        >
-                          {shipment.is_active ? "Aktiv" : "Inaktiv"}
-                        </span>
+                        <B2BPalletStatusBadge status={shipment.status} />
                       </div>
                       <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-gray-500 dark:text-zinc-400 mb-3">
                         {shipment.shipped_at && (

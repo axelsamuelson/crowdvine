@@ -3,6 +3,7 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { CartService } from "@/src/lib/cart-service";
 import { isB2BHost } from "@/lib/b2b-site";
+import { B2B_PRODUCER_ORDERS_ENABLED } from "@/lib/b2b/flags";
 import {
   BOTTLE_PACK_SIZE,
   isBottlePackQuantity,
@@ -21,6 +22,20 @@ export async function POST(request: Request) {
 
     const body = await request.json();
     const { variantId, quantity: requestedQuantity = 1, source = "producer" } = body;
+    const cartSource = typeof source === "string" && source.length > 0 ? source : "producer";
+    const requestHost =
+      request.headers.get("x-forwarded-host") ?? request.headers.get("host");
+
+    if (
+      !B2B_PRODUCER_ORDERS_ENABLED &&
+      isB2BHost(requestHost) &&
+      cartSource === "producer"
+    ) {
+      return NextResponse.json(
+        { error: "producer_orders_paused" },
+        { status: 403 },
+      );
+    }
 
     console.log("🛒 [ADD-QUANTITY] Variant ID:", variantId);
     console.log("🛒 [ADD-QUANTITY] Requested quantity:", requestedQuantity);
@@ -39,9 +54,8 @@ export async function POST(request: Request) {
     );
 
     // Dirty Wine: only full packs (multiples of 6)
-    const host = request.headers.get("host");
     const enforcePack =
-      body.enforcePack === true || isB2BHost(host);
+      body.enforcePack === true || isB2BHost(requestHost);
     if (enforcePack && !isBottlePackQuantity(quantity)) {
       return NextResponse.json(
         {

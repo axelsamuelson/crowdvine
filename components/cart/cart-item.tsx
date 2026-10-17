@@ -16,6 +16,7 @@ import { ColorSwatch } from "@/components/ui/color-picker";
 import { useProductImages } from "../products/variant-selector";
 import { Warehouse } from "lucide-react";
 import { BoostBadge } from "@/components/producer/boost-badge";
+import { B2B_PRODUCER_ORDERS_ENABLED } from "@/lib/b2b/flags";
 
 type MerchandiseSearchParams = {
   [key: string]: string;
@@ -133,6 +134,11 @@ export function CartItemCard({ item, onCloseCart }: CartItemProps) {
               ) : null}
             </div>
           </Link>
+          {showExclVat &&
+          !B2B_PRODUCER_ORDERS_ENABLED &&
+          item.source === "producer" ? (
+            <p className="text-sm text-amber-800">{t("cart.producerOrdersPaused")}</p>
+          ) : null}
           <div className="flex flex-col">
             <span className="2xl:text-lg font-semibold">
               {formatPrice(displayAmount)}

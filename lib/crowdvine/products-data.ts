@@ -23,6 +23,8 @@ import {
 import {
   aggregateB2BPalletStock,
   B2B_PALLET_ITEM_STOCK_SELECT,
+  fetchB2BWineAvailability,
+  type B2BWineAvailability,
 } from "@/lib/b2b-pallet-stock";
 
 async function resolveProductDisplayCurrency(params?: {
@@ -271,6 +273,8 @@ export interface ProductData {
   b2bPriceExclVat?: number;
   /** B2B stock quantity (wines only). Null/0 = out of stock. Used for stock badges. */
   b2bStock?: number | null;
+  /** Dirtywine assortment state. Absent on pactwines.com. */
+  b2bAvailability?: B2BWineAvailability;
 }
 
 /**
@@ -338,7 +342,11 @@ export async function fetchProductsData(params?: {
   const limit = idList.length > 0 ? idList.length : (params?.limit ?? 200);
   const sortKey = params?.sortKey || "RELEVANCE";
   const reverse = params?.reverse ?? false;
-  const isB2BSite = params?.isB2BSite ?? true;
+  // Missing host / omitted flag must stay B2C so pact pages never hide wines.
+  const isB2BSite = params?.isB2BSite ?? false;
+  // Hidden wines are removed after stock is known, so the SQL read has to
+  // include the whole live catalog before the caller's limit is applied.
+  const sqlLimit = isB2BSite ? Math.max(limit, 5000) : limit;
   const { displayCurrencyCode, sekToDisplayRate } =
     await resolveProductDisplayCurrency(params);
 
@@ -405,16 +413,16 @@ export async function fetchProductsData(params?: {
 
   let result: { data: any[] | null; error: any | null };
   if (!hasSearch) {
-    result = await applySort(baseQuery()).limit(limit);
+    result = await applySort(baseQuery()).limit(sqlLimit);
   } else {
     // PostgREST cannot express a single OR group spanning both the root table and an embedded
     // relation (producers) in one `.or(...)` clause. We run two queries and merge.
     const wineResult = await applySort(
       applyWineCatalogSearch(baseQuery(), params?.searchQuery),
-    ).limit(limit);
+    ).limit(sqlLimit);
     const producerResult = await applySort(
       applyProducerNameSearch(baseQuery(), params?.searchQuery),
-    ).limit(limit);
+    ).limit(sqlLimit);
 
     if (wineResult.error) {
       result = wineResult;
@@ -428,7 +436,7 @@ export async function fetchProductsData(params?: {
         if (!id || seen.has(id)) continue;
         seen.add(id);
         merged.push(row);
-        if (merged.length >= limit) break;
+        if (merged.length >= sqlLimit) break;
       }
       result = { data: merged, error: null };
     }
@@ -450,14 +458,14 @@ export async function fetchProductsData(params?: {
         );
       const fbHasSearch = hasSearch;
       if (!fbHasSearch) {
-        result = await applySort(fbBase()).limit(limit);
+        result = await applySort(fbBase()).limit(sqlLimit);
       } else {
         const wineResult = await applySort(
           applyWineCatalogSearch(fbBase(), params?.searchQuery),
-        ).limit(limit);
+        ).limit(sqlLimit);
         const producerResult = await applySort(
           applyProducerNameSearch(fbBase(), params?.searchQuery),
-        ).limit(limit);
+        ).limit(sqlLimit);
 
         if (wineResult.error) {
           result = wineResult;
@@ -471,7 +479,7 @@ export async function fetchProductsData(params?: {
             if (!id || seen.has(id)) continue;
             seen.add(id);
             merged.push(row);
-            if (merged.length >= limit) break;
+            if (merged.length >= sqlLimit) break;
           }
           result = { data: merged, error: null };
         }
@@ -483,14 +491,14 @@ export async function fetchProductsData(params?: {
         const fbBase = () =>
           applyWineCatalogFilters(sb.from("wines").select(fallbackSelect), categoryFilters);
         if (!hasSearch) {
-          result = await applySort(fbBase()).limit(limit);
+          result = await applySort(fbBase()).limit(sqlLimit);
         } else {
           const wineResult = await applySort(
             applyWineCatalogSearch(fbBase(), params?.searchQuery),
-          ).limit(limit);
+          ).limit(sqlLimit);
           const producerResult = await applySort(
             applyProducerNameSearch(fbBase(), params?.searchQuery),
-          ).limit(limit);
+          ).limit(sqlLimit);
 
           if (wineResult.error) {
             result = wineResult;
@@ -504,7 +512,7 @@ export async function fetchProductsData(params?: {
               if (!id || seen.has(id)) continue;
               seen.add(id);
               merged.push(row);
-              if (merged.length >= limit) break;
+              if (merged.length >= sqlLimit) break;
             }
             result = { data: merged, error: null };
           }
@@ -527,8 +535,11 @@ export async function fetchProductsData(params?: {
   const wineIds = rawData.map((wine: any) => wine.id) || [];
   const wineImagesMap = new Map<string, any[]>();
 
-  const [{ stockMap: b2bStockMap, shippingMap: b2bShippingMap }, rateMap, wineImagesResult] =
-    await Promise.all([
+  const [
+    { stockMap: b2bStockMap, shippingMap: b2bShippingMap },
+    rateMap,
+    wineImagesResult,
+  ] = await Promise.all([
       isB2BSite
         ? fetchB2BStockAndShippingFromPallets(sb, wineIds)
         : Promise.resolve({
@@ -545,12 +556,32 @@ export async function fetchProductsData(params?: {
         : Promise.resolve({ data: [] as any[] }),
     ]);
 
+  const sellableStockByWineId = new Map<string, number | null>();
+  if (isB2BSite) {
+    for (const wine of rawData) {
+      const wineId = typeof wine?.id === "string" ? wine.id : "";
+      if (!wineId) continue;
+      const fromPallets = b2bStockMap.get(wineId);
+      sellableStockByWineId.set(
+        wineId,
+        fromPallets != null
+          ? fromPallets
+          : wine.b2b_stock != null
+            ? Number(wine.b2b_stock)
+            : null,
+      );
+    }
+  }
+  const b2bAvailabilityByWineId = isB2BSite
+    ? await fetchB2BWineAvailability(sb, wineIds, sellableStockByWineId)
+    : new Map<string, B2BWineAvailability>();
+
   wineImagesResult.data?.forEach((image: any) => {
     if (!wineImagesMap.has(image.wine_id)) wineImagesMap.set(image.wine_id, []);
     wineImagesMap.get(image.wine_id)!.push(image);
   });
 
-  return rawData.map((i: any) => {
+  const products = rawData.map((i: any) => {
     const grapeVarieties = Array.isArray(i.grape_varieties)
       ? i.grape_varieties
       : i.grape_varieties
@@ -571,6 +602,9 @@ export async function fetchProductsData(params?: {
       b2bStock,
       availableForSale: i.available_for_sale,
     });
+    const b2bAvailability = isB2BSite
+      ? (b2bAvailabilityByWineId.get(i.id) ?? "hidden")
+      : undefined;
     const images =
       wineImages.length > 0
         ? wineImages.map((img: any) => ({
@@ -679,6 +713,7 @@ export async function fetchProductsData(params?: {
       updatedAt: new Date().toISOString(),
       createdAt: new Date().toISOString(),
       b2bStock: b2bStock ?? undefined,
+      b2bAvailability,
       ...(i.b2b_margin_percentage != null &&
       i.b2b_margin_percentage >= 0 &&
       i.b2b_margin_percentage < 100
@@ -725,6 +760,11 @@ export async function fetchProductsData(params?: {
       },
     };
   });
+
+  const visible = isB2BSite
+    ? products.filter((product) => product.b2bAvailability !== "hidden")
+    : products;
+  return visible.slice(0, limit);
 }
 
 /**
@@ -743,7 +783,8 @@ export async function fetchCollectionProductsData(
   },
 ): Promise<ProductData[]> {
   const limit = params?.limit ?? 200;
-  const isB2BSite = params?.isB2BSite ?? true;
+  const isB2BSite = params?.isB2BSite ?? false;
+  const sqlLimit = isB2BSite ? Math.max(limit, 5000) : limit;
   const { displayCurrencyCode, sekToDisplayRate } =
     await resolveProductDisplayCurrency(params);
 
@@ -875,7 +916,7 @@ export async function fetchCollectionProductsData(
       .eq("producer_id", collectionId),
     params?.searchQuery,
   );
-  let collResult = await collQuery.limit(limit);
+  let collResult = await collQuery.limit(sqlLimit);
 
   if (collResult.error) {
     const msg = collResult.error.message ?? "";
@@ -884,7 +925,7 @@ export async function fetchCollectionProductsData(
         sb.from("wines").select(collSelect).eq("producer_id", collectionId),
         params?.searchQuery,
       );
-      collResult = await collQuery.limit(limit);
+      collResult = await collQuery.limit(sqlLimit);
     }
     if (collResult.error) {
       throw new Error(supabaseErrorToMessage(collResult.error));
@@ -915,7 +956,27 @@ export async function fetchCollectionProductsData(
   const { stockMap: collB2bStockMap, shippingMap: collB2bShippingMap } =
     await fetchB2BStockAndShippingFromPallets(sb, collWineIds);
 
-  return collData.map((i: any) => {
+  const collSellableStock = new Map<string, number | null>();
+  if (isB2BSite) {
+    for (const wine of collData) {
+      const wineId = typeof wine?.id === "string" ? wine.id : "";
+      if (!wineId) continue;
+      const fromPallets = collB2bStockMap.get(wineId);
+      collSellableStock.set(
+        wineId,
+        fromPallets != null
+          ? fromPallets
+          : wine.b2b_stock != null
+            ? Number(wine.b2b_stock)
+            : null,
+      );
+    }
+  }
+  const collAvailability = isB2BSite
+    ? await fetchB2BWineAvailability(sb, collWineIds, collSellableStock)
+    : new Map<string, B2BWineAvailability>();
+
+  const collectionProducts = collData.map((i: any) => {
     const grapeVarieties = Array.isArray(i.grape_varieties)
       ? i.grape_varieties
       : i.grape_varieties
@@ -934,6 +995,9 @@ export async function fetchCollectionProductsData(
       b2bStock,
       availableForSale: i.available_for_sale,
     });
+    const b2bAvailability = isB2BSite
+      ? (collAvailability.get(i.id) ?? "hidden")
+      : undefined;
 
     const rawDesc = extractWineText(
       i.description as Record<string, string> | string | null,
@@ -1022,6 +1086,7 @@ export async function fetchCollectionProductsData(
       updatedAt: new Date().toISOString(),
       createdAt: new Date().toISOString(),
       b2bStock: b2bStock ?? undefined,
+      b2bAvailability,
       ...(i.b2b_margin_percentage != null &&
       i.b2b_margin_percentage >= 0 &&
       i.b2b_margin_percentage < 100
@@ -1042,6 +1107,11 @@ export async function fetchCollectionProductsData(
         : {}),
     };
   });
+
+  const visibleCollection = isB2BSite
+    ? collectionProducts.filter((product) => product.b2bAvailability !== "hidden")
+    : collectionProducts;
+  return visibleCollection.slice(0, limit);
 }
 
 /**
@@ -1057,12 +1127,13 @@ export async function catalogHasProducts(filters?: {
   filterIsNatural?: boolean;
   filterFarming?: string[];
   filterGrape?: string;
+  isB2BSite?: boolean;
 }): Promise<boolean> {
   if (supabaseBuildUsesPlaceholder()) return false;
   const rows = await fetchProductsData({
     ...filters,
     limit: 1,
-    isB2BSite: false,
+    isB2BSite: filters?.isB2BSite ?? false,
   });
   return rows.length > 0;
 }
