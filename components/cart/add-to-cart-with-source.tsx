@@ -18,6 +18,7 @@ import {
   BOTTLE_PACK_SIZE,
   B2B_MAX_PACK_BOTTLES,
 } from "@/lib/cart/bottle-pack";
+import { B2B_PRODUCER_ORDERS_ENABLED } from "@/lib/b2b/flags";
 
 export type CartSource = "producer" | "warehouse";
 
@@ -45,6 +46,9 @@ export function AddToCartWithSource({
   const { t } = useTranslations();
   const [quantity, setQuantity] = useState(BOTTLE_PACK_SIZE);
   const { selectedSource, setSelectedSource } = useCartSource();
+  const effectiveSource: CartSource = B2B_PRODUCER_ORDERS_ENABLED
+    ? selectedSource
+    : "warehouse";
   const [isLoading, startTransition] = useTransition();
   const selectedVariant = useSelectedVariant(product);
   const pathname = useParams<{ handle?: string }>();
@@ -91,6 +95,7 @@ export function AddToCartWithSource({
   const handleAddToCart = (e: React.FormEvent, source: CartSource) => {
     e.preventDefault();
     if (previewDisabled) return;
+    if (!B2B_PRODUCER_ORDERS_ENABLED && source === "producer") return;
 
     if (resolvedVariant) {
       startTransition(async () => {
@@ -161,15 +166,14 @@ export function AddToCartWithSource({
   };
 
   // Producer can always be added (even if out of stock), warehouse requires stock
-  const isDisabled = !resolvedVariant || isLoading || (selectedSource === "warehouse" && isWarehouseDisabled);
-  // Producer is never disabled due to stock
-  const isAddToCartDisabled = !resolvedVariant || isLoading || (selectedSource === "warehouse" && isWarehouseDisabled);
+  const isDisabled = !resolvedVariant || isLoading || (effectiveSource === "warehouse" && isWarehouseDisabled);
+  const isAddToCartDisabled = !resolvedVariant || isLoading || (effectiveSource === "warehouse" && isWarehouseDisabled);
 
   const addToCartLabel = !resolvedVariant
     ? t("product.selectOne")
-    : selectedSource === "warehouse" && isWarehouseDisabled
+    : effectiveSource === "warehouse" && isWarehouseDisabled
       ? t("product.outOfStock")
-      : selectedSource === "producer"
+      : effectiveSource === "producer"
         ? t("product.pdp.addQuantityToCartProducer", { count: quantity })
         : t("product.pdp.addQuantityToCartWarehouse", { count: quantity });
 
@@ -177,6 +181,7 @@ export function AddToCartWithSource({
     <div className={cn("w-full space-y-3", className)}>
       {/* Source Selection - Two buttons side by side */}
       <div className="flex gap-2">
+        {B2B_PRODUCER_ORDERS_ENABLED ? (
         <button
           type="button"
           onClick={() => setSelectedSource("producer")}
@@ -190,12 +195,13 @@ export function AddToCartWithSource({
           <Factory className="w-4 h-4" />
           <span className="text-sm font-medium">{t("product.producer")}</span>
         </button>
+        ) : null}
         <button
           type="button"
           onClick={() => setSelectedSource("warehouse")}
           className={cn(
             "flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-md border-2 transition-all relative",
-            selectedSource === "warehouse"
+            effectiveSource === "warehouse"
               ? isWarehouseDisabled
                 ? "bg-gray-200 text-gray-500 border-gray-300 cursor-not-allowed"
                 : "bg-black text-white border-black"
@@ -215,7 +221,7 @@ export function AddToCartWithSource({
       </div>
 
       {/* Quantity and Add to Cart */}
-      <form onSubmit={(e) => handleAddToCart(e, selectedSource)} className="w-full">
+      <form onSubmit={(e) => handleAddToCart(e, effectiveSource)} className="w-full">
         <div className="flex items-center gap-3">
           {/* Quantity Selector - Black theme to match Add To Cart */}
           <div className="flex items-center border-2 border-black rounded-md overflow-hidden bg-black">

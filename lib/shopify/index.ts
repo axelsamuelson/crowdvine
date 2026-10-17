@@ -45,14 +45,15 @@ export async function getProducts(params?: {
   sortKey?: string;
   reverse?: boolean;
   query?: string;
-  /** Host for B2B stock logic. When pactwines.com, all wines available. */
+  /** Host for B2B stock logic. Missing host = B2C. dirtywine.se = B2B. */
   host?: string | null;
   displayCurrencyCode?: string;
   sekToDisplayRate?: number;
 }): Promise<Product[]> {
   const sortKey = params?.sortKey || "RELEVANCE";
   const { isB2BHost } = await import("@/lib/b2b-site");
-  const isB2BSite = params?.host != null ? isB2BHost(params.host) : true;
+  const isB2BSite =
+    params?.host != null ? isB2BHost(params.host) : false;
   const data = await fetchProductsData({
     limit: params?.limit,
     sortKey: sortKey as "RELEVANCE" | "PRICE" | "CREATED_AT" | "CREATED",
@@ -117,7 +118,7 @@ export async function getCollectionProducts(params: {
   sortKey?: string;
   reverse?: boolean;
   query?: string;
-  /** Host for B2B stock logic. When pactwines.com, all wines available. */
+  /** Host for B2B stock logic. Missing host = B2C. dirtywine.se = B2B. */
   host?: string | null;
   displayCurrencyCode?: string;
   sekToDisplayRate?: number;
@@ -129,7 +130,8 @@ export async function getCollectionProducts(params: {
   }
 
   const { isB2BHost } = await import("@/lib/b2b-site");
-  const isB2BSite = params?.host != null ? isB2BHost(params.host) : true;
+  const isB2BSite =
+    params?.host != null ? isB2BHost(params.host) : false;
   const data = await fetchCollectionProductsData((collection as any).id, {
     limit: params?.limit,
     isB2BSite,

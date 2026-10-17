@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getCurrentUser } from "@/lib/auth";
 import { getAppUrl } from "@/lib/app-url";
+import { isB2BHost } from "@/lib/b2b-site";
+import { fetchHiddenB2BWineIds } from "@/lib/b2b-pallet-stock";
 
 function toProducerHandle(name: string) {
   return name.toLowerCase().replace(/\s+/g, "-");
@@ -114,6 +116,20 @@ export async function GET(request: Request) {
       }
     }
     const winesFiltered = liveProducerIds.size > 0 ? wineList.filter((w: any) => liveProducerIds.has(w.producer_id)) : wineList;
+    const requestHost =
+      request.headers.get("x-forwarded-host") ?? request.headers.get("host");
+    const hiddenWineIds = isB2BHost(requestHost)
+      ? await fetchHiddenB2BWineIds(
+          sb,
+          winesFiltered
+            .map((wine: { id?: unknown }) => wine.id)
+            .filter((id): id is string => typeof id === "string"),
+        )
+      : new Set<string>();
+    const visibleWines = winesFiltered.filter(
+      (wine: { id?: unknown }) =>
+        typeof wine.id === "string" && !hiddenWineIds.has(wine.id),
+    );
 
     return NextResponse.json({
       users: (users || []).map((u: any) => ({
@@ -122,7 +138,7 @@ export async function GET(request: Request) {
         description: u.description,
         avatar_image_path: u.avatar_image_path,
       })),
-      wines: winesFiltered.map((w: any) => ({
+      wines: visibleWines.map((w: any) => ({
         id: w.id,
         name: `${w.wine_name}${w.vintage ? ` ${w.vintage}` : ""}`.trim(),
         handle: w.handle,
