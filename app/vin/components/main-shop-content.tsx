@@ -1,11 +1,15 @@
 import { Suspense } from "react";
+import { headers } from "next/headers";
 
 import ProductList from "@/app/vin/components/product-list";
 import { storeCatalog } from "@/lib/shopify/constants";
 import { getSiteConfig } from "@/lib/site-config-server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { isB2BHost } from "@/lib/b2b-site";
+import { fetchHiddenB2BWineIds } from "@/lib/b2b-pallet-stock";
 
 type TopWineRow = {
+  id: string;
   wine_name: string;
   handle: string;
   base_price_cents: number;
@@ -16,11 +20,22 @@ async function ShopItemListJsonLd({ locale }: { locale: "sv" | "en" }) {
   const sb = getSupabaseAdmin();
   const { data: topWinesRaw } = await sb
     .from("wines")
-    .select("wine_name, handle, base_price_cents")
+    .select("id, wine_name, handle, base_price_cents")
     .eq("is_live", true)
     .limit(10);
 
-  const topWines = (topWinesRaw ?? []) as TopWineRow[];
+  const headerList = await headers();
+  const isB2BSite = isB2BHost(
+    headerList.get("x-forwarded-host") ?? headerList.get("host"),
+  );
+  const rows = (topWinesRaw ?? []) as TopWineRow[];
+  const hiddenWineIds = isB2BSite
+    ? await fetchHiddenB2BWineIds(
+        sb,
+        rows.map((wine) => wine.id),
+      )
+    : new Set<string>();
+  const topWines = rows.filter((wine) => !hiddenWineIds.has(wine.id));
   const shopPath = locale === "sv" ? "/vin" : "/wine";
   const productPrefix = locale === "sv" ? "/produkt" : "/product";
   const listName =

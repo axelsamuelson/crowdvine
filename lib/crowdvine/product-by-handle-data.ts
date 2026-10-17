@@ -13,6 +13,7 @@ import type { Product } from "@/lib/shopify/types";
 import {
   aggregateB2BPalletStock,
   B2B_PALLET_ITEM_STOCK_SELECT,
+  fetchB2BWineAvailability,
 } from "@/lib/b2b-pallet-stock";
 import {
   isWineAvailableForSale,
@@ -535,7 +536,8 @@ export async function getCrowdvineProductByHandle(options: {
 
   const wineDescriptionHtml = i.description_html || `<p>${wineDescription}</p>`;
 
-  // B2B stock and shipping: from Dirty Wine pallets
+  // B2B stock and shipping: from Dirty Wine pallets.
+  const isB2BSite = isB2BHost(host);
   let b2bStock: number | null = null;
   let shippingPerBottleSek = 0;
   try {
@@ -573,7 +575,15 @@ export async function getCrowdvineProductByHandle(options: {
   if (b2bStock == null && i.b2b_stock != null) {
     b2bStock = Number(i.b2b_stock);
   }
-  const isB2BSite = isB2BHost(host);
+  const b2bAvailabilityByWineId = isB2BSite
+    ? await fetchB2BWineAvailability(
+        sb,
+        [wineIdData.id],
+        new Map([[wineIdData.id, b2bStock]]),
+      )
+    : null;
+  const b2bAvailability = b2bAvailabilityByWineId?.get(wineIdData.id);
+  if (isB2BSite && b2bAvailability === "hidden") return null;
   const catalogAvailableForSale = isWineAvailableForSale(
     (i as { available_for_sale?: boolean }).available_for_sale,
   );
@@ -751,6 +761,7 @@ export async function getCrowdvineProductByHandle(options: {
     updatedAt: new Date().toISOString(),
     createdAt: new Date().toISOString(),
     b2bStock: b2bStock ?? undefined,
+    b2bAvailability,
     priceBreakdown: {
       costAmount: i.cost_amount || 0,
       exchangeRate,

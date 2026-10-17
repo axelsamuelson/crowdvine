@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 import { unstable_cache } from "next/cache";
 
-import { catalogHasProducts } from "@/lib/crowdvine/products-data";
+import { catalogHasProducts, fetchProductsData } from "@/lib/crowdvine/products-data";
 import { publishedBilingualArticleGuides } from "@/lib/guides/guide-publication";
 import { GUIDE_PATHS } from "@/lib/guides/guide-routes";
 import { TOP_100_PRODUCERS_UPDATED_AT } from "@/lib/guides/top-100-producers";
@@ -137,8 +137,24 @@ async function buildSitemapEntriesUncached(
   profile: SitemapSiteProfile,
 ): Promise<MetadataRoute.Sitemap> {
   const staticPages = staticPagesForProfile(baseUrl, profile);
+  const isDirtyWine = profile === "dirtywine";
+  const visibleB2BWines = isDirtyWine
+    ? await fetchProductsData({ isB2BSite: true, limit: 5000 })
+    : null;
+  const visibleHandles = visibleB2BWines
+    ? new Set(visibleB2BWines.map((wine) => wine.handle))
+    : null;
+  const visibleProducerSlugs = visibleB2BWines
+    ? new Set(
+        visibleB2BWines
+          .map((wine) => generateProducerSlug(wine.producerName))
+          .filter((slug) => slug.length > 0),
+      )
+    : null;
 
-  const indexableWines = await fetchIndexableWines();
+  const indexableWines = (await fetchIndexableWines()).filter((wine) =>
+    visibleHandles ? visibleHandles.has(wine.handle) : true,
+  );
 
   const winePages: MetadataRoute.Sitemap = indexableWines.flatMap((w) => {
     const lastModified = w.updated_at ? new Date(w.updated_at) : new Date();
@@ -157,6 +173,11 @@ async function buildSitemapEntriesUncached(
 
   const producerProfilePages: MetadataRoute.Sitemap = indexableProducers
     .filter((p) => Boolean(p.name?.trim()))
+    .filter((p) =>
+      visibleProducerSlugs
+        ? visibleProducerSlugs.has(generateProducerSlug(p.name))
+        : true,
+    )
     .flatMap((p) => {
       const slug = generateProducerSlug(p.name);
       const lastModified = p.created_at ? new Date(p.created_at) : new Date();
@@ -187,6 +208,7 @@ async function buildSitemapEntriesUncached(
           filterIsNatural: c.filter.isNatural,
           filterFarming: c.filter.farming,
           filterGrape: c.filter.filterGrape,
+          isB2BSite: isDirtyWine,
         });
         return hasProducts ? weeklyEntry(`${baseUrl}/vin/${c.slug}`, 0.8) : null;
       }),
@@ -202,6 +224,7 @@ async function buildSitemapEntriesUncached(
           filterIsNatural: c.filter.isNatural,
           filterFarming: c.filter.farming,
           filterGrape: c.filter.filterGrape,
+          isB2BSite: isDirtyWine,
         });
         return hasProducts ? weeklyEntry(`${baseUrl}/wine/${c.slug}`, 0.7) : null;
       }),
@@ -217,7 +240,9 @@ async function buildSitemapEntriesUncached(
     ],
   );
 
-  const producerShopSlugs = await fetchProducerShopSlugs();
+  const producerShopSlugs = (await fetchProducerShopSlugs()).filter((slug) =>
+    visibleProducerSlugs ? visibleProducerSlugs.has(slug) : true,
+  );
   const producerShopPages: MetadataRoute.Sitemap = producerShopSlugs.flatMap(
     (slug) => [
       weeklyEntry(`${baseUrl}/vin/${slug}`, 0.75),

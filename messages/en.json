@@ -210,6 +210,7 @@
     "addToCart": "Add to cart",
     "selectOne": "Select one",
     "outOfStock": "Out of stock",
+    "incoming": "Coming soon",
     "inStock": "In stock",
     "lastBottle": "Last bottle",
     "lastBottles": "Last {count}",

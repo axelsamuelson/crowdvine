@@ -25,6 +25,7 @@ import { getProductListPriceSek } from "@/lib/price-breakdown";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 import { pricesFromCartAfterAdd } from "@/lib/analytics/cart-event-prices";
 import { BOTTLE_PACK_SIZE } from "@/lib/cart/bottle-pack";
+import { B2B_PRODUCER_ORDERS_ENABLED } from "@/lib/b2b/flags";
 import type { Cart } from "@/lib/shopify/types";
 
 const AddToCart = dynamic(
@@ -189,6 +190,7 @@ export const ProductCard = memo(
   const isPdpRecommendation = recommendationReason != null;
   const showCartActions = !isPdpRecommendation && Boolean(cart);
   const showExclVat = useB2BPriceMode();
+  const producerOrdersPaused = showExclVat && !B2B_PRODUCER_ORDERS_ENABLED;
   const [isTouched, setIsTouched] = useState(false);
 
   const shopCaseWineCta =
@@ -833,6 +835,7 @@ export const ProductCard = memo(
               <StockBadge
                 b2bStock={(product as any).b2bStock}
                 availableForSale={product.availableForSale}
+                b2bAvailability={product.b2bAvailability}
               />
             </div>
           </div>
@@ -904,7 +907,7 @@ export const ProductCard = memo(
                   />
                 </div>
               </div>
-              {shopCaseWineCta ? (
+              {producerOrdersPaused ? null : shopCaseWineCta ? (
                 <Suspense
                   fallback={
                     <Button
@@ -982,7 +985,7 @@ export const ProductCard = memo(
                   />
                 </div>
               </div>
-              {shopCaseWineCta ? (
+              {producerOrdersPaused ? null : shopCaseWineCta ? (
                 <Suspense
                   fallback={
                     <Button
@@ -1061,6 +1064,7 @@ export const ProductCard = memo(
                 <StockBadge
                   b2bStock={(product as any).b2bStock}
                   availableForSale={product.availableForSale}
+                  b2bAvailability={product.b2bAvailability}
                 />
               </div>
             </div>
@@ -1109,7 +1113,7 @@ export const ProductCard = memo(
                       />
                     }
                   >
-                    {shopCaseWineCta ? (
+                    {producerOrdersPaused ? null : shopCaseWineCta ? (
                       <ShopWineCasePicker product={product} size="sm" className="w-full" />
                     ) : (
                       <AddToCart
@@ -1133,7 +1137,7 @@ export const ProductCard = memo(
                       />
                     }
                   >
-                    {shopCaseWineCta ? (
+                    {producerOrdersPaused ? null : shopCaseWineCta ? (
                       <ShopWineCasePicker
                         product={product}
                         size="sm"

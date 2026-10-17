@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 
 import {
@@ -15,6 +16,8 @@ import { ProducersDirectoryMapLazy } from "@/components/producer/producers-direc
 import { ProducerWineList } from "@/components/producer/producer-wine-list";
 import { fetchIndexableProducersFromDb } from "@/lib/crowdvine/indexable-producers";
 import { getProducerBySlugForLocale } from "@/lib/crowdvine/producer-by-slug-data";
+import { fetchCollectionProductsData } from "@/lib/crowdvine/products-data";
+import { isB2BHost } from "@/lib/b2b-site";
 import { generateProducerSlug } from "@/lib/producer-handle";
 import type { AppLocale } from "@/lib/i18n/locale";
 import { intlLocaleForAppLocale } from "@/lib/i18n/locale";
@@ -88,6 +91,22 @@ export async function fetchProducerBySlugForLocale(
   return getProducerBySlugForLocale(slug, locale);
 }
 
+async function winesVisibleOnRequestHost<T extends { id: string }>(
+  producerId: string,
+  wines: T[],
+): Promise<T[]> {
+  const headerList = await headers();
+  const host = headerList.get("x-forwarded-host") ?? headerList.get("host");
+  if (!isB2BHost(host)) return wines;
+
+  const visible = await fetchCollectionProductsData(producerId, {
+    isB2BSite: true,
+    limit: 5000,
+  });
+  const visibleIds = new Set(visible.map((product) => product.id));
+  return wines.filter((wine) => visibleIds.has(wine.id));
+}
+
 function formatCertification(
   cert: string | null,
   locale: AppLocale,
@@ -158,10 +177,15 @@ export async function buildProducerPublicMetadata(
     bioShort: bio_short,
   });
 
+  const visibleWines = await winesVisibleOnRequestHost(
+    data.producer.id,
+    data.wines,
+  );
+
   return {
     title: pageTitle,
     description: pageDescription,
-    ...(data.wines.length === 0
+    ...(visibleWines.length === 0
       ? {
           robots: {
             index: false,
@@ -204,7 +228,12 @@ export async function renderProducerPublicPage(options: {
 
   if (!data?.producer) notFound();
 
-  const { producer, wines } = data;
+  const visibleWines = await winesVisibleOnRequestHost(
+    data.producer.id,
+    data.wines,
+  );
+  const { producer } = data;
+  const wines = visibleWines;
   const t = (key: string) => translate(locale, key);
   const intlLocale = intlLocaleForAppLocale(locale);
   const paths = localizedPathsForLocale(locale);
