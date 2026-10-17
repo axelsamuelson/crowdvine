@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Collection } from "@/lib/shopify/types";
@@ -71,11 +71,17 @@ export function MobileFilters({
   const clientFilterCount = useFilterCount();
   const { products, originalProducts, setProducts, serverResultsCount } =
     useProducts();
-  const pathname = usePathname();
+  const routerPathname = usePathname();
   const router = useRouter();
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+  // Align first paint with layout SSR path so filter <a href> resolve correctly.
+  const pathname = mounted ? routerPathname : ssrPathname;
   const isProducerBoxesPage = isProducerBoxesPath(pathname);
   const isColorCategoryPage =
     !isProducerBoxesPage &&
