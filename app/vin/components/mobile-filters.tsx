@@ -80,6 +80,8 @@ export function MobileFilters({
   const isColorCategoryPage =
     !isProducerBoxesPage &&
     (pathname.startsWith("/vin/") || pathname.startsWith("/wine/"));
+  const showAllFilterColors =
+    !isProducerBoxesPage && shouldNavigateShopFilters(pathname);
   const locale = localeFromShopPathname(pathname);
   const activeColorName = getActiveColorFromPathname(pathname);
   const activeFarming = getActiveFarmingFromPathname(pathname);
@@ -234,7 +236,7 @@ export function MobileFilters({
                 <>
                   <ColorFilter
                     products={originalProducts}
-                    showAllColors={isColorCategoryPage}
+                    showAllColors={showAllFilterColors || isColorCategoryPage}
                     activeColor={activeColorName ?? undefined}
                     onColorSelect={handleColorSelect}
                     getColorHref={resolveColorHref}

@@ -39,9 +39,13 @@ export function FarmingFilter({
   );
 
   const counts = countProductsByFarming(products);
-  const options = SHOP_FARMING_UI_FILTER_VALUES.filter(
-    (value) => (counts.get(value) ?? 0) > 0,
-  );
+  // When category navigation hrefs are available, always list Organic and
+  // Biodynamic so server HTML includes crawlable <a href> links.
+  const options = getFarmingHref
+    ? [...SHOP_FARMING_UI_FILTER_VALUES]
+    : SHOP_FARMING_UI_FILTER_VALUES.filter(
+        (value) => (counts.get(value) ?? 0) > 0,
+      );
 
   if (options.length === 0) return null;
 

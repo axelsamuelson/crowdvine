@@ -41,7 +41,10 @@ export function ColorFilter({
     useAvailableColors(products, showAllColors, activeColor);
   const colorCount = useColorFilterCount();
 
-  const isLoading = products.length === 0;
+  // Category URL hrefs do not need the product list; show colors immediately
+  // so server HTML includes <a href> for crawlable filter links.
+  const colorsReady =
+    Boolean(getColorHref) || showAllColors || products.length > 0;
   const atLeastOneColor = availableColors.length > 0;
 
   const handleColorChange = (colorInput: Color | [Color, Color]) => {
@@ -55,7 +58,7 @@ export function ColorFilter({
 
   return (
     <AnimatePresence initial={false}>
-      {(atLeastOneColor || isLoading) && (
+      {(atLeastOneColor || !colorsReady) && (
         <motion.div
           layoutId="color-filter"
           layout="size"
@@ -72,7 +75,7 @@ export function ColorFilter({
               )}
             </h3>
           </div>
-          {isLoading ? (
+          {!colorsReady ? (
             <ColorSwatchSkeleton count={4} />
           ) : (
             <ColorPicker
