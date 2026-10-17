@@ -30,6 +30,14 @@ function shopRoot(locale: "sv" | "en"): string {
   return locale === "en" ? "/wine" : "/vin";
 }
 
+/**
+ * Resolve the next clean shop category URL for a color/farming change.
+ *
+ * Natural wine is the default mode: a color with no organic/biodynamic filter
+ * resolves to the *-natural-* (or *-naturvin) page. Clearing farming from an
+ * organic/biodynamic color page returns to that natural color page, not the
+ * legacy color-only slug.
+ */
 export function resolveShopFilterNavigationUrl(options: {
   locale: "sv" | "en";
   currentPath: string;

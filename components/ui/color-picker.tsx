@@ -17,6 +17,8 @@ interface ColorSwatchProps {
   /** Override visible/tooltip label (e.g. localized wine color names). */
   displayName?: string;
   selectColorAria?: (name: string) => string;
+  /** Clean category URL when shop filter navigation applies. */
+  href?: string | null;
 }
 
 export const sizeClasses = {
@@ -34,6 +36,7 @@ export function ColorSwatch({
   atLeastOneColorSelected,
   displayName: displayNameProp,
   selectColorAria,
+  href,
 }: ColorSwatchProps) {
   const isDualColor = Array.isArray(color);
   const displayName =
@@ -45,42 +48,61 @@ export function ColorSwatch({
     ? selectColorAria(displayName)
     : `Select color: ${displayName}`;
 
+  const className = cn(
+    "rounded-full ring ring-accent cursor-pointer transition-[outline,box-shadow,opacity] relative overflow-hidden inline-block",
+    sizeClasses[size],
+    size === "xs" && "ring-[1px]",
+    isSelected
+      ? "ring-2 opacity-100 ring-primary/80"
+      : atLeastOneColorSelected
+        ? "opacity-40 hover:ring-primary/30 hover:opacity-70"
+        : "opacity-100",
+  );
+
+  const swatchBody = isDualColor ? (
+    <>
+      <div
+        className="absolute top-0 left-0 w-1/2 h-full"
+        style={{ backgroundColor: color[0].value }}
+      />
+      <div
+        className="absolute top-0 right-0 w-1/2 h-full"
+        style={{ backgroundColor: color[1].value }}
+      />
+    </>
+  ) : (
+    <div className="w-full h-full" style={{ backgroundColor: color.value }} />
+  );
+
+  if (href) {
+    return (
+      <a
+        href={href}
+        className={className}
+        title={displayName}
+        onClick={(event) => {
+          event.preventDefault();
+          onColorChange(color);
+        }}
+        aria-pressed={isSelected}
+        aria-label={ariaLabel}
+      >
+        {swatchBody}
+        <span className="sr-only">{displayName}</span>
+      </a>
+    );
+  }
+
   return (
     <button
-      className={cn(
-        "rounded-full ring ring-accent cursor-pointer transition-[outline,box-shadow,opacity] relative overflow-hidden",
-        sizeClasses[size],
-        size === "xs" && "ring-[1px]",
-        isSelected
-          ? "ring-2 opacity-100 ring-primary/80"
-          : atLeastOneColorSelected
-            ? "opacity-40 hover:ring-primary/30 hover:opacity-70"
-            : "opacity-100",
-      )}
+      type="button"
+      className={className}
       title={displayName}
       onClick={() => onColorChange(color)}
       aria-pressed={isSelected}
       aria-label={ariaLabel}
     >
-      {isDualColor ? (
-        <>
-          {/* Left half */}
-          <div
-            className="absolute top-0 left-0 w-1/2 h-full"
-            style={{ backgroundColor: color[0].value }}
-          />
-          {/* Right half */}
-          <div
-            className="absolute top-0 right-0 w-1/2 h-full"
-            style={{ backgroundColor: color[1].value }}
-          />
-        </>
-      ) : (
-        <div
-          className="w-full h-full"
-          style={{ backgroundColor: color.value }}
-        />
-      )}
+      {swatchBody}
       <span className="sr-only">{displayName}</span>
     </button>
   );
@@ -94,6 +116,7 @@ interface ColorPickerProps {
   className?: string;
   formatDisplayName?: (color: Color | [Color, Color]) => string;
   selectColorAria?: (name: string) => string;
+  getColorHref?: (color: Color | [Color, Color]) => string | null;
 }
 
 export function ColorPicker({
@@ -104,16 +127,15 @@ export function ColorPicker({
   className,
   formatDisplayName,
   selectColorAria,
+  getColorHref,
 }: ColorPickerProps) {
   const [isClient, setIsClient] = useState(false);
   const atLeastOneColor = selectedColors.length > 0;
 
-  // Ensure animations only run on client
   useEffect(() => {
     setIsClient(true);
   }, []);
 
-  // Helper function to compare colors for selection state
   const isColorSelected = (color: Color | [Color, Color]) => {
     return selectedColors.some((selectedColor) => {
       if (Array.isArray(color) && Array.isArray(selectedColor)) {
@@ -128,7 +150,6 @@ export function ColorPicker({
     });
   };
 
-  // Use consistent structure for both server and client
   const ColorWrapper = isClient ? motion.div : "div";
 
   return (
@@ -161,6 +182,7 @@ export function ColorPicker({
                 atLeastOneColorSelected={atLeastOneColor}
                 displayName={formatDisplayName?.(color)}
                 selectColorAria={selectColorAria}
+                href={getColorHref?.(color)}
               />
             </ColorWrapper>
           ))}
@@ -183,6 +205,7 @@ export function ColorPicker({
               atLeastOneColorSelected={atLeastOneColor}
               displayName={formatDisplayName?.(color)}
               selectColorAria={selectColorAria}
+              href={getColorHref?.(color)}
             />
           </ColorWrapper>
         ))

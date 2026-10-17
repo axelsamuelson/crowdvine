@@ -89,10 +89,9 @@ export function MobileFilters({
   );
   const activeGrapeName = getActiveGrapeFromPathname(pathname, grapeCandidates);
 
-  const handleColorSelect = (colorName: string) => {
-    if (!shouldNavigateShopFilters(pathname)) return false;
-
-    const url = isSameColorSelection(pathname, colorName)
+  const resolveColorHref = (colorName: string): string | null => {
+    if (!shouldNavigateShopFilters(pathname)) return null;
+    return isSameColorSelection(pathname, colorName)
       ? resolveShopFilterNavigationUrl({
           locale,
           currentPath: pathname,
@@ -103,10 +102,11 @@ export function MobileFilters({
           currentPath: pathname,
           nextColorUi: colorName,
         });
-    router.push(url);
   };
 
-  const handleFarmingSelect = (farming: ShopFarmingFilterValue): boolean => {
+  const resolveFarmingHref = (
+    farming: ShopFarmingFilterValue,
+  ): string | null => {
     const grapeUrl = resolveGrapePageFarmingUrl(
       locale,
       pathname,
@@ -114,14 +114,9 @@ export function MobileFilters({
       isSameFarmingSelection(pathname, farming),
       grapeCandidates,
     );
-    if (grapeUrl) {
-      router.push(grapeUrl);
-      return true;
-    }
-
-    if (!shouldNavigateShopFilters(pathname)) return false;
-
-    const url = isSameFarmingSelection(pathname, farming)
+    if (grapeUrl) return grapeUrl;
+    if (!shouldNavigateShopFilters(pathname)) return null;
+    return isSameFarmingSelection(pathname, farming)
       ? resolveShopFilterNavigationUrl({
           locale,
           currentPath: pathname,
@@ -132,6 +127,18 @@ export function MobileFilters({
           currentPath: pathname,
           nextFarming: farming,
         });
+  };
+
+  const handleColorSelect = (colorName: string) => {
+    const url = resolveColorHref(colorName);
+    if (!url) return false;
+    router.push(url);
+    return true;
+  };
+
+  const handleFarmingSelect = (farming: ShopFarmingFilterValue): boolean => {
+    const url = resolveFarmingHref(farming);
+    if (!url) return false;
     router.push(url);
     return true;
   };
@@ -230,12 +237,14 @@ export function MobileFilters({
                     showAllColors={isColorCategoryPage}
                     activeColor={activeColorName ?? undefined}
                     onColorSelect={handleColorSelect}
+                    getColorHref={resolveColorHref}
                   />
                   <FarmingFilter
                     products={originalProducts}
                     mode="drawer"
                     onFarmingSelect={handleFarmingSelect}
                     activeFarming={activeFarming ?? undefined}
+                    getFarmingHref={resolveFarmingHref}
                   />
                   <GrapesFilter
                     products={originalProducts}

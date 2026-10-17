@@ -20,7 +20,7 @@ export async function generateMetadata(props: {
   const searchParams = await props.searchParams;
   const config = await getSiteConfig();
   const pageUrl = `${config.baseUrl}/wine`;
-  const title = "Natural Wine Online — Buy Direct from Languedoc | PACT Wines";
+  const title = `Natural Wine Online — Buy Direct from Languedoc | ${config.siteName}`;
   const description =
     "Browse 60+ natural wines directly imported from Languedoc. Organic, biodynamic and without additives. Home delivery in Stockholm.";
 

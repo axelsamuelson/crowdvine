@@ -504,16 +504,16 @@ export const WINE_CATEGORIES_EN: WineCategory[] = [
 
 /** Short color slugs → canonical category slug (EN). */
 export const WINE_CATEGORY_EN_ALIASES: Record<string, string> = {
-  red: "red-wine",
-  white: "white-wine",
-  orange: "orange-wine",
+  red: "red-natural-wine",
+  white: "white-natural-wine",
+  orange: "orange-natural-wine",
 };
 
 /** Short color slugs → canonical category slug (SV). */
 export const WINE_CATEGORY_SV_ALIASES: Record<string, string> = {
-  rott: "rott-vin",
-  vitt: "vitt-vin",
-  orange: "orange-vin",
+  rott: "rott-naturvin",
+  vitt: "vitt-naturvin",
+  orange: "orange-naturvin",
 };
 
 export function getWineCategoryEnCanonicalSlug(slug: string): string {

@@ -106,7 +106,7 @@ export type GuideArticleContent = {
   jsonLdAbout: GuideArticleJsonLdAbout;
   /**
    * End-of-article shop CTA.
-   * undefined: /wine/natural-wine | /vin/naturvin (or first shop link in internalLinks).
+   * undefined: /wine | /vin (or first shop link in internalLinks).
    * null: no shop CTA and no fallback shop link.
    */
   shopCta?: {

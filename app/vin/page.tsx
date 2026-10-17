@@ -20,7 +20,7 @@ export async function generateMetadata(props: {
   const searchParams = await props.searchParams;
   const config = await getSiteConfig();
   const pageUrl = `${config.baseUrl}/vin`;
-  const title = "Naturvin online — köp direkt från Languedoc | PACT Wines";
+  const title = `Naturvin online — köp direkt från Languedoc | ${config.siteName}`;
   const description =
     "Bläddra bland 60+ naturviner direktimporterade från Languedoc. Ekologiskt, biodynamiskt och utan tillsatser. Hemleverans i Stockholm.";
 

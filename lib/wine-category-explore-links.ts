@@ -13,36 +13,30 @@ export type CategoryExploreLink = {
 };
 
 const COLOR_HUB_SLUGS_SV = [
-  "naturvin",
   "rott-naturvin",
   "vitt-naturvin",
   "orange-naturvin",
 ] as const;
 
 const COLOR_HUB_SLUGS_EN = [
-  "natural-wine",
   "red-natural-wine",
   "white-natural-wine",
   "orange-natural-wine",
 ] as const;
 
 const FARMING_HUB_SLUGS_SV = [
-  "naturvin",
   "ekologiskt-vin",
   "biodynamiskt-vin",
 ] as const;
 
 const FARMING_HUB_SLUGS_EN = [
-  "natural-wine",
   "organic-wine",
   "biodynamic-wine",
 ] as const;
 
 const FARMING_HUB_COLOR_SLUGS: Record<string, readonly string[]> = {
-  naturvin: ["rott-naturvin", "vitt-naturvin", "orange-naturvin"],
   "ekologiskt-vin": ["rott-ekologiskt-vin", "vitt-ekologiskt-vin", "orange-ekologiskt-vin"],
   "biodynamiskt-vin": ["rott-biodynamiskt-vin", "vitt-biodynamiskt-vin", "orange-biodynamiskt-vin"],
-  "natural-wine": ["red-natural-wine", "white-natural-wine", "orange-natural-wine"],
   "organic-wine": ["red-organic-wine", "white-organic-wine", "orange-organic-wine"],
   "biodynamic-wine": ["red-biodynamic-wine", "white-biodynamic-wine", "orange-biodynamic-wine"],
 };
@@ -127,11 +121,12 @@ function siblingGrapeLinks(
 
 function grapeHubLinks(category: WineCategory): CategoryExploreLink[] {
   const locale = category.locale;
-  const links: CategoryExploreLink[] = [categoryLink("naturvin", locale)];
-
-  if (locale === "en") {
-    links[0] = categoryLink("natural-wine", locale);
-  }
+  const links: CategoryExploreLink[] = [
+    {
+      href: locale === "sv" ? "/vin" : "/wine",
+      label: locale === "sv" ? "Alla naturviner" : "All natural wines",
+    },
+  ];
 
   if (RED_GRAPE_SLUGS.has(category.slug)) {
     links.unshift(categoryLink("rott-naturvin", locale));
@@ -276,7 +271,10 @@ function geoLongTailExploreLinks(
     links.push({ href, label });
   };
 
-  push(locale === "sv" ? "naturvin" : "natural-wine");
+  pushHref(
+    locale === "sv" ? "/vin" : "/wine",
+    locale === "sv" ? "Alla naturviner" : "All natural wines",
+  );
 
   if (category.slug.includes("languedoc") || category.slug.includes("frankrike") || category.slug.includes("france")) {
     push(locale === "sv" ? "naturvin-languedoc" : "natural-wine-languedoc");
@@ -350,15 +348,13 @@ function farmingHubSlug(
   farming: string,
   locale: AppLocale,
 ): string | null {
-  if (farming === "natural") {
-    return locale === "sv" ? "naturvin" : "natural-wine";
-  }
   if (farming === "organic_certified") {
     return locale === "sv" ? "ekologiskt-vin" : "organic-wine";
   }
   if (farming === "biodynamic_certified") {
     return locale === "sv" ? "biodynamiskt-vin" : "biodynamic-wine";
   }
+  // natural is the shop default (/vin, /wine), not a farming hub page.
   return null;
 }
 
@@ -377,13 +373,13 @@ function colorHubSlugForFilter(
     return locale === "sv" ? "orange-naturvin" : "orange-natural-wine";
   }
   if (color === "Red") {
-    return locale === "sv" ? "rott-vin" : "red-wine";
+    return locale === "sv" ? "rott-naturvin" : "red-natural-wine";
   }
   if (color === "White") {
-    return locale === "sv" ? "vitt-vin" : "white-wine";
+    return locale === "sv" ? "vitt-naturvin" : "white-natural-wine";
   }
   if (color === "Orange") {
-    return locale === "sv" ? "orange-vin" : "orange-wine";
+    return locale === "sv" ? "orange-naturvin" : "orange-natural-wine";
   }
   if (color === "Red & White") {
     return null;
@@ -430,9 +426,8 @@ function generatedFilterExploreLinks(
     push(locale === "sv" ? "vitt-naturvin" : "white-natural-wine");
   }
   if (!farming && color === "Red & White") {
-    push(locale === "sv" ? "rott-vin" : "red-wine");
-    push(locale === "sv" ? "vitt-vin" : "white-wine");
-    push(locale === "sv" ? "naturvin" : "natural-wine");
+    push(locale === "sv" ? "rott-naturvin" : "red-natural-wine");
+    push(locale === "sv" ? "vitt-naturvin" : "white-natural-wine");
   }
 
   return links.slice(0, 6);

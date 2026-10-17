@@ -12,6 +12,7 @@ import {
 } from "@/lib/seo/noindex-robots";
 import { producerBoxesSitemapPaths } from "@/lib/producer-boxes/config";
 import { WINE_CATEGORIES_EN, WINE_CATEGORIES_SV } from "@/lib/wine-categories";
+import { LEGACY_SHOP_REDIRECT_SLUGS } from "@/lib/wine-shop-filter-categories";
 import {
   dedupeSitemapEntries,
   fetchDynamicGrapeSlugs,
@@ -193,10 +194,14 @@ async function buildSitemapEntriesUncached(
     });
 
   const vinCategoryCandidates = WINE_CATEGORIES_SV.filter(
-    (c) => !isNoindexCategorySlug(c.slug, "sv"),
+    (c) =>
+      !isNoindexCategorySlug(c.slug, "sv") &&
+      !LEGACY_SHOP_REDIRECT_SLUGS.has(c.slug),
   );
   const wineCategoryCandidates = WINE_CATEGORIES_EN.filter(
-    (c) => !isNoindexCategorySlug(c.slug, "en"),
+    (c) =>
+      !isNoindexCategorySlug(c.slug, "en") &&
+      !LEGACY_SHOP_REDIRECT_SLUGS.has(c.slug),
   );
 
   const vinCategories: MetadataRoute.Sitemap = (

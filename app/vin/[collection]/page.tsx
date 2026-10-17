@@ -70,6 +70,10 @@ export async function generateMetadata(props: {
 
   const category = await resolveGrapeCategoryBySlug(slug, "sv");
   if (category) {
+    const headerList = await headers();
+    const isB2BSite = isB2BHost(
+      headerList.get("x-forwarded-host") ?? headerList.get("host"),
+    );
     const [config, hasProducts] = await Promise.all([
       getSiteConfig(),
       catalogHasProducts({
@@ -78,6 +82,7 @@ export async function generateMetadata(props: {
         filterIsNatural: category.filter.isNatural,
         filterFarming: category.filter.farming,
         filterGrape: category.filter.filterGrape,
+        isB2BSite,
       }),
     ]);
     const pageUrl = `${config.baseUrl}/vin/${slug}`;
