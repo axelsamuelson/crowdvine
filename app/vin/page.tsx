@@ -24,8 +24,8 @@ export async function generateMetadata(props: {
   const title = `Naturvin online | Köp naturvin hos ${config.siteName}`;
   const description =
     config.baseUrl === DIRTY_WINE_CONFIG.baseUrl
-      ? "Naturvin. Ekologiskt, biodynamiskt och utan tillsatser. För restauranger i Stockholm."
-      : "Bläddra bland 60+ naturviner. Ekologiskt, biodynamiskt och utan tillsatser. Hemleverans i Stockholm.";
+      ? "Naturvin. Ekologiskt och biodynamiskt. För restauranger i Stockholm."
+      : "Bläddra bland 60+ naturviner. Ekologiskt och biodynamiskt. Hemleverans i Stockholm.";
 
   return {
     title: { absolute: title },

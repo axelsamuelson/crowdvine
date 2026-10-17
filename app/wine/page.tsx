@@ -24,8 +24,8 @@ export async function generateMetadata(props: {
   const title = `Natural Wine Online | Buy Natural Wine at ${config.siteName}`;
   const description =
     config.baseUrl === DIRTY_WINE_CONFIG.baseUrl
-      ? "Natural wines. Organic, biodynamic and without additives. For restaurants in Stockholm."
-      : "Browse 60+ natural wines. Organic, biodynamic and without additives. Home delivery in Stockholm.";
+      ? "Natural wines. Organic and biodynamic. For restaurants in Stockholm."
+      : "Browse 60+ natural wines. Organic and biodynamic. Home delivery in Stockholm.";
 
   return {
     title: { absolute: title },
