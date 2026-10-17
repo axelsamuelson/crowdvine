@@ -3,17 +3,6 @@ import { TOP_100_PRODUCERS } from "@/lib/guides/top-100-producers";
 export const PRODUCER_WEIGHT = 0.35;
 export const WINE_WEIGHT = 0.65;
 
-/** Colour and sparkling lists that use categoryRank. Other lists stay on sort_order. */
-export const RANKED_GUIDE_CATEGORIES = [
-  "red",
-  "white",
-  "orange",
-  "sparkling",
-  "rose",
-] as const;
-
-export type RankedGuideCategory = (typeof RANKED_GUIDE_CATEGORIES)[number];
-
 export const DEFAULT_MIX = {
   minGap: 1,
   topN: 5,
@@ -64,12 +53,6 @@ type Scored<T> = T & {
   score: number;
   sortOrder: number;
 };
-
-export function isRankedGuideCategory(
-  category: string,
-): category is RankedGuideCategory {
-  return (RANKED_GUIDE_CATEGORIES as readonly string[]).includes(category);
-}
 
 /** Top 100 name matches on the exact list name. Everyone else scores 30. */
 export function producerScore(rank: number | null | undefined): number {
