@@ -155,14 +155,11 @@ function buildCategory(
     locale === "sv"
       ? `${h1} direktimporterat från Languedoc till Stockholm.`
       : `${h1} directly imported from Languedoc to Stockholm.`;
-  const title =
-    locale === "sv"
-      ? `${h1} — direktimport | PACT Wines`
-      : `${h1} — Direct Import | PACT Wines`;
+  const title = `${h1} | PACT Wines`;
   const metaDescription =
     locale === "sv"
-      ? `Köp ${h1.toLowerCase()} online. Direkt från småproducenter i Languedoc — hemleverans Stockholm.`
-      : `Buy ${h1.toLowerCase()} online. Direct from small producers in Languedoc — home delivery Stockholm.`;
+      ? `Köp ${h1.toLowerCase()} online. Hemleverans Stockholm.`
+      : `Buy ${h1.toLowerCase()} online. Home delivery in Stockholm.`;
 
   return {
     slug,

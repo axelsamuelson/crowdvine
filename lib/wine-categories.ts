@@ -6,6 +6,7 @@ import {
   resolveShopFilterCategoryUrl,
 } from "@/lib/wine-shop-filter-categories";
 import {
+  grapeNameToSlug,
   getGrapeCategoryPath,
   getShopSegmentSlug,
   resolveGrapeNameFromSlug,
@@ -34,7 +35,7 @@ const LONG_TAIL_WINE_CATEGORIES_SV: WineCategory[] = [
     h1: "Naturvin från Frankrike",
     title: "Köpa naturvin från Frankrike online | PACT Wines",
     metaDescription:
-      "Franskt naturvin direktimporterat från Languedoc. Köp naturvin från Frankrike med hemleverans i Stockholm.",
+      "Köp naturvin från Frankrike med hemleverans i Stockholm.",
     description:
       "Alla viner i PACTs sortiment kommer från Languedoc i södra Frankrike — direktimporterade utan mellanhänder.",
     filter: { farming: ["natural"] },
@@ -84,9 +85,9 @@ const LONG_TAIL_WINE_CATEGORIES_SV: WineCategory[] = [
     slug: "naturvin-hemleverans-stockholm",
     locale: "sv",
     h1: "Naturvin med hemleverans i Stockholm",
-    title: "Naturvin hemleverans Stockholm — direktimport | PACT Wines",
+    title: "Naturvin hemleverans Stockholm — beställ online | PACT Wines",
     metaDescription:
-      "Beställ naturvin online med hemleverans i Stockholm. Direktimporterat från Languedoc via PACT.",
+      "Beställ naturvin online med hemleverans i Stockholm.",
     description:
       "PACT levererar naturvin hem till dig i Stockholm. Direktimporterat från Languedoc — billigare och friare än vad som finns i butik.",
     filter: { farming: ["natural"] },
@@ -97,9 +98,9 @@ const LONG_TAIL_WINE_CATEGORIES_SV: WineCategory[] = [
     slug: "direktimport-vin",
     locale: "sv",
     h1: "Direktimport av vin från Languedoc",
-    title: "Direktimport vin Sverige — köp direkt från producenten | PACT Wines",
+    title: "Direktimport vin Sverige | PACT Wines",
     metaDescription:
-      "Köp vin direktimporterat från Languedoc till Sverige. PACT samlar beställningar och skickar direkt från producenten.",
+      "Köp vin via direktimport till Sverige. PACT samlar beställningar och skickar från producenten.",
     description:
       "PACT är en direktimportör av naturvin från Languedoc. Vi samlar beställningar tills en pall är full — sedan skickar producenten direkt till dig.",
     filter: {},
@@ -110,9 +111,9 @@ const LONG_TAIL_WINE_CATEGORIES_SV: WineCategory[] = [
     slug: "carignan",
     locale: "sv",
     h1: "Carignan — rebellisk druvsort",
-    title: "Carignan från Languedoc | PACT Wines",
+    title: "Carignan | PACT Wines",
     metaDescription:
-      "Carignan från gamla gobeletstockar på skiffer och kalk. Koncentrerade, mineraliska viner — direktimporterat till Stockholm.",
+      "Carignan från gamla gobeletstockar på skiffer och kalk. Koncentrerade, mineraliska viner.",
     description:
       "Carignan har ett oförtjänt dåligt rykte. Unga stockar på bördig jord ger tunna bulkviner — det stämmer. Men gamla gobeletstockar på skiffersluttningarna i Faugères, kalkjorden i Puisserguier eller gnejs-terrasserna på 305 meters höjd förändrar allt. Det är den Carignan vi importerar.",
     longDescription:
@@ -138,7 +139,7 @@ const LONG_TAIL_WINE_CATEGORIES_SV: WineCategory[] = [
     h1: "Carignan naturvin — utan tillsatser från gamla stockar",
     title: "Carignan naturvin | PACT Wines",
     metaDescription:
-      "Carignan naturvin från gamla gobeletstockar — utan svavel, utan filtrering. Direktimporterat till Stockholm.",
+      "Carignan naturvin från gamla gobeletstockar — utan svavel, utan filtrering.",
     description:
       "Carignan lämpar sig ovanligt väl för naturvinsproduktion. Gamla stockar ger naturlig koncentration utan tillsatser, hög fruktsyra fungerar som konservering och druvskalens tjocklek klarar långa macerationer utan att tappa balansen.",
     longDescription:
@@ -153,9 +154,9 @@ const LONG_TAIL_WINE_CATEGORIES_SV: WineCategory[] = [
     slug: "grenache",
     locale: "sv",
     h1: "Grenache — Languedocs generösa druvsort",
-    title: "Grenache naturvin från Languedoc | PACT Wines",
+    title: "Grenache naturvin | PACT Wines",
     metaDescription:
-      "Grenache från gamla stockar i Languedoc — röda bär, värme och silkeslena tanniner. Direktimporterat naturvin till Stockholm.",
+      "Grenache från gamla stockar — röda bär, värme och silkeslena tanniner.",
     description:
       "Grenache är Languedocs mest generösa druvsort — röd frukt, naturlig sötma och en värme som speglar den soldränkta södern. Från gamla stockar i Faugères och Haute Vallée de l'Orb blir den både kraftfull och elegant.",
     longDescription:
@@ -179,9 +180,9 @@ const LONG_TAIL_WINE_CATEGORIES_SV: WineCategory[] = [
     slug: "grenache-blanc",
     locale: "sv",
     h1: "Grenache Blanc — friskt och blommigt naturvin från Languedoc",
-    title: "Grenache Blanc naturvin från Languedoc | PACT Wines",
+    title: "Grenache Blanc naturvin | PACT Wines",
     metaDescription:
-      "Grenache Blanc är Languedocs fräschaste vita druvsort. Naturligt låg alkohol, blommig doft och krispig syra — direktimporterat till Stockholm.",
+      "Grenache Blanc med naturligt låg alkohol, blommig doft och krispig syra.",
     description:
       "Grenache Blanc är Languedocs fräschaste vita druvsort med naturligt låg alkohol, blommig doft och krispig mineralisk syra.",
     longDescription:
@@ -203,9 +204,9 @@ const LONG_TAIL_WINE_CATEGORIES_SV: WineCategory[] = [
     slug: "syrah",
     locale: "sv",
     h1: "Syrah — mörk och kryddig från Languedoc",
-    title: "Syrah naturvin från Languedoc | PACT Wines",
+    title: "Syrah naturvin | PACT Wines",
     metaDescription:
-      "Syrah från Languedoc — mörka bär, peppar och skiffermineralitet. Direktimporterat naturvin från gamla stockar till Stockholm.",
+      "Syrah — mörka bär, peppar och skiffermineralitet. Naturvin från gamla stockar.",
     description:
       "Syrah ger Languedocs mörkaste, mest kryddiga viner — svarta bär, peppar och en mineralisk stramhet från skiffer och kalksten. På höjderna i Haute Vallée de l'Orb och skiffern i Faugères visar druvan sin eleganta sida.",
     longDescription:
@@ -229,9 +230,9 @@ const LONG_TAIL_WINE_CATEGORIES_SV: WineCategory[] = [
     slug: "cinsault",
     locale: "sv",
     h1: "Cinsault — lätt, friskt och underskattat",
-    title: "Cinsault naturvin från Languedoc | PACT Wines",
+    title: "Cinsault naturvin | PACT Wines",
     metaDescription:
-      "Cinsault från Languedoc — lätta, friska röda viner med låg tannin. Perfekta lätt kylda. Direktimporterat naturvin till Stockholm.",
+      "Cinsault — lätta, friska röda viner med låg tannin. Perfekta lätt kylda.",
     description:
       "Cinsault är naturvinsälskarnas favorit — lätta, saftiga röda viner med låg tannin, hög fräschör och röd bärfrukt. Perfekta lätt kylda och ett av de mest törstsläckande röda vinerna Languedoc har att erbjuda.",
     longDescription:
@@ -278,7 +279,7 @@ const LONG_TAIL_WINE_CATEGORIES_EN: WineCategory[] = [
     h1: "Natural Wine from France",
     title: "Buy French Natural Wine Online | PACT Wines",
     metaDescription:
-      "French natural wine directly imported from Languedoc. Buy natural wine from France with home delivery in Stockholm.",
+      "Buy natural wine from France with home delivery in Stockholm.",
     description:
       "All wines in PACT's range come from Languedoc in southern France — directly imported without middlemen.",
     filter: { farming: ["natural"] },
@@ -328,9 +329,9 @@ const LONG_TAIL_WINE_CATEGORIES_EN: WineCategory[] = [
     slug: "natural-wine-delivery-stockholm",
     locale: "en",
     h1: "Natural Wine Home Delivery Stockholm",
-    title: "Natural Wine Delivery Stockholm — Direct Import | PACT Wines",
+    title: "Natural Wine Delivery Stockholm — Order Online | PACT Wines",
     metaDescription:
-      "Order natural wine online with home delivery in Stockholm. Directly imported from Languedoc via PACT.",
+      "Order natural wine online with home delivery in Stockholm.",
     description:
       "PACT delivers natural wine to your home in Stockholm. Directly imported from Languedoc — better value and more interesting than what you'll find in stores.",
     filter: { farming: ["natural"] },
@@ -341,9 +342,9 @@ const LONG_TAIL_WINE_CATEGORIES_EN: WineCategory[] = [
     slug: "direct-import-wine",
     locale: "en",
     h1: "Direct Import Wine from Languedoc",
-    title: "Direct Import Wine Sweden — Buy Direct from Producer | PACT Wines",
+    title: "Direct Import Wine Sweden | PACT Wines",
     metaDescription:
-      "Buy wine directly imported from Languedoc to Sweden. PACT aggregates orders and ships directly from the producer.",
+      "Buy wine via direct import to Sweden. PACT aggregates orders and ships from the producer.",
     description:
       "PACT is a direct importer of natural wine from Languedoc. We aggregate orders until a pallet is full — then the producer ships directly to you.",
     filter: {},
@@ -354,9 +355,9 @@ const LONG_TAIL_WINE_CATEGORIES_EN: WineCategory[] = [
     slug: "carignan",
     locale: "en",
     h1: "Carignan — rebellious grape",
-    title: "Carignan from Languedoc | PACT Wines",
+    title: "Carignan | PACT Wines",
     metaDescription:
-      "Carignan from old goblet vines on schist and limestone. Concentrated, mineral wines — direct import to Stockholm.",
+      "Carignan from old goblet vines on schist and limestone. Concentrated, mineral wines.",
     description:
       "Carignan has an undeserved reputation. Young vines on fertile soil produce thin bulk wine — that's true. But old goblet vines on the schist slopes of Faugères, the limestone soils of Puisserguier or the gneiss terraces at 305 metres altitude change everything. That's the Carignan we import.",
     longDescription:
@@ -382,7 +383,7 @@ const LONG_TAIL_WINE_CATEGORIES_EN: WineCategory[] = [
     h1: "Carignan natural wine — no additives from old vines",
     title: "Carignan Natural Wine | PACT Wines",
     metaDescription:
-      "Carignan natural wine from old goblet vines — no sulphur, no filtration. Direct import to Stockholm.",
+      "Carignan natural wine from old goblet vines — no sulphur, no filtration.",
     description:
       "Carignan is unusually well suited to natural wine production. Old vines give natural concentration without additives, high fruit acidity acts as preservation and the grape's thick skins handle long macerations without losing balance.",
     longDescription:
@@ -397,9 +398,9 @@ const LONG_TAIL_WINE_CATEGORIES_EN: WineCategory[] = [
     slug: "grenache",
     locale: "en",
     h1: "Grenache — Languedoc's generous grape",
-    title: "Grenache Natural Wine from Languedoc | PACT Wines",
+    title: "Grenache Natural Wine | PACT Wines",
     metaDescription:
-      "Grenache from old vines in Languedoc — red fruit, warmth and silky tannins. Direct import natural wine to Stockholm.",
+      "Grenache from old vines — red fruit, warmth and silky tannins.",
     description:
       "Grenache is Languedoc's most generous grape — red fruit, natural sweetness and a warmth that reflects the sun-drenched south. From old vines in Faugères and Haute Vallée de l'Orb it becomes both powerful and elegant.",
     longDescription:
@@ -423,9 +424,9 @@ const LONG_TAIL_WINE_CATEGORIES_EN: WineCategory[] = [
     slug: "grenache-blanc",
     locale: "en",
     h1: "Grenache Blanc — fresh and floral natural wine from Languedoc",
-    title: "Grenache Blanc Natural Wine from Languedoc | PACT Wines",
+    title: "Grenache Blanc Natural Wine | PACT Wines",
     metaDescription:
-      "Grenache Blanc is Languedoc's freshest white grape. Naturally low alcohol, floral aromas and crisp acidity — direct import to Stockholm.",
+      "Grenache Blanc with naturally low alcohol, floral aromas and crisp acidity.",
     description:
       "Grenache Blanc is Languedoc's freshest white grape with naturally low alcohol, floral aromas and crisp mineral acidity.",
     longDescription:
@@ -447,9 +448,9 @@ const LONG_TAIL_WINE_CATEGORIES_EN: WineCategory[] = [
     slug: "syrah",
     locale: "en",
     h1: "Syrah — dark and spiced from Languedoc",
-    title: "Syrah Natural Wine from Languedoc | PACT Wines",
+    title: "Syrah Natural Wine | PACT Wines",
     metaDescription:
-      "Syrah from Languedoc — dark berries, pepper and schist minerality. Direct import natural wine from old vines to Stockholm.",
+      "Syrah — dark berries, pepper and schist minerality. Natural wine from old vines.",
     description:
       "Syrah gives Languedoc's darkest, most spiced wines — black fruit, pepper and a mineral tautness from schist and limestone. On the heights of Haute Vallée de l'Orb and the schist of Faugères, the grape shows its elegant side.",
     longDescription:
@@ -473,9 +474,9 @@ const LONG_TAIL_WINE_CATEGORIES_EN: WineCategory[] = [
     slug: "cinsault",
     locale: "en",
     h1: "Cinsault — light, fresh and underrated",
-    title: "Cinsault Natural Wine from Languedoc | PACT Wines",
+    title: "Cinsault Natural Wine | PACT Wines",
     metaDescription:
-      "Cinsault from Languedoc — light, fresh red wines with low tannin. Perfect lightly chilled. Direct import natural wine to Stockholm.",
+      "Cinsault — light, fresh red wines with low tannin. Perfect lightly chilled.",
     description:
       "Cinsault is the natural wine lover's favourite — light, juicy red wines with low tannin, high freshness and red berry fruit. Perfect lightly chilled and one of the most thirst-quenching red wines Languedoc has to offer.",
     longDescription:
