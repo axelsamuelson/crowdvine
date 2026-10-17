@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { parseProducerLinkFields } from "@/lib/producer-links";
 
 /**
  * Get all producers
@@ -73,6 +74,11 @@ export async function POST(request: NextRequest) {
         ? body.contact_phone.trim()
         : null;
 
+    const parsedLinks = parseProducerLinkFields(body);
+    if (!parsedLinks.ok) {
+      return NextResponse.json({ error: parsedLinks.message }, { status: 400 });
+    }
+
     const { data: producer, error } = await supabase
       .from("producers")
       .insert({
@@ -96,6 +102,15 @@ export async function POST(request: NextRequest) {
         boost_active: body.boost_active === true,
         contact_email: contactEmail,
         contact_phone: contactPhone,
+        ...(parsedLinks.links.website_url !== undefined
+          ? { website_url: parsedLinks.links.website_url }
+          : {}),
+        ...(parsedLinks.links.instagram_handle !== undefined
+          ? { instagram_handle: parsedLinks.links.instagram_handle }
+          : {}),
+        ...(parsedLinks.links.mark_links_verified
+          ? { links_verified_at: new Date().toISOString() }
+          : {}),
       })
       .select()
       .single();
