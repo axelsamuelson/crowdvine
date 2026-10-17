@@ -21,11 +21,11 @@ export async function generateMetadata(props: {
   const searchParams = await props.searchParams;
   const config = await getSiteConfig();
   const pageUrl = `${config.baseUrl}/vin`;
-  const title = `Naturvin online — köp direkt från Languedoc | ${config.siteName}`;
+  const title = `Naturvin online | Köp naturvin hos ${config.siteName}`;
   const description =
     config.baseUrl === DIRTY_WINE_CONFIG.baseUrl
-      ? "Naturvin direktimporterat från Languedoc. Ekologiskt, biodynamiskt och utan tillsatser. För restauranger i Stockholm."
-      : "Bläddra bland 60+ naturviner direktimporterade från Languedoc. Ekologiskt, biodynamiskt och utan tillsatser. Hemleverans i Stockholm.";
+      ? "Naturvin. Ekologiskt och biodynamiskt. För restauranger i Stockholm."
+      : "Bläddra bland 60+ naturviner. Ekologiskt och biodynamiskt. Hemleverans i Stockholm.";
 
   return {
     title: { absolute: title },

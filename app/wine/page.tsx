@@ -21,11 +21,11 @@ export async function generateMetadata(props: {
   const searchParams = await props.searchParams;
   const config = await getSiteConfig();
   const pageUrl = `${config.baseUrl}/wine`;
-  const title = `Natural Wine Online — Buy Direct from Languedoc | ${config.siteName}`;
+  const title = `Natural Wine Online | Buy Natural Wine at ${config.siteName}`;
   const description =
     config.baseUrl === DIRTY_WINE_CONFIG.baseUrl
-      ? "Natural wines directly imported from Languedoc. Organic, biodynamic and without additives. For restaurants in Stockholm."
-      : "Browse 60+ natural wines directly imported from Languedoc. Organic, biodynamic and without additives. Home delivery in Stockholm.";
+      ? "Natural wines. Organic and biodynamic. For restaurants in Stockholm."
+      : "Browse 60+ natural wines. Organic and biodynamic. Home delivery in Stockholm.";
 
   return {
     title: { absolute: title },

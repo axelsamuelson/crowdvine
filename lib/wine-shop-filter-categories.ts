@@ -151,18 +151,17 @@ function buildCategory(
     GENERATED_SHOP_FILTER_SLUGS.add(slug);
   }
   const prefix = locale === "sv" ? "/vin" : "/wine";
+  // Site name resolved at request time via localizeGeneratedCategoryCopy.
   const description =
     locale === "sv"
-      ? `${h1} direktimporterat från Languedoc till Stockholm.`
-      : `${h1} directly imported from Languedoc to Stockholm.`;
-  const title =
-    locale === "sv"
-      ? `${h1} — direktimport | PACT Wines`
-      : `${h1} — Direct Import | PACT Wines`;
+      ? `${h1} online hos PACT Wines.`
+      : `${h1} online at PACT Wines.`;
+  const title = `${h1} | PACT Wines`;
+  // Closing phrase is pact-default; dirtywine rewrites via localizeGeneratedCategoryCopy.
   const metaDescription =
     locale === "sv"
-      ? `Köp ${h1.toLowerCase()} online. Direkt från småproducenter i Languedoc — hemleverans Stockholm.`
-      : `Buy ${h1.toLowerCase()} online. Direct from small producers in Languedoc — home delivery Stockholm.`;
+      ? `Köp ${h1.toLowerCase()} online. Hemleverans Stockholm.`
+      : `Buy ${h1.toLowerCase()} online. Home delivery in Stockholm.`;
 
   return {
     slug,
@@ -175,6 +174,32 @@ function buildCategory(
     hreflang,
     canonical: `${prefix}/${slug}`,
   };
+}
+
+/** Apply site-specific copy for generated filter/grape category intros and metas. */
+export function localizeGeneratedCategoryCopy(
+  category: WineCategory,
+  siteName: string,
+  isDirtyWine: boolean,
+): Pick<WineCategory, "description" | "metaDescription"> {
+  const description = category.description.replace(/PACT Wines/g, siteName);
+
+  let metaDescription = category.metaDescription;
+  if (isDirtyWine) {
+    if (category.locale === "sv") {
+      metaDescription = metaDescription.replace(
+        /\s*Hemleverans Stockholm\.?\s*$/i,
+        " För restauranger i Stockholm.",
+      );
+    } else {
+      metaDescription = metaDescription.replace(
+        /\s*Home delivery in Stockholm\.?\s*$/i,
+        " For restaurants in Stockholm.",
+      );
+    }
+  }
+
+  return { description, metaDescription };
 }
 
 function generateForLocale(locale: Locale): WineCategory[] {
