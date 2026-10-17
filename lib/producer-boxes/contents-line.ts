@@ -6,6 +6,15 @@ const EN_COUNT = ["", "one", "two", "three", "four", "five", "six"] as const;
 
 type Forms = { one: string; many: string };
 
+const CLEAR_COLORS = new Set([
+  "red",
+  "white",
+  "rose",
+  "rosé",
+  "orange",
+  "sparkling",
+]);
+
 const COLOR_FORMS: Record<string, { sv: Forms; en: Forms }> = {
   red: { sv: { one: "rött", many: "röda" }, en: { one: "red", many: "red" } },
   white: {
@@ -24,14 +33,6 @@ const COLOR_FORMS: Record<string, { sv: Forms; en: Forms }> = {
   sparkling: {
     sv: { one: "mousserande", many: "mousserande" },
     en: { one: "sparkling", many: "sparkling" },
-  },
-  "red & orange": {
-    sv: { one: "rött och orange", many: "röda och orange" },
-    en: { one: "red and orange", many: "red and orange" },
-  },
-  "red & white": {
-    sv: { one: "rött och vitt", many: "röda och vita" },
-    en: { one: "red and white", many: "red and white" },
   },
 };
 
@@ -102,14 +103,15 @@ function bottleLabel(slot: ResolvedProducerBoxWine): string | null {
   return name;
 }
 
-/** One factual line: how many wines of each listed type are in the box. */
+/**
+ * One factual line when every wine has a single type.
+ * Blend colors and missing colors return null so the box has no type line.
+ */
 export function producerBoxContentsLine(
   slots: readonly ResolvedProducerBoxWine[],
   locale: AppLocale,
-): string {
-  if (slots.length === 0) {
-    return locale === "sv" ? "Inga viner är listade." : "No wines are listed.";
-  }
+): string | null {
+  if (slots.length === 0) return null;
 
   const groups: { color: string; wines: number }[] = [];
   const indexByColor = new Map<string, number>();
@@ -118,6 +120,7 @@ export function producerBoxContentsLine(
     const quantity = slot.quantity > 0 ? slot.quantity : 0;
     bottles += quantity;
     const color = normalizeColor(slot.color);
+    if (!CLEAR_COLORS.has(color)) return null;
     const existing = indexByColor.get(color);
     if (existing == null) {
       indexByColor.set(color, groups.length);

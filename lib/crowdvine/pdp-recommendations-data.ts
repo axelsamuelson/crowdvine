@@ -59,9 +59,13 @@ export async function fetchPdpRecommendationsForWine(
     anchor,
     sameProducerCandidates: sameProducerRows as Product[],
     similarCandidates: catalogRows as Product[],
-    maxTotal: params?.maxTotal ?? 4,
+    maxSameProducer: 12,
+    maxSimilar: 12,
+    maxTotal: params?.maxTotal ?? 12,
   });
 
-  if (result.items.length === 0) return empty;
+  if (result.sameProducer.length === 0 && result.similar.length === 0) {
+    return empty;
+  }
   return result;
 }

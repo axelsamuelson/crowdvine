@@ -36,6 +36,10 @@ import {
   uniqueGrapesPreserveCasing,
 } from "@/lib/curated-grape-categories";
 import { getProducerGuideNote } from "@/lib/guides/producer-guide-notes";
+import {
+  instagramProfileUrl,
+  websiteDisplayLabel,
+} from "@/lib/producer-links";
 import { categoryPageTitle } from "@/lib/seo/category-page-title";
 import {
   defaultOpenGraphImages,
@@ -59,6 +63,8 @@ type ProducerPayload = {
   founded_year: number | null;
   certification: string | null;
   contact_name: string | null;
+  website_url: string | null;
+  instagram_handle: string | null;
   bio_short: string | null;
   bio_long: string | null;
   slug: string;
@@ -140,13 +146,32 @@ function heroMetaParts(
   return parts;
 }
 
-function SpecCell({ label, value }: { label: string; value: string }) {
+function SpecCell({
+  label,
+  value,
+  href,
+}: {
+  label: string;
+  value: string;
+  href?: string;
+}) {
   return (
     <div className="rounded-xl border bg-background px-4 py-3">
       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
         {label}
       </p>
-      <p className="mt-1 text-sm text-foreground">{value}</p>
+      {href ? (
+        <a
+          href={href}
+          target="_blank"
+          rel="noopener"
+          className="mt-1 flex min-h-[44px] items-center text-sm text-foreground underline underline-offset-4"
+        >
+          {value}
+        </a>
+      ) : (
+        <p className="mt-1 text-sm text-foreground">{value}</p>
+      )}
     </div>
   );
 }
@@ -287,6 +312,34 @@ export async function renderProducerPublicPage(options: {
     Boolean(entry.value?.trim()),
   );
 
+  const websiteLabel = producer.website_url
+    ? websiteDisplayLabel(producer.website_url)
+    : null;
+  const instagramUrl = instagramProfileUrl(producer.instagram_handle);
+  const linkEntries = [
+    websiteLabel && producer.website_url
+      ? {
+          id: "website",
+          label: locale === "sv" ? "Webbplats" : "Website",
+          value: websiteLabel,
+          href: producer.website_url,
+        }
+      : null,
+    instagramUrl && producer.instagram_handle
+      ? {
+          id: "instagram",
+          label: "Instagram",
+          value: `@${producer.instagram_handle}`,
+          href: instagramUrl,
+        }
+      : null,
+  ].filter((entry): entry is NonNullable<typeof entry> => entry !== null);
+
+  const factEntries = [
+    ...specEntries.map((entry) => ({ ...entry, href: undefined })),
+    ...linkEntries,
+  ];
+
   const producerPageUrl = `${PACT_PUBLIC_ORIGIN}${producerPagePath(slug, pathSegment)}`;
   const productPathSegment = pathSegment === "producers" ? "product" : "produkt";
 
@@ -414,10 +467,10 @@ export async function renderProducerPublicPage(options: {
             </p>
           ) : null}
 
-          {specEntries.length > 0 ? (
+          {factEntries.length > 0 ? (
             <div className="mt-4 grid grid-cols-2 gap-3">
-              {specEntries.map(({ id, label, value }) => (
-                <SpecCell key={id} label={label} value={value} />
+              {factEntries.map(({ id, label, value, href }) => (
+                <SpecCell key={id} label={label} value={value} href={href} />
               ))}
             </div>
           ) : null}

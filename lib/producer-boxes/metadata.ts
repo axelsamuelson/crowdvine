@@ -106,18 +106,20 @@ export function buildProducerBoxesJsonLd(
         if (box.totalCents != null) {
           offer.price = schemaPrice(box.totalCents);
         }
+        const description = producerBoxContentsLine(box.slots, locale);
+        const product: Record<string, unknown> = {
+          "@type": "Product",
+          name: box.definition.name[locale],
+          url,
+          offers: offer,
+        };
+        if (description) product.description = description;
         return {
           "@type": "ListItem",
           position: index + 1,
           name: box.definition.name[locale],
           url,
-          item: {
-            "@type": "Product",
-            name: box.definition.name[locale],
-            description: producerBoxContentsLine(box.slots, locale),
-            url,
-            offers: offer,
-          },
+          item: product,
         };
       }),
     },

@@ -1,4 +1,6 @@
+import { supabaseBuildUsesPlaceholder } from "@/lib/supabase-build-placeholder";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { wineDisplayTitle } from "@/lib/wine-display-title";
 import { getAppUrl, getInternalFetchHeaders } from "@/lib/app-url";
 import { DEFAULT_WINE_IMAGE_PATH } from "@/lib/constants";
 import { extractWineText } from "@/lib/i18n/wine-locale";
@@ -641,7 +643,7 @@ export async function fetchProductsData(params?: {
 
     return {
       id: i.id,
-      title: `${i.wine_name} ${i.vintage}`,
+      title: wineDisplayTitle(i.wine_name, i.vintage),
       description: wineDescription,
       descriptionHtml: safeDescriptionHtml,
       handle: i.handle,
@@ -1004,7 +1006,7 @@ export async function fetchCollectionProductsData(
 
     return {
       id: i.id,
-      title: `${i.wine_name} ${i.vintage}`,
+      title: wineDisplayTitle(i.wine_name, i.vintage),
       description: rawDesc || "",
       descriptionHtml: rawDesc ? `<p>${rawDesc}</p>` : "",
       handle: i.handle,
@@ -1112,7 +1114,13 @@ export async function fetchCollectionProductsData(
   return visibleCollection.slice(0, limit);
 }
 
-/** True when at least one live catalog wine matches the shop category filters. */
+/**
+ * True when at least one live catalog wine matches the shop category filters.
+ * GitHub Actions builds with NEXT_PUBLIC_SUPABASE_URL pointed at
+ * placeholder.supabase.co. Sitemap generation calls this during `next build`,
+ * and that host does not resolve. Skip the query there so CI can finish.
+ * Production builds use the real host and still query.
+ */
 export async function catalogHasProducts(filters?: {
   filterColor?: string[];
   filterTags?: string[];
@@ -1121,6 +1129,7 @@ export async function catalogHasProducts(filters?: {
   filterGrape?: string;
   isB2BSite?: boolean;
 }): Promise<boolean> {
+  if (supabaseBuildUsesPlaceholder()) return false;
   const rows = await fetchProductsData({
     ...filters,
     limit: 1,

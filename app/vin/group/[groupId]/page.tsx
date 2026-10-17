@@ -7,6 +7,7 @@ import { headers } from "next/headers";
 import { DEFAULT_WINE_IMAGE_PATH } from "@/lib/constants";
 import { isB2BHost } from "@/lib/b2b-site";
 import { fetchHiddenB2BWineIds } from "@/lib/b2b-pallet-stock";
+import { wineDisplayTitle } from "@/lib/wine-display-title";
 
 export const dynamic = "force-dynamic";
 
@@ -118,7 +119,7 @@ export default async function ProducerGroupPage({ params }: PageProps) {
 
     return {
       id: wine.id,
-      title: `${wine.wine_name} ${wine.vintage}`,
+      title: wineDisplayTitle(wine.wine_name, wine.vintage),
       handle: wine.handle,
       description: wine.description || "",
       descriptionHtml: wine.description_html || "",
@@ -168,7 +169,7 @@ export default async function ProducerGroupPage({ params }: PageProps) {
       ],
       availableForSale: true,
       seo: {
-        title: `${wine.wine_name} ${wine.vintage}`,
+        title: wineDisplayTitle(wine.wine_name, wine.vintage),
         description: wine.description || "",
       },
     };

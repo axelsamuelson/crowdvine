@@ -8,7 +8,8 @@ import { fetchIndexableProducersFromDb } from "@/lib/crowdvine/indexable-produce
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import type { AppLocale } from "@/lib/i18n/locale";
 
-const PRODUCER_BY_SLUG_SELECT = `${PRODUCER_DB_SELECT}, lat, lon` as const;
+const PRODUCER_BY_SLUG_SELECT =
+  `${PRODUCER_DB_SELECT}, lat, lon, website_url, instagram_handle` as const;
 
 type ProducerRow = {
   id: string;
@@ -21,6 +22,8 @@ type ProducerRow = {
   bio_long: unknown;
   certification: string | null;
   contact_name: string | null;
+  website_url: string | null;
+  instagram_handle: string | null;
   lat: number | null;
   lon: number | null;
 };
@@ -49,6 +52,8 @@ export type ProducerBySlugPayload = {
     founded_year: number | null;
     certification: string | null;
     contact_name: string | null;
+    website_url: string | null;
+    instagram_handle: string | null;
     bio_short: string | null;
     bio_long: string | null;
     slug: string;
@@ -133,6 +138,8 @@ export async function getProducerBySlugForLocale(
       founded_year: producer.founded_year,
       certification: producer.certification,
       contact_name: producer.contact_name,
+      website_url: producer.website_url,
+      instagram_handle: producer.instagram_handle,
       bio_short: extractWineText(
         producer.short_description as Record<string, string> | string | null,
         wineLocale,

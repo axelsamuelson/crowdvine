@@ -11,6 +11,8 @@ interface ShopLinksProps {
   label?: string;
   /** Shown when no producer collections are available. */
   emptyMessage?: string;
+  /** Max producers to show (Popular producers list). */
+  limit?: number;
   className?: string;
   onLinkClick?: () => void;
 }
@@ -20,14 +22,16 @@ export function ShopLinks({
   locale = "sv",
   label = "Shop",
   emptyMessage,
+  limit = 10,
   align = "left",
   className,
   onLinkClick,
 }: ShopLinksProps) {
   const paths = localizedPathsForLocale(locale);
-  const filteredCollections =
+  const filteredCollections = (
     collections?.filter((collection) => collection.handle !== "wine-boxes") ||
-    [];
+    []
+  ).slice(0, Math.max(0, limit));
 
   return (
     <div

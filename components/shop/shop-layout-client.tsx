@@ -37,7 +37,7 @@ export function ShopLayoutClient({
             ssrPathname={ssrPathname}
           />
         </Suspense>
-        <div className="col-span-9 flex flex-col">
+        <div className="col-span-9 flex flex-col max-md:pb-24">
           <Suspense fallback={null}>{children}</Suspense>
         </div>
         <div className="md:hidden sticky top-top-spacing z-40 bg-transparent order-first md:order-none col-span-12">

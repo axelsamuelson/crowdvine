@@ -213,7 +213,10 @@ export function DesktopFilters({
               />
             )}
           </Suspense>
-          <ProducerBoxesCta className="mt-2" ssrPathname={ssrPathname} />
+          <ProducerBoxesCta
+            className="mt-2 h-11 w-full px-5"
+            ssrPathname={ssrPathname}
+          />
         </div>
       </aside>
 
