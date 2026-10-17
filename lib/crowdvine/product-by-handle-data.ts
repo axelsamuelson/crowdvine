@@ -13,6 +13,8 @@ import type { Product } from "@/lib/shopify/types";
 import {
   aggregateB2BPalletStock,
   B2B_PALLET_ITEM_STOCK_SELECT,
+  fetchWineIdsOnInTransitPallets,
+  isB2BWineIncoming,
 } from "@/lib/b2b-pallet-stock";
 import {
   isWineAvailableForSale,
@@ -535,7 +537,12 @@ export async function getCrowdvineProductByHandle(options: {
 
   const wineDescriptionHtml = i.description_html || `<p>${wineDescription}</p>`;
 
-  // B2B stock and shipping: from Dirty Wine pallets
+  // B2B stock and shipping: from Dirty Wine pallets.
+  // Incoming is independent of the stock query, so it starts in parallel.
+  const isB2BSite = isB2BHost(host);
+  const incomingWineIdsPromise = isB2BSite
+    ? fetchWineIdsOnInTransitPallets(sb, [wineIdData.id])
+    : Promise.resolve(new Set<string>());
   let b2bStock: number | null = null;
   let shippingPerBottleSek = 0;
   try {
@@ -573,7 +580,11 @@ export async function getCrowdvineProductByHandle(options: {
   if (b2bStock == null && i.b2b_stock != null) {
     b2bStock = Number(i.b2b_stock);
   }
-  const isB2BSite = isB2BHost(host);
+  const incomingWineIds = await incomingWineIdsPromise;
+  const isIncoming = isB2BWineIncoming(
+    b2bStock,
+    incomingWineIds.has(wineIdData.id),
+  );
   const catalogAvailableForSale = isWineAvailableForSale(
     (i as { available_for_sale?: boolean }).available_for_sale,
   );
@@ -751,6 +762,7 @@ export async function getCrowdvineProductByHandle(options: {
     updatedAt: new Date().toISOString(),
     createdAt: new Date().toISOString(),
     b2bStock: b2bStock ?? undefined,
+    isIncoming,
     priceBreakdown: {
       costAmount: i.cost_amount || 0,
       exchangeRate,

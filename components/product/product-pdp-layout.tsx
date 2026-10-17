@@ -172,6 +172,7 @@ export function ProductPdpLayout({
                     <StockBadge
                       b2bStock={product.b2bStock}
                       availableForSale={product.availableForSale}
+                      isIncoming={product.isIncoming === true}
                     />
                   </div>
 

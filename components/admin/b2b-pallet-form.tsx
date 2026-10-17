@@ -39,6 +39,12 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
+  B2B_PALLET_STATUSES,
+  B2B_PALLET_STATUS_LABELS,
+  b2bPalletStatusSchema,
+  type B2BPalletStatus,
+} from "@/lib/b2b/pallet-status";
+import {
   collectCurrenciesNeedingRates,
   computePalletCostSummary,
   formatSekFromCents,
@@ -252,7 +258,7 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
   const [shippedAt, setShippedAt] = useState("");
   const [deliveredAt, setDeliveredAt] = useState("");
   const [palletCostCents, setPalletCostCents] = useState<number | "">("");
-  const [isActive, setIsActive] = useState(false);
+  const [status, setStatus] = useState<B2BPalletStatus>("inactive");
   /** null = automatic (20% pallet-zone rule) */
   const [pickupProducerId, setPickupProducerId] = useState<string | null>(null);
   const [items, setItems] = useState<PalletItem[]>([]);
@@ -333,7 +339,8 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
             setPalletCostCents(
               data.cost_cents != null ? data.cost_cents : "",
             );
-            setIsActive(data.is_active === true);
+            const parsedStatus = b2bPalletStatusSchema.safeParse(data.status);
+            setStatus(parsedStatus.success ? parsedStatus.data : "inactive");
             setPickupProducerId(
               (data.pickup_producer_id as string | null | undefined) ?? null,
             );
@@ -425,7 +432,7 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
         shipped_at: shippedAt || null,
         delivered_at: deliveredAt || null,
         cost_cents: palletCostCents !== "" ? palletCostCents : null,
-        is_active: isActive,
+        status,
         pickup_producer_id: pickupProducerId,
         items: items.map((i) => ({
           wine_id: i.wine_id,
@@ -1229,22 +1236,35 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
                 Transport, frakt och övriga kostnader för pallen i SEK
               </p>
             </div>
-            <div className="flex items-start justify-between gap-4 rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-zinc-800 dark:bg-zinc-900/70">
-              <div className="space-y-1">
-                <Label htmlFor="is_active" className={labelClass}>
-                  Aktiv i lager
-                </Label>
-                <p className={hintClass}>
-                  När pallen är aktiv räknas vinet in i B2B-lager på dirtywine.se.
-                  Nya pallar är inaktiva tills du aktiverar dem.
-                </p>
-              </div>
-              <Switch
-                id="is_active"
-                checked={isActive}
-                onCheckedChange={setIsActive}
-                className={ADMIN_ACTIVE_SWITCH_CLASS}
-              />
+            <div className="space-y-2">
+              <Label htmlFor="pallet_status" className={labelClass}>
+                Status
+              </Label>
+              <Select
+                value={status}
+                onValueChange={(value) => {
+                  const parsed = b2bPalletStatusSchema.safeParse(value);
+                  if (parsed.success) setStatus(parsed.data);
+                }}
+              >
+                <SelectTrigger
+                  id="pallet_status"
+                  className={cn(selectTriggerClass, "max-w-sm")}
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="border-gray-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
+                  {B2B_PALLET_STATUSES.map((value) => (
+                    <SelectItem key={value} value={value}>
+                      {B2B_PALLET_STATUS_LABELS[value]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className={hintClass}>
+                Planerad syns inte som lager. På väg visas som kommande på
+                dirtywine.se. Levererad räknas som lager.
+              </p>
             </div>
           </div>
         </section>

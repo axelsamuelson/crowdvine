@@ -3,6 +3,7 @@ import { getCurrentAdmin } from "@/lib/admin-auth-server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { B2B_PALLET_SHIPMENT_SELECT } from "@/lib/b2b-pallet-shipment-select";
 import { validateB2bPickupProducerId } from "@/lib/b2b-pallet-shipment-validation";
+import { b2bPalletStatusSchema } from "@/lib/b2b/pallet-status";
 
 export async function GET() {
   try {
@@ -45,13 +46,20 @@ export async function POST(request: NextRequest) {
 
     const sb = getSupabaseAdmin();
     const body = await request.json();
+    const statusParsed = b2bPalletStatusSchema.safeParse(
+      typeof body === "object" && body !== null && "status" in body
+        ? body.status
+        : undefined,
+    );
+    if (!statusParsed.success) {
+      return NextResponse.json({ error: "Invalid status" }, { status: 400 });
+    }
 
     const {
       name,
       shipped_at,
       delivered_at,
       cost_cents,
-      is_active,
       pickup_producer_id,
       items,
     } = body as {
@@ -59,7 +67,6 @@ export async function POST(request: NextRequest) {
       shipped_at?: string | null;
       delivered_at?: string | null;
       cost_cents?: number | null;
-      is_active?: boolean;
       pickup_producer_id?: string | null;
       items: Array<{
         wine_id: string;
@@ -95,7 +102,7 @@ export async function POST(request: NextRequest) {
         shipped_at: shipped_at || null,
         delivered_at: delivered_at || null,
         cost_cents: cost_cents != null ? cost_cents : null,
-        is_active: is_active === true,
+        status: statusParsed.data,
         pickup_producer_id: pickupCheck.pickupProducerId,
       })
       .select()

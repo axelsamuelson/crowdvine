@@ -16,6 +16,16 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Switch } from "@/components/ui/switch";
 import { CreateProducerData, Producer } from "@/lib/actions/producers";
+import { producerLinksInputSchema } from "@/lib/producer-links";
+
+function formatLinksVerifiedAt(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  return new Intl.DateTimeFormat("sv-SE", {
+    dateStyle: "long",
+    timeStyle: "short",
+  }).format(date);
+}
 
 type CountryOption = { code: string; name: string };
 type RegionOption = { value: string; label: string; country_code: string | null };
@@ -48,7 +58,13 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
     boost_active: producer?.boost_active === true,
     contact_email: producer?.contact_email || "",
     contact_phone: producer?.contact_phone || "",
+    website_url: producer?.website_url || "",
+    instagram_handle: producer?.instagram_handle || "",
   });
+  const [linksVerifiedAt] = useState<string | null>(
+    producer?.links_verified_at ?? null,
+  );
+  const [markLinksVerified, setMarkLinksVerified] = useState(false);
 
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -119,8 +135,25 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
     setError("");
 
     try {
+      const parsedLinks = producerLinksInputSchema.safeParse({
+        website_url: formData.website_url ?? "",
+        instagram_handle: formData.instagram_handle ?? "",
+        mark_links_verified: markLinksVerified,
+      });
+      if (!parsedLinks.success) {
+        setError(
+          parsedLinks.error.issues[0]?.message ??
+            "Ogiltig webbplats eller Instagram.",
+        );
+        setLoading(false);
+        return;
+      }
+
       const payload = {
         ...formData,
+        website_url: parsedLinks.data.website_url ?? null,
+        instagram_handle: parsedLinks.data.instagram_handle ?? null,
+        mark_links_verified: markLinksVerified,
         shipping_region_id: formData.shipping_region_id?.trim()
           ? formData.shipping_region_id.trim()
           : null,
@@ -517,6 +550,74 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
                 className="border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800"
               />
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="website_url" className="text-gray-700 dark:text-zinc-300">
+              Webbplats
+            </Label>
+            <Input
+              id="website_url"
+              type="url"
+              inputMode="url"
+              value={formData.website_url || ""}
+              onChange={(e) => handleChange("website_url", e.target.value)}
+              placeholder="https://"
+              autoComplete="url"
+              className="border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800"
+            />
+            <p className="text-xs text-gray-500 dark:text-zinc-400">
+              Endast producentens egen sida. Inte importör, återförsäljare eller Facebook.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="instagram_handle" className="text-gray-700 dark:text-zinc-300">
+              Instagram
+            </Label>
+            <div className="flex items-center gap-2">
+              <span
+                className="text-sm text-gray-500 dark:text-zinc-400"
+                aria-hidden="true"
+              >
+                @
+              </span>
+              <Input
+                id="instagram_handle"
+                value={formData.instagram_handle || ""}
+                onChange={(e) => handleChange("instagram_handle", e.target.value)}
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                className="border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between gap-4 rounded-xl border border-gray-200 dark:border-zinc-800 p-4 bg-gray-50 dark:bg-zinc-900/70">
+            <div>
+              <p className="text-sm font-medium text-gray-900 dark:text-zinc-100">
+                Senast verifierad
+              </p>
+              <p className="text-sm text-gray-700 dark:text-zinc-300 mt-0.5">
+                {linksVerifiedAt
+                  ? formatLinksVerifiedAt(linksVerifiedAt)
+                  : "Ej verifierad"}
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              aria-pressed={markLinksVerified}
+              onClick={() => setMarkLinksVerified((current) => !current)}
+              className={`rounded-lg text-xs font-medium border-gray-200 dark:border-zinc-700 ${
+                markLinksVerified
+                  ? "bg-gray-900 text-white dark:bg-zinc-50 dark:text-zinc-900"
+                  : ""
+              }`}
+            >
+              Markera som verifierad
+            </Button>
           </div>
 
           <div className="space-y-2">

@@ -21,6 +21,8 @@ import {
 import {
   aggregateB2BPalletStock,
   B2B_PALLET_ITEM_STOCK_SELECT,
+  fetchWineIdsOnInTransitPallets,
+  isB2BWineIncoming,
 } from "@/lib/b2b-pallet-stock";
 
 async function resolveProductDisplayCurrency(params?: {
@@ -269,6 +271,8 @@ export interface ProductData {
   b2bPriceExclVat?: number;
   /** B2B stock quantity (wines only). Null/0 = out of stock. Used for stock badges. */
   b2bStock?: number | null;
+  /** True when the wine has no sellable B2B stock but is on an in-transit pallet. */
+  isIncoming?: boolean;
 }
 
 /**
@@ -525,14 +529,21 @@ export async function fetchProductsData(params?: {
   const wineIds = rawData.map((wine: any) => wine.id) || [];
   const wineImagesMap = new Map<string, any[]>();
 
-  const [{ stockMap: b2bStockMap, shippingMap: b2bShippingMap }, rateMap, wineImagesResult] =
-    await Promise.all([
+  const [
+    { stockMap: b2bStockMap, shippingMap: b2bShippingMap },
+    incomingWineIds,
+    rateMap,
+    wineImagesResult,
+  ] = await Promise.all([
       isB2BSite
         ? fetchB2BStockAndShippingFromPallets(sb, wineIds)
         : Promise.resolve({
             stockMap: new Map<string, number>(),
             shippingMap: new Map<string, number>(),
           }),
+      isB2BSite
+        ? fetchWineIdsOnInTransitPallets(sb, wineIds)
+        : Promise.resolve(new Set<string>()),
       fetchExchangeRatesMap(currencies),
       wineIds.length > 0
         ? sb
@@ -569,6 +580,9 @@ export async function fetchProductsData(params?: {
       b2bStock,
       availableForSale: i.available_for_sale,
     });
+    const isIncoming = isB2BSite
+      ? isB2BWineIncoming(b2bStock, incomingWineIds.has(i.id))
+      : false;
     const images =
       wineImages.length > 0
         ? wineImages.map((img: any) => ({
@@ -677,6 +691,7 @@ export async function fetchProductsData(params?: {
       updatedAt: new Date().toISOString(),
       createdAt: new Date().toISOString(),
       b2bStock: b2bStock ?? undefined,
+      isIncoming,
       ...(i.b2b_margin_percentage != null &&
       i.b2b_margin_percentage >= 0 &&
       i.b2b_margin_percentage < 100
@@ -910,8 +925,13 @@ export async function fetchCollectionProductsData(
     (producerData as { boost_active?: boolean } | null)?.boost_active === true;
 
   const collWineIds = collData.map((w: any) => w.id) || [];
-  const { stockMap: collB2bStockMap, shippingMap: collB2bShippingMap } =
-    await fetchB2BStockAndShippingFromPallets(sb, collWineIds);
+  const [{ stockMap: collB2bStockMap, shippingMap: collB2bShippingMap }, collIncomingWineIds] =
+    await Promise.all([
+      fetchB2BStockAndShippingFromPallets(sb, collWineIds),
+      isB2BSite
+        ? fetchWineIdsOnInTransitPallets(sb, collWineIds)
+        : Promise.resolve(new Set<string>()),
+    ]);
 
   return collData.map((i: any) => {
     const grapeVarieties = Array.isArray(i.grape_varieties)
@@ -932,6 +952,9 @@ export async function fetchCollectionProductsData(
       b2bStock,
       availableForSale: i.available_for_sale,
     });
+    const isIncoming = isB2BSite
+      ? isB2BWineIncoming(b2bStock, collIncomingWineIds.has(i.id))
+      : false;
 
     const rawDesc = extractWineText(
       i.description as Record<string, string> | string | null,
@@ -1020,6 +1043,7 @@ export async function fetchCollectionProductsData(
       updatedAt: new Date().toISOString(),
       createdAt: new Date().toISOString(),
       b2bStock: b2bStock ?? undefined,
+      isIncoming,
       ...(i.b2b_margin_percentage != null &&
       i.b2b_margin_percentage >= 0 &&
       i.b2b_margin_percentage < 100

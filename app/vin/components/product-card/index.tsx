@@ -833,6 +833,7 @@ export const ProductCard = memo(
               <StockBadge
                 b2bStock={(product as any).b2bStock}
                 availableForSale={product.availableForSale}
+                isIncoming={product.isIncoming === true}
               />
             </div>
           </div>
@@ -1061,6 +1062,7 @@ export const ProductCard = memo(
                 <StockBadge
                   b2bStock={(product as any).b2bStock}
                   availableForSale={product.availableForSale}
+                  isIncoming={product.isIncoming === true}
                 />
               </div>
             </div>

@@ -1,3 +1,5 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
+
 export type B2BPalletShipmentEmbed = {
   id?: string;
   name?: string;
@@ -81,4 +83,46 @@ export function aggregateB2BPalletStock(
   });
 
   return { stockMap, shippingMap };
+}
+
+/**
+ * Sellable stock wins. A wine is incoming only when it has no sellable stock
+ * and sits on at least one in-transit pallet.
+ */
+export function isB2BWineIncoming(
+  b2bStock: number | null | undefined,
+  onInTransitPallet: boolean,
+): boolean {
+  if (typeof b2bStock === "number" && b2bStock > 0) return false;
+  return onInTransitPallet;
+}
+
+function readWineId(row: unknown): string | null {
+  if (typeof row !== "object" || row === null || !("wine_id" in row)) return null;
+  const wineId = row.wine_id;
+  return typeof wineId === "string" && wineId.length > 0 ? wineId : null;
+}
+
+/** Wine ids that appear on at least one pallet with status in_transit. One query. */
+export async function fetchWineIdsOnInTransitPallets(
+  sb: SupabaseClient,
+  wineIds: readonly string[],
+): Promise<Set<string>> {
+  const ids = [...new Set(wineIds.filter((id) => id.length > 0))];
+  if (ids.length === 0) return new Set();
+
+  const { data, error } = await sb
+    .from("b2b_pallet_shipment_items")
+    .select("wine_id, b2b_pallet_shipments!inner(status)")
+    .in("wine_id", ids)
+    .eq("b2b_pallet_shipments.status", "in_transit");
+
+  if (error || !Array.isArray(data)) return new Set();
+
+  const incoming = new Set<string>();
+  for (const row of data) {
+    const wineId = readWineId(row);
+    if (wineId) incoming.add(wineId);
+  }
+  return incoming;
 }
