@@ -54,7 +54,7 @@ async function computeNavigableShopFilterPaths(
   return [...paths].sort();
 }
 
-/** Cached navigable shop category paths for filter <a href> SSR. */
+/** Cached navigable shop category paths for filter <a href> SSR. Server-only. */
 export function getCachedNavigableShopFilterPaths(
   isB2BSite: boolean,
 ): Promise<string[]> {
@@ -64,13 +64,4 @@ export function getCachedNavigableShopFilterPaths(
     ["shop-filter-navigable-paths", key],
     { revalidate: 300 },
   )();
-}
-
-/** True when path may be used as a crawlable shop filter link. */
-export function isNavigableShopFilterPath(
-  path: string,
-  navigablePaths: readonly string[] | undefined,
-): boolean {
-  if (!navigablePaths) return true;
-  return navigablePaths.includes(path);
 }

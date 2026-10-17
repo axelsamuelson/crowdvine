@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { gateShopFilterHref } from "@/lib/shop/gate-shop-filter-href";
-import { isNavigableShopFilterPath } from "@/lib/shop/shop-filter-category-availability";
+import {
+  gateShopFilterHref,
+  isNavigableShopFilterPath,
+} from "@/lib/shop/gate-shop-filter-href";
 
 describe("gateShopFilterHref", () => {
   const navigable = [
