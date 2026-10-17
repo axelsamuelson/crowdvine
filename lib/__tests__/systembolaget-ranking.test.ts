@@ -25,7 +25,8 @@ function scored(input: {
 }
 
 function source(
-  partial: Partial<RankingSource> & Pick<RankingSource, "productNumber" | "category">,
+  partial: Partial<RankingSource> &
+    Pick<RankingSource, "productNumber" | "category">,
 ): RankingSource {
   return {
     name: partial.productNumber,
@@ -95,7 +96,9 @@ describe("mixRanking", () => {
     ];
     const order = mixRanking(items).map((wine) => wine.productNumber);
     expect(order).toEqual(["c", "a", "b"]);
-    expect(new Set(order)).toEqual(new Set(items.map((wine) => wine.productNumber)));
+    expect(new Set(order)).toEqual(
+      new Set(items.map((wine) => wine.productNumber)),
+    );
   });
 
   it("returns a single-producer list in score order when every gap is blocked", () => {
@@ -130,10 +133,9 @@ describe("curated ranking", () => {
         producer_name: "A",
       },
     ];
-    expect(orderCategoryWines(wines).map((wine) => wine.product_number)).toEqual([
-      "2",
-      "1",
-    ]);
+    expect(
+      orderCategoryWines(wines).map((wine) => wine.product_number),
+    ).toEqual(["2", "1"]);
   });
 
   it("places wines without wine_score after scored wines, in sort_order", () => {
@@ -157,11 +159,9 @@ describe("curated ranking", () => {
         producer_name: "Scored",
       },
     ];
-    expect(orderCategoryWines(wines).map((wine) => wine.product_number)).toEqual([
-      "scored",
-      "early",
-      "late",
-    ]);
+    expect(
+      orderCategoryWines(wines).map((wine) => wine.product_number),
+    ).toEqual(["scored", "early", "late"]);
   });
 
   it("dedupes a product that sits in more than one category", () => {
@@ -190,15 +190,24 @@ describe("curated ranking", () => {
     const ranked = buildCuratedRanking(rows);
     expect(ranked).toHaveLength(3);
     const global = rankingForView(ranked, "global");
-    expect(global.map((row) => row.productNumber).sort()).toEqual(["100", "200"]);
-    expect(rankingForView(ranked, "category", { category: "red" })).toHaveLength(1);
-    expect(rankingForView(ranked, "country", { country: "Italien" })).toHaveLength(1);
+    expect(global.map((row) => row.productNumber).sort()).toEqual([
+      "100",
+      "200",
+    ]);
+    expect(
+      rankingForView(ranked, "category", { category: "red" }),
+    ).toHaveLength(1);
+    expect(
+      rankingForView(ranked, "country", { country: "Italien" }),
+    ).toHaveLength(1);
     const kept = dedupeByProductNumber(
       ranked.filter((row) => row.productNumber === "100"),
     );
     expect(kept).toHaveLength(1);
     expect(kept[0]?.category).toBe("best");
-    expect(new Set(global.map((row) => row.productNumber)).size).toBe(global.length);
+    expect(new Set(global.map((row) => row.productNumber)).size).toBe(
+      global.length,
+    );
   });
 
   it("leaves avoid wines out and does not drop a recommended wine", () => {
@@ -219,5 +228,178 @@ describe("curated ranking", () => {
     ];
     const ranked = buildCuratedRanking(rows);
     expect(ranked.map((row) => row.productNumber)).toEqual(["keep"]);
+  });
+});
+
+describe("petnat, glouglou, budget and best", () => {
+  const categories = ["petnat", "glouglou", "budget", "best"] as const;
+
+  function rowsFor(category: string) {
+    return [
+      {
+        product_number: `${category}-alpha-next`,
+        wine_score: 80 as number | null,
+        score_adjust: 0,
+        sort_order: 1,
+        producer_name: `${category} Alpha`,
+        price: 99,
+      },
+      {
+        product_number: `${category}-beta`,
+        wine_score: 70 as number | null,
+        score_adjust: 0,
+        sort_order: 2,
+        producer_name: `${category} Beta`,
+        price: 120,
+      },
+      {
+        product_number: `${category}-alpha-high`,
+        wine_score: 90 as number | null,
+        score_adjust: 0,
+        sort_order: 3,
+        producer_name: `${category} Alpha`,
+        price: 189,
+      },
+    ];
+  }
+
+  for (const category of categories) {
+    it(`orders ${category} by categoryRank and keeps every row`, () => {
+      const wines = rowsFor(category);
+      const ordered = orderCategoryWines(wines);
+      const ranked = buildCuratedRanking(
+        wines.map((wine) =>
+          source({
+            productNumber: wine.product_number,
+            category,
+            wineScore: wine.wine_score,
+            sortOrder: wine.sort_order,
+            producerName: wine.producer_name,
+          }),
+        ),
+      );
+      const byCategoryRank = [...ranked]
+        .sort((a, b) => a.categoryRank - b.categoryRank)
+        .map((row) => row.productNumber);
+
+      expect(ordered.map((wine) => wine.product_number)).toEqual(
+        byCategoryRank,
+      );
+      expect(ordered.map((wine) => wine.product_number)).toEqual([
+        `${category}-alpha-high`,
+        `${category}-beta`,
+        `${category}-alpha-next`,
+      ]);
+      expect(new Set(ordered.map((wine) => wine.product_number))).toEqual(
+        new Set(wines.map((wine) => wine.product_number)),
+      );
+      expect(ordered).toHaveLength(wines.length);
+    });
+
+    it(`keeps the sort_order order for ${category} when no row has wine_score`, () => {
+      const wines = rowsFor(category).map((wine) => ({
+        ...wine,
+        wine_score: null,
+      }));
+      expect(
+        orderCategoryWines(wines).map((wine) => wine.product_number),
+      ).toEqual(wines.map((wine) => wine.product_number));
+    });
+  }
+
+  it("ranks best from the best rows, not from globalRank", () => {
+    const best = [
+      {
+        product_number: "r93",
+        wine_score: 93,
+        score_adjust: 0,
+        sort_order: 1,
+        producer_name: "Radikon",
+        top_100_producer_name: "Radikon",
+      },
+      {
+        product_number: "r88",
+        wine_score: 88,
+        score_adjust: 0,
+        sort_order: 2,
+        producer_name: "Radikon",
+        top_100_producer_name: "Radikon",
+      },
+      {
+        product_number: "other",
+        wine_score: 10,
+        score_adjust: 0,
+        sort_order: 3,
+        producer_name: "Other",
+        top_100_producer_name: null,
+      },
+    ];
+    const ranked = buildCuratedRanking([
+      ...best.map((wine) =>
+        source({
+          productNumber: wine.product_number,
+          category: "best",
+          wineScore: wine.wine_score,
+          sortOrder: wine.sort_order,
+          producerName: wine.producer_name,
+          top100ProducerName: wine.top_100_producer_name,
+        }),
+      ),
+      source({
+        productNumber: "red-high",
+        category: "red",
+        wineScore: 99,
+        sortOrder: 1,
+        producerName: "Between",
+      }),
+      source({
+        productNumber: "red-mid",
+        category: "red",
+        wineScore: 90,
+        sortOrder: 2,
+        producerName: "Between Two",
+      }),
+    ]);
+    const categoryOrder = rankingForView(ranked, "category", {
+      category: "best",
+    }).map((row) => row.productNumber);
+    const globalOrder = rankingForView(ranked, "global")
+      .filter((row) =>
+        best.some((wine) => wine.product_number === row.productNumber),
+      )
+      .map((row) => row.productNumber);
+
+    expect(orderCategoryWines(best).map((wine) => wine.product_number)).toEqual(
+      categoryOrder,
+    );
+    expect(categoryOrder).toEqual(["r93", "other", "r88"]);
+    expect(globalOrder).not.toEqual(categoryOrder);
+    expect(new Set(categoryOrder)).toEqual(
+      new Set(best.map((wine) => wine.product_number)),
+    );
+  });
+
+  it("does not use price when ranking budget", () => {
+    const wines = [
+      {
+        product_number: "cheap-low",
+        wine_score: 40,
+        score_adjust: 0,
+        sort_order: 1,
+        producer_name: "Cheap",
+        price: 89,
+      },
+      {
+        product_number: "dear-high",
+        wine_score: 90,
+        score_adjust: 0,
+        sort_order: 9,
+        producer_name: "Dear",
+        price: 199,
+      },
+    ];
+    expect(
+      orderCategoryWines(wines).map((wine) => wine.product_number),
+    ).toEqual(["dear-high", "cheap-low"]);
   });
 });

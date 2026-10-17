@@ -1,9 +1,6 @@
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { unstable_cache } from "next/cache";
-import {
-  isRankedGuideCategory,
-  orderCategoryWines,
-} from "@/lib/systembolaget/ranking";
+import { orderCategoryWines } from "@/lib/systembolaget/ranking";
 
 export type GuideWineCategory =
   | "red"
@@ -317,10 +314,9 @@ async function fetchGuideWinesUncached(
   }
 
   const wines = (data ?? []) as unknown as SystembolagetGuideWine[];
-  const ordered =
-    verdict === "recommended" && isRankedGuideCategory(category)
-      ? orderCategoryWines(wines)
-      : wines;
+  // Recommended rows use categoryRank once any wine_score is set.
+  // Avoid lists stay on the sort_order query.
+  const ordered = verdict === "recommended" ? orderCategoryWines(wines) : wines;
   if (category !== "best" || ordered.length === 0) return ordered;
   return attachPrimaryStyles(ordered);
 }
