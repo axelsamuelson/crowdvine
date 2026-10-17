@@ -88,8 +88,29 @@ export const SHOP_FILTER_FARMING: FarmingDef[] = [
   },
 ];
 
-/** Slugs generated here — exclude from hand-written category lists. */
+const PRIMARY_COLOR_DBS = new Set(["Red", "White", "Orange"]);
+
+function isPrimaryShopColor(colorDb: string): boolean {
+  return PRIMARY_COLOR_DBS.has(colorDb);
+}
+
+/** Slugs used for filter navigation matching (not legacy redirect-only pages). */
 export const GENERATED_SHOP_FILTER_SLUGS = new Set<string>();
+
+/**
+ * Color-only and farming=natural hub slugs that 301 to the natural default.
+ * Kept in the category list for slug lookup until the redirect fires.
+ */
+export const LEGACY_SHOP_REDIRECT_SLUGS = new Set<string>([
+  "red-wine",
+  "white-wine",
+  "orange-wine",
+  "rott-vin",
+  "vitt-vin",
+  "orange-vin",
+  "natural-wine",
+  "naturvin",
+]);
 
 function comboSlug(
   color: ColorDef,
@@ -123,8 +144,12 @@ function buildCategory(
   h1: string,
   filter: WineCategoryFilter,
   hreflang: string,
+  options?: { navigable?: boolean },
 ): WineCategory {
-  GENERATED_SHOP_FILTER_SLUGS.add(slug);
+  const navigable = options?.navigable !== false;
+  if (navigable) {
+    GENERATED_SHOP_FILTER_SLUGS.add(slug);
+  }
   const prefix = locale === "sv" ? "/vin" : "/wine";
   const description =
     locale === "sv"
@@ -158,6 +183,7 @@ function generateForLocale(locale: Locale): WineCategory[] {
   for (const color of SHOP_FILTER_COLORS) {
     const meta = locale === "sv" ? color.sv : color.en;
     const counterpart = locale === "sv" ? color.en : color.sv;
+    const isPrimary = isPrimaryShopColor(color.db);
     categories.push(
       buildCategory(
         locale,
@@ -165,6 +191,8 @@ function generateForLocale(locale: Locale): WineCategory[] {
         meta.h1,
         { color: [color.db] },
         counterpart.slug,
+        // Primary color hubs redirect to *-natural-*; blends stay navigable.
+        { navigable: !isPrimary },
       ),
     );
   }
@@ -179,6 +207,8 @@ function generateForLocale(locale: Locale): WineCategory[] {
         meta.h1,
         { farming: [farming.db] },
         counterpart.slug,
+        // natural-wine / naturvin redirect to the shop root.
+        { navigable: farming.db !== "natural" },
       ),
     );
   }
@@ -192,14 +222,15 @@ function generateForLocale(locale: Locale): WineCategory[] {
         farming,
         locale === "sv" ? "en" : "sv",
       );
+      const isPrimaryNatural =
+        farming.db === "natural" && isPrimaryShopColor(color.db);
+      // Primary *-natural-* pages list every wine of that color.
+      // Two-color natural pages keep farming: natural (noindex, unchanged).
+      const filter: WineCategoryFilter = isPrimaryNatural
+        ? { color: [color.db] }
+        : { color: [color.db], farming: [farming.db] };
       categories.push(
-        buildCategory(
-          locale,
-          slug,
-          h1,
-          { color: [color.db], farming: [farming.db] },
-          counterpartSlug,
-        ),
+        buildCategory(locale, slug, h1, filter, counterpartSlug),
       );
     }
   }
@@ -226,6 +257,16 @@ export function mapDbColorToUi(dbColor: string): string {
   return dbToUi[dbColor] ?? dbColor;
 }
 
+function naturalComboSlugForColor(
+  colorDb: string,
+  locale: Locale,
+): string | null {
+  const color = SHOP_FILTER_COLORS.find((c) => c.db === colorDb);
+  const natural = SHOP_FILTER_FARMING.find((f) => f.db === "natural");
+  if (!color || !natural || !isPrimaryShopColor(colorDb)) return null;
+  return comboSlug(color, natural, locale);
+}
+
 export function findShopFilterCategory(
   locale: Locale,
   colorDb: string | null | undefined,
@@ -233,7 +274,18 @@ export function findShopFilterCategory(
   categories: WineCategory[],
 ): WineCategory | undefined {
   const color = colorDb?.trim() || null;
-  const farm = farming || null;
+  // "natural" is the shop default, not a filter dimension in the path model.
+  const farm =
+    !farming || farming === "natural" ? null : farming;
+
+  if (!color && !farm) return undefined;
+
+  if (color && !farm) {
+    const naturalSlug = naturalComboSlugForColor(color, locale);
+    if (naturalSlug) {
+      return categories.find((c) => c.slug === naturalSlug);
+    }
+  }
 
   return categories.find((c) => {
     if (!GENERATED_SHOP_FILTER_SLUGS.has(c.slug)) return false;

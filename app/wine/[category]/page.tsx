@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { headers } from "next/headers";
 import { notFound, permanentRedirect } from "next/navigation";
 
 import ProductList from "@/app/vin/components/product-list";
@@ -29,6 +30,7 @@ import {
   producerShopPageTitle,
 } from "@/lib/seo/producer-shop-metadata";
 import { getCollection, getCollectionProducts } from "@/lib/shopify";
+import { isB2BHost } from "@/lib/b2b-site";
 import { getShoppingContextFromRequest } from "@/lib/shopping-context/server";
 import { fallbackShoppingContext } from "@/lib/shopping-context/defaults";
 import { getSiteConfig } from "@/lib/site-config-server";
@@ -73,6 +75,10 @@ export async function generateMetadata(props: {
 
   const category = await resolveGrapeCategoryBySlug(slug, "en");
   if (category) {
+    const headerList = await headers();
+    const isB2BSite = isB2BHost(
+      headerList.get("x-forwarded-host") ?? headerList.get("host"),
+    );
     const [config, hasProducts] = await Promise.all([
       getSiteConfig(),
       catalogHasProducts({
@@ -81,6 +87,7 @@ export async function generateMetadata(props: {
         filterIsNatural: category.filter.isNatural,
         filterFarming: category.filter.farming,
         filterGrape: category.filter.filterGrape,
+        isB2BSite,
       }),
     ]);
     const pageUrl = `${config.baseUrl}/wine/${slug}`;
@@ -244,13 +251,17 @@ export default async function WineCategoryPage(props: PageProps) {
     ),
   ]);
 
+  const headerList = await headers();
+  const isB2BSite = isB2BHost(
+    headerList.get("x-forwarded-host") ?? headerList.get("host"),
+  );
   const rawProducts = await fetchProductsData({
     filterColor: category.filter.color,
     filterTags: category.filter.tags,
     filterIsNatural: category.filter.isNatural,
     filterFarming: category.filter.farming,
     filterGrape: category.filter.filterGrape,
-    isB2BSite: false,
+    isB2BSite,
     displayCurrencyCode: shoppingContext.currencyCode,
     sekToDisplayRate: shoppingContext.sekToDisplayRate,
   });

@@ -188,6 +188,9 @@ async function runMiddleware(req: NextRequest) {
     return NextResponse.redirect(u);
   }
 
+  const wineLegacyRedirect = redirectLegacyWineCategorySlug(req, pathname);
+  if (wineLegacyRedirect) return wineLegacyRedirect;
+
   const wineAliasRedirect = redirectWineCategoryAlias(req, pathname);
   if (wineAliasRedirect) return wineAliasRedirect;
 
@@ -436,6 +439,48 @@ function redirectInvalidShopSearchQuery(
   const u = req.nextUrl.clone();
   u.search = "";
   return NextResponse.redirect(u, 301);
+}
+
+/** Legacy color hubs and natural farming hubs → natural default (one hop, 301). */
+const LEGACY_WINE_CATEGORY_REDIRECTS_EN: Record<string, string> = {
+  "red-wine": "/wine/red-natural-wine",
+  "white-wine": "/wine/white-natural-wine",
+  "orange-wine": "/wine/orange-natural-wine",
+  "natural-wine": "/wine",
+};
+
+const LEGACY_WINE_CATEGORY_REDIRECTS_SV: Record<string, string> = {
+  "rott-vin": "/vin/rott-naturvin",
+  "vitt-vin": "/vin/vitt-naturvin",
+  "orange-vin": "/vin/orange-naturvin",
+  naturvin: "/vin",
+};
+
+function redirectLegacyWineCategorySlug(
+  req: NextRequest,
+  pathname: string,
+): NextResponse | null {
+  if (pathname.startsWith("/wine/")) {
+    const slug = pathname.slice("/wine/".length).split("/")[0] ?? "";
+    const target = LEGACY_WINE_CATEGORY_REDIRECTS_EN[slug];
+    if (target) {
+      const u = req.nextUrl.clone();
+      u.pathname = target;
+      return NextResponse.redirect(u, 301);
+    }
+  }
+
+  if (pathname.startsWith("/vin/")) {
+    const slug = pathname.slice("/vin/".length).split("/")[0] ?? "";
+    const target = LEGACY_WINE_CATEGORY_REDIRECTS_SV[slug];
+    if (target) {
+      const u = req.nextUrl.clone();
+      u.pathname = target;
+      return NextResponse.redirect(u, 301);
+    }
+  }
+
+  return null;
 }
 
 function redirectWineCategoryAlias(

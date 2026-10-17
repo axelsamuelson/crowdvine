@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { headers } from "next/headers";
 import { notFound, permanentRedirect } from "next/navigation";
 
 import ProductList from "../components/product-list";
@@ -26,6 +27,7 @@ import {
   producerShopPageTitle,
 } from "@/lib/seo/producer-shop-metadata";
 import { getCollection, getCollectionProducts } from "@/lib/shopify";
+import { isB2BHost } from "@/lib/b2b-site";
 import { getSiteConfig } from "@/lib/site-config-server";
 import { categoryPageTitle } from "@/lib/seo/category-page-title";
 import { shopCategoryCanonicalUrl } from "@/lib/wine-category-canonical";
@@ -68,6 +70,10 @@ export async function generateMetadata(props: {
 
   const category = await resolveGrapeCategoryBySlug(slug, "sv");
   if (category) {
+    const headerList = await headers();
+    const isB2BSite = isB2BHost(
+      headerList.get("x-forwarded-host") ?? headerList.get("host"),
+    );
     const [config, hasProducts] = await Promise.all([
       getSiteConfig(),
       catalogHasProducts({
@@ -76,6 +82,7 @@ export async function generateMetadata(props: {
         filterIsNatural: category.filter.isNatural,
         filterFarming: category.filter.farming,
         filterGrape: category.filter.filterGrape,
+        isB2BSite,
       }),
     ]);
     const pageUrl = `${config.baseUrl}/vin/${slug}`;
@@ -162,6 +169,10 @@ export default async function VinCollectionPage(props: {
 
   const category = await resolveGrapeCategoryBySlug(slug, "sv");
   if (category) {
+    const headerList = await headers();
+    const isB2BSite = isB2BHost(
+      headerList.get("x-forwarded-host") ?? headerList.get("host"),
+    );
     const [config, rawProducts] = await Promise.all([
       getSiteConfig(),
       fetchProductsData({
@@ -170,7 +181,7 @@ export default async function VinCollectionPage(props: {
         filterIsNatural: category.filter.isNatural,
         filterFarming: category.filter.farming,
         filterGrape: category.filter.filterGrape,
-        isB2BSite: false,
+        isB2BSite,
       }),
     ]);
 

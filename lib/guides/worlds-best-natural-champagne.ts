@@ -90,8 +90,8 @@ export const worldsBestNaturalChampagneGuide = {
         sv: "Utforska naturvin →",
       },
       href: {
-        en: "/vin/naturvin",
-        sv: "/vin/naturvin",
+        en: "/vin",
+        sv: "/vin",
       },
     },
   ],

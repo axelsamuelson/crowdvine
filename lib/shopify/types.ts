@@ -1,3 +1,5 @@
+import type { B2BWineAvailability } from "@/lib/b2b-pallet-stock";
+
 export interface ShopifyProduct {
   id: string;
   title: string;
@@ -217,8 +219,8 @@ export type Product = {
   b2bPriceExclVat?: number;
   /** B2B stock quantity (wines). Null/0 = out of stock. Used for stock badges. */
   b2bStock?: number | null;
-  /** True when the wine has no sellable B2B stock but is on an in-transit pallet. */
-  isIncoming?: boolean;
+  /** Dirtywine assortment state. Absent on pactwines.com. */
+  b2bAvailability?: B2BWineAvailability;
   /** Pre-discount list unit price (SEK) for crowdvine cart lines; used in checkout. */
   originalUnitPriceSek?: number;
   /** True when line has member discount, early-bird, etc. (crowdvine cart). */

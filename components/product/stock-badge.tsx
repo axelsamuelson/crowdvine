@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "@/lib/hooks/use-translations";
+import type { B2BWineAvailability } from "@/lib/b2b-pallet-stock";
 
 export type StockStatus = "out" | "few" | "in" | "incoming";
 
@@ -13,8 +14,8 @@ interface StockBadgeProps {
   b2bStock?: number | null;
   /** Fallback when b2bStock is undefined (legacy availableForSale) */
   availableForSale?: boolean;
-  /** No sellable stock, but the wine is on an in-transit pallet. */
-  isIncoming?: boolean;
+  /** Dirtywine assortment state. in_stock keeps the few-left logic. */
+  b2bAvailability?: B2BWineAvailability;
   className?: string;
 }
 
@@ -40,7 +41,7 @@ function StockBadgePlaceholder({ className }: { className?: string }) {
 export function StockBadge({
   b2bStock,
   availableForSale = true,
-  isIncoming = false,
+  b2bAvailability,
   className,
 }: StockBadgeProps) {
   const { t } = useTranslations();
@@ -74,17 +75,19 @@ export function StockBadge({
     return null;
   }
 
-  // In stock endast när b2b_stock är ett tal och >= 1. Null, undefined och 0 = Out of stock.
-  // Lager vinner över kommande.
+  // in_stock keeps the existing few-left logic. incoming and out_of_stock are explicit.
   const stock = b2bStock;
   const hasStock = typeof stock === "number" && stock > 0;
-  const status: StockStatus = hasStock
-    ? stock <= fewLeftThreshold
-      ? "few"
-      : "in"
-    : isIncoming
+  const status: StockStatus =
+    b2bAvailability === "incoming"
       ? "incoming"
-      : "out";
+      : b2bAvailability === "out_of_stock"
+        ? "out"
+        : hasStock
+          ? stock <= fewLeftThreshold
+            ? "few"
+            : "in"
+          : "out";
 
   const label =
     status === "incoming"

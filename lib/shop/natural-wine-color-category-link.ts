@@ -39,8 +39,6 @@ export function resolveNaturalWineColorCategoryLink(
     farming?: string | null;
   },
 ): { href: string; label: string } | null {
-  if (options.farming?.trim() !== "natural") return null;
-
   const color = options.color?.trim();
   if (color !== "Red" && color !== "White" && color !== "Orange") {
     return null;
