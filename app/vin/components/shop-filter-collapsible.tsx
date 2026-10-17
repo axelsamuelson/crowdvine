@@ -16,6 +16,11 @@ interface ShopFilterCollapsibleProps {
   defaultOpen?: boolean;
   headerAction?: ReactNode;
   collapsible?: boolean;
+  /**
+   * Keep children in the DOM while collapsed (for crawlable filter <a href>
+   * in SSR HTML). Visual closed state is unchanged.
+   */
+  forceMountContent?: boolean;
   className?: string;
   children: ReactNode;
 }
@@ -26,6 +31,7 @@ export function ShopFilterCollapsible({
   defaultOpen,
   headerAction,
   collapsible = true,
+  forceMountContent = false,
   className,
   children,
 }: ShopFilterCollapsibleProps) {
@@ -70,7 +76,12 @@ export function ShopFilterCollapsible({
           </div>
         ) : null}
       </div>
-      <CollapsibleContent className="pt-2">{children}</CollapsibleContent>
+      <CollapsibleContent
+        forceMount={forceMountContent ? true : undefined}
+        className="pt-2"
+      >
+        {children}
+      </CollapsibleContent>
     </Collapsible>
   );
 }

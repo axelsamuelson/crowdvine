@@ -94,6 +94,8 @@ export function FarmingFilter({
       title={t("shop.farming")}
       count={selectedCount}
       collapsible={collapsible}
+      // Keep Organic/Biodynamic <a href> in SSR HTML even when collapsed.
+      forceMountContent={Boolean(getFarmingHref)}
       headerAction={seeAllButton}
       className={className}
     >
