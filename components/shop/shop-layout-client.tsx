@@ -16,6 +16,7 @@ export function ShopLayoutClient({
   initialFilterCount = 0,
   initialResultsCount,
   ssrPathname,
+  navigableShopPaths,
 }: {
   children: ReactNode;
   collections: Collection[];
@@ -25,6 +26,8 @@ export function ShopLayoutClient({
   initialResultsCount?: number;
   /** Pathname from the request. The CTA uses it until the client has mounted. */
   ssrPathname: string;
+  /** Category paths with products for this site (sitemap emptiness rule). */
+  navigableShopPaths?: string[];
 }) {
   return (
     <ProductsProvider initialServerResultsCount={initialResultsCount ?? 0}>
@@ -35,6 +38,7 @@ export function ShopLayoutClient({
             priceSources={priceSources}
             className="col-span-3 max-md:hidden"
             ssrPathname={ssrPathname}
+            navigableShopPaths={navigableShopPaths}
           />
         </Suspense>
         <div className="col-span-9 flex flex-col max-md:pb-24">
@@ -51,6 +55,7 @@ export function ShopLayoutClient({
               initialFilterCount={initialFilterCount}
               resultsCount={initialResultsCount}
               ssrPathname={ssrPathname}
+              navigableShopPaths={navigableShopPaths}
             />
           </Suspense>
         </div>

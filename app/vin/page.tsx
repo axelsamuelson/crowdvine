@@ -10,6 +10,7 @@ import {
   defaultOpenGraphImages,
   pageTwitterCard,
 } from "@/lib/seo/default-social";
+import { DIRTY_WINE_CONFIG } from "@/lib/site-config";
 import { getSiteConfig } from "@/lib/site-config-server";
 
 export const revalidate = 300;
@@ -22,7 +23,9 @@ export async function generateMetadata(props: {
   const pageUrl = `${config.baseUrl}/vin`;
   const title = `Naturvin online — köp direkt från Languedoc | ${config.siteName}`;
   const description =
-    "Bläddra bland 60+ naturviner direktimporterade från Languedoc. Ekologiskt, biodynamiskt och utan tillsatser. Hemleverans i Stockholm.";
+    config.baseUrl === DIRTY_WINE_CONFIG.baseUrl
+      ? "Naturvin direktimporterat från Languedoc. Ekologiskt, biodynamiskt och utan tillsatser. För restauranger i Stockholm."
+      : "Bläddra bland 60+ naturviner direktimporterade från Languedoc. Ekologiskt, biodynamiskt och utan tillsatser. Hemleverans i Stockholm.";
 
   return {
     title: { absolute: title },

@@ -36,6 +36,7 @@ import {
   shouldNavigateShopFilters,
 } from "@/lib/shop/filter-navigation";
 import type { ShopFarmingFilterValue } from "@/lib/shop/farming-filter";
+import { gateShopFilterHref } from "@/lib/shop/gate-shop-filter-href";
 import { filterProductsByGrapes } from "@/lib/shop/filter-products-by-grape";
 import { extractGrapesFromProducts } from "../hooks/use-available-grapes";
 
@@ -44,11 +45,13 @@ export function DesktopFilters({
   priceSources = [],
   className,
   ssrPathname,
+  navigableShopPaths,
 }: {
   collections: Collection[];
   priceSources?: PriceSourceForFilter[];
   className?: string;
   ssrPathname: string;
+  navigableShopPaths?: readonly string[];
 }) {
   const { t } = useTranslations();
   const paths = useLocalizedPaths();
@@ -56,12 +59,17 @@ export function DesktopFilters({
   const filterCount = useFilterCount();
   const [seeAllOpen, setSeeAllOpen] = useState(false);
   const openSeeAll = () => setSeeAllOpen(true);
-  const pathname = usePathname();
+  const routerPathname = usePathname();
   const router = useRouter();
+  // Prefer the live router path when present; fall back to the request path
+  // so SSR and the first client render share the same hrefs (no mounted flip).
+  const pathname = routerPathname || ssrPathname;
   const isProducerBoxesPage = isProducerBoxesPath(pathname);
   const isColorCategoryPage =
     !isProducerBoxesPage &&
     (pathname.startsWith("/vin/") || pathname.startsWith("/wine/"));
+  const showAllFilterColors =
+    !isProducerBoxesPage && shouldNavigateShopFilters(pathname);
   const locale = localeFromShopPathname(pathname);
   const activeColorName = getActiveColorFromPathname(pathname);
   const activeFarming = getActiveFarmingFromPathname(pathname);
@@ -73,7 +81,8 @@ export function DesktopFilters({
 
   const resolveColorHref = (colorName: string): string | null => {
     if (!shouldNavigateShopFilters(pathname)) return null;
-    return isSameColorSelection(pathname, colorName)
+    const isClear = isSameColorSelection(pathname, colorName);
+    const url = isClear
       ? resolveShopFilterNavigationUrl({
           locale,
           currentPath: pathname,
@@ -84,21 +93,31 @@ export function DesktopFilters({
           currentPath: pathname,
           nextColorUi: colorName,
         });
+    return gateShopFilterHref(url, {
+      isClear,
+      navigablePaths: navigableShopPaths,
+    });
   };
 
   const resolveFarmingHref = (
     farming: ShopFarmingFilterValue,
   ): string | null => {
+    const isClear = isSameFarmingSelection(pathname, farming);
     const grapeUrl = resolveGrapePageFarmingUrl(
       locale,
       pathname,
       farming,
-      isSameFarmingSelection(pathname, farming),
+      isClear,
       grapeCandidates,
     );
-    if (grapeUrl) return grapeUrl;
+    if (grapeUrl) {
+      return gateShopFilterHref(grapeUrl, {
+        isClear,
+        navigablePaths: navigableShopPaths,
+      });
+    }
     if (!shouldNavigateShopFilters(pathname)) return null;
-    return isSameFarmingSelection(pathname, farming)
+    const url = isClear
       ? resolveShopFilterNavigationUrl({
           locale,
           currentPath: pathname,
@@ -109,6 +128,10 @@ export function DesktopFilters({
           currentPath: pathname,
           nextFarming: farming,
         });
+    return gateShopFilterHref(url, {
+      isClear,
+      navigablePaths: navigableShopPaths,
+    });
   };
 
   const handleColorSelect = (colorName: string) => {
@@ -187,7 +210,7 @@ export function DesktopFilters({
               <>
                 <ColorFilter
                   products={originalProducts}
-                  showAllColors={isColorCategoryPage}
+                  showAllColors={showAllFilterColors || isColorCategoryPage}
                   activeColor={activeColorName ?? undefined}
                   onColorSelect={handleColorSelect}
                   getColorHref={resolveColorHref}
@@ -279,7 +302,7 @@ export function DesktopFilters({
                     <>
                       <ColorFilter
                         products={originalProducts}
-                        showAllColors={isColorCategoryPage}
+                        showAllColors={showAllFilterColors || isColorCategoryPage}
                         activeColor={activeColorName ?? undefined}
                         onColorSelect={handleColorSelect}
                         getColorHref={resolveColorHref}

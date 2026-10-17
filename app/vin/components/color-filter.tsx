@@ -13,7 +13,7 @@ import { formatWineColorDisplay } from "@/lib/i18n/wine-color-labels";
 interface ColorFilterProps {
   products?: Product[];
   className?: string;
-  onColorSelect?: (colorName: string) => void;
+  onColorSelect?: (colorName: string) => boolean | void;
   showAllColors?: boolean;
   activeColor?: string;
   /** Clean category URL for each color when shop filter navigation applies. */
@@ -41,8 +41,24 @@ export function ColorFilter({
     useAvailableColors(products, showAllColors, activeColor);
   const colorCount = useColorFilterCount();
 
-  const isLoading = products.length === 0;
-  const atLeastOneColor = availableColors.length > 0;
+  // Category URL hrefs do not need the product list; show colors immediately
+  // so server HTML includes <a href> for crawlable filter links.
+  const colorsReady =
+    Boolean(getColorHref) || showAllColors || products.length > 0;
+  // Hide colors that would navigate to an empty category (no href, not selected).
+  const displayColors = getColorHref
+    ? availableColors.filter((color) => {
+        const name = getColorName(color);
+        if (name === activeColor) return true;
+        if (
+          selectedColors.some((selected) => getColorName(selected) === name)
+        ) {
+          return true;
+        }
+        return getColorHref(name) != null;
+      })
+    : availableColors;
+  const atLeastOneColor = displayColors.length > 0;
 
   const handleColorChange = (colorInput: Color | [Color, Color]) => {
     const colorName = getColorName(colorInput);
@@ -55,7 +71,7 @@ export function ColorFilter({
 
   return (
     <AnimatePresence initial={false}>
-      {(atLeastOneColor || isLoading) && (
+      {(atLeastOneColor || !colorsReady) && (
         <motion.div
           layoutId="color-filter"
           layout="size"
@@ -72,11 +88,11 @@ export function ColorFilter({
               )}
             </h3>
           </div>
-          {isLoading ? (
+          {!colorsReady ? (
             <ColorSwatchSkeleton count={4} />
           ) : (
             <ColorPicker
-              colors={availableColors}
+              colors={displayColors}
               selectedColors={selectedColors}
               onColorChange={handleColorChange}
               formatDisplayName={(c) => formatWineColorDisplay(t, c)}

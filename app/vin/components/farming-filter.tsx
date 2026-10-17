@@ -39,17 +39,25 @@ export function FarmingFilter({
   );
 
   const counts = countProductsByFarming(products);
-  const options = SHOP_FARMING_UI_FILTER_VALUES.filter(
-    (value) => (counts.get(value) ?? 0) > 0,
-  );
-
-  if (options.length === 0) return null;
-
   const activeUiFarming =
     activeFarming &&
     (SHOP_FARMING_UI_FILTER_VALUES as readonly string[]).includes(activeFarming)
       ? activeFarming
       : undefined;
+  // When category navigation hrefs are available, list Organic/Biodynamic for
+  // SSR <a href>, but hide values that would land on an empty category.
+  const options = getFarmingHref
+    ? SHOP_FARMING_UI_FILTER_VALUES.filter((value) => {
+        const isOn =
+          active.includes(value) || activeUiFarming === value;
+        if (isOn) return true;
+        return getFarmingHref(value) != null;
+      })
+    : SHOP_FARMING_UI_FILTER_VALUES.filter(
+        (value) => (counts.get(value) ?? 0) > 0,
+      );
+
+  if (options.length === 0) return null;
 
   const selectedCount =
     active.length +
