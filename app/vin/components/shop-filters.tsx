@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Suspense, useEffect, useMemo, useState } from "react";
+import React, { Suspense, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Collection } from "@/lib/shopify/types";
@@ -36,6 +36,7 @@ import {
   shouldNavigateShopFilters,
 } from "@/lib/shop/filter-navigation";
 import type { ShopFarmingFilterValue } from "@/lib/shop/farming-filter";
+import { gateShopFilterHref } from "@/lib/shop/gate-shop-filter-href";
 import { filterProductsByGrapes } from "@/lib/shop/filter-products-by-grape";
 import { extractGrapesFromProducts } from "../hooks/use-available-grapes";
 
@@ -44,11 +45,13 @@ export function DesktopFilters({
   priceSources = [],
   className,
   ssrPathname,
+  navigableShopPaths,
 }: {
   collections: Collection[];
   priceSources?: PriceSourceForFilter[];
   className?: string;
   ssrPathname: string;
+  navigableShopPaths?: readonly string[];
 }) {
   const { t } = useTranslations();
   const paths = useLocalizedPaths();
@@ -58,12 +61,9 @@ export function DesktopFilters({
   const openSeeAll = () => setSeeAllOpen(true);
   const routerPathname = usePathname();
   const router = useRouter();
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-  // Align first paint with layout SSR path so filter <a href> resolve correctly.
-  const pathname = mounted ? routerPathname : ssrPathname;
+  // Prefer the live router path when present; fall back to the request path
+  // so SSR and the first client render share the same hrefs (no mounted flip).
+  const pathname = routerPathname || ssrPathname;
   const isProducerBoxesPage = isProducerBoxesPath(pathname);
   const isColorCategoryPage =
     !isProducerBoxesPage &&
@@ -81,7 +81,8 @@ export function DesktopFilters({
 
   const resolveColorHref = (colorName: string): string | null => {
     if (!shouldNavigateShopFilters(pathname)) return null;
-    return isSameColorSelection(pathname, colorName)
+    const isClear = isSameColorSelection(pathname, colorName);
+    const url = isClear
       ? resolveShopFilterNavigationUrl({
           locale,
           currentPath: pathname,
@@ -92,21 +93,31 @@ export function DesktopFilters({
           currentPath: pathname,
           nextColorUi: colorName,
         });
+    return gateShopFilterHref(url, {
+      isClear,
+      navigablePaths: navigableShopPaths,
+    });
   };
 
   const resolveFarmingHref = (
     farming: ShopFarmingFilterValue,
   ): string | null => {
+    const isClear = isSameFarmingSelection(pathname, farming);
     const grapeUrl = resolveGrapePageFarmingUrl(
       locale,
       pathname,
       farming,
-      isSameFarmingSelection(pathname, farming),
+      isClear,
       grapeCandidates,
     );
-    if (grapeUrl) return grapeUrl;
+    if (grapeUrl) {
+      return gateShopFilterHref(grapeUrl, {
+        isClear,
+        navigablePaths: navigableShopPaths,
+      });
+    }
     if (!shouldNavigateShopFilters(pathname)) return null;
-    return isSameFarmingSelection(pathname, farming)
+    const url = isClear
       ? resolveShopFilterNavigationUrl({
           locale,
           currentPath: pathname,
@@ -117,6 +128,10 @@ export function DesktopFilters({
           currentPath: pathname,
           nextFarming: farming,
         });
+    return gateShopFilterHref(url, {
+      isClear,
+      navigablePaths: navigableShopPaths,
+    });
   };
 
   const handleColorSelect = (colorName: string) => {
