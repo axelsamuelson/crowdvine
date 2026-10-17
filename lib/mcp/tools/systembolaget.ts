@@ -7,6 +7,7 @@ import {
   listTopProducerCoverageGaps,
 } from "@/lib/systembolaget/top-producer-coverage";
 import { mcpErrorResult, mcpJsonResult } from "../utils/tool-result";
+import { mcpWriteTool } from "../utils/write-tool";
 import {
   findTop100ProducerExact,
   nearTop100ProducerMatches,
