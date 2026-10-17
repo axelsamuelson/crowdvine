@@ -5,9 +5,12 @@ import { supabaseServer } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { revalidatePath } from "next/cache";
 
-function normalizeProducerRow(row: Record<string, unknown>) {
+function normalizeProducerRow(
+  row: Record<string, unknown>,
+): Producer & { bio_long: string } {
+  const base = row as unknown as Producer;
   return {
-    ...row,
+    ...base,
     short_description:
       extractWineText(
         row.short_description as Record<string, string> | string | null,
@@ -18,6 +21,11 @@ function normalizeProducerRow(row: Record<string, unknown>) {
         row.bio_long as Record<string, string> | string | null,
         "sv",
       ) ?? "",
+    website_url: typeof row.website_url === "string" ? row.website_url : null,
+    instagram_handle:
+      typeof row.instagram_handle === "string" ? row.instagram_handle : null,
+    links_verified_at:
+      typeof row.links_verified_at === "string" ? row.links_verified_at : null,
   };
 }
 
@@ -46,6 +54,12 @@ export interface Producer {
   contact_email?: string | null;
   /** Optional contact phone (admin). */
   contact_phone?: string | null;
+  /** Producer's own site. Null when unset. */
+  website_url?: string | null;
+  /** Instagram handle without @. Null when unset. */
+  instagram_handle?: string | null;
+  /** When the website and Instagram links were last checked. Null if never. */
+  links_verified_at?: string | null;
 }
 
 export interface CreateProducerData {
@@ -66,6 +80,8 @@ export interface CreateProducerData {
   boost_active?: boolean;
   contact_email?: string;
   contact_phone?: string;
+  website_url?: string;
+  instagram_handle?: string;
 }
 
 export type UpdateProducerData = Partial<CreateProducerData>;

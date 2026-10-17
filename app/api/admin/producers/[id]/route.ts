@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { PALLET_FILL_STATUSES } from "@/lib/pallet-fill-count";
+import { parseProducerLinkFields } from "@/lib/producer-links";
 
 type ProducerUpdateRow = Record<string, string | number | boolean | null>;
 
@@ -116,6 +117,22 @@ export async function PUT(
         typeof body.contact_phone === "string" && body.contact_phone.trim()
           ? body.contact_phone.trim()
           : null;
+    }
+
+    const parsedLinks = parseProducerLinkFields(body);
+    if (!parsedLinks.ok) {
+      return NextResponse.json({ error: parsedLinks.message }, { status: 400 });
+    }
+    if (parsedLinks.links.website_url !== undefined) {
+      updateData.website_url = parsedLinks.links.website_url;
+    }
+    if (parsedLinks.links.instagram_handle !== undefined) {
+      updateData.instagram_handle = parsedLinks.links.instagram_handle;
+    }
+    // A changed website or Instagram leaves links_verified_at untouched
+    // unless the form explicitly marked the links as verified.
+    if (parsedLinks.links.mark_links_verified) {
+      updateData.links_verified_at = new Date().toISOString();
     }
 
     const oldShippingRegionId =

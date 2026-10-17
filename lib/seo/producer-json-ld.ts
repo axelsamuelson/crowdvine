@@ -3,6 +3,10 @@ import {
   productPagePath,
   type ProductPathSegment,
 } from "@/lib/i18n/localized-routes";
+import {
+  instagramProfileUrl,
+  websiteDisplayLabel,
+} from "@/lib/producer-links";
 
 type ProducerJsonLdInput = {
   name: string;
@@ -12,6 +16,8 @@ type ProducerJsonLdInput = {
   founded_year: number | null;
   bio_short: string | null;
   pageUrl: string;
+  website_url?: string | null;
+  instagram_handle?: string | null;
 };
 
 type ProducerWineJsonLdInput = {
@@ -42,6 +48,13 @@ export function buildProducerWineryJsonLd(
     producer.region?.trim(),
   ].filter((item): item is string => Boolean(item));
 
+  const sameAs = [
+    producer.website_url && websiteDisplayLabel(producer.website_url)
+      ? producer.website_url
+      : null,
+    instagramProfileUrl(producer.instagram_handle),
+  ].filter((url): url is string => Boolean(url));
+
   return {
     "@context": "https://schema.org",
     "@type": "Winery",
@@ -54,6 +67,7 @@ export function buildProducerWineryJsonLd(
       }),
     address,
     knowsAbout,
+    ...(sameAs.length > 0 && { sameAs }),
     ...(wines.length > 0 && {
       makesOffer: wines.slice(0, 12).map((wine) => ({
         "@type": "Offer",
