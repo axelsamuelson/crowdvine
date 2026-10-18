@@ -9,6 +9,7 @@ import {
   parseSearchParamsFromQueryString,
 } from "@/lib/shop/filter-count-server";
 import { isProducerBoxesPath } from "@/lib/producer-boxes/config";
+import { isShopFullBleedPath } from "@/lib/stockholm-delivery-landing/config";
 import { getCachedNavigableShopFilterPaths } from "@/lib/shop/shop-filter-category-availability";
 import { getShopLayoutResultsCount } from "@/lib/shop/shop-results-count-server";
 import { ShopLayoutClient } from "@/components/shop/shop-layout-client";
@@ -50,7 +51,9 @@ export async function ShopLayoutShell({
   const collectionSegment = collectionSegmentFromPathname(pathname);
   const initialFilterCount = countActiveShopFilters(
     parsedSearchParams,
-    isProducerBoxesPath(pathname) ? undefined : collectionSegment,
+    isProducerBoxesPath(pathname) || isShopFullBleedPath(pathname)
+      ? undefined
+      : collectionSegment,
   );
   const isB2BSite = await getIsDirtywineSiteFromHeaders();
   const [initialResultsCount, navigableShopPaths] = await Promise.all([
