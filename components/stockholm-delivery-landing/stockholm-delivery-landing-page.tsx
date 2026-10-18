@@ -1,6 +1,5 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Instrument_Serif } from "next/font/google";
 
 import { EngagementTrackers } from "@/components/analytics/engagement-trackers";
 import type { AppLocale } from "@/lib/i18n/locale";
@@ -11,14 +10,6 @@ import {
   stockholmDeliveryLandingCopy,
 } from "@/lib/stockholm-delivery-landing/config";
 import { buildStockholmDeliveryJsonLd } from "@/lib/stockholm-delivery-landing/metadata";
-import { cn } from "@/lib/utils";
-
-const instrumentSerif = Instrument_Serif({
-  weight: "400",
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-instrument-serif",
-});
 
 export async function StockholmDeliveryLandingPage({
   locale,
@@ -31,12 +22,7 @@ export async function StockholmDeliveryLandingPage({
   const jsonLd = buildStockholmDeliveryJsonLd(locale, config, isDirty);
 
   return (
-    <div
-      className={cn(
-        instrumentSerif.variable,
-        "bg-stone-100 text-stone-950",
-      )}
-    >
+    <div className="bg-stone-100 text-stone-950">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd.webpage) }}
@@ -68,11 +54,11 @@ export async function StockholmDeliveryLandingPage({
           aria-hidden
         />
         <div className="relative z-10 flex min-h-[100svh] flex-col justify-end px-6 pb-14 pt-28 sm:px-10 md:px-14 md:pb-20 lg:px-20">
-          <p className="stockholm-fade-up font-serif text-sm tracking-[0.35em] text-stone-100/90 sm:text-base">
+          <p className="stockholm-fade-up text-sm font-semibold uppercase tracking-[0.28em] text-stone-100/90 sm:text-base">
             {copy.brand}
           </p>
           <h1
-            className="stockholm-fade-up mt-4 max-w-4xl font-serif text-[clamp(2.4rem,7vw,5.5rem)] leading-[1.05] tracking-tight text-stone-50"
+            className="stockholm-fade-up mt-4 max-w-4xl text-balance font-semibold uppercase tracking-[-0.02em] text-stone-50 text-[clamp(2.2rem,6.5vw,4.75rem)] leading-[1.05]"
             style={{ animationDelay: "120ms" }}
           >
             {copy.h1}
@@ -89,13 +75,13 @@ export async function StockholmDeliveryLandingPage({
           >
             <Link
               href={copy.primaryHref}
-              className="inline-flex cursor-pointer items-center bg-stone-50 px-6 py-3 text-sm font-medium tracking-wide text-stone-950 transition-colors duration-200 hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-50"
+              className="inline-flex h-11 cursor-pointer items-center justify-center rounded-sm bg-stone-50 px-6 text-sm font-medium text-stone-950 transition-colors duration-200 hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-50"
             >
               {copy.primaryCta}
             </Link>
             <a
               href="#sa-funkar-det"
-              className="cursor-pointer text-sm tracking-wide text-stone-100/90 underline underline-offset-4 transition-opacity duration-200 hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-50"
+              className="cursor-pointer text-sm font-medium tracking-wide text-stone-100/90 underline underline-offset-4 transition-opacity duration-200 hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-50"
             >
               {copy.secondaryCta}
             </a>
@@ -109,7 +95,7 @@ export async function StockholmDeliveryLandingPage({
         className="scroll-mt-24 border-t border-stone-300/70 px-6 py-20 sm:px-10 md:px-14 md:py-28 lg:px-20"
       >
         <div className="mx-auto max-w-5xl">
-          <h2 className="font-serif text-3xl tracking-tight text-stone-950 md:text-4xl">
+          <h2 className="text-3xl font-semibold tracking-tight text-stone-950 md:text-4xl">
             {copy.howHeading}
           </h2>
           <ol className="mt-14 grid gap-12 md:grid-cols-3 md:gap-10">
@@ -118,7 +104,7 @@ export async function StockholmDeliveryLandingPage({
                 <p className="font-mono text-xs tracking-[0.2em] text-stone-500">
                   {String(index + 1).padStart(2, "0")}
                 </p>
-                <h3 className="mt-3 font-serif text-2xl text-stone-950">
+                <h3 className="mt-3 text-xl font-semibold tracking-tight text-stone-950 md:text-2xl">
                   {step.title}
                 </h3>
                 <p className="mt-3 text-sm leading-relaxed text-stone-600 md:text-base">
@@ -147,7 +133,7 @@ export async function StockholmDeliveryLandingPage({
         </div>
         <div className="relative mx-auto grid max-w-5xl gap-10 px-6 py-20 sm:px-10 md:grid-cols-2 md:px-14 md:py-28 lg:px-20">
           <div>
-            <h2 className="font-serif text-3xl tracking-tight md:text-4xl">
+            <h2 className="text-3xl font-semibold tracking-tight md:text-4xl">
               {copy.whyHeading}
             </h2>
             <div className="mt-8 space-y-5 text-sm leading-relaxed text-stone-300 md:text-base">
@@ -162,13 +148,13 @@ export async function StockholmDeliveryLandingPage({
       {/* FAQ — prose, not cards */}
       <section className="border-t border-stone-300/70 px-6 py-20 sm:px-10 md:px-14 md:py-28 lg:px-20">
         <div className="mx-auto max-w-3xl">
-          <h2 className="font-serif text-3xl tracking-tight text-stone-950 md:text-4xl">
+          <h2 className="text-3xl font-semibold tracking-tight text-stone-950 md:text-4xl">
             {locale === "sv" ? "Vanliga frågor" : "Common questions"}
           </h2>
           <dl className="mt-12 divide-y divide-stone-300/80">
             {copy.faq.map((item) => (
               <div key={item.question} className="py-7">
-                <dt className="font-serif text-xl text-stone-950">
+                <dt className="text-lg font-semibold tracking-tight text-stone-950 md:text-xl">
                   {item.question}
                 </dt>
                 <dd className="mt-3 text-sm leading-relaxed text-stone-600 md:text-base">
@@ -183,7 +169,7 @@ export async function StockholmDeliveryLandingPage({
       {/* Closing CTA */}
       <section className="border-t border-stone-300/70 bg-gradient-to-b from-stone-200 to-stone-100 px-6 py-20 sm:px-10 md:px-14 md:py-24 lg:px-20">
         <div className="mx-auto max-w-3xl text-center">
-          <h2 className="font-serif text-3xl tracking-tight text-stone-950 md:text-5xl">
+          <h2 className="text-3xl font-semibold tracking-tight text-stone-950 md:text-5xl">
             {copy.closeHeading}
           </h2>
           <p className="mx-auto mt-5 max-w-lg text-sm leading-relaxed text-stone-600 md:text-base">
@@ -191,7 +177,7 @@ export async function StockholmDeliveryLandingPage({
           </p>
           <Link
             href={copy.primaryHref}
-            className="mt-10 inline-flex cursor-pointer items-center bg-stone-950 px-7 py-3.5 text-sm font-medium tracking-wide text-stone-50 transition-opacity duration-200 hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-950"
+            className="mt-10 inline-flex h-11 cursor-pointer items-center justify-center rounded-sm bg-stone-950 px-7 text-sm font-medium text-stone-50 transition-opacity duration-200 hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-950"
           >
             {copy.closeCta}
           </Link>
