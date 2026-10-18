@@ -109,7 +109,7 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
     sv: {
       title: "Rött naturvin online | PACT Wines",
       metaDescription:
-        "Köp rött naturvin online. Carignan, Grenache och Syrah — hemleverans Stockholm. Reservera innan pallen fylls.",
+        "Köp rött naturvin online. Carignan, Grenache och Syrah — hemleverans Stockholm. Du reserverar online och vinet levereras när pallen är full.",
       contentHeading: "Om rött naturvin",
       longDescription:
         "Rött naturvin är kanske den mest omedelbart tilltalande ingången till naturvinsvärlden. Utan tillsatt svavel och utan filtrering får de röda druvorna uttrycka sin fulla fruktighet — ofta med en saftighet och drickbarhet som konventionella röda viner saknar. Många röda naturviner vinifieras med kolsyremaceration, en metod som lyfter fram frukten och dämpar de hårdaste tanninerna, vilket ger viner som är lätta att tycka om direkt.\n\nI Languedoc görs rött naturvin framför allt på de klassiska sydfranska druvorna: Carignan, Grenache, Syrah, Cinsault och Mourvèdre. Stilarna spänner brett. Cinsault ger lätta, nästan svalserverade röda viner med låg tannin. Carignan från gamla stockar ger struktur och mineralitet som håller i tio år. Syrah bidrar med mörk frukt och peppar. Producenterna avgör resten — allt från Le Bouc à Trois Pattes lätta höjdlägesviner till Clos Fantines koncentrerade Faugères-röda.\n\nAlla röda naturviner på PACT kommer direkt från småproducenter i Languedoc som odlar ekologiskt eller biodynamiskt och gör vin utan tillsatser. Direktimporterat, utan mellanhänder.",
@@ -157,7 +157,7 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
     en: {
       title: "Red Natural Wine Online | PACT Wines",
       metaDescription:
-        "Buy red natural wine online. Carignan, Grenache and Syrah — home delivery Stockholm. Reserve before the pallet fills.",
+        "Buy red natural wine online. Carignan, Grenache and Syrah — home delivery Stockholm. Reserve online and the wine is delivered when the pallet is full.",
       contentHeading: "About red natural wine",
       longDescription:
         "Red natural wine is perhaps the most immediately appealing entry point into the world of natural wine. Without added sulphur and without filtration, the red grapes express their full fruitiness — often with a juiciness and drinkability that conventional reds lack. Many red natural wines are vinified with carbonic maceration, a method that brings out the fruit and softens the harshest tannins, giving wines that are easy to enjoy straight away.\n\nIn Languedoc, red natural wine is made mainly from the classic southern French grapes: Carignan, Grenache, Syrah, Cinsault and Mourvèdre. The styles range widely. Cinsault gives light, almost chillable reds with low tannin. Carignan from old vines gives structure and minerality that last ten years. Syrah contributes dark fruit and pepper. The producers decide the rest — from Le Bouc à Trois Pattes' light altitude wines to Clos Fantine's concentrated Faugères reds.\n\nAll red natural wines at PACT come directly from small producers in Languedoc who farm organically or biodynamically and make wine without additives. Direct import, no middlemen.",
@@ -377,7 +377,7 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
     sv: {
       title: "Rött & orange naturvin | PACT Wines",
       metaDescription:
-        "Köp rött och orange naturvin. Experimentella flaskor. Reservera innan pallen fylls.",
+        "Köp rött och orange naturvin. Experimentella flaskor. Du reserverar online och vinet levereras när pallen är full.",
       contentHeading: "Om rött & orange naturvin",
       longDescription:
         "Rött & orange naturvin är flaskor där producenten arbetar med både röda druvor och orangevinifiering — antingen som fältblandningar, parallella skördar i samma cuvée, eller viner som rör sig mellan lätt skalkontakt och klassisk röd jäsning. Kategorin fångar den experimentella sidan av Languedoc: samma vingård, samma filosofi, men flera uttryck i ett sortiment.\n\nI praktiken hittar du här allt från lättdruckna röda med en hint av skalkontakt till mer amberfärgade viner med tydlig tannin. Gemensamt är naturvinsmetoden — vild jäsning, inga tillsatser, ekologisk eller biodynamisk odling — och den sydfranska druvbasen: Grenache, Carignan, Syrah och lokala vita druvor som får kort eller lång skalkontakt.\n\nPå PACT är urvalet litet och kuraterat. Vi listar bara viner från producenter vi själva står bakom, direktimporterade från Languedoc utan mellanhänder.",
@@ -398,7 +398,7 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
     en: {
       title: "Red & Orange Natural Wine | PACT Wines",
       metaDescription:
-        "Buy red and orange natural wine. Experimental bottles. Reserve before the pallet fills.",
+        "Buy red and orange natural wine. Experimental bottles. Reserve online and the wine is delivered when the pallet is full.",
       contentHeading: "About red & orange natural wine",
       longDescription:
         "Red & orange natural wine covers bottles where the producer works with both red grapes and orange winemaking — field blends, parallel harvests in the same cuvée, or wines that move between light skin contact and classic red fermentation. The category captures Languedoc's experimental side: the same vineyard, the same philosophy, but several expressions in one range.\n\nIn practice you'll find everything from easy-drinking reds with a hint of skin contact to more amber wines with clear tannin. What they share is the natural wine method — wild fermentation, no additives, organic or biodynamic farming — and the southern French grape base: Grenache, Carignan, Syrah and local white grapes given short or long skin contact.\n\nAt PACT the selection is small and curated. We list only wines from producers we stand behind, direct imported from Languedoc without middlemen.",
@@ -851,7 +851,7 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
     sv: {
       title: "Naturvin från Languedoc — köp direkt till Stockholm | PACT Wines",
       metaDescription:
-        "Naturvin från Languedoc direktimporterat till Stockholm. Småproducenter, vild jäsning — reservera innan pallen fylls.",
+        "Naturvin från Languedoc direktimporterat till Stockholm. Småproducenter, vild jäsning. Du reserverar online och vinet levereras när pallen är full.",
       contentHeading: "Om naturvin från Languedoc",
       longDescription:
         "Languedoc-Roussillon är Frankrikes största vinregion och samtidigt den mest dynamiska när det gäller naturvin. Här finns allt från kalkiga sluttningar i Minervois och Saint-Chinian till skiffer i Faugères och höjdläge i Haute Vallée de l'Orb — terroir som ger distinkta, drickbara viner utan att behöva tung ekfatshantering.\n\nNaturvinsrörelsen i Languedoc växte fram när unga producenter tog över gamla vingårdar och började arbeta ekologiskt eller biodynamiskt med vild jäsning och minimal intervention i källaren. Resultatet är ett ekosystem av små, oberoende producenter som gör allt från lätta Cinsault-viner till koncentrerad Carignan och experimentella orangeviner.\n\nPACT importerar uteslutande från Languedoc — direkt från producenten till Stockholm. När tillräckligt många reserverat fylls en pall och flaskorna skickas utan mellanhänder. Det ger bättre pris, färskare vin och en äkta koppling mellan vingård och drickare.",
@@ -872,7 +872,7 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
     en: {
       title: "Natural Wine from Languedoc — Buy Direct to Stockholm | PACT Wines",
       metaDescription:
-        "Natural wine from Languedoc direct imported to Stockholm. Small producers, wild fermentation — reserve before the pallet fills.",
+        "Natural wine from Languedoc direct imported to Stockholm. Small producers, wild fermentation. Reserve online and the wine is delivered when the pallet is full.",
       contentHeading: "About natural wine from Languedoc",
       longDescription:
         "Languedoc-Roussillon is France's largest wine region and at the same time the most dynamic for natural wine. Here you'll find everything from limestone slopes in Minervois and Saint-Chinian to schist in Faugères and altitude in Haute Vallée de l'Orb — terroir that gives distinctive, drinkable wines without heavy oak ageing.\n\nThe natural wine movement in Languedoc grew when young producers took over old vineyards and began farming organically or biodynamically with wild fermentation and minimal intervention in the cellar. The result is an ecosystem of small, independent producers making everything from light Cinsault wines to concentrated Carignan and experimental orange wines.\n\nPACT imports exclusively from Languedoc — direct from producer to Stockholm. When enough people have reserved, a pallet fills and bottles ship without middlemen. That means better value, fresher wine and a real connection between vineyard and drinker.",
@@ -1043,7 +1043,7 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
     sv: {
       title: "Naturvin hemleverans Stockholm — beställ online | PACT Wines",
       metaDescription:
-        "Beställ naturvin med hemleverans i Stockholm. Pallen skickas från vingården när den fylls.",
+        "Beställ naturvin med hemleverans i Stockholm. Du reserverar online och vinet levereras när pallen är full.",
       contentHeading: "Om naturvin med hemleverans i Stockholm",
       longDescription:
         "Att köpa naturvin i Stockholm har historiskt varit begränsat — Systembolagets sortiment täcker bara en bråkdel av vad som faktiskt produceras i Languedoc och andra naturvinsregioner. PACT erbjuder ett alternativ: direktimport från små producenter med hemleverans när pallen till Stockholm är klar.\n\nSå fungerar det: du reserverar flaskor online. När tillräckligt många beställt fylls en pall hos producenten i Languedoc och skickas direkt till Sverige — utan mellanhänder och utan att vinet legat månader i centrallager. Du får bättre pris, färskare flaskor och tillgång till producenter som sällan når den svenska marknaden.\n\nLeveransen sker hem till dig i Stockholm. Sortimentet är fokuserat på naturvin från Languedoc — rött, vitt, orange och blandade stilar från producenter vi känner personligen.",
@@ -1064,7 +1064,7 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
     en: {
       title: "Natural Wine Home Delivery Stockholm — Order Online | PACT Wines",
       metaDescription:
-        "Order natural wine with home delivery in Stockholm. The pallet ships from the vineyard when full.",
+        "Order natural wine with home delivery in Stockholm. Reserve online and the wine is delivered when the pallet is full.",
       contentHeading: "About natural wine home delivery in Stockholm",
       longDescription:
         "Buying natural wine in Stockholm has historically been limited — the state monopoly's range covers only a fraction of what is actually produced in Languedoc and other natural wine regions. PACT offers an alternative: direct import from small producers with home delivery when the Stockholm pallet is ready.\n\nHow it works: you reserve bottles online. When enough people have ordered, a pallet fills at the producer in Languedoc and ships directly to Sweden — without middlemen and without the wine sitting for months in central warehouses. You get better value, fresher bottles and access to producers that rarely reach the Swedish market.\n\nDelivery is to your home in Stockholm. The range focuses on natural wine from Languedoc — red, white, orange and mixed styles from producers we know personally.",
