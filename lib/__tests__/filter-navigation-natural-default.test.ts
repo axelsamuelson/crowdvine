@@ -6,6 +6,7 @@ import {
   GENERATED_WINE_CATEGORIES_EN,
   GENERATED_WINE_CATEGORIES_SV,
   LEGACY_SHOP_REDIRECT_SLUGS,
+  localizeShopMetaDescription,
 } from "@/lib/wine-shop-filter-categories";
 import { getWineCategoryEn, getWineCategorySv } from "@/lib/wine-categories";
 import { resolveNaturalWineColorCategoryLink } from "@/lib/shop/natural-wine-color-category-link";
@@ -144,5 +145,45 @@ describe("natural wine as shop default", () => {
         farming: "natural",
       }),
     ).toBeNull();
+  });
+});
+
+describe("localizeShopMetaDescription", () => {
+  it("leaves pact metas unchanged", () => {
+    const meta =
+      "Köp ekologiskt vin i Sverige med hemleverans Stockholm. EU-certifierade producenter — utan mellanhänder via PACT.";
+    expect(localizeShopMetaDescription(meta, "sv", false)).toBe(meta);
+  });
+
+  it("rewrites hemleverans/home delivery for dirtywine", () => {
+    expect(
+      localizeShopMetaDescription(
+        "Köp ekologiskt vin i Sverige med hemleverans Stockholm. EU-certifierade producenter — utan mellanhänder via PACT.",
+        "sv",
+        true,
+      ),
+    ).toBe(
+      "Köp ekologiskt vin i Sverige för restauranger i Stockholm. EU-certifierade producenter — utan mellanhänder via PACT.",
+    );
+
+    expect(
+      localizeShopMetaDescription(
+        "Buy organic wine in Sweden with home delivery in Stockholm. EU-certified producers — without middlemen via PACT.",
+        "en",
+        true,
+      ),
+    ).toBe(
+      "Buy organic wine in Sweden for restaurants in Stockholm. EU-certified producers — without middlemen via PACT.",
+    );
+
+    expect(
+      localizeShopMetaDescription(
+        "Köp rött & vitt biodynamiskt vin online. Hemleverans Stockholm.",
+        "sv",
+        true,
+      ),
+    ).toBe(
+      "Köp rött & vitt biodynamiskt vin online. För restauranger i Stockholm.",
+    );
   });
 });
