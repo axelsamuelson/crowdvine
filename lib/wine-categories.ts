@@ -128,7 +128,7 @@ const LONG_TAIL_WINE_CATEGORIES_SV: WineCategory[] = [
     foodPairing:
       "Carignan är ett utpräglat matvin. Syran och tanninerna skär igenom fett och lyfter umami. Tänk lammgryta med rosmarin, cassoulet, grillad entrecôte eller mogna ostar som Comté och Ossau-Iraty. Servera vid 15–17°C — karaferas gärna 30 minuter om vinet är ungt.",
     aboutText:
-      "Vår Carignan kommer bland annat från småproducenter i Faugères, Saint-Chinian och Haute Vallée de l'Orb. Gamla gobeletstockar, ekologisk eller biodynamisk odling, inga tillsatser.",
+      "Vår Carignan kommer bland annat från småproducenter i Faugères, Saint-Chinian och Haute Vallée de l'Orb.",
     filter: { filterGrape: "Carignan" },
     hreflang: "carignan",
     canonical: "/vin/carignan",
@@ -171,7 +171,7 @@ const LONG_TAIL_WINE_CATEGORIES_SV: WineCategory[] = [
     foodPairing:
       "Grenache är ett tacksamt matvin med sin runda frukt och mjuka struktur. Passar till lammfärsrätter, ratatouille, grillade grönsaker, kryddiga korvar och medelhavskök. Servera vid 15–17°C. De lättare höjdlägesvinerna kan kylas något och passar även till charkbrickor.",
     aboutText:
-      "Vår Grenache kommer bland annat från småproducenter i Faugères, Pic Saint-Loup och Haute Vallée de l'Orb. Gamla stockar, ekologisk eller biodynamisk odling, inga tillsatser.",
+      "Vår Grenache kommer bland annat från småproducenter i Faugères, Pic Saint-Loup och Haute Vallée de l'Orb.",
     filter: { filterGrape: "Grenache" },
     hreflang: "grenache",
     canonical: "/vin/grenache",
@@ -221,7 +221,7 @@ const LONG_TAIL_WINE_CATEGORIES_SV: WineCategory[] = [
     foodPairing:
       "Syrah är ett kraftfullt matvin som passar till mörkt kött och kryddiga rätter. Tänk grillad lammracks, viltgryta, oxfilé med pepparsås eller kryddstarka rätter från Nordafrika och Mellanöstern. Servera vid 16–18°C — karaferas gärna om vinet är ungt.",
     aboutText:
-      "Vår Syrah kommer bland annat från småproducenter i Faugères, Pic Saint-Loup och Haute Vallée de l'Orb. Gamla stockar, ekologisk eller biodynamisk odling, inga tillsatser.",
+      "Vår Syrah kommer bland annat från småproducenter i Faugères, Pic Saint-Loup och Haute Vallée de l'Orb.",
     filter: { filterGrape: "Syrah" },
     hreflang: "syrah",
     canonical: "/vin/syrah",
@@ -247,7 +247,7 @@ const LONG_TAIL_WINE_CATEGORIES_SV: WineCategory[] = [
     foodPairing:
       "Cinsault är sommarens röda vin — lätt nog att kylas och passar till allt från charkbrickor till grillad kyckling. Prova till pizza, sallader med grillat, lufttorkad skinka eller lättare fiskrätter. Servera lätt kylt vid 12–14°C.",
     aboutText:
-      "Vår Cinsault kommer bland annat från småproducenter i Saint-Chinian och Hérault. Ekologisk eller biodynamisk odling, inga tillsatser.",
+      "Vår Cinsault kommer bland annat från småproducenter i Saint-Chinian och Hérault.",
     filter: { filterGrape: "Cinsault" },
     hreflang: "cinsault",
     canonical: "/vin/cinsault",
@@ -372,7 +372,7 @@ const LONG_TAIL_WINE_CATEGORIES_EN: WineCategory[] = [
     foodPairing:
       "Carignan is a quintessential food wine. The acidity and tannins cut through fat and lift umami. Think lamb stew with rosemary, cassoulet, grilled entrecôte or aged cheeses like Comté and Ossau-Iraty. Serve at 15–17°C — decant for 30 minutes if the wine is young.",
     aboutText:
-      "Our Carignan comes from small producers in places such as Faugères, Saint-Chinian and Haute Vallée de l'Orb. Old gobelet vines, organic or biodynamic farming, no additives.",
+      "Our Carignan comes from small producers in places such as Faugères, Saint-Chinian and Haute Vallée de l'Orb.",
     filter: { filterGrape: "Carignan" },
     hreflang: "carignan",
     canonical: "/wine/carignan",
@@ -415,7 +415,7 @@ const LONG_TAIL_WINE_CATEGORIES_EN: WineCategory[] = [
     foodPairing:
       "Grenache is a rewarding food wine with its round fruit and soft structure. Pairs with lamb dishes, ratatouille, grilled vegetables, spiced sausages and Mediterranean cuisine. Serve at 15–17°C. The lighter altitude wines can be slightly chilled and also suit charcuterie boards.",
     aboutText:
-      "Our Grenache comes from small producers in places such as Faugères, Pic Saint-Loup and Haute Vallée de l'Orb. Old vines, organic or biodynamic farming, no additives.",
+      "Our Grenache comes from small producers in places such as Faugères, Pic Saint-Loup and Haute Vallée de l'Orb.",
     filter: { filterGrape: "Grenache" },
     hreflang: "grenache",
     canonical: "/wine/grenache",
@@ -465,7 +465,7 @@ const LONG_TAIL_WINE_CATEGORIES_EN: WineCategory[] = [
     foodPairing:
       "Syrah is a powerful food wine that suits dark meat and spiced dishes. Think grilled rack of lamb, game stew, beef fillet with pepper sauce or spicy dishes from North Africa and the Middle East. Serve at 16–18°C — decant if the wine is young.",
     aboutText:
-      "Our Syrah comes from small producers in places such as Faugères, Pic Saint-Loup and Haute Vallée de l'Orb. Old vines, organic or biodynamic farming, no additives.",
+      "Our Syrah comes from small producers in places such as Faugères, Pic Saint-Loup and Haute Vallée de l'Orb.",
     filter: { filterGrape: "Syrah" },
     hreflang: "syrah",
     canonical: "/wine/syrah",
@@ -491,7 +491,7 @@ const LONG_TAIL_WINE_CATEGORIES_EN: WineCategory[] = [
     foodPairing:
       "Cinsault is summer's red wine — light enough to chill and suits everything from charcuterie to grilled chicken. Try it with pizza, grilled salads, cured ham or lighter fish dishes. Serve lightly chilled at 12–14°C.",
     aboutText:
-      "Our Cinsault comes from small producers in places such as Saint-Chinian and Hérault. Organic or biodynamic farming, no additives.",
+      "Our Cinsault comes from small producers in places such as Saint-Chinian and Hérault.",
     filter: { filterGrape: "Cinsault" },
     hreflang: "cinsault",
     canonical: "/wine/cinsault",
