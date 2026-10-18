@@ -98,6 +98,7 @@ export async function generateMetadata(props: {
         filterFarming: category.filter.farming,
         filterGrape: category.filter.filterGrape,
         filterCountryCode: category.filter.countryCode,
+        filterIsDirectImport: category.filter.isDirectImport,
         isB2BSite,
       }),
     ]);
@@ -282,6 +283,7 @@ export default async function WineCategoryPage(props: PageProps) {
     filterFarming: category.filter.farming,
     filterGrape: category.filter.filterGrape,
     filterCountryCode: category.filter.countryCode,
+    filterIsDirectImport: category.filter.isDirectImport,
     isB2BSite,
     displayCurrencyCode: shoppingContext.currencyCode,
     sekToDisplayRate: shoppingContext.sekToDisplayRate,

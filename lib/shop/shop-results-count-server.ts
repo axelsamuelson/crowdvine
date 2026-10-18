@@ -176,6 +176,7 @@ export async function getShopLayoutResultsCount(
           filterFarming: category.filter.farming,
           filterGrape: category.filter.filterGrape,
           filterCountryCode: category.filter.countryCode,
+          filterIsDirectImport: category.filter.isDirectImport,
           isB2BSite,
           ...currencyParams,
         });

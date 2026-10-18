@@ -293,6 +293,7 @@ function applyWineCatalogFilters<Q extends WineCatalogQuery>(
     filterFarming?: string[];
     filterGrape?: string;
     filterCountryCode?: string;
+    filterIsDirectImport?: boolean;
   },
 ): Q {
   let q = query;
@@ -315,6 +316,9 @@ function applyWineCatalogFilters<Q extends WineCatalogQuery>(
   }
   if (filters?.filterCountryCode) {
     q = q.eq("producers.country_code", filters.filterCountryCode) as Q;
+  }
+  if (filters?.filterIsDirectImport === true) {
+    q = q.eq("is_direct_import", true) as Q;
   }
   return q;
 }
@@ -341,6 +345,8 @@ export async function fetchProductsData(params?: {
   filterGrape?: string;
   /** Match producers.country_code (ISO), e.g. "FR". Requires producers!inner. */
   filterCountryCode?: string;
+  /** When true, only wines with is_direct_import = true. */
+  filterIsDirectImport?: boolean;
   /** When set, only these wine ids. */
   ids?: readonly string[];
 }): Promise<ProductData[]> {
@@ -392,6 +398,7 @@ export async function fetchProductsData(params?: {
     filterFarming: params?.filterFarming,
     filterGrape: params?.filterGrape,
     filterCountryCode: params?.filterCountryCode,
+    filterIsDirectImport: params?.filterIsDirectImport,
   };
 
   const applySort = <Q extends { order: any }>(q: Q): Q => {
@@ -1135,6 +1142,7 @@ export async function catalogHasProducts(filters?: {
   filterFarming?: string[];
   filterGrape?: string;
   filterCountryCode?: string;
+  filterIsDirectImport?: boolean;
   isB2BSite?: boolean;
 }): Promise<boolean> {
   if (supabaseBuildUsesPlaceholder()) return false;

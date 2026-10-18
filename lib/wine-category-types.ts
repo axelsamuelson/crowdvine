@@ -12,6 +12,8 @@ export type WineCategoryFilter = {
   farming?: string[];
   /** Match producers.country_code (ISO), e.g. "FR". */
   countryCode?: string;
+  /** When true, only wines with is_direct_import = true. */
+  isDirectImport?: boolean;
 };
 
 export type WineCategory = {

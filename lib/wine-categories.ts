@@ -25,7 +25,7 @@ const LONG_TAIL_WINE_CATEGORIES_SV: WineCategory[] = [
       "Naturvin direkt från småproducenter i Languedoc, Frankrike. Direktimporterat till Stockholm utan mellanhänder.",
     description:
       "Languedoc är Frankrikes mest dynamiska naturvinsregion. Vi importerar direkt från producenten till din dörr.",
-    filter: { farming: ["natural"] },
+    filter: {},
     hreflang: "natural-wine-languedoc",
     canonical: "/vin/naturvin-languedoc",
   },
@@ -38,7 +38,7 @@ const LONG_TAIL_WINE_CATEGORIES_SV: WineCategory[] = [
       "Köp naturvin från Frankrike med hemleverans i Stockholm.",
     description:
       "Naturvin från Frankrike, med leverans i Stockholm.",
-    filter: { farming: ["natural"], countryCode: "FR" },
+    filter: { countryCode: "FR" },
     hreflang: "natural-wine-france",
     canonical: "/vin/naturvin-frankrike",
   },
@@ -51,7 +51,7 @@ const LONG_TAIL_WINE_CATEGORIES_SV: WineCategory[] = [
       "Rött naturvin direkt från Languedoc, Frankrike. Carignan, Grenache, Syrah — hemleverans Stockholm.",
     description:
       "Röda naturviner från Languedocs bästa småproducenter. Direktimporterat till Stockholm.",
-    filter: { farming: ["natural"], color: ["Red"] },
+    filter: { color: ["Red"] },
     hreflang: "red-natural-wine-languedoc",
     canonical: "/vin/rott-naturvin-languedoc",
   },
@@ -64,7 +64,7 @@ const LONG_TAIL_WINE_CATEGORIES_SV: WineCategory[] = [
       "Vitt naturvin direkt från Languedoc, Frankrike. Vermentino, Chardonnay, Terret — hemleverans Stockholm.",
     description:
       "Vita naturviner från Languedocs bästa småproducenter. Direktimporterat till Stockholm.",
-    filter: { farming: ["natural"], color: ["White"] },
+    filter: { color: ["White"] },
     hreflang: "white-natural-wine-languedoc",
     canonical: "/vin/vitt-naturvin-languedoc",
   },
@@ -77,7 +77,7 @@ const LONG_TAIL_WINE_CATEGORIES_SV: WineCategory[] = [
       "Orange naturvin med skalkontakt direkt från Languedoc, Frankrike. Hemleverans Stockholm.",
     description:
       "Orangeviner från Languedoc — vita druvor med skalkontakt som ger textur, djup och karaktär.",
-    filter: { farming: ["natural"], color: ["Orange"] },
+    filter: { color: ["Orange"] },
     hreflang: "orange-natural-wine-languedoc",
     canonical: "/vin/orange-naturvin-languedoc",
   },
@@ -90,7 +90,7 @@ const LONG_TAIL_WINE_CATEGORIES_SV: WineCategory[] = [
       "Beställ naturvin online med hemleverans i Stockholm.",
     description:
       "Naturvin med hemleverans i Stockholm, från små producenter.",
-    filter: { farming: ["natural"] },
+    filter: {},
     hreflang: "natural-wine-delivery-stockholm",
     canonical: "/vin/naturvin-hemleverans-stockholm",
   },
@@ -103,7 +103,7 @@ const LONG_TAIL_WINE_CATEGORIES_SV: WineCategory[] = [
       "Köp vin via direktimport till Sverige. PACT samlar beställningar och skickar från producenten.",
     description:
       "PACT direktimporterar naturvin från små producenter. Vi samlar beställningar tills en pall är full, sedan skickar producenten vinet direkt till dig.",
-    filter: {},
+    filter: { isDirectImport: true },
     hreflang: "direct-import-wine",
     canonical: "/vin/direktimport-vin",
   },
@@ -146,7 +146,7 @@ const LONG_TAIL_WINE_CATEGORIES_SV: WineCategory[] = [
       "Naturvin på Carignan handlar om ett val: att låta druvan arbeta själv. Ingen tillsatt jäst, ingen tillsatt svavel, ingen filtrering. Det är ett risktagande som kräver friskt druvmaterial — och det är precis vad gamla gobeletstockar på mager jord ger.\n\nProducenterna på PACT arbetar med olika macerationsstilar beroende på årgång och parcellets karaktär. Alexandre Durand på Pèira Levada i Faugères kör 90 dagars maceration — exceptionellt länge, men stockarnas ålder ger tanninerna mognad och struktur att bära det. Pierre Regnault i Assignan väljer tidig skörd och helhals-maceration för maximal friskhet och lite koldioxid som naturligt skydd. Thomas Chany i Puisserguier arbetar kortare med kall maceration för att lyfta druvsortens fruktsida.\n\nResultatet är viner som varierar mer än konventionell Carignan — det är poängen. Utan tillsatser berättar varje flaska sin årgång och sin jord på ett sätt som standardiserade produkter aldrig kan.",
     aboutText:
       "Carignan naturvin, ofta från gamla stockar.",
-    filter: { filterGrape: "Carignan", farming: ["natural"] },
+    filter: { filterGrape: "Carignan" },
     hreflang: "carignan-natural-wine",
     canonical: "/vin/carignan-naturvin",
   },
@@ -269,7 +269,7 @@ const LONG_TAIL_WINE_CATEGORIES_EN: WineCategory[] = [
       "Natural wine direct from small producers in Languedoc, France. Imported directly to Stockholm without middlemen.",
     description:
       "Languedoc is France's most dynamic natural wine region. We import directly from the producer to your door.",
-    filter: { farming: ["natural"] },
+    filter: {},
     hreflang: "naturvin-languedoc",
     canonical: "/wine/natural-wine-languedoc",
   },
@@ -282,7 +282,7 @@ const LONG_TAIL_WINE_CATEGORIES_EN: WineCategory[] = [
       "Buy natural wine from France with home delivery in Stockholm.",
     description:
       "Natural wine from France, with delivery in Stockholm.",
-    filter: { farming: ["natural"], countryCode: "FR" },
+    filter: { countryCode: "FR" },
     hreflang: "naturvin-frankrike",
     canonical: "/wine/natural-wine-france",
   },
@@ -295,7 +295,7 @@ const LONG_TAIL_WINE_CATEGORIES_EN: WineCategory[] = [
       "Red natural wine direct from Languedoc, France. Carignan, Grenache, Syrah — home delivery Stockholm.",
     description:
       "Red natural wines from Languedoc's best small producers. Directly imported to Stockholm.",
-    filter: { farming: ["natural"], color: ["Red"] },
+    filter: { color: ["Red"] },
     hreflang: "rott-naturvin-languedoc",
     canonical: "/wine/red-natural-wine-languedoc",
   },
@@ -308,7 +308,7 @@ const LONG_TAIL_WINE_CATEGORIES_EN: WineCategory[] = [
       "White natural wine direct from Languedoc, France. Vermentino, Chardonnay, Terret — home delivery Stockholm.",
     description:
       "White natural wines from Languedoc's best small producers. Directly imported to Stockholm.",
-    filter: { farming: ["natural"], color: ["White"] },
+    filter: { color: ["White"] },
     hreflang: "vitt-naturvin-languedoc",
     canonical: "/wine/white-natural-wine-languedoc",
   },
@@ -321,7 +321,7 @@ const LONG_TAIL_WINE_CATEGORIES_EN: WineCategory[] = [
       "Orange natural wine with skin contact direct from Languedoc, France. Home delivery Stockholm.",
     description:
       "Orange wines from Languedoc — white grapes with skin contact for texture, depth and character.",
-    filter: { farming: ["natural"], color: ["Orange"] },
+    filter: { color: ["Orange"] },
     hreflang: "orange-naturvin-languedoc",
     canonical: "/wine/orange-natural-wine-languedoc",
   },
@@ -334,7 +334,7 @@ const LONG_TAIL_WINE_CATEGORIES_EN: WineCategory[] = [
       "Order natural wine online with home delivery in Stockholm.",
     description:
       "Natural wine with home delivery in Stockholm, from small producers.",
-    filter: { farming: ["natural"] },
+    filter: {},
     hreflang: "naturvin-hemleverans-stockholm",
     canonical: "/wine/natural-wine-delivery-stockholm",
   },
@@ -347,7 +347,7 @@ const LONG_TAIL_WINE_CATEGORIES_EN: WineCategory[] = [
       "Buy wine via direct import to Sweden. PACT aggregates orders and ships from the producer.",
     description:
       "PACT directly imports natural wine from small producers. We aggregate orders until a pallet is full, then the producer ships the wine directly to you.",
-    filter: {},
+    filter: { isDirectImport: true },
     hreflang: "direktimport-vin",
     canonical: "/wine/direct-import-wine",
   },
@@ -390,7 +390,7 @@ const LONG_TAIL_WINE_CATEGORIES_EN: WineCategory[] = [
       "Natural wine from Carignan is about one choice: letting the grape work on its own. No added yeast, no added sulphur, no filtration. It is a risk that requires healthy fruit — and that is exactly what old gobelet vines on poor soils provide.\n\nThe producers at PACT work with different maceration styles depending on the vintage and the character of each parcel. Alexandre Durand at Pèira Levada in Faugères runs 90-day maceration — exceptionally long, but the age of the vines gives the tannins the ripeness and structure to carry it. Pierre Regnault in Assignan opts for early harvest and whole-cluster maceration for maximum freshness and a little carbon dioxide as natural protection. Thomas Chany in Puisserguier works shorter with cold maceration to highlight the grape's fruit character.\n\nThe result is wines that vary more than conventional Carignan — that is the point. Without additives, each bottle tells its vintage and its soil in a way that standardised products never can.",
     aboutText:
       "Carignan natural wine, often from old vines.",
-    filter: { filterGrape: "Carignan", farming: ["natural"] },
+    filter: { filterGrape: "Carignan" },
     hreflang: "carignan-naturvin",
     canonical: "/wine/carignan-natural-wine",
   },

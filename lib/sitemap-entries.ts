@@ -217,6 +217,7 @@ async function buildSitemapEntriesUncached(
           filterFarming: c.filter.farming,
           filterGrape: c.filter.filterGrape,
           filterCountryCode: c.filter.countryCode,
+          filterIsDirectImport: c.filter.isDirectImport,
           isB2BSite: isDirtyWine,
         });
         return hasProducts ? weeklyEntry(`${baseUrl}/vin/${c.slug}`, 0.8) : null;
@@ -234,6 +235,7 @@ async function buildSitemapEntriesUncached(
           filterFarming: c.filter.farming,
           filterGrape: c.filter.filterGrape,
           filterCountryCode: c.filter.countryCode,
+          filterIsDirectImport: c.filter.isDirectImport,
           isB2BSite: isDirtyWine,
         });
         return hasProducts ? weeklyEntry(`${baseUrl}/wine/${c.slug}`, 0.7) : null;
