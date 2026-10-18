@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, type ReactNode } from "react";
+import { usePathname } from "next/navigation";
 
 import { CompleteOrderRail } from "@/components/cart/complete-order-rail";
 import { DesktopFilters } from "@/app/vin/components/shop-filters";
@@ -8,6 +9,7 @@ import { MobileFilters } from "@/app/vin/components/mobile-filters";
 import type { Collection } from "@/lib/shopify/types";
 import type { PriceSourceForFilter } from "@/app/vin/components/competitor-filter";
 import { ProductsProvider } from "@/components/shop/products-provider";
+import { isShopFullBleedPath } from "@/lib/stockholm-delivery-landing/config";
 
 export function ShopLayoutClient({
   children,
@@ -29,6 +31,15 @@ export function ShopLayoutClient({
   /** Category paths with products for this site (sitemap emptiness rule). */
   navigableShopPaths?: string[];
 }) {
+  const pathname = usePathname() || ssrPathname;
+  if (isShopFullBleedPath(pathname)) {
+    return (
+      <ProductsProvider initialServerResultsCount={initialResultsCount ?? 0}>
+        <Suspense fallback={null}>{children}</Suspense>
+      </ProductsProvider>
+    );
+  }
+
   return (
     <ProductsProvider initialServerResultsCount={initialResultsCount ?? 0}>
       <div className="flex flex-col md:grid grid-cols-12 md:gap-4">

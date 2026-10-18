@@ -25,7 +25,7 @@ const LONG_TAIL_WINE_CATEGORIES_SV: WineCategory[] = [
       "Naturvin direkt från småproducenter i Languedoc, Frankrike. Direktimporterat till Stockholm utan mellanhänder.",
     description:
       "Languedoc är Frankrikes mest dynamiska naturvinsregion. Vi importerar direkt från producenten till din dörr.",
-    filter: { farming: ["natural"] },
+    filter: {},
     hreflang: "natural-wine-languedoc",
     canonical: "/vin/naturvin-languedoc",
   },
@@ -37,8 +37,8 @@ const LONG_TAIL_WINE_CATEGORIES_SV: WineCategory[] = [
     metaDescription:
       "Köp naturvin från Frankrike med hemleverans i Stockholm.",
     description:
-      "Alla viner i PACTs sortiment kommer från Languedoc i södra Frankrike — direktimporterade utan mellanhänder.",
-    filter: { farming: ["natural"] },
+      "Naturvin från Frankrike, med leverans i Stockholm.",
+    filter: { countryCode: "FR" },
     hreflang: "natural-wine-france",
     canonical: "/vin/naturvin-frankrike",
   },
@@ -51,7 +51,7 @@ const LONG_TAIL_WINE_CATEGORIES_SV: WineCategory[] = [
       "Rött naturvin direkt från Languedoc, Frankrike. Carignan, Grenache, Syrah — hemleverans Stockholm.",
     description:
       "Röda naturviner från Languedocs bästa småproducenter. Direktimporterat till Stockholm.",
-    filter: { farming: ["natural"], color: ["Red"] },
+    filter: { color: ["Red"] },
     hreflang: "red-natural-wine-languedoc",
     canonical: "/vin/rott-naturvin-languedoc",
   },
@@ -64,7 +64,7 @@ const LONG_TAIL_WINE_CATEGORIES_SV: WineCategory[] = [
       "Vitt naturvin direkt från Languedoc, Frankrike. Vermentino, Chardonnay, Terret — hemleverans Stockholm.",
     description:
       "Vita naturviner från Languedocs bästa småproducenter. Direktimporterat till Stockholm.",
-    filter: { farming: ["natural"], color: ["White"] },
+    filter: { color: ["White"] },
     hreflang: "white-natural-wine-languedoc",
     canonical: "/vin/vitt-naturvin-languedoc",
   },
@@ -77,7 +77,7 @@ const LONG_TAIL_WINE_CATEGORIES_SV: WineCategory[] = [
       "Orange naturvin med skalkontakt direkt från Languedoc, Frankrike. Hemleverans Stockholm.",
     description:
       "Orangeviner från Languedoc — vita druvor med skalkontakt som ger textur, djup och karaktär.",
-    filter: { farming: ["natural"], color: ["Orange"] },
+    filter: { color: ["Orange"] },
     hreflang: "orange-natural-wine-languedoc",
     canonical: "/vin/orange-naturvin-languedoc",
   },
@@ -89,21 +89,21 @@ const LONG_TAIL_WINE_CATEGORIES_SV: WineCategory[] = [
     metaDescription:
       "Beställ naturvin online med hemleverans i Stockholm.",
     description:
-      "PACT levererar naturvin hem till dig i Stockholm. Direktimporterat från Languedoc — billigare och friare än vad som finns i butik.",
-    filter: { farming: ["natural"] },
+      "Naturvin med hemleverans i Stockholm, från små producenter.",
+    filter: {},
     hreflang: "natural-wine-delivery-stockholm",
     canonical: "/vin/naturvin-hemleverans-stockholm",
   },
   {
     slug: "direktimport-vin",
     locale: "sv",
-    h1: "Direktimport av vin från Languedoc",
+    h1: "Direktimport av naturvin",
     title: "Direktimport vin Sverige | PACT Wines",
     metaDescription:
       "Köp vin via direktimport till Sverige. PACT samlar beställningar och skickar från producenten.",
     description:
-      "PACT är en direktimportör av naturvin från Languedoc. Vi samlar beställningar tills en pall är full — sedan skickar producenten direkt till dig.",
-    filter: {},
+      "PACT direktimporterar naturvin från små producenter. Vi samlar beställningar tills en pall är full, sedan skickar producenten vinet direkt till dig.",
+    filter: { isDirectImport: true },
     hreflang: "direct-import-wine",
     canonical: "/vin/direktimport-vin",
   },
@@ -115,7 +115,7 @@ const LONG_TAIL_WINE_CATEGORIES_SV: WineCategory[] = [
     metaDescription:
       "Carignan från gamla gobeletstockar på skiffer och kalk. Koncentrerade, mineraliska viner.",
     description:
-      "Carignan har ett oförtjänt dåligt rykte. Unga stockar på bördig jord ger tunna bulkviner — det stämmer. Men gamla gobeletstockar på skiffersluttningarna i Faugères, kalkjorden i Puisserguier eller gnejs-terrasserna på 305 meters höjd förändrar allt. Det är den Carignan vi importerar.",
+      "Carignan har ett oförtjänt dåligt rykte. Unga stockar på bördig jord ger tunna bulkviner — det stämmer. Men gamla gobeletstockar på skiffersluttningarna i Faugères, kalkjorden i Puisserguier eller gnejs-terrasserna på 305 meters höjd förändrar allt. Det är den sortens Carignan vi letar efter.",
     longDescription:
       "Carignan härstammar från Aragonien i nordöstra Spanien och etablerade sig i Languedoc under romartiden. Under 1900-talets stora produktionsexpansion planterades den över hela södra Frankrike för ett enda syfte: volym. Druvan är produktiv, tålig och ger höga skördar — men kvaliteten på det stora flertalet viner var därefter. På 1990-talet halverades odlingsarealen av EU-subventioner, och de gamla stockarna lämnades i stort sett ensamma kvar.\n\nDet var naturvinsgenerationens producenter som insåg vad dessa övergivna gamla stockar faktiskt kunde ge. En gobelet-Carignan på 65, 80 eller 100 år producerar en bråkdel av vad en ung stock ger — men det som produceras är koncentrerat, mineraliskt och komplext. Rötterna går djupt ner i skiffersluttningarna och kalkstenen, druvorna koncentreras naturligt och handskörd blir nödvändig.\n\nTerroiret varierar markant inom Languedoc. I Faugères dominerar svart skiffer som ger viner med järnig mineralitet och djup. I Saint-Chinian möter skiffern kalksten — vinerna blir mjukare och mer fruktiga. I Haute Vallée de l'Orb på 300 meters höjd ger gnejs och granit en helt annan fräschör och syrastruktur.",
     tastingProfile: [
@@ -128,7 +128,7 @@ const LONG_TAIL_WINE_CATEGORIES_SV: WineCategory[] = [
     foodPairing:
       "Carignan är ett utpräglat matvin. Syran och tanninerna skär igenom fett och lyfter umami. Tänk lammgryta med rosmarin, cassoulet, grillad entrecôte eller mogna ostar som Comté och Ossau-Iraty. Servera vid 15–17°C — karaferas gärna 30 minuter om vinet är ungt.",
     aboutText:
-      "Vi importerar Carignan direkt från småproducenter i Faugères, Saint-Chinian och Haute Vallée de l'Orb. Gamla gobeletstockar, ekologisk eller biodynamisk odling, inga tillsatser.",
+      "Vår Carignan kommer bland annat från småproducenter i Faugères, Saint-Chinian och Haute Vallée de l'Orb.",
     filter: { filterGrape: "Carignan" },
     hreflang: "carignan",
     canonical: "/vin/carignan",
@@ -145,8 +145,8 @@ const LONG_TAIL_WINE_CATEGORIES_SV: WineCategory[] = [
     longDescription:
       "Naturvin på Carignan handlar om ett val: att låta druvan arbeta själv. Ingen tillsatt jäst, ingen tillsatt svavel, ingen filtrering. Det är ett risktagande som kräver friskt druvmaterial — och det är precis vad gamla gobeletstockar på mager jord ger.\n\nProducenterna på PACT arbetar med olika macerationsstilar beroende på årgång och parcellets karaktär. Alexandre Durand på Pèira Levada i Faugères kör 90 dagars maceration — exceptionellt länge, men stockarnas ålder ger tanninerna mognad och struktur att bära det. Pierre Regnault i Assignan väljer tidig skörd och helhals-maceration för maximal friskhet och lite koldioxid som naturligt skydd. Thomas Chany i Puisserguier arbetar kortare med kall maceration för att lyfta druvsortens fruktsida.\n\nResultatet är viner som varierar mer än konventionell Carignan — det är poängen. Utan tillsatser berättar varje flaska sin årgång och sin jord på ett sätt som standardiserade produkter aldrig kan.",
     aboutText:
-      "Carignan naturvin utan tillsatser — direktimporterat från gamla stockar i Languedoc.",
-    filter: { filterGrape: "Carignan", farming: ["natural"] },
+      "Carignan naturvin, ofta från gamla stockar.",
+    filter: { filterGrape: "Carignan" },
     hreflang: "carignan-natural-wine",
     canonical: "/vin/carignan-naturvin",
   },
@@ -171,7 +171,7 @@ const LONG_TAIL_WINE_CATEGORIES_SV: WineCategory[] = [
     foodPairing:
       "Grenache är ett tacksamt matvin med sin runda frukt och mjuka struktur. Passar till lammfärsrätter, ratatouille, grillade grönsaker, kryddiga korvar och medelhavskök. Servera vid 15–17°C. De lättare höjdlägesvinerna kan kylas något och passar även till charkbrickor.",
     aboutText:
-      "Vi importerar Grenache direkt från småproducenter i Faugères, Pic Saint-Loup och Haute Vallée de l'Orb. Gamla stockar, ekologisk eller biodynamisk odling, inga tillsatser.",
+      "Vår Grenache kommer bland annat från småproducenter i Faugères, Pic Saint-Loup och Haute Vallée de l'Orb.",
     filter: { filterGrape: "Grenache" },
     hreflang: "grenache",
     canonical: "/vin/grenache",
@@ -221,7 +221,7 @@ const LONG_TAIL_WINE_CATEGORIES_SV: WineCategory[] = [
     foodPairing:
       "Syrah är ett kraftfullt matvin som passar till mörkt kött och kryddiga rätter. Tänk grillad lammracks, viltgryta, oxfilé med pepparsås eller kryddstarka rätter från Nordafrika och Mellanöstern. Servera vid 16–18°C — karaferas gärna om vinet är ungt.",
     aboutText:
-      "Vi importerar Syrah direkt från småproducenter i Faugères, Pic Saint-Loup och Haute Vallée de l'Orb. Gamla stockar, ekologisk eller biodynamisk odling, inga tillsatser.",
+      "Vår Syrah kommer bland annat från småproducenter i Faugères, Pic Saint-Loup och Haute Vallée de l'Orb.",
     filter: { filterGrape: "Syrah" },
     hreflang: "syrah",
     canonical: "/vin/syrah",
@@ -247,7 +247,7 @@ const LONG_TAIL_WINE_CATEGORIES_SV: WineCategory[] = [
     foodPairing:
       "Cinsault är sommarens röda vin — lätt nog att kylas och passar till allt från charkbrickor till grillad kyckling. Prova till pizza, sallader med grillat, lufttorkad skinka eller lättare fiskrätter. Servera lätt kylt vid 12–14°C.",
     aboutText:
-      "Vi importerar Cinsault direkt från småproducenter i Saint-Chinian och Hérault. Ekologisk eller biodynamisk odling, inga tillsatser.",
+      "Vår Cinsault kommer bland annat från småproducenter i Saint-Chinian och Hérault.",
     filter: { filterGrape: "Cinsault" },
     hreflang: "cinsault",
     canonical: "/vin/cinsault",
@@ -269,7 +269,7 @@ const LONG_TAIL_WINE_CATEGORIES_EN: WineCategory[] = [
       "Natural wine direct from small producers in Languedoc, France. Imported directly to Stockholm without middlemen.",
     description:
       "Languedoc is France's most dynamic natural wine region. We import directly from the producer to your door.",
-    filter: { farming: ["natural"] },
+    filter: {},
     hreflang: "naturvin-languedoc",
     canonical: "/wine/natural-wine-languedoc",
   },
@@ -281,8 +281,8 @@ const LONG_TAIL_WINE_CATEGORIES_EN: WineCategory[] = [
     metaDescription:
       "Buy natural wine from France with home delivery in Stockholm.",
     description:
-      "All wines in PACT's range come from Languedoc in southern France — directly imported without middlemen.",
-    filter: { farming: ["natural"] },
+      "Natural wine from France, with delivery in Stockholm.",
+    filter: { countryCode: "FR" },
     hreflang: "naturvin-frankrike",
     canonical: "/wine/natural-wine-france",
   },
@@ -295,7 +295,7 @@ const LONG_TAIL_WINE_CATEGORIES_EN: WineCategory[] = [
       "Red natural wine direct from Languedoc, France. Carignan, Grenache, Syrah — home delivery Stockholm.",
     description:
       "Red natural wines from Languedoc's best small producers. Directly imported to Stockholm.",
-    filter: { farming: ["natural"], color: ["Red"] },
+    filter: { color: ["Red"] },
     hreflang: "rott-naturvin-languedoc",
     canonical: "/wine/red-natural-wine-languedoc",
   },
@@ -308,7 +308,7 @@ const LONG_TAIL_WINE_CATEGORIES_EN: WineCategory[] = [
       "White natural wine direct from Languedoc, France. Vermentino, Chardonnay, Terret — home delivery Stockholm.",
     description:
       "White natural wines from Languedoc's best small producers. Directly imported to Stockholm.",
-    filter: { farming: ["natural"], color: ["White"] },
+    filter: { color: ["White"] },
     hreflang: "vitt-naturvin-languedoc",
     canonical: "/wine/white-natural-wine-languedoc",
   },
@@ -321,7 +321,7 @@ const LONG_TAIL_WINE_CATEGORIES_EN: WineCategory[] = [
       "Orange natural wine with skin contact direct from Languedoc, France. Home delivery Stockholm.",
     description:
       "Orange wines from Languedoc — white grapes with skin contact for texture, depth and character.",
-    filter: { farming: ["natural"], color: ["Orange"] },
+    filter: { color: ["Orange"] },
     hreflang: "orange-naturvin-languedoc",
     canonical: "/wine/orange-natural-wine-languedoc",
   },
@@ -333,21 +333,21 @@ const LONG_TAIL_WINE_CATEGORIES_EN: WineCategory[] = [
     metaDescription:
       "Order natural wine online with home delivery in Stockholm.",
     description:
-      "PACT delivers natural wine to your home in Stockholm. Directly imported from Languedoc — better value and more interesting than what you'll find in stores.",
-    filter: { farming: ["natural"] },
+      "Natural wine with home delivery in Stockholm, from small producers.",
+    filter: {},
     hreflang: "naturvin-hemleverans-stockholm",
     canonical: "/wine/natural-wine-delivery-stockholm",
   },
   {
     slug: "direct-import-wine",
     locale: "en",
-    h1: "Direct Import Wine from Languedoc",
+    h1: "Direct Import Natural Wine",
     title: "Direct Import Wine Sweden | PACT Wines",
     metaDescription:
       "Buy wine via direct import to Sweden. PACT aggregates orders and ships from the producer.",
     description:
-      "PACT is a direct importer of natural wine from Languedoc. We aggregate orders until a pallet is full — then the producer ships directly to you.",
-    filter: {},
+      "PACT directly imports natural wine from small producers. We aggregate orders until a pallet is full, then the producer ships the wine directly to you.",
+    filter: { isDirectImport: true },
     hreflang: "direktimport-vin",
     canonical: "/wine/direct-import-wine",
   },
@@ -359,7 +359,7 @@ const LONG_TAIL_WINE_CATEGORIES_EN: WineCategory[] = [
     metaDescription:
       "Carignan from old goblet vines on schist and limestone. Concentrated, mineral wines.",
     description:
-      "Carignan has an undeserved reputation. Young vines on fertile soil produce thin bulk wine — that's true. But old goblet vines on the schist slopes of Faugères, the limestone soils of Puisserguier or the gneiss terraces at 305 metres altitude change everything. That's the Carignan we import.",
+      "Carignan has an undeserved reputation. Young vines on fertile soil produce thin bulk wine — that's true. But old goblet vines on the schist slopes of Faugères, the limestone soils of Puisserguier or the gneiss terraces at 305 metres altitude change everything. That's the kind of Carignan we look for.",
     longDescription:
       "Carignan originates from Aragon in northeastern Spain and established itself in Languedoc during Roman times. During the 20th century's great production expansion, it was planted across southern France for a single purpose: volume. The grape is productive, hardy and gives high yields — but quality suffered. In the 1990s, EU subsidies halved the planted area, and the old vines were largely left alone.\n\nIt was the natural wine generation's producers who recognised what these abandoned old vines could actually give. A gobelet Carignan of 65, 80 or 100 years produces a fraction of what a young vine gives — but what it produces is concentrated, mineral and complex. The roots go deep into schist slopes and limestone, grapes concentrate naturally and hand harvesting becomes necessary.\n\nThe terroir varies markedly within Languedoc. In Faugères, black schist gives wines with iron minerality and depth. In Saint-Chinian, schist meets limestone — the wines become softer and more fruit-driven. In Haute Vallée de l'Orb at 300 metres altitude, gneiss and granite give a completely different freshness and acid structure.",
     tastingProfile: [
@@ -372,7 +372,7 @@ const LONG_TAIL_WINE_CATEGORIES_EN: WineCategory[] = [
     foodPairing:
       "Carignan is a quintessential food wine. The acidity and tannins cut through fat and lift umami. Think lamb stew with rosemary, cassoulet, grilled entrecôte or aged cheeses like Comté and Ossau-Iraty. Serve at 15–17°C — decant for 30 minutes if the wine is young.",
     aboutText:
-      "We import Carignan directly from small producers in Faugères, Saint-Chinian and Haute Vallée de l'Orb. Old gobelet vines, organic or biodynamic farming, no additives.",
+      "Our Carignan comes from small producers in places such as Faugères, Saint-Chinian and Haute Vallée de l'Orb.",
     filter: { filterGrape: "Carignan" },
     hreflang: "carignan",
     canonical: "/wine/carignan",
@@ -389,8 +389,8 @@ const LONG_TAIL_WINE_CATEGORIES_EN: WineCategory[] = [
     longDescription:
       "Natural wine from Carignan is about one choice: letting the grape work on its own. No added yeast, no added sulphur, no filtration. It is a risk that requires healthy fruit — and that is exactly what old gobelet vines on poor soils provide.\n\nThe producers at PACT work with different maceration styles depending on the vintage and the character of each parcel. Alexandre Durand at Pèira Levada in Faugères runs 90-day maceration — exceptionally long, but the age of the vines gives the tannins the ripeness and structure to carry it. Pierre Regnault in Assignan opts for early harvest and whole-cluster maceration for maximum freshness and a little carbon dioxide as natural protection. Thomas Chany in Puisserguier works shorter with cold maceration to highlight the grape's fruit character.\n\nThe result is wines that vary more than conventional Carignan — that is the point. Without additives, each bottle tells its vintage and its soil in a way that standardised products never can.",
     aboutText:
-      "Carignan natural wine without additives — direct imported from old vines in Languedoc.",
-    filter: { filterGrape: "Carignan", farming: ["natural"] },
+      "Carignan natural wine, often from old vines.",
+    filter: { filterGrape: "Carignan" },
     hreflang: "carignan-naturvin",
     canonical: "/wine/carignan-natural-wine",
   },
@@ -415,7 +415,7 @@ const LONG_TAIL_WINE_CATEGORIES_EN: WineCategory[] = [
     foodPairing:
       "Grenache is a rewarding food wine with its round fruit and soft structure. Pairs with lamb dishes, ratatouille, grilled vegetables, spiced sausages and Mediterranean cuisine. Serve at 15–17°C. The lighter altitude wines can be slightly chilled and also suit charcuterie boards.",
     aboutText:
-      "We import Grenache directly from small producers in Faugères, Pic Saint-Loup and Haute Vallée de l'Orb. Old vines, organic or biodynamic farming, no additives.",
+      "Our Grenache comes from small producers in places such as Faugères, Pic Saint-Loup and Haute Vallée de l'Orb.",
     filter: { filterGrape: "Grenache" },
     hreflang: "grenache",
     canonical: "/wine/grenache",
@@ -465,7 +465,7 @@ const LONG_TAIL_WINE_CATEGORIES_EN: WineCategory[] = [
     foodPairing:
       "Syrah is a powerful food wine that suits dark meat and spiced dishes. Think grilled rack of lamb, game stew, beef fillet with pepper sauce or spicy dishes from North Africa and the Middle East. Serve at 16–18°C — decant if the wine is young.",
     aboutText:
-      "We import Syrah directly from small producers in Faugères, Pic Saint-Loup and Haute Vallée de l'Orb. Old vines, organic or biodynamic farming, no additives.",
+      "Our Syrah comes from small producers in places such as Faugères, Pic Saint-Loup and Haute Vallée de l'Orb.",
     filter: { filterGrape: "Syrah" },
     hreflang: "syrah",
     canonical: "/wine/syrah",
@@ -491,7 +491,7 @@ const LONG_TAIL_WINE_CATEGORIES_EN: WineCategory[] = [
     foodPairing:
       "Cinsault is summer's red wine — light enough to chill and suits everything from charcuterie to grilled chicken. Try it with pizza, grilled salads, cured ham or lighter fish dishes. Serve lightly chilled at 12–14°C.",
     aboutText:
-      "We import Cinsault directly from small producers in Saint-Chinian and Hérault. Organic or biodynamic farming, no additives.",
+      "Our Cinsault comes from small producers in places such as Saint-Chinian and Hérault.",
     filter: { filterGrape: "Cinsault" },
     hreflang: "cinsault",
     canonical: "/wine/cinsault",

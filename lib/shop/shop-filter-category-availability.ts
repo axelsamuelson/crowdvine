@@ -2,6 +2,7 @@ import { unstable_cache } from "next/cache";
 
 import { catalogHasProducts } from "@/lib/crowdvine/products-data";
 import { isNoindexCategorySlug } from "@/lib/seo/noindex-robots";
+import { STOCKHOLM_DELIVERY_SITEMAP_SLUGS } from "@/lib/stockholm-delivery-landing/dirtywine-redirect";
 import { WINE_CATEGORIES_EN, WINE_CATEGORIES_SV } from "@/lib/wine-categories";
 import { LEGACY_SHOP_REDIRECT_SLUGS } from "@/lib/wine-shop-filter-categories";
 
@@ -19,6 +20,8 @@ async function categoryHasProductsForSite(
     filterIsNatural: category.filter.isNatural,
     filterFarming: category.filter.farming,
     filterGrape: category.filter.filterGrape,
+    filterCountryCode: category.filter.countryCode,
+    filterIsDirectImport: category.filter.isDirectImport,
     isB2BSite,
   });
 }
@@ -33,6 +36,7 @@ async function computeNavigableShopFilterPaths(
   for (const category of WINE_CATEGORIES_EN) {
     if (LEGACY_SHOP_REDIRECT_SLUGS.has(category.slug)) continue;
     if (isNoindexCategorySlug(category.slug, "en")) continue;
+    if (isB2BSite && STOCKHOLM_DELIVERY_SITEMAP_SLUGS.has(category.slug)) continue;
     jobs.push(
       categoryHasProductsForSite(category, isB2BSite).then((has) => {
         if (has) paths.add(`/wine/${category.slug}`);
@@ -43,6 +47,7 @@ async function computeNavigableShopFilterPaths(
   for (const category of WINE_CATEGORIES_SV) {
     if (LEGACY_SHOP_REDIRECT_SLUGS.has(category.slug)) continue;
     if (isNoindexCategorySlug(category.slug, "sv")) continue;
+    if (isB2BSite && STOCKHOLM_DELIVERY_SITEMAP_SLUGS.has(category.slug)) continue;
     jobs.push(
       categoryHasProductsForSite(category, isB2BSite).then((has) => {
         if (has) paths.add(`/vin/${category.slug}`);

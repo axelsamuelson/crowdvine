@@ -54,6 +54,9 @@ import { resolveGrapeCategoryBySlug } from "@/lib/wine-grape-categories";
 import { ProducerBoxesPage } from "@/components/producer-boxes/producer-boxes-page";
 import { isProducerBoxesSlug } from "@/lib/producer-boxes/config";
 import { buildProducerBoxesMetadata } from "@/lib/producer-boxes/metadata";
+import { StockholmDeliveryLandingPage } from "@/components/stockholm-delivery-landing/stockholm-delivery-landing-page";
+import { isStockholmDeliveryLandingSlug } from "@/lib/stockholm-delivery-landing/config";
+import { buildStockholmDeliveryMetadata } from "@/lib/stockholm-delivery-landing/metadata";
 
 export const revalidate = 300;
 export const dynamicParams = true;
@@ -75,6 +78,11 @@ export async function generateMetadata(props: {
     return buildProducerBoxesMetadata("en");
   }
 
+  if (isStockholmDeliveryLandingSlug(slug, "en")) {
+    const config = await getSiteConfig();
+    return buildStockholmDeliveryMetadata("en", config);
+  }
+
   const category = await resolveGrapeCategoryBySlug(slug, "en");
   if (category) {
     const headerList = await headers();
@@ -89,6 +97,8 @@ export async function generateMetadata(props: {
         filterIsNatural: category.filter.isNatural,
         filterFarming: category.filter.farming,
         filterGrape: category.filter.filterGrape,
+        filterCountryCode: category.filter.countryCode,
+        filterIsDirectImport: category.filter.isDirectImport,
         isB2BSite,
       }),
     ]);
@@ -177,6 +187,10 @@ export default async function WineCategoryPage(props: PageProps) {
 
   if (isProducerBoxesSlug(slug, "en")) {
     return <ProducerBoxesPage locale="en" />;
+  }
+
+  if (isStockholmDeliveryLandingSlug(slug, "en")) {
+    return <StockholmDeliveryLandingPage locale="en" />;
   }
 
   const category = await resolveGrapeCategoryBySlug(slug, "en");
@@ -268,6 +282,8 @@ export default async function WineCategoryPage(props: PageProps) {
     filterIsNatural: category.filter.isNatural,
     filterFarming: category.filter.farming,
     filterGrape: category.filter.filterGrape,
+    filterCountryCode: category.filter.countryCode,
+    filterIsDirectImport: category.filter.isDirectImport,
     isB2BSite,
     displayCurrencyCode: shoppingContext.currencyCode,
     sekToDisplayRate: shoppingContext.sekToDisplayRate,

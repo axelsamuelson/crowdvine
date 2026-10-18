@@ -84,6 +84,8 @@ export interface Wine {
   is_live?: boolean;
   /** When false, visible in shop but not purchasable. */
   available_for_sale?: boolean;
+  /** Direct-import shop category flag. */
+  is_direct_import?: boolean;
   /** Latest internal tasting score (1–100), if any. */
   latest_rating_score?: number | null;
   /** Latest internal verdict, if any. */
@@ -145,6 +147,8 @@ export interface CreateWineData {
   // Visibility
   is_live?: boolean;
   available_for_sale?: boolean;
+  /** Direct-import shop category flag. Defaults false for new wines. */
+  is_direct_import?: boolean;
 }
 
 const WINES_SELECT_FULL = `
@@ -196,6 +200,7 @@ const WINES_SELECT_FULL = `
   b2b_stock,
   is_live,
   available_for_sale,
+  is_direct_import,
   created_at,
   updated_at
 `;
@@ -244,6 +249,7 @@ const WINES_SELECT_WITHOUT_B2B = `
   abv,
   is_live,
   available_for_sale,
+  is_direct_import,
   created_at,
   updated_at
 `;
@@ -296,6 +302,7 @@ const WINES_SELECT_WITHOUT_EXTENDED_ENRICHMENT = `
   b2b_stock,
   is_live,
   available_for_sale,
+  is_direct_import,
   created_at,
   updated_at
 `;
@@ -343,6 +350,7 @@ const WINES_SELECT_WITHOUT_B2B_NO_EXTENDED = `
   abv,
   is_live,
   available_for_sale,
+  is_direct_import,
   created_at,
   updated_at
 `;
@@ -374,6 +382,7 @@ const WINES_SELECT_FULL_NO_SUMMARY = `
   b2b_stock,
   is_live,
   available_for_sale,
+  is_direct_import,
   created_at,
   updated_at
 `;
@@ -402,6 +411,7 @@ const WINES_SELECT_LEGACY = `
   description_html,
   is_live,
   available_for_sale,
+  is_direct_import,
   created_at,
   updated_at
 `;
@@ -429,6 +439,7 @@ const WINES_SELECT_WITHOUT_B2B_NO_SUMMARY = `
   description_html,
   is_live,
   available_for_sale,
+  is_direct_import,
   created_at,
   updated_at
 `;
@@ -823,6 +834,7 @@ export async function createWine(data: CreateWineData, locale: WineLocale = "sv"
     b2b_stock: data.b2b_stock ?? null,
     is_live: data.is_live ?? true,
     available_for_sale: data.available_for_sale ?? true,
+    is_direct_import: data.is_direct_import ?? false,
   };
 
   let result = await sb.from("wines").insert(insertData).select(WINES_SELECT_FULL).single();
@@ -1054,6 +1066,8 @@ export async function updateWine(
     updateData.is_live = data.is_live;
   if (data.available_for_sale !== undefined)
     updateData.available_for_sale = data.available_for_sale;
+  if (data.is_direct_import !== undefined)
+    updateData.is_direct_import = data.is_direct_import;
 
   // Get current wine data for calculation if needed
   let currentWine = null;

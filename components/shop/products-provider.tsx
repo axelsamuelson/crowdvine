@@ -11,6 +11,7 @@ import {
 } from "react";
 import { usePathname } from "next/navigation";
 import { isProducerBoxesPath } from "@/lib/producer-boxes/config";
+import { isShopFullBleedPath } from "@/lib/stockholm-delivery-landing/config";
 
 function isShopPath(path: string): boolean {
   return (
@@ -61,11 +62,12 @@ export function ProductsProvider({
     const previousPath = prevPathnameRef.current;
     prevPathnameRef.current = pathname;
     const stayedInShop = isShopPath(previousPath) && isShopPath(pathname);
-    const crossedBoxPage =
-      isProducerBoxesPath(previousPath) !== isProducerBoxesPath(pathname);
+    const crossedSpecialPage =
+      isProducerBoxesPath(previousPath) !== isProducerBoxesPath(pathname) ||
+      isShopFullBleedPath(previousPath) !== isShopFullBleedPath(pathname);
     // Keep PLP products across ordinary shop routes, but drop them when
-    // entering or leaving the box page so product filters do not leak in.
-    if (stayedInShop && !crossedBoxPage) return;
+    // entering or leaving curated pages so product filters do not leak in.
+    if (stayedInShop && !crossedSpecialPage) return;
     setProducts([]);
     setOriginalProducts([]);
     setAvailableSourceSlugs([]);

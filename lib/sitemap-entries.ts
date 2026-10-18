@@ -11,6 +11,7 @@ import {
   isNoindexCategorySlug,
 } from "@/lib/seo/noindex-robots";
 import { producerBoxesSitemapPaths } from "@/lib/producer-boxes/config";
+import { STOCKHOLM_DELIVERY_SITEMAP_SLUGS } from "@/lib/stockholm-delivery-landing/dirtywine-redirect";
 import { WINE_CATEGORIES_EN, WINE_CATEGORIES_SV } from "@/lib/wine-categories";
 import { LEGACY_SHOP_REDIRECT_SLUGS } from "@/lib/wine-shop-filter-categories";
 import {
@@ -196,12 +197,14 @@ async function buildSitemapEntriesUncached(
   const vinCategoryCandidates = WINE_CATEGORIES_SV.filter(
     (c) =>
       !isNoindexCategorySlug(c.slug, "sv") &&
-      !LEGACY_SHOP_REDIRECT_SLUGS.has(c.slug),
+      !LEGACY_SHOP_REDIRECT_SLUGS.has(c.slug) &&
+      !(isDirtyWine && STOCKHOLM_DELIVERY_SITEMAP_SLUGS.has(c.slug)),
   );
   const wineCategoryCandidates = WINE_CATEGORIES_EN.filter(
     (c) =>
       !isNoindexCategorySlug(c.slug, "en") &&
-      !LEGACY_SHOP_REDIRECT_SLUGS.has(c.slug),
+      !LEGACY_SHOP_REDIRECT_SLUGS.has(c.slug) &&
+      !(isDirtyWine && STOCKHOLM_DELIVERY_SITEMAP_SLUGS.has(c.slug)),
   );
 
   const vinCategories: MetadataRoute.Sitemap = (
@@ -213,6 +216,8 @@ async function buildSitemapEntriesUncached(
           filterIsNatural: c.filter.isNatural,
           filterFarming: c.filter.farming,
           filterGrape: c.filter.filterGrape,
+          filterCountryCode: c.filter.countryCode,
+          filterIsDirectImport: c.filter.isDirectImport,
           isB2BSite: isDirtyWine,
         });
         return hasProducts ? weeklyEntry(`${baseUrl}/vin/${c.slug}`, 0.8) : null;
@@ -229,6 +234,8 @@ async function buildSitemapEntriesUncached(
           filterIsNatural: c.filter.isNatural,
           filterFarming: c.filter.farming,
           filterGrape: c.filter.filterGrape,
+          filterCountryCode: c.filter.countryCode,
+          filterIsDirectImport: c.filter.isDirectImport,
           isB2BSite: isDirtyWine,
         });
         return hasProducts ? weeklyEntry(`${baseUrl}/wine/${c.slug}`, 0.7) : null;
