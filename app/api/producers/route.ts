@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireCatalogApiAuth } from "@/lib/catalog-api-auth";
 import {
   buildProducerInsert,
+  InvalidProducerCountryError,
   PRODUCER_DB_SELECT,
   producerRowToApi,
 } from "@/lib/catalog-mappers";
@@ -84,6 +85,9 @@ export async function POST(request: NextRequest) {
       { status: 201 },
     );
   } catch (e: unknown) {
+    if (e instanceof InvalidProducerCountryError) {
+      return NextResponse.json({ error: e.message }, { status: 400 });
+    }
     const msg = e instanceof Error ? e.message : "Unknown error";
     console.error("POST /api/producers:", e);
     return NextResponse.json({ error: msg }, { status: 500 });

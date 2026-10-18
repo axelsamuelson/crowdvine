@@ -13,11 +13,15 @@ export default async function ProducersPage() {
   const producersRaw = await getProducers();
   const sb = getSupabaseAdmin();
 
-  const { data: countries } = await sb.from("countries").select("code, name");
+  const { data: countries } = await sb
+    .from("countries")
+    .select("code, name, name_sv");
   const countryNameByCode: Record<string, string> = {};
-  (countries ?? []).forEach((c: { code: string; name: string }) => {
-    countryNameByCode[c.code] = c.name;
-  });
+  (countries ?? []).forEach(
+    (c: { code: string; name: string; name_sv: string | null }) => {
+      countryNameByCode[c.code] = c.name_sv?.trim() || c.name;
+    },
+  );
 
   const pickupZoneIds = Array.from(
     new Set(

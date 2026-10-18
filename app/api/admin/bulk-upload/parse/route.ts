@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import {
+  INVALID_PRODUCER_COUNTRY_MESSAGE,
+  normalizeCountryCode,
+} from "@/lib/countries";
 
 // Known grape varieties database
 const KNOWN_GRAPES = [
@@ -335,6 +339,14 @@ export async function POST(request: NextRequest) {
   }
 }
 
+function csvCountryCell(headers: string[], values: string[]): string {
+  for (const key of ["country", "country code", "country_code"]) {
+    const index = headers.indexOf(key);
+    if (index >= 0) return values[index]?.trim() || "";
+  }
+  return "";
+}
+
 async function parseCSVWithDetailedErrors(csvContent: string): Promise<{
   products: ProductData[];
   errors: string[];
@@ -423,6 +435,7 @@ async function parseCSVWithDetailedErrors(csvContent: string): Promise<{
         margin_percentage:
           parseFloat(values[headers.indexOf("margin (%)")] || "10") || 10,
         producer_name: values[headers.indexOf("producer name")]?.trim() || "",
+        country: csvCountryCell(headers, values),
         handle: generateHandle(
           values[headers.indexOf("wine name")] || "",
           values[headers.indexOf("vintage")] || "",
@@ -474,6 +487,11 @@ async function parseCSVWithDetailedErrors(csvContent: string): Promise<{
         rowIssues.push(`Error: Cost must be greater than 0`);
       if (!product.producer_name)
         rowIssues.push(`Error: Producer name is required`);
+      if (product.country && !normalizeCountryCode(product.country)) {
+        rowIssues.push(
+          `Error: ${INVALID_PRODUCER_COUNTRY_MESSAGE} ("${product.country}")`,
+        );
+      }
       if (product.margin_percentage <= 0 || product.margin_percentage >= 100) {
         rowIssues.push(`Error: Margin must be between 1 and 99`);
       }

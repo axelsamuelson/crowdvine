@@ -45,7 +45,7 @@ export interface InvitationFormData {
   address_postcode?: string;
 }
 
-type CountryOption = { code: string; name: string };
+type CountryOption = { code: string; name: string; name_sv?: string | null };
 type RegionOption = { value: string; label: string };
 
 const INVITATION_TYPE_LABELS: Record<InvitationType, string> = {
@@ -914,7 +914,7 @@ export function InvitationTypeSection({
                         value={c.code}
                         className="text-slate-900 dark:text-slate-900 data-[highlighted]:bg-slate-100 data-[highlighted]:text-slate-900 dark:data-[highlighted]:bg-slate-100 dark:data-[highlighted]:text-slate-900"
                       >
-                        {c.name}
+                        {c.name_sv?.trim() || c.name}
                       </SelectItem>
                     ))}
                   </SelectContent>

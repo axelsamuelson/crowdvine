@@ -134,7 +134,7 @@ export function registerCatalogTools(server: McpServer, sb: SupabaseClient) {
     "create_producer",
     {
       description:
-        "Skapa catalog-producent. Kräver name, region; country default France.",
+        "Skapa catalog-producent. Kräver name, region. Utan country sparas country_code FR.",
       inputSchema: {
         name: z.string(),
         region: z.string(),

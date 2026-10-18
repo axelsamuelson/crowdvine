@@ -7,6 +7,10 @@ import {
   type CatalogWineType,
 } from "@/lib/catalog-types";
 import {
+  INVALID_PRODUCER_COUNTRY_MESSAGE,
+  normalizeCountryCode,
+} from "@/lib/countries";
+import {
   buildWineArrayJsonb,
   buildWineJsonb,
   extractWineArray,
@@ -16,7 +20,7 @@ import {
 
 /** DB columns loaded for producer → API mapping. */
 export const PRODUCER_DB_SELECT =
-  "id, name, region, subregion, country_code, founded_year, short_description, bio_long, certification, contact_name, contact_email, status, created_at";
+  "id, name, region, subregion, country_code, country, founded_year, short_description, bio_long, certification, contact_name, contact_email, status, created_at";
 
 /** DB columns loaded for wine → API mapping. */
 export const WINE_DB_SELECT =
@@ -27,7 +31,10 @@ export type ProducerApiRow = {
   name: string;
   region: string;
   subregion: string | null;
+  /** Swedish display name from producers.country. */
   country: string;
+  /** ISO 3166-1 alpha-2 from producers.country_code. */
+  country_code: string;
   founded_year: number | null;
   bio_short: string | null;
   bio_long: string | null;
@@ -87,7 +94,8 @@ export function producerRowToApi(
     name: row.name as string,
     region: row.region as string,
     subregion: (row.subregion as string | null) ?? null,
-    country: (row.country_code as string) ?? "",
+    country: (row.country as string) ?? "",
+    country_code: (row.country_code as string) ?? "",
     founded_year: (row.founded_year as number | null) ?? null,
     bio_short: extractWineText(
       row.short_description as Record<string, string> | string | null,
@@ -188,6 +196,13 @@ export function wineRowToApi(
   };
 }
 
+export class InvalidProducerCountryError extends Error {
+  constructor() {
+    super(INVALID_PRODUCER_COUNTRY_MESSAGE);
+    this.name = "InvalidProducerCountryError";
+  }
+}
+
 export function buildProducerPatch(
   body: Record<string, unknown>,
 ): Record<string, unknown> {
@@ -195,7 +210,11 @@ export function buildProducerPatch(
 
   if (typeof body.name === "string") patch.name = body.name.trim();
   if (typeof body.region === "string") patch.region = body.region.trim();
-  if (typeof body.country === "string") patch.country_code = body.country.trim();
+  if ("country" in body) {
+    const code = normalizeCountryCode(body.country);
+    if (!code) throw new InvalidProducerCountryError();
+    patch.country_code = code;
+  }
   if (body.subregion === null) patch.subregion = null;
   else if (typeof body.subregion === "string") {
     patch.subregion = body.subregion.trim() || null;
@@ -234,17 +253,19 @@ export function buildProducerInsert(
 ): Record<string, unknown> {
   const name = typeof body.name === "string" ? body.name.trim() : "";
   const region = typeof body.region === "string" ? body.region.trim() : "";
-  const country =
-    typeof body.country === "string" && body.country.trim()
-      ? body.country.trim()
-      : "France";
+  const rawCountry = typeof body.country === "string" ? body.country : "";
+  const countryCode = rawCountry.trim()
+    ? normalizeCountryCode(rawCountry)
+    : normalizeCountryCode("FR");
+  if (!countryCode) throw new InvalidProducerCountryError();
   const bioShort =
     typeof body.bio_short === "string" ? body.bio_short : "";
 
+  const { country: _country, ...bodyWithoutCountry } = body;
   const row: Record<string, unknown> = {
     name,
     region,
-    country_code: country,
+    country_code: countryCode,
     short_description: bioShort,
     address_street: "",
     address_postcode: "",
@@ -255,8 +276,8 @@ export function buildProducerInsert(
     status: "active",
   };
 
-  const patch = buildProducerPatch(body);
-  return { ...row, ...patch };
+  const patch = buildProducerPatch(bodyWithoutCountry);
+  return { ...row, ...patch, country_code: countryCode };
 }
 
 function vintageToDb(value: unknown): string {

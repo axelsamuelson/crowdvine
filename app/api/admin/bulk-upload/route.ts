@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { randomUUID } from "crypto";
+import {
+  INVALID_PRODUCER_COUNTRY_MESSAGE,
+  normalizeCountryCode,
+} from "@/lib/countries";
 
 // Simple fuzzy string matching function
 function calculateSimilarity(str1: string, str2: string): number {
@@ -169,9 +173,25 @@ interface ProductData {
   cost_currency: string;
   margin_percentage: number;
   producer_name: string;
+  /** Raw country from CSV when the column exists. Empty means default FR. */
+  country?: string;
   description: string;
   description_html: string;
   label_image_path: string;
+}
+
+function csvCountryCell(headers: string[], values: string[]): string {
+  for (const key of ["country", "country code", "country_code"]) {
+    const index = headers.indexOf(key);
+    if (index >= 0) return values[index]?.trim() || "";
+  }
+  return "";
+}
+
+function resolveBulkProducerCountry(product: ProductData): string | null {
+  const raw = product.country?.trim() ?? "";
+  if (!raw) return normalizeCountryCode("FR");
+  return normalizeCountryCode(raw);
 }
 
 async function parseCSV(csvContent: string): Promise<{
@@ -239,6 +259,7 @@ async function parseCSV(csvContent: string): Promise<{
         margin_percentage:
           parseFloat(values[headers.indexOf("margin (%)")] || "10") || 10,
         producer_name: values[headers.indexOf("producer name")]?.trim() || "",
+        country: csvCountryCell(headers, values),
         description: values[headers.indexOf("description")]?.trim() || "",
         label_image_path:
           values[headers.indexOf("image url")]?.trim() ||
@@ -270,6 +291,11 @@ async function parseCSV(csvContent: string): Promise<{
         rowErrors.push(`Row ${i + 1}: Cost must be greater than 0`);
       if (!product.producer_name)
         rowErrors.push(`Row ${i + 1}: Producer name is required`);
+      if (product.country && !normalizeCountryCode(product.country)) {
+        rowErrors.push(
+          `Row ${i + 1}: ${INVALID_PRODUCER_COUNTRY_MESSAGE} ("${product.country}")`,
+        );
+      }
       if (product.margin_percentage <= 0 || product.margin_percentage >= 100) {
         rowErrors.push(`Row ${i + 1}: Margin must be between 1 and 99`);
       }
@@ -367,6 +393,14 @@ async function uploadProducts(
       if (existingProducer) {
         producerId = existingProducer.id;
       } else {
+        const countryCode = resolveBulkProducerCountry(product);
+        if (!countryCode) {
+          errors.push(
+            `Producer "${product.producer_name}": ${INVALID_PRODUCER_COUNTRY_MESSAGE}`,
+          );
+          continue;
+        }
+
         // Check for similar producers before creating new one
         const similarProducers = await findSimilarProducers(
           supabase,
@@ -392,6 +426,7 @@ async function uploadProducts(
             .insert({
               id: randomUUID(),
               name: product.producer_name,
+              country_code: countryCode,
               created_at: new Date().toISOString(),
             })
             .select("id")
@@ -411,6 +446,7 @@ async function uploadProducts(
             .insert({
               id: randomUUID(),
               name: product.producer_name,
+              country_code: countryCode,
               created_at: new Date().toISOString(),
             })
             .select("id")

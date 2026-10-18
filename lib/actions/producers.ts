@@ -1,5 +1,9 @@
 "use server";
 
+import {
+  INVALID_PRODUCER_COUNTRY_MESSAGE,
+  normalizeCountryCode,
+} from "@/lib/countries";
 import { extractWineText } from "@/lib/i18n/wine-locale";
 import { supabaseServer } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
@@ -110,9 +114,16 @@ export async function getProducer(id: string) {
   return normalizeProducerRow(data);
 }
 
+function requireProducerCountryCode(input: unknown): string {
+  const code = normalizeCountryCode(input);
+  if (!code) throw new Error(INVALID_PRODUCER_COUNTRY_MESSAGE);
+  return code;
+}
+
 export async function createProducer(data: CreateProducerData) {
   // Use admin client for admin operations
   const sb = getSupabaseAdmin();
+  const countryCode = requireProducerCountryCode(data.country_code);
 
   // Get current user to set as owner (from regular client)
   const userSb = await supabaseServer();
@@ -126,6 +137,7 @@ export async function createProducer(data: CreateProducerData) {
     .from("producers")
     .insert({
       ...data,
+      country_code: countryCode,
       pickup_zone_id: data.pickup_zone_id || null,
       shipping_region_id: data.shipping_region_id?.trim()
         ? data.shipping_region_id.trim()
@@ -156,9 +168,14 @@ export async function updateProducer(id: string, data: UpdateProducerData) {
 
   console.log("🔄 Updating producer:", id, data);
 
+  const payload: UpdateProducerData = { ...data };
+  if (data.country_code !== undefined) {
+    payload.country_code = requireProducerCountryCode(data.country_code);
+  }
+
   const { data: producer, error } = await sb
     .from("producers")
-    .update(data)
+    .update(payload)
     .eq("id", id)
     .select()
     .single();

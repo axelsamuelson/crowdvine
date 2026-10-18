@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import {
+  INVALID_PRODUCER_COUNTRY_MESSAGE,
+  normalizeCountryCode,
+} from "@/lib/countries";
 import { parseProducerLinkFields } from "@/lib/producer-links";
 
 /**
@@ -59,6 +63,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const countryCode = normalizeCountryCode(body.country_code);
+    if (!countryCode) {
+      return NextResponse.json(
+        { error: INVALID_PRODUCER_COUNTRY_MESSAGE },
+        { status: 400 },
+      );
+    }
+
     const shippingRegionId =
       typeof body.shipping_region_id === "string" &&
       body.shipping_region_id.trim()
@@ -86,7 +98,7 @@ export async function POST(request: NextRequest) {
         region: body.region,
         lat: body.lat || 0,
         lon: body.lon || 0,
-        country_code: body.country_code || "",
+        country_code: countryCode,
         address_street: body.address_street || "",
         address_city: body.address_city || "",
         address_postcode: body.address_postcode || "",

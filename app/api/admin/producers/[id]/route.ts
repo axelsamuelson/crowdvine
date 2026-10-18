@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { PALLET_FILL_STATUSES } from "@/lib/pallet-fill-count";
+import {
+  INVALID_PRODUCER_COUNTRY_MESSAGE,
+  normalizeCountryCode,
+} from "@/lib/countries";
 import { parseProducerLinkFields } from "@/lib/producer-links";
 
 type ProducerUpdateRow = Record<string, string | number | boolean | null>;
@@ -81,8 +85,16 @@ export async function PUT(
     if (body.region !== undefined) updateData.region = String(body.region);
     if (body.lat !== undefined) updateData.lat = Number(body.lat);
     if (body.lon !== undefined) updateData.lon = Number(body.lon);
-    if (body.country_code !== undefined)
-      updateData.country_code = String(body.country_code);
+    if (body.country_code !== undefined) {
+      const countryCode = normalizeCountryCode(body.country_code);
+      if (!countryCode) {
+        return NextResponse.json(
+          { error: INVALID_PRODUCER_COUNTRY_MESSAGE },
+          { status: 400 },
+        );
+      }
+      updateData.country_code = countryCode;
+    }
     if (body.address_street !== undefined)
       updateData.address_street = String(body.address_street);
     if (body.address_city !== undefined)

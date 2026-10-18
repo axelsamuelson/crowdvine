@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabase-server";
 import { getCurrentUser } from "@/lib/auth";
+import {
+  INVALID_PRODUCER_COUNTRY_MESSAGE,
+  normalizeCountryCode,
+} from "@/lib/countries";
 
 const updatableProducerFields = [
   "name",
@@ -72,9 +76,20 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const updateData: Record<string, any> = {};
     for (const key of updatableProducerFields) {
+      if (key === "country_code") continue;
       if (body[key] !== undefined) {
         updateData[key] = body[key];
       }
+    }
+    if (body.country_code !== undefined) {
+      const countryCode = normalizeCountryCode(body.country_code);
+      if (!countryCode) {
+        return NextResponse.json(
+          { error: INVALID_PRODUCER_COUNTRY_MESSAGE },
+          { status: 400 },
+        );
+      }
+      updateData.country_code = countryCode;
     }
 
     const sb = await supabaseServer();

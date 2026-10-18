@@ -72,7 +72,7 @@ export default async function ProducerDashboardPage() {
             </h1>
             <p className="text-gray-500">
               {producer?.region || "—"}
-              {producer?.country_code ? ` • ${producer.country_code}` : ""}
+              {producer?.country ? ` • ${producer.country}` : ""}
             </p>
           </div>
           <div className="flex gap-2">

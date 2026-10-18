@@ -27,7 +27,7 @@ function formatLinksVerifiedAt(iso: string): string {
   }).format(date);
 }
 
-type CountryOption = { code: string; name: string };
+type CountryOption = { code: string; name: string; name_sv?: string | null };
 type RegionOption = { value: string; label: string; country_code: string | null };
 
 type ShippingRegionOption = {
@@ -383,7 +383,7 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
                 <SelectContent>
                   {countries.map((c) => (
                     <SelectItem key={c.code} value={c.code}>
-                      {c.name}
+                      {c.name_sv?.trim() || c.name}
                     </SelectItem>
                   ))}
                 </SelectContent>

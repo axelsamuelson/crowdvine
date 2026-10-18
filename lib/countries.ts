@@ -156,6 +156,72 @@ const PROFILE_ALIAS_TO_CODE: Record<string, SupportedProfileCountryCode> = {
   america: "US",
 };
 
+/** ISO codes stored in countries. Two-letter input outside this set is rejected. */
+const PRODUCER_COUNTRY_CODES = new Set([
+  "AT",
+  "CH",
+  "DE",
+  "DK",
+  "ES",
+  "FI",
+  "FR",
+  "GB",
+  "IT",
+  "NO",
+  "PT",
+  "SE",
+  "US",
+]);
+
+/** Names that are not already covered by PROFILE_ALIAS_TO_CODE. */
+const PRODUCER_COUNTRY_NAME_ALIASES: Record<string, string> = {
+  frankrike: "FR",
+  spain: "ES",
+  spanien: "ES",
+  españa: "ES",
+  espana: "ES",
+  italy: "IT",
+  italien: "IT",
+  italia: "IT",
+  portugal: "PT",
+  austria: "AT",
+  österrike: "AT",
+  osterrike: "AT",
+  switzerland: "CH",
+  schweiz: "CH",
+  suisse: "CH",
+  tyskland: "DE",
+  storbritannien: "GB",
+};
+
+export const INVALID_PRODUCER_COUNTRY_MESSAGE =
+  "Ogiltigt land. Ange en känd ISO-kod eller ett känt landsnamn, till exempel FR eller Frankrike.";
+
+/**
+ * Producer country input → ISO code that exists in countries, or null.
+ * Two-letter codes are accepted only when they are in countries.
+ * Known names reuse PROFILE_ALIAS_TO_CODE, then the wine-country aliases.
+ */
+export function normalizeCountryCode(input: unknown): string | null {
+  if (typeof input !== "string") return null;
+  const trimmed = input.trim();
+  if (!trimmed) return null;
+
+  const upper = trimmed.toUpperCase();
+  if (/^[A-Z]{2}$/.test(upper) && PRODUCER_COUNTRY_CODES.has(upper)) {
+    return upper;
+  }
+
+  const key = trimmed.toLowerCase();
+  const fromProfile = PROFILE_ALIAS_TO_CODE[key];
+  if (fromProfile && PRODUCER_COUNTRY_CODES.has(fromProfile)) return fromProfile;
+
+  const fromName = PRODUCER_COUNTRY_NAME_ALIASES[key];
+  if (fromName && PRODUCER_COUNTRY_CODES.has(fromName)) return fromName;
+
+  return null;
+}
+
 const DISPLAY_EN: Record<SupportedProfileCountryCode, string> = {
   SE: "Sweden",
   NO: "Norway",

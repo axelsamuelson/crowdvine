@@ -6,7 +6,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
+
+type CountryOption = { code: string; name: string; name_sv?: string | null };
 
 type Producer = {
   id: string;
@@ -24,6 +33,7 @@ export function ProducerProfileEditor() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [producer, setProducer] = useState<Producer | null>(null);
+  const [countries, setCountries] = useState<CountryOption[]>([]);
 
   const [form, setForm] = useState({
     name: "",
@@ -40,7 +50,14 @@ export function ProducerProfileEditor() {
     const load = async () => {
       try {
         setLoading(true);
-        const res = await fetch("/api/producer/producer");
+        const [res, countriesRes] = await Promise.all([
+          fetch("/api/producer/producer"),
+          fetch("/api/countries"),
+        ]);
+        if (countriesRes.ok) {
+          const countriesData = await countriesRes.json();
+          setCountries(countriesData.countries ?? []);
+        }
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
           throw new Error(err.error || "Failed to load producer");
@@ -161,15 +178,24 @@ export function ProducerProfileEditor() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="country_code">Country Code</Label>
-              <Input
-                id="country_code"
-                placeholder="e.g. FR, IT, ES"
-                value={form.country_code}
-                onChange={(e) =>
-                  setForm({ ...form, country_code: e.target.value })
+              <Label htmlFor="country_code">Country</Label>
+              <Select
+                value={form.country_code || undefined}
+                onValueChange={(value) =>
+                  setForm({ ...form, country_code: value })
                 }
-              />
+              >
+                <SelectTrigger id="country_code" className="bg-white">
+                  <SelectValue placeholder="Select country" />
+                </SelectTrigger>
+                <SelectContent>
+                  {countries.map((country) => (
+                    <SelectItem key={country.code} value={country.code}>
+                      {country.name_sv?.trim() || country.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label htmlFor="logo_image_path">Logo Image Path / URL</Label>

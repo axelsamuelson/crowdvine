@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { clearCartId } from "@/src/lib/cookies";
 import { logUserEventServer } from "@/lib/analytics/log-user-event-server";
+import {
+  INVALID_PRODUCER_COUNTRY_MESSAGE,
+  normalizeCountryCode,
+} from "@/lib/countries";
 import { validateEligibleGeoZoneId } from "@/lib/market/validate-eligible-geo-zone";
 
 /**
@@ -339,6 +343,13 @@ export async function POST(request: NextRequest) {
         "[INVITE-REDEEM] MANUAL CREATION FLOW - Step 3b: Create producer and link profile",
       );
       const pd = producer_data && typeof producer_data === "object" ? producer_data : {};
+      const countryCode = normalizeCountryCode(pd.country_code);
+      if (!countryCode) {
+        return NextResponse.json(
+          { error: INVALID_PRODUCER_COUNTRY_MESSAGE },
+          { status: 400 },
+        );
+      }
       const { data: newProducer, error: producerError } = await sb
         .from("producers")
         .insert({
@@ -346,7 +357,7 @@ export async function POST(request: NextRequest) {
           region: pd.region ?? "",
           lat: pd.lat ?? 0,
           lon: pd.lon ?? 0,
-          country_code: pd.country_code ?? "",
+          country_code: countryCode,
           address_street: pd.address_street ?? "",
           address_city: pd.address_city ?? "",
           address_postcode: pd.address_postcode ?? "",

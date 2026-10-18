@@ -29,7 +29,7 @@ interface ProducerFormData {
   logo_image_path: string;
 }
 
-type CountryOption = { code: string; name: string };
+type CountryOption = { code: string; name: string; name_sv?: string | null };
 type RegionOption = { value: string; label: string };
 
 const defaultProducerData: ProducerFormData = {
@@ -240,7 +240,7 @@ export function ProducerSetupSection({ embedded }: ProducerSetupSectionProps) {
                   <SelectContent>
                     {countries.map((c) => (
                       <SelectItem key={c.code} value={c.code}>
-                        {c.name}
+                        {c.name_sv?.trim() || c.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
