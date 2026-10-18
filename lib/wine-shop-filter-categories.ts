@@ -176,6 +176,83 @@ function buildCategory(
   };
 }
 
+/**
+ * On dirtywine.se, replace home-delivery clauses in meta with the B2B restaurant
+ * phrase. Pact metas are left unchanged. Handles overrides and buildCategory output.
+ */
+export function localizeShopMetaDescription(
+  meta: string,
+  locale: Locale,
+  isDirtyWine: boolean,
+): string {
+  if (!isDirtyWine || !meta) return meta;
+
+  let result = meta;
+
+  if (locale === "sv") {
+    const restaurant = "För restauranger i Stockholm.";
+    const restaurantMid = "för restauranger i Stockholm";
+    // Mid-sentence "med hemleverans …"
+    result = result.replace(
+      /\bmed hemleverans i Stockholm\b/gi,
+      restaurantMid,
+    );
+    result = result.replace(/\bmed hemleverans Stockholm\b/gi, restaurantMid);
+    // Em-dash / comma clauses: "— hemleverans Stockholm via PACT"
+    result = result.replace(
+      /\s*[—–-]\s*hemleverans(?:\s+i)?\s+Stockholm(?:\s+via\s+PACT)?\.?/gi,
+      `. ${restaurant}`,
+    );
+    result = result.replace(
+      /,\s*hemleverans(?:\s+i)?\s+Stockholm(?:\s+via\s+PACT)?\.?/gi,
+      `. ${restaurant}`,
+    );
+    // Standalone sentence: "Hemleverans Stockholm via PACT." / "Hemleverans i Stockholm."
+    result = result.replace(
+      /(?:^|\.\s*)Hemleverans(?:\s+i)?\s+Stockholm(?:\s+via\s+PACT)?\.?/gi,
+      (match) => {
+        const prefix = match.startsWith(".") ? ". " : "";
+        return `${prefix}${restaurant}`;
+      },
+    );
+    // Trailing buildCategory form
+    result = result.replace(
+      /\s*Hemleverans(?:\s+i)?\s+Stockholm\.?\s*$/i,
+      ` ${restaurant}`,
+    );
+  } else {
+    const restaurant = "For restaurants in Stockholm.";
+    const restaurantMid = "for restaurants in Stockholm";
+    result = result.replace(
+      /\bwith home delivery in Stockholm\b/gi,
+      restaurantMid,
+    );
+    result = result.replace(
+      /\s*[—–-]\s*home delivery(?:\s+in)?\s+Stockholm(?:\s+via\s+PACT)?\.?/gi,
+      `. ${restaurant}`,
+    );
+    result = result.replace(
+      /,\s*home delivery(?:\s+in)?\s+Stockholm(?:\s+via\s+PACT)?\.?/gi,
+      `. ${restaurant}`,
+    );
+    result = result.replace(
+      /(?:^|\.\s*)Home delivery(?:\s+in)?\s+Stockholm(?:\s+via\s+PACT)?\.?/gi,
+      (match) => {
+        const prefix = match.startsWith(".") ? ". " : "";
+        return `${prefix}${restaurant}`;
+      },
+    );
+    result = result.replace(
+      /\s*Home delivery(?:\s+in)?\s+Stockholm\.?\s*$/i,
+      ` ${restaurant}`,
+    );
+  }
+
+  // Collapse accidental double spaces / duplicate periods from replacements.
+  result = result.replace(/\s{2,}/g, " ").replace(/\.\s*\./g, ".").trim();
+  return result;
+}
+
 /** Apply site-specific copy for generated filter/grape category intros and metas. */
 export function localizeGeneratedCategoryCopy(
   category: WineCategory,
@@ -183,21 +260,11 @@ export function localizeGeneratedCategoryCopy(
   isDirtyWine: boolean,
 ): Pick<WineCategory, "description" | "metaDescription"> {
   const description = category.description.replace(/PACT Wines/g, siteName);
-
-  let metaDescription = category.metaDescription;
-  if (isDirtyWine) {
-    if (category.locale === "sv") {
-      metaDescription = metaDescription.replace(
-        /\s*Hemleverans Stockholm\.?\s*$/i,
-        " För restauranger i Stockholm.",
-      );
-    } else {
-      metaDescription = metaDescription.replace(
-        /\s*Home delivery in Stockholm\.?\s*$/i,
-        " For restaurants in Stockholm.",
-      );
-    }
-  }
+  const metaDescription = localizeShopMetaDescription(
+    category.metaDescription,
+    category.locale,
+    isDirtyWine,
+  );
 
   return { description, metaDescription };
 }
