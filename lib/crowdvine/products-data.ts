@@ -292,6 +292,7 @@ function applyWineCatalogFilters<Q extends WineCatalogQuery>(
     filterIsNatural?: boolean;
     filterFarming?: string[];
     filterGrape?: string;
+    filterCountryCode?: string;
   },
 ): Q {
   let q = query;
@@ -311,6 +312,9 @@ function applyWineCatalogFilters<Q extends WineCatalogQuery>(
   }
   if (filters?.filterGrape) {
     q = q.ilike("grape_varieties", `%${filters.filterGrape}%`) as Q;
+  }
+  if (filters?.filterCountryCode) {
+    q = q.eq("producers.country_code", filters.filterCountryCode) as Q;
   }
   return q;
 }
@@ -335,6 +339,8 @@ export async function fetchProductsData(params?: {
   filterFarming?: string[];
   /** Case-insensitive match on grape_varieties. */
   filterGrape?: string;
+  /** Match producers.country_code (ISO), e.g. "FR". Requires producers!inner. */
+  filterCountryCode?: string;
   /** When set, only these wine ids. */
   ids?: readonly string[];
 }): Promise<ProductData[]> {
@@ -376,7 +382,7 @@ export async function fetchProductsData(params?: {
       is_natural,
       available_for_sale,
       created_at,
-      producers!inner(name, is_live, boost_active)
+      producers!inner(name, is_live, boost_active, country_code)
     `;
 
   const categoryFilters = {
@@ -385,6 +391,7 @@ export async function fetchProductsData(params?: {
     filterIsNatural: params?.filterIsNatural,
     filterFarming: params?.filterFarming,
     filterGrape: params?.filterGrape,
+    filterCountryCode: params?.filterCountryCode,
   };
 
   const applySort = <Q extends { order: any }>(q: Q): Q => {
@@ -448,7 +455,7 @@ export async function fetchProductsData(params?: {
       id, wine_name, vintage, grape_varieties, color, handle, base_price_cents,
       cost_amount, cost_currency, exchange_rate, alcohol_tax_cents, margin_percentage,
       b2b_margin_percentage, b2b_stock, label_image_path, producer_id, description,
-      description_html, tags, created_at, producers!inner(name, boost_active)
+      description_html, tags, created_at, producers!inner(name, boost_active, country_code)
     `;
     if (/is_live|column.*does not exist|producers\.is_live/i.test(msg)) {
       const fbBase = () =>
@@ -1127,6 +1134,7 @@ export async function catalogHasProducts(filters?: {
   filterIsNatural?: boolean;
   filterFarming?: string[];
   filterGrape?: string;
+  filterCountryCode?: string;
   isB2BSite?: boolean;
 }): Promise<boolean> {
   if (supabaseBuildUsesPlaceholder()) return false;

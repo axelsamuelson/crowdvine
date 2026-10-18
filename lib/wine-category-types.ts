@@ -10,6 +10,8 @@ export type WineCategoryFilter = {
   isNatural?: boolean;
   filterGrape?: string;
   farming?: string[];
+  /** Match producers.country_code (ISO), e.g. "FR". */
+  countryCode?: string;
 };
 
 export type WineCategory = {

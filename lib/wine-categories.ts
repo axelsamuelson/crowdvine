@@ -38,7 +38,7 @@ const LONG_TAIL_WINE_CATEGORIES_SV: WineCategory[] = [
       "Köp naturvin från Frankrike med hemleverans i Stockholm.",
     description:
       "Naturvin från Frankrike, med leverans i Stockholm.",
-    filter: { farming: ["natural"] },
+    filter: { farming: ["natural"], countryCode: "FR" },
     hreflang: "natural-wine-france",
     canonical: "/vin/naturvin-frankrike",
   },
@@ -89,7 +89,7 @@ const LONG_TAIL_WINE_CATEGORIES_SV: WineCategory[] = [
     metaDescription:
       "Beställ naturvin online med hemleverans i Stockholm.",
     description:
-      "PACT levererar naturvin hem till dig i Stockholm. Direktimporterat från Languedoc — billigare och friare än vad som finns i butik.",
+      "Naturvin med hemleverans i Stockholm, från små producenter.",
     filter: { farming: ["natural"] },
     hreflang: "natural-wine-delivery-stockholm",
     canonical: "/vin/naturvin-hemleverans-stockholm",
@@ -282,7 +282,7 @@ const LONG_TAIL_WINE_CATEGORIES_EN: WineCategory[] = [
       "Buy natural wine from France with home delivery in Stockholm.",
     description:
       "Natural wine from France, with delivery in Stockholm.",
-    filter: { farming: ["natural"] },
+    filter: { farming: ["natural"], countryCode: "FR" },
     hreflang: "naturvin-frankrike",
     canonical: "/wine/natural-wine-france",
   },
@@ -333,7 +333,7 @@ const LONG_TAIL_WINE_CATEGORIES_EN: WineCategory[] = [
     metaDescription:
       "Order natural wine online with home delivery in Stockholm.",
     description:
-      "PACT delivers natural wine to your home in Stockholm. Directly imported from Languedoc — better value and more interesting than what you'll find in stores.",
+      "Natural wine with home delivery in Stockholm, from small producers.",
     filter: { farming: ["natural"] },
     hreflang: "naturvin-hemleverans-stockholm",
     canonical: "/wine/natural-wine-delivery-stockholm",

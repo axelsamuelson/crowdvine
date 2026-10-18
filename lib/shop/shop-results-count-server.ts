@@ -175,6 +175,7 @@ export async function getShopLayoutResultsCount(
           filterIsNatural: category.filter.isNatural,
           filterFarming: category.filter.farming,
           filterGrape: category.filter.filterGrape,
+          filterCountryCode: category.filter.countryCode,
           isB2BSite,
           ...currencyParams,
         });

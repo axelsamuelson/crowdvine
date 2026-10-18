@@ -92,6 +92,7 @@ export async function generateMetadata(props: {
         filterIsNatural: category.filter.isNatural,
         filterFarming: category.filter.farming,
         filterGrape: category.filter.filterGrape,
+        filterCountryCode: category.filter.countryCode,
         isB2BSite,
       }),
     ]);
@@ -200,6 +201,7 @@ export default async function VinCollectionPage(props: {
         filterIsNatural: category.filter.isNatural,
         filterFarming: category.filter.farming,
         filterGrape: category.filter.filterGrape,
+        filterCountryCode: category.filter.countryCode,
         isB2BSite,
       }),
     ]);
