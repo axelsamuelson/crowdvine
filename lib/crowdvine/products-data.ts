@@ -458,17 +458,26 @@ export async function fetchProductsData(params?: {
 
   if (result.error) {
     const msg = result.error.message ?? "";
+    // Pre-migration / schema-cache: drop is_direct_import filter so sitemap/build
+    // can finish before 220_wines_is_direct_import is applied.
+    const filtersForRetry = /is_direct_import/i.test(msg)
+      ? { ...categoryFilters, filterIsDirectImport: undefined }
+      : categoryFilters;
     const fallbackSelect = `
       id, wine_name, vintage, grape_varieties, color, handle, base_price_cents,
       cost_amount, cost_currency, exchange_rate, alcohol_tax_cents, margin_percentage,
       b2b_margin_percentage, b2b_stock, label_image_path, producer_id, description,
       description_html, tags, created_at, producers!inner(name, boost_active, country_code)
     `;
-    if (/is_live|column.*does not exist|producers\.is_live/i.test(msg)) {
+    if (
+      /is_live|is_direct_import|column.*does not exist|could not find.*column|producers\.is_live/i.test(
+        msg,
+      )
+    ) {
       const fbBase = () =>
         applyWineCatalogFilters(
           sb.from("wines").select(fallbackSelect).eq("is_live", true),
-          categoryFilters,
+          filtersForRetry,
         );
       const fbHasSearch = hasSearch;
       if (!fbHasSearch) {
@@ -501,9 +510,19 @@ export async function fetchProductsData(params?: {
     }
     if (result.error) {
       const msg2 = result.error.message ?? "";
-      if (/is_live|column.*does not exist/i.test(msg2)) {
+      const filtersForRetry2 = /is_direct_import/i.test(msg2)
+        ? { ...categoryFilters, filterIsDirectImport: undefined }
+        : filtersForRetry;
+      if (
+        /is_live|is_direct_import|column.*does not exist|could not find.*column/i.test(
+          msg2,
+        )
+      ) {
         const fbBase = () =>
-          applyWineCatalogFilters(sb.from("wines").select(fallbackSelect), categoryFilters);
+          applyWineCatalogFilters(
+            sb.from("wines").select(fallbackSelect),
+            filtersForRetry2,
+          );
         if (!hasSearch) {
           result = await applySort(fbBase()).limit(sqlLimit);
         } else {
@@ -1146,10 +1165,20 @@ export async function catalogHasProducts(filters?: {
   isB2BSite?: boolean;
 }): Promise<boolean> {
   if (supabaseBuildUsesPlaceholder()) return false;
-  const rows = await fetchProductsData({
-    ...filters,
-    limit: 1,
-    isB2BSite: filters?.isB2BSite ?? false,
-  });
-  return rows.length > 0;
+  try {
+    const rows = await fetchProductsData({
+      ...filters,
+      limit: 1,
+      isB2BSite: filters?.isB2BSite ?? false,
+    });
+    return rows.length > 0;
+  } catch (err) {
+    // Sitemap/build must not fail if a filter column is not migrated yet.
+    const msg = err instanceof Error ? err.message : String(err);
+    if (/is_direct_import|column|schema cache/i.test(msg)) {
+      console.warn("[catalogHasProducts] treating as empty:", msg);
+      return false;
+    }
+    throw err;
+  }
 }
