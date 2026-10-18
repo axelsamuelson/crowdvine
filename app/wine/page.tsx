@@ -10,6 +10,7 @@ import {
   defaultOpenGraphImages,
   pageTwitterCard,
 } from "@/lib/seo/default-social";
+import { DIRTY_WINE_CONFIG } from "@/lib/site-config";
 import { getSiteConfig } from "@/lib/site-config-server";
 
 export const revalidate = 300;
@@ -20,9 +21,11 @@ export async function generateMetadata(props: {
   const searchParams = await props.searchParams;
   const config = await getSiteConfig();
   const pageUrl = `${config.baseUrl}/wine`;
-  const title = "Natural Wine Online — Buy Direct from Languedoc | PACT Wines";
+  const title = `Natural Wine Online | Buy Natural Wine at ${config.siteName}`;
   const description =
-    "Browse 60+ natural wines directly imported from Languedoc. Organic, biodynamic and without additives. Home delivery in Stockholm.";
+    config.baseUrl === DIRTY_WINE_CONFIG.baseUrl
+      ? "Natural wines. Organic and biodynamic. For restaurants in Stockholm."
+      : "Browse 60+ natural wines. Organic and biodynamic. Home delivery in Stockholm.";
 
   return {
     title: { absolute: title },

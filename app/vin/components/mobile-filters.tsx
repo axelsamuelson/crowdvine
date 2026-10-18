@@ -43,6 +43,7 @@ import {
   shouldNavigateShopFilters,
 } from "@/lib/shop/filter-navigation";
 import type { ShopFarmingFilterValue } from "@/lib/shop/farming-filter";
+import { gateShopFilterHref } from "@/lib/shop/gate-shop-filter-href";
 import { filterProductsByGrapes } from "@/lib/shop/filter-products-by-grape";
 import { extractGrapesFromProducts } from "../hooks/use-available-grapes";
 
@@ -54,8 +55,10 @@ interface MobileFiltersProps {
   resultsCount?: number;
   /** SSR active filter count parsed from URL search params. */
   initialFilterCount?: number;
-  /** Pathname from the request. The box CTA uses it until the client has mounted. */
+  /** Pathname from the request. Fallback when usePathname is empty during SSR. */
   ssrPathname: string;
+  /** Category paths with products for this site (sitemap emptiness rule). */
+  navigableShopPaths?: readonly string[];
 }
 
 export function MobileFilters({
@@ -65,21 +68,27 @@ export function MobileFilters({
   resultsCount: resultsCountProp,
   initialFilterCount = 0,
   ssrPathname,
+  navigableShopPaths,
 }: MobileFiltersProps) {
   const { t } = useTranslations();
   const paths = useLocalizedPaths();
   const clientFilterCount = useFilterCount();
   const { products, originalProducts, setProducts, serverResultsCount } =
     useProducts();
-  const pathname = usePathname();
+  const routerPathname = usePathname();
   const router = useRouter();
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  // Prefer the live router path when present; fall back to the request path
+  // so SSR and the first client render share the same hrefs (no mounted flip).
+  const pathname = routerPathname || ssrPathname;
   const isProducerBoxesPage = isProducerBoxesPath(pathname);
   const isColorCategoryPage =
     !isProducerBoxesPage &&
     (pathname.startsWith("/vin/") || pathname.startsWith("/wine/"));
+  const showAllFilterColors =
+    !isProducerBoxesPage && shouldNavigateShopFilters(pathname);
   const locale = localeFromShopPathname(pathname);
   const activeColorName = getActiveColorFromPathname(pathname);
   const activeFarming = getActiveFarmingFromPathname(pathname);
@@ -89,10 +98,10 @@ export function MobileFilters({
   );
   const activeGrapeName = getActiveGrapeFromPathname(pathname, grapeCandidates);
 
-  const handleColorSelect = (colorName: string) => {
-    if (!shouldNavigateShopFilters(pathname)) return false;
-
-    const url = isSameColorSelection(pathname, colorName)
+  const resolveColorHref = (colorName: string): string | null => {
+    if (!shouldNavigateShopFilters(pathname)) return null;
+    const isClear = isSameColorSelection(pathname, colorName);
+    const url = isClear
       ? resolveShopFilterNavigationUrl({
           locale,
           currentPath: pathname,
@@ -103,25 +112,31 @@ export function MobileFilters({
           currentPath: pathname,
           nextColorUi: colorName,
         });
-    router.push(url);
+    return gateShopFilterHref(url, {
+      isClear,
+      navigablePaths: navigableShopPaths,
+    });
   };
 
-  const handleFarmingSelect = (farming: ShopFarmingFilterValue): boolean => {
+  const resolveFarmingHref = (
+    farming: ShopFarmingFilterValue,
+  ): string | null => {
+    const isClear = isSameFarmingSelection(pathname, farming);
     const grapeUrl = resolveGrapePageFarmingUrl(
       locale,
       pathname,
       farming,
-      isSameFarmingSelection(pathname, farming),
+      isClear,
       grapeCandidates,
     );
     if (grapeUrl) {
-      router.push(grapeUrl);
-      return true;
+      return gateShopFilterHref(grapeUrl, {
+        isClear,
+        navigablePaths: navigableShopPaths,
+      });
     }
-
-    if (!shouldNavigateShopFilters(pathname)) return false;
-
-    const url = isSameFarmingSelection(pathname, farming)
+    if (!shouldNavigateShopFilters(pathname)) return null;
+    const url = isClear
       ? resolveShopFilterNavigationUrl({
           locale,
           currentPath: pathname,
@@ -132,6 +147,22 @@ export function MobileFilters({
           currentPath: pathname,
           nextFarming: farming,
         });
+    return gateShopFilterHref(url, {
+      isClear,
+      navigablePaths: navigableShopPaths,
+    });
+  };
+
+  const handleColorSelect = (colorName: string) => {
+    const url = resolveColorHref(colorName);
+    if (!url) return false;
+    router.push(url);
+    return true;
+  };
+
+  const handleFarmingSelect = (farming: ShopFarmingFilterValue): boolean => {
+    const url = resolveFarmingHref(farming);
+    if (!url) return false;
     router.push(url);
     return true;
   };
@@ -227,15 +258,17 @@ export function MobileFilters({
                 <>
                   <ColorFilter
                     products={originalProducts}
-                    showAllColors={isColorCategoryPage}
+                    showAllColors={showAllFilterColors || isColorCategoryPage}
                     activeColor={activeColorName ?? undefined}
                     onColorSelect={handleColorSelect}
+                    getColorHref={resolveColorHref}
                   />
                   <FarmingFilter
                     products={originalProducts}
                     mode="drawer"
                     onFarmingSelect={handleFarmingSelect}
                     activeFarming={activeFarming ?? undefined}
+                    getFarmingHref={resolveFarmingHref}
                   />
                   <GrapesFilter
                     products={originalProducts}

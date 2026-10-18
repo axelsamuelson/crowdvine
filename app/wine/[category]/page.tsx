@@ -33,9 +33,11 @@ import { getCollection, getCollectionProducts } from "@/lib/shopify";
 import { isB2BHost } from "@/lib/b2b-site";
 import { getShoppingContextFromRequest } from "@/lib/shopping-context/server";
 import { fallbackShoppingContext } from "@/lib/shopping-context/defaults";
+import { DIRTY_WINE_CONFIG } from "@/lib/site-config";
 import { getSiteConfig } from "@/lib/site-config-server";
 import { categoryPageTitle } from "@/lib/seo/category-page-title";
 import { shopCategoryCanonicalUrl } from "@/lib/wine-category-canonical";
+import { localizeGeneratedCategoryCopy } from "@/lib/wine-shop-filter-categories";
 import {
   categoryPageRobots,
   emptyListingRobots,
@@ -75,6 +77,10 @@ export async function generateMetadata(props: {
 
   const category = await resolveGrapeCategoryBySlug(slug, "en");
   if (category) {
+    const headerList = await headers();
+    const isB2BSite = isB2BHost(
+      headerList.get("x-forwarded-host") ?? headerList.get("host"),
+    );
     const [config, hasProducts] = await Promise.all([
       getSiteConfig(),
       catalogHasProducts({
@@ -83,16 +89,22 @@ export async function generateMetadata(props: {
         filterIsNatural: category.filter.isNatural,
         filterFarming: category.filter.farming,
         filterGrape: category.filter.filterGrape,
+        isB2BSite,
       }),
     ]);
     const pageUrl = `${config.baseUrl}/wine/${slug}`;
     const canonicalUrl = shopCategoryCanonicalUrl(slug, "en", config.baseUrl);
 
     const title = categoryPageTitle(category.title, config.siteName);
+    const { metaDescription } = localizeGeneratedCategoryCopy(
+      category,
+      config.siteName,
+      config.baseUrl === DIRTY_WINE_CONFIG.baseUrl,
+    );
 
     return {
       title,
-      description: category.metaDescription,
+      description: metaDescription,
       robots: categoryPageRobots(slug, "en", searchParams, {
         emptyListing: !hasProducts,
       }),
@@ -106,7 +118,7 @@ export async function generateMetadata(props: {
       },
       openGraph: {
         title: category.title,
-        description: category.metaDescription,
+        description: metaDescription,
         url: canonicalUrl,
         type: "website",
       },
@@ -268,12 +280,17 @@ export default async function WineCategoryPage(props: PageProps) {
   const wineSourceSlugs = pickWineSourceSlugsForProducts(allSourceSlugs, wineIds);
 
   const canonical = shopCategoryCanonicalUrl(slug, "en", config.baseUrl);
+  const { description, metaDescription } = localizeGeneratedCategoryCopy(
+    category,
+    config.siteName,
+    config.baseUrl === DIRTY_WINE_CONFIG.baseUrl,
+  );
 
   const collectionJsonLd = {
     "@context": "https://schema.org",
     "@type": "CollectionPage",
     name: category.h1,
-    description: category.metaDescription,
+    description: metaDescription,
     url: canonical,
     numberOfItems: rawProducts.length,
   };
@@ -330,7 +347,7 @@ export default async function WineCategoryPage(props: PageProps) {
           <h1 className="mb-3 text-3xl font-medium text-stone-900">
             {category.h1}
           </h1>
-          <p className="leading-relaxed text-stone-600">{category.description}</p>
+          <p className="leading-relaxed text-stone-600">{description}</p>
         </div>
 
         <ProductListShell

@@ -276,8 +276,8 @@ export const whatIsNaturalWineArticle: GuideArticleContent = {
         sv: "Utforska naturvin online →",
       },
       href: {
-        en: "/wine/natural-wine",
-        sv: "/vin/naturvin",
+        en: "/wine",
+        sv: "/vin",
       },
     },
     {

@@ -36,6 +36,7 @@ import {
   shouldNavigateShopFilters,
 } from "@/lib/shop/filter-navigation";
 import type { ShopFarmingFilterValue } from "@/lib/shop/farming-filter";
+import { gateShopFilterHref } from "@/lib/shop/gate-shop-filter-href";
 import { filterProductsByGrapes } from "@/lib/shop/filter-products-by-grape";
 import { extractGrapesFromProducts } from "../hooks/use-available-grapes";
 
@@ -44,11 +45,13 @@ export function DesktopFilters({
   priceSources = [],
   className,
   ssrPathname,
+  navigableShopPaths,
 }: {
   collections: Collection[];
   priceSources?: PriceSourceForFilter[];
   className?: string;
   ssrPathname: string;
+  navigableShopPaths?: readonly string[];
 }) {
   const { t } = useTranslations();
   const paths = useLocalizedPaths();
@@ -56,12 +59,17 @@ export function DesktopFilters({
   const filterCount = useFilterCount();
   const [seeAllOpen, setSeeAllOpen] = useState(false);
   const openSeeAll = () => setSeeAllOpen(true);
-  const pathname = usePathname();
+  const routerPathname = usePathname();
   const router = useRouter();
+  // Prefer the live router path when present; fall back to the request path
+  // so SSR and the first client render share the same hrefs (no mounted flip).
+  const pathname = routerPathname || ssrPathname;
   const isProducerBoxesPage = isProducerBoxesPath(pathname);
   const isColorCategoryPage =
     !isProducerBoxesPage &&
     (pathname.startsWith("/vin/") || pathname.startsWith("/wine/"));
+  const showAllFilterColors =
+    !isProducerBoxesPage && shouldNavigateShopFilters(pathname);
   const locale = localeFromShopPathname(pathname);
   const activeColorName = getActiveColorFromPathname(pathname);
   const activeFarming = getActiveFarmingFromPathname(pathname);
@@ -71,10 +79,10 @@ export function DesktopFilters({
   );
   const activeGrapeName = getActiveGrapeFromPathname(pathname, grapeCandidates);
 
-  const handleColorSelect = (colorName: string) => {
-    if (!shouldNavigateShopFilters(pathname)) return false;
-
-    const url = isSameColorSelection(pathname, colorName)
+  const resolveColorHref = (colorName: string): string | null => {
+    if (!shouldNavigateShopFilters(pathname)) return null;
+    const isClear = isSameColorSelection(pathname, colorName);
+    const url = isClear
       ? resolveShopFilterNavigationUrl({
           locale,
           currentPath: pathname,
@@ -85,25 +93,31 @@ export function DesktopFilters({
           currentPath: pathname,
           nextColorUi: colorName,
         });
-    router.push(url);
+    return gateShopFilterHref(url, {
+      isClear,
+      navigablePaths: navigableShopPaths,
+    });
   };
 
-  const handleFarmingSelect = (farming: ShopFarmingFilterValue): boolean => {
+  const resolveFarmingHref = (
+    farming: ShopFarmingFilterValue,
+  ): string | null => {
+    const isClear = isSameFarmingSelection(pathname, farming);
     const grapeUrl = resolveGrapePageFarmingUrl(
       locale,
       pathname,
       farming,
-      isSameFarmingSelection(pathname, farming),
+      isClear,
       grapeCandidates,
     );
     if (grapeUrl) {
-      router.push(grapeUrl);
-      return true;
+      return gateShopFilterHref(grapeUrl, {
+        isClear,
+        navigablePaths: navigableShopPaths,
+      });
     }
-
-    if (!shouldNavigateShopFilters(pathname)) return false;
-
-    const url = isSameFarmingSelection(pathname, farming)
+    if (!shouldNavigateShopFilters(pathname)) return null;
+    const url = isClear
       ? resolveShopFilterNavigationUrl({
           locale,
           currentPath: pathname,
@@ -114,6 +128,22 @@ export function DesktopFilters({
           currentPath: pathname,
           nextFarming: farming,
         });
+    return gateShopFilterHref(url, {
+      isClear,
+      navigablePaths: navigableShopPaths,
+    });
+  };
+
+  const handleColorSelect = (colorName: string) => {
+    const url = resolveColorHref(colorName);
+    if (!url) return false;
+    router.push(url);
+    return true;
+  };
+
+  const handleFarmingSelect = (farming: ShopFarmingFilterValue): boolean => {
+    const url = resolveFarmingHref(farming);
+    if (!url) return false;
     router.push(url);
     return true;
   };
@@ -180,9 +210,10 @@ export function DesktopFilters({
               <>
                 <ColorFilter
                   products={originalProducts}
-                  showAllColors={isColorCategoryPage}
+                  showAllColors={showAllFilterColors || isColorCategoryPage}
                   activeColor={activeColorName ?? undefined}
                   onColorSelect={handleColorSelect}
+                  getColorHref={resolveColorHref}
                 />
                 <FarmingFilter
                   products={originalProducts}
@@ -190,6 +221,7 @@ export function DesktopFilters({
                   onSeeAll={openSeeAll}
                   onFarmingSelect={handleFarmingSelect}
                   activeFarming={activeFarming ?? undefined}
+                  getFarmingHref={resolveFarmingHref}
                 />
                 <GrapesFilter
                   products={originalProducts}
@@ -270,15 +302,17 @@ export function DesktopFilters({
                     <>
                       <ColorFilter
                         products={originalProducts}
-                        showAllColors={isColorCategoryPage}
+                        showAllColors={showAllFilterColors || isColorCategoryPage}
                         activeColor={activeColorName ?? undefined}
                         onColorSelect={handleColorSelect}
+                        getColorHref={resolveColorHref}
                       />
                       <FarmingFilter
                         products={originalProducts}
                         mode="overlay"
                         onFarmingSelect={handleFarmingSelect}
                         activeFarming={activeFarming ?? undefined}
+                        getFarmingHref={resolveFarmingHref}
                       />
                       <GrapesFilter
                         products={originalProducts}

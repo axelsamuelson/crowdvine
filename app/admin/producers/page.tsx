@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getProducers } from "@/lib/actions/producers";
 import { extractWineText } from "@/lib/i18n/wine-locale";
 import { Button } from "@/components/ui/button";
+import { ADMIN_OUTLINE_BUTTON_CLASS } from "@/lib/admin-form-styles";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { Wine, Plus, Users } from "lucide-react";
 import {
@@ -82,7 +83,7 @@ export default async function ProducersPage() {
             <Button
               variant="outline"
               size="sm"
-              className="rounded-lg text-xs font-medium border-gray-200 dark:border-zinc-700"
+              className={`text-xs font-medium ${ADMIN_OUTLINE_BUTTON_CLASS}`}
             >
               <Users className="w-3.5 h-3.5 mr-1.5" />
               Producer Groups

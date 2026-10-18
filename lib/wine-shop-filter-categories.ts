@@ -88,8 +88,29 @@ export const SHOP_FILTER_FARMING: FarmingDef[] = [
   },
 ];
 
-/** Slugs generated here — exclude from hand-written category lists. */
+const PRIMARY_COLOR_DBS = new Set(["Red", "White", "Orange"]);
+
+function isPrimaryShopColor(colorDb: string): boolean {
+  return PRIMARY_COLOR_DBS.has(colorDb);
+}
+
+/** Slugs used for filter navigation matching (not legacy redirect-only pages). */
 export const GENERATED_SHOP_FILTER_SLUGS = new Set<string>();
+
+/**
+ * Color-only and farming=natural hub slugs that 301 to the natural default.
+ * Kept in the category list for slug lookup until the redirect fires.
+ */
+export const LEGACY_SHOP_REDIRECT_SLUGS = new Set<string>([
+  "red-wine",
+  "white-wine",
+  "orange-wine",
+  "rott-vin",
+  "vitt-vin",
+  "orange-vin",
+  "natural-wine",
+  "naturvin",
+]);
 
 function comboSlug(
   color: ColorDef,
@@ -123,21 +144,24 @@ function buildCategory(
   h1: string,
   filter: WineCategoryFilter,
   hreflang: string,
+  options?: { navigable?: boolean },
 ): WineCategory {
-  GENERATED_SHOP_FILTER_SLUGS.add(slug);
+  const navigable = options?.navigable !== false;
+  if (navigable) {
+    GENERATED_SHOP_FILTER_SLUGS.add(slug);
+  }
   const prefix = locale === "sv" ? "/vin" : "/wine";
+  // Site name resolved at request time via localizeGeneratedCategoryCopy.
   const description =
     locale === "sv"
-      ? `${h1} direktimporterat från Languedoc till Stockholm.`
-      : `${h1} directly imported from Languedoc to Stockholm.`;
-  const title =
-    locale === "sv"
-      ? `${h1} — direktimport | PACT Wines`
-      : `${h1} — Direct Import | PACT Wines`;
+      ? `${h1} online hos PACT Wines.`
+      : `${h1} online at PACT Wines.`;
+  const title = `${h1} | PACT Wines`;
+  // Closing phrase is pact-default; dirtywine rewrites via localizeGeneratedCategoryCopy.
   const metaDescription =
     locale === "sv"
-      ? `Köp ${h1.toLowerCase()} online. Direkt från småproducenter i Languedoc — hemleverans Stockholm.`
-      : `Buy ${h1.toLowerCase()} online. Direct from small producers in Languedoc — home delivery Stockholm.`;
+      ? `Köp ${h1.toLowerCase()} online. Hemleverans Stockholm.`
+      : `Buy ${h1.toLowerCase()} online. Home delivery in Stockholm.`;
 
   return {
     slug,
@@ -152,12 +176,106 @@ function buildCategory(
   };
 }
 
+/**
+ * On dirtywine.se, replace home-delivery clauses in meta with the B2B restaurant
+ * phrase. Pact metas are left unchanged. Handles overrides and buildCategory output.
+ */
+export function localizeShopMetaDescription(
+  meta: string,
+  locale: Locale,
+  isDirtyWine: boolean,
+): string {
+  if (!isDirtyWine || !meta) return meta;
+
+  let result = meta;
+
+  if (locale === "sv") {
+    const restaurant = "För restauranger i Stockholm.";
+    const restaurantMid = "för restauranger i Stockholm";
+    // Mid-sentence "med hemleverans …"
+    result = result.replace(
+      /\bmed hemleverans i Stockholm\b/gi,
+      restaurantMid,
+    );
+    result = result.replace(/\bmed hemleverans Stockholm\b/gi, restaurantMid);
+    // Em-dash / comma clauses: "— hemleverans Stockholm via PACT"
+    result = result.replace(
+      /\s*[—–-]\s*hemleverans(?:\s+i)?\s+Stockholm(?:\s+via\s+PACT)?\.?/gi,
+      `. ${restaurant}`,
+    );
+    result = result.replace(
+      /,\s*hemleverans(?:\s+i)?\s+Stockholm(?:\s+via\s+PACT)?\.?/gi,
+      `. ${restaurant}`,
+    );
+    // Standalone sentence: "Hemleverans Stockholm via PACT." / "Hemleverans i Stockholm."
+    result = result.replace(
+      /(?:^|\.\s*)Hemleverans(?:\s+i)?\s+Stockholm(?:\s+via\s+PACT)?\.?/gi,
+      (match) => {
+        const prefix = match.startsWith(".") ? ". " : "";
+        return `${prefix}${restaurant}`;
+      },
+    );
+    // Trailing buildCategory form
+    result = result.replace(
+      /\s*Hemleverans(?:\s+i)?\s+Stockholm\.?\s*$/i,
+      ` ${restaurant}`,
+    );
+  } else {
+    const restaurant = "For restaurants in Stockholm.";
+    const restaurantMid = "for restaurants in Stockholm";
+    result = result.replace(
+      /\bwith home delivery in Stockholm\b/gi,
+      restaurantMid,
+    );
+    result = result.replace(
+      /\s*[—–-]\s*home delivery(?:\s+in)?\s+Stockholm(?:\s+via\s+PACT)?\.?/gi,
+      `. ${restaurant}`,
+    );
+    result = result.replace(
+      /,\s*home delivery(?:\s+in)?\s+Stockholm(?:\s+via\s+PACT)?\.?/gi,
+      `. ${restaurant}`,
+    );
+    result = result.replace(
+      /(?:^|\.\s*)Home delivery(?:\s+in)?\s+Stockholm(?:\s+via\s+PACT)?\.?/gi,
+      (match) => {
+        const prefix = match.startsWith(".") ? ". " : "";
+        return `${prefix}${restaurant}`;
+      },
+    );
+    result = result.replace(
+      /\s*Home delivery(?:\s+in)?\s+Stockholm\.?\s*$/i,
+      ` ${restaurant}`,
+    );
+  }
+
+  // Collapse accidental double spaces / duplicate periods from replacements.
+  result = result.replace(/\s{2,}/g, " ").replace(/\.\s*\./g, ".").trim();
+  return result;
+}
+
+/** Apply site-specific copy for generated filter/grape category intros and metas. */
+export function localizeGeneratedCategoryCopy(
+  category: WineCategory,
+  siteName: string,
+  isDirtyWine: boolean,
+): Pick<WineCategory, "description" | "metaDescription"> {
+  const description = category.description.replace(/PACT Wines/g, siteName);
+  const metaDescription = localizeShopMetaDescription(
+    category.metaDescription,
+    category.locale,
+    isDirtyWine,
+  );
+
+  return { description, metaDescription };
+}
+
 function generateForLocale(locale: Locale): WineCategory[] {
   const categories: WineCategory[] = [];
 
   for (const color of SHOP_FILTER_COLORS) {
     const meta = locale === "sv" ? color.sv : color.en;
     const counterpart = locale === "sv" ? color.en : color.sv;
+    const isPrimary = isPrimaryShopColor(color.db);
     categories.push(
       buildCategory(
         locale,
@@ -165,6 +283,8 @@ function generateForLocale(locale: Locale): WineCategory[] {
         meta.h1,
         { color: [color.db] },
         counterpart.slug,
+        // Primary color hubs redirect to *-natural-*; blends stay navigable.
+        { navigable: !isPrimary },
       ),
     );
   }
@@ -179,6 +299,8 @@ function generateForLocale(locale: Locale): WineCategory[] {
         meta.h1,
         { farming: [farming.db] },
         counterpart.slug,
+        // natural-wine / naturvin redirect to the shop root.
+        { navigable: farming.db !== "natural" },
       ),
     );
   }
@@ -192,14 +314,15 @@ function generateForLocale(locale: Locale): WineCategory[] {
         farming,
         locale === "sv" ? "en" : "sv",
       );
+      const isPrimaryNatural =
+        farming.db === "natural" && isPrimaryShopColor(color.db);
+      // Primary *-natural-* pages list every wine of that color.
+      // Two-color natural pages keep farming: natural (noindex, unchanged).
+      const filter: WineCategoryFilter = isPrimaryNatural
+        ? { color: [color.db] }
+        : { color: [color.db], farming: [farming.db] };
       categories.push(
-        buildCategory(
-          locale,
-          slug,
-          h1,
-          { color: [color.db], farming: [farming.db] },
-          counterpartSlug,
-        ),
+        buildCategory(locale, slug, h1, filter, counterpartSlug),
       );
     }
   }
@@ -226,6 +349,16 @@ export function mapDbColorToUi(dbColor: string): string {
   return dbToUi[dbColor] ?? dbColor;
 }
 
+function naturalComboSlugForColor(
+  colorDb: string,
+  locale: Locale,
+): string | null {
+  const color = SHOP_FILTER_COLORS.find((c) => c.db === colorDb);
+  const natural = SHOP_FILTER_FARMING.find((f) => f.db === "natural");
+  if (!color || !natural || !isPrimaryShopColor(colorDb)) return null;
+  return comboSlug(color, natural, locale);
+}
+
 export function findShopFilterCategory(
   locale: Locale,
   colorDb: string | null | undefined,
@@ -233,7 +366,18 @@ export function findShopFilterCategory(
   categories: WineCategory[],
 ): WineCategory | undefined {
   const color = colorDb?.trim() || null;
-  const farm = farming || null;
+  // "natural" is the shop default, not a filter dimension in the path model.
+  const farm =
+    !farming || farming === "natural" ? null : farming;
+
+  if (!color && !farm) return undefined;
+
+  if (color && !farm) {
+    const naturalSlug = naturalComboSlugForColor(color, locale);
+    if (naturalSlug) {
+      return categories.find((c) => c.slug === naturalSlug);
+    }
+  }
 
   return categories.find((c) => {
     if (!GENERATED_SHOP_FILTER_SLUGS.has(c.slug)) return false;

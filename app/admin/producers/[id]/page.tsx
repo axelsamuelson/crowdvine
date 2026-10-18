@@ -17,6 +17,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { ADMIN_OUTLINE_BUTTON_CLASS } from "@/lib/admin-form-styles";
 import { Wine, Plus } from "lucide-react";
 
 interface EditProducerPageProps {
@@ -196,7 +197,7 @@ export default async function EditProducerPage({
                         </TableCell>
                         <TableCell className="text-right">
                           <Link href={`/admin/wines/${wine.id}`}>
-                            <Button variant="outline" size="sm" className="rounded-lg text-xs font-medium border-gray-200 dark:border-zinc-700">
+                            <Button variant="outline" size="sm" className={`text-xs font-medium ${ADMIN_OUTLINE_BUTTON_CLASS}`}>
                               Redigera
                             </Button>
                           </Link>

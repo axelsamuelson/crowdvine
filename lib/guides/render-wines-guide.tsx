@@ -89,7 +89,7 @@ export async function renderWinesGuidePage(locale: AppLocale) {
   const hubPath = guidePath("hub", locale);
   const producersPath = guidePath("producers", locale);
   const shopNatural =
-    locale === "sv" ? "/vin/naturvin" : "/wine/natural-wine";
+    locale === "sv" ? "/vin" : "/wine";
   const bestList = SYSTEMBOLAGET_RANKED_LISTS.find(
     (list) => list.category === "best",
   );

@@ -46,7 +46,7 @@ function resolveArticleShopHref(
   });
   if (shopLink) return shopLink.href[locale];
 
-  return locale === "sv" ? "/vin/naturvin" : "/wine/natural-wine";
+  return locale === "sv" ? "/vin" : "/wine";
 }
 
 export async function buildArticleGuideMetadata(

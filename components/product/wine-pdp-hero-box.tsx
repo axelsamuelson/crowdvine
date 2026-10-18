@@ -48,8 +48,7 @@ export function WinePdpHeroBox({
     Boolean(producerName?.trim()) &&
     producerName!.trim() !== UNKNOWN_PRODUCER_LABEL;
   const showColorCategoryLink =
-    wineFarming?.trim() === "natural" &&
-    (wineColor === "Red" || wineColor === "White" || wineColor === "Orange");
+    wineColor === "Red" || wineColor === "White" || wineColor === "Orange";
   const showBylineRow = showProducerByline || showColorCategoryLink;
   const leadRowStart = showBylineRow ? "md:row-start-3" : "md:row-start-2";
 
