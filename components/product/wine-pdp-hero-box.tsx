@@ -15,7 +15,7 @@ interface WinePdpHeroBoxProps {
   locale?: AppLocale;
   price: React.ReactNode;
   compareAtPrice?: React.ReactNode;
-  /** Privilege / Early bird tabs behind the top-left corner of the white box. */
+  /** Hero tabs behind the top-left corner (early bird / privilege on PACT, stock on Dirty Wine). */
   topLeftBadges?: ReactNode;
   /** Show case-purchase help (?) in bottom-right of the white box. */
   showCaseHelp?: boolean;

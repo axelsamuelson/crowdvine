@@ -2,6 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import {
+  PdpPriceBadge,
+  pdpHeroTabBadgeClass,
+} from "@/components/pdp/pdp-price-badge";
 import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "@/lib/hooks/use-translations";
@@ -16,13 +20,32 @@ interface StockBadgeProps {
   availableForSale?: boolean;
   /** Dirtywine assortment state. in_stock keeps the few-left logic. */
   b2bAvailability?: B2BWineAvailability;
+  /** Pill (product cards) or hero-tab peeking above the PDP white box. */
+  variant?: "pill" | "hero-tab";
   className?: string;
 }
 
 const badgeShellClassName =
   "inline-flex items-center justify-center gap-0.5 md:gap-1 rounded-full px-1 md:px-1.5 py-0.5 text-[7px] md:text-[9px] font-medium w-[52px] md:w-[70px]";
 
-function StockBadgePlaceholder({ className }: { className?: string }) {
+function StockBadgePlaceholder({
+  variant,
+  className,
+}: {
+  variant: "pill" | "hero-tab";
+  className?: string;
+}) {
+  if (variant === "hero-tab") {
+    return (
+      <span
+        aria-hidden
+        className={cn(pdpHeroTabBadgeClass, "invisible", className)}
+      >
+        In stock
+      </span>
+    );
+  }
+
   return (
     <span
       aria-hidden
@@ -35,13 +58,14 @@ function StockBadgePlaceholder({ className }: { className?: string }) {
 }
 
 /**
- * In stock / Few left / Out of stock badge. Only visible on dirtywine.se for business members
- * and on business invite pages. Premium design with configurable few-left threshold.
+ * In stock / Few left / Out of stock / Coming soon badge.
+ * Visible on dirtywine.se (and business invite / tasting pages).
  */
 export function StockBadge({
   b2bStock,
   availableForSale = true,
   b2bAvailability,
+  variant = "pill",
   className,
 }: StockBadgeProps) {
   const { t } = useTranslations();
@@ -70,7 +94,7 @@ export function StockBadge({
 
   if (!showBadge) {
     if (mayShowBadge && !isMounted) {
-      return <StockBadgePlaceholder className={className} />;
+      return <StockBadgePlaceholder variant={variant} className={className} />;
     }
     return null;
   }
@@ -99,6 +123,34 @@ export function StockBadge({
             ? t("product.lastBottle")
             : t("product.lastBottles", { count: stock as number })
           : t("product.inStock");
+
+  if (variant === "hero-tab") {
+    return (
+      <PdpPriceBadge
+        customAppearance
+        className={cn(
+          pdpHeroTabBadgeClass,
+          "inline-flex items-center gap-1.5",
+          status === "out" && "bg-stone-500 text-white",
+          status === "incoming" && "bg-sky-600 text-white",
+          status === "few" && "bg-amber-600 text-white",
+          status === "in" && "bg-emerald-700 text-white",
+          className,
+        )}
+      >
+        <span
+          className={cn(
+            "size-1.5 shrink-0 rounded-full",
+            status === "out" && "bg-white/70",
+            status === "incoming" && "bg-sky-200",
+            status === "few" && "bg-amber-200",
+            status === "in" && "bg-emerald-200",
+          )}
+        />
+        {label}
+      </PdpPriceBadge>
+    );
+  }
 
   return (
     <span
