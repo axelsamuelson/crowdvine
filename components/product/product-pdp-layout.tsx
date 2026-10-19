@@ -7,7 +7,6 @@ import { PalletZoneStatusProvider } from "@/components/pdp/pallet-zone-status-pr
 import Prose from "@/components/prose";
 import { ProductBreadcrumbs } from "@/components/product/product-breadcrumbs";
 import { ProductPriceInfoBox } from "@/components/product/product-price-info-box";
-import { StockBadge } from "@/components/product/stock-badge";
 import { WineEnrichmentSpecs } from "@/components/product/wine-enrichment-specs";
 import { WineStyleScale } from "@/components/product/wine-style-scale";
 import { hasEnrichmentSpecs } from "@/lib/product/wine-enrichment";
@@ -125,7 +124,13 @@ export function ProductPdpLayout({
                     producerName={product.producerName}
                     producerSlug={producerSlug}
                     locale={locale}
-                    topLeftBadges={<PdpHeroBadges />}
+                    topLeftBadges={
+                      <PdpHeroBadges
+                        b2bStock={product.b2bStock}
+                        availableForSale={product.availableForSale}
+                        b2bAvailability={product.b2bAvailability}
+                      />
+                    }
                     showCaseHelp={
                       product.productType === "wine" && Boolean(product.producerId)
                     }
@@ -168,11 +173,6 @@ export function ProductPdpLayout({
                     product.wineEnrichment.style_scale <= 5 ? (
                       <WineStyleScale value={product.wineEnrichment.style_scale} />
                     ) : null}
-                    <StockBadge
-                      b2bStock={product.b2bStock}
-                      availableForSale={product.availableForSale}
-                      b2bAvailability={product.b2bAvailability}
-                    />
                   </div>
 
                   {product.productType !== "wine" && product.descriptionHtml ? (

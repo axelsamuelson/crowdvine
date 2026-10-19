@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { isB2BHost } from "@/lib/b2b-site";
 import {
   resolvePalletEarlyBirdContext,
   resolveWineIdForProductHandle,
@@ -358,6 +359,14 @@ export async function GET(request: NextRequest) {
       dropState === "unavailable"
         ? ""
         : shoppingZoneDisplayDestination(activeGeoSlice);
+
+    const requestHost =
+      request.headers.get("x-forwarded-host") ?? request.headers.get("host");
+    // Dirty Wine: no early-bird discount or badge — keep progress UI only.
+    if (isB2BHost(requestHost, request.nextUrl.searchParams)) {
+      discountTier = 0;
+      showEarlyBird = false;
+    }
 
     // bottleCapacity / capacityBottles expose ship-ready target for progress UI
     // (legacy field names). physicalBottleCapacity is the freight capacity.
