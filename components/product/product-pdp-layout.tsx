@@ -15,6 +15,7 @@ import { WinePdpEnrichment } from "@/components/product/wine-pdp-enrichment";
 import { WINE_ENRICHMENT_DROPDOWN_LIST_CLASS } from "@/components/product/wine-enrichment-collapsible";
 import { PdpHeroBadges } from "@/components/pdp/pdp-hero-badges";
 import { WinePdpHeroBox } from "@/components/product/wine-pdp-hero-box";
+import { WinePdpColorCategoryLink } from "@/components/product/wine-pdp-color-category-link";
 import {
   CompetitorOffersSection,
   type CompetitorOffer,
@@ -124,8 +125,6 @@ export function ProductPdpLayout({
                     producerName={product.producerName}
                     producerSlug={producerSlug}
                     locale={locale}
-                    wineColor={product.wineEnrichment?.color}
-                    wineFarming={product.farming ?? product.wineEnrichment?.farming}
                     topLeftBadges={<PdpHeroBadges />}
                     showCaseHelp={
                       product.productType === "wine" && Boolean(product.producerId)
@@ -191,6 +190,18 @@ export function ProductPdpLayout({
                     <ProductPriceInfoBox product={product} />
                     <CompetitorOffersSection offers={competitorOffers} />
                   </div>
+
+                  {product.productType === "wine" ? (
+                    <div className="pt-1">
+                      <WinePdpColorCategoryLink
+                        locale={locale}
+                        color={product.wineEnrichment?.color}
+                        farming={
+                          product.farming ?? product.wineEnrichment?.farming
+                        }
+                      />
+                    </div>
+                  ) : null}
                 </div>
               </PalletZoneStatusProvider>
             </div>

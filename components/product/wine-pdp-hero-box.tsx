@@ -2,7 +2,6 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { CasePurchaseHelpTrigger } from "@/components/cart/case-purchase-help-trigger";
 import { PeekTabAnchor } from "@/components/pdp/peek-tab-anchor";
-import { WinePdpColorCategoryLink } from "@/components/product/wine-pdp-color-category-link";
 import type { AppLocale } from "@/lib/i18n/locale";
 import { producerPublicPath } from "@/lib/i18n/localized-routes";
 import { cn } from "@/lib/utils";
@@ -20,8 +19,6 @@ interface WinePdpHeroBoxProps {
   topLeftBadges?: ReactNode;
   /** Show case-purchase help (?) in bottom-right of the white box. */
   showCaseHelp?: boolean;
-  wineColor?: string | null;
-  wineFarming?: string | null;
   className?: string;
 }
 
@@ -38,8 +35,6 @@ export function WinePdpHeroBox({
   compareAtPrice,
   topLeftBadges,
   showCaseHelp = false,
-  wineColor,
-  wineFarming,
   className,
 }: WinePdpHeroBoxProps) {
   const lead = leadText?.trim();
@@ -47,16 +42,7 @@ export function WinePdpHeroBox({
     Boolean(producerSlug?.trim()) &&
     Boolean(producerName?.trim()) &&
     producerName!.trim() !== UNKNOWN_PRODUCER_LABEL;
-  const showColorCategoryLink =
-    wineColor === "Red" || wineColor === "White" || wineColor === "Orange";
   const leadRowStart = showProducerByline ? "md:row-start-3" : "md:row-start-2";
-  const colorCategoryRowStart = showProducerByline
-    ? lead
-      ? "md:row-start-4"
-      : "md:row-start-3"
-    : lead
-      ? "md:row-start-3"
-      : "md:row-start-2";
 
   return (
     <div
@@ -103,24 +89,6 @@ export function WinePdpHeroBox({
           >
             {lead}
           </p>
-        ) : null}
-
-        {showColorCategoryLink ? (
-          <div
-            className={cn(
-              "max-md:mt-3 md:col-span-2",
-              colorCategoryRowStart,
-              lead ? "md:pt-0" : "md:pt-1",
-              // Keep clear of the absolute case-help control in the corner.
-              showCaseHelp && "pr-8",
-            )}
-          >
-            <WinePdpColorCategoryLink
-              locale={locale}
-              color={wineColor}
-              farming={wineFarming}
-            />
-          </div>
         ) : null}
 
         {showCaseHelp ? (
