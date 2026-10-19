@@ -19,6 +19,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import Link from "next/link";
 import { Calculator, ChevronDown } from "lucide-react";
 import { calculateSystembolagetPrice } from "@/lib/systembolaget-pricing";
 import {
@@ -27,6 +28,11 @@ import {
   implyMarginPercentageFromRetailPrice,
   resolveSekExchangeRateSync,
 } from "@/lib/wine-retail-pricing";
+import { calculateUnitScenario } from "@/lib/finance/margins";
+import {
+  defaultFinanceFulfillmentCosts,
+  type FinanceFulfillmentCosts,
+} from "@/lib/finance/fulfillment-costs";
 
 interface PricingData {
   cost_currency: string;
@@ -61,11 +67,16 @@ export function PricingCalculator({
     pricingData.cost_currency === "SEK",
   );
   const [showDetails, setShowDetails] = useState(false);
+  const [showGm2Breakdown, setShowGm2Breakdown] = useState(false);
+  const [showProfitBreakdown, setShowProfitBreakdown] = useState(false);
   const [finalPriceDraft, setFinalPriceDraft] = useState(
     ((pricingData.calculated_price_cents || 0) / 100).toFixed(2),
   );
   const [finalPriceError, setFinalPriceError] = useState<string | null>(null);
   const [editingFinalPrice, setEditingFinalPrice] = useState(false);
+  const [fulfillment, setFulfillment] = useState<FinanceFulfillmentCosts>(
+    defaultFinanceFulfillmentCosts(),
+  );
 
   const currencies = [
     { code: "EUR", name: "Euro (EUR)" },
@@ -123,6 +134,24 @@ export function PricingCalculator({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pricingData.cost_currency]);
 
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/admin/finance/fulfillment-costs");
+        if (!res.ok) return;
+        const json = await res.json();
+        if (cancelled || !json?.costs) return;
+        setFulfillment(json.costs as FinanceFulfillmentCosts);
+      } catch {
+        /* keep defaults */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const exchangeRate = useMemo(() => {
     if (pricingData.cost_currency === "SEK") return 1;
     if (currentRate && currentRate > 0) return currentRate;
@@ -160,6 +189,53 @@ export function PricingCalculator({
     effectiveMargin,
     exchangeRate,
   ]);
+
+  const unitEconomics = useMemo(() => {
+    const purchaseCostCentsPerBottle = Math.round(
+      breakdown.costAmountInSek * 100,
+    );
+    const sellingPriceMajor = breakdown.finalPriceCents / 100;
+    return calculateUnitScenario({
+      sellingPriceMajor,
+      priceIncludesVat: pricingData.price_includes_vat !== false,
+      vatRate: fulfillment.vatRate,
+      bottles: 1,
+      bottlesPerOrder: fulfillment.bottlesPerOrder,
+      purchaseCostCentsPerBottle,
+      purchaseCostCurrency: "SEK",
+      purchaseFxRate: 1,
+      exciseCentsPerBottle:
+        pricingData.alcohol_tax_cents ?? DEFAULT_ALCOHOL_TAX_CENTS,
+      eprCentsPerBottle: fulfillment.eprCentsPerBottle,
+      refundBreakageReserveRate: fulfillment.refundBreakageReserveRate,
+      stripeFeePercent: fulfillment.stripeFeePercent,
+      stripeFeeFixedCentsPerOrder: fulfillment.stripeFeeFixedCentsPerOrder,
+      shippingRevenueGrossCentsPerOrder:
+        fulfillment.shippingRevenueGrossCentsPerOrder,
+      shippingPriceIncludesVat: fulfillment.shippingPriceIncludesVat,
+      outboundCarrierCostCentsPerOrder:
+        fulfillment.outboundCarrierCostCentsPerOrder,
+      inboundFreightTotalCents: fulfillment.inboundFreightTotalCents,
+      assumedShipQuantity: fulfillment.assumedShipQuantity,
+    });
+  }, [
+    breakdown.costAmountInSek,
+    breakdown.finalPriceCents,
+    pricingData.price_includes_vat,
+    pricingData.alcohol_tax_cents,
+    fulfillment,
+  ]);
+
+  const sekFromOre = (ore: number) => (ore / 100).toFixed(2);
+
+  /** Net fulfillment impact per bottle: ship revenue − all GM2 cost lines. */
+  const gm2NetCostCentsPerBottle =
+    unitEconomics.outboundCentsPerBottle +
+    unitEconomics.inboundCentsPerBottle +
+    unitEconomics.paymentFeeCentsPerBottle +
+    unitEconomics.eprCentsPerBottle +
+    unitEconomics.refundReserveCentsPerBottle -
+    unitEconomics.shippingNetCentsPerBottle;
 
   // Keep parent in sync with computed final price + FX used (avoid infinite loops)
   useEffect(() => {
@@ -355,25 +431,182 @@ export function PricingCalculator({
                 </div>
               )}
             </div>
-            <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs">
-              <span className="text-zinc-400">Pris exkl. moms</span>
-              <span className="text-right font-medium text-zinc-100">
-                {breakdown.priceExVat.toFixed(2)} SEK
-              </span>
-              <span className="text-zinc-400">
-                Moms ({(breakdown.vatRate * 100).toFixed(0)}%)
-              </span>
-              <span className="text-right font-medium text-zinc-100">
-                {breakdown.vatAmountSek.toFixed(2)} SEK
-              </span>
-              <span className="text-zinc-400">Total kostnad</span>
-              <span className="text-right font-medium text-zinc-100">
-                {breakdown.costInSek.toFixed(2)} SEK
-              </span>
-              <span className="text-zinc-400">Nettovinst</span>
-              <span className="text-right font-medium text-zinc-100">
-                {breakdown.netProfitSek.toFixed(2)} SEK
-              </span>
+            <div className="space-y-3 text-xs">
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                    1. Flaskkostnad
+                  </p>
+                  <span className="font-medium text-rose-700 dark:text-rose-300">
+                    {breakdown.costInSek.toFixed(2)} SEK
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1 pl-0.5">
+                  <span className="text-rose-600/90 dark:text-rose-400/90">
+                    Vinkostnad
+                  </span>
+                  <span className="text-right font-medium text-rose-700 dark:text-rose-300">
+                    {breakdown.costAmountInSek.toFixed(2)} SEK
+                  </span>
+                  <span className="text-amber-600/90 dark:text-amber-400/90">
+                    Alkoholskatt
+                  </span>
+                  <span className="text-right font-medium text-amber-700 dark:text-amber-300">
+                    {breakdown.alcoholTaxInSek.toFixed(2)} SEK
+                  </span>
+                </div>
+              </div>
+
+              <Collapsible
+                open={showGm2Breakdown}
+                onOpenChange={setShowGm2Breakdown}
+                className="space-y-1.5 border-t border-gray-200 pt-3 dark:border-zinc-700"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <p className="font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                    2. GP2-kostnader / flaska
+                  </p>
+                  <div className="flex shrink-0 flex-col items-end gap-1">
+                    <span
+                      className={
+                        gm2NetCostCentsPerBottle <= 0
+                          ? "font-medium text-emerald-700 dark:text-emerald-300"
+                          : "font-medium text-rose-700 dark:text-rose-300"
+                      }
+                    >
+                      {gm2NetCostCentsPerBottle > 0 ? "−" : "+"}
+                      {sekFromOre(Math.abs(gm2NetCostCentsPerBottle))} SEK
+                    </span>
+                    <CollapsibleTrigger asChild>
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-0.5 text-[11px] text-zinc-400 hover:text-zinc-200"
+                      >
+                        {showGm2Breakdown ? "Dölj" : "Visa"} detaljer
+                        <ChevronDown
+                          className={`h-3.5 w-3.5 transition-transform ${
+                            showGm2Breakdown ? "rotate-180" : ""
+                          }`}
+                        />
+                      </button>
+                    </CollapsibleTrigger>
+                  </div>
+                </div>
+                <CollapsibleContent>
+                  <div className="mt-1.5 space-y-2">
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1 pl-0.5">
+                      <span className="text-emerald-600/90 dark:text-emerald-400/90">
+                        Kundfrakt (netto)
+                      </span>
+                      <span className="text-right font-medium text-emerald-700 dark:text-emerald-300">
+                        +{sekFromOre(unitEconomics.shippingNetCentsPerBottle)}{" "}
+                        SEK
+                      </span>
+                      <span className="text-rose-600/90 dark:text-rose-400/90">
+                        Utgående frakt
+                      </span>
+                      <span className="text-right font-medium text-rose-700 dark:text-rose-300">
+                        −{sekFromOre(unitEconomics.outboundCentsPerBottle)} SEK
+                      </span>
+                      <span className="text-rose-600/90 dark:text-rose-400/90">
+                        Inkommande frakt
+                      </span>
+                      <span className="text-right font-medium text-rose-700 dark:text-rose-300">
+                        −{sekFromOre(unitEconomics.inboundCentsPerBottle)} SEK
+                      </span>
+                      <span className="text-amber-600/90 dark:text-amber-400/90">
+                        Transaktionsavgift
+                      </span>
+                      <span className="text-right font-medium text-amber-700 dark:text-amber-300">
+                        −{sekFromOre(unitEconomics.paymentFeeCentsPerBottle)} SEK
+                      </span>
+                      <span className="text-amber-600/90 dark:text-amber-400/90">
+                        EPR
+                      </span>
+                      <span className="text-right font-medium text-amber-700 dark:text-amber-300">
+                        −{sekFromOre(unitEconomics.eprCentsPerBottle)} SEK
+                      </span>
+                      <span className="text-amber-600/90 dark:text-amber-400/90">
+                        Retur/svinn-reserv
+                      </span>
+                      <span className="text-right font-medium text-amber-700 dark:text-amber-300">
+                        −{sekFromOre(unitEconomics.refundReserveCentsPerBottle)}{" "}
+                        SEK
+                      </span>
+                    </div>
+                    <Link
+                      href="/admin/finance/fulfillment-costs"
+                      className="inline-block text-[11px] text-white underline-offset-2 hover:underline"
+                    >
+                      Redigera i Finans → Fulfillment costs
+                    </Link>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+
+              <div className="space-y-1.5 border-t border-gray-200 pt-3 dark:border-zinc-700">
+                <p className="font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                  3. Pris / flaska
+                </p>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1 pl-0.5">
+                  <span className="text-zinc-400">Pris exkl. moms</span>
+                  <span className="text-right font-medium text-zinc-100">
+                    {breakdown.priceExVat.toFixed(2)} SEK
+                  </span>
+                  <span className="text-amber-600/90 dark:text-amber-400/90">
+                    Moms ({(breakdown.vatRate * 100).toFixed(0)}%)
+                  </span>
+                  <span className="text-right font-medium text-amber-700 dark:text-amber-300">
+                    {breakdown.vatAmountSek.toFixed(2)} SEK
+                  </span>
+                </div>
+              </div>
+
+              <Collapsible
+                open={showProfitBreakdown}
+                onOpenChange={setShowProfitBreakdown}
+                className="space-y-1.5 border-t border-gray-200 pt-3 dark:border-zinc-700"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <p className="font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                    4. Vinst / flaska
+                  </p>
+                  <div className="flex shrink-0 flex-col items-end gap-1">
+                    <span className="font-medium text-emerald-700 dark:text-emerald-300">
+                      GP2 {sekFromOre(unitEconomics.gm2CentsPerBottle)} SEK
+                    </span>
+                    <CollapsibleTrigger asChild>
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-0.5 text-[11px] text-zinc-400 hover:text-zinc-200"
+                      >
+                        {showProfitBreakdown ? "Dölj" : "Visa"} detaljer
+                        <ChevronDown
+                          className={`h-3.5 w-3.5 transition-transform ${
+                            showProfitBreakdown ? "rotate-180" : ""
+                          }`}
+                        />
+                      </button>
+                    </CollapsibleTrigger>
+                  </div>
+                </div>
+                <CollapsibleContent>
+                  <div className="mt-1.5 grid grid-cols-2 gap-x-4 gap-y-1 pl-0.5">
+                    <span className="text-emerald-600/90 dark:text-emerald-400/90">
+                      GP1 (efter flaskkostnad)
+                    </span>
+                    <span className="text-right font-medium text-emerald-700 dark:text-emerald-300">
+                      {sekFromOre(unitEconomics.gm1CentsPerBottle)} SEK
+                    </span>
+                    <span className="text-emerald-600/90 dark:text-emerald-400/90">
+                      GP2 (efter fulfillment)
+                    </span>
+                    <span className="text-right font-medium text-emerald-700 dark:text-emerald-300">
+                      {sekFromOre(unitEconomics.gm2CentsPerBottle)} SEK
+                    </span>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
             </div>
           </div>
         </div>
@@ -420,18 +653,18 @@ export function PricingCalculator({
               )}
 
               <div className="flex items-center justify-between">
-                <span className="text-gray-500 dark:text-zinc-400">
+                <span className="text-rose-600/90 dark:text-rose-400/90">
                   Vinkostnad (SEK)
                 </span>
-                <span className="font-medium text-gray-900 dark:text-zinc-100">
+                <span className="font-medium text-rose-700 dark:text-rose-300">
                   {breakdown.costAmountInSek.toFixed(2)} SEK
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-gray-500 dark:text-zinc-400">
+                <span className="text-amber-600/90 dark:text-amber-400/90">
                   Alkoholskatt
                 </span>
-                <span className="font-medium text-gray-900 dark:text-zinc-100">
+                <span className="font-medium text-amber-700 dark:text-amber-300">
                   {breakdown.alcoholTaxInSek.toFixed(2)} SEK
                 </span>
               </div>
@@ -447,10 +680,10 @@ export function PricingCalculator({
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-gray-500 dark:text-zinc-400">
+                <span className="text-emerald-600/90 dark:text-emerald-400/90">
                   Nettovinst (exkl. moms)
                 </span>
-                <span className="font-medium text-gray-900 dark:text-zinc-100">
+                <span className="font-medium text-emerald-700 dark:text-emerald-300">
                   {breakdown.netProfitSek.toFixed(2)} SEK
                 </span>
               </div>

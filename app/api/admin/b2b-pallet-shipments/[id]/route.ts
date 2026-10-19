@@ -70,6 +70,7 @@ export async function PUT(
     items?: Array<{
       wine_id: string;
       quantity: number;
+      quantity_sold?: number;
       cost_cents_override?: number | null;
     }>;
   };
@@ -147,7 +148,10 @@ export async function PUT(
         shipment_id: id,
         wine_id: i.wine_id,
         quantity: Math.max(1, Math.floor(i.quantity)),
-        quantity_sold: soldByWineId.get(i.wine_id) ?? 0,
+        quantity_sold:
+          i.quantity_sold != null
+            ? Math.max(0, Math.floor(i.quantity_sold))
+            : (soldByWineId.get(i.wine_id) ?? 0),
         cost_cents_override:
           i.cost_cents_override != null ? i.cost_cents_override : null,
       }));

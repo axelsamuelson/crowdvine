@@ -63,10 +63,26 @@ interface NavGroup {
 const topLevelNav: NavItem[] = [
   { name: "Översikt", href: "/admin", icon: LayoutDashboard },
   { name: "Analytics", href: "/admin/analytics", icon: BarChart3 },
-  { name: "Finans", href: "/admin/finance", icon: Wallet },
 ];
 
 const navigationGroups: NavGroup[] = [
+  {
+    name: "Finans",
+    icon: Wallet,
+    items: [
+      { name: "Utfall", href: "/admin/finance/utfall", icon: Wallet },
+      {
+        name: "Prisscenarier",
+        href: "/admin/finance/prisscenarier",
+        icon: TrendingUp,
+      },
+      {
+        name: "Fulfillment costs",
+        href: "/admin/finance/fulfillment-costs",
+        icon: Truck,
+      },
+    ],
+  },
   {
     name: "Användare",
     icon: Users,
@@ -161,9 +177,12 @@ export function Sidebar({ userEmail, onSignOut, mobileOpen, onMobileClose }: Sid
   const pathname = usePathname();
   const [openGroups, setOpenGroups] = useState<Set<string>>(() => new Set());
 
-  const isItemActive = (item: NavItem) =>
-    pathname === item.href ||
-    (item.href !== "/admin" && pathname.startsWith(item.href + "/"));
+  const isItemActive = (item: NavItem) => {
+    if (pathname === item.href) return true;
+    // Exact-only for /admin so nested admin routes don't light the home item.
+    if (item.href === "/admin") return false;
+    return pathname.startsWith(item.href + "/");
+  };
 
   const activeGroupNames = useMemo(() => {
     return new Set(

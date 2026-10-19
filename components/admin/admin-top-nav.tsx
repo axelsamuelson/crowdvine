@@ -35,6 +35,9 @@ const SEGMENT_LABELS: Record<string, string> = {
   rabattkoder: "Rabattkoder",
   "exkluderade-profiler": "Exkluderade profiler",
   finance: "Finans",
+  utfall: "Utfall",
+  prisscenarier: "Prisscenarier",
+  "fulfillment-costs": "Fulfillment costs",
   seo: "SEO",
   "domain-authority": "Domain authority",
 };

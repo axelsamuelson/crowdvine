@@ -74,6 +74,7 @@ export async function POST(request: NextRequest) {
       items: Array<{
         wine_id: string;
         quantity: number;
+        quantity_sold?: number;
         cost_cents_override?: number | null;
       }>;
     };
@@ -126,6 +127,10 @@ export async function POST(request: NextRequest) {
           shipment_id: shipment.id,
           wine_id: i.wine_id,
           quantity: Math.max(1, Math.floor(i.quantity)),
+          quantity_sold:
+            i.quantity_sold != null
+              ? Math.max(0, Math.floor(i.quantity_sold))
+              : 0,
           cost_cents_override:
             i.cost_cents_override != null ? i.cost_cents_override : null,
         }));

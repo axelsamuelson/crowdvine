@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -1038,36 +1038,79 @@ function ScenarioSideTables({
   );
 }
 
-export function FinanceDashboard() {
+export type FinanceDashboardMode = "actuals" | "scenarios";
+
+function readOptionalNumberParam(
+  searchParams: URLSearchParams,
+  key: string,
+): number | null {
+  const raw = searchParams.get(key);
+  if (raw == null || raw.trim() === "") return null;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : null;
+}
+
+export function FinanceDashboard({
+  mode,
+}: {
+  mode: FinanceDashboardMode;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
   const channel = searchParams.get("channel") || "all";
   const period = searchParams.get("period") || "this_month";
-  const mode = searchParams.get("mode") || "actuals";
   const forecastShipQty = searchParams.get("forecast_ship_qty") || "240";
 
   const [data, setData] = useState<OverviewPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Simulator state (ephemeral)
-  const [simPrice, setSimPrice] = useState(229);
-  const [simProposed, setSimProposed] = useState(299);
-  const [simPurchase, setSimPurchase] = useState(143.37);
-  const [simPurchaseTouched, setSimPurchaseTouched] = useState(false);
-  const [simShipOrder, setSimShipOrder] = useState(99);
-  const [simOutbound, setSimOutbound] = useState(69);
-  const [simInbound, setSimInbound] = useState(4262.63);
+  // Simulator state (ephemeral). Seed from URL when opening Prisscenarier from Utfall heatmap.
+  const [simPrice, setSimPrice] = useState(
+    () => readOptionalNumberParam(searchParams, "sim_price") ?? 229,
+  );
+  const [simProposed, setSimProposed] = useState(
+    () => readOptionalNumberParam(searchParams, "sim_proposed") ?? 299,
+  );
+  const [simPurchase, setSimPurchase] = useState(
+    () => readOptionalNumberParam(searchParams, "sim_purchase") ?? 143.37,
+  );
+  const [simPurchaseTouched, setSimPurchaseTouched] = useState(
+    () => readOptionalNumberParam(searchParams, "sim_purchase") != null,
+  );
+  const [simShipOrder, setSimShipOrder] = useState(
+    () => readOptionalNumberParam(searchParams, "sim_ship_order") ?? 99,
+  );
+  const [simOutbound, setSimOutbound] = useState(
+    () => readOptionalNumberParam(searchParams, "sim_outbound") ?? 69,
+  );
+  const [simInbound, setSimInbound] = useState(
+    () => readOptionalNumberParam(searchParams, "sim_inbound") ?? 4262.63,
+  );
   const [simExciseHalfRate, setSimExciseHalfRate] = useState(false);
-  const [simShipQty, setSimShipQty] = useState(
-    () => Number(forecastShipQty) || 240,
+  const [simShipQty, setSimShipQty] = useState(() => {
+    const fromUrl = readOptionalNumberParam(searchParams, "sim_ship_qty");
+    if (fromUrl != null) return fromUrl;
+    const fromForecast = Number(forecastShipQty);
+    return Number.isFinite(fromForecast) && fromForecast > 0
+      ? fromForecast
+      : 240;
+  });
+  const [simVolumeBottles, setSimVolumeBottles] = useState(() => {
+    const fromUrl =
+      readOptionalNumberParam(searchParams, "sim_volume") ??
+      readOptionalNumberParam(searchParams, "sim_ship_qty");
+    if (fromUrl != null) return fromUrl;
+    const fromForecast = Number(forecastShipQty);
+    return Number.isFinite(fromForecast) && fromForecast > 0
+      ? fromForecast
+      : 240;
+  });
+  const [simVolumeTouched, setSimVolumeTouched] = useState(
+    () => readOptionalNumberParam(searchParams, "sim_volume") != null,
   );
-  const [simVolumeBottles, setSimVolumeBottles] = useState(
-    () => Number(forecastShipQty) || 240,
-  );
-  const [simVolumeTouched, setSimVolumeTouched] = useState(false);
   const [simResult, setSimResult] = useState<Record<string, unknown> | null>(
     null,
   );
@@ -1120,6 +1163,8 @@ export function FinanceDashboard() {
   const simExciseCentsPerBottle = simExciseHalfRate
     ? Math.round(DEFAULT_ALCOHOL_TAX_CENTS * 0.5)
     : DEFAULT_ALCOHOL_TAX_CENTS;
+
+  const autoSimFromUrlDone = useRef(false);
 
   const runSimulate = async (overrides?: {
     proposedPrice?: number;
@@ -1175,6 +1220,18 @@ export function FinanceDashboard() {
     setSimResult(await res.json());
   };
 
+  useEffect(() => {
+    if (mode !== "scenarios") return;
+    if (autoSimFromUrlDone.current) return;
+    if (searchParams.get("sim_run") !== "1") return;
+    autoSimFromUrlDone.current = true;
+    void runSimulate();
+    const next = new URLSearchParams(searchParams.toString());
+    next.delete("sim_run");
+    router.replace(`${pathname}?${next.toString()}`);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode]);
+
   const applyHeatmapSelection = (selection: {
     price: number;
     shipQty: number;
@@ -1211,29 +1268,20 @@ export function FinanceDashboard() {
       ? Math.round(anchor.inboundFreightPerPalletCents) / 100
       : simInbound;
 
-    if (anchor) {
-      setSimPrice(currentPrice);
-      setSimPurchase(purchaseSek);
-      setSimPurchaseTouched(true);
-      setSimShipOrder(shipOrderSek);
-      setSimOutbound(outboundSek);
-      setSimInbound(inboundSek);
-    }
-    setSimProposed(selection.price);
-    setSimShipQty(selection.shipQty);
-    setSimVolumeTouched(false);
-    setSimVolumeBottles(selection.shipQty);
-    setParam("mode", "scenarios");
-    void runSimulate({
-      currentPrice,
-      purchaseSek,
-      shipOrderSek,
-      outboundSek,
-      inboundSek,
-      proposedPrice: selection.price,
-      shipQty: selection.shipQty,
-      volumeBottles: selection.shipQty,
-    });
+    const next = new URLSearchParams();
+    next.set("channel", channel);
+    next.set("period", period);
+    next.set("forecast_ship_qty", forecastShipQty);
+    next.set("sim_price", String(currentPrice));
+    next.set("sim_proposed", String(selection.price));
+    next.set("sim_purchase", String(purchaseSek));
+    next.set("sim_ship_order", String(shipOrderSek));
+    next.set("sim_outbound", String(outboundSek));
+    next.set("sim_inbound", String(inboundSek));
+    next.set("sim_ship_qty", String(selection.shipQty));
+    next.set("sim_volume", String(selection.shipQty));
+    next.set("sim_run", "1");
+    router.push(`/admin/finance/prisscenarier?${next.toString()}`);
   };
 
   const addOpex = async () => {
@@ -1302,18 +1350,6 @@ export function FinanceDashboard() {
               <SelectItem value="last_30">Senaste 30 dagarna</SelectItem>
               <SelectItem value="quarter">Kvartal</SelectItem>
               <SelectItem value="ytd">Hittills i år</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-1">
-          <Label className="text-xs">Vy</Label>
-          <Select value={mode} onValueChange={(v) => setParam("mode", v)}>
-            <SelectTrigger className="w-[160px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="actuals">Utfall</SelectItem>
-              <SelectItem value="scenarios">Prisscenarier</SelectItem>
             </SelectContent>
           </Select>
         </div>

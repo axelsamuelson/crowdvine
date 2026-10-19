@@ -2,18 +2,12 @@
 
 import type { ReactNode } from "react";
 import { useState, useEffect } from "react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface PalletStockRow {
   id: string;
@@ -81,6 +75,17 @@ function PalletStockFrame({
   );
 }
 
+function commitNumber(
+  raw: string,
+  current: number,
+  onCommit: (value: number) => void,
+) {
+  const v = parseInt(raw, 10);
+  if (!Number.isNaN(v) && v >= 0 && v !== current) {
+    onCommit(v);
+  }
+}
+
 export function WineB2BPalletStockTable({
   wineId,
   onStockUpdated,
@@ -89,7 +94,9 @@ export function WineB2BPalletStockTable({
   const [data, setData] = useState<PalletStockData | null>(null);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
-  const [editValues, setEditValues] = useState<Record<string, { inbound: string; sold: string }>>({});
+  const [editValues, setEditValues] = useState<
+    Record<string, { inbound: string; sold: string }>
+  >({});
 
   const fetchStock = async () => {
     try {
@@ -98,7 +105,7 @@ export function WineB2BPalletStockTable({
         const json = await res.json();
         setData(json);
       }
-    } catch (err) {
+    } catch {
       toast.error("Kunde inte hämta pallager");
     } finally {
       setLoading(false);
@@ -183,134 +190,150 @@ export function WineB2BPalletStockTable({
     <PalletStockFrame
       embedded={embedded}
       title="B2B-lager (från pallar)"
-      description="Inbound = mottaget på pallen. Uppdateras här och på pall-sidan."
+      description="Inbound = mottaget. Sålt = hur många som sålts (drar ner lager)."
     >
-        <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-zinc-800">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Pall</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Inbound</TableHead>
-              <TableHead className="text-right">Sålt</TableHead>
-              <TableHead className="text-right">Kvar</TableHead>
-              <TableHead className="text-right">Frakt/flaska</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {data.rows.map((row) => (
-              <TableRow
-                key={row.id}
-                className={row.is_active ? undefined : "opacity-60"}
-              >
-                <TableCell className="font-medium">{row.pallet_name}</TableCell>
-                <TableCell>
-                  <span
-                    className={
-                      row.is_active
-                        ? "inline-flex rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-300"
-                        : "inline-flex rounded-full bg-zinc-500/10 px-2 py-0.5 text-xs font-medium text-zinc-600 dark:text-zinc-400"
-                    }
+      <div className="space-y-3">
+        {data.rows.map((row) => {
+          const inboundValue = editValues[row.id]?.inbound ?? String(row.inbound);
+          const soldValue = editValues[row.id]?.sold ?? String(row.sold);
+          const busy = updatingId === row.id;
+
+          return (
+            <div
+              key={row.id}
+              className={cn(
+                "space-y-3 rounded-lg border border-gray-200 p-3 dark:border-zinc-800",
+                !row.is_active && "opacity-60",
+              )}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-gray-900 dark:text-white">
+                    {row.pallet_name}
+                  </p>
+                  <p className="mt-0.5 text-xs tabular-nums text-gray-500 dark:text-zinc-400">
+                    Kvar {row.remaining}
+                    {(row.shipping_per_bottle_sek ?? 0) > 0
+                      ? ` · ${(row.shipping_per_bottle_sek ?? 0).toFixed(2)} kr/fl`
+                      : ""}
+                  </p>
+                </div>
+                <span
+                  className={
+                    row.is_active
+                      ? "inline-flex shrink-0 rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-300"
+                      : "inline-flex shrink-0 rounded-full bg-zinc-500/10 px-2 py-0.5 text-xs font-medium text-zinc-600 dark:text-zinc-400"
+                  }
+                >
+                  {row.is_active ? "Aktiv" : "Inaktiv"}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label
+                    htmlFor={`b2b-inbound-${row.id}`}
+                    className="text-xs text-gray-500 dark:text-zinc-400"
                   >
-                    {row.is_active ? "Aktiv" : "Inaktiv"}
-                  </span>
-                </TableCell>
-                <TableCell className="text-right">
+                    Inbound
+                  </Label>
                   <Input
+                    id={`b2b-inbound-${row.id}`}
                     type="number"
                     min={0}
-                    value={editValues[row.id]?.inbound ?? row.inbound}
+                    value={inboundValue}
                     onChange={(e) =>
                       setEditValues((prev) => ({
                         ...prev,
                         [row.id]: {
-                          ...prev[row.id],
                           inbound: e.target.value,
                           sold: prev[row.id]?.sold ?? String(row.sold),
                         },
                       }))
                     }
-                    onBlur={(e) => {
-                      const v = parseInt(e.target.value, 10);
-                      if (!Number.isNaN(v) && v >= 0 && v !== row.inbound) {
-                        updateItem(row.id, "quantity", v);
-                      }
-                    }}
+                    onBlur={(e) =>
+                      commitNumber(e.target.value, row.inbound, (v) =>
+                        updateItem(row.id, "quantity", v),
+                      )
+                    }
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
-                        const v = parseInt(
+                        commitNumber(
                           (e.target as HTMLInputElement).value,
-                          10,
+                          row.inbound,
+                          (v) => updateItem(row.id, "quantity", v),
                         );
-                        if (!Number.isNaN(v) && v >= 0 && v !== row.inbound) {
-                          updateItem(row.id, "quantity", v);
-                        }
                         (e.target as HTMLInputElement).blur();
                       }
                     }}
-                    disabled={updatingId === row.id}
-                    className="w-20 h-8 text-right"
+                    disabled={busy}
+                    className="h-8 text-right"
                   />
-                </TableCell>
-                <TableCell className="text-right">
+                </div>
+                <div className="space-y-1">
+                  <Label
+                    htmlFor={`b2b-sold-${row.id}`}
+                    className="text-xs text-gray-500 dark:text-zinc-400"
+                  >
+                    Sålt
+                  </Label>
                   <Input
+                    id={`b2b-sold-${row.id}`}
                     type="number"
                     min={0}
-                    value={editValues[row.id]?.sold ?? row.sold}
+                    value={soldValue}
                     onChange={(e) =>
                       setEditValues((prev) => ({
                         ...prev,
                         [row.id]: {
-                          ...prev[row.id],
-                          inbound: prev[row.id]?.inbound ?? String(row.inbound),
+                          inbound:
+                            prev[row.id]?.inbound ?? String(row.inbound),
                           sold: e.target.value,
                         },
                       }))
                     }
-                    onBlur={(e) => {
-                      const v = parseInt(e.target.value, 10);
-                      if (!Number.isNaN(v) && v >= 0 && v !== row.sold) {
-                        updateItem(row.id, "quantity_sold", v);
-                      }
-                    }}
+                    onBlur={(e) =>
+                      commitNumber(e.target.value, row.sold, (v) =>
+                        updateItem(row.id, "quantity_sold", v),
+                      )
+                    }
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
-                        const v = parseInt(
+                        commitNumber(
                           (e.target as HTMLInputElement).value,
-                          10,
+                          row.sold,
+                          (v) => updateItem(row.id, "quantity_sold", v),
                         );
-                        if (!Number.isNaN(v) && v >= 0 && v !== row.sold) {
-                          updateItem(row.id, "quantity_sold", v);
-                        }
                         (e.target as HTMLInputElement).blur();
                       }
                     }}
-                    disabled={updatingId === row.id}
-                    className="w-20 h-8 text-right"
+                    disabled={busy}
+                    className="h-8 text-right"
                   />
-                </TableCell>
-                <TableCell className="text-right tabular-nums">
-                  {row.remaining}
-                </TableCell>
-                <TableCell className="text-right tabular-nums text-gray-500 dark:text-zinc-400">
-                  {(row.shipping_per_bottle_sek ?? 0) > 0
-                    ? `${(row.shipping_per_bottle_sek ?? 0).toFixed(2)} kr`
-                    : "—"}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-        <div className="mt-4 flex flex-wrap justify-end gap-6 border-t pt-4 text-sm">
-          <span>Totalt inbound: {data.total_inbound}</span>
-          <span>Sålt: {data.total_sold}</span>
-          <span className="font-medium">
-            Tillgängligt (aktiva pallar):{" "}
-            <span className="mr-1 inline-flex h-2 w-2 rounded-full bg-green-500" />
-            {data.total_remaining}
-          </span>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+
+        <div className="space-y-1 border-t border-gray-200 pt-3 text-xs text-gray-600 dark:border-zinc-800 dark:text-zinc-400">
+          <div className="flex justify-between gap-2">
+            <span>Totalt inbound</span>
+            <span className="tabular-nums">{data.total_inbound}</span>
+          </div>
+          <div className="flex justify-between gap-2">
+            <span>Sålt</span>
+            <span className="tabular-nums">{data.total_sold}</span>
+          </div>
+          <div className="flex justify-between gap-2 font-medium text-gray-900 dark:text-white">
+            <span className="inline-flex items-center gap-1.5">
+              <span className="inline-flex h-2 w-2 rounded-full bg-green-500" />
+              Tillgängligt
+            </span>
+            <span className="tabular-nums">{data.total_remaining}</span>
+          </div>
         </div>
-        </div>
+      </div>
     </PalletStockFrame>
   );
 }

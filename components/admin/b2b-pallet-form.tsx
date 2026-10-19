@@ -178,6 +178,7 @@ interface PalletItem {
   wine_id: string;
   wine?: Wine;
   quantity: number;
+  quantity_sold: number;
   cost_cents_override: number | null;
 }
 
@@ -353,11 +354,13 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
                 wine_id: string;
                 wines?: Wine;
                 quantity?: number;
+                quantity_sold?: number;
                 cost_cents_override: number | null;
               }) => ({
                 wine_id: it.wine_id,
                 wine: it.wines,
                 quantity: it.quantity || 0,
+                quantity_sold: Math.max(0, Math.floor(it.quantity_sold ?? 0)),
                 cost_cents_override: it.cost_cents_override,
               }),
             );
@@ -388,6 +391,7 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
         wine_id: wine.id,
         wine,
         quantity: 1,
+        quantity_sold: 0,
         cost_cents_override: null,
       },
     ]);
@@ -411,7 +415,9 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
 
   const updateItem = (
     wineId: string,
-    updates: Partial<Pick<PalletItem, "quantity" | "cost_cents_override">>,
+    updates: Partial<
+      Pick<PalletItem, "quantity" | "quantity_sold" | "cost_cents_override">
+    >,
   ) => {
     setItems(
       items.map((i) => (i.wine_id === wineId ? { ...i, ...updates } : i)),
@@ -442,6 +448,7 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
         items: items.map((i) => ({
           wine_id: i.wine_id,
           quantity: i.quantity,
+          quantity_sold: i.quantity_sold,
           cost_cents_override:
             i.cost_cents_override != null ? i.cost_cents_override : null,
         })),
@@ -598,6 +605,7 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
           wine_id: string;
           wine: Wine | undefined;
           quantity: number;
+          quantity_sold: number;
         }>;
       }
     >();
@@ -616,6 +624,7 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
         wine_id: item.wine_id,
         wine: wineForCost,
         quantity: item.quantity,
+        quantity_sold: item.quantity_sold,
       });
       map.set(producer, curr);
     }
@@ -1851,7 +1860,7 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
                                         </TableCell>
                                         <TableCell className="text-right">
                                           <div
-                                            className="ml-auto flex items-center justify-end gap-1"
+                                            className="ml-auto flex flex-wrap items-center justify-end gap-1"
                                             onClick={stopRowToggle}
                                             onKeyDown={stopRowToggle}
                                           >
@@ -1870,8 +1879,30 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
                                               }
                                               className={cn(
                                                 inputSmClass,
-                                                "w-16 text-right",
+                                                "w-14 text-right",
                                               )}
+                                              title="Inbound"
+                                              aria-label="Inbound"
+                                            />
+                                            <Input
+                                              type="number"
+                                              min={0}
+                                              value={entry.quantity_sold}
+                                              onChange={(e) =>
+                                                updateItem(entry.wine_id, {
+                                                  quantity_sold: Math.max(
+                                                    0,
+                                                    parseInt(e.target.value, 10) ||
+                                                      0,
+                                                  ),
+                                                })
+                                              }
+                                              className={cn(
+                                                inputSmClass,
+                                                "w-14 text-right",
+                                              )}
+                                              title="Sålt"
+                                              aria-label="Sålt"
                                             />
                                             <Button
                                               type="button"
@@ -2008,8 +2039,17 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
                             className="min-w-[120px]"
                           />
                           <SortableTableHead
-                            label="Antal"
+                            label="Inbound"
                             sortKey="quantity"
+                            activeKey={wineSortKey}
+                            direction={wineSortDir}
+                            onSort={handleWineSort}
+                            align="right"
+                            className="w-16"
+                          />
+                          <SortableTableHead
+                            label="Sålt"
+                            sortKey="quantity_sold"
                             activeKey={wineSortKey}
                             direction={wineSortDir}
                             onSort={handleWineSort}
@@ -2077,7 +2117,7 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
                         {filteredSortedItems.length === 0 ? (
                           <TableRow>
                             <TableCell
-                              colSpan={10}
+                              colSpan={11}
                               className="py-8 text-center text-sm text-gray-500 dark:text-zinc-400"
                             >
                               Inga viner matchar filtren på pallen.
@@ -2137,6 +2177,27 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
                                     inputSmClass,
                                     "ml-auto w-16 text-right",
                                   )}
+                                  aria-label="Inbound"
+                                />
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <Input
+                                  type="number"
+                                  min={0}
+                                  value={item.quantity_sold}
+                                  onChange={(e) =>
+                                    updateItem(item.wine_id, {
+                                      quantity_sold: Math.max(
+                                        0,
+                                        parseInt(e.target.value, 10) || 0,
+                                      ),
+                                    })
+                                  }
+                                  className={cn(
+                                    inputSmClass,
+                                    "ml-auto w-16 text-right",
+                                  )}
+                                  aria-label="Sålt"
                                 />
                               </TableCell>
                               <TableCell className="text-right tabular-nums text-sm text-gray-600 dark:text-zinc-400">

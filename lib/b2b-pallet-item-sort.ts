@@ -12,6 +12,7 @@ export type PalletWineSortKey =
   | "producer"
   | "color"
   | "quantity"
+  | "quantity_sold"
   | "purchase"
   | "alcohol_tax"
   | "unit_total"
@@ -29,6 +30,7 @@ export type PalletProducerSortKey =
 type PalletItemLike = {
   wine_id: string;
   quantity: number;
+  quantity_sold?: number;
   cost_cents_override: number | null;
   wine?: WineCostFields & {
     wine_name?: string;
@@ -116,6 +118,8 @@ export function sortPalletItems<T extends PalletItemLike>(
         );
       case "quantity":
         return compareNumbers(a.quantity, b.quantity, direction);
+      case "quantity_sold":
+        return compareNumbers(a.quantity_sold ?? 0, b.quantity_sold ?? 0, direction);
       case "purchase":
         return compareNumbers(
           lineA.purchaseCentsPerBottle,
@@ -170,6 +174,7 @@ export type ProducerSummaryRow = {
     wine_id: string;
     wine: PalletItemLike["wine"];
     quantity: number;
+    quantity_sold: number;
   }>;
 };
 
