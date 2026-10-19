@@ -15,6 +15,7 @@ import {
   aggregateB2BPalletStock,
   B2B_PALLET_ITEM_STOCK_SELECT,
   fetchB2BWineAvailability,
+  fetchB2BWineIsNew,
 } from "@/lib/b2b-pallet-stock";
 import {
   isWineAvailableForSale,
@@ -585,6 +586,9 @@ export async function getCrowdvineProductByHandle(options: {
     : null;
   const b2bAvailability = b2bAvailabilityByWineId?.get(wineIdData.id);
   if (isB2BSite && b2bAvailability === "hidden") return null;
+  const b2bIsNew = isB2BSite
+    ? (await fetchB2BWineIsNew(sb, [wineIdData.id])).has(wineIdData.id)
+    : undefined;
   const catalogAvailableForSale = isWineAvailableForSale(
     (i as { available_for_sale?: boolean }).available_for_sale,
   );
@@ -763,6 +767,7 @@ export async function getCrowdvineProductByHandle(options: {
     createdAt: new Date().toISOString(),
     b2bStock: b2bStock ?? undefined,
     b2bAvailability,
+    b2bIsNew,
     priceBreakdown: {
       costAmount: i.cost_amount || 0,
       exchangeRate,

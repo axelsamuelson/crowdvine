@@ -221,6 +221,8 @@ export type Product = {
   b2bStock?: number | null;
   /** Dirtywine assortment state. Absent on pactwines.com. */
   b2bAvailability?: B2BWineAvailability;
+  /** True when wine is on a Dirty Wine pallet marked is_new. Absent on pactwines.com. */
+  b2bIsNew?: boolean;
   /** Pre-discount list unit price (SEK) for crowdvine cart lines; used in checkout. */
   originalUnitPriceSek?: number;
   /** True when line has member discount, early-bird, etc. (crowdvine cart). */

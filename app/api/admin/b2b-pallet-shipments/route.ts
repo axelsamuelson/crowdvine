@@ -4,6 +4,7 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { B2B_PALLET_SHIPMENT_SELECT } from "@/lib/b2b-pallet-shipment-select";
 import { validateB2bPickupProducerId } from "@/lib/b2b-pallet-shipment-validation";
 import { b2bPalletStatusSchema } from "@/lib/b2b/pallet-status";
+import { revalidateWineStorefrontCaches } from "@/lib/crowdvine/revalidate-wine-storefront";
 
 export async function GET() {
   try {
@@ -61,6 +62,7 @@ export async function POST(request: NextRequest) {
       delivered_at,
       cost_cents,
       pickup_producer_id,
+      is_new,
       items,
     } = body as {
       name: string;
@@ -68,6 +70,7 @@ export async function POST(request: NextRequest) {
       delivered_at?: string | null;
       cost_cents?: number | null;
       pickup_producer_id?: string | null;
+      is_new?: boolean;
       items: Array<{
         wine_id: string;
         quantity: number;
@@ -103,6 +106,7 @@ export async function POST(request: NextRequest) {
         delivered_at: delivered_at || null,
         cost_cents: cost_cents != null ? cost_cents : null,
         status: statusParsed.data,
+        is_new: is_new === true,
         pickup_producer_id: pickupCheck.pickupProducerId,
       })
       .select()
@@ -147,6 +151,14 @@ export async function POST(request: NextRequest) {
       .select(B2B_PALLET_SHIPMENT_SELECT)
       .eq("id", shipment.id)
       .single();
+
+    const handles = (
+      (full as { b2b_pallet_shipment_items?: Array<{ wines?: { handle?: string } }> } | null)
+        ?.b2b_pallet_shipment_items ?? []
+    )
+      .map((row) => row.wines?.handle)
+      .filter((h): h is string => typeof h === "string" && h.length > 0);
+    revalidateWineStorefrontCaches(handles);
 
     if (fetchError) return NextResponse.json(shipment);
     return NextResponse.json(full);

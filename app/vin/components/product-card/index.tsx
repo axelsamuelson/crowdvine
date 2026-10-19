@@ -13,6 +13,7 @@ import { ArrowRightIcon, CirclePlus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { MemberPrice } from "@/components/ui/member-price";
 import { StockBadge } from "@/components/product/stock-badge";
+import { NewBadge } from "@/components/product/new-badge";
 import { BoostBadgeSlot } from "@/components/producer/boost-badge";
 import { PeekTabAnchor } from "@/components/pdp/peek-tab-anchor";
 import type { RecommendationReason } from "@/lib/product/recommendations";
@@ -831,7 +832,8 @@ export const ProductCard = memo(
               </p>
             )}
             <BoostBadgeSlot active={product.producerBoostActive === true} />
-            <div className="mt-0.5 min-h-[14px] md:min-h-[18px]">
+            <div className="mt-0.5 flex min-h-[14px] flex-wrap items-center gap-0.5 md:min-h-[18px] md:gap-1">
+              <NewBadge show={product.b2bIsNew === true} />
               <StockBadge
                 b2bStock={(product as any).b2bStock}
                 availableForSale={product.availableForSale}
@@ -1060,7 +1062,8 @@ export const ProductCard = memo(
                   />
                 </div>
               )}
-              <div className="mt-0.5 min-h-[14px] md:min-h-[18px]">
+              <div className="mt-0.5 flex min-h-[14px] flex-wrap items-center gap-0.5 md:min-h-[18px] md:gap-1">
+                <NewBadge show={product.b2bIsNew === true} />
                 <StockBadge
                   b2bStock={(product as any).b2bStock}
                   availableForSale={product.availableForSale}

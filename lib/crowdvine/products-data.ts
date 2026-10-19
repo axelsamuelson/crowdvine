@@ -24,6 +24,7 @@ import {
   aggregateB2BPalletStock,
   B2B_PALLET_ITEM_STOCK_SELECT,
   fetchB2BWineAvailability,
+  fetchB2BWineIsNew,
   type B2BWineAvailability,
 } from "@/lib/b2b-pallet-stock";
 
@@ -275,6 +276,8 @@ export interface ProductData {
   b2bStock?: number | null;
   /** Dirtywine assortment state. Absent on pactwines.com. */
   b2bAvailability?: B2BWineAvailability;
+  /** True when wine is on a Dirty Wine pallet marked is_new. */
+  b2bIsNew?: boolean;
 }
 
 /**
@@ -608,6 +611,9 @@ export async function fetchProductsData(params?: {
   const b2bAvailabilityByWineId = isB2BSite
     ? await fetchB2BWineAvailability(sb, wineIds, sellableStockByWineId)
     : new Map<string, B2BWineAvailability>();
+  const b2bIsNewWineIds = isB2BSite
+    ? await fetchB2BWineIsNew(sb, wineIds)
+    : new Set<string>();
 
   wineImagesResult.data?.forEach((image: any) => {
     if (!wineImagesMap.has(image.wine_id)) wineImagesMap.set(image.wine_id, []);
@@ -638,6 +644,7 @@ export async function fetchProductsData(params?: {
     const b2bAvailability = isB2BSite
       ? (b2bAvailabilityByWineId.get(i.id) ?? "hidden")
       : undefined;
+    const b2bIsNew = isB2BSite ? b2bIsNewWineIds.has(i.id) : undefined;
     const images =
       wineImages.length > 0
         ? wineImages.map((img: any) => ({
@@ -747,6 +754,7 @@ export async function fetchProductsData(params?: {
       createdAt: new Date().toISOString(),
       b2bStock: b2bStock ?? undefined,
       b2bAvailability,
+      b2bIsNew,
       ...(i.b2b_margin_percentage != null &&
       i.b2b_margin_percentage >= 0 &&
       i.b2b_margin_percentage < 100
@@ -1008,6 +1016,9 @@ export async function fetchCollectionProductsData(
   const collAvailability = isB2BSite
     ? await fetchB2BWineAvailability(sb, collWineIds, collSellableStock)
     : new Map<string, B2BWineAvailability>();
+  const collIsNewWineIds = isB2BSite
+    ? await fetchB2BWineIsNew(sb, collWineIds)
+    : new Set<string>();
 
   const collectionProducts = collData.map((i: any) => {
     const grapeVarieties = Array.isArray(i.grape_varieties)
@@ -1031,6 +1042,7 @@ export async function fetchCollectionProductsData(
     const b2bAvailability = isB2BSite
       ? (collAvailability.get(i.id) ?? "hidden")
       : undefined;
+    const b2bIsNew = isB2BSite ? collIsNewWineIds.has(i.id) : undefined;
 
     const rawDesc = extractWineText(
       i.description as Record<string, string> | string | null,
@@ -1120,6 +1132,7 @@ export async function fetchCollectionProductsData(
       createdAt: new Date().toISOString(),
       b2bStock: b2bStock ?? undefined,
       b2bAvailability,
+      b2bIsNew,
       ...(i.b2b_margin_percentage != null &&
       i.b2b_margin_percentage >= 0 &&
       i.b2b_margin_percentage < 100

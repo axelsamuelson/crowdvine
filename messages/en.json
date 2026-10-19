@@ -221,6 +221,7 @@
     "outOfStock": "Out of stock",
     "incoming": "Coming soon",
     "inStock": "In stock",
+    "newBadge": "NEW",
     "lastBottle": "Last bottle",
     "lastBottles": "Last {count}",
     "warehouseOutOfStock": "Warehouse · Out of stock",
