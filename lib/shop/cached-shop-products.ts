@@ -22,6 +22,7 @@ export const getCachedShopProducts = unstable_cache(
       sekToDisplayRate: params.sekToDisplayRate,
     });
   },
-  ["shop-root-products"],
+  // Keep in sync with PDP shipping-fix cache bumps (Data Cache survives deploys).
+  ["shop-root-products", "v2-full-pallet-shipping"],
   { revalidate: 300, tags: [SHOP_PRODUCTS_CACHE_TAG] },
 );

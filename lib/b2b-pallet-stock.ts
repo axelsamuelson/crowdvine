@@ -138,13 +138,18 @@ export async function aggregateB2BPalletStockWithFullPalletTotals(
   const eligible = sellableOnly
     ? items.filter((row) => isB2BPalletSellable(row.b2b_pallet_shipments))
     : items;
+  const shipmentIds = shipmentIdsFromItems(eligible);
   const totalBottlesByShipment = await fetchTotalBottlesByShipmentIds(
     sb,
-    shipmentIdsFromItems(eligible),
+    shipmentIds,
+  );
+  // Empty Map is truthy — never pass it through (that forces ÷1 via `?? 1`).
+  const hasFullTotals = shipmentIds.some(
+    (id) => (totalBottlesByShipment.get(id) ?? 0) > 0,
   );
   return aggregateB2BPalletStock(items, {
     sellableOnly,
-    totalBottlesByShipment,
+    ...(hasFullTotals ? { totalBottlesByShipment } : {}),
   });
 }
 

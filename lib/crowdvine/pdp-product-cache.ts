@@ -32,8 +32,14 @@ export async function fetchCachedProductForLocale(
   const isB2BSite = isB2BHost(host);
   const cacheKey = isB2BSite ? "b2b" : "b2c";
 
-  return unstable_cache(fetchProduct, ["pdp-product", handle, locale, cacheKey], {
-    revalidate: PDP_REVALIDATE_SECONDS,
-    tags: [PDP_PRODUCT_CACHE_TAG, pdpProductHandleTag(handle)],
-  })();
+  // Bump cache key when B2B shipping math changes — Vercel Data Cache persists
+  // across deployments, so tag-only fixes stay stale until this key changes.
+  return unstable_cache(
+    fetchProduct,
+    ["pdp-product", "v2-full-pallet-shipping", handle, locale, cacheKey],
+    {
+      revalidate: PDP_REVALIDATE_SECONDS,
+      tags: [PDP_PRODUCT_CACHE_TAG, pdpProductHandleTag(handle)],
+    },
+  )();
 }
