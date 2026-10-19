@@ -130,6 +130,10 @@ export async function getCollectionProducts(params: {
   }
 
   const { isB2BHost } = await import("@/lib/b2b-site");
+  const { applyB2BPalletShippedSortIfNeeded } = await import(
+    "@/lib/b2b-pallet-shipped-sort"
+  );
+  const { getSupabaseAdmin } = await import("@/lib/supabase-admin");
   const isB2BSite =
     params?.host != null ? isB2BHost(params.host) : false;
   const data = await fetchCollectionProductsData((collection as any).id, {
@@ -139,7 +143,14 @@ export async function getCollectionProducts(params: {
     displayCurrencyCode: params?.displayCurrencyCode,
     sekToDisplayRate: params?.sekToDisplayRate,
   });
-  return data as Product[];
+  // Producer PLPs ignore SQL created_at; apply Dirty Wine pallet-shipped sort here.
+  const sorted = await applyB2BPalletShippedSortIfNeeded(data, {
+    sb: getSupabaseAdmin(),
+    isB2BSite,
+    sortKey: params.sortKey,
+    reverse: params.reverse ?? false,
+  });
+  return sorted as Product[];
 }
 
 /** Cart-funktioner shimmar till bookings; vi returnerar en ShopifyCart-kompatibel form */
