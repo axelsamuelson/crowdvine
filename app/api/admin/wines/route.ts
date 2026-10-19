@@ -5,7 +5,7 @@ import { getCurrentAdmin } from "@/lib/admin-auth-server";
 import { getAppUrl } from "@/lib/app-url";
 import { calculateB2BPriceExclVat } from "@/lib/price-breakdown";
 import {
-  aggregateB2BPalletStock,
+  aggregateB2BPalletStockWithFullPalletTotals,
   B2B_PALLET_ITEM_STOCK_SELECT,
 } from "@/lib/b2b-pallet-stock";
 
@@ -114,9 +114,11 @@ export async function GET(request: NextRequest) {
         .select(B2B_PALLET_ITEM_STOCK_SELECT)
         .in("wine_id", wineIds)
         .eq("b2b_pallet_shipments.is_active", true);
-      const aggregated = aggregateB2BPalletStock(palletItems ?? [], {
-        sellableOnly: true,
-      });
+      const aggregated = await aggregateB2BPalletStockWithFullPalletTotals(
+        sb,
+        palletItems ?? [],
+        { sellableOnly: true },
+      );
       aggregated.stockMap.forEach((v, k) => b2bStockMap.set(k, v));
       aggregated.shippingMap.forEach((v, k) => b2bShippingMap.set(k, v));
     } catch {

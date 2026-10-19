@@ -45,9 +45,50 @@ export function buildTotalBottlesByShipment(
   return map;
 }
 
+export function shipmentIdsFromItems(
+  items: Pick<B2BPalletShipmentItemRow, "shipment_id">[],
+): string[] {
+  return [
+    ...new Set(
+      items
+        .map((row) => row.shipment_id)
+        .filter((id): id is string => typeof id === "string" && id.length > 0),
+    ),
+  ];
+}
+
+/**
+ * Full-pallet bottle counts for the given shipment ids.
+ * Required when `items` are filtered to a subset of wines — otherwise shipping
+ * is divided by too few bottles (PDP showed ~133 SEK/bottle instead of ~6).
+ */
+export async function fetchTotalBottlesByShipmentIds(
+  sb: SupabaseClient,
+  shipmentIds: readonly string[],
+): Promise<Map<string, number>> {
+  const ids = [...new Set(shipmentIds.filter((id) => id.length > 0))];
+  if (ids.length === 0) return new Map();
+
+  const { data, error } = await sb
+    .from("b2b_pallet_shipment_items")
+    .select("shipment_id, quantity")
+    .in("shipment_id", ids);
+
+  if (error || !Array.isArray(data)) return new Map();
+  return buildTotalBottlesByShipment(data);
+}
+
 export function aggregateB2BPalletStock(
   items: B2BPalletShipmentItemRow[],
-  options?: { sellableOnly?: boolean },
+  options?: {
+    sellableOnly?: boolean;
+    /**
+     * Full pallet bottle counts keyed by shipment id.
+     * When omitted, totals are derived from `items` only (wrong if items are
+     * wine-filtered — pass {@link fetchTotalBottlesByShipmentIds} result).
+     */
+    totalBottlesByShipment?: Map<string, number>;
+  },
 ): { stockMap: Map<string, number>; shippingMap: Map<string, number> } {
   const sellableOnly = options?.sellableOnly ?? true;
   const stockMap = new Map<string, number>();
@@ -57,7 +98,8 @@ export function aggregateB2BPalletStock(
     ? items.filter((row) => isB2BPalletSellable(row.b2b_pallet_shipments))
     : items;
 
-  const totalBottlesByShipment = buildTotalBottlesByShipment(eligible);
+  const totalBottlesByShipment =
+    options?.totalBottlesByShipment ?? buildTotalBottlesByShipment(eligible);
   const byWine = new Map<string, { remaining: number; shippingSum: number }>();
 
   for (const row of eligible) {
@@ -84,6 +126,26 @@ export function aggregateB2BPalletStock(
   });
 
   return { stockMap, shippingMap };
+}
+
+/** Aggregate stock/shipping using full-pallet bottle counts (safe for wine-filtered queries). */
+export async function aggregateB2BPalletStockWithFullPalletTotals(
+  sb: SupabaseClient,
+  items: B2BPalletShipmentItemRow[],
+  options?: { sellableOnly?: boolean },
+): Promise<{ stockMap: Map<string, number>; shippingMap: Map<string, number> }> {
+  const sellableOnly = options?.sellableOnly ?? true;
+  const eligible = sellableOnly
+    ? items.filter((row) => isB2BPalletSellable(row.b2b_pallet_shipments))
+    : items;
+  const totalBottlesByShipment = await fetchTotalBottlesByShipmentIds(
+    sb,
+    shipmentIdsFromItems(eligible),
+  );
+  return aggregateB2BPalletStock(items, {
+    sellableOnly,
+    totalBottlesByShipment,
+  });
 }
 
 export const B2B_WINE_AVAILABILITIES = [

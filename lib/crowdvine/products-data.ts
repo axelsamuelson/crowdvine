@@ -21,7 +21,7 @@ import {
   roundAmountForDisplay,
 } from "@/lib/shopping-context/format";
 import {
-  aggregateB2BPalletStock,
+  aggregateB2BPalletStockWithFullPalletTotals,
   B2B_PALLET_ITEM_STOCK_SELECT,
   fetchB2BWineAvailability,
   fetchB2BWineIsNew,
@@ -107,9 +107,13 @@ async function fetchB2BStockAndShippingFromPallets(
       const sellable = (fallback.data || []).filter((row: any) =>
         row.b2b_pallet_shipments?.is_active !== false,
       );
-      return aggregateB2BPalletStock(sellable, { sellableOnly: true });
+      return aggregateB2BPalletStockWithFullPalletTotals(sb, sellable, {
+        sellableOnly: true,
+      });
     }
-    return aggregateB2BPalletStock(palletItems || [], { sellableOnly: true });
+    return aggregateB2BPalletStockWithFullPalletTotals(sb, palletItems || [], {
+      sellableOnly: true,
+    });
   } catch {
     return { stockMap: new Map(), shippingMap: new Map() };
   }

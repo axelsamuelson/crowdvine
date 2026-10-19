@@ -13,6 +13,7 @@ import type { AppLocale } from "@/lib/i18n/locale";
 import type { Product } from "@/lib/shopify/types";
 import {
   aggregateB2BPalletStock,
+  aggregateB2BPalletStockWithFullPalletTotals,
   B2B_PALLET_ITEM_STOCK_SELECT,
   fetchB2BWineAvailability,
   fetchB2BWineIsNew,
@@ -550,9 +551,10 @@ export async function getCrowdvineProductByHandle(options: {
       .eq("b2b_pallet_shipments.is_active", true);
     if (error) throw error;
     if (palletItems && palletItems.length > 0) {
-      const { stockMap, shippingMap } = aggregateB2BPalletStock(palletItems, {
-        sellableOnly: true,
-      });
+      const { stockMap, shippingMap } =
+        await aggregateB2BPalletStockWithFullPalletTotals(sb, palletItems, {
+          sellableOnly: true,
+        });
       b2bStock = stockMap.get(wineIdData.id) ?? 0;
       shippingPerBottleSek = shippingMap.get(wineIdData.id) ?? 0;
     }
@@ -561,7 +563,9 @@ export async function getCrowdvineProductByHandle(options: {
     try {
       const { data: fallback } = await sb
         .from("b2b_pallet_shipment_items")
-        .select("quantity, quantity_sold, b2b_pallet_shipments!inner(is_active)")
+        .select(
+          "wine_id, quantity, quantity_sold, shipment_id, b2b_pallet_shipments!inner(is_active)",
+        )
         .eq("wine_id", wineIdData.id)
         .eq("b2b_pallet_shipments.is_active", true);
       if (fallback?.length) {
