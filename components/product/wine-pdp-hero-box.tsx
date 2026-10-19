@@ -49,8 +49,14 @@ export function WinePdpHeroBox({
     producerName!.trim() !== UNKNOWN_PRODUCER_LABEL;
   const showColorCategoryLink =
     wineColor === "Red" || wineColor === "White" || wineColor === "Orange";
-  const showBylineRow = showProducerByline || showColorCategoryLink;
-  const leadRowStart = showBylineRow ? "md:row-start-3" : "md:row-start-2";
+  const leadRowStart = showProducerByline ? "md:row-start-3" : "md:row-start-2";
+  const colorCategoryRowStart = showProducerByline
+    ? lead
+      ? "md:row-start-4"
+      : "md:row-start-3"
+    : lead
+      ? "md:row-start-3"
+      : "md:row-start-2";
 
   return (
     <div
@@ -72,23 +78,14 @@ export function WinePdpHeroBox({
           {title}
         </h1>
 
-        {showBylineRow ? (
-          <div className="max-md:mt-1 space-y-1 md:col-start-1 md:row-start-2">
-            {showProducerByline ? (
-              <Link
-                href={producerPublicPath(producerSlug!, locale)}
-                className="text-sm text-stone-600 underline underline-offset-2 hover:text-foreground"
-              >
-                {producerName}
-              </Link>
-            ) : null}
-            {showColorCategoryLink ? (
-              <WinePdpColorCategoryLink
-                locale={locale}
-                color={wineColor}
-                farming={wineFarming}
-              />
-            ) : null}
+        {showProducerByline ? (
+          <div className="max-md:mt-1 md:col-start-1 md:row-start-2">
+            <Link
+              href={producerPublicPath(producerSlug!, locale)}
+              className="text-sm text-stone-600 underline underline-offset-2 hover:text-foreground"
+            >
+              {producerName}
+            </Link>
           </div>
         ) : null}
 
@@ -106,6 +103,24 @@ export function WinePdpHeroBox({
           >
             {lead}
           </p>
+        ) : null}
+
+        {showColorCategoryLink ? (
+          <div
+            className={cn(
+              "max-md:mt-3 md:col-span-2",
+              colorCategoryRowStart,
+              lead ? "md:pt-0" : "md:pt-1",
+              // Keep clear of the absolute case-help control in the corner.
+              showCaseHelp && "pr-8",
+            )}
+          >
+            <WinePdpColorCategoryLink
+              locale={locale}
+              color={wineColor}
+              farming={wineFarming}
+            />
+          </div>
         ) : null}
 
         {showCaseHelp ? (
