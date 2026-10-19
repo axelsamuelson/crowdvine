@@ -26,6 +26,7 @@ import {
   fetchB2BWineAvailability,
   type B2BWineAvailability,
 } from "@/lib/b2b-pallet-stock";
+import { applyB2BPalletShippedSortIfNeeded } from "@/lib/b2b-pallet-shipped-sort";
 
 async function resolveProductDisplayCurrency(params?: {
   displayCurrencyCode?: string;
@@ -797,7 +798,16 @@ export async function fetchProductsData(params?: {
   const visible = isB2BSite
     ? products.filter((product) => product.b2bAvailability !== "hidden")
     : products;
-  return visible.slice(0, limit);
+
+  // Dirty Wine Newest/Oldest: when the wine's pallet shipped, not wines.created_at.
+  const sorted = await applyB2BPalletShippedSortIfNeeded(visible, {
+    sb,
+    isB2BSite,
+    sortKey,
+    reverse,
+  });
+
+  return sorted.slice(0, limit);
 }
 
 /**
