@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, ReactNode } from "react";
 import { CartSource } from "./add-to-cart-with-source";
+import { B2B_PRODUCER_ORDERS_ENABLED } from "@/lib/b2b/flags";
 
 interface CartSourceContextType {
   selectedSource: CartSource;
@@ -12,8 +13,13 @@ const CartSourceContext = createContext<CartSourceContextType | undefined>(
   undefined,
 );
 
+const defaultB2BSource: CartSource = B2B_PRODUCER_ORDERS_ENABLED
+  ? "producer"
+  : "warehouse";
+
 export function CartSourceProvider({ children }: { children: ReactNode }) {
-  const [selectedSource, setSelectedSource] = useState<CartSource>("producer");
+  const [selectedSource, setSelectedSource] =
+    useState<CartSource>(defaultB2BSource);
 
   return (
     <CartSourceContext.Provider value={{ selectedSource, setSelectedSource }}>

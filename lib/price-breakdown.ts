@@ -50,6 +50,34 @@ export function calculateB2BPriceExclVat(
 }
 
 /**
+ * Whole SEK for Dirty Wine / admin B2B display.
+ * Matches admin wine-form (`Math.round`) so PLP does not ceil 147.2 → 148.
+ */
+export function roundB2BPriceExclVatSek(priceExclVat: number): number {
+  if (!Number.isFinite(priceExclVat) || priceExclVat <= 0) return 0;
+  return Math.round(priceExclVat);
+}
+
+/** Live B2B unit price exkl. moms, rounded the same way as admin + shop cards. */
+export function calculateRoundedB2BPriceExclVat(
+  costAmount: number,
+  exchangeRate: number,
+  alcoholTaxCents: number,
+  b2bMarginPercentage: number,
+  shippingPerBottleSek: number = 0,
+): number {
+  return roundB2BPriceExclVatSek(
+    calculateB2BPriceExclVat(
+      costAmount,
+      exchangeRate,
+      alcoholTaxCents,
+      b2bMarginPercentage,
+      shippingPerBottleSek,
+    ),
+  );
+}
+
+/**
  * Calculate B2B price with member discount applied to margin only
  * @param b2bPriceExclVat - B2B price exkl VAT without discount
  * @param b2bMarginPercentage - B2B margin percentage (0-100)

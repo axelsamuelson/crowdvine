@@ -1,7 +1,7 @@
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { wineDisplayTitle } from "@/lib/wine-display-title";
 import { getAppUrl, getInternalFetchHeaders } from "@/lib/app-url";
-import { calculateB2BPriceExclVat } from "@/lib/price-breakdown";
+import { calculateRoundedB2BPriceExclVat } from "@/lib/price-breakdown";
 import { resolveWineAlcoholTaxCents } from "@/lib/wine-alcohol-tax";
 import { isB2BHost } from "@/lib/b2b-site";
 import { resolveWineAbv } from "@/lib/product/wine-enrichment";
@@ -780,15 +780,13 @@ export async function getCrowdvineProductByHandle(options: {
         i.b2b_margin_percentage != null &&
         i.b2b_margin_percentage >= 0 &&
         i.b2b_margin_percentage < 100
-          ? Math.round(
-              calculateB2BPriceExclVat(
-                i.cost_amount || 0,
-                exchangeRate,
-                resolveWineAlcoholTaxCents(i.alcohol_tax_cents),
-                i.b2b_margin_percentage,
-                shippingPerBottleSek,
-              ) * 100,
-            ) / 100
+          ? calculateRoundedB2BPriceExclVat(
+              i.cost_amount || 0,
+              exchangeRate,
+              resolveWineAlcoholTaxCents(i.alcohol_tax_cents),
+              i.b2b_margin_percentage,
+              shippingPerBottleSek,
+            )
           : undefined,
     },
   };

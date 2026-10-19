@@ -10,7 +10,7 @@ import {
   buildWineBoxSeoDescription,
   buildWineBoxSeoTitle,
 } from "@/lib/seo/wine-box-metadata";
-import { calculateB2BPriceExclVat } from "@/lib/price-breakdown";
+import { calculateRoundedB2BPriceExclVat } from "@/lib/price-breakdown";
 import { resolveWineAlcoholTaxCents } from "@/lib/wine-alcohol-tax";
 import { convertSekForDisplay } from "@/lib/shopping-context/currency-convert";
 import {
@@ -760,18 +760,15 @@ export async function fetchProductsData(params?: {
       i.b2b_margin_percentage >= 0 &&
       i.b2b_margin_percentage < 100
         ? {
-            b2bPriceExclVat:
-              Math.round(
-                calculateB2BPriceExclVat(
-                  i.cost_amount || 0,
-                  rateMap[(i.cost_currency || "EUR") as string] ??
-                    i.exchange_rate ??
-                    1,
-                  resolveWineAlcoholTaxCents(i.alcohol_tax_cents),
-                  i.b2b_margin_percentage,
-                  b2bShippingMap.get(i.id) ?? 0,
-                ) * 100,
-              ) / 100,
+            b2bPriceExclVat: calculateRoundedB2BPriceExclVat(
+              i.cost_amount || 0,
+              rateMap[(i.cost_currency || "EUR") as string] ??
+                i.exchange_rate ??
+                1,
+              resolveWineAlcoholTaxCents(i.alcohol_tax_cents),
+              i.b2b_margin_percentage,
+              b2bShippingMap.get(i.id) ?? 0,
+            ),
           }
         : {}),
       // Add priceBreakdown for price calculations
@@ -787,17 +784,15 @@ export async function fetchProductsData(params?: {
           i.b2b_margin_percentage != null &&
           i.b2b_margin_percentage >= 0 &&
           i.b2b_margin_percentage < 100
-            ? Math.round(
-                calculateB2BPriceExclVat(
-                  i.cost_amount || 0,
-                  rateMap[(i.cost_currency || "EUR") as string] ??
-                    i.exchange_rate ??
-                    1,
-                  resolveWineAlcoholTaxCents(i.alcohol_tax_cents),
-                  i.b2b_margin_percentage,
-                  b2bShippingMap.get(i.id) ?? 0,
-                ) * 100,
-              ) / 100
+            ? calculateRoundedB2BPriceExclVat(
+                i.cost_amount || 0,
+                rateMap[(i.cost_currency || "EUR") as string] ??
+                  i.exchange_rate ??
+                  1,
+                resolveWineAlcoholTaxCents(i.alcohol_tax_cents),
+                i.b2b_margin_percentage,
+                b2bShippingMap.get(i.id) ?? 0,
+              )
             : undefined,
       },
     };
@@ -1147,18 +1142,15 @@ export async function fetchCollectionProductsData(
       i.b2b_margin_percentage >= 0 &&
       i.b2b_margin_percentage < 100
         ? {
-            b2bPriceExclVat:
-              Math.round(
-                calculateB2BPriceExclVat(
-                  i.cost_amount || 0,
-                  collRateMap[(i.cost_currency || "EUR") as string] ??
-                    i.exchange_rate ??
-                    1,
-                  resolveWineAlcoholTaxCents(i.alcohol_tax_cents),
-                  i.b2b_margin_percentage,
-                  collB2bShippingMap.get(i.id) ?? 0,
-                ) * 100,
-              ) / 100,
+            b2bPriceExclVat: calculateRoundedB2BPriceExclVat(
+              i.cost_amount || 0,
+              collRateMap[(i.cost_currency || "EUR") as string] ??
+                i.exchange_rate ??
+                1,
+              resolveWineAlcoholTaxCents(i.alcohol_tax_cents),
+              i.b2b_margin_percentage,
+              collB2bShippingMap.get(i.id) ?? 0,
+            ),
           }
         : {}),
     };

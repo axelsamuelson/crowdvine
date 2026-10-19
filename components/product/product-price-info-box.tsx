@@ -5,9 +5,11 @@ import { WineEnrichmentCollapsible } from "@/components/product/wine-enrichment-
 import { useProductPrice } from "@/lib/hooks/use-product-price";
 import { useMembershipDiscountPercent } from "@/lib/hooks/use-membership-discount-percent";
 import { Product } from "@/lib/shopify/types";
-import { useCartSource } from "@/components/cart/cart-source-context";
+import { useEffectiveCartSource } from "@/lib/hooks/use-effective-cart-source";
 import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
 import { useTranslations } from "@/lib/hooks/use-translations";
+import { getProductBasePriceCents } from "@/lib/price-breakdown";
+import { priceExclVat } from "@/lib/shopify/utils";
 
 interface ProductPriceInfoBoxProps {
   product: Product;
@@ -19,7 +21,7 @@ interface ProductPriceInfoBoxProps {
 export function ProductPriceInfoBox({ product }: ProductPriceInfoBoxProps) {
   const { t } = useTranslations();
   const discountPercentage = useMembershipDiscountPercent();
-  const { selectedSource } = useCartSource();
+  const selectedSource = useEffectiveCartSource();
   const isB2B = useB2BPriceMode();
   const breakdown = useProductPrice(product, selectedSource);
 
@@ -30,13 +32,16 @@ export function ProductPriceInfoBox({ product }: ProductPriceInfoBoxProps) {
     return null;
   }
 
-  // On B2C sites (pactwines.com): breakdown.total is inkl. moms, show as is
-  // On B2B sites (dirtywine.se): 
-  //   - For producer source: breakdown.total is inkl. moms (B2C), convert to exkl. moms
-  //   - For warehouse source: breakdown.total is already exkl. moms (B2B)
-  const displayTotal = isB2B && selectedSource === "producer"
-    ? breakdown.total / 1.25 // Convert from inkl. moms to exkl. moms
-    : breakdown.total; // B2C: inkl. moms, B2B warehouse: exkl. moms
+  // B2C: inkl. moms. Dirty Wine warehouse: exkl. moms. Producer fallback: exkl. from öre.
+  const usingWarehouseB2B =
+    isB2B &&
+    selectedSource === "warehouse" &&
+    product.priceBreakdown.b2bPriceExclVat != null;
+  const displayTotal = usingWarehouseB2B
+    ? breakdown.total
+    : isB2B
+      ? priceExclVat(getProductBasePriceCents(product) / 100)
+      : breakdown.total;
 
   return (
     <WineEnrichmentCollapsible title={t("product.pdp.priceBreakdown")}>
@@ -52,7 +57,9 @@ export function ProductPriceInfoBox({ product }: ProductPriceInfoBoxProps) {
         hasMemberDiscount={hasMemberDiscount}
         memberDiscountPercent={discountPercentage}
         memberDiscountAmount={breakdown.memberDiscountAmount}
-        listTotalInclVat={breakdown.listTotalInclVat}
+        listTotalInclVat={
+          usingWarehouseB2B ? undefined : breakdown.listTotalInclVat
+        }
         variant="inline"
       />
     </WineEnrichmentCollapsible>

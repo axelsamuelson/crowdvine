@@ -211,14 +211,20 @@ export function MemberPrice({
         ? parsedAmount
         : null;
 
+  // B2B exkl. moms: round like admin (147.2 → 147). B2C inkl: keep ceil.
+  const moneyRound = showExclVat ? ("round" as const) : ("ceil" as const);
+
   const formatListPrice = (value: number) =>
     listPriceSek != null
-      ? formatSek(value)
-      : formatProductPrice({
-          amount: value,
-          listCurrencyCode: currencyCode,
-          basePriceSek: listPriceSek,
-        });
+      ? formatSek(value, { round: moneyRound })
+      : formatProductPrice(
+          {
+            amount: value,
+            listCurrencyCode: currencyCode,
+            basePriceSek: listPriceSek,
+          },
+          { round: moneyRound },
+        );
 
   if (calculatedTotalPrice != null) {
     const displayPrice = calculatedTotalPrice;
@@ -228,7 +234,7 @@ export function MemberPrice({
       return (
         <span className={className}>
           <span className="flex flex-col">
-            <span>{formatSek(displayPrice)}</span>
+            <span>{formatSek(displayPrice, { round: moneyRound })}</span>
             {showVatLabel ? (
               <span className="text-[8px] font-normal text-muted-foreground md:text-[10px]">
                 {vatLabel}
@@ -247,9 +253,9 @@ export function MemberPrice({
     return (
       <DiscountPriceLayout
         {...discountLayoutProps(
-          formatSek(displayPrice),
+          formatSek(displayPrice, { round: moneyRound }),
           listPriceSek != null || showExclVat
-            ? formatSek(originalPrice)
+            ? formatSek(originalPrice, { round: moneyRound })
             : formatListPrice(originalPrice),
         )}
       />

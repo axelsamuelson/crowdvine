@@ -3,11 +3,14 @@
 import { MemberPrice } from "@/components/ui/member-price";
 import { useProductPrice } from "@/lib/hooks/use-product-price";
 import { Product } from "@/lib/shopify/types";
-import { formatPrice } from "@/lib/shopify/utils";
-import { useCartSource } from "@/components/cart/cart-source-context";
+import { useEffectiveCartSource } from "@/lib/hooks/use-effective-cart-source";
 import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
 import { useTranslations } from "@/lib/hooks/use-translations";
-import { getProductListPriceSek } from "@/lib/price-breakdown";
+import {
+  getProductBasePriceCents,
+  getProductListPriceSek,
+} from "@/lib/price-breakdown";
+import { priceExclVat } from "@/lib/shopify/utils";
 
 interface ProductPriceDisplayProps {
   product: Product;
@@ -28,7 +31,7 @@ export function ProductPriceDisplay({
   showMembershipBadge = true,
 }: ProductPriceDisplayProps) {
   const { t } = useTranslations();
-  const { selectedSource } = useCartSource();
+  const selectedSource = useEffectiveCartSource();
   const isB2B = useB2BPriceMode();
   const breakdown = useProductPrice(product, selectedSource);
   const listPriceSek = getProductListPriceSek(product);
@@ -42,13 +45,14 @@ export function ProductPriceDisplay({
   // If we have breakdown, use its total price for consistency
   if (breakdown) {
     if (isB2B) {
-      // On B2B site: show exkl. moms
-      // For producer source, breakdown.total includes VAT, so convert to exkl. moms
-      // For warehouse source, breakdown.total is already exkl. moms
-      const priceExclVat = selectedSource === "producer"
-        ? breakdown.total / 1.25 // Convert from inkl. moms to exkl. moms
-        : breakdown.total;
-      
+      // Warehouse/B2B totals are already exkl. moms. Producer/B2C totals are inkl.
+      // Convert from stored öre (not ceiled whole-SEK inkl) so admin 147 stays 147.
+      const priceExclVatAmount =
+        selectedSource === "warehouse" &&
+        product.priceBreakdown?.b2bPriceExclVat != null
+          ? breakdown.total
+          : priceExclVat(getProductBasePriceCents(product) / 100);
+
       return (
         <MemberPrice
           amount={product.priceRange.minVariantPrice.amount}
@@ -56,9 +60,9 @@ export function ProductPriceDisplay({
           basePriceSek={listPriceSek ?? undefined}
           className={className}
           showBadge={showMembershipBadge}
-          priceExclVatOverride={priceExclVat}
+          priceExclVatOverride={priceExclVatAmount}
           b2bMarginPercentage={product.priceBreakdown?.b2bMarginPercentage}
-          calculatedTotalPrice={priceExclVat}
+          calculatedTotalPrice={priceExclVatAmount}
           forceShowExclVat={true}
           vatExcludedShortLabel={t("common.exclVat")}
         />

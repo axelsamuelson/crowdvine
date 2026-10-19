@@ -42,7 +42,11 @@ import {
   getGrapeVarieties,
   createGrapeVariety,
 } from "@/lib/actions/grape-varieties";
-import { calculateB2BPriceExclVat } from "@/lib/price-breakdown";
+import {
+  calculateB2BPriceExclVat,
+  roundB2BPriceExclVatSek,
+} from "@/lib/price-breakdown";
+import { resolveWineAlcoholTaxCents } from "@/lib/wine-alcohol-tax";
 import { WineB2BPalletStockTable } from "@/components/admin/wine-b2b-pallet-stock-table";
 import {
   WineEnrichmentCollapsible,
@@ -470,15 +474,15 @@ export default function WineForm({
         formData.b2b_margin_percentage < 100 &&
         (formData.cost_amount ?? 0) > 0;
       const b2b_price_cents = hasB2B
-        ? Math.round(
+        ? roundB2BPriceExclVatSek(
             calculateB2BPriceExclVat(
               formData.cost_amount ?? 0,
               exchangeRate,
-              2219,
+              resolveWineAlcoholTaxCents(formData.alcohol_tax_cents),
               formData.b2b_margin_percentage!,
               shippingPerBottleSek,
-            ) * 100,
-          )
+            ),
+          ) * 100
         : null;
       const b2b_cost_sek =
         hasB2B
@@ -1294,11 +1298,13 @@ export default function WineForm({
                       <div className="space-y-0.5 text-xs text-zinc-400">
                         <div className="text-xs font-medium text-zinc-200">
                           B2B-pris:{" "}
-                          {Math.round(
+                          {roundB2BPriceExclVatSek(
                             calculateB2BPriceExclVat(
                               formData.cost_amount ?? 0,
                               exchangeRate,
-                              2219,
+                              resolveWineAlcoholTaxCents(
+                                formData.alcohol_tax_cents,
+                              ),
                               formData.b2b_margin_percentage,
                               shippingPerBottleSek,
                             ),
@@ -1306,11 +1312,13 @@ export default function WineForm({
                           SEK exkl. moms
                         </div>
                         <div className="text-xs font-medium text-zinc-200">
-                          {Math.round(
+                          {roundB2BPriceExclVatSek(
                             calculateB2BPriceExclVat(
                               formData.cost_amount ?? 0,
                               exchangeRate,
-                              2219,
+                              resolveWineAlcoholTaxCents(
+                                formData.alcohol_tax_cents,
+                              ),
                               formData.b2b_margin_percentage,
                               shippingPerBottleSek,
                             ) * 1.25,
