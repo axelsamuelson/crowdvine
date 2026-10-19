@@ -274,3 +274,34 @@ async function fetchB2BPalletPresence(
 
   return { inTransit, active };
 }
+
+/**
+ * Wine ids that sit on at least one Dirty Wine pallet marked `is_new`.
+ * Used for the NEW badge on dirtywine.se.
+ */
+export async function fetchB2BWineIsNew(
+  sb: SupabaseClient,
+  wineIds: readonly string[],
+): Promise<Set<string>> {
+  const result = new Set<string>();
+  if (wineIds.length === 0) return result;
+
+  try {
+    const { data, error } = await sb
+      .from("b2b_pallet_shipment_items")
+      .select("wine_id, b2b_pallet_shipments!inner(is_new)")
+      .in("wine_id", wineIds)
+      .eq("b2b_pallet_shipments.is_new", true);
+
+    if (error || !Array.isArray(data)) return result;
+
+    for (const row of data) {
+      const wineId = readWineId(row);
+      if (wineId) result.add(wineId);
+    }
+  } catch {
+    /* is_new column may not exist yet */
+  }
+
+  return result;
+}

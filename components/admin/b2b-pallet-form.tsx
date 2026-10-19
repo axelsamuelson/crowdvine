@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/collapsible";
 import { ArrowLeft, Trash2, ChevronsUpDown, ChevronRight, Plus, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
@@ -259,6 +260,8 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
   const [deliveredAt, setDeliveredAt] = useState("");
   const [palletCostCents, setPalletCostCents] = useState<number | "">("");
   const [status, setStatus] = useState<B2BPalletStatus>("inactive");
+  /** When true, wines on this pallet show a NEW badge on dirtywine.se. */
+  const [isNew, setIsNew] = useState(false);
   /** null = automatic (20% pallet-zone rule) */
   const [pickupProducerId, setPickupProducerId] = useState<string | null>(null);
   const [items, setItems] = useState<PalletItem[]>([]);
@@ -341,6 +344,7 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
             );
             const parsedStatus = b2bPalletStatusSchema.safeParse(data.status);
             setStatus(parsedStatus.success ? parsedStatus.data : "inactive");
+            setIsNew(data.is_new === true);
             setPickupProducerId(
               (data.pickup_producer_id as string | null | undefined) ?? null,
             );
@@ -433,6 +437,7 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
         delivered_at: deliveredAt || null,
         cost_cents: palletCostCents !== "" ? palletCostCents : null,
         status,
+        is_new: isNew,
         pickup_producer_id: pickupProducerId,
         items: items.map((i) => ({
           wine_id: i.wine_id,
@@ -1265,6 +1270,26 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
                 Planerad syns inte i sortimentet. Kommande (packad eller på väg)
                 visas som kommande. Levererad räknas som lager.
               </p>
+            </div>
+            <div className="flex items-start gap-3 rounded-md border border-gray-200 bg-gray-50/80 px-3 py-3 dark:border-zinc-700 dark:bg-zinc-900/50">
+              <Checkbox
+                id="pallet_is_new"
+                checked={isNew}
+                onCheckedChange={(checked) => setIsNew(checked === true)}
+                className="mt-0.5"
+              />
+              <div className="space-y-1">
+                <Label
+                  htmlFor="pallet_is_new"
+                  className="cursor-pointer text-sm font-medium text-gray-900 dark:text-zinc-100"
+                >
+                  New
+                </Label>
+                <p className={hintClass}>
+                  Visar en NEW-etikett på dirtywine.se för alla viner på den här
+                  pallen (PDP och shop).
+                </p>
+              </div>
             </div>
           </div>
         </section>

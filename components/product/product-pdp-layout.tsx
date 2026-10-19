@@ -129,6 +129,7 @@ export function ProductPdpLayout({
                         b2bStock={product.b2bStock}
                         availableForSale={product.availableForSale}
                         b2bAvailability={product.b2bAvailability}
+                        b2bIsNew={product.b2bIsNew}
                       />
                     }
                     showCaseHelp={

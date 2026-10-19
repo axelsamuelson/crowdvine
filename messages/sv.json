@@ -221,6 +221,7 @@
     "outOfStock": "Slut i lager",
     "incoming": "Kommande",
     "inStock": "I lager",
+    "newBadge": "NY",
     "lastBottle": "Sista flaskan",
     "lastBottles": "Sista {count}",
     "warehouseOutOfStock": "Lager · Slut",
