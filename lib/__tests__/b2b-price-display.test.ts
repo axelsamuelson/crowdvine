@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  calculateB2BPriceBreakdown,
   calculateB2BPriceExclVat,
   calculateRoundedB2BPriceExclVat,
   roundB2BPriceExclVatSek,
@@ -33,5 +34,21 @@ describe("B2B price display consistency", () => {
     expect(oldPath).toBe(147.2);
     expect(roundAmountForDisplay(oldPath, "SEK", "ceil")).toBe(148);
     expect(roundAmountForDisplay(excl, "SEK", "round")).toBe(147);
+  });
+
+  it("B2B breakdown total stays 147 for Up Tempo inputs (not 147.01 → ceil 148)", () => {
+    const breakdown = calculateB2BPriceBreakdown(
+      147,
+      8,
+      11.13,
+      2219,
+      20,
+      0,
+      6.666666666666667,
+    );
+    expect(breakdown.total).toBe(147);
+    expect(roundAmountForDisplay(breakdown.total, "SEK", "round")).toBe(147);
+    // Regression: component ceils used to produce 147.01
+    expect(roundAmountForDisplay(147.01, "SEK", "ceil")).toBe(148);
   });
 });

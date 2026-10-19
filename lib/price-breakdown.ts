@@ -148,72 +148,47 @@ export function calculateB2BPriceBreakdown(
   const resolvedAlcoholTaxCents = resolveWineAlcoholTaxCents(alcoholTaxCents);
   // Convert alcohol tax from öre to SEK and round up
   const alcoholTax = Math.ceil((resolvedAlcoholTaxCents / 100) * 100) / 100;
-  
+
   // Calculate cost in SEK and round up
   const costInSek = Math.ceil((costAmount * exchangeRate) * 100) / 100;
-  
+
   // Store original margin percentage
   const originalMarginPercentage = b2bMarginPercentage;
-  
+
   // Apply member discount to margin percentage
   const marginPercent = b2bMarginPercentage * (1 - memberDiscountPercent / 100);
-  
+
   // Calculate margin amount and round up
   // For B2B: b2bPriceExclVat = cost + alcoholTax + shipping + margin
   // So: margin = b2bPriceExclVat - cost - alcoholTax - shipping
-  const margin = Math.ceil((b2bPriceExclVat - costInSek - alcoholTax - shippingPerBottleSek) * 100) / 100;
-  
+  const margin =
+    Math.ceil(
+      (b2bPriceExclVat - costInSek - alcoholTax - shippingPerBottleSek) * 100,
+    ) / 100;
+
   // For B2B, there's no VAT (price is exkl. moms)
   const vat = 0;
-  
-  // Calculate total as sum of components to ensure consistency
-  // Round up to 2 decimal places to match currency formatting
-  let total = Math.ceil((costInSek + alcoholTax + shippingPerBottleSek + margin) * 100) / 100;
-  
-  // If there's a difference between calculated total and expected b2bPriceExclVat,
-  // add the difference to bottle cost to ensure they match exactly
-  const expectedTotal = Math.ceil(b2bPriceExclVat * 100) / 100;
-  const diff = expectedTotal - total;
-  if (Math.abs(diff) >= 0.01) {
-    // Add difference to cost (round up to ensure we don't lose precision)
-    const adjustedCost = Math.ceil((costInSek + diff) * 100) / 100;
-    // Recalculate total with adjusted cost - this should now match expectedTotal exactly
-    total = Math.ceil((adjustedCost + alcoholTax + shippingPerBottleSek + margin) * 100) / 100;
-    // Final check: if there's still a tiny difference due to rounding, adjust cost one more time
-    const finalDiff = expectedTotal - total;
-    if (Math.abs(finalDiff) >= 0.01) {
-      const finalCost = Math.ceil((adjustedCost + finalDiff) * 100) / 100;
-      total = expectedTotal; // Set total directly to expected to ensure exact match
-      return {
-        cost: finalCost,
-        alcoholTax,
-        shipping: shippingPerBottleSek > 0 ? shippingPerBottleSek : undefined,
-        margin,
-        vat,
-        total,
-        marginPercentage: marginPercent,
-        originalMarginPercentage,
-      };
-    }
-    return {
-      cost: adjustedCost,
-      alcoholTax,
-      shipping: shippingPerBottleSek > 0 ? shippingPerBottleSek : undefined,
-      margin,
-      vat,
-      total,
-      marginPercentage: marginPercent,
-      originalMarginPercentage,
-    };
-  }
+
+  // Canonical shop/admin total (whole SEK). Component ceils can sum to 147.01;
+  // that must not leak into the displayed total (ceil → 148).
+  const expectedTotal = roundB2BPriceExclVatSek(b2bPriceExclVat);
+  const componentsSum =
+    Math.round(
+      (costInSek + alcoholTax + shippingPerBottleSek + margin) * 100,
+    ) / 100;
+  const diff = expectedTotal - componentsSum;
+  const cost =
+    Math.abs(diff) >= 0.005
+      ? Math.round((costInSek + diff) * 100) / 100
+      : costInSek;
 
   return {
-    cost: costInSek,
+    cost,
     alcoholTax,
     shipping: shippingPerBottleSek > 0 ? shippingPerBottleSek : undefined,
     margin,
     vat,
-    total,
+    total: expectedTotal,
     marginPercentage: marginPercent,
     originalMarginPercentage,
   };

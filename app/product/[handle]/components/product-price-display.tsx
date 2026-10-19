@@ -50,7 +50,7 @@ export function ProductPriceDisplay({
       const priceExclVatAmount =
         selectedSource === "warehouse" &&
         product.priceBreakdown?.b2bPriceExclVat != null
-          ? breakdown.total
+          ? product.priceBreakdown.b2bPriceExclVat
           : priceExclVat(getProductBasePriceCents(product) / 100);
 
       return (

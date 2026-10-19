@@ -38,7 +38,7 @@ export function ProductPriceInfoBox({ product }: ProductPriceInfoBoxProps) {
     selectedSource === "warehouse" &&
     product.priceBreakdown.b2bPriceExclVat != null;
   const displayTotal = usingWarehouseB2B
-    ? breakdown.total
+    ? (product.priceBreakdown.b2bPriceExclVat ?? breakdown.total)
     : isB2B
       ? priceExclVat(getProductBasePriceCents(product) / 100)
       : breakdown.total;
@@ -60,6 +60,7 @@ export function ProductPriceInfoBox({ product }: ProductPriceInfoBoxProps) {
         listTotalInclVat={
           usingWarehouseB2B ? undefined : breakdown.listTotalInclVat
         }
+        roundMoney={usingWarehouseB2B || isB2B ? "round" : "ceil"}
         variant="inline"
       />
     </WineEnrichmentCollapsible>

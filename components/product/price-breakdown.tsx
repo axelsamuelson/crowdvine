@@ -95,6 +95,8 @@ export interface PriceBreakdownProps {
   listTotalInclVat?: number;
   /** When "inline", render breakdown content only (no popover), for use in product page white box */
   variant?: "popover" | "inline";
+  /** B2B exkl. moms should round like admin/PLP (147.01 → 147), not ceil to 148. */
+  roundMoney?: "ceil" | "round";
 }
 
 /** When margin is 0, give it a small visible share; rest of bar reflects true value proportions */
@@ -148,6 +150,7 @@ function PriceBreakdownContent({
   marginPercentage,
   barSegments,
   tableRows,
+  roundMoney = "ceil",
 }: Pick<
   PriceBreakdownProps,
   | "totalPrice"
@@ -156,13 +159,15 @@ function PriceBreakdownContent({
   | "memberDiscountAmount"
   | "listTotalInclVat"
   | "marginPercentage"
+  | "roundMoney"
 > & {
   barSegments: BarSegment[];
   tableRows: TableRow[];
 }) {
   const { t } = useTranslations();
   const { formatSek } = useDisplayMoney();
-  const formatCurrency = (amount: number) => formatSek(amount);
+  const formatCurrency = (amount: number) =>
+    formatSek(amount, { round: roundMoney });
   const lineLabel = (lineKey: BreakdownLineKey) =>
     t(BREAKDOWN_LINE_MESSAGE_KEYS[lineKey]);
 
@@ -389,6 +394,7 @@ export function PriceBreakdown({
   memberDiscountAmount = 0,
   listTotalInclVat,
   variant = "popover",
+  roundMoney = "ceil",
 }: PriceBreakdownProps) {
   const { t } = useTranslations();
   const [isOpen, setIsOpen] = useState(false);
@@ -447,6 +453,7 @@ export function PriceBreakdown({
     marginPercentage,
     barSegments,
     tableRows,
+    roundMoney,
   };
 
   if (variant === "inline") {
