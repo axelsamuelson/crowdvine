@@ -10,6 +10,7 @@ import { registerPalletTools } from "./tools/pallets";
 import { registerGscTools } from "./tools/gsc";
 import { registerSystembolagetTools } from "./tools/systembolaget";
 import { registerTop100Tools } from "./tools/top-100";
+import { registerInvoiceTools } from "./tools/invoices";
 
 export function createPactMcpServer(): McpServer {
   const sb = getMcpSupabase();
@@ -28,6 +29,9 @@ export function createPactMcpServer(): McpServer {
   registerGscTools(server);
   registerSystembolagetTools(server, sb);
   registerTop100Tools(server);
+  // issue_invoice assigns the legal number. get_invoice_pdf is the file for an email draft.
+  // Void, mark paid, and sending email stay outside MCP.
+  registerInvoiceTools(server, sb);
 
   return server;
 }

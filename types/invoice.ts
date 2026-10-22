@@ -7,6 +7,8 @@ export interface LineItem {
   exchangeRate: number;
   discountType: "percentage" | "amount";
   discountValue: number;
+  /** Line total excl. VAT in öre, when the row comes from a saved invoice. */
+  lineTotalOre?: number;
 }
 
 export interface InvoiceData {
@@ -31,6 +33,8 @@ export interface InvoiceData {
   toPostalCode?: string;
   toCity?: string;
   toCountry?: string;
+  /** Primary contact. Shown on the invoice only when set. */
+  toContactName?: string;
   /** Ship To (leveransadress), optional. If shipToSameAsBillTo is true, use Bill To address in preview. */
   shipToSameAsBillTo?: boolean;
   shipToName?: string;
@@ -38,6 +42,7 @@ export interface InvoiceData {
   shipToPostalCode?: string;
   shipToCity?: string;
   shipToCountry?: string;
+  shipToContact?: string;
   items: LineItem[];
   notes: string;
   taxRate: number;
@@ -53,4 +58,10 @@ export interface InvoiceData {
   discountType: "percentage" | "amount";
   discountValue: number;
   applyInvoiceDiscountToDiscountedItems: boolean;
+  /** When set, preview and PDF use these öre totals instead of float math. */
+  amountsOre?: {
+    subtotal: number;
+    vat: number;
+    total: number;
+  };
 }

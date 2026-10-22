@@ -109,8 +109,7 @@ export function InvoicePreview({
         <div className="mt-4 sm:mt-0">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-black/70 mb-2">Fakturera till (Bill To)</h2>
           <div className="text-black/70">
-            <p className="font-semibold">{invoiceData.toName}</p>
-            <p>{invoiceData.toEmail}</p>
+            {invoiceData.toName?.trim() && <p className="font-semibold">{invoiceData.toName}</p>}
             {[invoiceData.toPostalCode, invoiceData.toCity, invoiceData.toCountry].some((s) => s?.trim()) ? (
               <>
                 {invoiceData.toAddress && <p>{invoiceData.toAddress}</p>}
@@ -122,6 +121,8 @@ export function InvoicePreview({
             ) : (
               invoiceData.toAddress && <p className="whitespace-pre-line">{invoiceData.toAddress}</p>
             )}
+            {invoiceData.toEmail?.trim() && <p>{invoiceData.toEmail}</p>}
+            {invoiceData.toContactName?.trim() && <p>Kontakt: {invoiceData.toContactName}</p>}
           </div>
         </div>
       </div>
@@ -153,6 +154,7 @@ export function InvoicePreview({
                   <p>{[invoiceData.shipToPostalCode, invoiceData.shipToCity].filter(Boolean).join(" ")}</p>
                 )}
                 {invoiceData.shipToCountry?.trim() && <p>{invoiceData.shipToCountry}</p>}
+                {invoiceData.shipToContact?.trim() && <p>Kontakt: {invoiceData.shipToContact}</p>}
               </>
             )}
           </div>
@@ -230,7 +232,9 @@ export function InvoicePreview({
                   )}
                 </td>
                 <td className="py-3 text-right">
-                  {item.currency !== invoiceData.currency ? (
+                  {item.lineTotalOre != null
+                    ? formatCurrency(item.lineTotalOre / 100, invoiceData.currency)
+                    : item.currency !== invoiceData.currency ? (
                     <>
                       <span className="text-xs text-black/50 block">
                         {formatCurrency(item.quantity * item.price - calculateItemDiscount(item), item.currency)}
@@ -251,7 +255,12 @@ export function InvoicePreview({
         <div className="w-full sm:w-80 min-w-[240px]">
           <div className="flex justify-between py-2 text-sm">
             <span className="text-black/80">Total exkl. moms</span>
-            <span>{formatCurrency(calculateSubtotal(), invoiceData.currency)}</span>
+            <span>
+              {formatCurrency(
+                invoiceData.amountsOre ? invoiceData.amountsOre.subtotal / 100 : calculateSubtotal(),
+                invoiceData.currency,
+              )}
+            </span>
           </div>
 
           {(calculateTotalItemDiscounts() > 0 || calculateDiscount() > 0) && (
@@ -265,7 +274,14 @@ export function InvoicePreview({
 
           <div className="flex justify-between py-2 text-sm">
             <span className="text-black/80">Total exkl. moms efter rabatt</span>
-            <span>{formatCurrency(calculateTaxableAmount(), invoiceData.currency)}</span>
+            <span>
+              {formatCurrency(
+                invoiceData.amountsOre
+                  ? invoiceData.amountsOre.subtotal / 100
+                  : calculateTaxableAmount(),
+                invoiceData.currency,
+              )}
+            </span>
           </div>
 
           {calculateShipping() > 0 && (
@@ -282,12 +298,22 @@ export function InvoicePreview({
 
           <div className="flex justify-between py-2 text-sm">
             <span className="text-black/80">Moms</span>
-            <span>{formatCurrency(calculateTax(), invoiceData.currency)}</span>
+            <span>
+              {formatCurrency(
+                invoiceData.amountsOre ? invoiceData.amountsOre.vat / 100 : calculateTax(),
+                invoiceData.currency,
+              )}
+            </span>
           </div>
 
           <div className="flex justify-between py-3 font-bold text-base border-t-2 border-gray-300 mt-2 pt-3">
             <span>Total inkl. moms</span>
-            <span>{formatCurrency(calculateTotal(), invoiceData.currency)}</span>
+            <span>
+              {formatCurrency(
+                invoiceData.amountsOre ? invoiceData.amountsOre.total / 100 : calculateTotal(),
+                invoiceData.currency,
+              )}
+            </span>
           </div>
         </div>
       </div>

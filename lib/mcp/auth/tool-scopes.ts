@@ -28,6 +28,12 @@ const WRITE_TOOLS = new Set<string>([
   "update_b2b_pallet_item",
   "add_curated_wine",
   "update_curated_wine",
+  "create_invoice_recipient",
+  "add_invoice_recipient_contact",
+  "update_invoice_recipient_contact",
+  "create_invoice_draft",
+  "update_invoice_draft",
+  "issue_invoice",
 ]);
 
 /** @returns true if the tool mutates data and needs mcp:write */

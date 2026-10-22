@@ -22,12 +22,16 @@ import { InvoiceForm } from "@/components/admin/invoice-form";
 import { InvoicePreview } from "@/components/admin/invoice-preview";
 import type { InvoiceData } from "@/types/invoice";
 import {
-  getInvoiceDrafts,
-  getInvoiceDraft,
-  saveInvoiceDraft,
-  deleteInvoiceDraft,
-  type InvoiceDraftMeta,
-} from "@/lib/invoice-drafts";
+  deleteInvoiceDraftAction,
+  getSavedInvoiceAction,
+  issueInvoiceAction,
+  listSavedInvoicesAction,
+  saveInvoiceDraftAction,
+  updateInvoiceDraftAction,
+} from "@/lib/actions/invoices";
+import type { SavedInvoice } from "@/lib/invoices/drafts";
+import { savedInvoiceToInvoiceData } from "@/lib/invoices/present";
+import { invoiceLockedMessage } from "@/lib/invoices/messages";
 import {
   FileDown,
   FileUp,
@@ -124,6 +128,7 @@ export default function InvoiceGenerator(props?: InvoiceGeneratorProps) {
     toPostalCode: "",
     toCity: "",
     toCountry: "",
+    toContactName: "",
     shipToSameAsBillTo: false,
     shipToName: "",
     shipToAddress: "",
@@ -145,8 +150,12 @@ export default function InvoiceGenerator(props?: InvoiceGeneratorProps) {
     applyInvoiceDiscountToDiscountedItems: true,
   });
 
-  const [draftId, setDraftId] = useState<string | null>(null);
-  const [drafts, setDrafts] = useState<InvoiceDraftMeta[]>([]);
+  const [savedInvoices, setSavedInvoices] = useState<SavedInvoice[]>([]);
+  const [savedInvoiceId, setSavedInvoiceId] = useState<string | null>(null);
+  const [savedStatus, setSavedStatus] = useState<SavedInvoice["status"] | null>(null);
+  const [deliveryDate, setDeliveryDate] = useState("");
+  const [paymentTermsDays, setPaymentTermsDays] = useState(30);
+  const [issuing, setIssuing] = useState(false);
   const [savingOrder, setSavingOrder] = useState(false);
   const [dirtyWineLogoUrl, setDirtyWineLogoUrl] = useState<string | null>(null);
   const [recipients, setRecipients] = useState<InvoiceRecipient[]>([]);
@@ -178,21 +187,22 @@ export default function InvoiceGenerator(props?: InvoiceGeneratorProps) {
   useEffect(() => {
     if (!initialInvoice) return;
     setInvoiceData(initialInvoice);
-    setDraftId(null);
+    setSavedInvoiceId(null);
+    setSavedStatus(null);
     setSelectedRecipientId(null);
     setActiveTab("edit");
   }, [initialInvoice]);
 
   const applyRecipient = (r: InvoiceRecipient) => {
-    const toName = [r.company_name, r.contact_name].filter(Boolean).join(" – ") || "";
     setInvoiceData((prev) => ({
       ...prev,
-      toName: toName || prev.toName,
+      toName: r.company_name || prev.toName,
       toEmail: r.email || prev.toEmail,
       toAddress: r.address || prev.toAddress,
       toPostalCode: r.postal_code ?? prev.toPostalCode,
       toCity: r.city ?? prev.toCity,
       toCountry: prev.toCountry || "",
+      toContactName: r.primary_contact?.name ?? "",
     }));
     setSelectedRecipientId(r.id);
   };
@@ -207,18 +217,124 @@ export default function InvoiceGenerator(props?: InvoiceGeneratorProps) {
       .catch(() => {});
   }, []);
 
-  const refreshDrafts = useCallback(() => {
-    setDrafts(getInvoiceDrafts());
+  const refreshSavedInvoices = useCallback(() => {
+    listSavedInvoicesAction()
+      .then((result) => {
+        if (result.ok) setSavedInvoices(result.data);
+      })
+      .catch(() => setSavedInvoices([]));
   }, []);
 
   useEffect(() => {
-    refreshDrafts();
-  }, [refreshDrafts]);
+    refreshSavedInvoices();
+  }, [refreshSavedInvoices]);
 
-  const handleSaveDraft = () => {
-    const id = saveInvoiceDraft(invoiceData, draftId ?? undefined);
-    setDraftId(id);
-    refreshDrafts();
+  const applySavedInvoice = useCallback(
+    (invoice: SavedInvoice) => {
+      setInvoiceData(savedInvoiceToInvoiceData(invoice, senderDefaults));
+      setSavedInvoiceId(invoice.id);
+      setSavedStatus(invoice.status);
+      setSelectedRecipientId(invoice.recipient_id);
+      setDeliveryDate(invoice.delivery_date ?? "");
+      setPaymentTermsDays(invoice.payment_terms_days);
+    },
+    [senderDefaults],
+  );
+
+  const handleSaveDraft = async (): Promise<string | null> => {
+    if (savedStatus && savedStatus !== "draft") {
+      toast.error(
+        savedInvoiceId
+          ? invoiceLockedMessage(
+              savedInvoices.find((row) => row.id === savedInvoiceId)?.invoice_number ?? null,
+              savedStatus,
+            )
+          : "Fakturan kan inte ändras",
+      );
+      return null;
+    }
+    if (!selectedRecipientId) {
+      toast.error("Välj företag under Kund (fakturera till).");
+      return null;
+    }
+    if (!invoiceData.items.length) {
+      toast.error("Lägg till minst en fakturarad.");
+      return null;
+    }
+    if (invoiceData.items.some((item) => !item.description.trim())) {
+      toast.error("Varje rad behöver en beskrivning.");
+      return null;
+    }
+    const lines = invoiceData.items.map((item) => ({
+      description: item.description.trim(),
+      quantity: item.quantity,
+      unit_price_sek:
+        item.currency === invoiceData.currency ? item.price : item.price * (item.exchangeRate || 1),
+      vat_rate: invoiceData.taxRate,
+    }));
+    const hasShip =
+      !invoiceData.shipToSameAsBillTo &&
+      Boolean(
+        invoiceData.shipToName?.trim() ||
+          invoiceData.shipToAddress?.trim() ||
+          invoiceData.shipToPostalCode?.trim() ||
+          invoiceData.shipToCity?.trim(),
+      );
+    const payload = {
+      recipient_id: selectedRecipientId,
+      delivery_date: deliveryDate || null,
+      payment_terms_days: paymentTermsDays,
+      notes: invoiceData.notes.trim() || null,
+      ship_to: hasShip
+        ? {
+            name: invoiceData.shipToName ?? "",
+            address: invoiceData.shipToAddress ?? "",
+            postal_code: invoiceData.shipToPostalCode ?? "",
+            city: invoiceData.shipToCity ?? "",
+            contact: invoiceData.shipToContact?.trim() || null,
+            country: invoiceData.shipToCountry?.trim() || null,
+          }
+        : null,
+      lines,
+    };
+    const result = savedInvoiceId
+      ? await updateInvoiceDraftAction({ invoice_id: savedInvoiceId, ...payload })
+      : await saveInvoiceDraftAction(payload);
+    if (!result.ok) {
+      toast.error(result.error);
+      return null;
+    }
+    applySavedInvoice(result.data);
+    refreshSavedInvoices();
+    toast.success("Utkast sparat.");
+    return result.data.id;
+  };
+
+  const handleIssue = async () => {
+    setIssuing(true);
+    try {
+      const id = await handleSaveDraft();
+      if (!id) return;
+      const result = await issueInvoiceAction(id);
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+      applySavedInvoice(result.data);
+      refreshSavedInvoices();
+      toast.success(`Faktura ${result.data.invoice_number ?? ""} utfärdad.`);
+    } finally {
+      setIssuing(false);
+    }
+  };
+
+  const handleLoadSaved = async (id: string) => {
+    const result = await getSavedInvoiceAction(id);
+    if (!result.ok) {
+      toast.error(result.error);
+      return;
+    }
+    applySavedInvoice(result.data);
   };
 
   const handleSaveAsOfflineOrder = async () => {
@@ -266,14 +382,6 @@ export default function InvoiceGenerator(props?: InvoiceGeneratorProps) {
     }
   };
 
-  const handleLoadDraft = (id: string) => {
-    const data = getInvoiceDraft(id);
-    if (data) {
-      setInvoiceData(data);
-      setDraftId(id);
-    }
-  };
-
   const handleNewInvoice = () => {
     const applied = applySenderDefaultsToInvoice(senderDefaults);
     setInvoiceData({
@@ -297,6 +405,7 @@ export default function InvoiceGenerator(props?: InvoiceGeneratorProps) {
       toPostalCode: "",
       toCity: "",
       toCountry: "",
+      toContactName: "",
       shipToSameAsBillTo: false,
       shipToName: "",
       shipToAddress: "",
@@ -317,16 +426,21 @@ export default function InvoiceGenerator(props?: InvoiceGeneratorProps) {
       discountValue: 0,
       applyInvoiceDiscountToDiscountedItems: true,
     });
-    setDraftId(null);
+    setSavedInvoiceId(null);
+    setSavedStatus(null);
+    setDeliveryDate("");
+    setPaymentTermsDays(30);
     setSelectedRecipientId(null);
   };
 
-  const handleDeleteDraft = (id: string) => {
-    deleteInvoiceDraft(id);
-    if (draftId === id) {
-      handleNewInvoice();
+  const handleDeleteDraft = async (id: string) => {
+    const result = await deleteInvoiceDraftAction(id);
+    if (!result.ok) {
+      toast.error(result.error);
+      return;
     }
-    refreshDrafts();
+    if (savedInvoiceId === id) handleNewInvoice();
+    refreshSavedInvoices();
   };
 
   const handleInvoiceChange = (field: string, value: string | number | boolean) => {
@@ -491,18 +605,27 @@ export default function InvoiceGenerator(props?: InvoiceGeneratorProps) {
   const calculateTotal = () => computeInvoiceGrandTotal(invoiceData);
 
   const handleDownloadPdf = async () => {
-    if (!invoiceData.items?.length) {
+    if (savedInvoiceId) {
+      const result = await getSavedInvoiceAction(savedInvoiceId);
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+      if (!result.data.lines.length) {
+        toast.error("Lägg till minst en rad på fakturan innan du laddar ner PDF.");
+        return;
+      }
+      applySavedInvoice(result.data);
+    } else if (!invoiceData.items?.length) {
       toast.error("Lägg till minst en rad på fakturan innan du laddar ner PDF.");
       return;
     }
 
     const previousTab = activeTab;
-    if (activeTab !== "preview") {
-      setActiveTab("preview");
-      await new Promise<void>((resolve) => {
-        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
-      });
-    }
+    setActiveTab("preview");
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+    });
 
     const el = invoiceRef.current;
     if (!el) {
@@ -565,7 +688,7 @@ export default function InvoiceGenerator(props?: InvoiceGeneratorProps) {
   };
 
   const invoiceToolbarBtn =
-    "h-9 shrink-0 gap-2 rounded-lg px-3.5 text-xs font-medium [&_svg]:size-4 [&_svg]:shrink-0";
+    "min-h-[44px] h-auto shrink-0 gap-2 rounded-lg px-3.5 text-xs font-medium [&_svg]:size-4 [&_svg]:shrink-0";
 
   const invoicePdfBtnClass = cn(
     invoiceToolbarBtn,
@@ -599,46 +722,64 @@ export default function InvoiceGenerator(props?: InvoiceGeneratorProps) {
             align="start"
             className="w-72 max-h-[280px] overflow-y-auto dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
           >
-            {drafts.length === 0 ? (
+            {savedInvoices.length === 0 ? (
               <div className="py-4 px-3 text-center text-sm text-muted-foreground dark:text-zinc-400">
-                Inga sparade utkast
+                Inga sparade fakturor
               </div>
             ) : (
-              drafts.map((d) => (
-                <div key={d.id} className="flex items-center gap-0">
+              savedInvoices.map((invoice) => {
+                const label = invoice.invoice_number
+                  ? `${invoice.invoice_number} · ${invoice.recipient?.company_name || "Företag"}`
+                  : `Utkast · ${invoice.recipient?.company_name || "Företag"}`;
+                return (
+                <div key={invoice.id} className="flex items-center gap-0">
                   <DropdownMenuItem
-                    onClick={() => handleLoadDraft(d.id)}
-                    className="flex-1 min-w-0"
+                    onClick={() => void handleLoadSaved(invoice.id)}
+                    className="min-h-[44px] flex-1 min-w-0"
                   >
-                    <span className="truncate">{d.name}</span>
+                    <span className="truncate">{label}</span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem
-                    className="w-8 p-0 justify-center text-muted-foreground hover:text-destructive"
-                    onSelect={(e) => {
-                      e.preventDefault();
-                      handleDeleteDraft(d.id);
-                    }}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </DropdownMenuItem>
+                  {invoice.status === "draft" ? (
+                    <DropdownMenuItem
+                      className="min-h-[44px] w-11 p-0 justify-center text-muted-foreground hover:text-destructive"
+                      onSelect={(e) => {
+                        e.preventDefault();
+                        void handleDeleteDraft(invoice.id);
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </DropdownMenuItem>
+                  ) : null}
                 </div>
-              ))
+                );
+              })
             )}
           </DropdownMenuContent>
         </DropdownMenu>
           <Button
             type="button"
             variant="outline"
-            onClick={handleSaveDraft}
+            onClick={() => void handleSaveDraft()}
+            disabled={savedStatus !== null && savedStatus !== "draft"}
             className={cn(
               invoiceToolbarBtn,
               "border-border bg-background shadow-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100",
             )}
           >
             <FileDown className="opacity-90" aria-hidden />
-            {draftId ? "Uppdatera utkast" : "Spara som utkast"}
+            {savedInvoiceId && savedStatus === "draft" ? "Uppdatera utkast" : "Spara som utkast"}
           </Button>
         </div>
+
+        <Button
+          type="button"
+          variant="default"
+          onClick={() => void handleIssue()}
+          disabled={issuing || savingOrder || (savedStatus !== null && savedStatus !== "draft")}
+          className={cn(invoiceToolbarBtn, "bg-gray-900 text-white dark:bg-zinc-50 dark:text-zinc-900")}
+        >
+          {issuing ? "Utfärdar…" : savedStatus && savedStatus !== "draft" ? "Utfärdad" : "Utfärda faktura"}
+        </Button>
 
         <Button
           type="button"
@@ -682,6 +823,29 @@ export default function InvoiceGenerator(props?: InvoiceGeneratorProps) {
           <FilePlus2 aria-hidden />
           Ny faktura
         </Button>
+      </div>
+
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 max-w-xl">
+        <label className="text-xs text-muted-foreground dark:text-zinc-400">
+          Leveransdatum
+          <input
+            type="date"
+            value={deliveryDate}
+            onChange={(event) => setDeliveryDate(event.target.value)}
+            className="mt-1 min-h-[44px] w-full rounded-md border border-input bg-background px-3 text-sm text-foreground dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+          />
+        </label>
+        <label className="text-xs text-muted-foreground dark:text-zinc-400">
+          Betalningsvillkor (dagar)
+          <input
+            type="number"
+            min={0}
+            max={365}
+            value={paymentTermsDays}
+            onChange={(event) => setPaymentTermsDays(Number(event.target.value) || 0)}
+            className="mt-1 min-h-[44px] w-full rounded-md border border-input bg-background px-3 text-sm text-foreground dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+          />
+        </label>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
