@@ -65,8 +65,8 @@ export function savedInvoiceToInvoiceData(
   senderDefaults: SenderLike | null,
 ): InvoiceData {
   const issued = invoice.status !== "draft" && invoice.recipient_snapshot;
-  const sender = issued && invoice.sender_snapshot ? invoice.sender_snapshot : null;
-  const senderSource = sender ?? senderDefaults;
+  const frozenSender = issued && invoice.sender_snapshot ? invoice.sender_snapshot : null;
+  const senderSource = frozenSender ?? senderDefaults;
   const bill = issued && invoice.recipient_snapshot ? invoice.recipient_snapshot : null;
   const live = invoice.recipient;
   const contact = bill
@@ -103,9 +103,15 @@ export function savedInvoiceToInvoiceData(
     companyName: textOf(senderSource, "company_name"),
     companyLogo: textOf(senderSource, "company_logo"),
     companyDetails: textOf(senderSource, "company_details"),
-    companyOrgNumber: resolveCompanyOrgNumber(textOf(senderSource, "org_number")),
-    companyVatNumber: resolveCompanyVatNumber(textOf(senderSource, "vat_number")),
-    companyExciseNumber: resolveCompanyExciseNumber(textOf(senderSource, "excise_number")),
+    companyOrgNumber: frozenSender
+      ? textOf(frozenSender, "org_number")
+      : resolveCompanyOrgNumber(textOf(senderSource, "org_number")),
+    companyVatNumber: frozenSender
+      ? textOf(frozenSender, "vat_number")
+      : resolveCompanyVatNumber(textOf(senderSource, "vat_number")),
+    companyExciseNumber: frozenSender
+      ? textOf(frozenSender, "excise_number")
+      : resolveCompanyExciseNumber(textOf(senderSource, "excise_number")),
     fromName: textOf(senderSource, "from_name"),
     fromEmail: textOf(senderSource, "from_email"),
     fromAddress: textOf(senderSource, "from_address"),
