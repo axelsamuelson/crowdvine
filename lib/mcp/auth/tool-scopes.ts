@@ -34,6 +34,8 @@ const WRITE_TOOLS = new Set<string>([
   "create_invoice_draft",
   "update_invoice_draft",
   "issue_invoice",
+  "create_delivery_note",
+  "create_b2b_order",
 ]);
 
 /** @returns true if the tool mutates data and needs mcp:write */

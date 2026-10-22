@@ -29,6 +29,7 @@ import {
   saveInvoiceDraftAction,
   updateInvoiceDraftAction,
 } from "@/lib/actions/invoices";
+import { createDeliveryNotePdfAction } from "@/lib/actions/delivery-notes";
 import type { SavedInvoice } from "@/lib/invoices/drafts";
 import { savedInvoiceToInvoiceData } from "@/lib/invoices/present";
 import { invoiceLockedMessage } from "@/lib/invoices/messages";
@@ -40,6 +41,7 @@ import {
   Trash2,
   ClipboardList,
   Download,
+  Truck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -106,6 +108,7 @@ export default function InvoiceGenerator(props?: InvoiceGeneratorProps) {
   const { onOfflineOrderCreated, initialInvoice, offlineOrderId, onOrderUpdated } = props ?? {};
   const [activeTab, setActiveTab] = useState("edit");
   const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const [creatingDeliveryNote, setCreatingDeliveryNote] = useState(false);
   const invoiceRef = useRef<HTMLDivElement>(null);
   const [senderDefaults, setSenderDefaults] = useState<InvoiceSenderDefaults | null>(null);
 
@@ -664,6 +667,34 @@ export default function InvoiceGenerator(props?: InvoiceGeneratorProps) {
     }
   };
 
+  const handleCreateDeliveryNote = async () => {
+    if (!savedInvoiceId) {
+      toast.error("Spara fakturan som utkast innan du skapar en leveranssedel.");
+      return;
+    }
+    setCreatingDeliveryNote(true);
+    try {
+      const result = await createDeliveryNotePdfAction(savedInvoiceId);
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+      const bytes = Uint8Array.from(atob(result.data.pdf_base64), (char) => char.charCodeAt(0));
+      const url = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = result.data.filename;
+      link.click();
+      URL.revokeObjectURL(url);
+      toast.success(`Leveranssedel ${result.data.note_number} skapad`);
+    } catch (error) {
+      console.error("Delivery note failed:", error);
+      toast.error("Kunde inte skapa leveranssedeln");
+    } finally {
+      setCreatingDeliveryNote(false);
+    }
+  };
+
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -809,6 +840,17 @@ export default function InvoiceGenerator(props?: InvoiceGeneratorProps) {
         >
           <Download aria-hidden />
           {downloadingPdf ? "Skapar PDF…" : "Ladda ner PDF"}
+        </Button>
+
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => void handleCreateDeliveryNote()}
+          disabled={!savedInvoiceId || creatingDeliveryNote || downloadingPdf}
+          className={invoicePdfBtnClass}
+        >
+          <Truck aria-hidden />
+          {creatingDeliveryNote ? "Skapar sedel…" : "Leveranssedel"}
         </Button>
 
         <Button
