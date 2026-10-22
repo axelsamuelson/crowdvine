@@ -20,6 +20,8 @@ export interface InvoiceData {
   companyDetails: string;
   companyOrgNumber?: string;
   companyVatNumber?: string;
+  /** Punktskattenummer, shown under the VAT number. */
+  companyExciseNumber?: string;
   fromName: string;
   fromEmail: string;
   fromAddress: string;

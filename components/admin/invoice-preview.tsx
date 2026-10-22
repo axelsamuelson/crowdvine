@@ -59,10 +59,11 @@ export function InvoicePreview({
           </div>
           <div className="text-right">
             {invoiceData.companyName && <p className="font-bold">{invoiceData.companyName}</p>}
-            {(invoiceData.companyOrgNumber?.trim() || invoiceData.companyVatNumber?.trim() || invoiceData.companyDetails?.trim()) ? (
+            {(invoiceData.companyOrgNumber?.trim() || invoiceData.companyVatNumber?.trim() || invoiceData.companyExciseNumber?.trim() || invoiceData.companyDetails?.trim()) ? (
               <div className="text-sm text-black/70">
                 {invoiceData.companyOrgNumber?.trim() && <p>Org.nr: {invoiceData.companyOrgNumber}</p>}
                 {invoiceData.companyVatNumber?.trim() && <p>Momsreg.nr: {invoiceData.companyVatNumber}</p>}
+                {invoiceData.companyExciseNumber?.trim() && <p>Punktskattenummer: {invoiceData.companyExciseNumber}</p>}
                 {invoiceData.companyDetails?.trim() && (
                   <p className="whitespace-pre-line">{invoiceData.companyDetails}</p>
                 )}

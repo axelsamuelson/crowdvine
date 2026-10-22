@@ -287,7 +287,7 @@ export function registerPalletTools(server: McpServer, sb: SupabaseClient) {
           .int()
           .nonnegative()
           .optional()
-          .describe("Kostnad ex moms i öre för denna rad"),
+          .describe("Total kostnad per flaska i öre, inklusive alkoholskatt"),
       },
     },
     async (args) => {
@@ -323,7 +323,13 @@ export function registerPalletTools(server: McpServer, sb: SupabaseClient) {
         id: z.string().uuid().describe("b2b_pallet_shipment_items UUID"),
         quantity: z.number().int().nonnegative().optional(),
         quantity_sold: z.number().int().nonnegative().optional(),
-        cost_cents_override: z.number().int().nonnegative().nullable().optional(),
+        cost_cents_override: z
+          .number()
+          .int()
+          .nonnegative()
+          .nullable()
+          .optional()
+          .describe("Total kostnad per flaska i öre, inklusive alkoholskatt"),
       },
     },
     async (args) => {

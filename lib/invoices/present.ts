@@ -1,4 +1,9 @@
 import type { InvoiceData, LineItem } from "@/types/invoice";
+import {
+  resolveCompanyExciseNumber,
+  resolveCompanyOrgNumber,
+  resolveCompanyVatNumber,
+} from "@/lib/invoice-sender-constants";
 import type { SavedInvoice } from "@/lib/invoices/drafts";
 
 type SenderLike = {
@@ -7,6 +12,7 @@ type SenderLike = {
   company_details?: string;
   org_number?: string;
   vat_number?: string;
+  excise_number?: string;
   from_name?: string;
   from_email?: string;
   from_address?: string;
@@ -97,8 +103,9 @@ export function savedInvoiceToInvoiceData(
     companyName: textOf(senderSource, "company_name"),
     companyLogo: textOf(senderSource, "company_logo"),
     companyDetails: textOf(senderSource, "company_details"),
-    companyOrgNumber: textOf(senderSource, "org_number"),
-    companyVatNumber: textOf(senderSource, "vat_number"),
+    companyOrgNumber: resolveCompanyOrgNumber(textOf(senderSource, "org_number")),
+    companyVatNumber: resolveCompanyVatNumber(textOf(senderSource, "vat_number")),
+    companyExciseNumber: resolveCompanyExciseNumber(textOf(senderSource, "excise_number")),
     fromName: textOf(senderSource, "from_name"),
     fromEmail: textOf(senderSource, "from_email"),
     fromAddress: textOf(senderSource, "from_address"),

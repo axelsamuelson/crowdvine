@@ -1,6 +1,7 @@
 import type { InvoiceData } from "@/types/invoice";
 import type { DirtyWineOrderRow } from "@/lib/types/dirty-wine-order";
 import {
+  resolveCompanyExciseNumber,
   resolveCompanyOrgNumber,
   resolveCompanyVatNumber,
 } from "@/lib/invoice-sender-constants";
@@ -28,6 +29,7 @@ export function parseInvoiceDataFromRow(raw: unknown): InvoiceData | undefined {
     ...invoice,
     companyOrgNumber: resolveCompanyOrgNumber(invoice.companyOrgNumber),
     companyVatNumber: resolveCompanyVatNumber(invoice.companyVatNumber),
+    companyExciseNumber: resolveCompanyExciseNumber(invoice.companyExciseNumber),
   };
 }
 

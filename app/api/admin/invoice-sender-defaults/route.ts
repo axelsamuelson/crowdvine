@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getCurrentAdmin } from "@/lib/admin-auth-server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import {
+  resolveCompanyExciseNumber,
   resolveCompanyOrgNumber,
   resolveCompanyVatNumber,
 } from "@/lib/invoice-sender-constants";
@@ -34,6 +35,7 @@ export interface InvoiceSenderDefaults {
   company_details: string;
   org_number: string;
   vat_number: string;
+  excise_number: string;
   from_name: string;
   from_email: string;
   from_address: string;
@@ -57,7 +59,7 @@ export async function GET() {
     const { data, error } = await sb
       .from("invoice_sender_defaults")
       .select(
-        "company_name, company_logo, company_details, org_number, vat_number, from_name, from_email, from_address, from_postal_code, from_city, from_country, clearing_number, account_number, payment_terms, default_footer",
+        "company_name, company_logo, company_details, org_number, vat_number, excise_number, from_name, from_email, from_address, from_postal_code, from_city, from_country, clearing_number, account_number, payment_terms, default_footer",
       )
       .eq("id", SENDER_DEFAULTS_ID)
       .single();
@@ -76,6 +78,7 @@ export async function GET() {
       company_details: data?.company_details ?? "",
       org_number: resolveCompanyOrgNumber(data?.org_number),
       vat_number: resolveCompanyVatNumber(data?.vat_number),
+      excise_number: resolveCompanyExciseNumber(data?.excise_number),
       from_name: data?.from_name ?? "",
       from_email: data?.from_email ?? "",
       from_address: data?.from_address ?? "",

@@ -205,6 +205,7 @@ export function renderInvoicePdf(
     data.companyName,
     data.companyOrgNumber ? `Org.nr: ${data.companyOrgNumber}` : "",
     data.companyVatNumber ? `Momsreg.nr: ${data.companyVatNumber}` : "",
+    data.companyExciseNumber ? `Punktskattenummer: ${data.companyExciseNumber}` : "",
     data.fromName,
     data.fromEmail,
     data.fromAddress,
