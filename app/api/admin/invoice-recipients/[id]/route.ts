@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getCurrentAdmin } from "@/lib/admin-auth-server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { getInvoiceRecipient, saveInvoiceRecipient } from "@/lib/invoices/recipients";
 
 async function requireAdmin() {
   const admin = await getCurrentAdmin();
@@ -32,14 +33,8 @@ export async function GET(
   try {
     await requireAdmin();
     const { id } = await params;
-    const sb = getSupabaseAdmin();
-    const { data, error } = await sb
-      .from("invoice_recipients")
-      .select("id, created_at, updated_at, profile_id, company_name, contact_name, email, address, postal_code, city, org_number")
-      .eq("id", id)
-      .single();
-
-    if (error || !data) {
+    const data = await getInvoiceRecipient(getSupabaseAdmin(), id);
+    if (!data) {
       return NextResponse.json(
         { error: "Invoice recipient not found" },
         { status: 404 },
@@ -55,7 +50,7 @@ export async function GET(
 
 /**
  * PATCH /api/admin/invoice-recipients/[id]
- * Body: { company_name?, contact_name?, email?, address?, profile_id? }
+ * Body: company fields and optional contacts[]. Does not write contact_name.
  */
 export async function PATCH(
   request: NextRequest,
@@ -65,31 +60,25 @@ export async function PATCH(
     await requireAdmin();
     const { id } = await params;
     const body = await request.json();
-    const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
-    if (body.company_name !== undefined) updates.company_name = String(body.company_name).trim() || "";
-    if (body.contact_name !== undefined) updates.contact_name = String(body.contact_name).trim() || "";
-    if (body.email !== undefined) updates.email = String(body.email).trim() || "";
-    if (body.address !== undefined) updates.address = String(body.address).trim() || "";
-    if (body.postal_code !== undefined) updates.postal_code = String(body.postal_code).trim() || "";
-    if (body.city !== undefined) updates.city = String(body.city).trim() || "";
-    if (body.profile_id !== undefined) updates.profile_id = body.profile_id && typeof body.profile_id === "string" ? body.profile_id : null;
-    if (body.org_number !== undefined) updates.org_number = String(body.org_number).trim() || "";
-
-    const sb = getSupabaseAdmin();
-    const { data, error } = await sb
-      .from("invoice_recipients")
-      .update(updates)
-      .eq("id", id)
-      .select("id, created_at, updated_at, profile_id, company_name, contact_name, email, address, postal_code, city, org_number")
-      .single();
-
-    if (error) {
-      console.error("Error updating invoice recipient:", error);
-      return NextResponse.json(
-        { error: "Failed to update invoice recipient", details: error.message },
-        { status: 500 },
-      );
+    const current = await getInvoiceRecipient(getSupabaseAdmin(), id);
+    if (!current) {
+      return NextResponse.json({ error: "Invoice recipient not found" }, { status: 404 });
     }
+    const data = await saveInvoiceRecipient(getSupabaseAdmin(), {
+      id,
+      company_name: typeof body.company_name === "string" ? body.company_name : current.company_name,
+      email: typeof body.email === "string" ? body.email : current.email,
+      address: typeof body.address === "string" ? body.address : current.address,
+      postal_code: typeof body.postal_code === "string" ? body.postal_code : current.postal_code,
+      city: typeof body.city === "string" ? body.city : current.city,
+      org_number: typeof body.org_number === "string" ? body.org_number : current.org_number,
+      profile_id: body.profile_id === undefined
+        ? current.profile_id
+        : typeof body.profile_id === "string"
+          ? body.profile_id
+          : null,
+      contacts: Array.isArray(body.contacts) ? body.contacts : current.contacts,
+    });
     return NextResponse.json(data);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";

@@ -36,11 +36,11 @@ export interface InvoiceWine {
 export interface InvoiceRecipientOption {
   id: string;
   company_name: string;
-  contact_name: string;
   email: string;
   address: string;
   postal_code?: string | null;
   city?: string | null;
+  primary_contact?: { name: string; email: string | null } | null;
 }
 
 interface InvoiceFormProps {
@@ -437,7 +437,7 @@ export function InvoiceForm({
                   <SelectItem value="__none__">— Välj företag —</SelectItem>
                   {recipients.map((r) => (
                     <SelectItem key={r.id} value={r.id}>
-                      {r.company_name || r.contact_name || r.email || r.id}
+                      {r.company_name || r.email || r.id}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -460,13 +460,24 @@ export function InvoiceForm({
               />
             </div>
             <div>
-              <Label htmlFor="toEmail">E-post</Label>
+              <Label htmlFor="toEmail">Fakturamejl</Label>
               <Input
                 id="toEmail"
                 type="email"
                 value={invoiceData.toEmail}
                 onChange={(e) => handleInvoiceChange("toEmail", e.target.value)}
-                className="border-input bg-background text-foreground dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                className="min-h-[44px] border-input bg-background text-foreground dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+              />
+              <p className="text-xs text-muted-foreground dark:text-zinc-400 mt-1">Hit skickas fakturor.</p>
+            </div>
+            <div className="md:col-span-2">
+              <Label htmlFor="toContactName">Kontaktperson</Label>
+              <Input
+                id="toContactName"
+                value={invoiceData.toContactName ?? ""}
+                onChange={(e) => handleInvoiceChange("toContactName", e.target.value)}
+                placeholder="Visas bara om den är ifylld"
+                className="min-h-[44px] border-input bg-background text-foreground dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
               />
             </div>
             <div className="md:col-span-2">

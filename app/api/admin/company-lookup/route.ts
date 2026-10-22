@@ -89,10 +89,12 @@ export async function GET(request: NextRequest) {
       ? normalizeOrgNumber(data.basic_info.orgnr) || data.basic_info.orgnr
       : normalized;
     const phone = data.basic_info?.phone || "";
+    const contactTitle = data.contact_person?.role || "";
 
     return NextResponse.json({
       company_name: name,
       contact_name: contactName,
+      contact_title: contactTitle || undefined,
       address,
       postal_code,
       city,
