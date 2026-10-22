@@ -333,6 +333,11 @@ export function InvoiceForm({
                     />
                   </div>
                 </div>
+                {invoiceData.companyExciseNumber?.trim() ? (
+                  <p className="text-sm text-muted-foreground">
+                    Punktskattenummer: {invoiceData.companyExciseNumber}
+                  </p>
+                ) : null}
                 <div>
                   <Label htmlFor="companyDetails">Övrigt (valfritt)</Label>
                   <Textarea

@@ -450,17 +450,18 @@ export async function updateInvoiceDraft(
 
   if (body.lines) {
     const lines = await resolveLines(sb, body.lines);
-    const totals = totalsOf(lines);
-    patch.subtotal_ore = totals.subtotal_ore;
-    patch.vat_ore = totals.vat_ore;
-    patch.total_ore = totals.total_ore;
-    const existing = await getInvoice(sb, body.invoice_id);
-    await insertLines(sb, body.invoice_id, lines);
-    const oldIds = existing?.lines.map((line) => line.id) ?? [];
-    if (oldIds.length > 0) {
-      const { error: deleteError } = await sb.from("invoice_lines").delete().in("id", oldIds);
-      assertNoError(deleteError);
-    }
+    const { error: linesError } = await sb.rpc("replace_invoice_draft_lines", {
+      p_invoice_id: body.invoice_id,
+      p_lines: lines.map((line) => ({
+        wine_id: line.wine_id,
+        description: line.description,
+        vintage: line.vintage,
+        quantity: line.quantity,
+        unit_price_ore: line.unit_price_ore,
+        vat_rate: line.vat_rate,
+      })),
+    });
+    assertNoError(linesError);
   }
 
   const { error } = await sb.from("invoices").update(patch).eq("id", body.invoice_id);

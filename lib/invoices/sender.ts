@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
+  resolveCompanyExciseNumber,
   resolveCompanyOrgNumber,
   resolveCompanyVatNumber,
 } from "@/lib/invoice-sender-constants";
@@ -12,6 +13,7 @@ const SENDER_COLUMNS = [
   "company_details",
   "org_number",
   "vat_number",
+  "excise_number",
   "from_name",
   "from_email",
   "from_address",
@@ -30,6 +32,7 @@ export type InvoiceSenderDefaults = {
   company_details: string;
   org_number: string;
   vat_number: string;
+  excise_number: string;
   from_name: string;
   from_email: string;
   from_address: string;
@@ -70,6 +73,7 @@ export async function loadInvoiceSenderDefaults(
     company_details: text(row, "company_details"),
     org_number: resolveCompanyOrgNumber(text(row, "org_number")),
     vat_number: resolveCompanyVatNumber(text(row, "vat_number")),
+    excise_number: resolveCompanyExciseNumber(text(row, "excise_number")),
     from_name: text(row, "from_name"),
     from_email: text(row, "from_email"),
     from_address: text(row, "from_address"),

@@ -49,6 +49,7 @@ import { computeInvoiceGrandTotal } from "@/lib/invoice-total";
 import type { InvoiceRecipient } from "@/app/api/admin/invoice-recipients/route";
 import type { InvoiceSenderDefaults } from "@/app/api/admin/invoice-sender-defaults/route";
 import {
+  resolveCompanyExciseNumber,
   resolveCompanyOrgNumber,
   resolveCompanyVatNumber,
 } from "@/lib/invoice-sender-constants";
@@ -60,6 +61,7 @@ type SenderDefaultsFields = Pick<
   | "companyDetails"
   | "companyOrgNumber"
   | "companyVatNumber"
+  | "companyExciseNumber"
   | "fromName"
   | "fromEmail"
   | "fromAddress"
@@ -80,6 +82,7 @@ function applySenderDefaultsToInvoice(defaults: InvoiceSenderDefaults | null): P
     companyDetails: defaults.company_details ?? "",
     companyOrgNumber: resolveCompanyOrgNumber(defaults.org_number),
     companyVatNumber: resolveCompanyVatNumber(defaults.vat_number),
+    companyExciseNumber: resolveCompanyExciseNumber(defaults.excise_number),
     fromName: defaults.from_name ?? "",
     fromEmail: defaults.from_email ?? "",
     fromAddress: defaults.from_address ?? "",
@@ -396,6 +399,7 @@ export default function InvoiceGenerator(props?: InvoiceGeneratorProps) {
       companyDetails: applied.companyDetails ?? "",
       companyOrgNumber: applied.companyOrgNumber ?? "",
       companyVatNumber: applied.companyVatNumber ?? "",
+      companyExciseNumber: applied.companyExciseNumber ?? "",
       fromName: applied.fromName ?? "",
       fromEmail: applied.fromEmail ?? "",
       fromAddress: applied.fromAddress ?? "",
