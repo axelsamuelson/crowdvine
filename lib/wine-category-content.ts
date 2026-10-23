@@ -1081,42 +1081,6 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
         "Order natural wine online with home delivery in Stockholm.",
     },
   },
-  "direktimport-vin": {
-    sv: {
-      contentHeading: "Om direktimport av vin",
-      longDescription:
-        "Direktimport innebär att vinet köps direkt från producenten utan att passera importör, grossist och butikskedja. PACT är byggt kring den modellen: vi samlar beställningar från köpare i Stockholm tills en hel pall är reserverad, sedan skickar vingården flaskorna direkt till Sverige.\n\nPACT fokuserar på naturvin från små producenter i Languedoc. Du reserverar flaskor online; när pallen fylls får du hemleverans i Stockholm. Ingen prenumeration och inget eget lager.",
-      tastingProfile: [
-        "Köp direkt från producenten",
-        "Pallen fylls genom gemensamma reserveringar",
-        "Utan mellanhänder",
-        "Färskare flaskor utan långa lagerled",
-        "Hemleverans i Stockholm",
-      ],
-      foodPairing:
-        "Direktimporterat naturvin passar till samma mat som naturvin i allmänhet: grill, ost och vardagsmat. Välj producent och stil efter vad du ska äta.",
-      aboutText:
-        "Direktimport av naturvin till Stockholm. Du reserverar online.",
-    },
-  },
-  "direct-import-wine": {
-    en: {
-      contentHeading: "About direct import wine",
-      longDescription:
-        "Direct import means wine is bought directly from the producer without passing through importer, wholesaler and retail chain. PACT is built around that model: we aggregate orders from buyers in Stockholm until a full pallet is reserved, then the vineyard ships bottles directly to Sweden.\n\nPACT focuses on natural wine from small producers. You reserve bottles online; when the pallet fills you get home delivery in Stockholm. No subscription and no warehouse of our own.",
-      tastingProfile: [
-        "Buy direct from the producer",
-        "Pallet fills through shared reservations",
-        "No middlemen",
-        "Fresher bottles without long supply chains",
-        "Home delivery in Stockholm",
-      ],
-      foodPairing:
-        "Direct imported natural wine suits the same food as natural wine in general: grilled food, cheese and everyday meals. Choose producer and style by what you're eating.",
-      aboutText:
-        "Direct import natural wine to Stockholm. Reserve online.",
-    },
-  },
 };
 
 export function getWineCategoryContentOverride(

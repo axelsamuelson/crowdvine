@@ -301,7 +301,7 @@ function applyWineCatalogFilters<Q extends WineCatalogQuery>(
     filterFarming?: string[];
     filterGrape?: string;
     filterCountryCode?: string;
-    filterIsDirectImport?: boolean;
+    filterRegion?: string;
   },
 ): Q {
   let q = query;
@@ -325,8 +325,8 @@ function applyWineCatalogFilters<Q extends WineCatalogQuery>(
   if (filters?.filterCountryCode) {
     q = q.eq("producers.country_code", filters.filterCountryCode) as Q;
   }
-  if (filters?.filterIsDirectImport === true) {
-    q = q.eq("is_direct_import", true) as Q;
+  if (filters?.filterRegion) {
+    q = q.eq("producers.region", filters.filterRegion) as Q;
   }
   return q;
 }
@@ -353,8 +353,8 @@ export async function fetchProductsData(params?: {
   filterGrape?: string;
   /** Match producers.country_code (ISO), e.g. "FR". Requires producers!inner. */
   filterCountryCode?: string;
-  /** When true, only wines with is_direct_import = true. */
-  filterIsDirectImport?: boolean;
+  /** Match producers.region, e.g. "Languedoc". Requires producers!inner. */
+  filterRegion?: string;
   /** When set, only these wine ids. */
   ids?: readonly string[];
 }): Promise<ProductData[]> {
@@ -406,7 +406,7 @@ export async function fetchProductsData(params?: {
     filterFarming: params?.filterFarming,
     filterGrape: params?.filterGrape,
     filterCountryCode: params?.filterCountryCode,
-    filterIsDirectImport: params?.filterIsDirectImport,
+    filterRegion: params?.filterRegion,
   };
 
   const applySort = <Q extends { order: any }>(q: Q): Q => {
@@ -466,11 +466,7 @@ export async function fetchProductsData(params?: {
 
   if (result.error) {
     const msg = result.error.message ?? "";
-    // Pre-migration / schema-cache: drop is_direct_import filter so sitemap/build
-    // can finish before 220_wines_is_direct_import is applied.
-    const filtersForRetry = /is_direct_import/i.test(msg)
-      ? { ...categoryFilters, filterIsDirectImport: undefined }
-      : categoryFilters;
+    const filtersForRetry = categoryFilters;
     const fallbackSelect = `
       id, wine_name, vintage, grape_varieties, color, handle, base_price_cents,
       cost_amount, cost_currency, exchange_rate, alcohol_tax_cents, margin_percentage,
@@ -478,7 +474,7 @@ export async function fetchProductsData(params?: {
       description_html, tags, created_at, producers!inner(name, boost_active, country_code)
     `;
     if (
-      /is_live|is_direct_import|column.*does not exist|could not find.*column|producers\.is_live/i.test(
+      /is_live|column.*does not exist|could not find.*column|producers\.is_live/i.test(
         msg,
       )
     ) {
@@ -518,11 +514,9 @@ export async function fetchProductsData(params?: {
     }
     if (result.error) {
       const msg2 = result.error.message ?? "";
-      const filtersForRetry2 = /is_direct_import/i.test(msg2)
-        ? { ...categoryFilters, filterIsDirectImport: undefined }
-        : filtersForRetry;
+      const filtersForRetry2 = filtersForRetry;
       if (
-        /is_live|is_direct_import|column.*does not exist|could not find.*column/i.test(
+        /is_live|column.*does not exist|could not find.*column/i.test(
           msg2,
         )
       ) {
@@ -1180,24 +1174,14 @@ export async function catalogHasProducts(filters?: {
   filterFarming?: string[];
   filterGrape?: string;
   filterCountryCode?: string;
-  filterIsDirectImport?: boolean;
+  filterRegion?: string;
   isB2BSite?: boolean;
 }): Promise<boolean> {
   if (supabaseBuildUsesPlaceholder()) return false;
-  try {
-    const rows = await fetchProductsData({
-      ...filters,
-      limit: 1,
-      isB2BSite: filters?.isB2BSite ?? false,
-    });
-    return rows.length > 0;
-  } catch (err) {
-    // Sitemap/build must not fail if a filter column is not migrated yet.
-    const msg = err instanceof Error ? err.message : String(err);
-    if (/is_direct_import|column|schema cache/i.test(msg)) {
-      console.warn("[catalogHasProducts] treating as empty:", msg);
-      return false;
-    }
-    throw err;
-  }
+  const rows = await fetchProductsData({
+    ...filters,
+    limit: 1,
+    isB2BSite: filters?.isB2BSite ?? false,
+  });
+  return rows.length > 0;
 }

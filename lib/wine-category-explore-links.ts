@@ -242,14 +242,12 @@ const LONG_TAIL_GEO_SLUGS = new Set([
   "vitt-naturvin-languedoc",
   "orange-naturvin-languedoc",
   "naturvin-hemleverans-stockholm",
-  "direktimport-vin",
   "natural-wine-languedoc",
   "natural-wine-france",
   "red-natural-wine-languedoc",
   "white-natural-wine-languedoc",
   "orange-natural-wine-languedoc",
   "natural-wine-delivery-stockholm",
-  "direct-import-wine",
 ]);
 
 function geoLongTailExploreLinks(
@@ -293,24 +291,6 @@ function geoLongTailExploreLinks(
     push(locale === "sv" ? "vitt-naturvin" : "white-natural-wine");
   } else if (color === "Orange") {
     push(locale === "sv" ? "orange-naturvin" : "orange-natural-wine");
-  }
-
-  if (
-    category.slug.includes("stockholm") ||
-    category.slug.includes("delivery")
-  ) {
-    push(locale === "sv" ? "direktimport-vin" : "direct-import-wine");
-  }
-
-  if (
-    category.slug.includes("direktimport") ||
-    category.slug.includes("direct-import")
-  ) {
-    push(
-      locale === "sv"
-        ? "naturvin-hemleverans-stockholm"
-        : "natural-wine-delivery-stockholm",
-    );
   }
 
   if (category.slug.includes("frankrike") || category.slug.includes("france")) {
