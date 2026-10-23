@@ -178,7 +178,6 @@ export default function WineForm({
     // Visibility (only when editing; new wines default to live)
     is_live: wine?.is_live ?? true,
     available_for_sale: wine?.available_for_sale ?? true,
-    is_direct_import: wine?.is_direct_import ?? false,
   });
 
   const [images, setImages] = useState<File[]>([]);
@@ -295,7 +294,6 @@ export default function WineForm({
       b2b_stock: wine.b2b_stock ?? null,
       is_live: wine.is_live ?? true,
       available_for_sale: wine.available_for_sale ?? true,
-      is_direct_import: wine.is_direct_import ?? false,
     }));
   }, [wine?.id, isProducerView, editLocale]);
 
@@ -508,7 +506,6 @@ export default function WineForm({
           imagePaths.length > 0 ? imagePaths[0] : formData.label_image_path,
         is_live: formData.is_live ?? true,
         available_for_sale: formData.available_for_sale ?? true,
-        is_direct_import: formData.is_direct_import ?? false,
         b2b_price_cents,
         b2b_cost_sek,
         // Persist the FX the admin calculator used so server save matches PDP
@@ -589,7 +586,6 @@ export default function WineForm({
 
   const isLiveInShop = formData.is_live ?? true;
   const isAvailableForSale = formData.available_for_sale ?? true;
-  const isDirectImport = formData.is_direct_import ?? false;
 
   return (
     <div className="space-y-6">
@@ -1160,49 +1156,6 @@ export default function WineForm({
                       }
                       disabled={!isLiveInShop}
                       aria-label="Vin tillgängligt för köp"
-                      className={ADMIN_ACTIVE_SWITCH_CLASS}
-                    />
-                  </div>
-                </div>
-                <div
-                  className={cn(
-                    ADMIN_TOGGLE_ROW_CLASS,
-                    isDirectImport
-                      ? "border-emerald-500/40 bg-emerald-500/5 dark:border-emerald-500/30 dark:bg-emerald-500/10"
-                      : "border-zinc-300/60 bg-zinc-50/80 dark:border-zinc-600/40 dark:bg-zinc-900/40",
-                  )}
-                >
-                  <div>
-                    <Label className="text-sm font-medium text-gray-900 dark:text-zinc-100">
-                      Direktimport
-                    </Label>
-                    <p className={ADMIN_HELP_TEXT_CLASS}>
-                      Visas på kategorisidorna Direktimport / Direct import.
-                    </p>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-3">
-                    <span
-                      className={cn(
-                        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium",
-                        isDirectImport
-                          ? "bg-emerald-500/15 text-emerald-800 dark:text-emerald-300"
-                          : "bg-zinc-500/15 text-zinc-700 dark:text-zinc-300",
-                      )}
-                    >
-                      <span
-                        className={cn(
-                          "inline-flex h-2 w-2 rounded-full",
-                          isDirectImport ? "bg-emerald-500" : "bg-zinc-400",
-                        )}
-                      />
-                      {isDirectImport ? "Ja" : "Nej"}
-                    </span>
-                    <Switch
-                      checked={isDirectImport}
-                      onCheckedChange={(checked) =>
-                        handleChange("is_direct_import", checked)
-                      }
-                      aria-label="Vin är direktimport"
                       className={ADMIN_ACTIVE_SWITCH_CLASS}
                     />
                   </div>

@@ -25,7 +25,7 @@ const LONG_TAIL_WINE_CATEGORIES_SV: WineCategory[] = [
       "Naturvin direkt från småproducenter i Languedoc, Frankrike. Direktimporterat till Stockholm utan mellanhänder.",
     description:
       "Languedoc är Frankrikes mest dynamiska naturvinsregion. Vi importerar direkt från producenten till din dörr.",
-    filter: {},
+    filter: { region: "Languedoc" },
     hreflang: "natural-wine-languedoc",
     canonical: "/vin/naturvin-languedoc",
   },
@@ -51,7 +51,7 @@ const LONG_TAIL_WINE_CATEGORIES_SV: WineCategory[] = [
       "Rött naturvin direkt från Languedoc, Frankrike. Carignan, Grenache, Syrah — hemleverans Stockholm.",
     description:
       "Röda naturviner från Languedocs bästa småproducenter. Direktimporterat till Stockholm.",
-    filter: { color: ["Red"] },
+    filter: { color: ["Red"], region: "Languedoc" },
     hreflang: "red-natural-wine-languedoc",
     canonical: "/vin/rott-naturvin-languedoc",
   },
@@ -64,7 +64,7 @@ const LONG_TAIL_WINE_CATEGORIES_SV: WineCategory[] = [
       "Vitt naturvin direkt från Languedoc, Frankrike. Vermentino, Chardonnay, Terret — hemleverans Stockholm.",
     description:
       "Vita naturviner från Languedocs bästa småproducenter. Direktimporterat till Stockholm.",
-    filter: { color: ["White"] },
+    filter: { color: ["White"], region: "Languedoc" },
     hreflang: "white-natural-wine-languedoc",
     canonical: "/vin/vitt-naturvin-languedoc",
   },
@@ -77,7 +77,7 @@ const LONG_TAIL_WINE_CATEGORIES_SV: WineCategory[] = [
       "Orange naturvin med skalkontakt direkt från Languedoc, Frankrike. Hemleverans Stockholm.",
     description:
       "Orangeviner från Languedoc — vita druvor med skalkontakt som ger textur, djup och karaktär.",
-    filter: { color: ["Orange"] },
+    filter: { color: ["Orange"], region: "Languedoc" },
     hreflang: "orange-natural-wine-languedoc",
     canonical: "/vin/orange-naturvin-languedoc",
   },
@@ -93,19 +93,6 @@ const LONG_TAIL_WINE_CATEGORIES_SV: WineCategory[] = [
     filter: {},
     hreflang: "natural-wine-delivery-stockholm",
     canonical: "/vin/naturvin-hemleverans-stockholm",
-  },
-  {
-    slug: "direktimport-vin",
-    locale: "sv",
-    h1: "Direktimport av naturvin",
-    title: "Direktimport vin Sverige | PACT Wines",
-    metaDescription:
-      "Köp vin via direktimport till Sverige. PACT samlar beställningar och skickar från producenten.",
-    description:
-      "PACT direktimporterar naturvin från små producenter. Vi samlar beställningar tills en pall är full, sedan skickar producenten vinet direkt till dig.",
-    filter: { isDirectImport: true },
-    hreflang: "direct-import-wine",
-    canonical: "/vin/direktimport-vin",
   },
   {
     slug: "carignan",
@@ -269,7 +256,7 @@ const LONG_TAIL_WINE_CATEGORIES_EN: WineCategory[] = [
       "Natural wine direct from small producers in Languedoc, France. Imported directly to Stockholm without middlemen.",
     description:
       "Languedoc is France's most dynamic natural wine region. We import directly from the producer to your door.",
-    filter: {},
+    filter: { region: "Languedoc" },
     hreflang: "naturvin-languedoc",
     canonical: "/wine/natural-wine-languedoc",
   },
@@ -295,7 +282,7 @@ const LONG_TAIL_WINE_CATEGORIES_EN: WineCategory[] = [
       "Red natural wine direct from Languedoc, France. Carignan, Grenache, Syrah — home delivery Stockholm.",
     description:
       "Red natural wines from Languedoc's best small producers. Directly imported to Stockholm.",
-    filter: { color: ["Red"] },
+    filter: { color: ["Red"], region: "Languedoc" },
     hreflang: "rott-naturvin-languedoc",
     canonical: "/wine/red-natural-wine-languedoc",
   },
@@ -308,7 +295,7 @@ const LONG_TAIL_WINE_CATEGORIES_EN: WineCategory[] = [
       "White natural wine direct from Languedoc, France. Vermentino, Chardonnay, Terret — home delivery Stockholm.",
     description:
       "White natural wines from Languedoc's best small producers. Directly imported to Stockholm.",
-    filter: { color: ["White"] },
+    filter: { color: ["White"], region: "Languedoc" },
     hreflang: "vitt-naturvin-languedoc",
     canonical: "/wine/white-natural-wine-languedoc",
   },
@@ -321,7 +308,7 @@ const LONG_TAIL_WINE_CATEGORIES_EN: WineCategory[] = [
       "Orange natural wine with skin contact direct from Languedoc, France. Home delivery Stockholm.",
     description:
       "Orange wines from Languedoc — white grapes with skin contact for texture, depth and character.",
-    filter: { color: ["Orange"] },
+    filter: { color: ["Orange"], region: "Languedoc" },
     hreflang: "orange-naturvin-languedoc",
     canonical: "/wine/orange-natural-wine-languedoc",
   },
@@ -337,19 +324,6 @@ const LONG_TAIL_WINE_CATEGORIES_EN: WineCategory[] = [
     filter: {},
     hreflang: "naturvin-hemleverans-stockholm",
     canonical: "/wine/natural-wine-delivery-stockholm",
-  },
-  {
-    slug: "direct-import-wine",
-    locale: "en",
-    h1: "Direct Import Natural Wine",
-    title: "Direct Import Wine Sweden | PACT Wines",
-    metaDescription:
-      "Buy wine via direct import to Sweden. PACT aggregates orders and ships from the producer.",
-    description:
-      "PACT directly imports natural wine from small producers. We aggregate orders until a pallet is full, then the producer ships the wine directly to you.",
-    filter: { isDirectImport: true },
-    hreflang: "direktimport-vin",
-    canonical: "/wine/direct-import-wine",
   },
   {
     slug: "carignan",

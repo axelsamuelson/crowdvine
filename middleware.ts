@@ -461,6 +461,7 @@ const LEGACY_WINE_CATEGORY_REDIRECTS_EN: Record<string, string> = {
   "white-wine": "/wine/white-natural-wine",
   "orange-wine": "/wine/orange-natural-wine",
   "natural-wine": "/wine",
+  "direct-import-wine": "/wine",
 };
 
 const LEGACY_WINE_CATEGORY_REDIRECTS_SV: Record<string, string> = {
@@ -468,6 +469,7 @@ const LEGACY_WINE_CATEGORY_REDIRECTS_SV: Record<string, string> = {
   "vitt-vin": "/vin/vitt-naturvin",
   "orange-vin": "/vin/orange-naturvin",
   naturvin: "/vin",
+  "direktimport-vin": "/vin",
 };
 
 function redirectLegacyWineCategorySlug(
