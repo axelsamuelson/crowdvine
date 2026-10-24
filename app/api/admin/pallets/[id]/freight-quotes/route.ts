@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { listPalletFreightQuotes } from "@/lib/admin/lager-frakt-reads";
 import { requireAdmin } from "@/lib/admin-auth-server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import {
@@ -15,26 +16,8 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
   try {
     await requireAdmin();
     const { id: palletId } = await params;
-    const sb = getSupabaseAdmin();
-
-    const { data: quotes, error } = await sb
-      .from("pallet_freight_quotes")
-      .select(
-        `
-        *,
-        provider:logistics_providers(id, name, code),
-        service:freight_services(id, name, transport_mode, pricing_type, route_description),
-        rate:freight_rates(id, base_price_amount, currency, max_weight_kg, pallet_type, pricing_type)
-      `,
-      )
-      .eq("pallet_id", palletId)
-      .order("created_at", { ascending: false });
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
-    return NextResponse.json({ quotes: quotes ?? [] });
+    const quotes = await listPalletFreightQuotes(getSupabaseAdmin(), palletId);
+    return NextResponse.json({ quotes });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Unauthorized";
     return NextResponse.json({ error: msg }, { status: 401 });

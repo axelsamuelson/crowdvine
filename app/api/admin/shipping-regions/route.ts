@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { listShippingRegions } from "@/lib/admin/lager-frakt-reads";
 import {
   isUnauthorizedResponse,
   requireAdminOr401,
@@ -10,41 +11,8 @@ export async function GET() {
     const auth = await requireAdminOr401();
     if (isUnauthorizedResponse(auth)) return auth;
 
-    const sb = getSupabaseAdmin();
-
-    const { data: regions, error: regErr } = await sb
-      .from("shipping_regions")
-      .select("id, name, country_code, description, created_at, updated_at")
-      .order("name");
-
-    if (regErr) {
-      console.error("shipping_regions list error:", regErr);
-      return NextResponse.json({ error: regErr.message }, { status: 500 });
-    }
-
-    const { data: producers, error: prodErr } = await sb
-      .from("producers")
-      .select("shipping_region_id")
-      .not("shipping_region_id", "is", null);
-
-    if (prodErr) {
-      console.error("producers count for regions error:", prodErr);
-      return NextResponse.json({ error: prodErr.message }, { status: 500 });
-    }
-
-    const countByRegion = new Map<string, number>();
-    for (const row of producers ?? []) {
-      const rid = row.shipping_region_id as string | null;
-      if (!rid) continue;
-      countByRegion.set(rid, (countByRegion.get(rid) ?? 0) + 1);
-    }
-
-    const withCounts = (regions ?? []).map((r) => ({
-      ...r,
-      producer_count: countByRegion.get(r.id) ?? 0,
-    }));
-
-    return NextResponse.json({ regions: withCounts });
+    const regions = await listShippingRegions(getSupabaseAdmin());
+    return NextResponse.json({ regions });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Unknown error";
     console.error("GET shipping-regions:", e);
