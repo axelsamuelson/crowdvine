@@ -236,9 +236,7 @@ function colorHubExploreLinks(category: WineCategory): CategoryExploreLink[] {
 }
 
 const LONG_TAIL_GEO_SLUGS = new Set([
-  "naturvin-frankrike",
   "naturvin-hemleverans-stockholm",
-  "natural-wine-france",
   "natural-wine-delivery-stockholm",
 ]);
 
@@ -266,18 +264,6 @@ function geoLongTailExploreLinks(
     locale === "sv" ? "Alla naturviner" : "All natural wines",
   );
 
-  if (
-    category.slug.includes("frankrike") ||
-    category.slug.includes("france")
-  ) {
-    pushHref(
-      locale === "sv"
-        ? "/guider/naturvin-languedoc"
-        : "/guides/languedoc-natural-wine",
-      "Languedoc",
-    );
-  }
-
   const color = category.filter.color?.[0];
   if (color === "Red") {
     push(locale === "sv" ? "rott-naturvin" : "red-natural-wine");
@@ -285,10 +271,6 @@ function geoLongTailExploreLinks(
     push(locale === "sv" ? "vitt-naturvin" : "white-natural-wine");
   } else if (color === "Orange") {
     push(locale === "sv" ? "orange-naturvin" : "orange-natural-wine");
-  }
-
-  if (category.slug.includes("frankrike") || category.slug.includes("france")) {
-    push(locale === "sv" ? "naturvin-frankrike" : "natural-wine-france");
   }
 
   return links.slice(0, 6);

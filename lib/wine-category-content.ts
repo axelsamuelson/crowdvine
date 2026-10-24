@@ -847,48 +847,6 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
         "Red & white natural wine: field blends from small producers.",
     },
   },
-  "naturvin-frankrike": {
-    sv: {
-      title: "Köpa naturvin från Frankrike online | PACT Wines",
-      metaDescription:
-        "Köp naturvin från Frankrike online. Franskt naturvin till Stockholm — utan Systembolaget, utan mellanhänder.",
-      contentHeading: "Om naturvin från Frankrike",
-      longDescription:
-        "Frankrike är naturvinets hemland — från Beaujolais och Loire till Jura och Rhône. Men för den som vill hitta franskt naturvin till rimliga priser är Languedoc en bra ingång: en region med stor mångfald och många små producenter som arbetar ekologiskt.\n\nPACT fokuserar på Languedoc eftersom det är där vi har byggt relationer med producenter vi litar på — vingårdar som gör ärligt vin med vild jäsning, minimal svavel och tydlig platskaraktär. Du får alltså franskt naturvin i ordets sanna bemärkelse, även om sortimentet kommer från en region snarare än hela landet.\n\nDu reserverar flaskor online. När pallen till Stockholm är full skickas vinet och levereras till dig. Ingen Systembolagsmonopol, inga onödiga lagerled.",
-      tastingProfile: [
-        "Franskt naturvin från Languedoc — PACTs fokusregion",
-        "Ekologisk eller biodynamisk odling",
-        "Vild jäsning med få eller inga tillsatser i källaren",
-        "Klassiska sydfranska druvor och lokala sorter",
-        "Leverans i Stockholm",
-      ],
-      foodPairing:
-        "Franskt naturvin passar till det mesta på bordet — från ostbricka och chark till fisk, fågel och grönsaksrätter. Låt syran och frukten balansera fet mat och kryddor.",
-      aboutText:
-        "Köp naturvin från Frankrike online, med leverans i Stockholm.",
-    },
-  },
-  "natural-wine-france": {
-    en: {
-      title: "Buy French Natural Wine Online | PACT Wines",
-      metaDescription:
-        "Buy natural wine from France online. French natural wine to Stockholm — without middlemen or markups.",
-      contentHeading: "About natural wine from France",
-      longDescription:
-        "France is the homeland of natural wine — from Beaujolais and the Loire to the Jura and the Rhône. But if you want French natural wine at fair prices, Languedoc is a good entry point: a region with enormous diversity and many small producers who farm organically.\n\nPACT focuses on Languedoc because that is where we have built relationships with producers we trust — vineyards making honest wine with wild fermentation, minimal sulphur and clear sense of place. You get French natural wine in the true sense, even though the range comes from one region rather than the whole country.\n\nYou reserve bottles online. When the Stockholm pallet is full, the wine ships and is delivered to you. No unnecessary warehousing or markups.",
-      tastingProfile: [
-        "French natural wine from Languedoc — PACT's focus region",
-        "Organic or biodynamic farming",
-        "Wild fermentation without cellar additives",
-        "Classic southern French grapes and local varieties",
-        "Delivery in Stockholm",
-      ],
-      foodPairing:
-        "French natural wine suits most of the table — from cheese boards and charcuterie to fish, poultry and vegetable dishes. Let the acidity and fruit balance rich food and spice.",
-      aboutText:
-        "Buy natural wine from France online, with delivery in Stockholm.",
-    },
-  },
   "naturvin-hemleverans-stockholm": {
     sv: {
       title: "Naturvin hemleverans Stockholm — beställ online | PACT Wines",
