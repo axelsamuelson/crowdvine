@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { listFreightCatalogue } from "@/lib/admin/lager-frakt-reads";
 import { requireAdmin } from "@/lib/admin-auth-server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
@@ -23,64 +24,12 @@ function strOrNull(v: unknown): string | null {
 export async function GET() {
   try {
     await requireAdmin();
-    const sb = getSupabaseAdmin();
-
-    const { data: providers, error: pErr } = await sb
-      .from("logistics_providers")
-      .select("*")
-      .order("name");
-    if (pErr) {
-      return NextResponse.json({ error: pErr.message }, { status: 500 });
-    }
-
-    const { data: services, error: sErr } = await sb
-      .from("freight_services")
-      .select("*")
-      .order("name");
-    if (sErr) {
-      return NextResponse.json({ error: sErr.message }, { status: 500 });
-    }
-
-    const { data: rates, error: rErr } = await sb
-      .from("freight_rates")
-      .select("*")
-      .order("created_at", { ascending: false });
-    if (rErr) {
-      return NextResponse.json({ error: rErr.message }, { status: 500 });
-    }
-
-    const rateIds = (rates ?? []).map((r) => r.id as string);
-    let components: Record<string, unknown>[] = [];
-    if (rateIds.length > 0) {
-      const { data: comps, error: cErr } = await sb
-        .from("freight_rate_components")
-        .select("*")
-        .in("freight_rate_id", rateIds)
-        .order("sort_order");
-      if (cErr) {
-        return NextResponse.json({ error: cErr.message }, { status: 500 });
-      }
-      components = (comps ?? []) as Record<string, unknown>[];
-    }
-
-    const { data: packaging, error: pkgErr } = await sb
-      .from("packaging_profiles")
-      .select("*")
-      .order("code");
-    if (pkgErr) {
-      return NextResponse.json({ error: pkgErr.message }, { status: 500 });
-    }
-
-    return NextResponse.json({
-      providers: providers ?? [],
-      services: services ?? [],
-      rates: rates ?? [],
-      components,
-      packaging: packaging ?? [],
-    });
+    const catalogue = await listFreightCatalogue(getSupabaseAdmin());
+    return NextResponse.json(catalogue);
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Unauthorized";
-    return NextResponse.json({ error: msg }, { status: 401 });
+    const status = msg === "Admin authentication required" ? 401 : 500;
+    return NextResponse.json({ error: msg }, { status });
   }
 }
 

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { listGeoZones } from "@/lib/admin/lager-frakt-reads";
 import {
   isUnauthorizedResponse,
   requireAdminOr401,
@@ -18,20 +19,11 @@ export async function GET(request: NextRequest) {
   try {
     const sb = getSupabaseAdmin();
     const marketCode = request.nextUrl.searchParams.get("market_code")?.trim();
-    let q = sb
-      .from("geo_zones")
-      .select("*")
-      .order("market_code", { ascending: true })
-      .order("sort_order", { ascending: true })
-      .order("name", { ascending: true });
-    if (marketCode) {
-      q = q.eq("market_code", marketCode);
-    }
-    const { data, error } = await q;
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-    return NextResponse.json({ geoZones: data ?? [] });
+    const geoZones = await listGeoZones(
+      sb,
+      marketCode ? { market_code: marketCode } : undefined,
+    );
+    return NextResponse.json({ geoZones });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : "Unknown error";
     return NextResponse.json({ error: msg }, { status: 500 });

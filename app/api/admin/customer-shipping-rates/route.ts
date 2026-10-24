@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { listCustomerShippingRates } from "@/lib/admin/lager-frakt-reads";
 import { requireAdmin } from "@/lib/admin-auth-server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
@@ -11,21 +12,15 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     await requireAdmin();
-    const sb = getSupabaseAdmin();
-    const { data, error } = await sb
-      .from("customer_shipping_rates")
-      .select("*")
-      .order("created_at", { ascending: false });
-    if (error) {
-      return NextResponse.json(
-        { error: error.message, entries: [] },
-        { status: error.code === "42P01" ? 200 : 500 },
-      );
-    }
-    return NextResponse.json({ entries: data ?? [] });
+    const entries = await listCustomerShippingRates(getSupabaseAdmin());
+    return NextResponse.json({ entries });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Unauthorized";
-    return NextResponse.json({ error: msg }, { status: 401 });
+    if (msg.includes("42P01") || msg.includes("does not exist")) {
+      return NextResponse.json({ error: msg, entries: [] }, { status: 200 });
+    }
+    const status = msg === "Admin authentication required" ? 401 : 500;
+    return NextResponse.json({ error: msg }, { status });
   }
 }
 
