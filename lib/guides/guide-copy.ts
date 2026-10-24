@@ -125,6 +125,9 @@ const SV_GUIDE_CARDS: GuideHubCard[] = [
   ...(isGuideArticlePublished(buyNaturalWineOnlineSwedenArticle)
     ? [articleHubCard(buyNaturalWineOnlineSwedenArticle, "sv")]
     : []),
+  ...(isGuideArticlePublished(naturalWineHomeDeliveryArticle)
+    ? [articleHubCard(naturalWineHomeDeliveryArticle, "sv")]
+    : []),
   ...(isGuideArticlePublished(whatIsPetNatArticle)
     ? [articleHubCard(whatIsPetNatArticle, "sv")]
     : []),
@@ -326,6 +329,9 @@ const EN_GUIDE_CARDS: GuideHubCard[] = [
   articleHubCard(whatIsOrangeWineArticle, "en"),
   ...(isGuideArticlePublished(buyNaturalWineOnlineSwedenArticle)
     ? [articleHubCard(buyNaturalWineOnlineSwedenArticle, "en")]
+    : []),
+  ...(isGuideArticlePublished(naturalWineHomeDeliveryArticle)
+    ? [articleHubCard(naturalWineHomeDeliveryArticle, "en")]
     : []),
   ...(isGuideArticlePublished(whatIsPetNatArticle)
     ? [articleHubCard(whatIsPetNatArticle, "en")]
