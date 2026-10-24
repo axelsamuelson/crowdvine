@@ -1,5 +1,6 @@
 "use server";
 
+import { requireAdmin } from "@/lib/admin-auth-server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { revalidatePath } from "next/cache";
 
@@ -21,6 +22,7 @@ export interface CreatePalletZoneData {
 }
 
 export async function getDeliveryZones() {
+  await requireAdmin();
   const sb = getSupabaseAdmin();
 
   const { data, error } = await sb
@@ -34,6 +36,7 @@ export async function getDeliveryZones() {
 }
 
 export async function getPickupZones() {
+  await requireAdmin();
   const sb = getSupabaseAdmin();
 
   const { data, error } = await sb
@@ -47,6 +50,7 @@ export async function getPickupZones() {
 }
 
 export async function getPalletZones() {
+  await requireAdmin();
   const sb = getSupabaseAdmin();
 
   const { data, error } = await sb
@@ -59,6 +63,7 @@ export async function getPalletZones() {
 }
 
 export async function getPalletZone(id: string) {
+  await requireAdmin();
   const sb = getSupabaseAdmin();
 
   const { data, error } = await sb
@@ -72,6 +77,7 @@ export async function getPalletZone(id: string) {
 }
 
 export async function createPalletZone(data: CreatePalletZoneData) {
+  await requireAdmin();
   const sb = getSupabaseAdmin();
 
   const { data: zone, error } = await sb
@@ -90,6 +96,7 @@ export async function updatePalletZone(
   id: string,
   data: Partial<CreatePalletZoneData>,
 ) {
+  await requireAdmin();
   const sb = getSupabaseAdmin();
 
   const { data: zone, error } = await sb
@@ -107,6 +114,7 @@ export async function updatePalletZone(
 }
 
 export async function deletePalletZone(id: string) {
+  await requireAdmin();
   const sb = getSupabaseAdmin();
 
   // Check if zone is used in any producers before deleting
