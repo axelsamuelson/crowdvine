@@ -127,7 +127,16 @@ export async function buildSitemapEntries(
 ): Promise<MetadataRoute.Sitemap> {
   return unstable_cache(
     () => buildSitemapEntriesUncached(baseUrl, profile),
-    ["sitemap-entries", baseUrl, profile, ...producerBoxesSitemapPaths()],
+    [
+      "sitemap-entries",
+      baseUrl,
+      profile,
+      ...producerBoxesSitemapPaths(),
+      // Bust when legacy redirects / category lists change (otherwise 1h stale URLs).
+      ...Array.from(LEGACY_SHOP_REDIRECT_SLUGS).sort(),
+      ...WINE_CATEGORIES_SV.map((c) => c.slug),
+      ...WINE_CATEGORIES_EN.map((c) => c.slug),
+    ],
     { revalidate: 3600 },
   )();
 }
