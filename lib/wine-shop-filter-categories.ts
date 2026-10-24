@@ -120,6 +120,8 @@ export const LEGACY_SHOP_REDIRECT_SLUGS = new Set<string>([
   "red-natural-wine-languedoc",
   "white-natural-wine-languedoc",
   "orange-natural-wine-languedoc",
+  "naturvin-frankrike",
+  "natural-wine-france",
 ]);
 
 function comboSlug(

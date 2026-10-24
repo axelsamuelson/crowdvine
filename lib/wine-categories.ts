@@ -17,19 +17,6 @@ export type { WineCategory, WineCategoryFilter } from "@/lib/wine-category-types
 
 const LONG_TAIL_WINE_CATEGORIES_SV: WineCategory[] = [
   {
-    slug: "naturvin-frankrike",
-    locale: "sv",
-    h1: "Naturvin från Frankrike",
-    title: "Köpa naturvin från Frankrike online | PACT Wines",
-    metaDescription:
-      "Köp naturvin från Frankrike med hemleverans i Stockholm.",
-    description:
-      "Naturvin från Frankrike, med leverans i Stockholm.",
-    filter: { countryCode: "FR" },
-    hreflang: "natural-wine-france",
-    canonical: "/vin/naturvin-frankrike",
-  },
-  {
     slug: "naturvin-hemleverans-stockholm",
     locale: "sv",
     h1: "Naturvin med hemleverans i Stockholm",
@@ -195,19 +182,6 @@ export const WINE_CATEGORIES_SV: WineCategory[] = [
 ];
 
 const LONG_TAIL_WINE_CATEGORIES_EN: WineCategory[] = [
-  {
-    slug: "natural-wine-france",
-    locale: "en",
-    h1: "Natural Wine from France",
-    title: "Buy French Natural Wine Online | PACT Wines",
-    metaDescription:
-      "Buy natural wine from France with home delivery in Stockholm.",
-    description:
-      "Natural wine from France, with delivery in Stockholm.",
-    filter: { countryCode: "FR" },
-    hreflang: "naturvin-frankrike",
-    canonical: "/wine/natural-wine-france",
-  },
   {
     slug: "natural-wine-delivery-stockholm",
     locale: "en",
