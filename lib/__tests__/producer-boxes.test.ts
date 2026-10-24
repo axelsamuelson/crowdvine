@@ -7,6 +7,7 @@ import {
   isProducerBoxesPath,
   pactProducerBoxesRedirectUrl,
   producerBoxesSitemapPaths,
+  resolveProducerBoxesTargetPath,
   type ProducerBoxDefinition,
   type ProducerBoxLine,
 } from "@/lib/producer-boxes/config";
@@ -80,7 +81,10 @@ describe("producer boxes", () => {
       "Naturvinslåda: sex flaskor från en producent",
     );
     expect(PRODUCER_BOXES_COPY.sv.meta).toBe(
-      "Vinlåda med naturvin: sex flaskor från en och samma producent i Languedoc. Se vad som ingår i varje låda och lägg hela lådan i varukorgen.",
+      "Vinlåda med naturvin: sex flaskor från en producent. Se vad som ingår i varje låda och lägg hela lådan i varukorgen.",
+    );
+    expect(PRODUCER_BOXES_COPY.en.meta).toBe(
+      "A natural wine box of six bottles from one producer. See what each box contains and add the whole box to the cart.",
     );
     expect(PRODUCER_BOXES_COPY.sv.meta.length).toBeLessThanOrEqual(155);
     expect(PRODUCER_BOXES_COPY.sv.intro.startsWith(
@@ -354,12 +358,49 @@ describe("producer boxes", () => {
     ).resolves.toBeUndefined();
   });
 
-  it("redirects dirtywine paths to pactwines.com", () => {
+  it("redirects dirtywine and legacy box paths to pact producer-box landings", () => {
     expect(isProducerBoxesPath("/vin/naturvin-lada")).toBe(true);
     expect(isProducerBoxesPath("/wine/natural-wine-box")).toBe(true);
     expect(isProducerBoxesPath("/vin/wine-boxes")).toBe(false);
+    expect(resolveProducerBoxesTargetPath("/vin/wine-boxes")).toBe(
+      "/vin/naturvin-lada",
+    );
+    expect(resolveProducerBoxesTargetPath("/wine/wine-boxes")).toBe(
+      "/wine/natural-wine-box",
+    );
+    expect(resolveProducerBoxesTargetPath("/boxes")).toBe("/vin/naturvin-lada");
+    expect(resolveProducerBoxesTargetPath("/vin/boxes")).toBe(
+      "/vin/naturvin-lada",
+    );
+    expect(resolveProducerBoxesTargetPath("/vin/lada")).toBe(
+      "/vin/naturvin-lada",
+    );
+    expect(resolveProducerBoxesTargetPath("/vin/lador")).toBe(
+      "/vin/naturvin-lada",
+    );
+    expect(resolveProducerBoxesTargetPath("/wine/boxes")).toBe(
+      "/wine/natural-wine-box",
+    );
+    expect(resolveProducerBoxesTargetPath("/wine/lada")).toBe(
+      "/wine/natural-wine-box",
+    );
+    expect(resolveProducerBoxesTargetPath("/wine/lador")).toBe(
+      "/wine/natural-wine-box",
+    );
     expect(pactProducerBoxesRedirectUrl("/vin/naturvin-lada", "?x=1")).toBe(
       "https://pactwines.com/vin/naturvin-lada?x=1",
+    );
+    expect(pactProducerBoxesRedirectUrl("/vin/wine-boxes")).toBe(
+      "https://pactwines.com/vin/naturvin-lada",
+    );
+    expect(pactProducerBoxesRedirectUrl("/boxes")).toBe(
+      "https://pactwines.com/vin/naturvin-lada",
+    );
+    expect(pactProducerBoxesRedirectUrl("/wine/wine-boxes")).toBe(
+      "https://pactwines.com/wine/natural-wine-box",
+    );
+    expect(pactProducerBoxesRedirectUrl("/vin/lador")).toBe(
+      "https://pactwines.com/vin/naturvin-lada",
     );
   });
 

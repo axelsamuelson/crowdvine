@@ -55,7 +55,7 @@ export async function fetchCollectionsData(): Promise<CollectionData[]> {
 }
 
 function buildCollectionsFromProducers(producers: any[]): CollectionData[] {
-  const producerCollections = producers.map((producer: any) => ({
+  return producers.map((producer: any) => ({
     id: producer.id,
     handle: generateProducerSlug(producer.name),
     title: producer.name,
@@ -68,18 +68,6 @@ function buildCollectionsFromProducers(producers: any[]): CollectionData[] {
     updatedAt: new Date().toISOString(),
     createdAt: new Date().toISOString(),
   }));
-
-  const wineBoxesCollection: CollectionData = {
-    id: "wine-boxes-collection",
-    handle: "wine-boxes",
-    title: "Wine Boxes",
-    description:
-      "Curated wine packages with 3 or 6 bottles featuring organic, light reds, pet-nat, and more",
-    updatedAt: new Date().toISOString(),
-    createdAt: new Date().toISOString(),
-  };
-
-  return [wineBoxesCollection, ...producerCollections];
 }
 
 /** Read producer shop fields from a collection returned by getCollection(). */
