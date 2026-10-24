@@ -105,14 +105,18 @@ describe("natural wine as shop default", () => {
     expect(whiteNatural?.filter).toEqual({ color: ["White"] });
   });
 
-  it("keeps two-color natural pages on farming natural", () => {
-    const blend = GENERATED_WINE_CATEGORIES_EN.find(
+  it("uses color-only filters on two-color natural pages", () => {
+    const blendEn = GENERATED_WINE_CATEGORIES_EN.find(
       (c) => c.slug === "red-and-white-natural-wine",
     );
-    expect(blend?.filter).toEqual({
-      color: ["Red & White"],
-      farming: ["natural"],
-    });
+    expect(blendEn?.filter).toEqual({ color: ["Red & White"] });
+    expect(blendEn?.filter.farming).toBeUndefined();
+
+    const blendSv = GENERATED_WINE_CATEGORIES_SV.find(
+      (c) => c.slug === "rod-och-vit-naturvin",
+    );
+    expect(blendSv?.filter).toEqual({ color: ["Red & White"] });
+    expect(blendSv?.filter.farming).toBeUndefined();
   });
 
   it("marks legacy color and natural hubs for redirect only", () => {
