@@ -139,7 +139,7 @@ const DIRTY_COPY: Record<AppLocale, StockholmDeliveryLandingCopy> = {
     brand: "Dirty Wine",
     h1: "Naturvin till restaurangen i Stockholm",
     heroSupport:
-      "Du reserverar online och vinet levereras när pallen är full — hemleverans till din restaurang.",
+      "Du reserverar online och vinet levereras när pallen är full — leverans till din restaurang.",
     steps: [
       PACT_COPY.sv.steps[0],
       PACT_COPY.sv.steps[1],
@@ -170,7 +170,7 @@ const DIRTY_COPY: Record<AppLocale, StockholmDeliveryLandingCopy> = {
     brand: "Dirty Wine",
     h1: "Natural wine for restaurants in Stockholm",
     heroSupport:
-      "Reserve online and the wine is delivered when the pallet is full — home delivery to your restaurant.",
+      "Reserve online and the wine is delivered when the pallet is full — delivery to your restaurant.",
     steps: [
       PACT_COPY.en.steps[0],
       PACT_COPY.en.steps[1],

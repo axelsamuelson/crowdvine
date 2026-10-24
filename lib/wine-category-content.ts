@@ -849,9 +849,9 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
   },
   "naturvin-languedoc": {
     sv: {
-      title: "Naturvin från Languedoc — till Stockholm | PACT Wines",
+      title: "Naturvin från Languedoc online",
       metaDescription:
-        "Naturvin från Languedoc till Stockholm. Småproducenter, vild jäsning. Du reserverar online och vinet levereras när pallen är full.",
+        "Naturvin från småproducenter i Languedoc, Frankrike. Leverans i Stockholm.",
       contentHeading: "Om naturvin från Languedoc",
       longDescription:
         "Languedoc-Roussillon är Frankrikes största vinregion och samtidigt den mest dynamiska när det gäller naturvin. Här finns allt från kalkiga sluttningar i Minervois och Saint-Chinian till skiffer i Faugères och höjdläge i Haute Vallée de l'Orb — terroir som ger distinkta, drickbara viner utan att behöva tung ekfatshantering.\n\nNaturvinsrörelsen i Languedoc växte fram när unga producenter tog över gamla vingårdar och började arbeta ekologiskt eller biodynamiskt med vild jäsning och minimal intervention i källaren. Resultatet är ett ekosystem av små, oberoende producenter som gör allt från lätta Cinsault-viner till koncentrerad Carignan och experimentella orangeviner.\n\nVi säljer naturvin från små producenter i Languedoc. När tillräckligt många reserverat fylls en pall och flaskorna skickas utan mellanhänder. Det ger bättre pris, färskare vin och en äkta koppling mellan vingård och drickare.",
@@ -860,7 +860,6 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
         "Carignan, Grenache, Syrah, Cinsault och lokala vita druvor",
         "Vild jäsning, låg eller ingen tillsatt svavel",
         "Från lättdrucket till strukturerat och mineraliskt",
-        "Utan mellanhänder",
       ],
       foodPairing:
         "Languedoc-naturvin är gjort för mat — från grillat lamm och cassoulet till chark, pizza och grönsaksrätter. De lätta röda och orangeviner kan serveras något svalare; de fylligare röda passar till långkok och ost.",
@@ -870,9 +869,9 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
   },
   "natural-wine-languedoc": {
     en: {
-      title: "Natural Wine from Languedoc — to Stockholm | PACT Wines",
+      title: "Natural Wine from Languedoc Online",
       metaDescription:
-        "Natural wine from Languedoc to Stockholm. Small producers, wild fermentation. Reserve online and the wine is delivered when the pallet is full.",
+        "Natural wine from small producers in Languedoc, France. Delivery in Stockholm.",
       contentHeading: "About natural wine from Languedoc",
       longDescription:
         "Languedoc-Roussillon is France's largest wine region and at the same time the most dynamic for natural wine. Here you'll find everything from limestone slopes in Minervois and Saint-Chinian to schist in Faugères and altitude in Haute Vallée de l'Orb — terroir that gives distinctive, drinkable wines without heavy oak ageing.\n\nThe natural wine movement in Languedoc grew when young producers took over old vineyards and began farming organically or biodynamically with wild fermentation and minimal intervention in the cellar. The result is an ecosystem of small, independent producers making everything from light Cinsault wines to concentrated Carignan and experimental orange wines.\n\nWe sell natural wine from small producers in Languedoc. When enough people have reserved, a pallet fills and bottles ship without middlemen. That means better value, fresher wine and a real connection between vineyard and drinker.",
@@ -881,7 +880,6 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
         "Carignan, Grenache, Syrah, Cinsault and local white grapes",
         "Wild fermentation, low or no added sulphur",
         "From easy-drinking to structured and mineral",
-        "Without middlemen",
       ],
       foodPairing:
         "Languedoc natural wine is made for food — from grilled lamb and cassoulet to charcuterie, pizza and vegetable dishes. Light reds and orange wines can be served slightly chilled; fuller reds suit slow-cooked dishes and cheese.",

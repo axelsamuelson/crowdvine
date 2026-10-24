@@ -20,9 +20,9 @@ const LONG_TAIL_WINE_CATEGORIES_SV: WineCategory[] = [
     slug: "naturvin-languedoc",
     locale: "sv",
     h1: "Naturvin från Languedoc",
-    title: "Naturvin från Languedoc — till Stockholm | PACT Wines",
+    title: "Naturvin från Languedoc online",
     metaDescription:
-      "Naturvin från småproducenter i Languedoc, Frankrike. Till Stockholm utan mellanhänder.",
+      "Naturvin från småproducenter i Languedoc, Frankrike. Leverans i Stockholm.",
     description:
       "Languedoc är Frankrikes mest dynamiska naturvinsregion. Vi säljer naturvin från små producenter.",
     filter: { region: "Languedoc" },
@@ -251,9 +251,9 @@ const LONG_TAIL_WINE_CATEGORIES_EN: WineCategory[] = [
     slug: "natural-wine-languedoc",
     locale: "en",
     h1: "Natural Wine from Languedoc",
-    title: "Natural Wine from Languedoc — to Stockholm | PACT Wines",
+    title: "Natural Wine from Languedoc Online",
     metaDescription:
-      "Natural wine from small producers in Languedoc, France. To Stockholm without middlemen.",
+      "Natural wine from small producers in Languedoc, France. Delivery in Stockholm.",
     description:
       "Languedoc is France's most dynamic natural wine region. We sell natural wine from small producers.",
     filter: { region: "Languedoc" },
