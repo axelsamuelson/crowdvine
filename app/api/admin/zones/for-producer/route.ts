@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/admin-auth-server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 /**
@@ -6,6 +7,7 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
  */
 export async function POST(request: Request) {
   try {
+    await requireAdmin();
     const { producerId, zoneData } = await request.json();
 
     console.log(
@@ -133,10 +135,14 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ zoneId });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : "Unknown error";
+    if (msg === "Admin authentication required") {
+      return NextResponse.json({ error: msg }, { status: 401 });
+    }
     console.error("Zone for producer API error:", error);
     return NextResponse.json(
-      { error: `Internal server error: ${error.message || "Unknown error"}` },
+      { error: `Internal server error: ${msg}` },
       { status: 500 },
     );
   }

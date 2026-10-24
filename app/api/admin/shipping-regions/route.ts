@@ -1,15 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
+import {
+  isUnauthorizedResponse,
+  requireAdminOr401,
+} from "@/lib/admin-auth-http";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
-function requireAdmin(request: NextRequest): boolean {
-  return Boolean(request.cookies.get("admin-auth")?.value);
-}
-
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
-    if (!requireAdmin(request)) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const auth = await requireAdminOr401();
+    if (isUnauthorizedResponse(auth)) return auth;
 
     const sb = getSupabaseAdmin();
 
@@ -55,9 +54,8 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    if (!requireAdmin(request)) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const auth = await requireAdminOr401();
+    if (isUnauthorizedResponse(auth)) return auth;
 
     const body = (await request.json()) as {
       name?: string;
