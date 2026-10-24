@@ -32,8 +32,10 @@ import {
   pactGuideRedirectUrl,
 } from "@/lib/guides/dirtywine-guide-redirect";
 import {
+  isLegacyBoxRedirectPath,
   isProducerBoxesPath,
   pactProducerBoxesRedirectUrl,
+  resolveProducerBoxesTargetPath,
 } from "@/lib/producer-boxes/config";
 import {
   isStockholmDeliveryRedirectPath,
@@ -161,7 +163,11 @@ async function runMiddleware(req: NextRequest) {
     );
   }
 
-  if (isDirtywineProductionHost(host) && isProducerBoxesPath(pathname)) {
+  // Producer-box landings + legacy box URLs → pactwines.com (one hop).
+  if (
+    isDirtywineProductionHost(host) &&
+    (isProducerBoxesPath(pathname) || isLegacyBoxRedirectPath(pathname))
+  ) {
     return NextResponse.redirect(
       pactProducerBoxesRedirectUrl(pathname, req.nextUrl.search),
       301,
@@ -221,10 +227,14 @@ async function runMiddleware(req: NextRequest) {
     return NextResponse.redirect(u, 301);
   }
 
-  if (pathname === "/boxes") {
-    const u = req.nextUrl.clone();
-    u.pathname = "/vin/wine-boxes";
-    return NextResponse.redirect(u, 301);
+  // Legacy box shop URLs → producer-boxes landing (one hop, same host on pact).
+  if (isLegacyBoxRedirectPath(pathname)) {
+    const target = resolveProducerBoxesTargetPath(pathname);
+    if (target) {
+      const u = req.nextUrl.clone();
+      u.pathname = target;
+      return NextResponse.redirect(u, 301);
+    }
   }
 
   const legacyGrapeRedirect = redirectLegacyShopGrapeFilter(req, pathname);

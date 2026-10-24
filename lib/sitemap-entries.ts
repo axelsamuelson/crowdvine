@@ -111,8 +111,6 @@ function staticPagesForProfile(
       weeklyEntry(`${baseUrl}${GUIDE_PATHS.orangeWines.sv}`, 0.75),
       weeklyEntry(`${baseUrl}${GUIDE_PATHS.naturalChampagne.en}`, 0.75),
       weeklyEntry(`${baseUrl}${GUIDE_PATHS.naturalChampagne.sv}`, 0.75),
-      weeklyEntry(`${baseUrl}/vin/wine-boxes`, 0.75),
-      weeklyEntry(`${baseUrl}/wine/wine-boxes`, 0.75),
       ...producerBoxesSitemapPaths().map((path) =>
         weeklyEntry(`${baseUrl}${path}`, 0.75),
       ),

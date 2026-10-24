@@ -13,6 +13,7 @@ import {
   producerShopPathFromName,
   shopPathForLocale,
 } from "@/lib/i18n/localized-routes";
+import { producerBoxesPath } from "@/lib/producer-boxes/config";
 import { useTranslations } from "@/lib/hooks/use-translations";
 import { cn } from "@/lib/utils";
 
@@ -23,7 +24,7 @@ interface ProductBreadcrumbsProps {
   className?: string;
 }
 
-/** PDP breadcrumbs: Shop → Producer wines → Wine (wine boxes keep Wine Boxes segment). */
+/** PDP breadcrumbs: Shop → Producer wines → Wine (wine-box type → producer boxes). */
 export function ProductBreadcrumbs({
   title,
   producerName,
@@ -50,7 +51,7 @@ export function ProductBreadcrumbs({
             <BreadcrumbSeparator />
             <BreadcrumbItem>
               <BreadcrumbLink asChild>
-                <Link href={`${shopPath}/wine-boxes`} prefetch>
+                <Link href={producerBoxesPath(context.locale)} prefetch>
                   {t("product.wineBoxes")}
                 </Link>
               </BreadcrumbLink>

@@ -1,23 +1,28 @@
 import { describe, expect, it } from "vitest";
-import { producerShopMetaDescription } from "@/lib/seo/producer-shop-metadata";
 import { defaultOgImageAlt } from "@/lib/seo/default-social";
 import { producerShopEditorialBio } from "@/components/producer/producer-shop-editorial";
+import { PRODUCER_BOXES_COPY } from "@/lib/producer-boxes/config";
 
 describe("seo copy cleanup", () => {
-  it("removes direkt från / direct from on wine-boxes meta", () => {
-    const sv = producerShopMetaDescription("sv", {
-      producerName: "Wine Boxes",
-      handle: "wine-boxes",
-    });
-    const en = producerShopMetaDescription("en", {
-      producerName: "Wine Boxes",
-      handle: "wine-boxes",
-    });
-    expect(sv.toLowerCase()).not.toContain("direkt från");
-    expect(en.toLowerCase()).not.toContain("direct from");
-    expect(en.toLowerCase()).not.toContain("directly from");
-    expect(sv).toContain("wine boxes");
-    expect(en).toContain("wine boxes");
+  it("keeps producer-box meta short and free of Languedoc/direct/urgency claims", () => {
+    const sv = PRODUCER_BOXES_COPY.sv.meta;
+    const en = PRODUCER_BOXES_COPY.en.meta;
+    expect(sv.length).toBeLessThan(160);
+    expect(en.length).toBeLessThan(160);
+    for (const meta of [sv, en]) {
+      const lower = meta.toLowerCase();
+      expect(lower).not.toContain("languedoc");
+      expect(lower).not.toContain("direkt");
+      expect(lower).not.toContain("direct");
+      expect(lower).not.toContain("utan tillsatser");
+      expect(lower).not.toContain("without additives");
+      expect(lower).not.toContain("reservera innan");
+      expect(lower).not.toContain("reserve before");
+      expect(lower).not.toContain("pallen");
+      expect(lower).not.toContain("pallet");
+    }
+    expect(sv).toContain("en producent");
+    expect(en).toContain("one producer");
   });
 
   it("uses site-aware OG alt without Languedoc direct-import claim", () => {
