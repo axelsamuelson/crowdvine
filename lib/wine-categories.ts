@@ -17,19 +17,6 @@ export type { WineCategory, WineCategoryFilter } from "@/lib/wine-category-types
 
 const LONG_TAIL_WINE_CATEGORIES_SV: WineCategory[] = [
   {
-    slug: "naturvin-hemleverans-stockholm",
-    locale: "sv",
-    h1: "Naturvin med hemleverans i Stockholm",
-    title: "Naturvin hemleverans Stockholm — beställ online | PACT Wines",
-    metaDescription:
-      "Beställ naturvin online med hemleverans i Stockholm.",
-    description:
-      "Naturvin med hemleverans i Stockholm, från små producenter.",
-    filter: {},
-    hreflang: "natural-wine-delivery-stockholm",
-    canonical: "/vin/naturvin-hemleverans-stockholm",
-  },
-  {
     slug: "carignan",
     locale: "sv",
     h1: "Carignan — rebellisk druvsort",
@@ -182,19 +169,6 @@ export const WINE_CATEGORIES_SV: WineCategory[] = [
 ];
 
 const LONG_TAIL_WINE_CATEGORIES_EN: WineCategory[] = [
-  {
-    slug: "natural-wine-delivery-stockholm",
-    locale: "en",
-    h1: "Natural Wine Home Delivery Stockholm",
-    title: "Natural Wine Delivery Stockholm — Order Online | PACT Wines",
-    metaDescription:
-      "Order natural wine online with home delivery in Stockholm.",
-    description:
-      "Natural wine with home delivery in Stockholm, from small producers.",
-    filter: {},
-    hreflang: "naturvin-hemleverans-stockholm",
-    canonical: "/wine/natural-wine-delivery-stockholm",
-  },
   {
     slug: "carignan",
     locale: "en",

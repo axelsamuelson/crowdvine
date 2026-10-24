@@ -124,6 +124,12 @@ function ShopRootBelowFold({ locale }: { locale: "sv" | "en" }) {
     locale === "sv" ? "/guider/vad-ar-naturvin" : "/guides/what-is-natural-wine";
   const guideLabel =
     locale === "sv" ? "Vad är naturvin?" : "What is natural wine?";
+  const deliveryGuideHref =
+    locale === "sv"
+      ? "/guider/hemleverans-av-naturvin"
+      : "/guides/natural-wine-home-delivery";
+  const deliveryGuideLabel =
+    locale === "sv" ? "Så fungerar hemleverans" : "How home delivery works";
   const tastingHeading =
     locale === "sv" ? "Smakprofil" : "Tasting profile";
   const foodHeading = locale === "sv" ? "Matparning" : "Food pairing";
@@ -188,6 +194,12 @@ function ShopRootBelowFold({ locale }: { locale: "sv" | "en" }) {
               className="text-sm text-stone-600 underline underline-offset-4 hover:text-stone-900"
             >
               {guideLabel}
+            </Link>
+            <Link
+              href={deliveryGuideHref}
+              className="text-sm text-stone-600 underline underline-offset-4 hover:text-stone-900"
+            >
+              {deliveryGuideLabel}
             </Link>
           </div>
         </div>

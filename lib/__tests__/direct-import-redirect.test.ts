@@ -19,6 +19,12 @@ describe("legacy shop category redirects", () => {
     );
     expect(LEGACY_SHOP_REDIRECT_SLUGS.has("naturvin-frankrike")).toBe(true);
     expect(LEGACY_SHOP_REDIRECT_SLUGS.has("natural-wine-france")).toBe(true);
+    expect(LEGACY_SHOP_REDIRECT_SLUGS.has("naturvin-hemleverans-stockholm")).toBe(
+      true,
+    );
+    expect(
+      LEGACY_SHOP_REDIRECT_SLUGS.has("natural-wine-delivery-stockholm"),
+    ).toBe(true);
   });
 
   it("Languedoc long-tail pages no longer resolve as shop categories", () => {

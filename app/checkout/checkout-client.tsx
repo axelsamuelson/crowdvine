@@ -9,6 +9,7 @@ import { PRICE_VERSION } from "@/lib/analytics/price-version";
 import { pricesFromCheckoutCart } from "@/lib/analytics/cart-event-prices";
 import { LEGAL_VERSIONS } from "@/lib/legal/versions";
 import Link from "next/link";
+import { homeDeliveryGuidePath } from "@/lib/guides/home-delivery-guide";
 import type { Cart, CartItem } from "@/lib/shopify/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -3401,9 +3402,17 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
                       Boolean(zoneInfo.deliveryZone) ||
                       zoneInfo.selectedDeliveryZoneId != null) ? (
                       <div className="space-y-2">
-                        <p className="text-sm font-medium text-foreground">
-                          {t("checkout.deliveryOptions")}
-                        </p>
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-sm font-medium text-foreground">
+                            {t("checkout.deliveryOptions")}
+                          </p>
+                          <Link
+                            href={homeDeliveryGuidePath(shopping.locale)}
+                            className="text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground"
+                          >
+                            {t("checkout.homeDeliveryGuideLink")}
+                          </Link>
+                        </div>
                         <div
                           className="flex items-start justify-between border-b border-border py-3"
                           role="group"

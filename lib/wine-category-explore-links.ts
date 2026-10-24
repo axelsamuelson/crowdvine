@@ -235,10 +235,7 @@ function colorHubExploreLinks(category: WineCategory): CategoryExploreLink[] {
   return links;
 }
 
-const LONG_TAIL_GEO_SLUGS = new Set([
-  "naturvin-hemleverans-stockholm",
-  "natural-wine-delivery-stockholm",
-]);
+const LONG_TAIL_GEO_SLUGS = new Set<string>([]);
 
 function geoLongTailExploreLinks(
   category: WineCategory,

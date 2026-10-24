@@ -847,48 +847,6 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
         "Red & white natural wine: field blends from small producers.",
     },
   },
-  "naturvin-hemleverans-stockholm": {
-    sv: {
-      title: "Naturvin hemleverans Stockholm — beställ online | PACT Wines",
-      metaDescription:
-        "Beställ naturvin med hemleverans i Stockholm. Du reserverar online och vinet levereras när pallen är full.",
-      contentHeading: "Om naturvin med hemleverans i Stockholm",
-      longDescription:
-        "Att köpa naturvin i Stockholm har länge varit begränsat, och utbudet i butik täcker bara en del av allt naturvin som görs. Här kan du reservera naturvin från små producenter, med hemleverans när pallen till Stockholm är klar.\n\nSå fungerar det: du reserverar flaskor online. När tillräckligt många har beställt fylls en pall, som sedan skickas till Stockholm. Du får bättre pris, färskare flaskor och tillgång till producenter som sällan når den svenska marknaden.\n\nLeveransen sker hem till dig i Stockholm. Sortimentet består av naturvin i rött, vitt, orange och blandade stilar.",
-      tastingProfile: [
-        "Hemleverans i Stockholm när pallen fylls",
-        "Hemleverans i Stockholm",
-        "Naturvin: ekologiskt, vild jäsning, minimal svavel",
-        "Små producenter utanför Systembolaget",
-        "Reservera online — pallen skickas från producenten",
-      ],
-      foodPairing:
-        "PACTs naturvin passar till vardagsmat och fest — chark, fisk, grill, ost och vegetariskt. Välj stil efter måltid: lätt rött till pizza, vitt till skaldjur, orange till kryddig mat.",
-      aboutText:
-        "Beställ naturvin online med hemleverans i Stockholm.",
-    },
-  },
-  "natural-wine-delivery-stockholm": {
-    en: {
-      title: "Natural Wine Home Delivery Stockholm — Order Online | PACT Wines",
-      metaDescription:
-        "Order natural wine with home delivery in Stockholm. Reserve online and the wine is delivered when the pallet is full.",
-      contentHeading: "About natural wine home delivery in Stockholm",
-      longDescription:
-        "Buying natural wine in Stockholm has long been limited, and what stores carry covers only part of all the natural wine being made. Here you can reserve natural wine from small producers, with home delivery when the Stockholm pallet is ready.\n\nHow it works: you reserve bottles online. When enough people have ordered, a pallet fills and ships to Stockholm. You get better value, fresher bottles and access to producers that rarely reach the Swedish market.\n\nDelivery is to your home in Stockholm. The range consists of natural wine in red, white, orange and mixed styles.",
-      tastingProfile: [
-        "Home delivery in Stockholm when the pallet fills",
-        "Home delivery in Stockholm",
-        "Natural wine: organic, wild fermentation, minimal sulphur",
-        "Small producers outside the monopoly",
-        "Reserve online — pallet ships from the producer",
-      ],
-      foodPairing:
-        "PACT's natural wines suit everyday meals and celebrations — charcuterie, fish, grilled food, cheese and vegetarian dishes. Choose style by meal: light red for pizza, white for shellfish, orange for spiced food.",
-      aboutText:
-        "Order natural wine online with home delivery in Stockholm.",
-    },
-  },
 };
 
 export function getWineCategoryContentOverride(

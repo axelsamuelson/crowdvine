@@ -122,6 +122,8 @@ export const LEGACY_SHOP_REDIRECT_SLUGS = new Set<string>([
   "orange-natural-wine-languedoc",
   "naturvin-frankrike",
   "natural-wine-france",
+  "naturvin-hemleverans-stockholm",
+  "natural-wine-delivery-stockholm",
 ]);
 
 function comboSlug(
