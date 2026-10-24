@@ -49,10 +49,6 @@ import { resolveGrapeCategoryBySlug } from "@/lib/wine-grape-categories";
 import { ProducerBoxesPage } from "@/components/producer-boxes/producer-boxes-page";
 import { isProducerBoxesSlug } from "@/lib/producer-boxes/config";
 import { buildProducerBoxesMetadata } from "@/lib/producer-boxes/metadata";
-import { StockholmDeliveryLandingPage } from "@/components/stockholm-delivery-landing/stockholm-delivery-landing-page";
-import { isStockholmDeliveryLandingSlug } from "@/lib/stockholm-delivery-landing/config";
-import { buildStockholmDeliveryMetadata } from "@/lib/stockholm-delivery-landing/metadata";
-
 export const revalidate = 300;
 export const dynamicParams = true;
 
@@ -71,11 +67,6 @@ export async function generateMetadata(props: {
 
   if (isProducerBoxesSlug(slug, "sv")) {
     return buildProducerBoxesMetadata("sv");
-  }
-
-  if (isStockholmDeliveryLandingSlug(slug, "sv")) {
-    const config = await getSiteConfig();
-    return buildStockholmDeliveryMetadata("sv", config);
   }
 
   const category = await resolveGrapeCategoryBySlug(slug, "sv");
@@ -182,10 +173,6 @@ export default async function VinCollectionPage(props: {
 
   if (isProducerBoxesSlug(slug, "sv")) {
     return <ProducerBoxesPage locale="sv" />;
-  }
-
-  if (isStockholmDeliveryLandingSlug(slug, "sv")) {
-    return <StockholmDeliveryLandingPage locale="sv" />;
   }
 
   const category = await resolveGrapeCategoryBySlug(slug, "sv");

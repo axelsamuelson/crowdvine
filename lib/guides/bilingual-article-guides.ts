@@ -28,6 +28,7 @@ import { whatIsOrangeWineArticle } from "@/lib/guides/articles/what-is-orange-wi
 import { whatIsPetNatArticle } from "@/lib/guides/articles/what-is-pet-nat";
 import { whatIsRedNaturalWineArticle } from "@/lib/guides/articles/what-is-red-natural-wine";
 import { buyNaturalWineOnlineSwedenArticle } from "@/lib/guides/articles/buy-natural-wine-online-sweden";
+import { naturalWineHomeDeliveryArticle } from "@/lib/guides/articles/natural-wine-home-delivery";
 import { whatIsWhiteNaturalWineArticle } from "@/lib/guides/articles/what-is-white-natural-wine";
 
 /**
@@ -56,6 +57,7 @@ export const BILINGUAL_ARTICLE_GUIDES: readonly GuideArticleContent[] = [
   whatIsRedNaturalWineArticle,
   whatIsWhiteNaturalWineArticle,
   buyNaturalWineOnlineSwedenArticle,
+  naturalWineHomeDeliveryArticle,
   bestNaturalWinesSystembolagetArticle,
   bestRedNaturalWinesSystembolagetArticle,
   bestWhiteNaturalWinesSystembolagetArticle,
