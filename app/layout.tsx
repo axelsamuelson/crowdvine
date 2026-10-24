@@ -63,7 +63,7 @@ function buildRootOpenGraph(config: SiteConfig): Metadata["openGraph"] {
     locale: "sv_SE",
     alternateLocale: ["en_US"],
     type: "website",
-    images: defaultOpenGraphImages(),
+    images: defaultOpenGraphImages({ siteName: config.siteName, locale: "sv" }),
   };
 }
 

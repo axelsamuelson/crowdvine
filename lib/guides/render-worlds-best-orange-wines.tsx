@@ -51,7 +51,7 @@ export async function buildWorldsBestOrangeWinesMetadata(
       url: pageUrl,
       type: "article",
       locale: locale === "sv" ? "sv_SE" : "en_US",
-      images: defaultOpenGraphImages(),
+      images: defaultOpenGraphImages({ siteName: config.siteName }),
     },
     twitter: pageTwitterCard(title, description),
   };

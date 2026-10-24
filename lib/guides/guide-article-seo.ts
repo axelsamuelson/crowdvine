@@ -68,7 +68,7 @@ export function buildArticleGuideMeta(
       url: pageUrl,
       type: "article",
       locale: locale === "sv" ? "sv_SE" : "en_US",
-      images: defaultOpenGraphImages(),
+      images: defaultOpenGraphImages({ siteName, locale }),
     },
     twitter: pageTwitterCard(title, description),
   };

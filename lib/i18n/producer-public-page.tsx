@@ -231,7 +231,7 @@ export async function buildProducerPublicMetadata(
       description: pageDescription,
       url: canonical,
       type: "website",
-      images: defaultOpenGraphImages(),
+      images: defaultOpenGraphImages({ siteName: config.siteName }),
     },
     twitter: pageTwitterCard(pageTitle, pageDescription),
   };

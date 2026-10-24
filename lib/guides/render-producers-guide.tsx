@@ -168,7 +168,7 @@ export async function buildProducersGuideMetadata(
       description: copy.producers.metaDescription,
       url: pageUrl,
       type: "article",
-      images: defaultOpenGraphImages(),
+      images: defaultOpenGraphImages({ siteName: config.siteName }),
     },
     twitter: pageTwitterCard(title, copy.producers.metaDescription),
   };

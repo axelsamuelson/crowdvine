@@ -112,6 +112,14 @@ export const LEGACY_SHOP_REDIRECT_SLUGS = new Set<string>([
   "naturvin",
   "direktimport-vin",
   "direct-import-wine",
+  "naturvin-languedoc",
+  "rott-naturvin-languedoc",
+  "vitt-naturvin-languedoc",
+  "orange-naturvin-languedoc",
+  "natural-wine-languedoc",
+  "red-natural-wine-languedoc",
+  "white-natural-wine-languedoc",
+  "orange-natural-wine-languedoc",
 ]);
 
 function comboSlug(
