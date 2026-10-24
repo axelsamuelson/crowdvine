@@ -1,7 +1,12 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
-import { PALLET_FILL_STATUSES } from "@/lib/pallet-fill-count";
+import {
+  getEnrichedPactPallet,
+  listEnrichedPactPallets,
+} from "@/lib/admin/pact-pallet-list";
+import { listPalletReservationsMcpSafe } from "@/lib/admin/lager-frakt-reads";
+import { buildAdminPalletOperatingSummaryForId } from "@/lib/admin-pallet-operating-summary";
 import { mcpErrorResult, mcpJsonResult } from "../utils/tool-result";
 import { mcpWriteTool } from "../utils/write-tool";
 
@@ -56,105 +61,6 @@ function enrichB2bShipment(row: Record<string, unknown>) {
   });
   const { b2b_pallet_shipment_items: _omit, ...header } = row;
   return { ...header, items };
-}
-
-async function aggregatePactPalletWines(
-  sb: SupabaseClient,
-  palletId: string,
-): Promise<
-  Array<{
-    wine_id: string;
-    wine_name: string;
-    producer_name: string;
-    total_quantity: number;
-  }>
-> {
-  const statuses = [...PALLET_FILL_STATUSES];
-
-  const { data: reservations, error: resErr } = await sb
-    .from("order_reservations")
-    .select("id")
-    .eq("pallet_id", palletId)
-    .in("status", statuses);
-
-  if (resErr) throw new Error(resErr.message);
-  if (!reservations?.length) return [];
-
-  const reservationIds = reservations
-    .map((r) => r.id)
-    .filter((id): id is string => typeof id === "string" && id.length > 0);
-
-  const { data: itemRows, error: itemsErr } = await sb
-    .from("order_reservation_items")
-    .select("item_id, quantity")
-    .in("reservation_id", reservationIds);
-
-  if (itemsErr) throw new Error(itemsErr.message);
-  if (!itemRows?.length) return [];
-
-  const qtyByWineId = new Map<string, number>();
-  for (const row of itemRows) {
-    const wineId = row.item_id as string | null;
-    if (!wineId) continue;
-    const qty = Math.max(0, Math.floor(Number(row.quantity) || 0));
-    qtyByWineId.set(wineId, (qtyByWineId.get(wineId) ?? 0) + qty);
-  }
-
-  const wineIds = [...qtyByWineId.keys()];
-  if (wineIds.length === 0) return [];
-
-  const { data: wines, error: winesErr } = await sb
-    .from("wines")
-    .select("id, wine_name, producer_id")
-    .in("id", wineIds);
-
-  if (winesErr) throw new Error(winesErr.message);
-
-  const producerIds = [
-    ...new Set(
-      (wines ?? [])
-        .map((w) => w.producer_id as string | null)
-        .filter((id): id is string => Boolean(id)),
-    ),
-  ];
-
-  const producerNameById = new Map<string, string>();
-  if (producerIds.length > 0) {
-    const { data: producers, error: prodErr } = await sb
-      .from("producers")
-      .select("id, name")
-      .in("id", producerIds);
-    if (prodErr) throw new Error(prodErr.message);
-    for (const p of producers ?? []) {
-      if (p?.id && p.name) producerNameById.set(p.id as string, p.name as string);
-    }
-  }
-
-  const wineMeta = new Map<
-    string,
-    { wine_name: string; producer_id: string | null }
-  >();
-  for (const w of wines ?? []) {
-    wineMeta.set(w.id as string, {
-      wine_name: String(w.wine_name ?? ""),
-      producer_id: (w.producer_id as string | null) ?? null,
-    });
-  }
-
-  return wineIds
-    .map((wineId) => {
-      const meta = wineMeta.get(wineId);
-      const producerId = meta?.producer_id ?? null;
-      return {
-        wine_id: wineId,
-        wine_name: meta?.wine_name ?? "",
-        producer_name: producerId
-          ? (producerNameById.get(producerId) ?? "Unknown")
-          : "Unknown",
-        total_quantity: qtyByWineId.get(wineId) ?? 0,
-      };
-    })
-    .sort((a, b) => b.total_quantity - a.total_quantity);
 }
 
 export function registerPalletTools(server: McpServer, sb: SupabaseClient) {
@@ -371,7 +277,7 @@ export function registerPalletTools(server: McpServer, sb: SupabaseClient) {
     "list_pallets",
     {
       description:
-        "Lista PACT-pallar med status, kapacitet, fraktkostnad och kopplad region/upphämtningsproducent.",
+        "Lista PACT-pallar med samma berikning som admin: fill % (completion_percentage), wine_summary inkl. MOQ, min_bottles_to_complete, operating_summary och shadow_contribution. status/shipping_ordered påverkar kunder om de ändras via admin (skrivverktyg för shipping finns inte i MCP).",
       inputSchema: {
         status: z
           .string()
@@ -383,40 +289,10 @@ export function registerPalletTools(server: McpServer, sb: SupabaseClient) {
     },
     async ({ status }) => {
       try {
-        let q = sb
-          .from("pallets")
-          .select(
-            `
-            id,
-            name,
-            status,
-            bottle_capacity,
-            cost_cents,
-            created_at,
-            shipping_region:shipping_regions(name),
-            pickup_producer:producers!current_pickup_producer_id(name)
-          `,
-          )
-          .order("created_at", { ascending: false });
-        if (status) q = q.eq("status", status);
-        const { data, error } = await q;
-        if (error) return mcpErrorResult(error.message, "list_pallets");
-
-        const rows = (data ?? []).map((row) => {
-          const sr = row.shipping_region as { name?: string } | null;
-          const pp = row.pickup_producer as { name?: string } | null;
-          return {
-            id: row.id,
-            name: row.name,
-            status: row.status,
-            bottle_capacity: row.bottle_capacity,
-            cost_cents: row.cost_cents,
-            shipping_region_name: sr?.name ?? null,
-            pickup_producer_name: pp?.name ?? null,
-            created_at: row.created_at,
-          };
-        });
-
+        const rows = await listEnrichedPactPallets(
+          sb,
+          status ? { status } : undefined,
+        );
         return mcpJsonResult(rows, {
           tool: "list_pallets",
           rowCount: rows.length,
@@ -434,39 +310,27 @@ export function registerPalletTools(server: McpServer, sb: SupabaseClient) {
     "get_pallet",
     {
       description:
-        "Hämta en PACT-pall med full rad + aggregerade vinmängder från aktiva reservationer.",
+        "Hämta en PACT-pall med admin-paritet: wine_summary (MOQ), fill %, operating_summary (detalj), och reservationslista utan personuppgifter (id, status, total_bottles, vinrader).",
       inputSchema: {
         id: z.string().uuid().describe("PACT pallet UUID"),
       },
     },
     async ({ id }) => {
       try {
-        const { data: pallet, error: palletErr } = await sb
-          .from("pallets")
-          .select(
-            `
-            *,
-            shipping_region:shipping_regions(id, name),
-            pickup_producer:producers!current_pickup_producer_id(id, name)
-          `,
-          )
-          .eq("id", id)
-          .maybeSingle();
-
-        if (palletErr) return mcpErrorResult(palletErr.message, "get_pallet");
+        const pallet = await getEnrichedPactPallet(sb, id);
         if (!pallet) return mcpErrorResult("Pallet not found", "get_pallet");
 
-        const wine_counts = await aggregatePactPalletWines(sb, id);
-        const total_bottles = wine_counts.reduce(
-          (sum, w) => sum + w.total_quantity,
-          0,
-        );
+        const [operating_summary, reservations] = await Promise.all([
+          buildAdminPalletOperatingSummaryForId(id),
+          listPalletReservationsMcpSafe(sb, id),
+        ]);
 
         return mcpJsonResult(
           {
             ...pallet,
-            wine_counts,
-            total_bottles,
+            operating_summary:
+              operating_summary ?? pallet.operating_summary ?? null,
+            reservations: reservations ?? [],
           },
           { tool: "get_pallet" },
         );
