@@ -35,7 +35,7 @@ const PACT_COPY: Record<AppLocale, StockholmDeliveryLandingCopy> = {
     brand: "PACT",
     h1: "Naturvin hemleverans i Stockholm",
     heroSupport:
-      "Du reserverar online och vinet levereras när pallen är full — direkt från vingården till din dörr.",
+      "Du reserverar online och vinet levereras när pallen är full — hemleverans till din dörr.",
     primaryCta: "Utforska naturvin",
     primaryHref: "/vin",
     secondaryCta: "Så fungerar det",
@@ -57,7 +57,7 @@ const PACT_COPY: Record<AppLocale, StockholmDeliveryLandingCopy> = {
     whyHeading: "Ett alternativ till Systembolaget",
     whyBody: [
       "Att köpa naturvin i Stockholm har historiskt varit begränsat — sortimentet täcker bara en bråkdel av vad som faktiskt produceras i Languedoc och andra naturvinsregioner.",
-      "PACT importerar direkt från små producenter. Du får tillgång till flaskor som sällan når den svenska marknaden, till bättre pris eftersom importörskedjan uteblir.",
+      "Vi säljer naturvin från små producenter. Du får tillgång till flaskor som sällan når den svenska marknaden, till bättre pris eftersom importörskedjan uteblir.",
     ],
     closeHeading: "Redo att reservera?",
     closeSupport:
@@ -85,7 +85,7 @@ const PACT_COPY: Record<AppLocale, StockholmDeliveryLandingCopy> = {
     brand: "PACT",
     h1: "Natural wine home delivery in Stockholm",
     heroSupport:
-      "Reserve online and the wine is delivered when the pallet is full — straight from the vineyard to your door.",
+      "Reserve online and the wine is delivered when the pallet is full — home delivery to your door.",
     primaryCta: "Browse natural wine",
     primaryHref: "/wine",
     secondaryCta: "How it works",
@@ -107,7 +107,7 @@ const PACT_COPY: Record<AppLocale, StockholmDeliveryLandingCopy> = {
     whyHeading: "An alternative to the monopoly",
     whyBody: [
       "Buying natural wine in Stockholm has historically been limited — the range covers only a fraction of what is actually produced in Languedoc and other natural wine regions.",
-      "PACT imports direct from small producers. You get bottles that rarely reach the Swedish market, at better prices because the importer chain is cut out.",
+      "We sell natural wine from small producers. You get bottles that rarely reach the Swedish market, at better prices because the importer chain is cut out.",
     ],
     closeHeading: "Ready to reserve?",
     closeSupport:
@@ -139,7 +139,7 @@ const DIRTY_COPY: Record<AppLocale, StockholmDeliveryLandingCopy> = {
     brand: "Dirty Wine",
     h1: "Naturvin till restaurangen i Stockholm",
     heroSupport:
-      "Du reserverar online och vinet levereras när pallen är full — direkt från vingården till din restaurang.",
+      "Du reserverar online och vinet levereras när pallen är full — hemleverans till din restaurang.",
     steps: [
       PACT_COPY.sv.steps[0],
       PACT_COPY.sv.steps[1],
@@ -148,9 +148,9 @@ const DIRTY_COPY: Record<AppLocale, StockholmDeliveryLandingCopy> = {
         body: "Flaskorna skickas utan centrallager och utan mellanhänder — färskare vin för din meny.",
       },
     ],
-    whyHeading: "Direktimport för Stockholm-krogen",
+    whyHeading: "Naturvin för Stockholm-krogen",
     whyBody: [
-      "Restauranger i Stockholm behöver naturvin som inte fastnar i långa importkedjor. Dirty Wine importerar direkt från småproducenter i Languedoc.",
+      "Restauranger i Stockholm behöver naturvin som inte fastnar i långa importkedjor. Vi säljer naturvin från små producenter.",
       "Du reserverar online. När pallen är full levereras vinet till restaurangen — utan onödiga lagerled.",
     ],
     closeSupport:
@@ -170,7 +170,7 @@ const DIRTY_COPY: Record<AppLocale, StockholmDeliveryLandingCopy> = {
     brand: "Dirty Wine",
     h1: "Natural wine for restaurants in Stockholm",
     heroSupport:
-      "Reserve online and the wine is delivered when the pallet is full — straight from the vineyard to your restaurant.",
+      "Reserve online and the wine is delivered when the pallet is full — home delivery to your restaurant.",
     steps: [
       PACT_COPY.en.steps[0],
       PACT_COPY.en.steps[1],
@@ -179,9 +179,9 @@ const DIRTY_COPY: Record<AppLocale, StockholmDeliveryLandingCopy> = {
         body: "Bottles ship without a central warehouse and without middlemen — fresher wine for your list.",
       },
     ],
-    whyHeading: "Direct import for Stockholm restaurants",
+    whyHeading: "Natural wine for Stockholm restaurants",
     whyBody: [
-      "Restaurants in Stockholm need natural wine that does not sit in long import chains. Dirty Wine imports direct from small producers in Languedoc.",
+      "Restaurants in Stockholm need natural wine that does not sit in long import chains. We sell natural wine from small producers.",
       "You reserve online. When the pallet is full the wine is delivered to the restaurant — without unnecessary warehousing.",
     ],
     closeSupport:

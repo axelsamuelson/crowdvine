@@ -316,13 +316,13 @@ function generateForLocale(locale: Locale): WineCategory[] {
         farming,
         locale === "sv" ? "en" : "sv",
       );
-      const isPrimaryNatural =
-        farming.db === "natural" && isPrimaryShopColor(color.db);
-      // Primary *-natural-* pages list every wine of that color.
-      // Two-color natural pages keep farming: natural (noindex, unchanged).
-      const filter: WineCategoryFilter = isPrimaryNatural
-        ? { color: [color.db] }
-        : { color: [color.db], farming: [farming.db] };
+      // Natural farming is the shop default: color-only filter (incl. two-color
+      // blends, which stay noindex via isNoindexCategorySlug). Organic /
+      // biodynamic combos keep an explicit farming constraint.
+      const filter: WineCategoryFilter =
+        farming.db === "natural"
+          ? { color: [color.db] }
+          : { color: [color.db], farming: [farming.db] };
       categories.push(
         buildCategory(locale, slug, h1, filter, counterpartSlug),
       );
