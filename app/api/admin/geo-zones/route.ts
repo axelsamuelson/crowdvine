@@ -1,23 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
+  isUnauthorizedResponse,
+  requireAdminOr401,
+} from "@/lib/admin-auth-http";
+import {
   geoZoneCityRequired,
   syncDeliveryZoneForGeoZone,
 } from "@/lib/market/sync-geo-zone-delivery";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { resolveDisplayCurrencyCode } from "@/lib/shopping-context/currency-policy";
 
-function requireAdmin(request: NextRequest) {
-  const adminAuth = request.cookies.get("admin-auth")?.value;
-  if (!adminAuth) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  return null;
-}
-
 /** GET /api/admin/geo-zones — list zones (optional ?market_code=US). */
 export async function GET(request: NextRequest) {
-  const denied = requireAdmin(request);
-  if (denied) return denied;
+  const auth = await requireAdminOr401();
+  if (isUnauthorizedResponse(auth)) return auth;
 
   try {
     const sb = getSupabaseAdmin();
@@ -44,8 +40,8 @@ export async function GET(request: NextRequest) {
 
 /** POST /api/admin/geo-zones — create zone. */
 export async function POST(request: NextRequest) {
-  const denied = requireAdmin(request);
-  if (denied) return denied;
+  const auth = await requireAdminOr401();
+  if (isUnauthorizedResponse(auth)) return auth;
 
   try {
     const body = (await request.json()) as Record<string, unknown>;

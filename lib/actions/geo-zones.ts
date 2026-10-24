@@ -1,5 +1,6 @@
 "use server";
 
+import { requireAdmin } from "@/lib/admin-auth-server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { deletePalletZone } from "@/lib/actions/zones";
 import { revalidatePath } from "next/cache";
@@ -11,6 +12,7 @@ export type DeleteGeoZoneResult = {
 
 /** Deletes a shopper geo zone and attempts to remove its linked delivery pallet zone. */
 export async function deleteGeoZone(id: string): Promise<DeleteGeoZoneResult> {
+  await requireAdmin();
   const sb = getSupabaseAdmin();
   const { data: row, error: fetchErr } = await sb
     .from("geo_zones")
