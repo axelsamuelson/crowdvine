@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getCurrentAdmin } from "@/lib/admin-auth-server";
-import { createB2bPalletAccessToken } from "@/lib/b2b-pallet-access-tokens";
+import {
+  b2bPalletWriteHttpError,
+  createB2bProducerShareLink,
+} from "@/lib/admin/b2b-pallet-writes";
 
 const bodySchema = z.object({
   producer_id: z.string().uuid(),
@@ -52,26 +55,22 @@ export async function POST(
       );
     }
 
-    try {
-      const link = await createB2bPalletAccessToken({
-        shipmentId,
-        producerId: parsed.data.producer_id,
-        createdBy: admin.id,
-        origin: requestOrigin(request),
-      });
-      return NextResponse.json(link);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Could not create link";
-      if (message.includes("no wines")) {
-        return NextResponse.json({ error: message }, { status: 404 });
-      }
-      throw err;
-    }
+    const link = await createB2bProducerShareLink({
+      shipmentId,
+      producerId: parsed.data.producer_id,
+      createdBy: admin.id,
+      origin: requestOrigin(request),
+    });
+    return NextResponse.json(link);
   } catch (err) {
-    console.error("producer-share-link POST:", err);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+    const mapped = b2bPalletWriteHttpError(err);
+    if (mapped.status >= 500) {
+      console.error("producer-share-link POST:", err);
+      return NextResponse.json(
+        { error: "Internal server error" },
+        { status: 500 },
+      );
+    }
+    return NextResponse.json(mapped.body, { status: mapped.status });
   }
 }
