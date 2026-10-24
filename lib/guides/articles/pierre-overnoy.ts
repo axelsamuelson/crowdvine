@@ -148,12 +148,12 @@ export const pierreOvernoyArticle: GuideArticleContent = {
     },
     {
       label: {
-        en: "Explore natural wines from Languedoc →",
-        sv: "",
+        en: "Explore natural wines →",
+        sv: "Utforska naturvin →",
       },
       href: {
-        en: "/vin/naturvin-languedoc",
-        sv: "/vin/naturvin-languedoc",
+        en: "/wine",
+        sv: "/vin",
       },
     },
   ],

@@ -236,17 +236,9 @@ function colorHubExploreLinks(category: WineCategory): CategoryExploreLink[] {
 }
 
 const LONG_TAIL_GEO_SLUGS = new Set([
-  "naturvin-languedoc",
   "naturvin-frankrike",
-  "rott-naturvin-languedoc",
-  "vitt-naturvin-languedoc",
-  "orange-naturvin-languedoc",
   "naturvin-hemleverans-stockholm",
-  "natural-wine-languedoc",
   "natural-wine-france",
-  "red-natural-wine-languedoc",
-  "white-natural-wine-languedoc",
-  "orange-natural-wine-languedoc",
   "natural-wine-delivery-stockholm",
 ]);
 
@@ -274,8 +266,10 @@ function geoLongTailExploreLinks(
     locale === "sv" ? "Alla naturviner" : "All natural wines",
   );
 
-  if (category.slug.includes("languedoc") || category.slug.includes("frankrike") || category.slug.includes("france")) {
-    push(locale === "sv" ? "naturvin-languedoc" : "natural-wine-languedoc");
+  if (
+    category.slug.includes("frankrike") ||
+    category.slug.includes("france")
+  ) {
     pushHref(
       locale === "sv"
         ? "/guider/naturvin-languedoc"

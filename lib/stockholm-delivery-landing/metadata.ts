@@ -59,7 +59,7 @@ export async function buildStockholmDeliveryMetadata(
       description: metaDescription,
       url: canonicalUrl,
       type: "website",
-      images: defaultOpenGraphImages(),
+      images: defaultOpenGraphImages({ siteName: config.siteName }),
     },
     twitter: pageTwitterCard(rawTitle, metaDescription),
   };

@@ -47,6 +47,15 @@ export function producerShopMetaDescription(
   },
 ): string {
   const { producerName, handle } = options;
+  const normalizedHandle = handle?.trim().toLowerCase() ?? "";
+
+  // Wine boxes is a collection hub, not a producer — avoid "direkt från" / "direct from".
+  if (normalizedHandle === "wine-boxes") {
+    return locale === "sv"
+      ? "Köp wine boxes med naturvin från Languedoc. Reservera flaskor innan pallen till Stockholm fylls. Hemleverans i Stockholm."
+      : "Buy natural wine boxes from Languedoc. Reserve bottles before the Stockholm pallet fills. Home delivery in Stockholm.";
+  }
+
   const possessive = producerPossessive(producerName, locale);
   const prefix =
     locale === "sv"

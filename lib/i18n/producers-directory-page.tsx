@@ -77,7 +77,7 @@ export async function buildProducersDirectoryMetadata(
       description: content.description,
       url: canonical,
       type: "website",
-      images: defaultOpenGraphImages(),
+      images: defaultOpenGraphImages({ siteName: config.siteName }),
     },
     twitter: pageTwitterCard(title, content.description),
   };

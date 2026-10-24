@@ -53,7 +53,7 @@ export async function generateMetadata(): Promise<Metadata> {
       url: config.baseUrl,
       type: "website",
       locale: "sv_SE",
-      images: defaultOpenGraphImages(),
+      images: defaultOpenGraphImages({ siteName: config.siteName }),
     },
     twitter: pageTwitterCard(title, description),
   };

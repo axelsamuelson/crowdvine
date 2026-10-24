@@ -31,7 +31,7 @@ export async function generateMetadata(): Promise<Metadata> {
       description: content.description,
       url: urls.sv,
       type: "website",
-      images: defaultOpenGraphImages(),
+      images: defaultOpenGraphImages({ siteName: config.siteName }),
     },
     twitter: pageTwitterCard(content.title, content.description),
   };

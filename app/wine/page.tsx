@@ -44,7 +44,7 @@ export async function generateMetadata(props: {
       description,
       url: pageUrl,
       type: "website",
-      images: defaultOpenGraphImages(),
+      images: defaultOpenGraphImages({ siteName: config.siteName, locale: "en" }),
     },
     twitter: pageTwitterCard(title, description),
   };

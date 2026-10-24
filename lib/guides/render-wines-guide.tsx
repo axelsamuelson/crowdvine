@@ -77,7 +77,7 @@ export async function buildWinesGuideMetadata(
       description: copy.wines.metaDescription,
       url: pageUrl,
       type: "article",
-      images: defaultOpenGraphImages(),
+      images: defaultOpenGraphImages({ siteName: config.siteName }),
     },
     twitter: pageTwitterCard(title, copy.wines.metaDescription),
   };
@@ -93,10 +93,7 @@ export async function renderWinesGuidePage(locale: AppLocale) {
   const bestList = SYSTEMBOLAGET_RANKED_LISTS.find(
     (list) => list.category === "best",
   );
-  const languedocShop =
-    locale === "sv"
-      ? "/vin/naturvin-languedoc"
-      : "/wine/natural-wine-languedoc";
+  const languedocShop = locale === "sv" ? "/vin" : "/wine";
 
   const top10 = TOP_100_WINES.filter((w) => w.rank <= 10);
   const mid = TOP_100_WINES.filter((w) => w.rank >= 11 && w.rank <= 30);

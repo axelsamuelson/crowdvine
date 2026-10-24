@@ -462,6 +462,10 @@ const LEGACY_WINE_CATEGORY_REDIRECTS_EN: Record<string, string> = {
   "orange-wine": "/wine/orange-natural-wine",
   "natural-wine": "/wine",
   "direct-import-wine": "/wine",
+  "natural-wine-languedoc": "/wine",
+  "red-natural-wine-languedoc": "/wine/red-natural-wine",
+  "white-natural-wine-languedoc": "/wine/white-natural-wine",
+  "orange-natural-wine-languedoc": "/wine/orange-natural-wine",
 };
 
 const LEGACY_WINE_CATEGORY_REDIRECTS_SV: Record<string, string> = {
@@ -470,6 +474,10 @@ const LEGACY_WINE_CATEGORY_REDIRECTS_SV: Record<string, string> = {
   "orange-vin": "/vin/orange-naturvin",
   naturvin: "/vin",
   "direktimport-vin": "/vin",
+  "naturvin-languedoc": "/vin",
+  "rott-naturvin-languedoc": "/vin/rott-naturvin",
+  "vitt-naturvin-languedoc": "/vin/vitt-naturvin",
+  "orange-naturvin-languedoc": "/vin/orange-naturvin",
 };
 
 function redirectLegacyWineCategorySlug(

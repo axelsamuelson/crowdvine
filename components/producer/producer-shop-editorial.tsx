@@ -9,6 +9,15 @@ import { getProducerShopEditorialOverride } from "@/lib/producer-shop-content";
 import { formatProducerCertification } from "@/lib/product/wine-enrichment";
 import { producerShopEditorialHeading } from "@/lib/seo/producer-shop-metadata";
 
+function softenAdditiveClaims(text: string, locale: AppLocale): string {
+  if (locale === "sv") {
+    return text.replace(/\butan tillsatser\b/gi, "med få eller inga tillsatser");
+  }
+  return text
+    .replace(/\bwithout additives\b/gi, "with few or no additives")
+    .replace(/\bwith no additives\b/gi, "with few or no additives");
+}
+
 export function producerShopEditorialBio(
   collection: Pick<CollectionData, "handle" | "shortDescription">,
   locale: AppLocale,
@@ -17,7 +26,12 @@ export function producerShopEditorialBio(
   if (override) return override;
 
   const text = extractWineText(collection.shortDescription ?? null, locale);
-  return text?.trim() ? text.trim() : null;
+  if (!text?.trim()) return null;
+  const trimmed = text.trim();
+  if (collection.handle.trim().toLowerCase() === "la-marotte") {
+    return softenAdditiveClaims(trimmed, locale);
+  }
+  return trimmed;
 }
 
 function producerShopSpecParts(
