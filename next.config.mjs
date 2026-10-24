@@ -69,9 +69,23 @@ const nextConfig = {
         destination: "/villkor",
         permanent: true,
       },
+      // One hop: dirtywine → pact canonical; pact → same-host landing.
+      // Host rules first so dirtywine never chains via a relative path.
       {
         source: "/boxes",
-        destination: "/vin/wine-boxes",
+        has: [{ type: "host", value: "dirtywine.se" }],
+        destination: "https://pactwines.com/vin/naturvin-lada",
+        permanent: true,
+      },
+      {
+        source: "/boxes",
+        has: [{ type: "host", value: "www.dirtywine.se" }],
+        destination: "https://pactwines.com/vin/naturvin-lada",
+        permanent: true,
+      },
+      {
+        source: "/boxes",
+        destination: "/vin/naturvin-lada",
         permanent: true,
       },
       // Removed weekly recommendation guides (duplicate of ranked Systembolaget lists)
