@@ -8,6 +8,7 @@ import { registerMetricsTools } from "./tools/metrics";
 import { registerCatalogTools } from "./tools/catalog";
 import { registerPalletTools } from "./tools/pallets";
 import { registerLagerFraktReadTools } from "./tools/lager-frakt";
+import { registerLagerFraktWriteTools } from "./tools/lager-frakt-writes";
 import { registerGscTools } from "./tools/gsc";
 import { registerSystembolagetTools } from "./tools/systembolaget";
 import { registerTop100Tools } from "./tools/top-100";
@@ -29,6 +30,7 @@ export function createPactMcpServer(): McpServer {
   registerCatalogTools(server, sb);
   registerPalletTools(server, sb);
   registerLagerFraktReadTools(server, sb);
+  registerLagerFraktWriteTools(server, sb);
   registerGscTools(server);
   registerSystembolagetTools(server, sb);
   registerTop100Tools(server);
