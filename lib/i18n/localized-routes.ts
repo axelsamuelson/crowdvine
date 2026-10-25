@@ -86,6 +86,11 @@ export function shopPathForLocale(locale: AppLocale): "/vin" | "/wine" {
   return locale === "sv" ? "/vin" : "/wine";
 }
 
+/** Public homepage path for a locale (`/` Swedish, `/en` English). */
+export function homePathForLocale(locale: AppLocale): "/" | "/en" {
+  return locale === "sv" ? "/" : "/en";
+}
+
 export function producerPublicPath(slug: string, locale: AppLocale): string {
   return producerPagePath(slug, locale === "sv" ? "producenter" : "producers");
 }

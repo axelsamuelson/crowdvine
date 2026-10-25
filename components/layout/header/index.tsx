@@ -36,7 +36,7 @@ export function Header({
   const paths = useLocalizedPaths();
   const pathname = usePathname();
   const navItems: NavItem[] = [
-    { label: t("nav.home"), href: "/" },
+    { label: t("nav.home"), href: paths.home },
     { label: t("nav.shopAll"), href: paths.shop },
     { label: t("nav.guides"), href: paths.guides },
   ];
@@ -63,7 +63,7 @@ export function Header({
         />
       </div>
       <Link
-        href="/"
+        href={paths.home}
         className="md:col-span-3 xl:col-span-2 flex justify-center md:justify-start"
         prefetch
       >
@@ -80,9 +80,10 @@ export function Header({
                   href={item.href}
                   className={cn(
                     "font-semibold text-base transition-colors duration-200 uppercase",
-                    (item.href === "/"
-                      ? pathname === "/"
-                      : pathname === item.href || pathname?.startsWith(item.href + "/"))
+                    (item.href === paths.home
+                      ? pathname === paths.home
+                      : pathname === item.href ||
+                        pathname?.startsWith(item.href + "/"))
                       ? "text-foreground"
                       : "text-foreground/50",
                   )}

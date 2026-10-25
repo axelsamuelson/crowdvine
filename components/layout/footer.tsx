@@ -38,7 +38,7 @@ export function Footer({ initialLogos }: { initialLogos?: SiteLogos }) {
                   </p>
                   <div className="flex flex-col gap-2">
                     <Link
-                      href="/"
+                      href={paths.home}
                       className="text-sm text-background/70 hover:text-background transition-colors hover:underline"
                     >
                       {t("common.home")}

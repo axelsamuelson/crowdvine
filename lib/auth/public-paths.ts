@@ -1,6 +1,7 @@
 /** Paths that do not require login (aligned with middleware PUBLIC list). */
 const PUBLIC_PATH_PREFIXES = [
   "/",
+  "/en",
   "/log-in",
   "/signup",
   "/invite-signup",
@@ -91,6 +92,7 @@ export function isOpenPlatformBrowseOrCheckoutPath(pathname: string): boolean {
 export function publicPathUsesUserShoppingContext(pathname: string): boolean {
   if (
     pathname === "/" ||
+    pathname === "/en" ||
     pathname === "/shop" ||
     pathname.startsWith("/shop/")
   ) {

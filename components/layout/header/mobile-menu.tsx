@@ -34,7 +34,7 @@ export function MobileMenu({
     { href: paths.guides, label: t("common.guides") },
     { href: "/profile", label: t("common.profile"), icon: User },
     { href: paths.about, label: t("common.about") },
-    { href: "/", label: t("common.home") },
+    { href: paths.home, label: t("common.home") },
   ];
   const pathname = usePathname();
   const { role } = useUserRole();

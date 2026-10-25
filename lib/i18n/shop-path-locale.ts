@@ -2,6 +2,8 @@ import type { AppLocale } from "@/lib/i18n/locale";
 
 /** Locale implied by path prefix (/vin, /produkt, /product, about/legal pairs, etc.). */
 export function localeFromShopPath(pathname: string): AppLocale | null {
+  if (pathname === "/" || pathname === "") return "sv";
+  if (pathname === "/en" || pathname.startsWith("/en/")) return "en";
   if (pathname === "/vin" || pathname.startsWith("/vin/")) return "sv";
   if (pathname === "/wine" || pathname.startsWith("/wine/")) return "en";
   if (pathname.startsWith("/produkt/")) return "sv";
