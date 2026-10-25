@@ -122,9 +122,10 @@ export type BeginnerPickResolved = BeginnerPick & {
 
 async function fetchBeginnerPickProductsUncached(
   productNumbers: readonly string[],
-): Promise<Map<string, BeginnerPickProduct>> {
-  const map = new Map<string, BeginnerPickProduct>();
-  if (productNumbers.length === 0) return map;
+): Promise<Record<string, BeginnerPickProduct>> {
+  // Plain object so unstable_cache can serialize the result (Map cannot).
+  const byNumber: Record<string, BeginnerPickProduct> = {};
+  if (productNumbers.length === 0) return byNumber;
 
   try {
     const sb = getSupabaseAdmin();
@@ -138,25 +139,27 @@ async function fetchBeginnerPickProductsUncached(
         "[BEGINNER_PICKS] systembolaget_products lookup failed:",
         error.message,
       );
-      return map;
+      return byNumber;
     }
 
     for (const row of data ?? []) {
       const productNumber = String(row.product_number);
-      map.set(productNumber, {
+      const priceRaw = row.price;
+      const price =
+        typeof priceRaw === "number"
+          ? priceRaw
+          : priceRaw != null && priceRaw !== ""
+            ? Number(priceRaw)
+            : null;
+      byNumber[productNumber] = {
         productNumber,
-        price:
-          typeof row.price === "number"
-            ? row.price
-            : row.price != null
-              ? Number(row.price)
-              : null,
+        price: price != null && !Number.isNaN(price) ? price : null,
         imageUrl:
           typeof row.image_url === "string" && row.image_url.trim()
             ? row.image_url.trim()
             : null,
         isAvailable: Boolean(row.is_available),
-      });
+      };
     }
   } catch (error) {
     console.error(
@@ -165,12 +168,12 @@ async function fetchBeginnerPickProductsUncached(
     );
   }
 
-  return map;
+  return byNumber;
 }
 
 export async function getBeginnerPickProducts(
   productNumbers: readonly string[],
-): Promise<Map<string, BeginnerPickProduct>> {
+): Promise<Record<string, BeginnerPickProduct>> {
   const key = [...productNumbers].join(",");
   return unstable_cache(
     () => fetchBeginnerPickProductsUncached(productNumbers),
@@ -199,7 +202,7 @@ export async function resolveAvailableBeginnerPicks(): Promise<{
   const hiddenProductNumbers: string[] = [];
 
   for (const pick of BEGINNER_PICKS) {
-    const product = products.get(pick.productNumber) ?? null;
+    const product = products[pick.productNumber] ?? null;
     if (!product || !product.isAvailable) {
       hiddenProductNumbers.push(pick.productNumber);
       continue;
