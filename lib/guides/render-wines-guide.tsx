@@ -19,7 +19,11 @@ import {
   guidePath,
 } from "@/lib/guides/guide-routes";
 import { filterLanguedocRoussillonEntries } from "@/lib/guides/languedoc-region";
-import { TOP_100_WINES } from "@/lib/guides/top-100-wines";
+import {
+  TOP_100_WINES,
+  TOP_100_WINES_PUBLISHED_AT,
+  TOP_100_WINES_UPDATED_AT,
+} from "@/lib/guides/top-100-wines";
 import type { AppLocale } from "@/lib/i18n/locale";
 import { categoryPageTitle } from "@/lib/seo/category-page-title";
 import {
@@ -88,6 +92,7 @@ export async function renderWinesGuidePage(locale: AppLocale) {
   const copy = guideCopy(locale);
   const hubPath = guidePath("hub", locale);
   const producersPath = guidePath("producers", locale);
+  const pageUrl = `${seoBaseUrl}${guidePath("wines", locale)}`;
   const shopNatural =
     locale === "sv" ? "/vin" : "/wine";
   const bestList = SYSTEMBOLAGET_RANKED_LISTS.find(
@@ -109,6 +114,27 @@ export async function renderWinesGuidePage(locale: AppLocale) {
     { name: copy.wines.breadcrumbShort },
   ]);
 
+  const articleJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: copy.wines.h1,
+    name: copy.wines.h1,
+    description: copy.wines.metaDescription,
+    url: pageUrl,
+    inLanguage: locale === "sv" ? "sv-SE" : "en-GB",
+    datePublished: TOP_100_WINES_PUBLISHED_AT,
+    dateModified: TOP_100_WINES_UPDATED_AT,
+    isPartOf: {
+      "@type": "WebSite",
+      name: "PACT",
+      url: seoBaseUrl,
+    },
+    about: {
+      "@type": "Thing",
+      name: locale === "sv" ? "Naturvin" : "Natural wine",
+    },
+  };
+
   const itemListJsonLd = {
     "@context": "https://schema.org",
     "@type": "ItemList",
@@ -125,6 +151,12 @@ export async function renderWinesGuidePage(locale: AppLocale) {
 
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(articleJsonLd),
+        }}
+      />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -150,6 +182,9 @@ export async function renderWinesGuidePage(locale: AppLocale) {
         <h1 className="mt-6 text-3xl font-bold tracking-tight md:text-4xl">
           {copy.wines.h1}
         </h1>
+        <p className="mt-3 text-sm text-muted-foreground">
+          {copy.wines.updatedLine}
+        </p>
 
         <div className="mt-6 space-y-4 text-base leading-relaxed text-muted-foreground">
           {copy.wines.intro.map((paragraph) => (
@@ -159,6 +194,28 @@ export async function renderWinesGuidePage(locale: AppLocale) {
           ))}
         </div>
 
+        <aside className="mt-10 border border-border bg-muted/30 px-5 py-5">
+          <h2 className="text-base font-semibold tracking-tight text-foreground">
+            {copy.wines.top10GlanceHeading}
+          </h2>
+          <ol className="mt-4 list-decimal space-y-2 pl-5 text-sm leading-relaxed text-muted-foreground">
+            {top10.map((wine) => (
+              <li key={wine.rank}>
+                <Link
+                  href={`#wine-rank-${wine.rank}`}
+                  className="underline underline-offset-4 hover:text-foreground"
+                >
+                  <span className="font-medium text-foreground">
+                    {wine.wine}
+                  </span>
+                  {", "}
+                  {wine.producer}
+                </Link>
+              </li>
+            ))}
+          </ol>
+        </aside>
+
         <section className="mt-14">
           <h2 className="mb-4 border-b border-border pb-3 text-xl font-semibold">
             {copy.top10}
@@ -167,6 +224,7 @@ export async function renderWinesGuidePage(locale: AppLocale) {
             {top10.map((wine) => (
               <GuideRankEntry
                 key={wine.rank}
+                id={`wine-rank-${wine.rank}`}
                 rank={wine.rank}
                 title={wine.wine}
                 meta={wineMetaLine(wine)}
@@ -184,6 +242,7 @@ export async function renderWinesGuidePage(locale: AppLocale) {
             {mid.map((wine) => (
               <GuideRankEntry
                 key={wine.rank}
+                id={`wine-rank-${wine.rank}`}
                 rank={wine.rank}
                 title={wine.wine}
                 meta={wineMetaLine(wine)}
@@ -242,8 +301,8 @@ export async function renderWinesGuidePage(locale: AppLocale) {
                 </span>{" "}
                 {wine.wine}
                 <span className="text-muted-foreground/80">
-                  {" "}
-                  — {wine.producer}, {wine.region}
+                  {", "}
+                  {wine.producer}, {wine.region}
                 </span>
               </li>
             ))}
