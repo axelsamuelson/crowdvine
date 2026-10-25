@@ -1,22 +1,30 @@
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
-import { normalizeMembershipLevel } from "@/lib/membership/points-engine";
+import {
+  normalizeMembershipLevel,
+  type MembershipLevel,
+} from "@/lib/membership/points-engine";
 import { isMembershipDiscountEligible } from "@/lib/membership/membership-discount-eligible";
 import type { PortalSearchParams } from "@/lib/b2b-site";
+
+export type MemberDiscount = {
+  percent: number;
+  level: MembershipLevel | null;
+};
 
 /**
  * Discount % from active membership perks (same parsing as client
  * {@link MembershipProvider} / discount perk_value like "10% off").
  * Returns 0 on dirtywine.se (and localhost with ?b2b=1).
  */
-export async function getMemberDiscountPercentForUserId(
+export async function getMemberDiscountForUserId(
   userId: string,
   options?: { host?: string | null; searchParams?: PortalSearchParams | null },
-): Promise<number> {
+): Promise<MemberDiscount> {
   if (
     options?.host != null &&
     !isMembershipDiscountEligible(options.host, options.searchParams ?? null)
   ) {
-    return 0;
+    return { percent: 0, level: null };
   }
 
   const sb = getSupabaseAdmin();
@@ -26,7 +34,7 @@ export async function getMemberDiscountPercentForUserId(
     .eq("user_id", userId)
     .maybeSingle();
 
-  if (error || !membership?.level) return 0;
+  if (error || !membership?.level) return { percent: 0, level: null };
 
   const displayLevel = normalizeMembershipLevel(membership.level);
 
@@ -36,9 +44,22 @@ export async function getMemberDiscountPercentForUserId(
     .eq("level", displayLevel)
     .eq("is_active", true);
 
-  if (perksError || !perks?.length) return 0;
+  if (perksError || !perks?.length) {
+    return { percent: 0, level: displayLevel };
+  }
 
   const discountPerk = perks.find((p) => p.perk_type === "discount");
   const m = discountPerk?.perk_value?.match(/(\d+)/);
-  return m ? Number.parseInt(m[1], 10) : 0;
+  return {
+    percent: m ? Number.parseInt(m[1], 10) : 0,
+    level: displayLevel,
+  };
+}
+
+export async function getMemberDiscountPercentForUserId(
+  userId: string,
+  options?: { host?: string | null; searchParams?: PortalSearchParams | null },
+): Promise<number> {
+  const discount = await getMemberDiscountForUserId(userId, options);
+  return discount.percent;
 }

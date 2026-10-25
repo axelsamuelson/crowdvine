@@ -345,7 +345,12 @@ export async function POST(request: NextRequest) {
         if (authUserId) {
           const res = await awardPactPointsWelcomeBonus(authUserId);
           if (!res.success) {
-            console.error("[CREATE USER] awardPactPointsWelcomeBonus:", res.error);
+            console.error("[CREATE USER] awardPactPointsWelcomeBonus failed", {
+              user_id: authUserId,
+              event_type: "welcome_bonus",
+              order_id: null,
+              error: res.error,
+            });
           }
         }
       } catch (e) {

@@ -17,6 +17,26 @@ export function getAgeLimit(countryCode: string): number {
   return AGE_LIMITS[countryCode.toUpperCase()] ?? DEFAULT_AGE_LIMIT;
 }
 
+/**
+ * Required age for the active market.
+ * `markets.age_minimum` wins. A null market value falls back to {@link getAgeLimit}.
+ */
+export function resolveMarketAgeMinimum(input: {
+  countryCode: string;
+  ageMinimum?: number | null;
+}): number {
+  const fromMarket = input.ageMinimum;
+  if (
+    typeof fromMarket === "number" &&
+    Number.isFinite(fromMarket) &&
+    fromMarket > 0
+  ) {
+    return Math.floor(fromMarket);
+  }
+  const country = input.countryCode.trim().toUpperCase() || "SE";
+  return getAgeLimit(country);
+}
+
 /** Whole years of age on `asOf` (UTC calendar date). Invalid DOB → null. */
 export function ageFromDateOfBirth(
   dobIso: string,

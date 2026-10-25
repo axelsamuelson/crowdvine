@@ -5,7 +5,10 @@ import { getMemberDiscountPercentForUserId } from "@/lib/membership/server-membe
 import { resolvePalletEarlyBirdContext } from "@/lib/pallet-early-bird-context";
 import { applyPalletDiscount } from "@/lib/pallet-discount";
 import { memberDiscountedTotalInclVat } from "@/lib/price-breakdown";
-import { resolveCheckoutShippingSek } from "@/lib/checkout/resolve-checkout-shipping";
+import {
+  checkoutCustomerShippingCharge,
+  resolveCheckoutShippingSek,
+} from "@/lib/checkout/resolve-checkout-shipping";
 import { allocatePactRedemptionPoints } from "@/lib/membership/pact-points-redemption-math";
 
 type WineProducer = {
@@ -186,13 +189,40 @@ async function resolveReservationChargeAmountInOre(params: {
       (s, r) => s + Math.max(0, Math.floor(Number(r.quantity) || 0)),
       0,
     );
+    let countryCode = "SE";
+    const { data: reservationRow } = await sb
+      .from("order_reservations")
+      .select("address_id")
+      .eq("id", reservationId)
+      .maybeSingle();
+    const addressId =
+      reservationRow &&
+      typeof reservationRow === "object" &&
+      typeof (reservationRow as { address_id?: unknown }).address_id === "string"
+        ? (reservationRow as { address_id: string }).address_id
+        : null;
+    if (addressId) {
+      const { data: addressRow } = await sb
+        .from("user_addresses")
+        .select("country_code")
+        .eq("id", addressId)
+        .maybeSingle();
+      const stored =
+        addressRow &&
+        typeof addressRow === "object" &&
+        typeof (addressRow as { country_code?: unknown }).country_code === "string"
+          ? (addressRow as { country_code: string }).country_code.trim()
+          : "";
+      if (stored) countryCode = stored;
+    }
     const resolved = await resolveCheckoutShippingSek({
       bottleCount,
       productSubtotalSek: boostedLineTotal + nonBoostedLineTotal,
-      countryCode: "SE",
+      countryCode,
+      allowLegacyFallback: false,
       pallet: palletRow,
     });
-    shippingSek = resolved.shippingSek;
+    shippingSek = checkoutCustomerShippingCharge(resolved).shippingSek;
   }
 
   const pendingPoints = await sumPendingRedemptionPointsForReservation(reservationId);

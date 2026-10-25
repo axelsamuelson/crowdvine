@@ -253,14 +253,36 @@ export const TRACKED_USER_EVENTS_CATALOG: TrackedEventCatalogEntry[] = [
   {
     eventType: "checkout_abandoned",
     category: "checkout",
-    description: "User left the checkout page before finishing (unmount).",
+    description:
+      "Checkout lämnas via pagehide eller dold flik, om betalningssteget inte är klart. Inte vid mount, unmount eller route change.",
     sources: ["client"],
   },
   {
     eventType: "checkout_step_viewed",
     category: "checkout",
     description:
-      "Checkout-fas ändrades (metadata.phase: delivery | compliance | payment). Legacy: payment_ready = payment.",
+      "Ett kassasteg visades (metadata.step: postal | delivery | age_terms | payment). En gång per steg och besök, efter checkout_started.",
+    sources: ["client"],
+  },
+  {
+    eventType: "checkout_step_completed",
+    category: "checkout",
+    description:
+      "Ett kassasteg blev klart (metadata.step). En gång per steg och besök.",
+    sources: ["client"],
+  },
+  {
+    eventType: "checkout_error",
+    category: "checkout",
+    description:
+      "Validering eller betalning misslyckades. Metadata: step, field, code (postal_invalid, postal_out_of_zone, market_not_available, age_under_minimum, terms_not_accepted, card_declined, setup_intent_failed, server_error).",
+    sources: ["client"],
+  },
+  {
+    eventType: "delivery_ineligible",
+    category: "checkout",
+    description:
+      "Besökarens marknad kan inte checka ut. Metadata: country, reason.",
     sources: ["client"],
   },
   {
@@ -336,6 +358,13 @@ export const TRACKED_USER_EVENTS_CATALOG: TrackedEventCatalogEntry[] = [
     eventType: "scroll_depth",
     category: "engagement",
     description: "Scroll depth milestone (25/50/75/100) on PDP / how-it-works.",
+    sources: ["client"],
+  },
+  {
+    eventType: "session_engaged",
+    category: "engagement",
+    description:
+      "One human signal per session: first of scroll > 25%, click, keydown, or 10s continuously visible. Metadata.trigger is which one fired.",
     sources: ["client"],
   },
   {

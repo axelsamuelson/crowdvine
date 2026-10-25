@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { getCurrentAdmin } from "@/lib/admin-auth-server";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { supabaseServer } from "@/lib/supabase-server";
 
 export async function GET(
@@ -31,7 +33,11 @@ export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const sb = await supabaseServer();
+  const admin = await getCurrentAdmin();
+  if (!admin) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const sb = getSupabaseAdmin();
   const resolvedParams = await params;
 
   try {
@@ -59,7 +65,11 @@ export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const sb = await supabaseServer();
+  const admin = await getCurrentAdmin();
+  if (!admin) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const sb = getSupabaseAdmin();
   const resolvedParams = await params;
 
   try {

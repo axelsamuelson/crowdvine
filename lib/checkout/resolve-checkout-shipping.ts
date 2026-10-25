@@ -10,6 +10,8 @@ export async function resolveCheckoutShippingSek(input: {
   bottleCount: number;
   countryCode?: string | null;
   productSubtotalSek?: number;
+  /** Checkout passes false so a missing country rate is not replaced by pallet amortization. */
+  allowLegacyFallback?: boolean;
   pallet: {
     cost_cents?: number | null;
     bottle_capacity?: number | null;
@@ -33,7 +35,7 @@ export async function resolveCheckoutShippingSek(input: {
     bottleCount: bottles,
     countryCode: input.countryCode ?? "SE",
     productSubtotalGrossCents: subtotalCents,
-    allowLegacyFallback: true,
+    allowLegacyFallback: input.allowLegacyFallback !== false,
     legacyPallet: input.pallet
       ? {
           costCents: Number(input.pallet.cost_cents) || 0,
@@ -52,4 +54,25 @@ export async function resolveCheckoutShippingSek(input: {
     freeShipping: quote.freeShipping,
     reason: quote.reason,
   };
+}
+
+/**
+ * What checkout may charge. A configured rate is charged.
+ * Anything else, including the Sweden rate applied to another country and
+ * legacy pallet amortization, is excluded from the total.
+ */
+export function checkoutCustomerShippingCharge(resolved: {
+  source: string;
+  shippingSek: number;
+}): { shippingSek: number; shippingPending: boolean } {
+  if (
+    resolved.source === "configured_flat" ||
+    resolved.source === "configured_free"
+  ) {
+    return {
+      shippingSek: Math.max(0, resolved.shippingSek),
+      shippingPending: false,
+    };
+  }
+  return { shippingSek: 0, shippingPending: true };
 }

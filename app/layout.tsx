@@ -52,6 +52,7 @@ import { getSiteConfig } from "@/lib/site-config-server";
 import { localeFromShopPath } from "@/lib/i18n/shop-path-locale";
 import { Analytics } from "@vercel/analytics/react";
 import { PageViewTracker } from "@/components/analytics/page-view-tracker";
+import { SessionEngagementTracker } from "@/components/analytics/session-engagement-tracker";
 import { InternalDeviceMarker } from "@/components/analytics/internal-device-marker";
 import {
   buildRootTwitterMetadata,
@@ -207,6 +208,7 @@ export default async function RootLayout({
                       <Toaster closeButton position="bottom-right" />
                       <InternalDeviceMarker />
                       <PageViewTracker />
+                      <SessionEngagementTracker />
                       <Analytics />
                     </MembershipProvider>
                   </PortalProvider>

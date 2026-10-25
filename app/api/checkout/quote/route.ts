@@ -9,7 +9,11 @@ import {
 import { getRedeemableBalance } from "@/lib/membership/pact-points-engine";
 import { computeExpectedAmountOre } from "@/lib/checkout/expected-amount";
 import { buildCheckoutQuote } from "@/lib/checkout/checkout-quote";
-import { resolveCheckoutShippingSek } from "@/lib/checkout/resolve-checkout-shipping";
+import {
+  checkoutCustomerShippingCharge,
+  resolveCheckoutShippingSek,
+} from "@/lib/checkout/resolve-checkout-shipping";
+import { resolveActiveGeoZoneForUser } from "@/lib/market/resolve-active-geo-zone";
 
 type RequestBody = {
   pallet_id?: string;
@@ -53,6 +57,7 @@ export async function POST(request: Request) {
     }
 
     let shippingSek = 0;
+    let shippingPending = false;
     if (pallet_id) {
       const sbAdmin = getSupabaseAdmin();
       const { data: palletRow, error: palletErr } = await sbAdmin
@@ -80,13 +85,17 @@ export async function POST(request: Request) {
       );
       const subtotalSek =
         parseFloat(String(cart.cost.totalAmount.amount)) || 0;
+      const activeZone = await resolveActiveGeoZoneForUser(user.id);
       const resolved = await resolveCheckoutShippingSek({
         bottleCount,
         productSubtotalSek: subtotalSek,
-        countryCode: "SE",
+        countryCode: activeZone.countryCode,
+        allowLegacyFallback: false,
         pallet: palletRow,
       });
-      shippingSek = resolved.shippingSek;
+      const charge = checkoutCustomerShippingCharge(resolved);
+      shippingSek = charge.shippingSek;
+      shippingPending = charge.shippingPending;
     }
 
     let boostedLineTotal = 0;
@@ -131,6 +140,7 @@ export async function POST(request: Request) {
       components,
       amountOre,
       pactPointsRedeem: pointsToRedeem,
+      shippingPending,
     });
 
     return NextResponse.json({ quote });

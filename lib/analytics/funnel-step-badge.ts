@@ -13,7 +13,9 @@ export function getFunnelStepBadge(step: string): FunnelStepBadge {
         ? step
             .replace("abandoned:", "Övergiven · ")
             .replace("payment_ready", "betalning")
+            .replace("age_terms", "ålder & villkor")
             .replace("compliance", "ålder & villkor")
+            .replace("postal", "postnummer")
             .replace("payment", "betalning")
             .replace("delivery", "leverans")
         : "Övergiven",
@@ -28,7 +30,9 @@ export function getFunnelStepBadge(step: string): FunnelStepBadge {
         ? step
             .replace("checkout:", "Checkout · ")
             .replace("payment_ready", "betalning")
+            .replace("age_terms", "ålder & villkor")
             .replace("compliance", "ålder & villkor")
+            .replace("postal", "postnummer")
             .replace("payment", "betalning")
             .replace("delivery", "leverans")
         : "Checkout",

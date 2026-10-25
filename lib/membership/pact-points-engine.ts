@@ -51,6 +51,19 @@ export function calculateBottlePoints(
   );
 }
 
+function logAwardPactPointsRpcError(
+  source: string,
+  error: unknown,
+  context: { userId: string; eventType: string; orderId: string | null },
+): void {
+  console.error(`[pact-points] ${source} award_pact_points failed`, {
+    user_id: context.userId,
+    event_type: context.eventType,
+    order_id: context.orderId,
+    error,
+  });
+}
+
 export async function awardPactPointsForOwnOrder(
   userId: string,
   bottleCount: number,
@@ -86,7 +99,11 @@ export async function awardPactPointsForOwnOrder(
     });
 
     if (error) {
-      console.error("[pact-points] awardPactPointsForOwnOrder RPC:", error);
+      logAwardPactPointsRpcError("awardPactPointsForOwnOrder", error, {
+        userId,
+        eventType: "own_order",
+        orderId: relatedOrderId,
+      });
       return {
         success: false,
         pointsAwarded: 0,
@@ -99,7 +116,11 @@ export async function awardPactPointsForOwnOrder(
     return { success: true, pointsAwarded, newBalance };
   } catch (e) {
     const message = e instanceof Error ? e.message : "Unknown error";
-    console.error("[pact-points] awardPactPointsForOwnOrder:", e);
+    logAwardPactPointsRpcError("awardPactPointsForOwnOrder", e, {
+      userId,
+      eventType: "own_order",
+      orderId: relatedOrderId,
+    });
     return {
       success: false,
       pointsAwarded: 0,
@@ -143,7 +164,11 @@ export async function awardPactPointsWelcomeBonus(
     });
 
     if (error) {
-      console.error("[pact-points] awardPactPointsWelcomeBonus RPC:", error);
+      logAwardPactPointsRpcError("awardPactPointsWelcomeBonus", error, {
+        userId,
+        eventType: "welcome_bonus",
+        orderId: null,
+      });
       return { success: false, newBalance: 0, error: error.message };
     }
 
@@ -151,7 +176,11 @@ export async function awardPactPointsWelcomeBonus(
     return { success: true, newBalance };
   } catch (e) {
     const message = e instanceof Error ? e.message : "Unknown error";
-    console.error("[pact-points] awardPactPointsWelcomeBonus:", e);
+    logAwardPactPointsRpcError("awardPactPointsWelcomeBonus", e, {
+      userId,
+      eventType: "welcome_bonus",
+      orderId: null,
+    });
     return { success: false, newBalance: 0, error: message };
   }
 }
@@ -196,10 +225,11 @@ export async function awardPactPointsForInviteFirstOrder(
     });
 
     if (error) {
-      console.error(
-        "[pact-points] awardPactPointsForInviteFirstOrder RPC:",
-        error,
-      );
+      logAwardPactPointsRpcError("awardPactPointsForInviteFirstOrder", error, {
+        userId: inviterUserId,
+        eventType: "invite_friend_first_order",
+        orderId: relatedOrderId,
+      });
       return { success: false, newBalance: 0, error: error.message };
     }
 
@@ -207,7 +237,11 @@ export async function awardPactPointsForInviteFirstOrder(
     return { success: true, newBalance };
   } catch (e) {
     const message = e instanceof Error ? e.message : "Unknown error";
-    console.error("[pact-points] awardPactPointsForInviteFirstOrder:", e);
+    logAwardPactPointsRpcError("awardPactPointsForInviteFirstOrder", e, {
+      userId: inviterUserId,
+      eventType: "invite_friend_first_order",
+      orderId: relatedOrderId,
+    });
     return { success: false, newBalance: 0, error: message };
   }
 }
@@ -248,7 +282,11 @@ export async function awardPactPointsForReview(
     });
 
     if (error) {
-      console.error("[pact-points] awardPactPointsForReview RPC:", error);
+      logAwardPactPointsRpcError("awardPactPointsForReview", error, {
+        userId,
+        eventType: "review_after_delivery",
+        orderId: relatedOrderId,
+      });
       return { success: false, newBalance: 0, error: error.message };
     }
 
@@ -256,7 +294,11 @@ export async function awardPactPointsForReview(
     return { success: true, newBalance };
   } catch (e) {
     const message = e instanceof Error ? e.message : "Unknown error";
-    console.error("[pact-points] awardPactPointsForReview:", e);
+    logAwardPactPointsRpcError("awardPactPointsForReview", e, {
+      userId,
+      eventType: "review_after_delivery",
+      orderId: relatedOrderId,
+    });
     return { success: false, newBalance: 0, error: message };
   }
 }
@@ -295,7 +337,11 @@ export async function awardPactPointsForZoneSet(
     });
 
     if (error) {
-      console.error("[pact-points] awardPactPointsForZoneSet RPC:", error);
+      logAwardPactPointsRpcError("awardPactPointsForZoneSet", error, {
+        userId,
+        eventType: "zone_set",
+        orderId: null,
+      });
       return { success: false, newBalance: 0, error: error.message };
     }
 
@@ -303,7 +349,11 @@ export async function awardPactPointsForZoneSet(
     return { success: true, newBalance };
   } catch (e) {
     const message = e instanceof Error ? e.message : "Unknown error";
-    console.error("[pact-points] awardPactPointsForZoneSet:", e);
+    logAwardPactPointsRpcError("awardPactPointsForZoneSet", e, {
+      userId,
+      eventType: "zone_set",
+      orderId: null,
+    });
     return { success: false, newBalance: 0, error: message };
   }
 }
@@ -445,7 +495,11 @@ export async function redeemPactPoints(
     });
 
     if (error) {
-      console.error("[pact-points] redeemPactPoints RPC:", error);
+      logAwardPactPointsRpcError("redeemPactPoints", error, {
+        userId,
+        eventType: "redemption",
+        orderId: relatedOrderId,
+      });
       return { success: false, newBalance: balance, error: error.message };
     }
 
@@ -453,7 +507,11 @@ export async function redeemPactPoints(
     return { success: true, newBalance };
   } catch (e) {
     const message = e instanceof Error ? e.message : "Unknown error";
-    console.error("[pact-points] redeemPactPoints:", e);
+    logAwardPactPointsRpcError("redeemPactPoints", e, {
+      userId,
+      eventType: "redemption",
+      orderId: relatedOrderId,
+    });
     return { success: false, newBalance: 0, error: message };
   }
 }
@@ -521,7 +579,11 @@ export async function reversePendingRedemption(
         p_pending_until_payment: false,
       });
       if (rpcErr) {
-        console.error("[pact-points] reversePendingRedemption RPC:", rpcErr);
+        logAwardPactPointsRpcError("reversePendingRedemption", rpcErr, {
+          userId,
+          eventType: "redemption_reversed",
+          orderId,
+        });
         return { success: false, refundedPoints: 0, error: rpcErr.message };
       }
     }
@@ -537,7 +599,11 @@ export async function reversePendingRedemption(
     return { success: true, refundedPoints };
   } catch (e) {
     const message = e instanceof Error ? e.message : "Unknown error";
-    console.error("[pact-points] reversePendingRedemption:", e);
+    logAwardPactPointsRpcError("reversePendingRedemption", e, {
+      userId: "unknown",
+      eventType: "redemption_reversed",
+      orderId,
+    });
     return { success: false, refundedPoints: 0, error: message };
   }
 }

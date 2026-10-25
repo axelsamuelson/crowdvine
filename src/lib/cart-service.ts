@@ -1,6 +1,8 @@
 import { headers } from "next/headers";
 import { getCurrentUser } from "../../lib/auth";
-import { getMemberDiscountPercentForUserId } from "../../lib/membership/server-member-discount";
+import { getMemberDiscountForUserId } from "../../lib/membership/server-member-discount";
+import { getLevelDisplayName } from "../../lib/membership/points-engine";
+import { formatCartDiscountLabel } from "../../lib/cart/discount-label";
 import { memberDiscountedTotalInclVat } from "../../lib/price-breakdown";
 import { resolvePalletEarlyBirdContext } from "../../lib/pallet-early-bird-context";
 import { applyPalletDiscount, type DiscountTier } from "../../lib/pallet-discount";
@@ -229,15 +231,20 @@ export class CartService {
       }
 
       let memberDiscountPercent = 0;
+      let memberLevelName: string | null = null;
       let palletTier: DiscountTier = 0;
 
       if (!isB2B) {
         const user = await getCurrentUser();
-        memberDiscountPercent = user
-          ? await getMemberDiscountPercentForUserId(user.id, {
-              host: requestHost,
-            })
-          : 0;
+        if (user) {
+          const memberDiscount = await getMemberDiscountForUserId(user.id, {
+            host: requestHost,
+          });
+          memberDiscountPercent = memberDiscount.percent;
+          memberLevelName = memberDiscount.level
+            ? getLevelDisplayName(memberDiscount.level)
+            : null;
+        }
 
         const wineIdsForPallet = cartItems
           .map((item) => {
@@ -284,10 +291,11 @@ export class CartService {
         const lineTotalDisplay = toDisplay(lineTotalSek);
         const unitDisplay = toDisplay(unitMemberSek);
 
-        const discountLabel =
-          palletTier > 0
-            ? `Early-bird · ${palletTier}% off`
-            : undefined;
+        const discountLabel = formatCartDiscountLabel({
+          memberName: memberLevelName,
+          memberPercent: memberDiscountPercent,
+          earlyBirdPercent: palletTier,
+        });
 
         const hasDiscount =
           (discountLabel !== undefined && discountLabel.length > 0) ||

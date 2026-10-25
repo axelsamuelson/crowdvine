@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState, Suspense, useCallback } from "rea
 import { CartMergeModal } from "@/components/cart/cart-merge-modal";
 import { CheckoutEmailAuth } from "@/components/checkout/checkout-email-auth";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
-import { getAgeLimit, meetsAgeRequirement } from "@/lib/age-limits";
+import { meetsAgeRequirement, resolveMarketAgeMinimum } from "@/lib/age-limits";
 import { PRICE_VERSION } from "@/lib/analytics/price-version";
 import { pricesFromCheckoutCart } from "@/lib/analytics/cart-event-prices";
 import { LEGAL_VERSIONS } from "@/lib/legal/versions";
@@ -65,6 +65,9 @@ import {
   emitOnce,
   postalStartedEmitKey,
   termsAcceptedEmitKey,
+  checkoutStepViewedKey,
+  checkoutStepCompletedKey,
+  checkoutAbandonedEmitKey,
 } from "@/lib/analytics/once-per-session";
 import {
   deliveryLinesForAnalytics,
@@ -72,7 +75,7 @@ import {
 } from "@/lib/analytics/checkout-draft-metadata";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
-import { calculateCartShippingCost } from "@/lib/shipping-calculations";
+import { formatCartLinePrice } from "@/lib/shopping-context/format";
 import type { PalletInfo } from "@/lib/zone-matching";
 import {
   ShareBottlesDialog,
@@ -132,10 +135,21 @@ interface UserReward {
 function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
   const { t, context: shopping } = useShoppingContext();
   const paths = localizedPathsForLocale(shopping.locale);
-  const { formatDisplay, formatSek } = useDisplayMoney();
+  const { formatSek } = useDisplayMoney();
   const countryDisplayLocale = shopping.locale === "sv" ? "sv" : "en";
   const uiLocalizationEnabled = shopping.uiLocalizationEnabled;
   const [cart, setCart] = useState<Cart | null>(null);
+  const formatChargedAmount = useCallback(
+    (amount: number, currencyCode?: string | null) =>
+      formatCartLinePrice(
+        amount,
+        currencyCode ||
+          cart?.cost?.totalAmount?.currencyCode ||
+          shopping.currencyCode,
+        shopping.locale,
+      ),
+    [cart?.cost?.totalAmount?.currencyCode, shopping.currencyCode, shopping.locale],
+  );
   const [loading, setLoading] = useState(true);
   const [zoneLoading, setZoneLoading] = useState(false);
   const [addressSaving, setAddressSaving] = useState(false);
@@ -184,9 +198,19 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
   const [selectedRewards, setSelectedRewards] = useState<UserReward[]>([]);
   const [useRewards, setUseRewards] = useState(false);
   const checkoutCompletedRef = useRef(false);
+  const paymentStepCompletedRef = useRef(false);
   const checkoutPhaseRef = useRef<"delivery" | "compliance" | "payment">(
     "delivery",
   );
+  const checkoutMetaRef = useRef({
+    market: "SE",
+    currency: "SEK",
+    cart_value: 0,
+    bottle_count: 0,
+  });
+  const checkoutStepRef = useRef<
+    "postal" | "delivery" | "age_terms" | "payment"
+  >("postal");
   const zoneInfoFetchInProgressRef = useRef(false);
   const zoneInfoNeedsRefetchRef = useRef(false);
   const pendingZoneOverrideRef = useRef<ZoneDeliveryLines | null>(null);
@@ -310,7 +334,46 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
     checkoutMarketCountry ||
     "SE"
   ).toUpperCase();
-  const requiredAge = getAgeLimit(ageCountryCode);
+  const requiredAge = resolveMarketAgeMinimum({
+    countryCode: ageCountryCode,
+    ageMinimum: shopping.market.ageMinimum,
+  });
+
+  type CheckoutAnalyticsStep = "postal" | "delivery" | "age_terms" | "payment";
+
+  function checkoutEventMeta(step: CheckoutAnalyticsStep) {
+    const base = checkoutMetaRef.current;
+    return {
+      step,
+      market: base.market,
+      currency: base.currency,
+      cart_value: base.cart_value,
+      bottle_count: base.bottle_count,
+    };
+  }
+
+  function emitCheckoutError(
+    step: CheckoutAnalyticsStep,
+    field: string,
+    code: string,
+  ) {
+    void AnalyticsTracker.trackEvent({
+      eventType: "checkout_error",
+      eventCategory: "checkout",
+      metadata: { ...checkoutEventMeta(step), field, code },
+    });
+  }
+
+  function emitCheckoutStepCompleted(step: CheckoutAnalyticsStep) {
+    if (step === "payment") paymentStepCompletedRef.current = true;
+    emitOnce(checkoutStepCompletedKey(step), () => {
+      void AnalyticsTracker.trackEvent({
+        eventType: "checkout_step_completed",
+        eventCategory: "checkout",
+        metadata: checkoutEventMeta(step),
+      });
+    });
+  }
 
   // Track delivery-zone errors as soon as they appear so Nära köp can answer
   // "why did checkout fail?" instead of just "checkout abandoned".
@@ -337,6 +400,21 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
         country_code: ageCountryCode,
       },
     });
+    if (err === "NO_DELIVERY_ZONE") {
+      emitCheckoutError("postal", "postal", "postal_out_of_zone");
+    }
+    if (err === "UNSUPPORTED_COUNTRY") {
+      emitCheckoutError("postal", "country", "market_not_available");
+      void AnalyticsTracker.trackEvent({
+        eventType: "delivery_ineligible",
+        eventCategory: "checkout",
+        metadata: {
+          ...checkoutEventMeta("postal"),
+          country: ageCountryCode,
+          reason: zoneInfo.zoneErrorMessage || "UNSUPPORTED_COUNTRY",
+        },
+      });
+    }
   }, [zoneInfo.zoneError, zoneInfo.zoneErrorMessage, postalCodeDraft, ageCountryCode]);
 
   const hasZoneDeliveryReady = useMemo(() => {
@@ -497,6 +575,7 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
             date_of_birth: value,
           },
         });
+        emitCheckoutError("age_terms", "date_of_birth", "age_under_minimum");
         return;
       }
       setAgeDobError(null);
@@ -533,9 +612,10 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
   const handleLegalGateError = useCallback(
     (error: { status: 403 | 409 | 400; currentVersion?: string }) => {
       if (error.status === 403) {
-        setAgeDobError(t("checkout.ageGateBlocked"));
+        setAgeDobError(t("checkout.ageGateBlocked", { age: requiredAge }));
         setAgeConfirmed(false);
         setPaymentCardRevealed(false);
+        emitCheckoutError("age_terms", "date_of_birth", "age_under_minimum");
         return;
       }
       if (error.status === 409) {
@@ -543,12 +623,14 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
         setTermsStale(true);
         setPaymentCardRevealed(false);
         toast.error(t("checkout.termsVersionStale"));
+        emitCheckoutError("age_terms", "terms", "terms_not_accepted");
         return;
       }
       toast.error(t("checkout.paymentNotReady"));
       setPaymentCardRevealed(false);
+      emitCheckoutError("payment", "payment", "server_error");
     },
-    [t],
+    [requiredAge, t],
   );
 
   const legalGatePayload = useMemo(() => {
@@ -612,6 +694,14 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
     });
   }, [deliveryComplete, hasContactForCheckout, effectiveDelivery]);
 
+  const checkoutStep: CheckoutAnalyticsStep = paymentCardRevealed
+    ? "payment"
+    : complianceStepRevealed
+      ? "age_terms"
+      : hasPostalCode
+        ? "delivery"
+        : "postal";
+
   useEffect(() => {
     const phase: "delivery" | "compliance" | "payment" = paymentCardRevealed
       ? "payment"
@@ -619,22 +709,30 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
         ? "compliance"
         : "delivery";
     checkoutPhaseRef.current = phase;
-    void AnalyticsTracker.trackEvent({
-      eventType: "checkout_step_viewed",
-      eventCategory: "checkout",
-      metadata: { phase },
-    });
   }, [complianceStepRevealed, paymentCardRevealed]);
 
   useEffect(() => {
-    if (!cart || cart.totalQuantity <= 0) {
-      return;
-    }
+    if (!cart || cart.totalQuantity <= 0) return;
+    const cartValue =
+      parseFloat(String(cart.cost?.totalAmount?.amount ?? "0")) || 0;
+    const bottleCount = cart.totalQuantity;
+    const meta = {
+      step: checkoutStep,
+      market: (checkoutMarketCountry || ageCountryCode || "SE").toUpperCase(),
+      currency:
+        shopping.currencyCode || cart.cost?.totalAmount?.currencyCode || "SEK",
+      cart_value: cartValue,
+      bottle_count: bottleCount,
+    };
+    checkoutStepRef.current = checkoutStep;
+    checkoutMetaRef.current = {
+      market: meta.market,
+      currency: meta.currency,
+      cart_value: cartValue,
+      bottle_count: bottleCount,
+    };
+    const { list_price, unit_price } = pricesFromCheckoutCart(cart);
     emitOnce(CHECKOUT_STARTED_KEY, () => {
-      const cartValue =
-        parseFloat(String(cart.cost?.totalAmount?.amount ?? "0")) || 0;
-      const bottleCount = cart.totalQuantity;
-      const { list_price, unit_price } = pricesFromCheckoutCart(cart);
       void AnalyticsTracker.trackCheckoutStarted(cartValue, bottleCount, {
         cart_value: cartValue,
         bottle_count: bottleCount,
@@ -643,13 +741,41 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
         list_price,
         unit_price,
         price_version: PRICE_VERSION,
+        step: meta.step,
+        market: meta.market,
+        currency: meta.currency,
       });
     });
-  }, [cart]);
+    emitOnce(checkoutStepViewedKey(checkoutStep), () => {
+      void AnalyticsTracker.trackEvent({
+        eventType: "checkout_step_viewed",
+        eventCategory: "checkout",
+        metadata: meta,
+      });
+    });
+  }, [
+    cart,
+    checkoutStep,
+    checkoutMarketCountry,
+    ageCountryCode,
+    shopping.currencyCode,
+  ]);
 
   useEffect(() => {
-    return () => {
-      if (checkoutCompletedRef.current) return;
+    if (!hasPostalCode || !cart || cart.totalQuantity <= 0) return;
+    emitCheckoutStepCompleted("postal");
+  }, [hasPostalCode, cart]);
+
+  useEffect(() => {
+    if (!deliveryComplete || !cart || cart.totalQuantity <= 0) return;
+    emitCheckoutStepCompleted("delivery");
+  }, [deliveryComplete, cart]);
+
+  useEffect(() => {
+    const emitAbandon = () => {
+      if (checkoutCompletedRef.current || paymentStepCompletedRef.current) {
+        return;
+      }
       const dob = dateOfBirthRef.current.trim();
       const delivery = deliveryLinesForAnalytics(deliverySnapshotRef.current);
       const postalDraft = postalDraftAnalytics(postalCodeDraftRef.current);
@@ -657,22 +783,35 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
       if (!delivery.postal && postalDraft) {
         delivery.postal = postalDraft.postal;
       }
-      void AnalyticsTracker.trackEvent({
-        eventType: "checkout_abandoned",
-        eventCategory: "checkout",
-        metadata: {
-          phase: checkoutPhaseRef.current,
-          ...(dob ? { date_of_birth: dob } : {}),
-          ...delivery,
-          ...(postalDraft
-            ? {
-                digits: postalDraft.digits,
-                postal_complete: postalComplete,
-              }
-            : {}),
-        },
-        keepalive: true,
+      const step = checkoutStepRef.current;
+      emitOnce(checkoutAbandonedEmitKey(), () => {
+        void AnalyticsTracker.trackEvent({
+          eventType: "checkout_abandoned",
+          eventCategory: "checkout",
+          metadata: {
+            phase: checkoutPhaseRef.current,
+            ...checkoutEventMeta(step),
+            ...(dob ? { date_of_birth: dob } : {}),
+            ...delivery,
+            ...(postalDraft
+              ? {
+                  digits: postalDraft.digits,
+                  postal_complete: postalComplete,
+                }
+              : {}),
+          },
+          keepalive: true,
+        });
       });
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") emitAbandon();
+    };
+    window.addEventListener("pagehide", emitAbandon);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.removeEventListener("pagehide", emitAbandon);
+      document.removeEventListener("visibilitychange", onVisibility);
     };
   }, []);
 
@@ -1161,6 +1300,18 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
     termsAccepted &&
     (!isUsConditional || usConditionalAck);
 
+  useEffect(() => {
+    if (
+      !complianceComplete ||
+      !complianceStepRevealed ||
+      !cart ||
+      cart.totalQuantity <= 0
+    ) {
+      return;
+    }
+    emitCheckoutStepCompleted("age_terms");
+  }, [complianceComplete, complianceStepRevealed, cart]);
+
   // Warm Stripe.js + create Setup/PaymentIntent after compliance is complete.
   useEffect(() => {
     if (!paymentCardRevealed || !authReady || !selectedPallet?.id) {
@@ -1263,12 +1414,14 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
             total_ore: num(q.total_ore),
             subtotal_sek: num(q.subtotal_sek),
             shipping_sek: num(q.shipping_sek),
+            shipping_pending: q.shipping_pending === true,
             promo_discount_sek: num(q.promo_discount_sek),
             pact_points_sek: num(q.pact_points_sek),
           };
           setServerQuote({
             subtotal_sek: quote.subtotal_sek,
             shipping_sek: quote.shipping_sek,
+            shipping_pending: quote.shipping_pending === true,
             promo_discount_sek: quote.promo_discount_sek,
             voucher_discount_sek: 0,
             pact_points_sek: quote.pact_points_sek,
@@ -2133,6 +2286,7 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
 
         toast.success(t("checkout.reservationSuccess"));
 
+        emitCheckoutStepCompleted("payment");
         checkoutCompletedRef.current = true;
         clearCheckoutAnalyticsSession();
         window.location.href = redirectUrl || "/checkout/success";
@@ -2143,6 +2297,7 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
           eventCategory: "checkout",
           metadata: { phase: "confirm", status: response.status },
         });
+        emitCheckoutError("payment", "confirm", "server_error");
         const contentType = response.headers.get("content-type") || "";
         let errorMessage = t("checkout.reservationFailed");
 
@@ -2175,6 +2330,7 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
         eventCategory: "checkout",
         metadata: { phase: "confirm", status: 0, network: true },
       });
+      emitCheckoutError("payment", "confirm", "server_error");
       console.error("Error placing reservation:", error);
       toast.error(t("checkout.reservationFailed"));
     }
@@ -2238,6 +2394,7 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
             : {}),
         },
       });
+      emitCheckoutError("age_terms", "date_of_birth", "age_under_minimum");
       toast.error(
         dateOfBirth.trim() && ageDobError
           ? ageDobError
@@ -2247,6 +2404,7 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
       return;
     }
     if (!termsAccepted) {
+      emitCheckoutError("age_terms", "terms", "terms_not_accepted");
       toast.error(t("checkout.termsAccept"));
       releaseSubmit();
       return;
@@ -2372,6 +2530,7 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
           eventCategory: "checkout",
           metadata: { status: response.status },
         });
+        emitCheckoutError("payment", "confirm", "server_error");
         throw new Error(errorMessage);
       }
 
@@ -2380,6 +2539,7 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
         d && typeof d === "object" && typeof d.redirectUrl === "string"
           ? d.redirectUrl
           : null;
+      emitCheckoutStepCompleted("payment");
       checkoutCompletedRef.current = true;
       clearCheckoutAnalyticsSession();
       // Do not releaseSubmit — navigate away; keep button disabled.
@@ -2387,6 +2547,7 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
     };
 
     if (!stripeConfirmFn || !paymentMode || !stripeIntentId) {
+      emitCheckoutError("payment", "payment", "server_error");
       setStripeError(t("checkout.paymentNotReady"));
       toast.error(t("checkout.paymentNotReady"));
       releaseSubmit();
@@ -2401,6 +2562,11 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
       confirmed = await stripeConfirmFn();
     } catch (e) {
       console.error("[Checkout] stripeConfirmFn threw:", e);
+      emitCheckoutError(
+        "payment",
+        "card",
+        paymentMode === "setup_intent" ? "setup_intent_failed" : "server_error",
+      );
       setStripeError(t("checkout.paymentFailedTryCard"));
       releaseSubmit();
       return;
@@ -2425,6 +2591,15 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
           success: false,
         },
       });
+      const stripeCode = confirmed.stripeError?.code ?? "";
+      const decline = confirmed.stripeError?.decline_code ?? "";
+      const errorCode =
+        stripeCode === "card_declined" || decline
+          ? "card_declined"
+          : paymentMode === "setup_intent" || stripeCode.includes("setup_intent")
+            ? "setup_intent_failed"
+            : "server_error";
+      emitCheckoutError("payment", "card", errorCode);
       setStripeError(friendlyStripeErrorMessage(confirmed));
       toast.error(friendlyStripeErrorMessage(confirmed));
       releaseSubmit();
@@ -2486,23 +2661,6 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
     t,
     friendlyStripeErrorMessage,
   ]);
-
-  // Calculate shipping cost
-  const shippingCost =
-    selectedPallet && cart?.lines
-      ? calculateCartShippingCost(
-          cart.lines.map((line) => ({ quantity: line.quantity })),
-    {
-      id: selectedPallet.id,
-      name: selectedPallet.name,
-      costCents: selectedPallet.costCents,
-      bottleCapacity: selectedPallet.maxBottles,
-      currentBottles: selectedPallet.currentBottles,
-      remainingBottles: selectedPallet.remainingBottles,
-      lastMileCostCentsPerBottle: selectedPallet.lastMileCostCentsPerBottle,
-          },
-        )
-      : null;
 
   // Merchandise total from cart (matches per-line line.cost.totalAmount, incl. member + pallet early-bird)
   const bottleCost = cart
@@ -2613,26 +2771,21 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
   const displaySubtotal = serverQuote?.subtotal_sek ?? bottleCost;
   const displayShippingSek = serverQuote?.shipping_sek;
   const displayPactOff = serverQuote?.pact_points_sek ?? pactPointsSekOff;
-  // Budbee row and the Frakt line must show the charged customer rate (99 kr),
-  // not the legacy pallet amortization in `shippingCost`.
+  // Shipping is a SEK rate. formatSek converts it into the active currency.
+  // A missing country rate stays out of the total.
   const chargedShippingLabel = (() => {
+    if (serverQuote?.shipping_pending && selectedPalletId) {
+      return t("checkout.shippingConfirmedBeforeCharge");
+    }
     if (displayShippingSek != null && selectedPalletId) {
       if (displayShippingSek === 0) return t("checkout.shippingFree");
-      return formatDisplay(displayShippingSek);
+      return formatSek(displayShippingSek);
     }
-    if (!shippingCost) return null;
-    if (shippingCost.totalShippingCostCents === 0) return t("checkout.shippingFree");
-    return formatSek(shippingCost.totalShippingCostCents / 100);
+    return null;
   })();
   const displayTotal =
     serverQuote?.total_sek ??
-    Math.max(
-      0,
-      bottleCost +
-        (shippingCost ? shippingCost.totalShippingCostCents / 100 : 0) -
-        pactPointsSekOff -
-        promoDiscountSek,
-    );
+    Math.max(0, bottleCost - pactPointsSekOff - promoDiscountSek);
   const commitAppliedDiscount = (data: {
     code: string;
     discount_code_id: string;
@@ -2669,7 +2822,7 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
         }) ?? [];
       const cart_value_sek =
         (parseFloat(cart?.cost?.totalAmount?.amount ?? "0") || 0) +
-        (shippingCost ? shippingCost.totalShippingCostCents / 100 : 0);
+        (serverQuote?.shipping_pending ? 0 : (displayShippingSek ?? 0));
 
       const res = await fetch("/api/discount/validate", {
         method: "POST",
@@ -2814,12 +2967,12 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
                 {formatSek(originalLineTotalSek)}
               </p>
               <p className="text-sm font-medium tabular-nums text-foreground">
-                {formatDisplay(totalForLine)}
+                {formatChargedAmount(totalForLine, line.cost.totalAmount.currencyCode)}
               </p>
             </>
           ) : (
             <p className="text-sm font-medium tabular-nums text-foreground">
-              {formatDisplay(totalForLine)}
+              {formatChargedAmount(totalForLine, line.cost.totalAmount.currencyCode)}
             </p>
           )}
         </div>
@@ -2862,7 +3015,12 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
   const handlePostalDraftCommit = (raw?: string) => {
     const v = (raw ?? postalCodeDraft).trim().replace(/\s+/g, "");
     const ok = isUsConditional ? v.length >= 3 : /^\d{5}$/.test(v);
-    if (!ok) return;
+    if (!ok) {
+      if (v.length > 0) {
+        emitCheckoutError("postal", "postal", "postal_invalid");
+      }
+      return;
+    }
     setPostalCodeDraft(v);
     setZoneLoading(true);
     setZoneFetchCompleted(false);
@@ -3121,7 +3279,7 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
                     {t("checkout.subtotal")}
                   </span>
                   <span className="tabular-nums text-foreground">
-                    {formatDisplay(displaySubtotal)}
+                    {formatChargedAmount(displaySubtotal)}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
@@ -3186,7 +3344,7 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
                       {t("checkout.pactPointsDiscount")}
                     </span>
                     <span className="font-medium tabular-nums text-foreground">
-                      −{formatDisplay(displayPactOff)}
+                      −{formatChargedAmount(displayPactOff)}
                     </span>
                   </div>
                 ) : null}
@@ -3198,7 +3356,7 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
                       })}
                     </span>
                     <span className="font-medium tabular-nums text-foreground">
-                      −{formatDisplay(rewardsDiscountAmount)}
+                      −{formatChargedAmount(rewardsDiscountAmount)}
                     </span>
                   </div>
                 ) : null}
@@ -3210,8 +3368,8 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
                         code: appliedDiscount.code,
                         amount:
                           appliedDiscount.type === "percent"
-                            ? `−${Math.round(appliedDiscount.discount_amount_sek)} kr (−${appliedDiscount.value}%)`
-                            : `−${Math.round(appliedDiscount.discount_amount_sek)} kr`,
+                            ? `−${formatChargedAmount(appliedDiscount.discount_amount_sek)} (−${appliedDiscount.value}%)`
+                            : `−${formatChargedAmount(appliedDiscount.discount_amount_sek)}`,
                       })}
                     </span>
                     <button
@@ -3255,7 +3413,7 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
                 <div className="flex items-center justify-between pt-2 text-base font-medium text-foreground">
                   <span>{t("checkout.total")}</span>
                   <span className="tabular-nums text-foreground">
-                    {formatDisplay(displayTotal)}
+                    {formatChargedAmount(displayTotal)}
                   </span>
                 </div>
               </div>
@@ -4041,7 +4199,7 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
                               autoComplete="bday"
                             />
                             <p className="text-xs text-muted-foreground">
-                              {t("checkout.ageDeliveryIdHint")}
+                              {t("checkout.ageDeliveryIdHint", { age: requiredAge })}
                             </p>
                             {ageDobError ? (
                               <p className="text-xs text-destructive">
@@ -4269,6 +4427,7 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
                               setServerQuote({
                                 subtotal_sek: q.subtotal_sek,
                                 shipping_sek: q.shipping_sek,
+                                shipping_pending: q.shipping_pending === true,
                                 promo_discount_sek: q.promo_discount_sek,
                                 voucher_discount_sek: 0,
                                 pact_points_sek: q.pact_points_sek,
@@ -4300,7 +4459,7 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
                               {t("checkout.total")}
                             </span>
                             <span className="text-2xl font-bold tabular-nums text-foreground">
-                              {formatDisplay(displayTotal)}
+                              {formatChargedAmount(displayTotal)}
                             </span>
                           </div>
 
@@ -4333,7 +4492,7 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
                                 : isUsConditional
                                   ? t("checkout.usConditionalButton")
                                   : t("checkout.placeReservationWithPayment", {
-                                      amount: formatDisplay(displayTotal),
+                                      amount: formatChargedAmount(displayTotal),
                                     })}
                           </Button>
                         </div>

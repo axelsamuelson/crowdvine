@@ -193,7 +193,7 @@ export async function GET(request: Request) {
     let viewQuery = sb
       .from("analytics_intent_sessions")
       .select(
-        "session_id, site, user_id, started_at, last_seen_at, wines, cart_value, reached_checkout, last_checkout_phase, abandoned_phase, last_step",
+        "session_id, site, user_id, started_at, last_seen_at, wines, cart_value, reached_checkout, last_checkout_phase, abandoned_phase, last_step, last_checkout_error, is_human",
       )
       .gte("last_seen_at", sinceIso)
       .order("last_seen_at", { ascending: false })
@@ -218,6 +218,8 @@ export async function GET(request: Request) {
         last_checkout_phase: r.last_checkout_phase,
         abandoned_phase: r.abandoned_phase,
         last_step: r.last_step,
+        last_checkout_error: r.last_checkout_error ?? null,
+        is_human: r.is_human ?? null,
       }));
     } else {
       if (viewErr) {

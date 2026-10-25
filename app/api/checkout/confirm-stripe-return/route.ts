@@ -5,7 +5,10 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { stripe } from "@/lib/stripe";
 import { CartService } from "@/src/lib/cart-service";
 import { determineZones, type DeliveryAddress } from "@/lib/zone-matching";
-import { resolveCheckoutShippingSek } from "@/lib/checkout/resolve-checkout-shipping";
+import {
+  checkoutCustomerShippingCharge,
+  resolveCheckoutShippingSek,
+} from "@/lib/checkout/resolve-checkout-shipping";
 import {
   allocatePactRedemptionPoints,
   calculateBoostAwareMaxRedemption,
@@ -402,10 +405,11 @@ export async function POST(request: Request) {
     const resolvedShipping = await resolveCheckoutShippingSek({
       bottleCount,
       productSubtotalSek: subtotalSek,
-      countryCode: "SE",
+      countryCode,
+      allowLegacyFallback: false,
       pallet: palletRow,
     });
-    const shippingSek = resolvedShipping.shippingSek;
+    const shippingSek = checkoutCustomerShippingCharge(resolvedShipping).shippingSek;
 
     let boostedLineTotal = 0;
     let nonBoostedLineTotal = 0;

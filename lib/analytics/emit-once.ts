@@ -143,6 +143,18 @@ export function postalStartedEmitKey(): string {
   return postalStartedKey(getCheckoutSessionId());
 }
 
+export function checkoutStepViewedKey(step: string): string {
+  return `checkout_step_viewed:${getCheckoutSessionId()}:${step}`;
+}
+
+export function checkoutStepCompletedKey(step: string): string {
+  return `checkout_step_completed:${getCheckoutSessionId()}:${step}`;
+}
+
+export function checkoutAbandonedEmitKey(): string {
+  return `checkout_abandoned:${getCheckoutSessionId()}`;
+}
+
 /**
  * Clear checkout analytics guards after a successful reservation so a
  * second purchase in the same browser session can emit again.
@@ -161,6 +173,9 @@ export function clearCheckoutAnalyticsSession(): void {
     clearClaim(postalStartedKey(sessionId));
     clearClaimsWithPrefix(`age_shown:${sessionId}:`);
     clearClaimsWithPrefix(`age_passed:${sessionId}:`);
+    clearClaimsWithPrefix(`checkout_step_viewed:${sessionId}:`);
+    clearClaimsWithPrefix(`checkout_step_completed:${sessionId}:`);
+    clearClaim(`checkout_abandoned:${sessionId}`);
   }
   clearClaim(CHECKOUT_SESSION_ID_KEY);
 }

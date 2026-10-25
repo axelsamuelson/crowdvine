@@ -45,6 +45,9 @@ const EVENT_TYPE_LABELS_SV: Readonly<Record<string, string>> = {
   age_confirmation_failed: "Åldersbekräftelse underkänd",
   checkout_started: "Checkout startad",
   checkout_step_viewed: "Checkout-steg visat",
+  checkout_step_completed: "Checkout-steg klart",
+  checkout_error: "Checkout-fel",
+  delivery_ineligible: "Leverans ej möjlig",
   checkout_abandoned: "Checkout övergiven",
   checkout_completed: "Betalning genomförd",
   reservation_completed: "Reservation skapad",
@@ -56,6 +59,7 @@ const EVENT_TYPE_LABELS_SV: Readonly<Record<string, string>> = {
   cart_validation_passed: "6-pack validerad",
   cart_validation_failed: "6-pack validering misslyckades",
   page_view: "Sidvisning",
+  session_engaged: "Session med mänsklig signal",
   product_viewed: "Produktvy",
   product_list_viewed: "Produktlista",
   signup_started: "Inloggningssteg visat (e-post)",
@@ -75,8 +79,9 @@ export function eventTypeLabelSv(raw: string): string {
 /** Phase labels for checkout_step_viewed metadata.phase */
 export function checkoutPhaseLabelSv(phase: string | null | undefined): string {
   if (!phase) return "okänd";
+  if (phase === "postal") return "postnummer";
   if (phase === "delivery") return "leverans";
-  if (phase === "compliance") return "ålder & villkor";
+  if (phase === "compliance" || phase === "age_terms") return "ålder & villkor";
   if (phase === "payment" || phase === "payment_ready") return "betalning";
   return phase;
 }

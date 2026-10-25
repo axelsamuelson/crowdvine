@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "motion/react";
 import { Loader } from "@/components/ui/loader";
-import { formatPrice } from "@/lib/shopify/utils";
+import { useDisplayMoney } from "@/lib/hooks/use-display-money";
 import {
   Sheet,
   SheetContent,
@@ -187,6 +187,7 @@ function MixedCaseWineDetailBody({
   /** When true, wine name/vintage is shown in the shell header; skip duplicate title here. */
   hideTitleBlock?: boolean;
 }) {
+  const { formatSek } = useDisplayMoney();
   const tasting = wine.tasting_notes?.trim();
   const tastingLooksHtml = tasting && /<\s*\w+/.test(tasting);
 
@@ -206,7 +207,7 @@ function MixedCaseWineDetailBody({
           </h2>
         ) : null}
         <p className={cn("text-base font-semibold", !hideTitleBlock && "mt-1")}>
-          {formatPrice(String(Math.ceil(wine.base_price_cents / 100)), "SEK")}
+          {formatSek(Math.ceil(wine.base_price_cents / 100))}
           <span className="text-xs font-normal text-muted-foreground"> / bottle</span>
         </p>
       </div>
@@ -768,6 +769,7 @@ function MixedCaseWineListPanel({
   onCloseMixedCase?: () => void;
 }) {
   const { t } = useTranslations();
+  const { formatSek } = useDisplayMoney();
   const selectedCaseTotalCents = useMemo(
     () =>
       wines.reduce(
@@ -838,10 +840,7 @@ function MixedCaseWineListPanel({
                       {soldOut ? (
                         t("product.outOfStock")
                       ) : (
-                        formatPrice(
-                          String(Math.ceil(w.base_price_cents / 100)),
-                          "SEK",
-                        )
+                        formatSek(Math.ceil(w.base_price_cents / 100))
                       )}
                     </p>
                   </div>
@@ -906,10 +905,7 @@ function MixedCaseWineListPanel({
           <p className="mt-1 text-sm text-muted-foreground">
             Total{" "}
             <span className="font-semibold tabular-nums text-foreground">
-              {formatPrice(
-                String(Math.ceil(selectedCaseTotalCents / 100)),
-                "SEK",
-              )}
+              {formatSek(Math.ceil(selectedCaseTotalCents / 100))}
             </span>
           </p>
           {showTapRowHint ? (

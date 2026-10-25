@@ -17,4 +17,7 @@ export {
   deliveryCapturedEmitKey,
   contactCapturedEmitKey,
   postalStartedEmitKey,
+  checkoutStepViewedKey,
+  checkoutStepCompletedKey,
+  checkoutAbandonedEmitKey,
 } from "./emit-once";
