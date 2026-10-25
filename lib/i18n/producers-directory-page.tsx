@@ -14,6 +14,7 @@ import { ProducersDirectoryMapLazy } from "@/components/producer/producers-direc
 import { fetchIndexableProducersFromDb } from "@/lib/crowdvine/indexable-producers";
 import type { AppLocale } from "@/lib/i18n/locale";
 import { localizedPathsForLocale } from "@/lib/i18n/localized-paths";
+import { PACT_PUBLIC_ORIGIN } from "@/lib/i18n/localized-routes";
 import {
   producersDirectoryContentForLocale,
   producersDirectoryPathForLocale,
@@ -56,7 +57,7 @@ export async function buildProducersDirectoryMetadata(
 ): Promise<Metadata> {
   const config = await getSiteConfig();
   const content = producersDirectoryContentForLocale(locale);
-  const urls = producersDirectoryUrls(config.baseUrl);
+  const urls = producersDirectoryUrls(PACT_PUBLIC_ORIGIN);
   const canonical = locale === "sv" ? urls.sv : urls.en;
 
   const title = categoryPageTitle(content.title, config.siteName);
@@ -162,6 +163,7 @@ export async function renderProducersDirectoryPage(locale: AppLocale) {
               const bio = extractWineText(
                 producer.short_description,
                 wineLocale,
+                { fallback: wineLocale === "sv" },
               );
               const initials = producerInitials(producer.name);
 

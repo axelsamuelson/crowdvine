@@ -51,7 +51,7 @@ export async function buildStockholmDeliveryMetadata(
       languages: {
         sv: `${config.baseUrl}${STOCKHOLM_DELIVERY_PATH.sv}`,
         en: `${config.baseUrl}${STOCKHOLM_DELIVERY_PATH.en}`,
-        "x-default": `${config.baseUrl}${STOCKHOLM_DELIVERY_PATH.sv}`,
+        "x-default": `${config.baseUrl}${STOCKHOLM_DELIVERY_PATH.en}`,
       },
     },
     openGraph: {

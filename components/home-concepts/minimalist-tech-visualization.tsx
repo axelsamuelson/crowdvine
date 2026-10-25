@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
+import { useShoppingContext } from "@/lib/context/shopping-context-provider";
+import { shopPathForLocale } from "@/lib/i18n/localized-routes";
 
 interface InteractiveZone {
   id: string;
@@ -11,19 +13,20 @@ interface InteractiveZone {
   visualization: "pallets" | "producers" | "how-it-works";
 }
 
-const zones: InteractiveZone[] = [
+function buildZones(shopPath: string): InteractiveZone[] {
+  return [
   {
     id: "pallets",
     title: "Se pallar",
     description: "Utforska aktiva pallar och se deras progress i realtid",
-    link: "/vin",
+    link: shopPath,
     visualization: "pallets",
   },
   {
     id: "producers",
     title: "Utforska producenter",
     description: "Upptäck naturviner direkt från små producenter",
-    link: "/vin",
+    link: shopPath,
     visualization: "producers",
   },
   {
@@ -34,6 +37,7 @@ const zones: InteractiveZone[] = [
     visualization: "how-it-works",
   },
 ];
+}
 
 function PalletsMiniDiagram() {
   return (
@@ -137,6 +141,8 @@ function HowItWorksMiniDiagram() {
 }
 
 export function MinimalistTechVisualization() {
+  const { context } = useShoppingContext();
+  const zones = buildZones(shopPathForLocale(context.locale));
   const [hoveredZone, setHoveredZone] = useState<string | null>(null);
 
   const renderVisualization = (visualization: string) => {

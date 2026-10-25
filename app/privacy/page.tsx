@@ -7,6 +7,7 @@ import { LegalPageLayout } from "@/components/legal/legal-page-layout";
 import IntegritetspolicyContent from "@/content/legal/integritetspolicy";
 import { LEGAL_VERSIONS } from "@/lib/legal/versions";
 import { getSiteConfig } from "@/lib/site-config-server";
+import { PACT_PUBLIC_ORIGIN } from "@/lib/i18n/localized-routes";
 
 export const dynamic = "force-static";
 
@@ -15,7 +16,7 @@ const DESCRIPTION = "How PACT processes your personal data.";
 
 export async function generateMetadata(): Promise<Metadata> {
   const config = await getSiteConfig();
-  const canonical = `${config.baseUrl}/privacy`;
+  const canonical = `${PACT_PUBLIC_ORIGIN}/privacy`;
   return {
     title: TITLE,
     description: DESCRIPTION,
@@ -25,8 +26,8 @@ export async function generateMetadata(): Promise<Metadata> {
       canonical,
       languages: {
         en: canonical,
-        sv: `${config.baseUrl}/integritetspolicy`,
-        "x-default": `${config.baseUrl}/integritetspolicy`,
+        sv: `${PACT_PUBLIC_ORIGIN}/integritetspolicy`,
+        "x-default": `${PACT_PUBLIC_ORIGIN}/privacy`,
       },
     },
   };

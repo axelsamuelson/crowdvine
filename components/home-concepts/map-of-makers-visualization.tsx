@@ -1,5 +1,8 @@
 "use client";
 
+import { useShoppingContext } from "@/lib/context/shopping-context-provider";
+import { producerShopPathFromName } from "@/lib/i18n/localized-routes";
+
 import { useEffect, useRef, useState, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import Link from "next/link";
@@ -46,6 +49,7 @@ interface Zone {
 }
 
 export function MapOfMakersVisualization() {
+  const { context } = useShoppingContext();
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<any>(null);
   const mapboxglRef = useRef<any>(null);
@@ -903,7 +907,7 @@ export function MapOfMakersVisualization() {
                   <div className="flex-1">
                     <h2 className="text-xl font-semibold text-foreground mb-1">
                       <Link
-                        href={`/vin/${getProducerHandle(selectedProducer.name)}`}
+                        href={producerShopPathFromName(selectedProducer.name, context.locale)}
                         className="hover:underline transition-colors"
                         onClick={() => setSelectedProducer(null)}
                       >

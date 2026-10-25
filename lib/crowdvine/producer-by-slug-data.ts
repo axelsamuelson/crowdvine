@@ -143,10 +143,12 @@ export async function getProducerBySlugForLocale(
       bio_short: extractWineText(
         producer.short_description as Record<string, string> | string | null,
         wineLocale,
+        { fallback: wineLocale === "sv" },
       ),
       bio_long: extractWineText(
         producer.bio_long as Record<string, string> | string | null,
         wineLocale,
+        { fallback: wineLocale === "sv" },
       ),
       slug: generateProducerSlug(producer.name),
       lat: producer.lat,

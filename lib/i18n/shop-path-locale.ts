@@ -1,6 +1,6 @@
 import type { AppLocale } from "@/lib/i18n/locale";
 
-/** Locale implied by path prefix (/vin, /produkt, /product, etc.). */
+/** Locale implied by path prefix (/vin, /produkt, /product, about/legal pairs, etc.). */
 export function localeFromShopPath(pathname: string): AppLocale | null {
   if (pathname === "/vin" || pathname.startsWith("/vin/")) return "sv";
   if (pathname === "/wine" || pathname.startsWith("/wine/")) return "en";
@@ -16,5 +16,21 @@ export function localeFromShopPath(pathname: string): AppLocale | null {
   if (pathname.startsWith("/producer/")) return "en";
   if (pathname === "/guider" || pathname.startsWith("/guider/")) return "sv";
   if (pathname === "/guides" || pathname.startsWith("/guides/")) return "en";
+  if (pathname === "/om-oss") return "sv";
+  if (pathname === "/about") return "en";
+  if (
+    pathname === "/villkor" ||
+    pathname === "/integritetspolicy" ||
+    pathname === "/cookies"
+  ) {
+    return "sv";
+  }
+  if (
+    pathname === "/terms" ||
+    pathname === "/privacy" ||
+    pathname === "/cookie-policy"
+  ) {
+    return "en";
+  }
   return null;
 }

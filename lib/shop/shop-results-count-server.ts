@@ -55,6 +55,7 @@ async function fetchProductsForRoute(params: {
   displayCurrencyCode: string;
   sekToDisplayRate: number;
   canUseProductCache: boolean;
+  locale: "sv" | "en";
 }): Promise<Product[]> {
   const {
     collection,
@@ -67,6 +68,7 @@ async function fetchProductsForRoute(params: {
     displayCurrencyCode,
     sekToDisplayRate,
     canUseProductCache,
+    locale,
   } = params;
 
   const currencyParams = { displayCurrencyCode, sekToDisplayRate };
@@ -82,6 +84,7 @@ async function fetchProductsForRoute(params: {
           sortKey: sortKey as ProductCollectionSortKey,
           reverse,
           host,
+          locale,
           ...currencyParams,
         });
         allProducts.push(...producerProducts);
@@ -103,6 +106,7 @@ async function fetchProductsForRoute(params: {
         isB2BSite,
         displayCurrencyCode,
         sekToDisplayRate,
+        locale,
       });
       return data as Product[];
     }
@@ -112,6 +116,7 @@ async function fetchProductsForRoute(params: {
       query,
       reverse,
       host,
+      locale,
       ...currencyParams,
     });
   }
@@ -122,6 +127,7 @@ async function fetchProductsForRoute(params: {
     sortKey: sortKey as ProductCollectionSortKey,
     reverse,
     host,
+    locale,
     ...currencyParams,
   });
 }
@@ -198,6 +204,7 @@ export async function getShopLayoutResultsCount(
           host,
           ...currencyParams,
           canUseProductCache: false,
+          locale,
         });
       }
     } else {
@@ -224,6 +231,7 @@ export async function getShopLayoutResultsCount(
         host,
         ...currencyParams,
         canUseProductCache,
+        locale,
       });
     }
 

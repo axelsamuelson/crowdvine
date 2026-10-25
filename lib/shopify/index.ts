@@ -49,6 +49,7 @@ export async function getProducts(params?: {
   host?: string | null;
   displayCurrencyCode?: string;
   sekToDisplayRate?: number;
+  locale?: "sv" | "en";
 }): Promise<Product[]> {
   const sortKey = params?.sortKey || "RELEVANCE";
   const { isB2BHost } = await import("@/lib/b2b-site");
@@ -62,6 +63,7 @@ export async function getProducts(params?: {
     searchQuery: params?.query,
     displayCurrencyCode: params?.displayCurrencyCode,
     sekToDisplayRate: params?.sekToDisplayRate,
+    locale: params?.locale,
   });
   return data as Product[];
 }
@@ -122,6 +124,7 @@ export async function getCollectionProducts(params: {
   host?: string | null;
   displayCurrencyCode?: string;
   sekToDisplayRate?: number;
+  locale?: "sv" | "en";
 }): Promise<Product[]> {
   const collection = await getCollection(params.collection);
   if (!collection) {
@@ -142,6 +145,7 @@ export async function getCollectionProducts(params: {
     searchQuery: params?.query,
     displayCurrencyCode: params?.displayCurrencyCode,
     sekToDisplayRate: params?.sekToDisplayRate,
+    locale: params?.locale,
   });
   // Producer PLPs ignore SQL created_at; apply Dirty Wine pallet-shipped sort here.
   const sorted = await applyB2BPalletShippedSortIfNeeded(data, {

@@ -151,7 +151,7 @@ export function aboutPageUrls(baseUrl: string): {
   return {
     en: `${baseUrl}/about`,
     sv: `${baseUrl}/om-oss`,
-    xDefault: `${baseUrl}/om-oss`,
+    xDefault: `${baseUrl}/about`,
   };
 }
 

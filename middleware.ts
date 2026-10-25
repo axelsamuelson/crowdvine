@@ -21,10 +21,7 @@ import {
   getCategoryUrlForGrape,
 } from "@/lib/wine-categories";
 import { LOCALE_COOKIE, parseLocaleCookie } from "@/lib/i18n/locale";
-import {
-  redirectLegacyProducerProfilePath,
-  redirectLocalePathMismatch,
-} from "@/lib/i18n/locale-path-redirect";
+import { redirectLegacyProducerProfilePath } from "@/lib/i18n/locale-path-redirect";
 import { localeFromShopPath } from "@/lib/i18n/shop-path-locale";
 import { GEO_COUNTRY_COOKIE } from "@/lib/analytics/visitor-identity";
 import {
@@ -86,9 +83,6 @@ export async function middleware(req: NextRequest) {
 function nextWithPathname(req: NextRequest): NextResponse {
   const legacyProducerRedirect = redirectLegacyProducerProfilePath(req);
   if (legacyProducerRedirect) return legacyProducerRedirect;
-
-  const localeRedirect = redirectLocalePathMismatch(req);
-  if (localeRedirect) return localeRedirect;
 
   const pathname = req.nextUrl.pathname;
   const requestHeaders = new Headers(req.headers);

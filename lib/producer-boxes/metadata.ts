@@ -41,7 +41,7 @@ export function buildProducerBoxesMetadata(locale: AppLocale): Metadata {
       languages: {
         sv: `${PACT_CONFIG.baseUrl}${PRODUCER_BOXES_PATH.sv}`,
         en: `${PACT_CONFIG.baseUrl}${PRODUCER_BOXES_PATH.en}`,
-        "x-default": `${PACT_CONFIG.baseUrl}${PRODUCER_BOXES_PATH.sv}`,
+        "x-default": `${PACT_CONFIG.baseUrl}${PRODUCER_BOXES_PATH.en}`,
       },
     },
     openGraph: {

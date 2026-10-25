@@ -145,8 +145,13 @@ async function buildSitemapEntriesUncached(
   baseUrl: string,
   profile: SitemapSiteProfile,
 ): Promise<MetadataRoute.Sitemap> {
+  // dirtywine.se: index only the homepage; shared catalog paths canonicalize to pact.
+  if (profile === "dirtywine") {
+    return [weeklyEntry(baseUrl, 1.0)];
+  }
+
   const staticPages = staticPagesForProfile(baseUrl, profile);
-  const isDirtyWine = profile === "dirtywine";
+  const isDirtyWine = false;
   const visibleB2BWines = isDirtyWine
     ? await fetchProductsData({ isB2BSite: true, limit: 5000 })
     : null;

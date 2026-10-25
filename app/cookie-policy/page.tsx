@@ -7,6 +7,7 @@ import { LegalPageLayout } from "@/components/legal/legal-page-layout";
 import CookiepolicyContent from "@/content/legal/cookiepolicy";
 import { LEGAL_VERSIONS } from "@/lib/legal/versions";
 import { getSiteConfig } from "@/lib/site-config-server";
+import { PACT_PUBLIC_ORIGIN } from "@/lib/i18n/localized-routes";
 
 export const dynamic = "force-static";
 
@@ -15,7 +16,7 @@ const DESCRIPTION = "Cookies and similar technologies on pactwines.com.";
 
 export async function generateMetadata(): Promise<Metadata> {
   const config = await getSiteConfig();
-  const canonical = `${config.baseUrl}/cookie-policy`;
+  const canonical = `${PACT_PUBLIC_ORIGIN}/cookie-policy`;
   return {
     title: TITLE,
     description: DESCRIPTION,
@@ -24,8 +25,8 @@ export async function generateMetadata(): Promise<Metadata> {
       canonical,
       languages: {
         en: canonical,
-        sv: `${config.baseUrl}/cookies`,
-        "x-default": `${config.baseUrl}/cookies`,
+        sv: `${PACT_PUBLIC_ORIGIN}/cookies`,
+        "x-default": `${PACT_PUBLIC_ORIGIN}/cookie-policy`,
       },
     },
   };

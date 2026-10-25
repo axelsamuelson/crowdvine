@@ -90,7 +90,7 @@ export const worldsBestOrangeWinesGuide = {
         sv: "Utforska orange naturvin →",
       },
       href: {
-        en: "/vin/orange-naturvin",
+        en: "/wine/orange-natural-wine",
         sv: "/vin/orange-naturvin",
       },
     },

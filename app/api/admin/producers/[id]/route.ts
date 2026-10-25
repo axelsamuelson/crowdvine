@@ -6,8 +6,12 @@ import {
   normalizeCountryCode,
 } from "@/lib/countries";
 import { parseProducerLinkFields } from "@/lib/producer-links";
+import { buildWineJsonb } from "@/lib/i18n/wine-locale";
 
-type ProducerUpdateRow = Record<string, string | number | boolean | null>;
+type ProducerUpdateRow = Record<
+  string,
+  string | number | boolean | null | Record<string, string>
+>;
 
 /**
  * Get a single producer (admin)
@@ -74,7 +78,7 @@ export async function PUT(
 
     const { data: currentProducer } = await supabase
       .from("producers")
-      .select("id, shipping_region_id")
+      .select("id, shipping_region_id, short_description, bio_long")
       .eq("id", producerId)
       .maybeSingle();
 
@@ -101,8 +105,45 @@ export async function PUT(
       updateData.address_city = String(body.address_city);
     if (body.address_postcode !== undefined)
       updateData.address_postcode = String(body.address_postcode);
-    if (body.short_description !== undefined)
-      updateData.short_description = String(body.short_description);
+    if (
+      body.short_description !== undefined ||
+      body.short_description_en !== undefined
+    ) {
+      let shortJson =
+        (currentProducer?.short_description as
+          | Record<string, string>
+          | string
+          | null) ?? null;
+      if (body.short_description !== undefined) {
+        shortJson = buildWineJsonb(
+          String(body.short_description),
+          "sv",
+          shortJson,
+        );
+      }
+      if (body.short_description_en !== undefined) {
+        shortJson = buildWineJsonb(
+          String(body.short_description_en),
+          "en",
+          shortJson,
+        );
+      }
+      updateData.short_description = shortJson;
+    }
+    if (body.bio_long !== undefined || body.bio_long_en !== undefined) {
+      let bioJson =
+        (currentProducer?.bio_long as
+          | Record<string, string>
+          | string
+          | null) ?? null;
+      if (body.bio_long !== undefined) {
+        bioJson = buildWineJsonb(String(body.bio_long), "sv", bioJson);
+      }
+      if (body.bio_long_en !== undefined) {
+        bioJson = buildWineJsonb(String(body.bio_long_en), "en", bioJson);
+      }
+      updateData.bio_long = bioJson;
+    }
     if (body.logo_image_path !== undefined)
       updateData.logo_image_path = String(body.logo_image_path);
     if (body.shipping_region_id !== undefined) {

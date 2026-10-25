@@ -37,6 +37,7 @@ async function ShopRootJsonLd({ locale }: { locale: "sv" | "en" }) {
     isB2BSite,
     displayCurrencyCode: shoppingContext.currencyCode,
     sekToDisplayRate: shoppingContext.sekToDisplayRate,
+    locale,
   });
   const mapped = mapProductDataToShopProducts(rawProducts);
   const shopPath = locale === "sv" ? "/vin" : "/wine";

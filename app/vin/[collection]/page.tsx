@@ -15,7 +15,11 @@ import {
 } from "@/lib/external-prices/cached-source-slugs";
 import { mapProductDataToShopProducts } from "@/lib/map-product-data-to-shop-product";
 import { generateProducerSlug } from "@/lib/producer-handle";
-import { producerPageUrls, producerPublicPath } from "@/lib/i18n/localized-routes";
+import {
+  PACT_PUBLIC_ORIGIN,
+  producerPageUrls,
+  producerPublicPath,
+} from "@/lib/i18n/localized-routes";
 import {
   producerShopPageHeading,
   producerShopPagePath,
@@ -88,8 +92,8 @@ export async function generateMetadata(props: {
         isB2BSite,
       }),
     ]);
-    const pageUrl = `${config.baseUrl}/vin/${slug}`;
-    const canonicalUrl = shopCategoryCanonicalUrl(slug, "sv", config.baseUrl);
+    const pageUrl = `${PACT_PUBLIC_ORIGIN}/vin/${slug}`;
+    const canonicalUrl = shopCategoryCanonicalUrl(slug, "sv", PACT_PUBLIC_ORIGIN);
 
     const title = categoryPageTitle(category.title, config.siteName);
     const { metaDescription } = localizeGeneratedCategoryCopy(
@@ -108,8 +112,8 @@ export async function generateMetadata(props: {
         canonical: canonicalUrl,
         languages: {
           sv: pageUrl,
-          en: `${config.baseUrl}/wine/${category.hreflang ?? ""}`,
-          "x-default": pageUrl,
+          en: `${PACT_PUBLIC_ORIGIN}/wine/${category.hreflang ?? ""}`,
+          "x-default": `${PACT_PUBLIC_ORIGIN}/wine/${category.hreflang ?? ""}`,
         },
       },
       openGraph: {
@@ -129,7 +133,7 @@ export async function generateMetadata(props: {
     return { robots: { index: false, follow: false } };
   }
 
-  const shopUrl = `${config.baseUrl}${producerShopPagePath(collection.title, "sv")}`;
+  const shopUrl = `${PACT_PUBLIC_ORIGIN}${producerShopPagePath(collection.title, "sv")}`;
   const shopTitle = producerShopPageTitle(collection.title, "sv");
   const shopDescription = producerShopMetaDescription("sv", {
     producerName: collection.title,
@@ -151,8 +155,8 @@ export async function generateMetadata(props: {
       canonical: shopUrl,
       languages: {
         sv: shopUrl,
-        en: `${config.baseUrl}${producerShopPagePath(collection.title, "en")}`,
-        "x-default": shopUrl,
+        en: `${PACT_PUBLIC_ORIGIN}${producerShopPagePath(collection.title, "en")}`,
+        "x-default": `${PACT_PUBLIC_ORIGIN}${producerShopPagePath(collection.title, "en")}`,
       },
     },
     openGraph: {
@@ -192,6 +196,7 @@ export default async function VinCollectionPage(props: {
         filterCountryCode: category.filter.countryCode,
         filterRegion: category.filter.region,
         isB2BSite,
+        locale: "sv",
       }),
     ]);
 
@@ -204,7 +209,7 @@ export default async function VinCollectionPage(props: {
       wineIds,
     );
 
-    const canonical = shopCategoryCanonicalUrl(slug, "sv", config.baseUrl);
+    const canonical = shopCategoryCanonicalUrl(slug, "sv", PACT_PUBLIC_ORIGIN);
     const { description, metaDescription } = localizeGeneratedCategoryCopy(
       category,
       config.siteName,
@@ -234,7 +239,7 @@ export default async function VinCollectionPage(props: {
           "@type": "ListItem",
           position: 2,
           name: category.h1,
-          item: `${config.baseUrl}/vin/${slug}`,
+          item: `${PACT_PUBLIC_ORIGIN}/vin/${slug}`,
         },
       ],
     };
@@ -382,7 +387,7 @@ export default async function VinCollectionPage(props: {
   const producerSlug = generateProducerSlug(collection.title);
   const producerUrls = producerPageUrls(producerSlug);
   const shopHeading = producerShopPageHeading(collection.title, "sv");
-  const shopUrl = `${config.baseUrl}${producerShopPagePath(collection.title, "sv")}`;
+  const shopUrl = `${PACT_PUBLIC_ORIGIN}${producerShopPagePath(collection.title, "sv")}`;
   const producerCollection = asProducerCollectionData(collection);
   const profilePath = producerPublicPath(producerSlug, "sv");
 

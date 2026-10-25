@@ -1,5 +1,8 @@
 "use client";
 
+import { useShoppingContext } from "@/lib/context/shopping-context-provider";
+import { producerShopPathFromName } from "@/lib/i18n/localized-routes";
+
 import { useEffect, useRef, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import * as d3 from "d3";
@@ -43,6 +46,7 @@ interface LivingPalletVisualizationProps {
 }
 
 export function LivingPalletVisualization({ palletId = null }: LivingPalletVisualizationProps = {}) {
+  const { context } = useShoppingContext();
   const svgRef = useRef<SVGSVGElement>(null);
   const [data, setData] = useState<NetworkData | null>(null);
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
@@ -506,7 +510,7 @@ export function LivingPalletVisualization({ palletId = null }: LivingPalletVisua
             </div>
             <div className="mt-4 pt-4 border-t border-border">
               <a
-                href={`/vin/${selectedProducerData.name.toLowerCase().replace(/\s+/g, "-")}`}
+                href={producerShopPathFromName(selectedProducerData.name, context.locale)}
                 className="text-sm text-foreground hover:underline"
               >
                 Se viner från denna producent →

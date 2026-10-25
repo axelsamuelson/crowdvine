@@ -10,6 +10,7 @@ type CachedShopProductsParams = {
   isB2BSite: boolean;
   displayCurrencyCode: string;
   sekToDisplayRate: number;
+  locale: "sv" | "en";
 };
 
 export const getCachedShopProducts = unstable_cache(
@@ -20,9 +21,10 @@ export const getCachedShopProducts = unstable_cache(
       isB2BSite: params.isB2BSite,
       displayCurrencyCode: params.displayCurrencyCode,
       sekToDisplayRate: params.sekToDisplayRate,
+      locale: params.locale,
     });
   },
   // Keep in sync with PDP shipping-fix cache bumps (Data Cache survives deploys).
-  ["shop-root-products", "v2-full-pallet-shipping"],
+  ["shop-root-products", "v2-full-pallet-shipping", "v3-locale-desc"],
   { revalidate: 300, tags: [SHOP_PRODUCTS_CACHE_TAG] },
 );

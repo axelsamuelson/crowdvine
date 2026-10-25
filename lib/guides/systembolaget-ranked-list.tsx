@@ -457,7 +457,7 @@ export async function buildSystembolagetRankedListMetadata(
     config.siteName,
     // Systembolaget demand is Sweden-first. Prefer SV as the unmatched default.
     {
-      xDefault: "sv",
+      xDefault: "en",
       noindex: options?.noindex || unpublished,
       nofollow: unpublished,
     },

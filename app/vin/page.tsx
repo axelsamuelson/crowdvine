@@ -12,6 +12,7 @@ import {
 } from "@/lib/seo/default-social";
 import { DIRTY_WINE_CONFIG } from "@/lib/site-config";
 import { getSiteConfig } from "@/lib/site-config-server";
+import { PACT_PUBLIC_ORIGIN } from "@/lib/i18n/localized-routes";
 
 export const revalidate = 300;
 
@@ -20,7 +21,7 @@ export async function generateMetadata(props: {
 }): Promise<Metadata> {
   const searchParams = await props.searchParams;
   const config = await getSiteConfig();
-  const pageUrl = `${config.baseUrl}/vin`;
+  const pageUrl = `${PACT_PUBLIC_ORIGIN}/vin`;
   const title = `Naturvin online | Köp naturvin hos ${config.siteName}`;
   const description =
     config.baseUrl === DIRTY_WINE_CONFIG.baseUrl
@@ -34,9 +35,9 @@ export async function generateMetadata(props: {
     alternates: {
       canonical: pageUrl,
       languages: {
-        sv: `${config.baseUrl}/vin`,
-        en: `${config.baseUrl}/wine`,
-        "x-default": `${config.baseUrl}/vin`,
+        sv: `${PACT_PUBLIC_ORIGIN}/vin`,
+        en: `${PACT_PUBLIC_ORIGIN}/wine`,
+        "x-default": `${PACT_PUBLIC_ORIGIN}/wine`,
       },
     },
     openGraph: {

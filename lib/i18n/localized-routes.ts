@@ -53,7 +53,7 @@ export function producerPageUrls(slug: string): {
   return {
     en: `${PACT_PUBLIC_ORIGIN}${producerPagePath(slug, "producers")}`,
     sv: `${PACT_PUBLIC_ORIGIN}${producerPagePath(slug, "producenter")}`,
-    xDefault: `${PACT_PUBLIC_ORIGIN}${producerPagePath(slug, "producenter")}`,
+    xDefault: `${PACT_PUBLIC_ORIGIN}${producerPagePath(slug, "producers")}`,
   };
 }
 
