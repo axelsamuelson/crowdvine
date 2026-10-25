@@ -44,11 +44,11 @@ export const whatIsOrangeWineArticle: GuideArticleContent = {
       },
       body: {
         en: [
-          "Orange wine is white wine made like red. Instead of pressing the skins away immediately after harvest, the white grapes ferment in contact with their skins — sometimes for days, sometimes for months. The skins give the wine its amber or deep gold colour, its tannins and an aromatic world completely unlike conventional white wine.",
+          "[Orange wine](/wine/orange-natural-wine) is white wine made like red. Instead of pressing the skins away immediately after harvest, the white grapes ferment in contact with their skins — sometimes for days, sometimes for months. The skins give the wine its amber or deep gold colour, its tannins and an aromatic world completely unlike conventional white wine.",
           "It is not flavoured with oranges. The name comes from the colour — though even that varies from pale gold to deep amber depending on how long the skins stayed in contact with the juice.",
         ],
         sv: [
-          "Orange vin är vitt vin gjort som rött. Istället för att pressa bort skalen direkt efter skörd får de vita druvorna jäsa i kontakt med sina skal — ibland i dagar, ibland i månader. Skalen ger vinet dess bärnstensfärg, tanniner och en aromatisk värld som är helt annorlunda än konventionellt vitt vin.",
+          "[Orange vin](/vin/orange-naturvin) är vitt vin gjort som rött. Istället för att pressa bort skalen direkt efter skörd får de vita druvorna jäsa i kontakt med sina skal — ibland i dagar, ibland i månader. Skalen ger vinet dess bärnstensfärg, tanniner och en aromatisk värld som är helt annorlunda än konventionellt vitt vin.",
           "Det är inte smaksatt med apelsiner. Namnet kommer av färgen — som varierar från blekguld till djupt bärnsten beroende på hur länge skalen legat i kontakt med musten.",
         ],
       },

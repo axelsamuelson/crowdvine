@@ -278,6 +278,16 @@ export default async function VinCollectionPage(props: {
               {category.h1}
             </h1>
             <p className="leading-relaxed text-stone-600">{description}</p>
+            {category.descriptionLink ? (
+              <p className="mt-3 leading-relaxed text-stone-600">
+                <Link
+                  href={category.descriptionLink.href}
+                  className="underline underline-offset-4 hover:text-stone-900"
+                >
+                  {category.descriptionLink.label}
+                </Link>
+              </p>
+            ) : null}
           </div>
 
           <ProductListShell
