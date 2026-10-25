@@ -64,6 +64,44 @@ describe("natural wine home delivery guide", () => {
     ];
     for (const text of blobs) {
       expect(text).not.toMatch(/[—–]/);
+      expect(text).not.toMatch(/\[FYLL I/);
     }
+  });
+
+  it("includes the full FAQ-style section set without placeholders", () => {
+    const svHeadings = naturalWineHomeDeliveryArticle.sections.map(
+      (s) => s.heading?.sv,
+    );
+    const enHeadings = naturalWineHomeDeliveryArticle.sections.map(
+      (s) => s.heading?.en,
+    );
+    expect(svHeadings).toEqual([
+      "Var levererar vi?",
+      "Hur lång tid tar leveransen?",
+      "Vad kostar leveransen?",
+      "Om du inte är hemma",
+      "Betalning",
+      "Frågor",
+    ]);
+    expect(enHeadings).toEqual([
+      "Where do we deliver?",
+      "How long does delivery take?",
+      "What does delivery cost?",
+      "If you are not at home",
+      "Payment",
+      "Questions",
+    ]);
+    expect(naturalWineHomeDeliveryArticle.lede?.sv).toContain(
+      "Du reserverar vinet online",
+    );
+    expect(naturalWineHomeDeliveryArticle.lede?.en).toContain(
+      "You reserve the wine online",
+    );
+    expect(naturalWineHomeDeliveryArticle.meta.sv).toBe(
+      "Beställ naturvin online med hemleverans i Stockholm. Så fungerar reservation, pall, leveranstid, ålderskontroll och kostnad.",
+    );
+    expect(naturalWineHomeDeliveryArticle.meta.en).toBe(
+      "Order natural wine online with home delivery in Stockholm. How reservation, pallet, delivery time, age check and cost work.",
+    );
   });
 });

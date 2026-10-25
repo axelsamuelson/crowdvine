@@ -3,7 +3,7 @@ import type { GuideArticleContent } from "@/lib/guides/guide-types";
 /** How PACT home delivery works (reservation → pallet → door). */
 export const naturalWineHomeDeliveryArticle: GuideArticleContent = {
   published: true,
-  updated: "2026-10-24",
+  updated: "2026-10-25",
   slug: {
     en: "natural-wine-home-delivery",
     sv: "hemleverans-av-naturvin",
@@ -57,6 +57,68 @@ export const naturalWineHomeDeliveryArticle: GuideArticleContent = {
       body: {
         en: ["We currently deliver to addresses in Stockholm."],
         sv: ["Vi levererar idag till adresser i Stockholm."],
+      },
+    },
+    {
+      heading: {
+        en: "How long does delivery take?",
+        sv: "Hur lång tid tar leveransen?",
+      },
+      body: {
+        en: [
+          "Delivery normally takes place within 1 to 2 weeks after the pallet has closed. How long it takes before the pallet closes depends on how quickly it fills.",
+        ],
+        sv: [
+          "Leveransen sker normalt inom 1 till 2 veckor efter att pallen stängt. Hur lång tid det tar innan pallen stänger beror på hur snabbt den fylls.",
+        ],
+      },
+    },
+    {
+      heading: {
+        en: "What does delivery cost?",
+        sv: "Vad kostar leveransen?",
+      },
+      body: {
+        en: ["Delivery costs SEK 99 per order, including VAT."],
+        sv: ["Leveransen kostar 99 kr per order, inklusive moms."],
+      },
+    },
+    {
+      heading: {
+        en: "If you are not at home",
+        sv: "Om du inte är hemma",
+      },
+      body: {
+        en: [
+          "If the delivery cannot be completed, a new attempt is made the next day. After two attempts the wine is returned.",
+        ],
+        sv: [
+          "Om leveransen inte kan genomföras görs ett nytt försök nästa dag. Efter två försök returneras vinet.",
+        ],
+      },
+    },
+    {
+      heading: {
+        en: "Payment",
+        sv: "Betalning",
+      },
+      body: {
+        en: [
+          "You pay by card. The amount is charged once, when the pallet closes.",
+        ],
+        sv: [
+          "Du betalar med kort. Beloppet dras vid ett enda tillfälle, när pallen stänger.",
+        ],
+      },
+    },
+    {
+      heading: {
+        en: "Questions",
+        sv: "Frågor",
+      },
+      body: {
+        en: ["Contact us at hello@pactwines.com."],
+        sv: ["Kontakta oss på hello@pactwines.com."],
       },
     },
   ],
