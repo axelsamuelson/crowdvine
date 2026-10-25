@@ -205,8 +205,7 @@ export async function renderWinesGuidePage(locale: AppLocale) {
                   href={`#wine-rank-${wine.rank}`}
                   className="underline underline-offset-4 hover:text-foreground"
                 >
-                  <span className="font-medium text-foreground">{wine.wine}</span>
-                  {`, ${wine.producer}`}
+                  <span className="font-medium text-foreground">{`${wine.wine}, ${wine.producer}`}</span>
                 </Link>
               </li>
             ))}
