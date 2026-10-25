@@ -1,3 +1,4 @@
+import { emitOnce } from "@/lib/analytics/emit-once";
 import { isInternalDevice } from "@/lib/analytics/internal-device";
 import {
   ensureVisitorIdentity,
@@ -53,6 +54,9 @@ export type EventType =
   | "reservation_completed"
   | "checkout_abandoned"
   | "checkout_step_viewed"
+  | "checkout_step_completed"
+  | "checkout_error"
+  | "delivery_ineligible"
   | "checkout_postal_started"
   | "checkout_delivery_captured"
   | "checkout_zone_error"
@@ -64,6 +68,7 @@ export type EventType =
   | "terms_accepted"
   // Engagement
   | "scroll_depth"
+  | "session_engaged"
   | "time_on_page"
   | "modal_opened"
   | "modal_closed"
@@ -272,6 +277,24 @@ export class AnalyticsTracker {
     }
   }
 
+  /**
+   * One human-signal event per analytics session. The first of scroll, click,
+   * keydown, or 10s visible wins; later calls are no-ops.
+   */
+  static trackSessionEngaged(
+    trigger: "scroll" | "click" | "visible_10s" | "keydown",
+  ) {
+    const sessionId = this.getSessionId();
+    if (!sessionId) return;
+    emitOnce(`session_engaged:${sessionId}`, () => {
+      void this.trackEvent({
+        eventType: "session_engaged",
+        eventCategory: "engagement",
+        metadata: { trigger },
+      });
+    });
+  }
+
   static trackPageView(metadata?: Record<string, any>) {
     return this.trackEvent({
       eventType: "page_view",
@@ -322,6 +345,9 @@ export class AnalyticsTracker {
       price_version?: string;
       bottle_count?: number;
       cart_value?: number;
+      step?: string;
+      market?: string;
+      currency?: string;
     },
   ) {
     return this.trackEvent({
@@ -332,6 +358,9 @@ export class AnalyticsTracker {
         itemCount,
         cart_value: extras?.cart_value ?? cartValue,
         bottle_count: extras?.bottle_count ?? itemCount,
+        ...(extras?.step ? { step: extras.step } : {}),
+        ...(extras?.market ? { market: extras.market } : {}),
+        ...(extras?.currency ? { currency: extras.currency } : {}),
         site: extras?.site ?? "pact",
         payment_method: extras?.payment_method ?? "card",
         ...(extras?.list_price != null ? { list_price: extras.list_price } : {}),

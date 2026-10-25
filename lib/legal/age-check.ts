@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { meetsAgeRequirement } from "@/lib/age-limits";
 import { LEGAL_VERSIONS } from "@/lib/legal/versions";
 
 export const MINIMUM_AGE = 20;
@@ -65,6 +66,7 @@ export type LegalGateRejected =
 export function evaluateLegalGate(
   input: unknown,
   now: Date = new Date(),
+  minimumAge: number = MINIMUM_AGE,
 ): LegalGateAccepted | LegalGateRejected {
   const parsed = legalGateInputSchema.safeParse(input);
   if (!parsed.success) {
@@ -76,8 +78,10 @@ export function evaluateLegalGate(
     return { ok: false, reason: "validation_error" };
   }
 
-  const age = calculateAge(dob, now);
-  if (age < MINIMUM_AGE) {
+  const required = Number.isFinite(minimumAge) && minimumAge > 0
+    ? Math.floor(minimumAge)
+    : MINIMUM_AGE;
+  if (!meetsAgeRequirement(parsed.data.dateOfBirth, required, now)) {
     return { ok: false, reason: "age_requirement_not_met" };
   }
 

@@ -44,8 +44,15 @@ import { checkAndMintMilestoneVouchers } from "@/lib/membership/milestone-vouche
 import { tryActivateReferralOnFirstOrder } from "@/lib/referral/activate-referral-on-first-order";
 import { stripe } from "@/lib/stripe";
 import { legalSnapshotFromStripeMetadata } from "@/lib/legal/age-check";
+import {
+  meetsAgeRequirement,
+  resolveMarketAgeMinimum,
+} from "@/lib/age-limits";
 import { resolvePaymentMethodDetailsFromId } from "@/lib/stripe/resolve-payment-method-details";
-import { resolveCheckoutShippingSek } from "@/lib/checkout/resolve-checkout-shipping";
+import {
+  checkoutCustomerShippingCharge,
+  resolveCheckoutShippingSek,
+} from "@/lib/checkout/resolve-checkout-shipping";
 import { getContributionAssumptions } from "@/lib/contribution-assumptions";
 import { fetchExchangeRateToSekStrict } from "@/lib/exchange-rate-strict";
 import {
@@ -1023,10 +1030,11 @@ export async function POST(request: Request) {
           const resolved = await resolveCheckoutShippingSek({
             bottleCount,
             productSubtotalSek: subtotalSek,
-            countryCode: String(address.countryCode || "SE"),
+            countryCode: String(address.countryCode || activeCheckout.countryCode),
+            allowLegacyFallback: false,
             pallet: palletRow,
           });
-          shippingSek = resolved.shippingSek;
+          shippingSek = checkoutCustomerShippingCharge(resolved).shippingSek;
         }
       }
     } catch (shipErr) {
@@ -1338,6 +1346,21 @@ export async function POST(request: Request) {
         );
       }
       reservationLegalExtra = reservationLegalSnapshot;
+    }
+
+    const requiredAge = resolveMarketAgeMinimum({
+      countryCode: resolvedMarketConfirm.countryCode || address.countryCode,
+      ageMinimum: resolvedMarketConfirm.ageMinimum,
+    });
+    const verifiedDob = stripeIntentMetadata?.age_verified_dob;
+    if (
+      typeof verifiedDob !== "string" ||
+      !meetsAgeRequirement(verifiedDob, requiredAge)
+    ) {
+      return NextResponse.json(
+        { error: "age_requirement_not_met" },
+        { status: 403 },
+      );
     }
     } // end !deferredLinkCheckout
 
@@ -2217,7 +2240,12 @@ export async function POST(request: Request) {
               `✅ [PACT] Redeemed ${totalPointsUsed} PACT Points (${totalSekDiscount} SEK off). New balance: ${redeemResult.newBalance}`,
             );
           } else {
-            console.error("[PACT] redeemPactPoints failed:", redeemResult.error);
+            console.error("[PACT] redeemPactPoints failed", {
+              user_id: currentUser.id,
+              event_type: "redemption",
+              order_id: reservation.id,
+              error: redeemResult.error,
+            });
           }
         }
       } catch (pactRedeemErr) {
@@ -2354,6 +2382,13 @@ export async function POST(request: Request) {
           console.log(
             `✅ [PACT] Awarded ${ownOrderResult.pointsAwarded} PACT Points. New balance: ${ownOrderResult.newBalance}`,
           );
+        } else if (!ownOrderResult.success) {
+          console.error("[PACT] awardPactPointsForOwnOrder failed", {
+            user_id: currentUser.id,
+            event_type: "own_order",
+            order_id: reservation.id,
+            error: ownOrderResult.error,
+          });
         }
 
         try {
@@ -2428,10 +2463,12 @@ export async function POST(request: Request) {
                     `✅ [PACT] Awarded inviter PACT Points for invitee's first order. New balance: ${inviterReward.newBalance}`,
                   );
                 } else {
-                  console.error(
-                    "[PACT] awardPactPointsForInviteFirstOrder:",
-                    inviterReward.error,
-                  );
+                  console.error("[PACT] awardPactPointsForInviteFirstOrder failed", {
+                    user_id: inviterInfo.invited_by,
+                    event_type: "invite_friend_first_order",
+                    order_id: reservation.id,
+                    error: inviterReward.error,
+                  });
                 }
               }
             }
@@ -2668,6 +2705,10 @@ export async function POST(request: Request) {
         internal: markInternal,
         metadata: {
           reservation_id: ev.reservation_id,
+          step: "payment",
+          market: address.countryCode || countryCode || null,
+          currency: "SEK",
+          cart_value: expectedFinalSek,
           bottle_count: ev.bottle_count,
           payment_mode: paymentMode,
           payment_status: paymentStatus,

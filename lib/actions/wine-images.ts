@@ -1,8 +1,19 @@
 "use server";
 
+import { getCurrentAdmin } from "@/lib/admin-auth-server";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { supabaseServer } from "@/lib/supabase-server";
 import { revalidatePath } from "next/cache";
 import type { WineImage, CreateWineImageData } from "@/lib/types/wine-images";
+
+/** Writes bypass RLS. Callers must already be an admin. */
+async function adminWineImages() {
+  const admin = await getCurrentAdmin();
+  if (!admin) {
+    throw new Error("Admin authentication required");
+  }
+  return getSupabaseAdmin();
+}
 
 export async function getWineImages(wineId: string): Promise<WineImage[]> {
   const sb = await supabaseServer();
@@ -32,7 +43,7 @@ export async function getWineImages(wineId: string): Promise<WineImage[]> {
 export async function createWineImage(
   data: CreateWineImageData,
 ): Promise<WineImage> {
-  const sb = await supabaseServer();
+  const sb = await adminWineImages();
 
   try {
     // If this is set as primary, unset other primary images for this wine
@@ -71,7 +82,7 @@ export async function updateWineImage(
   id: string,
   data: Partial<CreateWineImageData>,
 ): Promise<WineImage> {
-  const sb = await supabaseServer();
+  const sb = await adminWineImages();
 
   // If this is set as primary, unset other primary images for this wine
   if (data.is_primary) {
@@ -105,7 +116,7 @@ export async function updateWineImage(
 }
 
 export async function deleteWineImage(id: string): Promise<void> {
-  const sb = await supabaseServer();
+  const sb = await adminWineImages();
 
   // Get wine_id before deleting
   const { data: image } = await sb
@@ -128,7 +139,7 @@ export async function reorderWineImages(
   wineId: string,
   imageIds: string[],
 ): Promise<void> {
-  const sb = await supabaseServer();
+  const sb = await adminWineImages();
 
   // Update sort_order for each image
   const updates = imageIds.map((imageId, index) =>
@@ -146,7 +157,7 @@ export async function reorderWineImages(
 }
 
 export async function setPrimaryWineImage(imageId: string): Promise<void> {
-  const sb = await supabaseServer();
+  const sb = await adminWineImages();
 
   // Get the wine_id and current image info
   const { data: image } = await sb

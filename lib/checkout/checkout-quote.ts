@@ -10,12 +10,15 @@ export type CheckoutQuote = {
   pact_points_redeem: number;
   total_sek: number;
   total_ore: number;
+  /** No rate for this country: show the pending copy and charge nothing. */
+  shipping_pending: boolean;
 };
 
 export function buildCheckoutQuote(args: {
   components: ExpectedAmountComponents;
   amountOre: number;
   pactPointsRedeem: number;
+  shippingPending?: boolean;
 }): CheckoutQuote {
   const { components, amountOre, pactPointsRedeem } = args;
   return {
@@ -27,5 +30,6 @@ export function buildCheckoutQuote(args: {
     pact_points_redeem: Math.max(0, Math.floor(pactPointsRedeem)),
     total_sek: components.finalMajor,
     total_ore: amountOre,
+    shipping_pending: args.shippingPending === true,
   };
 }

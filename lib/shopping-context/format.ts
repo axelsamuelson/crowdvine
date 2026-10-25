@@ -47,6 +47,19 @@ export type FormatMoneyContext = Pick<
   "currencyCode" | "locale" | "sekToDisplayRate"
 >;
 
+/**
+ * Format a cart or checkout amount that is already in `currencyCode`.
+ * Callers must pass the line or cart currency, not a leftover SEK context.
+ */
+export function formatCartLinePrice(
+  amount: number,
+  currencyCode: string,
+  locale: AppLocale,
+): string {
+  const code = currencyCode.trim().toUpperCase() || "SEK";
+  return formatMoney(amount, code, locale);
+}
+
 /** Format an amount already in the shopper's display currency. */
 export function formatDisplayMoney(
   amount: number,

@@ -9,7 +9,8 @@ import { DeleteItemButton } from "./delete-item-button";
 import { EditItemQuantityButton } from "./edit-item-quantity-button";
 import { priceExclVat } from "@/lib/shopify/utils";
 import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
-import { useFormatPrice } from "@/lib/hooks/use-format-price";
+import { useDisplayMoney } from "@/lib/hooks/use-display-money";
+import { formatCartLinePrice } from "@/lib/shopping-context/format";
 import { useTranslations } from "@/lib/hooks/use-translations";
 import { useLocalizedPaths } from "@/lib/hooks/use-localized-paths";
 import { ColorSwatch } from "@/components/ui/color-picker";
@@ -28,7 +29,7 @@ interface CartItemProps {
 }
 
 export function CartItemCard({ item, onCloseCart }: CartItemProps) {
-  const formatPrice = useFormatPrice();
+  const { locale } = useDisplayMoney();
   const { t } = useTranslations();
   const paths = useLocalizedPaths();
   const showExclVat = useB2BPriceMode();
@@ -141,7 +142,11 @@ export function CartItemCard({ item, onCloseCart }: CartItemProps) {
           ) : null}
           <div className="flex flex-col">
             <span className="2xl:text-lg font-semibold">
-              {formatPrice(displayAmount)}
+              {formatCartLinePrice(
+                displayAmount,
+                item.cost.totalAmount.currencyCode,
+                locale,
+              )}
             </span>
             {item.discountLabel ? (
               <span className="inline-flex items-center text-xs px-2 py-0.5 rounded-md bg-amber-100 text-amber-700 font-medium w-fit">

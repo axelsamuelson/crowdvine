@@ -23,6 +23,8 @@ export type IntentSessionRow = {
   last_checkout_phase: string | null;
   abandoned_phase: string | null;
   last_step: string;
+  last_checkout_error?: string | null;
+  is_human?: boolean;
 };
 
 export type CleanEventRow = {
@@ -46,6 +48,24 @@ function productKey(meta: Meta): string | null {
   const id = meta.productId ?? meta.merchandiseId;
   if (typeof id !== "string" || !id || id === "test") return null;
   return id;
+}
+
+function checkoutAnalyticsStep(meta: Meta): string | null {
+  const step = meta.step;
+  const stepText =
+    typeof step === "string" ? step : typeof step === "number" ? String(step) : null;
+  if (stepText === "postal" || stepText === "delivery" || stepText === "age_terms" || stepText === "payment") {
+    return stepText;
+  }
+  if (stepText === "1") return "postal";
+  if (stepText === "2") return "delivery";
+  if (stepText === "3") return "age_terms";
+  if (stepText === "4") return "payment";
+  const phase = typeof meta.phase === "string" ? meta.phase : null;
+  if (phase === "compliance") return "age_terms";
+  if (phase === "payment" || phase === "payment_ready") return "payment";
+  if (phase === "delivery") return "delivery";
+  return null;
 }
 
 function num(v: unknown, fallback: number): number {
@@ -76,6 +96,8 @@ export function buildIntentSessionsFromCleanEvents(
     "remove_from_cart",
     "checkout_started",
     "checkout_step_viewed",
+    "checkout_step_completed",
+    "checkout_error",
     "checkout_abandoned",
   ]);
 
@@ -97,6 +119,8 @@ export function buildIntentSessionsFromCleanEvents(
       [
         "checkout_started",
         "checkout_step_viewed",
+        "checkout_step_completed",
+        "checkout_error",
         "checkout_abandoned",
       ].includes(e.event_type),
     );
@@ -184,23 +208,38 @@ export function buildIntentSessionsFromCleanEvents(
 
     let lastCheckoutPhase: string | null = null;
     let abandonedPhase: string | null = null;
-    let hasAbandoned = false;
+    let lastViewedStep: string | null = null;
+    let lastCheckoutError: string | null = null;
+    const completedSteps = new Set<string>();
     for (const e of sessionEvents) {
       const meta = asMeta(e.event_metadata);
-      if (e.event_type === "checkout_step_viewed" && typeof meta.phase === "string") {
-        lastCheckoutPhase = meta.phase;
+      const stepName = checkoutAnalyticsStep(meta);
+      if (e.event_type === "checkout_step_viewed" && stepName) {
+        lastCheckoutPhase = stepName;
+        lastViewedStep = stepName;
+      }
+      if (e.event_type === "checkout_step_completed" && stepName) {
+        completedSteps.add(stepName);
+        lastCheckoutPhase = stepName;
       }
       if (e.event_type === "checkout_abandoned") {
-        hasAbandoned = true;
-        if (typeof meta.phase === "string") abandonedPhase = meta.phase;
+        if (stepName) abandonedPhase = stepName;
+        else if (typeof meta.phase === "string") abandonedPhase = checkoutAnalyticsStep(meta);
+      }
+      if (e.event_type === "checkout_error" && typeof meta.code === "string") {
+        lastCheckoutError = meta.code;
       }
     }
 
+    const viewedWithoutComplete =
+      lastViewedStep != null && !completedSteps.has(lastViewedStep);
     let lastStep = "add_to_cart";
-    if (hasAbandoned) {
-      lastStep = `abandoned:${abandonedPhase ?? lastCheckoutPhase ?? "unknown"}`;
+    if (viewedWithoutComplete) {
+      lastStep = `abandoned:${lastViewedStep}`;
     } else if (reachedCheckout) {
-      lastStep = `checkout:${lastCheckoutPhase ?? "started"}`;
+      lastStep = `checkout:${lastViewedStep ?? lastCheckoutPhase ?? "started"}`;
+    } else if (abandonedPhase) {
+      lastStep = `abandoned:${abandonedPhase}`;
     }
 
     rows.push({
@@ -214,6 +253,7 @@ export function buildIntentSessionsFromCleanEvents(
       last_checkout_phase: lastCheckoutPhase,
       abandoned_phase: abandonedPhase,
       last_step: lastStep,
+      last_checkout_error: lastCheckoutError,
     });
   }
 

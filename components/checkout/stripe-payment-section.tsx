@@ -31,6 +31,7 @@ export type PrefetchedStripeIntent = {
     total_ore: number;
     subtotal_sek: number;
     shipping_sek: number;
+    shipping_pending?: boolean;
     promo_discount_sek: number;
     pact_points_sek: number;
   };
@@ -126,6 +127,7 @@ type Props = {
     total_ore: number;
     subtotal_sek: number;
     shipping_sek: number;
+    shipping_pending?: boolean;
     promo_discount_sek: number;
     pact_points_sek: number;
   }) => void;
@@ -671,6 +673,7 @@ export function StripePaymentSection({
             total_ore: num(q.total_ore),
             subtotal_sek: num(q.subtotal_sek),
             shipping_sek: num(q.shipping_sek),
+            shipping_pending: q.shipping_pending === true,
             promo_discount_sek: num(q.promo_discount_sek),
             pact_points_sek: num(q.pact_points_sek),
           });

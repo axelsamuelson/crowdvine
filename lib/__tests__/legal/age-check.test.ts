@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { getAgeLimit, resolveMarketAgeMinimum } from "@/lib/age-limits";
 import {
   calculateAge,
   evaluateLegalGate,
@@ -71,6 +72,43 @@ describe("evaluateLegalGate", () => {
       reason: "terms_version_stale",
       currentVersion: LEGAL_VERSIONS.terms,
     });
+  });
+
+  it("keeps Sweden at 20 when the market age is null", () => {
+    expect(getAgeLimit("US")).toBe(20);
+    expect(
+      resolveMarketAgeMinimum({ countryCode: "SE", ageMinimum: null }),
+    ).toBe(20);
+    expect(
+      resolveMarketAgeMinimum({ countryCode: "US", ageMinimum: null }),
+    ).toBe(20);
+    const result = evaluateLegalGate(
+      {
+        dateOfBirth: "2006-08-25",
+        acceptedTermsVersion: LEGAL_VERSIONS.terms,
+      },
+      now,
+      resolveMarketAgeMinimum({ countryCode: "SE", ageMinimum: null }),
+    );
+    expect(result.ok).toBe(true);
+  });
+
+  it("rejects a 20-year-old when the US market age is 21", () => {
+    const required = resolveMarketAgeMinimum({
+      countryCode: "US",
+      ageMinimum: 21,
+    });
+    expect(required).toBe(21);
+    expect(
+      evaluateLegalGate(
+        {
+          dateOfBirth: "2006-08-25",
+          acceptedTermsVersion: LEGAL_VERSIONS.terms,
+        },
+        now,
+        required,
+      ),
+    ).toEqual({ ok: false, reason: "age_requirement_not_met" });
   });
 
   it("accepts exactly 20 today", () => {

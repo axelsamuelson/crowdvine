@@ -1,9 +1,14 @@
 import { describe, expect, it } from "vitest";
+import { checkoutCustomerShippingCharge } from "@/lib/checkout/resolve-checkout-shipping";
 import {
   allocateCustomerShippingByBottles,
   legacyAmortizedShippingGrossCents,
   resolveCustomerShippingQuote,
 } from "@/lib/customer-shipping-pricing";
+import {
+  formatDisplayMoney,
+  formatSekAsDisplayMoney,
+} from "@/lib/shopping-context/format";
 import { classifyUnitSnapshot } from "@/lib/finance/completeness";
 import { deriveContributionMargins } from "@/lib/admin-pallet-operating-summary";
 import {
@@ -110,6 +115,59 @@ describe("PACT Sweden 99 SEK per order (authorized)", () => {
       vatRate: 0.25,
     });
     expect(q.netCents).toBe(7920);
+  });
+});
+
+describe("Checkout country shipping", () => {
+  it("stamps 99 SEK as $99.0 when formatDisplay is used in a USD context", () => {
+    expect(
+      formatDisplayMoney(99, {
+        currencyCode: "USD",
+        locale: "en",
+        sekToDisplayRate: 1,
+      }).replace(/\u00a0/g, " "),
+    ).toBe("$99.0");
+  });
+
+  it("renders the Sweden rate as 99 kr and does not apply it to the US", () => {
+    const sweden = resolveCustomerShippingQuote({
+      bottleCount: 6,
+      countryCode: "SE",
+      rates: PACT_SE_99,
+      allowLegacyFallback: false,
+    });
+    const charge = checkoutCustomerShippingCharge({
+      source: sweden.source,
+      shippingSek: sweden.grossCents / 100,
+    });
+    expect(charge).toEqual({ shippingSek: 99, shippingPending: false });
+    expect(
+      formatSekAsDisplayMoney(charge.shippingSek, {
+        currencyCode: "SEK",
+        locale: "sv",
+        sekToDisplayRate: 1,
+      }).replace(/\u00a0/g, " "),
+    ).toBe("99 kr");
+
+    const losAngeles = resolveCustomerShippingQuote({
+      bottleCount: 6,
+      countryCode: "US",
+      rates: PACT_SE_99,
+      allowLegacyFallback: true,
+      legacy: {
+        costCents: 720_000,
+        bottleCapacity: 720,
+        lastMileCostCentsPerBottle: 833,
+        bottles: 6,
+      },
+    });
+    expect(losAngeles.grossCents).toBeGreaterThan(0);
+    expect(
+      checkoutCustomerShippingCharge({
+        source: losAngeles.source,
+        shippingSek: losAngeles.grossCents / 100,
+      }),
+    ).toEqual({ shippingSek: 0, shippingPending: true });
   });
 });
 

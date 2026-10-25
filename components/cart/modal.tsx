@@ -12,7 +12,8 @@ import { Loader } from "../ui/loader";
 import { CartItemCard } from "./cart-item";
 import { priceExclVat } from "@/lib/shopify/utils";
 import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
-import { useFormatPrice } from "@/lib/hooks/use-format-price";
+import { useDisplayMoney } from "@/lib/hooks/use-display-money";
+import { formatCartLinePrice } from "@/lib/shopping-context/format";
 import { useTranslations } from "@/lib/hooks/use-translations";
 import { useLocalizedPaths } from "@/lib/hooks/use-localized-paths";
 import { useBodyScrollLock } from "@/lib/hooks/use-body-scroll-lock";
@@ -46,7 +47,7 @@ const CartItems = ({
 }) => {
   const { cart } = useCart();
   const { t } = useTranslations();
-  const formatPrice = useFormatPrice();
+  const { locale } = useDisplayMoney();
   const showExclVat = useB2BPriceMode();
   const totalAmount = cart ? parseFloat(cart.cost.totalAmount.amount) : 0;
   const displayTotal = showExclVat ? priceExclVat(totalAmount) : totalAmount;
@@ -148,7 +149,11 @@ const CartItems = ({
             <p>{t("cart.total")}</p>
             <div className="text-right">
               <span className="text-base text-foreground block">
-                {formatPrice(displayTotal)}
+                {formatCartLinePrice(
+                  displayTotal,
+                  cart.cost.totalAmount.currencyCode,
+                  locale,
+                )}
               </span>
               {showExclVat && (
                 <span className="text-[10px] font-normal text-muted-foreground">

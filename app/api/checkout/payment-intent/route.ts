@@ -35,7 +35,11 @@ import {
 } from "@/lib/checkout/user-zone-delivery-template";
 import { computeExpectedAmountOre } from "@/lib/checkout/expected-amount";
 import { buildCheckoutQuote } from "@/lib/checkout/checkout-quote";
-import { resolveCheckoutShippingSek } from "@/lib/checkout/resolve-checkout-shipping";
+import {
+  checkoutCustomerShippingCharge,
+  resolveCheckoutShippingSek,
+} from "@/lib/checkout/resolve-checkout-shipping";
+import { resolveMarketAgeMinimum } from "@/lib/age-limits";
 import {
   evaluateLegalGate,
   legalGateInputSchema,
@@ -84,6 +88,7 @@ type RequestBody = {
 function evaluateAgeOnlyGate(
   dateOfBirth: string | undefined,
   now: Date = new Date(),
+  minimumAge: number = MINIMUM_AGE,
 ):
   | { ok: true; dateOfBirth: string; verifiedAt: Date }
   | { ok: false; reason: "validation_error" | "age_requirement_not_met" } {
@@ -95,7 +100,11 @@ function evaluateAgeOnlyGate(
   if (!dob) {
     return { ok: false, reason: "validation_error" };
   }
-  if (calculateAge(dob, now) < MINIMUM_AGE) {
+  const required =
+    Number.isFinite(minimumAge) && minimumAge > 0
+      ? Math.floor(minimumAge)
+      : MINIMUM_AGE;
+  if (calculateAge(dob, now) < required) {
     return { ok: false, reason: "age_requirement_not_met" };
   }
   return { ok: true, dateOfBirth: parsedDob.data, verifiedAt: now };
@@ -422,10 +431,12 @@ export async function POST(request: Request) {
     const resolvedShipping = await resolveCheckoutShippingSek({
       bottleCount,
       productSubtotalSek: subtotalSek,
-      countryCode: "SE",
+      countryCode,
+      allowLegacyFallback: false,
       pallet: palletRow,
     });
-    const shippingSek = resolvedShipping.shippingSek;
+    const shippingCharge = checkoutCustomerShippingCharge(resolvedShipping);
+    const shippingSek = shippingCharge.shippingSek;
 
     // CartService totals are already in charge/display currency → multiplier 1.
     const { amountOre: amountInOre, components } = await computeExpectedAmountOre(
@@ -444,6 +455,7 @@ export async function POST(request: Request) {
       components,
       amountOre: amountInOre,
       pactPointsRedeem: pointsToRedeem,
+      shippingPending: shippingCharge.shippingPending,
     });
 
     if (amountInOre <= 0) {
@@ -454,10 +466,15 @@ export async function POST(request: Request) {
     }
 
     const legalNow = new Date();
+    const requiredAge = resolveMarketAgeMinimum({
+      countryCode: resolvedMarket.countryCode || countryCode,
+      ageMinimum: resolvedMarket.ageMinimum,
+    });
     const legalGate = usConditional
       ? evaluateAgeOnlyGate(
           typeof body?.dateOfBirth === "string" ? body.dateOfBirth : undefined,
           legalNow,
+          requiredAge,
         )
       : evaluateLegalGate(
           {
@@ -465,6 +482,7 @@ export async function POST(request: Request) {
             acceptedTermsVersion: body?.acceptedTermsVersion,
           },
           legalNow,
+          requiredAge,
         );
 
     if (!legalGate.ok) {

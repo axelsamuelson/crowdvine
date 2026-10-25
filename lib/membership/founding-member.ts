@@ -117,16 +117,20 @@ export async function checkAndGrantFoundingMember(
         p_expires_in_days: PACT_POINTS_EXPIRY_DAYS,
       });
       if (pactGrantErr) {
-        console.error(
-          "[FOUNDING] award_pact_points founding_member_grant:",
-          pactGrantErr,
-        );
+        console.error("[FOUNDING] award_pact_points founding_member_grant failed", {
+          user_id: userId,
+          event_type: "founding_member_grant",
+          order_id: _reservationId,
+          error: pactGrantErr,
+        });
       }
     } catch (pactEx) {
-      console.error(
-        "[FOUNDING] award_pact_points founding_member_grant unexpected:",
-        pactEx,
-      );
+      console.error("[FOUNDING] award_pact_points founding_member_grant failed", {
+        user_id: userId,
+        event_type: "founding_member_grant",
+        order_id: _reservationId,
+        error: pactEx,
+      });
     }
 
     return {
