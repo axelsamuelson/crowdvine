@@ -1,7 +1,11 @@
+/** ISO date for Article datePublished/dateModified and the visible updated line. */
+export const TOP_100_WINES_PUBLISHED_AT = "2026-10-01";
+export const TOP_100_WINES_UPDATED_AT = "2026-10-25";
+
 export interface TopWine {
   rank: number;
   wine: string;
-  /** Display name rendered on guide pages — do not change for linking. */
+  /** Display name rendered on guide pages - do not change for linking. */
   producer: string;
   /**
    * Exact TopProducer.name for linking to TOP_100_PRODUCERS.

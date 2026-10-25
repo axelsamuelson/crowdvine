@@ -13,6 +13,8 @@ type GuideRankEntryProps = {
   rankNote?: ReactNode;
   /** Sits to the left of the rank number. */
   rankAdornment?: ReactNode;
+  /** Anchor id for in-page jump links (e.g. top-10 glance). */
+  id?: string;
 };
 
 export function GuideRankEntry({
@@ -24,13 +26,15 @@ export function GuideRankEntry({
   href,
   rankNote,
   rankAdornment,
+  id,
 }: GuideRankEntryProps) {
   return (
     <article
+      id={id}
       className={
         compact
-          ? "border-b border-border py-4 last:border-b-0"
-          : "border-b border-border py-8 last:border-b-0"
+          ? "scroll-mt-24 border-b border-border py-4 last:border-b-0"
+          : "scroll-mt-24 border-b border-border py-8 last:border-b-0"
       }
     >
       <div className="flex gap-4">
