@@ -116,23 +116,20 @@ describe("article breadcrumbs", () => {
     expect(gang.jsonLd).toHaveLength(3);
   });
 
-  it("puts the style children under the natural wine explainer", () => {
-    const sv = trail("sv", "what-is-red-natural-wine", "Vad är rött naturvin?");
-    expect(sv.crumbs.map((crumb) => crumb.label)).toEqual([
-      "Hem",
-      "Guider",
-      "Vad är naturvin?",
-      "Vad är rött naturvin?",
-    ]);
-    expect(sv.crumbs[2]?.href).toBe("/guider/vad-ar-naturvin");
-    expect(sv.jsonLd[2]?.item).toBe(`${BASE}/guider/vad-ar-naturvin`);
-    expect(sv.jsonLd[3]?.item).toBeUndefined();
-
+  it("puts orange wine under the natural wine explainer", () => {
     const en = trail("en", "what-is-orange-wine", "What is orange wine?");
+    expect(en.crumbs.map((crumb) => crumb.label)).toEqual([
+      "Home",
+      "Natural Wine Guides",
+      "What Is Natural Wine?",
+      "What is orange wine?",
+    ]);
     expect(en.crumbs[2]).toEqual({
-      label: "What is natural wine?",
+      label: "What Is Natural Wine?",
       href: "/guides/what-is-natural-wine",
     });
+    expect(en.jsonLd[2]?.item).toBe(`${BASE}/guides/what-is-natural-wine`);
+    expect(en.jsonLd[3]?.item).toBeUndefined();
 
     const parent = trail("sv", "what-is-natural-wine", "Vad är naturvin?");
     expect(parent.crumbs).toHaveLength(3);
@@ -149,7 +146,7 @@ describe("article breadcrumbs", () => {
 });
 
 describe("style and Thévenet links", () => {
-  it("links the style explainers from the taste section", () => {
+  it("keeps orange and sparkling links from the taste section", () => {
     const section = whatIsNaturalWineArticle.sections.find(
       (item) => item.heading?.en === "What natural wine tastes like",
     );
@@ -159,22 +156,31 @@ describe("style and Thévenet links", () => {
     const sv = Array.isArray(section?.body.sv)
       ? section.body.sv.join("\n")
       : (section?.body.sv ?? "");
-    expect(en).toContain("[Red natural wine](/guides/what-is-red-natural-wine)");
-    expect(en).toContain(
-      "[White natural wine](/guides/what-is-white-natural-wine)",
-    );
+    expect(en).toContain("Red natural wine is often lighter");
+    expect(en).toContain("White natural wine can have more texture");
+    expect(en).not.toContain("/guides/what-is-red-natural-wine");
+    expect(en).not.toContain("/guides/what-is-white-natural-wine");
     expect(en).toContain("[Orange wine](/guides/what-is-orange-wine)");
     expect(en).toContain(
       "[sparkling natural wine](/guides/best-sparkling-natural-wines-systembolaget)",
     );
-    expect(sv).toContain("[Rött naturvin](/guider/vad-ar-rott-naturvin)");
-    expect(sv).toContain("[Vitt naturvin](/guider/vad-ar-vitt-naturvin)");
     expect(sv).toContain("[Orange vin](/guider/vad-ar-orange-vin)");
     expect(sv).toContain(
       "[mousserande naturvin](/guider/basta-mousserande-naturviner-systembolaget)",
     );
     expect(section?.heading?.en).not.toMatch(/[åäöÅÄÖ]/);
     expect(JSON.stringify(section?.heading)).not.toContain("—");
+
+    const white = whatIsNaturalWineArticle.sections.find(
+      (item) => item.heading?.en === "White natural wine",
+    );
+    const red = whatIsNaturalWineArticle.sections.find(
+      (item) => item.heading?.en === "Red natural wine",
+    );
+    expect(JSON.stringify(white?.body)).toContain("/wine/white-natural-wine");
+    expect(JSON.stringify(white?.body)).toContain("/vin/vitt-naturvin");
+    expect(JSON.stringify(red?.body)).toContain("/wine/red-natural-wine");
+    expect(JSON.stringify(red?.body)).toContain("/vin/rott-naturvin");
 
     const back = whatIsOrangeWineArticle.internalLinks.at(-1);
     expect(back?.label).toEqual({

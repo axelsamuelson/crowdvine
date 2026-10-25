@@ -29,8 +29,6 @@ import { thierryAllemandArticle } from "@/lib/guides/articles/thierry-allemand";
 import { whatIsNaturalWineArticle } from "@/lib/guides/articles/what-is-natural-wine";
 import { whatIsOrangeWineArticle } from "@/lib/guides/articles/what-is-orange-wine";
 import { whatIsPetNatArticle } from "@/lib/guides/articles/what-is-pet-nat";
-import { whatIsRedNaturalWineArticle } from "@/lib/guides/articles/what-is-red-natural-wine";
-import { whatIsWhiteNaturalWineArticle } from "@/lib/guides/articles/what-is-white-natural-wine";
 import { articleHubCard, isGuideArticlePublished } from "@/lib/guides/guide-types";
 
 import { worldsBestNaturalChampagneGuide } from "@/lib/guides/worlds-best-natural-champagne";
@@ -119,8 +117,6 @@ const SV_PRODUCER_CARDS: GuideHubCard[] = [
 
 const SV_GUIDE_CARDS: GuideHubCard[] = [
   articleHubCard(whatIsNaturalWineArticle, "sv"),
-  articleHubCard(whatIsRedNaturalWineArticle, "sv"),
-  articleHubCard(whatIsWhiteNaturalWineArticle, "sv"),
   articleHubCard(whatIsOrangeWineArticle, "sv"),
   ...(isGuideArticlePublished(buyNaturalWineOnlineSwedenArticle)
     ? [articleHubCard(buyNaturalWineOnlineSwedenArticle, "sv")]
@@ -324,8 +320,6 @@ const EN_LIST_CARDS: GuideHubCard[] = [
 
 const EN_GUIDE_CARDS: GuideHubCard[] = [
   articleHubCard(whatIsNaturalWineArticle, "en"),
-  articleHubCard(whatIsRedNaturalWineArticle, "en"),
-  articleHubCard(whatIsWhiteNaturalWineArticle, "en"),
   articleHubCard(whatIsOrangeWineArticle, "en"),
   ...(isGuideArticlePublished(buyNaturalWineOnlineSwedenArticle)
     ? [articleHubCard(buyNaturalWineOnlineSwedenArticle, "en")]

@@ -25,11 +25,7 @@ const PRODUCER_LIST_CHILD_SLUGS = new Set([
   "jean-paul-thevenet",
 ]);
 
-const STYLE_CHILD_SLUGS = new Set([
-  "what-is-red-natural-wine",
-  "what-is-white-natural-wine",
-  "what-is-orange-wine",
-]);
+const STYLE_CHILD_SLUGS = new Set(["what-is-orange-wine"]);
 
 const PRODUCER_LIST_PARENT = {
   en: "World's best natural wine producers",
@@ -37,7 +33,7 @@ const PRODUCER_LIST_PARENT = {
 } as const;
 
 const STYLE_PARENT = {
-  en: "What is natural wine?",
+  en: "What Is Natural Wine?",
   sv: "Vad är naturvin?",
 } as const;
 

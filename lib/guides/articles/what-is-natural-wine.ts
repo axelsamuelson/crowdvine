@@ -6,21 +6,21 @@ import type { GuideArticleContent } from "@/lib/guides/guide-types";
  * Vin Méthode Nature charter; EU 1169/2011 Annex II (label above 10 mg/l).
  */
 export const whatIsNaturalWineArticle: GuideArticleContent = {
-  updated: "2026-10-12",
+  updated: "2026-10-25",
   slug: {
     en: "what-is-natural-wine",
     sv: "vad-ar-naturvin",
   },
   title: {
-    en: "What is natural wine? Definition, sulfites, how it's made",
-    sv: "Vad är naturvin? Definition, sulfiter och hur det görs",
+    en: "What Is Natural Wine? How It Is Made and How It Differs",
+    sv: "Vad är naturvin? Så görs det och så skiljer det sig",
   },
   meta: {
     en: "Natural wine means low intervention: organic grapes, spontaneous fermentation and little or no added sulphur. Sulfites, and how it differs from organic wine.",
     sv: "Naturvin betyder låg intervention: ekologiska druvor, spontanjäsning och lite eller inget tillsatt svavel. Sulfiter och skillnaden mot ekologiskt vin.",
   },
   h1: {
-    en: "What is natural wine?",
+    en: "What Is Natural Wine?",
     sv: "Vad är naturvin?",
   },
   lede: {
@@ -28,7 +28,7 @@ export const whatIsNaturalWineArticle: GuideArticleContent = {
     sv: "Naturvin är vin gjort med låg intervention. Druvorna odlas typiskt ekologiskt eller biodynamiskt, och jäsningen sker spontant med druvans egen jäst i stället för ympad jäsning. I källaren tillsätts oftast lite eller inget svavel, och få eller inga andra tillsatser.",
   },
   breadcrumbShort: {
-    en: "What is natural wine?",
+    en: "What Is Natural Wine?",
     sv: "Vad är naturvin?",
   },
   furtherReadingHeading: {
@@ -37,7 +37,7 @@ export const whatIsNaturalWineArticle: GuideArticleContent = {
   },
   hubCard: {
     title: {
-      en: "What is natural wine?",
+      en: "What Is Natural Wine?",
       sv: "Vad är naturvin?",
     },
     description: {
@@ -148,15 +148,51 @@ export const whatIsNaturalWineArticle: GuideArticleContent = {
       body: {
         en: [
           "Natural wine does not taste like one thing. The difference sits in the grape, the place and the vintage, not in a shared flavour profile.",
-          "[Red natural wine](/guides/what-is-red-natural-wine) is often lighter in colour and has softer tannins than many conventional red wines. [White natural wine](/guides/what-is-white-natural-wine) can have more texture, because spontaneous fermentation and little sulphur leave more of the grape in the wine. [Orange wine](/guides/what-is-orange-wine) is white wine fermented on the skins. The colour runs from gold to amber, and it is not the same thing as natural wine.",
+          "Red natural wine is often lighter in colour and has softer tannins than many conventional red wines. White natural wine can have more texture, because spontaneous fermentation and little sulphur leave more of the grape in the wine. [Orange wine](/guides/what-is-orange-wine) is white wine fermented on the skins. The colour runs from gold to amber, and it is not the same thing as natural wine.",
           "Sparkling natural wine is often made as pét-nat (pet nat), where fermentation finishes in the bottle. More on that style is in the guide to [sparkling natural wine](/guides/best-sparkling-natural-wines-systembolaget).",
           "Unfiltered wine can look cloudy. The particles are leftover yeast. A light spritz in a still wine can come from fermentation continuing slowly in the bottle. Both are common, and neither means by itself that the wine is faulty.",
         ],
         sv: [
           "Naturvin smakar inte på ett sätt. Skillnaden sitter i druva, plats och årgång, inte i en gemensam smakprofil.",
-          "[Rött naturvin](/guider/vad-ar-rott-naturvin) är ofta ljusare i färgen och har mjukare tanniner än många konventionella röda viner. [Vitt naturvin](/guider/vad-ar-vitt-naturvin) kan ha mer textur, eftersom spontanjäsning och lite svavel lämnar mer av druvan kvar. [Orange vin](/guider/vad-ar-orange-vin) är vitt vin som jäst med skalen. Färgen går från guld till bärnsten, och det är inte samma sak som naturvin.",
+          "Rött naturvin är ofta ljusare i färgen och har mjukare tanniner än många konventionella röda viner. Vitt naturvin kan ha mer textur, eftersom spontanjäsning och lite svavel lämnar mer av druvan kvar. [Orange vin](/guider/vad-ar-orange-vin) är vitt vin som jäst med skalen. Färgen går från guld till bärnsten, och det är inte samma sak som naturvin.",
           "Mousserande naturvin görs ofta som pét-nat (pet nat), där jäsningen avslutas i flaskan. Mer om den stilen finns i genomgången av [mousserande naturvin](/guider/basta-mousserande-naturviner-systembolaget).",
           "Ofiltrerat vin kan se grumligt ut. Partiklarna är jästrester. En lätt kolsyra i ett stilla vin kan komma av att jäsningen fortsätter långsamt i flaskan. Båda förekommer ofta, och ingen av dem betyder i sig att vinet är felaktigt.",
+        ],
+      },
+    },
+    {
+      heading: {
+        en: "White natural wine",
+        sv: "Vitt naturvin",
+      },
+      body: {
+        en: [
+          "White natural wine is often more textured and site-driven than conventional white. White grapes are more delicate than red and lack the protection of skin tannins, so the style needs precision in vineyard and cellar. The bottles are made with few or no additives and can vary more from vintage to vintage.",
+          "Two broad directions show up often. Oxidative styles see a little oxygen during ageing and can give notes of almond, honey and dried fruit, for example ouillé Savagnin from the Jura. Reductive styles are kept more protected from oxygen and keep fresher fruit. Many producers work somewhere in between.",
+          "Do not serve ice-cold: light styles around 10-11°C, fuller or oxidative styles around 12-14°C. Light bottles suit fish, shellfish and vegetables; fuller ones suit oily fish and soft cheeses. Browse our [white natural wine](/wine/white-natural-wine).",
+        ],
+        sv: [
+          "Vitt naturvin är ofta mer texturerat och platsbundet än konventionellt vitt. Vita druvor är känsligare än röda och saknar skaltanninernas skydd, så stilen kräver precision i både vingård och källare. Flaskorna görs med få eller inga tillsatser och kan variera mer mellan årgångar.",
+          "Två huvudriktningar syns ofta. Oxiderande stilar får lite syre under lagringen och kan ge toner av mandel, honung och torkad frukt, till exempel ouillé Savagnin från Jura. Reducerande stilar skyddas mer från syre och behåller frisk frukt. Många producenter arbetar någonstans mittemellan.",
+          "Servera inte iskallt: lätta stilar runt 10-11°C, fylligare eller oxiderande stilar runt 12-14°C. Lätta flaskor passar fisk, skaldjur och grönsaker; fylligare passar fetare fisk och mjuka ostar. Se vårt urval av [vitt naturvin](/vin/vitt-naturvin).",
+        ],
+      },
+    },
+    {
+      heading: {
+        en: "Red natural wine",
+        sv: "Rött naturvin",
+      },
+      body: {
+        en: [
+          "Red natural wine is a spectrum rather than one style. Many bottles are lighter in colour and softer in tannin than conventional red, often because extraction is kept back. A light Cinsault and a structured old-vine Carignan can both be natural wine, but they work in different contexts.",
+          "Carbonic maceration is common: whole clusters ferment in a carbon-dioxide-rich vessel, so fermentation happens inside each grape. The result is fruity, soft and easy to drink, with low tannin. It is the method the Gang of Four used with Gamay in Beaujolais in the 1980s.",
+          "Serve cooler than ordinary red more often than not: light styles at 13-14°C, medium-bodied at 15-16°C. Light wines suit charcuterie, pizza and grilled chicken; fuller ones suit stews and mature cheeses. Browse our [red natural wine](/wine/red-natural-wine).",
+        ],
+        sv: [
+          "Rött naturvin är ett spektrum snarare än en stil. Många flaskor är ljusare i färgen och mjukare i tanninen än konventionellt rött, ofta för att extraktionen hålls tillbaka. Ett lätt Cinsault och en strukturerad Carignan från gamla stockar kan båda vara naturvin, men de fungerar i olika sammanhang.",
+          "Kolsyremaceration är vanlig: hela klasar jäser i en koldioxidrik miljö, så jäsningen sker inuti druvan. Resultatet blir fruktigt, mjukt och lätt att dricka, med låg tannin. Metoden är densamma som Gang of Four använde med Gamay i Beaujolais på 1980-talet.",
+          "Servera ofta svalare än vanligt rött: lätta stilar 13-14°C, medelfylliga 15-16°C. Lätta viner passar chark, pizza och grillad kyckling; fylligare passar grytor och mogna ostar. Se vårt urval av [rött naturvin](/vin/rott-naturvin).",
         ],
       },
     },
@@ -167,11 +203,11 @@ export const whatIsNaturalWineArticle: GuideArticleContent = {
       },
       body: {
         en: [
-          "Natural wine is made in many countries today. The movement grew up in France, above all in Beaujolais, the Jura and the Loire. In the 1980s, producers influenced by the chemist Jules Chauvet began farming organically and vinifying without additives.",
+          "Natural wine is made in many countries today. The movement grew up in France, above all in Beaujolais, the Jura and the Loire. In the 1980s, producers influenced by the chemist Jules Chauvet began farming organically and vinifying with few or no additives.",
           "Languedoc is one of the regions where the approach is common. Schist, limestone and old vines give character to Carignan, Grenache, Syrah and Cinsault. That is where PACT imports from. Read more in the guide to [natural wine from Languedoc](/guides/languedoc-natural-wine). If you want to get to know one of those farms, start with a [natural wine box](/wine/natural-wine-box): six bottles from the same producer.",
         ],
         sv: [
-          "Naturvin görs i dag i många länder. Rörelsen växte fram i Frankrike, framför allt i Beaujolais, Jura och Loire. På 1980-talet började producenter, under inflytande av kemisten Jules Chauvet, odla ekologiskt och vinifiera utan tillsatser.",
+          "Naturvin görs i dag i många länder. Rörelsen växte fram i Frankrike, framför allt i Beaujolais, Jura och Loire. På 1980-talet började producenter, under inflytande av kemisten Jules Chauvet, odla ekologiskt och vinifiera med få eller inga tillsatser.",
           "Languedoc är en av regionerna där arbetssättet är vanligt. Skiffer, kalk och gamla stockar ger karaktär åt Carignan, Grenache, Syrah och Cinsault. Det är därifrån PACT importerar. Läs mer i guiden om [naturvin från Languedoc](/guider/naturvin-languedoc). Vill du lära känna en gård därifrån kan du börja med en [naturvinslåda](/vin/naturvin-lada): sex flaskor från samma producent.",
         ],
       },
@@ -232,26 +268,6 @@ export const whatIsNaturalWineArticle: GuideArticleContent = {
   internalLinks: [
     {
       label: {
-        en: "What is red natural wine? →",
-        sv: "Vad är rött naturvin? →",
-      },
-      href: {
-        en: "/guides/what-is-red-natural-wine",
-        sv: "/guider/vad-ar-rott-naturvin",
-      },
-    },
-    {
-      label: {
-        en: "What is white natural wine? →",
-        sv: "Vad är vitt naturvin? →",
-      },
-      href: {
-        en: "/guides/what-is-white-natural-wine",
-        sv: "/guider/vad-ar-vitt-naturvin",
-      },
-    },
-    {
-      label: {
         en: "What is orange wine? →",
         sv: "Vad är orange vin? →",
       },
@@ -282,6 +298,16 @@ export const whatIsNaturalWineArticle: GuideArticleContent = {
     },
     {
       label: {
+        en: "White natural wine →",
+        sv: "Vitt naturvin →",
+      },
+      href: {
+        en: "/wine/white-natural-wine",
+        sv: "/vin/vitt-naturvin",
+      },
+    },
+    {
+      label: {
         en: "Red natural wine →",
         sv: "Rött naturvin →",
       },
@@ -292,7 +318,7 @@ export const whatIsNaturalWineArticle: GuideArticleContent = {
     },
     {
       label: {
-        en: "",
+        en: "Orange natural wine →",
         sv: "Orange naturvin →",
       },
       href: {

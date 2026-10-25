@@ -118,16 +118,6 @@ export const bestWhiteNaturalWinesSystembolagetArticle: GuideArticleContent = {
     },
     {
       label: {
-        en: "What is white natural wine? →",
-        sv: "Vad är vitt naturvin? →",
-      },
-      href: {
-        en: "/guides/what-is-white-natural-wine",
-        sv: "/guider/vad-ar-vitt-naturvin",
-      },
-    },
-    {
-      label: {
         en: "Best red natural wines at Systembolaget 2026 →",
         sv: "Bästa röda naturviner på Systembolaget 2026 →",
       },

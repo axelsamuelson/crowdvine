@@ -21,8 +21,6 @@ export const BILINGUAL_GUIDE_SLUG_PAIRS = [
   { en: "georgia-natural-wine", sv: "georgia-natural-wine" },
   { en: "what-is-orange-wine", sv: "vad-ar-orange-vin" },
   { en: "what-is-natural-wine", sv: "vad-ar-naturvin" },
-  { en: "what-is-red-natural-wine", sv: "vad-ar-rott-naturvin" },
-  { en: "what-is-white-natural-wine", sv: "vad-ar-vitt-naturvin" },
   { en: "buy-natural-wine-online-sweden", sv: "kopa-naturvin-online" },
   {
     en: "natural-wine-home-delivery",
