@@ -1,8 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { isProducerBoxesPath } from "@/lib/producer-boxes/config";
+import { mergeWineCategoryContent } from "@/lib/wine-category-content";
 import { getWineCategoryEn, getWineCategorySv } from "@/lib/wine-categories";
 import { useProducts } from "@/components/shop/products-provider";
 import ResultsControls from "./results-controls";
@@ -23,10 +25,10 @@ function getCategorySlugFromPathname(path: string): string | null {
 function getCategoryFromPathname(path: string) {
   const slug = getCategorySlugFromPathname(path);
   if (!slug) return null;
-  if (path.startsWith("/wine/")) {
-    return getWineCategoryEn(slug);
-  }
-  return getWineCategorySv(slug);
+  const category = path.startsWith("/wine/")
+    ? getWineCategoryEn(slug)
+    : getWineCategorySv(slug);
+  return category ? mergeWineCategoryContent(category) : null;
 }
 
 export function ShopLoadingFallback() {
@@ -57,6 +59,16 @@ export function ShopLoadingFallback() {
           <p className="leading-relaxed text-stone-600">
             {category.description}
           </p>
+          {category.descriptionLink ? (
+            <p className="mt-3 leading-relaxed text-stone-600">
+              <Link
+                href={category.descriptionLink.href}
+                className="underline underline-offset-4 hover:text-stone-900"
+              >
+                {category.descriptionLink.label}
+              </Link>
+            </p>
+          ) : null}
         </div>
       )}
       <ResultsControls

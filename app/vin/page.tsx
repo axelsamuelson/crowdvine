@@ -22,7 +22,7 @@ export async function generateMetadata(props: {
   const searchParams = await props.searchParams;
   const config = await getSiteConfig();
   const pageUrl = `${PACT_PUBLIC_ORIGIN}/vin`;
-  const title = `Naturvin online | Köp naturvin hos ${config.siteName}`;
+  const title = "Naturvin: köp naturvin online";
   const description =
     config.baseUrl === DIRTY_WINE_CONFIG.baseUrl
       ? "Naturvin. Ekologiskt och biodynamiskt. För restauranger i Stockholm."

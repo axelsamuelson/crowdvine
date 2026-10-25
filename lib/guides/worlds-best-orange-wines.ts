@@ -39,12 +39,12 @@ export const worldsBestOrangeWinesGuide = {
   },
   intro: {
     en: [
-      "Orange wine is not a colour — it is a method. White grapes fermented with their skins, sometimes for days, sometimes for months. The result is amber or deep gold in colour, with tannins, texture and an aromatic world of dried apricots, tea, nuts and spice that is completely unlike either white or red wine.",
+      "[Orange wine](/wine/orange-natural-wine) is not a colour — it is a method. White grapes fermented with their skins, sometimes for days, sometimes for months. The result is amber or deep gold in colour, with tannins, texture and an aromatic world of dried apricots, tea, nuts and spice that is completely unlike either white or red wine.",
       "The method is ancient — Georgia has been making skin-contact wine in qvevri for eight thousand years. Its modern revival began in Friuli in the 1990s, when Joško Gravner returned from Georgia and Stanko Radikon independently arrived at the same conclusion. From that small village on the Italian-Slovenian border, orange wine spread to become one of the defining categories of natural wine.",
       "This is our selection of the finest orange wines in the world, drawn from our list of the world's 100 best natural wines.",
     ],
     sv: [
-      "Orange vin är inte en färg — det är en metod. Vita druvor jäser med sina skal, ibland i dagar, ibland i månader. Resultatet är bärnstensfärgat eller djupt guldgult, med tanniner, textur och en aromatisk värld av torkade aprikoser, te, nötter och kryddor som är helt annorlunda än både vitt och rött vin.",
+      "[Orange vin](/vin/orange-naturvin) är inte en färg — det är en metod. Vita druvor jäser med sina skal, ibland i dagar, ibland i månader. Resultatet är bärnstensfärgat eller djupt guldgult, med tanniner, textur och en aromatisk värld av torkade aprikoser, te, nötter och kryddor som är helt annorlunda än både vitt och rött vin.",
       "Metoden är urgammal — Georgien har gjort skalkontaktvin i qvevri i åtta tusen år. Dess moderna återfödelse började i Friuli på 1990-talet när Joško Gravner återvände från Georgien och Stanko Radikon oberoende av honom kom fram till samma slutsats. Från den lilla byn Oslavje på gränsen mellan Italien och Slovenien spred sig det moderna orange vinet till resten av världen.",
       "Det här är vårt urval av de finaste orange vinerna i världen, hämtat från vår lista över världens 100 bästa naturviner.",
     ],

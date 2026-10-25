@@ -5,6 +5,9 @@ import type { WineCategory } from "@/lib/wine-category-types";
 export type WineCategoryContentOverride = Partial<
   Pick<
     WineCategory,
+    | "h1"
+    | "description"
+    | "descriptionLink"
     | "longDescription"
     | "tastingProfile"
     | "foodPairing"
@@ -289,9 +292,16 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
   },
   "orange-naturvin": {
     sv: {
-      title: "Orange naturvin online | PACT Wines",
+      h1: "Orange vin",
+      title: "Orange vin: köp orange naturvin online",
       metaDescription:
-        "Köp orange naturvin och skalkontaktvin. Utan mellanhänder. Reservera online.",
+        "Orange vin är vitt vin som jäst med skalen. Se vårt urval av orange naturvin från små producenter, med hemleverans i Stockholm.",
+      description:
+        "Orange vin görs av gröna druvor som jäser tillsammans med skalen, vilket ger färg, struktur och en lätt strävhet. Här hittar du våra orange naturviner.",
+      descriptionLink: {
+        label: "Vad är orange vin?",
+        href: "/guider/vad-ar-orange-vin",
+      },
       contentHeading: "Om orange naturvin",
       longDescription:
         "Orange vin — eller skalkontaktvin — är vitt vin gjort som rött. Istället för att pressa bort skalen direkt får de vita druvorna jäsa tillsammans med sina skal, ibland i dagar, ibland i månader. Det ger vinet dess karaktäristiska bärnstensfärg, tanninstruktur och en helt egen aromatisk värld av torkade aprikoser, te, nötter och kryddor.\n\nOrange vin är en av de äldsta vinstilarna som finns — den har gjorts i Georgien i tusentals år — men har fått en renässans genom naturvinsrörelsen. Stilen passar naturvinsfilosofin perfekt: skalkontakten ger naturligt skydd, vilket minskar behovet av tillsatt svavel. I Languedoc experimenterar producenter som Le Bouc à Trois Pattes med orangeviner som hör till de mest uppskattade i regionen.\n\nOrange vin är en nischstil, och vi tar bara in de flaskor vi själva blir entusiastiska över.",
@@ -310,7 +320,7 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
         {
           question: "Vad är orange vin?",
           answer:
-            "Orange vin är vitt vin gjort som rött — de vita druvorna jäser tillsammans med sina skal, ibland i dagar, ibland i månader. Skalkontakten ger vinet dess bärnstensfärg, tanninstruktur och aromer av torkade aprikoser, te, nötter och kryddor.",
+            "Orange vin är vitt vin gjort som rött — de vita druvorna jäser tillsammans med sina skal, ibland i dagar, ibland i månader. Skalkontakten ger vinet dess bärnstensfärg, tanninstruktur och aromer av torkade aprikoser, te, nötter och kryddor. Läs mer i [Vad är orange vin?](/guider/vad-ar-orange-vin).",
         },
         {
           question: "Smakar orange vin som vitt eller rött vin?",
@@ -332,9 +342,16 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
   },
   "orange-natural-wine": {
     en: {
-      title: "Orange Natural Wine Online | PACT Wines",
+      h1: "Orange Wine",
+      title: "Orange Wine: Buy Orange Natural Wine Online",
       metaDescription:
-        "Buy orange natural wine and skin-contact wine. Without middlemen. Reserve online.",
+        "Orange wine is white wine fermented with its skins. Browse our orange natural wines from small producers.",
+      description:
+        "Orange wine is made from white grapes fermented together with their skins, which gives colour, structure and a light grip. Here you will find our orange natural wines.",
+      descriptionLink: {
+        label: "What is orange wine?",
+        href: "/guides/what-is-orange-wine",
+      },
       contentHeading: "About orange wine",
       longDescription:
         "Orange wine — or skin-contact wine — is white wine made like red. Instead of pressing the skins away immediately, the white grapes ferment together with their skins, sometimes for days, sometimes for months. This gives the wine its characteristic amber colour, tannin structure and a whole aromatic world of its own — dried apricots, tea, nuts and spice.\n\nOrange wine is one of the oldest wine styles in existence — it has been made in Georgia for thousands of years — but has had a renaissance through the natural wine movement. The style suits the natural wine philosophy perfectly: the skin contact provides natural protection, reducing the need for added sulphur. In Languedoc, producers like Le Bouc à Trois Pattes experiment with orange wines that are among the most appreciated in the region.\n\nOrange wine is a niche style, and we only bring in the bottles we get genuinely excited about.",
@@ -353,7 +370,7 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
         {
           question: "What is orange wine?",
           answer:
-            "Orange wine is white wine made like red — the white grapes ferment together with their skins, sometimes for days, sometimes for months. The skin contact gives the wine its amber colour, tannin structure and aromas of dried apricots, tea, nuts and spice.",
+            "Orange wine is white wine made like red — the white grapes ferment together with their skins, sometimes for days, sometimes for months. The skin contact gives the wine its amber colour, tannin structure and aromas of dried apricots, tea, nuts and spice. Read more in [What is orange wine?](/guides/what-is-orange-wine).",
         },
         {
           question: "Does orange wine taste like white or red wine?",
@@ -857,6 +874,9 @@ export function getWineCategoryContentOverride(
   if (!override) return undefined;
 
   const hasContent =
+    Boolean(override.h1?.trim()) ||
+    Boolean(override.description?.trim()) ||
+    Boolean(override.descriptionLink) ||
     Boolean(override.longDescription?.trim()) ||
     Boolean(override.tastingProfile?.length) ||
     Boolean(override.foodPairing?.trim()) ||
@@ -880,6 +900,13 @@ export function mergeWineCategoryContent(
 
   return {
     ...category,
+    ...(override.h1 !== undefined ? { h1: override.h1 } : {}),
+    ...(override.description !== undefined
+      ? { description: override.description }
+      : {}),
+    ...(override.descriptionLink !== undefined
+      ? { descriptionLink: override.descriptionLink }
+      : {}),
     ...(override.longDescription !== undefined
       ? { longDescription: override.longDescription }
       : {}),

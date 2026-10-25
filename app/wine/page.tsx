@@ -22,7 +22,7 @@ export async function generateMetadata(props: {
   const searchParams = await props.searchParams;
   const config = await getSiteConfig();
   const pageUrl = `${PACT_PUBLIC_ORIGIN}/wine`;
-  const title = `Natural Wine Online | Buy Natural Wine at ${config.siteName}`;
+  const title = "Natural Wine: Buy Natural Wine Online";
   const description =
     config.baseUrl === DIRTY_WINE_CONFIG.baseUrl
       ? "Natural wines. Organic and biodynamic. For restaurants in Stockholm."

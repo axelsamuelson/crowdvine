@@ -1,3 +1,4 @@
+import { renderArticleRichText } from "@/lib/guides/article-guide-shell";
 import type { AppLocale } from "@/lib/i18n/locale";
 import type { WineCategoryFaqItem } from "@/lib/wine-category-types";
 import { categoryFaqHeading } from "@/lib/wine-category-faq";
@@ -20,7 +21,9 @@ export function CategoryFaqSection({ h1, locale, faq }: CategoryFaqSectionProps)
         {faq.map((item) => (
           <div key={item.question}>
             <dt className="text-sm font-medium text-stone-900">{item.question}</dt>
-            <dd className="mt-2 text-sm text-stone-600">{item.answer}</dd>
+            <dd className="mt-2 text-sm text-stone-600">
+              {renderArticleRichText(item.answer, item.question)}
+            </dd>
           </div>
         ))}
       </dl>
