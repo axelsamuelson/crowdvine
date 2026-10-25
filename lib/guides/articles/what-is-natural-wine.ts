@@ -12,8 +12,8 @@ export const whatIsNaturalWineArticle: GuideArticleContent = {
     sv: "vad-ar-naturvin",
   },
   title: {
-    en: "What Is Natural Wine? How It Is Made and How It Differs",
-    sv: "Vad är naturvin? Så görs det och så skiljer det sig",
+    en: "What is natural wine? Definition, sulfites, how it's made",
+    sv: "Vad är naturvin? Definition, sulfiter och hur det görs",
   },
   meta: {
     en: "Natural wine means low intervention: organic grapes, spontaneous fermentation and little or no added sulphur. Sulfites, and how it differs from organic wine.",

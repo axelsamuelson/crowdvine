@@ -26,10 +26,10 @@ function collectStrings(value: unknown, out: string[] = []): string[] {
 describe("what is natural wine", () => {
   it("keeps the title, h1 and the section order", () => {
     expect(whatIsNaturalWineArticle.title.sv).toBe(
-      "Vad är naturvin? Så görs det och så skiljer det sig",
+      "Vad är naturvin? Definition, sulfiter och hur det görs",
     );
     expect(whatIsNaturalWineArticle.title.en).toBe(
-      "What Is Natural Wine? How It Is Made and How It Differs",
+      "What is natural wine? Definition, sulfites, how it's made",
     );
     expect(whatIsNaturalWineArticle.title.sv.length).toBeLessThanOrEqual(60);
     expect(whatIsNaturalWineArticle.title.en.length).toBeLessThanOrEqual(60);
