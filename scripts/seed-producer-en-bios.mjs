@@ -2,9 +2,20 @@
  * Seed English producer bios via catalog PATCH (MCP_API_KEY).
  * Only writes bio_short_en / bio_long_en — never touches Swedish locales.
  *
+ * Prefers ./producent-bios-en.md (or PRODUCER_BIOS_MD path) when present.
+ * Markdown shape per producer:
+ *   ## slug-or-name
+ *   ### short
+ *   …
+ *   ### long
+ *   …
+ *
  * Usage:
  *   MCP_API_KEY=… BASE_URL=https://pactwines.com node scripts/seed-producer-en-bios.mjs
  */
+import { readFileSync, existsSync } from "node:fs";
+import { resolve } from "node:path";
+
 const BASE = (process.env.BASE_URL || "https://pactwines.com").replace(/\/$/, "");
 const KEY = process.env.MCP_API_KEY?.trim();
 if (!KEY) {
@@ -12,8 +23,25 @@ if (!KEY) {
   process.exit(1);
 }
 
-/** @type {Record<string, { bio_short_en: string, bio_long_en?: string }>} */
-const BIOS = {
+const SLUG_TO_ID = {
+  "chateau-del-ranq": "0dc212c5-b926-42db-9436-fda06264115d",
+  "clos-fantine": "30a4559f-0fb3-48f8-9a1c-7215805a1e2d",
+  "grain-d-l": "3c5aff1f-431a-4424-b9bc-9d205a859f7d",
+  "julien-peyras": "fb189c6d-cd4e-4ee8-914a-c673192d589c",
+};
+
+const NAME_TO_SLUG = {
+  "château del ranq": "chateau-del-ranq",
+  "chateau del ranq": "chateau-del-ranq",
+  "clos fantine": "clos-fantine",
+  "grain d'l": "grain-d-l",
+  "grain d’l": "grain-d-l",
+  "grain-d-l": "grain-d-l",
+  "julien peyras": "julien-peyras",
+};
+
+/** Fallback EN copy (SV→EN of live bios) if the attached markdown is missing. */
+const FALLBACK_BIOS = {
   "chateau-del-ranq": {
     bio_short_en:
       "Laure and Sébastien run Château del Ranq in Pic Saint-Loup — one of Languedoc's most distinctive terroirs, with limestone soils, high elevation, and a climate shaped by sea wind and mountain air. The wines are known for their freshness, salinity, and minerality. The range spans AOP Pic Saint-Loup to experimental Vin de France cuvées.",
@@ -40,12 +68,76 @@ const BIOS = {
   },
 };
 
-const SLUG_TO_ID = {
-  "chateau-del-ranq": "0dc212c5-b926-42db-9436-fda06264115d",
-  "clos-fantine": "30a4559f-0fb3-48f8-9a1c-7215805a1e2d",
-  "grain-d-l": "3c5aff1f-431a-4424-b9bc-9d205a859f7d",
-  "julien-peyras": "fb189c6d-cd4e-4ee8-914a-c673192d589c",
-};
+function resolveSlug(heading) {
+  const raw = heading.trim().toLowerCase();
+  if (SLUG_TO_ID[raw]) return raw;
+  return NAME_TO_SLUG[raw] ?? null;
+}
+
+/** @returns {Record<string, { bio_short_en: string, bio_long_en?: string }>} */
+function parseBiosMarkdown(md) {
+  const out = {};
+  const sections = md.split(/^##\s+/m).slice(1);
+  for (const section of sections) {
+    const nl = section.indexOf("\n");
+    const heading = (nl === -1 ? section : section.slice(0, nl)).trim();
+    const body = nl === -1 ? "" : section.slice(nl + 1);
+    const slug = resolveSlug(heading);
+    if (!slug) {
+      console.warn(`Skipping unknown producer heading: ${heading}`);
+      continue;
+    }
+    const parts = body.split(/^###\s+/m).slice(1);
+    let short = "";
+    let long = "";
+    for (const part of parts) {
+      const pNl = part.indexOf("\n");
+      const kind = (pNl === -1 ? part : part.slice(0, pNl)).trim().toLowerCase();
+      const text = (pNl === -1 ? "" : part.slice(pNl + 1)).trim();
+      if (/^(short|bio_short|en short|short bio)/.test(kind)) short = text;
+      else if (/^(long|bio_long|en long|long bio)/.test(kind)) long = text;
+    }
+    // Fallback: first paragraph = short, rest = long
+    if (!short && !long) {
+      const paras = body
+        .trim()
+        .split(/\n\s*\n/)
+        .map((p) => p.trim())
+        .filter(Boolean);
+      short = paras[0] || "";
+      long = paras.slice(1).join("\n\n");
+    }
+    if (!short) {
+      console.warn(`No short bio for ${slug}`);
+      continue;
+    }
+    out[slug] = {
+      bio_short_en: short,
+      ...(long ? { bio_long_en: long } : {}),
+    };
+  }
+  return out;
+}
+
+function loadBios() {
+  const candidates = [
+    process.env.PRODUCER_BIOS_MD,
+    resolve(process.cwd(), "producent-bios-en.md"),
+    resolve(process.cwd(), "producent-bios-en.md.md"),
+    "/tmp/producent-bios-en.md",
+  ].filter(Boolean);
+
+  for (const path of candidates) {
+    if (existsSync(path)) {
+      console.log(`Using bios from ${path}`);
+      return parseBiosMarkdown(readFileSync(path, "utf8"));
+    }
+  }
+  console.warn(
+    "producent-bios-en.md not found — using fallback EN translations of live SV bios",
+  );
+  return FALLBACK_BIOS;
+}
 
 async function patch(id, body) {
   const res = await fetch(`${BASE}/api/producers/${id}`, {
@@ -71,16 +163,21 @@ async function patch(id, body) {
 }
 
 async function main() {
-  for (const [slug, bios] of Object.entries(BIOS)) {
+  const bios = loadBios();
+  for (const [slug, fields] of Object.entries(bios)) {
     const id = SLUG_TO_ID[slug];
+    if (!id) {
+      console.warn(`No id for ${slug}`);
+      continue;
+    }
     console.log(`Updating ${slug} (${id})…`);
     const result = await patch(id, {
-      bio_short_en: bios.bio_short_en,
-      ...(bios.bio_long_en ? { bio_long_en: bios.bio_long_en } : {}),
+      bio_short_en: fields.bio_short_en,
+      ...(fields.bio_long_en ? { bio_long_en: fields.bio_long_en } : {}),
     });
     const p = result.producer ?? result;
     console.log(
-      `  ok short_en=${Boolean(p.bio_short_en)} long_en=${Boolean(p.bio_long_en)} sv_short_unchanged=${Boolean(p.bio_short)}`,
+      `  ok short_en=${Boolean(p.bio_short_en)} long_en=${Boolean(p.bio_long_en)} sv_short_present=${Boolean(p.bio_short)}`,
     );
   }
 }
