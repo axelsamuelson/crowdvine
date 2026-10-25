@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { GuideRankEntry } from "@/components/guides/guide-rank-entry";
 import { GuideRankTable } from "@/components/guides/guide-rank-table";
 import { Footer } from "@/components/layout/footer";
+import { DEFAULT_WINE_IMAGE_PATH } from "@/lib/constants";
 import {
   GuideBreadcrumbs,
   buildGuideBreadcrumbJsonLd,
@@ -24,6 +26,10 @@ import {
   TOP_100_WINES_PUBLISHED_AT,
   TOP_100_WINES_UPDATED_AT,
 } from "@/lib/guides/top-100-wines";
+import {
+  beginnerPickCopy,
+  resolveAvailableBeginnerPicks,
+} from "@/lib/guides/worlds-best-beginner-picks";
 import type { AppLocale } from "@/lib/i18n/locale";
 import { categoryPageTitle } from "@/lib/seo/category-page-title";
 import {
@@ -35,6 +41,10 @@ import {
   SYSTEMBOLAGET_BEST_UPLINK,
   SYSTEMBOLAGET_RANKED_LISTS,
 } from "@/lib/guides/systembolaget-list-links";
+import {
+  systembolagetImageUrl,
+  systembolagetProductUrl,
+} from "@/lib/systembolaget/guide-wines";
 
 function linkLanguedocMentions(
   text: string,
@@ -90,6 +100,7 @@ export async function buildWinesGuideMetadata(
 export async function renderWinesGuidePage(locale: AppLocale) {
   const { seoBaseUrl } = await getGuideSeoOwnership();
   const copy = guideCopy(locale);
+  const beginner = beginnerPickCopy(locale);
   const hubPath = guidePath("hub", locale);
   const producersPath = guidePath("producers", locale);
   const pageUrl = `${seoBaseUrl}${guidePath("wines", locale)}`;
@@ -99,6 +110,8 @@ export async function renderWinesGuidePage(locale: AppLocale) {
     (list) => list.category === "best",
   );
   const languedocShop = locale === "sv" ? "/vin" : "/wine";
+
+  const { available: beginnerPicks } = await resolveAvailableBeginnerPicks();
 
   const top10 = TOP_100_WINES.filter((w) => w.rank <= 10);
   const mid = TOP_100_WINES.filter((w) => w.rank >= 11 && w.rank <= 30);
@@ -211,6 +224,82 @@ export async function renderWinesGuidePage(locale: AppLocale) {
             ))}
           </ol>
         </aside>
+
+        {beginnerPicks.length > 0 ? (
+          <section className="mt-14">
+            <h2 className="mb-4 border-b border-border pb-3 text-xl font-semibold">
+              {beginner.heading}
+            </h2>
+            <p className="text-base leading-relaxed text-muted-foreground">
+              {beginner.intro}
+            </p>
+            <ol className="mt-8 list-decimal space-y-6 pl-5 text-sm leading-relaxed text-muted-foreground md:text-base">
+              {beginnerPicks.map((pick) => {
+                const origin = pick.origin[locale];
+                const body = pick.body[locale];
+                const price =
+                  locale === "sv" &&
+                  pick.product &&
+                  typeof pick.product.price === "number" &&
+                  !Number.isNaN(pick.product.price)
+                    ? `${Math.round(pick.product.price)} kr`
+                    : null;
+                const productUrl = systembolagetProductUrl(pick.productNumber);
+                const imageSrc =
+                  systembolagetImageUrl(pick.product?.imageUrl ?? null, 100) ??
+                  DEFAULT_WINE_IMAGE_PATH;
+
+                return (
+                  <li key={pick.productNumber} className="pl-1">
+                    <div className="flex gap-4">
+                      <div className="flex h-20 w-10 shrink-0 items-center justify-center">
+                        <Image
+                          src={imageSrc}
+                          alt={pick.name}
+                          width={40}
+                          height={80}
+                          className="h-full w-full object-contain object-top"
+                          sizes="40px"
+                        />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p>
+                          <span className="font-semibold text-foreground">
+                            {pick.name}
+                          </span>{" "}
+                          ({origin}). {body}
+                          {price ? (
+                            <>
+                              {" "}
+                              <Link
+                                href={productUrl}
+                                className="font-medium tabular-nums text-foreground underline underline-offset-4 hover:text-foreground"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                {price}
+                              </Link>
+                            </>
+                          ) : null}
+                        </p>
+                      </div>
+                    </div>
+                  </li>
+                );
+              })}
+            </ol>
+            <p className="mt-8 text-sm leading-relaxed text-muted-foreground md:text-base">
+              {beginner.moreBefore}
+              <Link
+                href={beginner.moreHref}
+                className="underline underline-offset-4 hover:text-foreground"
+              >
+                {beginner.moreLink}
+              </Link>
+              {beginner.moreAfter}
+            </p>
+          </section>
+        ) : null}
 
         <section className="mt-14">
           <h2 className="mb-4 border-b border-border pb-3 text-xl font-semibold">
