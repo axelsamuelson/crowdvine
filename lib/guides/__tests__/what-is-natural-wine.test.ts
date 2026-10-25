@@ -28,11 +28,14 @@ describe("what is natural wine", () => {
     expect(whatIsNaturalWineArticle.title.sv).toBe(
       "Vad är naturvin? Definition, sulfiter och hur det görs",
     );
+    expect(whatIsNaturalWineArticle.title.en).toBe(
+      "What is natural wine? Definition, sulfites, how it's made",
+    );
     expect(whatIsNaturalWineArticle.title.sv.length).toBeLessThanOrEqual(60);
     expect(whatIsNaturalWineArticle.title.en.length).toBeLessThanOrEqual(60);
     expect(whatIsNaturalWineArticle.h1).toEqual({
       sv: "Vad är naturvin?",
-      en: "What is natural wine?",
+      en: "What Is Natural Wine?",
     });
     expect(whatIsNaturalWineArticle.meta.sv.length).toBeLessThanOrEqual(160);
     expect(whatIsNaturalWineArticle.meta.en.length).toBeLessThanOrEqual(160);
@@ -45,6 +48,8 @@ describe("what is natural wine", () => {
       "Naturvin, ekologiskt och biodynamiskt: skillnaden",
       "Finns naturvin på Systembolaget?",
       "Så smakar naturvin",
+      "Vitt naturvin",
+      "Rött naturvin",
       "Var görs naturvin?",
     ]);
     expect(
@@ -56,7 +61,7 @@ describe("what is natural wine", () => {
       "Är naturvin samma som orange vin?",
       "Var köper man naturvin i Sverige?",
     ]);
-    expect(whatIsNaturalWineArticle.updated).toBe("2026-10-12");
+    expect(whatIsNaturalWineArticle.updated).toBe("2026-10-25");
   });
 
   it("states only the sourced sulphur ceilings", () => {

@@ -119,6 +119,27 @@ const nextConfig = {
         destination: "/guides",
         permanent: true,
       },
+      // Colour what-is guides merged into the main natural-wine explainer
+      {
+        source: "/guider/vad-ar-vitt-naturvin",
+        destination: "/guider/vad-ar-naturvin",
+        permanent: true,
+      },
+      {
+        source: "/guider/vad-ar-rott-naturvin",
+        destination: "/guider/vad-ar-naturvin",
+        permanent: true,
+      },
+      {
+        source: "/guides/what-is-white-natural-wine",
+        destination: "/guides/what-is-natural-wine",
+        permanent: true,
+      },
+      {
+        source: "/guides/what-is-red-natural-wine",
+        destination: "/guides/what-is-natural-wine",
+        permanent: true,
+      },
       // Legacy Languedoc editorial pages → merged guide under /guider
       {
         source: "/languedoc",
