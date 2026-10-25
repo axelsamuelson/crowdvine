@@ -1,12 +1,10 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { GuideRankEntry } from "@/components/guides/guide-rank-entry";
 import { GuideRankTable } from "@/components/guides/guide-rank-table";
 import { Footer } from "@/components/layout/footer";
-import { DEFAULT_WINE_IMAGE_PATH } from "@/lib/constants";
 import {
   GuideBreadcrumbs,
   buildGuideBreadcrumbJsonLd,
@@ -29,6 +27,7 @@ import {
 import {
   beginnerPickCopy,
   resolveAvailableBeginnerPicks,
+  type BeginnerPickResolved,
 } from "@/lib/guides/worlds-best-beginner-picks";
 import type { AppLocale } from "@/lib/i18n/locale";
 import { categoryPageTitle } from "@/lib/seo/category-page-title";
@@ -41,10 +40,7 @@ import {
   SYSTEMBOLAGET_BEST_UPLINK,
   SYSTEMBOLAGET_RANKED_LISTS,
 } from "@/lib/guides/systembolaget-list-links";
-import {
-  systembolagetImageUrl,
-  systembolagetProductUrl,
-} from "@/lib/systembolaget/guide-wines";
+import { systembolagetProductUrl } from "@/lib/systembolaget/guide-wines";
 
 function linkLanguedocMentions(
   text: string,
@@ -111,7 +107,15 @@ export async function renderWinesGuidePage(locale: AppLocale) {
   );
   const languedocShop = locale === "sv" ? "/vin" : "/wine";
 
-  const { available: beginnerPicks } = await resolveAvailableBeginnerPicks();
+  let beginnerPicks: BeginnerPickResolved[] = [];
+  try {
+    beginnerPicks = (await resolveAvailableBeginnerPicks()).available;
+  } catch (error) {
+    console.error(
+      "[BEGINNER_PICKS] failed to resolve picks for wines guide:",
+      error instanceof Error ? error.message : error,
+    );
+  }
 
   const top10 = TOP_100_WINES.filter((w) => w.rank <= 10);
   const mid = TOP_100_WINES.filter((w) => w.rank >= 11 && w.rank <= 30);
@@ -245,45 +249,28 @@ export async function renderWinesGuidePage(locale: AppLocale) {
                     ? `${Math.round(pick.product.price)} kr`
                     : null;
                 const productUrl = systembolagetProductUrl(pick.productNumber);
-                const imageSrc =
-                  systembolagetImageUrl(pick.product?.imageUrl ?? null, 100) ??
-                  DEFAULT_WINE_IMAGE_PATH;
 
                 return (
                   <li key={pick.productNumber} className="pl-1">
-                    <div className="flex gap-4">
-                      <div className="flex h-20 w-10 shrink-0 items-center justify-center">
-                        <Image
-                          src={imageSrc}
-                          alt={pick.name}
-                          width={40}
-                          height={80}
-                          className="h-full w-full object-contain object-top"
-                          sizes="40px"
-                        />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p>
-                          <span className="font-semibold text-foreground">
-                            {pick.name}
-                          </span>{" "}
-                          ({origin}). {body}
-                          {price ? (
-                            <>
-                              {" "}
-                              <Link
-                                href={productUrl}
-                                className="font-medium tabular-nums text-foreground underline underline-offset-4 hover:text-foreground"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                              >
-                                {price}
-                              </Link>
-                            </>
-                          ) : null}
-                        </p>
-                      </div>
-                    </div>
+                    <p>
+                      <span className="font-semibold text-foreground">
+                        {pick.name}
+                      </span>{" "}
+                      ({origin}). {body}
+                      {price ? (
+                        <>
+                          {" "}
+                          <Link
+                            href={productUrl}
+                            className="font-medium tabular-nums text-foreground underline underline-offset-4 hover:text-foreground"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            {price}
+                          </Link>
+                        </>
+                      ) : null}
+                    </p>
                   </li>
                 );
               })}
