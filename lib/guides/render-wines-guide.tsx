@@ -208,8 +208,7 @@ export async function renderWinesGuidePage(locale: AppLocale) {
                   <span className="font-medium text-foreground">
                     {wine.wine}
                   </span>
-                  {", "}
-                  {wine.producer}
+                  , {wine.producer}
                 </Link>
               </li>
             ))}
