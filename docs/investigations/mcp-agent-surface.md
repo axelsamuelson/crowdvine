@@ -345,9 +345,9 @@ Registry: `lib/mcp/server.ts` registers tools from eight modules. **44 tools** t
 | `get_funnel_overview` | `metrics.ts` | Read | `user_journey_funnel` or fallback `user_events`; `order_reservation_items` | none |
 | `get_full_strategy` | `metrics.ts` | Read | `admin_goals`, `admin_objectives`, `admin_projects`, `admin_tasks` | optional `include_completed`, `detail_level` |
 | `list_producers` | `lib/mcp/tools/catalog.ts` | Read | via `/api/producers` → producers (catalog) | none |
-| `get_producer` | `catalog.ts` | Read | `/api/producers/:id` | `id` |
-| `create_producer` | `catalog.ts` | Write | `/api/producers` POST | name, region; optional country, bios, etc. |
-| `update_producer` | `catalog.ts` | Write | `/api/producers/:id` PATCH | `id` + partial fields |
+| `get_producer` | `catalog.ts` | Read | `/api/producers/:id` | `id` (returns `bio_short`/`bio_long` SV + `bio_short_en`/`bio_long_en`) |
+| `create_producer` | `catalog.ts` | Write | `/api/producers` POST | name, region; optional country, `bio_short`/`bio_long`/`bio_short_en`/`bio_long_en`, etc. |
+| `update_producer` | `catalog.ts` | Write | `/api/producers/:id` PATCH | `id` + partial fields; `bio_*_en` updates EN JSONB locale only |
 | `list_wines` | `catalog.ts` | Read | `/api/wines` | optional `producer_id`, `type`, `is_published` |
 | `get_wine` | `catalog.ts` | Read | `/api/wines/:id` | `id` |
 | `create_wine` | `catalog.ts` | Write | `/api/wines` POST → `wines` | producer_id, name, appellation, PDP fields, etc. |

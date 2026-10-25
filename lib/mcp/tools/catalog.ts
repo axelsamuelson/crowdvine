@@ -86,7 +86,8 @@ export function registerCatalogTools(server: McpServer, sb: SupabaseClient) {
   server.registerTool(
     "list_producers",
     {
-      description: "Lista alla catalog-producenter (sorterade på namn).",
+      description:
+        "Lista alla catalog-producenter (sorterade på namn). Returnerar bio_short/bio_long (SV) och bio_short_en/bio_long_en (EN) separat.",
       inputSchema: {},
     },
     async () => {
@@ -113,7 +114,8 @@ export function registerCatalogTools(server: McpServer, sb: SupabaseClient) {
   server.registerTool(
     "get_producer",
     {
-      description: "Hämta en catalog-producent via id.",
+      description:
+        "Hämta en catalog-producent via id. Inkluderar bio_short/bio_long (SV) och bio_short_en/bio_long_en (EN).",
       inputSchema: {
         id: z.string().describe("Producer UUID"),
       },
@@ -141,8 +143,22 @@ export function registerCatalogTools(server: McpServer, sb: SupabaseClient) {
         country: z.string().optional(),
         subregion: z.string().optional(),
         founded_year: z.number().int().optional(),
-        bio_short: z.string().optional(),
-        bio_long: z.string().optional(),
+        bio_short: z
+          .string()
+          .optional()
+          .describe("Swedish short bio (short_description.sv)."),
+        bio_short_en: z
+          .string()
+          .optional()
+          .describe("English short bio (short_description.en)."),
+        bio_long: z
+          .string()
+          .optional()
+          .describe("Swedish long bio (bio_long.sv)."),
+        bio_long_en: z
+          .string()
+          .optional()
+          .describe("English long bio (bio_long.en)."),
         certification: certificationSchema.optional(),
         contact_name: z.string().optional(),
         contact_email: z.string().optional(),
@@ -168,7 +184,8 @@ export function registerCatalogTools(server: McpServer, sb: SupabaseClient) {
   server.registerTool(
     "update_producer",
     {
-      description: "Uppdatera catalog-producent (partial update).",
+      description:
+        "Uppdatera catalog-producent (partial update). Använd bio_short_en/bio_long_en för engelska fält utan att ändra svenska; bio_short/bio_long uppdaterar bara SV.",
       inputSchema: {
         id: z.string(),
         name: z.string().optional(),
@@ -176,8 +193,26 @@ export function registerCatalogTools(server: McpServer, sb: SupabaseClient) {
         country: z.string().optional(),
         subregion: z.string().nullable().optional(),
         founded_year: z.number().int().nullable().optional(),
-        bio_short: z.string().nullable().optional(),
-        bio_long: z.string().nullable().optional(),
+        bio_short: z
+          .string()
+          .nullable()
+          .optional()
+          .describe("Swedish short bio. null clears SV only."),
+        bio_short_en: z
+          .string()
+          .nullable()
+          .optional()
+          .describe("English short bio. null clears EN only."),
+        bio_long: z
+          .string()
+          .nullable()
+          .optional()
+          .describe("Swedish long bio. null clears SV only."),
+        bio_long_en: z
+          .string()
+          .nullable()
+          .optional()
+          .describe("English long bio. null clears EN only."),
         certification: certificationSchema.nullable().optional(),
         contact_name: z.string().nullable().optional(),
         contact_email: z.string().nullable().optional(),

@@ -71,14 +71,6 @@ export async function PATCH(
 
   try {
     const body = (await request.json()) as Record<string, unknown>;
-    const patch = buildProducerPatch(body);
-
-    if (Object.keys(patch).length === 0) {
-      return NextResponse.json(
-        { error: "No valid fields to update" },
-        { status: 400 },
-      );
-    }
 
     if (
       body.certification !== undefined &&
@@ -92,6 +84,44 @@ export async function PATCH(
     }
 
     const sb = getSupabaseAdmin();
+    const needsBioMerge =
+      "bio_short" in body ||
+      "bio_short_en" in body ||
+      "bio_long" in body ||
+      "bio_long_en" in body;
+
+    let existingRow: Record<string, unknown> | undefined;
+    if (needsBioMerge) {
+      const { data: existing, error: existingError } = await sb
+        .from("producers")
+        .select("short_description, bio_long")
+        .eq("id", id)
+        .eq("status", "active")
+        .maybeSingle();
+      if (existingError) {
+        return NextResponse.json(
+          { error: existingError.message },
+          { status: 500 },
+        );
+      }
+      if (!existing) {
+        return NextResponse.json(
+          { error: "Producer not found" },
+          { status: 404 },
+        );
+      }
+      existingRow = existing as Record<string, unknown>;
+    }
+
+    const patch = buildProducerPatch(body, existingRow);
+
+    if (Object.keys(patch).length === 0) {
+      return NextResponse.json(
+        { error: "No valid fields to update" },
+        { status: 400 },
+      );
+    }
+
     const { data, error } = await sb
       .from("producers")
       .update(patch)
