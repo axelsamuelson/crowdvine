@@ -1,18 +1,10 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
-import { switchGuidePath } from "@/lib/guides/switch-guide-path";
-import type { AppLocale } from "@/lib/i18n/locale";
-import { LOCALE_COOKIE, parseLocaleCookie } from "@/lib/i18n/locale";
 import {
   PRODUCER_PORTAL_SEGMENTS,
   producerPagePath,
-  productPagePath,
-  type ProducerPathSegment,
-  type ProductPathSegment,
 } from "@/lib/i18n/localized-routes";
-import { producersDirectoryPathForLocale } from "@/lib/i18n/producers-directory";
-import { localeFromShopPath } from "@/lib/i18n/shop-path-locale";
 
 const PUBLIC_PRODUCER_SLUG_RE =
   /^\/(producers|producer|producenter|producent)\/([^/?#]+)\/?$/;
@@ -55,78 +47,6 @@ export function redirectLegacyProducerProfilePath(
     const slug = decodeURIComponent(svMatch[1]);
     const u = req.nextUrl.clone();
     u.pathname = producerPagePath(slug, "producenter");
-    return NextResponse.redirect(u, 308);
-  }
-
-  return null;
-}
-
-function preferredLocaleFromRequest(req: NextRequest): AppLocale | null {
-  const fromCookie = parseLocaleCookie(req.cookies.get(LOCALE_COOKIE)?.value);
-  if (fromCookie) return fromCookie;
-
-  const referer = req.headers.get("referer");
-  if (!referer) return null;
-  try {
-    return localeFromShopPath(new URL(referer).pathname);
-  } catch {
-    return null;
-  }
-}
-
-/** Redirect when URL path locale disagrees with cookie or shop referer locale. */
-export function redirectLocalePathMismatch(
-  req: NextRequest,
-): NextResponse | null {
-  const preferredLocale = preferredLocaleFromRequest(req);
-  if (!preferredLocale) return null;
-
-  const { pathname } = req.nextUrl;
-
-  const productMatch = pathname.match(/^\/(product|produkt)\/([^/?#]+)\/?$/);
-  if (productMatch) {
-    const [, segment, rawHandle] = productMatch;
-    const handle = decodeURIComponent(rawHandle);
-    const pathLocale: AppLocale = segment === "produkt" ? "sv" : "en";
-    if (pathLocale === preferredLocale) return null;
-
-    const targetSegment: ProductPathSegment =
-      preferredLocale === "sv" ? "produkt" : "product";
-    const u = req.nextUrl.clone();
-    u.pathname = productPagePath(handle, targetSegment);
-    return NextResponse.redirect(u, 308);
-  }
-
-  if (pathname === "/producers" || pathname === "/producenter") {
-    const pathLocale: AppLocale =
-      pathname === "/producenter" ? "sv" : "en";
-    if (pathLocale === preferredLocale) return null;
-    const u = req.nextUrl.clone();
-    u.pathname = producersDirectoryPathForLocale(preferredLocale);
-    return NextResponse.redirect(u, 308);
-  }
-
-  const guideTarget = switchGuidePath(pathname, preferredLocale);
-  if (guideTarget && guideTarget !== pathname) {
-    const u = req.nextUrl.clone();
-    u.pathname = guideTarget;
-    return NextResponse.redirect(u, 308);
-  }
-
-  if (!isPublicProducerSlugPath(pathname)) return null;
-
-  const producerMatch = pathname.match(PUBLIC_PRODUCER_SLUG_RE);
-  if (producerMatch) {
-    const [, segment, rawSlug] = producerMatch;
-    const slug = decodeURIComponent(rawSlug);
-    const pathLocale: AppLocale =
-      segment === "producent" || segment === "producenter" ? "sv" : "en";
-    if (pathLocale === preferredLocale) return null;
-
-    const targetSegment: ProducerPathSegment =
-      preferredLocale === "sv" ? "producenter" : "producers";
-    const u = req.nextUrl.clone();
-    u.pathname = producerPagePath(slug, targetSegment);
     return NextResponse.redirect(u, 308);
   }
 

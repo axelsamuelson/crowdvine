@@ -9,12 +9,13 @@ import {
   pageTwitterCard,
 } from "@/lib/seo/default-social";
 import { getSiteConfig } from "@/lib/site-config-server";
+import { PACT_PUBLIC_ORIGIN } from "@/lib/i18n/localized-routes";
 
 const content = aboutPageContentForLocale("en");
 
 export async function generateMetadata(): Promise<Metadata> {
   const config = await getSiteConfig();
-  const urls = aboutPageUrls(config.baseUrl);
+  const urls = aboutPageUrls(PACT_PUBLIC_ORIGIN);
   return {
     title: content.title,
     description: content.description,
@@ -39,7 +40,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function AboutPage() {
   const config = await getSiteConfig();
-  const urls = aboutPageUrls(config.baseUrl);
+  const urls = aboutPageUrls(PACT_PUBLIC_ORIGIN);
 
   return (
     <AboutPageView

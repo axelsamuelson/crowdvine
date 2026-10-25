@@ -4,27 +4,26 @@ import {
   INVALID_PRODUCER_COUNTRY_MESSAGE,
   normalizeCountryCode,
 } from "@/lib/countries";
-import { extractWineText } from "@/lib/i18n/wine-locale";
+import {
+  buildWineJsonb,
+  extractWineText,
+} from "@/lib/i18n/wine-locale";
 import { supabaseServer } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { revalidatePath } from "next/cache";
 
 function normalizeProducerRow(
   row: Record<string, unknown>,
-): Producer & { bio_long: string } {
+): Producer {
   const base = row as unknown as Producer;
+  const short = row.short_description as Record<string, string> | string | null;
+  const long = row.bio_long as Record<string, string> | string | null;
   return {
     ...base,
-    short_description:
-      extractWineText(
-        row.short_description as Record<string, string> | string | null,
-        "sv",
-      ) ?? "",
-    bio_long:
-      extractWineText(
-        row.bio_long as Record<string, string> | string | null,
-        "sv",
-      ) ?? "",
+    short_description: extractWineText(short, "sv") ?? "",
+    short_description_en: extractWineText(short, "en", { fallback: false }) ?? "",
+    bio_long: extractWineText(long, "sv") ?? "",
+    bio_long_en: extractWineText(long, "en", { fallback: false }) ?? "",
     website_url: typeof row.website_url === "string" ? row.website_url : null,
     instagram_handle:
       typeof row.instagram_handle === "string" ? row.instagram_handle : null,
@@ -44,6 +43,12 @@ export interface Producer {
   address_city: string;
   address_postcode: string;
   short_description: string;
+  /** English short bio (admin). Empty when unset. */
+  short_description_en?: string;
+  /** Swedish long bio (admin). */
+  bio_long?: string;
+  /** English long bio (admin). */
+  bio_long_en?: string;
   logo_image_path: string;
   pickup_zone_id?: string;
   /** Optional pallet automation grouping (Phase 2.1). */
@@ -76,6 +81,9 @@ export interface CreateProducerData {
   address_city: string;
   address_postcode: string;
   short_description: string;
+  short_description_en?: string;
+  bio_long?: string;
+  bio_long_en?: string;
   logo_image_path: string;
   pickup_zone_id?: string;
   shipping_region_id?: string | null;
@@ -133,11 +141,33 @@ export async function createProducer(data: CreateProducerData) {
 
   console.log("Creating producer with data:", data, "owner:", user?.id);
 
+  const {
+    short_description_en,
+    bio_long,
+    bio_long_en,
+    short_description,
+    ...rest
+  } = data;
+
   const { data: producer, error } = await sb
     .from("producers")
     .insert({
-      ...data,
+      ...rest,
       country_code: countryCode,
+      short_description: buildWineJsonb(
+        {
+          sv: short_description || "",
+          en: short_description_en || "",
+        },
+        "sv",
+      ),
+      bio_long: buildWineJsonb(
+        {
+          sv: bio_long || "",
+          en: bio_long_en || "",
+        },
+        "sv",
+      ),
       pickup_zone_id: data.pickup_zone_id || null,
       shipping_region_id: data.shipping_region_id?.trim()
         ? data.shipping_region_id.trim()

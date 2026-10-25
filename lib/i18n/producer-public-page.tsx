@@ -181,7 +181,10 @@ export async function buildProducerPublicMetadata(
   locale: AppLocale,
   pathSegment: ProducerPathSegment,
 ): Promise<Metadata> {
-  const data = await fetchProducerBySlugForLocale(slug, locale);
+  const [data, config] = await Promise.all([
+    fetchProducerBySlugForLocale(slug, locale),
+    getSiteConfig(),
+  ]);
 
   if (!data?.producer) {
     notFound();
@@ -195,7 +198,7 @@ export async function buildProducerPublicMetadata(
     producerProfilePageTitle(name, locale, region, {
       winemakerName,
     }),
-    "PACT Wines",
+    config.siteName,
   );
   const pageDescription = producerProfileMetaDescription(locale, {
     producerName: name,

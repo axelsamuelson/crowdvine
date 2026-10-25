@@ -3,7 +3,10 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { wineDisplayTitle } from "@/lib/wine-display-title";
 import { getAppUrl, getInternalFetchHeaders } from "@/lib/app-url";
 import { DEFAULT_WINE_IMAGE_PATH } from "@/lib/constants";
-import { extractWineText } from "@/lib/i18n/wine-locale";
+import {
+  extractWineText,
+  type WineLocale,
+} from "@/lib/i18n/wine-locale";
 import { resolveProductAvailableForSale } from "@/lib/wine-availability";
 import { getAllWineBoxCalculations } from "@/lib/wine-box-calculations";
 import {
@@ -337,6 +340,8 @@ export async function fetchProductsData(params?: {
   reverse?: boolean;
   /** Case-insensitive match on title, handle, description, grapes, producer (shop `?q=`). */
   searchQuery?: string;
+  /** Locale for description JSONB extraction (shop path). Defaults to sv. */
+  locale?: WineLocale;
   /** When false (pactwines.com), all wines availableForSale. When true (dirtywine.se), B2B stock applies. */
   isB2BSite?: boolean;
   displayCurrencyCode?: string;
@@ -364,6 +369,7 @@ export async function fetchProductsData(params?: {
   const reverse = params?.reverse ?? false;
   // Missing host / omitted flag must stay B2C so pact pages never hide wines.
   const isB2BSite = params?.isB2BSite ?? false;
+  const wineLocale: WineLocale = params?.locale ?? "sv";
   // Hidden wines are removed after stock is known, so the SQL read has to
   // include the whole live catalog before the caller's limit is applied.
   const sqlLimit = isB2BSite ? Math.max(limit, 5000) : limit;
@@ -665,7 +671,7 @@ export async function fetchProductsData(params?: {
 
     const rawDescription = extractWineText(
       i.description as Record<string, string> | string | null,
-      "sv",
+      wineLocale,
     );
     const wineDescription =
       rawDescription ||
@@ -820,6 +826,8 @@ export async function fetchCollectionProductsData(
     limit?: number;
     /** Case-insensitive match on title, handle, description, grapes (shop `?q=`). */
     searchQuery?: string;
+    /** Locale for description JSONB extraction (shop path). Defaults to sv. */
+    locale?: WineLocale;
     /** When false (pactwines.com), all wines availableForSale. When true (dirtywine.se), B2B stock applies. */
     isB2BSite?: boolean;
     displayCurrencyCode?: string;
@@ -828,6 +836,7 @@ export async function fetchCollectionProductsData(
 ): Promise<ProductData[]> {
   const limit = params?.limit ?? 200;
   const isB2BSite = params?.isB2BSite ?? false;
+  const wineLocale: WineLocale = params?.locale ?? "sv";
   const sqlLimit = isB2BSite ? Math.max(limit, 5000) : limit;
   const { displayCurrencyCode, sekToDisplayRate } =
     await resolveProductDisplayCurrency(params);
@@ -1049,7 +1058,7 @@ export async function fetchCollectionProductsData(
 
     const rawDesc = extractWineText(
       i.description as Record<string, string> | string | null,
-      "sv",
+      wineLocale,
     );
 
     return {

@@ -5,6 +5,7 @@ import {
   normalizeCountryCode,
 } from "@/lib/countries";
 import { parseProducerLinkFields } from "@/lib/producer-links";
+import { buildWineJsonb } from "@/lib/i18n/wine-locale";
 
 /**
  * Get all producers
@@ -102,7 +103,25 @@ export async function POST(request: NextRequest) {
         address_street: body.address_street || "",
         address_city: body.address_city || "",
         address_postcode: body.address_postcode || "",
-        short_description: body.short_description || "",
+        short_description: buildWineJsonb(
+          typeof body.short_description_en === "string"
+            ? {
+                sv: String(body.short_description || ""),
+                en: String(body.short_description_en || ""),
+              }
+            : String(body.short_description || ""),
+          "sv",
+        ),
+        bio_long: buildWineJsonb(
+          typeof body.bio_long_en === "string" ||
+            typeof body.bio_long === "string"
+            ? {
+                sv: String(body.bio_long || ""),
+                en: String(body.bio_long_en || ""),
+              }
+            : null,
+          "sv",
+        ),
         logo_image_path: body.logo_image_path || "",
         // pickup_zone_id is deprecated — see PUT /api/admin/producers/[id]
         pickup_zone_id: null,

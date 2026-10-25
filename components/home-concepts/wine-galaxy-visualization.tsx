@@ -1,5 +1,8 @@
 "use client";
 
+import { useShoppingContext } from "@/lib/context/shopping-context-provider";
+import { producerShopPathFromName } from "@/lib/i18n/localized-routes";
+
 import { useEffect, useRef, useState } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls, Stars, Text } from "@react-three/drei";
@@ -155,6 +158,7 @@ function GalaxyScene({
 }
 
 export function WineGalaxyVisualization() {
+  const { context } = useShoppingContext();
   const [producers, setProducers] = useState<Producer[]>([]);
   const [loading, setLoading] = useState(true);
   const [hoveredProducer, setHoveredProducer] = useState<string | null>(null);
@@ -299,7 +303,7 @@ export function WineGalaxyVisualization() {
               </div>
             </div>
             <a
-              href={`/vin/${selectedProducerData.name.toLowerCase().replace(/\s+/g, "-")}`}
+              href={producerShopPathFromName(selectedProducerData.name, context.locale)}
               className="text-sm text-foreground hover:underline inline-block"
             >
               Se viner från denna producent →

@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { LivingPalletVisualization } from "./living-pallet-visualization";
+import { useShoppingContext } from "@/lib/context/shopping-context-provider";
+import { shopPathForLocale } from "@/lib/i18n/localized-routes";
 
 interface Preference {
   id: string;
@@ -43,6 +45,7 @@ interface RecommendedPallet {
 }
 
 export function YourFirstPallVisualization() {
+  const { context } = useShoppingContext();
   const [step, setStep] = useState<"questions" | "recommendation">("questions");
   const [wineType, setWineType] = useState<string | null>(null);
   const [quantity, setQuantity] = useState<string | null>(null);
@@ -284,7 +287,7 @@ export function YourFirstPallVisualization() {
         className="mt-6 flex gap-4"
       >
         <a
-          href="/vin"
+          href={shopPathForLocale(context.locale)}
           className="flex-1 px-6 py-4 bg-foreground text-background rounded-full font-medium hover:bg-foreground/90 transition-all text-center text-sm"
         >
           Utforska viner i denna pall
@@ -299,4 +302,3 @@ export function YourFirstPallVisualization() {
     </div>
   );
 }
-

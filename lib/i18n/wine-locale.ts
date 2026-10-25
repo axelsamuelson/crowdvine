@@ -5,12 +5,30 @@ export const SUPPORTED_WINE_LOCALES: WineLocale[] = ["sv", "en"];
 
 const MAX_WINE_TEXT_UNWRAP_DEPTH = 8;
 
+export type ExtractWineTextOptions = {
+  /**
+   * When false, never fall back to Swedish (or plain-string legacy values treated as SV).
+   * Use on English storefront surfaces so missing EN copy stays empty.
+   */
+  fallback?: boolean;
+};
+
 /** Unwrap locale JSONB (including accidentally double-nested `{ sv: { sv: "…" } }`). */
 export function extractWineText(
   field: Record<string, string> | string | null | undefined,
   locale: WineLocale = DEFAULT_WINE_LOCALE,
+  options?: ExtractWineTextOptions,
 ): string | null {
   if (field == null) return null;
+  const allowFallback = options?.fallback !== false;
+
+  // Legacy plain strings are Swedish; hide them on EN when fallback is off.
+  if (typeof field === "string") {
+    const trimmed = field.trim();
+    if (!trimmed) return null;
+    if (!allowFallback && locale !== DEFAULT_WINE_LOCALE) return null;
+    return trimmed;
+  }
 
   let current: unknown = field;
   for (let depth = 0; depth < MAX_WINE_TEXT_UNWRAP_DEPTH; depth++) {
@@ -22,7 +40,9 @@ export function extractWineText(
     if (typeof current !== "object" || Array.isArray(current)) return null;
 
     const obj = current as Record<string, unknown>;
-    const next = obj[locale] ?? obj[DEFAULT_WINE_LOCALE];
+    const next = allowFallback
+      ? (obj[locale] ?? obj[DEFAULT_WINE_LOCALE])
+      : obj[locale];
     if (next === undefined) return null;
     current = next;
   }
@@ -33,10 +53,18 @@ export function extractWineText(
 export function extractWineArray(
   field: Record<string, string[]> | string[] | null | undefined,
   locale: WineLocale = DEFAULT_WINE_LOCALE,
+  options?: ExtractWineTextOptions,
 ): string[] | null {
   if (!field) return null;
-  if (Array.isArray(field)) return field.length > 0 ? field : null;
-  const arr = field[locale] ?? field[DEFAULT_WINE_LOCALE] ?? null;
+  const allowFallback = options?.fallback !== false;
+  if (Array.isArray(field)) {
+    if (field.length === 0) return null;
+    if (!allowFallback && locale !== DEFAULT_WINE_LOCALE) return null;
+    return field;
+  }
+  const arr = allowFallback
+    ? (field[locale] ?? field[DEFAULT_WINE_LOCALE] ?? null)
+    : (field[locale] ?? null);
   return arr && arr.length > 0 ? arr : null;
 }
 

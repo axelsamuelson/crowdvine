@@ -7,6 +7,7 @@ import { LegalPageLayout } from "@/components/legal/legal-page-layout";
 import KopvillkorContent from "@/content/legal/kopvillkor";
 import { LEGAL_VERSIONS } from "@/lib/legal/versions";
 import { getSiteConfig } from "@/lib/site-config-server";
+import { PACT_PUBLIC_ORIGIN } from "@/lib/i18n/localized-routes";
 
 export const dynamic = "force-static";
 
@@ -16,7 +17,7 @@ const DESCRIPTION =
 
 export async function generateMetadata(): Promise<Metadata> {
   const config = await getSiteConfig();
-  const canonical = `${config.baseUrl}/terms`;
+  const canonical = `${PACT_PUBLIC_ORIGIN}/terms`;
   return {
     title: TITLE,
     description: DESCRIPTION,
@@ -25,8 +26,8 @@ export async function generateMetadata(): Promise<Metadata> {
       canonical,
       languages: {
         en: canonical,
-        sv: `${config.baseUrl}/villkor`,
-        "x-default": `${config.baseUrl}/villkor`,
+        sv: `${PACT_PUBLIC_ORIGIN}/villkor`,
+        "x-default": `${PACT_PUBLIC_ORIGIN}/terms`,
       },
     },
   };

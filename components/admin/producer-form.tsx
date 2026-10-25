@@ -120,6 +120,9 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
     address_city: producer?.address_city || "",
     address_postcode: producer?.address_postcode || "",
     short_description: producer?.short_description || "",
+    short_description_en: producer?.short_description_en || "",
+    bio_long: producer?.bio_long || "",
+    bio_long_en: producer?.bio_long_en || "",
     logo_image_path: producer?.logo_image_path || "",
     shipping_region_id: producer?.shipping_region_id ?? "",
     is_pallet_zone: producer?.is_pallet_zone === true,
@@ -691,7 +694,9 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="short_description" className="text-gray-700 dark:text-zinc-300">Description</Label>
+            <Label htmlFor="short_description" className="text-gray-700 dark:text-zinc-300">
+              Short description (SV)
+            </Label>
             <Textarea
               id="short_description"
               value={formData.short_description}
@@ -699,6 +704,47 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
                 handleChange("short_description", e.target.value)
               }
               rows={3}
+              className="border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="short_description_en" className="text-gray-700 dark:text-zinc-300">
+              Short description (EN)
+            </Label>
+            <Textarea
+              id="short_description_en"
+              value={formData.short_description_en || ""}
+              onChange={(e) =>
+                handleChange("short_description_en", e.target.value)
+              }
+              rows={3}
+              className="border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="bio_long" className="text-gray-700 dark:text-zinc-300">
+              Long bio (SV)
+            </Label>
+            <Textarea
+              id="bio_long"
+              value={formData.bio_long || ""}
+              onChange={(e) => handleChange("bio_long", e.target.value)}
+              rows={5}
+              className="border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="bio_long_en" className="text-gray-700 dark:text-zinc-300">
+              Long bio (EN)
+            </Label>
+            <Textarea
+              id="bio_long_en"
+              value={formData.bio_long_en || ""}
+              onChange={(e) => handleChange("bio_long_en", e.target.value)}
+              rows={5}
               className="border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800"
             />
           </div>

@@ -49,7 +49,7 @@ export function producersDirectoryUrls(baseUrl: string): {
   return {
     en: `${baseUrl}/producers`,
     sv: `${baseUrl}/producenter`,
-    xDefault: `${baseUrl}/producenter`,
+    xDefault: `${baseUrl}/producers`,
   };
 }
 
