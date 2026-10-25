@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentAdmin } from "@/lib/admin-auth-server";
-import { createB2bPalletOverviewAccessToken } from "@/lib/b2b-pallet-access-tokens";
+import {
+  b2bPalletWriteHttpError,
+  createB2bShareLink,
+} from "@/lib/admin/b2b-pallet-writes";
 
 function requestOrigin(request: NextRequest): string {
   const origin = request.headers.get("origin");
@@ -37,25 +40,21 @@ export async function POST(
       return NextResponse.json({ error: "Invalid shipment id" }, { status: 400 });
     }
 
-    try {
-      const link = await createB2bPalletOverviewAccessToken({
-        shipmentId,
-        createdBy: admin.id,
-        origin: requestOrigin(request),
-      });
-      return NextResponse.json(link);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Could not create link";
-      if (message.includes("not found")) {
-        return NextResponse.json({ error: message }, { status: 404 });
-      }
-      throw err;
-    }
+    const link = await createB2bShareLink({
+      shipmentId,
+      createdBy: admin.id,
+      origin: requestOrigin(request),
+    });
+    return NextResponse.json(link);
   } catch (err) {
-    console.error("b2b-pallet share-link POST:", err);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+    const mapped = b2bPalletWriteHttpError(err);
+    if (mapped.status >= 500) {
+      console.error("b2b-pallet share-link POST:", err);
+      return NextResponse.json(
+        { error: "Internal server error" },
+        { status: 500 },
+      );
+    }
+    return NextResponse.json(mapped.body, { status: mapped.status });
   }
 }

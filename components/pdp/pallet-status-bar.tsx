@@ -1,10 +1,13 @@
 "use client";
 
+import Link from "next/link";
+
 import { usePalletZoneStatus } from "@/components/pdp/pallet-zone-status-provider";
+import { homeDeliveryGuidePath } from "@/lib/guides/home-delivery-guide";
 import { useTranslations } from "@/lib/hooks/use-translations";
 
 export function PalletStatusBar() {
-  const { t } = useTranslations();
+  const { t, context } = useTranslations();
   const {
     data,
     isInitialFetch,
@@ -84,6 +87,14 @@ export function PalletStatusBar() {
       {data?.campaignTagline ? (
         <p className="text-xs text-muted-foreground">{data.campaignTagline}</p>
       ) : null}
+      <p className="text-xs text-muted-foreground">
+        <Link
+          href={homeDeliveryGuidePath(context.locale)}
+          className="underline underline-offset-4 hover:text-foreground"
+        >
+          {t("product.pdp.homeDeliveryGuideLink")}
+        </Link>
+      </p>
     </div>
   );
 }

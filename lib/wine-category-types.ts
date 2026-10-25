@@ -1,6 +1,12 @@
 export type WineCategoryFaqItem = {
   question: string;
+  /** Plain text or markdown links `[label](/path)`. */
   answer: string;
+};
+
+export type WineCategoryDescriptionLink = {
+  label: string;
+  href: string;
 };
 
 export type WineCategoryFilter = {
@@ -12,8 +18,8 @@ export type WineCategoryFilter = {
   farming?: string[];
   /** Match producers.country_code (ISO), e.g. "FR". */
   countryCode?: string;
-  /** When true, only wines with is_direct_import = true. */
-  isDirectImport?: boolean;
+  /** Match producers.region, e.g. "Languedoc". */
+  region?: string;
 };
 
 export type WineCategory = {
@@ -23,6 +29,8 @@ export type WineCategory = {
   title: string;
   metaDescription: string;
   description: string;
+  /** Optional guide link rendered directly under the intro. */
+  descriptionLink?: WineCategoryDescriptionLink;
   longDescription?: string;
   /** Bullet list for grape category "taste & character" section. */
   tastingProfile?: string[];

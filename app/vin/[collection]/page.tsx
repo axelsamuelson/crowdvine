@@ -15,7 +15,11 @@ import {
 } from "@/lib/external-prices/cached-source-slugs";
 import { mapProductDataToShopProducts } from "@/lib/map-product-data-to-shop-product";
 import { generateProducerSlug } from "@/lib/producer-handle";
-import { producerPageUrls, producerPublicPath } from "@/lib/i18n/localized-routes";
+import {
+  PACT_PUBLIC_ORIGIN,
+  producerPageUrls,
+  producerPublicPath,
+} from "@/lib/i18n/localized-routes";
 import {
   producerShopPageHeading,
   producerShopPagePath,
@@ -49,10 +53,6 @@ import { resolveGrapeCategoryBySlug } from "@/lib/wine-grape-categories";
 import { ProducerBoxesPage } from "@/components/producer-boxes/producer-boxes-page";
 import { isProducerBoxesSlug } from "@/lib/producer-boxes/config";
 import { buildProducerBoxesMetadata } from "@/lib/producer-boxes/metadata";
-import { StockholmDeliveryLandingPage } from "@/components/stockholm-delivery-landing/stockholm-delivery-landing-page";
-import { isStockholmDeliveryLandingSlug } from "@/lib/stockholm-delivery-landing/config";
-import { buildStockholmDeliveryMetadata } from "@/lib/stockholm-delivery-landing/metadata";
-
 export const revalidate = 300;
 export const dynamicParams = true;
 
@@ -73,11 +73,6 @@ export async function generateMetadata(props: {
     return buildProducerBoxesMetadata("sv");
   }
 
-  if (isStockholmDeliveryLandingSlug(slug, "sv")) {
-    const config = await getSiteConfig();
-    return buildStockholmDeliveryMetadata("sv", config);
-  }
-
   const category = await resolveGrapeCategoryBySlug(slug, "sv");
   if (category) {
     const headerList = await headers();
@@ -93,12 +88,12 @@ export async function generateMetadata(props: {
         filterFarming: category.filter.farming,
         filterGrape: category.filter.filterGrape,
         filterCountryCode: category.filter.countryCode,
-        filterIsDirectImport: category.filter.isDirectImport,
+        filterRegion: category.filter.region,
         isB2BSite,
       }),
     ]);
-    const pageUrl = `${config.baseUrl}/vin/${slug}`;
-    const canonicalUrl = shopCategoryCanonicalUrl(slug, "sv", config.baseUrl);
+    const pageUrl = `${PACT_PUBLIC_ORIGIN}/vin/${slug}`;
+    const canonicalUrl = shopCategoryCanonicalUrl(slug, "sv", PACT_PUBLIC_ORIGIN);
 
     const title = categoryPageTitle(category.title, config.siteName);
     const { metaDescription } = localizeGeneratedCategoryCopy(
@@ -117,8 +112,8 @@ export async function generateMetadata(props: {
         canonical: canonicalUrl,
         languages: {
           sv: pageUrl,
-          en: `${config.baseUrl}/wine/${category.hreflang ?? ""}`,
-          "x-default": pageUrl,
+          en: `${PACT_PUBLIC_ORIGIN}/wine/${category.hreflang ?? ""}`,
+          "x-default": `${PACT_PUBLIC_ORIGIN}/wine/${category.hreflang ?? ""}`,
         },
       },
       openGraph: {
@@ -138,7 +133,7 @@ export async function generateMetadata(props: {
     return { robots: { index: false, follow: false } };
   }
 
-  const shopUrl = `${config.baseUrl}${producerShopPagePath(collection.title, "sv")}`;
+  const shopUrl = `${PACT_PUBLIC_ORIGIN}${producerShopPagePath(collection.title, "sv")}`;
   const shopTitle = producerShopPageTitle(collection.title, "sv");
   const shopDescription = producerShopMetaDescription("sv", {
     producerName: collection.title,
@@ -160,8 +155,8 @@ export async function generateMetadata(props: {
       canonical: shopUrl,
       languages: {
         sv: shopUrl,
-        en: `${config.baseUrl}${producerShopPagePath(collection.title, "en")}`,
-        "x-default": shopUrl,
+        en: `${PACT_PUBLIC_ORIGIN}${producerShopPagePath(collection.title, "en")}`,
+        "x-default": `${PACT_PUBLIC_ORIGIN}${producerShopPagePath(collection.title, "en")}`,
       },
     },
     openGraph: {
@@ -184,10 +179,6 @@ export default async function VinCollectionPage(props: {
     return <ProducerBoxesPage locale="sv" />;
   }
 
-  if (isStockholmDeliveryLandingSlug(slug, "sv")) {
-    return <StockholmDeliveryLandingPage locale="sv" />;
-  }
-
   const category = await resolveGrapeCategoryBySlug(slug, "sv");
   if (category) {
     const headerList = await headers();
@@ -203,8 +194,9 @@ export default async function VinCollectionPage(props: {
         filterFarming: category.filter.farming,
         filterGrape: category.filter.filterGrape,
         filterCountryCode: category.filter.countryCode,
-        filterIsDirectImport: category.filter.isDirectImport,
+        filterRegion: category.filter.region,
         isB2BSite,
+        locale: "sv",
       }),
     ]);
 
@@ -217,7 +209,7 @@ export default async function VinCollectionPage(props: {
       wineIds,
     );
 
-    const canonical = shopCategoryCanonicalUrl(slug, "sv", config.baseUrl);
+    const canonical = shopCategoryCanonicalUrl(slug, "sv", PACT_PUBLIC_ORIGIN);
     const { description, metaDescription } = localizeGeneratedCategoryCopy(
       category,
       config.siteName,
@@ -247,7 +239,7 @@ export default async function VinCollectionPage(props: {
           "@type": "ListItem",
           position: 2,
           name: category.h1,
-          item: `${config.baseUrl}/vin/${slug}`,
+          item: `${PACT_PUBLIC_ORIGIN}/vin/${slug}`,
         },
       ],
     };
@@ -286,6 +278,16 @@ export default async function VinCollectionPage(props: {
               {category.h1}
             </h1>
             <p className="leading-relaxed text-stone-600">{description}</p>
+            {category.descriptionLink ? (
+              <p className="mt-3 leading-relaxed text-stone-600">
+                <Link
+                  href={category.descriptionLink.href}
+                  className="underline underline-offset-4 hover:text-stone-900"
+                >
+                  {category.descriptionLink.label}
+                </Link>
+              </p>
+            ) : null}
           </div>
 
           <ProductListShell
@@ -395,7 +397,7 @@ export default async function VinCollectionPage(props: {
   const producerSlug = generateProducerSlug(collection.title);
   const producerUrls = producerPageUrls(producerSlug);
   const shopHeading = producerShopPageHeading(collection.title, "sv");
-  const shopUrl = `${config.baseUrl}${producerShopPagePath(collection.title, "sv")}`;
+  const shopUrl = `${PACT_PUBLIC_ORIGIN}${producerShopPagePath(collection.title, "sv")}`;
   const producerCollection = asProducerCollectionData(collection);
   const profilePath = producerPublicPath(producerSlug, "sv");
 

@@ -12,7 +12,6 @@ import { Loader } from "../ui/loader";
 import { CartItemCard } from "./cart-item";
 import { priceExclVat } from "@/lib/shopify/utils";
 import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
-import { useDisplayMoney } from "@/lib/hooks/use-display-money";
 import { formatCartLinePrice } from "@/lib/shopping-context/format";
 import { useTranslations } from "@/lib/hooks/use-translations";
 import { useLocalizedPaths } from "@/lib/hooks/use-localized-paths";
@@ -25,6 +24,7 @@ import type { ProducerValidation } from "@/lib/checkout-validation";
 import { CartValidationHeader } from "./CartValidationHeader";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 import { B2B_PRODUCER_ORDERS_ENABLED } from "@/lib/b2b/flags";
+import { homeDeliveryGuidePath } from "@/lib/guides/home-delivery-guide";
 
 const CartContainer = ({
   children,
@@ -46,8 +46,7 @@ const CartItems = ({
   isValidating: boolean;
 }) => {
   const { cart } = useCart();
-  const { t } = useTranslations();
-  const { locale } = useDisplayMoney();
+  const { t, context } = useTranslations();
   const showExclVat = useB2BPriceMode();
   const totalAmount = cart ? parseFloat(cart.cost.totalAmount.amount) : 0;
   const displayTotal = showExclVat ? priceExclVat(totalAmount) : totalAmount;
@@ -141,10 +140,19 @@ const CartItems = ({
               </span>
             </div>
           ) : null}
-          <div className="flex justify-between items-center pb-1 mb-3 border-b border-muted-foreground/20">
+          <div className="flex justify-between items-center pb-1 mb-1 border-b border-muted-foreground/20">
             <p>{t("cart.shipping")}</p>
             <p className="text-right">{t("cart.shippingAtCheckout")}</p>
           </div>
+          <p className="mb-3 text-xs">
+            <Link
+              href={homeDeliveryGuidePath(context.locale)}
+              onClick={closeCart}
+              className="text-muted-foreground underline underline-offset-4 hover:text-foreground"
+            >
+              {t("cart.homeDeliveryGuideLink")}
+            </Link>
+          </p>
           <div className="flex justify-between items-center pt-1 pb-1 mb-1.5 text-lg font-semibold">
             <p>{t("cart.total")}</p>
             <div className="text-right">
@@ -152,7 +160,7 @@ const CartItems = ({
                 {formatCartLinePrice(
                   displayTotal,
                   cart.cost.totalAmount.currencyCode,
-                  locale,
+                  context.locale,
                 )}
               </span>
               {showExclVat && (

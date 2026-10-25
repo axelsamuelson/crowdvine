@@ -36,8 +36,14 @@ export type ProducerApiRow = {
   /** ISO 3166-1 alpha-2 from producers.country_code. */
   country_code: string;
   founded_year: number | null;
+  /** Swedish short bio (legacy locale-resolved field stays SV for catalog MCP). */
   bio_short: string | null;
+  /** English short bio; never falls back to Swedish. */
+  bio_short_en: string | null;
+  /** Swedish long bio. */
   bio_long: string | null;
+  /** English long bio; never falls back to Swedish. */
+  bio_long_en: string | null;
   certification: string | null;
   contact_name: string | null;
   contact_email: string | null;
@@ -89,6 +95,11 @@ export function producerRowToApi(
   row: ProducerDbRow,
   locale: WineLocale = "sv",
 ): ProducerApiRow {
+  const shortField = row.short_description as
+    | Record<string, string>
+    | string
+    | null;
+  const longField = row.bio_long as Record<string, string> | string | null;
   return {
     id: row.id as string,
     name: row.name as string,
@@ -97,19 +108,56 @@ export function producerRowToApi(
     country: (row.country as string) ?? "",
     country_code: (row.country_code as string) ?? "",
     founded_year: (row.founded_year as number | null) ?? null,
-    bio_short: extractWineText(
-      row.short_description as Record<string, string> | string | null,
-      locale,
-    ),
-    bio_long: extractWineText(
-      row.bio_long as Record<string, string> | string | null,
-      locale,
-    ),
+    bio_short: extractWineText(shortField, locale),
+    bio_short_en: extractWineText(shortField, "en", { fallback: false }),
+    bio_long: extractWineText(longField, locale),
+    bio_long_en: extractWineText(longField, "en", { fallback: false }),
     certification: (row.certification as string | null) ?? null,
     contact_name: (row.contact_name as string | null) ?? null,
     contact_email: (row.contact_email as string | null) ?? null,
     created_at: (row.created_at as string | null) ?? null,
   };
+}
+
+/** Merge locale fields into short_description / bio_long JSONB without clobbering the other locale. */
+function mergeProducerLocaleField(
+  body: Record<string, unknown>,
+  svKey: "bio_short" | "bio_long",
+  enKey: "bio_short_en" | "bio_long_en",
+  existing: Record<string, string> | string | null | undefined,
+): Record<string, string> | null | undefined {
+  if (!(svKey in body) && !(enKey in body)) return undefined;
+
+  let current =
+    existing == null
+      ? null
+      : (buildWineJsonb(null, "sv", existing) as Record<string, string> | null);
+
+  if (svKey in body) {
+    const value = body[svKey];
+    if (value === null) {
+      if (current && "sv" in current) {
+        const { sv: _sv, ...rest } = current;
+        current = Object.keys(rest).length > 0 ? rest : null;
+      }
+    } else if (typeof value === "string") {
+      current = buildWineJsonb(value, "sv", current);
+    }
+  }
+
+  if (enKey in body) {
+    const value = body[enKey];
+    if (value === null) {
+      if (current && "en" in current) {
+        const { en: _en, ...rest } = current;
+        current = Object.keys(rest).length > 0 ? rest : null;
+      }
+    } else if (typeof value === "string") {
+      current = buildWineJsonb(value, "en", current);
+    }
+  }
+
+  return current;
 }
 
 function parseAlcoholPct(value: unknown): number | null {
@@ -205,6 +253,7 @@ export class InvalidProducerCountryError extends Error {
 
 export function buildProducerPatch(
   body: Record<string, unknown>,
+  existingRow?: Record<string, unknown>,
 ): Record<string, unknown> {
   const patch: Record<string, unknown> = {};
 
@@ -226,12 +275,31 @@ export function buildProducerPatch(
   ) {
     patch.founded_year = body.founded_year;
   }
-  if (body.bio_short === null) patch.short_description = null;
-  else if (typeof body.bio_short === "string") {
-    patch.short_description = body.bio_short;
-  }
-  if (body.bio_long === null) patch.bio_long = null;
-  else if (typeof body.bio_long === "string") patch.bio_long = body.bio_long;
+
+  const shortMerged = mergeProducerLocaleField(
+    body,
+    "bio_short",
+    "bio_short_en",
+    existingRow?.short_description as
+      | Record<string, string>
+      | string
+      | null
+      | undefined,
+  );
+  if (shortMerged !== undefined) patch.short_description = shortMerged;
+
+  const longMerged = mergeProducerLocaleField(
+    body,
+    "bio_long",
+    "bio_long_en",
+    existingRow?.bio_long as
+      | Record<string, string>
+      | string
+      | null
+      | undefined,
+  );
+  if (longMerged !== undefined) patch.bio_long = longMerged;
+
   if (body.certification === null) patch.certification = null;
   else if (isCatalogCertification(body.certification)) {
     patch.certification = body.certification;
@@ -258,15 +326,12 @@ export function buildProducerInsert(
     ? normalizeCountryCode(rawCountry)
     : normalizeCountryCode("FR");
   if (!countryCode) throw new InvalidProducerCountryError();
-  const bioShort =
-    typeof body.bio_short === "string" ? body.bio_short : "";
-
   const { country: _country, ...bodyWithoutCountry } = body;
   const row: Record<string, unknown> = {
     name,
     region,
     country_code: countryCode,
-    short_description: bioShort,
+    short_description: null,
     address_street: "",
     address_postcode: "",
     address_city: "",

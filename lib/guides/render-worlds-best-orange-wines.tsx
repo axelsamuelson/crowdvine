@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { GuideRankTable } from "@/components/guides/guide-rank-table";
 import { Footer } from "@/components/layout/footer";
+import { renderArticleRichText } from "@/lib/guides/article-guide-shell";
 import {
   GuideBreadcrumbs,
   buildGuideBreadcrumbJsonLd,
@@ -51,7 +52,7 @@ export async function buildWorldsBestOrangeWinesMetadata(
       url: pageUrl,
       type: "article",
       locale: locale === "sv" ? "sv_SE" : "en_US",
-      images: defaultOpenGraphImages(),
+      images: defaultOpenGraphImages({ siteName: config.siteName }),
     },
     twitter: pageTwitterCard(title, description),
   };
@@ -113,8 +114,10 @@ export async function renderWorldsBestOrangeWinesPage(locale: AppLocale) {
         </h1>
 
         <div className="mt-6 space-y-4 text-base leading-relaxed text-muted-foreground">
-          {guide.intro[locale].map((paragraph) => (
-            <p key={paragraph.slice(0, 48)}>{paragraph}</p>
+          {guide.intro[locale].map((paragraph, index) => (
+            <p key={`intro-${index}`}>
+              {renderArticleRichText(paragraph, `intro-${index}`)}
+            </p>
           ))}
         </div>
 

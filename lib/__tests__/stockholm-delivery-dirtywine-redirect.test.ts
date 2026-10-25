@@ -16,15 +16,18 @@ describe("dirtywine Stockholm delivery redirect", () => {
     expect(isStockholmDeliveryRedirectPath("/vin/rott-naturvin")).toBe(false);
   });
 
-  it("builds absolute pact redirect URLs and preserves query", () => {
+  it("builds absolute pact guide redirect URLs and preserves query", () => {
     expect(
       pactStockholmDeliveryRedirectUrl(
         "/vin/naturvin-hemleverans-stockholm",
         "?x=1",
       ),
-    ).toBe(
-      "https://pactwines.com/vin/naturvin-hemleverans-stockholm?x=1",
-    );
+    ).toBe("https://pactwines.com/guider/hemleverans-av-naturvin?x=1");
+    expect(
+      pactStockholmDeliveryRedirectUrl(
+        "/wine/natural-wine-delivery-stockholm",
+      ),
+    ).toBe("https://pactwines.com/guides/natural-wine-home-delivery");
   });
 
   it("exposes sitemap slugs to drop on dirtywine", () => {

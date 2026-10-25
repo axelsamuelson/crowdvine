@@ -76,4 +76,40 @@ describe("producer country writes", () => {
     expect(api.country).toBe("Frankrike");
     expect(api.country_code).toBe("FR");
   });
+
+  it("exposes Swedish and English bios separately without EN falling back to SV", () => {
+    const api = producerRowToApi({
+      id: "1",
+      name: "Test",
+      region: "Languedoc",
+      country: "Frankrike",
+      country_code: "FR",
+      short_description: { sv: "Kort SV", en: "Short EN" },
+      bio_long: { sv: "Lång SV" },
+    });
+    expect(api.bio_short).toBe("Kort SV");
+    expect(api.bio_short_en).toBe("Short EN");
+    expect(api.bio_long).toBe("Lång SV");
+    expect(api.bio_long_en).toBeNull();
+  });
+
+  it("patches English bios without overwriting Swedish JSONB locales", () => {
+    const patch = buildProducerPatch(
+      { bio_short_en: "Short EN", bio_long_en: "Long EN" },
+      {
+        short_description: { sv: "Kort SV" },
+        bio_long: { sv: "Lång SV" },
+      },
+    );
+    expect(patch.short_description).toEqual({ sv: "Kort SV", en: "Short EN" });
+    expect(patch.bio_long).toEqual({ sv: "Lång SV", en: "Long EN" });
+  });
+
+  it("clears only the English bio locale when null is passed", () => {
+    const patch = buildProducerPatch(
+      { bio_short_en: null },
+      { short_description: { sv: "Kort SV", en: "Short EN" } },
+    );
+    expect(patch.short_description).toEqual({ sv: "Kort SV" });
+  });
 });

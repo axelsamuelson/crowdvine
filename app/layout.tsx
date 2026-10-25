@@ -49,6 +49,7 @@ import { resolveSiteLogosFromRequest } from "@/lib/site-logos-server";
 import { getCachedShoppingContextFromRequest } from "@/lib/shopping-context/server";
 import { type SiteConfig } from "@/lib/site-config";
 import { getSiteConfig } from "@/lib/site-config-server";
+import { localeFromShopPath } from "@/lib/i18n/shop-path-locale";
 import { Analytics } from "@vercel/analytics/react";
 import { PageViewTracker } from "@/components/analytics/page-view-tracker";
 import { SessionEngagementTracker } from "@/components/analytics/session-engagement-tracker";
@@ -64,7 +65,7 @@ function buildRootOpenGraph(config: SiteConfig): Metadata["openGraph"] {
     locale: "sv_SE",
     alternateLocale: ["en_US"],
     type: "website",
-    images: defaultOpenGraphImages(),
+    images: defaultOpenGraphImages({ siteName: config.siteName, locale: "sv" }),
   };
 }
 
@@ -157,8 +158,11 @@ export default async function RootLayout({
       }),
     ]);
 
+  const pathLocale = localeFromShopPath(ssrPathname);
+  const htmlLang = pathLocale ?? shoppingContext.locale;
+
   return (
-    <html lang={shoppingContext.locale} suppressHydrationWarning>
+    <html lang={htmlLang} suppressHydrationWarning>
       <body
         className={cn(
           geistSans.variable,

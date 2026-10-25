@@ -490,16 +490,6 @@ export const buyNaturalWineOnlineSwedenArticle: GuideArticleContent = {
         sv: "/guider/vad-ar-naturvin",
       },
     },
-    {
-      label: {
-        en: "What is red natural wine? →",
-        sv: "Vad är rött naturvin? →",
-      },
-      href: {
-        en: "/guides/what-is-red-natural-wine",
-        sv: "/guider/vad-ar-rott-naturvin",
-      },
-    },
     ...publicSystembolagetRankedLists().map((list) => ({
       label: { en: list.label.en, sv: list.label.sv },
       href: { en: list.href.en, sv: list.href.sv },

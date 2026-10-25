@@ -5,6 +5,7 @@ import { catalogHasProducts, fetchProductsData } from "@/lib/crowdvine/products-
 import { publishedBilingualArticleGuides } from "@/lib/guides/guide-publication";
 import { GUIDE_PATHS } from "@/lib/guides/guide-routes";
 import { TOP_100_PRODUCERS_UPDATED_AT } from "@/lib/guides/top-100-producers";
+import { TOP_100_WINES_UPDATED_AT } from "@/lib/guides/top-100-wines";
 import { articlePath } from "@/lib/guides/guide-types";
 import { generateProducerSlug } from "@/lib/producer-handle";
 import {
@@ -59,6 +60,7 @@ function staticPagesForProfile(
 ): SitemapEntry[] {
   const pages: SitemapEntry[] = [
     weeklyEntry(baseUrl, 1.0),
+    weeklyEntry(`${baseUrl}/en`, 1.0),
     {
       url: `${baseUrl}/vin`,
       lastModified: new Date(),
@@ -85,14 +87,22 @@ function staticPagesForProfile(
   if (profile === "pact") {
     pages.push(
       weeklyEntry(`${baseUrl}/guider`, 0.7),
-      weeklyEntry(`${baseUrl}/guider/varldens-basta-naturviner`, 0.75),
+      weeklyEntry(
+        `${baseUrl}/guider/varldens-basta-naturviner`,
+        0.75,
+        new Date(`${TOP_100_WINES_UPDATED_AT}T00:00:00.000Z`),
+      ),
       weeklyEntry(
         `${baseUrl}/guider/varldens-basta-naturvinsproducenter`,
         0.75,
         new Date(`${TOP_100_PRODUCERS_UPDATED_AT}T00:00:00.000Z`),
       ),
       weeklyEntry(`${baseUrl}/guides`, 0.7),
-      weeklyEntry(`${baseUrl}/guides/worlds-best-natural-wines`, 0.75),
+      weeklyEntry(
+        `${baseUrl}/guides/worlds-best-natural-wines`,
+        0.75,
+        new Date(`${TOP_100_WINES_UPDATED_AT}T00:00:00.000Z`),
+      ),
       weeklyEntry(
         `${baseUrl}/guides/worlds-best-natural-wine-producers`,
         0.75,
@@ -111,8 +121,6 @@ function staticPagesForProfile(
       weeklyEntry(`${baseUrl}${GUIDE_PATHS.orangeWines.sv}`, 0.75),
       weeklyEntry(`${baseUrl}${GUIDE_PATHS.naturalChampagne.en}`, 0.75),
       weeklyEntry(`${baseUrl}${GUIDE_PATHS.naturalChampagne.sv}`, 0.75),
-      weeklyEntry(`${baseUrl}/vin/wine-boxes`, 0.75),
-      weeklyEntry(`${baseUrl}/wine/wine-boxes`, 0.75),
       ...producerBoxesSitemapPaths().map((path) =>
         weeklyEntry(`${baseUrl}${path}`, 0.75),
       ),
@@ -129,7 +137,16 @@ export async function buildSitemapEntries(
 ): Promise<MetadataRoute.Sitemap> {
   return unstable_cache(
     () => buildSitemapEntriesUncached(baseUrl, profile),
-    ["sitemap-entries", baseUrl, profile, ...producerBoxesSitemapPaths()],
+    [
+      "sitemap-entries",
+      baseUrl,
+      profile,
+      ...producerBoxesSitemapPaths(),
+      // Bust when legacy redirects / category lists change (otherwise 1h stale URLs).
+      ...Array.from(LEGACY_SHOP_REDIRECT_SLUGS).sort(),
+      ...WINE_CATEGORIES_SV.map((c) => c.slug),
+      ...WINE_CATEGORIES_EN.map((c) => c.slug),
+    ],
     { revalidate: 3600 },
   )();
 }
@@ -138,8 +155,13 @@ async function buildSitemapEntriesUncached(
   baseUrl: string,
   profile: SitemapSiteProfile,
 ): Promise<MetadataRoute.Sitemap> {
+  // dirtywine.se: index only the homepage; shared catalog paths canonicalize to pact.
+  if (profile === "dirtywine") {
+    return [weeklyEntry(baseUrl, 1.0)];
+  }
+
   const staticPages = staticPagesForProfile(baseUrl, profile);
-  const isDirtyWine = profile === "dirtywine";
+  const isDirtyWine = false;
   const visibleB2BWines = isDirtyWine
     ? await fetchProductsData({ isB2BSite: true, limit: 5000 })
     : null;
@@ -217,7 +239,7 @@ async function buildSitemapEntriesUncached(
           filterFarming: c.filter.farming,
           filterGrape: c.filter.filterGrape,
           filterCountryCode: c.filter.countryCode,
-          filterIsDirectImport: c.filter.isDirectImport,
+          filterRegion: c.filter.region,
           isB2BSite: isDirtyWine,
         });
         return hasProducts ? weeklyEntry(`${baseUrl}/vin/${c.slug}`, 0.8) : null;
@@ -235,7 +257,7 @@ async function buildSitemapEntriesUncached(
           filterFarming: c.filter.farming,
           filterGrape: c.filter.filterGrape,
           filterCountryCode: c.filter.countryCode,
-          filterIsDirectImport: c.filter.isDirectImport,
+          filterRegion: c.filter.region,
           isB2BSite: isDirtyWine,
         });
         return hasProducts ? weeklyEntry(`${baseUrl}/wine/${c.slug}`, 0.7) : null;

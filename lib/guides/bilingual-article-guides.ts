@@ -26,9 +26,8 @@ import { thierryAllemandArticle } from "@/lib/guides/articles/thierry-allemand";
 import { whatIsNaturalWineArticle } from "@/lib/guides/articles/what-is-natural-wine";
 import { whatIsOrangeWineArticle } from "@/lib/guides/articles/what-is-orange-wine";
 import { whatIsPetNatArticle } from "@/lib/guides/articles/what-is-pet-nat";
-import { whatIsRedNaturalWineArticle } from "@/lib/guides/articles/what-is-red-natural-wine";
 import { buyNaturalWineOnlineSwedenArticle } from "@/lib/guides/articles/buy-natural-wine-online-sweden";
-import { whatIsWhiteNaturalWineArticle } from "@/lib/guides/articles/what-is-white-natural-wine";
+import { naturalWineHomeDeliveryArticle } from "@/lib/guides/articles/natural-wine-home-delivery";
 
 /**
  * Registry of bilingual article guides.
@@ -53,9 +52,8 @@ export const BILINGUAL_ARTICLE_GUIDES: readonly GuideArticleContent[] = [
   georgiaNaturalWineArticle,
   whatIsOrangeWineArticle,
   whatIsNaturalWineArticle,
-  whatIsRedNaturalWineArticle,
-  whatIsWhiteNaturalWineArticle,
   buyNaturalWineOnlineSwedenArticle,
+  naturalWineHomeDeliveryArticle,
   bestNaturalWinesSystembolagetArticle,
   bestRedNaturalWinesSystembolagetArticle,
   bestWhiteNaturalWinesSystembolagetArticle,

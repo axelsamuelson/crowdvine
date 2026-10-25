@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentAdmin } from "@/lib/admin-auth-server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { B2B_PALLET_SHIPMENT_SELECT } from "@/lib/b2b-pallet-shipment-select";
-import { validateB2bPickupProducerId } from "@/lib/b2b-pallet-shipment-validation";
-import { b2bPalletStatusSchema } from "@/lib/b2b/pallet-status";
-import { revalidateWineStorefrontCaches } from "@/lib/crowdvine/revalidate-wine-storefront";
+import {
+  b2bPalletWriteHttpError,
+  createB2bPalletShipment,
+} from "@/lib/admin/b2b-pallet-writes";
 
 export async function GET() {
   try {
@@ -47,131 +48,13 @@ export async function POST(request: NextRequest) {
 
     const sb = getSupabaseAdmin();
     const body = await request.json();
-    const statusParsed = b2bPalletStatusSchema.safeParse(
-      typeof body === "object" && body !== null && "status" in body
-        ? body.status
-        : undefined,
-    );
-    if (!statusParsed.success) {
-      return NextResponse.json({ error: "Invalid status" }, { status: 400 });
-    }
-
-    const {
-      name,
-      shipped_at,
-      delivered_at,
-      cost_cents,
-      pickup_producer_id,
-      is_new,
-      items,
-    } = body as {
-      name: string;
-      shipped_at?: string | null;
-      delivered_at?: string | null;
-      cost_cents?: number | null;
-      pickup_producer_id?: string | null;
-      is_new?: boolean;
-      items: Array<{
-        wine_id: string;
-        quantity: number;
-        quantity_sold?: number;
-        cost_cents_override?: number | null;
-      }>;
-    };
-
-    if (!name?.trim()) {
-      return NextResponse.json(
-        { error: "Name is required" },
-        { status: 400 },
-      );
-    }
-
-    const wineIds = (items ?? [])
-      .filter((i) => i.wine_id && i.quantity > 0)
-      .map((i) => i.wine_id);
-
-    const pickupCheck = await validateB2bPickupProducerId(
-      sb,
-      pickup_producer_id,
-      wineIds,
-    );
-    if (!pickupCheck.ok) {
-      return NextResponse.json({ error: pickupCheck.error }, { status: 400 });
-    }
-
-    const { data: shipment, error: insertError } = await sb
-      .from("b2b_pallet_shipments")
-      .insert({
-        name: name.trim(),
-        shipped_at: shipped_at || null,
-        delivered_at: delivered_at || null,
-        cost_cents: cost_cents != null ? cost_cents : null,
-        status: statusParsed.data,
-        is_new: is_new === true,
-        pickup_producer_id: pickupCheck.pickupProducerId,
-      })
-      .select()
-      .single();
-
-    if (insertError) {
-      return NextResponse.json(
-        { error: insertError.message },
-        { status: 500 },
-      );
-    }
-
-    if (items && Array.isArray(items) && items.length > 0) {
-      const itemRows = items
-        .filter((i) => i.wine_id && i.quantity > 0)
-        .map((i) => ({
-          shipment_id: shipment.id,
-          wine_id: i.wine_id,
-          quantity: Math.max(1, Math.floor(i.quantity)),
-          quantity_sold:
-            i.quantity_sold != null
-              ? Math.max(0, Math.floor(i.quantity_sold))
-              : 0,
-          cost_cents_override:
-            i.cost_cents_override != null ? i.cost_cents_override : null,
-        }));
-
-      if (itemRows.length > 0) {
-        const { error: itemsError } = await sb
-          .from("b2b_pallet_shipment_items")
-          .insert(itemRows);
-
-        if (itemsError) {
-          console.error("Error inserting shipment items:", itemsError);
-          await sb.from("b2b_pallet_shipments").delete().eq("id", shipment.id);
-          return NextResponse.json(
-            { error: itemsError.message },
-            { status: 500 },
-          );
-        }
-      }
-    }
-
-    const { data: full, error: fetchError } = await sb
-      .from("b2b_pallet_shipments")
-      .select(B2B_PALLET_SHIPMENT_SELECT)
-      .eq("id", shipment.id)
-      .single();
-
-    const handles = (
-      (full as { b2b_pallet_shipment_items?: Array<{ wines?: { handle?: string } }> } | null)
-        ?.b2b_pallet_shipment_items ?? []
-    )
-      .map((row) => row.wines?.handle)
-      .filter((h): h is string => typeof h === "string" && h.length > 0);
-    revalidateWineStorefrontCaches(handles);
-
-    if (fetchError) return NextResponse.json(shipment);
+    const full = await createB2bPalletShipment(sb, body);
     return NextResponse.json(full);
   } catch (error) {
-    console.error("Unexpected error creating B2B pallet shipment:", error);
-    return NextResponse.json(
-      { error: "Failed to create shipment" },
-      { status: 500 },
-    );
+    const mapped = b2bPalletWriteHttpError(error);
+    if (mapped.status >= 500) {
+      console.error("Unexpected error creating B2B pallet shipment:", error);
+    }
+    return NextResponse.json(mapped.body, { status: mapped.status });
   }
 }

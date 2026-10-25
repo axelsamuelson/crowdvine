@@ -45,7 +45,7 @@ export const PRODUCER_BOXES_COPY = {
   sv: {
     title: "Naturvin låda: vinlåda med 6 flaskor från en gård",
     h1: "Naturvinslåda: sex flaskor från en producent",
-    meta: "Vinlåda med naturvin: sex flaskor från en och samma producent i Languedoc. Se vad som ingår i varje låda och lägg hela lådan i varukorgen.",
+    meta: "Vinlåda med naturvin: sex flaskor från en producent. Se vad som ingår i varje låda och lägg hela lådan i varukorgen.",
     breadcrumb: "Naturvinlåda",
     boxesHeading: "Våra naturvinslådor",
     faqHeading: "Vanliga frågor",
@@ -74,7 +74,7 @@ export const PRODUCER_BOXES_COPY = {
   en: {
     title: "Natural wine box: 6 bottles from one producer",
     h1: "Natural wine box: six bottles from one producer",
-    meta: "A natural wine box of six bottles from one producer in Languedoc. See what each box contains and add the whole box to the cart.",
+    meta: "A natural wine box of six bottles from one producer. See what each box contains and add the whole box to the cart.",
     breadcrumb: "Natural wine box",
     boxesHeading: "Our natural wine boxes",
     faqHeading: "Common questions",
@@ -321,6 +321,34 @@ export function isProducerBoxesSlug(
   return slug === path.slice(path.lastIndexOf("/") + 1);
 }
 
+/** Legacy shop URLs that 301 to the producer-boxes landing (one hop). */
+const LEGACY_BOX_PATH_TO_TARGET: Record<string, string> = {
+  "/boxes": PRODUCER_BOXES_PATH.sv,
+  "/vin/wine-boxes": PRODUCER_BOXES_PATH.sv,
+  "/vin/boxes": PRODUCER_BOXES_PATH.sv,
+  "/vin/lada": PRODUCER_BOXES_PATH.sv,
+  "/vin/lador": PRODUCER_BOXES_PATH.sv,
+  "/wine/wine-boxes": PRODUCER_BOXES_PATH.en,
+  "/wine/boxes": PRODUCER_BOXES_PATH.en,
+  "/wine/lada": PRODUCER_BOXES_PATH.en,
+  "/wine/lador": PRODUCER_BOXES_PATH.en,
+};
+
+/**
+ * Canonical producer-boxes path for a request pathname, or null if unrelated.
+ * Maps legacy box URLs to /vin/naturvin-lada or /wine/natural-wine-box.
+ */
+export function resolveProducerBoxesTargetPath(
+  pathname: string,
+): string | null {
+  if (isProducerBoxesPath(pathname)) return pathname;
+  return LEGACY_BOX_PATH_TO_TARGET[pathname] ?? null;
+}
+
+export function isLegacyBoxRedirectPath(pathname: string): boolean {
+  return pathname in LEGACY_BOX_PATH_TO_TARGET;
+}
+
 /** Pact sitemap only. Empty while PRODUCER_BOXES_PUBLISHED is false. */
 export function producerBoxesSitemapPaths(): readonly string[] {
   if (!PRODUCER_BOXES_PUBLISHED) return [];
@@ -332,7 +360,9 @@ export function pactProducerBoxesRedirectUrl(
   pathname: string,
   search: string = "",
 ): string {
-  const path = pathname.startsWith("/") ? pathname : `/${pathname}`;
+  const target =
+    resolveProducerBoxesTargetPath(pathname) ??
+    (pathname.startsWith("/") ? pathname : `/${pathname}`);
   const qs = search && search !== "?" ? search : "";
-  return `${PACT_CONFIG.baseUrl}${path}${qs}`;
+  return `${PACT_CONFIG.baseUrl}${target}${qs}`;
 }

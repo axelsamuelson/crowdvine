@@ -135,13 +135,13 @@ function grapeHubLinks(category: WineCategory): CategoryExploreLink[] {
     }
     if (locale === "sv") {
       links.push({
-        href: "/guider/vad-ar-rott-naturvin",
-        label: "Vad är rött naturvin? Den kompletta guiden →",
+        href: "/guider/vad-ar-naturvin",
+        label: "Vad är naturvin? →",
       });
     } else {
       links.push({
-        href: "/guides/what-is-red-natural-wine",
-        label: "What is red natural wine? The complete guide →",
+        href: "/guides/what-is-natural-wine",
+        label: "What Is Natural Wine? →",
       });
     }
   } else if (category.slug === "grenache-blanc") {
@@ -151,13 +151,13 @@ function grapeHubLinks(category: WineCategory): CategoryExploreLink[] {
     }
     if (locale === "sv") {
       links.push({
-        href: "/guider/vad-ar-vitt-naturvin",
-        label: "Vad är vitt naturvin? Den kompletta guiden →",
+        href: "/guider/vad-ar-naturvin",
+        label: "Vad är naturvin? →",
       });
     } else {
       links.push({
-        href: "/guides/what-is-white-natural-wine",
-        label: "What is white natural wine? The complete guide →",
+        href: "/guides/what-is-natural-wine",
+        label: "What Is Natural Wine? →",
       });
     }
   }
@@ -198,8 +198,8 @@ function colorHubExploreLinks(category: WineCategory): CategoryExploreLink[] {
 
   if (category.slug === "red-natural-wine") {
     links.push({
-      href: "/guides/what-is-red-natural-wine",
-      label: "What is red natural wine? The complete guide →",
+      href: "/guides/what-is-natural-wine",
+      label: "What Is Natural Wine? →",
     });
     links.push({
       href: "/guides/worlds-best-natural-wine-producers",
@@ -209,8 +209,8 @@ function colorHubExploreLinks(category: WineCategory): CategoryExploreLink[] {
 
   if (category.slug === "rott-naturvin") {
     links.push({
-      href: "/guider/vad-ar-rott-naturvin",
-      label: "Vad är rött naturvin? Den kompletta guiden →",
+      href: "/guider/vad-ar-naturvin",
+      label: "Vad är naturvin? →",
     });
     links.push({
       href: "/guider/varldens-basta-naturvinsproducenter",
@@ -220,37 +220,22 @@ function colorHubExploreLinks(category: WineCategory): CategoryExploreLink[] {
 
   if (category.slug === "white-natural-wine") {
     links.push({
-      href: "/guides/what-is-white-natural-wine",
-      label: "What is white natural wine? The complete guide →",
+      href: "/guides/what-is-natural-wine",
+      label: "What Is Natural Wine? →",
     });
   }
 
   if (category.slug === "vitt-naturvin") {
     links.push({
-      href: "/guider/vad-ar-vitt-naturvin",
-      label: "Vad är vitt naturvin? Den kompletta guiden →",
+      href: "/guider/vad-ar-naturvin",
+      label: "Vad är naturvin? →",
     });
   }
 
   return links;
 }
 
-const LONG_TAIL_GEO_SLUGS = new Set([
-  "naturvin-languedoc",
-  "naturvin-frankrike",
-  "rott-naturvin-languedoc",
-  "vitt-naturvin-languedoc",
-  "orange-naturvin-languedoc",
-  "naturvin-hemleverans-stockholm",
-  "direktimport-vin",
-  "natural-wine-languedoc",
-  "natural-wine-france",
-  "red-natural-wine-languedoc",
-  "white-natural-wine-languedoc",
-  "orange-natural-wine-languedoc",
-  "natural-wine-delivery-stockholm",
-  "direct-import-wine",
-]);
+const LONG_TAIL_GEO_SLUGS = new Set<string>([]);
 
 function geoLongTailExploreLinks(
   category: WineCategory,
@@ -276,16 +261,6 @@ function geoLongTailExploreLinks(
     locale === "sv" ? "Alla naturviner" : "All natural wines",
   );
 
-  if (category.slug.includes("languedoc") || category.slug.includes("frankrike") || category.slug.includes("france")) {
-    push(locale === "sv" ? "naturvin-languedoc" : "natural-wine-languedoc");
-    pushHref(
-      locale === "sv"
-        ? "/guider/naturvin-languedoc"
-        : "/guides/languedoc-natural-wine",
-      "Languedoc",
-    );
-  }
-
   const color = category.filter.color?.[0];
   if (color === "Red") {
     push(locale === "sv" ? "rott-naturvin" : "red-natural-wine");
@@ -293,28 +268,6 @@ function geoLongTailExploreLinks(
     push(locale === "sv" ? "vitt-naturvin" : "white-natural-wine");
   } else if (color === "Orange") {
     push(locale === "sv" ? "orange-naturvin" : "orange-natural-wine");
-  }
-
-  if (
-    category.slug.includes("stockholm") ||
-    category.slug.includes("delivery")
-  ) {
-    push(locale === "sv" ? "direktimport-vin" : "direct-import-wine");
-  }
-
-  if (
-    category.slug.includes("direktimport") ||
-    category.slug.includes("direct-import")
-  ) {
-    push(
-      locale === "sv"
-        ? "naturvin-hemleverans-stockholm"
-        : "natural-wine-delivery-stockholm",
-    );
-  }
-
-  if (category.slug.includes("frankrike") || category.slug.includes("france")) {
-    push(locale === "sv" ? "naturvin-frankrike" : "natural-wine-france");
   }
 
   return links.slice(0, 6);

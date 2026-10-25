@@ -17,97 +17,6 @@ export type { WineCategory, WineCategoryFilter } from "@/lib/wine-category-types
 
 const LONG_TAIL_WINE_CATEGORIES_SV: WineCategory[] = [
   {
-    slug: "naturvin-languedoc",
-    locale: "sv",
-    h1: "Naturvin från Languedoc",
-    title: "Naturvin från Languedoc — direktimport till Stockholm | PACT Wines",
-    metaDescription:
-      "Naturvin direkt från småproducenter i Languedoc, Frankrike. Direktimporterat till Stockholm utan mellanhänder.",
-    description:
-      "Languedoc är Frankrikes mest dynamiska naturvinsregion. Vi importerar direkt från producenten till din dörr.",
-    filter: {},
-    hreflang: "natural-wine-languedoc",
-    canonical: "/vin/naturvin-languedoc",
-  },
-  {
-    slug: "naturvin-frankrike",
-    locale: "sv",
-    h1: "Naturvin från Frankrike",
-    title: "Köpa naturvin från Frankrike online | PACT Wines",
-    metaDescription:
-      "Köp naturvin från Frankrike med hemleverans i Stockholm.",
-    description:
-      "Naturvin från Frankrike, med leverans i Stockholm.",
-    filter: { countryCode: "FR" },
-    hreflang: "natural-wine-france",
-    canonical: "/vin/naturvin-frankrike",
-  },
-  {
-    slug: "rott-naturvin-languedoc",
-    locale: "sv",
-    h1: "Rött naturvin från Languedoc",
-    title: "Rött naturvin från Languedoc | PACT Wines",
-    metaDescription:
-      "Rött naturvin direkt från Languedoc, Frankrike. Carignan, Grenache, Syrah — hemleverans Stockholm.",
-    description:
-      "Röda naturviner från Languedocs bästa småproducenter. Direktimporterat till Stockholm.",
-    filter: { color: ["Red"] },
-    hreflang: "red-natural-wine-languedoc",
-    canonical: "/vin/rott-naturvin-languedoc",
-  },
-  {
-    slug: "vitt-naturvin-languedoc",
-    locale: "sv",
-    h1: "Vitt naturvin från Languedoc",
-    title: "Vitt naturvin från Languedoc | PACT Wines",
-    metaDescription:
-      "Vitt naturvin direkt från Languedoc, Frankrike. Vermentino, Chardonnay, Terret — hemleverans Stockholm.",
-    description:
-      "Vita naturviner från Languedocs bästa småproducenter. Direktimporterat till Stockholm.",
-    filter: { color: ["White"] },
-    hreflang: "white-natural-wine-languedoc",
-    canonical: "/vin/vitt-naturvin-languedoc",
-  },
-  {
-    slug: "orange-naturvin-languedoc",
-    locale: "sv",
-    h1: "Orange naturvin från Languedoc",
-    title: "Orange naturvin från Languedoc | PACT Wines",
-    metaDescription:
-      "Orange naturvin med skalkontakt direkt från Languedoc, Frankrike. Hemleverans Stockholm.",
-    description:
-      "Orangeviner från Languedoc — vita druvor med skalkontakt som ger textur, djup och karaktär.",
-    filter: { color: ["Orange"] },
-    hreflang: "orange-natural-wine-languedoc",
-    canonical: "/vin/orange-naturvin-languedoc",
-  },
-  {
-    slug: "naturvin-hemleverans-stockholm",
-    locale: "sv",
-    h1: "Naturvin med hemleverans i Stockholm",
-    title: "Naturvin hemleverans Stockholm — beställ online | PACT Wines",
-    metaDescription:
-      "Beställ naturvin online med hemleverans i Stockholm.",
-    description:
-      "Naturvin med hemleverans i Stockholm, från små producenter.",
-    filter: {},
-    hreflang: "natural-wine-delivery-stockholm",
-    canonical: "/vin/naturvin-hemleverans-stockholm",
-  },
-  {
-    slug: "direktimport-vin",
-    locale: "sv",
-    h1: "Direktimport av naturvin",
-    title: "Direktimport vin Sverige | PACT Wines",
-    metaDescription:
-      "Köp vin via direktimport till Sverige. PACT samlar beställningar och skickar från producenten.",
-    description:
-      "PACT direktimporterar naturvin från små producenter. Vi samlar beställningar tills en pall är full, sedan skickar producenten vinet direkt till dig.",
-    filter: { isDirectImport: true },
-    hreflang: "direct-import-wine",
-    canonical: "/vin/direktimport-vin",
-  },
-  {
     slug: "carignan",
     locale: "sv",
     h1: "Carignan — rebellisk druvsort",
@@ -136,14 +45,14 @@ const LONG_TAIL_WINE_CATEGORIES_SV: WineCategory[] = [
   {
     slug: "carignan-naturvin",
     locale: "sv",
-    h1: "Carignan naturvin — utan tillsatser från gamla stockar",
+    h1: "Carignan naturvin från gamla stockar",
     title: "Carignan naturvin | PACT Wines",
     metaDescription:
       "Carignan naturvin från gamla gobeletstockar — utan svavel, utan filtrering.",
     description:
-      "Carignan lämpar sig ovanligt väl för naturvinsproduktion. Gamla stockar ger naturlig koncentration utan tillsatser, hög fruktsyra fungerar som konservering och druvskalens tjocklek klarar långa macerationer utan att tappa balansen.",
+      "Carignan lämpar sig ovanligt väl för naturvinsproduktion. Gamla stockar ger naturlig koncentration med få eller inga tillsatser, hög fruktsyra fungerar som konservering och druvskalens tjocklek klarar långa macerationer utan att tappa balansen.",
     longDescription:
-      "Naturvin på Carignan handlar om ett val: att låta druvan arbeta själv. Ingen tillsatt jäst, ingen tillsatt svavel, ingen filtrering. Det är ett risktagande som kräver friskt druvmaterial — och det är precis vad gamla gobeletstockar på mager jord ger.\n\nProducenterna på PACT arbetar med olika macerationsstilar beroende på årgång och parcellets karaktär. Alexandre Durand på Pèira Levada i Faugères kör 90 dagars maceration — exceptionellt länge, men stockarnas ålder ger tanninerna mognad och struktur att bära det. Pierre Regnault i Assignan väljer tidig skörd och helhals-maceration för maximal friskhet och lite koldioxid som naturligt skydd. Thomas Chany i Puisserguier arbetar kortare med kall maceration för att lyfta druvsortens fruktsida.\n\nResultatet är viner som varierar mer än konventionell Carignan — det är poängen. Utan tillsatser berättar varje flaska sin årgång och sin jord på ett sätt som standardiserade produkter aldrig kan.",
+      "Naturvin på Carignan handlar om ett val: att låta druvan arbeta själv. Ingen tillsatt jäst, ingen tillsatt svavel, ingen filtrering. Det är ett risktagande som kräver friskt druvmaterial — och det är precis vad gamla gobeletstockar på mager jord ger.\n\nProducenterna på PACT arbetar med olika macerationsstilar beroende på årgång och parcellets karaktär. Alexandre Durand på Pèira Levada i Faugères kör 90 dagars maceration — exceptionellt länge, men stockarnas ålder ger tanninerna mognad och struktur att bära det. Pierre Regnault i Assignan väljer tidig skörd och helhals-maceration för maximal friskhet och lite koldioxid som naturligt skydd. Thomas Chany i Puisserguier arbetar kortare med kall maceration för att lyfta druvsortens fruktsida.\n\nResultatet är viner som varierar mer än konventionell Carignan — det är poängen. Med få eller inga tillsatser berättar varje flaska sin årgång och sin jord på ett sätt som standardiserade produkter aldrig kan.",
     aboutText:
       "Carignan naturvin, ofta från gamla stockar.",
     filter: { filterGrape: "Carignan" },
@@ -160,7 +69,7 @@ const LONG_TAIL_WINE_CATEGORIES_SV: WineCategory[] = [
     description:
       "Grenache är Languedocs mest generösa druvsort — röd frukt, naturlig sötma och en värme som speglar den soldränkta södern. Från gamla stockar i Faugères och Haute Vallée de l'Orb blir den både kraftfull och elegant.",
     longDescription:
-      "Grenache har sitt ursprung i Aragonien i Spanien, där den kallas Garnacha, och är idag en av de mest planterade druvsorterna i södra Frankrike. Den trivs i värme och torka, mognar sent och bygger upp höga sockerhalter — vilket ger viner med generös frukt, mjuka tanniner och ofta hög alkohol.\n\nI Languedoc visar Grenache sina två ansikten. På låglandet ger den runda, fruktdrivna viner med mörka körsbär och kryddighet. Men i höjdlägena — som Claparedes och Septentrion från Haute Vallée de l'Orb på 300 meters höjd — bevaras syran bättre och vinerna får en fräschör och finess som lyfter druvan bortom ren fruktighet. Pachorra från Faugères visar hur skifferjorden ger Grenache en mineralisk ryggrad.\n\nNaturvinsproducenterna på PACT arbetar med Grenache både som ren druvsort och i klassiska Languedoc-blends med Syrah och Carignan. Gemensamt är gamla stockar, låga skördar och vinifiering utan tillsatser.",
+      "Grenache har sitt ursprung i Aragonien i Spanien, där den kallas Garnacha, och är idag en av de mest planterade druvsorterna i södra Frankrike. Den trivs i värme och torka, mognar sent och bygger upp höga sockerhalter — vilket ger viner med generös frukt, mjuka tanniner och ofta hög alkohol.\n\nI Languedoc visar Grenache sina två ansikten. På låglandet ger den runda, fruktdrivna viner med mörka körsbär och kryddighet. Men i höjdlägena — som Claparedes och Septentrion från Haute Vallée de l'Orb på 300 meters höjd — bevaras syran bättre och vinerna får en fräschör och finess som lyfter druvan bortom ren fruktighet. Pachorra från Faugères visar hur skifferjorden ger Grenache en mineralisk ryggrad.\n\nNaturvinsproducenterna på PACT arbetar med Grenache både som ren druvsort och i klassiska Languedoc-blends med Syrah och Carignan. Gemensamt är gamla stockar, låga skördar och vinifiering med få eller inga tillsatser.",
     tastingProfile: [
       "Mörka körsbär, jordgubbar och plommon",
       "Kryddighet — vitpeppar, lakrits, garrigue",
@@ -186,7 +95,7 @@ const LONG_TAIL_WINE_CATEGORIES_SV: WineCategory[] = [
     description:
       "Grenache Blanc är Languedocs fräschaste vita druvsort med naturligt låg alkohol, blommig doft och krispig mineralisk syra.",
     longDescription:
-      "Grenache Blanc är en mutation av den röda Grenache och delar dess förmåga att trivas i värme och torka. Druvan ger fylliga vita viner med relativt låg syra men stor textur och kropp — en stil som passar naturvinsproducenternas skinkontakt och oxidativa metoder särskilt väl.\n\nI Languedoc odlas Grenache Blanc ofta tillsammans med Roussanne, Marsanne och Clairette i klassiska sydfranska vita blends. Kairos från Haute Vallée de l'Orb kombinerar den med Grenache Gris, Clairette, Viognier och Vermentino för ett komplext höjdlägesvin. Rocalhas och Douce Brise visar druvans fylligare, texturrika sida. Premices blandar in gamla lokala druvor som Terret och Maccabeu.\n\nAlla Grenache Blanc-viner på PACT kommer från producenter som arbetar ekologiskt eller biodynamiskt, utan tillsatser och utan filtrering.",
+      "Grenache Blanc är en mutation av den röda Grenache och delar dess förmåga att trivas i värme och torka. Druvan ger fylliga vita viner med relativt låg syra men stor textur och kropp — en stil som passar naturvinsproducenternas skinkontakt och oxidativa metoder särskilt väl.\n\nI Languedoc odlas Grenache Blanc ofta tillsammans med Roussanne, Marsanne och Clairette i klassiska sydfranska vita blends. Kairos från Haute Vallée de l'Orb kombinerar den med Grenache Gris, Clairette, Viognier och Vermentino för ett komplext höjdlägesvin. Rocalhas och Douce Brise visar druvans fylligare, texturrika sida. Premices blandar in gamla lokala druvor som Terret och Maccabeu.\n\nAlla Grenache Blanc-viner på PACT kommer från producenter som arbetar ekologiskt eller biodynamiskt, med få eller inga tillsatser och utan filtrering.",
     tastingProfile: [
       "Gula stenfrukter — persika, aprikos",
       "Blommig med inslag av fänkål och örter",
@@ -210,7 +119,7 @@ const LONG_TAIL_WINE_CATEGORIES_SV: WineCategory[] = [
     description:
       "Syrah ger Languedocs mörkaste, mest kryddiga viner — svarta bär, peppar och en mineralisk stramhet från skiffer och kalksten. På höjderna i Haute Vallée de l'Orb och skiffern i Faugères visar druvan sin eleganta sida.",
     longDescription:
-      "Syrah härstammar från Rhônedalen, norr om Languedoc, där den gjort druvsorten världsberömd i appellationer som Hermitage och Côte-Rôtie. I Languedoc är den ett relativt sent tillskott men har snabbt visat sig hemtam — särskilt i svalare höjdlägen och på mineralrika jordar.\n\nDruvan ger djupt färgade viner med svarta vinbär, björnbär och en karaktäristisk pepprig kryddighet. Där terroiret är svalt bevaras syran och vinerna blir stramare och mer eleganta. Punkahontas från Julien Peyras — ren Syrah från lerjord och kalksten på 350 meters höjd — visar den svalare, mineraliska stilen. I Faugères ger skiffern som i Courtiol och Otium en rökig, järnig ton. På höjderna i Haute Vallée de l'Orb, som Septentrion, får Syrah en nästan nordrhônsk fräschör.\n\nSyrah används både som ren druvsort och som strukturgivande komponent i Languedoc-blends. Alla Syrah-viner på PACT kommer från producenter som arbetar ekologiskt eller biodynamiskt, utan tillsatser.",
+      "Syrah härstammar från Rhônedalen, norr om Languedoc, där den gjort druvsorten världsberömd i appellationer som Hermitage och Côte-Rôtie. I Languedoc är den ett relativt sent tillskott men har snabbt visat sig hemtam — särskilt i svalare höjdlägen och på mineralrika jordar.\n\nDruvan ger djupt färgade viner med svarta vinbär, björnbär och en karaktäristisk pepprig kryddighet. Där terroiret är svalt bevaras syran och vinerna blir stramare och mer eleganta. Punkahontas från Julien Peyras — ren Syrah från lerjord och kalksten på 350 meters höjd — visar den svalare, mineraliska stilen. I Faugères ger skiffern som i Courtiol och Otium en rökig, järnig ton. På höjderna i Haute Vallée de l'Orb, som Septentrion, får Syrah en nästan nordrhônsk fräschör.\n\nSyrah används både som ren druvsort och som strukturgivande komponent i Languedoc-blends. Alla Syrah-viner på PACT kommer från producenter som arbetar ekologiskt eller biodynamiskt, med få eller inga tillsatser.",
     tastingProfile: [
       "Svarta vinbär, björnbär och plommon",
       "Svartpeppar och kryddig garrigue",
@@ -236,7 +145,7 @@ const LONG_TAIL_WINE_CATEGORIES_SV: WineCategory[] = [
     description:
       "Cinsault är naturvinsälskarnas favorit — lätta, saftiga röda viner med låg tannin, hög fräschör och röd bärfrukt. Perfekta lätt kylda och ett av de mest törstsläckande röda vinerna Languedoc har att erbjuda.",
     longDescription:
-      "Cinsault har länge levt i skuggan av de tyngre Languedoc-druvorna, ofta använd som en anonym blandningskomponent. Men naturvinsgenerationen har lyft fram den som soloartist — och upptäckt en druva perfekt anpassad för den moderna smaken för lätta, friska röda viner.\n\nDruvan ger blek färg, låg tannin och hög fräschör. Vinifierad med kort skalkontakt blir den nästan som en mörk rosé — saftig, blommig och omedelbart drickbar. La Lanterne Rouge, ren Cinsault, och blends som A Love Supreme från David Behar i Saint-Chinian visar druvans lätta, direkta sida. Miss Piggy Blues kombinerar Cinsault med Muscat för en aromatisk twist.\n\nCinsault trivs i Languedocs värme men behåller sin friskhet tack vare tidig skörd och skonsam vinifiering. Alla Cinsault-viner på PACT kommer från producenter som arbetar ekologiskt eller biodynamiskt, utan tillsatser.",
+      "Cinsault har länge levt i skuggan av de tyngre Languedoc-druvorna, ofta använd som en anonym blandningskomponent. Men naturvinsgenerationen har lyft fram den som soloartist — och upptäckt en druva perfekt anpassad för den moderna smaken för lätta, friska röda viner.\n\nDruvan ger blek färg, låg tannin och hög fräschör. Vinifierad med kort skalkontakt blir den nästan som en mörk rosé — saftig, blommig och omedelbart drickbar. La Lanterne Rouge, ren Cinsault, och blends som A Love Supreme från David Behar i Saint-Chinian visar druvans lätta, direkta sida. Miss Piggy Blues kombinerar Cinsault med Muscat för en aromatisk twist.\n\nCinsault trivs i Languedocs värme men behåller sin friskhet tack vare tidig skörd och skonsam vinifiering. Alla Cinsault-viner på PACT kommer från producenter som arbetar ekologiskt eller biodynamiskt, med få eller inga tillsatser.",
     tastingProfile: [
       "Röda bär — hallon, körsbär, jordgubbe",
       "Blommig, lätt och saftig",
@@ -260,97 +169,6 @@ export const WINE_CATEGORIES_SV: WineCategory[] = [
 ];
 
 const LONG_TAIL_WINE_CATEGORIES_EN: WineCategory[] = [
-  {
-    slug: "natural-wine-languedoc",
-    locale: "en",
-    h1: "Natural Wine from Languedoc",
-    title: "Natural Wine from Languedoc — Direct Import to Stockholm | PACT Wines",
-    metaDescription:
-      "Natural wine direct from small producers in Languedoc, France. Imported directly to Stockholm without middlemen.",
-    description:
-      "Languedoc is France's most dynamic natural wine region. We import directly from the producer to your door.",
-    filter: {},
-    hreflang: "naturvin-languedoc",
-    canonical: "/wine/natural-wine-languedoc",
-  },
-  {
-    slug: "natural-wine-france",
-    locale: "en",
-    h1: "Natural Wine from France",
-    title: "Buy French Natural Wine Online | PACT Wines",
-    metaDescription:
-      "Buy natural wine from France with home delivery in Stockholm.",
-    description:
-      "Natural wine from France, with delivery in Stockholm.",
-    filter: { countryCode: "FR" },
-    hreflang: "naturvin-frankrike",
-    canonical: "/wine/natural-wine-france",
-  },
-  {
-    slug: "red-natural-wine-languedoc",
-    locale: "en",
-    h1: "Red Natural Wine from Languedoc",
-    title: "Red Natural Wine from Languedoc | PACT Wines",
-    metaDescription:
-      "Red natural wine direct from Languedoc, France. Carignan, Grenache, Syrah — home delivery Stockholm.",
-    description:
-      "Red natural wines from Languedoc's best small producers. Directly imported to Stockholm.",
-    filter: { color: ["Red"] },
-    hreflang: "rott-naturvin-languedoc",
-    canonical: "/wine/red-natural-wine-languedoc",
-  },
-  {
-    slug: "white-natural-wine-languedoc",
-    locale: "en",
-    h1: "White Natural Wine from Languedoc",
-    title: "White Natural Wine from Languedoc | PACT Wines",
-    metaDescription:
-      "White natural wine direct from Languedoc, France. Vermentino, Chardonnay, Terret — home delivery Stockholm.",
-    description:
-      "White natural wines from Languedoc's best small producers. Directly imported to Stockholm.",
-    filter: { color: ["White"] },
-    hreflang: "vitt-naturvin-languedoc",
-    canonical: "/wine/white-natural-wine-languedoc",
-  },
-  {
-    slug: "orange-natural-wine-languedoc",
-    locale: "en",
-    h1: "Orange Natural Wine from Languedoc",
-    title: "Orange Natural Wine from Languedoc | PACT Wines",
-    metaDescription:
-      "Orange natural wine with skin contact direct from Languedoc, France. Home delivery Stockholm.",
-    description:
-      "Orange wines from Languedoc — white grapes with skin contact for texture, depth and character.",
-    filter: { color: ["Orange"] },
-    hreflang: "orange-naturvin-languedoc",
-    canonical: "/wine/orange-natural-wine-languedoc",
-  },
-  {
-    slug: "natural-wine-delivery-stockholm",
-    locale: "en",
-    h1: "Natural Wine Home Delivery Stockholm",
-    title: "Natural Wine Delivery Stockholm — Order Online | PACT Wines",
-    metaDescription:
-      "Order natural wine online with home delivery in Stockholm.",
-    description:
-      "Natural wine with home delivery in Stockholm, from small producers.",
-    filter: {},
-    hreflang: "naturvin-hemleverans-stockholm",
-    canonical: "/wine/natural-wine-delivery-stockholm",
-  },
-  {
-    slug: "direct-import-wine",
-    locale: "en",
-    h1: "Direct Import Natural Wine",
-    title: "Direct Import Wine Sweden | PACT Wines",
-    metaDescription:
-      "Buy wine via direct import to Sweden. PACT aggregates orders and ships from the producer.",
-    description:
-      "PACT directly imports natural wine from small producers. We aggregate orders until a pallet is full, then the producer ships the wine directly to you.",
-    filter: { isDirectImport: true },
-    hreflang: "direktimport-vin",
-    canonical: "/wine/direct-import-wine",
-  },
   {
     slug: "carignan",
     locale: "en",
@@ -380,14 +198,14 @@ const LONG_TAIL_WINE_CATEGORIES_EN: WineCategory[] = [
   {
     slug: "carignan-natural-wine",
     locale: "en",
-    h1: "Carignan natural wine — no additives from old vines",
+    h1: "Carignan Natural Wine from Old Vines",
     title: "Carignan Natural Wine | PACT Wines",
     metaDescription:
       "Carignan natural wine from old goblet vines — no sulphur, no filtration.",
     description:
-      "Carignan is unusually well suited to natural wine production. Old vines give natural concentration without additives, high fruit acidity acts as preservation and the grape's thick skins handle long macerations without losing balance.",
+      "Carignan is unusually well suited to natural wine production. Old vines give natural concentration with few or no additives, high fruit acidity acts as preservation and the grape's thick skins handle long macerations without losing balance.",
     longDescription:
-      "Natural wine from Carignan is about one choice: letting the grape work on its own. No added yeast, no added sulphur, no filtration. It is a risk that requires healthy fruit — and that is exactly what old gobelet vines on poor soils provide.\n\nThe producers at PACT work with different maceration styles depending on the vintage and the character of each parcel. Alexandre Durand at Pèira Levada in Faugères runs 90-day maceration — exceptionally long, but the age of the vines gives the tannins the ripeness and structure to carry it. Pierre Regnault in Assignan opts for early harvest and whole-cluster maceration for maximum freshness and a little carbon dioxide as natural protection. Thomas Chany in Puisserguier works shorter with cold maceration to highlight the grape's fruit character.\n\nThe result is wines that vary more than conventional Carignan — that is the point. Without additives, each bottle tells its vintage and its soil in a way that standardised products never can.",
+      "Natural wine from Carignan is about one choice: letting the grape work on its own. No added yeast, no added sulphur, no filtration. It is a risk that requires healthy fruit — and that is exactly what old gobelet vines on poor soils provide.\n\nThe producers at PACT work with different maceration styles depending on the vintage and the character of each parcel. Alexandre Durand at Pèira Levada in Faugères runs 90-day maceration — exceptionally long, but the age of the vines gives the tannins the ripeness and structure to carry it. Pierre Regnault in Assignan opts for early harvest and whole-cluster maceration for maximum freshness and a little carbon dioxide as natural protection. Thomas Chany in Puisserguier works shorter with cold maceration to highlight the grape's fruit character.\n\nThe result is wines that vary more than conventional Carignan — that is the point. With few or no additives, each bottle tells its vintage and its soil in a way that standardised products never can.",
     aboutText:
       "Carignan natural wine, often from old vines.",
     filter: { filterGrape: "Carignan" },
@@ -404,7 +222,7 @@ const LONG_TAIL_WINE_CATEGORIES_EN: WineCategory[] = [
     description:
       "Grenache is Languedoc's most generous grape — red fruit, natural sweetness and a warmth that reflects the sun-drenched south. From old vines in Faugères and Haute Vallée de l'Orb it becomes both powerful and elegant.",
     longDescription:
-      "Grenache originates in Aragon in Spain, where it is called Garnacha, and is today one of the most planted grapes in southern France. It thrives in heat and drought, ripens late and builds high sugar levels — giving wines with generous fruit, soft tannins and often high alcohol.\n\nIn Languedoc, Grenache shows its two faces. On the lowlands it gives round, fruit-driven wines with dark cherries and spice. But at altitude — like Claparedes and Septentrion from Haute Vallée de l'Orb at 300 metres — the acidity is better preserved and the wines gain a freshness and finesse that lift the grape beyond pure fruit. Pachorra from Faugères shows how schist soil gives Grenache a mineral backbone.\n\nThe natural wine producers at PACT work with Grenache both as a single variety and in classic Languedoc blends with Syrah and Carignan. What they share: old vines, low yields and vinification without additives.",
+      "Grenache originates in Aragon in Spain, where it is called Garnacha, and is today one of the most planted grapes in southern France. It thrives in heat and drought, ripens late and builds high sugar levels — giving wines with generous fruit, soft tannins and often high alcohol.\n\nIn Languedoc, Grenache shows its two faces. On the lowlands it gives round, fruit-driven wines with dark cherries and spice. But at altitude — like Claparedes and Septentrion from Haute Vallée de l'Orb at 300 metres — the acidity is better preserved and the wines gain a freshness and finesse that lift the grape beyond pure fruit. Pachorra from Faugères shows how schist soil gives Grenache a mineral backbone.\n\nThe natural wine producers at PACT work with Grenache both as a single variety and in classic Languedoc blends with Syrah and Carignan. What they share: old vines, low yields and vinification with few or no additives.",
     tastingProfile: [
       "Dark cherries, strawberries and plums",
       "Spice — white pepper, liquorice, garrigue",
@@ -430,7 +248,7 @@ const LONG_TAIL_WINE_CATEGORIES_EN: WineCategory[] = [
     description:
       "Grenache Blanc is Languedoc's freshest white grape with naturally low alcohol, floral aromas and crisp mineral acidity.",
     longDescription:
-      "Grenache Blanc is a mutation of the red Grenache and shares its ability to thrive in heat and drought. The grape gives full-bodied white wines with relatively low acidity but great texture and body — a style that suits the natural wine producers' skin contact and oxidative methods particularly well.\n\nIn Languedoc, Grenache Blanc is often grown alongside Roussanne, Marsanne and Clairette in classic southern French white blends. Kairos from Haute Vallée de l'Orb combines it with Grenache Gris, Clairette, Viognier and Vermentino for a complex altitude wine. Rocalhas and Douce Brise show the grape's fuller, more textured side. Premices blends in old local grapes like Terret and Maccabeu.\n\nAll Grenache Blanc wines at PACT come from producers working organically or biodynamically, without additives and without filtration.",
+      "Grenache Blanc is a mutation of the red Grenache and shares its ability to thrive in heat and drought. The grape gives full-bodied white wines with relatively low acidity but great texture and body — a style that suits the natural wine producers' skin contact and oxidative methods particularly well.\n\nIn Languedoc, Grenache Blanc is often grown alongside Roussanne, Marsanne and Clairette in classic southern French white blends. Kairos from Haute Vallée de l'Orb combines it with Grenache Gris, Clairette, Viognier and Vermentino for a complex altitude wine. Rocalhas and Douce Brise show the grape's fuller, more textured side. Premices blends in old local grapes like Terret and Maccabeu.\n\nAll Grenache Blanc wines at PACT come from producers working organically or biodynamically, with few or no additives and without filtration.",
     tastingProfile: [
       "Yellow stone fruit — peach, apricot",
       "Floral with notes of fennel and herbs",
@@ -454,7 +272,7 @@ const LONG_TAIL_WINE_CATEGORIES_EN: WineCategory[] = [
     description:
       "Syrah gives Languedoc's darkest, most spiced wines — black fruit, pepper and a mineral tautness from schist and limestone. On the heights of Haute Vallée de l'Orb and the schist of Faugères, the grape shows its elegant side.",
     longDescription:
-      "Syrah originates in the Rhône Valley, north of Languedoc, where it made the grape world-famous in appellations like Hermitage and Côte-Rôtie. In Languedoc it is a relatively recent addition but has quickly proven at home — especially in cooler high-altitude sites and on mineral-rich soils.\n\nThe grape gives deeply coloured wines with blackcurrant, blackberry and a characteristic peppery spice. Where the terroir is cool, acidity is preserved and the wines become tauter and more elegant. Punkahontas from Julien Peyras — pure Syrah from clay and limestone at 350 metres — shows the cooler, mineral style. In Faugères, the schist as in Courtiol and Otium gives a smoky, iron note. On the heights of Haute Vallée de l'Orb, like Septentrion, Syrah gains an almost northern-Rhône freshness.\n\nSyrah is used both as a single variety and as a structuring component in Languedoc blends. All Syrah wines at PACT come from producers working organically or biodynamically, without additives.",
+      "Syrah originates in the Rhône Valley, north of Languedoc, where it made the grape world-famous in appellations like Hermitage and Côte-Rôtie. In Languedoc it is a relatively recent addition but has quickly proven at home — especially in cooler high-altitude sites and on mineral-rich soils.\n\nThe grape gives deeply coloured wines with blackcurrant, blackberry and a characteristic peppery spice. Where the terroir is cool, acidity is preserved and the wines become tauter and more elegant. Punkahontas from Julien Peyras — pure Syrah from clay and limestone at 350 metres — shows the cooler, mineral style. In Faugères, the schist as in Courtiol and Otium gives a smoky, iron note. On the heights of Haute Vallée de l'Orb, like Septentrion, Syrah gains an almost northern-Rhône freshness.\n\nSyrah is used both as a single variety and as a structuring component in Languedoc blends. All Syrah wines at PACT come from producers working organically or biodynamically, with few or no additives.",
     tastingProfile: [
       "Blackcurrant, blackberry and plum",
       "Black pepper and spiced garrigue",
@@ -480,7 +298,7 @@ const LONG_TAIL_WINE_CATEGORIES_EN: WineCategory[] = [
     description:
       "Cinsault is the natural wine lover's favourite — light, juicy red wines with low tannin, high freshness and red berry fruit. Perfect lightly chilled and one of the most thirst-quenching red wines Languedoc has to offer.",
     longDescription:
-      "Cinsault long lived in the shadow of the heavier Languedoc grapes, often used as an anonymous blending component. But the natural wine generation has brought it forward as a solo act — and discovered a grape perfectly suited to the modern taste for light, fresh red wines.\n\nThe grape gives pale colour, low tannin and high freshness. Vinified with short skin contact it becomes almost like a dark rosé — juicy, floral and immediately drinkable. La Lanterne Rouge, pure Cinsault, and blends like A Love Supreme from David Behar in Saint-Chinian show the grape's light, direct side. Miss Piggy Blues combines Cinsault with Muscat for an aromatic twist.\n\nCinsault thrives in Languedoc's heat but keeps its freshness thanks to early harvest and gentle vinification. All Cinsault wines at PACT come from producers working organically or biodynamically, without additives.",
+      "Cinsault long lived in the shadow of the heavier Languedoc grapes, often used as an anonymous blending component. But the natural wine generation has brought it forward as a solo act — and discovered a grape perfectly suited to the modern taste for light, fresh red wines.\n\nThe grape gives pale colour, low tannin and high freshness. Vinified with short skin contact it becomes almost like a dark rosé — juicy, floral and immediately drinkable. La Lanterne Rouge, pure Cinsault, and blends like A Love Supreme from David Behar in Saint-Chinian show the grape's light, direct side. Miss Piggy Blues combines Cinsault with Muscat for an aromatic twist.\n\nCinsault thrives in Languedoc's heat but keeps its freshness thanks to early harvest and gentle vinification. All Cinsault wines at PACT come from producers working organically or biodynamically, with few or no additives.",
     tastingProfile: [
       "Red berries — raspberry, cherry, strawberry",
       "Floral, light and juicy",

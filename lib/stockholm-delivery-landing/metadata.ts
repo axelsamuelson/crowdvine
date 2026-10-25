@@ -51,7 +51,7 @@ export async function buildStockholmDeliveryMetadata(
       languages: {
         sv: `${config.baseUrl}${STOCKHOLM_DELIVERY_PATH.sv}`,
         en: `${config.baseUrl}${STOCKHOLM_DELIVERY_PATH.en}`,
-        "x-default": `${config.baseUrl}${STOCKHOLM_DELIVERY_PATH.sv}`,
+        "x-default": `${config.baseUrl}${STOCKHOLM_DELIVERY_PATH.en}`,
       },
     },
     openGraph: {
@@ -59,7 +59,7 @@ export async function buildStockholmDeliveryMetadata(
       description: metaDescription,
       url: canonicalUrl,
       type: "website",
-      images: defaultOpenGraphImages(),
+      images: defaultOpenGraphImages({ siteName: config.siteName }),
     },
     twitter: pageTwitterCard(rawTitle, metaDescription),
   };

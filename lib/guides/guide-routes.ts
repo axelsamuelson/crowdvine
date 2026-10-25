@@ -36,6 +36,6 @@ export function guideHreflang(key: keyof typeof GUIDE_PATHS, baseUrl: string) {
   return {
     sv,
     en,
-    "x-default": sv,
+    "x-default": en,
   } as const;
 }

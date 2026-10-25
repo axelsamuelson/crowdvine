@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { GuideRankEntry } from "@/components/guides/guide-rank-entry";
 import { GuideRankTable } from "@/components/guides/guide-rank-table";
 import { Footer } from "@/components/layout/footer";
+import { DEFAULT_WINE_IMAGE_PATH } from "@/lib/constants";
 import {
   GuideBreadcrumbs,
   buildGuideBreadcrumbJsonLd,
@@ -19,7 +21,15 @@ import {
   guidePath,
 } from "@/lib/guides/guide-routes";
 import { filterLanguedocRoussillonEntries } from "@/lib/guides/languedoc-region";
-import { TOP_100_WINES } from "@/lib/guides/top-100-wines";
+import {
+  TOP_100_WINES,
+  TOP_100_WINES_PUBLISHED_AT,
+  TOP_100_WINES_UPDATED_AT,
+} from "@/lib/guides/top-100-wines";
+import {
+  beginnerPickCopy,
+  resolveAvailableBeginnerPicks,
+} from "@/lib/guides/worlds-best-beginner-picks";
 import type { AppLocale } from "@/lib/i18n/locale";
 import { categoryPageTitle } from "@/lib/seo/category-page-title";
 import {
@@ -31,6 +41,10 @@ import {
   SYSTEMBOLAGET_BEST_UPLINK,
   SYSTEMBOLAGET_RANKED_LISTS,
 } from "@/lib/guides/systembolaget-list-links";
+import {
+  systembolagetImageUrl,
+  systembolagetProductUrl,
+} from "@/lib/systembolaget/guide-wines";
 
 function linkLanguedocMentions(
   text: string,
@@ -77,7 +91,7 @@ export async function buildWinesGuideMetadata(
       description: copy.wines.metaDescription,
       url: pageUrl,
       type: "article",
-      images: defaultOpenGraphImages(),
+      images: defaultOpenGraphImages({ siteName: config.siteName }),
     },
     twitter: pageTwitterCard(title, copy.wines.metaDescription),
   };
@@ -86,17 +100,18 @@ export async function buildWinesGuideMetadata(
 export async function renderWinesGuidePage(locale: AppLocale) {
   const { seoBaseUrl } = await getGuideSeoOwnership();
   const copy = guideCopy(locale);
+  const beginner = beginnerPickCopy(locale);
   const hubPath = guidePath("hub", locale);
   const producersPath = guidePath("producers", locale);
+  const pageUrl = `${seoBaseUrl}${guidePath("wines", locale)}`;
   const shopNatural =
     locale === "sv" ? "/vin" : "/wine";
   const bestList = SYSTEMBOLAGET_RANKED_LISTS.find(
     (list) => list.category === "best",
   );
-  const languedocShop =
-    locale === "sv"
-      ? "/vin/naturvin-languedoc"
-      : "/wine/natural-wine-languedoc";
+  const languedocShop = locale === "sv" ? "/vin" : "/wine";
+
+  const { available: beginnerPicks } = await resolveAvailableBeginnerPicks();
 
   const top10 = TOP_100_WINES.filter((w) => w.rank <= 10);
   const mid = TOP_100_WINES.filter((w) => w.rank >= 11 && w.rank <= 30);
@@ -111,6 +126,27 @@ export async function renderWinesGuidePage(locale: AppLocale) {
     { name: copy.hubTitle, item: `${seoBaseUrl}${hubPath}` },
     { name: copy.wines.breadcrumbShort },
   ]);
+
+  const articleJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: copy.wines.h1,
+    name: copy.wines.h1,
+    description: copy.wines.metaDescription,
+    url: pageUrl,
+    inLanguage: locale === "sv" ? "sv-SE" : "en-GB",
+    datePublished: TOP_100_WINES_PUBLISHED_AT,
+    dateModified: TOP_100_WINES_UPDATED_AT,
+    isPartOf: {
+      "@type": "WebSite",
+      name: "PACT",
+      url: seoBaseUrl,
+    },
+    about: {
+      "@type": "Thing",
+      name: locale === "sv" ? "Naturvin" : "Natural wine",
+    },
+  };
 
   const itemListJsonLd = {
     "@context": "https://schema.org",
@@ -128,6 +164,12 @@ export async function renderWinesGuidePage(locale: AppLocale) {
 
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(articleJsonLd),
+        }}
+      />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -153,6 +195,9 @@ export async function renderWinesGuidePage(locale: AppLocale) {
         <h1 className="mt-6 text-3xl font-bold tracking-tight md:text-4xl">
           {copy.wines.h1}
         </h1>
+        <p className="mt-3 text-sm text-muted-foreground">
+          {copy.wines.updatedLine}
+        </p>
 
         <div className="mt-6 space-y-4 text-base leading-relaxed text-muted-foreground">
           {copy.wines.intro.map((paragraph) => (
@@ -162,6 +207,100 @@ export async function renderWinesGuidePage(locale: AppLocale) {
           ))}
         </div>
 
+        <aside className="mt-10 border border-border bg-muted/30 px-5 py-5">
+          <h2 className="text-base font-semibold tracking-tight text-foreground">
+            {copy.wines.top10GlanceHeading}
+          </h2>
+          <ol className="mt-4 list-decimal space-y-2 pl-5 text-sm leading-relaxed text-muted-foreground">
+            {top10.map((wine) => (
+              <li key={wine.rank}>
+                <Link
+                  href={`#wine-rank-${wine.rank}`}
+                  className="underline underline-offset-4 hover:text-foreground"
+                >
+                  <span className="font-medium text-foreground">{`${wine.wine}, ${wine.producer}`}</span>
+                </Link>
+              </li>
+            ))}
+          </ol>
+        </aside>
+
+        {beginnerPicks.length > 0 ? (
+          <section className="mt-14">
+            <h2 className="mb-4 border-b border-border pb-3 text-xl font-semibold">
+              {beginner.heading}
+            </h2>
+            <p className="text-base leading-relaxed text-muted-foreground">
+              {beginner.intro}
+            </p>
+            <ol className="mt-8 list-decimal space-y-6 pl-5 text-sm leading-relaxed text-muted-foreground md:text-base">
+              {beginnerPicks.map((pick) => {
+                const origin = pick.origin[locale];
+                const body = pick.body[locale];
+                const price =
+                  locale === "sv" &&
+                  pick.product &&
+                  typeof pick.product.price === "number" &&
+                  !Number.isNaN(pick.product.price)
+                    ? `${Math.round(pick.product.price)} kr`
+                    : null;
+                const productUrl = systembolagetProductUrl(pick.productNumber);
+                const imageSrc =
+                  systembolagetImageUrl(pick.product?.imageUrl ?? null, 100) ??
+                  DEFAULT_WINE_IMAGE_PATH;
+
+                return (
+                  <li key={pick.productNumber} className="pl-1">
+                    <div className="flex gap-4">
+                      <div className="flex h-20 w-10 shrink-0 items-center justify-center">
+                        <Image
+                          src={imageSrc}
+                          alt={pick.name}
+                          width={40}
+                          height={80}
+                          className="h-full w-full object-contain object-top"
+                          sizes="40px"
+                        />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p>
+                          <span className="font-semibold text-foreground">
+                            {pick.name}
+                          </span>{" "}
+                          ({origin}). {body}
+                          {price ? (
+                            <>
+                              {" "}
+                              <Link
+                                href={productUrl}
+                                className="font-medium tabular-nums text-foreground underline underline-offset-4 hover:text-foreground"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                {price}
+                              </Link>
+                            </>
+                          ) : null}
+                        </p>
+                      </div>
+                    </div>
+                  </li>
+                );
+              })}
+            </ol>
+            <p className="mt-8 text-sm leading-relaxed text-muted-foreground md:text-base">
+              {beginner.moreBefore}
+              <Link
+                href={beginner.moreHref}
+                className="underline underline-offset-4 hover:text-foreground"
+              >
+                {beginner.moreLink}
+              </Link>
+              {beginner.moreAfter}
+            </p>
+          </section>
+        ) : null}
+
         <section className="mt-14">
           <h2 className="mb-4 border-b border-border pb-3 text-xl font-semibold">
             {copy.top10}
@@ -170,6 +309,7 @@ export async function renderWinesGuidePage(locale: AppLocale) {
             {top10.map((wine) => (
               <GuideRankEntry
                 key={wine.rank}
+                id={`wine-rank-${wine.rank}`}
                 rank={wine.rank}
                 title={wine.wine}
                 meta={wineMetaLine(wine)}
@@ -187,6 +327,7 @@ export async function renderWinesGuidePage(locale: AppLocale) {
             {mid.map((wine) => (
               <GuideRankEntry
                 key={wine.rank}
+                id={`wine-rank-${wine.rank}`}
                 rank={wine.rank}
                 title={wine.wine}
                 meta={wineMetaLine(wine)}
@@ -245,8 +386,8 @@ export async function renderWinesGuidePage(locale: AppLocale) {
                 </span>{" "}
                 {wine.wine}
                 <span className="text-muted-foreground/80">
-                  {" "}
-                  — {wine.producer}, {wine.region}
+                  {", "}
+                  {wine.producer}, {wine.region}
                 </span>
               </li>
             ))}

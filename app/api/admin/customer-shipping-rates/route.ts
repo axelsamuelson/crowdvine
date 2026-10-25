@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { listCustomerShippingRates } from "@/lib/admin/lager-frakt-reads";
+import { createCustomerShippingRate } from "@/lib/admin/lager-frakt-writes";
 import { requireAdmin } from "@/lib/admin-auth-server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
@@ -11,21 +13,15 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     await requireAdmin();
-    const sb = getSupabaseAdmin();
-    const { data, error } = await sb
-      .from("customer_shipping_rates")
-      .select("*")
-      .order("created_at", { ascending: false });
-    if (error) {
-      return NextResponse.json(
-        { error: error.message, entries: [] },
-        { status: error.code === "42P01" ? 200 : 500 },
-      );
-    }
-    return NextResponse.json({ entries: data ?? [] });
+    const entries = await listCustomerShippingRates(getSupabaseAdmin());
+    return NextResponse.json({ entries });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Unauthorized";
-    return NextResponse.json({ error: msg }, { status: 401 });
+    if (msg.includes("42P01") || msg.includes("does not exist")) {
+      return NextResponse.json({ error: msg, entries: [] }, { status: 200 });
+    }
+    const status = msg === "Admin authentication required" ? 401 : 500;
+    return NextResponse.json({ error: msg }, { status });
   }
 }
 
@@ -33,46 +29,20 @@ export async function POST(request: NextRequest) {
   try {
     const admin = await requireAdmin();
     const body = await request.json();
-    const sb = getSupabaseAdmin();
-
-    const flat = Math.max(0, Math.round(Number(body.flat_fee_cents) || 0));
-    const free = body.free_shipping === true;
-    if (!free && flat <= 0) {
-      return NextResponse.json(
-        {
-          error:
-            "Set flat_fee_cents > 0 or free_shipping=true. Do not invent a commercial rate without a business decision.",
-        },
-        { status: 400 },
-      );
-    }
-
-    const { data, error } = await sb
-      .from("customer_shipping_rates")
-      .insert({
-        channel: "pact",
-        country_code: body.country_code ?? "SE",
-        flat_fee_cents: free ? 0 : flat,
-        free_shipping: free,
-        free_shipping_threshold_cents:
-          body.free_shipping_threshold_cents == null
-            ? null
-            : Math.round(Number(body.free_shipping_threshold_cents)),
-        min_bottles: body.min_bottles ?? null,
-        max_bottles: body.max_bottles ?? null,
-        active: body.active !== false,
-        notes: body.notes ?? null,
-        created_by: admin.id,
-      })
-      .select("*")
-      .single();
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-    return NextResponse.json({ entry: data });
+    const result = await createCustomerShippingRate(
+      getSupabaseAdmin(),
+      body,
+      admin.id,
+    );
+    return NextResponse.json(result);
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Unauthorized";
-    return NextResponse.json({ error: msg }, { status: 401 });
+    if (msg === "Admin authentication required") {
+      return NextResponse.json({ error: msg }, { status: 401 });
+    }
+    if (msg.includes("flat_fee_cents") || msg.includes("free_shipping")) {
+      return NextResponse.json({ error: msg }, { status: 400 });
+    }
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

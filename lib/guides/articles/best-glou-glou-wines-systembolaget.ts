@@ -125,16 +125,6 @@ export const bestGlouGlouWinesSystembolagetArticle: GuideArticleContent = {
     },
     {
       label: {
-        en: "What is red natural wine? →",
-        sv: "Vad är rött naturvin? →",
-      },
-      href: {
-        en: "/guides/what-is-red-natural-wine",
-        sv: "/guider/vad-ar-rott-naturvin",
-      },
-    },
-    {
-      label: {
         en: "Explore our own selection of red natural wine →",
         sv: "Utforska vårt eget sortiment av rött naturvin →",
       },

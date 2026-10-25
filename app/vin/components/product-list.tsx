@@ -59,6 +59,7 @@ async function fetchProductsForList(params: {
   displayCurrencyCode: string;
   sekToDisplayRate: number;
   canUseProductCache: boolean;
+  locale: "sv" | "en";
 }): Promise<Product[]> {
   const {
     collection,
@@ -71,6 +72,7 @@ async function fetchProductsForList(params: {
     displayCurrencyCode,
     sekToDisplayRate,
     canUseProductCache,
+    locale,
   } = params;
 
   const currencyParams = { displayCurrencyCode, sekToDisplayRate };
@@ -86,6 +88,7 @@ async function fetchProductsForList(params: {
           sortKey: sortKey as ProductCollectionSortKey,
           reverse,
           host,
+          locale,
           ...currencyParams,
         });
         allProducts.push(...producerProducts);
@@ -107,6 +110,7 @@ async function fetchProductsForList(params: {
         isB2BSite,
         displayCurrencyCode,
         sekToDisplayRate,
+        locale,
       });
       return data as Product[];
     }
@@ -116,6 +120,7 @@ async function fetchProductsForList(params: {
       query,
       reverse,
       host,
+      locale,
       ...currencyParams,
     });
   }
@@ -126,6 +131,7 @@ async function fetchProductsForList(params: {
     sortKey: sortKey as ProductCollectionSortKey,
     reverse,
     host,
+    locale,
     ...currencyParams,
   });
 }
@@ -201,6 +207,8 @@ export default async function ProductList({
           host,
           ...productCurrencyParams,
           canUseProductCache,
+          locale:
+            shoppingContext.locale === "en" ? "en" : "sv",
         }),
         getCachedShopCollections(),
         isPopularSort

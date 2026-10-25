@@ -1,47 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getShippingRegion } from "@/lib/admin/lager-frakt-reads";
+import {
+  isUnauthorizedResponse,
+  requireAdminOr401,
+} from "@/lib/admin-auth-http";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
-function requireAdmin(request: NextRequest): boolean {
-  return Boolean(request.cookies.get("admin-auth")?.value);
-}
-
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    if (!requireAdmin(request)) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const auth = await requireAdminOr401();
+    if (isUnauthorizedResponse(auth)) return auth;
 
     const { id } = await params;
-    const sb = getSupabaseAdmin();
-
-    const { data, error } = await sb
-      .from("shipping_regions")
-      .select("id, name, country_code, description, created_at, updated_at")
-      .eq("id", id)
-      .maybeSingle();
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-    if (!data) {
+    const region = await getShippingRegion(getSupabaseAdmin(), id);
+    if (!region) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
-
-    const { count, error: countErr } = await sb
-      .from("producers")
-      .select("id", { count: "exact", head: true })
-      .eq("shipping_region_id", id);
-
-    if (countErr) {
-      return NextResponse.json({ error: countErr.message }, { status: 500 });
-    }
-
-    return NextResponse.json({
-      region: { ...data, producer_count: count ?? 0 },
-    });
+    return NextResponse.json({ region });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Unknown error";
     return NextResponse.json({ error: message }, { status: 500 });
@@ -53,9 +31,8 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    if (!requireAdmin(request)) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const auth = await requireAdminOr401();
+    if (isUnauthorizedResponse(auth)) return auth;
 
     const { id } = await params;
     const body = (await request.json()) as {
@@ -117,13 +94,12 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    if (!requireAdmin(request)) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const auth = await requireAdminOr401();
+    if (isUnauthorizedResponse(auth)) return auth;
 
     const { id } = await params;
     const sb = getSupabaseAdmin();

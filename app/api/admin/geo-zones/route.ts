@@ -1,4 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { listGeoZones } from "@/lib/admin/lager-frakt-reads";
+import {
+  isUnauthorizedResponse,
+  requireAdminOr401,
+} from "@/lib/admin-auth-http";
 import {
   geoZoneCityRequired,
   syncDeliveryZoneForGeoZone,
@@ -6,36 +11,19 @@ import {
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { resolveDisplayCurrencyCode } from "@/lib/shopping-context/currency-policy";
 
-function requireAdmin(request: NextRequest) {
-  const adminAuth = request.cookies.get("admin-auth")?.value;
-  if (!adminAuth) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  return null;
-}
-
 /** GET /api/admin/geo-zones — list zones (optional ?market_code=US). */
 export async function GET(request: NextRequest) {
-  const denied = requireAdmin(request);
-  if (denied) return denied;
+  const auth = await requireAdminOr401();
+  if (isUnauthorizedResponse(auth)) return auth;
 
   try {
     const sb = getSupabaseAdmin();
     const marketCode = request.nextUrl.searchParams.get("market_code")?.trim();
-    let q = sb
-      .from("geo_zones")
-      .select("*")
-      .order("market_code", { ascending: true })
-      .order("sort_order", { ascending: true })
-      .order("name", { ascending: true });
-    if (marketCode) {
-      q = q.eq("market_code", marketCode);
-    }
-    const { data, error } = await q;
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-    return NextResponse.json({ geoZones: data ?? [] });
+    const geoZones = await listGeoZones(
+      sb,
+      marketCode ? { market_code: marketCode } : undefined,
+    );
+    return NextResponse.json({ geoZones });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : "Unknown error";
     return NextResponse.json({ error: msg }, { status: 500 });
@@ -44,8 +32,8 @@ export async function GET(request: NextRequest) {
 
 /** POST /api/admin/geo-zones — create zone. */
 export async function POST(request: NextRequest) {
-  const denied = requireAdmin(request);
-  if (denied) return denied;
+  const auth = await requireAdminOr401();
+  if (isUnauthorizedResponse(auth)) return auth;
 
   try {
     const body = (await request.json()) as Record<string, unknown>;

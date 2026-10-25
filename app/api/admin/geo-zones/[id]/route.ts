@@ -1,26 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { deleteGeoZone } from "@/lib/actions/geo-zones";
 import {
+  isUnauthorizedResponse,
+  requireAdminOr401,
+} from "@/lib/admin-auth-http";
+import {
   geoZoneCityRequired,
   syncDeliveryZoneForGeoZone,
 } from "@/lib/market/sync-geo-zone-delivery";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
-
-function requireAdmin(request: NextRequest) {
-  const adminAuth = request.cookies.get("admin-auth")?.value;
-  if (!adminAuth) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  return null;
-}
 
 /** PATCH /api/admin/geo-zones/[id] — partial update. */
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const denied = requireAdmin(request);
-  if (denied) return denied;
+  const auth = await requireAdminOr401();
+  if (isUnauthorizedResponse(auth)) return auth;
 
   const { id: rawId } = await params;
   const id = rawId?.trim();
@@ -156,8 +152,8 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const denied = requireAdmin(request);
-  if (denied) return denied;
+  const auth = await requireAdminOr401();
+  if (isUnauthorizedResponse(auth)) return auth;
 
   const { id: rawId } = await params;
   const id = rawId?.trim();
@@ -170,6 +166,9 @@ export async function DELETE(
     return NextResponse.json({ ok: true, ...result });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : "Unknown error";
+    if (msg === "Admin authentication required") {
+      return NextResponse.json({ error: msg }, { status: 401 });
+    }
     const status = msg.includes("hittades inte") ? 404 : 500;
     return NextResponse.json({ error: msg }, { status });
   }

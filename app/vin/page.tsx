@@ -12,6 +12,7 @@ import {
 } from "@/lib/seo/default-social";
 import { DIRTY_WINE_CONFIG } from "@/lib/site-config";
 import { getSiteConfig } from "@/lib/site-config-server";
+import { PACT_PUBLIC_ORIGIN } from "@/lib/i18n/localized-routes";
 
 export const revalidate = 300;
 
@@ -20,8 +21,8 @@ export async function generateMetadata(props: {
 }): Promise<Metadata> {
   const searchParams = await props.searchParams;
   const config = await getSiteConfig();
-  const pageUrl = `${config.baseUrl}/vin`;
-  const title = `Naturvin online | Köp naturvin hos ${config.siteName}`;
+  const pageUrl = `${PACT_PUBLIC_ORIGIN}/vin`;
+  const title = "Naturvin: köp naturvin online";
   const description =
     config.baseUrl === DIRTY_WINE_CONFIG.baseUrl
       ? "Naturvin. Ekologiskt och biodynamiskt. För restauranger i Stockholm."
@@ -34,9 +35,9 @@ export async function generateMetadata(props: {
     alternates: {
       canonical: pageUrl,
       languages: {
-        sv: `${config.baseUrl}/vin`,
-        en: `${config.baseUrl}/wine`,
-        "x-default": `${config.baseUrl}/vin`,
+        sv: `${PACT_PUBLIC_ORIGIN}/vin`,
+        en: `${PACT_PUBLIC_ORIGIN}/wine`,
+        "x-default": `${PACT_PUBLIC_ORIGIN}/wine`,
       },
     },
     openGraph: {
@@ -44,7 +45,7 @@ export async function generateMetadata(props: {
       description,
       url: pageUrl,
       type: "website",
-      images: defaultOpenGraphImages(),
+      images: defaultOpenGraphImages({ siteName: config.siteName }),
     },
     twitter: pageTwitterCard(title, description),
   };

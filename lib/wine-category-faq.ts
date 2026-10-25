@@ -1,3 +1,4 @@
+import { articleLinkText } from "@/lib/guides/guide-types";
 import type { AppLocale } from "@/lib/i18n/locale";
 import type { WineCategoryFaqItem } from "@/lib/wine-category-types";
 
@@ -17,7 +18,7 @@ export function buildFaqPageJsonLd(faq: WineCategoryFaqItem[]) {
       name: item.question,
       acceptedAnswer: {
         "@type": "Answer",
-        text: item.answer,
+        text: articleLinkText(item.answer),
       },
     })),
   };

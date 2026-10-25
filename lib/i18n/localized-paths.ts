@@ -8,6 +8,7 @@ import {
 } from "@/lib/wine-categories";
 import { guidePath } from "@/lib/guides/guide-routes";
 import {
+  homePathForLocale,
   producerPublicPath,
   productPublicPath,
   producerShopPathFromName,
@@ -16,6 +17,7 @@ import {
 
 export type LocalizedPaths = {
   locale: AppLocale;
+  home: "/" | "/en";
   about: string;
   producers: string;
   guides: string;
@@ -52,6 +54,7 @@ export function localizedPathsForLocale(locale: AppLocale): LocalizedPaths {
   const shop = shopPathForLocale(locale);
   return {
     locale,
+    home: homePathForLocale(locale),
     about: aboutPathForLocale(locale),
     producers: producersDirectoryPathForLocale(locale),
     guides: guidePath("hub", locale),

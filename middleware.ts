@@ -21,10 +21,7 @@ import {
   getCategoryUrlForGrape,
 } from "@/lib/wine-categories";
 import { LOCALE_COOKIE, parseLocaleCookie } from "@/lib/i18n/locale";
-import {
-  redirectLegacyProducerProfilePath,
-  redirectLocalePathMismatch,
-} from "@/lib/i18n/locale-path-redirect";
+import { redirectLegacyProducerProfilePath } from "@/lib/i18n/locale-path-redirect";
 import { localeFromShopPath } from "@/lib/i18n/shop-path-locale";
 import { GEO_COUNTRY_COOKIE } from "@/lib/analytics/visitor-identity";
 import {
@@ -32,8 +29,10 @@ import {
   pactGuideRedirectUrl,
 } from "@/lib/guides/dirtywine-guide-redirect";
 import {
+  isLegacyBoxRedirectPath,
   isProducerBoxesPath,
   pactProducerBoxesRedirectUrl,
+  resolveProducerBoxesTargetPath,
 } from "@/lib/producer-boxes/config";
 import {
   isStockholmDeliveryRedirectPath,
@@ -84,9 +83,6 @@ export async function middleware(req: NextRequest) {
 function nextWithPathname(req: NextRequest): NextResponse {
   const legacyProducerRedirect = redirectLegacyProducerProfilePath(req);
   if (legacyProducerRedirect) return legacyProducerRedirect;
-
-  const localeRedirect = redirectLocalePathMismatch(req);
-  if (localeRedirect) return localeRedirect;
 
   const pathname = req.nextUrl.pathname;
   const requestHeaders = new Headers(req.headers);
@@ -161,7 +157,11 @@ async function runMiddleware(req: NextRequest) {
     );
   }
 
-  if (isDirtywineProductionHost(host) && isProducerBoxesPath(pathname)) {
+  // Producer-box landings + legacy box URLs → pactwines.com (one hop).
+  if (
+    isDirtywineProductionHost(host) &&
+    (isProducerBoxesPath(pathname) || isLegacyBoxRedirectPath(pathname))
+  ) {
     return NextResponse.redirect(
       pactProducerBoxesRedirectUrl(pathname, req.nextUrl.search),
       301,
@@ -221,10 +221,14 @@ async function runMiddleware(req: NextRequest) {
     return NextResponse.redirect(u, 301);
   }
 
-  if (pathname === "/boxes") {
-    const u = req.nextUrl.clone();
-    u.pathname = "/vin/wine-boxes";
-    return NextResponse.redirect(u, 301);
+  // Legacy box shop URLs → producer-boxes landing (one hop, same host on pact).
+  if (isLegacyBoxRedirectPath(pathname)) {
+    const target = resolveProducerBoxesTargetPath(pathname);
+    if (target) {
+      const u = req.nextUrl.clone();
+      u.pathname = target;
+      return NextResponse.redirect(u, 301);
+    }
   }
 
   const legacyGrapeRedirect = redirectLegacyShopGrapeFilter(req, pathname);
@@ -461,6 +465,13 @@ const LEGACY_WINE_CATEGORY_REDIRECTS_EN: Record<string, string> = {
   "white-wine": "/wine/white-natural-wine",
   "orange-wine": "/wine/orange-natural-wine",
   "natural-wine": "/wine",
+  "direct-import-wine": "/wine",
+  "natural-wine-languedoc": "/wine",
+  "red-natural-wine-languedoc": "/wine/red-natural-wine",
+  "white-natural-wine-languedoc": "/wine/white-natural-wine",
+  "orange-natural-wine-languedoc": "/wine/orange-natural-wine",
+  "natural-wine-france": "/wine",
+  "natural-wine-delivery-stockholm": "/guides/natural-wine-home-delivery",
 };
 
 const LEGACY_WINE_CATEGORY_REDIRECTS_SV: Record<string, string> = {
@@ -468,6 +479,13 @@ const LEGACY_WINE_CATEGORY_REDIRECTS_SV: Record<string, string> = {
   "vitt-vin": "/vin/vitt-naturvin",
   "orange-vin": "/vin/orange-naturvin",
   naturvin: "/vin",
+  "direktimport-vin": "/vin",
+  "naturvin-languedoc": "/vin",
+  "rott-naturvin-languedoc": "/vin/rott-naturvin",
+  "vitt-naturvin-languedoc": "/vin/vitt-naturvin",
+  "orange-naturvin-languedoc": "/vin/orange-naturvin",
+  "naturvin-frankrike": "/vin",
+  "naturvin-hemleverans-stockholm": "/guider/hemleverans-av-naturvin",
 };
 
 function redirectLegacyWineCategorySlug(

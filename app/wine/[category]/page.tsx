@@ -35,6 +35,7 @@ import { getShoppingContextFromRequest } from "@/lib/shopping-context/server";
 import { fallbackShoppingContext } from "@/lib/shopping-context/defaults";
 import { DIRTY_WINE_CONFIG } from "@/lib/site-config";
 import { getSiteConfig } from "@/lib/site-config-server";
+import { PACT_PUBLIC_ORIGIN } from "@/lib/i18n/localized-routes";
 import { categoryPageTitle } from "@/lib/seo/category-page-title";
 import { shopCategoryCanonicalUrl } from "@/lib/wine-category-canonical";
 import { localizeGeneratedCategoryCopy } from "@/lib/wine-shop-filter-categories";
@@ -54,10 +55,6 @@ import { resolveGrapeCategoryBySlug } from "@/lib/wine-grape-categories";
 import { ProducerBoxesPage } from "@/components/producer-boxes/producer-boxes-page";
 import { isProducerBoxesSlug } from "@/lib/producer-boxes/config";
 import { buildProducerBoxesMetadata } from "@/lib/producer-boxes/metadata";
-import { StockholmDeliveryLandingPage } from "@/components/stockholm-delivery-landing/stockholm-delivery-landing-page";
-import { isStockholmDeliveryLandingSlug } from "@/lib/stockholm-delivery-landing/config";
-import { buildStockholmDeliveryMetadata } from "@/lib/stockholm-delivery-landing/metadata";
-
 export const revalidate = 300;
 export const dynamicParams = true;
 
@@ -78,11 +75,6 @@ export async function generateMetadata(props: {
     return buildProducerBoxesMetadata("en");
   }
 
-  if (isStockholmDeliveryLandingSlug(slug, "en")) {
-    const config = await getSiteConfig();
-    return buildStockholmDeliveryMetadata("en", config);
-  }
-
   const category = await resolveGrapeCategoryBySlug(slug, "en");
   if (category) {
     const headerList = await headers();
@@ -98,12 +90,12 @@ export async function generateMetadata(props: {
         filterFarming: category.filter.farming,
         filterGrape: category.filter.filterGrape,
         filterCountryCode: category.filter.countryCode,
-        filterIsDirectImport: category.filter.isDirectImport,
+        filterRegion: category.filter.region,
         isB2BSite,
       }),
     ]);
-    const pageUrl = `${config.baseUrl}/wine/${slug}`;
-    const canonicalUrl = shopCategoryCanonicalUrl(slug, "en", config.baseUrl);
+    const pageUrl = `${PACT_PUBLIC_ORIGIN}/wine/${slug}`;
+    const canonicalUrl = shopCategoryCanonicalUrl(slug, "en", PACT_PUBLIC_ORIGIN);
 
     const title = categoryPageTitle(category.title, config.siteName);
     const { metaDescription } = localizeGeneratedCategoryCopy(
@@ -122,8 +114,8 @@ export async function generateMetadata(props: {
         canonical: canonicalUrl,
         languages: {
           en: pageUrl,
-          sv: `${config.baseUrl}/vin/${category.hreflang ?? ""}`,
-          "x-default": `${config.baseUrl}/vin/${category.hreflang ?? slug}`,
+          sv: `${PACT_PUBLIC_ORIGIN}/vin/${category.hreflang ?? ""}`,
+          "x-default": pageUrl,
         },
       },
       openGraph: {
@@ -141,7 +133,7 @@ export async function generateMetadata(props: {
   }
 
   const config = await getSiteConfig();
-  const shopUrl = `${config.baseUrl}${producerShopPagePath(collection.title, "en")}`;
+  const shopUrl = `${PACT_PUBLIC_ORIGIN}${producerShopPagePath(collection.title, "en")}`;
   const shopTitle = producerShopPageTitle(collection.title, "en");
   const shopDescription = producerShopMetaDescription("en", {
     producerName: collection.title,
@@ -162,7 +154,7 @@ export async function generateMetadata(props: {
     alternates: {
       canonical: shopUrl,
       languages: {
-        sv: `${config.baseUrl}${producerShopPagePath(collection.title, "sv")}`,
+        sv: `${PACT_PUBLIC_ORIGIN}${producerShopPagePath(collection.title, "sv")}`,
         en: shopUrl,
         "x-default": shopUrl,
       },
@@ -189,10 +181,6 @@ export default async function WineCategoryPage(props: PageProps) {
     return <ProducerBoxesPage locale="en" />;
   }
 
-  if (isStockholmDeliveryLandingSlug(slug, "en")) {
-    return <StockholmDeliveryLandingPage locale="en" />;
-  }
-
   const category = await resolveGrapeCategoryBySlug(slug, "en");
   if (!category) {
     const collection = await getCollection(slug);
@@ -208,7 +196,7 @@ export default async function WineCategoryPage(props: PageProps) {
     const config = await getSiteConfig();
     const producerSlug = generateProducerSlug(collection.title);
     const producerUrls = producerPageUrls(producerSlug);
-    const shopUrl = `${config.baseUrl}${producerShopPagePath(collection.title, "en")}`;
+    const shopUrl = `${PACT_PUBLIC_ORIGIN}${producerShopPagePath(collection.title, "en")}`;
     const producerCollection = asProducerCollectionData(collection);
     const profilePath = producerPublicPath(producerSlug, "en");
 
@@ -283,10 +271,11 @@ export default async function WineCategoryPage(props: PageProps) {
     filterFarming: category.filter.farming,
     filterGrape: category.filter.filterGrape,
     filterCountryCode: category.filter.countryCode,
-    filterIsDirectImport: category.filter.isDirectImport,
+    filterRegion: category.filter.region,
     isB2BSite,
     displayCurrencyCode: shoppingContext.currencyCode,
     sekToDisplayRate: shoppingContext.sekToDisplayRate,
+    locale: "en",
   });
 
   const mappedProducts = mapProductDataToShopProducts(rawProducts);
@@ -295,7 +284,7 @@ export default async function WineCategoryPage(props: PageProps) {
   const allSourceSlugs = await getCachedAllWineSourceSlugs();
   const wineSourceSlugs = pickWineSourceSlugsForProducts(allSourceSlugs, wineIds);
 
-  const canonical = shopCategoryCanonicalUrl(slug, "en", config.baseUrl);
+  const canonical = shopCategoryCanonicalUrl(slug, "en", PACT_PUBLIC_ORIGIN);
   const { description, metaDescription } = localizeGeneratedCategoryCopy(
     category,
     config.siteName,
@@ -325,7 +314,7 @@ export default async function WineCategoryPage(props: PageProps) {
         "@type": "ListItem",
         position: 2,
         name: category.h1,
-        item: `${config.baseUrl}/wine/${slug}`,
+        item: `${PACT_PUBLIC_ORIGIN}/wine/${slug}`,
       },
     ],
   };
@@ -364,6 +353,16 @@ export default async function WineCategoryPage(props: PageProps) {
             {category.h1}
           </h1>
           <p className="leading-relaxed text-stone-600">{description}</p>
+          {category.descriptionLink ? (
+            <p className="mt-3 leading-relaxed text-stone-600">
+              <Link
+                href={category.descriptionLink.href}
+                className="underline underline-offset-4 hover:text-stone-900"
+              >
+                {category.descriptionLink.label}
+              </Link>
+            </p>
+          ) : null}
         </div>
 
         <ProductListShell

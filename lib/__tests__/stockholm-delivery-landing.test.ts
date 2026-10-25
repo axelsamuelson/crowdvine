@@ -16,9 +16,10 @@ describe("stockholm delivery landing config", () => {
       true,
     );
     expect(isStockholmDeliveryLandingPath("/vin/rott-naturvin")).toBe(false);
-    expect(isStockholmDeliveryLandingSlug("naturvin-hemleverans-stockholm", "sv")).toBe(
-      true,
-    );
+    expect(
+      isStockholmDeliveryLandingSlug("naturvin-hemleverans-stockholm", "sv"),
+    ).toBe(true);
+    // Landing page is retired; slug helpers remain for legacy redirect matching.
     expect(
       isStockholmDeliveryLandingSlug("natural-wine-delivery-stockholm", "en"),
     ).toBe(true);

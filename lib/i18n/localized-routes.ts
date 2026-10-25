@@ -53,7 +53,7 @@ export function producerPageUrls(slug: string): {
   return {
     en: `${PACT_PUBLIC_ORIGIN}${producerPagePath(slug, "producers")}`,
     sv: `${PACT_PUBLIC_ORIGIN}${producerPagePath(slug, "producenter")}`,
-    xDefault: `${PACT_PUBLIC_ORIGIN}${producerPagePath(slug, "producenter")}`,
+    xDefault: `${PACT_PUBLIC_ORIGIN}${producerPagePath(slug, "producers")}`,
   };
 }
 
@@ -84,6 +84,11 @@ export function switchProductOrProducerPath(
 
 export function shopPathForLocale(locale: AppLocale): "/vin" | "/wine" {
   return locale === "sv" ? "/vin" : "/wine";
+}
+
+/** Public homepage path for a locale (`/` Swedish, `/en` English). */
+export function homePathForLocale(locale: AppLocale): "/" | "/en" {
+  return locale === "sv" ? "/" : "/en";
 }
 
 export function producerPublicPath(slug: string, locale: AppLocale): string {

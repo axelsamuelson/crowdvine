@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { previewOutboundFreight } from "@/lib/admin/lager-frakt-reads";
 import { requireAdmin } from "@/lib/admin-auth-server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
-import {
-  budbeeLightSwedenRateCard,
-  calculateOutboundFreightQuoteBreakdown,
-} from "@/lib/outbound-freight-pricing";
 import {
   loadActiveBudbeeLightSwedenRate,
   loadDefaultPackagingProfile,
@@ -56,22 +53,7 @@ export async function POST(request: NextRequest) {
   try {
     await requireAdmin();
     const body = await request.json();
-    const rate = budbeeLightSwedenRateCard();
-    if (body.base_price_cents != null) {
-      rate.basePriceCents = Math.round(Number(body.base_price_cents));
-    }
-    const breakdown = calculateOutboundFreightQuoteBreakdown({
-      rate,
-      destinationCountry: String(body.destination_country || "SE"),
-      bottleCount: Number(body.bottle_count) || 0,
-      maxBottlesPerParcel:
-        body.max_bottles != null ? Number(body.max_bottles) : 6,
-      lengthM: body.length_m != null ? Number(body.length_m) : null,
-      widthM: body.width_m != null ? Number(body.width_m) : null,
-      heightM: body.height_m != null ? Number(body.height_m) : null,
-      asOfDate: body.as_of_date || undefined,
-      surcharges: Array.isArray(body.surcharges) ? body.surcharges : [],
-    });
+    const breakdown = previewOutboundFreight(body);
     return NextResponse.json({ breakdown });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Unauthorized";

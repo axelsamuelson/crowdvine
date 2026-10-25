@@ -36,7 +36,7 @@ export async function buildGuideHubMetadata(
       description: copy.hubMetaDescription,
       url: pageUrl,
       type: "website",
-      images: defaultOpenGraphImages(),
+      images: defaultOpenGraphImages({ siteName: config.siteName }),
     },
     twitter: pageTwitterCard(title, copy.hubMetaDescription),
   };
