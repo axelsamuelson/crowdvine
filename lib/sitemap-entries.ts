@@ -59,6 +59,7 @@ function staticPagesForProfile(
 ): SitemapEntry[] {
   const pages: SitemapEntry[] = [
     weeklyEntry(baseUrl, 1.0),
+    weeklyEntry(`${baseUrl}/en`, 1.0),
     {
       url: `${baseUrl}/vin`,
       lastModified: new Date(),

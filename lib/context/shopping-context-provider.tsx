@@ -25,7 +25,10 @@ import {
   getWineCategoryEn,
   getWineCategorySv,
 } from "@/lib/wine-categories";
-import { switchProductOrProducerPath } from "@/lib/i18n/localized-routes";
+import {
+  homePathForLocale,
+  switchProductOrProducerPath,
+} from "@/lib/i18n/localized-routes";
 import {
   ACTIVE_ZONE_CHANGED_EVENT,
   activeZoneFromChangedEvent,
@@ -64,6 +67,10 @@ function getLocalizedPath(
   pathname: string,
   newLocale: AppLocale,
 ): string | null {
+  if (pathname === "/" || pathname === "/en") {
+    return homePathForLocale(newLocale);
+  }
+
   const productOrProducer = switchProductOrProducerPath(pathname, newLocale);
   if (productOrProducer) return productOrProducer;
 

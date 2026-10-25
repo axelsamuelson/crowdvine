@@ -25,8 +25,12 @@ describe("localeFromShopPath", () => {
     expect(localeFromShopPath("/cookie-policy")).toBe("en");
   });
 
+  it("maps homepage language pair", () => {
+    expect(localeFromShopPath("/")).toBe("sv");
+    expect(localeFromShopPath("/en")).toBe("en");
+  });
+
   it("returns null for shared/unpaired paths", () => {
-    expect(localeFromShopPath("/")).toBeNull();
     expect(localeFromShopPath("/checkout")).toBeNull();
     expect(localeFromShopPath("/taste-quiz")).toBeNull();
   });
