@@ -730,6 +730,10 @@ export const TOP_100_WINES: TopWine[] = [
     country: "Frankrike",
     type: "Vitt",
     grapes: "Chenin Blanc",
+    description:
+      "Mark Angeli köpte gården i Anjou 1990 och har odlat biodynamiskt sedan starten. Blanderies är Chenin Blanc från en enskild vingård, gjord i mycket små mängder och lagrad länge på gamla ekfat. Efter upprepade avslag från INAO:s provningspanel lämnade gården appellationssystemet, och alla viner säljs i dag som Vin de France.",
+    descriptionEn:
+      "Mark Angeli bought the estate in Anjou in 1990 and has farmed biodynamically from the start. Blanderies is Chenin Blanc from a single vineyard, made in very small quantities and aged for a long time in old oak barrels. After repeated rejections by the INAO tasting panel the estate left the appellation system, and all wines are now sold as Vin de France.",
   },
   {
     rank: 52,
@@ -740,6 +744,10 @@ export const TOP_100_WINES: TopWine[] = [
     country: "Frankrike",
     type: "Champagne",
     grapes: "Pinot Meunier",
+    description:
+      "Ren Meunier från gamla stockar planterade mellan 1947 och 1964 i Chavot och Mancy, massalt urval och en liten del oympade stockar. Biodynamiskt odlat, sju månader på gamla bourgognefat utan malolaktisk jäsning och 30 månader på jästfällning i flaska.",
+    descriptionEn:
+      "Pure Meunier from old vines planted between 1947 and 1964 in Chavot and Mancy, massal selection and a small share of ungrafted vines. Biodynamically farmed, seven months in old Burgundy barrels without malolactic fermentation and 30 months on lees in bottle.",
   },
   {
     rank: 53,
@@ -750,6 +758,10 @@ export const TOP_100_WINES: TopWine[] = [
     country: "Italien",
     type: "Rosé",
     grapes: "Montepulciano",
+    description:
+      "Valentinis rosé på Montepulciano, gjord med samma stränga urval som domänens vita och röda. Ett av få roséviner som lagras och diskuteras på samma sätt som stora röda viner.",
+    descriptionEn:
+      "Valentini's rosé from Montepulciano, made with the same strict selection as the domaine's white and red. One of the few rosés that is cellared and discussed in the same way as great red wines.",
   },
   {
     rank: 54,
@@ -760,6 +772,10 @@ export const TOP_100_WINES: TopWine[] = [
     country: "Frankrike",
     type: "Champagne",
     grapes: "Chardonnay",
+    description:
+      "Chardonnay från en isolerad kritkulle väster om Troyes, en blandning av nio små parceller och flera årgångar. Emmanuel Lassaigne tog över familjedomänen 1999, ställde om till ekologisk odling, jäser med vilda jästsvampar och håller svavlet till ett absolut minimum.",
+    descriptionEn:
+      "Chardonnay from an isolated chalk hill west of Troyes, a blend of nine small parcels and several vintages. Emmanuel Lassaigne took over the family domaine in 1999, converted to organic farming, ferments with wild yeasts and keeps sulphur to a bare minimum.",
   },
   {
     rank: 55,
@@ -770,6 +786,10 @@ export const TOP_100_WINES: TopWine[] = [
     country: "Frankrike",
     type: "Rött",
     grapes: "Gamay",
+    description:
+      "Gamay från stockar över 50 år i Saint-Étienne-la-Varenne i Brouilly. Ett bevis på att naturligt Beaujolais på hög nivå finns utanför Morgon.",
+    descriptionEn:
+      "Gamay from vines over 50 years old in Saint-Étienne-la-Varenne in Brouilly. Proof that top-level natural Beaujolais exists outside Morgon.",
   },
   {
     rank: 56,
@@ -780,6 +800,10 @@ export const TOP_100_WINES: TopWine[] = [
     country: "Italien",
     type: "Rött",
     grapes: "Sangiovese, Montepulciano, Sagrantino",
+    description:
+      "40 procent Sangiovese, 40 procent Sagrantino och 20 procent Montepulciano. Giampiero Bea bestämmer macerationstiden år för år, 2018 var den 52 dagar. Två år i ståltank och två år på stora slavonska ekfat, sedan buteljerat utan klarning eller filtrering.",
+    descriptionEn:
+      "40 percent Sangiovese, 40 percent Sagrantino and 20 percent Montepulciano. Giampiero Bea sets the maceration length year by year; in 2018 it was 52 days. Two years in stainless steel and two years in large Slavonian oak casks, then bottled without fining or filtration.",
   },
   {
     rank: 57,
@@ -790,6 +814,10 @@ export const TOP_100_WINES: TopWine[] = [
     country: "Frankrike",
     type: "Rött",
     grapes: "Trousseau",
+    description:
+      "Trousseau från lieu-dit Garde-Corps på blå lera i Pupillin. Philippe Bornard lämnade Pupillins kooperativ och startade sin egen domän 2005, på inrådan av Pierre Overnoy.",
+    descriptionEn:
+      "Trousseau from the lieu-dit Garde-Corps on blue clay in Pupillin. Philippe Bornard left the Pupillin cooperative and started his own domaine in 2005, on the advice of Pierre Overnoy.",
   },
   {
     rank: 58,
@@ -800,6 +828,10 @@ export const TOP_100_WINES: TopWine[] = [
     country: "Frankrike",
     type: "Vitt",
     grapes: "Chenin Blanc",
+    description:
+      "Gårdens första torra vita, Chenin Blanc från stockar mellan 4 och 75 år på lera och kalk, efter att vingårdarna ställts om från guyot till buskstockar. Vinifierat naturligt och lagrat på gamla ekfat. Sedan årgång 2021 är alla gårdens viner torra och ofiltrerade.",
+    descriptionEn:
+      "The estate's first dry white, Chenin Blanc from vines between 4 and 75 years old on clay and limestone, after the vineyards were converted from guyot to bush vines. Vinified naturally and aged in old oak. Since the 2021 vintage all the estate's wines are dry and unfiltered.",
   },
   {
     rank: 59,
@@ -810,6 +842,10 @@ export const TOP_100_WINES: TopWine[] = [
     country: "Italien",
     type: "Vitt",
     grapes: "Zibibbo (Muscat d'Alexandrie)",
+    description:
+      "Gabrio Bini, tidigare arkitekt i Milano, flyttade till Pantelleria 1995 och gjorde sin första skörd 2005. Zibibbo från gamla, oympade buskstockar i den UNESCO-erkända alberello pantesco-formen, med lång skalkontakt och jäsning i amforor som delvis grävts ner i vingården. Varken klarat eller filtrerat.",
+    descriptionEn:
+      "Gabrio Bini, a former architect in Milan, moved to Pantelleria in 1995 and made his first harvest in 2005. Zibibbo from old, ungrafted bush vines in the UNESCO-recognised alberello pantesco form, with long skin contact and fermentation in amphorae partly buried in the vineyard. Neither fined nor filtered.",
   },
   {
     rank: 60,
@@ -820,6 +856,10 @@ export const TOP_100_WINES: TopWine[] = [
     country: "Slovenien",
     type: "Orange",
     grapes: "Rebula",
+    description:
+      "Rebula från Goriška Brda i Slovenien, ekologiskt odlat och med lite svavel. Aleš Kristančič gör Lunar av hela bär som jäser i fat utan pressning, och vinet tappas av efter månens faser.",
+    descriptionEn:
+      "Rebula from Goriška Brda in Slovenia, organically farmed and with little sulphur. Aleš Kristančič makes Lunar from whole berries fermented in barrel without pressing, and the wine is racked according to the phases of the moon.",
   },
   {
     rank: 61,
