@@ -48,7 +48,7 @@ import {
 import { SiteLogoProvider } from "@/lib/context/site-logo-provider";
 import { resolveSiteLogosFromRequest } from "@/lib/site-logos-server";
 import { getCachedShoppingContextFromRequest } from "@/lib/shopping-context/server";
-import { getWineFewLeftThreshold } from "@/lib/actions/wine-settings";
+import { getCachedWineFewLeftThreshold } from "@/lib/wine-settings-cache";
 import { type SiteConfig } from "@/lib/site-config";
 import { getSiteConfig } from "@/lib/site-config-server";
 import { localeFromShopPath } from "@/lib/i18n/shop-path-locale";
@@ -158,7 +158,7 @@ export default async function RootLayout({
           footerLogo: null as string | null,
         };
       }),
-      getWineFewLeftThreshold().catch((error) => {
+      getCachedWineFewLeftThreshold().catch((error) => {
         console.warn("Failed to resolve wine few-left threshold:", error);
         return 5;
       }),
