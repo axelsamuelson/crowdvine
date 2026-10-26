@@ -18,4 +18,8 @@ export async function updateWineFewLeftThreshold(value: number): Promise<void> {
   await updateSiteContent(FEW_LEFT_KEY, String(clamped));
   revalidatePath("/admin/wines/settings");
   revalidatePath("/admin/wines");
+  // Threshold is read in root layout for StockBadge — invalidate shop surfaces.
+  revalidatePath("/vin");
+  revalidatePath("/wine");
+  revalidatePath("/api/wine-settings");
 }

@@ -39,6 +39,7 @@ import { getSiteContentByKey } from "@/lib/actions/content";
 import { getIsDirtywineSiteFromHeaders } from "@/lib/b2b-site-server";
 import { B2BModeProvider } from "@/lib/context/b2b-mode-context";
 import { ShoppingContextProvider } from "@/lib/context/shopping-context-provider";
+import { WineSettingsProvider } from "@/lib/context/wine-settings-context";
 import { fallbackShoppingContext } from "@/lib/shopping-context/defaults";
 import {
   isPublicAppPath,
@@ -47,6 +48,7 @@ import {
 import { SiteLogoProvider } from "@/lib/context/site-logo-provider";
 import { resolveSiteLogosFromRequest } from "@/lib/site-logos-server";
 import { getCachedShoppingContextFromRequest } from "@/lib/shopping-context/server";
+import { getWineFewLeftThreshold } from "@/lib/actions/wine-settings";
 import { type SiteConfig } from "@/lib/site-config";
 import { getSiteConfig } from "@/lib/site-config-server";
 import { localeFromShopPath } from "@/lib/i18n/shop-path-locale";
@@ -134,7 +136,7 @@ export default async function RootLayout({
   const host =
     requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host");
 
-  const [collections, isDirtywineSite, shoppingContext, siteLogos] =
+  const [collections, isDirtywineSite, shoppingContext, siteLogos, fewLeftThreshold] =
     await Promise.all([
       getCachedShopCollections().catch((error) => {
         console.warn("Failed to fetch collections in root layout:", error);
@@ -156,6 +158,10 @@ export default async function RootLayout({
           footerLogo: null as string | null,
         };
       }),
+      getWineFewLeftThreshold().catch((error) => {
+        console.warn("Failed to resolve wine few-left threshold:", error);
+        return 5;
+      }),
     ]);
 
   const pathLocale = localeFromShopPath(ssrPathname);
@@ -174,6 +180,7 @@ export default async function RootLayout({
       >
         <NuqsAdapter>
         <B2BModeProvider isB2B={isDirtywineSite}>
+          <WineSettingsProvider fewLeftThreshold={fewLeftThreshold}>
           <SiteLogoProvider initialLogos={siteLogos}>
           <ShoppingContextProvider initialContext={shoppingContext}>
           <CartProvider>
@@ -219,6 +226,7 @@ export default async function RootLayout({
           </CartProvider>
           </ShoppingContextProvider>
           </SiteLogoProvider>
+          </WineSettingsProvider>
         </B2BModeProvider>
         </NuqsAdapter>
       </body>
