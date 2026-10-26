@@ -450,6 +450,10 @@ export const TOP_100_WINES: TopWine[] = [
     country: "Frankrike",
     type: "Rött",
     grapes: "Poulsard",
+    description:
+      "Ploussard från gamla stockar på röd och grå märgel i Pupillin, med 21 dagars kolsyremaceration och lagring på stora ekfat. Bornard började göra eget vin på inrådan av Pierre Overnoy och odlar biodynamiskt, certifierat sedan 2012. Vinet säljs numera under sonen Tony Bornards namn.",
+    descriptionEn:
+      "Ploussard from old vines on red and grey marl in Pupillin, with 21 days of carbonic maceration and ageing in large oak barrels. Bornard began making his own wine on the advice of Pierre Overnoy and farms biodynamically, certified since 2012. The wine is now sold under his son Tony Bornard's name.",
   },
   {
     rank: 32,
@@ -460,6 +464,10 @@ export const TOP_100_WINES: TopWine[] = [
     country: "Frankrike",
     type: "Rött",
     grapes: "Syrah",
+    description:
+      "René-Jean Dard och François Ribo startade domänen i Mercurol 1984 och hörde till de första i norra Rhône som arbetade med minimalt svavel. Deras Crozes-Hermitage är Syrah gjord för friskhet och frukt snarare än extraktion.",
+    descriptionEn:
+      "René-Jean Dard and François Ribo started the domaine in Mercurol in 1984 and were among the first in the northern Rhône to work with minimal sulphur. Their Crozes-Hermitage is Syrah made for freshness and fruit rather than extraction.",
   },
   {
     rank: 33,
@@ -470,6 +478,10 @@ export const TOP_100_WINES: TopWine[] = [
     country: "Italien",
     type: "Orange",
     grapes: "Malvasia, Ortrugo",
+    description:
+      "Malvasia di Candia Aromatica med Ortrugo och Trebbiano från Colli Piacentini, cirka fyra månader på skalen i tank, vilda jästsvampar, ett år på fat och minst två år på flaska före release. Elena Pantaleoni odlar utan kemiska medel på tung lera kring Rivergaro.",
+    descriptionEn:
+      "Malvasia di Candia Aromatica with Ortrugo and Trebbiano from the Colli Piacentini, about four months on the skins in tank, wild yeasts, a year in barrel and at least two years in bottle before release. Elena Pantaleoni farms without chemical inputs on heavy clay around Rivergaro.",
   },
   {
     rank: 34,
@@ -480,6 +492,10 @@ export const TOP_100_WINES: TopWine[] = [
     country: "Frankrike",
     type: "Rött",
     grapes: "Trousseau",
+    description:
+      "Trousseau från Stéphane Tissot i Montigny-lès-Arsures utanför Arbois. Domänens 43 hektar är certifierat ekologiska och biodynamiska, jäsningen sker med vilda jästsvampar och svavel hålls till ett minimum.",
+    descriptionEn:
+      "Trousseau from Stéphane Tissot in Montigny-lès-Arsures outside Arbois. The domaine's 43 hectares are certified organic and biodynamic, fermentation uses wild yeasts and sulphur is kept to a minimum.",
   },
   {
     rank: 35,
@@ -490,6 +506,10 @@ export const TOP_100_WINES: TopWine[] = [
     country: "Frankrike",
     type: "Champagne",
     grapes: "Chardonnay",
+    description:
+      "Cédric Bouchard i Celles-sur-Ource gör champagne efter principen en druva, en parcell, en årgång. La Haute-Lemblé är ren Chardonnay från en enda parcell i Aube.",
+    descriptionEn:
+      "Cédric Bouchard in Celles-sur-Ource makes champagne on the principle of one grape, one parcel, one vintage. La Haute-Lemblé is pure Chardonnay from a single parcel in the Aube.",
   },
   {
     rank: 36,
@@ -500,6 +520,10 @@ export const TOP_100_WINES: TopWine[] = [
     country: "Frankrike",
     type: "Rött",
     grapes: "Grenache",
+    description:
+      "Ren Grenache från sandjord, gjord av Emmanuel Reynaud på ett traditionellt sätt som skiljer sig från resten av appellationen. Rayas kallar sig inte naturvin, men står på listan för sin hållning till minimal intervention i källaren.",
+    descriptionEn:
+      "Pure Grenache from sandy soils, made by Emmanuel Reynaud in a traditional way that sets it apart from the rest of the appellation. Rayas does not call itself natural wine, but is on the list for its approach of minimal intervention in the cellar.",
   },
   {
     rank: 37,
@@ -510,6 +534,10 @@ export const TOP_100_WINES: TopWine[] = [
     country: "Frankrike",
     type: "Vitt",
     grapes: "Savagnin",
+    description:
+      "Vin jaune på Savagnin från Château-Chalon, lagrat under jästhinna i minst sex år utan påfyllning och buteljerat i den traditionella 62 cl-flaskan clavelin. Macle är en av appellationens referensproducenter.",
+    descriptionEn:
+      "Vin jaune from Savagnin in Château-Chalon, aged under a veil of yeast for at least six years without topping up and bottled in the traditional 62 cl clavelin. Macle is one of the appellation's reference producers.",
   },
   {
     rank: 38,
@@ -520,6 +548,10 @@ export const TOP_100_WINES: TopWine[] = [
     country: "Frankrike",
     type: "Rött",
     grapes: "Gamay",
+    description:
+      "Foillards cuvée från domänens äldsta stockar i en enskild parcell på Côte du Py i Morgon, på granitjord. Handplockat, vilda jästsvampar, lång och varsam maceration, lagrat i ståltank och med lite eller inget svavel.",
+    descriptionEn:
+      "Foillard's cuvée from the domaine's oldest vines in a single parcel on the Côte du Py in Morgon, on granite. Hand-harvested, wild yeasts, long and gentle maceration, aged in stainless steel and with little or no sulphur.",
   },
   {
     rank: 39,
@@ -530,6 +562,10 @@ export const TOP_100_WINES: TopWine[] = [
     country: "Italien",
     type: "Vitt",
     grapes: "Trebbiano d'Abruzzo",
+    description:
+      "Edoardo Valentini byggde en av Italiens mest eftertraktade vitviner på en druva som annars förknippas med enkla viner. Familjen buteljerar bara en liten del av skörden och säljer resten vidare. Sonen Francesco Paolo driver domänen sedan Edoardos död 2006.",
+    descriptionEn:
+      "Edoardo Valentini built one of Italy's most sought-after white wines on a grape otherwise associated with simple wines. The family bottles only a small part of the harvest and sells the rest on. His son Francesco Paolo has run the domaine since Edoardo's death in 2006.",
   },
   {
     rank: 40,
@@ -540,6 +576,10 @@ export const TOP_100_WINES: TopWine[] = [
     country: "Frankrike",
     type: "Rött",
     grapes: "Syrah",
+    description:
+      "Syrah från hundraåriga stockar på granit i Saint-Joseph, mittemot Hermitage-kullen. Jäst med hela klasar, lång maceration vid låg temperatur och ett år på fin jästfällning i trä, utan tillsatser.",
+    descriptionEn:
+      "Syrah from century-old vines on granite in Saint-Joseph, across from the Hermitage hill. Fermented with whole clusters, long maceration at low temperature and a year on fine lees in wood, without additives.",
   },
   {
     rank: 41,

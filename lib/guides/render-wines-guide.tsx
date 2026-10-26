@@ -3,7 +3,6 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { GuideRankEntry } from "@/components/guides/guide-rank-entry";
-import { GuideRankTable } from "@/components/guides/guide-rank-table";
 import { Footer } from "@/components/layout/footer";
 import {
   GuideBreadcrumbs,
@@ -325,26 +324,19 @@ export async function renderWinesGuidePage(locale: AppLocale) {
           <h2 className="mb-4 border-b border-border pb-3 text-xl font-semibold">
             {copy.rest}
           </h2>
-          <GuideRankTable
-            columns={[
-              { key: "rank", label: copy.rank, className: "w-14 tabular-nums" },
-              { key: "wine", label: copy.wine },
-              { key: "producer", label: copy.producer },
-              { key: "region", label: copy.region },
-              { key: "country", label: copy.country },
-              { key: "type", label: copy.type },
-              { key: "grapes", label: copy.grapes },
-            ]}
-            rows={rest.map((wine) => ({
-              rank: wine.rank,
-              wine: wine.wine,
-              producer: wine.producer,
-              region: wine.region,
-              country: countryLabel(wine.country, locale),
-              type: wineTypeLabel(wine.type, locale),
-              grapes: wine.grapes,
-            }))}
-          />
+          <div>
+            {rest.map((wine) => (
+              <GuideRankEntry
+                key={wine.rank}
+                id={`wine-rank-${wine.rank}`}
+                rank={wine.rank}
+                title={wine.wine}
+                meta={wineMetaLine(wine)}
+                description={entryDescription(wine, locale)}
+                compact
+              />
+            ))}
+          </div>
         </section>
 
         <section className="mt-14 space-y-4">
