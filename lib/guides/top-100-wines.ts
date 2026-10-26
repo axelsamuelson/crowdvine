@@ -1143,13 +1143,17 @@ export const TOP_100_WINES: TopWine[] = [
   },
   {
     rank: 81,
-    wine: "Blaufränkisch Mechthild",
+    wine: "Mechthild",
     producer: "Gut Oggau",
     topProducerName: "Gut Oggau",
     region: "Burgenland, Österrike",
     country: "Österrike",
-    type: "Rött",
-    grapes: "Blaufränkisch",
+    type: "Vitt",
+    grapes: "Grüner Veltliner",
+    description:
+      "Ren Grüner Veltliner från omkring 60 år gamla stockar i Oggau, två år på fat och buteljerat utan klarning, filtrering eller tillsatt svavel. Gut Oggau är Demeter-certifierat och döper varje vin efter en familjemedlem.",
+    descriptionEn:
+      "Pure Grüner Veltliner from vines around 60 years old in Oggau, two years in barrel and bottled without fining, filtration or added sulphur. Gut Oggau is Demeter certified and names each wine after a family member.",
   },
   {
     rank: 82,
@@ -1160,6 +1164,10 @@ export const TOP_100_WINES: TopWine[] = [
     country: "Italien",
     type: "Orange",
     grapes: "Friulano (Jakot)",
+    description:
+      "Friulano från Oslavia, några stenkast från den slovenska gränsen, där Prinčič gjort vin sedan åtminstone 1993. Cirka tio hektar branta terrasser på lera och kalk, lång skalkontakt, spontanjäsning och lång lagring på fat, ofiltrerat. Han använder svavel och koppar långt under gränserna för ekologisk och biodynamisk odling.",
+    descriptionEn:
+      "Friulano from Oslavia, a stone's throw from the Slovenian border, where Prinčič has made wine since at least 1993. About ten hectares of steep terraces on clay and limestone, long skin contact, spontaneous fermentation and long ageing in barrel, unfiltered. He uses sulphur and copper well below the limits for organic and biodynamic farming.",
   },
   {
     rank: 83,
@@ -1170,6 +1178,10 @@ export const TOP_100_WINES: TopWine[] = [
     country: "Tyskland",
     type: "Vitt",
     grapes: "Riesling",
+    description:
+      "Riesling från Marienburg i Pünderich, där blå, röd och grå skiffer förekommer och kapselns färg på Buschs flaskor anger skiffertypen. Familjen slutade med herbicider 1976, ställde om till ekologisk odling 1984 och till biodynamik 2005.",
+    descriptionEn:
+      "Riesling from the Marienburg in Pünderich, where blue, red and grey slate occur and the capsule colour on Busch's bottles indicates the slate type. The family stopped using herbicides in 1976, converted to organic farming in 1984 and to biodynamics in 2005.",
   },
   {
     rank: 84,
@@ -1180,6 +1192,10 @@ export const TOP_100_WINES: TopWine[] = [
     country: "Frankrike",
     type: "Vitt",
     grapes: "Chardonnay, Savagnin",
+    description:
+      "80 procent Chardonnay och 20 procent Savagnin från lieu-dit Les Tourillons på kalkhaltig jord. Fyllt på under fatlagringen för att begränsa oxidationen, alltså den ouillé-stil som ger en friskare jurasisk vit. Paret använder inget svavel.",
+    descriptionEn:
+      "80 percent Chardonnay and 20 percent Savagnin from the lieu-dit Les Tourillons on limestone-rich soils. Topped up during barrel ageing to limit oxidation, the ouillé style that gives a fresher Jura white. The couple use no sulphur.",
   },
   {
     rank: 85,
@@ -1190,6 +1206,10 @@ export const TOP_100_WINES: TopWine[] = [
     country: "Frankrike",
     type: "Vitt",
     grapes: "Riesling",
+    description:
+      "Riesling från Husseren-les-Châteaux, den högst belägna byn längs Alsaces vinväg. Bruno Schueller odlar cirka tio hektar biodynamiskt utan certifiering, jäser med vilda jästsvampar, låter den malolaktiska jäsningen gå och lagrar länge. Hans viner underkänns ibland av de officiella provningspanelerna för att de inte motsvarar förväntad stil.",
+    descriptionEn:
+      "Riesling from Husseren-les-Châteaux, the highest village on the Alsace Wine Route. Bruno Schueller farms about ten hectares biodynamically without certification, ferments with wild yeasts, lets malolactic fermentation run and ages for a long time. His wines are sometimes rejected by the official tasting panels for not matching the expected style.",
   },
   {
     rank: 86,
@@ -1200,6 +1220,10 @@ export const TOP_100_WINES: TopWine[] = [
     country: "Frankrike",
     type: "Rött",
     grapes: "Syrah",
+    description:
+      "Syrah från Valvignères i Ardèche. Gérald Oustric slutade sälja druvor till kooperativet efter att ha träffat Marcel Lapierre och räknas som en av naturvinsrörelsens gudfäder i Ardèche. Han odlar ekologiskt och biodynamiskt och gör sina viner utan tillsatt svavel.",
+    descriptionEn:
+      "Syrah from Valvignères in the Ardèche. Gérald Oustric stopped selling grapes to the cooperative after meeting Marcel Lapierre and is regarded as one of the godfathers of natural wine in the Ardèche. He farms organically and biodynamically and makes his wines without added sulphur.",
   },
   {
     rank: 87,
@@ -1210,6 +1234,10 @@ export const TOP_100_WINES: TopWine[] = [
     country: "Spanien",
     type: "Rött",
     grapes: "Mencía, Garnacha Tintorera",
+    description:
+      "85 procent Mencía och 15 procent Alicante Bouschet från en enskild parcell i Amandi, cirka 70 år gamla stockar på skiffer på omkring 430 meters höjd. Fottrampat och jäst med hela klasar och vilda jästsvampar i öppna kar, sedan tolv månader på neutrala 500-litersfat.",
+    descriptionEn:
+      "85 percent Mencía and 15 percent Alicante Bouschet from a single parcel in Amandi, vines about 70 years old on slate at around 430 metres. Foot-trodden and fermented with whole clusters and wild yeasts in open vats, then twelve months in neutral 500-litre barrels.",
   },
   {
     rank: 88,
@@ -1220,6 +1248,10 @@ export const TOP_100_WINES: TopWine[] = [
     country: "Österrike",
     type: "Vitt",
     grapes: "Sauvignon Blanc, Morillon (Chardonnay)",
+    description:
+      "Lika delar Chardonnay och Sauvignon Blanc från de brantaste och magraste lotterna högst upp på kullen. Några dagars skalkontakt, spontanjäsning i öppna ekkar på 3 000 liter, två år på fin jästfällning i samma kar och tolv månader på flaska. Utan tillsatt svavel, oklarat och ofiltrerat.",
+    descriptionEn:
+      "Equal parts Chardonnay and Sauvignon Blanc from the steepest and leanest plots at the top of the hill. A few days of skin contact, spontaneous fermentation in open 3,000-litre oak vats, two years on fine lees in the same vats and twelve months in bottle. No added sulphur, unfined and unfiltered.",
   },
   {
     rank: 89,
@@ -1230,6 +1262,10 @@ export const TOP_100_WINES: TopWine[] = [
     country: "Italien",
     type: "Rött",
     grapes: "Nebbiolo",
+    description:
+      "En enda Barolo, blandad från Cannubi, Rué, Rocche och Rocche dell'Annunziata och samjäst eftersom parcellerna mognar samtidigt. Inga odlade jästsvampar, ingen temperaturkontroll och lagring på traditionella stora fat. Bartolo blev känd för etiketten No Barrique No Berlusconi. Dottern Maria Teresa har drivit domänen sedan hans död 2005.",
+    descriptionEn:
+      "A single Barolo, blended from Cannubi, Rué, Rocche and Rocche dell'Annunziata and co-fermented because the parcels ripen together. No cultured yeasts, no temperature control and ageing in traditional large casks. Bartolo became known for the label No Barrique No Berlusconi. His daughter Maria Teresa has run the domaine since his death in 2005.",
   },
   {
     rank: 90,
@@ -1240,6 +1276,10 @@ export const TOP_100_WINES: TopWine[] = [
     country: "Frankrike",
     type: "Vitt",
     grapes: "Sauvignon Blanc",
+    description:
+      "Sauvignon Blanc från kimmeridgekalk i Tracy-sur-Loire, lagrat 18 månader på foudre och utan tillsatt svavel. Alexandre Bain plöjer med häst, odlar biodynamiskt och förlorade rätten till appellationen Pouilly-Fumé från 2014, så vinerna säljs som Vin de France.",
+    descriptionEn:
+      "Sauvignon Blanc from Kimmeridgian limestone in Tracy-sur-Loire, aged 18 months in foudre and without added sulphur. Alexandre Bain ploughs with horses, farms biodynamically and lost the right to the Pouilly-Fumé appellation from 2014, so the wines are sold as Vin de France.",
   },
   {
     rank: 91,
