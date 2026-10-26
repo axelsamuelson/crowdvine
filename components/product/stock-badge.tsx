@@ -6,6 +6,7 @@ import {
   PdpPriceBadge,
   pdpHeroTabBadgeClass,
 } from "@/components/pdp/pdp-price-badge";
+import { useWineFewLeftThreshold } from "@/lib/context/wine-settings-context";
 import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "@/lib/hooks/use-translations";
@@ -71,20 +72,11 @@ export function StockBadge({
   const { t } = useTranslations();
   const isB2B = useB2BPriceMode();
   const pathname = usePathname();
+  const fewLeftThreshold = useWineFewLeftThreshold();
   const [isMounted, setIsMounted] = useState(false);
-  const [fewLeftThreshold, setFewLeftThreshold] = useState(5);
 
   useEffect(() => {
     setIsMounted(true);
-  }, []);
-
-  useEffect(() => {
-    fetch("/api/wine-settings")
-      .then((r) => r.json())
-      .then((d) => {
-        if (typeof d.fewLeftThreshold === "number") setFewLeftThreshold(d.fewLeftThreshold);
-      })
-      .catch(() => {});
   }, []);
 
   const onTastingSummary = pathname?.includes("/tasting/");
