@@ -107,15 +107,11 @@ export async function renderWinesGuidePage(locale: AppLocale) {
   );
   const languedocShop = locale === "sv" ? "/vin" : "/wine";
 
-  let beginnerPicks: BeginnerPickResolved[] = [];
-  try {
-    beginnerPicks = (await resolveAvailableBeginnerPicks()).available;
-  } catch (error) {
-    console.error(
-      "[BEGINNER_PICKS] failed to resolve picks for wines guide:",
-      error instanceof Error ? error.message : error,
-    );
-  }
+  // Same BEGINNER_PICKS + resolver for both /guides/... and /guider/... pages.
+  // Never drop the section on a locale just because the product lookup failed;
+  // resolveAvailableBeginnerPicks falls back to editorial copy without prices.
+  const beginnerResolved = await resolveAvailableBeginnerPicks();
+  const beginnerPicks: BeginnerPickResolved[] = beginnerResolved.available;
 
   const top10 = TOP_100_WINES.filter((w) => w.rank <= 10);
   const mid = TOP_100_WINES.filter((w) => w.rank >= 11 && w.rank <= 30);

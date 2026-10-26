@@ -1,6 +1,6 @@
 /** ISO date for Article datePublished/dateModified and the visible updated line. */
 export const TOP_100_WINES_PUBLISHED_AT = "2026-10-01";
-export const TOP_100_WINES_UPDATED_AT = "2026-10-25";
+export const TOP_100_WINES_UPDATED_AT = "2026-10-26";
 
 export interface TopWine {
   rank: number;
