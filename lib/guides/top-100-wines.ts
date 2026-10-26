@@ -1290,6 +1290,10 @@ export const TOP_100_WINES: TopWine[] = [
     country: "Frankrike",
     type: "Vitt",
     grapes: "Chenin Blanc",
+    description:
+      "Chenin Blanc på djupare lera och skiffer i Faye-d'Anjou. Benoît Courault utbildade sig i Beaune och arbetade tre år på Domaine de l'Anglore innan han köpte sex hektar i Anjou, som han odlat biodynamiskt sedan starten. Utan tillsatser, långsam jäsning och lång lagring på gamla fat. Säljs som Vin de France.",
+    descriptionEn:
+      "Chenin Blanc on deeper clay and schist in Faye-d'Anjou. Benoît Courault trained in Beaune and worked three years at Domaine de l'Anglore before buying six hectares in Anjou, which he has farmed biodynamically from the start. No additives, slow fermentation and long ageing in old barrels. Sold as Vin de France.",
   },
   {
     rank: 92,
@@ -1300,6 +1304,10 @@ export const TOP_100_WINES: TopWine[] = [
     country: "Frankrike",
     type: "Rött",
     grapes: "Carignan, Grenache, Syrah",
+    description:
+      "Hälften Carignan, 30 procent Syrah och 20 procent Grenache från 30 till 60 år gamla stockar på skiffer i Faugères. Två vintrar på fat i kalla stenkällare och buteljerat ofiltrerat. Didier Barral är trettonde generationen i Lenthéric och odlar omkring 30 hektar biodynamiskt.",
+    descriptionEn:
+      "Half Carignan, 30 percent Syrah and 20 percent Grenache from vines 30 to 60 years old on schist in Faugères. Two winters in barrel in cold stone cellars and bottled unfiltered. Didier Barral is the thirteenth generation in Lenthéric and farms around 30 hectares biodynamically.",
   },
   {
     rank: 93,
@@ -1310,16 +1318,24 @@ export const TOP_100_WINES: TopWine[] = [
     country: "Frankrike",
     type: "Champagne",
     grapes: "Chardonnay, Pinot Meunier",
+    description:
+      "Från stockarna högst upp i sluttningen på Mont Benoit, med omkring 30 centimeter matjord över krita. Hälften Chardonnay och hälften Meunier i 2017, elva månader på begagnade ekfat och över sex år på jästfällningen, utan dosage. Biodynamiskt odlat.",
+    descriptionEn:
+      "From the vines at the top of the slope on the Mont Benoit, with about 30 centimetres of topsoil over chalk. Half Chardonnay and half Meunier in 2017, eleven months in seasoned oak barrels and more than six years on the lees, with no dosage. Biodynamically farmed.",
   },
   {
     rank: 94,
     wine: "Le Feu",
-    producer: "Domaine Belluard",
+    producer: "Domaine du Gringet (tidigare Domaine Belluard)",
     topProducerName: "Domaine Belluard",
     region: "Ayse, Savoie",
     country: "Frankrike",
     type: "Vitt",
     grapes: "Gringet",
+    description:
+      "Gringet, en druva med bara omkring 20 hektar i världen, från en enskild parcell på röd märgel i Ayse. Dominique Belluard dog 2021, och sedan årgång 2022 görs vinet av fyra partner under namnet Domaine du Gringet. Helklaspressat, svavel tillsätts före jäsningen i betongägg eller sandstensamforor, och vinet buteljeras utan ytterligare svavel, klarning eller filtrering.",
+    descriptionEn:
+      "Gringet, a grape with only around 20 hectares in the world, from a single parcel on red marl in Ayse. Dominique Belluard died in 2021, and since the 2022 vintage the wine has been made by four partners under the name Domaine du Gringet. Whole-bunch pressed, sulphur is added before fermentation in concrete eggs or sandstone jars, and the wine is bottled without further sulphur, fining or filtration.",
   },
   {
     rank: 95,
@@ -1330,6 +1346,10 @@ export const TOP_100_WINES: TopWine[] = [
     country: "Frankrike",
     type: "Vitt",
     grapes: "Sauvignon Blanc",
+    description:
+      "Sauvignon Blanc från Sury-en-Vaux med lång skalkontakt och lång lagring på gamla fat. Namnet är litauiska för guld, efter Riffaults fru Jurgitas modersmål. Biodynamiskt odlat, sen och selektiv skörd och inget svavel vid buteljering.",
+    descriptionEn:
+      "Sauvignon Blanc from Sury-en-Vaux with long skin contact and long ageing in old barrels. The name is Lithuanian for gold, after the native language of Riffault's wife Jurgita. Biodynamically farmed, late and selective harvest and no sulphur at bottling.",
   },
   {
     rank: 96,
@@ -1340,6 +1360,10 @@ export const TOP_100_WINES: TopWine[] = [
     country: "Frankrike",
     type: "Vitt",
     grapes: "Jacquère, Roussanne, Pinot Gris, Mondeuse Blanche",
+    description:
+      "Jacquère, Roussanne, Malvoisie (Savoies namn på Pinot Gris) och Mondeuse Blanche från skifferbranter på över 500 meters höjd i Cevins. Domänen grundades 1998 för att återplantera en övergiven sluttning, och Brice Omont driver den sedan 2010. Biodynamiskt, allt handarbete på sluttningar upp till 60 procents lutning.",
+    descriptionEn:
+      "Jacquère, Roussanne, Malvoisie (the Savoie name for Pinot Gris) and Mondeuse Blanche from schist slopes above 500 metres in Cevins. The domaine was founded in 1998 to replant an abandoned hillside, and Brice Omont has run it since 2010. Biodynamic, all handwork on slopes of up to 60 percent.",
   },
   {
     rank: 97,
@@ -1350,6 +1374,10 @@ export const TOP_100_WINES: TopWine[] = [
     country: "Frankrike",
     type: "Rött",
     grapes: "Pinot Noir",
+    description:
+      "Monopol på 5,21 hektar premier cru i Nuits-Saint-Georges. Henry-Frédéric Roch, senare meddirektör på Domaine de la Romanée-Conti, grundade domänen 1988 och slutade helt med svavel 1995. Hela klasar, vilda jästsvampar och fottrampning i träkar. Yannick Champ driver domänen sedan Rochs död 2018.",
+    descriptionEn:
+      "A 5.21-hectare premier cru monopole in Nuits-Saint-Georges. Henry-Frédéric Roch, later co-director of Domaine de la Romanée-Conti, founded the domaine in 1988 and stopped using sulphur entirely in 1995. Whole clusters, wild yeasts and foot treading in wooden vats. Yannick Champ has run the domaine since Roch's death in 2018.",
   },
   {
     rank: 98,
@@ -1360,6 +1388,10 @@ export const TOP_100_WINES: TopWine[] = [
     country: "Frankrike",
     type: "Vitt",
     grapes: "Riesling",
+    description:
+      "Riesling från Grand Cru Pfersigberg, som Husseren-les-Châteaux delar med grannbyn Eguisheim. Bruno Schueller odlar omkring tio hektar biodynamiskt utan kemiska medel, jäser med vilda jästsvampar och gör vinerna utan tillsatser. Ett vin för lagring.",
+    descriptionEn:
+      "Riesling from Grand Cru Pfersigberg, which Husseren-les-Châteaux shares with neighbouring Eguisheim. Bruno Schueller farms around ten hectares biodynamically without chemicals, ferments with wild yeasts and makes the wines without additives. A wine for ageing.",
   },
   {
     rank: 99,
@@ -1370,6 +1402,10 @@ export const TOP_100_WINES: TopWine[] = [
     country: "Spanien",
     type: "Vitt",
     grapes: "Listán Blanco",
+    description:
+      "Listán Blanco från en enskild parcell på vulkanisk jord på 600 meters höjd i Valle de La Orotava på Teneriffa. Oympade stockar över 100 år, uppbundna i den traditionella flätade formen cordón trenzado. Spontanjäst utan tillsatser, klarning eller filtrering och lagrat främst på stora, gamla foudres.",
+    descriptionEn:
+      "Listán Blanco from a single parcel on volcanic soil at 600 metres in the Valle de La Orotava on Tenerife. Ungrafted vines over 100 years old, trained in the traditional braided cordón trenzado. Spontaneously fermented without additions, fining or filtration and aged mainly in large, old foudres.",
   },
   {
     rank: 100,
@@ -1380,5 +1416,10 @@ export const TOP_100_WINES: TopWine[] = [
     country: "Frankrike",
     type: "Rött",
     grapes: "Pinot Noir",
+    description:
+      "Pinot Noir från 45 år gamla stockar på märgel och kalk i Puy-de-Dôme i Auvergne. Maceration med hela klasar och två års lagring i amforor av stengods och ekfat. Certifierat ekologiskt, biodynamiska metoder och plöjning med djur.",
+    descriptionEn:
+      "Pinot Noir from 45-year-old vines on marl and limestone in Puy-de-Dôme in the Auvergne. Whole-cluster maceration and two years of ageing in stoneware amphorae and oak barrels. Certified organic, biodynamic methods and ploughing with animals.",
   },
+
 ];
