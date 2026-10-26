@@ -590,6 +590,10 @@ export const TOP_100_WINES: TopWine[] = [
     country: "Frankrike",
     type: "Vitt",
     grapes: "Chardonnay",
+    description:
+      "Chardonnay från en inmurad vingård på märgel som Stéphane Tissot planterat om med mycket tät plantering och bearbetar med häst. Vinet fylls på i fat, vilket ger en frisk och precis stil snarare än oxidativ. Domänen är biodynamiskt certifierad sedan 2004.",
+    descriptionEn:
+      "Chardonnay from a walled vineyard on marl that Stéphane Tissot replanted at very high density and works by horse. The wine is topped up in barrel, which gives a fresh and precise style rather than an oxidative one. The domaine has been certified biodynamic since 2004.",
   },
   {
     rank: 42,
@@ -600,6 +604,10 @@ export const TOP_100_WINES: TopWine[] = [
     country: "Italien",
     type: "Rött",
     grapes: "Barbera, Bonarda",
+    description:
+      "Hälften Barbera och hälften Bonarda från La Stoppas äldsta stockar på tung lera. Jäst med vilda jästsvampar utan svavel, cirka 40 dagars maceration, flera år på stora slavonska ekfat och sedan flera år till på flaska innan vinet släpps. Ofiltrerat.",
+    descriptionEn:
+      "Half Barbera and half Bonarda from La Stoppa's oldest vines on heavy clay. Fermented with wild yeasts without sulphur, about 40 days of maceration, several years in large Slavonian oak casks and then several more years in bottle before release. Unfiltered.",
   },
   {
     rank: 43,
@@ -610,6 +618,10 @@ export const TOP_100_WINES: TopWine[] = [
     country: "Italien",
     type: "Rött",
     grapes: "Nerello Mascalese",
+    description:
+      "Namnet kombinerar latinets mons och arabiskans jebel, båda betyder berg, och syftar på Etna. Cornelissen gör MunJebel Rosso på Nerello Mascalese från enskilda contrade på vulkanisk jord, med lång skalkontakt och lagring i neutrala tankar i stället för trä.",
+    descriptionEn:
+      "The name combines the Latin mons and the Arabic jebel, both meaning mountain, and refers to Etna. Cornelissen makes MunJebel Rosso from Nerello Mascalese from single contrade on volcanic soils, with long skin contact and ageing in neutral tanks instead of wood.",
   },
   {
     rank: 44,
@@ -620,6 +632,10 @@ export const TOP_100_WINES: TopWine[] = [
     country: "Frankrike",
     type: "Champagne",
     grapes: "Pinot Noir",
+    description:
+      "Blanc de noirs på Pinot Noir från Ledrus bästa parceller mitt i sluttningen i Ambonnay Grand Cru, ekologiskt odlat. Goulté betyder på lokal dialekt den första och finaste musten från pressen. Det är Ledrus toppcuvée och görs i små mängder.",
+    descriptionEn:
+      "Blanc de noirs from Pinot Noir from Ledru's best mid-slope parcels in Ambonnay Grand Cru, organically farmed. Goulté is local dialect for the first and finest juice from the press. It is Ledru's top cuvée and made in small quantities.",
   },
   {
     rank: 45,
@@ -630,6 +646,10 @@ export const TOP_100_WINES: TopWine[] = [
     country: "Italien",
     type: "Rött",
     grapes: "Montepulciano",
+    description:
+      "Valentinis röda följer samma princip som Trebbiano: familjen buteljerar bara det de anser hålla måttet och säljer resten vidare. Montepulciano från Loreto Aprutino, ett av de vin som visar hur långt druvan kan nå när den inte görs för volym.",
+    descriptionEn:
+      "Valentini's red follows the same principle as the Trebbiano: the family bottles only what they consider good enough and sells the rest on. Montepulciano from Loreto Aprutino, one of the wines that shows how far the grape can go when it is not made for volume.",
   },
   {
     rank: 46,
@@ -640,6 +660,10 @@ export const TOP_100_WINES: TopWine[] = [
     country: "Frankrike",
     type: "Mousserande",
     grapes: "Chenin Blanc",
+    description:
+      "Chenin Blanc från Vouvray, lagrat minst tre år på flaska i domänens tuffkällare innan det släpps. Noël Pinguet började ställa om domänens 30 hektar till biodynamisk odling efter ett försök 1988.",
+    descriptionEn:
+      "Chenin Blanc from Vouvray, aged at least three years in bottle in the domaine's tuffeau cellars before release. Noël Pinguet began converting the domaine's 30 hectares to biodynamic farming after a trial in 1988.",
   },
   {
     rank: 47,
@@ -649,7 +673,11 @@ export const TOP_100_WINES: TopWine[] = [
     region: "Gueux, Montagne de Reims, Champagne",
     country: "Frankrike",
     type: "Champagne",
-    grapes: "Pinot Meunier, Pinot Gris, Chardonnay",
+    grapes: "Pinot Meunier, Chardonnay, Pinot Noir, Pinot Blanc",
+    description:
+      "Nästan ren Meunier från en enda parcell på 2,2 hektar i Gueux, med stockar planterade på 1960-talet och ärvda från Prévosts mormor. Ekologiskt odlat, jorden bearbetas med häst, inga tillsatser, tio månader på stora begagnade fat och ofiltrerat.",
+    descriptionEn:
+      "Almost pure Meunier from a single 2.2-hectare parcel in Gueux, with vines planted in the 1960s and inherited from Prévost's grandmother. Organically farmed, soils worked by horse, no additions, ten months in large used barrels and unfiltered.",
   },
   {
     rank: 48,
@@ -659,7 +687,11 @@ export const TOP_100_WINES: TopWine[] = [
     region: "Ardèche",
     country: "Frankrike",
     type: "Vitt",
-    grapes: "Viognier",
+    grapes: "Viognier, Roussanne",
+    description:
+      "Hervé Souhaut grundade domänen 1993 i Arlebosc i norra Ardèche och odlar cirka fem hektar gamla stockar på granit. Den vita Romaneaux-Destezet är Viognier med en del Roussanne, direktpressad, lagrad på fin jästfällning och buteljerad ofiltrerad.",
+    descriptionEn:
+      "Hervé Souhaut founded the domaine in 1993 in Arlebosc in the northern Ardèche and farms about five hectares of old vines on granite. The white Romaneaux-Destezet is Viognier with some Roussanne, directly pressed, aged on fine lees and bottled unfiltered.",
   },
   {
     rank: 49,
@@ -670,6 +702,10 @@ export const TOP_100_WINES: TopWine[] = [
     country: "Frankrike",
     type: "Rött",
     grapes: "Gamay",
+    description:
+      "Guy Breton är en av de fyra Morgon-producenter, tillsammans med Marcel Lapierre, Jean Foillard och Jean-Paul Thévenet, som under Jules Chauvets inflytande lade grunden för naturvinsrörelsen i Beaujolais. Vieilles Vignes är Gamay från hans äldsta stockar.",
+    descriptionEn:
+      "Guy Breton is one of the four Morgon producers, together with Marcel Lapierre, Jean Foillard and Jean-Paul Thévenet, who under the influence of Jules Chauvet laid the foundation for the natural wine movement in Beaujolais. Vieilles Vignes is Gamay from his oldest vines.",
   },
   {
     rank: 50,
@@ -680,6 +716,10 @@ export const TOP_100_WINES: TopWine[] = [
     country: "Italien",
     type: "Rött",
     grapes: "Sagrantino",
+    description:
+      "Familjen Bea finns dokumenterad i Montefalco sedan år 1500. Sagrantino står för omkring 60 procent av deras fem hektar vingård, som odlas ekologiskt och handplockas. Vinerna buteljeras utan klarning eller filtrering.",
+    descriptionEn:
+      "The Bea family has been documented in Montefalco since 1500. Sagrantino makes up around 60 percent of their five hectares of vineyard, which is farmed organically and hand-harvested. The wines are bottled without fining or filtration.",
   },
   {
     rank: 51,
