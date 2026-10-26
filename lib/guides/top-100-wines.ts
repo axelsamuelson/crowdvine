@@ -870,6 +870,10 @@ export const TOP_100_WINES: TopWine[] = [
     country: "Frankrike",
     type: "Rött",
     grapes: "Trousseau",
+    description:
+      "Trousseau från 80 år gamla stockar på lera över kalk i Montigny-les-Arsures, lagrat på en blandning av akaciafat och fat av amerikansk ek. Familjen har bott i byn sedan 1500-talet, men Michel är den förste som buteljerar själv. Han odlar 7,5 hektar ekologiskt, bearbetar jorden med tre hästar och tillsätter mycket lite svavel.",
+    descriptionEn:
+      "Trousseau from 80-year-old vines on clay over limestone in Montigny-les-Arsures, aged in a mix of acacia and American oak barrels. The family has lived in the village since the 16th century, but Michel is the first to bottle himself. He farms 7.5 hectares organically, works the soil with three horses and adds very little sulphur.",
   },
   {
     rank: 62,
@@ -880,6 +884,10 @@ export const TOP_100_WINES: TopWine[] = [
     country: "Frankrike",
     type: "Rosé",
     grapes: "Pinot Meunier",
+    description:
+      "Prévosts rosé är i princip en kopia av Les Béguines med omkring tio procent stilla rött vin tillsatt. Det röda görs på Meunier från ett hörn av samma vingård, där stockarna är angripna av court-noué och ger små, koncentrerade klasar.",
+    descriptionEn:
+      "Prévost's rosé is in essence a copy of Les Béguines with about ten percent still red wine added. The red is made from Meunier from a corner of the same vineyard, where the vines are affected by fanleaf virus and give small, concentrated bunches.",
   },
   {
     rank: 63,
@@ -890,6 +898,10 @@ export const TOP_100_WINES: TopWine[] = [
     country: "Frankrike",
     type: "Rött",
     grapes: "Grenache, Cinsault, Carignan",
+    description:
+      "Grenache, Cinsault och Carignan från bergen ovanför Béziers. Axel Prüfer växte upp i Östtyskland och slog sig ner i Le Mas Blanc 2003. Han odlar omkring 15 hektar på granit och kvarts, jäser med vilda jästsvampar och tillsätter inget svavel i något skede.",
+    descriptionEn:
+      "Grenache, Cinsault and Carignan from the hills above Béziers. Axel Prüfer grew up in East Germany and settled in Le Mas Blanc in 2003. He farms around 15 hectares on granite and quartz, ferments with wild yeasts and adds no sulphur at any stage.",
   },
   {
     rank: 64,
@@ -900,6 +912,10 @@ export const TOP_100_WINES: TopWine[] = [
     country: "Slovenien",
     type: "Mousserande",
     grapes: "Chardonnay, Pinot Noir",
+    description:
+      "Mousserande på 60 procent Chardonnay och 40 procent Ribolla Gialla, andra jäsningen och fyra års lagring i ekfat. Puro säljs odegorgerad med jästfällningen kvar i flaskan och utan tillsatt svavel. Köparen degorgerar själv, helst under vatten, eller dricker vinet grumligt.",
+    descriptionEn:
+      "Sparkling wine from 60 percent Chardonnay and 40 percent Ribolla Gialla, with second fermentation and four years of ageing in oak. Puro is sold undisgorged with the lees still in the bottle and without added sulphur. The buyer disgorges it, preferably under water, or drinks the wine cloudy.",
   },
   {
     rank: 65,
@@ -910,6 +926,10 @@ export const TOP_100_WINES: TopWine[] = [
     country: "Frankrike",
     type: "Vitt",
     grapes: "Riesling",
+    description:
+      "Riesling från Grand Cru Steinert på kalkjord i Pfaffenheim. Familjen Frick ställde om till ekologisk odling 1970, Jean-Pierre Frick gick över till biodynamik 1981 och gör sedan 1999 viner helt utan tillsatt svavel.",
+    descriptionEn:
+      "Riesling from Grand Cru Steinert on limestone soils in Pfaffenheim. The Frick family converted to organic farming in 1970, Jean-Pierre Frick moved to biodynamics in 1981 and has made wines with no added sulphur at all since 1999.",
   },
   {
     rank: 66,
@@ -920,6 +940,10 @@ export const TOP_100_WINES: TopWine[] = [
     country: "Frankrike",
     type: "Champagne",
     grapes: "Pinot Meunier, Pinot Noir, Chardonnay",
+    description:
+      "Brochets champagne från hans enda vingård på cirka 2,5 hektar premier cru i Villers-aux-Nœuds, väster om Montagne de Reims, på lera och silt. Meunier, Pinot Noir och Chardonnay. Brochet tog över gården 1997.",
+    descriptionEn:
+      "Brochet's champagne from his single vineyard of about 2.5 hectares of premier cru in Villers-aux-Nœuds, west of the Montagne de Reims, on clay and silt. Meunier, Pinot Noir and Chardonnay. Brochet took over the estate in 1997.",
   },
   {
     rank: 67,
@@ -930,6 +954,10 @@ export const TOP_100_WINES: TopWine[] = [
     country: "Frankrike",
     type: "Rött",
     grapes: "Poulsard",
+    description:
+      "Poulsard från över 50 år gamla stockar i La Mailloche och En Curon norr om Arbois. Handplockat, spontanjäst med hela klasar och 20 dagars maceration, tolv månader på gamla bourgognefat. Alice Bouvot tillsätter inget svavel i något av sina viner.",
+    descriptionEn:
+      "Poulsard from vines over 50 years old in La Mailloche and En Curon north of Arbois. Hand-harvested, spontaneously fermented as whole bunches with 20 days of maceration, twelve months in old Burgundy barrels. Alice Bouvot adds no sulphur to any of her wines.",
   },
   {
     rank: 68,
@@ -940,6 +968,10 @@ export const TOP_100_WINES: TopWine[] = [
     country: "Frankrike",
     type: "Rött",
     grapes: "Grenache",
+    description:
+      "Grenache från Prüfers avlägsna, skogsomgivna vingårdar ovanför Béziers, där avkastningen ibland är så låg som tio hektoliter per hektar. Som alla hans viner jäst med vilda jästsvampar, buteljerat utan klarning, filtrering eller tillsatt svavel.",
+    descriptionEn:
+      "Grenache from Prüfer's remote, forest-surrounded vineyards above Béziers, where yields are sometimes as low as ten hectolitres per hectare. Like all his wines, fermented with wild yeasts and bottled without fining, filtration or added sulphur.",
   },
   {
     rank: 69,
@@ -950,6 +982,10 @@ export const TOP_100_WINES: TopWine[] = [
     country: "Österrike",
     type: "Mousserande",
     grapes: "Blauer Wildbacher",
+    description:
+      "Mousserande på Blauer Wildbacher, den druva som Weststeiermark är känt för genom roséstilen Schilcher. Strohmeier odlar ekologiskt och biodynamiskt på järn- och kiselrik jord i Bad Gams.",
+    descriptionEn:
+      "Sparkling wine from Blauer Wildbacher, the grape Weststeiermark is known for through the rosé style Schilcher. Strohmeier farms organically and biodynamically on iron- and silica-rich soils in Bad Gams.",
   },
   {
     rank: 70,
@@ -960,6 +996,10 @@ export const TOP_100_WINES: TopWine[] = [
     country: "Frankrike",
     type: "Rött",
     grapes: "Carignan, Syrah, Grenache, Mourvèdre",
+    description:
+      "Carignan, Syrah, Grenache och Mourvèdre från Langlade i Gard. Rémy Pédreno odlar ekologiskt, arbetar med minimal intervention i källaren och säljer vinerna som IGP Gard i stället för under appellation.",
+    descriptionEn:
+      "Carignan, Syrah, Grenache and Mourvèdre from Langlade in the Gard. Rémy Pédreno farms organically, works with minimal intervention in the cellar and sells the wines as IGP Gard rather than under an appellation.",
   },
   {
     rank: 71,
