@@ -11,6 +11,7 @@ export function generateMetadata(): Promise<Metadata> {
   return buildWinesGuideMetadata("sv");
 }
 
+/** Same renderer + BEGINNER_PICKS as /guides/worlds-best-natural-wines. */
 export default function TopWinesGuidePage() {
   return renderWinesGuidePage("sv");
 }

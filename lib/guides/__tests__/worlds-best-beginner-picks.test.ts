@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -54,5 +55,20 @@ describe("BEGINNER_PICKS", () => {
     expect(beginnerPickCopy("en").moreHref).toBe(
       "/guides/best-natural-wines-systembolaget",
     );
+  });
+
+  it("SV and EN page routes both call the same renderWinesGuidePage", () => {
+    const sv = readFileSync(
+      "app/guider/varldens-basta-naturviner/page.tsx",
+      "utf8",
+    );
+    const en = readFileSync(
+      "app/guides/worlds-best-natural-wines/page.tsx",
+      "utf8",
+    );
+    expect(sv).toContain('renderWinesGuidePage("sv")');
+    expect(en).toContain('renderWinesGuidePage("en")');
+    expect(sv).toContain("@/lib/guides/render-wines-guide");
+    expect(en).toContain("@/lib/guides/render-wines-guide");
   });
 });
