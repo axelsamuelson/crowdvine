@@ -1010,6 +1010,10 @@ export const TOP_100_WINES: TopWine[] = [
     country: "Georgien",
     type: "Mousserande",
     grapes: "Chinuri",
+    description:
+      "Iago Bitarishvili odlar två hektar 60 år gamla Chinuri-stockar på kalkjord i Mukhranidalen och arbetar från byn Chardakhi i Kartli. Chinuri är regionens egen vita druva, med hög naturlig syra. Iago blev 2005 den förste i Georgien att certifieras för odling utan kemikalier och tillsätter inget svavel i något skede.",
+    descriptionEn:
+      "Iago Bitarishvili farms two hectares of 60-year-old Chinuri vines on limestone in the Mukhrani Valley and works from the village of Chardakhi in Kartli. Chinuri is the region's own white grape, with high natural acidity. In 2005 Iago became the first in Georgia to be certified for chemical-free farming, and he adds no sulphur at any stage.",
   },
   {
     rank: 72,
@@ -1020,6 +1024,10 @@ export const TOP_100_WINES: TopWine[] = [
     country: "Italien",
     type: "Vitt",
     grapes: "Trebbiano Spoletino",
+    description:
+      "Trebbiano Spoletino från gamla stockar som klättrar upp i lönn- och almträd, en gammal umbrisk odlingsform. Tre till sex veckors skalkontakt med vilda jästsvampar, en liten andel torkade druvor i jäsningen och över sex månader på jästfällningen. Första årgång var 2004.",
+    descriptionEn:
+      "Trebbiano Spoletino from old vines that climb maple and elm trees, an old Umbrian training method. Three to six weeks of skin contact with wild yeasts, a small share of dried grapes in the fermentation and more than six months on the lees. The first vintage was 2004.",
   },
   {
     rank: 73,
@@ -1030,6 +1038,10 @@ export const TOP_100_WINES: TopWine[] = [
     country: "Frankrike",
     type: "Champagne",
     grapes: "Chardonnay",
+    description:
+      "Ren Chardonnay från över 50 år gamla stockar på kalkjord i Montgueux. Varje parcell vinifieras separat, vinet lagras 12 till 24 månader på fat och sedan ett till fem år på flaska. Extra brut.",
+    descriptionEn:
+      "Pure Chardonnay from vines over 50 years old on limestone in Montgueux. Each parcel is vinified separately, the wine is aged 12 to 24 months in barrel and then one to five years in bottle. Extra brut.",
   },
   {
     rank: 74,
@@ -1040,6 +1052,10 @@ export const TOP_100_WINES: TopWine[] = [
     country: "Frankrike",
     type: "Orange",
     grapes: "Pinot Gris",
+    description:
+      "Pinot Gris med cirka en veckas skalkontakt, spontanjäst, några månader på gamla ekfat och buteljerat utan klarning, filtrering eller tillsatt svavel. Ett av de orangeviner som visar hur Alsace kan arbeta med skalkontakt.",
+    descriptionEn:
+      "Pinot Gris with about a week of skin contact, spontaneously fermented, a few months in old oak and bottled without fining, filtration or added sulphur. One of the orange wines that shows how Alsace can work with skin contact.",
   },
   {
     rank: 75,
@@ -1050,6 +1066,10 @@ export const TOP_100_WINES: TopWine[] = [
     country: "Frankrike",
     type: "Vitt",
     grapes: "Melon à Queue Rouge",
+    description:
+      "Melon à Queue Rouge, en lokal mutation av Chardonnay vars skal skiftar mot rött vid stjälken, på blå märgel. Gjort under jästhinna i stor foudre utan påfyllning, vilket ger en kontrollerad oxidation, och sedan lagrat i fat av jurasisk ek.",
+    descriptionEn:
+      "Melon à Queue Rouge, a local mutation of Chardonnay whose skin shifts towards red near the stem, on blue marl. Made under a veil of yeast in a large foudre without topping up, which gives controlled oxidation, and then aged in Jura oak barrels.",
   },
   {
     rank: 76,
@@ -1060,6 +1080,10 @@ export const TOP_100_WINES: TopWine[] = [
     country: "Frankrike",
     type: "Rött",
     grapes: "Grenache, Carignan",
+    description:
+      "Gaubys cuvée från mycket gamla stockar, främst Grenache och Carignan, i Calce. Gérard Gauby ärvde sin farfars cirka fem hektar 1985, då druvorna såldes till kooperativet. I dag driver han domänen med sonen Lionel och odlar biodynamiskt.",
+    descriptionEn:
+      "Gauby's cuvée from very old vines, mainly Grenache and Carignan, in Calce. Gérard Gauby inherited about five hectares from his grandfather in 1985, when the grapes were sold to the cooperative. Today he runs the domaine with his son Lionel and farms biodynamically.",
   },
   {
     rank: 77,
@@ -1070,6 +1094,10 @@ export const TOP_100_WINES: TopWine[] = [
     country: "Österrike",
     type: "Vitt",
     grapes: "Grüner Veltliner, Welschriesling",
+    description:
+      "Grüner Veltliner och Welschriesling från Oggau i Burgenland. Eduard och Stephanie Tscheppe startade Gut Oggau 2007 och döpte varje vin efter en familjemedlem med ett tecknat ansikte på etiketten. Demeter-certifierat, nio månader på stora begagnade fat, ofiltrerat och utan tillsatt svavel.",
+    descriptionEn:
+      "Grüner Veltliner and Welschriesling from Oggau in Burgenland. Eduard and Stephanie Tscheppe started Gut Oggau in 2007 and named each wine after a family member with a drawn face on the label. Demeter certified, nine months in large used barrels, unfiltered and without added sulphur.",
   },
   {
     rank: 78,
@@ -1080,6 +1108,10 @@ export const TOP_100_WINES: TopWine[] = [
     country: "Frankrike",
     type: "Rött",
     grapes: "Pinot Noir",
+    description:
+      "Pinot Noir från parcellen En Billat i Grusse, på skiffer och märgel. Handplockat, vinifierat naturligt utan tillsatser och lagrat ett år på ekfat. Ganevat odlar certifierat ekologiskt och biodynamiskt och håller avkastningen medvetet låg.",
+    descriptionEn:
+      "Pinot Noir from the En Billat parcel in Grusse, on schist and marl. Hand-harvested, vinified naturally without additives and aged a year in oak barrels. Ganevat farms certified organic and biodynamic and keeps yields deliberately low.",
   },
   {
     rank: 79,
@@ -1090,6 +1122,10 @@ export const TOP_100_WINES: TopWine[] = [
     country: "Frankrike",
     type: "Rött",
     grapes: "Lledoner Pelut",
+    description:
+      "Sydafrikanen Tom Lubbe var källarmästare hos Gauby innan han 2003 grundade Matassa i Calce. 20 hektar certifierat ekologiskt på skiffer och svart märgel, biodynamiska metoder och endast en liten svaveldos vid buteljering. Rouge bygger på Lledoner Pelut, en lokal form av Grenache.",
+    descriptionEn:
+      "South African Tom Lubbe was cellar master at Gauby before founding Matassa in Calce in 2003. 20 hectares certified organic on schist and black marl, biodynamic methods and only a small dose of sulphur at bottling. The Rouge is built on Lledoner Pelut, a local form of Grenache.",
   },
   {
     rank: 80,
@@ -1100,6 +1136,10 @@ export const TOP_100_WINES: TopWine[] = [
     country: "Frankrike",
     type: "Rött",
     grapes: "Ploussard",
+    description:
+      "Från lieu-dit En Aspis i Pupillin. Adeline Houillon är syster till Emmanuel Houillon hos Overnoy, och Renaud Bruyère arbetade flera år hos Stéphane Tissot. Paret odlar fyra hektar, gör nästan allt själva och använder inget svavel alls.",
+    descriptionEn:
+      "From the lieu-dit En Aspis in Pupillin. Adeline Houillon is the sister of Emmanuel Houillon at Overnoy, and Renaud Bruyère worked for several years with Stéphane Tissot. The couple farm four hectares, do almost everything themselves and use no sulphur at all.",
   },
   {
     rank: 81,
