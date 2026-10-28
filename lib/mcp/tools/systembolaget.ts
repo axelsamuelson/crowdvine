@@ -18,18 +18,15 @@ import {
   type RankingSource,
   type RankingView,
 } from "@/lib/systembolaget/ranking";
+import {
+  GUIDE_WINE_CATEGORIES,
+  SYSTEMBOLAGET_PRODUCT_SEARCH_CATEGORIES,
+} from "@/lib/systembolaget/guide-wine-categories";
 
-const categorySchema = z.enum([
-  "red",
-  "white",
-  "orange",
-  "sparkling",
-  "rose",
-  "budget",
-  "glouglou",
-  "petnat",
-  "best",
-]);
+const categorySchema = z.enum(GUIDE_WINE_CATEGORIES);
+
+/** Colour and style filters. "new" is not a product attribute. */
+const productCategorySchema = z.enum(SYSTEMBOLAGET_PRODUCT_SEARCH_CATEGORIES);
 
 const verdictSchema = z.enum(["recommended", "avoid", "skipped"]);
 
@@ -72,7 +69,7 @@ const scoreAdjustSchema = z
 
 /** Systembolaget category_level_2 filters for curated category enums. */
 const CATEGORY_LEVEL_2_PATTERNS: Record<
-  z.infer<typeof categorySchema>,
+  z.infer<typeof productCategorySchema>,
   string | null
 > = {
   red: "%Rött%",
@@ -117,6 +114,17 @@ function validateTop100Name(name: string | null | undefined): string | null {
 
 function sanitizeSearchQuery(q: string): string {
   return q.replace(/[%_,.()]/g, " ").replace(/\s+/g, " ").trim();
+}
+
+/** Day after an ISO calendar date, as YYYY-MM-DD. */
+function nextIsoDate(date: string): string {
+  const [year, month, day] = date.split("-").map((part) => Number(part));
+  const utc = new Date(Date.UTC(year, month - 1, day));
+  utc.setUTCDate(utc.getUTCDate() + 1);
+  const y = utc.getUTCFullYear();
+  const m = String(utc.getUTCMonth() + 1).padStart(2, "0");
+  const d = String(utc.getUTCDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
 }
 
 export function registerSystembolagetTools(
@@ -171,7 +179,7 @@ export function registerSystembolagetTools(
     "list_guide_wines",
     {
       description:
-        "List wines as visitors see them via systembolaget_guide_wines (published + available only).",
+        "List wines as visitors see them via systembolaget_guide_wines (published + available only). Each row includes product_launch_date.",
       inputSchema: {
         category: categorySchema,
         verdict: verdictSchema.optional().default("recommended"),
@@ -243,14 +251,28 @@ export function registerSystembolagetTools(
     "search_systembolaget_products",
     {
       description:
-        "Search/browse systembolaget_products for curation. query is optional when another filter is set. Returns count + results (cap 50).",
+        "Search/browse systembolaget_products for curation. query is optional when another filter is set. Returns count + results (cap 50), including product_launch_date. category filters product colour/style, not the curated release list.",
       inputSchema: {
         query: z
           .string()
           .min(2)
           .optional()
           .describe("Ilike on producer_name / name_bold / name_thin."),
-        category: categorySchema.optional(),
+        category: productCategorySchema.optional(),
+        launched_after: z
+          .string()
+          .date()
+          .optional()
+          .describe(
+            "Inclusive YYYY-MM-DD. Keeps products whose product_launch_date is on or after this UTC calendar date.",
+          ),
+        launched_before: z
+          .string()
+          .date()
+          .optional()
+          .describe(
+            "Inclusive YYYY-MM-DD. Keeps products whose product_launch_date is on or before this UTC calendar date.",
+          ),
         country: z
           .string()
           .optional()
@@ -295,7 +317,20 @@ export function registerSystembolagetTools(
           vintage,
           min_alcohol,
           max_alcohol,
+          launched_after,
+          launched_before,
         } = args;
+
+        if (
+          launched_after &&
+          launched_before &&
+          launched_after > launched_before
+        ) {
+          return mcpErrorResult(
+            "launched_after must be on or before launched_before.",
+            "search_systembolaget_products",
+          );
+        }
 
         const hasQuery = Boolean(query && query.trim().length >= 2);
         const hasOtherFilter = Boolean(
@@ -310,12 +345,14 @@ export function registerSystembolagetTools(
             exclude_curated ||
             vintage != null ||
             min_alcohol != null ||
-            max_alcohol != null,
+            max_alcohol != null ||
+            launched_after ||
+            launched_before,
         );
 
         if (!hasQuery && !hasOtherFilter) {
           return mcpErrorResult(
-            "Provide query and/or at least one filter (country, origin, grapes, price, is_organic, assortment, exclude_curated, vintage, alcohol, category).",
+            "Provide query and/or at least one filter (country, origin, grapes, price, is_organic, assortment, exclude_curated, vintage, alcohol, category, launched_after, launched_before).",
             "search_systembolaget_products",
           );
         }
@@ -342,6 +379,7 @@ export function registerSystembolagetTools(
               "is_available",
               "is_organic",
               "category_level_2",
+              "product_launch_date",
             ].join(", "),
             { count: grapes ? undefined : "exact" },
           )
@@ -386,6 +424,10 @@ export function registerSystembolagetTools(
         if (vintage != null) q = q.eq("vintage", vintage);
         if (min_alcohol != null) q = q.gte("alcohol_percentage", min_alcohol);
         if (max_alcohol != null) q = q.lte("alcohol_percentage", max_alcohol);
+        if (launched_after) q = q.gte("product_launch_date", launched_after);
+        if (launched_before) {
+          q = q.lt("product_launch_date", nextIsoDate(launched_before));
+        }
 
         if (exclude_curated) {
           const { data: curatedRows, error: curatedError } = await sb
@@ -419,11 +461,28 @@ export function registerSystembolagetTools(
           return mcpErrorResult(error.message, "search_systembolaget_products");
         }
 
+        type SearchProductRow = {
+          product_number: string;
+          name_bold: string | null;
+          name_thin: string | null;
+          producer_name: string | null;
+          country: string | null;
+          origin_level_1: string | null;
+          price: number | null;
+          vintage: number | null;
+          alcohol_percentage: number | null;
+          grapes: string[] | null;
+          assortment_text: string | null;
+          is_available: boolean | null;
+          is_organic: boolean | null;
+          product_launch_date: string | null;
+        };
+
         const grapeNeedle = grapes?.trim().toLowerCase() ?? "";
-        let rows = data ?? [];
+        let rows = (data ?? []) as unknown as SearchProductRow[];
         if (grapeNeedle) {
           rows = rows.filter((row) => {
-            const list = row.grapes as string[] | null;
+            const list = row.grapes;
             if (!list || list.length === 0) return false;
             return list.some((g) => g.toLowerCase().includes(grapeNeedle));
           });
@@ -459,6 +518,7 @@ export function registerSystembolagetTools(
             assortment_text: row.assortment_text,
             is_available: row.is_available,
             is_organic: row.is_organic,
+            product_launch_date: row.product_launch_date,
           };
         });
 

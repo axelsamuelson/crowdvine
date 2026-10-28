@@ -1,5 +1,7 @@
 import { revalidatePath, revalidateTag } from "next/cache";
 
+import { articlePath } from "@/lib/guides/guide-types";
+import { newNaturalWinesSystembolagetArticle } from "@/lib/guides/articles/new-natural-wines-systembolaget";
 import { SYSTEMBOLAGET_RANKED_LISTS } from "@/lib/guides/systembolaget-list-links";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import type { GuideWineCategory } from "@/lib/systembolaget/guide-wines";
@@ -25,6 +27,13 @@ export type PublishCuratedResult =
     };
 
 function guidePathsForCategory(category: string): { sv: string; en: string } | null {
+  // "new" is a release calendar, not a member of SYSTEMBOLAGET_RANKED_LISTS.
+  if (category === "new") {
+    return {
+      sv: articlePath(newNaturalWinesSystembolagetArticle, "sv"),
+      en: articlePath(newNaturalWinesSystembolagetArticle, "en"),
+    };
+  }
   const list = SYSTEMBOLAGET_RANKED_LISTS.find((row) => row.category === category);
   if (!list) return null;
   return { sv: list.href.sv, en: list.href.en };
@@ -40,8 +49,9 @@ export function revalidateSystembolagetGuideCategory(category: string): void {
       revalidatePath(paths.sv);
       revalidatePath(paths.en);
     }
-    // Parent "best" list may surface primary_style from other categories.
-    if (category !== "best") {
+    // Parent "best" list may surface primary_style from other ranked categories.
+    // The release calendar does not feed that list.
+    if (category !== "best" && category !== "new") {
       revalidateTag("sb-guide-wines-best-recommended", "max");
       const best = guidePathsForCategory("best");
       if (best) {

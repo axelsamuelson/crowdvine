@@ -45,7 +45,11 @@ const PRODUCER_UNION_CONCURRENCY = 4;
 export const ORDERVAROR_PARTITION_CAP = 9_000;
 const API_RESULT_WINDOW = ORDERVAROR_PARTITION_CAP;
 const MAX_PRICE_SPLITS = 6;
-/** Refuse a cron promote when staging is more than 5% smaller than the live table. */
+/**
+ * Refuse a cron promote when staging is more than 5% smaller than the rows
+ * seen in the latest successful sync (consecutive_misses = 0). The full
+ * table also keeps disappeared products for 30 days, so it is not the baseline.
+ */
 const SHRINK_LIMIT_PER_MILLE = 50;
 
 /** Assortment filter query suffixes (already URL-encoded where needed). */
@@ -444,6 +448,8 @@ export type SyncSuccessResult = {
   missingInMirrorCount: number;
   oldCount: number;
   newCount: number;
+  /** Full systembolaget_products count, including rows kept after they disappear. */
+  mirrorTotal: number;
   directFetched: string[];
   timing: SyncTiming;
 };
@@ -462,6 +468,8 @@ export type SyncShrinkResult = {
   reason: "shrink_guard";
   oldCount: number;
   newCount: number;
+  /** Full systembolaget_products count, including rows kept after they disappear. */
+  mirrorTotal: number;
   durationMs: number;
   directFetched: string[];
   timing: Pick<SyncTiming, "walkMs" | "directMs" | "stageMs">;
@@ -1241,7 +1249,8 @@ export async function runSystembolagetSync(
     const storeCountMs = Date.now() - storeCountStarted;
     fetched += storeCount.fetched;
 
-    const oldCount = await countTable(sb, "systembolaget_products");
+    const mirrorTotal = await countTable(sb, "systembolaget_products");
+    const oldCount = await countSeenProducts(sb);
     const newCount = await countTable(sb, "systembolaget_products_staging");
     const productNumbers = rows.map((r) => r.product_number);
 
@@ -1249,6 +1258,7 @@ export async function runSystembolagetSync(
       console.warn("[systembolaget-sync] shrink_guard — refusing promote", {
         oldCount,
         newCount,
+        mirrorTotal,
       });
       const { error: refuseClearErr } = await sb
         .from("systembolaget_products_staging")
@@ -1265,6 +1275,7 @@ export async function runSystembolagetSync(
         reason: "shrink_guard",
         oldCount,
         newCount,
+        mirrorTotal,
         durationMs,
         directFetched: direct.added,
         timing: { walkMs, directMs, stageMs },
@@ -1277,6 +1288,7 @@ export async function runSystembolagetSync(
         durationMs,
         oldCount,
         newCount,
+        mirrorTotal,
         directFetched: direct.added,
         productNumbers,
         previousProductNumbers,
@@ -1289,15 +1301,22 @@ export async function runSystembolagetSync(
       console.warn("[systembolaget-sync] shrink_guard overridden", {
         oldCount,
         newCount,
+        mirrorTotal,
       });
     }
 
     const protectedProducerNames = syncProducerNameUnionList();
     const promoteStarted = Date.now();
-    const { data: insertedRaw, error: promoteErr } = await sb.rpc(
-      "systembolaget_promote_products",
-      { p_protected_producer_names: protectedProducerNames },
+    // authenticator's statement_timeout is 8s. One promote of the full
+    // staging table exceeds it, and SET LOCAL inside the function does not
+    // extend that calling statement. Upsert in the same chunks as staging.
+    const promoted = await promoteProductsInBatches(
+      sb,
+      productNumbers,
+      protectedProducerNames,
     );
+    const insertedRaw = promoted.inserted;
+    const promoteErr = promoted.error;
 
     let inserted: number;
     let promotePath: "rpc" | "client_fallback";
@@ -1407,6 +1426,7 @@ export async function runSystembolagetSync(
       missingInMirrorCount,
       oldCount,
       newCount,
+      mirrorTotal,
       directFetched: direct.added,
       timing,
     });
@@ -1432,6 +1452,7 @@ export async function runSystembolagetSync(
       durationMs,
       oldCount,
       newCount,
+      mirrorTotal,
       directFetched: direct.added,
       productNumbers,
       previousProductNumbers,
@@ -1461,6 +1482,7 @@ export async function runSystembolagetSync(
       missingInMirrorCount,
       oldCount,
       newCount,
+      mirrorTotal,
       directFetched: direct.added,
       timing,
     };
@@ -1494,6 +1516,51 @@ async function countTable(
     throw new Error(`Failed to count ${table}: ${error.message}`);
   }
   return count ?? 0;
+}
+
+/** Rows present in the latest successful sync. Disappeared products stay in the table for 30 days. */
+async function countSeenProducts(
+  sb: ReturnType<typeof getSupabaseAdmin>,
+): Promise<number> {
+  const { count, error } = await sb
+    .from("systembolaget_products")
+    .select("*", { count: "exact", head: true })
+    .eq("consecutive_misses", 0);
+  if (error) {
+    throw new Error(`Failed to count seen products: ${error.message}`);
+  }
+  return count ?? 0;
+}
+
+/**
+ * Promote staging in product_number chunks. Each call is its own statement,
+ * so it can finish inside authenticator's 8s statement_timeout. The last
+ * call applies misses, stale deletes and clears staging.
+ */
+async function promoteProductsInBatches(
+  sb: ReturnType<typeof getSupabaseAdmin>,
+  productNumbers: readonly string[],
+  protectedProducerNames: string[],
+): Promise<{ inserted: number; error: { message: string } | null }> {
+  const numbers = [...new Set(productNumbers)].sort();
+  let inserted = 0;
+  for (let offset = 0; offset < numbers.length; offset += INSERT_CHUNK_SIZE) {
+    const isLast = offset + INSERT_CHUNK_SIZE >= numbers.length;
+    const gte = numbers[offset];
+    const lt = isLast ? null : numbers[offset + INSERT_CHUNK_SIZE];
+    if (!gte) continue;
+    const { data, error } = await sb.rpc("systembolaget_promote_products", {
+      p_protected_producer_names: protectedProducerNames,
+      p_product_number_gte: gte,
+      p_product_number_lt: lt,
+      p_finalize: isLast,
+    });
+    if (error) return { inserted, error };
+    const count =
+      typeof data === "number" ? data : Number.parseInt(String(data ?? 0), 10);
+    if (Number.isFinite(count)) inserted += count;
+  }
+  return { inserted, error: null };
 }
 
 async function listProductNumbers(
@@ -1559,6 +1626,7 @@ type SyncLogWrite = {
   durationMs: number;
   oldCount?: number;
   newCount?: number;
+  mirrorTotal?: number;
   directFetched?: string[];
   productNumbers?: string[];
   previousProductNumbers?: string[];
@@ -1580,6 +1648,7 @@ async function writeSyncLog(entry: SyncLogWrite): Promise<void> {
       outcome: entry.outcome,
       old_count: entry.oldCount ?? null,
       new_count: entry.newCount ?? null,
+      mirror_total: entry.mirrorTotal ?? null,
       direct_fetched: entry.directFetched ?? [],
       product_numbers: entry.productNumbers ?? null,
       previous_product_numbers: entry.previousProductNumbers ?? null,

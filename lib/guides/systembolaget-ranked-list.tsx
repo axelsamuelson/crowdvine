@@ -257,11 +257,23 @@ export function RankedWineRow({
   rank,
   locale,
   priority,
+  showRank = true,
+  launchLabel,
+  limitedLabelText,
 }: {
   wine: SystembolagetGuideWine;
   rank: number;
   locale: AppLocale;
   priority: boolean;
+  /** Rank number and movement badge. Ranked lists leave this on. */
+  showRank?: boolean;
+  /** Release-calendar date, e.g. "Släpps 6 nov". Omitted on ranked lists. */
+  launchLabel?: string | null;
+  /**
+   * Replaces the default limited-availability label.
+   * undefined keeps today's label. null hides it.
+   */
+  limitedLabelText?: string | null;
 }) {
   const { producer, secondary } = wineNameParts(wine);
   const badge = formatRankBadge(wine, locale);
@@ -271,7 +283,10 @@ export function RankedWineRow({
   const showRankBadge = wine.previous_sort_order != null && Boolean(badge);
   const meta = wineMetaParts(wine, locale);
   const assortment = assortmentLabel(wine.assortment_text, locale);
-  const limitedLabel = limitedAvailabilityLabel(wine.availability_state, locale);
+  const limitedLabel =
+    limitedLabelText !== undefined
+      ? limitedLabelText
+      : limitedAvailabilityLabel(wine.availability_state, locale);
   const styleLabel = primaryStyleLabel(wine.primary_style, locale);
   const price = formatPrice(wine.price);
   const note =
@@ -292,7 +307,14 @@ export function RankedWineRow({
 
   return (
     <article className="border-b border-border py-6 last:border-b-0 md:min-h-[calc(300px+3rem)]">
-      <div className="grid grid-cols-[auto_auto_minmax(0,1fr)] items-start gap-x-3 gap-y-3 md:gap-x-4">
+      <div
+        className={
+          showRank
+            ? "grid grid-cols-[auto_auto_minmax(0,1fr)] items-start gap-x-3 gap-y-3 md:gap-x-4"
+            : "grid grid-cols-[auto_minmax(0,1fr)] items-start gap-x-3 gap-y-3 md:gap-x-4"
+        }
+      >
+        {showRank ? (
         <div className="row-start-1 flex flex-col items-center gap-1.5 md:pt-0 pt-0.5">
           <span
             className="inline-flex h-9 min-w-9 items-center justify-center rounded-full bg-foreground px-2.5 text-sm font-semibold tabular-nums leading-none text-background md:h-10 md:min-w-10 md:text-base"
@@ -304,12 +326,13 @@ export function RankedWineRow({
             <span className="text-xs text-muted-foreground">{badge}</span>
           ) : null}
         </div>
+        ) : null}
 
         <div className="row-start-1 self-start">
           <BottleImage
             wine={wine}
             priority={priority}
-            size={rank <= 3 ? 400 : 200}
+            size={showRank ? (rank <= 3 ? 400 : 200) : priority ? 400 : 200}
           />
         </div>
 
@@ -319,7 +342,10 @@ export function RankedWineRow({
           not under the image bottom edge.
         */}
         <div className="contents md:row-start-1 md:flex md:min-w-0 md:flex-col md:self-start md:pt-0">
-          <div className="col-start-3 min-w-0 md:col-auto">
+          <div className={showRank ? "col-start-3 min-w-0 md:col-auto" : "col-start-2 min-w-0 md:col-auto"}>
+            {launchLabel ? (
+              <p className="mb-1 text-xs text-muted-foreground">{launchLabel}</p>
+            ) : null}
             {styleLabel ? (
               <p className="mb-1 text-xs text-muted-foreground">{styleLabel}</p>
             ) : null}
@@ -371,7 +397,7 @@ export function RankedWineRow({
             ) : null}
           </div>
 
-          <div className="col-span-3 min-w-0 md:col-auto md:mt-4">
+          <div className={showRank ? "col-span-3 min-w-0 md:col-auto md:mt-4" : "col-span-2 min-w-0 md:col-auto md:mt-4"}>
             {note ? (
               <p className="text-[15px] leading-relaxed text-foreground/80">
                 {note}

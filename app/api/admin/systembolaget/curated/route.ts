@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getCurrentAdmin } from "@/lib/admin-auth-server";
 import { TOP_100_PRODUCERS } from "@/lib/guides/top-100-producers";
+import { GUIDE_WINE_CATEGORIES } from "@/lib/systembolaget/guide-wine-categories";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 export const dynamic = "force-dynamic";
@@ -27,17 +28,7 @@ const curatedSchema = z
   .object({
     product_number: z.string().min(1),
     verdict: z.enum(["recommended", "avoid", "skipped"]),
-    category: z.enum([
-      "red",
-      "white",
-      "orange",
-      "sparkling",
-      "rose",
-      "budget",
-      "glouglou",
-      "petnat",
-      "best",
-    ]),
+    category: z.enum(GUIDE_WINE_CATEGORIES),
     editorial_note_sv: z.string().min(1),
     editorial_note_en: z.string().optional().nullable(),
     producer_note_sv: z.string().optional().nullable(),
@@ -89,6 +80,7 @@ export async function GET() {
       is_available: boolean | null;
       availability_state: string | null;
       store_count: number | null;
+      product_launch_date: string | null;
     }
   >();
 
@@ -96,7 +88,7 @@ export async function GET() {
     const { data: products, error: productsError } = await sb
       .from("systembolaget_products")
       .select(
-        "product_number, name_bold, name_thin, producer_name, price, is_available, availability_state, store_count",
+        "product_number, name_bold, name_thin, producer_name, price, is_available, availability_state, store_count, product_launch_date",
       )
       .in("product_number", numbers);
 
@@ -116,6 +108,10 @@ export async function GET() {
         is_available: product.is_available as boolean | null,
         availability_state: product.availability_state as string | null,
         store_count: product.store_count as number | null,
+        product_launch_date:
+          typeof product.product_launch_date === "string"
+            ? product.product_launch_date
+            : null,
       });
     }
   }

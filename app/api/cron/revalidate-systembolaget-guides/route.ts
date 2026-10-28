@@ -1,20 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { GUIDE_WINE_CATEGORIES } from "@/lib/systembolaget/guide-wine-categories";
 import { revalidateSystembolagetGuideCategory } from "@/lib/systembolaget/publish-curated";
 
 export const dynamic = "force-dynamic";
 
-const ALLOWED = new Set([
-  "red",
-  "white",
-  "orange",
-  "sparkling",
-  "rose",
-  "budget",
-  "glouglou",
-  "petnat",
-  "best",
-]);
+const ALLOWED = new Set<string>(GUIDE_WINE_CATEGORIES);
 
 /**
  * On-demand revalidation for Systembolaget ranked guides.

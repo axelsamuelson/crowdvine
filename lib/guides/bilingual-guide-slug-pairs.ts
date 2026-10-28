@@ -47,5 +47,9 @@ export const BILINGUAL_GUIDE_SLUG_PAIRS = [
   },
   { en: "best-glou-glou-wines-systembolaget", sv: "basta-glouglou-viner-systembolaget" },
   { en: "best-pet-nat-systembolaget", sv: "basta-pet-nat-systembolaget" },
+  {
+    en: "new-natural-wines-systembolaget",
+    sv: "nya-naturviner-systembolaget",
+  },
   { en: "what-is-pet-nat", sv: "vad-ar-pet-nat" },
 ] as const;

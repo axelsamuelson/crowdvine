@@ -5,6 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { TOP_100_PRODUCERS } from "@/lib/guides/top-100-producers";
+import {
+  GUIDE_WINE_CATEGORIES,
+  type GuideWineCategory,
+} from "@/lib/systembolaget/guide-wine-categories";
 import { toast } from "sonner";
 
 type SyncStatus = {
@@ -58,6 +62,7 @@ type CuratedRow = {
     is_available: boolean | null;
     availability_state: string | null;
     store_count: number | null;
+    product_launch_date: string | null;
   } | null;
 };
 
@@ -65,16 +70,7 @@ type CurateForm = {
   product_number: string;
   product_label: string;
   verdict: "recommended" | "avoid" | "skipped";
-  category:
-    | "red"
-    | "white"
-    | "orange"
-    | "sparkling"
-    | "rose"
-    | "budget"
-    | "glouglou"
-    | "petnat"
-    | "best";
+  category: GuideWineCategory;
   editorial_note_sv: string;
   editorial_note_en: string;
   producer_note_sv: string;
@@ -146,6 +142,25 @@ const emptyIssueForm = (): IssueForm => ({
   editorial_note_en: "",
   sort_order: "10",
 });
+
+function categoryHeading(category: string): string {
+  if (category === "new") return "Nya och kommande släpp";
+  return category;
+}
+
+function formatLaunchDate(value: string | null | undefined): string {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "Europe/Stockholm",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  })
+    .format(date)
+    .replace(".", "");
+}
 
 function formatSynced(iso: string | null): string {
   if (!iso) return "Never";
@@ -980,15 +995,11 @@ export default function SystembolagetAdminPage() {
                     }))
                   }
                 >
-                  <option value="red">red</option>
-                  <option value="white">white</option>
-                  <option value="orange">orange</option>
-                  <option value="sparkling">sparkling</option>
-                  <option value="rose">rose</option>
-                  <option value="budget">budget</option>
-                  <option value="glouglou">glouglou</option>
-                  <option value="petnat">petnat</option>
-                  <option value="best">best</option>
+                  {GUIDE_WINE_CATEGORIES.map((category) => (
+                    <option key={category} value={category}>
+                      {category}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
@@ -1146,9 +1157,15 @@ export default function SystembolagetAdminPage() {
         ) : (
           grouped.map(([category, rows]) => (
             <div key={category} className="space-y-2">
-              <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                {category} ({rows.filter((r) => r.is_published).length}{" "}
-                published)
+              <h3
+                className={
+                  category === "new"
+                    ? "text-sm font-semibold text-muted-foreground"
+                    : "text-sm font-semibold uppercase tracking-wide text-muted-foreground"
+                }
+              >
+                {categoryHeading(category)} (
+                {rows.filter((r) => r.is_published).length} published)
               </h3>
               <ul className="divide-y rounded border border-border text-sm">
                 {rows.map((row) => (
@@ -1177,6 +1194,9 @@ export default function SystembolagetAdminPage() {
                       <div className="mt-1 text-xs text-muted-foreground">
                         {row.product_number} · {row.verdict} · sort{" "}
                         {row.sort_order}
+                        {category === "new"
+                          ? ` · släpp ${formatLaunchDate(row.product?.product_launch_date)}`
+                          : ""}
                         {row.product?.price != null
                           ? ` · ${row.product.price} kr`
                           : ""}

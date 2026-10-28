@@ -1,17 +1,13 @@
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { unstable_cache } from "next/cache";
 import { orderCategoryWines } from "@/lib/systembolaget/ranking";
+import type { GuideWineCategory } from "@/lib/systembolaget/guide-wine-categories";
 
-export type GuideWineCategory =
-  | "red"
-  | "white"
-  | "orange"
-  | "sparkling"
-  | "rose"
-  | "budget"
-  | "glouglou"
-  | "petnat"
-  | "best";
+export {
+  GUIDE_WINE_CATEGORIES,
+  SYSTEMBOLAGET_PRODUCT_SEARCH_CATEGORIES,
+  type GuideWineCategory,
+} from "@/lib/systembolaget/guide-wine-categories";
 
 /** Colour, sparkling and budget styles shown on the parent list. Glou-glou and pet nat are not style labels. */
 export const PRIMARY_STYLE_CATEGORIES = [
@@ -105,6 +101,8 @@ export type SystembolagetGuideWine = {
   /** Editorial 0..100 score. Null keeps today's sort_order. */
   wine_score: number | null;
   score_adjust: number;
+  /** Systembolaget launch instant. Null when the product has no launch date. */
+  product_launch_date: string | null;
   /** Set on the parent "best" list from the product's non-best curated row. */
   primary_style?: PrimaryStyleCategory | null;
 };
@@ -248,6 +246,7 @@ async function fetchGuideWinesUncached(
     "store_count",
     "wine_score",
     "score_adjust",
+    "product_launch_date",
   ];
 
   const run = (cols: string[]) =>
@@ -261,15 +260,24 @@ async function fetchGuideWinesUncached(
 
   let { data, error } = await run(columns);
 
+  // The select string is built at runtime, so PostgREST types the rows as
+  // GenericStringError. Cast through unknown when filling missing columns.
+  const mergeRows = (
+    rows: NonNullable<typeof data>,
+    extra: Record<string, string | number | null>,
+  ): NonNullable<typeof data> => {
+    const list = rows as unknown as Array<Record<string, unknown>>;
+    return list.map((row) => ({ ...row, ...extra })) as unknown as NonNullable<
+      typeof data
+    >;
+  };
+
   // Migration 207 may not be applied yet — retry without the new column.
   if (error && /top_100_producer_name/i.test(error.message)) {
     const fallbackCols = columns.filter((c) => c !== "top_100_producer_name");
     ({ data, error } = await run(fallbackCols));
     if (!error && data) {
-      data = data.map((row) => ({
-        ...row,
-        top_100_producer_name: null,
-      }));
+      data = mergeRows(data, { top_100_producer_name: null });
     }
   }
 
@@ -283,11 +291,10 @@ async function fetchGuideWinesUncached(
     );
     ({ data, error } = await run(fallbackCols));
     if (!error && data) {
-      data = data.map((row) => ({
-        ...row,
+      data = mergeRows(data, {
         availability_state: "available",
         store_count: null,
-      }));
+      });
     }
   }
 
@@ -300,11 +307,18 @@ async function fetchGuideWinesUncached(
     );
     ({ data, error } = await run(fallbackCols));
     if (!error && data) {
-      data = data.map((row) => ({
-        ...row,
-        wine_score: null,
-        score_adjust: 0,
-      }));
+      data = mergeRows(data, { wine_score: null, score_adjust: 0 });
+    }
+  }
+
+  // Migration 236 — product_launch_date may be absent locally.
+  if (error && /product_launch_date/i.test(error.message)) {
+    const fallbackCols = columns.filter(
+      (column) => column !== "product_launch_date",
+    );
+    ({ data, error } = await run(fallbackCols));
+    if (!error && data) {
+      data = mergeRows(data, { product_launch_date: null });
     }
   }
 
@@ -314,9 +328,13 @@ async function fetchGuideWinesUncached(
   }
 
   const wines = (data ?? []) as unknown as SystembolagetGuideWine[];
-  // Recommended rows use categoryRank once any wine_score is set.
+  // The release calendar orders by launch date on the page.
+  // Recommended ranked lists use categoryRank once any wine_score is set.
   // Avoid lists stay on the sort_order query.
-  const ordered = verdict === "recommended" ? orderCategoryWines(wines) : wines;
+  const ordered =
+    verdict === "recommended" && category !== "new"
+      ? orderCategoryWines(wines)
+      : wines;
   if (category !== "best" || ordered.length === 0) return ordered;
   return attachPrimaryStyles(ordered);
 }

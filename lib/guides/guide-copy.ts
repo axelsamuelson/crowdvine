@@ -5,6 +5,7 @@ import { buyNaturalWineOnlineSwedenArticle } from "@/lib/guides/articles/buy-nat
 import { naturalWineHomeDeliveryArticle } from "@/lib/guides/articles/natural-wine-home-delivery";
 import { bestGlouGlouWinesSystembolagetArticle } from "@/lib/guides/articles/best-glou-glou-wines-systembolaget";
 import { bestPetNatWinesSystembolagetArticle } from "@/lib/guides/articles/best-pet-nat-wines-systembolaget";
+import { newNaturalWinesSystembolagetArticle } from "@/lib/guides/articles/new-natural-wines-systembolaget";
 import { bestNaturalWinesSystembolagetArticle } from "@/lib/guides/articles/best-natural-wines-systembolaget";
 import { bestNaturalWinesUnder200SystembolagetArticle } from "@/lib/guides/articles/best-natural-wines-under-200-systembolaget";
 import { bestOrangeNaturalWinesSystembolagetArticle } from "@/lib/guides/articles/best-orange-natural-wines-systembolaget";
@@ -183,6 +184,9 @@ const SV_SYSTEMBOLAGET_CARDS: GuideHubCard[] = [
   articleHubCard(bestGlouGlouWinesSystembolagetArticle, "sv"),
   ...(isGuideArticlePublished(bestPetNatWinesSystembolagetArticle)
     ? [articleHubCard(bestPetNatWinesSystembolagetArticle, "sv")]
+    : []),
+  ...(isGuideArticlePublished(newNaturalWinesSystembolagetArticle)
+    ? [articleHubCard(newNaturalWinesSystembolagetArticle, "sv")]
     : []),
 ];
 
@@ -363,6 +367,9 @@ const EN_SYSTEMBOLAGET_CARDS: GuideHubCard[] = [
   articleHubCard(bestGlouGlouWinesSystembolagetArticle, "en"),
   ...(isGuideArticlePublished(bestPetNatWinesSystembolagetArticle)
     ? [articleHubCard(bestPetNatWinesSystembolagetArticle, "en")]
+    : []),
+  ...(isGuideArticlePublished(newNaturalWinesSystembolagetArticle)
+    ? [articleHubCard(newNaturalWinesSystembolagetArticle, "en")]
     : []),
 ];
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getCurrentAdmin } from "@/lib/admin-auth-server";
 import { TOP_100_PRODUCERS } from "@/lib/guides/top-100-producers";
+import { GUIDE_WINE_CATEGORIES } from "@/lib/systembolaget/guide-wine-categories";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import {
   publishCuratedById,
@@ -15,19 +16,7 @@ const TOP_100_NAMES = new Set(TOP_100_PRODUCERS.map((p) => p.name));
 const patchSchema = z
   .object({
     verdict: z.enum(["recommended", "avoid", "skipped"]).optional(),
-    category: z
-      .enum([
-        "red",
-        "white",
-        "orange",
-        "sparkling",
-        "rose",
-        "budget",
-        "glouglou",
-        "petnat",
-        "best",
-      ])
-      .optional(),
+    category: z.enum(GUIDE_WINE_CATEGORIES).optional(),
     editorial_note_sv: z.string().min(1).optional(),
     editorial_note_en: z.string().optional().nullable(),
     producer_note_sv: z.string().optional().nullable(),
