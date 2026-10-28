@@ -11,6 +11,10 @@ import {
   type ProducerBoxFaqItem,
 } from "@/lib/producer-boxes/config";
 import type { ResolvedProducerBox } from "@/lib/producer-boxes/match";
+import {
+  defaultOpenGraphImages,
+  pageTwitterCard,
+} from "@/lib/seo/default-social";
 
 const IN_STOCK = "https://schema.org/InStock";
 const OUT_OF_STOCK = "https://schema.org/OutOfStock";
@@ -49,7 +53,13 @@ export function buildProducerBoxesMetadata(locale: AppLocale): Metadata {
       description: copy.meta,
       url: canonical,
       type: "website",
+      locale: locale === "sv" ? "sv_SE" : "en_US",
+      images: defaultOpenGraphImages({
+        siteName: PACT_CONFIG.siteName,
+        locale,
+      }),
     },
+    twitter: pageTwitterCard(copy.title, copy.meta),
   };
 }
 

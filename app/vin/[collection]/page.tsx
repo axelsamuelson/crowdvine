@@ -43,6 +43,10 @@ import {
 } from "@/lib/seo/noindex-robots";
 import { shopSearchParamsRobots } from "@/lib/seo/shop-search-robots";
 import {
+  defaultOpenGraphImages,
+  pageTwitterCard,
+} from "@/lib/seo/default-social";
+import {
   getCategoryExploreLinks,
   getCategoryLongDescriptionHeading,
 } from "@/lib/wine-category-explore-links";
@@ -121,7 +125,13 @@ export async function generateMetadata(props: {
         description: metaDescription,
         url: canonicalUrl,
         type: "website",
+        locale: "sv_SE",
+        images: defaultOpenGraphImages({
+          siteName: config.siteName,
+          locale: "sv",
+        }),
       },
+      twitter: pageTwitterCard(category.title, metaDescription),
     };
   }
 
@@ -164,7 +174,13 @@ export async function generateMetadata(props: {
       description: shopDescription,
       url: shopUrl,
       type: "website",
+      locale: "sv_SE",
+      images: defaultOpenGraphImages({
+        siteName: config.siteName,
+        locale: "sv",
+      }),
     },
+    twitter: pageTwitterCard(shopTitle, shopDescription),
   };
 }
 

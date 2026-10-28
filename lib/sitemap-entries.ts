@@ -204,7 +204,11 @@ async function buildSitemapEntriesUncached(
     )
     .flatMap((p) => {
       const slug = generateProducerSlug(p.name);
-      const lastModified = p.created_at ? new Date(p.created_at) : new Date();
+      const lastModified = p.updated_at
+        ? new Date(p.updated_at)
+        : p.created_at
+          ? new Date(p.created_at)
+          : new Date();
       const entry = {
         lastModified,
         changeFrequency: "weekly" as const,
