@@ -402,7 +402,11 @@ export function RankedWineRow({
 }
 
 
-function buildItemListJsonLd(
+/**
+ * ItemList only. Do not nest Product/Offer pointing at systembolaget.se —
+ * that mis-signals commerce ownership and risks rejected rich results.
+ */
+export function buildItemListJsonLd(
   wines: SystembolagetGuideWine[],
   pageUrl: string,
   name: string,
@@ -414,34 +418,12 @@ function buildItemListJsonLd(
     url: pageUrl,
     numberOfItems: wines.length,
     itemListOrder: "https://schema.org/ItemListOrderAscending",
-    itemListElement: wines.map((wine, index) => {
-      const name = wineListName(wine);
-      const url = systembolagetProductUrl(wine.product_number);
-      const image =
-        systembolagetImageUrl(wine.image_url, index < 3 ? 400 : 200) ??
-        undefined;
-      return {
-        "@type": "ListItem",
-        position: index + 1,
-        item: {
-          "@type": "Product",
-          name,
-          ...(image ? { image } : {}),
-          url,
-          ...(wine.price != null
-            ? {
-                offers: {
-                  "@type": "Offer",
-                  price: wine.price,
-                  priceCurrency: "SEK",
-                  url,
-                  availability: "https://schema.org/InStock",
-                },
-              }
-            : {}),
-        },
-      };
-    }),
+    itemListElement: wines.map((wine, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name: wineListName(wine),
+      url: systembolagetProductUrl(wine.product_number),
+    })),
   };
 }
 
@@ -459,7 +441,7 @@ export async function buildSystembolagetRankedListMetadata(
     config.siteName,
     // Systembolaget demand is Sweden-first. Prefer SV as the unmatched default.
     {
-      xDefault: "en",
+      xDefault: "sv",
       noindex: options?.noindex || unpublished,
       nofollow: unpublished,
     },

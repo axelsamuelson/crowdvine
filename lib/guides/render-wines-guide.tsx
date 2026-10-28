@@ -18,11 +18,18 @@ import {
   guideHreflang,
   guidePath,
 } from "@/lib/guides/guide-routes";
-import { homePathForLocale } from "@/lib/i18n/localized-routes";import { filterLanguedocRoussillonEntries } from "@/lib/guides/languedoc-region";
+import { homePathForLocale } from "@/lib/i18n/localized-routes";
+import { filterLanguedocRoussillonEntries } from "@/lib/guides/languedoc-region";
+import { PRODUCER_BOXES_PATH } from "@/lib/producer-boxes/config";
+import { producerGuideHref } from "@/lib/guides/producer-guide-links";
+import {
+  TOP_100_PRODUCERS,
+} from "@/lib/guides/top-100-producers";
 import {
   TOP_100_WINES,
   TOP_100_WINES_PUBLISHED_AT,
   TOP_100_WINES_UPDATED_AT,
+  type TopWine,
 } from "@/lib/guides/top-100-wines";
 import {
   beginnerPickCopy,
@@ -41,6 +48,18 @@ import {
   SYSTEMBOLAGET_RANKED_LISTS,
 } from "@/lib/guides/systembolaget-list-links";
 import { systembolagetProductUrl } from "@/lib/systembolaget/guide-wines";
+
+function wineProducerGuideHref(
+  wine: TopWine,
+  locale: AppLocale,
+): string | undefined {
+  if (!wine.topProducerName) return undefined;
+  const producer = TOP_100_PRODUCERS.find(
+    (entry) => entry.name === wine.topProducerName,
+  );
+  if (!producer) return undefined;
+  return producerGuideHref(producer.rank, locale);
+}
 
 function linkLanguedocMentions(
   text: string,
@@ -106,6 +125,7 @@ export async function renderWinesGuidePage(locale: AppLocale) {
     (list) => list.category === "best",
   );
   const languedocShop = locale === "sv" ? "/vin" : "/wine";
+  const boxesPath = PRODUCER_BOXES_PATH[locale];
 
   // Same BEGINNER_PICKS + resolver for both /guides/... and /guider/... pages.
   // Never drop the section on a locale just because the product lookup failed;
@@ -281,6 +301,23 @@ export async function renderWinesGuidePage(locale: AppLocale) {
               </Link>
               {beginner.moreAfter}
             </p>
+            <p className="mt-3 text-sm leading-relaxed text-muted-foreground md:text-base">
+              {beginner.shopBefore}
+              <Link
+                href={beginner.shopHref}
+                className="underline underline-offset-4 hover:text-foreground"
+              >
+                {beginner.shopLink}
+              </Link>
+              {beginner.shopMid}
+              <Link
+                href={beginner.boxHref}
+                className="underline underline-offset-4 hover:text-foreground"
+              >
+                {beginner.boxLink}
+              </Link>
+              {beginner.shopAfter}
+            </p>
           </section>
         ) : null}
 
@@ -297,6 +334,7 @@ export async function renderWinesGuidePage(locale: AppLocale) {
                 title={wine.wine}
                 meta={wineMetaLine(wine)}
                 description={entryDescription(wine, locale)}
+                href={wineProducerGuideHref(wine, locale)}
               />
             ))}
           </div>
@@ -315,6 +353,7 @@ export async function renderWinesGuidePage(locale: AppLocale) {
                 title={wine.wine}
                 meta={wineMetaLine(wine)}
                 description={entryDescription(wine, locale)}
+                href={wineProducerGuideHref(wine, locale)}
                 compact
               />
             ))}
@@ -334,6 +373,7 @@ export async function renderWinesGuidePage(locale: AppLocale) {
                 title={wine.wine}
                 meta={wineMetaLine(wine)}
                 description={entryDescription(wine, locale)}
+                href={wineProducerGuideHref(wine, locale)}
                 compact
               />
             ))}
@@ -352,7 +392,14 @@ export async function renderWinesGuidePage(locale: AppLocale) {
             >
               {copy.wines.languedocShopLabel}
             </Link>
-            .
+            . {copy.wines.languedocBoxBefore}
+            <Link
+              href={boxesPath}
+              className="underline underline-offset-4 hover:text-foreground"
+            >
+              {copy.wines.languedocBoxLink}
+            </Link>
+            {copy.wines.languedocBoxAfter}
           </p>
           <ul className="mt-6 space-y-2 text-sm text-muted-foreground">
             {languedoc.map((wine) => (

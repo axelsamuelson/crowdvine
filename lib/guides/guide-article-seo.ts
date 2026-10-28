@@ -28,6 +28,25 @@ export function articleGuideHreflang(
   } as const;
 }
 
+/**
+ * Sweden-intent guides: Systembolaget, buying in Sweden, Stockholm home delivery.
+ * Prefer SV as x-default so unmatched language preferences land on the local page.
+ */
+export function isSwedenFirstGuideArticle(
+  content: Pick<GuideArticleContent, "slug">,
+): boolean {
+  const en = content.slug.en.toLowerCase();
+  const sv = content.slug.sv.toLowerCase();
+  return (
+    en.includes("systembolaget") ||
+    sv.includes("systembolaget") ||
+    en.includes("sweden") ||
+    sv.includes("sverige") ||
+    en === "natural-wine-home-delivery" ||
+    sv === "hemleverans-av-naturvin"
+  );
+}
+
 export function buildArticleGuideMeta(
   content: GuideArticleContent,
   locale: AppLocale,
@@ -47,8 +66,11 @@ export function buildArticleGuideMeta(
   const robots = options?.nofollow
     ? { index: false as const, follow: false as const }
     : options?.noindex
-      ? { index: false as const, follow: true as const }
-      : undefined;
+    ? { index: false as const, follow: true as const }
+    : undefined;
+  const xDefault =
+    options?.xDefault ??
+    (isSwedenFirstGuideArticle(content) ? "sv" : "en");
 
   return {
     title,
@@ -56,11 +78,7 @@ export function buildArticleGuideMeta(
     ...(robots ? { robots } : {}),
     alternates: {
       canonical: pageUrl,
-      languages: articleGuideHreflang(
-        content,
-        baseUrl,
-        options?.xDefault ?? "en",
-      ),
+      languages: articleGuideHreflang(content, baseUrl, xDefault),
     },
     openGraph: {
       title,
