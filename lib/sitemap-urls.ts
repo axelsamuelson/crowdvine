@@ -13,6 +13,8 @@ export type IndexableWineRow = {
 export type IndexableProducerRow = {
   name: string;
   created_at: string | null;
+  /** Prefer this for sitemap lastmod when present. */
+  updated_at: string | null;
 };
 
 function parseGrapeVarieties(raw: string | null | undefined): string[] {
@@ -88,8 +90,24 @@ export async function fetchIndexableWines(): Promise<IndexableWineRow[]> {
 }
 
 export async function fetchIndexableProducers(): Promise<IndexableProducerRow[]> {
-  const data = await fetchIndexableProducersFromDb("name, created_at");
-  return data as IndexableProducerRow[];
+  const withUpdated = await fetchIndexableProducersFromDb(
+    "name, created_at, updated_at",
+  );
+  if (withUpdated.length > 0) {
+    return (withUpdated as Array<Record<string, unknown>>).map((row) => ({
+      name: String(row.name ?? ""),
+      created_at: (row.created_at as string | null) ?? null,
+      updated_at: (row.updated_at as string | null) ?? null,
+    }));
+  }
+
+  // Older schemas without producers.updated_at still return created_at only.
+  const legacy = await fetchIndexableProducersFromDb("name, created_at");
+  return (legacy as Array<Record<string, unknown>>).map((row) => ({
+    name: String(row.name ?? ""),
+    created_at: (row.created_at as string | null) ?? null,
+    updated_at: null,
+  }));
 }
 
 /** Distinct grape slugs from indexable wines not already covered by static categories. */

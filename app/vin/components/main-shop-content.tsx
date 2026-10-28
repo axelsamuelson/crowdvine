@@ -43,6 +43,9 @@ async function ShopRootJsonLd({ locale }: { locale: "sv" | "en" }) {
   const shopPath = locale === "sv" ? "/vin" : "/wine";
   const productPrefix = locale === "sv" ? "/produkt" : "/product";
   const pageUrl = `${config.baseUrl}${shopPath}`;
+  const homeUrl =
+    locale === "sv" ? config.baseUrl : `${config.baseUrl}/en`;
+  const homeName = locale === "sv" ? "Hem" : "Home";
 
   const collectionJsonLd = {
     "@context": "https://schema.org",
@@ -60,6 +63,12 @@ async function ShopRootJsonLd({ locale }: { locale: "sv" | "en" }) {
       {
         "@type": "ListItem",
         position: 1,
+        name: homeName,
+        item: homeUrl,
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
         name: content.h1,
         item: pageUrl,
       },

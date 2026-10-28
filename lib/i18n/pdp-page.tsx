@@ -21,6 +21,11 @@ import {
   type ProductPathSegment,
 } from "@/lib/i18n/localized-routes";
 import { translate } from "@/lib/i18n/messages";
+import {
+  DEFAULT_OG_IMAGE_URL,
+  defaultOpenGraphImages,
+  pageTwitterCard,
+} from "@/lib/seo/default-social";
 import { getSiteConfig } from "@/lib/site-config-server";
 import { formatPrice } from "@/lib/shopify/utils";
 import type { Product } from "@/lib/shopify/types";
@@ -55,22 +60,23 @@ export async function buildProductPdpMetadata(
   });
   const urls = productPageUrls(handle);
   const canonical = `${PACT_PUBLIC_ORIGIN}${productPagePath(handle, pathSegment)}`;
-  const existingOpenGraph = url
-    ? {
-        images: [
-          {
-            url,
-            width,
-            height,
-            alt,
-          },
-        ],
-      }
-    : {};
+  const title = product.seo.title || product.title;
+  const description = product.seo.description || product.description || "";
+  const config = await getSiteConfig();
+  const ogImages = url
+    ? [
+        {
+          url,
+          width,
+          height,
+          alt: alt || title,
+        },
+      ]
+    : defaultOpenGraphImages({ siteName: config.siteName, locale });
 
   return {
-    title: product.seo.title || product.title,
-    description: product.seo.description || product.description,
+    title,
+    description: description || undefined,
     robots: {
       index: indexable,
       follow: indexable,
@@ -88,12 +94,18 @@ export async function buildProductPdpMetadata(
       },
     },
     openGraph: {
-      ...existingOpenGraph,
-      title: product.seo.title || product.title,
-      description: product.seo.description || product.description || "",
+      title,
+      description,
       url: canonical,
       type: "website",
+      locale: locale === "sv" ? "sv_SE" : "en_US",
+      images: ogImages,
     },
+    twitter: pageTwitterCard(
+      title,
+      description,
+      url || DEFAULT_OG_IMAGE_URL,
+    ),
   };
 }
 

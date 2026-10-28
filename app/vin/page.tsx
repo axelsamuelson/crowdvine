@@ -22,11 +22,12 @@ export async function generateMetadata(props: {
   const searchParams = await props.searchParams;
   const config = await getSiteConfig();
   const pageUrl = `${PACT_PUBLIC_ORIGIN}/vin`;
-  const title = "Naturvin: köp naturvin online";
+  const titleBase = "Naturvin: köp naturvin online";
+  const title = `${titleBase} | ${config.siteName}`;
   const description =
     config.baseUrl === DIRTY_WINE_CONFIG.baseUrl
       ? "Naturvin. Ekologiskt och biodynamiskt. För restauranger i Stockholm."
-      : "Bläddra bland 60+ naturviner. Ekologiskt och biodynamiskt. Hemleverans i Stockholm.";
+      : "Bläddra bland naturviner. Ekologiskt och biodynamiskt. Hemleverans i Stockholm.";
 
   return {
     title: { absolute: title },
@@ -45,7 +46,11 @@ export async function generateMetadata(props: {
       description,
       url: pageUrl,
       type: "website",
-      images: defaultOpenGraphImages({ siteName: config.siteName }),
+      locale: "sv_SE",
+      images: defaultOpenGraphImages({
+        siteName: config.siteName,
+        locale: "sv",
+      }),
     },
     twitter: pageTwitterCard(title, description),
   };
