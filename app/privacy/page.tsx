@@ -20,14 +20,15 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: TITLE,
     description: DESCRIPTION,
-    // Body is still Swedish — keep URL for hreflang but do not index.
+    // Body is still Swedish — keep URL for locale routing but do not index.
     robots: { index: false, follow: true },
     alternates: {
       canonical,
+      // Point x-default at the indexable SV page until EN copy ships.
       languages: {
         en: canonical,
         sv: `${PACT_PUBLIC_ORIGIN}/integritetspolicy`,
-        "x-default": `${PACT_PUBLIC_ORIGIN}/privacy`,
+        "x-default": `${PACT_PUBLIC_ORIGIN}/integritetspolicy`,
       },
     },
   };
