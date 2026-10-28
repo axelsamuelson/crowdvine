@@ -647,6 +647,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
     rank: 57,
     previousRank: 57,
     name: "Domaine Belluard",
+    aliases: ["Domaine du Gringet (tidigare Domaine Belluard)"],
     region: "Ayse, Savoie",
     country: "Frankrike",
     grapes: "Gringet, Altesse, Mondeuse",

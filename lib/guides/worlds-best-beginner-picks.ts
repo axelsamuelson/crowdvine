@@ -122,59 +122,57 @@ export type BeginnerPickResolved = BeginnerPick & {
 
 async function fetchBeginnerPickProductsUncached(
   productNumbers: readonly string[],
-): Promise<Map<string, BeginnerPickProduct>> {
-  const map = new Map<string, BeginnerPickProduct>();
-  if (productNumbers.length === 0) return map;
+): Promise<Record<string, BeginnerPickProduct>> {
+  // Plain object so unstable_cache can serialize the result (Map cannot).
+  const byNumber: Record<string, BeginnerPickProduct> = {};
+  if (productNumbers.length === 0) return byNumber;
 
-  try {
-    const sb = getSupabaseAdmin();
-    const { data, error } = await sb
-      .from("systembolaget_products")
-      .select("product_number, price, image_url, is_available")
-      .in("product_number", [...productNumbers]);
+  // Throw on failure so unstable_cache does not store an empty "all missing"
+  // result that would hide the whole beginner section on one locale's ISR page.
+  const sb = getSupabaseAdmin();
+  const { data, error } = await sb
+    .from("systembolaget_products")
+    .select("product_number, price, image_url, is_available")
+    .in("product_number", [...productNumbers]);
 
-    if (error) {
-      console.error(
-        "[BEGINNER_PICKS] systembolaget_products lookup failed:",
-        error.message,
-      );
-      return map;
-    }
-
-    for (const row of data ?? []) {
-      const productNumber = String(row.product_number);
-      map.set(productNumber, {
-        productNumber,
-        price:
-          typeof row.price === "number"
-            ? row.price
-            : row.price != null
-              ? Number(row.price)
-              : null,
-        imageUrl:
-          typeof row.image_url === "string" && row.image_url.trim()
-            ? row.image_url.trim()
-            : null,
-        isAvailable: Boolean(row.is_available),
-      });
-    }
-  } catch (error) {
+  if (error) {
     console.error(
-      "[BEGINNER_PICKS] systembolaget_products lookup threw:",
-      error instanceof Error ? error.message : error,
+      "[BEGINNER_PICKS] systembolaget_products lookup failed:",
+      error.message,
     );
+    throw new Error(error.message);
   }
 
-  return map;
+  for (const row of data ?? []) {
+    const productNumber = String(row.product_number);
+    const priceRaw = row.price;
+    const price =
+      typeof priceRaw === "number"
+        ? priceRaw
+        : priceRaw != null && priceRaw !== ""
+          ? Number(priceRaw)
+          : null;
+    byNumber[productNumber] = {
+      productNumber,
+      price: price != null && !Number.isNaN(price) ? price : null,
+      imageUrl:
+        typeof row.image_url === "string" && row.image_url.trim()
+          ? row.image_url.trim()
+          : null,
+      isAvailable: Boolean(row.is_available),
+    };
+  }
+
+  return byNumber;
 }
 
 export async function getBeginnerPickProducts(
   productNumbers: readonly string[],
-): Promise<Map<string, BeginnerPickProduct>> {
+): Promise<Record<string, BeginnerPickProduct>> {
   const key = [...productNumbers].join(",");
   return unstable_cache(
     () => fetchBeginnerPickProductsUncached(productNumbers),
-    ["worlds-best-beginner-picks", key],
+    ["worlds-best-beginner-picks-v2", key],
     {
       revalidate: 300,
       tags: ["sb-beginner-picks"],
@@ -182,24 +180,44 @@ export async function getBeginnerPickProducts(
   )();
 }
 
+function editorialFallbackPicks(): BeginnerPickResolved[] {
+  return BEGINNER_PICKS.map((pick) => ({ ...pick, product: null }));
+}
+
 /**
  * Resolve BEGINNER_PICKS against live Systembolaget rows.
- * Unavailable / missing products are dropped; order of the rest is kept.
- * Logs a warning when fewer than 6 remain.
+ * Hide only when the row exists and `is_available` is false (or the product is
+ * absent from a successful lookup). On lookup failure, keep all editorial picks
+ * so a transient DB error cannot blank the section on one locale's cached page.
  */
 export async function resolveAvailableBeginnerPicks(): Promise<{
   available: BeginnerPickResolved[];
   hiddenProductNumbers: string[];
+  lookupFailed: boolean;
 }> {
-  const products = await getBeginnerPickProducts(
-    BEGINNER_PICKS.map((pick) => pick.productNumber),
-  );
+  let products: Record<string, BeginnerPickProduct>;
+  try {
+    products = await getBeginnerPickProducts(
+      BEGINNER_PICKS.map((pick) => pick.productNumber),
+    );
+  } catch (error) {
+    console.error(
+      "[BEGINNER_PICKS] falling back to editorial picks after lookup failure:",
+      error instanceof Error ? error.message : error,
+    );
+    return {
+      available: editorialFallbackPicks(),
+      hiddenProductNumbers: [],
+      lookupFailed: true,
+    };
+  }
 
   const available: BeginnerPickResolved[] = [];
   const hiddenProductNumbers: string[] = [];
 
   for (const pick of BEGINNER_PICKS) {
-    const product = products.get(pick.productNumber) ?? null;
+    const product = products[pick.productNumber] ?? null;
+    // Successful lookup: missing row or explicit false → hide.
     if (!product || !product.isAvailable) {
       hiddenProductNumbers.push(pick.productNumber);
       continue;
@@ -213,7 +231,7 @@ export async function resolveAvailableBeginnerPicks(): Promise<{
     );
   }
 
-  return { available, hiddenProductNumbers };
+  return { available, hiddenProductNumbers, lookupFailed: false };
 }
 
 export function beginnerPickCopy(locale: AppLocale): {

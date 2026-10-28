@@ -23,10 +23,11 @@ export async function generateMetadata(): Promise<Metadata> {
     robots: { index: false, follow: true },
     alternates: {
       canonical,
+      // Point x-default at the indexable SV page until EN copy ships.
       languages: {
         en: canonical,
         sv: `${PACT_PUBLIC_ORIGIN}/cookies`,
-        "x-default": `${PACT_PUBLIC_ORIGIN}/cookie-policy`,
+        "x-default": `${PACT_PUBLIC_ORIGIN}/cookies`,
       },
     },
   };

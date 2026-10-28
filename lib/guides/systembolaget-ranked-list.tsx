@@ -12,9 +12,11 @@ import {
   GuideBreadcrumbs,
   buildGuideBreadcrumbJsonLd,
 } from "@/lib/guides/guide-breadcrumbs";
+import { guideHomeAbsoluteUrl } from "@/lib/guides/guide-article-crumbs";
 import { guideCopy } from "@/lib/guides/guide-copy";
 import { isGuideHrefVisibleFrom } from "@/lib/guides/guide-publication";
 import { guidePath } from "@/lib/guides/guide-routes";
+import { homePathForLocale } from "@/lib/i18n/localized-routes";
 import {
   SYSTEMBOLAGET_BEST_UPLINK,
   SYSTEMBOLAGET_BY_STYLE_HEADING,
@@ -531,7 +533,7 @@ export async function renderSystembolagetRankedListPage(
   };
 
   const breadcrumbJsonLd = buildGuideBreadcrumbJsonLd([
-    { name: copy.home, item: seoBaseUrl },
+    { name: copy.home, item: guideHomeAbsoluteUrl(seoBaseUrl, locale) },
     { name: copy.hubTitle, item: `${seoBaseUrl}${hubPath}` },
     { name: content.breadcrumbShort[locale] },
   ]);
@@ -604,7 +606,7 @@ export async function renderSystembolagetRankedListPage(
       <div className="mx-auto max-w-3xl px-6 pt-top-spacing pb-16">
         <GuideBreadcrumbs
           crumbs={[
-            { label: copy.home, href: "/" },
+            { label: copy.home, href: homePathForLocale(locale) },
             { label: copy.hubTitle, href: hubPath },
             { label: content.breadcrumbShort[locale] },
           ]}

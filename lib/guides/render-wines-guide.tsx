@@ -1,16 +1,14 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { GuideRankEntry } from "@/components/guides/guide-rank-entry";
-import { GuideRankTable } from "@/components/guides/guide-rank-table";
 import { Footer } from "@/components/layout/footer";
-import { DEFAULT_WINE_IMAGE_PATH } from "@/lib/constants";
 import {
   GuideBreadcrumbs,
   buildGuideBreadcrumbJsonLd,
 } from "@/lib/guides/guide-breadcrumbs";
+import { guideHomeAbsoluteUrl } from "@/lib/guides/guide-article-crumbs";
 import {
   entryDescription,
   guideCopy,
@@ -20,7 +18,7 @@ import {
   guideHreflang,
   guidePath,
 } from "@/lib/guides/guide-routes";
-import { filterLanguedocRoussillonEntries } from "@/lib/guides/languedoc-region";
+import { homePathForLocale } from "@/lib/i18n/localized-routes";import { filterLanguedocRoussillonEntries } from "@/lib/guides/languedoc-region";
 import {
   TOP_100_WINES,
   TOP_100_WINES_PUBLISHED_AT,
@@ -29,6 +27,7 @@ import {
 import {
   beginnerPickCopy,
   resolveAvailableBeginnerPicks,
+  type BeginnerPickResolved,
 } from "@/lib/guides/worlds-best-beginner-picks";
 import type { AppLocale } from "@/lib/i18n/locale";
 import { categoryPageTitle } from "@/lib/seo/category-page-title";
@@ -41,10 +40,7 @@ import {
   SYSTEMBOLAGET_BEST_UPLINK,
   SYSTEMBOLAGET_RANKED_LISTS,
 } from "@/lib/guides/systembolaget-list-links";
-import {
-  systembolagetImageUrl,
-  systembolagetProductUrl,
-} from "@/lib/systembolaget/guide-wines";
+import { systembolagetProductUrl } from "@/lib/systembolaget/guide-wines";
 
 function linkLanguedocMentions(
   text: string,
@@ -111,7 +107,11 @@ export async function renderWinesGuidePage(locale: AppLocale) {
   );
   const languedocShop = locale === "sv" ? "/vin" : "/wine";
 
-  const { available: beginnerPicks } = await resolveAvailableBeginnerPicks();
+  // Same BEGINNER_PICKS + resolver for both /guides/... and /guider/... pages.
+  // Never drop the section on a locale just because the product lookup failed;
+  // resolveAvailableBeginnerPicks falls back to editorial copy without prices.
+  const beginnerResolved = await resolveAvailableBeginnerPicks();
+  const beginnerPicks: BeginnerPickResolved[] = beginnerResolved.available;
 
   const top10 = TOP_100_WINES.filter((w) => w.rank <= 10);
   const mid = TOP_100_WINES.filter((w) => w.rank >= 11 && w.rank <= 30);
@@ -122,7 +122,7 @@ export async function renderWinesGuidePage(locale: AppLocale) {
     `${entry.producer} · ${entry.region} · ${countryLabel(entry.country, locale)} · ${wineTypeLabel(entry.type, locale)} · ${entry.grapes}`;
 
   const breadcrumbJsonLd = buildGuideBreadcrumbJsonLd([
-    { name: copy.home, item: seoBaseUrl },
+    { name: copy.home, item: guideHomeAbsoluteUrl(seoBaseUrl, locale) },
     { name: copy.hubTitle, item: `${seoBaseUrl}${hubPath}` },
     { name: copy.wines.breadcrumbShort },
   ]);
@@ -186,7 +186,7 @@ export async function renderWinesGuidePage(locale: AppLocale) {
       <div className="mx-auto max-w-3xl px-6 pt-top-spacing pb-16">
         <GuideBreadcrumbs
           crumbs={[
-            { label: copy.home, href: "/" },
+            { label: copy.home, href: homePathForLocale(locale) },
             { label: copy.hubTitle, href: hubPath },
             { label: copy.wines.breadcrumbShort },
           ]}
@@ -245,45 +245,28 @@ export async function renderWinesGuidePage(locale: AppLocale) {
                     ? `${Math.round(pick.product.price)} kr`
                     : null;
                 const productUrl = systembolagetProductUrl(pick.productNumber);
-                const imageSrc =
-                  systembolagetImageUrl(pick.product?.imageUrl ?? null, 100) ??
-                  DEFAULT_WINE_IMAGE_PATH;
 
                 return (
                   <li key={pick.productNumber} className="pl-1">
-                    <div className="flex gap-4">
-                      <div className="flex h-20 w-10 shrink-0 items-center justify-center">
-                        <Image
-                          src={imageSrc}
-                          alt={pick.name}
-                          width={40}
-                          height={80}
-                          className="h-full w-full object-contain object-top"
-                          sizes="40px"
-                        />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p>
-                          <span className="font-semibold text-foreground">
-                            {pick.name}
-                          </span>{" "}
-                          ({origin}). {body}
-                          {price ? (
-                            <>
-                              {" "}
-                              <Link
-                                href={productUrl}
-                                className="font-medium tabular-nums text-foreground underline underline-offset-4 hover:text-foreground"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                              >
-                                {price}
-                              </Link>
-                            </>
-                          ) : null}
-                        </p>
-                      </div>
-                    </div>
+                    <p>
+                      <span className="font-semibold text-foreground">
+                        {pick.name}
+                      </span>{" "}
+                      ({origin}). {body}
+                      {price ? (
+                        <>
+                          {" "}
+                          <Link
+                            href={productUrl}
+                            className="font-medium tabular-nums text-foreground underline underline-offset-4 hover:text-foreground"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            {price}
+                          </Link>
+                        </>
+                      ) : null}
+                    </p>
                   </li>
                 );
               })}
@@ -342,26 +325,19 @@ export async function renderWinesGuidePage(locale: AppLocale) {
           <h2 className="mb-4 border-b border-border pb-3 text-xl font-semibold">
             {copy.rest}
           </h2>
-          <GuideRankTable
-            columns={[
-              { key: "rank", label: copy.rank, className: "w-14 tabular-nums" },
-              { key: "wine", label: copy.wine },
-              { key: "producer", label: copy.producer },
-              { key: "region", label: copy.region },
-              { key: "country", label: copy.country },
-              { key: "type", label: copy.type },
-              { key: "grapes", label: copy.grapes },
-            ]}
-            rows={rest.map((wine) => ({
-              rank: wine.rank,
-              wine: wine.wine,
-              producer: wine.producer,
-              region: wine.region,
-              country: countryLabel(wine.country, locale),
-              type: wineTypeLabel(wine.type, locale),
-              grapes: wine.grapes,
-            }))}
-          />
+          <div>
+            {rest.map((wine) => (
+              <GuideRankEntry
+                key={wine.rank}
+                id={`wine-rank-${wine.rank}`}
+                rank={wine.rank}
+                title={wine.wine}
+                meta={wineMetaLine(wine)}
+                description={entryDescription(wine, locale)}
+                compact
+              />
+            ))}
+          </div>
         </section>
 
         <section className="mt-14 space-y-4">

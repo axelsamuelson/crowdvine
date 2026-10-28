@@ -11,6 +11,7 @@ export function generateMetadata(): Promise<Metadata> {
   return buildWinesGuideMetadata("en");
 }
 
+/** Same renderer + BEGINNER_PICKS as /guider/varldens-basta-naturviner. */
 export default function TopWinesGuidePageEn() {
   return renderWinesGuidePage("en");
 }

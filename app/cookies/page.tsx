@@ -19,10 +19,10 @@ export async function generateMetadata(): Promise<Metadata> {
     description: DESCRIPTION,
     alternates: {
       canonical,
+      // EN /cookie-policy is still Swedish body + noindex — do not advertise it as an equivalent.
       languages: {
         sv: canonical,
-        en: `${PACT_PUBLIC_ORIGIN}/cookie-policy`,
-        "x-default": `${PACT_PUBLIC_ORIGIN}/cookie-policy`,
+        "x-default": canonical,
       },
     },
   };
