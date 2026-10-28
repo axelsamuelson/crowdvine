@@ -25,7 +25,14 @@ import {
   HOMEPAGE_HERO_IMAGE_KEYS,
   HOMEPAGE_HERO_IMAGE_LABELS,
 } from "@/lib/homepage-hero-images";
-import { HOMEPAGE_HERO_COPY_FIELDS } from "@/lib/homepage-hero-copy";
+import {
+  HOMEPAGE_HERO_COPY_FIELDS,
+  homepageHeroDefaultForField,
+} from "@/lib/homepage-hero-copy";
+import {
+  ensureHomepageHeroCopyDefaults,
+  resetHomepageHeroCopyField,
+} from "@/lib/actions/homepage-hero-copy";
 import {
   FileText,
   Image,
@@ -67,6 +74,8 @@ export default function ContentPage() {
 
   const loadContent = async () => {
     try {
+      // Seed missing hero copy keys (and replace SV values that still hold EN).
+      const seeded = await ensureHomepageHeroCopyDefaults();
       const data = await getSiteContent();
       setContent(data);
 
@@ -80,7 +89,27 @@ export default function ContentPage() {
           initialData[key] = HOMEPAGE_HERO_IMAGE_DEFAULTS[index];
         }
       });
+      // Prefill any still-empty hero copy fields from message defaults.
+      for (const field of HOMEPAGE_HERO_COPY_FIELDS) {
+        if (!initialData[field.key]?.trim()) {
+          initialData[field.key] = homepageHeroDefaultForField(
+            "en",
+            field.defaultKey,
+          );
+        }
+        if (!initialData[field.keySv]?.trim()) {
+          initialData[field.keySv] = homepageHeroDefaultForField(
+            "sv",
+            field.defaultKey,
+          );
+        }
+      }
       setFormData(initialData);
+      if (seeded.written.length > 0) {
+        setSuccess(
+          `Synced homepage hero defaults into CMS (${seeded.written.join(", ")}).`,
+        );
+      }
     } catch (err) {
       setError("Failed to load content");
     } finally {
@@ -145,11 +174,33 @@ export default function ContentPage() {
 
   const handleSave = async (key: string) => {
     setSaving(true);
+    setError("");
     try {
-      await updateSiteContent(key, formData[key]);
+      await updateSiteContent(key, formData[key] ?? "");
       setSuccess("Content updated successfully!");
     } catch (err) {
       setError("Failed to update content");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleResetHeroCopy = async (
+    key: string,
+    locale: "sv" | "en",
+  ) => {
+    setSaving(true);
+    setError("");
+    try {
+      const value = await resetHomepageHeroCopyField(key, locale);
+      setFormData((prev) => ({ ...prev, [key]: value }));
+      setSuccess(
+        `Reset ${locale === "sv" ? "Swedish" : "English"} hero field to code default.`,
+      );
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to reset hero copy",
+      );
     } finally {
       setSaving(false);
     }
@@ -505,9 +556,10 @@ export default function ContentPage() {
                 Hero text
               </h2>
               <p className="text-sm text-muted-foreground">
-                Title and subtitle drive the main homepage hero. Swedish is used
-                on pactwines.com; English is the fallback locale. Use a line
-                break in the title for a second H1 line.
+                CMS is the source of truth for the homepage hero. Swedish is
+                used on pactwines.com; English on /en. Empty or English-copied
+                Swedish values are replaced with code defaults on load. Use a
+                line break in the title for a second H1 line.
               </p>
             </div>
             {HOMEPAGE_HERO_COPY_FIELDS.map((field) => (
@@ -527,6 +579,10 @@ export default function ContentPage() {
                         onChange={(e) =>
                           handleInputChange(field.keySv, e.target.value)
                         }
+                        placeholder={homepageHeroDefaultForField(
+                          "sv",
+                          field.defaultKey,
+                        )}
                       />
                     ) : (
                       <Input
@@ -535,14 +591,29 @@ export default function ContentPage() {
                         onChange={(e) =>
                           handleInputChange(field.keySv, e.target.value)
                         }
+                        placeholder={homepageHeroDefaultForField(
+                          "sv",
+                          field.defaultKey,
+                        )}
                       />
                     )}
-                    <Button
-                      onClick={() => handleSave(field.keySv)}
-                      disabled={saving}
-                    >
-                      {saving ? "Saving..." : "Save Swedish"}
-                    </Button>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        onClick={() => handleSave(field.keySv)}
+                        disabled={saving}
+                      >
+                        {saving ? "Saving..." : "Save Swedish"}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() =>
+                          handleResetHeroCopy(field.keySv, "sv")
+                        }
+                        disabled={saving}
+                      >
+                        Reset to default
+                      </Button>
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor={field.key}>English</Label>
@@ -554,6 +625,10 @@ export default function ContentPage() {
                         onChange={(e) =>
                           handleInputChange(field.key, e.target.value)
                         }
+                        placeholder={homepageHeroDefaultForField(
+                          "en",
+                          field.defaultKey,
+                        )}
                       />
                     ) : (
                       <Input
@@ -562,14 +637,27 @@ export default function ContentPage() {
                         onChange={(e) =>
                           handleInputChange(field.key, e.target.value)
                         }
+                        placeholder={homepageHeroDefaultForField(
+                          "en",
+                          field.defaultKey,
+                        )}
                       />
                     )}
-                    <Button
-                      onClick={() => handleSave(field.key)}
-                      disabled={saving}
-                    >
-                      {saving ? "Saving..." : "Save English"}
-                    </Button>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        onClick={() => handleSave(field.key)}
+                        disabled={saving}
+                      >
+                        {saving ? "Saving..." : "Save English"}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => handleResetHeroCopy(field.key, "en")}
+                        disabled={saving}
+                      >
+                        Reset to default
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>

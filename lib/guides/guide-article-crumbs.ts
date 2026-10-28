@@ -1,6 +1,7 @@
 import type { GuideBreadcrumbJsonLdItem } from "@/lib/guides/guide-breadcrumbs";
 import { GUIDE_PATHS } from "@/lib/guides/guide-routes";
 import type { AppLocale } from "@/lib/i18n/locale";
+import { homePathForLocale } from "@/lib/i18n/localized-routes";
 
 export type ArticleGuideCrumb = {
   label: string;
@@ -51,7 +52,7 @@ export function articleGuideCrumbs(input: {
   slug: string;
 }): ArticleGuideCrumb[] {
   const crumbs: ArticleGuideCrumb[] = [
-    { label: input.homeLabel, href: "/" },
+    { label: input.homeLabel, href: homePathForLocale(input.locale) },
     { label: input.hubLabel, href: input.hubPath },
   ];
 
@@ -72,6 +73,15 @@ export function articleGuideCrumbs(input: {
 
   crumbs.push({ label: input.pageLabel });
   return crumbs;
+}
+
+/** Absolute homepage URL for BreadcrumbList JSON-LD (SV `/`, EN `/en`). */
+export function guideHomeAbsoluteUrl(
+  seoBaseUrl: string,
+  locale: AppLocale,
+): string {
+  const homePath = homePathForLocale(locale);
+  return homePath === "/" ? seoBaseUrl : `${seoBaseUrl}${homePath}`;
 }
 
 /** JSON-LD items with the same names and destinations as the visible trail. */

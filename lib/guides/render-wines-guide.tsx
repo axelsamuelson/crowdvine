@@ -8,6 +8,7 @@ import {
   GuideBreadcrumbs,
   buildGuideBreadcrumbJsonLd,
 } from "@/lib/guides/guide-breadcrumbs";
+import { guideHomeAbsoluteUrl } from "@/lib/guides/guide-article-crumbs";
 import {
   entryDescription,
   guideCopy,
@@ -17,7 +18,7 @@ import {
   guideHreflang,
   guidePath,
 } from "@/lib/guides/guide-routes";
-import { filterLanguedocRoussillonEntries } from "@/lib/guides/languedoc-region";
+import { homePathForLocale } from "@/lib/i18n/localized-routes";import { filterLanguedocRoussillonEntries } from "@/lib/guides/languedoc-region";
 import {
   TOP_100_WINES,
   TOP_100_WINES_PUBLISHED_AT,
@@ -121,7 +122,7 @@ export async function renderWinesGuidePage(locale: AppLocale) {
     `${entry.producer} · ${entry.region} · ${countryLabel(entry.country, locale)} · ${wineTypeLabel(entry.type, locale)} · ${entry.grapes}`;
 
   const breadcrumbJsonLd = buildGuideBreadcrumbJsonLd([
-    { name: copy.home, item: seoBaseUrl },
+    { name: copy.home, item: guideHomeAbsoluteUrl(seoBaseUrl, locale) },
     { name: copy.hubTitle, item: `${seoBaseUrl}${hubPath}` },
     { name: copy.wines.breadcrumbShort },
   ]);
@@ -185,7 +186,7 @@ export async function renderWinesGuidePage(locale: AppLocale) {
       <div className="mx-auto max-w-3xl px-6 pt-top-spacing pb-16">
         <GuideBreadcrumbs
           crumbs={[
-            { label: copy.home, href: "/" },
+            { label: copy.home, href: homePathForLocale(locale) },
             { label: copy.hubTitle, href: hubPath },
             { label: copy.wines.breadcrumbShort },
           ]}

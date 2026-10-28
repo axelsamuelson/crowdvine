@@ -81,7 +81,7 @@ function staticPagesForProfile(
     yearlyEntry(`${baseUrl}/integritetspolicy`, 0.3),
     yearlyEntry(`${baseUrl}/cookies`, 0.3),
     // EN legal URLs exist for hreflang but are noindex until English copy ships.
-    weeklyEntry(`${baseUrl}/how-it-works`, 0.4),
+    // /how-it-works permanently redirects to /om-oss — keep it out of the sitemap.
   ];
 
   if (profile === "pact") {

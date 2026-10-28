@@ -199,9 +199,7 @@ export async function renderHomePage(locale: AppLocale) {
       />
       <main>
         <HomeTasteQuizProvider enabled={quizWines.length > 0}>
-          {featuredProducts.length > 0 && (
-            <HomeHero images={heroImages} copy={heroCopy} />
-          )}
+          <HomeHero images={heroImages} copy={heroCopy} />
           {quizWines.length > 0 && (
             <HomeTasteQuizCollapsible wines={quizWines} locale={locale} />
           )}

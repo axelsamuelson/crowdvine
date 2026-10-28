@@ -1,20 +1,30 @@
 import { getSiteContentByKey } from "@/lib/actions/content";
 import { translate } from "@/lib/i18n/messages";
 import type { AppLocale } from "@/lib/i18n/locale";
-import type { HomepageHeroCopy } from "@/lib/homepage-hero-copy";
+import {
+  isUnusableSwedishHeroValue,
+  type HomepageHeroCopy,
+} from "@/lib/homepage-hero-copy";
 
 async function resolveHeroLine(
   locale: AppLocale,
   baseKey: string,
   messageKey: string,
 ): Promise<string | null> {
+  const [enRaw, svRaw] = await Promise.all([
+    getSiteContentByKey(baseKey),
+    getSiteContentByKey(`${baseKey}_sv`),
+  ]);
+
   if (locale === "sv") {
-    const sv = await getSiteContentByKey(`${baseKey}_sv`);
-    if (sv?.trim()) return sv.trim();
+    if (!isUnusableSwedishHeroValue(svRaw, enRaw)) {
+      return svRaw!.trim();
+    }
     return translate(locale, messageKey);
   }
-  const en = await getSiteContentByKey(baseKey);
-  if (en?.trim()) return en.trim();
+
+  const en = enRaw?.trim();
+  if (en) return en;
   return translate(locale, messageKey);
 }
 
