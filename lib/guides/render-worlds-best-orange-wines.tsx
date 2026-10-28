@@ -8,9 +8,11 @@ import {
   GuideBreadcrumbs,
   buildGuideBreadcrumbJsonLd,
 } from "@/lib/guides/guide-breadcrumbs";
+import { guideHomeAbsoluteUrl } from "@/lib/guides/guide-article-crumbs";
 import { guideCopy } from "@/lib/guides/guide-copy";
 import { countryLabel } from "@/lib/guides/guide-labels";
 import { guideHreflang, guidePath } from "@/lib/guides/guide-routes";
+import { homePathForLocale } from "@/lib/i18n/localized-routes";
 import { TOP_100_WINES } from "@/lib/guides/top-100-wines";
 import {
   WORLDS_BEST_ORANGE_WINES_PATHS,
@@ -66,7 +68,7 @@ export async function renderWorldsBestOrangeWinesPage(locale: AppLocale) {
   const guide = worldsBestOrangeWinesGuide;
 
   const breadcrumbJsonLd = buildGuideBreadcrumbJsonLd([
-    { name: copy.home, item: seoBaseUrl },
+    { name: copy.home, item: guideHomeAbsoluteUrl(seoBaseUrl, locale) },
     { name: copy.hubTitle, item: `${seoBaseUrl}${hubPath}` },
     { name: guide.breadcrumbShort[locale] },
   ]);
@@ -103,7 +105,7 @@ export async function renderWorldsBestOrangeWinesPage(locale: AppLocale) {
       <div className="mx-auto max-w-3xl px-6 pt-top-spacing pb-16">
         <GuideBreadcrumbs
           crumbs={[
-            { label: copy.home, href: "/" },
+            { label: copy.home, href: homePathForLocale(locale) },
             { label: copy.hubTitle, href: hubPath },
             { label: guide.breadcrumbShort[locale] },
           ]}

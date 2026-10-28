@@ -85,6 +85,8 @@ describe("article breadcrumbs", () => {
       "Världens bästa naturvinsproducenter",
       "Pierre Overnoy",
     ]);
+    expect(sv.crumbs[0]?.href).toBe("/");
+    expect(sv.jsonLd[0]?.item).toBe(BASE);
     expect(sv.crumbs[2]?.href).toBe(
       "/guider/varldens-basta-naturvinsproducenter",
     );
@@ -104,6 +106,8 @@ describe("article breadcrumbs", () => {
       "World's best natural wine producers",
       "Jean-François Ganevat",
     ]);
+    expect(en.crumbs[0]?.href).toBe("/en");
+    expect(en.jsonLd[0]?.item).toBe(`${BASE}/en`);
     expect(en.crumbs[2]?.href).toBe(
       "/guides/worlds-best-natural-wine-producers",
     );

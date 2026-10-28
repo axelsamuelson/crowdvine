@@ -6,9 +6,11 @@ import {
   GuideBreadcrumbs,
   buildGuideBreadcrumbJsonLd,
 } from "@/lib/guides/guide-breadcrumbs";
+import { guideHomeAbsoluteUrl } from "@/lib/guides/guide-article-crumbs";
 import { guideCopy } from "@/lib/guides/guide-copy";
 import { guideHreflang, guidePath } from "@/lib/guides/guide-routes";
 import type { AppLocale } from "@/lib/i18n/locale";
+import { homePathForLocale } from "@/lib/i18n/localized-routes";
 import { categoryPageTitle } from "@/lib/seo/category-page-title";
 import {
   defaultOpenGraphImages,
@@ -47,7 +49,7 @@ export async function renderGuideHubPage(locale: AppLocale) {
   const copy = guideCopy(locale);
 
   const breadcrumbJsonLd = buildGuideBreadcrumbJsonLd([
-    { name: copy.home, item: seoBaseUrl },
+    { name: copy.home, item: guideHomeAbsoluteUrl(seoBaseUrl, locale) },
     { name: copy.hubTitle },
   ]);
 
@@ -64,7 +66,7 @@ export async function renderGuideHubPage(locale: AppLocale) {
         <div className="px-sides">
           <GuideBreadcrumbs
             crumbs={[
-              { label: copy.home, href: "/" },
+              { label: copy.home, href: homePathForLocale(locale) },
               { label: copy.hubTitle },
             ]}
           />
