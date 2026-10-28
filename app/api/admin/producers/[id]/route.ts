@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { AdminAuthError, requireAdmin } from "@/lib/admin-auth-server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { PALLET_FILL_STATUSES } from "@/lib/pallet-fill-count";
 import {
@@ -21,9 +22,14 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const adminAuth = request.cookies.get("admin-auth")?.value;
-    if (!adminAuth) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    try {
+      await requireAdmin();
+    } catch (error) {
+      const status = error instanceof AdminAuthError ? error.status : 401;
+      return NextResponse.json(
+        { error: status === 403 ? "Forbidden" : "Unauthorized" },
+        { status },
+      );
     }
 
     const supabase = getSupabaseAdmin();
@@ -60,10 +66,14 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    // Check admin cookie
-    const adminAuth = request.cookies.get("admin-auth")?.value;
-    if (!adminAuth) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    try {
+      await requireAdmin();
+    } catch (error) {
+      const status = error instanceof AdminAuthError ? error.status : 401;
+      return NextResponse.json(
+        { error: status === 403 ? "Forbidden" : "Unauthorized" },
+        { status },
+      );
     }
 
     const body = (await request.json()) as Record<string, unknown>;
@@ -323,10 +333,14 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    // Check admin cookie
-    const adminAuth = request.cookies.get("admin-auth")?.value;
-    if (!adminAuth) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    try {
+      await requireAdmin();
+    } catch (error) {
+      const status = error instanceof AdminAuthError ? error.status : 401;
+      return NextResponse.json(
+        { error: status === 403 ? "Forbidden" : "Unauthorized" },
+        { status },
+      );
     }
 
     const supabase = getSupabaseAdmin();

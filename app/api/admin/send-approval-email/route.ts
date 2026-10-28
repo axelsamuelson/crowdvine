@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAppUrl } from "@/lib/app-url";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { sendGridService } from "@/lib/sendgrid-service";
+import { isUnauthorizedResponse, requireAdminOr401 } from "@/lib/admin-auth-http";
 import {
   getAccessApprovalEmailTemplate,
   getAccessApprovalEmailText,
@@ -9,6 +10,8 @@ import {
 
 export async function POST(request: NextRequest) {
   try {
+    const adminAuth = await requireAdminOr401();
+    if (isUnauthorizedResponse(adminAuth)) return adminAuth;
     console.log("=== SEND APPROVAL EMAIL API START ===");
 
     const { email } = await request.json();

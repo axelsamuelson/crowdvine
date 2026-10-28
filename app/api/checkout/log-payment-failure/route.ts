@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
+import { z } from "zod";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { getCurrentUser } from "@/lib/supabase-server";
 
 const WINDOW_MS = 60_000;
 const MAX_PER_WINDOW = 5;
@@ -31,44 +33,29 @@ function allowRequest(ip: string): boolean {
   return true;
 }
 
-type LogPaymentFailureBody = {
-  setup_intent_id?: string;
-  payment_intent_id?: string;
-  error_type?: string;
-  error_code?: string;
-  decline_code?: string;
-  error_message?: string;
-  pallet_id?: string;
-  user_id?: string;
-  amount_ore?: number;
-};
+const optionalText = z.preprocess(
+  (value) =>
+    typeof value === "string" && value.trim() !== "" ? value.trim() : undefined,
+  z.string().min(1).optional(),
+);
 
-function parseLogBody(raw: unknown): LogPaymentFailureBody | null {
-  if (!raw || typeof raw !== "object") return null;
-  const o = raw as Record<string, unknown>;
-  const str = (k: string): string | undefined => {
-    const v = o[k];
-    return typeof v === "string" && v.trim() !== "" ? v.trim() : undefined;
-  };
-  let amountOre: number | undefined;
-  if (typeof o.amount_ore === "number" && Number.isFinite(o.amount_ore)) {
-    amountOre = Math.round(o.amount_ore);
-  } else if (typeof o.amount_ore === "string" && o.amount_ore.trim() !== "") {
-    const n = Number(o.amount_ore);
-    if (Number.isFinite(n)) amountOre = Math.round(n);
-  }
-  return {
-    setup_intent_id: str("setup_intent_id"),
-    payment_intent_id: str("payment_intent_id"),
-    error_type: str("error_type"),
-    error_code: str("error_code"),
-    decline_code: str("decline_code"),
-    error_message: str("error_message"),
-    pallet_id: str("pallet_id"),
-    user_id: str("user_id"),
-    amount_ore: amountOre,
-  };
-}
+const logPaymentFailureSchema = z.object({
+  setup_intent_id: optionalText,
+  payment_intent_id: optionalText,
+  error_type: optionalText,
+  error_code: optionalText,
+  decline_code: optionalText,
+  error_message: optionalText,
+  pallet_id: optionalText,
+  amount_ore: z.preprocess((value) => {
+    if (typeof value === "number" && Number.isFinite(value)) return Math.round(value);
+    if (typeof value === "string" && value.trim() !== "") {
+      const n = Number(value);
+      if (Number.isFinite(n)) return Math.round(n);
+    }
+    return undefined;
+  }, z.number().finite().optional()),
+});
 
 function buildFailureReason(
   message: string | undefined,
@@ -87,6 +74,11 @@ function buildFailureReason(
 
 export async function POST(request: Request) {
   try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const h = await headers();
     const ip = clientIpFromHeaders(h);
 
@@ -102,10 +94,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true }, { status: 200 });
     }
 
-    const body = parseLogBody(raw);
-    if (!body) {
+    const parsed = logPaymentFailureSchema.safeParse(raw);
+    if (!parsed.success) {
       return NextResponse.json({ ok: true }, { status: 200 });
     }
+    const body = parsed.data;
 
     const setupId = body.setup_intent_id;
     const paymentId = body.payment_intent_id;
@@ -116,12 +109,16 @@ export async function POST(request: Request) {
     const sb = getSupabaseAdmin();
     const reason = buildFailureReason(body.error_message, body.amount_ore);
 
-    let existing: { id: string; payment_attempts: number | null } | null = null;
+    let existing: {
+      id: string;
+      payment_attempts: number | null;
+      user_id: string | null;
+    } | null = null;
 
     if (setupId) {
       const { data, error } = await sb
         .from("order_reservations")
-        .select("id, payment_attempts")
+        .select("id, payment_attempts, user_id")
         .eq("setup_intent_id", setupId)
         .maybeSingle();
       if (error) {
@@ -129,6 +126,7 @@ export async function POST(request: Request) {
       } else if (data?.id) {
         existing = {
           id: String(data.id),
+          user_id: typeof data.user_id === "string" ? data.user_id : null,
           payment_attempts:
             typeof data.payment_attempts === "number"
               ? data.payment_attempts
@@ -142,7 +140,7 @@ export async function POST(request: Request) {
     if (!existing?.id && paymentId) {
       const { data, error } = await sb
         .from("order_reservations")
-        .select("id, payment_attempts")
+        .select("id, payment_attempts, user_id")
         .eq("payment_intent_id", paymentId)
         .maybeSingle();
       if (error) {
@@ -150,6 +148,7 @@ export async function POST(request: Request) {
       } else if (data?.id) {
         existing = {
           id: String(data.id),
+          user_id: typeof data.user_id === "string" ? data.user_id : null,
           payment_attempts:
             typeof data.payment_attempts === "number"
               ? data.payment_attempts
@@ -158,6 +157,10 @@ export async function POST(request: Request) {
                 : 0,
         };
       }
+    }
+
+    if (existing?.id && existing.user_id !== user.id) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
     if (existing?.id) {
@@ -180,12 +183,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true }, { status: 200 });
     }
 
-    const uid = body.user_id;
     const pid = body.pallet_id;
-    if (uid && pid) {
+    if (pid) {
       if (setupId) {
         const { error: insErr } = await sb.from("order_reservations").insert({
-          user_id: uid,
+          user_id: user.id,
           pallet_id: pid,
           setup_intent_id: setupId,
           payment_mode: "setup_intent",
@@ -205,7 +207,7 @@ export async function POST(request: Request) {
         }
       } else if (paymentId) {
         const { error: insErr } = await sb.from("order_reservations").insert({
-          user_id: uid,
+          user_id: user.id,
           pallet_id: pid,
           payment_intent_id: paymentId,
           payment_mode: "payment_intent",

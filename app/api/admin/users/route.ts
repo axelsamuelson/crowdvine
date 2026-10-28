@@ -1,13 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
+import { AdminAuthError, requireAdmin } from "@/lib/admin-auth-server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { normalizeMembershipLevel } from "@/lib/membership/points-engine";
 
 export async function GET(request: NextRequest) {
   try {
-    // Check admin cookie
-    const adminAuth = request.cookies.get("admin-auth")?.value;
-    if (adminAuth !== "true") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    try {
+      await requireAdmin();
+    } catch (error) {
+      const status = error instanceof AdminAuthError ? error.status : 401;
+      return NextResponse.json(
+        { error: status === 403 ? "Forbidden" : "Unauthorized" },
+        { status },
+      );
     }
 
     // Use admin client to get all users with profiles
@@ -156,10 +161,14 @@ export async function GET(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    // Check admin cookie
-    const adminAuth = request.cookies.get("admin-auth")?.value;
-    if (!adminAuth) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    try {
+      await requireAdmin();
+    } catch (error) {
+      const status = error instanceof AdminAuthError ? error.status : 401;
+      return NextResponse.json(
+        { error: status === 403 ? "Forbidden" : "Unauthorized" },
+        { status },
+      );
     }
 
     const { userId } = await request.json();
@@ -460,10 +469,14 @@ export async function DELETE(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   try {
-    // Check admin cookie
-    const adminAuth = request.cookies.get("admin-auth")?.value;
-    if (!adminAuth) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    try {
+      await requireAdmin();
+    } catch (error) {
+      const status = error instanceof AdminAuthError ? error.status : 401;
+      return NextResponse.json(
+        { error: status === 403 ? "Forbidden" : "Unauthorized" },
+        { status },
+      );
     }
 
     const { userId, updates } = await request.json();

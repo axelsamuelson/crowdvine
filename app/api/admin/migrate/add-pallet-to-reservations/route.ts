@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { isUnauthorizedResponse, requireAdminOr401 } from "@/lib/admin-auth-http";
 
 /**
  * Migration: Add pallet_id to order_reservations table
@@ -7,6 +8,8 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
  */
 export async function POST() {
   try {
+    const adminAuth = await requireAdminOr401();
+    if (isUnauthorizedResponse(adminAuth)) return adminAuth;
     const supabase = getSupabaseAdmin();
 
     // Step 1: Add the column (if it doesn't exist)

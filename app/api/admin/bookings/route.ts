@@ -8,6 +8,7 @@
 
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { isUnauthorizedResponse, requireAdminOr401 } from "@/lib/admin-auth-http";
 
 type ProfileLite = {
   full_name: string | null;
@@ -112,6 +113,8 @@ function parseWine(raw: NestedWine | NestedWine[] | null): AdminBookingWine | nu
 
 export async function GET() {
   try {
+    const adminAuth = await requireAdminOr401();
+    if (isUnauthorizedResponse(adminAuth)) return adminAuth;
     const sb = getSupabaseAdmin();
 
     const { data: rawItems, error: itemsError } = await sb
@@ -287,6 +290,8 @@ export async function GET() {
 
 export async function DELETE(request: Request) {
   try {
+    const adminAuth = await requireAdminOr401();
+    if (isUnauthorizedResponse(adminAuth)) return adminAuth;
     const { bookingIds } = (await request.json()) as {
       bookingIds?: unknown;
     };

@@ -1,4 +1,3 @@
-import { cookies } from "next/headers";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { isPlatformAdminProfile } from "@/lib/auth/platform-admin-profile";
 import { getCurrentUser } from "@/lib/supabase-server";
@@ -9,49 +8,46 @@ export interface AdminUser {
   role: string;
 }
 
+export class AdminAuthError extends Error {
+  readonly status: 401 | 403;
+
+  constructor(status: 401 | 403, message: string) {
+    super(message);
+    this.name = "AdminAuthError";
+    this.status = status;
+  }
+}
+
+type ProfileRow = {
+  id: string;
+  email: string;
+  role: string;
+  roles?: unknown;
+};
+
+async function adminFromUserId(userId: string): Promise<AdminUser | null> {
+  const supabase = getSupabaseAdmin();
+  const { data: sessionProfile } = await supabase
+    .from("profiles")
+    .select("id, email, role, roles")
+    .eq("id", userId)
+    .maybeSingle();
+
+  const profile = sessionProfile as ProfileRow | null;
+  if (!profile || !isPlatformAdminProfile(profile)) return null;
+
+  return {
+    id: profile.id,
+    email: profile.email,
+    role: profile.role,
+  };
+}
+
 export async function getCurrentAdmin(): Promise<AdminUser | null> {
   try {
-    const cookieStore = await cookies();
-    const adminAuthCookie = cookieStore.get("admin-auth");
-    const adminEmailCookie = cookieStore.get("admin-email");
-
-    if (adminAuthCookie?.value === "true" && adminEmailCookie?.value) {
-      const supabase = getSupabaseAdmin();
-      const { data: adminProfile } = await supabase
-        .from("profiles")
-        .select("id, email, role, roles")
-        .eq("email", adminEmailCookie.value)
-        .maybeSingle();
-
-      if (adminProfile && isPlatformAdminProfile(adminProfile)) {
-        return {
-          id: adminProfile.id,
-          email: adminProfile.email,
-          role: adminProfile.role,
-        };
-      }
-    }
-
-    // Fallback: Supabase session (middleware allows /admin this way too)
     const user = await getCurrentUser();
     if (!user) return null;
-
-    const supabase = getSupabaseAdmin();
-    const { data: sessionProfile } = await supabase
-      .from("profiles")
-      .select("id, email, role, roles")
-      .eq("id", user.id)
-      .maybeSingle();
-
-    if (!sessionProfile || !isPlatformAdminProfile(sessionProfile)) {
-      return null;
-    }
-
-    return {
-      id: sessionProfile.id,
-      email: sessionProfile.email,
-      role: sessionProfile.role,
-    };
+    return await adminFromUserId(user.id);
   } catch (error) {
     console.error("Error in getCurrentAdmin:", error);
     return null;
@@ -59,9 +55,27 @@ export async function getCurrentAdmin(): Promise<AdminUser | null> {
 }
 
 export async function requireAdmin(): Promise<AdminUser> {
-  const admin = await getCurrentAdmin();
-  if (!admin) {
-    throw new Error("Admin authentication required");
+  let user: Awaited<ReturnType<typeof getCurrentUser>>;
+  try {
+    user = await getCurrentUser();
+  } catch (error) {
+    console.error("Error in requireAdmin:", error);
+    throw new AdminAuthError(401, "Admin authentication required");
   }
-  return admin;
+
+  if (!user) {
+    throw new AdminAuthError(401, "Admin authentication required");
+  }
+
+  try {
+    const admin = await adminFromUserId(user.id);
+    if (!admin) {
+      throw new AdminAuthError(403, "Admin access required");
+    }
+    return admin;
+  } catch (error) {
+    if (error instanceof AdminAuthError) throw error;
+    console.error("Error in requireAdmin:", error);
+    throw new AdminAuthError(401, "Admin authentication required");
+  }
 }

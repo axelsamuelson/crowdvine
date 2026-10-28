@@ -1,4 +1,9 @@
 import { stripe } from "@/lib/stripe";
+import {
+  chargeCreatedAfterIso,
+  isChargeEligible,
+  type ChargeSkipReason,
+} from "@/lib/legal/charge-eligibility";
 import { getOrCreateStripeCustomer } from "@/lib/stripe/customer";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getMemberDiscountPercentForUserId } from "@/lib/membership/server-member-discount";
@@ -44,6 +49,10 @@ export type ReservationChargeRow = {
   payment_attempts: number | null;
   is_conditional?: boolean | null;
   charge_blocked_reason?: string | null;
+  terms_version?: string | null;
+  terms_accepted_at?: string | null;
+  age_verified_at?: string | null;
+  created_at?: string | null;
 };
 
 function producerFromWine(wine: WineJoin | null): WineProducer | null {
@@ -281,7 +290,11 @@ async function markReservationPaymentFailed(
   }
 }
 
-type ChargeOneOutcome = "charged" | "failed" | "skipped";
+export type ChargeOneOutcome =
+  | "charged"
+  | "failed"
+  | "skipped"
+  | { id: string; reason: ChargeSkipReason };
 
 export async function chargeOneSetupIntentReservation(
   palletId: string,
@@ -304,16 +317,24 @@ export async function chargeOneSetupIntentReservation(
     return "skipped";
   }
 
-  if (!stripe) {
-    console.error(
-      `[auto-charge] reservation_id=${reservationId} Stripe not configured; skipping`,
+  if (!row.payment_method_id) {
+    console.warn(
+      `[auto-charge] reservation_id=${reservationId} missing payment_method_id; skipping`,
     );
     return "skipped";
   }
 
-  if (!row.payment_method_id) {
-    console.warn(
-      `[auto-charge] reservation_id=${reservationId} missing payment_method_id; skipping`,
+  const eligibility = isChargeEligible(row, new Date());
+  if (!eligibility.ok) {
+    console.log(
+      `[auto-charge] skipping reservation_id=${reservationId} reason=${eligibility.reason}`,
+    );
+    return { id: reservationId, reason: eligibility.reason };
+  }
+
+  if (!stripe) {
+    console.error(
+      `[auto-charge] reservation_id=${reservationId} Stripe not configured; skipping`,
     );
     return "skipped";
   }
@@ -436,7 +457,12 @@ export async function chargeOneSetupIntentReservation(
 export type AutoChargePalletResult = {
   reservationsCharged: number;
   reservationsFailed: number;
+  charged: number;
+  skipped: { id: string; reason: ChargeSkipReason }[];
 };
+
+const CHARGE_ROW_COLUMNS =
+  "id, user_id, payment_mode, payment_status, payment_method_id, setup_intent_id, payment_attempts, is_conditional, charge_blocked_reason, terms_version, terms_accepted_at, age_verified_at, created_at";
 
 /**
  * When a pallet fills or shipping is ordered: charge each deferred (setup_intent + pending + PM)
@@ -468,10 +494,39 @@ export async function autoChargeDeferredReservationsForPallet(
     }
   }
 
+  const now = new Date();
+  const createdAfter = chargeCreatedAfterIso(now);
   const { data: toCharge, error } = await sb
     .from("order_reservations")
+    .select(CHARGE_ROW_COLUMNS)
+    .eq("pallet_id", palletId)
+    .eq("payment_mode", "setup_intent")
+    .eq("payment_status", "pending")
+    .eq("is_conditional", false)
+    .is("charge_blocked_reason", null)
+    .not("payment_method_id", "is", null)
+    .not("terms_version", "is", null)
+    .not("terms_accepted_at", "is", null)
+    .not("age_verified_at", "is", null)
+    .gt("created_at", createdAfter);
+
+  if (error) {
+    console.error(
+      `[auto-charge] pallet_id=${palletId} failed to list setup_intent reservations:`,
+      error,
+    );
+    return {
+      reservationsCharged: 0,
+      reservationsFailed: 0,
+      charged: 0,
+      skipped: [],
+    };
+  }
+
+  const { data: skippedSource } = await sb
+    .from("order_reservations")
     .select(
-      "id, user_id, payment_mode, payment_status, payment_method_id, setup_intent_id, payment_attempts, is_conditional, charge_blocked_reason",
+      "id, terms_version, terms_accepted_at, age_verified_at, created_at",
     )
     .eq("pallet_id", palletId)
     .eq("payment_mode", "setup_intent")
@@ -480,12 +535,16 @@ export async function autoChargeDeferredReservationsForPallet(
     .is("charge_blocked_reason", null)
     .not("payment_method_id", "is", null);
 
-  if (error) {
-    console.error(
-      `[auto-charge] pallet_id=${palletId} failed to list setup_intent reservations:`,
-      error,
+  const skipped: { id: string; reason: ChargeSkipReason }[] = [];
+  for (const raw of skippedSource ?? []) {
+    const decision = isChargeEligible(raw, now);
+    if (decision.ok) continue;
+    const id = typeof raw.id === "string" ? raw.id : "";
+    if (!id) continue;
+    console.log(
+      `[auto-charge] skipping reservation_id=${id} reason=${decision.reason}`,
     );
-    return { reservationsCharged: 0, reservationsFailed: 0 };
+    skipped.push({ id, reason: decision.reason });
   }
 
   const list = (toCharge ?? []) as ReservationChargeRow[];
@@ -496,7 +555,11 @@ export async function autoChargeDeferredReservationsForPallet(
     try {
       const outcome = await chargeOneSetupIntentReservation(palletId, row);
       if (outcome === "charged") reservationsCharged += 1;
-      else if (outcome === "failed" || outcome === "skipped") {
+      else if (typeof outcome === "object") {
+        if (!skipped.some((item) => item.id === outcome.id)) {
+          skipped.push(outcome);
+        }
+      } else if (outcome === "failed" || outcome === "skipped") {
         reservationsFailed += 1;
       }
     } catch (e) {
@@ -508,5 +571,10 @@ export async function autoChargeDeferredReservationsForPallet(
     }
   }
 
-  return { reservationsCharged, reservationsFailed };
+  return {
+    reservationsCharged,
+    reservationsFailed,
+    charged: reservationsCharged,
+    skipped,
+  };
 }

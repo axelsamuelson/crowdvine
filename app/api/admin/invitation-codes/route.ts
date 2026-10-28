@@ -1,13 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
-import { getCurrentAdmin } from "@/lib/admin-auth-server";
+import {
+  AdminAuthError,
+  getCurrentAdmin,
+  requireAdmin,
+} from "@/lib/admin-auth-server";
 
 export async function GET(request: NextRequest) {
   try {
-    // Check admin cookie (admin-auth login)
-    const adminAuth = request.cookies.get("admin-auth")?.value;
-    if (adminAuth !== "true") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    try {
+      await requireAdmin();
+    } catch (error) {
+      const status = error instanceof AdminAuthError ? error.status : 401;
+      return NextResponse.json(
+        { error: status === 403 ? "Forbidden" : "Unauthorized" },
+        { status },
+      );
     }
 
     const sb = getSupabaseAdmin();

@@ -6,6 +6,14 @@ const requireAdmin = vi.fn();
 vi.mock("@/lib/admin-auth-server", () => ({
   requireAdmin: (...args: unknown[]) => requireAdmin(...args),
   getCurrentAdmin: vi.fn(),
+  AdminAuthError: class AdminAuthError extends Error {
+    status: number;
+    constructor(status: number, message: string) {
+      super(message);
+      this.name = "AdminAuthError";
+      this.status = status;
+    }
+  },
 }));
 
 vi.mock("@/lib/supabase-admin", () => ({

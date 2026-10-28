@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { isPlatformAdminProfile } from "@/lib/auth/platform-admin-profile";
 import {
   isStaleRefreshTokenError,
@@ -298,8 +297,6 @@ async function runMiddleware(req: NextRequest) {
     return withGeoCountryCookie(req, res);
   }
 
-  const adminAuthCookie = req.cookies.get("admin-auth")?.value;
-    const adminEmailCookie = req.cookies.get("admin-email")?.value?.trim();
     // /admin-auth must NOT match — otherwise login redirects to itself (404/loop).
     const isAdminPath =
       pathname === "/admin" || pathname.startsWith("/admin/");
@@ -310,40 +307,24 @@ async function runMiddleware(req: NextRequest) {
       return withGeoCountryCookie(req, res);
     }
 
-    // /admin: must match profiles (role / roles). Do not trust admin-auth cookies alone — they outlive demotions.
+    // /admin requires a Supabase session. Role is checked again in getCurrentAdmin().
     if (isAdminPath) {
-      if (user) {
-        const { data: adminProfile } = await supabase
-          .from("profiles")
-          .select("role, roles")
-          .eq("id", user.id)
-          .maybeSingle();
-        if (!isPlatformAdminProfile(adminProfile)) {
-          console.log(
-            "🚫 MIDDLEWARE: /admin denied — session user is not platform admin",
-          );
-          return NextResponse.redirect(new URL("/", req.url));
-        }
-        return withGeoCountryCookie(req, res);
+      if (!user) {
+        console.log("🚫 MIDDLEWARE: /admin — no valid platform admin session");
+        return NextResponse.redirect(new URL("/admin-auth/login", req.url));
       }
-      // Legacy: /api/admin/auth sets cookies only; browser may not have Supabase session yet
-      if (adminAuthCookie === "true" && adminEmailCookie) {
-        try {
-          const sbAdmin = getSupabaseAdmin();
-          const { data: p } = await sbAdmin
-            .from("profiles")
-            .select("role, roles")
-            .eq("email", adminEmailCookie)
-            .maybeSingle();
-          if (isPlatformAdminProfile(p)) {
-            return withGeoCountryCookie(req, res);
-          }
-        } catch (e) {
-          console.error("MIDDLEWARE: /admin cookie verify failed:", e);
-        }
+      const { data: adminProfile } = await supabase
+        .from("profiles")
+        .select("role, roles")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (!isPlatformAdminProfile(adminProfile)) {
+        console.log(
+          "🚫 MIDDLEWARE: /admin denied — session user is not platform admin",
+        );
+        return NextResponse.redirect(new URL("/", req.url));
       }
-      console.log("🚫 MIDDLEWARE: /admin — no valid platform admin session");
-      return NextResponse.redirect(new URL("/admin-auth/login", req.url));
+      return withGeoCountryCookie(req, res);
     }
 
     // pactwines.com / localhost (default): require login

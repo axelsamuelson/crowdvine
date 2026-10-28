@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { isUnauthorizedResponse, requireAdminOr401 } from "@/lib/admin-auth-http";
 
 export async function GET() {
+  const adminAuth = await requireAdminOr401();
+  if (isUnauthorizedResponse(adminAuth)) return adminAuth;
   const supabase = getSupabaseAdmin();
 
   try {

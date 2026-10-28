@@ -109,11 +109,13 @@ export async function POST(
 
     let reservationsCharged = 0;
     let reservationsFailed = 0;
+    let skipped: { id: string; reason: string }[] = [];
     try {
       const chargeResult =
         await autoChargeDeferredReservationsForPallet(palletId);
       reservationsCharged = chargeResult.reservationsCharged;
       reservationsFailed = chargeResult.reservationsFailed;
+      skipped = chargeResult.skipped;
       console.log(
         `[order-shipping] Auto-charge finished pallet=${palletId} charged=${reservationsCharged} failedOrSkipped=${reservationsFailed}`,
       );
@@ -131,6 +133,8 @@ export async function POST(
       shippingOrderedAt,
       reservationsCharged,
       reservationsFailed,
+      charged: reservationsCharged,
+      skipped,
     });
   } catch (e) {
     console.error("[order-shipping] unhandled error:", e);

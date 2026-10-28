@@ -18,7 +18,7 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // Get the current authenticated admin using cookie-based auth
+  // Platform admin is the signed-in Supabase user whose profile is admin.
   const admin = await getCurrentAdmin();
 
   if (!admin) {

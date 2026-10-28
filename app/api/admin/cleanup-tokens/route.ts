@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { isUnauthorizedResponse, requireAdminOr401 } from "@/lib/admin-auth-http";
 
 export async function POST(request: NextRequest) {
   try {
+    const adminAuth = await requireAdminOr401();
+    if (isUnauthorizedResponse(adminAuth)) return adminAuth;
     console.log("=== CLEANUP EXPIRED TOKENS START ===");
 
     const supabase = getSupabaseAdmin();
@@ -75,6 +78,8 @@ export async function POST(request: NextRequest) {
 // Optional: GET endpoint to check cleanup status without actually cleaning
 export async function GET() {
   try {
+    const adminAuth = await requireAdminOr401();
+    if (isUnauthorizedResponse(adminAuth)) return adminAuth;
     const supabase = getSupabaseAdmin();
 
     // Count expired but unused access tokens

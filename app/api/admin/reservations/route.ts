@@ -1,5 +1,13 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { isUnauthorizedResponse, requireAdminOr401 } from "@/lib/admin-auth-http";
+import { z } from "zod";
+
+const deleteReservationsSchema = z
+  .object({
+    reservationIds: z.array(z.string().min(1)).min(1),
+  })
+  .strict();
 
 // Use service role key for admin operations (bypasses RLS)
 function getSupabaseAdmin() {
@@ -15,6 +23,8 @@ function getSupabaseAdmin() {
 
 export async function GET() {
   try {
+    const adminAuth = await requireAdminOr401();
+    if (isUnauthorizedResponse(adminAuth)) return adminAuth;
     const sbAdmin = getSupabaseAdmin();
 
     console.log("🔍 [Reservations API] Starting to fetch reservations...");
@@ -251,18 +261,16 @@ export async function GET() {
 
 export async function DELETE(request: Request) {
   try {
-    const { reservationIds } = await request.json();
-
-    if (
-      !reservationIds ||
-      !Array.isArray(reservationIds) ||
-      reservationIds.length === 0
-    ) {
+    const adminAuth = await requireAdminOr401();
+    if (isUnauthorizedResponse(adminAuth)) return adminAuth;
+    const parsed = deleteReservationsSchema.safeParse(await request.json());
+    if (!parsed.success) {
       return NextResponse.json(
         { error: "No reservation IDs provided" },
         { status: 400 },
       );
     }
+    const { reservationIds } = parsed.data;
 
     console.log("DELETE request received for reservations:", reservationIds);
 

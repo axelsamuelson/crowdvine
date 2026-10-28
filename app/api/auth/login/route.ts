@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
-import { getSupabaseAdmin } from "@/lib/supabase-admin";
-import { isPlatformAdminProfile } from "@/lib/auth/platform-admin-profile";
 
 /**
  * POST /api/auth/login
@@ -55,39 +53,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Login failed" }, { status: 401 });
     }
 
-    // Check if user has admin role and set admin cookies if so
-    const supabaseAdmin = getSupabaseAdmin();
-    const { data: profile } = await supabaseAdmin
-      .from("profiles")
-      .select("id, email, role, roles")
-      .eq("id", data.user.id)
-      .maybeSingle();
-
-    const response = NextResponse.json({
+    return NextResponse.json({
       success: true,
       user: {
         id: data.user.id,
         email: data.user.email,
       },
     });
-
-    if (profile && isPlatformAdminProfile(profile)) {
-      response.cookies.set("admin-auth", "true", {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-        maxAge: 60 * 60 * 24 * 7, // 7 days
-      });
-
-      response.cookies.set("admin-email", profile.email, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-        maxAge: 60 * 60 * 24 * 7, // 7 days
-      });
-    }
-
-    return response;
   } catch (error) {
     console.error("Login error:", error);
     return NextResponse.json(

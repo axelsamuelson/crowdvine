@@ -561,7 +561,18 @@ export default function AdminPalletDetails({
         toast.error(errMsg);
         return;
       }
-      toast.success("Shipping ordered. Customers are being charged.");
+      const skipped =
+        data &&
+        typeof data === "object" &&
+        "skipped" in data &&
+        Array.isArray(data.skipped)
+          ? data.skipped.length
+          : 0;
+      toast.success(
+        skipped > 0
+          ? `Shipping ordered. ${skipped} reservation(s) were not charged.`
+          : "Shipping ordered. Customers are being charged.",
+      );
       await fetchPalletData();
     } catch {
       toast.error("Request failed");

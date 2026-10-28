@@ -12,6 +12,10 @@ import {
 } from "@/lib/membership/pact-points-engine";
 import { stripe } from "@/lib/stripe";
 import {
+  chargeCreatedAfterIso,
+  isChargeEligible,
+} from "@/lib/legal/charge-eligibility";
+import {
   sendPaymentCancelledEmail,
   sendPaymentConfirmedEmail,
 } from "@/lib/sendgrid-service";
@@ -223,10 +227,13 @@ export async function retryFailedPayments(): Promise<{
     const sb = getSupabaseAdmin();
     const nowIso = new Date().toISOString();
 
-    const { data: rows, error } = await sb
+    const now = new Date();
+    const createdAfter = chargeCreatedAfterIso(now);
+
+    const { data: skippedSource } = await sb
       .from("order_reservations")
       .select(
-        "id, user_id, pallet_id, payment_mode, payment_status, payment_method_id, setup_intent_id, payment_attempts, status, is_conditional, charge_blocked_reason",
+        "id, terms_version, terms_accepted_at, age_verified_at, created_at",
       )
       .eq("payment_status", "failed")
       .not("retry_scheduled_at", "is", null)
@@ -237,6 +244,35 @@ export async function retryFailedPayments(): Promise<{
       .not("payment_method_id", "is", null)
       .neq("status", "cancelled")
       .neq("status", "confirmed");
+
+    for (const raw of skippedSource ?? []) {
+      const decision = isChargeEligible(raw, now);
+      if (decision.ok) continue;
+      const skippedId = typeof raw.id === "string" ? raw.id : "";
+      if (!skippedId) continue;
+      console.log(
+        `[RETRY] skipping reservation_id=${skippedId} reason=${decision.reason}`,
+      );
+    }
+
+    const { data: rows, error } = await sb
+      .from("order_reservations")
+      .select(
+        "id, user_id, pallet_id, payment_mode, payment_status, payment_method_id, setup_intent_id, payment_attempts, status, is_conditional, charge_blocked_reason, terms_version, terms_accepted_at, age_verified_at, created_at",
+      )
+      .eq("payment_status", "failed")
+      .not("retry_scheduled_at", "is", null)
+      .lte("retry_scheduled_at", nowIso)
+      .eq("payment_mode", "setup_intent")
+      .eq("is_conditional", false)
+      .is("charge_blocked_reason", null)
+      .not("payment_method_id", "is", null)
+      .neq("status", "cancelled")
+      .neq("status", "confirmed")
+      .not("terms_version", "is", null)
+      .not("terms_accepted_at", "is", null)
+      .not("age_verified_at", "is", null)
+      .gt("created_at", createdAfter);
 
     if (error) {
       console.error("[RETRY] retryFailedPayments query:", error.message);
@@ -257,7 +293,7 @@ export async function retryFailedPayments(): Promise<{
         const { data: fresh, error: freshErr } = await sb
           .from("order_reservations")
           .select(
-            "id, user_id, pallet_id, payment_mode, payment_status, payment_method_id, setup_intent_id, payment_attempts, status",
+            "id, user_id, pallet_id, payment_mode, payment_status, payment_method_id, setup_intent_id, payment_attempts, status, terms_version, terms_accepted_at, age_verified_at, created_at",
           )
           .eq("id", id)
           .maybeSingle();
@@ -322,13 +358,30 @@ export async function retryFailedPayments(): Promise<{
             typeof fresh.charge_blocked_reason === "string"
               ? fresh.charge_blocked_reason
               : null,
+          terms_version:
+            typeof fresh.terms_version === "string" ? fresh.terms_version : null,
+          terms_accepted_at:
+            typeof fresh.terms_accepted_at === "string"
+              ? fresh.terms_accepted_at
+              : null,
+          age_verified_at:
+            typeof fresh.age_verified_at === "string"
+              ? fresh.age_verified_at
+              : null,
+          created_at:
+            typeof fresh.created_at === "string" ? fresh.created_at : null,
         };
 
-        attempted += 1;
         const outcome = await chargeOneSetupIntentReservation(
           palletId,
           chargeRow,
         );
+
+        if (typeof outcome === "object") {
+          continue;
+        }
+
+        attempted += 1;
 
         if (outcome === "charged") {
           const { error: statusErr } = await sb

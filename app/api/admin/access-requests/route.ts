@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { AdminAuthError, requireAdmin, type AdminUser } from "@/lib/admin-auth-server";
 import { getAppUrl } from "@/lib/app-url";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { sendGridService } from "@/lib/sendgrid-service";
@@ -11,11 +12,14 @@ export async function GET(request: NextRequest) {
   try {
     console.log("Access requests API: Starting request");
 
-    // Check admin cookie
-    const adminAuth = request.cookies.get("admin-auth")?.value;
-    if (!adminAuth) {
-      console.log("Access requests API: No admin auth cookie");
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    try {
+      await requireAdmin();
+    } catch (error) {
+      const status = error instanceof AdminAuthError ? error.status : 401;
+      return NextResponse.json(
+        { error: status === 403 ? "Forbidden" : "Unauthorized" },
+        { status },
+      );
     }
 
     console.log("Access requests API: Admin auth confirmed");
@@ -92,13 +96,18 @@ export async function PATCH(request: NextRequest) {
     const { id, status, notes } = await request.json();
     console.log("DEBUG: Request data:", { id, status, notes });
 
-    // Check admin cookie
-    const adminAuth = request.cookies.get("admin-auth")?.value;
-    if (!adminAuth) {
-      console.log("DEBUG: No admin auth cookie");
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    let admin: AdminUser;
+    try {
+      admin = await requireAdmin();
+    } catch (error) {
+      const status = error instanceof AdminAuthError ? error.status : 401;
+      console.log("DEBUG: Admin session rejected", status);
+      return NextResponse.json(
+        { error: status === 403 ? "Forbidden" : "Unauthorized" },
+        { status },
+      );
     }
-    console.log("DEBUG: Admin auth cookie found");
+    console.log("DEBUG: Admin session confirmed");
 
     // Get the access request to find the email
     const supabase = getSupabaseAdmin();
@@ -142,7 +151,7 @@ export async function PATCH(request: NextRequest) {
     console.log("DEBUG: Simple update successful:", simpleUpdate);
 
     // Get admin user ID for reviewed_by field
-    const adminEmail = request.cookies.get("admin-email")?.value;
+    const adminEmail = admin.email;
     let adminUserId = null;
     if (adminEmail) {
       try {
@@ -315,10 +324,14 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "ID is required" }, { status: 400 });
     }
 
-    // Check admin cookie
-    const adminAuth = request.cookies.get("admin-auth")?.value;
-    if (!adminAuth) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    try {
+      await requireAdmin();
+    } catch (error) {
+      const status = error instanceof AdminAuthError ? error.status : 401;
+      return NextResponse.json(
+        { error: status === 403 ? "Forbidden" : "Unauthorized" },
+        { status },
+      );
     }
 
     const supabase = getSupabaseAdmin();

@@ -5,15 +5,14 @@ import { getCurrentAdmin } from "@/lib/admin-auth-server";
 
 /**
  * GET /api/me/admin
- * 
- * Check if current user is admin (via profile role OR admin cookie)
+ *
+ * True when the current Supabase session belongs to a platform admin.
  */
 export async function GET() {
   try {
-    // Check admin cookie first (for admin-auth login)
     const admin = await getCurrentAdmin();
     if (admin) {
-      return NextResponse.json({ isAdmin: true, method: "cookie" });
+      return NextResponse.json({ isAdmin: true, method: "session" });
     }
 
     // Check profile role (for regular auth)

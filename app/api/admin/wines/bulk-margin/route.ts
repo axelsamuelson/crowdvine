@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { AdminAuthError, requireAdmin } from "@/lib/admin-auth-server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getAppUrl } from "@/lib/app-url";
 import {
@@ -11,10 +12,14 @@ import {
 
 export async function POST(req: NextRequest) {
   try {
-    // Admin auth (same convention as other admin APIs in this repo)
-    const adminAuth = req.cookies.get("admin-auth")?.value;
-    if (adminAuth !== "true") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    try {
+      await requireAdmin();
+    } catch (error) {
+      const status = error instanceof AdminAuthError ? error.status : 401;
+      return NextResponse.json(
+        { error: status === 403 ? "Forbidden" : "Unauthorized" },
+        { status },
+      );
     }
 
     const body = await req.json().catch(() => null);

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { isUnauthorizedResponse, requireAdminOr401 } from "@/lib/admin-auth-http";
 import {
   INVALID_PRODUCER_COUNTRY_MESSAGE,
   normalizeCountryCode,
@@ -221,6 +222,8 @@ interface ReviewProduct extends ProductData {
 
 export async function POST(request: NextRequest) {
   try {
+    const adminAuth = await requireAdminOr401();
+    if (isUnauthorizedResponse(adminAuth)) return adminAuth;
     const formData = await request.formData();
     const file = formData.get("file") as File;
 

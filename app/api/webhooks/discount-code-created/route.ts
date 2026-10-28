@@ -1,17 +1,55 @@
+import { timingSafeEqual } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+
+const DISCOUNT_CODE_WEBHOOK_SECRET = "DISCOUNT_CODE_WEBHOOK_SECRET";
+
+const discountWebhookSchema = z
+  .object({
+    record: z
+      .object({
+        id: z.string().min(1),
+      })
+      .passthrough(),
+  })
+  .passthrough();
+
+function bearerMatchesSecret(header: string, secret: string): boolean {
+  const prefix = "Bearer ";
+  if (!header.startsWith(prefix)) return false;
+  const token = header.slice(prefix.length);
+  const provided = Buffer.from(token);
+  const expected = Buffer.from(secret);
+  if (provided.length !== expected.length) return false;
+  return timingSafeEqual(provided, expected);
+}
 
 export async function POST(request: NextRequest) {
   try {
-    const payload = await request.json();
+    const secret = process.env[DISCOUNT_CODE_WEBHOOK_SECRET];
+    if (!secret) {
+      console.error(
+        "[discount-code-created] DISCOUNT_CODE_WEBHOOK_SECRET is not set",
+      );
+      return NextResponse.json(
+        { error: "Webhook secret is not configured" },
+        { status: 500 },
+      );
+    }
 
-    console.log("Discount code webhook received:", payload);
-
-    // Verify the webhook is from Supabase
-    const authHeader = request.headers.get("authorization");
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    const authHeader = request.headers.get("authorization") ?? "";
+    if (!bearerMatchesSecret(authHeader, secret)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const parsed = discountWebhookSchema.safeParse(await request.json());
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+    }
+    const payload = parsed.data;
+
+    console.log("Discount code webhook received:", payload.record.id);
 
     const supabase = getSupabaseAdmin();
 

@@ -1,29 +1,40 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { getCurrentUser } from "@/lib/supabase-server";
+
+const reservationIdSchema = z.string().min(1);
 
 export async function GET(request: Request) {
   try {
-    const sb = getSupabaseAdmin();
-    const { searchParams } = new URL(request.url);
-    const reservationId = searchParams.get("reservationId");
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-    if (!reservationId) {
+    const reservationId = reservationIdSchema.safeParse(
+      new URL(request.url).searchParams.get("reservationId"),
+    );
+    if (!reservationId.success) {
       return NextResponse.json(
         { error: "Reservation ID is required" },
         { status: 400 },
       );
     }
 
-    // Get reservation details
+    const sb = getSupabaseAdmin();
+
     const { data: reservation, error: reservationError } = await sb
       .from("order_reservations")
       .select(
         `
-        *,
+        id,
+        status,
+        created_at,
+        pickup_zone_id,
+        delivery_zone_id,
         user_addresses!inner (
           full_name,
-          email,
-          phone,
           address_street,
           address_postcode,
           address_city,
@@ -31,7 +42,8 @@ export async function GET(request: Request) {
         )
       `,
       )
-      .eq("id", reservationId)
+      .eq("id", reservationId.data)
+      .eq("user_id", user.id)
       .single();
 
     if (reservationError || !reservation) {
@@ -63,7 +75,7 @@ export async function GET(request: Request) {
         )
       `,
       )
-      .eq("reservation_id", reservationId);
+      .eq("reservation_id", reservationId.data);
 
     if (itemsError) {
       console.error("Failed to fetch reservation items:", itemsError);
@@ -130,7 +142,7 @@ export async function GET(request: Request) {
     const { data: tracking, error: trackingError } = await sb
       .from("reservation_tracking")
       .select("tracking_code, created_at")
-      .eq("reservation_id", reservationId)
+      .eq("reservation_id", reservationId.data)
       .single();
 
     return NextResponse.json({

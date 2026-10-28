@@ -1,6 +1,45 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { sendGridService } from "@/lib/sendgrid-service";
 import { sendTransactionalEmailOnce } from "@/lib/email/claim-email-send";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { getCurrentUser } from "@/lib/supabase-server";
+
+const orderConfirmationSchema = z
+  .object({
+    customerEmail: z.string().min(1),
+    customerName: z.string().min(1),
+    orderId: z.string().min(1),
+    orderDate: z.string().min(1),
+    items: z
+      .array(
+        z
+          .object({
+            name: z.string(),
+            quantity: z.number(),
+            price: z.number(),
+            image: z.string().optional(),
+          })
+          .strict(),
+      )
+      .min(1),
+    subtotal: z.number(),
+    tax: z.number(),
+    shipping: z.number(),
+    total: z.number(),
+    shippingAddress: z
+      .object({
+        name: z.string(),
+        street: z.string(),
+        city: z.string(),
+        postalCode: z.string(),
+        country: z.string(),
+      })
+      .strict(),
+    reservationId: z.string().min(1).optional(),
+    discount: z.number().optional(),
+  })
+  .strict();
 
 /** Provider-specific quota / billing exhaustion (SendGrid, Resend, etc.). */
 function isEmailQuotaExceededMessage(message: string): boolean {
@@ -22,46 +61,46 @@ function isEmailQuotaExceededMessage(message: string): boolean {
  */
 export async function POST(request: NextRequest) {
   try {
-    const data = await request.json();
-
-    // Validate required fields
-    // NOTE: allow numeric 0 (e.g. tax: 0) by checking undefined/null instead of falsy.
-    const requiredFields = [
-      "customerEmail",
-      "customerName",
-      "orderId",
-      "orderDate",
-      "items",
-      "subtotal",
-      "tax",
-      "shipping",
-      "total",
-      "shippingAddress",
-    ] as const;
-
-    for (const field of requiredFields) {
-      const value = data?.[field];
-      if (value === undefined || value === null) {
-        return NextResponse.json(
-          { error: `${field} is required` },
-          { status: 400 },
-        );
-      }
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (!Array.isArray(data.items) || data.items.length === 0) {
-      return NextResponse.json({ error: "items is required" }, { status: 400 });
+    const parsed = orderConfirmationSchema.safeParse(await request.json());
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Invalid order confirmation request" },
+        { status: 400 },
+      );
     }
+    const data = parsed.data;
 
-    const reservationId =
-      (typeof data.reservationId === "string" && data.reservationId.trim()) ||
-      (typeof data.orderId === "string" && data.orderId.trim()) ||
-      "";
+    const reservationId = (data.reservationId ?? data.orderId).trim();
     if (!reservationId) {
       return NextResponse.json(
         { error: "reservationId (or orderId) is required for idempotent send" },
         { status: 400 },
       );
+    }
+
+    const sb = getSupabaseAdmin();
+    const { data: byId } = await sb
+      .from("order_reservations")
+      .select("id, user_id")
+      .eq("id", reservationId)
+      .maybeSingle();
+    const owned =
+      byId ??
+      (
+        await sb
+          .from("order_reservations")
+          .select("id, user_id")
+          .eq("order_id", reservationId)
+          .eq("user_id", user.id)
+          .maybeSingle()
+      ).data;
+    if (!owned || owned.user_id !== user.id) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
     // Local / misconfigured hosts often omit Resend; treat as intentional skip (not a checkout failure).

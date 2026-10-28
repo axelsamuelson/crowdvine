@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { isUnauthorizedResponse, requireAdminOr401 } from "@/lib/admin-auth-http";
 
 export async function GET() {
   try {
+    const adminAuth = await requireAdminOr401();
+    if (isUnauthorizedResponse(adminAuth)) return adminAuth;
     const sb = getSupabaseAdmin();
 
     const { data: groups, error } = await sb
@@ -55,6 +58,8 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const adminAuth = await requireAdminOr401();
+    if (isUnauthorizedResponse(adminAuth)) return adminAuth;
     const { name, description } = await request.json();
 
     if (!name || !name.trim()) {

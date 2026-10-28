@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { isUnauthorizedResponse, requireAdminOr401 } from "@/lib/admin-auth-http";
+import { z } from "zod";
 import {
   cleanupEmptyPalletsAfterReservationChange,
   releaseBookingsForReservationPallet,
@@ -7,19 +9,48 @@ import {
 } from "@/lib/pallet-auto-management";
 import { rescalePrePalletContributionCents } from "@/lib/pallet-contribution";
 
+const reservationItemUpdateSchema = z
+  .object({
+    id: z.string().nullable(),
+    item_id: z.string(),
+    quantity: z.number().finite(),
+  })
+  .strict();
+
+/** Fields the admin reservation form actually submits. */
+const reservationUpdateSchema = z
+  .object({
+    status: z.string(),
+    order_id: z.string(),
+    notes: z.string(),
+    pickup_zone_id: z.string(),
+    delivery_zone_id: z.string(),
+    address_id: z.string(),
+    delivery_address: z.string(),
+    pallet_id: z.string(),
+    items: z.array(reservationItemUpdateSchema).optional(),
+  })
+  .strict();
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const adminAuth = await requireAdminOr401();
+    if (isUnauthorizedResponse(adminAuth)) return adminAuth;
     const resolvedParams = await params;
     const { id } = resolvedParams;
     const supabase = getSupabaseAdmin();
 
-    const body = await request.json();
-    const { items, ...reservationData } = body as Record<string, unknown> & {
-      items?: unknown;
-    };
+    const parsed = reservationUpdateSchema.safeParse(await request.json());
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Invalid reservation update" },
+        { status: 400 },
+      );
+    }
+    const { items, ...reservationData } = parsed.data;
 
     console.log("Updating reservation:", id, "with data:", reservationData);
 
@@ -227,6 +258,8 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const adminAuth = await requireAdminOr401();
+    if (isUnauthorizedResponse(adminAuth)) return adminAuth;
     const resolvedParams = await params;
     const { id } = resolvedParams;
     const supabase = getSupabaseAdmin();

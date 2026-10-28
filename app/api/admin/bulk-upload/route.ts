@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { randomUUID } from "crypto";
+import { isUnauthorizedResponse, requireAdminOr401 } from "@/lib/admin-auth-http";
 import {
   INVALID_PRODUCER_COUNTRY_MESSAGE,
   normalizeCountryCode,
@@ -80,6 +81,8 @@ async function findSimilarProducers(
 
 export async function POST(request: NextRequest) {
   try {
+    const adminAuth = await requireAdminOr401();
+    if (isUnauthorizedResponse(adminAuth)) return adminAuth;
     const contentType = request.headers.get("content-type");
 
     let products: ProductData[];
