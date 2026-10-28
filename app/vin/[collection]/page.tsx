@@ -14,12 +14,7 @@ import {
   pickWineSourceSlugsForProducts,
 } from "@/lib/external-prices/cached-source-slugs";
 import { mapProductDataToShopProducts } from "@/lib/map-product-data-to-shop-product";
-import { generateProducerSlug } from "@/lib/producer-handle";
-import {
-  PACT_PUBLIC_ORIGIN,
-  producerPageUrls,
-  producerPublicPath,
-} from "@/lib/i18n/localized-routes";
+import { PACT_PUBLIC_ORIGIN } from "@/lib/i18n/localized-routes";
 import {
   producerShopPageHeading,
   producerShopPagePath,
@@ -40,6 +35,7 @@ import { localizeGeneratedCategoryCopy } from "@/lib/wine-shop-filter-categories
 import {
   categoryPageRobots,
   emptyListingRobots,
+  isThinDynamicGrapeCategory,
 } from "@/lib/seo/noindex-robots";
 import { shopSearchParamsRobots } from "@/lib/seo/shop-search-robots";
 import {
@@ -111,6 +107,7 @@ export async function generateMetadata(props: {
       description: metaDescription,
       robots: categoryPageRobots(slug, "sv", searchParams, {
         emptyListing: !hasProducts,
+        thinDynamicGrape: isThinDynamicGrapeCategory(category),
       }),
       alternates: {
         canonical: canonicalUrl,
@@ -410,13 +407,11 @@ export default async function VinCollectionPage(props: {
   }
 
   const config = await getSiteConfig();
-  const producerSlug = generateProducerSlug(collection.title);
-  const producerUrls = producerPageUrls(producerSlug);
   const shopHeading = producerShopPageHeading(collection.title, "sv");
   const shopUrl = `${PACT_PUBLIC_ORIGIN}${producerShopPagePath(collection.title, "sv")}`;
   const producerCollection = asProducerCollectionData(collection);
-  const profilePath = producerPublicPath(producerSlug, "sv");
 
+  // Shop → producer shop PLP only. Profile lives in the editorial block, not crumbs.
   const breadcrumbJsonLd = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
@@ -430,12 +425,6 @@ export default async function VinCollectionPage(props: {
       {
         "@type": "ListItem",
         position: 2,
-        name: collection.title,
-        item: producerUrls.sv,
-      },
-      {
-        "@type": "ListItem",
-        position: 3,
         name: shopHeading,
         item: shopUrl,
       },
@@ -457,8 +446,6 @@ export default async function VinCollectionPage(props: {
         collection={slug}
         searchParams={searchParams}
         breadcrumbLabel={shopHeading}
-        producerProfileHref={profilePath}
-        producerProfileLabel={collection.title}
       />
       <ProducerShopEditorialBlock
         collection={producerCollection}

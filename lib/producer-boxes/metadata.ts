@@ -15,6 +15,7 @@ import {
   defaultOpenGraphImages,
   pageTwitterCard,
 } from "@/lib/seo/default-social";
+import { productOfferCommerceFields } from "@/lib/seo/product-offer-policies";
 
 const IN_STOCK = "https://schema.org/InStock";
 const OUT_OF_STOCK = "https://schema.org/OutOfStock";
@@ -112,6 +113,7 @@ export function buildProducerBoxesJsonLd(
           priceCurrency: "SEK",
           availability: box.purchasable ? IN_STOCK : OUT_OF_STOCK,
           url,
+          ...productOfferCommerceFields(),
         };
         if (box.totalCents != null) {
           offer.price = schemaPrice(box.totalCents);

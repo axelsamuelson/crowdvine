@@ -672,19 +672,20 @@ export async function fetchProductsData(params?: {
     const rawDescription = extractWineText(
       i.description as Record<string, string> | string | null,
       wineLocale,
+      wineLocale === "en" ? { fallback: false } : undefined,
     );
-    const wineDescription =
-      rawDescription ||
-      `This exceptional ${i.color || "wine"} wine from ${
-        i.vintage
-      } showcases the unique characteristics of ${
-        i.grape_varieties || "carefully selected grapes"
-      }. Crafted with precision and passion.`;
+    const wineDescription = rawDescription || "";
 
     const safeDescriptionHtml =
-      typeof i.description_html === "string" && i.description_html
-        ? i.description_html
-        : `<p>${wineDescription}</p>`;
+      wineLocale === "en"
+        ? wineDescription
+          ? `<p>${wineDescription}</p>`
+          : ""
+        : typeof i.description_html === "string" && i.description_html
+          ? i.description_html
+          : wineDescription
+            ? `<p>${wineDescription}</p>`
+            : "";
 
     return {
       id: i.id,
@@ -1059,6 +1060,7 @@ export async function fetchCollectionProductsData(
     const rawDesc = extractWineText(
       i.description as Record<string, string> | string | null,
       wineLocale,
+      wineLocale === "en" ? { fallback: false } : undefined,
     );
 
     return {
