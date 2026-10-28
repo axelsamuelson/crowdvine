@@ -8,6 +8,7 @@ import {
   HOMEPAGE_HERO_IMAGE_KEYS,
   type HomepageHeroImageKey,
 } from "@/lib/homepage-hero-images";
+import { allHomepageHeroCopyKeys } from "@/lib/homepage-hero-copy";
 
 export interface SiteContent {
   id: string;
@@ -117,6 +118,7 @@ export async function updateSiteContent(
   // Revalidate relevant paths
   revalidatePath("/admin/content");
   revalidatePath("/"); // Revalidate homepage
+  revalidatePath("/en");
 
   // För logo-nycklar, revalidate alla paths som kan visa loggan
   const logoKeys = [
@@ -145,5 +147,11 @@ export async function updateSiteContent(
 
   if (HOMEPAGE_HERO_IMAGE_KEYS.includes(key as HomepageHeroImageKey)) {
     revalidatePath("/");
+    revalidatePath("/en");
+  }
+
+  if (allHomepageHeroCopyKeys().includes(key)) {
+    revalidatePath("/");
+    revalidatePath("/en");
   }
 }
