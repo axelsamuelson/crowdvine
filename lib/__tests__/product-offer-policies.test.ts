@@ -19,6 +19,8 @@ describe("productOfferCommerceFields", () => {
       "MerchantReturnPolicy",
     );
     expect(fields.hasMerchantReturnPolicy.merchantReturnDays).toBe(14);
-    expect(fields.hasMerchantReturnPolicy.url).toContain("/villkor");
+    expect(fields.hasMerchantReturnPolicy.url).toBe(
+      "https://pactwines.com/villkor",
+    );
   });
 });
