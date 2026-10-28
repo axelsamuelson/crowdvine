@@ -83,8 +83,29 @@ function farmingHubExploreLinks(category: WineCategory): CategoryExploreLink[] {
   const hubLinks = hubSlugs.map((s) => categoryLink(s, locale));
   const colorSlugs = FARMING_HUB_COLOR_SLUGS[category.slug] ?? [];
   const colorLinks = colorSlugs.map((s) => categoryLink(s, locale));
+  const links = [...hubLinks, ...colorLinks];
 
-  return [...hubLinks, ...colorLinks];
+  if (locale === "sv") {
+    links.push({
+      href: "/guider/vad-ar-naturvin",
+      label: "Vad är naturvin? →",
+    });
+    links.push({
+      href: "/vin/orange-naturvin",
+      label: "Orange vin →",
+    });
+  } else {
+    links.push({
+      href: "/guides/what-is-natural-wine",
+      label: "What is natural wine? →",
+    });
+    links.push({
+      href: "/wine/orange-natural-wine",
+      label: "Orange wine →",
+    });
+  }
+
+  return links;
 }
 
 export function isColorNaturvinHub(category: WineCategory): boolean {
@@ -229,6 +250,36 @@ function colorHubExploreLinks(category: WineCategory): CategoryExploreLink[] {
     links.push({
       href: "/guider/vad-ar-naturvin",
       label: "Vad är naturvin? →",
+    });
+  }
+
+  if (category.slug === "orange-naturvin") {
+    links.push({
+      href: "/guider/vad-ar-orange-vin",
+      label: "Vad är orange vin? →",
+    });
+    links.push({
+      href: "/guider/varldens-basta-orange-viner",
+      label: "Världens bästa orangeviner →",
+    });
+    links.push({
+      href: "/vin/ekologiskt-vin",
+      label: "Ekologiskt vin →",
+    });
+  }
+
+  if (category.slug === "orange-natural-wine") {
+    links.push({
+      href: "/guides/what-is-orange-wine",
+      label: "What is orange wine? →",
+    });
+    links.push({
+      href: "/guides/worlds-best-orange-wines",
+      label: "The world's best orange wines →",
+    });
+    links.push({
+      href: "/wine/organic-wine",
+      label: "Organic wine →",
     });
   }
 

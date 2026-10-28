@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 
 import { shopSearchParamsRobots } from "@/lib/seo/shop-search-robots";
+import type { WineCategory } from "@/lib/wine-category-types";
+import { isGrapeOnlyCategory } from "@/lib/wine-grape-categories";
 
 /** Private / session pages that should never appear in search results. */
 export const NOINDEX_PAGE_ROBOTS: NonNullable<Metadata["robots"]> = {
@@ -32,6 +34,16 @@ export function isTwoColorCategorySlug(
   );
 }
 
+/**
+ * Dynamic grape PLPs built from grape names alone — one-line copy, no editorial.
+ * Keep crawlable for internal links; do not index.
+ */
+export function isThinDynamicGrapeCategory(category: WineCategory): boolean {
+  return (
+    isGrapeOnlyCategory(category) && !Boolean(category.longDescription?.trim())
+  );
+}
+
 export function isNoindexCategorySlug(
   slug: string,
   locale: "sv" | "en",
@@ -43,15 +55,19 @@ type ShopSearchParams = { [key: string]: string | string[] | undefined };
 
 /**
  * Robots for shop category / collection listings.
- * Empty product sets are noindex,follow (still linked internally).
+ * Empty product sets and thin dynamic grape PLPs are noindex,follow.
  */
 export function categoryPageRobots(
   slug: string,
   locale: "sv" | "en",
   searchParams?: ShopSearchParams,
-  options?: { emptyListing?: boolean },
+  options?: { emptyListing?: boolean; thinDynamicGrape?: boolean },
 ): NonNullable<Metadata["robots"]> | undefined {
-  if (isNoindexCategorySlug(slug, locale) || options?.emptyListing) {
+  if (
+    isNoindexCategorySlug(slug, locale) ||
+    options?.emptyListing ||
+    options?.thinDynamicGrape
+  ) {
     return NOINDEX_FOLLOW_ROBOTS;
   }
 

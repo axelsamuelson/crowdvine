@@ -108,14 +108,6 @@ function buildPdpSeoDescription(
   return `${truncated}${shortSuffix}`;
 }
 
-function englishDescriptionBoilerplate(
-  color: string | null | undefined,
-  vintage: string | null | undefined,
-  grapeVarieties: string | null | undefined,
-): string {
-  return `This exceptional ${color || "wine"} wine from ${vintage} showcases the unique characteristics of ${grapeVarieties || "carefully selected grapes"}. Crafted with precision and passion, this wine offers a perfect balance of flavors and aromas that will delight your palate.`;
-}
-
 /** Direct DB lookup — bypasses HTTP and Deployment Protection. */
 export async function getCrowdvineProductByHandle(options: {
   handle: string;
@@ -524,20 +516,33 @@ export async function getCrowdvineProductByHandle(options: {
   };
 
   const localeForWine = locale as "sv" | "en";
+  // EN storefront: never fall back to Swedish or shared boilerplate body copy.
+  const textOpts =
+    localeForWine === "en" ? ({ fallback: false } as const) : undefined;
 
-  const tastingNotesText = extractWineText(i.tasting_notes, localeForWine);
-  const summaryText = extractWineText(i.summary, localeForWine);
+  const tastingNotesText = extractWineText(
+    i.tasting_notes,
+    localeForWine,
+    textOpts,
+  );
+  const summaryText = extractWineText(i.summary, localeForWine, textOpts);
   const tastingLead = firstSentence(tastingNotesText);
 
-  const rawDescription = extractWineText(i.description, localeForWine);
-  const wineDescription =
-    rawDescription ||
-    tastingLead ||
-    (localeForWine === "en"
-      ? englishDescriptionBoilerplate(i.color, i.vintage, i.grape_varieties)
-      : "");
+  const rawDescription = extractWineText(
+    i.description,
+    localeForWine,
+    textOpts,
+  );
+  const wineDescription = rawDescription || tastingLead || "";
 
-  const wineDescriptionHtml = i.description_html || `<p>${wineDescription}</p>`;
+  // description_html is locale-blind; do not reuse it on EN when EN body is empty.
+  const wineDescriptionHtml =
+    localeForWine === "en"
+      ? wineDescription
+        ? `<p>${wineDescription}</p>`
+        : ""
+      : i.description_html ||
+        (wineDescription ? `<p>${wineDescription}</p>` : "");
 
   // B2B stock and shipping: from Dirty Wine pallets.
   const isB2BSite = isB2BHost(host);
