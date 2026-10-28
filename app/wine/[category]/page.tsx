@@ -6,6 +6,7 @@ import { notFound, permanentRedirect } from "next/navigation";
 import ProductList from "@/app/vin/components/product-list";
 import { ProductListShell } from "@/app/vin/components/product-list-shell";
 import {
+  catalogHasMinProducts,
   catalogHasProducts,
   fetchProductsData,
 } from "@/lib/crowdvine/products-data";
@@ -55,7 +56,10 @@ import {
 import { buildFaqPageJsonLd } from "@/lib/wine-category-faq";
 import { CategoryFaqSection } from "@/components/shop/category-faq-section";
 import { WINE_CATEGORIES_EN } from "@/lib/wine-categories";
-import { resolveGrapeCategoryBySlug } from "@/lib/wine-grape-categories";
+import {
+  grapeCategoryIndexMinWines,
+  resolveGrapeCategoryBySlug,
+} from "@/lib/wine-grape-categories";
 import { ProducerBoxesPage } from "@/components/producer-boxes/producer-boxes-page";
 import { isProducerBoxesSlug } from "@/lib/producer-boxes/config";
 import { buildProducerBoxesMetadata } from "@/lib/producer-boxes/metadata";
@@ -85,18 +89,22 @@ export async function generateMetadata(props: {
     const isB2BSite = isB2BHost(
       headerList.get("x-forwarded-host") ?? headerList.get("host"),
     );
-    const [config, hasProducts] = await Promise.all([
+    const indexMinWines = grapeCategoryIndexMinWines(category);
+    const [config, hasIndexableListing] = await Promise.all([
       getSiteConfig(),
-      catalogHasProducts({
-        filterColor: category.filter.color,
-        filterTags: category.filter.tags,
-        filterIsNatural: category.filter.isNatural,
-        filterFarming: category.filter.farming,
-        filterGrape: category.filter.filterGrape,
-        filterCountryCode: category.filter.countryCode,
-        filterRegion: category.filter.region,
-        isB2BSite,
-      }),
+      catalogHasMinProducts(
+        {
+          filterColor: category.filter.color,
+          filterTags: category.filter.tags,
+          filterIsNatural: category.filter.isNatural,
+          filterFarming: category.filter.farming,
+          filterGrape: category.filter.filterGrape,
+          filterCountryCode: category.filter.countryCode,
+          filterRegion: category.filter.region,
+          isB2BSite,
+        },
+        indexMinWines,
+      ),
     ]);
     const pageUrl = `${PACT_PUBLIC_ORIGIN}/wine/${slug}`;
     const canonicalUrl = shopCategoryCanonicalUrl(slug, "en", PACT_PUBLIC_ORIGIN);
@@ -112,7 +120,7 @@ export async function generateMetadata(props: {
       title,
       description: metaDescription,
       robots: categoryPageRobots(slug, "en", searchParams, {
-        emptyListing: !hasProducts,
+        emptyListing: !hasIndexableListing,
       }),
       alternates: {
         canonical: canonicalUrl,

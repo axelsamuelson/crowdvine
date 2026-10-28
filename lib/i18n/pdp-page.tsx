@@ -26,6 +26,10 @@ import {
   defaultOpenGraphImages,
   pageTwitterCard,
 } from "@/lib/seo/default-social";
+import {
+  buildPdpMerchantReturnPolicy,
+  buildPdpOfferShippingDetails,
+} from "@/lib/seo/product-offer-policies";
 import { getSiteConfig } from "@/lib/site-config-server";
 import { formatPrice } from "@/lib/shopify/utils";
 import type { Product } from "@/lib/shopify/types";
@@ -151,6 +155,8 @@ export async function renderProductPdpPage(options: {
         name: config.name,
         sameAs: ["https://www.instagram.com/pactwines"],
       },
+      shippingDetails: buildPdpOfferShippingDetails(),
+      hasMerchantReturnPolicy: buildPdpMerchantReturnPolicy(),
     },
     ...(product.wineEnrichment && {
       additionalProperty: [

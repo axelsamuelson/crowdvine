@@ -6,6 +6,7 @@ import { resolveWineAlcoholTaxCents } from "@/lib/wine-alcohol-tax";
 import { isB2BHost } from "@/lib/b2b-site";
 import { resolveWineAbv } from "@/lib/product/wine-enrichment";
 import {
+  extractStorefrontWineText,
   extractWineArray,
   extractWineText,
 } from "@/lib/i18n/wine-locale";
@@ -108,13 +109,6 @@ function buildPdpSeoDescription(
   return `${truncated}${shortSuffix}`;
 }
 
-function englishDescriptionBoilerplate(
-  color: string | null | undefined,
-  vintage: string | null | undefined,
-  grapeVarieties: string | null | undefined,
-): string {
-  return `This exceptional ${color || "wine"} wine from ${vintage} showcases the unique characteristics of ${grapeVarieties || "carefully selected grapes"}. Crafted with precision and passion, this wine offers a perfect balance of flavors and aromas that will delight your palate.`;
-}
 
 /** Direct DB lookup — bypasses HTTP and Deployment Protection. */
 export async function getCrowdvineProductByHandle(options: {
@@ -525,19 +519,24 @@ export async function getCrowdvineProductByHandle(options: {
 
   const localeForWine = locale as "sv" | "en";
 
-  const tastingNotesText = extractWineText(i.tasting_notes, localeForWine);
-  const summaryText = extractWineText(i.summary, localeForWine);
+  const tastingNotesText = extractStorefrontWineText(
+    i.tasting_notes,
+    localeForWine,
+  );
+  const summaryText = extractStorefrontWineText(i.summary, localeForWine);
   const tastingLead = firstSentence(tastingNotesText);
 
-  const rawDescription = extractWineText(i.description, localeForWine);
-  const wineDescription =
-    rawDescription ||
-    tastingLead ||
-    (localeForWine === "en"
-      ? englishDescriptionBoilerplate(i.color, i.vintage, i.grape_varieties)
-      : "");
+  const rawDescription = extractStorefrontWineText(
+    i.description,
+    localeForWine,
+  );
+  const wineDescription = rawDescription || tastingLead || "";
 
-  const wineDescriptionHtml = i.description_html || `<p>${wineDescription}</p>`;
+  const wineDescriptionHtml = i.description_html
+    ? i.description_html
+    : wineDescription
+      ? `<p>${wineDescription}</p>`
+      : "";
 
   // B2B stock and shipping: from Dirty Wine pallets.
   const isB2BSite = isB2BHost(host);

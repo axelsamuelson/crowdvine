@@ -13,6 +13,28 @@ export type ExtractWineTextOptions = {
   fallback?: boolean;
 };
 
+/** Legacy EN filler written into many wine.description rows. */
+export function isEnglishWineDescriptionBoilerplate(
+  text: string | null | undefined,
+): boolean {
+  return Boolean(text?.trimStart().startsWith("This exceptional "));
+}
+
+/**
+ * Storefront wine copy: EN never falls back to SV, and the shared EN
+ * boilerplate is treated as empty so PDPs do not share duplicate bodies.
+ */
+export function extractStorefrontWineText(
+  field: Record<string, string> | string | null | undefined,
+  locale: WineLocale = DEFAULT_WINE_LOCALE,
+): string | null {
+  const text = extractWineText(field, locale, {
+    fallback: locale === "en" ? false : undefined,
+  });
+  if (isEnglishWineDescriptionBoilerplate(text)) return null;
+  return text;
+}
+
 /** Unwrap locale JSONB (including accidentally double-nested `{ sv: { sv: "…" } }`). */
 export function extractWineText(
   field: Record<string, string> | string | null | undefined,

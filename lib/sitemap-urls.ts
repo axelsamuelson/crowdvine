@@ -2,7 +2,10 @@ import { HIDDEN_PRODUCT_TAG } from "@/lib/constants";
 import { fetchIndexableProducersFromDb } from "@/lib/crowdvine/indexable-producers";
 import { generateProducerSlug } from "@/lib/producer-handle";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
-import { grapeNameToSlug } from "@/lib/wine-grape-categories";
+import {
+  DYNAMIC_GRAPE_INDEX_MIN_WINES,
+  grapeNameToSlug,
+} from "@/lib/wine-grape-categories";
 import { WINE_CATEGORIES_EN, WINE_CATEGORIES_SV } from "@/lib/wine-categories";
 
 export type IndexableWineRow = {
@@ -110,7 +113,12 @@ export async function fetchIndexableProducers(): Promise<IndexableProducerRow[]>
   }));
 }
 
-/** Distinct grape slugs from indexable wines not already covered by static categories. */
+/**
+ * Distinct grape slugs from indexable wines not already covered by static
+ * categories. Only grapes that appear on at least
+ * {@link DYNAMIC_GRAPE_INDEX_MIN_WINES} wines are returned — thin one-wine
+ * PLPs stay out of the sitemap.
+ */
 export async function fetchDynamicGrapeSlugs(
   knownSlugs: Set<string>,
 ): Promise<string[]> {
@@ -124,20 +132,22 @@ export async function fetchDynamicGrapeSlugs(
     .eq("producers.status", "active")
     .not("grape_varieties", "is", null);
 
-  const slugs = new Set<string>();
+  const counts = new Map<string, number>();
   for (const row of wines ?? []) {
     if (!isIndexableWineRow(row as Parameters<typeof isIndexableWineRow>[0])) {
       continue;
     }
     for (const grape of parseGrapeVarieties(row.grape_varieties as string)) {
       const slug = grapeNameToSlug(grape);
-      if (slug && !knownSlugs.has(slug)) {
-        slugs.add(slug);
-      }
+      if (!slug || knownSlugs.has(slug)) continue;
+      counts.set(slug, (counts.get(slug) ?? 0) + 1);
     }
   }
 
-  return Array.from(slugs).sort();
+  return Array.from(counts.entries())
+    .filter(([, count]) => count >= DYNAMIC_GRAPE_INDEX_MIN_WINES)
+    .map(([slug]) => slug)
+    .sort();
 }
 
 /**

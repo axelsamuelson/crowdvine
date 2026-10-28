@@ -4,7 +4,7 @@ import { wineDisplayTitle } from "@/lib/wine-display-title";
 import { getAppUrl, getInternalFetchHeaders } from "@/lib/app-url";
 import { DEFAULT_WINE_IMAGE_PATH } from "@/lib/constants";
 import {
-  extractWineText,
+  extractStorefrontWineText,
   type WineLocale,
 } from "@/lib/i18n/wine-locale";
 import { resolveProductAvailableForSale } from "@/lib/wine-availability";
@@ -669,22 +669,18 @@ export async function fetchProductsData(params?: {
             },
           ];
 
-    const rawDescription = extractWineText(
-      i.description as Record<string, string> | string | null,
-      wineLocale,
-    );
     const wineDescription =
-      rawDescription ||
-      `This exceptional ${i.color || "wine"} wine from ${
-        i.vintage
-      } showcases the unique characteristics of ${
-        i.grape_varieties || "carefully selected grapes"
-      }. Crafted with precision and passion.`;
+      extractStorefrontWineText(
+        i.description as Record<string, string> | string | null,
+        wineLocale,
+      ) || "";
 
     const safeDescriptionHtml =
       typeof i.description_html === "string" && i.description_html
         ? i.description_html
-        : `<p>${wineDescription}</p>`;
+        : wineDescription
+          ? `<p>${wineDescription}</p>`
+          : "";
 
     return {
       id: i.id,
@@ -1056,15 +1052,16 @@ export async function fetchCollectionProductsData(
       : undefined;
     const b2bIsNew = isB2BSite ? collIsNewWineIds.has(i.id) : undefined;
 
-    const rawDesc = extractWineText(
-      i.description as Record<string, string> | string | null,
-      wineLocale,
-    );
+    const rawDesc =
+      extractStorefrontWineText(
+        i.description as Record<string, string> | string | null,
+        wineLocale,
+      ) || "";
 
     return {
       id: i.id,
       title: wineDisplayTitle(i.wine_name, i.vintage),
-      description: rawDesc || "",
+      description: rawDesc,
       descriptionHtml: rawDesc ? `<p>${rawDesc}</p>` : "",
       handle: i.handle,
       productType: "wine",
@@ -1186,11 +1183,31 @@ export async function catalogHasProducts(filters?: {
   filterRegion?: string;
   isB2BSite?: boolean;
 }): Promise<boolean> {
+  return catalogHasMinProducts(filters, 1);
+}
+
+/** True when the filtered catalog has at least `min` indexable products. */
+export async function catalogHasMinProducts(
+  filters:
+    | {
+        filterColor?: string[];
+        filterTags?: string[];
+        filterIsNatural?: boolean;
+        filterFarming?: string[];
+        filterGrape?: string;
+        filterCountryCode?: string;
+        filterRegion?: string;
+        isB2BSite?: boolean;
+      }
+    | undefined,
+  min: number,
+): Promise<boolean> {
+  if (min <= 0) return true;
   if (supabaseBuildUsesPlaceholder()) return false;
   const rows = await fetchProductsData({
     ...filters,
-    limit: 1,
+    limit: min,
     isB2BSite: filters?.isB2BSite ?? false,
   });
-  return rows.length > 0;
+  return rows.length >= min;
 }

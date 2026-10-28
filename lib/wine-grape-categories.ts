@@ -13,8 +13,39 @@ import {
   WINE_CATEGORIES_SV,
 } from "@/lib/wine-categories";
 
+/**
+ * Dynamic one-line grape PLPs need at least this many indexable wines
+ * before they enter the sitemap or stay indexable. Editorial grape
+ * categories (static long-tail / content overrides) are exempt.
+ */
+export const DYNAMIC_GRAPE_INDEX_MIN_WINES = 3;
+
 export function grapeNameToSlug(grapeName: string): string {
   return generateProducerSlug(grapeName);
+}
+
+/** Thin generated grape PLP: grape filter only, no editorial body fields. */
+export function isThinDynamicGrapeCategory(category: WineCategory): boolean {
+  if (!isGrapeOnlyCategory(category)) return false;
+  return !(
+    Boolean(category.longDescription?.trim()) ||
+    Boolean(category.tastingProfile?.length) ||
+    Boolean(category.foodPairing?.trim()) ||
+    Boolean(category.aboutText?.trim()) ||
+    Boolean(category.faq?.length) ||
+    Boolean(category.contentHeading?.trim())
+  );
+}
+
+/**
+ * Minimum wine count required before a category listing is indexable.
+ * Editorial grape pages stay at 1; thin dynamic grapes need
+ * {@link DYNAMIC_GRAPE_INDEX_MIN_WINES}.
+ */
+export function grapeCategoryIndexMinWines(category: WineCategory): number {
+  return isThinDynamicGrapeCategory(category)
+    ? DYNAMIC_GRAPE_INDEX_MIN_WINES
+    : 1;
 }
 
 function parseGrapeVarieties(raw: string | null | undefined): string[] {
