@@ -83,6 +83,11 @@ export type GuideLocaleCopy = {
     intro: string[];
     languedocBeforeLinks: string;
     languedocAfterLinks: string;
+    languedocShopBefore: string;
+    languedocShopLink: string;
+    languedocShopMid: string;
+    languedocBoxLink: string;
+    languedocShopAfter: string;
     crossLinkWines: string;
     allGuidesHeading: string;
   };
@@ -96,6 +101,9 @@ export type GuideLocaleCopy = {
     intro: string[];
     languedocBody: string;
     languedocShopLabel: string;
+    languedocBoxBefore: string;
+    languedocBoxLink: string;
+    languedocBoxAfter: string;
     crossLinkProducers: string;
   };
 };
@@ -248,6 +256,11 @@ const SV: GuideLocaleCopy = {
       "Tio av producenterna på listan verkar i Languedoc och Roussillon. Det är samma landskap — samma skifferberg i Faugères, samma höjdlägen i Haute Vallée de l'Orb — som vinerna vi själva importerar kommer ifrån.",
     languedocAfterLinks:
       "Två kopplingar är särskilt direkta. Axel Prüfer i Le Bousquet-d'Orb (#38) är granne med både Hors Saison och Le Bouc à Trois Pattes, och hjälpte Olga Ivanova och Antoine Monod igång när de startade Hors Saison 2021. Didier Barral i Faugères (#71) var lärare åt Yannick Pelletier, vars domän ligger på gränsen mellan Saint-Chinian och Faugères.",
+    languedocShopBefore: "Handla våra Languedoc-viner i ",
+    languedocShopLink: "butiken",
+    languedocShopMid: ", eller ta en ",
+    languedocBoxLink: "naturvinslåda",
+    languedocShopAfter: " med sex flaskor från samma gård.",
     crossLinkWines: "Världens 100 bästa naturviner (2026) →",
     allGuidesHeading: "Alla producentguider",
   },
@@ -269,6 +282,9 @@ const SV: GuideLocaleCopy = {
     languedocBody:
       "Sex av vinerna på listan kommer från Languedoc och Roussillon, samma landskap som vinerna vi själva importerar. Utforska vårt sortiment från regionen i",
     languedocShopLabel: "naturvin från Languedoc",
+    languedocBoxBefore: "Vill du lära känna en gård därifrån på djupet? Börja med en ",
+    languedocBoxLink: "naturvinslåda",
+    languedocBoxAfter: ": sex flaskor från samma producent.",
     crossLinkProducers: "Världens 100 bästa naturvinsproducenter →",
   },
 };
@@ -405,6 +421,11 @@ const EN: GuideLocaleCopy = {
       "Ten of the producers on this list work in Languedoc and Roussillon. It is the same landscape — the same schist hills in Faugères, the same altitude sites in the Haute Vallée de l'Orb — that the wines we import ourselves come from.",
     languedocAfterLinks:
       "Two connections are especially direct. Axel Prüfer in Le Bousquet-d'Orb (#38) is a neighbour of both Hors Saison and Le Bouc à Trois Pattes, and helped Olga Ivanova and Antoine Monod get started when they founded Hors Saison in 2021. Didier Barral in Faugères (#71) taught Yannick Pelletier, whose domaine sits on the border between Saint-Chinian and Faugères.",
+    languedocShopBefore: "Shop our Languedoc wines in the ",
+    languedocShopLink: "store",
+    languedocShopMid: ", or take a ",
+    languedocBoxLink: "natural wine box",
+    languedocShopAfter: " with six bottles from the same farm.",
     crossLinkWines: "The 100 Best Natural Wines in the World (2026) →",
     allGuidesHeading: "All producer guides",
   },
@@ -426,6 +447,10 @@ const EN: GuideLocaleCopy = {
     languedocBody:
       "Six of the wines on this list come from Languedoc and Roussillon, the same landscape as the wines we import ourselves. Explore our selection from the region in",
     languedocShopLabel: "natural wine from Languedoc",
+    languedocBoxBefore:
+      "Want to get to know one of those farms in depth? Start with a ",
+    languedocBoxLink: "natural wine box",
+    languedocBoxAfter: ": six bottles from the same producer.",
     crossLinkProducers: "The World's 100 Best Natural Wine Producers →",
   },
 };

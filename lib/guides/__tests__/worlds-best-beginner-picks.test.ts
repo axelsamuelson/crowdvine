@@ -37,10 +37,20 @@ describe("BEGINNER_PICKS", () => {
       copy.intro,
       copy.moreBefore,
       copy.moreLink,
+      copy.shopBefore,
+      copy.shopLink,
+      copy.shopMid,
+      copy.boxLink,
+      copy.shopAfter,
       en.heading,
       en.intro,
       en.moreBefore,
       en.moreLink,
+      en.shopBefore,
+      en.shopLink,
+      en.shopMid,
+      en.boxLink,
+      en.shopAfter,
     );
 
     for (const value of strings) {
@@ -55,6 +65,15 @@ describe("BEGINNER_PICKS", () => {
     expect(beginnerPickCopy("en").moreHref).toBe(
       "/guides/best-natural-wines-systembolaget",
     );
+  });
+
+  it("links beginners into the PACT shop and natural wine box", () => {
+    const sv = beginnerPickCopy("sv");
+    const en = beginnerPickCopy("en");
+    expect(sv.shopHref).toBe("/vin");
+    expect(sv.boxHref).toBe("/vin/naturvin-lada");
+    expect(en.shopHref).toBe("/wine");
+    expect(en.boxHref).toBe("/wine/natural-wine-box");
   });
 
   it("SV and EN page routes both call the same renderWinesGuidePage", () => {
