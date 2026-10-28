@@ -53,6 +53,8 @@ import {
   SYSTEMBOLAGET_BEST_UPLINK,
   SYSTEMBOLAGET_RANKED_LISTS,
 } from "@/lib/guides/systembolaget-list-links";
+import { producerShopPathFromName } from "@/lib/i18n/localized-routes";
+import { PRODUCER_BOXES_PATH } from "@/lib/producer-boxes/config";
 
 function linkLanguedocMentions(
   text: string,
@@ -102,22 +104,23 @@ function linkedProducerBlurb(
 }
 
 function ProducersLanguedocConnections({ locale }: { locale: AppLocale }) {
-  const producerBase = locale === "sv" ? "/producenter" : "/producers";
   const linkClass = "underline underline-offset-4 hover:text-foreground";
+  const horsSaisonShop = producerShopPathFromName("Hors Saison", locale);
+  const boucShop = producerShopPathFromName(
+    "Le Bouc à Trois Pattes",
+    locale,
+  );
 
   if (locale === "en") {
     return (
       <p className="text-sm leading-relaxed text-muted-foreground md:text-base">
         Two connections are especially direct. Axel Prüfer in Le
         Bousquet-d&apos;Orb (#38) is a neighbour of both{" "}
-        <Link href={`${producerBase}/hors-saison`} className={linkClass}>
+        <Link href={horsSaisonShop} className={linkClass}>
           Hors Saison
         </Link>{" "}
         and{" "}
-        <Link
-          href={`${producerBase}/le-bouc-a-trois-pattes`}
-          className={linkClass}
-        >
+        <Link href={boucShop} className={linkClass}>
           Le Bouc à Trois Pattes
         </Link>
         , and helped Olga Ivanova and Antoine Monod get started when they
@@ -132,14 +135,11 @@ function ProducersLanguedocConnections({ locale }: { locale: AppLocale }) {
     <p className="text-sm leading-relaxed text-muted-foreground md:text-base">
       Två kopplingar är särskilt direkta. Axel Prüfer i Le
       Bousquet-d&apos;Orb (#38) är granne med både{" "}
-      <Link href={`${producerBase}/hors-saison`} className={linkClass}>
+      <Link href={horsSaisonShop} className={linkClass}>
         Hors Saison
       </Link>{" "}
       och{" "}
-      <Link
-        href={`${producerBase}/le-bouc-a-trois-pattes`}
-        className={linkClass}
-      >
+      <Link href={boucShop} className={linkClass}>
         Le Bouc à Trois Pattes
       </Link>
       , och hjälpte Olga Ivanova och Antoine Monod igång när de startade Hors
@@ -446,13 +446,39 @@ export async function renderProducersGuidePage(locale: AppLocale) {
             {linkLanguedocMentions(copy.producers.languedocBeforeLinks, locale)}
           </p>
           <ProducersLanguedocConnections locale={locale} />
+          <p className="text-sm leading-relaxed text-muted-foreground md:text-base">
+            {copy.producers.languedocShopBefore}
+            <Link
+              href={shopNatural}
+              className="underline underline-offset-4 hover:text-foreground"
+            >
+              {copy.producers.languedocShopLink}
+            </Link>
+            {copy.producers.languedocShopMid}
+            <Link
+              href={PRODUCER_BOXES_PATH[locale]}
+              className="underline underline-offset-4 hover:text-foreground"
+            >
+              {copy.producers.languedocBoxLink}
+            </Link>
+            {copy.producers.languedocShopAfter}
+          </p>
           <ul className="mt-6 space-y-2 text-sm text-muted-foreground">
             {languedoc.map((producer) => (
               <li key={producer.rank}>
                 <span className="font-medium tabular-nums text-foreground">
                   #{producer.rank}
                 </span>{" "}
-                {producer.name}
+                {producerGuideHref(producer.rank, locale) ? (
+                  <Link
+                    href={producerGuideHref(producer.rank, locale)!}
+                    className="underline underline-offset-4 hover:text-foreground"
+                  >
+                    {producer.name}
+                  </Link>
+                ) : (
+                  producer.name
+                )}
                 <span className="text-muted-foreground/80">
                   {" "}
                   — {producer.region}

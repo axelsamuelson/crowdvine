@@ -241,6 +241,13 @@ export function beginnerPickCopy(locale: AppLocale): {
   moreLink: string;
   moreHref: string;
   moreAfter: string;
+  shopBefore: string;
+  shopLink: string;
+  shopHref: string;
+  shopMid: string;
+  boxLink: string;
+  boxHref: string;
+  shopAfter: string;
 } {
   if (locale === "sv") {
     return {
@@ -251,6 +258,13 @@ export function beginnerPickCopy(locale: AppLocale): {
       moreLink: "naturvin på Systembolaget",
       moreHref: "/guider/basta-naturvinerna-pa-systembolaget",
       moreAfter: ".",
+      shopBefore: "Vill du hellre handla direkt från oss? Utforska vårt ",
+      shopLink: "sortiment",
+      shopHref: "/vin",
+      shopMid: " eller en ",
+      boxLink: "naturvinslåda",
+      boxHref: "/vin/naturvin-lada",
+      shopAfter: ": sex flaskor från samma Languedoc-producent.",
     };
   }
   return {
@@ -261,5 +275,12 @@ export function beginnerPickCopy(locale: AppLocale): {
     moreLink: "natural wine at Systembolaget",
     moreHref: "/guides/best-natural-wines-systembolaget",
     moreAfter: ".",
+    shopBefore: "Prefer to buy from us directly? Explore our ",
+    shopLink: "range",
+    shopHref: "/wine",
+    shopMid: " or a ",
+    boxLink: "natural wine box",
+    boxHref: "/wine/natural-wine-box",
+    shopAfter: ": six bottles from the same Languedoc producer.",
   };
 }
