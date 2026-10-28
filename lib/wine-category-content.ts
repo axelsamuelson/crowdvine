@@ -43,6 +43,23 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
         "Biodynamiskt vin från Languedoc passar till medelhavsmat — grillat lamm, ratatouille, svamp, chark och mogna ostar. Lättare röda och orangeviner kan serveras något svalare; fylligare röda till långkok och grytor.",
       aboutText:
         "Biodynamiskt vin från certifierade producenter, med leverans i Stockholm.",
+      faq: [
+        {
+          question: "Vad är biodynamiskt vin?",
+          answer:
+            "Biodynamiskt vin odlas enligt en helhetssyn på vingården som levande ekosystem, ofta efter Demeters regler. Utöver att undvika syntetiska medel används kompostpreparat och arbete som följer vingårdens rytm. Läs mer om skillnaden mot [ekologiskt vin](/vin/ekologiskt-vin) och [naturvin](/guider/vad-ar-naturvin).",
+        },
+        {
+          question: "Är biodynamiskt vin samma sak som naturvin?",
+          answer:
+            "Nej. Biodynamiskt handlar främst om hur druvorna odlas. Naturvin ställer krav både i vingård och källare, med vild jäsning och få eller inga tillsatser. Många producenter gör båda, men det är två olika begrepp.",
+        },
+        {
+          question: "Hur köper jag biodynamiskt vin hos PACT?",
+          answer:
+            "Du reserverar flaskor online. När pallen är full skickas vinet med hemleverans i Stockholm. Se också vårt urval av [orange vin](/vin/orange-naturvin).",
+        },
+      ],
     },
   },
   "biodynamic-wine": {
@@ -64,6 +81,23 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
         "Biodynamic wine from Languedoc suits Mediterranean food — grilled lamb, ratatouille, mushrooms, charcuterie and mature cheeses. Lighter reds and orange wines can be served slightly chilled; fuller reds with slow-cooked dishes and stews.",
       aboutText:
         "Biodynamic wine from certified producers, with delivery in Stockholm.",
+      faq: [
+        {
+          question: "What is biodynamic wine?",
+          answer:
+            "Biodynamic wine is grown with a whole-farm view of the vineyard as a living ecosystem, often under Demeter rules. Beyond avoiding synthetic inputs, growers use compost preparations and work with the vineyard's rhythms. See also [organic wine](/wine/organic-wine) and [what natural wine is](/guides/what-is-natural-wine).",
+        },
+        {
+          question: "Is biodynamic wine the same as natural wine?",
+          answer:
+            "No. Biodynamic mainly describes how grapes are grown. Natural wine sets rules in both vineyard and cellar, with wild fermentation and few or no additives. Many producers do both, but they are different ideas.",
+        },
+        {
+          question: "How do I buy biodynamic wine from PACT?",
+          answer:
+            "You reserve bottles online. When the pallet is full the wine ships with home delivery in Stockholm. See also our [orange wine](/wine/orange-natural-wine) selection.",
+        },
+      ],
     },
   },
   "ekologiskt-vin": {
@@ -85,6 +119,23 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
         "Ekologiskt vin från Languedoc passar till medelhavsmat — grillat lamm, ratatouille, fisk, chark och grönsaksrätter. Lättare röda och orangeviner kan serveras något svalare; fylligare röda till grytor och ost.",
       aboutText:
         "Ekologiskt vin från certifierade producenter, med leverans i Stockholm.",
+      faq: [
+        {
+          question: "Vad är ekologiskt vin?",
+          answer:
+            "Ekologiskt vin odlas enligt EU:s ekologiska regler utan syntetiska bekämpningsmedel och konstgödsel. Certifieringen gäller vingården; i källaren kan producenten fortfarande arbeta på olika sätt. Jämför med [biodynamiskt vin](/vin/biodynamiskt-vin) och [vad naturvin är](/guider/vad-ar-naturvin).",
+        },
+        {
+          question: "Är ekologiskt vin samma sak som naturvin?",
+          answer:
+            "Nej. Ekologiskt handlar om hur druvorna odlas. Naturvin ställer krav både i vingård och källare. Många flaskor hos PACT är båda, men begreppen är skilda.",
+        },
+        {
+          question: "Hur köper jag ekologiskt vin hos PACT?",
+          answer:
+            "Du reserverar online och får hemleverans i Stockholm när pallen är full. Se även [orange vin](/vin/orange-naturvin) och [biodynamiskt vin](/vin/biodynamiskt-vin).",
+        },
+      ],
     },
   },
   "organic-wine": {
@@ -106,6 +157,23 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
         "Organic wine from Languedoc suits Mediterranean food — grilled lamb, ratatouille, fish, charcuterie and vegetable dishes. Lighter reds and orange wines can be served slightly chilled; fuller reds with stews and cheese.",
       aboutText:
         "Organic wine from certified producers, with delivery in Stockholm.",
+      faq: [
+        {
+          question: "What is organic wine?",
+          answer:
+            "Organic wine is grown under EU organic rules without synthetic pesticides or chemical fertilisers. Certification covers the vineyard; cellar practice can still vary. Compare with [biodynamic wine](/wine/biodynamic-wine) and [what natural wine is](/guides/what-is-natural-wine).",
+        },
+        {
+          question: "Is organic wine the same as natural wine?",
+          answer:
+            "No. Organic is about how grapes are grown. Natural wine sets rules in both vineyard and cellar. Many PACT bottles are both, but the terms are different.",
+        },
+        {
+          question: "How do I buy organic wine from PACT?",
+          answer:
+            "You reserve online and get home delivery in Stockholm when the pallet is full. See also [orange wine](/wine/orange-natural-wine) and [biodynamic wine](/wine/biodynamic-wine).",
+        },
+      ],
     },
   },
   "rott-naturvin": {

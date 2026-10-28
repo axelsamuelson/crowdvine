@@ -17,11 +17,9 @@ import { WINE_CATEGORIES_EN, WINE_CATEGORIES_SV } from "@/lib/wine-categories";
 import { LEGACY_SHOP_REDIRECT_SLUGS } from "@/lib/wine-shop-filter-categories";
 import {
   dedupeSitemapEntries,
-  fetchDynamicGrapeSlugs,
   fetchIndexableProducersWithWines,
   fetchIndexableWines,
   fetchProducerShopSlugs,
-  getKnownCategorySlugs,
 } from "@/lib/sitemap-urls";
 
 export type SitemapSiteProfile = "pact" | "dirtywine";
@@ -268,15 +266,8 @@ async function buildSitemapEntriesUncached(
       }),
     )
   ).filter((e): e is NonNullable<typeof e> => e != null);
-  const knownCategorySlugs = getKnownCategorySlugs();
-
-  const dynamicGrapeSlugs = await fetchDynamicGrapeSlugs(knownCategorySlugs);
-  const dynamicGrapePages: MetadataRoute.Sitemap = dynamicGrapeSlugs.flatMap(
-    (slug) => [
-      weeklyEntry(`${baseUrl}/vin/${slug}`, 0.75),
-      weeklyEntry(`${baseUrl}/wine/${slug}`, 0.75),
-    ],
-  );
+  // Dynamic grape PLPs (one-line generated copy) stay out of the sitemap.
+  // Editorial grape pages already land via vinCategories / wineCategories.
 
   const producerShopSlugs = (await fetchProducerShopSlugs()).filter((slug) =>
     visibleProducerSlugs ? visibleProducerSlugs.has(slug) : true,
@@ -292,7 +283,6 @@ async function buildSitemapEntriesUncached(
     ...staticPages,
     ...vinCategories,
     ...wineCategories,
-    ...dynamicGrapePages,
     ...producerShopPages,
     ...winePages,
     ...producerProfilePages,

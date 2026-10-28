@@ -14,11 +14,7 @@ import {
   pickWineSourceSlugsForProducts,
 } from "@/lib/external-prices/cached-source-slugs";
 import { mapProductDataToShopProducts } from "@/lib/map-product-data-to-shop-product";
-import { generateProducerSlug } from "@/lib/producer-handle";
-import {
-  producerPageUrls,
-  producerPublicPath,
-} from "@/lib/i18n/localized-routes";
+import { PACT_PUBLIC_ORIGIN } from "@/lib/i18n/localized-routes";
 import {
   producerShopPageHeading,
   producerShopPagePath,
@@ -35,13 +31,13 @@ import { getShoppingContextFromRequest } from "@/lib/shopping-context/server";
 import { fallbackShoppingContext } from "@/lib/shopping-context/defaults";
 import { DIRTY_WINE_CONFIG } from "@/lib/site-config";
 import { getSiteConfig } from "@/lib/site-config-server";
-import { PACT_PUBLIC_ORIGIN } from "@/lib/i18n/localized-routes";
 import { categoryPageTitle } from "@/lib/seo/category-page-title";
 import { shopCategoryCanonicalUrl } from "@/lib/wine-category-canonical";
 import { localizeGeneratedCategoryCopy } from "@/lib/wine-shop-filter-categories";
 import {
   categoryPageRobots,
   emptyListingRobots,
+  isThinDynamicGrapeCategory,
 } from "@/lib/seo/noindex-robots";
 import { shopSearchParamsRobots } from "@/lib/seo/shop-search-robots";
 import {
@@ -113,6 +109,7 @@ export async function generateMetadata(props: {
       description: metaDescription,
       robots: categoryPageRobots(slug, "en", searchParams, {
         emptyListing: !hasProducts,
+        thinDynamicGrape: isThinDynamicGrapeCategory(category),
       }),
       alternates: {
         canonical: canonicalUrl,
@@ -210,12 +207,10 @@ export default async function WineCategoryPage(props: PageProps) {
 
     const shopHeading = producerShopPageHeading(collection.title, "en");
     const config = await getSiteConfig();
-    const producerSlug = generateProducerSlug(collection.title);
-    const producerUrls = producerPageUrls(producerSlug);
     const shopUrl = `${PACT_PUBLIC_ORIGIN}${producerShopPagePath(collection.title, "en")}`;
     const producerCollection = asProducerCollectionData(collection);
-    const profilePath = producerPublicPath(producerSlug, "en");
 
+    // Shop → producer shop PLP only. Profile lives in the editorial block, not crumbs.
     const breadcrumbJsonLd = {
       "@context": "https://schema.org",
       "@type": "BreadcrumbList",
@@ -229,12 +224,6 @@ export default async function WineCategoryPage(props: PageProps) {
         {
           "@type": "ListItem",
           position: 2,
-          name: collection.title,
-          item: producerUrls.en,
-        },
-        {
-          "@type": "ListItem",
-          position: 3,
           name: shopHeading,
           item: shopUrl,
         },
@@ -258,8 +247,6 @@ export default async function WineCategoryPage(props: PageProps) {
           collection={slug}
           searchParams={searchParams}
           breadcrumbLabel={shopHeading}
-          producerProfileHref={profilePath}
-          producerProfileLabel={collection.title}
         />
         <ProducerShopEditorialBlock
           collection={producerCollection}

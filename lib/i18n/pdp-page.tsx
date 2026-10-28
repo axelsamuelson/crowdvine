@@ -9,6 +9,7 @@ import {
   getPdpRequestHost,
 } from "@/lib/crowdvine/pdp-product-cache";
 import { isProductPdpIndexable } from "@/lib/seo/product-indexable";
+import { productOfferCommerceFields } from "@/lib/seo/product-offer-policies";
 import { fetchPdpRecommendationsForWine } from "@/lib/crowdvine/pdp-recommendations-data";
 import { getOffersByWineId } from "@/lib/external-prices/db";
 import type { AppLocale } from "@/lib/i18n/locale";
@@ -151,6 +152,7 @@ export async function renderProductPdpPage(options: {
         name: config.name,
         sameAs: ["https://www.instagram.com/pactwines"],
       },
+      ...productOfferCommerceFields(),
     },
     ...(product.wineEnrichment && {
       additionalProperty: [
