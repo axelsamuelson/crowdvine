@@ -88,7 +88,7 @@ Vi säljer aldrig dina personuppgifter. Vi delar dem med följande kategorier av
 | Supabase | Personuppgiftsbiträde, databas och autentisering | Konto- och orderdata | [FYLL I REGION] | [BEKRÄFTA] |
 | Vercel | Personuppgiftsbiträde, hosting | Teknisk data, loggar | EU/USA | [BEKRÄFTA] |
 | Resend | Personuppgiftsbiträde, transaktionsmail | Namn, e-post | [FYLL I] | [BEKRÄFTA] |
-| Instabee | Självständigt ansvarig eller biträde, hemleverans med ID-kontroll | Namn, adress, telefon, ordernummer | Sverige | [BEKRÄFTA ROLL OCH AVTAL] |
+| Budbee | Självständigt ansvarig eller biträde, hemleverans med ID-kontroll | Namn, adress, telefon, ordernummer | Sverige | [BEKRÄFTA ROLL OCH AVTAL] |
 | Producenter i Frankrike | Personuppgiftsbiträde, packning och etikettering av din order | Namn, leveransadress, ordernummer | Frankrike | [BEKRÄFTA, avtal saknas idag] |
 | Fraktpartner för palltransport | Personuppgiftsbiträde eller självständigt ansvarig | Leveransunderlag | Frankrike, Sverige | [BEKRÄFTA] |
 | Skatteverket och andra myndigheter | Mottagare enligt lag | Leverans- och skatteunderlag | Sverige | Ej tillämpligt |

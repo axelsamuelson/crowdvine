@@ -84,8 +84,7 @@ export default function KopvillkorContent() {
       <LegalP>
         <LegalStrong>Steg 2. Pallen fylls.</LegalStrong> Vi samlar
         reservationer tills pallen når den volym som krävs för att transporten
-        ska gå. Du kan följa pallens status på [FYLL I LÄNK, förslag:
-        pactwines.com/pallet].
+        ska gå.
       </LegalP>
       <LegalP>
         <LegalStrong>Steg 3. Pallen stänger och betalning sker.</LegalStrong>{" "}
@@ -158,12 +157,21 @@ export default function KopvillkorContent() {
         motsvarande) antingen vid reservationen eller vid debiteringen.
       </LegalP>
       <LegalP>
-        <LegalStrong>Om betalningen misslyckas</LegalStrong> när pallen stänger,
-        till exempel för att kortet gått ut eller saknar täckning, kontaktar vi
-        dig och du får [FYLL I ANTAL] dagar att ordna betalning. Sker ingen
-        betalning inom den tiden återgår varorna till försäljning.
+        <LegalStrong>Om betalningen inte kan genomföras</LegalStrong> när pallen
+        stänger, till exempel för att kortet gått ut eller saknar täckning,
+        gäller Stripes regler för betalningen och villkoren för det betalmedel
+        du använder. Sker ingen betalning återgår varorna till försäljning.
       </LegalP>
-      <LegalP>Accepterade betalmedel: [FYLL I].</LegalP>
+      <LegalP>
+        Betalning sker enligt{" "}
+        <LegalLink href="https://stripe.com/legal/ssa">
+          Stripes villkor för betalningstjänsten
+        </LegalLink>. Där regleras vilka betalmedel som kan användas och hur en
+        betalning genomförs. Använder du en av Stripes egna konsumenttjänster gäller även{" "}
+        <LegalLink href="https://stripe.com/legal/consumer">
+          Stripes konsumentvillkor
+        </LegalLink>.
+      </LegalP>
 
       <LegalH2>6. Beställningsbekräftelse och avtal</LegalH2>
       <LegalList>
@@ -179,7 +187,7 @@ export default function KopvillkorContent() {
 
       <LegalH2>7. Leverans</LegalH2>
       <LegalList>
-        <li>Leverans sker med hemleverans och ID-kontroll av [FYLL I, Instabee]</li>
+        <li>Leverans sker med hemleverans och ID-kontroll av Budbee</li>
         <li>Leverans sker till adresser i [FYLL I LEVERANSOMRÅDE]</li>
         <li>
           Beräknad leveranstid efter att pallen stängt: [FYLL I], normalt [FYLL
@@ -204,56 +212,24 @@ export default function KopvillkorContent() {
       <LegalH2>8. Om leverans inte kan genomföras</LegalH2>
       <LegalP>
         Om du inte är hemma, inte kan legitimera dig eller inte är minst 20 år
-        görs [FYLL I ANTAL] nya leveransförsök. Därefter returneras varan.
+        gör Budbee ett nytt leveransförsök. Kan leveransen inte genomföras då
+        heller returneras varan.
+      </LegalP>
+      <LegalP>
+        Hur ett uteblivet leveransförsök hanteras beskrivs av{" "}
+        <LegalLink href="https://budbee.com/se/kundservice/leveranser/">
+          Budbee
+        </LegalLink>.
       </LegalP>
 
       <LegalH2>9. Ångerrätt</LegalH2>
       <LegalP>
-        Du har rätt att ångra ditt köp inom <LegalStrong>14 dagar</LegalStrong>{" "}
-        från den dag du tog emot varan.
-      </LegalP>
-      <LegalP>
-        <LegalStrong>Så gör du.</LegalStrong> Meddela oss på [FYLL I E-POST]
-        innan ångerfristen gått ut. Du kan också använda Konsumentverkets
-        standardformulär för utövande av ångerrätt. Vi bekräftar att vi
-        mottagit din anmälan.
-      </LegalP>
-      <LegalP>
-        <LegalStrong>Vad som kan ångras.</LegalStrong> Ångerrätten gäller
-        flaskor med <LegalStrong>obruten försegling</LegalStrong>. Har du öppnat
-        en flaska kan den av hygienskäl inte lämnas tillbaka, och den flaskan
-        omfattas därför inte av ångerrätten. Övriga flaskor i samma order
-        påverkas inte.
-      </LegalP>
-      <LegalP>
-        <LegalStrong>Återbetalning.</LegalStrong> Vi betalar tillbaka vad du
-        betalat för de returnerade flaskorna, inklusive den standardfraktkostnad
-        du betalade, senast 14 dagar efter att vi tagit emot din ångeranmälan.
-        Vi kan vänta med återbetalningen tills vi fått tillbaka varan eller du
-        visat att den skickats.
-      </LegalP>
-      <LegalP>
-        <LegalStrong>Returkostnad.</LegalStrong> Du står för kostnaden att
-        skicka tillbaka varan. Den uppgår till [FYLL I BELOPP] kronor.
-      </LegalP>
-      <LegalP>
-        <LegalStrong>Varans skick.</LegalStrong> Du ansvarar för varans
-        värdeminskning om du hanterat den mer än vad som behövs för att
-        fastställa dess egenskaper.
+        Vin är en levande produkt. Ångerrätt gäller därför inte för köp på
+        pactwines.com.
       </LegalP>
 
       <LegalH2>10. Reklamation</LegalH2>
-      <LegalP>
-        Du har rätt att reklamera fel på varan i upp till 3 år från leverans
-        enligt konsumentköplagen. Fel som visar sig inom två år antas ha funnits
-        vid leveransen om inte annat kan visas.
-      </LegalP>
-      <LegalP>
-        Reklamera till [FYLL I E-POST] med ordernummer och gärna bild. Vid
-        godkänd reklamation får du ny vara eller pengarna tillbaka, och vi står
-        för returkostnaden.
-      </LegalP>
-      <LegalP>Detta gäller även korkade eller på annat sätt felaktiga viner.</LegalP>
+      <LegalP>Reklamation kan inte göras.</LegalP>
 
       <LegalH2>11. Ditt konto</LegalH2>
       <LegalP>

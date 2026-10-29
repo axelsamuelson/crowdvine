@@ -10,7 +10,7 @@ export const dynamic = "force-static";
 
 const TITLE = "Köpvillkor";
 const DESCRIPTION =
-  "Villkor för köp av vin på PACT. Åldersgräns, betalning, leverans, ångerrätt och reklamation.";
+  "Villkor för köp av vin på PACT. Åldersgräns, betalning och leverans.";
 
 export async function generateMetadata(): Promise<Metadata> {
   const config = await getSiteConfig();

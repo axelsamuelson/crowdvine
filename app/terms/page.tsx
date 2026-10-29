@@ -13,7 +13,7 @@ export const dynamic = "force-static";
 
 const TITLE = "Terms of purchase";
 const DESCRIPTION =
-  "Terms for purchasing wine on PACT. Age restriction, payment, delivery, right of withdrawal and complaints.";
+  "Terms for purchasing wine on PACT. Age restriction, payment and delivery.";
 
 export async function generateMetadata(): Promise<Metadata> {
   const config = await getSiteConfig();

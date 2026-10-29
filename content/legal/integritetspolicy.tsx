@@ -223,7 +223,7 @@ export default function IntegritetspolicyContent() {
             <LegalTd>[BEKRÄFTA]</LegalTd>
           </tr>
           <tr>
-            <LegalTd>Instabee</LegalTd>
+            <LegalTd>Budbee</LegalTd>
             <LegalTd>
               Självständigt ansvarig eller biträde, hemleverans med
               ID-kontroll
