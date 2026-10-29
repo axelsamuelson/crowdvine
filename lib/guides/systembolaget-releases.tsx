@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { SystembolagetGuideNav } from "@/components/guides/systembolaget-guide-nav";
 import { Footer } from "@/components/layout/footer";
 import { newNaturalWinesSystembolagetTitle } from "@/lib/guides/articles/new-natural-wines-systembolaget";
 import { ARTICLE_GUIDE_H2_CLASS } from "@/lib/guides/article-guide-shell";
@@ -29,6 +30,10 @@ import {
   isGuideArticlePublished,
   type GuideArticleContent,
 } from "@/lib/guides/guide-types";
+import {
+  SYSTEMBOLAGET_GUIDE_NAV_LABEL,
+  systembolagetGuideNavItems,
+} from "@/lib/guides/systembolaget-list-links";
 import { homePathForLocale } from "@/lib/i18n/localized-routes";
 import type { AppLocale } from "@/lib/i18n/locale";
 import {
@@ -234,7 +239,12 @@ export async function renderSystembolagetReleasesPage(
           <h1 className="mt-6 text-3xl font-bold tracking-tight md:text-4xl">
             {content.h1[locale]}
           </h1>
-          <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
+          <SystembolagetGuideNav
+            label={SYSTEMBOLAGET_GUIDE_NAV_LABEL[locale]}
+            items={systembolagetGuideNavItems(locale)}
+            active="new"
+          />
+          <p className="mt-6 text-lg leading-relaxed text-muted-foreground">
             {intro}
           </p>
 
