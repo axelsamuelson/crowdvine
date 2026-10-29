@@ -190,11 +190,14 @@ export async function GET(request: Request) {
     let sessions: IntentSessionRow[] = [];
     let usedView = false;
 
+    const intentSelectWithReason =
+      "session_id, site, user_id, started_at, last_seen_at, wines, cart_value, reached_checkout, last_checkout_phase, abandoned_phase, abandon_reason, last_step, last_checkout_error, is_human";
+    const intentSelectLegacy =
+      "session_id, site, user_id, started_at, last_seen_at, wines, cart_value, reached_checkout, last_checkout_phase, abandoned_phase, last_step, last_checkout_error, is_human";
+
     let viewQuery = sb
       .from("analytics_intent_sessions")
-      .select(
-        "session_id, site, user_id, started_at, last_seen_at, wines, cart_value, reached_checkout, last_checkout_phase, abandoned_phase, last_step, last_checkout_error, is_human",
-      )
+      .select(intentSelectWithReason)
       .gte("last_seen_at", sinceIso)
       .order("last_seen_at", { ascending: false })
       .limit(500);
@@ -202,7 +205,24 @@ export async function GET(request: Request) {
       viewQuery = viewQuery.eq("site", site);
     }
 
-    const { data: viewRows, error: viewErr } = await viewQuery;
+    let { data: viewRows, error: viewErr } = await viewQuery;
+    if (
+      viewErr &&
+      /abandon_reason|schema cache|Could not find/i.test(viewErr.message || "")
+    ) {
+      let legacyQuery = sb
+        .from("analytics_intent_sessions")
+        .select(intentSelectLegacy)
+        .gte("last_seen_at", sinceIso)
+        .order("last_seen_at", { ascending: false })
+        .limit(500);
+      if (site !== "all") {
+        legacyQuery = legacyQuery.eq("site", site);
+      }
+      const legacy = await legacyQuery;
+      viewRows = legacy.data;
+      viewErr = legacy.error;
+    }
 
     if (!viewErr && viewRows) {
       usedView = true;
@@ -217,6 +237,10 @@ export async function GET(request: Request) {
         reached_checkout: !!r.reached_checkout,
         last_checkout_phase: r.last_checkout_phase,
         abandoned_phase: r.abandoned_phase,
+        abandon_reason:
+          "abandon_reason" in r
+            ? ((r as { abandon_reason?: string | null }).abandon_reason ?? null)
+            : null,
         last_step: r.last_step,
         last_checkout_error: r.last_checkout_error ?? null,
         is_human: r.is_human ?? null,

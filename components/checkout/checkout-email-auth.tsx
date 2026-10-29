@@ -26,6 +26,8 @@ type Props = {
   emailLabel: string;
   sendLinkLabel: string;
   onAuthenticated: () => void;
+  /** Fired when the anonymous login wall is actually shown. */
+  onWallShown?: () => void;
 };
 
 async function finalizeClientSignup(source: string) {
@@ -55,6 +57,7 @@ export function CheckoutEmailAuth({
   emailLabel,
   sendLinkLabel,
   onAuthenticated,
+  onWallShown,
 }: Props) {
   const [email, setEmail] = useState("");
   const emailRef = useRef("");
@@ -94,14 +97,20 @@ export function CheckoutEmailAuth({
         // proceed as anonymous
       }
       emitOnce(SIGNUP_STARTED_CHECKOUT_KEY, () => {
+        onWallShown?.();
         void AnalyticsTracker.trackEvent({
           eventType: "auth_email_step_shown",
           eventCategory: "auth",
           metadata: { source: "checkout" },
         });
+        void AnalyticsTracker.trackEvent({
+          eventType: "checkout_login_wall_shown",
+          eventCategory: "checkout",
+          metadata: { source: "checkout", step: "payment" },
+        });
       });
     })();
-  }, []);
+  }, [onWallShown]);
 
   useEffect(() => {
     const supabase = getSupabaseBrowserClient();

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { logUserEventServer } from "@/lib/analytics/log-user-event-server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { isUnauthorizedResponse, requireAdminOr401 } from "@/lib/admin-auth-http";
 
@@ -31,10 +32,12 @@ export async function POST(request: NextRequest) {
 
     const supabase = getSupabaseAdmin();
 
-    // Update status and initial_level
-    const updateData: any = {
+    const now = new Date().toISOString();
+    // Update status and always stamp reviewed_at on approve/reject.
+    const updateData: Record<string, unknown> = {
       status,
-      updated_at: new Date().toISOString(),
+      updated_at: now,
+      reviewed_at: now,
     };
 
     // Only set initial_level if provided (for approved requests)
@@ -55,6 +58,21 @@ export async function POST(request: NextRequest) {
         { error: "Failed to update access request" },
         { status: 500 },
       );
+    }
+
+    if (status === "approved" || status === "rejected" || status === "denied") {
+      void logUserEventServer({
+        userId: adminAuth.id ?? null,
+        eventType: status === "approved" ? "access_approved" : "access_denied",
+        eventCategory: "auth",
+        metadata: {
+          access_request_id: id,
+          status,
+          // Never store requester email/name in analytics.
+          has_initial_level: Boolean(initialLevel),
+        },
+        internal: true,
+      });
     }
 
     return NextResponse.json({

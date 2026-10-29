@@ -67,6 +67,8 @@ export interface ShopWineCaseSheetProps {
   product: Product;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Analytics surface for add_to_cart.source */
+  analyticsSource?: "list" | "product" | "guide";
 }
 
 /**
@@ -76,6 +78,7 @@ export function ShopWineCaseSheet({
   product,
   open,
   onOpenChange,
+  analyticsSource = "list",
 }: ShopWineCaseSheetProps) {
   const { t } = useTranslations();
   const [mounted, setMounted] = useState(false);
@@ -132,7 +135,7 @@ export function ShopWineCaseSheet({
             list_price,
             {
               quantity: 6,
-              source: "pdp_case",
+              source: analyticsSource,
               list_price,
               unit_price,
               price_version: "v1",
@@ -144,7 +147,7 @@ export function ShopWineCaseSheet({
         /* noop */
       }
     });
-  }, [mode, onOpenChange, product, resolvedVariant]);
+  }, [analyticsSource, mode, onOpenChange, product, resolvedVariant]);
 
   if (!mounted || typeof document === "undefined") return null;
 
@@ -224,6 +227,7 @@ export function ShopWineCaseSheet({
           product={product}
           sheetOnly
           initialMixedSheetOpen
+          analyticsSource={analyticsSource}
           onMixedSheetOpenChange={(o) => {
             if (!o) setMixedHandoff(false);
           }}
@@ -239,6 +243,7 @@ export interface ShopWineCasePickerProps {
   className?: string;
   /** Button label before opening the sheet */
   triggerLabel?: string;
+  analyticsSource?: "list" | "product" | "guide";
 }
 
 /**
@@ -249,6 +254,7 @@ export function ShopWineCasePicker({
   size = "sm",
   className,
   triggerLabel,
+  analyticsSource = "list",
 }: ShopWineCasePickerProps) {
   const { t } = useTranslations();
   const label = triggerLabel ?? t("shop.addCase");
@@ -271,6 +277,7 @@ export function ShopWineCasePicker({
         product={product}
         open={open}
         onOpenChange={setOpen}
+        analyticsSource={analyticsSource}
       />
     </>
   );

@@ -25,6 +25,7 @@ import { useLocalizedPaths } from "@/lib/hooks/use-localized-paths";
 import { getProductListPriceSek } from "@/lib/price-breakdown";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 import { pricesFromCartAfterAdd } from "@/lib/analytics/cart-event-prices";
+import { PriceViewTracker } from "@/components/analytics/price-view-tracker";
 import { BOTTLE_PACK_SIZE } from "@/lib/cart/bottle-pack";
 import { B2B_PRODUCER_ORDERS_ENABLED } from "@/lib/b2b/flags";
 import type { Cart } from "@/lib/shopify/types";
@@ -335,7 +336,7 @@ export const ProductCard = memo(
           list_price,
           {
             quantity: showExclVat ? BOTTLE_PACK_SIZE : 1,
-            ...(showExclVat ? { source: "b2b" as const } : {}),
+            source: showExclVat ? "b2b" : "list",
             list_price,
             unit_price,
             price_version: "v1",
@@ -841,7 +842,17 @@ export const ProductCard = memo(
               />
             </div>
           </div>
-          <div className="flex gap-1 md:gap-2 items-center justify-end min-w-0 shrink md:max-w-[35%] md:shrink-0 text-[9px] md:text-sm uppercase 2xl:text-base text-right overflow-hidden">
+          <PriceViewTracker
+            productId={product.id}
+            productName={product.title}
+            source="list"
+            listPrice={
+              listPriceSek ??
+              (Number(product.priceRange.minVariantPrice.amount) || undefined)
+            }
+            currency={product.priceRange.minVariantPrice.currencyCode}
+            className="flex gap-1 md:gap-2 items-center justify-end min-w-0 shrink md:max-w-[35%] md:shrink-0 text-[9px] md:text-sm uppercase 2xl:text-base text-right overflow-hidden"
+          >
             <MemberPrice
               amount={product.priceRange.minVariantPrice.amount}
               currencyCode={product.priceRange.minVariantPrice.currencyCode}
@@ -864,7 +875,7 @@ export const ProductCard = memo(
                 )}
               </span>
             )}
-          </div>
+          </PriceViewTracker>
         </div>
 
         {/* Mobile: Premium bottom overlay with Add to Cart button (visible on touch/hover) */}
@@ -922,7 +933,12 @@ export const ProductCard = memo(
                     </Button>
                   }
                 >
-                  <ShopWineCasePicker product={product} size="sm" className="w-full" />
+                  <ShopWineCasePicker
+                    product={product}
+                    size="sm"
+                    className="w-full"
+                    analyticsSource="list"
+                  />
                 </Suspense>
               ) : (
                 <Button
@@ -1000,7 +1016,12 @@ export const ProductCard = memo(
                     </Button>
                   }
                 >
-                  <ShopWineCasePicker product={product} size="sm" className="w-full" />
+                  <ShopWineCasePicker
+                    product={product}
+                    size="sm"
+                    className="w-full"
+                    analyticsSource="list"
+                  />
                 </Suspense>
               ) : (
                 <Button
@@ -1117,7 +1138,12 @@ export const ProductCard = memo(
                     }
                   >
                     {producerOrdersPaused ? null : shopCaseWineCta ? (
-                      <ShopWineCasePicker product={product} size="sm" className="w-full" />
+                      <ShopWineCasePicker
+                        product={product}
+                        size="sm"
+                        className="w-full"
+                        analyticsSource="list"
+                      />
                     ) : (
                       <AddToCart
                         size="sm"
@@ -1145,6 +1171,7 @@ export const ProductCard = memo(
                         product={product}
                         size="sm"
                         className="bg-black hover:bg-black/90 text-white border-black rounded-md w-full"
+                        analyticsSource="list"
                       />
                     ) : (
                       <AddToCart

@@ -196,14 +196,36 @@ export function getOrCreateFirstTouch(): FirstTouch | null {
   }
 }
 
-/** Ensure visitor id + first touch exist (call on first page view). */
+/**
+ * Ensure visitor id + first touch exist (call on first page view).
+ * `isReturningVisitor` is true when first-touch was already persisted before this call.
+ */
 export function ensureVisitorIdentity(): {
   visitorId: string;
   firstTouch: FirstTouch | null;
+  isReturningVisitor: boolean;
+  isNewVisitor: boolean;
 } {
+  let hadFirstTouch = false;
+  if (typeof window !== "undefined") {
+    try {
+      hadFirstTouch = Boolean(
+        parseFirstTouch(localStorage.getItem(FIRST_TOUCH_KEY)) ||
+          parseFirstTouch(readCookie(FIRST_TOUCH_KEY)),
+      );
+    } catch {
+      hadFirstTouch = Boolean(parseFirstTouch(readCookie(FIRST_TOUCH_KEY)));
+    }
+  }
   const visitorId = getVisitorId();
   const firstTouch = getOrCreateFirstTouch();
-  return { visitorId, firstTouch };
+  const isNewVisitor = !hadFirstTouch && firstTouch != null;
+  return {
+    visitorId,
+    firstTouch,
+    isReturningVisitor: hadFirstTouch,
+    isNewVisitor,
+  };
 }
 
 export function readFirstTouchForMetadata(): FirstTouch | null {
