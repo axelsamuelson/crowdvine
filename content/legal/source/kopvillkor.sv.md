@@ -2,7 +2,7 @@
 
 > **UTKAST.** Framtaget av Daniel Holm (Compliance), juridiskt fastställt av Sofia Bergström (GC) den 25 augusti 2026 enligt `gc-stallningstagande-angerratt-och-villkor.md`. Ångerrätten (p. 9) och tvistlösningen (p. 13) är avgjorda och färdigskrivna. Två öppna punkter kvarstår, markerade **ÖPPEN FRÅGA**. Fält markerade `[FYLL I]` måste fyllas i innan sidan går live. Ingen extern advokat har granskat texten.
 
-Senast uppdaterad: [FYLL I DATUM]
+Senast uppdaterad: 2026-10-29
 
 ---
 
@@ -14,13 +14,15 @@ Din motpart vid köp på pactwines.com är:
 |---|---|
 | Säljare | EURPACT OÜ |
 | Registreringsnummer | 17538270 |
-| Adress | [FYLL I REGISTRERAD ADRESS I ESTLAND] |
+| Adress | Tartu mnt 67/1-13b, 10115, stadscentrum, Tallinn, Harju län, Estland |
 | E-post | [FYLL I. **Får inte vara noreply@pactwines.com**, se anmärkning nedan] |
 | Registrerad som distansförsäljare av alkohol hos Skatteverket | [FYLL I REGISTRERINGSNUMMER] |
 
 EURPACT OÜ är ett estniskt bolag och säljer alkohol på distans till konsumenter i Sverige. EURPACT OÜ redovisar och betalar svensk alkoholskatt och svensk moms för varje leverans.
 
 > **Anmärkning, ej del av publicerad text.** Bolagsnamn och registreringsnummer är hämtade från den befintliga sidan `/vilkor` i produktion den 25 augusti 2026. Bekräfta mot registreringsbeviset innan publicering. Observera att namnet där är **EURPACT OÜ**, medan interna underlag genomgående skrivit "PACT OÜ".
+>
+> Adressen är den registrerade adressen, på svenska. I äriregistret står den som Tartu mnt 67/1-13b, 10115, Kesklinna linnaosa, Tallinn, Harju maakond, Eesti.
 >
 > Den sidan anger `noreply@pactwines.com` som kanal för frågor. En no-reply-adress duger inte som kontaktväg. Distansavtalslagen kräver uppgift om hur konsumenten kan kontakta säljaren, och GDPR kräver en fungerande kanal för att utöva sina rättigheter. Byt till en bevakad adress innan publicering, och använd samma adress i integritetspolicyn.
 

@@ -2,7 +2,7 @@
 
 > **UTKAST, ej publiceringsklar.** Framtaget av Daniel Holm (Compliance) med juridisk ram från Sofia Bergström (GC). Ska granskas av extern jurist innan publicering. Alla fält markerade `[FYLL I]` måste fyllas i, och alla punkter markerade **ÖPPEN FRÅGA** måste avgöras, innan sidan går live.
 
-Senast uppdaterad: [FYLL I DATUM]
+Senast uppdaterad: 2026-10-29
 
 ---
 
@@ -14,7 +14,7 @@ EURPACT OÜ är personuppgiftsansvarig för behandlingen av personuppgifter på 
 |---|---|
 | Bolag | EURPACT OÜ |
 | Registreringsnummer | 17538270 |
-| Adress | [FYLL I REGISTRERAD ADRESS I ESTLAND] |
+| Adress | Tartu mnt 67/1-13b, 10115, stadscentrum, Tallinn, Harju län, Estland |
 | E-post | [FYLL I. **Får inte vara noreply@pactwines.com.** Måste vara en bevakad adress, GDPR kräver en fungerande kanal för att utöva sina rättigheter] |
 | Registrerad distansförsäljare av alkohol hos Skatteverket | [FYLL I REGISTRERINGSNUMMER] |
 
