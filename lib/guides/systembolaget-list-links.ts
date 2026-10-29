@@ -1,6 +1,7 @@
 import type { AppLocale } from "@/lib/i18n/locale";
 import { bestPetNatWinesSystembolagetArticle } from "@/lib/guides/articles/best-pet-nat-wines-systembolaget";
-import { isGuideArticlePublished } from "@/lib/guides/guide-types";
+import { newNaturalWinesSystembolagetArticle } from "@/lib/guides/articles/new-natural-wines-systembolaget";
+import { articlePath, isGuideArticlePublished } from "@/lib/guides/guide-types";
 import type { GuideWineCategory } from "@/lib/systembolaget/guide-wines";
 
 /** Up-link under the h1 on each of the seven style lists. */
@@ -205,4 +206,81 @@ export function systembolagetListLabel(
   locale: AppLocale,
 ): string {
   return list.label[locale];
+}
+
+/** Accessible name for the guide switcher on every Systembolaget list. */
+export const SYSTEMBOLAGET_GUIDE_NAV_LABEL = {
+  sv: "Systembolaget-guider",
+  en: "Systembolaget guides",
+} as const;
+
+/**
+ * Short chip labels. Overview guides first, then colour and style,
+ * so the first screen on a phone shows Bästa and Nya without scrolling.
+ */
+const SYSTEMBOLAGET_GUIDE_NAV_SHORT: Record<
+  GuideWineCategory,
+  { readonly en: string; readonly sv: string }
+> = {
+  best: { sv: "Bästa", en: "Best" },
+  new: { sv: "Nya", en: "New" },
+  red: { sv: "Röda", en: "Red" },
+  white: { sv: "Vita", en: "White" },
+  orange: { sv: "Orange", en: "Orange" },
+  sparkling: { sv: "Mousserande", en: "Sparkling" },
+  rose: { sv: "Rosé", en: "Rosé" },
+  budget: { sv: "Under 200 kr", en: "Under 200" },
+  glouglou: { sv: "Glou-glou", en: "Glou-glou" },
+  petnat: { sv: "Pet nat", en: "Pet nat" },
+};
+
+const SYSTEMBOLAGET_GUIDE_NAV_ORDER = [
+  "best",
+  "new",
+  "red",
+  "white",
+  "orange",
+  "sparkling",
+  "rose",
+  "budget",
+  "glouglou",
+  "petnat",
+] as const satisfies readonly GuideWineCategory[];
+
+export type SystembolagetGuideNavItem = {
+  category: GuideWineCategory;
+  href: string;
+  short: string;
+  /** Full guide name for the accessible link name. */
+  name: string;
+};
+
+/** Published Systembolaget guides for the in-page switcher. */
+export function systembolagetGuideNavItems(
+  locale: AppLocale,
+): SystembolagetGuideNavItem[] {
+  const byCategory = new Map<GuideWineCategory, SystembolagetGuideNavItem>();
+
+  for (const list of publicSystembolagetRankedLists()) {
+    byCategory.set(list.category, {
+      category: list.category,
+      href: list.href[locale],
+      short: SYSTEMBOLAGET_GUIDE_NAV_SHORT[list.category][locale],
+      name: list.h1[locale],
+    });
+  }
+
+  if (isGuideArticlePublished(newNaturalWinesSystembolagetArticle)) {
+    byCategory.set("new", {
+      category: "new",
+      href: articlePath(newNaturalWinesSystembolagetArticle, locale),
+      short: SYSTEMBOLAGET_GUIDE_NAV_SHORT.new[locale],
+      name: newNaturalWinesSystembolagetArticle.h1[locale],
+    });
+  }
+
+  return SYSTEMBOLAGET_GUIDE_NAV_ORDER.flatMap((category) => {
+    const item = byCategory.get(category);
+    return item ? [item] : [];
+  });
 }

@@ -77,6 +77,11 @@ export type SystembolagetGuideWine = {
   top_100_producer_name: string | null;
   sort_order: number;
   previous_sort_order: number | null;
+  /**
+   * 1-based place on the previous visible list. Null means the wine was not
+   * on that list. Undefined means the column has not been loaded.
+   */
+  previous_rank?: number | null;
   first_published_at: string | null;
   last_reviewed_at: string | null;
   rank_status: GuideWineRankStatus;
@@ -174,6 +179,24 @@ export function formatRankBadge(
 }
 
 /**
+ * Movement against the place shown on the page.
+ * Null previous rank means the wine is new on the list.
+ * Undefined means there is no baseline yet, so the badge stays hidden.
+ */
+export function formatPlacementBadge(
+  currentRank: number,
+  previousRank: number | null | undefined,
+  locale: "en" | "sv",
+): string | null {
+  if (previousRank === undefined) return null;
+  if (previousRank === null) return locale === "sv" ? "Ny" : "New";
+  const places = previousRank - currentRank;
+  if (places > 0) return `↑ ${places}`;
+  if (places < 0) return `↓ ${Math.abs(places)}`;
+  return null;
+}
+
+/**
  * Freshest synced_at across guide wine rows (for "Sortimentsdata uppdaterad …").
  */
 export function freshestSyncedAt(
@@ -247,6 +270,7 @@ async function fetchGuideWinesUncached(
     "wine_score",
     "score_adjust",
     "product_launch_date",
+    "previous_rank",
   ];
 
   const run = (cols: string[]) =>
@@ -309,6 +333,13 @@ async function fetchGuideWinesUncached(
     if (!error && data) {
       data = mergeRows(data, { wine_score: null, score_adjust: 0 });
     }
+  }
+
+  // Migration 238 — previous_rank may be absent locally. Leave it unset
+  // so every row is not labelled new.
+  if (error && /previous_rank/i.test(error.message)) {
+    const fallbackCols = columns.filter((column) => column !== "previous_rank");
+    ({ data, error } = await run(fallbackCols));
   }
 
   // Migration 236 — product_launch_date may be absent locally.

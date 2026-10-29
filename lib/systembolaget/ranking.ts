@@ -396,6 +396,13 @@ type GuideOrderWine = {
   producer_name?: string | null;
 };
 
+/** True when the visible list order is categoryRank, not sort_order. */
+export function categoryListUsesScoreOrder(
+  wines: readonly { wine_score?: number | null }[],
+): boolean {
+  return wines.some((wine) => wine.wine_score != null);
+}
+
 /**
  * Order a category list by categoryRank.
  * When no wine has wine_score, the incoming order is kept.
@@ -403,7 +410,7 @@ type GuideOrderWine = {
 export function orderCategoryWines<T extends GuideOrderWine>(
   wines: readonly T[],
 ): T[] {
-  if (!wines.some((wine) => wine.wine_score != null)) return [...wines];
+  if (!categoryListUsesScoreOrder(wines)) return [...wines];
   const sources: RankingSource[] = wines.map((wine) => ({
     productNumber: wine.product_number,
     name: wine.product_number,

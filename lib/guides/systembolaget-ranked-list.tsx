@@ -17,11 +17,12 @@ import { guideCopy } from "@/lib/guides/guide-copy";
 import { isGuideHrefVisibleFrom } from "@/lib/guides/guide-publication";
 import { guidePath } from "@/lib/guides/guide-routes";
 import { homePathForLocale } from "@/lib/i18n/localized-routes";
+import { SystembolagetGuideNav } from "@/components/guides/systembolaget-guide-nav";
 import {
-  SYSTEMBOLAGET_BEST_UPLINK,
   SYSTEMBOLAGET_BY_STYLE_HEADING,
-  SYSTEMBOLAGET_RANKED_LISTS,
+  SYSTEMBOLAGET_GUIDE_NAV_LABEL,
   siblingSystembolagetLists,
+  systembolagetGuideNavItems,
   systembolagetListHref,
   systembolagetListLabel,
 } from "@/lib/guides/systembolaget-list-links";
@@ -36,7 +37,7 @@ import { DEFAULT_WINE_IMAGE_PATH } from "@/lib/constants";
 import { getGuideSeoOwnership } from "@/lib/guides/guide-seo-ownership";
 import { resolveRankTokens } from "@/lib/guides/resolve-rank-tokens";
 import {
-  formatRankBadge,
+  formatPlacementBadge,
   formatSyncedAtLabel,
   freshestSyncedAt,
   getGuideWines,
@@ -258,6 +259,7 @@ export function RankedWineRow({
   locale,
   priority,
   showRank = true,
+  showMovement = true,
   launchLabel,
   limitedLabelText,
 }: {
@@ -265,8 +267,13 @@ export function RankedWineRow({
   rank: number;
   locale: AppLocale;
   priority: boolean;
-  /** Rank number and movement badge. Ranked lists leave this on. */
+  /** Rank number. Ranked lists leave this on. */
   showRank?: boolean;
+  /**
+   * Up/down or "Ny" under the rank, compared with the previous visible place.
+   * The release calendar turns this off.
+   */
+  showMovement?: boolean;
   /** Release-calendar date, e.g. "Släpps 6 nov". Omitted on ranked lists. */
   launchLabel?: string | null;
   /**
@@ -276,11 +283,10 @@ export function RankedWineRow({
   limitedLabelText?: string | null;
 }) {
   const { producer, secondary } = wineNameParts(wine);
-  const badge = formatRankBadge(wine, locale);
-  // Only show movement badges when a prior list position exists to compare against.
-  // First-edition rows are all "new" with null previous_sort_order — hiding avoids
-  // a meaningless "Ny" under every number.
-  const showRankBadge = wine.previous_sort_order != null && Boolean(badge);
+  const badge = showMovement
+    ? formatPlacementBadge(rank, wine.previous_rank, locale)
+    : null;
+  const showRankBadge = Boolean(badge);
   const meta = wineMetaParts(wine, locale);
   const assortment = assortmentLabel(wine.assortment_text, locale);
   const limitedLabel =
@@ -578,11 +584,8 @@ export async function renderSystembolagetRankedListPage(
 
   const isParentList = category === "best";
   const styleLists = isParentList ? siblingSystembolagetLists(category) : [];
-  const bestList = SYSTEMBOLAGET_RANKED_LISTS.find(
-    (list) => list.category === "best",
-  );
-  const showUpLink = !isParentList && bestList != null;
   const siblingLists = isParentList ? [] : siblingSystembolagetLists(category);
+  const guideNavItems = systembolagetGuideNavItems(locale);
   const siblingHeading =
     locale === "sv"
       ? "Fler Systembolaget-listor"
@@ -625,19 +628,13 @@ export async function renderSystembolagetRankedListPage(
             {content.h1[locale]}
           </h1>
 
-          {showUpLink && bestList ? (
-            <p className="mt-4 text-base leading-relaxed text-foreground">
-              {SYSTEMBOLAGET_BEST_UPLINK.prefix[locale]}
-              <Link
-                href={systembolagetListHref(bestList, locale)}
-                className="underline underline-offset-4 hover:text-foreground"
-              >
-                {SYSTEMBOLAGET_BEST_UPLINK.anchor[locale]}
-              </Link>
-            </p>
-          ) : null}
+          <SystembolagetGuideNav
+            label={SYSTEMBOLAGET_GUIDE_NAV_LABEL[locale]}
+            items={guideNavItems}
+            active={category}
+          />
 
-          <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
+          <p className="mt-6 text-lg leading-relaxed text-muted-foreground">
             {intro}
           </p>
 

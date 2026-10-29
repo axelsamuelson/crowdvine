@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
+import { formatPlacementBadge } from "@/lib/systembolaget/guide-wines";
 import {
   blendScore,
   buildCuratedRanking,
+  categoryListUsesScoreOrder,
   dedupeByProductNumber,
   mixRanking,
   orderCategoryWines,
@@ -401,5 +403,29 @@ describe("petnat, glouglou, budget and best", () => {
     expect(
       orderCategoryWines(wines).map((wine) => wine.product_number),
     ).toEqual(["dear-high", "cheap-low"]);
+  });
+
+  it("describes a move between visible places, and a wine that was not on the list", () => {
+    expect(formatPlacementBadge(1, 2, "sv")).toBe("↑ 1");
+    expect(formatPlacementBadge(4, 2, "sv")).toBe("↓ 2");
+    expect(formatPlacementBadge(3, 3, "en")).toBeNull();
+    expect(formatPlacementBadge(5, null, "sv")).toBe("Ny");
+    expect(formatPlacementBadge(5, null, "en")).toBe("New");
+    expect(formatPlacementBadge(5, undefined, "sv")).toBeNull();
+  });
+
+  it("treats a scored list as score-ordered so sort_order movement is not the visible rank", () => {
+    expect(
+      categoryListUsesScoreOrder([
+        { wine_score: 82, sort_order: 4 },
+        { wine_score: null, sort_order: 1 },
+      ]),
+    ).toBe(true);
+    expect(
+      categoryListUsesScoreOrder([
+        { wine_score: null, sort_order: 1 },
+        { wine_score: null, sort_order: 2 },
+      ]),
+    ).toBe(false);
   });
 });
