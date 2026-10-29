@@ -58,6 +58,7 @@ export function FeaturedProductLabel({
         product={product}
         size={principal ? "lg" : "sm"}
         className={principal ? "w-full" : "w-auto shrink-0"}
+        analyticsSource="guide"
       />
     </Suspense>
   ) : (

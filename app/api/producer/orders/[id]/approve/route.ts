@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { logUserEventServer } from "@/lib/analytics/log-user-event-server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getCurrentUser } from "@/lib/auth";
 
@@ -68,6 +69,18 @@ export async function POST(
     if (updateError) {
       return NextResponse.json({ error: updateError.message }, { status: 500 });
     }
+
+    void logUserEventServer({
+      userId: user.id,
+      eventType: "producer_reservation_approved",
+      eventCategory: "checkout",
+      metadata: {
+        reservation_id: id,
+        status: updated?.status ?? "approved",
+        producer_id: user.producer_id,
+      },
+      internal: user.role === "admin",
+    });
 
     return NextResponse.json({ success: true, order: updated });
   } catch (error: any) {

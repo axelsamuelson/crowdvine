@@ -43,6 +43,7 @@ export function AddToCartConditional({
       className={className}
       previewDisabled={previewDisabled}
       ctaAside={ctaAside}
+      analyticsSource="product"
     />
   );
 }

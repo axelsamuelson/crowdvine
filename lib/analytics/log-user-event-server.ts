@@ -3,13 +3,21 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import type { EventCategory, EventType } from "./event-tracker";
 import type { FirstTouch } from "./visitor-identity";
 
+function isLikelyBotUserAgent(ua: string | null | undefined): boolean {
+  if (!ua) return false;
+  if (ua === "server") return false;
+  return /bot|crawl|spider|headless|lighthouse|slurp|bingpreview|facebookexternalhit|embedly|quora link preview|outbrain|pinterest|vkshare|preview/i.test(
+    ua,
+  );
+}
+
 /**
  * Insert into user_events from API routes (no browser session).
  * Uses a synthetic session_id; omit PII from metadata.
  * Prefer passing visitorId / firstTouch from the browser when available.
  *
- * For reservation_completed / auth_email_step_completed, sets metadata.internal when
- * the caller marks it, or when the user is in admin_metrics_excluded_profiles.
+ * Tags `internal` and `likely_bot` on ALL events when applicable.
+ * Attaches first_touch + visitor flags whenever provided.
  */
 export async function logUserEventServer(opts: {
   userId?: string | null;
@@ -22,6 +30,12 @@ export async function logUserEventServer(opts: {
   firstTouch?: FirstTouch | null;
   /** Caller already resolved internal (client flag / test purchase / etc.). */
   internal?: boolean;
+  userAgent?: string | null;
+  pageUrl?: string | null;
+  referrer?: string | null;
+  sessionId?: string | null;
+  /** When known: visitor had prior first-touch attribution. */
+  isReturningVisitor?: boolean;
 }): Promise<void> {
   try {
     const sb = getSupabaseAdmin();
@@ -32,26 +46,25 @@ export async function logUserEventServer(opts: {
       countryRaw && /^[A-Z]{2}$/.test(countryRaw) && countryRaw !== "XX"
         ? countryRaw
         : null;
+    const userAgent = opts.userAgent?.trim() || "server";
 
-    if (
-      opts.eventType === "reservation_completed" ||
-      opts.eventType === "auth_email_step_completed"
-    ) {
-      if (opts.firstTouch) {
-        metadata = { ...metadata, first_touch: opts.firstTouch };
-      }
-      if (visitorId) {
-        metadata = { ...metadata, visitor_id: visitorId };
-      }
+    if (opts.firstTouch) {
+      metadata = { ...metadata, first_touch: opts.firstTouch };
+    }
+    if (visitorId) {
+      metadata = { ...metadata, visitor_id: visitorId };
+    }
+    if (opts.isReturningVisitor != null) {
+      metadata = {
+        ...metadata,
+        is_returning_visitor: opts.isReturningVisitor,
+        is_new_visitor: !opts.isReturningVisitor,
+        visitor_status: opts.isReturningVisitor ? "returning" : "new",
+      };
     }
 
     let internal = opts.internal === true || metadata.internal === true;
-    if (
-      !internal &&
-      opts.userId &&
-      (opts.eventType === "reservation_completed" ||
-        opts.eventType === "auth_email_step_completed")
-    ) {
+    if (!internal && opts.userId) {
       const { data: excl } = await sb
         .from("admin_metrics_excluded_profiles")
         .select("profile_id")
@@ -65,17 +78,24 @@ export async function logUserEventServer(opts: {
       metadata = { ...metadata, internal: true };
     }
 
+    if (
+      metadata.likely_bot !== true &&
+      isLikelyBotUserAgent(userAgent)
+    ) {
+      metadata = { ...metadata, likely_bot: true };
+    }
+
     const row = {
       user_id: opts.userId ?? null,
-      session_id: `server_${randomUUID()}`,
+      session_id: opts.sessionId?.trim() || `server_${randomUUID()}`,
       visitor_id: visitorId,
       country_code: countryCode,
       event_type: opts.eventType,
       event_category: opts.eventCategory,
       event_metadata: metadata,
-      page_url: null as string | null,
-      referrer: null as string | null,
-      user_agent: "server",
+      page_url: opts.pageUrl ?? null,
+      referrer: opts.referrer ?? null,
+      user_agent: userAgent,
     };
 
     await sb
@@ -95,7 +115,7 @@ export async function logUserEventServer(opts: {
         const { visitor_id: _v, country_code: _c, ...withoutNew } = row;
         void sb.from("user_events").insert({
           ...withoutNew,
-          session_id: `server_${randomUUID()}`,
+          session_id: opts.sessionId?.trim() || `server_${randomUUID()}`,
         });
       });
   } catch (e) {

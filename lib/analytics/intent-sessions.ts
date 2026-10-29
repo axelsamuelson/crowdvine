@@ -22,6 +22,7 @@ export type IntentSessionRow = {
   reached_checkout: boolean;
   last_checkout_phase: string | null;
   abandoned_phase: string | null;
+  abandon_reason?: string | null;
   last_step: string;
   last_checkout_error?: string | null;
   is_human?: boolean;
@@ -208,6 +209,7 @@ export function buildIntentSessionsFromCleanEvents(
 
     let lastCheckoutPhase: string | null = null;
     let abandonedPhase: string | null = null;
+    let abandonReason: string | null = null;
     let lastViewedStep: string | null = null;
     let lastCheckoutError: string | null = null;
     const completedSteps = new Set<string>();
@@ -225,6 +227,12 @@ export function buildIntentSessionsFromCleanEvents(
       if (e.event_type === "checkout_abandoned") {
         if (stepName) abandonedPhase = stepName;
         else if (typeof meta.phase === "string") abandonedPhase = checkoutAnalyticsStep(meta);
+        if (typeof meta.abandon_reason === "string") {
+          abandonReason = meta.abandon_reason;
+        }
+        if (typeof meta.code === "string") {
+          lastCheckoutError = meta.code;
+        }
       }
       if (e.event_type === "checkout_error" && typeof meta.code === "string") {
         lastCheckoutError = meta.code;
@@ -234,12 +242,12 @@ export function buildIntentSessionsFromCleanEvents(
     const viewedWithoutComplete =
       lastViewedStep != null && !completedSteps.has(lastViewedStep);
     let lastStep = "add_to_cart";
-    if (viewedWithoutComplete) {
+    if (abandonedPhase || abandonReason) {
+      lastStep = `abandoned:${abandonedPhase ?? lastViewedStep ?? "unknown"}`;
+    } else if (viewedWithoutComplete) {
       lastStep = `abandoned:${lastViewedStep}`;
     } else if (reachedCheckout) {
       lastStep = `checkout:${lastViewedStep ?? lastCheckoutPhase ?? "started"}`;
-    } else if (abandonedPhase) {
-      lastStep = `abandoned:${abandonedPhase}`;
     }
 
     rows.push({
@@ -252,6 +260,7 @@ export function buildIntentSessionsFromCleanEvents(
       reached_checkout: reachedCheckout,
       last_checkout_phase: lastCheckoutPhase,
       abandoned_phase: abandonedPhase,
+      abandon_reason: abandonReason,
       last_step: lastStep,
       last_checkout_error: lastCheckoutError,
     });

@@ -1,8 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { useCallback } from "react";
 
+import { VisibleOnceTracker } from "@/components/analytics/visible-once-tracker";
 import { usePalletZoneStatus } from "@/components/pdp/pallet-zone-status-provider";
+import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 import { homeDeliveryGuidePath } from "@/lib/guides/home-delivery-guide";
 import { useTranslations } from "@/lib/hooks/use-translations";
 
@@ -34,8 +37,22 @@ export function PalletStatusBar() {
               remaining: data.bottlesRemainingToShip,
             });
 
+  const onPalletVisible = useCallback(() => {
+    if (!data) return;
+    void AnalyticsTracker.trackPalletStatusViewed({
+      source: "product",
+      fill_percent: barPercent,
+      bottles_remaining: data.bottlesRemainingToShip,
+      is_ready_to_ship: data.isReadyToShip === true,
+    });
+  }, [barPercent, data]);
+
   return (
-    <div className="w-full min-w-0 overflow-clip space-y-3">
+    <VisibleOnceTracker
+      onceKey={`pallet_status_viewed:${data?.userZoneName ?? "unknown"}:${Math.round(barPercent)}`}
+      onVisible={onPalletVisible}
+      className="w-full min-w-0 overflow-clip space-y-3"
+    >
       {data && allowEta && !data.isReadyToShip ? (
         <div className="flex min-w-0 justify-end">
           <p className="text-sm text-muted-foreground">
@@ -95,6 +112,6 @@ export function PalletStatusBar() {
           {t("product.pdp.homeDeliveryGuideLink")}
         </Link>
       </p>
-    </div>
+    </VisibleOnceTracker>
   );
 }

@@ -134,7 +134,7 @@ export function AddToCartButton({
               list_price,
               {
                 quantity: isB2B ? BOTTLE_PACK_SIZE : 1,
-                ...(isB2B ? { source: "b2b" as const } : {}),
+                source: isB2B ? "b2b" : "product",
                 list_price,
                 unit_price,
                 price_version: "v1",

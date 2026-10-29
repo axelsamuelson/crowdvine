@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { logUserEventServer } from "@/lib/analytics/log-user-event-server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getCurrentUser } from "@/lib/auth";
 import {
@@ -98,6 +99,19 @@ export async function POST(
         console.error("[Producer reject] syncPalletShipReadiness:", e);
       }
     }
+
+    void logUserEventServer({
+      userId: user.id,
+      eventType: "producer_reservation_rejected",
+      eventCategory: "checkout",
+      metadata: {
+        reservation_id: id,
+        status: updated?.status ?? "rejected",
+        producer_id: user.producer_id,
+        has_note: Boolean(note),
+      },
+      internal: user.role === "admin",
+    });
 
     return NextResponse.json({ success: true, order: updated });
   } catch (error: unknown) {
