@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useShoppingContext } from "@/lib/context/shopping-context-provider";
 import { useDisplayMoney } from "@/lib/hooks/use-display-money";
+import { formatCartLinePrice } from "@/lib/shopping-context/format";
 
 type Friend = {
   id: string;
@@ -64,7 +65,9 @@ export function ShareBottlesDialog({
   onConfirm,
 }: ShareBottlesDialogProps) {
   const { t } = useShoppingContext();
-  const { formatDisplay } = useDisplayMoney();
+  const { locale } = useDisplayMoney();
+  const formatAmount = (amount: number) =>
+    formatCartLinePrice(amount, currencyCode, locale);
   const [step, setStep] = useState<1 | 2>(1);
   const [loading, setLoading] = useState(false);
   const [friends, setFriends] = useState<Friend[]>([]);
@@ -341,7 +344,7 @@ export function ShareBottlesDialog({
                         {f.full_name || t("checkout.defaultUserName")}
                       </span>
                       <span className="font-medium text-gray-900">
-                        {formatDisplay(t.net)}
+                        {formatAmount(t.net)}
                       </span>
                     </div>
                   );
@@ -349,7 +352,7 @@ export function ShareBottlesDialog({
                 <div className="flex items-center justify-between text-sm border-t border-gray-200 pt-2 mt-2">
                   <span className="text-gray-700">{t("checkout.shareYou")}</span>
                   <span className="font-medium text-gray-900">
-                    {formatDisplay(costBreakdown.you.net)}
+                    {formatAmount(costBreakdown.you.net)}
                   </span>
                 </div>
               </div>
@@ -370,7 +373,7 @@ export function ShareBottlesDialog({
                             {friend.full_name || t("checkout.defaultUserName")}
                           </div>
                           <div className="text-xs text-gray-500">
-                            {formatDisplay(
+                            {formatAmount(
                               costBreakdown.byFriendId[friend.id]?.net || 0,
                             )}
                           </div>
