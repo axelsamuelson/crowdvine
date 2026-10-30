@@ -2,7 +2,7 @@
  * Shadow pallet contribution readiness (Phase 2).
  *
  * prePalletContribution = contribution BEFORE deducting inbound pallet freight.
- * Live ship-ready trigger remains min_bottles_to_complete (120) — this module
+ * Live ship-ready trigger remains min_bottles_to_complete (240) — this module
  * is observational only until a later phase.
  *
  * Snapshot at checkout confirm (same moment bottles enter PALLET_FILL_STATUSES).
@@ -15,6 +15,8 @@ import {
 } from "@/lib/contribution-assumptions";
 import { PALLET_FILL_STATUSES } from "@/lib/pallet-fill-count";
 import {
+  DEFAULT_MIN_BOTTLES_TO_COMPLETE,
+  DEFAULT_PHYSICAL_BOTTLE_CAPACITY,
   computePalletShipProgress,
   resolveMinBottlesToShip,
   resolvePhysicalBottleCapacity,
@@ -353,8 +355,10 @@ export async function getPalletContributionProgress(
       bottlesWithSnapshot: 0,
       accumulatedContributionCents: 0,
       freightTargetCents,
-      minBottlesToShip: pallet.min_bottles_to_complete ?? 120,
-      physicalBottleCapacity: pallet.bottle_capacity ?? 720,
+      minBottlesToShip:
+        pallet.min_bottles_to_complete ?? DEFAULT_MIN_BOTTLES_TO_COMPLETE,
+      physicalBottleCapacity:
+        pallet.bottle_capacity ?? DEFAULT_PHYSICAL_BOTTLE_CAPACITY,
     });
   }
 
@@ -373,8 +377,10 @@ export async function getPalletContributionProgress(
       bottlesWithSnapshot: 0,
       accumulatedContributionCents: 0,
       freightTargetCents,
-      minBottlesToShip: pallet.min_bottles_to_complete ?? 120,
-      physicalBottleCapacity: pallet.bottle_capacity ?? 720,
+      minBottlesToShip:
+        pallet.min_bottles_to_complete ?? DEFAULT_MIN_BOTTLES_TO_COMPLETE,
+      physicalBottleCapacity:
+        pallet.bottle_capacity ?? DEFAULT_PHYSICAL_BOTTLE_CAPACITY,
     });
   }
 
@@ -397,7 +403,9 @@ export async function getPalletContributionProgress(
     bottlesWithSnapshot,
     accumulatedContributionCents,
     freightTargetCents,
-    minBottlesToShip: pallet.min_bottles_to_complete ?? 120,
-    physicalBottleCapacity: pallet.bottle_capacity ?? 720,
+    minBottlesToShip:
+      pallet.min_bottles_to_complete ?? DEFAULT_MIN_BOTTLES_TO_COMPLETE,
+    physicalBottleCapacity:
+      pallet.bottle_capacity ?? DEFAULT_PHYSICAL_BOTTLE_CAPACITY,
   });
 }

@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { PALLET_FILL_STATUSES } from "@/lib/pallet-fill-count";
 import { buildAdminPalletOperatingSummaries } from "@/lib/admin-pallet-operating-summary";
+import { DEFAULT_MIN_BOTTLES_TO_COMPLETE } from "@/lib/pallet-ship-progress";
 
 export type WineSummaryRow = {
   wine_name: string;
@@ -274,7 +275,8 @@ export async function listEnrichedPactPallets(
     const transformedData = pallets.map((pallet) => {
       const id = String(pallet.id);
       const cap = Number(pallet.bottle_capacity) || 0;
-      const minToShip = Number(pallet.min_bottles_to_complete) || 120;
+      const minToShip =
+        Number(pallet.min_bottles_to_complete) || DEFAULT_MIN_BOTTLES_TO_COMPLETE;
       const totalBookedBottles = bottlesByPalletId.get(id) ?? 0;
       const remainingToShip = Math.max(0, minToShip - totalBookedBottles);
       const remainingBottles = Math.max(0, cap - totalBookedBottles);

@@ -46,6 +46,7 @@ import {
 import { PalletInboundFreightPanel } from "@/components/admin/pallet-inbound-freight-panel";
 import { AdminPactPalletStatusSummary } from "@/components/admin/admin-pact-pallet-status-summary";
 import type { AdminPalletOperatingSummary } from "@/lib/admin-pallet-operating-summary";
+import { DEFAULT_MIN_BOTTLES_TO_COMPLETE } from "@/lib/pallet-ship-progress";
 import { cn } from "@/lib/utils";
 
 // Format currency in SEK
@@ -135,7 +136,13 @@ export default function AdminPalletDetails({
         groups: [
           {
             operator: "AND",
-            conditions: [{ metric: "bottles", op: ">=", value: 120 }],
+            conditions: [
+              {
+                metric: "bottles",
+                op: ">=",
+                value: DEFAULT_MIN_BOTTLES_TO_COMPLETE,
+              },
+            ],
           },
         ],
       }
@@ -747,7 +754,7 @@ export default function AdminPalletDetails({
   const minToShip =
     operatingSummary?.minBottlesToShip ??
     pallet.min_bottles_to_complete ??
-    120;
+    DEFAULT_MIN_BOTTLES_TO_COMPLETE;
   const shipPct = operatingSummary?.shipProgressPercent ?? 0;
   const isReady = operatingSummary?.isReadyToShip ?? false;
   const suggestionLabel =

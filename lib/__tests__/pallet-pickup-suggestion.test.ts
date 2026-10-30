@@ -103,10 +103,10 @@ describe("weight estimate", () => {
 });
 
 describe("resolvePalletPhysicalSettings", () => {
-  it("keeps pallet minimum at 120 and defaults trigger/weight", () => {
+  it("keeps pallet minimum at 240 and defaults trigger/weight", () => {
     const s = resolvePalletPhysicalSettings();
     expect(s.minBottlesToComplete).toBe(DEFAULT_MIN_BOTTLES_TO_COMPLETE);
-    expect(s.minBottlesToComplete).toBe(120);
+    expect(s.minBottlesToComplete).toBe(240);
     expect(s.pickupSelectionTriggerShare).toBe(0.8);
     expect(s.kgPerBottle).toBe(1.4);
     expect(s.weightLimitKg).toBeNull();
