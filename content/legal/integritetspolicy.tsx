@@ -31,7 +31,7 @@ export default function IntegritetspolicyContent() {
           </tr>
           <tr>
             <LegalTh>Adress</LegalTh>
-            <LegalTd>[FYLL I REGISTRERAD ADRESS I ESTLAND]</LegalTd>
+            <LegalTd>Tartu mnt 67/1-13b, 10115, stadscentrum, Tallinn, Harju län, Estland</LegalTd>
           </tr>
           <tr>
             <LegalTh>E-post</LegalTh>
@@ -223,7 +223,7 @@ export default function IntegritetspolicyContent() {
             <LegalTd>[BEKRÄFTA]</LegalTd>
           </tr>
           <tr>
-            <LegalTd>Instabee</LegalTd>
+            <LegalTd>Budbee</LegalTd>
             <LegalTd>
               Självständigt ansvarig eller biträde, hemleverans med
               ID-kontroll

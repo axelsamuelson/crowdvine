@@ -6,7 +6,8 @@ export const PACT_SE_SHIPPING_CURRENCY = "SEK";
 
 /**
  * Shared Offer shipping + return policy for Product JSON-LD.
- * Values match checkout (99 SEK/order) and /villkor (14-day return).
+ * Shipping matches checkout (99 SEK/order). Return policy matches /villkor:
+ * no right of withdrawal.
  */
 export function productOfferCommerceFields(options?: {
   termsUrl?: string;
@@ -44,11 +45,7 @@ export function productOfferCommerceFields(options?: {
     hasMerchantReturnPolicy: {
       "@type": "MerchantReturnPolicy",
       applicableCountry: "SE",
-      returnPolicyCategory:
-        "https://schema.org/MerchantReturnFiniteReturnWindow",
-      merchantReturnDays: 14,
-      returnMethod: "https://schema.org/ReturnByMail",
-      returnFees: "https://schema.org/ReturnFeesCustomerResponsibility",
+      returnPolicyCategory: "https://schema.org/MerchantReturnNotPermitted",
       url: termsUrl,
     },
   } as const;

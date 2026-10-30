@@ -18,7 +18,9 @@ describe("productOfferCommerceFields", () => {
     expect(fields.hasMerchantReturnPolicy["@type"]).toBe(
       "MerchantReturnPolicy",
     );
-    expect(fields.hasMerchantReturnPolicy.merchantReturnDays).toBe(14);
+    expect(fields.hasMerchantReturnPolicy.returnPolicyCategory).toBe(
+      "https://schema.org/MerchantReturnNotPermitted",
+    );
     expect(fields.hasMerchantReturnPolicy.url).toBe(
       "https://pactwines.com/villkor",
     );
