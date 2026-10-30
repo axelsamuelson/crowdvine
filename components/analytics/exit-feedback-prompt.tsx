@@ -7,14 +7,16 @@ import { useCartOptional } from "@/components/cart/cart-context";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  EXIT_FEEDBACK_ANSWER_MAX,
+  EXIT_FEEDBACK_REASON_OPTIONS,
   getExitFeedbackSessionId,
   hasCheckoutStartedInSession,
   hasShownExitFeedback,
   isInternalExitFeedbackSession,
   markExitFeedbackShown,
   resolveExitFeedbackStep,
+  type ExitFeedbackReason,
   type ExitFeedbackStep,
-  EXIT_FEEDBACK_ANSWER_MAX,
 } from "@/lib/analytics/exit-feedback";
 
 function isCoarsePointer(): boolean {
@@ -34,6 +36,7 @@ export function ExitFeedbackPrompt() {
 
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<ExitFeedbackStep | null>(null);
+  const [reason, setReason] = useState<ExitFeedbackReason | null>(null);
   const [answer, setAnswer] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [pageAtOpen, setPageAtOpen] = useState("/");
@@ -55,8 +58,12 @@ export function ExitFeedbackPrompt() {
 
     markExitFeedbackShown();
     setStep(resolved);
+    setReason(null);
+    setAnswer("");
     setPageAtOpen(
-      typeof window !== "undefined" ? window.location.pathname || pathname : pathname,
+      typeof window !== "undefined"
+        ? window.location.pathname || pathname
+        : pathname,
     );
     setOpen(true);
     openRef.current = true;
@@ -125,8 +132,7 @@ export function ExitFeedbackPrompt() {
   }, [tryOpen]);
 
   const submit = async () => {
-    const trimmed = answer.trim();
-    if (!trimmed || !step || submitting) {
+    if (!reason || !step || submitting) {
       close();
       return;
     }
@@ -138,6 +144,10 @@ export function ExitFeedbackPrompt() {
         close();
         return;
       }
+      const trimmed =
+        reason === "other"
+          ? answer.trim().slice(0, EXIT_FEEDBACK_ANSWER_MAX)
+          : answer.trim().slice(0, EXIT_FEEDBACK_ANSWER_MAX);
       await fetch("/api/exit-feedback", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -145,7 +155,8 @@ export function ExitFeedbackPrompt() {
           session_id: sessionId,
           step,
           page: pageAtOpen,
-          answer: trimmed.slice(0, EXIT_FEEDBACK_ANSWER_MAX),
+          reason,
+          answer: trimmed || null,
           is_internal: isInternalExitFeedbackSession(),
         }),
         keepalive: true,
@@ -167,7 +178,7 @@ export function ExitFeedbackPrompt() {
       aria-labelledby="exit-feedback-title"
       className="fixed bottom-4 right-4 z-[60] w-[min(100%-2rem,22rem)] rounded-lg border border-border bg-background p-4 shadow-lg"
     >
-      <div className="mb-2 flex items-start justify-between gap-2">
+      <div className="mb-3 flex items-start justify-between gap-2">
         <p
           id="exit-feedback-title"
           className="text-sm font-medium leading-snug text-foreground"
@@ -183,15 +194,41 @@ export function ExitFeedbackPrompt() {
           <X className="h-4 w-4" />
         </button>
       </div>
-      <Textarea
-        value={answer}
-        onChange={(e) => setAnswer(e.target.value.slice(0, EXIT_FEEDBACK_ANSWER_MAX))}
-        placeholder="Valfritt — skriv gärna kort"
-        rows={3}
-        maxLength={EXIT_FEEDBACK_ANSWER_MAX}
-        className="mb-3 resize-none"
-        aria-label="Feedback"
-      />
+
+      <fieldset className="mb-3 space-y-2">
+        <legend className="sr-only">Välj anledning</legend>
+        {EXIT_FEEDBACK_REASON_OPTIONS.map((opt) => (
+          <label
+            key={opt.value}
+            className="flex cursor-pointer items-start gap-2 text-sm text-foreground"
+          >
+            <input
+              type="radio"
+              name="exit-feedback-reason"
+              value={opt.value}
+              checked={reason === opt.value}
+              onChange={() => setReason(opt.value)}
+              className="mt-0.5 size-4 shrink-0 accent-primary"
+            />
+            <span className="leading-snug">{opt.label}</span>
+          </label>
+        ))}
+      </fieldset>
+
+      {reason === "other" ? (
+        <Textarea
+          value={answer}
+          onChange={(e) =>
+            setAnswer(e.target.value.slice(0, EXIT_FEEDBACK_ANSWER_MAX))
+          }
+          placeholder="Valfritt — skriv gärna kort"
+          rows={2}
+          maxLength={EXIT_FEEDBACK_ANSWER_MAX}
+          className="mb-3 resize-none"
+          aria-label="Annat — fritext"
+        />
+      ) : null}
+
       <div className="flex items-center justify-end gap-2">
         <Button
           type="button"
@@ -206,7 +243,7 @@ export function ExitFeedbackPrompt() {
           type="button"
           size="sm"
           onClick={() => void submit()}
-          disabled={submitting || !answer.trim()}
+          disabled={submitting || !reason}
         >
           Skicka
         </Button>

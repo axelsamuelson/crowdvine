@@ -1,10 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CHECKOUT_STARTED_KEY } from "../emit-once";
 import {
+  EXIT_FEEDBACK_REASONS,
+  EXIT_FEEDBACK_REASON_OPTIONS,
   EXIT_FEEDBACK_SHOWN_KEY,
   getExitFeedbackSessionId,
   hasCheckoutStartedInSession,
   hasShownExitFeedback,
+  isExitFeedbackReason,
   isInternalExitFeedbackSession,
   markExitFeedbackShown,
   normalizeExitFeedbackAnswer,
@@ -135,8 +138,23 @@ describe("exit-feedback helpers", () => {
     expect(normalizeExitFeedbackAnswer("  hej  ")).toBe("hej");
     expect(normalizeExitFeedbackAnswer("")).toBeNull();
     expect(normalizeExitFeedbackAnswer("   ")).toBeNull();
+    expect(normalizeExitFeedbackAnswer(null)).toBeNull();
     expect(
       normalizeExitFeedbackAnswer("x".repeat(EXIT_FEEDBACK_ANSWER_MAX + 1)),
     ).toBeNull();
+  });
+
+  it("exposes the six structured reason codes", () => {
+    expect(EXIT_FEEDBACK_REASONS).toEqual([
+      "min_6_bottles",
+      "price",
+      "delivery_unclear",
+      "wait_too_long",
+      "just_browsing",
+      "other",
+    ]);
+    expect(EXIT_FEEDBACK_REASON_OPTIONS).toHaveLength(6);
+    expect(isExitFeedbackReason("price")).toBe(true);
+    expect(isExitFeedbackReason("too_expensive")).toBe(false);
   });
 });

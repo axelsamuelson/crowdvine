@@ -33,6 +33,7 @@ describe("POST /api/exit-feedback", () => {
       session_id: "session_abcdefgh",
       step: "cart",
       page: "/vin",
+      reason: "other",
       answer: "x".repeat(1001),
     });
     expect(res.status).toBe(400);
@@ -44,18 +45,29 @@ describe("POST /api/exit-feedback", () => {
       session_id: "session_abcdefgh",
       step: "home",
       page: "/",
-      answer: "för dyrt",
+      reason: "price",
     });
     expect(res.status).toBe(400);
     expect(insert).not.toHaveBeenCalled();
   });
 
-  it("inserts sanitized payload without IP fields", async () => {
+  it("rejects invalid reason", async () => {
+    const res = await post({
+      session_id: "session_abcdefgh",
+      step: "cart",
+      page: "/",
+      reason: "too_expensive",
+    });
+    expect(res.status).toBe(400);
+    expect(insert).not.toHaveBeenCalled();
+  });
+
+  it("inserts reason without answer for structured choices", async () => {
     const res = await post({
       session_id: "session_abcdefgh",
       step: "checkout",
       page: "/checkout?email=secret@example.com",
-      answer: "  Behövde tänka  ",
+      reason: "price",
       is_internal: true,
     });
     expect(res.status).toBe(200);
@@ -65,12 +77,28 @@ describe("POST /api/exit-feedback", () => {
       session_id: "session_abcdefgh",
       step: "checkout",
       page: "/checkout",
-      answer: "Behövde tänka",
+      reason: "price",
+      answer: null,
       is_internal: true,
     });
     expect(row).not.toHaveProperty("ip");
-    expect(row).not.toHaveProperty("ip_address");
     expect(row).not.toHaveProperty("user_id");
     expect(row).not.toHaveProperty("email");
+  });
+
+  it("stores optional free text for other", async () => {
+    const res = await post({
+      session_id: "session_abcdefgh",
+      step: "cart",
+      page: "/vin",
+      reason: "other",
+      answer: "  Behövde tänka  ",
+    });
+    expect(res.status).toBe(200);
+    const row = insert.mock.calls[0]?.[0] as Record<string, unknown>;
+    expect(row).toMatchObject({
+      reason: "other",
+      answer: "Behövde tänka",
+    });
   });
 });

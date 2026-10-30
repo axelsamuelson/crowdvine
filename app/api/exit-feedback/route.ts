@@ -4,7 +4,9 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import {
   EXIT_FEEDBACK_ANSWER_MAX,
   EXIT_FEEDBACK_PAGE_MAX,
+  EXIT_FEEDBACK_REASONS,
   EXIT_FEEDBACK_SESSION_ID_MAX,
+  normalizeExitFeedbackAnswer,
   sanitizeExitFeedbackPage,
 } from "@/lib/analytics/exit-feedback";
 
@@ -35,7 +37,9 @@ const bodySchema = z.object({
     .regex(/^[\w-]+$/),
   step: z.enum(["checkout", "cart"]),
   page: z.string().trim().min(1).max(EXIT_FEEDBACK_PAGE_MAX + 200),
-  answer: z.string().trim().min(1).max(EXIT_FEEDBACK_ANSWER_MAX),
+  reason: z.enum(EXIT_FEEDBACK_REASONS),
+  /** Optional free text; primarily for reason=other. Empty → null. */
+  answer: z.string().max(EXIT_FEEDBACK_ANSWER_MAX).optional().nullable(),
   is_internal: z.boolean().optional(),
 });
 
@@ -52,9 +56,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
   }
 
-  const { session_id, step, answer } = parsed.data;
+  const { session_id, step, reason } = parsed.data;
   const page = sanitizeExitFeedbackPage(parsed.data.page);
   const is_internal = parsed.data.is_internal === true;
+
+  // Reject oversize after trim via helper (schema max is raw length).
+  if (
+    typeof parsed.data.answer === "string" &&
+    parsed.data.answer.trim().length > EXIT_FEEDBACK_ANSWER_MAX
+  ) {
+    return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+  }
+  const answer = normalizeExitFeedbackAnswer(parsed.data.answer ?? null);
 
   if (!allowSession(session_id)) {
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
@@ -66,6 +79,7 @@ export async function POST(request: Request) {
       session_id,
       step,
       page,
+      reason,
       answer,
       is_internal,
     });
