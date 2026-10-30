@@ -10,6 +10,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { PageLayout } from "@/components/layout/page-layout";
+import { formatMoney } from "@/lib/shopping-context/format";
+import { translate } from "@/lib/i18n/messages";
 
 const publishableKey =
   typeof process !== "undefined" ? (process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "") : "";
@@ -85,14 +87,19 @@ function InnerForm({
     }
   }, [stripe, elements, clientSecret, reservationId, router]);
 
+  const amountLabel = formatMoney(amountSek, "SEK", "sv");
+  const payLabel = translate("sv", "checkout.verifyAndPay", {
+    amount: amountLabel,
+  });
+
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
-        Belopp: <strong>{amountSek} kr</strong> inkl. moms (enligt Stripe).
+        Belopp: <strong>{amountLabel}</strong> inkl. moms (enligt Stripe).
       </p>
       <PaymentElement />
       <Button type="button" className="w-full" size="lg" onClick={handlePay} disabled={busy}>
-        {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Verifiera och betala"}
+        {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : payLabel}
       </Button>
     </div>
   );

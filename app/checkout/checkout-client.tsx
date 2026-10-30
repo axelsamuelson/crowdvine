@@ -40,6 +40,10 @@ import {
   type StripeConfirmResult,
 } from "@/components/checkout/stripe-payment-section";
 import type { CheckoutQuote } from "@/lib/checkout/checkout-quote";
+import {
+  checkoutCommitMessageKey,
+  checkoutCommitMessageNeedsAmount,
+} from "@/lib/checkout/commit-button-label";
 import { toast } from "sonner";
 import {
   MapPin,
@@ -2862,6 +2866,19 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
   const displayTotal =
     serverQuote?.total_sek ??
     Math.max(0, bottleCost - pactPointsSekOff - promoDiscountSek);
+  const commitButtonLabel = (() => {
+    const commitKey = checkoutCommitMessageKey({
+      isSubmitting,
+      paymentMode,
+      isUsConditional,
+    });
+    if (!checkoutCommitMessageNeedsAmount(commitKey)) {
+      return t(commitKey);
+    }
+    return t(commitKey, {
+      amount: formatChargedAmount(displayTotal),
+    });
+  })();
   const commitAppliedDiscount = (data: {
     code: string;
     discount_code_id: string;
@@ -4541,13 +4558,15 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
                             </span>
                           </div>
 
-                          <p className="text-sm text-stone-600">
-                            {t("checkout.noChargeUntilPalletCloses")}
-                          </p>
+                          {paymentMode !== "payment_intent" ? (
+                            <p className="text-sm text-stone-600">
+                              {t("checkout.noChargeUntilPalletCloses")}
+                            </p>
+                          ) : null}
 
                           <Button
                             type="button"
-                            className="w-full border-transparent bg-black text-white shadow-none ring-0 hover:border-transparent hover:bg-black/90 hover:shadow-none focus-visible:border-transparent focus-visible:bg-black/90 focus-visible:ring-white/40"
+                            className="h-auto min-h-12 w-full whitespace-normal border-transparent bg-black px-4 py-3 text-center text-sm leading-snug text-white shadow-none ring-0 hover:border-transparent hover:bg-black/90 hover:shadow-none focus-visible:border-transparent focus-visible:bg-black/90 focus-visible:ring-white/40 sm:text-base"
                             disabled={
                               !stripeConfirmFn ||
                               !paymentMode ||
@@ -4563,15 +4582,7 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
                             }
                             onClick={handlePlaceReservation}
                           >
-                            {isSubmitting
-                              ? t("checkout.processing")
-                              : paymentMode === "payment_intent"
-                                ? t("checkout.payNow")
-                                : isUsConditional
-                                  ? t("checkout.usConditionalButton")
-                                  : t("checkout.placeReservationWithPayment", {
-                                      amount: formatChargedAmount(displayTotal),
-                                    })}
+                            {commitButtonLabel}
                           </Button>
                         </div>
                       </>
