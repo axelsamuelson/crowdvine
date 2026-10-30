@@ -34,6 +34,11 @@ import Prose from "@/components/prose";
 import { useTranslations } from "@/lib/hooks/use-translations";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 import { pricesFromCartAfterAdd } from "@/lib/analytics/cart-event-prices";
+import { useCartOptional } from "./cart-context";
+import {
+  buildOptimisticCaseCart,
+  requestCartOpen,
+} from "@/lib/cart/optimistic-case-cart";
 
 type PurchaseMode = "same" | "mixed";
 
@@ -295,6 +300,7 @@ export function AddToCartCase({
   }
 
   const { t } = useTranslations();
+  const cartApi = useCartOptional();
   const [mode, setMode] = useState<PurchaseMode>("same");
   const [sheetOpen, setSheetOpen] = useState(false);
   const [detailWineId, setDetailWineId] = useState<string | null>(null);
@@ -433,6 +439,17 @@ export function AddToCartCase({
       return;
     }
 
+    // Optimistic UI: open cart drawer immediately with local lines while the
+    // server add-quantity (+ early-bird getCart) runs in the background.
+    const optimisticCart = buildOptimisticCaseCart(
+      cartApi?.cart,
+      product,
+      resolvedVariant,
+      6,
+    );
+    dispatchCartRefresh(optimisticCart);
+    requestCartOpen();
+
     startSameTransition(async () => {
       try {
         const response = await fetch("/api/cart/add-quantity", {
@@ -448,7 +465,7 @@ export function AddToCartCase({
           const result = (await response.json()) as { cart?: Cart };
           if (result.cart) dispatchCartRefresh(result.cart);
           const { list_price, unit_price } = pricesFromCartAfterAdd(
-            result.cart,
+            result.cart ?? optimisticCart,
             product.id,
             product,
           );
@@ -464,9 +481,12 @@ export function AddToCartCase({
               price_version: "v1",
             },
           );
+        } else {
+          // Revert optimistic snapshot on failure (best-effort).
+          if (cartApi?.cart) dispatchCartRefresh(cartApi.cart);
         }
       } catch {
-        /* noop */
+        if (cartApi?.cart) dispatchCartRefresh(cartApi.cart);
       }
     });
   };

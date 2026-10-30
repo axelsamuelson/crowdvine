@@ -260,12 +260,14 @@ export async function POST(request: Request) {
 
     console.log("🛒 [ADD-QUANTITY] Successfully added/updated item");
 
+    // Touch ownership in parallel with cart reload — do not block the response
+    // on a second sequential round-trip before getCart.
     const { bindCartOwnerAndTouch } = await import(
       "@/lib/cart/reconcile-on-auth"
     );
-    await bindCartOwnerAndTouch(dbCartId, userId);
-
-    const cart = await CartService.getCart();
+    const touchPromise = bindCartOwnerAndTouch(dbCartId, userId);
+    const cart = await CartService.getCart({ cartDbId: dbCartId });
+    await touchPromise;
     if (!cart) {
       return NextResponse.json(
         { error: "Failed to load cart" },

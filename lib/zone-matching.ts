@@ -747,6 +747,48 @@ export async function determineZones(
   let deliveryZoneId: string | null = null;
   let deliveryZoneName: string | null = null;
 
+  // Fast path: active wine-zone / geo preference already linked a delivery zone.
+  // Skip Nominatim geocoding on hot paths (cart add → getCart → early-bird).
+  if (preferredDeliveryZoneId) {
+    const preferred = await loadPreferredDeliveryZone(
+      sb,
+      preferredDeliveryZoneId,
+    );
+    if (preferred) {
+      deliveryZoneId = preferred.id;
+      deliveryZoneName = preferred.name;
+      console.log(
+        `⚡ Using preferred delivery zone without geocode: ${deliveryZoneName}`,
+      );
+      const pallets = await buildPalletInfosForDeliveryPair(sb, {
+        shippingRegionId: shippingRegionIdForRouting,
+        pickupZoneId,
+        pickupZoneDisplayName: pickupZoneName,
+        deliveryZoneId,
+        deliveryZoneName,
+      });
+      const preferredResult: ZoneMatchResult = {
+        pickupZoneId,
+        deliveryZoneId,
+        pickupZoneName,
+        deliveryZoneName,
+        availableDeliveryZones: [
+          {
+            id: preferred.id,
+            name: preferred.name,
+            centerLat: preferred.center_lat,
+            centerLon: preferred.center_lon,
+            radiusKm: preferred.radius_km,
+          },
+        ],
+        pallets,
+        shippingRegionIdForRouting,
+      };
+      zoneCache.set(cacheKey, preferredResult);
+      return preferredResult;
+    }
+  }
+
   // Only set delivery zone if we have a valid delivery address
   if (
     deliveryAddress.countryCode &&

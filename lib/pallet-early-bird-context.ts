@@ -217,10 +217,12 @@ export async function resolvePalletEarlyBirdContext(
     return empty;
   }
 
-  const activeGeo = userId
-    ? await resolveActiveGeoZoneForUser(userId)
-    : await resolveActiveGeoZoneAnonymous();
-  const profileAddress = await resolveDeliveryAddressForUser(userId);
+  const [activeGeo, profileAddress] = await Promise.all([
+    userId
+      ? resolveActiveGeoZoneForUser(userId)
+      : resolveActiveGeoZoneAnonymous(),
+    resolveDeliveryAddressForUser(userId),
+  ]);
   const deliveryAddress = deliveryAddressForWineZoneMatching(
     activeGeo,
     profileAddress,

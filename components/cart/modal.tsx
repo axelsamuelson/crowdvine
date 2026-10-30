@@ -291,9 +291,13 @@ export default function CartModal() {
 
     const newSerializedCart = serializeCart(cart);
 
-    // Initialize on first load
+    // Initialize on first load — still open if this first paint already has
+    // items (optimistic add before any prior empty-cart snapshot).
     if (serializedCart.current === undefined) {
       serializedCart.current = newSerializedCart;
+      if (cart.lines.length > 0) {
+        setIsOpen(true);
+      }
       return;
     }
 
@@ -308,6 +312,13 @@ export default function CartModal() {
       }
     }
   }, [cart]);
+
+  // Explicit open from PDP Reservera (fires with optimistic cart-refresh).
+  useEffect(() => {
+    const onOpenRequest = () => setIsOpen(true);
+    window.addEventListener("cart-open-request", onOpenRequest);
+    return () => window.removeEventListener("cart-open-request", onOpenRequest);
+  }, []);
 
   useEffect(() => {
     const handleEscapeKey = (event: KeyboardEvent) => {
@@ -377,13 +388,15 @@ export default function CartModal() {
     );
   };
 
-  // Don't render cart button if no cart data
-  if (!cart) {
+  // Keep the open drawer mountable during optimistic first-add even if cart
+  // was previously undefined; badge stays hidden until we have cart data.
+  if (!cart && !isOpen) {
     return null;
   }
 
   return (
     <>
+      {cart ? (
       <Button
         aria-label={t("cart.openCart")}
         onClick={openCart}
@@ -393,7 +406,7 @@ export default function CartModal() {
             : "bg-black hover:bg-black/90"
         }`}
         size={"sm"}
-        disabled={isPending}
+        disabled={false}
       >
         {isPending ? (
           <div className="flex items-center gap-1">
@@ -407,6 +420,7 @@ export default function CartModal() {
           </>
         )}
       </Button>
+      ) : null}
       <AnimatePresence>
         {isOpen && (
           <>

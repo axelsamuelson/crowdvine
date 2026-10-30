@@ -183,11 +183,11 @@ export async function POST(request: Request) {
     const { bindCartOwnerAndTouch } = await import(
       "@/lib/cart/reconcile-on-auth"
     );
-    await bindCartOwnerAndTouch(dbCartId, userId);
-
     console.log("🔧 Item added/updated successfully");
 
-    const cart = await CartService.getCart();
+    const touchPromise = bindCartOwnerAndTouch(dbCartId, userId);
+    const cart = await CartService.getCart({ cartDbId: dbCartId });
+    await touchPromise;
     if (!cart) {
       return NextResponse.json(
         { error: "Failed to load cart" },
