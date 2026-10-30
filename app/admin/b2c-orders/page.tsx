@@ -45,11 +45,16 @@ interface AdminReservationListRow {
   region?: string | null;
   is_conditional?: boolean | null;
   charge_blocked_reason?: string | null;
+  archived_at?: string | null;
+  archive_reason?: string | null;
+  status_before_archive?: string | null;
   profiles?: {
     full_name?: string | null;
     email?: string | null;
   } | null;
 }
+
+type ArchiveListFilter = "active" | "archived" | "all";
 
 function formatPaymentStatus(status: string | null | undefined): string {
   switch (status) {
@@ -104,6 +109,8 @@ function formatReservationStatus(status: string | null | undefined): string {
       return "Rejected";
     case "conditional_pending":
       return "US conditional (pending review)";
+    case "archived":
+      return "Archived";
     default:
       return status ?? "—";
   }
@@ -119,15 +126,23 @@ export default function B2cOrdersPage() {
     [],
   );
   const [searchTerm, setSearchTerm] = useState("");
+  const [archiveFilter, setArchiveFilter] =
+    useState<ArchiveListFilter>("active");
 
   useEffect(() => {
     fetchReservations();
-  }, []);
+  }, [archiveFilter]);
 
   const fetchReservations = async () => {
     try {
-      console.log("Fetching reservations...");
-      const reservationsResponse = await fetch("/api/admin/reservations");
+      console.log("Fetching reservations...", { archiveFilter });
+      const qs =
+        archiveFilter === "archived"
+          ? "?archived=1"
+          : archiveFilter === "all"
+            ? "?archived=all"
+            : "";
+      const reservationsResponse = await fetch(`/api/admin/reservations${qs}`);
 
       if (!reservationsResponse.ok) {
         throw new Error(`HTTP error! status: ${reservationsResponse.status}`);
@@ -144,6 +159,7 @@ export default function B2cOrdersPage() {
       );
 
       setReservations(reservationsData.reservations || []);
+      setSelectedReservations([]);
     } catch (error) {
       console.error("Failed to fetch reservations:", error);
       alert("Failed to fetch reservations. Please refresh the page.");
@@ -348,19 +364,46 @@ export default function B2cOrdersPage() {
           <Calendar className="w-3.5 h-3.5 text-zinc-900 dark:text-zinc-50" />
           All Reservations
         </h2>
-        <div className="flex items-center justify-between gap-4 mb-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
           <p className="text-xs text-gray-500 dark:text-zinc-400">
             Order reservations (these prevent zone deletion)
           </p>
-          <div className="relative flex items-center gap-2">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 dark:text-zinc-400" />
-            <input
-              type="text"
-              placeholder="Search reservations..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 pr-4 py-2 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-zinc-100 focus:ring-offset-0 placeholder:text-gray-500 dark:placeholder:text-zinc-400 w-48"
-            />
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="inline-flex rounded-lg border border-gray-200 dark:border-zinc-700 p-0.5 bg-gray-50 dark:bg-zinc-900/70">
+              {(
+                [
+                  { id: "active", label: "Aktiva" },
+                  { id: "archived", label: "Arkiverade" },
+                  { id: "all", label: "Alla" },
+                ] as const
+              ).map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => {
+                    setLoading(true);
+                    setArchiveFilter(tab.id);
+                  }}
+                  className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                    archiveFilter === tab.id
+                      ? "bg-white dark:bg-zinc-800 text-gray-900 dark:text-zinc-100 shadow-sm"
+                      : "text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-zinc-100"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+            <div className="relative flex items-center gap-2">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 dark:text-zinc-400" />
+              <input
+                type="text"
+                placeholder="Search reservations..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9 pr-4 py-2 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm bg-white dark:bg-zinc-900 text-gray-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-zinc-100 focus:ring-offset-0 placeholder:text-gray-500 dark:placeholder:text-zinc-400 w-48"
+              />
+            </div>
           </div>
         </div>
         <div className="w-full bg-gray-50 dark:bg-zinc-900/70 border border-gray-100 dark:border-zinc-800 rounded-xl overflow-hidden">

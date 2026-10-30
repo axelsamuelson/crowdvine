@@ -219,9 +219,11 @@ describe("sumReservedBottlesOnPalletResult — fail closed", () => {
         from: () => ({
           select: () => ({
             eq: () => ({
-              in: async () => ({
-                data: null,
-                error: { message: "simulated reservation query failure" },
+              in: () => ({
+                is: async () => ({
+                  data: null,
+                  error: { message: "simulated reservation query failure" },
+                }),
               }),
             }),
           }),

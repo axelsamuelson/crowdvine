@@ -71,6 +71,15 @@ export async function PATCH(
     const nextStatusRaw = reservationData.status;
     const nextStatus =
       typeof nextStatusRaw === "string" ? nextStatusRaw.toLowerCase() : "";
+    if (nextStatus === "archived") {
+      return NextResponse.json(
+        {
+          error:
+            "Use POST /api/admin/reservations/:id/archive to soft-archive (sets archived_at + status_before_archive).",
+        },
+        { status: 400 },
+      );
+    }
     const terminalAdminStatuses = new Set(["cancelled", "rejected", "declined"]);
     const clearingPallet = terminalAdminStatuses.has(nextStatus);
 

@@ -21,15 +21,27 @@ function getSupabaseAdmin() {
   return createClient(supabaseUrl, supabaseServiceKey);
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const adminAuth = await requireAdminOr401();
     if (isUnauthorizedResponse(adminAuth)) return adminAuth;
     const sbAdmin = getSupabaseAdmin();
 
-    console.log("🔍 [Reservations API] Starting to fetch reservations...");
+    const url = new URL(request.url);
+    const archivedParam = (url.searchParams.get("archived") || "").toLowerCase();
+    // default: active only; archived=1 → archived only; archived=all → both
+    const archiveFilter =
+      archivedParam === "1" || archivedParam === "true" || archivedParam === "yes"
+        ? "archived"
+        : archivedParam === "all"
+          ? "all"
+          : "active";
 
-    const { data: reservations, error: reservationsError } = await sbAdmin
+    console.log("🔍 [Reservations API] Starting to fetch reservations...", {
+      archiveFilter,
+    });
+
+    let query = sbAdmin
       .from("order_reservations")
       .select(
         `
@@ -54,6 +66,9 @@ export async function GET() {
         region,
         is_conditional,
         charge_blocked_reason,
+        archived_at,
+        archive_reason,
+        status_before_archive,
         delivery:pallet_zones!delivery_zone_id (
           id,
           name
@@ -70,6 +85,14 @@ export async function GET() {
       )
       .order("created_at", { ascending: false })
       .limit(200);
+
+    if (archiveFilter === "archived") {
+      query = query.eq("status", "archived");
+    } else if (archiveFilter === "active") {
+      query = query.neq("status", "archived").is("archived_at", null);
+    }
+
+    const { data: reservations, error: reservationsError } = await query;
 
     if (reservationsError) {
       console.error(

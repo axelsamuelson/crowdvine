@@ -40,12 +40,15 @@ export async function GET() {
         cart_id,
         address_id,
         pallet_id,
+        archived_at,
         profiles(
           email,
           full_name
         )
       `,
       )
+      .neq("status", "archived")
+      .is("archived_at", null)
       .order("created_at", { ascending: false });
 
     if (reservationsError) {
