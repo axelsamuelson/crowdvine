@@ -77,6 +77,7 @@ export async function archiveReservation(params: {
       ? params.reason.trim().slice(0, 500)
       : null;
 
+  // order_reservations has no updated_at column — do not write it.
   const { data: updated, error: updErr } = await sb
     .from("order_reservations")
     .update({
@@ -85,7 +86,6 @@ export async function archiveReservation(params: {
       archived_at: now,
       archive_reason: reason,
       retry_scheduled_at: null,
-      updated_at: now,
     })
     .eq("id", id)
     .select("*")
@@ -156,7 +156,7 @@ export async function unarchiveReservation(params: {
       ? existing.status_before_archive.trim()
       : "cancelled";
 
-  const now = new Date().toISOString();
+  // order_reservations has no updated_at column — do not write it.
   const { data: updated, error: updErr } = await sb
     .from("order_reservations")
     .update({
@@ -164,7 +164,6 @@ export async function unarchiveReservation(params: {
       status_before_archive: null,
       archived_at: null,
       archive_reason: null,
-      updated_at: now,
     })
     .eq("id", id)
     .select("*")
