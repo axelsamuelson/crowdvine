@@ -2,7 +2,7 @@
 
 > **UTKAST.** Framtaget av Daniel Holm (Compliance), med ställningstagande av Sofia Bergström (GC) den 25 augusti 2026 enligt `gc-stallningstagande-angerratt-och-villkor.md`. Tvistlösningen (p. 13) är oförändrad. Punkt 9 och 10 är omskrivna 2026-10-29 på ägarens instruktion och avviker från GC-dokumentet, se anmärkningen under punkt 9. En öppen punkt kvarstår, markerad **ÖPPEN FRÅGA**. Fält markerade `[FYLL I]` måste fyllas i innan sidan går live. Ingen extern advokat har granskat texten.
 
-Senast uppdaterad: 2026-10-29
+Senast uppdaterad: 2026-10-30
 
 ---
 
@@ -48,11 +48,11 @@ PACT samlar flera beställningar till en gemensam transport från producenterna 
 
 **Steg 1. Du reserverar.** Du väljer viner och lägger en reservation. Du anger dina kortuppgifter, men **inget belopp dras och kortet reserveras inte**. Du får en bekräftelse på din reservation via e-post.
 
-**Steg 2. Pallen fylls.** Vi samlar reservationer tills pallen når den volym som krävs för att transporten ska gå.
+**Steg 2. Pallen fylls.** Pallen är först virtuell: du ser hur många flaskor som beställts jämfört med den tröskel som krävs. Vi samlar reservationer tills tröskeln nås. Först när pallen närmar sig tröskeln väljs producent och upphämtningsplats, och pallen blir fysisk.
 
 **Steg 3. Pallen stänger och betalning sker.** När pallen är full stänger vi den och **då först debiteras ditt kort** med det belopp som framgick av din reservation. Du får ett kvitto via e-post. Först i detta ögonblick uppstår ett bindande köpavtal mellan dig och EURPACT OÜ.
 
-**Steg 4. Leverans.** Producenten packar och etiketterar din order i Frankrike. Pallen transporteras till Sverige och din order levereras hem till dig med ID-kontroll.
+**Steg 4. Leverans.** Din order packas i lådor direkt hos producenterna i Frankrike, transporteras till Sverige och levereras hem till dig med ID-kontroll.
 
 ### Din reservation är inte ett bindande köp
 
@@ -60,12 +60,15 @@ Fram till att pallen stänger och betalning genomförs kan du **när som helst a
 
 ### Vad händer om pallen inte fylls
 
-Om pallen inte når nödvändig volym inom **90 dagar** från din reservation:
+Din reservation är giltig i **30 dagar** från att du lade den.
 
-- Din reservation upphör automatiskt
-- **Inget belopp debiteras**
-- Din sparade betalmetod tas bort eller kan användas för en kommande pall enligt ditt val
-- Vi informerar dig via e-post
+Om pallen fortfarande inte nått nödvändig volym (tröskeln) efter 30 dagar skickar vi ett e-postmeddelande där du ombeds bekräfta om pallen ska få ytterligare 30 dagar på sig att nå tröskeln. Du har **7 dagar** från det e-postmeddelandet att bekräfta via länken i mejlet.
+
+- Bekräftar du inom 7 dagar fortsätter din reservation att gälla i ytterligare 30 dagar
+- Bekräftar du inte inom 7 dagar upphör din reservation automatiskt och **inget belopp debiteras**
+- [FYLL I: om förlängningen kan upprepas mer än en gång, och eventuell bortre tidsgräns för hur länge en reservation totalt kan gälla]
+
+När en reservation upphör utan att pallen fyllts debiteras **inget belopp**. Debitering sker först när pallen är fylld och stängs. Din sparade betalmetod tas bort eller kan användas för en kommande pall enligt ditt val. Vi informerar dig via e-post.
 
 Vi lämnar aldrig en reservation öppen på obestämd tid.
 

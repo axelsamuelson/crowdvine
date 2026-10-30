@@ -82,9 +82,11 @@ export default function KopvillkorContent() {
         Du får en bekräftelse på din reservation via e-post.
       </LegalP>
       <LegalP>
-        <LegalStrong>Steg 2. Pallen fylls.</LegalStrong> Vi samlar
-        reservationer tills pallen når den volym som krävs för att transporten
-        ska gå.
+        <LegalStrong>Steg 2. Pallen fylls.</LegalStrong> Pallen är först
+        virtuell: du ser hur många flaskor som beställts jämfört med den tröskel
+        som krävs. Vi samlar reservationer tills tröskeln nås. Först när pallen
+        närmar sig tröskeln väljs producent och upphämtningsplats, och pallen
+        blir fysisk.
       </LegalP>
       <LegalP>
         <LegalStrong>Steg 3. Pallen stänger och betalning sker.</LegalStrong>{" "}
@@ -95,9 +97,9 @@ export default function KopvillkorContent() {
         OÜ.
       </LegalP>
       <LegalP>
-        <LegalStrong>Steg 4. Leverans.</LegalStrong> Producenten packar och
-        etiketterar din order i Frankrike. Pallen transporteras till Sverige och
-        din order levereras hem till dig med ID-kontroll.
+        <LegalStrong>Steg 4. Leverans.</LegalStrong> Din order packas i lådor
+        direkt hos producenterna i Frankrike, transporteras till Sverige och
+        levereras hem till dig med ID-kontroll.
       </LegalP>
 
       <LegalH3>Din reservation är inte ett bindande köp</LegalH3>
@@ -109,20 +111,37 @@ export default function KopvillkorContent() {
 
       <LegalH3>Vad händer om pallen inte fylls</LegalH3>
       <LegalP>
-        Om pallen inte når nödvändig volym inom <LegalStrong>90 dagar</LegalStrong>{" "}
-        från din reservation:
+        Din reservation är giltig i <LegalStrong>30 dagar</LegalStrong> från att
+        du lade den.
+      </LegalP>
+      <LegalP>
+        Om pallen fortfarande inte nått nödvändig volym (tröskeln) efter 30
+        dagar skickar vi ett e-postmeddelande där du ombeds bekräfta om pallen
+        ska få ytterligare 30 dagar på sig att nå tröskeln. Du har{" "}
+        <LegalStrong>7 dagar</LegalStrong> från det e-postmeddelandet att
+        bekräfta via länken i mejlet.
       </LegalP>
       <LegalList>
-        <li>Din reservation upphör automatiskt</li>
         <li>
-          <LegalStrong>Inget belopp debiteras</LegalStrong>
+          Bekräftar du inom 7 dagar fortsätter din reservation att gälla i
+          ytterligare 30 dagar
         </li>
         <li>
-          Din sparade betalmetod tas bort eller kan användas för en kommande
-          pall enligt ditt val
+          Bekräftar du inte inom 7 dagar upphör din reservation automatiskt och{" "}
+          <LegalStrong>inget belopp debiteras</LegalStrong>
         </li>
-        <li>Vi informerar dig via e-post</li>
+        <li>
+          [FYLL I: om förlängningen kan upprepas mer än en gång, och eventuell
+          bortre tidsgräns för hur länge en reservation totalt kan gälla]
+        </li>
       </LegalList>
+      <LegalP>
+        När en reservation upphör utan att pallen fyllts debiteras{" "}
+        <LegalStrong>inget belopp</LegalStrong>. Debitering sker först när
+        pallen är fylld och stängs. Din sparade betalmetod tas bort eller kan
+        användas för en kommande pall enligt ditt val. Vi informerar dig via
+        e-post.
+      </LegalP>
       <LegalP>Vi lämnar aldrig en reservation öppen på obestämd tid.</LegalP>
 
       <LegalH2>4. Priser</LegalH2>
