@@ -1,5 +1,12 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { getReservationExpiryConfig } from "@/lib/reservations/expiry-config";
+import { defaultResendFrom } from "@/lib/email";
+import {
+  getReservationExpiryConfig,
+  reservationExpiryFrom,
+  reservationExpiryReplyTo,
+  RESERVATION_EXPIRY_FROM_HARDCODED,
+  RESERVATION_EXPIRY_REPLY_TO_HARDCODED,
+} from "@/lib/reservations/expiry-config";
 
 const KEYS = [
   "RESERVATION_EXPIRY_ENABLED",
@@ -8,6 +15,10 @@ const KEYS = [
   "RESERVATION_EXTENSION_DAYS",
   "RESERVATION_EXTENSION_REPLY_DAYS",
   "RESERVATION_MAX_AGE_DAYS",
+  "RESERVATION_EXPIRY_FROM",
+  "RESERVATION_EXPIRY_REPLY_TO",
+  "RESEND_FROM",
+  "RESEND_REPLY_TO",
 ] as const;
 
 const saved: Record<string, string | undefined> = {};
@@ -63,5 +74,24 @@ describe("getReservationExpiryConfig", () => {
   it("accepts a finite optional cap", () => {
     setEnv("RESERVATION_MAX_AGE_DAYS", "90");
     expect(getReservationExpiryConfig().maxAgeDays).toBe(90);
+  });
+
+  it("hard-codes From and Reply-To for expiry mail (ignores RESEND_FROM / noreply)", () => {
+    expect(RESERVATION_EXPIRY_FROM_HARDCODED).toBe(
+      "PACT <customer@pactwines.com>",
+    );
+    expect(RESERVATION_EXPIRY_REPLY_TO_HARDCODED).toBe(
+      "customer@pactwines.com",
+    );
+
+    setEnv("RESEND_FROM", "PACT <noreply@pactwines.com>");
+    setEnv("RESEND_REPLY_TO", "orders@pactwines.com");
+    setEnv("RESERVATION_EXPIRY_FROM", "PACT <other@pactwines.com>");
+    setEnv("RESERVATION_EXPIRY_REPLY_TO", "other@pactwines.com");
+
+    expect(reservationExpiryFrom()).toBe("PACT <customer@pactwines.com>");
+    expect(reservationExpiryReplyTo()).toBe("customer@pactwines.com");
+    // Other transactional mail still uses the global From env.
+    expect(defaultResendFrom()).toBe("PACT <noreply@pactwines.com>");
   });
 });
