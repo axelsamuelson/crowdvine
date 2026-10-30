@@ -1,8 +1,8 @@
 # Köpvillkor
 
-> **UTKAST.** Framtaget av Daniel Holm (Compliance), med ställningstagande av Sofia Bergström (GC) den 25 augusti 2026 enligt `gc-stallningstagande-angerratt-och-villkor.md`. Tvistlösningen (p. 13) är oförändrad. Punkt 9 och 10 är omskrivna 2026-10-29 på ägarens instruktion och avviker från GC-dokumentet, se anmärkningen under punkt 9. Punkt 3 (giltighetstid och producent som inte kan leverera) uppdaterad 2026-10-31, i linje med reservationsmejlen (30 dagar åt gången, bekräftelse via länk senast angivet datum inom 7 dagar, obegränsat antal förlängningar). Punkt 7 (leveranstid och leveransområde) ifylld 2026-11-01: 5–10 arbetsdagar inom hela Sverige från orderbekräftelse och debitering. Punkt 5 (misslyckad debitering: omförsök efter 24/72 h, 3D Secure-länk, avbrott efter tre försök utan dragning) uppdaterad 2026-11-02 enligt `lib/payment-retry.ts` och Stripe-webhook. Övriga fält markerade `[FYLL I]` måste fyllas i innan sidan går live. Ingen extern advokat har granskat texten.
+> **UTKAST.** Framtaget av Daniel Holm (Compliance), med ställningstagande av Sofia Bergström (GC) den 25 augusti 2026 enligt `gc-stallningstagande-angerratt-och-villkor.md`. Tvistlösningen (p. 13) är oförändrad. Punkt 9 och 10 är omskrivna 2026-10-29 på ägarens instruktion och avviker från GC-dokumentet, se anmärkningen under punkt 9. Punkt 3 (giltighetstid och producent som inte kan leverera) uppdaterad 2026-10-31, i linje med reservationsmejlen (30 dagar åt gången, bekräftelse via länk senast angivet datum inom 7 dagar, obegränsat antal förlängningar). Punkt 7 (leveranstid och leveransområde) ifylld 2026-11-01: 5–10 arbetsdagar inom hela Sverige från orderbekräftelse och debitering. Punkt 5 (misslyckad debitering: omförsök efter 24/72 h, 3D Secure-länk, avbrott efter tre försök utan dragning) uppdaterad 2026-11-02 enligt `lib/payment-retry.ts` och Stripe-webhook. Punkt 8 (returkostnad) ifylld 2026-11-03; antal leveransförsök orört. Övriga fält markerade `[FYLL I]` måste fyllas i innan sidan går live. Ingen extern advokat har granskat texten.
 
-Senast uppdaterad: 2026-11-02
+Senast uppdaterad: 2026-11-03
 
 ---
 
@@ -127,9 +127,11 @@ Om leveransen blir väsentligt försenad har du rätt att häva köpet och få p
 
 Om du inte är hemma, inte kan legitimera dig eller inte är minst 20 år gör Budbee ett nytt leveransförsök. Kan leveransen inte genomföras då heller returneras varan.
 
+Vid retur betalar du den faktiska returfraktkostnaden, utan påslag. Om överlämningen nekas vid ålderskontrollen tar vi inte ut någon avgift.
+
 Hur ett uteblivet leveransförsök hanteras beskrivs av [Budbee](https://budbee.com/se/kundservice/leveranser/).
 
-> **Anmärkning, ej del av publicerad text.** Budbees kundservice skriver att en hemleverans med ID-krav som inte kan lämnas ombokas. Budbees allmänna villkor från 2018 säger att ett nytt leveransförsök görs på Budbees initiativ om inget annat avtalats, och att gods som inte levererats lagras i 14 dagar. Här är det avtalade antalet ett nytt försök. Vem som bär returkostnaden vid utebliven mottagning är inte angivet. Om kunden underkänns på ålder ska ingen avgift tas ut. Det är en lagstadgad kontroll, inte ett avtalsbrott.
+> **Anmärkning, ej del av publicerad text.** Budbees kundservice skriver att en hemleverans med ID-krav som inte kan lämnas ombokas. Budbees allmänna villkor från 2018 säger att ett nytt leveransförsök görs på Budbees initiativ om inget annat avtalats, och att gods som inte levererats lagras i 14 dagar. Antalet leveransförsök ("ett nytt") är oförändrat — inte beslutat att ändra. Returkostnad ifylld 2026-11-03: faktisk returfrakt utan påslag; ingen avgift vid nekad ålderskontroll (lagstadgad kontroll, inte avtalsbrott).
 
 ---
 

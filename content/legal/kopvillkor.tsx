@@ -263,6 +263,10 @@ export default function KopvillkorContent() {
         heller returneras varan.
       </LegalP>
       <LegalP>
+        Vid retur betalar du den faktiska returfraktkostnaden, utan påslag. Om
+        överlämningen nekas vid ålderskontrollen tar vi inte ut någon avgift.
+      </LegalP>
+      <LegalP>
         Hur ett uteblivet leveransförsök hanteras beskrivs av{" "}
         <LegalLink href="https://budbee.com/se/kundservice/leveranser/">
           Budbee
