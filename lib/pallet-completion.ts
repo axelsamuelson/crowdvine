@@ -162,13 +162,23 @@ export function decidePalletShipReadinessSync(input: {
  * - After shipping_ordered (and later lifecycle): never auto-revert.
  * - Fill aggregation failure: fail closed — no readiness/status mutation.
  */
+export type SyncPalletShipReadinessOptions = {
+  /**
+   * When false, never send payment-ready emails (cron / hygiene).
+   * Default true: still gated by PALLET_AUTO_NOTIFICATIONS === "true".
+   */
+  allowNotifications?: boolean;
+};
+
 export async function syncPalletShipReadiness(
   palletId: string,
+  options?: SyncPalletShipReadinessOptions,
 ): Promise<{ becameReady: boolean; reverted: boolean; isReady: boolean }> {
   console.log(`🔍 [Pallet Completion] Syncing ship readiness for ${palletId}`);
 
   const supabase = getSupabaseAdmin();
   const noop = { becameReady: false, reverted: false, isReady: false };
+  const allowNotifications = options?.allowNotifications !== false;
 
   try {
     const { data: pallet, error: palletError } = await supabase
@@ -225,7 +235,10 @@ export async function syncPalletShipReadiness(
 
     if (decision.action === "complete") {
       await completePallet(palletId);
-      if (process.env.PALLET_AUTO_NOTIFICATIONS === "true") {
+      if (
+        allowNotifications &&
+        process.env.PALLET_AUTO_NOTIFICATIONS === "true"
+      ) {
         try {
           await triggerPaymentNotifications(palletId);
         } catch (emailError) {
