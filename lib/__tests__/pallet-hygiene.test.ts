@@ -8,6 +8,7 @@ import {
   reservationEmptyActivityAt,
   resolveEmptySinceIso,
   shouldCancelEmptyPallet,
+  shouldPreserveLastAcceptingPallet,
 } from "@/lib/pallet-hygiene";
 
 describe("namePalletForRoute", () => {
@@ -120,6 +121,38 @@ describe("empty-since + cancel decision", () => {
         bottles: 0,
         emptySinceIso: recent,
         nowMs: now,
+      }),
+    ).toBe(false);
+  });
+});
+
+describe("shouldPreserveLastAcceptingPallet", () => {
+  it("preserves the last accepting pallet when the region has live inventory", () => {
+    expect(
+      shouldPreserveLastAcceptingPallet({
+        acceptingCountOnRoute: 1,
+        regionHasLiveInventory: true,
+      }),
+    ).toBe(true);
+    expect(
+      shouldPreserveLastAcceptingPallet({
+        acceptingCountOnRoute: 0,
+        regionHasLiveInventory: true,
+      }),
+    ).toBe(true);
+  });
+
+  it("allows cancel when another accepting pallet remains or no live wines", () => {
+    expect(
+      shouldPreserveLastAcceptingPallet({
+        acceptingCountOnRoute: 2,
+        regionHasLiveInventory: true,
+      }),
+    ).toBe(false);
+    expect(
+      shouldPreserveLastAcceptingPallet({
+        acceptingCountOnRoute: 1,
+        regionHasLiveInventory: false,
       }),
     ).toBe(false);
   });

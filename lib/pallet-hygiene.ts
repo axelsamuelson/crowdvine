@@ -7,6 +7,7 @@ import { syncPalletShipReadiness } from "@/lib/pallet-completion";
 import {
   sumReservedBottlesOnPalletResult,
 } from "@/lib/pallet-fill-count";
+import { PALLET_ACCEPTING_STATUSES } from "@/lib/pallet-ship-progress";
 
 /** Empty (0 active bottles) for this long → status cancelled (not deleted). */
 export const EMPTY_PALLET_CANCEL_AFTER_MS = 7 * 24 * 60 * 60 * 1000;
@@ -68,6 +69,19 @@ export function shouldCancelEmptyPallet(input: {
 
   const now = input.nowMs ?? Date.now();
   return now - sinceMs >= EMPTY_PALLET_CANCEL_AFTER_MS;
+}
+
+/**
+ * Never cancel the last accepting pallet on a live-wine shipping route.
+ * Cancelling that row left checkout with 0 pallets (noPickupForCart) until a
+ * replacement was created — see 3985cbfe on 2026-10-30.
+ */
+export function shouldPreserveLastAcceptingPallet(input: {
+  acceptingCountOnRoute: number;
+  regionHasLiveInventory: boolean;
+}): boolean {
+  if (!input.regionHasLiveInventory) return false;
+  return Math.max(0, Math.floor(Number(input.acceptingCountOnRoute) || 0)) <= 1;
 }
 
 function maxIso(a: string | null | undefined, b: string | null | undefined): string | null {
@@ -148,7 +162,7 @@ export async function runPalletHygiene(options?: {
 
   const { data: candidates, error: listErr } = await sb
     .from("pallets")
-    .select("id, status, created_at")
+    .select("id, status, created_at, shipping_region_id, delivery_zone_id")
     .neq("status", "cancelled");
 
   if (listErr) {
@@ -220,6 +234,51 @@ export async function runPalletHygiene(options?: {
       continue;
     }
 
+    const shippingRegionId =
+      typeof pallet.shipping_region_id === "string"
+        ? pallet.shipping_region_id
+        : null;
+    const deliveryZoneId =
+      typeof pallet.delivery_zone_id === "string"
+        ? pallet.delivery_zone_id
+        : null;
+
+    if (shippingRegionId && deliveryZoneId) {
+      const [{ count: acceptingCount, error: accErr }, liveInventory] =
+        await Promise.all([
+          sb
+            .from("pallets")
+            .select("id", { count: "exact", head: true })
+            .eq("shipping_region_id", shippingRegionId)
+            .eq("delivery_zone_id", deliveryZoneId)
+            .in("status", [...PALLET_ACCEPTING_STATUSES]),
+          regionHasLiveSaleableWines(shippingRegionId),
+        ]);
+
+      if (accErr) {
+        result.cancelSkipped += 1;
+        console.error(
+          "[pallet-hygiene] accepting count:",
+          palletId,
+          accErr.message,
+        );
+        continue;
+      }
+
+      if (
+        shouldPreserveLastAcceptingPallet({
+          acceptingCountOnRoute: acceptingCount ?? 0,
+          regionHasLiveInventory: liveInventory,
+        })
+      ) {
+        result.cancelSkipped += 1;
+        console.log(
+          `[PALLET] Hygiene skip cancel for last accepting pallet ${palletId} (live inventory on route)`,
+        );
+        continue;
+      }
+    }
+
     const { error: cancelErr } = await sb
       .from("pallets")
       .update({
@@ -246,4 +305,42 @@ export async function runPalletHygiene(options?: {
   }
 
   return result;
+}
+
+async function regionHasLiveSaleableWines(
+  shippingRegionId: string,
+): Promise<boolean> {
+  const sb = getSupabaseAdmin();
+  const { data: producers, error: prodErr } = await sb
+    .from("producers")
+    .select("id")
+    .eq("shipping_region_id", shippingRegionId);
+
+  if (prodErr) {
+    console.error(
+      "[pallet-hygiene] producers for live check:",
+      prodErr.message,
+    );
+    // Fail closed: preserve the pallet rather than strand checkout.
+    return true;
+  }
+
+  const producerIds = (producers ?? [])
+    .map((p) => p.id as string)
+    .filter((id) => typeof id === "string" && id.length > 0);
+  if (producerIds.length === 0) return false;
+
+  const { data: wines, error: wineErr } = await sb
+    .from("wines")
+    .select("id")
+    .in("producer_id", producerIds)
+    .eq("is_live", true)
+    .limit(1);
+
+  if (wineErr) {
+    console.error("[pallet-hygiene] wines for live check:", wineErr.message);
+    return true;
+  }
+
+  return (wines?.length ?? 0) > 0;
 }

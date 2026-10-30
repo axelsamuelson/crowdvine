@@ -151,8 +151,13 @@ export function checkoutStepCompletedKey(step: string): string {
   return `checkout_step_completed:${getCheckoutSessionId()}:${step}`;
 }
 
-export function checkoutAbandonedEmitKey(): string {
-  return `checkout_abandoned:${getCheckoutSessionId()}`;
+/** Once per checkout session + step (not once for the whole session). */
+export function checkoutAbandonedEmitKey(step?: string): string {
+  const sid = getCheckoutSessionId();
+  const s = (step ?? "").trim();
+  return s
+    ? `checkout_abandoned:${sid}:${s}`
+    : `checkout_abandoned:${sid}`;
 }
 
 /**
@@ -175,7 +180,7 @@ export function clearCheckoutAnalyticsSession(): void {
     clearClaimsWithPrefix(`age_passed:${sessionId}:`);
     clearClaimsWithPrefix(`checkout_step_viewed:${sessionId}:`);
     clearClaimsWithPrefix(`checkout_step_completed:${sessionId}:`);
-    clearClaim(`checkout_abandoned:${sessionId}`);
+    clearClaimsWithPrefix(`checkout_abandoned:${sessionId}`);
   }
   clearClaim(CHECKOUT_SESSION_ID_KEY);
 }

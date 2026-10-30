@@ -175,6 +175,17 @@ export async function resolveShippingRegionForCart(
 }
 
 /**
+ * Ensure an accepting pallet exists for a shipping route (region → delivery).
+ * Alias of {@link findOrCreatePalletForRegion} for cancel/hygiene call sites.
+ */
+export async function ensureAcceptingPalletForRoute(
+  shippingRegionId: string,
+  deliveryZoneId: string,
+): Promise<{ palletId: string; created: boolean }> {
+  return findOrCreatePalletForRegion(shippingRegionId, deliveryZoneId);
+}
+
+/**
  * Idempotent: repeated calls return the same open pallet row for (region, delivery).
  */
 export async function findOrCreatePalletForRegion(

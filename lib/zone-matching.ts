@@ -114,62 +114,70 @@ async function buildPalletInfosForDeliveryPair(
   const pallets: PalletInfo[] = [];
 
   if (shippingRegionId) {
-    try {
-      const { palletId } = await findOrCreatePalletForRegion(
-        shippingRegionId,
-        deliveryZoneId,
-      );
-      const { data: pRow, error: pe } = await sb
-        .from("pallets")
-        .select(
-          "id, name, bottle_capacity, min_bottles_to_complete, cost_cents, last_mile_cost_cents_per_bottle, status",
-        )
-        .eq("id", palletId)
-        .maybeSingle();
-      if (pe || !pRow) {
-        console.error("[determineZones] region pallet load:", pe?.message);
-        return pallets;
+    // Retry once: a cancelled-only route must get a fresh open pallet so B2C
+    // direct-box checkout is never stranded on 0 accepting pallets.
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const { palletId } = await findOrCreatePalletForRegion(
+          shippingRegionId,
+          deliveryZoneId,
+        );
+        const { data: pRow, error: pe } = await sb
+          .from("pallets")
+          .select(
+            "id, name, bottle_capacity, min_bottles_to_complete, cost_cents, last_mile_cost_cents_per_bottle, status",
+          )
+          .eq("id", palletId)
+          .maybeSingle();
+        if (pe || !pRow) {
+          console.error("[determineZones] region pallet load:", pe?.message);
+          continue;
+        }
+        const id = String(pRow.id ?? "");
+        if (!id) continue;
+        const fillResult = await sumReservedBottlesOnPalletResult(id);
+        if (!fillResult.ok) {
+          console.error("[determineZones] fill unavailable:", fillResult.error);
+          continue;
+        }
+        const currentBottles = fillResult.bottles;
+        const cap = resolvePhysicalBottleCapacity(pRow.bottle_capacity);
+        const minToShip = resolveMinBottlesToShip(
+          (pRow as { min_bottles_to_complete?: number }).min_bottles_to_complete,
+        );
+        const shipProgress = computePalletShipProgress(
+          currentBottles,
+          minToShip,
+          cap,
+        );
+        const statusRaw = pRow.status;
+        const status =
+          typeof statusRaw === "string" ? statusRaw : null;
+        pallets.push({
+          id,
+          name: String(pRow.name ?? ""),
+          currentBottles,
+          maxBottles: cap,
+          remainingBottles: shipProgress.bottlesRemainingToShip,
+          minBottlesToShip: minToShip,
+          shipProgress,
+          pickupZoneName: pickupZoneDisplayName || "Shipping region",
+          deliveryZoneName,
+          costCents: Number(pRow.cost_cents) || 0,
+          lastMileCostCentsPerBottle: resolveLastMileCostCentsPerBottle(
+            Number(pRow.last_mile_cost_cents_per_bottle) || 0,
+          ),
+          status,
+          shipping_region_id: shippingRegionId,
+          delivery_zone_id: deliveryZoneId,
+        });
+        break;
+      } catch (e) {
+        console.error(
+          `[determineZones] region pallet resolve (attempt ${attempt + 1}):`,
+          e,
+        );
       }
-      const id = String(pRow.id ?? "");
-      if (!id) return pallets;
-      const fillResult = await sumReservedBottlesOnPalletResult(id);
-      if (!fillResult.ok) {
-        console.error("[determineZones] fill unavailable:", fillResult.error);
-        return pallets;
-      }
-      const currentBottles = fillResult.bottles;
-      const cap = resolvePhysicalBottleCapacity(pRow.bottle_capacity);
-      const minToShip = resolveMinBottlesToShip(
-        (pRow as { min_bottles_to_complete?: number }).min_bottles_to_complete,
-      );
-      const shipProgress = computePalletShipProgress(
-        currentBottles,
-        minToShip,
-        cap,
-      );
-      const statusRaw = pRow.status;
-      const status =
-        typeof statusRaw === "string" ? statusRaw : null;
-      pallets.push({
-        id,
-        name: String(pRow.name ?? ""),
-        currentBottles,
-        maxBottles: cap,
-        remainingBottles: shipProgress.bottlesRemainingToShip,
-        minBottlesToShip: minToShip,
-        shipProgress,
-        pickupZoneName: pickupZoneDisplayName || "Shipping region",
-        deliveryZoneName,
-        costCents: Number(pRow.cost_cents) || 0,
-        lastMileCostCentsPerBottle: resolveLastMileCostCentsPerBottle(
-          Number(pRow.last_mile_cost_cents_per_bottle) || 0,
-        ),
-        status,
-        shipping_region_id: shippingRegionId,
-        delivery_zone_id: deliveryZoneId,
-      });
-    } catch (e) {
-      console.error("[determineZones] region pallet resolve:", e);
     }
     return pallets;
   }
@@ -599,6 +607,79 @@ async function loadPreferredDeliveryZone(
   };
 }
 
+/**
+ * Never cache a region-routed result with 0 pallets — that stranded checkout
+ * after the sole accepting pallet was cancelled (empty result stuck in memory).
+ */
+function cacheZoneResultIfSafe(
+  cacheKey: string,
+  result: ZoneMatchResult,
+): void {
+  const regionId = result.shippingRegionIdForRouting;
+  const palletCount = result.pallets?.length ?? 0;
+  if (regionId && palletCount === 0 && !result.noDeliveryZone) {
+    console.warn(
+      "[determineZones] skip cache: region routing with 0 pallets",
+      regionId,
+    );
+    return;
+  }
+  zoneCache.set(cacheKey, result);
+}
+
+type DeliveryZoneRow = {
+  id: string;
+  name: string;
+  center_lat: number | null;
+  center_lon: number | null;
+  radius_km: number | null;
+  country_code?: string | null;
+};
+
+async function resolveSeDeliveryZoneFallback(
+  sb: SupabaseAdmin,
+  preferredDeliveryZoneId: string | null,
+  deliveryZones: DeliveryZoneRow[],
+): Promise<DeliveryZoneOption | null> {
+  const preferred = await loadPreferredDeliveryZone(
+    sb,
+    preferredDeliveryZoneId,
+  );
+  if (preferred) {
+    return {
+      id: preferred.id,
+      name: preferred.name,
+      centerLat: preferred.center_lat,
+      centerLon: preferred.center_lon,
+      radiusKm: preferred.radius_km,
+    };
+  }
+  const stockholm =
+    deliveryZones.find(
+      (z) =>
+        /stockholm/i.test(String(z.name ?? "")) &&
+        (z.country_code === "SE" || z.country_code == null) &&
+        z.center_lat != null &&
+        z.center_lon != null &&
+        z.radius_km != null,
+    ) ??
+    deliveryZones.find(
+      (z) =>
+        (z.country_code === "SE" || z.country_code == null) &&
+        z.center_lat != null &&
+        z.center_lon != null &&
+        z.radius_km != null,
+    );
+  if (!stockholm?.id) return null;
+  return {
+    id: stockholm.id,
+    name: String(stockholm.name),
+    centerLat: Number(stockholm.center_lat),
+    centerLon: Number(stockholm.center_lon),
+    radiusKm: Number(stockholm.radius_km),
+  };
+}
+
 function bumpPreferredDeliveryMatch(
   matchingZones: DeliveryZoneOption[],
   preferredId: string | null | undefined,
@@ -847,9 +928,58 @@ export async function determineZones(
       console.log("🌍 Geocoding address:", fullAddress);
       const geocodeResult = await geocodeAddress(fullAddress);
 
-      if ("error" in geocodeResult) {
-        console.warn("⚠️ Geocoding failed:", geocodeResult.message);
-        // Fallback: don't set delivery zone if geocoding fails
+      const geocodeFailed =
+        "error" in geocodeResult ||
+        (!("error" in geocodeResult) &&
+          !isValidCoordinates(geocodeResult.lat, geocodeResult.lon));
+
+      if (geocodeFailed) {
+        if ("error" in geocodeResult) {
+          console.warn("⚠️ Geocoding failed:", geocodeResult.message);
+        } else {
+          console.warn(
+            "⚠️ Invalid coordinates from geocoding:",
+            geocodeResult.lat,
+            geocodeResult.lon,
+          );
+        }
+        // Graceful degrade: preferred / Stockholm SE zone so a Mapbox outage
+        // does not strand valid Swedish checkout (B2C still needs a pallet).
+        const fallback = await resolveSeDeliveryZoneFallback(
+          sb,
+          preferredDeliveryZoneId,
+          deliveryZones,
+        );
+        if (fallback) {
+          deliveryZoneId = fallback.id;
+          deliveryZoneName = fallback.name;
+          const pallets = await buildPalletInfosForDeliveryPair(sb, {
+            shippingRegionId: shippingRegionIdForRouting,
+            pickupZoneId,
+            pickupZoneDisplayName: pickupZoneName,
+            deliveryZoneId,
+            deliveryZoneName,
+          });
+          const fallbackResult: ZoneMatchResult = {
+            pickupZoneId,
+            deliveryZoneId,
+            pickupZoneName,
+            deliveryZoneName,
+            availableDeliveryZones: [
+              {
+                id: fallback.id,
+                name: fallback.name,
+                centerLat: fallback.centerLat,
+                centerLon: fallback.centerLon,
+                radiusKm: fallback.radiusKm,
+              },
+            ],
+            pallets,
+            shippingRegionIdForRouting,
+          };
+          cacheZoneResultIfSafe(cacheKey, fallbackResult);
+          return fallbackResult;
+        }
         deliveryZoneId = null;
         deliveryZoneName = null;
       } else {
@@ -859,15 +989,8 @@ export async function determineZones(
           lon: addressLon,
         });
 
-        if (!isValidCoordinates(addressLat, addressLon)) {
-          console.warn(
-            "⚠️ Invalid coordinates from geocoding:",
-            addressLat,
-            addressLon,
-          );
-          deliveryZoneId = null;
-          deliveryZoneName = null;
-        } else {
+        {
+          // Matching-zone branch (coordinates already validated above)
           console.log("📍 Geocoded address:", {
             address: fullAddress,
             lat: addressLat,
@@ -947,7 +1070,7 @@ export async function determineZones(
                 : [];
 
             // Cache and return all matching zones for user selection
-            const result = {
+            const result: ZoneMatchResult = {
               pickupZoneId,
               deliveryZoneId,
               pickupZoneName,
@@ -957,8 +1080,7 @@ export async function determineZones(
               shippingRegionIdForRouting,
             };
 
-            // Cache the result
-            zoneCache.set(cacheKey, result);
+            cacheZoneResultIfSafe(cacheKey, result);
             console.log(
               "💾 Cached zone result for:",
               deliveryAddress.city,
@@ -1002,7 +1124,7 @@ export async function determineZones(
                 pallets,
                 shippingRegionIdForRouting,
               };
-              zoneCache.set(cacheKey, linkedResult);
+              cacheZoneResultIfSafe(cacheKey, linkedResult);
               return linkedResult;
             }
             const noDeliveryResult: ZoneMatchResult = {
@@ -1023,7 +1145,7 @@ export async function determineZones(
                 },
               },
             };
-            zoneCache.set(cacheKey, noDeliveryResult);
+            cacheZoneResultIfSafe(cacheKey, noDeliveryResult);
             return noDeliveryResult;
           }
         }
@@ -1046,7 +1168,7 @@ export async function determineZones(
         })
       : [];
 
-  const result = {
+  const result: ZoneMatchResult = {
     pickupZoneId,
     deliveryZoneId,
     pickupZoneName,
@@ -1055,8 +1177,7 @@ export async function determineZones(
     shippingRegionIdForRouting,
   };
 
-  // Cache the result (even if no zones found)
-  zoneCache.set(cacheKey, result);
+  cacheZoneResultIfSafe(cacheKey, result);
   console.log(
     "💾 Cached zone result (no zones) for:",
     deliveryAddress.city,
