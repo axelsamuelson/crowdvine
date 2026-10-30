@@ -82,22 +82,24 @@ export default function KopvillkorContent() {
         Du får en bekräftelse på din reservation via e-post.
       </LegalP>
       <LegalP>
-        <LegalStrong>Steg 2. Pallen fylls.</LegalStrong> Vi samlar
-        reservationer tills pallen når den volym som krävs för att transporten
-        ska gå.
+        <LegalStrong>Steg 2. Pallen fylls.</LegalStrong> Pallen är först
+        virtuell: du ser hur många flaskor som beställts jämfört med den tröskel
+        som krävs. Vi samlar reservationer tills tröskeln nås. Först när pallen
+        närmar sig tröskeln väljs producent och upphämtningsplats, och pallen
+        blir fysisk.
       </LegalP>
       <LegalP>
         <LegalStrong>Steg 3. Pallen stänger och betalning sker.</LegalStrong>{" "}
-        När pallen är full stänger vi den och{" "}
+        När pallen når sin tröskel stänger vi den och{" "}
         <LegalStrong>då först debiteras ditt kort</LegalStrong> med det belopp
         som framgick av din reservation. Du får ett kvitto via e-post. Först i
         detta ögonblick uppstår ett bindande köpavtal mellan dig och EURPACT
         OÜ.
       </LegalP>
       <LegalP>
-        <LegalStrong>Steg 4. Leverans.</LegalStrong> Producenten packar och
-        etiketterar din order i Frankrike. Pallen transporteras till Sverige och
-        din order levereras hem till dig med ID-kontroll.
+        <LegalStrong>Steg 4. Leverans.</LegalStrong> Din order packas i lådor
+        direkt hos producenterna i Frankrike, transporteras till Sverige och
+        levereras hem till dig med ID-kontroll.
       </LegalP>
 
       <LegalH3>Din reservation är inte ett bindande köp</LegalH3>
@@ -109,21 +111,62 @@ export default function KopvillkorContent() {
 
       <LegalH3>Vad händer om pallen inte fylls</LegalH3>
       <LegalP>
-        Om pallen inte når nödvändig volym inom <LegalStrong>90 dagar</LegalStrong>{" "}
-        från din reservation:
+        Din reservation gäller i <LegalStrong>30 dagar åt gången</LegalStrong>.
+      </LegalP>
+      <LegalP>
+        Om pallen fortfarande inte nått nödvändig volym (tröskeln) när de 30
+        dagarna gått skickar vi ett e-postmeddelande. Där anger vi ett konkret
+        sista datum — inom <LegalStrong>7 dagar</LegalStrong> — då du behöver
+        bekräfta via länken i mejlet om du vill behålla reservationen.
       </LegalP>
       <LegalList>
-        <li>Din reservation upphör automatiskt</li>
         <li>
-          <LegalStrong>Inget belopp debiteras</LegalStrong>
+          Bekräftar du senast det datumet gäller reservationen i ytterligare 30
+          dagar
         </li>
         <li>
-          Din sparade betalmetod tas bort eller kan användas för en kommande
-          pall enligt ditt val
+          Du kan förlänga på samma sätt{" "}
+          <LegalStrong>hur många gånger du vill</LegalStrong>, 30 dagar i
+          taget, så länge pallen väntar på volym. Det finns ingen bortre
+          tidsgräns
         </li>
-        <li>Vi informerar dig via e-post</li>
+        <li>
+          Bekräftar du inte senast det datumet avslutas reservationen
+          automatiskt och <LegalStrong>inget belopp debiteras</LegalStrong>
+        </li>
       </LegalList>
-      <LegalP>Vi lämnar aldrig en reservation öppen på obestämd tid.</LegalP>
+      <LegalP>
+        När pallen når sin tröskel debiteras det belopp du reserverat. När en
+        reservation avslutas utan att pallen fyllts debiteras{" "}
+        <LegalStrong>inget belopp</LegalStrong>. Din sparade betalmetod tas
+        bort eller kan användas för en kommande pall enligt ditt val. Vi
+        informerar dig via e-post.
+      </LegalP>
+
+      <LegalH3>Om en producent inte kan leverera</LegalH3>
+      <LegalP>
+        Ibland kan en producent inte leverera ett vin du reserverat, till
+        exempel om lagret tar slut efter att pallen stängt. Då gäller följande:
+      </LegalP>
+      <LegalList>
+        <li>
+          Vi erbjuder dig först ett{" "}
+          <LegalStrong>likvärdigt ersättningsvin</LegalStrong>
+        </li>
+        <li>
+          Byte sker{" "}
+          <LegalStrong>bara om du godkänner</LegalStrong> ersättningsvinet
+        </li>
+        <li>
+          Avböjer du, eller godkänner du inte ersättningen, får du pengarna
+          tillbaka för de viner som inte levereras —{" "}
+          <LegalStrong>
+            utan onödigt dröjsmål och senast inom 14 dagar
+          </LegalStrong>{" "}
+          om du redan har debiterats. Har du inte debiterats ännu debiteras du
+          inte för de vinerna
+        </li>
+      </LegalList>
 
       <LegalH2>4. Priser</LegalH2>
       <LegalList>

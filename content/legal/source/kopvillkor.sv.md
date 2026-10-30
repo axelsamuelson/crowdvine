@@ -1,8 +1,8 @@
 # Köpvillkor
 
-> **UTKAST.** Framtaget av Daniel Holm (Compliance), med ställningstagande av Sofia Bergström (GC) den 25 augusti 2026 enligt `gc-stallningstagande-angerratt-och-villkor.md`. Tvistlösningen (p. 13) är oförändrad. Punkt 9 och 10 är omskrivna 2026-10-29 på ägarens instruktion och avviker från GC-dokumentet, se anmärkningen under punkt 9. En öppen punkt kvarstår, markerad **ÖPPEN FRÅGA**. Fält markerade `[FYLL I]` måste fyllas i innan sidan går live. Ingen extern advokat har granskat texten.
+> **UTKAST.** Framtaget av Daniel Holm (Compliance), med ställningstagande av Sofia Bergström (GC) den 25 augusti 2026 enligt `gc-stallningstagande-angerratt-och-villkor.md`. Tvistlösningen (p. 13) är oförändrad. Punkt 9 och 10 är omskrivna 2026-10-29 på ägarens instruktion och avviker från GC-dokumentet, se anmärkningen under punkt 9. Punkt 3 (giltighetstid och producent som inte kan leverera) uppdaterad 2026-10-31, i linje med reservationsmejlen (30 dagar åt gången, bekräftelse via länk senast angivet datum inom 7 dagar, obegränsat antal förlängningar). Fält markerade `[FYLL I]` måste fyllas i innan sidan går live. Ingen extern advokat har granskat texten.
 
-Senast uppdaterad: 2026-10-30
+Senast uppdaterad: 2026-10-31
 
 ---
 
@@ -48,11 +48,11 @@ PACT samlar flera beställningar till en gemensam transport från producenterna 
 
 **Steg 1. Du reserverar.** Du väljer viner och lägger en reservation. Du anger dina kortuppgifter, men **inget belopp dras och kortet reserveras inte**. Du får en bekräftelse på din reservation via e-post.
 
-**Steg 2. Pallen fylls.** Vi samlar reservationer tills pallen når den volym som krävs för att transporten ska gå.
+**Steg 2. Pallen fylls.** Pallen är först virtuell: du ser hur många flaskor som beställts jämfört med den tröskel som krävs. Vi samlar reservationer tills tröskeln nås. Först när pallen närmar sig tröskeln väljs producent och upphämtningsplats, och pallen blir fysisk.
 
-**Steg 3. Pallen stänger och betalning sker.** När pallen är full stänger vi den och **då först debiteras ditt kort** med det belopp som framgick av din reservation. Du får ett kvitto via e-post. Först i detta ögonblick uppstår ett bindande köpavtal mellan dig och EURPACT OÜ.
+**Steg 3. Pallen stänger och betalning sker.** När pallen når sin tröskel stänger vi den och **då först debiteras ditt kort** med det belopp som framgick av din reservation. Du får ett kvitto via e-post. Först i detta ögonblick uppstår ett bindande köpavtal mellan dig och EURPACT OÜ.
 
-**Steg 4. Leverans.** Producenten packar och etiketterar din order i Frankrike. Pallen transporteras till Sverige och din order levereras hem till dig med ID-kontroll.
+**Steg 4. Leverans.** Din order packas i lådor direkt hos producenterna i Frankrike, transporteras till Sverige och levereras hem till dig med ID-kontroll.
 
 ### Din reservation är inte ett bindande köp
 
@@ -60,16 +60,23 @@ Fram till att pallen stänger och betalning genomförs kan du **när som helst a
 
 ### Vad händer om pallen inte fylls
 
-Om pallen inte når nödvändig volym inom **90 dagar** från din reservation:
+Din reservation gäller i **30 dagar åt gången**.
 
-- Din reservation upphör automatiskt
-- **Inget belopp debiteras**
-- Din sparade betalmetod tas bort eller kan användas för en kommande pall enligt ditt val
-- Vi informerar dig via e-post
+Om pallen fortfarande inte nått nödvändig volym (tröskeln) när de 30 dagarna gått skickar vi ett e-postmeddelande. Där anger vi ett konkret sista datum — inom **7 dagar** — då du behöver bekräfta via länken i mejlet om du vill behålla reservationen.
 
-Vi lämnar aldrig en reservation öppen på obestämd tid.
+- Bekräftar du senast det datumet gäller reservationen i ytterligare 30 dagar
+- Du kan förlänga på samma sätt **hur många gånger du vill**, 30 dagar i taget, så länge pallen väntar på volym. Det finns ingen bortre tidsgräns
+- Bekräftar du inte senast det datumet avslutas reservationen automatiskt och **inget belopp debiteras**
 
-**ÖPPEN FRÅGA till Sofia:** Om en producent inte kan leverera en enskild vara efter att pallen stängt och betalning genomförts, ska villkoren beskriva delåterbetalning respektive substitution. Ta ställning innan publicering.
+När pallen når sin tröskel debiteras det belopp du reserverat. När en reservation avslutas utan att pallen fyllts debiteras **inget belopp**. Din sparade betalmetod tas bort eller kan användas för en kommande pall enligt ditt val. Vi informerar dig via e-post.
+
+### Om en producent inte kan leverera
+
+Ibland kan en producent inte leverera ett vin du reserverat, till exempel om lagret tar slut efter att pallen stängt. Då gäller följande:
+
+- Vi erbjuder dig först ett **likvärdigt ersättningsvin**
+- Byte sker **bara om du godkänner** ersättningsvinet
+- Avböjer du, eller godkänner du inte ersättningen, får du pengarna tillbaka för de viner som inte levereras — **utan onödigt dröjsmål och senast inom 14 dagar** om du redan har debiterats. Har du inte debiterats ännu debiteras du inte för de vinerna
 
 ---
 
