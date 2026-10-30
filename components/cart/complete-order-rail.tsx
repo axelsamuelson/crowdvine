@@ -100,16 +100,21 @@ export function CompleteOrderRail({ showMobile = false }: { showMobile?: boolean
 
   const primary = validations[0];
   const primaryCurrent = primary?.quantity || 0;
-  const primaryRequired = (primary?.quantity || 0) + (primary?.needed || 0);
+  const primaryRequired =
+    primary?.required ??
+    (primary?.quantity || 0) + (primary?.needed || 0);
   const primaryProgress =
     primaryRequired > 0
       ? Math.min((primaryCurrent / primaryRequired) * 100, 100)
       : 0;
 
   const goToProducer = () => {
-    const handle = primary?.producerHandle;
-    if (!handle) return;
-    router.push(paths.shopCollection(handle));
+    // B2C cart-total minimum has no producer handle — send shoppers to the shop.
+    if (primary?.scope === "cart" || !primary?.producerHandle) {
+      router.push(paths.shop);
+      return;
+    }
+    router.push(paths.shopCollection(primary.producerHandle));
   };
 
   // Inline header variant: should sit inside the top nav bar, left of HOME
