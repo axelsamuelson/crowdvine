@@ -3,6 +3,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { isPlatformAdminProfile } from "@/lib/auth/platform-admin-profile";
 
 export async function adminLogin(email: string, password: string) {
   try {
@@ -43,10 +44,10 @@ export async function adminLogin(email: string, password: string) {
 
     console.log("User authenticated:", data.user.id);
 
-    // Hämta profil för att verifiera admin-roll
+    // Hämta profil för att verifiera admin-roll (role eller roles[])
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
-      .select("role")
+      .select("role, roles")
       .eq("id", data.user.id)
       .single();
 
@@ -55,8 +56,7 @@ export async function adminLogin(email: string, password: string) {
       return { error: "Kunde inte hämta användarprofil" };
     }
 
-    // Verifiera admin-roll
-    if (profile?.role !== "admin") {
+    if (!isPlatformAdminProfile(profile)) {
       return { error: "Du har inte admin-behörighet" };
     }
 

@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
-import { getCurrentUser } from "@/lib/auth";
+import {
+  isUnauthorizedResponse,
+  requireAdminOr401,
+} from "@/lib/admin-auth-http";
 
 /**
  * PATCH /api/admin/memberships/[level]
@@ -12,10 +15,8 @@ export async function PATCH(
   { params }: { params: Promise<{ level: string }> },
 ) {
   try {
-    const user = await getCurrentUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const adminAuth = await requireAdminOr401();
+    if (isUnauthorizedResponse(adminAuth)) return adminAuth;
 
     const { level } = await params;
     if (level.toLowerCase() === "admin") {
@@ -37,20 +38,6 @@ export async function PATCH(
     });
 
     const sb = getSupabaseAdmin();
-
-    // Check if user is admin
-    const { data: profile } = await sb
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single();
-
-    if (profile?.role !== "admin") {
-      return NextResponse.json(
-        { error: "Admin access required" },
-        { status: 403 },
-      );
-    }
 
     // Update or insert discount perk
     if (discount !== undefined) {
@@ -140,10 +127,11 @@ export async function PATCH(
       success: true,
       message: "Configuration updated successfully",
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("❌ Error updating membership config:", error);
+    const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
-      { error: "Failed to update configuration", details: error.message },
+      { error: "Failed to update configuration", details: message },
       { status: 500 },
     );
   }

@@ -49,10 +49,7 @@ import {
   resolveMarketAgeMinimum,
 } from "@/lib/age-limits";
 import { resolvePaymentMethodDetailsFromId } from "@/lib/stripe/resolve-payment-method-details";
-import {
-  checkoutCustomerShippingCharge,
-  resolveCheckoutShippingSek,
-} from "@/lib/checkout/resolve-checkout-shipping";
+import { resolveAndChargeCheckoutShipping } from "@/lib/checkout/resolve-checkout-shipping";
 import { getContributionAssumptions } from "@/lib/contribution-assumptions";
 import { fetchExchangeRateToSekStrict } from "@/lib/exchange-rate-strict";
 import {
@@ -1027,14 +1024,14 @@ export async function POST(request: Request) {
           );
           const subtotalSek =
             parseFloat(String(cart.cost.totalAmount.amount)) || 0;
-          const resolved = await resolveCheckoutShippingSek({
+          const charge = await resolveAndChargeCheckoutShipping({
             bottleCount,
             productSubtotalSek: subtotalSek,
-            countryCode: String(address.countryCode || activeCheckout.countryCode),
-            allowLegacyFallback: false,
+            deliveryCountry: address.countryCode,
+            activeZoneCountry: activeCheckout.countryCode,
             pallet: palletRow,
           });
-          shippingSek = checkoutCustomerShippingCharge(resolved).shippingSek;
+          shippingSek = charge.shippingSek;
         }
       }
     } catch (shipErr) {
@@ -2437,11 +2434,14 @@ export async function POST(request: Request) {
               "confirmed",
             ] as const;
 
+            // Soft-archived prior orders still count (via status_before_archive).
             let priorOrdersQuery = sbAdmin
               .from("order_reservations")
               .select("id", { count: "exact", head: true })
               .eq("user_id", currentUser.id)
-              .in("status", [...qualifyingStatuses]);
+              .or(
+                `status.in.(${qualifyingStatuses.join(",")}),and(status.eq.archived,status_before_archive.in.(${qualifyingStatuses.join(",")}))`,
+              );
             for (const rid of reservationIdsForPayment) {
               priorOrdersQuery = priorOrdersQuery.neq("id", rid);
             }

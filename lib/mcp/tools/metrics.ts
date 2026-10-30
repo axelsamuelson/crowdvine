@@ -409,9 +409,15 @@ export function registerMetricsTools(server: McpServer, sb: SupabaseClient) {
         const overview = aggregateFunnel(funnel);
 
         let total_bottles: number | null = null;
+        // Exclude soft-archived reservations from active bottle totals.
         const { data: items, error: iErr } = await sb
           .from("order_reservation_items")
-          .select("quantity");
+          .select(
+            "quantity, order_reservations!inner(status, archived_at)",
+          )
+          .neq("order_reservations.status", "archived")
+          .neq("order_reservations.status", "cancelled")
+          .is("order_reservations.archived_at", null);
         if (!iErr && items) {
           total_bottles = items.reduce(
             (acc, row) => acc + Number(row.quantity ?? 0),
@@ -424,7 +430,7 @@ export function registerMetricsTools(server: McpServer, sb: SupabaseClient) {
             ...overview,
             total_bottles_reserved_or_ordered: total_bottles,
             note:
-              "total_bottles_reserved_or_ordered sums order_reservation_items.quantity when tabellen finns.",
+              "total_bottles_reserved_or_ordered sums order_reservation_items for non-archived reservations.",
           },
           {
             tool: "get_funnel_overview",

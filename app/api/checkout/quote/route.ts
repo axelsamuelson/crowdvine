@@ -10,13 +10,15 @@ import { getRedeemableBalance } from "@/lib/membership/pact-points-engine";
 import { computeExpectedAmountOre } from "@/lib/checkout/expected-amount";
 import { buildCheckoutQuote } from "@/lib/checkout/checkout-quote";
 import {
-  checkoutCustomerShippingCharge,
-  resolveCheckoutShippingSek,
+  normalizeCheckoutShippingCountry,
+  resolveAndChargeCheckoutShipping,
 } from "@/lib/checkout/resolve-checkout-shipping";
 import { resolveActiveGeoZoneForUser } from "@/lib/market/resolve-active-geo-zone";
 
 type RequestBody = {
   pallet_id?: string;
+  /** Optional ISO country; must match active zone when set (same as confirm). */
+  country_code?: string;
   pact_points_redeem?: number;
   promo_discount_sek?: number;
   voucher_discount_sek?: number;
@@ -86,14 +88,24 @@ export async function POST(request: Request) {
       const subtotalSek =
         parseFloat(String(cart.cost.totalAmount.amount)) || 0;
       const activeZone = await resolveActiveGeoZoneForUser(user.id);
-      const resolved = await resolveCheckoutShippingSek({
+      const zoneCountry = normalizeCheckoutShippingCountry(
+        activeZone.countryCode,
+      );
+      const bodyCountry = normalizeCheckoutShippingCountry(
+        typeof body?.country_code === "string" ? body.country_code : null,
+      );
+      // Same country as confirm: delivery only when it matches the active zone.
+      // Never let a client SE fallback override a non-SE shopping zone.
+      const countryCode =
+        bodyCountry && zoneCountry && bodyCountry === zoneCountry
+          ? bodyCountry
+          : zoneCountry;
+      const charge = await resolveAndChargeCheckoutShipping({
         bottleCount,
         productSubtotalSek: subtotalSek,
-        countryCode: activeZone.countryCode,
-        allowLegacyFallback: false,
+        countryCode,
         pallet: palletRow,
       });
-      const charge = checkoutCustomerShippingCharge(resolved);
       shippingSek = charge.shippingSek;
       shippingPending = charge.shippingPending;
     }

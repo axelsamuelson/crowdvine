@@ -66,6 +66,8 @@ export async function GET(request: NextRequest) {
 
     if (status) {
       q = q.eq("status", status);
+    } else {
+      q = q.neq("status", "archived").is("archived_at", null);
     }
 
     const { data, error } = await q;

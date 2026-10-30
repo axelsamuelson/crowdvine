@@ -69,6 +69,20 @@ Note: `app/api/cron/revalidate-systembolaget-guides` exists for on-demand revali
 - **Auto-delete head branches:** enable “Automatically delete head branches” in the GitHub repo settings (Settings → General → Pull Requests). That is a repo setting, not something this repo can encode in code; keep it on so merged PR branches are removed promptly.
 - **Stale `cursor/*` branches:** `.github/workflows/cleanup-merged-branches.yml` runs weekly (and on `workflow_dispatch`) and deletes remote `cursor/*` branches that are fully merged into `main` and have no open PR.
 
+## Fråga Axel
+
+Every bot or agent that needs something from Axel (an email to approve, money, a contract, a decision) adds one row to `public.ops_approval_queue` with `status = 'väntar'`. Rules:
+
+- **One question per row.** `question` is the exact question to Axel, one sentence, in Swedish.
+- `answer_type`: `ja_nej`, `val`, `belopp`, `datum`, `text` or `godkänn_utkast`.
+- `options` (required for `val`): `[{"label": "...", "consequence": "..."}]`, a short consequence per option.
+- `recommendation`: always required. The bot's own recommendation and why.
+- `context`: 2–3 sentences of background. If facts are missing, say so; never invent.
+- Also: `agent`, `kind` (mejl, pengar, avtal, beslut, övrigt), `link`, `deadline` if there is one, `task_id` when it belongs to a task.
+- When answered: set `answer`, `answered_at` and `status` (`godkänd`, `avböjd` or `klar`).
+
+The PACT-tavlan Page shows these rows as cards at the top, sorted by deadline and age.
+
 ## Owners
 
 | Actor | Role |

@@ -32,6 +32,9 @@ export async function GET(
       .from("order_reservations")
       .select("id, user_id, status, created_at")
       .eq("pallet_id", palletId)
+      .neq("status", "archived")
+      .neq("status", "cancelled")
+      .is("archived_at", null)
       .order("created_at", { ascending: false });
 
     if (reservationsError) {

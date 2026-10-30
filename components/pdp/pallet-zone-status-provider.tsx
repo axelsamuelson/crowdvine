@@ -31,13 +31,18 @@ const PalletZoneStatusContext = createContext<PalletZoneStatusContextValue | nul
 
 export function PalletZoneStatusProvider({
   productHandle,
+  initialData = null,
   children,
 }: {
   productHandle: string;
+  /** SSR snapshot so status is visible before client fetch. */
+  initialData?: ZoneStatusPayload | null;
   children: ReactNode;
 }) {
-  const [data, setData] = useState<ZoneStatusPayload | null>(null);
-  const [phase, setPhase] = useState<FetchPhase>("loading");
+  const [data, setData] = useState<ZoneStatusPayload | null>(initialData);
+  const [phase, setPhase] = useState<FetchPhase>(
+    initialData ? "ready" : "loading",
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -55,7 +60,7 @@ export function PalletZoneStatusProvider({
       if (!handle) {
         if (!cancelled) {
           setPhase("error");
-          setData(null);
+          if (!initialData) setData(null);
         }
         return;
       }
@@ -93,7 +98,7 @@ export function PalletZoneStatusProvider({
       ac.abort();
       window.clearInterval(id);
     };
-  }, [productHandle]);
+  }, [productHandle, initialData]);
 
   const value = useMemo((): PalletZoneStatusContextValue => {
     const isUnavailable = data?.dropState === "unavailable";

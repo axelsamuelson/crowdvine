@@ -1,4 +1,5 @@
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { NON_ACTIVE_RESERVATION_STATUSES_POSTGREST } from "@/lib/reservations/archive";
 
 export interface PalletZone {
   id: string;
@@ -113,7 +114,7 @@ export async function deletePallet(id: string): Promise<void> {
     .from("order_reservations")
     .select("id")
     .eq("pallet_id", id)
-    .not("status", "in", '("cancelled","rejected")')
+    .not("status", "in", NON_ACTIVE_RESERVATION_STATUSES_POSTGREST)
     .limit(1);
 
   if (reservationsError) {

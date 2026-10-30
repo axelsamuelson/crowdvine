@@ -29,7 +29,8 @@ const FALLBACK_MARKET: ResolvedMarket = {
   locale: "en",
   checkoutMode: "normal_checkout",
   paymentCaptureMode: "automatic",
-  ageMinimum: null,
+  // EU retail floor; production sets markets.age_minimum=20 for EU.
+  ageMinimum: 20,
   termsVersion: null,
   countryRole: "checkout_eligible",
   isCheckoutEligible: true,

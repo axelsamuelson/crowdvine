@@ -1,9 +1,12 @@
 import Link from "next/link";
 
+import { DirectBoxDeliveryPromise } from "@/components/commerce/direct-box-delivery-promise";
+import { MinSixBottlesHint } from "@/components/commerce/min-six-bottles-hint";
+import { ServerListPrice } from "@/components/commerce/server-list-price";
+import { SsrReserveLink } from "@/components/commerce/ssr-reserve-link";
 import { ProductListImageServer } from "@/app/vin/components/product-list-image-server";
 import { ProductGrid } from "@/app/vin/components/product-grid";
 import type { AppLocale } from "@/lib/i18n/locale";
-import { formatPrice } from "@/lib/shopify/utils";
 import type { Product } from "@/lib/shopify/types";
 
 function productHref(handle: string, locale: AppLocale): string {
@@ -20,8 +23,6 @@ function ProductListStaticCard({
   locale: AppLocale;
 }) {
   const href = productHref(product.handle, locale);
-  const price = product.priceRange.minVariantPrice;
-  const intlLocale = locale === "en" ? "en-SE" : "sv-SE";
 
   return (
     <div className="relative w-full overflow-visible">
@@ -39,9 +40,9 @@ function ProductListStaticCard({
           </Link>
         </div>
 
-        <div className="absolute inset-0 pl-1 pr-2 pt-2 pb-2 md:p-2 w-full pointer-events-none">
-          <div className="flex gap-2 md:gap-6 justify-between items-start md:items-baseline px-1 md:px-3 py-1 w-full font-semibold">
-            <div className="flex flex-col min-w-0 max-w-[42%] md:max-w-[40%] shrink md:shrink-0 overflow-hidden">
+        <div className="absolute inset-0 flex flex-col justify-between p-2 md:p-3 pointer-events-none">
+          <div className="flex gap-2 md:gap-4 justify-between items-start w-full font-semibold">
+            <div className="flex flex-col min-w-0 max-w-[55%] overflow-hidden">
               <p className="text-[8px] leading-tight md:text-sm uppercase 2xl:text-base text-balance line-clamp-2 break-words">
                 {product.title}
               </p>
@@ -51,11 +52,17 @@ function ProductListStaticCard({
                 </p>
               ) : null}
             </div>
-            <div className="flex gap-1 md:gap-2 items-center justify-end min-w-0 shrink md:max-w-[35%] text-[9px] md:text-sm uppercase 2xl:text-base text-right overflow-hidden">
-              <span>
-                {formatPrice(price.amount, price.currencyCode, intlLocale)}
-              </span>
-            </div>
+            <ServerListPrice
+              product={product}
+              locale={locale}
+              className="text-[9px] md:text-sm uppercase 2xl:text-base text-right font-semibold"
+            />
+          </div>
+
+          <div className="pointer-events-auto space-y-1.5 rounded-md bg-white/95 p-2 shadow-sm backdrop-blur-sm">
+            <MinSixBottlesHint locale={locale} compact />
+            <DirectBoxDeliveryPromise locale={locale} compact />
+            <SsrReserveLink handle={product.handle} locale={locale} />
           </div>
         </div>
       </div>
@@ -63,7 +70,7 @@ function ProductListStaticCard({
   );
 }
 
-/** Server-rendered PLP grid — images in initial HTML for fast LCP. */
+/** Server-rendered PLP grid — images, price, Reservera CTA, direct-box promise. */
 export function ProductListStaticGrid({
   products,
   locale,

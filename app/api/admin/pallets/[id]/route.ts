@@ -6,6 +6,7 @@ import {
   derivePreShippingAutoStatus,
   resolveMinBottlesToShip,
 } from "@/lib/pallet-ship-progress";
+import { NON_ACTIVE_RESERVATION_STATUSES_POSTGREST } from "@/lib/reservations/archive";
 
 /**
  * Canonical auto-status from pallet fill (not zone/producer mapping).
@@ -187,11 +188,13 @@ export async function DELETE(
   const sb = getSupabaseAdmin();
   const resolvedParams = await params;
 
-  // First check if there are any bookings/reservations for this pallet
+  // First check if there are any active bookings/reservations for this pallet
   const { data: bookings, error: bookingsError } = await sb
     .from("bookings")
     .select("id")
     .eq("pallet_id", resolvedParams.id)
+    .neq("status", "archived")
+    .is("archived_at", null)
     .limit(1);
 
   if (bookingsError) {
@@ -226,13 +229,14 @@ export async function DELETE(
     );
   }
 
-  // Check if any reservations use this pallet's zones
+  // Check if any active (non-archived/cancelled) reservations use this pallet's zones
   const { data: reservations, error: reservationsError } = await sb
     .from("order_reservations")
     .select("id")
     .or(
       `pickup_zone_id.eq.${pallet.pickup_zone_id},delivery_zone_id.eq.${pallet.delivery_zone_id}`,
     )
+    .not("status", "in", NON_ACTIVE_RESERVATION_STATUSES_POSTGREST)
     .limit(1);
 
   if (reservationsError) {

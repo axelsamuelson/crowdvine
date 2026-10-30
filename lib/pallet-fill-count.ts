@@ -26,7 +26,13 @@ export function computePalletFillPercentForDisplay(
   );
 }
 
-/** Single source of truth for which reservation statuses count toward pallet fill. */
+/**
+ * Single source of truth for which reservation statuses count toward pallet fill.
+ * Soft-archived reservations use status `archived` and are intentionally absent.
+ * Cancelled / rejected / declined never appear here.
+ * Legacy `bookings` rows are never counted — archive them separately
+ * (`bookings.status = archived`); see migrations/248_bookings_archived.sql.
+ */
 export const PALLET_FILL_STATUSES = [
   "pending_producer_approval",
   "conditional_pending",
@@ -58,7 +64,9 @@ export async function sumReservedBottlesOnPalletResult(
     .from("order_reservations")
     .select("id")
     .eq("pallet_id", palletId)
-    .in("status", [...PALLET_FILL_STATUSES]);
+    .in("status", [...PALLET_FILL_STATUSES])
+    // Defense in depth: archived rows must never count even if status lagged.
+    .is("archived_at", null);
 
   if (reservationsError) {
     const message = `Failed to load reservations for pallet ${palletId}: ${reservationsError.message}`;

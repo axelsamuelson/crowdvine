@@ -132,22 +132,6 @@ function DiscountPriceLayout({
   );
 }
 
-function MemberPriceSkeleton({ className }: { className?: string }) {
-  return (
-    <span
-      aria-hidden
-      className={cn(
-        className,
-        "inline-flex min-h-[2.75em] md:min-h-[3.25em] w-[4.5rem] md:w-[5.5rem] flex-col justify-end gap-0.5",
-      )}
-    >
-      <span className="h-[0.65em] w-full animate-pulse rounded bg-muted/60" />
-      <span className="h-[1em] w-[80%] animate-pulse rounded bg-muted/60" />
-      <span className="hidden md:block h-[1.1em] w-full animate-pulse rounded bg-muted/50" />
-    </span>
-  );
-}
-
 export function MemberPrice({
   amount,
   currencyCode,
@@ -173,14 +157,17 @@ export function MemberPrice({
     : "";
   const showVatLabel = showExclVat;
 
-  if (loading) {
-    return <MemberPriceSkeleton className={className} />;
-  }
-
-  const levelName = level ? t(membershipLevelMessageKey(level)) : "";
+  // While membership loads, show undiscounted list price (no skeleton flash).
+  // Membership badge/discount appear once loading settles — keeps price visible
+  // without client JS delays and matches SSR ServerListPrice.
+  const effectiveDiscount = loading ? 0 : discountPercentage;
+  const effectiveLevel = loading ? null : level;
+  const levelName = effectiveLevel
+    ? t(membershipLevelMessageKey(effectiveLevel))
+    : "";
   const badgeText = t("shop.membershipDiscount", {
     level: levelName,
-    percent: discountPercentage,
+    percent: effectiveDiscount,
   });
 
   const discountLayoutProps = (
@@ -192,10 +179,10 @@ export function MemberPrice({
     originalPriceLabel,
     showVatLabel,
     vatLabel,
-    showBadge,
-    membershipLevel: level,
+    showBadge: showBadge && !loading,
+    membershipLevel: effectiveLevel,
     levelName,
-    discountPercentage,
+    discountPercentage: effectiveDiscount,
     compactOnMobile,
     badgeRightOnMobile,
     badgeText,
@@ -228,7 +215,7 @@ export function MemberPrice({
 
   if (calculatedTotalPrice != null) {
     const displayPrice = calculatedTotalPrice;
-    const hasDiscount = discountPercentage > 0;
+    const hasDiscount = effectiveDiscount > 0;
 
     if (!hasDiscount) {
       return (
@@ -267,16 +254,16 @@ export function MemberPrice({
       ? (priceExclVatOverride ?? (listPriceSek != null ? priceExclVat(listPriceSek) : priceExclVat(parsedAmount)))
       : (listPriceSek ?? parsedAmount);
 
-  const hasDiscount = discountPercentage > 0;
+  const hasDiscount = effectiveDiscount > 0;
 
   const discountedPrice = hasDiscount
     ? showExclVat && priceExclVatOverride && b2bMarginPercentage != null
       ? calculateB2BPriceWithDiscount(
           priceExclVatOverride,
           b2bMarginPercentage,
-          discountPercentage,
+          effectiveDiscount,
         )
-      : displayPrice * (1 - discountPercentage / 100)
+      : displayPrice * (1 - effectiveDiscount / 100)
     : displayPrice;
 
   if (!hasDiscount) {

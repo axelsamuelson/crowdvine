@@ -23,6 +23,8 @@ export async function GET() {
       .from("order_reservations")
       .select("*")
       .eq("user_id", userId)
+      .neq("status", "archived")
+      .is("archived_at", null)
       .order("created_at", { ascending: false });
 
     if (error) {

@@ -51,7 +51,10 @@ export async function GET(
       `,
       )
       .eq("pickup_zone_id", pallet.pickup_zone_id)
-      .eq("delivery_zone_id", pallet.delivery_zone_id);
+      .eq("delivery_zone_id", pallet.delivery_zone_id)
+      .neq("status", "archived")
+      .neq("status", "cancelled")
+      .is("archived_at", null);
 
     if (reservationsError) {
       console.error("❌ Error fetching reservations:", reservationsError);

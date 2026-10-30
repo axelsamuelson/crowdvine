@@ -89,7 +89,8 @@ export async function listEnrichedPactPallets(
         .from("order_reservations")
         .select("id, pallet_id")
         .in("pallet_id", palletIds)
-        .in("status", statuses);
+        .in("status", statuses)
+        .is("archived_at", null);
 
       if (resErr) {
         console.error("Error fetching reservations for pallet stats:", resErr);

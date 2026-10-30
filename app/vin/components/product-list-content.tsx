@@ -33,7 +33,6 @@ import { filterProductsByColors } from "@/lib/shop/filter-products-by-color";
 import { filterProductsByGrapes } from "@/lib/shop/filter-products-by-grape";
 import { filterProductsByFarming } from "@/lib/shop/farming-filter";
 import { filterProductsBySource } from "@/lib/shop/filter-products-by-source";
-
 interface ProductListContentProps {
   products: Product[];
   collections: Collection[];

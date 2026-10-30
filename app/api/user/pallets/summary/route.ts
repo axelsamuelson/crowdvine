@@ -34,7 +34,9 @@ export async function GET() {
         )
       `,
       )
-      .eq("user_id", user.id);
+      .eq("user_id", user.id)
+      .neq("status", "archived")
+      .is("archived_at", null);
 
     if (reservationsError) throw reservationsError;
 

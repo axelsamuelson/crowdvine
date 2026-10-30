@@ -64,11 +64,14 @@ export async function checkAndGrantFoundingMember(
       return { granted: false, spotsFull: true };
     }
 
+    // Include soft-archived rows that were previously qualifying (status_before_archive).
     const { count: orderCountRaw, error: orderCountError } = await sb
       .from("order_reservations")
       .select("id", { count: "exact", head: true })
       .eq("user_id", userId)
-      .in("status", [...COMPLETED_ORDER_STATUSES]);
+      .or(
+        `status.in.(${COMPLETED_ORDER_STATUSES.join(",")}),and(status.eq.archived,status_before_archive.in.(${COMPLETED_ORDER_STATUSES.join(",")}))`,
+      );
 
     if (orderCountError) {
       return { granted: false, error: orderCountError.message };
