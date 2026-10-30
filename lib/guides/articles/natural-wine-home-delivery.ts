@@ -117,8 +117,8 @@ export const naturalWineHomeDeliveryArticle: GuideArticleContent = {
         sv: "Frågor",
       },
       body: {
-        en: ["Contact us at hello@pactwines.com."],
-        sv: ["Kontakta oss på hello@pactwines.com."],
+        en: ["Contact us at kund@pactwines.com."],
+        sv: ["Kontakta oss på kund@pactwines.com."],
       },
     },
   ],

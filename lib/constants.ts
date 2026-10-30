@@ -10,8 +10,8 @@ export const TAGS = {
 
 export const CONTACT_LINKS: NavItem[] = [
   {
-    label: "hello@pactwines.com",
-    href: "mailto:hello@pactwines.com",
+    label: "kund@pactwines.com",
+    href: "mailto:kund@pactwines.com",
   },
   {
     label: "Instagram",

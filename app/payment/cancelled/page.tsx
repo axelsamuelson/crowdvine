@@ -166,10 +166,10 @@ function PaymentCancelledContent() {
         <p className="text-sm text-gray-500">
           Need help? Contact us at{" "}
           <a
-            href="mailto:support@pactwines.com"
+            href="mailto:kund@pactwines.com"
             className="text-blue-600 hover:underline"
           >
-            support@pactwines.com
+            kund@pactwines.com
           </a>
         </p>
       </div>
