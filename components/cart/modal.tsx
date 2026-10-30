@@ -539,15 +539,20 @@ function CheckoutButton({
           {isLoading ? (
             <Loader size="default" />
           ) : (
-            <div className="flex justify-between items-center w-full">
-              <span>
+            <div className="flex justify-between items-center w-full gap-2">
+              <span className="text-left leading-snug">
                 {isValidating
                   ? t("cart.validating")
                   : hasValidationErrors
-                    ? t("cart.addMoreBottles")
+                    ? t("cart.addMoreBottles", {
+                        needed: invalidValidations.reduce(
+                          (sum, v) => sum + (v.needed || 0),
+                          0,
+                        ),
+                      })
                     : t("cart.proceedToCheckout")}
               </span>
-              <ArrowRight className="size-6" />
+              <ArrowRight className="size-6 shrink-0" />
             </div>
           )}
         </motion.div>
