@@ -260,6 +260,7 @@ export function RankedWineRow({
   priority,
   showRank = true,
   showMovement = true,
+  showPrice = true,
   launchLabel,
   limitedLabelText,
 }: {
@@ -274,6 +275,11 @@ export function RankedWineRow({
    * The release calendar turns this off.
    */
   showMovement?: boolean;
+  /**
+   * Systembolaget shelf price on the card. The release calendar turns this off
+   * — we must not compare or display Systembolaget prices there.
+   */
+  showPrice?: boolean;
   /** Release-calendar date, e.g. "Släpps 6 nov". Omitted on ranked lists. */
   launchLabel?: string | null;
   /**
@@ -294,7 +300,7 @@ export function RankedWineRow({
       ? limitedLabelText
       : limitedAvailabilityLabel(wine.availability_state, locale);
   const styleLabel = primaryStyleLabel(wine.primary_style, locale);
-  const price = formatPrice(wine.price);
+  const price = showPrice ? formatPrice(wine.price) : null;
   const note =
     locale === "en"
       ? wine.editorial_note_en?.trim() || wine.editorial_note_sv.trim()
