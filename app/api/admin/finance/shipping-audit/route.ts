@@ -22,6 +22,7 @@ export async function GET() {
       .from("order_reservations")
       .select("id, shipping_revenue_gross_cents, status")
       .in("status", [...PALLET_FILL_STATUSES])
+      .is("archived_at", null)
       .limit(5000);
 
     if (resErr) {

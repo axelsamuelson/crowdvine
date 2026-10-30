@@ -150,12 +150,14 @@ export async function POST(request: NextRequest) {
 
     // Data-driven current bottle counts:
     // Active reservations -> items -> wines -> producers.pickup_zone_id + reservation.delivery_zone_id -> pallet
+    // Never include archived/cancelled; never use legacy bookings.
     const activeStatuses = ["placed", "approved", "partly_approved", "pending_payment", "confirmed"];
 
     const { data: reservations, error: resErr } = await sb
       .from("order_reservations")
       .select("id, delivery_zone_id")
       .in("status", activeStatuses)
+      .is("archived_at", null)
       .in("delivery_zone_id", deliveryZoneIds);
 
     if (resErr) {

@@ -344,7 +344,8 @@ export async function getPalletContributionProgress(
     .from("order_reservations")
     .select("id")
     .eq("pallet_id", palletId)
-    .in("status", [...PALLET_FILL_STATUSES]);
+    .in("status", [...PALLET_FILL_STATUSES])
+    .is("archived_at", null);
 
   if (reservationsError || !reservations?.length) {
     return computePalletContributionProgress({

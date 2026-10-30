@@ -33,7 +33,11 @@ export default async function AdminDashboard() {
   ] = await Promise.all([
     sb.from("producers").select("*", { count: "exact", head: true }),
     sb.from("wines").select("*", { count: "exact", head: true }),
-    sb.from("bookings").select("*", { count: "exact", head: true }),
+    sb
+      .from("bookings")
+      .select("*", { count: "exact", head: true })
+      .neq("status", "archived")
+      .is("archived_at", null),
     sb.from("pallet_zones").select("*", { count: "exact", head: true }),
     sb.from("geo_zones").select("*", { count: "exact", head: true }),
     sb.from("pallets").select("*", { count: "exact", head: true }),
@@ -42,18 +46,25 @@ export default async function AdminDashboard() {
       .select(
         `id, quantity, created_at, wines(wine_name, vintage, producers(name))`,
       )
+      .neq("status", "archived")
+      .is("archived_at", null)
       .order("created_at", { ascending: false })
       .limit(6),
     sb
       .from("pallets")
-      .select(`id, name, bottle_capacity, bookings(quantity)`)
+      .select(
+        `id, name, bottle_capacity, bookings(quantity, status, archived_at)`,
+      )
       .limit(5),
   ]);
 
   const palletStats =
     recentPallets?.map((pallet) => {
       const totalBooked =
-        pallet.bookings?.reduce((sum, b) => sum + b.quantity, 0) || 0;
+        pallet.bookings?.reduce((sum, b) => {
+          if (b.status === "archived" || b.archived_at != null) return sum;
+          return sum + b.quantity;
+        }, 0) || 0;
       const percentage = (totalBooked / pallet.bottle_capacity) * 100;
       return { ...pallet, totalBooked, percentage };
     }) || [];

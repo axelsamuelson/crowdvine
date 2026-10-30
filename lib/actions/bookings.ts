@@ -27,6 +27,8 @@ export async function getBookings() {
       wine:wines(wine_name, vintage, handle)
     `,
     )
+    .neq("status", "archived")
+    .is("archived_at", null)
     .order("created_at", { ascending: false });
 
   if (error) throw new Error(error.message);
@@ -36,7 +38,8 @@ export async function getBookings() {
 export async function getBookingsByStatus(status: string) {
   const sb = await supabaseServer();
 
-  const { data, error } = await sb
+  // Explicit archived queries must still work for admin tooling.
+  let q = sb
     .from("bookings")
     .select(
       `
@@ -46,6 +49,12 @@ export async function getBookingsByStatus(status: string) {
     )
     .eq("status", status)
     .order("created_at", { ascending: false });
+
+  if (status !== "archived") {
+    q = q.is("archived_at", null);
+  }
+
+  const { data, error } = await q;
 
   if (error) throw new Error(error.message);
   return data;

@@ -416,6 +416,7 @@ export function registerMetricsTools(server: McpServer, sb: SupabaseClient) {
             "quantity, order_reservations!inner(status, archived_at)",
           )
           .neq("order_reservations.status", "archived")
+          .neq("order_reservations.status", "cancelled")
           .is("order_reservations.archived_at", null);
         if (!iErr && items) {
           total_bottles = items.reduce(
