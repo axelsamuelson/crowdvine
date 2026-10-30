@@ -783,7 +783,9 @@ export const ProductCard = memo(
       {/* Content wrapper - overflow-clip so wheel scroll propagates to document */}
       <div className="relative size-full overflow-clip">
         {/* Discount Badge for Wine Boxes */}
-        {isWineBox && discountInfo && (
+        {isWineBox &&
+          discountInfo &&
+          discountInfo.discountPercentage > 0 && (
           <div className="absolute top-2 left-2 z-10">
             <Badge className="bg-green-100 text-green-800 border-green-200">
               {t("shop.wineBoxOff", {
@@ -866,7 +868,9 @@ export const ProductCard = memo(
                 product.priceBreakdown?.b2bPriceExclVat
               }
             />
-            {isWineBox && discountInfo && (
+            {isWineBox &&
+              discountInfo &&
+              discountInfo.discountPercentage > 0 && (
               <span className="line-through opacity-30 text-[8px] md:text-xs">
                 {formatPrice(
                   showExclVat
@@ -1112,7 +1116,9 @@ export const ProductCard = memo(
                   product.priceBreakdown?.b2bPriceExclVat
                 }
               />
-              {isWineBox && discountInfo && (
+              {isWineBox &&
+                discountInfo &&
+                discountInfo.discountPercentage > 0 && (
                 <span className="text-base line-through opacity-30">
                   {formatPrice(
                     showExclVat

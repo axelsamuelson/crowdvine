@@ -268,6 +268,8 @@ export interface ProductData {
     minVariantPrice: { amount: string; currencyCode: string };
     maxVariantPrice: { amount: string; currencyCode: string };
   };
+  /** SEK list price in öre when known (wines + wine boxes). */
+  priceBreakdown?: { basePriceCents?: number };
   featuredImage: { id: string; url: string; altText: string; width?: number; height?: number };
   images: Array<{ id: string; url: string; altText: string; width?: number; height?: number }>;
   seo: { title: string; description: string };
@@ -856,73 +858,97 @@ export async function fetchCollectionProductsData(
       );
     }
 
-    return calcs.slice(0, limit).map((calc) => ({
-      id: calc.wineBoxId,
-      title: calc.name,
-      description: calc.description,
-      descriptionHtml: "",
-      handle: `wine-box-${calc.wineBoxId}`,
-      productType: "wine-box",
-      categoryId: "wine-boxes-collection",
-      producerId: "",
-      producerName: "",
-      options: [
-        { id: "size", name: "Size", values: [`${calc.bottleCount} Bottles`] },
-        { id: "discount", name: "Discount", values: [`${Math.round(calc.discountPercentage)}% off`] },
-      ],
-      variants: [
-        {
-          id: `${calc.wineBoxId}-variant`,
-          title: `${calc.bottleCount} Bottles`,
-          availableForSale: true,
-          price: displayPriceFromSek(
+    return calcs.slice(0, limit).map((calc) => {
+      const hasBoxDiscount = calc.discountPercentage > 0;
+      return {
+        id: calc.wineBoxId,
+        title: calc.name,
+        description: calc.description,
+        descriptionHtml: "",
+        handle: `wine-box-${calc.wineBoxId}`,
+        productType: "wine-box",
+        categoryId: "wine-boxes-collection",
+        producerId: "",
+        producerName: "",
+        options: [
+          { id: "size", name: "Size", values: [`${calc.bottleCount} Bottles`] },
+          ...(hasBoxDiscount
+            ? [
+                {
+                  id: "discount",
+                  name: "Discount",
+                  values: [`${Math.round(calc.discountPercentage)}% off`],
+                },
+              ]
+            : []),
+        ],
+        variants: [
+          {
+            id: `${calc.wineBoxId}-variant`,
+            title: `${calc.bottleCount} Bottles`,
+            availableForSale: true,
+            price: displayPriceFromSek(
+              calc.finalPrice,
+              displayCurrencyCode,
+              sekToDisplayRate,
+              "round",
+            ),
+            selectedOptions: [
+              { name: "Size", value: `${calc.bottleCount} Bottles` },
+              ...(hasBoxDiscount
+                ? [
+                    {
+                      name: "Discount",
+                      value: `${Math.round(calc.discountPercentage)}% off`,
+                    },
+                  ]
+                : []),
+            ],
+          },
+        ],
+        priceRange: {
+          minVariantPrice: displayPriceFromSek(
             calc.finalPrice,
             displayCurrencyCode,
             sekToDisplayRate,
             "round",
           ),
-          selectedOptions: [
-            { name: "Size", value: `${calc.bottleCount} Bottles` },
-            { name: "Discount", value: `${Math.round(calc.discountPercentage)}% off` },
-          ],
+          maxVariantPrice: displayPriceFromSek(
+            calc.finalPrice,
+            displayCurrencyCode,
+            sekToDisplayRate,
+            "round",
+          ),
         },
-      ],
-      priceRange: {
-        minVariantPrice: displayPriceFromSek(
-          calc.finalPrice,
-          displayCurrencyCode,
-          sekToDisplayRate,
-          "round",
-        ),
-        maxVariantPrice: displayPriceFromSek(
-          calc.finalPrice,
-          displayCurrencyCode,
-          sekToDisplayRate,
-          "round",
-        ),
-      },
-      featuredImage: {
-        id: `${calc.wineBoxId}-img`,
-        url: calc.imageUrl || "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&h=600&fit=crop",
-        altText: calc.name,
-      },
-      images: [
-        {
+        priceBreakdown: {
+          basePriceCents: calc.totalCents,
+        },
+        featuredImage: {
           id: `${calc.wineBoxId}-img`,
           url: calc.imageUrl || "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&h=600&fit=crop",
           altText: calc.name,
         },
-      ],
-      seo: {
-        title: buildWineBoxSeoTitle(calc.name, "sv"),
-        description: buildWineBoxSeoDescription("sv", calc.description),
-      },
-      tags: [`${calc.bottleCount}-bottles`, `${calc.discountPercentage}-discount`],
-      availableForSale: true,
-      currencyCode: displayCurrencyCode,
-      updatedAt: new Date().toISOString(),
-      createdAt: new Date().toISOString(),
-    })) as ProductData[];
+        images: [
+          {
+            id: `${calc.wineBoxId}-img`,
+            url: calc.imageUrl || "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&h=600&fit=crop",
+            altText: calc.name,
+          },
+        ],
+        seo: {
+          title: buildWineBoxSeoTitle(calc.name, "sv"),
+          description: buildWineBoxSeoDescription("sv", calc.description),
+        },
+        tags: [
+          `${calc.bottleCount}-bottles`,
+          ...(hasBoxDiscount ? [`${calc.discountPercentage}-discount`] : []),
+        ],
+        availableForSale: true,
+        currencyCode: displayCurrencyCode,
+        updatedAt: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
+      };
+    }) as ProductData[];
   }
 
   const sb = getSupabaseAdmin();

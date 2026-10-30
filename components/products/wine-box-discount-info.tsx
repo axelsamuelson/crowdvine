@@ -21,12 +21,15 @@ export function WineBoxDiscountInfo({ product }: WineBoxDiscountInfoProps) {
   const formatLine = (amount: number) =>
     formatCartLinePrice(amount, currencyCode, locale);
 
-  // Check if this is a wine box product
+  // Check if this is a wine box product with an actual box discount
   if (product.productType !== "wine-box" || !(product as any).discountInfo) {
     return null;
   }
 
   const discountInfo = (product as any).discountInfo;
+  if (!(discountInfo.discountPercentage > 0)) {
+    return null;
+  }
   const wines = discountInfo.wines || [];
   const toDisplay = (v: number) => (showExclVat ? priceExclVat(v) : v);
 
