@@ -7,17 +7,28 @@ const calculationCache = new Map<
 >();
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
+export interface WineBoxLineInput {
+  wineId: string;
+  wineName: string;
+  vintage: string;
+  /** Customer-facing bottle list price in öre (inkl. moms), same as producer boxes. */
+  basePriceCents: number;
+  quantity: number;
+}
+
 export interface WineBoxCalculation {
   wineBoxId: string;
   name: string;
   description: string;
   handle: string;
   imageUrl: string;
-  totalWinePrice: number; // Sum of individual wine prices
-  marginAmount: number; // Margin amount in SEK
-  finalPrice: number; // Final price with margin
-  discountAmount: number; // Discount compared to individual prices
-  discountPercentage: number; // Discount percentage
+  totalWinePrice: number; // Sum of individual wine list prices (inkl. moms)
+  marginAmount: number; // Kept for callers; always 0 under bottle-sum pricing
+  finalPrice: number; // Box price = sum of bottle list prices (inkl. moms)
+  /** Total in öre; matches producer-box totalCents. */
+  totalCents: number;
+  discountAmount: number; // Discount compared to individual prices (0 under new pricing)
+  discountPercentage: number; // Discount percentage (0 under new pricing)
   bottleCount: number;
   wines: Array<{
     wineId: string;
@@ -26,6 +37,65 @@ export interface WineBoxCalculation {
     price: number;
     quantity: number;
   }>;
+}
+
+/**
+ * Bottle list price in öre — same source producer boxes use (`wines.base_price_cents`).
+ */
+export function wineBoxBottlePriceCents(
+  basePriceCents: number | null | undefined,
+): number | undefined {
+  return basePriceCents != null && Number.isFinite(basePriceCents)
+    ? basePriceCents
+    : undefined;
+}
+
+/**
+ * Pure wine-box pricing: box price = Σ (bottle list price × quantity), inkl. moms.
+ * Reuses the same per-bottle list price producer boxes sum (`base_price_cents`).
+ */
+export function computeWineBoxPriceFromLines(
+  lines: readonly WineBoxLineInput[],
+): {
+  totalCents: number;
+  finalPrice: number;
+  totalWinePrice: number;
+  marginAmount: number;
+  discountAmount: number;
+  discountPercentage: number;
+  bottleCount: number;
+  wines: WineBoxCalculation["wines"];
+} {
+  let totalCents = 0;
+  let bottleCount = 0;
+  const wines: WineBoxCalculation["wines"] = [];
+
+  for (const line of lines) {
+    const priceCents = wineBoxBottlePriceCents(line.basePriceCents) ?? 0;
+    const quantity = Math.max(0, Math.floor(line.quantity) || 0);
+    totalCents += priceCents * quantity;
+    bottleCount += quantity;
+    wines.push({
+      wineId: line.wineId,
+      wineName: line.wineName,
+      vintage: line.vintage,
+      price: priceCents / 100,
+      quantity,
+    });
+  }
+
+  const finalPrice = totalCents / 100;
+
+  return {
+    totalCents,
+    finalPrice,
+    totalWinePrice: finalPrice,
+    marginAmount: 0,
+    discountAmount: 0,
+    discountPercentage: 0,
+    bottleCount,
+    wines,
+  };
 }
 
 export async function calculateWineBoxPrice(
@@ -50,7 +120,6 @@ export async function calculateWineBoxPrice(
         description,
         handle,
         image_url,
-        margin_percentage,
         wine_box_items (
           id,
           wine_id,
@@ -59,9 +128,6 @@ export async function calculateWineBoxPrice(
             id,
             wine_name,
             vintage,
-            cost_amount,
-            exchange_rate,
-            alcohol_tax_cents,
             base_price_cents
           )
         )
@@ -75,74 +141,37 @@ export async function calculateWineBoxPrice(
       return null;
     }
 
-    // Calculate total wine price
-    let totalWinePrice = 0;
-    let bottleCount = 0;
-    const wines: Array<{
-      wineId: string;
-      wineName: string;
-      vintage: string;
-      price: number;
-      quantity: number;
-    }> = [];
+    const lines: WineBoxLineInput[] = (wineBoxData.wine_box_items ?? []).map(
+      (item: {
+        wine_id: string;
+        quantity: number;
+        wines: {
+          id: string;
+          wine_name: string;
+          vintage: string;
+          base_price_cents: number | null;
+        };
+      }) => {
+        const wine = item.wines;
+        return {
+          wineId: wine?.id ?? item.wine_id,
+          wineName: wine?.wine_name ?? "",
+          vintage: wine?.vintage ?? "",
+          basePriceCents: wine?.base_price_cents ?? 0,
+          quantity: item.quantity,
+        };
+      },
+    );
 
-    for (const item of wineBoxData.wine_box_items) {
-      const wine = item.wines;
+    const priced = computeWineBoxPriceFromLines(lines);
 
-      // Calculate wine cost in SEK using cost_amount and exchange_rate
-      const costInSek = wine.cost_amount * (wine.exchange_rate || 1.0);
-
-      // Add alcohol tax
-      const winePrice = costInSek + (wine.alcohol_tax_cents || 0) / 100;
-
-      const itemTotal = winePrice * item.quantity;
-
-      totalWinePrice += itemTotal;
-      bottleCount += item.quantity;
-
-      wines.push({
-        wineId: wine.id,
-        wineName: wine.wine_name,
-        vintage: wine.vintage,
-        price: winePrice,
-        quantity: item.quantity,
-      });
-    }
-
-    // Calculate margin and final price
-    const marginAmount = totalWinePrice * (wineBoxData.margin_percentage / 100);
-    const finalPrice = totalWinePrice + marginAmount;
-
-    // Calculate discount compared to individual wine prices
-    // Use base_price_cents which already includes individual wine margins
-    let totalIndividualWinePrice = 0;
-    for (const item of wineBoxData.wine_box_items) {
-      const wine = item.wines;
-
-      // Use base_price_cents which is the individual wine price (already includes margin)
-      const individualWinePrice = wine.base_price_cents / 100; // Convert to SEK
-
-      totalIndividualWinePrice += individualWinePrice * item.quantity;
-    }
-
-    // Calculate discount compared to individual prices
-    const discountAmount = totalIndividualWinePrice - finalPrice;
-    const discountPercentage =
-      (discountAmount / totalIndividualWinePrice) * 100;
-
-    const result = {
+    const result: WineBoxCalculation = {
       wineBoxId,
       name: wineBoxData.name,
       description: wineBoxData.description,
       handle: wineBoxData.handle,
       imageUrl: wineBoxData.image_url,
-      totalWinePrice: totalIndividualWinePrice, // Use individual wine prices for discount calculation
-      marginAmount,
-      finalPrice,
-      discountAmount,
-      discountPercentage,
-      bottleCount,
-      wines,
+      ...priced,
     };
 
     // Cache the result

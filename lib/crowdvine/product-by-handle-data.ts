@@ -137,7 +137,9 @@ export async function getCrowdvineProductByHandle(options: {
         return null;
       }
 
-      // Convert to Shopify-compatible product format
+      // Box price = sum of bottle list prices (inkl. moms), same as producer boxes.
+      const priceAmount = (calc.totalCents / 100).toFixed(2);
+      const hasBoxDiscount = calc.discountPercentage > 0;
       const product = {
         id: calc.wineBoxId,
         title: calc.name,
@@ -148,13 +150,16 @@ export async function getCrowdvineProductByHandle(options: {
         categoryId: "wine-boxes-collection",
         priceRange: {
           minVariantPrice: {
-            amount: Math.round(calc.finalPrice).toString(),
+            amount: priceAmount,
             currencyCode: "SEK",
           },
           maxVariantPrice: {
-            amount: Math.round(calc.finalPrice).toString(),
+            amount: priceAmount,
             currencyCode: "SEK",
           },
+        },
+        priceBreakdown: {
+          basePriceCents: calc.totalCents,
         },
         featuredImage: {
           id: `${calc.wineBoxId}-img`,
@@ -182,15 +187,19 @@ export async function getCrowdvineProductByHandle(options: {
             title: `${calc.bottleCount} Bottles`,
             availableForSale: true,
             price: {
-              amount: Math.round(calc.finalPrice).toString(),
+              amount: priceAmount,
               currencyCode: "SEK",
             },
             selectedOptions: [
               { name: "Size", value: `${calc.bottleCount} Bottles` },
-              {
-                name: "Discount",
-                value: `${Math.round(calc.discountPercentage)}% off`,
-              },
+              ...(hasBoxDiscount
+                ? [
+                    {
+                      name: "Discount",
+                      value: `${Math.round(calc.discountPercentage)}% off`,
+                    },
+                  ]
+                : []),
             ],
           },
         ],
@@ -205,20 +214,26 @@ export async function getCrowdvineProductByHandle(options: {
               },
             ],
           },
-          {
-            id: "discount",
-            name: "Discount",
-            values: [
-              {
-                id: `${Math.round(calc.discountPercentage)}-discount`,
-                name: `${Math.round(calc.discountPercentage)}% off`,
-              },
-            ],
-          },
+          ...(hasBoxDiscount
+            ? [
+                {
+                  id: "discount",
+                  name: "Discount",
+                  values: [
+                    {
+                      id: `${Math.round(calc.discountPercentage)}-discount`,
+                      name: `${Math.round(calc.discountPercentage)}% off`,
+                    },
+                  ],
+                },
+              ]
+            : []),
         ],
         tags: [
           `${calc.bottleCount}-bottles`,
-          `${calc.discountPercentage}-discount`,
+          ...(hasBoxDiscount
+            ? [`${calc.discountPercentage}-discount`]
+            : []),
         ],
         seo: {
           title: buildWineBoxSeoTitle(calc.name, locale),
@@ -228,14 +243,20 @@ export async function getCrowdvineProductByHandle(options: {
         currencyCode: "SEK",
         updatedAt: new Date().toISOString(),
         createdAt: new Date().toISOString(),
-        // Add custom fields for discount information
-        discountInfo: {
-          totalWinePrice: calc.totalWinePrice,
-          discountAmount: calc.discountAmount,
-          discountPercentage: calc.discountPercentage,
-          finalPrice: calc.finalPrice,
-          wines: calc.wines,
-        },
+        ...(hasBoxDiscount
+          ? {
+              discountInfo: {
+                totalWinePrice: calc.totalWinePrice,
+                discountAmount: calc.discountAmount,
+                discountPercentage: calc.discountPercentage,
+                finalPrice: calc.finalPrice,
+                wines: calc.wines,
+              },
+            }
+          : {
+              // Contents for PDP; no box discount under bottle-sum pricing
+              boxContents: calc.wines,
+            }),
       };
 
       return product as Product;
