@@ -508,7 +508,9 @@ export async function autoChargeDeferredReservationsForPallet(
     .not("terms_version", "is", null)
     .not("terms_accepted_at", "is", null)
     .not("age_verified_at", "is", null)
-    .gt("created_at", createdAfter);
+    .gt("created_at", createdAfter)
+    .neq("status", "archived")
+    .is("archived_at", null);
 
   if (error) {
     console.error(
@@ -533,7 +535,9 @@ export async function autoChargeDeferredReservationsForPallet(
     .eq("payment_status", "pending")
     .eq("is_conditional", false)
     .is("charge_blocked_reason", null)
-    .not("payment_method_id", "is", null);
+    .not("payment_method_id", "is", null)
+    .neq("status", "archived")
+    .is("archived_at", null);
 
   const skipped: { id: string; reason: ChargeSkipReason }[] = [];
   for (const raw of skippedSource ?? []) {

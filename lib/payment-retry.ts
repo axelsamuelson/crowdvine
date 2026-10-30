@@ -44,10 +44,24 @@ export async function schedulePaymentRetry(
   const when = new Date(Date.now() + ms).toISOString();
 
   const sb = getSupabaseAdmin();
+  const { data: existing } = await sb
+    .from("order_reservations")
+    .select("status, archived_at")
+    .eq("id", reservationId)
+    .maybeSingle();
+  if (
+    existing &&
+    (String(existing.status) === "archived" || existing.archived_at != null)
+  ) {
+    return;
+  }
+
   const { error } = await sb
     .from("order_reservations")
     .update({ retry_scheduled_at: when })
-    .eq("id", reservationId);
+    .eq("id", reservationId)
+    .neq("status", "archived")
+    .is("archived_at", null);
 
   if (error) {
     console.error(
@@ -86,6 +100,10 @@ export async function cancelFailedReservation(
   }
 
   if (row.cancelled_at != null || String(row.status) === "cancelled") {
+    return;
+  }
+
+  if (String(row.status) === "archived") {
     return;
   }
 
@@ -243,7 +261,9 @@ export async function retryFailedPayments(): Promise<{
       .is("charge_blocked_reason", null)
       .not("payment_method_id", "is", null)
       .neq("status", "cancelled")
-      .neq("status", "confirmed");
+      .neq("status", "confirmed")
+      .neq("status", "archived")
+      .is("archived_at", null);
 
     for (const raw of skippedSource ?? []) {
       const decision = isChargeEligible(raw, now);
@@ -269,6 +289,8 @@ export async function retryFailedPayments(): Promise<{
       .not("payment_method_id", "is", null)
       .neq("status", "cancelled")
       .neq("status", "confirmed")
+      .neq("status", "archived")
+      .is("archived_at", null)
       .not("terms_version", "is", null)
       .not("terms_accepted_at", "is", null)
       .not("age_verified_at", "is", null)

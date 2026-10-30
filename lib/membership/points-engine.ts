@@ -522,7 +522,9 @@ export async function checkPalletMilestone(userId: string): Promise<number> {
       .from("order_reservations")
       .select("pallet_id")
       .eq("user_id", userId)
-      .not("pallet_id", "is", null);
+      .not("pallet_id", "is", null)
+      .neq("status", "archived")
+      .is("archived_at", null);
 
     if (error) throw error;
 

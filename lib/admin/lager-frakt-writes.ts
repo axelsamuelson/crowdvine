@@ -7,6 +7,7 @@ import {
 import { resolveDisplayCurrencyCode } from "@/lib/shopping-context/currency-policy";
 import { syncPalletShipReadiness } from "@/lib/pallet-completion";
 import { selectPalletFreightQuote } from "@/lib/pallet-freight-quotes";
+import { NON_ACTIVE_RESERVATION_STATUSES_POSTGREST } from "@/lib/reservations/archive";
 
 function numOrNull(v: unknown): number | null {
   if (v === null || v === undefined || v === "") return null;
@@ -786,7 +787,7 @@ export async function deletePactPallet(sb: SupabaseClient, id: string) {
     .from("order_reservations")
     .select("id")
     .eq("pallet_id", id)
-    .not("status", "in", '("cancelled","rejected")')
+    .not("status", "in", NON_ACTIVE_RESERVATION_STATUSES_POSTGREST)
     .limit(1);
   if (reservationsError) {
     throw new Error(reservationsError.message);

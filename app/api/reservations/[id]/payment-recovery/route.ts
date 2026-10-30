@@ -40,7 +40,7 @@ export async function GET(
     const { data: row, error } = await sb
       .from("order_reservations")
       .select(
-        "id, user_id, payment_intent_id, payment_status, stripe_decline_code, status, cancelled_at",
+        "id, user_id, payment_intent_id, payment_status, stripe_decline_code, status, cancelled_at, archived_at",
       )
       .eq("id", reservationId.trim())
       .maybeSingle();
@@ -56,6 +56,16 @@ export async function GET(
     if (row.cancelled_at != null || String(row.status) === "cancelled") {
       return NextResponse.json(
         { error: "Reservation is cancelled" },
+        { status: 410 },
+      );
+    }
+
+    if (
+      row.archived_at != null ||
+      String(row.status).toLowerCase() === "archived"
+    ) {
+      return NextResponse.json(
+        { error: "Reservation is archived" },
         { status: 410 },
       );
     }

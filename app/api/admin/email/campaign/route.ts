@@ -7,10 +7,10 @@ import {
   buildCampaignEmailText,
 } from "@/lib/email/campaign-template";
 
-const TERMINAL_RESERVATION_STATUSES = new Set([
-  "cancelled",
-  "rejected",
-  "declined",
+import { NON_ACTIVE_RESERVATION_STATUSES } from "@/lib/reservations/archive";
+
+const TERMINAL_RESERVATION_STATUSES = new Set<string>([
+  ...NON_ACTIVE_RESERVATION_STATUSES,
 ]);
 
 function formatFromWithDisplayName(displayName: string): string {

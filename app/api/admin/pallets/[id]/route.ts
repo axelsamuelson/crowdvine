@@ -6,6 +6,7 @@ import {
   derivePreShippingAutoStatus,
   resolveMinBottlesToShip,
 } from "@/lib/pallet-ship-progress";
+import { NON_ACTIVE_RESERVATION_STATUSES_POSTGREST } from "@/lib/reservations/archive";
 
 /**
  * Canonical auto-status from pallet fill (not zone/producer mapping).
@@ -226,13 +227,14 @@ export async function DELETE(
     );
   }
 
-  // Check if any reservations use this pallet's zones
+  // Check if any active (non-archived/cancelled) reservations use this pallet's zones
   const { data: reservations, error: reservationsError } = await sb
     .from("order_reservations")
     .select("id")
     .or(
       `pickup_zone_id.eq.${pallet.pickup_zone_id},delivery_zone_id.eq.${pallet.delivery_zone_id}`,
     )
+    .not("status", "in", NON_ACTIVE_RESERVATION_STATUSES_POSTGREST)
     .limit(1);
 
   if (reservationsError) {

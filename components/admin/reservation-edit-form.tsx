@@ -96,6 +96,9 @@ type Reservation = {
   setup_intent_id?: string | null;
   order_id?: string | null;
   notes?: string | null;
+  archived_at?: string | null;
+  archive_reason?: string | null;
+  status_before_archive?: string | null;
   pickup_zone_id?: string | null;
   delivery_zone_id?: string | null;
   address_id?: string | null;
@@ -125,6 +128,8 @@ function formatReservationStatus(status: string | null | undefined): string {
       return "Cancelled";
     case "rejected":
       return "Rejected";
+    case "archived":
+      return "Archived";
     default:
       return status ?? "—";
   }
@@ -142,6 +147,8 @@ function reservationStatusPillClass(status: string | null | undefined): string {
     case "cancelled":
     case "rejected":
       return "border border-red-500/20 bg-red-500/10 text-red-400";
+    case "archived":
+      return "border border-zinc-600 bg-zinc-800/60 text-zinc-300";
     default:
       return "border border-zinc-800 bg-zinc-900/40 text-zinc-400";
   }
@@ -190,6 +197,15 @@ export default function ReservationEditForm({
   wines,
 }: ReservationEditFormProps) {
   const router = useRouter();
+  const [isArchived, setIsArchived] = useState(
+    reservation.status === "archived" ||
+      (reservation.archived_at != null &&
+        String(reservation.archived_at).trim() !== ""),
+  );
+  const [archiveReason, setArchiveReason] = useState(
+    reservation.archive_reason ?? "",
+  );
+  const [archiveBusy, setArchiveBusy] = useState(false);
   const [formData, setFormData] = useState({
     status: reservation.status ?? "",
     order_id: reservation.order_id ?? "",
@@ -311,6 +327,60 @@ export default function ReservationEditForm({
   const selectedPickupZone = formData.pickup_zone_id
     ? zoneById.get(formData.pickup_zone_id) ?? null
     : null;
+
+  const handleArchiveToggle = async () => {
+    setArchiveBusy(true);
+    setError("");
+    try {
+      if (isArchived) {
+        const res = await fetch(
+          `/api/admin/reservations/${reservation.id}/archive`,
+          { method: "DELETE" },
+        );
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(data.error || "Failed to unarchive reservation");
+        }
+        const restored =
+          typeof data.reservation?.status === "string"
+            ? data.reservation.status
+            : reservation.status_before_archive || "cancelled";
+        setIsArchived(false);
+        setArchiveReason("");
+        setFormData((prev) => ({ ...prev, status: restored }));
+        router.refresh();
+      } else {
+        const confirmed = confirm(
+          "Archive this reservation? It stays in the database but will no longer count as an active order. No email is sent.",
+        );
+        if (!confirmed) return;
+        const res = await fetch(
+          `/api/admin/reservations/${reservation.id}/archive`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              reason: archiveReason.trim() || "admin_archive",
+            }),
+          },
+        );
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(data.error || "Failed to archive reservation");
+        }
+        setIsArchived(true);
+        setFormData((prev) => ({ ...prev, status: "archived" }));
+        router.refresh();
+      }
+    } catch (err) {
+      console.error("Archive toggle error:", err);
+      setError(
+        err instanceof Error ? err.message : "Failed to update archive state",
+      );
+    } finally {
+      setArchiveBusy(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -778,6 +848,61 @@ export default function ReservationEditForm({
               Status management
             </div>
             <div className="mt-4 space-y-4">
+              <div className="rounded-md border border-[#1F1F23] bg-zinc-900/50 p-3 space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <p className="text-sm text-zinc-100">Archive</p>
+                    <p className="text-[11px] text-zinc-500 mt-0.5">
+                      Keep in DB; exclude from active orders. No email sent.
+                    </p>
+                  </div>
+                  <span
+                    className={`inline-flex px-2 py-0.5 rounded text-[11px] font-medium ${
+                      isArchived
+                        ? "border border-zinc-600 bg-zinc-800 text-zinc-300"
+                        : "border border-zinc-800 text-zinc-500"
+                    }`}
+                  >
+                    {isArchived ? "Arkiverad" : "Aktiv"}
+                  </span>
+                </div>
+                {!isArchived ? (
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="archive_reason"
+                      className="text-xs text-zinc-500"
+                    >
+                      Archive reason (optional)
+                    </Label>
+                    <Input
+                      id="archive_reason"
+                      value={archiveReason}
+                      onChange={(e) => setArchiveReason(e.target.value)}
+                      placeholder="e.g. stale Middle Languedoc pallet"
+                      className="h-9 border-[#1F1F23] bg-zinc-900 text-sm text-zinc-100"
+                    />
+                  </div>
+                ) : reservation.status_before_archive ? (
+                  <p className="text-[11px] text-zinc-500">
+                    Previous status: {reservation.status_before_archive}
+                  </p>
+                ) : null}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={archiveBusy}
+                  onClick={handleArchiveToggle}
+                  className="w-full border-[#1F1F23] text-xs"
+                >
+                  {archiveBusy
+                    ? "Working…"
+                    : isArchived
+                      ? "Unarchive"
+                      : "Archive reservation"}
+                </Button>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="status" className="text-xs text-zinc-500">
                   Reservation status
@@ -785,6 +910,7 @@ export default function ReservationEditForm({
                 <Select
                   value={formData.status || undefined}
                   onValueChange={(value) => handleInputChange("status", value)}
+                  disabled={isArchived}
                 >
                   <SelectTrigger className="h-9 border-[#1F1F23] bg-zinc-900 text-sm text-zinc-100">
                     <SelectValue placeholder="Select status" />

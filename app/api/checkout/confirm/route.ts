@@ -2437,11 +2437,14 @@ export async function POST(request: Request) {
               "confirmed",
             ] as const;
 
+            // Soft-archived prior orders still count (via status_before_archive).
             let priorOrdersQuery = sbAdmin
               .from("order_reservations")
               .select("id", { count: "exact", head: true })
               .eq("user_id", currentUser.id)
-              .in("status", [...qualifyingStatuses]);
+              .or(
+                `status.in.(${qualifyingStatuses.join(",")}),and(status.eq.archived,status_before_archive.in.(${qualifyingStatuses.join(",")}))`,
+              );
             for (const rid of reservationIdsForPayment) {
               priorOrdersQuery = priorOrdersQuery.neq("id", rid);
             }
