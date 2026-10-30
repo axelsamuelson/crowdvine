@@ -3,7 +3,10 @@
 import { motion } from "motion/react";
 import { CheckCircle2, ChevronDown, ChevronUp } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import type { ProducerValidation } from "@/lib/checkout-validation";
+import {
+  cartMinimumTrackingMeta,
+  type ProducerValidation,
+} from "@/lib/checkout-validation";
 import { WhySixBottlesModal } from "./WhySixBottlesModal";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 import { useTranslations } from "@/lib/hooks/use-translations";
@@ -11,6 +14,9 @@ import { useTranslations } from "@/lib/hooks/use-translations";
 interface CartValidationHeaderProps {
   validations: ProducerValidation[];
   isValidating: boolean;
+  /** Shared counters from `/api/cart/validate` when available. */
+  requiredQuantity?: number;
+  neededTotal?: number;
 }
 
 function BottleProgressRow({
@@ -21,15 +27,21 @@ function BottleProgressRow({
   const { t } = useTranslations();
   const current = validation.quantity || 0;
   const needed = validation.needed || 0;
-  const total = current + needed || 6;
+  const total =
+    validation.required ??
+    (current + needed || 6);
   const progress = total > 0 ? Math.min((current / total) * 100, 100) : 0;
   const isComplete = validation.isValid;
+  const label =
+    validation.scope === "cart" || !validation.producerName
+      ? t("cart.bottleProgressHint")
+      : validation.producerName;
 
   return (
     <div className="space-y-1">
       <div className="flex items-center justify-between gap-2">
         <span className="text-xs text-muted-foreground font-medium truncate">
-          {validation.producerName}
+          {label}
         </span>
         <span
           className={`text-xs font-semibold tabular-nums shrink-0 ${
@@ -63,6 +75,8 @@ function BottleProgressRow({
 export function CartValidationHeader({
   validations,
   isValidating,
+  requiredQuantity: requiredQuantityProp,
+  neededTotal: neededTotalProp,
 }: CartValidationHeaderProps) {
   const { t } = useTranslations();
   const [isExpanded, setIsExpanded] = useState(true);
@@ -73,23 +87,39 @@ export function CartValidationHeader({
 
   const allValid = validations.every((v) => v.isValid);
   const invalidCount = validations.filter((v) => !v.isValid).length;
-  const totalNeeded = validations.reduce(
+  const isCartScoped = validations.some((v) => v.scope === "cart");
+
+  const derivedNeeded = validations.reduce(
     (sum, v) => sum + (v.isValid ? 0 : v.needed),
     0,
   );
+  const derivedRequired = validations.reduce(
+    (sum, v) =>
+      sum +
+      (v.required ??
+        (v.quantity || 0) + (v.isValid ? 0 : v.needed || 0)),
+    0,
+  );
+  const totalNeeded =
+    typeof neededTotalProp === "number" ? neededTotalProp : derivedNeeded;
+  const requiredQuantity =
+    typeof requiredQuantityProp === "number"
+      ? requiredQuantityProp
+      : derivedRequired;
 
   useEffect(() => {
     if (isValidating) return;
     if (validations.length === 0) return;
 
-    const neededTotal = validations.reduce(
-      (sum, v) => sum + (v.isValid ? 0 : v.needed),
-      0,
-    );
-
-    const requiredQuantity = validations.reduce(
-      (sum, v) => sum + (v.quantity || 0) + (v.isValid ? 0 : v.needed),
-      0,
+    const tracking = cartMinimumTrackingMeta(
+      {
+        channel: isCartScoped ? "b2c" : "b2b",
+        quantity: validations.reduce((s, v) => s + (v.quantity || 0), 0),
+        required: requiredQuantity,
+        needed: totalNeeded,
+        isValid: invalidCount === 0,
+      },
+      { invalidCount },
     );
 
     if (!shownRef.current) {
@@ -98,9 +128,9 @@ export function CartValidationHeader({
         eventType: "cart_validation_shown",
         eventCategory: "validation",
         metadata: {
-          invalid_count: invalidCount,
-          needed_total: neededTotal,
-          required_quantity: requiredQuantity,
+          invalid_count: tracking.invalid_count,
+          needed_total: tracking.needed_total,
+          required_quantity: tracking.required_quantity,
         },
       });
     }
@@ -113,7 +143,7 @@ export function CartValidationHeader({
         metadata: {
           invalid_count: 0,
           needed_total: 0,
-          required_quantity: requiredQuantity,
+          required_quantity: tracking.required_quantity,
         },
       });
     } else if (invalidCount > 0 && !failedRef.current) {
@@ -122,14 +152,21 @@ export function CartValidationHeader({
         eventType: "cart_validation_failed",
         eventCategory: "validation",
         metadata: {
-          invalid_count: invalidCount,
-          needed_total: neededTotal,
-          required_quantity: requiredQuantity,
+          invalid_count: tracking.invalid_count,
+          needed_total: tracking.needed_total,
+          required_quantity: tracking.required_quantity,
           reason: "minimum_bottle_count",
         },
       });
     }
-  }, [isValidating, validations, invalidCount]);
+  }, [
+    isValidating,
+    validations,
+    invalidCount,
+    requiredQuantity,
+    totalNeeded,
+    isCartScoped,
+  ]);
 
   // Expand by default whenever there are blocking errors.
   useEffect(() => {
@@ -251,17 +288,21 @@ export function CartValidationHeader({
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0 space-y-0.5">
               <p className="text-xs font-semibold text-amber-900 dark:text-amber-100">
-                {invalidValidations.length === 1
-                  ? t("cart.oneProducerNeedsMore", {
-                      needed: invalidValidations[0].needed,
+                {isCartScoped
+                  ? t("cart.needMoreBottlesShort", {
+                      needed: totalNeeded || invalidValidations[0]?.needed || 0,
                     })
-                  : t("cart.producersNeedMore", {
-                      count: invalidValidations.length,
-                    })}
+                  : invalidValidations.length === 1
+                    ? t("cart.oneProducerNeedsMore", {
+                        needed: invalidValidations[0].needed,
+                      })
+                    : t("cart.producersNeedMore", {
+                        count: invalidValidations.length,
+                      })}
               </p>
               <p className="text-[11px] text-amber-800/80 dark:text-amber-200/80">
                 {t("cart.bottleProgressHint")}
-                {totalNeeded > 0
+                {!isCartScoped && totalNeeded > 0
                   ? ` · ${t("cart.needMoreBottlesShort", { needed: totalNeeded })}`
                   : ""}
               </p>
@@ -298,12 +339,14 @@ export function CartValidationHeader({
             <div className="space-y-2.5 pt-1">
               {allValidations.map((validation) => (
                 <BottleProgressRow
-                  key={validation.producerHandle}
+                  key={`${validation.scope || "row"}-${validation.producerId}-${validation.producerHandle}`}
                   validation={validation}
                 />
               ))}
               <p className="text-[11px] text-muted-foreground">
-                {t("cart.mixFreelyWithinProducer")}
+                {isCartScoped
+                  ? t("cart.mixFreelyCart")
+                  : t("cart.mixFreelyWithinProducer")}
               </p>
             </div>
           ) : null}

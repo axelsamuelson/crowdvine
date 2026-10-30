@@ -424,28 +424,39 @@ export async function POST(request: Request) {
       }
     }
 
-    // SERVER-SIDE VALIDATION: 6-bottle rule
-    console.log("🔍 [Checkout API] Validating 6-bottle rule...");
+    // SERVER-SIDE VALIDATION: cart minimum (B2C ≥6 total; B2B pack lines)
+    const minimumChannel = isB2BHost(requestHost) ? "b2b" : "b2c";
+    console.log(
+      "🔍 [Checkout API] Validating cart minimum...",
+      minimumChannel,
+    );
     const { validateSixBottleRule } = await import("@/lib/checkout-validation");
     const validation = await validateSixBottleRule(
       cart.lines as unknown as SixBottleCartItem[],
+      { channel: minimumChannel },
     );
 
     if (!validation.isValid) {
       console.error(
-        "❌ [Checkout API] 6-bottle validation failed:",
+        "❌ [Checkout API] Cart minimum validation failed:",
         validation.errors,
       );
       return NextResponse.json(
         {
-          error: "Order must contain bottles in multiples of 6 per producer",
+          error:
+            minimumChannel === "b2b"
+              ? "Order lines must be in full 6-bottle packs"
+              : "Order must contain at least 6 bottles (any wines)",
           validationErrors: validation.errors,
           producerValidations: validation.producerValidations,
+          requiredQuantity: validation.requiredQuantity,
+          neededTotal: validation.neededTotal,
+          channel: validation.channel,
         },
         { status: 400 },
       );
     }
-    console.log("✅ [Checkout API] 6-bottle validation passed");
+    console.log("✅ [Checkout API] Cart minimum validation passed");
 
     const sb = await supabaseServer();
     const sbAdmin = getSupabaseAdmin();

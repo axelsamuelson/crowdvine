@@ -29,6 +29,8 @@ describe("conversion funnel copy (sv)", () => {
     expect(
       translate("sv", "cart.needMoreBottlesShort", { needed: 2 }),
     ).toBe("2 flaskor till");
+    expect(translate("sv", "cart.mixFreelyCart")).toMatch(/blanda/i);
+    expect(translate("sv", "cart.sixBottleRuleInfo")).toMatch(/totalt|blanda/i);
   });
 
   it("has progressive delivery field hints", () => {
