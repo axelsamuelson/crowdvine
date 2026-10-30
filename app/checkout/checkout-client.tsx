@@ -71,6 +71,7 @@ import {
 } from "@/lib/analytics/once-per-session";
 import {
   deliveryLinesForAnalytics,
+  missingCheckoutFields,
   postalDraftAnalytics,
 } from "@/lib/analytics/checkout-draft-metadata";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
@@ -211,6 +212,15 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
   const checkoutStepRef = useRef<
     "postal" | "delivery" | "age_terms" | "payment"
   >("postal");
+  /** Last validation/blocker shown — attached to checkout_abandoned as abandon_reason. */
+  const lastCheckoutBlockerRef = useRef<{
+    reason: string;
+    field?: string;
+    code?: string;
+    required_quantity?: number;
+  } | null>(null);
+  const dateOfBirthFilledRef = useRef(false);
+  const termsAcceptedRef = useRef(false);
   const zoneInfoFetchInProgressRef = useRef(false);
   const zoneInfoNeedsRefetchRef = useRef(false);
   const pendingZoneOverrideRef = useRef<ZoneDeliveryLines | null>(null);
@@ -357,6 +367,11 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
     field: string,
     code: string,
   ) {
+    lastCheckoutBlockerRef.current = {
+      reason: "validation_error",
+      field,
+      code,
+    };
     void AnalyticsTracker.trackEvent({
       eventType: "checkout_error",
       eventCategory: "checkout",
@@ -394,16 +409,31 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
       metadata: {
         zoneError: err,
         zoneErrorMessage: zoneInfo.zoneErrorMessage ?? null,
-        postal: (postalDraft?.postal ?? postalCodeDraft) || null,
-        digits: postalDraft?.digits ?? null,
-        postal_complete: postalDraft?.complete ?? false,
+        // Digits only — never store formatted postcode with other personal data.
+        ...(postalDraft
+          ? {
+              postal_digits: postalDraft.postal_digits,
+              digits: postalDraft.digits,
+              postal_complete: postalDraft.complete,
+            }
+          : {}),
         country_code: ageCountryCode,
       },
     });
     if (err === "NO_DELIVERY_ZONE") {
+      lastCheckoutBlockerRef.current = {
+        reason: "postal_out_of_zone",
+        field: "postal",
+        code: "postal_out_of_zone",
+      };
       emitCheckoutError("postal", "postal", "postal_out_of_zone");
     }
     if (err === "UNSUPPORTED_COUNTRY") {
+      lastCheckoutBlockerRef.current = {
+        reason: "market_not_available",
+        field: "country",
+        code: "market_not_available",
+      };
       emitCheckoutError("postal", "country", "market_not_available");
       void AnalyticsTracker.trackEvent({
         eventType: "delivery_ineligible",
@@ -566,13 +596,15 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
         setAgeDobError(
           t("checkout.ageUnderLimit", { age: String(requiredAge) }),
         );
+        dateOfBirthFilledRef.current = true;
         void AnalyticsTracker.trackEvent({
           eventType: "age_confirmation_failed",
           eventCategory: "checkout",
           metadata: {
             country_code: ageCountryCode,
             required_age: requiredAge,
-            date_of_birth: value,
+            has_date_of_birth: true,
+            code: "age_under_minimum",
           },
         });
         emitCheckoutError("age_terms", "date_of_birth", "age_under_minimum");
@@ -580,6 +612,7 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
       }
       setAgeDobError(null);
       setAgeConfirmed(true);
+      dateOfBirthFilledRef.current = true;
       emitOnce(ageVerificationPassedKey(ageCountryCode), () => {
         void AnalyticsTracker.trackEvent({
           eventType: "age_confirmed",
@@ -587,7 +620,7 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
           metadata: {
             country_code: ageCountryCode,
             required_age: requiredAge,
-            date_of_birth: value.trim(),
+            has_date_of_birth: true,
           },
         });
       });
@@ -597,6 +630,7 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
 
   const handleTermsChecked = useCallback((checked: boolean) => {
     setTermsAccepted(checked);
+    termsAcceptedRef.current = checked;
     if (checked) {
       setTermsStale(false);
       emitOnce(termsAcceptedEmitKey(), () => {
@@ -657,10 +691,14 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
   }, [effectiveDelivery]);
   useEffect(() => {
     dateOfBirthRef.current = dateOfBirth;
+    dateOfBirthFilledRef.current = Boolean(dateOfBirth.trim());
   }, [dateOfBirth]);
   useEffect(() => {
     postalCodeDraftRef.current = postalCodeDraft;
   }, [postalCodeDraft]);
+  useEffect(() => {
+    termsAcceptedRef.current = termsAccepted;
+  }, [termsAccepted]);
 
   useEffect(() => {
     if (!deliveryComplete || !effectiveDelivery) return;
@@ -776,14 +814,22 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
       if (checkoutCompletedRef.current || paymentStepCompletedRef.current) {
         return;
       }
-      const dob = dateOfBirthRef.current.trim();
       const delivery = deliveryLinesForAnalytics(deliverySnapshotRef.current);
       const postalDraft = postalDraftAnalytics(postalCodeDraftRef.current);
-      const postalComplete = Boolean(delivery.postal);
-      if (!delivery.postal && postalDraft) {
-        delivery.postal = postalDraft.postal;
-      }
       const step = checkoutStepRef.current;
+      const blocker = lastCheckoutBlockerRef.current;
+      const missing = missingCheckoutFields(step, delivery, {
+        has_dob: dateOfBirthFilledRef.current,
+        has_terms: termsAcceptedRef.current,
+      });
+      let abandon_reason = blocker?.reason ?? "left_checkout";
+      let abandon_field = blocker?.field;
+      let abandon_code = blocker?.code;
+      if (!blocker && missing.length > 0) {
+        abandon_reason = "incomplete_fields";
+        abandon_field = missing[0];
+        abandon_code = "fields_incomplete";
+      }
       emitOnce(checkoutAbandonedEmitKey(), () => {
         void AnalyticsTracker.trackEvent({
           eventType: "checkout_abandoned",
@@ -791,12 +837,22 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
           metadata: {
             phase: checkoutPhaseRef.current,
             ...checkoutEventMeta(step),
-            ...(dob ? { date_of_birth: dob } : {}),
+            abandon_reason,
+            ...(abandon_field ? { field: abandon_field } : {}),
+            ...(abandon_code ? { code: abandon_code } : {}),
+            ...(blocker?.required_quantity != null
+              ? { required_quantity: blocker.required_quantity }
+              : {}),
+            ...(missing.length > 0 ? { missing_fields: missing } : {}),
+            has_date_of_birth: dateOfBirthFilledRef.current,
+            terms_accepted: termsAcceptedRef.current,
+            // Field-filled booleans only — never name/address/phone/DOB values.
             ...delivery,
             ...(postalDraft
               ? {
+                  postal_digits: postalDraft.postal_digits,
                   digits: postalDraft.digits,
-                  postal_complete: postalComplete,
+                  postal_complete: postalDraft.complete || delivery.has_postal,
                 }
               : {}),
           },
@@ -2594,11 +2650,20 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
       const stripeCode = confirmed.stripeError?.code ?? "";
       const decline = confirmed.stripeError?.decline_code ?? "";
       const errorCode =
-        stripeCode === "card_declined" || decline
-          ? "card_declined"
-          : paymentMode === "setup_intent" || stripeCode.includes("setup_intent")
-            ? "setup_intent_failed"
-            : "server_error";
+        stripeCode === "authentication_required" ||
+        stripeCode.includes("authentication")
+          ? "three_d_secure_failed"
+          : stripeCode === "card_declined" || decline
+            ? "card_declined"
+            : paymentMode === "setup_intent" ||
+                stripeCode.includes("setup_intent")
+              ? "setup_intent_failed"
+              : "server_error";
+      lastCheckoutBlockerRef.current = {
+        reason: "payment_error",
+        field: "card",
+        code: errorCode,
+      };
       emitCheckoutError("payment", "card", errorCode);
       setStripeError(friendlyStripeErrorMessage(confirmed));
       toast.error(friendlyStripeErrorMessage(confirmed));
@@ -4384,6 +4449,13 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
                             sendLinkLabel={t("checkout.otpSendLink")}
                             onAuthenticated={() => {
                               void ensureProfileAfterAuth();
+                            }}
+                            onWallShown={() => {
+                              lastCheckoutBlockerRef.current = {
+                                reason: "login_wall",
+                                field: "auth",
+                                code: "login_required",
+                              };
                             }}
                           />
                         ) : null}

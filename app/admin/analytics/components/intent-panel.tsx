@@ -39,6 +39,8 @@ type IntentSession = {
   wines: IntentWine[];
   cart_value: number;
   last_step: string;
+  abandon_reason?: string | null;
+  last_checkout_error?: string | null;
   events: IntentEvent[];
 };
 
@@ -217,6 +219,11 @@ export function IntentPanel({
                           {formatSek(s.cart_value)}
                         </span>
                         <FunnelStepBadgeEl step={s.last_step} />
+                        {s.abandon_reason || s.last_checkout_error ? (
+                          <span className="text-xs text-red-700 dark:text-red-300 max-w-[12rem] truncate">
+                            {s.abandon_reason || s.last_checkout_error}
+                          </span>
+                        ) : null}
                         <span className="text-xs text-gray-500 dark:text-zinc-500">
                           {timeSince(s.last_seen_at)}
                         </span>

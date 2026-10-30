@@ -39,12 +39,21 @@ export function CartValidationHeader({
       0,
     );
 
+    const requiredQuantity = validations.reduce(
+      (sum, v) => sum + (v.quantity || 0) + (v.isValid ? 0 : v.needed),
+      0,
+    );
+
     if (!shownRef.current) {
       shownRef.current = true;
       void AnalyticsTracker.trackEvent({
         eventType: "cart_validation_shown",
         eventCategory: "validation",
-        metadata: { invalid_count: invalidCount, needed_total: neededTotal },
+        metadata: {
+          invalid_count: invalidCount,
+          needed_total: neededTotal,
+          required_quantity: requiredQuantity,
+        },
       });
     }
 
@@ -53,14 +62,23 @@ export function CartValidationHeader({
       void AnalyticsTracker.trackEvent({
         eventType: "cart_validation_passed",
         eventCategory: "validation",
-        metadata: { invalid_count: 0, needed_total: 0 },
+        metadata: {
+          invalid_count: 0,
+          needed_total: 0,
+          required_quantity: requiredQuantity,
+        },
       });
     } else if (invalidCount > 0 && !failedRef.current) {
       failedRef.current = true;
       void AnalyticsTracker.trackEvent({
         eventType: "cart_validation_failed",
         eventCategory: "validation",
-        metadata: { invalid_count: invalidCount, needed_total: neededTotal },
+        metadata: {
+          invalid_count: invalidCount,
+          needed_total: neededTotal,
+          required_quantity: requiredQuantity,
+          reason: "minimum_bottle_count",
+        },
       });
     }
   }, [isValidating, validations, invalidCount]);

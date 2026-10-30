@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { logUserEventServer } from "@/lib/analytics/log-user-event-server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getCurrentUser } from "@/lib/auth";
 import {
@@ -198,6 +199,26 @@ export async function POST(
       } catch (e) {
         console.error("[Producer decide] syncPalletShipReadiness:", e);
       }
+    }
+
+    if (allDecided) {
+      const approved =
+        nextStatus === "approved" || nextStatus === "partly_approved";
+      void logUserEventServer({
+        userId: user.id,
+        eventType: approved
+          ? "producer_reservation_approved"
+          : "producer_reservation_rejected",
+        eventCategory: "checkout",
+        metadata: {
+          reservation_id: id,
+          status: nextStatus,
+          producer_id: user.producer_id,
+          total_requested: totalRequested,
+          total_approved: totalApproved,
+        },
+        internal: user.role === "admin",
+      });
     }
 
     return NextResponse.json({

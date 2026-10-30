@@ -152,6 +152,20 @@ export const TRACKED_USER_EVENTS_CATALOG: TrackedEventCatalogEntry[] = [
     sources: ["client"],
   },
   {
+    eventType: "price_viewed",
+    category: "navigation",
+    description:
+      "Price became visible in viewport (list card or product page). Metadata: productId, source (list|product|guide), list_price.",
+    sources: ["client"],
+  },
+  {
+    eventType: "pallet_status_viewed",
+    category: "navigation",
+    description:
+      "Pallet fill/status bar became visible. Metadata: fill_percent, bottles_remaining, is_ready_to_ship.",
+    sources: ["client"],
+  },
+  {
     eventType: "filter_used",
     category: "navigation",
     description:
@@ -195,7 +209,7 @@ export const TRACKED_USER_EVENTS_CATALOG: TrackedEventCatalogEntry[] = [
     eventType: "add_to_cart",
     category: "cart",
     description:
-      "Item added to cart (PDP case, shop sheet, B2B quantity, or legacy AddToCart).",
+      "Reserve / add-to-cart click. Metadata.source: list | product | guide (also legacy pdp_case / b2b).",
     sources: ["client"],
   },
   {
@@ -226,7 +240,8 @@ export const TRACKED_USER_EVENTS_CATALOG: TrackedEventCatalogEntry[] = [
   {
     eventType: "cart_validation_failed",
     category: "validation",
-    description: "Cart failed validation rules (reserved).",
+    description:
+      "Cart failed 6-bottle (or similar) rules. Metadata: required_quantity, needed_total, invalid_count.",
     sources: ["client"],
   },
   // checkout
@@ -254,7 +269,7 @@ export const TRACKED_USER_EVENTS_CATALOG: TrackedEventCatalogEntry[] = [
     eventType: "checkout_abandoned",
     category: "checkout",
     description:
-      "Checkout lämnas via pagehide eller dold flik, om betalningssteget inte är klart. Inte vid mount, unmount eller route change.",
+      "Checkout lämnas via pagehide/dold flik innan betalning klar. Metadata: step, abandon_reason, field/code when known. No PII — only field-filled booleans + postal digits.",
     sources: ["client"],
   },
   {
@@ -289,21 +304,21 @@ export const TRACKED_USER_EVENTS_CATALOG: TrackedEventCatalogEntry[] = [
     eventType: "checkout_postal_started",
     category: "checkout",
     description:
-      "Besökaren började skriva postnummer i checkout (första tecknet). Metadata: postal, digits, complete.",
+      "Besökaren började skriva postnummer i checkout (första tecknet). Metadata: postal_digits (digits only), digits, complete.",
     sources: ["client"],
   },
   {
     eventType: "checkout_delivery_captured",
     category: "checkout",
     description:
-      "Leverans-/kontaktfält sparade till analytics när steget var komplett (även utan reservation). Metadata: namn, e-post, telefon, adress.",
+      "Leverans-/kontaktfält kompletta (privacy-safe flags only: has_full_name, has_email, etc. — never raw PII).",
     sources: ["client"],
   },
   {
     eventType: "checkout_zone_error",
     category: "checkout",
     description:
-      "Leveranszon kunde inte matchas under checkout (NO_DELIVERY_ZONE eller UNSUPPORTED_COUNTRY). Metadata: zoneError, zoneErrorMessage, postal, country.",
+      "Leveranszon kunde inte matchas (NO_DELIVERY_ZONE / UNSUPPORTED_COUNTRY). Metadata: zoneError, postal_digits (digits only), country_code.",
     sources: ["client"],
   },
   {
@@ -321,6 +336,20 @@ export const TRACKED_USER_EVENTS_CATALOG: TrackedEventCatalogEntry[] = [
     sources: ["client"],
   },
   {
+    eventType: "checkout_login_wall_shown",
+    category: "checkout",
+    description:
+      "Login / magic-link wall shown mid-checkout (anonymous user must authenticate before payment).",
+    sources: ["client"],
+  },
+  {
+    eventType: "checkout_membership_wall_shown",
+    category: "checkout",
+    description:
+      "Membership / access gate shown that blocks checkout progress.",
+    sources: ["client"],
+  },
+  {
     eventType: "age_confirmation_shown",
     category: "checkout",
     description:
@@ -331,14 +360,14 @@ export const TRACKED_USER_EVENTS_CATALOG: TrackedEventCatalogEntry[] = [
     eventType: "age_confirmed",
     category: "checkout",
     description:
-      "Användaren bekräftade ålder (giltigt födelsedatum). Metadata inkluderar date_of_birth. Legacy: age_verification_passed.",
+      "Användaren bekräftade ålder (giltigt födelsedatum). Metadata: has_date_of_birth=true, required_age — never raw DOB. Legacy: age_verification_passed.",
     sources: ["client"],
   },
   {
     eventType: "age_confirmation_failed",
     category: "checkout",
     description:
-      "Åldersbekräftelse underkänd eller avmarkerad. Legacy: age_verification_failed.",
+      "Åldersbekräftelse underkänd. Metadata: required_age, code — never raw DOB. Legacy: age_verification_failed.",
     sources: ["client"],
   },
   {
@@ -346,6 +375,20 @@ export const TRACKED_USER_EVENTS_CATALOG: TrackedEventCatalogEntry[] = [
     category: "checkout",
     description: "User accepted köpvillkor at checkout.",
     sources: ["client"],
+  },
+  {
+    eventType: "producer_reservation_approved",
+    category: "checkout",
+    description:
+      "Producer (or admin acting as producer) approved a reservation. Metadata: reservation_id, status.",
+    sources: ["server"],
+  },
+  {
+    eventType: "producer_reservation_rejected",
+    category: "checkout",
+    description:
+      "Producer rejected/declined a reservation. Metadata: reservation_id, status.",
+    sources: ["server"],
   },
   // engagement
   {

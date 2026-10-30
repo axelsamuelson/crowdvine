@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { AdminAuthError, requireAdmin, type AdminUser } from "@/lib/admin-auth-server";
+import { logUserEventServer } from "@/lib/analytics/log-user-event-server";
 import { getAppUrl } from "@/lib/app-url";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { sendGridService } from "@/lib/sendgrid-service";
@@ -128,11 +129,12 @@ export async function PATCH(request: NextRequest) {
     }
     console.log("DEBUG: Access request found:", accessRequest);
 
-    // Test simple update first - just status
+    // Test simple update first — always stamp reviewed_at on approve/reject.
     console.log("DEBUG: Testing simple update...");
+    const reviewedAt = new Date().toISOString();
     const { data: simpleUpdate, error: simpleError } = await supabase
       .from("access_requests")
-      .update({ status })
+      .update({ status, reviewed_at: reviewedAt })
       .eq("id", id)
       .select()
       .single();
@@ -166,10 +168,10 @@ export async function PATCH(request: NextRequest) {
 
     // Try the full update with admin user ID
     console.log("DEBUG: Testing full update with admin ID:", adminUserId);
-    const updateData = {
+    const updateData: Record<string, unknown> = {
       status,
       notes: notes || null,
-      reviewed_at: new Date().toISOString(),
+      reviewed_at: reviewedAt,
     };
 
     // Only add reviewed_by if we have adminUserId
@@ -190,10 +192,32 @@ export async function PATCH(request: NextRequest) {
         "DEBUG: Full update error details:",
         JSON.stringify(fullError, null, 2),
       );
-      // Return success anyway since simple update worked
+      if (status === "approved" || status === "rejected" || status === "denied") {
+        void logUserEventServer({
+          userId: admin.id,
+          eventType: status === "approved" ? "access_approved" : "access_denied",
+          eventCategory: "auth",
+          metadata: { access_request_id: id, status },
+          internal: true,
+        });
+      }
+      // Return success anyway since simple update worked (includes reviewed_at)
       return NextResponse.json({ success: true, data: simpleUpdate });
     }
     console.log("DEBUG: Full update successful:", fullUpdate);
+
+    if (status === "approved" || status === "rejected" || status === "denied") {
+      void logUserEventServer({
+        userId: admin.id,
+        eventType: status === "approved" ? "access_approved" : "access_denied",
+        eventCategory: "auth",
+        metadata: {
+          access_request_id: id,
+          status,
+        },
+        internal: true,
+      });
+    }
 
     // If approved, grant access to the user
     if (status === "approved") {

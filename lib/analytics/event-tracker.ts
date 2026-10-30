@@ -8,6 +8,9 @@ import {
 import { isStaleRefreshTokenError, isAuthNetworkError } from "@/lib/auth/session-errors";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
+/** Where a Reserve / add-to-cart CTA was clicked. */
+export type CartEventSource = "list" | "product" | "guide" | "b2b" | "pdp_case";
+
 export type EventType =
   // Access & Auth
   | "access_request_submitted"
@@ -33,6 +36,8 @@ export type EventType =
   | "producer_viewed"
   | "product_list_viewed"
   | "product_viewed"
+  | "price_viewed"
+  | "pallet_status_viewed"
   | "filter_used"
   | "collection_viewed"
   | "invite_shop_viewed"
@@ -62,10 +67,15 @@ export type EventType =
   | "checkout_zone_error"
   | "checkout_stripe_confirm_failed"
   | "checkout_confirm_failed"
+  | "checkout_login_wall_shown"
+  | "checkout_membership_wall_shown"
   | "age_confirmation_shown"
   | "age_confirmed"
   | "age_confirmation_failed"
   | "terms_accepted"
+  // Producer decisions
+  | "producer_reservation_approved"
+  | "producer_reservation_rejected"
   // Engagement
   | "scroll_depth"
   | "session_engaged"
@@ -120,7 +130,9 @@ export class AnalyticsTracker {
     if (typeof navigator === "undefined") return false;
     if (navigator.webdriver) return true;
     const ua = navigator.userAgent || "";
-    return /bot|crawl|spider|headless|lighthouse|slurp/i.test(ua);
+    return /bot|crawl|spider|headless|lighthouse|slurp|bingpreview|facebookexternalhit|embedly|quora link preview|outbrain|pinterest|vkshare|preview/i.test(
+      ua,
+    );
   }
 
   static async trackEvent({
@@ -132,29 +144,37 @@ export class AnalyticsTracker {
     keepalive = false,
   }: TrackEventParams): Promise<void> {
     if (typeof window === "undefined") return;
-    if (this.isBotClient()) return;
 
     const rawReferrer = referrer || document.referrer || "";
     const safeReferrer =
       /localhost|127\.0\.0\.1/i.test(rawReferrer) ? "" : rawReferrer;
 
-    const { visitorId } = ensureVisitorIdentity();
+    const { visitorId, firstTouch, isReturningVisitor, isNewVisitor } =
+      ensureVisitorIdentity();
     const countryCode = readGeoCountryCode();
+    const likelyBot = this.isBotClient();
 
     let eventMetadata: Record<string, unknown> = { ...metadata };
-    if (
-      eventType === "reservation_completed" ||
-      eventType === "auth_email_step_completed"
-    ) {
-      const firstTouch = readFirstTouchForMetadata();
-      if (firstTouch) {
-        eventMetadata = { ...eventMetadata, first_touch: firstTouch };
-      }
-      if (visitorId) {
-        eventMetadata = { ...eventMetadata, visitor_id: visitorId };
-      }
+
+    // First-touch attribution + new/returning on every event.
+    const touch = firstTouch ?? readFirstTouchForMetadata();
+    if (touch) {
+      eventMetadata = { ...eventMetadata, first_touch: touch };
     }
-    // Internal devices are tagged, never skipped.
+    eventMetadata = {
+      ...eventMetadata,
+      is_returning_visitor: isReturningVisitor,
+      is_new_visitor: isNewVisitor,
+      visitor_status: isReturningVisitor ? "returning" : "new",
+    };
+    if (visitorId) {
+      eventMetadata = { ...eventMetadata, visitor_id: visitorId };
+    }
+
+    // Bot + internal flags on ALL events (never silently drop bots).
+    if (likelyBot) {
+      eventMetadata = { ...eventMetadata, likely_bot: true };
+    }
     if (isInternalDevice()) {
       eventMetadata = { ...eventMetadata, internal: true };
     }
@@ -309,7 +329,7 @@ export class AnalyticsTracker {
     price: number,
     extras?: {
       quantity?: number;
-      source?: string;
+      source?: CartEventSource | string;
       list_price?: number;
       unit_price?: number;
       price_version?: string;
@@ -330,6 +350,54 @@ export class AnalyticsTracker {
         ...(extras?.price_version
           ? { price_version: extras.price_version }
           : {}),
+      },
+    });
+  }
+
+  static trackPriceViewed(
+    productId: string,
+    extras?: {
+      productName?: string;
+      source?: "list" | "product" | "guide";
+      list_price?: number;
+      currency?: string;
+    },
+  ) {
+    return this.trackEvent({
+      eventType: "price_viewed",
+      eventCategory: "navigation",
+      metadata: {
+        productId,
+        ...(extras?.productName ? { productName: extras.productName } : {}),
+        ...(extras?.source ? { source: extras.source } : {}),
+        ...(extras?.list_price != null ? { list_price: extras.list_price } : {}),
+        ...(extras?.currency ? { currency: extras.currency } : {}),
+      },
+    });
+  }
+
+  static trackPalletStatusViewed(extras?: {
+    productId?: string;
+    fill_percent?: number;
+    bottles_remaining?: number;
+    is_ready_to_ship?: boolean;
+    source?: "product" | "list";
+  }) {
+    return this.trackEvent({
+      eventType: "pallet_status_viewed",
+      eventCategory: "navigation",
+      metadata: {
+        ...(extras?.productId ? { productId: extras.productId } : {}),
+        ...(extras?.fill_percent != null
+          ? { fill_percent: extras.fill_percent }
+          : {}),
+        ...(extras?.bottles_remaining != null
+          ? { bottles_remaining: extras.bottles_remaining }
+          : {}),
+        ...(extras?.is_ready_to_ship != null
+          ? { is_ready_to_ship: extras.is_ready_to_ship }
+          : {}),
+        ...(extras?.source ? { source: extras.source } : {}),
       },
     });
   }

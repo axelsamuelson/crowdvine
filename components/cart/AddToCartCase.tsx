@@ -267,6 +267,8 @@ export interface AddToCartCaseProps {
   previewDisabled?: boolean;
   /** Rendered beside the Add case CTA. */
   ctaAside?: ReactNode;
+  /** Analytics surface for add_to_cart.source */
+  analyticsSource?: "list" | "product" | "guide";
 }
 
 /**
@@ -280,6 +282,7 @@ export function AddToCartCase({
   sheetOnly = false,
   previewDisabled = false,
   ctaAside,
+  analyticsSource = "product",
 }: AddToCartCaseProps) {
   if (!product.producerId || product.productType !== "wine") {
     return (
@@ -455,7 +458,7 @@ export function AddToCartCase({
             list_price,
             {
               quantity: 6,
-              source: "pdp_case",
+              source: analyticsSource,
               list_price,
               unit_price,
               price_version: "v1",
@@ -512,7 +515,7 @@ export function AddToCartCase({
           list_price,
           {
             quantity: totalSelected,
-            source: "pdp_case",
+            source: analyticsSource,
             list_price,
             unit_price,
             price_version: "v1",
