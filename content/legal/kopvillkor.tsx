@@ -32,7 +32,7 @@ export default function KopvillkorContent() {
           </tr>
           <tr>
             <LegalTh>E-post</LegalTh>
-            <LegalTd>[FYLL I]</LegalTd>
+            <LegalTd>customer@pactwines.com</LegalTd>
           </tr>
           <tr>
             <LegalTh>Registrerad som distansförsäljare av alkohol hos Skatteverket</LegalTh>
@@ -90,7 +90,7 @@ export default function KopvillkorContent() {
       </LegalP>
       <LegalP>
         <LegalStrong>Steg 3. Pallen stänger och betalning sker.</LegalStrong>{" "}
-        När pallen är full stänger vi den och{" "}
+        När pallen når sin tröskel stänger vi den och{" "}
         <LegalStrong>då först debiteras ditt kort</LegalStrong> med det belopp
         som framgick av din reservation. Du får ett kvitto via e-post. Först i
         detta ögonblick uppstår ett bindande köpavtal mellan dig och EURPACT
@@ -111,40 +111,37 @@ export default function KopvillkorContent() {
 
       <LegalH3>Vad händer om pallen inte fylls</LegalH3>
       <LegalP>
-        Din reservation är giltig i <LegalStrong>30 dagar</LegalStrong> från att
-        du lade den.
+        Din reservation gäller i <LegalStrong>30 dagar åt gången</LegalStrong>.
       </LegalP>
       <LegalP>
-        Om pallen fortfarande inte nått nödvändig volym (tröskeln) efter 30
-        dagar skickar vi ett e-postmeddelande där du ombeds bekräfta om pallen
-        ska få ytterligare 30 dagar på sig att nå tröskeln. Du har{" "}
-        <LegalStrong>7 dagar</LegalStrong> från det e-postmeddelandet att
-        bekräfta via länken i mejlet.
+        Om pallen fortfarande inte nått nödvändig volym (tröskeln) när de 30
+        dagarna gått skickar vi ett e-postmeddelande. Där anger vi ett konkret
+        sista datum — inom <LegalStrong>7 dagar</LegalStrong> — då du behöver
+        bekräfta via länken i mejlet om du vill behålla reservationen.
       </LegalP>
       <LegalList>
         <li>
-          Bekräftar du inom 7 dagar fortsätter din reservation att gälla i
-          ytterligare 30 dagar
+          Bekräftar du senast det datumet gäller reservationen i ytterligare 30
+          dagar
         </li>
         <li>
           Du kan förlänga på samma sätt{" "}
           <LegalStrong>hur många gånger du vill</LegalStrong>, 30 dagar i
-          taget, varje gång genom att bekräfta via länken i e-postmeddelandet
-          inom 7 dagar. Det finns ingen bortre tidsgräns
+          taget, så länge pallen väntar på volym. Det finns ingen bortre
+          tidsgräns
         </li>
         <li>
-          Bekräftar du inte inom 7 dagar upphör din reservation automatiskt och{" "}
-          <LegalStrong>inget belopp debiteras</LegalStrong>
+          Bekräftar du inte senast det datumet avslutas reservationen
+          automatiskt och <LegalStrong>inget belopp debiteras</LegalStrong>
         </li>
       </LegalList>
       <LegalP>
-        När en reservation upphör utan att pallen fyllts debiteras{" "}
-        <LegalStrong>inget belopp</LegalStrong>. Debitering sker först när
-        pallen är fylld och stängs. Din sparade betalmetod tas bort eller kan
-        användas för en kommande pall enligt ditt val. Vi informerar dig via
-        e-post.
+        När pallen når sin tröskel debiteras det belopp du reserverat. När en
+        reservation avslutas utan att pallen fyllts debiteras{" "}
+        <LegalStrong>inget belopp</LegalStrong>. Din sparade betalmetod tas
+        bort eller kan användas för en kommande pall enligt ditt val. Vi
+        informerar dig via e-post.
       </LegalP>
-      <LegalP>Vi lämnar aldrig en reservation öppen på obestämd tid.</LegalP>
 
       <LegalH3>Om en producent inte kan leverera</LegalH3>
       <LegalP>
@@ -252,7 +249,7 @@ export default function KopvillkorContent() {
       </LegalList>
       <LegalP>
         Om leveransen blir väsentligt försenad har du rätt att häva köpet och få
-        pengarna tillbaka. Kontakta oss på [FYLL I E-POST].
+        pengarna tillbaka. Kontakta oss på customer@pactwines.com.
       </LegalP>
 
       <LegalH2>8. Om leverans inte kan genomföras</LegalH2>

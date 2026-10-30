@@ -47,6 +47,10 @@
     {
       "path": "/api/cron/domain-authority-snapshot",
       "schedule": "0 5 * * 1"
+    },
+    {
+      "path": "/api/cron/pallet-hygiene",
+      "schedule": "0 */6 * * *"
     }
   ]
 }

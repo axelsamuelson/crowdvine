@@ -1,8 +1,8 @@
 # Köpvillkor
 
-> **UTKAST.** Framtaget av Daniel Holm (Compliance), med ställningstagande av Sofia Bergström (GC) den 25 augusti 2026 enligt `gc-stallningstagande-angerratt-och-villkor.md`. Tvistlösningen (p. 13) är oförändrad. Punkt 9 och 10 är omskrivna 2026-10-29 på ägarens instruktion och avviker från GC-dokumentet, se anmärkningen under punkt 9. Punkt 3 (giltighetstid och producent som inte kan leverera) uppdaterad 2026-10-30. Fält markerade `[FYLL I]` måste fyllas i innan sidan går live. Ingen extern advokat har granskat texten.
+> **UTKAST.** Framtaget av Daniel Holm (Compliance), med ställningstagande av Sofia Bergström (GC) den 25 augusti 2026 enligt `gc-stallningstagande-angerratt-och-villkor.md`. Tvistlösningen (p. 13) är oförändrad. Punkt 9 och 10 är omskrivna 2026-10-29 på ägarens instruktion och avviker från GC-dokumentet, se anmärkningen under punkt 9. Punkt 3 (giltighetstid och producent som inte kan leverera) uppdaterad 2026-10-31, i linje med reservationsmejlen (30 dagar åt gången, bekräftelse via länk senast angivet datum inom 7 dagar, obegränsat antal förlängningar). Fält markerade `[FYLL I]` måste fyllas i innan sidan går live. Ingen extern advokat har granskat texten.
 
-Senast uppdaterad: 2026-10-30
+Senast uppdaterad: 2026-10-31
 
 ---
 
@@ -15,7 +15,7 @@ Din motpart vid köp på pactwines.com är:
 | Säljare | EURPACT OÜ |
 | Registreringsnummer | 17538270 |
 | Adress | Tartu mnt 67/1-13b, 10115, stadscentrum, Tallinn, Harju län, Estland |
-| E-post | [FYLL I. **Får inte vara noreply@pactwines.com**, se anmärkning nedan] |
+| E-post | customer@pactwines.com |
 | Registrerad som distansförsäljare av alkohol hos Skatteverket | [FYLL I REGISTRERINGSNUMMER] |
 
 EURPACT OÜ är ett estniskt bolag och säljer alkohol på distans till konsumenter i Sverige. EURPACT OÜ redovisar och betalar svensk alkoholskatt och svensk moms för varje leverans.
@@ -24,7 +24,7 @@ EURPACT OÜ är ett estniskt bolag och säljer alkohol på distans till konsumen
 >
 > Adressen är den registrerade adressen, på svenska. I äriregistret står den som Tartu mnt 67/1-13b, 10115, Kesklinna linnaosa, Tallinn, Harju maakond, Eesti.
 >
-> Den sidan anger `noreply@pactwines.com` som kanal för frågor. En no-reply-adress duger inte som kontaktväg. Distansavtalslagen kräver uppgift om hur konsumenten kan kontakta säljaren, och GDPR kräver en fungerande kanal för att utöva sina rättigheter. Byt till en bevakad adress innan publicering, och använd samma adress i integritetspolicyn.
+> Kontaktadressen är den bevakade adressen `customer@pactwines.com` (inte `noreply@`). Distansavtalslagen kräver uppgift om hur konsumenten kan kontakta säljaren, och GDPR kräver en fungerande kanal för att utöva sina rättigheter. Samma adress används i integritetspolicyn.
 
 ---
 
@@ -50,7 +50,7 @@ PACT samlar flera beställningar till en gemensam transport från producenterna 
 
 **Steg 2. Pallen fylls.** Pallen är först virtuell: du ser hur många flaskor som beställts jämfört med den tröskel som krävs. Vi samlar reservationer tills tröskeln nås. Först när pallen närmar sig tröskeln väljs producent och upphämtningsplats, och pallen blir fysisk.
 
-**Steg 3. Pallen stänger och betalning sker.** När pallen är full stänger vi den och **då först debiteras ditt kort** med det belopp som framgick av din reservation. Du får ett kvitto via e-post. Först i detta ögonblick uppstår ett bindande köpavtal mellan dig och EURPACT OÜ.
+**Steg 3. Pallen stänger och betalning sker.** När pallen når sin tröskel stänger vi den och **då först debiteras ditt kort** med det belopp som framgick av din reservation. Du får ett kvitto via e-post. Först i detta ögonblick uppstår ett bindande köpavtal mellan dig och EURPACT OÜ.
 
 **Steg 4. Leverans.** Din order packas i lådor direkt hos producenterna i Frankrike, transporteras till Sverige och levereras hem till dig med ID-kontroll.
 
@@ -60,17 +60,15 @@ Fram till att pallen stänger och betalning genomförs kan du **när som helst a
 
 ### Vad händer om pallen inte fylls
 
-Din reservation är giltig i **30 dagar** från att du lade den.
+Din reservation gäller i **30 dagar åt gången**.
 
-Om pallen fortfarande inte nått nödvändig volym (tröskeln) efter 30 dagar skickar vi ett e-postmeddelande där du ombeds bekräfta om pallen ska få ytterligare 30 dagar på sig att nå tröskeln. Du har **7 dagar** från det e-postmeddelandet att bekräfta via länken i mejlet.
+Om pallen fortfarande inte nått nödvändig volym (tröskeln) när de 30 dagarna gått skickar vi ett e-postmeddelande. Där anger vi ett konkret sista datum — inom **7 dagar** — då du behöver bekräfta via länken i mejlet om du vill behålla reservationen.
 
-- Bekräftar du inom 7 dagar fortsätter din reservation att gälla i ytterligare 30 dagar
-- Du kan förlänga på samma sätt **hur många gånger du vill**, 30 dagar i taget, varje gång genom att bekräfta via länken i e-postmeddelandet inom 7 dagar. Det finns ingen bortre tidsgräns
-- Bekräftar du inte inom 7 dagar upphör din reservation automatiskt och **inget belopp debiteras**
+- Bekräftar du senast det datumet gäller reservationen i ytterligare 30 dagar
+- Du kan förlänga på samma sätt **hur många gånger du vill**, 30 dagar i taget, så länge pallen väntar på volym. Det finns ingen bortre tidsgräns
+- Bekräftar du inte senast det datumet avslutas reservationen automatiskt och **inget belopp debiteras**
 
-När en reservation upphör utan att pallen fyllts debiteras **inget belopp**. Debitering sker först när pallen är fylld och stängs. Din sparade betalmetod tas bort eller kan användas för en kommande pall enligt ditt val. Vi informerar dig via e-post.
-
-Vi lämnar aldrig en reservation öppen på obestämd tid.
+När pallen når sin tröskel debiteras det belopp du reserverat. När en reservation avslutas utan att pallen fyllts debiteras **inget belopp**. Din sparade betalmetod tas bort eller kan användas för en kommande pall enligt ditt val. Vi informerar dig via e-post.
 
 ### Om en producent inte kan leverera
 
@@ -122,7 +120,7 @@ Betalning sker enligt [Stripes villkor för betalningstjänsten](https://stripe.
 - Angivna leveranstider är uppskattningar. Transport från Frankrike kan påverkas av tull, väder och producenternas kapacitet
 - **Risken för varan går över på dig först när du tagit emot den.** Skadas eller försvinner varan under transport är det vårt ansvar
 
-Om leveransen blir väsentligt försenad har du rätt att häva köpet och få pengarna tillbaka. Kontakta oss på [FYLL I E-POST].
+Om leveransen blir väsentligt försenad har du rätt att häva köpet och få pengarna tillbaka. Kontakta oss på customer@pactwines.com.
 
 ---
 
