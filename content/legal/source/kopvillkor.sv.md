@@ -1,8 +1,8 @@
 # Köpvillkor
 
-> **UTKAST.** Framtaget av Daniel Holm (Compliance), med ställningstagande av Sofia Bergström (GC) den 25 augusti 2026 enligt `gc-stallningstagande-angerratt-och-villkor.md`. Tvistlösningen (p. 13) är oförändrad. Punkt 9 och 10 är omskrivna 2026-10-29 på ägarens instruktion och avviker från GC-dokumentet, se anmärkningen under punkt 9. Punkt 3 (giltighetstid och producent som inte kan leverera) uppdaterad 2026-10-31, i linje med reservationsmejlen (30 dagar åt gången, bekräftelse via länk senast angivet datum inom 7 dagar, obegränsat antal förlängningar). Fält markerade `[FYLL I]` måste fyllas i innan sidan går live. Ingen extern advokat har granskat texten.
+> **UTKAST.** Framtaget av Daniel Holm (Compliance), med ställningstagande av Sofia Bergström (GC) den 25 augusti 2026 enligt `gc-stallningstagande-angerratt-och-villkor.md`. Tvistlösningen (p. 13) är oförändrad. Punkt 9 och 10 är omskrivna 2026-10-29 på ägarens instruktion och avviker från GC-dokumentet, se anmärkningen under punkt 9. Punkt 3 (giltighetstid och producent som inte kan leverera) uppdaterad 2026-10-31, i linje med reservationsmejlen (30 dagar åt gången, bekräftelse via länk senast angivet datum inom 7 dagar, obegränsat antal förlängningar). Punkt 7 (leveranstid och leveransområde) ifylld 2026-11-01: 5–10 arbetsdagar inom hela Sverige från orderbekräftelse och debitering. Övriga fält markerade `[FYLL I]` måste fyllas i innan sidan går live. Ingen extern advokat har granskat texten.
 
-Senast uppdaterad: 2026-10-31
+Senast uppdaterad: 2026-11-01
 
 ---
 
@@ -115,8 +115,7 @@ Betalning sker enligt [Stripes villkor för betalningstjänsten](https://stripe.
 ## 7. Leverans
 
 - Leverans sker med hemleverans och ID-kontroll av Budbee
-- Leverans sker till adresser i [FYLL I LEVERANSOMRÅDE]
-- Beräknad leveranstid efter att pallen stängt: [FYLL I], normalt [FYLL I] veckor
+- Leverans sker inom **5–10 arbetsdagar** inom hela Sverige, räknat från orderbekräftelse och dragen betalning. Vid överlämning kontrolleras mottagarens ålder (20 år) med legitimation
 - Angivna leveranstider är uppskattningar. Transport från Frankrike kan påverkas av tull, väder och producenternas kapacitet
 - **Risken för varan går över på dig först när du tagit emot den.** Skadas eller försvinner varan under transport är det vårt ansvar
 

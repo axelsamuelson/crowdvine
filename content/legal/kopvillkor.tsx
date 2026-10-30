@@ -231,10 +231,10 @@ export default function KopvillkorContent() {
       <LegalH2>7. Leverans</LegalH2>
       <LegalList>
         <li>Leverans sker med hemleverans och ID-kontroll av Budbee</li>
-        <li>Leverans sker till adresser i [FYLL I LEVERANSOMRÅDE]</li>
         <li>
-          Beräknad leveranstid efter att pallen stängt: [FYLL I], normalt [FYLL
-          I] veckor
+          Leverans sker inom <LegalStrong>5–10 arbetsdagar</LegalStrong> inom
+          hela Sverige, räknat från orderbekräftelse och dragen betalning. Vid
+          överlämning kontrolleras mottagarens ålder (20 år) med legitimation
         </li>
         <li>
           Angivna leveranstider är uppskattningar. Transport från Frankrike kan
