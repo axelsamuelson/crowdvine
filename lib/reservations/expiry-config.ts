@@ -90,23 +90,22 @@ export const RESERVATION_EXPIRY_EMAIL_TYPES = {
 } as const;
 
 /**
- * From for expiry/extension mail. Domain pactwines.com is verified in Resend;
- * same customer@ mailbox as Reply-To / contact elsewhere in the app.
+ * Legal-required From for reservation extension / cancellation mail only.
+ * Hard-coded — do not fall back to RESEND_FROM / noreply (other mail keeps those).
  */
+export const RESERVATION_EXPIRY_FROM_HARDCODED =
+  "PACT <customer@pactwines.com>" as const;
+
+/** Legal-required Reply-To for the same reservation expiry emails. */
+export const RESERVATION_EXPIRY_REPLY_TO_HARDCODED =
+  "customer@pactwines.com" as const;
+
 export function reservationExpiryFrom(): string {
-  return (
-    process.env.RESERVATION_EXPIRY_FROM?.trim() ||
-    "PACT <customer@pactwines.com>"
-  );
+  return RESERVATION_EXPIRY_FROM_HARDCODED;
 }
 
-/** Reply-To for expiry/extension mail (monitored inbox). */
 export function reservationExpiryReplyTo(): string {
-  return (
-    process.env.RESERVATION_EXPIRY_REPLY_TO?.trim() ||
-    process.env.RESEND_REPLY_TO?.trim() ||
-    "customer@pactwines.com"
-  );
+  return RESERVATION_EXPIRY_REPLY_TO_HARDCODED;
 }
 
 export { DAY_MS };
