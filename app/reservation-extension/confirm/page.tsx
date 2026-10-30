@@ -1,8 +1,7 @@
 import Link from "next/link";
+import { applyReservationExtensionConfirm } from "@/lib/reservations/expiry-run";
 import {
-  applyReservationExtensionConfirm,
-} from "@/lib/reservations/expiry-run";
-import {
+  buildExtensionConfirmSuccessBody,
   EXTENSION_CONFIRM_PAGE_COPY,
   EXTENSION_CONFIRM_PAGE_ERROR_COPY,
 } from "@/lib/reservations/expiry-emails";
@@ -14,9 +13,7 @@ export const dynamic = "force-dynamic";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
-function firstParam(
-  value: string | string[] | undefined,
-): string {
+function firstParam(value: string | string[] | undefined): string {
   if (Array.isArray(value)) return value[0] ?? "";
   return value ?? "";
 }
@@ -50,7 +47,9 @@ export default async function ReservationExtensionConfirmPage({
   if (!consumed.ok) {
     const body =
       copyErr[consumed.code as keyof typeof copyErr] ?? copyErr.db_error;
-    return <ConfirmShell title={copyErr.title} body={String(body)} locale={locale} />;
+    return (
+      <ConfirmShell title={copyErr.title} body={String(body)} locale={locale} />
+    );
   }
 
   const applied = await applyReservationExtensionConfirm({
@@ -67,9 +66,13 @@ export default async function ReservationExtensionConfirmPage({
     );
   }
 
-  return (
-    <ConfirmShell title={copyOk.title} body={copyOk.body} locale={locale} ok />
-  );
+  const body = buildExtensionConfirmSuccessBody({
+    locale,
+    newEndDate: applied.newEndDate,
+    extensionDays: applied.extensionDays,
+  });
+
+  return <ConfirmShell title={copyOk.title} body={body} locale={locale} ok />;
 }
 
 function ConfirmShell({

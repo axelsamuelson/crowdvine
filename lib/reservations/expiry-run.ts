@@ -8,6 +8,7 @@ import { archiveReservation } from "@/lib/reservations/archive";
 import {
   getReservationExpiryConfig,
   reservationExpiryFrom,
+  reservationExpiryReplyTo,
   RESERVATION_EXPIRY_ADMIN_FLAGS,
   RESERVATION_EXPIRY_ARCHIVE_REASONS,
   RESERVATION_EXPIRY_EMAIL_TYPES,
@@ -25,6 +26,7 @@ import {
   buildExtensionAskText,
   expiryCancelledSubject,
   extensionAskSubject,
+  extensionNewEndDate,
 } from "@/lib/reservations/expiry-emails";
 import { createReservationExtensionToken } from "@/lib/reservations/expiry-tokens";
 
@@ -71,6 +73,7 @@ async function sendExpiryMail(opts: {
         html: opts.html,
         text: opts.text,
         from: reservationExpiryFrom(),
+        replyTo: reservationExpiryReplyTo(),
       });
       return true;
     },
@@ -177,9 +180,15 @@ async function recordExtensionAsk(opts: {
 export async function applyReservationExtensionConfirm(opts: {
   reservationId: string;
   now?: Date;
-}): Promise<{ ok: true } | { ok: false; code: "not_eligible"; message: string }> {
+  extensionDays?: number;
+}): Promise<
+  | { ok: true; newEndDate: Date; extensionDays: number }
+  | { ok: false; code: "not_eligible"; message: string }
+> {
   const sb = getSupabaseAdmin();
   const now = opts.now ?? new Date();
+  const extensionDays =
+    opts.extensionDays ?? getReservationExpiryConfig().extensionDays;
 
   const { data: row, error } = await sb
     .from("order_reservations")
@@ -227,7 +236,11 @@ export async function applyReservationExtensionConfirm(opts: {
     };
   }
 
-  return { ok: true };
+  return {
+    ok: true,
+    newEndDate: extensionNewEndDate(now, extensionDays),
+    extensionDays,
+  };
 }
 
 export async function runReservationExpiryJob(
@@ -270,6 +283,7 @@ export async function runReservationExpiryJob(
       payment_status,
       payment_method_id,
       setup_intent_id,
+      total_sek,
       extension_ask_sent_at,
       extension_ask_milestone_day,
       extension_reply_by,
@@ -401,12 +415,17 @@ export async function runReservationExpiryJob(
           });
         }
 
+        const amountRaw = Number(
+          (row as { total_sek?: number | string | null }).total_sek,
+        );
         const askParams = {
           locale,
           customerName,
           confirmUrl,
           replyDays: config.replyDays,
           extensionDays: config.extensionDays,
+          deadlineDate: decision.replyBy,
+          amountSek: Number.isFinite(amountRaw) ? amountRaw : null,
         };
         let mailResult: string = "no_recipient";
         if (toEmail) {

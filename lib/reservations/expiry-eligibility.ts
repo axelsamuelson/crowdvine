@@ -27,6 +27,7 @@ export type ExpiryReservationRow = {
   payment_status?: string | null;
   payment_method_id?: string | null;
   setup_intent_id?: string | null;
+  total_sek?: number | string | null;
   extension_ask_sent_at?: string | null;
   extension_ask_milestone_day?: number | null;
   extension_reply_by?: string | null;

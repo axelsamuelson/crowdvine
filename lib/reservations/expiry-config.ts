@@ -88,11 +88,23 @@ export const RESERVATION_EXPIRY_EMAIL_TYPES = {
   cancelledMaxAge: "reservation_expiry_max_age",
 } as const;
 
-/** Customer-facing From for expiry/extension mail (Resend verified sender). */
+/**
+ * From for expiry/extension mail. Domain pactwines.com is verified in Resend;
+ * same customer@ mailbox as Reply-To / contact elsewhere in the app.
+ */
 export function reservationExpiryFrom(): string {
   return (
     process.env.RESERVATION_EXPIRY_FROM?.trim() ||
     "PACT <customer@pactwines.com>"
+  );
+}
+
+/** Reply-To for expiry/extension mail (monitored inbox). */
+export function reservationExpiryReplyTo(): string {
+  return (
+    process.env.RESERVATION_EXPIRY_REPLY_TO?.trim() ||
+    process.env.RESEND_REPLY_TO?.trim() ||
+    "customer@pactwines.com"
   );
 }
 
