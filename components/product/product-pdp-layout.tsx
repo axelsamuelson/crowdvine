@@ -1,6 +1,9 @@
 import { Suspense, type ReactNode } from "react";
 import { CartSourceProviderConditional } from "@/components/cart/cart-source-provider-conditional";
 import { AddToCartConditional } from "@/components/cart/add-to-cart-conditional";
+import { MinSixBottlesHint } from "@/components/commerce/min-six-bottles-hint";
+import { PalletStatusSnapshot } from "@/components/commerce/pallet-status-snapshot";
+import { ServerListPrice } from "@/components/commerce/server-list-price";
 import { PageLayoutServer } from "@/components/layout/page-layout-server";
 import { PalletStatusBar } from "@/components/pdp/pallet-status-bar";
 import { PalletZoneStatusProvider } from "@/components/pdp/pallet-zone-status-provider";
@@ -30,6 +33,7 @@ import { PdpB2BLink } from "@/components/product/pdp-b2b-link";
 import type { PdpRecommendationsResult } from "@/lib/product/recommendations";
 import { pickPdpSiblingWines } from "@/lib/product/pdp-sibling-wines";
 import type { AppLocale } from "@/lib/i18n/locale";
+import type { ZoneStatusPayload } from "@/lib/pallet/zone-status";
 import { generateProducerSlug } from "@/lib/producer-handle";
 import type { Product } from "@/lib/shopify/types";
 
@@ -38,6 +42,8 @@ interface ProductPdpLayoutProps {
   locale?: AppLocale;
   competitorOffers?: CompetitorOffer[];
   recommendations?: PdpRecommendationsResult | null;
+  /** SSR pallet fill snapshot for no-JS / first paint. */
+  initialPalletStatus?: ZoneStatusPayload | null;
   compareAtPrice?: ReactNode;
   /** e.g. WineBoxDiscountInfo for wine-box products */
   beforeSidebar?: ReactNode;
@@ -52,6 +58,7 @@ export function ProductPdpLayout({
   locale = "en",
   competitorOffers = [],
   recommendations = null,
+  initialPalletStatus = null,
   compareAtPrice,
   beforeSidebar,
   devPreview,
@@ -116,7 +123,10 @@ export function ProductPdpLayout({
                 productType={product.productType}
               />
 
-              <PalletZoneStatusProvider productHandle={product.handle}>
+              <PalletZoneStatusProvider
+                productHandle={product.handle}
+                initialData={initialPalletStatus}
+              >
                 <div className="col-span-full flex flex-col gap-4 max-md:order-2 md:mb-10">
                   <WinePdpHeroBox
                     title={product.title}
@@ -136,14 +146,38 @@ export function ProductPdpLayout({
                       product.productType === "wine" && Boolean(product.producerId)
                     }
                     price={
-                      <ProductHeroPrice
-                        product={product}
-                        className="text-lg font-semibold lg:text-xl 2xl:text-2xl"
-                      />
+                      <>
+                        <noscript>
+                          <ServerListPrice
+                            product={product}
+                            locale={locale}
+                            className="text-lg font-semibold lg:text-xl 2xl:text-2xl"
+                          />
+                        </noscript>
+                        <ProductHeroPrice
+                          product={product}
+                          className="text-lg font-semibold lg:text-xl 2xl:text-2xl"
+                        />
+                      </>
                     }
                     compareAtPrice={compareAtPrice}
                   />
                   <div className="w-full space-y-3">
+                    {product.productType === "wine" ? (
+                      <MinSixBottlesHint locale={locale} />
+                    ) : null}
+                    {/*
+                      SSR: provider seeds initialData so PalletStatusBar paints fill
+                      without waiting for client fetch. Snapshot is a no-JS fallback.
+                    */}
+                    {initialPalletStatus ? (
+                      <noscript>
+                        <PalletStatusSnapshot
+                          status={initialPalletStatus}
+                          locale={locale}
+                        />
+                      </noscript>
+                    ) : null}
                     <PalletStatusBar />
                     <AddToCartConditional
                       product={product}

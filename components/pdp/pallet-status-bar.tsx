@@ -25,6 +25,14 @@ export function PalletStatusBar() {
   const showDestinationLink =
     Boolean(palletDestination) && !isInitialFetch && !isUnavailable;
 
+  const fillCountLabel =
+    data && !isInitialFetch
+      ? t("commerce.palletFillCount", {
+          filled: data.bottlesFilled,
+          total: data.minBottlesToShip || data.bottleCapacity,
+        })
+      : null;
+
   const bottlesLabel = isInitialFetch
     ? t("product.pdp.palletLoading")
     : !data
@@ -33,9 +41,13 @@ export function PalletStatusBar() {
         ? data.unavailableMessage
         : data.isReadyToShip
           ? t("product.pdp.palletShipmentReady")
-          : t("product.pdp.palletBottlesToGo", {
-              remaining: data.bottlesRemainingToShip,
-            });
+          : fillCountLabel
+            ? `${fillCountLabel} · ${t("product.pdp.palletBottlesToGo", {
+                remaining: data.bottlesRemainingToShip,
+              })}`
+            : t("product.pdp.palletBottlesToGo", {
+                remaining: data.bottlesRemainingToShip,
+              });
 
   const onPalletVisible = useCallback(() => {
     if (!data) return;

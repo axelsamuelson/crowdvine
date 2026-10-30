@@ -33,6 +33,7 @@ import { filterProductsByColors } from "@/lib/shop/filter-products-by-color";
 import { filterProductsByGrapes } from "@/lib/shop/filter-products-by-grape";
 import { filterProductsByFarming } from "@/lib/shop/farming-filter";
 import { filterProductsBySource } from "@/lib/shop/filter-products-by-source";
+import type { ZoneStatusPayload } from "@/lib/pallet/zone-status";
 
 interface ProductListContentProps {
   products: Product[];
@@ -47,6 +48,8 @@ interface ProductListContentProps {
   breadcrumbLabel?: string;
   producerProfileHref?: string;
   producerProfileLabel?: string;
+  /** SSR pallet snapshots keyed by product handle (above-fold). */
+  palletStatusByHandle?: Record<string, ZoneStatusPayload | null>;
   /** Server-rendered above-fold grid (pass as children from a Server Component). */
   children?: ReactNode;
 }
@@ -61,6 +64,7 @@ export function ProductListContent({
   breadcrumbLabel,
   producerProfileHref,
   producerProfileLabel,
+  palletStatusByHandle = {},
   children: staticGrid,
 }: ProductListContentProps & { collectionHandle?: string }) {
   const { t } = useTranslations();
@@ -338,6 +342,9 @@ export function ProductListContent({
                   product={product}
                   index={index}
                   listSearchQuery={activeSearchQuery}
+                  initialPalletStatus={
+                    palletStatusByHandle[product.handle] ?? null
+                  }
                 />
               ))}
             </ProductGrid>
@@ -350,6 +357,9 @@ export function ProductListContent({
                 product={product}
                 index={index}
                 listSearchQuery={activeSearchQuery}
+                initialPalletStatus={
+                  palletStatusByHandle[product.handle] ?? null
+                }
               />
             ))}
           </ProductGrid>

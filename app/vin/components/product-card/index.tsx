@@ -26,8 +26,10 @@ import { getProductListPriceSek } from "@/lib/price-breakdown";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 import { pricesFromCartAfterAdd } from "@/lib/analytics/cart-event-prices";
 import { PriceViewTracker } from "@/components/analytics/price-view-tracker";
+import { ListCardCommerceFooter } from "@/components/commerce/list-card-commerce-footer";
 import { BOTTLE_PACK_SIZE } from "@/lib/cart/bottle-pack";
 import { B2B_PRODUCER_ORDERS_ENABLED } from "@/lib/b2b/flags";
+import type { ZoneStatusPayload } from "@/lib/pallet/zone-status";
 import type { Cart } from "@/lib/shopify/types";
 
 const AddToCart = dynamic(
@@ -160,6 +162,7 @@ export const ProductCard = memo(
     listSearchQuery,
     showMembershipTab = false,
     recommendationReason,
+    initialPalletStatus = null,
   }: {
     product: Product;
     index?: number;
@@ -169,6 +172,8 @@ export const ProductCard = memo(
     showMembershipTab?: boolean;
     /** Recommended wines: same producer / similar wine tab beside membership tab. */
     recommendationReason?: RecommendationReason;
+    /** SSR pallet fill snapshot when available (above-fold list). */
+    initialPalletStatus?: ZoneStatusPayload | null;
   }) => {
   const { t } = useTranslations();
   const paths = useLocalizedPaths();
@@ -878,14 +883,15 @@ export const ProductCard = memo(
           </PriceViewTracker>
         </div>
 
-        {/* Mobile: Premium bottom overlay with Add to Cart button (visible on touch/hover) */}
+        {/* Mobile: always-visible commerce strip (price + min-6 + Reservera) */}
         {showCartActions && renderInCardAddToCart && (
           <div
-            className={`md:hidden absolute inset-x-2 bottom-2 px-2.5 py-2 rounded-md bg-white/95 backdrop-blur-sm pointer-events-auto shadow-lg transition-opacity duration-200 ${
-              isTouched ? "opacity-100" : "opacity-0"
-            }`}
+            className={cn(
+              "md:hidden absolute inset-x-2 bottom-2 px-2.5 py-2 rounded-md bg-white/95 backdrop-blur-sm pointer-events-auto shadow-lg transition-opacity duration-200",
+              shopCaseWineCta || isTouched ? "opacity-100" : "opacity-0",
+            )}
           >
-            <div className="flex flex-col gap-1.5">
+            <ListCardCommerceFooter palletStatus={initialPalletStatus}>
               <div className="flex gap-2 items-center min-w-0">
                 {wineColor ? (
                   <div className="flex shrink-0 items-center">
@@ -909,7 +915,7 @@ export const ProductCard = memo(
                   <MemberPrice
                     amount={product.priceRange.minVariantPrice.amount}
                     currencyCode={product.priceRange.minVariantPrice.currencyCode}
-              basePriceSek={listPriceSek ?? undefined}
+                    basePriceSek={listPriceSek ?? undefined}
                     className="text-xs font-semibold sm:text-sm"
                     showBadge={showMembershipBadge}
                     badgeRightOnMobile={true}
@@ -926,17 +932,18 @@ export const ProductCard = memo(
                     <Button
                       type="button"
                       disabled
-                      className="w-full bg-black hover:bg-black/90 text-white border-black rounded-md"
+                      className="w-full min-h-10 bg-black hover:bg-black/90 text-white border-black rounded-md"
                       size="sm"
                     >
-                      <span className="text-xs">{t("shop.addCase")}</span>
+                      <span className="text-xs">{t("shop.reserve")}</span>
                     </Button>
                   }
                 >
                   <ShopWineCasePicker
                     product={product}
                     size="sm"
-                    className="w-full"
+                    className="w-full min-h-10"
+                    triggerLabel={t("shop.reserve")}
                     analyticsSource="list"
                   />
                 </Suspense>
@@ -948,7 +955,7 @@ export const ProductCard = memo(
                     handleAddToCart();
                   }}
                   disabled={!getBaseProductVariant()}
-                  className="w-full bg-black hover:bg-black/90 text-white border-black rounded-md"
+                  className="w-full min-h-10 bg-black hover:bg-black/90 text-white border-black rounded-md"
                   size="sm"
                 >
                   <div className="flex items-center justify-center gap-1.5">
@@ -957,18 +964,19 @@ export const ProductCard = memo(
                   </div>
                 </Button>
               )}
-            </div>
+            </ListCardCommerceFooter>
           </div>
         )}
 
-        {/* Mobile: Add to Cart button for products with variants (visible on touch/hover) */}
+        {/* Mobile: variants path — same always-visible strip for wine CTAs */}
         {showCartActions && !renderInCardAddToCart && (
           <div
-            className={`md:hidden absolute inset-x-2 bottom-2 px-2.5 py-2 rounded-md bg-white/95 backdrop-blur-sm pointer-events-auto shadow-lg transition-opacity duration-200 ${
-              isTouched ? "opacity-100" : "opacity-0"
-            }`}
+            className={cn(
+              "md:hidden absolute inset-x-2 bottom-2 px-2.5 py-2 rounded-md bg-white/95 backdrop-blur-sm pointer-events-auto shadow-lg transition-opacity duration-200",
+              shopCaseWineCta || isTouched ? "opacity-100" : "opacity-0",
+            )}
           >
-            <div className="flex flex-col gap-1.5">
+            <ListCardCommerceFooter palletStatus={initialPalletStatus}>
               <div className="flex gap-2 items-center min-w-0">
                 {wineColor ? (
                   <div className="flex shrink-0 items-center">
@@ -992,7 +1000,7 @@ export const ProductCard = memo(
                   <MemberPrice
                     amount={product.priceRange.minVariantPrice.amount}
                     currencyCode={product.priceRange.minVariantPrice.currencyCode}
-              basePriceSek={listPriceSek ?? undefined}
+                    basePriceSek={listPriceSek ?? undefined}
                     className="text-xs font-semibold sm:text-sm"
                     showBadge={showMembershipBadge}
                     badgeRightOnMobile={true}
@@ -1009,17 +1017,18 @@ export const ProductCard = memo(
                     <Button
                       type="button"
                       disabled
-                      className="w-full bg-black hover:bg-black/90 text-white border-black rounded-md"
+                      className="w-full min-h-10 bg-black hover:bg-black/90 text-white border-black rounded-md"
                       size="sm"
                     >
-                      <span className="text-xs">{t("shop.addCase")}</span>
+                      <span className="text-xs">{t("shop.reserve")}</span>
                     </Button>
                   }
                 >
                   <ShopWineCasePicker
                     product={product}
                     size="sm"
-                    className="w-full"
+                    className="w-full min-h-10"
+                    triggerLabel={t("shop.reserve")}
                     analyticsSource="list"
                   />
                 </Suspense>
@@ -1031,7 +1040,7 @@ export const ProductCard = memo(
                     handleAddToCart();
                   }}
                   disabled={!getBaseProductVariant()}
-                  className="w-full bg-black hover:bg-black/90 text-white border-black rounded-md"
+                  className="w-full min-h-10 bg-black hover:bg-black/90 text-white border-black rounded-md"
                   size="sm"
                 >
                   <div className="flex items-center justify-center gap-1.5">
@@ -1040,7 +1049,7 @@ export const ProductCard = memo(
                   </div>
                 </Button>
               )}
-            </div>
+            </ListCardCommerceFooter>
           </div>
         )}
 
@@ -1051,6 +1060,12 @@ export const ProductCard = memo(
         <div 
           className="hidden md:flex absolute inset-x-3 bottom-3 flex-col gap-4 px-2 py-3 rounded-md transition-all duration-300 pointer-events-none bg-white/90 backdrop-blur-sm opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 translate-y-1/3 group-hover:translate-y-0 group-focus-visible:translate-y-0"
         >
+          {shopCaseWineCta ? (
+            <ListCardCommerceFooter
+              palletStatus={initialPalletStatus}
+              className="pointer-events-none"
+            />
+          ) : null}
           <div className="grid grid-cols-2 gap-x-4 gap-y-4 items-end">
             <div className="flex flex-col">
               <p className="text-lg font-semibold text-pretty">
@@ -1142,6 +1157,7 @@ export const ProductCard = memo(
                         product={product}
                         size="sm"
                         className="w-full"
+                        triggerLabel={t("shop.reserve")}
                         analyticsSource="list"
                       />
                     ) : (
@@ -1171,6 +1187,7 @@ export const ProductCard = memo(
                         product={product}
                         size="sm"
                         className="bg-black hover:bg-black/90 text-white border-black rounded-md w-full"
+                        triggerLabel={t("shop.reserve")}
                         analyticsSource="list"
                       />
                     ) : (
