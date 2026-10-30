@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { DeletePalletButton } from "@/components/admin/delete-pallet-button";
 import { cn } from "@/lib/utils";
 import type { AdminPalletOperatingSummary } from "@/lib/admin-pallet-operating-summary";
+import { DEFAULT_MIN_BOTTLES_TO_COMPLETE } from "@/lib/pallet-ship-progress";
 
 type WineSummary = {
   wine_name: string;
@@ -72,7 +73,10 @@ function formatSek(cents: number) {
 export function PactPalletListCard({ pallet, onDeleted }: Props) {
   const op = pallet.operating_summary ?? null;
   const filled = op?.bottlesFilled ?? pallet.total_booked_bottles;
-  const minToShip = op?.minBottlesToShip ?? pallet.min_bottles_to_complete ?? 120;
+  const minToShip =
+    op?.minBottlesToShip ??
+    pallet.min_bottles_to_complete ??
+    DEFAULT_MIN_BOTTLES_TO_COMPLETE;
   const physical = op?.physicalBottleCapacity ?? pallet.bottle_capacity;
   const shipPct = op?.shipProgressPercent ?? pallet.completion_percentage;
   const ready = op?.isReadyToShip ?? pallet.is_complete;

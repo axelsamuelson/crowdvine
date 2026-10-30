@@ -9,7 +9,11 @@ import {
   summarizeHistoricalShippingAudit,
 } from "../lib/finance/historical-shipping-audit";
 import { PALLET_FILL_STATUSES } from "../lib/pallet-fill-count";
-import { computePalletShipProgress } from "../lib/pallet-ship-progress";
+import {
+  DEFAULT_MIN_BOTTLES_TO_COMPLETE,
+  DEFAULT_PHYSICAL_BOTTLE_CAPACITY,
+  computePalletShipProgress,
+} from "../lib/pallet-ship-progress";
 
 for (const line of readFileSync(".env.local", "utf8").split("\n")) {
   const m = line.match(/^([A-Z0-9_]+)=(.*)$/);
@@ -101,8 +105,10 @@ async function main() {
   for (const i of items || []) {
     bottlesFilled += Math.max(0, Math.floor(Number(i.quantity) || 0));
   }
-  const min = Number(pallet?.min_bottles_to_complete) || 120;
-  const cap = Number(pallet?.bottle_capacity) || 720;
+  const min =
+    Number(pallet?.min_bottles_to_complete) || DEFAULT_MIN_BOTTLES_TO_COMPLETE;
+  const cap =
+    Number(pallet?.bottle_capacity) || DEFAULT_PHYSICAL_BOTTLE_CAPACITY;
   const progress = computePalletShipProgress(bottlesFilled, min, cap);
 
   const { data: reservations } = await sb

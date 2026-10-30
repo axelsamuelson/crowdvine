@@ -14,6 +14,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  DEFAULT_MIN_BOTTLES_TO_COMPLETE,
+  DEFAULT_PHYSICAL_BOTTLE_CAPACITY,
+} from "@/lib/pallet-ship-progress";
 
 interface PalletZone {
   id: string;
@@ -71,8 +75,9 @@ export default function PalletForm({ pallet }: PalletFormProps) {
     delivery_zone_id: pallet?.delivery_zone_id || "",
     pickup_zone_id: pallet?.pickup_zone_id || "",
     cost_cents: pallet?.cost_cents || 0,
-    bottle_capacity: pallet?.bottle_capacity || 720,
-    min_bottles_to_complete: pallet?.min_bottles_to_complete || 120,
+    bottle_capacity: pallet?.bottle_capacity || DEFAULT_PHYSICAL_BOTTLE_CAPACITY,
+    min_bottles_to_complete:
+      pallet?.min_bottles_to_complete || DEFAULT_MIN_BOTTLES_TO_COMPLETE,
     last_mile_cost_cents_per_bottle:
       pallet?.last_mile_cost_cents_per_bottle ?? 0,
   });
@@ -365,7 +370,7 @@ export default function PalletForm({ pallet }: PalletFormProps) {
                   parseInt(e.target.value) || 0,
                 )
               }
-              placeholder="120"
+              placeholder={String(DEFAULT_MIN_BOTTLES_TO_COMPLETE)}
               required
             />
             <p className="text-xs text-zinc-500">

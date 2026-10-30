@@ -2,7 +2,7 @@
  * Configurable "becomes physical" parameters for PACT pallets.
  * Defaults match product rules; values can be overridden via site_content.
  *
- * Pallet minimum remains DEFAULT_MIN_BOTTLES_TO_COMPLETE / pallets.min_bottles_to_complete (120).
+ * Pallet minimum remains DEFAULT_MIN_BOTTLES_TO_COMPLETE / pallets.min_bottles_to_complete (270).
  */
 
 import { getSiteContentByKey, updateSiteContent } from "@/lib/actions/content";
@@ -23,7 +23,7 @@ export const DEFAULT_KG_PER_BOTTLE = 1.4;
 export const DEFAULT_WEIGHT_LIMIT_KG: number | null = null;
 
 export type PalletPhysicalSettings = {
-  /** Canonical pallet minimum (unchanged default 120). */
+  /** Canonical pallet minimum (default 270). */
   minBottlesToComplete: number;
   /** Share of min bottles that triggers pickup selection (default 0.8). */
   pickupSelectionTriggerShare: number;
