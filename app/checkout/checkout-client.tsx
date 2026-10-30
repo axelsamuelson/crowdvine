@@ -107,6 +107,10 @@ import {
   type UserZoneAddressTemplate,
   type ZoneDeliveryLines,
 } from "@/lib/checkout/user-zone-delivery-template";
+import {
+  formatCheckoutShippingLabel,
+  resolveCheckoutShippingLabelState,
+} from "@/lib/checkout/shipping-label";
 
 
 interface UserProfile {
@@ -2796,6 +2800,8 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               ...(selectedPalletId ? { pallet_id: selectedPalletId } : {}),
+              // Same country source as confirm (delivery / active zone).
+              ...(ageCountryCode ? { country_code: ageCountryCode } : {}),
               pact_points_redeem: redeemPoints,
               ...(promoDiscountSek > 0
                 ? { promo_discount_sek: promoDiscountSek }
@@ -2831,23 +2837,26 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
     selectedPalletId,
     redeemPoints,
     promoDiscountSek,
+    ageCountryCode,
   ]);
 
   const displaySubtotal = serverQuote?.subtotal_sek ?? bottleCost;
   const displayShippingSek = serverQuote?.shipping_sek;
   const displayPactOff = serverQuote?.pact_points_sek ?? pactPointsSekOff;
   // Shipping is a SEK rate. formatSek converts it into the active currency.
-  // A missing country rate stays out of the total.
-  const chargedShippingLabel = (() => {
-    if (serverQuote?.shipping_pending && selectedPalletId) {
-      return t("checkout.shippingConfirmedBeforeCharge");
-    }
-    if (displayShippingSek != null && selectedPalletId) {
-      if (displayShippingSek === 0) return t("checkout.shippingFree");
-      return formatSek(displayShippingSek);
-    }
-    return null;
-  })();
+  // A missing country rate shows explanatory copy — never a bogus "$99.0".
+  const chargedShippingLabel = formatCheckoutShippingLabel(
+    resolveCheckoutShippingLabelState({
+      hasPallet: Boolean(selectedPalletId),
+      shippingPending: serverQuote?.shipping_pending === true,
+      shippingSek: displayShippingSek,
+    }),
+    {
+      pendingLabel: t("checkout.shippingConfirmedBeforeCharge"),
+      freeLabel: t("checkout.shippingFree"),
+      formatSek,
+    },
+  );
   const displayTotal =
     serverQuote?.total_sek ??
     Math.max(0, bottleCost - pactPointsSekOff - promoDiscountSek);

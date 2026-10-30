@@ -119,16 +119,6 @@ describe("PACT Sweden 99 SEK per order (authorized)", () => {
 });
 
 describe("Checkout country shipping", () => {
-  it("stamps 99 SEK as $99.0 when formatDisplay is used in a USD context", () => {
-    expect(
-      formatDisplayMoney(99, {
-        currencyCode: "USD",
-        locale: "en",
-        sekToDisplayRate: 1,
-      }).replace(/\u00a0/g, " "),
-    ).toBe("$99.0");
-  });
-
   it("renders the Sweden rate as 99 kr and does not apply it to the US", () => {
     const sweden = resolveCustomerShippingQuote({
       bottleCount: 6,
@@ -168,6 +158,24 @@ describe("Checkout country shipping", () => {
         shippingSek: losAngeles.grossCents / 100,
       }),
     ).toEqual({ shippingSek: 0, shippingPending: true });
+  });
+
+  it("does not format SEK shipping with formatDisplayMoney in a USD context", () => {
+    // Regression lock: formatDisplayMoney(99) → "$99.0"; checkout must use formatSek.
+    expect(
+      formatDisplayMoney(99, {
+        currencyCode: "USD",
+        locale: "en",
+        sekToDisplayRate: 1,
+      }).replace(/\u00a0/g, " "),
+    ).toBe("$99.0");
+    expect(
+      formatSekAsDisplayMoney(99, {
+        currencyCode: "USD",
+        locale: "en",
+        sekToDisplayRate: 1 / 10.5,
+      }).replace(/\u00a0/g, " "),
+    ).not.toBe("$99.0");
   });
 });
 
