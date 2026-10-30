@@ -1,6 +1,6 @@
 # Köpvillkor
 
-> **UTKAST.** Framtaget av Daniel Holm (Compliance), med ställningstagande av Sofia Bergström (GC) den 25 augusti 2026 enligt `gc-stallningstagande-angerratt-och-villkor.md`. Tvistlösningen (p. 13) är oförändrad. Punkt 9 och 10 är omskrivna 2026-10-29 på ägarens instruktion och avviker från GC-dokumentet, se anmärkningen under punkt 9. En öppen punkt kvarstår, markerad **ÖPPEN FRÅGA**. Fält markerade `[FYLL I]` måste fyllas i innan sidan går live. Ingen extern advokat har granskat texten.
+> **UTKAST.** Framtaget av Daniel Holm (Compliance), med ställningstagande av Sofia Bergström (GC) den 25 augusti 2026 enligt `gc-stallningstagande-angerratt-och-villkor.md`. Tvistlösningen (p. 13) är oförändrad. Punkt 9 och 10 är omskrivna 2026-10-29 på ägarens instruktion och avviker från GC-dokumentet, se anmärkningen under punkt 9. Punkt 3 (giltighetstid och producent som inte kan leverera) uppdaterad 2026-10-30. Fält markerade `[FYLL I]` måste fyllas i innan sidan går live. Ingen extern advokat har granskat texten.
 
 Senast uppdaterad: 2026-10-30
 
@@ -72,7 +72,13 @@ När en reservation upphör utan att pallen fyllts debiteras **inget belopp**. D
 
 Vi lämnar aldrig en reservation öppen på obestämd tid.
 
-**ÖPPEN FRÅGA till Sofia:** Om en producent inte kan leverera en enskild vara efter att pallen stängt och betalning genomförts, ska villkoren beskriva delåterbetalning respektive substitution. Ta ställning innan publicering.
+### Om en producent inte kan leverera
+
+Ibland kan en producent inte leverera ett vin du reserverat, till exempel om lagret tar slut efter att pallen stängt. Då gäller följande:
+
+- Vi erbjuder dig först ett **likvärdigt ersättningsvin**
+- Byte sker **bara om du godkänner** ersättningsvinet
+- Avböjer du, eller godkänner du inte ersättningen, får du pengarna tillbaka för de viner som inte levereras — **utan onödigt dröjsmål och senast inom 14 dagar** om du redan har debiterats. Har du inte debiterats ännu debiteras du inte för de vinerna
 
 ---
 

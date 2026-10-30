@@ -144,6 +144,31 @@ export default function KopvillkorContent() {
       </LegalP>
       <LegalP>Vi lämnar aldrig en reservation öppen på obestämd tid.</LegalP>
 
+      <LegalH3>Om en producent inte kan leverera</LegalH3>
+      <LegalP>
+        Ibland kan en producent inte leverera ett vin du reserverat, till
+        exempel om lagret tar slut efter att pallen stängt. Då gäller följande:
+      </LegalP>
+      <LegalList>
+        <li>
+          Vi erbjuder dig först ett{" "}
+          <LegalStrong>likvärdigt ersättningsvin</LegalStrong>
+        </li>
+        <li>
+          Byte sker{" "}
+          <LegalStrong>bara om du godkänner</LegalStrong> ersättningsvinet
+        </li>
+        <li>
+          Avböjer du, eller godkänner du inte ersättningen, får du pengarna
+          tillbaka för de viner som inte levereras —{" "}
+          <LegalStrong>
+            utan onödigt dröjsmål och senast inom 14 dagar
+          </LegalStrong>{" "}
+          om du redan har debiterats. Har du inte debiterats ännu debiteras du
+          inte för de vinerna
+        </li>
+      </LegalList>
+
       <LegalH2>4. Priser</LegalH2>
       <LegalList>
         <li>
