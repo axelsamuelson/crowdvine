@@ -1,6 +1,6 @@
 -- Admin-managed checkout promo codes.
 -- NOTE: Existing `discount_codes` is the invitation/milestone voucher ledger
--- (supabase/migrations/20250123_create_discount_codes.sql). These tables are
+-- (docs/archives/supabase-migrations/20250123_create_discount_codes.sql). These tables are
 -- separate to avoid breaking that system.
 
 CREATE TABLE IF NOT EXISTS promo_discount_codes (

@@ -54,17 +54,21 @@ CI (`.github/workflows/ci.yml`): on push/PR to `main` → install → `pnpm test
 
 ## Database migrations
 
-**Current state**
+**Canonical folder:** numbered SQL under **`migrations/`** (currently through **`240_*.sql`**, e.g. `240_analytics_abandon_reason.sql`). This is the only place for new schema work. Agents must not invent a second migration tree.
 
-- Numbered SQL migrations live in **`migrations/`**, currently through **`240_*.sql`** (e.g. `240_analytics_abandon_reason.sql`).
-- Timestamped / historical Supabase CLI-style migrations also exist under **`supabase/migrations/`**. Treat that tree as existing history, not the default place for new work.
+**Historical / non-canonical**
+
+- Timestamped Supabase CLI-style copies formerly under `supabase/migrations/` are archived at **`docs/archives/supabase-migrations/`** (see that folder’s README). Many are duplicates or near-duplicates of numbered files; they are kept for history only.
+- `supabase/migrations/` now holds only a pointer README — do not add SQL there.
+- Older ad-hoc SQL also lives under **`docs/archives/migrations/`**.
+- Archiving or documenting these trees does **not** change what is already applied in production. **Do not re-run archived SQL** against prod/staging.
 
 **Rules for new migrations**
 
-1. Add new migrations under **`migrations/`**.
+1. Add new migrations under **`migrations/`** only.
 2. Use the **next integer prefix** after the highest existing numbered file (today: **241_…**).
 3. Prefer a short descriptive snake_case suffix: `241_short_description.sql`.
-4. Do not put new day-to-day schema changes only in `supabase/migrations/` unless there is an explicit, documented reason.
+4. Never add day-to-day schema changes under `supabase/migrations/` or `docs/archives/**`.
 5. Never store **PII** in `user_events.event_metadata` (no names, emails, phones, streets, free-text addresses, dates of birth, etc.). Use booleans / codes / digits-only postal flags when checkout analytics need field state. See `lib/analytics/checkout-draft-metadata.ts` and migration `239_scrub_user_events_pii.sql`.
 
 ## Analytics rules

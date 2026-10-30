@@ -64,11 +64,17 @@ Note: `app/api/cron/revalidate-systembolaget-guides` exists for on-demand revali
 - **Use:** UI/UX design guidance (styles, palettes, typography, UX rules) via searchable CSV data and `scripts/search.py`
 - Prefer this skill when implementing or reviewing visually led UI work
 
+## Agent / branch housekeeping
+
+- **Auto-delete head branches:** enable “Automatically delete head branches” in the GitHub repo settings (Settings → General → Pull Requests). That is a repo setting, not something this repo can encode in code; keep it on so merged PR branches are removed promptly.
+- **Stale `cursor/*` branches:** `.github/workflows/cleanup-merged-branches.yml` runs weekly (and on `workflow_dispatch`) and deletes remote `cursor/*` branches that are fully merged into `main` and have no open PR.
+
 ## Owners
 
 | Actor | Role |
 | --- | --- |
-| **Grok Bot (“Pierre”)** | AI orchestrator and code changes via cloud agents |
+| **Pierre** | Structure / ops |
+| **Camille** | CRO |
 | **Oscar** | Logistics / suppliers |
 | **Claude** | Catalogue edits via the PACT MCP server |
 
