@@ -172,6 +172,41 @@ export async function PUT(
     console.error("[Admin pallet PUT] syncPalletShipReadiness:", e);
   }
 
+  // Cancelling the last accepting pallet on a live route must not block B2C.
+  const nextStatus =
+    data && typeof (data as { status?: unknown }).status === "string"
+      ? String((data as { status: string }).status).toLowerCase()
+      : "";
+  if (nextStatus === "cancelled") {
+    const regionId =
+      typeof (data as { shipping_region_id?: unknown }).shipping_region_id ===
+      "string"
+        ? String((data as { shipping_region_id: string }).shipping_region_id)
+        : null;
+    const zoneId =
+      typeof (data as { delivery_zone_id?: unknown }).delivery_zone_id ===
+      "string"
+        ? String((data as { delivery_zone_id: string }).delivery_zone_id)
+        : null;
+    if (regionId && zoneId) {
+      try {
+        const { ensureAcceptingPalletForRoute } = await import(
+          "@/lib/pallet-auto-management"
+        );
+        const ensured = await ensureAcceptingPalletForRoute(regionId, zoneId);
+        console.log(
+          "[Admin pallet PUT] ensured accepting pallet after cancel:",
+          ensured,
+        );
+      } catch (e) {
+        console.error(
+          "[Admin pallet PUT] ensureAcceptingPalletForRoute after cancel:",
+          e,
+        );
+      }
+    }
+  }
+
   return NextResponse.json(data);
 }
 

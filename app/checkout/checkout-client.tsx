@@ -75,6 +75,11 @@ import {
   postalDraftAnalytics,
 } from "@/lib/analytics/checkout-draft-metadata";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
+import {
+  mapCheckoutStepToFunnelStep,
+  postalPrefixFromRaw,
+  trackCheckoutError,
+} from "@/lib/analytics/checkout-errors";
 import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
 import { formatCartLinePrice } from "@/lib/shopping-context/format";
 import type { PalletInfo } from "@/lib/zone-matching";
@@ -206,6 +211,8 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
   const [useRewards, setUseRewards] = useState(false);
   const checkoutCompletedRef = useRef(false);
   const paymentStepCompletedRef = useRef(false);
+  /** Bottle count for abandon guards (effect has [] deps — must not close over cart). */
+  const cartQuantityRef = useRef(0);
   const checkoutPhaseRef = useRef<"delivery" | "compliance" | "payment">(
     "delivery",
   );
@@ -396,6 +403,18 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
     });
   }
 
+  function cartIdsForCheckoutError(): {
+    wineIds: string[];
+    producerIds: string[];
+  } {
+    const lines = cart?.lines ?? [];
+    const wineIds = lines.map((l) => String(l.merchandise?.id ?? ""));
+    const producerIds = lines.map((l) =>
+      String(l.merchandise?.product?.producerId ?? ""),
+    );
+    return { wineIds, producerIds };
+  }
+
   // Track delivery-zone errors as soon as they appear so Nära köp can answer
   // "why did checkout fail?" instead of just "checkout abandoned".
   const zoneErrorTrackRef = useRef<string | null>(null);
@@ -409,6 +428,7 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
     zoneErrorTrackRef.current = err;
 
     const postalDraft = postalDraftAnalytics(postalCodeDraft);
+    const { wineIds, producerIds } = cartIdsForCheckoutError();
     void AnalyticsTracker.trackEvent({
       eventType: "checkout_zone_error",
       eventCategory: "checkout",
@@ -433,6 +453,14 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
         code: "postal_out_of_zone",
       };
       emitCheckoutError("postal", "postal", "postal_out_of_zone");
+      void trackCheckoutError({
+        errorCode: "no_delivery_zone",
+        message: zoneInfo.zoneErrorMessage ?? t("checkout.noDeliveryZoneYet"),
+        step: "delivery",
+        postalRaw: postalCodeDraft,
+        wineIds,
+        producerIds,
+      });
     }
     if (err === "UNSUPPORTED_COUNTRY") {
       lastCheckoutBlockerRef.current = {
@@ -441,6 +469,14 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
         code: "market_not_available",
       };
       emitCheckoutError("postal", "country", "market_not_available");
+      void trackCheckoutError({
+        errorCode: "unsupported_country",
+        message: zoneInfo.zoneErrorMessage ?? browseOnlyCountryMessage,
+        step: "delivery",
+        postalRaw: postalCodeDraft,
+        wineIds,
+        producerIds,
+      });
       void AnalyticsTracker.trackEvent({
         eventType: "delivery_ineligible",
         eventCategory: "checkout",
@@ -484,6 +520,75 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
       return isUsConditional ? postal.length >= 3 : /^\d{5}$/.test(postal);
     })(),
   );
+
+  // User-visible delivery blockers (CRO envelope via lib/analytics/checkout-errors.ts).
+  // Camille-owned file: import + zoneError trackCheckoutError calls + this effect only.
+  const deliveryBlockerTrackRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (zoneLoading || !zoneFetchCompleted || !hasPostalCode) {
+      deliveryBlockerTrackRef.current = null;
+      return;
+    }
+    const { wineIds, producerIds } = cartIdsForCheckoutError();
+    const noPickupForCart =
+      hasProducerItems &&
+      !selectedPallet &&
+      (zoneInfo.pallets?.length ?? 0) === 0 &&
+      (Boolean(zoneInfo.deliveryZone) ||
+        zoneInfo.selectedDeliveryZoneId != null ||
+        Boolean(zoneInfo.pickupZone)) &&
+      zoneInfo.zoneError == null;
+    const noPickupZone =
+      !zoneInfo.pickupZone &&
+      !zoneInfo.deliveryZone &&
+      !zoneInfo.selectedDeliveryZoneId &&
+      (zoneInfo.pallets?.length ?? 0) === 0 &&
+      !selectedPallet &&
+      zoneInfo.zoneError == null;
+
+    let code: string | null = null;
+    let message: string | null = null;
+    if (noPickupForCart) {
+      code = "no_pickup_for_cart";
+      message = t("checkout.noPickupForCart");
+    } else if (noPickupZone) {
+      code = "no_pickup_zone";
+      message = t("checkout.noPickupZone");
+    }
+    if (!code) {
+      deliveryBlockerTrackRef.current = null;
+      return;
+    }
+    if (deliveryBlockerTrackRef.current === code) return;
+    deliveryBlockerTrackRef.current = code;
+    lastCheckoutBlockerRef.current = {
+      reason: code,
+      field: "delivery",
+      code,
+    };
+    void trackCheckoutError({
+      errorCode: code,
+      message,
+      step: "delivery",
+      postalRaw: postalCodeDraft,
+      wineIds,
+      producerIds,
+    });
+  }, [
+    zoneLoading,
+    zoneFetchCompleted,
+    hasPostalCode,
+    hasProducerItems,
+    selectedPallet,
+    zoneInfo.pallets,
+    zoneInfo.deliveryZone,
+    zoneInfo.selectedDeliveryZoneId,
+    zoneInfo.pickupZone,
+    zoneInfo.zoneError,
+    postalCodeDraft,
+    t,
+  ]);
+
   const hasFullAddress = hasZoneDeliveryReady;
   const hasContactForCheckout = Boolean(
     (
@@ -816,15 +921,26 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
   }, [deliveryComplete, cart]);
 
   useEffect(() => {
-    const emitAbandon = () => {
+    cartQuantityRef.current = cart?.totalQuantity ?? 0;
+  }, [cart?.totalQuantity]);
+
+  // checkout_abandoned = real exit only (pagehide / tab hidden). Distinct from
+  // checkout_step_viewed (once per step/session on show). Never empty cart /
+  // post-reservation; once per session+step. step is CRO funnel only.
+  useEffect(() => {
+    const emitAbandon = (trigger: "pagehide" | "visibility_hidden") => {
       if (checkoutCompletedRef.current || paymentStepCompletedRef.current) {
         return;
       }
+      if (cartQuantityRef.current <= 0) {
+        return;
+      }
       const delivery = deliveryLinesForAnalytics(deliverySnapshotRef.current);
-      const postalDraft = postalDraftAnalytics(postalCodeDraftRef.current);
-      const step = checkoutStepRef.current;
+      const internalStep = checkoutStepRef.current;
+      const funnelStep = mapCheckoutStepToFunnelStep(internalStep);
+      const postalPrefix = postalPrefixFromRaw(postalCodeDraftRef.current);
       const blocker = lastCheckoutBlockerRef.current;
-      const missing = missingCheckoutFields(step, delivery, {
+      const missing = missingCheckoutFields(internalStep, delivery, {
         has_dob: dateOfBirthFilledRef.current,
         has_terms: termsAcceptedRef.current,
       });
@@ -836,13 +952,18 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
         abandon_field = missing[0];
         abandon_code = "fields_incomplete";
       }
-      emitOnce(checkoutAbandonedEmitKey(), () => {
+      const meta = checkoutMetaRef.current;
+      emitOnce(checkoutAbandonedEmitKey(funnelStep), () => {
         void AnalyticsTracker.trackEvent({
           eventType: "checkout_abandoned",
           eventCategory: "checkout",
           metadata: {
-            phase: checkoutPhaseRef.current,
-            ...checkoutEventMeta(step),
+            step: funnelStep,
+            trigger,
+            market: meta.market,
+            currency: meta.currency,
+            cart_value: meta.cart_value,
+            bottle_count: meta.bottle_count,
             abandon_reason,
             ...(abandon_field ? { field: abandon_field } : {}),
             ...(abandon_code ? { code: abandon_code } : {}),
@@ -854,11 +975,11 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
             terms_accepted: termsAcceptedRef.current,
             // Field-filled booleans only — never name/address/phone/DOB values.
             ...delivery,
-            ...(postalDraft
+            ...(postalPrefix
               ? {
-                  postal_digits: postalDraft.postal_digits,
-                  digits: postalDraft.digits,
-                  postal_complete: postalDraft.complete || delivery.has_postal,
+                  postal_prefix: postalPrefix,
+                  digits: postalPrefix.length,
+                  postal_complete: delivery.has_postal,
                 }
               : {}),
           },
@@ -866,13 +987,16 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
         });
       });
     };
+    const onPageHide = () => emitAbandon("pagehide");
     const onVisibility = () => {
-      if (document.visibilityState === "hidden") emitAbandon();
+      if (document.visibilityState === "hidden") {
+        emitAbandon("visibility_hidden");
+      }
     };
-    window.addEventListener("pagehide", emitAbandon);
+    window.addEventListener("pagehide", onPageHide);
     document.addEventListener("visibilitychange", onVisibility);
     return () => {
-      window.removeEventListener("pagehide", emitAbandon);
+      window.removeEventListener("pagehide", onPageHide);
       document.removeEventListener("visibilitychange", onVisibility);
     };
   }, []);

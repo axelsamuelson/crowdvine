@@ -270,7 +270,14 @@ export const TRACKED_USER_EVENTS_CATALOG: TrackedEventCatalogEntry[] = [
     eventType: "checkout_abandoned",
     category: "checkout",
     description:
-      "Checkout lämnas via pagehide/dold flik innan betalning klar. Metadata: step, abandon_reason, field/code when known. No PII — only field-filled booleans + postal digits.",
+      "Real exit only (pagehide / visibility_hidden) — not on step render. Once per session+step. Skipped when cart empty or after reservation_completed. Metadata: step (cart|delivery|terms|payment|confirm only), trigger, abandon_reason, field-filled booleans + postal_prefix (3 digits). Distinct from checkout_step_viewed.",
+    sources: ["client"],
+  },
+  {
+    eventType: "payment_failed",
+    category: "checkout",
+    description:
+      "Payment failed. Same CRO envelope as checkout_error (event_name=payment_failed). Wired via trackPaymentFailed helper when connected.",
     sources: ["client"],
   },
   {
@@ -291,7 +298,7 @@ export const TRACKED_USER_EVENTS_CATALOG: TrackedEventCatalogEntry[] = [
     eventType: "checkout_error",
     category: "checkout",
     description:
-      "Validering eller betalning misslyckades. Metadata: step, field, code (postal_invalid, postal_out_of_zone, market_not_available, age_under_minimum, terms_not_accepted, card_declined, setup_intent_failed, server_error).",
+      "User-visible checkout/validation error. Prefer CRO envelope in event_metadata via lib/analytics/checkout-errors.ts: error_code, message, wine_ids, producer_ids, postal_prefix (3 digits only), step (cart|delivery|terms|payment|confirm), session_id, user_id, visitor_id, is_internal. Legacy field/code still used by older emitCheckoutError calls.",
     sources: ["client"],
   },
   {

@@ -1,0 +1,29 @@
+-- NO-OP (business decision pending Axel).
+--
+-- Structural B2C fix does NOT depend on seeding pallets per delivery zone:
+-- findOrCreatePalletForRegion + hygiene preserve-last + admin cancel recreate.
+--
+-- This file keeps the migration number reserved after an emergency one-shot
+-- seed was applied in production on 2026-10-30 (Middle Languedoc × SE zones
+-- that lacked an accepting pallet). Do NOT re-run that INSERT.
+--
+-- If Axel declines the seed, cancel the eight non-Stockholm open pallets
+-- created at 2026-10-30 18:50:58 UTC (keep Stockholm 00a44370 open):
+--
+--   UPDATE public.pallets
+--   SET status = 'cancelled', status_mode = 'manual', updated_at = now()
+--   WHERE id IN (
+--     '1f124010-4997-4f04-918a-7dfc7d9ad310', -- Göteborg, Sweden
+--     'c621d519-51eb-4617-896b-4a228989cbcd', -- Gothenburg Delivery Zone
+--     '6d7f1c46-7e99-4006-97c4-0a844a160ba6', -- Malmö
+--     'bf6258cf-b7b7-488c-8fa7-c0f2d7dc8cd5', -- Uppsala
+--     '45a6b97f-69e3-453e-a7a8-cb3d497b309a', -- Linköping
+--     '6bb7210b-7e1d-4b19-8254-abc7ea7d2150', -- Örebro
+--     'afc0f33c-c442-4bc3-828c-159d13a7fea0', -- Helsingborg
+--     'b4f3f9a1-d886-41b1-92e8-6546de9289db'  -- Västerås
+--   )
+--   AND status = 'open';
+--
+-- SELECT 1; keeps the migration runner happy without mutating data.
+
+SELECT 1;
