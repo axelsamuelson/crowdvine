@@ -5,10 +5,10 @@ import { runReservationExpiryJob } from "@/lib/reservations/expiry-run";
  * Daily: 30-day extension asks / 7-day no-reply cancels / optional max-age end.
  * Secured by CRON_SECRET: Authorization: Bearer ${CRON_SECRET}
  *
- * Gates (all default safe):
- * - RESERVATION_EXPIRY_ENABLED (default false)
- * - RESERVATION_EXPIRY_DRY_RUN (default true)
- * - RESERVATION_EXPIRY_SEND_EMAIL (default false — Axel approval)
+ * Gates (defaults live after Axel approval; env can override off):
+ * - RESERVATION_EXPIRY_ENABLED (default true)
+ * - RESERVATION_EXPIRY_DRY_RUN (default false)
+ * - RESERVATION_EXPIRY_SEND_EMAIL (default true)
  */
 export async function GET(request: NextRequest) {
   try {

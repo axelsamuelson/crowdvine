@@ -52,20 +52,21 @@ export function getReservationExpiryConfig() {
     /** How long the customer has to confirm an extension ask. */
     replyDays,
     /**
-     * Master switch. Default OFF until Axel enables after dry-run review.
-     * When false the cron authenticates but does not process.
+     * Master switch. Default ON (Axel approved 2026-10-30).
+     * Set RESERVATION_EXPIRY_ENABLED=false to pause without a deploy.
      */
-    enabled: envBool("RESERVATION_EXPIRY_ENABLED", false),
+    enabled: envBool("RESERVATION_EXPIRY_ENABLED", true),
     /**
      * When true (and enabled), only log intended actions — no DB writes,
-     * Stripe changes, or emails.
+     * Stripe changes, or emails. Default OFF (live). Set true to dry-run.
      */
-    dryRun: envBool("RESERVATION_EXPIRY_DRY_RUN", true),
+    dryRun: envBool("RESERVATION_EXPIRY_DRY_RUN", false),
     /**
-     * Customer emails require explicit approval (Axel). Default OFF.
+     * Customer emails. Default ON (Axel approved sending).
      * Dry-run never sends even when this is true.
+     * Set RESERVATION_EXPIRY_SEND_EMAIL=false to keep mutations without mail.
      */
-    sendEmail: envBool("RESERVATION_EXPIRY_SEND_EMAIL", false),
+    sendEmail: envBool("RESERVATION_EXPIRY_SEND_EMAIL", true),
   } as const;
 }
 

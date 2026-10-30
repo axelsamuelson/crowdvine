@@ -53,7 +53,7 @@ Companion to [`AGENTS.md`](../../AGENTS.md). Describes AI-facing surfaces and sc
 | `/api/cron/systembolaget-sync` | `0 4 * * 1,4` | Systembolaget assortment sync (Mon/Thu) |
 | `/api/cron/domain-authority-snapshot` | `0 5 * * 1` | Weekly domain-authority snapshot (Open PageRank + GSC + sitemap) |
 | `/api/cron/pallet-hygiene` | `0 */6 * * *` | Recalculate `status_mode=auto` pallet status; cancel pallets empty ≥ 7 days (no emails, no deletes) |
-| `/api/cron/reservation-expiry` | `0 7 * * *` | Pallet reservation extension asks (30d) / no-reply cancel (7d); optional max-age. Gated by `RESERVATION_EXPIRY_ENABLED` (default off), dry-run, and `RESERVATION_EXPIRY_SEND_EMAIL` (Axel approval) |
+| `/api/cron/reservation-expiry` | `0 7 * * *` | Pallet reservation extension asks (30d) / no-reply cancel (7d); optional max-age. Defaults live (`RESERVATION_EXPIRY_ENABLED`/`SEND_EMAIL` true, `DRY_RUN` false); env can override off |
 
 Crons are generally secured with `CRON_SECRET` (`Authorization: Bearer …`). Menu pipeline jobs also use `menuCronGate`.
 
