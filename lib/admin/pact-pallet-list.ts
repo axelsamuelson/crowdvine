@@ -294,18 +294,26 @@ export async function listEnrichedPactPallets(
         | { id?: string; name?: string | null; is_pallet_zone?: boolean | null }
         | null
         | undefined;
-      let pickup_is_fallback = false;
-      if (cpp && typeof cpp.id === "string" && cpp.id.length > 0) {
-        pickup_is_fallback = cpp.is_pallet_zone !== true;
-      }
+      const confirmedAt = (pallet as { pickup_producer_confirmed_at?: unknown })
+        .pickup_producer_confirmed_at;
+      const pickupConfirmed =
+        typeof confirmedAt === "string" && confirmedAt.length > 0;
+      const triggeredAt = (pallet as { pickup_selection_triggered_at?: unknown })
+        .pickup_selection_triggered_at;
+      const selectionTriggered =
+        typeof triggeredAt === "string" && triggeredAt.length > 0;
 
       const cppIdRaw = pallet.current_pickup_producer_id;
       const hasPickupProducerId =
         typeof cppIdRaw === "string"
           ? cppIdRaw.trim().length > 0
           : cppIdRaw != null;
-      const needs_pallet_zone =
-        totalBookedBottles > 0 && !hasPickupProducerId;
+      const hasConfirmedPickup = pickupConfirmed && hasPickupProducerId;
+      let pickup_is_fallback = false;
+      if (hasConfirmedPickup && cpp && typeof cpp.id === "string") {
+        pickup_is_fallback = cpp.is_pallet_zone !== true;
+      }
+      const needs_pallet_zone = selectionTriggered && !hasConfirmedPickup;
 
       return {
         ...pallet,
