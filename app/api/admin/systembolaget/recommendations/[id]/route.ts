@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getCurrentAdmin } from "@/lib/admin-auth-server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { revalidateSystembolagetRecommendations } from "@/lib/systembolaget/revalidate-recommendations";
 
 export const dynamic = "force-dynamic";
 
@@ -62,6 +63,8 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
+  revalidateSystembolagetRecommendations();
+
   return NextResponse.json({ row: data });
 }
 
@@ -86,6 +89,8 @@ export async function DELETE(_request: NextRequest, context: RouteContext) {
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+
+  revalidateSystembolagetRecommendations();
 
   return NextResponse.json({ ok: true });
 }

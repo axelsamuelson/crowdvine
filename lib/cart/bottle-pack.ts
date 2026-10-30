@@ -1,4 +1,9 @@
-/** Dirty Wine (B2B) sells wines in packs matching the 6-bottle producer rule. */
+/**
+ * Dirty Wine (B2B) sells wines in 6-bottle packs per line.
+ * Cart validation for this rule lives in `lib/cart/cart-minimum.ts`
+ * (`computeB2BPackMinimum` / channel `"b2b"`). B2C uses a separate cart-total
+ * floor of 6 bottles across any mix — do not reuse pack math for pactwines.com.
+ */
 export const BOTTLE_PACK_SIZE = 6;
 
 /** Max bottles selectable on B2B PDP (16 packs). */

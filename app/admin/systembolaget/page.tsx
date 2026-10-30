@@ -698,6 +698,8 @@ export default function SystembolagetAdminPage() {
         <h2 className="text-lg font-medium">Weekly recommendations</h2>
         <p className="text-sm text-muted-foreground max-w-2xl">
           Pick year + ISO week, add wines with editorial notes, then publish the
+          issue. The public release calendar
+          (/guider/nya-naturviner-systembolaget) shows the latest published
           issue. Wines already in featured history show a warning so you can
           avoid repeats.
         </p>
@@ -738,7 +740,7 @@ export default function SystembolagetAdminPage() {
           </Button>
           {issuePublished ? (
             <span className="text-xs text-muted-foreground pb-2">
-              Published (public weekly pages removed)
+              Published — feeds /guider/nya-naturviner-systembolaget
             </span>
           ) : null}
         </div>

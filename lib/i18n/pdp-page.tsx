@@ -22,6 +22,7 @@ import {
   type ProductPathSegment,
 } from "@/lib/i18n/localized-routes";
 import { translate } from "@/lib/i18n/messages";
+import { getCachedPalletZoneStatusForHandle } from "@/lib/pallet/get-zone-status";
 import {
   DEFAULT_OG_IMAGE_URL,
   defaultOpenGraphImages,
@@ -305,6 +306,13 @@ export async function renderProductPdpPage(options: {
         }))
       : null;
 
+  const initialPalletStatus =
+    product.productType === "wine"
+      ? await getCachedPalletZoneStatusForHandle(product.handle, host).catch(
+          () => null,
+        )
+      : null;
+
   return (
     <>
       <script
@@ -327,6 +335,7 @@ export async function renderProductPdpPage(options: {
         locale={locale}
         competitorOffers={competitorOffers}
         recommendations={recommendations}
+        initialPalletStatus={initialPalletStatus}
         compareAtPrice={
           product.compareAtPrice ? (
             <span className="text-lg line-through opacity-30 lg:text-xl 2xl:text-2xl">

@@ -295,6 +295,7 @@ export async function listPalletReservationsMcpSafe(
     .from("order_reservations")
     .select("id, status, created_at")
     .in("status", [...PALLET_FILL_STATUSES])
+    .is("archived_at", null)
     .eq("pallet_id", palletId)
     .order("created_at", { ascending: false });
   if (reservationsError) throw new Error(reservationsError.message);

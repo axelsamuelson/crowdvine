@@ -44,7 +44,7 @@ export function WhySixBottlesModal({
         id: "different-producers",
         question: t("cart.whyFaqDifferentProducersQ"),
         answer: t("cart.whyFaqDifferentProducersA"),
-        icon: "🚫",
+        icon: "✅",
       },
       {
         id: "producer-groups",

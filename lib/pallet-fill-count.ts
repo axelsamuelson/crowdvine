@@ -29,6 +29,9 @@ export function computePalletFillPercentForDisplay(
 /**
  * Single source of truth for which reservation statuses count toward pallet fill.
  * Soft-archived reservations use status `archived` and are intentionally absent.
+ * Cancelled / rejected / declined never appear here.
+ * Legacy `bookings` rows are never counted — archive them separately
+ * (`bookings.status = archived`); see migrations/248_bookings_archived.sql.
  */
 export const PALLET_FILL_STATUSES = [
   "pending_producer_approval",

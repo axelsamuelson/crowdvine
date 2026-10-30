@@ -170,7 +170,7 @@ const pactAppearance = {
     colorTextSecondary: "#666666",
     colorTextPlaceholder: "#999999",
     colorDanger: "#dc2626",
-    fontFamily: "Geist, system-ui, -apple-system, sans-serif",
+    fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
     fontSizeBase: "14px",
     fontSizeSm: "12px",
     fontSizeXs: "11px",
@@ -804,12 +804,6 @@ export function StripePaymentSection({
             clientSecret,
             appearance: pactAppearance,
             locale: stripeLocale,
-            fonts: [
-              {
-                cssSrc:
-                  "https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&display=swap",
-              },
-            ],
           }}
         >
           <StripeElementInner

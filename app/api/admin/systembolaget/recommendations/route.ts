@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getCurrentAdmin } from "@/lib/admin-auth-server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { revalidateSystembolagetRecommendations } from "@/lib/systembolaget/revalidate-recommendations";
 
 export const dynamic = "force-dynamic";
 
@@ -199,6 +200,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
+  if (isPublished) {
+    revalidateSystembolagetRecommendations();
+  }
+
   const featured = await loadFeaturedMap([parsed.data.product_number]);
 
   return NextResponse.json({
@@ -244,6 +249,8 @@ export async function PATCH(request: NextRequest) {
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+
+  revalidateSystembolagetRecommendations();
 
   return NextResponse.json({ updated: data?.length ?? 0 });
 }

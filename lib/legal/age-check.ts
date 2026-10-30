@@ -1,9 +1,17 @@
 import { z } from "zod";
 
-import { meetsAgeRequirement } from "@/lib/age-limits";
+import {
+  DEFAULT_AGE_LIMIT,
+  meetsAgeRequirement,
+} from "@/lib/age-limits";
 import { LEGAL_VERSIONS } from "@/lib/legal/versions";
 
-export const MINIMUM_AGE = 20;
+/**
+ * Default when a caller omits market age. Prefer
+ * {@link resolveMarketAgeMinimum} from `@/lib/age-limits` with
+ * `markets.age_minimum`. Falls back to the stricter known limit (21).
+ */
+export const MINIMUM_AGE = DEFAULT_AGE_LIMIT;
 
 export const legalGateInputSchema = z.object({
   dateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),

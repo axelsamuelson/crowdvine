@@ -251,7 +251,8 @@ async function loadAggregateMaps(
     .from("order_reservations")
     .select("id, pallet_id")
     .in("pallet_id", palletIds)
-    .in("status", [...PALLET_FILL_STATUSES]);
+    .in("status", [...PALLET_FILL_STATUSES])
+    .is("archived_at", null);
 
   const reservationIdToPalletId = new Map<string, string>();
   for (const r of reservations ?? []) {
@@ -448,7 +449,8 @@ export async function loadContributionEconomicsBreakdownForPallet(
     .from("order_reservations")
     .select("id")
     .eq("pallet_id", palletId)
-    .in("status", [...PALLET_FILL_STATUSES]);
+    .in("status", [...PALLET_FILL_STATUSES])
+    .is("archived_at", null);
   const ids = (reservations ?? [])
     .map((r) => r.id as string)
     .filter(Boolean);

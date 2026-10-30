@@ -10,10 +10,7 @@ import { getMemberDiscountPercentForUserId } from "@/lib/membership/server-membe
 import { resolvePalletEarlyBirdContext } from "@/lib/pallet-early-bird-context";
 import { applyPalletDiscount } from "@/lib/pallet-discount";
 import { memberDiscountedTotalInclVat } from "@/lib/price-breakdown";
-import {
-  checkoutCustomerShippingCharge,
-  resolveCheckoutShippingSek,
-} from "@/lib/checkout/resolve-checkout-shipping";
+import { resolveAndChargeCheckoutShipping } from "@/lib/checkout/resolve-checkout-shipping";
 import { allocatePactRedemptionPoints } from "@/lib/membership/pact-points-redemption-math";
 
 type WineProducer = {
@@ -198,7 +195,7 @@ async function resolveReservationChargeAmountInOre(params: {
       (s, r) => s + Math.max(0, Math.floor(Number(r.quantity) || 0)),
       0,
     );
-    let countryCode = "SE";
+    let deliveryCountry: string | null = null;
     const { data: reservationRow } = await sb
       .from("order_reservations")
       .select("address_id")
@@ -222,16 +219,15 @@ async function resolveReservationChargeAmountInOre(params: {
         typeof (addressRow as { country_code?: unknown }).country_code === "string"
           ? (addressRow as { country_code: string }).country_code.trim()
           : "";
-      if (stored) countryCode = stored;
+      if (stored) deliveryCountry = stored;
     }
-    const resolved = await resolveCheckoutShippingSek({
+    const charge = await resolveAndChargeCheckoutShipping({
       bottleCount,
       productSubtotalSek: boostedLineTotal + nonBoostedLineTotal,
-      countryCode,
-      allowLegacyFallback: false,
+      deliveryCountry,
       pallet: palletRow,
     });
-    shippingSek = checkoutCustomerShippingCharge(resolved).shippingSek;
+    shippingSek = charge.shippingSek;
   }
 
   const pendingPoints = await sumPendingRedemptionPointsForReservation(reservationId);

@@ -35,10 +35,7 @@ import {
 } from "@/lib/checkout/user-zone-delivery-template";
 import { computeExpectedAmountOre } from "@/lib/checkout/expected-amount";
 import { buildCheckoutQuote } from "@/lib/checkout/checkout-quote";
-import {
-  checkoutCustomerShippingCharge,
-  resolveCheckoutShippingSek,
-} from "@/lib/checkout/resolve-checkout-shipping";
+import { resolveAndChargeCheckoutShipping } from "@/lib/checkout/resolve-checkout-shipping";
 import { resolveMarketAgeMinimum } from "@/lib/age-limits";
 import {
   evaluateLegalGate,
@@ -428,14 +425,13 @@ export async function POST(request: Request) {
     );
     const subtotalSek =
       parseFloat(String(cart.cost.totalAmount.amount)) || 0;
-    const resolvedShipping = await resolveCheckoutShippingSek({
+    const shippingCharge = await resolveAndChargeCheckoutShipping({
       bottleCount,
       productSubtotalSek: subtotalSek,
-      countryCode,
-      allowLegacyFallback: false,
+      deliveryCountry: countryCode,
+      activeZoneCountry: active.countryCode,
       pallet: palletRow,
     });
-    const shippingCharge = checkoutCustomerShippingCharge(resolvedShipping);
     const shippingSek = shippingCharge.shippingSek;
 
     // CartService totals are already in charge/display currency → multiplier 1.

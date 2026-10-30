@@ -265,7 +265,8 @@ export async function PUT(
             .from("order_reservations")
             .select("id", { count: "exact", head: true })
             .in("id", reservationIds)
-            .in("status", [...PALLET_FILL_STATUSES]);
+            .in("status", [...PALLET_FILL_STATUSES])
+            .is("archived_at", null);
 
           if (countErr) {
             console.error(

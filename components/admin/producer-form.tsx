@@ -324,30 +324,34 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
       const addressString = addressParts.join(", ");
       console.log("🔍 Geocoding address:", addressString);
 
-      // Use Nominatim API (same as delivery zones)
-      const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addressString)}&limit=1`;
-
-      const response = await fetch(nominatimUrl, {
-        headers: {
-          "User-Agent": "PACT-Wines-Admin/1.0",
-        },
-      });
+      // Server-side Mapbox geocoding (no third-party browser request)
+      const response = await fetch(
+        `/api/geocode?q=${encodeURIComponent(addressString)}`,
+      );
 
       if (!response.ok) {
-        throw new Error("Geocoding service unavailable");
+        const body = (await response.json().catch(() => null)) as {
+          error?: string;
+        } | null;
+        throw new Error(
+          body?.error ||
+            (response.status === 404
+              ? "Address not found. Please check the address and try again."
+              : "Geocoding service unavailable"),
+        );
       }
 
-      const results = await response.json();
-
-      if (!results || results.length === 0) {
+      const location = (await response.json()) as {
+        lat?: number;
+        lon?: number;
+      };
+      const lat = Number(location.lat);
+      const lon = Number(location.lon);
+      if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
         throw new Error(
           "Address not found. Please check the address and try again.",
         );
       }
-
-      const location = results[0];
-      const lat = parseFloat(location.lat);
-      const lon = parseFloat(location.lon);
 
       console.log("✅ Geocoded to:", { lat, lon });
 

@@ -40,10 +40,14 @@ const CartItems = ({
   closeCart,
   validations,
   isValidating,
+  requiredQuantity,
+  neededTotal,
 }: {
   closeCart: () => void;
   validations: ProducerValidation[];
   isValidating: boolean;
+  requiredQuantity?: number;
+  neededTotal?: number;
 }) => {
   const { cart } = useCart();
   const { t, context } = useTranslations();
@@ -93,6 +97,8 @@ const CartItems = ({
       <CartValidationHeader
         validations={validations}
         isValidating={isValidating}
+        requiredQuantity={requiredQuantity}
+        neededTotal={neededTotal}
       />
 
       <CartContainer className="flex justify-between px-2 text-sm text-muted-foreground">
@@ -202,6 +208,8 @@ export default function CartModal() {
   const { cart, isPending } = useCart();
   const [isOpen, setIsOpen] = useState(false);
   const [validations, setValidations] = useState<ProducerValidation[]>([]);
+  const [requiredQuantity, setRequiredQuantity] = useState<number | undefined>();
+  const [neededTotal, setNeededTotal] = useState<number | undefined>();
   const [isValidating, setIsValidating] = useState(false);
   const serializedCart = useRef(cart ? serializeCart(cart) : undefined);
   const wasOpenRef = useRef(false);
@@ -224,6 +232,8 @@ export default function CartModal() {
     if (!cart || cart.lines.length === 0) {
       // Still show validation header even with empty cart for educational purposes
       setValidations([]);
+      setRequiredQuantity(undefined);
+      setNeededTotal(undefined);
       return;
     }
 
@@ -255,9 +265,19 @@ export default function CartModal() {
 
         console.log("✅ [Cart Modal] Validation result:", result);
         setValidations(result.producerValidations || []);
+        setRequiredQuantity(
+          typeof result.requiredQuantity === "number"
+            ? result.requiredQuantity
+            : undefined,
+        );
+        setNeededTotal(
+          typeof result.neededTotal === "number" ? result.neededTotal : undefined,
+        );
       } catch (error) {
         console.error("❌ [Cart Modal] Validation error:", error);
         setValidations([]);
+        setRequiredQuantity(undefined);
+        setNeededTotal(undefined);
       } finally {
         setIsValidating(false);
       }
@@ -351,6 +371,8 @@ export default function CartModal() {
         closeCart={closeCart}
         validations={validations}
         isValidating={isValidating}
+        requiredQuantity={requiredQuantity}
+        neededTotal={neededTotal}
       />
     );
   };
@@ -469,25 +491,26 @@ function CheckoutButton({
   // Check if there are validation errors
   const hasValidationErrors = validations.some((v) => !v.isValid);
   const invalidValidations = validations.filter((v) => !v.isValid);
+  const isCartScoped = validations.some((v) => v.scope === "cart");
 
-  // Determine redirect URL based on number of invalid producers
+  // B2C cart-total minimum → shop. B2B pack lines → producer pages when known.
   let redirectUrl = paths.shop;
 
-  if (invalidValidations.length === 1) {
-    // Single producer - redirect to that specific producer/group
+  if (!isCartScoped && invalidValidations.length === 1) {
     const firstInvalidValidation = invalidValidations[0];
     redirectUrl = firstInvalidValidation?.groupId
       ? paths.shopGroup(firstInvalidValidation.groupId)
       : firstInvalidValidation?.producerHandle
         ? paths.shopCollection(firstInvalidValidation.producerHandle)
         : paths.shop;
-  } else if (invalidValidations.length > 1) {
-    // Multiple producers - redirect to shop with multiple producer filters
+  } else if (!isCartScoped && invalidValidations.length > 1) {
     const producerHandles = invalidValidations
       .filter((v) => v.producerHandle)
       .map((v) => v.producerHandle)
       .join(",");
-    redirectUrl = paths.shopQuery({ producers: producerHandles });
+    redirectUrl = producerHandles
+      ? paths.shopQuery({ producers: producerHandles })
+      : paths.shop;
   }
 
   const isLoading = pending || isValidating;
@@ -539,15 +562,20 @@ function CheckoutButton({
           {isLoading ? (
             <Loader size="default" />
           ) : (
-            <div className="flex justify-between items-center w-full">
-              <span>
+            <div className="flex justify-between items-center w-full gap-2">
+              <span className="text-left leading-snug">
                 {isValidating
                   ? t("cart.validating")
                   : hasValidationErrors
-                    ? t("cart.addMoreBottles")
+                    ? t("cart.addMoreBottles", {
+                        needed: invalidValidations.reduce(
+                          (sum, v) => sum + (v.needed || 0),
+                          0,
+                        ),
+                      })
                     : t("cart.proceedToCheckout")}
               </span>
-              <ArrowRight className="size-6" />
+              <ArrowRight className="size-6 shrink-0" />
             </div>
           )}
         </motion.div>

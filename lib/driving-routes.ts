@@ -9,7 +9,7 @@ export type DrivingRoutePoint = {
 export type DrivingRouteResult = {
   distanceMeters: number;
   durationSeconds: number;
-  source: "mapbox" | "osrm" | "estimate";
+  source: "mapbox" | "estimate";
 };
 
 export type DrivingRoutesResponse = Record<string, DrivingRouteResult>;
@@ -17,14 +17,23 @@ export type DrivingRoutesResponse = Record<string, DrivingRouteResult>;
 export type DurationMatrixResult = {
   producerIds: string[];
   durations: number[][];
-  source: "mapbox" | "osrm";
+  source: "mapbox";
 };
 
 export type OptimalPickupResult = {
   optimalProducerId: string;
   averageSecondsByProducer: Record<string, number>;
-  source: "mapbox" | "osrm";
+  source: "mapbox";
 };
+
+function getMapboxAccessToken(): string | null {
+  const token =
+    process.env.MAPBOX_ACCESS_TOKEN ||
+    process.env.NEXT_PUBLIC_MAPBOX_TOKEN ||
+    "";
+  if (!token || token === "pk.dummy") return null;
+  return token;
+}
 
 function formatPointsList(points: DrivingRoutePoint[]): string {
   return points.map((p) => `${p.lon},${p.lat}`).join(";");
@@ -46,7 +55,14 @@ async function fetchMapboxDurationMatrix(
     signal: AbortSignal.timeout(20000),
   });
 
-  if (!response.ok) return null;
+  if (!response.ok) {
+    console.error(
+      "Mapbox Matrix API error:",
+      response.status,
+      await response.text(),
+    );
+    return null;
+  }
 
   const data = (await response.json()) as {
     code?: string;
@@ -66,57 +82,32 @@ async function fetchMapboxDurationMatrix(
   };
 }
 
-async function fetchOsrmDurationMatrix(
-  points: DrivingRoutePoint[],
-): Promise<DurationMatrixResult | null> {
-  if (points.length < 2) return null;
-
-  const coordinates = formatPointsList(points);
-  const url =
-    `https://router.project-osrm.org/table/v1/driving/${coordinates}` +
-    `?annotations=duration`;
-
-  const response = await fetch(url, {
-    headers: { Accept: "application/json" },
-    signal: AbortSignal.timeout(20000),
-  });
-
-  if (!response.ok) return null;
-
-  const data = (await response.json()) as {
-    code?: string;
-    durations?: number[][];
-  };
-
-  if (data.code !== "Ok" || !data.durations) return null;
-
-  return {
-    producerIds: points.map((p) => p.id),
-    durations: data.durations,
-    source: "osrm",
-  };
-}
-
+/**
+ * Driving-duration matrix via Mapbox only.
+ * Returns null when coordinates are insufficient, Mapbox token is missing, or Mapbox fails.
+ */
 export async function fetchDrivingDurationMatrix(
   points: DrivingRoutePoint[],
 ): Promise<DurationMatrixResult | null> {
   const validPoints = points.filter((p) => hasValidGeoCoords(p.lat, p.lon));
   if (validPoints.length < 2) return null;
 
-  const mapboxToken =
-    process.env.MAPBOX_ACCESS_TOKEN ||
-    process.env.NEXT_PUBLIC_MAPBOX_TOKEN ||
-    "";
-
-  if (mapboxToken && mapboxToken !== "pk.dummy") {
-    const mapboxMatrix = await fetchMapboxDurationMatrix(
-      validPoints,
-      mapboxToken,
+  const mapboxToken = getMapboxAccessToken();
+  if (!mapboxToken) {
+    console.error(
+      "Driving duration matrix unavailable: MAPBOX_ACCESS_TOKEN / NEXT_PUBLIC_MAPBOX_TOKEN is not configured",
     );
-    if (mapboxMatrix) return mapboxMatrix;
+    return null;
   }
 
-  return fetchOsrmDurationMatrix(validPoints);
+  const mapboxMatrix = await fetchMapboxDurationMatrix(
+    validPoints,
+    mapboxToken,
+  );
+  if (!mapboxMatrix) {
+    console.error("Driving duration matrix unavailable: Mapbox Matrix API failed");
+  }
+  return mapboxMatrix;
 }
 
 /** Producer that minimizes average driving time to all other producers on the pallet. */
@@ -237,87 +228,38 @@ async function fetchMapboxDrivingRoutes(
   return routes;
 }
 
-async function fetchOsrmDrivingRoutes(
-  pickup: { lat: number; lon: number },
-  destinations: DrivingRoutePoint[],
-): Promise<DrivingRoutesResponse | null> {
-  if (destinations.length === 0) return {};
-
-  const coordinates = formatCoordinateList(pickup, destinations);
-  const destinationIndices = destinations
-    .map((_, index) => String(index + 1))
-    .join(";");
-
-  const url =
-    `https://router.project-osrm.org/table/v1/driving/${coordinates}` +
-    `?sources=0&destinations=${destinationIndices}&annotations=distance,duration`;
-
-  const response = await fetch(url, {
-    headers: { Accept: "application/json" },
-    signal: AbortSignal.timeout(15000),
-  });
-
-  if (!response.ok) {
-    console.error("OSRM table API error:", response.status);
-    return null;
-  }
-
-  const data = (await response.json()) as {
-    code?: string;
-    distances?: number[][];
-    durations?: number[][];
-  };
-
-  if (data.code !== "Ok" || !data.distances?.[0] || !data.durations?.[0]) {
-    return null;
-  }
-
-  const routes: DrivingRoutesResponse = {};
-  for (let i = 0; i < destinations.length; i++) {
-    const distanceMeters = data.distances[0][i];
-    const durationSeconds = data.durations[0][i];
-    if (distanceMeters == null || durationSeconds == null) continue;
-
-    routes[destinations[i].id] = {
-      distanceMeters,
-      durationSeconds,
-      source: "osrm",
-    };
-  }
-
-  return routes;
-}
-
+/**
+ * Driving routes from a pickup point via Mapbox only.
+ * Returns null when Mapbox token is missing or Mapbox fails.
+ * Returns {} when there are no valid destinations.
+ */
 export async function fetchDrivingRoutesFromPickup(
   pickup: { lat: number; lon: number },
   destinations: DrivingRoutePoint[],
-): Promise<DrivingRoutesResponse> {
+): Promise<DrivingRoutesResponse | null> {
   const validDestinations = destinations.filter((d) =>
     hasValidGeoCoords(d.lat, d.lon),
   );
 
   if (validDestinations.length === 0) return {};
 
-  const mapboxToken =
-    process.env.MAPBOX_ACCESS_TOKEN ||
-    process.env.NEXT_PUBLIC_MAPBOX_TOKEN ||
-    "";
-
-  if (mapboxToken && mapboxToken !== "pk.dummy") {
-    const mapboxRoutes = await fetchMapboxDrivingRoutes(
-      pickup,
-      validDestinations,
-      mapboxToken,
+  const mapboxToken = getMapboxAccessToken();
+  if (!mapboxToken) {
+    console.error(
+      "Driving routes unavailable: MAPBOX_ACCESS_TOKEN / NEXT_PUBLIC_MAPBOX_TOKEN is not configured",
     );
-    if (mapboxRoutes && Object.keys(mapboxRoutes).length > 0) {
-      return mapboxRoutes;
-    }
+    return null;
   }
 
-  const osrmRoutes = await fetchOsrmDrivingRoutes(pickup, validDestinations);
-  if (osrmRoutes && Object.keys(osrmRoutes).length > 0) {
-    return osrmRoutes;
+  const mapboxRoutes = await fetchMapboxDrivingRoutes(
+    pickup,
+    validDestinations,
+    mapboxToken,
+  );
+  if (!mapboxRoutes || Object.keys(mapboxRoutes).length === 0) {
+    console.error("Driving routes unavailable: Mapbox Matrix API failed");
+    return null;
   }
 
-  return {};
+  return mapboxRoutes;
 }

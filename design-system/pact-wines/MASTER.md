@@ -28,14 +28,15 @@
 
 ### Typography
 
-- **Heading Font:** Playfair Display
-- **Body Font:** Inter
+- **Heading Font:** Playfair Display (self-hosted or system fallback)
+- **Body Font:** Inter (self-hosted or system fallback)
 - **Mood:** elegant, luxury, sophisticated, timeless, premium, editorial
-- **Google Fonts:** [Playfair Display + Inter](https://fonts.google.com/share?selection.family=Inter:wght@300;400;500;600;700|Playfair+Display:wght@400;500;600;700)
+- **Privacy:** Do not load fonts from third-party CDNs at runtime; prefer self-hosted webfonts or system stacks.
 
-**CSS Import:**
+**CSS (self-hosted / system fallback):**
 ```css
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap');
+font-family: "Playfair Display", Georgia, "Times New Roman", serif; /* headings */
+font-family: Inter, system-ui, -apple-system, sans-serif; /* body */
 ```
 
 ### Spacing Variables

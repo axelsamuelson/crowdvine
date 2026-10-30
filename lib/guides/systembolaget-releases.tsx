@@ -37,12 +37,11 @@ import {
 import { homePathForLocale } from "@/lib/i18n/localized-routes";
 import type { AppLocale } from "@/lib/i18n/locale";
 import {
-  freshestSyncedAt,
-  getGuideWines,
   systembolagetImageUrl,
   systembolagetProductUrl,
   type SystembolagetGuideWine,
 } from "@/lib/systembolaget/guide-wines";
+import { getLatestRecommendationIssue } from "@/lib/systembolaget/recommendation-wines";
 
 const EMPTY_COPY = {
   sv: "Inga nya naturviner just nu. Listan uppdateras när Systembolaget släpper nya viner.",
@@ -52,6 +51,7 @@ const EMPTY_COPY = {
 const SECTION_HEADING = {
   upcoming: { sv: "Kommande släpp", en: "Coming soon" },
   released: { sv: "Nyss släppta", en: "Just released" },
+  orderItems: { sv: "Ordervaror", en: "Order assortment" },
 } as const;
 
 function wineListName(wine: SystembolagetGuideWine): string {
@@ -100,11 +100,16 @@ export async function renderSystembolagetReleasesPage(
   content: GuideArticleContent,
   locale: AppLocale,
 ) {
-  const wines = await getGuideWines("new", "recommended");
+  // Public calendar reads the latest published weekly issue from
+  // systembolaget_recommendations (via systembolaget_recommendation_wines),
+  // not systembolaget_curated / systembolaget_guide_wines category "new".
+  const issue = await getLatestRecommendationIssue();
+  const wines = issue?.wines ?? [];
   const calendar = groupReleaseWines(wines, new Date());
   const shown = [
     ...calendar.upcoming.flatMap((group) => group.wines),
     ...calendar.released.flatMap((group) => group.wines),
+    ...calendar.orderItems,
   ];
   const { seoBaseUrl } = await getGuideSeoOwnership();
   const copy = guideCopy(locale);
@@ -112,10 +117,14 @@ export async function renderSystembolagetReleasesPage(
   const pagePath = articlePath(content, locale);
   const pageUrl = `${seoBaseUrl}${pagePath}`;
   const intro = content.lede?.[locale] ?? content.hubCard.description[locale];
-  const syncedAt = freshestSyncedAt(shown);
-  const updatedLabel = formatReleaseUpdatedLabel(syncedAt, locale);
+  const updatedLabel = formatReleaseUpdatedLabel(
+    issue?.publishedAt ?? null,
+    locale,
+  );
   const bothEmpty =
-    calendar.upcoming.length === 0 && calendar.released.length === 0;
+    calendar.upcoming.length === 0 &&
+    calendar.released.length === 0 &&
+    calendar.orderItems.length === 0;
 
   const about =
     content.jsonLdAbout.type === "Person"
@@ -136,9 +145,10 @@ export async function renderSystembolagetReleasesPage(
             name: content.jsonLdAbout.name,
           };
 
-  const dateModified = syncedAt && syncedAt > (content.updated ?? "")
-    ? syncedAt
-    : content.updated ?? syncedAt;
+  const dateModified =
+    issue?.publishedAt && issue.publishedAt > (content.updated ?? "")
+      ? issue.publishedAt
+      : content.updated ?? issue?.publishedAt ?? undefined;
 
   const articleJsonLd = {
     "@context": "https://schema.org",
@@ -277,6 +287,7 @@ export async function renderSystembolagetReleasesPage(
                                   locale={locale}
                                   priority={priority}
                                   showRank={false}
+                                  showPrice={false}
                                   launchLabel={formatReleaseCardLabel(
                                     group.dateKey,
                                     locale,
@@ -296,6 +307,39 @@ export async function renderSystembolagetReleasesPage(
                   </div>
                 </section>
               ))}
+
+              {calendar.orderItems.length > 0 ? (
+                <section aria-labelledby="releases-order-items">
+                  <h2
+                    id="releases-order-items"
+                    className={ARTICLE_GUIDE_H2_CLASS}
+                  >
+                    {SECTION_HEADING.orderItems[locale]}
+                  </h2>
+                  <ol className="mt-6 list-none p-0">
+                    {calendar.orderItems.map((wine) => {
+                      const priority = cardIndex < 3;
+                      cardIndex += 1;
+                      return (
+                        <li key={wine.id}>
+                          <RankedWineRow
+                            wine={wine}
+                            rank={0}
+                            locale={locale}
+                            priority={priority}
+                            showRank={false}
+                            showPrice={false}
+                            limitedLabelText={limitedQuantityLabel(
+                              wine,
+                              locale,
+                            )}
+                          />
+                        </li>
+                      );
+                    })}
+                  </ol>
+                </section>
+              ) : null}
             </div>
           )}
 

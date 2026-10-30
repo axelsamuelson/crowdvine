@@ -37,6 +37,7 @@ export async function GET(
         "id, user_id, status, created_at, delivery_zone_id, pallet_id",
       )
       .in("status", [...PALLET_FILL_STATUSES])
+      .is("archived_at", null)
       .eq("pallet_id", pallet.id)
       .order("created_at", { ascending: false });
 

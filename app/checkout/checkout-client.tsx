@@ -87,6 +87,8 @@ import {
   calculateBoostAwareMaxRedemption,
 } from "@/lib/membership/pact-points-redemption-math";
 import { cn } from "@/lib/utils";
+import { B2C_DIRECT_BOX_DELIVERY_TIME_TODO } from "@/lib/commerce/direct-box-delivery";
+import { DirectBoxDeliveryPromise } from "@/components/commerce/direct-box-delivery-promise";
 import type { ProducerValidation } from "@/lib/checkout-validation";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -107,6 +109,10 @@ import {
   type UserZoneAddressTemplate,
   type ZoneDeliveryLines,
 } from "@/lib/checkout/user-zone-delivery-template";
+import {
+  formatCheckoutShippingLabel,
+  resolveCheckoutShippingLabelState,
+} from "@/lib/checkout/shipping-label";
 
 
 interface UserProfile {
@@ -2796,6 +2802,8 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               ...(selectedPalletId ? { pallet_id: selectedPalletId } : {}),
+              // Same country source as confirm (delivery / active zone).
+              ...(ageCountryCode ? { country_code: ageCountryCode } : {}),
               pact_points_redeem: redeemPoints,
               ...(promoDiscountSek > 0
                 ? { promo_discount_sek: promoDiscountSek }
@@ -2831,23 +2839,26 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
     selectedPalletId,
     redeemPoints,
     promoDiscountSek,
+    ageCountryCode,
   ]);
 
   const displaySubtotal = serverQuote?.subtotal_sek ?? bottleCost;
   const displayShippingSek = serverQuote?.shipping_sek;
   const displayPactOff = serverQuote?.pact_points_sek ?? pactPointsSekOff;
   // Shipping is a SEK rate. formatSek converts it into the active currency.
-  // A missing country rate stays out of the total.
-  const chargedShippingLabel = (() => {
-    if (serverQuote?.shipping_pending && selectedPalletId) {
-      return t("checkout.shippingConfirmedBeforeCharge");
-    }
-    if (displayShippingSek != null && selectedPalletId) {
-      if (displayShippingSek === 0) return t("checkout.shippingFree");
-      return formatSek(displayShippingSek);
-    }
-    return null;
-  })();
+  // A missing country rate shows explanatory copy — never a bogus "$99.0".
+  const chargedShippingLabel = formatCheckoutShippingLabel(
+    resolveCheckoutShippingLabelState({
+      hasPallet: Boolean(selectedPalletId),
+      shippingPending: serverQuote?.shipping_pending === true,
+      shippingSek: displayShippingSek,
+    }),
+    {
+      pendingLabel: t("checkout.shippingConfirmedBeforeCharge"),
+      freeLabel: t("checkout.shippingFree"),
+      formatSek,
+    },
+  );
   const displayTotal =
     serverQuote?.total_sek ??
     Math.max(0, bottleCost - pactPointsSekOff - promoDiscountSek);
@@ -3124,63 +3135,17 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
     [zoneInfo.pallets],
   );
 
-  const { fillPercent, deliveryEstimateLabel, isReadyToShip, bottlesRemaining } =
-    useMemo(() => {
-      const estimateFromFill = (fp: number) => {
-        if (fp < 50) return t("checkout.deliveryEstimate2to4Weeks");
-        if (fp < 80) return t("checkout.deliveryEstimate1to2Weeks");
-        return t("checkout.deliveryEstimateWithin1Week");
-      };
-
-      if (!selectedPallet) {
-        return {
-          fillPercent: 0,
-          deliveryEstimateLabel: t("checkout.deliveryEstimate2to4Weeks"),
-          isReadyToShip: false,
-          bottlesRemaining: 0,
-        };
-      }
-
-      const progress = selectedPallet.shipProgress;
-      const f = progress?.bottlesFilled ?? selectedPallet.currentBottles;
-      const minToShip =
-        progress?.minBottlesToShip ??
-        selectedPallet.minBottlesToShip ??
-        selectedPallet.maxBottles;
-      if (!Number.isFinite(f) || !Number.isFinite(minToShip) || minToShip <= 0) {
-        return {
-          fillPercent: 0,
-          deliveryEstimateLabel: t("checkout.deliveryEstimate2to4Weeks"),
-          isReadyToShip: false,
-          bottlesRemaining: 0,
-        };
-      }
-      const fp =
-        progress?.shipProgressPercent ??
-        Math.min(100, (f / minToShip) * 100);
-      const ready =
-        progress?.isReadyToShip ?? f >= minToShip;
-      const remaining =
-        progress?.bottlesRemainingToShip ??
-        Math.max(0, minToShip - f);
-      const st = String(selectedPallet.status ?? "").toLowerCase();
-      if (st === "shipping_ordered") {
-        return {
-          fillPercent: fp,
-          deliveryEstimateLabel: t("checkout.deliveryEstimateShippingOrdered"),
-          isReadyToShip: true,
-          bottlesRemaining: 0,
-        };
-      }
-      return {
-        fillPercent: fp,
-        deliveryEstimateLabel: ready
-          ? t("checkout.palletShipmentReady")
-          : estimateFromFill(fp),
-        isReadyToShip: ready,
-        bottlesRemaining: remaining,
-      };
-    }, [selectedPallet, t]);
+  // Customer-facing delivery copy: direct box from producer (no pallet fill).
+  // TODO time string only via B2C_DIRECT_BOX_DELIVERY_TIME_TODO — do not invent SLAs.
+  const deliveryPromiseLabel = useMemo(() => {
+    const timeTodo = B2C_DIRECT_BOX_DELIVERY_TIME_TODO?.trim();
+    if (timeTodo) return timeTodo;
+    const st = String(selectedPallet?.status ?? "").toLowerCase();
+    if (st === "shipping_ordered") {
+      return t("checkout.deliveryEstimateShippingOrdered");
+    }
+    return t("commerce.directBoxDeliveryPromise");
+  }, [selectedPallet?.status, t]);
 
   const handleSelectPallet = useCallback(
     (palletId: string) => {
@@ -3533,8 +3498,8 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
                 </div>
 
                 {!hasPostalCode ? (
-                  <div className="space-y-1">
-                    <Label htmlFor="checkout-postal">
+                  <div className="space-y-2">
+                    <Label htmlFor="checkout-postal" className="text-sm">
                       {t("checkout.deliveryPostalCode")}
                     </Label>
                     <Input
@@ -3555,7 +3520,16 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
                       placeholder={t("checkout.enterPostalCode")}
                       inputMode="numeric"
                       autoComplete="postal-code"
+                      enterKeyHint="done"
                       maxLength={isUsConditional ? 10 : 5}
+                      className="min-h-12 text-base"
+                      aria-invalid={
+                        postalCodeDraft.length > 0 &&
+                        !isUsConditional &&
+                        !/^\d{5}$/.test(postalCodeDraft)
+                          ? true
+                          : undefined
+                      }
                       onBlur={() => handlePostalDraftCommit()}
                       onKeyDown={(e) => {
                         if (e.key === "Enter") {
@@ -3564,9 +3538,17 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
                         }
                       }}
                     />
-                    <p className="text-xs text-muted-foreground">
-                      {t("checkout.postalCodeHint")}
-                    </p>
+                    {postalCodeDraft.length > 0 &&
+                    !isUsConditional &&
+                    !/^\d{5}$/.test(postalCodeDraft) ? (
+                      <p className="text-sm text-destructive" role="alert">
+                        {t("checkout.postalCodeInvalid")}
+                      </p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">
+                        {t("checkout.postalCodeHint")}
+                      </p>
+                    )}
                   </div>
                 ) : (
                   <div className="space-y-4">
@@ -3654,7 +3636,7 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
                               </p>
                               <p className="mt-0.5 text-xs text-muted-foreground">
                                 {t("checkout.deliveryBringHint", {
-                                  estimate: deliveryEstimateLabel,
+                                  estimate: deliveryPromiseLabel,
                                 })}
                               </p>
                               {budbeeAvailable === false && (
@@ -3683,29 +3665,13 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
                     ) : null}
 
                     {selectedPallet != null ? (
-                      <div>
-                        <div className="mb-1.5 flex items-center justify-between">
-                          <p className="text-xs text-muted-foreground">
-                            {t("checkout.palletProgress")}
-                          </p>
-                          <p className="text-xs tabular-nums text-muted-foreground">
-                            {isReadyToShip
-                              ? t("checkout.palletShipmentReady")
-                              : t("checkout.palletBottlesToGo", {
-                                  remaining: String(bottlesRemaining),
-                                })}
-                          </p>
-                        </div>
-                        <div className="flex h-3 w-full overflow-hidden rounded-full bg-muted/50">
-                          <div
-                            className="h-full min-w-[2px] rounded-full bg-foreground transition-all duration-300"
-                            style={{
-                              width: `${Math.min(100, Math.max(0, fillPercent))}%`,
-                            }}
-                          />
-                        </div>
+                      <div className="space-y-1.5">
+                        <p className="text-xs text-muted-foreground">
+                          {t("checkout.deliveryPromiseLabel")}
+                        </p>
+                        <DirectBoxDeliveryPromise />
                         {selectedPallet.current_pickup_producer?.name ? (
-                          <p className="text-xs text-muted-foreground mt-2">
+                          <p className="text-xs text-muted-foreground">
                             {t("checkout.collectedFrom", {
                               name: selectedPallet.current_pickup_producer.name,
                             })}
@@ -4015,46 +3981,56 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
                         : (fields.find((f) => f.unlocked && !f.done)?.id ??
                           null);
 
+                      const nextLocked = fields.find((f) => !f.unlocked);
+
                       const patch = (partial: Partial<ZoneDeliveryLines>) =>
                         setDeliveryDraft((d) =>
                           d ? { ...d, ...partial } : d,
                         );
 
+                      // Progressive disclosure: only render unlocked fields
+                      // (no dimmed empty placeholders that look like dead ends).
+                      const visibleFields = editMode
+                        ? fields
+                        : fields.filter((f) => f.unlocked);
+
                       return (
                         <>
-                          {fields.map((field) => {
+                          <p className="text-sm text-muted-foreground">
+                            {t("checkout.addDeliveryHint")}
+                          </p>
+                          {visibleFields.map((field) => {
                             const isActive = field.id === activeId;
-                            const isUpcoming = !editMode && !field.unlocked;
                             const isDone =
                               !editMode && field.unlocked && field.done;
+                            const showInlineError =
+                              isActive &&
+                              !isDone &&
+                              ((field.id === "fullName" &&
+                                (deliveryDraft.fullName ?? "").trim().length ===
+                                  1) ||
+                                (field.id === "email" &&
+                                  (deliveryDraft.email ?? "").length > 0 &&
+                                  !(deliveryDraft.email ?? "").includes("@")) ||
+                                (field.id === "phone" &&
+                                  (deliveryDraft.phone ?? "").trim().length >
+                                    0 &&
+                                  (deliveryDraft.phone ?? "").trim().length <
+                                    6));
 
                             return (
                               <div
                                 key={field.id}
                                 className={cn(
-                                  "transition-all duration-300 origin-top",
-                                  isUpcoming &&
-                                    "pointer-events-none select-none scale-[0.92] opacity-40",
+                                  "transition-all duration-300 origin-top animate-in fade-in-0 slide-in-from-bottom-1",
                                   isDone && "opacity-80",
                                   (isActive || editMode) && "opacity-100",
                                 )}
-                                aria-hidden={isUpcoming || undefined}
                               >
-                                <div
-                                  className={cn(
-                                    "space-y-1.5",
-                                    isUpcoming && "space-y-1",
-                                  )}
-                                >
+                                <div className="space-y-1.5">
                                   <Label
-                                    htmlFor={
-                                      isUpcoming
-                                        ? undefined
-                                        : `checkout-${field.id}`
-                                    }
+                                    htmlFor={`checkout-${field.id}`}
                                     className={cn(
-                                      isUpcoming &&
-                                        "text-[10px] leading-none text-muted-foreground/80",
                                       isDone && "text-xs text-muted-foreground",
                                       (isActive || editMode) && "text-sm",
                                     )}
@@ -4063,43 +4039,34 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
                                   </Label>
 
                                   {field.id === "regionCode" ? (
-                                    isUpcoming ? (
-                                      <div className="h-7 rounded-md border border-border/60 bg-muted/20" />
-                                    ) : (
-                                      <Select
-                                        value={
-                                          deliveryDraft.regionCode ?? ""
-                                        }
-                                        onValueChange={(v) =>
-                                          patch({
-                                            regionCode: v || null,
-                                          })
-                                        }
+                                    <Select
+                                      value={deliveryDraft.regionCode ?? ""}
+                                      onValueChange={(v) =>
+                                        patch({
+                                          regionCode: v || null,
+                                        })
+                                      }
+                                    >
+                                      <SelectTrigger
+                                        className={cn(
+                                          "min-h-12 text-base",
+                                          isDone && "min-h-10 text-sm",
+                                        )}
                                       >
-                                        <SelectTrigger
-                                          className={cn(
-                                            isDone && "h-8 text-sm",
+                                        <SelectValue
+                                          placeholder={t(
+                                            "checkout.selectState",
                                           )}
-                                        >
-                                          <SelectValue
-                                            placeholder={t(
-                                              "checkout.selectState",
-                                            )}
-                                          />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          {listUsStateCodesSorted().map(
-                                            (c) => (
-                                              <SelectItem key={c} value={c}>
-                                                {c}
-                                              </SelectItem>
-                                            ),
-                                          )}
-                                        </SelectContent>
-                                      </Select>
-                                    )
-                                  ) : isUpcoming ? (
-                                    <div className="h-7 rounded-md border border-border/60 bg-muted/20" />
+                                        />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {listUsStateCodesSorted().map((c) => (
+                                          <SelectItem key={c} value={c}>
+                                            {c}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
                                   ) : (
                                     <Input
                                       id={`checkout-${field.id}`}
@@ -4109,6 +4076,18 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
                                           : field.id === "phone"
                                             ? "tel"
                                             : "text"
+                                      }
+                                      inputMode={
+                                        field.id === "phone"
+                                          ? "tel"
+                                          : field.id === "email"
+                                            ? "email"
+                                            : "text"
+                                      }
+                                      enterKeyHint={
+                                        isActive && nextLocked
+                                          ? "next"
+                                          : "done"
                                       }
                                       value={
                                         field.id === "fullName"
@@ -4132,9 +4111,21 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
                                                 ? "street-address"
                                                 : "address-level2"
                                       }
+                                      autoCapitalize={
+                                        field.id === "email"
+                                          ? "none"
+                                          : undefined
+                                      }
+                                      autoCorrect={
+                                        field.id === "email" ? "off" : undefined
+                                      }
                                       autoFocus={isActive}
+                                      aria-invalid={
+                                        showInlineError ? true : undefined
+                                      }
                                       className={cn(
-                                        isDone && "h-8 text-sm",
+                                        "min-h-12 text-base",
+                                        isDone && "min-h-10 text-sm",
                                       )}
                                       onChange={(e) => {
                                         const v = e.target.value;
@@ -4151,10 +4142,25 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
                                       }}
                                     />
                                   )}
+                                  {showInlineError ? (
+                                    <p
+                                      className="text-sm text-destructive"
+                                      role="alert"
+                                    >
+                                      {t("checkout.fieldRequired")}
+                                    </p>
+                                  ) : null}
                                 </div>
                               </div>
                             );
                           })}
+                          {!editMode && nextLocked ? (
+                            <p className="text-xs text-muted-foreground">
+                              {t("checkout.nextFieldHint", {
+                                label: nextLocked.label,
+                              })}
+                            </p>
+                          ) : null}
 
                           {editMode ? (
                             <div className="flex items-center gap-3 pt-1">

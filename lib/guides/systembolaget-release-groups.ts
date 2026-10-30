@@ -6,6 +6,8 @@ export type ReleaseWine = {
   wine_score: number | null;
   score_adjust: number;
   producer_name: string | null;
+  assortment_text?: string | null;
+  sort_order?: number;
 };
 
 export type ReleaseDateGroup<T extends ReleaseWine> = {
@@ -16,7 +18,21 @@ export type ReleaseDateGroup<T extends ReleaseWine> = {
 export type ReleaseCalendar<T extends ReleaseWine> = {
   upcoming: ReleaseDateGroup<T>[];
   released: ReleaseDateGroup<T>[];
+  /**
+   * Order-assortment wines and rows without a launch date — shown outside the
+   * temporary-range calendar (e.g. Ordervaror / Beställningsvara).
+   */
+  orderItems: T[];
 };
+
+/** True for Systembolaget order assortment (ordervara / ordervaror). */
+export function isOrderAssortment(
+  assortmentText: string | null | undefined,
+): boolean {
+  const raw = assortmentText?.trim();
+  if (!raw) return false;
+  return raw.toLocaleLowerCase("sv-SE").startsWith("ordervar");
+}
 
 /** Calendar date in Europe/Stockholm, YYYY-MM-DD. */
 export function stockholmDateKey(instant: Date): string {
@@ -50,8 +66,34 @@ function blendedScore(wine: ReleaseWine): number {
   return (wine.wine_score ?? 0) + wine.score_adjust;
 }
 
+function compareSortOrder(a: ReleaseWine, b: ReleaseWine): number {
+  const aOrder = a.sort_order;
+  const bOrder = b.sort_order;
+  if (aOrder == null && bOrder == null) return 0;
+  if (aOrder == null) return 1;
+  if (bOrder == null) return -1;
+  return aOrder - bOrder;
+}
+
 function sortWithinDate<T extends ReleaseWine>(wines: readonly T[]): T[] {
   return [...wines].sort((a, b) => {
+    const byScore = blendedScore(b) - blendedScore(a);
+    if (byScore !== 0) return byScore;
+    const bySort = compareSortOrder(a, b);
+    if (bySort !== 0) return bySort;
+    const byName = (a.producer_name ?? "").localeCompare(
+      b.producer_name ?? "",
+      "sv",
+    );
+    if (byName !== 0) return byName;
+    return a.id - b.id;
+  });
+}
+
+function sortOrderItems<T extends ReleaseWine>(wines: readonly T[]): T[] {
+  return [...wines].sort((a, b) => {
+    const bySort = compareSortOrder(a, b);
+    if (bySort !== 0) return bySort;
     const byScore = blendedScore(b) - blendedScore(a);
     if (byScore !== 0) return byScore;
     const byName = (a.producer_name ?? "").localeCompare(
@@ -85,9 +127,12 @@ function groupByDate<T extends ReleaseWine>(
 }
 
 /**
- * Split published release-calendar rows into upcoming and just-released groups.
- * Dates are Stockholm calendar dates. Rows older than 60 days, or without a
- * launch date, are omitted. Nothing is unpublished.
+ * Split published release-calendar rows into upcoming, just-released, and
+ * order-assortment groups. Dates are Stockholm calendar dates. Rows older than
+ * 60 days (and not order assortment) are omitted. Nothing is unpublished.
+ *
+ * Order assortment (Ordervaror) and rows without a launch date go to
+ * `orderItems` so they stay visible outside the temporary-range calendar.
  */
 export function groupReleaseWines<T extends ReleaseWine>(
   wines: readonly T[],
@@ -97,10 +142,14 @@ export function groupReleaseWines<T extends ReleaseWine>(
   const cutoff = addCalendarDays(today, -60);
   const upcoming: T[] = [];
   const released: T[] = [];
+  const orderItems: T[] = [];
 
   for (const wine of wines) {
     const key = launchDateKey(wine.product_launch_date);
-    if (!key) continue;
+    if (!key || isOrderAssortment(wine.assortment_text)) {
+      orderItems.push(wine);
+      continue;
+    }
     if (key > today) upcoming.push(wine);
     else if (key >= cutoff && key <= today) released.push(wine);
   }
@@ -108,6 +157,7 @@ export function groupReleaseWines<T extends ReleaseWine>(
   return {
     upcoming: groupByDate(upcoming, "asc"),
     released: groupByDate(released, "desc"),
+    orderItems: sortOrderItems(orderItems),
   };
 }
 

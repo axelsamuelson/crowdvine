@@ -188,11 +188,13 @@ export async function DELETE(
   const sb = getSupabaseAdmin();
   const resolvedParams = await params;
 
-  // First check if there are any bookings/reservations for this pallet
+  // First check if there are any active bookings/reservations for this pallet
   const { data: bookings, error: bookingsError } = await sb
     .from("bookings")
     .select("id")
     .eq("pallet_id", resolvedParams.id)
+    .neq("status", "archived")
+    .is("archived_at", null)
     .limit(1);
 
   if (bookingsError) {
