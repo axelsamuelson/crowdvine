@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
-import { getCurrentUser } from "@/lib/auth";
+import {
+  isUnauthorizedResponse,
+  requireAdminOr401,
+} from "@/lib/admin-auth-http";
 import { MembershipLevel } from "@/lib/membership/points-engine";
 import { getAppUrl, getB2BAppUrl } from "@/lib/app-url";
 import { getInviteUrl } from "@/lib/invitation-path";
@@ -12,26 +15,10 @@ import { getInviteUrl } from "@/lib/invitation-path";
  */
 export async function POST(request: NextRequest) {
   try {
-    const user = await getCurrentUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const adminAuth = await requireAdminOr401();
+    if (isUnauthorizedResponse(adminAuth)) return adminAuth;
 
     const sb = getSupabaseAdmin();
-
-    // Check if user is admin
-    const { data: profile } = await sb
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single();
-
-    if (!profile || profile.role !== "admin") {
-      return NextResponse.json(
-        { error: "Admin access required" },
-        { status: 403 },
-      );
-    }
 
     const body = await request.json();
     const {
@@ -73,7 +60,7 @@ export async function POST(request: NextRequest) {
       .from("invitation_codes")
       .insert({
         code,
-        created_by: user.id,
+        created_by: adminAuth.id,
         expires_at: expiresAt.toISOString(),
         max_uses: maxUses,
         is_active: true,
@@ -96,7 +83,7 @@ export async function POST(request: NextRequest) {
     const { data: membership } = await sb
       .from("user_memberships")
       .select("invites_used_this_month")
-      .eq("user_id", user.id)
+      .eq("user_id", adminAuth.id)
       .single();
 
     if (membership) {
@@ -106,7 +93,7 @@ export async function POST(request: NextRequest) {
           invites_used_this_month: membership.invites_used_this_month + 1,
           // updated_at will be handled by trigger if it exists
         })
-        .eq("user_id", user.id);
+        .eq("user_id", adminAuth.id);
     }
 
     // Generate signup URLs (business invites use dirtywine.se)

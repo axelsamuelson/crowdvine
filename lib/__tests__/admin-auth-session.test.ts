@@ -99,6 +99,32 @@ describe("admin session auth", () => {
     await expect(requireAdmin()).resolves.toEqual(admin);
   });
 
+  it("returns the admin when only profiles.roles contains admin", async () => {
+    getCurrentUser.mockResolvedValue({
+      id: "admin-2",
+      email: "roles-admin@example.com",
+    });
+    maybeSingle.mockResolvedValue({
+      data: {
+        id: "admin-2",
+        email: "roles-admin@example.com",
+        role: "user",
+        roles: ["admin"],
+      },
+    });
+    const { getCurrentAdmin, requireAdmin } = await import(
+      "@/lib/admin-auth-server"
+    );
+
+    const admin = {
+      id: "admin-2",
+      email: "roles-admin@example.com",
+      role: "user",
+    };
+    await expect(getCurrentAdmin()).resolves.toEqual(admin);
+    await expect(requireAdmin()).resolves.toEqual(admin);
+  });
+
   it("does not charge when order-shipping is called with only legacy cookies", async () => {
     getCurrentUser.mockResolvedValue(null);
     const { POST } = await import(
