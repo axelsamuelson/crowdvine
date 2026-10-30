@@ -15,7 +15,7 @@ export function newNaturalWinesSystembolagetTitle(now: Date): {
 /** Bilingual guide: new and upcoming natural wines at Systembolaget. */
 export const newNaturalWinesSystembolagetArticle: GuideArticleContent = {
   published: true,
-  updated: "2026-10-28",
+  updated: "2026-10-30",
   slug: {
     en: "new-natural-wines-systembolaget",
     sv: "nya-naturviner-systembolaget",
@@ -25,16 +25,16 @@ export const newNaturalWinesSystembolagetArticle: GuideArticleContent = {
     sv: "Nya naturviner på Systembolaget",
   },
   meta: {
-    en: "Natural wines released in Systembolaget's temporary range and web launches, with dates, prices and our notes.",
-    sv: "Naturviner som släpps i Systembolagets tillfälliga sortiment och webblanseringar just nu, med datum, pris och vår kommentar.",
+    en: "Natural wines released in Systembolaget's temporary range and web launches, with dates and our notes.",
+    sv: "Naturviner som släpps i Systembolagets tillfälliga sortiment och webblanseringar just nu, med datum och vår kommentar.",
   },
   h1: {
     en: "New natural wines at Systembolaget",
     sv: "Nya naturviner på Systembolaget",
   },
   lede: {
-    en: "Here we gather natural wines that have just been released, or will be released soon, in Systembolaget's temporary range and web launches. Wines leave the list 60 days after release, or when they have sold out.",
-    sv: "Här samlar vi naturviner som nyss släppts eller släpps snart i Systembolagets tillfälliga sortiment och webblanseringar. Viner försvinner från listan 60 dagar efter släppet eller när de tagit slut.",
+    en: "Here we gather natural wines that have just been released, or will be released soon, in Systembolaget's temporary range and web launches — plus notable order-assortment bottles. Wines leave the temporary-range calendar 60 days after release, or when they have sold out.",
+    sv: "Här samlar vi naturviner som nyss släppts eller släpps snart i Systembolagets tillfälliga sortiment och webblanseringar — plus utvalda ordervaror. Viner lämnar kalendern för tillfälligt sortiment 60 dagar efter släppet eller när de tagit slut.",
   },
   breadcrumbShort: {
     en: "New natural wines at Systembolaget",
@@ -50,8 +50,8 @@ export const newNaturalWinesSystembolagetArticle: GuideArticleContent = {
       sv: "Nya naturviner på Systembolaget",
     },
     description: {
-      en: "Natural wines released in Systembolaget's temporary range and web launches, with dates, prices and our notes.",
-      sv: "Naturviner som släpps i Systembolagets tillfälliga sortiment och webblanseringar just nu, med datum, pris och vår kommentar.",
+      en: "Natural wines released in Systembolaget's temporary range and web launches, with dates and our notes.",
+      sv: "Naturviner som släpps i Systembolagets tillfälliga sortiment och webblanseringar just nu, med datum och vår kommentar.",
     },
   },
   shopCta: null,

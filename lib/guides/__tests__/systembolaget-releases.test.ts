@@ -7,7 +7,9 @@ import { SYSTEMBOLAGET_RANKED_LISTS } from "@/lib/guides/systembolaget-list-link
 import {
   formatReleaseCardLabel,
   formatReleaseGroupHeading,
+  formatReleaseUpdatedLabel,
   groupReleaseWines,
+  isOrderAssortment,
   type ReleaseWine,
 } from "@/lib/guides/systembolaget-release-groups";
 import { GUIDE_WINE_CATEGORIES } from "@/lib/systembolaget/guide-wine-categories";
@@ -20,6 +22,8 @@ function wine(
   launch: string | null,
   score: number | null = null,
   adjust = 0,
+  assortment: string | null = "Tillfälligt sortiment",
+  sortOrder?: number,
 ): ReleaseWine {
   return {
     id,
@@ -27,6 +31,8 @@ function wine(
     product_launch_date: launch,
     wine_score: score,
     score_adjust: adjust,
+    assortment_text: assortment,
+    ...(sortOrder !== undefined ? { sort_order: sortOrder } : {}),
   };
 }
 
@@ -80,6 +86,9 @@ describe("Systembolaget release calendar", () => {
     expect(onThe28th.released.map((row) => row.wines.map((item) => item.id))).toEqual([
       [9],
     ]);
+    expect(onThe28th.orderItems.map((row) => row.producer_name)).toEqual([
+      "No date",
+    ]);
 
     const onThe30th = groupReleaseWines(
       rows,
@@ -94,7 +103,42 @@ describe("Systembolaget release calendar", () => {
     ).toEqual([1, 2]);
   });
 
-  it("formats headings and card labels without urgency", () => {
+  it("puts Ordervaror and undated wines in orderItems (e.g. Superglitzer)", () => {
+    expect(isOrderAssortment("Ordervaror")).toBe(true);
+    expect(isOrderAssortment("Tillfälligt sortiment")).toBe(false);
+
+    const calendar = groupReleaseWines(
+      [
+        wine(1, "Ostertag", "2026-10-30", null, 0, "Tillfälligt sortiment", 1),
+        wine(
+          2,
+          "Superglitzer",
+          "2026-11-02",
+          null,
+          0,
+          "Ordervaror",
+          3,
+        ),
+        wine(3, "Undated", null, null, 0, "Tillfälligt sortiment", 2),
+      ],
+      TODAY,
+    );
+
+    expect(calendar.orderItems.map((row) => row.producer_name)).toEqual([
+      "Undated",
+      "Superglitzer",
+    ]);
+    expect(calendar.upcoming.map((group) => group.dateKey)).toEqual([
+      "2026-10-30",
+    ]);
+    expect(
+      calendar.upcoming.flatMap((group) =>
+        group.wines.map((row) => row.producer_name),
+      ),
+    ).toEqual(["Ostertag"]);
+  });
+
+  it("formats headings, card labels, and published-at updated line", () => {
     expect(formatReleaseGroupHeading("2026-11-06", "sv")).toBe(
       "Fredag 6 november",
     );
@@ -113,6 +157,9 @@ describe("Systembolaget release calendar", () => {
     expect(formatReleaseCardLabel("2026-10-09", "en", "released")).toBe(
       "Released 9 Oct",
     );
+    expect(
+      formatReleaseUpdatedLabel("2026-10-30T13:50:57.999Z", "sv"),
+    ).toBe("Uppdaterad 30 oktober 2026");
 
     const title = newNaturalWinesSystembolagetTitle(TODAY);
     expect(title.sv).toBe(
@@ -121,5 +168,17 @@ describe("Systembolaget release calendar", () => {
     expect(title.en).toBe(
       "New natural wines at Systembolaget: October 2026 releases",
     );
+  });
+
+  it("does not mention Systembolaget prices in release-page copy", () => {
+    const blob = [
+      newNaturalWinesSystembolagetArticle.meta.sv,
+      newNaturalWinesSystembolagetArticle.meta.en,
+      newNaturalWinesSystembolagetArticle.hubCard.description.sv,
+      newNaturalWinesSystembolagetArticle.hubCard.description.en,
+      newNaturalWinesSystembolagetArticle.lede?.sv ?? "",
+      newNaturalWinesSystembolagetArticle.lede?.en ?? "",
+    ].join(" ");
+    expect(blob.toLowerCase()).not.toMatch(/\bpris(er)?\b|\bprices?\b/);
   });
 });
