@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { ExternalLink } from "lucide-react";
 import { WineEnrichmentCollapsible } from "@/components/product/wine-enrichment-collapsible";
 import { useTranslations } from "@/lib/hooks/use-translations";
@@ -21,15 +20,11 @@ interface CompetitorOffersSectionProps {
   offers: CompetitorOffer[];
 }
 
-/** Favicon URL from site origin. Uses Google's favicon service for reliability. */
-function getFaviconUrl(pdpUrl: string): string | null {
-  try {
-    const host = new URL(pdpUrl).hostname;
-    if (!host) return null;
-    return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=32`;
-  } catch {
-    return null;
-  }
+/** First letter of the store name (or fallback) for a local avatar — no external requests. */
+function getStoreInitial(name: string | null, fallback: string): string {
+  const source = (name?.trim() || fallback).trim();
+  const letter = source.charAt(0);
+  return letter ? letter.toLocaleUpperCase() : "?";
 }
 
 /**
@@ -53,28 +48,21 @@ export function CompetitorOffersSection({ offers }: CompetitorOffersSectionProps
 function CompetitorOfferRow({ offer }: { offer: CompetitorOffer }) {
   const { t } = useTranslations();
   const { formatSek } = useDisplayMoney();
-  const faviconUrl = getFaviconUrl(offer.pdp_url);
-  const [faviconError, setFaviconError] = useState(false);
-  const showFavicon = faviconUrl && !faviconError;
+  const otherStore = t("product.pdp.otherStore");
+  const storeName = offer.price_source_name ?? otherStore;
+  const initial = getStoreInitial(offer.price_source_name, otherStore);
   const year = offer.vintage != null ? String(offer.vintage) : null;
 
   return (
     <li className="flex flex-wrap items-center justify-between gap-2 py-2 border-b border-border last:border-b-0">
       <span className="flex items-center gap-2 text-sm font-medium text-foreground">
-        {showFavicon ? (
-          <span className="relative flex h-5 w-5 shrink-0 items-center justify-center overflow-hidden rounded">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={faviconUrl}
-              alt=""
-              width={20}
-              height={20}
-              className="h-5 w-5 object-contain"
-              onError={() => setFaviconError(true)}
-            />
-          </span>
-        ) : null}
-        {offer.price_source_name ?? t("product.pdp.otherStore")}
+        <span
+          className="relative flex h-5 w-5 shrink-0 items-center justify-center overflow-hidden rounded bg-muted text-[10px] font-semibold uppercase leading-none text-muted-foreground"
+          aria-hidden
+        >
+          {initial}
+        </span>
+        {storeName}
       </span>
       <div className="flex items-center gap-3">
         {offer.rating != null ? (
