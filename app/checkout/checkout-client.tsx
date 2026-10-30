@@ -4558,9 +4558,11 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
                             </span>
                           </div>
 
-                          <p className="text-sm text-stone-600">
-                            {t("checkout.noChargeUntilPalletCloses")}
-                          </p>
+                          {paymentMode !== "payment_intent" ? (
+                            <p className="text-sm text-stone-600">
+                              {t("checkout.noChargeUntilPalletCloses")}
+                            </p>
+                          ) : null}
 
                           <Button
                             type="button"

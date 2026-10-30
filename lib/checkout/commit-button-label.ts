@@ -3,7 +3,9 @@
  * reservation/order (distansavtalslagen / EU “button solution”).
  *
  * The button text itself must unambiguously state the payment obligation
- * and show the amount the customer commits to.
+ * and show the amount the customer commits to. Do not mention pallet fill
+ * or “when the pallet closes” — B2C ships as direct producer boxes; deferred
+ * setup_intent charges run before shipment.
  */
 
 export type CheckoutCommitPaymentMode =

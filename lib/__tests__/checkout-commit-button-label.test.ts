@@ -38,7 +38,7 @@ describe("checkoutCommitMessageKey", () => {
     ).toBe("checkout.usConditionalButton");
   });
 
-  it("defaults to reserve-with-payment for deferred pallet reservations", () => {
+  it("defaults to reserve-with-payment for deferred setup_intent reservations", () => {
     expect(
       checkoutCommitMessageKey({
         isSubmitting: false,
@@ -59,6 +59,7 @@ describe("Swedish button-solution copy", () => {
     expect(label).toBe(`Reservera med betalningsskyldighet – ${amount}`);
     expect(label).toContain("betalningsskyldighet");
     expect(label).toContain("1 234 kr");
+    expect(label.toLowerCase()).not.toMatch(/pall/);
   });
 
   it("states Beställ och betala with the live amount for immediate pay", () => {
@@ -70,6 +71,7 @@ describe("Swedish button-solution copy", () => {
 
     expect(label).toBe(`Beställ och betala ${amount}`);
     expect(label).toContain("990 kr");
+    expect(label.toLowerCase()).not.toMatch(/pall/);
   });
 
   it("keeps the amount correct when the total changes with quantity", () => {
@@ -100,5 +102,18 @@ describe("Swedish button-solution copy", () => {
     );
     expect(label).toBe(`Beställ och betala ${amount}`);
     expect(label).toContain("1 875 kr");
+  });
+
+  it("describes deferred charge timing without pallet-closing language", () => {
+    const timing = translate("sv", "checkout.noChargeUntilPalletCloses");
+    const cardHint = translate("sv", "checkout.stripeCardSavedOnShip");
+    expect(timing).toBe("Inget dras nu. Du betalar innan leveransen skickas.");
+    expect(cardHint).toBe(
+      "Ditt kort sparas och debiteras innan leveransen skickas.",
+    );
+    expect(timing.toLowerCase()).not.toMatch(/pall/);
+    expect(cardHint.toLowerCase()).not.toMatch(/pall/);
+    expect(timing.toLowerCase()).not.toMatch(/stänger/);
+    expect(cardHint.toLowerCase()).not.toMatch(/stänger/);
   });
 });
