@@ -52,6 +52,7 @@ Companion to [`AGENTS.md`](../../AGENTS.md). Describes AI-facing surfaces and sc
 | `/api/cron/sync-savantbar-menu` | `0 5 * * *` | Daily Savant Bar bottle-list sync |
 | `/api/cron/systembolaget-sync` | `0 4 * * 1,4` | Systembolaget assortment sync (Mon/Thu) |
 | `/api/cron/domain-authority-snapshot` | `0 5 * * 1` | Weekly domain-authority snapshot (Open PageRank + GSC + sitemap) |
+| `/api/cron/pallet-hygiene` | `0 */6 * * *` | Recalculate `status_mode=auto` pallet status; cancel pallets empty ≥ 7 days (no emails, no deletes) |
 
 Crons are generally secured with `CRON_SECRET` (`Authorization: Bearer …`). Menu pipeline jobs also use `menuCronGate`.
 

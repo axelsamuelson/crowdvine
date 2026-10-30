@@ -8,6 +8,10 @@ import {
   sumReservedBottlesOnPallet,
 } from "@/lib/pallet-fill-count";
 import {
+  namePalletForRoute,
+  palletHasHistoryForCleanup,
+} from "@/lib/pallet-hygiene";
+import {
   DEFAULT_MIN_BOTTLES_TO_COMPLETE,
   DEFAULT_PHYSICAL_BOTTLE_CAPACITY,
   PALLET_ACCEPTING_STATUSES,
@@ -208,7 +212,6 @@ export async function findOrCreatePalletForRegion(
 
     const regionName = String(regionRow?.name ?? "Region");
     const deliveryName = String(zoneRow?.name ?? "Delivery");
-    const name = `${regionName} to ${deliveryName}`;
 
     for (let spin = 0; spin < MAX_FIND_OR_CREATE_SPINS; spin++) {
       // Accept open / consolidating / complete (ship-ready) so a pallet at the
@@ -231,6 +234,7 @@ export async function findOrCreatePalletForRegion(
 
       const candidates = existingRows ?? [];
       let foundAssignable: string | null = null;
+      let overflowFallback: string | null = null;
 
       for (const existing of candidates) {
         if (!existing?.id) continue;
@@ -251,6 +255,7 @@ export async function findOrCreatePalletForRegion(
 
         // Physical overflow only — never use min_bottles_to_complete here.
         if (cap > 0 && bottles >= overflowCap) {
+          if (!overflowFallback) overflowFallback = existing.id as string;
           continue;
         }
 
@@ -261,6 +266,26 @@ export async function findOrCreatePalletForRegion(
       if (foundAssignable) {
         return { palletId: foundAssignable, created: false };
       }
+
+      const { count: priorCount, error: countErr } = await sb
+        .from("pallets")
+        .select("id", { count: "exact", head: true })
+        .eq("shipping_region_id", shippingRegionId)
+        .eq("delivery_zone_id", deliveryZoneId);
+
+      if (countErr) {
+        console.error(
+          "[findOrCreatePalletForRegion] route count:",
+          countErr.message,
+        );
+        throw countErr;
+      }
+
+      const name = namePalletForRoute(
+        regionName,
+        deliveryName,
+        priorCount ?? 0,
+      );
 
       const { data: inserted, error: insErr } = await sb
         .from("pallets")
@@ -280,6 +305,11 @@ export async function findOrCreatePalletForRegion(
 
       if (insErr) {
         if (insErr.code === PG_UNIQUE_VIOLATION) {
+          // Unique index covers all accepting statuses: if another accepting
+          // pallet exists (e.g. overflowed), reuse it rather than spinning forever.
+          if (overflowFallback) {
+            return { palletId: overflowFallback, created: false };
+          }
           continue;
         }
         console.error("[findOrCreatePalletForRegion] insert:", insErr.message);
@@ -317,9 +347,28 @@ async function reservationRowCountForPallet(palletId: string): Promise<number> {
   return count ?? 0;
 }
 
+async function bookingRowCountForPallet(palletId: string): Promise<number> {
+  const sb = getSupabaseAdmin();
+  const { count, error } = await sb
+    .from("bookings")
+    .select("id", { count: "exact", head: true })
+    .eq("pallet_id", palletId);
+
+  if (error) {
+    console.error(
+      "[cleanupEmptyPallets] booking count error:",
+      error.message,
+    );
+    return -1;
+  }
+  return count ?? 0;
+}
+
 /**
- * Deletes open pallets for the region+delivery pair that have no reservations
- * and zero fill-weighted bottles. Never throws.
+ * Deletes virgin open pallets for the region+delivery pair that have zero
+ * fill-weighted bottles and no history (no reservations, no bookings).
+ * Pallets with history are kept — hygiene cron cancels long-empty ones.
+ * Never throws.
  */
 export async function cleanupEmptyPallets(
   shippingRegionId: string,
@@ -347,7 +396,18 @@ export async function cleanupEmptyPallets(
       const palletId = row.id as string;
       const refCount = await reservationRowCountForPallet(palletId);
       if (refCount < 0) continue;
-      if (refCount > 0) {
+      const bookingCount = await bookingRowCountForPallet(palletId);
+      if (bookingCount < 0) continue;
+
+      if (
+        palletHasHistoryForCleanup({
+          reservationCount: refCount,
+          bookingCount,
+        })
+      ) {
+        console.log(
+          `[PALLET] Skipping delete for pallet ${palletId} (has history)`,
+        );
         continue;
       }
 
@@ -372,7 +432,7 @@ export async function cleanupEmptyPallets(
       }
 
       deleted.push(palletId);
-      console.log(`[PALLET] Auto-deleted empty pallet ${palletId}`);
+      console.log(`[PALLET] Auto-deleted empty virgin pallet ${palletId}`);
     }
   } catch (e) {
     console.error("[cleanupEmptyPallets]", e);
