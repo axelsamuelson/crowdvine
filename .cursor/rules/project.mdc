@@ -1,0 +1,12 @@
+---
+description: PACT project rules — always load AGENTS.md as canonical agent instructions
+alwaysApply: true
+---
+
+# PACT project rules
+
+Follow **[`AGENTS.md`](../../AGENTS.md)** at the repository root as the single source of truth for all agents (Cursor, Claude Code, cloud agents).
+
+- Project overview, stack/commands, conventions, migrations, analytics, MCP, crons, and PR norms live there.
+- AI/automation inventory: [`docs/ai/README.md`](../../docs/ai/README.md).
+- Do not invent conflicting conventions; update `AGENTS.md` when rules change.
