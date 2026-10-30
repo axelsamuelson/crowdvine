@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
-import { getCurrentUser } from "@/lib/auth";
+import {
+  isUnauthorizedResponse,
+  requireAdminOr401,
+} from "@/lib/admin-auth-http";
 
 /**
  * GET /api/admin/memberships
@@ -9,26 +12,10 @@ import { getCurrentUser } from "@/lib/auth";
  */
 export async function GET(request: Request) {
   try {
-    const user = await getCurrentUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const adminAuth = await requireAdminOr401();
+    if (isUnauthorizedResponse(adminAuth)) return adminAuth;
 
     const sb = getSupabaseAdmin();
-
-    // Check if user is admin
-    const { data: profile } = await sb
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single();
-
-    if (!profile || profile.role !== "admin") {
-      return NextResponse.json(
-        { error: "Admin access required" },
-        { status: 403 },
-      );
-    }
 
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get("limit") || "50");
@@ -71,26 +58,10 @@ export async function GET(request: Request) {
  */
 export async function PUT(request: Request) {
   try {
-    const user = await getCurrentUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const adminAuth = await requireAdminOr401();
+    if (isUnauthorizedResponse(adminAuth)) return adminAuth;
 
     const sb = getSupabaseAdmin();
-
-    // Check if user is admin
-    const { data: profile } = await sb
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single();
-
-    if (!profile || profile.role !== "admin") {
-      return NextResponse.json(
-        { error: "Admin access required" },
-        { status: 403 },
-      );
-    }
 
     const body = await request.json();
     const { userId, level, impactPoints } = body;
@@ -99,7 +70,9 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: "userId required" }, { status: 400 });
     }
 
-    const updates: any = { updated_at: new Date().toISOString() };
+    const updates: Record<string, unknown> = {
+      updated_at: new Date().toISOString(),
+    };
 
     if (level) {
       updates.level = level;

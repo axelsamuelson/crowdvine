@@ -1,13 +1,17 @@
 import { NextResponse } from "next/server";
-import { getCurrentAdmin } from "@/lib/admin-auth-server";
+import {
+  isUnauthorizedResponse,
+  requireAdminOr401,
+} from "@/lib/admin-auth-http";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
-import { supabaseServer } from "@/lib/supabase-server";
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const sb = await supabaseServer();
+  const adminAuth = await requireAdminOr401();
+  if (isUnauthorizedResponse(adminAuth)) return adminAuth;
+  const sb = getSupabaseAdmin();
   const resolvedParams = await params;
 
   try {
@@ -44,10 +48,8 @@ export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const admin = await getCurrentAdmin();
-  if (!admin) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const adminAuth = await requireAdminOr401();
+  if (isUnauthorizedResponse(adminAuth)) return adminAuth;
   const sb = getSupabaseAdmin();
   const resolvedParams = await params;
 
@@ -96,10 +98,8 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const admin = await getCurrentAdmin();
-  if (!admin) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const adminAuth = await requireAdminOr401();
+  if (isUnauthorizedResponse(adminAuth)) return adminAuth;
   const sb = getSupabaseAdmin();
   const resolvedParams = await params;
 

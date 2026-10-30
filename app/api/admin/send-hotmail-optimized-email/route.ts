@@ -2,12 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAppUrl } from "@/lib/app-url";
 import { sendGridService } from "@/lib/sendgrid-service";
 import {
+  isUnauthorizedResponse,
+  requireAdminOr401,
+} from "@/lib/admin-auth-http";
+import {
   getAccessApprovalEmailTemplate,
   getAccessApprovalEmailText,
 } from "@/lib/email-templates";
 
 export async function POST(request: NextRequest) {
   try {
+    const adminAuth = await requireAdminOr401();
+    if (isUnauthorizedResponse(adminAuth)) return adminAuth;
+
     const { email } = await request.json();
 
     if (!email) {

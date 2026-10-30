@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server";
-import { getCurrentAdmin } from "@/lib/admin-auth-server";
+import {
+  isUnauthorizedResponse,
+  requireAdminOr401,
+} from "@/lib/admin-auth-http";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
-import { supabaseServer } from "@/lib/supabase-server";
 
 export async function GET() {
-  const sb = await supabaseServer();
+  const adminAuth = await requireAdminOr401();
+  if (isUnauthorizedResponse(adminAuth)) return adminAuth;
+  const sb = getSupabaseAdmin();
 
   try {
     const { data: wineBoxes, error } = await sb
@@ -25,10 +29,8 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const admin = await getCurrentAdmin();
-  if (!admin) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const adminAuth = await requireAdminOr401();
+  if (isUnauthorizedResponse(adminAuth)) return adminAuth;
   const sb = getSupabaseAdmin();
 
   try {
