@@ -1,4 +1,4 @@
--- Migration 244: Expose product_launch_date on systembolaget_recommendation_wines.
+-- Migration 247: Expose product_launch_date on systembolaget_recommendation_wines.
 -- Appended last so CREATE OR REPLACE stays compatible with prior view shapes.
 -- Keeps security_invoker from migration 243.
 
