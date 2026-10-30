@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { translate } from "@/lib/i18n/messages";
+import { B2C_DIRECT_BOX_DELIVERY_TIME_TODO } from "@/lib/commerce/direct-box-delivery";
 
 describe("conversion funnel copy (sv)", () => {
   it("exposes Reservera CTA and min-six mix hint", () => {
@@ -8,6 +9,14 @@ describe("conversion funnel copy (sv)", () => {
     expect(translate("sv", "commerce.minSixMix")).toBe(
       "Minst 6 flaskor – du kan blanda",
     );
+  });
+
+  it("promises direct-box delivery without inventing a time SLA", () => {
+    expect(translate("sv", "commerce.directBoxDeliveryPromise")).toBe(
+      "Skickas direkt från producenten i låda",
+    );
+    // Customer copy must not invent delivery times; only a marked TODO may set one.
+    expect(B2C_DIRECT_BOX_DELIVERY_TIME_TODO).toBeNull();
   });
 
   it("explains how many more bottles are needed", () => {
@@ -22,12 +31,6 @@ describe("conversion funnel copy (sv)", () => {
     ).toBe("2 flaskor till");
   });
 
-  it("formats pallet fill counts for SSR snapshots", () => {
-    expect(
-      translate("sv", "commerce.palletFillCount", { filled: 42, total: 120 }),
-    ).toBe("42 av 120 flaskor");
-  });
-
   it("has progressive delivery field hints", () => {
     expect(translate("sv", "checkout.postalCodeInvalid")).toMatch(/5/);
     expect(
@@ -37,8 +40,11 @@ describe("conversion funnel copy (sv)", () => {
 });
 
 describe("conversion funnel copy (en)", () => {
-  it("mirrors reserve + min-six messaging", () => {
+  it("mirrors reserve + min-six + direct-box messaging", () => {
     expect(translate("en", "shop.reserve")).toBe("Reserve");
     expect(translate("en", "commerce.minSixMix")).toMatch(/6/);
+    expect(translate("en", "commerce.directBoxDeliveryPromise")).toMatch(
+      /producer/i,
+    );
   });
 });

@@ -29,7 +29,6 @@ import { PriceViewTracker } from "@/components/analytics/price-view-tracker";
 import { ListCardCommerceFooter } from "@/components/commerce/list-card-commerce-footer";
 import { BOTTLE_PACK_SIZE } from "@/lib/cart/bottle-pack";
 import { B2B_PRODUCER_ORDERS_ENABLED } from "@/lib/b2b/flags";
-import type { ZoneStatusPayload } from "@/lib/pallet/zone-status";
 import type { Cart } from "@/lib/shopify/types";
 
 const AddToCart = dynamic(
@@ -162,7 +161,6 @@ export const ProductCard = memo(
     listSearchQuery,
     showMembershipTab = false,
     recommendationReason,
-    initialPalletStatus = null,
   }: {
     product: Product;
     index?: number;
@@ -172,8 +170,6 @@ export const ProductCard = memo(
     showMembershipTab?: boolean;
     /** Recommended wines: same producer / similar wine tab beside membership tab. */
     recommendationReason?: RecommendationReason;
-    /** SSR pallet fill snapshot when available (above-fold list). */
-    initialPalletStatus?: ZoneStatusPayload | null;
   }) => {
   const { t } = useTranslations();
   const paths = useLocalizedPaths();
@@ -891,7 +887,7 @@ export const ProductCard = memo(
               shopCaseWineCta || isTouched ? "opacity-100" : "opacity-0",
             )}
           >
-            <ListCardCommerceFooter palletStatus={initialPalletStatus}>
+            <ListCardCommerceFooter>
               <div className="flex gap-2 items-center min-w-0">
                 {wineColor ? (
                   <div className="flex shrink-0 items-center">
@@ -976,7 +972,7 @@ export const ProductCard = memo(
               shopCaseWineCta || isTouched ? "opacity-100" : "opacity-0",
             )}
           >
-            <ListCardCommerceFooter palletStatus={initialPalletStatus}>
+            <ListCardCommerceFooter>
               <div className="flex gap-2 items-center min-w-0">
                 {wineColor ? (
                   <div className="flex shrink-0 items-center">
@@ -1061,10 +1057,7 @@ export const ProductCard = memo(
           className="hidden md:flex absolute inset-x-3 bottom-3 flex-col gap-4 px-2 py-3 rounded-md transition-all duration-300 pointer-events-none bg-white/90 backdrop-blur-sm opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 translate-y-1/3 group-hover:translate-y-0 group-focus-visible:translate-y-0"
         >
           {shopCaseWineCta ? (
-            <ListCardCommerceFooter
-              palletStatus={initialPalletStatus}
-              className="pointer-events-none"
-            />
+            <ListCardCommerceFooter className="pointer-events-none" />
           ) : null}
           <div className="grid grid-cols-2 gap-x-4 gap-y-4 items-end">
             <div className="flex flex-col">

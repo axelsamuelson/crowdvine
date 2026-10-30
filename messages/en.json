@@ -342,6 +342,7 @@
   },
   "commerce": {
     "minSixMix": "Minimum 6 bottles – you can mix",
+    "directBoxDeliveryPromise": "Shipped directly from the producer in a box",
     "palletFillCount": "{filled} of {total} bottles",
     "palletReadyShort": "Ready",
     "palletRemainingShort": "{remaining} left"
@@ -447,6 +448,7 @@
     "stripePaymentFormLoadFailed": "Payment form failed to load",
     "stripePaymentFormLoadHint": "Often caused by a mismatch between test/live keys, an expired client secret, or a blocked network. Try again after verifying your Stripe publishable key matches the account that created the intent.",
     "defaultUserName": "User",
+    "deliveryPromiseLabel": "Delivery",
     "palletProgress": "Pallet progress",
     "palletProgressCount": "{filled} of {total} bottles",
     "palletBottlesToGo": "{remaining} bottles to go before this shipment is ready",

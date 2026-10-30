@@ -342,6 +342,7 @@
   },
   "commerce": {
     "minSixMix": "Minst 6 flaskor – du kan blanda",
+    "directBoxDeliveryPromise": "Skickas direkt från producenten i låda",
     "palletFillCount": "{filled} av {total} flaskor",
     "palletReadyShort": "Redo",
     "palletRemainingShort": "{remaining} kvar"
@@ -447,6 +448,7 @@
     "stripePaymentFormLoadFailed": "Betalningsformuläret kunde inte laddas",
     "stripePaymentFormLoadHint": "Ofta orsakat av felmatchade test-/live-nycklar, en utgången client secret eller blockerat nätverk. Försök igen efter att du verifierat att din Stripe publishable key matchar kontot som skapade intent.",
     "defaultUserName": "Användare",
+    "deliveryPromiseLabel": "Leverans",
     "palletProgress": "Pallstatus",
     "palletProgressCount": "{filled} av {total} flaskor",
     "palletBottlesToGo": "{remaining} flaskor kvar tills leveransen är redo",

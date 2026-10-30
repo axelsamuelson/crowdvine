@@ -87,6 +87,8 @@ import {
   calculateBoostAwareMaxRedemption,
 } from "@/lib/membership/pact-points-redemption-math";
 import { cn } from "@/lib/utils";
+import { B2C_DIRECT_BOX_DELIVERY_TIME_TODO } from "@/lib/commerce/direct-box-delivery";
+import { DirectBoxDeliveryPromise } from "@/components/commerce/direct-box-delivery-promise";
 import type { ProducerValidation } from "@/lib/checkout-validation";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -3124,63 +3126,17 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
     [zoneInfo.pallets],
   );
 
-  const { fillPercent, deliveryEstimateLabel, isReadyToShip, bottlesRemaining } =
-    useMemo(() => {
-      const estimateFromFill = (fp: number) => {
-        if (fp < 50) return t("checkout.deliveryEstimate2to4Weeks");
-        if (fp < 80) return t("checkout.deliveryEstimate1to2Weeks");
-        return t("checkout.deliveryEstimateWithin1Week");
-      };
-
-      if (!selectedPallet) {
-        return {
-          fillPercent: 0,
-          deliveryEstimateLabel: t("checkout.deliveryEstimate2to4Weeks"),
-          isReadyToShip: false,
-          bottlesRemaining: 0,
-        };
-      }
-
-      const progress = selectedPallet.shipProgress;
-      const f = progress?.bottlesFilled ?? selectedPallet.currentBottles;
-      const minToShip =
-        progress?.minBottlesToShip ??
-        selectedPallet.minBottlesToShip ??
-        selectedPallet.maxBottles;
-      if (!Number.isFinite(f) || !Number.isFinite(minToShip) || minToShip <= 0) {
-        return {
-          fillPercent: 0,
-          deliveryEstimateLabel: t("checkout.deliveryEstimate2to4Weeks"),
-          isReadyToShip: false,
-          bottlesRemaining: 0,
-        };
-      }
-      const fp =
-        progress?.shipProgressPercent ??
-        Math.min(100, (f / minToShip) * 100);
-      const ready =
-        progress?.isReadyToShip ?? f >= minToShip;
-      const remaining =
-        progress?.bottlesRemainingToShip ??
-        Math.max(0, minToShip - f);
-      const st = String(selectedPallet.status ?? "").toLowerCase();
-      if (st === "shipping_ordered") {
-        return {
-          fillPercent: fp,
-          deliveryEstimateLabel: t("checkout.deliveryEstimateShippingOrdered"),
-          isReadyToShip: true,
-          bottlesRemaining: 0,
-        };
-      }
-      return {
-        fillPercent: fp,
-        deliveryEstimateLabel: ready
-          ? t("checkout.palletShipmentReady")
-          : estimateFromFill(fp),
-        isReadyToShip: ready,
-        bottlesRemaining: remaining,
-      };
-    }, [selectedPallet, t]);
+  // Customer-facing delivery copy: direct box from producer (no pallet fill).
+  // TODO time string only via B2C_DIRECT_BOX_DELIVERY_TIME_TODO — do not invent SLAs.
+  const deliveryPromiseLabel = useMemo(() => {
+    const timeTodo = B2C_DIRECT_BOX_DELIVERY_TIME_TODO?.trim();
+    if (timeTodo) return timeTodo;
+    const st = String(selectedPallet?.status ?? "").toLowerCase();
+    if (st === "shipping_ordered") {
+      return t("checkout.deliveryEstimateShippingOrdered");
+    }
+    return t("commerce.directBoxDeliveryPromise");
+  }, [selectedPallet?.status, t]);
 
   const handleSelectPallet = useCallback(
     (palletId: string) => {
@@ -3671,7 +3627,7 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
                               </p>
                               <p className="mt-0.5 text-xs text-muted-foreground">
                                 {t("checkout.deliveryBringHint", {
-                                  estimate: deliveryEstimateLabel,
+                                  estimate: deliveryPromiseLabel,
                                 })}
                               </p>
                               {budbeeAvailable === false && (
@@ -3700,29 +3656,13 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
                     ) : null}
 
                     {selectedPallet != null ? (
-                      <div>
-                        <div className="mb-1.5 flex items-center justify-between">
-                          <p className="text-xs text-muted-foreground">
-                            {t("checkout.palletProgress")}
-                          </p>
-                          <p className="text-xs tabular-nums text-muted-foreground">
-                            {isReadyToShip
-                              ? t("checkout.palletShipmentReady")
-                              : t("checkout.palletBottlesToGo", {
-                                  remaining: String(bottlesRemaining),
-                                })}
-                          </p>
-                        </div>
-                        <div className="flex h-3 w-full overflow-hidden rounded-full bg-muted/50">
-                          <div
-                            className="h-full min-w-[2px] rounded-full bg-foreground transition-all duration-300"
-                            style={{
-                              width: `${Math.min(100, Math.max(0, fillPercent))}%`,
-                            }}
-                          />
-                        </div>
+                      <div className="space-y-1.5">
+                        <p className="text-xs text-muted-foreground">
+                          {t("checkout.deliveryPromiseLabel")}
+                        </p>
+                        <DirectBoxDeliveryPromise />
                         {selectedPallet.current_pickup_producer?.name ? (
-                          <p className="text-xs text-muted-foreground mt-2">
+                          <p className="text-xs text-muted-foreground">
                             {t("checkout.collectedFrom", {
                               name: selectedPallet.current_pickup_producer.name,
                             })}

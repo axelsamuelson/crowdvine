@@ -1,8 +1,8 @@
 import { Suspense, type ReactNode } from "react";
 import { CartSourceProviderConditional } from "@/components/cart/cart-source-provider-conditional";
 import { AddToCartConditional } from "@/components/cart/add-to-cart-conditional";
+import { DirectBoxDeliveryPromise } from "@/components/commerce/direct-box-delivery-promise";
 import { MinSixBottlesHint } from "@/components/commerce/min-six-bottles-hint";
-import { PalletStatusSnapshot } from "@/components/commerce/pallet-status-snapshot";
 import { ServerListPrice } from "@/components/commerce/server-list-price";
 import { PageLayoutServer } from "@/components/layout/page-layout-server";
 import { PalletStatusBar } from "@/components/pdp/pallet-status-bar";
@@ -166,18 +166,10 @@ export function ProductPdpLayout({
                     {product.productType === "wine" ? (
                       <MinSixBottlesHint locale={locale} />
                     ) : null}
-                    {/*
-                      SSR: provider seeds initialData so PalletStatusBar paints fill
-                      without waiting for client fetch. Snapshot is a no-JS fallback.
-                    */}
-                    {initialPalletStatus ? (
-                      <noscript>
-                        <PalletStatusSnapshot
-                          status={initialPalletStatus}
-                          locale={locale}
-                        />
-                      </noscript>
-                    ) : null}
+                    {/* SSR direct-box promise; client PalletStatusBar keeps analytics. */}
+                    <noscript>
+                      <DirectBoxDeliveryPromise locale={locale} />
+                    </noscript>
                     <PalletStatusBar />
                     <AddToCartConditional
                       product={product}

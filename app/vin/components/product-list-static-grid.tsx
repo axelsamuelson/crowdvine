@@ -1,13 +1,12 @@
 import Link from "next/link";
 
+import { DirectBoxDeliveryPromise } from "@/components/commerce/direct-box-delivery-promise";
 import { MinSixBottlesHint } from "@/components/commerce/min-six-bottles-hint";
-import { PalletStatusSnapshot } from "@/components/commerce/pallet-status-snapshot";
 import { ServerListPrice } from "@/components/commerce/server-list-price";
 import { SsrReserveLink } from "@/components/commerce/ssr-reserve-link";
 import { ProductListImageServer } from "@/app/vin/components/product-list-image-server";
 import { ProductGrid } from "@/app/vin/components/product-grid";
 import type { AppLocale } from "@/lib/i18n/locale";
-import type { ZoneStatusPayload } from "@/lib/pallet/zone-status";
 import type { Product } from "@/lib/shopify/types";
 
 function productHref(handle: string, locale: AppLocale): string {
@@ -18,12 +17,10 @@ function ProductListStaticCard({
   product,
   index,
   locale,
-  palletStatus,
 }: {
   product: Product;
   index: number;
   locale: AppLocale;
-  palletStatus?: ZoneStatusPayload | null;
 }) {
   const href = productHref(product.handle, locale);
 
@@ -64,13 +61,7 @@ function ProductListStaticCard({
 
           <div className="pointer-events-auto space-y-1.5 rounded-md bg-white/95 p-2 shadow-sm backdrop-blur-sm">
             <MinSixBottlesHint locale={locale} compact />
-            {palletStatus ? (
-              <PalletStatusSnapshot
-                status={palletStatus}
-                locale={locale}
-                compact
-              />
-            ) : null}
+            <DirectBoxDeliveryPromise locale={locale} compact />
             <SsrReserveLink handle={product.handle} locale={locale} />
           </div>
         </div>
@@ -79,15 +70,13 @@ function ProductListStaticCard({
   );
 }
 
-/** Server-rendered PLP grid — images, price, reserve CTA, pallet status in initial HTML. */
+/** Server-rendered PLP grid — images, price, Reservera CTA, direct-box promise. */
 export function ProductListStaticGrid({
   products,
   locale,
-  palletStatusByHandle = {},
 }: {
   products: Product[];
   locale: AppLocale;
-  palletStatusByHandle?: Record<string, ZoneStatusPayload | null>;
 }) {
   return (
     <ProductGrid>
@@ -97,7 +86,6 @@ export function ProductListStaticGrid({
           product={product}
           index={index}
           locale={locale}
-          palletStatus={palletStatusByHandle[product.handle]}
         />
       ))}
     </ProductGrid>
