@@ -13,11 +13,11 @@ import {
 } from "../shipping-calculations";
 
 describe("pallet ship progress", () => {
-  it("defaults physical capacity to 720 and min to 240", () => {
+  it("defaults physical capacity to 720 and min to 270", () => {
     expect(DEFAULT_PHYSICAL_BOTTLE_CAPACITY).toBe(720);
-    expect(DEFAULT_MIN_BOTTLES_TO_COMPLETE).toBe(240);
+    expect(DEFAULT_MIN_BOTTLES_TO_COMPLETE).toBe(270);
     expect(resolvePhysicalBottleCapacity(null)).toBe(720);
-    expect(resolveMinBottlesToShip(undefined)).toBe(240);
+    expect(resolveMinBottlesToShip(undefined)).toBe(270);
   });
 
   it("0 / 120 → not ready", () => {

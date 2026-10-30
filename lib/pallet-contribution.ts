@@ -2,7 +2,7 @@
  * Shadow pallet contribution readiness (Phase 2).
  *
  * prePalletContribution = contribution BEFORE deducting inbound pallet freight.
- * Live ship-ready trigger remains min_bottles_to_complete (240) — this module
+ * Live ship-ready trigger remains min_bottles_to_complete (270) — this module
  * is observational only until a later phase.
  *
  * Snapshot at checkout confirm (same moment bottles enter PALLET_FILL_STATUSES).

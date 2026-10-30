@@ -4,7 +4,7 @@
  */
 
 export const DEFAULT_PHYSICAL_BOTTLE_CAPACITY = 720;
-export const DEFAULT_MIN_BOTTLES_TO_COMPLETE = 240;
+export const DEFAULT_MIN_BOTTLES_TO_COMPLETE = 270;
 
 export type PalletShipProgress = {
   bottlesFilled: number;

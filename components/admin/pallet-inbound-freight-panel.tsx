@@ -253,7 +253,7 @@ export function PalletInboundFreightPanel({ palletId }: { palletId: string }) {
             Inbound freight (shadow)
           </h3>
           <p className="text-xs text-zinc-500">
-            Does not change live 240-bottle readiness or customer shipping.
+            Does not change live 270-bottle readiness or customer shipping.
           </p>
         </div>
         <a
