@@ -56,6 +56,7 @@ import { Analytics } from "@vercel/analytics/react";
 import { PageViewTracker } from "@/components/analytics/page-view-tracker";
 import { SessionEngagementTracker } from "@/components/analytics/session-engagement-tracker";
 import { InternalDeviceMarker } from "@/components/analytics/internal-device-marker";
+import { ExitFeedbackPrompt } from "@/components/analytics/exit-feedback-prompt";
 import {
   buildRootTwitterMetadata,
   defaultOpenGraphImages,
@@ -216,6 +217,7 @@ export default async function RootLayout({
                       <InternalDeviceMarker />
                       <PageViewTracker />
                       <SessionEngagementTracker />
+                      <ExitFeedbackPrompt />
                       <Analytics />
                     </MembershipProvider>
                   </PortalProvider>
