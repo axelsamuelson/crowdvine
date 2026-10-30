@@ -25,11 +25,17 @@ export async function POST(request: NextRequest) {
       destinations,
     );
 
-    const source =
-      Object.values(routes)[0]?.source ??
-      (process.env.MAPBOX_ACCESS_TOKEN || process.env.NEXT_PUBLIC_MAPBOX_TOKEN
-        ? "mapbox"
-        : "osrm");
+    if (routes == null) {
+      return NextResponse.json(
+        {
+          error:
+            "Driving routes unavailable: Mapbox token missing or Mapbox Matrix API failed",
+        },
+        { status: 503 },
+      );
+    }
+
+    const source = Object.values(routes)[0]?.source ?? "mapbox";
 
     return NextResponse.json({ routes, source });
   } catch (error) {

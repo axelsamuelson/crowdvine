@@ -283,7 +283,7 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
   const [drivingRoutes, setDrivingRoutes] = useState<DrivingRoutesResponse>({});
   const [drivingRoutesLoading, setDrivingRoutesLoading] = useState(false);
   const [drivingRoutesSource, setDrivingRoutesSource] = useState<
-    "mapbox" | "osrm" | "estimate" | null
+    "mapbox" | "estimate" | null
   >(null);
   const [optimalPickup, setOptimalPickup] = useState<OptimalPickupResult | null>(
     null,
@@ -926,14 +926,14 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
         if (!res.ok) throw new Error("Routing request failed");
         return res.json() as Promise<{
           routes?: DrivingRoutesResponse;
-          source?: "mapbox" | "osrm";
+          source?: "mapbox";
         }>;
       })
       .then((data) => {
         setDrivingRoutes(data.routes ?? {});
         setDrivingRoutesSource(
           data.routes && Object.keys(data.routes).length > 0
-            ? (data.source ?? "osrm")
+            ? (data.source ?? "mapbox")
             : "estimate",
         );
       })
@@ -2280,8 +2280,7 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
                   drivingRoutesSource &&
                   drivingRoutesSource !== "estimate" ? (
                     <p className={cn("mt-2 px-1", hintClass)}>
-                      Distans och körtid baseras på vägnät (
-                      {drivingRoutesSource === "mapbox" ? "Mapbox" : "OSRM"}).
+                      Distans och körtid baseras på vägnät (Mapbox).
                       {optimalPickup
                         ? " Taggen Bästa plats = lägst snittid till övriga producenter."
                         : null}
