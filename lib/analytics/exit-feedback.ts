@@ -15,6 +15,39 @@ export const EXIT_FEEDBACK_SESSION_ID_MAX = 128;
 
 export type ExitFeedbackStep = "checkout" | "cart";
 
+export const EXIT_FEEDBACK_REASONS = [
+  "min_6_bottles",
+  "price",
+  "delivery_unclear",
+  "wait_too_long",
+  "just_browsing",
+  "other",
+] as const;
+
+export type ExitFeedbackReason = (typeof EXIT_FEEDBACK_REASONS)[number];
+
+export const EXIT_FEEDBACK_REASON_OPTIONS: ReadonlyArray<{
+  value: ExitFeedbackReason;
+  label: string;
+}> = [
+  { value: "min_6_bottles", label: "Minst 6 flaskor är för många" },
+  { value: "price", label: "Priset" },
+  {
+    value: "delivery_unclear",
+    label: "Osäker på hur leverans/pallen fungerar",
+  },
+  { value: "wait_too_long", label: "För lång väntan på leverans" },
+  { value: "just_browsing", label: "Ville bara titta" },
+  { value: "other", label: "Annat" },
+];
+
+export function isExitFeedbackReason(value: unknown): value is ExitFeedbackReason {
+  return (
+    typeof value === "string" &&
+    (EXIT_FEEDBACK_REASONS as readonly string[]).includes(value)
+  );
+}
+
 export function getExitFeedbackSessionId(): string {
   if (typeof window === "undefined") return "";
   try {
@@ -128,7 +161,11 @@ export function isInternalExitFeedbackSession(
   return false;
 }
 
+/**
+ * Optional free text. Empty → null. Over max length → null (reject).
+ */
 export function normalizeExitFeedbackAnswer(raw: unknown): string | null {
+  if (raw == null) return null;
   if (typeof raw !== "string") return null;
   const answer = raw.trim();
   if (!answer) return null;
