@@ -90,7 +90,8 @@ export async function loadPactFinanceOverview(input: {
     .select("id, created_at, total_sek, shipping_revenue_gross_cents, pallet_id, status")
     .gte("created_at", startIso)
     .lte("created_at", endIso)
-    .in("status", [...PALLET_FILL_STATUSES]);
+    .in("status", [...PALLET_FILL_STATUSES])
+    .is("archived_at", null);
 
   if (resErr) throw new Error(resErr.message);
 

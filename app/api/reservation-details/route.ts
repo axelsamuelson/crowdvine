@@ -121,14 +121,13 @@ export async function GET(request: Request) {
         .single();
 
       if (!palletError && palletData) {
-        // Get current bottle count for this pallet
-        const { data: bookings, error: bookingsError } = await sb
-          .from("bookings")
-          .select("quantity");
-
-        const currentBottles = bookingsError
-          ? 0
-          : bookings?.reduce((sum, booking) => sum + booking.quantity, 0) || 0;
+        // Canonical fill: active order_reservations only (never legacy bookings,
+        // never archived/cancelled reservations).
+        const { sumReservedBottlesOnPalletResult } = await import(
+          "@/lib/pallet-fill-count"
+        );
+        const fill = await sumReservedBottlesOnPalletResult(palletData.id);
+        const currentBottles = fill.ok ? fill.bottles : 0;
 
         pallet = {
           ...palletData,

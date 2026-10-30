@@ -89,7 +89,8 @@ export async function backfillMissingReservationEconomicsSnapshots(options?: {
   let resQuery = sb
     .from("order_reservations")
     .select("id, status, pallet_id, discount_amount_sek")
-    .in("status", [...PALLET_FILL_STATUSES]);
+    .in("status", [...PALLET_FILL_STATUSES])
+    .is("archived_at", null);
   if (palletId) {
     resQuery = resQuery.eq("pallet_id", palletId);
   }

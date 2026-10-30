@@ -90,7 +90,8 @@ async function main() {
     .from("order_reservations")
     .select("id")
     .eq("pallet_id", palletId)
-    .in("status", [...PALLET_FILL_STATUSES]);
+    .in("status", [...PALLET_FILL_STATUSES])
+    .is("archived_at", null);
   const ids = (res || []).map((r) => r.id);
   const { data: items } = await sb
     .from("order_reservation_items")
@@ -108,6 +109,7 @@ async function main() {
     .from("order_reservations")
     .select("id, shipping_revenue_gross_cents, status")
     .in("status", [...PALLET_FILL_STATUSES])
+    .is("archived_at", null)
     .limit(5000);
   const rids = (reservations || []).map((r) => r.id as string);
   const { data: allItems } = await sb

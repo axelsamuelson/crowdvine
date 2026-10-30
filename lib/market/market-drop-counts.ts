@@ -13,7 +13,8 @@ export async function sumFillBottlesOnMarketDrop(
     .from("order_reservations")
     .select("id")
     .eq("market_drop_id", marketDropId)
-    .in("status", [...PALLET_FILL_STATUSES]);
+    .in("status", [...PALLET_FILL_STATUSES])
+    .is("archived_at", null);
 
   if (error || !reservations?.length) {
     if (error) {
@@ -53,6 +54,7 @@ export async function sumRequestedBottlesOnMarketDrop(
     .select("id")
     .eq("market_drop_id", marketDropId)
     .in("status", [...PALLET_FILL_STATUSES])
+    .is("archived_at", null)
     .eq("is_conditional", true);
 
   if (error || !reservations?.length) return 0;
@@ -85,7 +87,8 @@ export async function sumChargeableBottlesOnMarketDrop(
     .from("order_reservations")
     .select("id, is_conditional")
     .eq("market_drop_id", marketDropId)
-    .in("status", [...PALLET_FILL_STATUSES]);
+    .in("status", [...PALLET_FILL_STATUSES])
+    .is("archived_at", null);
 
   if (error || !reservations?.length) return 0;
 
