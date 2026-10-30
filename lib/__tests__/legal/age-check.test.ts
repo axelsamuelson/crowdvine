@@ -75,13 +75,14 @@ describe("evaluateLegalGate", () => {
   });
 
   it("keeps Sweden at 20 when the market age is null", () => {
-    expect(getAgeLimit("US")).toBe(20);
+    expect(getAgeLimit("SE")).toBe(20);
+    expect(getAgeLimit("US")).toBe(21);
     expect(
       resolveMarketAgeMinimum({ countryCode: "SE", ageMinimum: null }),
     ).toBe(20);
     expect(
       resolveMarketAgeMinimum({ countryCode: "US", ageMinimum: null }),
-    ).toBe(20);
+    ).toBe(21);
     const result = evaluateLegalGate(
       {
         dateOfBirth: "2006-08-25",
@@ -111,17 +112,40 @@ describe("evaluateLegalGate", () => {
     ).toEqual({ ok: false, reason: "age_requirement_not_met" });
   });
 
-  it("accepts exactly 20 today", () => {
+  it("accepts exactly 20 today when Sweden market age is passed", () => {
     const result = evaluateLegalGate(
       {
         dateOfBirth: "2006-08-25",
         acceptedTermsVersion: LEGAL_VERSIONS.terms,
       },
       now,
+      resolveMarketAgeMinimum({ countryCode: "SE", ageMinimum: 20 }),
     );
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.dateOfBirth).toBe("2006-08-25");
     }
+  });
+
+  it("defaults to the stricter known age when minimumAge is omitted", () => {
+    // MINIMUM_AGE tracks DEFAULT_AGE_LIMIT (21). A 20-year-old fails.
+    expect(
+      evaluateLegalGate(
+        {
+          dateOfBirth: "2006-08-25",
+          acceptedTermsVersion: LEGAL_VERSIONS.terms,
+        },
+        now,
+      ),
+    ).toEqual({ ok: false, reason: "age_requirement_not_met" });
+    expect(
+      evaluateLegalGate(
+        {
+          dateOfBirth: "2005-08-25",
+          acceptedTermsVersion: LEGAL_VERSIONS.terms,
+        },
+        now,
+      ).ok,
+    ).toBe(true);
   });
 });
