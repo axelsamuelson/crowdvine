@@ -201,9 +201,13 @@ export default function KopvillkorContent() {
       </LegalP>
       <LegalP>
         <LegalStrong>Om betalningen inte kan genomföras</LegalStrong> när pallen
-        stänger, till exempel för att kortet gått ut eller saknar täckning,
-        gäller Stripes regler för betalningen och villkoren för det betalmedel
-        du använder. Sker ingen betalning återgår varorna till försäljning.
+        stänger, till exempel för att kortet gått ut eller saknar täckning:
+        Om dragningen från ditt sparade kort misslyckas gör vi nya försök efter{" "}
+        <LegalStrong>24 och 72 timmar</LegalStrong>. Kräver banken extra
+        verifiering (3D Secure) får du ett mejl med en länk för att godkänna
+        betalningen. Misslyckas tre försök avbryts beställningen och{" "}
+        <LegalStrong>inget dras</LegalStrong>. Varorna återgår då till
+        försäljning.
       </LegalP>
       <LegalP>
         Betalning sker enligt{" "}

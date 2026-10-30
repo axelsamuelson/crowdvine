@@ -1,8 +1,8 @@
 # Köpvillkor
 
-> **UTKAST.** Framtaget av Daniel Holm (Compliance), med ställningstagande av Sofia Bergström (GC) den 25 augusti 2026 enligt `gc-stallningstagande-angerratt-och-villkor.md`. Tvistlösningen (p. 13) är oförändrad. Punkt 9 och 10 är omskrivna 2026-10-29 på ägarens instruktion och avviker från GC-dokumentet, se anmärkningen under punkt 9. Punkt 3 (giltighetstid och producent som inte kan leverera) uppdaterad 2026-10-31, i linje med reservationsmejlen (30 dagar åt gången, bekräftelse via länk senast angivet datum inom 7 dagar, obegränsat antal förlängningar). Punkt 7 (leveranstid och leveransområde) ifylld 2026-11-01: 5–10 arbetsdagar inom hela Sverige från orderbekräftelse och debitering. Övriga fält markerade `[FYLL I]` måste fyllas i innan sidan går live. Ingen extern advokat har granskat texten.
+> **UTKAST.** Framtaget av Daniel Holm (Compliance), med ställningstagande av Sofia Bergström (GC) den 25 augusti 2026 enligt `gc-stallningstagande-angerratt-och-villkor.md`. Tvistlösningen (p. 13) är oförändrad. Punkt 9 och 10 är omskrivna 2026-10-29 på ägarens instruktion och avviker från GC-dokumentet, se anmärkningen under punkt 9. Punkt 3 (giltighetstid och producent som inte kan leverera) uppdaterad 2026-10-31, i linje med reservationsmejlen (30 dagar åt gången, bekräftelse via länk senast angivet datum inom 7 dagar, obegränsat antal förlängningar). Punkt 7 (leveranstid och leveransområde) ifylld 2026-11-01: 5–10 arbetsdagar inom hela Sverige från orderbekräftelse och debitering. Punkt 5 (misslyckad debitering: omförsök efter 24/72 h, 3D Secure-länk, avbrott efter tre försök utan dragning) uppdaterad 2026-11-02 enligt `lib/payment-retry.ts` och Stripe-webhook. Övriga fält markerade `[FYLL I]` måste fyllas i innan sidan går live. Ingen extern advokat har granskat texten.
 
-Senast uppdaterad: 2026-11-01
+Senast uppdaterad: 2026-11-02
 
 ---
 
@@ -97,7 +97,7 @@ Betalningar hanteras av Stripe. Vi lagrar aldrig ditt fullständiga kortnummer.
 
 Din bank kan komma att kräva en säkerhetsverifiering (BankID eller motsvarande) antingen vid reservationen eller vid debiteringen.
 
-**Om betalningen inte kan genomföras** när pallen stänger, till exempel för att kortet gått ut eller saknar täckning, gäller Stripes regler för betalningen och villkoren för det betalmedel du använder. Sker ingen betalning återgår varorna till försäljning.
+**Om betalningen inte kan genomföras** när pallen stänger, till exempel för att kortet gått ut eller saknar täckning: Om dragningen från ditt sparade kort misslyckas gör vi nya försök efter **24 och 72 timmar**. Kräver banken extra verifiering (3D Secure) får du ett mejl med en länk för att godkänna betalningen. Misslyckas tre försök avbryts beställningen och **inget dras**. Varorna återgår då till försäljning.
 
 Betalning sker enligt [Stripes villkor för betalningstjänsten](https://stripe.com/legal/ssa). Där regleras vilka betalmedel som kan användas och hur en betalning genomförs. Använder du en av Stripes egna konsumenttjänster gäller även [Stripes konsumentvillkor](https://stripe.com/legal/consumer).
 
