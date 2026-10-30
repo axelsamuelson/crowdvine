@@ -2,7 +2,7 @@
 
 > **UTKAST, ej publiceringsklar.** Framtaget av Daniel Holm (Compliance) med juridisk ram från Sofia Bergström (GC). Ska granskas av extern jurist innan publicering. Alla fält markerade `[FYLL I]` måste fyllas i, och alla punkter markerade **ÖPPEN FRÅGA** måste avgöras, innan sidan går live.
 
-Senast uppdaterad: 2026-10-29
+Senast uppdaterad: 2026-10-30
 
 ---
 
@@ -15,7 +15,7 @@ EURPACT OÜ är personuppgiftsansvarig för behandlingen av personuppgifter på 
 | Bolag | EURPACT OÜ |
 | Registreringsnummer | 17538270 |
 | Adress | Tartu mnt 67/1-13b, 10115, stadscentrum, Tallinn, Harju län, Estland |
-| E-post | [FYLL I. **Får inte vara noreply@pactwines.com.** Måste vara en bevakad adress, GDPR kräver en fungerande kanal för att utöva sina rättigheter] |
+| E-post | customer@pactwines.com |
 | Registrerad distansförsäljare av alkohol hos Skatteverket | [FYLL I REGISTRERINGSNUMMER] |
 
 EURPACT OÜ är ett bolag registrerat inom EU och omfattas av dataskyddsförordningen (GDPR).
@@ -120,7 +120,7 @@ Du har rätt att:
 - **Få ut dina uppgifter** i ett maskinläsbart format och överföra dem till någon annan
 - **Återkalla ditt samtycke** när som helst, utan att det påverkar behandling som redan skett
 
-Kontakta oss på [FYLL I E-POST]. Vi svarar inom en månad från att begäran kommit in.
+Kontakta oss på customer@pactwines.com. Vi svarar inom en månad från att begäran kommit in.
 
 Observera att en begäran om radering inte omfattar orderhistorik och betalunderlag som vi måste spara enligt bokföringslagen och för att kunna redovisa alkoholskatt.
 

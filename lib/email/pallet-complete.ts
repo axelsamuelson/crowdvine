@@ -274,7 +274,7 @@ export function generatePaymentEmailHTML(params: {
           <!-- Support -->
           <div style="background-color: #f8f9fa; border-radius: 8px; padding: 20px; margin: 30px 0 0 0;">
             <p style="color: #666666; font-size: 14px; line-height: 1.5; margin: 0;">
-              Questions? Contact us at <a href="mailto:support@pactwines.com" style="color: #000000; text-decoration: none;">support@pactwines.com</a>
+              Questions? Contact us at <a href="mailto:customer@pactwines.com" style="color: #000000; text-decoration: none;">customer@pactwines.com</a>
             </p>
           </div>
         </div>
@@ -314,7 +314,7 @@ Your Reservation:
 What happens next?
 We'll follow up with payment instructions if needed. Please keep an eye on your inbox.
 
-Questions? Contact us at support@pactwines.com
+Questions? Contact us at customer@pactwines.com
 
 © 2025 PACT. All rights reserved.
   `;

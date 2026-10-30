@@ -160,10 +160,10 @@ function PaymentSuccessContent() {
         <p className="text-sm text-gray-500">
           Questions? Contact us at{" "}
           <a
-            href="mailto:support@pactwines.com"
+            href="mailto:customer@pactwines.com"
             className="text-blue-600 hover:underline"
           >
-            support@pactwines.com
+            customer@pactwines.com
           </a>
         </p>
       </div>
