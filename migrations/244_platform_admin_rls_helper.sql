@@ -1,13 +1,20 @@
 -- Align RLS admin checks with app isPlatformAdminProfile():
 -- profiles.role = 'admin' OR 'admin' = ANY(profiles.roles).
 -- Previously some policies only accepted profiles.role.
+--
+-- Numbered 244 after 243_supabase_security_advisor_fixes /
+-- 243_ops_approval_queue_questions. Does not touch
+-- analytics_intent_sessions grants (locked in 243).
+-- search_path matches 243's public, pg_temp pattern.
+-- Not the same as user_has_role(uuid, text), which only checks
+-- profiles.roles and ignores profiles.role.
 
 CREATE OR REPLACE FUNCTION public.is_platform_admin()
 RETURNS boolean
 LANGUAGE sql
 STABLE
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, pg_temp
 AS $$
   SELECT EXISTS (
     SELECT 1
