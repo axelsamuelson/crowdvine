@@ -266,7 +266,10 @@ export async function POST(request: Request) {
       "@/lib/cart/reconcile-on-auth"
     );
     const touchPromise = bindCartOwnerAndTouch(dbCartId, userId);
-    const cart = await CartService.getCart({ cartDbId: dbCartId });
+    const cart = await CartService.getCart({
+      cartDbId: dbCartId,
+      skipEarlyBird: true,
+    });
     await touchPromise;
     if (!cart) {
       return NextResponse.json(

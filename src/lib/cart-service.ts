@@ -128,9 +128,13 @@ export class CartService {
   /**
    * @param options.cartDbId When the caller already ensured the carts row (e.g. add-quantity),
    *   skip a second ensureCart() round-trip (auth + select/insert).
+   * @param options.skipEarlyBird Skip zone/pallet early-bird resolution (Nominatim + fill).
+   *   Used on add-to-cart responses where the client already painted optimistic prices;
+   *   a later getCart/refresh picks up accurate tiers.
    */
   static async getCart(options?: {
     cartDbId?: string;
+    skipEarlyBird?: boolean;
   }): Promise<Cart | null> {
     console.log("🔧 getCart called");
     try {
@@ -254,11 +258,14 @@ export class CartService {
           .filter((id): id is string => Boolean(id));
 
         // Member discount + early-bird zone/pallet lookup are independent.
+        // Add-to-cart hot path can skip early-bird to avoid zone/fill work.
         const [memberDiscount, palletEarlyBird] = await Promise.all([
           userId
             ? getMemberDiscountForUserId(userId, { host: requestHost })
             : Promise.resolve(null),
-          resolvePalletEarlyBirdContext(wineIdsForPallet, userId),
+          options?.skipEarlyBird
+            ? Promise.resolve({ discountTier: 0 as DiscountTier })
+            : resolvePalletEarlyBirdContext(wineIdsForPallet, userId),
         ]);
 
         if (memberDiscount) {
