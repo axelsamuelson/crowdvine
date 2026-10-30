@@ -162,7 +162,7 @@ export function buildWarnings(input: {
 }): string[] {
   const w: string[] = [];
   if (input.needsPalletZone) {
-    w.push("No pallet-zone producer assigned yet");
+    w.push("Pickup location not confirmed yet (becomes physical)");
   } else if (input.pickupIsFallback) {
     w.push("Ships-from producer is not marked as a pallet zone");
   }
@@ -679,12 +679,20 @@ export async function buildAdminPalletOperatingSummaryForId(
     | null
     | undefined;
   const bottles = maps.bottlesByPalletId.get(palletId) ?? 0;
-  const hasPickup =
+  const pickupConfirmed =
+    typeof pallet.pickup_producer_confirmed_at === "string" &&
+    pallet.pickup_producer_confirmed_at.length > 0;
+  const hasConfirmedPickup =
+    pickupConfirmed &&
     typeof pallet.current_pickup_producer_id === "string" &&
     pallet.current_pickup_producer_id.length > 0;
-  const needsPalletZone = bottles > 0 && !hasPickup;
+  const selectionTriggered =
+    typeof pallet.pickup_selection_triggered_at === "string" &&
+    pallet.pickup_selection_triggered_at.length > 0;
+  // Manual becomes-physical: warn after the fill trigger until admin confirms.
+  const needsPalletZone = selectionTriggered && !hasConfirmedPickup;
   const pickupIsFallback =
-    cpp && typeof cpp.id === "string"
+    hasConfirmedPickup && cpp && typeof cpp.id === "string"
       ? cpp.is_pallet_zone !== true
       : false;
 

@@ -3,10 +3,7 @@
  * EU-only inventory cannot be reserved against unsupported destination countries at checkout.
  */
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
-import {
-  PALLET_FILL_STATUSES,
-  sumReservedBottlesOnPallet,
-} from "@/lib/pallet-fill-count";
+import { sumReservedBottlesOnPallet } from "@/lib/pallet-fill-count";
 import {
   namePalletForRoute,
   palletHasHistoryForCleanup,
@@ -16,6 +13,9 @@ import {
   DEFAULT_PHYSICAL_BOTTLE_CAPACITY,
   PALLET_ACCEPTING_STATUSES,
 } from "@/lib/pallet-ship-progress";
+import { PALLET_ZONE_PRIORITY_THRESHOLD } from "@/lib/pallet-pickup-suggestion";
+
+export { PALLET_ZONE_PRIORITY_THRESHOLD };
 
 /** Cart line shape used by checkout and Shopify cart mapping. */
 export interface CartLine {
@@ -31,9 +31,6 @@ export interface ResolveShippingRegionResult {
 }
 
 const PG_UNIQUE_VIOLATION = "23505";
-
-/** Minimum share of pallet bottles for a pallet-zone producer to win pickup (priority 1). */
-export const PALLET_ZONE_PRIORITY_THRESHOLD = 0.20;
 
 /**
  * When reserved bottles reach this fraction of *physical* bottle_capacity,
@@ -448,22 +445,12 @@ export type ReservationCleanupSnapshot = {
 };
 
 /**
- * Sets {@link pallets.current_pickup_producer_id} from pallet fill and region producers.
- * Only producers with {@link producers.is_pallet_zone} true are eligible. Among them, the
- * leader by bottle count must have at least 20% of pallet bottles; otherwise pickup is cleared.
- * Non–pallet-zone producers are never selected. Never throws.
+ * After fill changes: evaluate the "becomes physical" trigger and create an
+ * admin task when needed. Does **not** auto-set or lock
+ * {@link pallets.current_pickup_producer_id} — admin confirms manually.
+ *
+ * Kept name for existing checkout/admin call sites. Never throws.
  */
-const PICKUP_PRODUCER_LOCKED_STATUSES = new Set([
-  "shipping_ordered",
-  "complete",
-  "awaiting_pickup",
-  "picked_up",
-  "in_transit",
-  "out_for_delivery",
-  "shipped",
-  "delivered",
-]);
-
 export async function updatePickupProducerForPallet(
   palletId: string,
 ): Promise<{
@@ -477,251 +464,14 @@ export async function updatePickupProducerForPallet(
     usingFallback: false,
   };
   try {
-    const sb = getSupabaseAdmin();
-    const { data: pallet, error: pErr } = await sb
-      .from("pallets")
-      .select("id, shipping_region_id, current_pickup_producer_id, status")
-      .eq("id", palletId)
-      .maybeSingle();
-
-    if (pErr || !pallet) {
-      if (pErr) {
-        console.error("[updatePickupProducerForPallet] pallet:", pErr.message);
-      }
-      return noop;
-    }
-
-    const palletStatus = String(
-      (pallet as { status?: string | null }).status ?? "",
-    ).toLowerCase();
-    if (PICKUP_PRODUCER_LOCKED_STATUSES.has(palletStatus)) {
-      const lockedProducerId =
-        (pallet.current_pickup_producer_id as string | null | undefined) ??
-        null;
-      console.log(
-        `[PALLET] Pickup producer locked for pallet ${palletId} (status: ${palletStatus})`,
-      );
-      return {
-        producerId: lockedProducerId,
-        changed: false,
-        usingFallback: false,
-      };
-    }
-
-    const regionId = pallet.shipping_region_id as string | null | undefined;
-    if (!regionId) {
-      return noop;
-    }
-
-    let totalBottles = 0;
-    try {
-      totalBottles = await sumReservedBottlesOnPallet(palletId);
-    } catch (e) {
-      console.error("[updatePickupProducerForPallet] total bottles:", e);
-      return noop;
-    }
-
-    if (totalBottles === 0) {
-      const normalizedCurrent =
-        (pallet.current_pickup_producer_id as string | null | undefined) ??
-        null;
-      if (normalizedCurrent === null) {
-        return { producerId: null, changed: false, usingFallback: false };
-      }
-      const { error: uErr } = await sb
-        .from("pallets")
-        .update({
-          current_pickup_producer_id: null,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", palletId);
-      if (uErr) {
-        console.error("[updatePickupProducerForPallet] update:", uErr.message);
-        return {
-          producerId: normalizedCurrent,
-          changed: false,
-          usingFallback: false,
-        };
-      }
-      return { producerId: null, changed: true, usingFallback: false };
-    }
-
-    const { data: regionProducers, error: rpErr } = await sb
-      .from("producers")
-      .select("id, is_pallet_zone")
-      .eq("shipping_region_id", regionId);
-
-    if (rpErr || !regionProducers?.length) {
-      if (rpErr) {
-        console.error(
-          "[updatePickupProducerForPallet] region producers:",
-          rpErr.message,
-        );
-      }
-      return noop;
-    }
-
-    type ProdRow = { id: string; is_pallet_zone: boolean | null };
-    const producersList: ProdRow[] = regionProducers
-      .map((r) => ({
-        id: String(r.id ?? ""),
-        is_pallet_zone: r.is_pallet_zone === true,
-      }))
-      .filter((r) => r.id.length > 0)
-      .sort((a, b) => a.id.localeCompare(b.id));
-
-    const counts = new Map<string, number>();
-    for (const p of producersList) {
-      counts.set(p.id, 0);
-    }
-
-    const { data: reservations, error: rErr } = await sb
-      .from("order_reservations")
-      .select("id")
-      .eq("pallet_id", palletId)
-      .in("status", [...PALLET_FILL_STATUSES])
-      .is("archived_at", null);
-
-    if (rErr) {
-      console.error(
-        "[updatePickupProducerForPallet] reservations:",
-        rErr.message,
-      );
-      return noop;
-    }
-
-    const resIds = (reservations ?? [])
-      .map((r) => r.id as string | null | undefined)
-      .filter((id): id is string => typeof id === "string" && id.length > 0);
-
-    if (resIds.length > 0) {
-      const { data: oriRows, error: oriErr } = await sb
-        .from("order_reservation_items")
-        .select("quantity, item_id")
-        .in("reservation_id", resIds);
-
-      if (oriErr) {
-        console.error(
-          "[updatePickupProducerForPallet] items:",
-          oriErr.message,
-        );
-        return noop;
-      }
-
-      const wineIds = [
-        ...new Set(
-          (oriRows ?? [])
-            .map((row) => row.item_id as string | null | undefined)
-            .filter((id): id is string => typeof id === "string" && id.length > 0),
-        ),
-      ];
-
-      if (wineIds.length > 0) {
-        const { data: wineRows, error: wErr } = await sb
-          .from("wines")
-          .select("id, producer_id")
-          .in("id", wineIds);
-
-        if (wErr) {
-          console.error(
-            "[updatePickupProducerForPallet] wines:",
-            wErr.message,
-          );
-          return noop;
-        }
-
-        const wineToProducer = new Map(
-          (wineRows ?? []).map((w) => [
-            w.id as string,
-            w.producer_id as string | null,
-          ]),
-        );
-
-        for (const row of oriRows ?? []) {
-          const wineId = row.item_id as string | null | undefined;
-          if (!wineId) continue;
-          const prod = wineToProducer.get(wineId);
-          if (!prod || !counts.has(prod)) continue;
-          const qty = Math.max(0, Math.floor(Number(row.quantity) || 0));
-          counts.set(prod, (counts.get(prod) ?? 0) + qty);
-        }
-      }
-    }
-
-    const threshold = Math.floor(
-      totalBottles * PALLET_ZONE_PRIORITY_THRESHOLD,
+    const { evaluatePalletPickupSelection } = await import(
+      "@/lib/pallet-pickup-selection"
     );
-
-    const zoneProducerIds = producersList
-      .filter((p) => p.is_pallet_zone)
-      .map((p) => p.id);
-
-    /** Best pallet-zone producer by bottle count among those with more than zero bottles; null if none. */
-    const bestPalletZoneProducerId = (): string | null => {
-      if (zoneProducerIds.length === 0) return null;
-      const withBottles = zoneProducerIds.filter(
-        (id) => (counts.get(id) ?? 0) > 0,
-      );
-      if (withBottles.length === 0) return null;
-      const ranked = [...withBottles].sort((a, b) => {
-        const ca = counts.get(a) ?? 0;
-        const cb = counts.get(b) ?? 0;
-        if (cb !== ca) return cb - ca;
-        return a.localeCompare(b);
-      });
-      return ranked[0] ?? null;
-    };
-
-    const candidateId = bestPalletZoneProducerId();
-    const candidateCount = candidateId
-      ? (counts.get(candidateId) ?? 0)
-      : 0;
-    const winnerId =
-      candidateId !== null &&
-      candidateCount > 0 &&
-      candidateCount >= threshold
-        ? candidateId
-        : null;
-
-    const usingFallback = false;
-
-    const normalizedCurrent =
-      (pallet.current_pickup_producer_id as string | null | undefined) ?? null;
-    const normalizedWinner = winnerId;
-
-    if (normalizedWinner === normalizedCurrent) {
-      return {
-        producerId: normalizedWinner,
-        changed: false,
-        usingFallback,
-      };
-    }
-
-    const { error: uErr } = await sb
-      .from("pallets")
-      .update({
-        current_pickup_producer_id: normalizedWinner,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", palletId);
-
-    if (uErr) {
-      console.error("[updatePickupProducerForPallet] update:", uErr.message);
-      return {
-        producerId: normalizedCurrent,
-        changed: false,
-        usingFallback: false,
-      };
-    }
-
-    console.log(
-      `[PALLET] Pickup producer changed for pallet ${palletId}: ${normalizedCurrent ?? "null"} → ${normalizedWinner ?? "null"}`,
-    );
-
+    const result = await evaluatePalletPickupSelection(palletId);
     return {
-      producerId: normalizedWinner,
-      changed: true,
-      usingFallback,
+      producerId: result.suggestion.producerId,
+      changed: result.taskCreated,
+      usingFallback: false,
     };
   } catch (e) {
     console.error("[updatePickupProducerForPallet]", e);

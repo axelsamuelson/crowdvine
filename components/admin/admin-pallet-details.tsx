@@ -163,6 +163,35 @@ export default function AdminPalletDetails({
   const [sendingNotifications, setSendingNotifications] = useState(false);
   const [operatingSummary, setOperatingSummary] =
     useState<AdminPalletOperatingSummary | null>(null);
+  const [pickupSelection, setPickupSelection] = useState<{
+    suggestion: {
+      producerId: string | null;
+      producerName: string | null;
+      bottles: number;
+      shareOfPallet: number;
+      meetsThreshold: boolean;
+    };
+    triggerReached: boolean;
+    triggerBottles: number;
+    confirmed: boolean;
+    confirmedAt: string | null;
+    confirmedByEmail: string | null;
+    currentPickupProducerId: string | null;
+    estimatedWeightKg: number;
+    weightLimitKg: number | null;
+    weightOverLimit: boolean;
+  } | null>(null);
+  const [pickupCandidates, setPickupCandidates] = useState<
+    Array<{
+      id: string;
+      name: string;
+      bottles: number;
+      isSuggested: boolean;
+    }>
+  >([]);
+  const [selectedPickupProducerId, setSelectedPickupProducerId] =
+    useState<string>("");
+  const [confirmingPickup, setConfirmingPickup] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const router = useRouter();
 
@@ -208,6 +237,30 @@ export default function AdminPalletDetails({
         }
       } else {
         setOperatingSummary(null);
+      }
+
+      const pickupRes = await fetch(
+        `/api/admin/pallets/${palletId}/pickup-selection`,
+      );
+      if (pickupRes.ok) {
+        const pickupJson = await pickupRes.json();
+        const selection = pickupJson?.selection ?? null;
+        setPickupSelection(selection);
+        const candidates = Array.isArray(pickupJson?.candidates)
+          ? pickupJson.candidates
+          : [];
+        setPickupCandidates(candidates);
+        const preferred =
+          selection?.currentPickupProducerId ||
+          selection?.suggestion?.producerId ||
+          candidates[0]?.id ||
+          "";
+        setSelectedPickupProducerId(
+          typeof preferred === "string" ? preferred : "",
+        );
+      } else {
+        setPickupSelection(null);
+        setPickupCandidates([]);
       }
 
       // Fetch pallet metrics (data-driven totals + profit) for legacy rule preview
@@ -512,6 +565,43 @@ export default function AdminPalletDetails({
     );
   };
 
+  const handleConfirmPickup = async () => {
+    if (!selectedPickupProducerId) {
+      toast.error("Select a pickup producer first");
+      return;
+    }
+    setConfirmingPickup(true);
+    try {
+      const res = await fetch(
+        `/api/admin/pallets/${palletId}/confirm-pickup`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ producerId: selectedPickupProducerId }),
+        },
+      );
+      const data = await res.json().catch(() => ({}));
+      const errMsg =
+        data &&
+        typeof data === "object" &&
+        "error" in data &&
+        typeof (data as { error: unknown }).error === "string"
+          ? (data as { error: string }).error
+          : "Failed to confirm pickup";
+      if (!res.ok) {
+        toast.error(errMsg);
+        return;
+      }
+      toast.success("Pickup location confirmed");
+      router.refresh();
+      await fetchPalletData();
+    } catch {
+      toast.error("Failed to confirm pickup");
+    } finally {
+      setConfirmingPickup(false);
+    }
+  };
+
   const handleTriggerNotifications = async () => {
     if (
       !window.confirm(
@@ -635,7 +725,19 @@ export default function AdminPalletDetails({
     current_pickup_producer?: { name: string } | null;
     shipping_ordered_at?: string | null;
   };
-  const shipsFromName = palletExt.current_pickup_producer?.name ?? null;
+  const confirmedPickupName =
+    pickupSelection?.confirmed && selectedPickupProducerId
+      ? pickupCandidates.find((c) => c.id === selectedPickupProducerId)?.name ??
+        palletExt.current_pickup_producer?.name ??
+        null
+      : pickupSelection?.confirmed
+        ? palletExt.current_pickup_producer?.name ?? null
+        : null;
+  const shipsFromName =
+    confirmedPickupName ??
+    (pickupSelection?.confirmed
+      ? palletExt.current_pickup_producer?.name ?? null
+      : null);
   const shippingOrderedAt = palletExt.shipping_ordered_at;
   const regionMeta =
     palletExt.shipping_region?.name ?? pallet.pickup_zone?.name ?? "—";
@@ -648,13 +750,34 @@ export default function AdminPalletDetails({
     120;
   const shipPct = operatingSummary?.shipProgressPercent ?? 0;
   const isReady = operatingSummary?.isReadyToShip ?? false;
+  const suggestionLabel =
+    pickupSelection?.suggestion?.meetsThreshold &&
+    pickupSelection.suggestion.producerName
+      ? `${pickupSelection.suggestion.producerName} (${pickupSelection.suggestion.bottles} bottles, ${Math.round(pickupSelection.suggestion.shareOfPallet * 100)}%)`
+      : null;
   const showMissingPalletZonePickupMessage =
-    !shipsFromName && bottlesFilled > 0;
+    !pickupSelection?.confirmed &&
+    bottlesFilled > 0 &&
+    pickupCandidates.length === 0;
   const warnings = [
-    ...(operatingSummary?.warnings ?? []),
+    ...(operatingSummary?.warnings ?? []).filter(
+      (w) =>
+        w !== "No pallet-zone producer assigned yet" &&
+        w !== "Ships-from producer is not marked as a pallet zone",
+    ),
     ...(showMissingPalletZonePickupMessage
       ? [
           "No producer marked as pallet zone has orders on this pallet yet.",
+        ]
+      : []),
+    ...(pickupSelection?.triggerReached && !pickupSelection.confirmed
+      ? [
+          `Pickup selection trigger reached (${pickupSelection.triggerBottles}+ bottles) — confirm a pickup location.`,
+        ]
+      : []),
+    ...(pickupSelection?.weightOverLimit
+      ? [
+          `Estimated weight ${pickupSelection.estimatedWeightKg} kg exceeds limit ${pickupSelection.weightLimitKg} kg.`,
         ]
       : []),
   ];
@@ -786,6 +909,124 @@ export default function AdminPalletDetails({
           </ul>
         </section>
       ) : null}
+
+      <section className="space-y-3 rounded-xl border border-gray-200 bg-white p-5 dark:border-[#1F1F23] dark:bg-[#0F0F12]">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
+              Pickup location (becomes physical)
+            </h2>
+            <p className="mt-1 text-xs text-gray-500 dark:text-zinc-500">
+              Suggestion uses the leading pallet-zone producer with at least 20%
+              of bottles. Admin confirms manually — no automatic lock after
+              orders.
+            </p>
+          </div>
+          {pickupSelection?.confirmed ? (
+            <span className="inline-flex rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium uppercase text-emerald-700 dark:text-emerald-300">
+              Confirmed
+            </span>
+          ) : pickupSelection?.triggerReached ? (
+            <span className="inline-flex rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium uppercase text-amber-700 dark:text-amber-300">
+              Action needed
+            </span>
+          ) : null}
+        </div>
+
+        <dl className="grid gap-2 text-sm text-gray-700 dark:text-zinc-300 sm:grid-cols-2">
+          <div>
+            <dt className="text-xs text-gray-500 dark:text-zinc-500">
+              Suggestion
+            </dt>
+            <dd className="font-medium">
+              {suggestionLabel ?? "No eligible suggestion yet"}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs text-gray-500 dark:text-zinc-500">
+              Estimated weight
+            </dt>
+            <dd
+              className={cn(
+                "font-medium tabular-nums",
+                pickupSelection?.weightOverLimit &&
+                  "text-amber-700 dark:text-amber-300",
+              )}
+            >
+              {pickupSelection
+                ? `${pickupSelection.estimatedWeightKg} kg`
+                : "—"}
+              {pickupSelection?.weightLimitKg != null
+                ? ` / limit ${pickupSelection.weightLimitKg} kg`
+                : " (no limit)"}
+            </dd>
+          </div>
+          {pickupSelection?.confirmed ? (
+            <div className="sm:col-span-2">
+              <dt className="text-xs text-gray-500 dark:text-zinc-500">
+                Confirmed
+              </dt>
+              <dd className="font-medium">
+                {shipsFromName ?? "—"}
+                {pickupSelection.confirmedAt
+                  ? ` · ${format(new Date(pickupSelection.confirmedAt), "yyyy-MM-dd HH:mm")}`
+                  : null}
+                {pickupSelection.confirmedByEmail
+                  ? ` · ${pickupSelection.confirmedByEmail}`
+                  : null}
+              </dd>
+            </div>
+          ) : null}
+        </dl>
+
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="min-w-[220px] flex-1 space-y-1.5">
+            <label className="text-xs font-medium text-gray-600 dark:text-zinc-400">
+              Pickup producer
+            </label>
+            {pickupCandidates.length === 0 ? (
+              <p className="text-sm text-gray-500 dark:text-zinc-500">
+                No pallet-zone producers on this region yet.
+              </p>
+            ) : (
+              <Select
+                value={selectedPickupProducerId || undefined}
+                onValueChange={setSelectedPickupProducerId}
+              >
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder="Select pickup producer" />
+                </SelectTrigger>
+                <SelectContent>
+                  {pickupCandidates.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                      {c.bottles > 0 ? ` · ${c.bottles} bottles` : ""}
+                      {c.isSuggested ? " · suggested" : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+          <Button
+            type="button"
+            size="sm"
+            className="h-9"
+            disabled={
+              confirmingPickup ||
+              !selectedPickupProducerId ||
+              pickupCandidates.length === 0
+            }
+            onClick={() => void handleConfirmPickup()}
+          >
+            {confirmingPickup
+              ? "Confirming…"
+              : pickupSelection?.confirmed
+                ? "Update confirmation"
+                : "Confirm pickup"}
+          </Button>
+        </div>
+      </section>
 
       <section className="space-y-3">
         <h2 className="text-sm font-semibold text-gray-900 dark:text-white">

@@ -112,6 +112,11 @@ const navigationGroups: NavGroup[] = [
       { name: "Fraktalternativ", href: "/admin/freight", icon: Truck },
       { name: "Upphämtningszoner", href: "/admin/zones", icon: MapPin },
       { name: "Pallar", href: "/admin/pallets", icon: Package },
+      {
+        name: "Pall-inställningar",
+        href: "/admin/pallets/settings",
+        icon: Wrench,
+      },
     ],
   },
   {

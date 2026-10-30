@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin-auth-server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getCurrentUser } from "@/lib/supabase-server";
-import { updatePickupProducerForPallet } from "@/lib/pallet-auto-management";
 import { autoChargeDeferredReservationsForPallet } from "@/lib/reservation-auto-charge";
 
 const ALLOW_PRE_SHIPPING_STATUSES = new Set(["open", "consolidating"]);
@@ -37,7 +36,9 @@ export async function POST(
 
     const { data: pallet, error: loadErr } = await sbAdmin
       .from("pallets")
-      .select("id, status")
+      .select(
+        "id, status, current_pickup_producer_id, pickup_producer_confirmed_at",
+      )
       .eq("id", palletId)
       .maybeSingle();
 
@@ -60,10 +61,23 @@ export async function POST(
       );
     }
 
-    console.log(
-      `[order-shipping] Final pickup producer recompute before lock pallet=${palletId}`,
-    );
-    await updatePickupProducerForPallet(palletId);
+    const confirmedAt = pallet.pickup_producer_confirmed_at as
+      | string
+      | null
+      | undefined;
+    const pickupId = pallet.current_pickup_producer_id as
+      | string
+      | null
+      | undefined;
+    if (!confirmedAt || !pickupId) {
+      return NextResponse.json(
+        {
+          error:
+            "Confirm the pickup producer/location on the pallet before ordering shipping",
+        },
+        { status: 400 },
+      );
+    }
 
     const orderedAt = new Date().toISOString();
     const { data: updatedRows, error: updateErr } = await sbAdmin
