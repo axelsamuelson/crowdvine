@@ -125,7 +125,17 @@ export class CartService {
     await bindCartOwnerAndTouch(cartId, userId);
   }
 
-  static async getCart(): Promise<Cart | null> {
+  /**
+   * @param options.cartDbId When the caller already ensured the carts row (e.g. add-quantity),
+   *   skip a second ensureCart() round-trip (auth + select/insert).
+   * @param options.skipEarlyBird Skip zone/pallet early-bird resolution (Nominatim + fill).
+   *   Used on add-to-cart responses where the client already painted optimistic prices;
+   *   a later getCart/refresh picks up accurate tiers.
+   */
+  static async getCart(options?: {
+    cartDbId?: string;
+    skipEarlyBird?: boolean;
+  }): Promise<Cart | null> {
     console.log("🔧 getCart called");
     try {
       const display = await resolveDisplayCurrency();
@@ -141,7 +151,10 @@ export class CartService {
       const sb = await supabaseServer();
       console.log("🔧 Supabase client obtained in getCart");
 
-      const ensureCartId = await this.ensureCart();
+      const ensureCartId =
+        options?.cartDbId && options.cartDbId.length > 0
+          ? options.cartDbId
+          : await this.ensureCart();
       console.log("🔧 Ensure cart ID:", ensureCartId);
 
       console.log("🔧 Fetching cart items...");
@@ -236,16 +249,7 @@ export class CartService {
 
       if (!isB2B) {
         const user = await getCurrentUser();
-        if (user) {
-          const memberDiscount = await getMemberDiscountForUserId(user.id, {
-            host: requestHost,
-          });
-          memberDiscountPercent = memberDiscount.percent;
-          memberLevelName = memberDiscount.level
-            ? getLevelDisplayName(memberDiscount.level)
-            : null;
-        }
-
+        const userId = user?.id ?? null;
         const wineIdsForPallet = cartItems
           .map((item) => {
             const w = (item as CartItemRow).wines;
@@ -253,10 +257,23 @@ export class CartService {
           })
           .filter((id): id is string => Boolean(id));
 
-        const palletEarlyBird = await resolvePalletEarlyBirdContext(
-          wineIdsForPallet,
-          user?.id ?? null,
-        );
+        // Member discount + early-bird zone/pallet lookup are independent.
+        // Add-to-cart hot path can skip early-bird to avoid zone/fill work.
+        const [memberDiscount, palletEarlyBird] = await Promise.all([
+          userId
+            ? getMemberDiscountForUserId(userId, { host: requestHost })
+            : Promise.resolve(null),
+          options?.skipEarlyBird
+            ? Promise.resolve({ discountTier: 0 as DiscountTier })
+            : resolvePalletEarlyBirdContext(wineIdsForPallet, userId),
+        ]);
+
+        if (memberDiscount) {
+          memberDiscountPercent = memberDiscount.percent;
+          memberLevelName = memberDiscount.level
+            ? getLevelDisplayName(memberDiscount.level)
+            : null;
+        }
         palletTier = palletEarlyBird.discountTier;
       }
 
