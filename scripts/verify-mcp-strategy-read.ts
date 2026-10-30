@@ -29,7 +29,7 @@ async function main() {
   if (error) {
     console.error("FAIL:", error.message);
     console.error(
-      "\nApply supabase/migrations/20250525150700_admin_objective_insights.sql in the Supabase SQL editor, then re-run this script.",
+      "\nApply migrations/116_admin_objective_insights.sql (or the archived copy under docs/archives/supabase-migrations/) in the Supabase SQL editor, then re-run this script.",
     );
     process.exit(1);
   }

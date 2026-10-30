@@ -165,7 +165,8 @@ WHERE impact_points > 0;
 -- 6. Migrate unused milestone vouchers → PACT Points
 -- -----------------------------------------------------------------------------
 
--- Older DBs may have been created without supabase/migrations discount_codes columns.
+-- Older DBs may have been created without the early discount_codes columns
+-- (see docs/archives/supabase-migrations/ for historical copies).
 ALTER TABLE discount_codes
   ADD COLUMN IF NOT EXISTS discount_amount_cents INTEGER,
   ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
