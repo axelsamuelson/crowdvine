@@ -31,7 +31,10 @@ export default function IntegritetspolicyContent() {
           </tr>
           <tr>
             <LegalTh>Adress</LegalTh>
-            <LegalTd>Tartu mnt 67/1-13b, 10115, stadscentrum, Tallinn, Harju län, Estland</LegalTd>
+            <LegalTd>
+              Tartu mnt 67/1-13b, Kesklinna linnaosa, 10115 Tallinn, Harju
+              maakond, Estland
+            </LegalTd>
           </tr>
           <tr>
             <LegalTh>E-post</LegalTh>

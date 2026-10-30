@@ -1,8 +1,8 @@
 # Köpvillkor
 
-> **UTKAST.** Framtaget av Daniel Holm (Compliance), med ställningstagande av Sofia Bergström (GC) den 25 augusti 2026 enligt `gc-stallningstagande-angerratt-och-villkor.md`. Tvistlösningen (p. 13) är oförändrad. Punkt 9 och 10 är omskrivna 2026-10-29 på ägarens instruktion och avviker från GC-dokumentet, se anmärkningen under punkt 9. Punkt 3 (giltighetstid och producent som inte kan leverera) uppdaterad 2026-10-31, i linje med reservationsmejlen (30 dagar åt gången, bekräftelse via länk senast angivet datum inom 7 dagar, obegränsat antal förlängningar). Punkt 7 (leveranstid och leveransområde) ifylld 2026-11-01: 5–10 arbetsdagar inom hela Sverige från orderbekräftelse och debitering. Punkt 5 (misslyckad debitering: omförsök efter 24/72 h, 3D Secure-länk, avbrott efter tre försök utan dragning) uppdaterad 2026-11-02 enligt `lib/payment-retry.ts` och Stripe-webhook. Punkt 8 (returkostnad) ifylld 2026-11-03; antal leveransförsök orört. Övriga fält markerade `[FYLL I]` måste fyllas i innan sidan går live. Ingen extern advokat har granskat texten.
+> **UTKAST.** Framtaget av Daniel Holm (Compliance), med ställningstagande av Sofia Bergström (GC) den 25 augusti 2026 enligt `gc-stallningstagande-angerratt-och-villkor.md`. Tvistlösningen (p. 13) är oförändrad. Punkt 9 och 10 är omskrivna 2026-10-29 på ägarens instruktion och avviker från GC-dokumentet, se anmärkningen under punkt 9. Punkt 3 (giltighetstid och producent som inte kan leverera) uppdaterad 2026-10-31, i linje med reservationsmejlen (30 dagar åt gången, bekräftelse via länk senast angivet datum inom 7 dagar, obegränsat antal förlängningar). Punkt 7 (leveranstid och leveransområde) ifylld 2026-11-01: 5–10 arbetsdagar inom hela Sverige från orderbekräftelse och debitering. Punkt 5 (misslyckad debitering: omförsök efter 24/72 h, 3D Secure-länk, avbrott efter tre försök utan dragning) uppdaterad 2026-11-02 enligt `lib/payment-retry.ts` och Stripe-webhook. Punkt 8 (returkostnad) ifylld 2026-11-03; antal leveransförsök orört. Bolagsadress uppdaterad 2026-11-04 till äriregister-form (Kesklinna linnaosa, Harju maakond; postnummer 10115 behållet då det redan fanns i repo). Övriga fält markerade `[FYLL I]` måste fyllas i innan sidan går live. Ingen extern advokat har granskat texten.
 
-Senast uppdaterad: 2026-11-03
+Senast uppdaterad: 2026-11-04
 
 ---
 
@@ -14,7 +14,7 @@ Din motpart vid köp på pactwines.com är:
 |---|---|
 | Säljare | EURPACT OÜ |
 | Registreringsnummer | 17538270 |
-| Adress | Tartu mnt 67/1-13b, 10115, stadscentrum, Tallinn, Harju län, Estland |
+| Adress | Tartu mnt 67/1-13b, Kesklinna linnaosa, 10115 Tallinn, Harju maakond, Estland |
 | E-post | customer@pactwines.com |
 | Registrerad som distansförsäljare av alkohol hos Skatteverket | [FYLL I REGISTRERINGSNUMMER] |
 
@@ -22,7 +22,7 @@ EURPACT OÜ är ett estniskt bolag och säljer alkohol på distans till konsumen
 
 > **Anmärkning, ej del av publicerad text.** Bolagsnamn och registreringsnummer är hämtade från den befintliga sidan `/vilkor` i produktion den 25 augusti 2026. Bekräfta mot registreringsbeviset innan publicering. Observera att namnet där är **EURPACT OÜ**, medan interna underlag genomgående skrivit "PACT OÜ".
 >
-> Adressen är den registrerade adressen, på svenska. I äriregistret står den som Tartu mnt 67/1-13b, 10115, Kesklinna linnaosa, Tallinn, Harju maakond, Eesti.
+> Adressen är den registrerade adressen (äriregister-form med postnummer 10115 som redan fanns i repo): Tartu mnt 67/1-13b, Kesklinna linnaosa, 10115 Tallinn, Harju maakond, Estland.
 >
 > Kontaktadressen är den bevakade adressen `customer@pactwines.com` (inte `noreply@`). Distansavtalslagen kräver uppgift om hur konsumenten kan kontakta säljaren, och GDPR kräver en fungerande kanal för att utöva sina rättigheter. Samma adress används i integritetspolicyn.
 
