@@ -1,5 +1,4 @@
-// Geocoding service using OpenStreetMap Nominatim API (free)
-// This service converts addresses to coordinates
+// Geocoding via Mapbox Geocoding API (MAPBOX_ACCESS_TOKEN / NEXT_PUBLIC_MAPBOX_TOKEN)
 
 export interface GeocodeResult {
   lat: number;
@@ -20,8 +19,126 @@ export interface GeocodeError {
   message: string;
 }
 
+type MapboxContextItem = {
+  id?: string;
+  text?: string;
+  short_code?: string;
+};
+
+type MapboxFeature = {
+  center?: [number, number];
+  place_name?: string;
+  text?: string;
+  address?: string;
+  context?: MapboxContextItem[];
+};
+
+const GEOCODE_COUNTRY_CODES = "se,no,dk,fi,fr,de,gb,es,it";
+
 // Cache for geocoding results to avoid repeated API calls
 const geocodeCache = new Map<string, GeocodeResult>();
+
+function getMapboxAccessToken(): string | null {
+  const token =
+    process.env.MAPBOX_ACCESS_TOKEN ||
+    process.env.NEXT_PUBLIC_MAPBOX_TOKEN ||
+    "";
+  if (!token || token === "pk.dummy") return null;
+  return token;
+}
+
+function contextText(
+  context: MapboxContextItem[] | undefined,
+  prefix: string,
+): string | undefined {
+  const item = context?.find((c) => c.id?.startsWith(`${prefix}.`));
+  return item?.text || undefined;
+}
+
+function contextCountryCode(
+  context: MapboxContextItem[] | undefined,
+): string | undefined {
+  const item = context?.find((c) => c.id?.startsWith("country."));
+  const code = item?.short_code;
+  return code ? code.toUpperCase() : undefined;
+}
+
+function mapboxFeatureToGeocodeResult(feature: MapboxFeature): GeocodeResult | null {
+  const lon = feature.center?.[0];
+  const lat = feature.center?.[1];
+  if (typeof lat !== "number" || typeof lon !== "number") return null;
+
+  const context = feature.context;
+  const city =
+    contextText(context, "place") ||
+    contextText(context, "locality") ||
+    contextText(context, "district");
+
+  return {
+    lat,
+    lon,
+    display_name: feature.place_name || feature.text || `${lat}, ${lon}`,
+    address: {
+      house_number: feature.address,
+      road: feature.text,
+      city,
+      postcode: contextText(context, "postcode"),
+      country: contextText(context, "country"),
+      country_code: contextCountryCode(context),
+    },
+  };
+}
+
+async function fetchMapboxGeocode(
+  query: string,
+  options: { country?: string } = {},
+): Promise<GeocodeResult | GeocodeError> {
+  const token = getMapboxAccessToken();
+  if (!token) {
+    return {
+      error: "GEOCODING_UNAVAILABLE",
+      message:
+        "Geocoding unavailable: MAPBOX_ACCESS_TOKEN / NEXT_PUBLIC_MAPBOX_TOKEN is not configured",
+    };
+  }
+
+  const country = options.country || GEOCODE_COUNTRY_CODES;
+  const url =
+    `https://api.mapbox.com/geocoding/v5/mapbox.places/` +
+    `${encodeURIComponent(query)}.json` +
+    `?access_token=${encodeURIComponent(token)}` +
+    `&limit=1` +
+    `&country=${encodeURIComponent(country)}` +
+    `&language=en`;
+
+  const response = await fetch(url, {
+    headers: { Accept: "application/json" },
+    signal: AbortSignal.timeout(10000),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Geocoding API error: ${response.status}`);
+  }
+
+  const data = (await response.json()) as { features?: MapboxFeature[] };
+  const feature = data.features?.[0];
+  if (!feature) {
+    return {
+      error: "NO_RESULTS",
+      message: "No coordinates found for this address",
+    };
+  }
+
+  const geocodeResult = mapboxFeatureToGeocodeResult(feature);
+  if (!geocodeResult) {
+    return {
+      error: "NO_RESULTS",
+      message: "No coordinates found for this address",
+    };
+  }
+
+  return geocodeResult;
+}
 
 // Function to clear geocoding cache (useful for debugging)
 export function clearGeocodeCache() {
@@ -52,70 +169,26 @@ export async function geocodeAddress(
         cleanAddress,
       );
 
-      // Use OpenStreetMap Nominatim API (free, no API key required)
-      // Add User-Agent header to avoid 403 errors
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?` +
-          `format=json&` +
-          `q=${encodeURIComponent(cleanAddress)}&` +
-          `limit=1&` +
-          `addressdetails=1&` +
-          `countrycodes=se,no,dk,fi,fr,de,gb,es,it&` + // Nordic + European countries
-          `accept-language=en`,
-        {
-          headers: {
-            "User-Agent": "CrowdVine/1.0 (https://pactwines.com)",
-            Accept: "application/json",
-          },
-          // Add timeout to prevent hanging requests
-          signal: AbortSignal.timeout(10000), // 10 second timeout
-        },
-      );
-
-      if (!response.ok) {
-        throw new Error(`Geocoding API error: ${response.status}`);
+      const result = await fetchMapboxGeocode(cleanAddress);
+      if ("error" in result) {
+        if (result.error === "GEOCODING_UNAVAILABLE") return result;
+        if (result.error === "NO_RESULTS") {
+          // Try fallback with a simpler address before giving up
+          break;
+        }
+        return result;
       }
 
-      const data = await response.json();
-
-      if (!data || data.length === 0) {
-        return {
-          error: "NO_RESULTS",
-          message: "No coordinates found for this address",
-        };
-      }
-
-      const result = data[0];
-      const geocodeResult: GeocodeResult = {
-        lat: parseFloat(result.lat),
-        lon: parseFloat(result.lon),
-        display_name: result.display_name,
-        address: result.address
-          ? {
-              house_number: result.address.house_number,
-              road: result.address.road,
-              city:
-                result.address.city ||
-                result.address.town ||
-                result.address.village,
-              postcode: result.address.postcode,
-              country: result.address.country,
-              country_code: result.address.country_code?.toUpperCase(),
-            }
-          : undefined,
-      };
-
-      // Cache the result
-      geocodeCache.set(cleanAddress, geocodeResult);
+      geocodeCache.set(cleanAddress, result);
 
       console.log("✅ Geocoded successfully:", {
         address: cleanAddress,
-        lat: geocodeResult.lat,
-        lon: geocodeResult.lon,
-        city: geocodeResult.address?.city,
+        lat: result.lat,
+        lon: result.lon,
+        city: result.address?.city,
       });
 
-      return geocodeResult;
+      return result;
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
       console.error(
@@ -132,63 +205,24 @@ export async function geocodeAddress(
     }
   }
 
-  // All retries failed, try fallback
-  console.error("❌ All geocoding attempts failed, trying fallback...");
+  // All retries failed or no results — try simpler Sweden-focused fallback
+  console.error("❌ Primary geocoding failed, trying fallback...");
 
-  // Fallback: Try with a simpler address format
   try {
     console.log("🔄 Trying fallback geocoding...");
-    const simpleAddress = address.split(",")[0] + ", Sweden"; // Just street + country
+    const simpleAddress = address.split(",")[0] + ", Sweden";
 
-    const fallbackResponse = await fetch(
-      `https://nominatim.openstreetmap.org/search?` +
-        `format=json&` +
-        `q=${encodeURIComponent(simpleAddress)}&` +
-        `limit=1&` +
-        `countrycodes=se&` +
-        `accept-language=en`,
-      {
-        headers: {
-          "User-Agent": "CrowdVine/1.0 (https://pactwines.com)",
-          Accept: "application/json",
-        },
-      },
-    );
+    const fallback = await fetchMapboxGeocode(simpleAddress, { country: "se" });
+    if (!("error" in fallback)) {
+      geocodeCache.set(cleanAddress, fallback);
 
-    if (fallbackResponse.ok) {
-      const fallbackData = await fallbackResponse.json();
-      if (fallbackData && fallbackData.length > 0) {
-        const result = fallbackData[0];
-        const geocodeResult: GeocodeResult = {
-          lat: parseFloat(result.lat),
-          lon: parseFloat(result.lon),
-          display_name: result.display_name,
-          address: result.address
-            ? {
-                house_number: result.address.house_number,
-                road: result.address.road,
-                city:
-                  result.address.city ||
-                  result.address.town ||
-                  result.address.village,
-                postcode: result.address.postcode,
-                country: result.address.country,
-                country_code: result.address.country_code?.toUpperCase(),
-              }
-            : undefined,
-        };
+      console.log("✅ Fallback geocoding successful:", {
+        address: cleanAddress,
+        lat: fallback.lat,
+        lon: fallback.lon,
+      });
 
-        // Cache the result
-        geocodeCache.set(cleanAddress, geocodeResult);
-
-        console.log("✅ Fallback geocoding successful:", {
-          address: cleanAddress,
-          lat: geocodeResult.lat,
-          lon: geocodeResult.lon,
-        });
-
-        return geocodeResult;
-      }
+      return fallback;
     }
   } catch (fallbackError) {
     console.error("❌ Fallback geocoding also failed:", fallbackError);
