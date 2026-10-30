@@ -88,6 +88,7 @@ function SignupPageContent() {
   useEffect(() => {
     const tokenParam = searchParams.get("token");
     const inviteParam = searchParams.get("invite");
+    const emailParam = searchParams.get("email")?.trim() ?? "";
 
     if (inviteParam) {
       // Redirect to dedicated invite signup page
@@ -98,6 +99,12 @@ function SignupPageContent() {
     if (tokenParam) {
       setToken(tokenParam);
       validateToken(tokenParam);
+      return;
+    }
+
+    // Prefill only — does not create an account.
+    if (emailParam && emailParam.includes("@")) {
+      setEmail(emailParam);
     }
   }, [searchParams, router]);
 
