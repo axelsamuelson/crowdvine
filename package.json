@@ -20,6 +20,7 @@
     "build-reputation": "node scripts/send-test-emails.js",
     "test": "vitest run",
     "test:watch": "vitest",
+    "check:migration-prefixes": "node scripts/check-migration-prefix-uniqueness.mjs",
     "playwright:install": "playwright-core install chromium",
     "crawl:smoke": "tsx scripts/crawl-smoke-test.ts",
     "crawl:batch": "tsx scripts/trigger-batched-crawl.ts",
