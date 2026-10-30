@@ -127,12 +127,14 @@ export default function KopvillkorContent() {
           ytterligare 30 dagar
         </li>
         <li>
-          Bekräftar du inte inom 7 dagar upphör din reservation automatiskt och{" "}
-          <LegalStrong>inget belopp debiteras</LegalStrong>
+          Du kan förlänga på samma sätt{" "}
+          <LegalStrong>hur många gånger du vill</LegalStrong>, 30 dagar i
+          taget, varje gång genom att bekräfta via länken i e-postmeddelandet
+          inom 7 dagar. Det finns ingen bortre tidsgräns
         </li>
         <li>
-          [FYLL I: om förlängningen kan upprepas mer än en gång, och eventuell
-          bortre tidsgräns för hur länge en reservation totalt kan gälla]
+          Bekräftar du inte inom 7 dagar upphör din reservation automatiskt och{" "}
+          <LegalStrong>inget belopp debiteras</LegalStrong>
         </li>
       </LegalList>
       <LegalP>

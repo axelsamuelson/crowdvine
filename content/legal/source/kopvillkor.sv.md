@@ -65,8 +65,8 @@ Din reservation är giltig i **30 dagar** från att du lade den.
 Om pallen fortfarande inte nått nödvändig volym (tröskeln) efter 30 dagar skickar vi ett e-postmeddelande där du ombeds bekräfta om pallen ska få ytterligare 30 dagar på sig att nå tröskeln. Du har **7 dagar** från det e-postmeddelandet att bekräfta via länken i mejlet.
 
 - Bekräftar du inom 7 dagar fortsätter din reservation att gälla i ytterligare 30 dagar
+- Du kan förlänga på samma sätt **hur många gånger du vill**, 30 dagar i taget, varje gång genom att bekräfta via länken i e-postmeddelandet inom 7 dagar. Det finns ingen bortre tidsgräns
 - Bekräftar du inte inom 7 dagar upphör din reservation automatiskt och **inget belopp debiteras**
-- [FYLL I: om förlängningen kan upprepas mer än en gång, och eventuell bortre tidsgräns för hur länge en reservation totalt kan gälla]
 
 När en reservation upphör utan att pallen fyllts debiteras **inget belopp**. Debitering sker först när pallen är fylld och stängs. Din sparade betalmetod tas bort eller kan användas för en kommande pall enligt ditt val. Vi informerar dig via e-post.
 
