@@ -131,10 +131,10 @@ export default function AccessPending() {
           <p className="text-xs text-gray-400 text-center mt-6">
             Questions? Contact us at{" "}
             <a
-              href="mailto:kund@pactwines.com"
+              href="mailto:customer@pactwines.com"
               className="underline hover:text-gray-600"
             >
-              kund@pactwines.com
+              customer@pactwines.com
             </a>
           </p>
         </CardContent>

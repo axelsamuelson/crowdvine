@@ -35,7 +35,7 @@ export default function IntegritetspolicyContent() {
           </tr>
           <tr>
             <LegalTh>E-post</LegalTh>
-            <LegalTd>kund@pactwines.com</LegalTd>
+            <LegalTd>customer@pactwines.com</LegalTd>
           </tr>
           <tr>
             <LegalTh>Registrerad distansförsäljare av alkohol hos Skatteverket</LegalTh>
@@ -313,7 +313,7 @@ export default function IntegritetspolicyContent() {
         </li>
       </LegalList>
       <LegalP>
-        Kontakta oss på kund@pactwines.com. Vi svarar inom en månad från att
+        Kontakta oss på customer@pactwines.com. Vi svarar inom en månad från att
         begäran kommit in.
       </LegalP>
       <LegalP>

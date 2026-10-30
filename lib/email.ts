@@ -7,13 +7,13 @@ export function defaultResendFrom(): string {
 
 /** Customer-facing Reply-To (monitored inbox). Override with RESEND_REPLY_TO. */
 export function defaultCustomerReplyTo(): string {
-  return process.env.RESEND_REPLY_TO?.trim() || "kund@pactwines.com";
+  return process.env.RESEND_REPLY_TO?.trim() || "customer@pactwines.com";
 }
 
 /**
  * Low-level transactional send (Resend). Throws on failure so callers can map errors.
  * Set `RESEND_API_KEY` in the environment (Vercel or .env.local).
- * From stays noreply (or RESEND_FROM); Reply-To defaults to kund@ for customer replies.
+ * From stays noreply (or RESEND_FROM); Reply-To defaults to customer@ for customer replies.
  */
 export async function sendEmail({
   to,

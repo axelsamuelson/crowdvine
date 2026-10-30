@@ -15,7 +15,7 @@ Din motpart vid köp på pactwines.com är:
 | Säljare | EURPACT OÜ |
 | Registreringsnummer | 17538270 |
 | Adress | Tartu mnt 67/1-13b, 10115, stadscentrum, Tallinn, Harju län, Estland |
-| E-post | kund@pactwines.com |
+| E-post | customer@pactwines.com |
 | Registrerad som distansförsäljare av alkohol hos Skatteverket | [FYLL I REGISTRERINGSNUMMER] |
 
 EURPACT OÜ är ett estniskt bolag och säljer alkohol på distans till konsumenter i Sverige. EURPACT OÜ redovisar och betalar svensk alkoholskatt och svensk moms för varje leverans.
@@ -24,7 +24,7 @@ EURPACT OÜ är ett estniskt bolag och säljer alkohol på distans till konsumen
 >
 > Adressen är den registrerade adressen, på svenska. I äriregistret står den som Tartu mnt 67/1-13b, 10115, Kesklinna linnaosa, Tallinn, Harju maakond, Eesti.
 >
-> Kontaktadressen är den bevakade adressen `kund@pactwines.com` (inte `noreply@`). Distansavtalslagen kräver uppgift om hur konsumenten kan kontakta säljaren, och GDPR kräver en fungerande kanal för att utöva sina rättigheter. Samma adress används i integritetspolicyn.
+> Kontaktadressen är den bevakade adressen `customer@pactwines.com` (inte `noreply@`). Distansavtalslagen kräver uppgift om hur konsumenten kan kontakta säljaren, och GDPR kräver en fungerande kanal för att utöva sina rättigheter. Samma adress används i integritetspolicyn.
 
 ---
 
@@ -113,7 +113,7 @@ Betalning sker enligt [Stripes villkor för betalningstjänsten](https://stripe.
 - Angivna leveranstider är uppskattningar. Transport från Frankrike kan påverkas av tull, väder och producenternas kapacitet
 - **Risken för varan går över på dig först när du tagit emot den.** Skadas eller försvinner varan under transport är det vårt ansvar
 
-Om leveransen blir väsentligt försenad har du rätt att häva köpet och få pengarna tillbaka. Kontakta oss på kund@pactwines.com.
+Om leveransen blir väsentligt försenad har du rätt att häva köpet och få pengarna tillbaka. Kontakta oss på customer@pactwines.com.
 
 ---
 

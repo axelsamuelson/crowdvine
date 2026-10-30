@@ -32,7 +32,7 @@ export default function KopvillkorContent() {
           </tr>
           <tr>
             <LegalTh>E-post</LegalTh>
-            <LegalTd>kund@pactwines.com</LegalTd>
+            <LegalTd>customer@pactwines.com</LegalTd>
           </tr>
           <tr>
             <LegalTh>Registrerad som distansförsäljare av alkohol hos Skatteverket</LegalTh>
@@ -206,7 +206,7 @@ export default function KopvillkorContent() {
       </LegalList>
       <LegalP>
         Om leveransen blir väsentligt försenad har du rätt att häva köpet och få
-        pengarna tillbaka. Kontakta oss på kund@pactwines.com.
+        pengarna tillbaka. Kontakta oss på customer@pactwines.com.
       </LegalP>
 
       <LegalH2>8. Om leverans inte kan genomföras</LegalH2>
