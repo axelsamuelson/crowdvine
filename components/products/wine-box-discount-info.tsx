@@ -1,8 +1,10 @@
 "use client";
 
 import { Product } from "@/lib/shopify/types";
-import { formatPrice, priceExclVat } from "@/lib/shopify/utils";
+import { priceExclVat } from "@/lib/shopify/utils";
 import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
+import { useDisplayMoney } from "@/lib/hooks/use-display-money";
+import { formatCartLinePrice } from "@/lib/shopping-context/format";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
@@ -12,6 +14,12 @@ interface WineBoxDiscountInfoProps {
 
 export function WineBoxDiscountInfo({ product }: WineBoxDiscountInfoProps) {
   const showExclVat = useB2BPriceMode();
+  const { locale } = useDisplayMoney();
+  const currencyCode =
+    product.priceRange?.minVariantPrice?.currencyCode?.trim().toUpperCase() ||
+    "SEK";
+  const formatLine = (amount: number) =>
+    formatCartLinePrice(amount, currencyCode, locale);
 
   // Check if this is a wine box product
   if (product.productType !== "wine-box" || !(product as any).discountInfo) {
@@ -37,7 +45,7 @@ export function WineBoxDiscountInfo({ product }: WineBoxDiscountInfoProps) {
           <div>
             <span className="text-muted-foreground">Individual Price:</span>
             <div className="font-semibold flex flex-col">
-              {formatPrice(Math.round(toDisplay(discountInfo.totalWinePrice)), "SEK")}
+              {formatLine(Math.round(toDisplay(discountInfo.totalWinePrice)))}
               {showExclVat && (
                 <span className="text-[10px] font-normal text-muted-foreground">
                   exkl. moms
@@ -48,7 +56,7 @@ export function WineBoxDiscountInfo({ product }: WineBoxDiscountInfoProps) {
           <div>
             <span className="text-muted-foreground">You Save:</span>
             <div className="font-semibold text-green-600">
-              {formatPrice(Math.round(toDisplay(discountInfo.discountAmount)), "SEK")}
+              {formatLine(Math.round(toDisplay(discountInfo.discountAmount)))}
             </div>
           </div>
         </div>
@@ -59,7 +67,7 @@ export function WineBoxDiscountInfo({ product }: WineBoxDiscountInfoProps) {
             {wines.map((wine: any, index: number) => (
               <div key={index} className="text-sm">
                 • {wine.wine_name} {wine.vintage} -{" "}
-                {formatPrice(toDisplay(wine.price).toFixed(2), "SEK")}
+                {formatLine(toDisplay(Number(wine.price) || 0))}
               </div>
             ))}
           </div>
