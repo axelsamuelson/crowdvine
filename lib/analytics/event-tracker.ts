@@ -61,6 +61,7 @@ export type EventType =
   | "checkout_step_viewed"
   | "checkout_step_completed"
   | "checkout_error"
+  | "payment_failed"
   | "delivery_ineligible"
   | "checkout_postal_started"
   | "checkout_delivery_captured"

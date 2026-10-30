@@ -270,7 +270,14 @@ export const TRACKED_USER_EVENTS_CATALOG: TrackedEventCatalogEntry[] = [
     eventType: "checkout_abandoned",
     category: "checkout",
     description:
-      "Real exit only (pagehide / visibility hidden) — not on step render. Once per session+step. Skipped when cart empty or after reservation_completed. Metadata: step, abandon_reason, field-filled booleans (+ postal_digits). Distinct from checkout_step_viewed.",
+      "Real exit only (pagehide / visibility_hidden) — not on step render. Once per session+step. Skipped when cart empty or after reservation_completed. Metadata: step (cart|delivery|terms|payment|confirm only), trigger, abandon_reason, field-filled booleans + postal_prefix (3 digits). Distinct from checkout_step_viewed.",
+    sources: ["client"],
+  },
+  {
+    eventType: "payment_failed",
+    category: "checkout",
+    description:
+      "Payment failed. Same CRO envelope as checkout_error (event_name=payment_failed). Wired via trackPaymentFailed helper when connected.",
     sources: ["client"],
   },
   {

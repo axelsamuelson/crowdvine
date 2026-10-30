@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildCheckoutFunnelProperties,
+  mapCheckoutStepToFunnelStep,
   postalPrefixFromRaw,
   uniqueIdList,
 } from "@/lib/analytics/checkout-errors";
@@ -18,6 +19,18 @@ describe("postalPrefixFromRaw", () => {
 describe("uniqueIdList", () => {
   it("dedupes and drops empties", () => {
     expect(uniqueIdList(["a", "a", "", null, "b", "  "])).toEqual(["a", "b"]);
+  });
+});
+
+describe("mapCheckoutStepToFunnelStep", () => {
+  it("maps internal steps/phases to CRO funnel steps only", () => {
+    expect(mapCheckoutStepToFunnelStep("postal")).toBe("delivery");
+    expect(mapCheckoutStepToFunnelStep("delivery")).toBe("delivery");
+    expect(mapCheckoutStepToFunnelStep("age_terms")).toBe("terms");
+    expect(mapCheckoutStepToFunnelStep("compliance")).toBe("terms");
+    expect(mapCheckoutStepToFunnelStep("payment")).toBe("payment");
+    expect(mapCheckoutStepToFunnelStep("confirm")).toBe("confirm");
+    expect(mapCheckoutStepToFunnelStep("cart")).toBe("cart");
   });
 });
 

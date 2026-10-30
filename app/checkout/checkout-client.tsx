@@ -75,7 +75,11 @@ import {
   postalDraftAnalytics,
 } from "@/lib/analytics/checkout-draft-metadata";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
-import { trackCheckoutError } from "@/lib/analytics/checkout-errors";
+import {
+  mapCheckoutStepToFunnelStep,
+  postalPrefixFromRaw,
+  trackCheckoutError,
+} from "@/lib/analytics/checkout-errors";
 import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
 import { formatCartLinePrice } from "@/lib/shopping-context/format";
 import type { PalletInfo } from "@/lib/zone-matching";
@@ -922,9 +926,9 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
 
   // checkout_abandoned = real exit only (pagehide / tab hidden). Distinct from
   // checkout_step_viewed (once per step/session on show). Never empty cart /
-  // post-reservation; once per session+step.
+  // post-reservation; once per session+step. step is CRO funnel only.
   useEffect(() => {
-    const emitAbandon = () => {
+    const emitAbandon = (trigger: "pagehide" | "visibility_hidden") => {
       if (checkoutCompletedRef.current || paymentStepCompletedRef.current) {
         return;
       }
@@ -932,10 +936,11 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
         return;
       }
       const delivery = deliveryLinesForAnalytics(deliverySnapshotRef.current);
-      const postalDraft = postalDraftAnalytics(postalCodeDraftRef.current);
-      const step = checkoutStepRef.current;
+      const internalStep = checkoutStepRef.current;
+      const funnelStep = mapCheckoutStepToFunnelStep(internalStep);
+      const postalPrefix = postalPrefixFromRaw(postalCodeDraftRef.current);
       const blocker = lastCheckoutBlockerRef.current;
-      const missing = missingCheckoutFields(step, delivery, {
+      const missing = missingCheckoutFields(internalStep, delivery, {
         has_dob: dateOfBirthFilledRef.current,
         has_terms: termsAcceptedRef.current,
       });
@@ -947,13 +952,18 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
         abandon_field = missing[0];
         abandon_code = "fields_incomplete";
       }
-      emitOnce(checkoutAbandonedEmitKey(step), () => {
+      const meta = checkoutMetaRef.current;
+      emitOnce(checkoutAbandonedEmitKey(funnelStep), () => {
         void AnalyticsTracker.trackEvent({
           eventType: "checkout_abandoned",
           eventCategory: "checkout",
           metadata: {
-            phase: checkoutPhaseRef.current,
-            ...checkoutEventMeta(step),
+            step: funnelStep,
+            trigger,
+            market: meta.market,
+            currency: meta.currency,
+            cart_value: meta.cart_value,
+            bottle_count: meta.bottle_count,
             abandon_reason,
             ...(abandon_field ? { field: abandon_field } : {}),
             ...(abandon_code ? { code: abandon_code } : {}),
@@ -965,11 +975,11 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
             terms_accepted: termsAcceptedRef.current,
             // Field-filled booleans only — never name/address/phone/DOB values.
             ...delivery,
-            ...(postalDraft
+            ...(postalPrefix
               ? {
-                  postal_digits: postalDraft.postal_digits,
-                  digits: postalDraft.digits,
-                  postal_complete: postalDraft.complete || delivery.has_postal,
+                  postal_prefix: postalPrefix,
+                  digits: postalPrefix.length,
+                  postal_complete: delivery.has_postal,
                 }
               : {}),
           },
@@ -977,13 +987,16 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
         });
       });
     };
+    const onPageHide = () => emitAbandon("pagehide");
     const onVisibility = () => {
-      if (document.visibilityState === "hidden") emitAbandon();
+      if (document.visibilityState === "hidden") {
+        emitAbandon("visibility_hidden");
+      }
     };
-    window.addEventListener("pagehide", emitAbandon);
+    window.addEventListener("pagehide", onPageHide);
     document.addEventListener("visibilitychange", onVisibility);
     return () => {
-      window.removeEventListener("pagehide", emitAbandon);
+      window.removeEventListener("pagehide", onPageHide);
       document.removeEventListener("visibilitychange", onVisibility);
     };
   }, []);

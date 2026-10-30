@@ -23,6 +23,21 @@ export type CheckoutFunnelEventName =
   | "payment_failed"
   | "reservation_completed";
 
+/** Internal checkout UI step / phase → CRO envelope step. */
+export function mapCheckoutStepToFunnelStep(
+  internal: string | null | undefined,
+): CheckoutErrorStep {
+  const s = String(internal ?? "")
+    .trim()
+    .toLowerCase();
+  if (s === "cart") return "cart";
+  if (s === "confirm") return "confirm";
+  if (s === "payment") return "payment";
+  if (s === "age_terms" || s === "compliance" || s === "terms") return "terms";
+  if (s === "postal" || s === "delivery") return "delivery";
+  return "delivery";
+}
+
 export type CheckoutFunnelProperties = {
   error_code: string | null;
   message: string | null;
@@ -134,38 +149,46 @@ export type TrackCheckoutFunnelInput = {
 /**
  * Log a user-visible checkout/validation error to user_events.
  * Dedupes per (error_code, step, session) via sessionStorage.
+ * Never throws — analytics must not break checkout.
  */
 export async function trackCheckoutError(
   input: TrackCheckoutFunnelInput,
 ): Promise<void> {
-  if (typeof window === "undefined") return;
-  const ids = await resolveBrowserIdentities();
-  const dedupeKey = `checkout_error:${ids.sessionId}:${input.step}:${input.errorCode}`;
   try {
-    if (sessionStorage.getItem(dedupeKey)) return;
-    sessionStorage.setItem(dedupeKey, "1");
+    if (typeof window === "undefined") return;
+    const ids = await resolveBrowserIdentities();
+    const dedupeKey = `checkout_error:${ids.sessionId}:${input.step}:${input.errorCode}`;
+    try {
+      if (sessionStorage.getItem(dedupeKey)) return;
+      sessionStorage.setItem(dedupeKey, "1");
+    } catch {
+      // continue without dedupe
+    }
+
+    const props = buildCheckoutFunnelProperties({
+      errorCode: input.errorCode,
+      message: input.message,
+      wineIds: input.wineIds,
+      producerIds: input.producerIds,
+      postalRaw: input.postalRaw,
+      step: input.step,
+      sessionId: ids.sessionId,
+      userId: ids.userId,
+      visitorId: ids.visitorId,
+      isInternal: ids.isInternal,
+    });
+
+    await AnalyticsTracker.trackEvent({
+      eventType: "checkout_error",
+      eventCategory: "checkout",
+      metadata: {
+        ...props,
+        event_name: "checkout_error" satisfies CheckoutFunnelEventName,
+      },
+    });
   } catch {
-    // continue without dedupe
+    // swallow — never surface analytics failures to checkout
   }
-
-  const props = buildCheckoutFunnelProperties({
-    errorCode: input.errorCode,
-    message: input.message,
-    wineIds: input.wineIds,
-    producerIds: input.producerIds,
-    postalRaw: input.postalRaw,
-    step: input.step,
-    sessionId: ids.sessionId,
-    userId: ids.userId,
-    visitorId: ids.visitorId,
-    isInternal: ids.isInternal,
-  });
-
-  await AnalyticsTracker.trackEvent({
-    eventType: "checkout_error",
-    eventCategory: "checkout",
-    metadata: props,
-  });
 }
 
 export type TrackPaymentFailedInput = {
@@ -181,29 +204,33 @@ export type TrackPaymentFailedInput = {
 export async function trackPaymentFailed(
   input: TrackPaymentFailedInput,
 ): Promise<void> {
-  if (typeof window === "undefined") return;
-  const ids = await resolveBrowserIdentities();
-  const props = buildCheckoutFunnelProperties({
-    errorCode: input.errorCode ?? "payment_failed",
-    message: input.message,
-    wineIds: input.wineIds,
-    producerIds: input.producerIds,
-    postalRaw: input.postalRaw,
-    step: input.step ?? "payment",
-    sessionId: ids.sessionId,
-    userId: ids.userId,
-    visitorId: ids.visitorId,
-    isInternal: ids.isInternal,
-  });
+  try {
+    if (typeof window === "undefined") return;
+    const ids = await resolveBrowserIdentities();
+    const props = buildCheckoutFunnelProperties({
+      errorCode: input.errorCode ?? "payment_failed",
+      message: input.message,
+      wineIds: input.wineIds,
+      producerIds: input.producerIds,
+      postalRaw: input.postalRaw,
+      step: input.step ?? "payment",
+      sessionId: ids.sessionId,
+      userId: ids.userId,
+      visitorId: ids.visitorId,
+      isInternal: ids.isInternal,
+    });
 
-  await AnalyticsTracker.trackEvent({
-    eventType: "checkout_error",
-    eventCategory: "checkout",
-    metadata: {
-      ...props,
-      event_name: "payment_failed" satisfies CheckoutFunnelEventName,
-    },
-  });
+    await AnalyticsTracker.trackEvent({
+      eventType: "payment_failed",
+      eventCategory: "checkout",
+      metadata: {
+        ...props,
+        event_name: "payment_failed" satisfies CheckoutFunnelEventName,
+      },
+    });
+  } catch {
+    // swallow
+  }
 }
 
 export type TrackReservationCompletedInput = {
@@ -219,30 +246,34 @@ export type TrackReservationCompletedInput = {
 export async function trackReservationCompleted(
   input: TrackReservationCompletedInput,
 ): Promise<void> {
-  if (typeof window === "undefined") return;
-  const ids = await resolveBrowserIdentities();
-  const props = buildCheckoutFunnelProperties({
-    errorCode: null,
-    message: input.message ?? null,
-    wineIds: input.wineIds,
-    producerIds: input.producerIds,
-    postalRaw: input.postalRaw,
-    step: input.step ?? "confirm",
-    sessionId: ids.sessionId,
-    userId: ids.userId,
-    visitorId: ids.visitorId,
-    isInternal: ids.isInternal,
-  });
+  try {
+    if (typeof window === "undefined") return;
+    const ids = await resolveBrowserIdentities();
+    const props = buildCheckoutFunnelProperties({
+      errorCode: null,
+      message: input.message ?? null,
+      wineIds: input.wineIds,
+      producerIds: input.producerIds,
+      postalRaw: input.postalRaw,
+      step: input.step ?? "confirm",
+      sessionId: ids.sessionId,
+      userId: ids.userId,
+      visitorId: ids.visitorId,
+      isInternal: ids.isInternal,
+    });
 
-  await AnalyticsTracker.trackEvent({
-    eventType: "reservation_completed",
-    eventCategory: "checkout",
-    metadata: {
-      ...props,
-      event_name: "reservation_completed" satisfies CheckoutFunnelEventName,
-      ...(input.reservationId
-        ? { reservation_id: input.reservationId }
-        : {}),
-    },
-  });
+    await AnalyticsTracker.trackEvent({
+      eventType: "reservation_completed",
+      eventCategory: "checkout",
+      metadata: {
+        ...props,
+        event_name: "reservation_completed" satisfies CheckoutFunnelEventName,
+        ...(input.reservationId
+          ? { reservation_id: input.reservationId }
+          : {}),
+      },
+    });
+  } catch {
+    // swallow
+  }
 }
