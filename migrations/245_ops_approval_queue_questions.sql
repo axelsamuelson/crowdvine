@@ -1,4 +1,4 @@
--- 244: make approval-queue rows explicit questions to Axel
+-- 245: make approval-queue rows explicit questions to Axel
 alter table public.ops_approval_queue
   add column if not exists question text,
   add column if not exists answer_type text,
