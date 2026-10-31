@@ -1,44 +1,38 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { headers } from "next/headers";
 
 import ProductList from "@/app/vin/components/product-list";
 import { CategoryFaqSection } from "@/components/shop/category-faq-section";
-import { isB2BHost } from "@/lib/b2b-site";
 import { mapProductDataToShopProducts } from "@/lib/map-product-data-to-shop-product";
 import { getCachedShopProducts } from "@/lib/shop/cached-shop-products";
 import { getShopRootNaturalWineContent } from "@/lib/shop/shop-root-natural-wine-content";
 import {
-  DEFAULT_B2B_SHOP_SORT,
   DEFAULT_B2C_SHOP_SORT,
   storeCatalog,
 } from "@/lib/shopify/constants";
 import { mapSortKeys } from "@/lib/shopify/utils";
-import { fallbackShoppingContext } from "@/lib/shopping-context/defaults";
-import { getCachedShoppingContextFromRequest } from "@/lib/shopping-context/server";
-import { getSiteConfig } from "@/lib/site-config-server";
+import { getPublicSiteConfig } from "@/lib/site-config-server";
 import { buildFaqPageJsonLd } from "@/lib/wine-category-faq";
 
 async function ShopRootJsonLd({ locale }: { locale: "sv" | "en" }) {
   const content = getShopRootNaturalWineContent(locale);
-  const config = await getSiteConfig();
-  const headerList = await headers();
-  const isB2BSite = isB2BHost(
-    headerList.get("x-forwarded-host") ?? headerList.get("host"),
-  );
-  const shoppingContext = await getCachedShoppingContextFromRequest().catch(
-    () => fallbackShoppingContext(),
-  );
-  const defaultSort = isB2BSite ? DEFAULT_B2B_SHOP_SORT : DEFAULT_B2C_SHOP_SORT;
-  const { sortKey, reverse } = mapSortKeys(defaultSort, "product");
-  const rawProducts = await getCachedShopProducts({
-    sortKey,
-    reverse,
-    isB2BSite,
-    displayCurrencyCode: shoppingContext.currencyCode,
-    sekToDisplayRate: shoppingContext.sekToDisplayRate,
-    locale,
-  });
+  const config = getPublicSiteConfig();
+  // Anonymous B2C catalog for ISR JSON-LD — no headers()/cookies().
+  const { sortKey, reverse } = mapSortKeys(DEFAULT_B2C_SHOP_SORT, "product");
+  let rawProducts: Awaited<ReturnType<typeof getCachedShopProducts>> = [];
+  try {
+    rawProducts = await getCachedShopProducts({
+      sortKey,
+      reverse,
+      isB2BSite: false,
+      displayCurrencyCode: "SEK",
+      sekToDisplayRate: 1,
+      locale,
+    });
+  } catch (error) {
+    // CI builds use placeholder Supabase; keep force-static prerender green.
+    console.warn("ShopRootJsonLd: failed to fetch products:", error);
+  }
   const mapped = mapProductDataToShopProducts(rawProducts);
   const shopPath = locale === "sv" ? "/vin" : "/wine";
   const productPrefix = locale === "sv" ? "/produkt" : "/product";
@@ -245,7 +239,11 @@ export async function MainShopContent({
           <p className="leading-relaxed text-stone-600">{content.intro}</p>
         </div>
       </div>
-      <ProductList collection={storeCatalog.rootCategoryId} searchParams={sp} />
+      <ProductList
+        collection={storeCatalog.rootCategoryId}
+        searchParams={sp}
+        locale={locale}
+      />
       <ShopRootBelowFold locale={locale} />
     </>
   );

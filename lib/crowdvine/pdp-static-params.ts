@@ -7,8 +7,13 @@ export const PDP_REVALIDATE_SECONDS = 3600;
 export async function generateIndexablePdpStaticParams(): Promise<
   { handle: string }[]
 > {
-  const wines = await fetchIndexableWines();
-  return wines
-    .filter((wine) => Boolean(wine.handle?.trim()))
-    .map((wine) => ({ handle: wine.handle }));
+  try {
+    const wines = await fetchIndexableWines();
+    return wines
+      .filter((wine) => Boolean(wine.handle?.trim()))
+      .map((wine) => ({ handle: wine.handle }));
+  } catch (error) {
+    console.warn("generateIndexablePdpStaticParams: fetch failed:", error);
+    return [];
+  }
 }

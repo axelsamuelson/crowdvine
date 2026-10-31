@@ -52,6 +52,11 @@ interface ProductPdpLayoutProps {
   locale?: AppLocale;
   competitorOffers?: CompetitorOffer[];
   recommendations?: PdpRecommendationsResult | null;
+  /**
+   * Streamed below-fold recommendations (siblings + carousel).
+   * When set, replaces the sync `recommendations` render path.
+   */
+  belowFold?: ReactNode;
   /** SSR pallet fill snapshot for no-JS / first paint. */
   initialPalletStatus?: ZoneStatusPayload | null;
   compareAtPrice?: ReactNode;
@@ -68,6 +73,7 @@ export function ProductPdpLayout({
   locale = "en",
   competitorOffers = [],
   recommendations = null,
+  belowFold = null,
   initialPalletStatus = null,
   compareAtPrice,
   beforeSidebar,
@@ -262,7 +268,9 @@ export function ProductPdpLayout({
           <div className="md:hidden">{producerMap}</div>
         ) : null}
 
-        {siblingWines.length > 0 && product.producerName ? (
+        {belowFold}
+
+        {!belowFold && siblingWines.length > 0 && product.producerName ? (
           <PdpSiblingWinesSection
             producerName={product.producerName}
             locale={locale}
@@ -270,7 +278,8 @@ export function ProductPdpLayout({
           />
         ) : null}
 
-        {recommendations &&
+        {!belowFold &&
+        recommendations &&
         (recommendations.sameProducer.length > 0 ||
           recommendations.similar.length > 0) ? (
           <PdpRecommendationsSection recommendations={recommendations} />
