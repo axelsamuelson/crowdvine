@@ -68,6 +68,8 @@ class RateLimiter {
 export const accessRequestLimiter = new RateLimiter(15 * 60 * 1000, 5); // 5 requests per 15 minutes
 export const signupLimiter = new RateLimiter(60 * 60 * 1000, 3); // 3 requests per hour
 export const generalLimiter = new RateLimiter(15 * 60 * 1000, 100); // 100 requests per 15 minutes
+/** Dirtywine B2B inquiry form — 5 submits per 15 minutes per IP. */
+export const b2bInquiryLimiter = new RateLimiter(15 * 60 * 1000, 5);
 
 // Helper function to get client identifier
 export function getClientIdentifier(request: Request): string {
@@ -143,6 +145,7 @@ setInterval(
     accessRequestLimiter.cleanup();
     signupLimiter.cleanup();
     generalLimiter.cleanup();
+    b2bInquiryLimiter.cleanup();
   },
   5 * 60 * 1000,
 );

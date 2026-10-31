@@ -157,6 +157,8 @@
     "bottleProgressHint": "Minimum 6 bottles – you can mix",
     "needMoreBottlesShort": "{needed} more bottles",
     "proceedToCheckout": "Proceed to Checkout",
+    "sendInquiry": "Send inquiry",
+    "loginToSendInquiry": "Log in to send an inquiry",
     "producerOrdersPaused": "Producer orders are paused. Remove the line to continue.",
     "yourCart": "Your cart",
     "emptyCart": "Your cart is empty",

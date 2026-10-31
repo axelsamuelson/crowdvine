@@ -54,8 +54,18 @@ export function Header({
   }, [loading, isB2BOnly, pathname]);
 
   return (
-    <header className="grid fixed top-0 left-0 z-50 grid-cols-3 items-start w-full p-sides md:grid-cols-12 md:gap-sides">
-      <div className="block flex-none md:hidden">
+    <header
+      className={cn(
+        "fixed top-0 left-0 z-50 w-full p-sides",
+        // Dirtywine mobile: flex + absolutely centered logo (max 24px) so the wide
+        // wordmark cannot shove the cart off-screen. Desktop matches previous 12-col grid.
+        // pactwines.com keeps the original 3-col / 12-col grid unchanged.
+        isDirtywineSite
+          ? "flex items-center justify-between md:grid md:grid-cols-12 md:gap-sides md:items-start"
+          : "grid grid-cols-3 items-start md:grid-cols-12 md:gap-sides",
+      )}
+    >
+      <div className="block flex-none md:hidden relative z-10">
         <MobileMenuDynamic
           collections={collections}
           popularCollections={popularCollections}
@@ -64,12 +74,24 @@ export function Header({
       </div>
       <Link
         href={paths.home}
-        className="md:col-span-3 xl:col-span-2 flex justify-center md:justify-start"
+        className={cn(
+          "md:col-span-3 xl:col-span-2 flex justify-center md:justify-start min-w-0",
+          isDirtywineSite &&
+            "absolute left-1/2 top-1/2 z-0 -translate-x-1/2 -translate-y-1/2 md:static md:translate-x-0 md:translate-y-0 md:top-auto md:left-auto",
+        )}
         prefetch
       >
-        <LogoSvg className="h-8 md:h-12 w-auto" initialLogos={initialLogos} />
+        <LogoSvg
+          className={cn(
+            "w-auto",
+            isDirtywineSite
+              ? "h-6 max-h-6 max-w-[min(160px,46vw)] md:h-12 md:max-h-12 md:max-w-none"
+              : "h-8 md:h-12",
+          )}
+          initialLogos={initialLogos}
+        />
       </Link>
-      <nav className="flex gap-2 justify-end items-center md:col-span-9 xl:col-span-10">
+      <nav className="relative z-10 flex gap-2 justify-end items-center md:col-span-9 xl:col-span-10">
         <div className="items-center gap-5 py-0.5 pr-3 bg-transparent hidden md:flex min-w-0">
           {/* Complete order rail should stretch to the left edge of the content column */}
           <CompleteOrderRailDynamic />
@@ -131,7 +153,11 @@ export function Header({
             <PortalToggle showPortalToggle={true} className="shrink-0 ml-2" />
           )}
         </div>
-        <ProfileIcon className="hidden md:block" />
+        <ProfileIcon
+          className="hidden md:flex"
+          label={t("common.profile")}
+          showLabel={isDirtywineSite}
+        />
         <CartModalDynamic />
       </nav>
     </header>
