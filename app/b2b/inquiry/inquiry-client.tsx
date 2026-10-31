@@ -236,6 +236,11 @@ export function B2bInquiryClient({
     return { bottles, exclSum };
   }, [warehouseLines]);
 
+  const bottlesLabel = (n: number) => {
+    if (locale === "sv") return n === 1 ? "1 flaska" : `${n} flaskor`;
+    return n === 1 ? "1 bottle" : `${n} bottles`;
+  };
+
   const cartSummary = (
     <section className="space-y-3 font-sans">
       <h2 className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
@@ -248,28 +253,37 @@ export function B2bInquiryClient({
           return (
             <li
               key={line.id}
-              className="flex justify-between gap-4 px-3 py-2 text-sm"
+              className="flex justify-between gap-4 px-3 py-2.5 text-sm items-start"
             >
-              <span>
-                {line.merchandise.product?.title || line.merchandise.title} ×{" "}
-                {line.quantity}
-              </span>
-              <span className="tabular-nums text-muted-foreground">
+              <div className="min-w-0 flex-1">
+                <div className="leading-snug break-words">
+                  {line.merchandise.product?.title || line.merchandise.title}
+                </div>
+                <div className="mt-0.5 text-[13px] text-muted-foreground leading-snug">
+                  {bottlesLabel(line.quantity)}
+                </div>
+              </div>
+              <span className="tabular-nums whitespace-nowrap pl-4 shrink-0">
                 {formatCartLinePrice(excl, context)}
               </span>
             </li>
           );
         })}
+        <li className="flex justify-between gap-4 px-3 py-2.5 text-sm items-start font-medium">
+          <div className="min-w-0 flex-1">
+            <div className="leading-snug">{copy.totalExclVatLabel}</div>
+            <div className="mt-0.5 text-[13px] font-normal text-muted-foreground leading-snug">
+              {bottlesLabel(cartTotals.bottles)}
+            </div>
+          </div>
+          <span className="tabular-nums whitespace-nowrap pl-4 shrink-0">
+            {formatCartLinePrice(cartTotals.exclSum, context)}{" "}
+            <span className="font-normal text-muted-foreground text-xs">
+              {locale === "sv" ? "exkl. moms" : "excl. VAT"}
+            </span>
+          </span>
+        </li>
       </ul>
-      <p className="text-xs text-muted-foreground">{copy.exclVatHint}</p>
-      <div className="flex justify-between gap-4 text-sm font-medium">
-        <span>
-          {copy.totalExclVatLabel}: {cartTotals.bottles} {copy.totalBottlesLabel}
-        </span>
-        <span className="tabular-nums">
-          {formatCartLinePrice(cartTotals.exclSum, context)}
-        </span>
-      </div>
     </section>
   );
 

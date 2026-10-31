@@ -48,19 +48,15 @@ Notes:
 - Newer Resend domains may show **CNAME** instead of TXT/MX — always paste the Records tab exactly.
 - After DNS propagates, click **Verify** in Resend, then set `DIRTYWINE_RESEND_FROM=Dirtywine <noreply@dirtywine.se>`.
 
-## Email / login previews (v3 — Inès)
+## Email / login previews (v4 — Inès)
 
 | File | What |
 | --- | --- |
-| `login-gate-v3.html` | Utloggad förfrågesida i Dirtywine-layout (header + logo) |
-| `login-gate-v3-390.png` | Login gate mobil 390 |
-| `login-gate-v3-1440.png` | Login gate desktop 1440 |
-| `customer-confirmation-v3.html` | Kundbekräftelse HTML (tabell: namn + muted flaskor / pris) |
-| `customer-confirmation-v3-mobile.png` | Kundmejl mobil 390 |
+| `login-gate-v4-390.png` | Utloggad förfrågesida mobil (Menu \| logo ≤24px \| cart; list = mejlstruktur) |
+| `dirtywine-home-header-v4-390.png` | Dirtywine startsida 390 med fixad mobilheader |
+| `customer-confirmation-v4.html` | Kundmejl (utan separat «Priser exkl. moms»-rad) |
 
-**Layout-bekräftelse:** `/b2b/inquiry` går via root layout + `ConditionalHeader` (samma header/logo som dirtywine.se). Verifierat på preview (`header` + logo present). Tidigare v2-dumpar saknade header för att de var fristående HTML-mockar.
-
-Äldre v1/v2-filer behålls för historik.
+**Mobilheader:** Felet med staplad meny + logo utanför fanns **före PR:en** i den meningen att headern/koden inte ändrades här — men den trasiga v3-dumpen var en felaktig HTML-mock. Produktion `dirtywine.se` hade redan Menu\|logo\|cart. Denna PR skärper **bara Dirtywine** (`isDirtywineSite`): `grid-cols-[auto_1fr_auto]`, logo `max-h-6` (24px). **pactwines.com opåverkad.**
 
 ## Inloggningskrav (Axel) + Inès UI
 

@@ -108,6 +108,7 @@ describe("inquiry email builders", () => {
     expect(built.html).toMatch(/padding:[^;]*16px/);
     expect(built.html).toContain("white-space:nowrap");
     expect(built.html).not.toContain(" × ");
+    expect(built.html).not.toContain("Priser exkl. moms");
     expect(built.html).toContain("Integritetspolicy");
     expect(built.html).toContain("https://dirtywine.se/integritetspolicy");
     expect(built.html).toContain("fe06af9d-ee01-418b-8b77-9d1b0c435bac.svg");

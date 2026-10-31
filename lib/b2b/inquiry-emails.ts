@@ -163,11 +163,10 @@ export function buildB2bInquiryCustomerEmail(opts: {
   </h1>
   <p style="margin:0 0 4px;font-size:14px;"><strong>Företag:</strong> ${escapeHtml(v.companyName)}</p>
   <p style="margin:0 0 16px;font-size:14px;"><strong>Önskat leveransdatum:</strong> ${escapeHtml(delivery)}</p>
-  <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="border-collapse:collapse;margin:0 0 8px;">
+  <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="border-collapse:collapse;margin:0 0 20px;">
     ${lineRowsHtml}
     ${totalRowHtml}
   </table>
-  <p style="margin:0 0 20px;font-size:12px;color:${MUTED};">Priser exkl. moms</p>
   <p style="margin:0 0 20px;">${escapeHtml(DIRTYWINE_INQUIRY_FOLLOW_UP)}</p>
   <p style="margin:0;">Hälsningar<br/>${escapeHtml(DIRTYWINE_BRAND_NAME)}</p>
   ${footerHtml()}
