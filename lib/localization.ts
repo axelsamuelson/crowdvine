@@ -2,7 +2,7 @@ import { isDirtywineHost } from "@/lib/b2b-site";
 
 /**
  * UI localization (language switching, browser-locale copy, bilingual strings)
- * is disabled on dirtywine.se — fixed Swedish UI (Stockholm B2B).
+ * is disabled on dirtywine.se — English-only for now.
  * Localhost defaults to pactwines (localization on) unless ?b2b=1.
  */
 export function isUiLocalizationEnabled(

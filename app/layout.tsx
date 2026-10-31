@@ -164,11 +164,7 @@ export default async function RootLayout({
   const htmlLang = pathLocale ?? shoppingContext.locale;
 
   return (
-    <html
-      lang={htmlLang}
-      {...(isDirtywineSite ? { "data-b2b": "true" } : {})}
-      suppressHydrationWarning
-    >
+    <html lang={htmlLang} suppressHydrationWarning>
       <body
         className={cn(
           geistSans.variable,

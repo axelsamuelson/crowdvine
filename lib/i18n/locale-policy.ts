@@ -16,8 +16,7 @@ export function availableAppLocalesForZone(
   zone: Pick<ResolvedActiveGeoZone, "countryCode" | "marketCode">,
   uiLocalizationEnabled: boolean,
 ): AppLocale[] {
-  // Dirty Wine (ui localization off): Swedish-only chrome.
-  if (!uiLocalizationEnabled) return ["sv"];
+  if (!uiLocalizationEnabled) return [DEFAULT_APP_LOCALE];
   if (isEnglishOnlyWineZone(zone)) return ["en"];
   return ["en", "sv"];
 }
@@ -28,6 +27,5 @@ export function clampAppLocaleForZone(
   uiLocalizationEnabled: boolean,
 ): AppLocale {
   const allowed = availableAppLocalesForZone(zone, uiLocalizationEnabled);
-  if (allowed.includes(locale)) return locale;
-  return allowed[0] ?? DEFAULT_APP_LOCALE;
+  return allowed.includes(locale) ? locale : DEFAULT_APP_LOCALE;
 }

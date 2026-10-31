@@ -6,7 +6,6 @@ import {
   useSiteLogosOptional,
   type SiteLogos,
 } from "@/lib/context/site-logo-provider";
-import { useB2BModeServerHint } from "@/lib/context/b2b-mode-context";
 
 export function clearFooterLogoCache() {
   window.dispatchEvent(new CustomEvent("footerLogoCacheCleared"));
@@ -21,19 +20,6 @@ function PactWordmark({ className }: { className?: string }) {
       )}
     >
       PACT
-    </div>
-  );
-}
-
-function DirtyWineWordmark({ className }: { className?: string }) {
-  return (
-    <div
-      className={cn(
-        "text-2xl font-bold tracking-tight text-current md:text-4xl",
-        className,
-      )}
-    >
-      Dirty Wine
     </div>
   );
 }
@@ -67,7 +53,6 @@ export function FooterLogoSvg({
   initialLogos?: SiteLogos;
 }) {
   const logos = useSiteLogosOptional();
-  const isDirtywineSite = useB2BModeServerHint();
   const footerLogo =
     logos?.footerLogo ?? initialLogos?.footerLogo ?? null;
   const headerLogo =
@@ -78,14 +63,10 @@ export function FooterLogoSvg({
     return (
       <LogoImage
         url={logoUrl}
-        alt={isDirtywineSite ? "Dirty Wine logo" : "PACT Wines logo"}
+        alt="PACT Wines logo"
         className={cn("h-auto w-auto block shrink-0", className)}
       />
     );
-  }
-
-  if (isDirtywineSite) {
-    return <DirtyWineWordmark className={className} />;
   }
 
   return <PactWordmark className={className} />;

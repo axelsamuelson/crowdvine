@@ -45,17 +45,3 @@ describe("Dirty Wine privacy processors", () => {
     expect(services).not.toContain("Budbee");
   });
 });
-
-describe("Dirty Wine locale when UI localization is off", () => {
-  it("allows only Swedish", async () => {
-    const { availableAppLocalesForZone } = await import(
-      "@/lib/i18n/locale-policy"
-    );
-    expect(
-      availableAppLocalesForZone(
-        { countryCode: "SE", marketCode: "SE" },
-        false,
-      ),
-    ).toEqual(["sv"]);
-  });
-});
