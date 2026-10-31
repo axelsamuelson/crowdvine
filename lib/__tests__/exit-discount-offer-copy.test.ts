@@ -41,9 +41,13 @@ describe("exit discount offer copy", () => {
     const joined = lines.join("\n");
     expect(joined).toContain("första reservation");
     expect(joined).toContain("på vinet");
-    expect(joined).toContain("inte på frakten");
+    expect(joined).toContain("Ange koden i kassan.");
+    expect(joined).toContain("Välj viner: https://pactwines.com/vin");
+    expect(joined).toContain("inte frakten");
     expect(joined).toContain("PACT Points");
     expect(joined).toContain("Meigoon Box");
+    expect(joined).toContain("EURPACT OÜ (registrikood 17538270)");
+    expect(joined).not.toContain("Använd den i kassan på pactwines.com.");
     expect(joined.toLowerCase()).not.toMatch(/skynda|sista chansen|endast idag/);
   });
 });
