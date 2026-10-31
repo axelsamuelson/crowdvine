@@ -23,7 +23,10 @@ import { CartValidationDisplay } from "./cart-validation-display";
 import type { ProducerValidation } from "@/lib/checkout-validation";
 import { CartValidationHeader } from "./CartValidationHeader";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
-import { B2B_PRODUCER_ORDERS_ENABLED } from "@/lib/b2b/flags";
+import {
+  B2B_PRODUCER_ORDERS_ENABLED,
+  isDirtywineInquiryMode,
+} from "@/lib/b2b/flags";
 import { homeDeliveryGuidePath } from "@/lib/guides/home-delivery-guide";
 
 const CartContainer = ({
@@ -181,6 +184,7 @@ const CartItems = ({
           closeCart={closeCart}
           validations={validations}
           isValidating={isValidating}
+          inquiryMode={showExclVat && isDirtywineInquiryMode()}
           producerOrdersPaused={
             showExclVat &&
             !B2B_PRODUCER_ORDERS_ENABLED &&
@@ -488,11 +492,14 @@ function CheckoutButton({
   validations = [],
   isValidating = false,
   producerOrdersPaused = false,
+  inquiryMode = false,
 }: {
   closeCart: () => void;
   validations?: ProducerValidation[];
   isValidating?: boolean;
   producerOrdersPaused?: boolean;
+  /** Dirtywine inquiry checkout mode — CTA goes to /b2b/inquiry. */
+  inquiryMode?: boolean;
 }) {
   const { t } = useTranslations();
   const paths = useLocalizedPaths();
@@ -500,7 +507,7 @@ function CheckoutButton({
   const { cart, isPending } = useCart();
   const router = useRouter();
 
-  const checkoutUrl = cart?.checkoutUrl;
+  const checkoutUrl = inquiryMode ? "/b2b/inquiry" : cart?.checkoutUrl;
 
   // Check if there are validation errors
   const hasValidationErrors = validations.some((v) => !v.isValid);
@@ -587,7 +594,9 @@ function CheckoutButton({
                           0,
                         ),
                       })
-                    : t("cart.proceedToCheckout")}
+                    : inquiryMode
+                      ? t("cart.sendInquiry")
+                      : t("cart.proceedToCheckout")}
               </span>
               <ArrowRight className="size-6 shrink-0" />
             </div>
