@@ -28,7 +28,7 @@ export function ProductListImageServer({
         width={imageToShow?.width || 600}
         height={imageToShow?.height || 600}
         sizes="(max-width: 768px) 50vw, 33vw"
-        className="object-cover size-full block"
+        className="object-contain size-full block"
         quality={PLP_IMAGE_QUALITY}
         priority={isAboveFold}
         loading={isAboveFold ? "eager" : "lazy"}

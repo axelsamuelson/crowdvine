@@ -159,6 +159,13 @@ export const TRACKED_USER_EVENTS_CATALOG: TrackedEventCatalogEntry[] = [
     sources: ["client"],
   },
   {
+    eventType: "cta_visible",
+    category: "engagement",
+    description:
+      "PDP primary add-to-cart CTA entered the viewport (once per page view). Metadata: product_id, device (mobile|desktop).",
+    sources: ["client"],
+  },
+  {
     eventType: "pallet_status_viewed",
     category: "navigation",
     description:

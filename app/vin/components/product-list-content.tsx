@@ -19,9 +19,11 @@ import {
 import { ProductGrid } from "./product-grid";
 import { ProductCard } from "./product-card";
 import { ProductListHydrationGate } from "@/app/vin/components/product-list-hydration-gate";
+import { MinSixBottlesHint } from "@/components/commerce/min-six-bottles-hint";
 import { Card } from "../../../components/ui/card";
 import { useTranslations } from "@/lib/hooks/use-translations";
 import { Button } from "@/components/ui/button";
+import type { AppLocale } from "@/lib/i18n/locale";
 import { ShopSearchScopeTabs } from "./shop-search-scope-tabs";
 import {
   countProductsBySearchScope,
@@ -62,7 +64,8 @@ export function ProductListContent({
   producerProfileLabel,
   children: staticGrid,
 }: ProductListContentProps & { collectionHandle?: string }) {
-  const { t } = useTranslations();
+  const { t, context } = useTranslations();
+  const locale = (context.locale ?? "sv") as AppLocale;
   const { setProducts, setOriginalProducts, setAvailableSourceSlugs } =
     useProducts();
   const lastSearchTracked = useRef<string | null>(null);
@@ -328,8 +331,25 @@ export function ProductListContent({
       ) : null}
 
       {filteredProducts.length > 0 ? (
-        staticGrid ? (
-          <ProductListHydrationGate staticGrid={staticGrid}>
+        <div className="flex w-full flex-col gap-3">
+          <MinSixBottlesHint
+            locale={locale}
+            className="px-sides text-sm text-muted-foreground md:px-0"
+          />
+          {staticGrid ? (
+            <ProductListHydrationGate staticGrid={staticGrid}>
+              <ProductGrid>
+                {filteredProducts.map((product, index) => (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    index={index}
+                    listSearchQuery={activeSearchQuery}
+                  />
+                ))}
+              </ProductGrid>
+            </ProductListHydrationGate>
+          ) : (
             <ProductGrid>
               {filteredProducts.map((product, index) => (
                 <ProductCard
@@ -340,19 +360,8 @@ export function ProductListContent({
                 />
               ))}
             </ProductGrid>
-          </ProductListHydrationGate>
-        ) : (
-          <ProductGrid>
-            {filteredProducts.map((product, index) => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                index={index}
-                listSearchQuery={activeSearchQuery}
-              />
-            ))}
-          </ProductGrid>
-        )
+          )}
+        </div>
       ) : (
         <Card className="mr-sides flex flex-1 flex-col items-center justify-center gap-3 px-6 py-16 text-center">
           <p className="text-base font-medium text-foreground">

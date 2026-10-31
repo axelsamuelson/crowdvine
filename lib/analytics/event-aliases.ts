@@ -66,6 +66,7 @@ const EVENT_TYPE_LABELS_SV: Readonly<Record<string, string>> = {
   session_engaged: "Session med mänsklig signal",
   product_viewed: "Produktvy",
   price_viewed: "Pris visat",
+  cta_visible: "CTA synlig",
   pallet_status_viewed: "Pallstatus visad",
   product_list_viewed: "Produktlista",
   signup_started: "Inloggningssteg visat (e-post)",

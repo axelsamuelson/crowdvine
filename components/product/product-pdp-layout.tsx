@@ -1,6 +1,7 @@
 import { Suspense, type ReactNode } from "react";
 import dynamic from "next/dynamic";
 import { CartSourceProviderConditional } from "@/components/cart/cart-source-provider-conditional";
+import { CtaVisibleTracker } from "@/components/analytics/cta-visible-tracker";
 import { AddToCartConditional } from "@/components/cart/add-to-cart-conditional";
 import { DirectBoxDeliveryPromise } from "@/components/commerce/direct-box-delivery-promise";
 import { MinSixBottlesHint } from "@/components/commerce/min-six-bottles-hint";
@@ -181,16 +182,18 @@ export function ProductPdpLayout({
                       <DirectBoxDeliveryPromise locale={locale} />
                     </noscript>
                     <PalletStatusBar />
-                    <AddToCartConditional
-                      product={product}
-                      className="w-full"
-                      previewDisabled={addToCartPreviewDisabled}
-                      ctaAside={
-                        product.productType === "wine" ? (
-                          <PdpB2BLink locale={locale} />
-                        ) : null
-                      }
-                    />
+                    <CtaVisibleTracker productId={product.id} className="w-full">
+                      <AddToCartConditional
+                        product={product}
+                        className="w-full"
+                        previewDisabled={addToCartPreviewDisabled}
+                        ctaAside={
+                          product.productType === "wine" ? (
+                            <PdpB2BLink locale={locale} />
+                          ) : null
+                        }
+                      />
+                    </CtaVisibleTracker>
                     {product.productType === "wine" &&
                     (
                       hasEnrichmentSpecs(

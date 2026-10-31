@@ -37,6 +37,7 @@ export type EventType =
   | "product_list_viewed"
   | "product_viewed"
   | "price_viewed"
+  | "cta_visible"
   | "pallet_status_viewed"
   | "filter_used"
   | "collection_viewed"
