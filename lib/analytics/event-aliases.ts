@@ -75,6 +75,12 @@ const EVENT_TYPE_LABELS_SV: Readonly<Record<string, string>> = {
   age_verification_shown: "Åldersbekräftelse visad",
   age_verification_passed: "Ålder bekräftad",
   age_verification_failed: "Åldersbekräftelse underkänd",
+  b2b_contact_clicked: "B2B-kontakt klickad",
+  b2b_inquiry_started: "B2B-förfrågan startad",
+  b2b_inquiry_submitted: "B2B-förfrågan skickad",
+  b2b_tasting_requested: "B2B-provning registrerad",
+  b2b_quote_sent: "B2B-offert skickad",
+  b2b_order_created: "B2B-order skapad",
 };
 
 export function eventTypeLabelSv(raw: string): string {

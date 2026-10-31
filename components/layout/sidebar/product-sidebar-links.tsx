@@ -1,7 +1,14 @@
+"use client";
+
 import { CONTACT_LINKS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { cva } from "class-variance-authority";
 import Link from "next/link";
+import { useB2BModeServerHint } from "@/lib/context/b2b-mode-context";
+import {
+  classifyB2bContactCta,
+  trackB2bContactClicked,
+} from "@/lib/analytics/b2b-track-client";
 
 const linkVariants = cva(
   "leading-tight transition-colors hover:underline ease-out duration-200 whitespace-nowrap",
@@ -30,6 +37,8 @@ interface SidebarLinksProps {
 }
 
 export function SidebarLinks({ className, invert, size }: SidebarLinksProps) {
+  const isDirtyWine = useB2BModeServerHint();
+
   return (
     <ul className={cn("flex flex-row gap-2 justify-between", className)}>
       {CONTACT_LINKS.map((link) => (
@@ -38,6 +47,17 @@ export function SidebarLinks({ className, invert, size }: SidebarLinksProps) {
             href={link.href}
             target="_blank"
             className={linkVariants({ invert, size })}
+            onClick={() => {
+              if (!isDirtyWine) return;
+              try {
+                trackB2bContactClicked({
+                  cta: classifyB2bContactCta(link.href),
+                  href: link.href,
+                });
+              } catch {
+                // never block navigation
+              }
+            }}
           >
             {link.label}
           </Link>
