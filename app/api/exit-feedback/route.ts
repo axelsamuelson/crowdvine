@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { getCurrentUser } from "@/lib/supabase-server";
 import {
   EXIT_FEEDBACK_ANSWER_MAX,
   EXIT_FEEDBACK_PAGE_MAX,
@@ -87,6 +88,23 @@ export async function POST(request: Request) {
     if (error) {
       console.error("[exit-feedback] insert failed");
       return NextResponse.json({ error: "Failed to save" }, { status: 500 });
+    }
+
+    // Logged-in users: persist answered-at so the popup never returns on other devices.
+    try {
+      const user = await getCurrentUser();
+      if (user?.id) {
+        const { error: profileErr } = await sb
+          .from("profiles")
+          .update({ exit_feedback_answered_at: new Date().toISOString() })
+          .eq("id", user.id)
+          .is("exit_feedback_answered_at", null);
+        if (profileErr) {
+          console.warn("[exit-feedback] profile answered_at update failed");
+        }
+      }
+    } catch {
+      // ignore — anonymous submit still succeeds
     }
   } catch {
     console.error("[exit-feedback] unexpected error");

@@ -44,7 +44,7 @@ export async function sendExitDiscountEmail(opts: {
       <p>Här är din personliga rabattkod:</p>
       <p style="font-size: 1.25rem; font-weight: 700; letter-spacing: 0.04em;">${opts.code}</p>
       <p>
-        Den ger <strong>${EXIT_DISCOUNT_PERCENT}&nbsp;%</strong> på vinet i din första beställning
+        Den ger <strong>${EXIT_DISCOUNT_PERCENT}&nbsp;%</strong> på vinet i din första reservation
         (inte på frakten) och gäller till <strong>${expiresLabel}</strong>.
         Koden kan användas en gång och kan inte kombineras med PACT Points.
         Den gäller inte Meigoon Box.
