@@ -49,7 +49,7 @@ function ProductListStaticCard({
           />
         </div>
 
-        <div className="flex min-w-0 flex-col gap-0.5 px-2.5 pt-2 md:px-0">
+        <div className="flex min-w-0 flex-col gap-0.5 px-3 pt-2 md:px-1">
           <p className="line-clamp-2 text-sm leading-snug text-foreground">
             {product.title}
           </p>
