@@ -28,7 +28,13 @@
     "home": "Home",
     "about": "About",
     "profile": "Profile",
-    "guides": "Guides"
+    "guides": "Guides",
+    "menu": "Menu",
+    "close": "Close",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "previousSlide": "Previous slide",
+    "nextSlide": "Next slide"
   },
   "nav": {
     "home": "home",
@@ -1008,5 +1014,27 @@
     "noLockedPerks": "No locked perks found.",
     "perkLocked": "Locked",
     "perkNext": "Next: {name}"
+  },
+  "auth": {
+    "welcomeBack": "Welcome back",
+    "resetPasswordTitle": "Reset your password",
+    "credentialsHint": "Enter your credentials to access your account",
+    "resetHint": "Enter your email to receive a new password",
+    "emailLabel": "Email address",
+    "emailPlaceholder": "Enter your email",
+    "passwordLabel": "Password",
+    "passwordPlaceholder": "Enter your password",
+    "signIn": "Sign in",
+    "signingIn": "Signing in...",
+    "resetPassword": "Reset password",
+    "resettingPassword": "Resetting password...",
+    "forgotPassword": "Forgot password?",
+    "backToSignIn": "Back to sign in",
+    "backToHome": "Back to home",
+    "loginSuccess": "Login successful! Redirecting...",
+    "invalidCredentials": "Invalid email or password. Please try again.",
+    "resetFailed": "Failed to reset password. Please try again.",
+    "footerLine1": "Wine has never been this accessible and transparent.",
+    "footerLine2": "Membership by invitation."
   }
 }

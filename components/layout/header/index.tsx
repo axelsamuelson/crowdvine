@@ -85,7 +85,8 @@ export function Header({
           className={cn(
             "w-auto",
             isDirtywineSite
-              ? "h-6 max-h-6 max-w-[min(160px,46vw)] md:h-12 md:max-h-12 md:max-w-none"
+              ? // Mobile ≤24px; desktop ≤28px (was ~36–48px via h-12).
+                "h-6 max-h-6 max-w-[min(160px,46vw)] md:h-7 md:max-h-7 md:max-w-none"
               : "h-8 md:h-12",
           )}
           initialLogos={initialLogos}
@@ -101,7 +102,10 @@ export function Header({
                 <Link
                   href={item.href}
                   className={cn(
-                    "font-semibold text-base transition-colors duration-200 uppercase",
+                    "font-semibold text-base transition-colors duration-200",
+                    // Dirtywine: sentence case matching mobile (Hem / Alla viner / …).
+                    // PACT keeps uppercase nav labels.
+                    isDirtywineSite ? "normal-case" : "uppercase",
                     (item.href === paths.home
                       ? pathname === paths.home
                       : pathname === item.href ||
@@ -120,7 +124,8 @@ export function Header({
                 <Link
                   href="/producer"
                   className={cn(
-                    "font-semibold text-base transition-colors duration-200 uppercase",
+                    "font-semibold text-base transition-colors duration-200",
+                    isDirtywineSite ? "normal-case" : "uppercase",
                     pathname === "/producer" ||
                       pathname?.startsWith("/producer/")
                       ? "text-foreground"
@@ -137,7 +142,8 @@ export function Header({
                 <Link
                   href="/admin"
                   className={cn(
-                    "font-semibold text-base transition-colors duration-200 uppercase",
+                    "font-semibold text-base transition-colors duration-200",
+                    isDirtywineSite ? "normal-case" : "uppercase",
                     pathname?.startsWith("/admin")
                       ? "text-foreground"
                       : "text-foreground/50",

@@ -16,6 +16,7 @@ import { formatCartLinePrice } from "@/lib/shopping-context/format";
 import { useTranslations } from "@/lib/hooks/use-translations";
 import { useLocalizedPaths } from "@/lib/hooks/use-localized-paths";
 import { useBodyScrollLock } from "@/lib/hooks/use-body-scroll-lock";
+import { useB2BModeServerHint } from "@/lib/context/b2b-mode-context";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { CartValidationDisplay } from "./cart-validation-display";
@@ -202,6 +203,7 @@ const CartItems = ({
 export default function CartModal() {
   const { t } = useTranslations();
   const paths = useLocalizedPaths();
+  const isDirtywineSite = useB2BModeServerHint();
   const { cart, isPending } = useCart();
   const [isOpen, setIsOpen] = useState(false);
   const [validations, setValidations] = useState<ProducerValidation[]>([]);
@@ -387,11 +389,14 @@ export default function CartModal() {
       <Button
         aria-label={t("cart.openCart")}
         onClick={openCart}
-        className={`font-semibold cursor-pointer inline-flex items-center justify-center whitespace-nowrap text-base transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive border border-transparent text-white shadow-xs h-7 rounded-sm gap-1.5 py-1 px-2 [&_svg:not([class*='size-'])]:size-4 has-[>svg]:pr-1.5 uppercase ${
+        className={cn(
+          "font-semibold cursor-pointer inline-flex items-center justify-center whitespace-nowrap text-base transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive border border-transparent text-white shadow-xs h-7 rounded-sm gap-1.5 py-1 px-2 [&_svg:not([class*='size-'])]:size-4 has-[>svg]:pr-1.5",
+          // Dirtywine: "Varukorg (0)" sentence case; PACT keeps uppercase "CART".
+          isDirtywineSite ? "normal-case" : "uppercase",
           hasValidationErrors
             ? "bg-amber-600 hover:bg-amber-700"
-            : "bg-black hover:bg-black/90"
-        }`}
+            : "bg-black hover:bg-black/90",
+        )}
         size={"sm"}
         disabled={false}
       >
