@@ -1,4 +1,5 @@
 import { Suspense, type ReactNode } from "react";
+import dynamic from "next/dynamic";
 import { CartSourceProviderConditional } from "@/components/cart/cart-source-provider-conditional";
 import { AddToCartConditional } from "@/components/cart/add-to-cart-conditional";
 import { DirectBoxDeliveryPromise } from "@/components/commerce/direct-box-delivery-promise";
@@ -26,10 +27,19 @@ import { MobileGallerySlider } from "@/app/product/[handle]/components/mobile-ga
 import { DesktopGallery } from "@/app/product/[handle]/components/desktop-gallery";
 import { DesktopGalleryWrapper } from "@/app/product/[handle]/components/desktop-gallery-wrapper";
 import { ProductHeroPrice } from "@/app/product/[handle]/components/product-hero-price";
-import { PdpRecommendationsSection } from "@/components/product/pdp-recommendations-section";
 import { PdpSiblingWinesSection } from "@/components/product/pdp-sibling-wines-section";
 import { WineProducerMap } from "@/components/product/wine-producer-map";
 import { PdpB2BLink } from "@/components/product/pdp-b2b-link";
+
+// Below-fold carousel (framer-motion + ProductCard). Keep enrichment SSR'd in the
+// sticky sidebar so deferred mount does not inflate desktop CLS.
+const PdpRecommendationsSection = dynamic(
+  () =>
+    import("@/components/product/pdp-recommendations-section").then(
+      (m) => m.PdpRecommendationsSection,
+    ),
+  { loading: () => null },
+);
 import type { PdpRecommendationsResult } from "@/lib/product/recommendations";
 import { pickPdpSiblingWines } from "@/lib/product/pdp-sibling-wines";
 import type { AppLocale } from "@/lib/i18n/locale";

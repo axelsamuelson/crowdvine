@@ -3,6 +3,7 @@
 import React, { Suspense, memo, useEffect, useState, useRef } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { HoverPrefetchLink } from "@/components/ui/hover-prefetch-link";
 import { Product } from "@/lib/shopify/types";
 import { formatPrice, priceExclVat } from "@/lib/shopify/utils";
 import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
@@ -435,7 +436,7 @@ export const ProductCard = memo(
               <Link
                 href={productHref}
                 className="absolute top-2 right-2 px-2 py-1 bg-blue-500 text-white text-xs rounded"
-                prefetch
+                prefetch={false}
               >
                 Link
               </Link>
@@ -459,7 +460,7 @@ export const ProductCard = memo(
                   href={productHref}
                   className="block size-full focus-visible:outline-none"
                   style={{ touchAction: 'pan-y', overscrollBehavior: 'auto' }}
-                  prefetch
+                  prefetch={false}
                 >
                   <Suspense fallback={<div className="size-full bg-gray-400" />}>
                     <ProductImage product={product} />
@@ -486,7 +487,7 @@ export const ProductCard = memo(
                   href={productHref}
                   className="block size-full focus-visible:outline-none"
                   style={{ touchAction: 'pan-y', overscrollBehavior: 'auto' }}
-                  prefetch
+                  prefetch={false}
                 >
                   <Suspense fallback={<div className="size-full bg-gray-400" />}>
                     <ProductImage product={product} />
@@ -525,7 +526,7 @@ export const ProductCard = memo(
                   href={productHref}
                   className="block size-full focus-visible:outline-none"
                   style={{ touchAction: 'pan-y', overscrollBehavior: 'auto' }}
-                  prefetch
+                  prefetch={false}
                 >
                   <Suspense fallback={<div className="size-full bg-gray-400" />}>
                     <ProductImage product={product} />
@@ -567,7 +568,7 @@ export const ProductCard = memo(
                   href={productHref}
                   className="block size-full focus-visible:outline-none"
                   style={{ touchAction: 'pan-y', overscrollBehavior: 'auto' }}
-                  prefetch
+                  prefetch={false}
                 >
                   <Suspense fallback={<div className="size-full bg-gray-400" />}>
                     <ProductImage product={product} />
@@ -611,7 +612,7 @@ export const ProductCard = memo(
                   href={productHref}
                   className="block size-full focus-visible:outline-none"
                   style={{ touchAction: 'pan-y', overscrollBehavior: 'auto' }}
-                  prefetch
+                  prefetch={false}
                 >
                   <Suspense fallback={<div className="size-full bg-gray-400" />}>
                     <ProductImage product={product} />
@@ -655,7 +656,7 @@ export const ProductCard = memo(
                   href={productHref}
                   className="block size-full focus-visible:outline-none"
                   style={{ touchAction: 'pan-y', overscrollBehavior: 'auto' }}
-                  prefetch
+                  prefetch={false}
                 >
                   <Suspense fallback={<div className="size-full bg-gray-400" />}>
                     <ProductImage product={product} />
@@ -711,7 +712,7 @@ export const ProductCard = memo(
                   href={productHref}
                   className="block size-full focus-visible:outline-none"
                   style={{ touchAction: 'pan-y', overscrollBehavior: 'auto' }}
-                  prefetch
+                  prefetch={false}
                 >
                   <Suspense fallback={<div className="size-full bg-gray-400" />}>
                     <ProductImage product={product} />
@@ -795,7 +796,7 @@ export const ProductCard = memo(
           </div>
         )}
 
-        <Link
+        <HoverPrefetchLink
           href={productHref}
           className="block size-full focus-visible:outline-none"
           style={{ touchAction: 'pan-y', overscrollBehavior: 'auto' }}
@@ -803,7 +804,6 @@ export const ProductCard = memo(
             title: product.title,
             price: `${product.priceRange.minVariantPrice.amount} ${product.priceRange.minVariantPrice.currencyCode}`,
           })}
-          prefetch
           onClick={() => {
             const q = listSearchQuery?.trim();
             if (!q) return;
@@ -819,7 +819,7 @@ export const ProductCard = memo(
           }}
         >
             <ProductListImage product={product} priority={index < 3} index={index} />
-        </Link>
+        </HoverPrefetchLink>
       </div>
 
       {/* Interactive Overlay - moved outside wrapper to avoid overflow-clip issues */}

@@ -1,17 +1,17 @@
 "use client";
 
 import { useEffect } from "react";
-import { MobileMenu } from "./mobile-menu";
+import { MobileMenuDynamic } from "./mobile-menu-dynamic";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { LogoSvg } from "./logo-svg";
-import CartModal from "@/components/cart/modal";
+import { CartModalDynamic } from "./cart-modal-dynamic";
 import { ProfileIcon } from "./profile-icon";
 import { PortalToggle } from "./portal-toggle";
 import { NavItem } from "@/lib/types";
 import { Collection } from "@/lib/shopify/types";
-import { CompleteOrderRail } from "@/components/cart/complete-order-rail";
+import { CompleteOrderRailDynamic } from "./complete-order-rail-dynamic";
 import { useUserRole } from "@/lib/hooks/use-user-role";
 import { usePortalAccess } from "@/lib/hooks/use-portal-access";
 import { useAdminStatus } from "@/lib/hooks/use-admin-status";
@@ -56,7 +56,7 @@ export function Header({
   return (
     <header className="grid fixed top-0 left-0 z-50 grid-cols-3 items-start w-full p-sides md:grid-cols-12 md:gap-sides">
       <div className="block flex-none md:hidden">
-        <MobileMenu
+        <MobileMenuDynamic
           collections={collections}
           popularCollections={popularCollections}
           isDirtywineSite={isDirtywineSite}
@@ -72,7 +72,7 @@ export function Header({
       <nav className="flex gap-2 justify-end items-center md:col-span-9 xl:col-span-10">
         <div className="items-center gap-5 py-0.5 pr-3 bg-transparent hidden md:flex min-w-0">
           {/* Complete order rail should stretch to the left edge of the content column */}
-          <CompleteOrderRail />
+          <CompleteOrderRailDynamic />
           <ul className="flex items-center gap-5 pl-3 shrink-0">
             {navItems.map((item) => (
               <li key={item.href}>
@@ -132,7 +132,7 @@ export function Header({
           )}
         </div>
         <ProfileIcon className="hidden md:block" />
-        <CartModal />
+        <CartModalDynamic />
       </nav>
     </header>
   );

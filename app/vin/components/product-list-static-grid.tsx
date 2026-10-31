@@ -31,7 +31,11 @@ function ProductListStaticCard({
         style={{ clipPath: "inset(0)" }}
       >
         <div className="relative size-full overflow-clip">
-          <Link href={href} className="block size-full focus-visible:outline-none" prefetch>
+          <Link
+            href={href}
+            className="block size-full focus-visible:outline-none"
+            prefetch={false}
+          >
             <ProductListImageServer
               product={product}
               priority={index < 3}
