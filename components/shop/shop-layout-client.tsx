@@ -3,7 +3,7 @@
 import { Suspense, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 
-import { CompleteOrderRail } from "@/components/cart/complete-order-rail";
+import { CompleteOrderRailDynamic } from "@/components/layout/header/complete-order-rail-dynamic";
 import { DesktopFilters } from "@/app/vin/components/shop-filters";
 import { MobileFilters } from "@/app/vin/components/mobile-filters";
 import type { Collection } from "@/lib/shopify/types";
@@ -57,7 +57,7 @@ export function ShopLayoutClient({
         </div>
         <div className="md:hidden sticky top-top-spacing z-40 bg-transparent order-first md:order-none col-span-12">
           <div className="px-sides pt-1">
-            <CompleteOrderRail showMobile />
+            <CompleteOrderRailDynamic showMobile />
           </div>
           <Suspense fallback={null}>
             <MobileFilters

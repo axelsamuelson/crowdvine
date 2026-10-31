@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useLayoutEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 
 interface MembershipContextType {
   level: string | null;
@@ -31,7 +31,9 @@ export function MembershipProvider({
     loading: true,
   });
 
-  useLayoutEffect(() => {
+  // useEffect (not useLayoutEffect): membership is non-critical chrome; avoid
+  // blocking paint/hydration on every public page.
+  useEffect(() => {
     if (!hasSupabaseAuthCookieHint()) {
       setMembershipData({
         level: null,

@@ -2,7 +2,6 @@ import type React from "react";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { Toaster } from "sonner";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { CartProvider } from "@/components/cart/cart-context";
 import { DebugGrid } from "@/components/debug-grid";
@@ -22,6 +21,7 @@ import { PortalProvider } from "@/lib/context/portal-context";
 import { OnboardingProvider } from "@/components/onboarding/onboarding-provider";
 import { cn } from "../lib/utils";
 import V0SetupLoader from "@/components/v0-setup-loader";
+import { RootAnalyticsDeferred } from "@/components/analytics/root-analytics-deferred";
 
 const isV0 = process.env["VERCEL_URL"]?.includes("vusercontent.net") ?? false;
 
@@ -52,11 +52,6 @@ import { getCachedWineFewLeftThreshold } from "@/lib/wine-settings-cache";
 import { type SiteConfig } from "@/lib/site-config";
 import { getSiteConfig } from "@/lib/site-config-server";
 import { localeFromShopPath } from "@/lib/i18n/shop-path-locale";
-import { Analytics } from "@vercel/analytics/react";
-import { PageViewTracker } from "@/components/analytics/page-view-tracker";
-import { SessionEngagementTracker } from "@/components/analytics/session-engagement-tracker";
-import { InternalDeviceMarker } from "@/components/analytics/internal-device-marker";
-import { ExitFeedbackPrompt } from "@/components/analytics/exit-feedback-prompt";
 import {
   buildRootTwitterMetadata,
   defaultOpenGraphImages,
@@ -213,12 +208,7 @@ export default async function RootLayout({
                         </div>
                       </div>
                       {isDevelopment && <DebugGrid />}
-                      <Toaster closeButton position="bottom-right" />
-                      <InternalDeviceMarker />
-                      <PageViewTracker />
-                      <SessionEngagementTracker />
-                      <ExitFeedbackPrompt />
-                      <Analytics />
+                      <RootAnalyticsDeferred />
                     </MembershipProvider>
                   </PortalProvider>
                 </MobileMenuProvider>

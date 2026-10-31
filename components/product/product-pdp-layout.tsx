@@ -1,4 +1,5 @@
 import { Suspense, type ReactNode } from "react";
+import dynamic from "next/dynamic";
 import { CartSourceProviderConditional } from "@/components/cart/cart-source-provider-conditional";
 import { AddToCartConditional } from "@/components/cart/add-to-cart-conditional";
 import { DirectBoxDeliveryPromise } from "@/components/commerce/direct-box-delivery-promise";
@@ -13,7 +14,6 @@ import { ProductPriceInfoBox } from "@/components/product/product-price-info-box
 import { WineEnrichmentSpecs } from "@/components/product/wine-enrichment-specs";
 import { WineStyleScale } from "@/components/product/wine-style-scale";
 import { hasEnrichmentSpecs } from "@/lib/product/wine-enrichment";
-import { WinePdpEnrichment } from "@/components/product/wine-pdp-enrichment";
 import { WINE_ENRICHMENT_DROPDOWN_LIST_CLASS } from "@/components/product/wine-enrichment-collapsible";
 import { PdpHeroBadges } from "@/components/pdp/pdp-hero-badges";
 import { WinePdpHeroBox } from "@/components/product/wine-pdp-hero-box";
@@ -26,10 +26,25 @@ import { MobileGallerySlider } from "@/app/product/[handle]/components/mobile-ga
 import { DesktopGallery } from "@/app/product/[handle]/components/desktop-gallery";
 import { DesktopGalleryWrapper } from "@/app/product/[handle]/components/desktop-gallery-wrapper";
 import { ProductHeroPrice } from "@/app/product/[handle]/components/product-hero-price";
-import { PdpRecommendationsSection } from "@/components/product/pdp-recommendations-section";
 import { PdpSiblingWinesSection } from "@/components/product/pdp-sibling-wines-section";
 import { WineProducerMap } from "@/components/product/wine-producer-map";
 import { PdpB2BLink } from "@/components/product/pdp-b2b-link";
+
+const WinePdpEnrichment = dynamic(
+  () =>
+    import("@/components/product/wine-pdp-enrichment").then(
+      (m) => m.WinePdpEnrichment,
+    ),
+  { loading: () => null },
+);
+
+const PdpRecommendationsSection = dynamic(
+  () =>
+    import("@/components/product/pdp-recommendations-section").then(
+      (m) => m.PdpRecommendationsSection,
+    ),
+  { loading: () => null },
+);
 import type { PdpRecommendationsResult } from "@/lib/product/recommendations";
 import { pickPdpSiblingWines } from "@/lib/product/pdp-sibling-wines";
 import type { AppLocale } from "@/lib/i18n/locale";
