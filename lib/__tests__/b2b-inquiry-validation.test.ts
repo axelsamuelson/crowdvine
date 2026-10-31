@@ -113,7 +113,7 @@ describe("b2b inquiry copy for legal review", () => {
       "Logga in för att skicka förfrågan. Du kommer tillbaka hit med din lista kvar.",
     );
     expect(texts).toContain(
-      "Vi återkommer med bekräftelse och faktura så snart vi kan.",
+      "Vi återkommer med bekräftelse och faktura inom 1 arbetsdag.",
     );
     expect(texts.length).toBeGreaterThan(10);
   });

@@ -98,6 +98,14 @@ describe("inquiry email builders", () => {
       `Tack, vi har fått din förfrågan – ${DIRTYWINE_BRAND_NAME}`,
     );
     expect(built.text).toContain(DIRTYWINE_INQUIRY_FOLLOW_UP);
+    expect(built.text).toContain(
+      "Vi återkommer med bekräftelse och faktura inom 1 arbetsdag.",
+    );
+    expect(built.html).toContain(
+      "Vi återkommer med bekräftelse och faktura inom 1 arbetsdag.",
+    );
+    expect(built.text).not.toContain("så snart vi kan");
+    expect(built.html).not.toContain("så snart vi kan");
     expect(built.text).toContain("Test AB");
     expect(built.text).toContain("2026-12-01");
     expect(built.text).toContain("Testvin");

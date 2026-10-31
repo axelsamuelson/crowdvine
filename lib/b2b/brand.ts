@@ -39,7 +39,7 @@ export function getDirtywineInquiryEmailFooterPlain(): string {
 }
 
 export const DIRTYWINE_INQUIRY_FOLLOW_UP =
-  "Vi återkommer med bekräftelse och faktura så snart vi kan.";
+  "Vi återkommer med bekräftelse och faktura inom 1 arbetsdag.";
 
 export const DIRTYWINE_INQUIRY_EMAIL_HEADLINE =
   "Tack, vi har fått din förfrågan";

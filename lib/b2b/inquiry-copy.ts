@@ -87,7 +87,7 @@ export const B2B_INQUIRY_COPY = {
     backToShop: "Back to the catalogue",
     successTitle: "Thank you for your inquiry",
     successBody:
-      "We will get back to you with confirmation and an invoice as soon as we can.",
+      "We will get back to you with confirmation and an invoice within 1 business day.",
     privacyNote:
       "When you submit this form we process your details to handle the inquiry. Read more in our",
     privacyLinkLabel: "privacy policy",
@@ -110,7 +110,7 @@ export const B2B_INQUIRY_COPY = {
     totalExclVatLabel: "Total",
     emailSubjectCustomer: `${DIRTYWINE_INQUIRY_EMAIL_HEADLINE} – ${DIRTYWINE_BRAND_NAME}`,
     emailBodyCustomer:
-      "We will get back to you with confirmation and an invoice as soon as we can.",
+      "We will get back to you with confirmation and an invoice within 1 business day.",
     emailSignOff: `Best regards\n${DIRTYWINE_BRAND_NAME}`,
   },
 } as const;

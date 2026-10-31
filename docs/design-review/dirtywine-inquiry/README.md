@@ -77,14 +77,14 @@ Notes:
 3. Skicka en förfrågan för vinerna i din varukorg. Vi återkommer med bekräftelse och faktura — ingen betalning sker här.
 … (formulärfält oförändrade)
 18. Tack för din förfrågan
-19. Vi återkommer med bekräftelse och faktura så snart vi kan.
+19. Vi återkommer med bekräftelse och faktura inom 1 arbetsdag.
 31. Din förfrågan
 32. Priser exkl. moms (+ totalrad: antal flaskor + summa)
 
 ### Kundmejl
 
 33. Tack, vi har fått din förfrågan – Dirtywine  
-34. Vi återkommer med bekräftelse och faktura så snart vi kan.  
+34. Vi återkommer med bekräftelse och faktura inom 1 arbetsdag.  
 35. Footer (juridiskt granskad): `{BRAND} drivs av Axel Samuelson (enskild firma), [ADRESS|DIRTYWINE_LEGAL_ADDRESS], Stockholm · axel@dirtywine.se · Integritetspolicy · Du får det här mejlet eftersom du skickade en förfrågan på dirtywine.se.`  
 36. Hälsningar / Dirtywine  
 
