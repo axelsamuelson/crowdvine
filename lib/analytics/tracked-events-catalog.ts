@@ -480,7 +480,7 @@ export const TRACKED_USER_EVENTS_CATALOG: TrackedEventCatalogEntry[] = [
     description: "Notification preferences changed (reserved / wire when UI exists).",
     sources: ["client"],
   },
-  // b2b (Dirty Wine)
+  // b2b (Dirty Wine) — funnel events from #113; inquiry mode wires started/submitted
   {
     eventType: "b2b_contact_clicked",
     category: "b2b",
@@ -500,7 +500,7 @@ export const TRACKED_USER_EVENTS_CATALOG: TrackedEventCatalogEntry[] = [
     category: "b2b",
     description:
       "Dirty Wine order-inquiry submitted (conversion). Wired by DIRTYWINE_CHECKOUT_MODE checkout replacement. No PII in metadata.",
-    sources: ["client"],
+    sources: ["server", "client"],
   },
   {
     eventType: "b2b_tasting_requested",

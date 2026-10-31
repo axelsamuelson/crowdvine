@@ -1,0 +1,17 @@
+Ny B2B-förfrågan från dirtywine.se
+
+ID: c4cc4235-3be7-4bc8-8203-bf4a71e056d2
+Företag: E2E Preview AB
+Org.nr: 559000-1234
+Kontakt: E2E Agent
+E-post: axel+b2b-inquiry-customer-test@dirtywine.se
+Telefon: 0701234567
+Adress: Testgatan 1
+Postnummer: 11846
+Önskat leveransdatum: 2026-12-20
+Meddelande: Preview e2e with Resend — ignore
+
+Rader:
+• Les Tremieres × 6
+
+Admin: /admin/b2b-inquiries

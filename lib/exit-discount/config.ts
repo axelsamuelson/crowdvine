@@ -1,6 +1,12 @@
 /**
  * Exit-discount feature flags and tunables.
  * EXIT_DISCOUNT_ENABLED defaults OFF (including production).
+ *
+ * Stacking note (cart.cost):
+ * Member (Privilege) and pallet early-bird discounts are already baked into
+ * CartService line totals / cart.cost.totalAmount before checkout. Exit codes
+ * therefore cannot “stack on top” of those prices — checkout rejects the exit
+ * code when any cart line already carries a member/early-bird discount.
  */
 
 function parsePositiveInt(raw: string | undefined, fallback: number): number {
@@ -33,6 +39,45 @@ export function exitDiscountValidityDays(): number {
 /** Retention for unused codes + email (default 12 months). */
 export function exitDiscountRetentionMonths(): number {
   return parsePositiveInt(process.env.EXIT_DISCOUNT_RETENTION_MONTHS, 12);
+}
+
+export type ExitDiscountScope = "pallet_only" | "all";
+
+/**
+ * Fulfilment scope for exit codes.
+ * Default **all** (Axel 2026-10): applies to pallet and direct-box orders.
+ * Set EXIT_DISCOUNT_SCOPE=pallet_only only if product later restricts to shared pallets.
+ */
+export function exitDiscountScope(): ExitDiscountScope {
+  const raw = (process.env.EXIT_DISCOUNT_SCOPE || "").trim().toLowerCase();
+  if (raw === "pallet_only") return "pallet_only";
+  return "all";
+}
+
+/**
+ * Extra wine_box ids to exclude from the exit-discount base (CSV UUIDs),
+ * in addition to wine_boxes.exclude_from_exit_discount = true.
+ */
+export function exitDiscountExcludedWineBoxIdsFromEnv(): string[] {
+  const raw = process.env.EXIT_DISCOUNT_EXCLUDED_WINE_BOX_IDS || "";
+  return raw
+    .split(/[,;\s]+/)
+    .map((s) => s.trim().toLowerCase())
+    .filter((s) => /^[0-9a-f-]{36}$/.test(s));
+}
+
+/**
+ * Email delivery for minted codes:
+ * - live: send via Resend (default)
+ * - log: do not call Resend; log payload (preview / agent tests)
+ * - off: skip send entirely (still mint code)
+ */
+export type ExitDiscountEmailMode = "live" | "log" | "off";
+
+export function exitDiscountEmailMode(): ExitDiscountEmailMode {
+  const raw = (process.env.EXIT_DISCOUNT_EMAIL_MODE || "").trim().toLowerCase();
+  if (raw === "log" || raw === "off") return raw;
+  return "live";
 }
 
 export const EXIT_DISCOUNT_PERCENT = 10;

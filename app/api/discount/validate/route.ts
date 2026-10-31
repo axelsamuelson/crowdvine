@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getCurrentUser } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { validatePromoDiscountCode } from "@/lib/promo-discount-validate";
+import { CartService } from "@/src/lib/cart-service";
 
 const bodySchema = z.object({
   code: z.string().min(1),
@@ -16,6 +17,9 @@ const bodySchema = z.object({
       }),
     )
     .default([]),
+  /** Optional; used for exit-code stacking checks at apply-time. */
+  pact_points_redeem: z.number().finite().nonnegative().optional(),
+  voucher_sek: z.number().finite().nonnegative().optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -31,12 +35,28 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Ogiltig begäran." }, { status: 400 });
     }
 
+    // Load cart so exit rules can see member/early-bird already baked into line prices.
+    let cart = null;
+    try {
+      cart = await CartService.getCart();
+    } catch (cartErr) {
+      console.warn("[discount/validate] cart load failed:", cartErr);
+    }
+
     const result = await validatePromoDiscountCode({
       sb: getSupabaseAdmin(),
       userId: user.id,
+      userEmail: user.email ?? null,
       code: parsed.data.code,
       cart_value_sek: parsed.data.cart_value_sek,
       items: parsed.data.items,
+      exitContext: {
+        cart,
+        voucherSek: parsed.data.voucher_sek ?? 0,
+        pactPointsRedeem: parsed.data.pact_points_redeem ?? 0,
+        palletId: null,
+        fulfillmentChannel: null,
+      },
     });
 
     if (!result.ok) {
@@ -53,6 +73,7 @@ export async function POST(request: NextRequest) {
       purpose: result.purpose,
       discount_amount_sek: result.discount_amount_sek,
       final_total_sek: result.final_total_sek,
+      is_exit_discount: result.is_exit_discount === true,
     });
   } catch (err) {
     console.error("[discount/validate] unexpected:", err);

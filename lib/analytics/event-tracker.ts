@@ -91,7 +91,7 @@ export type EventType =
   | "profile_updated"
   | "membership_tier_viewed"
   | "notification_settings_changed"
-  // B2B (Dirty Wine)
+  // B2B (Dirty Wine) — funnel catalog from #113; inquiry mode wires started/submitted
   | "b2b_contact_clicked"
   | "b2b_inquiry_started"
   | "b2b_inquiry_submitted"

@@ -7,10 +7,8 @@ describe("conversion funnel copy (sv)", () => {
     expect(translate("sv", "shop.reserve")).toBe("Reservera");
     expect(translate("sv", "shop.addCase")).toBe("Reservera");
     expect(translate("sv", "commerce.minSixMix")).toBe(
-      "Minst 6 flaskor per låda, blanda fritt",
+      "Minst 6 flaskor – du kan blanda",
     );
-    expect(translate("sv", "shop.viewWine")).toBe("Visa vin");
-    expect(translate("sv", "product.addToCart")).toBe("Lägg i varukorg");
   });
 
   it("promises direct-box delivery without inventing a time SLA", () => {

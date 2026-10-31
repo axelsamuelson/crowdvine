@@ -28,13 +28,19 @@
     "home": "Hem",
     "about": "Om oss",
     "profile": "Profil",
-    "guides": "Guider"
+    "guides": "Guider",
+    "menu": "Meny",
+    "close": "Stäng",
+    "openMenu": "Öppna meny",
+    "closeMenu": "Stäng meny",
+    "previousSlide": "Föregående bild",
+    "nextSlide": "Nästa bild"
   },
   "nav": {
-    "home": "hem",
+    "home": "Hem",
     "shopAll": "Alla viner",
-    "producer": "producent",
-    "admin": "admin",
+    "producer": "Producent",
+    "admin": "Admin",
     "guides": "Guider"
   },
   "home": {
@@ -158,11 +164,13 @@
     "bottleProgressHint": "Minst 6 flaskor – du kan blanda",
     "needMoreBottlesShort": "{needed} flaskor till",
     "proceedToCheckout": "Gå till kassan",
+    "sendInquiry": "Skicka förfrågan",
+    "loginToSendInquiry": "Logga in för att skicka förfrågan",
     "producerOrdersPaused": "Producentbeställning är pausad. Ta bort raden för att gå vidare.",
     "yourCart": "Din varukorg",
     "emptyCart": "Varukorgen är tom",
     "continueShopping": "Fortsätt handla",
-    "cartLabel": "varukorg",
+    "cartLabel": "Varukorg",
     "openCart": "Öppna varukorg",
     "close": "Stäng",
     "cartTitle": "Varukorg",
@@ -343,7 +351,7 @@
     "eligibilityInterest": "Endast intresseanmälan"
   },
   "commerce": {
-    "minSixMix": "Minst 6 flaskor per låda, blanda fritt",
+    "minSixMix": "Minst 6 flaskor – du kan blanda",
     "directBoxDeliveryPromise": "Skickas direkt från producenten i låda",
     "palletFillCount": "{filled} av {total} flaskor",
     "palletReadyShort": "Redo",
@@ -1007,5 +1015,27 @@
     "noLockedPerks": "Inga låsta förmåner hittades.",
     "perkLocked": "Låst",
     "perkNext": "Nästa: {name}"
+  },
+  "auth": {
+    "welcomeBack": "Välkommen tillbaka",
+    "resetPasswordTitle": "Återställ lösenord",
+    "credentialsHint": "Ange dina uppgifter för att logga in",
+    "resetHint": "Ange din e-postadress så skickar vi ett nytt lösenord",
+    "emailLabel": "E-postadress",
+    "emailPlaceholder": "Ange din e-post",
+    "passwordLabel": "Lösenord",
+    "passwordPlaceholder": "Ange ditt lösenord",
+    "signIn": "Logga in",
+    "signingIn": "Loggar in…",
+    "resetPassword": "Återställ lösenord",
+    "resettingPassword": "Återställer lösenord…",
+    "forgotPassword": "Glömt lösenord?",
+    "backToSignIn": "Tillbaka till inloggning",
+    "backToHome": "Tillbaka till startsidan",
+    "loginSuccess": "Inloggning lyckades! Omdirigerar…",
+    "invalidCredentials": "Fel e-post eller lösenord. Försök igen.",
+    "resetFailed": "Kunde inte återställa lösenordet. Försök igen.",
+    "footerLine1": "Vin har aldrig varit så tillgängligt och transparent.",
+    "footerLine2": "Medlemskap via inbjudan."
   }
 }

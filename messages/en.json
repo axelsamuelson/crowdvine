@@ -28,7 +28,13 @@
     "home": "Home",
     "about": "About",
     "profile": "Profile",
-    "guides": "Guides"
+    "guides": "Guides",
+    "menu": "Menu",
+    "close": "Close",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "previousSlide": "Previous slide",
+    "nextSlide": "Next slide"
   },
   "nav": {
     "home": "home",
@@ -158,6 +164,8 @@
     "bottleProgressHint": "Minimum 6 bottles – you can mix",
     "needMoreBottlesShort": "{needed} more bottles",
     "proceedToCheckout": "Proceed to Checkout",
+    "sendInquiry": "Send inquiry",
+    "loginToSendInquiry": "Log in to send an inquiry",
     "producerOrdersPaused": "Producer orders are paused. Remove the line to continue.",
     "yourCart": "Your cart",
     "emptyCart": "Your cart is empty",
@@ -343,7 +351,7 @@
     "eligibilityInterest": "Interest only"
   },
   "commerce": {
-    "minSixMix": "Minimum 6 bottles per box, mix freely",
+    "minSixMix": "Minimum 6 bottles – you can mix",
     "directBoxDeliveryPromise": "Shipped directly from the producer in a box",
     "palletFillCount": "{filled} of {total} bottles",
     "palletReadyShort": "Ready",
@@ -1007,5 +1015,27 @@
     "noLockedPerks": "No locked perks found.",
     "perkLocked": "Locked",
     "perkNext": "Next: {name}"
+  },
+  "auth": {
+    "welcomeBack": "Welcome back",
+    "resetPasswordTitle": "Reset your password",
+    "credentialsHint": "Enter your credentials to access your account",
+    "resetHint": "Enter your email to receive a new password",
+    "emailLabel": "Email address",
+    "emailPlaceholder": "Enter your email",
+    "passwordLabel": "Password",
+    "passwordPlaceholder": "Enter your password",
+    "signIn": "Sign in",
+    "signingIn": "Signing in...",
+    "resetPassword": "Reset password",
+    "resettingPassword": "Resetting password...",
+    "forgotPassword": "Forgot password?",
+    "backToSignIn": "Back to sign in",
+    "backToHome": "Back to home",
+    "loginSuccess": "Login successful! Redirecting...",
+    "invalidCredentials": "Invalid email or password. Please try again.",
+    "resetFailed": "Failed to reset password. Please try again.",
+    "footerLine1": "Wine has never been this accessible and transparent.",
+    "footerLine2": "Membership by invitation."
   }
 }

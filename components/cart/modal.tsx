@@ -16,15 +16,21 @@ import { formatCartLinePrice } from "@/lib/shopping-context/format";
 import { useTranslations } from "@/lib/hooks/use-translations";
 import { useLocalizedPaths } from "@/lib/hooks/use-localized-paths";
 import { useBodyScrollLock } from "@/lib/hooks/use-body-scroll-lock";
+import { useB2BModeServerHint } from "@/lib/context/b2b-mode-context";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { Cart } from "../../lib/shopify/types";
 import { CartValidationDisplay } from "./cart-validation-display";
 import type { ProducerValidation } from "@/lib/checkout-validation";
 import { CartValidationHeader } from "./CartValidationHeader";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
-import { B2B_PRODUCER_ORDERS_ENABLED } from "@/lib/b2b/flags";
+import {
+  B2B_PRODUCER_ORDERS_ENABLED,
+  isDirtywineInquiryMode,
+} from "@/lib/b2b/flags";
+import { b2bInquiryLoginHref, B2B_INQUIRY_PATH } from "@/lib/b2b/inquiry-login";
+import { useUserRole } from "@/lib/hooks/use-user-role";
 import { homeDeliveryGuidePath } from "@/lib/guides/home-delivery-guide";
+import { shouldAutoOpenCartOnQuantityChange } from "@/lib/cart/should-auto-open-cart";
 
 const CartContainer = ({
   children,
@@ -181,6 +187,7 @@ const CartItems = ({
           closeCart={closeCart}
           validations={validations}
           isValidating={isValidating}
+          inquiryMode={showExclVat && isDirtywineInquiryMode()}
           producerOrdersPaused={
             showExclVat &&
             !B2B_PRODUCER_ORDERS_ENABLED &&
@@ -193,25 +200,18 @@ const CartItems = ({
   );
 };
 
-const serializeCart = (cart: Cart) => {
-  return JSON.stringify(
-    cart.lines.map((line) => ({
-      merchandiseId: line.merchandise.id,
-      quantity: line.quantity,
-    })),
-  );
-};
-
 export default function CartModal() {
   const { t } = useTranslations();
   const paths = useLocalizedPaths();
+  const isDirtywineSite = useB2BModeServerHint();
   const { cart, isPending } = useCart();
   const [isOpen, setIsOpen] = useState(false);
   const [validations, setValidations] = useState<ProducerValidation[]>([]);
   const [requiredQuantity, setRequiredQuantity] = useState<number | undefined>();
   const [neededTotal, setNeededTotal] = useState<number | undefined>();
   const [isValidating, setIsValidating] = useState(false);
-  const serializedCart = useRef(cart ? serializeCart(cart) : undefined);
+  /** Previous total bottles in this page view; undefined until first silent init. */
+  const knownTotalQuantityRef = useRef<number | undefined>(undefined);
   const wasOpenRef = useRef(false);
 
   useBodyScrollLock(isOpen);
@@ -286,30 +286,19 @@ export default function CartModal() {
     return () => clearTimeout(timeoutId);
   }, [cart]);
 
+  // Auto-open only when total bottles increase in this page view (user add).
+  // Never open on first hydrate / server refetch of an existing cart.
   useEffect(() => {
     if (!cart) return;
 
-    const newSerializedCart = serializeCart(cart);
+    const { shouldOpen, nextKnownQuantity } = shouldAutoOpenCartOnQuantityChange(
+      knownTotalQuantityRef.current,
+      cart.totalQuantity,
+    );
+    knownTotalQuantityRef.current = nextKnownQuantity;
 
-    // Initialize on first load — still open if this first paint already has
-    // items (optimistic add before any prior empty-cart snapshot).
-    if (serializedCart.current === undefined) {
-      serializedCart.current = newSerializedCart;
-      if (cart.lines.length > 0) {
-        setIsOpen(true);
-      }
-      return;
-    }
-
-    // Only open cart if items were actually added/changed
-    // Don't open if cart became empty (items removed or cart cleared)
-    if (serializedCart.current !== newSerializedCart) {
-      serializedCart.current = newSerializedCart;
-
-      // Only open if cart has items (don't open on empty cart)
-      if (cart.lines.length > 0) {
-        setIsOpen(true);
-      }
+    if (shouldOpen) {
+      setIsOpen(true);
     }
   }, [cart]);
 
@@ -400,11 +389,14 @@ export default function CartModal() {
       <Button
         aria-label={t("cart.openCart")}
         onClick={openCart}
-        className={`font-semibold cursor-pointer inline-flex items-center justify-center whitespace-nowrap text-base transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive border border-transparent text-white shadow-xs h-7 rounded-sm gap-1.5 py-1 px-2 [&_svg:not([class*='size-'])]:size-4 has-[>svg]:pr-1.5 uppercase ${
+        className={cn(
+          "font-semibold cursor-pointer inline-flex items-center justify-center whitespace-nowrap text-base transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive border border-transparent text-white shadow-xs h-7 rounded-sm gap-1.5 py-1 px-2 [&_svg:not([class*='size-'])]:size-4 has-[>svg]:pr-1.5",
+          // Dirtywine: "Varukorg (0)" sentence case; PACT keeps uppercase "CART".
+          isDirtywineSite ? "normal-case" : "uppercase",
           hasValidationErrors
             ? "bg-amber-600 hover:bg-amber-700"
-            : "bg-black hover:bg-black/90"
-        }`}
+            : "bg-black hover:bg-black/90",
+        )}
         size={"sm"}
         disabled={false}
       >
@@ -488,19 +480,28 @@ function CheckoutButton({
   validations = [],
   isValidating = false,
   producerOrdersPaused = false,
+  inquiryMode = false,
 }: {
   closeCart: () => void;
   validations?: ProducerValidation[];
   isValidating?: boolean;
   producerOrdersPaused?: boolean;
+  /** Dirtywine inquiry checkout mode — CTA goes to /b2b/inquiry. */
+  inquiryMode?: boolean;
 }) {
   const { t } = useTranslations();
   const paths = useLocalizedPaths();
   const { pending } = useFormStatus();
   const { cart, isPending } = useCart();
   const router = useRouter();
+  const { role, loading: authLoading } = useUserRole();
+  const needsInquiryLogin = inquiryMode && !authLoading && !role;
 
-  const checkoutUrl = cart?.checkoutUrl;
+  const checkoutUrl = inquiryMode
+    ? needsInquiryLogin
+      ? b2bInquiryLoginHref(B2B_INQUIRY_PATH)
+      : B2B_INQUIRY_PATH
+    : cart?.checkoutUrl;
 
   // Check if there are validation errors
   const hasValidationErrors = validations.some((v) => !v.isValid);
@@ -587,7 +588,11 @@ function CheckoutButton({
                           0,
                         ),
                       })
-                    : t("cart.proceedToCheckout")}
+                    : inquiryMode
+                      ? needsInquiryLogin
+                        ? t("cart.loginToSendInquiry")
+                        : t("cart.sendInquiry")
+                      : t("cart.proceedToCheckout")}
               </span>
               <ArrowRight className="size-6 shrink-0" />
             </div>

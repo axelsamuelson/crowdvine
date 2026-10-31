@@ -40,6 +40,7 @@ const PUBLIC_PATH_PREFIXES = [
   "/ib",
   "/b",
   "/b2b-pallets",
+  "/b2b/inquiry",
   "/p",
   "/c",
   "/profile",
@@ -59,7 +60,7 @@ const PUBLIC_PATH_PREFIXES = [
  * Extra public prefixes when PLATFORM_OPEN=true.
  * /vin and /product are already public; /checkout is the critical addition.
  */
-const PLATFORM_OPEN_PUBLIC_PREFIXES = ["/checkout"] as const;
+const PLATFORM_OPEN_PUBLIC_PREFIXES = ["/checkout", "/b2b/inquiry"] as const;
 
 export function isPublicAppPath(
   pathname: string,
@@ -77,6 +78,7 @@ export function isPublicAppPath(
 export function isOpenPlatformBrowseOrCheckoutPath(pathname: string): boolean {
   const openPrefixes = [
     "/checkout",
+    "/b2b/inquiry",
     "/vin",
     "/wine",
     "/product",
