@@ -60,7 +60,14 @@ Notes:
 | `internal-notify-mobile.png` | Notis mobil (390) |
 | `*.txt` | Plain-text bodies |
 
-Raw GitHub URLs use the commit SHA that contains these files (update after push if SHA changes).
+Raw GitHub URLs (commit `0a151cd77b2a713983a097bc227246867287561a`):
+
+- Login gate desktop: https://raw.githubusercontent.com/axelsamuelson/crowdvine/0a151cd77b2a713983a097bc227246867287561a/docs/design-review/dirtywine-inquiry/login-gate-desktop.png
+- Login gate mobile: https://raw.githubusercontent.com/axelsamuelson/crowdvine/0a151cd77b2a713983a097bc227246867287561a/docs/design-review/dirtywine-inquiry/login-gate-mobile.png
+- Customer email desktop: https://raw.githubusercontent.com/axelsamuelson/crowdvine/0a151cd77b2a713983a097bc227246867287561a/docs/design-review/dirtywine-inquiry/customer-confirmation-desktop.png
+- Customer email mobile: https://raw.githubusercontent.com/axelsamuelson/crowdvine/0a151cd77b2a713983a097bc227246867287561a/docs/design-review/dirtywine-inquiry/customer-confirmation-mobile.png
+- Internal notify desktop: https://raw.githubusercontent.com/axelsamuelson/crowdvine/0a151cd77b2a713983a097bc227246867287561a/docs/design-review/dirtywine-inquiry/internal-notify-desktop.png
+- Internal notify mobile: https://raw.githubusercontent.com/axelsamuelson/crowdvine/0a151cd77b2a713983a097bc227246867287561a/docs/design-review/dirtywine-inquiry/internal-notify-mobile.png
 
 ## Inloggningskrav (Axel)
 
