@@ -1,9 +1,14 @@
 /**
  * Dirtywine brand / legal constants for B2B inquiry UI + transactional email.
- * Axel: display brand is "Dirtywine" (sender, subject, signature).
+ * Axel: From / subject display name stays "Dirtywine" (Resend).
+ * Inès: customer email body greeting + footer use "Dirty Wine".
  */
 
+/** From-header / subject brand (Axel — do not change without owner decision). */
 export const DIRTYWINE_BRAND_NAME = "Dirtywine" as const;
+
+/** Customer-facing body brand in inquiry confirmation email (greeting + footer). */
+export const DIRTYWINE_EMAIL_BODY_BRAND = "Dirty Wine" as const;
 
 /** Absolute logo URL used in transactional email (header_logo_dirtywine). */
 export const DIRTYWINE_EMAIL_LOGO_URL =
@@ -27,19 +32,22 @@ export function getDirtywineLegalAddress(): string | null {
 
 /**
  * Customer-email footer (plain text).
- * Without address: `{BRAND} drivs av Axel Samuelson (enskild firma) · axel@… · …`
+ * Without address: `Dirty Wine drivs av Axel Samuelson (enskild firma) · axel@… · …`
  * With address: `… (enskild firma), {adress}, Stockholm · axel@… · …`
  */
 export function getDirtywineInquiryEmailFooterPlain(): string {
   const address = getDirtywineLegalAddress();
   const entity = address
-    ? `${DIRTYWINE_BRAND_NAME} drivs av Axel Samuelson (enskild firma), ${address}, Stockholm`
-    : `${DIRTYWINE_BRAND_NAME} drivs av Axel Samuelson (enskild firma)`;
+    ? `${DIRTYWINE_EMAIL_BODY_BRAND} drivs av Axel Samuelson (enskild firma), ${address}, Stockholm`
+    : `${DIRTYWINE_EMAIL_BODY_BRAND} drivs av Axel Samuelson (enskild firma)`;
   return `${entity} · axel@dirtywine.se · ${DIRTYWINE_PRIVACY_POLICY_LABEL} · Du får det här mejlet eftersom du skickade en förfrågan på dirtywine.se.`;
 }
 
 export const DIRTYWINE_INQUIRY_FOLLOW_UP =
-  "Vi återkommer med bekräftelse och faktura inom 1 arbetsdag.";
+  "Vi återkommer med bekräftelse och faktura inom en arbetsdag.";
 
 export const DIRTYWINE_INQUIRY_EMAIL_HEADLINE =
   "Tack, vi har fått din förfrågan";
+
+/** Customer confirmation email sign-off (body only; From stays Dirtywine). */
+export const DIRTYWINE_INQUIRY_EMAIL_SIGNOFF = `Hälsningar, ${DIRTYWINE_EMAIL_BODY_BRAND}`;

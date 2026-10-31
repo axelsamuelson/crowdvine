@@ -39,7 +39,7 @@ export const B2B_INQUIRY_COPY = {
     successTitle: "Tack för din förfrågan",
     successBody: DIRTYWINE_INQUIRY_FOLLOW_UP,
     privacyNote:
-      "När du skickar formuläret behandlar vi dina uppgifter för att hantera förfrågan. Läs mer i vår",
+      "Vi behandlar dina uppgifter för att hantera förfrågan. Läs mer i vår",
     privacyLinkLabel: "integritetspolicy",
     privacyNoteSuffix: ".",
     stockUnavailable:
@@ -60,7 +60,7 @@ export const B2B_INQUIRY_COPY = {
     totalExclVatLabel: "Totalt",
     emailSubjectCustomer: `${DIRTYWINE_INQUIRY_EMAIL_HEADLINE} – ${DIRTYWINE_BRAND_NAME}`,
     emailBodyCustomer: DIRTYWINE_INQUIRY_FOLLOW_UP,
-    emailSignOff: `Hälsningar\n${DIRTYWINE_BRAND_NAME}`,
+    emailSignOff: `Hälsningar, Dirty Wine`,
   },
   en: {
     cartCta: "Send inquiry",

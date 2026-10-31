@@ -133,9 +133,9 @@ try {
       root.outerHTML = `
         <div class="mx-auto max-w-lg px-4 py-12 space-y-4">
           <h1 class="text-2xl font-semibold text-foreground">Tack för din förfrågan</h1>
-          <p class="text-muted-foreground">Vi återkommer med bekräftelse och faktura inom 1 arbetsdag.</p>
+          <p class="text-muted-foreground">Vi återkommer med bekräftelse och faktura inom en arbetsdag.</p>
           <p class="text-sm text-muted-foreground">
-            När du skickar formuläret behandlar vi dina uppgifter för att hantera förfrågan. Läs mer i vår
+            Vi behandlar dina uppgifter för att hantera förfrågan. Läs mer i vår
             <a href="/integritetspolicy" class="underline underline-offset-2">integritetspolicy</a>.
           </p>
           <button type="button" class="inline-flex items-center justify-center rounded-md text-sm font-medium bg-primary text-primary-foreground h-10 px-4 py-2">

@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it } from "vitest";
 import {
   DIRTYWINE_BRAND_NAME,
+  DIRTYWINE_EMAIL_BODY_BRAND,
+  DIRTYWINE_INQUIRY_EMAIL_SIGNOFF,
   DIRTYWINE_INQUIRY_FOLLOW_UP,
   getDirtywineInquiryEmailFooterPlain,
   getDirtywineLegalAddress,
@@ -73,8 +75,9 @@ describe("Dirtywine legal footer", () => {
     expect(getDirtywineLegalAddress()).toBeNull();
     const footer = getDirtywineInquiryEmailFooterPlain();
     expect(footer).toBe(
-      `${DIRTYWINE_BRAND_NAME} drivs av Axel Samuelson (enskild firma) · axel@dirtywine.se · Integritetspolicy · Du får det här mejlet eftersom du skickade en förfrågan på dirtywine.se.`,
+      `${DIRTYWINE_EMAIL_BODY_BRAND} drivs av Axel Samuelson (enskild firma) · axel@dirtywine.se · Integritetspolicy · Du får det här mejlet eftersom du skickade en förfrågan på dirtywine.se.`,
     );
+    expect(footer).toContain("Dirty Wine drivs av");
     expect(footer).not.toContain("[ADRESS]");
     expect(footer).not.toContain("Stockholm");
     expect(footer).not.toContain("EURPACT");
@@ -84,7 +87,7 @@ describe("Dirtywine legal footer", () => {
     process.env.DIRTYWINE_LEGAL_ADDRESS = "Testgatan 1";
     const footer = getDirtywineInquiryEmailFooterPlain();
     expect(footer).toContain(
-      `${DIRTYWINE_BRAND_NAME} drivs av Axel Samuelson (enskild firma), Testgatan 1, Stockholm ·`,
+      `${DIRTYWINE_EMAIL_BODY_BRAND} drivs av Axel Samuelson (enskild firma), Testgatan 1, Stockholm ·`,
     );
     expect(footer).not.toContain("[ADRESS]");
   });
@@ -93,19 +96,26 @@ describe("Dirtywine legal footer", () => {
 describe("inquiry email builders", () => {
   it("customer email uses brand From, headline, lines, footer link", () => {
     const built = buildB2bInquiryCustomerEmail({ value: sampleValue });
+    // Axel: From stays Dirtywine on verified pactwines.com — do not change.
     expect(built.from).toBe(`${DIRTYWINE_BRAND_NAME} <noreply@pactwines.com>`);
+    expect(built.from).toBe("Dirtywine <noreply@pactwines.com>");
     expect(built.subject).toBe(
       `Tack, vi har fått din förfrågan – ${DIRTYWINE_BRAND_NAME}`,
     );
     expect(built.text).toContain(DIRTYWINE_INQUIRY_FOLLOW_UP);
     expect(built.text).toContain(
-      "Vi återkommer med bekräftelse och faktura inom 1 arbetsdag.",
+      "Vi återkommer med bekräftelse och faktura inom en arbetsdag.",
     );
     expect(built.html).toContain(
-      "Vi återkommer med bekräftelse och faktura inom 1 arbetsdag.",
+      "Vi återkommer med bekräftelse och faktura inom en arbetsdag.",
     );
+    expect(built.text).toContain(DIRTYWINE_INQUIRY_EMAIL_SIGNOFF);
+    expect(built.html).toContain("Hälsningar, Dirty Wine");
+    expect(built.text).toContain("Dirty Wine drivs av");
+    expect(built.html).toContain("Dirty Wine drivs av");
     expect(built.text).not.toContain("så snart vi kan");
     expect(built.html).not.toContain("så snart vi kan");
+    expect(built.text).not.toContain("inom 1 arbetsdag");
     expect(built.text).toContain("Test AB");
     expect(built.text).toContain("2026-12-01");
     expect(built.text).toContain("Testvin");
