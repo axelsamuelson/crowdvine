@@ -124,6 +124,7 @@
     "reserve": "Reservera",
     "viewProductAria": "Visa detaljer för {title}, pris {price}",
     "viewProduct": "Visa produkt",
+    "viewWine": "Visa vin",
     "completeOrder": "Slutför order",
     "completeOrderShow": "Visa orderstatus",
     "completeOrderHide": "Dölj orderstatus",
@@ -157,8 +158,6 @@
     "bottleProgressHint": "Minst 6 flaskor – du kan blanda",
     "needMoreBottlesShort": "{needed} flaskor till",
     "proceedToCheckout": "Gå till kassan",
-    "sendInquiry": "Skicka förfrågan",
-    "loginToSendInquiry": "Logga in för att skicka förfrågan",
     "producerOrdersPaused": "Producentbeställning är pausad. Ta bort raden för att gå vidare.",
     "yourCart": "Din varukorg",
     "emptyCart": "Varukorgen är tom",
@@ -344,7 +343,7 @@
     "eligibilityInterest": "Endast intresseanmälan"
   },
   "commerce": {
-    "minSixMix": "Minst 6 flaskor – du kan blanda",
+    "minSixMix": "Minst 6 flaskor per låda, blanda fritt",
     "directBoxDeliveryPromise": "Skickas direkt från producenten i låda",
     "palletFillCount": "{filled} av {total} flaskor",
     "palletReadyShort": "Redo",

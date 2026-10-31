@@ -753,7 +753,9 @@ export function AddToCartCase({
             ? t("product.selectOne")
             : isSoldOut
               ? t("product.outOfStock")
-              : t("shop.addCase")
+              : analyticsSource === "product"
+                ? t("product.addToCart")
+                : t("shop.addCase")
         }
       />
 

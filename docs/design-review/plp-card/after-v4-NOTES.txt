@@ -1,0 +1,1 @@
+after-v4: aspect-square object-cover; edge-color removed.
