@@ -18,13 +18,13 @@ import { useLocalizedPaths } from "@/lib/hooks/use-localized-paths";
 import { useBodyScrollLock } from "@/lib/hooks/use-body-scroll-lock";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { Cart } from "../../lib/shopify/types";
 import { CartValidationDisplay } from "./cart-validation-display";
 import type { ProducerValidation } from "@/lib/checkout-validation";
 import { CartValidationHeader } from "./CartValidationHeader";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 import { B2B_PRODUCER_ORDERS_ENABLED } from "@/lib/b2b/flags";
 import { homeDeliveryGuidePath } from "@/lib/guides/home-delivery-guide";
+import { shouldAutoOpenCartOnQuantityChange } from "@/lib/cart/should-auto-open-cart";
 
 const CartContainer = ({
   children,
@@ -193,15 +193,6 @@ const CartItems = ({
   );
 };
 
-const serializeCart = (cart: Cart) => {
-  return JSON.stringify(
-    cart.lines.map((line) => ({
-      merchandiseId: line.merchandise.id,
-      quantity: line.quantity,
-    })),
-  );
-};
-
 export default function CartModal() {
   const { t } = useTranslations();
   const paths = useLocalizedPaths();
@@ -211,7 +202,8 @@ export default function CartModal() {
   const [requiredQuantity, setRequiredQuantity] = useState<number | undefined>();
   const [neededTotal, setNeededTotal] = useState<number | undefined>();
   const [isValidating, setIsValidating] = useState(false);
-  const serializedCart = useRef(cart ? serializeCart(cart) : undefined);
+  /** Previous total bottles in this page view; undefined until first silent init. */
+  const knownTotalQuantityRef = useRef<number | undefined>(undefined);
   const wasOpenRef = useRef(false);
 
   useBodyScrollLock(isOpen);
@@ -286,30 +278,19 @@ export default function CartModal() {
     return () => clearTimeout(timeoutId);
   }, [cart]);
 
+  // Auto-open only when total bottles increase in this page view (user add).
+  // Never open on first hydrate / server refetch of an existing cart.
   useEffect(() => {
     if (!cart) return;
 
-    const newSerializedCart = serializeCart(cart);
+    const { shouldOpen, nextKnownQuantity } = shouldAutoOpenCartOnQuantityChange(
+      knownTotalQuantityRef.current,
+      cart.totalQuantity,
+    );
+    knownTotalQuantityRef.current = nextKnownQuantity;
 
-    // Initialize on first load — still open if this first paint already has
-    // items (optimistic add before any prior empty-cart snapshot).
-    if (serializedCart.current === undefined) {
-      serializedCart.current = newSerializedCart;
-      if (cart.lines.length > 0) {
-        setIsOpen(true);
-      }
-      return;
-    }
-
-    // Only open cart if items were actually added/changed
-    // Don't open if cart became empty (items removed or cart cleared)
-    if (serializedCart.current !== newSerializedCart) {
-      serializedCart.current = newSerializedCart;
-
-      // Only open if cart has items (don't open on empty cart)
-      if (cart.lines.length > 0) {
-        setIsOpen(true);
-      }
+    if (shouldOpen) {
+      setIsOpen(true);
     }
   }, [cart]);
 
