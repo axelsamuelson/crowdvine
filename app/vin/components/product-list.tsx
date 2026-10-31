@@ -235,7 +235,7 @@ export default async function ProductList({
   return (
     <ProductListShell
       products={products}
-      locale={shoppingContext.locale}
+      locale={locale}
       collections={collections}
       selectedProducers={producers}
       collectionHandle={collection}
