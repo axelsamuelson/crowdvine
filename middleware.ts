@@ -37,6 +37,7 @@ import {
   isStockholmDeliveryRedirectPath,
   pactStockholmDeliveryRedirectUrl,
 } from "@/lib/stockholm-delivery-landing/dirtywine-redirect";
+import { buildPactRequestHeaders } from "@/lib/middleware/request-headers";
 
 const LOCALE_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
 
@@ -84,16 +85,10 @@ function nextWithPathname(req: NextRequest): NextResponse {
   if (legacyProducerRedirect) return legacyProducerRedirect;
 
   const pathname = req.nextUrl.pathname;
-  const requestHeaders = new Headers(req.headers);
-  requestHeaders.set("x-pathname", pathname);
-  requestHeaders.set("x-search", req.nextUrl.search);
-
   const pathLocale = localeFromShopPath(pathname);
-  if (pathLocale) {
-    requestHeaders.set("x-pact-locale", pathLocale);
-  }
-
-  const res = NextResponse.next({ request: { headers: requestHeaders } });
+  const res = NextResponse.next({
+    request: { headers: buildPactRequestHeaders(req) },
+  });
 
   if (pathLocale) {
     const currentLocale = parseLocaleCookie(req.cookies.get(LOCALE_COOKIE)?.value);

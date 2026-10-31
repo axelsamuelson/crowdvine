@@ -10,8 +10,7 @@ import {
   defaultOpenGraphImages,
   pageTwitterCard,
 } from "@/lib/seo/default-social";
-import { DIRTY_WINE_CONFIG } from "@/lib/site-config";
-import { getSiteConfig } from "@/lib/site-config-server";
+import { getPublicSiteConfig } from "@/lib/site-config-server";
 import { PACT_PUBLIC_ORIGIN } from "@/lib/i18n/localized-routes";
 
 export const revalidate = 300;
@@ -20,14 +19,12 @@ export async function generateMetadata(props: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }): Promise<Metadata> {
   const searchParams = await props.searchParams;
-  const config = await getSiteConfig();
+  const config = getPublicSiteConfig();
   const pageUrl = `${PACT_PUBLIC_ORIGIN}/vin`;
   const titleBase = "Naturvin: köp naturvin online";
   const title = `${titleBase} | ${config.siteName}`;
   const description =
-    config.baseUrl === DIRTY_WINE_CONFIG.baseUrl
-      ? "Naturvin. Ekologiskt och biodynamiskt. För restauranger i Stockholm."
-      : "Bläddra bland naturviner. Ekologiskt och biodynamiskt. Hemleverans i Stockholm.";
+    "Bläddra bland naturviner. Ekologiskt och biodynamiskt. Hemleverans i Stockholm.";
 
   return {
     title: { absolute: title },

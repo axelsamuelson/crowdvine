@@ -9,12 +9,8 @@ import type {
 } from "@/lib/shopify/types";
 import { ProductListShell } from "./product-list-shell";
 import { mapSortKeys } from "@/lib/shopify/utils";
-import { headers } from "next/headers";
 import { isB2BHost } from "@/lib/b2b-site";
-import {
-  DEFAULT_B2B_SHOP_SORT,
-  DEFAULT_B2C_SHOP_SORT,
-} from "@/lib/shopify/constants";
+import { DEFAULT_B2C_SHOP_SORT } from "@/lib/shopify/constants";
 import {
   getCachedProductViewStatsByWineId,
   productViewStatsFromRecord,
@@ -24,10 +20,9 @@ import {
   getCachedAllWineSourceSlugs,
   pickWineSourceSlugsForProducts,
 } from "@/lib/external-prices/cached-source-slugs";
-import { getCachedShoppingContextFromRequest } from "@/lib/shopping-context/server";
-import { fallbackShoppingContext } from "@/lib/shopping-context/defaults";
 import { getCachedShopCollections } from "@/lib/shop/cached-layout-data";
 import { getCachedShopProducts } from "@/lib/shop/cached-shop-products";
+import type { AppLocale } from "@/lib/i18n/locale";
 
 function sortProductsByStock(products: Product[], inStockFirst: boolean): Product[] {
   return [...products].sort((a, b) => {
@@ -46,6 +41,8 @@ interface ProductListProps {
   breadcrumbLabel?: string;
   producerProfileHref?: string;
   producerProfileLabel?: string;
+  /** Path locale for ISR shells (avoids cookies()/headers()). */
+  locale?: AppLocale;
 }
 
 async function fetchProductsForList(params: {
@@ -142,6 +139,7 @@ export default async function ProductList({
   breadcrumbLabel,
   producerProfileHref,
   producerProfileLabel,
+  locale = "sv",
 }: ProductListProps) {
   const resolvedSearchParams = searchParams ?? {};
   // Search (`?q=`) is applied client-side with ranking (see shop-product-search).
@@ -155,18 +153,15 @@ export default async function ProductList({
       ? resolvedSearchParams.sort
       : undefined;
 
-  const h = await headers();
-  const host = h.get("x-forwarded-host") ?? h.get("host");
-  const shoppingContext = await getCachedShoppingContextFromRequest().catch(() =>
-    fallbackShoppingContext(),
-  );
+  // Anonymous B2C ISR shell — no headers()/cookies(). Dirtywine & currency hydrate client-side.
+  const host: string | null = null;
   const productCurrencyParams = {
-    displayCurrencyCode: shoppingContext.currencyCode,
-    sekToDisplayRate: shoppingContext.sekToDisplayRate,
+    displayCurrencyCode: "SEK",
+    sekToDisplayRate: 1,
   };
 
   if (!sort) {
-    sort = isB2BHost(host) ? DEFAULT_B2B_SHOP_SORT : DEFAULT_B2C_SHOP_SORT;
+    sort = DEFAULT_B2C_SHOP_SORT;
   }
 
   const producers =
@@ -207,8 +202,7 @@ export default async function ProductList({
           host,
           ...productCurrencyParams,
           canUseProductCache,
-          locale:
-            shoppingContext.locale === "en" ? "en" : "sv",
+          locale,
         }),
         getCachedShopCollections(),
         isPopularSort

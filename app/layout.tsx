@@ -9,11 +9,7 @@ import { isDevelopment } from "@/lib/constants";
 import { getCachedShopCollections } from "@/lib/shop/cached-layout-data";
 import { ConditionalHeaderServer } from "../components/layout/header/conditional-header-server";
 import { VaulDrawerAttributeSync } from "@/components/layout/vaul-drawer-attribute-sync";
-import {
-  pathnameNeedsVaulDrawerWrapper,
-  VAUL_DRAWER_WRAPPER_ID,
-} from "@/lib/vaul-drawer-routes";
-import { headers } from "next/headers";
+import { VAUL_DRAWER_WRAPPER_ID } from "@/lib/vaul-drawer-routes";
 import { V0Provider } from "@/lib/context";
 import { MobileMenuProvider } from "../components/layout/header/mobile-menu-context";
 import { MembershipProvider } from "@/lib/context/membership-context";
@@ -36,22 +32,14 @@ const geistMono = Geist_Mono({
 });
 
 import { getSiteContentByKey } from "@/lib/actions/content";
-import { getIsDirtywineSiteFromHeaders } from "@/lib/b2b-site-server";
 import { B2BModeProvider } from "@/lib/context/b2b-mode-context";
 import { ShoppingContextProvider } from "@/lib/context/shopping-context-provider";
 import { WineSettingsProvider } from "@/lib/context/wine-settings-context";
 import { fallbackShoppingContext } from "@/lib/shopping-context/defaults";
-import {
-  isPublicAppPath,
-  publicPathUsesUserShoppingContext,
-} from "@/lib/auth/public-paths";
 import { SiteLogoProvider } from "@/lib/context/site-logo-provider";
-import { resolveSiteLogosFromRequest } from "@/lib/site-logos-server";
-import { getCachedShoppingContextFromRequest } from "@/lib/shopping-context/server";
 import { getCachedWineFewLeftThreshold } from "@/lib/wine-settings-cache";
 import { type SiteConfig } from "@/lib/site-config";
-import { getSiteConfig } from "@/lib/site-config-server";
-import { localeFromShopPath } from "@/lib/i18n/shop-path-locale";
+import { getPublicSiteConfig } from "@/lib/site-config-server";
 import {
   buildRootTwitterMetadata,
   defaultOpenGraphImages,
@@ -83,8 +71,13 @@ function buildRootMetadata(
   };
 }
 
+/**
+ * Root metadata stays host-neutral (PACT) so the layout can stay ISR-cacheable.
+ * Dirtywine title/description hydrate via client branding; page-level metadata
+ * on dynamic admin routes can still call getSiteConfig().
+ */
 export async function generateMetadata(): Promise<Metadata> {
-  const config = await getSiteConfig();
+  const config = getPublicSiteConfig();
 
   try {
     const hasAdminCreds =
@@ -110,61 +103,34 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 /**
- * Root Layout Component for ACME Store
+ * Root Layout — request-free shell for public ISR.
  *
- * This is the main layout component that wraps the entire application.
- * It provides essential providers and global functionality including:
- * - Shopify e-commerce integration with cart management
- * - Font configuration with Geist Sans and Mono
- * - Toast notifications for user feedback
- * - URL state management with nuqs
- * - Development debugging tools
- * - v0 environment detection and setup
+ * Pathname, host/site, locale cookie, and shopping prefs are resolved in
+ * middleware + client providers (or nested Suspense), never via headers()/cookies()
+ * here. That keeps /, /vin, /produkt/* eligible for CDN cache for anonymous visitors.
+ * Membership, cart, and portal stay client-fetched so personal data is never shared.
  */
 export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const requestHeaders = await headers();
-  const ssrPathname = requestHeaders.get("x-pathname")?.trim() || "/";
-  const needsVaulDrawerWrapper = pathnameNeedsVaulDrawerWrapper(ssrPathname);
-  const host =
-    requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host");
+  const [collections, fewLeftThreshold] = await Promise.all([
+    getCachedShopCollections().catch((error) => {
+      console.warn("Failed to fetch collections in root layout:", error);
+      return [] as Awaited<ReturnType<typeof getCachedShopCollections>>;
+    }),
+    getCachedWineFewLeftThreshold().catch((error) => {
+      console.warn("Failed to resolve wine few-left threshold:", error);
+      return 5;
+    }),
+  ]);
 
-  const [collections, isDirtywineSite, shoppingContext, siteLogos, fewLeftThreshold] =
-    await Promise.all([
-      getCachedShopCollections().catch((error) => {
-        console.warn("Failed to fetch collections in root layout:", error);
-        return [] as Awaited<ReturnType<typeof getCachedShopCollections>>;
-      }),
-      getIsDirtywineSiteFromHeaders(),
-      getCachedShoppingContextFromRequest({
-        skipUser:
-          isPublicAppPath(ssrPathname) &&
-          !publicPathUsesUserShoppingContext(ssrPathname),
-      }).catch((error) => {
-        console.warn("Failed to resolve shopping context in layout:", error);
-        return fallbackShoppingContext();
-      }),
-      resolveSiteLogosFromRequest({ host }).catch((error) => {
-        console.warn("Failed to resolve site logos in layout:", error);
-        return {
-          headerLogo: null as string | null,
-          footerLogo: null as string | null,
-        };
-      }),
-      getCachedWineFewLeftThreshold().catch((error) => {
-        console.warn("Failed to resolve wine few-left threshold:", error);
-        return 5;
-      }),
-    ]);
-
-  const pathLocale = localeFromShopPath(ssrPathname);
-  const htmlLang = pathLocale ?? shoppingContext.locale;
+  // Swedish-first default; ShoppingContextProvider syncs <html lang> + locale from path.
+  const shoppingContext = fallbackShoppingContext("sv");
 
   return (
-    <html lang={htmlLang} suppressHydrationWarning>
+    <html lang="sv" suppressHydrationWarning>
       <body
         className={cn(
           geistSans.variable,
@@ -175,9 +141,12 @@ export default async function RootLayout({
         suppressHydrationWarning
       >
         <NuqsAdapter>
-        <B2BModeProvider isB2B={isDirtywineSite}>
+        <B2BModeProvider isB2B={false}>
           <WineSettingsProvider fewLeftThreshold={fewLeftThreshold}>
-          <SiteLogoProvider initialLogos={siteLogos}>
+          <SiteLogoProvider
+            initialLogos={{ headerLogo: null, footerLogo: null }}
+            fetchOnMount
+          >
           <ShoppingContextProvider initialContext={shoppingContext}>
           <CartProvider>
             <OnboardingProvider>
@@ -194,16 +163,10 @@ export default async function RootLayout({
                         <div
                           id={VAUL_DRAWER_WRAPPER_ID}
                           suppressHydrationWarning
-                          {...(needsVaulDrawerWrapper
-                            ? { "data-vaul-drawer-wrapper": "true" }
-                            : {})}
+                          data-vaul-drawer-wrapper="true"
                         >
-                          <VaulDrawerAttributeSync ssrPathname={ssrPathname} />
-                          <ConditionalHeaderServer
-                            collections={collections}
-                            ssrPathname={ssrPathname}
-                            initialLogos={siteLogos}
-                          />
+                          <VaulDrawerAttributeSync />
+                          <ConditionalHeaderServer collections={collections} />
                           {children}
                         </div>
                       </div>

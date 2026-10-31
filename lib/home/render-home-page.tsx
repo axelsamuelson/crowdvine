@@ -7,14 +7,11 @@ import {
   HomeTasteQuizProvider,
 } from "@/components/home/home-taste-quiz-panel";
 import { getQuizWines } from "@/lib/taste-quiz/get-quiz-wines";
-import { getShoppingContextFromRequest } from "@/lib/shopping-context/server";
-import { fallbackShoppingContext } from "@/lib/shopping-context/defaults";
 import type { Metadata } from "next";
 import { getCollections, getProducts } from "@/lib/shopify";
 import { getLabelPosition } from "@/lib/utils";
 import type { Product } from "@/lib/shopify/types";
-import { headers } from "next/headers";
-import { getSiteConfig } from "@/lib/site-config-server";
+import { getPublicSiteConfig } from "@/lib/site-config-server";
 import { getHomepageHeroImages } from "@/lib/actions/content";
 import { getHomepageHeroCopy } from "@/lib/get-homepage-hero-copy";
 import {
@@ -28,8 +25,8 @@ import {
 } from "@/lib/i18n/localized-routes";
 
 export async function buildHomeMetadata(locale: AppLocale): Promise<Metadata> {
-  const config = await getSiteConfig();
-  const isDirtyWine = config.name === "Dirty Wine";
+  // Host-neutral PACT metadata keeps homepage ISR-cacheable.
+  const config = getPublicSiteConfig();
   const seoOrigin = PACT_PUBLIC_ORIGIN;
   const svHome = `${seoOrigin}/`;
   const enHome = `${seoOrigin}/en`;
@@ -37,21 +34,13 @@ export async function buildHomeMetadata(locale: AppLocale): Promise<Metadata> {
 
   const title =
     locale === "sv"
-      ? isDirtyWine
-        ? "Dirty Wine — Naturvin från Languedoc, B2B import Stockholm"
-        : "PACT Wines — Köp naturvin online direkt från Languedoc"
-      : isDirtyWine
-        ? "Dirty Wine — Natural wine from Languedoc, B2B import Stockholm"
-        : "PACT Wines — Buy natural wine online direct from Languedoc";
+      ? "PACT Wines — Köp naturvin online direkt från Languedoc"
+      : "PACT Wines — Buy natural wine online direct from Languedoc";
 
   const description =
     locale === "sv"
-      ? isDirtyWine
-        ? "Naturvin från Languedoc för restauranger och sommelierer i Stockholm. Direktimport utan grossist. B2B-priser exkl. moms."
-        : "Köp naturvin direktimporterat från småproducenter i Languedoc. Hemleverans i Stockholm. Inga mellanhänder — lägre pris, mer karaktär."
-      : isDirtyWine
-        ? "Natural wine from Languedoc for restaurants and sommeliers in Stockholm. Direct import without a wholesaler. B2B prices excl. VAT."
-        : "Buy natural wine imported directly from small producers in Languedoc. Home delivery in Stockholm. No middlemen — lower price, more character.";
+      ? "Köp naturvin direktimporterat från småproducenter i Languedoc. Hemleverans i Stockholm. Inga mellanhänder — lägre pris, mer karaktär."
+      : "Buy natural wine imported directly from small producers in Languedoc. Home delivery in Stockholm. No middlemen — lower price, more character.";
 
   return {
     title: { absolute: title },
@@ -80,17 +69,12 @@ export async function buildHomeMetadata(locale: AppLocale): Promise<Metadata> {
 }
 
 export async function renderHomePage(locale: AppLocale) {
-  const [h, config, shoppingContext] = await Promise.all([
-    headers(),
-    getSiteConfig(),
-    getShoppingContextFromRequest({ skipUser: true }).catch(() =>
-      fallbackShoppingContext(),
-    ),
-  ]);
-  const host = h.get("x-forwarded-host") ?? h.get("host");
+  // Anonymous B2C shell (SEK). No headers()/cookies() — CDN-safe for all visitors.
+  // Dirtywine / membership / currency hydrate client-side.
+  const config = getPublicSiteConfig();
   const productCurrencyParams = {
-    displayCurrencyCode: shoppingContext.currencyCode,
-    sekToDisplayRate: shoppingContext.sekToDisplayRate,
+    displayCurrencyCode: "SEK" as const,
+    sekToDisplayRate: 1,
   };
 
   const [
@@ -112,7 +96,7 @@ export async function renderHomePage(locale: AppLocale) {
       limit: 5,
       sortKey: "CREATED_AT",
       reverse: true,
-      host,
+      host: null,
       locale,
       ...productCurrencyParams,
     }).catch((error) => {
@@ -127,7 +111,7 @@ export async function renderHomePage(locale: AppLocale) {
   if (featuredProducts.length === 0) {
     try {
       const allProducts = await getProducts({
-        host,
+        host: null,
         locale,
         ...productCurrencyParams,
       });

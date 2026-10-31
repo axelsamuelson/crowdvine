@@ -1,28 +1,15 @@
 import { PageLayoutServer } from "@/components/layout/page-layout-server";
-import { getIsDirtywineSiteFromHeaders } from "@/lib/b2b-site-server";
 import {
   getCachedPriceSources,
   getCachedShopCollections,
 } from "@/lib/shop/cached-layout-data";
-import {
-  countActiveShopFilters,
-  parseSearchParamsFromQueryString,
-} from "@/lib/shop/filter-count-server";
-import { isProducerBoxesPath } from "@/lib/producer-boxes/config";
-import { isShopFullBleedPath } from "@/lib/stockholm-delivery-landing/config";
 import { getCachedNavigableShopFilterPaths } from "@/lib/shop/shop-filter-category-availability";
-import { getShopLayoutResultsCount } from "@/lib/shop/shop-results-count-server";
 import { ShopLayoutClient } from "@/components/shop/shop-layout-client";
-import { headers } from "next/headers";
 
-function collectionSegmentFromPathname(pathname: string): string | undefined {
-  const match = pathname.match(/^\/(?:vin|wine)\/([^/]+)$/);
-  if (!match) return undefined;
-  const segment = match[1];
-  if (segment === "group") return undefined;
-  return segment;
-}
-
+/**
+ * Shop chrome without headers()/cookies() so /vin and /wine stay ISR-eligible.
+ * Filter counts and B2B navigable paths hydrate client-side; static shell uses B2C.
+ */
 export async function ShopLayoutShell({
   children,
 }: {
@@ -44,37 +31,20 @@ export async function ShopLayoutShell({
     console.warn("Failed to fetch price sources in shop layout:", error);
   }
 
-  const headersList = await headers();
-  const pathname = headersList.get("x-pathname") ?? "";
-  const search = headersList.get("x-search") ?? "";
-  const parsedSearchParams = parseSearchParamsFromQueryString(search);
-  const collectionSegment = collectionSegmentFromPathname(pathname);
-  const initialFilterCount = countActiveShopFilters(
-    parsedSearchParams,
-    isProducerBoxesPath(pathname) || isShopFullBleedPath(pathname)
-      ? undefined
-      : collectionSegment,
-  );
-  const isB2BSite = await getIsDirtywineSiteFromHeaders();
-  const [initialResultsCount, navigableShopPaths] = await Promise.all([
-    getShopLayoutResultsCount(pathname, parsedSearchParams),
-    getCachedNavigableShopFilterPaths(isB2BSite).catch((error) => {
-      console.warn(
-        "Failed to resolve navigable shop filter paths:",
-        error,
-      );
+  const navigableShopPaths = await getCachedNavigableShopFilterPaths(false).catch(
+    (error) => {
+      console.warn("Failed to resolve navigable shop filter paths:", error);
       return undefined;
-    }),
-  ]);
+    },
+  );
 
   return (
     <PageLayoutServer>
       <ShopLayoutClient
         collections={collections}
         priceSources={priceSources}
-        initialFilterCount={initialFilterCount}
-        initialResultsCount={initialResultsCount}
-        ssrPathname={pathname}
+        initialFilterCount={0}
+        ssrPathname=""
         navigableShopPaths={navigableShopPaths}
       >
         {children}
