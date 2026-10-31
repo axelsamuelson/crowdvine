@@ -1,17 +1,14 @@
-import {
-  defaultCustomerReplyTo,
-  defaultResendFrom,
-  sendEmail,
-} from "@/lib/email";
+import { sendEmail } from "@/lib/email";
 import {
   b2bInquiryCopy,
   type B2bInquiryCopyLocale,
 } from "@/lib/b2b/inquiry-copy";
 import { getB2bInquiryNotifyEmail } from "@/lib/b2b/flags";
+import {
+  getDirtywineReplyTo,
+  getDirtywineResendFrom,
+} from "@/lib/b2b/email-from";
 import type { B2bInquiryNormalized } from "@/lib/b2b/inquiry-validation";
-
-/** Prefer verified Resend sender; Reply-To Dirtywine inbox for human follow-up. */
-const REPLY_DIRTYWINE = "axel@dirtywine.se";
 
 function escapeHtml(s: string): string {
   return s
@@ -27,11 +24,10 @@ function linesSummary(lines: B2bInquiryNormalized["lines"]): string {
     .join("\n");
 }
 
-export async function sendB2bInquiryCustomerEmail(opts: {
-  to: string;
+export function buildB2bInquiryCustomerEmail(opts?: {
   locale?: B2bInquiryCopyLocale;
-}): Promise<void> {
-  const copy = b2bInquiryCopy(opts.locale ?? "sv");
+}): { subject: string; html: string; text: string; from: string; replyTo: string } {
+  const copy = b2bInquiryCopy(opts?.locale ?? "sv");
   const text = [
     copy.emailBodyCustomer,
     "",
@@ -41,32 +37,28 @@ export async function sendB2bInquiryCustomerEmail(opts: {
   ].join("\n");
 
   const html = `
-    <div style="font-family: system-ui, sans-serif; line-height: 1.5; color: #111;">
-      <p>${escapeHtml(copy.emailBodyCustomer)}</p>
-      <p style="font-size: 0.875rem; color: #555;">
+    <div style="font-family: system-ui, sans-serif; line-height: 1.5; color: #111; max-width: 40rem;">
+      <p style="margin: 0 0 1rem;">${escapeHtml(copy.emailBodyCustomer)}</p>
+      <p style="font-size: 0.875rem; color: #555; margin: 0 0 1rem;">
         ${escapeHtml(copy.emailPrivacyLine)}
       </p>
-      <p>${escapeHtml(copy.emailSignOff).replace(/\n/g, "<br/>")}</p>
+      <p style="margin: 0;">${escapeHtml(copy.emailSignOff).replace(/\n/g, "<br/>")}</p>
     </div>
   `.trim();
 
-  await sendEmail({
-    to: opts.to,
+  return {
     subject: copy.emailSubjectCustomer,
     html,
     text,
-    from: defaultResendFrom(),
-    replyTo: REPLY_DIRTYWINE || defaultCustomerReplyTo(),
-  });
+    from: getDirtywineResendFrom(),
+    replyTo: getDirtywineReplyTo(),
+  };
 }
 
-export async function sendB2bInquiryInternalNotify(opts: {
+export function buildB2bInquiryInternalNotify(opts: {
   inquiryId: string;
   value: B2bInquiryNormalized;
-  /** Override for tests / preview — never use customer addresses here. */
-  to?: string;
-}): Promise<void> {
-  const to = opts.to?.trim() || getB2bInquiryNotifyEmail();
+}): { subject: string; html: string; text: string; from: string; replyTo: string } {
   const v = opts.value;
   const subject = `[B2B förfrågan] ${v.companyName} (${opts.inquiryId.slice(0, 8)})`;
   const text = [
@@ -89,14 +81,54 @@ export async function sendB2bInquiryInternalNotify(opts: {
     `Admin: /admin/b2b-inquiries`,
   ].join("\n");
 
-  const html = `<pre style="font-family: system-ui, sans-serif; white-space: pre-wrap;">${escapeHtml(text)}</pre>`;
+  const html = `
+    <div style="font-family: system-ui, sans-serif; line-height: 1.5; color: #111; max-width: 40rem;">
+      <p style="margin: 0 0 0.75rem; font-weight: 600;">Ny B2B-förfrågan från dirtywine.se</p>
+      <pre style="white-space: pre-wrap; margin: 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.875rem;">${escapeHtml(text)}</pre>
+    </div>
+  `.trim();
 
-  await sendEmail({
-    to,
+  return {
     subject,
     html,
     text,
-    from: defaultResendFrom(),
+    from: getDirtywineResendFrom(),
     replyTo: v.email,
+  };
+}
+
+export async function sendB2bInquiryCustomerEmail(opts: {
+  to: string;
+  locale?: B2bInquiryCopyLocale;
+}): Promise<void> {
+  const built = buildB2bInquiryCustomerEmail({ locale: opts.locale });
+  await sendEmail({
+    to: opts.to,
+    subject: built.subject,
+    html: built.html,
+    text: built.text,
+    from: built.from,
+    replyTo: built.replyTo,
+  });
+}
+
+export async function sendB2bInquiryInternalNotify(opts: {
+  inquiryId: string;
+  value: B2bInquiryNormalized;
+  /** Override for tests / preview — never use customer addresses here. */
+  to?: string;
+}): Promise<void> {
+  const to = opts.to?.trim() || getB2bInquiryNotifyEmail();
+  const built = buildB2bInquiryInternalNotify({
+    inquiryId: opts.inquiryId,
+    value: opts.value,
+  });
+  await sendEmail({
+    to,
+    subject: built.subject,
+    html: built.html,
+    text: built.text,
+    from: built.from,
+    replyTo: built.replyTo,
   });
 }
