@@ -14,6 +14,7 @@ import { ProductPriceInfoBox } from "@/components/product/product-price-info-box
 import { WineEnrichmentSpecs } from "@/components/product/wine-enrichment-specs";
 import { WineStyleScale } from "@/components/product/wine-style-scale";
 import { hasEnrichmentSpecs } from "@/lib/product/wine-enrichment";
+import { WinePdpEnrichment } from "@/components/product/wine-pdp-enrichment";
 import { WINE_ENRICHMENT_DROPDOWN_LIST_CLASS } from "@/components/product/wine-enrichment-collapsible";
 import { PdpHeroBadges } from "@/components/pdp/pdp-hero-badges";
 import { WinePdpHeroBox } from "@/components/product/wine-pdp-hero-box";
@@ -30,14 +31,8 @@ import { PdpSiblingWinesSection } from "@/components/product/pdp-sibling-wines-s
 import { WineProducerMap } from "@/components/product/wine-producer-map";
 import { PdpB2BLink } from "@/components/product/pdp-b2b-link";
 
-const WinePdpEnrichment = dynamic(
-  () =>
-    import("@/components/product/wine-pdp-enrichment").then(
-      (m) => m.WinePdpEnrichment,
-    ),
-  { loading: () => null },
-);
-
+// Below-fold carousel (framer-motion + ProductCard). Keep enrichment SSR'd in the
+// sticky sidebar so deferred mount does not inflate desktop CLS.
 const PdpRecommendationsSection = dynamic(
   () =>
     import("@/components/product/pdp-recommendations-section").then(

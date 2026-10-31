@@ -51,9 +51,7 @@ export function ProductListHydrationGate({
     };
   }, [mounted, showInteractive]);
 
-  if (!showInteractive) {
-    return <>{staticGrid}</>;
-  }
-
-  return <>{children}</>;
+  // Keep a single in-flow tree. Swapping after idle avoids the dual-hydration
+  // long task; cards share the same aspect-ratio shell to limit CLS.
+  return <>{showInteractive ? children : staticGrid}</>;
 }
