@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useTranslations } from "@/lib/hooks/use-translations";
 import { useLocalizedPaths } from "@/lib/hooks/use-localized-paths";
 import { b2bInquiryCopy } from "@/lib/b2b/inquiry-copy";
+import { b2bInquiryLoginHref } from "@/lib/b2b/inquiry-login";
 import {
   trackB2bInquiryStarted,
   trackB2bInquirySubmitted,
@@ -45,13 +46,18 @@ const emptyForm: FormState = {
   website: "",
 };
 
-export function B2bInquiryClient() {
+export function B2bInquiryClient({
+  isAuthenticated,
+}: {
+  isAuthenticated: boolean;
+}) {
   const { context } = useTranslations();
   const paths = useLocalizedPaths();
   const router = useRouter();
   const { cart, updateItem } = useCart();
   const locale = context.locale === "en" ? "en" : "sv";
   const copy = b2bInquiryCopy(locale);
+  const loginHref = b2bInquiryLoginHref();
 
   const [form, setForm] = useState<FormState>(emptyForm);
   const [submitting, setSubmitting] = useState(false);
@@ -104,6 +110,8 @@ export function B2bInquiryClient() {
         return copy.stockUnavailable;
       case "rate_limited":
         return copy.rateLimited;
+      case "unauthorized":
+        return copy.loginCta;
       default:
         return copy.genericError;
     }
@@ -217,6 +225,55 @@ export function B2bInquiryClient() {
     );
   }
 
+  const cartSummary = (
+    <section className="space-y-3">
+      <h2 className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
+        {copy.cartSummary}
+      </h2>
+      <ul className="divide-y border rounded-md">
+        {warehouseLines.map((line) => {
+          const lineTotal = parseFloat(line.cost.totalAmount.amount || "0");
+          const excl = priceExclVat(lineTotal);
+          return (
+            <li
+              key={line.id}
+              className="flex justify-between gap-4 px-3 py-2 text-sm"
+            >
+              <span>
+                {line.merchandise.product?.title || line.merchandise.title} ×{" "}
+                {line.quantity}
+              </span>
+              <span className="tabular-nums text-muted-foreground">
+                {formatCartLinePrice(excl, context)}{" "}
+                <span className="text-[10px]">{copy.exclVatHint}</span>
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+
+  if (!isAuthenticated) {
+    return (
+      <div className="mx-auto max-w-2xl px-4 py-10 space-y-8">
+        <div className="space-y-2">
+          <h1 className="text-2xl font-semibold text-foreground">
+            {copy.pageTitle}
+          </h1>
+          <p className="text-muted-foreground">{copy.loginRequiredIntro}</p>
+        </div>
+        {cartSummary}
+        <Button asChild className="w-full h-12">
+          <Link href={loginHref}>{copy.loginCta}</Link>
+        </Button>
+        <Button asChild variant="outline" className="w-full">
+          <Link href={paths.shop}>{copy.backToShop}</Link>
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto max-w-2xl px-4 py-10 space-y-8">
       <div className="space-y-2">
@@ -226,32 +283,7 @@ export function B2bInquiryClient() {
         <p className="text-muted-foreground">{copy.pageIntro}</p>
       </div>
 
-      <section className="space-y-3">
-        <h2 className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
-          {copy.cartSummary}
-        </h2>
-        <ul className="divide-y border rounded-md">
-          {warehouseLines.map((line) => {
-            const lineTotal = parseFloat(line.cost.totalAmount.amount || "0");
-            const excl = priceExclVat(lineTotal);
-            return (
-              <li
-                key={line.id}
-                className="flex justify-between gap-4 px-3 py-2 text-sm"
-              >
-                <span>
-                  {line.merchandise.product?.title || line.merchandise.title} ×{" "}
-                  {line.quantity}
-                </span>
-                <span className="tabular-nums text-muted-foreground">
-                  {formatCartLinePrice(excl, context)}{" "}
-                  <span className="text-[10px]">{copy.exclVatHint}</span>
-                </span>
-              </li>
-            );
-          })}
-        </ul>
-      </section>
+      {cartSummary}
 
       <form onSubmit={onSubmit} className="space-y-4 relative" noValidate>
         <div

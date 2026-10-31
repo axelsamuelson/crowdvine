@@ -62,12 +62,27 @@ Notes:
 
 Raw GitHub URLs use the commit SHA that contains these files (update after push if SHA changes).
 
+## Inloggningskrav (Axel)
+
+- **Sortiment + priser**: öppna för alla (befintlig browse).
+- **Köpförfrågan**: kräver befintlig inloggning (`/log-in?next=/b2b/inquiry`). Ingen ny auth.
+- Utloggad UI: tydlig CTA **«Logga in för att skicka förfrågan»** (cart + `/b2b/inquiry`).
+- `POST /api/b2b/inquiry` → **401** utan session.
+
+| File | What |
+| --- | --- |
+| `login-gate.html` | Utloggad förfrågesida (mock) |
+| `login-gate-desktop.png` | Desktop 1280 |
+| `login-gate-mobile.png` | Mobil 390 |
+
 ## Kundsynliga texter (SV, ordagrant)
 
 ### Cart / UI
 
 1. Skicka förfrågan
+1b. Logga in för att skicka förfrågan
 2. Beställningsförfrågan
+2b. Du kan bläddra i sortiment och priser utan konto. För att skicka en förfrågan behöver du logga in — efter inloggning kommer du tillbaka hit.
 3. Skicka en förfrågan för vinerna i din varukorg. Vi återkommer med bekräftelse och faktura — ingen betalning sker här.
 4. Företag / restaurang
 5. Organisationsnummer

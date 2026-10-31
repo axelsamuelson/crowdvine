@@ -108,6 +108,7 @@ describe("b2b inquiry copy for legal review", () => {
   it("exposes swedish customer-facing strings", () => {
     const texts = listB2bInquiryCustomerFacingSvTexts();
     expect(texts).toContain("Skicka förfrågan");
+    expect(texts).toContain("Logga in för att skicka förfrågan");
     expect(texts).toContain(
       "Tack för din förfrågan. Vi återkommer med bekräftelse och faktura.",
     );

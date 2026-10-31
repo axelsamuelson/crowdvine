@@ -4,6 +4,10 @@ vi.mock("@/lib/supabase-admin", () => ({
   getSupabaseAdmin: vi.fn(),
 }));
 
+vi.mock("@/lib/supabase-server", () => ({
+  getCurrentUser: vi.fn(),
+}));
+
 vi.mock("@/lib/b2b/inquiry-stock", () => ({
   assertInquiryLinesInB2bStock: vi.fn(),
 }));
@@ -28,6 +32,7 @@ vi.mock("@/lib/b2b/flags", async () => {
 });
 
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { getCurrentUser } from "@/lib/supabase-server";
 import { assertInquiryLinesInB2bStock } from "@/lib/b2b/inquiry-stock";
 import {
   sendB2bInquiryCustomerEmail,
@@ -88,9 +93,28 @@ function makeSb() {
 describe("POST /api/b2b/inquiry", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(getCurrentUser).mockResolvedValue({
+      id: "user-test-id",
+      email: "ada@example.com",
+    } as never);
     vi.mocked(assertInquiryLinesInB2bStock).mockResolvedValue({ ok: true });
     vi.mocked(sendB2bInquiryCustomerEmail).mockResolvedValue(undefined);
     vi.mocked(sendB2bInquiryInternalNotify).mockResolvedValue(undefined);
+  });
+
+  it("returns 401 without a session", async () => {
+    vi.mocked(getCurrentUser).mockResolvedValue(null);
+    const res = await POST(
+      new Request("http://localhost/api/b2b/inquiry", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(validBody),
+      }),
+    );
+    expect(res.status).toBe(401);
+    const json = await res.json();
+    expect(json.code).toBe("unauthorized");
+    expect(getSupabaseAdmin).not.toHaveBeenCalled();
   });
 
   it("persists inquiry, sends emails, returns id", async () => {

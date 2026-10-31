@@ -24,6 +24,9 @@ export const B2B_INQUIRY_COPY = {
     messagePlaceholder: "Eventuella önskemål eller frågor (valfritt)",
     submit: "Skicka förfrågan",
     submitting: "Skickar…",
+    loginCta: "Logga in för att skicka förfrågan",
+    loginRequiredIntro:
+      "Du kan bläddra i sortiment och priser utan konto. För att skicka en förfrågan behöver du logga in — efter inloggning kommer du tillbaka hit.",
     emptyCart: "Varukorgen är tom. Lägg till viner från lagret innan du skickar en förfrågan.",
     backToShop: "Tillbaka till sortimentet",
     successTitle: "Tack för din förfrågan",
@@ -71,6 +74,9 @@ export const B2B_INQUIRY_COPY = {
     messagePlaceholder: "Any requests or questions (optional)",
     submit: "Send inquiry",
     submitting: "Sending…",
+    loginCta: "Log in to send an inquiry",
+    loginRequiredIntro:
+      "You can browse the catalogue and prices without an account. Sending an inquiry requires sign-in — afterwards you will return here.",
     emptyCart: "Your cart is empty. Add warehouse wines before sending an inquiry.",
     backToShop: "Back to the catalogue",
     successTitle: "Thank you for your inquiry",
@@ -126,6 +132,8 @@ export function listB2bInquiryCustomerFacingSvTexts(): string[] {
     c.messagePlaceholder,
     c.submit,
     c.submitting,
+    c.loginCta,
+    c.loginRequiredIntro,
     c.emptyCart,
     c.backToShop,
     c.successTitle,

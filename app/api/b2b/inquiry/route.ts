@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { getCurrentUser } from "@/lib/supabase-server";
 import {
   b2bInquiryLimiter,
   getClientIdentifier,
@@ -38,6 +39,15 @@ export async function POST(req: Request) {
       return NextResponse.json(
         { error: "inquiry_mode_disabled", code: "inquiry_mode_disabled" },
         { status: 403 },
+      );
+    }
+
+    // Catalog/browse stays public; submitting an inquiry requires an existing session.
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json(
+        { error: "unauthorized", code: "unauthorized" },
+        { status: 401 },
       );
     }
 
