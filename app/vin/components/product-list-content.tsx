@@ -331,10 +331,12 @@ export function ProductListContent({
       ) : null}
 
       {filteredProducts.length > 0 ? (
-        <div className="flex w-full flex-col gap-3">
+        // Mobile: 16px side inset for every grid row (title block above already
+        // uses p-sides; ProductList sat full-bleed outside that padding).
+        <div className="flex w-full flex-col gap-3 px-sides md:px-0">
           <MinSixBottlesHint
             locale={locale}
-            className="px-sides text-sm text-muted-foreground md:px-0"
+            className="text-sm text-muted-foreground"
           />
           {staticGrid ? (
             <ProductListHydrationGate staticGrid={staticGrid}>

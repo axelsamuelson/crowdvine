@@ -114,7 +114,7 @@ export function ProductPdpLayout({
 
   return (
     <CartSourceProviderConditional>
-      <PageLayoutServer className="bg-muted" noPadding>
+      <PageLayoutServer className="bg-background" noPadding>
         {devPreview}
 
         <div className="flex min-h-max flex-col md:grid md:grid-cols-12 md:gap-sides">
@@ -132,6 +132,7 @@ export function ProductPdpLayout({
                 title={product.title}
                 producerName={product.producerName}
                 productType={product.productType}
+                className="md:pt-4"
               />
 
               <PalletZoneStatusProvider

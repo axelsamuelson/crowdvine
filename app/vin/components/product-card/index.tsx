@@ -589,7 +589,7 @@ export const ProductCard = memo(
       {DEBUG_SCROLL && <ScrollProbe />}
       <article
         className={cn(
-          "relative flex h-full w-full min-w-0 flex-col overflow-visible",
+          "relative w-full min-w-0 overflow-visible",
           showTopTabs && "mt-5",
         )}
       >
@@ -604,7 +604,7 @@ export const ProductCard = memo(
 
         <HoverPrefetchLink
           href={productHref}
-          className="group flex h-full w-full min-w-0 flex-col focus-visible:outline-none"
+          className="group flex w-full min-w-0 flex-col focus-visible:outline-none"
           style={{ touchAction: "pan-y", overscrollBehavior: "auto" }}
           aria-label={t("shop.viewProductAria", {
             title: product.title,
@@ -651,8 +651,9 @@ export const ProductCard = memo(
             />
           </div>
 
-          <div className="flex min-h-0 min-w-0 flex-1 flex-col px-3 pt-2.5">
-            <p className="line-clamp-2 min-h-[2.5rem] text-sm font-medium leading-snug text-foreground">
+          {/* Tight stack: name → 2px → producer → 6px → price */}
+          <div className="min-w-0 px-3 pt-2.5">
+            <p className="line-clamp-2 text-sm font-medium leading-snug text-foreground">
               {product.title}
             </p>
             {producerRegion ? (
@@ -665,7 +666,7 @@ export const ProductCard = memo(
               </p>
             )}
             <BoostBadgeSlot active={product.producerBoostActive === true} />
-            <div className="mt-auto pt-2">
+            <div className="mt-1.5">
               <PriceViewTracker
                 productId={product.id}
                 productName={product.title}

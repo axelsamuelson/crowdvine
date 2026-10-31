@@ -35,10 +35,10 @@ function ProductListStaticCard({
   const viewWine = translate(locale, "shop.viewWine");
 
   return (
-    <article className="flex h-full w-full min-w-0 flex-col">
+    <article className="w-full min-w-0">
       <Link
         href={href}
-        className="group flex h-full w-full min-w-0 flex-col focus-visible:outline-none"
+        className="group flex w-full min-w-0 flex-col focus-visible:outline-none"
         prefetch={false}
       >
         <div className="relative aspect-[4/5] w-full overflow-hidden">
@@ -49,8 +49,9 @@ function ProductListStaticCard({
           />
         </div>
 
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col px-3 pt-2.5">
-          <p className="line-clamp-2 min-h-[2.5rem] text-sm font-medium leading-snug text-foreground">
+        {/* Tight stack: name → 2px → producer → 6px → price */}
+        <div className="min-w-0 px-3 pt-2.5">
+          <p className="line-clamp-2 text-sm font-medium leading-snug text-foreground">
             {product.title}
           </p>
           {meta ? (
@@ -62,7 +63,7 @@ function ProductListStaticCard({
               &nbsp;
             </p>
           )}
-          <div className="mt-auto pt-2">
+          <div className="mt-1.5">
             <ServerListPrice
               product={product}
               locale={locale}
