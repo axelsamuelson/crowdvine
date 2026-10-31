@@ -447,10 +447,11 @@ export function ExitFeedbackPrompt() {
                 ? () => void finishFeedback(false)
                 : closeAll
             }
-            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="inline-flex h-11 w-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-md border border-border bg-background text-foreground shadow-sm transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             aria-label="Stäng"
+            data-exit-prompt-close=""
           >
-            <X className="h-5 w-5" aria-hidden />
+            <X className="h-5 w-5" strokeWidth={2.25} aria-hidden />
           </button>
         </div>
 

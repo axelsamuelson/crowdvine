@@ -1,5 +1,6 @@
 -- Exit discount: configurable wine-box exclusions (Meigoon Box until repriced).
 -- Clear exclude_from_exit_discount (or remove env IDs) when the box is repriced.
+-- Idempotent: safe to re-run (IF NOT EXISTS / IS DISTINCT FROM).
 
 ALTER TABLE public.wine_boxes
   ADD COLUMN IF NOT EXISTS exclude_from_exit_discount boolean NOT NULL DEFAULT false;

@@ -1,5 +1,6 @@
 -- Persist exit-feedback completion on the user profile so answered users
 -- never see the popup again across devices/browsers when logged in.
+-- Idempotent: safe to re-run (IF NOT EXISTS).
 
 ALTER TABLE public.profiles
   ADD COLUMN IF NOT EXISTS exit_feedback_answered_at timestamptz;

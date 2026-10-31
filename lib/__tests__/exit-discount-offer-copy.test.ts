@@ -27,7 +27,7 @@ describe("exit discount offer copy", () => {
       "Gäller vinet, inte frakten.",
       "Kan inte kombineras med PACT Points.",
       "Gäller inte Meigoon Box.",
-      `Gäller i ${days} dagar. Koden kommer till din mejl.`,
+      `Gäller i ${days} dagar. Vi mejlar koden till dig.`,
     ]);
     expect(EXIT_DISCOUNT_OFFER_CTA).toBe("Skicka rabattkod");
   });

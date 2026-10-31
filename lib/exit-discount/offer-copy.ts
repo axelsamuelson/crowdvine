@@ -21,7 +21,7 @@ export function exitDiscountOfferTerms(
     "Gäller vinet, inte frakten.",
     "Kan inte kombineras med PACT Points.",
     "Gäller inte Meigoon Box.",
-    `Gäller i ${validityDays} dagar. Koden kommer till din mejl.`,
+    `Gäller i ${validityDays} dagar. Vi mejlar koden till dig.`,
   ];
 }
 
