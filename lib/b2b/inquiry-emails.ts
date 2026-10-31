@@ -4,6 +4,7 @@ import {
   DIRTYWINE_BRAND_NAME,
   DIRTYWINE_EMAIL_LOGO_URL,
   DIRTYWINE_INQUIRY_EMAIL_HEADLINE,
+  DIRTYWINE_INQUIRY_EMAIL_SIGNOFF,
   DIRTYWINE_INQUIRY_FOLLOW_UP,
   DIRTYWINE_PRIVACY_POLICY_LABEL,
   DIRTYWINE_PRIVACY_POLICY_URL,
@@ -124,8 +125,7 @@ export function buildB2bInquiryCustomerEmail(opts: {
     "",
     DIRTYWINE_INQUIRY_FOLLOW_UP,
     "",
-    `Hälsningar`,
-    DIRTYWINE_BRAND_NAME,
+    DIRTYWINE_INQUIRY_EMAIL_SIGNOFF,
     "",
     getDirtywineInquiryEmailFooterPlain(),
     DIRTYWINE_PRIVACY_POLICY_URL,
@@ -168,7 +168,7 @@ export function buildB2bInquiryCustomerEmail(opts: {
     ${totalRowHtml}
   </table>
   <p style="margin:0 0 20px;">${escapeHtml(DIRTYWINE_INQUIRY_FOLLOW_UP)}</p>
-  <p style="margin:0;">Hälsningar<br/>${escapeHtml(DIRTYWINE_BRAND_NAME)}</p>
+  <p style="margin:0;">${escapeHtml(DIRTYWINE_INQUIRY_EMAIL_SIGNOFF)}</p>
   ${footerHtml()}
 </div>`.trim();
 
