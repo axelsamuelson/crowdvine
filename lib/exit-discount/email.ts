@@ -1,5 +1,9 @@
 import { sendEmail } from "@/lib/email";
-import { EXIT_DISCOUNT_PERCENT } from "@/lib/exit-discount/config";
+import {
+  EXIT_DISCOUNT_PERCENT,
+  exitDiscountEmailMode,
+} from "@/lib/exit-discount/config";
+import { exitDiscountEmailBodyLines } from "@/lib/exit-discount/offer-copy";
 import { buildNewsletterUnsubscribeUrl } from "@/lib/newsletter/tokens";
 
 const FROM_CUSTOMER = "PACT <customer@pactwines.com>";
@@ -21,15 +25,11 @@ export async function sendExitDiscountEmail(opts: {
     : null;
 
   const subject = `Din ${EXIT_DISCOUNT_PERCENT} % rabattkod från PACT`;
-  const textLines = [
-    `Hej!`,
-    ``,
-    `Här är din personliga rabattkod: ${opts.code}`,
-    `Den ger ${EXIT_DISCOUNT_PERCENT} % på din första beställning och gäller till ${expiresLabel}.`,
-    `Koden kan användas en gång.`,
-    ``,
-    `Använd den i kassan på pactwines.com.`,
-  ];
+  const textLines = exitDiscountEmailBodyLines({
+    code: opts.code,
+    percent: EXIT_DISCOUNT_PERCENT,
+    expiresLabel,
+  });
   if (unsubUrl) {
     textLines.push(
       ``,
@@ -44,8 +44,10 @@ export async function sendExitDiscountEmail(opts: {
       <p>Här är din personliga rabattkod:</p>
       <p style="font-size: 1.25rem; font-weight: 700; letter-spacing: 0.04em;">${opts.code}</p>
       <p>
-        Den ger <strong>${EXIT_DISCOUNT_PERCENT}&nbsp;%</strong> på din första beställning
-        och gäller till <strong>${expiresLabel}</strong>. Koden kan användas en gång.
+        Den ger <strong>${EXIT_DISCOUNT_PERCENT}&nbsp;%</strong> på vinet i din första reservation
+        (inte på frakten) och gäller till <strong>${expiresLabel}</strong>.
+        Koden kan användas en gång och kan inte kombineras med PACT Points.
+        Den gäller inte Meigoon Box.
       </p>
       <p>Använd den i kassan på <a href="https://pactwines.com">pactwines.com</a>.</p>
       ${
@@ -61,6 +63,18 @@ export async function sendExitDiscountEmail(opts: {
       </p>
     </div>
   `.trim();
+
+  const mode = exitDiscountEmailMode();
+  if (mode === "off" || mode === "log") {
+    console.info("[exit-discount] email suppressed", {
+      mode,
+      to: opts.to,
+      subject,
+      code: opts.code,
+      expires_at: opts.expiresAt.toISOString(),
+    });
+    return;
+  }
 
   await sendEmail({
     to: opts.to,

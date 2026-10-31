@@ -90,6 +90,7 @@ import {
   type FirstTouch,
 } from "@/lib/analytics/visitor-identity";
 import { validatePromoDiscountCode } from "@/lib/promo-discount-validate";
+import { markExitDiscountRedeemed } from "@/lib/exit-discount/validate";
 import type { PromoDiscountCartItem } from "@/lib/discount-codes";
 import {
   amountsWithinTolerance,
@@ -183,6 +184,7 @@ export async function POST(request: Request) {
   let promoDiscountAmountSek = 0;
   let promoCodeApplied: string | null = null;
   let promoIsTestkop = false;
+  let exitDiscountId: string | null = null;
 
   try {
     console.log("=== CHECKOUT CONFIRM START ===");
@@ -1098,6 +1100,7 @@ export async function POST(request: Request) {
     const subtotalSek = parseFloat(String(cart.cost.totalAmount.amount)) || 0;
 
     // Admin promo codes (promo_discount_codes) — validate after shipping is known.
+    // Exit codes: wine-only base (no shipping), stacking/email/first-order via exitContext.
     if (promo_code && user?.id) {
       const promoItems: PromoDiscountCartItem[] = (cart.lines || []).map(
         (line) => {
@@ -1112,13 +1115,22 @@ export async function POST(request: Request) {
           };
         },
       );
+      // Non-exit promos may still use order+shipping; exit path recomputes wine-only.
       const promoCartValue = Math.max(0, subtotalSek + shippingSek);
       const promoResult = await validatePromoDiscountCode({
         sb: sbAdmin,
         userId: user.id,
+        userEmail: user.email ?? address.email ?? null,
         code: promo_code,
         cart_value_sek: promoCartValue,
         items: promoItems,
+        exitContext: {
+          cart,
+          voucherSek: voucherSekOff,
+          pactPointsRedeem: pact_points_redeem,
+          palletId,
+          fulfillmentChannel: null,
+        },
       });
       if (!promoResult.ok) {
         return NextResponse.json({ error: promoResult.error }, { status: 400 });
@@ -1127,9 +1139,11 @@ export async function POST(request: Request) {
       promoDiscountAmountSek = promoResult.discount_amount_sek;
       promoCodeApplied = promoResult.code;
       promoIsTestkop = promoResult.purpose === "testkop";
+      exitDiscountId = promoResult.exit_discount_id ?? null;
       console.log("[Checkout API] Promo applied:", {
         code: promoCodeApplied,
         purpose: promoResult.purpose,
+        is_exit_discount: promoResult.is_exit_discount === true,
         discount_amount_sek: promoDiscountAmountSek,
       });
     }
@@ -1789,6 +1803,31 @@ export async function POST(request: Request) {
           { error: "Kunde inte registrera rabattkoden" },
           { status: 500 },
         );
+      }
+
+      if (exitDiscountId) {
+        const redeemed = await markExitDiscountRedeemed({
+          sb: sbAdmin,
+          exitDiscountId,
+        });
+        if (!redeemed.ok) {
+          console.error(
+            "[Checkout API] exit discount redeemed_at failed:",
+            redeemed.error,
+          );
+          if (b2cProducerCheckout) {
+            await rollbackCheckoutGroup();
+          } else {
+            await sbAdmin
+              .from("order_reservations")
+              .delete()
+              .eq("id", reservation.id);
+          }
+          return NextResponse.json(
+            { error: "Kunde inte registrera rabattkoden" },
+            { status: 500 },
+          );
+        }
       }
 
       // Testköp: exclude user from "clean" metrics + tag future/past user-bound events.

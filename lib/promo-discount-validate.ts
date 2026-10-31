@@ -5,6 +5,11 @@ import {
   type PromoDiscountType,
 } from "@/lib/discount-codes";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  applyExitDiscountRules,
+  lookupExitDiscountLead,
+  type ExitDiscountCheckoutContext,
+} from "@/lib/exit-discount/validate";
 
 export type PromoDiscountPurpose = "normal" | "testkop";
 
@@ -18,6 +23,9 @@ export type PromoValidationSuccess = {
   purpose: PromoDiscountPurpose;
   discount_amount_sek: number;
   final_total_sek: number;
+  /** Present when the code is an exit-popup lead. */
+  is_exit_discount?: boolean;
+  exit_discount_id?: string;
 };
 
 export type PromoValidationFailure = {
@@ -27,6 +35,7 @@ export type PromoValidationFailure = {
 
 /**
  * Server-side promo validation (same rules as POST /api/discount/validate).
+ * Exit codes get extra rules (email bind, wine-only base, stacking, first order).
  */
 export async function validatePromoDiscountCode(params: {
   sb: SupabaseClient;
@@ -34,6 +43,8 @@ export async function validatePromoDiscountCode(params: {
   code: string;
   cart_value_sek: number;
   items: PromoDiscountCartItem[];
+  userEmail?: string | null;
+  exitContext?: ExitDiscountCheckoutContext | null;
 }): Promise<PromoValidationSuccess | PromoValidationFailure> {
   const normalizedCode = params.code.trim().toUpperCase();
   if (!normalizedCode) {
@@ -109,6 +120,49 @@ export async function validatePromoDiscountCode(params: {
   const purpose: PromoDiscountPurpose =
     row.purpose === "testkop" ? "testkop" : "normal";
   const value = Number(row.value);
+
+  const exitLead = await lookupExitDiscountLead({
+    sb: params.sb,
+    promoDiscountCodeId: row.id,
+    code: normalizedCode,
+  });
+
+  if (exitLead) {
+    const exitResult = await applyExitDiscountRules({
+      sb: params.sb,
+      userId: params.userId,
+      userEmail: params.userEmail,
+      lead: exitLead,
+      promo: { type, value },
+      items: params.items,
+      context: params.exitContext ?? null,
+    });
+    if (!exitResult.ok) {
+      return { ok: false, error: exitResult.error };
+    }
+
+    // final_total uses full cart+shipping from caller for display continuity;
+    // discount itself is wine-only (eligible lines).
+    const final_total_sek = Math.max(
+      0,
+      params.cart_value_sek - exitResult.discountAmountSek,
+    );
+
+    return {
+      ok: true,
+      discount_code_id: row.id,
+      code: String(row.code).toUpperCase(),
+      type,
+      value,
+      applies_to: "item",
+      purpose,
+      discount_amount_sek: exitResult.discountAmountSek,
+      final_total_sek,
+      is_exit_discount: true,
+      exit_discount_id: exitResult.exitDiscountId,
+    };
+  }
+
   const discount_amount_sek = calculatePromoDiscountAmountSek({
     type,
     value,
