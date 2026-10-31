@@ -19,5 +19,7 @@ export const EXIT_DISCOUNT_ERRORS = {
 } as const;
 
 export const EXIT_FEEDBACK_THANKS_MESSAGE = "Tack för ditt svar!";
+/** Body under the thanks heading (heading stays EXIT_FEEDBACK_THANKS_MESSAGE only). */
+export const EXIT_FEEDBACK_THANKS_BODY = "Det hjälper oss att bli bättre.";
 /** Auto-close / advance delay after the thanks phase. */
 export const EXIT_FEEDBACK_THANKS_MS = 2500;

@@ -45,6 +45,7 @@ import {
   isExitDiscountEnabled,
 } from "@/lib/exit-discount/config";
 import {
+  EXIT_FEEDBACK_THANKS_BODY,
   EXIT_FEEDBACK_THANKS_MESSAGE,
   EXIT_FEEDBACK_THANKS_MS,
 } from "@/lib/exit-discount/messages";
@@ -79,7 +80,9 @@ function markExitDiscountShown(): void {
   }
 }
 
-function stepLabel(phase: Phase): string | null {
+/** Step indicator only when the exit-discount flag is on (2-step flow). */
+function stepLabel(phase: Phase, discountEnabled: boolean): string | null {
+  if (!discountEnabled) return null;
   if (phase === "feedback" || phase === "thanks") return "1/2";
   if (phase === "discount") return "2/2";
   return null;
@@ -410,7 +413,7 @@ export function ExitFeedbackPrompt() {
           ? EXIT_DISCOUNT_OFFER_HEADING
           : EXIT_DISCOUNT_ACCOUNT_HEADING;
 
-  const steps = stepLabel(phase);
+  const steps = stepLabel(phase, discountEnabled);
 
   return (
     <div
@@ -516,7 +519,7 @@ export function ExitFeedbackPrompt() {
 
           {phase === "thanks" ? (
             <p className="pb-2 text-sm leading-snug text-muted-foreground">
-              {EXIT_FEEDBACK_THANKS_MESSAGE}
+              {EXIT_FEEDBACK_THANKS_BODY}
             </p>
           ) : null}
 
