@@ -52,9 +52,15 @@ Notes:
 
 | File | What |
 | --- | --- |
-| `customer-confirmation.html` / `.png` | Kundbekräftelse (chrome shows From/Subject) |
-| `internal-notify.html` / `.png` | Intern notis till `B2B_INQUIRY_NOTIFY_EMAIL` |
+| `customer-confirmation.html` | Kundbekräftelse HTML (chrome shows From/Subject) |
+| `customer-confirmation-desktop.png` | Kundmejl desktop (1280) |
+| `customer-confirmation-mobile.png` | Kundmejl mobil (390) |
+| `internal-notify.html` | Intern notis HTML |
+| `internal-notify-desktop.png` | Notis desktop (1280) |
+| `internal-notify-mobile.png` | Notis mobil (390) |
 | `*.txt` | Plain-text bodies |
+
+Raw GitHub URLs use the commit SHA that contains these files (update after push if SHA changes).
 
 ## Kundsynliga texter (SV, ordagrant)
 
