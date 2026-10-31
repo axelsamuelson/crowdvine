@@ -19,14 +19,20 @@ async function ShopRootJsonLd({ locale }: { locale: "sv" | "en" }) {
   const config = getPublicSiteConfig();
   // Anonymous B2C catalog for ISR JSON-LD — no headers()/cookies().
   const { sortKey, reverse } = mapSortKeys(DEFAULT_B2C_SHOP_SORT, "product");
-  const rawProducts = await getCachedShopProducts({
-    sortKey,
-    reverse,
-    isB2BSite: false,
-    displayCurrencyCode: "SEK",
-    sekToDisplayRate: 1,
-    locale,
-  });
+  let rawProducts: Awaited<ReturnType<typeof getCachedShopProducts>> = [];
+  try {
+    rawProducts = await getCachedShopProducts({
+      sortKey,
+      reverse,
+      isB2BSite: false,
+      displayCurrencyCode: "SEK",
+      sekToDisplayRate: 1,
+      locale,
+    });
+  } catch (error) {
+    // CI builds use placeholder Supabase; keep force-static prerender green.
+    console.warn("ShopRootJsonLd: failed to fetch products:", error);
+  }
   const mapped = mapProductDataToShopProducts(rawProducts);
   const shopPath = locale === "sv" ? "/vin" : "/wine";
   const productPrefix = locale === "sv" ? "/produkt" : "/product";
