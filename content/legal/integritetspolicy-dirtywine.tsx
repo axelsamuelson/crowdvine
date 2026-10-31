@@ -28,6 +28,11 @@ export const DIRTYWINE_PRIVACY_PROCESSORS = [
     purpose: "Databas, autentisering och lagring av användarhändelser",
     country: "Sverige (eu-north-1)",
   },
+  {
+    service: "Resend",
+    purpose: "Utskick av bekräftelse- och kontomejl",
+    country: "USA",
+  },
 ] as const;
 
 export default function DirtyWineIntegritetspolicyContent({
@@ -97,6 +102,11 @@ export default function DirtyWineIntegritetspolicyContent({
         </tbody>
       </LegalTable>
       <LegalP>Uppgifterna säljs aldrig.</LegalP>
+      <LegalP>
+        {
+          "Vid överföring till USA används EU–US Data Privacy Framework eller EU:s standardavtalsklausuler, beroende på leverantör."
+        }
+      </LegalP>
 
       <LegalH2>Dina rättigheter</LegalH2>
       <LegalP>

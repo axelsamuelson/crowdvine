@@ -24,12 +24,15 @@ Leverantörer som driver tjänsten för vår räkning (belagda i koden):
 
 | Tjänst | Syfte | Land | Källa |
 | --- | --- | --- | --- |
-| Vercel | Hosting och webbstatistik | Sverige (arn1) / USA | `vercel.json` `regions: ["arn1"]`; `package.json` `@vercel/analytics`; `components/analytics/root-analytics-deferred.tsx` i `app/layout.tsx` |
+| Vercel | Hosting och webbstatistik | Sverige (arn1) / USA | `vercel.json` `regions: ["arn1"]`; `package.json` `@vercel/analytics`; `components/analytics/root-analytics-deferred.tsx` i `app/layout.tsx`. Vercel DPA: primär behandling i USA. |
 | Supabase | Databas, autentisering och lagring av användarhändelser | Sverige (eu-north-1) | `package.json` `@supabase/*`; `NEXT_PUBLIC_SUPABASE_URL`; projektregion `eu-north-1`; `lib/analytics/event-tracker.ts` → `user_events` |
+| Resend | Utskick av bekräftelse- och kontomejl | USA | `package.json` `resend`; `RESEND_API_KEY` / `lib/email.ts`; Dirty Wine inquiry-bekräftelse via Resend i PR #116 (`lib/b2b/inquiry-emails.ts` → `sendEmail`). Resend lagrar kunddata i USA. |
 
 Uppgifterna säljs aldrig.
 
-**Ej medtagna (saknar Dirty Wine-specifik beläggning för kontaktperson-PII):** Resend (`RESEND_API_KEY` / `lib/email.ts`) används i den delade plattformen för PACT-transaktionsmail; Dirty Wine-lösenordsåterställning går via Supabase Auth (`app/api/auth/forgot-password/route.ts`). Stripe/Budbee är PACT B2C-flöden.
+Vid överföring till USA används EU–US Data Privacy Framework eller EU:s standardavtalsklausuler, beroende på leverantör.
+
+**Ej medtagna:** Stripe/Budbee är PACT B2C-flöden.
 
 ## Dina rättigheter
 
