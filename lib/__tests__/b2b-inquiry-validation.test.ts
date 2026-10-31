@@ -110,7 +110,10 @@ describe("b2b inquiry copy for legal review", () => {
     expect(texts).toContain("Skicka förfrågan");
     expect(texts).toContain("Logga in för att skicka förfrågan");
     expect(texts).toContain(
-      "Tack för din förfrågan. Vi återkommer med bekräftelse och faktura.",
+      "Logga in för att skicka förfrågan. Du kommer tillbaka hit med din lista kvar.",
+    );
+    expect(texts).toContain(
+      "Vi återkommer med bekräftelse och faktura så snart vi kan.",
     );
     expect(texts.length).toBeGreaterThan(10);
   });

@@ -225,8 +225,19 @@ export function B2bInquiryClient({
     );
   }
 
+  const cartTotals = useMemo(() => {
+    let bottles = 0;
+    let exclSum = 0;
+    for (const line of warehouseLines) {
+      bottles += line.quantity;
+      const lineTotal = parseFloat(line.cost.totalAmount.amount || "0");
+      exclSum += priceExclVat(lineTotal);
+    }
+    return { bottles, exclSum };
+  }, [warehouseLines]);
+
   const cartSummary = (
-    <section className="space-y-3">
+    <section className="space-y-3 font-sans">
       <h2 className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
         {copy.cartSummary}
       </h2>
@@ -244,30 +255,38 @@ export function B2bInquiryClient({
                 {line.quantity}
               </span>
               <span className="tabular-nums text-muted-foreground">
-                {formatCartLinePrice(excl, context)}{" "}
-                <span className="text-[10px]">{copy.exclVatHint}</span>
+                {formatCartLinePrice(excl, context)}
               </span>
             </li>
           );
         })}
       </ul>
+      <p className="text-xs text-muted-foreground">{copy.exclVatHint}</p>
+      <div className="flex justify-between gap-4 text-sm font-medium">
+        <span>
+          {copy.totalExclVatLabel}: {cartTotals.bottles} {copy.totalBottlesLabel}
+        </span>
+        <span className="tabular-nums">
+          {formatCartLinePrice(cartTotals.exclSum, context)}
+        </span>
+      </div>
     </section>
   );
 
   if (!isAuthenticated) {
     return (
-      <div className="mx-auto max-w-2xl px-4 py-10 space-y-8">
+      <div className="mx-auto max-w-2xl px-4 py-10 space-y-8 font-sans">
         <div className="space-y-2">
-          <h1 className="text-2xl font-semibold text-foreground">
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">
             {copy.pageTitle}
           </h1>
           <p className="text-muted-foreground">{copy.loginRequiredIntro}</p>
         </div>
         {cartSummary}
-        <Button asChild className="w-full h-12">
+        <Button asChild className="w-full h-12 font-sans">
           <Link href={loginHref}>{copy.loginCta}</Link>
         </Button>
-        <Button asChild variant="outline" className="w-full">
+        <Button asChild variant="outline" className="w-full font-sans">
           <Link href={paths.shop}>{copy.backToShop}</Link>
         </Button>
       </div>
@@ -275,9 +294,9 @@ export function B2bInquiryClient({
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-10 space-y-8">
+    <div className="mx-auto max-w-2xl px-4 py-10 space-y-8 font-sans">
       <div className="space-y-2">
-        <h1 className="text-2xl font-semibold text-foreground">
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
           {copy.pageTitle}
         </h1>
         <p className="text-muted-foreground">{copy.pageIntro}</p>

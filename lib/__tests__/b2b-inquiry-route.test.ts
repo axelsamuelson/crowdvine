@@ -133,7 +133,13 @@ describe("POST /api/b2b/inquiry", () => {
     expect(json.success).toBe(true);
     expect(json.id).toBe("inq-test-id");
     expect(sendB2bInquiryCustomerEmail).toHaveBeenCalledWith(
-      expect.objectContaining({ to: "ada+inquiry-test@example.com" }),
+      expect.objectContaining({
+        to: "ada+inquiry-test@example.com",
+        value: expect.objectContaining({
+          companyName: "Test AB",
+          email: "ada+inquiry-test@example.com",
+        }),
+      }),
     );
     expect(sendB2bInquiryInternalNotify).toHaveBeenCalled();
   });

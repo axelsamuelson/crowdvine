@@ -1,15 +1,17 @@
+import { DIRTYWINE_BRAND_NAME } from "@/lib/b2b/brand";
+
 /**
  * Dirtywine / B2B transactional From header.
  *
  * Resend probe (2026-10-31): `dirtywine.se` is NOT a verified sending domain
  * (`validation_error: The dirtywine.se domain is not verified`).
- * `Dirtywine <noreply@pactwines.com>` succeeds on the verified pactwines.com domain.
+ * `${DIRTYWINE_BRAND_NAME} <noreply@pactwines.com>` succeeds on verified pactwines.com.
  *
  * Override with `DIRTYWINE_RESEND_FROM` (full RFC "Name <email>" form) once
- * dirtywine.se is verified in Resend — e.g. `Dirtywine <noreply@dirtywine.se>`.
+ * dirtywine.se is verified in Resend.
  */
 export const DIRTYWINE_RESEND_FROM_DEFAULT =
-  "Dirtywine <noreply@pactwines.com>";
+  `${DIRTYWINE_BRAND_NAME} <noreply@pactwines.com>`;
 
 export function getDirtywineResendFrom(): string {
   const fromEnv = process.env.DIRTYWINE_RESEND_FROM?.trim();

@@ -4,6 +4,12 @@
  * Keep in sync with messages/sv.json + messages/en.json keys under b2bInquiry.*.
  */
 
+import {
+  DIRTYWINE_BRAND_NAME,
+  DIRTYWINE_INQUIRY_EMAIL_HEADLINE,
+  DIRTYWINE_INQUIRY_FOLLOW_UP,
+} from "@/lib/b2b/brand";
+
 export type B2bInquiryCopyLocale = "sv" | "en";
 
 export const B2B_INQUIRY_COPY = {
@@ -26,12 +32,12 @@ export const B2B_INQUIRY_COPY = {
     submitting: "Skickar…",
     loginCta: "Logga in för att skicka förfrågan",
     loginRequiredIntro:
-      "Du kan bläddra i sortiment och priser utan konto. För att skicka en förfrågan behöver du logga in — efter inloggning kommer du tillbaka hit.",
-    emptyCart: "Varukorgen är tom. Lägg till viner från lagret innan du skickar en förfrågan.",
+      "Logga in för att skicka förfrågan. Du kommer tillbaka hit med din lista kvar.",
+    emptyCart:
+      "Varukorgen är tom. Lägg till viner från lagret innan du skickar en förfrågan.",
     backToShop: "Tillbaka till sortimentet",
     successTitle: "Tack för din förfrågan",
-    successBody:
-      "Tack för din förfrågan. Vi återkommer med bekräftelse och faktura.",
+    successBody: DIRTYWINE_INQUIRY_FOLLOW_UP,
     privacyNote:
       "När du skickar formuläret behandlar vi dina uppgifter för att hantera förfrågan. Läs mer i vår",
     privacyLinkLabel: "integritetspolicy",
@@ -50,12 +56,11 @@ export const B2B_INQUIRY_COPY = {
     genericError: "Kunde inte skicka förfrågan. Försök igen.",
     cartSummary: "Din förfrågan",
     exclVatHint: "Priser exkl. moms",
-    emailSubjectCustomer: "Tack för din förfrågan – Dirtywine",
-    emailBodyCustomer:
-      "Tack för din förfrågan. Vi återkommer med bekräftelse och faktura.",
-    emailPrivacyLine:
-      "Vi behandlar dina uppgifter för att hantera förfrågan. Integritetspolicy: https://dirtywine.se/integritetspolicy",
-    emailSignOff: "Hälsningar\nDirtywine / EURPACT OÜ",
+    totalBottlesLabel: "flaskor",
+    totalExclVatLabel: "Totalt",
+    emailSubjectCustomer: `${DIRTYWINE_INQUIRY_EMAIL_HEADLINE} – ${DIRTYWINE_BRAND_NAME}`,
+    emailBodyCustomer: DIRTYWINE_INQUIRY_FOLLOW_UP,
+    emailSignOff: `Hälsningar\n${DIRTYWINE_BRAND_NAME}`,
   },
   en: {
     cartCta: "Send inquiry",
@@ -76,12 +81,13 @@ export const B2B_INQUIRY_COPY = {
     submitting: "Sending…",
     loginCta: "Log in to send an inquiry",
     loginRequiredIntro:
-      "You can browse the catalogue and prices without an account. Sending an inquiry requires sign-in — afterwards you will return here.",
-    emptyCart: "Your cart is empty. Add warehouse wines before sending an inquiry.",
+      "Log in to send an inquiry. You will return here with your list intact.",
+    emptyCart:
+      "Your cart is empty. Add warehouse wines before sending an inquiry.",
     backToShop: "Back to the catalogue",
     successTitle: "Thank you for your inquiry",
     successBody:
-      "Thank you for your inquiry. We will get back to you with confirmation and an invoice.",
+      "We will get back to you with confirmation and an invoice as soon as we can.",
     privacyNote:
       "When you submit this form we process your details to handle the inquiry. Read more in our",
     privacyLinkLabel: "privacy policy",
@@ -100,12 +106,12 @@ export const B2B_INQUIRY_COPY = {
     genericError: "Could not send the inquiry. Please try again.",
     cartSummary: "Your inquiry",
     exclVatHint: "Prices excl. VAT",
-    emailSubjectCustomer: "Thank you for your inquiry – Dirtywine",
+    totalBottlesLabel: "bottles",
+    totalExclVatLabel: "Total",
+    emailSubjectCustomer: `${DIRTYWINE_INQUIRY_EMAIL_HEADLINE} – ${DIRTYWINE_BRAND_NAME}`,
     emailBodyCustomer:
-      "Thank you for your inquiry. We will get back to you with confirmation and an invoice.",
-    emailPrivacyLine:
-      "We process your details to handle the inquiry. Privacy policy: https://dirtywine.se/integritetspolicy",
-    emailSignOff: "Best regards\nDirtywine / EURPACT OÜ",
+      "We will get back to you with confirmation and an invoice as soon as we can.",
+    emailSignOff: `Best regards\n${DIRTYWINE_BRAND_NAME}`,
   },
 } as const;
 
@@ -151,9 +157,10 @@ export function listB2bInquiryCustomerFacingSvTexts(): string[] {
     c.genericError,
     c.cartSummary,
     c.exclVatHint,
+    c.totalBottlesLabel,
+    c.totalExclVatLabel,
     c.emailSubjectCustomer,
     c.emailBodyCustomer,
-    c.emailPrivacyLine,
     c.emailSignOff,
   ];
 }

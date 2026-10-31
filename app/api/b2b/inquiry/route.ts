@@ -161,7 +161,6 @@ export async function POST(req: Request) {
       );
     }
 
-    const locale = body.locale === "en" ? "en" : "sv";
     const notifyOverride =
       typeof body.notifyEmailOverride === "string" &&
       process.env.VERCEL_ENV !== "production"
@@ -169,7 +168,7 @@ export async function POST(req: Request) {
         : undefined;
 
     try {
-      await sendB2bInquiryCustomerEmail({ to: value.email, locale });
+      await sendB2bInquiryCustomerEmail({ to: value.email, value });
     } catch (e) {
       console.error("[b2b/inquiry] customer email failed:", e);
     }
