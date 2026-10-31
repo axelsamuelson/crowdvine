@@ -1,5 +1,6 @@
 import {
   LegalH2,
+  LegalLink,
   LegalList,
   LegalP,
   LegalProse,
@@ -35,6 +36,12 @@ export const DIRTYWINE_PRIVACY_PROCESSORS = [
   },
 ] as const;
 
+function ContactEmail() {
+  return (
+    <LegalLink href="mailto:axel@dirtywine.se">axel@dirtywine.se</LegalLink>
+  );
+}
+
 export default function DirtyWineIntegritetspolicyContent({
   legalAddress,
 }: DirtyWinePrivacyProps) {
@@ -42,10 +49,10 @@ export default function DirtyWineIntegritetspolicyContent({
 
   return (
     <LegalProse>
-      <LegalH2>Integritetspolicy för Dirty Wine</LegalH2>
       <LegalP>
-        Personuppgiftsansvarig är Axel Samuelson (enskild firma), Stockholm
-        {address ? `, ${address}` : ""}. Kontakt: axel@dirtywine.se.
+        Den här policyn gäller dirtywine.se. Personuppgiftsansvarig är Axel
+        Samuelson (enskild firma), Stockholm
+        {address ? `, ${address}` : ""}. Kontakt: <ContactEmail />.
       </LegalP>
 
       <LegalH2>Vilka uppgifter vi behandlar</LegalH2>
@@ -80,10 +87,20 @@ export default function DirtyWineIntegritetspolicyContent({
       </LegalP>
 
       <LegalH2>Mottagare</LegalH2>
-      <LegalP>
-        Leverantörer som driver tjänsten för vår räkning:
-      </LegalP>
-      <LegalTable>
+      <LegalP>Leverantörer som driver tjänsten för vår räkning:</LegalP>
+
+      {/* <640px: stacked blocks; ≥sm (640px): table */}
+      <ul className="sm:hidden space-y-4 list-none pl-0">
+        {DIRTYWINE_PRIVACY_PROCESSORS.map((row) => (
+          <li key={row.service} className="border-b border-border pb-4">
+            <p className="font-medium text-foreground">{row.service}</p>
+            <p className="mt-0.5">{row.purpose}</p>
+            <p className="mt-0.5 text-muted-foreground/80">{row.country}</p>
+          </li>
+        ))}
+      </ul>
+
+      <LegalTable className="hidden sm:block">
         <thead>
           <tr>
             <LegalTh>Tjänst</LegalTh>
@@ -101,6 +118,7 @@ export default function DirtyWineIntegritetspolicyContent({
           ))}
         </tbody>
       </LegalTable>
+
       <LegalP>Uppgifterna säljs aldrig.</LegalP>
       <LegalP>
         {
@@ -111,11 +129,10 @@ export default function DirtyWineIntegritetspolicyContent({
       <LegalH2>Dina rättigheter</LegalH2>
       <LegalP>
         Du har rätt till tillgång, rättelse, radering, begränsning och
-        invändning, och rätt till dataportabilitet. Mejla axel@dirtywine.se. Du
-        kan klaga hos Integritetsskyddsmyndigheten (imy.se).
+        invändning, och rätt till dataportabilitet. Mejla <ContactEmail />. Du
+        kan klaga hos Integritetsskyddsmyndigheten (
+        <LegalLink href="https://imy.se">imy.se</LegalLink>).
       </LegalP>
-
-      <LegalP>Senast uppdaterad: 31 oktober 2026</LegalP>
     </LegalProse>
   );
 }

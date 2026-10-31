@@ -10,7 +10,9 @@ type LegalNodeProps = {
 
 export function LegalProse({ children, className }: LegalNodeProps) {
   return (
-    <div className={cn("space-y-6 text-stone-700 leading-relaxed", className)}>
+    <div
+      className={cn("space-y-6 text-muted-foreground leading-relaxed", className)}
+    >
       {children}
     </div>
   );
@@ -18,7 +20,9 @@ export function LegalProse({ children, className }: LegalNodeProps) {
 
 export function LegalH2({ children, className }: LegalNodeProps) {
   return (
-    <h2 className={cn("text-xl font-medium text-stone-900 pt-4", className)}>
+    <h2
+      className={cn("text-xl font-medium text-foreground pt-4", className)}
+    >
       {children}
     </h2>
   );
@@ -26,7 +30,7 @@ export function LegalH2({ children, className }: LegalNodeProps) {
 
 export function LegalH3({ children, className }: LegalNodeProps) {
   return (
-    <h3 className={cn("text-base font-medium text-stone-900", className)}>
+    <h3 className={cn("text-base font-medium text-foreground", className)}>
       {children}
     </h3>
   );
@@ -48,6 +52,14 @@ export function LegalOl({ children, className }: LegalNodeProps) {
   );
 }
 
+function isExternalHref(href: string): boolean {
+  return (
+    href.startsWith("http://") ||
+    href.startsWith("https://") ||
+    href.startsWith("mailto:")
+  );
+}
+
 export function LegalLink({
   href,
   children,
@@ -57,18 +69,37 @@ export function LegalLink({
   children: ReactNode;
   className?: string;
 }) {
+  const classes = cn(
+    "underline underline-offset-2 text-foreground",
+    className,
+  );
+  if (isExternalHref(href)) {
+    const external = href.startsWith("http");
+    return (
+      <a
+        href={href}
+        className={classes}
+        {...(external
+          ? { target: "_blank", rel: "noopener noreferrer" }
+          : {})}
+      >
+        {children}
+      </a>
+    );
+  }
   return (
-    <Link
-      href={href}
-      className={cn("underline underline-offset-2 text-stone-900", className)}
-    >
+    <Link href={href} className={classes}>
       {children}
     </Link>
   );
 }
 
 export function LegalStrong({ children, className }: LegalNodeProps) {
-  return <strong className={cn("font-medium text-stone-900", className)}>{children}</strong>;
+  return (
+    <strong className={cn("font-medium text-foreground", className)}>
+      {children}
+    </strong>
+  );
 }
 
 export function LegalTable({ children, className }: LegalNodeProps) {
@@ -83,7 +114,7 @@ export function LegalTh({ children, className }: LegalNodeProps) {
   return (
     <th
       className={cn(
-        "border-b border-stone-200 py-2 pr-4 text-left align-top",
+        "border-b border-border py-2 pr-4 text-left align-top text-foreground",
         className,
       )}
     >
@@ -96,7 +127,7 @@ export function LegalTd({ children, className }: LegalNodeProps) {
   return (
     <td
       className={cn(
-        "border-b border-stone-200 py-2 pr-4 text-left align-top",
+        "border-b border-border py-2 pr-4 text-left align-top",
         className,
       )}
     >

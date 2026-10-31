@@ -31,7 +31,9 @@ export function MobileMenu({
   const { isOpen, openMobileMenu, closeMobileMenu } = useMobileMenu();
   const navItems = [
     { href: paths.shop, label: t("common.shop") },
-    { href: paths.guides, label: t("common.guides") },
+    ...(!isDirtywineSite
+      ? [{ href: paths.guides, label: t("common.guides") }]
+      : []),
     { href: "/profile", label: t("common.profile"), icon: User },
     { href: paths.about, label: t("common.about") },
     { href: paths.home, label: t("common.home") },

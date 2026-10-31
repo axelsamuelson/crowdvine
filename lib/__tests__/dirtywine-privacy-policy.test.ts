@@ -25,7 +25,7 @@ describe("Dirty Wine privacy processors", () => {
     ]);
   });
 
-  it("includes the exact USA transfer sentence", () => {
+  it("includes the exact USA transfer sentence and dirtywine intro", () => {
     const src = readFileSync(
       join(process.cwd(), "content/legal/integritetspolicy-dirtywine.tsx"),
       "utf8",
@@ -33,11 +33,29 @@ describe("Dirty Wine privacy processors", () => {
     expect(src).toContain(
       "Vid överföring till USA används EU–US Data Privacy Framework eller EU:s standardavtalsklausuler, beroende på leverantör.",
     );
+    expect(src).toContain("Den här policyn gäller dirtywine.se.");
+    expect(src).not.toContain("Integritetspolicy för Dirty Wine");
+    expect(src).toContain('mailto:axel@dirtywine.se');
+    expect(src).toContain("https://imy.se");
   });
 
   it("does not claim Stripe or Budbee", () => {
     const services = DIRTYWINE_PRIVACY_PROCESSORS.map((p) => p.service);
     expect(services).not.toContain("Stripe");
     expect(services).not.toContain("Budbee");
+  });
+});
+
+describe("Dirty Wine locale when UI localization is off", () => {
+  it("allows only Swedish", async () => {
+    const { availableAppLocalesForZone } = await import(
+      "@/lib/i18n/locale-policy"
+    );
+    expect(
+      availableAppLocalesForZone(
+        { countryCode: "SE", marketCode: "SE" },
+        false,
+      ),
+    ).toEqual(["sv"]);
   });
 });

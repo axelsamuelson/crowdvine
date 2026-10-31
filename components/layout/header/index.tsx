@@ -38,7 +38,9 @@ export function Header({
   const navItems: NavItem[] = [
     { label: t("nav.home"), href: paths.home },
     { label: t("nav.shopAll"), href: paths.shop },
-    { label: t("nav.guides"), href: paths.guides },
+    ...(!isDirtywineSite
+      ? [{ label: t("nav.guides"), href: paths.guides }]
+      : []),
   ];
   const { role } = useUserRole();
   const { showPortalToggle, isB2BOnly, loading } = usePortalAccess();

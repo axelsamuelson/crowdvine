@@ -63,7 +63,8 @@ function resolveAppLocale(params: {
   activeZone: ResolvedActiveGeoZone;
   pathLocale?: AppLocale | null;
 }): AppLocale {
-  if (!params.uiLocalizationEnabled) return DEFAULT_APP_LOCALE;
+  // Dirty Wine (ui localization off): fixed Swedish UI.
+  if (!params.uiLocalizationEnabled) return "sv";
   // Explicit browser choice (language switcher) wins over stored profile default.
   const fromCookie = parseLocaleCookie(params.cookieLocale);
   const fromPreferred = params.userPreferred;
