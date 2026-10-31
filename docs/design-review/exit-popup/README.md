@@ -1,6 +1,7 @@
-# Exit popup design review screenshots (PR #114)
+# Exit popup / exit-discount design review assets (PR #114+)
 
-Captured for design review. Safe to delete after merge / design sign-off.
+Safe to delete after design sign-off.
 
-- Desktop 1440 / mobile 390: feedback, thanks, discount (flag ON on preview)
-- `exit-popup-mobile-390-thanks-flag-off.png`: thanks step at 390px with discount flag OFF (no step indicator; body “Det hjälper oss att bli bättre.”)
+- Popup: feedback / thanks / discount at 1440 and 390
+- `exit-popup-mobile-390-thanks-flag-off.png`: thanks with discount flag OFF
+- `email-mobile.png` / `email-desktop.png`: rendered `sendExitDiscountEmail` HTML with sample code `PACT10-EX4MPL3` (no newsletter)
