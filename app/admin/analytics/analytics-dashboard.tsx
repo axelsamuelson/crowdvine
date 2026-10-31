@@ -10,6 +10,7 @@ import { MetricsCards, type Metrics28d } from "./components/metrics-cards";
 import { TrafficPanel } from "./components/traffic-panel";
 import { IntentPanel } from "./components/intent-panel";
 import { UsersPanel } from "./components/users-panel";
+import { B2bFunnelPanel } from "./components/b2b-funnel-panel";
 import { SiteSwitcher } from "./components/site-switcher";
 import {
   parseSiteParam,
@@ -89,7 +90,7 @@ export function AnalyticsDashboard() {
       <MetricsCards data={metrics} loading={loadingMetrics} />
 
       <div className="bg-white dark:bg-[#0F0F12] rounded-xl border border-gray-200 dark:border-[#1F1F23]">
-        <Tabs defaultValue="traffic" className="w-full">
+        <Tabs key={site} defaultValue="traffic" className="w-full">
           <div className="p-6 border-b border-gray-200 dark:border-[#1F1F23]">
             <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
               <BarChart2 className="w-3.5 h-3.5 text-zinc-900 dark:text-zinc-50" />
@@ -108,6 +109,14 @@ export function AnalyticsDashboard() {
               >
                 Nära köp
               </TabsTrigger>
+              {(site === "dirtywine" || site === "all") && (
+                <TabsTrigger
+                  value="b2b"
+                  className="rounded-lg data-[state=active]:bg-gray-100 dark:data-[state=active]:bg-[#1F1F23] data-[state=active]:text-gray-900 dark:data-[state=active]:text-white"
+                >
+                  B2B Dirty Wine
+                </TabsTrigger>
+              )}
               <TabsTrigger
                 value="users"
                 className="rounded-lg data-[state=active]:bg-gray-100 dark:data-[state=active]:bg-[#1F1F23] data-[state=active]:text-gray-900 dark:data-[state=active]:text-white"
@@ -136,6 +145,11 @@ export function AnalyticsDashboard() {
             <TabsContent value="intent" className="mt-0">
               <IntentPanel site={site} />
             </TabsContent>
+            {(site === "dirtywine" || site === "all") && (
+              <TabsContent value="b2b" className="mt-0">
+                <B2bFunnelPanel site="dirtywine" />
+              </TabsContent>
+            )}
             <TabsContent value="users" className="mt-0">
               <UsersPanel />
             </TabsContent>

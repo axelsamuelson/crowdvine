@@ -425,6 +425,30 @@ export async function createInvoiceDraft(
   await insertLines(sb, id, lines);
   const saved = await getInvoice(sb, id);
   if (!saved) throw new Error("Kunde inte läsa fakturan efter sparning");
+
+  try {
+    const {
+      logB2bOrderCreated,
+      resolveIsFirstB2bOrder,
+      sumBottleQuantities,
+    } = await import("@/lib/analytics/b2b-events");
+    const isFirstOrder = await resolveIsFirstB2bOrder(sb, {
+      recipientId: body.recipient_id,
+      excludeInvoiceId: id,
+    });
+    await logB2bOrderCreated({
+      invoiceId: id,
+      orderType: "offline",
+      bottles: sumBottleQuantities(lines),
+      amountSek: Math.round(totals.total_ore) / 100,
+      recipientId: body.recipient_id,
+      isFirstOrder,
+      userId: options.createdBy,
+    });
+  } catch (e) {
+    console.error("b2b_order_created (invoice draft):", e);
+  }
+
   return saved;
 }
 
@@ -500,6 +524,24 @@ export async function issueInvoice(
   assertNoError(error);
   const saved = await getInvoice(sb, invoiceId);
   if (!saved) throw new Error("Kunde inte läsa fakturan efter utfärdande");
+
+  try {
+    const {
+      logB2bQuoteSent,
+      sumBottleQuantities,
+      wineIdsFromLines,
+    } = await import("@/lib/analytics/b2b-events");
+    await logB2bQuoteSent({
+      recipientId: saved.recipient_id,
+      wineIds: wineIdsFromLines(saved.lines),
+      bottles: sumBottleQuantities(saved.lines),
+      amountSek: Math.round(saved.total_ore) / 100,
+      invoiceId: saved.id,
+    });
+  } catch (e) {
+    console.error("b2b_quote_sent:", e);
+  }
+
   return saved;
 }
 

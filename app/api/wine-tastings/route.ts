@@ -172,6 +172,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    try {
+      const { logB2bTastingRequested } = await import(
+        "@/lib/analytics/b2b-events"
+      );
+      const wineIds = wineOrder
+        .filter((id: unknown): id is string => typeof id === "string" && id.trim().length > 0)
+        .map((id: string) => id.trim());
+      await logB2bTastingRequested({
+        recipientId: businessUserId,
+        wineIds,
+        bottles: wineIds.length,
+        tastingSessionId: session?.id ?? null,
+        userId,
+      });
+    } catch (e) {
+      console.error("b2b_tasting_requested:", e);
+    }
+
     return NextResponse.json({ session });
   } catch (error: unknown) {
     console.error("Error in POST /api/wine-tastings:", error);

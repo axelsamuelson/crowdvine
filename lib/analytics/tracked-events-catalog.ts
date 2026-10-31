@@ -473,6 +473,49 @@ export const TRACKED_USER_EVENTS_CATALOG: TrackedEventCatalogEntry[] = [
     description: "Notification preferences changed (reserved / wire when UI exists).",
     sources: ["client"],
   },
+  // b2b (Dirty Wine)
+  {
+    eventType: "b2b_contact_clicked",
+    category: "b2b",
+    description:
+      "Click on a contact CTA (mailto/tel/contact link) on dirtywine.se. Metadata: cta, page, product_id?.",
+    sources: ["client"],
+  },
+  {
+    eventType: "b2b_inquiry_started",
+    category: "b2b",
+    description:
+      "Visitor opened the Dirty Wine order-inquiry flow (DIRTYWINE_CHECKOUT_MODE). Metadata: page, product_id?, source?. No PII.",
+    sources: ["client"],
+  },
+  {
+    eventType: "b2b_inquiry_submitted",
+    category: "b2b",
+    description:
+      "Dirty Wine order-inquiry submitted (conversion). Wired by DIRTYWINE_CHECKOUT_MODE checkout replacement. No PII in metadata.",
+    sources: ["client"],
+  },
+  {
+    eventType: "b2b_tasting_requested",
+    category: "b2b",
+    description:
+      "Admin registered a Dirty Wine tasting (wine_tasting_sessions). Metadata: recipient_id?, wines[], bottles.",
+    sources: ["server"],
+  },
+  {
+    eventType: "b2b_quote_sent",
+    category: "b2b",
+    description:
+      "Admin issued a B2B invoice/quote. Metadata: recipient_id, wines[], bottles, amount_sek.",
+    sources: ["server"],
+  },
+  {
+    eventType: "b2b_order_created",
+    category: "b2b",
+    description:
+      "Row inserted into dirty_wine_orders or invoices. Metadata: order_id?, invoice_id?, order_type, bottles, amount_sek, recipient_id?, is_first_order.",
+    sources: ["server"],
+  },
 ];
 
 type ListedEventTypes =
@@ -498,6 +541,7 @@ export const TRACKED_EVENTS_CATEGORY_ORDER: EventCategory[] = [
   "checkout",
   "engagement",
   "account",
+  "b2b",
 ];
 
 export const TRACKED_EVENTS_CATEGORY_LABEL: Record<EventCategory, string> = {
@@ -510,6 +554,7 @@ export const TRACKED_EVENTS_CATEGORY_LABEL: Record<EventCategory, string> = {
   checkout: "Checkout",
   engagement: "Engagement",
   account: "Account",
+  b2b: "B2B (Dirty Wine)",
 };
 
 export function groupTrackedEventsByCategory(): Map<

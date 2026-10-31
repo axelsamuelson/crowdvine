@@ -89,7 +89,14 @@ export type EventType =
   // Account
   | "profile_updated"
   | "membership_tier_viewed"
-  | "notification_settings_changed";
+  | "notification_settings_changed"
+  // B2B (Dirty Wine)
+  | "b2b_contact_clicked"
+  | "b2b_inquiry_started"
+  | "b2b_inquiry_submitted"
+  | "b2b_tasting_requested"
+  | "b2b_quote_sent"
+  | "b2b_order_created";
 
 export type EventCategory =
   | "auth"
@@ -100,7 +107,8 @@ export type EventCategory =
   | "checkout"
   | "validation"
   | "engagement"
-  | "account";
+  | "account"
+  | "b2b";
 
 interface TrackEventParams {
   eventType: EventType;
