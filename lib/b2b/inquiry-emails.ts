@@ -52,24 +52,45 @@ export function inquiryLinesTotals(lines: B2bInquiryNormalized["lines"]): {
   return { bottles, totalCents };
 }
 
+function bottleLabel(n: number): string {
+  return n === 1 ? "1 flaska" : `${n} flaskor`;
+}
+
 function linesSummaryText(lines: B2bInquiryNormalized["lines"]): string {
   return lines
     .map((l) => {
       const unit = l.unitPriceCents ?? 0;
       const lineTotal = unit * l.quantity;
-      return `• ${l.wineTitle} × ${l.quantity} — ${formatInquirySekFromCents(lineTotal)}`;
+      return `${l.wineTitle}\n${bottleLabel(l.quantity)}\n${formatInquirySekFromCents(lineTotal)}`;
     })
-    .join("\n");
+    .join("\n\n");
 }
 
 function footerHtml(): string {
   const addressPlain = getDirtywineInquiryEmailFooterPlain();
-  // Replace privacy label with a link; keep [ADRESS] / address as plain text.
   const withLink = addressPlain.replace(
     DIRTYWINE_PRIVACY_POLICY_LABEL,
     `<a href="${DIRTYWINE_PRIVACY_POLICY_URL}" style="${LINK_STYLE}">${DIRTYWINE_PRIVACY_POLICY_LABEL}</a>`,
   );
   return `<p style="margin:24px 0 0;font-size:12px;line-height:1.5;color:${MUTED};">${withLink}</p>`;
+}
+
+function lineRowHtml(opts: {
+  titleHtml: string;
+  qtyLabel: string;
+  priceLabel: string;
+  border: boolean;
+  titleWeight?: number;
+}): string {
+  const border = opts.border ? "border-bottom:1px solid #e4e4e7;" : "";
+  const weight = opts.titleWeight ?? 400;
+  return `<tr>
+        <td style="padding:10px 0;${border}font-size:14px;vertical-align:top;width:70%;">
+          <div style="font-weight:${weight};line-height:1.35;">${opts.titleHtml}</div>
+          <div style="margin-top:2px;font-size:13px;color:${MUTED};line-height:1.35;">${escapeHtml(opts.qtyLabel)}</div>
+        </td>
+        <td style="padding:10px 0 10px 16px;${border}font-size:14px;text-align:right;white-space:nowrap;vertical-align:top;font-weight:${weight};">${escapeHtml(opts.priceLabel)}</td>
+      </tr>`;
 }
 
 export function buildB2bInquiryCustomerEmail(opts: {
@@ -86,7 +107,7 @@ export function buildB2bInquiryCustomerEmail(opts: {
   const subject = `${DIRTYWINE_INQUIRY_EMAIL_HEADLINE} – ${DIRTYWINE_BRAND_NAME}`;
   const delivery = v.desiredDeliveryDate ?? "—";
   const linesBlock = linesSummaryText(v.lines);
-  const totalLabel = `Totalt: ${bottles} flaskor · ${formatInquirySekFromCents(totalCents)} exkl. moms`;
+  const totalPrice = formatInquirySekFromCents(totalCents);
 
   const text = [
     DIRTYWINE_INQUIRY_EMAIL_HEADLINE,
@@ -96,7 +117,10 @@ export function buildB2bInquiryCustomerEmail(opts: {
     "",
     "Din förfrågan:",
     linesBlock,
-    totalLabel,
+    "",
+    `Totalt`,
+    bottleLabel(bottles),
+    `${totalPrice} exkl. moms`,
     "",
     DIRTYWINE_INQUIRY_FOLLOW_UP,
     "",
@@ -111,12 +135,22 @@ export function buildB2bInquiryCustomerEmail(opts: {
     .map((l) => {
       const unit = l.unitPriceCents ?? 0;
       const lineTotal = unit * l.quantity;
-      return `<tr>
-        <td style="padding:8px 0;border-bottom:1px solid #e4e4e7;font-size:14px;">${escapeHtml(l.wineTitle)} × ${l.quantity}</td>
-        <td style="padding:8px 0;border-bottom:1px solid #e4e4e7;font-size:14px;text-align:right;white-space:nowrap;">${escapeHtml(formatInquirySekFromCents(lineTotal))}</td>
-      </tr>`;
+      return lineRowHtml({
+        titleHtml: escapeHtml(l.wineTitle),
+        qtyLabel: bottleLabel(l.quantity),
+        priceLabel: formatInquirySekFromCents(lineTotal),
+        border: true,
+      });
     })
     .join("");
+
+  const totalRowHtml = lineRowHtml({
+    titleHtml: "Totalt",
+    qtyLabel: bottleLabel(bottles),
+    priceLabel: `${totalPrice} exkl. moms`,
+    border: false,
+    titleWeight: 600,
+  });
 
   const html = `
 <div style="font-family:system-ui,sans-serif;line-height:1.5;color:#111111;max-width:560px;">
@@ -131,9 +165,9 @@ export function buildB2bInquiryCustomerEmail(opts: {
   <p style="margin:0 0 16px;font-size:14px;"><strong>Önskat leveransdatum:</strong> ${escapeHtml(delivery)}</p>
   <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="border-collapse:collapse;margin:0 0 8px;">
     ${lineRowsHtml}
+    ${totalRowHtml}
   </table>
-  <p style="margin:0 0 4px;font-size:12px;color:${MUTED};">Priser exkl. moms</p>
-  <p style="margin:0 0 20px;font-size:14px;font-weight:600;">${escapeHtml(totalLabel)}</p>
+  <p style="margin:0 0 20px;font-size:12px;color:${MUTED};">Priser exkl. moms</p>
   <p style="margin:0 0 20px;">${escapeHtml(DIRTYWINE_INQUIRY_FOLLOW_UP)}</p>
   <p style="margin:0;">Hälsningar<br/>${escapeHtml(DIRTYWINE_BRAND_NAME)}</p>
   ${footerHtml()}

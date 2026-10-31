@@ -18,19 +18,24 @@ export const DIRTYWINE_PRIVACY_POLICY_LABEL = "Integritetspolicy";
 
 /**
  * Street address for legal email footer.
- * Until set, the visible placeholder `[ADRESS]` must remain — do not invent an address.
+ * Empty / unset → omit address and ", Stockholm" entirely (do not show `[ADRESS]`).
  */
-export function getDirtywineLegalAddress(): string {
+export function getDirtywineLegalAddress(): string | null {
   const fromEnv = process.env.DIRTYWINE_LEGAL_ADDRESS?.trim();
-  return fromEnv || "[ADRESS]";
+  return fromEnv || null;
 }
 
 /**
- * Exact legally reviewed customer-email footer (plain text).
- * `{BRAND}` is replaced with DIRTYWINE_BRAND_NAME; address from getDirtywineLegalAddress().
+ * Customer-email footer (plain text).
+ * Without address: `{BRAND} drivs av Axel Samuelson (enskild firma) · axel@… · …`
+ * With address: `… (enskild firma), {adress}, Stockholm · axel@… · …`
  */
 export function getDirtywineInquiryEmailFooterPlain(): string {
-  return `${DIRTYWINE_BRAND_NAME} drivs av Axel Samuelson (enskild firma), ${getDirtywineLegalAddress()}, Stockholm · axel@dirtywine.se · ${DIRTYWINE_PRIVACY_POLICY_LABEL} · Du får det här mejlet eftersom du skickade en förfrågan på dirtywine.se.`;
+  const address = getDirtywineLegalAddress();
+  const entity = address
+    ? `${DIRTYWINE_BRAND_NAME} drivs av Axel Samuelson (enskild firma), ${address}, Stockholm`
+    : `${DIRTYWINE_BRAND_NAME} drivs av Axel Samuelson (enskild firma)`;
+  return `${entity} · axel@dirtywine.se · ${DIRTYWINE_PRIVACY_POLICY_LABEL} · Du får det här mejlet eftersom du skickade en förfrågan på dirtywine.se.`;
 }
 
 export const DIRTYWINE_INQUIRY_FOLLOW_UP =

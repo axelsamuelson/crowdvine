@@ -48,18 +48,19 @@ Notes:
 - Newer Resend domains may show **CNAME** instead of TXT/MX — always paste the Records tab exactly.
 - After DNS propagates, click **Verify** in Resend, then set `DIRTYWINE_RESEND_FROM=Dirtywine <noreply@dirtywine.se>`.
 
-## Email previews (v2 — Inès)
+## Email / login previews (v3 — Inès)
 
 | File | What |
 | --- | --- |
-| `login-gate-v2.html` | Utloggad förfrågesida (Geist/system-ui, ingen design-review-chrome) |
-| `login-gate-v2-390.png` | Login gate mobil 390 |
-| `login-gate-v2-1440.png` | Login gate desktop 1440 |
-| `customer-confirmation-v2.html` | Kundbekräftelse HTML |
-| `customer-confirmation-v2-mobile.png` | Kundmejl mobil 390 |
-| `customer-confirmation-v2-desktop.png` | Kundmejl desktop 1280 |
+| `login-gate-v3.html` | Utloggad förfrågesida i Dirtywine-layout (header + logo) |
+| `login-gate-v3-390.png` | Login gate mobil 390 |
+| `login-gate-v3-1440.png` | Login gate desktop 1440 |
+| `customer-confirmation-v3.html` | Kundbekräftelse HTML (tabell: namn + muted flaskor / pris) |
+| `customer-confirmation-v3-mobile.png` | Kundmejl mobil 390 |
 
-Äldre v1-filer (login-gate / customer-confirmation utan `-v2`) behålls för historik.
+**Layout-bekräftelse:** `/b2b/inquiry` går via root layout + `ConditionalHeader` (samma header/logo som dirtywine.se). Verifierat på preview (`header` + logo present). Tidigare v2-dumpar saknade header för att de var fristående HTML-mockar.
+
+Äldre v1/v2-filer behålls för historik.
 
 ## Inloggningskrav (Axel) + Inès UI
 

@@ -68,19 +68,25 @@ describe("getDirtywineResendFrom", () => {
 });
 
 describe("Dirtywine legal footer", () => {
-  it("keeps [ADRESS] placeholder when DIRTYWINE_LEGAL_ADDRESS is unset", () => {
+  it("omits address and Stockholm when DIRTYWINE_LEGAL_ADDRESS is unset", () => {
     delete process.env.DIRTYWINE_LEGAL_ADDRESS;
-    expect(getDirtywineLegalAddress()).toBe("[ADRESS]");
+    expect(getDirtywineLegalAddress()).toBeNull();
     const footer = getDirtywineInquiryEmailFooterPlain();
-    expect(footer).toContain(`${DIRTYWINE_BRAND_NAME} drivs av Axel Samuelson`);
-    expect(footer).toContain("[ADRESS]");
+    expect(footer).toBe(
+      `${DIRTYWINE_BRAND_NAME} drivs av Axel Samuelson (enskild firma) · axel@dirtywine.se · Integritetspolicy · Du får det här mejlet eftersom du skickade en förfrågan på dirtywine.se.`,
+    );
+    expect(footer).not.toContain("[ADRESS]");
+    expect(footer).not.toContain("Stockholm");
     expect(footer).not.toContain("EURPACT");
   });
 
-  it("inserts env address when set", () => {
+  it("inserts address and Stockholm when env is set", () => {
     process.env.DIRTYWINE_LEGAL_ADDRESS = "Testgatan 1";
-    expect(getDirtywineInquiryEmailFooterPlain()).toContain("Testgatan 1");
-    expect(getDirtywineInquiryEmailFooterPlain()).not.toContain("[ADRESS]");
+    const footer = getDirtywineInquiryEmailFooterPlain();
+    expect(footer).toContain(
+      `${DIRTYWINE_BRAND_NAME} drivs av Axel Samuelson (enskild firma), Testgatan 1, Stockholm ·`,
+    );
+    expect(footer).not.toContain("[ADRESS]");
   });
 });
 
@@ -94,8 +100,14 @@ describe("inquiry email builders", () => {
     expect(built.text).toContain(DIRTYWINE_INQUIRY_FOLLOW_UP);
     expect(built.text).toContain("Test AB");
     expect(built.text).toContain("2026-12-01");
-    expect(built.text).toContain("Testvin × 6");
-    expect(built.text).toContain("[ADRESS]");
+    expect(built.text).toContain("Testvin");
+    expect(built.text).toContain("6 flaskor");
+    expect(built.text).not.toContain("[ADRESS]");
+    expect(built.text).not.toContain("Stockholm");
+    expect(built.html).toContain("6 flaskor");
+    expect(built.html).toMatch(/padding:[^;]*16px/);
+    expect(built.html).toContain("white-space:nowrap");
+    expect(built.html).not.toContain(" × ");
     expect(built.html).toContain("Integritetspolicy");
     expect(built.html).toContain("https://dirtywine.se/integritetspolicy");
     expect(built.html).toContain("fe06af9d-ee01-418b-8b77-9d1b0c435bac.svg");
