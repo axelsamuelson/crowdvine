@@ -1,6 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { X } from "lucide-react";
@@ -37,6 +43,11 @@ import {
   EXIT_FEEDBACK_THANKS_MESSAGE,
   EXIT_FEEDBACK_THANKS_MS,
 } from "@/lib/exit-discount/messages";
+import {
+  EXIT_DISCOUNT_OFFER_CTA,
+  EXIT_DISCOUNT_OFFER_HEADING,
+  EXIT_DISCOUNT_OFFER_TERMS,
+} from "@/lib/exit-discount/offer-copy";
 
 type Phase = "feedback" | "thanks" | "discount" | "account";
 
@@ -66,6 +77,8 @@ function markExitDiscountShown(): void {
 /**
  * Standalone exit-intent / abandoned-cart feedback (+ optional discount step).
  * Mounted from root layout — does not touch checkout-client or other CRO files.
+ * Design: existing Tailwind tokens only; easy dismiss (X / Esc / backdrop);
+ * mobile-friendly max-height + scroll for keyboard.
  */
 export function ExitFeedbackPrompt() {
   const pathname = usePathname() ?? "/";
@@ -90,6 +103,7 @@ export function ExitFeedbackPrompt() {
   const openRef = useRef(false);
   const mobilePendingRef = useRef(false);
   const thanksTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const panelRef = useRef<HTMLDivElement | null>(null);
   const cartHasItemsRef = useRef(cartHasItems);
   cartHasItemsRef.current = cartHasItems;
   openRef.current = open;
@@ -151,6 +165,24 @@ export function ExitFeedbackPrompt() {
   useEffect(() => {
     return () => clearThanksTimer();
   }, [clearThanksTimer]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        if (phase === "feedback") {
+          void finishFeedbackRef.current(false);
+        } else {
+          closeAll();
+        }
+      }
+    };
+
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [open, phase, closeAll]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -250,6 +282,9 @@ export function ExitFeedbackPrompt() {
     maybeOpenDiscount();
   };
 
+  const finishFeedbackRef = useRef(finishFeedback);
+  finishFeedbackRef.current = finishFeedback;
+
   const submitDiscount = async () => {
     if (submitting) return;
     const trimmedEmail = email.trim();
@@ -282,198 +317,243 @@ export function ExitFeedbackPrompt() {
     }
   };
 
+  const onBackdropPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.target !== event.currentTarget) return;
+    if (phase === "feedback") {
+      void finishFeedback(false);
+    } else {
+      closeAll();
+    }
+  };
+
   if (!open) return null;
+
+  const title =
+    phase === "feedback"
+      ? "Vad hindrade dig från att reservera idag?"
+      : phase === "thanks"
+        ? EXIT_FEEDBACK_THANKS_MESSAGE
+        : phase === "discount"
+          ? EXIT_DISCOUNT_OFFER_HEADING
+          : EXIT_DISCOUNT_ACCOUNT_HEADING;
 
   return (
     <div
-      role="dialog"
-      aria-modal="false"
-      aria-labelledby="exit-prompt-title"
-      className="fixed bottom-4 right-4 z-[60] w-[min(100%-2rem,22rem)] rounded-lg border border-border bg-background p-4 shadow-lg"
+      className="fixed inset-0 z-[60] flex items-end justify-center bg-background/40 p-3 sm:items-end sm:justify-end sm:bg-transparent sm:p-4"
+      onPointerDown={onBackdropPointerDown}
+      data-exit-prompt-backdrop=""
     >
-      <div className="mb-3 flex items-start justify-between gap-2">
-        <p
-          id="exit-prompt-title"
-          className="text-sm font-medium leading-snug text-foreground"
-        >
-          {phase === "feedback"
-            ? "Vad hindrade dig från att reservera idag?"
-            : phase === "thanks"
-              ? EXIT_FEEDBACK_THANKS_MESSAGE
-              : phase === "discount"
-                ? "Vill du ha 10 % på din första beställning?"
-                : EXIT_DISCOUNT_ACCOUNT_HEADING}
-        </p>
-        <button
-          type="button"
-          onClick={
-            phase === "feedback"
-              ? () => void finishFeedback(false)
-              : closeAll
-          }
-          className="shrink-0 rounded-sm p-1 text-muted-foreground opacity-70 transition-opacity hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          aria-label="Stäng"
-        >
-          <X className="h-4 w-4" />
-        </button>
-      </div>
-
-      {phase === "feedback" && step ? (
-        <>
-          <fieldset className="mb-3 space-y-2">
-            <legend className="sr-only">Välj anledning</legend>
-            {EXIT_FEEDBACK_REASON_OPTIONS.map((opt) => (
-              <label
-                key={opt.value}
-                className="flex cursor-pointer items-start gap-2 text-sm text-foreground"
-              >
-                <input
-                  type="radio"
-                  name="exit-feedback-reason"
-                  value={opt.value}
-                  checked={reason === opt.value}
-                  onChange={() => setReason(opt.value)}
-                  className="mt-0.5 size-4 shrink-0 accent-primary"
-                />
-                <span className="leading-snug">{opt.label}</span>
-              </label>
-            ))}
-          </fieldset>
-
-          {reason === "other" ? (
-            <Textarea
-              value={answer}
-              onChange={(e) =>
-                setAnswer(e.target.value.slice(0, EXIT_FEEDBACK_ANSWER_MAX))
-              }
-              placeholder="Valfritt — skriv gärna kort"
-              rows={2}
-              maxLength={EXIT_FEEDBACK_ANSWER_MAX}
-              className="mb-3 resize-none"
-              aria-label="Annat — fritext"
-            />
-          ) : null}
-
-          <div className="flex items-center justify-end gap-2">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => void finishFeedback(false)}
-              disabled={submitting}
-            >
-              Stäng
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              onClick={() => void finishFeedback(true)}
-              disabled={submitting || !reason}
-            >
-              Skicka
-            </Button>
-          </div>
-        </>
-      ) : null}
-
-      {phase === "discount" ? (
-        <div className="space-y-3">
-          <div>
-            <label
-              htmlFor="exit-discount-email"
-              className="mb-1 block text-xs font-medium text-foreground"
-            >
-              E-post
-            </label>
-            <Input
-              id="exit-discount-email"
-              type="email"
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="namn@exempel.se"
-            />
-          </div>
-
-          <label className="flex cursor-pointer items-start gap-2 text-sm text-foreground">
-            <Checkbox
-              checked={ageConfirmed}
-              onCheckedChange={(v) => setAgeConfirmed(v === true)}
-              className="mt-0.5"
-            />
-            <span className="leading-snug">Jag är minst 20 år.</span>
-          </label>
-
-          <label className="flex cursor-pointer items-start gap-2 text-sm text-foreground">
-            <Checkbox
-              checked={newsletterOptIn}
-              onCheckedChange={(v) => setNewsletterOptIn(v === true)}
-              className="mt-0.5"
-            />
-            <span className="leading-snug">
-              Ja, skicka PACT:s nyhetsbrev med nya viner och pallar. Jag kan
-              avregistrera mig när som helst.
-            </span>
-          </label>
-
-          {discountError ? (
-            <p className="text-xs text-destructive">{discountError}</p>
-          ) : null}
-
-          <Button
-            type="button"
-            size="sm"
-            className="w-full"
-            onClick={() => void submitDiscount()}
-            disabled={submitting || !email.trim() || !ageConfirmed}
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="exit-prompt-title"
+        data-exit-prompt-panel=""
+        className="flex max-h-[min(85dvh,36rem)] w-full max-w-[22rem] flex-col overflow-hidden rounded-lg border border-border bg-background shadow-lg sm:mb-0"
+        onPointerDown={(e) => e.stopPropagation()}
+      >
+        <div className="flex shrink-0 items-start justify-between gap-2 border-b border-border px-4 pb-3 pt-3">
+          <p
+            id="exit-prompt-title"
+            className="pr-2 text-sm font-medium leading-snug text-foreground"
           >
-            Skicka min rabattkod
-          </Button>
-
-          <p className="text-[11px] leading-snug text-muted-foreground">
-            Vi använder din e-post för att skicka rabattkoden och, om du kryssat
-            i rutan, vårt nyhetsbrev. Har du inte använt koden sparas e-posten i
-            12 månader och raderas sedan; nyhetsbrevet får du tills du
-            avregistrerar dig. Personuppgiftsansvarig är EURPACT OÜ. Läs mer i
-            vår{" "}
-            <Link href="/privacy" className="underline underline-offset-2">
-              integritetspolicy
-            </Link>
-            . Frågor:{" "}
-            <a
-              href="mailto:customer@pactwines.com"
-              className="underline underline-offset-2"
-            >
-              customer@pactwines.com
-            </a>
-            .
+            {title}
           </p>
-        </div>
-      ) : null}
-
-      {phase === "account" ? (
-        <div className="space-y-3">
-          <ul className="list-disc space-y-1.5 pl-4 text-sm leading-snug text-foreground">
-            {EXIT_DISCOUNT_ACCOUNT_BULLETS.map((bullet) => (
-              <li key={bullet}>{bullet}</li>
-            ))}
-          </ul>
-          <Button type="button" size="sm" className="w-full" asChild>
-            <Link href={exitDiscountSignupHref(claimedEmail)}>
-              {EXIT_DISCOUNT_ACCOUNT_CTA}
-            </Link>
-          </Button>
-          <Button
+          <button
             type="button"
-            variant="ghost"
-            size="sm"
-            className="w-full"
-            onClick={closeAll}
+            onClick={
+              phase === "feedback"
+                ? () => void finishFeedback(false)
+                : closeAll
+            }
+            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            aria-label="Stäng"
           >
-            {EXIT_DISCOUNT_ACCOUNT_DECLINE}
-          </Button>
+            <X className="h-5 w-5" aria-hidden />
+          </button>
         </div>
-      ) : null}
+
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-3">
+          {phase === "feedback" && step ? (
+            <>
+              <fieldset className="mb-3 space-y-1">
+                <legend className="sr-only">Välj anledning</legend>
+                {EXIT_FEEDBACK_REASON_OPTIONS.map((opt) => (
+                  <label
+                    key={opt.value}
+                    className="flex min-h-11 cursor-pointer items-center gap-3 rounded-md px-1 py-2 text-sm text-foreground"
+                  >
+                    <input
+                      type="radio"
+                      name="exit-feedback-reason"
+                      value={opt.value}
+                      checked={reason === opt.value}
+                      onChange={() => setReason(opt.value)}
+                      className="size-5 shrink-0 accent-primary"
+                    />
+                    <span className="leading-snug">{opt.label}</span>
+                  </label>
+                ))}
+              </fieldset>
+
+              {reason === "other" ? (
+                <Textarea
+                  value={answer}
+                  onChange={(e) =>
+                    setAnswer(e.target.value.slice(0, EXIT_FEEDBACK_ANSWER_MAX))
+                  }
+                  placeholder="Valfritt — skriv gärna kort"
+                  rows={2}
+                  maxLength={EXIT_FEEDBACK_ANSWER_MAX}
+                  className="mb-3 min-h-[4.5rem] resize-none"
+                  aria-label="Annat — fritext"
+                />
+              ) : null}
+
+              <div className="flex items-center justify-end gap-2 pb-1">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="min-h-11 px-4"
+                  onClick={() => void finishFeedback(false)}
+                  disabled={submitting}
+                >
+                  Stäng
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="min-h-11 px-4"
+                  onClick={() => void finishFeedback(true)}
+                  disabled={submitting || !reason}
+                >
+                  Skicka
+                </Button>
+              </div>
+            </>
+          ) : null}
+
+          {phase === "thanks" ? (
+            <p className="pb-2 text-sm leading-snug text-muted-foreground">
+              {EXIT_FEEDBACK_THANKS_MESSAGE}
+            </p>
+          ) : null}
+
+          {phase === "discount" ? (
+            <div className="space-y-3 pb-1">
+              <ul className="list-disc space-y-1 pl-4 text-xs leading-snug text-muted-foreground">
+                {EXIT_DISCOUNT_OFFER_TERMS.map((term) => (
+                  <li key={term}>{term}</li>
+                ))}
+              </ul>
+
+              <div>
+                <label
+                  htmlFor="exit-discount-email"
+                  className="mb-1 block text-xs font-medium text-foreground"
+                >
+                  E-post
+                </label>
+                <Input
+                  id="exit-discount-email"
+                  type="email"
+                  autoComplete="email"
+                  inputMode="email"
+                  enterKeyHint="done"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="namn@exempel.se"
+                  className="min-h-11"
+                />
+              </div>
+
+              <label className="flex min-h-11 cursor-pointer items-start gap-3 text-sm text-foreground">
+                <Checkbox
+                  checked={ageConfirmed}
+                  onCheckedChange={(v) => setAgeConfirmed(v === true)}
+                  className="mt-1 size-5"
+                />
+                <span className="leading-snug">Jag är minst 20 år.</span>
+              </label>
+
+              <label className="flex min-h-11 cursor-pointer items-start gap-3 text-sm text-foreground">
+                <Checkbox
+                  checked={newsletterOptIn}
+                  onCheckedChange={(v) => setNewsletterOptIn(v === true)}
+                  className="mt-1 size-5"
+                />
+                <span className="leading-snug">
+                  Ja tack, skicka nyhetsbrev om nya viner. Du kan avregistrera
+                  dig när som helst.
+                </span>
+              </label>
+
+              {discountError ? (
+                <p className="text-xs text-destructive">{discountError}</p>
+              ) : null}
+
+              <Button
+                type="button"
+                size="sm"
+                className="min-h-11 w-full"
+                onClick={() => void submitDiscount()}
+                disabled={submitting || !email.trim() || !ageConfirmed}
+              >
+                {EXIT_DISCOUNT_OFFER_CTA}
+              </Button>
+
+              <p className="text-xs leading-snug text-muted-foreground">
+                Vi använder din e-post för rabattkoden och, om du kryssat i,
+                nyhetsbrevet. Oanvänd kod raderas efter 12 månader.
+                Personuppgiftsansvarig: EURPACT OÜ.{" "}
+                <Link
+                  href="/privacy"
+                  className="underline underline-offset-2"
+                >
+                  Integritetspolicy
+                </Link>
+                .{" "}
+                <a
+                  href="mailto:customer@pactwines.com"
+                  className="underline underline-offset-2"
+                >
+                  customer@pactwines.com
+                </a>
+              </p>
+            </div>
+          ) : null}
+
+          {phase === "account" ? (
+            <div className="space-y-3 pb-1">
+              <ul className="list-disc space-y-1.5 pl-4 text-sm leading-snug text-foreground">
+                {EXIT_DISCOUNT_ACCOUNT_BULLETS.map((bullet) => (
+                  <li key={bullet}>{bullet}</li>
+                ))}
+              </ul>
+              <Button
+                type="button"
+                size="sm"
+                className="min-h-11 w-full"
+                asChild
+              >
+                <Link href={exitDiscountSignupHref(claimedEmail)}>
+                  {EXIT_DISCOUNT_ACCOUNT_CTA}
+                </Link>
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="min-h-11 w-full"
+                onClick={closeAll}
+              >
+                {EXIT_DISCOUNT_ACCOUNT_DECLINE}
+              </Button>
+            </div>
+          ) : null}
+        </div>
+      </div>
     </div>
   );
 }
