@@ -41,7 +41,7 @@ function ProductListStaticCard({
         className="group flex w-full min-w-0 flex-col focus-visible:outline-none"
         prefetch={false}
       >
-        <div className="relative aspect-[4/5] w-full overflow-hidden">
+        <div className="relative aspect-square w-full overflow-hidden">
           <ProductListImageServer
             product={product}
             priority={index < 3}

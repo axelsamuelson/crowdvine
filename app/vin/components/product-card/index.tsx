@@ -624,7 +624,7 @@ export const ProductCard = memo(
             });
           }}
         >
-          <div className="relative aspect-[4/5] w-full overflow-hidden">
+          <div className="relative aspect-square w-full overflow-hidden">
             {isWineBox &&
             discountInfo &&
             discountInfo.discountPercentage > 0 ? (
