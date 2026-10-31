@@ -35,13 +35,13 @@ function ProductListStaticCard({
   const viewWine = translate(locale, "shop.viewWine");
 
   return (
-    <article className="w-full min-w-0">
+    <article className="flex h-full w-full min-w-0 flex-col">
       <Link
         href={href}
-        className="group flex w-full min-w-0 flex-col focus-visible:outline-none"
+        className="group flex h-full w-full min-w-0 flex-col focus-visible:outline-none"
         prefetch={false}
       >
-        <div className="relative aspect-[3/4] w-full overflow-hidden bg-muted">
+        <div className="relative aspect-[4/5] w-full overflow-hidden">
           <ProductListImageServer
             product={product}
             priority={index < 3}
@@ -49,21 +49,29 @@ function ProductListStaticCard({
           />
         </div>
 
-        <div className="flex min-w-0 flex-col gap-0.5 px-3 pt-2 md:px-1">
-          <p className="line-clamp-2 text-sm leading-snug text-foreground">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col px-3 pt-2.5">
+          <p className="line-clamp-2 min-h-[2.5rem] text-sm font-medium leading-snug text-foreground">
             {product.title}
           </p>
           {meta ? (
-            <p className="truncate text-xs text-muted-foreground">{meta}</p>
-          ) : null}
-          <ServerListPrice
-            product={product}
-            locale={locale}
-            className="text-sm font-medium tabular-nums"
-          />
-          <span className="mt-1.5 hidden h-11 w-full items-center justify-center rounded-md border border-foreground bg-transparent text-sm font-medium text-foreground transition-colors group-hover:bg-foreground group-hover:text-background md:inline-flex">
-            {viewWine}
-          </span>
+            <p className="mt-0.5 truncate text-[13px] leading-snug text-muted-foreground">
+              {meta}
+            </p>
+          ) : (
+            <p className="mt-0.5 truncate text-[13px] leading-snug text-transparent">
+              &nbsp;
+            </p>
+          )}
+          <div className="mt-auto pt-2">
+            <ServerListPrice
+              product={product}
+              locale={locale}
+              className="text-sm font-medium tabular-nums"
+            />
+            <span className="mt-3 hidden h-11 w-full items-center justify-center rounded-md border border-foreground bg-transparent text-sm font-medium text-foreground transition-colors group-hover:bg-foreground group-hover:text-background md:inline-flex">
+              {viewWine}
+            </span>
+          </div>
         </div>
       </Link>
     </article>

@@ -589,7 +589,7 @@ export const ProductCard = memo(
       {DEBUG_SCROLL && <ScrollProbe />}
       <article
         className={cn(
-          "relative w-full min-w-0 overflow-visible",
+          "relative flex h-full w-full min-w-0 flex-col overflow-visible",
           showTopTabs && "mt-5",
         )}
       >
@@ -604,7 +604,7 @@ export const ProductCard = memo(
 
         <HoverPrefetchLink
           href={productHref}
-          className="group flex w-full min-w-0 flex-col focus-visible:outline-none"
+          className="group flex h-full w-full min-w-0 flex-col focus-visible:outline-none"
           style={{ touchAction: "pan-y", overscrollBehavior: "auto" }}
           aria-label={t("shop.viewProductAria", {
             title: product.title,
@@ -624,7 +624,7 @@ export const ProductCard = memo(
             });
           }}
         >
-          <div className="relative aspect-[3/4] w-full overflow-hidden bg-muted">
+          <div className="relative aspect-[4/5] w-full overflow-hidden">
             {isWineBox &&
             discountInfo &&
             discountInfo.discountPercentage > 0 ? (
@@ -651,54 +651,61 @@ export const ProductCard = memo(
             />
           </div>
 
-          <div className="flex min-w-0 flex-col gap-0.5 px-3 pt-2 md:px-1">
-            <p className="line-clamp-2 text-sm leading-snug text-foreground">
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col px-3 pt-2.5">
+            <p className="line-clamp-2 min-h-[2.5rem] text-sm font-medium leading-snug text-foreground">
               {product.title}
             </p>
             {producerRegion ? (
-              <p className="truncate text-xs text-muted-foreground">
+              <p className="mt-0.5 truncate text-[13px] leading-snug text-muted-foreground">
                 {producerRegion}
               </p>
-            ) : null}
+            ) : (
+              <p className="mt-0.5 truncate text-[13px] leading-snug text-transparent">
+                &nbsp;
+              </p>
+            )}
             <BoostBadgeSlot active={product.producerBoostActive === true} />
-            <PriceViewTracker
-              productId={product.id}
-              productName={product.title}
-              source="list"
-              listPrice={
-                listPriceSek ??
-                (Number(product.priceRange.minVariantPrice.amount) || undefined)
-              }
-              currency={product.priceRange.minVariantPrice.currencyCode}
-              className="text-sm font-medium"
-            >
-              <MemberPrice
-                amount={product.priceRange.minVariantPrice.amount}
-                currencyCode={product.priceRange.minVariantPrice.currencyCode}
-                basePriceSek={listPriceSek ?? undefined}
-                className="text-sm font-medium"
-                showBadge={showMembershipBadge}
-                priceExclVatOverride={
-                  (product as { b2bPriceExclVat?: number }).b2bPriceExclVat ??
-                  product.priceBreakdown?.b2bPriceExclVat
+            <div className="mt-auto pt-2">
+              <PriceViewTracker
+                productId={product.id}
+                productName={product.title}
+                source="list"
+                listPrice={
+                  listPriceSek ??
+                  (Number(product.priceRange.minVariantPrice.amount) ||
+                    undefined)
                 }
-              />
-              {isWineBox &&
-              discountInfo &&
-              discountInfo.discountPercentage > 0 ? (
-                <span className="ml-1 text-xs line-through opacity-40">
-                  {formatPrice(
-                    showExclVat
-                      ? priceExclVat(discountInfo.totalWinePrice)
-                      : Math.round(discountInfo.totalWinePrice).toString(),
-                    product.priceRange.minVariantPrice.currencyCode,
-                  )}
-                </span>
-              ) : null}
-            </PriceViewTracker>
-            <span className="mt-1.5 hidden h-11 w-full items-center justify-center rounded-md border border-foreground bg-transparent text-sm font-medium text-foreground transition-colors group-hover:bg-foreground group-hover:text-background md:inline-flex">
-              {t("shop.viewWine")}
-            </span>
+                currency={product.priceRange.minVariantPrice.currencyCode}
+                className="text-sm font-medium"
+              >
+                <MemberPrice
+                  amount={product.priceRange.minVariantPrice.amount}
+                  currencyCode={product.priceRange.minVariantPrice.currencyCode}
+                  basePriceSek={listPriceSek ?? undefined}
+                  className="text-sm font-medium"
+                  showBadge={showMembershipBadge}
+                  priceExclVatOverride={
+                    (product as { b2bPriceExclVat?: number }).b2bPriceExclVat ??
+                    product.priceBreakdown?.b2bPriceExclVat
+                  }
+                />
+                {isWineBox &&
+                discountInfo &&
+                discountInfo.discountPercentage > 0 ? (
+                  <span className="ml-1 text-xs line-through opacity-40">
+                    {formatPrice(
+                      showExclVat
+                        ? priceExclVat(discountInfo.totalWinePrice)
+                        : Math.round(discountInfo.totalWinePrice).toString(),
+                      product.priceRange.minVariantPrice.currencyCode,
+                    )}
+                  </span>
+                ) : null}
+              </PriceViewTracker>
+              <span className="mt-3 hidden h-11 w-full items-center justify-center rounded-md border border-foreground bg-transparent text-sm font-medium text-foreground transition-colors group-hover:bg-foreground group-hover:text-background md:inline-flex">
+                {t("shop.viewWine")}
+              </span>
+            </div>
           </div>
         </HoverPrefetchLink>
       </article>
