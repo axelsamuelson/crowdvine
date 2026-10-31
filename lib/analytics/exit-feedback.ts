@@ -119,6 +119,43 @@ export function sanitizeExitFeedbackPage(raw: string): string {
   return path.slice(0, EXIT_FEEDBACK_PAGE_MAX) || "/";
 }
 
+function parsePublicBool(raw: string | undefined, fallback: boolean): boolean {
+  if (raw == null || raw.trim() === "") return fallback;
+  const v = raw.trim().toLowerCase();
+  if (v === "1" || v === "true" || v === "yes" || v === "on") return true;
+  if (v === "0" || v === "false" || v === "no" || v === "off") return false;
+  return fallback;
+}
+
+/**
+ * When true (default), `*.vercel.app` is treated as an internal host so the
+ * exit popup stays hidden on previews. Set
+ * NEXT_PUBLIC_EXIT_FEEDBACK_SUPPRESS_ON_VERCEL_APP=false on a preview branch
+ * to allow the popup without `?exit_test=1`.
+ */
+export function treatVercelAppAsInternalExitHost(): boolean {
+  return parsePublicBool(
+    process.env.NEXT_PUBLIC_EXIT_FEEDBACK_SUPPRESS_ON_VERCEL_APP,
+    true,
+  );
+}
+
+/** Preview/agent override: `?exit_test=1` shows the popup even on internal hosts. */
+export function hasExitFeedbackTestOverride(search?: string): boolean {
+  const raw =
+    search ??
+    (typeof window !== "undefined" ? window.location.search : "");
+  try {
+    const params = new URLSearchParams(
+      raw.startsWith("?") ? raw : `?${raw}`,
+    );
+    const v = params.get("exit_test");
+    return v === "1" || v === "true" || v === "yes";
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Internal/test session detection — reuses analytics internal-device flag and
  * common local/preview signals (no new storage writes).
@@ -128,6 +165,7 @@ export function isInternalExitFeedbackSession(
     hostname?: string;
     search?: string;
     isInternalDeviceFn?: () => boolean;
+    treatVercelAppAsInternal?: boolean;
   },
 ): boolean {
   const checkDevice = opts?.isInternalDeviceFn ?? isInternalDevice;
@@ -140,9 +178,14 @@ export function isInternalExitFeedbackSession(
   if (
     host === "localhost" ||
     host === "127.0.0.1" ||
-    host.endsWith(".localhost") ||
-    host.includes("vercel.app")
+    host.endsWith(".localhost")
   ) {
+    return true;
+  }
+
+  const vercelAsInternal =
+    opts?.treatVercelAppAsInternal ?? treatVercelAppAsInternalExitHost();
+  if (vercelAsInternal && host.includes("vercel.app")) {
     return true;
   }
 
@@ -159,6 +202,17 @@ export function isInternalExitFeedbackSession(
   }
 
   return false;
+}
+
+/**
+ * Whether the exit popup UI should stay hidden.
+ * Internal sessions are suppressed unless `?exit_test=1` is present.
+ */
+export function shouldSuppressExitFeedbackUi(
+  opts?: Parameters<typeof isInternalExitFeedbackSession>[0],
+): boolean {
+  if (hasExitFeedbackTestOverride(opts?.search)) return false;
+  return isInternalExitFeedbackSession(opts);
 }
 
 /**

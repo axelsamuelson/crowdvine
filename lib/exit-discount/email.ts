@@ -1,5 +1,8 @@
 import { sendEmail } from "@/lib/email";
-import { EXIT_DISCOUNT_PERCENT } from "@/lib/exit-discount/config";
+import {
+  EXIT_DISCOUNT_PERCENT,
+  exitDiscountEmailMode,
+} from "@/lib/exit-discount/config";
 import { buildNewsletterUnsubscribeUrl } from "@/lib/newsletter/tokens";
 
 const FROM_CUSTOMER = "PACT <customer@pactwines.com>";
@@ -61,6 +64,18 @@ export async function sendExitDiscountEmail(opts: {
       </p>
     </div>
   `.trim();
+
+  const mode = exitDiscountEmailMode();
+  if (mode === "off" || mode === "log") {
+    console.info("[exit-discount] email suppressed", {
+      mode,
+      to: opts.to,
+      subject,
+      code: opts.code,
+      expires_at: opts.expiresAt.toISOString(),
+    });
+    return;
+  }
 
   await sendEmail({
     to: opts.to,

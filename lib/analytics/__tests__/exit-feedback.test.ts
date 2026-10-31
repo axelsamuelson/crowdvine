@@ -6,6 +6,7 @@ import {
   EXIT_FEEDBACK_SHOWN_KEY,
   getExitFeedbackSessionId,
   hasCheckoutStartedInSession,
+  hasExitFeedbackTestOverride,
   hasShownExitFeedback,
   isExitFeedbackReason,
   isInternalExitFeedbackSession,
@@ -13,6 +14,7 @@ import {
   normalizeExitFeedbackAnswer,
   resolveExitFeedbackStep,
   sanitizeExitFeedbackPage,
+  shouldSuppressExitFeedbackUi,
   EXIT_FEEDBACK_ANSWER_MAX,
 } from "../exit-feedback";
 
@@ -109,8 +111,17 @@ describe("exit-feedback helpers", () => {
         hostname: "crowdvine-git-foo.vercel.app",
         search: "",
         isInternalDeviceFn: () => false,
+        treatVercelAppAsInternal: true,
       }),
     ).toBe(true);
+    expect(
+      isInternalExitFeedbackSession({
+        hostname: "crowdvine-git-foo.vercel.app",
+        search: "",
+        isInternalDeviceFn: () => false,
+        treatVercelAppAsInternal: false,
+      }),
+    ).toBe(false);
     expect(
       isInternalExitFeedbackSession({
         hostname: "pactwines.com",
@@ -127,6 +138,32 @@ describe("exit-feedback helpers", () => {
     ).toBe(true);
     expect(
       isInternalExitFeedbackSession({
+        hostname: "pactwines.com",
+        search: "",
+        isInternalDeviceFn: () => false,
+      }),
+    ).toBe(false);
+  });
+
+  it("suppresses UI for internal hosts unless ?exit_test=1", () => {
+    expect(hasExitFeedbackTestOverride("?exit_test=1")).toBe(true);
+    expect(hasExitFeedbackTestOverride("")).toBe(false);
+    expect(
+      shouldSuppressExitFeedbackUi({
+        hostname: "localhost",
+        search: "",
+        isInternalDeviceFn: () => false,
+      }),
+    ).toBe(true);
+    expect(
+      shouldSuppressExitFeedbackUi({
+        hostname: "localhost",
+        search: "?exit_test=1",
+        isInternalDeviceFn: () => false,
+      }),
+    ).toBe(false);
+    expect(
+      shouldSuppressExitFeedbackUi({
         hostname: "pactwines.com",
         search: "",
         isInternalDeviceFn: () => false,

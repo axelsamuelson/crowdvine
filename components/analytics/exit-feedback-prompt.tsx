@@ -18,6 +18,7 @@ import {
   isInternalExitFeedbackSession,
   markExitFeedbackShown,
   resolveExitFeedbackStep,
+  shouldSuppressExitFeedbackUi,
   type ExitFeedbackReason,
   type ExitFeedbackStep,
 } from "@/lib/analytics/exit-feedback";
@@ -32,8 +33,12 @@ import {
   EXIT_DISCOUNT_SHOWN_KEY,
   isExitDiscountEnabled,
 } from "@/lib/exit-discount/config";
+import {
+  EXIT_FEEDBACK_THANKS_MESSAGE,
+  EXIT_FEEDBACK_THANKS_MS,
+} from "@/lib/exit-discount/messages";
 
-type Phase = "feedback" | "discount" | "account";
+type Phase = "feedback" | "thanks" | "discount" | "account";
 
 function isCoarsePointer(): boolean {
   if (typeof window === "undefined") return false;
@@ -84,16 +89,25 @@ export function ExitFeedbackPrompt() {
 
   const openRef = useRef(false);
   const mobilePendingRef = useRef(false);
+  const thanksTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cartHasItemsRef = useRef(cartHasItems);
   cartHasItemsRef.current = cartHasItems;
   openRef.current = open;
 
+  const clearThanksTimer = useCallback(() => {
+    if (thanksTimerRef.current != null) {
+      clearTimeout(thanksTimerRef.current);
+      thanksTimerRef.current = null;
+    }
+  }, []);
+
   const closeAll = useCallback(() => {
+    clearThanksTimer();
     setOpen(false);
     openRef.current = false;
     setPhase("feedback");
     setDiscountError("");
-  }, []);
+  }, [clearThanksTimer]);
 
   const maybeOpenDiscount = useCallback(() => {
     if (!discountEnabled || hasShownExitDiscount()) {
@@ -112,6 +126,7 @@ export function ExitFeedbackPrompt() {
 
   const tryOpen = useCallback(() => {
     if (openRef.current || hasShownExitFeedback()) return;
+    if (shouldSuppressExitFeedbackUi()) return;
 
     const resolved = resolveExitFeedbackStep({
       checkoutStarted: hasCheckoutStartedInSession(),
@@ -132,6 +147,10 @@ export function ExitFeedbackPrompt() {
     setOpen(true);
     openRef.current = true;
   }, [pathname]);
+
+  useEffect(() => {
+    return () => clearThanksTimer();
+  }, [clearThanksTimer]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -216,6 +235,17 @@ export function ExitFeedbackPrompt() {
       } finally {
         setSubmitting(false);
       }
+
+      // Short thank-you even when the discount step flag is off.
+      clearThanksTimer();
+      setPhase("thanks");
+      setOpen(true);
+      openRef.current = true;
+      thanksTimerRef.current = setTimeout(() => {
+        thanksTimerRef.current = null;
+        maybeOpenDiscount();
+      }, EXIT_FEEDBACK_THANKS_MS);
+      return;
     }
     maybeOpenDiscount();
   };
@@ -268,9 +298,11 @@ export function ExitFeedbackPrompt() {
         >
           {phase === "feedback"
             ? "Vad hindrade dig från att reservera idag?"
-            : phase === "discount"
-              ? "Vill du ha 10 % på din första beställning?"
-              : EXIT_DISCOUNT_ACCOUNT_HEADING}
+            : phase === "thanks"
+              ? EXIT_FEEDBACK_THANKS_MESSAGE
+              : phase === "discount"
+                ? "Vill du ha 10 % på din första beställning?"
+                : EXIT_DISCOUNT_ACCOUNT_HEADING}
         </p>
         <button
           type="button"
