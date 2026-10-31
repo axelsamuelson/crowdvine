@@ -1,8 +1,8 @@
 # Köpvillkor
 
-> **UTKAST.** Framtaget av Daniel Holm (Compliance), med ställningstagande av Sofia Bergström (GC) den 25 augusti 2026 enligt `gc-stallningstagande-angerratt-och-villkor.md`. Tvistlösningen (p. 13) är oförändrad. Punkt 9 och 10 är omskrivna 2026-10-29 på ägarens instruktion och avviker från GC-dokumentet, se anmärkningen under punkt 9. Punkt 3 (giltighetstid och producent som inte kan leverera) uppdaterad 2026-10-31, i linje med reservationsmejlen (30 dagar åt gången, bekräftelse via länk senast angivet datum inom 7 dagar, obegränsat antal förlängningar). Fält markerade `[FYLL I]` måste fyllas i innan sidan går live. Ingen extern advokat har granskat texten.
+> **UTKAST.** Framtaget av Daniel Holm (Compliance), med ställningstagande av Sofia Bergström (GC) den 25 augusti 2026 enligt `gc-stallningstagande-angerratt-och-villkor.md`. Tvistlösningen (p. 13) är oförändrad. Punkt 9 och 10 är omskrivna 2026-10-29 på ägarens instruktion och avviker från GC-dokumentet, se anmärkningen under punkt 9. Punkt 3 (giltighetstid och producent som inte kan leverera) uppdaterad 2026-10-31, i linje med reservationsmejlen (30 dagar åt gången, bekräftelse via länk senast angivet datum inom 7 dagar, obegränsat antal förlängningar). Punkt 7 (leveranstid och leveransområde) ifylld 2026-11-01: 5–10 arbetsdagar inom hela Sverige från orderbekräftelse och debitering. Punkt 5 (misslyckad debitering: omförsök efter 24/72 h, 3D Secure-länk, avbrott efter tre försök utan dragning) uppdaterad 2026-11-02 enligt `lib/payment-retry.ts` och Stripe-webhook. Punkt 8 (returkostnad) ifylld 2026-11-03; antal leveransförsök orört. Bolagsadress uppdaterad 2026-11-04 till äriregister-form (Kesklinna linnaosa, Harju maakond; postnummer 10115 behållet då det redan fanns i repo). Övriga fält markerade `[FYLL I]` måste fyllas i innan sidan går live. Ingen extern advokat har granskat texten.
 
-Senast uppdaterad: 2026-10-31
+Senast uppdaterad: 2026-11-04
 
 ---
 
@@ -14,7 +14,7 @@ Din motpart vid köp på pactwines.com är:
 |---|---|
 | Säljare | EURPACT OÜ |
 | Registreringsnummer | 17538270 |
-| Adress | Tartu mnt 67/1-13b, 10115, stadscentrum, Tallinn, Harju län, Estland |
+| Adress | Tartu mnt 67/1-13b, Kesklinna linnaosa, 10115 Tallinn, Harju maakond, Estland |
 | E-post | customer@pactwines.com |
 | Registrerad som distansförsäljare av alkohol hos Skatteverket | [FYLL I REGISTRERINGSNUMMER] |
 
@@ -22,7 +22,7 @@ EURPACT OÜ är ett estniskt bolag och säljer alkohol på distans till konsumen
 
 > **Anmärkning, ej del av publicerad text.** Bolagsnamn och registreringsnummer är hämtade från den befintliga sidan `/vilkor` i produktion den 25 augusti 2026. Bekräfta mot registreringsbeviset innan publicering. Observera att namnet där är **EURPACT OÜ**, medan interna underlag genomgående skrivit "PACT OÜ".
 >
-> Adressen är den registrerade adressen, på svenska. I äriregistret står den som Tartu mnt 67/1-13b, 10115, Kesklinna linnaosa, Tallinn, Harju maakond, Eesti.
+> Adressen är den registrerade adressen (äriregister-form med postnummer 10115 som redan fanns i repo): Tartu mnt 67/1-13b, Kesklinna linnaosa, 10115 Tallinn, Harju maakond, Estland.
 >
 > Kontaktadressen är den bevakade adressen `customer@pactwines.com` (inte `noreply@`). Distansavtalslagen kräver uppgift om hur konsumenten kan kontakta säljaren, och GDPR kräver en fungerande kanal för att utöva sina rättigheter. Samma adress används i integritetspolicyn.
 
@@ -97,7 +97,7 @@ Betalningar hanteras av Stripe. Vi lagrar aldrig ditt fullständiga kortnummer.
 
 Din bank kan komma att kräva en säkerhetsverifiering (BankID eller motsvarande) antingen vid reservationen eller vid debiteringen.
 
-**Om betalningen inte kan genomföras** när pallen stänger, till exempel för att kortet gått ut eller saknar täckning, gäller Stripes regler för betalningen och villkoren för det betalmedel du använder. Sker ingen betalning återgår varorna till försäljning.
+**Om betalningen inte kan genomföras** när pallen stänger, till exempel för att kortet gått ut eller saknar täckning: Om dragningen från ditt sparade kort misslyckas gör vi nya försök efter **24 och 72 timmar**. Kräver banken extra verifiering (3D Secure) får du ett mejl med en länk för att godkänna betalningen. Misslyckas tre försök avbryts beställningen och **inget dras**. Varorna återgår då till försäljning.
 
 Betalning sker enligt [Stripes villkor för betalningstjänsten](https://stripe.com/legal/ssa). Där regleras vilka betalmedel som kan användas och hur en betalning genomförs. Använder du en av Stripes egna konsumenttjänster gäller även [Stripes konsumentvillkor](https://stripe.com/legal/consumer).
 
@@ -115,8 +115,7 @@ Betalning sker enligt [Stripes villkor för betalningstjänsten](https://stripe.
 ## 7. Leverans
 
 - Leverans sker med hemleverans och ID-kontroll av Budbee
-- Leverans sker till adresser i [FYLL I LEVERANSOMRÅDE]
-- Beräknad leveranstid efter att pallen stängt: [FYLL I], normalt [FYLL I] veckor
+- Leverans sker inom **5–10 arbetsdagar** inom hela Sverige, räknat från orderbekräftelse och dragen betalning. Vid överlämning kontrolleras mottagarens ålder (20 år) med legitimation
 - Angivna leveranstider är uppskattningar. Transport från Frankrike kan påverkas av tull, väder och producenternas kapacitet
 - **Risken för varan går över på dig först när du tagit emot den.** Skadas eller försvinner varan under transport är det vårt ansvar
 
@@ -128,9 +127,11 @@ Om leveransen blir väsentligt försenad har du rätt att häva köpet och få p
 
 Om du inte är hemma, inte kan legitimera dig eller inte är minst 20 år gör Budbee ett nytt leveransförsök. Kan leveransen inte genomföras då heller returneras varan.
 
+Vid retur betalar du den faktiska returfraktkostnaden, utan påslag. Om överlämningen nekas vid ålderskontrollen tar vi inte ut någon avgift.
+
 Hur ett uteblivet leveransförsök hanteras beskrivs av [Budbee](https://budbee.com/se/kundservice/leveranser/).
 
-> **Anmärkning, ej del av publicerad text.** Budbees kundservice skriver att en hemleverans med ID-krav som inte kan lämnas ombokas. Budbees allmänna villkor från 2018 säger att ett nytt leveransförsök görs på Budbees initiativ om inget annat avtalats, och att gods som inte levererats lagras i 14 dagar. Här är det avtalade antalet ett nytt försök. Vem som bär returkostnaden vid utebliven mottagning är inte angivet. Om kunden underkänns på ålder ska ingen avgift tas ut. Det är en lagstadgad kontroll, inte ett avtalsbrott.
+> **Anmärkning, ej del av publicerad text.** Budbees kundservice skriver att en hemleverans med ID-krav som inte kan lämnas ombokas. Budbees allmänna villkor från 2018 säger att ett nytt leveransförsök görs på Budbees initiativ om inget annat avtalats, och att gods som inte levererats lagras i 14 dagar. Antalet leveransförsök ("ett nytt") är oförändrat — inte beslutat att ändra. Returkostnad ifylld 2026-11-03: faktisk returfrakt utan påslag; ingen avgift vid nekad ålderskontroll (lagstadgad kontroll, inte avtalsbrott).
 
 ---
 
