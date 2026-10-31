@@ -20,8 +20,6 @@ EURPACT OÜ är personuppgiftsansvarig för behandlingen av personuppgifter på 
 
 EURPACT OÜ är ett bolag registrerat inom EU och omfattas av dataskyddsförordningen (GDPR).
 
-**ÖPPEN FRÅGA:** Dirty Wine AB (B2B mot restauranger och barer) är en separat personuppgiftsansvarig för sin egen kunddata. Om B2B-kunder registreras via samma plattform behöver den behandlingen antingen beskrivas här som separat ansvarig, eller regleras i ett gemensamt personuppgiftsansvar enligt artikel 26. Avgörs innan B2B-flödet läggs på plattformen.
-
 ---
 
 ## 2. Vilka uppgifter vi behandlar
