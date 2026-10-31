@@ -6,15 +6,21 @@ import {
 } from "@/lib/shop/plp-card-image";
 
 describe("plpCardImageFit", () => {
-  it("defaults to object-cover with no edge color", () => {
-    expect(plpCardImageFit("l-2023")).toEqual({
+  it("uses contain + edge color for audited square shop labels", () => {
+    const fit = plpCardImageFit("l-2023");
+    expect(fit.objectFit).toBe("contain");
+    expect(fit.edgeColor).toMatch(/^#[0-9a-f]{6}$/i);
+  });
+
+  it("falls back to cover for unknown handles", () => {
+    expect(plpCardImageFit("not-a-real-wine-handle-xyz")).toEqual({
       objectFit: "cover",
       edgeColor: null,
     });
   });
 
-  it("keeps the contain override map empty until a wine clips height", () => {
+  it("keeps the 4/5 aspect constant and a full override map", () => {
     expect(PLP_CARD_ASPECT).toBeCloseTo(0.8);
-    expect(Object.keys(PLP_CONTAIN_IMAGE_BY_HANDLE)).toHaveLength(0);
+    expect(Object.keys(PLP_CONTAIN_IMAGE_BY_HANDLE).length).toBeGreaterThan(80);
   });
 });
