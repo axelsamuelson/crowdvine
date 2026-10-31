@@ -54,7 +54,7 @@ export function Header({
   }, [loading, isB2BOnly, pathname]);
 
   return (
-    <header className="grid fixed top-0 left-0 z-50 grid-cols-3 items-start w-full p-sides md:grid-cols-12 md:gap-sides">
+    <header className="grid fixed top-0 left-0 z-50 grid-cols-3 items-start w-full p-sides md:grid-cols-12 md:gap-sides bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
       <div className="block flex-none md:hidden">
         <MobileMenuDynamic
           collections={collections}
