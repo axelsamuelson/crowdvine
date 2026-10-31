@@ -23,6 +23,7 @@ import { ColorSwatch } from "@/components/ui/color-picker";
 import { getColorHex, cn } from "@/lib/utils";
 import { useTranslations } from "@/lib/hooks/use-translations";
 import { useLocalizedPaths } from "@/lib/hooks/use-localized-paths";
+import { formatWineColorDisplay } from "@/lib/i18n/wine-color-labels";
 import { getProductListPriceSek } from "@/lib/price-breakdown";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 import { pricesFromCartAfterAdd } from "@/lib/analytics/cart-event-prices";
@@ -907,7 +908,8 @@ export const ProductCard = memo(
                       isSelected={false}
                       onColorChange={() => {}}
                       size="xs"
-                      atLeastOneColorSelected={false}
+                        atLeastOneColorSelected={false}
+                      displayName={formatWineColorDisplay(t, { name: wineColor.name, value: Array.isArray(wineColor.value) ? wineColor.value[0] : (wineColor.value as string) })}
                     />
                   </div>
                 ) : null}
@@ -992,7 +994,8 @@ export const ProductCard = memo(
                       isSelected={false}
                       onColorChange={() => {}}
                       size="xs"
-                      atLeastOneColorSelected={false}
+                        atLeastOneColorSelected={false}
+                      displayName={formatWineColorDisplay(t, { name: wineColor.name, value: Array.isArray(wineColor.value) ? wineColor.value[0] : (wineColor.value as string) })}
                     />
                   </div>
                 ) : null}
@@ -1092,6 +1095,7 @@ export const ProductCard = memo(
                     onColorChange={() => {}}
                     size="sm"
                     atLeastOneColorSelected={false}
+                    displayName={formatWineColorDisplay(t, { name: wineColor.name, value: Array.isArray(wineColor.value) ? wineColor.value[0] : (wineColor.value as string) })}
                   />
                 </div>
               )}

@@ -67,13 +67,18 @@ export function MobileMenu({
     <>
       <Button
         onClick={openMobileMenu}
-        aria-label="Open mobile menu"
+        aria-label={t("common.openMenu")}
         variant="secondary"
         size="sm"
         // Match cart trigger corner radius on mobile (rounded-sm, not pill).
-        className="rounded-sm uppercase md:hidden"
+        // Dirtywine: sentence case "Meny"; PACT keeps uppercase "MENU".
+        className={
+          isDirtywineSite
+            ? "rounded-sm normal-case md:hidden"
+            : "rounded-sm uppercase md:hidden"
+        }
       >
-        Menu
+        {t("common.menu")}
       </Button>
 
       {/* Don't render motion components during SSR */}
@@ -102,14 +107,14 @@ export function MobileMenu({
               >
                 <div className="flex flex-col p-3 w-full rounded bg-muted md:p-4 overflow-hidden">
                   <div className="flex justify-between items-baseline pl-2 mb-10">
-                    <p className="text-2xl font-semibold">Menu</p>
+                    <p className="text-2xl font-semibold">{t("common.menu")}</p>
                     <Button
                       size="sm"
                       variant="ghost"
-                      aria-label="Close cart"
+                      aria-label={t("common.closeMenu")}
                       onClick={closeMobileMenu}
                     >
-                      Close
+                      {t("common.close")}
                     </Button>
                   </div>
 
@@ -133,7 +138,7 @@ export function MobileMenu({
                         >
                           <Link href="/producer" prefetch>
                             <Factory className="w-4 h-4 mr-2" />
-                            Producer
+                            {t("nav.producer")}
                           </Link>
                         </Button>
                       )}
@@ -148,7 +153,7 @@ export function MobileMenu({
                         >
                           <Link href="/admin" prefetch>
                             <Shield className="w-4 h-4 mr-2" />
-                            Admin
+                            {t("nav.admin")}
                           </Link>
                         </Button>
                       )}

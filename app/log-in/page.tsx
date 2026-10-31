@@ -14,6 +14,7 @@ import { Loader2, Mail, Lock, ArrowLeft } from "lucide-react";
 import { FooterLogoSvg } from "@/components/layout/footer-logo-svg";
 import InfiniteGallery from "@/components/access-request/infinite-gallery";
 import { galleryImages } from "@/components/access-request/gallery-images";
+import { useTranslations } from "@/lib/hooks/use-translations";
 
 const DURATION = 0.3;
 const DELAY = DURATION;
@@ -27,6 +28,7 @@ const SPRING = {
 };
 
 export default function LogInPage() {
+  const { t } = useTranslations();
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -68,13 +70,13 @@ export default function LogInPage() {
         const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(data.error || "Failed to reset password");
+          throw new Error(data.error || t("auth.resetFailed"));
         }
 
         setSuccess(data.message);
         if (data.newPassword) {
           setSuccess(
-            `${data.message} Your new password is: ${data.newPassword}`,
+            `${data.message} ${data.newPassword}`,
           );
         }
         setEmail("");
@@ -95,7 +97,7 @@ export default function LogInPage() {
         const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(data.error || "Invalid email or password");
+          throw new Error(data.error || t("auth.invalidCredentials"));
         }
 
         // Track login event
@@ -110,7 +112,7 @@ export default function LogInPage() {
           console.error("Failed to track login event:", trackingError);
         }
 
-        setSuccess("Login successful! Redirecting...");
+        setSuccess(t("auth.loginSuccess"));
         setEmail("");
         setPassword("");
 
@@ -125,8 +127,8 @@ export default function LogInPage() {
         err instanceof Error
           ? err.message
           : isForgotPassword
-            ? "Failed to reset password. Please try again."
-            : "Invalid email or password. Please try again.",
+            ? t("auth.resetFailed")
+            : t("auth.invalidCredentials"),
       );
     } finally {
       setLoading(false);
@@ -171,12 +173,14 @@ export default function LogInPage() {
             <Card className="relative isolate border-2 border-white/25 bg-zinc-950/50 shadow-[0_8px_40px_rgba(0,0,0,0.35)]">
               <CardHeader className="text-center pb-6">
                 <CardTitle className="text-2xl font-semibold text-white">
-                  {isForgotPassword ? "Reset your password" : "Welcome back"}
+                  {isForgotPassword
+                    ? t("auth.resetPasswordTitle")
+                    : t("auth.welcomeBack")}
                 </CardTitle>
                 <p className="text-white/80 text-sm mt-2">
                   {isForgotPassword
-                    ? "Enter your email to receive a new password"
-                    : "Enter your credentials to access your account"}
+                    ? t("auth.resetHint")
+                    : t("auth.credentialsHint")}
                 </p>
               </CardHeader>
 
@@ -187,7 +191,7 @@ export default function LogInPage() {
                       htmlFor="email"
                       className="text-white/90 text-sm font-medium"
                     >
-                      Email address
+                      {t("auth.emailLabel")}
                     </Label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-white/50" />
@@ -200,7 +204,7 @@ export default function LogInPage() {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         className="pl-10 bg-black/40 border-white/20 text-white placeholder:text-white/45 focus:bg-black/55 focus:border-white/40"
-                        placeholder="Enter your email"
+                        placeholder={t("auth.emailPlaceholder")}
                       />
                     </div>
                   </div>
@@ -219,7 +223,7 @@ export default function LogInPage() {
                           htmlFor="password"
                           className="text-white/90 text-sm font-medium"
                         >
-                          Password
+                          {t("auth.passwordLabel")}
                         </Label>
                         <div className="relative">
                           <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-white/50" />
@@ -232,7 +236,7 @@ export default function LogInPage() {
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             className="pl-10 bg-black/40 border-white/20 text-white placeholder:text-white/45 focus:bg-black/55 focus:border-white/40"
-                            placeholder="Enter your password"
+                            placeholder={t("auth.passwordPlaceholder")}
                           />
                         </div>
                       </motion.div>
@@ -288,13 +292,13 @@ export default function LogInPage() {
                       <>
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                         {isForgotPassword
-                          ? "Resetting password..."
-                          : "Signing in..."}
+                          ? t("auth.resettingPassword")
+                          : t("auth.signingIn")}
                       </>
                     ) : isForgotPassword ? (
-                      "Reset password"
+                      t("auth.resetPassword")
                     ) : (
-                      "Sign in"
+                      t("auth.signIn")
                     )}
                   </Button>
                 </form>
@@ -321,7 +325,7 @@ export default function LogInPage() {
                           variant="outline"
                           className="w-full bg-white/10 border-white/20 text-white hover:bg-white/15"
                         >
-                          Forgot password?
+                          {t("auth.forgotPassword")}
                         </Button>
                       </motion.div>
                     )}
@@ -345,7 +349,7 @@ export default function LogInPage() {
                           variant="outline"
                           className="w-full bg-white/10 border-white/20 text-white hover:bg-white/15"
                         >
-                          Back to sign in
+                          {t("auth.backToSignIn")}
                         </Button>
                       </motion.div>
                     )}
@@ -359,7 +363,7 @@ export default function LogInPage() {
                     className="inline-flex items-center text-white/70 hover:text-white text-sm transition-colors duration-200"
                   >
                     <ArrowLeft className="w-4 h-4 mr-2" />
-                    Back to home
+                    {t("auth.backToHome")}
                   </Link>
                 </div>
               </CardContent>
@@ -370,8 +374,8 @@ export default function LogInPage() {
 
       {/* Bottom instructions (template style) */}
       <div className="text-center fixed bottom-10 left-0 right-0 font-mono uppercase text-[11px] font-semibold text-white/90 mix-blend-exclusion">
-        <p>Wine has never been this accessible and transparent.</p>
-        <p className="opacity-60">Membership by invitation.</p>
+        <p>{t("auth.footerLine1")}</p>
+        <p className="opacity-60">{t("auth.footerLine2")}</p>
       </div>
     </main>
   );
