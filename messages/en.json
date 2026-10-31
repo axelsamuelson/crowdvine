@@ -130,6 +130,7 @@
     "reserve": "Reserve",
     "viewProductAria": "View details for {title}, price {price}",
     "viewProduct": "View product",
+    "viewWine": "View wine",
     "completeOrder": "Complete order",
     "completeOrderShow": "Show order progress",
     "completeOrderHide": "Hide order progress",

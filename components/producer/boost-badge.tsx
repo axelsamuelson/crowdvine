@@ -18,7 +18,8 @@ export function BoostBadge({ className }: { className?: string }) {
   );
 }
 
-/** Reserves overlay space for boosted producers before badge renders. */
+/** Boost badge under PLP card meta. Inactive → null so it does not collapse
+ *  the tight name → producer → price stack (2px / 6px). */
 export function BoostBadgeSlot({
   active,
   className,
@@ -26,15 +27,10 @@ export function BoostBadgeSlot({
   active: boolean;
   className?: string;
 }) {
+  if (!active) return null;
   return (
-    <div
-      className={cn(
-        "mt-0.5 min-h-[18px] md:min-h-[22px]",
-        !active && "min-h-0",
-        className,
-      )}
-    >
-      {active ? <BoostBadge /> : null}
+    <div className={cn("mt-0.5", className)}>
+      <BoostBadge />
     </div>
   );
 }

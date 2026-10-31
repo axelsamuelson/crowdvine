@@ -16,7 +16,7 @@ interface ProductListImageProps {
   index?: number;
 }
 
-/** Lightweight PLP image — no variant hooks or intersection observer. */
+/** Lightweight PLP image — square frame, object-cover (shop labels are 1:1). */
 export const ProductListImage = memo(function ProductListImage({
   product,
   priority = false,
@@ -33,8 +33,8 @@ export const ProductListImage = memo(function ProductListImage({
         alt={imageToShow?.altText || product.title}
         width={imageToShow?.width || 600}
         height={imageToShow?.height || 600}
-        sizes="(max-width: 768px) 50vw, 33vw"
-        className="object-cover size-full block"
+        sizes="(max-width: 768px) 50vw, (max-width: 1280px) 33vw, 25vw"
+        className="size-full block object-cover object-center"
         quality={PLP_IMAGE_QUALITY}
         priority={isAboveFold}
         loading={isAboveFold ? "eager" : "lazy"}

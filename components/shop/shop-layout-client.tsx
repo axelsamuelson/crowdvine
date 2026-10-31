@@ -55,7 +55,9 @@ export function ShopLayoutClient({
         <div className="col-span-9 flex flex-col max-md:pb-24">
           <Suspense fallback={null}>{children}</Suspense>
         </div>
-        <div className="md:hidden sticky top-top-spacing z-40 bg-transparent order-first md:order-none col-span-12">
+        {/* Results count scrolls with content (not sticky). Header stays fixed
+            with solid page-matching bg so scrolled chrome never overlays it. */}
+        <div className="order-first col-span-12 md:order-none md:hidden">
           <div className="px-sides pt-1">
             <CompleteOrderRailDynamic showMobile />
           </div>

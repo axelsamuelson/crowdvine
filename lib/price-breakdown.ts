@@ -229,9 +229,11 @@ function decomposeRetailPriceInclVat(
       (cost + alcoholTax + margin + vat) * 100,
     ) / 100;
 
+    // Absorb float/ceil residue so component sum matches the list total.
+    // Threshold must catch sub-öre drift (e.g. 174.01 vs 174 → else PDP ceils to 175).
     const diff = totalInclVat - calculatedTotal;
-    if (Math.abs(diff) >= 0.01) {
-      margin = Math.ceil((margin + diff) * 100) / 100;
+    if (Math.abs(diff) >= 0.005) {
+      margin = Math.round((margin + diff) * 100) / 100;
       calculatedTotal = totalInclVat;
     }
 
@@ -240,7 +242,7 @@ function decomposeRetailPriceInclVat(
       alcoholTax,
       margin,
       vat,
-      total: calculatedTotal,
+      total: totalInclVat,
     };
   }
 
@@ -315,6 +317,8 @@ export function calculatePriceBreakdown(
   wine: WinePricingData,
   memberDiscountPercent: number = 0,
 ): PriceBreakdownResult {
+  // Canonical customer-facing list price: ceil(öre → whole SEK).
+  // Must match PLP ServerListPrice / getProductListPriceSek + ceil display.
   const listTotalInclVat = Math.ceil(wine.base_price_cents / 100);
   const originalMarginPercentage = wine.margin_percentage;
 
@@ -323,6 +327,8 @@ export function calculatePriceBreakdown(
   if (memberDiscountPercent <= 0) {
     return {
       ...base,
+      // Never surface component-ceil residue (e.g. 174.01 → display ceil 175).
+      total: listTotalInclVat,
       marginPercentage: originalMarginPercentage,
       originalMarginPercentage,
       listTotalInclVat,
