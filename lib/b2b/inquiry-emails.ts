@@ -1,4 +1,8 @@
-import { sendEmail } from "@/lib/email";
+import {
+  defaultCustomerReplyTo,
+  defaultResendFrom,
+  sendEmail,
+} from "@/lib/email";
 import {
   b2bInquiryCopy,
   type B2bInquiryCopyLocale,
@@ -6,7 +10,7 @@ import {
 import { getB2bInquiryNotifyEmail } from "@/lib/b2b/flags";
 import type { B2bInquiryNormalized } from "@/lib/b2b/inquiry-validation";
 
-const FROM_DIRTYWINE = "Dirtywine <noreply@dirtywine.se>";
+/** Prefer verified Resend sender; Reply-To Dirtywine inbox for human follow-up. */
 const REPLY_DIRTYWINE = "axel@dirtywine.se";
 
 function escapeHtml(s: string): string {
@@ -51,8 +55,8 @@ export async function sendB2bInquiryCustomerEmail(opts: {
     subject: copy.emailSubjectCustomer,
     html,
     text,
-    from: FROM_DIRTYWINE,
-    replyTo: REPLY_DIRTYWINE,
+    from: defaultResendFrom(),
+    replyTo: REPLY_DIRTYWINE || defaultCustomerReplyTo(),
   });
 }
 
@@ -92,7 +96,7 @@ export async function sendB2bInquiryInternalNotify(opts: {
     subject,
     html,
     text,
-    from: FROM_DIRTYWINE,
+    from: defaultResendFrom(),
     replyTo: v.email,
   });
 }

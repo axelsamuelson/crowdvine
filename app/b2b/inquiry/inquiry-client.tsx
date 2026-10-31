@@ -11,7 +11,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { useTranslations } from "@/lib/hooks/use-translations";
 import { useLocalizedPaths } from "@/lib/hooks/use-localized-paths";
 import { b2bInquiryCopy } from "@/lib/b2b/inquiry-copy";
-import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
+import {
+  trackB2bInquiryStarted,
+  trackB2bInquirySubmitted,
+} from "@/lib/analytics/b2b-track-client";
 import { formatCartLinePrice } from "@/lib/shopping-context/format";
 import { priceExclVat } from "@/lib/shopify/utils";
 import { emitOnce } from "@/lib/analytics/emit-once";
@@ -68,13 +71,11 @@ export function B2bInquiryClient() {
 
   useEffect(() => {
     emitOnce("b2b_inquiry_started", () => {
-      void AnalyticsTracker.trackEvent({
-        eventType: "b2b_inquiry_started",
-        eventCategory: "b2b",
-        metadata: {
-          line_count: warehouseLines.length,
-          total_bottles: warehouseLines.reduce((s, l) => s + l.quantity, 0),
-        },
+      trackB2bInquiryStarted({
+        page: "/b2b/inquiry",
+        source: "checkout_replacement",
+        wine_count: warehouseLines.length,
+        est_bottles: warehouseLines.reduce((s, l) => s + l.quantity, 0),
       });
     });
   }, [warehouseLines]);
@@ -161,13 +162,11 @@ export function B2bInquiryClient() {
         return;
       }
 
-      void AnalyticsTracker.trackEvent({
-        eventType: "b2b_inquiry_submitted",
-        eventCategory: "b2b",
-        metadata: {
-          inquiry_id: data?.id,
-          line_count: warehouseLines.length,
-        },
+      trackB2bInquirySubmitted({
+        page: "/b2b/inquiry",
+        source: "checkout_replacement",
+        wine_count: warehouseLines.length,
+        est_bottles: warehouseLines.reduce((s, l) => s + l.quantity, 0),
       });
 
       await clearCartLines();
