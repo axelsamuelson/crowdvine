@@ -14,12 +14,13 @@ import { guideCopy } from "@/lib/guides/guide-copy";
 import { switchGuidePath } from "@/lib/guides/switch-guide-path";
 
 describe("natural vs organic vs biodynamic wine guide", () => {
-  it("keeps draft meta title and description", () => {
+  it("keeps SEO meta title and description", () => {
+    // Template would append " | PACT Wines", so title keeps " | PACT" absolute.
     expect(naturalVsOrganicMeta.title).toBe(
-      "Natural vs Organic vs Biodynamic Wine: What the Labels Mean | PACT",
+      "Natural vs Organic Wine (and Biodynamic) Explained | PACT",
     );
     expect(naturalVsOrganicMeta.description).toBe(
-      "Natural vs organic wine, organic vs biodynamic: how EU organic, USDA organic, Demeter and Vin Méthode Nature differ on farming, additives and sulfites.",
+      "Natural vs organic wine vs biodynamic: how USDA organic, EU organic, Demeter and Vin Méthode Nature differ on farming, additives and sulfite limits.",
     );
     expect(naturalVsOrganicMeta.description.length).toBeLessThanOrEqual(160);
     expect(NATURAL_VS_ORGANIC_PATH).toBe(

@@ -8,10 +8,14 @@ export const NATURAL_VS_ORGANIC_PATH =
 
 export const NATURAL_VS_ORGANIC_UPDATED = "2026-11-01";
 
+/**
+ * Root title.template appends ` | PACT Wines`, not ` | PACT`, so keep the
+ * preferred suffix in an absolute metadata title.
+ */
 export const naturalVsOrganicMeta = {
-  title: "Natural vs Organic vs Biodynamic Wine: What the Labels Mean | PACT",
+  title: "Natural vs Organic Wine (and Biodynamic) Explained | PACT",
   description:
-    "Natural vs organic wine, organic vs biodynamic: how EU organic, USDA organic, Demeter and Vin Méthode Nature differ on farming, additives and sulfites.",
+    "Natural vs organic wine vs biodynamic: how USDA organic, EU organic, Demeter and Vin Méthode Nature differ on farming, additives and sulfite limits.",
 } as const;
 
 export const naturalVsOrganicAuthor = {

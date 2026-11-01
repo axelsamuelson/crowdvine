@@ -87,6 +87,11 @@ export async function renderNaturalVsOrganicGuidePage() {
     "@type": "Person" as const,
     name: naturalVsOrganicAuthor.name,
     jobTitle: naturalVsOrganicAuthor.jobTitle,
+    worksFor: {
+      "@type": "Organization" as const,
+      name: "PACT",
+      url: seoBaseUrl,
+    },
   };
 
   const articleJsonLd = {
@@ -95,7 +100,7 @@ export async function renderNaturalVsOrganicGuidePage() {
     headline: naturalVsOrganicHubCard.title,
     description: naturalVsOrganicMeta.description,
     url: pageUrl,
-    inLanguage: "en-GB",
+    inLanguage: "en-US",
     dateModified: NATURAL_VS_ORGANIC_UPDATED,
     isPartOf: {
       "@type": "WebSite",
