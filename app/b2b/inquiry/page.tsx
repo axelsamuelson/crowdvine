@@ -1,5 +1,8 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { isDirtywineInquiryMode } from "@/lib/b2b/flags";
+import { loadB2bInquiryPrefill } from "@/lib/b2b/inquiry-prefill";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getCurrentUser } from "@/lib/supabase-server";
 import { B2bInquiryClient } from "./inquiry-client";
 
@@ -14,5 +17,16 @@ export default async function B2bInquiryPage() {
     redirect("/checkout");
   }
   const user = await getCurrentUser();
-  return <B2bInquiryClient isAuthenticated={Boolean(user)} />;
+  const prefill = user
+    ? await loadB2bInquiryPrefill(getSupabaseAdmin(), user)
+    : null;
+
+  return (
+    <Suspense fallback={null}>
+      <B2bInquiryClient
+        isAuthenticated={Boolean(user)}
+        prefill={prefill}
+      />
+    </Suspense>
+  );
 }

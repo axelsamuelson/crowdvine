@@ -33,6 +33,10 @@ export const B2B_INQUIRY_COPY = {
     loginCta: "Logga in för att skicka förfrågan",
     loginRequiredIntro:
       "Logga in för att skicka förfrågan. Du kommer tillbaka hit med din lista kvar.",
+    createAccountCta: "Skapa konto för att spara förfrågan",
+    createAccountSkip: "Fortsätt utan konto",
+    createAccountDone: "Förfrågan sparad på ditt konto.",
+    loginExistingCta: "Logga in",
     emptyCart:
       "Varukorgen är tom. Lägg till viner från lagret innan du skickar en förfrågan.",
     backToShop: "Tillbaka till sortimentet",
@@ -82,6 +86,10 @@ export const B2B_INQUIRY_COPY = {
     loginCta: "Log in to send an inquiry",
     loginRequiredIntro:
       "Log in to send an inquiry. You will return here with your list intact.",
+    createAccountCta: "Create an account to save your inquiry",
+    createAccountSkip: "Continue without an account",
+    createAccountDone: "Inquiry saved to your account.",
+    loginExistingCta: "Log in",
     emptyCart:
       "Your cart is empty. Add warehouse wines before sending an inquiry.",
     backToShop: "Back to the catalogue",
@@ -140,6 +148,10 @@ export function listB2bInquiryCustomerFacingSvTexts(): string[] {
     c.submitting,
     c.loginCta,
     c.loginRequiredIntro,
+    c.createAccountCta,
+    c.createAccountSkip,
+    c.createAccountDone,
+    c.loginExistingCta,
     c.emptyCart,
     c.backToShop,
     c.successTitle,

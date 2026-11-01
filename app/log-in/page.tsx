@@ -39,6 +39,9 @@ export default function LogInPage() {
 
   // Get next parameter from URL
   const [nextUrl, setNextUrl] = useState("/profile");
+  /** Hide invite-membership footer when returning from Dirtywine inquiry flow. */
+  const [hideInviteMembershipFooter, setHideInviteMembershipFooter] =
+    useState(false);
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -46,6 +49,16 @@ export default function LogInPage() {
     if (next) {
       setNextUrl(next);
     }
+    const emailParam = urlParams.get("email")?.trim();
+    if (emailParam) {
+      setEmail(emailParam);
+    }
+    const fromInquiry =
+      typeof next === "string" && next.includes("/b2b/inquiry");
+    const onDirtywine =
+      typeof window !== "undefined" &&
+      window.location.hostname.toLowerCase().includes("dirtywine.se");
+    setHideInviteMembershipFooter(fromInquiry || onDirtywine);
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -372,10 +385,12 @@ export default function LogInPage() {
         </div>
       </div>
 
-      {/* Bottom instructions (template style) */}
+      {/* Bottom instructions (template style). Skip invite-membership line on Dirtywine / inquiry return. */}
       <div className="text-center fixed bottom-10 left-0 right-0 font-mono uppercase text-[11px] font-semibold text-white/90 mix-blend-exclusion">
         <p>{t("auth.footerLine1")}</p>
-        <p className="opacity-60">{t("auth.footerLine2")}</p>
+        {!hideInviteMembershipFooter ? (
+          <p className="opacity-60">{t("auth.footerLine2")}</p>
+        ) : null}
       </div>
     </main>
   );
