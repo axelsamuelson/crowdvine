@@ -4,10 +4,7 @@ import { cookies } from "next/headers";
 import { CartService } from "@/src/lib/cart-service";
 import { isB2BHost } from "@/lib/b2b-site";
 import { B2B_PRODUCER_ORDERS_ENABLED } from "@/lib/b2b/flags";
-import {
-  BOTTLE_PACK_SIZE,
-  mergeB2BPackQuantity,
-} from "@/lib/cart/bottle-pack";
+import { mergeB2BPackQuantity } from "@/lib/cart/bottle-pack";
 
 export async function POST(request: Request) {
   try {
@@ -34,10 +31,9 @@ export async function POST(request: Request) {
       );
     }
 
-    // Dirty Wine: never add a single bottle — always a pack
-    const enforcePack =
-      body.enforcePack === true || isB2BHost(requestHost);
-    const addQuantity = enforcePack ? BOTTLE_PACK_SIZE : 1;
+    // Dirty Wine: single bottles allowed (ignore legacy enforcePack).
+    const isB2B = isB2BHost(requestHost);
+    const addQuantity = 1;
 
     // Extract base ID from variant ID (remove -default suffix)
     const baseId = variantId.replace("-default", "");
@@ -136,7 +132,7 @@ export async function POST(request: Request) {
       .maybeSingle();
 
     if (existingItem) {
-      const newQuantity = enforcePack
+      const newQuantity = isB2B
         ? mergeB2BPackQuantity(existingItem.quantity, addQuantity)
         : existingItem.quantity + addQuantity;
       // Increment existing quantity

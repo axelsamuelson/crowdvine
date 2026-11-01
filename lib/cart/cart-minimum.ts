@@ -7,15 +7,12 @@
  * This is a **cart total** floor (≥ 6), not multiples of 6 and not per producer.
  *
  * ## B2B (dirtywine.se)
- * Explicit pack rule in `lib/cart/bottle-pack.ts`: each line quantity must be a
- * multiple of `BOTTLE_PACK_SIZE` (6), between one pack and `B2B_MAX_PACK_BOTTLES`.
- * There is no separate cart-total minimum beyond that (one valid pack line is enough).
- * Cart add / getCart already snaps lines via `normalizeExistingB2BLineQuantity`;
- * validation here is the server-side guard for the same rule.
+ * No cart or line minimum beyond quantity ≥ 1 per line (single bottles allowed).
+ * Lines are clamped to `B2B_MAX_PACK_BOTTLES` via `lib/cart/bottle-pack.ts`.
  */
 
 import {
-  BOTTLE_PACK_SIZE,
+  B2B_MIN_LINE_BOTTLES,
   isBottlePackQuantity,
 } from "@/lib/cart/bottle-pack";
 
@@ -36,7 +33,7 @@ export type CartMinimumProgress = {
   channel: CartMinimumChannel;
   /** Bottles currently in cart (B2C) or sum of line quantities (B2B). */
   quantity: number;
-  /** Bottles required to satisfy the rule (B2C: always 6; B2B: sum of per-line targets). */
+  /** Bottles required to satisfy the rule (B2C: always 6; B2B: sum of line qtys when valid). */
   required: number;
   /** Bottles still missing to satisfy the rule. */
   needed: number;
@@ -83,7 +80,7 @@ export function computeB2CCartMinimum(
 }
 
 /**
- * B2B: each line must be a full pack (`BOTTLE_PACK_SIZE` multiples).
+ * B2B: each line must be an integer quantity ≥ 1 (no pack / cart minimum).
  * Returns per-line progress plus an aggregate progress row.
  */
 export function computeB2BPackMinimum(
@@ -103,21 +100,15 @@ export function computeB2BPackMinimum(
 
     quantityTotal += quantity;
     const isValid = isBottlePackQuantity(quantity);
-    // Next pack target: ceil to pack size (min one pack).
-    const required = isValid
-      ? quantity
-      : Math.max(
-          BOTTLE_PACK_SIZE,
-          Math.ceil(quantity / BOTTLE_PACK_SIZE) * BOTTLE_PACK_SIZE,
-        );
-    const needed = isValid ? 0 : required - quantity;
+    const required = isValid ? quantity : B2B_MIN_LINE_BOTTLES;
+    const needed = isValid ? 0 : Math.max(0, required - quantity);
     neededTotal += needed;
-    requiredTotal += required;
+    requiredTotal += isValid ? quantity : required;
 
     lineRows.push({
       ...line,
       quantity,
-      required,
+      required: isValid ? quantity : required,
       needed,
       isValid,
       scope: "line",

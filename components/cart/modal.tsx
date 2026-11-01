@@ -99,13 +99,15 @@ const CartItems = ({
 
   return (
     <div className="flex flex-col justify-between h-full overflow-hidden">
-      {/* Cart Validation Header */}
-      <CartValidationHeader
-        validations={validations}
-        isValidating={isValidating}
-        requiredQuantity={requiredQuantity}
-        neededTotal={neededTotal}
-      />
+      {/* PACT only: Dirty Wine has no bottle minimum / pack rule. */}
+      {!showExclVat ? (
+        <CartValidationHeader
+          validations={validations}
+          isValidating={isValidating}
+          requiredQuantity={requiredQuantity}
+          neededTotal={neededTotal}
+        />
+      ) : null}
 
       <CartContainer className="flex justify-between px-2 text-sm text-muted-foreground">
         <span>{t("cart.products")}</span>
@@ -335,12 +337,11 @@ export default function CartModal() {
     if (!cart || cart.lines.length === 0) {
       return (
         <div className="flex flex-col justify-between h-full overflow-hidden">
-          {/* Always show validation header for educational purposes */}
-          <CartValidationHeader
-            validations={[]}
-            isValidating={false}
-          />
-          
+          {/* PACT only: Dirty Wine has no bottle minimum / pack rule. */}
+          {!isDirtywineSite ? (
+            <CartValidationHeader validations={[]} isValidating={false} />
+          ) : null}
+
           <CartContainer className="flex w-full">
             <Link
               href={paths.shop}
