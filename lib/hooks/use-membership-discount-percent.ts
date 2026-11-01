@@ -1,6 +1,7 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { useMembership } from "@/lib/context/membership-context";
 import { isMembershipDiscountEligible } from "@/lib/membership/membership-discount-eligible";
 import { useB2BModeServerHint } from "@/lib/context/b2b-mode-context";
@@ -8,22 +9,20 @@ import { useB2BModeServerHint } from "@/lib/context/b2b-mode-context";
 /** Effective member discount % for current host (0 on dirtywine.se). */
 export function useMembershipDiscountPercent(): number {
   const { discountPercentage, loading } = useMembership();
-  const searchParams = useSearchParams();
+  const pathname = usePathname();
   const serverHint = useB2BModeServerHint();
+  const [eligible, setEligible] = useState(() => !serverHint);
 
-  if (loading) {
-    return 0;
-  }
+  useEffect(() => {
+    setEligible(
+      isMembershipDiscountEligible(
+        window.location.hostname,
+        new URLSearchParams(window.location.search),
+      ),
+    );
+  }, [pathname, serverHint]);
 
-  const eligible =
-    typeof window === "undefined"
-      ? !serverHint
-      : isMembershipDiscountEligible(
-          window.location.hostname,
-          searchParams,
-        );
-
-  if (!eligible) {
+  if (loading || !eligible) {
     return 0;
   }
 

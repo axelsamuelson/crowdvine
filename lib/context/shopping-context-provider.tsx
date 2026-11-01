@@ -39,6 +39,7 @@ import {
   fallbackSekToDisplayRate,
   resolveDisplayCurrencyCode,
 } from "@/lib/shopping-context/currency-policy";
+import { localeFromShopPath } from "@/lib/i18n/shop-path-locale";
 import type { ShoppingContext } from "@/lib/shopping-context/types";
 
 type ShoppingContextValue = {
@@ -202,6 +203,20 @@ export function ShoppingContextProvider({
       document.documentElement.lang = context.locale;
     }
   }, [context.locale]);
+
+  // ISR shell seeds a static fallback; sync path locale + fetch user/zone prefs client-side.
+  // Personal shopping context must never be baked into CDN-cached HTML.
+  useEffect(() => {
+    const pathLocale = localeFromShopPath(pathname);
+    if (pathLocale) {
+      setContext((prev) => {
+        if (prev.locale === pathLocale) return prev;
+        setLocaleCookie(pathLocale);
+        return applyLocalePolicyToContext({ ...prev, locale: pathLocale });
+      });
+    }
+    void refresh();
+  }, [pathname, refresh]);
 
   useEffect(() => {
     return () => refreshAbortRef.current?.abort("unmount");

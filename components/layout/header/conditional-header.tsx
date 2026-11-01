@@ -4,15 +4,11 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Header } from "./index";
 import { Collection } from "@/lib/shopify/types";
-import type { SiteLogos } from "@/lib/context/site-logo-provider";
+import { isDirtywineHost } from "@/lib/b2b-site";
 
 interface ConditionalHeaderProps {
   collections: Collection[];
   popularCollections: Collection[];
-  isDirtywineSite: boolean;
-  initialLogos?: SiteLogos;
-  /** Request pathname from middleware — keeps SSR and hydration aligned. */
-  ssrPathname: string;
 }
 
 function shouldHideHeader(pathname: string): boolean {
@@ -47,18 +43,23 @@ function shouldHideHeader(pathname: string): boolean {
 export function ConditionalHeader({
   collections,
   popularCollections,
-  isDirtywineSite,
-  initialLogos,
-  ssrPathname,
 }: ConditionalHeaderProps) {
   const pathname = usePathname();
   const [hasMounted, setHasMounted] = useState(false);
+  const [isDirtywineSite, setIsDirtywineSite] = useState(false);
 
   useEffect(() => {
     setHasMounted(true);
-  }, []);
+    setIsDirtywineSite(
+      isDirtywineHost(
+        window.location.hostname,
+        new URLSearchParams(window.location.search),
+      ),
+    );
+  }, [pathname]);
 
-  const activePathname = hasMounted ? pathname || ssrPathname : ssrPathname;
+  // Before mount, assume public chrome (header visible). Hide routes remount client-side.
+  const activePathname = hasMounted ? pathname || "/" : "/";
 
   if (shouldHideHeader(activePathname)) {
     return null;
@@ -69,7 +70,6 @@ export function ConditionalHeader({
       collections={collections}
       popularCollections={popularCollections}
       isDirtywineSite={isDirtywineSite}
-      initialLogos={initialLogos}
     />
   );
 }

@@ -1,10 +1,20 @@
 "use client";
 
-import { createContext, useContext } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+} from "react";
+import { usePathname } from "next/navigation";
+import { isDirtywineHost } from "@/lib/b2b-site";
 
 /**
- * SSR hint: dirtywine.se / localhost ?b2b=1 vs pactwines.com / localhost default.
- * Set from root layout via request Host header.
+ * Host-derived B2B / Dirty Wine hint.
+ * Root layout stays request-free for ISR (`isB2B={false}`); this provider
+ * hydrates from `window.location` so Dirty Wine chrome/prices work without
+ * `headers()` in the shared shell.
  */
 const B2BModeServerHintContext = createContext<boolean>(false);
 
@@ -13,10 +23,28 @@ export function B2BModeProvider({
   children,
 }: {
   isB2B: boolean;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
+  const pathname = usePathname();
+  const [resolved, setResolved] = useState(isB2B);
+
+  useEffect(() => {
+    setResolved(isB2B);
+  }, [isB2B]);
+
+  useEffect(() => {
+    // When the layout cannot pass a host hint (ISR shell), detect client-side.
+    if (isB2B) return;
+    setResolved(
+      isDirtywineHost(
+        window.location.hostname,
+        new URLSearchParams(window.location.search),
+      ),
+    );
+  }, [pathname, isB2B]);
+
   return (
-    <B2BModeServerHintContext.Provider value={isB2B}>
+    <B2BModeServerHintContext.Provider value={resolved}>
       {children}
     </B2BModeServerHintContext.Provider>
   );

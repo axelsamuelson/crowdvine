@@ -48,6 +48,31 @@ export function isDirtywineHost(
   return false;
 }
 
+/**
+ * Dirty Wine detection for API routes on the shared ISR deployment.
+ * Prefer Host / x-forwarded-host; also accept Origin / Referer when the
+ * browser is on dirtywine.se but the request Host is a preview alias
+ * (vercel.app) — same dual-brand shell as public ISR pages.
+ */
+export function isDirtywineRequest(headersLike: {
+  get: (name: string) => string | null;
+}): boolean {
+  const host =
+    headersLike.get("x-forwarded-host") ?? headersLike.get("host");
+  if (isDirtywineHost(host, null)) return true;
+
+  for (const key of ["origin", "referer"] as const) {
+    const raw = headersLike.get(key);
+    if (!raw) continue;
+    try {
+      if (isDirtywineProductionHost(new URL(raw).host)) return true;
+    } catch {
+      /* ignore invalid URL */
+    }
+  }
+  return false;
+}
+
 /** Alias used by product APIs and server data loaders. */
 export function isB2BHost(
   host: string | null,

@@ -6,6 +6,7 @@ import {
 } from "@/lib/i18n/pdp-page";
 import { generateIndexablePdpStaticParams } from "@/lib/crowdvine/pdp-static-params";
 
+export const dynamic = "force-static";
 export const revalidate = 3600;
 export const dynamicParams = true;
 

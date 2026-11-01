@@ -6,7 +6,6 @@ import { ServerListPrice } from "@/components/commerce/server-list-price";
 import { SsrReserveLink } from "@/components/commerce/ssr-reserve-link";
 import { ProductListImageServer } from "@/app/vin/components/product-list-image-server";
 import { ProductGrid } from "@/app/vin/components/product-grid";
-import { getIsDirtywineSiteFromHeaders } from "@/lib/b2b-site-server";
 import type { AppLocale } from "@/lib/i18n/locale";
 import type { Product } from "@/lib/shopify/types";
 
@@ -18,12 +17,10 @@ function ProductListStaticCard({
   product,
   index,
   locale,
-  showMinSix,
 }: {
   product: Product;
   index: number;
   locale: AppLocale;
-  showMinSix: boolean;
 }) {
   const href = productHref(product.handle, locale);
 
@@ -67,7 +64,8 @@ function ProductListStaticCard({
           </div>
 
           <div className="pointer-events-auto space-y-1.5 rounded-md bg-white/95 p-2 shadow-sm backdrop-blur-sm">
-            {showMinSix ? <MinSixBottlesHint locale={locale} compact /> : null}
+            {/* MinSixBottlesHint self-hides on Dirty Wine after host hydration. */}
+            <MinSixBottlesHint locale={locale} compact />
             <DirectBoxDeliveryPromise locale={locale} compact />
             <SsrReserveLink handle={product.handle} locale={locale} />
           </div>
@@ -78,16 +76,13 @@ function ProductListStaticCard({
 }
 
 /** Server-rendered PLP grid — images, price, Reservera CTA, direct-box promise. */
-export async function ProductListStaticGrid({
+export function ProductListStaticGrid({
   products,
   locale,
 }: {
   products: Product[];
   locale: AppLocale;
 }) {
-  const isDirtywine = await getIsDirtywineSiteFromHeaders();
-  const showMinSix = !isDirtywine;
-
   return (
     <ProductGrid>
       {products.map((product, index) => (
@@ -96,7 +91,6 @@ export async function ProductListStaticGrid({
           product={product}
           index={index}
           locale={locale}
-          showMinSix={showMinSix}
         />
       ))}
     </ProductGrid>

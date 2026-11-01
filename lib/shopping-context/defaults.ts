@@ -1,4 +1,8 @@
-import { DEFAULT_APP_LOCALE } from "@/lib/i18n/locale";
+import {
+  DEFAULT_APP_LOCALE,
+  intlLocaleForAppLocale,
+  type AppLocale,
+} from "@/lib/i18n/locale";
 import { applyLocalePolicyToContext } from "@/lib/shopping-context/apply-locale-policy";
 import type { ResolvedActiveGeoZone } from "@/lib/market/resolve-active-geo-zone";
 import type { ResolvedMarket } from "@/lib/market/resolve-market";
@@ -39,11 +43,13 @@ const FALLBACK_MARKET: ResolvedMarket = {
 };
 
 /** Used when a client component renders outside ShoppingContextProvider (e.g. admin previews). */
-export function fallbackShoppingContext(): ShoppingContext {
+export function fallbackShoppingContext(
+  locale: AppLocale = DEFAULT_APP_LOCALE,
+): ShoppingContext {
   return applyLocalePolicyToContext({
-    locale: DEFAULT_APP_LOCALE,
+    locale,
     availableLocales: [],
-    intlLocale: "en-GB",
+    intlLocale: intlLocaleForAppLocale(locale),
     currencyCode: "SEK",
     sekToDisplayRate: 1,
     uiLocalizationEnabled: true,

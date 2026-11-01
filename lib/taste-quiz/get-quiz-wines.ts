@@ -3,8 +3,6 @@ import { extractWineText } from "@/lib/i18n/wine-locale";
 import type { AppLocale } from "@/lib/i18n/locale";
 import { translate } from "@/lib/i18n/messages";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
-import { headers } from "next/headers";
-import { isB2BHost } from "@/lib/b2b-site";
 import { fetchHiddenB2BWineIds } from "@/lib/b2b-pallet-stock";
 
 export type TasteQuizWine = {
@@ -61,9 +59,18 @@ function parseTags(value: string[] | null | undefined): string[] {
   return value.filter((tag): tag is string => typeof tag === "string");
 }
 
-export async function getQuizWines(locale: AppLocale): Promise<TasteQuizWine[]> {
+/**
+ * Taste-quiz wines for public ISR shells.
+ * Defaults to B2C (no headers()) so homepage stays CDN-cacheable; Dirtywine
+ * can pass `isB2BSite: true` from a dynamic route if needed.
+ */
+export async function getQuizWines(
+  locale: AppLocale,
+  options?: { isB2BSite?: boolean },
+): Promise<TasteQuizWine[]> {
   const t = (key: string) => translate(locale, key);
   const sb = getSupabaseAdmin();
+  const isB2BSite = options?.isB2BSite === true;
 
   const { data: wineRows, error: wineError } = await sb
     .from("wines")
@@ -106,10 +113,7 @@ export async function getQuizWines(locale: AppLocale): Promise<TasteQuizWine[]> 
     }
   }
 
-  const headerList = await headers();
-  const hiddenWineIds = isB2BHost(
-    headerList.get("x-forwarded-host") ?? headerList.get("host"),
-  )
+  const hiddenWineIds = isB2BSite
     ? await fetchHiddenB2BWineIds(
         sb,
         rows.map((row) => row.id),

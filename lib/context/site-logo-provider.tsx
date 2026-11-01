@@ -44,9 +44,12 @@ async function fetchLogo(key: "header_logo" | "footer_logo"): Promise<string | n
 export function SiteLogoProvider({
   initialLogos,
   children,
+  /** When true (ISR shell), resolve host-specific logos after mount. */
+  fetchOnMount = false,
 }: {
   initialLogos: SiteLogos;
   children: ReactNode;
+  fetchOnMount?: boolean;
 }) {
   const [logos, setLogos] = useState<SiteLogos>(initialLogos);
 
@@ -67,6 +70,11 @@ export function SiteLogoProvider({
       }
     }
   }, []);
+
+  useEffect(() => {
+    if (!fetchOnMount) return;
+    void refreshLogos();
+  }, [fetchOnMount, refreshLogos]);
 
   useEffect(() => {
     const onLogoCacheCleared = () => {

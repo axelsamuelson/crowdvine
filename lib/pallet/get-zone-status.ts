@@ -144,6 +144,11 @@ export type GetZoneStatusOptions = {
   requestHost?: string | null;
   /** Optional search params string for B2B host detection. */
   searchParams?: URLSearchParams;
+  /**
+   * Skip auth cookies / user zone. Required for ISR HTML so personalized
+   * destination data is never shared across visitors. Client provider refetches.
+   */
+  anonymousOnly?: boolean;
 };
 
 /**
@@ -160,7 +165,9 @@ export async function getPalletZoneStatusForHandle(
       return emptyStatus({ userZoneName: "Stockholm, Sweden" });
     }
 
-    const user = await getCurrentUser();
+    const user = options.anonymousOnly
+      ? null
+      : await getCurrentUser();
     const activeGeoSlice = user?.id
       ? await resolveActiveGeoZoneForUser(user.id)
       : await resolveActiveGeoZoneAnonymous();
@@ -391,6 +398,13 @@ export async function getPalletZoneStatusForHandle(
 
 /** Per-request memoized lookup for SSR list/PDP. */
 export const getCachedPalletZoneStatusForHandle = cache(
-  async (productHandle: string, requestHost?: string | null) =>
-    getPalletZoneStatusForHandle(productHandle, { requestHost }),
+  async (
+    productHandle: string,
+    requestHost?: string | null,
+    anonymousOnly = false,
+  ) =>
+    getPalletZoneStatusForHandle(productHandle, {
+      requestHost,
+      anonymousOnly,
+    }),
 );

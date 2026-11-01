@@ -1,10 +1,13 @@
+"use client";
+
 import type { AppLocale } from "@/lib/i18n/locale";
 import { translate } from "@/lib/i18n/messages";
+import { useB2BModeServerHint } from "@/lib/context/b2b-mode-context";
 import { cn } from "@/lib/utils";
 
 /**
- * Early, always-visible reminder of the 6-bottle minimum (mix allowed).
- * Server-rendered so it shows without client JS.
+ * Early reminder of the 6-bottle minimum (mix allowed).
+ * Hidden on Dirty Wine after client host hydration (ISR shell is host-neutral).
  */
 export function MinSixBottlesHint({
   locale = "sv",
@@ -15,6 +18,9 @@ export function MinSixBottlesHint({
   className?: string;
   compact?: boolean;
 }) {
+  const isDirtywine = useB2BModeServerHint();
+  if (isDirtywine) return null;
+
   const text = translate(locale, "commerce.minSixMix");
   return (
     <p

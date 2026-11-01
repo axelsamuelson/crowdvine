@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { CasePurchaseHelpTrigger } from "@/components/cart/case-purchase-help-trigger";
+import { B2cOnly } from "@/components/commerce/b2c-only";
 import { PeekTabAnchor } from "@/components/pdp/peek-tab-anchor";
 import type { AppLocale } from "@/lib/i18n/locale";
 import { producerPublicPath } from "@/lib/i18n/localized-routes";
@@ -92,9 +93,11 @@ export function WinePdpHeroBox({
         ) : null}
 
         {showCaseHelp ? (
-          <div className="absolute bottom-3 right-3 md:bottom-4 md:right-4">
-            <CasePurchaseHelpTrigger variant="plain" />
-          </div>
+          <B2cOnly>
+            <div className="absolute bottom-3 right-3 md:bottom-4 md:right-4">
+              <CasePurchaseHelpTrigger variant="plain" />
+            </div>
+          </B2cOnly>
         ) : null}
       </div>
     </div>

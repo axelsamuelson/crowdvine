@@ -5,6 +5,7 @@ import {
   renderHomePage,
 } from "@/lib/home/render-home-page";
 
+export const dynamic = "force-static";
 export const revalidate = 600;
 
 export function generateMetadata(): Promise<Metadata> {
