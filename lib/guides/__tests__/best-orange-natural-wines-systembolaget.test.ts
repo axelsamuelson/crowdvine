@@ -67,8 +67,23 @@ describe("best orange natural wines Systembolaget guide", () => {
       ]),
     );
 
+    const factBlocks = (listSection?.blocks ?? []).filter(
+      (block) => block.type === "definitions",
+    );
+    expect(factBlocks.length).toBeGreaterThanOrEqual(7);
+    expect(factBlocks[0]).toMatchObject({
+      type: "definitions",
+      items: expect.arrayContaining([
+        expect.objectContaining({
+          term: expect.objectContaining({ sv: "Producent och region" }),
+        }),
+      ]),
+    });
+
     const serialized = JSON.stringify(bestOrangeNaturalWinesSystembolagetSvArticle);
     expect(serialized).not.toMatch(/\d+\s*kr\b/);
     expect(serialized).not.toMatch(/köp nu|shop now|lägg i kundvagn/i);
+    expect(serialized).toContain("Inte alla viner på listan är naturvin");
+    expect(serialized).not.toContain("Alla viner här är inte naturviner");
   });
 });

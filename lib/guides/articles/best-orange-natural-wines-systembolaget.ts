@@ -285,7 +285,7 @@ export const bestOrangeNaturalWinesSystembolagetSvArticle: GuideArticleContent =
                 "The list is updated when the assortment changes. Not every wine here is natural wine — where we can document the producer's approach, we say so.",
               ],
               sv: [
-                "Listan uppdateras när sortimentet ändras. Alla viner här är inte naturviner – där vi kan belägga producentens arbetssätt skriver vi det.",
+                "Listan uppdateras när sortimentet ändras. Inte alla viner på listan är naturvin – där vi kan belägga producentens arbetssätt skriver vi det.",
               ],
             },
           },
@@ -307,23 +307,44 @@ export const bestOrangeNaturalWinesSystembolagetSvArticle: GuideArticleContent =
             },
           },
           {
-            type: "list",
-            items: {
-              en: [
-                "**Producer and region:** Radikon, Friuli-Venezia-Giulia, Italy",
-                "**Grape:** Ribolla Gialla",
-                "**Skin contact:** long",
-                "**Alcohol:** 12% (50 cl)",
-                "**Assortment:** order assortment",
-              ],
-              sv: [
-                "**Producent och region:** Radikon, Friuli-Venezia-Giulia, Italien",
-                "**Druva:** Ribolla Gialla",
-                "**Skalkontakt:** lång",
-                "**Alkohol:** 12 % (50 cl)",
-                "**Sortiment:** beställningsvara",
-              ],
-            },
+            type: "definitions",
+            items: [
+              {
+                term: {
+                  en: "Producer and region",
+                  sv: "Producent och region",
+                },
+                description: {
+                  en: "Radikon, Friuli-Venezia-Giulia, Italy",
+                  sv: "Radikon, Friuli-Venezia-Giulia, Italien",
+                },
+              },
+              {
+                term: { en: "Grape", sv: "Druva" },
+                description: {
+                  en: "Ribolla Gialla",
+                  sv: "Ribolla Gialla",
+                },
+              },
+              {
+                term: { en: "Skin contact", sv: "Skalkontakt" },
+                description: { en: "long", sv: "lång" },
+              },
+              {
+                term: { en: "Alcohol", sv: "Alkohol" },
+                description: {
+                  en: "12% (50 cl)",
+                  sv: "12 % (50 cl)",
+                },
+              },
+              {
+                term: { en: "Assortment", sv: "Sortiment" },
+                description: {
+                  en: "order assortment",
+                  sv: "beställningsvara",
+                },
+              },
+            ],
           },
           {
             type: "paragraphs",
@@ -364,23 +385,38 @@ export const bestOrangeNaturalWinesSystembolagetSvArticle: GuideArticleContent =
             },
           },
           {
-            type: "list",
-            items: {
-              en: [
-                "**Producer and region:** Faller Henri et Luc, Alsace, France",
-                "**Grape:** Pinot Gris",
-                "**Skin contact:** yes",
-                "**Alcohol:** 13.5%",
-                "**Assortment:** order assortment (organic per Systembolaget)",
-              ],
-              sv: [
-                "**Producent och region:** Faller Henri et Luc, Alsace, Frankrike",
-                "**Druva:** Pinot Gris",
-                "**Skalkontakt:** ja",
-                "**Alkohol:** 13,5 %",
-                "**Sortiment:** beställningsvara (ekologiskt enligt Systembolaget)",
-              ],
-            },
+            type: "definitions",
+            items: [
+              {
+                term: {
+                  en: "Producer and region",
+                  sv: "Producent och region",
+                },
+                description: {
+                  en: "Faller Henri et Luc, Alsace, France",
+                  sv: "Faller Henri et Luc, Alsace, Frankrike",
+                },
+              },
+              {
+                term: { en: "Grape", sv: "Druva" },
+                description: { en: "Pinot Gris", sv: "Pinot Gris" },
+              },
+              {
+                term: { en: "Skin contact", sv: "Skalkontakt" },
+                description: { en: "yes", sv: "ja" },
+              },
+              {
+                term: { en: "Alcohol", sv: "Alkohol" },
+                description: { en: "13.5%", sv: "13,5 %" },
+              },
+              {
+                term: { en: "Assortment", sv: "Sortiment" },
+                description: {
+                  en: "order assortment (organic per Systembolaget)",
+                  sv: "beställningsvara (ekologiskt enligt Systembolaget)",
+                },
+              },
+            ],
           },
           {
             type: "paragraphs",
@@ -402,23 +438,38 @@ export const bestOrangeNaturalWinesSystembolagetSvArticle: GuideArticleContent =
             },
           },
           {
-            type: "list",
-            items: {
-              en: [
-                "**Producer and region:** Domaine Christian Binner, Alsace, France",
-                "**Grape:** Riesling",
-                "**Skin contact:** yes",
-                "**Alcohol:** 12%",
-                "**Assortment:** order assortment",
-              ],
-              sv: [
-                "**Producent och region:** Domaine Christian Binner, Alsace, Frankrike",
-                "**Druva:** Riesling",
-                "**Skalkontakt:** ja",
-                "**Alkohol:** 12 %",
-                "**Sortiment:** beställningsvara",
-              ],
-            },
+            type: "definitions",
+            items: [
+              {
+                term: {
+                  en: "Producer and region",
+                  sv: "Producent och region",
+                },
+                description: {
+                  en: "Domaine Christian Binner, Alsace, France",
+                  sv: "Domaine Christian Binner, Alsace, Frankrike",
+                },
+              },
+              {
+                term: { en: "Grape", sv: "Druva" },
+                description: { en: "Riesling", sv: "Riesling" },
+              },
+              {
+                term: { en: "Skin contact", sv: "Skalkontakt" },
+                description: { en: "yes", sv: "ja" },
+              },
+              {
+                term: { en: "Alcohol", sv: "Alkohol" },
+                description: { en: "12%", sv: "12 %" },
+              },
+              {
+                term: { en: "Assortment", sv: "Sortiment" },
+                description: {
+                  en: "order assortment",
+                  sv: "beställningsvara",
+                },
+              },
+            ],
           },
           {
             type: "paragraphs",
@@ -440,21 +491,34 @@ export const bestOrangeNaturalWinesSystembolagetSvArticle: GuideArticleContent =
             },
           },
           {
-            type: "list",
-            items: {
-              en: [
-                "**Producer and region:** Grape Republic, Yamagata, Japan",
-                "**Skin contact:** yes",
-                "**Alcohol:** 9%",
-                "**Assortment:** temporary range",
-              ],
-              sv: [
-                "**Producent och region:** Grape Republic, Yamagata, Japan",
-                "**Skalkontakt:** ja",
-                "**Alkohol:** 9 %",
-                "**Sortiment:** tillfälligt sortiment",
-              ],
-            },
+            type: "definitions",
+            items: [
+              {
+                term: {
+                  en: "Producer and region",
+                  sv: "Producent och region",
+                },
+                description: {
+                  en: "Grape Republic, Yamagata, Japan",
+                  sv: "Grape Republic, Yamagata, Japan",
+                },
+              },
+              {
+                term: { en: "Skin contact", sv: "Skalkontakt" },
+                description: { en: "yes", sv: "ja" },
+              },
+              {
+                term: { en: "Alcohol", sv: "Alkohol" },
+                description: { en: "9%", sv: "9 %" },
+              },
+              {
+                term: { en: "Assortment", sv: "Sortiment" },
+                description: {
+                  en: "temporary range",
+                  sv: "tillfälligt sortiment",
+                },
+              },
+            ],
           },
           {
             type: "paragraphs",
@@ -476,23 +540,38 @@ export const bestOrangeNaturalWinesSystembolagetSvArticle: GuideArticleContent =
             },
           },
           {
-            type: "list",
-            items: {
-              en: [
-                "**Producer and region:** Abbazia San Giorgio, Pantelleria, Sicily, Italy",
-                "**Grape:** Zibibbo",
-                "**Skin contact:** yes",
-                "**Alcohol:** 12%",
-                "**Assortment:** order assortment",
-              ],
-              sv: [
-                "**Producent och region:** Abbazia San Giorgio, Pantelleria, Sicilien, Italien",
-                "**Druva:** Zibibbo",
-                "**Skalkontakt:** ja",
-                "**Alkohol:** 12 %",
-                "**Sortiment:** beställningsvara",
-              ],
-            },
+            type: "definitions",
+            items: [
+              {
+                term: {
+                  en: "Producer and region",
+                  sv: "Producent och region",
+                },
+                description: {
+                  en: "Abbazia San Giorgio, Pantelleria, Sicily, Italy",
+                  sv: "Abbazia San Giorgio, Pantelleria, Sicilien, Italien",
+                },
+              },
+              {
+                term: { en: "Grape", sv: "Druva" },
+                description: { en: "Zibibbo", sv: "Zibibbo" },
+              },
+              {
+                term: { en: "Skin contact", sv: "Skalkontakt" },
+                description: { en: "yes", sv: "ja" },
+              },
+              {
+                term: { en: "Alcohol", sv: "Alkohol" },
+                description: { en: "12%", sv: "12 %" },
+              },
+              {
+                term: { en: "Assortment", sv: "Sortiment" },
+                description: {
+                  en: "order assortment",
+                  sv: "beställningsvara",
+                },
+              },
+            ],
           },
           {
             type: "paragraphs",
@@ -514,21 +593,37 @@ export const bestOrangeNaturalWinesSystembolagetSvArticle: GuideArticleContent =
             },
           },
           {
-            type: "list",
-            items: {
-              en: [
-                "**Producer and region:** Weingut Arndorfer, Kamptal, Austria",
-                "**Skin contact:** yes",
-                "**Alcohol:** 12% (litre bottle)",
-                "**Assortment:** order assortment",
-              ],
-              sv: [
-                "**Producent och region:** Weingut Arndorfer, Kamptal, Österrike",
-                "**Skalkontakt:** ja",
-                "**Alkohol:** 12 % (literflaska)",
-                "**Sortiment:** beställningsvara",
-              ],
-            },
+            type: "definitions",
+            items: [
+              {
+                term: {
+                  en: "Producer and region",
+                  sv: "Producent och region",
+                },
+                description: {
+                  en: "Weingut Arndorfer, Kamptal, Austria",
+                  sv: "Weingut Arndorfer, Kamptal, Österrike",
+                },
+              },
+              {
+                term: { en: "Skin contact", sv: "Skalkontakt" },
+                description: { en: "yes", sv: "ja" },
+              },
+              {
+                term: { en: "Alcohol", sv: "Alkohol" },
+                description: {
+                  en: "12% (litre bottle)",
+                  sv: "12 % (literflaska)",
+                },
+              },
+              {
+                term: { en: "Assortment", sv: "Sortiment" },
+                description: {
+                  en: "order assortment",
+                  sv: "beställningsvara",
+                },
+              },
+            ],
           },
           {
             type: "paragraphs",
@@ -550,23 +645,41 @@ export const bestOrangeNaturalWinesSystembolagetSvArticle: GuideArticleContent =
             },
           },
           {
-            type: "list",
-            items: {
-              en: [
-                "**Producer and region:** Twins Wine House, Napareuli, Kakheti, Georgia",
-                "**Grape:** Kisi",
-                "**Skin contact:** yes, in qvevri",
-                "**Alcohol:** 12%",
-                "**Assortment:** order assortment",
-              ],
-              sv: [
-                "**Producent och region:** Twins Wine House, Napareuli, Kakheti, Georgien",
-                "**Druva:** Kisi",
-                "**Skalkontakt:** ja, i qvevri",
-                "**Alkohol:** 12 %",
-                "**Sortiment:** beställningsvara",
-              ],
-            },
+            type: "definitions",
+            items: [
+              {
+                term: {
+                  en: "Producer and region",
+                  sv: "Producent och region",
+                },
+                description: {
+                  en: "Twins Wine House, Napareuli, Kakheti, Georgia",
+                  sv: "Twins Wine House, Napareuli, Kakheti, Georgien",
+                },
+              },
+              {
+                term: { en: "Grape", sv: "Druva" },
+                description: { en: "Kisi", sv: "Kisi" },
+              },
+              {
+                term: { en: "Skin contact", sv: "Skalkontakt" },
+                description: {
+                  en: "yes, in qvevri",
+                  sv: "ja, i qvevri",
+                },
+              },
+              {
+                term: { en: "Alcohol", sv: "Alkohol" },
+                description: { en: "12%", sv: "12 %" },
+              },
+              {
+                term: { en: "Assortment", sv: "Sortiment" },
+                description: {
+                  en: "order assortment",
+                  sv: "beställningsvara",
+                },
+              },
+            ],
           },
           {
             type: "paragraphs",
