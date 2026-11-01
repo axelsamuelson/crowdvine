@@ -18,3 +18,13 @@ Captured against local Next with `Host: dirtywine.se` and `NEXT_PUBLIC_DIRTYWINE
 NEXT_PUBLIC_DIRTYWINE_CHECKOUT_MODE=inquiry DIRTYWINE_CHECKOUT_MODE=inquiry pnpm dev
 node scripts/dirtywine-no-minimum-screenshots.mjs
 ```
+
+## Extra design-review shots (qty 1 / PACT unchanged)
+
+| Surface | File |
+| --- | --- |
+| Dirtywine PDP buy + qty 1 (390) | `pdp-buy-qty-1-390.png` |
+| Dirtywine PDP buy + qty 1 (1440) | `pdp-buy-qty-1-1440.png` |
+| Dirtywine cart drawer 1 bottle (390) | `cart-drawer-1-bottle-390.png` |
+| Dirtywine cart drawer 1 bottle (1440) | `cart-drawer-1-bottle-1440.png` |
+| PACT PDP still shows min-6 (390) | `pact-pdp-min-six-390.png` |
