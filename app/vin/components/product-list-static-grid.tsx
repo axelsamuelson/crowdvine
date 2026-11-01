@@ -66,7 +66,7 @@ function ProductListStaticCard({
   );
 }
 
-/** Server-rendered PLP grid — images and price (no delivery overlay on image). */
+/** Server-rendered PLP grid — images and price; commerce box is client-only (reveal on hover/tap). */
 export function ProductListStaticGrid({
   products,
   locale,

@@ -390,3 +390,36 @@ body,
 .dark .recharts-legend-item-text {
   fill: #e5e7eb !important;
 }
+
+/* PLP product card commerce box: hidden by default; hover/focus on hover devices; tap on touch */
+.plp-commerce-box {
+  opacity: 0;
+  pointer-events: none;
+}
+@media (hover: hover) and (pointer: fine) {
+  .group:hover .plp-commerce-box--hover,
+  .group:focus-within .plp-commerce-box--hover {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+  }
+  .plp-commerce-box--touch {
+    display: none !important;
+  }
+}
+@media (hover: none) {
+  .plp-commerce-box--hover {
+    display: none !important;
+  }
+  .group.is-touch-revealed .plp-commerce-box--touch {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+@media (hover: hover) and (pointer: fine) {
+  .group:hover .plp-card-top-meta,
+  .group:focus-within .plp-card-top-meta {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+}

@@ -28,6 +28,7 @@ import { getProductListPriceSek } from "@/lib/price-breakdown";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 import { pricesFromCartAfterAdd } from "@/lib/analytics/cart-event-prices";
 import { PriceViewTracker } from "@/components/analytics/price-view-tracker";
+import { ListCardCommerceFooter } from "@/components/commerce/list-card-commerce-footer";
 import { BOTTLE_PACK_SIZE } from "@/lib/cart/bottle-pack";
 import { B2B_PRODUCER_ORDERS_ENABLED } from "@/lib/b2b/flags";
 import type { Cart } from "@/lib/shopify/types";
@@ -203,10 +204,8 @@ export const ProductCard = memo(
     productType === "wine" &&
     Boolean(product.producerId);
 
-  // PACT PLP: no white commerce card over the bottle photo (mobile or desktop hover).
-  // Dirtywine keeps the existing touch/hover cart overlay on the shared card.
-  const showImageCommerceOverlay = showExclVat;
-
+  // White commerce box is hidden by default. Desktop (hover:hover): group-hover /
+  // focus-within. Touch (hover:none): first tap sets isTouched (never always-on).
   const showMembershipBadge = !showMembershipTab;
   const listPriceSek = getProductListPriceSek(product);
   const showTopTabs = showMembershipTab || recommendationReason != null;
@@ -773,17 +772,36 @@ export const ProductCard = memo(
           </PeekTabAnchor>
         ) : null}
       <div
-        className="relative z-10 w-full aspect-[3/4] md:aspect-square bg-muted group"
+        className={cn(
+          "relative z-10 w-full aspect-[3/4] md:aspect-square bg-muted group",
+          isTouched && "is-touch-revealed",
+        )}
         style={{ clipPath: 'inset(0)' }}
-        onTouchStart={() => {
+        onClickCapture={(e) => {
+          if (typeof window === "undefined") return;
+          if (!window.matchMedia("(hover: none)").matches) return;
+          if (isTouched) return;
+          // First tap on touch devices: reveal the commerce box; do not navigate yet.
+          e.preventDefault();
+          e.stopPropagation();
           setIsTouched(true);
-          const ev = new CustomEvent("productCard:activate", {
-            detail: { id: product.id },
-          });
-          window.dispatchEvent(ev);
+          window.dispatchEvent(
+            new CustomEvent("productCard:activate", {
+              detail: { id: product.id },
+            }),
+          );
         }}
-        onMouseEnter={() => setIsTouched(true)}
-        onMouseLeave={() => setIsTouched(false)}
+        onTouchStart={() => {
+          if (typeof window !== "undefined" && window.matchMedia("(hover: none)").matches) {
+            // Activate/reveal handled in onClickCapture for first tap; still broadcast on later touches.
+            if (!isTouched) return;
+          }
+          window.dispatchEvent(
+            new CustomEvent("productCard:activate", {
+              detail: { id: product.id },
+            }),
+          );
+        }}
       >
       {/* Content wrapper - overflow-clip so wheel scroll propagates to document */}
       <div className="relative size-full overflow-clip">
@@ -828,14 +846,8 @@ export const ProductCard = memo(
 
       {/* Interactive Overlay - moved outside wrapper to avoid overflow-clip issues */}
       <div className="absolute inset-0 pl-1 pr-2 pt-2 pb-2 md:p-2 w-full pointer-events-none">
-        {/* Mobile & Desktop Default: Info overlay (always visible on mobile, visible on desktop until hover) */}
-        <div
-          className={cn(
-            "flex gap-2 md:gap-6 justify-between items-start md:items-baseline px-1 md:px-3 py-1 w-full font-semibold transition-all duration-300 translate-y-0",
-            showImageCommerceOverlay &&
-              "md:group-hover:opacity-0 md:group-focus-visible:opacity-0 md:group-hover:-translate-y-full md:group-focus-visible:-translate-y-full",
-          )}
-        >
+        {/* Top meta: visible by default; hide on desktop when commerce box is revealed */}
+        <div className="plp-card-top-meta flex gap-2 md:gap-6 justify-between items-start md:items-baseline px-1 md:px-3 py-1 w-full font-semibold transition-all duration-300 translate-y-0">
           <div className="flex flex-col min-w-0 max-w-[42%] md:max-w-[40%] shrink md:shrink-0 rounded-r pr-1.5 md:pr-0 md:rounded-none py-1 md:py-0 -my-1 md:my-0 overflow-hidden">
             <p className="text-[8px] leading-tight md:text-sm uppercase 2xl:text-base text-balance line-clamp-2 md:line-clamp-2 break-words overflow-hidden">
               {product.title}
@@ -893,197 +905,273 @@ export const ProductCard = memo(
           </PriceViewTracker>
         </div>
 
-        {/* Mobile: Premium bottom overlay with Add to Cart button (visible on touch/hover) */}
-        {showImageCommerceOverlay && showCartActions && renderInCardAddToCart && (
+        {/* Mobile: commerce box — hidden by default; @media (hover:none) first tap reveals */}
+        {showCartActions && renderInCardAddToCart && (
           <div
-            className={`md:hidden absolute inset-x-2 bottom-2 px-2.5 py-2 rounded-md bg-white/95 backdrop-blur-sm pointer-events-auto shadow-lg transition-opacity duration-200 ${
-              isTouched ? "opacity-100" : "opacity-0"
-            }`}
+            className="plp-commerce-box plp-commerce-box--touch absolute inset-x-1.5 bottom-1.5 z-10 max-h-[40%] overflow-hidden px-1.5 py-1.5 rounded-md bg-white/95 backdrop-blur-sm shadow-md transition-opacity duration-200"
           >
-            <div className="flex flex-col gap-1.5">
-              <div className="flex gap-2 items-center min-w-0">
-                {wineColor ? (
-                  <div className="flex shrink-0 items-center">
-                    <ColorSwatch
-                      color={
-                        Array.isArray(wineColor.value)
-                          ? [
-                              { name: wineColor.name, value: wineColor.value[0] },
-                              { name: wineColor.name, value: wineColor.value[1] },
-                            ]
-                          : { name: wineColor.name, value: wineColor.value as string }
-                      }
-                      isSelected={false}
-                      onColorChange={() => {}}
-                      size="xs"
+            {shopCaseWineCta ? (
+              <ListCardCommerceFooter>
+                <div className="flex gap-1.5 items-center min-w-0">
+                  {wineColor ? (
+                    <div className="flex shrink-0 items-center">
+                      <ColorSwatch
+                        color={
+                          Array.isArray(wineColor.value)
+                            ? [
+                                { name: wineColor.name, value: wineColor.value[0] },
+                                { name: wineColor.name, value: wineColor.value[1] },
+                              ]
+                            : { name: wineColor.name, value: wineColor.value as string }
+                        }
+                        isSelected={false}
+                        onColorChange={() => {}}
+                        size="xs"
                         atLeastOneColorSelected={false}
-                      displayName={formatWineColorDisplay(t, { name: wineColor.name, value: Array.isArray(wineColor.value) ? wineColor.value[0] : (wineColor.value as string) })}
+                        displayName={formatWineColorDisplay(t, { name: wineColor.name, value: Array.isArray(wineColor.value) ? wineColor.value[0] : (wineColor.value as string) })}
+                      />
+                    </div>
+                  ) : null}
+                  <div className="min-w-0 flex-1 flex justify-center">
+                    <MemberPrice
+                      amount={product.priceRange.minVariantPrice.amount}
+                      currencyCode={product.priceRange.minVariantPrice.currencyCode}
+                      basePriceSek={listPriceSek ?? undefined}
+                      className="text-[11px] font-semibold"
+                      showBadge={showMembershipBadge}
+                      badgeRightOnMobile={true}
+                      priceExclVatOverride={
+                        (product as any).b2bPriceExclVat ??
+                        product.priceBreakdown?.b2bPriceExclVat
+                      }
                     />
                   </div>
-                ) : null}
-                <div className="min-w-0 flex-1 flex justify-center">
-                  <MemberPrice
-                    amount={product.priceRange.minVariantPrice.amount}
-                    currencyCode={product.priceRange.minVariantPrice.currencyCode}
-                    basePriceSek={listPriceSek ?? undefined}
-                    className="text-xs font-semibold sm:text-sm"
-                    showBadge={showMembershipBadge}
-                    badgeRightOnMobile={true}
-                    priceExclVatOverride={
-                      (product as any).b2bPriceExclVat ??
-                      product.priceBreakdown?.b2bPriceExclVat
-                    }
-                  />
                 </div>
-              </div>
-              {producerOrdersPaused ? null : shopCaseWineCta ? (
                 <Suspense
                   fallback={
                     <Button
                       type="button"
                       disabled
-                      className="w-full min-h-10 bg-black hover:bg-black/90 text-white border-black rounded-md"
+                      className="w-full h-8 min-h-8 bg-black hover:bg-black/90 text-white border-black rounded-md"
                       size="sm"
                     >
-                      <span className="text-xs">{t("shop.reserve")}</span>
+                      <span className="text-[11px]">{t("shop.reserve")}</span>
                     </Button>
                   }
                 >
                   <ShopWineCasePicker
                     product={product}
                     size="sm"
-                    className="w-full min-h-10"
+                    className="w-full h-8 min-h-8"
                     triggerLabel={t("shop.reserve")}
                     analyticsSource="list"
                   />
                 </Suspense>
-              ) : (
-                <Button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handleAddToCart();
-                  }}
-                  disabled={!getBaseProductVariant()}
-                  className="w-full min-h-10 bg-black hover:bg-black/90 text-white border-black rounded-md"
-                  size="sm"
-                >
-                  <div className="flex items-center justify-center gap-1.5">
-                    <span className="text-xs">{t("product.addToCart")}</span>
-                    <CirclePlus className="size-3.5" />
+              </ListCardCommerceFooter>
+            ) : (
+              <div className="flex flex-col gap-1">
+                <div className="flex gap-1.5 items-center min-w-0">
+                  {wineColor ? (
+                    <div className="flex shrink-0 items-center">
+                      <ColorSwatch
+                        color={
+                          Array.isArray(wineColor.value)
+                            ? [
+                                { name: wineColor.name, value: wineColor.value[0] },
+                                { name: wineColor.name, value: wineColor.value[1] },
+                              ]
+                            : { name: wineColor.name, value: wineColor.value as string }
+                        }
+                        isSelected={false}
+                        onColorChange={() => {}}
+                        size="xs"
+                        atLeastOneColorSelected={false}
+                        displayName={formatWineColorDisplay(t, { name: wineColor.name, value: Array.isArray(wineColor.value) ? wineColor.value[0] : (wineColor.value as string) })}
+                      />
+                    </div>
+                  ) : null}
+                  <div className="min-w-0 flex-1 flex justify-center">
+                    <MemberPrice
+                      amount={product.priceRange.minVariantPrice.amount}
+                      currencyCode={product.priceRange.minVariantPrice.currencyCode}
+                      basePriceSek={listPriceSek ?? undefined}
+                      className="text-[11px] font-semibold"
+                      showBadge={showMembershipBadge}
+                      badgeRightOnMobile={true}
+                      priceExclVatOverride={
+                        (product as any).b2bPriceExclVat ??
+                        product.priceBreakdown?.b2bPriceExclVat
+                      }
+                    />
                   </div>
-                </Button>
-              )}
-            </div>
+                </div>
+                {producerOrdersPaused ? null : (
+                  <Button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleAddToCart();
+                    }}
+                    disabled={!getBaseProductVariant()}
+                    className="w-full h-8 min-h-8 bg-black hover:bg-black/90 text-white border-black rounded-md"
+                    size="sm"
+                  >
+                    <div className="flex items-center justify-center gap-1.5">
+                      <span className="text-[11px]">{t("product.addToCart")}</span>
+                      <CirclePlus className="size-3.5" />
+                    </div>
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
         )}
 
-        {/* Mobile: Add to Cart button for products with variants (visible on touch/hover) */}
-        {showImageCommerceOverlay && showCartActions && !renderInCardAddToCart && (
+        {/* Mobile variants path — same reveal rules */}
+        {showCartActions && !renderInCardAddToCart && (
           <div
-            className={`md:hidden absolute inset-x-2 bottom-2 px-2.5 py-2 rounded-md bg-white/95 backdrop-blur-sm pointer-events-auto shadow-lg transition-opacity duration-200 ${
-              isTouched ? "opacity-100" : "opacity-0"
-            }`}
+            className="plp-commerce-box plp-commerce-box--touch absolute inset-x-1.5 bottom-1.5 z-10 max-h-[40%] overflow-hidden px-1.5 py-1.5 rounded-md bg-white/95 backdrop-blur-sm shadow-md transition-opacity duration-200"
           >
-            <div className="flex flex-col gap-1.5">
-              <div className="flex gap-2 items-center min-w-0">
-                {wineColor ? (
-                  <div className="flex shrink-0 items-center">
-                    <ColorSwatch
-                      color={
-                        Array.isArray(wineColor.value)
-                          ? [
-                              { name: wineColor.name, value: wineColor.value[0] },
-                              { name: wineColor.name, value: wineColor.value[1] },
-                            ]
-                          : { name: wineColor.name, value: wineColor.value as string }
-                      }
-                      isSelected={false}
-                      onColorChange={() => {}}
-                      size="xs"
+            {shopCaseWineCta ? (
+              <ListCardCommerceFooter>
+                <div className="flex gap-1.5 items-center min-w-0">
+                  {wineColor ? (
+                    <div className="flex shrink-0 items-center">
+                      <ColorSwatch
+                        color={
+                          Array.isArray(wineColor.value)
+                            ? [
+                                { name: wineColor.name, value: wineColor.value[0] },
+                                { name: wineColor.name, value: wineColor.value[1] },
+                              ]
+                            : { name: wineColor.name, value: wineColor.value as string }
+                        }
+                        isSelected={false}
+                        onColorChange={() => {}}
+                        size="xs"
                         atLeastOneColorSelected={false}
-                      displayName={formatWineColorDisplay(t, { name: wineColor.name, value: Array.isArray(wineColor.value) ? wineColor.value[0] : (wineColor.value as string) })}
+                        displayName={formatWineColorDisplay(t, { name: wineColor.name, value: Array.isArray(wineColor.value) ? wineColor.value[0] : (wineColor.value as string) })}
+                      />
+                    </div>
+                  ) : null}
+                  <div className="min-w-0 flex-1 flex justify-center">
+                    <MemberPrice
+                      amount={product.priceRange.minVariantPrice.amount}
+                      currencyCode={product.priceRange.minVariantPrice.currencyCode}
+                      basePriceSek={listPriceSek ?? undefined}
+                      className="text-[11px] font-semibold"
+                      showBadge={showMembershipBadge}
+                      badgeRightOnMobile={true}
+                      priceExclVatOverride={
+                        (product as any).b2bPriceExclVat ??
+                        product.priceBreakdown?.b2bPriceExclVat
+                      }
                     />
                   </div>
-                ) : null}
-                <div className="min-w-0 flex-1 flex justify-center">
-                  <MemberPrice
-                    amount={product.priceRange.minVariantPrice.amount}
-                    currencyCode={product.priceRange.minVariantPrice.currencyCode}
-                    basePriceSek={listPriceSek ?? undefined}
-                    className="text-xs font-semibold sm:text-sm"
-                    showBadge={showMembershipBadge}
-                    badgeRightOnMobile={true}
-                    priceExclVatOverride={
-                      (product as any).b2bPriceExclVat ??
-                      product.priceBreakdown?.b2bPriceExclVat
-                    }
-                  />
                 </div>
-              </div>
-              {producerOrdersPaused ? null : shopCaseWineCta ? (
                 <Suspense
                   fallback={
                     <Button
                       type="button"
                       disabled
-                      className="w-full min-h-10 bg-black hover:bg-black/90 text-white border-black rounded-md"
+                      className="w-full h-8 min-h-8 bg-black hover:bg-black/90 text-white border-black rounded-md"
                       size="sm"
                     >
-                      <span className="text-xs">{t("shop.reserve")}</span>
+                      <span className="text-[11px]">{t("shop.reserve")}</span>
                     </Button>
                   }
                 >
                   <ShopWineCasePicker
                     product={product}
                     size="sm"
-                    className="w-full min-h-10"
+                    className="w-full h-8 min-h-8"
                     triggerLabel={t("shop.reserve")}
                     analyticsSource="list"
                   />
                 </Suspense>
-              ) : (
-                <Button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handleAddToCart();
-                  }}
-                  disabled={!getBaseProductVariant()}
-                  className="w-full min-h-10 bg-black hover:bg-black/90 text-white border-black rounded-md"
-                  size="sm"
-                >
-                  <div className="flex items-center justify-center gap-1.5">
-                    <span className="text-xs">{t("product.addToCart")}</span>
-                    <CirclePlus className="size-3.5" />
+              </ListCardCommerceFooter>
+            ) : (
+              <div className="flex flex-col gap-1">
+                <div className="flex gap-1.5 items-center min-w-0">
+                  {wineColor ? (
+                    <div className="flex shrink-0 items-center">
+                      <ColorSwatch
+                        color={
+                          Array.isArray(wineColor.value)
+                            ? [
+                                { name: wineColor.name, value: wineColor.value[0] },
+                                { name: wineColor.name, value: wineColor.value[1] },
+                              ]
+                            : { name: wineColor.name, value: wineColor.value as string }
+                        }
+                        isSelected={false}
+                        onColorChange={() => {}}
+                        size="xs"
+                        atLeastOneColorSelected={false}
+                        displayName={formatWineColorDisplay(t, { name: wineColor.name, value: Array.isArray(wineColor.value) ? wineColor.value[0] : (wineColor.value as string) })}
+                      />
+                    </div>
+                  ) : null}
+                  <div className="min-w-0 flex-1 flex justify-center">
+                    <MemberPrice
+                      amount={product.priceRange.minVariantPrice.amount}
+                      currencyCode={product.priceRange.minVariantPrice.currencyCode}
+                      basePriceSek={listPriceSek ?? undefined}
+                      className="text-[11px] font-semibold"
+                      showBadge={showMembershipBadge}
+                      badgeRightOnMobile={true}
+                      priceExclVatOverride={
+                        (product as any).b2bPriceExclVat ??
+                        product.priceBreakdown?.b2bPriceExclVat
+                      }
+                    />
                   </div>
-                </Button>
-              )}
-            </div>
+                </div>
+                {producerOrdersPaused ? null : (
+                  <Button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleAddToCart();
+                    }}
+                    disabled={!getBaseProductVariant()}
+                    className="w-full h-8 min-h-8 bg-black hover:bg-black/90 text-white border-black rounded-md"
+                    size="sm"
+                  >
+                    <div className="flex items-center justify-center gap-1.5">
+                      <span className="text-[11px]">{t("product.addToCart")}</span>
+                      <CirclePlus className="size-3.5" />
+                    </div>
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
         )}
 
-        {/* Desktop Hover: White card with full details — Dirtywine only (PACT keeps photo unobstructed). */}
-        {showImageCommerceOverlay ? (
-        <div 
-          className="hidden md:flex absolute inset-x-3 bottom-3 flex-col gap-4 px-2 py-3 rounded-md transition-all duration-300 pointer-events-none bg-white/90 backdrop-blur-sm opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 translate-y-1/3 group-hover:translate-y-0 group-focus-visible:translate-y-0"
+        {/* Desktop: compact white box — hover / focus-within only (@media hover:hover) */}
+        <div
+          className="plp-commerce-box plp-commerce-box--hover hidden md:flex absolute inset-x-2 bottom-2 max-h-[40%] overflow-hidden flex-col gap-1.5 px-1.5 py-1.5 rounded-md transition-all duration-300 bg-white/95 backdrop-blur-sm shadow-md translate-y-2"
         >
-          <div className="grid grid-cols-2 gap-x-4 gap-y-4 items-end">
-            <div className="flex flex-col">
-              <p className="text-lg font-semibold text-pretty">
+          {shopCaseWineCta ? (
+            <ListCardCommerceFooter className="pointer-events-none" />
+          ) : null}
+          <div className="grid grid-cols-2 gap-x-3 gap-y-1 items-end">
+            <div className="flex flex-col min-w-0">
+              <p className="text-sm font-semibold text-pretty leading-tight line-clamp-2">
                 {product.title}
               </p>
               {product.producerName && (
-                <p className="text-sm text-muted-foreground font-normal">
+                <p className="text-xs text-muted-foreground font-normal leading-tight line-clamp-1">
                   {product.producerName}
                 </p>
               )}
               <BoostBadgeSlot
                 active={product.producerBoostActive === true}
-                className="mt-1"
+                className="mt-0.5"
               />
               {wineColor && (
-                <div className="mt-1">
+                <div className="mt-0.5">
                   <ColorSwatch
                     color={
                       Array.isArray(wineColor.value)
@@ -1095,13 +1183,13 @@ export const ProductCard = memo(
                     }
                     isSelected={false}
                     onColorChange={() => {}}
-                    size="sm"
+                    size="xs"
                     atLeastOneColorSelected={false}
                     displayName={formatWineColorDisplay(t, { name: wineColor.name, value: Array.isArray(wineColor.value) ? wineColor.value[0] : (wineColor.value as string) })}
                   />
                 </div>
               )}
-              <div className="mt-0.5 flex min-h-[14px] flex-wrap items-center gap-0.5 md:min-h-[18px] md:gap-1">
+              <div className="mt-0.5 flex min-h-[14px] flex-wrap items-center gap-0.5">
                 <NewBadge show={product.b2bIsNew === true} />
                 <StockBadge
                   b2bStock={(product as any).b2bStock}
@@ -1110,12 +1198,12 @@ export const ProductCard = memo(
                 />
               </div>
             </div>
-            <div className="flex gap-2 items-center place-self-end text-lg font-semibold">
+            <div className="flex gap-1.5 items-center place-self-end text-sm font-semibold">
               <MemberPrice
                 amount={product.priceRange.minVariantPrice.amount}
                 currencyCode={product.priceRange.minVariantPrice.currencyCode}
-              basePriceSek={listPriceSek ?? undefined}
-                className="text-lg font-semibold"
+                basePriceSek={listPriceSek ?? undefined}
+                className="text-sm font-semibold"
                 showBadge={showMembershipBadge}
                 priceExclVatOverride={
                   (product as any).b2bPriceExclVat ??
@@ -1125,7 +1213,7 @@ export const ProductCard = memo(
               {isWineBox &&
                 discountInfo &&
                 discountInfo.discountPercentage > 0 && (
-                <span className="text-base line-through opacity-30">
+                <span className="text-xs line-through opacity-30">
                   {formatPrice(
                     showExclVat
                       ? priceExclVat(discountInfo.totalWinePrice)
@@ -1136,10 +1224,9 @@ export const ProductCard = memo(
               )}
             </div>
           </div>
-          
-          {/* Buttons inside white box - equal width for symmetry */}
+
           {showCartActions ? (
-          <div className="grid grid-cols-2 gap-3 items-center mt-2 pointer-events-auto">
+          <div className="grid grid-cols-2 gap-2 items-center pointer-events-auto">
             {renderInCardAddToCart ? (
               <>
                 <div className="min-w-0">
@@ -1153,7 +1240,7 @@ export const ProductCard = memo(
                       <AddToCartButton
                         product={product}
                         size="sm"
-                        className="w-full"
+                        className="w-full h-8 min-h-8"
                       />
                     }
                   >
@@ -1161,7 +1248,7 @@ export const ProductCard = memo(
                       <ShopWineCasePicker
                         product={product}
                         size="sm"
-                        className="w-full"
+                        className="w-full h-8 min-h-8"
                         triggerLabel={t("shop.reserve")}
                         analyticsSource="list"
                       />
@@ -1169,7 +1256,7 @@ export const ProductCard = memo(
                       <AddToCart
                         size="sm"
                         product={product}
-                        className="w-full"
+                        className="w-full h-8 min-h-8"
                       />
                     )}
                   </Suspense>
@@ -1183,7 +1270,7 @@ export const ProductCard = memo(
                       <AddToCartButton
                         product={product}
                         size="sm"
-                        className="bg-black hover:bg-black/90 text-white border-black rounded-md w-full"
+                        className="bg-black hover:bg-black/90 text-white border-black rounded-md w-full h-8 min-h-8"
                       />
                     }
                   >
@@ -1191,7 +1278,7 @@ export const ProductCard = memo(
                       <ShopWineCasePicker
                         product={product}
                         size="sm"
-                        className="bg-black hover:bg-black/90 text-white border-black rounded-md w-full"
+                        className="bg-black hover:bg-black/90 text-white border-black rounded-md w-full h-8 min-h-8"
                         triggerLabel={t("shop.reserve")}
                         analyticsSource="list"
                       />
@@ -1199,20 +1286,20 @@ export const ProductCard = memo(
                       <AddToCart
                         product={product}
                         size="sm"
-                        className="bg-black hover:bg-black/90 text-white border-black rounded-md w-full"
+                        className="bg-black hover:bg-black/90 text-white border-black rounded-md w-full h-8 min-h-8"
                       />
                     )}
                   </Suspense>
                 </div>
                 <div className="min-w-0">
                   <Button
-                    className="bg-black hover:bg-black/90 text-white border-black rounded-md w-full flex justify-between items-center"
+                    className="bg-black hover:bg-black/90 text-white border-black rounded-md w-full h-8 min-h-8 flex justify-between items-center"
                     size="sm"
                     asChild
                   >
                     <Link href={productHref}>
-                      <span>{t("shop.viewProduct")}</span>
-                      <ArrowRightIcon className="shrink-0" />
+                      <span className="text-[11px]">{t("shop.viewProduct")}</span>
+                      <ArrowRightIcon className="size-3.5 shrink-0" />
                     </Link>
                   </Button>
                 </div>
@@ -1221,7 +1308,6 @@ export const ProductCard = memo(
           </div>
           ) : null}
         </div>
-        ) : null}
       </div>
       </div>
       </div>
