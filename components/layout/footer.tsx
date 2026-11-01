@@ -4,12 +4,27 @@ import { SidebarLinks } from "./sidebar/product-sidebar-links";
 import { FooterLogoSvg } from "./footer-logo-svg";
 import { OnboardingButton } from "./onboarding-button";
 import Link from "next/link";
-import { SYSTEMBOLAGET_BEST_UPLINK } from "@/lib/guides/systembolaget-list-links";
 import { useTranslations } from "@/lib/hooks/use-translations";
 import { useLocalizedPaths } from "@/lib/hooks/use-localized-paths";
 import { FooterShoppingContext } from "@/components/market/header-shopping-context";
 import { useB2BModeServerHint } from "@/lib/context/b2b-mode-context";
 import type { SiteLogos } from "@/lib/context/site-logo-provider";
+
+/** Footer guide labels stay factual (no "best" / "bästa"); URLs/slugs unchanged. */
+const FOOTER_GUIDE_LABELS = {
+  en: {
+    all: "All guides",
+    producers: "100 natural wine producers",
+    wines: "100 natural wines",
+    systembolaget: "Natural wine at Systembolaget 2026",
+  },
+  sv: {
+    all: "Alla guider",
+    producers: "100 naturvinsproducenter",
+    wines: "100 naturviner",
+    systembolaget: "Naturvin på Systembolaget 2026",
+  },
+} as const;
 
 const footerLogoClass =
   "h-[5.5rem] w-auto max-w-[360px] text-background sm:h-28 sm:max-w-[440px] md:h-32 md:max-w-[520px]";
@@ -81,25 +96,25 @@ export function Footer({ initialLogos }: { initialLogos?: SiteLogos }) {
                             href="/guides"
                             className="text-sm text-background/70 hover:text-background transition-colors hover:underline"
                           >
-                            All guides
+                            {FOOTER_GUIDE_LABELS.en.all}
                           </Link>
                           <Link
                             href="/guides/worlds-best-natural-wine-producers"
                             className="text-sm text-background/70 hover:text-background transition-colors hover:underline"
                           >
-                            100 best producers
+                            {FOOTER_GUIDE_LABELS.en.producers}
                           </Link>
                           <Link
                             href="/guides/worlds-best-natural-wines"
                             className="text-sm text-background/70 hover:text-background transition-colors hover:underline"
                           >
-                            100 best wines
+                            {FOOTER_GUIDE_LABELS.en.wines}
                           </Link>
                           <Link
                             href="/guides/best-natural-wines-systembolaget"
                             className="text-sm text-background/70 hover:text-background transition-colors hover:underline"
                           >
-                            {SYSTEMBOLAGET_BEST_UPLINK.anchor.en}
+                            {FOOTER_GUIDE_LABELS.en.systembolaget}
                           </Link>
                         </>
                       ) : (
@@ -108,25 +123,25 @@ export function Footer({ initialLogos }: { initialLogos?: SiteLogos }) {
                             href="/guider"
                             className="text-sm text-background/70 hover:text-background transition-colors hover:underline"
                           >
-                            Alla guider
+                            {FOOTER_GUIDE_LABELS.sv.all}
                           </Link>
                           <Link
                             href="/guider/varldens-basta-naturvinsproducenter"
                             className="text-sm text-background/70 hover:text-background transition-colors hover:underline"
                           >
-                            100 bästa producenterna
+                            {FOOTER_GUIDE_LABELS.sv.producers}
                           </Link>
                           <Link
                             href="/guider/varldens-basta-naturviner"
                             className="text-sm text-background/70 hover:text-background transition-colors hover:underline"
                           >
-                            100 bästa vinerna
+                            {FOOTER_GUIDE_LABELS.sv.wines}
                           </Link>
                           <Link
                             href="/guider/basta-naturvinerna-pa-systembolaget"
                             className="text-sm text-background/70 hover:text-background transition-colors hover:underline"
                           >
-                            {SYSTEMBOLAGET_BEST_UPLINK.anchor.sv}
+                            {FOOTER_GUIDE_LABELS.sv.systembolaget}
                           </Link>
                         </>
                       )}
