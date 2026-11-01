@@ -76,10 +76,10 @@ describe("Dirtywine legal footer", () => {
     expect(getDirtywineLegalAddress()).toBe(DIRTYWINE_LEGAL_ADDRESS_DEFAULT);
     const footer = getDirtywineInquiryEmailFooterPlain();
     expect(footer).toBe(
-      `Dirtywine drivs av Axel Samuelson (enskild firma), Linnegatan 16, 114 47 Stockholm · axel@dirtywine.se · Integritetspolicy · Du får det här mejlet eftersom du skickade en förfrågan på dirtywine.se.`,
+      `Dirty Wine drivs av Axel Samuelson (enskild firma), Linnegatan 16, 114 47 Stockholm · axel@dirtywine.se · Integritetspolicy · Du får det här mejlet eftersom du skickade en förfrågan på dirtywine.se.`,
     );
     expect(footer).not.toContain("[ADRESS]");
-    expect(footer).not.toContain("Dirty Wine drivs av");
+    expect(footer).not.toContain("Dirtywine drivs av");
     expect(footer).not.toContain("EURPACT");
   });
 
@@ -88,7 +88,7 @@ describe("Dirtywine legal footer", () => {
     expect(getDirtywineLegalAddress()).toBe("Testgatan 1, 111 22 Stockholm");
     const footer = getDirtywineInquiryEmailFooterPlain();
     expect(footer).toBe(
-      `Dirtywine drivs av Axel Samuelson (enskild firma), Testgatan 1, 111 22 Stockholm · axel@dirtywine.se · Integritetspolicy · Du får det här mejlet eftersom du skickade en förfrågan på dirtywine.se.`,
+      `Dirty Wine drivs av Axel Samuelson (enskild firma), Testgatan 1, 111 22 Stockholm · axel@dirtywine.se · Integritetspolicy · Du får det här mejlet eftersom du skickade en förfrågan på dirtywine.se.`,
     );
     expect(footer).not.toContain("[ADRESS]");
   });
@@ -112,10 +112,12 @@ describe("inquiry email builders", () => {
     );
     expect(built.text).toContain(DIRTYWINE_INQUIRY_EMAIL_SIGNOFF);
     expect(built.html).toContain("Hälsningar, Dirty Wine");
-    expect(built.text).toContain("Dirtywine drivs av");
-    expect(built.html).toContain("Dirtywine drivs av");
+    expect(built.text).toContain("Dirty Wine drivs av");
+    expect(built.html).toContain("Dirty Wine drivs av");
     expect(built.text).toContain("Linnegatan 16, 114 47 Stockholm");
     expect(built.html).toContain("Linnegatan 16, 114 47 Stockholm");
+    expect(built.text).not.toContain("Dirtywine drivs av");
+    expect(built.html).not.toContain("Dirtywine drivs av");
     expect(built.text).not.toContain("så snart vi kan");
     expect(built.html).not.toContain("så snart vi kan");
     expect(built.text).not.toContain("inom 1 arbetsdag");

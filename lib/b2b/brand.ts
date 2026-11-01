@@ -35,11 +35,11 @@ export function getDirtywineLegalAddress(): string {
 
 /**
  * Customer-email legal footer (plain text). Exact legal wording; Integritetspolicy
- * is linked in HTML. Brand here is Dirtywine (not body greeting "Dirty Wine").
+ * is linked in HTML. Body brand is "Dirty Wine" (#125); From-header stays Dirtywine.
  */
 export function getDirtywineInquiryEmailFooterPlain(): string {
   const address = getDirtywineLegalAddress();
-  return `${DIRTYWINE_BRAND_NAME} drivs av Axel Samuelson (enskild firma), ${address} · axel@dirtywine.se · ${DIRTYWINE_PRIVACY_POLICY_LABEL} · Du får det här mejlet eftersom du skickade en förfrågan på dirtywine.se.`;
+  return `${DIRTYWINE_EMAIL_BODY_BRAND} drivs av Axel Samuelson (enskild firma), ${address} · axel@dirtywine.se · ${DIRTYWINE_PRIVACY_POLICY_LABEL} · Du får det här mejlet eftersom du skickade en förfrågan på dirtywine.se.`;
 }
 
 export const DIRTYWINE_INQUIRY_FOLLOW_UP =

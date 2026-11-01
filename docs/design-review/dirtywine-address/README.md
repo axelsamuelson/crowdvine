@@ -4,7 +4,8 @@
 
 | Yta | Sträng |
 | --- | --- |
-| Mejl sidfot | `Dirtywine drivs av Axel Samuelson (enskild firma), Linnegatan 16, 114 47 Stockholm · axel@dirtywine.se · Integritetspolicy · Du får det här mejlet eftersom du skickade en förfrågan på dirtywine.se.` |
+| Mejl sidfot | `Dirty Wine drivs av Axel Samuelson (enskild firma), Linnegatan 16, 114 47 Stockholm · axel@dirtywine.se · Integritetspolicy · Du får det här mejlet eftersom du skickade en förfrågan på dirtywine.se.` |
+| Mejl kropp (#125) | `Hälsningar, Dirty Wine` · `…inom en arbetsdag.` |
 | Integritetspolicy | Personuppgiftsansvarig: `Axel Samuelson (enskild firma), Linnegatan 16, 114 47 Stockholm` |
 
 ## Env
@@ -15,7 +16,7 @@
 
 | File | What |
 | --- | --- |
-| `email-footer.png` | Inquiry confirmation legal footer |
-| `email-footer.html` / `.txt` | Same footer HTML / plain text |
+| `email-footer.png` | Full customer confirmation email (body + legal footer) |
+| `email-footer.html` / `.txt` | Same email HTML / plain-text footer line |
 | `integritetspolicy-390px.png` | Privacy policy mobile |
 | `integritetspolicy-1440px.png` | Privacy policy desktop |
