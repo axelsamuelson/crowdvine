@@ -134,7 +134,10 @@ function SignupPageContent() {
   if (dirtywineOpenSignup) {
     const nextPath = searchParams.get("next");
     const emailParam = searchParams.get("email")?.trim() ?? "";
-    const checkEmailParam = searchParams.get("checkEmail") === "1";
+    // QA/design-review only — never honor ?checkEmail=1 in production.
+    const checkEmailParam =
+      process.env.NODE_ENV !== "production" &&
+      searchParams.get("checkEmail") === "1";
     return (
       <main className="min-h-screen bg-[hsl(223.81_0%_94%)] pt-24 pb-16 px-4">
         <DirtywineOpenSignupForm

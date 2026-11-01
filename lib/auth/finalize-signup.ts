@@ -17,9 +17,18 @@ export type FinalizeSignupSource =
   | "checkout_guest"
   | "dirtywine_open_signup";
 
+function isPortalAccessEmpty(access: unknown): boolean {
+  if (access == null) return true;
+  if (!Array.isArray(access)) return true;
+  return access.length === 0;
+}
+
 /**
  * Shared post-auth steps for magic-link callback and mid-checkout OTP.
  * Idempotent enough to call from both paths (profile upsert; cart reconcile).
+ *
+ * Access: never trusts user_metadata. If portal_access is empty on first
+ * confirmation, set ['business'] only — never modify role or roles.
  */
 export async function finalizeSignupAfterAuth(opts: {
   userId: string;
@@ -35,16 +44,24 @@ export async function finalizeSignupAfterAuth(opts: {
 }): Promise<{ ok: true } | { ok: false; error: string }> {
   try {
     const sbAdmin = getSupabaseAdmin();
+
+    const { data: existing } = await sbAdmin
+      .from("profiles")
+      .select("id, portal_access")
+      .eq("id", opts.userId)
+      .maybeSingle();
+
     const profileRow: Record<string, unknown> = {
       id: opts.userId,
       email: opts.email?.trim() ? opts.email.trim() : null,
     };
-    // Dirty Wine open sign-up: ensure B2B-only portal (no PACT 'user' portal).
-    if (opts.source === "dirtywine_open_signup") {
+
+    // First confirmation with no portal yet → Dirty Wine business access only.
+    // Do not touch role / roles. Do not use user_metadata.signup_source.
+    if (isPortalAccessEmpty(existing?.portal_access)) {
       profileRow.portal_access = ["business"];
-      profileRow.role = "user";
-      profileRow.roles = ["user"];
     }
+
     await sbAdmin.from("profiles").upsert(profileRow, { onConflict: "id" });
 
     const cartSessionId = opts.cartSessionId?.trim() || null;

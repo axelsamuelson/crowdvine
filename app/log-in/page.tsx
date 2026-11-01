@@ -158,18 +158,27 @@ export default function LogInPage() {
 
   return (
     <main className="min-h-screen">
-      <InfiniteGallery
-        images={galleryImages}
-        speed={1.2}
-        zSpacing={3}
-        visibleCount={12}
-        falloff={{ near: 0.8, far: 14 }}
-        className="h-[100dvh] w-full rounded-lg overflow-hidden"
-      />
+      {/* Dirty Wine open signup: solid backdrop (no gallery) so images cannot
+          stray over / beside the Skapa konto block. PACT keeps the gallery. */}
+      {showDirtywineOpenSignup ? (
+        <div
+          aria-hidden
+          className="fixed inset-0 bg-[hsl(223.81_0%_22%)]"
+        />
+      ) : (
+        <InfiniteGallery
+          images={galleryImages}
+          speed={1.2}
+          zSpacing={3}
+          visibleCount={12}
+          falloff={{ near: 0.8, far: 14 }}
+          className="h-[100dvh] w-full rounded-lg overflow-hidden"
+        />
+      )}
 
-      {/* Center overlay — no mix-blend so form text stays readable over the gallery */}
-      <div className="h-[100dvh] inset-0 pointer-events-none fixed flex items-center justify-center text-center px-3 text-white">
-        <div className="pointer-events-auto flex flex-col items-center justify-center w-full max-w-md gap-6">
+      {/* Center overlay — z-20 above backdrop/gallery. */}
+      <div className="h-[100dvh] inset-0 pointer-events-none fixed z-20 flex items-center justify-center text-center px-3 text-white overflow-y-auto py-8">
+        <div className="pointer-events-auto flex flex-col items-center justify-center w-full max-w-md gap-6 my-auto">
           {/* Logo */}
           <motion.div
             initial={{ opacity: 0, y: -20 }}
@@ -387,39 +396,40 @@ export default function LogInPage() {
                     {t("auth.backToHome")}
                   </Link>
                 </div>
+
+                {/* Dirty Wine: open sign-up inside the card so gallery cannot show through gaps. */}
+                {showDirtywineOpenSignup ? (
+                  <div className="mt-6 pt-5 border-t border-white/20 space-y-2 text-center">
+                    <p className="text-base font-semibold tracking-tight text-white">
+                      {openSignupCopy.heading}
+                    </p>
+                    <p className="text-sm text-white/80 leading-relaxed">
+                      {openSignupCopy.body}
+                    </p>
+                    <Link
+                      href={openSignupHref}
+                      className={cn(
+                        buttonVariants({ size: "default" }),
+                        "mt-2 inline-flex h-10 w-full bg-white text-zinc-950 hover:bg-white/90 font-semibold",
+                      )}
+                    >
+                      {openSignupCopy.cta}
+                    </Link>
+                  </div>
+                ) : null}
               </CardContent>
             </Card>
           </motion.div>
         </div>
       </div>
 
-      {/* PACT: invite membership footer. Dirty Wine: open sign-up CTA. */}
-      {showDirtywineOpenSignup ? (
-        <div className="fixed bottom-6 left-0 right-0 z-10 flex justify-center px-4 pointer-events-none">
-          <div className="pointer-events-auto w-full max-w-md rounded-xl border border-white/25 bg-zinc-950/70 px-5 py-4 text-center text-white shadow-[0_8px_40px_rgba(0,0,0,0.35)] backdrop-blur-sm">
-            <p className="text-base font-semibold tracking-tight">
-              {openSignupCopy.heading}
-            </p>
-            <p className="mt-1 text-sm text-white/80 leading-relaxed">
-              {openSignupCopy.body}
-            </p>
-            <Link
-              href={openSignupHref}
-              className={cn(
-                buttonVariants({ size: "default" }),
-                "mt-3 inline-flex h-10 w-full bg-white text-zinc-950 hover:bg-white/90 font-semibold",
-              )}
-            >
-              {openSignupCopy.cta}
-            </Link>
-          </div>
-        </div>
-      ) : (
-        <div className="text-center fixed bottom-10 left-0 right-0 font-mono uppercase text-[11px] font-semibold text-white/90 mix-blend-exclusion">
+      {/* PACT only: invite membership footer. */}
+      {!showDirtywineOpenSignup ? (
+        <div className="text-center fixed bottom-10 left-0 right-0 z-20 font-mono uppercase text-[11px] font-semibold text-white/90 mix-blend-exclusion">
           <p>{t("auth.footerLine1")}</p>
           <p className="opacity-60">{t("auth.footerLine2")}</p>
         </div>
-      )}
+      ) : null}
     </main>
   );
 }

@@ -28,6 +28,31 @@ function requestOrigin(request: NextRequest): string {
   return new URL(request.url).origin;
 }
 
+/** Same success shape whether or not the email is new (no account enumeration). */
+function checkEmailResponse(
+  email: string,
+  nextPath: string,
+  userId?: string | null,
+) {
+  const response = NextResponse.json({
+    ok: true,
+    success: true,
+    needsEmailConfirmation: true,
+    ...(userId ? { user: { id: userId, email } } : {}),
+  });
+  response.cookies.set(AUTH_NEXT_COOKIE, nextPath, {
+    path: "/",
+    maxAge: 3600,
+    sameSite: "lax",
+  });
+  response.cookies.set(AUTH_EMAIL_COOKIE, email, {
+    path: "/",
+    maxAge: 3600,
+    sameSite: "lax",
+  });
+  return response;
+}
+
 /**
  * POST /api/auth/b2b-open-signup
  *
@@ -35,6 +60,8 @@ function requestOrigin(request: NextRequest): string {
  * (no invite, no approval, email NOT pre-confirmed). Client shows "Kolla din mejl".
  * After the user confirms, /auth/callback returns them to `next` (e.g. /b2b/inquiry).
  * pactwines.com invite/membership signup is unchanged.
+ *
+ * Never overwrites an existing profile's role / roles / portal_access.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -134,43 +161,34 @@ export async function POST(request: NextRequest) {
     });
 
     if (signUpError) {
-      if (
-        signUpError.message?.toLowerCase().includes("already") ||
-        signUpError.message?.toLowerCase().includes("registered")
-      ) {
-        return NextResponse.json(
-          {
-            error: "email_exists",
-            message:
-              "An account with this email already exists. Please sign in instead.",
-          },
-          { status: 400 },
-        );
-      }
-      console.error("[b2b-open-signup] signUp:", signUpError);
-      return NextResponse.json(
-        {
-          error: "create_failed",
-          message: signUpError.message || "Failed to create account",
-        },
-        { status: 400 },
-      );
+      // Neutral success — do not reveal whether the email is already registered.
+      console.warn("[b2b-open-signup] signUp:", signUpError.message);
+      return checkEmailResponse(email, nextPath);
     }
 
     const userId = signUpData.user?.id;
     if (!userId) {
-      return NextResponse.json(
-        { error: "create_failed", message: "No user returned" },
-        { status: 500 },
-      );
+      // Supabase may return empty user for existing emails depending on config.
+      return checkEmailResponse(email, nextPath);
     }
 
-    // Profile for Dirty Wine B2B-only identity. No PACT membership row.
-    // Do NOT set access_granted_at (that would look like PACT access approval).
+    // Insert profile only when none exists. Never overwrite role/roles/portal_access.
     const now = new Date().toISOString();
     const sbAdmin = getSupabaseAdmin();
-    const { error: profileError } = await sbAdmin.from("profiles").upsert(
-      {
+    const { data: existingProfile, error: existingError } = await sbAdmin
+      .from("profiles")
+      .select("id")
+      .eq("id", userId)
+      .maybeSingle();
+
+    if (existingError) {
+      console.error("[b2b-open-signup] profile lookup:", existingError);
+      // Still return neutral check-email — auth user may exist; no DB details.
+      return checkEmailResponse(email, nextPath, userId);
+    }
+
+    if (!existingProfile) {
+      const { error: insertError } = await sbAdmin.from("profiles").insert({
         id: userId,
         email,
         full_name,
@@ -178,49 +196,20 @@ export async function POST(request: NextRequest) {
         roles: ["user"],
         portal_access: ["business"],
         updated_at: now,
-      },
-      { onConflict: "id" },
-    );
-
-    if (profileError) {
-      console.error("[b2b-open-signup] profile upsert:", profileError);
-      return NextResponse.json(
-        {
-          error: "profile_failed",
-          message: "Failed to create profile",
-          details: profileError.message,
-        },
-        { status: 500 },
-      );
+      });
+      if (insertError) {
+        // Race / unique conflict: treat as existing; never return DB text.
+        console.error("[b2b-open-signup] profile insert:", insertError);
+      }
     }
 
-    const response = NextResponse.json({
-      ok: true,
-      success: true,
-      needsEmailConfirmation: true,
-      user: { id: userId, email },
-    });
-
-    // So /auth/callback can restore next + email hint if the link omits them.
-    response.cookies.set(AUTH_NEXT_COOKIE, nextPath, {
-      path: "/",
-      maxAge: 3600,
-      sameSite: "lax",
-    });
-    response.cookies.set(AUTH_EMAIL_COOKIE, email, {
-      path: "/",
-      maxAge: 3600,
-      sameSite: "lax",
-    });
-
-    return response;
+    return checkEmailResponse(email, nextPath, userId);
   } catch (err) {
     console.error("[b2b-open-signup] unexpected:", err);
     return NextResponse.json(
       {
         error: "internal_error",
-        message:
-          err instanceof Error ? err.message : "Internal server error",
+        message: "Something went wrong. Please try again.",
       },
       { status: 500 },
     );

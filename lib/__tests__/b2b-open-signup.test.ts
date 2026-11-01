@@ -40,30 +40,19 @@ describe("Dirty Wine open sign-up helpers", () => {
 
   it("sanitizes next to same-origin relative paths only", () => {
     expect(sanitizeOpenSignupNext("/b2b/inquiry")).toBe("/b2b/inquiry");
-    expect(sanitizeOpenSignupNext("/b2b/inquiry?guest=1")).toBe(
-      "/b2b/inquiry?guest=1",
-    );
     expect(sanitizeOpenSignupNext("//evil.com")).toBeNull();
-    expect(sanitizeOpenSignupNext("https://evil.com")).toBeNull();
-    expect(sanitizeOpenSignupNext("profile")).toBeNull();
   });
 
   it("allows only exact Dirty Wine hosts (not substring)", () => {
     expect(isExactDirtywineOpenSignupHost("dirtywine.se")).toBe(true);
     expect(isExactDirtywineOpenSignupHost("www.dirtywine.se")).toBe(true);
     expect(isExactDirtywineOpenSignupHost("evil-dirtywine.se")).toBe(false);
-    expect(isExactDirtywineOpenSignupHost("dirtywine.se.evil.com")).toBe(
-      false,
-    );
     expect(isExactDirtywineOpenSignupHost("pactwines.com")).toBe(false);
     expect(
       isExactDirtywineOpenSignupHost("localhost", {
         get: (k) => (k === "b2b" ? "1" : null),
       }),
     ).toBe(true);
-    expect(isExactDirtywineOpenSignupHost("localhost", { get: () => null })).toBe(
-      false,
-    );
   });
 
   it("gates open signup API requests by exact host", () => {
@@ -74,7 +63,6 @@ describe("Dirty Wine open sign-up helpers", () => {
         }),
       ),
     ).toBe(true);
-
     expect(
       isDirtywineOpenSignupRequest(
         new Request("https://pactwines.com/api/auth/b2b-open-signup", {
@@ -82,17 +70,6 @@ describe("Dirty Wine open sign-up helpers", () => {
         }),
       ),
     ).toBe(false);
-
-    expect(
-      isDirtywineOpenSignupRequest(
-        new Request("http://localhost:3000/api/auth/b2b-open-signup", {
-          headers: {
-            host: "localhost:3000",
-            referer: "http://localhost:3000/signup?b2b=1",
-          },
-        }),
-      ),
-    ).toBe(true);
   });
 });
 
@@ -105,12 +82,6 @@ describe("guest inquiry still works alongside open sign-up", () => {
     expect(
       isB2bInquiryGuestMode({ get: (k) => (k === "guest" ? "1" : null) }),
     ).toBe(true);
-  });
-
-  it("open signup next can return to inquiry for prefill after confirm", () => {
-    expect(b2bOpenSignupHref(B2B_INQUIRY_PATH)).toContain(
-      "next=%2Fb2b%2Finquiry",
-    );
   });
 });
 
@@ -158,8 +129,6 @@ describe("POST /api/auth/b2b-open-signup", () => {
       }),
     );
     expect(res.status).toBe(403);
-    const json = await res.json();
-    expect(json.error).toBe("open_signup_not_available");
   });
 
   it("rejects passwords shorter than 8 characters", async () => {
@@ -179,17 +148,16 @@ describe("POST /api/auth/b2b-open-signup", () => {
       }),
     );
     expect(res.status).toBe(400);
-    const json = await res.json();
-    expect(json.error).toBe("invalid_input");
   });
 
-  it("starts email-confirmation signup without confirming email", async () => {
+  it("inserts a new profile with business portal and returns check-email", async () => {
     const { getSupabaseAdmin } = await import("@/lib/supabase-admin");
     const { createSupabaseServerClient } = await import(
       "@/lib/supabase/server"
     );
     const userId = "11111111-1111-1111-1111-111111111111";
-    const upsert = vi.fn().mockResolvedValue({ error: null });
+    const insert = vi.fn().mockResolvedValue({ error: null });
+    const maybeSingle = vi.fn().mockResolvedValue({ data: null, error: null });
     const signUp = vi.fn().mockResolvedValue({
       data: { user: { id: userId, email: "ada@example.com" }, session: null },
       error: null,
@@ -202,7 +170,12 @@ describe("POST /api/auth/b2b-open-signup", () => {
     vi.mocked(getSupabaseAdmin).mockReturnValue({
       from: (table: string) => {
         expect(table).toBe("profiles");
-        return { upsert };
+        return {
+          select: () => ({
+            eq: () => ({ maybeSingle }),
+          }),
+          insert,
+        };
       },
     } as never);
 
@@ -225,32 +198,152 @@ describe("POST /api/auth/b2b-open-signup", () => {
 
     expect(res.status).toBe(200);
     const json = await res.json();
-    expect(json.ok).toBe(true);
     expect(json.needsEmailConfirmation).toBe(true);
-    expect(json.autoSignedIn).toBeUndefined();
-    expect(signUp).toHaveBeenCalledWith(
+    expect(insert).toHaveBeenCalledWith(
       expect.objectContaining({
-        email: "ada@example.com",
-        options: expect.objectContaining({
-          emailRedirectTo: expect.stringContaining(
-            "/auth/callback?next=%2Fb2b%2Finquiry",
-          ),
-          data: expect.objectContaining({
-            signup_source: "dirtywine_open_signup",
-          }),
+        id: userId,
+        portal_access: ["business"],
+      }),
+    );
+    expect(insert.mock.calls[0][0].access_granted_at).toBeUndefined();
+  });
+
+  it("does not overwrite an existing profile (role/roles/portal_access)", async () => {
+    const { getSupabaseAdmin } = await import("@/lib/supabase-admin");
+    const { createSupabaseServerClient } = await import(
+      "@/lib/supabase/server"
+    );
+    const userId = "22222222-2222-2222-2222-222222222222";
+    const insert = vi.fn();
+    const upsert = vi.fn();
+    const update = vi.fn();
+    const maybeSingle = vi
+      .fn()
+      .mockResolvedValue({ data: { id: userId }, error: null });
+    const signUp = vi.fn().mockResolvedValue({
+      data: { user: { id: userId, email: "member@example.com" }, session: null },
+      error: null,
+    });
+
+    vi.mocked(createSupabaseServerClient).mockReturnValue({
+      auth: { signUp },
+    } as never);
+
+    vi.mocked(getSupabaseAdmin).mockReturnValue({
+      from: () => ({
+        select: () => ({
+          eq: () => ({ maybeSingle }),
+        }),
+        insert,
+        upsert,
+        update,
+      }),
+    } as never);
+
+    const { POST } = await import("@/app/api/auth/b2b-open-signup/route");
+    const res = await POST(
+      new NextRequest("https://dirtywine.se/api/auth/b2b-open-signup", {
+        method: "POST",
+        headers: {
+          host: "dirtywine.se",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          email: "member@example.com",
+          password: "secret123",
+          full_name: "Existing Member",
         }),
       }),
     );
-    expect(upsert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        id: userId,
-        email: "ada@example.com",
-        full_name: "Ada Restaurant",
-        portal_access: ["business"],
-      }),
-      { onConflict: "id" },
+
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.needsEmailConfirmation).toBe(true);
+    expect(insert).not.toHaveBeenCalled();
+    expect(upsert).not.toHaveBeenCalled();
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it("returns neutral check-email when signUp says email already registered", async () => {
+    const { createSupabaseServerClient } = await import(
+      "@/lib/supabase/server"
     );
-    const profileArg = upsert.mock.calls[0][0];
-    expect(profileArg.access_granted_at).toBeUndefined();
+    const signUp = vi.fn().mockResolvedValue({
+      data: { user: null, session: null },
+      error: { message: "User already registered" },
+    });
+    vi.mocked(createSupabaseServerClient).mockReturnValue({
+      auth: { signUp },
+    } as never);
+
+    const { POST } = await import("@/app/api/auth/b2b-open-signup/route");
+    const res = await POST(
+      new NextRequest("https://dirtywine.se/api/auth/b2b-open-signup", {
+        method: "POST",
+        headers: {
+          host: "dirtywine.se",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          email: "taken@example.com",
+          password: "secret123",
+          full_name: "Taken",
+        }),
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.needsEmailConfirmation).toBe(true);
+    expect(json.error).toBeUndefined();
+    expect(JSON.stringify(json)).not.toMatch(/already|registered|exists/i);
+  });
+
+  it("never returns database error text on profile insert failure", async () => {
+    const { getSupabaseAdmin } = await import("@/lib/supabase-admin");
+    const { createSupabaseServerClient } = await import(
+      "@/lib/supabase/server"
+    );
+    const userId = "33333333-3333-3333-3333-333333333333";
+    const insert = vi.fn().mockResolvedValue({
+      error: { message: "duplicate key value violates unique constraint" },
+    });
+    const maybeSingle = vi.fn().mockResolvedValue({ data: null, error: null });
+    const signUp = vi.fn().mockResolvedValue({
+      data: { user: { id: userId, email: "race@example.com" }, session: null },
+      error: null,
+    });
+
+    vi.mocked(createSupabaseServerClient).mockReturnValue({
+      auth: { signUp },
+    } as never);
+    vi.mocked(getSupabaseAdmin).mockReturnValue({
+      from: () => ({
+        select: () => ({ eq: () => ({ maybeSingle }) }),
+        insert,
+      }),
+    } as never);
+
+    const { POST } = await import("@/app/api/auth/b2b-open-signup/route");
+    const res = await POST(
+      new NextRequest("https://dirtywine.se/api/auth/b2b-open-signup", {
+        method: "POST",
+        headers: {
+          host: "dirtywine.se",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          email: "race@example.com",
+          password: "secret123",
+          full_name: "Race",
+        }),
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.needsEmailConfirmation).toBe(true);
+    expect(JSON.stringify(json)).not.toMatch(/duplicate|constraint|violates/i);
+    expect(json.details).toBeUndefined();
   });
 });

@@ -12,9 +12,7 @@ import { isPlatformOpen } from "@/lib/platform-open";
 import {
   isDirtywineHost,
   isDirtywineProductionHost,
-  isPactProductionHost,
 } from "@/lib/b2b-site";
-import { getB2BAppUrl } from "@/lib/app-url";
 import { createClient as createSupabaseMiddlewareClient, clearSupabaseAuthCookies } from "@/utils/supabase/middleware";
 import {
   WINE_CATEGORY_EN_ALIASES,
@@ -356,30 +354,6 @@ async function runMiddleware(req: NextRequest) {
       .maybeSingle();
 
     const isPlatformAdmin = isPlatformAdminProfile(profile);
-    const portalAccess = Array.isArray(profile?.portal_access)
-      ? profile.portal_access
-      : [];
-    const isBusinessPortalOnly =
-      portalAccess.includes("business") && !portalAccess.includes("user");
-
-    // Dirty Wine–only accounts (open signup / business invite) must not use
-    // pactwines.com member surfaces — send them to dirtywine.se.
-    if (
-      isBusinessPortalOnly &&
-      isPactProductionHost(host) &&
-      !onDirtywineSite &&
-      !isAdminPath
-    ) {
-      const target = new URL(
-        `${pathname}${req.nextUrl.search || ""}`,
-        getB2BAppUrl(),
-      );
-      console.log(
-        "🔀 MIDDLEWARE: business-only portal → dirtywine.se:",
-        target.toString(),
-      );
-      return NextResponse.redirect(target);
-    }
 
     console.log("🔍 MIDDLEWARE: User membership check:", {
       userId: user.id,

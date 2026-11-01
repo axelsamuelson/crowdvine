@@ -7,10 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Mail, Lock, User } from "lucide-react";
-import {
-  B2B_INQUIRY_GUEST_PATH,
-  B2B_INQUIRY_PATH,
-} from "@/lib/b2b/inquiry-login";
+import { B2B_INQUIRY_GUEST_PATH } from "@/lib/b2b/inquiry-login";
 import {
   B2B_OPEN_SIGNUP_MIN_PASSWORD,
   b2bOpenSignupCopy,
@@ -150,7 +147,7 @@ export function DirtywineOpenSignupForm({
               id="full_name"
               name="full_name"
               type="text"
-              autoComplete="organization name"
+              autoComplete="name"
               required
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
