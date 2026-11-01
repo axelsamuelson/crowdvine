@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import {
   DIRTYWINE_BRAND_NAME,
+  DIRTYWINE_CONTACT_EMAIL,
   DIRTYWINE_EMAIL_BODY_BRAND,
   DIRTYWINE_INQUIRY_EMAIL_SIGNOFF,
   DIRTYWINE_INQUIRY_FOLLOW_UP,
@@ -68,6 +69,12 @@ describe("getDirtywineResendFrom", () => {
   it("defaults reply-to to axel@dirtywine.se", () => {
     delete process.env.DIRTYWINE_RESEND_REPLY_TO;
     expect(getDirtywineReplyTo()).toBe("axel@dirtywine.se");
+  });
+});
+
+describe("DIRTYWINE_CONTACT_EMAIL", () => {
+  it("is the public Dirty Wine chrome address hello@dirtywine.se", () => {
+    expect(DIRTYWINE_CONTACT_EMAIL).toBe("hello@dirtywine.se");
   });
 });
 
