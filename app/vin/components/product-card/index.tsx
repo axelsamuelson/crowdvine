@@ -28,7 +28,6 @@ import { getProductListPriceSek } from "@/lib/price-breakdown";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 import { pricesFromCartAfterAdd } from "@/lib/analytics/cart-event-prices";
 import { PriceViewTracker } from "@/components/analytics/price-view-tracker";
-import { ListCardCommerceFooter } from "@/components/commerce/list-card-commerce-footer";
 import { BOTTLE_PACK_SIZE } from "@/lib/cart/bottle-pack";
 import { B2B_PRODUCER_ORDERS_ENABLED } from "@/lib/b2b/flags";
 import type { Cart } from "@/lib/shopify/types";
@@ -203,6 +202,10 @@ export const ProductCard = memo(
     !isWineBox &&
     productType === "wine" &&
     Boolean(product.producerId);
+
+  // PACT PLP: no white commerce card over the bottle photo (mobile or desktop hover).
+  // Dirtywine keeps the existing touch/hover cart overlay on the shared card.
+  const showImageCommerceOverlay = showExclVat;
 
   const showMembershipBadge = !showMembershipTab;
   const listPriceSek = getProductListPriceSek(product);
@@ -826,7 +829,13 @@ export const ProductCard = memo(
       {/* Interactive Overlay - moved outside wrapper to avoid overflow-clip issues */}
       <div className="absolute inset-0 pl-1 pr-2 pt-2 pb-2 md:p-2 w-full pointer-events-none">
         {/* Mobile & Desktop Default: Info overlay (always visible on mobile, visible on desktop until hover) */}
-        <div className="flex gap-2 md:gap-6 justify-between items-start md:items-baseline px-1 md:px-3 py-1 w-full font-semibold transition-all duration-300 translate-y-0 md:group-hover:opacity-0 md:group-focus-visible:opacity-0 md:group-hover:-translate-y-full md:group-focus-visible:-translate-y-full">
+        <div
+          className={cn(
+            "flex gap-2 md:gap-6 justify-between items-start md:items-baseline px-1 md:px-3 py-1 w-full font-semibold transition-all duration-300 translate-y-0",
+            showImageCommerceOverlay &&
+              "md:group-hover:opacity-0 md:group-focus-visible:opacity-0 md:group-hover:-translate-y-full md:group-focus-visible:-translate-y-full",
+          )}
+        >
           <div className="flex flex-col min-w-0 max-w-[42%] md:max-w-[40%] shrink md:shrink-0 rounded-r pr-1.5 md:pr-0 md:rounded-none py-1 md:py-0 -my-1 md:my-0 overflow-hidden">
             <p className="text-[8px] leading-tight md:text-sm uppercase 2xl:text-base text-balance line-clamp-2 md:line-clamp-2 break-words overflow-hidden">
               {product.title}
@@ -884,15 +893,14 @@ export const ProductCard = memo(
           </PriceViewTracker>
         </div>
 
-        {/* Mobile: always-visible commerce strip (price + min-6 + Reservera) */}
-        {showCartActions && renderInCardAddToCart && (
+        {/* Mobile: Premium bottom overlay with Add to Cart button (visible on touch/hover) */}
+        {showImageCommerceOverlay && showCartActions && renderInCardAddToCart && (
           <div
-            className={cn(
-              "md:hidden absolute inset-x-2 bottom-2 px-2.5 py-2 rounded-md bg-white/95 backdrop-blur-sm pointer-events-auto shadow-lg transition-opacity duration-200",
-              shopCaseWineCta || isTouched ? "opacity-100" : "opacity-0",
-            )}
+            className={`md:hidden absolute inset-x-2 bottom-2 px-2.5 py-2 rounded-md bg-white/95 backdrop-blur-sm pointer-events-auto shadow-lg transition-opacity duration-200 ${
+              isTouched ? "opacity-100" : "opacity-0"
+            }`}
           >
-            <ListCardCommerceFooter>
+            <div className="flex flex-col gap-1.5">
               <div className="flex gap-2 items-center min-w-0">
                 {wineColor ? (
                   <div className="flex shrink-0 items-center">
@@ -966,19 +974,18 @@ export const ProductCard = memo(
                   </div>
                 </Button>
               )}
-            </ListCardCommerceFooter>
+            </div>
           </div>
         )}
 
-        {/* Mobile: variants path — same always-visible strip for wine CTAs */}
-        {showCartActions && !renderInCardAddToCart && (
+        {/* Mobile: Add to Cart button for products with variants (visible on touch/hover) */}
+        {showImageCommerceOverlay && showCartActions && !renderInCardAddToCart && (
           <div
-            className={cn(
-              "md:hidden absolute inset-x-2 bottom-2 px-2.5 py-2 rounded-md bg-white/95 backdrop-blur-sm pointer-events-auto shadow-lg transition-opacity duration-200",
-              shopCaseWineCta || isTouched ? "opacity-100" : "opacity-0",
-            )}
+            className={`md:hidden absolute inset-x-2 bottom-2 px-2.5 py-2 rounded-md bg-white/95 backdrop-blur-sm pointer-events-auto shadow-lg transition-opacity duration-200 ${
+              isTouched ? "opacity-100" : "opacity-0"
+            }`}
           >
-            <ListCardCommerceFooter>
+            <div className="flex flex-col gap-1.5">
               <div className="flex gap-2 items-center min-w-0">
                 {wineColor ? (
                   <div className="flex shrink-0 items-center">
@@ -1052,20 +1059,15 @@ export const ProductCard = memo(
                   </div>
                 </Button>
               )}
-            </ListCardCommerceFooter>
+            </div>
           </div>
         )}
 
-        {/* Desktop: Move Add to Cart into the white info box instead of top-right */}
-
-        {/* Desktop Hover: White card with full details (only on desktop) */}
-        {/* Visual panel with buttons inside - pointer-events-none on container, pointer-events-auto on buttons */}
+        {/* Desktop Hover: White card with full details — Dirtywine only (PACT keeps photo unobstructed). */}
+        {showImageCommerceOverlay ? (
         <div 
           className="hidden md:flex absolute inset-x-3 bottom-3 flex-col gap-4 px-2 py-3 rounded-md transition-all duration-300 pointer-events-none bg-white/90 backdrop-blur-sm opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 translate-y-1/3 group-hover:translate-y-0 group-focus-visible:translate-y-0"
         >
-          {shopCaseWineCta ? (
-            <ListCardCommerceFooter className="pointer-events-none" />
-          ) : null}
           <div className="grid grid-cols-2 gap-x-4 gap-y-4 items-end">
             <div className="flex flex-col">
               <p className="text-lg font-semibold text-pretty">
@@ -1219,6 +1221,7 @@ export const ProductCard = memo(
           </div>
           ) : null}
         </div>
+        ) : null}
       </div>
       </div>
       </div>

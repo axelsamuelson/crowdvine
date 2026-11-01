@@ -1,9 +1,6 @@
 import Link from "next/link";
 
-import { DirectBoxDeliveryPromise } from "@/components/commerce/direct-box-delivery-promise";
-import { MinSixBottlesHint } from "@/components/commerce/min-six-bottles-hint";
 import { ServerListPrice } from "@/components/commerce/server-list-price";
-import { SsrReserveLink } from "@/components/commerce/ssr-reserve-link";
 import { ProductListImageServer } from "@/app/vin/components/product-list-image-server";
 import { ProductGrid } from "@/app/vin/components/product-grid";
 import type { AppLocale } from "@/lib/i18n/locale";
@@ -63,18 +60,13 @@ function ProductListStaticCard({
             />
           </div>
 
-          <div className="pointer-events-auto space-y-1.5 rounded-md bg-white/95 p-2 shadow-sm backdrop-blur-sm">
-            <MinSixBottlesHint locale={locale} compact />
-            <DirectBoxDeliveryPromise locale={locale} compact />
-            <SsrReserveLink handle={product.handle} locale={locale} />
-          </div>
         </div>
       </div>
     </div>
   );
 }
 
-/** Server-rendered PLP grid — images, price, Reservera CTA, direct-box promise. */
+/** Server-rendered PLP grid — images and price (no delivery overlay on image). */
 export function ProductListStaticGrid({
   products,
   locale,
