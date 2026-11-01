@@ -13,7 +13,7 @@ import { convertSekForDisplay } from "@/lib/shopping-context/currency-convert";
 import { resolveDisplayCurrency } from "@/lib/shopping-context/display-currency";
 import { bindCartOwnerAndTouch } from "@/lib/cart/reconcile-on-auth";
 import { getCurrentUser as getSessionUser } from "@/lib/supabase-server";
-import { isB2BHost } from "@/lib/b2b-site";
+import { isB2BHost, isDirtywineRequest } from "@/lib/b2b-site";
 import { normalizeExistingB2BLineQuantity } from "@/lib/cart/bottle-pack";
 import { wineDisplayTitle } from "@/lib/wine-display-title";
 import {
@@ -230,15 +230,20 @@ export class CartService {
       }
 
       let requestHost: string | null = null;
+      let isB2B = false;
       try {
         const h = await headers();
         requestHost = h.get("x-forwarded-host") ?? h.get("host");
+        // Host first; Origin/Referer covers Dirty Wine browser on shared preview Host.
+        isB2B = isDirtywineRequest(h);
       } catch {
         /* headers() unavailable outside request */
       }
       // Dirty Wine: no member discount and no pallet early-bird pricing.
       // Skipping early-bird avoids determineZones + Nominatim on every getCart/add.
-      const isB2B = isB2BHost(requestHost, null);
+      if (!isB2B) {
+        isB2B = isB2BHost(requestHost, null);
+      }
 
       // Clamp out-of-range B2B line quantities (single bottles allowed).
       if (isB2B) {
@@ -749,8 +754,7 @@ export class CartService {
         let nextQuantity = quantity;
         try {
           const h = await headers();
-          const host = h.get("x-forwarded-host") ?? h.get("host");
-          if (isB2BHost(host, null)) {
+          if (isDirtywineRequest(h) || isB2BHost(h.get("x-forwarded-host") ?? h.get("host"), null)) {
             nextQuantity = normalizeExistingB2BLineQuantity(quantity);
           }
         } catch {
