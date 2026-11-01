@@ -307,6 +307,10 @@ describe("exit-feedback helpers", () => {
     expect(EXIT_FEEDBACK_REASONS).toHaveLength(6);
     expect(EXIT_FEEDBACK_REASON_OPTIONS).toHaveLength(6);
     expect(isExitFeedbackReason("price")).toBe(true);
+    expect(
+      EXIT_FEEDBACK_REASON_OPTIONS.find((o) => o.value === "delivery_unclear")
+        ?.label,
+    ).toBe("Osäker på hur leveransen fungerar");
     expect(EXIT_FEEDBACK_PRIVACY_HELPER).toBe("Skriv inte personuppgifter här.");
   });
 });

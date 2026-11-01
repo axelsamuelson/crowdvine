@@ -50,7 +50,7 @@ export const EXIT_FEEDBACK_REASON_OPTIONS: ReadonlyArray<{
   { value: "price", label: "Priset" },
   {
     value: "delivery_unclear",
-    label: "Osäker på hur leverans/pallen fungerar",
+    label: "Osäker på hur leveransen fungerar",
   },
   { value: "wait_too_long", label: "För lång väntan på leverans" },
   { value: "just_browsing", label: "Ville bara titta" },

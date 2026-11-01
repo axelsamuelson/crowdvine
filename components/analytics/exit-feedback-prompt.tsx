@@ -10,7 +10,6 @@ import {
 import { usePathname } from "next/navigation";
 import { X } from "lucide-react";
 import { useCartOptional } from "@/components/cart/cart-context";
-import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useB2BModeServerHint } from "@/lib/context/b2b-mode-context";
 import {
@@ -37,6 +36,9 @@ import {
 } from "@/lib/exit-discount/messages";
 
 type Phase = "feedback" | "thanks";
+
+const EXIT_FEEDBACK_HEADING =
+  "Vad hindrade dig från att reservera i dag?";
 
 function isCoarsePointer(): boolean {
   if (typeof window === "undefined") return false;
@@ -314,13 +316,12 @@ export function ExitFeedbackPrompt() {
   if (isB2B || !open) return null;
 
   const title =
-    phase === "feedback"
-      ? "Vad hindrade dig från att reservera idag?"
-      : EXIT_FEEDBACK_THANKS_MESSAGE;
+    phase === "feedback" ? EXIT_FEEDBACK_HEADING : EXIT_FEEDBACK_THANKS_MESSAGE;
+  const canSubmit = Boolean(reason) && !submitting;
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-end justify-center bg-background/40 sm:items-end sm:justify-end sm:bg-transparent sm:p-4"
+      className="fixed inset-0 z-[60] flex items-end justify-center bg-background/40 sm:items-end sm:justify-end sm:bg-transparent sm:pb-6 sm:pr-6"
       onPointerDown={onBackdropPointerDown}
       data-exit-prompt-backdrop=""
     >
@@ -329,14 +330,14 @@ export function ExitFeedbackPrompt() {
         aria-modal="true"
         aria-labelledby="exit-prompt-title"
         data-exit-prompt-panel=""
-        className="inset-x-0 bottom-0 flex max-h-[min(85dvh,36rem)] w-full max-w-none flex-col overflow-hidden rounded-t-xl border border-border bg-background shadow-lg sm:mb-0 sm:max-w-[22rem] sm:rounded-lg"
+        className="inset-x-0 bottom-0 flex max-h-[min(85dvh,36rem)] w-full max-w-none flex-col overflow-hidden rounded-t-[12px] border-0 bg-background shadow-none sm:mb-0 sm:w-[360px] sm:max-w-[360px] sm:rounded-[12px] sm:shadow-[0_8px_30px_rgba(0,0,0,0.12)]"
         onPointerDown={(e) => e.stopPropagation()}
       >
-        <div className="flex shrink-0 items-start justify-between gap-2 border-b border-border px-4 pb-3 pt-3">
+        <div className="flex shrink-0 items-start justify-between gap-2 px-5 pt-5">
           <div className="min-w-0 flex-1 pr-2">
             <p
               id="exit-prompt-title"
-              className="text-sm font-medium leading-snug text-foreground"
+              className="text-[16px] font-semibold leading-snug text-foreground sm:text-[15px]"
             >
               {title}
             </p>
@@ -348,23 +349,23 @@ export function ExitFeedbackPrompt() {
                 ? () => void finishFeedback(false)
                 : closeAll
             }
-            className="inline-flex h-11 w-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-md border border-border bg-background text-foreground shadow-sm transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="inline-flex h-11 w-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center border-0 bg-transparent p-0 text-foreground shadow-none transition-opacity hover:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             aria-label="Stäng"
             data-exit-prompt-close=""
           >
-            <X className="h-5 w-5" strokeWidth={2.25} aria-hidden />
+            <X className="h-5 w-5" strokeWidth={2} aria-hidden />
           </button>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-3">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-5 pt-3">
           {phase === "feedback" && step ? (
             <>
-              <fieldset className="mb-3 space-y-1">
+              <fieldset className="mb-4 space-y-0.5">
                 <legend className="sr-only">Välj anledning</legend>
                 {EXIT_FEEDBACK_REASON_OPTIONS.map((opt) => (
                   <label
                     key={opt.value}
-                    className="flex min-h-11 cursor-pointer items-center gap-3 rounded-md px-1 py-2 text-sm text-foreground"
+                    className="flex min-h-11 cursor-pointer items-center gap-3 rounded-md py-2 text-[15px] text-foreground sm:text-[14px]"
                   >
                     <input
                       type="radio"
@@ -380,7 +381,7 @@ export function ExitFeedbackPrompt() {
               </fieldset>
 
               {reason === "other" ? (
-                <div className="mb-3">
+                <div className="mb-4">
                   <Textarea
                     value={answer}
                     onChange={(e) =>
@@ -398,7 +399,7 @@ export function ExitFeedbackPrompt() {
                   />
                   <p
                     id="exit-feedback-privacy-helper"
-                    className="mt-1.5 text-xs leading-snug text-muted-foreground"
+                    className="mt-1.5 text-[12px] leading-snug text-[#5F5F5F]"
                     data-exit-prompt-privacy-helper=""
                   >
                     {EXIT_FEEDBACK_PRIVACY_HELPER}
@@ -406,30 +407,20 @@ export function ExitFeedbackPrompt() {
                 </div>
               ) : null}
 
-              <div className="flex items-center justify-end gap-2 pb-1">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="min-h-11 px-4"
-                  onClick={() => void finishFeedback(false)}
-                  disabled={submitting}
-                >
-                  Stäng
-                </Button>
-                <Button
-                  type="button"
-                  className="min-h-11 px-4"
-                  onClick={() => void finishFeedback(true)}
-                  disabled={submitting || !reason}
-                >
-                  Skicka
-                </Button>
-              </div>
+              <button
+                type="button"
+                onClick={() => void finishFeedback(true)}
+                disabled={!canSubmit}
+                className="h-11 min-h-[44px] w-full rounded-[6px] bg-[#0A0A0A] text-[15px] font-medium text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-30 sm:text-[14px]"
+                data-exit-prompt-submit=""
+              >
+                Skicka
+              </button>
             </>
           ) : null}
 
           {phase === "thanks" ? (
-            <p className="pb-2 text-sm leading-snug text-muted-foreground">
+            <p className="pb-1 text-[15px] leading-snug text-[#5F5F5F] sm:text-[14px]">
               {EXIT_FEEDBACK_THANKS_BODY}
             </p>
           ) : null}
