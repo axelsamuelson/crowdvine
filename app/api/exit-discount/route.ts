@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
-import { getAppUrl } from "@/lib/app-url";
 import {
   NEWSLETTER_CONSENT_TEXT_VERSION,
   isExitDiscountEnabled,
@@ -84,12 +83,12 @@ export async function POST(request: Request) {
     }
 
     try {
+      // Email is code-only (no marketing). Newsletter consent is stored
+      // separately above and must not add promotional content to this mail.
       await sendExitDiscountEmail({
         to: email,
         code: created.code,
         expiresAt: created.expiresAt,
-        includeNewsletter: newsletterOptIn,
-        origin: getAppUrl(),
       });
     } catch (err) {
       console.error("[exit-discount] email send failed");

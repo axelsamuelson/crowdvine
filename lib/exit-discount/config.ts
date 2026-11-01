@@ -81,5 +81,6 @@ export function exitDiscountEmailMode(): ExitDiscountEmailMode {
 }
 
 export const EXIT_DISCOUNT_PERCENT = 10;
+/** @deprecated Popup one-shot key; discount now lives in the cart block. */
 export const EXIT_DISCOUNT_SHOWN_KEY = "pact_exit_discount_shown";
 export const NEWSLETTER_CONSENT_TEXT_VERSION = "exit_popup_v1_2026-10";

@@ -224,6 +224,20 @@ export const TRACKED_USER_EVENTS_CATALOG: TrackedEventCatalogEntry[] = [
     description: "Cart drawer opened (manual or after add-to-cart auto-open).",
     sources: ["client"],
   },
+  {
+    eventType: "exit_discount_shown",
+    category: "cart",
+    description:
+      "Inline 10% exit-discount cart block became visible (once per analytics session). Metadata: placement.",
+    sources: ["client"],
+  },
+  {
+    eventType: "exit_discount_submitted",
+    category: "cart",
+    description:
+      "Visitor submitted the exit-discount cart form (code emailed). Metadata: placement, newsletter_opt_in. No email/PII.",
+    sources: ["client"],
+  },
   // validation
   {
     eventType: "cart_validation_shown",

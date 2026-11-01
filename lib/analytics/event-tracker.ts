@@ -52,6 +52,8 @@ export type EventType =
   | "cart_validation_shown"
   | "cart_validation_passed"
   | "cart_validation_failed"
+  | "exit_discount_shown"
+  | "exit_discount_submitted"
   | "why_modal_opened"
   // Checkout
   | "checkout_started"

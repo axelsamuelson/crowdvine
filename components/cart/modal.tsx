@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 import { CartValidationDisplay } from "./cart-validation-display";
 import type { ProducerValidation } from "@/lib/checkout-validation";
 import { CartValidationHeader } from "./CartValidationHeader";
+import { ExitDiscountCartBlock } from "./exit-discount-cart-block";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 import {
   B2B_PRODUCER_ORDERS_ENABLED,
@@ -58,6 +59,7 @@ const CartItems = ({
   const { cart } = useCart();
   const { t, context } = useTranslations();
   const showExclVat = useB2BPriceMode();
+  const isDirtywineSite = useB2BModeServerHint();
   const totalAmount = cart ? parseFloat(cart.cost.totalAmount.amount) : 0;
   const displayTotal = showExclVat ? priceExclVat(totalAmount) : totalAmount;
   const [pactPointsBalance, setPactPointsBalance] = useState<number | null>(null);
@@ -137,7 +139,7 @@ const CartItems = ({
         isLoading={isValidating}
       /> */}
 
-        <CartContainer className="shrink-0">
+        <CartContainer className="max-h-[55%] shrink-0 overflow-y-auto overscroll-contain">
         <div className="py-4 text-sm text-foreground/50 shrink-0">
           {typeof pactPointsBalance === "number" && pactPointsBalance > 0 ? (
             <div className="flex items-center justify-between border-t border-border py-2 mt-2">
@@ -183,6 +185,7 @@ const CartItems = ({
             </div>
           </div>
         </div>
+        {!isDirtywineSite ? <ExitDiscountCartBlock /> : null}
         <CheckoutButton
           closeCart={closeCart}
           validations={validations}
