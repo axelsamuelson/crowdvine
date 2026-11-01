@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,6 +14,10 @@ import { FooterLogoSvg } from "@/components/layout/footer-logo-svg";
 import InfiniteGallery from "@/components/access-request/infinite-gallery";
 import { galleryImages } from "@/components/access-request/gallery-images";
 import { useTranslations } from "@/lib/hooks/use-translations";
+import {
+  b2bOpenSignupCopy,
+  b2bOpenSignupHref,
+} from "@/lib/b2b/open-signup";
 
 const DURATION = 0.3;
 const DELAY = DURATION;
@@ -35,12 +38,14 @@ export default function LogInPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const router = useRouter();
 
   // Get next parameter from URL
   const [nextUrl, setNextUrl] = useState("/profile");
-  /** Hide invite-membership footer when returning from Dirtywine inquiry flow. */
-  const [hideInviteMembershipFooter, setHideInviteMembershipFooter] =
+  /**
+   * Dirty Wine: replace invite-membership footer with open sign-up CTA.
+   * PACT keeps “Medlemskap via inbjudan.”
+   */
+  const [showDirtywineOpenSignup, setShowDirtywineOpenSignup] =
     useState(false);
 
   useEffect(() => {
@@ -53,13 +58,16 @@ export default function LogInPage() {
     if (emailParam) {
       setEmail(emailParam);
     }
-    const fromInquiry =
-      typeof next === "string" && next.includes("/b2b/inquiry");
+    const host = window.location.hostname.toLowerCase();
     const onDirtywine =
-      typeof window !== "undefined" &&
-      window.location.hostname.toLowerCase().includes("dirtywine.se");
-    setHideInviteMembershipFooter(fromInquiry || onDirtywine);
+      host.includes("dirtywine.se") || urlParams.get("b2b") === "1";
+    setShowDirtywineOpenSignup(onDirtywine);
   }, []);
+
+  const openSignupCopy = b2bOpenSignupCopy("sv");
+  const openSignupHref = b2bOpenSignupHref(
+    nextUrl && nextUrl !== "/profile" ? nextUrl : null,
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -385,13 +393,33 @@ export default function LogInPage() {
         </div>
       </div>
 
-      {/* Bottom instructions (template style). Skip invite-membership line on Dirtywine / inquiry return. */}
-      <div className="text-center fixed bottom-10 left-0 right-0 font-mono uppercase text-[11px] font-semibold text-white/90 mix-blend-exclusion">
-        <p>{t("auth.footerLine1")}</p>
-        {!hideInviteMembershipFooter ? (
+      {/* PACT: invite membership footer. Dirty Wine: open sign-up CTA. */}
+      {showDirtywineOpenSignup ? (
+        <div className="fixed bottom-6 left-0 right-0 z-10 flex justify-center px-4 pointer-events-none">
+          <div className="pointer-events-auto w-full max-w-md rounded-xl border border-white/25 bg-zinc-950/70 px-5 py-4 text-center text-white shadow-[0_8px_40px_rgba(0,0,0,0.35)] backdrop-blur-sm">
+            <p className="text-base font-semibold tracking-tight">
+              {openSignupCopy.heading}
+            </p>
+            <p className="mt-1 text-sm text-white/80 leading-relaxed">
+              {openSignupCopy.body}
+            </p>
+            <Link
+              href={openSignupHref}
+              className={cn(
+                buttonVariants({ size: "default" }),
+                "mt-3 inline-flex h-10 w-full bg-white text-zinc-950 hover:bg-white/90 font-semibold",
+              )}
+            >
+              {openSignupCopy.cta}
+            </Link>
+          </div>
+        </div>
+      ) : (
+        <div className="text-center fixed bottom-10 left-0 right-0 font-mono uppercase text-[11px] font-semibold text-white/90 mix-blend-exclusion">
+          <p>{t("auth.footerLine1")}</p>
           <p className="opacity-60">{t("auth.footerLine2")}</p>
-        ) : null}
-      </div>
+        </div>
+      )}
     </main>
   );
 }

@@ -15,7 +15,10 @@ interface ConditionalHeaderProps {
   ssrPathname: string;
 }
 
-function shouldHideHeader(pathname: string): boolean {
+function shouldHideHeader(
+  pathname: string,
+  isDirtywineSite: boolean,
+): boolean {
   const isAdminRoute = pathname.startsWith("/admin");
   const isAccessRequestRoute = pathname === "/access-request";
   const isCheckoutSuccessRoute = pathname === "/checkout/success";
@@ -28,7 +31,8 @@ function shouldHideHeader(pathname: string): boolean {
     pathname.startsWith("/b/") ||
     pathname.startsWith("/p/") ||
     pathname.startsWith("/c/");
-  const isSignupRoute = pathname === "/signup";
+  // Dirty Wine open sign-up keeps the site header + logo; PACT token signup stays chrome-free.
+  const isSignupRoute = pathname === "/signup" && !isDirtywineSite;
   const isOnboardingRoute = pathname === "/onboarding";
 
   return (
@@ -60,7 +64,7 @@ export function ConditionalHeader({
 
   const activePathname = hasMounted ? pathname || ssrPathname : ssrPathname;
 
-  if (shouldHideHeader(activePathname)) {
+  if (shouldHideHeader(activePathname, isDirtywineSite)) {
     return null;
   }
 
