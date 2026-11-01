@@ -190,6 +190,12 @@ export default function KopvillkorContent() {
       </LegalList>
 
       <LegalH2>5. Betalning</LegalH2>
+      <LegalP>
+        Betalning sker via vår betalleverantör Stripe med de betalsätt som
+        visas i kassan, i dag kort, Klarna och Link. Kortet reserveras när du
+        reserverar och debiteras först när pallen är full och din order
+        bekräftas. Vi sparar inga kortuppgifter själva.
+      </LegalP>
       <LegalP>Betalningar hanteras av Stripe. Vi lagrar aldrig ditt fullständiga kortnummer.</LegalP>
       <LegalP>
         <LegalStrong>Så sparas ditt kort.</LegalStrong> När du reserverar sparas
