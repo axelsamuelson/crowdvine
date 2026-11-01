@@ -14,7 +14,8 @@ export type FinalizeSignupSource =
   | "magic_link"
   | "checkout_otp"
   | "checkout"
-  | "checkout_guest";
+  | "checkout_guest"
+  | "dirtywine_open_signup";
 
 /**
  * Shared post-auth steps for magic-link callback and mid-checkout OTP.
@@ -34,13 +35,17 @@ export async function finalizeSignupAfterAuth(opts: {
 }): Promise<{ ok: true } | { ok: false; error: string }> {
   try {
     const sbAdmin = getSupabaseAdmin();
-    await sbAdmin.from("profiles").upsert(
-      {
-        id: opts.userId,
-        email: opts.email?.trim() ? opts.email.trim() : null,
-      },
-      { onConflict: "id" },
-    );
+    const profileRow: Record<string, unknown> = {
+      id: opts.userId,
+      email: opts.email?.trim() ? opts.email.trim() : null,
+    };
+    // Dirty Wine open sign-up: ensure B2B-only portal (no PACT 'user' portal).
+    if (opts.source === "dirtywine_open_signup") {
+      profileRow.portal_access = ["business"];
+      profileRow.role = "user";
+      profileRow.roles = ["user"];
+    }
+    await sbAdmin.from("profiles").upsert(profileRow, { onConflict: "id" });
 
     const cartSessionId = opts.cartSessionId?.trim() || null;
     if (cartSessionId) {

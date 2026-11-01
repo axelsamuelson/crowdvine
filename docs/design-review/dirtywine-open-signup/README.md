@@ -1,22 +1,22 @@
 # Dirtywine open sign-up — design review
 
-Axel (2026-11-01): Dirty Wine login replaces invite-membership messaging with open sign-up (**Skapa konto**). Direct account creation on dirtywine.se (no invite / no approval); return to `next` (e.g. `/b2b/inquiry`) with form prefill. Guest inquiry (**Logga in** / **Fortsätt som ny kund**) unchanged. pactwines.com invite/membership flow unchanged.
+Axel (2026-11-01): Dirty Wine login replaces invite-membership messaging with open sign-up (**Skapa konto**). Sign-up uses normal Supabase email confirmation (**Kolla din mejl**); after confirm, return to `next` (e.g. `/b2b/inquiry`). Guest inquiry (**Logga in** / **Fortsätt som ny kund**) stays available. pactwines.com invite/membership flow unchanged.
 
 ## Screenshots
 
-Geist + dirtywine grey (`hsl(223.81 0% 94%)`) + real Dirtywine header logo.
+Real local Next (`Host: dirtywine.se`), Geist, real Dirtywine header/logo. Next.js dev badge hidden.
 
 | File | State | Width |
 | --- | --- | --- |
-| `signup-form-{390,1440}.png` | Open sign-up form (`/signup`) | 390 / 1440 |
-| `login-ny-kund-{390,1440}.png` | Inquiry choice: Logga in / Fortsätt som ny kund | 390 / 1440 |
-| `plp-{390,1440}.png` | Assortment PLP (`/vin`) | 390 / 1440 |
-| `pdp-{390,1440}.png` | Product PDP | 390 / 1440 |
+| `login-skapa-konto-{390,1440}.png` | `/log-in` with new Skapa konto box | 390 / 1440 |
+| `signup-form-{390,1440}.png` | `/signup` open sign-up form | 390 / 1440 |
+| `signup-check-email-{390,1440}.png` | **Kolla din mejl** after submit | 390 / 1440 |
+| `login-ny-kund-{390,1440}.png` | `/b2b/inquiry` Logga in / Fortsätt som ny kund | 390 / 1440 |
 
 ## Behaviour
 
-- Login on dirtywine.se shows **Skapa konto** CTA → `/signup?next=…` (same slug as PACT).
-- Sign-up creates a business-portal account immediately; redirects to `next` (e.g. inquiry with prefill).
+- Login CTA → `/signup?next=…` (same slug/title as PACT).
+- Open signup does **not** pre-confirm email; confirmation link returns to `next`.
 - Guest path `/b2b/inquiry?guest=1` still works without an account.
 
 ## Migrations

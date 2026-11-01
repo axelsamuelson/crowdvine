@@ -10,7 +10,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { LogoSvg } from "@/components/layout/header/logo-svg";
 import { DirtywineOpenSignupForm } from "@/components/b2b/dirtywine-open-signup-form";
-import { isDirtywineHost } from "@/lib/b2b-site";
+import { isExactDirtywineOpenSignupHost } from "@/lib/b2b/open-signup";
 
 function SignupPageContent() {
   const searchParams = useSearchParams();
@@ -32,7 +32,7 @@ function SignupPageContent() {
   useEffect(() => {
     const host =
       typeof window !== "undefined" ? window.location.hostname : null;
-    const onDirtywine = isDirtywineHost(host, searchParams);
+    const onDirtywine = isExactDirtywineOpenSignupHost(host, searchParams);
     setDirtywineOpenSignup(onDirtywine);
     if (onDirtywine) return;
 
@@ -134,6 +134,7 @@ function SignupPageContent() {
   if (dirtywineOpenSignup) {
     const nextPath = searchParams.get("next");
     const emailParam = searchParams.get("email")?.trim() ?? "";
+    const checkEmailParam = searchParams.get("checkEmail") === "1";
     return (
       <main className="min-h-screen bg-[hsl(223.81_0%_94%)] pt-24 pb-16 px-4">
         <DirtywineOpenSignupForm
@@ -142,6 +143,7 @@ function SignupPageContent() {
           initialEmail={
             emailParam.includes("@") ? emailParam : ""
           }
+          initialCheckEmail={checkEmailParam}
         />
       </main>
     );

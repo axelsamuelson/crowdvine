@@ -7,8 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Mail, Lock, User } from "lucide-react";
-import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import {
+  B2B_INQUIRY_GUEST_PATH,
+  B2B_INQUIRY_PATH,
+} from "@/lib/b2b/inquiry-login";
+import {
+  B2B_OPEN_SIGNUP_MIN_PASSWORD,
   b2bOpenSignupCopy,
   sanitizeOpenSignupNext,
   type B2bOpenSignupLocale,
@@ -18,10 +22,13 @@ export function DirtywineOpenSignupForm({
   nextPath,
   locale = "sv",
   initialEmail = "",
+  /** Design-review / QA: start on the post-submit “Kolla din mejl” state. */
+  initialCheckEmail = false,
 }: {
   nextPath?: string | null;
   locale?: B2bOpenSignupLocale;
   initialEmail?: string;
+  initialCheckEmail?: boolean;
 }) {
   const copy = b2bOpenSignupCopy(locale);
   const [fullName, setFullName] = useState("");
@@ -30,22 +37,24 @@ export function DirtywineOpenSignupForm({
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState(false);
+  const [checkEmail, setCheckEmail] = useState(initialCheckEmail);
 
-  const loginHref = (() => {
-    const next = sanitizeOpenSignupNext(nextPath);
-    return next
-      ? `/log-in?next=${encodeURIComponent(next)}`
-      : "/log-in";
-  })();
+  const safeNext = sanitizeOpenSignupNext(nextPath);
+  const loginHref = safeNext
+    ? `/log-in?next=${encodeURIComponent(safeNext)}`
+    : "/log-in";
+  const guestHref = B2B_INQUIRY_GUEST_PATH;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    setSuccess(false);
 
     if (password !== confirmPassword) {
       setError(copy.passwordMismatch);
+      return;
+    }
+    if (password.length < B2B_OPEN_SIGNUP_MIN_PASSWORD) {
+      setError(copy.passwordTooShort);
       return;
     }
 
@@ -59,6 +68,7 @@ export function DirtywineOpenSignupForm({
           email,
           password,
           full_name: fullName,
+          next: safeNext || "/",
         }),
       });
       const data = await response.json().catch(() => ({}));
@@ -71,25 +81,54 @@ export function DirtywineOpenSignupForm({
         );
       }
 
-      if (data.autoSignedIn && data.session?.access_token) {
-        const supabase = getSupabaseBrowserClient();
-        await supabase.auth.setSession({
-          access_token: data.session.access_token,
-          refresh_token: data.session.refresh_token,
-        });
-      }
-
-      setSuccess(true);
-      const destination = sanitizeOpenSignupNext(nextPath) || "/";
-      window.setTimeout(() => {
-        window.location.href = destination;
-      }, 400);
+      // Email confirmation required — do not auto-redirect; show check-email state.
+      setCheckEmail(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : copy.genericError);
     } finally {
       setLoading(false);
     }
   };
+
+  if (checkEmail) {
+    return (
+      <div
+        className="w-full max-w-md mx-auto space-y-6 text-center"
+        data-testid="dirtywine-open-signup-check-email"
+      >
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-foreground/5">
+          <Mail className="h-6 w-6 text-foreground" aria-hidden />
+        </div>
+        <div className="space-y-2">
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+            {copy.checkEmailHeading}
+          </h1>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            {copy.checkEmailBody}
+          </p>
+          {email ? (
+            <p className="text-sm font-medium text-foreground break-all">
+              {email}
+            </p>
+          ) : null}
+        </div>
+        <div className="space-y-3 pt-2">
+          <Button asChild className="w-full h-12" size="lg">
+            <Link href={guestHref}>{copy.checkEmailContinueGuest}</Link>
+          </Button>
+          <p className="text-sm text-muted-foreground">
+            {copy.alreadyHaveAccount}{" "}
+            <Link
+              href={loginHref}
+              className="text-foreground underline underline-offset-2"
+            >
+              {copy.signIn}
+            </Link>
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full max-w-md mx-auto space-y-6">
@@ -149,7 +188,7 @@ export function DirtywineOpenSignupForm({
               type="password"
               autoComplete="new-password"
               required
-              minLength={6}
+              minLength={B2B_OPEN_SIGNUP_MIN_PASSWORD}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="pl-10"
@@ -168,7 +207,7 @@ export function DirtywineOpenSignupForm({
               type="password"
               autoComplete="new-password"
               required
-              minLength={6}
+              minLength={B2B_OPEN_SIGNUP_MIN_PASSWORD}
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               className="pl-10"
@@ -180,12 +219,6 @@ export function DirtywineOpenSignupForm({
         {error ? (
           <Alert variant="destructive">
             <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        ) : null}
-
-        {success ? (
-          <Alert className="border-green-200 bg-green-50 text-green-900">
-            <AlertDescription>{copy.success}</AlertDescription>
           </Alert>
         ) : null}
 

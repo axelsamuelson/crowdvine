@@ -2,10 +2,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 import {
   B2B_OPEN_SIGNUP_COPY,
+  B2B_OPEN_SIGNUP_MIN_PASSWORD,
   B2B_OPEN_SIGNUP_PATH,
+  B2B_OPEN_SIGNUP_SOURCE,
   b2bOpenSignupCopy,
   b2bOpenSignupHref,
   isDirtywineOpenSignupRequest,
+  isExactDirtywineOpenSignupHost,
   sanitizeOpenSignupNext,
 } from "@/lib/b2b/open-signup";
 import {
@@ -24,12 +27,15 @@ describe("Dirty Wine open sign-up helpers", () => {
     );
   });
 
-  it("exposes Swedish open sign-up copy", () => {
+  it("exposes Swedish open sign-up + check-email copy", () => {
     expect(B2B_OPEN_SIGNUP_COPY.sv.heading).toBe("Skapa konto");
     expect(B2B_OPEN_SIGNUP_COPY.sv.body).toBe(
       "Spara dina förfrågningar och fakturor på ett ställe.",
     );
+    expect(B2B_OPEN_SIGNUP_COPY.sv.checkEmailHeading).toBe("Kolla din mejl");
     expect(b2bOpenSignupCopy("sv").cta).toBe("Skapa konto");
+    expect(B2B_OPEN_SIGNUP_MIN_PASSWORD).toBe(8);
+    expect(B2B_OPEN_SIGNUP_SOURCE).toBe("dirtywine_open_signup");
   });
 
   it("sanitizes next to same-origin relative paths only", () => {
@@ -42,7 +48,25 @@ describe("Dirty Wine open sign-up helpers", () => {
     expect(sanitizeOpenSignupNext("profile")).toBeNull();
   });
 
-  it("allows open signup only on Dirty Wine hosts", () => {
+  it("allows only exact Dirty Wine hosts (not substring)", () => {
+    expect(isExactDirtywineOpenSignupHost("dirtywine.se")).toBe(true);
+    expect(isExactDirtywineOpenSignupHost("www.dirtywine.se")).toBe(true);
+    expect(isExactDirtywineOpenSignupHost("evil-dirtywine.se")).toBe(false);
+    expect(isExactDirtywineOpenSignupHost("dirtywine.se.evil.com")).toBe(
+      false,
+    );
+    expect(isExactDirtywineOpenSignupHost("pactwines.com")).toBe(false);
+    expect(
+      isExactDirtywineOpenSignupHost("localhost", {
+        get: (k) => (k === "b2b" ? "1" : null),
+      }),
+    ).toBe(true);
+    expect(isExactDirtywineOpenSignupHost("localhost", { get: () => null })).toBe(
+      false,
+    );
+  });
+
+  it("gates open signup API requests by exact host", () => {
     expect(
       isDirtywineOpenSignupRequest(
         new Request("https://dirtywine.se/api/auth/b2b-open-signup", {
@@ -83,7 +107,7 @@ describe("guest inquiry still works alongside open sign-up", () => {
     ).toBe(true);
   });
 
-  it("open signup next can return to inquiry for prefill after auth", () => {
+  it("open signup next can return to inquiry for prefill after confirm", () => {
     expect(b2bOpenSignupHref(B2B_INQUIRY_PATH)).toContain(
       "next=%2Fb2b%2Finquiry",
     );
@@ -94,18 +118,8 @@ vi.mock("@/lib/supabase-admin", () => ({
   getSupabaseAdmin: vi.fn(),
 }));
 
-vi.mock("@/lib/analytics/log-user-event-server", () => ({
-  logUserEventServer: vi.fn(),
-}));
-
-vi.mock("@/lib/auth/finalize-signup", () => ({
-  finalizeSignupAfterAuth: vi.fn(async () => ({ ok: true })),
-  signupCookiesFromRequest: vi.fn(() => ({
-    visitorId: null,
-    firstTouchCookie: null,
-    countryCode: null,
-    cartSessionId: null,
-  })),
+vi.mock("@/lib/supabase/server", () => ({
+  createSupabaseServerClient: vi.fn(),
 }));
 
 vi.mock("@/lib/rate-limiter", async () => {
@@ -148,29 +162,44 @@ describe("POST /api/auth/b2b-open-signup", () => {
     expect(json.error).toBe("open_signup_not_available");
   });
 
-  it("creates a business-portal account on dirtywine.se without invite", async () => {
+  it("rejects passwords shorter than 8 characters", async () => {
+    const { POST } = await import("@/app/api/auth/b2b-open-signup/route");
+    const res = await POST(
+      new NextRequest("https://dirtywine.se/api/auth/b2b-open-signup", {
+        method: "POST",
+        headers: {
+          host: "dirtywine.se",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          email: "ada@example.com",
+          password: "short",
+          full_name: "Ada",
+        }),
+      }),
+    );
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.error).toBe("invalid_input");
+  });
+
+  it("starts email-confirmation signup without confirming email", async () => {
     const { getSupabaseAdmin } = await import("@/lib/supabase-admin");
+    const { createSupabaseServerClient } = await import(
+      "@/lib/supabase/server"
+    );
     const userId = "11111111-1111-1111-1111-111111111111";
     const upsert = vi.fn().mockResolvedValue({ error: null });
-    const createUser = vi.fn().mockResolvedValue({
-      data: { user: { id: userId, email: "ada@example.com" } },
-      error: null,
-    });
-    const signInWithPassword = vi.fn().mockResolvedValue({
-      data: {
-        session: {
-          access_token: "access",
-          refresh_token: "refresh",
-        },
-      },
+    const signUp = vi.fn().mockResolvedValue({
+      data: { user: { id: userId, email: "ada@example.com" }, session: null },
       error: null,
     });
 
+    vi.mocked(createSupabaseServerClient).mockReturnValue({
+      auth: { signUp },
+    } as never);
+
     vi.mocked(getSupabaseAdmin).mockReturnValue({
-      auth: {
-        admin: { createUser },
-        signInWithPassword,
-      },
       from: (table: string) => {
         expect(table).toBe("profiles");
         return { upsert };
@@ -187,8 +216,9 @@ describe("POST /api/auth/b2b-open-signup", () => {
         },
         body: JSON.stringify({
           email: "ada@example.com",
-          password: "secret12",
+          password: "secret123",
           full_name: "Ada Restaurant",
+          next: "/b2b/inquiry",
         }),
       }),
     );
@@ -196,12 +226,19 @@ describe("POST /api/auth/b2b-open-signup", () => {
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.ok).toBe(true);
-    expect(json.autoSignedIn).toBe(true);
-    expect(json.session.access_token).toBe("access");
-    expect(createUser).toHaveBeenCalledWith(
+    expect(json.needsEmailConfirmation).toBe(true);
+    expect(json.autoSignedIn).toBeUndefined();
+    expect(signUp).toHaveBeenCalledWith(
       expect.objectContaining({
         email: "ada@example.com",
-        email_confirm: true,
+        options: expect.objectContaining({
+          emailRedirectTo: expect.stringContaining(
+            "/auth/callback?next=%2Fb2b%2Finquiry",
+          ),
+          data: expect.objectContaining({
+            signup_source: "dirtywine_open_signup",
+          }),
+        }),
       }),
     );
     expect(upsert).toHaveBeenCalledWith(
@@ -210,9 +247,10 @@ describe("POST /api/auth/b2b-open-signup", () => {
         email: "ada@example.com",
         full_name: "Ada Restaurant",
         portal_access: ["business"],
-        access_granted_at: expect.any(String),
       }),
       { onConflict: "id" },
     );
+    const profileArg = upsert.mock.calls[0][0];
+    expect(profileArg.access_granted_at).toBeUndefined();
   });
 });

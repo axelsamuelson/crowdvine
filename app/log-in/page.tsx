@@ -17,6 +17,7 @@ import { useTranslations } from "@/lib/hooks/use-translations";
 import {
   b2bOpenSignupCopy,
   b2bOpenSignupHref,
+  isExactDirtywineOpenSignupHost,
 } from "@/lib/b2b/open-signup";
 
 const DURATION = 0.3;
@@ -58,10 +59,9 @@ export default function LogInPage() {
     if (emailParam) {
       setEmail(emailParam);
     }
-    const host = window.location.hostname.toLowerCase();
-    const onDirtywine =
-      host.includes("dirtywine.se") || urlParams.get("b2b") === "1";
-    setShowDirtywineOpenSignup(onDirtywine);
+    setShowDirtywineOpenSignup(
+      isExactDirtywineOpenSignupHost(window.location.hostname, urlParams),
+    );
   }, []);
 
   const openSignupCopy = b2bOpenSignupCopy("sv");

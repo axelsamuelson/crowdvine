@@ -93,6 +93,13 @@ export async function GET(request: NextRequest) {
 
   if (user?.id) {
     const cookies = signupCookiesFromRequest(request);
+    const metaSource = user.user_metadata?.signup_source;
+    const source =
+      metaSource === "dirtywine_open_signup"
+        ? "dirtywine_open_signup"
+        : next.startsWith("/checkout")
+          ? "checkout_magic_link"
+          : "magic_link";
     await finalizeSignupAfterAuth({
       userId: user.id,
       email: user.email ?? null,
@@ -100,9 +107,7 @@ export async function GET(request: NextRequest) {
       firstTouchCookie: cookies.firstTouchCookie,
       countryCode: cookies.countryCode,
       cartSessionId: cookies.cartSessionId,
-      source: next.startsWith("/checkout")
-        ? "checkout_magic_link"
-        : "magic_link",
+      source,
       emitSignupCompleted: true,
     });
   }

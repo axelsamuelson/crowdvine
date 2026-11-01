@@ -72,14 +72,19 @@ function AuthPkceClient() {
       } = await supabase.auth.getUser();
 
       if (user?.id) {
+        const metaSource = user.user_metadata?.signup_source;
+        const source =
+          metaSource === "dirtywine_open_signup"
+            ? "dirtywine_open_signup"
+            : next.startsWith("/checkout")
+              ? "checkout_magic_link"
+              : "magic_link";
         await fetch("/api/auth/finalize-signup", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
           body: JSON.stringify({
-            source: next.startsWith("/checkout")
-              ? "checkout_magic_link"
-              : "magic_link",
+            source,
             emit_signup_completed: true,
           }),
         }).catch(() => {});
