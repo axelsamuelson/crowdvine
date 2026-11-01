@@ -1,3 +1,4 @@
+// DO NOT MOUNT in its current state (design review, Inès 2026-11-01): English copy, Title Case headings, pill buttons and copy like 'Pure wine' don't follow PACT's design system. Ask design (Inès) before activating.
 "use client";
 
 import { useState, useEffect, useRef } from "react";
