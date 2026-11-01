@@ -19,8 +19,16 @@ describe("productOfferCommerceFields", () => {
       "MerchantReturnPolicy",
     );
     expect(fields.hasMerchantReturnPolicy.returnPolicyCategory).toBe(
-      "https://schema.org/MerchantReturnNotPermitted",
+      "https://schema.org/MerchantReturnFiniteReturnWindow",
     );
+    expect(fields.hasMerchantReturnPolicy.merchantReturnDays).toBe(14);
+    expect(fields.hasMerchantReturnPolicy.returnMethod).toBe(
+      "https://schema.org/ReturnByMail",
+    );
+    expect(fields.hasMerchantReturnPolicy.returnFees).toBe(
+      "https://schema.org/ReturnFeesCustomerResponsibility",
+    );
+    expect(fields.hasMerchantReturnPolicy.applicableCountry).toBe("SE");
     expect(fields.hasMerchantReturnPolicy.url).toBe(
       "https://pactwines.com/villkor",
     );
