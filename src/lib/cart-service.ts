@@ -23,6 +23,7 @@ import {
 import { getEffectiveExchangeRate } from "@/lib/b2b-wine-cost";
 import { computeInquiryB2bUnitPriceExclVatSek } from "@/lib/b2b/inquiry-pricing";
 import { fetchExchangeRateToSekStrict } from "@/lib/exchange-rate-strict";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 type CartWineProducer = {
   id?: string;
@@ -304,7 +305,10 @@ export class CartService {
           .filter((id): id is string => Boolean(id));
         if (wineIds.length > 0) {
           try {
-            const { data: palletItems, error: palletErr } = await sb
+            // Same admin client as products-data / applyServerInquiryLinePrices
+            // (anon RLS cannot read pallet shipping for B2B unit price).
+            const admin = getSupabaseAdmin();
+            const { data: palletItems, error: palletErr } = await admin
               .from("b2b_pallet_shipment_items")
               .select(B2B_PALLET_ITEM_STOCK_SELECT)
               .in("wine_id", wineIds)
@@ -312,7 +316,7 @@ export class CartService {
             if (!palletErr) {
               const aggregated =
                 await aggregateB2BPalletStockWithFullPalletTotals(
-                  sb,
+                  admin,
                   palletItems ?? [],
                   { sellableOnly: true },
                 );
