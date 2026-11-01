@@ -16,6 +16,13 @@ import { getCurrentUser as getSessionUser } from "@/lib/supabase-server";
 import { isB2BHost } from "@/lib/b2b-site";
 import { normalizeExistingB2BLineQuantity } from "@/lib/cart/bottle-pack";
 import { wineDisplayTitle } from "@/lib/wine-display-title";
+import {
+  aggregateB2BPalletStockWithFullPalletTotals,
+  B2B_PALLET_ITEM_STOCK_SELECT,
+} from "@/lib/b2b-pallet-stock";
+import { getEffectiveExchangeRate } from "@/lib/b2b-wine-cost";
+import { computeInquiryB2bUnitPriceExclVatSek } from "@/lib/b2b/inquiry-pricing";
+import { fetchExchangeRateToSekStrict } from "@/lib/exchange-rate-strict";
 
 type CartWineProducer = {
   id?: string;
@@ -32,6 +39,11 @@ type CartWineRow = {
   base_price_cents: number;
   color: string | null;
   producer_id: string;
+  cost_amount?: number | null;
+  cost_currency?: string | null;
+  exchange_rate?: number | null;
+  alcohol_tax_cents?: number | null;
+  b2b_margin_percentage?: number | null;
   producers: CartWineProducer | CartWineProducer[] | null;
 };
 
@@ -174,6 +186,11 @@ export class CartService {
             base_price_cents,
             color,
             producer_id,
+            cost_amount,
+            cost_currency,
+            exchange_rate,
+            alcohol_tax_cents,
+            b2b_margin_percentage,
             producers (
               id,
               name,
@@ -277,6 +294,52 @@ export class CartService {
         palletTier = palletEarlyBird.discountTier;
       }
 
+      // Dirty Wine cart/inquiry read product.b2bPriceExclVat — same math as
+      // applyServerInquiryLinePrices (cost + tax + margin + pallet shipping).
+      let b2bShippingMap = new Map<string, number>();
+      let b2bRateMap: Record<string, number> = { SEK: 1 };
+      if (isB2B) {
+        const wineIds = (cartItems as CartItemRow[])
+          .map((item) => item.wines?.id)
+          .filter((id): id is string => Boolean(id));
+        if (wineIds.length > 0) {
+          try {
+            const { data: palletItems, error: palletErr } = await sb
+              .from("b2b_pallet_shipment_items")
+              .select(B2B_PALLET_ITEM_STOCK_SELECT)
+              .in("wine_id", wineIds)
+              .eq("b2b_pallet_shipments.is_active", true);
+            if (!palletErr) {
+              const aggregated =
+                await aggregateB2BPalletStockWithFullPalletTotals(
+                  sb,
+                  palletItems ?? [],
+                  { sellableOnly: true },
+                );
+              b2bShippingMap = aggregated.shippingMap;
+            }
+          } catch {
+            b2bShippingMap = new Map();
+          }
+
+          const currencies = new Set<string>();
+          for (const item of cartItems as CartItemRow[]) {
+            const wine = item.wines;
+            if (!wine) continue;
+            const currency = String(wine.cost_currency || "EUR").toUpperCase();
+            if (currency !== "SEK") currencies.add(currency);
+          }
+          await Promise.all(
+            [...currencies].map(async (currency) => {
+              const live = await fetchExchangeRateToSekStrict(currency);
+              if (live?.rate && Number.isFinite(live.rate)) {
+                b2bRateMap[currency] = live.rate;
+              }
+            }),
+          );
+        }
+      }
+
       const lines: CartItem[] = cartItems.map((item) => {
         const row = item as CartItemRow;
         const wine = row.wines;
@@ -317,6 +380,30 @@ export class CartService {
         const hasDiscount =
           (discountLabel !== undefined && discountLabel.length > 0) ||
           memberDiscountPercent > 0;
+
+        let b2bPriceExclVat: number | undefined;
+        if (isB2B) {
+          const currency = String(wine.cost_currency || "EUR").toUpperCase();
+          const fallbackRate = getEffectiveExchangeRate(
+            {
+              cost_amount: wine.cost_amount ?? undefined,
+              cost_currency: wine.cost_currency,
+              exchange_rate: wine.exchange_rate,
+              alcohol_tax_cents: wine.alcohol_tax_cents ?? undefined,
+            },
+            b2bRateMap,
+          );
+          const rate =
+            currency === "SEK" ? 1 : (b2bRateMap[currency] ?? fallbackRate);
+          const unitSek = computeInquiryB2bUnitPriceExclVatSek({
+            costAmount: wine.cost_amount ?? 0,
+            exchangeRate: rate,
+            alcoholTaxCents: wine.alcohol_tax_cents ?? 0,
+            b2bMarginPercentage: wine.b2b_margin_percentage,
+            shippingPerBottleSek: b2bShippingMap.get(wine.id) ?? 0,
+          });
+          if (unitSek != null) b2bPriceExclVat = unitSek;
+        }
 
         return {
           id: row.id,
@@ -395,6 +482,7 @@ export class CartService {
               currencyCode: displayCurrency,
               updatedAt: new Date().toISOString(),
               createdAt: new Date().toISOString(),
+              ...(b2bPriceExclVat != null ? { b2bPriceExclVat } : {}),
             },
           },
         };

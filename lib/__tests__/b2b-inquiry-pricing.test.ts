@@ -61,6 +61,36 @@ describe("inquiry B2B pricing (card price, not B2C/1.25)", () => {
     expect(b2bExclVatSekToUnitPriceCents(unit!)).toBe(13200);
   });
 
+  it("server-shaped cart line (merchandise.product.b2bPriceExclVat) shows 132, not 0", () => {
+    // Regression: cart-service omitted b2bPriceExclVat → drawer/inquiry fell to 0.
+    const b2bPriceExclVat = computeInquiryB2bUnitPriceExclVatSek({
+      costAmount: 70,
+      exchangeRate: 1,
+      alcoholTaxCents: 2219,
+      b2bMarginPercentage: 30,
+      shippingPerBottleSek: 0,
+    });
+    expect(b2bPriceExclVat).toBe(132);
+
+    // Shape matches CartService.getCart merchandise.product (no priceBreakdown).
+    const serverShapedProduct = {
+      id: "wine-resiste",
+      title: "Résiste 2025",
+      handle: "resiste-2025",
+      b2bPriceExclVat,
+    };
+    expect(cartLineB2bUnitPriceExclVat(serverShapedProduct)).toBe(132);
+    expect(cartLineB2bLineTotalExclVat(serverShapedProduct, 1)).toBe(132);
+
+    const missingPriceProduct = {
+      id: "wine-resiste",
+      title: "Résiste 2025",
+      handle: "resiste-2025",
+    };
+    expect(cartLineB2bUnitPriceExclVat(missingPriceProduct)).toBeNull();
+    expect(cartLineB2bLineTotalExclVat(missingPriceProduct, 1)).toBe(0);
+  });
+
   it("applyServerInquiryLinePrices ignores client unitPriceCents", async () => {
     const winesSelect = vi.fn().mockReturnValue({
       in: async () => ({
