@@ -74,6 +74,16 @@ export function B2bInquiryClient({
   const hasProducerLines = (cart?.lines ?? []).some(
     (line) => line.source === "producer",
   );
+  const cartTotals = useMemo(() => {
+    let bottles = 0;
+    let exclSum = 0;
+    for (const line of warehouseLines) {
+      bottles += line.quantity;
+      const lineTotal = parseFloat(line.cost.totalAmount.amount || "0");
+      exclSum += priceExclVat(lineTotal);
+    }
+    return { bottles, exclSum };
+  }, [warehouseLines]);
 
   useEffect(() => {
     emitOnce("b2b_inquiry_started", () => {
@@ -225,17 +235,6 @@ export function B2bInquiryClient({
     );
   }
 
-  const cartTotals = useMemo(() => {
-    let bottles = 0;
-    let exclSum = 0;
-    for (const line of warehouseLines) {
-      bottles += line.quantity;
-      const lineTotal = parseFloat(line.cost.totalAmount.amount || "0");
-      exclSum += priceExclVat(lineTotal);
-    }
-    return { bottles, exclSum };
-  }, [warehouseLines]);
-
   const bottlesLabel = (n: number) => {
     if (locale === "sv") return n === 1 ? "1 flaska" : `${n} flaskor`;
     return n === 1 ? "1 bottle" : `${n} bottles`;
@@ -264,7 +263,7 @@ export function B2bInquiryClient({
                 </div>
               </div>
               <span className="tabular-nums whitespace-nowrap pl-4 shrink-0">
-                {formatCartLinePrice(excl, context)}
+                {formatCartLinePrice(excl, "SEK", locale)}
               </span>
             </li>
           );
@@ -277,7 +276,7 @@ export function B2bInquiryClient({
             </div>
           </div>
           <span className="tabular-nums whitespace-nowrap pl-4 shrink-0">
-            {formatCartLinePrice(cartTotals.exclSum, context)}{" "}
+            {formatCartLinePrice(cartTotals.exclSum, "SEK", locale)}{" "}
             <span className="font-normal text-muted-foreground text-xs">
               {locale === "sv" ? "exkl. moms" : "excl. VAT"}
             </span>

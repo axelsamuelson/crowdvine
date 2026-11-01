@@ -15,7 +15,7 @@ import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 import { pricesFromCartAfterAdd } from "@/lib/analytics/cart-event-prices";
 import type { Cart } from "@/lib/shopify/types";
 import {
-  BOTTLE_PACK_SIZE,
+  B2B_MIN_LINE_BOTTLES,
   B2B_MAX_PACK_BOTTLES,
 } from "@/lib/cart/bottle-pack";
 import { B2B_PRODUCER_ORDERS_ENABLED } from "@/lib/b2b/flags";
@@ -44,7 +44,7 @@ export function AddToCartWithSource({
   previewDisabled = false,
 }: AddToCartWithSourceProps) {
   const { t } = useTranslations();
-  const [quantity, setQuantity] = useState(BOTTLE_PACK_SIZE);
+  const [quantity, setQuantity] = useState(B2B_MIN_LINE_BOTTLES);
   const { selectedSource, setSelectedSource } = useCartSource();
   const effectiveSource: CartSource = B2B_PRODUCER_ORDERS_ENABLED
     ? selectedSource
@@ -81,14 +81,14 @@ export function AddToCartWithSource({
   ]);
 
   const handleDecrease = () => {
-    if (quantity > BOTTLE_PACK_SIZE) {
-      setQuantity(quantity - BOTTLE_PACK_SIZE);
+    if (quantity > B2B_MIN_LINE_BOTTLES) {
+      setQuantity(quantity - 1);
     }
   };
 
   const handleIncrease = () => {
     if (quantity < B2B_MAX_PACK_BOTTLES) {
-      setQuantity(quantity + BOTTLE_PACK_SIZE);
+      setQuantity(quantity + 1);
     }
   };
 
@@ -110,7 +110,6 @@ export function AddToCartWithSource({
               variantId: resolvedVariant.id,
               quantity: quantity,
               source: source,
-              enforcePack: true,
             }),
           });
 
@@ -148,8 +147,7 @@ export function AddToCartWithSource({
               },
             );
 
-            // Reset quantity to one pack after successful add
-            setQuantity(BOTTLE_PACK_SIZE);
+            setQuantity(B2B_MIN_LINE_BOTTLES);
           } else {
             const errorText = await response.text();
             console.error("🛒 [PDP] Failed to add items to cart", {
@@ -229,10 +227,10 @@ export function AddToCartWithSource({
             <button
               type="button"
               onClick={handleDecrease}
-              disabled={quantity <= BOTTLE_PACK_SIZE || isAddToCartDisabled}
+              disabled={quantity <= B2B_MIN_LINE_BOTTLES || isAddToCartDisabled}
               className={cn(
                 "px-3 py-2 hover:bg-gray-900 transition-colors border-r border-gray-700",
-                quantity <= BOTTLE_PACK_SIZE || isAddToCartDisabled
+                quantity <= B2B_MIN_LINE_BOTTLES || isAddToCartDisabled
                   ? "opacity-40 cursor-not-allowed"
                   : "cursor-pointer",
               )}

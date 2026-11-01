@@ -4,11 +4,12 @@ import { DirectBoxDeliveryPromise } from "@/components/commerce/direct-box-deliv
 import { MinSixBottlesHint } from "@/components/commerce/min-six-bottles-hint";
 import type { AppLocale } from "@/lib/i18n/locale";
 import { useTranslations } from "@/lib/hooks/use-translations";
+import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
 import { cn } from "@/lib/utils";
 
 /**
- * Shared list-card commerce strip: min-6 hint + direct-box delivery promise.
- * No customer-facing pallet fill.
+ * Shared list-card commerce strip: min-6 hint (PACT only) + direct-box delivery promise.
+ * Dirty Wine (restaurants) has no bottle minimum — hide the min-6 line there.
  */
 export function ListCardCommerceFooter({
   className,
@@ -19,10 +20,11 @@ export function ListCardCommerceFooter({
 }) {
   const { context } = useTranslations();
   const locale = (context.locale ?? "sv") as AppLocale;
+  const isB2B = useB2BPriceMode();
 
   return (
     <div className={cn("space-y-1.5", className)}>
-      <MinSixBottlesHint locale={locale} compact />
+      {!isB2B ? <MinSixBottlesHint locale={locale} compact /> : null}
       <DirectBoxDeliveryPromise locale={locale} compact />
       {children}
     </div>

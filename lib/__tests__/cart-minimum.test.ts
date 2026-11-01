@@ -124,7 +124,7 @@ describe("B2C cart minimum (total across any wines)", () => {
   });
 });
 
-describe("B2B pack minimum (explicit bottle-pack rule)", () => {
+describe("B2B line minimum (single bottles allowed)", () => {
   it("accepts pack-sized lines from mixed producers", () => {
     const items = [
       line("w1", 6, { id: "p1", name: "Alpha" }),
@@ -138,35 +138,31 @@ describe("B2B pack minimum (explicit bottle-pack rule)", () => {
     );
   });
 
-  it("rejects 1–2 bottle B2B carts (September dirtywine evidence)", () => {
+  it("accepts 1–2 bottle B2B carts (restaurants, no MOQ)", () => {
     const items = [
       line("w1", 1, { id: "p1", name: "Alpha" }),
       line("w2", 1, { id: "p2", name: "Beta" }),
     ];
     const result = validateCartMinimum(items, { channel: "b2b" });
-    expect(result.isValid).toBe(false);
-    // Each line must reach a 6-pack → 5 + 5 missing.
-    expect(result.neededTotal).toBe(10);
-    expect(result.requiredQuantity).toBe(12);
+    expect(result.isValid).toBe(true);
+    expect(result.neededTotal).toBe(0);
+    expect(result.quantity).toBe(2);
     expect(result.producerValidations).toHaveLength(2);
   });
 
-  it("rejects a single non-pack line", () => {
+  it("accepts a single non-pack line", () => {
     const { progress, lines } = computeB2BPackMinimum([
       { id: "w1", quantity: 2, producerName: "Solo" },
     ]);
-    expect(progress.isValid).toBe(false);
-    expect(progress.needed).toBe(4);
-    expect(lines[0].required).toBe(6);
+    expect(progress.isValid).toBe(true);
+    expect(progress.needed).toBe(0);
+    expect(lines[0].required).toBe(2);
   });
 
-  it("does not apply B2C cart-total semantics to B2B", () => {
-    // Six bottles as 1+1+1+1+1+1 would pass B2C but must fail B2B packs.
-    const items = Array.from({ length: 6 }, (_, i) =>
-      line(`w${i}`, 1, { id: `p${i}`, name: `P${i}` }),
-    );
-    expect(validateCartMinimum(items, { channel: "b2c" }).isValid).toBe(true);
-    expect(validateCartMinimum(items, { channel: "b2b" }).isValid).toBe(false);
+  it("does not apply B2C cart-total semantics to B2B (1 bottle is enough)", () => {
+    const items = [line("w1", 1, { id: "p1", name: "Alpha" })];
+    expect(validateCartMinimum(items, { channel: "b2c" }).isValid).toBe(false);
+    expect(validateCartMinimum(items, { channel: "b2b" }).isValid).toBe(true);
   });
 });
 

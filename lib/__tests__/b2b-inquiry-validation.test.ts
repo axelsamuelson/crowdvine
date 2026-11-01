@@ -77,6 +77,42 @@ describe("b2b inquiry validation", () => {
       expect(result.value.lines).toHaveLength(1);
     }
   });
+
+  it("accepts a single-bottle line (no restaurant MOQ)", () => {
+    const result = validateB2bInquiryForm({
+      companyName: "Test AB",
+      organizationNumber: "556677-8899",
+      contactName: "Ada",
+      email: "ada@example.com",
+      phone: "0701234567",
+      deliveryAddress: "Gatan 1",
+      postalCode: "11846",
+      desiredDeliveryDate: "2026-12-01",
+      website: "",
+      lines: [{ wineId: "w1", quantity: 1, wineTitle: "Solo" }],
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.lines[0]?.quantity).toBe(1);
+    }
+  });
+
+  it("rejects zero-quantity lines", () => {
+    const result = validateB2bInquiryForm({
+      companyName: "Test AB",
+      organizationNumber: "556677-8899",
+      contactName: "Ada",
+      email: "ada@example.com",
+      phone: "0701234567",
+      deliveryAddress: "Gatan 1",
+      postalCode: "11846",
+      desiredDeliveryDate: "2026-12-01",
+      website: "",
+      lines: [{ wineId: "w1", quantity: 0 }],
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toBe("lines");
+  });
 });
 
 describe("b2b inquiry flags", () => {
