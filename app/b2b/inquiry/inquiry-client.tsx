@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCart } from "@/components/cart/cart-context";
@@ -11,9 +11,18 @@ import { Textarea } from "@/components/ui/textarea";
 import { InquiryAccountOffer } from "@/components/b2b/inquiry-account-offer";
 import { useTranslations } from "@/lib/hooks/use-translations";
 import { useLocalizedPaths } from "@/lib/hooks/use-localized-paths";
-import { b2bInquiryCopy } from "@/lib/b2b/inquiry-copy";
+import {
+  b2bInquiryCopy,
+  b2bInquiryFieldMessage,
+  b2bInquiryValidationSummary,
+} from "@/lib/b2b/inquiry-copy";
 import type { B2bInquiryPrefill } from "@/lib/b2b/inquiry-prefill";
-import { validateB2bInquiryForm } from "@/lib/b2b/inquiry-validation";
+import {
+  tomorrowDateIso,
+  validateB2bInquiryFields,
+  type B2bInquiryFieldErrors,
+  type B2bInquiryFieldKey,
+} from "@/lib/b2b/inquiry-validation";
 import {
   clearB2bInquiryClaimToken,
   readB2bInquiryClaimToken,
@@ -26,6 +35,7 @@ import {
 import { formatCartLinePrice } from "@/lib/shopping-context/format";
 import { priceExclVat } from "@/lib/shopify/utils";
 import { emitOnce } from "@/lib/analytics/emit-once";
+import { cn } from "@/lib/utils";
 
 type FormState = {
   companyName: string;
@@ -35,9 +45,18 @@ type FormState = {
   phone: string;
   deliveryAddress: string;
   postalCode: string;
+  city: string;
   desiredDeliveryDate: string;
   message: string;
   website: string;
+};
+
+type SubmittedSummary = {
+  email: string;
+  emailSent: boolean;
+  lines: Array<{ title: string; quantity: number; excl: number }>;
+  bottles: number;
+  exclSum: number;
 };
 
 const emptyForm: FormState = {
@@ -48,10 +67,23 @@ const emptyForm: FormState = {
   phone: "",
   deliveryAddress: "",
   postalCode: "",
+  city: "",
   desiredDeliveryDate: "",
   message: "",
   website: "",
 };
+
+const FIELD_ORDER: B2bInquiryFieldKey[] = [
+  "companyName",
+  "organizationNumber",
+  "contactName",
+  "email",
+  "phone",
+  "deliveryAddress",
+  "postalCode",
+  "city",
+  "desiredDeliveryDate",
+];
 
 function formFromPrefill(prefill: B2bInquiryPrefill | null): FormState {
   if (!prefill) return emptyForm;
@@ -64,6 +96,7 @@ function formFromPrefill(prefill: B2bInquiryPrefill | null): FormState {
     phone: prefill.phone,
     deliveryAddress: prefill.deliveryAddress,
     postalCode: prefill.postalCode,
+    city: prefill.city,
   };
 }
 
@@ -81,15 +114,17 @@ export function B2bInquiryClient({
   const { cart, updateItem } = useCart();
   const locale = context.locale === "en" ? "en" : "sv";
   const copy = b2bInquiryCopy(locale);
+  const minDeliveryDate = useMemo(() => tomorrowDateIso(), []);
+  const summaryRef = useRef<HTMLParagraphElement | null>(null);
 
   const [form, setForm] = useState<FormState>(() => formFromPrefill(prefill));
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [fieldError, setFieldError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<B2bInquiryFieldErrors>({});
   const [done, setDone] = useState(false);
-  const [submittedEmail, setSubmittedEmail] = useState("");
   const [offerAccount, setOfferAccount] = useState(false);
   const [accountLinked, setAccountLinked] = useState(false);
+  const [submitted, setSubmitted] = useState<SubmittedSummary | null>(null);
 
   const warehouseLines = useMemo(
     () =>
@@ -124,7 +159,6 @@ export function B2bInquiryClient({
     });
   }, [warehouseLines]);
 
-  // After login/signup return (?claimed=1), link guest inquiry if token present.
   useEffect(() => {
     if (searchParams.get("claimed") !== "1") return;
     if (!isAuthenticated) return;
@@ -150,10 +184,16 @@ export function B2bInquiryClient({
     (key: keyof FormState) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       setForm((prev) => ({ ...prev, [key]: e.target.value }));
-      setFieldError(null);
+      if (key in fieldErrors) {
+        setFieldErrors((prev) => {
+          const next = { ...prev };
+          delete next[key as B2bInquiryFieldKey];
+          return next;
+        });
+      }
     };
 
-  const mapError = (code: string | undefined): string => {
+  const mapApiError = (code: string | undefined): string => {
     switch (code) {
       case "required":
         return copy.validationRequired;
@@ -176,6 +216,18 @@ export function B2bInquiryClient({
     }
   };
 
+  const focusFirstError = (errors: B2bInquiryFieldErrors) => {
+    const first = FIELD_ORDER.find((k) => errors[k]);
+    if (!first) return;
+    requestAnimationFrame(() => {
+      summaryRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      const el = document.getElementById(first);
+      if (el && "focus" in el) {
+        (el as HTMLElement).focus({ preventScroll: true });
+      }
+    });
+  };
+
   const clearCartLines = async () => {
     const lines = [...(cart?.lines ?? [])];
     for (const line of lines) {
@@ -190,7 +242,6 @@ export function B2bInquiryClient({
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    setFieldError(null);
 
     if (hasProducerLines) {
       setError(copy.producerLinesBlocked);
@@ -214,18 +265,29 @@ export function B2bInquiryClient({
       };
     });
 
-    const clientParsed = validateB2bInquiryForm({
-      ...form,
-      lines: linesPayload,
-    });
+    const clientParsed = validateB2bInquiryFields(
+      { ...form, lines: linesPayload },
+      { minDeliveryDate },
+    );
     if (!clientParsed.ok) {
       if (clientParsed.error === "honeypot") {
         setDone(true);
         return;
       }
-      setFieldError(mapError(clientParsed.error));
+      setFieldErrors(clientParsed.fieldErrors);
+      focusFirstError(clientParsed.fieldErrors);
       return;
     }
+    setFieldErrors({});
+
+    const summaryLines = warehouseLines.map((line) => {
+      const lineTotal = parseFloat(line.cost.totalAmount.amount || "0");
+      return {
+        title: line.merchandise.product?.title || line.merchandise.title,
+        quantity: line.quantity,
+        excl: priceExclVat(lineTotal),
+      };
+    });
 
     setSubmitting(true);
     try {
@@ -240,7 +302,7 @@ export function B2bInquiryClient({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(mapError(data?.code || data?.error));
+        setError(mapApiError(data?.code || data?.error));
         return;
       }
 
@@ -256,7 +318,14 @@ export function B2bInquiryClient({
         setOfferAccount(true);
       }
 
-      setSubmittedEmail(form.email);
+      setSubmitted({
+        email: form.email,
+        // Customer confirmation email is always attempted on successful persist.
+        emailSent: true,
+        lines: summaryLines,
+        bottles: cartTotals.bottles,
+        exclSum: cartTotals.exclSum,
+      });
       await clearCartLines();
       setDone(true);
     } catch {
@@ -266,29 +335,80 @@ export function B2bInquiryClient({
     }
   };
 
+  const bottlesLabel = (n: number) => {
+    if (locale === "sv") return n === 1 ? "1 flaska" : `${n} flaskor`;
+    return n === 1 ? "1 bottle" : `${n} bottles`;
+  };
+
+  const fieldMessage = (key: B2bInquiryFieldKey) => {
+    const code = fieldErrors[key];
+    if (!code) return null;
+    return b2bInquiryFieldMessage(locale, key, code);
+  };
+
+  const errorCount = Object.keys(fieldErrors).filter(
+    (k) => k !== "lines",
+  ).length;
+
   if (done) {
     return (
-      <div className="mx-auto max-w-lg px-4 py-12 space-y-4 font-sans">
-        <h1 className="text-2xl font-semibold text-foreground">
+      <div className="mx-auto max-w-lg px-4 py-12 space-y-5 font-sans">
+        <h1 className="text-2xl font-semibold text-foreground tracking-tight">
           {copy.successTitle}
         </h1>
         <p className="text-muted-foreground">{copy.successBody}</p>
         {accountLinked ? (
           <p className="text-sm text-foreground">{copy.createAccountDone}</p>
         ) : null}
-        <p className="text-sm text-muted-foreground">
-          {copy.privacyNote}{" "}
-          <Link
-            href="/integritetspolicy"
-            className="underline underline-offset-2"
-          >
-            {copy.privacyLinkLabel}
-          </Link>
-          {copy.privacyNoteSuffix}
-        </p>
+
+        {submitted ? (
+          <section className="space-y-3">
+            <h2 className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
+              {copy.cartSummary}
+            </h2>
+            <ul className="divide-y border rounded-md bg-card/40">
+              {submitted.lines.map((line) => (
+                <li
+                  key={`${line.title}-${line.quantity}`}
+                  className="flex justify-between gap-4 px-3 py-2.5 text-sm items-start"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="leading-snug break-words">{line.title}</div>
+                    <div className="mt-0.5 text-[13px] text-muted-foreground">
+                      {bottlesLabel(line.quantity)}
+                    </div>
+                  </div>
+                  <span className="tabular-nums whitespace-nowrap pl-4 shrink-0">
+                    {formatCartLinePrice(line.excl, context)}
+                  </span>
+                </li>
+              ))}
+              <li className="flex justify-between gap-4 px-3 py-2.5 text-sm font-medium">
+                <div>
+                  <div>{copy.totalExclVatLabel}</div>
+                  <div className="mt-0.5 text-[13px] font-normal text-muted-foreground">
+                    {bottlesLabel(submitted.bottles)}
+                  </div>
+                </div>
+                <span className="tabular-nums whitespace-nowrap pl-4 shrink-0">
+                  {formatCartLinePrice(submitted.exclSum, context)}{" "}
+                  <span className="font-normal text-muted-foreground text-xs">
+                    {locale === "sv" ? "exkl. moms" : "excl. VAT"}
+                  </span>
+                </span>
+              </li>
+            </ul>
+            {submitted.emailSent ? (
+              <p className="text-sm text-muted-foreground">
+                {copy.emailCopySent} {submitted.email}
+              </p>
+            ) : null}
+          </section>
+        ) : null}
+
         {offerAccount && !accountLinked && !isAuthenticated ? (
           <InquiryAccountOffer
-            emailHint={submittedEmail}
+            emailHint={submitted?.email ?? ""}
             locale={locale}
             onSkip={() => router.push(paths.shop)}
             onLinked={() => {
@@ -306,7 +426,6 @@ export function B2bInquiryClient({
   }
 
   if (!cart || warehouseLines.length === 0) {
-    // Still show success claim return without cart.
     if (searchParams.get("claimed") === "1" && accountLinked) {
       return (
         <div className="mx-auto max-w-lg px-4 py-12 space-y-4 font-sans">
@@ -321,7 +440,7 @@ export function B2bInquiryClient({
       );
     }
     return (
-      <div className="mx-auto max-w-lg px-4 py-12 space-y-4">
+      <div className="mx-auto max-w-lg px-4 py-12 space-y-4 font-sans">
         <h1 className="text-2xl font-semibold">{copy.pageTitle}</h1>
         <p className="text-muted-foreground">{copy.emptyCart}</p>
         {hasProducerLines && (
@@ -333,11 +452,6 @@ export function B2bInquiryClient({
       </div>
     );
   }
-
-  const bottlesLabel = (n: number) => {
-    if (locale === "sv") return n === 1 ? "1 flaska" : `${n} flaskor`;
-    return n === 1 ? "1 bottle" : `${n} bottles`;
-  };
 
   const cartSummary = (
     <section className="space-y-3 font-sans">
@@ -385,6 +499,19 @@ export function B2bInquiryClient({
     </section>
   );
 
+  const renderFieldError = (key: B2bInquiryFieldKey) => {
+    const msg = fieldMessage(key);
+    if (!msg) return null;
+    return (
+      <p id={`${key}-error`} className="text-sm text-destructive" role="alert">
+        {msg}
+      </p>
+    );
+  };
+
+  const describedBy = (key: B2bInquiryFieldKey) =>
+    fieldErrors[key] ? `${key}-error` : undefined;
+
   return (
     <div className="mx-auto max-w-2xl px-4 py-10 space-y-8 font-sans">
       <div className="space-y-2">
@@ -396,7 +523,12 @@ export function B2bInquiryClient({
 
       {cartSummary}
 
-      <form onSubmit={onSubmit} className="space-y-4 relative" noValidate>
+      <form
+        onSubmit={onSubmit}
+        className="space-y-4 relative"
+        noValidate
+        lang={locale === "sv" ? "sv" : undefined}
+      >
         <div
           className="absolute -left-[9999px] top-auto h-0 w-0 overflow-hidden"
           aria-hidden
@@ -420,7 +552,11 @@ export function B2bInquiryClient({
               value={form.companyName}
               onChange={setField("companyName")}
               autoComplete="organization"
+              aria-invalid={Boolean(fieldErrors.companyName)}
+              aria-describedby={describedBy("companyName")}
+              className={cn(fieldErrors.companyName && "border-destructive")}
             />
+            {renderFieldError("companyName")}
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="organizationNumber">
@@ -431,7 +567,14 @@ export function B2bInquiryClient({
               value={form.organizationNumber}
               onChange={setField("organizationNumber")}
               placeholder="556677-8899"
+              inputMode="numeric"
+              aria-invalid={Boolean(fieldErrors.organizationNumber)}
+              aria-describedby={describedBy("organizationNumber")}
+              className={cn(
+                fieldErrors.organizationNumber && "border-destructive",
+              )}
             />
+            {renderFieldError("organizationNumber")}
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="contactName">{copy.contactNameLabel}</Label>
@@ -440,7 +583,11 @@ export function B2bInquiryClient({
               value={form.contactName}
               onChange={setField("contactName")}
               autoComplete="name"
+              aria-invalid={Boolean(fieldErrors.contactName)}
+              aria-describedby={describedBy("contactName")}
+              className={cn(fieldErrors.contactName && "border-destructive")}
             />
+            {renderFieldError("contactName")}
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="email">{copy.emailLabel}</Label>
@@ -450,7 +597,11 @@ export function B2bInquiryClient({
               value={form.email}
               onChange={setField("email")}
               autoComplete="email"
+              aria-invalid={Boolean(fieldErrors.email)}
+              aria-describedby={describedBy("email")}
+              className={cn(fieldErrors.email && "border-destructive")}
             />
+            {renderFieldError("email")}
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="phone">{copy.phoneLabel}</Label>
@@ -460,7 +611,11 @@ export function B2bInquiryClient({
               value={form.phone}
               onChange={setField("phone")}
               autoComplete="tel"
+              aria-invalid={Boolean(fieldErrors.phone)}
+              aria-describedby={describedBy("phone")}
+              className={cn(fieldErrors.phone && "border-destructive")}
             />
+            {renderFieldError("phone")}
           </div>
           <div className="space-y-1.5 sm:col-span-2">
             <Label htmlFor="deliveryAddress">{copy.deliveryAddressLabel}</Label>
@@ -469,28 +624,62 @@ export function B2bInquiryClient({
               value={form.deliveryAddress}
               onChange={setField("deliveryAddress")}
               autoComplete="street-address"
+              aria-invalid={Boolean(fieldErrors.deliveryAddress)}
+              aria-describedby={describedBy("deliveryAddress")}
+              className={cn(
+                fieldErrors.deliveryAddress && "border-destructive",
+              )}
             />
+            {renderFieldError("deliveryAddress")}
           </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="postalCode">{copy.postalCodeLabel}</Label>
-            <Input
-              id="postalCode"
-              value={form.postalCode}
-              onChange={setField("postalCode")}
-              placeholder="11846"
-              autoComplete="postal-code"
-            />
+          <div className="grid grid-cols-2 gap-4 sm:col-span-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="postalCode">{copy.postalCodeLabel}</Label>
+              <Input
+                id="postalCode"
+                value={form.postalCode}
+                onChange={setField("postalCode")}
+                placeholder="11846"
+                autoComplete="postal-code"
+                inputMode="numeric"
+                aria-invalid={Boolean(fieldErrors.postalCode)}
+                aria-describedby={describedBy("postalCode")}
+                className={cn(fieldErrors.postalCode && "border-destructive")}
+              />
+              {renderFieldError("postalCode")}
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="city">{copy.cityLabel}</Label>
+              <Input
+                id="city"
+                value={form.city}
+                onChange={setField("city")}
+                autoComplete="address-level2"
+                aria-invalid={Boolean(fieldErrors.city)}
+                aria-describedby={describedBy("city")}
+                className={cn(fieldErrors.city && "border-destructive")}
+              />
+              {renderFieldError("city")}
+            </div>
           </div>
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 sm:col-span-2">
             <Label htmlFor="desiredDeliveryDate">
               {copy.desiredDeliveryDateLabel}
             </Label>
             <Input
               id="desiredDeliveryDate"
               type="date"
+              lang="sv"
+              min={minDeliveryDate}
               value={form.desiredDeliveryDate}
               onChange={setField("desiredDeliveryDate")}
+              aria-invalid={Boolean(fieldErrors.desiredDeliveryDate)}
+              aria-describedby={describedBy("desiredDeliveryDate")}
+              className={cn(
+                fieldErrors.desiredDeliveryDate && "border-destructive",
+              )}
             />
+            {renderFieldError("desiredDeliveryDate")}
           </div>
           <div className="space-y-1.5 sm:col-span-2">
             <Label htmlFor="message">{copy.messageLabel}</Label>
@@ -515,9 +704,20 @@ export function B2bInquiryClient({
           {copy.privacyNoteSuffix}
         </p>
 
-        {(fieldError || error) && (
+        {errorCount > 0 ? (
+          <p
+            ref={summaryRef}
+            className="text-sm text-destructive"
+            role="alert"
+            id="inquiry-validation-summary"
+          >
+            {b2bInquiryValidationSummary(locale, errorCount)}
+          </p>
+        ) : null}
+
+        {error && (
           <p className="text-sm text-destructive" role="alert">
-            {fieldError || error}
+            {error}
           </p>
         )}
 

@@ -6,7 +6,10 @@ import {
   getClientIdentifier,
 } from "@/lib/rate-limiter";
 import { isDirtywineInquiryMode } from "@/lib/b2b/flags";
-import { validateB2bInquiryForm } from "@/lib/b2b/inquiry-validation";
+import {
+  tomorrowDateIso,
+  validateB2bInquiryForm,
+} from "@/lib/b2b/inquiry-validation";
 import { assertInquiryLinesInB2bStock } from "@/lib/b2b/inquiry-stock";
 import {
   sendB2bInquiryCustomerEmail,
@@ -27,6 +30,7 @@ function validationStatus(
     case "phone":
     case "org_number":
     case "delivery_date":
+    case "city":
     case "lines":
       return { status: 400, code: error };
     default:
@@ -75,19 +79,23 @@ export async function POST(req: Request) {
       );
     }
 
-    const parsed = validateB2bInquiryForm({
-      companyName: body.companyName,
-      organizationNumber: body.organizationNumber,
-      contactName: body.contactName,
-      email: body.email,
-      phone: body.phone,
-      deliveryAddress: body.deliveryAddress,
-      postalCode: body.postalCode,
-      desiredDeliveryDate: body.desiredDeliveryDate,
-      message: body.message,
-      website: body.website,
-      lines: Array.isArray(body.lines) ? body.lines : [],
-    });
+    const parsed = validateB2bInquiryForm(
+      {
+        companyName: body.companyName,
+        organizationNumber: body.organizationNumber,
+        contactName: body.contactName,
+        email: body.email,
+        phone: body.phone,
+        deliveryAddress: body.deliveryAddress,
+        postalCode: body.postalCode,
+        city: body.city,
+        desiredDeliveryDate: body.desiredDeliveryDate,
+        message: body.message,
+        website: body.website,
+        lines: Array.isArray(body.lines) ? body.lines : [],
+      },
+      { minDeliveryDate: tomorrowDateIso() },
+    );
 
     if (!parsed.ok) {
       const { status, code } = validationStatus(parsed.error);
@@ -122,9 +130,10 @@ export async function POST(req: Request) {
         organization_number: value.organizationNumber,
         contact_name: value.contactName,
         email: value.email,
-        phone: value.phone,
+        phone: value.phone ?? "",
         delivery_address: value.deliveryAddress,
         postal_code: value.postalCode,
+        city: value.city,
         desired_delivery_date: value.desiredDeliveryDate,
         message: value.message,
         user_id: user?.id ?? null,

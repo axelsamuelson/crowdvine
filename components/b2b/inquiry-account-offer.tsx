@@ -142,10 +142,11 @@ export function InquiryAccountOffer({
 
   if (!expanded) {
     return (
-      <div className="space-y-3">
+      <div className="space-y-3 font-sans">
+        <p className="text-sm text-muted-foreground">{copy.createAccountHint}</p>
         <Button
           type="button"
-          className="w-full h-12 font-sans"
+          className="w-full h-12"
           onClick={() => setExpanded(true)}
         >
           {copy.createAccountCta}
@@ -153,7 +154,7 @@ export function InquiryAccountOffer({
         <Button
           type="button"
           variant="outline"
-          className="w-full font-sans"
+          className="w-full"
           onClick={onSkip}
         >
           {copy.createAccountSkip}
@@ -172,9 +173,7 @@ export function InquiryAccountOffer({
 
   return (
     <div className="space-y-4 rounded-md border border-border p-4 font-sans">
-      <p className="text-sm font-medium text-foreground">
-        {copy.createAccountCta}
-      </p>
+      <p className="text-sm text-muted-foreground">{copy.createAccountHint}</p>
       {sent ? (
         <form onSubmit={handleVerifyOtp} className="space-y-3">
           <p className="text-sm text-muted-foreground">
@@ -232,22 +231,21 @@ export function InquiryAccountOffer({
             </p>
           ) : null}
           <Button type="submit" disabled={sending} className="w-full h-12">
-            {sending
-              ? copy.submitting
-              : locale === "sv"
-                ? "Skicka inloggningslänk"
-                : "Send login link"}
+            {sending ? copy.submitting : copy.createAccountCta}
           </Button>
         </form>
       )}
-      <Button
-        type="button"
-        variant="ghost"
-        className="w-full"
-        onClick={onSkip}
-      >
+      <Button type="button" variant="ghost" className="w-full" onClick={onSkip}>
         {copy.createAccountSkip}
       </Button>
+      <p className="text-center text-sm text-muted-foreground">
+        <Link
+          href={b2bInquiryAccountLoginHref(emailHint)}
+          className="underline underline-offset-2"
+        >
+          {copy.loginExistingCta}
+        </Link>
+      </p>
     </div>
   );
 }

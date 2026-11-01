@@ -3,30 +3,93 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Tack för din förfrågan — account offer</title>
+  <title>Tack för din förfrågan</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
   <style>
-    :root { color-scheme: light; --fg:#111; --muted:#71717a; --border:#e4e4e7; --bg:#fff; }
+    :root {
+      --bg: hsl(223.81 0% 94%);
+      --fg: hsl(223.81 0% 4%);
+      --muted: hsl(223.81 0% 45%);
+      --border: hsl(223.81 0% 74%);
+      --card: #fff;
+      --primary: hsl(223.81 0% 9%);
+    }
     * { box-sizing: border-box; }
-    body { margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; color:var(--fg); background:var(--bg); }
+    body {
+      margin: 0;
+      font-family: Geist, ui-sans-serif, system-ui, sans-serif;
+      color: var(--fg);
+      background: var(--bg);
+    }
+    header {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+      background: var(--bg);
+    }
+    .menu {
+      border: 0;
+      background: color-mix(in srgb, var(--border) 55%, white);
+      padding: 0.4rem 0.7rem;
+      border-radius: 0.35rem;
+      font: inherit;
+      font-size: 0.75rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .logo { justify-self: center; font-weight: 700; letter-spacing: 0.04em; font-size: 0.95rem; }
+    .cart {
+      width: 2.25rem; height: 2.25rem; display: grid; place-items: center;
+      background: #111; color: #fff; border-radius: 0.25rem; font-size: 0.8rem; font-weight: 600;
+    }
     .wrap { max-width: 32rem; margin: 0 auto; padding: 3rem 1rem; display: grid; gap: 1rem; }
-    h1 { font-size: 1.5rem; font-weight: 600; margin: 0; }
+    h1 { font-size: 1.5rem; font-weight: 600; margin: 0; letter-spacing: -0.02em; }
     p { margin: 0; color: var(--muted); line-height: 1.5; }
-    .privacy { font-size: 0.875rem; }
-    .privacy a { color: inherit; }
-    .primary, .outline { width: 100%; height: 3rem; border-radius: 0.375rem; font: inherit; font-weight: 500; cursor: pointer; }
-    .primary { border: 0; background: #111; color: #fff; }
-    .outline { border: 1px solid var(--border); background: #fff; color: #111; }
-    .login { text-align: center; font-size: 0.875rem; color: var(--muted); }
+    h2 { font-size: 0.875rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin: 0.5rem 0 0; }
+    .summary { border: 1px solid var(--border); border-radius: 0.375rem; background: var(--card); }
+    .summary li { list-style: none; display: flex; justify-content: space-between; gap: 1rem; padding: 0.625rem 0.75rem; border-top: 1px solid var(--border); font-size: 0.875rem; color: var(--fg); }
+    .summary li:first-child { border-top: 0; }
+    .summary .muted { color: var(--muted); font-size: 13px; margin-top: 2px; }
+    .summary .total { font-weight: 500; }
+    .hint { font-size: 0.875rem; color: var(--muted); }
+    .primary, .outline {
+      width: 100%; height: 3rem; border-radius: 0.375rem; font: inherit; font-weight: 500; cursor: pointer;
+    }
+    .primary { border: 0; background: var(--primary); color: #fff; }
+    .outline { border: 1px solid var(--border); background: #fff; color: var(--fg); }
+    .login { text-align: center; font-size: 0.875rem; }
     .login a { color: inherit; }
   </style>
 </head>
 <body>
+  <header>
+    <button class="menu" type="button">Meny</button>
+    <div class="logo">DIRTY WINE</div>
+    <div class="cart">(0)</div>
+  </header>
   <div class="wrap">
     <h1>Tack för din förfrågan</h1>
-    <p>Vi återkommer med bekräftelse och faktura inom 1 arbetsdag.</p>
-    <p class="privacy">Vi behandlar dina uppgifter för att hantera förfrågan. Läs mer i vår <a href="#">integritetspolicy</a>.</p>
-    <button class="primary" type="button">Skapa konto för att spara förfrågan</button>
-    <button class="outline" type="button">Fortsätt utan konto</button>
+    <p>Vi återkommer med bekräftelse och faktura inom en arbetsdag.</p>
+    <h2>Din förfrågan</h2>
+    <ul class="summary">
+      <li>
+        <div><div>Domaine Exempel Rouge 2023</div><div class="muted">6 flaskor</div></div>
+        <span>1 140 kr</span>
+      </li>
+      <li class="total">
+        <div><div>Totalt</div><div class="muted">6 flaskor</div></div>
+        <span>1 140 kr <span class="muted" style="font-weight:400;font-size:12px">exkl. moms</span></span>
+      </li>
+    </ul>
+    <p class="hint">Vi har skickat en kopia till ada@exempel.se</p>
+    <p class="hint">Med ett konto ser du dina förfrågningar och fakturor på ett ställe.</p>
+    <button class="primary" type="button">Skapa konto</button>
+    <button class="outline" type="button">Inte nu</button>
     <p class="login"><a href="#">Logga in</a></p>
   </div>
 </body>

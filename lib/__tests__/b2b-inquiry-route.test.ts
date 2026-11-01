@@ -48,6 +48,7 @@ const validBody = {
   phone: "0701234567",
   deliveryAddress: "Kungsgatan 1",
   postalCode: "11143",
+  city: "Stockholm",
   desiredDeliveryDate: "2026-12-15",
   message: "Test inquiry",
   website: "",

@@ -8,6 +8,7 @@ export type B2bInquiryPrefill = {
   phone: string;
   deliveryAddress: string;
   postalCode: string;
+  city: string;
 };
 
 /**
@@ -26,11 +27,12 @@ export async function loadB2bInquiryPrefill(
     phone: "",
     deliveryAddress: "",
     postalCode: "",
+    city: "",
   };
 
   const { data: profile } = await sb
     .from("profiles")
-    .select("full_name, email, phone, address, postal_code")
+    .select("full_name, email, phone, address, postal_code, city")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -40,6 +42,7 @@ export async function loadB2bInquiryPrefill(
     empty.phone = String(profile.phone ?? "").trim();
     empty.deliveryAddress = String(profile.address ?? "").trim();
     empty.postalCode = String(profile.postal_code ?? "").trim();
+    empty.city = String(profile.city ?? "").trim();
   }
 
   const { data: recipient } = await sb
@@ -52,8 +55,10 @@ export async function loadB2bInquiryPrefill(
       email,
       delivery_address,
       delivery_postal_code,
+      delivery_city,
       address,
       postal_code,
+      city,
       invoice_recipient_contacts (
         name,
         email,
@@ -83,6 +88,10 @@ export async function loadB2bInquiryPrefill(
       String(recipient.delivery_postal_code ?? "").trim() ||
       String(recipient.postal_code ?? "").trim() ||
       empty.postalCode;
+    empty.city =
+      String(recipient.delivery_city ?? "").trim() ||
+      String(recipient.city ?? "").trim() ||
+      empty.city;
 
     const contacts = Array.isArray(recipient.invoice_recipient_contacts)
       ? recipient.invoice_recipient_contacts
