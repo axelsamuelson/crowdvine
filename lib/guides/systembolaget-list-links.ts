@@ -77,11 +77,11 @@ export const SYSTEMBOLAGET_RANKED_LISTS = [
     },
     label: {
       en: "Best orange natural wines at Systembolaget →",
-      sv: "Bästa orange naturviner på Systembolaget →",
+      sv: "Bra orange vin på Systembolaget →",
     },
     h1: {
       en: "Best orange natural wines at Systembolaget 2026",
-      sv: "Bästa orange naturviner på Systembolaget 2026",
+      sv: "Bra orange vin på Systembolaget",
     },
   },
   {

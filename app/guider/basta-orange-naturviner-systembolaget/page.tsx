@@ -1,24 +1,23 @@
 import type { Metadata } from "next";
 
-import { bestOrangeNaturalWinesSystembolagetArticle } from "@/lib/guides/articles/best-orange-natural-wines-systembolaget";
+import { bestOrangeNaturalWinesSystembolagetSvArticle } from "@/lib/guides/articles/best-orange-natural-wines-systembolaget";
 import {
-  buildSystembolagetRankedListMetadata,
-  renderSystembolagetRankedListPage,
-} from "@/lib/guides/systembolaget-ranked-list";
+  buildArticleGuideMetadata,
+  renderArticleGuidePage,
+} from "@/lib/guides/render-article-guide";
 
 export const revalidate = 600;
 
 export function generateMetadata(): Promise<Metadata> {
-  return buildSystembolagetRankedListMetadata(
-    bestOrangeNaturalWinesSystembolagetArticle,
+  return buildArticleGuideMetadata(
+    bestOrangeNaturalWinesSystembolagetSvArticle,
     "sv",
   );
 }
 
 export default function BastaOrangeNaturvinerSystembolagetGuidePage() {
-  return renderSystembolagetRankedListPage(
-    bestOrangeNaturalWinesSystembolagetArticle,
+  return renderArticleGuidePage(
+    bestOrangeNaturalWinesSystembolagetSvArticle,
     "sv",
-    "orange",
   );
 }

@@ -70,7 +70,7 @@ describe("best natural wines at Systembolaget", () => {
     expect(styleH1s).toEqual([
       "Bästa röda naturviner på Systembolaget 2026",
       "Bästa vita naturviner på Systembolaget 2026",
-      "Bästa orange naturviner på Systembolaget 2026",
+      "Bra orange vin på Systembolaget",
       "Bästa mousserande naturviner på Systembolaget",
       "Bästa rosé naturviner på Systembolaget",
       "Bästa naturvinerna under 200 kr på Systembolaget 2026",

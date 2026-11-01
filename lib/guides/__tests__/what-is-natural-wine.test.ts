@@ -130,8 +130,11 @@ describe("what is natural wine", () => {
         sv: "vad är naturvin",
         en: "what is natural wine",
       });
-      expect(article.updated).toBe("2026-10-12");
     }
+    expect(bestNaturalWinesSystembolagetArticle.updated).toBe("2026-10-12");
+    expect(bestRedNaturalWinesSystembolagetArticle.updated).toBe("2026-10-12");
+    expect(bestWhiteNaturalWinesSystembolagetArticle.updated).toBe("2026-10-12");
+    expect(bestOrangeNaturalWinesSystembolagetArticle.updated).toBe("2026-11-01");
 
     const hub = guideCopy("sv").hubSections.find((section) => section.title === "Guider");
     expect(hub?.cards.some((card) => card.href === "/guider/vad-ar-naturvin")).toBe(
