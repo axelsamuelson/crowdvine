@@ -236,7 +236,7 @@ export function Footer({ initialLogos }: { initialLogos?: SiteLogos }) {
             invert
           />
           <div className="flex items-center gap-4 max-md:flex-col max-md:items-start max-md:gap-3">
-            <OnboardingButton />
+            {!isDirtywineSite ? <OnboardingButton /> : null}
             <p className="text-base text-background/60">
               {t("home.allRightsReserved", { year })}
             </p>

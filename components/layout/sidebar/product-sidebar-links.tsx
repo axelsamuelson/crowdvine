@@ -1,6 +1,7 @@
 "use client";
 
 import { CONTACT_LINKS } from "@/lib/constants";
+import { getDirtywineContactEmail } from "@/lib/b2b/brand";
 import { cn } from "@/lib/utils";
 import { cva } from "class-variance-authority";
 import Link from "next/link";
@@ -38,10 +39,21 @@ interface SidebarLinksProps {
 
 export function SidebarLinks({ className, invert, size }: SidebarLinksProps) {
   const isDirtyWine = useB2BModeServerHint();
+  const dirtywineEmail = getDirtywineContactEmail();
+  const links = isDirtyWine
+    ? CONTACT_LINKS.map((link) =>
+        link.href.startsWith("mailto:")
+          ? {
+              label: dirtywineEmail,
+              href: `mailto:${dirtywineEmail}`,
+            }
+          : link,
+      )
+    : CONTACT_LINKS;
 
   return (
     <ul className={cn("flex flex-row gap-2 justify-between", className)}>
-      {CONTACT_LINKS.map((link) => (
+      {links.map((link) => (
         <li key={link.href}>
           <Link
             href={link.href}

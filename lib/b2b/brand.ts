@@ -34,6 +34,22 @@ export function getDirtywineLegalAddress(): string {
 }
 
 /**
+ * Public contact email shown in dirtywine.se footer + mobile menu.
+ * Prefer NEXT_PUBLIC_ so client chrome sees the same value; server-only
+ * DIRTYWINE_CONTACT_EMAIL is also accepted. Default while Axel decides: axel@.
+ */
+export const DIRTYWINE_CONTACT_EMAIL_DEFAULT = "axel@dirtywine.se" as const;
+
+export function getDirtywineContactEmail(): string {
+  const fromEnv = (
+    process.env.NEXT_PUBLIC_DIRTYWINE_CONTACT_EMAIL ||
+    process.env.DIRTYWINE_CONTACT_EMAIL ||
+    ""
+  ).trim();
+  return fromEnv || DIRTYWINE_CONTACT_EMAIL_DEFAULT;
+}
+
+/**
  * Customer-email legal footer (plain text). Exact legal wording; Integritetspolicy
  * is linked in HTML. Body brand is "Dirty Wine" (#125); From-header stays Dirtywine.
  */

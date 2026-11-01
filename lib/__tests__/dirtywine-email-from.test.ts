@@ -4,7 +4,9 @@ import {
   DIRTYWINE_EMAIL_BODY_BRAND,
   DIRTYWINE_INQUIRY_EMAIL_SIGNOFF,
   DIRTYWINE_INQUIRY_FOLLOW_UP,
+  DIRTYWINE_CONTACT_EMAIL_DEFAULT,
   DIRTYWINE_LEGAL_ADDRESS_DEFAULT,
+  getDirtywineContactEmail,
   getDirtywineInquiryEmailFooterPlain,
   getDirtywineLegalAddress,
 } from "@/lib/b2b/brand";
@@ -22,6 +24,8 @@ const ENV_KEYS = [
   "DIRTYWINE_RESEND_FROM",
   "DIRTYWINE_RESEND_REPLY_TO",
   "DIRTYWINE_LEGAL_ADDRESS",
+  "DIRTYWINE_CONTACT_EMAIL",
+  "NEXT_PUBLIC_DIRTYWINE_CONTACT_EMAIL",
 ] as const;
 
 const sampleValue = {
@@ -67,6 +71,27 @@ describe("getDirtywineResendFrom", () => {
   it("defaults reply-to to axel@dirtywine.se", () => {
     delete process.env.DIRTYWINE_RESEND_REPLY_TO;
     expect(getDirtywineReplyTo()).toBe("axel@dirtywine.se");
+  });
+});
+
+describe("getDirtywineContactEmail", () => {
+  it("defaults to axel@dirtywine.se when unset", () => {
+    delete process.env.DIRTYWINE_CONTACT_EMAIL;
+    delete process.env.NEXT_PUBLIC_DIRTYWINE_CONTACT_EMAIL;
+    expect(getDirtywineContactEmail()).toBe(DIRTYWINE_CONTACT_EMAIL_DEFAULT);
+    expect(getDirtywineContactEmail()).toBe("axel@dirtywine.se");
+  });
+
+  it("prefers NEXT_PUBLIC_DIRTYWINE_CONTACT_EMAIL", () => {
+    process.env.DIRTYWINE_CONTACT_EMAIL = "server@dirtywine.se";
+    process.env.NEXT_PUBLIC_DIRTYWINE_CONTACT_EMAIL = "public@dirtywine.se";
+    expect(getDirtywineContactEmail()).toBe("public@dirtywine.se");
+  });
+
+  it("falls back to DIRTYWINE_CONTACT_EMAIL", () => {
+    delete process.env.NEXT_PUBLIC_DIRTYWINE_CONTACT_EMAIL;
+    process.env.DIRTYWINE_CONTACT_EMAIL = "server@dirtywine.se";
+    expect(getDirtywineContactEmail()).toBe("server@dirtywine.se");
   });
 });
 
