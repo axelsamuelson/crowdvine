@@ -894,13 +894,13 @@ export const ProductCard = memo(
               (Number(product.priceRange.minVariantPrice.amount) || undefined)
             }
             currency={product.priceRange.minVariantPrice.currencyCode}
-            className="flex gap-1 md:gap-2 items-center justify-end min-w-0 shrink md:max-w-[35%] md:shrink-0 text-[9px] md:text-sm uppercase 2xl:text-base text-right overflow-hidden"
+            className="flex gap-1 md:gap-2 items-center justify-end min-w-0 shrink md:max-w-[35%] md:shrink-0 text-[9px] md:text-sm 2xl:text-base text-right overflow-hidden normal-case"
           >
             <MemberPrice
               amount={product.priceRange.minVariantPrice.amount}
               currencyCode={product.priceRange.minVariantPrice.currencyCode}
               basePriceSek={listPriceSek ?? undefined}
-              className="text-[9px] md:text-sm uppercase 2xl:text-base"
+              className="text-[9px] md:text-sm 2xl:text-base normal-case"
               showBadge={showMembershipBadge}
               compactOnMobile={true}
               priceExclVatOverride={
@@ -931,7 +931,7 @@ export const ProductCard = memo(
                 <div className="flex min-w-0 items-baseline justify-between gap-2">
                   <Link
                     href={productHref}
-                    className="min-w-0 truncate text-[13px] font-medium leading-none text-foreground pointer-events-auto"
+                    className="min-w-0 truncate text-[15px] font-medium leading-none text-foreground pointer-events-auto"
                     onClick={(e) => e.stopPropagation()}
                   >
                     {product.title}
@@ -940,7 +940,7 @@ export const ProductCard = memo(
                     amount={product.priceRange.minVariantPrice.amount}
                     currencyCode={product.priceRange.minVariantPrice.currencyCode}
                     basePriceSek={listPriceSek ?? undefined}
-                    className="shrink-0 text-[13px] font-semibold leading-none"
+                    className="shrink-0 text-[15px] font-semibold leading-none normal-case"
                     showBadge={false}
                     priceExclVatOverride={
                       (product as any).b2bPriceExclVat ??
@@ -949,7 +949,7 @@ export const ProductCard = memo(
                   />
                 </div>
                 {product.producerName ? (
-                  <p className="truncate text-[12px] leading-none text-muted-foreground">
+                  <p className="truncate text-[13px] leading-none text-muted-foreground">
                     {product.producerName}
                   </p>
                 ) : null}
@@ -959,17 +959,17 @@ export const ProductCard = memo(
                       <Button
                         type="button"
                         disabled
-                        className="h-10 w-full rounded-[6px] bg-black text-white border-black"
+                        className="h-11 w-full rounded-[6px] bg-black text-white border-black"
                         size="sm"
                       >
-                        <span className="text-[13px]">{t("shop.reserve")}</span>
+                        <span className="text-[15px]">{t("shop.reserve")}</span>
                       </Button>
                     }
                   >
                     <ShopWineCasePicker
                       product={product}
                       size="sm"
-                      className="h-10 w-full rounded-[6px]"
+                      className="h-11 w-full rounded-[6px]"
                       triggerLabel={t("shop.reserve")}
                       analyticsSource="list"
                     />
@@ -981,7 +981,7 @@ export const ProductCard = memo(
                 <div className="flex min-w-0 items-baseline justify-between gap-2">
                   <Link
                     href={productHref}
-                    className="min-w-0 truncate text-[13px] font-medium leading-none text-foreground pointer-events-auto"
+                    className="min-w-0 truncate text-[15px] font-medium leading-none text-foreground pointer-events-auto"
                     onClick={(e) => e.stopPropagation()}
                   >
                     {product.title}
@@ -990,7 +990,7 @@ export const ProductCard = memo(
                     amount={product.priceRange.minVariantPrice.amount}
                     currencyCode={product.priceRange.minVariantPrice.currencyCode}
                     basePriceSek={listPriceSek ?? undefined}
-                    className="shrink-0 text-[13px] font-semibold leading-none"
+                    className="shrink-0 text-[15px] font-semibold leading-none normal-case"
                     showBadge={false}
                     priceExclVatOverride={
                       (product as any).b2bPriceExclVat ??
@@ -999,7 +999,7 @@ export const ProductCard = memo(
                   />
                 </div>
                 {product.producerName ? (
-                  <p className="truncate text-[12px] leading-none text-muted-foreground">
+                  <p className="truncate text-[13px] leading-none text-muted-foreground">
                     {product.producerName}
                   </p>
                 ) : null}
@@ -1012,10 +1012,10 @@ export const ProductCard = memo(
                         handleAddToCart();
                       }}
                       disabled={!getBaseProductVariant()}
-                      className="h-10 w-full rounded-[6px] bg-black hover:bg-black/90 text-white border-black"
+                      className="h-11 w-full rounded-[6px] bg-black hover:bg-black/90 text-white border-black"
                       size="sm"
                     >
-                      <span className="text-[13px]">{t("product.addToCart")}</span>
+                      <span className="text-[15px]">{t("product.addToCart")}</span>
                     </Button>
                   </div>
                 )}
@@ -1024,14 +1024,14 @@ export const ProductCard = memo(
           </div>
         ) : null}
 
-        {/* Desktop hover / focus-within — same creative-director layout */}
+        {/* Desktop hover / focus-within — same 390 type scale as touch box */}
         <div className="plp-commerce-box plp-commerce-box--hover absolute bottom-2 left-2 right-2 hidden w-auto flex-col gap-1.5 rounded-lg bg-white/95 p-3 shadow-[0_1px_2px_rgba(0,0,0,0.04)] md:flex">
           {shopCaseWineCta ? (
             <>
               <div className="flex min-w-0 items-baseline justify-between gap-2">
                 <Link
                   href={productHref}
-                  className="min-w-0 truncate text-[14px] font-medium leading-none text-foreground pointer-events-auto"
+                  className="min-w-0 truncate text-[15px] font-medium leading-none text-foreground pointer-events-auto"
                 >
                   {product.title}
                 </Link>
@@ -1039,7 +1039,7 @@ export const ProductCard = memo(
                   amount={product.priceRange.minVariantPrice.amount}
                   currencyCode={product.priceRange.minVariantPrice.currencyCode}
                   basePriceSek={listPriceSek ?? undefined}
-                  className="shrink-0 text-[14px] font-semibold leading-none"
+                  className="shrink-0 text-[15px] font-semibold leading-none normal-case"
                   showBadge={false}
                   priceExclVatOverride={
                     (product as any).b2bPriceExclVat ??
@@ -1048,7 +1048,7 @@ export const ProductCard = memo(
                 />
               </div>
               {product.producerName ? (
-                <p className="truncate text-[12px] leading-none text-muted-foreground">
+                <p className="truncate text-[13px] leading-none text-muted-foreground">
                   {product.producerName}
                 </p>
               ) : null}
@@ -1059,10 +1059,10 @@ export const ProductCard = memo(
                       <Button
                         type="button"
                         disabled
-                        className="h-10 w-full rounded-[6px] bg-black text-white border-black"
+                        className="h-11 w-full rounded-[6px] bg-black text-white border-black"
                         size="sm"
                       >
-                        <span className="text-[13px]">{t("shop.reserve")}</span>
+                        <span className="text-[15px]">{t("shop.reserve")}</span>
                       </Button>
                     }
                   >
@@ -1070,7 +1070,7 @@ export const ProductCard = memo(
                       <ShopWineCasePicker
                         product={product}
                         size="sm"
-                        className="h-10 w-full rounded-[6px]"
+                        className="h-11 w-full rounded-[6px]"
                         triggerLabel={t("shop.reserve")}
                         analyticsSource="list"
                       />
@@ -1084,7 +1084,7 @@ export const ProductCard = memo(
               <div className="flex min-w-0 items-baseline justify-between gap-2">
                 <Link
                   href={productHref}
-                  className="min-w-0 truncate text-[14px] font-medium leading-none text-foreground pointer-events-auto"
+                  className="min-w-0 truncate text-[15px] font-medium leading-none text-foreground pointer-events-auto"
                 >
                   {product.title}
                 </Link>
@@ -1092,7 +1092,7 @@ export const ProductCard = memo(
                   amount={product.priceRange.minVariantPrice.amount}
                   currencyCode={product.priceRange.minVariantPrice.currencyCode}
                   basePriceSek={listPriceSek ?? undefined}
-                  className="shrink-0 text-[14px] font-semibold leading-none"
+                  className="shrink-0 text-[15px] font-semibold leading-none normal-case"
                   showBadge={false}
                   priceExclVatOverride={
                     (product as any).b2bPriceExclVat ??
@@ -1101,7 +1101,7 @@ export const ProductCard = memo(
                 />
               </div>
               {product.producerName ? (
-                <p className="truncate text-[12px] leading-none text-muted-foreground">
+                <p className="truncate text-[13px] leading-none text-muted-foreground">
                   {product.producerName}
                 </p>
               ) : null}
@@ -1111,7 +1111,7 @@ export const ProductCard = memo(
                     <AddToCartButton
                       product={product}
                       size="sm"
-                      className="h-10 w-full rounded-[6px]"
+                      className="h-11 w-full rounded-[6px]"
                     />
                   }
                 >
@@ -1119,7 +1119,7 @@ export const ProductCard = memo(
                     <AddToCart
                       size="sm"
                       product={product}
-                      className="h-10 w-full rounded-[6px]"
+                      className="h-11 w-full rounded-[6px]"
                     />
                   )}
                 </Suspense>
