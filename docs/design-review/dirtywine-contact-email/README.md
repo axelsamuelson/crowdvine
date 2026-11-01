@@ -1,6 +1,13 @@
 # Dirty Wine — public contact email `hello@dirtywine.se`
 
-On `dirtywine.se` only, footer + mobile menu contact mailto (the chrome row beside «Kom igång» / «Hjälp») uses the single constant `DIRTYWINE_CONTACT_EMAIL` (`hello@dirtywine.se`). `pactwines.com` keeps `customer@pactwines.com`. Postal / legal address unchanged.
+On `dirtywine.se` only:
+
+- Footer + mobile menu mailto uses `DIRTYWINE_CONTACT_EMAIL` (`hello@dirtywine.se`)
+- Footer help CTA is always «Hjälp» (390 and 1440)
+- Mailto link color/hover matches Instagram (`visited:` kept in sync)
+- Open menu panel stacks above header cart so «Stäng» stays visible/tappable
+
+`pactwines.com` unchanged. Postal / legal address untouched.
 
 ## Screenshots
 

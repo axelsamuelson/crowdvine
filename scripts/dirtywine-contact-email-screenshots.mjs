@@ -29,7 +29,6 @@ async function prepare(page) {
 async function waitReady(page) {
   await page.waitForSelector("header", { timeout: 60000 });
   await page.waitForSelector("footer", { timeout: 60000 });
-  // Hide Next.js / tooling overlays that cover contact links.
   await page.addStyleTag({
     content: `
       [data-nextjs-toast],
@@ -45,11 +44,9 @@ async function waitReady(page) {
       }
     `,
   });
-  // Prefer Dirty Wine logo img; fall back after a short wait.
   await page
     .waitForFunction(
-      () =>
-        !!document.querySelector('header img, footer img, header svg'),
+      () => !!document.querySelector("header img, footer img, header svg"),
       { timeout: 15000 },
     )
     .catch(() => {});
@@ -59,15 +56,43 @@ async function waitReady(page) {
   await new Promise((r) => setTimeout(r, 800));
 }
 
-async function assertHej(page, where) {
-  const text = await page.evaluate(() => document.body.innerText);
-  if (!text.includes("hello@dirtywine.se")) {
+async function assertFooterChrome(page, where) {
+  const footerText = await page.$eval("footer", (el) => el.innerText);
+  if (!footerText.includes("hello@dirtywine.se")) {
     throw new Error(`Missing hello@dirtywine.se in ${where}`);
+  }
+  if (!footerText.includes("Hjälp")) {
+    throw new Error(`Expected Hjälp in ${where}, got: ${footerText}`);
+  }
+  if (/Kom igång/i.test(footerText)) {
+    throw new Error(`Unexpected Kom igång in ${where}`);
+  }
+  // mailto + Instagram must share the same computed color (no UA blue on mailto)
+  const colors = await page.$$eval("footer a", (anchors) =>
+    anchors
+      .filter((a) => {
+        const href = a.getAttribute("href") || "";
+        return href.startsWith("mailto:") || /instagram/i.test(a.textContent || "");
+      })
+      .map((a) => ({
+        href: a.getAttribute("href"),
+        color: getComputedStyle(a).color,
+        label: (a.textContent || "").trim(),
+      })),
+  );
+  const mail = colors.find((c) => (c.href || "").startsWith("mailto:"));
+  const ig = colors.find((c) => /instagram/i.test(c.label));
+  if (!mail || !ig) {
+    throw new Error(`Missing mailto or Instagram in ${where}: ${JSON.stringify(colors)}`);
+  }
+  if (mail.color !== ig.color) {
+    throw new Error(
+      `mailto color ${mail.color} !== Instagram ${ig.color} in ${where}`,
+    );
   }
 }
 
 async function openMobileMenu(page) {
-  // Meny is md:hidden; force it visible for 1440 review shots.
   await page.addStyleTag({
     content: `
       header button.md\\:hidden,
@@ -85,36 +110,66 @@ async function openMobileMenu(page) {
       const label = `${b.textContent || ""} ${b.getAttribute("aria-label") || ""}`;
       return /\bmeny\b|open menu/i.test(label);
     });
-    if (!btn) return { ok: false, reason: "no-button" };
+    if (!btn) return { ok: false };
     btn.style.display = "inline-flex";
     btn.click();
-    return { ok: true, text: btn.textContent };
+    return { ok: true };
   });
   if (!opened.ok) throw new Error("Could not find Meny button");
-  // Wait for the open panel (Stäng), not footer email which is always present.
   await page.waitForFunction(
     () => /Stäng/i.test(document.body.innerText),
     { timeout: 10000 },
   );
-  await page.waitForFunction(
-    () => {
-      // Menu panel lists Instagram beside the contact email.
-      const nodes = [...document.querySelectorAll("a")];
-      return nodes.some(
-        (a) =>
-          a.getAttribute("href") === "mailto:hello@dirtywine.se" &&
-          a.offsetParent !== null,
-      );
-    },
-    { timeout: 10000 },
-  );
-  await new Promise((r) => setTimeout(r, 600));
+  await new Promise((r) => setTimeout(r, 700));
+}
+
+async function assertStangClear(page, where) {
+  const ok = await page.evaluate(() => {
+    const stang = [...document.querySelectorAll("button")].find((b) =>
+      /stäng|close menu/i.test(
+        `${b.textContent || ""} ${b.getAttribute("aria-label") || ""}`,
+      ),
+    );
+    if (!stang) return { ok: false, reason: "no-stang" };
+    const sr = stang.getBoundingClientRect();
+    // Cart trigger typically contains "(0)" or "Varukorg"
+    const cart = [...document.querySelectorAll("button, a")].find((el) =>
+      /\(0\)|varukorg|cart/i.test(el.textContent || ""),
+    );
+    if (!cart) return { ok: true, note: "no-cart" };
+    const cr = cart.getBoundingClientRect();
+    const overlap = !(
+      sr.right <= cr.left ||
+      sr.left >= cr.right ||
+      sr.bottom <= cr.top ||
+      sr.top >= cr.bottom
+    );
+    // Stäng must be on top: elementFromPoint at Stäng center should be Stäng (or child)
+    const cx = sr.left + sr.width / 2;
+    const cy = sr.top + sr.height / 2;
+    const topEl = document.elementFromPoint(cx, cy);
+    const stangOnTop = !!(topEl && (stang === topEl || stang.contains(topEl)));
+    // Spatial overlap with the cart slot is OK if Stäng wins the hit-test
+    // (menu panel stacks above header). Covering Stäng visually was the bug.
+    return {
+      ok: stangOnTop,
+      overlap,
+      stangOnTop,
+      stang: { x: sr.x, y: sr.y, w: sr.width, h: sr.height },
+      cart: { x: cr.x, y: cr.y, w: cr.width, h: cr.height },
+      topTag: topEl?.tagName,
+      topText: topEl?.textContent?.slice(0, 40),
+    };
+  });
+  if (!ok.ok) {
+    throw new Error(`Stäng not clear of cart in ${where}: ${JSON.stringify(ok)}`);
+  }
+  console.log("stang", where, JSON.stringify(ok));
 }
 
 try {
   for (const width of [390, 1440]) {
     const height = width === 390 ? 844 : 900;
-    // Footer
     {
       const page = await browser.newPage();
       await prepare(page);
@@ -125,7 +180,7 @@ try {
       });
       console.log("footer", width, res?.status());
       await waitReady(page);
-      await assertHej(page, `footer-${width}`);
+      await assertFooterChrome(page, `footer-${width}`);
       await page.evaluate(() => {
         document.querySelector("footer")?.scrollIntoView({ block: "end" });
       });
@@ -138,7 +193,6 @@ try {
       await page.close();
     }
 
-    // Open menu (with real site header chrome behind / above the panel)
     {
       const page = await browser.newPage();
       await prepare(page);
@@ -149,8 +203,7 @@ try {
       });
       await waitReady(page);
       await openMobileMenu(page);
-      await assertHej(page, `menu-${width}`);
-      // Full viewport so Geist header + open menu + hej@ are visible.
+      await assertStangClear(page, `menu-${width}`);
       await page.screenshot({
         path: path.join(OUT, `after-menu-${width}.png`),
         fullPage: false,

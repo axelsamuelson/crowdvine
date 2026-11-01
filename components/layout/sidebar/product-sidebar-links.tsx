@@ -12,12 +12,14 @@ import {
 } from "@/lib/analytics/b2b-track-client";
 
 const linkVariants = cva(
+  // visited: keeps mailto (and other links) from picking up UA blue/purple
   "leading-tight transition-colors hover:underline ease-out duration-200 whitespace-nowrap",
   {
     variants: {
       invert: {
-        true: "text-background/50 hover:text-background",
-        false: "text-muted-foreground hover:text-foreground",
+        true: "text-background/50 hover:text-background visited:text-background/50 hover:visited:text-background",
+        false:
+          "text-muted-foreground hover:text-foreground visited:text-muted-foreground hover:visited:text-foreground",
       },
       size: {
         sm: "text-xs 2xl:text-sm",
