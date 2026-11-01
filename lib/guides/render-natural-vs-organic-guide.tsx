@@ -159,7 +159,13 @@ export async function renderNaturalVsOrganicGuidePage() {
       />
 
       <div className="mx-auto max-w-3xl px-6 pt-top-spacing pb-16 font-sans">
-        <GuideBreadcrumbs crumbs={breadcrumbCrumbs} />
+        <GuideBreadcrumbs
+          crumbs={breadcrumbCrumbs}
+          mobileBack={{
+            label: "‹ What is Natural Wine?",
+            href: "/guides/what-is-natural-wine",
+          }}
+        />
 
         <div className="max-w-[68ch]">
           <h1 className="mt-6 font-serif text-3xl font-normal tracking-tight md:text-4xl">
@@ -174,7 +180,7 @@ export async function renderNaturalVsOrganicGuidePage() {
 
           <p className="mt-6 text-[17px] leading-[1.75] text-foreground/80">
             {renderArticleRichText(
-              '"Organic", "biodynamic" and "natural" are often used as if they meant the same thing. They don\'t. Organic and biodynamic are mainly about how grapes are farmed and are backed by certification. "Natural" is about what happens in the cellar, and only a few private charters define it. This guide explains the rules behind each label. For the basics, see [What is natural wine?](/guides/what-is-natural-wine).',
+              "“Organic”, “biodynamic” and “natural” are often used as if they meant the same thing. They don’t. Organic and biodynamic are mainly about how grapes are farmed and are backed by certification. “Natural” is about what happens in the cellar, and only a few private charters define it. This guide explains the rules behind each label. For the basics, see [What is natural wine?](/guides/what-is-natural-wine).",
               "lede",
             )}
           </p>
@@ -199,12 +205,13 @@ export async function renderNaturalVsOrganicGuidePage() {
                   follow EU rules on winemaking. The rules restrict which
                   additives and processing aids may be used and set lower
                   sulfite limits than for conventional wine: 100 mg/L (ppm)
-                  total SO2 for red wine and 150 mg/L (ppm) for white and rosé
-                  with residual sugar under 2 g/L. Other wines get 30 mg/L (ppm)
-                  below the conventional limit. These limits were first set in
-                  Regulation (EU) No 203/2012 and are carried over under
-                  Regulation (EU) 2018/848 (Annex II, Part VI) in Commission
-                  Implementing Regulation (EU) 2021/1165, Annex V, Part D.{" "}
+                  total SO<sub>2</sub> for red wine and 150 mg/L (ppm) for white
+                  and rosé with residual sugar under 2 g/L. Other wines get 30
+                  mg/L (ppm) below the conventional limit. These limits were
+                  first set in Regulation (EU) No 203/2012 and are carried over
+                  under Regulation (EU) 2018/848 (Annex II, Part VI) in
+                  Commission Implementing Regulation (EU) 2021/1165, Annex V,
+                  Part D.{" "}
                   <em>
                     (Sources: EUR-Lex, Regulation (EU) 2018/848; Implementing
                     Regulation (EU) 2021/1165.)
@@ -212,21 +219,20 @@ export async function renderNaturalVsOrganicGuidePage() {
                 </p>
 
                 <h3 className={ARTICLE_GUIDE_H3_CLASS}>
-                  In the US: &quot;organic&quot; vs &quot;made with organic
-                  grapes&quot;
+                  In the US: “organic” vs “made with organic grapes”
                 </h3>
                 <p>The USDA has two categories:</p>
                 <ul className="list-disc space-y-2 pl-5">
                   <li>
-                    <strong>&quot;Organic&quot; wine:</strong> grapes and other
+                    <strong>“Organic” wine:</strong> grapes and other
                     agricultural ingredients must be certified organic, and{" "}
                     <strong>sulfites may not be added</strong>. Naturally
                     occurring sulfites must stay under 10 mg/L (ppm). Only this
                     category can carry the USDA organic seal.
                   </li>
                   <li>
-                    <strong>&quot;Made with organic grapes&quot;:</strong> all
-                    grapes must be certified organic, but sulfur dioxide{" "}
+                    <strong>“Made with organic grapes”:</strong> all grapes must
+                    be certified organic, but sulfur dioxide{" "}
                     <strong>may be added</strong> as long as total sulfites stay
                     under 100 mg/L (ppm). These labels may not use the USDA
                     seal.
@@ -234,16 +240,14 @@ export async function renderNaturalVsOrganicGuidePage() {
                 </ul>
                 <p>
                   <em>
-                    (Sources: USDA AMS, &quot;Organic Wine: Oversight, Labeling
-                    + Trade&quot;; TTB wine labeling guide; NOP Policy Memo
-                    10-2.)
+                    (Sources: USDA AMS, “Organic Wine: Oversight, Labeling +
+                    Trade”; TTB wine labeling guide; NOP Policy Memo 10-2.)
                   </em>
                 </p>
                 <p>
                   This is why many European organic wines are sold in the US as
-                  &quot;made with organic grapes&quot;: EU organic rules allow
-                  added sulfites, the USDA &quot;organic&quot; category does
-                  not.
+                  “made with organic grapes”: EU organic rules allow added
+                  sulfites, the USDA “organic” category does not.
                 </p>
               </div>
             </section>
@@ -262,10 +266,11 @@ export async function renderNaturalVsOrganicGuidePage() {
                 <p>
                   Demeter also sets stricter cellar rules. For still wines with
                   under 5 g/L fermentable sugar, Demeter France allows 70 mg/L
-                  (ppm) total SO2 for red wine and 90 mg/L (ppm) for white and
-                  rosé. Fermentation must start with native yeasts; added yeast
-                  is only tolerated to restart a stuck fermentation, and a wine
-                  fermented with added yeast from the start loses the label.{" "}
+                  (ppm) total SO<sub>2</sub> for red wine and 90 mg/L (ppm) for
+                  white and rosé. Fermentation must start with native yeasts;
+                  added yeast is only tolerated to restart a stuck fermentation,
+                  and a wine fermented with added yeast from the start loses the
+                  label.{" "}
                   <em>
                     (Source: Demeter France, summary of vinification
                     specification, 2024.)
@@ -311,8 +316,8 @@ export async function renderNaturalVsOrganicGuidePage() {
                 </ul>
                 <p>
                   <em>
-                    (Source: vinmethodenature.org, &quot;Le label&quot; and
-                    Charter of Commitment.)
+                    (Source: vinmethodenature.org, “Le label” and Charter of
+                    Commitment.)
                   </em>
                 </p>
                 <p>
@@ -322,7 +327,7 @@ export async function renderNaturalVsOrganicGuidePage() {
               </div>
             </section>
 
-            <section className="min-w-0 sm:-mx-6 sm:max-w-none md:-mx-12 lg:-mx-24">
+            <section>
               <h2 className={ARTICLE_GUIDE_H2_CLASS}>Comparison table</h2>
               <div className={ARTICLE_GUIDE_BODY_CLASS}>
                 <LabelComparisonTable />

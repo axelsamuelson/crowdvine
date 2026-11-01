@@ -36,7 +36,7 @@ export const LABEL_COMPARISON_ROWS = [
   { key: "yeast", label: "Yeast" },
   { key: "additives", label: "Additives" },
   { key: "addedSulfites", label: "Added sulfites" },
-  { key: "maxSo2", label: "Max total SO2 (dry still)" },
+  { key: "maxSo2", label: "Max total SO₂ (dry still)" },
   { key: "legalStatus", label: "Legal status" },
 ] as const;
 
@@ -56,7 +56,7 @@ export const LABEL_COMPARISON_COLUMNS: LabelComparisonColumn[] = [
   },
   {
     id: "usda-organic",
-    label: 'USDA "organic"',
+    label: "USDA “organic”",
     grapes: "Certified organic",
     yeast: "Organic if available",
     additives: "National List only",
@@ -66,7 +66,7 @@ export const LABEL_COMPARISON_COLUMNS: LabelComparisonColumn[] = [
   },
   {
     id: "usda-made-with",
-    label: 'USDA "made with organic grapes"',
+    label: "USDA “made with organic grapes”",
     grapes: "100% certified organic",
     yeast: "Need not be organic",
     additives: "National List only",
@@ -153,7 +153,7 @@ export const naturalVsOrganicFaqs = [
   {
     question: "Does organic wine contain sulfites?",
     answer:
-      'In the EU, yes, within limits. In the US, wine labeled "organic" has no added sulfites; "made with organic grapes" may contain up to 100 mg/L (ppm).',
+      "In the EU, yes, within limits. In the US, wine labeled “organic” has no added sulfites; “made with organic grapes” may contain up to 100 mg/L (ppm).",
   },
   {
     question: "Is natural wine sulfite-free?",

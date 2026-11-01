@@ -21,42 +21,64 @@ const LINK_CLASS =
 /**
  * Visible guide breadcrumb trail. Parent crumbs are real internal links
  * (Home, Guides hub); the current page is plain text.
+ *
+ * Optional `mobileBack`: below `md`, replace the trail with a single back
+ * link; from `md` up keep the full trail.
  */
 export function GuideBreadcrumbs({
   crumbs,
   className,
+  mobileBack,
 }: {
   crumbs: GuideBreadcrumbCrumb[];
   className?: string;
+  mobileBack?: { label: string; href: string };
 }) {
-  return (
-    <Breadcrumb className={className}>
-      <BreadcrumbList>
-        {crumbs.flatMap((crumb, index) => {
-          const isLast = index === crumbs.length - 1;
-          const nodes = [];
-          if (index > 0) {
-            nodes.push(
-              <BreadcrumbSeparator key={`sep-${crumb.label}-${index}`} />,
-            );
-          }
+  const trail = (
+    <BreadcrumbList>
+      {crumbs.flatMap((crumb, index) => {
+        const isLast = index === crumbs.length - 1;
+        const nodes = [];
+        if (index > 0) {
           nodes.push(
-            <BreadcrumbItem key={`item-${crumb.label}-${index}`}>
-              {isLast || !crumb.href ? (
-                <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
-              ) : (
-                <BreadcrumbLink asChild>
-                  <Link href={crumb.href} className={LINK_CLASS}>
-                    {crumb.label}
-                  </Link>
-                </BreadcrumbLink>
-              )}
-            </BreadcrumbItem>,
+            <BreadcrumbSeparator key={`sep-${crumb.label}-${index}`} />,
           );
-          return nodes;
-        })}
-      </BreadcrumbList>
-    </Breadcrumb>
+        }
+        nodes.push(
+          <BreadcrumbItem key={`item-${crumb.label}-${index}`}>
+            {isLast || !crumb.href ? (
+              <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
+            ) : (
+              <BreadcrumbLink asChild>
+                <Link href={crumb.href} className={LINK_CLASS}>
+                  {crumb.label}
+                </Link>
+              </BreadcrumbLink>
+            )}
+          </BreadcrumbItem>,
+        );
+        return nodes;
+      })}
+    </BreadcrumbList>
+  );
+
+  if (!mobileBack) {
+    return (
+      <Breadcrumb className={className}>
+        {trail}
+      </Breadcrumb>
+    );
+  }
+
+  return (
+    <div className={className}>
+      <p className="md:hidden">
+        <Link href={mobileBack.href} className={LINK_CLASS}>
+          {mobileBack.label}
+        </Link>
+      </p>
+      <Breadcrumb className="hidden md:block">{trail}</Breadcrumb>
+    </div>
   );
 }
 

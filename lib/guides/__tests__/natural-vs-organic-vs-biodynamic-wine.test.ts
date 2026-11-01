@@ -52,6 +52,16 @@ describe("natural vs organic vs biodynamic wine guide", () => {
       "maxSo2",
       "legalStatus",
     ]);
+    expect(LABEL_COMPARISON_ROWS.find((r) => r.key === "maxSo2")?.label).toBe(
+      "Max total SO₂ (dry still)",
+    );
+    expect(LABEL_COMPARISON_COLUMNS.map((c) => c.label)).toEqual([
+      "EU organic",
+      "USDA “organic”",
+      "USDA “made with organic grapes”",
+      "Biodynamic (Demeter France)",
+      "Natural (Vin Méthode Nature)",
+    ]);
   });
 
   it("lists FAQ questions from the draft", () => {
