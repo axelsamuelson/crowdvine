@@ -352,7 +352,7 @@
   "commerce": {
     "minSixMix": "Minst 6 flaskor – du kan blanda",
     "directBoxDeliveryPromise": "Skickas direkt från producenten i låda",
-    "listCardPromiseCompact": "Minst 6 flaskor · skickas i låda från producenten",
+    "listCardPromiseCompact": "Minst 6 flaskor · skickas i låda",
     "palletFillCount": "{filled} av {total} flaskor",
     "palletReadyShort": "Redo",
     "palletRemainingShort": "{remaining} kvar"

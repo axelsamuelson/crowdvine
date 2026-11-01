@@ -352,7 +352,7 @@
   "commerce": {
     "minSixMix": "Minimum 6 bottles – you can mix",
     "directBoxDeliveryPromise": "Shipped directly from the producer in a box",
-    "listCardPromiseCompact": "Min. 6 bottles · shipped in a box from the producer",
+    "listCardPromiseCompact": "Min. 6 bottles · shipped in a box",
     "palletFillCount": "{filled} of {total} bottles",
     "palletReadyShort": "Ready",
     "palletRemainingShort": "{remaining} left"

@@ -401,11 +401,23 @@ body,
   .group:focus-within .plp-commerce-box--hover {
     opacity: 1;
     pointer-events: auto;
-    transform: translateY(0);
   }
   .plp-commerce-box--touch {
     display: none !important;
   }
+}
+/* Screenshot / headless: reveal only the marked card (never the whole grid). */
+.group.plp-force-hover-reveal .plp-commerce-box--hover {
+  display: flex !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+.group.plp-force-hover-reveal .plp-card-top-meta {
+  opacity: 0 !important;
+  transform: translateY(-100%) !important;
+}
+.group.plp-force-hover-reveal .plp-commerce-box--touch {
+  display: none !important;
 }
 @media (hover: none) {
   .plp-commerce-box--hover {

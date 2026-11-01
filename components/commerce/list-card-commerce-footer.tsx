@@ -21,8 +21,8 @@ export function ListCardCommerceFooter({
   const promise = translate(locale, "commerce.listCardPromiseCompact");
 
   return (
-    <div className={cn("space-y-1", className)}>
-      <p className="text-[10px] leading-tight text-muted-foreground md:text-[11px]">
+    <div className={cn(children ? "flex flex-col gap-1" : null, className)}>
+      <p className="truncate text-[10px] leading-none text-muted-foreground">
         {promise}
       </p>
       {children}

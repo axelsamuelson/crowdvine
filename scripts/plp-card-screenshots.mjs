@@ -108,21 +108,10 @@ try {
     const box = await el.boundingBox();
     if (!box) throw new Error("no bbox desktop");
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-    await new Promise((r) => setTimeout(r, 700));
-    // Headless Chrome often reports (hover:none); force the hover-box appearance for the still.
-    await page.addStyleTag({
-      content: `
-        .plp-commerce-box--hover {
-          display: flex !important;
-          opacity: 1 !important;
-          pointer-events: auto !important;
-          transform: translateY(0) !important;
-        }
-        .plp-commerce-box--touch { display: none !important; }
-        .plp-card-top-meta { opacity: 0 !important; transform: translateY(-100%) !important; }
-      `,
-    });
-    await new Promise((r) => setTimeout(r, 200));
+    await new Promise((r) => setTimeout(r, 400));
+    // Headless often reports (hover:none). Reveal ONLY this card — never the whole grid.
+    await el.evaluate((node) => node.classList.add("plp-force-hover-reveal"));
+    await new Promise((r) => setTimeout(r, 300));
     await screenshot(page, `${pass}-plp-desktop-1440-hover.png`);
     await page.close();
   }
@@ -203,19 +192,11 @@ try {
         box.y + box.height / 2,
         { steps: 12 },
       );
-      await rec.page.addStyleTag({
-        content: `
-          .plp-commerce-box--hover {
-            display: flex !important;
-            opacity: 1 !important;
-            pointer-events: auto !important;
-            transform: translateY(0) !important;
-          }
-          .plp-commerce-box--touch { display: none !important; }
-          .plp-card-top-meta { opacity: 0 !important; }
-        `,
-      });
+      await el.evaluate((node) => node.classList.add("plp-force-hover-reveal"));
       await new Promise((r) => setTimeout(r, 2200));
+      await el.evaluate((node) =>
+        node.classList.remove("plp-force-hover-reveal"),
+      );
       await rec.page.mouse.move(20, 20, { steps: 8 });
       await new Promise((r) => setTimeout(r, 600));
       await rec.stop();
