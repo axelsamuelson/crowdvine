@@ -24,38 +24,79 @@
       background: var(--bg);
     }
     header {
-      display: grid;
-      grid-template-columns: auto 1fr auto;
+      position: relative;
+      display: flex;
       align-items: center;
-      gap: 0.75rem;
-      padding: 0.75rem 1rem;
-      border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+      justify-content: space-between;
+      padding: 1rem;
       background: var(--bg);
     }
     .menu {
+      position: relative;
+      z-index: 1;
       border: 0;
       background: color-mix(in srgb, var(--border) 55%, white);
-      padding: 0.4rem 0.7rem;
-      border-radius: 0.35rem;
+      padding: 0.4rem 0.75rem;
+      border-radius: 0.25rem;
       font: inherit;
       font-size: 0.75rem;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
+      font-weight: 600;
     }
-    .logo { justify-self: center; font-weight: 700; letter-spacing: 0.04em; font-size: 0.95rem; }
+    .logo-wrap {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      display: flex;
+      justify-content: center;
+      max-width: 46vw;
+      z-index: 0;
+    }
+    .logo-wrap img {
+      height: 24px;
+      max-height: 24px;
+      width: auto;
+      max-width: 100%;
+      object-fit: contain;
+    }
     .cart {
-      width: 2.25rem; height: 2.25rem; display: grid; place-items: center;
-      background: #111; color: #fff; border-radius: 0.25rem; font-size: 0.8rem; font-weight: 600;
+      position: relative;
+      z-index: 1;
+      min-width: 2.25rem;
+      height: 2.25rem;
+      display: grid;
+      place-items: center;
+      background: #111;
+      color: #fff;
+      border-radius: 0.25rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0 0.55rem;
     }
     .wrap { max-width: 32rem; margin: 0 auto; padding: 3rem 1rem; display: grid; gap: 1rem; }
     h1 { font-size: 1.5rem; font-weight: 600; margin: 0; letter-spacing: -0.02em; }
     p { margin: 0; color: var(--muted); line-height: 1.5; }
     h2 { font-size: 0.875rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin: 0.5rem 0 0; }
-    .summary { border: 1px solid var(--border); border-radius: 0.375rem; background: var(--card); }
-    .summary li { list-style: none; display: flex; justify-content: space-between; gap: 1rem; padding: 0.625rem 0.75rem; border-top: 1px solid var(--border); font-size: 0.875rem; color: var(--fg); }
+    .summary { border: 1px solid var(--border); border-radius: 0.375rem; background: var(--card); padding: 0; list-style: none; }
+    .summary li {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 0.625rem 0.75rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.875rem;
+      color: var(--fg);
+      align-items: flex-start;
+    }
     .summary li:first-child { border-top: 0; }
+    .summary .row-main { display: flex; gap: 0.75rem; align-items: flex-start; min-width: 0; flex: 1; }
+    .summary .thumb {
+      width: 40px; height: 40px; object-fit: cover; border-radius: 0.125rem; flex-shrink: 0;
+      background: color-mix(in srgb, var(--border) 40%, white);
+    }
     .summary .muted { color: var(--muted); font-size: 13px; margin-top: 2px; }
     .summary .total { font-weight: 500; }
+    .summary .price { white-space: nowrap; padding-left: 1rem; flex-shrink: 0; font-variant-numeric: tabular-nums; }
     .hint { font-size: 0.875rem; color: var(--muted); }
     .primary, .outline {
       width: 100%; height: 3rem; border-radius: 0.375rem; font: inherit; font-weight: 500; cursor: pointer;
@@ -69,7 +110,9 @@
 <body>
   <header>
     <button class="menu" type="button">Meny</button>
-    <div class="logo">DIRTY WINE</div>
+    <div class="logo-wrap">
+      <img src="https://abrnvjqwpdkodgrtezeg.supabase.co/storage/v1/object/public/uploads/fe06af9d-ee01-418b-8b77-9d1b0c435bac.svg" alt="Dirtywine" />
+    </div>
     <div class="cart">(0)</div>
   </header>
   <div class="wrap">
@@ -78,12 +121,22 @@
     <h2>Din förfrågan</h2>
     <ul class="summary">
       <li>
-        <div><div>Domaine Exempel Rouge 2023</div><div class="muted">6 flaskor</div></div>
-        <span>1 140 kr</span>
+        <div class="row-main">
+          <img class="thumb" width="40" height="40" alt=""
+            src="https://abrnvjqwpdkodgrtezeg.supabase.co/storage/v1/object/public/uploads/ccfe951f-30a9-42d8-b7c7-e8b2bbde67b1.webp" />
+          <div>
+            <div>Domaine Exempel Rouge 2023</div>
+            <div class="muted">6 flaskor</div>
+          </div>
+        </div>
+        <span class="price">1 140 kr</span>
       </li>
       <li class="total">
-        <div><div>Totalt</div><div class="muted">6 flaskor</div></div>
-        <span>1 140 kr <span class="muted" style="font-weight:400;font-size:12px">exkl. moms</span></span>
+        <div>
+          <div>Totalt</div>
+          <div class="muted">6 flaskor</div>
+        </div>
+        <span class="price">1 140 kr <span class="muted" style="font-weight:400;font-size:12px">exkl. moms</span></span>
       </li>
     </ul>
     <p class="hint">Vi har skickat en kopia till ada@exempel.se</p>

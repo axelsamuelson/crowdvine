@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCart } from "@/components/cart/cart-context";
+import { useProductImages } from "@/components/products/variant-selector";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,6 +35,7 @@ import {
   trackB2bInquirySubmitted,
 } from "@/lib/analytics/b2b-track-client";
 import { formatCartLinePrice } from "@/lib/shopping-context/format";
+import type { CartItem } from "@/lib/shopify/types";
 import { priceExclVat } from "@/lib/shopify/utils";
 import { emitOnce } from "@/lib/analytics/emit-once";
 import { cn } from "@/lib/utils";
@@ -51,13 +54,64 @@ type FormState = {
   website: string;
 };
 
+type SubmittedLine = {
+  title: string;
+  quantity: number;
+  excl: number;
+  imageUrl: string | null;
+};
+
 type SubmittedSummary = {
   email: string;
   emailSent: boolean;
-  lines: Array<{ title: string; quantity: number; excl: number }>;
+  lines: SubmittedLine[];
   bottles: number;
   exclSum: number;
 };
+
+/** Same image source as the cart (`useProductImages` / featured fallback). */
+function cartLineImageUrl(line: CartItem): string | null {
+  const product = line.merchandise.product;
+  if (!product) return null;
+  if (product.featuredImage?.url) return product.featuredImage.url;
+  const images = Array.isArray(product.images) ? product.images : [];
+  return images[0]?.url ?? null;
+}
+
+function InquiryBottleThumb({
+  url,
+  alt,
+}: {
+  url: string | null | undefined;
+  alt: string;
+}) {
+  if (!url) return null;
+  return (
+    <div className="relative size-10 shrink-0 overflow-hidden rounded-sm bg-muted">
+      <Image
+        src={url}
+        alt={alt}
+        width={40}
+        height={40}
+        className="size-full object-cover"
+      />
+    </div>
+  );
+}
+
+function InquiryCartBottleThumb({
+  line,
+  alt,
+}: {
+  line: CartItem;
+  alt: string;
+}) {
+  const imgs = useProductImages(
+    line.merchandise.product,
+    line.merchandise.selectedOptions,
+  );
+  return <InquiryBottleThumb url={imgs[0]?.url} alt={alt} />;
+}
 
 const emptyForm: FormState = {
   companyName: "",
@@ -286,6 +340,7 @@ export function B2bInquiryClient({
         title: line.merchandise.product?.title || line.merchandise.title,
         quantity: line.quantity,
         excl: priceExclVat(lineTotal),
+        imageUrl: cartLineImageUrl(line),
       };
     });
 
@@ -372,10 +427,13 @@ export function B2bInquiryClient({
                   key={`${line.title}-${line.quantity}`}
                   className="flex justify-between gap-4 px-3 py-2.5 text-sm items-start"
                 >
-                  <div className="min-w-0 flex-1">
-                    <div className="leading-snug break-words">{line.title}</div>
-                    <div className="mt-0.5 text-[13px] text-muted-foreground">
-                      {bottlesLabel(line.quantity)}
+                  <div className="flex min-w-0 flex-1 items-start gap-3">
+                    <InquiryBottleThumb url={line.imageUrl} alt={line.title} />
+                    <div className="min-w-0 flex-1">
+                      <div className="leading-snug break-words">{line.title}</div>
+                      <div className="mt-0.5 text-[13px] text-muted-foreground">
+                        {bottlesLabel(line.quantity)}
+                      </div>
                     </div>
                   </div>
                   <span className="tabular-nums whitespace-nowrap pl-4 shrink-0">
@@ -384,7 +442,7 @@ export function B2bInquiryClient({
                 </li>
               ))}
               <li className="flex justify-between gap-4 px-3 py-2.5 text-sm font-medium">
-                <div>
+                <div className="min-w-0 flex-1">
                   <div>{copy.totalExclVatLabel}</div>
                   <div className="mt-0.5 text-[13px] font-normal text-muted-foreground">
                     {bottlesLabel(submitted.bottles)}
@@ -462,17 +520,20 @@ export function B2bInquiryClient({
         {warehouseLines.map((line) => {
           const lineTotal = parseFloat(line.cost.totalAmount.amount || "0");
           const excl = priceExclVat(lineTotal);
+          const title =
+            line.merchandise.product?.title || line.merchandise.title;
           return (
             <li
               key={line.id}
               className="flex justify-between gap-4 px-3 py-2.5 text-sm items-start"
             >
-              <div className="min-w-0 flex-1">
-                <div className="leading-snug break-words">
-                  {line.merchandise.product?.title || line.merchandise.title}
-                </div>
-                <div className="mt-0.5 text-[13px] text-muted-foreground leading-snug">
-                  {bottlesLabel(line.quantity)}
+              <div className="flex min-w-0 flex-1 items-start gap-3">
+                <InquiryCartBottleThumb line={line} alt={title} />
+                <div className="min-w-0 flex-1">
+                  <div className="leading-snug break-words">{title}</div>
+                  <div className="mt-0.5 text-[13px] text-muted-foreground leading-snug">
+                    {bottlesLabel(line.quantity)}
+                  </div>
                 </div>
               </div>
               <span className="tabular-nums whitespace-nowrap pl-4 shrink-0">
