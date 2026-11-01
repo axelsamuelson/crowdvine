@@ -386,7 +386,7 @@ export default function LogInPage() {
       </div>
 
       {/* Bottom instructions (template style). Skip invite-membership line on Dirtywine / inquiry return. */}
-      <div className="text-center fixed bottom-10 left-0 right-0 font-sans uppercase text-[11px] font-semibold text-white/90 mix-blend-exclusion">
+      <div className="text-center fixed bottom-10 left-0 right-0 font-sans uppercase tracking-[0.04em] text-[11px] font-semibold text-white/90 mix-blend-exclusion">
         <p>{t("auth.footerLine1")}</p>
         {!hideInviteMembershipFooter ? (
           <p className="opacity-60">{t("auth.footerLine2")}</p>
