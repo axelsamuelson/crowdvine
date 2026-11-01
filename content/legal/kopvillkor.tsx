@@ -272,6 +272,15 @@ export default function KopvillkorContent() {
         överlämningen nekas vid ålderskontrollen tar vi inte ut någon avgift.
       </LegalP>
       <LegalP>
+        Du får undersöka varan på samma sätt som i en butik, men inte mer än så.
+        Har en flaska öppnats, eller förvarats eller hanterats så att vinet kan
+        ha tagit skada, till exempel i värme eller direkt solljus, ansvarar du
+        för värdeminskningen. Vi får då göra ett avdrag från återbetalningen
+        som motsvarar värdeminskningen, upp till flaskans fulla pris. Detta
+        följer av 2 kap. 14 § lagen (2005:59) om distansavtal och avtal utanför
+        affärslokaler.
+      </LegalP>
+      <LegalP>
         Hur ett uteblivet leveransförsök hanteras beskrivs av{" "}
         <LegalLink href="https://budbee.com/se/kundservice/leveranser/">
           Budbee
