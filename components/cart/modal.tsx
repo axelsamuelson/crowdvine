@@ -56,6 +56,7 @@ const CartItems = ({
 }) => {
   const { cart } = useCart();
   const { t, context } = useTranslations();
+  const isDirtywineSite = useB2BModeServerHint();
   const showExclVat = useB2BPriceMode();
   const totalAmount = cart ? parseFloat(cart.cost.totalAmount.amount) : 0;
   const displayTotal = showExclVat ? priceExclVat(totalAmount) : totalAmount;
@@ -98,13 +99,15 @@ const CartItems = ({
 
   return (
     <div className="flex flex-col justify-between h-full overflow-hidden">
-      {/* Cart Validation Header */}
-      <CartValidationHeader
-        validations={validations}
-        isValidating={isValidating}
-        requiredQuantity={requiredQuantity}
-        neededTotal={neededTotal}
-      />
+      {/* PACT only: Dirty Wine has no bottle minimum / pack rule. */}
+      {!showExclVat ? (
+        <CartValidationHeader
+          validations={validations}
+          isValidating={isValidating}
+          requiredQuantity={requiredQuantity}
+          neededTotal={neededTotal}
+        />
+      ) : null}
 
       <CartContainer className="flex justify-between px-2 text-sm text-muted-foreground">
         <span>{t("cart.products")}</span>
@@ -155,15 +158,17 @@ const CartItems = ({
             <p>{t("cart.shipping")}</p>
             <p className="text-right">{t("cart.shippingAtCheckout")}</p>
           </div>
-          <p className="mb-3 text-xs">
-            <Link
-              href={homeDeliveryGuidePath(context.locale)}
-              onClick={closeCart}
-              className="text-muted-foreground underline underline-offset-4 hover:text-foreground"
-            >
-              {t("cart.homeDeliveryGuideLink")}
-            </Link>
-          </p>
+          {!isDirtywineSite ? (
+            <p className="mb-3 text-xs">
+              <Link
+                href={homeDeliveryGuidePath(context.locale)}
+                onClick={closeCart}
+                className="text-muted-foreground underline underline-offset-4 hover:text-foreground"
+              >
+                {t("cart.homeDeliveryGuideLink")}
+              </Link>
+            </p>
+          ) : null}
           <div className="flex justify-between items-center pt-1 pb-1 mb-1.5 text-lg font-semibold">
             <p>{t("cart.total")}</p>
             <div className="text-right">
@@ -334,12 +339,11 @@ export default function CartModal() {
     if (!cart || cart.lines.length === 0) {
       return (
         <div className="flex flex-col justify-between h-full overflow-hidden">
-          {/* Always show validation header for educational purposes */}
-          <CartValidationHeader
-            validations={[]}
-            isValidating={false}
-          />
-          
+          {/* PACT only: Dirty Wine has no bottle minimum / pack rule. */}
+          {!isDirtywineSite ? (
+            <CartValidationHeader validations={[]} isValidating={false} />
+          ) : null}
+
           <CartContainer className="flex w-full">
             <Link
               href={paths.shop}

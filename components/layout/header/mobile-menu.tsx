@@ -29,11 +29,16 @@ export function MobileMenu({
   const { t } = useTranslations();
   const paths = useLocalizedPaths();
   const { isOpen, openMobileMenu, closeMobileMenu } = useMobileMenu();
+  // Dirty Wine: omit Profil / Om oss / Guider (PACT-only; guides 301 → CORS).
   const navItems = [
     { href: paths.shop, label: t("common.shop") },
-    { href: paths.guides, label: t("common.guides") },
-    { href: "/profile", label: t("common.profile"), icon: User },
-    { href: paths.about, label: t("common.about") },
+    ...(!isDirtywineSite
+      ? [
+          { href: paths.guides, label: t("common.guides") },
+          { href: "/profile", label: t("common.profile"), icon: User },
+          { href: paths.about, label: t("common.about") },
+        ]
+      : []),
     { href: paths.home, label: t("common.home") },
   ];
   const pathname = usePathname();

@@ -49,18 +49,22 @@ export function Footer({ initialLogos }: { initialLogos?: SiteLogos }) {
                     >
                       {t("common.shop")}
                     </Link>
-                    <Link
-                      href={paths.about}
-                      className="text-sm text-background/70 hover:text-background transition-colors hover:underline"
-                    >
-                      {t("common.about")}
-                    </Link>
-                    <Link
-                      href="/profile"
-                      className="text-sm text-background/70 hover:text-background transition-colors hover:underline"
-                    >
-                      {t("common.profile")}
-                    </Link>
+                    {!isDirtywineSite ? (
+                      <>
+                        <Link
+                          href={paths.about}
+                          className="text-sm text-background/70 hover:text-background transition-colors hover:underline"
+                        >
+                          {t("common.about")}
+                        </Link>
+                        <Link
+                          href="/profile"
+                          className="text-sm text-background/70 hover:text-background transition-colors hover:underline"
+                        >
+                          {t("common.profile")}
+                        </Link>
+                      </>
+                    ) : null}
                   </div>
                 </div>
               </nav>

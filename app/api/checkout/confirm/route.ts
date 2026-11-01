@@ -426,7 +426,7 @@ export async function POST(request: Request) {
       }
     }
 
-    // SERVER-SIDE VALIDATION: cart minimum (B2C ≥6 total; B2B pack lines)
+    // SERVER-SIDE VALIDATION: cart minimum (B2C ≥6 total; B2B qty ≥1 per line)
     const minimumChannel = isB2BHost(requestHost) ? "b2b" : "b2c";
     console.log(
       "🔍 [Checkout API] Validating cart minimum...",
@@ -447,7 +447,7 @@ export async function POST(request: Request) {
         {
           error:
             minimumChannel === "b2b"
-              ? "Order lines must be in full 6-bottle packs"
+              ? "Each order line must have at least 1 bottle"
               : "Order must contain at least 6 bottles (any wines)",
           validationErrors: validation.errors,
           producerValidations: validation.producerValidations,

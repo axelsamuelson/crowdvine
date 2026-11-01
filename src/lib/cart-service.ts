@@ -222,7 +222,7 @@ export class CartService {
       // Skipping early-bird avoids determineZones + Nominatim on every getCart/add.
       const isB2B = isB2BHost(requestHost, null);
 
-      // Self-heal legacy single-bottle lines so 6-pack validation can pass.
+      // Clamp out-of-range B2B line quantities (single bottles allowed).
       if (isB2B) {
         for (const item of cartItems as CartItemRow[]) {
           const next = normalizeExistingB2BLineQuantity(item.quantity);

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { motion, useReducedMotion } from "motion/react";
 
+import { useB2BModeServerHint } from "@/lib/context/b2b-mode-context";
 import { useLocalizedPaths } from "@/lib/hooks/use-localized-paths";
 import { useTranslations } from "@/lib/hooks/use-translations";
 import { producerBoxesPath } from "@/lib/producer-boxes/config";
@@ -26,13 +27,17 @@ export function HomeHeroContent({
 }) {
   const { t, context } = useTranslations();
   const paths = useLocalizedPaths();
+  const isDirtywineSite = useB2BModeServerHint();
   const reduceMotion = useReducedMotion();
 
   const resolvedTitleLines =
     titleLines && titleLines.length > 0
       ? titleLines
       : [t("home.heroTitleBefore"), t("home.heroTitleMiddle")].filter(Boolean);
-  const wineBoxesHref = producerBoxesPath(context.locale);
+  // Dirty Wine: /vin/naturvin-lada 301s to pactwines.com — do not link it.
+  const wineBoxesHref = isDirtywineSite
+    ? null
+    : producerBoxesPath(context.locale);
 
   const transition = reduceMotion
     ? { duration: 0 }
@@ -102,16 +107,18 @@ export function HomeHeroContent({
         >
           {t("nav.shopAll")}
         </Link>
-        <Link
-          href={wineBoxesHref}
-          className={cn(
-            heroButtonBaseClassName,
-            "border border-white/80 bg-transparent text-white hover:bg-white/10",
-            "md:border-stone-300 md:bg-white md:text-stone-900 md:hover:border-stone-400 md:hover:bg-stone-50",
-          )}
-        >
-          {t("shop.producerBoxesCta")}
-        </Link>
+        {wineBoxesHref ? (
+          <Link
+            href={wineBoxesHref}
+            className={cn(
+              heroButtonBaseClassName,
+              "border border-white/80 bg-transparent text-white hover:bg-white/10",
+              "md:border-stone-300 md:bg-white md:text-stone-900 md:hover:border-stone-400 md:hover:bg-stone-50",
+            )}
+          >
+            {t("shop.producerBoxesCta")}
+          </Link>
+        ) : null}
       </motion.div>
     </div>
   );

@@ -124,8 +124,12 @@ async function ShopRootJsonLd({ locale }: { locale: "sv" | "en" }) {
   );
 }
 
-function ShopRootBelowFold({ locale }: { locale: "sv" | "en" }) {
+async function ShopRootBelowFold({ locale }: { locale: "sv" | "en" }) {
   const content = getShopRootNaturalWineContent(locale);
+  const headerList = await headers();
+  const isDirtywineSite = isB2BHost(
+    headerList.get("x-forwarded-host") ?? headerList.get("host"),
+  );
   const exploreHref =
     locale === "sv" ? "/vin/rott-naturvin" : "/wine/red-natural-wine";
   const exploreLabel =
@@ -199,18 +203,22 @@ function ShopRootBelowFold({ locale }: { locale: "sv" | "en" }) {
             >
               {exploreLabel}
             </Link>
-            <Link
-              href={guideHref}
-              className="text-sm text-stone-600 underline underline-offset-4 hover:text-stone-900"
-            >
-              {guideLabel}
-            </Link>
-            <Link
-              href={deliveryGuideHref}
-              className="text-sm text-stone-600 underline underline-offset-4 hover:text-stone-900"
-            >
-              {deliveryGuideLabel}
-            </Link>
+            {!isDirtywineSite ? (
+              <>
+                <Link
+                  href={guideHref}
+                  className="text-sm text-stone-600 underline underline-offset-4 hover:text-stone-900"
+                >
+                  {guideLabel}
+                </Link>
+                <Link
+                  href={deliveryGuideHref}
+                  className="text-sm text-stone-600 underline underline-offset-4 hover:text-stone-900"
+                >
+                  {deliveryGuideLabel}
+                </Link>
+              </>
+            ) : null}
           </div>
         </div>
       </div>

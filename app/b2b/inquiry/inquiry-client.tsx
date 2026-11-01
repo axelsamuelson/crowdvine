@@ -190,7 +190,6 @@ export function B2bInquiryClient({
   const hasProducerLines = (cart?.lines ?? []).some(
     (line) => line.source === "producer",
   );
-
   const cartTotals = useMemo(() => {
     let bottles = 0;
     let exclSum = 0;
@@ -437,7 +436,7 @@ export function B2bInquiryClient({
                     </div>
                   </div>
                   <span className="tabular-nums whitespace-nowrap pl-4 shrink-0">
-                    {formatCartLinePrice(line.excl, context)}
+                    {formatCartLinePrice(line.excl, "SEK", locale)}
                   </span>
                 </li>
               ))}
@@ -449,7 +448,7 @@ export function B2bInquiryClient({
                   </div>
                 </div>
                 <span className="tabular-nums whitespace-nowrap pl-4 shrink-0">
-                  {formatCartLinePrice(submitted.exclSum, context)}{" "}
+                  {formatCartLinePrice(submitted.exclSum, "SEK", locale)}{" "}
                   <span className="font-normal text-muted-foreground text-xs">
                     {locale === "sv" ? "exkl. moms" : "excl. VAT"}
                   </span>
@@ -537,7 +536,7 @@ export function B2bInquiryClient({
                 </div>
               </div>
               <span className="tabular-nums whitespace-nowrap pl-4 shrink-0">
-                {formatCartLinePrice(excl, context)}
+                {formatCartLinePrice(excl, "SEK", locale)}
               </span>
             </li>
           );
@@ -550,7 +549,7 @@ export function B2bInquiryClient({
             </div>
           </div>
           <span className="tabular-nums whitespace-nowrap pl-4 shrink-0">
-            {formatCartLinePrice(cartTotals.exclSum, context)}{" "}
+            {formatCartLinePrice(cartTotals.exclSum, "SEK", locale)}{" "}
             <span className="font-normal text-muted-foreground text-xs">
               {locale === "sv" ? "exkl. moms" : "excl. VAT"}
             </span>
