@@ -395,12 +395,18 @@ body,
 .plp-commerce-box {
   opacity: 0;
   pointer-events: none;
+  transform: translateY(6px);
+  transition:
+    opacity 180ms ease-out,
+    transform 180ms ease-out;
+  will-change: opacity, transform;
 }
 @media (hover: hover) and (pointer: fine) {
   .group:hover .plp-commerce-box--hover,
   .group:focus-within .plp-commerce-box--hover {
     opacity: 1;
     pointer-events: auto;
+    transform: translateY(0);
   }
   .plp-commerce-box--touch {
     display: none !important;
@@ -411,10 +417,10 @@ body,
   display: flex !important;
   opacity: 1 !important;
   pointer-events: auto !important;
+  transform: translateY(0) !important;
 }
 .group.plp-force-hover-reveal .plp-card-top-meta {
   opacity: 0 !important;
-  transform: translateY(-100%) !important;
 }
 .group.plp-force-hover-reveal .plp-commerce-box--touch {
   display: none !important;
@@ -426,12 +432,15 @@ body,
   .group.is-touch-revealed .plp-commerce-box--touch {
     opacity: 1;
     pointer-events: auto;
+    transform: translateY(0);
+  }
+  .group.is-touch-revealed .plp-card-top-meta {
+    opacity: 0;
   }
 }
 @media (hover: hover) and (pointer: fine) {
   .group:hover .plp-card-top-meta,
   .group:focus-within .plp-card-top-meta {
     opacity: 0;
-    transform: translateY(-100%);
   }
 }

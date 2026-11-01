@@ -7,11 +7,10 @@ import { cn } from "@/lib/utils";
 
 /**
  * Compact list-card commerce strip: one muted min-6 + direct-box line.
- * No customer-facing pallet fill.
+ * Spec: ≥11px, #737373.
  */
 export function ListCardCommerceFooter({
   className,
-  children,
 }: {
   className?: string;
   children?: React.ReactNode;
@@ -21,11 +20,13 @@ export function ListCardCommerceFooter({
   const promise = translate(locale, "commerce.listCardPromiseCompact");
 
   return (
-    <div className={cn(children ? "flex flex-col gap-1" : null, className)}>
-      <p className="truncate text-[10px] leading-none text-muted-foreground">
-        {promise}
-      </p>
-      {children}
-    </div>
+    <p
+      className={cn(
+        "truncate text-[11px] leading-none text-[#737373]",
+        className,
+      )}
+    >
+      {promise}
+    </p>
   );
 }
