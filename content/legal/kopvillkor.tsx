@@ -28,7 +28,10 @@ export default function KopvillkorContent() {
           </tr>
           <tr>
             <LegalTh>Adress</LegalTh>
-            <LegalTd>Tartu mnt 67/1-13b, 10115, stadscentrum, Tallinn, Harju län, Estland</LegalTd>
+            <LegalTd>
+              Tartu mnt 67/1-13b, Kesklinna linnaosa, 10115 Tallinn, Harju
+              maakond, Estland
+            </LegalTd>
           </tr>
           <tr>
             <LegalTh>E-post</LegalTh>
@@ -187,23 +190,29 @@ export default function KopvillkorContent() {
       </LegalList>
 
       <LegalH2>5. Betalning</LegalH2>
-      <LegalP>Betalningar hanteras av Stripe. Vi lagrar aldrig ditt fullständiga kortnummer.</LegalP>
       <LegalP>
-        <LegalStrong>Så sparas ditt kort.</LegalStrong> När du reserverar sparas
-        din betalmetod hos Stripe med ditt medgivande, så att vi kan genomföra
-        betalningen när pallen stänger. Detta är inte samma sak som att pengar
-        dras eller reserveras. Beloppet dras vid ett enda tillfälle, när pallen
-        stänger.
+        Betalning sker via vår betalleverantör Stripe med de betalsätt som
+        visas i kassan, i dag kort, Klarna och Link. När du reserverar sparas
+        ditt betalsätt hos Stripe, men inga pengar dras eller reserveras.
+        Beloppet dras när pallen är full och vi beställer frakten. Reserverar
+        du på en pall som redan är på väg att skickas dras beloppet direkt.
+        Betalar du med Klarna gäller även Klarnas villkor, som visas i kassan.
+        Vi sparar inga kortuppgifter själva.
       </LegalP>
+      <LegalP>Betalningar hanteras av Stripe. Vi lagrar aldrig ditt fullständiga kortnummer.</LegalP>
       <LegalP>
         Din bank kan komma att kräva en säkerhetsverifiering (BankID eller
         motsvarande) antingen vid reservationen eller vid debiteringen.
       </LegalP>
       <LegalP>
         <LegalStrong>Om betalningen inte kan genomföras</LegalStrong> när pallen
-        stänger, till exempel för att kortet gått ut eller saknar täckning,
-        gäller Stripes regler för betalningen och villkoren för det betalmedel
-        du använder. Sker ingen betalning återgår varorna till försäljning.
+        stänger, till exempel för att kortet gått ut eller saknar täckning:
+        Om dragningen från ditt sparade kort misslyckas gör vi nya försök efter{" "}
+        <LegalStrong>24 och 72 timmar</LegalStrong>. Kräver banken extra
+        verifiering (3D Secure) får du ett mejl med en länk för att godkänna
+        betalningen. Misslyckas tre försök avbryts beställningen och{" "}
+        <LegalStrong>inget dras</LegalStrong>. Varorna återgår då till
+        försäljning.
       </LegalP>
       <LegalP>
         Betalning sker enligt{" "}
@@ -231,10 +240,10 @@ export default function KopvillkorContent() {
       <LegalH2>7. Leverans</LegalH2>
       <LegalList>
         <li>Leverans sker med hemleverans och ID-kontroll av Budbee</li>
-        <li>Leverans sker till adresser i [FYLL I LEVERANSOMRÅDE]</li>
         <li>
-          Beräknad leveranstid efter att pallen stängt: [FYLL I], normalt [FYLL
-          I] veckor
+          Leverans sker inom <LegalStrong>5–10 arbetsdagar</LegalStrong> inom
+          hela Sverige, räknat från orderbekräftelse och dragen betalning. Vid
+          överlämning kontrolleras mottagarens ålder (20 år) med legitimation
         </li>
         <li>
           Angivna leveranstider är uppskattningar. Transport från Frankrike kan
@@ -257,6 +266,10 @@ export default function KopvillkorContent() {
         Om du inte är hemma, inte kan legitimera dig eller inte är minst 20 år
         gör Budbee ett nytt leveransförsök. Kan leveransen inte genomföras då
         heller returneras varan.
+      </LegalP>
+      <LegalP>
+        Vid retur betalar du den faktiska returfraktkostnaden, utan påslag. Om
+        överlämningen nekas vid ålderskontrollen tar vi inte ut någon avgift.
       </LegalP>
       <LegalP>
         Hur ett uteblivet leveransförsök hanteras beskrivs av{" "}
