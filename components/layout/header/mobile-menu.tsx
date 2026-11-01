@@ -29,11 +29,16 @@ export function MobileMenu({
   const { t } = useTranslations();
   const paths = useLocalizedPaths();
   const { isOpen, openMobileMenu, closeMobileMenu } = useMobileMenu();
+  // Dirty Wine: omit Profil / Om oss / Guider (PACT-only; guides 301 → CORS).
   const navItems = [
     { href: paths.shop, label: t("common.shop") },
-    { href: paths.guides, label: t("common.guides") },
-    { href: "/profile", label: t("common.profile"), icon: User },
-    { href: paths.about, label: t("common.about") },
+    ...(!isDirtywineSite
+      ? [
+          { href: paths.guides, label: t("common.guides") },
+          { href: "/profile", label: t("common.profile"), icon: User },
+          { href: paths.about, label: t("common.about") },
+        ]
+      : []),
     { href: paths.home, label: t("common.home") },
   ];
   const pathname = usePathname();
@@ -86,13 +91,17 @@ export function MobileMenu({
         <AnimatePresence>
           {isOpen && (
             <>
-              {/* Backdrop */}
+              {/* Backdrop — above header chrome so cart cannot cover «Stäng» */}
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.3, ease: "easeInOut" }}
-                className="fixed inset-0 z-50 bg-foreground/30"
+                className={
+                  isDirtywineSite
+                    ? "fixed inset-0 z-[60] bg-foreground/30"
+                    : "fixed inset-0 z-50 bg-foreground/30"
+                }
                 onClick={closeMobileMenu}
                 aria-hidden="true"
               />
@@ -103,7 +112,11 @@ export function MobileMenu({
                 animate={{ x: 0 }}
                 exit={{ x: "-100%" }}
                 transition={{ duration: 0.3, ease: "easeInOut" }}
-                className="fixed top-0 bottom-0 left-0 flex w-full md:w-[400px] p-modal-sides z-50"
+                className={
+                  isDirtywineSite
+                    ? "fixed top-0 bottom-0 left-0 flex w-full md:w-[400px] p-modal-sides z-[60]"
+                    : "fixed top-0 bottom-0 left-0 flex w-full md:w-[400px] p-modal-sides z-50"
+                }
               >
                 <div className="flex flex-col p-3 w-full rounded bg-muted md:p-4 overflow-hidden">
                   <div className="flex justify-between items-baseline pl-2 mb-10">

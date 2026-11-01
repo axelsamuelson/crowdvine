@@ -15,9 +15,6 @@ describe("conversion funnel copy (sv)", () => {
     expect(translate("sv", "commerce.directBoxDeliveryPromise")).toBe(
       "Skickas direkt från producenten i låda",
     );
-    expect(translate("sv", "commerce.listCardPromiseCompact")).toMatch(
-      /6 flaskor/,
-    );
     // Customer copy must not invent delivery times; only a marked TODO may set one.
     expect(B2C_DIRECT_BOX_DELIVERY_TIME_TODO).toBeNull();
   });
@@ -51,6 +48,5 @@ describe("conversion funnel copy (en)", () => {
     expect(translate("en", "commerce.directBoxDeliveryPromise")).toMatch(
       /producer/i,
     );
-    expect(translate("en", "commerce.listCardPromiseCompact")).toMatch(/6/);
   });
 });

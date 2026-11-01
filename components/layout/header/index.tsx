@@ -35,10 +35,13 @@ export function Header({
   const { t } = useTranslations();
   const paths = useLocalizedPaths();
   const pathname = usePathname();
+  // Dirty Wine: omit Guider — those routes 301 to pactwines.com (CORS on prefetch).
   const navItems: NavItem[] = [
     { label: t("nav.home"), href: paths.home },
     { label: t("nav.shopAll"), href: paths.shop },
-    { label: t("nav.guides"), href: paths.guides },
+    ...(!isDirtywineSite
+      ? [{ label: t("nav.guides"), href: paths.guides } satisfies NavItem]
+      : []),
   ];
   const { role } = useUserRole();
   const { showPortalToggle, isB2BOnly, loading } = usePortalAccess();
@@ -65,7 +68,17 @@ export function Header({
           : "grid grid-cols-3 items-start md:grid-cols-12 md:gap-sides",
       )}
     >
-      <div className="block flex-none md:hidden relative z-10">
+      {/*
+        Dirty Wine: wrapper above header cart (z-10) so the open menu panel /
+        «Stäng» are not covered by the cart badge. PACT keeps z-10.
+      */}
+      <div
+        className={
+          isDirtywineSite
+            ? "block flex-none md:hidden relative z-[60]"
+            : "block flex-none md:hidden relative z-10"
+        }
+      >
         <MobileMenuDynamic
           collections={collections}
           popularCollections={popularCollections}
@@ -159,11 +172,13 @@ export function Header({
             <PortalToggle showPortalToggle={true} className="shrink-0 ml-2" />
           )}
         </div>
-        <ProfileIcon
-          className="hidden md:flex"
-          label={t("common.profile")}
-          showLabel={isDirtywineSite}
-        />
+        {!isDirtywineSite ? (
+          <ProfileIcon
+            className="hidden md:flex"
+            label={t("common.profile")}
+            showLabel={false}
+          />
+        ) : null}
         <CartModalDynamic />
       </nav>
     </header>

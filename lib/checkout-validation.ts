@@ -56,7 +56,7 @@ export type ValidationResult = {
 export type ValidateCartMinimumOptions = {
   /**
    * `b2c` (default): ≥ {@link B2C_CART_MIN_BOTTLES} bottles total, any mix.
-   * `b2b`: each line must be a full bottle pack (see `lib/cart/bottle-pack.ts`).
+   * `b2b`: each line must be quantity ≥ 1 (no pack minimum; see `lib/cart/bottle-pack.ts`).
    */
   channel?: CartMinimumChannel;
 };
@@ -138,7 +138,7 @@ export function validateCartMinimum(
       .filter((v) => !v.isValid)
       .map(
         (v) =>
-          `${v.producerName}: ${v.quantity} bottles. Add ${v.needed} more for a full ${v.required}-pack.`,
+          `${v.producerName}: invalid quantity ${v.quantity}. Use at least ${v.required} bottle(s).`,
       );
 
     return fromProgress(progress, producerValidations, errors);

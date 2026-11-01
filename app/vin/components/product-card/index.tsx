@@ -25,7 +25,7 @@ import { getProductListPriceSek } from "@/lib/price-breakdown";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 import { pricesFromCartAfterAdd } from "@/lib/analytics/cart-event-prices";
 import { PriceViewTracker } from "@/components/analytics/price-view-tracker";
-import { BOTTLE_PACK_SIZE } from "@/lib/cart/bottle-pack";
+import { B2B_MIN_LINE_BOTTLES } from "@/lib/cart/bottle-pack";
 import { B2B_PRODUCER_ORDERS_ENABLED } from "@/lib/b2b/flags";
 import type { Cart } from "@/lib/shopify/types";
 import {
@@ -279,15 +279,14 @@ export const ProductCard = memo(
         let updated: Cart | null = null;
 
         if (showExclVat) {
-          // Dirty Wine: always add a 6-bottle pack
+          // Dirty Wine: single bottles allowed (default add 1)
           const response = await fetch("/api/cart/add-quantity", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               variantId: variant.id,
-              quantity: BOTTLE_PACK_SIZE,
+              quantity: B2B_MIN_LINE_BOTTLES,
               source: "producer",
-              enforcePack: true,
             }),
           });
           if (response.ok) {
@@ -313,7 +312,7 @@ export const ProductCard = memo(
           product.title,
           list_price,
           {
-            quantity: showExclVat ? BOTTLE_PACK_SIZE : 1,
+            quantity: showExclVat ? B2B_MIN_LINE_BOTTLES : 1,
             source: showExclVat ? "b2b" : "list",
             list_price,
             unit_price,

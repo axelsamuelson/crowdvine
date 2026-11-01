@@ -40,12 +40,35 @@ describe("b2b inquiry validation", () => {
       phone: "0701234567",
       deliveryAddress: "Gatan 1",
       postalCode: "11846",
+      city: "Stockholm",
       desiredDeliveryDate: "2026-12-01",
       website: "http://spam.example",
       lines: [{ wineId: "w1", quantity: 6 }],
     });
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error).toBe("honeypot");
+  });
+
+  it("allows optional phone and delivery date", () => {
+    const result = validateB2bInquiryForm({
+      companyName: "Test AB",
+      organizationNumber: "556677-8899",
+      contactName: "Ada",
+      email: "ada@example.com",
+      phone: "",
+      deliveryAddress: "Gatan 1",
+      postalCode: "11846",
+      city: "Stockholm",
+      desiredDeliveryDate: "",
+      website: "",
+      lines: [{ wineId: "w1", quantity: 6 }],
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.phone).toBeNull();
+      expect(result.value.desiredDeliveryDate).toBeNull();
+      expect(result.value.city).toBe("Stockholm");
+    }
   });
 
   it("normalizes a valid inquiry", () => {
@@ -57,6 +80,7 @@ describe("b2b inquiry validation", () => {
       phone: "0701234567",
       deliveryAddress: "Gatan 1",
       postalCode: "118 46",
+      city: " Stockholm ",
       desiredDeliveryDate: "2026-12-01",
       message: "  hej  ",
       website: "",
@@ -73,9 +97,48 @@ describe("b2b inquiry validation", () => {
     if (result.ok) {
       expect(result.value.email).toBe("ada@example.com");
       expect(result.value.postalCode).toBe("11846");
+      expect(result.value.city).toBe("Stockholm");
       expect(result.value.message).toBe("hej");
       expect(result.value.lines).toHaveLength(1);
     }
+  });
+
+  it("accepts a single-bottle line (no restaurant MOQ)", () => {
+    const result = validateB2bInquiryForm({
+      companyName: "Test AB",
+      organizationNumber: "556677-8899",
+      contactName: "Ada",
+      email: "ada@example.com",
+      phone: "0701234567",
+      deliveryAddress: "Gatan 1",
+      postalCode: "11846",
+      city: "Stockholm",
+      desiredDeliveryDate: "2026-12-01",
+      website: "",
+      lines: [{ wineId: "w1", quantity: 1, wineTitle: "Solo" }],
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.lines[0]?.quantity).toBe(1);
+    }
+  });
+
+  it("rejects zero-quantity lines", () => {
+    const result = validateB2bInquiryForm({
+      companyName: "Test AB",
+      organizationNumber: "556677-8899",
+      contactName: "Ada",
+      email: "ada@example.com",
+      phone: "0701234567",
+      deliveryAddress: "Gatan 1",
+      postalCode: "11846",
+      city: "Stockholm",
+      desiredDeliveryDate: "2026-12-01",
+      website: "",
+      lines: [{ wineId: "w1", quantity: 0 }],
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toBe("lines");
   });
 });
 
@@ -108,13 +171,20 @@ describe("b2b inquiry copy for legal review", () => {
   it("exposes swedish customer-facing strings", () => {
     const texts = listB2bInquiryCustomerFacingSvTexts();
     expect(texts).toContain("Skicka förfrågan");
-    expect(texts).toContain("Logga in för att skicka förfrågan");
+    expect(texts).toContain("Logga in");
+    expect(texts).toContain("Fortsätt som ny kund");
     expect(texts).toContain(
-      "Logga in för att skicka förfrågan. Du kommer tillbaka hit med din lista kvar.",
+      "Logga in eller fortsätt som ny kund för att skicka din förfrågan.",
+    );
+    expect(texts).toContain(
+      "Vi återkommer med bekräftelse och faktura. Ingen betalning sker här.",
     );
     expect(texts).toContain(
       "Vi återkommer med bekräftelse och faktura inom en arbetsdag.",
     );
+    expect(texts).toContain("Skapa konto");
+    expect(texts).toContain("Inte nu");
+    expect(texts).toContain("Ort");
     expect(texts).toContain(
       "Vi behandlar dina uppgifter för att hantera förfrågan. Läs mer i vår integritetspolicy.",
     );

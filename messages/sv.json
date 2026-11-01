@@ -154,6 +154,7 @@
     "pactPointsCheckout": " · använd i kassan",
     "shipping": "Frakt",
     "shippingAtCheckout": "Beräknas i kassan",
+    "shippingIncludedInPrice": "Ingår i priset (leverans i Stockholm)",
     "homeDeliveryGuideLink": "Så fungerar hemleverans",
     "total": "Totalt",
     "validating": "Validerar…",
@@ -352,7 +353,6 @@
   "commerce": {
     "minSixMix": "Minst 6 flaskor – du kan blanda",
     "directBoxDeliveryPromise": "Skickas direkt från producenten i låda",
-    "listCardPromiseCompact": "Minst 6 flaskor · skickas i låda",
     "palletFillCount": "{filled} av {total} flaskor",
     "palletReadyShort": "Redo",
     "palletRemainingShort": "{remaining} kvar"

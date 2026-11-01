@@ -59,7 +59,6 @@ function ProductListStaticCard({
               className="text-[9px] md:text-sm uppercase 2xl:text-base text-right font-semibold"
             />
           </div>
-
         </div>
       </div>
     </div>

@@ -15,12 +15,28 @@ import { registerTop100Tools } from "./tools/top-100";
 import { registerInvoiceTools } from "./tools/invoices";
 import { registerDeliveryNoteTools } from "./tools/delivery-notes";
 
-export function createPactMcpServer(): McpServer {
+export type CreatePactMcpServerOptions = {
+  /**
+   * When set, only register tools in this allowlist (read-only API key sessions).
+   * `tools/list` then exposes only those tools.
+   */
+  toolAllowlist?: ReadonlySet<string>;
+};
+
+export function createPactMcpServer(
+  opts?: CreatePactMcpServerOptions,
+): McpServer {
+  const allowlist = opts?.toolAllowlist;
   const sb = getMcpSupabase();
   const server = new McpServer({
     name: "pact-okr",
     version: "1.0.0",
   });
+
+  if (allowlist) {
+    registerGscTools(server, { allowlist });
+    return server;
+  }
 
   registerGoalTools(server, sb);
   registerObjectiveTools(server, sb);

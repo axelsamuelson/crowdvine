@@ -15,7 +15,7 @@ import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 import { pricesFromCartAfterAdd } from "@/lib/analytics/cart-event-prices";
 import { useTranslations } from "@/lib/hooks/use-translations";
 import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
-import { BOTTLE_PACK_SIZE } from "@/lib/cart/bottle-pack";
+import { B2B_MIN_LINE_BOTTLES } from "@/lib/cart/bottle-pack";
 
 interface AddToCartProps extends ButtonProps {
   product: Product;
@@ -43,7 +43,7 @@ const getBaseProductVariant = (product: Product): ProductVariant => {
   };
 };
 
-async function addB2BPack(
+async function addB2BQuantity(
   variantId: string,
   quantity: number,
 ): Promise<Cart | null> {
@@ -54,7 +54,6 @@ async function addB2BPack(
       variantId,
       quantity,
       source: "producer",
-      enforcePack: true,
     }),
   });
 
@@ -121,7 +120,7 @@ export function AddToCartButton({
         if (resolvedVariant) {
           startTransition(async () => {
             const cart = isB2B
-              ? await addB2BPack(resolvedVariant.id, BOTTLE_PACK_SIZE)
+              ? await addB2BQuantity(resolvedVariant.id, B2B_MIN_LINE_BOTTLES)
               : await addItem(resolvedVariant, product);
             const { list_price, unit_price } = pricesFromCartAfterAdd(
               cart,
@@ -133,7 +132,7 @@ export function AddToCartButton({
               product.title,
               list_price,
               {
-                quantity: isB2B ? BOTTLE_PACK_SIZE : 1,
+                quantity: isB2B ? B2B_MIN_LINE_BOTTLES : 1,
                 source: isB2B ? "b2b" : "product",
                 list_price,
                 unit_price,

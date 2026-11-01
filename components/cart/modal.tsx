@@ -10,7 +10,7 @@ import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { Loader } from "../ui/loader";
 import { CartItemCard } from "./cart-item";
-import { priceExclVat } from "@/lib/shopify/utils";
+import { cartLineB2bLineTotalExclVat } from "@/lib/b2b/inquiry-price-math";
 import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
 import { formatCartLinePrice } from "@/lib/shopping-context/format";
 import { useTranslations } from "@/lib/hooks/use-translations";
@@ -27,8 +27,7 @@ import {
   B2B_PRODUCER_ORDERS_ENABLED,
   isDirtywineInquiryMode,
 } from "@/lib/b2b/flags";
-import { b2bInquiryLoginHref, B2B_INQUIRY_PATH } from "@/lib/b2b/inquiry-login";
-import { useUserRole } from "@/lib/hooks/use-user-role";
+import { B2B_INQUIRY_PATH } from "@/lib/b2b/inquiry-login";
 import { homeDeliveryGuidePath } from "@/lib/guides/home-delivery-guide";
 import { shouldAutoOpenCartOnQuantityChange } from "@/lib/cart/should-auto-open-cart";
 
@@ -57,9 +56,20 @@ const CartItems = ({
 }) => {
   const { cart } = useCart();
   const { t, context } = useTranslations();
+  const isDirtywineSite = useB2BModeServerHint();
   const showExclVat = useB2BPriceMode();
   const totalAmount = cart ? parseFloat(cart.cost.totalAmount.amount) : 0;
-  const displayTotal = showExclVat ? priceExclVat(totalAmount) : totalAmount;
+  const displayTotal = showExclVat
+    ? (cart?.lines ?? []).reduce(
+        (sum, line) =>
+          sum +
+          cartLineB2bLineTotalExclVat(
+            line.merchandise.product ?? {},
+            line.quantity,
+          ),
+        0,
+      )
+    : totalAmount;
   const [pactPointsBalance, setPactPointsBalance] = useState<number | null>(null);
   const hasBoostedProducerInCart = Boolean(
     cart?.lines?.some(
@@ -99,13 +109,15 @@ const CartItems = ({
 
   return (
     <div className="flex flex-col justify-between h-full overflow-hidden">
-      {/* Cart Validation Header */}
-      <CartValidationHeader
-        validations={validations}
-        isValidating={isValidating}
-        requiredQuantity={requiredQuantity}
-        neededTotal={neededTotal}
-      />
+      {/* PACT only: Dirty Wine has no bottle minimum / pack rule. */}
+      {!showExclVat ? (
+        <CartValidationHeader
+          validations={validations}
+          isValidating={isValidating}
+          requiredQuantity={requiredQuantity}
+          neededTotal={neededTotal}
+        />
+      ) : null}
 
       <CartContainer className="flex justify-between px-2 text-sm text-muted-foreground">
         <span>{t("cart.products")}</span>
@@ -154,17 +166,23 @@ const CartItems = ({
           ) : null}
           <div className="flex justify-between items-center pb-1 mb-1 border-b border-muted-foreground/20">
             <p>{t("cart.shipping")}</p>
-            <p className="text-right">{t("cart.shippingAtCheckout")}</p>
+            <p className="text-right">
+              {isDirtywineSite
+                ? t("cart.shippingIncludedInPrice")
+                : t("cart.shippingAtCheckout")}
+            </p>
           </div>
-          <p className="mb-3 text-xs">
-            <Link
-              href={homeDeliveryGuidePath(context.locale)}
-              onClick={closeCart}
-              className="text-muted-foreground underline underline-offset-4 hover:text-foreground"
-            >
-              {t("cart.homeDeliveryGuideLink")}
-            </Link>
-          </p>
+          {!isDirtywineSite ? (
+            <p className="mb-3 text-xs">
+              <Link
+                href={homeDeliveryGuidePath(context.locale)}
+                onClick={closeCart}
+                className="text-muted-foreground underline underline-offset-4 hover:text-foreground"
+              >
+                {t("cart.homeDeliveryGuideLink")}
+              </Link>
+            </p>
+          ) : null}
           <div className="flex justify-between items-center pt-1 pb-1 mb-1.5 text-lg font-semibold">
             <p>{t("cart.total")}</p>
             <div className="text-right">
@@ -335,12 +353,11 @@ export default function CartModal() {
     if (!cart || cart.lines.length === 0) {
       return (
         <div className="flex flex-col justify-between h-full overflow-hidden">
-          {/* Always show validation header for educational purposes */}
-          <CartValidationHeader
-            validations={[]}
-            isValidating={false}
-          />
-          
+          {/* PACT only: Dirty Wine has no bottle minimum / pack rule. */}
+          {!isDirtywineSite ? (
+            <CartValidationHeader validations={[]} isValidating={false} />
+          ) : null}
+
           <CartContainer className="flex w-full">
             <Link
               href={paths.shop}
@@ -494,14 +511,8 @@ function CheckoutButton({
   const { pending } = useFormStatus();
   const { cart, isPending } = useCart();
   const router = useRouter();
-  const { role, loading: authLoading } = useUserRole();
-  const needsInquiryLogin = inquiryMode && !authLoading && !role;
 
-  const checkoutUrl = inquiryMode
-    ? needsInquiryLogin
-      ? b2bInquiryLoginHref(B2B_INQUIRY_PATH)
-      : B2B_INQUIRY_PATH
-    : cart?.checkoutUrl;
+  const checkoutUrl = inquiryMode ? B2B_INQUIRY_PATH : cart?.checkoutUrl;
 
   // Check if there are validation errors
   const hasValidationErrors = validations.some((v) => !v.isValid);
@@ -589,9 +600,7 @@ function CheckoutButton({
                         ),
                       })
                     : inquiryMode
-                      ? needsInquiryLogin
-                        ? t("cart.loginToSendInquiry")
-                        : t("cart.sendInquiry")
+                      ? t("cart.sendInquiry")
                       : t("cart.proceedToCheckout")}
               </span>
               <ArrowRight className="size-6 shrink-0" />

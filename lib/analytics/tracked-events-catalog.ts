@@ -235,7 +235,7 @@ export const TRACKED_USER_EVENTS_CATALOG: TrackedEventCatalogEntry[] = [
     eventType: "cart_validation_passed",
     category: "validation",
     description:
-      "Cart passed minimum rules (B2C: ≥6 bottles total; B2B: pack lines).",
+      "Cart passed minimum rules (B2C: ≥6 bottles total; B2B: qty ≥1 per line).",
     sources: ["client"],
   },
   {

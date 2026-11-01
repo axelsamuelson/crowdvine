@@ -7,7 +7,6 @@ import { useCart } from "./cart-context";
 import { useRef, useCallback, useEffect } from "react";
 import { useTranslations } from "@/lib/hooks/use-translations";
 import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
-import { BOTTLE_PACK_SIZE } from "@/lib/cart/bottle-pack";
 
 function SubmitButton({
   type,
@@ -42,20 +41,6 @@ function SubmitButton({
   );
 }
 
-function nextB2BPackQuantity(current: number, type: "plus" | "minus"): number {
-  if (type === "plus") {
-    if (current % BOTTLE_PACK_SIZE === 0) {
-      return current + BOTTLE_PACK_SIZE;
-    }
-    return Math.ceil(current / BOTTLE_PACK_SIZE) * BOTTLE_PACK_SIZE;
-  }
-
-  if (current % BOTTLE_PACK_SIZE === 0) {
-    return Math.max(0, current - BOTTLE_PACK_SIZE);
-  }
-  return Math.floor(current / BOTTLE_PACK_SIZE) * BOTTLE_PACK_SIZE;
-}
-
 export function EditItemQuantityButton({
   item,
   type,
@@ -79,13 +64,12 @@ export function EditItemQuantityButton({
   }, [item.quantity]);
 
   const handleClick = useCallback(() => {
-    const nextQuantity = isB2B
-      ? nextB2BPackQuantity(pendingQuantityRef.current, type)
-      : type === "plus"
+    // Dirty Wine and PACT both step by 1; B2B allows deleting at 0.
+    const nextQuantity =
+      type === "plus"
         ? pendingQuantityRef.current + 1
         : pendingQuantityRef.current - 1;
 
-    // Don't allow quantity below 1 (0 removes the line on B2B pack step-down)
     if (nextQuantity < 0) return;
     if (!isB2B && nextQuantity < 1) return;
 
