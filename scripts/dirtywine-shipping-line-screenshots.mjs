@@ -1,7 +1,7 @@
 /**
  * Capture Dirty Wine cart at 390 / 1440 — closed (badge) and open drawer —
  * after shipping-line copy change. Expects non-zero B2B price and
- * "Frakt … ingår i priset (leverans i Stockholm ingår)".
+ * "Frakt … Ingår i priset (leverans i Stockholm)".
  *
  * Prerequisites: Next on :3000, /etc/hosts dirtywine.se → 127.0.0.1,
  * DIRTYWINE_CHECKOUT_MODE=inquiry.
@@ -23,7 +23,7 @@ const CHROME =
   process.env.CHROME_PATH ||
   "/home/ubuntu/.cache/puppeteer/chrome/linux-143.0.7499.192/chrome-linux64/chrome";
 const WIDTHS = [390, 1440];
-const SHIPPING_SNIPPET = "ingår i priset (leverans i Stockholm ingår)";
+const SHIPPING_SNIPPET = "Ingår i priset (leverans i Stockholm)";
 
 const browser = await puppeteer.launch({
   headless: true,

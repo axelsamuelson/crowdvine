@@ -1,7 +1,7 @@
 # Dirty Wine — cart shipping line copy
 
 On `dirtywine.se` (B2B / restaurant mode), the cart drawer shipping line reads
-**Frakt – ingår i priset (leverans i Stockholm ingår)** instead of
+**Frakt – Ingår i priset (leverans i Stockholm)** instead of
 **Frakt – Beräknas i kassan**. `pactwines.com` keeps the checkout-calculated copy.
 
 Inquiry page has no separate shipping line (unchanged).
@@ -18,7 +18,7 @@ Next of that commit with Host override — same approach as #142 design-review.
 | Cart closed (badge / Varukorg (1)) | `cart-closed-390.png` | `cart-closed-1440.png` |
 | Cart drawer open (≥1 bottle) | `cart-drawer-390.png` | `cart-drawer-1440.png` |
 
-Verified: line price / total **132 kr** (not 0 kr); shipping copy **ingår i priset (leverans i Stockholm ingår)**.
+Verified: line price / total **132 kr** (not 0 kr); shipping copy **Ingår i priset (leverans i Stockholm)**.
 
 ## Capture
 
