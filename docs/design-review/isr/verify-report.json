@@ -1,0 +1,464 @@
+{
+  "previewBase": "https://crowdvine-7wei8snmu-avesamuelson-7603s-projects.vercel.app",
+  "checks": [
+    {
+      "name": "pact/home@390: PACT branding",
+      "ok": true,
+      "detail": {
+        "title": "PACT Wines — Köp naturvin online direkt från Languedoc",
+        "host": "crowdvine-7wei8snmu-avesamuelson-7603s-projects.vercel.app"
+      }
+    },
+    {
+      "name": "pact/home@390: non-zero prices",
+      "ok": true,
+      "detail": {
+        "sample": [
+          "174 kr",
+          "174 kr",
+          "174 kr",
+          "209 kr",
+          "174 kr"
+        ]
+      }
+    },
+    {
+      "name": "pact/home@390: login/profile chrome present",
+      "ok": true,
+      "detail": {
+        "hasLogin": true,
+        "hasHeader": true,
+        "cartLabel": "Öppna varukorg Varukorg (0)"
+      }
+    },
+    {
+      "name": "pact/home@390: anonymous cart chrome present",
+      "ok": true,
+      "detail": "Öppna varukorg Varukorg (0)"
+    },
+    {
+      "name": "pact/plp@390: PACT branding",
+      "ok": true,
+      "detail": {
+        "title": "Naturvin: köp naturvin online | PACT Wines",
+        "host": "crowdvine-7wei8snmu-avesamuelson-7603s-projects.vercel.app"
+      }
+    },
+    {
+      "name": "pact/plp@390: non-zero prices",
+      "ok": true,
+      "detail": {
+        "sample": [
+          "174 KR",
+          "174 kr",
+          "157 KR",
+          "157 kr",
+          "209 KR",
+          "209 kr",
+          "174 KR",
+          "174 kr"
+        ]
+      }
+    },
+    {
+      "name": "pact/pdp@390: PACT branding",
+      "ok": true,
+      "detail": {
+        "title": "L 2023 — Ugo Lestelle | PACT Wines",
+        "host": "crowdvine-7wei8snmu-avesamuelson-7603s-projects.vercel.app"
+      }
+    },
+    {
+      "name": "pact/pdp@390: non-zero prices",
+      "ok": true,
+      "detail": {
+        "sample": [
+          "175 kr",
+          "206 KR",
+          "209 KR",
+          "174 KR",
+          "174 KR",
+          "174 KR",
+          "174 KR",
+          "157 KR"
+        ]
+      }
+    },
+    {
+      "name": "pact/cart-api@390",
+      "ok": true,
+      "detail": {
+        "ok": true,
+        "status": 200,
+        "total": 1,
+        "amount": "157",
+        "b2bPriceExclVat": null,
+        "title": "Résiste 2025"
+      }
+    },
+    {
+      "name": "pact/open-cart@390: non-zero price",
+      "ok": true,
+      "detail": {
+        "b2bPriceExclVat": null,
+        "sample": [
+          "157 kr",
+          "157 kr",
+          "175 kr",
+          "206 KR",
+          "209 KR",
+          "174 KR",
+          "174 KR",
+          "174 KR"
+        ],
+        "snippet": "MENY (1) Butik Varukorg Stäng 5 flaskor till Minst 6 flaskor – du kan blanda Varför? Minst 6 flaskor – du kan blanda 1 av 6 flaskor 5 flaskor till Blanda valfria viner och producenter – minst 6 flaskor totalt Produkter 1 artiklar Red Résiste 2025 La Marotte Lager 157 kr 1 Ta bort"
+      }
+    },
+    {
+      "name": "pact/home@1440: PACT branding",
+      "ok": true,
+      "detail": {
+        "title": "PACT Wines — Köp naturvin online direkt från Languedoc",
+        "host": "crowdvine-7wei8snmu-avesamuelson-7603s-projects.vercel.app"
+      }
+    },
+    {
+      "name": "pact/home@1440: non-zero prices",
+      "ok": true,
+      "detail": {
+        "sample": [
+          "174 kr",
+          "174 kr",
+          "174 kr",
+          "209 kr",
+          "174 kr"
+        ]
+      }
+    },
+    {
+      "name": "pact/home@1440: login/profile chrome present",
+      "ok": true,
+      "detail": {
+        "hasLogin": true,
+        "hasHeader": true,
+        "cartLabel": "Öppna varukorg Varukorg (0)"
+      }
+    },
+    {
+      "name": "pact/home@1440: anonymous cart chrome present",
+      "ok": true,
+      "detail": "Öppna varukorg Varukorg (0)"
+    },
+    {
+      "name": "pact/plp@1440: PACT branding",
+      "ok": true,
+      "detail": {
+        "title": "Naturvin: köp naturvin online | PACT Wines",
+        "host": "crowdvine-7wei8snmu-avesamuelson-7603s-projects.vercel.app"
+      }
+    },
+    {
+      "name": "pact/plp@1440: non-zero prices",
+      "ok": true,
+      "detail": {
+        "sample": [
+          "174 KR",
+          "174 kr",
+          "157 KR",
+          "157 kr",
+          "209 KR",
+          "209 kr",
+          "174 KR",
+          "174 kr"
+        ]
+      }
+    },
+    {
+      "name": "pact/pdp@1440: PACT branding",
+      "ok": true,
+      "detail": {
+        "title": "L 2023 — Ugo Lestelle | PACT Wines",
+        "host": "crowdvine-7wei8snmu-avesamuelson-7603s-projects.vercel.app"
+      }
+    },
+    {
+      "name": "pact/pdp@1440: non-zero prices",
+      "ok": true,
+      "detail": {
+        "sample": [
+          "175 kr",
+          "206 KR",
+          "206 kr",
+          "209 KR",
+          "209 kr",
+          "174 KR",
+          "174 kr",
+          "174 KR"
+        ]
+      }
+    },
+    {
+      "name": "pact/cart-api@1440",
+      "ok": true,
+      "detail": {
+        "ok": true,
+        "status": 200,
+        "total": 1,
+        "amount": "157",
+        "b2bPriceExclVat": null,
+        "title": "Résiste 2025"
+      }
+    },
+    {
+      "name": "pact/open-cart@1440: non-zero price",
+      "ok": true,
+      "detail": {
+        "b2bPriceExclVat": null,
+        "sample": [
+          "157 kr",
+          "157 kr",
+          "175 kr",
+          "206 KR",
+          "206 kr",
+          "209 KR",
+          "209 kr",
+          "174 KR"
+        ],
+        "snippet": "HEM ALLA VINER GUIDER Profil VARUKORG (1) Butik Varukorg Stäng 5 flaskor till Minst 6 flaskor – du kan blanda Varför? Minst 6 flaskor – du kan blanda 1 av 6 flaskor 5 flaskor till Blanda valfria viner och producenter – minst 6 flaskor totalt Produkter 1 artiklar Red Résiste 2025 "
+      }
+    },
+    {
+      "name": "dirtywine/home@390: Dirty Wine branding",
+      "ok": true,
+      "detail": {
+        "host": "dirtywine.se",
+        "title": "PACT Wines — Köp naturvin online direkt från Languedoc",
+        "text": "Meny VIN UTAN MELLANHÄNDER Alla viner SENASTE SLÄPPET L 2023 Ugo Lestelle Grenache. Red 139 kr exkl. moms Lägg i varukorg Les Étoiles Filantes 2023 Peira Levada 139 kr exkl. moms Kairos 2024 Mas Des Mesures 139 kr exkl. moms Fractale 2022 Mas Des Mesures 167 kr exkl. moms Septentrion 2023 Mas Des Mesures 139 kr exkl. moms Navigation Hem Butik Juridik Integritetspolicy Producenter och konsumenter tillsammans hello@dirtywine.se Instagram Hjälp © 2026 Alla rättigheter förbehållna"
+      }
+    },
+    {
+      "name": "dirtywine/home@390: non-zero prices",
+      "ok": true,
+      "detail": {
+        "sample": [
+          "139 kr",
+          "139 kr",
+          "139 kr",
+          "167 kr",
+          "139 kr"
+        ]
+      }
+    },
+    {
+      "name": "dirtywine/home@390: header chrome present",
+      "ok": true,
+      "detail": {
+        "hasLogin": false,
+        "hasHeader": true,
+        "cartLabel": "Lägg i varukorg Lägg i varukorg"
+      }
+    },
+    {
+      "name": "dirtywine/home@390: anonymous cart chrome present",
+      "ok": true,
+      "detail": "Lägg i varukorg Lägg i varukorg"
+    },
+    {
+      "name": "dirtywine/plp@390: Dirty Wine branding",
+      "ok": true,
+      "detail": {
+        "host": "dirtywine.se",
+        "title": "Naturvin: köp naturvin online | PACT Wines",
+        "text": "Meny Naturvin Här hittar du alla våra naturviner, från rött och vitt till orange och rosé. Du reserverar flaskor online, och vinet levereras till Stockholm när pallen är full. L 2023 Ugo Lestelle Slut i lager 139 KR EXKL. MOMS Skickas direkt från producenten i låda Rött 139 kr exkl. moms RÉSISTE 2025 La Marotte Slut i lager 125 KR EXKL. MOMS Skickas direkt från producenten i låda Rött 125 kr exkl. moms DOUCE BRISE 2023 La Robina Slut i lager 167 KR EXKL. MOMS Skickas direkt från producenten i låda Orange 167 kr exkl. moms UP TEMPO 2024 David Behar Slut i lager 139 KR EXKL. MOMS Skickas direkt från producenten i låda Rött 139 kr exkl. moms FRACTALE 2022 Mas Des Mesures Slut i lager 167 KR EXKL. MOMS Skickas direkt från producenten i låda Sparkling 167 kr exkl. moms FANTASQUE DE FANTINE 2024"
+      }
+    },
+    {
+      "name": "dirtywine/plp@390: non-zero prices",
+      "ok": true,
+      "detail": {
+        "sample": [
+          "139 KR",
+          "139 kr",
+          "125 KR",
+          "125 kr",
+          "167 KR",
+          "167 kr",
+          "139 KR",
+          "139 kr"
+        ]
+      }
+    },
+    {
+      "name": "dirtywine/pdp@390: Dirty Wine branding",
+      "ok": true,
+      "detail": {
+        "host": "dirtywine.se",
+        "title": "L 2023 — Ugo Lestelle | PACT Wines",
+        "text": "Meny Alla viner Ugo Lestelle viner L 2023 Slut i lager L 2023 Ugo Lestelle 139 kr exkl. moms L är Ugo Lestelles rena Grenache från skifferparceller i Saint-Chinian, vinifierad med kolsyremaceration. Ofiltrerad och oklarad, buteljerad med bara en gnutta svavel. Etiketten är bara ett L i en ram. Skickas direkt från producenten i låda Lager 1 Lägg 1 i varukorg (Lager) FÄRG Rött PRODUCENT Ugo Lestelle DRUVSORT Grenache APPELLATION Vin de France ODLING & TILLSATSER Ekologisk · Innehåller sulfiter, högst 2 g/hl vid buteljering. ALKOHOL 13 % JORDTYP Skiffer LAGRING / ELEVAGE PRODUCENTENS NOTERINGAR PRISUPPDELNING Se alla röda naturviner → Île-de-France Centre-Loire Bourgogne Normandie Hauts-de-France Grand Est Pays de la Loire Bretagne Nouvelle-Aquitaine Occitanie Rhône-Alpes Provence Corse Åters"
+      }
+    },
+    {
+      "name": "dirtywine/pdp@390: non-zero prices",
+      "ok": true,
+      "detail": {
+        "sample": [
+          "139 kr",
+          "164 KR",
+          "167 KR",
+          "139 KR",
+          "139 KR",
+          "139 KR",
+          "139 KR",
+          "125 KR"
+        ]
+      }
+    },
+    {
+      "name": "dirtywine/cart-api@390",
+      "ok": true,
+      "detail": {
+        "ok": true,
+        "status": 200,
+        "total": 1,
+        "amount": "157",
+        "b2bPriceExclVat": 133,
+        "title": "Résiste 2025"
+      }
+    },
+    {
+      "name": "dirtywine/open-cart@390: non-zero price",
+      "ok": true,
+      "detail": {
+        "b2bPriceExclVat": 133,
+        "sample": [
+          "133 kr",
+          "133 kr",
+          "139 kr",
+          "164 KR",
+          "167 KR",
+          "139 KR",
+          "139 KR",
+          "139 KR"
+        ],
+        "snippet": "Meny (1) Butik Varukorg Stäng Produkter 1 artiklar Red Résiste 2025 La Marotte Lager 133 kr exkl. moms 1 Ta bort Frakt Beräknas i kassan Totalt 133 kr exkl. moms Lägg till 5 flaskor till för att gå till kassan Alla viner Ugo Lestelle viner L 2023 Slut i lager L 2023 Ugo Lestelle "
+      }
+    },
+    {
+      "name": "dirtywine/home@1440: Dirty Wine branding",
+      "ok": true,
+      "detail": {
+        "host": "dirtywine.se",
+        "title": "PACT Wines — Köp naturvin online direkt från Languedoc",
+        "text": "Hem Alla viner VIN UTAN MELLANHÄNDER Alla viner vin på dina villkor import priser på både vin och frakt för privatpersoner Populära producenter Château del Ranq Clos Fantine David Behar Domaine de la Cessière Domaine Les Serrals Grain D’L Gregory White Hors Ciel Hors Saison Julien Peyras SENASTE SLÄPPET L 2023 Ugo Lestelle Grenache. Red 139 kr exkl. moms Lägg i varukorg Les Étoiles Filantes 2023 Peira Levada 139 kr exkl. moms Kairos 2024 Mas Des Mesures 139 kr exkl. moms Fractale 2022 Mas Des Mesures 167 kr exkl. moms Septentrion 2023 Mas Des Mesures 139 kr exkl. moms Navigation Hem Butik Juridik Integritetspolicy hello@dirtywine.se Instagram Hjälp © 2026 Alla rättigheter förbehållna"
+      }
+    },
+    {
+      "name": "dirtywine/home@1440: non-zero prices",
+      "ok": true,
+      "detail": {
+        "sample": [
+          "139 kr",
+          "139 kr",
+          "139 kr",
+          "167 kr",
+          "139 kr"
+        ]
+      }
+    },
+    {
+      "name": "dirtywine/home@1440: header chrome present",
+      "ok": true,
+      "detail": {
+        "hasLogin": false,
+        "hasHeader": true,
+        "cartLabel": "Lägg i varukorg Lägg i varukorg"
+      }
+    },
+    {
+      "name": "dirtywine/home@1440: anonymous cart chrome present",
+      "ok": true,
+      "detail": "Lägg i varukorg Lägg i varukorg"
+    },
+    {
+      "name": "dirtywine/plp@1440: Dirty Wine branding",
+      "ok": true,
+      "detail": {
+        "host": "dirtywine.se",
+        "title": "Naturvin: köp naturvin online | PACT Wines",
+        "text": "Hem Alla viner Filter Rensa Färg Rött Vitt Orange Odling Visa alla Ekologisk Biodynamisk Druvor Visa alla Producenter Visa alla Köp hos Visa alla Naturvin Här hittar du alla våra naturviner, från rött och vitt till orange och rosé. Du reserverar flaskor online, och vinet levereras till Stockholm när pallen är full. Alla viner 80 resultat I lager L 2023 Ugo Lestelle Slut i lager 139 KR EXKL. MOMS L 2023 Ugo Lestelle Rött Slut i lager 139 kr exkl. moms Visa produkt RÉSISTE 2025 La Marotte Slut i lager 125 KR EXKL. MOMS Résiste 2025 La Marotte Rött Slut i lager 125 kr exkl. moms Visa produkt DOUCE BRISE 2023 La Robina Slut i lager 167 KR EXKL. MOMS Douce Brise 2023 La Robina Orange Slut i lager 167 kr exkl. moms Visa produkt UP TEMPO 2024 David Behar Slut i lager 139 KR EXKL. MOMS Up Tempo 20"
+      }
+    },
+    {
+      "name": "dirtywine/plp@1440: non-zero prices",
+      "ok": true,
+      "detail": {
+        "sample": [
+          "139 KR",
+          "139 kr",
+          "125 KR",
+          "125 kr",
+          "167 KR",
+          "167 kr",
+          "139 KR",
+          "139 kr"
+        ]
+      }
+    },
+    {
+      "name": "dirtywine/pdp@1440: Dirty Wine branding",
+      "ok": true,
+      "detail": {
+        "host": "dirtywine.se",
+        "title": "L 2023 — Ugo Lestelle | PACT Wines",
+        "text": "Hem Alla viner Alla viner Ugo Lestelle viner L 2023 Slut i lager L 2023 Ugo Lestelle 139 kr exkl. moms L är Ugo Lestelles rena Grenache från skifferparceller i Saint-Chinian, vinifierad med kolsyremaceration. Ofiltrerad och oklarad, buteljerad med bara en gnutta svavel. Etiketten är bara ett L i en ram. Skickas direkt från producenten i låda Lager 1 Lägg 1 i varukorg (Lager) FÄRG Rött PRODUCENT Ugo Lestelle DRUVSORT Grenache APPELLATION Vin de France ODLING & TILLSATSER Ekologisk · Innehåller sulfiter, högst 2 g/hl vid buteljering. ALKOHOL 13 % JORDTYP Skiffer LAGRING / ELEVAGE PRODUCENTENS NOTERINGAR PRISUPPDELNING Se alla röda naturviner → Île-de-France Centre-Loire Bourgogne Normandie Hauts-de-France Grand Est Pays de la Loire Bretagne Nouvelle-Aquitaine Occitanie Rhône-Alpes Provence C"
+      }
+    },
+    {
+      "name": "dirtywine/pdp@1440: non-zero prices",
+      "ok": true,
+      "detail": {
+        "sample": [
+          "139 kr",
+          "164 KR",
+          "164 kr",
+          "167 KR",
+          "167 kr",
+          "139 KR",
+          "139 kr",
+          "139 KR"
+        ]
+      }
+    },
+    {
+      "name": "dirtywine/cart-api@1440",
+      "ok": true,
+      "detail": {
+        "ok": true,
+        "status": 200,
+        "total": 1,
+        "amount": "157",
+        "b2bPriceExclVat": 133,
+        "title": "Résiste 2025"
+      }
+    },
+    {
+      "name": "dirtywine/open-cart@1440: non-zero price",
+      "ok": true,
+      "detail": {
+        "b2bPriceExclVat": 133,
+        "sample": [
+          "133 kr",
+          "133 kr",
+          "139 kr",
+          "164 KR",
+          "164 kr",
+          "167 KR",
+          "167 kr",
+          "139 KR"
+        ],
+        "snippet": "Hem Alla viner Varukorg (1) Butik Varukorg Stäng Produkter 1 artiklar Red Résiste 2025 La Marotte Lager 133 kr exkl. moms 1 Ta bort Frakt Beräknas i kassan Totalt 133 kr exkl. moms Lägg till 5 flaskor till för att gå till kassan Alla viner Ugo Lestelle viner L 2023 Slut i lager L"
+      }
+    }
+  ],
+  "failures": []
+}

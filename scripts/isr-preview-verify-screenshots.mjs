@@ -299,7 +299,10 @@ async function runHostPass({
         await assertBranding(page, `${brand}/${p.key}@${width}`, expectDirty);
         await assertPrices(page, `${brand}/${p.key}@${width}`);
         if (p.key === "home") {
-          await assertLoggedOutChrome(page, `${brand}/home@${width}`);
+          await assertLoggedOutChrome(page, `${brand}/home@${width}`, {
+            // Dirty Wine home is inquiry-first; profile/login copy is not always in first paint.
+            requireLoginCopy: !expectDirty,
+          });
         }
         await shot(page, `${brand}-${p.key}-${width}`);
       }
@@ -309,12 +312,14 @@ async function runHostPass({
       logCheck(`${brand}/cart-api@${width}`, Boolean(added?.ok), added);
       await openCart(page);
       const cartText = await pageText(page);
-      const cartHasPrice =
-        /\b([1-9]\d{1,3})\s*kr\b/i.test(cartText) ||
-        (expectDirty &&
-          typeof added?.b2bPriceExclVat === "number" &&
-          added.b2bPriceExclVat > 0);
-      logCheck(`${brand}/open-cart@${width}: non-zero price`, cartHasPrice, {
+      const linePriceOk = expectDirty
+        ? typeof added?.b2bPriceExclVat === "number" &&
+          added.b2bPriceExclVat > 0 &&
+          !/Lager\s*0\s*kr/i.test(cartText) &&
+          !/Totalt\s*0\s*kr/i.test(cartText)
+        : /\b([1-9]\d{1,3})\s*kr\b/i.test(cartText) &&
+          !/Totalt\s*0\s*kr/i.test(cartText);
+      logCheck(`${brand}/open-cart@${width}: non-zero price`, linePriceOk, {
         b2bPriceExclVat: added?.b2bPriceExclVat,
         sample: cartText.match(/\b\d+\s*kr\b/gi)?.slice(0, 8),
         snippet: cartText.slice(0, 280),
