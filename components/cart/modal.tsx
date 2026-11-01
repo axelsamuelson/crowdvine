@@ -166,7 +166,11 @@ const CartItems = ({
           ) : null}
           <div className="flex justify-between items-center pb-1 mb-1 border-b border-muted-foreground/20">
             <p>{t("cart.shipping")}</p>
-            <p className="text-right">{t("cart.shippingAtCheckout")}</p>
+            <p className="text-right">
+              {isDirtywineSite
+                ? t("cart.shippingIncludedInPrice")
+                : t("cart.shippingAtCheckout")}
+            </p>
           </div>
           {!isDirtywineSite ? (
             <p className="mb-3 text-xs">
