@@ -17,7 +17,7 @@ function cellValue(
  */
 export function LabelComparisonTable() {
   return (
-    <div>
+    <div data-label-comparison>
       {/* Mobile: one card per label */}
       <div className="space-y-4 sm:hidden">
         {LABEL_COMPARISON_COLUMNS.map((column) => (
@@ -42,14 +42,14 @@ export function LabelComparisonTable() {
         ))}
       </div>
 
-      {/* Desktop: table */}
-      <div className="-mx-6 hidden overflow-x-auto px-6 sm:block">
-        <table className="w-full min-w-[52rem] border-collapse text-left text-sm leading-snug text-foreground/80">
+      {/* Desktop: table (breaks out of the article measure for full columns) */}
+      <div className="hidden overflow-x-auto sm:block">
+        <table className="w-full border-collapse text-left text-[13px] leading-snug text-foreground/80 lg:text-sm">
           <thead>
             <tr className="border-b border-border">
               <th
                 scope="col"
-                className="sticky left-0 bg-background py-3 pr-3 text-xs font-medium uppercase tracking-wide text-muted-foreground"
+                className="w-[7.5rem] py-3 pr-2 text-xs font-medium uppercase tracking-wide text-muted-foreground"
               >
                 <span className="sr-only">Attribute</span>
               </th>
@@ -57,7 +57,7 @@ export function LabelComparisonTable() {
                 <th
                   key={column.id}
                   scope="col"
-                  className="px-2 py-3 align-bottom text-sm font-semibold tracking-tight text-foreground"
+                  className="px-1.5 py-3 align-bottom font-semibold tracking-tight text-foreground"
                 >
                   {column.label}
                 </th>
@@ -69,12 +69,12 @@ export function LabelComparisonTable() {
               <tr key={row.key} className="border-b border-border/70">
                 <th
                   scope="row"
-                  className="sticky left-0 bg-background py-3 pr-3 text-xs font-medium uppercase tracking-wide text-muted-foreground"
+                  className="py-3 pr-2 text-xs font-medium uppercase tracking-wide text-muted-foreground"
                 >
                   {row.label}
                 </th>
                 {LABEL_COMPARISON_COLUMNS.map((column) => (
-                  <td key={column.id} className="px-2 py-3 align-top">
+                  <td key={column.id} className="px-1.5 py-3 align-top">
                     {cellValue(column, row.key)}
                   </td>
                 ))}

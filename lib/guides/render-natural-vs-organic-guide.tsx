@@ -322,7 +322,7 @@ export async function renderNaturalVsOrganicGuidePage() {
               </div>
             </section>
 
-            <section>
+            <section className="min-w-0 sm:-mx-6 sm:max-w-none md:-mx-12 lg:-mx-24">
               <h2 className={ARTICLE_GUIDE_H2_CLASS}>Comparison table</h2>
               <div className={ARTICLE_GUIDE_BODY_CLASS}>
                 <LabelComparisonTable />
