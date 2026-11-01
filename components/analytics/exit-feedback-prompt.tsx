@@ -37,9 +37,6 @@ import {
 
 type Phase = "feedback" | "thanks";
 
-const EXIT_FEEDBACK_HEADING =
-  "Vad hindrade dig från att reservera i dag?";
-
 function isCoarsePointer(): boolean {
   if (typeof window === "undefined") return false;
   return window.matchMedia("(pointer: coarse)").matches;
@@ -315,8 +312,6 @@ export function ExitFeedbackPrompt() {
 
   if (isB2B || !open) return null;
 
-  const title =
-    phase === "feedback" ? EXIT_FEEDBACK_HEADING : EXIT_FEEDBACK_THANKS_MESSAGE;
   const canSubmit = Boolean(reason) && !submitting;
 
   return (
@@ -337,9 +332,18 @@ export function ExitFeedbackPrompt() {
           <div className="min-w-0 flex-1 pr-2">
             <p
               id="exit-prompt-title"
-              className="text-[16px] font-semibold leading-snug text-foreground sm:text-[15px]"
+              data-exit-prompt-title=""
+              className="text-balance text-[16px] font-semibold leading-snug text-foreground sm:text-[15px]"
+              style={{ textWrap: "balance" }}
             >
-              {title}
+              {phase === "feedback" ? (
+                <>
+                  Vad hindrade dig från att reservera{" "}
+                  <span className="whitespace-nowrap">i{"\u00A0"}dag?</span>
+                </>
+              ) : (
+                EXIT_FEEDBACK_THANKS_MESSAGE
+              )}
             </p>
           </div>
           <button
@@ -349,7 +353,7 @@ export function ExitFeedbackPrompt() {
                 ? () => void finishFeedback(false)
                 : closeAll
             }
-            className="inline-flex h-11 w-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center border-0 bg-transparent p-0 text-foreground shadow-none transition-opacity hover:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="inline-flex h-11 w-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center border-0 bg-transparent p-0 text-foreground shadow-none hover:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             aria-label="Stäng"
             data-exit-prompt-close=""
           >
@@ -365,6 +369,7 @@ export function ExitFeedbackPrompt() {
                 {EXIT_FEEDBACK_REASON_OPTIONS.map((opt) => (
                   <label
                     key={opt.value}
+                    data-exit-prompt-option=""
                     className="flex min-h-11 cursor-pointer items-center gap-3 rounded-md py-2 text-[15px] text-foreground sm:text-[14px]"
                   >
                     <input
@@ -400,6 +405,7 @@ export function ExitFeedbackPrompt() {
                   <p
                     id="exit-feedback-privacy-helper"
                     className="mt-1.5 text-[12px] leading-snug text-[#5F5F5F]"
+                    style={{ fontSize: "12px", color: "#5F5F5F" }}
                     data-exit-prompt-privacy-helper=""
                   >
                     {EXIT_FEEDBACK_PRIVACY_HELPER}
@@ -409,9 +415,19 @@ export function ExitFeedbackPrompt() {
 
               <button
                 type="button"
-                onClick={() => void finishFeedback(true)}
+                onClick={() => {
+                  if (!canSubmit) return;
+                  void finishFeedback(true);
+                }}
                 disabled={!canSubmit}
-                className="h-11 min-h-[44px] w-full rounded-[6px] bg-[#0A0A0A] text-[15px] font-medium text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-30 sm:text-[14px]"
+                aria-disabled={!canSubmit}
+                className="h-11 min-h-[44px] w-full cursor-pointer rounded-[6px] border-0 text-[15px] font-medium sm:text-[14px] disabled:cursor-not-allowed"
+                style={{
+                  backgroundColor: "#0A0A0A",
+                  color: "#FFFFFF",
+                  // Explicit opacity — never inherit transition/hover opacity.
+                  opacity: canSubmit ? 1 : 0.3,
+                }}
                 data-exit-prompt-submit=""
               >
                 Skicka
