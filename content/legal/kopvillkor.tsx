@@ -192,18 +192,14 @@ export default function KopvillkorContent() {
       <LegalH2>5. Betalning</LegalH2>
       <LegalP>
         Betalning sker via vår betalleverantör Stripe med de betalsätt som
-        visas i kassan, i dag kort, Klarna och Link. Kortet reserveras när du
-        reserverar och debiteras först när pallen är full och din order
-        bekräftas. Vi sparar inga kortuppgifter själva.
+        visas i kassan, i dag kort, Klarna och Link. När du reserverar sparas
+        ditt betalsätt hos Stripe, men inga pengar dras eller reserveras.
+        Beloppet dras när pallen är full och vi beställer frakten. Reserverar
+        du på en pall som redan är på väg att skickas dras beloppet direkt.
+        Betalar du med Klarna gäller även Klarnas villkor, som visas i kassan.
+        Vi sparar inga kortuppgifter själva.
       </LegalP>
       <LegalP>Betalningar hanteras av Stripe. Vi lagrar aldrig ditt fullständiga kortnummer.</LegalP>
-      <LegalP>
-        <LegalStrong>Så sparas ditt kort.</LegalStrong> När du reserverar sparas
-        din betalmetod hos Stripe med ditt medgivande, så att vi kan genomföra
-        betalningen när pallen stänger. Detta är inte samma sak som att pengar
-        dras eller reserveras. Beloppet dras vid ett enda tillfälle, när pallen
-        stänger.
-      </LegalP>
       <LegalP>
         Din bank kan komma att kräva en säkerhetsverifiering (BankID eller
         motsvarande) antingen vid reservationen eller vid debiteringen.
