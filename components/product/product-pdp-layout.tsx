@@ -30,7 +30,6 @@ import { ProductHeroPrice } from "@/app/product/[handle]/components/product-hero
 import { PdpSiblingWinesSection } from "@/components/product/pdp-sibling-wines-section";
 import { WineProducerMap } from "@/components/product/wine-producer-map";
 import { PdpB2BLink } from "@/components/product/pdp-b2b-link";
-import { getIsDirtywineSiteFromHeaders } from "@/lib/b2b-site-server";
 
 // Below-fold carousel (framer-motion + ProductCard). Keep enrichment SSR'd in the
 // sticky sidebar so deferred mount does not inflate desktop CLS.
@@ -69,7 +68,7 @@ interface ProductPdpLayoutProps {
   addToCartPreviewDisabled?: boolean;
 }
 
-export async function ProductPdpLayout({
+export function ProductPdpLayout({
   product,
   locale = "en",
   competitorOffers = [],
@@ -81,7 +80,8 @@ export async function ProductPdpLayout({
   devPreview,
   addToCartPreviewDisabled = false,
 }: ProductPdpLayoutProps) {
-  const isDirtywine = await getIsDirtywineSiteFromHeaders();
+  // Dirty Wine gating (min-6, case help) is client-side so this layout stays
+  // request-free for shared ISR HTML.
   const showProducerMap =
     product.productType === "wine" &&
     Boolean(product.producerName) &&
@@ -161,7 +161,6 @@ export async function ProductPdpLayout({
                       />
                     }
                     showCaseHelp={
-                      !isDirtywine &&
                       product.productType === "wine" &&
                       Boolean(product.producerId)
                     }
@@ -183,7 +182,7 @@ export async function ProductPdpLayout({
                     compareAtPrice={compareAtPrice}
                   />
                   <div className="w-full space-y-3">
-                    {!isDirtywine && product.productType === "wine" ? (
+                    {product.productType === "wine" ? (
                       <MinSixBottlesHint locale={locale} />
                     ) : null}
                     {/* SSR direct-box promise; client PalletStatusBar keeps analytics. */}

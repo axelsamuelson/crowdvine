@@ -171,7 +171,11 @@ export default async function RootLayout({
                         </div>
                       </div>
                       {isDevelopment && <DebugGrid />}
-                      <RootAnalyticsDeferred isB2B={isDirtywineSite} />
+                      {/*
+                        Host-neutral ISR shell: do not pass isB2B from headers().
+                        ExitFeedbackPrompt self-gates via hydrated B2BModeProvider.
+                      */}
+                      <RootAnalyticsDeferred />
                     </MembershipProvider>
                   </PortalProvider>
                 </MobileMenuProvider>

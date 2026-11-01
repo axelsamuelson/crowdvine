@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 import ProductList from "@/app/vin/components/product-list";
+import { B2cOnly } from "@/components/commerce/b2c-only";
 import { CategoryFaqSection } from "@/components/shop/category-faq-section";
 import { mapProductDataToShopProducts } from "@/lib/map-product-data-to-shop-product";
 import { getCachedShopProducts } from "@/lib/shop/cached-shop-products";
@@ -118,12 +119,8 @@ async function ShopRootJsonLd({ locale }: { locale: "sv" | "en" }) {
   );
 }
 
-async function ShopRootBelowFold({ locale }: { locale: "sv" | "en" }) {
+function ShopRootBelowFold({ locale }: { locale: "sv" | "en" }) {
   const content = getShopRootNaturalWineContent(locale);
-  const headerList = await headers();
-  const isDirtywineSite = isB2BHost(
-    headerList.get("x-forwarded-host") ?? headerList.get("host"),
-  );
   const exploreHref =
     locale === "sv" ? "/vin/rott-naturvin" : "/wine/red-natural-wine";
   const exploreLabel =
@@ -197,22 +194,21 @@ async function ShopRootBelowFold({ locale }: { locale: "sv" | "en" }) {
             >
               {exploreLabel}
             </Link>
-            {!isDirtywineSite ? (
-              <>
-                <Link
-                  href={guideHref}
-                  className="text-sm text-stone-600 underline underline-offset-4 hover:text-stone-900"
-                >
-                  {guideLabel}
-                </Link>
-                <Link
-                  href={deliveryGuideHref}
-                  className="text-sm text-stone-600 underline underline-offset-4 hover:text-stone-900"
-                >
-                  {deliveryGuideLabel}
-                </Link>
-              </>
-            ) : null}
+            {/* PACT guides redirect off Dirty Wine; hide links after host hydration. */}
+            <B2cOnly>
+              <Link
+                href={guideHref}
+                className="text-sm text-stone-600 underline underline-offset-4 hover:text-stone-900"
+              >
+                {guideLabel}
+              </Link>
+              <Link
+                href={deliveryGuideHref}
+                className="text-sm text-stone-600 underline underline-offset-4 hover:text-stone-900"
+              >
+                {deliveryGuideLabel}
+              </Link>
+            </B2cOnly>
           </div>
         </div>
       </div>
