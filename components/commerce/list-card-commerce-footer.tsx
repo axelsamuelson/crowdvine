@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 /**
  * Shared list-card commerce strip: min-6 hint (PACT only) + direct-box delivery promise.
  * Dirty Wine (restaurants) has no bottle minimum — hide the min-6 line there.
+ * Note: PACT PLP product cards use the hover/tap commerce box instead of this footer.
  */
 export function ListCardCommerceFooter({
   className,

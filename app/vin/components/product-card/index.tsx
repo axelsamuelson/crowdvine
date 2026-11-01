@@ -10,7 +10,6 @@ import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
 import { ProductListImage } from "@/app/vin/components/product-list-image";
 import { ProductImage } from "./product-image";
 import { Button } from "@/components/ui/button";
-import { ArrowRightIcon, CirclePlus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { MemberPrice } from "@/components/ui/member-price";
 import { StockBadge } from "@/components/product/stock-badge";
@@ -19,19 +18,21 @@ import { BoostBadgeSlot } from "@/components/producer/boost-badge";
 import { PeekTabAnchor } from "@/components/pdp/peek-tab-anchor";
 import type { RecommendationReason } from "@/lib/product/recommendations";
 import { useCartOptional } from "@/components/cart/cart-context";
-import { ColorSwatch } from "@/components/ui/color-picker";
-import { getColorHex, cn } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { useTranslations } from "@/lib/hooks/use-translations";
 import { useLocalizedPaths } from "@/lib/hooks/use-localized-paths";
-import { formatWineColorDisplay } from "@/lib/i18n/wine-color-labels";
 import { getProductListPriceSek } from "@/lib/price-breakdown";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 import { pricesFromCartAfterAdd } from "@/lib/analytics/cart-event-prices";
 import { PriceViewTracker } from "@/components/analytics/price-view-tracker";
-import { ListCardCommerceFooter } from "@/components/commerce/list-card-commerce-footer";
 import { B2B_MIN_LINE_BOTTLES } from "@/lib/cart/bottle-pack";
 import { B2B_PRODUCER_ORDERS_ENABLED } from "@/lib/b2b/flags";
 import type { Cart } from "@/lib/shopify/types";
+import {
+  isPlpTouchUi,
+  isTapGesture,
+  shouldInterceptPlpCardTap,
+} from "@/lib/plp/commerce-box-touch";
 
 const AddToCart = dynamic(
   () => import("@/components/cart/add-to-cart").then((m) => m.AddToCart),
@@ -197,6 +198,11 @@ export const ProductCard = memo(
   const showExclVat = useB2BPriceMode();
   const producerOrdersPaused = showExclVat && !B2B_PRODUCER_ORDERS_ENABLED;
   const [isTouched, setIsTouched] = useState(false);
+  const touchSeenRef = useRef(false);
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const isTouchedRef = useRef(false);
+  /** After a touch reveal, swallow the synthetic click so Next.js Link does not navigate. */
+  const suppressClickRef = useRef(false);
 
   const shopCaseWineCta =
     !showExclVat &&
@@ -204,9 +210,26 @@ export const ProductCard = memo(
     productType === "wine" &&
     Boolean(product.producerId);
 
+  // White commerce box is hidden by default. Desktop (hover:hover): group-hover /
+  // focus-within. Touch / coarse pointer: first tap sets isTouched (never always-on).
   const showMembershipBadge = !showMembershipTab;
   const listPriceSek = getProductListPriceSek(product);
   const showTopTabs = showMembershipTab || recommendationReason != null;
+
+  useEffect(() => {
+    isTouchedRef.current = isTouched;
+  }, [isTouched]);
+
+  const revealCommerceBox = () => {
+    if (isTouchedRef.current) return;
+    isTouchedRef.current = true;
+    setIsTouched(true);
+    window.dispatchEvent(
+      new CustomEvent("productCard:activate", {
+        detail: { id: product.id },
+      }),
+    );
+  };
 
   // Keep overlay visible until another product card is activated
   useEffect(() => {
@@ -214,6 +237,7 @@ export const ProductCard = memo(
       const detail = (e as CustomEvent<{ id: string }>).detail;
       if (!detail) return;
       if (detail.id !== product.id) {
+        isTouchedRef.current = false;
         setIsTouched(false);
       }
     };
@@ -225,55 +249,6 @@ export const ProductCard = memo(
       );
     };
   }, [product.id]);
-
-  // Get wine color object from options or tags; handle both string and object values
-  const getWineColor = (): { name: string; value: string | [string, string] } | null => {
-    let colorName: string | null = null;
-    
-    const colorOption = product.options.find(
-      (opt) => opt.name?.toLowerCase() === "color"
-    );
-    if (colorOption && Array.isArray(colorOption.values) && colorOption.values.length > 0) {
-      const firstValue: unknown = colorOption.values[0] as unknown;
-      if (typeof firstValue === "string") {
-        colorName = firstValue;
-      } else if (
-        firstValue &&
-        typeof firstValue === "object" &&
-        typeof (firstValue as any).name === "string"
-      ) {
-        colorName = (firstValue as any).name as string;
-      }
-    }
-    
-    // Fallback to tags (common color tags)
-    if (!colorName) {
-      const colorTags = ["Red", "White", "Rosé", "Orange", "Rött", "Vitt", "Rosévin"];
-      colorName = product.tags?.find((tag) =>
-        colorTags.some((colorTag) => tag.toLowerCase().includes(colorTag.toLowerCase()))
-      ) || null;
-    }
-    
-    if (!colorName) return null;
-    
-    // Get hex color value
-    const colorHex = getColorHex(colorName);
-    
-    // Return color object in ColorSwatch format
-    if (Array.isArray(colorHex)) {
-      return {
-        name: colorName,
-        value: [colorHex[0], colorHex[1]] as [string, string],
-      };
-    }
-    
-    return {
-      name: colorName,
-      value: colorHex,
-    };
-  };
-
-  const wineColor = getWineColor();
 
   // Get base variant for products without options or first variant for products with variants
   const getBaseProductVariant = (): any => {
@@ -769,17 +744,68 @@ export const ProductCard = memo(
           </PeekTabAnchor>
         ) : null}
       <div
-        className="relative z-10 w-full aspect-[3/4] md:aspect-square bg-muted group"
+        className={cn(
+          "relative z-10 w-full aspect-[3/4] md:aspect-square bg-muted group",
+          isTouched && "is-touch-revealed",
+        )}
         style={{ clipPath: 'inset(0)' }}
-        onTouchStart={() => {
-          setIsTouched(true);
-          const ev = new CustomEvent("productCard:activate", {
-            detail: { id: product.id },
-          });
-          window.dispatchEvent(ev);
+        data-plp-card={product.id}
+        onTouchStart={(e) => {
+          touchSeenRef.current = true;
+          const t = e.touches[0];
+          touchStartRef.current = t
+            ? { x: t.clientX, y: t.clientY }
+            : null;
         }}
-        onMouseEnter={() => setIsTouched(true)}
-        onMouseLeave={() => setIsTouched(false)}
+        onTouchEnd={(e) => {
+          if (typeof window === "undefined") return;
+          const touchUi = isPlpTouchUi(undefined, touchSeenRef.current);
+          if (
+            !shouldInterceptPlpCardTap({
+              isTouchUi: touchUi,
+              isRevealed: isTouchedRef.current,
+            })
+          ) {
+            // Already revealed: keep this card active so siblings can dismiss.
+            if (isTouchedRef.current) {
+              window.dispatchEvent(
+                new CustomEvent("productCard:activate", {
+                  detail: { id: product.id },
+                }),
+              );
+            }
+            return;
+          }
+          const t = e.changedTouches[0];
+          if (
+            t &&
+            !isTapGesture(touchStartRef.current, {
+              x: t.clientX,
+              y: t.clientY,
+            })
+          ) {
+            return;
+          }
+          // Reveal immediately on touchend so the box paints before the
+          // synthetic click; suppress that click so the product link does not navigate.
+          suppressClickRef.current = true;
+          revealCommerceBox();
+        }}
+        onClickCapture={(e) => {
+          if (typeof window === "undefined") return;
+          const touchUi = isPlpTouchUi(undefined, touchSeenRef.current);
+          const intercept = shouldInterceptPlpCardTap({
+            isTouchUi: touchUi,
+            isRevealed: isTouchedRef.current,
+          });
+          if (!intercept && !suppressClickRef.current) return;
+          // First tap (or the click that follows a touchend reveal): do not navigate.
+          // preventDefault so Next.js <Link> (checks defaultPrevented) skips router.push.
+          e.preventDefault();
+          e.stopPropagation();
+          suppressClickRef.current = false;
+          if (intercept) revealCommerceBox();
+        }}
       >
       {/* Content wrapper - overflow-clip so wheel scroll propagates to document */}
       <div className="relative size-full overflow-clip">
@@ -804,7 +830,21 @@ export const ProductCard = memo(
             title: product.title,
             price: `${product.priceRange.minVariantPrice.amount} ${product.priceRange.minVariantPrice.currencyCode}`,
           })}
-          onClick={() => {
+          onClick={(e) => {
+            const touchUi = isPlpTouchUi(undefined, touchSeenRef.current);
+            const intercept = shouldInterceptPlpCardTap({
+              isTouchUi: touchUi,
+              isRevealed: isTouchedRef.current,
+            });
+            if (intercept || suppressClickRef.current) {
+              // Belt-and-braces: Next.js Link skips navigation when defaultPrevented.
+              e.preventDefault();
+              e.stopPropagation();
+              suppressClickRef.current = false;
+              if (intercept) revealCommerceBox();
+              return;
+            }
+            // Allow Next.js <Link> to navigate (PDP). Optional search analytics only.
             const q = listSearchQuery?.trim();
             if (!q) return;
             void AnalyticsTracker.trackEvent({
@@ -824,8 +864,8 @@ export const ProductCard = memo(
 
       {/* Interactive Overlay - moved outside wrapper to avoid overflow-clip issues */}
       <div className="absolute inset-0 pl-1 pr-2 pt-2 pb-2 md:p-2 w-full pointer-events-none">
-        {/* Mobile & Desktop Default: Info overlay (always visible on mobile, visible on desktop until hover) */}
-        <div className="flex gap-2 md:gap-6 justify-between items-start md:items-baseline px-1 md:px-3 py-1 w-full font-semibold transition-all duration-300 translate-y-0 md:group-hover:opacity-0 md:group-focus-visible:opacity-0 md:group-hover:-translate-y-full md:group-focus-visible:-translate-y-full">
+        {/* Top meta: visible by default; hide on desktop when commerce box is revealed */}
+        <div className="plp-card-top-meta flex gap-2 md:gap-6 justify-between items-start md:items-baseline px-1 md:px-3 py-1 w-full font-semibold transition-all duration-300 translate-y-0">
           <div className="flex flex-col min-w-0 max-w-[42%] md:max-w-[40%] shrink md:shrink-0 rounded-r pr-1.5 md:pr-0 md:rounded-none py-1 md:py-0 -my-1 md:my-0 overflow-hidden">
             <p className="text-[8px] leading-tight md:text-sm uppercase 2xl:text-base text-balance line-clamp-2 md:line-clamp-2 break-words overflow-hidden">
               {product.title}
@@ -854,13 +894,13 @@ export const ProductCard = memo(
               (Number(product.priceRange.minVariantPrice.amount) || undefined)
             }
             currency={product.priceRange.minVariantPrice.currencyCode}
-            className="flex gap-1 md:gap-2 items-center justify-end min-w-0 shrink md:max-w-[35%] md:shrink-0 text-[9px] md:text-sm uppercase 2xl:text-base text-right overflow-hidden"
+            className="flex gap-1 md:gap-2 items-center justify-end min-w-0 shrink md:max-w-[35%] md:shrink-0 text-[9px] md:text-sm 2xl:text-base text-right overflow-hidden normal-case"
           >
             <MemberPrice
               amount={product.priceRange.minVariantPrice.amount}
               currencyCode={product.priceRange.minVariantPrice.currencyCode}
               basePriceSek={listPriceSek ?? undefined}
-              className="text-[9px] md:text-sm uppercase 2xl:text-base"
+              className="text-[9px] md:text-sm 2xl:text-base normal-case"
               showBadge={showMembershipBadge}
               compactOnMobile={true}
               priceExclVatOverride={
@@ -883,339 +923,208 @@ export const ProductCard = memo(
           </PriceViewTracker>
         </div>
 
-        {/* Mobile: always-visible commerce strip (price + min-6 + Reservera) */}
-        {showCartActions && renderInCardAddToCart && (
-          <div
-            className={cn(
-              "md:hidden absolute inset-x-2 bottom-2 px-2.5 py-2 rounded-md bg-white/95 backdrop-blur-sm pointer-events-auto shadow-lg transition-opacity duration-200",
-              shopCaseWineCta || isTouched ? "opacity-100" : "opacity-0",
-            )}
-          >
-            <ListCardCommerceFooter>
-              <div className="flex gap-2 items-center min-w-0">
-                {wineColor ? (
-                  <div className="flex shrink-0 items-center">
-                    <ColorSwatch
-                      color={
-                        Array.isArray(wineColor.value)
-                          ? [
-                              { name: wineColor.name, value: wineColor.value[0] },
-                              { name: wineColor.name, value: wineColor.value[1] },
-                            ]
-                          : { name: wineColor.name, value: wineColor.value as string }
-                      }
-                      isSelected={false}
-                      onColorChange={() => {}}
-                      size="xs"
-                        atLeastOneColorSelected={false}
-                      displayName={formatWineColorDisplay(t, { name: wineColor.name, value: Array.isArray(wineColor.value) ? wineColor.value[0] : (wineColor.value as string) })}
-                    />
-                  </div>
-                ) : null}
-                <div className="min-w-0 flex-1 flex justify-center">
-                  <MemberPrice
-                    amount={product.priceRange.minVariantPrice.amount}
-                    currencyCode={product.priceRange.minVariantPrice.currencyCode}
-                    basePriceSek={listPriceSek ?? undefined}
-                    className="text-xs font-semibold sm:text-sm"
-                    showBadge={showMembershipBadge}
-                    badgeRightOnMobile={true}
-                    priceExclVatOverride={
-                      (product as any).b2bPriceExclVat ??
-                      product.priceBreakdown?.b2bPriceExclVat
-                    }
-                  />
-                </div>
-              </div>
-              {producerOrdersPaused ? null : shopCaseWineCta ? (
-                <Suspense
-                  fallback={
-                    <Button
-                      type="button"
-                      disabled
-                      className="w-full min-h-10 bg-black hover:bg-black/90 text-white border-black rounded-md"
-                      size="sm"
-                    >
-                      <span className="text-xs">{t("shop.reserve")}</span>
-                    </Button>
-                  }
-                >
-                  <ShopWineCasePicker
-                    product={product}
-                    size="sm"
-                    className="w-full min-h-10"
-                    triggerLabel={t("shop.reserve")}
-                    analyticsSource="list"
-                  />
-                </Suspense>
-              ) : (
-                <Button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handleAddToCart();
-                  }}
-                  disabled={!getBaseProductVariant()}
-                  className="w-full min-h-10 bg-black hover:bg-black/90 text-white border-black rounded-md"
-                  size="sm"
-                >
-                  <div className="flex items-center justify-center gap-1.5">
-                    <span className="text-xs">{t("product.addToCart")}</span>
-                    <CirclePlus className="size-3.5" />
-                  </div>
-                </Button>
-              )}
-            </ListCardCommerceFooter>
-          </div>
-        )}
-
-        {/* Mobile: variants path — same always-visible strip for wine CTAs */}
-        {showCartActions && !renderInCardAddToCart && (
-          <div
-            className={cn(
-              "md:hidden absolute inset-x-2 bottom-2 px-2.5 py-2 rounded-md bg-white/95 backdrop-blur-sm pointer-events-auto shadow-lg transition-opacity duration-200",
-              shopCaseWineCta || isTouched ? "opacity-100" : "opacity-0",
-            )}
-          >
-            <ListCardCommerceFooter>
-              <div className="flex gap-2 items-center min-w-0">
-                {wineColor ? (
-                  <div className="flex shrink-0 items-center">
-                    <ColorSwatch
-                      color={
-                        Array.isArray(wineColor.value)
-                          ? [
-                              { name: wineColor.name, value: wineColor.value[0] },
-                              { name: wineColor.name, value: wineColor.value[1] },
-                            ]
-                          : { name: wineColor.name, value: wineColor.value as string }
-                      }
-                      isSelected={false}
-                      onColorChange={() => {}}
-                      size="xs"
-                        atLeastOneColorSelected={false}
-                      displayName={formatWineColorDisplay(t, { name: wineColor.name, value: Array.isArray(wineColor.value) ? wineColor.value[0] : (wineColor.value as string) })}
-                    />
-                  </div>
-                ) : null}
-                <div className="min-w-0 flex-1 flex justify-center">
-                  <MemberPrice
-                    amount={product.priceRange.minVariantPrice.amount}
-                    currencyCode={product.priceRange.minVariantPrice.currencyCode}
-                    basePriceSek={listPriceSek ?? undefined}
-                    className="text-xs font-semibold sm:text-sm"
-                    showBadge={showMembershipBadge}
-                    badgeRightOnMobile={true}
-                    priceExclVatOverride={
-                      (product as any).b2bPriceExclVat ??
-                      product.priceBreakdown?.b2bPriceExclVat
-                    }
-                  />
-                </div>
-              </div>
-              {producerOrdersPaused ? null : shopCaseWineCta ? (
-                <Suspense
-                  fallback={
-                    <Button
-                      type="button"
-                      disabled
-                      className="w-full min-h-10 bg-black hover:bg-black/90 text-white border-black rounded-md"
-                      size="sm"
-                    >
-                      <span className="text-xs">{t("shop.reserve")}</span>
-                    </Button>
-                  }
-                >
-                  <ShopWineCasePicker
-                    product={product}
-                    size="sm"
-                    className="w-full min-h-10"
-                    triggerLabel={t("shop.reserve")}
-                    analyticsSource="list"
-                  />
-                </Suspense>
-              ) : (
-                <Button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handleAddToCart();
-                  }}
-                  disabled={!getBaseProductVariant()}
-                  className="w-full min-h-10 bg-black hover:bg-black/90 text-white border-black rounded-md"
-                  size="sm"
-                >
-                  <div className="flex items-center justify-center gap-1.5">
-                    <span className="text-xs">{t("product.addToCart")}</span>
-                    <CirclePlus className="size-3.5" />
-                  </div>
-                </Button>
-              )}
-            </ListCardCommerceFooter>
-          </div>
-        )}
-
-        {/* Desktop: Move Add to Cart into the white info box instead of top-right */}
-
-        {/* Desktop Hover: White card with full details (only on desktop) */}
-        {/* Visual panel with buttons inside - pointer-events-none on container, pointer-events-auto on buttons */}
-        <div 
-          className="hidden md:flex absolute inset-x-3 bottom-3 flex-col gap-4 px-2 py-3 rounded-md transition-all duration-300 pointer-events-none bg-white/90 backdrop-blur-sm opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 translate-y-1/3 group-hover:translate-y-0 group-focus-visible:translate-y-0"
-        >
-          {shopCaseWineCta ? (
-            <ListCardCommerceFooter className="pointer-events-none" />
-          ) : null}
-          <div className="grid grid-cols-2 gap-x-4 gap-y-4 items-end">
-            <div className="flex flex-col">
-              <p className="text-lg font-semibold text-pretty">
-                {product.title}
-              </p>
-              {product.producerName && (
-                <p className="text-sm text-muted-foreground font-normal">
-                  {product.producerName}
-                </p>
-              )}
-              <BoostBadgeSlot
-                active={product.producerBoostActive === true}
-                className="mt-1"
-              />
-              {wineColor && (
-                <div className="mt-1">
-                  <ColorSwatch
-                    color={
-                      Array.isArray(wineColor.value)
-                        ? [
-                            { name: wineColor.name, value: wineColor.value[0] },
-                            { name: wineColor.name, value: wineColor.value[1] },
-                          ]
-                        : { name: wineColor.name, value: wineColor.value as string }
-                    }
-                    isSelected={false}
-                    onColorChange={() => {}}
-                    size="sm"
-                    atLeastOneColorSelected={false}
-                    displayName={formatWineColorDisplay(t, { name: wineColor.name, value: Array.isArray(wineColor.value) ? wineColor.value[0] : (wineColor.value as string) })}
-                  />
-                </div>
-              )}
-              <div className="mt-0.5 flex min-h-[14px] flex-wrap items-center gap-0.5 md:min-h-[18px] md:gap-1">
-                <NewBadge show={product.b2bIsNew === true} />
-                <StockBadge
-                  b2bStock={(product as any).b2bStock}
-                  availableForSale={product.availableForSale}
-                  b2bAvailability={product.b2bAvailability}
-                />
-              </div>
-            </div>
-            <div className="flex gap-2 items-center place-self-end text-lg font-semibold">
-              <MemberPrice
-                amount={product.priceRange.minVariantPrice.amount}
-                currencyCode={product.priceRange.minVariantPrice.currencyCode}
-              basePriceSek={listPriceSek ?? undefined}
-                className="text-lg font-semibold"
-                showBadge={showMembershipBadge}
-                priceExclVatOverride={
-                  (product as any).b2bPriceExclVat ??
-                  product.priceBreakdown?.b2bPriceExclVat
-                }
-              />
-              {isWineBox &&
-                discountInfo &&
-                discountInfo.discountPercentage > 0 && (
-                <span className="text-base line-through opacity-30">
-                  {formatPrice(
-                    showExclVat
-                      ? priceExclVat(discountInfo.totalWinePrice)
-                      : Math.round(discountInfo.totalWinePrice).toString(),
-                    product.priceRange.minVariantPrice.currencyCode,
-                  )}
-                </span>
-              )}
-            </div>
-          </div>
-          
-          {/* Buttons inside white box - equal width for symmetry */}
-          {showCartActions ? (
-          <div className="grid grid-cols-2 gap-3 items-center mt-2 pointer-events-auto">
-            {renderInCardAddToCart ? (
+        {/* PLP commerce box — creative-director spec; never always-visible */}
+        {showCartActions ? (
+          <div className="plp-commerce-box plp-commerce-box--touch absolute bottom-2 left-2 right-2 z-10 flex flex-col gap-1.5 rounded-lg bg-white/95 p-3 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+            {shopCaseWineCta ? (
               <>
-                <div className="min-w-0">
-                  <Suspense fallback={null}>
-                    <VariantSelector product={product} />
-                  </Suspense>
+                <div className="flex min-w-0 items-baseline justify-between gap-2">
+                  <Link
+                    href={productHref}
+                    className="min-w-0 truncate text-[15px] font-medium leading-none text-foreground pointer-events-auto"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {product.title}
+                  </Link>
+                  <MemberPrice
+                    amount={product.priceRange.minVariantPrice.amount}
+                    currencyCode={product.priceRange.minVariantPrice.currencyCode}
+                    basePriceSek={listPriceSek ?? undefined}
+                    className="shrink-0 text-[15px] font-semibold leading-none normal-case"
+                    showBadge={false}
+                    priceExclVatOverride={
+                      (product as any).b2bPriceExclVat ??
+                      product.priceBreakdown?.b2bPriceExclVat
+                    }
+                  />
                 </div>
-                <div className="min-w-0">
+                {product.producerName ? (
+                  <p className="truncate text-[13px] leading-none text-muted-foreground">
+                    {product.producerName}
+                  </p>
+                ) : null}
+                <div className="pointer-events-auto pt-0.5">
                   <Suspense
                     fallback={
-                      <AddToCartButton
-                        product={product}
+                      <Button
+                        type="button"
+                        disabled
+                        className="h-11 w-full rounded-[6px] bg-black text-white border-black"
                         size="sm"
-                        className="w-full"
-                      />
+                      >
+                        <span className="text-[15px]">{t("shop.reserve")}</span>
+                      </Button>
                     }
                   >
-                    {producerOrdersPaused ? null : shopCaseWineCta ? (
-                      <ShopWineCasePicker
-                        product={product}
-                        size="sm"
-                        className="w-full"
-                        triggerLabel={t("shop.reserve")}
-                        analyticsSource="list"
-                      />
-                    ) : (
-                      <AddToCart
-                        size="sm"
-                        product={product}
-                        className="w-full"
-                      />
-                    )}
+                    <ShopWineCasePicker
+                      product={product}
+                      size="sm"
+                      className="h-11 w-full rounded-[6px]"
+                      triggerLabel={t("shop.reserve")}
+                      analyticsSource="list"
+                    />
                   </Suspense>
                 </div>
               </>
             ) : (
               <>
-                <div className="min-w-0">
+                <div className="flex min-w-0 items-baseline justify-between gap-2">
+                  <Link
+                    href={productHref}
+                    className="min-w-0 truncate text-[15px] font-medium leading-none text-foreground pointer-events-auto"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {product.title}
+                  </Link>
+                  <MemberPrice
+                    amount={product.priceRange.minVariantPrice.amount}
+                    currencyCode={product.priceRange.minVariantPrice.currencyCode}
+                    basePriceSek={listPriceSek ?? undefined}
+                    className="shrink-0 text-[15px] font-semibold leading-none normal-case"
+                    showBadge={false}
+                    priceExclVatOverride={
+                      (product as any).b2bPriceExclVat ??
+                      product.priceBreakdown?.b2bPriceExclVat
+                    }
+                  />
+                </div>
+                {product.producerName ? (
+                  <p className="truncate text-[13px] leading-none text-muted-foreground">
+                    {product.producerName}
+                  </p>
+                ) : null}
+                {producerOrdersPaused ? null : (
+                  <div className="pointer-events-auto pt-0.5">
+                    <Button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleAddToCart();
+                      }}
+                      disabled={!getBaseProductVariant()}
+                      className="h-11 w-full rounded-[6px] bg-black hover:bg-black/90 text-white border-black"
+                      size="sm"
+                    >
+                      <span className="text-[15px]">{t("product.addToCart")}</span>
+                    </Button>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        ) : null}
+
+        {/* Desktop hover / focus-within — same 390 type scale as touch box */}
+        <div className="plp-commerce-box plp-commerce-box--hover absolute bottom-2 left-2 right-2 hidden w-auto flex-col gap-1.5 rounded-lg bg-white/95 p-3 shadow-[0_1px_2px_rgba(0,0,0,0.04)] md:flex">
+          {shopCaseWineCta ? (
+            <>
+              <div className="flex min-w-0 items-baseline justify-between gap-2">
+                <Link
+                  href={productHref}
+                  className="min-w-0 truncate text-[15px] font-medium leading-none text-foreground pointer-events-auto"
+                >
+                  {product.title}
+                </Link>
+                <MemberPrice
+                  amount={product.priceRange.minVariantPrice.amount}
+                  currencyCode={product.priceRange.minVariantPrice.currencyCode}
+                  basePriceSek={listPriceSek ?? undefined}
+                  className="shrink-0 text-[15px] font-semibold leading-none normal-case"
+                  showBadge={false}
+                  priceExclVatOverride={
+                    (product as any).b2bPriceExclVat ??
+                    product.priceBreakdown?.b2bPriceExclVat
+                  }
+                />
+              </div>
+              {product.producerName ? (
+                <p className="truncate text-[13px] leading-none text-muted-foreground">
+                  {product.producerName}
+                </p>
+              ) : null}
+              {showCartActions ? (
+                <div className="pointer-events-auto pt-0.5">
                   <Suspense
                     fallback={
-                      <AddToCartButton
-                        product={product}
+                      <Button
+                        type="button"
+                        disabled
+                        className="h-11 w-full rounded-[6px] bg-black text-white border-black"
                         size="sm"
-                        className="bg-black hover:bg-black/90 text-white border-black rounded-md w-full"
-                      />
+                      >
+                        <span className="text-[15px]">{t("shop.reserve")}</span>
+                      </Button>
                     }
                   >
-                    {producerOrdersPaused ? null : shopCaseWineCta ? (
+                    {producerOrdersPaused ? null : (
                       <ShopWineCasePicker
                         product={product}
                         size="sm"
-                        className="bg-black hover:bg-black/90 text-white border-black rounded-md w-full"
+                        className="h-11 w-full rounded-[6px]"
                         triggerLabel={t("shop.reserve")}
                         analyticsSource="list"
-                      />
-                    ) : (
-                      <AddToCart
-                        product={product}
-                        size="sm"
-                        className="bg-black hover:bg-black/90 text-white border-black rounded-md w-full"
                       />
                     )}
                   </Suspense>
                 </div>
-                <div className="min-w-0">
-                  <Button
-                    className="bg-black hover:bg-black/90 text-white border-black rounded-md w-full flex justify-between items-center"
-                    size="sm"
-                    asChild
-                  >
-                    <Link href={productHref}>
-                      <span>{t("shop.viewProduct")}</span>
-                      <ArrowRightIcon className="shrink-0" />
-                    </Link>
-                  </Button>
-                </div>
-              </>
-            )}
-          </div>
+              ) : null}
+            </>
+          ) : showCartActions ? (
+            <>
+              <div className="flex min-w-0 items-baseline justify-between gap-2">
+                <Link
+                  href={productHref}
+                  className="min-w-0 truncate text-[15px] font-medium leading-none text-foreground pointer-events-auto"
+                >
+                  {product.title}
+                </Link>
+                <MemberPrice
+                  amount={product.priceRange.minVariantPrice.amount}
+                  currencyCode={product.priceRange.minVariantPrice.currencyCode}
+                  basePriceSek={listPriceSek ?? undefined}
+                  className="shrink-0 text-[15px] font-semibold leading-none normal-case"
+                  showBadge={false}
+                  priceExclVatOverride={
+                    (product as any).b2bPriceExclVat ??
+                    product.priceBreakdown?.b2bPriceExclVat
+                  }
+                />
+              </div>
+              {product.producerName ? (
+                <p className="truncate text-[13px] leading-none text-muted-foreground">
+                  {product.producerName}
+                </p>
+              ) : null}
+              <div className="pointer-events-auto pt-0.5">
+                <Suspense
+                  fallback={
+                    <AddToCartButton
+                      product={product}
+                      size="sm"
+                      className="h-11 w-full rounded-[6px]"
+                    />
+                  }
+                >
+                  {producerOrdersPaused ? null : (
+                    <AddToCart
+                      size="sm"
+                      product={product}
+                      className="h-11 w-full rounded-[6px]"
+                    />
+                  )}
+                </Suspense>
+              </div>
+            </>
           ) : null}
         </div>
       </div>
