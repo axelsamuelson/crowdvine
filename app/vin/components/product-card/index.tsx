@@ -25,10 +25,14 @@ import { getProductListPriceSek } from "@/lib/price-breakdown";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 import { pricesFromCartAfterAdd } from "@/lib/analytics/cart-event-prices";
 import { PriceViewTracker } from "@/components/analytics/price-view-tracker";
-import { ListCardCommerceFooter } from "@/components/commerce/list-card-commerce-footer";
 import { BOTTLE_PACK_SIZE } from "@/lib/cart/bottle-pack";
 import { B2B_PRODUCER_ORDERS_ENABLED } from "@/lib/b2b/flags";
 import type { Cart } from "@/lib/shopify/types";
+import {
+  isPlpTouchUi,
+  isTapGesture,
+  shouldInterceptPlpCardTap,
+} from "@/lib/plp/commerce-box-touch";
 
 const AddToCart = dynamic(
   () => import("@/components/cart/add-to-cart").then((m) => m.AddToCart),
@@ -194,6 +198,11 @@ export const ProductCard = memo(
   const showExclVat = useB2BPriceMode();
   const producerOrdersPaused = showExclVat && !B2B_PRODUCER_ORDERS_ENABLED;
   const [isTouched, setIsTouched] = useState(false);
+  const touchSeenRef = useRef(false);
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const isTouchedRef = useRef(false);
+  /** After a touch reveal, swallow the synthetic click so Next.js Link does not navigate. */
+  const suppressClickRef = useRef(false);
 
   const shopCaseWineCta =
     !showExclVat &&
@@ -202,10 +211,25 @@ export const ProductCard = memo(
     Boolean(product.producerId);
 
   // White commerce box is hidden by default. Desktop (hover:hover): group-hover /
-  // focus-within. Touch (hover:none): first tap sets isTouched (never always-on).
+  // focus-within. Touch / coarse pointer: first tap sets isTouched (never always-on).
   const showMembershipBadge = !showMembershipTab;
   const listPriceSek = getProductListPriceSek(product);
   const showTopTabs = showMembershipTab || recommendationReason != null;
+
+  useEffect(() => {
+    isTouchedRef.current = isTouched;
+  }, [isTouched]);
+
+  const revealCommerceBox = () => {
+    if (isTouchedRef.current) return;
+    isTouchedRef.current = true;
+    setIsTouched(true);
+    window.dispatchEvent(
+      new CustomEvent("productCard:activate", {
+        detail: { id: product.id },
+      }),
+    );
+  };
 
   // Keep overlay visible until another product card is activated
   useEffect(() => {
@@ -213,6 +237,7 @@ export const ProductCard = memo(
       const detail = (e as CustomEvent<{ id: string }>).detail;
       if (!detail) return;
       if (detail.id !== product.id) {
+        isTouchedRef.current = false;
         setIsTouched(false);
       }
     };
@@ -725,30 +750,62 @@ export const ProductCard = memo(
           isTouched && "is-touch-revealed",
         )}
         style={{ clipPath: 'inset(0)' }}
+        data-plp-card={product.id}
+        onTouchStart={(e) => {
+          touchSeenRef.current = true;
+          const t = e.touches[0];
+          touchStartRef.current = t
+            ? { x: t.clientX, y: t.clientY }
+            : null;
+        }}
+        onTouchEnd={(e) => {
+          if (typeof window === "undefined") return;
+          const touchUi = isPlpTouchUi(undefined, touchSeenRef.current);
+          if (
+            !shouldInterceptPlpCardTap({
+              isTouchUi: touchUi,
+              isRevealed: isTouchedRef.current,
+            })
+          ) {
+            // Already revealed: keep this card active so siblings can dismiss.
+            if (isTouchedRef.current) {
+              window.dispatchEvent(
+                new CustomEvent("productCard:activate", {
+                  detail: { id: product.id },
+                }),
+              );
+            }
+            return;
+          }
+          const t = e.changedTouches[0];
+          if (
+            t &&
+            !isTapGesture(touchStartRef.current, {
+              x: t.clientX,
+              y: t.clientY,
+            })
+          ) {
+            return;
+          }
+          // Reveal immediately on touchend so the box paints before the
+          // synthetic click; suppress that click so the product link does not navigate.
+          suppressClickRef.current = true;
+          revealCommerceBox();
+        }}
         onClickCapture={(e) => {
           if (typeof window === "undefined") return;
-          if (!window.matchMedia("(hover: none)").matches) return;
-          if (isTouched) return;
-          // First tap on touch devices: reveal the commerce box; do not navigate yet.
+          const touchUi = isPlpTouchUi(undefined, touchSeenRef.current);
+          const intercept = shouldInterceptPlpCardTap({
+            isTouchUi: touchUi,
+            isRevealed: isTouchedRef.current,
+          });
+          if (!intercept && !suppressClickRef.current) return;
+          // First tap (or the click that follows a touchend reveal): do not navigate.
+          // preventDefault so Next.js <Link> (checks defaultPrevented) skips router.push.
           e.preventDefault();
           e.stopPropagation();
-          setIsTouched(true);
-          window.dispatchEvent(
-            new CustomEvent("productCard:activate", {
-              detail: { id: product.id },
-            }),
-          );
-        }}
-        onTouchStart={() => {
-          if (typeof window !== "undefined" && window.matchMedia("(hover: none)").matches) {
-            // Activate/reveal handled in onClickCapture for first tap; still broadcast on later touches.
-            if (!isTouched) return;
-          }
-          window.dispatchEvent(
-            new CustomEvent("productCard:activate", {
-              detail: { id: product.id },
-            }),
-          );
+          suppressClickRef.current = false;
+          if (intercept) revealCommerceBox();
         }}
       >
       {/* Content wrapper - overflow-clip so wheel scroll propagates to document */}
@@ -774,7 +831,21 @@ export const ProductCard = memo(
             title: product.title,
             price: `${product.priceRange.minVariantPrice.amount} ${product.priceRange.minVariantPrice.currencyCode}`,
           })}
-          onClick={() => {
+          onClick={(e) => {
+            const touchUi = isPlpTouchUi(undefined, touchSeenRef.current);
+            const intercept = shouldInterceptPlpCardTap({
+              isTouchUi: touchUi,
+              isRevealed: isTouchedRef.current,
+            });
+            if (intercept || suppressClickRef.current) {
+              // Belt-and-braces: Next.js Link skips navigation when defaultPrevented.
+              e.preventDefault();
+              e.stopPropagation();
+              suppressClickRef.current = false;
+              if (intercept) revealCommerceBox();
+              return;
+            }
+            // Allow Next.js <Link> to navigate (PDP). Optional search analytics only.
             const q = listSearchQuery?.trim();
             if (!q) return;
             void AnalyticsTracker.trackEvent({
@@ -883,7 +954,6 @@ export const ProductCard = memo(
                     {product.producerName}
                   </p>
                 ) : null}
-                <ListCardCommerceFooter />
                 <div className="pointer-events-auto pt-0.5">
                   <Suspense
                     fallback={
@@ -983,7 +1053,6 @@ export const ProductCard = memo(
                   {product.producerName}
                 </p>
               ) : null}
-              <ListCardCommerceFooter />
               {showCartActions ? (
                 <div className="pointer-events-auto pt-0.5">
                   <Suspense

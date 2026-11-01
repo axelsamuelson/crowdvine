@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="sv">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PLP commerce box touch fixture</title>
+    <style>
+      body { margin: 0; font-family: system-ui, sans-serif; }
+      .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 8px; }
+      .group {
+        position: relative;
+        aspect-ratio: 3/4;
+        background: #e8e4dc;
+        overflow: hidden;
+      }
+      .group a.img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        text-decoration: none;
+        color: inherit;
+      }
+      .plp-commerce-box {
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(6px);
+        transition: opacity 180ms ease-out, transform 180ms ease-out;
+        position: absolute;
+        left: 8px; right: 8px; bottom: 8px;
+        background: rgba(255,255,255,0.95);
+        border-radius: 8px;
+        padding: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .group.is-touch-revealed .plp-commerce-box--touch {
+        opacity: 1;
+        pointer-events: auto;
+        transform: translateY(0);
+      }
+      @media (hover: hover) and (pointer: fine) {
+        .plp-commerce-box--touch { display: none !important; }
+        .group.is-touch-revealed .plp-commerce-box--touch { display: flex !important; }
+      }
+      @media (hover: none), (pointer: coarse) {
+        .plp-commerce-box--hover { display: none !important; }
+      }
+      button.reserve {
+        height: 40px;
+        border-radius: 6px;
+        border: 0;
+        background: #000;
+        color: #fff;
+        width: 100%;
+      }
+      .name-row { display: flex; justify-content: space-between; font-size: 13px; }
+      .producer { font-size: 12px; color: #737373; }
+      .top { position: absolute; top: 8px; left: 8px; font-size: 11px; font-weight: 600; }
+    </style>
+  </head>
+  <body>
+    <div class="grid" id="grid"></div>
+    <script type="module">
+      // Inline copies of lib/plp/commerce-box-touch.ts (keep in sync).
+      function isPlpTouchUi(media = (q) => matchMedia(q), touchSeen = false) {
+        if (touchSeen) return true;
+        try {
+          return media("(hover: none)").matches || media("(pointer: coarse)").matches;
+        } catch {
+          return touchSeen;
+        }
+      }
+      function shouldInterceptPlpCardTap({ isTouchUi, isRevealed }) {
+        return isTouchUi && !isRevealed;
+      }
+      function isTapGesture(start, end, thresholdPx = 12) {
+        if (!start) return true;
+        const dx = end.x - start.x;
+        const dy = end.y - start.y;
+        return dx * dx + dy * dy <= thresholdPx * thresholdPx;
+      }
+
+      const products = [
+        { id: "a", title: "Wine A", href: "/produkt/a", producer: "Producer A" },
+        { id: "b", title: "Wine B", href: "/produkt/b", producer: "Producer B" },
+      ];
+
+      const grid = document.getElementById("grid");
+      const state = new Map();
+
+      function activate(id) {
+        for (const [cardId, s] of state) {
+          if (cardId !== id) {
+            s.revealed = false;
+            s.el.classList.remove("is-touch-revealed");
+          }
+        }
+        window.dispatchEvent(new CustomEvent("productCard:activate", { detail: { id } }));
+      }
+
+      for (const p of products) {
+        const el = document.createElement("div");
+        el.className = "group";
+        el.dataset.plpCard = p.id;
+        el.innerHTML = `
+          <a class="img" href="${p.href}" data-testid="img-link-${p.id}">
+            <span class="top">${p.title}</span>
+          </a>
+          <div class="plp-commerce-box plp-commerce-box--touch" data-testid="box-${p.id}">
+            <div class="name-row">
+              <a href="${p.href}" data-testid="name-link-${p.id}">${p.title}</a>
+              <strong>100 kr</strong>
+            </div>
+            <div class="producer">${p.producer}</div>
+            <button type="button" class="reserve" data-testid="reserve-${p.id}">Reservera</button>
+          </div>
+        `;
+        grid.appendChild(el);
+
+        const s = {
+          el,
+          revealed: false,
+          touchSeen: false,
+          suppressClick: false,
+          touchStart: null,
+        };
+        state.set(p.id, s);
+
+        const reveal = () => {
+          if (s.revealed) return;
+          s.revealed = true;
+          el.classList.add("is-touch-revealed");
+          activate(p.id);
+        };
+
+        el.addEventListener(
+          "touchstart",
+          (e) => {
+            s.touchSeen = true;
+            const t = e.touches[0];
+            s.touchStart = t ? { x: t.clientX, y: t.clientY } : null;
+          },
+          { passive: true },
+        );
+
+        el.addEventListener("touchend", (e) => {
+          const touchUi = isPlpTouchUi(undefined, s.touchSeen);
+          if (!shouldInterceptPlpCardTap({ isTouchUi: touchUi, isRevealed: s.revealed })) {
+            if (s.revealed) activate(p.id);
+            return;
+          }
+          const t = e.changedTouches[0];
+          if (t && !isTapGesture(s.touchStart, { x: t.clientX, y: t.clientY })) return;
+          s.suppressClick = true;
+          reveal();
+        });
+
+        el.addEventListener(
+          "click",
+          (e) => {
+            const touchUi = isPlpTouchUi(undefined, s.touchSeen);
+            const intercept = shouldInterceptPlpCardTap({
+              isTouchUi: touchUi,
+              isRevealed: s.revealed,
+            });
+            if (!intercept && !s.suppressClick) return;
+            e.preventDefault();
+            e.stopPropagation();
+            s.suppressClick = false;
+            if (intercept) reveal();
+          },
+          true,
+        );
+
+        const navigate = (href) => {
+          window.__navigated = href;
+        };
+
+        el.querySelector(".img").addEventListener("click", (e) => {
+          const touchUi = isPlpTouchUi(undefined, s.touchSeen);
+          const intercept = shouldInterceptPlpCardTap({
+            isTouchUi: touchUi,
+            isRevealed: s.revealed,
+          });
+          e.preventDefault();
+          if (intercept || s.suppressClick) {
+            e.stopPropagation();
+            s.suppressClick = false;
+            if (intercept) reveal();
+            return;
+          }
+          navigate(p.href);
+        });
+
+        el.querySelector(`[data-testid="name-link-${p.id}"]`).addEventListener(
+          "click",
+          (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (!s.revealed) return;
+            navigate(p.href);
+          },
+        );
+
+        el.querySelector(".reserve").addEventListener("click", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          window.__lastReserve = p.id;
+        });
+      }
+
+      window.__navigated = null;
+      window.__lastReserve = null;
+      window.__plpFixture = {
+        isRevealed: (id) => state.get(id)?.revealed === true,
+        opacity: (id) =>
+          getComputedStyle(document.querySelector(`[data-testid="box-${id}"]`))
+            .opacity,
+      };
+    </script>
+  </body>
+</html>

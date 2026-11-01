@@ -401,6 +401,16 @@ body,
     transform 180ms ease-out;
   will-change: opacity, transform;
 }
+/* Class-driven touch reveal — do NOT nest under (hover: none); media queries
+   disagree across real phones / WebViews, and a revealed card must stay visible. */
+.group.is-touch-revealed .plp-commerce-box--touch {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+.group.is-touch-revealed .plp-card-top-meta {
+  opacity: 0;
+}
 @media (hover: hover) and (pointer: fine) {
   .group:hover .plp-commerce-box--hover,
   .group:focus-within .plp-commerce-box--hover {
@@ -408,7 +418,22 @@ body,
     pointer-events: auto;
     transform: translateY(0);
   }
+  .group:hover .plp-card-top-meta,
+  .group:focus-within .plp-card-top-meta {
+    opacity: 0;
+  }
+  /* Fine-pointer desktops use the hover box; keep touch box out of the way
+     unless a touch session explicitly revealed this card. */
   .plp-commerce-box--touch {
+    display: none !important;
+  }
+  .group.is-touch-revealed .plp-commerce-box--touch {
+    display: flex !important;
+  }
+}
+/* Touch / coarse pointers never use the hover box. */
+@media (hover: none), (pointer: coarse) {
+  .plp-commerce-box--hover {
     display: none !important;
   }
 }
@@ -424,23 +449,4 @@ body,
 }
 .group.plp-force-hover-reveal .plp-commerce-box--touch {
   display: none !important;
-}
-@media (hover: none) {
-  .plp-commerce-box--hover {
-    display: none !important;
-  }
-  .group.is-touch-revealed .plp-commerce-box--touch {
-    opacity: 1;
-    pointer-events: auto;
-    transform: translateY(0);
-  }
-  .group.is-touch-revealed .plp-card-top-meta {
-    opacity: 0;
-  }
-}
-@media (hover: hover) and (pointer: fine) {
-  .group:hover .plp-card-top-meta,
-  .group:focus-within .plp-card-top-meta {
-    opacity: 0;
-  }
 }

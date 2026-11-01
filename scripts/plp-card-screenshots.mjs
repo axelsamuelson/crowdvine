@@ -72,11 +72,19 @@ const browser = await puppeteer.launch({
 });
 
 try {
-  // --- Mobile 390: default + tapped ---
+  // --- Mobile 390: real touch emulation (not just a narrow desktop viewport) ---
   {
     const page = await browser.newPage();
-    await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 1 });
-    await setHoverMedia(page, "none");
+    await page.setViewport({
+      width: 390,
+      height: 844,
+      deviceScaleFactor: 2,
+      isMobile: true,
+      hasTouch: true,
+      isLandscape: false,
+    });
+    const client = await setHoverMedia(page, "none");
+    await client.send("Emulation.setTouchEmulationEnabled", { enabled: true });
     await page.goto(PLP, { waitUntil: "networkidle2", timeout: 120000 });
     await settle(page, 2500);
     await screenshot(page, `${pass}-plp-mobile-390.png`);
@@ -86,9 +94,18 @@ try {
     if (!el) throw new Error("no card for mobile tap");
     const box = await el.boundingBox();
     if (!box) throw new Error("no bbox mobile");
-    // First tap reveals overlay (hover:none)
-    await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height * 0.55);
-    await new Promise((r) => setTimeout(r, 600));
+    // First tap reveals overlay (touch / hover:none)
+    await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height * 0.4);
+    await new Promise((r) => setTimeout(r, 700));
+    const revealed = await el.evaluate((g) => ({
+      cls: g.classList.contains("is-touch-revealed"),
+      opacity: getComputedStyle(
+        g.querySelector(".plp-commerce-box--touch"),
+      ).opacity,
+    }));
+    if (!revealed.cls || revealed.opacity !== "1") {
+      throw new Error(`mobile tap did not reveal box: ${JSON.stringify(revealed)}`);
+    }
     await screenshot(page, `${pass}-plp-mobile-390-tapped.png`);
     await page.close();
   }
