@@ -379,7 +379,7 @@ function CheckoutConfirmationContent() {
                       : t("checkout.successErrorGeneric")}
               </p>
               {(reservationIdParam?.trim() || checkoutGroupIdParam?.trim()) && (
-                <p className="text-xs text-gray-500 mt-3 font-mono break-all">
+                <p className="text-xs text-gray-500 mt-3 font-sans tabular-nums break-all">
                   {t("checkout.successReference")}{" "}
                   {reservationIdParam?.trim() ||
                     `checkoutGroup:${checkoutGroupIdParam?.trim()}`}
@@ -412,7 +412,7 @@ function CheckoutConfirmationContent() {
                     <div className="text-sm text-gray-500">
                       {t("checkout.successReservationId")}
                     </div>
-                    <div className="font-mono text-sm text-gray-900 break-all mt-1">
+                    <div className="font-sans tabular-nums text-sm text-gray-900 break-all mt-1">
                       {reservation.id}
                     </div>
                   </div>

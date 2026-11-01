@@ -77,7 +77,7 @@ export function ReferralInviteCard({
       </div>
 
       <div className="mt-4 rounded-xl border border-dashed border-border bg-muted/30 px-3 py-2.5">
-        <p className="break-all text-sm font-mono text-foreground">{inviteUrl || "—"}</p>
+        <p className="break-all text-sm font-sans text-foreground">{inviteUrl || "—"}</p>
       </div>
 
       <div className="mt-3 flex flex-wrap gap-2">

@@ -23,7 +23,7 @@ const pactAppearance = {
     colorBackground: "#ffffff",
     colorText: "#000000",
     colorTextSecondary: "#666666",
-    fontFamily: "Geist, system-ui, -apple-system, sans-serif",
+    fontFamily: "Geist, ui-sans-serif, sans-serif",
     fontSizeBase: "14px",
     borderRadius: "6px",
     spacingUnit: "3px",
