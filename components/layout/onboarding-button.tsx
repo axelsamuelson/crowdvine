@@ -4,6 +4,7 @@ import { HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useTranslations } from "@/lib/hooks/use-translations";
+import { useB2BModeServerHint } from "@/lib/context/b2b-mode-context";
 
 const onboardingButtonClassName = `
         h-8 px-3 
@@ -21,16 +22,26 @@ const onboardingButtonClassName = `
  * Always render the same DOM as SSR and hydration (Link), so we never branch on
  * context that may be missing during the server pass. Navigation matches
  * OnboardingProvider.showWelcome (router.push("/onboarding")).
+ *
+ * Dirty Wine: always «Hjälp» (same at 390 and 1440). PACT keeps «Kom igång»
+ * on md+ and «Hjälp» on small screens.
  */
 export function OnboardingButton() {
   const { t } = useTranslations();
+  const isDirtyWine = useB2BModeServerHint();
 
   return (
     <Button variant="ghost" size="sm" asChild className={onboardingButtonClassName}>
       <Link href="/onboarding" prefetch>
         <HelpCircle className="w-3.5 h-3.5 mr-1.5 transition-transform group-hover:scale-110" />
-        <span className="max-md:hidden">{t("home.getStarted")}</span>
-        <span className="md:hidden">{t("home.help")}</span>
+        {isDirtyWine ? (
+          <span>{t("home.help")}</span>
+        ) : (
+          <>
+            <span className="max-md:hidden">{t("home.getStarted")}</span>
+            <span className="md:hidden">{t("home.help")}</span>
+          </>
+        )}
       </Link>
     </Button>
   );
