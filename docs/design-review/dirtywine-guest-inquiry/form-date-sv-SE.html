@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="sv-SE">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Önskat leveransdatum — sv-SE</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: hsl(223.81 0% 94%);
+      --fg: hsl(223.81 0% 4%);
+      --muted: hsl(223.81 0% 45%);
+      --border: hsl(223.81 0% 74%);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Geist, ui-sans-serif, system-ui, sans-serif;
+      color: var(--fg);
+      background: var(--bg);
+      padding: 1.5rem 1rem;
+    }
+    label { display: block; font-size: 0.875rem; margin-bottom: 0.375rem; }
+    input[type="date"] {
+      width: 100%;
+      max-width: 22rem;
+      border: 1px solid var(--border);
+      border-radius: 0.375rem;
+      padding: 0.5rem 0.75rem;
+      font: inherit;
+      background: #fff;
+    }
+  </style>
+</head>
+<body>
+  <label for="desired-date">Önskat leveransdatum (valfritt)</label>
+  <input id="desired-date" type="date" lang="sv-SE" min="2026-11-02" value="" />
+</body>
+</html>

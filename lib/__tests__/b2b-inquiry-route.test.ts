@@ -48,6 +48,7 @@ const validBody = {
   phone: "0701234567",
   deliveryAddress: "Kungsgatan 1",
   postalCode: "11143",
+  city: "Stockholm",
   desiredDeliveryDate: "2026-12-15",
   message: "Test inquiry",
   website: "",
@@ -102,22 +103,8 @@ describe("POST /api/b2b/inquiry", () => {
     vi.mocked(sendB2bInquiryInternalNotify).mockResolvedValue(undefined);
   });
 
-  it("returns 401 without a session", async () => {
+  it("allows guests without a session and returns claimToken", async () => {
     vi.mocked(getCurrentUser).mockResolvedValue(null);
-    const res = await POST(
-      new Request("http://localhost/api/b2b/inquiry", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(validBody),
-      }),
-    );
-    expect(res.status).toBe(401);
-    const json = await res.json();
-    expect(json.code).toBe("unauthorized");
-    expect(getSupabaseAdmin).not.toHaveBeenCalled();
-  });
-
-  it("persists inquiry, sends emails, returns id", async () => {
     const sb = makeSb();
     vi.mocked(getSupabaseAdmin).mockReturnValue(sb as never);
 
@@ -132,6 +119,40 @@ describe("POST /api/b2b/inquiry", () => {
     expect(res.status).toBe(200);
     expect(json.success).toBe(true);
     expect(json.id).toBe("inq-test-id");
+    expect(typeof json.claimToken).toBe("string");
+    expect(json.claimToken.length).toBeGreaterThan(10);
+    expect(sb._inquiryInsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        user_id: null,
+        claim_token_hash: expect.any(String),
+        email: "ada+inquiry-test@example.com",
+      }),
+    );
+    expect(sendB2bInquiryCustomerEmail).toHaveBeenCalled();
+  });
+
+  it("persists inquiry for logged-in user without claimToken", async () => {
+    const sb = makeSb();
+    vi.mocked(getSupabaseAdmin).mockReturnValue(sb as never);
+
+    const res = await POST(
+      new Request("http://localhost/api/b2b/inquiry", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(validBody),
+      }),
+    );
+    const json = await res.json();
+    expect(res.status).toBe(200);
+    expect(json.success).toBe(true);
+    expect(json.id).toBe("inq-test-id");
+    expect(json.claimToken).toBeUndefined();
+    expect(sb._inquiryInsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        user_id: "user-test-id",
+        claim_token_hash: null,
+      }),
+    );
     expect(sendB2bInquiryCustomerEmail).toHaveBeenCalledWith(
       expect.objectContaining({
         to: "ada+inquiry-test@example.com",
@@ -180,5 +201,19 @@ describe("POST /api/b2b/inquiry", () => {
     );
     expect(res.status).toBe(200);
     expect(getSupabaseAdmin).not.toHaveBeenCalled();
+  });
+
+  it("returns Swedish validation code for missing fields", async () => {
+    vi.mocked(getCurrentUser).mockResolvedValue(null);
+    const res = await POST(
+      new Request("http://localhost/api/b2b/inquiry", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...validBody, companyName: "" }),
+      }),
+    );
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.code).toBe("required");
   });
 });

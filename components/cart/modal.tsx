@@ -27,8 +27,7 @@ import {
   B2B_PRODUCER_ORDERS_ENABLED,
   isDirtywineInquiryMode,
 } from "@/lib/b2b/flags";
-import { b2bInquiryLoginHref, B2B_INQUIRY_PATH } from "@/lib/b2b/inquiry-login";
-import { useUserRole } from "@/lib/hooks/use-user-role";
+import { B2B_INQUIRY_PATH } from "@/lib/b2b/inquiry-login";
 import { homeDeliveryGuidePath } from "@/lib/guides/home-delivery-guide";
 import { shouldAutoOpenCartOnQuantityChange } from "@/lib/cart/should-auto-open-cart";
 
@@ -498,14 +497,8 @@ function CheckoutButton({
   const { pending } = useFormStatus();
   const { cart, isPending } = useCart();
   const router = useRouter();
-  const { role, loading: authLoading } = useUserRole();
-  const needsInquiryLogin = inquiryMode && !authLoading && !role;
 
-  const checkoutUrl = inquiryMode
-    ? needsInquiryLogin
-      ? b2bInquiryLoginHref(B2B_INQUIRY_PATH)
-      : B2B_INQUIRY_PATH
-    : cart?.checkoutUrl;
+  const checkoutUrl = inquiryMode ? B2B_INQUIRY_PATH : cart?.checkoutUrl;
 
   // Check if there are validation errors
   const hasValidationErrors = validations.some((v) => !v.isValid);
@@ -593,9 +586,7 @@ function CheckoutButton({
                         ),
                       })
                     : inquiryMode
-                      ? needsInquiryLogin
-                        ? t("cart.loginToSendInquiry")
-                        : t("cart.sendInquiry")
+                      ? t("cart.sendInquiry")
                       : t("cart.proceedToCheckout")}
               </span>
               <ArrowRight className="size-6 shrink-0" />

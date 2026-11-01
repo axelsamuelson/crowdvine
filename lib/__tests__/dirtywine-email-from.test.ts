@@ -32,6 +32,7 @@ const sampleValue = {
   phone: "0701234567",
   deliveryAddress: "Gatan 1",
   postalCode: "11846",
+  city: "Stockholm",
   desiredDeliveryDate: "2026-12-01",
   message: null,
   lines: [
