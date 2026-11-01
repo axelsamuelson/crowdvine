@@ -33,12 +33,13 @@ export function DesktopGalleryWrapper({ children }: DesktopGalleryWrapperProps) 
   }, []);
 
   return (
-    <div 
+    <div
       ref={containerRef}
-      className="hidden overflow-y-auto relative col-span-7 col-start-6 w-full md:block" 
-      style={{ 
-        touchAction: 'pan-y', 
-        overscrollBehavior: 'auto'
+      // Offset below fixed header so nav (e.g. HEM) never sits on the hero image
+      className="relative col-span-7 col-start-6 hidden w-full overflow-y-auto md:block md:pt-top-spacing"
+      style={{
+        touchAction: "pan-y",
+        overscrollBehavior: "auto",
       }}
     >
       {children}

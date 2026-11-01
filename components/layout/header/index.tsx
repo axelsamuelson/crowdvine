@@ -56,7 +56,9 @@ export function Header({
   return (
     <header
       className={cn(
-        "fixed top-0 left-0 z-50 w-full p-sides",
+        // Solid page-matching bg so fixed nav never sits transparently on PDP hero
+        // (mobile logo over bottle neck; desktop HEM over gallery). Matches #117 v4.
+        "fixed top-0 left-0 z-50 w-full bg-background p-sides",
         // Dirtywine mobile: flex + absolutely centered logo (max 24px) so the wide
         // wordmark cannot shove the cart off-screen. Desktop matches previous 12-col grid.
         // pactwines.com keeps the original 3-col / 12-col grid unchanged.
