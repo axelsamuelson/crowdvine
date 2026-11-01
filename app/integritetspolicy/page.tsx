@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { LegalPageLayout } from "@/components/legal/legal-page-layout";
 import DirtyWineIntegritetspolicyContent from "@/content/legal/integritetspolicy-dirtywine";
 import IntegritetspolicyContent from "@/content/legal/integritetspolicy";
+import { getDirtywineLegalAddress } from "@/lib/b2b/brand";
 import { isDirtywineHost } from "@/lib/b2b-site";
 import { getRequestHostFromHeaders } from "@/lib/b2b-site-server";
 import { LEGAL_VERSIONS } from "@/lib/legal/versions";
@@ -83,14 +84,15 @@ export default async function IntegritetspolicyPage({ searchParams }: PageProps)
   const isDirtywine = await resolveIsDirtywine(searchParams);
 
   if (isDirtywine) {
-    const legalAddress = process.env.DIRTYWINE_LEGAL_ADDRESS?.trim() || null;
     return (
       <LegalPageLayout
         title={DIRTY_TITLE}
         lastUpdated={DIRTY_LAST_UPDATED}
         version={DIRTY_VERSION}
       >
-        <DirtyWineIntegritetspolicyContent legalAddress={legalAddress} />
+        <DirtyWineIntegritetspolicyContent
+          legalAddress={getDirtywineLegalAddress()}
+        />
       </LegalPageLayout>
     );
   }

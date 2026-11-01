@@ -2,9 +2,9 @@
 
 H1: Integritetspolicy (enda H1). Ingen H2 med samma titel.
 
-Den här policyn gäller dirtywine.se. Personuppgiftsansvarig är Axel Samuelson (enskild firma), Stockholm[, ADRESS]. Kontakt: axel@dirtywine.se (mailto).
+Den här policyn gäller dirtywine.se. Personuppgiftsansvarig är Axel Samuelson (enskild firma), Linnegatan 16, 114 47 Stockholm. Kontakt: axel@dirtywine.se (mailto).
 
-`[, ADRESS]` styrs av env `DIRTYWINE_LEGAL_ADDRESS` och utelämnas helt om den saknas.
+Adressen styrs av env `DIRTYWINE_LEGAL_ADDRESS` (default: `Linnegatan 16, 114 47 Stockholm`).
 
 Senast uppdaterad visas bara i sidhuvudet (LegalPageLayout), inte i brödtexten.
 

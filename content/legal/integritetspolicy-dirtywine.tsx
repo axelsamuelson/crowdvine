@@ -10,8 +10,8 @@ import {
 } from "@/components/legal/legal-prose";
 
 export type DirtyWinePrivacyProps = {
-  /** From env DIRTYWINE_LEGAL_ADDRESS; omitted from copy when empty. */
-  legalAddress?: string | null;
+  /** Business postal address under personuppgiftsansvarig (from DIRTYWINE_LEGAL_ADDRESS / default). */
+  legalAddress: string;
 };
 
 /**
@@ -45,14 +45,13 @@ function ContactEmail() {
 export default function DirtyWineIntegritetspolicyContent({
   legalAddress,
 }: DirtyWinePrivacyProps) {
-  const address = legalAddress?.trim() || null;
+  const address = legalAddress.trim();
 
   return (
     <LegalProse>
       <LegalP>
         Den här policyn gäller dirtywine.se. Personuppgiftsansvarig är Axel
-        Samuelson (enskild firma), Stockholm
-        {address ? `, ${address}` : ""}. Kontakt: <ContactEmail />.
+        Samuelson (enskild firma), {address}. Kontakt: <ContactEmail />.
       </LegalP>
 
       <LegalH2>Vilka uppgifter vi behandlar</LegalH2>

@@ -4,6 +4,7 @@ import {
   DIRTYWINE_EMAIL_BODY_BRAND,
   DIRTYWINE_INQUIRY_EMAIL_SIGNOFF,
   DIRTYWINE_INQUIRY_FOLLOW_UP,
+  DIRTYWINE_LEGAL_ADDRESS_DEFAULT,
   getDirtywineInquiryEmailFooterPlain,
   getDirtywineLegalAddress,
 } from "@/lib/b2b/brand";
@@ -70,24 +71,24 @@ describe("getDirtywineResendFrom", () => {
 });
 
 describe("Dirtywine legal footer", () => {
-  it("omits address and Stockholm when DIRTYWINE_LEGAL_ADDRESS is unset", () => {
+  it("uses default Linnegatan address when DIRTYWINE_LEGAL_ADDRESS is unset", () => {
     delete process.env.DIRTYWINE_LEGAL_ADDRESS;
-    expect(getDirtywineLegalAddress()).toBeNull();
+    expect(getDirtywineLegalAddress()).toBe(DIRTYWINE_LEGAL_ADDRESS_DEFAULT);
     const footer = getDirtywineInquiryEmailFooterPlain();
     expect(footer).toBe(
-      `${DIRTYWINE_EMAIL_BODY_BRAND} drivs av Axel Samuelson (enskild firma) · axel@dirtywine.se · Integritetspolicy · Du får det här mejlet eftersom du skickade en förfrågan på dirtywine.se.`,
+      `Dirtywine drivs av Axel Samuelson (enskild firma), Linnegatan 16, 114 47 Stockholm · axel@dirtywine.se · Integritetspolicy · Du får det här mejlet eftersom du skickade en förfrågan på dirtywine.se.`,
     );
-    expect(footer).toContain("Dirty Wine drivs av");
     expect(footer).not.toContain("[ADRESS]");
-    expect(footer).not.toContain("Stockholm");
+    expect(footer).not.toContain("Dirty Wine drivs av");
     expect(footer).not.toContain("EURPACT");
   });
 
-  it("inserts address and Stockholm when env is set", () => {
-    process.env.DIRTYWINE_LEGAL_ADDRESS = "Testgatan 1";
+  it("uses DIRTYWINE_LEGAL_ADDRESS override when set", () => {
+    process.env.DIRTYWINE_LEGAL_ADDRESS = "Testgatan 1, 111 22 Stockholm";
+    expect(getDirtywineLegalAddress()).toBe("Testgatan 1, 111 22 Stockholm");
     const footer = getDirtywineInquiryEmailFooterPlain();
-    expect(footer).toContain(
-      `${DIRTYWINE_EMAIL_BODY_BRAND} drivs av Axel Samuelson (enskild firma), Testgatan 1, Stockholm ·`,
+    expect(footer).toBe(
+      `Dirtywine drivs av Axel Samuelson (enskild firma), Testgatan 1, 111 22 Stockholm · axel@dirtywine.se · Integritetspolicy · Du får det här mejlet eftersom du skickade en förfrågan på dirtywine.se.`,
     );
     expect(footer).not.toContain("[ADRESS]");
   });
@@ -111,8 +112,10 @@ describe("inquiry email builders", () => {
     );
     expect(built.text).toContain(DIRTYWINE_INQUIRY_EMAIL_SIGNOFF);
     expect(built.html).toContain("Hälsningar, Dirty Wine");
-    expect(built.text).toContain("Dirty Wine drivs av");
-    expect(built.html).toContain("Dirty Wine drivs av");
+    expect(built.text).toContain("Dirtywine drivs av");
+    expect(built.html).toContain("Dirtywine drivs av");
+    expect(built.text).toContain("Linnegatan 16, 114 47 Stockholm");
+    expect(built.html).toContain("Linnegatan 16, 114 47 Stockholm");
     expect(built.text).not.toContain("så snart vi kan");
     expect(built.html).not.toContain("så snart vi kan");
     expect(built.text).not.toContain("inom 1 arbetsdag");
@@ -121,7 +124,6 @@ describe("inquiry email builders", () => {
     expect(built.text).toContain("Testvin");
     expect(built.text).toContain("6 flaskor");
     expect(built.text).not.toContain("[ADRESS]");
-    expect(built.text).not.toContain("Stockholm");
     expect(built.html).toContain("6 flaskor");
     expect(built.html).toMatch(/padding:[^;]*16px/);
     expect(built.html).toContain("white-space:nowrap");

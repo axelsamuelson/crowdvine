@@ -34,9 +34,23 @@ describe("Dirty Wine privacy processors", () => {
       "Vid överföring till USA används EU–US Data Privacy Framework eller EU:s standardavtalsklausuler, beroende på leverantör.",
     );
     expect(src).toContain("Den här policyn gäller dirtywine.se.");
+    expect(src).toContain("Personuppgiftsansvarig är Axel");
+    expect(src).toContain("{address}");
     expect(src).not.toContain("Integritetspolicy för Dirty Wine");
     expect(src).toContain('mailto:axel@dirtywine.se');
     expect(src).toContain("https://imy.se");
+  });
+
+  it("defaults personuppgiftsansvarig address to Linnegatan via brand helper", async () => {
+    const { getDirtywineLegalAddress, DIRTYWINE_LEGAL_ADDRESS_DEFAULT } =
+      await import("@/lib/b2b/brand");
+    delete process.env.DIRTYWINE_LEGAL_ADDRESS;
+    expect(getDirtywineLegalAddress()).toBe(
+      "Linnegatan 16, 114 47 Stockholm",
+    );
+    expect(DIRTYWINE_LEGAL_ADDRESS_DEFAULT).toBe(
+      "Linnegatan 16, 114 47 Stockholm",
+    );
   });
 
   it("does not claim Stripe or Budbee", () => {
