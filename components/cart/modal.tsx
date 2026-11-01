@@ -57,6 +57,7 @@ const CartItems = ({
 }) => {
   const { cart } = useCart();
   const { t, context } = useTranslations();
+  const isDirtywineSite = useB2BModeServerHint();
   const showExclVat = useB2BPriceMode();
   const totalAmount = cart ? parseFloat(cart.cost.totalAmount.amount) : 0;
   const displayTotal = showExclVat ? priceExclVat(totalAmount) : totalAmount;
@@ -156,15 +157,17 @@ const CartItems = ({
             <p>{t("cart.shipping")}</p>
             <p className="text-right">{t("cart.shippingAtCheckout")}</p>
           </div>
-          <p className="mb-3 text-xs">
-            <Link
-              href={homeDeliveryGuidePath(context.locale)}
-              onClick={closeCart}
-              className="text-muted-foreground underline underline-offset-4 hover:text-foreground"
-            >
-              {t("cart.homeDeliveryGuideLink")}
-            </Link>
-          </p>
+          {!isDirtywineSite ? (
+            <p className="mb-3 text-xs">
+              <Link
+                href={homeDeliveryGuidePath(context.locale)}
+                onClick={closeCart}
+                className="text-muted-foreground underline underline-offset-4 hover:text-foreground"
+              >
+                {t("cart.homeDeliveryGuideLink")}
+              </Link>
+            </p>
+          ) : null}
           <div className="flex justify-between items-center pt-1 pb-1 mb-1.5 text-lg font-semibold">
             <p>{t("cart.total")}</p>
             <div className="text-right">

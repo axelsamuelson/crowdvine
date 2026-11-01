@@ -1,0 +1,20 @@
+{
+  "before-390": [
+    "Access to fetch at 'https://pactwines.com/vin/naturvin-lada' (redirected from 'https://dirtywine.se/vin/naturvin-lada?_rsc=1r34m') from origin 'https://dirtywine.se' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: No 'Access-Control-Allow-Origin' header is present on the requested resource.",
+    "net::ERR_FAILED https://pactwines.com/vin/naturvin-lada",
+    "Access to fetch at 'https://pactwines.com/guider' (redirected from 'https://dirtywine.se/guider?_rsc=1r34m') from origin 'https://dirtywine.se' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: No 'Access-Control-Allow-Origin' header is present on the requested resource.",
+    "net::ERR_FAILED https://pactwines.com/guider",
+    "Access to fetch at 'https://pactwines.com/guider/hemleverans-av-naturvin' (redirected from 'https://dirtywine.se/guider/hemleverans-av-naturvin?_rsc=1rhr0') from origin 'https://dirtywine.se' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: No 'Access-Control-Allow-Origin' header is present on the requested resource.",
+    "net::ERR_FAILED https://pactwines.com/guider/hemleverans-av-naturvin"
+  ],
+  "before-1440": [
+    "Access to fetch at 'https://pactwines.com/guider' (redirected from 'https://dirtywine.se/guider?_rsc=1r34m') from origin 'https://dirtywine.se' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: No 'Access-Control-Allow-Origin' header is present on the requested resource.",
+    "net::ERR_FAILED https://pactwines.com/guider",
+    "Access to fetch at 'https://pactwines.com/vin/naturvin-lada' (redirected from 'https://dirtywine.se/vin/naturvin-lada?_rsc=1r34m') from origin 'https://dirtywine.se' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: No 'Access-Control-Allow-Origin' header is present on the requested resource.",
+    "net::ERR_FAILED https://pactwines.com/vin/naturvin-lada",
+    "Access to fetch at 'https://pactwines.com/guider' (redirected from 'https://dirtywine.se/guider?_rsc=1odh9') from origin 'https://dirtywine.se' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: No 'Access-Control-Allow-Origin' header is present on the requested resource.",
+    "Access to fetch at 'https://pactwines.com/guider/hemleverans-av-naturvin' (redirected from 'https://dirtywine.se/guider/hemleverans-av-naturvin?_rsc=1rhr0') from origin 'https://dirtywine.se' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: No 'Access-Control-Allow-Origin' header is present on the requested resource.",
+    "net::ERR_FAILED https://pactwines.com/guider/hemleverans-av-naturvin",
+    "Access to fetch at 'https://pactwines.com/guider' (redirected from 'https://dirtywine.se/guider?_rsc=1rhr0') from origin 'https://dirtywine.se' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+  ]
+}
