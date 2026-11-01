@@ -135,7 +135,26 @@ export function Footer({ initialLogos }: { initialLogos?: SiteLogos }) {
                 </nav>
               ) : null}
 
-              {!isDirtywineSite ? (
+              {isDirtywineSite ? (
+                <nav aria-labelledby="footer-legal-label" className="min-w-0">
+                  <div className="flex flex-col gap-3">
+                    <p
+                      id="footer-legal-label"
+                      className="text-sm font-semibold text-background"
+                    >
+                      Juridik
+                    </p>
+                    <div className="flex flex-col gap-2">
+                      <Link
+                        href="/integritetspolicy"
+                        className="text-sm text-background/70 hover:text-background transition-colors hover:underline"
+                      >
+                        Integritetspolicy
+                      </Link>
+                    </div>
+                  </div>
+                </nav>
+              ) : (
                 <nav aria-labelledby="footer-legal-label" className="min-w-0">
                   <div className="flex flex-col gap-3">
                     <p
@@ -191,7 +210,7 @@ export function Footer({ initialLogos }: { initialLogos?: SiteLogos }) {
                     </div>
                   </div>
                 </nav>
-              ) : null}
+              )}
 
               {!isDirtywineSite ? (
                 <div className="flex shrink-0 items-start sm:ml-auto">
