@@ -1,0 +1,174 @@
+[
+  {
+    "pass": "before",
+    "page": "log-in",
+    "path": "/log-in",
+    "element": "footer line (was font-mono)",
+    "httpStatus": 200,
+    "found": true,
+    "fontFamily": "\"Geist Mono\", \"Geist Mono Fallback\", monospace",
+    "fontVariantNumeric": "normal",
+    "tag": "div",
+    "className": "text-center fixed bottom-10 left-0 right-0 font-mono uppercase text-[11px] font-semibold text-white/90 mix-blend-exclusion",
+    "textSample": "Vin har aldrig varit så tillgängligt och transparent.Medlemskap via inbjudan."
+  },
+  {
+    "pass": "before",
+    "page": "access-request",
+    "path": "/access-request",
+    "element": "footer line (was font-mono)",
+    "httpStatus": 200,
+    "found": true,
+    "fontFamily": "\"Geist Mono\", \"Geist Mono Fallback\", monospace",
+    "fontVariantNumeric": "normal",
+    "tag": "div",
+    "className": "text-center fixed bottom-10 left-0 right-0 font-mono uppercase text-[11px] font-semibold text-white/90 mix-blend-exclusion",
+    "textSample": "Wine, but not like this.Membership by invitation."
+  },
+  {
+    "pass": "before",
+    "page": "access-pending",
+    "path": "/access-pending",
+    "element": "invite code input (was font-mono)",
+    "httpStatus": 200,
+    "found": true,
+    "fontFamily": "\"Geist Mono\", \"Geist Mono Fallback\", monospace",
+    "fontVariantNumeric": "normal",
+    "tag": "input",
+    "className": "flex h-10 w-full rounded-md border border-input bg-white px-3 py-1 text-base text-zinc-900 transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm aria-[invalid=true]:border-red-500 aria-[invalid=true]:focus-visible:!ring-red-500 text-center uppercase tracking-wider font-mono",
+    "textSample": ""
+  },
+  {
+    "pass": "before",
+    "page": "stockholm-delivery-landing",
+    "path": "/stockholm",
+    "element": "step number (was font-mono)",
+    "httpStatus": 200,
+    "found": false
+  },
+  {
+    "pass": "before",
+    "page": "reservation-status",
+    "path": "/reservation-status",
+    "element": "reservation id (was font-mono)",
+    "httpStatus": 200,
+    "found": true,
+    "fontFamily": "\"Geist Mono\", \"Geist Mono Fallback\", monospace",
+    "fontVariantNumeric": "normal",
+    "tag": "div",
+    "className": "text-center fixed bottom-10 left-0 right-0 font-mono uppercase text-[11px] font-semibold text-white/90 mix-blend-exclusion",
+    "textSample": "Wine, but not like this.Membership by invitation."
+  },
+  {
+    "pass": "before",
+    "page": "error",
+    "path": "/error",
+    "element": "error digest (was font-mono) — may 404; probe class in DOM if present",
+    "httpStatus": 200,
+    "found": false
+  },
+  {
+    "pass": "before",
+    "page": "checkout/success",
+    "path": "/checkout/success",
+    "element": "reservation id / reference (was font-mono)",
+    "httpStatus": 200,
+    "found": false
+  },
+  {
+    "pass": "before",
+    "page": "stripe-payment-section / authenticate-client",
+    "path": "(Elements appearance.variables.fontFamily)",
+    "element": "Stripe Elements fontFamily",
+    "found": true,
+    "note": "prod: system-ui / Geist+system-ui (pre-change)"
+  },
+  {
+    "pass": "after",
+    "page": "log-in",
+    "path": "/log-in",
+    "selector": ".fixed.bottom-10",
+    "element": "footer line",
+    "found": true,
+    "fontFamily": "Geist, \"Geist Fallback\", sans-serif",
+    "fontVariantNumeric": "normal",
+    "className": "text-center fixed bottom-10 left-0 right-0 font-sans uppercase text-[11px] font-semibold text-white/90 mix-blend-exclusion",
+    "textSample": "Vin har aldrig varit så tillgängligt och transparent.Medlemskap via inbjudan."
+  },
+  {
+    "pass": "after",
+    "page": "access-request",
+    "path": "/access-request",
+    "selector": ".fixed.bottom-10",
+    "element": "footer line",
+    "found": true,
+    "fontFamily": "Geist, \"Geist Fallback\", sans-serif",
+    "fontVariantNumeric": "normal",
+    "className": "text-center fixed bottom-10 left-0 right-0 font-sans uppercase text-[11px] font-semibold text-white/90 mix-blend-exclusion",
+    "textSample": "Wine, but not like this.Membership by invitation."
+  },
+  {
+    "pass": "after",
+    "page": "access-pending",
+    "path": "/access-pending",
+    "selector": "#invite-code, input[type='text']",
+    "element": "invite code input",
+    "setup": true,
+    "found": true,
+    "fontFamily": "Geist, \"Geist Fallback\", sans-serif",
+    "fontVariantNumeric": "tabular-nums",
+    "className": "flex h-10 w-full rounded-md border border-input bg-white px-3 py-1 text-base text-zinc-900 transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm aria-[invalid=true]:border-red-500 aria-[invalid=true]:focus-visible:!ring-red-500 text-center uppercase tracking-wider font-sans tabular-nums",
+    "textSample": ""
+  },
+  {
+    "pass": "after",
+    "page": "stripe-payment-section / authenticate-client",
+    "element": "Stripe Elements fontFamily",
+    "found": true,
+    "fontFamily": "Geist, ui-sans-serif, sans-serif",
+    "note": "from appearance.variables.fontFamily source"
+  },
+  {
+    "pass": "after",
+    "page": "stockholm-delivery-landing",
+    "element": "step number (was font-mono)",
+    "found": true,
+    "fontFamily": "source: font-sans tabular-nums (component not currently routed on live /vin path — redirects to guide)",
+    "note": "components/stockholm-delivery-landing/... step index"
+  },
+  {
+    "pass": "after",
+    "page": "checkout/success",
+    "element": "reservation id / reference",
+    "found": true,
+    "fontFamily": "source: font-sans tabular-nums (requires reservation id to render)"
+  },
+  {
+    "pass": "after",
+    "page": "reservation-status",
+    "element": "reservation id",
+    "found": true,
+    "fontFamily": "source: font-sans tabular-nums (auth-gated; redirects to access-request unauthenticated)"
+  },
+  {
+    "pass": "after",
+    "page": "error",
+    "element": "error digest",
+    "found": true,
+    "fontFamily": "source: font-sans tabular-nums (only when error.digest shown)"
+  },
+  {
+    "pass": "after",
+    "page": "profile/reservations + referral-invite-card",
+    "element": "pallet key / invite URL",
+    "found": true,
+    "fontFamily": "source: font-sans (+ tabular-nums on pallet key)"
+  },
+  {
+    "pass": "after",
+    "page": "product-card ScrollProbe",
+    "element": "debug overlay (DEBUG_SCROLL)",
+    "found": true,
+    "fontFamily": "source: font-sans tabular-nums (hidden unless debug flag)"
+  }
+]
