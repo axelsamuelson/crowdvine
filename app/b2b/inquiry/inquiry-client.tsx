@@ -19,12 +19,18 @@ import {
   b2bInquiryValidationSummary,
 } from "@/lib/b2b/inquiry-copy";
 import type { B2bInquiryPrefill } from "@/lib/b2b/inquiry-prefill";
+import { mergeB2bInquiryInputWithPrefill } from "@/lib/b2b/inquiry-prefill";
 import {
   tomorrowDateIso,
   validateB2bInquiryFields,
   type B2bInquiryFieldErrors,
   type B2bInquiryFieldKey,
 } from "@/lib/b2b/inquiry-validation";
+import {
+  B2B_INQUIRY_GUEST_PATH,
+  b2bInquiryLoginHref,
+  isB2bInquiryGuestMode,
+} from "@/lib/b2b/inquiry-login";
 import {
   clearB2bInquiryClaimToken,
   readB2bInquiryClaimToken,
@@ -318,10 +324,17 @@ export function B2bInquiryClient({
       };
     });
 
-    const clientParsed = validateB2bInquiryFields(
-      { ...form, lines: linesPayload },
-      { minDeliveryDate },
-    );
+    const formForValidation =
+      isAuthenticated && prefill
+        ? mergeB2bInquiryInputWithPrefill(
+            { ...form, lines: linesPayload },
+            prefill,
+          )
+        : { ...form, lines: linesPayload };
+
+    const clientParsed = validateB2bInquiryFields(formForValidation, {
+      minDeliveryDate,
+    });
     if (!clientParsed.ok) {
       if (clientParsed.error === "honeypot") {
         setDone(true);
@@ -373,7 +386,7 @@ export function B2bInquiryClient({
       }
 
       setSubmitted({
-        email: form.email,
+        email: formForValidation.email || form.email,
         // Customer confirmation email is always attempted on successful persist.
         emailSent: true,
         lines: summaryLines,
@@ -558,6 +571,31 @@ export function B2bInquiryClient({
       </ul>
     </section>
   );
+
+  // Logged-out visitors see an equal-choice step before the guest form.
+  if (!isAuthenticated && !isB2bInquiryGuestMode(searchParams)) {
+    return (
+      <div className="mx-auto max-w-2xl px-4 py-10 space-y-8 font-sans">
+        <div className="space-y-2">
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+            {copy.pageTitle}
+          </h1>
+          <p className="text-muted-foreground">{copy.loginRequiredIntro}</p>
+        </div>
+
+        {cartSummary}
+
+        <div className="space-y-3">
+          <Button asChild className="w-full h-12">
+            <Link href={b2bInquiryLoginHref()}>{copy.loginCta}</Link>
+          </Button>
+          <Button asChild className="w-full h-12">
+            <Link href={B2B_INQUIRY_GUEST_PATH}>{copy.continueAsGuestCta}</Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   const renderFieldError = (key: B2bInquiryFieldKey) => {
     const msg = fieldMessage(key);

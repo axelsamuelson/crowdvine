@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { B2bInquiryFormInput } from "@/lib/b2b/inquiry-validation";
 
 export type B2bInquiryPrefill = {
   companyName: string;
@@ -10,6 +11,37 @@ export type B2bInquiryPrefill = {
   postalCode: string;
   city: string;
 };
+
+/**
+ * For authenticated users: empty submitted fields fall back to profile/prefill
+ * so only fields missing from the account are required.
+ */
+export function mergeB2bInquiryInputWithPrefill(
+  input: B2bInquiryFormInput,
+  prefill: B2bInquiryPrefill | null | undefined,
+): B2bInquiryFormInput {
+  if (!prefill) return input;
+
+  const pick = (formVal: unknown, prefillVal: string): string => {
+    const trimmed = typeof formVal === "string" ? formVal.trim() : "";
+    return trimmed || prefillVal || "";
+  };
+
+  return {
+    ...input,
+    companyName: pick(input.companyName, prefill.companyName),
+    organizationNumber: pick(
+      input.organizationNumber,
+      prefill.organizationNumber,
+    ),
+    contactName: pick(input.contactName, prefill.contactName),
+    email: pick(input.email, prefill.email),
+    phone: pick(input.phone, prefill.phone),
+    deliveryAddress: pick(input.deliveryAddress, prefill.deliveryAddress),
+    postalCode: pick(input.postalCode, prefill.postalCode),
+    city: pick(input.city, prefill.city),
+  };
+}
 
 /**
  * Prefill inquiry fields from the signed-in profile and optional

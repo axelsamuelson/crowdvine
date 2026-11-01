@@ -171,9 +171,10 @@ describe("b2b inquiry copy for legal review", () => {
   it("exposes swedish customer-facing strings", () => {
     const texts = listB2bInquiryCustomerFacingSvTexts();
     expect(texts).toContain("Skicka förfrågan");
-    expect(texts).toContain("Logga in för att skicka förfrågan");
+    expect(texts).toContain("Logga in");
+    expect(texts).toContain("Fortsätt som ny kund");
     expect(texts).toContain(
-      "Logga in för att skicka förfrågan. Du kommer tillbaka hit med din lista kvar.",
+      "Logga in eller fortsätt som ny kund för att skicka din förfrågan.",
     );
     expect(texts).toContain(
       "Vi återkommer med bekräftelse och faktura. Ingen betalning sker här.",
