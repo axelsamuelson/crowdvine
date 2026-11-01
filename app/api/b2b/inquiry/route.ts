@@ -10,6 +10,10 @@ import {
   tomorrowDateIso,
   validateB2bInquiryForm,
 } from "@/lib/b2b/inquiry-validation";
+import {
+  loadB2bInquiryPrefill,
+  mergeB2bInquiryInputWithPrefill,
+} from "@/lib/b2b/inquiry-prefill";
 import { assertInquiryLinesInB2bStock } from "@/lib/b2b/inquiry-stock";
 import {
   sendB2bInquiryCustomerEmail,
@@ -79,23 +83,38 @@ export async function POST(req: Request) {
       );
     }
 
-    const parsed = validateB2bInquiryForm(
-      {
-        companyName: body.companyName,
-        organizationNumber: body.organizationNumber,
-        contactName: body.contactName,
-        email: body.email,
-        phone: body.phone,
-        deliveryAddress: body.deliveryAddress,
-        postalCode: body.postalCode,
-        city: body.city,
-        desiredDeliveryDate: body.desiredDeliveryDate,
-        message: body.message,
-        website: body.website,
-        lines: Array.isArray(body.lines) ? body.lines : [],
-      },
-      { minDeliveryDate: tomorrowDateIso() },
-    );
+    // Honeypot before any DB work (silent success for bots).
+    if (
+      typeof body.website === "string" &&
+      body.website.trim().length > 0
+    ) {
+      return NextResponse.json({ success: true });
+    }
+
+    let formInput = {
+      companyName: body.companyName,
+      organizationNumber: body.organizationNumber,
+      contactName: body.contactName,
+      email: body.email,
+      phone: body.phone,
+      deliveryAddress: body.deliveryAddress,
+      postalCode: body.postalCode,
+      city: body.city,
+      desiredDeliveryDate: body.desiredDeliveryDate,
+      message: body.message,
+      website: body.website,
+      lines: Array.isArray(body.lines) ? body.lines : [],
+    };
+
+    // Authenticated: empty body fields fall back to profile / invoice recipient.
+    if (user) {
+      const prefill = await loadB2bInquiryPrefill(getSupabaseAdmin(), user);
+      formInput = mergeB2bInquiryInputWithPrefill(formInput, prefill);
+    }
+
+    const parsed = validateB2bInquiryForm(formInput, {
+      minDeliveryDate: tomorrowDateIso(),
+    });
 
     if (!parsed.ok) {
       const { status, code } = validationStatus(parsed.error);

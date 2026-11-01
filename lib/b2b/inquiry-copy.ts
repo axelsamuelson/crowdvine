@@ -32,9 +32,10 @@ export const B2B_INQUIRY_COPY = {
     messagePlaceholder: "Eventuella önskemål eller frågor",
     submit: "Skicka förfrågan",
     submitting: "Skickar…",
-    loginCta: "Logga in för att skicka förfrågan",
+    loginCta: "Logga in",
     loginRequiredIntro:
-      "Logga in för att skicka förfrågan. Du kommer tillbaka hit med din lista kvar.",
+      "Logga in eller fortsätt som ny kund för att skicka din förfrågan.",
+    continueAsGuestCta: "Fortsätt som ny kund",
     createAccountCta: "Skapa konto",
     createAccountHint:
       "Med ett konto ser du dina förfrågningar och fakturor på ett ställe.",
@@ -101,9 +102,10 @@ export const B2B_INQUIRY_COPY = {
     messagePlaceholder: "Any requests or questions",
     submit: "Send inquiry",
     submitting: "Sending…",
-    loginCta: "Log in to send an inquiry",
+    loginCta: "Log in",
     loginRequiredIntro:
-      "Log in to send an inquiry. You will return here with your list intact.",
+      "Log in or continue as a new customer to send your inquiry.",
+    continueAsGuestCta: "Continue as new customer",
     createAccountCta: "Create account",
     createAccountHint:
       "With an account you can see your inquiries and invoices in one place.",
@@ -221,6 +223,7 @@ export function listB2bInquiryCustomerFacingSvTexts(): string[] {
     c.submitting,
     c.loginCta,
     c.loginRequiredIntro,
+    c.continueAsGuestCta,
     c.createAccountCta,
     c.createAccountHint,
     c.createAccountSkip,

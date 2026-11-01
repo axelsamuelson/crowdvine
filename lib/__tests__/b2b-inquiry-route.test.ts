@@ -31,6 +31,16 @@ vi.mock("@/lib/b2b/flags", async () => {
   };
 });
 
+vi.mock("@/lib/b2b/inquiry-prefill", async () => {
+  const actual = await vi.importActual<
+    typeof import("@/lib/b2b/inquiry-prefill")
+  >("@/lib/b2b/inquiry-prefill");
+  return {
+    ...actual,
+    loadB2bInquiryPrefill: vi.fn(),
+  };
+});
+
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getCurrentUser } from "@/lib/supabase-server";
 import { assertInquiryLinesInB2bStock } from "@/lib/b2b/inquiry-stock";
@@ -38,6 +48,8 @@ import {
   sendB2bInquiryCustomerEmail,
   sendB2bInquiryInternalNotify,
 } from "@/lib/b2b/inquiry-emails";
+import { loadB2bInquiryPrefill } from "@/lib/b2b/inquiry-prefill";
+import { b2bInquiryLimiter } from "@/lib/rate-limiter";
 import { POST } from "@/app/api/b2b/inquiry/route";
 
 const validBody = {
@@ -94,10 +106,24 @@ function makeSb() {
 describe("POST /api/b2b/inquiry", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Isolate from shared in-memory limiter across tests in this file.
+    (
+      b2bInquiryLimiter as unknown as { requests: Map<string, unknown> }
+    ).requests.clear();
     vi.mocked(getCurrentUser).mockResolvedValue({
       id: "user-test-id",
       email: "ada@example.com",
     } as never);
+    vi.mocked(loadB2bInquiryPrefill).mockResolvedValue({
+      companyName: "",
+      organizationNumber: "",
+      contactName: "",
+      email: "ada@example.com",
+      phone: "",
+      deliveryAddress: "",
+      postalCode: "",
+      city: "",
+    });
     vi.mocked(assertInquiryLinesInB2bStock).mockResolvedValue({ ok: true });
     vi.mocked(sendB2bInquiryCustomerEmail).mockResolvedValue(undefined);
     vi.mocked(sendB2bInquiryInternalNotify).mockResolvedValue(undefined);
@@ -210,6 +236,79 @@ describe("POST /api/b2b/inquiry", () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...validBody, companyName: "" }),
+      }),
+    );
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.code).toBe("required");
+  });
+
+  it("falls back to profile values for authenticated users with empty fields", async () => {
+    const sb = makeSb();
+    vi.mocked(getSupabaseAdmin).mockReturnValue(sb as never);
+    vi.mocked(loadB2bInquiryPrefill).mockResolvedValue({
+      companyName: "Profile AB",
+      organizationNumber: "556677-8899",
+      contactName: "Ada Lovelace",
+      email: "ada@example.com",
+      phone: "0701234567",
+      deliveryAddress: "Kungsgatan 1",
+      postalCode: "11143",
+      city: "Stockholm",
+    });
+
+    const res = await POST(
+      new Request("http://localhost/api/b2b/inquiry", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...validBody,
+          companyName: "",
+          organizationNumber: "",
+          contactName: "",
+          email: "",
+          deliveryAddress: "",
+          postalCode: "",
+          city: "",
+        }),
+      }),
+    );
+    const json = await res.json();
+    expect(res.status).toBe(200);
+    expect(json.success).toBe(true);
+    expect(loadB2bInquiryPrefill).toHaveBeenCalled();
+    expect(sb._inquiryInsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        company_name: "Profile AB",
+        email: "ada@example.com",
+        city: "Stockholm",
+        user_id: "user-test-id",
+      }),
+    );
+  });
+
+  it("still requires fields missing from both body and profile", async () => {
+    const sb = makeSb();
+    vi.mocked(getSupabaseAdmin).mockReturnValue(sb as never);
+    vi.mocked(loadB2bInquiryPrefill).mockResolvedValue({
+      companyName: "",
+      organizationNumber: "556677-8899",
+      contactName: "Ada Lovelace",
+      email: "ada@example.com",
+      phone: "",
+      deliveryAddress: "Kungsgatan 1",
+      postalCode: "11143",
+      city: "Stockholm",
+    });
+
+    const res = await POST(
+      new Request("http://localhost/api/b2b/inquiry", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...validBody,
+          companyName: "",
+        }),
       }),
     );
     expect(res.status).toBe(400);
