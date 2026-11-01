@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Dirtywine — startsida header</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,sans-serif;background:#111;color:#fff;min-height:100vh}
+header{position:fixed;top:0;left:0;right:0;z-index:50;display:flex;align-items:center;justify-content:space-between;padding:1rem;}
+.menu{position:relative;z-index:1;font-size:12px;font-weight:600;text-transform:uppercase;background:rgba(255,255,255,.12);color:#fff;border:0;border-radius:4px;padding:.4rem .75rem;}
+.logo-wrap{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;justify-content:center;max-width:46vw}
+.logo-wrap img{height:24px;max-height:24px;width:auto;max-width:100%;object-fit:contain;filter:brightness(0) invert(1)}
+.cart{position:relative;z-index:1;background:#fff;color:#000;font-size:12px;font-weight:600;border:0;border-radius:4px;padding:.35rem .55rem}
+.hero{min-height:100vh;display:flex;align-items:flex-end;padding:6rem 1.25rem 2rem;background:linear-gradient(180deg,rgba(0,0,0,.2),rgba(0,0,0,.55)),url('https://abrnvjqwpdkodgrtezeg.supabase.co/storage/v1/object/public/uploads/7d3dc7e0-8177-43bc-ba07-42f8e6d88c41.webp') center/cover}
+h1{font-size:2rem;font-weight:700;letter-spacing:-.02em;margin:0 0 1rem;max-width:14ch}
+</style>
+</head>
+<body>
+<header>
+  <button class="menu" type="button">Menu</button>
+  <div class="logo-wrap"><img src="https://abrnvjqwpdkodgrtezeg.supabase.co/storage/v1/object/public/uploads/fe06af9d-ee01-418b-8b77-9d1b0c435bac.svg" alt="Dirtywine"/></div>
+  <button class="cart" type="button">(0)</button>
+</header>
+<section class="hero"><h1>Vin utan mellanhänder</h1></section>
+</body>
+</html>

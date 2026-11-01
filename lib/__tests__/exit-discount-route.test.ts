@@ -105,8 +105,21 @@ describe("POST /api/exit-discount", () => {
     const lead = insertLead.mock.calls[0]?.[0] as Record<string, unknown>;
     expect(lead.email).toBe("a@b.com");
     expect(lead).not.toHaveProperty("user_id");
+    const promo = insertPromo.mock.calls[0]?.[0] as Record<string, unknown>;
+    expect(promo.applies_to).toBe("item");
+    expect(promo.value).toBe(10);
     expect(sendEmail).toHaveBeenCalled();
     const mail = sendEmail.mock.calls[0]?.[0] as Record<string, unknown>;
     expect(mail.from).toBe("PACT <customer@pactwines.com>");
+  });
+
+  it("skips Resend when EXIT_DISCOUNT_EMAIL_MODE=log", async () => {
+    vi.stubEnv("EXIT_DISCOUNT_EMAIL_MODE", "log");
+    const ok = await post({
+      email: "test@resend.dev",
+      age_confirmed: true,
+    });
+    expect(ok.status).toBe(200);
+    expect(sendEmail).not.toHaveBeenCalled();
   });
 });

@@ -171,7 +171,7 @@ export default async function RootLayout({
                         </div>
                       </div>
                       {isDevelopment && <DebugGrid />}
-                      <RootAnalyticsDeferred />
+                      <RootAnalyticsDeferred isB2B={isDirtywineSite} />
                     </MembershipProvider>
                   </PortalProvider>
                 </MobileMenuProvider>

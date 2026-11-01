@@ -47,14 +47,22 @@ const Toaster = dynamic(() => import("sonner").then((m) => m.Toaster), {
   ssr: false,
 });
 
-export function RootAnalyticsDeferred() {
+/**
+ * @param isB2B — dirtywine.se / B2B hosts must not mount the exit popup
+ * (shared root layout previously loaded it on both portals).
+ */
+export function RootAnalyticsDeferred({
+  isB2B = false,
+}: {
+  isB2B?: boolean;
+}) {
   return (
     <>
       <Toaster closeButton position="bottom-right" />
       <InternalDeviceMarker />
       <PageViewTracker />
       <SessionEngagementTracker />
-      <ExitFeedbackPrompt />
+      {!isB2B ? <ExitFeedbackPrompt /> : null}
       <Analytics />
     </>
   );

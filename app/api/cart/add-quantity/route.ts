@@ -4,11 +4,7 @@ import { cookies } from "next/headers";
 import { CartService } from "@/src/lib/cart-service";
 import { isB2BHost } from "@/lib/b2b-site";
 import { B2B_PRODUCER_ORDERS_ENABLED } from "@/lib/b2b/flags";
-import {
-  BOTTLE_PACK_SIZE,
-  isBottlePackQuantity,
-  mergeB2BPackQuantity,
-} from "@/lib/cart/bottle-pack";
+import { mergeB2BPackQuantity } from "@/lib/cart/bottle-pack";
 
 /**
  * POST /api/cart/add-quantity
@@ -53,17 +49,8 @@ export async function POST(request: Request) {
       Math.min(99, parseInt(String(requestedQuantity)) || 1),
     );
 
-    // Dirty Wine: only full packs (multiples of 6)
-    const enforcePack =
-      body.enforcePack === true || isB2BHost(requestHost);
-    if (enforcePack && !isBottlePackQuantity(quantity)) {
-      return NextResponse.json(
-        {
-          error: `Quantity must be a multiple of ${BOTTLE_PACK_SIZE} bottles`,
-        },
-        { status: 400 },
-      );
-    }
+    // Dirty Wine: single bottles allowed (ignore legacy enforcePack clients).
+    const isB2B = isB2BHost(requestHost);
 
     console.log("🛒 [ADD-QUANTITY] Validated quantity:", quantity);
 
@@ -195,8 +182,7 @@ export async function POST(request: Request) {
 
     if (existingItem) {
       // Item exists - increment quantity by requested amount.
-      // B2B: drop legacy non-pack remainder so 1+6 → 6 (not 7).
-      const newQuantity = enforcePack
+      const newQuantity = isB2B
         ? mergeB2BPackQuantity(existingItem.quantity, quantity)
         : existingItem.quantity + quantity;
       console.log(
@@ -204,7 +190,7 @@ export async function POST(request: Request) {
         existingItem.quantity,
         "to",
         newQuantity,
-        enforcePack ? "(B2B pack merge)" : "",
+        isB2B ? "(B2B merge)" : "",
       );
 
       const { error: updateError } = await supabase

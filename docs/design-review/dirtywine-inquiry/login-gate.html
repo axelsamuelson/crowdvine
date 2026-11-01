@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="sv">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Beställningsförfrågan — inloggningskrav</title>
+    <style>
+      :root {
+        --fg: #1a1a1a;
+        --muted: #5c5c5c;
+        --border: #e5e5e5;
+        --bg: #f7f4ef;
+        --card: #ffffff;
+        --primary: #1f3d2b;
+        --primary-fg: #f7f4ef;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia,
+          serif;
+        color: var(--fg);
+        background:
+          radial-gradient(
+            1200px 600px at 10% -10%,
+            rgba(31, 61, 43, 0.08),
+            transparent 60%
+          ),
+          linear-gradient(180deg, #f7f4ef 0%, #efe8dc 100%);
+        min-height: 100vh;
+      }
+      .wrap {
+        max-width: 42rem;
+        margin: 0 auto;
+        padding: 2.5rem 1rem 3rem;
+      }
+      h1 {
+        font-size: 1.75rem;
+        font-weight: 600;
+        margin: 0 0 0.5rem;
+        letter-spacing: -0.02em;
+      }
+      .intro {
+        color: var(--muted);
+        line-height: 1.5;
+        margin: 0 0 1.75rem;
+        font-size: 1.05rem;
+      }
+      h2 {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+        font-weight: 600;
+        margin: 0 0 0.75rem;
+        font-family: system-ui, sans-serif;
+      }
+      ul {
+        list-style: none;
+        margin: 0 0 1.75rem;
+        padding: 0;
+        border: 1px solid var(--border);
+        border-radius: 0.375rem;
+        background: var(--card);
+        overflow: hidden;
+      }
+      li {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 0.65rem 0.85rem;
+        font-size: 0.95rem;
+        border-top: 1px solid var(--border);
+        font-family: system-ui, sans-serif;
+      }
+      li:first-child {
+        border-top: none;
+      }
+      .price {
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+      }
+      .hint {
+        font-size: 0.65rem;
+      }
+      .btn {
+        display: block;
+        text-align: center;
+        text-decoration: none;
+        background: var(--primary);
+        color: var(--primary-fg);
+        padding: 0.9rem 1rem;
+        border-radius: 0.375rem;
+        font-family: system-ui, sans-serif;
+        font-weight: 600;
+        font-size: 1rem;
+        margin-bottom: 0.75rem;
+      }
+      .btn-outline {
+        display: block;
+        text-align: center;
+        text-decoration: none;
+        border: 1px solid var(--border);
+        color: var(--fg);
+        background: transparent;
+        padding: 0.75rem 1rem;
+        border-radius: 0.375rem;
+        font-family: system-ui, sans-serif;
+        font-size: 0.95rem;
+      }
+      .chrome {
+        font-family: system-ui, sans-serif;
+        font-size: 0.75rem;
+        color: var(--muted);
+        margin-bottom: 1.25rem;
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 0.75rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="chrome">
+        Design review · dirtywine.se · utloggad · /b2b/inquiry · CTA →
+        /log-in?next=/b2b/inquiry
+      </div>
+      <h1>Beställningsförfrågan</h1>
+      <p class="intro">
+        Du kan bläddra i sortiment och priser utan konto. För att skicka en
+        förfrågan behöver du logga in — efter inloggning kommer du tillbaka hit.
+      </p>
+      <h2>Din förfrågan</h2>
+      <ul>
+        <li>
+          <span>Mas de Daumas Gassac Rouge × 6</span>
+          <span class="price">1 140 kr <span class="hint">Priser exkl. moms</span></span>
+        </li>
+        <li>
+          <span>Domaine Léon Barral Faugères × 12</span>
+          <span class="price">2 280 kr <span class="hint">Priser exkl. moms</span></span>
+        </li>
+      </ul>
+      <a class="btn" href="/log-in?next=%2Fb2b%2Finquiry"
+        >Logga in för att skicka förfrågan</a
+      >
+      <a class="btn-outline" href="/shop">Tillbaka till sortimentet</a>
+    </div>
+  </body>
+</html>

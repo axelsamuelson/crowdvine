@@ -12,9 +12,18 @@ import {
 interface ProfileIconProps {
   className?: string;
   size?: "sm" | "md" | "lg";
+  /** Accessible + optional visible label (e.g. Swedish "Profil"). */
+  label?: string;
+  /** When true, show the label as visible text (no uppercase) instead of icon-only. */
+  showLabel?: boolean;
 }
 
-export function ProfileIcon({ className = "", size = "md" }: ProfileIconProps) {
+export function ProfileIcon({
+  className = "",
+  size = "md",
+  label = "Profil",
+  showLabel = false,
+}: ProfileIconProps) {
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
@@ -22,11 +31,10 @@ export function ProfileIcon({ className = "", size = "md" }: ProfileIconProps) {
   useEffect(() => {
     checkAuthStatus();
 
-    // Listen for auth changes
     const supabase = createClient();
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       setIsAuthenticated(!!session?.user);
       setLoading(false);
     });
@@ -61,7 +69,6 @@ export function ProfileIcon({ className = "", size = "md" }: ProfileIconProps) {
     }
   };
 
-  // Listen for storage changes (logout from other tabs)
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === "supabase.auth.token") {
@@ -83,38 +90,35 @@ export function ProfileIcon({ className = "", size = "md" }: ProfileIconProps) {
     router.push(isAuthenticated ? "/profile" : "/log-in");
   };
 
-  // Show loading state briefly
-  if (loading) {
-    return (
-      <div className="relative inline-block">
-        <button
-          type="button"
-          className={`p-2 hover:bg-background/20 transition-colors rounded-md opacity-50 cursor-not-allowed relative ${className}`}
-          disabled
-        >
-          <div className="relative">
-            <User className={sizeClasses[size]} />
-          </div>
-          <span className="absolute sr-only">Profile</span>
-        </button>
-      </div>
-    );
-  }
+  const buttonClass = `p-2 transition-colors rounded-md relative items-center gap-1.5 ${className} ${
+    loading
+      ? "opacity-50 cursor-not-allowed"
+      : isAuthenticated
+        ? "hover:bg-background/20"
+        : "hover:bg-background/10 opacity-80"
+  }`;
 
   return (
     <div className="relative inline-block">
       <button
         type="button"
-        className={`p-2 transition-colors rounded-md relative ${className} ${
-          isAuthenticated ? "hover:bg-background/20" : "hover:bg-background/10 opacity-80"
-        }`}
-        onClick={handleClick}
-        aria-label="Profile"
+        className={buttonClass}
+        onClick={loading ? undefined : handleClick}
+        disabled={loading}
+        aria-label={label}
       >
-        <div className="relative">
-          <User className={sizeClasses[size]} />
-        </div>
-        <span className="absolute sr-only">Profile</span>
+        {showLabel ? (
+          <span className="text-sm font-semibold normal-case tracking-normal">
+            {label}
+          </span>
+        ) : (
+          <>
+            <div className="relative">
+              <User className={sizeClasses[size]} />
+            </div>
+            <span className="absolute sr-only">{label}</span>
+          </>
+        )}
       </button>
     </div>
   );

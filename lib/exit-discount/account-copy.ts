@@ -10,7 +10,7 @@ export const EXIT_DISCOUNT_ACCOUNT_BULLETS = [
   "Följ dina reservationer och se hur det går med pallen, från att den samlas ihop tills den är full.",
   "Gör smakquizet och få vinförslag som passar dig.",
   "Lås upp medlemsnivåer och förmåner.",
-  "Bjud in vänner till PACT och lås upp belöningar",
+  "Bjud in vänner till PACT och lås upp belöningar.",
 ] as const;
 
 export const EXIT_DISCOUNT_ACCOUNT_CTA = "Skapa konto";

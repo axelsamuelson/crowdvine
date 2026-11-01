@@ -125,6 +125,11 @@ const navigationGroups: NavGroup[] = [
     items: [
       { name: "B2C Orders", href: "/admin/b2c-orders", icon: Calendar },
       { name: "B2B Orders", href: "/admin/b2b-orders", icon: FileText },
+      {
+        name: "B2B-förfrågningar",
+        href: "/admin/b2b-inquiries",
+        icon: FileText,
+      },
       { name: "Rabattkoder", href: "/admin/rabattkoder", icon: Gift },
       {
         name: "Exkluderade profiler",

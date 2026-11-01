@@ -100,6 +100,29 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Failed to save order", details: error.message }, { status: 500 });
     }
 
+    try {
+      const {
+        bottlesFromInvoiceData,
+        logB2bOrderCreated,
+        resolveIsFirstB2bOrder,
+      } = await import("@/lib/analytics/b2b-events");
+      const customerEmail = (invoice.toEmail ?? "").trim();
+      const isFirstOrder = await resolveIsFirstB2bOrder(sb, {
+        customerKey: customerEmail || null,
+        excludeOrderId: inserted.id,
+      });
+      await logB2bOrderCreated({
+        orderId: inserted.order_id,
+        orderType: "offline",
+        bottles: bottlesFromInvoiceData(invoice),
+        amountSek: totalCents / 100,
+        isFirstOrder,
+        userId: admin.id,
+      });
+    } catch (e) {
+      console.error("b2b_order_created (dirty-wine-orders route):", e);
+    }
+
     return NextResponse.json({ order: mapDbRowToDirtyWineOrder(inserted as DirtyWineOrderDbRow) });
   } catch (error) {
     console.error("Error creating dirty wine order:", error);

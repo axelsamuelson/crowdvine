@@ -269,8 +269,9 @@ export function getCheckoutBrowseOnlyUnsupportedCountryMessage(
   host?: string | null,
   searchParams?: { get: (key: string) => string | null } | null,
 ): string {
+  // Dirtywine (localization off): Swedish-only copy for restaurant customers.
   if (host != null && !isUiLocalizationEnabled(host, searchParams)) {
-    return CHECKOUT_BROWSE_ONLY_UNSUPPORTED_COUNTRY_EN;
+    return CHECKOUT_BROWSE_ONLY_UNSUPPORTED_COUNTRY_SV;
   }
   return `${CHECKOUT_BROWSE_ONLY_UNSUPPORTED_COUNTRY_EN}\n\n${CHECKOUT_BROWSE_ONLY_UNSUPPORTED_COUNTRY_SV}`;
 }

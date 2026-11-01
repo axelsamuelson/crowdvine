@@ -1,13 +1,15 @@
 import {
   appLocaleFromMarketLocale,
-  DEFAULT_APP_LOCALE,
   intlLocaleForAppLocale,
   isAppLocale,
   localeFromAcceptLanguage,
   parseLocaleCookie,
   type AppLocale,
 } from "@/lib/i18n/locale";
-import { isUiLocalizationEnabled } from "@/lib/localization";
+import {
+  FIXED_LOCALE_WHEN_LOCALIZATION_DISABLED,
+  isUiLocalizationEnabled,
+} from "@/lib/localization";
 import {
   resolveActiveGeoZoneAnonymous,
   resolveActiveGeoZoneForUser,
@@ -63,7 +65,10 @@ function resolveAppLocale(params: {
   activeZone: ResolvedActiveGeoZone;
   pathLocale?: AppLocale | null;
 }): AppLocale {
-  if (!params.uiLocalizationEnabled) return DEFAULT_APP_LOCALE;
+  // Dirtywine (localization off): fixed Swedish UI — not DEFAULT_APP_LOCALE (en).
+  if (!params.uiLocalizationEnabled) {
+    return FIXED_LOCALE_WHEN_LOCALIZATION_DISABLED;
+  }
   // Explicit browser choice (language switcher) wins over stored profile default.
   const fromCookie = parseLocaleCookie(params.cookieLocale);
   const fromPreferred = params.userPreferred;

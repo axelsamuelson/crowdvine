@@ -114,7 +114,35 @@ export async function createB2bOrderFromInvoice(
     .select(ORDER_COLUMNS)
     .single();
   assertNoError(error);
-  return summaryOf(data, false);
+  const summary = summaryOf(data, false);
+
+  try {
+    const {
+      bottlesFromInvoiceData,
+      logB2bOrderCreated,
+      resolveIsFirstB2bOrder,
+    } = await import("@/lib/analytics/b2b-events");
+    const isFirstOrder = await resolveIsFirstB2bOrder(sb, {
+      recipientId: invoice.recipient_id,
+      customerKey: invoiceData.toEmail.trim() || null,
+      excludeOrderId: summary.id,
+      excludeInvoiceId: invoice.id,
+    });
+    await logB2bOrderCreated({
+      orderId: summary.order_id,
+      invoiceId: invoice.id,
+      orderType: "offline",
+      bottles: bottlesFromInvoiceData(invoiceData),
+      amountSek: totalCents / 100,
+      recipientId: invoice.recipient_id,
+      isFirstOrder,
+      userId: createdBy,
+    });
+  } catch (e) {
+    console.error("b2b_order_created (dirty_wine_orders):", e);
+  }
+
+  return summary;
 }
 
 export async function listB2bOrders(sb: SupabaseClient): Promise<B2bOrderSummary[]> {

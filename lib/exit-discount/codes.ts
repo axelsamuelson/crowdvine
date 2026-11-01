@@ -42,7 +42,8 @@ export async function createExitDiscountCode(opts: {
         description: "Exit popup 10% first order",
         type: "percent",
         value: EXIT_DISCOUNT_PERCENT,
-        applies_to: "order",
+        // Wine lines only — shipping is never part of the exit-discount base.
+        applies_to: "item",
         purpose: "normal",
         max_uses: 1,
         max_uses_per_user: 1,

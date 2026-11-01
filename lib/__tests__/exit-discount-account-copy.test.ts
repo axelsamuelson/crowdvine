@@ -16,7 +16,7 @@ describe("exit discount account copy", () => {
       "Följ dina reservationer och se hur det går med pallen, från att den samlas ihop tills den är full.",
       "Gör smakquizet och få vinförslag som passar dig.",
       "Lås upp medlemsnivåer och förmåner.",
-      "Bjud in vänner till PACT och lås upp belöningar",
+      "Bjud in vänner till PACT och lås upp belöningar.",
     ]);
     expect(EXIT_DISCOUNT_ACCOUNT_CTA).toBe("Skapa konto");
     expect(EXIT_DISCOUNT_ACCOUNT_DECLINE).toBe("Nej tack, inte nu");

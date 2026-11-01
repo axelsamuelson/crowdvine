@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="sv" data-b2b="true">
+<head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Beställningsförfrågan | Dirtywine</title>
+<style>
+  @font-face{font-family:Geist;src:local("Geist"),local("Inter");font-display:swap}
+  :root{--background:0 0% 6%;--foreground:0 0% 96%;--muted-foreground:0 0% 60%;--border:0 0% 20%;--primary:0 0% 98%;--primary-foreground:0 0% 6%}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Geist,system-ui,-apple-system,sans-serif;background:hsl(var(--background));color:hsl(var(--foreground));min-height:100vh}
+  header{position:fixed;top:0;left:0;right:0;z-index:50;display:grid;grid-template-columns:1fr auto 1fr;align-items:start;padding:1rem 1.25rem}
+  header img{height:2.75rem;width:auto;object-fit:contain;display:block}
+  .nav{font-size:11px;letter-spacing:.08em;text-transform:uppercase;line-height:1.6;opacity:.9}
+  .center{justify-self:center}
+  .right{justify-self:end;display:flex;gap:1.25rem;align-items:center;font-size:11px;letter-spacing:.08em;text-transform:uppercase}
+  main{padding:7rem 1rem 3rem;max-width:42rem;margin:0 auto}
+  h1{font-size:1.5rem;font-weight:600;letter-spacing:-.02em;margin:0 0 .5rem}
+  .intro{color:hsl(var(--muted-foreground));margin:0 0 1.75rem;line-height:1.5}
+  h2{font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:hsl(var(--muted-foreground));font-weight:600;margin:0 0 .75rem}
+  ul{list-style:none;margin:0;padding:0;border:1px solid hsl(var(--border));border-radius:.375rem;overflow:hidden}
+  li{display:flex;justify-content:space-between;gap:1rem;padding:.65rem .85rem;font-size:.95rem;border-top:1px solid hsl(var(--border))}
+  li:first-child{border-top:none}
+  .price{color:hsl(var(--muted-foreground));font-variant-numeric:tabular-nums;white-space:nowrap}
+  .hint{font-size:.75rem;color:hsl(var(--muted-foreground));margin:.5rem 0 .75rem}
+  .total{display:flex;justify-content:space-between;gap:1rem;font-size:.95rem;font-weight:600;margin:0 0 1.75rem}
+  .btn{display:block;text-align:center;text-decoration:none;background:hsl(var(--primary));color:hsl(var(--primary-foreground));padding:.9rem 1rem;border-radius:.375rem;font-weight:600;margin-bottom:.75rem}
+  .btn-outline{display:block;text-align:center;text-decoration:none;border:1px solid hsl(var(--border));color:hsl(var(--foreground));padding:.75rem 1rem;border-radius:.375rem}
+</style>
+</head>
+<body>
+<header>
+  <div class="nav">Hem<br/>Alla viner<br/>Guider</div>
+  <div class="center"><img src="https://abrnvjqwpdkodgrtezeg.supabase.co/storage/v1/object/public/uploads/fe06af9d-ee01-418b-8b77-9d1b0c435bac.svg" alt="Dirtywine" width="140" height="56" style="filter:brightness(0) invert(1)"/></div>
+  <div class="right"><span>Profile</span><span>Varukorg (2)</span></div>
+</header>
+<main>
+  <h1>Beställningsförfrågan</h1>
+  <p class="intro">Logga in för att skicka förfrågan. Du kommer tillbaka hit med din lista kvar.</p>
+  <h2>Din förfrågan</h2>
+  <ul>
+    <li><span>Mas de Daumas Gassac Rouge × 6</span><span class="price">1 140 kr</span></li>
+    <li><span>Domaine Léon Barral Faugères × 12</span><span class="price">2 280 kr</span></li>
+  </ul>
+  <p class="hint">Priser exkl. moms</p>
+  <div class="total"><span>Totalt: 18 flaskor</span><span>3 420 kr</span></div>
+  <a class="btn" href="/log-in?next=%2Fb2b%2Finquiry">Logga in för att skicka förfrågan</a>
+  <a class="btn-outline" href="/shop">Tillbaka till sortimentet</a>
+</main>
+</body></html>
