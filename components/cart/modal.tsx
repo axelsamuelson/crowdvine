@@ -10,7 +10,7 @@ import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { Loader } from "../ui/loader";
 import { CartItemCard } from "./cart-item";
-import { priceExclVat } from "@/lib/shopify/utils";
+import { cartLineB2bLineTotalExclVat } from "@/lib/b2b/inquiry-price-math";
 import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
 import { formatCartLinePrice } from "@/lib/shopping-context/format";
 import { useTranslations } from "@/lib/hooks/use-translations";
@@ -59,7 +59,17 @@ const CartItems = ({
   const isDirtywineSite = useB2BModeServerHint();
   const showExclVat = useB2BPriceMode();
   const totalAmount = cart ? parseFloat(cart.cost.totalAmount.amount) : 0;
-  const displayTotal = showExclVat ? priceExclVat(totalAmount) : totalAmount;
+  const displayTotal = showExclVat
+    ? (cart?.lines ?? []).reduce(
+        (sum, line) =>
+          sum +
+          cartLineB2bLineTotalExclVat(
+            line.merchandise.product ?? {},
+            line.quantity,
+          ),
+        0,
+      )
+    : totalAmount;
   const [pactPointsBalance, setPactPointsBalance] = useState<number | null>(null);
   const hasBoostedProducerInCart = Boolean(
     cart?.lines?.some(

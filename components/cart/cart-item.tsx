@@ -7,7 +7,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { DeleteItemButton } from "./delete-item-button";
 import { EditItemQuantityButton } from "./edit-item-quantity-button";
-import { priceExclVat } from "@/lib/shopify/utils";
+import { cartLineB2bLineTotalExclVat } from "@/lib/b2b/inquiry-price-math";
 import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
 import { useDisplayMoney } from "@/lib/hooks/use-display-money";
 import { formatCartLinePrice } from "@/lib/shopping-context/format";
@@ -35,7 +35,9 @@ export function CartItemCard({ item, onCloseCart }: CartItemProps) {
   const showExclVat = useB2BPriceMode();
   const merchandiseSearchParams = {} as MerchandiseSearchParams;
   const amount = parseFloat(item.cost.totalAmount.amount);
-  const displayAmount = showExclVat ? priceExclVat(amount) : amount;
+  const displayAmount = showExclVat
+    ? cartLineB2bLineTotalExclVat(item.merchandise.product ?? {}, item.quantity)
+    : amount;
 
   item.merchandise.selectedOptions.forEach(({ name, value }) => {
     if (value !== DEFAULT_OPTION) {

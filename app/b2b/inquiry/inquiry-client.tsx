@@ -36,7 +36,7 @@ import {
 } from "@/lib/analytics/b2b-track-client";
 import { formatCartLinePrice } from "@/lib/shopping-context/format";
 import type { CartItem } from "@/lib/shopify/types";
-import { priceExclVat } from "@/lib/shopify/utils";
+import { cartLineB2bUnitPriceExclVat } from "@/lib/b2b/inquiry-price-math";
 import { emitOnce } from "@/lib/analytics/emit-once";
 import { cn } from "@/lib/utils";
 
@@ -195,8 +195,9 @@ export function B2bInquiryClient({
     let exclSum = 0;
     for (const line of warehouseLines) {
       bottles += line.quantity;
-      const lineTotal = parseFloat(line.cost.totalAmount.amount || "0");
-      exclSum += priceExclVat(lineTotal);
+      const unit =
+        cartLineB2bUnitPriceExclVat(line.merchandise.product ?? {}) ?? 0;
+      exclSum += unit * line.quantity;
     }
     return { bottles, exclSum };
   }, [warehouseLines]);
@@ -306,15 +307,16 @@ export function B2bInquiryClient({
     }
 
     const linesPayload = warehouseLines.map((line) => {
-      const lineTotal = parseFloat(line.cost.totalAmount.amount || "0");
-      const unitIncl =
-        line.quantity > 0 ? lineTotal / line.quantity : lineTotal;
-      const unitExcl = priceExclVat(unitIncl);
+      // Display hint only — server recomputes from b2bPriceExclVat / wine costs.
+      const unitExcl = cartLineB2bUnitPriceExclVat(
+        line.merchandise.product ?? {},
+      );
       return {
         wineId: line.merchandise.id,
         wineTitle: line.merchandise.product?.title || line.merchandise.title,
         quantity: line.quantity,
-        unitPriceCents: Math.round(unitExcl * 100),
+        unitPriceCents:
+          unitExcl != null ? Math.round(unitExcl * 100) : null,
       };
     });
 
@@ -334,11 +336,12 @@ export function B2bInquiryClient({
     setFieldErrors({});
 
     const summaryLines = warehouseLines.map((line) => {
-      const lineTotal = parseFloat(line.cost.totalAmount.amount || "0");
+      const unit =
+        cartLineB2bUnitPriceExclVat(line.merchandise.product ?? {}) ?? 0;
       return {
         title: line.merchandise.product?.title || line.merchandise.title,
         quantity: line.quantity,
-        excl: priceExclVat(lineTotal),
+        excl: unit * line.quantity,
         imageUrl: cartLineImageUrl(line),
       };
     });
@@ -517,8 +520,9 @@ export function B2bInquiryClient({
       </h2>
       <ul className="divide-y border rounded-md">
         {warehouseLines.map((line) => {
-          const lineTotal = parseFloat(line.cost.totalAmount.amount || "0");
-          const excl = priceExclVat(lineTotal);
+          const unit =
+            cartLineB2bUnitPriceExclVat(line.merchandise.product ?? {}) ?? 0;
+          const excl = unit * line.quantity;
           const title =
             line.merchandise.product?.title || line.merchandise.title;
           return (

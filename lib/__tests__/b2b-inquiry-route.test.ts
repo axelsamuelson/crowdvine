@@ -12,6 +12,23 @@ vi.mock("@/lib/b2b/inquiry-stock", () => ({
   assertInquiryLinesInB2bStock: vi.fn(),
 }));
 
+vi.mock("@/lib/b2b/inquiry-pricing", () => ({
+  applyServerInquiryLinePrices: vi.fn(async (_sb, lines) =>
+    lines.map(
+      (line: {
+        wineId: string;
+        wineTitle: string;
+        quantity: number;
+        unitPriceCents: number | null;
+      }) => ({
+        ...line,
+        // Server-authoritative B2B excl. VAT (ignores client B2C/1.25)
+        unitPriceCents: 13200,
+      }),
+    ),
+  ),
+}));
+
 vi.mock("@/lib/b2b/inquiry-emails", () => ({
   sendB2bInquiryCustomerEmail: vi.fn(),
   sendB2bInquiryInternalNotify: vi.fn(),
@@ -34,6 +51,7 @@ vi.mock("@/lib/b2b/flags", async () => {
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getCurrentUser } from "@/lib/supabase-server";
 import { assertInquiryLinesInB2bStock } from "@/lib/b2b/inquiry-stock";
+import { applyServerInquiryLinePrices } from "@/lib/b2b/inquiry-pricing";
 import {
   sendB2bInquiryCustomerEmail,
   sendB2bInquiryInternalNotify,
@@ -58,7 +76,8 @@ const validBody = {
       wineId: "11111111-1111-1111-1111-111111111111",
       wineTitle: "Testvin",
       quantity: 6,
-      unitPriceCents: 15000,
+      // Client may send B2C/1.25 — server must overwrite to B2B 13200
+      unitPriceCents: 12600,
     },
   ],
 };
@@ -147,18 +166,32 @@ describe("POST /api/b2b/inquiry", () => {
     expect(json.success).toBe(true);
     expect(json.id).toBe("inq-test-id");
     expect(json.claimToken).toBeUndefined();
+    expect(applyServerInquiryLinePrices).toHaveBeenCalled();
     expect(sb._inquiryInsert).toHaveBeenCalledWith(
       expect.objectContaining({
         user_id: "user-test-id",
         claim_token_hash: null,
       }),
     );
+    expect(sb._linesInsert).toHaveBeenCalledWith([
+      expect.objectContaining({
+        wine_id: validBody.lines[0].wineId,
+        quantity: 6,
+        unit_price_cents: 13200,
+      }),
+    ]);
     expect(sendB2bInquiryCustomerEmail).toHaveBeenCalledWith(
       expect.objectContaining({
         to: "ada+inquiry-test@example.com",
         value: expect.objectContaining({
           companyName: "Test AB",
           email: "ada+inquiry-test@example.com",
+          lines: [
+            expect.objectContaining({
+              unitPriceCents: 13200,
+              quantity: 6,
+            }),
+          ],
         }),
       }),
     );

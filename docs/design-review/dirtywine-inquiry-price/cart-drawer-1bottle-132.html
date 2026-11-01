@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Varukorg | Dirtywine (1× Résiste @ 132)</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,sans-serif;background:#e8e8e8;color:#0a0a0a;min-height:100vh}
+.backdrop{position:fixed;inset:0;background:rgba(0,0,0,.35)}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(100%,420px);background:#fafafa;box-shadow:-8px 0 24px rgba(0,0,0,.12);display:flex;flex-direction:column}
+.head{display:flex;align-items:center;justify-content:space-between;padding:1rem 1rem .75rem;border-bottom:1px solid #e4e4e7}
+.head h1{font-size:1.125rem;font-weight:600;margin:0}
+.close{border:0;background:transparent;font-size:1.25rem;line-height:1;cursor:pointer}
+.item{display:flex;gap:1rem;padding:1rem;border-bottom:1px solid #e4e4e7}
+.thumb{width:96px;height:96px;background:#eee;border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;color:#71717a;text-align:center;padding:.5rem}
+.meta{flex:1;display:flex;flex-direction:column;gap:.35rem;min-width:0}
+.title{font-weight:600;font-size:1rem}
+.producer{font-size:.875rem;color:#71717a}
+.badge{display:inline-flex;align-items:center;gap:.25rem;font-size:11px;padding:.15rem .4rem;border-radius:4px;background:#f4f4f5;color:#71717a;width:fit-content}
+.price{font-weight:600;font-size:1.05rem}
+.excl{font-size:10px;color:#71717a}
+.qty-row{display:flex;align-items:center;justify-content:space-between;margin-top:auto}
+.stepper{display:flex;align-items:center;border:1px solid #e4e4e7;border-radius:6px;height:2rem}
+.stepper span{width:2rem;text-align:center;font-size:.875rem}
+.stepper button{width:2rem;border:0;background:transparent;font-size:1rem}
+.foot{margin-top:auto;padding:1rem;border-top:1px solid #e4e4e7}
+.total-row{display:flex;justify-content:space-between;align-items:flex-start;font-weight:600;font-size:1.05rem;margin-bottom:.75rem}
+.total-right{text-align:right}
+.cta{display:block;width:100%;text-align:center;background:#171717;color:#fafafa;padding:.9rem 1rem;border-radius:.375rem;font-weight:500;text-decoration:none;border:0}
+</style>
+</head>
+<body>
+<div class="backdrop"></div>
+<aside class="drawer" aria-label="Varukorg">
+  <div class="head">
+    <h1>Varukorg</h1>
+    <button class="close" type="button" aria-label="Stäng">×</button>
+  </div>
+  <div class="item">
+    <div class="thumb">RÉSISTE<br/>2025</div>
+    <div class="meta">
+      <div class="title">Résiste 2025</div>
+      <div class="producer">La Marotte</div>
+      <span class="badge">Lager</span>
+      <div class="price">132&nbsp;kr</div>
+      <div class="excl">exkl. moms</div>
+      <div class="qty-row">
+        <div class="stepper">
+          <button type="button">−</button>
+          <span>1</span>
+          <button type="button">+</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="foot">
+    <div class="total-row">
+      <span>Totalt</span>
+      <div class="total-right">
+        <div>132&nbsp;kr</div>
+        <div class="excl">exkl. moms</div>
+      </div>
+    </div>
+    <a class="cta" href="#">Skicka förfrågan</a>
+  </div>
+</aside>
+</body>
+</html>

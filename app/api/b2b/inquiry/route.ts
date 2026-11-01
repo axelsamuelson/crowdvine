@@ -11,6 +11,7 @@ import {
   validateB2bInquiryForm,
 } from "@/lib/b2b/inquiry-validation";
 import { assertInquiryLinesInB2bStock } from "@/lib/b2b/inquiry-stock";
+import { applyServerInquiryLinePrices } from "@/lib/b2b/inquiry-pricing";
 import {
   sendB2bInquiryCustomerEmail,
   sendB2bInquiryInternalNotify,
@@ -105,10 +106,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: code, code }, { status });
     }
 
-    const value = parsed.value;
     const sb = getSupabaseAdmin();
 
-    const stockCheck = await assertInquiryLinesInB2bStock(sb, value.lines);
+    const stockCheck = await assertInquiryLinesInB2bStock(
+      sb,
+      parsed.value.lines,
+    );
     if (!stockCheck.ok) {
       return NextResponse.json(
         {
@@ -119,6 +122,13 @@ export async function POST(req: Request) {
         { status: 409 },
       );
     }
+
+    // Server-authoritative B2B excl. VAT prices (ignore client unitPriceCents).
+    const pricedLines = await applyServerInquiryLinePrices(
+      sb,
+      parsed.value.lines,
+    );
+    const value = { ...parsed.value, lines: pricedLines };
 
     const claim = user ? null : mintB2bInquiryClaimToken();
 
