@@ -6,7 +6,7 @@ Companion to [`AGENTS.md`](../../AGENTS.md). Describes AI-facing surfaces and sc
 
 - **Routes:** `app/api/mcp/route.ts`, `app/api/mcp/messages/route.ts`
 - **Server:** `lib/mcp/server.ts` → `createPactMcpServer()`
-- **Auth:** `mcp:read` / `mcp:write` (`lib/mcp/auth/`); writes audited via `lib/mcp/utils/write-tool.ts` → `mcp_audit_log`
+- **Auth:** OAuth scopes `mcp:read` / `mcp:write` (`lib/mcp/auth/`); optional static read-only Bearer key via `PACT_MCP_READONLY_API_KEY` (header only; allowlisted to `get_gsc_performance` / `get_gsc_compare`); writes audited via `lib/mcp/utils/write-tool.ts` → `mcp_audit_log`
 - **Rule:** schema or tool-surface changes must keep scopes and audit logging intact
 
 ### Tool groups (`lib/mcp/tools/`)

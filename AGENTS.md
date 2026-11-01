@@ -83,7 +83,7 @@ CI (`.github/workflows/ci.yml`): on push/PR to `main` → install → `pnpm test
 - HTTP MCP endpoint: **`/api/mcp`** (also `/api/mcp/messages`).
 - Server factory: **`lib/mcp/server.ts`** (`createPactMcpServer`).
 - Tool modules under `lib/mcp/tools/` (goals, objectives, projects, tasks, metrics, catalog, pallets, lager/frakt, GSC, Systembolaget, top-100, invoices, delivery notes).
-- Auth scopes: `mcp:read` / `mcp:write` (`lib/mcp/auth/`). Mutating tools must stay listed in the write-tool set and go through audit logging (`lib/mcp/utils/write-tool.ts`, `mcp_audit_log`).
+- Auth scopes: `mcp:read` / `mcp:write` (`lib/mcp/auth/`). Optional static read-only Bearer key: env `PACT_MCP_READONLY_API_KEY` (header only; allowlisted to `get_gsc_performance` / `get_gsc_compare`). Mutating tools must stay listed in the write-tool set and go through audit logging (`lib/mcp/utils/write-tool.ts`, `mcp_audit_log`).
 - **Schema / tool surface changes must keep scopes and the audit log correct** — new writes need `mcp:write` registration and audit; do not bypass `mcpWriteTool` / scope checks.
 
 Inventory: [`docs/ai/README.md`](docs/ai/README.md).
