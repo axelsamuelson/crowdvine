@@ -25,22 +25,24 @@ describe("best orange natural wines Systembolaget guide", () => {
       "Bra orange vin på Systembolaget",
     );
     expect(bestOrangeNaturalWinesSystembolagetSvArticle.meta.sv).toBe(
-      "Bästa orange vin på Systembolaget enligt PACT: nio viner med skalkontakt, fakta om druva och producent, vad orange vin är och vanliga frågor.",
+      "Bästa orange vin på Systembolaget enligt PACT: vårt urval med äkta skalkontakt, fakta om druva och producent samt vanliga frågor.",
     );
+    expect(bestOrangeNaturalWinesSystembolagetSvArticle.title.sv).toBe(
+      "Bästa orange vin på Systembolaget – vårt urval | PACT",
+    );
+    // Layout title.template adds " | PACT Wines"; strip brand suffix to avoid doubling.
     expect(
       categoryPageTitle(
         bestOrangeNaturalWinesSystembolagetSvArticle.title.sv,
         "PACT Wines",
       ),
-    ).toBe(
-      "Bästa orange vin på Systembolaget – vårt urval med skalkontakt",
-    );
+    ).toBe("Bästa orange vin på Systembolaget – vårt urval");
   });
 
   it("credits Axel Samuelson with Person-ready author fields and FAQ schema source", () => {
     const author = bestOrangeNaturalWinesSystembolagetSvArticle.author;
     expect(author?.name).toBe("Axel Samuelson");
-    expect(author?.jobTitle).toBe("Founder");
+    expect(author?.jobTitle).toBe("Grundare av PACT");
     expect(author?.byline.sv).toContain("grundare av PACT");
     expect(bestOrangeNaturalWinesSystembolagetSvArticle.faqs?.length).toBeGreaterThanOrEqual(
       6,

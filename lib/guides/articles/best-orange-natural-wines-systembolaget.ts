@@ -9,7 +9,7 @@ const SLUG = {
 
 const AUTHOR = {
   name: "Axel Samuelson",
-  jobTitle: "Founder",
+  jobTitle: "Grundare av PACT",
   byline: {
     en: "By Axel Samuelson, founder of PACT · Last reviewed: 2026-11-01",
     sv: "Av Axel Samuelson, grundare av PACT · Senast granskad: 2026-11-01",
@@ -26,11 +26,11 @@ export const bestOrangeNaturalWinesSystembolagetArticle: GuideArticleContent = {
   slug: SLUG,
   title: {
     en: "Best orange wines at Systembolaget 2026",
-    sv: "Bästa orange vin på Systembolaget – vårt urval med skalkontakt | PACT",
+    sv: "Bästa orange vin på Systembolaget – vårt urval | PACT",
   },
   meta: {
     en: "Independent guide to the best orange natural wines at Systembolaget — skin-contact bottles worth buying.",
-    sv: "Bästa orange vin på Systembolaget enligt PACT: nio viner med skalkontakt, fakta om druva och producent, vad orange vin är och vanliga frågor.",
+    sv: "Bästa orange vin på Systembolaget enligt PACT: vårt urval med äkta skalkontakt, fakta om druva och producent samt vanliga frågor.",
   },
   h1: {
     en: "Best orange natural wines at Systembolaget 2026",
@@ -193,11 +193,11 @@ export const bestOrangeNaturalWinesSystembolagetSvArticle: GuideArticleContent =
     slug: SLUG,
     title: {
       en: "Best orange wines at Systembolaget 2026",
-      sv: "Bästa orange vin på Systembolaget – vårt urval med skalkontakt | PACT",
+      sv: "Bästa orange vin på Systembolaget – vårt urval | PACT",
     },
     meta: {
       en: "Independent guide to the best orange natural wines at Systembolaget — skin-contact bottles worth buying.",
-      sv: "Bästa orange vin på Systembolaget enligt PACT: nio viner med skalkontakt, fakta om druva och producent, vad orange vin är och vanliga frågor.",
+      sv: "Bästa orange vin på Systembolaget enligt PACT: vårt urval med äkta skalkontakt, fakta om druva och producent samt vanliga frågor.",
     },
     h1: {
       en: "Best orange natural wines at Systembolaget 2026",
