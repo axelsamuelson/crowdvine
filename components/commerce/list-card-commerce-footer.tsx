@@ -25,7 +25,7 @@ export function ListCardCommerceFooter({
   return (
     <div className={cn("space-y-1.5", className)}>
       {!isB2B ? <MinSixBottlesHint locale={locale} compact /> : null}
-      {!isB2B ? <DirectBoxDeliveryPromise locale={locale} compact /> : null}
+      <DirectBoxDeliveryPromise locale={locale} compact />
       {children}
     </div>
   );

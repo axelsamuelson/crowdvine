@@ -181,11 +181,9 @@ export async function ProductPdpLayout({
                       <MinSixBottlesHint locale={locale} />
                     ) : null}
                     {/* SSR direct-box promise; client PalletStatusBar keeps analytics. */}
-                    {!isDirtywine ? (
-                      <noscript>
-                        <DirectBoxDeliveryPromise locale={locale} />
-                      </noscript>
-                    ) : null}
+                    <noscript>
+                      <DirectBoxDeliveryPromise locale={locale} />
+                    </noscript>
                     <PalletStatusBar />
                     <AddToCartConditional
                       product={product}

@@ -67,12 +67,8 @@ function ProductListStaticCard({
           </div>
 
           <div className="pointer-events-auto space-y-1.5 rounded-md bg-white/95 p-2 shadow-sm backdrop-blur-sm">
-            {showMinSix ? (
-              <>
-                <MinSixBottlesHint locale={locale} compact />
-                <DirectBoxDeliveryPromise locale={locale} compact />
-              </>
-            ) : null}
+            {showMinSix ? <MinSixBottlesHint locale={locale} compact /> : null}
+            <DirectBoxDeliveryPromise locale={locale} compact />
             <SsrReserveLink handle={product.handle} locale={locale} />
           </div>
         </div>
