@@ -24,7 +24,6 @@ Host: `dirtywine.se` (production for before; local `Host: dirtywine.se` for afte
 | Open cart before | `before-cart-390.png` | `before-cart-1440.png` |
 | Open cart after | `after-cart-390.png` | `after-cart-1440.png` |
 
-CORS console capture: `before-cors-report.json` (redirects to pactwines.com) vs
 `after-cors-report.json` (empty).
 
 ## What changed (Dirty Wine only)
@@ -40,4 +39,3 @@ Removed from chrome when `isDirtywineSite` / `useB2BModeServerHint()`:
 
 No middleware / redirect / route URL changes. pactwines.com unchanged.
 
-Capture helper: `scripts/dirtywine-links-screenshots.mjs`.
