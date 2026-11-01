@@ -10,14 +10,11 @@ import {
   Users,
   Package,
   Truck,
-  MapPin,
   CheckCircle,
-  TrendingDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LogoSvg } from "@/components/layout/header/logo-svg";
 import { normalizeMembershipLevel } from "@/lib/membership/points-engine";
-import { PriceComparisonVisual } from "./price-comparison-visual";
 
 interface WelcomeModalProps {
   isOpen: boolean;
@@ -117,13 +114,6 @@ const getSteps = (membershipLevel: WelcomeModalMembershipLevel) => {
     },
     {
       id: 2,
-      title: "Why PACT is Cheaper",
-      subtitle: "No middlemen. No warehouses. No hidden costs.",
-      icon: TrendingDown,
-      content: <PriceComparisonVisual />,
-    },
-    {
-      id: 3,
       title: "How It Works",
       subtitle: "Crowdsourcing wine, step by step",
       icon: Package,
@@ -188,7 +178,7 @@ const getSteps = (membershipLevel: WelcomeModalMembershipLevel) => {
       ),
     },
     {
-      id: 4,
+      id: 3,
       title: "Pallets & Progress",
       subtitle: "Watch your reservation come to life",
       icon: Truck,
@@ -255,7 +245,7 @@ const getSteps = (membershipLevel: WelcomeModalMembershipLevel) => {
       ),
     },
     {
-      id: 5,
+      id: 4,
       title: "Your Membership",
       subtitle: "Earn points, unlock perks",
       icon: Users,
@@ -320,7 +310,7 @@ const getSteps = (membershipLevel: WelcomeModalMembershipLevel) => {
       ),
     },
     {
-      id: 6,
+      id: 5,
       title: "Ready to Start?",
       subtitle: "Explore wines and make your first reservation",
       icon: Wine,
