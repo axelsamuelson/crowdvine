@@ -74,6 +74,25 @@ export function resolveShopFilterNavigationUrl(options: {
   );
 }
 
+/**
+ * Keep active shop query filters (region, producers, sort, q, …) when jumping
+ * between path-based colour category URLs. Call after gating so navigable-path
+ * checks stay path-only. Does not alter canonical category URLs.
+ */
+export function withShopFilterSearchParams(
+  path: string,
+  search: string | URLSearchParams | null | undefined,
+): string {
+  if (!path) return path;
+  const qs =
+    typeof search === "string"
+      ? search.replace(/^\?/, "")
+      : (search?.toString() ?? "");
+  if (!qs) return path;
+  if (path.includes("?")) return `${path}&${qs}`;
+  return `${path}?${qs}`;
+}
+
 export function shouldNavigateShopFilters(pathname: string): boolean {
   return isShopFilterNavigationPath(pathname);
 }

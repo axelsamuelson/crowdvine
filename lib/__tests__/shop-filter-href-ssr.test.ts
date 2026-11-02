@@ -2,7 +2,10 @@ import { describe, it, expect } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ColorPicker } from "@/components/ui/color-picker";
-import { resolveShopFilterNavigationUrl } from "@/lib/shop/filter-navigation";
+import {
+  resolveShopFilterNavigationUrl,
+  withShopFilterSearchParams,
+} from "@/lib/shop/filter-navigation";
 import { COLOR_MAP } from "@/lib/constants";
 
 describe("shop filter navigation hrefs (natural default)", () => {
@@ -86,6 +89,45 @@ describe("shop filter navigation hrefs (natural default)", () => {
         clearFarming: true,
       }),
     ).toBe("/vin/rott-naturvin");
+  });
+
+  it("preserves region and other query params on colour select and clear", () => {
+    const redPath = resolveShopFilterNavigationUrl({
+      locale: "sv",
+      currentPath: "/vin",
+      nextColorUi: "Red",
+    });
+    expect(withShopFilterSearchParams(redPath, "region=loire")).toBe(
+      "/vin/rott-naturvin?region=loire",
+    );
+    expect(
+      withShopFilterSearchParams(
+        redPath,
+        new URLSearchParams("region=loire&sort=price-asc"),
+      ),
+    ).toBe("/vin/rott-naturvin?region=loire&sort=price-asc");
+
+    const clearPath = resolveShopFilterNavigationUrl({
+      locale: "sv",
+      currentPath: "/vin/rott-naturvin",
+      clearColor: true,
+    });
+    expect(withShopFilterSearchParams(clearPath, "region=loire")).toBe(
+      "/vin?region=loire",
+    );
+
+    const enPath = resolveShopFilterNavigationUrl({
+      locale: "en",
+      currentPath: "/wine",
+      nextColorUi: "Red",
+    });
+    expect(withShopFilterSearchParams(enPath, "?region=loire")).toBe(
+      "/wine/red-natural-wine?region=loire",
+    );
+
+    // Path-only when no active query filters (canonical colour URLs unchanged).
+    expect(withShopFilterSearchParams(redPath, "")).toBe("/vin/rott-naturvin");
+    expect(withShopFilterSearchParams(redPath, null)).toBe("/vin/rott-naturvin");
   });
 
   it("renders color swatches as <a href> when category URLs are provided", () => {

@@ -27,7 +27,7 @@ import { ShopMobileDock } from "./shop-mobile-dock";
 import { ShopMobileSearchSheet } from "./shop-mobile-search-sheet";
 import { ShopMobileSortSheet } from "./shop-mobile-sort-sheet";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "@/lib/hooks/use-translations";
 import { useLocalizedPaths } from "@/lib/hooks/use-localized-paths";
 import {
@@ -50,6 +50,7 @@ import {
   resolveShopFilterNavigationUrl,
   shouldNavigateGrapeFilter,
   shouldNavigateShopFilters,
+  withShopFilterSearchParams,
 } from "@/lib/shop/filter-navigation";
 import type { ShopFarmingFilterValue } from "@/lib/shop/farming-filter";
 import { gateShopFilterHref } from "@/lib/shop/gate-shop-filter-href";
@@ -85,6 +86,7 @@ export function MobileFilters({
   const { products, originalProducts, setProducts, serverResultsCount } =
     useProducts();
   const routerPathname = usePathname();
+  const searchParams = useSearchParams();
   const router = useRouter();
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
@@ -125,10 +127,12 @@ export function MobileFilters({
           currentPath: pathname,
           nextColorUi: colorName,
         });
-    return gateShopFilterHref(url, {
+    const gated = gateShopFilterHref(url, {
       isClear,
       navigablePaths: navigableShopPaths,
     });
+    if (!gated) return null;
+    return withShopFilterSearchParams(gated, searchParams);
   };
 
   const resolveFarmingHref = (

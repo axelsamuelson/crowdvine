@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Collection } from "@/lib/shopify/types";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { CategoryFilter } from "./category-filter";
 import { ColorFilter } from "./color-filter";
 import { GrapesFilter } from "./grapes-filter";
@@ -35,6 +35,7 @@ import {
   resolveShopFilterNavigationUrl,
   shouldNavigateGrapeFilter,
   shouldNavigateShopFilters,
+  withShopFilterSearchParams,
 } from "@/lib/shop/filter-navigation";
 import type { ShopFarmingFilterValue } from "@/lib/shop/farming-filter";
 import { gateShopFilterHref } from "@/lib/shop/gate-shop-filter-href";
@@ -61,6 +62,7 @@ export function DesktopFilters({
   const [seeAllOpen, setSeeAllOpen] = useState(false);
   const openSeeAll = () => setSeeAllOpen(true);
   const routerPathname = usePathname();
+  const searchParams = useSearchParams();
   const router = useRouter();
   // Prefer the live router path when present; fall back to the request path
   // so SSR and the first client render share the same hrefs (no mounted flip).
@@ -94,10 +96,12 @@ export function DesktopFilters({
           currentPath: pathname,
           nextColorUi: colorName,
         });
-    return gateShopFilterHref(url, {
+    const gated = gateShopFilterHref(url, {
       isClear,
       navigablePaths: navigableShopPaths,
     });
+    if (!gated) return null;
+    return withShopFilterSearchParams(gated, searchParams);
   };
 
   const resolveFarmingHref = (
