@@ -43,8 +43,11 @@ function ProductListStaticCard({
 
         <div className="absolute inset-0 flex flex-col justify-between p-2 md:p-3 pointer-events-none">
           <div className="flex gap-2 md:gap-4 justify-between items-start w-full font-semibold">
-            <div className="flex flex-col min-w-0 max-w-[55%] overflow-hidden">
-              <p className="text-[8px] leading-tight md:text-sm uppercase 2xl:text-base text-balance line-clamp-2 break-words">
+            <div className="flex flex-col min-w-0 max-w-[65%] md:max-w-[55%]">
+              <p
+                lang={locale}
+                className="text-[8px] leading-tight md:text-sm uppercase 2xl:text-base text-balance line-clamp-2 hyphens-auto break-words"
+              >
                 {product.title}
               </p>
               {product.producerName ? (
