@@ -17,6 +17,21 @@ import {
   resolveSekExchangeRateSync,
   resolveWineAlcoholTaxCents,
 } from "@/lib/wine-retail-pricing";
+import { isWineRegionValue } from "@/lib/wine-regions";
+
+function normalizeWineRegionInput(
+  value: string | null | undefined,
+): string | null {
+  if (value == null) return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (!isWineRegionValue(trimmed)) {
+    throw new Error(
+      `Invalid wine region "${trimmed}". Must be an allowlisted region or empty.`,
+    );
+  }
+  return trimmed;
+}
 
 export interface Wine {
   id: string;
@@ -73,6 +88,8 @@ export interface Wine {
   yield_hl_ha?: number | null;
   // Specs (PDP bullet list)
   appellation?: string | null;
+  /** Canonical allowlisted region (lib/wine-regions), or null. */
+  region?: string | null;
   terroir?: string | null;
   vinification?: string | null;
   abv?: string | null;
@@ -135,6 +152,8 @@ export interface CreateWineData {
   yield_hl_ha?: number | null;
   // Specs (PDP bullet list)
   appellation?: string | null;
+  /** Canonical allowlisted region (lib/wine-regions), or null. */
+  region?: string | null;
   terroir?: string | null;
   vinification?: string | null;
   abv?: string | null;
@@ -188,6 +207,7 @@ const WINES_SELECT_FULL = `
   elevation_masl,
   yield_hl_ha,
   appellation,
+  region,
   terroir,
   vinification,
   abv,
@@ -240,6 +260,7 @@ const WINES_SELECT_WITHOUT_B2B = `
   elevation_masl,
   yield_hl_ha,
   appellation,
+  region,
   terroir,
   vinification,
   abv,
@@ -288,6 +309,7 @@ const WINES_SELECT_WITHOUT_EXTENDED_ENRICHMENT = `
   elevation_masl,
   yield_hl_ha,
   appellation,
+  region,
   terroir,
   vinification,
   abv,
@@ -339,6 +361,7 @@ const WINES_SELECT_WITHOUT_B2B_NO_EXTENDED = `
   elevation_masl,
   yield_hl_ha,
   appellation,
+  region,
   terroir,
   vinification,
   abv,
@@ -822,6 +845,7 @@ export async function createWine(data: CreateWineData, locale: WineLocale = "sv"
     elevation_masl: data.elevation_masl ?? null,
     yield_hl_ha: data.yield_hl_ha ?? null,
     appellation: data.appellation ?? null,
+    region: normalizeWineRegionInput(data.region),
     terroir: data.terroir ?? null,
     vinification: data.vinification ?? null,
     abv: data.abv ?? null,
@@ -981,6 +1005,9 @@ export async function updateWine(
     );
   }
   if (data.appellation !== undefined) updateData.appellation = data.appellation;
+  if (data.region !== undefined) {
+    updateData.region = normalizeWineRegionInput(data.region);
+  }
   if (data.terroir !== undefined) updateData.terroir = data.terroir;
   if (data.vinification !== undefined) updateData.vinification = data.vinification;
   if (data.abv !== undefined) updateData.abv = data.abv;

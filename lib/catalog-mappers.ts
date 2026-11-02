@@ -17,6 +17,7 @@ import {
   extractWineText,
   type WineLocale,
 } from "@/lib/i18n/wine-locale";
+import { isWineRegionValue } from "@/lib/wine-regions";
 
 /** DB columns loaded for producer → API mapping. */
 export const PRODUCER_DB_SELECT =
@@ -251,6 +252,15 @@ export class InvalidProducerCountryError extends Error {
   }
 }
 
+export class InvalidWineRegionError extends Error {
+  constructor(value: string) {
+    super(
+      `Invalid wine region "${value}". Must be an allowlisted French region or null.`,
+    );
+    this.name = "InvalidWineRegionError";
+  }
+}
+
 export function buildProducerPatch(
   body: Record<string, unknown>,
   existingRow?: Record<string, unknown>,
@@ -393,8 +403,17 @@ export function buildWinePatch(
   if (typeof body.appellation === "string") {
     patch.appellation = body.appellation.trim();
   }
-  if (typeof body.region === "string") {
-    patch.region = body.region.trim() || null;
+  if (body.region === null) {
+    patch.region = null;
+  } else if (typeof body.region === "string") {
+    const trimmed = body.region.trim();
+    if (!trimmed) {
+      patch.region = null;
+    } else if (isWineRegionValue(trimmed)) {
+      patch.region = trimmed;
+    } else {
+      throw new InvalidWineRegionError(trimmed);
+    }
   }
   if (body.grape_varieties !== undefined) {
     patch.grape_varieties = grapeVarietiesToDb(body.grape_varieties);

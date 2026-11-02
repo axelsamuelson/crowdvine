@@ -53,6 +53,11 @@ import {
   WINE_ENRICHMENT_DROPDOWN_LIST_CLASS,
 } from "@/components/product/wine-enrichment-collapsible";
 import { cn } from "@/lib/utils";
+import {
+  WINE_REGIONS,
+  mapToWineRegionValue,
+  type WineRegionValue,
+} from "@/lib/wine-regions";
 
 export type WineSaveStatus = "idle" | "saving" | "saved" | "error";
 
@@ -172,6 +177,14 @@ export default function WineForm({
         : null,
     volume_liters: wine?.volume_liters ?? 0.75,
     appellation: wine?.appellation ?? "",
+    region:
+      wine?.region ??
+      mapToWineRegionValue(
+        producers.find(
+          (p) => p.id === (wine?.producer_id || initialProducerId || ""),
+        )?.region,
+      ) ??
+      null,
     // B2B
     b2b_margin_percentage: wine?.b2b_margin_percentage ?? null,
     b2b_stock: wine?.b2b_stock ?? null,
@@ -290,6 +303,7 @@ export default function WineForm({
           : null,
       volume_liters: wine.volume_liters ?? 0.75,
       appellation: wine.appellation ?? "",
+      region: wine.region ?? null,
       b2b_margin_percentage: wine.b2b_margin_percentage ?? null,
       b2b_stock: wine.b2b_stock ?? null,
       is_live: wine.is_live ?? true,
@@ -322,6 +336,16 @@ export default function WineForm({
         extractWineText(wine.soil_type as WineCopyField, editLocale) ?? "",
     }));
   }, [editLocale, wine]);
+
+  // New wines: default region from the selected producer when mappable.
+  useEffect(() => {
+    if (wine) return;
+    const producer = producers.find((p) => p.id === formData.producer_id);
+    const mapped = mapToWineRegionValue(producer?.region) ?? null;
+    setFormData((prev) =>
+      prev.region === mapped ? prev : { ...prev, region: mapped },
+    );
+  }, [wine, formData.producer_id, producers]);
 
   // Load grape varieties on component mount
   useEffect(() => {
@@ -783,7 +807,7 @@ export default function WineForm({
 
         <AdminFormSection
           title="Produktsida — specs"
-          description="Rutorna under Lägg i varukorg. Producent (region) kommer från producentposten — redigeras under Producenter."
+          description="Rutorna under Lägg i varukorg. Vinets region är SSOT för filter och regionssidor; standard vid skapande från producent."
         >
           <div className="grid grid-cols-1 gap-3">
             <div className="grid grid-cols-[180px_1fr] items-center gap-x-4">
@@ -796,6 +820,33 @@ export default function WineForm({
                 onChange={(e) => handleChange("appellation", e.target.value)}
                 placeholder="t.ex. Vin de France"
               />
+            </div>
+
+            <div className="grid grid-cols-[180px_1fr] items-center gap-x-4">
+              <Label htmlFor="region" className="text-right text-sm">
+                Region
+              </Label>
+              <Select
+                value={(formData.region as string | null) ?? "none"}
+                onValueChange={(value) =>
+                  handleChange(
+                    "region",
+                    value === "none" ? null : (value as WineRegionValue),
+                  )
+                }
+              >
+                <SelectTrigger id="region" className={cn("w-full", ADMIN_FIELD_CLASS)}>
+                  <SelectValue placeholder="Välj region" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">— (ingen)</SelectItem>
+                  {WINE_REGIONS.map((option) => (
+                    <SelectItem key={option.slug} value={option.value}>
+                      {option.labelSv}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="grid grid-cols-[180px_1fr] items-center gap-x-4">
