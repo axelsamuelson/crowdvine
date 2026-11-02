@@ -39,18 +39,18 @@ export async function buildHomeMetadata(locale: AppLocale): Promise<Metadata> {
     locale === "sv"
       ? isDirtyWine
         ? "Dirty Wine — Naturvin från Languedoc, B2B import Stockholm"
-        : "PACT Wines — Köp naturvin online direkt från Languedoc"
+        : "PACT Wines — Naturvin från Frankrikes regioner"
       : isDirtyWine
         ? "Dirty Wine — Natural wine from Languedoc, B2B import Stockholm"
-        : "PACT Wines — Buy natural wine online direct from Languedoc";
+        : "PACT Wines — Natural wine from the regions of France";
 
   const description =
     locale === "sv"
       ? isDirtyWine
-        ? "Naturvin från Languedoc för restauranger och sommelierer i Stockholm. Direktimport utan grossist. B2B-priser exkl. moms."
-        : "Köp naturvin direktimporterat från småproducenter i Languedoc. Hemleverans i Stockholm. Inga mellanhänder — lägre pris, mer karaktär."
+        ? "Naturvin från flera franska regioner för restauranger och sommelierer i Stockholm. Priser exkl. moms."
+        : "Naturvin från flera franska regioner, samlastat på delade pallar. Leverans i Sverige där Budbee levererar."
       : isDirtyWine
-        ? "Natural wine from Languedoc for restaurants and sommeliers in Stockholm. Direct import without a wholesaler. B2B prices excl. VAT."
+        ? "Natural wine from several French regions for restaurants and sommeliers in Stockholm. Prices excl. VAT."
         : "Buy natural wine imported directly from small producers in Languedoc. Home delivery in Stockholm. No middlemen — lower price, more character.";
 
   return {
@@ -150,7 +150,7 @@ export async function renderHomePage(locale: AppLocale) {
           url: pageUrl,
           logo: `${PACT_PUBLIC_ORIGIN}/favicon.png`,
           description:
-            "Direktimport av naturvin från Languedoc till Stockholm. Inga mellanhänder, lägre pris, bättre vin.",
+            "Naturvin från flera franska regioner, samlastat på delade pallar och levererat i Sverige där Budbee levererar.",
           areaServed: "Stockholm, Sweden",
           sameAs: ["https://www.instagram.com/pactwines"],
         }
@@ -161,7 +161,7 @@ export async function renderHomePage(locale: AppLocale) {
           url: pageUrl,
           logo: `${PACT_PUBLIC_ORIGIN}/favicon.png`,
           description:
-            "Direct import of natural wine from Languedoc to Stockholm. No middlemen, lower price, better wine.",
+            "Natural wine from several French regions, consolidated on shared pallets.",
           areaServed: "Stockholm, Sweden",
           sameAs: ["https://www.instagram.com/pactwines"],
         };
@@ -173,14 +173,15 @@ export async function renderHomePage(locale: AppLocale) {
           "@type": "WebSite",
           name: config.name,
           url: pageUrl,
-          description: "Naturvin direkt från Languedoc till Stockholm.",
+          description:
+            "Naturvin från Frankrike, levererat i Sverige där Budbee levererar.",
         }
       : {
           "@context": "https://schema.org",
           "@type": "WebSite",
           name: config.name,
           url: pageUrl,
-          description: "Natural wine direct from Languedoc to Stockholm.",
+          description: "Natural wine from the regions of France.",
         };
 
   return (

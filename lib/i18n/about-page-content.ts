@@ -85,18 +85,18 @@ const ABOUT_CONTENT_EN: AboutPageContent = {
 const ABOUT_CONTENT_SV: AboutPageContent = {
   title: "Så fungerar PACT — naturvin direkt från producenten",
   description:
-    "Reservera naturvin online och få det levererat direkt från producenten i Languedoc till din dörr i Stockholm. Så fungerar PACT.",
+    "Så fungerar PACT: naturvin från flera franska regioner, samlastat på delade pallar och levererat i Sverige där Budbee levererar.",
   h1: "Om PACT",
   heroSubtitle: "Ett smartare sätt att köpa naturvin tillsammans.",
   cards: [
     "Vi tror att sättet vin köps och säljs på är moget för förändring. Traditionell vinimport innebär lager, mellanhänder och påslag i varje led — kostnader som kunden till slut betalar för utan att få något extra i glaset.",
-    "Vår modell är enkel. Privatpersoner reserverar viner de vill ha. När tillräckligt många beställningar samlats för att fylla en pall skickas vinerna direkt från producenten i Languedoc till Stockholm.",
+    "Vår modell är enkel. Privatpersoner reserverar viner de vill ha. När pallen har stängt skickas den från Languedoc till Sverige. Viner från andra regioner köper vi via grossister i Languedoc och samlastar på samma pallar. Leverans sker 1–2 veckor efter att pallen har stängt, där Budbee levererar. Vid leverans kontrolleras legitimation, och mottagaren måste ha fyllt 20 år.",
     "Inga lager. Inga distributörer. Bara en direkt koppling mellan producenten som gjort vinet och personen som dricker det. Det gör vinet billigare — och relationen äkta.",
     "Vi kallar det crowdsourcad vinimport. Tillsammans gör vi det som ingen enskild konsument kan göra på egen hand: importerar naturvin direkt från källan.",
   ],
   philosophyTitle: "Vår filosofi",
   philosophyBody: [
-    "Vi arbetar bara med naturvinsproducenter i Languedoc — små gårdar som odlar ekologiskt eller biodynamiskt och gör vin utan tillsatser. Varje flaska speglar en person, en plats och en årgång. Transparens är inte ett marknadsföringsord för oss, det är själva affärsmodellen.",
+    "Vi säljer naturvin från flera franska regioner. Vinerna från Languedoc köper vi direkt från producenterna, och övriga regioners viner köper vi via grossister i Languedoc.",
   ],
   impactTitle: "Varför det spelar roll",
   impactBody: [

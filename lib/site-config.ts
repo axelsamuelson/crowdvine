@@ -11,9 +11,9 @@ export const PACT_CONFIG: SiteConfig = {
   name: "PACT",
   baseUrl: "https://pactwines.com",
   siteName: "PACT Wines",
-  defaultTitle: "PACT Wines — Naturvin direkt från Languedoc",
+  defaultTitle: "PACT Wines — Naturvin från Frankrikes regioner",
   defaultDescription:
-    "Köp naturvin direkt från småproducenter i Languedoc. Hemleverans i Stockholm via PACT.",
+    "Naturvin från flera franska regioner. Samlastas på delade pallar och levereras i Sverige där Budbee levererar.",
 };
 
 export const DIRTY_WINE_CONFIG: SiteConfig = {
@@ -22,5 +22,5 @@ export const DIRTY_WINE_CONFIG: SiteConfig = {
   siteName: "Dirty Wine",
   defaultTitle: "Dirty Wine — Naturvin till Stockholms restauranger",
   defaultDescription:
-    "Naturvin direkt från Languedoc för restauranger och sommelierer i Stockholm. B2B-import via Dirty Wine.",
+    "Naturvin från Frankrikes regioner för restauranger och sommelierer. B2B-import via Dirty Wine.",
 };

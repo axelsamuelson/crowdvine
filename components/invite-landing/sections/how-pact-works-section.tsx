@@ -34,7 +34,7 @@ const STEPS = [
     pill: "Bläddra",
     pillClass: inviteStoryPills.secondary,
     title: "Viner från producenten",
-    description: "Direkt från Languedoc.",
+    description: "Från Frankrikes regioner, samlastat i Languedoc.",
   },
   {
     num: "02",

@@ -145,6 +145,7 @@ export async function generateMetadata(props: {
   const shopDescription = producerShopMetaDescription("en", {
     producerName: collection.title,
     handle: collection.handle,
+    region: asProducerCollectionData(collection).region,
   });
   const collectionProducts = await getCollectionProducts({
     collection: slug,

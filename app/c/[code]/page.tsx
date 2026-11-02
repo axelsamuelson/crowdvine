@@ -152,9 +152,9 @@ export default function InviteSignupPage() {
   const setMockPalletData = () => {
     setPallet({
       id: "mock-pallet",
-      name: "Beziers to Stockholm",
+      name: "PACT – natural wine from France",
       description:
-        "A curated selection of exceptional wines from Beziers, delivered to Stockholm",
+        "Natural wine from several French regions, consolidated on shared pallets.",
       bottle_capacity: 600,
       total_booked_bottles: 542,
       remaining_bottles: 58,

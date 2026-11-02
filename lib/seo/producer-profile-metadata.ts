@@ -55,15 +55,17 @@ export function producerProfileMetaDescription(
   options: {
     producerName: string;
     bioShort?: string | null;
+    region?: string | null;
   },
 ): string {
-  const { producerName, bioShort } = options;
+  const { producerName, bioShort, region } = options;
   const possessive = producerPossessive(producerName, locale);
+  const regionPart = region?.trim() || "Languedoc";
   const lead = firstSentence(bioShort);
   const suffix =
     locale === "sv"
-      ? ` Upptäck ${possessive} naturviner — direktimport från Languedoc via PACT.`
-      : ` Discover ${possessive} natural wines — direct import from Languedoc via PACT.`;
+      ? ` Upptäck ${possessive} naturviner från ${regionPart}.`
+      : ` Discover ${possessive} natural wines from ${regionPart}.`;
 
   if (lead) {
     const withSuffix = `${lead}${suffix}`;

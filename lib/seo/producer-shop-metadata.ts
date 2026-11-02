@@ -44,14 +44,16 @@ export function producerShopMetaDescription(
   options: {
     producerName: string;
     handle?: string;
+    region?: string | null;
   },
 ): string {
-  const { producerName, handle } = options;
+  const { producerName, handle, region } = options;
   const possessive = producerPossessive(producerName, locale);
+  const regionPart = region?.trim() || "Languedoc";
   const prefix =
     locale === "sv"
-      ? `Köp ${possessive} naturviner direkt från Languedoc. `
-      : `Buy ${possessive} natural wines direct from Languedoc. `;
+      ? `${possessive} naturviner från ${regionPart}. `
+      : `${possessive} natural wines from ${regionPart}. `;
   const stockholmSuffix =
     locale === "sv"
       ? " Hemleverans i Stockholm."

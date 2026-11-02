@@ -231,6 +231,7 @@ export async function buildProducerPublicMetadata(
   const pageDescription = producerProfileMetaDescription(locale, {
     producerName: name,
     bioShort: bio_short,
+    region,
   });
 
   const visibleWines = await winesVisibleOnRequestHost(
