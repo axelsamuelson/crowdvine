@@ -3,6 +3,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ColorPicker } from "@/components/ui/color-picker";
 import {
+  promoteShopFgrapeQueryToPath,
   resolveShopFilterNavigationUrl,
   withShopFilterSearchParams,
 } from "@/lib/shop/filter-navigation";
@@ -128,6 +129,52 @@ describe("shop filter navigation hrefs (natural default)", () => {
     // Path-only when no active query filters (canonical colour URLs unchanged).
     expect(withShopFilterSearchParams(redPath, "")).toBe("/vin/rott-naturvin");
     expect(withShopFilterSearchParams(redPath, null)).toBe("/vin/rott-naturvin");
+  });
+
+  it("promotes main-shop ?fgrape= to grape path while keeping other filters", () => {
+    // Colour clear → /vin?region=…&fgrape=Gamay → /vin/gamay?region=…
+    expect(
+      promoteShopFgrapeQueryToPath(
+        withShopFilterSearchParams(
+          "/vin",
+          "region=beaujolais,loire&fgrape=Gamay",
+        ),
+      ),
+    ).toBe("/vin/gamay?region=beaujolais%2Cloire");
+
+    // Direct promotion (middleware path-collapse)
+    expect(
+      promoteShopFgrapeQueryToPath("/vin?fgrape=Gamay&region=loire"),
+    ).toBe("/vin/gamay?region=loire");
+
+    expect(
+      promoteShopFgrapeQueryToPath("/wine?fgrape=Gamay&region=loire"),
+    ).toBe("/wine/gamay?region=loire");
+
+    // No-op when not on main shop or no fgrape
+    expect(promoteShopFgrapeQueryToPath("/vin?region=loire")).toBe(
+      "/vin?region=loire",
+    );
+    expect(
+      promoteShopFgrapeQueryToPath(
+        "/vin/rott-naturvin?fgrape=Gamay&region=loire",
+      ),
+    ).toBe("/vin/rott-naturvin?fgrape=Gamay&region=loire");
+
+    // Farming / grape path collapse keeps region; omit absorbed fgrape
+    expect(
+      withShopFilterSearchParams("/vin/rott-naturvin", "region=loire"),
+    ).toBe("/vin/rott-naturvin?region=loire");
+    expect(
+      withShopFilterSearchParams("/vin/gamay", "region=beaujolais,loire", {
+        omitKeys: ["fgrape"],
+      }),
+    ).toBe("/vin/gamay?region=beaujolais%2Cloire");
+    expect(
+      withShopFilterSearchParams("/vin", "region=loire&fgrape=Gamay", {
+        omitKeys: ["fgrape"],
+      }),
+    ).toBe("/vin?region=loire");
   });
 
   it("renders color swatches as <a href> when category URLs are provided", () => {

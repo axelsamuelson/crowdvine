@@ -32,6 +32,7 @@ import {
   localeFromShopPathname,
   resolveGrapePageFarmingUrl,
   resolveGrapePageUrl,
+  promoteShopFgrapeQueryToPath,
   resolveShopFilterNavigationUrl,
   shouldNavigateGrapeFilter,
   shouldNavigateShopFilters,
@@ -82,6 +83,16 @@ export function DesktopFilters({
   );
   const activeGrapeName = getActiveGrapeFromPathname(pathname, grapeCandidates);
 
+  const withPreservedShopFilters = (
+    path: string | null,
+    options?: { omitKeys?: readonly string[] },
+  ): string | null => {
+    if (!path) return null;
+    return promoteShopFgrapeQueryToPath(
+      withShopFilterSearchParams(path, searchParams, options),
+    );
+  };
+
   const resolveColorHref = (colorName: string): string | null => {
     if (!shouldNavigateShopFilters(pathname)) return null;
     const isClear = isSameColorSelection(pathname, colorName);
@@ -100,8 +111,7 @@ export function DesktopFilters({
       isClear,
       navigablePaths: navigableShopPaths,
     });
-    if (!gated) return null;
-    return withShopFilterSearchParams(gated, searchParams);
+    return withPreservedShopFilters(gated);
   };
 
   const resolveFarmingHref = (
@@ -116,10 +126,12 @@ export function DesktopFilters({
       grapeCandidates,
     );
     if (grapeUrl) {
-      return gateShopFilterHref(grapeUrl, {
-        isClear,
-        navigablePaths: navigableShopPaths,
-      });
+      return withPreservedShopFilters(
+        gateShopFilterHref(grapeUrl, {
+          isClear,
+          navigablePaths: navigableShopPaths,
+        }),
+      );
     }
     if (!shouldNavigateShopFilters(pathname)) return null;
     const url = isClear
@@ -133,10 +145,12 @@ export function DesktopFilters({
           currentPath: pathname,
           nextFarming: farming,
         });
-    return gateShopFilterHref(url, {
-      isClear,
-      navigablePaths: navigableShopPaths,
-    });
+    return withPreservedShopFilters(
+      gateShopFilterHref(url, {
+        isClear,
+        navigablePaths: navigableShopPaths,
+      }),
+    );
   };
 
   const handleColorSelect = (colorName: string) => {
@@ -166,7 +180,8 @@ export function DesktopFilters({
     );
 
     if (pathname === url) {
-      router.push(locale === "en" ? "/wine" : "/vin");
+      const root = withPreservedShopFilters(locale === "en" ? "/wine" : "/vin");
+      router.push(root ?? (locale === "en" ? "/wine" : "/vin"));
       return true;
     }
 
@@ -174,7 +189,9 @@ export function DesktopFilters({
     if (isMainShop && originalProducts.length > 0) {
       setProducts(filterProductsByGrapes(originalProducts, [grapeName]));
     }
-    router.push(url);
+    router.push(
+      withPreservedShopFilters(url, { omitKeys: ["fgrape"] }) ?? url,
+    );
     return true;
   };
 
