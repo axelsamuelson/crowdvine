@@ -9,6 +9,8 @@ import { Loader2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { LogoSvg } from "@/components/layout/header/logo-svg";
+import { DirtywineOpenSignupForm } from "@/components/b2b/dirtywine-open-signup-form";
+import { isExactDirtywineOpenSignupHost } from "@/lib/b2b/open-signup";
 
 function SignupPageContent() {
   const searchParams = useSearchParams();
@@ -22,8 +24,18 @@ function SignupPageContent() {
   const [success, setSuccess] = useState(false);
   const [tokenValid, setTokenValid] = useState<boolean | null>(null);
   const [membershipLevel, setMembershipLevel] = useState<string | null>(null);
+  /** Dirtywine.se open sign-up (no invite). null until host is known. */
+  const [dirtywineOpenSignup, setDirtywineOpenSignup] = useState<
+    boolean | null
+  >(null);
 
   useEffect(() => {
+    const host =
+      typeof window !== "undefined" ? window.location.hostname : null;
+    const onDirtywine = isExactDirtywineOpenSignupHost(host, searchParams);
+    setDirtywineOpenSignup(onDirtywine);
+    if (onDirtywine) return;
+
     void (async () => {
       try {
         const { getSupabaseBrowserClient } = await import("@/lib/supabase/client");
@@ -49,7 +61,7 @@ function SignupPageContent() {
         })();
       });
     })();
-  }, []);
+  }, [searchParams]);
 
   // Map Swedish level names to English
   const getLevelName = (level: string) => {
@@ -86,6 +98,9 @@ function SignupPageContent() {
   };
 
   useEffect(() => {
+    // Wait until host mode is known; Dirty Wine never uses the PACT token path.
+    if (dirtywineOpenSignup !== false) return;
+
     const tokenParam = searchParams.get("token");
     const inviteParam = searchParams.get("invite");
     const emailParam = searchParams.get("email")?.trim() ?? "";
@@ -106,7 +121,36 @@ function SignupPageContent() {
     if (emailParam && emailParam.includes("@")) {
       setEmail(emailParam);
     }
-  }, [searchParams, router]);
+  }, [searchParams, router, dirtywineOpenSignup]);
+
+  if (dirtywineOpenSignup === null) {
+    return (
+      <div className="min-h-screen bg-[hsl(223.81_0%_94%)] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (dirtywineOpenSignup) {
+    const nextPath = searchParams.get("next");
+    const emailParam = searchParams.get("email")?.trim() ?? "";
+    // QA/design-review only — never honor ?checkEmail=1 in production.
+    const checkEmailParam =
+      process.env.NODE_ENV !== "production" &&
+      searchParams.get("checkEmail") === "1";
+    return (
+      <main className="min-h-screen bg-[hsl(223.81_0%_94%)] pt-24 pb-16 px-4">
+        <DirtywineOpenSignupForm
+          nextPath={nextPath}
+          locale="sv"
+          initialEmail={
+            emailParam.includes("@") ? emailParam : ""
+          }
+          initialCheckEmail={checkEmailParam}
+        />
+      </main>
+    );
+  }
 
   const validateToken = async (tokenToValidate: string) => {
     try {

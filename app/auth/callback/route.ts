@@ -93,6 +93,8 @@ export async function GET(request: NextRequest) {
 
   if (user?.id) {
     const cookies = signupCookiesFromRequest(request);
+    // Do not trust user_metadata.signup_source for access — finalize only
+    // fills empty portal_access and never changes role/roles.
     await finalizeSignupAfterAuth({
       userId: user.id,
       email: user.email ?? null,

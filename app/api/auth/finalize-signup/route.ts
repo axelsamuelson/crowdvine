@@ -28,6 +28,7 @@ export async function POST(request: NextRequest) {
     "checkout_otp",
     "checkout",
     "checkout_guest",
+    "dirtywine_open_signup",
   ];
   const source = (allowed.includes(sourceRaw as FinalizeSignupSource)
     ? sourceRaw

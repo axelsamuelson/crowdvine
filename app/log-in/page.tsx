@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,6 +14,11 @@ import { FooterLogoSvg } from "@/components/layout/footer-logo-svg";
 import InfiniteGallery from "@/components/access-request/infinite-gallery";
 import { galleryImages } from "@/components/access-request/gallery-images";
 import { useTranslations } from "@/lib/hooks/use-translations";
+import {
+  b2bOpenSignupCopy,
+  b2bOpenSignupHref,
+  isExactDirtywineOpenSignupHost,
+} from "@/lib/b2b/open-signup";
 
 const DURATION = 0.3;
 const DELAY = DURATION;
@@ -35,12 +39,14 @@ export default function LogInPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const router = useRouter();
 
   // Get next parameter from URL
   const [nextUrl, setNextUrl] = useState("/profile");
-  /** Hide invite-membership footer when returning from Dirtywine inquiry flow. */
-  const [hideInviteMembershipFooter, setHideInviteMembershipFooter] =
+  /**
+   * Dirty Wine: replace invite-membership footer with open sign-up CTA.
+   * PACT keeps “Medlemskap via inbjudan.”
+   */
+  const [showDirtywineOpenSignup, setShowDirtywineOpenSignup] =
     useState(false);
 
   useEffect(() => {
@@ -53,13 +59,15 @@ export default function LogInPage() {
     if (emailParam) {
       setEmail(emailParam);
     }
-    const fromInquiry =
-      typeof next === "string" && next.includes("/b2b/inquiry");
-    const onDirtywine =
-      typeof window !== "undefined" &&
-      window.location.hostname.toLowerCase().includes("dirtywine.se");
-    setHideInviteMembershipFooter(fromInquiry || onDirtywine);
+    setShowDirtywineOpenSignup(
+      isExactDirtywineOpenSignupHost(window.location.hostname, urlParams),
+    );
   }, []);
+
+  const openSignupCopy = b2bOpenSignupCopy("sv");
+  const openSignupHref = b2bOpenSignupHref(
+    nextUrl && nextUrl !== "/profile" ? nextUrl : null,
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -150,18 +158,27 @@ export default function LogInPage() {
 
   return (
     <main className="min-h-screen">
-      <InfiniteGallery
-        images={galleryImages}
-        speed={1.2}
-        zSpacing={3}
-        visibleCount={12}
-        falloff={{ near: 0.8, far: 14 }}
-        className="h-[100dvh] w-full rounded-lg overflow-hidden"
-      />
+      {/* Dirty Wine open signup: solid backdrop (no gallery) so images cannot
+          stray over / beside the Skapa konto block. PACT keeps the gallery. */}
+      {showDirtywineOpenSignup ? (
+        <div
+          aria-hidden
+          className="fixed inset-0 bg-[hsl(223.81_0%_22%)]"
+        />
+      ) : (
+        <InfiniteGallery
+          images={galleryImages}
+          speed={1.2}
+          zSpacing={3}
+          visibleCount={12}
+          falloff={{ near: 0.8, far: 14 }}
+          className="h-[100dvh] w-full rounded-lg overflow-hidden"
+        />
+      )}
 
-      {/* Center overlay — no mix-blend so form text stays readable over the gallery */}
-      <div className="h-[100dvh] inset-0 pointer-events-none fixed flex items-center justify-center text-center px-3 text-white">
-        <div className="pointer-events-auto flex flex-col items-center justify-center w-full max-w-md gap-6">
+      {/* Center overlay — z-20 above backdrop/gallery. */}
+      <div className="h-[100dvh] inset-0 pointer-events-none fixed z-20 flex items-center justify-center text-center px-3 text-white overflow-y-auto py-8">
+        <div className="pointer-events-auto flex flex-col items-center justify-center w-full max-w-md gap-6 my-auto">
           {/* Logo */}
           <motion.div
             initial={{ opacity: 0, y: -20 }}
@@ -379,19 +396,40 @@ export default function LogInPage() {
                     {t("auth.backToHome")}
                   </Link>
                 </div>
+
+                {/* Dirty Wine: open sign-up inside the card so gallery cannot show through gaps. */}
+                {showDirtywineOpenSignup ? (
+                  <div className="mt-6 pt-5 border-t border-white/20 space-y-2 text-center">
+                    <p className="text-base font-semibold tracking-tight text-white">
+                      {openSignupCopy.heading}
+                    </p>
+                    <p className="text-sm text-white/80 leading-relaxed">
+                      {openSignupCopy.body}
+                    </p>
+                    <Link
+                      href={openSignupHref}
+                      className={cn(
+                        buttonVariants({ size: "default" }),
+                        "mt-2 inline-flex h-10 w-full bg-white text-zinc-950 hover:bg-white/90 font-semibold",
+                      )}
+                    >
+                      {openSignupCopy.cta}
+                    </Link>
+                  </div>
+                ) : null}
               </CardContent>
             </Card>
           </motion.div>
         </div>
       </div>
 
-      {/* Bottom instructions (template style). Skip invite-membership line on Dirtywine / inquiry return. */}
-      <div className="text-center fixed bottom-10 left-0 right-0 font-sans uppercase tracking-[0.04em] text-[11px] font-semibold text-white/90 mix-blend-exclusion">
-        <p>{t("auth.footerLine1")}</p>
-        {!hideInviteMembershipFooter ? (
+      {/* PACT only: invite membership footer. */}
+      {!showDirtywineOpenSignup ? (
+        <div className="text-center fixed bottom-10 left-0 right-0 z-20 font-sans uppercase tracking-[0.04em] text-[11px] font-semibold text-white/90 mix-blend-exclusion">
+          <p>{t("auth.footerLine1")}</p>
           <p className="opacity-60">{t("auth.footerLine2")}</p>
-        ) : null}
-      </div>
+        </div>
+      ) : null}
     </main>
   );
 }

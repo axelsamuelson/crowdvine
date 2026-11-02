@@ -72,6 +72,7 @@ function AuthPkceClient() {
       } = await supabase.auth.getUser();
 
       if (user?.id) {
+        // Do not trust user_metadata.signup_source for access.
         await fetch("/api/auth/finalize-signup", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
