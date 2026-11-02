@@ -7,6 +7,7 @@ import { ProductListStaticGrid } from "@/app/vin/components/product-list-static-
 import {
   Breadcrumb,
   BreadcrumbItem,
+  BreadcrumbLink,
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
@@ -39,6 +40,11 @@ import { fallbackShoppingContext } from "@/lib/shopping-context/defaults";
 import { getCachedShoppingContextFromRequest } from "@/lib/shopping-context/server";
 import { getSiteConfig } from "@/lib/site-config-server";
 import {
+  formatGrapeListLabel,
+  grapesFromProducts,
+  stylesFromProducts,
+} from "@/lib/wine-region-page-facts";
+import {
   WINE_REGION_INDEX_MIN_LIVE,
   WINE_REGION_SLUGS,
   isWineRegionSlug,
@@ -55,63 +61,6 @@ type RegionProducerSummary = {
   wineCount: number;
   subregion: string | null;
 };
-
-function grapesFromProducts(products: Product[]): string[] {
-  const seen = new Set<string>();
-  const out: string[] = [];
-  for (const product of products) {
-    const grapeOption = product.options?.find(
-      (opt) => opt.name === "Grape Varieties",
-    );
-    for (const value of grapeOption?.values ?? []) {
-      const name = typeof value === "string" ? value : value.name;
-      const trimmed = name?.trim();
-      if (!trimmed || seen.has(trimmed)) continue;
-      seen.add(trimmed);
-      out.push(trimmed);
-    }
-  }
-  return out.sort((a, b) => a.localeCompare(b, "sv"));
-}
-
-function stylesFromProducts(products: Product[], locale: AppLocale): string[] {
-  const labels = new Set<string>();
-  for (const product of products) {
-    const colorOption = product.options?.find((opt) => opt.name === "Color");
-    const raw =
-      typeof colorOption?.values?.[0] === "string"
-        ? colorOption.values[0]
-        : colorOption?.values?.[0]?.name;
-    const trimmed = raw?.trim();
-    if (!trimmed) continue;
-    labels.add(localizeColorLabel(trimmed, locale));
-  }
-  return [...labels].sort((a, b) => a.localeCompare(b, "sv"));
-}
-
-function localizeColorLabel(raw: string, locale: AppLocale): string {
-  const key = raw.toLowerCase();
-  if (locale === "sv") {
-    if (key.includes("red") || key === "rött" || key === "rott") return "Rött";
-    if (key.includes("white") || key === "vitt" || key === "vit") return "Vitt";
-    if (key.includes("rosé") || key.includes("rose")) return "Rosé";
-    if (key.includes("orange")) return "Orange";
-    if (key.includes("sparkling") || key.includes("mousserande")) {
-      return "Mousserande";
-    }
-  } else {
-    if (key.includes("röd") || key.includes("rott") || key === "red") {
-      return "Red";
-    }
-    if (key.includes("vit") || key === "white") return "White";
-    if (key.includes("rosé") || key.includes("rose")) return "Rosé";
-    if (key.includes("orange")) return "Orange";
-    if (key.includes("mousserande") || key.includes("sparkling")) {
-      return "Sparkling";
-    }
-  }
-  return raw;
-}
 
 function producersFromProducts(
   products: Product[],
@@ -180,7 +129,6 @@ function regionUiCopy(locale: AppLocale) {
       winesHeading: (label: string) => `Viner från ${label}`,
       wineCount: (n: number) => (n === 1 ? "1 vin" : `${n} viner`),
       producerWines: (n: number) => (n === 1 ? "1 vin" : `${n} viner`),
-      copyPlaceholder: "Regiontext kommer snart.",
       metaFallback: (label: string) =>
         `Naturvin från ${label} — reservera flaskor via PACT.`,
     };
@@ -197,7 +145,6 @@ function regionUiCopy(locale: AppLocale) {
     winesHeading: (label: string) => `Wines from ${label}`,
     wineCount: (n: number) => (n === 1 ? "1 wine" : `${n} wines`),
     producerWines: (n: number) => (n === 1 ? "1 wine" : `${n} wines`),
-    copyPlaceholder: "Region copy coming soon.",
     metaFallback: (label: string) =>
       `Natural wine from ${label} — reserve bottles with PACT.`,
   };
@@ -274,13 +221,37 @@ export async function renderWineRegionPage(options: {
   const h1 = content.h1?.trim() || label;
   const pagePath = wineRegionPagePath(slug, locale);
   const pageUrl = `${PACT_PUBLIC_ORIGIN}${pagePath}`;
-  const shopHref = `${shopPathForLocale(locale)}?region=${slug}`;
+  const shopPath = shopPathForLocale(locale);
+  const shopHref = `${shopPath}?region=${slug}`;
+  const shopAbsolute = `${PACT_PUBLIC_ORIGIN}${shopPath}`;
   const homeUrl =
     locale === "sv" ? PACT_PUBLIC_ORIGIN : `${PACT_PUBLIC_ORIGIN}/en`;
   const productPrefix = locale === "sv" ? "/produkt" : "/product";
   const producers = producersFromProducts(products, locale);
-  const grapes = grapesFromProducts(products);
+  const grapeList = grapesFromProducts(products);
+  const grapeLabel = formatGrapeListLabel(grapeList, locale);
   const styles = stylesFromProducts(products, locale);
+
+  if (grapeList.typoSuspects.length > 0) {
+    console.info(
+      "[wine-region] grape typo suspects",
+      slug,
+      grapeList.typoSuspects,
+    );
+  }
+
+  const characteristicsHeading = content.characteristicsHeading?.trim() || "";
+  const characteristicsBody = content.characteristicsBody?.trim() || "";
+  const locationBlurb = content.locationBlurb?.trim() || "";
+  const showCharacteristics = Boolean(
+    characteristicsHeading || characteristicsBody,
+  );
+  const showLocation = Boolean(locationBlurb);
+  const showFacts =
+    showLocation ||
+    grapeLabel.length > 0 ||
+    styles.length > 0 ||
+    producers.length > 0;
 
   const breadcrumbJsonLd = {
     "@context": "https://schema.org",
@@ -296,7 +267,7 @@ export async function renderWineRegionPage(options: {
         "@type": "ListItem",
         position: 2,
         name: ui.regionsCrumb,
-        item: pageUrl,
+        item: shopAbsolute,
       },
       {
         "@type": "ListItem",
@@ -341,9 +312,9 @@ export async function renderWineRegionPage(options: {
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem>
-                <BreadcrumbPage className="text-muted-foreground">
-                  {ui.regionsCrumb}
-                </BreadcrumbPage>
+                <BreadcrumbLink asChild>
+                  <Link href={shopPath}>{ui.regionsCrumb}</Link>
+                </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
@@ -353,7 +324,7 @@ export async function renderWineRegionPage(options: {
           </Breadcrumb>
         </div>
 
-        <section className="px-5 pb-9 pt-5 md:px-10">
+        <section className="px-5 pb-6 pt-5 md:px-10">
           <h1 className="max-w-[16ch] text-[clamp(2.125rem,5.5vw,4rem)] font-medium leading-[1.05] tracking-[-0.02em]">
             {h1}
           </h1>
@@ -370,71 +341,86 @@ export async function renderWineRegionPage(options: {
           </Link>
         </section>
 
-        <section className="grid gap-8 px-5 pb-12 md:px-10 lg:grid-cols-[1.3fr_1fr] lg:gap-20">
-          <div>
-            <h2 className="text-[clamp(1.5rem,2.4vw,1.75rem)] font-medium tracking-[-0.02em]">
-              {content.characteristicsHeading?.trim() ||
-                ui.characteristicsFallback}
+        <section className="px-5 pb-4 md:px-10">
+          <div className="mb-4 flex items-baseline justify-between gap-4">
+            <h2 className="text-[clamp(1.375rem,2.2vw,1.625rem)] font-medium tracking-[-0.02em]">
+              {ui.winesHeading(label)}
             </h2>
-            {content.characteristicsBody?.trim() ? (
-              <p className="mt-3 max-w-[62ch] text-base leading-relaxed text-foreground/80">
-                {content.characteristicsBody.trim()}
-              </p>
-            ) : (
-              <p
-                className="mt-3 max-w-[62ch] rounded-md border border-dashed border-zinc-300 px-3 py-4 text-sm text-muted-foreground"
-                data-region-copy-slot="characteristics"
-              >
-                {ui.copyPlaceholder}
-              </p>
-            )}
+            <span className="text-[13px] text-muted-foreground">
+              {ui.wineCount(products.length)}
+            </span>
           </div>
-          <dl className="self-start">
-            <div className="border-t border-zinc-200 py-3.5">
-              <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                {ui.location}
-              </dt>
-              <dd className="mt-1 text-[15px] text-foreground">
-                {content.locationBlurb?.trim() || (
-                  <span
-                    className="text-muted-foreground"
-                    data-region-copy-slot="location"
-                  >
-                    {ui.copyPlaceholder}
-                  </span>
-                )}
-              </dd>
-            </div>
-            {grapes.length > 0 ? (
-              <div className="border-t border-zinc-200 py-3.5">
-                <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  {ui.grapes}
-                </dt>
-                <dd className="mt-1 text-[15px] text-foreground">
-                  {grapes.join(", ")}
-                </dd>
-              </div>
-            ) : null}
-            {styles.length > 0 ? (
-              <div className="border-t border-zinc-200 py-3.5">
-                <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  {ui.styles}
-                </dt>
-                <dd className="mt-1 text-[15px] text-foreground">
-                  {styles.join(", ")}
-                </dd>
-              </div>
-            ) : null}
-            <div className="border-t border-zinc-200 py-3.5">
-              <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                {ui.producerCount}
-              </dt>
-              <dd className="mt-1 text-[15px] text-foreground">
-                {producers.length}
-              </dd>
-            </div>
-          </dl>
         </section>
+        <div className="pb-12">
+          <ProductListStaticGrid products={products} locale={locale} />
+        </div>
+
+        {showCharacteristics || showFacts ? (
+          <section
+            className={`grid gap-8 px-5 pb-12 md:px-10 ${
+              showCharacteristics
+                ? "lg:grid-cols-[1.3fr_1fr] lg:gap-20"
+                : ""
+            }`}
+          >
+            {showCharacteristics ? (
+              <div>
+                <h2 className="text-[clamp(1.5rem,2.4vw,1.75rem)] font-medium tracking-[-0.02em]">
+                  {characteristicsHeading || ui.characteristicsFallback}
+                </h2>
+                {characteristicsBody ? (
+                  <p className="mt-3 max-w-[62ch] text-base leading-relaxed text-foreground/80">
+                    {characteristicsBody}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+            {showFacts ? (
+              <dl className="self-start">
+                {showLocation ? (
+                  <div className="border-t border-zinc-200 py-3.5">
+                    <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      {ui.location}
+                    </dt>
+                    <dd className="mt-1 text-[15px] text-foreground">
+                      {locationBlurb}
+                    </dd>
+                  </div>
+                ) : null}
+                {grapeLabel ? (
+                  <div className="border-t border-zinc-200 py-3.5">
+                    <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      {ui.grapes}
+                    </dt>
+                    <dd className="mt-1 text-[15px] text-foreground">
+                      {grapeLabel}
+                    </dd>
+                  </div>
+                ) : null}
+                {styles.length > 0 ? (
+                  <div className="border-t border-zinc-200 py-3.5">
+                    <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      {ui.styles}
+                    </dt>
+                    <dd className="mt-1 text-[15px] text-foreground">
+                      {styles.join(", ")}
+                    </dd>
+                  </div>
+                ) : null}
+                {producers.length > 0 ? (
+                  <div className="border-t border-zinc-200 py-3.5">
+                    <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      {ui.producerCount}
+                    </dt>
+                    <dd className="mt-1 text-[15px] text-foreground">
+                      {producers.length}
+                    </dd>
+                  </div>
+                ) : null}
+              </dl>
+            ) : null}
+          </section>
+        ) : null}
 
         {producers.length > 0 ? (
           <section className="px-5 pb-12 md:px-10">
@@ -472,20 +458,6 @@ export async function renderWineRegionPage(options: {
             </ul>
           </section>
         ) : null}
-
-        <section className="px-5 pb-4 md:px-10">
-          <div className="mb-4 flex items-baseline justify-between gap-4">
-            <h2 className="text-[clamp(1.375rem,2.2vw,1.625rem)] font-medium tracking-[-0.02em]">
-              {ui.winesHeading(label)}
-            </h2>
-            <span className="text-[13px] text-muted-foreground">
-              {ui.wineCount(products.length)}
-            </span>
-          </div>
-        </section>
-        <div className="pb-10">
-          <ProductListStaticGrid products={products} locale={locale} />
-        </div>
       </div>
       <Footer />
     </>
