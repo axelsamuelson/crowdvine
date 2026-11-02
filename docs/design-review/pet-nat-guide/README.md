@@ -2,12 +2,12 @@
 
 `/guider/basta-pet-nat-systembolaget` after replacing the live ranked
 list with the SEO draft (H1 **Bästa pet nat på Systembolaget**, Axel Samuelson
-byline, FAQ, no prices/images/shop CTA).
+byline, FAQ, Odling field, no prices/images/shop CTA).
 
 ## Screenshots
 
 Captured from the Vercel preview for PR branch `cursor/pet-nat-guide-sv-a548`
-(commit matching the preview deploy).
+(commit `87d28036d` / feedback pass).
 
 | Viewport | File |
 | --- | --- |
@@ -17,8 +17,7 @@ Captured from the Vercel preview for PR branch `cursor/pet-nat-guide-sv-a548`
 ## Font check
 
 H1 computed `font-family`: `"Instrument Serif", "Instrument Serif Fallback", serif`.
-Instrument Serif (weight 400, normal) reports `status: loaded` on both viewports
-(`font-probe-390.json`, `font-probe-1440.json`).
+Instrument Serif (weight 400, normal) reports `status: loaded` on both viewports.
 
 ## Capture
 
