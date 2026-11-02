@@ -91,10 +91,7 @@ export function RegionFilter({
   if (mode === "chips") {
     return (
       <div
-        className={cn(
-          "hidden flex-wrap items-center gap-2 md:flex",
-          className,
-        )}
+        className={cn("flex flex-wrap items-center gap-2", className)}
         role="group"
         aria-label={t("shop.region")}
       >

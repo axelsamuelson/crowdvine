@@ -322,9 +322,11 @@ export function ProductListContent({
 
   return (
     <>
-      <div className="mb-4 px-sides md:pr-sides">
-        <RegionFilter mode="chips" regions={linkableRegions} />
-      </div>
+      {linkableRegions.length > 0 ? (
+        <div className="mb-4 hidden px-sides md:block md:pr-sides">
+          <RegionFilter mode="chips" regions={linkableRegions} />
+        </div>
+      ) : null}
       <ResultsControls
         className="max-md:hidden"
         collections={collections}
