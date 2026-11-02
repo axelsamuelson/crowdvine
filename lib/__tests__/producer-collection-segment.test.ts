@@ -26,13 +26,23 @@ describe("producer collection segment vs wine category paths", () => {
     expect(isProducerCollectionSegment(undefined)).toBe(false);
   });
 
-  it("does not count colour category path toward active filter total", () => {
+  it("counts path-based colour + region, not as a producer", () => {
+    // /vin/rott-naturvin?region=loire → colour (path) + region
     expect(
       countActiveShopFilters({ region: "loire" }, "rott-naturvin"),
-    ).toBe(1);
+    ).toBe(2);
+    expect(
+      countActiveShopFilters({ region: "loire" }, "red-natural-wine"),
+    ).toBe(2);
     expect(
       countActiveShopFilters({ region: "loire" }, "some-producer-handle"),
     ).toBe(2);
     expect(countActiveShopFilters({ region: "loire" })).toBe(1);
+    // path colour alone
+    expect(countActiveShopFilters({}, "rott-naturvin")).toBe(1);
+    // ?fcolor= already counted — do not double-count path
+    expect(
+      countActiveShopFilters({ fcolor: "Red" }, "rott-naturvin"),
+    ).toBe(1);
   });
 });

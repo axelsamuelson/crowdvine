@@ -1,11 +1,13 @@
 "use client";
 
 import { useQueryState, parseAsArrayOf, parseAsString } from "nuqs";
-import { useParams } from "next/navigation";
+import { useParams, usePathname } from "next/navigation";
 import { isProducerCollectionSegment } from "@/lib/shop/producer-collection-segment";
+import { getActiveColorFromPathname } from "@/lib/wine-categories";
 
 export function useFilterCount() {
   const params = useParams<{ collection: string }>();
+  const pathname = usePathname() || "";
   const [color] = useQueryState(
     "fcolor",
     parseAsArrayOf(parseAsString).withDefault([]),
@@ -31,9 +33,11 @@ export function useFilterCount() {
   // Count active filters
   let count = 0;
 
-  // Count color filters
+  // Count color filters (?fcolor= and clean colour category URLs)
   if (color.length > 0) {
     count += color.length;
+  } else if (getActiveColorFromPathname(pathname)) {
+    count += 1;
   }
 
   // Count grape filters
@@ -76,13 +80,14 @@ export function useCategoryFilterCount() {
 }
 
 export function useColorFilterCount() {
+  const pathname = usePathname() || "";
   const [color] = useQueryState(
     "fcolor",
     parseAsArrayOf(parseAsString).withDefault([]),
   );
 
-  // Return the number of selected color filters
-  return color.length;
+  if (color.length > 0) return color.length;
+  return getActiveColorFromPathname(pathname) ? 1 : 0;
 }
 
 export function useGrapeFilterCount() {
