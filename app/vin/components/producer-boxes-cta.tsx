@@ -63,9 +63,12 @@ export function ProducerBoxesCta({
     window.location.assign(href);
   };
 
+  // Mobile filter sheet: always show below "Show N wines" on every PLP
+  // (root, colour, region, collection). Root-only gating was pre-existing
+  // on the desktop/sidebar button variant — leave that unchanged.
   if (variant === "textLink") {
     return (
-      <div className={isRootShop ? "w-full shrink-0" : "hidden"}>
+      <div className="w-full shrink-0">
         <Link
           href={href}
           onClick={onNavigateClick}
