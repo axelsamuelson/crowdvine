@@ -1,7 +1,7 @@
 -- Organic registry proof for producers.certification claims.
 -- NULL certification_verified_url → public UI must not say Certified/Certifierad.
 -- certification_in_conversion → registry proves conversion (C1/C2), not full AB yet.
--- Data backfill lives in 267_*; do not apply seed writes outside migrations/.
+-- Data backfill lives in 269_*; do not apply seed writes outside migrations/.
 
 ALTER TABLE public.producers
   ADD COLUMN IF NOT EXISTS certification_verified_url text,
