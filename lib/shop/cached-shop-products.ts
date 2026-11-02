@@ -25,6 +25,6 @@ export const getCachedShopProducts = unstable_cache(
     });
   },
   // Keep in sync with PDP shipping-fix cache bumps (Data Cache survives deploys).
-  ["shop-root-products", "v2-full-pallet-shipping", "v3-locale-desc"],
+  ["shop-root-products", "v2-full-pallet-shipping", "v3-locale-desc", "v4-wine-region"],
   { revalidate: 300, tags: [SHOP_PRODUCTS_CACHE_TAG] },
 );

@@ -10,6 +10,7 @@ import { CategoryFilter } from "./category-filter";
 import { ColorFilter } from "./color-filter";
 import { GrapesFilter } from "./grapes-filter";
 import { FarmingFilter } from "./farming-filter";
+import { RegionFilter } from "./region-filter";
 import { CompetitorFilter, type PriceSourceForFilter } from "./competitor-filter";
 import { ShopFilterSearch } from "./shop-filter-search";
 import { useProducts } from "@/components/shop/products-provider";
@@ -215,6 +216,7 @@ export function DesktopFilters({
                   onColorSelect={handleColorSelect}
                   getColorHref={resolveColorHref}
                 />
+                <RegionFilter mode="sidebar" onSeeAll={openSeeAll} />
                 <FarmingFilter
                   products={originalProducts}
                   mode="sidebar"
@@ -307,6 +309,7 @@ export function DesktopFilters({
                         onColorSelect={handleColorSelect}
                         getColorHref={resolveColorHref}
                       />
+                      <RegionFilter mode="overlay" />
                       <FarmingFilter
                         products={originalProducts}
                         mode="overlay"

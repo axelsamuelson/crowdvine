@@ -1,3 +1,5 @@
+import { parseWineRegionParam } from "@/lib/wine-regions";
+
 /** Mirror of client useFilterCount — for SSR layout props only. */
 export function countActiveShopFilters(
   searchParams: Record<string, string | string[] | undefined>,
@@ -15,6 +17,7 @@ export function countActiveShopFilters(
   count += arrayParam("fgrape").length;
   count += arrayParam("ffarming").length;
   count += arrayParam("fsource").length;
+  count += parseWineRegionParam(searchParams.region).length;
 
   if (collectionSegment) {
     count += 1;

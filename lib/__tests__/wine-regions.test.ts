@@ -8,10 +8,14 @@ import {
   WINE_REGION_SLUGS,
   WINE_REGION_VALUES,
   WINE_REGIONS,
+  getLinkableWineRegions,
+  isWineRegionLinkable,
   isWineRegionSlug,
   isWineRegionValue,
   mapToWineRegionValue,
+  parseWineRegionParam,
   resolveWineRegionValue,
+  serializeWineRegionParam,
   wineRegionBySlug,
   wineRegionLabel,
   wineRegionSlugFromValue,
@@ -104,6 +108,19 @@ describe("mapToWineRegionValue / resolveWineRegionValue", () => {
         producerRegion: "Corse",
       }),
     ).toBeNull();
+  });
+});
+
+describe("region query + linkability helpers", () => {
+  it("parses and serializes ?region= slugs", () => {
+    expect(parseWineRegionParam("loire,jura")).toEqual(["loire", "jura"]);
+    expect(serializeWineRegionParam(["loire", "jura"])).toBe("jura,loire");
+  });
+
+  it("gates linkable regions at ≥1 live wine", () => {
+    const counts = new Map([["Loire", 8], ["Jura", 0]]);
+    expect(getLinkableWineRegions(counts).map((r) => r.slug)).toEqual(["loire"]);
+    expect(isWineRegionLinkable("jura", counts)).toBe(false);
   });
 });
 
