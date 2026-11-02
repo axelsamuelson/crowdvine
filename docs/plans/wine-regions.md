@@ -176,7 +176,7 @@ Rationale: product-level field as requested; supports rare producer/wine mismatc
 - Desktop: horizontal chip row under H1 (“Region” label + chips + “Rensa”), per `plp_5266` / 1440 mockup.
 - Mobile: summary “Filter · Region (N)” opens bottom sheet with checklist + “Visa N viner”, per `plp-sheet_5348`.
 - Labels: see display-label table above (EN: Burgundy, Rhône Valley, South West France).
-- **Visibility:** only regions with **≥1 live wine** appear as chips / sheet options / internal links. Regions with **0 live wines** are hidden everywhere (PLP filter, region CTAs, explore links, etc.). `NULL`-region wines still list in the unfiltered PLP.
+- **Visibility:** chips / sheet options come from the shared ≥1-live linkability helper (same as guides/sitemap/internal links). Regions with **0 live wines** never appear. `NULL`-region wines still list in the unfiltered PLP.
 - Filter applies on `/vin` and `/wine` roots; interaction with path hubs (`/vin/rott-naturvin` etc.): apply `region` as additional client/server filter on the already category-filtered set (same as `fgrape` on hubs if applicable).
 - **Do not change product card layout/style** in this workstream.
 
@@ -271,19 +271,33 @@ Sections:
 
 Alternative rejected for v1: new Supabase table — slower for bilingual SEO iteration; revisit if non-devs must edit in admin.
 
-### Indexability rules (marketing locked)
+### Indexability rules (marketing confirmed)
 
 Live wine = `wines.is_live` ∧ producer `is_live`, with `wines.region` = allowlisted value.
 
-| Live wines in region | Region page | Sitemap | PLP filter + internal links |
+| Live wines in region | Region page | Sitemap | Any link to the region page |
 | --- | --- | --- | --- |
-| **0** (or unknown slug) | **404** | omit | **hide** region entirely |
-| **1–2** | Serve page, **`noindex,follow`** | omit | show (has live stock) |
-| **≥3** | **Index**: title/meta, self canonical, mutual hreflang + x-default, ItemList + BreadcrumbList JSON-LD | **include** | show |
+| **0** (or unknown slug) | **404** | omit | **never link** (hide everywhere) |
+| **1–2** | Serve page, **`noindex,follow`** | omit | **link OK** (page exists) |
+| **≥3** | **Index**: title/meta, self canonical, mutual hreflang + x-default, ItemList + BreadcrumbList JSON-LD | **include** | **link OK** |
 
-With current live counts: Languedoc (91) and Loire (8) index; Beaujolais/Bourgogne/Alsace/Rhône/Roussillon (1–2) are noindex pages; Jura/Champagne/Sud-Ouest (0) 404 and stay hidden from chips/links until stock appears.
+With current live counts: Languedoc (91) and Loire (8) index; Beaujolais/Bourgogne/Alsace/Rhône/Roussillon (1–2) are noindex pages; Jura/Champagne/Sud-Ouest (0) 404 and must not be linked until stock appears — links then show up automatically.
 
 No per-region threshold overrides unless marketing revisits. Same `is_live` gates as shop/sitemap (`lib/sitemap-urls.ts` / products-data).
+
+### Shared link gate (marketing confirmed — one helper everywhere)
+
+**Never link to a region that would 404.** Every consumer that might emit a region URL must go through **one shared helper** (proposed: `lib/wine-regions.ts`, e.g. `getLinkableWineRegions()` / `isWineRegionLinkable(slug)`), backed by live-wine counts (`≥1`).
+
+**Must use the helper (non-exhaustive):**
+
+- PLP region chips + mobile sheet options
+- Sitemap region entries (additionally require ≥3 for *indexable* inclusion; still must not list 0-live)
+- Internal nav / explore / related links
+- Guide articles that mention regions (e.g. **Jura** and **Champagne** guides) — render a region-page href only when linkable; otherwise plain text or omit the link
+- Any CTA from PDP, producer pages, boxes, etc. that targets `/region/{slug}` or `/regions/{slug}`
+
+When the first live wine for a region ships (and caches revalidate), links **appear automatically** without a content PR. Do not hard-code “Jura has no page” in guide markdown/TS beyond calling the helper.
 
 ### Caching
 
@@ -298,7 +312,8 @@ Extend `revalidateWineStorefrontCaches` (`lib/crowdvine/revalidate-wine-storefro
 - [ ] JSON-LD `BreadcrumbList` + `ItemList` (wines) on served pages
 - [ ] Sitemap entries only for ≥3 live-wine regions (both locales)
 - [ ] Public middleware allowlist
-- [ ] 0-live regions: 404 + hidden from PLP chips and all internal links
+- [ ] 0-live regions: 404 + never linked (PLP, guides, sitemap, internal)
+- [ ] One shared linkability helper used by all of the above
 
 ---
 
@@ -307,9 +322,9 @@ Extend `revalidateWineStorefrontCaches` (`lib/crowdvine/revalidate-wine-storefro
 | PR | Scope | Notes |
 | --- | ---: | --- |
 | **0** | This plan + mockup HTML refs | Docs only |
-| **1** | Migration `272_…` + backfill + CHECK + `lib/wine-regions.ts` constants + admin/MCP write path for `wines.region` | No storefront UI |
-| **2** | PLP `?region=` filter UI + `applyShopUrlFilters` (mockups; **no card changes**) | High CRO conflict — rebase early; list files above |
-| **3** | `/region` + `/regions` pages, public-paths, hreflang/canonical/JSON-LD/sitemap, cache revalidate, empty content slots | Blocked on PR1 data; copy left empty for marketing |
+| **1** | Migration `272_…` + backfill + CHECK + `lib/wine-regions.ts` constants + admin/MCP write path for `wines.region` | No storefront UI; include count/linkability helpers + tests |
+| **2** | PLP `?region=` filter UI + `applyShopUrlFilters` (mockups; **no card changes**) | High CRO conflict — rebase early; list files above; chips via shared helper |
+| **3** | `/region` + `/regions` pages, public-paths, hreflang/canonical/JSON-LD/sitemap, cache revalidate, empty content slots; **wire guides (Jura, Champagne, …) through the shared link helper** | Blocked on PR1 data; copy left empty for marketing |
 | **4** | Marketing copy fill (content module only) | Humans / marketing; still no product behaviour change |
 
 Optional later: constrain `producers.region` to the same allowlist; redirect legacy guide confusion only if marketing asks (keep `/guider/naturvin-languedoc`).
@@ -332,7 +347,7 @@ Optional later: constrain `producers.region` to the same allowlist; redirect leg
 
 - [ ] `/vin?region=loire,jura` and `/wine?region=loire,jura` filter live wines by `wines.region`.
 - [ ] Desktop: selected chip black + checkmark; sheet unselected rows grey per #166 / `shop-filter-option`.
-- [ ] Only regions with ≥1 live wine appear as options; 0-live regions hidden from filter and internal links.
+- [ ] Chip options come from the shared ≥1-live linkability helper (0-live regions absent).
 - [ ] `NULL`-region live wines (Petit Clos, Roucas, Bugey Cerdon, …) still show in the unfiltered PLP.
 - [ ] EN chip labels include Burgundy, Rhône Valley, South West France.
 - [ ] Clear (“Rensa”) removes `region` param.
@@ -344,9 +359,10 @@ Optional later: constrain `producers.region` to the same allowlist; redirect leg
 
 - [ ] SV `/region/{slug}` and EN `/regions/{slug}` public (no access-request redirect).
 - [ ] Same French slugs; mutual hreflang + x-default→EN; **self canonical** on each page.
-- [ ] ≥3 live → index + sitemap; 1–2 → `noindex,follow`, no sitemap; 0 → 404 and hidden from PLP/links.
+- [ ] ≥3 live → index + sitemap; 1–2 → `noindex,follow`, no sitemap; 0 → 404.
+- [ ] **One shared helper** gates every region-page href: PLP, sitemap, internal links, and guides (incl. Jura / Champagne) — never link a 404; links appear automatically when wines go live.
 - [ ] Title, meta, ItemList, BreadcrumbList on served pages.
-- [ ] `revalidateWineStorefrontCaches` busts region paths.
+- [ ] `revalidateWineStorefrontCaches` busts region paths (so linkability updates without redeploy).
 - [ ] Copy fields exist but contain **no invented final marketing copy**.
 
 ### PR4 — copy
