@@ -1,9 +1,9 @@
 import type { AppLocale } from "@/lib/i18n/locale";
 
 const DEFAULT_META_SV =
-  "Naturvinslåda med sex flaskor från samma producent. Leverans i Sverige där Budbee levererar.";
+  "Naturvinslåda med sex flaskor från samma producent. Hemleverans med Budbee.";
 const DEFAULT_META_EN =
-  "A natural wine box with six bottles from one producer.";
+  "A natural wine box with six bottles from one producer. Home delivery with Budbee.";
 
 /** SEO title without site suffix — layout template adds " | PACT Wines". */
 export function buildWineBoxSeoTitle(

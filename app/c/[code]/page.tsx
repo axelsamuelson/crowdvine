@@ -154,7 +154,7 @@ export default function InviteSignupPage() {
       id: "mock-pallet",
       name: "PACT – natural wine from France",
       description:
-        "Natural wine from several French regions, consolidated on shared pallets.",
+        "Natural wine from several French regions, on shared pallets.",
       bottle_capacity: 600,
       total_booked_bottles: 542,
       remaining_bottles: 58,

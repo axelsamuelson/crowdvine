@@ -85,7 +85,7 @@ const ABOUT_CONTENT_EN: AboutPageContent = {
 const ABOUT_CONTENT_SV: AboutPageContent = {
   title: "Så fungerar PACT — naturvin direkt från producenten",
   description:
-    "Så fungerar PACT: naturvin från flera franska regioner, samlastat på delade pallar och levererat i Sverige där Budbee levererar.",
+    "Så fungerar PACT: naturvin från flera franska regioner, på delade pallar och levererat i Sverige där Budbee levererar.",
   h1: "Om PACT",
   heroSubtitle: "Ett smartare sätt att köpa naturvin tillsammans.",
   cards: [
@@ -96,7 +96,7 @@ const ABOUT_CONTENT_SV: AboutPageContent = {
   ],
   philosophyTitle: "Vår filosofi",
   philosophyBody: [
-    "Vi säljer naturvin från flera franska regioner. Vinerna från Languedoc köper vi direkt från producenterna, och övriga regioners viner köper vi via grossister i Languedoc.",
+    "Vi säljer naturvin från flera franska regioner. Vinerna från Languedoc köper vi direkt från producenterna, och övriga regioners viner köper vi via grossister i Languedoc. Små gårdar som odlar ekologiskt eller biodynamiskt och gör vin utan tillsatser. Varje flaska speglar en person, en plats och en årgång. Transparens är inte ett marknadsföringsord för oss, det är själva affärsmodellen.",
   ],
   impactTitle: "Varför det spelar roll",
   impactBody: [

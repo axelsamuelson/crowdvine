@@ -48,7 +48,7 @@ export async function buildHomeMetadata(locale: AppLocale): Promise<Metadata> {
     locale === "sv"
       ? isDirtyWine
         ? "Naturvin från flera franska regioner för restauranger och sommelierer i Stockholm. Priser exkl. moms."
-        : "Naturvin från flera franska regioner, samlastat på delade pallar. Leverans i Sverige där Budbee levererar."
+        : "Naturvin från flera franska regioner, på delade pallar. Hemleverans med Budbee."
       : isDirtyWine
         ? "Natural wine from several French regions for restaurants and sommeliers in Stockholm. Prices excl. VAT."
         : "Buy natural wine imported directly from small producers in Languedoc. Home delivery in Stockholm. No middlemen — lower price, more character.";
@@ -150,7 +150,7 @@ export async function renderHomePage(locale: AppLocale) {
           url: pageUrl,
           logo: `${PACT_PUBLIC_ORIGIN}/favicon.png`,
           description:
-            "Naturvin från flera franska regioner, samlastat på delade pallar och levererat i Sverige där Budbee levererar.",
+            "Naturvin från flera franska regioner, på delade pallar. Hemleverans med Budbee.",
           areaServed: "Stockholm, Sweden",
           sameAs: ["https://www.instagram.com/pactwines"],
         }
@@ -161,7 +161,7 @@ export async function renderHomePage(locale: AppLocale) {
           url: pageUrl,
           logo: `${PACT_PUBLIC_ORIGIN}/favicon.png`,
           description:
-            "Natural wine from several French regions, consolidated on shared pallets.",
+            "Natural wine from several French regions, on shared pallets. Home delivery with Budbee.",
           areaServed: "Stockholm, Sweden",
           sameAs: ["https://www.instagram.com/pactwines"],
         };
@@ -173,15 +173,15 @@ export async function renderHomePage(locale: AppLocale) {
           "@type": "WebSite",
           name: config.name,
           url: pageUrl,
-          description:
-            "Naturvin från Frankrike, levererat i Sverige där Budbee levererar.",
+          description: "Naturvin från Frankrike. Hemleverans med Budbee.",
         }
       : {
           "@context": "https://schema.org",
           "@type": "WebSite",
           name: config.name,
           url: pageUrl,
-          description: "Natural wine from the regions of France.",
+          description:
+            "Natural wine from the regions of France. Home delivery with Budbee.",
         };
 
   return (

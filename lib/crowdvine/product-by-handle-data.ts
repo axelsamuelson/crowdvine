@@ -74,8 +74,8 @@ function buildPdpSeoDescription(
 
   const fullSuffix =
     locale === "sv"
-      ? ` Naturvin från ${regionPart}. Leverans i Sverige där Budbee levererar.`
-      : ` Natural wine from ${regionPart}.`;
+      ? ` Naturvin från ${regionPart}. Hemleverans med Budbee.`
+      : ` Natural wine from ${regionPart}. Home delivery with Budbee.`;
 
   const shortSuffix =
     locale === "sv"
