@@ -50,9 +50,9 @@ const FALLBACK_BIOS = {
   },
   "clos-fantine": {
     bio_short_en:
-      "Carole, Corine, and Olivier Andrieu run Clos Fantine in Cabrerolles, Faugères. A 25-hectare family estate farmed organically since the 1990s. Carignan dominates — some vines a hundred years old. No additives, no sulphites.",
+      "Carole, Corine, and Olivier Andrieu run Clos Fantine in Cabrerolles, Faugères. A 25-hectare family estate farmed organically since the 1990s. Carignan dominates — some vines a hundred years old. No additives, no added sulphites.",
     bio_long_en:
-      "Clos Fantine is a family estate in Cabrerolles at the heart of the Faugères appellation. Carole, Corine, and Olivier Andrieu took over from their father in the mid-1990s and have farmed it organically ever since — something their father had already begun.\n\nThe domaine is 25 hectares, mostly planted to Carignan (40%), Grenache (20%), Mourvèdre (20%), Syrah (10%), and Cinsault (10%) — all on the schist soils typical of Faugères. Some Carignan plantings are a hundred years old.\n\nThe work is minimally interventionist: no synthetic products, no chemical fertilizers, no filtration, no cooling, no sulphites. Corine has a background in oenology, Olivier in viticulture, and Carole handles the commercial side — a well-worked division of roles in a sibling team that shares a common vision of what Faugères can be.",
+      "Clos Fantine is a family estate in Cabrerolles at the heart of the Faugères appellation. Carole, Corine, and Olivier Andrieu took over from their father in the mid-1990s and have farmed it organically ever since — something their father had already begun.\n\nThe domaine is 25 hectares, mostly planted to Carignan (40%), Grenache (20%), Mourvèdre (20%), Syrah (10%), and Cinsault (10%) — all on the schist soils typical of Faugères. Some Carignan plantings are a hundred years old.\n\nThe work is minimally interventionist: no synthetic products, no chemical fertilizers, no filtration, no cooling, no added sulphites. Corine has a background in oenology, Olivier in viticulture, and Carole handles the commercial side — a well-worked division of roles in a sibling team that shares a common vision of what Faugères can be.",
   },
   "grain-d-l": {
     bio_short_en:
@@ -62,7 +62,7 @@ const FALLBACK_BIOS = {
   },
   "julien-peyras": {
     bio_short_en:
-      "Julien Peyras runs GAEC La Dame Jeanne in Paulhan, Hérault. Organic farming without synthetic products, native yeasts, no additives, no sulphites. The range spans sparkling Clairette to complex blends with long-aged Syrah.",
+      "Julien Peyras runs GAEC La Dame Jeanne in Paulhan, Hérault. Organic farming without synthetic products, native yeasts, no additives, no added sulphites. The range spans sparkling Clairette to complex blends with long-aged Syrah.",
     bio_long_en:
       "Julien Peyras runs GAEC La Dame Jeanne in Paulhan, Hérault — an estate built on respect for nature and a love of good bottles. His vines are grown without synthetic products: the soil is managed with green manure and cover crops such as field bean, rye, phacelia, and wheat, and the vines are treated with natural preparations like nettle, field horsetail, and horsetail extracts.\n\nThe range is broad and varied — from the sparkling Les Pétillantes (100% Clairette) through blends like Dolce Vita and Madame la Rouge to the pure Syrah Nostra. Each wine is an expression of a specific parcel, soil type, and vintage. Shared across all of them: native yeasts, no additives, no added sulphites, and movement only by gravity.\n\nMadame la Rouge is the estate's most singular cuvée — a blend of Syrah and Grenache from 2014 (with years in barrique) and Syrah, Carignan, Grenache, and Cinsault from 2022. A vinified journey through time.",
   },
