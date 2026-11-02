@@ -28,7 +28,10 @@ import {
   wineRegionPageTitle,
   wineRegionSlugFromValue,
 } from "@/lib/wine-regions";
-import { getWineRegionContent } from "@/lib/region-content";
+import {
+  getWineRegionContent,
+  getWineRegionSections,
+} from "@/lib/region-content";
 
 describe("wine-regions config", () => {
   it("exposes the ten allowlisted slugs from the plan", () => {
@@ -248,13 +251,18 @@ describe("Margaux region landing copy", () => {
     for (const region of WINE_REGIONS) {
       const sv = wineRegionPageMetaDescription(region, "sv");
       const en = wineRegionPageMetaDescription(region, "en");
-      expect(sv.endsWith("Hemleverans med Budbee.")).toBe(true);
-      expect(en.endsWith("at PACT.")).toBe(true);
+      expect(sv.endsWith("hemleverans med Budbee.")).toBe(true);
+      expect(en.toLowerCase()).toContain("producer guides");
       expect(en.toLowerCase()).not.toContain("budbee");
       expect(en.toLowerCase()).not.toContain("home delivery");
+      expect(en.toLowerCase()).not.toContain("delivery");
       expect(sv.toLowerCase()).not.toContain("hela sverige");
       expect(en.toLowerCase()).not.toContain("hela sverige");
       expect(en.toLowerCase()).not.toContain("all of sweden");
+      expect(sv.length).toBeGreaterThanOrEqual(130);
+      expect(sv.length).toBeLessThanOrEqual(160);
+      expect(en.length).toBeGreaterThanOrEqual(130);
+      expect(en.length).toBeLessThanOrEqual(160);
     }
   });
 
@@ -273,25 +281,61 @@ describe("Margaux region landing copy", () => {
     }
   });
 
-  it("omits wholesaler/grossist wording from intros and meta", () => {
+  it("provides 3–5 factual H2 sections per region and locale", () => {
+    for (const region of WINE_REGIONS) {
+      for (const locale of ["sv", "en"] as const) {
+        const sections = getWineRegionSections(region.slug, locale);
+        expect(sections.length).toBeGreaterThanOrEqual(3);
+        expect(sections.length).toBeLessThanOrEqual(5);
+        for (const section of sections) {
+          expect(section.heading.trim().length).toBeGreaterThan(0);
+          expect(section.body.trim().length).toBeGreaterThan(40);
+        }
+      }
+    }
+  });
+
+  it("omits wholesaler/grossist wording from intros, sections and meta", () => {
     const forbidden = [
       "köpt via grossist i Languedoc och samlastad på samma pall",
       "bought through a wholesaler in the Languedoc and shipped on the same shared pallet",
       "grossist",
       "wholesaler",
       "samlastad",
+      "systembolaget",
+      "bästa",
+      "best ",
     ];
     for (const region of WINE_REGIONS) {
+      const sectionText = (["sv", "en"] as const)
+        .flatMap((locale) =>
+          getWineRegionSections(region.slug, locale).flatMap((s) => [
+            s.heading,
+            s.body,
+          ]),
+        )
+        .join("\n");
       const texts = [
         getWineRegionContent(region.slug, "sv").intro ?? "",
         getWineRegionContent(region.slug, "en").intro ?? "",
         wineRegionPageMetaDescription(region, "sv"),
         wineRegionPageMetaDescription(region, "en"),
+        sectionText,
       ];
       for (const text of texts) {
         const lower = text.toLowerCase();
         for (const phrase of forbidden) {
+          if (
+            region.slug !== "languedoc" &&
+            (phrase === "pallet" || phrase === "pall")
+          ) {
+            expect(lower).not.toContain(phrase);
+          }
           expect(lower).not.toContain(phrase.toLowerCase());
+        }
+        if (region.slug !== "languedoc") {
+          expect(lower).not.toContain("pall");
+          expect(lower).not.toContain("pallet");
         }
       }
     }
