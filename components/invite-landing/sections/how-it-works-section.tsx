@@ -8,7 +8,7 @@ const STEPS = [
     step: 1,
     title: "Discover wines",
     description:
-      "Browse wines directly from producers. Filter by region, color, and style. See transparent pricing with no middlemen.",
+      "Browse wines directly from producers. Filter by region, color, and style. See transparent pricing. On shared pallets.",
     image: "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&h=400&fit=crop",
     icon: Wine,
   },

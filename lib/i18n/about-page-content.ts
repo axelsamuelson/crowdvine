@@ -63,15 +63,17 @@ const ABOUT_CONTENT_EN: AboutPageContent = {
     },
     {
       title: "Receive & Enjoy",
-      body: "Your wines arrive direct from the winemaker, untouched and traceable. Pure wine, transparent process, fair price.",
+      body: "Your wines arrive untouched and traceable. Pure wine, transparent process. Every order travels on a shared pallet.",
     },
   ],
   differenceTitle: "The Difference",
   differenceItems: [
     { label: "No warehouses.", detail: "Wines stay with the winemaker until shipped." },
-    { label: "No middlemen.", detail: "Every bottle comes straight from the source." },
+    {
+      label: "Every order travels on a shared pallet.",
+      detail: "Every bottle comes straight from the source.",
+    },
     { label: "No waste.", detail: "Collective shipping means lower emissions." },
-    { label: "Fair pricing.", detail: "More value to producers, better prices for you." },
   ],
   differenceTagline: "Crowdsource your wine.",
   differenceSubtagline:
@@ -106,11 +108,11 @@ const ABOUT_CONTENT_SV: AboutPageContent = {
   steps: [
     {
       title: "Upptäck & reservera",
-      body: "Utforska vårt urval av naturviner från Languedoc och reservera de du vill ha. Din beställning är med och fyller en gemensam pall.",
+      body: "Utforska vårt urval av naturviner från flera franska regioner och reservera de du vill ha. Din beställning är med och fyller en gemensam pall.",
     },
     {
       title: "Kollektiv frakt",
-      body: "När pallen når 600–700 flaskor skickas den direkt från producenten till Stockholm. Inga lager, inga mellanhänder.",
+      body: "När pallen når 600–700 flaskor skickas den till Stockholm. Inga lager. Varje beställning skickas på en delad pall.",
     },
     {
       title: "Transparent logistik",
@@ -118,13 +120,13 @@ const ABOUT_CONTENT_SV: AboutPageContent = {
     },
     {
       title: "Ta emot & njut",
-      body: "Vinet levereras hem till dig i Stockholm, direkt från producenten. Kortare väg, lägre pris, mer karaktär.",
+      body: "Vinet levereras hem till dig i Stockholm. Kortare väg, mer karaktär.",
     },
   ],
   differenceTitle: "Skillnaden",
   differenceItems: [
     { label: "Inga lager." },
-    { label: "Inga mellanhänder." },
+    { label: "Varje beställning skickas på en delad pall." },
     { label: "Inget svinn." },
     { label: "Rättvis prissättning." },
   ],

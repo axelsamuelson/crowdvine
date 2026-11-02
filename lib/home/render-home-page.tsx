@@ -51,7 +51,7 @@ export async function buildHomeMetadata(locale: AppLocale): Promise<Metadata> {
         : "Naturvin från flera franska regioner, på delade pallar. Hemleverans med Budbee."
       : isDirtyWine
         ? "Natural wine from several French regions for restaurants and sommeliers in Stockholm. Prices excl. VAT."
-        : "Buy natural wine imported directly from small producers in Languedoc. Home delivery in Stockholm. No middlemen — lower price, more character.";
+        : "Natural wine from several French regions, on shared pallets.";
 
   return {
     title: { absolute: title },
