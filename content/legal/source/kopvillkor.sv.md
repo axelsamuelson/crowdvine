@@ -167,7 +167,6 @@ Om vi inte kommer överens kan du vända dig till:
 
 - **Allmänna reklamationsnämnden (ARN)**, arn.se, Box 174, 101 23 Stockholm
 - **Konsument Europa**, som ger kostnadsfri vägledning vid gränsöverskridande handel inom EU, och som är rätt väg om ARN inte prövar ärendet
-- **EU:s onlineplattform för tvistlösning**, ec.europa.eu/odr
 
 Vi medverkar i tvistlösning inför ARN och följer nämndens rekommendationer.
 
