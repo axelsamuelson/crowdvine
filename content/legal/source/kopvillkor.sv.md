@@ -1,8 +1,8 @@
 # Köpvillkor
 
-> **UTKAST.** Framtaget av Daniel Holm (Compliance), med ställningstagande av Sofia Bergström (GC) den 25 augusti 2026 enligt `gc-stallningstagande-angerratt-och-villkor.md`. Tvistlösningen (p. 13) är oförändrad. Punkt 9 och 10 är omskrivna 2026-10-29 på ägarens instruktion och avviker från GC-dokumentet, se anmärkningen under punkt 9. Punkt 3 (giltighetstid och producent som inte kan leverera) uppdaterad 2026-10-31, i linje med reservationsmejlen (30 dagar åt gången, bekräftelse via länk senast angivet datum inom 7 dagar, obegränsat antal förlängningar). Punkt 7 (leveranstid och leveransområde) ifylld 2026-11-01: 5–10 arbetsdagar inom hela Sverige från orderbekräftelse och debitering. Punkt 5 (misslyckad debitering: omförsök efter 24/72 h, 3D Secure-länk, avbrott efter tre försök utan dragning) uppdaterad 2026-11-02 enligt `lib/payment-retry.ts` och Stripe-webhook. Punkt 8 (returkostnad) ifylld 2026-11-03; antal leveransförsök orört. Bolagsadress uppdaterad 2026-11-04 till äriregister-form (Kesklinna linnaosa, Harju maakond; postnummer 10115 behållet då det redan fanns i repo). Övriga fält markerade `[FYLL I]` måste fyllas i innan sidan går live. Ingen extern advokat har granskat texten.
+> **UTKAST.** Framtaget av Daniel Holm (Compliance), med ställningstagande av Sofia Bergström (GC) den 25 augusti 2026 enligt `gc-stallningstagande-angerratt-och-villkor.md`. Tvistlösningen (p. 13) är oförändrad. Punkt 9 och 10 är omskrivna 2026-10-29 på ägarens instruktion och avviker från GC-dokumentet, se anmärkningen under punkt 9. Punkt 3 (giltighetstid och producent som inte kan leverera) uppdaterad 2026-10-31, i linje med reservationsmejlen (30 dagar åt gången, bekräftelse via länk senast angivet datum inom 7 dagar, obegränsat antal förlängningar). Punkt 7 (leveranstid och leveransområde) uppdaterad 2026-11-09: 1–2 veckor efter att pallen har stängt. Punkt 5 (misslyckad debitering: omförsök efter 24/72 h, 3D Secure-länk, avbrott efter tre försök utan dragning) uppdaterad 2026-11-02 enligt `lib/payment-retry.ts` och Stripe-webhook. Punkt 8 (returkostnad) ifylld 2026-11-03; antal leveransförsök orört. Bolagsadress uppdaterad 2026-11-04 till äriregister-form (Kesklinna linnaosa, Harju maakond; postnummer 10115 behållet då det redan fanns i repo). Punkt 8 (undersökning/värdeminskning vid retur, 2 kap. 14 § distansavtalslagen) tillagd 2026-11-05. Övriga fält markerade `[FYLL I]` måste fyllas i innan sidan går live. Ingen extern advokat har granskat texten.
 
-Senast uppdaterad: 2026-11-09
+Senast uppdaterad: 2026-11-10
 
 ---
 
@@ -128,6 +128,8 @@ Om leveransen blir väsentligt försenad har du rätt att häva köpet och få p
 Om du inte är hemma, inte kan legitimera dig eller inte är minst 20 år gör Budbee ett nytt leveransförsök. Kan leveransen inte genomföras då heller returneras varan.
 
 Vid retur betalar du den faktiska returfraktkostnaden, utan påslag. Om överlämningen nekas vid ålderskontrollen tar vi inte ut någon avgift.
+
+Du får undersöka varan på samma sätt som i en butik, men inte mer än så. Har en flaska öppnats, eller förvarats eller hanterats så att vinet kan ha tagit skada, till exempel i värme eller direkt solljus, ansvarar du för värdeminskningen. Vi får då göra ett avdrag från återbetalningen som motsvarar värdeminskningen, upp till flaskans fulla pris. Detta följer av 2 kap. 14 § lagen (2005:59) om distansavtal och avtal utanför affärslokaler.
 
 Hur ett uteblivet leveransförsök hanteras beskrivs av [Budbee](https://budbee.com/se/kundservice/leveranser/).
 
