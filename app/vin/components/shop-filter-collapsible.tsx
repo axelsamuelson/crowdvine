@@ -78,7 +78,12 @@ export function ShopFilterCollapsible({
       </div>
       <CollapsibleContent
         forceMount={forceMountContent ? true : undefined}
-        className="pt-2"
+        className={cn(
+          "pt-2",
+          // forceMount keeps content in the DOM for crawlable <a href>;
+          // hide it visually when closed (Radix alone does not).
+          forceMountContent && "data-[state=closed]:hidden",
+        )}
       >
         {children}
       </CollapsibleContent>
