@@ -31,6 +31,7 @@ import {
   type B2BWineAvailability,
 } from "@/lib/b2b-pallet-stock";
 import { applyB2BPalletShippedSortIfNeeded } from "@/lib/b2b-pallet-shipped-sort";
+import { filterProductsByFarming } from "@/lib/shop/farming-filter";
 
 async function resolveProductDisplayCurrency(params?: {
   displayCurrencyCode?: string;
@@ -244,6 +245,28 @@ function convertToFullUrl(path: string | null | undefined): string {
   return `${baseUrl}${cleanPath.startsWith("/") ? "" : "/"}${cleanPath}`;
 }
 
+const PRODUCER_ORGANIC_VERIFY_SELECT =
+  "certification_verified_url, certification_in_conversion";
+
+function producerOrganicVerificationFields(producers: unknown): {
+  producerCertificationVerifiedUrl?: string | null;
+  producerCertificationInConversion?: boolean;
+} {
+  const row = Array.isArray(producers) ? producers[0] : producers;
+  if (!row || typeof row !== "object") return {};
+  if (!("certification_verified_url" in row)) return {};
+  const verifiedUrl = (row as { certification_verified_url?: string | null })
+    .certification_verified_url;
+  const inConversion =
+    (row as { certification_in_conversion?: boolean | null })
+      .certification_in_conversion === true;
+  return {
+    producerCertificationVerifiedUrl:
+      verifiedUrl == null ? null : String(verifiedUrl),
+    producerCertificationInConversion: inConversion,
+  };
+}
+
 export interface ProductData {
   id: string;
   title: string;
@@ -276,6 +299,12 @@ export interface ProductData {
   tags: string[];
   /** wines.farming certification (shop filter). */
   farming?: string | null;
+  /**
+   * Producer organic registry URL. `undefined` when column not selected;
+   * `null` when loaded and unverified.
+   */
+  producerCertificationVerifiedUrl?: string | null;
+  producerCertificationInConversion?: boolean;
   availableForSale: boolean;
   currencyCode: string;
   updatedAt: string;
@@ -404,7 +433,7 @@ export async function fetchProductsData(params?: {
       is_natural,
       available_for_sale,
       created_at,
-      producers!inner(name, is_live, boost_active, country_code)
+      producers!inner(name, is_live, boost_active, country_code, ${PRODUCER_ORGANIC_VERIFY_SELECT})
     `;
 
   const categoryFilters = {
@@ -475,14 +504,19 @@ export async function fetchProductsData(params?: {
   if (result.error) {
     const msg = result.error.message ?? "";
     const filtersForRetry = categoryFilters;
+    const omitOrganicVerify =
+      /certification_verified_url|certification_in_conversion/i.test(msg);
+    const producerEmbed = omitOrganicVerify
+      ? "name, boost_active, country_code"
+      : `name, boost_active, country_code, ${PRODUCER_ORGANIC_VERIFY_SELECT}`;
     const fallbackSelect = `
       id, wine_name, vintage, grape_varieties, color, handle, base_price_cents,
       cost_amount, cost_currency, exchange_rate, alcohol_tax_cents, margin_percentage,
       b2b_margin_percentage, b2b_stock, label_image_path, producer_id, description,
-      description_html, tags, created_at, producers!inner(name, boost_active, country_code)
+      description_html, tags, created_at, producers!inner(${producerEmbed})
     `;
     if (
-      /is_live|column.*does not exist|could not find.*column|producers\.is_live/i.test(
+      /is_live|column.*does not exist|could not find.*column|producers\.is_live|certification_verified_url|certification_in_conversion/i.test(
         msg,
       )
     ) {
@@ -700,6 +734,7 @@ export async function fetchProductsData(params?: {
       producerId: i.producer_id,
       producerName: i.producers?.name || "Unknown Producer",
       producerBoostActive: (i.producers as { boost_active?: boolean } | null)?.boost_active === true,
+      ...producerOrganicVerificationFields(i.producers),
       options: [
         {
           id: "grape-varieties",
@@ -809,8 +844,14 @@ export async function fetchProductsData(params?: {
     ? products.filter((product) => product.b2bAvailability !== "hidden")
     : products;
 
+  // Organic category/filter: require verified registry URL (not in conversion).
+  const farmingFiltered =
+    params?.filterFarming?.includes("organic_certified")
+      ? (filterProductsByFarming(visible as any, params.filterFarming) as typeof visible)
+      : visible;
+
   // Dirty Wine Newest/Oldest: when the wine's pallet shipped, not wines.created_at.
-  const sorted = await applyB2BPalletShippedSortIfNeeded(visible, {
+  const sorted = await applyB2BPalletShippedSortIfNeeded(farmingFiltered, {
     sb,
     isB2BSite,
     sortKey,
@@ -986,7 +1027,7 @@ export async function fetchCollectionProductsData(
       description,
       farming,
       available_for_sale,
-      producers(name, boost_active)
+      producers(name, boost_active, ${PRODUCER_ORGANIC_VERIFY_SELECT})
     `;
   let collQuery = applyWineCollectionSearch(
     sb
@@ -1000,12 +1041,41 @@ export async function fetchCollectionProductsData(
 
   if (collResult.error) {
     const msg = collResult.error.message ?? "";
-    if (/is_live|column.*does not exist/i.test(msg)) {
+    if (
+      /certification_verified_url|certification_in_conversion|column.*does not exist|could not find.*column/i.test(
+        msg,
+      )
+    ) {
+      const collSelectWithoutVerify = collSelect.replace(
+        `, ${PRODUCER_ORGANIC_VERIFY_SELECT}`,
+        "",
+      );
       collQuery = applyWineCollectionSearch(
-        sb.from("wines").select(collSelect).eq("producer_id", collectionId),
+        sb
+          .from("wines")
+          .select(collSelectWithoutVerify)
+          .eq("is_live", true)
+          .eq("producer_id", collectionId),
         params?.searchQuery,
       );
       collResult = await collQuery.limit(sqlLimit);
+    }
+    if (collResult.error) {
+      const msg2 = collResult.error.message ?? "";
+      if (/is_live|column.*does not exist/i.test(msg2)) {
+        const collSelectWithoutVerify = collSelect.replace(
+          `, ${PRODUCER_ORGANIC_VERIFY_SELECT}`,
+          "",
+        );
+        collQuery = applyWineCollectionSearch(
+          sb
+            .from("wines")
+            .select(collSelectWithoutVerify)
+            .eq("producer_id", collectionId),
+          params?.searchQuery,
+        );
+        collResult = await collQuery.limit(sqlLimit);
+      }
     }
     if (collResult.error) {
       throw new Error(supabaseErrorToMessage(collResult.error));
@@ -1102,6 +1172,7 @@ export async function fetchCollectionProductsData(
       producerBoostActive:
         collectionProducerBoostActive ||
         (i.producers as { boost_active?: boolean } | null)?.boost_active === true,
+      ...producerOrganicVerificationFields(i.producers),
       options: [
         {
           id: "grape-varieties",
