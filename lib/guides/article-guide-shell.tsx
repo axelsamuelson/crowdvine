@@ -4,12 +4,12 @@ import Link from "next/link";
 import { Footer } from "@/components/layout/footer";
 
 const RICH_TEXT =
-  /\[([^\]]+)\]\(([^)\s]+)\)|(https?:\/\/[^\s]+)/g;
+  /\*\*([^*]+)\*\*|\[([^\]]+)\]\(([^)\s]+)\)|(https?:\/\/[^\s]+)/g;
 
 const EXTERNAL_REL = "nofollow noopener noreferrer";
 const LINK_CLASS = "underline underline-offset-4 hover:text-foreground";
 
-/** Markdown links and bare http(s) URLs. External links are nofollow. */
+/** Markdown bold, links, and bare http(s) URLs. External links are nofollow. */
 export function renderArticleRichText(
   text: string,
   keyPrefix: string,
@@ -26,10 +26,15 @@ export function renderArticleRichText(
         </span>,
       );
     }
-    const label = match[1];
-    const markdownHref = match[2];
-    const bareUrl = match[3];
-    if (label && markdownHref) {
+    const bold = match[1];
+    const label = match[2];
+    const markdownHref = match[3];
+    const bareUrl = match[4];
+    if (bold) {
+      nodes.push(
+        <strong key={`${keyPrefix}-b-${match.index}`}>{bold}</strong>,
+      );
+    } else if (label && markdownHref) {
       const external = /^https?:\/\//.test(markdownHref);
       if (external) {
         nodes.push(
@@ -123,6 +128,73 @@ function ArticleList({
   );
 }
 
+/** Left column: producer / grape. Right: skin contact, alcohol, assortment. */
+function isDefinitionLeftColumn(term: string): boolean {
+  const t = term.toLocaleLowerCase("sv-SE");
+  return (
+    t.startsWith("producent") ||
+    t.startsWith("producer") ||
+    t.startsWith("druva") ||
+    t.startsWith("grape")
+  );
+}
+
+function DefinitionRow({
+  term,
+  description,
+}: {
+  term: string;
+  description: string;
+}) {
+  return (
+    <div>
+      <dt className="font-sans text-[13px] leading-snug text-muted-foreground">
+        {term}
+      </dt>
+      <dd className="mt-0.5 font-sans text-[15px] leading-snug text-foreground/90">
+        {renderArticleRichText(description, `dd-${term}`)}
+      </dd>
+    </div>
+  );
+}
+
+function ArticleDefinitions({
+  items,
+  idPrefix,
+}: {
+  items: Array<{ term: string; description: string }>;
+  idPrefix: string;
+}) {
+  const left = items.filter((item) => isDefinitionLeftColumn(item.term));
+  const right = items.filter((item) => !isDefinitionLeftColumn(item.term));
+
+  return (
+    <dl
+      className="flex flex-col gap-2 lg:grid lg:grid-cols-2 lg:gap-x-8 lg:gap-y-0"
+      data-block={idPrefix}
+    >
+      <div className="flex flex-col gap-2">
+        {left.map((item) => (
+          <DefinitionRow
+            key={`${idPrefix}-l-${item.term}`}
+            term={item.term}
+            description={item.description}
+          />
+        ))}
+      </div>
+      <div className="flex flex-col gap-2">
+        {right.map((item) => (
+          <DefinitionRow
+            key={`${idPrefix}-r-${item.term}`}
+            term={item.term}
+            description={item.description}
+          />
+        ))}
+      </div>
+    </dl>
+  );
+}
+
 export type ArticleGuideShellBlock =
   | { type: "paragraph"; text: string }
   | {
@@ -130,6 +202,16 @@ export type ArticleGuideShellBlock =
       ordered?: boolean;
       label?: string;
       items: string[];
+    }
+  | {
+      type: "heading";
+      level?: 3;
+      id?: string;
+      text: string;
+    }
+  | {
+      type: "definitions";
+      items: Array<{ term: string; description: string }>;
     };
 
 export type ArticleGuideShellSection = {
@@ -153,6 +235,8 @@ export type ArticleGuideShellFaq = {
 
 export type ArticleGuideShellProps = {
   h1: string;
+  /** Optional author byline under the H1. */
+  byline?: string;
   lede?: string;
   sections: ArticleGuideShellSection[];
   /** Rendered after the deck, before the first section (inside the measure column). */
@@ -166,14 +250,38 @@ export type ArticleGuideShellProps = {
   furtherReadingHeading?: string;
   internalLinks?: ArticleGuideShellLink[];
   breadcrumb: ReactNode;
+  /** Optional class on the outer measure wrapper (e.g. Instrument Serif variable). */
+  className?: string;
 };
 
 /** Shared article typography — use these in slot content so classes stay in one place. */
+export const ARTICLE_GUIDE_H1_CLASS =
+  "mt-6 font-serif text-3xl font-normal tracking-tight md:text-4xl";
+
 export const ARTICLE_GUIDE_H2_CLASS =
   "mb-4 text-2xl font-semibold tracking-tight text-foreground";
 
+/** FAQ / generic in-article H3 (sans). */
 export const ARTICLE_GUIDE_H3_CLASS =
   "text-lg font-semibold tracking-tight text-foreground";
+
+/**
+ * Wine / list-entry H3: Instrument Serif, 22px→24px,
+ * scroll margin clears the fixed header (`--top-spacing`).
+ * `!mt-12` beats parent `space-y-*` so the 48px top gap is reliable.
+ * Pair with wine-divider classes for subsequent entries.
+ */
+export const ARTICLE_GUIDE_WINE_H3_CLASS =
+  "scroll-mt-top-spacing font-serif text-[22px] font-normal leading-snug tracking-tight text-foreground lg:text-2xl";
+
+/**
+ * Between wines: 48px above the rule, 1px ~10% black rule, 48px to the heading.
+ */
+export const ARTICLE_GUIDE_WINE_DIVIDER_CLASS =
+  "!mt-12 border-t border-black/10 pt-12";
+
+export const ARTICLE_GUIDE_QUOTE_CLASS =
+  "font-serif text-[17px] leading-[1.75] text-foreground/80";
 
 export const ARTICLE_GUIDE_BODY_CLASS =
   "space-y-6 text-[17px] leading-[1.75] text-foreground/80";
@@ -181,9 +289,11 @@ export const ARTICLE_GUIDE_BODY_CLASS =
 /**
  * Shared presentation shell for guide articles.
  * Sole definition of article typography for /guides and /guider.
+ * H1 and quotes use Instrument Serif (`font-serif`); body uses Geist (`font-sans` on body).
  */
 export function ArticleGuideShell({
   h1,
+  byline,
   lede,
   sections,
   beforeSections,
@@ -194,16 +304,25 @@ export function ArticleGuideShell({
   furtherReadingHeading,
   internalLinks = [],
   breadcrumb,
+  className,
 }: ArticleGuideShellProps) {
   return (
     <>
-      <div className="mx-auto max-w-3xl px-6 pt-top-spacing pb-16">
+      <div
+        className={
+          className
+            ? `mx-auto max-w-3xl px-6 pt-top-spacing pb-16 ${className}`
+            : "mx-auto max-w-3xl px-6 pt-top-spacing pb-16"
+        }
+      >
         {breadcrumb}
 
         <div className="max-w-[68ch]">
-          <h1 className="mt-6 text-3xl font-bold tracking-tight md:text-4xl">
-            {h1}
-          </h1>
+          <h1 className={ARTICLE_GUIDE_H1_CLASS}>{h1}</h1>
+
+          {byline ? (
+            <p className="mt-3 text-sm text-muted-foreground">{byline}</p>
+          ) : null}
 
           {lede ? (
             <p className="mt-4 text-xl leading-relaxed text-muted-foreground">
@@ -213,48 +332,83 @@ export function ArticleGuideShell({
 
           <div className="mt-20 flex flex-col gap-14">
             {beforeSections}
-            {sections.map((section, sectionIndex) => (
-              <section key={section.heading ?? `section-${sectionIndex}`}>
-                {section.heading ? (
-                  <h2 className={ARTICLE_GUIDE_H2_CLASS}>
-                    <span>{section.heading}</span>
-                    {section.headingBadge ? (
-                      <span className="ml-2 align-middle text-xs font-normal text-muted-foreground">
-                        {section.headingBadge}
-                      </span>
-                    ) : null}
-                  </h2>
-                ) : null}
-                <div className={ARTICLE_GUIDE_BODY_CLASS}>
-                  {section.blocks
-                    ? section.blocks.map((block, blockIndex) =>
-                        block.type === "list" ? (
-                          <ArticleList
-                            key={`list-${sectionIndex}-${blockIndex}`}
-                            idPrefix={`list-${sectionIndex}-${blockIndex}`}
-                            ordered={block.ordered}
-                            label={block.label}
-                            items={block.items}
-                          />
-                        ) : (
+            {sections.map((section, sectionIndex) => {
+              let wineHeadingCount = 0;
+              return (
+                <section key={section.heading ?? `section-${sectionIndex}`}>
+                  {section.heading ? (
+                    <h2 className={ARTICLE_GUIDE_H2_CLASS}>
+                      <span>{section.heading}</span>
+                      {section.headingBadge ? (
+                        <span className="ml-2 align-middle text-xs font-normal text-muted-foreground">
+                          {section.headingBadge}
+                        </span>
+                      ) : null}
+                    </h2>
+                  ) : null}
+                  <div className={ARTICLE_GUIDE_BODY_CLASS}>
+                    {section.blocks
+                      ? section.blocks.map((block, blockIndex) => {
+                          if (block.type === "list") {
+                            return (
+                              <ArticleList
+                                key={`list-${sectionIndex}-${blockIndex}`}
+                                idPrefix={`list-${sectionIndex}-${blockIndex}`}
+                                ordered={block.ordered}
+                                label={block.label}
+                                items={block.items}
+                              />
+                            );
+                          }
+                          if (block.type === "definitions") {
+                            return (
+                              <ArticleDefinitions
+                                key={`dl-${sectionIndex}-${blockIndex}`}
+                                idPrefix={`dl-${sectionIndex}-${blockIndex}`}
+                                items={block.items}
+                              />
+                            );
+                          }
+                          if (block.type === "heading") {
+                            const isWineHeading = Boolean(block.id);
+                            const showDivider =
+                              isWineHeading && wineHeadingCount > 0;
+                            if (isWineHeading) wineHeadingCount += 1;
+                            const headingClass = isWineHeading
+                              ? showDivider
+                                ? `${ARTICLE_GUIDE_WINE_H3_CLASS} ${ARTICLE_GUIDE_WINE_DIVIDER_CLASS}`
+                                : `${ARTICLE_GUIDE_WINE_H3_CLASS} !mt-12`
+                              : `${ARTICLE_GUIDE_H3_CLASS} pt-2`;
+                            return (
+                              <h3
+                                key={`h-${sectionIndex}-${blockIndex}`}
+                                id={block.id}
+                                className={headingClass}
+                              >
+                                {block.text}
+                              </h3>
+                            );
+                          }
+                          return (
+                            <ArticleParagraph
+                              key={`p-${sectionIndex}-${blockIndex}`}
+                              text={block.text}
+                            />
+                          );
+                        })
+                      : section.paragraphs.map((paragraph, paragraphIndex) => (
                           <ArticleParagraph
-                            key={`p-${sectionIndex}-${blockIndex}`}
-                            text={block.text}
+                            key={`p-${sectionIndex}-${paragraphIndex}`}
+                            text={paragraph}
                           />
-                        ),
-                      )
-                    : section.paragraphs.map((paragraph, paragraphIndex) => (
-                        <ArticleParagraph
-                          key={`p-${sectionIndex}-${paragraphIndex}`}
-                          text={paragraph}
-                        />
-                      ))}
-                </div>
-                {sectionIndex === 0 && afterFirstSection
-                  ? afterFirstSection
-                  : null}
-              </section>
-            ))}
+                        ))}
+                  </div>
+                  {sectionIndex === 0 && afterFirstSection
+                    ? afterFirstSection
+                    : null}
+                </section>
+              );
+            })}
             {afterSections}
             {faqs.length > 0 ? (
               <section>

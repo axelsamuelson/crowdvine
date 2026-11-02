@@ -7,5 +7,8 @@ export function categoryPageTitle(
   if (title.endsWith(suffix)) {
     return title.slice(0, -suffix.length).trimEnd();
   }
-  return title.replace(/\s*\|\s*PACT Wines\s*$/i, "").trimEnd();
+  return title
+    .replace(/\s*\|\s*PACT Wines\s*$/i, "")
+    .replace(/\s*\|\s*PACT\s*$/i, "")
+    .trimEnd();
 }

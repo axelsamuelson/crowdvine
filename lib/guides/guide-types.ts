@@ -12,6 +12,15 @@ export type GuideArticleJsonLdAbout = {
   jobTitle?: string;
 };
 
+/** Article author for byline + Article JSON-LD `author` Person. */
+export type GuideArticleAuthor = {
+  name: string;
+  /** Schema.org jobTitle, e.g. "Founder". */
+  jobTitle?: string;
+  /** Visible byline under the H1 (locale-specific). */
+  byline: LocalizedString;
+};
+
 export type GuideArticleSection = {
   heading?: LocalizedString;
   /** Subtle muted badge next to the heading (e.g. rank movement). */
@@ -31,6 +40,11 @@ export type GuideArticleSection = {
   blocks?: GuideArticleBlock[];
 };
 
+export type GuideArticleDefinitionItem = {
+  term: LocalizedString;
+  description: LocalizedString;
+};
+
 export type GuideArticleBlock =
   | {
       type: "paragraphs";
@@ -45,6 +59,22 @@ export type GuideArticleBlock =
         en: string[];
         sv: string[];
       };
+    }
+  | {
+      type: "heading";
+      /** Default 3 — in-section subheads (wine names, etc.). */
+      level?: 3;
+      /** HTML id for in-page anchors. */
+      id?: string;
+      text: LocalizedString;
+    }
+  | {
+      /**
+       * Compact term/description pairs (e.g. wine fact block).
+       * Rendered as a `<dl>`; layout may split columns by term.
+       */
+      type: "definitions";
+      items: GuideArticleDefinitionItem[];
     };
 
 export type GuideArticleInternalLink = {
@@ -104,6 +134,8 @@ export type GuideArticleContent = {
   faqs?: GuideArticleFaq[];
   internalLinks: GuideArticleInternalLink[];
   jsonLdAbout: GuideArticleJsonLdAbout;
+  /** Optional byline author; emitted as Article `author` Person JSON-LD. */
+  author?: GuideArticleAuthor;
   /**
    * End-of-article shop CTA.
    * undefined: /wine | /vin (or first shop link in internalLinks).
