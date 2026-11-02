@@ -163,11 +163,11 @@ export const languedocNaturalWineArticle: GuideArticleContent = {
       },
       body: {
         en: [
-          "We pool orders onto shared pallets from southern France. When a pallet fills, the wine ships straight to Stockholm — without Systembolaget assortment stock and without unnecessary mark-ups. You see who made the wine, where it grew and what it costs. Often 15–30% below comparable Swedish prices.",
+          "PACT pools orders from several customers onto shared pallets shipped directly from the producers in southern France. You see who made the wine, where it grew and what it costs.",
           "Browse [natural wine](/wine) in the shop.",
         ],
         sv: [
-          "Vi samlar beställningar till gemensamma pallar från södra Frankrike. När en pall fylls skickas vinet direkt till Stockholm — utan Systembolagets sortimentslager och utan onödiga påslag. Du ser vem som gör vinet, var det odlas och vad det kostar. Ofta 15–30 % under jämförbara priser i Sverige.",
+          "PACT samlar beställningar från flera kunder på delade pallar som skickas direkt från producenterna i södra Frankrike. Du ser vem som gjort vinet, var det växt och vad det kostar.",
           "Utforska [naturvin](/vin) i butiken.",
         ],
       },
