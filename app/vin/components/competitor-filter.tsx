@@ -1,13 +1,16 @@
 "use client";
 
 import { useMemo } from "react";
-import { cn } from "@/lib/utils";
 import { useQueryState, parseAsArrayOf, parseAsString } from "nuqs";
 import { useCompetitorFilterCount } from "../hooks/use-filter-count";
 import { useClientMounted } from "../hooks/use-client-mounted";
 import { useProducts } from "@/components/shop/products-provider";
 import { useTranslations } from "@/lib/hooks/use-translations";
 import { ShopFilterCollapsible } from "./shop-filter-collapsible";
+import {
+  ShopFilterOptionContent,
+  shopFilterOptionClassName,
+} from "./shop-filter-option";
 
 export interface PriceSourceForFilter {
   id: string;
@@ -87,18 +90,13 @@ export function CompetitorFilter({
                 <button
                   type="button"
                   onClick={() => toggle(source.slug)}
-                  className={cn(
-                    "flex w-full text-left transition-all transform cursor-pointer text-sm md:hover:translate-x-1 md:hover:opacity-80",
-                    isSelected
-                      ? "font-medium translate-x-1"
-                      : selectedSlugs.length > 0
-                        ? "opacity-60"
-                        : "",
-                  )}
+                  className={shopFilterOptionClassName(isSelected)}
                   aria-pressed={isSelected}
                   aria-label={t("shop.filterBySource", { name: source.name })}
                 >
-                  {source.name}
+                  <ShopFilterOptionContent selected={isSelected}>
+                    {source.name}
+                  </ShopFilterOptionContent>
                 </button>
               </li>
             );

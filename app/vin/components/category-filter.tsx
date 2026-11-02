@@ -1,14 +1,17 @@
 "use client";
 
 import { Collection } from "@/lib/shopify/types";
-import { useParams, useSearchParams } from "next/navigation";
+import { useParams } from "next/navigation";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
 import { useCategoryFilterCount } from "../hooks/use-filter-count";
 import { useQueryState, parseAsString } from "nuqs";
 import { useTranslations } from "@/lib/hooks/use-translations";
 import { useLocalizedPaths } from "@/lib/hooks/use-localized-paths";
 import { ShopFilterCollapsible } from "./shop-filter-collapsible";
+import {
+  ShopFilterOptionContent,
+  shopFilterOptionClassName,
+} from "./shop-filter-option";
 
 interface CategoryFilterProps {
   collections: Collection[];
@@ -30,7 +33,6 @@ export function CategoryFilter({
     "producers",
     parseAsString.withDefault(""),
   );
-  const hasSelectedCategory = !!params.collection;
   const categoryCount = useCategoryFilterCount();
   const collapsible = mode !== "overlay";
 
@@ -74,14 +76,7 @@ export function CategoryFilter({
               return (
                 <li key={`${collection.handle}-${index}`}>
                   <Link
-                    className={cn(
-                      "flex w-full text-left transition-all transform cursor-pointer text-sm md:hover:translate-x-1 md:hover:opacity-80",
-                      isSelected
-                        ? "font-medium translate-x-1"
-                        : hasSelectedCategory || selectedProducers.length > 0
-                          ? "opacity-50"
-                          : "",
-                    )}
+                    className={shopFilterOptionClassName(isSelected)}
                     href={paths.shopCollection(collection.handle)}
                     aria-pressed={isSelected}
                     aria-label={t("shop.filterByCategory", {
@@ -89,7 +84,9 @@ export function CategoryFilter({
                     })}
                     prefetch
                   >
-                    {collection.title}
+                    <ShopFilterOptionContent selected={isSelected}>
+                      {collection.title}
+                    </ShopFilterOptionContent>
                   </Link>
                 </li>
               );

@@ -1,6 +1,5 @@
 "use client";
 
-import { cn } from "@/lib/utils";
 import { Product } from "@/lib/shopify/types";
 import { useQueryState, parseAsArrayOf, parseAsString } from "nuqs";
 import { useTranslations } from "@/lib/hooks/use-translations";
@@ -11,6 +10,10 @@ import {
   type ShopFarmingUiFilterValue,
 } from "@/lib/shop/farming-filter";
 import { ShopFilterCollapsible } from "./shop-filter-collapsible";
+import {
+  ShopFilterOptionContent,
+  shopFilterOptionClassName,
+} from "./shop-filter-option";
 
 interface FarmingFilterProps {
   products?: Product[];
@@ -104,14 +107,7 @@ export function FarmingFilter({
           const isOn = active.includes(value) || activeUiFarming === value;
           const label = t(`product.farming.${value}`);
           const href = getFarmingHref?.(value) ?? null;
-          const className = cn(
-            "flex w-full text-left transition-all transform cursor-pointer text-sm md:hover:translate-x-1 md:hover:opacity-80",
-            isOn
-              ? "font-medium translate-x-1"
-              : selectedCount > 0
-                ? "opacity-60"
-                : "",
-          );
+          const optionClassName = shopFilterOptionClassName(isOn);
 
           if (href) {
             return (
@@ -122,11 +118,13 @@ export function FarmingFilter({
                   event.preventDefault();
                   toggleFarming(value);
                 }}
-                className={className}
+                className={optionClassName}
                 aria-pressed={isOn}
                 aria-label={t("shop.filterByFarming", { name: label })}
               >
-                {label}
+                <ShopFilterOptionContent selected={isOn}>
+                  {label}
+                </ShopFilterOptionContent>
               </a>
             );
           }
@@ -136,11 +134,13 @@ export function FarmingFilter({
               key={value}
               type="button"
               onClick={() => toggleFarming(value)}
-              className={className}
+              className={optionClassName}
               aria-pressed={isOn}
               aria-label={t("shop.filterByFarming", { name: label })}
             >
-              {label}
+              <ShopFilterOptionContent selected={isOn}>
+                {label}
+              </ShopFilterOptionContent>
             </button>
           );
         })}
