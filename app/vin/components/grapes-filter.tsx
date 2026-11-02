@@ -9,6 +9,7 @@ import { ShopFilterCollapsible } from "./shop-filter-collapsible";
 import {
   ShopFilterOptionContent,
   shopFilterOptionClassName,
+  shopFilterSheetListClassName,
 } from "./shop-filter-option";
 
 interface GrapesFilterProps {
@@ -50,7 +51,9 @@ export function GrapesFilter({
   const listContainerClass =
     mode === "overlay"
       ? ""
-      : "max-h-24 lg:max-h-28 overflow-y-auto pr-1";
+      : mode === "drawer"
+        ? shopFilterSheetListClassName()
+        : "max-h-24 lg:max-h-28 overflow-y-auto pr-1";
 
   if (!mounted || !availableGrapes || availableGrapes.length === 0) return null;
 
@@ -92,7 +95,9 @@ export function GrapesFilter({
                 key={g}
                 type="button"
                 onClick={handleClick}
-                className={shopFilterOptionClassName(isOn)}
+                className={shopFilterOptionClassName(isOn, {
+                  density: isSheet ? "sheet" : "default",
+                })}
                 aria-pressed={isOn}
                 aria-label={t("shop.filterByGrape", { name: g })}
               >

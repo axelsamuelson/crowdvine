@@ -117,7 +117,9 @@ export function FarmingFilter({
           const isOn = active.includes(value) || activeUiFarming === value;
           const label = t(`product.farming.${value}`);
           const href = getFarmingHref?.(value) ?? null;
-          const optionClassName = shopFilterOptionClassName(isOn);
+          const optionClassName = shopFilterOptionClassName(isOn, {
+            density: isSheet ? "sheet" : "default",
+          });
 
           if (href) {
             return (

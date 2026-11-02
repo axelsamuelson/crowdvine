@@ -15,6 +15,7 @@ import {
 import {
   ShopFilterOptionContent,
   shopFilterOptionClassName,
+  shopFilterSheetListClassName,
 } from "./shop-filter-option";
 import { ShopFilterCollapsible } from "./shop-filter-collapsible";
 
@@ -108,26 +109,30 @@ export function RegionFilter({
       headerAction={seeAllButton}
       className={className}
     >
-      <div className="flex flex-col gap-0.5">
-        {options.map((region) => {
-          const isOn = active.includes(region.slug);
-          return (
-            <button
-              key={region.slug}
-              type="button"
-              onClick={() => toggleRegion(region.slug)}
-              className={shopFilterOptionClassName(isOn)}
-              aria-pressed={isOn}
-              aria-label={t("shop.filterByRegion", {
-                name: labelFor(region),
-              })}
-            >
-              <ShopFilterOptionContent selected={isOn}>
-                {labelFor(region)}
-              </ShopFilterOptionContent>
-            </button>
-          );
-        })}
+      <div className={isSheet ? shopFilterSheetListClassName() : undefined}>
+        <div className="flex flex-col gap-0.5">
+          {options.map((region) => {
+            const isOn = active.includes(region.slug);
+            return (
+              <button
+                key={region.slug}
+                type="button"
+                onClick={() => toggleRegion(region.slug)}
+                className={shopFilterOptionClassName(isOn, {
+                  density: isSheet ? "sheet" : "default",
+                })}
+                aria-pressed={isOn}
+                aria-label={t("shop.filterByRegion", {
+                  name: labelFor(region),
+                })}
+              >
+                <ShopFilterOptionContent selected={isOn}>
+                  {labelFor(region)}
+                </ShopFilterOptionContent>
+              </button>
+            );
+          })}
+        </div>
       </div>
     </ShopFilterCollapsible>
   );

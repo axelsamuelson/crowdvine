@@ -11,6 +11,7 @@ import { ShopFilterCollapsible } from "./shop-filter-collapsible";
 import {
   ShopFilterOptionContent,
   shopFilterOptionClassName,
+  shopFilterSheetListClassName,
 } from "./shop-filter-option";
 
 interface CategoryFilterProps {
@@ -59,9 +60,11 @@ export function CategoryFilter({
     : undefined;
 
   const listContainerClass =
-    mode === "sidebar" || mode === "drawer"
-      ? "max-h-24 lg:max-h-28 xl:max-h-32 overflow-y-auto pr-1"
-      : "";
+    mode === "drawer"
+      ? shopFilterSheetListClassName()
+      : mode === "sidebar"
+        ? "max-h-24 lg:max-h-28 xl:max-h-32 overflow-y-auto pr-1"
+        : "";
 
   const seeAllButton =
     mode === "sidebar" && onSeeAll ? (
@@ -96,7 +99,9 @@ export function CategoryFilter({
               return (
                 <li key={`${collection.handle}-${index}`}>
                   <Link
-                    className={shopFilterOptionClassName(isSelected)}
+                    className={shopFilterOptionClassName(isSelected, {
+                      density: isSheet ? "sheet" : "default",
+                    })}
                     href={paths.shopCollection(collection.handle)}
                     aria-pressed={isSelected}
                     aria-label={t("shop.filterByCategory", {
