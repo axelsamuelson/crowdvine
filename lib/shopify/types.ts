@@ -177,6 +177,13 @@ export type Product = {
   wineEnrichment?: WineEnrichment | null;
   /** wines.farming certification (shop filter). */
   farming?: string | null;
+  /**
+   * Producer organic registry URL (producers.certification_verified_url).
+   * `undefined` = column not loaded yet; `null` = loaded and unverified.
+   */
+  producerCertificationVerifiedUrl?: string | null;
+  /** Producer organic conversion flag (producers.certification_in_conversion). */
+  producerCertificationInConversion?: boolean;
   /** Taste/character tags from wines.tags (DB), separate from synthetic product.tags. */
   taste_tags?: string[];
   featuredImage: Image;

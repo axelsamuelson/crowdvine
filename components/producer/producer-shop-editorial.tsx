@@ -7,6 +7,7 @@ import { producerPublicPath } from "@/lib/i18n/localized-routes";
 import { generateProducerSlug } from "@/lib/producer-handle";
 import { getProducerShopEditorialOverride } from "@/lib/producer-shop-content";
 import { formatProducerCertification } from "@/lib/product/wine-enrichment";
+import { isSeedLapsedOrganicProducer } from "@/lib/shop/verified-organic-producers";
 import { producerShopEditorialHeading } from "@/lib/seo/producer-shop-metadata";
 
 function softenAdditiveClaims(text: string, locale: AppLocale): string {
@@ -37,15 +38,32 @@ export function producerShopEditorialBio(
 function producerShopSpecParts(
   collection: Pick<
     CollectionData,
-    "region" | "certification" | "subregion" | "foundedYear"
+    | "region"
+    | "certification"
+    | "handle"
+    | "title"
+    | "certificationVerifiedUrl"
+    | "certificationInConversion"
+    | "certificationLapsed"
+    | "subregion"
+    | "foundedYear"
   >,
   locale: AppLocale,
 ): string[] {
   const parts: string[] = [];
   if (collection.region?.trim()) parts.push(collection.region.trim());
   if (collection.subregion?.trim()) parts.push(collection.subregion.trim());
-  const cert = formatProducerCertification(collection.certification, locale);
-  if (cert) parts.push(cert);
+  const lapsed =
+    collection.certificationLapsed === true ||
+    isSeedLapsedOrganicProducer(collection.title);
+  if (!lapsed) {
+    const cert = formatProducerCertification(collection.certification, locale, {
+      certificationVerifiedUrl: collection.certificationVerifiedUrl,
+      certificationInConversion: collection.certificationInConversion,
+      certificationLapsed: lapsed,
+    });
+    if (cert) parts.push(cert);
+  }
   if (collection.foundedYear != null && collection.foundedYear > 0) {
     parts.push(String(collection.foundedYear));
   }
