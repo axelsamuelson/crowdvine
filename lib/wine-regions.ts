@@ -3,66 +3,83 @@
  * Slugs are French ASCII and identical in SV/EN URLs. DB stores `value` (French name).
  */
 
+import type { AppLocale } from "@/lib/i18n/locale";
+import { PACT_PUBLIC_ORIGIN } from "@/lib/i18n/localized-routes";
+
+/** Min live wines (wine ∧ producer) for sitemap + indexable region pages. */
+export const WINE_REGION_INDEX_MIN_LIVE = 3;
+
 export const WINE_REGIONS = [
   {
     slug: "languedoc",
     value: "Languedoc",
     labelSv: "Languedoc",
     labelEn: "Languedoc",
+    /** EN H1/intro: "Natural wine from the Languedoc" */
+    h1EnArticle: "the" as const,
   },
   {
     slug: "beaujolais",
     value: "Beaujolais",
     labelSv: "Beaujolais",
     labelEn: "Beaujolais",
+    h1EnArticle: null,
   },
   {
     slug: "loire",
     value: "Loire",
     labelSv: "Loire",
     labelEn: "Loire",
+    h1EnArticle: "the" as const,
   },
   {
     slug: "bourgogne",
     value: "Bourgogne",
     labelSv: "Bourgogne",
     labelEn: "Burgundy",
+    h1EnArticle: null,
   },
   {
     slug: "jura",
     value: "Jura",
     labelSv: "Jura",
     labelEn: "Jura",
+    h1EnArticle: "the" as const,
   },
   {
     slug: "champagne",
     value: "Champagne",
     labelSv: "Champagne",
     labelEn: "Champagne",
+    h1EnArticle: null,
   },
   {
     slug: "rhone",
     value: "Rhône",
     labelSv: "Rhône",
     labelEn: "Rhône Valley",
+    h1EnArticle: "the" as const,
   },
   {
     slug: "roussillon",
     value: "Roussillon",
     labelSv: "Roussillon",
     labelEn: "Roussillon",
+    h1EnArticle: null,
   },
   {
     slug: "alsace",
     value: "Alsace",
     labelSv: "Alsace",
     labelEn: "Alsace",
+    h1EnArticle: null,
   },
   {
     slug: "sud-ouest",
     value: "Sud-Ouest",
-    labelSv: "Sydvästra Frankrike",
-    labelEn: "South West France",
+    labelSv: "Sydvästra Frankrike (Sud-Ouest)",
+    labelEn: "Southwest France",
+    h1EnArticle: null,
   },
 ] as const;
 
@@ -108,6 +125,7 @@ const REGION_SYNONYMS: Record<string, WineRegionValue> = {
   "Rhone Valley": "Rhône",
   Burgundy: "Bourgogne",
   "South West France": "Sud-Ouest",
+  "Southwest France": "Sud-Ouest",
   "Sud Ouest": "Sud-Ouest",
   Aveyron: "Sud-Ouest",
 };
@@ -174,6 +192,43 @@ export function wineRegionLabel(
     wineRegionByValue(valueOrSlug) ?? wineRegionBySlug(valueOrSlug);
   if (!region) return null;
   return locale === "en" ? region.labelEn : region.labelSv;
+}
+
+/** EN phrase used in H1 / intro: "the Loire" or "Burgundy". */
+export function wineRegionEnWithArticle(region: WineRegion): string {
+  return region.h1EnArticle
+    ? `${region.h1EnArticle} ${region.labelEn}`
+    : region.labelEn;
+}
+
+/** Visible H1 — Margaux copy. */
+export function wineRegionPageH1(
+  region: WineRegion,
+  locale: AppLocale,
+): string {
+  if (locale === "sv") {
+    return `Naturvin från ${region.labelSv}`;
+  }
+  return `Natural wine from ${wineRegionEnWithArticle(region)}`;
+}
+
+/** Document title (absolute) — Margaux copy. */
+export function wineRegionPageTitle(region: WineRegion, locale: AppLocale): string {
+  if (locale === "sv") {
+    return `Naturvin från ${region.labelSv} – producenter och stil | PACT`;
+  }
+  return `${region.labelEn} Natural Wine – Producers & Styles | PACT`;
+}
+
+/** Meta description — SV ends with Budbee; EN does not. Never "hela Sverige". */
+export function wineRegionPageMetaDescription(
+  region: WineRegion,
+  locale: AppLocale,
+): string {
+  if (locale === "sv") {
+    return `Naturvin från ${region.labelSv} – producenter och stil hos PACT. Hemleverans med Budbee.`;
+  }
+  return `${region.labelEn} natural wine – producers and styles at PACT.`;
 }
 
 /**
@@ -270,4 +325,66 @@ export function getLinkableWineRegionsFromProducts(
     countLiveWinesByRegionValue(products),
     minLive,
   );
+}
+
+export type WineRegionPathSegment = "region" | "regions";
+
+/** Path segment for locale: SV `/region`, EN `/regions`. */
+export function wineRegionPathSegment(
+  locale: AppLocale,
+): WineRegionPathSegment {
+  return locale === "en" ? "regions" : "region";
+}
+
+/** Absolute path for a region landing page (no linkability gate). */
+export function wineRegionPagePath(
+  slug: WineRegionSlug,
+  locale: AppLocale,
+): string {
+  return `/${wineRegionPathSegment(locale)}/${slug}`;
+}
+
+export function wineRegionPageUrls(slug: WineRegionSlug): {
+  en: string;
+  sv: string;
+  xDefault: string;
+} {
+  return {
+    en: `${PACT_PUBLIC_ORIGIN}${wineRegionPagePath(slug, "en")}`,
+    sv: `${PACT_PUBLIC_ORIGIN}${wineRegionPagePath(slug, "sv")}`,
+    xDefault: `${PACT_PUBLIC_ORIGIN}${wineRegionPagePath(slug, "en")}`,
+  };
+}
+
+/**
+ * Shared gate for every href to a region landing page.
+ * Returns null when the region would 404 (<1 live wine, wine ∧ producer).
+ * PLP chips, sitemap, guides, and internal links must use this (or
+ * `isWineRegionLinkable` / `getLinkableWineRegions` with the same counts).
+ */
+export function getWineRegionPageHref(
+  slugOrValue: string,
+  locale: AppLocale,
+  liveCountsByValue: ReadonlyMap<string, number>,
+  minLive = 1,
+): string | null {
+  const region =
+    wineRegionBySlug(slugOrValue) ?? wineRegionByValue(slugOrValue);
+  if (!region) return null;
+  if (!isWineRegionLinkable(region.slug, liveCountsByValue, minLive)) {
+    return null;
+  }
+  return wineRegionPagePath(region.slug, locale);
+}
+
+/** Switch `/region/{slug}` ↔ `/regions/{slug}` for the locale switcher. */
+export function switchWineRegionPath(
+  pathname: string,
+  newLocale: AppLocale,
+): string | null {
+  const match = pathname.match(/^\/(region|regions)\/([^/?#]+)\/?$/);
+  if (!match) return null;
+  const slug = decodeURIComponent(match[2]).toLowerCase();
+  if (!isWineRegionSlug(slug)) return null;
+  return wineRegionPagePath(slug, newLocale);
 }

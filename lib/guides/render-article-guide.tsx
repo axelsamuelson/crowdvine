@@ -27,6 +27,12 @@ import {
 } from "@/lib/guides/guide-types";
 import type { AppLocale } from "@/lib/i18n/locale";
 import { getGuideSeoOwnership } from "@/lib/guides/guide-seo-ownership";
+import { getLiveWineRegionCountsMap } from "@/lib/wine-region-live-counts";
+import {
+  getWineRegionPageHref,
+  wineRegionBySlug,
+  wineRegionLabel,
+} from "@/lib/wine-regions";
 
 function resolveArticleShopHref(
   content: GuideArticleContent,
@@ -218,6 +224,37 @@ export async function renderArticleGuidePage(
     articleGuideJsonLdItems(breadcrumbCrumbs, seoBaseUrl),
   );
 
+  const internalLinks = content.internalLinks
+    .filter((link) => link.label[locale].trim().length > 0)
+    .map((link) => ({
+      label: link.label[locale],
+      href: link.href[locale],
+    }))
+    .filter((link) => isGuideHrefVisibleFrom(content, link.href));
+
+  if (content.wineRegionSlug) {
+    const counts = await getLiveWineRegionCountsMap();
+    const regionHref = getWineRegionPageHref(
+      content.wineRegionSlug,
+      locale,
+      counts,
+    );
+    const region = wineRegionBySlug(content.wineRegionSlug);
+    const regionName =
+      wineRegionLabel(content.wineRegionSlug, locale) ??
+      region?.value ??
+      content.wineRegionSlug;
+    if (regionHref) {
+      internalLinks.push({
+        href: regionHref,
+        label:
+          locale === "sv"
+            ? `Naturvin från ${regionName} – producenter och viner`
+            : `Natural wine from ${regionName} – producers`,
+      });
+    }
+  }
+
   return (
     <>
       <script
@@ -271,13 +308,7 @@ export async function renderArticleGuidePage(
         faqs={faqs}
         faqHeading={locale === "sv" ? "Vanliga frågor" : "Frequently asked questions"}
         furtherReadingHeading={content.furtherReadingHeading[locale]}
-        internalLinks={content.internalLinks
-          .filter((link) => link.label[locale].trim().length > 0)
-          .map((link) => ({
-            label: link.label[locale],
-            href: link.href[locale],
-          }))
-          .filter((link) => isGuideHrefVisibleFrom(content, link.href))}
+        internalLinks={internalLinks}
         breadcrumb={<GuideBreadcrumbs crumbs={breadcrumbCrumbs} />}
         sectionHeadingClassName={
           content.shellHeadingClasses?.sectionHeadingClassName

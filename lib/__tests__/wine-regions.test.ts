@@ -5,10 +5,12 @@ import {
   buildWinePatch,
 } from "@/lib/catalog-mappers";
 import {
+  WINE_REGION_INDEX_MIN_LIVE,
   WINE_REGION_SLUGS,
   WINE_REGION_VALUES,
   WINE_REGIONS,
   getLinkableWineRegions,
+  getWineRegionPageHref,
   isWineRegionLinkable,
   isWineRegionSlug,
   isWineRegionValue,
@@ -16,10 +18,17 @@ import {
   parseWineRegionParam,
   resolveWineRegionValue,
   serializeWineRegionParam,
+  switchWineRegionPath,
   wineRegionBySlug,
+  wineRegionEnWithArticle,
   wineRegionLabel,
+  wineRegionPageH1,
+  wineRegionPageMetaDescription,
+  wineRegionPagePath,
+  wineRegionPageTitle,
   wineRegionSlugFromValue,
 } from "@/lib/wine-regions";
+import { getWineRegionContent } from "@/lib/region-content";
 
 describe("wine-regions config", () => {
   it("exposes the ten allowlisted slugs from the plan", () => {
@@ -42,12 +51,17 @@ describe("wine-regions config", () => {
   });
 
   it("uses the specified EN labels", () => {
-    expect(wineRegionBySlug("sud-ouest")?.labelEn).toBe("South West France");
+    expect(wineRegionBySlug("sud-ouest")?.labelEn).toBe("Southwest France");
     expect(wineRegionBySlug("bourgogne")?.labelEn).toBe("Burgundy");
     expect(wineRegionBySlug("rhone")?.labelEn).toBe("Rhône Valley");
     expect(wineRegionBySlug("languedoc")?.labelEn).toBe("Languedoc");
     expect(wineRegionLabel("Rhône", "en")).toBe("Rhône Valley");
-    expect(wineRegionLabel("sud-ouest", "sv")).toBe("Sydvästra Frankrike");
+    expect(wineRegionLabel("sud-ouest", "sv")).toBe(
+      "Sydvästra Frankrike (Sud-Ouest)",
+    );
+    expect(wineRegionPageH1(wineRegionBySlug("sud-ouest")!, "en")).toBe(
+      "Natural wine from Southwest France",
+    );
   });
 
   it("maps slug ↔ value", () => {
@@ -68,6 +82,7 @@ describe("mapToWineRegionValue / resolveWineRegionValue", () => {
     expect(mapToWineRegionValue("Rhone Valley")).toBe("Rhône");
     expect(mapToWineRegionValue("Burgundy")).toBe("Bourgogne");
     expect(mapToWineRegionValue("South West France")).toBe("Sud-Ouest");
+    expect(mapToWineRegionValue("Southwest France")).toBe("Sud-Ouest");
     expect(mapToWineRegionValue("Sud Ouest")).toBe("Sud-Ouest");
     expect(mapToWineRegionValue("Aveyron")).toBe("Sud-Ouest");
     expect(mapToWineRegionValue("Languedoc")).toBe("Languedoc");
@@ -122,6 +137,41 @@ describe("region query + linkability helpers", () => {
     expect(getLinkableWineRegions(counts).map((r) => r.slug)).toEqual(["loire"]);
     expect(isWineRegionLinkable("jura", counts)).toBe(false);
   });
+
+  it("getWineRegionPageHref only returns when ≥1 live wine", () => {
+    const counts = new Map([
+      ["Loire", 8],
+      ["Beaujolais", 2],
+      ["Jura", 0],
+    ]);
+    expect(getWineRegionPageHref("loire", "sv", counts)).toBe("/region/loire");
+    expect(getWineRegionPageHref("loire", "en", counts)).toBe("/regions/loire");
+    expect(getWineRegionPageHref("beaujolais", "sv", counts)).toBe(
+      "/region/beaujolais",
+    );
+    expect(getWineRegionPageHref("jura", "sv", counts)).toBeNull();
+    expect(
+      getWineRegionPageHref(
+        "beaujolais",
+        "en",
+        counts,
+        WINE_REGION_INDEX_MIN_LIVE,
+      ),
+    ).toBeNull();
+    expect(
+      getWineRegionPageHref("loire", "en", counts, WINE_REGION_INDEX_MIN_LIVE),
+    ).toBe("/regions/loire");
+  });
+
+  it("builds locale paths and switches them", () => {
+    expect(wineRegionPagePath("rhone", "sv")).toBe("/region/rhone");
+    expect(wineRegionPagePath("rhone", "en")).toBe("/regions/rhone");
+    expect(switchWineRegionPath("/region/languedoc", "en")).toBe(
+      "/regions/languedoc",
+    );
+    expect(switchWineRegionPath("/regions/loire", "sv")).toBe("/region/loire");
+    expect(switchWineRegionPath("/vin", "en")).toBeNull();
+  });
 });
 
 describe("buildWinePatch region allowlist", () => {
@@ -139,5 +189,111 @@ describe("buildWinePatch region allowlist", () => {
     expect(() => buildWinePatch({ region: "Vallée du Rhône" })).toThrow(
       InvalidWineRegionError,
     );
+  });
+});
+
+describe("Margaux region landing copy", () => {
+  it("builds SV/EN H1 with configurable EN article", () => {
+    expect(wineRegionPageH1(wineRegionBySlug("languedoc")!, "sv")).toBe(
+      "Naturvin från Languedoc",
+    );
+    expect(wineRegionPageH1(wineRegionBySlug("languedoc")!, "en")).toBe(
+      "Natural wine from the Languedoc",
+    );
+    expect(wineRegionPageH1(wineRegionBySlug("loire")!, "en")).toBe(
+      "Natural wine from the Loire",
+    );
+    expect(wineRegionPageH1(wineRegionBySlug("beaujolais")!, "en")).toBe(
+      "Natural wine from Beaujolais",
+    );
+    expect(wineRegionPageH1(wineRegionBySlug("jura")!, "en")).toBe(
+      "Natural wine from the Jura",
+    );
+    expect(wineRegionPageH1(wineRegionBySlug("alsace")!, "en")).toBe(
+      "Natural wine from Alsace",
+    );
+    expect(wineRegionPageH1(wineRegionBySlug("bourgogne")!, "en")).toBe(
+      "Natural wine from Burgundy",
+    );
+    expect(wineRegionPageH1(wineRegionBySlug("rhone")!, "en")).toBe(
+      "Natural wine from the Rhône Valley",
+    );
+    expect(wineRegionPageH1(wineRegionBySlug("roussillon")!, "en")).toBe(
+      "Natural wine from Roussillon",
+    );
+    expect(wineRegionEnWithArticle(wineRegionBySlug("loire")!)).toBe(
+      "the Loire",
+    );
+    expect(wineRegionEnWithArticle(wineRegionBySlug("bourgogne")!)).toBe(
+      "Burgundy",
+    );
+  });
+
+  it("builds absolute titles without EN article", () => {
+    expect(wineRegionPageTitle(wineRegionBySlug("loire")!, "sv")).toBe(
+      "Naturvin från Loire – producenter och stil | PACT",
+    );
+    expect(wineRegionPageTitle(wineRegionBySlug("loire")!, "en")).toBe(
+      "Loire Natural Wine – Producers & Styles | PACT",
+    );
+    expect(wineRegionPageTitle(wineRegionBySlug("bourgogne")!, "en")).toBe(
+      "Burgundy Natural Wine – Producers & Styles | PACT",
+    );
+    expect(wineRegionPageTitle(wineRegionBySlug("rhone")!, "en")).toBe(
+      "Rhône Valley Natural Wine – Producers & Styles | PACT",
+    );
+  });
+
+  it("SV meta ends with Budbee; EN meta omits Budbee; never hela Sverige", () => {
+    for (const region of WINE_REGIONS) {
+      const sv = wineRegionPageMetaDescription(region, "sv");
+      const en = wineRegionPageMetaDescription(region, "en");
+      expect(sv.endsWith("Hemleverans med Budbee.")).toBe(true);
+      expect(en.endsWith("at PACT.")).toBe(true);
+      expect(en.toLowerCase()).not.toContain("budbee");
+      expect(en.toLowerCase()).not.toContain("home delivery");
+      expect(sv.toLowerCase()).not.toContain("hela sverige");
+      expect(en.toLowerCase()).not.toContain("hela sverige");
+      expect(en.toLowerCase()).not.toContain("all of sweden");
+    }
+  });
+
+  it("keeps Languedoc direct-buy intro and omits intro elsewhere", () => {
+    expect(getWineRegionContent("languedoc", "sv").intro).toBe(
+      "Naturvin från Languedoc som vi köper direkt av producenterna och skickar på delade pallar.",
+    );
+    expect(getWineRegionContent("languedoc", "en").intro).toBe(
+      "Natural wine from the Languedoc, bought directly from the producers and shipped on shared pallets.",
+    );
+
+    for (const region of WINE_REGIONS) {
+      if (region.slug === "languedoc") continue;
+      expect(getWineRegionContent(region.slug, "sv").intro ?? "").toBe("");
+      expect(getWineRegionContent(region.slug, "en").intro ?? "").toBe("");
+    }
+  });
+
+  it("omits wholesaler/grossist wording from intros and meta", () => {
+    const forbidden = [
+      "köpt via grossist i Languedoc och samlastad på samma pall",
+      "bought through a wholesaler in the Languedoc and shipped on the same shared pallet",
+      "grossist",
+      "wholesaler",
+      "samlastad",
+    ];
+    for (const region of WINE_REGIONS) {
+      const texts = [
+        getWineRegionContent(region.slug, "sv").intro ?? "",
+        getWineRegionContent(region.slug, "en").intro ?? "",
+        wineRegionPageMetaDescription(region, "sv"),
+        wineRegionPageMetaDescription(region, "en"),
+      ];
+      for (const text of texts) {
+        const lower = text.toLowerCase();
+        for (const phrase of forbidden) {
+          expect(lower).not.toContain(phrase.toLowerCase());
+        }
+      }
+    }
   });
 });

@@ -12,6 +12,8 @@ describe("localeFromShopPath", () => {
     expect(localeFromShopPath("/producers/foo")).toBe("en");
     expect(localeFromShopPath("/guider")).toBe("sv");
     expect(localeFromShopPath("/guides/x")).toBe("en");
+    expect(localeFromShopPath("/region/loire")).toBe("sv");
+    expect(localeFromShopPath("/regions/loire")).toBe("en");
   });
 
   it("maps about and legal language pairs", () => {

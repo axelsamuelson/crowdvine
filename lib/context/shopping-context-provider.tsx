@@ -29,6 +29,7 @@ import {
   homePathForLocale,
   switchProductOrProducerPath,
 } from "@/lib/i18n/localized-routes";
+import { switchWineRegionPath } from "@/lib/wine-regions";
 import {
   ACTIVE_ZONE_CHANGED_EVENT,
   activeZoneFromChangedEvent,
@@ -73,6 +74,9 @@ function getLocalizedPath(
 
   const productOrProducer = switchProductOrProducerPath(pathname, newLocale);
   if (productOrProducer) return productOrProducer;
+
+  const wineRegion = switchWineRegionPath(pathname, newLocale);
+  if (wineRegion) return wineRegion;
 
   const about = switchAboutPath(pathname, newLocale);
   if (about) return about;

@@ -1,6 +1,12 @@
 import { revalidatePath, revalidateTag } from "next/cache";
 
 import { generateProducerSlug } from "@/lib/producer-handle";
+import {
+  isWineRegionSlug,
+  wineRegionPagePath,
+  wineRegionSlugFromValue,
+  type WineRegionSlug,
+} from "@/lib/wine-regions";
 
 /** Shared tag for all PDP product payloads (unstable_cache). */
 export const PDP_PRODUCT_CACHE_TAG = "pdp-product";
@@ -12,9 +18,25 @@ export function pdpProductHandleTag(handle: string): string {
   return `pdp-product:${handle}`;
 }
 
+function resolveRegionSlug(
+  raw: string | null | undefined,
+): WineRegionSlug | null {
+  if (!raw?.trim()) return null;
+  const trimmed = raw.trim();
+  if (isWineRegionSlug(trimmed.toLowerCase())) {
+    return trimmed.toLowerCase() as WineRegionSlug;
+  }
+  return wineRegionSlugFromValue(trimmed);
+}
+
 export type RevalidateWineStorefrontOptions = {
   /** Producer display names whose public profile + shop PLP paths should be busted. */
   producerNames?: Array<string | null | undefined>;
+  /**
+   * Canonical wine region values or slugs whose `/region` + `/regions` pages
+   * should be busted (linkability updates when stock goes live).
+   */
+  wineRegions?: Array<string | null | undefined>;
 };
 
 /**
@@ -60,6 +82,19 @@ export function revalidateWineStorefrontCaches(
     revalidatePath(`/producers/${slug}`);
     revalidatePath(`/vin/${slug}`);
     revalidatePath(`/wine/${slug}`);
+  }
+
+  const regionSlugs = [
+    ...new Set(
+      (options?.wineRegions ?? [])
+        .map((value) => resolveRegionSlug(value))
+        .filter((slug): slug is WineRegionSlug => slug != null),
+    ),
+  ];
+
+  for (const slug of regionSlugs) {
+    revalidatePath(wineRegionPagePath(slug, "sv"));
+    revalidatePath(wineRegionPagePath(slug, "en"));
   }
 
   revalidatePath("/");

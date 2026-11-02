@@ -213,4 +213,5 @@ export const beaujolaisNaturalWineArticle: GuideArticleContent = {
     type: "Place",
     name: "Beaujolais",
   },
+  wineRegionSlug: "beaujolais",
 };

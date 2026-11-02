@@ -201,4 +201,5 @@ export const juraNaturalWineArticle: GuideArticleContent = {
     type: "Place",
     name: "Jura",
   },
+  wineRegionSlug: "jura",
 };

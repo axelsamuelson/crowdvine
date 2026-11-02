@@ -239,4 +239,5 @@ export const languedocNaturalWineArticle: GuideArticleContent = {
     type: "Place",
     name: "Languedoc",
   },
+  wineRegionSlug: "languedoc",
 };

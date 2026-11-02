@@ -59,7 +59,7 @@ function ProductListStaticCard({
             <ServerListPrice
               product={product}
               locale={locale}
-              className="text-[9px] md:text-sm uppercase 2xl:text-base text-right font-semibold"
+              className="text-[9px] md:text-sm normal-case 2xl:text-base text-right font-semibold"
             />
           </div>
         </div>
