@@ -75,18 +75,18 @@ function grapesFromProducts(products: Product[]): string[] {
 }
 
 function stylesFromProducts(products: Product[], locale: AppLocale): string[] {
-  const labels = new Map<string, string>();
+  const labels = new Set<string>();
   for (const product of products) {
     const colorOption = product.options?.find((opt) => opt.name === "Color");
     const raw =
       typeof colorOption?.values?.[0] === "string"
         ? colorOption.values[0]
         : colorOption?.values?.[0]?.name;
-    const key = (raw ?? "").trim().toLowerCase();
-    if (!key || labels.has(key)) continue;
-    labels.set(key, localizeColorLabel(raw!.trim(), locale));
+    const trimmed = raw?.trim();
+    if (!trimmed) continue;
+    labels.add(localizeColorLabel(trimmed, locale));
   }
-  return [...labels.values()].sort((a, b) => a.localeCompare(b, "sv"));
+  return [...labels].sort((a, b) => a.localeCompare(b, "sv"));
 }
 
 function localizeColorLabel(raw: string, locale: AppLocale): string {
