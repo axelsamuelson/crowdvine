@@ -2,7 +2,7 @@
 
 > **UTKAST.** Framtaget av Daniel Holm (Compliance), med ställningstagande av Sofia Bergström (GC) den 25 augusti 2026 enligt `gc-stallningstagande-angerratt-och-villkor.md`. Tvistlösningen (p. 13) är oförändrad. Punkt 9 och 10 är omskrivna 2026-10-29 på ägarens instruktion och avviker från GC-dokumentet, se anmärkningen under punkt 9. Punkt 3 (giltighetstid och producent som inte kan leverera) uppdaterad 2026-10-31, i linje med reservationsmejlen (30 dagar åt gången, bekräftelse via länk senast angivet datum inom 7 dagar, obegränsat antal förlängningar). Punkt 7 (leveranstid och leveransområde) ifylld 2026-11-01: 5–10 arbetsdagar inom hela Sverige från orderbekräftelse och debitering. Punkt 5 (misslyckad debitering: omförsök efter 24/72 h, 3D Secure-länk, avbrott efter tre försök utan dragning) uppdaterad 2026-11-02 enligt `lib/payment-retry.ts` och Stripe-webhook. Punkt 8 (returkostnad) ifylld 2026-11-03; antal leveransförsök orört. Bolagsadress uppdaterad 2026-11-04 till äriregister-form (Kesklinna linnaosa, Harju maakond; postnummer 10115 behållet då det redan fanns i repo). Övriga fält markerade `[FYLL I]` måste fyllas i innan sidan går live. Ingen extern advokat har granskat texten.
 
-Senast uppdaterad: 2026-11-04
+Senast uppdaterad: 2026-11-06
 
 ---
 
@@ -137,15 +137,11 @@ Hur ett uteblivet leveransförsök hanteras beskrivs av [Budbee](https://budbee.
 
 ## 9. Ångerrätt
 
-Vin är en levande produkt. Ångerrätt gäller därför inte för köp på pactwines.com.
-
-> **Anmärkning, ej del av publicerad text.** Detta är ägarens instruktion 2026-10-29. GC-dokumentet fråga 1 är det motsatta och graderat som fastställt: undantaget för varor som snabbt kan försämras eller bli för gamla träffar inte vin, och alkoholundantaget faller eftersom priset inte följer marknaden. Om ångerrätten inte informeras om förlängs fristen med upp till ett år. Punkt 13 lämnar tvingande svensk konsumentskyddslagstiftning orörd.
+Du har 14 dagars ångerrätt enligt lagen (2005:59) om distansavtal och avtal utanför affärslokaler. Ångerfristen börjar dagen efter att du har tagit emot vinet. Köper du flera flaskor som levereras vid olika tillfällen börjar fristen när du har tagit emot den sista. Vill du ångra köpet mejlar du customer@pactwines.com, eller använder standardformuläret för ånger från Konsumentverket, inom fristen. Skicka sedan tillbaka varorna senast 14 dagar efter att du meddelat oss. Vi betalar tillbaka hela beloppet, inklusive den ursprungliga leveranskostnaden för standardleverans, senast 14 dagar efter att vi fått ditt meddelande. Vi får vänta med återbetalningen tills vi har fått tillbaka varorna. Returfrakt och värdeminskning regleras i §8. Ångerrätten gäller inte om du har reserverat flaskor men inte betalat något än. Då avbokar du utan kostnad.
 
 ## 10. Reklamation
 
-Reklamation kan inte göras.
-
-> **Anmärkning, ej del av publicerad text.** Konsumentköplagens reklamationsrätt är tvingande och kan inte avtalas bort mot en konsument. Punkt 13 säger samma sak. Integritetspolicyn beskriver fortfarande behandling för reklamation, retur och ångerrätt, med lagring i 3 år enligt konsumentköplagen.
+Är vinet felaktigt, till exempel korkat, skadat vid leverans eller inte det du beställt, har du rätt att reklamera enligt konsumentköplagen (2022:260). Reklamationsrätten gäller i tre år från leveransen. Meddela oss inom skälig tid efter att du upptäckt felet. Meddelar du oss inom två månader räknas det alltid som i tid. Mejla customer@pactwines.com och bifoga gärna en bild. Vid ett godkänt fel får du en ny flaska, eller pengarna tillbaka om det inte går, och vi står för eventuell returfrakt. Kan vi inte komma överens kan du vända dig till Allmänna reklamationsnämnden (arn.se).
 
 ---
 
