@@ -252,6 +252,15 @@ export type ArticleGuideShellProps = {
   breadcrumb: ReactNode;
   /** Optional class on the outer measure wrapper. */
   className?: string;
+  /**
+   * Override section / FAQ H2 class (default `ARTICLE_GUIDE_H2_CLASS`).
+   * Use when a single guide needs a different H2 scale than the shared default.
+   */
+  sectionHeadingClassName?: string;
+  /**
+   * Override wine-entry H3 class (default `ARTICLE_GUIDE_WINE_H3_CLASS`).
+   */
+  wineHeadingClassName?: string;
 };
 
 /** Shared article typography — use these in slot content so classes stay in one place. */
@@ -260,6 +269,15 @@ export const ARTICLE_GUIDE_H1_CLASS =
 
 export const ARTICLE_GUIDE_H2_CLASS =
   "mb-4 text-2xl font-medium tracking-[-0.02em] text-foreground";
+
+/**
+ * Editorial shortlist H2 (e.g. orange Systembolaget guide): 26px mobile /
+ * 28px desktop so section titles stay larger than wine H3s at 22px.
+ * Scoped via `sectionHeadingClassName` — do not swap the shared default;
+ * `ARTICLE_GUIDE_H2_CLASS` is also used by ranked lists and releases pages.
+ */
+export const ARTICLE_GUIDE_EDITORIAL_H2_CLASS =
+  "mb-4 text-[26px] font-medium tracking-[-0.02em] text-foreground md:text-[28px]";
 
 /** FAQ / generic in-article H3 (Geist). */
 export const ARTICLE_GUIDE_H3_CLASS =
@@ -273,6 +291,13 @@ export const ARTICLE_GUIDE_H3_CLASS =
  */
 export const ARTICLE_GUIDE_WINE_H3_CLASS =
   "scroll-mt-top-spacing text-[22px] font-medium leading-snug tracking-[-0.02em] text-foreground lg:text-2xl";
+
+/**
+ * Wine H3 fixed at 22px (no desktop bump) for editorial shortlists whose
+ * section H2 uses `ARTICLE_GUIDE_EDITORIAL_H2_CLASS`.
+ */
+export const ARTICLE_GUIDE_WINE_H3_FIXED_CLASS =
+  "scroll-mt-top-spacing text-[22px] font-medium leading-snug tracking-[-0.02em] text-foreground";
 
 /**
  * Between wines: 48px above the rule, 1px ~10% black rule, 48px to the heading.
@@ -305,7 +330,12 @@ export function ArticleGuideShell({
   internalLinks = [],
   breadcrumb,
   className,
+  sectionHeadingClassName,
+  wineHeadingClassName,
 }: ArticleGuideShellProps) {
+  const h2Class = sectionHeadingClassName ?? ARTICLE_GUIDE_H2_CLASS;
+  const wineH3Class = wineHeadingClassName ?? ARTICLE_GUIDE_WINE_H3_CLASS;
+
   return (
     <>
       <div
@@ -337,7 +367,7 @@ export function ArticleGuideShell({
               return (
                 <section key={section.heading ?? `section-${sectionIndex}`}>
                   {section.heading ? (
-                    <h2 className={ARTICLE_GUIDE_H2_CLASS}>
+                    <h2 className={h2Class}>
                       <span>{section.heading}</span>
                       {section.headingBadge ? (
                         <span className="ml-2 align-middle text-xs font-normal text-muted-foreground">
@@ -376,8 +406,8 @@ export function ArticleGuideShell({
                             if (isWineHeading) wineHeadingCount += 1;
                             const headingClass = isWineHeading
                               ? showDivider
-                                ? `${ARTICLE_GUIDE_WINE_H3_CLASS} ${ARTICLE_GUIDE_WINE_DIVIDER_CLASS}`
-                                : `${ARTICLE_GUIDE_WINE_H3_CLASS} !mt-12`
+                                ? `${wineH3Class} ${ARTICLE_GUIDE_WINE_DIVIDER_CLASS}`
+                                : `${wineH3Class} !mt-12`
                               : `${ARTICLE_GUIDE_H3_CLASS} pt-2`;
                             return (
                               <h3
@@ -412,7 +442,7 @@ export function ArticleGuideShell({
             {afterSections}
             {faqs.length > 0 ? (
               <section>
-                <h2 className={ARTICLE_GUIDE_H2_CLASS}>
+                <h2 className={h2Class}>
                   {faqHeading ?? "Frequently asked questions"}
                 </h2>
                 <div className="mt-6 space-y-8">

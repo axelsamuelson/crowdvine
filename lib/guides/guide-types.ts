@@ -145,6 +145,15 @@ export type GuideArticleContent = {
     href: LocalizedString;
     label?: LocalizedString;
   } | null;
+  /**
+   * Optional ArticleGuideShell heading class overrides for a single guide.
+   * Prefer this over changing shared `ARTICLE_GUIDE_H2_CLASS` / wine H3 defaults
+   * (those are also used by ranked lists and releases pages).
+   */
+  shellHeadingClasses?: {
+    sectionHeadingClassName?: string;
+    wineHeadingClassName?: string;
+  };
 };
 
 /** `published: false` hides a guide. Omitted means published. */

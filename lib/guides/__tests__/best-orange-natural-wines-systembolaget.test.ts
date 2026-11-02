@@ -82,6 +82,55 @@ describe("best orange natural wines Systembolaget guide", () => {
       ]),
     });
 
+    const odlingCount = factBlocks.filter(
+      (block) =>
+        block.type === "definitions" &&
+        block.items.some((item) => item.term.sv === "Odling"),
+    ).length;
+    expect(odlingCount).toBe(1);
+    expect(
+      factBlocks.every(
+        (block) =>
+          block.type !== "definitions" ||
+          block.items.every(
+            (item) =>
+              item.term.sv !== "Sortiment" ||
+              !/\(ekologiskt enligt Systembolaget\)/.test(item.description.sv),
+          ),
+      ),
+    ).toBe(true);
+    const fallerDefs = (() => {
+      const blocks = listSection?.blocks ?? [];
+      const hi = blocks.findIndex(
+        (block) => block.type === "heading" && block.id === "luc-faller-macerat",
+      );
+      const def = blocks[hi + 1];
+      return def?.type === "definitions" ? def.items : [];
+    })();
+    expect(fallerDefs).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          term: expect.objectContaining({ sv: "Odling" }),
+          description: expect.objectContaining({
+            sv: "ekologisk (enligt Systembolaget)",
+          }),
+        }),
+        expect.objectContaining({
+          term: expect.objectContaining({ sv: "Sortiment" }),
+          description: expect.objectContaining({ sv: "beställningsvara" }),
+        }),
+      ]),
+    );
+
+    expect(
+      bestOrangeNaturalWinesSystembolagetSvArticle.shellHeadingClasses
+        ?.sectionHeadingClassName,
+    ).toBeTruthy();
+    expect(
+      bestOrangeNaturalWinesSystembolagetSvArticle.shellHeadingClasses
+        ?.wineHeadingClassName,
+    ).toBeTruthy();
+
     const serialized = JSON.stringify(bestOrangeNaturalWinesSystembolagetSvArticle);
     expect(serialized).not.toMatch(/\d+\s*kr\b/);
     expect(serialized).not.toMatch(/köp nu|shop now|lägg i kundvagn/i);

@@ -1,3 +1,7 @@
+import {
+  ARTICLE_GUIDE_EDITORIAL_H2_CLASS,
+  ARTICLE_GUIDE_WINE_H3_FIXED_CLASS,
+} from "@/lib/guides/article-guide-shell";
 import type { GuideArticleContent } from "@/lib/guides/guide-types";
 
 const EMPTY = { en: [] as string[], sv: [] as string[] };
@@ -227,6 +231,10 @@ export const bestOrangeNaturalWinesSystembolagetSvArticle: GuideArticleContent =
     },
     author: AUTHOR,
     shopCta: null,
+    shellHeadingClasses: {
+      sectionHeadingClassName: ARTICLE_GUIDE_EDITORIAL_H2_CLASS,
+      wineHeadingClassName: ARTICLE_GUIDE_WINE_H3_FIXED_CLASS,
+    },
     sections: [
       {
         heading: {
@@ -412,8 +420,15 @@ export const bestOrangeNaturalWinesSystembolagetSvArticle: GuideArticleContent =
               {
                 term: { en: "Assortment", sv: "Sortiment" },
                 description: {
-                  en: "order assortment (organic per Systembolaget)",
-                  sv: "beställningsvara (ekologiskt enligt Systembolaget)",
+                  en: "order assortment",
+                  sv: "beställningsvara",
+                },
+              },
+              {
+                term: { en: "Farming", sv: "Odling" },
+                description: {
+                  en: "organic (per Systembolaget)",
+                  sv: "ekologisk (enligt Systembolaget)",
                 },
               },
             ],
