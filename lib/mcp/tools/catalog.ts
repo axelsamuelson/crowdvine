@@ -6,11 +6,13 @@ import {
   CATALOG_CERTIFICATION_VALUES,
   CATALOG_WINE_TYPE_VALUES,
 } from "@/lib/catalog-types";
+import { WINE_REGION_VALUES } from "@/lib/wine-regions";
 import { mcpErrorResult, mcpJsonResult } from "../utils/tool-result";
 import { mcpWriteTool } from "../utils/write-tool";
 
 const certificationSchema = z.enum(CATALOG_CERTIFICATION_VALUES);
 const wineTypeSchema = z.enum(CATALOG_WINE_TYPE_VALUES);
+const wineRegionSchema = z.enum(WINE_REGION_VALUES);
 
 /** Fields that map to PDP content (hero, specs grid, enrichment dropdowns). */
 const winePdpContentFields = {
@@ -33,6 +35,11 @@ const winePdpContentFields = {
     .optional()
     .describe("PDP specs Druvsort."),
   appellation: z.string().optional().describe("PDP specs Appellation."),
+  region: wineRegionSchema
+    .optional()
+    .describe(
+      "Canonical wine region (Languedoc, Loire, Rhône, Sud-Ouest, …). Null/omit = unassigned.",
+    ),
   farming: certificationSchema
     .optional()
     .describe("PDP specs Odling (organic_certified, natural, …)."),
@@ -360,6 +367,7 @@ export function registerCatalogTools(server: McpServer, sb: SupabaseClient) {
         color: winePdpContentFields.color.nullable().optional(),
         grape_varieties: winePdpContentFields.grape_varieties.optional(),
         appellation: winePdpContentFields.appellation.optional(),
+        region: wineRegionSchema.nullable().optional(),
         farming: certificationSchema.nullable().optional(),
         additives: winePdpContentFields.additives.nullable().optional(),
         alcohol_pct: z.number().nullable().optional(),

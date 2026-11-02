@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireCatalogApiAuth } from "@/lib/catalog-api-auth";
 import {
   buildWinePatch,
+  InvalidWineRegionError,
   WINE_DB_SELECT,
   wineRowToApi,
 } from "@/lib/catalog-mappers";
@@ -171,6 +172,9 @@ export async function PATCH(
 
     return NextResponse.json({ wine: wineRowToApi(data) });
   } catch (e: unknown) {
+    if (e instanceof InvalidWineRegionError) {
+      return NextResponse.json({ error: e.message }, { status: 400 });
+    }
     const msg = e instanceof Error ? e.message : "Unknown error";
     return NextResponse.json({ error: msg }, { status: 500 });
   }
