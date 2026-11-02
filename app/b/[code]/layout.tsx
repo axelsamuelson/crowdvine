@@ -1,14 +1,6 @@
 import type { Metadata } from "next";
-import { Instrument_Serif } from "next/font/google";
 import { INVITE_PAGE_ROBOTS } from "@/lib/seo/invite-robots";
 import "../../i/[code]/invite-opus.css";
-
-const instrumentSerif = Instrument_Serif({
-  subsets: ["latin"],
-  weight: "400",
-  style: ["normal", "italic"],
-  variable: "--font-instrument-serif",
-});
 
 export async function generateMetadata(props: {
   params: Promise<{ code: string }>;
@@ -39,5 +31,5 @@ export default function BusinessInviteLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <div className={instrumentSerif.variable}>{children}</div>;
+  return <>{children}</>;
 }

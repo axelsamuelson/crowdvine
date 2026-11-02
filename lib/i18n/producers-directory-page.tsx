@@ -186,7 +186,9 @@ export async function renderProducersDirectoryPage(locale: AppLocale) {
             </BreadcrumbList>
           </Breadcrumb>
 
-          <h1 className="mb-2 mt-6 text-3xl font-bold">{content.heading}</h1>
+          <h1 className="mb-2 mt-6 text-3xl font-medium tracking-[-0.02em]">
+            {content.heading}
+          </h1>
           <p className="mb-10 text-muted-foreground">
             {content.countLabel(producers.length)}
           </p>

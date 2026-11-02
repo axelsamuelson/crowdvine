@@ -79,7 +79,7 @@ export function HeroSection() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, delay: 0.45 }}
       >
-        <h1 className="text-5xl md:text-7xl lg:text-8xl font-serif text-center text-foreground mix-blend-difference">
+        <h1 className="text-5xl md:text-7xl lg:text-8xl font-medium tracking-[-0.02em] text-center text-foreground mix-blend-difference">
           You are <em className="italic">invited</em>.
         </h1>
       </motion.div>

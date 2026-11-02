@@ -154,7 +154,7 @@ export async function ProducerBoxesPage({ locale }: { locale: AppLocale }) {
           {!PRODUCER_BOXES_PUBLISHED ? (
             <p className="mb-6 text-sm text-stone-500">{copy.draft}</p>
           ) : null}
-          <h1 className="mb-3 text-3xl font-medium text-stone-900">{copy.h1}</h1>
+          <h1 className="mb-3 text-3xl font-medium tracking-[-0.02em] text-stone-900">{copy.h1}</h1>
           <p className="leading-relaxed text-stone-600">
             <LinkedCopy text={copy.intro} links={PRODUCER_BOXES_INTRO_LINKS[locale]} />
           </p>

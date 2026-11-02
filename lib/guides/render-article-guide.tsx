@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Instrument_Serif } from "next/font/google";
 
 import {
   ArticleGuideShell,
@@ -28,13 +27,6 @@ import {
 } from "@/lib/guides/guide-types";
 import type { AppLocale } from "@/lib/i18n/locale";
 import { getGuideSeoOwnership } from "@/lib/guides/guide-seo-ownership";
-
-const instrumentSerif = Instrument_Serif({
-  subsets: ["latin"],
-  weight: "400",
-  style: ["normal", "italic"],
-  variable: "--font-instrument-serif",
-});
 
 function resolveArticleShopHref(
   content: GuideArticleContent,
@@ -261,7 +253,6 @@ export async function renderArticleGuidePage(
       ) : null}
 
       <ArticleGuideShell
-        className={instrumentSerif.variable}
         h1={content.h1[locale]}
         byline={content.author?.byline[locale]}
         lede={content.lede?.[locale] ?? content.hubCard.description[locale]}

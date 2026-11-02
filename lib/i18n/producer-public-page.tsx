@@ -443,7 +443,9 @@ export async function renderProducerPublicPage(options: {
             </BreadcrumbList>
           </Breadcrumb>
 
-          <h1 className="mt-6 text-3xl font-bold">{producer.name}</h1>
+          <h1 className="mt-6 text-3xl font-medium tracking-[-0.02em]">
+            {producer.name}
+          </h1>
           {heroParts.length > 0 ? (
             <p className="mt-1 text-sm text-muted-foreground">
               {heroParts.join(" · ")}

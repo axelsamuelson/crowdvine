@@ -127,7 +127,7 @@ export function HeroSection({
         {showDirtyWineLogo ? (
           <DirtyWineLogo className="max-w-[280px] md:max-w-[360px] w-full h-auto" />
         ) : (
-          <h1 className="text-5xl md:text-7xl lg:text-8xl font-serif text-center text-foreground mix-blend-difference">
+          <h1 className="text-5xl md:text-7xl lg:text-8xl font-medium tracking-[-0.02em] text-center text-foreground mix-blend-difference">
             You are invited.
           </h1>
         )}

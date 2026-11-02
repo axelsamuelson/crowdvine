@@ -26,7 +26,7 @@ export function FooterSection() {
           {/* Logo and links */}
           <div>
             <motion.h2
-              className="text-6xl md:text-8xl font-serif text-foreground"
+              className="text-6xl md:text-8xl font-medium tracking-[-0.02em] text-foreground"
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}

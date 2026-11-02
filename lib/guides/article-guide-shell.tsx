@@ -250,29 +250,29 @@ export type ArticleGuideShellProps = {
   furtherReadingHeading?: string;
   internalLinks?: ArticleGuideShellLink[];
   breadcrumb: ReactNode;
-  /** Optional class on the outer measure wrapper (e.g. Instrument Serif variable). */
+  /** Optional class on the outer measure wrapper. */
   className?: string;
 };
 
 /** Shared article typography — use these in slot content so classes stay in one place. */
 export const ARTICLE_GUIDE_H1_CLASS =
-  "mt-6 font-serif text-3xl font-normal tracking-tight md:text-4xl";
+  "mt-6 text-3xl font-medium tracking-[-0.02em] md:text-4xl";
 
 export const ARTICLE_GUIDE_H2_CLASS =
-  "mb-4 text-2xl font-semibold tracking-tight text-foreground";
+  "mb-4 text-2xl font-medium tracking-[-0.02em] text-foreground";
 
-/** FAQ / generic in-article H3 (sans). */
+/** FAQ / generic in-article H3 (Geist). */
 export const ARTICLE_GUIDE_H3_CLASS =
-  "text-lg font-semibold tracking-tight text-foreground";
+  "text-lg font-medium tracking-tight text-foreground";
 
 /**
- * Wine / list-entry H3: Instrument Serif, 22px→24px,
+ * Wine / list-entry H3: Geist, 22px→24px,
  * scroll margin clears the fixed header (`--top-spacing`).
  * `!mt-12` beats parent `space-y-*` so the 48px top gap is reliable.
  * Pair with wine-divider classes for subsequent entries.
  */
 export const ARTICLE_GUIDE_WINE_H3_CLASS =
-  "scroll-mt-top-spacing font-serif text-[22px] font-normal leading-snug tracking-tight text-foreground lg:text-2xl";
+  "scroll-mt-top-spacing text-[22px] font-medium leading-snug tracking-[-0.02em] text-foreground lg:text-2xl";
 
 /**
  * Between wines: 48px above the rule, 1px ~10% black rule, 48px to the heading.
@@ -281,7 +281,7 @@ export const ARTICLE_GUIDE_WINE_DIVIDER_CLASS =
   "!mt-12 border-t border-black/10 pt-12";
 
 export const ARTICLE_GUIDE_QUOTE_CLASS =
-  "font-serif text-[17px] leading-[1.75] text-foreground/80";
+  "text-[17px] leading-[1.75] text-foreground/80";
 
 export const ARTICLE_GUIDE_BODY_CLASS =
   "space-y-6 text-[17px] leading-[1.75] text-foreground/80";
@@ -289,7 +289,7 @@ export const ARTICLE_GUIDE_BODY_CLASS =
 /**
  * Shared presentation shell for guide articles.
  * Sole definition of article typography for /guides and /guider.
- * H1 and quotes use Instrument Serif (`font-serif`); body uses Geist (`font-sans` on body).
+ * Headings and body use Geist (`font-sans` on body).
  */
 export function ArticleGuideShell({
   h1,
