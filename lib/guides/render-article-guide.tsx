@@ -279,6 +279,12 @@ export async function renderArticleGuidePage(
           }))
           .filter((link) => isGuideHrefVisibleFrom(content, link.href))}
         breadcrumb={<GuideBreadcrumbs crumbs={breadcrumbCrumbs} />}
+        sectionHeadingClassName={
+          content.shellHeadingClasses?.sectionHeadingClassName
+        }
+        wineHeadingClassName={
+          content.shellHeadingClasses?.wineHeadingClassName
+        }
       />
     </>
   );
