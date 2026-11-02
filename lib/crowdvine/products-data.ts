@@ -513,7 +513,8 @@ export async function fetchProductsData(params?: {
       id, wine_name, vintage, grape_varieties, color, handle, base_price_cents,
       cost_amount, cost_currency, exchange_rate, alcohol_tax_cents, margin_percentage,
       b2b_margin_percentage, b2b_stock, label_image_path, producer_id, description,
-      description_html, tags, created_at, producers!inner(${producerEmbed})
+      description_html, tags, farming, is_natural, available_for_sale, created_at,
+      producers!inner(${producerEmbed})
     `;
     if (
       /is_live|column.*does not exist|could not find.*column|producers\.is_live|certification_verified_url|certification_in_conversion/i.test(
