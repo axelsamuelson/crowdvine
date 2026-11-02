@@ -15,60 +15,71 @@ export const WINE_REGIONS = [
     value: "Languedoc",
     labelSv: "Languedoc",
     labelEn: "Languedoc",
+    /** EN H1/intro: "Natural wine from the Languedoc" */
+    h1EnArticle: "the" as const,
   },
   {
     slug: "beaujolais",
     value: "Beaujolais",
     labelSv: "Beaujolais",
     labelEn: "Beaujolais",
+    h1EnArticle: null,
   },
   {
     slug: "loire",
     value: "Loire",
     labelSv: "Loire",
     labelEn: "Loire",
+    h1EnArticle: "the" as const,
   },
   {
     slug: "bourgogne",
     value: "Bourgogne",
     labelSv: "Bourgogne",
     labelEn: "Burgundy",
+    h1EnArticle: null,
   },
   {
     slug: "jura",
     value: "Jura",
     labelSv: "Jura",
     labelEn: "Jura",
+    h1EnArticle: "the" as const,
   },
   {
     slug: "champagne",
     value: "Champagne",
     labelSv: "Champagne",
     labelEn: "Champagne",
+    h1EnArticle: null,
   },
   {
     slug: "rhone",
     value: "Rhône",
     labelSv: "Rhône",
     labelEn: "Rhône Valley",
+    h1EnArticle: "the" as const,
   },
   {
     slug: "roussillon",
     value: "Roussillon",
     labelSv: "Roussillon",
     labelEn: "Roussillon",
+    h1EnArticle: null,
   },
   {
     slug: "alsace",
     value: "Alsace",
     labelSv: "Alsace",
     labelEn: "Alsace",
+    h1EnArticle: null,
   },
   {
     slug: "sud-ouest",
     value: "Sud-Ouest",
     labelSv: "Sydvästra Frankrike",
     labelEn: "South West France",
+    h1EnArticle: null,
   },
 ] as const;
 
@@ -180,6 +191,43 @@ export function wineRegionLabel(
     wineRegionByValue(valueOrSlug) ?? wineRegionBySlug(valueOrSlug);
   if (!region) return null;
   return locale === "en" ? region.labelEn : region.labelSv;
+}
+
+/** EN phrase used in H1 / intro: "the Loire" or "Burgundy". */
+export function wineRegionEnWithArticle(region: WineRegion): string {
+  return region.h1EnArticle
+    ? `${region.h1EnArticle} ${region.labelEn}`
+    : region.labelEn;
+}
+
+/** Visible H1 — Margaux copy. */
+export function wineRegionPageH1(
+  region: WineRegion,
+  locale: AppLocale,
+): string {
+  if (locale === "sv") {
+    return `Naturvin från ${region.labelSv}`;
+  }
+  return `Natural wine from ${wineRegionEnWithArticle(region)}`;
+}
+
+/** Document title (absolute) — Margaux copy. */
+export function wineRegionPageTitle(region: WineRegion, locale: AppLocale): string {
+  if (locale === "sv") {
+    return `Naturvin från ${region.labelSv} – producenter och stil | PACT`;
+  }
+  return `${region.labelEn} Natural Wine – Producers & Styles | PACT`;
+}
+
+/** Meta description — ends with Budbee; never "hela Sverige". */
+export function wineRegionPageMetaDescription(
+  region: WineRegion,
+  locale: AppLocale,
+): string {
+  if (locale === "sv") {
+    return `Naturvin från ${region.labelSv} – producenter och stil hos PACT. Hemleverans med Budbee.`;
+  }
+  return `${region.labelEn} natural wine – producers and styles at PACT. Home delivery with Budbee.`;
 }
 
 /**

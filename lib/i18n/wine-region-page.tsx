@@ -3,7 +3,7 @@ import Link from "next/link";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 
-import { ProductListStaticGrid } from "@/app/vin/components/product-list-static-grid";
+import { ProductListShell } from "@/app/vin/components/product-list-shell";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -23,7 +23,6 @@ import {
 } from "@/lib/i18n/localized-routes";
 import { mapProductDataToShopProducts } from "@/lib/map-product-data-to-shop-product";
 import { getWineRegionContent } from "@/lib/region-content";
-import { categoryPageTitle } from "@/lib/seo/category-page-title";
 import {
   defaultOpenGraphImages,
   pageTwitterCard,
@@ -49,10 +48,16 @@ import {
   WINE_REGION_SLUGS,
   isWineRegionSlug,
   wineRegionBySlug,
+  wineRegionPageH1,
+  wineRegionPageMetaDescription,
   wineRegionPagePath,
+  wineRegionPageTitle,
   wineRegionPageUrls,
   type WineRegionSlug,
 } from "@/lib/wine-regions";
+
+/** Max wines on the region page grid; remainder via shop filter link. */
+export const REGION_PAGE_WINE_GRID_LIMIT = 24;
 
 type RegionProducerSummary = {
   id: string;
@@ -119,8 +124,8 @@ function regionUiCopy(locale: AppLocale) {
   if (locale === "sv") {
     return {
       regionsCrumb: "Regioner",
-      shopAll: (label: string) => `Se alla viner från ${label}`,
-      characteristicsFallback: "Om regionen",
+      filterInShop: "Filtrera i butiken",
+      showAll: (n: number) => `Visa alla ${n}`,
       location: "Läge",
       grapes: "Druvor",
       styles: "Stilar",
@@ -129,14 +134,13 @@ function regionUiCopy(locale: AppLocale) {
       winesHeading: (label: string) => `Viner från ${label}`,
       wineCount: (n: number) => (n === 1 ? "1 vin" : `${n} viner`),
       producerWines: (n: number) => (n === 1 ? "1 vin" : `${n} viner`),
-      metaFallback: (label: string) =>
-        `Naturvin från ${label} — reservera flaskor via PACT.`,
+      characteristicsFallback: "Om regionen",
     };
   }
   return {
     regionsCrumb: "Regions",
-    shopAll: (label: string) => `See all wines from ${label}`,
-    characteristicsFallback: "About the region",
+    filterInShop: "Filter in the shop",
+    showAll: (n: number) => `Show all ${n}`,
     location: "Location",
     grapes: "Grapes",
     styles: "Styles",
@@ -145,8 +149,7 @@ function regionUiCopy(locale: AppLocale) {
     winesHeading: (label: string) => `Wines from ${label}`,
     wineCount: (n: number) => (n === 1 ? "1 wine" : `${n} wines`),
     producerWines: (n: number) => (n === 1 ? "1 wine" : `${n} wines`),
-    metaFallback: (label: string) =>
-      `Natural wine from ${label} — reserve bottles with PACT.`,
+    characteristicsFallback: "About the region",
   };
 }
 
@@ -165,22 +168,14 @@ export async function buildWineRegionPageMetadata(
   if (products.length === 0) notFound();
 
   const config = await getSiteConfig();
-  const content = getWineRegionContent(slug, locale);
-  const label = locale === "en" ? region.labelEn : region.labelSv;
-  const ui = regionUiCopy(locale);
-  const titleBase =
-    content.metaTitle?.trim() ||
-    content.h1?.trim() ||
-    label;
-  const pageTitle = categoryPageTitle(titleBase, config.siteName);
-  const description =
-    content.metaDescription?.trim() || ui.metaFallback(label);
+  const pageTitle = wineRegionPageTitle(region, locale);
+  const description = wineRegionPageMetaDescription(region, locale);
   const urls = wineRegionPageUrls(slug);
   const canonical = `${PACT_PUBLIC_ORIGIN}${wineRegionPagePath(slug, locale)}`;
   const indexable = products.length >= WINE_REGION_INDEX_MIN_LIVE;
 
   return {
-    title: pageTitle,
+    title: { absolute: pageTitle },
     description,
     robots: indexable
       ? { index: true, follow: true }
@@ -218,7 +213,8 @@ export async function renderWineRegionPage(options: {
   const content = getWineRegionContent(slug, locale);
   const label = locale === "en" ? region.labelEn : region.labelSv;
   const ui = regionUiCopy(locale);
-  const h1 = content.h1?.trim() || label;
+  const h1 = wineRegionPageH1(region, locale);
+  const intro = content.intro?.trim() || "";
   const pagePath = wineRegionPagePath(slug, locale);
   const pageUrl = `${PACT_PUBLIC_ORIGIN}${pagePath}`;
   const shopPath = shopPathForLocale(locale);
@@ -239,6 +235,15 @@ export async function renderWineRegionPage(options: {
       grapeList.typoSuspects,
     );
   }
+
+  const gridProducts =
+    products.length > REGION_PAGE_WINE_GRID_LIMIT
+      ? products.slice(0, REGION_PAGE_WINE_GRID_LIMIT)
+      : products;
+  const gridTruncated = gridProducts.length < products.length;
+  const shopLinkLabel = gridTruncated
+    ? ui.showAll(products.length)
+    : ui.filterInShop;
 
   const characteristicsHeading = content.characteristicsHeading?.trim() || "";
   const characteristicsBody = content.characteristicsBody?.trim() || "";
@@ -325,34 +330,34 @@ export async function renderWineRegionPage(options: {
         </div>
 
         <section className="px-5 pb-6 pt-5 md:px-10">
-          <h1 className="max-w-[16ch] text-[clamp(2.125rem,5.5vw,4rem)] font-medium leading-[1.05] tracking-[-0.02em]">
+          <h1 className="max-w-[20ch] text-[clamp(2.125rem,5.5vw,4rem)] font-medium leading-[1.05] tracking-[-0.02em]">
             {h1}
           </h1>
-          {content.intro?.trim() ? (
+          {intro ? (
             <p className="mt-4 max-w-[60ch] text-[17px] leading-relaxed text-zinc-700">
-              {content.intro.trim()}
+              {intro}
             </p>
           ) : null}
-          <Link
-            href={shopHref}
-            className="mt-[22px] inline-flex items-center rounded-md bg-foreground px-4 py-2.5 text-[13px] font-medium text-background transition-opacity hover:opacity-90"
-          >
-            {ui.shopAll(label)}
-          </Link>
         </section>
 
         <section className="px-5 pb-4 md:px-10">
-          <div className="mb-4 flex items-baseline justify-between gap-4">
+          <div className="mb-4 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
             <h2 className="text-[clamp(1.375rem,2.2vw,1.625rem)] font-medium tracking-[-0.02em]">
               {ui.winesHeading(label)}
             </h2>
-            <span className="text-[13px] text-muted-foreground">
-              {ui.wineCount(products.length)}
-            </span>
+            <div className="flex items-baseline gap-3 text-[13px] text-muted-foreground">
+              <span>{ui.wineCount(products.length)}</span>
+              <Link
+                href={shopHref}
+                className="underline underline-offset-4 hover:text-foreground"
+              >
+                {shopLinkLabel}
+              </Link>
+            </div>
           </div>
         </section>
         <div className="pb-12">
-          <ProductListStaticGrid products={products} locale={locale} />
+          <ProductListShell products={gridProducts} locale={locale} />
         </div>
 
         {showCharacteristics || showFacts ? (
