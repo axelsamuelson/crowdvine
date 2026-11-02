@@ -27,6 +27,10 @@ import { marcelLapierreArticle } from "@/lib/guides/articles/marcel-lapierre";
 import { pierreOvernoyArticle } from "@/lib/guides/articles/pierre-overnoy";
 import { radikonArticle } from "@/lib/guides/articles/radikon";
 import { thierryAllemandArticle } from "@/lib/guides/articles/thierry-allemand";
+import {
+  NATURAL_VS_ORGANIC_PATH,
+  naturalVsOrganicHubCard,
+} from "@/lib/guides/articles/natural-vs-organic-vs-biodynamic-wine";
 import { whatIsNaturalWineArticle } from "@/lib/guides/articles/what-is-natural-wine";
 import { whatIsOrangeWineArticle } from "@/lib/guides/articles/what-is-orange-wine";
 import { whatIsPetNatArticle } from "@/lib/guides/articles/what-is-pet-nat";
@@ -344,6 +348,11 @@ const EN_LIST_CARDS: GuideHubCard[] = [
 
 const EN_GUIDE_CARDS: GuideHubCard[] = [
   articleHubCard(whatIsNaturalWineArticle, "en"),
+  {
+    href: NATURAL_VS_ORGANIC_PATH,
+    title: naturalVsOrganicHubCard.title,
+    description: naturalVsOrganicHubCard.description,
+  },
   articleHubCard(whatIsOrangeWineArticle, "en"),
   ...(isGuideArticlePublished(buyNaturalWineOnlineSwedenArticle)
     ? [articleHubCard(buyNaturalWineOnlineSwedenArticle, "en")]

@@ -2,6 +2,10 @@ import type { MetadataRoute } from "next";
 import { unstable_cache } from "next/cache";
 
 import { catalogHasProducts, fetchProductsData } from "@/lib/crowdvine/products-data";
+import {
+  NATURAL_VS_ORGANIC_PATH,
+  NATURAL_VS_ORGANIC_UPDATED,
+} from "@/lib/guides/articles/natural-vs-organic-vs-biodynamic-wine";
 import { publishedBilingualArticleGuides } from "@/lib/guides/guide-publication";
 import { GUIDE_PATHS } from "@/lib/guides/guide-routes";
 import { TOP_100_PRODUCERS_UPDATED_AT } from "@/lib/guides/top-100-producers";
@@ -115,6 +119,12 @@ function staticPagesForProfile(
           weeklyEntry(`${baseUrl}${articlePath(guide, "sv")}`, 0.75, lastModified),
         ];
       }),
+      // English-only label comparison guide (no Swedish route yet).
+      weeklyEntry(
+        `${baseUrl}${NATURAL_VS_ORGANIC_PATH}`,
+        0.75,
+        new Date(`${NATURAL_VS_ORGANIC_UPDATED}T00:00:00.000Z`),
+      ),
       weeklyEntry(`${baseUrl}${GUIDE_PATHS.orangeWines.en}`, 0.75),
       weeklyEntry(`${baseUrl}${GUIDE_PATHS.orangeWines.sv}`, 0.75),
       weeklyEntry(`${baseUrl}${GUIDE_PATHS.naturalChampagne.en}`, 0.75),
