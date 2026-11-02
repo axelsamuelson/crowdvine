@@ -241,9 +241,9 @@ export default function KopvillkorContent() {
       <LegalList>
         <li>Leverans sker med hemleverans och ID-kontroll av Budbee</li>
         <li>
-          Leverans sker inom <LegalStrong>5–10 arbetsdagar</LegalStrong> inom
-          hela Sverige, räknat från orderbekräftelse och dragen betalning. Vid
-          överlämning kontrolleras mottagarens ålder (20 år) med legitimation
+          Leveranstiden är <LegalStrong>1–2 veckor</LegalStrong> efter att
+          pallen har stängt. Vid överlämning kontrolleras mottagarens ålder (20
+          år) med legitimation
         </li>
         <li>
           Angivna leveranstider är uppskattningar. Transport från Frankrike kan

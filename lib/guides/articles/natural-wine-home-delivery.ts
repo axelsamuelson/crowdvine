@@ -3,7 +3,7 @@ import type { GuideArticleContent } from "@/lib/guides/guide-types";
 /** How PACT home delivery works (reservation → pallet → door). */
 export const naturalWineHomeDeliveryArticle: GuideArticleContent = {
   published: true,
-  updated: "2026-10-25",
+  updated: "2026-11-09",
   slug: {
     en: "natural-wine-home-delivery",
     sv: "hemleverans-av-naturvin",
@@ -13,16 +13,16 @@ export const naturalWineHomeDeliveryArticle: GuideArticleContent = {
     sv: "Hemleverans av naturvin: så fungerar det",
   },
   meta: {
-    en: "Order natural wine online with home delivery in Stockholm. How reservation, pallet, delivery time, age check and cost work.",
-    sv: "Beställ naturvin online med hemleverans i Stockholm. Så fungerar reservation, pall, leveranstid, ålderskontroll och kostnad.",
+    en: "Order natural wine online with home delivery in Budbee's Sweden coverage area. How reservation, pallet, delivery time, age check and cost work.",
+    sv: "Beställ naturvin online med hemleverans i Budbees leveransområde i Sverige. Så fungerar reservation, pall, leveranstid, ålderskontroll och kostnad.",
   },
   h1: {
     en: "How Natural Wine Home Delivery Works",
     sv: "Så fungerar hemleverans av naturvin",
   },
   lede: {
-    en: "You reserve the wine online and have it delivered to your home in Stockholm. The wine is shipped together on a pallet, so you only pay once the pallet is full, and delivery takes place after that.",
-    sv: "Du reserverar vinet online och får det levererat hem i Stockholm. Vinet fraktas samlat på pall, så du betalar först när pallen är full och leveransen sker efter det.",
+    en: "You reserve the wine online and have it delivered to your home. The wine is shipped together on a pallet, so you only pay once the pallet is full, and delivery takes place after that.",
+    sv: "Du reserverar vinet online och får det levererat hem. Vinet fraktas samlat på pall, så du betalar först när pallen är full och leveransen sker efter det.",
   },
   breadcrumbShort: {
     en: "Home delivery",
@@ -38,8 +38,8 @@ export const naturalWineHomeDeliveryArticle: GuideArticleContent = {
       sv: "Hemleverans av naturvin",
     },
     description: {
-      en: "How reservation, the shared pallet and home delivery in Stockholm work.",
-      sv: "Hur reservation, gemensam pall och hemleverans i Stockholm fungerar.",
+      en: "How reservation, the shared pallet and home delivery work.",
+      sv: "Hur reservation, gemensam pall och hemleverans fungerar.",
     },
   },
   shopCta: {
@@ -55,8 +55,12 @@ export const naturalWineHomeDeliveryArticle: GuideArticleContent = {
         sv: "Var levererar vi?",
       },
       body: {
-        en: ["We currently deliver to addresses in Stockholm."],
-        sv: ["Vi levererar idag till adresser i Stockholm."],
+        en: [
+          "We deliver to your door anywhere in Budbee's delivery area in Sweden. You can check whether your address is covered by entering your postcode at checkout. Delivery takes place 1–2 weeks after the pallet has closed. On delivery, the courier checks your ID and you must be at least 20 years old. If you can't show valid ID, the wine won't be handed over. The shipping cost is shown at checkout before you pay.",
+        ],
+        sv: [
+          "Vi levererar hem till dig i hela Budbees leveransområde i Sverige. Om din adress ingår ser du när du anger postnumret i kassan. Leveransen sker 1–2 veckor efter att pallen har stängt. Vid överlämningen kontrollerar budet din legitimation, och du måste vara minst 20 år. Om du inte kan visa giltig legitimation lämnas inte vinet ut. Fraktkostnaden visas i kassan innan du betalar.",
+        ],
       },
     },
     {
