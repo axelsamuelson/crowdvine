@@ -120,8 +120,10 @@ export function ShopFilterCollapsible({
         forceMount={forceMountContent ? true : undefined}
         className={cn(
           "pt-2",
-          // Bottom padding so the last option isn’t clipped by overflow-hidden.
-          isSheet && "pb-2",
+          // Sheet: keep last option fully visible/scrollable — override the
+          // shared CollapsibleContent overflow-hidden that clips row bottoms.
+          isSheet &&
+            "pb-2 data-[state=open]:!overflow-y-auto data-[state=open]:max-h-[260px]",
           // forceMount keeps content in the DOM for crawlable <a href>;
           // hide it visually when closed (Radix alone does not).
           forceMountContent && "data-[state=closed]:hidden",

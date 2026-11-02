@@ -16,9 +16,13 @@ export function shopFilterOptionClassName(
   );
 }
 
-/** Scrollable option list in the mobile filter sheet — avoids clipping the last row. */
+/**
+ * Option list wrapper in the mobile filter sheet.
+ * Scrolling is on CollapsibleContent (sheet density); keep mild bottom padding
+ * so the last 40px row isn’t flush against the clip edge.
+ */
 export function shopFilterSheetListClassName() {
-  return "max-h-[240px] overflow-y-auto overscroll-contain pb-1";
+  return "pb-1";
 }
 
 export function ShopFilterOptionContent({
