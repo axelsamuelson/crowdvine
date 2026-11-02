@@ -75,7 +75,7 @@ describe("best natural wines at Systembolaget", () => {
       "Bästa rosé naturviner på Systembolaget",
       "Bästa naturvinerna under 200 kr på Systembolaget 2026",
       "Bästa glou-glou-vinerna på Systembolaget 2026",
-      "Bästa pet nat på Systembolaget 2026",
+      "Bästa pet nat på Systembolaget",
     ]);
   });
 

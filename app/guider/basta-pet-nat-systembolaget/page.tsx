@@ -1,24 +1,23 @@
 import type { Metadata } from "next";
 
-import { bestPetNatWinesSystembolagetArticle } from "@/lib/guides/articles/best-pet-nat-wines-systembolaget";
+import { bestPetNatWinesSystembolagetSvArticle } from "@/lib/guides/articles/best-pet-nat-wines-systembolaget";
 import {
-  buildSystembolagetRankedListMetadata,
-  renderSystembolagetRankedListPage,
-} from "@/lib/guides/systembolaget-ranked-list";
+  buildArticleGuideMetadata,
+  renderArticleGuidePage,
+} from "@/lib/guides/render-article-guide";
 
 export const revalidate = 600;
 
 export function generateMetadata(): Promise<Metadata> {
-  return buildSystembolagetRankedListMetadata(
-    bestPetNatWinesSystembolagetArticle,
+  return buildArticleGuideMetadata(
+    bestPetNatWinesSystembolagetSvArticle,
     "sv",
   );
 }
 
 export default function BastaPetNatSystembolagetGuidePage() {
-  return renderSystembolagetRankedListPage(
-    bestPetNatWinesSystembolagetArticle,
+  return renderArticleGuidePage(
+    bestPetNatWinesSystembolagetSvArticle,
     "sv",
-    "petnat",
   );
 }
