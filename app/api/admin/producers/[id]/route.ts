@@ -109,8 +109,12 @@ export async function PUT(
       }
       updateData.country_code = countryCode;
     }
-    if (body.address_street !== undefined)
-      updateData.address_street = String(body.address_street);
+    if (body.address_street !== undefined) {
+      updateData.address_street =
+        typeof body.address_street === "string" && body.address_street.trim()
+          ? body.address_street.trim()
+          : null;
+    }
     if (body.address_city !== undefined)
       updateData.address_city = String(body.address_city);
     if (body.address_postcode !== undefined)
