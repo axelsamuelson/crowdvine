@@ -11,7 +11,18 @@ import {
   LegalTh,
 } from "@/components/legal/legal-prose";
 
-export default function KopvillkorContent() {
+type KopvillkorLocale = "sv" | "en";
+
+const DELIVERY_AREA_COPY = {
+  sv: "Vi levererar i dag endast till adresser i Stockholm, det vill säga de postnummer som godkänns i kassan. Vi levererar inte till andra delar av Sverige eller till andra länder. Leveranstiden är 5–10 arbetsdagar räknat från att din order bekräftats och betalningen dragits. Vid överlämningen kontrolleras legitimation, och mottagaren måste ha fyllt 20 år.",
+  en: "We currently deliver only to addresses in Stockholm, meaning the postcodes accepted at checkout. We do not deliver to other parts of Sweden or to other countries. Delivery takes 5–10 working days from when your order is confirmed and payment is taken. ID is checked on delivery, and the recipient must be at least 20 years old.",
+} as const;
+
+export default function KopvillkorContent({
+  locale = "sv",
+}: {
+  locale?: KopvillkorLocale;
+} = {}) {
   return (
     <LegalProse>
       <LegalH2>1. Om oss</LegalH2>
@@ -240,11 +251,7 @@ export default function KopvillkorContent() {
       <LegalH2>7. Leverans</LegalH2>
       <LegalList>
         <li>Leverans sker med hemleverans och ID-kontroll av Budbee</li>
-        <li>
-          Leverans sker inom <LegalStrong>5–10 arbetsdagar</LegalStrong> inom
-          hela Sverige, räknat från orderbekräftelse och dragen betalning. Vid
-          överlämning kontrolleras mottagarens ålder (20 år) med legitimation
-        </li>
+        <li>{DELIVERY_AREA_COPY[locale]}</li>
         <li>
           Angivna leveranstider är uppskattningar. Transport från Frankrike kan
           påverkas av tull, väder och producenternas kapacitet

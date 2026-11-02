@@ -43,7 +43,7 @@ export default function TermsPage() {
       lastUpdated={version}
       version={version}
     >
-      <KopvillkorContent />
+      <KopvillkorContent locale="en" />
     </LegalPageLayout>
   );
 }

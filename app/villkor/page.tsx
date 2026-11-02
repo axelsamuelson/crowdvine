@@ -38,7 +38,7 @@ export default function VillkorPage() {
       lastUpdated={version}
       version={version}
     >
-      <KopvillkorContent />
+      <KopvillkorContent locale="sv" />
     </LegalPageLayout>
   );
 }
