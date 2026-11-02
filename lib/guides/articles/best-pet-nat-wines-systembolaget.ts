@@ -146,8 +146,8 @@ export const bestPetNatWinesSystembolagetArticle: GuideArticleContent = {
         sv: "Vilket är det bästa pet nat-vinet på Systembolaget?",
       },
       answer: {
-        en: "It depends on style. Haggan Pet Nat is in the fixed assortment year-round; Binner, Fio and Korab suit anyone who wants producers with clear natural-wine practice.",
-        sv: "Det beror på stil. Haggan Pet Nat finns i fast sortiment året runt; Binner, Fio och Koráb är för dig som vill ha producenter med tydligt naturvinsarbete.",
+        en: "It depends on style. Haggan Pet Nat is in the fixed assortment year-round; Fio and Korab suit anyone who wants producers with clear natural-wine practice.",
+        sv: "Det beror på stil. Haggan Pet Nat finns i fast sortiment året runt; Fio och Koráb är för dig som vill ha producenter med tydligt naturvinsarbete.",
       },
     },
   ],
@@ -268,14 +268,14 @@ export const bestPetNatWinesSystembolagetSvArticle: GuideArticleContent = {
               en: [
                 "**Year-round:** [Haggan Pet Nat](#haggan-pet-nat) — Chenin Blanc from Montlouis in Systembolaget's fixed assortment.",
                 "**Chenin from the Loire:** [Francois Chidaine Petillant](#chidaine-petillant), [Haggan Pet Nat](#haggan-pet-nat).",
-                "**Producers with clear natural-wine practice:** [Binner PetNat Storm](#binner-storm), [Fio Piu Piu](#fio-piu-piu), [Petr Korab Orange on Leaves](#korab-orange-on-leaves), [Sandrine Henriot Bubulle](#henriot-bubulle).",
+                "**Producers with clear natural-wine practice:** [Fio Piu Piu](#fio-piu-piu), [Petr Korab Orange on Leaves](#korab-orange-on-leaves), [Sandrine Henriot Bubulle](#henriot-bubulle).",
                 "**Rose pet-nat:** [Pranzegg MiauMiau](#pranzegg-miaumiau), [Alta Alella Puput Rose](#puput-rose), [Integrale Frizzante Rose](#integrale-rose).",
                 "**Outside Europe:** [Pino Roman Pet-Nat Pais](#pino-roman-pais) (Chile).",
               ],
               sv: [
                 "**Finns året runt:** [Haggan Pet Nat](#haggan-pet-nat) – Chenin Blanc från Montlouis i Systembolagets fasta sortiment.",
                 "**Chenin från Loire:** [François Chidaine Pétillant](#chidaine-petillant), [Haggan Pet Nat](#haggan-pet-nat).",
-                "**Producenter med tydligt naturvinsarbete:** [Binner PetNat Storm](#binner-storm), [Fio Piu Piu](#fio-piu-piu), [Petr Koráb Orange on Leaves](#korab-orange-on-leaves), [Sandrine Henriot Bubulle](#henriot-bubulle).",
+                "**Producenter med tydligt naturvinsarbete:** [Fio Piu Piu](#fio-piu-piu), [Petr Koráb Orange on Leaves](#korab-orange-on-leaves), [Sandrine Henriot Bubulle](#henriot-bubulle).",
                 "**Rosa pét-nat:** [Pranzegg MiauMiau](#pranzegg-miaumiau), [Alta Alella Puput Rosé](#puput-rose), [Integrale Frizzante Rosé](#integrale-rose).",
                 "**Utanför Europa:** [Pino Román Pét-Nat País](#pino-roman-pais) (Chile).",
               ],
@@ -463,80 +463,6 @@ export const bestPetNatWinesSystembolagetSvArticle: GuideArticleContent = {
               },
             },
           ],
-        },
-        {
-          type: "heading",
-          id: "binner-storm",
-          text: {
-            en: "Binner PetNat Storm 2020",
-            sv: "Binner PetNat Storm 2020",
-          },
-        },
-        {
-          type: "definitions",
-          items: [
-            {
-              term: {
-                en: "Producer and region",
-                sv: "Producent och region",
-              },
-              description: {
-                en: "Domaine Christian Binner, Alsace, France",
-                sv: "Domaine Christian Binner, Alsace, Frankrike",
-              },
-            },
-            {
-              term: {
-                en: "Grape",
-                sv: "Druva",
-              },
-              description: {
-                en: "50% Muscat / 50% apple",
-                sv: "50 % Muscat / 50 % äpple",
-              },
-            },
-            {
-              term: {
-                en: "Alcohol",
-                sv: "Alkohol",
-              },
-              description: {
-                en: "10%",
-                sv: "10 %",
-              },
-            },
-            {
-              term: {
-                en: "Assortment",
-                sv: "Sortiment",
-              },
-              description: {
-                en: "order assortment",
-                sv: "beställningsvara",
-              },
-            },
-            {
-              term: {
-                en: "Farming",
-                sv: "Odling",
-              },
-              description: {
-                en: "organic (per Systembolaget)",
-                sv: "ekologisk (enligt Systembolaget)",
-              },
-            },
-          ],
-        },
-        {
-          type: "paragraphs",
-          body: {
-            en: [
-              "Binner is one of few producers with Vin Methode Nature certification, France's official natural-wine mark. Binner is also in our guide to [orange wine at Systembolaget](/guides/best-orange-natural-wines-systembolaget).",
-            ],
-            sv: [
-              "Binner är en av få producenter med Vin Méthode Nature-certifiering, Frankrikes officiella naturvinsmärke. Binner finns också i vår guide till [orange vin på Systembolaget](/guider/basta-orange-naturviner-systembolaget).",
-            ],
-          },
         },
         {
           type: "heading",
@@ -1375,8 +1301,8 @@ export const bestPetNatWinesSystembolagetSvArticle: GuideArticleContent = {
         sv: "Vilket är det bästa pét-nat-vinet på Systembolaget?",
       },
       answer: {
-        en: "It depends on style. Haggan Pet Nat is in the fixed assortment year-round; Binner, Fio and Korab suit anyone who wants producers with clear natural-wine practice.",
-        sv: "Det beror på stil. Haggan Pet Nat finns i fast sortiment året runt; Binner, Fio och Koráb är för dig som vill ha producenter med tydligt naturvinsarbete.",
+        en: "It depends on style. Haggan Pet Nat is in the fixed assortment year-round; Fio and Korab suit anyone who wants producers with clear natural-wine practice.",
+        sv: "Det beror på stil. Haggan Pet Nat finns i fast sortiment året runt; Fio och Koráb är för dig som vill ha producenter med tydligt naturvinsarbete.",
       },
     },
     {

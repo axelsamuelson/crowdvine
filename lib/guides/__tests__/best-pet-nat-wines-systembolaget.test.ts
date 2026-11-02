@@ -57,29 +57,26 @@ describe("best pet nat Systembolaget guide", () => {
     const ids = (listSection?.blocks ?? [])
       .filter((block) => block.type === "heading")
       .map((block) => (block.type === "heading" ? block.id : undefined));
-    expect(ids).toEqual(
-      expect.arrayContaining([
-        "haggan-pet-nat",
-        "chidaine-petillant",
-        "binner-storm",
-        "fio-piu-piu",
-        "korab-orange-on-leaves",
-        "henriot-bubulle",
-        "faller-muscat",
-        "riedlin-spatburgunder",
-        "la-colombe-de-facto",
-        "pranzegg-miaumiau",
-        "puput-rose",
-        "integrale-rose",
-        "pino-roman-pais",
-        "pequenos-rebentos",
-      ]),
-    );
+    expect(ids).toEqual([
+      "haggan-pet-nat",
+      "chidaine-petillant",
+      "fio-piu-piu",
+      "korab-orange-on-leaves",
+      "henriot-bubulle",
+      "faller-muscat",
+      "riedlin-spatburgunder",
+      "la-colombe-de-facto",
+      "pranzegg-miaumiau",
+      "puput-rose",
+      "integrale-rose",
+      "pino-roman-pais",
+      "pequenos-rebentos",
+    ]);
 
     const factBlocks = (listSection?.blocks ?? []).filter(
       (block) => block.type === "definitions",
     );
-    expect(factBlocks.length).toBe(14);
+    expect(factBlocks.length).toBe(13);
     expect(factBlocks[0]).toMatchObject({
       type: "definitions",
       items: expect.arrayContaining([
@@ -93,7 +90,7 @@ describe("best pet nat Systembolaget guide", () => {
       block.type === "definitions" &&
       block.items.some((item) => item.term.sv === "Odling"),
     ).length;
-    expect(odlingCount).toBe(10);
+    expect(odlingCount).toBe(9);
     expect(
       factBlocks.every(
         (block) =>
@@ -115,15 +112,18 @@ describe("best pet nat Systembolaget guide", () => {
       if (def?.type !== "definitions") return undefined;
       return def.items.find((item) => item.term.sv === "Druva")?.description.sv;
     };
-    expect(grapeFor("binner-storm")).toBe("50 % Muscat / 50 % äpple");
     expect(grapeFor("korab-orange-on-leaves")).toBe("Uppgift saknas");
+    expect(ids).not.toContain("binner-storm");
 
     const serialized = JSON.stringify(bestPetNatWinesSystembolagetSvArticle);
+    expect(serialized).not.toMatch(/binner/i);
     expect(serialized).not.toMatch(/\d+\s*kr\b/);
     expect(serialized).not.toMatch(/köp nu|shop now|lägg i kundvagn/i);
     expect(serialized).toContain(
       "Inte alla viner på listan är belagda som naturvin",
     );
+    expect(serialized).toContain("Fio och Koráb");
+    expect(serialized).not.toContain("Binner, Fio");
     expect(bestPetNatWinesSystembolagetSvArticle.sections.some(
       (section) => section.heading?.sv === "Vad är pét-nat?",
     )).toBe(true);
