@@ -163,7 +163,7 @@ export const languedocNaturalWineArticle: GuideArticleContent = {
       },
       body: {
         en: [
-          "We pool orders onto shared pallets from southern France. When a pallet fills, the wine ships straight to Stockholm — without Systembolaget assortment stock and without unnecessary mark-ups. You see who made the wine, where it grew and what it costs. Often 15–30% below comparable Swedish prices.",
+          "We pool orders onto shared pallets from southern France. When a pallet fills, the wine ships straight to Stockholm — without unnecessary mark-ups. You see who made the wine, where it grew and what it costs. PACT pools orders from several customers into shared pallets shipped directly from the producers.",
           "Browse [natural wine](/wine) in the shop.",
         ],
         sv: [
