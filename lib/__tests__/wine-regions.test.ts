@@ -258,41 +258,42 @@ describe("Margaux region landing copy", () => {
     }
   });
 
-  it("EN intros omit Budbee and keep wholesaler/pallet wording", () => {
-    for (const region of WINE_REGIONS) {
-      const en = getWineRegionContent(region.slug, "en").intro ?? "";
-      expect(en.toLowerCase()).not.toContain("budbee");
-      expect(en.toLowerCase()).not.toContain("home delivery");
-    }
-  });
-
-  it("uses Languedoc direct-buy intro and wholesaler intro elsewhere", () => {
+  it("keeps Languedoc direct-buy intro and omits intro elsewhere", () => {
     expect(getWineRegionContent("languedoc", "sv").intro).toBe(
       "Naturvin från Languedoc som vi köper direkt av producenterna och skickar på delade pallar.",
     );
     expect(getWineRegionContent("languedoc", "en").intro).toBe(
       "Natural wine from the Languedoc, bought directly from the producers and shipped on shared pallets.",
     );
-    expect(getWineRegionContent("loire", "sv").intro).toBe(
-      "Naturvin från Loire, köpt via grossist i Languedoc och samlastad på samma pall.",
-    );
-    expect(getWineRegionContent("loire", "en").intro).toBe(
-      "Natural wine from the Loire, bought through a wholesaler in the Languedoc and shipped on the same shared pallet.",
-    );
-    expect(getWineRegionContent("bourgogne", "en").intro).toBe(
-      "Natural wine from Burgundy, bought through a wholesaler in the Languedoc and shipped on the same shared pallet.",
-    );
-    expect(getWineRegionContent("rhone", "en").intro).toBe(
-      "Natural wine from the Rhône Valley, bought through a wholesaler in the Languedoc and shipped on the same shared pallet.",
-    );
 
     for (const region of WINE_REGIONS) {
       if (region.slug === "languedoc") continue;
-      const sv = getWineRegionContent(region.slug, "sv").intro ?? "";
-      const en = getWineRegionContent(region.slug, "en").intro ?? "";
-      expect(sv.toLowerCase()).not.toContain("direkt");
-      expect(en.toLowerCase()).not.toContain("directly");
-      expect(en.toLowerCase()).not.toContain("direct");
+      expect(getWineRegionContent(region.slug, "sv").intro ?? "").toBe("");
+      expect(getWineRegionContent(region.slug, "en").intro ?? "").toBe("");
+    }
+  });
+
+  it("omits wholesaler/grossist wording from intros and meta", () => {
+    const forbidden = [
+      "köpt via grossist i Languedoc och samlastad på samma pall",
+      "bought through a wholesaler in the Languedoc and shipped on the same shared pallet",
+      "grossist",
+      "wholesaler",
+      "samlastad",
+    ];
+    for (const region of WINE_REGIONS) {
+      const texts = [
+        getWineRegionContent(region.slug, "sv").intro ?? "",
+        getWineRegionContent(region.slug, "en").intro ?? "",
+        wineRegionPageMetaDescription(region, "sv"),
+        wineRegionPageMetaDescription(region, "en"),
+      ];
+      for (const text of texts) {
+        const lower = text.toLowerCase();
+        for (const phrase of forbidden) {
+          expect(lower).not.toContain(phrase.toLowerCase());
+        }
+      }
     }
   });
 });
