@@ -45,7 +45,7 @@ describe("seo copy cleanup", () => {
       {
         handle: "la-marotte",
         shortDescription: {
-          sv: "Naturvin utan tillsatser, inga sulfiter, manuell skörd.",
+          sv: "Naturvin utan tillsatser, inga tillsatta sulfiter, manuell skörd.",
         },
       },
       "sv",
@@ -54,7 +54,7 @@ describe("seo copy cleanup", () => {
       {
         handle: "la-marotte",
         shortDescription: {
-          en: "Natural wine with no additives, no sulphites, hand-harvested.",
+          en: "Natural wine with no additives, no added sulphites, hand-harvested.",
         },
       },
       "en",

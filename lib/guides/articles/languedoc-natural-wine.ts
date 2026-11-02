@@ -137,9 +137,9 @@ export const languedocNaturalWineArticle: GuideArticleContent = {
         en: [
           "PACT works with domaines across Saint-Chinian, Faugères, Pic Saint-Loup, Minervois and neighbouring pockets — small estates that farm organically, ferment with indigenous yeasts and bottle without additives.",
           "Château del Ranq (Pic Saint-Loup, Hérault): Laure and Sébastien work limestone slopes at altitude — freshness, salinity and mineral wines from AOP Pic Saint-Loup to experimental Vin de France cuvées.",
-          "Clos Fantine (Cabrerolles, Faugères): Carole, Corine and Olivier Andrieu farm about 25 hectares organically since the 1990s. Carignan dominates; some vines are a century old. No additives, no sulphites.",
+          "Clos Fantine (Cabrerolles, Faugères): Carole, Corine and Olivier Andrieu farm about 25 hectares organically since the 1990s. Carignan dominates; some vines are a century old. No additives, no added sulphites.",
           "Clos Gisone (Montblanc, Hérault): Corinne Gisone founded the domaine in 2022 on 4.5 hectares across three parcels — all hand work, indigenous yeasts, no additives.",
-          "David Behar (Saint-Chinian): a micro-domaine on Syrah and Cinsault — no additives, no sulphites.",
+          "David Behar (Saint-Chinian): a micro-domaine on Syrah and Cinsault — no additives, no added sulphites.",
           "Domaine de la Cessière (Aigues-Vives, Minervois): Antoine Cauchy farms just over three hectares with no mechanisation — old Carignan in the Cessière valley, Muscat on the causse, and rare old Lledoner Pelut.",
           "Domaine Les Serrals (Faugères): Chloé Barthet and Frédéric Almazor settled on five hectares of schist hills in 2016 — no synthetic products, no additives.",
           "Meet the full roster on our [producers](/producers) page, or shop [natural wine](/wine).",
@@ -147,9 +147,9 @@ export const languedocNaturalWineArticle: GuideArticleContent = {
         sv: [
           "PACT arbetar med domäner i Saint-Chinian, Faugères, Pic Saint-Loup, Minervois och grannskap — små gårdar som odlar ekologiskt, jäser med indigena jästsvampar och buteljerar utan tillsatser.",
           "Château del Ranq (Pic Saint-Loup, Hérault): Laure och Sébastien arbetar kalkrika höjdlägen — friskhet, salinitet och mineralitet från AOP Pic Saint-Loup till experimentella Vin de France-cuvéer.",
-          "Clos Fantine (Cabrerolles, Faugères): Carole, Corine och Olivier Andrieu driver cirka 25 hektar ekologiskt sedan 1990-talet. Carignan dominerar; vissa stockar är hundra år. Inga tillsatser, inga sulfiter.",
+          "Clos Fantine (Cabrerolles, Faugères): Carole, Corine och Olivier Andrieu driver cirka 25 hektar ekologiskt sedan 1990-talet. Carignan dominerar; vissa stockar är hundra år. Inga tillsatser, inga tillsatta sulfiter.",
           "Clos Gisone (Montblanc, Hérault): Corinne Gisone grundade domänen 2022 på 4,5 hektar över tre parceller — allt handarbete, indigena jästsvampar, inga tillsatser.",
-          "David Behar (Saint-Chinian): ett mikrodomaine på Syrah och Cinsault — inga tillsatser, inga sulfiter.",
+          "David Behar (Saint-Chinian): ett mikrodomaine på Syrah och Cinsault — inga tillsatser, inga tillsatta sulfiter.",
           "Domaine de la Cessière (Aigues-Vives, Minervois): Antoine Cauchy brukar drygt tre hektar utan mekanisering — gammal Carignan i Cessière-dalen, Muscat på causse och sällsynt gammal Lledoner Pelut.",
           "Domaine Les Serrals (Faugères): Chloé Barthet och Frédéric Almazor slog sig ner på fem hektar skifferkullar 2016 — inga syntetiska produkter, inga tillsatser.",
           "Se hela listan under [producenter](/producenter), eller handla [naturvin](/vin).",
