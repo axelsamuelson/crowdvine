@@ -213,7 +213,14 @@ export function serializeWineRegionParam(
   return unique.length ? unique.join(",") : null;
 }
 
-/** Count live products by canonical `wines.region` value (NULL ignored). */
+/**
+ * Count products by canonical `wines.region` value (NULL ignored).
+ *
+ * Callers must pass the same catalog the PLP shows: rows already gated by
+ * `wines.is_live ∧ producers.is_live` (see `fetchProductsData`). Counting
+ * `wines.is_live` alone over-counts (e.g. Jura / Braconnage when the producer
+ * is not live) and would surface chips for regions with zero PLP wines.
+ */
 export function countLiveWinesByRegionValue(
   products: ReadonlyArray<{ region?: string | null }>,
 ): Map<WineRegionValue, number> {
@@ -229,6 +236,7 @@ export function countLiveWinesByRegionValue(
 /**
  * Shared ≥1-live linkability gate for PLP chips, region pages, sitemap, guides.
  * Pass live-wine counts keyed by canonical region **value** (French name).
+ * “Live” = PLP-visible (wine ∧ producer `is_live`), not wine-only.
  * Later PRs reuse this — never link / show a region with fewer than `minLive` wines.
  */
 export function getLinkableWineRegions(
@@ -251,7 +259,9 @@ export function isWineRegionLinkable(
   return (liveCountsByValue.get(region.value) ?? 0) >= minLive;
 }
 
-/** Convenience: linkable regions derived from an already-live product list. */
+/**
+ * Convenience: linkable regions from a PLP product list (already wine∧producer live).
+ */
 export function getLinkableWineRegionsFromProducts(
   products: ReadonlyArray<{ region?: string | null }>,
   minLive = 1,

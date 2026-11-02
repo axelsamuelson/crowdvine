@@ -63,7 +63,8 @@ describe("parseWineRegionParam / serializeWineRegionParam", () => {
 });
 
 describe("linkable wine regions helper", () => {
-  it("returns only regions with ≥1 live wine", () => {
+  it("returns only regions with ≥1 PLP-visible wine (wine∧producer live)", () => {
+    // Jura can have wines.is_live rows whose producer is not live — PLP count is 0.
     const counts = new Map<string, number>([
       ["Languedoc", 91],
       ["Loire", 8],
