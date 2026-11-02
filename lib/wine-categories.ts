@@ -48,7 +48,7 @@ const LONG_TAIL_WINE_CATEGORIES_SV: WineCategory[] = [
     h1: "Carignan naturvin från gamla stockar",
     title: "Carignan naturvin | PACT Wines",
     metaDescription:
-      "Carignan naturvin från gamla gobeletstockar — utan svavel, utan filtrering.",
+      "Carignan naturvin från gamla gobeletstockar — utan tillsatt svavel, utan filtrering.",
     description:
       "Carignan lämpar sig ovanligt väl för naturvinsproduktion. Gamla stockar ger naturlig koncentration med få eller inga tillsatser, hög fruktsyra fungerar som konservering och druvskalens tjocklek klarar långa macerationer utan att tappa balansen.",
     longDescription:
@@ -201,7 +201,7 @@ const LONG_TAIL_WINE_CATEGORIES_EN: WineCategory[] = [
     h1: "Carignan Natural Wine from Old Vines",
     title: "Carignan Natural Wine | PACT Wines",
     metaDescription:
-      "Carignan natural wine from old goblet vines — no sulphur, no filtration.",
+      "Carignan natural wine from old goblet vines — no added sulphur, no filtration.",
     description:
       "Carignan is unusually well suited to natural wine production. Old vines give natural concentration with few or no additives, high fruit acidity acts as preservation and the grape's thick skins handle long macerations without losing balance.",
     longDescription:
