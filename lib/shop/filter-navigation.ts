@@ -74,6 +74,57 @@ export function resolveShopFilterNavigationUrl(options: {
   );
 }
 
+/**
+ * Keep active shop query filters (region, producers, sort, q, …) when jumping
+ * between path-based category URLs. Call after gating so navigable-path checks
+ * stay path-only. Does not alter canonical category URLs.
+ */
+export function withShopFilterSearchParams(
+  path: string,
+  search: string | URLSearchParams | null | undefined,
+  options?: { omitKeys?: readonly string[] },
+): string {
+  if (!path) return path;
+  const params = new URLSearchParams(
+    typeof search === "string"
+      ? search.replace(/^\?/, "")
+      : (search?.toString() ?? ""),
+  );
+  for (const key of options?.omitKeys ?? []) {
+    params.delete(key);
+  }
+  const qs = params.toString();
+  if (!qs) {
+    const bare = path.includes("?") ? path.slice(0, path.indexOf("?")) : path;
+    return bare;
+  }
+  if (path.includes("?")) {
+    const bare = path.slice(0, path.indexOf("?"));
+    return `${bare}?${qs}`;
+  }
+  return `${path}?${qs}`;
+}
+
+/**
+ * Main shop `?fgrape=` → grape category path, keeping other query filters.
+ * Used by middleware (301) and client navigations that collapse onto `/vin|/wine`.
+ */
+export function promoteShopFgrapeQueryToPath(url: string): string {
+  if (!url) return url;
+  const qIndex = url.indexOf("?");
+  const path = qIndex >= 0 ? url.slice(0, qIndex) : url;
+  if (path !== "/vin" && path !== "/wine") return url;
+
+  const params = new URLSearchParams(qIndex >= 0 ? url.slice(qIndex + 1) : "");
+  const fgrape = params.get("fgrape");
+  if (!fgrape?.trim()) return url;
+
+  const locale = path === "/vin" ? "sv" : "en";
+  const grapePath = getCategoryUrlForGrape(fgrape.trim(), locale);
+  params.delete("fgrape");
+  return withShopFilterSearchParams(grapePath, params);
+}
+
 export function shouldNavigateShopFilters(pathname: string): boolean {
   return isShopFilterNavigationPath(pathname);
 }

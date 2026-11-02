@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Collection } from "@/lib/shopify/types";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { CategoryFilter } from "./category-filter";
 import { ColorFilter } from "./color-filter";
 import { GrapesFilter } from "./grapes-filter";
@@ -32,9 +32,11 @@ import {
   localeFromShopPathname,
   resolveGrapePageFarmingUrl,
   resolveGrapePageUrl,
+  promoteShopFgrapeQueryToPath,
   resolveShopFilterNavigationUrl,
   shouldNavigateGrapeFilter,
   shouldNavigateShopFilters,
+  withShopFilterSearchParams,
 } from "@/lib/shop/filter-navigation";
 import type { ShopFarmingFilterValue } from "@/lib/shop/farming-filter";
 import { gateShopFilterHref } from "@/lib/shop/gate-shop-filter-href";
@@ -61,6 +63,7 @@ export function DesktopFilters({
   const [seeAllOpen, setSeeAllOpen] = useState(false);
   const openSeeAll = () => setSeeAllOpen(true);
   const routerPathname = usePathname();
+  const searchParams = useSearchParams();
   const router = useRouter();
   // Prefer the live router path when present; fall back to the request path
   // so SSR and the first client render share the same hrefs (no mounted flip).
@@ -80,6 +83,16 @@ export function DesktopFilters({
   );
   const activeGrapeName = getActiveGrapeFromPathname(pathname, grapeCandidates);
 
+  const withPreservedShopFilters = (
+    path: string | null,
+    options?: { omitKeys?: readonly string[] },
+  ): string | null => {
+    if (!path) return null;
+    return promoteShopFgrapeQueryToPath(
+      withShopFilterSearchParams(path, searchParams, options),
+    );
+  };
+
   const resolveColorHref = (colorName: string): string | null => {
     if (!shouldNavigateShopFilters(pathname)) return null;
     const isClear = isSameColorSelection(pathname, colorName);
@@ -94,10 +107,11 @@ export function DesktopFilters({
           currentPath: pathname,
           nextColorUi: colorName,
         });
-    return gateShopFilterHref(url, {
+    const gated = gateShopFilterHref(url, {
       isClear,
       navigablePaths: navigableShopPaths,
     });
+    return withPreservedShopFilters(gated);
   };
 
   const resolveFarmingHref = (
@@ -112,10 +126,12 @@ export function DesktopFilters({
       grapeCandidates,
     );
     if (grapeUrl) {
-      return gateShopFilterHref(grapeUrl, {
-        isClear,
-        navigablePaths: navigableShopPaths,
-      });
+      return withPreservedShopFilters(
+        gateShopFilterHref(grapeUrl, {
+          isClear,
+          navigablePaths: navigableShopPaths,
+        }),
+      );
     }
     if (!shouldNavigateShopFilters(pathname)) return null;
     const url = isClear
@@ -129,10 +145,12 @@ export function DesktopFilters({
           currentPath: pathname,
           nextFarming: farming,
         });
-    return gateShopFilterHref(url, {
-      isClear,
-      navigablePaths: navigableShopPaths,
-    });
+    return withPreservedShopFilters(
+      gateShopFilterHref(url, {
+        isClear,
+        navigablePaths: navigableShopPaths,
+      }),
+    );
   };
 
   const handleColorSelect = (colorName: string) => {
@@ -162,7 +180,8 @@ export function DesktopFilters({
     );
 
     if (pathname === url) {
-      router.push(locale === "en" ? "/wine" : "/vin");
+      const root = withPreservedShopFilters(locale === "en" ? "/wine" : "/vin");
+      router.push(root ?? (locale === "en" ? "/wine" : "/vin"));
       return true;
     }
 
@@ -170,7 +189,9 @@ export function DesktopFilters({
     if (isMainShop && originalProducts.length > 0) {
       setProducts(filterProductsByGrapes(originalProducts, [grapeName]));
     }
-    router.push(url);
+    router.push(
+      withPreservedShopFilters(url, { omitKeys: ["fgrape"] }) ?? url,
+    );
     return true;
   };
 

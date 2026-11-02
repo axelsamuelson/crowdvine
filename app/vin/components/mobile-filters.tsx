@@ -27,7 +27,7 @@ import { ShopMobileDock } from "./shop-mobile-dock";
 import { ShopMobileSearchSheet } from "./shop-mobile-search-sheet";
 import { ShopMobileSortSheet } from "./shop-mobile-sort-sheet";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "@/lib/hooks/use-translations";
 import { useLocalizedPaths } from "@/lib/hooks/use-localized-paths";
 import {
@@ -47,9 +47,11 @@ import {
   localeFromShopPathname,
   resolveGrapePageFarmingUrl,
   resolveGrapePageUrl,
+  promoteShopFgrapeQueryToPath,
   resolveShopFilterNavigationUrl,
   shouldNavigateGrapeFilter,
   shouldNavigateShopFilters,
+  withShopFilterSearchParams,
 } from "@/lib/shop/filter-navigation";
 import type { ShopFarmingFilterValue } from "@/lib/shop/farming-filter";
 import { gateShopFilterHref } from "@/lib/shop/gate-shop-filter-href";
@@ -85,6 +87,7 @@ export function MobileFilters({
   const { products, originalProducts, setProducts, serverResultsCount } =
     useProducts();
   const routerPathname = usePathname();
+  const searchParams = useSearchParams();
   const router = useRouter();
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
@@ -111,6 +114,16 @@ export function MobileFilters({
   );
   const activeGrapeName = getActiveGrapeFromPathname(pathname, grapeCandidates);
 
+  const withPreservedShopFilters = (
+    path: string | null,
+    options?: { omitKeys?: readonly string[] },
+  ): string | null => {
+    if (!path) return null;
+    return promoteShopFgrapeQueryToPath(
+      withShopFilterSearchParams(path, searchParams, options),
+    );
+  };
+
   const resolveColorHref = (colorName: string): string | null => {
     if (!shouldNavigateShopFilters(pathname)) return null;
     const isClear = isSameColorSelection(pathname, colorName);
@@ -125,10 +138,11 @@ export function MobileFilters({
           currentPath: pathname,
           nextColorUi: colorName,
         });
-    return gateShopFilterHref(url, {
+    const gated = gateShopFilterHref(url, {
       isClear,
       navigablePaths: navigableShopPaths,
     });
+    return withPreservedShopFilters(gated);
   };
 
   const resolveFarmingHref = (
@@ -143,10 +157,12 @@ export function MobileFilters({
       grapeCandidates,
     );
     if (grapeUrl) {
-      return gateShopFilterHref(grapeUrl, {
-        isClear,
-        navigablePaths: navigableShopPaths,
-      });
+      return withPreservedShopFilters(
+        gateShopFilterHref(grapeUrl, {
+          isClear,
+          navigablePaths: navigableShopPaths,
+        }),
+      );
     }
     if (!shouldNavigateShopFilters(pathname)) return null;
     const url = isClear
@@ -160,10 +176,12 @@ export function MobileFilters({
           currentPath: pathname,
           nextFarming: farming,
         });
-    return gateShopFilterHref(url, {
-      isClear,
-      navigablePaths: navigableShopPaths,
-    });
+    return withPreservedShopFilters(
+      gateShopFilterHref(url, {
+        isClear,
+        navigablePaths: navigableShopPaths,
+      }),
+    );
   };
 
   const handleColorSelect = (colorName: string) => {
@@ -193,7 +211,8 @@ export function MobileFilters({
     );
 
     if (pathname === url) {
-      router.push(locale === "en" ? "/wine" : "/vin");
+      const root = withPreservedShopFilters(locale === "en" ? "/wine" : "/vin");
+      router.push(root ?? (locale === "en" ? "/wine" : "/vin"));
       return true;
     }
 
@@ -201,7 +220,9 @@ export function MobileFilters({
     if (isMainShop && originalProducts.length > 0) {
       setProducts(filterProductsByGrapes(originalProducts, [grapeName]));
     }
-    router.push(url);
+    router.push(
+      withPreservedShopFilters(url, { omitKeys: ["fgrape"] }) ?? url,
+    );
     return true;
   };
 
