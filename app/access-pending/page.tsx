@@ -97,7 +97,7 @@ export default function AccessPending() {
                   value={inviteCode}
                   onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
                   maxLength={12}
-                  className="text-center uppercase tracking-wider font-mono"
+                  className="text-center uppercase tracking-wider font-sans tabular-nums"
                 />
               </div>
 

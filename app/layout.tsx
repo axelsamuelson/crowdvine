@@ -169,7 +169,7 @@ export default async function RootLayout({
         className={cn(
           geistSans.variable,
           geistMono.variable,
-          "antialiased min-h-screen",
+          "antialiased min-h-screen font-sans",
           { "is-v0": isV0 },
         )}
         suppressHydrationWarning

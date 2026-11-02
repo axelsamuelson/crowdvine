@@ -390,3 +390,63 @@ body,
 .dark .recharts-legend-item-text {
   fill: #e5e7eb !important;
 }
+
+/* PLP product card commerce box: hidden by default; hover/focus on hover devices; tap on touch */
+.plp-commerce-box {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(6px);
+  transition:
+    opacity 180ms ease-out,
+    transform 180ms ease-out;
+  will-change: opacity, transform;
+}
+/* Class-driven touch reveal — do NOT nest under (hover: none); media queries
+   disagree across real phones / WebViews, and a revealed card must stay visible. */
+.group.is-touch-revealed .plp-commerce-box--touch {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+.group.is-touch-revealed .plp-card-top-meta {
+  opacity: 0;
+}
+@media (hover: hover) and (pointer: fine) {
+  .group:hover .plp-commerce-box--hover,
+  .group:focus-within .plp-commerce-box--hover {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+  }
+  .group:hover .plp-card-top-meta,
+  .group:focus-within .plp-card-top-meta {
+    opacity: 0;
+  }
+  /* Fine-pointer desktops use the hover box; keep touch box out of the way
+     unless a touch session explicitly revealed this card. */
+  .plp-commerce-box--touch {
+    display: none !important;
+  }
+  .group.is-touch-revealed .plp-commerce-box--touch {
+    display: flex !important;
+  }
+}
+/* Touch / coarse pointers never use the hover box. */
+@media (hover: none), (pointer: coarse) {
+  .plp-commerce-box--hover {
+    display: none !important;
+  }
+}
+/* Screenshot / headless: reveal only the marked card (never the whole grid). */
+.group.plp-force-hover-reveal .plp-commerce-box--hover {
+  display: flex !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  transform: translateY(0) !important;
+}
+.group.plp-force-hover-reveal .plp-card-top-meta {
+  opacity: 0 !important;
+}
+.group.plp-force-hover-reveal .plp-commerce-box--touch {
+  display: none !important;
+}

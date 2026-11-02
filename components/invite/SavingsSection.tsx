@@ -176,9 +176,9 @@ export function SavingsSection({
           <p className="mt-2 flex items-baseline justify-center gap-2 flex-wrap">
             <NumberTicker
               value={savingsKr}
-              className="font-serif text-[clamp(4rem,14vw,6rem)] leading-none text-foreground"
+              className="font-medium tracking-[-0.02em] text-[clamp(4rem,14vw,6rem)] leading-none text-foreground"
             />
-            <span className="font-serif text-[clamp(2rem,6vw,3rem)] text-foreground leading-none">
+            <span className="font-medium tracking-[-0.02em] text-[clamp(2rem,6vw,3rem)] text-foreground leading-none">
               kr
             </span>
           </p>

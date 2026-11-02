@@ -425,7 +425,7 @@ export default function LogInPage() {
 
       {/* PACT only: invite membership footer. */}
       {!showDirtywineOpenSignup ? (
-        <div className="text-center fixed bottom-10 left-0 right-0 z-20 font-mono uppercase text-[11px] font-semibold text-white/90 mix-blend-exclusion">
+        <div className="text-center fixed bottom-10 left-0 right-0 z-20 font-sans uppercase tracking-[0.04em] text-[11px] font-semibold text-white/90 mix-blend-exclusion">
           <p>{t("auth.footerLine1")}</p>
           <p className="opacity-60">{t("auth.footerLine2")}</p>
         </div>

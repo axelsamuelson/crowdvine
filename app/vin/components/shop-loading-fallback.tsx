@@ -53,7 +53,7 @@ export function ShopLoadingFallback() {
     <div className="p-sides py-8">
       {category && (
         <div className="mb-8 max-w-2xl">
-          <h1 className="mb-3 text-3xl font-medium text-stone-900">
+          <h1 className="mb-3 text-3xl font-medium tracking-[-0.02em] text-stone-900">
             {category.h1}
           </h1>
           <p className="leading-relaxed text-stone-600">

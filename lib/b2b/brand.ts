@@ -22,6 +22,13 @@ export const DIRTYWINE_PRIVACY_POLICY_URL =
 export const DIRTYWINE_PRIVACY_POLICY_LABEL = "Integritetspolicy";
 
 /**
+ * Public contact email shown in dirtywine.se chrome (footer, mobile menu,
+ * and the footer row beside «Kom igång»). Single source of truth — not env.
+ * pactwines.com keeps `customer@pactwines.com` via `CONTACT_LINKS`.
+ */
+export const DIRTYWINE_CONTACT_EMAIL = "hello@dirtywine.se" as const;
+
+/**
  * Business postal address for legal email footer + dirtywine.se integritetspolicy.
  * Override with env `DIRTYWINE_LEGAL_ADDRESS` (full street + postcode + city).
  */

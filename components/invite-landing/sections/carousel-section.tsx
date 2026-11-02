@@ -20,7 +20,7 @@ export function CarouselSection() {
     <section className="bg-primary py-24 overflow-hidden">
       <div className="max-w-6xl mx-auto px-6 mb-12">
         <motion.h2
-          className="text-3xl md:text-4xl font-serif text-primary-foreground"
+          className="text-3xl md:text-4xl font-medium tracking-[-0.02em] text-primary-foreground"
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}

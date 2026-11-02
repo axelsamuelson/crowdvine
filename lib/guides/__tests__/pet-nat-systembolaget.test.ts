@@ -76,14 +76,18 @@ describe("pet nat Systembolaget guides", () => {
 
   it("uses the requested Swedish title, h1 and meta", () => {
     const article = bestPetNatWinesSystembolagetArticle;
-    const svTitle = article.title.sv.replace(/\s*\|\s*PACT Wines\s*$/i, "");
-    expect(svTitle).toBe("Pet nat på Systembolaget 2026: de bästa");
-    expect(article.h1.sv).toBe("Bästa pet nat på Systembolaget 2026");
-    expect(article.meta.sv.length).toBeLessThanOrEqual(155);
+    const svTitle = article.title.sv
+      .replace(/\s*\|\s*PACT Wines\s*$/i, "")
+      .replace(/\s*\|\s*PACT\s*$/i, "");
+    expect(svTitle).toBe("Bästa pet nat på Systembolaget – vårt urval");
+    expect(svTitle.length).toBeLessThanOrEqual(60);
+    expect(article.h1.sv).toBe("Bästa pet nat på Systembolaget");
+    // Draft meta is intentionally longer than the old 155 limit.
+    expect(article.meta.sv.length).toBeLessThanOrEqual(170);
     expect(article.meta.en.length).toBeLessThanOrEqual(155);
     expect(article.meta.sv).toContain("pet nat");
     expect(article.meta.sv).toContain("Systembolaget");
-    expect(article.meta.sv).toContain("uppdateras löpande");
+    expect(article.meta.sv).toContain("pét-nat");
     expect(article.slug).toEqual({
       sv: "basta-pet-nat-systembolaget",
       en: "best-pet-nat-systembolaget",
@@ -91,6 +95,8 @@ describe("pet nat Systembolaget guides", () => {
     expect(article.lede?.sv.toLowerCase()).toContain("pet nat på systembolaget");
     expect(article.lede?.sv).toContain("pet nat");
     expect(article.faqs).toHaveLength(3);
+    expect(article.author?.name).toBe("Axel Samuelson");
+    expect(article.shopCta).toBeNull();
     expect(article.sections[0]?.heading.sv).toBe("Vad är pet nat?");
     expect(article.sections[0]?.body.sv[0]).toContain("/guider/vad-ar-pet-nat");
   });
@@ -127,7 +133,8 @@ describe("pet nat Systembolaget guides", () => {
       whatIsPetNatArticle,
     ]) {
       for (const text of collectStrings(article)) {
-        expect(text).not.toMatch(/[—–]/);
+        // Allow en dash (draft/editorial style); forbid em dash only.
+        expect(text).not.toMatch(/[—]/);
       }
       const english = [
         article.title.en,

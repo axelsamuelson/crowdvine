@@ -170,7 +170,7 @@ const pactAppearance = {
     colorTextSecondary: "#666666",
     colorTextPlaceholder: "#999999",
     colorDanger: "#dc2626",
-    fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
+    fontFamily: "Geist, ui-sans-serif, sans-serif",
     fontSizeBase: "14px",
     fontSizeSm: "12px",
     fontSizeXs: "11px",

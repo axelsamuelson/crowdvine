@@ -76,6 +76,23 @@ function shellBlocks(
       for (const text of articleParagraphs(block.body, locale)) {
         blocks.push({ type: "paragraph", text });
       }
+    } else if (block.type === "heading") {
+      const text = block.text[locale]?.trim();
+      if (!text) continue;
+      blocks.push({
+        type: "heading",
+        level: block.level ?? 3,
+        id: block.id,
+        text,
+      });
+    } else if (block.type === "definitions") {
+      blocks.push({
+        type: "definitions",
+        items: block.items.map((item) => ({
+          term: item.term[locale],
+          description: item.description[locale],
+        })),
+      });
     } else {
       blocks.push({
         type: "list",
@@ -129,6 +146,29 @@ export async function renderArticleGuidePage(
             name: content.jsonLdAbout.name,
           };
 
+  const authorPersonId = content.author
+    ? `${seoBaseUrl}/#/schema/person/${content.author.name
+        .toLowerCase()
+        .replace(/\s+/g, "-")}`
+    : null;
+
+  /** Single Person node; Article.author references it by @id (no duplicate Person). */
+  const authorPerson = content.author
+    ? {
+        "@type": "Person" as const,
+        "@id": authorPersonId!,
+        name: content.author.name,
+        ...(content.author.jobTitle
+          ? { jobTitle: content.author.jobTitle }
+          : {}),
+        worksFor: {
+          "@type": "Organization" as const,
+          name: "PACT",
+          url: seoBaseUrl,
+        },
+      }
+    : null;
+
   const articleJsonLd = {
     "@context": "https://schema.org",
     "@type": "Article",
@@ -142,6 +182,7 @@ export async function renderArticleGuidePage(
       url: seoBaseUrl,
     },
     about,
+    ...(authorPersonId ? { author: { "@id": authorPersonId } } : {}),
     ...(content.updated ? { dateModified: content.updated } : {}),
   };
 
@@ -199,9 +240,21 @@ export async function renderArticleGuidePage(
           }}
         />
       ) : null}
+      {authorPerson ? (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              ...authorPerson,
+            }),
+          }}
+        />
+      ) : null}
 
       <ArticleGuideShell
         h1={content.h1[locale]}
+        byline={content.author?.byline[locale]}
         lede={content.lede?.[locale] ?? content.hubCard.description[locale]}
         sections={content.sections.map((section) => ({
           heading: section.heading?.[locale],

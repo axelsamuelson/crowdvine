@@ -763,7 +763,7 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
                     <div className="space-y-2">
                       <p className="text-xs text-gray-500">Reference</p>
                       <div className="flex items-center gap-2">
-                        <p className="font-mono text-sm font-medium truncate flex-1 min-w-0">
+                        <p className="font-sans tabular-nums text-sm font-medium truncate flex-1 min-w-0">
                           {group.addressPalletKey}
                         </p>
                         <Button
@@ -998,7 +998,7 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
                       <div className="space-y-2">
                         <p className="text-xs text-gray-500">Reference</p>
                         <div className="flex items-center gap-2">
-                          <p className="font-mono text-sm font-medium truncate flex-1 min-w-0">
+                          <p className="font-sans tabular-nums text-sm font-medium truncate flex-1 min-w-0">
                             {group.addressPalletKey}
                           </p>
                           <Button

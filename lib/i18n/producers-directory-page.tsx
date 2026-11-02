@@ -20,6 +20,7 @@ import {
   producersDirectoryPathForLocale,
   producersDirectoryUrls,
 } from "@/lib/i18n/producers-directory";
+import { filterProducersForDirectoryLocale } from "@/lib/i18n/producers-directory-visibility";
 import {
   extractWineText,
   type WineLocale,
@@ -31,6 +32,7 @@ import {
   pageTwitterCard,
 } from "@/lib/seo/default-social";
 import { getSiteConfig } from "@/lib/site-config-server";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 type ProducerListRow = {
   id: string;
@@ -84,6 +86,27 @@ export async function buildProducersDirectoryMetadata(
   };
 }
 
+async function fetchProducerIdsWithLiveWines(
+  producerIds: string[],
+): Promise<Set<string>> {
+  if (producerIds.length === 0) return new Set();
+
+  const sb = getSupabaseAdmin();
+  const { data, error } = await sb
+    .from("wines")
+    .select("producer_id")
+    .eq("is_live", true)
+    .in("producer_id", producerIds);
+
+  if (error || !data) return new Set();
+
+  return new Set(
+    data
+      .map((row) => row.producer_id as string | null)
+      .filter((id): id is string => Boolean(id)),
+  );
+}
+
 export async function renderProducersDirectoryPage(locale: AppLocale) {
   const content = producersDirectoryContentForLocale(locale);
   const paths = localizedPathsForLocale(locale);
@@ -94,7 +117,18 @@ export async function renderProducersDirectoryPage(locale: AppLocale) {
     "id, name, region, subregion, certification, short_description, lat, lon",
   );
 
-  const producers = producersRaw as ProducerListRow[];
+  const producersUnfiltered = producersRaw as ProducerListRow[];
+  const liveWineProducerIds =
+    locale === "en"
+      ? await fetchProducerIdsWithLiveWines(
+          producersUnfiltered.map((producer) => producer.id),
+        )
+      : new Set<string>();
+  const producers = filterProducersForDirectoryLocale(
+    producersUnfiltered,
+    locale === "en" ? "en" : "sv",
+    liveWineProducerIds,
+  );
 
   const mapProducers = producers.map((producer) => {
     const slug = generateProducerSlug(producer.name);
@@ -152,7 +186,9 @@ export async function renderProducersDirectoryPage(locale: AppLocale) {
             </BreadcrumbList>
           </Breadcrumb>
 
-          <h1 className="mb-2 mt-6 text-3xl font-bold">{content.heading}</h1>
+          <h1 className="mb-2 mt-6 text-3xl font-medium tracking-[-0.02em]">
+            {content.heading}
+          </h1>
           <p className="mb-10 text-muted-foreground">
             {content.countLabel(producers.length)}
           </p>

@@ -24,7 +24,7 @@ export default function Error({
         please try your action again.
       </p>
       {showDigest && error.digest && (
-        <p className="my-2 font-mono text-xs text-muted-foreground">
+        <p className="my-2 font-sans tabular-nums text-xs text-muted-foreground">
           Error digest: {error.digest}
         </p>
       )}

@@ -1,0 +1,27 @@
+tailwind.config.js:        sans: ["var(--font-geist-sans)", "ui-sans-serif", "system-ui", "sans-serif"],
+lib/email-templates.ts:            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', Roboto, Arial, sans-serif; 
+lib/email-templates.ts:            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', Roboto, Arial, sans-serif; 
+app/reservations/[id]/authenticate/authenticate-client.tsx:    fontFamily: "Geist, ui-sans-serif, sans-serif",
+lib/reservations/expiry-emails.ts:<body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background-color:#f8f9fa;">
+components/checkout/stripe-payment-section.tsx:    fontFamily: "Geist, ui-sans-serif, sans-serif",
+lib/email/campaign-template.ts:<body style="margin:0;padding:0;background:#f5f5f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
+lib/email/instabee-labels.ts:    <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
+lib/email/pallet-complete.ts:    <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f8f9fa;">
+lib/menu-extraction/prompts.ts:Du är ett precisionsinstrument för att extrahera strukturerad data från svenska restaurangvinmenyer.
+lib/email-service.ts:            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+components/admin/b2b-pallet-producers-map.tsx:            `<div style="font: 13px/1.4 system-ui,sans-serif;padding:2px 0">
+components/admin/tasting-pdf-template.tsx:        fontFamily: "system-ui, sans-serif",
+app/i/[code]/invite-opus.css:  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+components/product/wine-producer-topo-map.tsx:                  fontFamily: "ui-sans-serif, system-ui, sans-serif",
+components/product/wine-producer-topo-map.tsx:                        fontFamily: "ui-sans-serif, system-ui, sans-serif",
+components/producer/producers-directory-map.tsx:            `<div style="font:13px/1.4 system-ui,sans-serif;padding:2px 0">
+app/global-error.tsx:            fontFamily: "system-ui, sans-serif",
+lib/__tests__/fixtures/plp-commerce-box-touch.html:      body { margin: 0; font-family: system-ui, sans-serif; }
+lib/sendgrid-service.ts:              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', Roboto, Arial, sans-serif; 
+lib/operations-weekly-digest.ts:<body style="font-family:system-ui,sans-serif;color:#111;max-width:640px;">
+lib/exit-discount/email.ts:        <center style="color:#ffffff;font-family:system-ui,sans-serif;font-size:16px;font-weight:600;">Välj viner</center>
+lib/exit-discount/email.ts:         style="display:inline-block;background-color:#171717;color:#ffffff;font-family:system-ui,sans-serif;font-size:16px;font-weight:600;line-height:44px;min-height:44px;text-align:center;text-decoration:none;padding:0 24px;border-radius:8px;mso-hide:all;">
+lib/exit-discount/email.ts:<div style="font-family:system-ui,sans-serif;line-height:1.5;color:#111111;max-width:560px;">
+app/api/newsletter/unsubscribe/route.ts:<body style="font-family:system-ui,sans-serif;max-width:32rem;margin:3rem auto;padding:0 1rem;">
+lib/b2b/inquiry-emails.ts:<div style="font-family:system-ui,sans-serif;line-height:1.5;color:#111111;max-width:560px;">
+lib/b2b/inquiry-emails.ts:<div style="font-family:system-ui,sans-serif;line-height:1.5;color:#111111;max-width:40rem;">

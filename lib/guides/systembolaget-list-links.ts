@@ -156,7 +156,7 @@ export const SYSTEMBOLAGET_RANKED_LISTS = [
     },
     h1: {
       en: "Best pet nat at Systembolaget 2026",
-      sv: "Bästa pet nat på Systembolaget 2026",
+      sv: "Bästa pet nat på Systembolaget",
     },
   },
 ] as const;

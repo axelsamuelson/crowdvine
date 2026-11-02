@@ -68,7 +68,17 @@ export function Header({
           : "grid grid-cols-3 items-start md:grid-cols-12 md:gap-sides",
       )}
     >
-      <div className="block flex-none md:hidden relative z-10">
+      {/*
+        Dirty Wine: wrapper above header cart (z-10) so the open menu panel /
+        «Stäng» are not covered by the cart badge. PACT keeps z-10.
+      */}
+      <div
+        className={
+          isDirtywineSite
+            ? "block flex-none md:hidden relative z-[60]"
+            : "block flex-none md:hidden relative z-10"
+        }
+      >
         <MobileMenuDynamic
           collections={collections}
           popularCollections={popularCollections}

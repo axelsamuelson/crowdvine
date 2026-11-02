@@ -4,12 +4,13 @@ import { notFound } from "next/navigation";
 import { ProductViewTracker } from "@/app/product/[handle]/components/product-view-tracker";
 import { ProductPdpLayout } from "@/components/product/product-pdp-layout";
 import { WineBoxDiscountInfo } from "@/components/products/wine-box-discount-info";
+import { isB2BHost } from "@/lib/b2b-site";
 import {
   fetchCachedProductForLocale,
   getPdpRequestHost,
 } from "@/lib/crowdvine/pdp-product-cache";
 import { isProductPdpIndexable } from "@/lib/seo/product-indexable";
-import { productOfferCommerceFields } from "@/lib/seo/product-offer-policies";
+import { buildProductPdpJsonLd } from "@/lib/seo/product-json-ld";
 import { fetchPdpRecommendationsForWine } from "@/lib/crowdvine/pdp-recommendations-data";
 import { getOffersByWineId } from "@/lib/external-prices/db";
 import type { AppLocale } from "@/lib/i18n/locale";
@@ -126,73 +127,23 @@ export async function renderProductPdpPage(options: {
   if (!product) notFound();
 
   const productUrl = `${PACT_PUBLIC_ORIGIN}${productPagePath(handle, pathSegment)}`;
+  const includeB2cReturnPolicy = !isB2BHost(host);
 
-  const productJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "Product",
-    name: product.title,
+  const productJsonLd = buildProductPdpJsonLd({
+    title: product.title,
     description: product.seo?.description || product.description || "",
-    image:
+    imageUrl:
       product.featuredImage?.url ??
       `${config.baseUrl}/pact-og-uploaded.jpg`,
-    url: productUrl,
-    brand: {
-      "@type": "Brand",
-      name: product.producerName || config.name,
-    },
-    offers: {
-      "@type": "Offer",
-      availability: product.availableForSale
-        ? "https://schema.org/InStock"
-        : "https://schema.org/OutOfStock",
-      priceCurrency: product.currencyCode,
-      price: product.priceRange.minVariantPrice.amount,
-      url: productUrl,
-      seller: {
-        "@type": "Organization",
-        name: config.name,
-        sameAs: ["https://www.instagram.com/pactwines"],
-      },
-      ...productOfferCommerceFields(),
-    },
-    ...(product.wineEnrichment && {
-      additionalProperty: [
-        product.wineEnrichment.grapeVarieties?.length
-          ? {
-              "@type": "PropertyValue",
-              name: "Grape variety",
-              value: product.wineEnrichment.grapeVarieties.join(", "),
-            }
-          : null,
-        product.wineEnrichment.appellation
-          ? {
-              "@type": "PropertyValue",
-              name: "Appellation",
-              value: product.wineEnrichment.appellation,
-            }
-          : null,
-        product.wineEnrichment.abv
-          ? {
-              "@type": "PropertyValue",
-              name: "Alcohol",
-              value: product.wineEnrichment.abv,
-            }
-          : null,
-        product.wineEnrichment.farming
-          ? {
-              "@type": "PropertyValue",
-              name: "Farming",
-              value: product.wineEnrichment.farming,
-            }
-          : null,
-      ].filter(
-        (
-          item,
-        ): item is { "@type": "PropertyValue"; name: string; value: string } =>
-          item != null,
-      ),
-    }),
-  };
+    productUrl,
+    brandName: product.producerName || config.name,
+    availableForSale: product.availableForSale,
+    priceCurrency: product.currencyCode,
+    price: product.priceRange.minVariantPrice.amount,
+    sellerName: config.name,
+    wineEnrichment: product.wineEnrichment,
+    includeB2cReturnPolicy,
+  });
 
   const producerName =
     product.productType === "wine" ? (product.producerName?.trim() ?? "") : "";

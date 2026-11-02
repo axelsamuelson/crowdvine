@@ -1,0 +1,471 @@
+{
+  "probes": {
+    "home-390": {
+      "h1": {
+        "text": "vin utan mellanh\u00e4nder",
+        "fontFamily": "Geist, \"Geist Fallback\", ui-sans-serif, system-ui, sans-serif",
+        "fontSize": "37.6px",
+        "fontWeight": "500",
+        "letterSpacing": "-0.752px"
+      },
+      "h3": null,
+      "instrumentLoaded": false,
+      "instrumentCheck": true,
+      "geistCheck": true,
+      "instrumentFaces": [],
+      "fontFamilies": [
+        "Geist",
+        "Geist Fallback",
+        "Geist Mono",
+        "Geist Mono Fallback"
+      ]
+    },
+    "plp-390": {
+      "h1": {
+        "text": "Naturvin",
+        "fontFamily": "Geist, \"Geist Fallback\", ui-sans-serif, system-ui, sans-serif",
+        "fontSize": "30px",
+        "fontWeight": "500",
+        "letterSpacing": "-0.6px"
+      },
+      "h3": {
+        "text": "F\u00e4rg",
+        "fontFamily": "Geist, \"Geist Fallback\", ui-sans-serif, system-ui, sans-serif",
+        "fontSize": "14px",
+        "fontWeight": "600",
+        "letterSpacing": "-0.21px"
+      },
+      "instrumentLoaded": false,
+      "instrumentCheck": true,
+      "geistCheck": true,
+      "instrumentFaces": [],
+      "fontFamilies": [
+        "Geist",
+        "Geist Fallback",
+        "Geist Mono",
+        "Geist Mono Fallback"
+      ]
+    },
+    "pdp-390": {
+      "h1": {
+        "text": "L 2023",
+        "fontFamily": "Geist, \"Geist Fallback\", ui-sans-serif, system-ui, sans-serif",
+        "fontSize": "18px",
+        "fontWeight": "600",
+        "letterSpacing": "-0.27px"
+      },
+      "h3": {
+        "text": "Samma producent",
+        "fontFamily": "Geist, \"Geist Fallback\", ui-sans-serif, system-ui, sans-serif",
+        "fontSize": "12px",
+        "fontWeight": "500",
+        "letterSpacing": "1.44px"
+      },
+      "instrumentLoaded": false,
+      "instrumentCheck": true,
+      "geistCheck": true,
+      "instrumentFaces": [],
+      "fontFamilies": [
+        "Geist",
+        "Geist Fallback",
+        "Geist Mono",
+        "Geist Mono Fallback"
+      ]
+    },
+    "guide-languedoc-390": {
+      "h1": {
+        "text": "Naturvin fr\u00e5n Languedoc \u2014 Frankrikes mest sp\u00e4nnande vinregion",
+        "fontFamily": "Geist, \"Geist Fallback\", ui-sans-serif, system-ui, sans-serif",
+        "fontSize": "30px",
+        "fontWeight": "500",
+        "letterSpacing": "-0.6px"
+      },
+      "h3": null,
+      "instrumentLoaded": false,
+      "instrumentCheck": true,
+      "geistCheck": true,
+      "instrumentFaces": [],
+      "fontFamilies": [
+        "Geist",
+        "Geist Fallback",
+        "Geist Mono",
+        "Geist Mono Fallback"
+      ]
+    },
+    "guide-pet-nat-390": {
+      "h1": {
+        "text": "B\u00e4sta pet nat p\u00e5 Systembolaget",
+        "fontFamily": "Geist, \"Geist Fallback\", ui-sans-serif, system-ui, sans-serif",
+        "fontSize": "30px",
+        "fontWeight": "500",
+        "letterSpacing": "-0.6px"
+      },
+      "h3": {
+        "text": "Haggan Pet Nat 2022",
+        "fontFamily": "Geist, \"Geist Fallback\", ui-sans-serif, system-ui, sans-serif",
+        "fontSize": "22px",
+        "fontWeight": "500",
+        "letterSpacing": "-0.44px"
+      },
+      "instrumentLoaded": false,
+      "instrumentCheck": true,
+      "geistCheck": true,
+      "instrumentFaces": [],
+      "fontFamilies": [
+        "Geist",
+        "Geist Fallback",
+        "Geist Mono",
+        "Geist Mono Fallback"
+      ]
+    },
+    "producers-390": {
+      "h1": {
+        "text": "Producenter",
+        "fontFamily": "Geist, \"Geist Fallback\", ui-sans-serif, system-ui, sans-serif",
+        "fontSize": "30px",
+        "fontWeight": "500",
+        "letterSpacing": "-0.6px"
+      },
+      "h3": null,
+      "instrumentLoaded": false,
+      "instrumentCheck": true,
+      "geistCheck": true,
+      "instrumentFaces": [],
+      "fontFamilies": [
+        "Geist",
+        "Geist Fallback",
+        "Geist Mono",
+        "Geist Mono Fallback"
+      ]
+    },
+    "checkout-390": {
+      "h1": null,
+      "h3": null,
+      "instrumentLoaded": false,
+      "instrumentCheck": true,
+      "geistCheck": true,
+      "instrumentFaces": [],
+      "fontFamilies": [
+        "Geist",
+        "Geist Fallback",
+        "Geist Mono",
+        "Geist Mono Fallback"
+      ]
+    },
+    "home-1440": {
+      "h1": {
+        "text": "vin utan mellanh\u00e4nder",
+        "fontFamily": "Geist, \"Geist Fallback\", ui-sans-serif, system-ui, sans-serif",
+        "fontSize": "60px",
+        "fontWeight": "500",
+        "letterSpacing": "-1.5px"
+      },
+      "h3": null,
+      "instrumentLoaded": false,
+      "instrumentCheck": true,
+      "geistCheck": true,
+      "instrumentFaces": [],
+      "fontFamilies": [
+        "Geist",
+        "Geist Fallback",
+        "Geist Mono",
+        "Geist Mono Fallback"
+      ]
+    },
+    "plp-1440": {
+      "h1": {
+        "text": "Naturvin",
+        "fontFamily": "Geist, \"Geist Fallback\", ui-sans-serif, system-ui, sans-serif",
+        "fontSize": "30px",
+        "fontWeight": "500",
+        "letterSpacing": "-0.6px"
+      },
+      "h3": {
+        "text": "F\u00e4rg",
+        "fontFamily": "Geist, \"Geist Fallback\", ui-sans-serif, system-ui, sans-serif",
+        "fontSize": "14px",
+        "fontWeight": "600",
+        "letterSpacing": "-0.21px"
+      },
+      "instrumentLoaded": false,
+      "instrumentCheck": true,
+      "geistCheck": true,
+      "instrumentFaces": [],
+      "fontFamilies": [
+        "Geist",
+        "Geist Fallback",
+        "Geist Mono",
+        "Geist Mono Fallback"
+      ]
+    },
+    "pdp-1440": {
+      "h1": {
+        "text": "L 2023",
+        "fontFamily": "Geist, \"Geist Fallback\", ui-sans-serif, system-ui, sans-serif",
+        "fontSize": "20px",
+        "fontWeight": "600",
+        "letterSpacing": "-0.3px"
+      },
+      "h3": {
+        "text": "Samma producent",
+        "fontFamily": "Geist, \"Geist Fallback\", ui-sans-serif, system-ui, sans-serif",
+        "fontSize": "12px",
+        "fontWeight": "500",
+        "letterSpacing": "1.44px"
+      },
+      "instrumentLoaded": false,
+      "instrumentCheck": true,
+      "geistCheck": true,
+      "instrumentFaces": [],
+      "fontFamilies": [
+        "Geist",
+        "Geist Fallback",
+        "Geist Mono",
+        "Geist Mono Fallback"
+      ]
+    },
+    "guide-languedoc-1440": {
+      "h1": {
+        "text": "Naturvin fr\u00e5n Languedoc \u2014 Frankrikes mest sp\u00e4nnande vinregion",
+        "fontFamily": "Geist, \"Geist Fallback\", ui-sans-serif, system-ui, sans-serif",
+        "fontSize": "36px",
+        "fontWeight": "500",
+        "letterSpacing": "-0.72px"
+      },
+      "h3": null,
+      "instrumentLoaded": false,
+      "instrumentCheck": true,
+      "geistCheck": true,
+      "instrumentFaces": [],
+      "fontFamilies": [
+        "Geist",
+        "Geist Fallback",
+        "Geist Mono",
+        "Geist Mono Fallback"
+      ]
+    },
+    "guide-pet-nat-1440": {
+      "h1": {
+        "text": "B\u00e4sta pet nat p\u00e5 Systembolaget",
+        "fontFamily": "Geist, \"Geist Fallback\", ui-sans-serif, system-ui, sans-serif",
+        "fontSize": "36px",
+        "fontWeight": "500",
+        "letterSpacing": "-0.72px"
+      },
+      "h3": {
+        "text": "Haggan Pet Nat 2022",
+        "fontFamily": "Geist, \"Geist Fallback\", ui-sans-serif, system-ui, sans-serif",
+        "fontSize": "24px",
+        "fontWeight": "500",
+        "letterSpacing": "-0.36px"
+      },
+      "instrumentLoaded": false,
+      "instrumentCheck": true,
+      "geistCheck": true,
+      "instrumentFaces": [],
+      "fontFamilies": [
+        "Geist",
+        "Geist Fallback",
+        "Geist Mono",
+        "Geist Mono Fallback"
+      ]
+    },
+    "producers-1440": {
+      "h1": {
+        "text": "Producenter",
+        "fontFamily": "Geist, \"Geist Fallback\", ui-sans-serif, system-ui, sans-serif",
+        "fontSize": "30px",
+        "fontWeight": "500",
+        "letterSpacing": "-0.6px"
+      },
+      "h3": null,
+      "instrumentLoaded": false,
+      "instrumentCheck": true,
+      "geistCheck": true,
+      "instrumentFaces": [],
+      "fontFamilies": [
+        "Geist",
+        "Geist Fallback",
+        "Geist Mono",
+        "Geist Mono Fallback"
+      ]
+    },
+    "checkout-1440": {
+      "h1": null,
+      "h3": null,
+      "instrumentLoaded": false,
+      "instrumentCheck": true,
+      "geistCheck": true,
+      "instrumentFaces": [],
+      "fontFamilies": [
+        "Geist",
+        "Geist Fallback",
+        "Geist Mono",
+        "Geist Mono Fallback"
+      ]
+    }
+  },
+  "networkFonts": {
+    "home-390": [
+      {
+        "status": 200,
+        "url": "https://crowdvine-dr6v1ac6x-avesamuelson-7603s-projects.vercel.app/_next/static/media/797e433ab948586e-s.p.29207c2f.woff2"
+      },
+      {
+        "status": 200,
+        "url": "https://crowdvine-dr6v1ac6x-avesamuelson-7603s-projects.vercel.app/_next/static/media/caa3a2e1cccd8315-s.p.3b6cae6d.woff2"
+      }
+    ],
+    "plp-390": [
+      {
+        "status": 200,
+        "url": "https://crowdvine-dr6v1ac6x-avesamuelson-7603s-projects.vercel.app/_next/static/media/caa3a2e1cccd8315-s.p.3b6cae6d.woff2"
+      },
+      {
+        "status": 200,
+        "url": "https://crowdvine-dr6v1ac6x-avesamuelson-7603s-projects.vercel.app/_next/static/media/797e433ab948586e-s.p.29207c2f.woff2"
+      }
+    ],
+    "pdp-390": [
+      {
+        "status": 200,
+        "url": "https://crowdvine-dr6v1ac6x-avesamuelson-7603s-projects.vercel.app/_next/static/media/caa3a2e1cccd8315-s.p.3b6cae6d.woff2"
+      },
+      {
+        "status": 200,
+        "url": "https://crowdvine-dr6v1ac6x-avesamuelson-7603s-projects.vercel.app/_next/static/media/797e433ab948586e-s.p.29207c2f.woff2"
+      }
+    ],
+    "guide-languedoc-390": [
+      {
+        "status": 200,
+        "url": "https://crowdvine-dr6v1ac6x-avesamuelson-7603s-projects.vercel.app/_next/static/media/797e433ab948586e-s.p.29207c2f.woff2"
+      },
+      {
+        "status": 200,
+        "url": "https://crowdvine-dr6v1ac6x-avesamuelson-7603s-projects.vercel.app/_next/static/media/caa3a2e1cccd8315-s.p.3b6cae6d.woff2"
+      }
+    ],
+    "guide-pet-nat-390": [
+      {
+        "status": 200,
+        "url": "https://crowdvine-dr6v1ac6x-avesamuelson-7603s-projects.vercel.app/_next/static/media/797e433ab948586e-s.p.29207c2f.woff2"
+      },
+      {
+        "status": 200,
+        "url": "https://crowdvine-dr6v1ac6x-avesamuelson-7603s-projects.vercel.app/_next/static/media/caa3a2e1cccd8315-s.p.3b6cae6d.woff2"
+      }
+    ],
+    "producers-390": [
+      {
+        "status": 200,
+        "url": "https://crowdvine-dr6v1ac6x-avesamuelson-7603s-projects.vercel.app/_next/static/media/797e433ab948586e-s.p.29207c2f.woff2"
+      },
+      {
+        "status": 200,
+        "url": "https://crowdvine-dr6v1ac6x-avesamuelson-7603s-projects.vercel.app/_next/static/media/caa3a2e1cccd8315-s.p.3b6cae6d.woff2"
+      }
+    ],
+    "checkout-390": [
+      {
+        "status": 200,
+        "url": "https://crowdvine-dr6v1ac6x-avesamuelson-7603s-projects.vercel.app/_next/static/media/797e433ab948586e-s.p.29207c2f.woff2"
+      },
+      {
+        "status": 200,
+        "url": "https://crowdvine-dr6v1ac6x-avesamuelson-7603s-projects.vercel.app/_next/static/media/caa3a2e1cccd8315-s.p.3b6cae6d.woff2"
+      }
+    ],
+    "home-1440": [
+      {
+        "status": 200,
+        "url": "https://crowdvine-dr6v1ac6x-avesamuelson-7603s-projects.vercel.app/_next/static/media/797e433ab948586e-s.p.29207c2f.woff2"
+      },
+      {
+        "status": 200,
+        "url": "https://crowdvine-dr6v1ac6x-avesamuelson-7603s-projects.vercel.app/_next/static/media/caa3a2e1cccd8315-s.p.3b6cae6d.woff2"
+      }
+    ],
+    "plp-1440": [
+      {
+        "status": 200,
+        "url": "https://crowdvine-dr6v1ac6x-avesamuelson-7603s-projects.vercel.app/_next/static/media/797e433ab948586e-s.p.29207c2f.woff2"
+      },
+      {
+        "status": 200,
+        "url": "https://crowdvine-dr6v1ac6x-avesamuelson-7603s-projects.vercel.app/_next/static/media/caa3a2e1cccd8315-s.p.3b6cae6d.woff2"
+      }
+    ],
+    "pdp-1440": [
+      {
+        "status": 200,
+        "url": "https://crowdvine-dr6v1ac6x-avesamuelson-7603s-projects.vercel.app/_next/static/media/797e433ab948586e-s.p.29207c2f.woff2"
+      },
+      {
+        "status": 200,
+        "url": "https://crowdvine-dr6v1ac6x-avesamuelson-7603s-projects.vercel.app/_next/static/media/caa3a2e1cccd8315-s.p.3b6cae6d.woff2"
+      }
+    ],
+    "guide-languedoc-1440": [
+      {
+        "status": 200,
+        "url": "https://crowdvine-dr6v1ac6x-avesamuelson-7603s-projects.vercel.app/_next/static/media/797e433ab948586e-s.p.29207c2f.woff2"
+      },
+      {
+        "status": 200,
+        "url": "https://crowdvine-dr6v1ac6x-avesamuelson-7603s-projects.vercel.app/_next/static/media/caa3a2e1cccd8315-s.p.3b6cae6d.woff2"
+      }
+    ],
+    "guide-pet-nat-1440": [
+      {
+        "status": 200,
+        "url": "https://crowdvine-dr6v1ac6x-avesamuelson-7603s-projects.vercel.app/_next/static/media/797e433ab948586e-s.p.29207c2f.woff2"
+      },
+      {
+        "status": 200,
+        "url": "https://crowdvine-dr6v1ac6x-avesamuelson-7603s-projects.vercel.app/_next/static/media/caa3a2e1cccd8315-s.p.3b6cae6d.woff2"
+      }
+    ],
+    "producers-1440": [
+      {
+        "status": 200,
+        "url": "https://crowdvine-dr6v1ac6x-avesamuelson-7603s-projects.vercel.app/_next/static/media/797e433ab948586e-s.p.29207c2f.woff2"
+      },
+      {
+        "status": 200,
+        "url": "https://crowdvine-dr6v1ac6x-avesamuelson-7603s-projects.vercel.app/_next/static/media/caa3a2e1cccd8315-s.p.3b6cae6d.woff2"
+      }
+    ],
+    "checkout-1440": [
+      {
+        "status": 200,
+        "url": "https://crowdvine-dr6v1ac6x-avesamuelson-7603s-projects.vercel.app/_next/static/media/797e433ab948586e-s.p.29207c2f.woff2"
+      },
+      {
+        "status": 200,
+        "url": "https://crowdvine-dr6v1ac6x-avesamuelson-7603s-projects.vercel.app/_next/static/media/caa3a2e1cccd8315-s.p.3b6cae6d.woff2"
+      }
+    ]
+  },
+  "shareBase": "https://crowdvine-dr6v1ac6x-avesamuelson-7603s-projects.vercel.app",
+  "pdpPath": "/produkt/l-2023",
+  "notes": {
+    "document.fonts.check_quirk": "Chromium returns true for document.fonts.check('\u2026 Instrument Serif') even for nonsense families when a fallback can paint; do not treat check() alone as loaded. Authoritative: document.fonts families, instrumentFaces=[], --font-instrument-serif empty, no instrument woff2 network.",
+    "authoritative": {
+      "fontFamilies_on_guide_pet_nat": [
+        "Geist",
+        "Geist Fallback",
+        "Geist Mono",
+        "Geist Mono Fallback"
+      ],
+      "css_var_font_instrument_serif": "",
+      "instrument_network_requests": 0,
+      "h1_fontFamily": "Geist, \"Geist Fallback\", ui-sans-serif, system-ui, sans-serif",
+      "h3_wine_fontFamily": "Geist, \"Geist Fallback\", ui-sans-serif, system-ui, sans-serif",
+      "h1_fontWeight": "500",
+      "h1_letterSpacing_36px": "-0.72px (= -0.02em)"
+    },
+    "preview": "https://crowdvine-dr6v1ac6x-avesamuelson-7603s-projects.vercel.app",
+    "pdpPath": "/produkt/l-2023"
+  }
+}

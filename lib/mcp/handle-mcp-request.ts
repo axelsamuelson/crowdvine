@@ -7,6 +7,11 @@ import {
   mcpAuthIsConfigured,
   oauthConfigReady,
 } from "./auth/mcp-auth-config";
+import {
+  checkJsonRpcReadonlyAllowlist,
+  logMcpToolAccess,
+  requestHasQueryCredentials,
+} from "./auth/readonly-api-key";
 import { wwwAuthenticateBearer } from "./auth/www-authenticate";
 import { createPactMcpServer } from "./server";
 import { checkMcpRateLimit } from "./utils/rate-limit";
@@ -124,6 +129,17 @@ export async function handleMcpRequest(req: Request): Promise<Response> {
     });
   }
 
+  // Never accept credentials via query string — Bearer header only.
+  if (requestHasQueryCredentials(req.url)) {
+    return new Response(
+      "Unauthorized: API keys must be sent as Authorization: Bearer (query parameters are rejected).\n",
+      {
+        status: 401,
+        headers: MCP_CORS_HEADERS,
+      },
+    );
+  }
+
   const includeMeta = oauthConfigReady();
   const rawBearer = bearerToken(req);
 
@@ -154,9 +170,9 @@ export async function handleMcpRequest(req: Request): Promise<Response> {
     );
   }
 
-  const { rateLimitKey, oauthScopes } = auth.ctx;
+  const { rateLimitKey, oauthScopes, authType, toolAllowlist } = auth.ctx;
 
-  if (method === "POST" && oauthScopes) {
+  if (method === "POST") {
     const clone = req.clone();
     const text = await clone.text();
     if (text) {
@@ -167,20 +183,34 @@ export async function handleMcpRequest(req: Request): Promise<Response> {
         parsed = undefined;
       }
       if (parsed !== undefined) {
-        const scopeCheck = checkJsonRpcOAuthScopes(parsed, oauthScopes);
-        if (!scopeCheck.ok) {
-          const www = wwwAuthenticateBearer({
-            error: "insufficient_scope",
-            description: scopeCheck.message,
-            req,
-            includeResourceMetadata: includeMeta,
-          });
-          return new Response(`${scopeCheck.message}\n`, {
-            status: 403,
-            headers: withExtraHeaders(MCP_CORS_HEADERS, {
-              "WWW-Authenticate": www,
-            }),
-          });
+        logMcpToolAccess(authType, parsed);
+
+        if (toolAllowlist) {
+          const allowCheck = checkJsonRpcReadonlyAllowlist(parsed, toolAllowlist);
+          if (!allowCheck.ok) {
+            return new Response(`${allowCheck.message}\n`, {
+              status: 403,
+              headers: MCP_CORS_HEADERS,
+            });
+          }
+        }
+
+        if (oauthScopes) {
+          const scopeCheck = checkJsonRpcOAuthScopes(parsed, oauthScopes);
+          if (!scopeCheck.ok) {
+            const www = wwwAuthenticateBearer({
+              error: "insufficient_scope",
+              description: scopeCheck.message,
+              req,
+              includeResourceMetadata: includeMeta,
+            });
+            return new Response(`${scopeCheck.message}\n`, {
+              status: 403,
+              headers: withExtraHeaders(MCP_CORS_HEADERS, {
+                "WWW-Authenticate": www,
+              }),
+            });
+          }
         }
       }
     }
@@ -231,7 +261,9 @@ export async function handleMcpRequest(req: Request): Promise<Response> {
     });
   }
 
-  const mcp = createPactMcpServer();
+  const mcp = createPactMcpServer(
+    toolAllowlist ? { toolAllowlist } : undefined,
+  );
   const transport = new WebStandardStreamableHTTPServerTransport({
     sessionIdGenerator: undefined,
     enableJsonResponse: true,

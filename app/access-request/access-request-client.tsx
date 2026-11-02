@@ -89,7 +89,7 @@ export function AccessRequestClient({ reason }: AccessRequestClientProps) {
       </div>
 
       {/* Bottom instructions (template style) */}
-      <div className="text-center fixed bottom-10 left-0 right-0 font-mono uppercase text-[11px] font-semibold text-white/90 mix-blend-exclusion">
+      <div className="text-center fixed bottom-10 left-0 right-0 font-sans uppercase tracking-[0.04em] text-[11px] font-semibold text-white/90 mix-blend-exclusion">
         <p>Wine, but not like this.</p>
         <p className="opacity-60">Membership by invitation.</p>
       </div>

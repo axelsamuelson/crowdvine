@@ -214,7 +214,7 @@ function ReservationStatusContent() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <span className="text-gray-600">Reservations-ID:</span>
-            <p className="font-mono text-sm bg-gray-100 px-2 py-1 rounded">
+            <p className="font-sans tabular-nums text-sm bg-gray-100 px-2 py-1 rounded">
               {reservation.id}
             </p>
           </div>

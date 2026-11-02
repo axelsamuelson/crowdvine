@@ -52,34 +52,165 @@ export function formatFarmingLabel(
   return translated !== msgKey ? translated : trimmed;
 }
 
-const PRODUCER_CERTIFICATION_LABELS: Record<
+const PRODUCER_CERTIFICATION_BASE_LABELS: Record<
   string,
   Record<AppLocale, string>
 > = {
-  organic_certified: {
-    sv: "Ekologisk certifierad",
-    en: "Organic Certified",
-  },
-  biodynamic_certified: {
-    sv: "Biodynamisk",
-    en: "Biodynamic",
-  },
   natural: {
     sv: "Naturvin",
     en: "Natural",
   },
+  sustainable: {
+    sv: "Hållbar odling",
+    en: "Sustainable",
+  },
+  conventional: {
+    sv: "Konventionell",
+    en: "Conventional",
+  },
 };
 
-/** Locale-aware labels for producer profile certification enum. */
+const ORGANIC_CERTIFIED_LABEL: Record<AppLocale, string> = {
+  sv: "Ekologiskt certifierad",
+  en: "Organic Certified",
+};
+
+const ORGANIC_CLAIMED_LABEL: Record<AppLocale, string> = {
+  sv: "Ekologiskt (enligt producenten)",
+  en: "Organic (according to the producer)",
+};
+
+const ORGANIC_CONVERSION_LABEL: Record<AppLocale, string> = {
+  sv: "Ekologiskt (under omställning)",
+  en: "Organic (in conversion)",
+};
+
+const BIODYNAMIC_CLAIMED_LABEL: Record<AppLocale, string> = {
+  sv: "Biodynamiskt (enligt producenten)",
+  en: "Biodynamic (according to the producer)",
+};
+
+/** Unverified biodynamic producers that also farm organically (e.g. Mas Des Mesures). */
+const ORGANIC_AND_BIODYNAMIC_CLAIMED_LABEL: Record<AppLocale, string> = {
+  sv: "Ekologisk och biodynamisk odling (enligt producenten)",
+  en: "Organic and biodynamic farming (according to the producer)",
+};
+
+const ORGANIC_LAPSED_FARMING_LABEL: Record<AppLocale, string> = {
+  sv: "Ekologisk odling (enligt producenten), certifieringen har upphört",
+  en: "Organic farming (according to the producer); certification has lapsed",
+};
+
+export type ProducerCertificationLabel = {
+  text: string;
+  /** Organic registry link when the organic claim is verified (or in conversion). */
+  href?: string | null;
+};
+
+export type ProducerCertificationLabelOptions = {
+  certificationVerifiedUrl?: string | null;
+  certificationInConversion?: boolean | null;
+  /** Agence Bio ARRETEE / stopped — hide certification chips. */
+  certificationLapsed?: boolean | null;
+};
+
+/** Non-empty http(s) registry URL → organic claim may use Certified / in-conversion wording. */
+export function producerCertificationRegistryUrl(
+  verifiedUrl: string | null | undefined,
+): string | null {
+  const trimmed = verifiedUrl?.trim();
+  if (!trimmed) return null;
+  if (!/^https?:\/\//i.test(trimmed)) return null;
+  return trimmed;
+}
+
+/** Farming copy when organic certification has lapsed (no certification chip). */
+export function formatProducerLapsedOrganicFarming(
+  locale: AppLocale = "en",
+): string {
+  return ORGANIC_LAPSED_FARMING_LABEL[locale];
+}
+
+/**
+ * Farming copy for biodynamic producers without an organic registry URL
+ * (e.g. Mas Des Mesures — not shown as Organic Certified).
+ */
+export function formatProducerOrganicAndBiodynamicFarming(
+  locale: AppLocale = "en",
+): string {
+  return ORGANIC_AND_BIODYNAMIC_CLAIMED_LABEL[locale];
+}
+
+/**
+ * Public producer certification chips.
+ * - `natural` never becomes Certified/Certifierad.
+ * - Lapsed organic certification → no chips (use farming field instead).
+ * - Verified organic registry URL → Organic Certified (or in conversion) + link.
+ * - `biodynamic_certified` without registry URL → organic + biodynamic according-to-producer.
+ * - `biodynamic_certified` with organic registry URL → Organic Certified + biodynamic claimed.
+ */
+export function formatProducerCertificationLabels(
+  value: string | null | undefined,
+  locale: AppLocale = "en",
+  options?: ProducerCertificationLabelOptions,
+): ProducerCertificationLabel[] {
+  const trimmed = value?.trim();
+  if (!trimmed) return [];
+
+  if (options?.certificationLapsed) {
+    return [];
+  }
+
+  // natural / sustainable / conventional are never Certified/Certifierad.
+  const baseOnly = PRODUCER_CERTIFICATION_BASE_LABELS[trimmed];
+  if (baseOnly) {
+    return [{ text: baseOnly[locale] }];
+  }
+
+  const registryUrl = producerCertificationRegistryUrl(
+    options?.certificationVerifiedUrl,
+  );
+  const inConversion = Boolean(options?.certificationInConversion && registryUrl);
+  const labels: ProducerCertificationLabel[] = [];
+
+  if (registryUrl) {
+    labels.push({
+      text: (inConversion
+        ? ORGANIC_CONVERSION_LABEL
+        : ORGANIC_CERTIFIED_LABEL)[locale],
+      href: registryUrl,
+    });
+  }
+
+  if (trimmed === "biodynamic_certified") {
+    if (registryUrl) {
+      labels.push({ text: BIODYNAMIC_CLAIMED_LABEL[locale] });
+    } else {
+      labels.push({ text: ORGANIC_AND_BIODYNAMIC_CLAIMED_LABEL[locale] });
+    }
+  } else if (trimmed === "organic_certified" && !registryUrl) {
+    labels.push({ text: ORGANIC_CLAIMED_LABEL[locale] });
+  } else if (
+    trimmed !== "organic_certified" &&
+    trimmed !== "biodynamic_certified"
+  ) {
+    labels.push({
+      text: formatFarmingLabel(trimmed, locale) ?? trimmed,
+    });
+  }
+
+  return labels;
+}
+
+/** Locale-aware joined label for compact surfaces (shop editorial, hero meta). */
 export function formatProducerCertification(
   value: string | null | undefined,
   locale: AppLocale = "en",
+  options?: ProducerCertificationLabelOptions,
 ): string | null {
-  const trimmed = value?.trim();
-  if (!trimmed) return null;
-  const known = PRODUCER_CERTIFICATION_LABELS[trimmed]?.[locale];
-  if (known) return known;
-  return formatFarmingLabel(trimmed, locale);
+  const labels = formatProducerCertificationLabels(value, locale, options);
+  if (labels.length === 0) return null;
+  return labels.map((label) => label.text).join(" · ");
 }
 
 function coerceEnrichmentText(

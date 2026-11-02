@@ -40,6 +40,14 @@ import {
   instagramProfileUrl,
   websiteDisplayLabel,
 } from "@/lib/producer-links";
+import {
+  formatProducerCertification,
+  formatProducerCertificationLabels,
+  formatProducerLapsedOrganicFarming,
+  formatProducerOrganicAndBiodynamicFarming,
+  producerCertificationRegistryUrl,
+} from "@/lib/product/wine-enrichment";
+import { isSeedLapsedOrganicProducer } from "@/lib/shop/verified-organic-producers";
 import { categoryPageTitle } from "@/lib/seo/category-page-title";
 import {
   defaultOpenGraphImages,
@@ -62,6 +70,9 @@ type ProducerPayload = {
   country: string | null;
   founded_year: number | null;
   certification: string | null;
+  certification_verified_url: string | null;
+  certification_in_conversion: boolean;
+  certification_lapsed: boolean;
   contact_name: string | null;
   website_url: string | null;
   instagram_handle: string | null;
@@ -113,25 +124,29 @@ async function winesVisibleOnRequestHost<T extends { id: string }>(
   return wines.filter((wine) => visibleIds.has(wine.id));
 }
 
-function formatCertification(
-  cert: string | null,
-  locale: AppLocale,
-): string | null {
-  if (!cert) return null;
-  const map: Record<string, Record<AppLocale, string>> = {
-    organic_certified: {
-      sv: "Ekologisk certifierad",
-      en: "Organic Certified",
-    },
-    biodynamic_certified: {
-      sv: "Biodynamisk",
-      en: "Biodynamic Certified",
-    },
-    natural: { sv: "Naturvin", en: "Natural" },
-    sustainable: { sv: "Hållbar odling", en: "Sustainable" },
-    conventional: { sv: "Konventionell", en: "Conventional" },
+function producerHasLapsedOrganicCertification(
+  producer: Pick<ProducerPayload, "name" | "certification_lapsed">,
+): boolean {
+  return (
+    producer.certification_lapsed === true ||
+    isSeedLapsedOrganicProducer(producer.name)
+  );
+}
+
+function producerCertificationOptions(
+  producer: Pick<
+    ProducerPayload,
+    | "name"
+    | "certification_verified_url"
+    | "certification_in_conversion"
+    | "certification_lapsed"
+  >,
+) {
+  return {
+    certificationVerifiedUrl: producer.certification_verified_url,
+    certificationInConversion: producer.certification_in_conversion,
+    certificationLapsed: producerHasLapsedOrganicCertification(producer),
   };
-  return map[cert]?.[locale] ?? cert;
 }
 
 function heroMetaParts(
@@ -141,8 +156,16 @@ function heroMetaParts(
   const parts: string[] = [];
   if (producer.region?.trim()) parts.push(producer.region.trim());
   if (producer.subregion?.trim()) parts.push(producer.subregion.trim());
-  const cert = formatCertification(producer.certification, locale);
-  if (cert) parts.push(cert);
+  if (producerHasLapsedOrganicCertification(producer)) {
+    parts.push(formatProducerLapsedOrganicFarming(locale));
+  } else {
+    const cert = formatProducerCertification(
+      producer.certification,
+      locale,
+      producerCertificationOptions(producer),
+    );
+    if (cert) parts.push(cert);
+  }
   return parts;
 }
 
@@ -150,13 +173,18 @@ function SpecCell({
   label,
   value,
   href,
+  className,
 }: {
   label: string;
   value: string;
   href?: string;
+  /** Extra grid span classes (e.g. full-width certification on mobile). */
+  className?: string;
 }) {
   return (
-    <div className="rounded-xl border bg-background px-4 py-3">
+    <div
+      className={`rounded-xl border bg-background px-4 py-3${className ? ` ${className}` : ""}`}
+    >
       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
         {label}
       </p>
@@ -294,17 +322,52 @@ export async function renderProducerPublicPage(options: {
       ? String(producer.founded_year)
       : null;
 
+  const farmingLabel = locale === "sv" ? "Odling" : "Farming";
+  const certificationLabel =
+    locale === "sv" ? "Certifiering" : "Certification";
+  const hasOrganicRegistry = Boolean(
+    producerCertificationRegistryUrl(producer.certification_verified_url),
+  );
+  const certificationEntries = producerHasLapsedOrganicCertification(producer)
+    ? [
+        {
+          id: "farming",
+          label: farmingLabel,
+          value: formatProducerLapsedOrganicFarming(locale),
+          href: undefined as string | undefined,
+          wideOnMobile: true,
+        },
+      ]
+    : producer.certification?.trim() === "biodynamic_certified" &&
+        !hasOrganicRegistry
+      ? [
+          {
+            id: "farming",
+            label: farmingLabel,
+            value: formatProducerOrganicAndBiodynamicFarming(locale),
+            href: undefined as string | undefined,
+            wideOnMobile: true,
+          },
+        ]
+      : formatProducerCertificationLabels(
+          producer.certification,
+          locale,
+          producerCertificationOptions(producer),
+        ).map((label, index) => ({
+          id: `certification-${index}`,
+          label: certificationLabel,
+          value: label.text,
+          href: label.href ?? undefined,
+          wideOnMobile: true,
+        }));
+
   const specEntries = [
     {
       id: "region",
       label: locale === "sv" ? "Region" : "Region",
       value: producer.region,
     },
-    {
-      id: "certification",
-      label: locale === "sv" ? "Certifiering" : "Certification",
-      value: formatCertification(producer.certification, locale),
-    },
+    ...certificationEntries,
     { id: "subregion", label: "Subregion", value: producer.subregion },
     {
       id: "founded",
@@ -339,8 +402,19 @@ export async function renderProducerPublicPage(options: {
   ].filter((entry): entry is NonNullable<typeof entry> => entry !== null);
 
   const factEntries = [
-    ...specEntries.map((entry) => ({ ...entry, href: undefined })),
-    ...linkEntries,
+    ...specEntries.map((entry) => ({
+      ...entry,
+      href:
+        "href" in entry && typeof entry.href === "string"
+          ? entry.href
+          : undefined,
+      wideOnMobile:
+        "wideOnMobile" in entry && entry.wideOnMobile === true,
+    })),
+    ...linkEntries.map((entry) => ({
+      ...entry,
+      wideOnMobile: false,
+    })),
   ];
 
   const producerPageUrl = `${PACT_PUBLIC_ORIGIN}${producerPagePath(slug, pathSegment)}`;
@@ -443,7 +517,9 @@ export async function renderProducerPublicPage(options: {
             </BreadcrumbList>
           </Breadcrumb>
 
-          <h1 className="mt-6 text-3xl font-bold">{producer.name}</h1>
+          <h1 className="mt-6 text-3xl font-medium tracking-[-0.02em]">
+            {producer.name}
+          </h1>
           {heroParts.length > 0 ? (
             <p className="mt-1 text-sm text-muted-foreground">
               {heroParts.join(" · ")}
@@ -472,8 +548,16 @@ export async function renderProducerPublicPage(options: {
 
           {factEntries.length > 0 ? (
             <div className="mt-4 grid grid-cols-2 gap-3">
-              {factEntries.map(({ id, label, value, href }) => (
-                <SpecCell key={id} label={label} value={value} href={href} />
+              {factEntries.map(({ id, label, value, href, wideOnMobile }) => (
+                <SpecCell
+                  key={id}
+                  label={label}
+                  value={value}
+                  href={href}
+                  className={
+                    wideOnMobile ? "col-span-2 sm:col-span-1" : undefined
+                  }
+                />
               ))}
             </div>
           ) : null}

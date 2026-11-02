@@ -280,12 +280,33 @@ export default function KopvillkorContent() {
 
       <LegalH2>9. Ångerrätt</LegalH2>
       <LegalP>
-        Vin är en levande produkt. Ångerrätt gäller därför inte för köp på
-        pactwines.com.
+        Du har 14 dagars ångerrätt enligt lagen (2005:59) om distansavtal och
+        avtal utanför affärslokaler. Ångerfristen börjar dagen efter att du har
+        tagit emot vinet. Köper du flera flaskor som levereras vid olika
+        tillfällen börjar fristen när du har tagit emot den sista. Vill du
+        ångra köpet mejlar du customer@pactwines.com, eller använder
+        standardformuläret för ånger från Konsumentverket, inom fristen. Skicka
+        sedan tillbaka varorna senast 14 dagar efter att du meddelat oss. Vi
+        betalar tillbaka hela beloppet, inklusive den ursprungliga
+        leveranskostnaden för standardleverans, senast 14 dagar efter att vi
+        fått ditt meddelande. Vi får vänta med återbetalningen tills vi har fått
+        tillbaka varorna. Returfrakt och värdeminskning regleras i §8.
+        Ångerrätten gäller inte om du har reserverat flaskor men inte betalat
+        något än. Då avbokar du utan kostnad.
       </LegalP>
 
       <LegalH2>10. Reklamation</LegalH2>
-      <LegalP>Reklamation kan inte göras.</LegalP>
+      <LegalP>
+        Är vinet felaktigt, till exempel korkat, skadat vid leverans eller inte
+        det du beställt, har du rätt att reklamera enligt konsumentköplagen
+        (2022:260). Reklamationsrätten gäller i tre år från leveransen. Meddela
+        oss inom skälig tid efter att du upptäckt felet. Meddelar du oss inom
+        två månader räknas det alltid som i tid. Mejla customer@pactwines.com
+        och bifoga gärna en bild. Vid ett godkänt fel får du en ny flaska, eller
+        pengarna tillbaka om det inte går, och vi står för eventuell returfrakt.
+        Kan vi inte komma överens kan du vända dig till Allmänna
+        reklamationsnämnden (arn.se).
+      </LegalP>
 
       <LegalH2>11. Ditt konto</LegalH2>
       <LegalP>
@@ -321,10 +342,6 @@ export default function KopvillkorContent() {
           <LegalStrong>Konsument Europa</LegalStrong>, som ger kostnadsfri
           vägledning vid gränsöverskridande handel inom EU, och som är rätt väg
           om ARN inte prövar ärendet
-        </li>
-        <li>
-          <LegalStrong>EU:s onlineplattform för tvistlösning</LegalStrong>,
-          ec.europa.eu/odr
         </li>
       </LegalList>
       <LegalP>
