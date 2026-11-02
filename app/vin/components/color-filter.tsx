@@ -72,46 +72,77 @@ export function ColorFilter({
     toggleColor(colorInput);
   };
 
+  if (!(atLeastOneColor || !colorsReady)) return null;
+
+  // Mobile filter sheet: static block so gap-2 spacing matches other groups
+  // (layout animations leave uneven empty space above Region).
+  if (showSwatchLabels) {
+    return (
+      <div className={cn("rounded-md bg-muted px-2.5 py-2", className)}>
+        <div className="mb-2 flex items-baseline justify-between gap-2">
+          <h3 className="text-sm font-semibold">
+            {t("shop.color")}{" "}
+            {colorCount > 0 ? (
+              <span className="text-foreground/50">({colorCount})</span>
+            ) : null}
+          </h3>
+        </div>
+        {!colorsReady ? (
+          <ColorSwatchSkeleton count={4} />
+        ) : (
+          <ColorPicker
+            colors={displayColors}
+            selectedColors={selectedColors}
+            onColorChange={handleColorChange}
+            formatDisplayName={(c) => formatWineColorDisplay(t, c)}
+            selectColorAria={(name) => t("shop.selectColorAria", { name })}
+            getColorHref={
+              getColorHref
+                ? (color) => getColorHref(getColorName(color))
+                : undefined
+            }
+            showLabels
+          />
+        )}
+      </div>
+    );
+  }
+
   return (
     <AnimatePresence initial={false}>
-      {(atLeastOneColor || !colorsReady) && (
-        <motion.div
-          layoutId="color-filter"
-          layout="size"
-          initial={false}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className={cn("px-2.5 py-2 rounded-md bg-muted", className)}
-        >
-          <div className="flex items-baseline justify-between gap-2 mb-2">
-            <h3 className="text-sm font-semibold">
-              {t("shop.color")}{" "}
-              {colorCount > 0 && (
-                <span className="text-foreground/50">({colorCount})</span>
-              )}
-            </h3>
-          </div>
-          {!colorsReady ? (
-            <ColorSwatchSkeleton count={4} />
-          ) : (
-            <ColorPicker
-              colors={displayColors}
-              selectedColors={selectedColors}
-              onColorChange={handleColorChange}
-              formatDisplayName={(c) => formatWineColorDisplay(t, c)}
-              selectColorAria={(name) =>
-                t("shop.selectColorAria", { name })
-              }
-              getColorHref={
-                getColorHref
-                  ? (color) => getColorHref(getColorName(color))
-                  : undefined
-              }
-              showLabels={showSwatchLabels}
-            />
-          )}
-        </motion.div>
-      )}
+      <motion.div
+        layoutId="color-filter"
+        layout="size"
+        initial={false}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className={cn("rounded-md bg-muted px-2.5 py-2", className)}
+      >
+        <div className="mb-2 flex items-baseline justify-between gap-2">
+          <h3 className="text-sm font-semibold">
+            {t("shop.color")}{" "}
+            {colorCount > 0 && (
+              <span className="text-foreground/50">({colorCount})</span>
+            )}
+          </h3>
+        </div>
+        {!colorsReady ? (
+          <ColorSwatchSkeleton count={4} />
+        ) : (
+          <ColorPicker
+            colors={displayColors}
+            selectedColors={selectedColors}
+            onColorChange={handleColorChange}
+            formatDisplayName={(c) => formatWineColorDisplay(t, c)}
+            selectColorAria={(name) => t("shop.selectColorAria", { name })}
+            getColorHref={
+              getColorHref
+                ? (color) => getColorHref(getColorName(color))
+                : undefined
+            }
+          />
+        )}
+      </motion.div>
     </AnimatePresence>
   );
 }
