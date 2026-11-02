@@ -121,7 +121,7 @@ function ScrollProbe() {
   if (!DEBUG_SCROLL) return null;
 
   return (
-    <div className="fixed bottom-3 left-3 z-[99999] bg-black/90 text-white text-xs font-mono p-3 rounded-md shadow-lg max-w-xs">
+    <div className="fixed bottom-3 left-3 z-[99999] bg-black/90 text-white text-xs font-sans tabular-nums p-3 rounded-md shadow-lg max-w-xs">
       <div className="font-bold mb-2 border-b border-white/20 pb-1">ScrollProbe</div>
       <div className="space-y-1">
         <div>

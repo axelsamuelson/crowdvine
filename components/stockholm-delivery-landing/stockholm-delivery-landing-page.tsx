@@ -101,7 +101,7 @@ export async function StockholmDeliveryLandingPage({
           <ol className="mt-14 grid gap-12 md:grid-cols-3 md:gap-10">
             {copy.steps.map((step, index) => (
               <li key={step.title} className="min-w-0">
-                <p className="font-mono text-xs tracking-[0.2em] text-stone-500">
+                <p className="font-sans tabular-nums text-xs tracking-[0.2em] text-stone-500">
                   {String(index + 1).padStart(2, "0")}
                 </p>
                 <h3 className="mt-3 text-xl font-semibold tracking-tight text-stone-950 md:text-2xl">
