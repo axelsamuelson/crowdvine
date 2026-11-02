@@ -36,7 +36,7 @@ WHERE id = '9301970e-5f34-473b-b891-5c5910ba8783'
 --    PR #158 overlap: keeps English under sv, only changes sulfite phrasing
 -- ---------------------------------------------------------------------------
 UPDATE wines
-SET description = $j${"en": "Another Carignan, but a different animal. Pierre Regnault uses 65-year-old vines, five days of whole-cluster maceration, and lets the wine age on its lees before bottling by gravity in April 2023. No added sulfites, no fining, no filtration. The kind of wine where every decision in the cellar is about getting out of the way.", "sv": "En annan Carignan, men ett annat djur. Pierre Regnault använder 65-åriga stockar, fem dagars helklasemaceration och låter vinet lagras på jästfällningen innan det buteljeras med gravitation i april 2023. Inga tillsatta sulfiter, ingen fining, ingen filtrering. Den sorts vin där varje beslut i källaren handlar om att inte stå i vägen."}$j$::jsonb
+SET description = $j${"en": "Another Carignan, but a different animal. Pierre Regnault uses 65-year-old vines, five days of whole-cluster maceration, and lets the wine age on its lees before bottling by gravity in April 2023. No added sulphites, no fining, no filtration. The kind of wine where every decision in the cellar is about getting out of the way.", "sv": "Ännu en Carignan, men av ett helt annat slag. Pierre Regnault använder 65 år gamla stockar och fem dagars maceration med hela klasar. Vinet får ligga på jästfällningen innan det buteljeras med självfall i april 2023. Inga tillsatta sulfiter, ingen klarning, ingen filtrering. Ett vin där varje beslut i källaren handlar om att hålla sig ur vägen."}$j$::jsonb
 WHERE id = 'c1902533-25b4-42aa-95f0-636511b24845'
   AND (
     description = $j${"sv": "Another Carignan, but a different animal. Pierre Regnault uses 65-year-old vines, five days of whole-cluster maceration, and lets the wine age on its lees before bottling by gravity in April 2023. No sulfites, no fining, no filtration. The kind of wine where every decision in the cellar is about getting out of the way."}$j$::jsonb
@@ -50,7 +50,7 @@ WHERE id = 'c1902533-25b4-42aa-95f0-636511b24845'
 --    No PR #158 overlap.
 -- ---------------------------------------------------------------------------
 UPDATE producers
-SET short_description = $j${"en": "Bébian has been renewed under Benoît Pontenier with biodynamics and minimal vinification without added sulphur. Parcel selection and ageing in foudre.", "sv": "Bébian har förnyats under Benoît Pontenier med biodynamik och minimal vinifiering utan tillsatt svavel. Parcellurval och lagring i foudre."}$j$::jsonb
+SET short_description = $j${"en": "Under Benoît Pontenier, Bébian has been revitalised through biodynamic farming and minimal-intervention winemaking without added sulphur. Parcel selection and ageing in foudre.", "sv": "Bébian har förnyats under Benoît Pontenier med biodynamik och minimal vinifiering utan tillsatt svavel. Parcellurval och lagring i foudre."}$j$::jsonb
 WHERE id = '910d2f17-3eb1-4a84-8645-b09004a952ea'
   AND short_description = $j${"en": "Bébian har förnyats under Benoît Pontenier med biodynamik och minimal vinifiering utan svavel. Parcellurval och lagring i foudre.", "sv": "Bébian har förnyats under Benoît Pontenier med biodynamik och minimal vinifiering utan svavel. Parcellurval och lagring i foudre."}$j$::jsonb;
 
@@ -58,11 +58,11 @@ WHERE id = '910d2f17-3eb1-4a84-8645-b09004a952ea'
 -- 5) wines.additives — Scamu (Domaine de la Cessière)
 --    Note: wines have no short_description column; wrong-language locale is on additives.
 --    Before: Swedish "Inga sulfiter tillagda" in both en and sv
---    After:  en English, sv kept (already "tillagda" / added phrasing)
+--    After:  {"en":"No added sulphites","sv":"Inga tillsatta sulfiter"}
 --    No PR #158 overlap.
 -- ---------------------------------------------------------------------------
 UPDATE wines
-SET additives = $j${"en": "No sulphites added", "sv": "Inga sulfiter tillagda"}$j$::jsonb
+SET additives = $j${"en": "No added sulphites", "sv": "Inga tillsatta sulfiter"}$j$::jsonb
 WHERE id = '69010575-529e-4b12-9f5c-d9e78a2dfcac'
   AND additives = $j${"en": "Inga sulfiter tillagda", "sv": "Inga sulfiter tillagda"}$j$::jsonb;
 
