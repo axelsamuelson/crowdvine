@@ -25,7 +25,7 @@ describe("best pet nat Systembolaget guide", () => {
       "Bästa pet nat på Systembolaget",
     );
     expect(bestPetNatWinesSystembolagetSvArticle.meta.sv).toBe(
-      "Bästa pet nat på Systembolaget enligt PACT: pét-nat från Loire, Alsace, Mosel, Chile med flera, med fakta om druva och producent, vad pet nat är och vanliga frågor.",
+      "Bästa pet nat på Systembolaget enligt PACT: pét-nat från Loire, Alsace, Mosel, Chile med flera, med fakta om druva och producent, vad pét-nat är och vanliga frågor.",
     );
     expect(bestPetNatWinesSystembolagetSvArticle.title.sv).toBe(
       "Bästa pet nat på Systembolaget – vårt urval | PACT",
@@ -89,11 +89,43 @@ describe("best pet nat Systembolaget guide", () => {
       ]),
     });
 
+    const odlingCount = factBlocks.filter((block) =>
+      block.type === "definitions" &&
+      block.items.some((item) => item.term.sv === "Odling"),
+    ).length;
+    expect(odlingCount).toBe(10);
+    expect(
+      factBlocks.every(
+        (block) =>
+          block.type !== "definitions" ||
+          block.items.every(
+            (item) =>
+              item.term.sv !== "Sortiment" ||
+              !/\(ekologiskt enligt Systembolaget\)/.test(item.description.sv),
+          ),
+      ),
+    ).toBe(true);
+
+    const grapeFor = (id: string) => {
+      const blocks = listSection?.blocks ?? [];
+      const hi = blocks.findIndex(
+        (block) => block.type === "heading" && block.id === id,
+      );
+      const def = blocks[hi + 1];
+      if (def?.type !== "definitions") return undefined;
+      return def.items.find((item) => item.term.sv === "Druva")?.description.sv;
+    };
+    expect(grapeFor("binner-storm")).toBe("50 % Muscat / 50 % äpple");
+    expect(grapeFor("korab-orange-on-leaves")).toBe("Uppgift saknas");
+
     const serialized = JSON.stringify(bestPetNatWinesSystembolagetSvArticle);
     expect(serialized).not.toMatch(/\d+\s*kr\b/);
     expect(serialized).not.toMatch(/köp nu|shop now|lägg i kundvagn/i);
     expect(serialized).toContain(
       "Inte alla viner på listan är belagda som naturvin",
     );
+    expect(bestPetNatWinesSystembolagetSvArticle.sections.some(
+      (section) => section.heading?.sv === "Vad är pét-nat?",
+    )).toBe(true);
   });
 });
