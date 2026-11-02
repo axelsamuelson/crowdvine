@@ -24,6 +24,8 @@ import {
   pageTwitterCard,
 } from "@/lib/seo/default-social";
 import { getGuideSeoOwnership } from "@/lib/guides/guide-seo-ownership";
+import { getLiveWineRegionCountsMap } from "@/lib/wine-region-live-counts";
+import { getWineRegionPageHref } from "@/lib/wine-regions";
 
 export function getChampagneWinesFromTop100() {
   return TOP_100_WINES.filter((wine) => wine.type === "Champagne");
@@ -65,6 +67,12 @@ export async function renderWorldsBestNaturalChampagnePage(locale: AppLocale) {
   const hubPath = guidePath("hub", locale);
   const champagnes = getChampagneWinesFromTop100();
   const guide = worldsBestNaturalChampagneGuide;
+  const regionCounts = await getLiveWineRegionCountsMap();
+  const champagneRegionHref = getWineRegionPageHref(
+    "champagne",
+    locale,
+    regionCounts,
+  );
 
   const breadcrumbJsonLd = buildGuideBreadcrumbJsonLd([
     { name: copy.home, item: guideHomeAbsoluteUrl(seoBaseUrl, locale) },
@@ -85,6 +93,26 @@ export async function renderWorldsBestNaturalChampagnePage(locale: AppLocale) {
       name: wine.wine,
     })),
   };
+
+  const furtherLinks = [
+    ...guide.links
+      .filter((link) => link.label[locale].trim().length > 0)
+      .map((link) => ({
+        href: link.href[locale],
+        label: link.label[locale],
+      })),
+    ...(champagneRegionHref
+      ? [
+          {
+            href: champagneRegionHref,
+            label:
+              locale === "sv"
+                ? "Shoppa viner från Champagne →"
+                : "Shop wines from Champagne →",
+          },
+        ]
+      : []),
+  ];
 
   return (
     <>
@@ -147,18 +175,16 @@ export async function renderWorldsBestNaturalChampagnePage(locale: AppLocale) {
         </section>
 
         <nav className="mt-14 space-y-3 border-t border-border pt-8 text-sm">
-          {guide.links
-            .filter((link) => link.label[locale].trim().length > 0)
-            .map((link) => (
-              <p key={`${locale}-${link.href[locale]}`}>
-                <Link
-                  href={link.href[locale]}
-                  className="underline underline-offset-4 hover:text-foreground"
-                >
-                  {link.label[locale]}
-                </Link>
-              </p>
-            ))}
+          {furtherLinks.map((link) => (
+            <p key={`${locale}-${link.href}-${link.label}`}>
+              <Link
+                href={link.href}
+                className="underline underline-offset-4 hover:text-foreground"
+              >
+                {link.label}
+              </Link>
+            </p>
+          ))}
         </nav>
       </div>
 

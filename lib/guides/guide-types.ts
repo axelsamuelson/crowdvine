@@ -134,6 +134,12 @@ export type GuideArticleContent = {
   faqs?: GuideArticleFaq[];
   internalLinks: GuideArticleInternalLink[];
   jsonLdAbout: GuideArticleJsonLdAbout;
+  /**
+   * When set, further reading may include a link to `/region/{slug}` /
+   * `/regions/{slug}` only if the shared linkability helper returns a href
+   * (≥1 live wine). Never hard-code region page URLs in article copy.
+   */
+  wineRegionSlug?: string;
   /** Optional byline author; emitted as Article `author` Person JSON-LD. */
   author?: GuideArticleAuthor;
   /**

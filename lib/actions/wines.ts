@@ -942,6 +942,7 @@ export async function createWine(data: CreateWineData, locale: WineLocale = "sv"
   revalidatePath("/producer");
   revalidateWineStorefrontCaches([wine.handle], {
     producerNames: [producer?.name],
+    wineRegions: [wine.region as string | null | undefined],
   });
   return wineWithProducer;
 }
@@ -956,7 +957,7 @@ export async function updateWine(
   const { data: existing } = await sb
     .from("wines")
     .select(
-      "summary, description, tasting_notes, ageing, winemaker_notes, food_pairing, awards, soil_type, additives",
+      "summary, description, tasting_notes, ageing, winemaker_notes, food_pairing, awards, soil_type, additives, region",
     )
     .eq("id", id)
     .single();
@@ -1296,6 +1297,10 @@ export async function updateWine(
   revalidatePath("/producer");
   revalidateWineStorefrontCaches([wine.handle], {
     producerNames: [producer?.name],
+    wineRegions: [
+      wine.region as string | null | undefined,
+      (existing as { region?: string | null } | null)?.region,
+    ],
   });
   return wineWithProducer;
 }

@@ -25,6 +25,12 @@ import {
   fetchIndexableWines,
   fetchProducerShopSlugs,
 } from "@/lib/sitemap-urls";
+import { getLiveWineRegionCountsMap } from "@/lib/wine-region-live-counts";
+import {
+  WINE_REGION_INDEX_MIN_LIVE,
+  WINE_REGION_SLUGS,
+  getWineRegionPageHref,
+} from "@/lib/wine-regions";
 
 export type SitemapSiteProfile = "pact" | "dirtywine";
 
@@ -289,11 +295,37 @@ async function buildSitemapEntriesUncached(
     ],
   );
 
+  // Region landing pages: sitemap only when ≥3 live wines (wine ∧ producer).
+  // Every region URL goes through getWineRegionPageHref (shared gate).
+  const regionCounts = await getLiveWineRegionCountsMap();
+  const regionPages: MetadataRoute.Sitemap = WINE_REGION_SLUGS.flatMap(
+    (slug) => {
+      const sv = getWineRegionPageHref(
+        slug,
+        "sv",
+        regionCounts,
+        WINE_REGION_INDEX_MIN_LIVE,
+      );
+      const en = getWineRegionPageHref(
+        slug,
+        "en",
+        regionCounts,
+        WINE_REGION_INDEX_MIN_LIVE,
+      );
+      if (!sv || !en) return [];
+      return [
+        weeklyEntry(`${baseUrl}${sv}`, 0.75),
+        weeklyEntry(`${baseUrl}${en}`, 0.75),
+      ];
+    },
+  );
+
   return dedupeSitemapEntries([
     ...staticPages,
     ...vinCategories,
     ...wineCategories,
     ...producerShopPages,
+    ...regionPages,
     ...winePages,
     ...producerProfilePages,
   ]);

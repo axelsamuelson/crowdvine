@@ -18,6 +18,8 @@ const PUBLIC_PATH_PREFIXES = [
   "/producent",
   "/producers",
   "/producenter",
+  "/region",
+  "/regions",
   "/about",
   "/om-oss",
   // Kept so 301s in next.config reach guests before auth gates
@@ -102,6 +104,8 @@ export function publicPathUsesUserShoppingContext(pathname: string): boolean {
   }
   if (pathname.startsWith("/product/")) return true;
   if (pathname.startsWith("/produkt/")) return true;
+  if (pathname.startsWith("/region/")) return true;
+  if (pathname.startsWith("/regions/")) return true;
   if (pathname.startsWith("/checkout")) return true;
   return false;
 }

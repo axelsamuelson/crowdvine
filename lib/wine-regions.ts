@@ -3,6 +3,12 @@
  * Slugs are French ASCII and identical in SV/EN URLs. DB stores `value` (French name).
  */
 
+import type { AppLocale } from "@/lib/i18n/locale";
+import { PACT_PUBLIC_ORIGIN } from "@/lib/i18n/localized-routes";
+
+/** Min live wines (wine ∧ producer) for sitemap + indexable region pages. */
+export const WINE_REGION_INDEX_MIN_LIVE = 3;
+
 export const WINE_REGIONS = [
   {
     slug: "languedoc",
@@ -270,4 +276,66 @@ export function getLinkableWineRegionsFromProducts(
     countLiveWinesByRegionValue(products),
     minLive,
   );
+}
+
+export type WineRegionPathSegment = "region" | "regions";
+
+/** Path segment for locale: SV `/region`, EN `/regions`. */
+export function wineRegionPathSegment(
+  locale: AppLocale,
+): WineRegionPathSegment {
+  return locale === "en" ? "regions" : "region";
+}
+
+/** Absolute path for a region landing page (no linkability gate). */
+export function wineRegionPagePath(
+  slug: WineRegionSlug,
+  locale: AppLocale,
+): string {
+  return `/${wineRegionPathSegment(locale)}/${slug}`;
+}
+
+export function wineRegionPageUrls(slug: WineRegionSlug): {
+  en: string;
+  sv: string;
+  xDefault: string;
+} {
+  return {
+    en: `${PACT_PUBLIC_ORIGIN}${wineRegionPagePath(slug, "en")}`,
+    sv: `${PACT_PUBLIC_ORIGIN}${wineRegionPagePath(slug, "sv")}`,
+    xDefault: `${PACT_PUBLIC_ORIGIN}${wineRegionPagePath(slug, "en")}`,
+  };
+}
+
+/**
+ * Shared gate for every href to a region landing page.
+ * Returns null when the region would 404 (<1 live wine, wine ∧ producer).
+ * PLP chips, sitemap, guides, and internal links must use this (or
+ * `isWineRegionLinkable` / `getLinkableWineRegions` with the same counts).
+ */
+export function getWineRegionPageHref(
+  slugOrValue: string,
+  locale: AppLocale,
+  liveCountsByValue: ReadonlyMap<string, number>,
+  minLive = 1,
+): string | null {
+  const region =
+    wineRegionBySlug(slugOrValue) ?? wineRegionByValue(slugOrValue);
+  if (!region) return null;
+  if (!isWineRegionLinkable(region.slug, liveCountsByValue, minLive)) {
+    return null;
+  }
+  return wineRegionPagePath(region.slug, locale);
+}
+
+/** Switch `/region/{slug}` ↔ `/regions/{slug}` for the locale switcher. */
+export function switchWineRegionPath(
+  pathname: string,
+  newLocale: AppLocale,
+): string | null {
+  const match = pathname.match(/^\/(region|regions)\/([^/?#]+)\/?$/);
+  if (!match) return null;
+  const slug = decodeURIComponent(match[2]).toLowerCase();
+  if (!isWineRegionSlug(slug)) return null;
+  return wineRegionPagePath(slug, newLocale);
 }

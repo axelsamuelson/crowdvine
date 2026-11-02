@@ -5,10 +5,12 @@ import {
   buildWinePatch,
 } from "@/lib/catalog-mappers";
 import {
+  WINE_REGION_INDEX_MIN_LIVE,
   WINE_REGION_SLUGS,
   WINE_REGION_VALUES,
   WINE_REGIONS,
   getLinkableWineRegions,
+  getWineRegionPageHref,
   isWineRegionLinkable,
   isWineRegionSlug,
   isWineRegionValue,
@@ -16,8 +18,10 @@ import {
   parseWineRegionParam,
   resolveWineRegionValue,
   serializeWineRegionParam,
+  switchWineRegionPath,
   wineRegionBySlug,
   wineRegionLabel,
+  wineRegionPagePath,
   wineRegionSlugFromValue,
 } from "@/lib/wine-regions";
 
@@ -121,6 +125,41 @@ describe("region query + linkability helpers", () => {
     const counts = new Map([["Loire", 8], ["Jura", 0]]);
     expect(getLinkableWineRegions(counts).map((r) => r.slug)).toEqual(["loire"]);
     expect(isWineRegionLinkable("jura", counts)).toBe(false);
+  });
+
+  it("getWineRegionPageHref only returns when ≥1 live wine", () => {
+    const counts = new Map([
+      ["Loire", 8],
+      ["Beaujolais", 2],
+      ["Jura", 0],
+    ]);
+    expect(getWineRegionPageHref("loire", "sv", counts)).toBe("/region/loire");
+    expect(getWineRegionPageHref("loire", "en", counts)).toBe("/regions/loire");
+    expect(getWineRegionPageHref("beaujolais", "sv", counts)).toBe(
+      "/region/beaujolais",
+    );
+    expect(getWineRegionPageHref("jura", "sv", counts)).toBeNull();
+    expect(
+      getWineRegionPageHref(
+        "beaujolais",
+        "en",
+        counts,
+        WINE_REGION_INDEX_MIN_LIVE,
+      ),
+    ).toBeNull();
+    expect(
+      getWineRegionPageHref("loire", "en", counts, WINE_REGION_INDEX_MIN_LIVE),
+    ).toBe("/regions/loire");
+  });
+
+  it("builds locale paths and switches them", () => {
+    expect(wineRegionPagePath("rhone", "sv")).toBe("/region/rhone");
+    expect(wineRegionPagePath("rhone", "en")).toBe("/regions/rhone");
+    expect(switchWineRegionPath("/region/languedoc", "en")).toBe(
+      "/regions/languedoc",
+    );
+    expect(switchWineRegionPath("/regions/loire", "sv")).toBe("/region/loire");
+    expect(switchWineRegionPath("/vin", "en")).toBeNull();
   });
 });
 
