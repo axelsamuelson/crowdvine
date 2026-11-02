@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
+import { X } from "lucide-react";
+import { parseAsArrayOf, parseAsString, useQueryState } from "nuqs";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Collection } from "@/lib/shopify/types";
@@ -16,10 +18,7 @@ import { GrapesFilter } from "./grapes-filter";
 import { FarmingFilter } from "./farming-filter";
 import { RegionFilter } from "./region-filter";
 import { CompetitorFilter, type PriceSourceForFilter } from "./competitor-filter";
-import {
-  useFilterCount,
-  useRegionFilterCount,
-} from "../hooks/use-filter-count";
+import { useFilterCount } from "../hooks/use-filter-count";
 import { isProducerBoxesPath } from "@/lib/producer-boxes/config";
 import { ProducerBoxesCta } from "./producer-boxes-cta";
 import { useProducts } from "@/components/shop/products-provider";
@@ -31,6 +30,12 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useTranslations } from "@/lib/hooks/use-translations";
 import { useLocalizedPaths } from "@/lib/hooks/use-localized-paths";
+import {
+  isWineRegionSlug,
+  serializeWineRegionParam,
+  wineRegionLabel,
+  type WineRegionSlug,
+} from "@/lib/wine-regions";
 import {
   getActiveColorFromPathname,
   getActiveFarmingFromPathname,
@@ -77,7 +82,6 @@ export function MobileFilters({
   const { t } = useTranslations();
   const paths = useLocalizedPaths();
   const clientFilterCount = useFilterCount();
-  const regionFilterCount = useRegionFilterCount();
   const { products, originalProducts, setProducts, serverResultsCount } =
     useProducts();
   const routerPathname = usePathname();
@@ -85,6 +89,10 @@ export function MobileFilters({
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [selectedRegions, setSelectedRegions] = useQueryState(
+    "region",
+    parseAsArrayOf(parseAsString).withDefault([]),
+  );
   // Prefer the live router path when present; fall back to the request path
   // so SSR and the first client render share the same hrefs (no mounted flip).
   const pathname = routerPathname || ssrPathname;
@@ -204,6 +212,28 @@ export function MobileFilters({
   const displayFilterCount =
     clientFilterCount > 0 ? clientFilterCount : initialFilterCount;
 
+  const selectedRegionChips = useMemo(() => {
+    const seen = new Set<string>();
+    const chips: { slug: WineRegionSlug; label: string }[] = [];
+    for (const raw of selectedRegions) {
+      const slug = raw.trim().toLowerCase();
+      if (!isWineRegionSlug(slug) || seen.has(slug)) continue;
+      seen.add(slug);
+      const label = wineRegionLabel(slug, locale);
+      if (!label) continue;
+      chips.push({ slug, label });
+    }
+    return chips.sort((a, b) => a.slug.localeCompare(b.slug));
+  }, [selectedRegions, locale]);
+
+  const removeRegion = (slug: WineRegionSlug) => {
+    const next = selectedRegions.filter((s) => s !== slug);
+    const serialized = serializeWineRegionParam(next);
+    void setSelectedRegions(
+      serialized ? (serialized.split(",") as WineRegionSlug[]) : null,
+    );
+  };
+
   return (
     <div className="overflow-x-clip bg-transparent md:hidden">
       {isProducerBoxesPage ? (
@@ -218,17 +248,36 @@ export function MobileFilters({
             {t("shop.filters")}
           </Button>
         </div>
+      ) : selectedRegionChips.length > 0 ? (
+        <div className="flex items-center justify-between gap-3 border-b border-border/60 px-sides py-2.5">
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+            {selectedRegionChips.map((chip) => (
+              <button
+                key={chip.slug}
+                type="button"
+                onClick={() => removeRegion(chip.slug)}
+                className="inline-flex max-w-full cursor-pointer items-center gap-1 rounded-full border border-zinc-300 bg-white px-2.5 py-1 text-[13px] text-[#0A0A0A]"
+                aria-label={t("shop.clearRegionFilter", { name: chip.label })}
+              >
+                <span className="truncate">{chip.label}</span>
+                <X aria-hidden className="size-3.5 shrink-0" strokeWidth={2} />
+              </button>
+            ))}
+            <Link
+              href={paths.shop}
+              prefetch
+              className="shrink-0 text-[13px] text-[#0A0A0A] underline underline-offset-2"
+            >
+              {t("shop.clear")}
+            </Link>
+          </div>
+          <ResultsCount
+            count={displayResultsCount}
+            className="shrink-0 place-self-auto"
+          />
+        </div>
       ) : (
-        <div className="flex items-center justify-between gap-3 border-b border-border/60 px-sides py-3">
-          <button
-            type="button"
-            onClick={() => setFiltersOpen(true)}
-            className="cursor-pointer text-left text-[13px] font-medium text-foreground"
-          >
-            {regionFilterCount > 0
-              ? t("shop.filterRegionSummary", { count: regionFilterCount })
-              : t("shop.filters")}
-          </button>
+        <div className="flex items-center justify-center px-sides py-1.5">
           <ResultsCount count={displayResultsCount} />
         </div>
       )}

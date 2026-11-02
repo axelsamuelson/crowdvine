@@ -19,7 +19,6 @@ import {
 import { ProductGrid } from "./product-grid";
 import { ProductCard } from "./product-card";
 import { ProductListHydrationGate } from "@/app/vin/components/product-list-hydration-gate";
-import { RegionFilter } from "./region-filter";
 import { Card } from "../../../components/ui/card";
 import { useTranslations } from "@/lib/hooks/use-translations";
 import { Button } from "@/components/ui/button";
@@ -35,7 +34,6 @@ import { filterProductsByGrapes } from "@/lib/shop/filter-products-by-grape";
 import { filterProductsByFarming } from "@/lib/shop/farming-filter";
 import { filterProductsByRegions } from "@/lib/shop/filter-products-by-region";
 import { filterProductsBySource } from "@/lib/shop/filter-products-by-source";
-import { getLinkableWineRegionsFromProducts } from "@/lib/wine-regions";
 interface ProductListContentProps {
   products: Product[];
   collections: Collection[];
@@ -315,18 +313,8 @@ export function ProductListContent({
     void setQscope(scope === "all" ? null : scope);
   };
 
-  const linkableRegions = useMemo(
-    () => getLinkableWineRegionsFromProducts(products),
-    [products],
-  );
-
   return (
     <>
-      {linkableRegions.length > 0 ? (
-        <div className="mb-4 hidden px-sides md:block md:pr-sides">
-          <RegionFilter mode="chips" regions={linkableRegions} />
-        </div>
-      ) : null}
       <ResultsControls
         className="max-md:hidden"
         collections={collections}
