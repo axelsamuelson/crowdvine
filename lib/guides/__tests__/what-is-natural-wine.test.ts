@@ -42,7 +42,7 @@ describe("what is natural wine", () => {
     expect(
       whatIsNaturalWineArticle.sections.map((section) => section.heading?.sv),
     ).toEqual([
-      "Vad är naturvin?",
+      "Naturvin i korthet",
       "Naturvin och sulfiter",
       "Låg intervention i vingården och källaren",
       "Naturvin, ekologiskt och biodynamiskt: skillnaden",
