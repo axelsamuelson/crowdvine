@@ -49,7 +49,7 @@ export const whatIsNaturalWineArticle: GuideArticleContent = {
     {
       heading: {
         en: "What is natural wine?",
-        sv: "Vad är naturvin?",
+        sv: "Naturvin i korthet",
       },
       body: {
         en: [
