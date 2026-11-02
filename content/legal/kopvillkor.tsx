@@ -322,10 +322,6 @@ export default function KopvillkorContent() {
           vägledning vid gränsöverskridande handel inom EU, och som är rätt väg
           om ARN inte prövar ärendet
         </li>
-        <li>
-          <LegalStrong>EU:s onlineplattform för tvistlösning</LegalStrong>,
-          ec.europa.eu/odr
-        </li>
       </LegalList>
       <LegalP>
         Vi medverkar i tvistlösning inför ARN och följer nämndens
