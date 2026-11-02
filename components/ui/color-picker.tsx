@@ -19,6 +19,8 @@ interface ColorSwatchProps {
   selectColorAria?: (name: string) => string;
   /** Clean category URL when shop filter navigation applies. */
   href?: string | null;
+  /** Show a small text label under the swatch (mobile PLP filter sheet). */
+  showLabel?: boolean;
 }
 
 export const sizeClasses = {
@@ -37,6 +39,7 @@ export function ColorSwatch({
   displayName: displayNameProp,
   selectColorAria,
   href,
+  showLabel = false,
 }: ColorSwatchProps) {
   const isDualColor = Array.isArray(color);
   const displayName =
@@ -74,26 +77,22 @@ export function ColorSwatch({
     <div className="w-full h-full" style={{ backgroundColor: color.value }} />
   );
 
-  if (href) {
-    return (
-      <a
-        href={href}
-        className={className}
-        title={displayName}
-        onClick={(event) => {
-          event.preventDefault();
-          onColorChange(color);
-        }}
-        aria-pressed={isSelected}
-        aria-label={ariaLabel}
-      >
-        {swatchBody}
-        <span className="sr-only">{displayName}</span>
-      </a>
-    );
-  }
-
-  return (
+  const control = href ? (
+    <a
+      href={href}
+      className={className}
+      title={displayName}
+      onClick={(event) => {
+        event.preventDefault();
+        onColorChange(color);
+      }}
+      aria-pressed={isSelected}
+      aria-label={ariaLabel}
+    >
+      {swatchBody}
+      {!showLabel ? <span className="sr-only">{displayName}</span> : null}
+    </a>
+  ) : (
     <button
       type="button"
       className={className}
@@ -103,8 +102,22 @@ export function ColorSwatch({
       aria-label={ariaLabel}
     >
       {swatchBody}
-      <span className="sr-only">{displayName}</span>
+      {!showLabel ? <span className="sr-only">{displayName}</span> : null}
     </button>
+  );
+
+  if (!showLabel) return control;
+
+  return (
+    <span className="inline-flex flex-col items-center gap-1">
+      {control}
+      <span
+        className="max-w-[3.25rem] truncate text-center text-[10px] font-medium leading-tight text-foreground/70"
+        aria-hidden
+      >
+        {displayName}
+      </span>
+    </span>
   );
 }
 
@@ -117,6 +130,8 @@ interface ColorPickerProps {
   formatDisplayName?: (color: Color | [Color, Color]) => string;
   selectColorAria?: (name: string) => string;
   getColorHref?: (color: Color | [Color, Color]) => string | null;
+  /** Mobile filter sheet: labels under each swatch. Desktop leaves unset. */
+  showLabels?: boolean;
 }
 
 export function ColorPicker({
@@ -128,6 +143,7 @@ export function ColorPicker({
   formatDisplayName,
   selectColorAria,
   getColorHref,
+  showLabels = false,
 }: ColorPickerProps) {
   const [isClient, setIsClient] = useState(false);
   const atLeastOneColor = selectedColors.length > 0;
@@ -153,7 +169,7 @@ export function ColorPicker({
   const ColorWrapper = isClient ? motion.div : "div";
 
   return (
-    <div className={cn("flex flex-wrap gap-1.5", className)}>
+    <div className={cn("flex flex-wrap gap-1.5", showLabels && "gap-x-2.5 gap-y-2", className)}>
       {isClient ? (
         <AnimatePresence initial={false}>
           {colors.map((color, index) => (
@@ -172,7 +188,7 @@ export function ColorPicker({
                 delay: index * 0.05,
                 ease: "easeOut",
               }}
-              className={sizeClasses[size]}
+              className={showLabels ? undefined : sizeClasses[size]}
             >
               <ColorSwatch
                 color={color}
@@ -183,6 +199,7 @@ export function ColorPicker({
                 displayName={formatDisplayName?.(color)}
                 selectColorAria={selectColorAria}
                 href={getColorHref?.(color)}
+                showLabel={showLabels}
               />
             </ColorWrapper>
           ))}
@@ -195,7 +212,7 @@ export function ColorPicker({
                 ? `${color[0].value}-${color[1].value}`
                 : color.value
             }
-            className={sizeClasses[size]}
+            className={showLabels ? undefined : sizeClasses[size]}
           >
             <ColorSwatch
               color={color}
@@ -206,6 +223,7 @@ export function ColorPicker({
               displayName={formatDisplayName?.(color)}
               selectColorAria={selectColorAria}
               href={getColorHref?.(color)}
+              showLabel={showLabels}
             />
           </ColorWrapper>
         ))

@@ -106,4 +106,23 @@ describe("shop filter navigation hrefs (natural default)", () => {
     expect(html).toContain('aria-label="Select color: Red"');
     expect(html).not.toMatch(/<button[^>]*aria-label="Select color: Red"/);
   });
+
+  it("renders visible swatch labels when showLabels is set (mobile sheet)", () => {
+    const red = { name: "Red", value: COLOR_MAP.red };
+    const html = renderToStaticMarkup(
+      createElement(ColorPicker, {
+        colors: [red],
+        selectedColors: [],
+        onColorChange: () => {},
+        formatDisplayName: () => "Rött",
+        selectColorAria: (name) => `Välj färg: ${name}`,
+        showLabels: true,
+      }),
+    );
+
+    expect(html).toContain("Rött");
+    expect(html).toContain('aria-label="Välj färg: Rött"');
+    expect(html).not.toContain("sr-only");
+  });
 });
+

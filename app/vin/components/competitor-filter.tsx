@@ -10,6 +10,7 @@ import { ShopFilterCollapsible } from "./shop-filter-collapsible";
 import {
   ShopFilterOptionContent,
   shopFilterOptionClassName,
+  shopFilterSheetListClassName,
 } from "./shop-filter-option";
 
 export interface PriceSourceForFilter {
@@ -40,6 +41,7 @@ export function CompetitorFilter({
   );
   const count = useCompetitorFilterCount();
   const collapsible = mode !== "overlay";
+  const isSheet = mode === "drawer";
 
   const sourcesWithWines = useMemo(() => {
     if (!sources?.length) return [];
@@ -50,6 +52,13 @@ export function CompetitorFilter({
 
   if (!mounted || !sourcesWithWines.length) return null;
 
+  const selectionSummary = isSheet
+    ? sourcesWithWines
+        .filter((source) => selectedSlugs.includes(source.slug))
+        .map((source) => source.name)
+        .join(", ") || undefined
+    : undefined;
+
   const toggle = (slug: string) => {
     setSelectedSlugs((prev) =>
       prev.includes(slug) ? prev.filter((s) => s !== slug) : [...prev, slug],
@@ -57,9 +66,11 @@ export function CompetitorFilter({
   };
 
   const listContainerClass =
-    mode === "sidebar" || mode === "drawer"
-      ? "max-h-24 lg:max-h-28 xl:max-h-32 overflow-y-auto pr-1"
-      : "";
+    mode === "drawer"
+      ? shopFilterSheetListClassName()
+      : mode === "sidebar"
+        ? "max-h-24 lg:max-h-28 xl:max-h-32 overflow-y-auto pr-1"
+        : "";
 
   const seeAllButton =
     mode === "sidebar" && onSeeAll ? (
@@ -77,6 +88,8 @@ export function CompetitorFilter({
     <ShopFilterCollapsible
       title={t("shop.buyAt")}
       count={count}
+      selectionSummary={selectionSummary}
+      density={isSheet ? "sheet" : "default"}
       collapsible={collapsible}
       headerAction={seeAllButton}
       className={className}
@@ -90,7 +103,9 @@ export function CompetitorFilter({
                 <button
                   type="button"
                   onClick={() => toggle(source.slug)}
-                  className={shopFilterOptionClassName(isSelected)}
+                  className={shopFilterOptionClassName(isSelected, {
+                    density: isSheet ? "sheet" : "default",
+                  })}
                   aria-pressed={isSelected}
                   aria-label={t("shop.filterBySource", { name: source.name })}
                 >

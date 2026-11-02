@@ -1,18 +1,13 @@
 "use client";
 
 import { useQueryState, parseAsArrayOf, parseAsString } from "nuqs";
-import { useParams } from "next/navigation";
-
-/** Keep in sync with PRODUCER_BOXES_PATH. Not imported from config (that module is server-only). */
-const PRODUCER_BOX_SLUGS = new Set(["naturvin-lada", "natural-wine-box"]);
-
-function isShopCollectionSegment(segment: string | undefined): boolean {
-  if (!segment) return false;
-  return !PRODUCER_BOX_SLUGS.has(segment);
-}
+import { useParams, usePathname } from "next/navigation";
+import { isProducerCollectionSegment } from "@/lib/shop/producer-collection-segment";
+import { getActiveColorFromPathname } from "@/lib/wine-categories";
 
 export function useFilterCount() {
   const params = useParams<{ collection: string }>();
+  const pathname = usePathname() || "";
   const [color] = useQueryState(
     "fcolor",
     parseAsArrayOf(parseAsString).withDefault([]),
@@ -38,9 +33,11 @@ export function useFilterCount() {
   // Count active filters
   let count = 0;
 
-  // Count color filters
+  // Count color filters (?fcolor= and clean colour category URLs)
   if (color.length > 0) {
     count += color.length;
+  } else if (getActiveColorFromPathname(pathname)) {
+    count += 1;
   }
 
   // Count grape filters
@@ -62,9 +59,9 @@ export function useFilterCount() {
     count += regions.length;
   }
 
-  // Count collection filter (if not on "all" products).
-  // Producer-box slugs share /vin/[collection] but are not a filter.
-  if (isShopCollectionSegment(params.collection)) {
+  // Count producer collection filter only — wine category paths
+  // (e.g. /vin/rott-naturvin) share [collection] but are not producers.
+  if (isProducerCollectionSegment(params.collection)) {
     count += 1;
   }
 
@@ -78,18 +75,19 @@ export function useFilterCount() {
 export function useCategoryFilterCount() {
   const params = useParams<{ collection: string }>();
 
-  // Return 1 if a category is selected, 0 if not
-  return isShopCollectionSegment(params.collection) ? 1 : 0;
+  // Return 1 if a producer collection is selected, 0 if not
+  return isProducerCollectionSegment(params.collection) ? 1 : 0;
 }
 
 export function useColorFilterCount() {
+  const pathname = usePathname() || "";
   const [color] = useQueryState(
     "fcolor",
     parseAsArrayOf(parseAsString).withDefault([]),
   );
 
-  // Return the number of selected color filters
-  return color.length;
+  if (color.length > 0) return color.length;
+  return getActiveColorFromPathname(pathname) ? 1 : 0;
 }
 
 export function useGrapeFilterCount() {

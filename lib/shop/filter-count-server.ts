@@ -1,4 +1,17 @@
+import { getActiveColorFromPathname } from "@/lib/wine-categories";
+import { isProducerCollectionSegment } from "@/lib/shop/producer-collection-segment";
 import { parseWineRegionParam } from "@/lib/wine-regions";
+
+/** Path-based colour on /vin|/wine/[segment] (e.g. rott-naturvin → Red). */
+export function pathColorFilterActive(
+  collectionSegment: string | undefined,
+): boolean {
+  if (!collectionSegment) return false;
+  return Boolean(
+    getActiveColorFromPathname(`/vin/${collectionSegment}`) ||
+      getActiveColorFromPathname(`/wine/${collectionSegment}`),
+  );
+}
 
 /** Mirror of client useFilterCount — for SSR layout props only. */
 export function countActiveShopFilters(
@@ -13,13 +26,20 @@ export function countActiveShopFilters(
     return Array.isArray(value) ? value : [value];
   };
 
-  count += arrayParam("fcolor").length;
+  const fcolor = arrayParam("fcolor");
+  count += fcolor.length;
+  // Clean colour category URLs have no ?fcolor= — still count path colour.
+  if (fcolor.length === 0 && pathColorFilterActive(collectionSegment)) {
+    count += 1;
+  }
+
   count += arrayParam("fgrape").length;
   count += arrayParam("ffarming").length;
   count += arrayParam("fsource").length;
   count += parseWineRegionParam(searchParams.region).length;
 
-  if (collectionSegment) {
+  // Wine category paths (rott-naturvin, …) share [collection] but are not producers.
+  if (isProducerCollectionSegment(collectionSegment)) {
     count += 1;
   }
 

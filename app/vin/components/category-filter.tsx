@@ -11,6 +11,7 @@ import { ShopFilterCollapsible } from "./shop-filter-collapsible";
 import {
   ShopFilterOptionContent,
   shopFilterOptionClassName,
+  shopFilterSheetListClassName,
 } from "./shop-filter-option";
 
 interface CategoryFilterProps {
@@ -35,15 +36,35 @@ export function CategoryFilter({
   );
   const categoryCount = useCategoryFilterCount();
   const collapsible = mode !== "overlay";
+  const isSheet = mode === "drawer";
 
   const selectedProducers = producersParam
     ? producersParam.split(",").filter(Boolean)
     : [];
 
+  // Only real producer handles — wine category path segments (e.g.
+  // rott-naturvin) must not count as a selected producer.
+  const selectedTitles = collections
+    .filter((collection) => collection.handle !== "wine-boxes")
+    .filter(
+      (collection) =>
+        params.collection === collection.handle ||
+        selectedProducers.includes(collection.handle),
+    )
+    .map((collection) => collection.title);
+  // Prefer concrete selection length so colour/farming/grape pages never
+  // open Producenter with a phantom (1).
+  const producerCount = selectedTitles.length;
+  const selectionSummary = isSheet
+    ? selectedTitles.join(", ") || undefined
+    : undefined;
+
   const listContainerClass =
-    mode === "sidebar" || mode === "drawer"
-      ? "max-h-24 lg:max-h-28 xl:max-h-32 overflow-y-auto pr-1"
-      : "";
+    mode === "drawer"
+      ? shopFilterSheetListClassName()
+      : mode === "sidebar"
+        ? "max-h-24 lg:max-h-28 xl:max-h-32 overflow-y-auto pr-1"
+        : "";
 
   const seeAllButton =
     mode === "sidebar" && onSeeAll ? (
@@ -60,7 +81,9 @@ export function CategoryFilter({
   return (
     <ShopFilterCollapsible
       title={t("shop.producers")}
-      count={categoryCount}
+      count={isSheet ? producerCount : categoryCount}
+      selectionSummary={selectionSummary}
+      density={isSheet ? "sheet" : "default"}
       collapsible={collapsible}
       headerAction={seeAllButton}
       className={className}
@@ -76,7 +99,9 @@ export function CategoryFilter({
               return (
                 <li key={`${collection.handle}-${index}`}>
                   <Link
-                    className={shopFilterOptionClassName(isSelected)}
+                    className={shopFilterOptionClassName(isSelected, {
+                      density: isSheet ? "sheet" : "default",
+                    })}
                     href={paths.shopCollection(collection.handle)}
                     aria-pressed={isSelected}
                     aria-label={t("shop.filterByCategory", {

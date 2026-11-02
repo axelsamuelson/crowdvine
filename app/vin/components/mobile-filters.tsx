@@ -282,10 +282,10 @@ export function MobileFilters({
         </div>
       )}
 
-      {/* Filter drawer */}
+      {/* Filter drawer — groups scroll; footer (Show + Se vinlådor) stays pinned */}
       <Drawer open={filtersOpen} onOpenChange={setFiltersOpen}>
-        <DrawerContent className={cn("h-[80vh]", className)}>
-          <DrawerHeader className="flex items-center justify-between">
+        <DrawerContent className={cn("max-h-[90vh]", className)}>
+          <DrawerHeader className="flex shrink-0 items-center justify-between">
             <DrawerTitle>
               {t("shop.filters")}{" "}
               <span
@@ -315,8 +315,8 @@ export function MobileFilters({
               </Button>
             )}
           </DrawerHeader>
-          <div className="flex flex-1 flex-col overflow-y-auto px-4 pb-6">
-            <div className="flex-1 space-y-6">
+          <div className="min-h-0 flex-1 overflow-y-auto px-4">
+            <div className="flex flex-col gap-2 pb-2">
               {isProducerBoxesPage ? null : (
                 <>
                   <ColorFilter
@@ -325,6 +325,7 @@ export function MobileFilters({
                     activeColor={activeColorName ?? undefined}
                     onColorSelect={handleColorSelect}
                     getColorHref={resolveColorHref}
+                    showSwatchLabels
                   />
                   <RegionFilter mode="drawer" />
                   <FarmingFilter
@@ -347,22 +348,23 @@ export function MobileFilters({
                 <CompetitorFilter sources={priceSources} mode="drawer" />
               )}
             </div>
-            {isProducerBoxesPage ? null : (
-              <div className="mt-6 space-y-4 border-t border-border pt-4">
-                <Button
-                  type="button"
-                  className="h-11 w-full cursor-pointer px-5"
-                  onClick={() => setFiltersOpen(false)}
-                >
-                  {t("shop.showWines", { count: displayResultsCount })}
-                </Button>
-                <ProducerBoxesCta
-                  className="h-11 w-full px-5"
-                  ssrPathname={ssrPathname}
-                />
-              </div>
-            )}
           </div>
+          {isProducerBoxesPage ? null : (
+            <div className="shrink-0 space-y-3 border-t border-border px-4 pb-6 pt-4">
+              <Button
+                type="button"
+                className="h-11 w-full cursor-pointer rounded-full border-0 bg-[#0A0A0A] px-5 text-white shadow-none ring-0 ring-offset-0 hover:bg-[#0A0A0A]/90 hover:shadow-none focus-visible:ring-offset-0"
+                onClick={() => setFiltersOpen(false)}
+              >
+                {t("shop.showWines", { count: displayResultsCount })}
+              </Button>
+              <ProducerBoxesCta
+                variant="textLink"
+                analyticsSource="mobile_filter_sheet"
+                ssrPathname={ssrPathname}
+              />
+            </div>
+          )}
         </DrawerContent>
       </Drawer>
 

@@ -62,11 +62,19 @@ export function FarmingFilter({
 
   if (options.length === 0) return null;
 
+  const selectedValues = options.filter(
+    (value) => active.includes(value) || activeUiFarming === value,
+  );
   const selectedCount =
     active.length +
     (activeUiFarming && !active.includes(activeUiFarming) ? 1 : 0);
 
   const collapsible = mode !== "overlay";
+  const isSheet = mode === "drawer";
+  const selectionSummary = isSheet
+    ? selectedValues.map((value) => t(`product.farming.${value}`)).join(", ") ||
+      undefined
+    : undefined;
 
   const toggleFarming = (value: ShopFarmingUiFilterValue) => {
     if (onFarmingSelect) {
@@ -96,6 +104,8 @@ export function FarmingFilter({
     <ShopFilterCollapsible
       title={t("shop.farming")}
       count={selectedCount}
+      selectionSummary={selectionSummary}
+      density={isSheet ? "sheet" : "default"}
       collapsible={collapsible}
       // Keep Organic/Biodynamic <a href> in SSR HTML even when collapsed.
       forceMountContent={Boolean(getFarmingHref)}
@@ -107,7 +117,9 @@ export function FarmingFilter({
           const isOn = active.includes(value) || activeUiFarming === value;
           const label = t(`product.farming.${value}`);
           const href = getFarmingHref?.(value) ?? null;
-          const optionClassName = shopFilterOptionClassName(isOn);
+          const optionClassName = shopFilterOptionClassName(isOn, {
+            density: isSheet ? "sheet" : "default",
+          });
 
           if (href) {
             return (
