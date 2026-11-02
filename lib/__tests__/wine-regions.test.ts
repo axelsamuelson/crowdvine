@@ -51,12 +51,17 @@ describe("wine-regions config", () => {
   });
 
   it("uses the specified EN labels", () => {
-    expect(wineRegionBySlug("sud-ouest")?.labelEn).toBe("South West France");
+    expect(wineRegionBySlug("sud-ouest")?.labelEn).toBe("Southwest France");
     expect(wineRegionBySlug("bourgogne")?.labelEn).toBe("Burgundy");
     expect(wineRegionBySlug("rhone")?.labelEn).toBe("Rhône Valley");
     expect(wineRegionBySlug("languedoc")?.labelEn).toBe("Languedoc");
     expect(wineRegionLabel("Rhône", "en")).toBe("Rhône Valley");
-    expect(wineRegionLabel("sud-ouest", "sv")).toBe("Sydvästra Frankrike");
+    expect(wineRegionLabel("sud-ouest", "sv")).toBe(
+      "Sydvästra Frankrike (Sud-Ouest)",
+    );
+    expect(wineRegionPageH1(wineRegionBySlug("sud-ouest")!, "en")).toBe(
+      "Natural wine from Southwest France",
+    );
   });
 
   it("maps slug ↔ value", () => {
@@ -77,6 +82,7 @@ describe("mapToWineRegionValue / resolveWineRegionValue", () => {
     expect(mapToWineRegionValue("Rhone Valley")).toBe("Rhône");
     expect(mapToWineRegionValue("Burgundy")).toBe("Bourgogne");
     expect(mapToWineRegionValue("South West France")).toBe("Sud-Ouest");
+    expect(mapToWineRegionValue("Southwest France")).toBe("Sud-Ouest");
     expect(mapToWineRegionValue("Sud Ouest")).toBe("Sud-Ouest");
     expect(mapToWineRegionValue("Aveyron")).toBe("Sud-Ouest");
     expect(mapToWineRegionValue("Languedoc")).toBe("Languedoc");
@@ -238,15 +244,25 @@ describe("Margaux region landing copy", () => {
     );
   });
 
-  it("ends meta descriptions with Budbee and never says hela Sverige", () => {
+  it("SV meta ends with Budbee; EN meta omits Budbee; never hela Sverige", () => {
     for (const region of WINE_REGIONS) {
       const sv = wineRegionPageMetaDescription(region, "sv");
       const en = wineRegionPageMetaDescription(region, "en");
       expect(sv.endsWith("Hemleverans med Budbee.")).toBe(true);
-      expect(en.endsWith("Home delivery with Budbee.")).toBe(true);
+      expect(en.endsWith("at PACT.")).toBe(true);
+      expect(en.toLowerCase()).not.toContain("budbee");
+      expect(en.toLowerCase()).not.toContain("home delivery");
       expect(sv.toLowerCase()).not.toContain("hela sverige");
       expect(en.toLowerCase()).not.toContain("hela sverige");
       expect(en.toLowerCase()).not.toContain("all of sweden");
+    }
+  });
+
+  it("EN intros omit Budbee and keep wholesaler/pallet wording", () => {
+    for (const region of WINE_REGIONS) {
+      const en = getWineRegionContent(region.slug, "en").intro ?? "";
+      expect(en.toLowerCase()).not.toContain("budbee");
+      expect(en.toLowerCase()).not.toContain("home delivery");
     }
   });
 

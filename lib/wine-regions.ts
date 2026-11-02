@@ -77,8 +77,8 @@ export const WINE_REGIONS = [
   {
     slug: "sud-ouest",
     value: "Sud-Ouest",
-    labelSv: "Sydvästra Frankrike",
-    labelEn: "South West France",
+    labelSv: "Sydvästra Frankrike (Sud-Ouest)",
+    labelEn: "Southwest France",
     h1EnArticle: null,
   },
 ] as const;
@@ -125,6 +125,7 @@ const REGION_SYNONYMS: Record<string, WineRegionValue> = {
   "Rhone Valley": "Rhône",
   Burgundy: "Bourgogne",
   "South West France": "Sud-Ouest",
+  "Southwest France": "Sud-Ouest",
   "Sud Ouest": "Sud-Ouest",
   Aveyron: "Sud-Ouest",
 };
@@ -219,7 +220,7 @@ export function wineRegionPageTitle(region: WineRegion, locale: AppLocale): stri
   return `${region.labelEn} Natural Wine – Producers & Styles | PACT`;
 }
 
-/** Meta description — ends with Budbee; never "hela Sverige". */
+/** Meta description — SV ends with Budbee; EN does not. Never "hela Sverige". */
 export function wineRegionPageMetaDescription(
   region: WineRegion,
   locale: AppLocale,
@@ -227,7 +228,7 @@ export function wineRegionPageMetaDescription(
   if (locale === "sv") {
     return `Naturvin från ${region.labelSv} – producenter och stil hos PACT. Hemleverans med Budbee.`;
   }
-  return `${region.labelEn} natural wine – producers and styles at PACT. Home delivery with Budbee.`;
+  return `${region.labelEn} natural wine – producers and styles at PACT.`;
 }
 
 /**

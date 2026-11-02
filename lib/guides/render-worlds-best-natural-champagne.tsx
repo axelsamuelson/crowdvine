@@ -107,8 +107,8 @@ export async function renderWorldsBestNaturalChampagnePage(locale: AppLocale) {
             href: champagneRegionHref,
             label:
               locale === "sv"
-                ? "Shoppa viner från Champagne →"
-                : "Shop wines from Champagne →",
+                ? "Naturvin från Champagne – producenter och viner"
+                : "Natural wine from Champagne – producers",
           },
         ]
       : []),

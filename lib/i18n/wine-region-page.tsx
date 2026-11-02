@@ -44,6 +44,10 @@ import {
   stylesFromProducts,
 } from "@/lib/wine-region-page-facts";
 import {
+  getWineRegionGuideHref,
+  getWineRegionGuideLabel,
+} from "@/lib/wine-region-guides";
+import {
   WINE_REGION_INDEX_MIN_LIVE,
   WINE_REGION_SLUGS,
   isWineRegionSlug,
@@ -123,7 +127,7 @@ async function loadRegionProducts(
 function regionUiCopy(locale: AppLocale) {
   if (locale === "sv") {
     return {
-      regionsCrumb: "Regioner",
+      winesCrumb: "Viner",
       filterInShop: "Filtrera i butiken",
       showAll: (n: number) => `Visa alla ${n}`,
       location: "Läge",
@@ -138,7 +142,7 @@ function regionUiCopy(locale: AppLocale) {
     };
   }
   return {
-    regionsCrumb: "Regions",
+    winesCrumb: "Wines",
     filterInShop: "Filter in the shop",
     showAll: (n: number) => `Show all ${n}`,
     location: "Location",
@@ -227,6 +231,8 @@ export async function renderWineRegionPage(options: {
   const grapeList = grapesFromProducts(products);
   const grapeLabel = formatGrapeListLabel(grapeList, locale);
   const styles = stylesFromProducts(products, locale);
+  const guideHref = getWineRegionGuideHref(slug, locale);
+  const guideLabel = getWineRegionGuideLabel(slug, locale);
 
   if (grapeList.typoSuspects.length > 0) {
     console.info(
@@ -244,6 +250,8 @@ export async function renderWineRegionPage(options: {
   const shopLinkLabel = gridTruncated
     ? ui.showAll(products.length)
     : ui.filterInShop;
+  /** EN: names only (no kr PLP grid / shop filter link). SV keeps priced grid. */
+  const showPricedWineGrid = locale === "sv";
 
   const characteristicsHeading = content.characteristicsHeading?.trim() || "";
   const characteristicsBody = content.characteristicsBody?.trim() || "";
@@ -271,7 +279,7 @@ export async function renderWineRegionPage(options: {
       {
         "@type": "ListItem",
         position: 2,
-        name: ui.regionsCrumb,
+        name: ui.winesCrumb,
         item: shopAbsolute,
       },
       {
@@ -318,7 +326,7 @@ export async function renderWineRegionPage(options: {
             <BreadcrumbList>
               <BreadcrumbItem>
                 <BreadcrumbLink asChild>
-                  <Link href={shopPath}>{ui.regionsCrumb}</Link>
+                  <Link href={shopPath}>{ui.winesCrumb}</Link>
                 </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
@@ -338,6 +346,16 @@ export async function renderWineRegionPage(options: {
               {intro}
             </p>
           ) : null}
+          {guideHref && guideLabel ? (
+            <p className="mt-3 max-w-[60ch] text-[15px]">
+              <Link
+                href={guideHref}
+                className="underline underline-offset-4 hover:text-foreground"
+              >
+                {guideLabel}
+              </Link>
+            </p>
+          ) : null}
         </section>
 
         <section className="px-5 pb-4 md:px-10">
@@ -347,19 +365,41 @@ export async function renderWineRegionPage(options: {
             </h2>
             <div className="flex items-baseline gap-3 text-[13px] text-muted-foreground">
               <span>{ui.wineCount(products.length)}</span>
-              <Link
-                href={shopHref}
-                className="underline underline-offset-4 hover:text-foreground"
-              >
-                {shopLinkLabel}
-              </Link>
+              {showPricedWineGrid ? (
+                <Link
+                  href={shopHref}
+                  className="underline underline-offset-4 hover:text-foreground"
+                >
+                  {shopLinkLabel}
+                </Link>
+              ) : null}
             </div>
           </div>
         </section>
-        <div className="pb-12">
-          {/* Static PLP grid (ServerListPrice) — no ProductsProvider on region routes */}
-          <ProductListStaticGrid products={gridProducts} locale={locale} />
-        </div>
+        {showPricedWineGrid ? (
+          <div className="pb-12">
+            {/* Static PLP grid (ServerListPrice) — no ProductsProvider on region routes */}
+            <ProductListStaticGrid products={gridProducts} locale={locale} />
+          </div>
+        ) : (
+          <ul className="space-y-2 px-5 pb-12 md:px-10">
+            {products.map((product) => (
+              <li key={product.id} className="border-t border-zinc-200 py-2.5">
+                <Link
+                  href={`${productPrefix}/${product.handle}`}
+                  className="text-[15px] font-medium underline-offset-4 hover:underline"
+                >
+                  {product.title}
+                </Link>
+                {product.producerName ? (
+                  <span className="mt-0.5 block text-[13px] text-muted-foreground">
+                    {product.producerName}
+                  </span>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        )}
 
         {showCharacteristics || showFacts ? (
           <section

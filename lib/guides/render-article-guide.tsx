@@ -249,8 +249,8 @@ export async function renderArticleGuidePage(
         href: regionHref,
         label:
           locale === "sv"
-            ? `Shoppa viner från ${regionName} →`
-            : `Shop wines from ${regionName} →`,
+            ? `Naturvin från ${regionName} – producenter och viner`
+            : `Natural wine from ${regionName} – producers`,
       });
     }
   }
