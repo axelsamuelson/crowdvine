@@ -3,6 +3,7 @@
 import { supabaseServer } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { revalidatePath } from "next/cache";
+import { revalidateWineStorefrontCaches } from "@/lib/crowdvine/revalidate-wine-storefront";
 import { calculateSystembolagetPrice } from "@/lib/systembolaget-pricing";
 import {
   buildWineArrayJsonb,
@@ -915,6 +916,9 @@ export async function createWine(data: CreateWineData, locale: WineLocale = "sv"
   revalidatePath("/admin/wines");
   revalidatePath("/producer/wines");
   revalidatePath("/producer");
+  revalidateWineStorefrontCaches([wine.handle], {
+    producerNames: [producer?.name],
+  });
   return wineWithProducer;
 }
 
@@ -1263,6 +1267,9 @@ export async function updateWine(
   revalidatePath(`/admin/wines/${id}`);
   revalidatePath("/producer/wines");
   revalidatePath("/producer");
+  revalidateWineStorefrontCaches([wine.handle], {
+    producerNames: [producer?.name],
+  });
   return wineWithProducer;
 }
 
