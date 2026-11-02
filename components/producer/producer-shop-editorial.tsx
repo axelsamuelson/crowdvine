@@ -37,14 +37,22 @@ export function producerShopEditorialBio(
 function producerShopSpecParts(
   collection: Pick<
     CollectionData,
-    "region" | "certification" | "subregion" | "foundedYear"
+    | "region"
+    | "certification"
+    | "certificationVerifiedUrl"
+    | "certificationInConversion"
+    | "subregion"
+    | "foundedYear"
   >,
   locale: AppLocale,
 ): string[] {
   const parts: string[] = [];
   if (collection.region?.trim()) parts.push(collection.region.trim());
   if (collection.subregion?.trim()) parts.push(collection.subregion.trim());
-  const cert = formatProducerCertification(collection.certification, locale);
+  const cert = formatProducerCertification(collection.certification, locale, {
+    certificationVerifiedUrl: collection.certificationVerifiedUrl,
+    certificationInConversion: collection.certificationInConversion,
+  });
   if (cert) parts.push(cert);
   if (collection.foundedYear != null && collection.foundedYear > 0) {
     parts.push(String(collection.foundedYear));

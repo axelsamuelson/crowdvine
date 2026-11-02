@@ -40,6 +40,10 @@ import {
   instagramProfileUrl,
   websiteDisplayLabel,
 } from "@/lib/producer-links";
+import {
+  formatProducerCertification,
+  formatProducerCertificationLabels,
+} from "@/lib/product/wine-enrichment";
 import { categoryPageTitle } from "@/lib/seo/category-page-title";
 import {
   defaultOpenGraphImages,
@@ -62,6 +66,8 @@ type ProducerPayload = {
   country: string | null;
   founded_year: number | null;
   certification: string | null;
+  certification_verified_url: string | null;
+  certification_in_conversion: boolean;
   contact_name: string | null;
   website_url: string | null;
   instagram_handle: string | null;
@@ -113,25 +119,16 @@ async function winesVisibleOnRequestHost<T extends { id: string }>(
   return wines.filter((wine) => visibleIds.has(wine.id));
 }
 
-function formatCertification(
-  cert: string | null,
-  locale: AppLocale,
-): string | null {
-  if (!cert) return null;
-  const map: Record<string, Record<AppLocale, string>> = {
-    organic_certified: {
-      sv: "Ekologisk certifierad",
-      en: "Organic Certified",
-    },
-    biodynamic_certified: {
-      sv: "Biodynamisk",
-      en: "Biodynamic Certified",
-    },
-    natural: { sv: "Naturvin", en: "Natural" },
-    sustainable: { sv: "Hållbar odling", en: "Sustainable" },
-    conventional: { sv: "Konventionell", en: "Conventional" },
+function producerCertificationOptions(
+  producer: Pick<
+    ProducerPayload,
+    "certification_verified_url" | "certification_in_conversion"
+  >,
+) {
+  return {
+    certificationVerifiedUrl: producer.certification_verified_url,
+    certificationInConversion: producer.certification_in_conversion,
   };
-  return map[cert]?.[locale] ?? cert;
 }
 
 function heroMetaParts(
@@ -141,7 +138,11 @@ function heroMetaParts(
   const parts: string[] = [];
   if (producer.region?.trim()) parts.push(producer.region.trim());
   if (producer.subregion?.trim()) parts.push(producer.subregion.trim());
-  const cert = formatCertification(producer.certification, locale);
+  const cert = formatProducerCertification(
+    producer.certification,
+    locale,
+    producerCertificationOptions(producer),
+  );
   if (cert) parts.push(cert);
   return parts;
 }
@@ -294,17 +295,24 @@ export async function renderProducerPublicPage(options: {
       ? String(producer.founded_year)
       : null;
 
+  const certificationEntries = formatProducerCertificationLabels(
+    producer.certification,
+    locale,
+    producerCertificationOptions(producer),
+  ).map((label, index) => ({
+    id: `certification-${index}`,
+    label: locale === "sv" ? "Certifiering" : "Certification",
+    value: label.text,
+    href: label.href ?? undefined,
+  }));
+
   const specEntries = [
     {
       id: "region",
       label: locale === "sv" ? "Region" : "Region",
       value: producer.region,
     },
-    {
-      id: "certification",
-      label: locale === "sv" ? "Certifiering" : "Certification",
-      value: formatCertification(producer.certification, locale),
-    },
+    ...certificationEntries,
     { id: "subregion", label: "Subregion", value: producer.subregion },
     {
       id: "founded",
@@ -339,7 +347,13 @@ export async function renderProducerPublicPage(options: {
   ].filter((entry): entry is NonNullable<typeof entry> => entry !== null);
 
   const factEntries = [
-    ...specEntries.map((entry) => ({ ...entry, href: undefined })),
+    ...specEntries.map((entry) => ({
+      ...entry,
+      href:
+        "href" in entry && typeof entry.href === "string"
+          ? entry.href
+          : undefined,
+    })),
     ...linkEntries,
   ];
 

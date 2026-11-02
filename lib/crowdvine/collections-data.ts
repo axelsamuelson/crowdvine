@@ -12,6 +12,10 @@ export interface CollectionData {
   /** Raw JSONB from producers.short_description — locale resolved at render. */
   shortDescription?: Record<string, string> | string | null;
   certification?: string | null;
+  /** Organic registry URL; absent → according-to-producer organic wording. */
+  certificationVerifiedUrl?: string | null;
+  /** Registry proves conversion (not full organic yet). */
+  certificationInConversion?: boolean | null;
   subregion?: string | null;
   foundedYear?: number | null;
   /** Producer region (also embedded in legacy description). */
@@ -19,7 +23,7 @@ export interface CollectionData {
 }
 
 const PRODUCER_SELECT =
-  "id, name, region, short_description, certification, subregion, founded_year";
+  "id, name, region, short_description, certification, certification_verified_url, certification_in_conversion, subregion, founded_year";
 
 /**
  * Fetch collections (producers + wine boxes) directly from DB.
@@ -34,10 +38,17 @@ export async function fetchCollectionsData(): Promise<CollectionData[]> {
       .select(PRODUCER_SELECT)
       .order("name")
       .eq("is_live", true);
-    if (error && /is_live|column.*does not exist/i.test(error.message)) {
+    if (error && /is_live|column.*does not exist|could not find.*column/i.test(error.message)) {
+      let retrySelect = PRODUCER_SELECT;
+      if (/certification_in_conversion/i.test(error.message)) {
+        retrySelect = retrySelect.replace(", certification_in_conversion", "");
+      }
+      if (/certification_verified_url/i.test(error.message)) {
+        retrySelect = retrySelect.replace(", certification_verified_url", "");
+      }
       const fallback = await sb
         .from("producers")
-        .select(PRODUCER_SELECT)
+        .select(retrySelect)
         .order("name");
       if (fallback.error) throw fallback.error;
       return buildCollectionsFromProducers(fallback.data ?? []);
@@ -63,6 +74,8 @@ function buildCollectionsFromProducers(producers: any[]): CollectionData[] {
     description: `Wines from ${producer.name} in ${producer.region}`,
     shortDescription: producer.short_description ?? null,
     certification: producer.certification ?? null,
+    certificationVerifiedUrl: producer.certification_verified_url ?? null,
+    certificationInConversion: producer.certification_in_conversion === true,
     subregion: producer.subregion ?? null,
     foundedYear: producer.founded_year ?? null,
     updatedAt: new Date().toISOString(),
