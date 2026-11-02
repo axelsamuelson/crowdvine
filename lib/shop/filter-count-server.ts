@@ -1,3 +1,4 @@
+import { isProducerCollectionSegment } from "@/lib/shop/producer-collection-segment";
 import { parseWineRegionParam } from "@/lib/wine-regions";
 
 /** Mirror of client useFilterCount — for SSR layout props only. */
@@ -19,7 +20,8 @@ export function countActiveShopFilters(
   count += arrayParam("fsource").length;
   count += parseWineRegionParam(searchParams.region).length;
 
-  if (collectionSegment) {
+  // Wine category paths (rott-naturvin, …) share [collection] but are not producers.
+  if (isProducerCollectionSegment(collectionSegment)) {
     count += 1;
   }
 

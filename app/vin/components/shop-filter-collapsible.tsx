@@ -92,18 +92,20 @@ export function ShopFilterCollapsible({
             aria-hidden
           />
           <span className="truncate">{title}</span>
-          {!open && summary ? (
-            <>
-              <span
-                aria-hidden
-                className="shrink-0 font-normal text-foreground/50"
-              >
-                ·
-              </span>
-              <span className="min-w-0 truncate font-normal text-foreground/60">
-                {summary}
-              </span>
-            </>
+          {isSheet ? (
+            summary ? (
+              <>
+                <span
+                  aria-hidden
+                  className="shrink-0 font-normal text-foreground/50"
+                >
+                  ·
+                </span>
+                <span className="min-w-0 truncate font-normal text-foreground/60">
+                  {summary}
+                </span>
+              </>
+            ) : null
           ) : count > 0 ? (
             <span className="shrink-0 text-foreground/50">({count})</span>
           ) : null}

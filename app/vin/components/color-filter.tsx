@@ -77,15 +77,26 @@ export function ColorFilter({
   // Mobile filter sheet: static block so gap-2 spacing matches other groups
   // (layout animations leave uneven empty space above Region).
   if (showSwatchLabels) {
+    const colorSummary = selectedColors
+      .map((c) => formatWineColorDisplay(t, c))
+      .join(", ");
     return (
       <div className={cn("rounded-md bg-muted px-2.5 py-2", className)}>
-        <div className="mb-2 flex items-baseline justify-between gap-2">
-          <h3 className="text-sm font-semibold">
-            {t("shop.color")}{" "}
-            {colorCount > 0 ? (
-              <span className="text-foreground/50">({colorCount})</span>
-            ) : null}
-          </h3>
+        <div className="mb-2 flex min-w-0 items-baseline gap-1.5">
+          <h3 className="truncate text-sm font-semibold">{t("shop.color")}</h3>
+          {colorSummary ? (
+            <>
+              <span
+                aria-hidden
+                className="shrink-0 text-sm font-normal text-foreground/50"
+              >
+                ·
+              </span>
+              <span className="min-w-0 truncate text-sm font-normal text-foreground/60">
+                {colorSummary}
+              </span>
+            </>
+          ) : null}
         </div>
         {!colorsReady ? (
           <ColorSwatchSkeleton count={4} />

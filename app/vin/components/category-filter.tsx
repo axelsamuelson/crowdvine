@@ -41,6 +41,8 @@ export function CategoryFilter({
     ? producersParam.split(",").filter(Boolean)
     : [];
 
+  // Only real producer handles — wine category path segments (e.g.
+  // rott-naturvin) must not count as a selected producer.
   const selectedTitles = collections
     .filter((collection) => collection.handle !== "wine-boxes")
     .filter(
@@ -49,6 +51,9 @@ export function CategoryFilter({
         selectedProducers.includes(collection.handle),
     )
     .map((collection) => collection.title);
+  // Prefer concrete selection length so colour/farming/grape pages never
+  // open Producenter with a phantom (1).
+  const producerCount = selectedTitles.length;
   const selectionSummary = isSheet
     ? selectedTitles.join(", ") || undefined
     : undefined;
@@ -73,7 +78,7 @@ export function CategoryFilter({
   return (
     <ShopFilterCollapsible
       title={t("shop.producers")}
-      count={categoryCount}
+      count={isSheet ? producerCount : categoryCount}
       selectionSummary={selectionSummary}
       density={isSheet ? "sheet" : "default"}
       collapsible={collapsible}

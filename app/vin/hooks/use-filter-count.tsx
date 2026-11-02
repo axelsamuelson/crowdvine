@@ -2,14 +2,7 @@
 
 import { useQueryState, parseAsArrayOf, parseAsString } from "nuqs";
 import { useParams } from "next/navigation";
-
-/** Keep in sync with PRODUCER_BOXES_PATH. Not imported from config (that module is server-only). */
-const PRODUCER_BOX_SLUGS = new Set(["naturvin-lada", "natural-wine-box"]);
-
-function isShopCollectionSegment(segment: string | undefined): boolean {
-  if (!segment) return false;
-  return !PRODUCER_BOX_SLUGS.has(segment);
-}
+import { isProducerCollectionSegment } from "@/lib/shop/producer-collection-segment";
 
 export function useFilterCount() {
   const params = useParams<{ collection: string }>();
@@ -62,9 +55,9 @@ export function useFilterCount() {
     count += regions.length;
   }
 
-  // Count collection filter (if not on "all" products).
-  // Producer-box slugs share /vin/[collection] but are not a filter.
-  if (isShopCollectionSegment(params.collection)) {
+  // Count producer collection filter only — wine category paths
+  // (e.g. /vin/rott-naturvin) share [collection] but are not producers.
+  if (isProducerCollectionSegment(params.collection)) {
     count += 1;
   }
 
@@ -78,8 +71,8 @@ export function useFilterCount() {
 export function useCategoryFilterCount() {
   const params = useParams<{ collection: string }>();
 
-  // Return 1 if a category is selected, 0 if not
-  return isShopCollectionSegment(params.collection) ? 1 : 0;
+  // Return 1 if a producer collection is selected, 0 if not
+  return isProducerCollectionSegment(params.collection) ? 1 : 0;
 }
 
 export function useColorFilterCount() {
