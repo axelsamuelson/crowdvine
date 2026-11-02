@@ -15,8 +15,10 @@ import {
 } from "@/lib/guides/articles/natural-vs-organic-vs-biodynamic-wine";
 import {
   ARTICLE_GUIDE_BODY_CLASS,
+  ARTICLE_GUIDE_H1_CLASS,
   ARTICLE_GUIDE_H2_CLASS,
   ARTICLE_GUIDE_H3_CLASS,
+  ARTICLE_GUIDE_QUOTE_CLASS,
   renderArticleRichText,
 } from "@/lib/guides/article-guide-shell";
 import {
@@ -173,7 +175,7 @@ export async function renderNaturalVsOrganicGuidePage() {
         />
 
         <div className="max-w-[68ch]">
-          <h1 className="mt-6 font-serif text-3xl font-normal tracking-tight md:text-4xl">
+          <h1 className={ARTICLE_GUIDE_H1_CLASS}>
             Natural vs Organic vs Biodynamic Wine
           </h1>
 
@@ -190,9 +192,11 @@ export async function renderNaturalVsOrganicGuidePage() {
             )}
           </p>
 
-          <blockquote className="mt-8 border-l-2 border-foreground/20 pl-5 font-serif text-xl leading-relaxed text-foreground">
+          <blockquote
+            className={`mt-8 border-l-2 border-foreground/20 pl-5 ${ARTICLE_GUIDE_QUOTE_CLASS}`}
+          >
             <p>
-              <strong className="font-serif font-normal">In short:</strong>{" "}
+              <strong className="font-medium text-foreground">In short:</strong>{" "}
               Organic is about how the grapes are farmed. Biodynamic is organic
               plus additional farming practices and, with certifiers like
               Demeter, stricter cellar rules. Natural is about what happens in
