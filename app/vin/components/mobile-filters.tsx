@@ -282,9 +282,9 @@ export function MobileFilters({
         </div>
       )}
 
-      {/* Filter drawer */}
+      {/* Filter drawer — height shrinks to content; scrolls only when needed */}
       <Drawer open={filtersOpen} onOpenChange={setFiltersOpen}>
-        <DrawerContent className={cn("h-[80vh]", className)}>
+        <DrawerContent className={cn("max-h-[90vh]", className)}>
           <DrawerHeader className="flex items-center justify-between">
             <DrawerTitle>
               {t("shop.filters")}{" "}
@@ -315,8 +315,8 @@ export function MobileFilters({
               </Button>
             )}
           </DrawerHeader>
-          <div className="flex flex-1 flex-col overflow-y-auto px-4 pb-6">
-            <div className="flex-1 space-y-6">
+          <div className="overflow-y-auto px-4 pb-6">
+            <div className="flex flex-col gap-2">
               {isProducerBoxesPage ? null : (
                 <>
                   <ColorFilter
@@ -325,6 +325,7 @@ export function MobileFilters({
                     activeColor={activeColorName ?? undefined}
                     onColorSelect={handleColorSelect}
                     getColorHref={resolveColorHref}
+                    showSwatchLabels
                   />
                   <RegionFilter mode="drawer" />
                   <FarmingFilter
@@ -348,16 +349,17 @@ export function MobileFilters({
               )}
             </div>
             {isProducerBoxesPage ? null : (
-              <div className="mt-6 space-y-4 border-t border-border pt-4">
+              <div className="mt-4 space-y-3 border-t border-border pt-4">
                 <Button
                   type="button"
-                  className="h-11 w-full cursor-pointer px-5"
+                  className="h-11 w-full cursor-pointer rounded-full border-0 bg-[#0A0A0A] px-5 text-white shadow-none ring-0 ring-offset-0 hover:bg-[#0A0A0A]/90 hover:shadow-none focus-visible:ring-offset-0"
                   onClick={() => setFiltersOpen(false)}
                 >
                   {t("shop.showWines", { count: displayResultsCount })}
                 </Button>
                 <ProducerBoxesCta
-                  className="h-11 w-full px-5"
+                  variant="textLink"
+                  analyticsSource="mobile_filter_sheet"
                   ssrPathname={ssrPathname}
                 />
               </div>

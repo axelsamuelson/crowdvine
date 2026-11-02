@@ -12,6 +12,11 @@ import { cn } from "@/lib/utils";
 interface ShopFilterCollapsibleProps {
   title: ReactNode;
   count?: number;
+  /**
+   * When collapsed with selections, show `Title · Loire, Alsace` instead of
+   * `Title (2)`. Desktop leaves this unset so behaviour is unchanged.
+   */
+  selectionSummary?: string;
   /** When set, overrides open-if-count behaviour for the initial state. */
   defaultOpen?: boolean;
   headerAction?: ReactNode;
@@ -21,6 +26,11 @@ interface ShopFilterCollapsibleProps {
    * in SSR HTML). Visual closed state is unchanged.
    */
   forceMountContent?: boolean;
+  /**
+   * `sheet` = mobile filter drawer: ~44px collapsed rows.
+   * Desktop keeps the default density.
+   */
+  density?: "default" | "sheet";
   className?: string;
   children: ReactNode;
 }
@@ -28,14 +38,21 @@ interface ShopFilterCollapsibleProps {
 export function ShopFilterCollapsible({
   title,
   count = 0,
+  selectionSummary,
   defaultOpen,
   headerAction,
   collapsible = true,
   forceMountContent = false,
+  density = "default",
   className,
   children,
 }: ShopFilterCollapsibleProps) {
   const [open, setOpen] = useState(defaultOpen ?? count > 0);
+  const isSheet = density === "sheet";
+  const summary =
+    selectionSummary && selectionSummary.trim().length > 0
+      ? selectionSummary.trim()
+      : undefined;
 
   if (!collapsible) {
     return (
@@ -54,9 +71,18 @@ export function ShopFilterCollapsible({
     <Collapsible
       open={open}
       onOpenChange={setOpen}
-      className={cn("rounded-md bg-muted px-2.5 py-2", className)}
+      className={cn(
+        "rounded-md bg-muted px-2.5",
+        isSheet ? "py-0" : "py-2",
+        className,
+      )}
     >
-      <div className="flex items-center justify-between gap-2">
+      <div
+        className={cn(
+          "flex items-center justify-between gap-2",
+          isSheet && "min-h-[44px]",
+        )}
+      >
         <CollapsibleTrigger className="group flex min-w-0 flex-1 items-center gap-1.5 text-left text-sm font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm">
           <ChevronDown
             className={cn(
@@ -66,7 +92,19 @@ export function ShopFilterCollapsible({
             aria-hidden
           />
           <span className="truncate">{title}</span>
-          {count > 0 ? (
+          {!open && summary ? (
+            <>
+              <span
+                aria-hidden
+                className="shrink-0 font-normal text-foreground/50"
+              >
+                ·
+              </span>
+              <span className="min-w-0 truncate font-normal text-foreground/60">
+                {summary}
+              </span>
+            </>
+          ) : count > 0 ? (
             <span className="shrink-0 text-foreground/50">({count})</span>
           ) : null}
         </CollapsibleTrigger>

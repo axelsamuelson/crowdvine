@@ -68,6 +68,8 @@ const EVENT_TYPE_LABELS_SV: Readonly<Record<string, string>> = {
   price_viewed: "Pris visat",
   pallet_status_viewed: "Pallstatus visad",
   product_list_viewed: "Produktlista",
+  producer_boxes_cta_clicked: "Vinlådor-CTA klickad",
+  filter_used: "Filter använt",
   signup_started: "Inloggningssteg visat (e-post)",
   signup_completed: "Inloggning via e-post klar",
   signup_abandoned: "Inloggningssteg övergivet",

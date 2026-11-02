@@ -67,9 +67,8 @@ export function RegionFilter({
 
   if (options.length === 0) return null;
 
-  const selectedCount = active.filter((slug) =>
-    options.some((r) => r.slug === slug),
-  ).length;
+  const selectedRegions = options.filter((r) => active.includes(r.slug));
+  const selectedCount = selectedRegions.length;
 
   const toggleRegion = (slug: WineRegionSlug) => {
     const next = active.includes(slug)
@@ -83,6 +82,10 @@ export function RegionFilter({
     locale === "en" ? region.labelEn : region.labelSv;
 
   const collapsible = mode !== "overlay";
+  const isSheet = mode === "drawer";
+  const selectionSummary = isSheet
+    ? selectedRegions.map(labelFor).join(", ") || undefined
+    : undefined;
   const seeAllButton =
     mode === "sidebar" && onSeeAll ? (
       <button
@@ -99,6 +102,8 @@ export function RegionFilter({
     <ShopFilterCollapsible
       title={t("shop.region")}
       count={selectedCount}
+      selectionSummary={selectionSummary}
+      density={isSheet ? "sheet" : "default"}
       collapsible={collapsible}
       headerAction={seeAllButton}
       className={className}

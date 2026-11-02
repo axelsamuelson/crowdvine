@@ -173,6 +173,13 @@ export const TRACKED_USER_EVENTS_CATALOG: TrackedEventCatalogEntry[] = [
     sources: ["client"],
   },
   {
+    eventType: "producer_boxes_cta_clicked",
+    category: "navigation",
+    description:
+      "Click on Se vinlådor / See wine boxes CTA. Metadata: source (e.g. mobile_filter_sheet).",
+    sources: ["client"],
+  },
+  {
     eventType: "collection_viewed",
     category: "navigation",
     description: "User viewed a specific collection PLP (non-root handle).",

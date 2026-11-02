@@ -18,6 +18,8 @@ interface ColorFilterProps {
   activeColor?: string;
   /** Clean category URL for each color when shop filter navigation applies. */
   getColorHref?: (colorName: string) => string | null;
+  /** Mobile filter sheet only: labels under swatches. */
+  showSwatchLabels?: boolean;
 }
 
 function getColorName(color: Color | [Color, Color]) {
@@ -35,6 +37,7 @@ export function ColorFilter({
   showAllColors,
   activeColor,
   getColorHref,
+  showSwatchLabels = false,
 }: ColorFilterProps) {
   const { t } = useTranslations();
   const { availableColors, selectedColors, toggleColor } =
@@ -104,6 +107,7 @@ export function ColorFilter({
                   ? (color) => getColorHref(getColorName(color))
                   : undefined
               }
+              showLabels={showSwatchLabels}
             />
           )}
         </motion.div>

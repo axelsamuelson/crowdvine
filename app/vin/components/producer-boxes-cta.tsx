@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type MouseEvent } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -13,12 +13,29 @@ function isRootShopPath(pathname: string): boolean {
   return pathname === "/vin" || pathname === "/wine";
 }
 
+function trackProducerBoxesCtaClick(source: string) {
+  void import("@/lib/analytics/event-tracker").then(({ AnalyticsTracker }) =>
+    AnalyticsTracker.trackEvent({
+      eventType: "producer_boxes_cta_clicked",
+      eventCategory: "navigation",
+      metadata: { source },
+      keepalive: true,
+    }),
+  );
+}
+
 export function ProducerBoxesCta({
   className,
   ssrPathname,
+  variant = "button",
+  analyticsSource,
 }: {
   className?: string;
   ssrPathname: string;
+  /** `textLink` = discreet text under the mobile filter primary CTA. */
+  variant?: "button" | "textLink";
+  /** Analytics metadata.source (e.g. mobile_filter_sheet). */
+  analyticsSource?: string;
 }) {
   const pathname = usePathname();
   const { t, context } = useTranslations();
@@ -37,6 +54,32 @@ export function ProducerBoxesCta({
 
   if (isDirtywineSite) return null;
 
+  const onNavigateClick = (event: MouseEvent<HTMLAnchorElement>) => {
+    if (analyticsSource) {
+      trackProducerBoxesCtaClick(analyticsSource);
+    }
+    if (mounted) return;
+    event.preventDefault();
+    window.location.assign(href);
+  };
+
+  if (variant === "textLink") {
+    return (
+      <div className={isRootShop ? "w-full shrink-0" : "hidden"}>
+        <Link
+          href={href}
+          onClick={onNavigateClick}
+          className={cn(
+            "block w-full cursor-pointer text-center text-sm font-medium text-foreground/55 underline underline-offset-4 transition-colors hover:text-foreground/80",
+            className,
+          )}
+        >
+          {t("shop.producerBoxesCta")}
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <div className={isRootShop ? "w-full shrink-0" : "hidden"}>
       <Button
@@ -46,14 +89,7 @@ export function ProducerBoxesCta({
           className,
         )}
       >
-        <Link
-          href={href}
-          onClick={(event) => {
-            if (mounted) return;
-            event.preventDefault();
-            window.location.assign(href);
-          }}
-        >
+        <Link href={href} onClick={onNavigateClick}>
           {t("shop.producerBoxesCta")}
         </Link>
       </Button>

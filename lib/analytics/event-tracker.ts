@@ -39,6 +39,7 @@ export type EventType =
   | "price_viewed"
   | "pallet_status_viewed"
   | "filter_used"
+  | "producer_boxes_cta_clicked"
   | "collection_viewed"
   | "invite_shop_viewed"
   // Search

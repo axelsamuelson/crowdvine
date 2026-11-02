@@ -38,6 +38,14 @@ export function GrapesFilter({
 
   const count = active.length + (activeGrape ? 1 : 0);
   const collapsible = mode !== "overlay";
+  const isSheet = mode === "drawer";
+  const selectedLabels = [
+    ...active,
+    ...(activeGrape && !active.includes(activeGrape) ? [activeGrape] : []),
+  ];
+  const selectionSummary = isSheet
+    ? selectedLabels.join(", ") || undefined
+    : undefined;
 
   const listContainerClass =
     mode === "overlay"
@@ -62,6 +70,8 @@ export function GrapesFilter({
     <ShopFilterCollapsible
       title={t("shop.grapes")}
       count={count}
+      selectionSummary={selectionSummary}
+      density={isSheet ? "sheet" : "default"}
       collapsible={collapsible}
       headerAction={seeAllButton}
       className={className}

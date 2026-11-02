@@ -35,10 +35,23 @@ export function CategoryFilter({
   );
   const categoryCount = useCategoryFilterCount();
   const collapsible = mode !== "overlay";
+  const isSheet = mode === "drawer";
 
   const selectedProducers = producersParam
     ? producersParam.split(",").filter(Boolean)
     : [];
+
+  const selectedTitles = collections
+    .filter((collection) => collection.handle !== "wine-boxes")
+    .filter(
+      (collection) =>
+        params.collection === collection.handle ||
+        selectedProducers.includes(collection.handle),
+    )
+    .map((collection) => collection.title);
+  const selectionSummary = isSheet
+    ? selectedTitles.join(", ") || undefined
+    : undefined;
 
   const listContainerClass =
     mode === "sidebar" || mode === "drawer"
@@ -61,6 +74,8 @@ export function CategoryFilter({
     <ShopFilterCollapsible
       title={t("shop.producers")}
       count={categoryCount}
+      selectionSummary={selectionSummary}
+      density={isSheet ? "sheet" : "default"}
       collapsible={collapsible}
       headerAction={seeAllButton}
       className={className}

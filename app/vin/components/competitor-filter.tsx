@@ -40,6 +40,7 @@ export function CompetitorFilter({
   );
   const count = useCompetitorFilterCount();
   const collapsible = mode !== "overlay";
+  const isSheet = mode === "drawer";
 
   const sourcesWithWines = useMemo(() => {
     if (!sources?.length) return [];
@@ -49,6 +50,13 @@ export function CompetitorFilter({
   }, [sources, availableSourceSlugs]);
 
   if (!mounted || !sourcesWithWines.length) return null;
+
+  const selectionSummary = isSheet
+    ? sourcesWithWines
+        .filter((source) => selectedSlugs.includes(source.slug))
+        .map((source) => source.name)
+        .join(", ") || undefined
+    : undefined;
 
   const toggle = (slug: string) => {
     setSelectedSlugs((prev) =>
@@ -77,6 +85,8 @@ export function CompetitorFilter({
     <ShopFilterCollapsible
       title={t("shop.buyAt")}
       count={count}
+      selectionSummary={selectionSummary}
+      density={isSheet ? "sheet" : "default"}
       collapsible={collapsible}
       headerAction={seeAllButton}
       className={className}
