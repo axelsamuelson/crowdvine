@@ -107,7 +107,7 @@ export function FarmingFilter({
           const className = cn(
             "flex w-full text-left transition-all transform cursor-pointer text-sm md:hover:translate-x-1 md:hover:opacity-80",
             isOn
-              ? "font-medium translate-x-1"
+              ? "font-medium"
               : selectedCount > 0
                 ? "opacity-60"
                 : "",

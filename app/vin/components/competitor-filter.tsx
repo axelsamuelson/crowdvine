@@ -90,7 +90,7 @@ export function CompetitorFilter({
                   className={cn(
                     "flex w-full text-left transition-all transform cursor-pointer text-sm md:hover:translate-x-1 md:hover:opacity-80",
                     isSelected
-                      ? "font-medium translate-x-1"
+                      ? "font-medium"
                       : selectedSlugs.length > 0
                         ? "opacity-60"
                         : "",

@@ -82,7 +82,7 @@ export function GrapesFilter({
                 className={cn(
                   "flex w-full text-left transition-all transform cursor-pointer text-sm md:hover:translate-x-1 md:hover:opacity-80",
                   isOn
-                    ? "font-medium translate-x-1"
+                    ? "font-medium"
                     : active.length > 0 || activeGrape
                       ? "opacity-60"
                       : "",

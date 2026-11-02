@@ -77,7 +77,7 @@ export function CategoryFilter({
                     className={cn(
                       "flex w-full text-left transition-all transform cursor-pointer text-sm md:hover:translate-x-1 md:hover:opacity-80",
                       isSelected
-                        ? "font-medium translate-x-1"
+                        ? "font-medium"
                         : hasSelectedCategory || selectedProducers.length > 0
                           ? "opacity-50"
                           : "",
