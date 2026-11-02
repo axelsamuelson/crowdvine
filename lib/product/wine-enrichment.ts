@@ -97,8 +97,8 @@ const ORGANIC_AND_BIODYNAMIC_CLAIMED_LABEL: Record<AppLocale, string> = {
 };
 
 const ORGANIC_LAPSED_FARMING_LABEL: Record<AppLocale, string> = {
-  sv: "Ekologisk odling enligt producenten, certifieringen har upphört",
-  en: "Organic farming according to the producer; certification has lapsed",
+  sv: "Ekologisk odling (enligt producenten), certifieringen har upphört",
+  en: "Organic farming (according to the producer); certification has lapsed",
 };
 
 export type ProducerCertificationLabel = {

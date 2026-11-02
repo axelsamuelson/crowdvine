@@ -64,10 +64,10 @@ describe("formatProducerCertificationLabels", () => {
       }),
     ).toEqual([]);
     expect(formatProducerLapsedOrganicFarming("en")).toBe(
-      "Organic farming according to the producer; certification has lapsed",
+      "Organic farming (according to the producer); certification has lapsed",
     );
     expect(formatProducerLapsedOrganicFarming("sv")).toBe(
-      "Ekologisk odling enligt producenten, certifieringen har upphört",
+      "Ekologisk odling (enligt producenten), certifieringen har upphört",
     );
   });
 
