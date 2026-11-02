@@ -28,18 +28,16 @@
 
 ### Typography
 
-> **Decision (2026-11-01, Axel):** Geist Sans for interface and body text; Instrument Serif as an accent font.
-> Serif usage rules (hero and headings, never UI or buttons) will follow in a spec from Inès — do not invent details until that lands.
+> **Decision (2026-11-02):** Geist Sans only — interface, body, and headings. Instrument Serif removed sitewide.
 
-- **Interface / Body Font:** Geist Sans (self-hosted or system fallback)
-- **Accent Font:** Instrument Serif (self-hosted or system fallback)
+- **Interface / Body / Heading Font:** Geist Sans (self-hosted or system fallback)
+- **Large headings:** `letter-spacing: -0.02em`; `font-weight: 500`
 - **Mood:** elegant, luxury, sophisticated, timeless, premium, editorial
 - **Privacy:** Do not load fonts from third-party CDNs at runtime; prefer self-hosted webfonts or system stacks.
 
 **CSS (self-hosted / system fallback):**
 ```css
-font-family: "Geist Sans", system-ui, -apple-system, sans-serif; /* interface / body */
-font-family: "Instrument Serif", Georgia, "Times New Roman", serif; /* accent — usage TBD by Inès */
+font-family: "Geist Sans", system-ui, -apple-system, sans-serif;
 ```
 
 ### Spacing Variables

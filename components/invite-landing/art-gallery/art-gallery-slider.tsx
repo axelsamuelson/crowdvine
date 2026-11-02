@@ -73,7 +73,9 @@ export function ArtGallerySlider() {
       {/* Header */}
       <header className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between p-8">
         <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-          <h1 className="font-serif text-2xl font-bold tracking-tight text-white/90">Gallery</h1>
+          <h1 className="text-2xl font-medium tracking-[-0.02em] text-white/90">
+            Gallery
+          </h1>
         </motion.div>
         <motion.div
           initial={{ opacity: 0, y: -20 }}

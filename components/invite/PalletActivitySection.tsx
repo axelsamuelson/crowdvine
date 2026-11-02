@@ -51,7 +51,7 @@ function ProducerCard({ name }: { name: string }) {
         "min-w-[180px] sm:min-w-[200px] mx-2 shrink-0 py-4 text-center",
       )}
     >
-      <p className="font-serif text-base text-foreground">{name}</p>
+      <p className="font-medium tracking-[-0.02em] text-base text-foreground">{name}</p>
       <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-2">
         Languedoc
       </p>
@@ -98,7 +98,7 @@ export function PalletActivitySection({
           transition={{ duration: 0.5 }}
         >
           <p className={inviteStory.eyebrow}>Just nu på palletten</p>
-          <h2 className="mt-4 font-serif text-3xl md:text-4xl lg:text-5xl leading-tight text-foreground">
+          <h2 className="mt-4 font-medium tracking-[-0.02em] text-3xl md:text-4xl lg:text-5xl leading-tight text-foreground">
             Fler ansluter hela tiden
           </h2>
         </motion.div>

@@ -63,7 +63,7 @@ export function HomeBackdropTitle({
         )}
       >
         <div className="max-w-3xl text-center text-white">
-          <h2 className="text-3xl font-semibold leading-[0.95] tracking-tight sm:text-4xl lg:text-5xl">
+          <h2 className="text-3xl font-medium leading-[0.95] tracking-[-0.02em] sm:text-4xl lg:text-5xl">
             {title}
           </h2>
           {subtitle ? (

@@ -37,7 +37,7 @@ export function PricingSection() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
         >
-          <h2 className="text-3xl md:text-5xl font-serif text-foreground">
+          <h2 className="text-3xl md:text-5xl font-medium tracking-[-0.02em] text-foreground">
             What you get
           </h2>
           <p className="text-muted-foreground mt-4 max-w-md mx-auto">
@@ -65,7 +65,7 @@ export function PricingSection() {
               )}
 
               <div className="text-center pb-6 border-b border-dashed border-border">
-                <h3 className="font-serif text-xl text-foreground">
+                <h3 className="font-medium tracking-[-0.02em] text-xl text-foreground">
                   {plan.name}
                 </h3>
                 <p className="text-muted-foreground text-sm mt-2">

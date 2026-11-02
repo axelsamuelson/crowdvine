@@ -86,7 +86,7 @@ export function ArtworkCard({ artwork, isActive, dragOffset, index, currentIndex
               {artwork.year}
             </motion.p>
             <motion.h2
-              className="font-serif text-2xl font-bold text-white md:text-3xl"
+              className="text-2xl font-medium tracking-[-0.02em] text-white md:text-3xl"
               animate={{ y: isHovered ? -5 : 0 }}
               transition={{ duration: 0.3, delay: 0.05 }}
             >

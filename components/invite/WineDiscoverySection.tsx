@@ -42,7 +42,7 @@ function WineCard({
         )}
       >
         <CardItem translateZ={disable3d ? 0 : 40} disable3d={disable3d}>
-          <h3 className="font-serif text-lg text-foreground leading-snug">
+          <h3 className="font-medium tracking-[-0.02em] text-lg text-foreground leading-snug">
             {wine.name}
           </h3>
           <p className="text-xs text-muted-foreground mt-1">
@@ -126,7 +126,7 @@ export function WineDiscoverySection({
           transition={{ duration: 0.5 }}
         >
           <p className={inviteStory.eyebrow}>På den här palletten</p>
-          <h2 className="mt-4 font-serif text-3xl md:text-4xl lg:text-5xl leading-tight text-foreground">
+          <h2 className="mt-4 font-medium tracking-[-0.02em] text-3xl md:text-4xl lg:text-5xl leading-tight text-foreground">
             Viner valda direkt vid <em className="italic">källan</em>
           </h2>
         </motion.div>

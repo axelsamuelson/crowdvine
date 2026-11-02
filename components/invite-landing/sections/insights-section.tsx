@@ -64,7 +64,7 @@ export function InsightsSection() {
                 <span className="text-xs text-muted-foreground uppercase tracking-wider">
                   {item.category}
                 </span>
-                <h3 className="font-serif text-xl md:text-2xl text-foreground mt-1 group-hover:text-primary transition-colors">
+                <h3 className="font-medium tracking-[-0.02em] text-xl md:text-2xl text-foreground mt-1 group-hover:text-primary transition-colors">
                   {item.title}
                 </h3>
               </div>

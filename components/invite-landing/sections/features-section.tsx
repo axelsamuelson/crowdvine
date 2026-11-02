@@ -16,7 +16,7 @@ function TypeTester() {
   return (
     <div className="flex items-center justify-center h-full">
       <motion.span
-        className="font-serif text-6xl md:text-8xl text-foreground"
+        className="font-medium tracking-[-0.02em] text-6xl md:text-8xl text-foreground"
         animate={{ scale }}
         transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
       >
@@ -115,7 +115,7 @@ export function FeaturesSection() {
               <TypeTester />
             </div>
             <div className="mt-4">
-              <h3 className="font-serif text-xl text-foreground">Typography</h3>
+              <h3 className="font-medium tracking-[-0.02em] text-xl text-foreground">Typography</h3>
               <p className="text-muted-foreground text-sm mt-1">
                 Beautiful, responsive type that scales perfectly.
               </p>
@@ -136,7 +136,7 @@ export function FeaturesSection() {
               <LayoutAnimation />
             </div>
             <div className="mt-4">
-              <h3 className="font-serif text-xl text-foreground">Layouts</h3>
+              <h3 className="font-medium tracking-[-0.02em] text-xl text-foreground">Layouts</h3>
               <p className="text-muted-foreground text-sm mt-1">
                 Flexible grids that adapt to your content.
               </p>
@@ -157,7 +157,7 @@ export function FeaturesSection() {
               <SpeedIndicator />
             </div>
             <div className="mt-4">
-              <h3 className="font-serif text-xl text-foreground">Speed</h3>
+              <h3 className="font-medium tracking-[-0.02em] text-xl text-foreground">Speed</h3>
               <p className="text-muted-foreground text-sm mt-1">
                 Blazing fast pages that keep visitors engaged.
               </p>

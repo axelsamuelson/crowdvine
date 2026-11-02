@@ -1,6 +1,6 @@
 import type React from "react";
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { CartProvider } from "@/components/cart/cart-context";
@@ -33,14 +33,6 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
-});
-
-const instrumentSerif = Instrument_Serif({
-  subsets: ["latin"],
-  weight: "400",
-  style: ["normal", "italic"],
-  display: "swap",
-  variable: "--font-instrument-serif",
 });
 
 import { getSiteContentByKey } from "@/lib/actions/content";
@@ -177,8 +169,7 @@ export default async function RootLayout({
         className={cn(
           geistSans.variable,
           geistMono.variable,
-          instrumentSerif.variable,
-          "antialiased min-h-screen",
+          "antialiased min-h-screen font-sans",
           { "is-v0": isV0 },
         )}
         suppressHydrationWarning

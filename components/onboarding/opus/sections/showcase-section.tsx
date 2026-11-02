@@ -17,7 +17,7 @@ export function ShowcaseSection() {
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
           >
-            <h2 className="text-3xl md:text-5xl font-serif text-foreground">
+            <h2 className="text-3xl md:text-5xl font-medium tracking-[-0.02em] text-foreground">
               Templates that feel like magazines.
             </h2>
             <p className="text-muted-foreground mt-6 text-lg leading-relaxed">

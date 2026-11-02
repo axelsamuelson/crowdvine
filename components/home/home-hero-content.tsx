@@ -69,7 +69,7 @@ export function HomeHeroContent({
         <motion.div variants={fadeUp} transition={transition} className="min-w-0">
           <h1
             className={cn(
-              "max-w-full text-balance break-words font-semibold uppercase tracking-[-0.02em]",
+              "max-w-full text-balance break-words font-medium uppercase tracking-[-0.02em]",
               // Mobile: larger light type over the photo
               "text-[2.35rem] leading-[1.05] text-white drop-shadow-sm sm:text-5xl",
               // Desktop: larger dark type
