@@ -174,7 +174,7 @@ export const ProductCard = memo(
     /** Recommended wines: same producer / similar wine tab beside membership tab. */
     recommendationReason?: RecommendationReason;
   }) => {
-  const { t } = useTranslations();
+  const { t, context } = useTranslations();
   const paths = useLocalizedPaths();
   const productHref = paths.product(product.handle);
   const hasNoOptions = product.options.length === 0;
@@ -866,8 +866,11 @@ export const ProductCard = memo(
       <div className="absolute inset-0 pl-1 pr-2 pt-2 pb-2 md:p-2 w-full pointer-events-none">
         {/* Top meta: visible by default; hide on desktop when commerce box is revealed */}
         <div className="plp-card-top-meta flex gap-2 md:gap-6 justify-between items-start md:items-baseline px-1 md:px-3 py-1 w-full font-semibold transition-all duration-300 translate-y-0">
-          <div className="flex flex-col min-w-0 max-w-[42%] md:max-w-[40%] shrink md:shrink-0 rounded-r pr-1.5 md:pr-0 md:rounded-none py-1 md:py-0 -my-1 md:my-0 overflow-hidden">
-            <p className="text-[8px] leading-tight md:text-sm uppercase 2xl:text-base text-balance line-clamp-2 md:line-clamp-2 overflow-hidden">
+          <div className="flex flex-col min-w-0 max-w-[65%] md:max-w-[50%] shrink md:shrink-0 rounded-r pr-1.5 md:pr-0 md:rounded-none py-1 md:py-0 -my-1 md:my-0">
+            <p
+              lang={context.locale}
+              className="text-[8px] leading-tight md:text-sm uppercase 2xl:text-base text-balance line-clamp-2 md:line-clamp-2 hyphens-auto break-words"
+            >
               {product.title}
             </p>
             {product.producerName && (
@@ -894,7 +897,7 @@ export const ProductCard = memo(
               (Number(product.priceRange.minVariantPrice.amount) || undefined)
             }
             currency={product.priceRange.minVariantPrice.currencyCode}
-            className="flex gap-1 md:gap-2 items-center justify-end min-w-0 shrink md:max-w-[35%] md:shrink-0 text-[9px] md:text-sm 2xl:text-base text-right overflow-hidden normal-case"
+            className="flex gap-1 md:gap-2 items-center justify-end shrink-0 md:max-w-[32%] text-[9px] md:text-sm 2xl:text-base text-right normal-case"
           >
             <MemberPrice
               amount={product.priceRange.minVariantPrice.amount}
