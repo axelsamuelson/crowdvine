@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import {
   formatProducerCertification,
   formatProducerCertificationLabels,
+  formatProducerLapsedOrganicFarming,
+  formatProducerOrganicAndBiodynamicFarming,
   producerCertificationRegistryUrl,
 } from "@/lib/product/wine-enrichment";
 
@@ -29,16 +31,53 @@ describe("formatProducerCertificationLabels", () => {
   it("uses according-to-producer wording without a verified registry URL", () => {
     expect(
       formatProducerCertificationLabels("biodynamic_certified", "en"),
-    ).toEqual([{ text: "Biodynamic (according to the producer)" }]);
+    ).toEqual([
+      {
+        text: "Organic and biodynamic farming (according to the producer)",
+      },
+    ]);
     expect(
       formatProducerCertificationLabels("biodynamic_certified", "sv"),
-    ).toEqual([{ text: "Biodynamiskt (enligt producenten)" }]);
+    ).toEqual([
+      {
+        text: "Ekologisk och biodynamisk odling (enligt producenten)",
+      },
+    ]);
     expect(formatProducerCertificationLabels("organic_certified", "en")).toEqual([
       { text: "Organic (according to the producer)" },
     ]);
     expect(formatProducerCertificationLabels("organic_certified", "sv")).toEqual([
       { text: "Ekologiskt (enligt producenten)" },
     ]);
+  });
+
+  it("hides certification chips when organic certification has lapsed", () => {
+    expect(
+      formatProducerCertificationLabels("organic_certified", "en", {
+        certificationLapsed: true,
+      }),
+    ).toEqual([]);
+    expect(
+      formatProducerCertificationLabels("organic_certified", "sv", {
+        certificationLapsed: true,
+        certificationVerifiedUrl: "https://example.com/should-ignore",
+      }),
+    ).toEqual([]);
+    expect(formatProducerLapsedOrganicFarming("en")).toBe(
+      "Organic farming according to the producer; certification has lapsed",
+    );
+    expect(formatProducerLapsedOrganicFarming("sv")).toBe(
+      "Ekologisk odling enligt producenten, certifieringen har upphört",
+    );
+  });
+
+  it("exposes Mas Des Mesures-style organic + biodynamic farming copy", () => {
+    expect(formatProducerOrganicAndBiodynamicFarming("en")).toBe(
+      "Organic and biodynamic farming (according to the producer)",
+    );
+    expect(formatProducerOrganicAndBiodynamicFarming("sv")).toBe(
+      "Ekologisk och biodynamisk odling (enligt producenten)",
+    );
   });
 
   it("uses Organic Certified with registry link when verified", () => {

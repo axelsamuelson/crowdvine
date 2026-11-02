@@ -90,6 +90,17 @@ const BIODYNAMIC_CLAIMED_LABEL: Record<AppLocale, string> = {
   en: "Biodynamic (according to the producer)",
 };
 
+/** Unverified biodynamic producers that also farm organically (e.g. Mas Des Mesures). */
+const ORGANIC_AND_BIODYNAMIC_CLAIMED_LABEL: Record<AppLocale, string> = {
+  sv: "Ekologisk och biodynamisk odling (enligt producenten)",
+  en: "Organic and biodynamic farming (according to the producer)",
+};
+
+const ORGANIC_LAPSED_FARMING_LABEL: Record<AppLocale, string> = {
+  sv: "Ekologisk odling enligt producenten, certifieringen har upphört",
+  en: "Organic farming according to the producer; certification has lapsed",
+};
+
 export type ProducerCertificationLabel = {
   text: string;
   /** Organic registry link when the organic claim is verified (or in conversion). */
@@ -99,6 +110,8 @@ export type ProducerCertificationLabel = {
 export type ProducerCertificationLabelOptions = {
   certificationVerifiedUrl?: string | null;
   certificationInConversion?: boolean | null;
+  /** Agence Bio ARRETEE / stopped — hide certification chips. */
+  certificationLapsed?: boolean | null;
 };
 
 /** Non-empty http(s) registry URL → organic claim may use Certified / in-conversion wording. */
@@ -111,12 +124,30 @@ export function producerCertificationRegistryUrl(
   return trimmed;
 }
 
+/** Farming copy when organic certification has lapsed (no certification chip). */
+export function formatProducerLapsedOrganicFarming(
+  locale: AppLocale = "en",
+): string {
+  return ORGANIC_LAPSED_FARMING_LABEL[locale];
+}
+
+/**
+ * Farming copy for biodynamic producers without an organic registry URL
+ * (e.g. Mas Des Mesures — not shown as Organic Certified).
+ */
+export function formatProducerOrganicAndBiodynamicFarming(
+  locale: AppLocale = "en",
+): string {
+  return ORGANIC_AND_BIODYNAMIC_CLAIMED_LABEL[locale];
+}
+
 /**
  * Public producer certification chips.
  * - `natural` never becomes Certified/Certifierad.
+ * - Lapsed organic certification → no chips (use farming field instead).
  * - Verified organic registry URL → Organic Certified (or in conversion) + link.
- * - `biodynamic_certified` without Demeter/Biodyvin proof → according-to-producer
- *   (and organic Certified chip when an organic registry URL is present).
+ * - `biodynamic_certified` without registry URL → organic + biodynamic according-to-producer.
+ * - `biodynamic_certified` with organic registry URL → Organic Certified + biodynamic claimed.
  */
 export function formatProducerCertificationLabels(
   value: string | null | undefined,
@@ -125,6 +156,10 @@ export function formatProducerCertificationLabels(
 ): ProducerCertificationLabel[] {
   const trimmed = value?.trim();
   if (!trimmed) return [];
+
+  if (options?.certificationLapsed) {
+    return [];
+  }
 
   // natural / sustainable / conventional are never Certified/Certifierad.
   const baseOnly = PRODUCER_CERTIFICATION_BASE_LABELS[trimmed];
@@ -148,7 +183,11 @@ export function formatProducerCertificationLabels(
   }
 
   if (trimmed === "biodynamic_certified") {
-    labels.push({ text: BIODYNAMIC_CLAIMED_LABEL[locale] });
+    if (registryUrl) {
+      labels.push({ text: BIODYNAMIC_CLAIMED_LABEL[locale] });
+    } else {
+      labels.push({ text: ORGANIC_AND_BIODYNAMIC_CLAIMED_LABEL[locale] });
+    }
   } else if (trimmed === "organic_certified" && !registryUrl) {
     labels.push({ text: ORGANIC_CLAIMED_LABEL[locale] });
   } else if (

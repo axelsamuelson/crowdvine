@@ -1,13 +1,16 @@
 -- Seed verified organic registry links checked 2026-11-02.
--- No biodynamic Demeter/Biodyvin links found for Mas Des Mesures / Peira Levada.
+-- Mas Des Mesures: Certipaq URL not treated as storefront Organic Certified yet
+--   (show organic + biodynamic according-to-producer farming copy instead).
+-- Peira Levada: Bureau Veritas organic registry URL kept.
 -- Meigoon Ecocert certificate (2025-02-18): products listed "En conversion"; engagement 2023-10-19.
--- Gregory White, Hors Saison, Ugo Lestelle intentionally left without URL
--- (Ugo Lestelle Agence Bio etatCertification = ARRETEE as of check date).
+-- Gregory White, Hors Saison: no URL (according to producer).
+-- Ugo Lestelle: Agence Bio etatCertification = ARRETEE → certification_lapsed.
 
 UPDATE public.producers AS p
 SET
   certification_verified_url = v.url,
-  certification_in_conversion = v.in_conversion
+  certification_in_conversion = v.in_conversion,
+  certification_lapsed = false
 FROM (
   VALUES
     (
@@ -51,11 +54,6 @@ FROM (
       false
     ),
     (
-      'Mas Des Mesures',
-      'https://bio.certipaq.solutions/certificats/fiche/56136/auge-vincent/',
-      false
-    ),
-    (
       'Peira Levada',
       'https://certifie.bureauveritas.fr/organisme/127709',
       false
@@ -68,13 +66,22 @@ FROM (
 ) AS v(name, url, in_conversion)
 WHERE p.name = v.name;
 
--- Explicit according-to-producer (no verified organic registry link).
+-- According-to-producer / no verified organic registry link on storefront.
 UPDATE public.producers
 SET
   certification_verified_url = NULL,
-  certification_in_conversion = false
+  certification_in_conversion = false,
+  certification_lapsed = false
 WHERE name IN (
   'Gregory White',
   'Hors Saison',
-  'Ugo Lestelle'
+  'Mas Des Mesures'
 );
+
+-- Organic certification lapsed (Agence Bio ARRETEE).
+UPDATE public.producers
+SET
+  certification_verified_url = NULL,
+  certification_in_conversion = false,
+  certification_lapsed = true
+WHERE name = 'Ugo Lestelle';

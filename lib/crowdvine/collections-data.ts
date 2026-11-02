@@ -16,6 +16,8 @@ export interface CollectionData {
   certificationVerifiedUrl?: string | null;
   /** Registry proves conversion (not full organic yet). */
   certificationInConversion?: boolean | null;
+  /** Organic certification stopped (ARRETEE). */
+  certificationLapsed?: boolean | null;
   subregion?: string | null;
   foundedYear?: number | null;
   /** Producer region (also embedded in legacy description). */
@@ -23,7 +25,7 @@ export interface CollectionData {
 }
 
 const PRODUCER_SELECT =
-  "id, name, region, short_description, certification, certification_verified_url, certification_in_conversion, subregion, founded_year";
+  "id, name, region, short_description, certification, certification_verified_url, certification_in_conversion, certification_lapsed, subregion, founded_year";
 
 /**
  * Fetch collections (producers + wine boxes) directly from DB.
@@ -40,6 +42,9 @@ export async function fetchCollectionsData(): Promise<CollectionData[]> {
       .eq("is_live", true);
     if (error && /is_live|column.*does not exist|could not find.*column/i.test(error.message)) {
       let retrySelect = PRODUCER_SELECT;
+      if (/certification_lapsed/i.test(error.message)) {
+        retrySelect = retrySelect.replace(", certification_lapsed", "");
+      }
       if (/certification_in_conversion/i.test(error.message)) {
         retrySelect = retrySelect.replace(", certification_in_conversion", "");
       }
@@ -76,6 +81,7 @@ function buildCollectionsFromProducers(producers: any[]): CollectionData[] {
     certification: producer.certification ?? null,
     certificationVerifiedUrl: producer.certification_verified_url ?? null,
     certificationInConversion: producer.certification_in_conversion === true,
+    certificationLapsed: producer.certification_lapsed === true,
     subregion: producer.subregion ?? null,
     foundedYear: producer.founded_year ?? null,
     updatedAt: new Date().toISOString(),

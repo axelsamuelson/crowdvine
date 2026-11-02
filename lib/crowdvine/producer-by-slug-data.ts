@@ -9,7 +9,7 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import type { AppLocale } from "@/lib/i18n/locale";
 
 const PRODUCER_BY_SLUG_SELECT =
-  `${PRODUCER_DB_SELECT}, lat, lon, website_url, instagram_handle, certification_verified_url, certification_in_conversion` as const;
+  `${PRODUCER_DB_SELECT}, lat, lon, website_url, instagram_handle, certification_verified_url, certification_in_conversion, certification_lapsed` as const;
 
 type ProducerRow = {
   id: string;
@@ -23,6 +23,7 @@ type ProducerRow = {
   certification: string | null;
   certification_verified_url: string | null;
   certification_in_conversion: boolean | null;
+  certification_lapsed: boolean | null;
   contact_name: string | null;
   website_url: string | null;
   instagram_handle: string | null;
@@ -55,6 +56,7 @@ export type ProducerBySlugPayload = {
     certification: string | null;
     certification_verified_url: string | null;
     certification_in_conversion: boolean;
+    certification_lapsed: boolean;
     contact_name: string | null;
     website_url: string | null;
     instagram_handle: string | null;
@@ -143,6 +145,7 @@ export async function getProducerBySlugForLocale(
       certification: producer.certification,
       certification_verified_url: producer.certification_verified_url ?? null,
       certification_in_conversion: producer.certification_in_conversion === true,
+      certification_lapsed: producer.certification_lapsed === true,
       contact_name: producer.contact_name,
       website_url: producer.website_url,
       instagram_handle: producer.instagram_handle,

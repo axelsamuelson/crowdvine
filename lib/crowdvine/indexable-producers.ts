@@ -4,6 +4,7 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 const OPTIONAL_PRODUCER_COLUMNS = [
   "certification_verified_url",
   "certification_in_conversion",
+  "certification_lapsed",
 ] as const;
 
 function stripMissingOptionalColumns(
@@ -11,7 +12,7 @@ function stripMissingOptionalColumns(
   errorMessage: string,
 ): string | null {
   if (
-    !/column.*does not exist|could not find.*column|certification_verified_url|certification_in_conversion/i.test(
+    !/column.*does not exist|could not find.*column|certification_verified_url|certification_in_conversion|certification_lapsed/i.test(
       errorMessage,
     )
   ) {
