@@ -248,7 +248,7 @@
     "elevationMasl": "{value} m ö.h.",
     "farming": {
       "organic_certified": "Ekologisk",
-      "biodynamic_certified": "Biodynamisk",
+      "biodynamic_certified": "Biodynamisk (enligt producenten)",
       "natural": "Naturvin",
       "sustainable": "Hållbar",
       "conventional": "Konventionell"
