@@ -4,7 +4,7 @@
  * when the customer accepts the purchase terms at checkout.
  */
 export const LEGAL_VERSIONS = {
-  terms: "2026-11-06",
+  terms: "2026-11-09",
   privacy: "2026-11-04",
   cookies: "2026-09-01",
 } as const;

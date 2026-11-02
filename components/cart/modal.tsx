@@ -164,13 +164,20 @@ const CartItems = ({
               </span>
             </div>
           ) : null}
-          <div className="flex justify-between items-center pb-1 mb-1 border-b border-muted-foreground/20">
-            <p>{t("cart.shipping")}</p>
-            <p className="text-right">
-              {isDirtywineSite
-                ? t("cart.shippingIncludedInPrice")
-                : t("cart.shippingAtCheckout")}
-            </p>
+          <div className="pb-1 mb-1 border-b border-muted-foreground/20">
+            <div className="flex justify-between items-center">
+              <p>{t("cart.shipping")}</p>
+              <p className="text-right whitespace-nowrap">
+                {isDirtywineSite
+                  ? t("cart.shippingIncludedInPrice")
+                  : t("cart.shippingAtCheckout")}
+              </p>
+            </div>
+            {isDirtywineSite ? (
+              <p className="mt-1 text-[13px] text-neutral-500">
+                {t("cart.shippingBudbeeCoverage")}
+              </p>
+            ) : null}
           </div>
           {!isDirtywineSite ? (
             <p className="mb-3 text-xs">

@@ -63,7 +63,8 @@ describe("natural wine home delivery guide", () => {
       ])),
     ];
     for (const text of blobs) {
-      expect(text).not.toMatch(/[—–]/);
+      // Em dash only — numeric ranges may use en dash (e.g. 1–2 weeks).
+      expect(text).not.toMatch(/—/);
       expect(text).not.toMatch(/\[FYLL I/);
     }
   });
@@ -98,10 +99,33 @@ describe("natural wine home delivery guide", () => {
       "You reserve the wine online",
     );
     expect(naturalWineHomeDeliveryArticle.meta.sv).toBe(
-      "Beställ naturvin online med hemleverans i Stockholm. Så fungerar reservation, pall, leveranstid, ålderskontroll och kostnad.",
+      "Beställ naturvin online med hemleverans i Budbees leveransområde i Sverige. Så fungerar reservation, pall, leveranstid, ålderskontroll och kostnad.",
     );
     expect(naturalWineHomeDeliveryArticle.meta.en).toBe(
-      "Order natural wine online with home delivery in Stockholm. How reservation, pallet, delivery time, age check and cost work.",
+      "Order natural wine online with home delivery in Budbee's Sweden coverage area. How reservation, pallet, delivery time, age check and cost work.",
     );
+    expect(naturalWineHomeDeliveryArticle.sections[0]?.body.sv).toEqual([
+      "Vi levererar hem till dig i hela Budbees leveransområde i Sverige. Om din adress ingår ser du när du anger postnumret i kassan. Leveransen sker 1–2 veckor efter att pallen har stängt. Vid överlämningen kontrollerar budet din legitimation, och du måste vara minst 20 år. Om du inte kan visa giltig legitimation lämnas inte vinet ut. Fraktkostnaden visas i kassan innan du betalar.",
+    ]);
+    expect(naturalWineHomeDeliveryArticle.sections[0]?.body.en).toEqual([
+      "We deliver to your door anywhere in Budbee's delivery area in Sweden. You can check whether your address is covered by entering your postcode at checkout. Delivery takes place 1–2 weeks after the pallet has closed. On delivery, the courier checks your ID and you must be at least 20 years old. If you can't show valid ID, the wine won't be handed over. The shipping cost is shown at checkout before you pay.",
+    ]);
+    const stockholmOnly =
+      /endast Stockholm|only in Stockholm|leverans i Stockholm|hemleverans i Stockholm|in Stockholm/i;
+    const guideBlobs = [
+      naturalWineHomeDeliveryArticle.meta.sv,
+      naturalWineHomeDeliveryArticle.meta.en,
+      naturalWineHomeDeliveryArticle.lede?.sv,
+      naturalWineHomeDeliveryArticle.lede?.en,
+      naturalWineHomeDeliveryArticle.hubCard?.description.sv,
+      naturalWineHomeDeliveryArticle.hubCard?.description.en,
+      ...naturalWineHomeDeliveryArticle.sections.flatMap((s) => [
+        ...(Array.isArray(s.body.sv) ? s.body.sv : [s.body.sv]),
+        ...(Array.isArray(s.body.en) ? s.body.en : [s.body.en]),
+      ]),
+    ];
+    for (const text of guideBlobs) {
+      expect(text).not.toMatch(stockholmOnly);
+    }
   });
 });
