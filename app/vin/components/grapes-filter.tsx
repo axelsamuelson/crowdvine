@@ -1,12 +1,15 @@
 "use client";
 
-import { cn } from "@/lib/utils";
 import { Product } from "@/lib/shopify/types";
 import { useAvailableGrapes } from "../hooks/use-available-grapes";
 import { useClientMounted } from "../hooks/use-client-mounted";
 import { useQueryState, parseAsArrayOf, parseAsString } from "nuqs";
 import { useTranslations } from "@/lib/hooks/use-translations";
 import { ShopFilterCollapsible } from "./shop-filter-collapsible";
+import {
+  ShopFilterOptionContent,
+  shopFilterOptionClassName,
+} from "./shop-filter-option";
 
 interface GrapesFilterProps {
   products?: Product[];
@@ -79,18 +82,11 @@ export function GrapesFilter({
                 key={g}
                 type="button"
                 onClick={handleClick}
-                className={cn(
-                  "flex w-full text-left transition-all transform cursor-pointer text-sm md:hover:translate-x-1 md:hover:opacity-80",
-                  isOn
-                    ? "font-medium"
-                    : active.length > 0 || activeGrape
-                      ? "opacity-60"
-                      : "",
-                )}
+                className={shopFilterOptionClassName(isOn)}
                 aria-pressed={isOn}
                 aria-label={t("shop.filterByGrape", { name: g })}
               >
-                {g}
+                <ShopFilterOptionContent selected={isOn}>{g}</ShopFilterOptionContent>
               </button>
             );
           })}
