@@ -14,8 +14,12 @@ import { CategoryFilter } from "./category-filter";
 import { ColorFilter } from "./color-filter";
 import { GrapesFilter } from "./grapes-filter";
 import { FarmingFilter } from "./farming-filter";
+import { RegionFilter } from "./region-filter";
 import { CompetitorFilter, type PriceSourceForFilter } from "./competitor-filter";
-import { useFilterCount } from "../hooks/use-filter-count";
+import {
+  useFilterCount,
+  useRegionFilterCount,
+} from "../hooks/use-filter-count";
 import { isProducerBoxesPath } from "@/lib/producer-boxes/config";
 import { ProducerBoxesCta } from "./producer-boxes-cta";
 import { useProducts } from "@/components/shop/products-provider";
@@ -73,6 +77,7 @@ export function MobileFilters({
   const { t } = useTranslations();
   const paths = useLocalizedPaths();
   const clientFilterCount = useFilterCount();
+  const regionFilterCount = useRegionFilterCount();
   const { products, originalProducts, setProducts, serverResultsCount } =
     useProducts();
   const routerPathname = usePathname();
@@ -214,7 +219,16 @@ export function MobileFilters({
           </Button>
         </div>
       ) : (
-        <div className="flex items-center justify-center px-sides py-1.5">
+        <div className="flex items-center justify-between gap-3 border-b border-border/60 px-sides py-3">
+          <button
+            type="button"
+            onClick={() => setFiltersOpen(true)}
+            className="cursor-pointer text-left text-[13px] font-medium text-foreground"
+          >
+            {regionFilterCount > 0
+              ? t("shop.filterRegionSummary", { count: regionFilterCount })
+              : t("shop.filters")}
+          </button>
           <ResultsCount count={displayResultsCount} />
         </div>
       )}
@@ -263,6 +277,7 @@ export function MobileFilters({
                     onColorSelect={handleColorSelect}
                     getColorHref={resolveColorHref}
                   />
+                  <RegionFilter mode="drawer" />
                   <FarmingFilter
                     products={originalProducts}
                     mode="drawer"
@@ -284,7 +299,14 @@ export function MobileFilters({
               )}
             </div>
             {isProducerBoxesPage ? null : (
-              <div className="mt-6 border-t border-border pt-4">
+              <div className="mt-6 space-y-4 border-t border-border pt-4">
+                <Button
+                  type="button"
+                  className="h-11 w-full cursor-pointer px-5"
+                  onClick={() => setFiltersOpen(false)}
+                >
+                  {t("shop.showWines", { count: displayResultsCount })}
+                </Button>
                 <ProducerBoxesCta
                   className="h-11 w-full px-5"
                   ssrPathname={ssrPathname}

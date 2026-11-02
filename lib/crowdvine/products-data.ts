@@ -299,6 +299,8 @@ export interface ProductData {
   tags: string[];
   /** wines.farming certification (shop filter). */
   farming?: string | null;
+  /** Canonical wines.region (allowlisted) for shop region filter. */
+  region?: string | null;
   /**
    * Producer organic registry URL. `undefined` when column not selected;
    * `null` when loaded and unverified.
@@ -430,6 +432,7 @@ export async function fetchProductsData(params?: {
       description_html,
       tags,
       farming,
+      region,
       is_natural,
       available_for_sale,
       created_at,
@@ -513,7 +516,7 @@ export async function fetchProductsData(params?: {
       id, wine_name, vintage, grape_varieties, color, handle, base_price_cents,
       cost_amount, cost_currency, exchange_rate, alcohol_tax_cents, margin_percentage,
       b2b_margin_percentage, b2b_stock, label_image_path, producer_id, description,
-      description_html, tags, farming, is_natural, available_for_sale, created_at,
+      description_html, tags, farming, region, is_natural, available_for_sale, created_at,
       producers!inner(${producerEmbed})
     `;
     if (
@@ -792,6 +795,7 @@ export async function fetchProductsData(params?: {
       seo: { title: i.wine_name, description: "" },
       tags: [...grapeVarieties, ...(colorName ? [colorName] : [])],
       farming: (i.farming as string | null | undefined) ?? null,
+      region: (i.region as string | null | undefined) ?? null,
       availableForSale,
       currencyCode: displayCurrencyCode,
       updatedAt: new Date().toISOString(),
@@ -1027,6 +1031,7 @@ export async function fetchCollectionProductsData(
       producer_id,
       description,
       farming,
+      region,
       available_for_sale,
       producers(name, boost_active, ${PRODUCER_ORGANIC_VERIFY_SELECT})
     `;
@@ -1238,6 +1243,7 @@ export async function fetchCollectionProductsData(
       seo: { title: i.wine_name, description: "" },
       tags: [...grapeVarieties, ...(colorName ? [colorName] : [])],
       farming: (i.farming as string | null | undefined) ?? null,
+      region: (i.region as string | null | undefined) ?? null,
       availableForSale,
       currencyCode: displayCurrencyCode,
       updatedAt: new Date().toISOString(),

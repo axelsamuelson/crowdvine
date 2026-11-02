@@ -178,6 +178,11 @@ export type Product = {
   /** wines.farming certification (shop filter). */
   farming?: string | null;
   /**
+   * Canonical `wines.region` (allowlisted French name) for PLP region filter.
+   * Null/omit when unassigned — product still lists on the unfiltered PLP.
+   */
+  region?: string | null;
+  /**
    * Producer organic registry URL (producers.certification_verified_url).
    * `undefined` = column not loaded yet; `null` = loaded and unverified.
    */

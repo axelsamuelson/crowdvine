@@ -19,6 +19,7 @@ import {
 import { ProductGrid } from "./product-grid";
 import { ProductCard } from "./product-card";
 import { ProductListHydrationGate } from "@/app/vin/components/product-list-hydration-gate";
+import { RegionFilter } from "./region-filter";
 import { Card } from "../../../components/ui/card";
 import { useTranslations } from "@/lib/hooks/use-translations";
 import { Button } from "@/components/ui/button";
@@ -32,7 +33,9 @@ import {
 import { filterProductsByColors } from "@/lib/shop/filter-products-by-color";
 import { filterProductsByGrapes } from "@/lib/shop/filter-products-by-grape";
 import { filterProductsByFarming } from "@/lib/shop/farming-filter";
+import { filterProductsByRegions } from "@/lib/shop/filter-products-by-region";
 import { filterProductsBySource } from "@/lib/shop/filter-products-by-source";
+import { getLinkableWineRegionsFromProducts } from "@/lib/wine-regions";
 interface ProductListContentProps {
   products: Product[];
   collections: Collection[];
@@ -95,6 +98,10 @@ export function ProductListContent({
     "ffarming",
     parseAsArrayOf(parseAsString).withDefault([]),
   );
+  const [regionFilters] = useQueryState(
+    "region",
+    parseAsArrayOf(parseAsString).withDefault([]),
+  );
   const [urlQ, setQ] = useQueryState(
     "q",
     parseAsString.withOptions({ shallow: true, history: "replace" }),
@@ -117,6 +124,7 @@ export function ProductListContent({
     if (colorFilters.length) out = filterProductsByColors(out, colorFilters);
     if (grapeFilters.length) out = filterProductsByGrapes(out, grapeFilters);
     if (farmingFilters.length) out = filterProductsByFarming(out, farmingFilters);
+    if (regionFilters.length) out = filterProductsByRegions(out, regionFilters);
     if (sourceFilters.length) {
       out = filterProductsBySource(out, sourceFilters, wineSourceSlugs);
     }
@@ -126,6 +134,7 @@ export function ProductListContent({
     colorFilters,
     grapeFilters,
     farmingFilters,
+    regionFilters,
     sourceFilters,
     wineSourceSlugs,
   ]);
@@ -195,6 +204,7 @@ export function ProductListContent({
     if (colorFilters.length) parts.push(`color:${colorFilters.length}`);
     if (grapeFilters.length) parts.push(`grape:${grapeFilters.length}`);
     if (farmingFilters.length) parts.push(`farming:${farmingFilters.length}`);
+    if (regionFilters.length) parts.push(`region:${regionFilters.length}`);
     if (sourceFilters.length) parts.push(`source:${sourceFilters.length}`);
     if (selectedProducers.length)
       parts.push(`producer:${selectedProducers.length}`);
@@ -214,6 +224,7 @@ export function ProductListContent({
     colorFilters,
     grapeFilters,
     farmingFilters,
+    regionFilters,
     sourceFilters,
     selectedProducers,
   ]);
@@ -288,6 +299,7 @@ export function ProductListContent({
     colorFilters.length,
     grapeFilters.length,
     farmingFilters.length,
+    regionFilters.length,
     sourceFilters.length,
     selectedProducers.length,
     collectionHandle,
@@ -303,8 +315,16 @@ export function ProductListContent({
     void setQscope(scope === "all" ? null : scope);
   };
 
+  const linkableRegions = useMemo(
+    () => getLinkableWineRegionsFromProducts(products),
+    [products],
+  );
+
   return (
     <>
+      <div className="mb-4 px-sides md:pr-sides">
+        <RegionFilter mode="chips" regions={linkableRegions} />
+      </div>
       <ResultsControls
         className="max-md:hidden"
         collections={collections}

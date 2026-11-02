@@ -29,6 +29,10 @@ export function useFilterCount() {
     "ffarming",
     parseAsArrayOf(parseAsString).withDefault([]),
   );
+  const [regions] = useQueryState(
+    "region",
+    parseAsArrayOf(parseAsString).withDefault([]),
+  );
   const [searchQ] = useQueryState("q", parseAsString);
 
   // Count active filters
@@ -52,6 +56,10 @@ export function useFilterCount() {
   // Count competitor/source filters
   if (sources.length > 0) {
     count += sources.length;
+  }
+
+  if (regions.length > 0) {
+    count += regions.length;
   }
 
   // Count collection filter (if not on "all" products).
@@ -106,4 +114,12 @@ export function useFarmingFilterCount() {
     parseAsArrayOf(parseAsString).withDefault([]),
   );
   return farming.length;
+}
+
+export function useRegionFilterCount() {
+  const [regions] = useQueryState(
+    "region",
+    parseAsArrayOf(parseAsString).withDefault([]),
+  );
+  return regions.length;
 }

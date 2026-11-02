@@ -175,3 +175,89 @@ export function wineRegionLabel(
   if (!region) return null;
   return locale === "en" ? region.labelEn : region.labelSv;
 }
+
+/**
+ * Parse `?region=` query values (comma-separated and/or repeated params).
+ * Invalid slugs are dropped; order is de-duplicated, keep first-seen.
+ */
+export function parseWineRegionParam(
+  raw: string | string[] | undefined | null,
+): WineRegionSlug[] {
+  if (raw == null) return [];
+  const parts = Array.isArray(raw) ? raw : [raw];
+  const out: WineRegionSlug[] = [];
+  const seen = new Set<string>();
+  for (const part of parts) {
+    if (typeof part !== "string" || !part.trim()) continue;
+    for (const token of part.split(",")) {
+      const slug = token.trim().toLowerCase();
+      if (!isWineRegionSlug(slug) || seen.has(slug)) continue;
+      seen.add(slug);
+      out.push(slug);
+    }
+  }
+  return out;
+}
+
+/** Serialize selected region slugs for URLs — unique, alphabetical. */
+export function serializeWineRegionParam(
+  slugs: readonly string[],
+): string | null {
+  const unique = [
+    ...new Set(
+      slugs
+        .map((s) => s.trim().toLowerCase())
+        .filter((s): s is WineRegionSlug => isWineRegionSlug(s)),
+    ),
+  ].sort();
+  return unique.length ? unique.join(",") : null;
+}
+
+/** Count live products by canonical `wines.region` value (NULL ignored). */
+export function countLiveWinesByRegionValue(
+  products: ReadonlyArray<{ region?: string | null }>,
+): Map<WineRegionValue, number> {
+  const counts = new Map<WineRegionValue, number>();
+  for (const product of products) {
+    const value = product.region;
+    if (!isWineRegionValue(value)) continue;
+    counts.set(value, (counts.get(value) ?? 0) + 1);
+  }
+  return counts;
+}
+
+/**
+ * Shared ≥1-live linkability gate for PLP chips, region pages, sitemap, guides.
+ * Pass live-wine counts keyed by canonical region **value** (French name).
+ * Later PRs reuse this — never link / show a region with fewer than `minLive` wines.
+ */
+export function getLinkableWineRegions(
+  liveCountsByValue: ReadonlyMap<string, number>,
+  minLive = 1,
+): WineRegion[] {
+  return WINE_REGIONS.filter(
+    (region) => (liveCountsByValue.get(region.value) ?? 0) >= minLive,
+  );
+}
+
+export function isWineRegionLinkable(
+  slugOrValue: string,
+  liveCountsByValue: ReadonlyMap<string, number>,
+  minLive = 1,
+): boolean {
+  const region =
+    wineRegionBySlug(slugOrValue) ?? wineRegionByValue(slugOrValue);
+  if (!region) return false;
+  return (liveCountsByValue.get(region.value) ?? 0) >= minLive;
+}
+
+/** Convenience: linkable regions derived from an already-live product list. */
+export function getLinkableWineRegionsFromProducts(
+  products: ReadonlyArray<{ region?: string | null }>,
+  minLive = 1,
+): WineRegion[] {
+  return getLinkableWineRegions(
+    countLiveWinesByRegionValue(products),
+    minLive,
+  );
+}
