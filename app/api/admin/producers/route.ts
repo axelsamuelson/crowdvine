@@ -87,6 +87,11 @@ export async function POST(request: NextRequest) {
         ? body.shipping_region_id.trim()
         : null;
 
+    const addressStreet =
+      typeof body.address_street === "string" && body.address_street.trim()
+        ? body.address_street.trim()
+        : null;
+
     const contactEmail =
       typeof body.contact_email === "string" && body.contact_email.trim()
         ? body.contact_email.trim()
@@ -109,7 +114,7 @@ export async function POST(request: NextRequest) {
         lat: body.lat || 0,
         lon: body.lon || 0,
         country_code: countryCode,
-        address_street: body.address_street || "",
+        address_street: addressStreet,
         address_city: body.address_city || "",
         address_postcode: body.address_postcode || "",
         short_description: buildWineJsonb(

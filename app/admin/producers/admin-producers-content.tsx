@@ -22,7 +22,7 @@ export type AdminProducerListItem = {
   name: string;
   region: string;
   country_code: string;
-  address_street: string;
+  address_street: string | null;
   address_city: string;
   address_postcode: string;
   short_description: string;

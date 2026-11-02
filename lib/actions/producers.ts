@@ -39,7 +39,8 @@ export interface Producer {
   lat: number;
   lon: number;
   country_code: string;
-  address_street: string;
+  /** Optional street address. Null/empty when unset. */
+  address_street: string | null;
   address_city: string;
   address_postcode: string;
   short_description: string;
@@ -77,7 +78,8 @@ export interface CreateProducerData {
   lat: number;
   lon: number;
   country_code: string;
-  address_street: string;
+  /** Optional. Empty string or omitted when unset. */
+  address_street?: string | null;
   address_city: string;
   address_postcode: string;
   short_description: string;
@@ -146,14 +148,21 @@ export async function createProducer(data: CreateProducerData) {
     bio_long,
     bio_long_en,
     short_description,
+    address_street,
     ...rest
   } = data;
+
+  const addressStreet =
+    typeof address_street === "string" && address_street.trim()
+      ? address_street.trim()
+      : null;
 
   const { data: producer, error } = await sb
     .from("producers")
     .insert({
       ...rest,
       country_code: countryCode,
+      address_street: addressStreet,
       short_description: buildWineJsonb(
         {
           sv: short_description || "",
@@ -201,6 +210,12 @@ export async function updateProducer(id: string, data: UpdateProducerData) {
   const payload: UpdateProducerData = { ...data };
   if (data.country_code !== undefined) {
     payload.country_code = requireProducerCountryCode(data.country_code);
+  }
+  if (data.address_street !== undefined) {
+    payload.address_street =
+      typeof data.address_street === "string" && data.address_street.trim()
+        ? data.address_street.trim()
+        : null;
   }
 
   const { data: producer, error } = await sb

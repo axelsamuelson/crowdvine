@@ -561,12 +561,13 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="address_street" className="text-gray-700 dark:text-zinc-300">Street Address *</Label>
+            <Label htmlFor="address_street" className="text-gray-700 dark:text-zinc-300">
+              Street Address (optional)
+            </Label>
             <Input
               id="address_street"
-              value={formData.address_street}
+              value={formData.address_street || ""}
               onChange={(e) => handleChange("address_street", e.target.value)}
-              required
               className="border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800"
             />
           </div>
