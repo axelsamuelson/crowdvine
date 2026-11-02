@@ -84,6 +84,7 @@ describe("grapesFromProducts", () => {
     ];
     const list = grapesFromProducts(products, 12);
     expect(list.allLabels).toContain("Syrah");
+    expect(list.allLabels.filter((g) => g === "Syrah")).toHaveLength(1);
     expect(list.allLabels).toContain("Mourvèdre");
     expect(list.allLabels).toContain("Roussanne");
     expect(list.allLabels).not.toContain("Shiraz");
@@ -92,6 +93,15 @@ describe("grapesFromProducts", () => {
     expect(list.labels).toHaveLength(12);
     expect(list.moreCount).toBeGreaterThan(0);
     expect(formatGrapeListLabel(list, "sv")).toMatch(/och \d+ till$/);
+  });
+
+  it("collapses Syrah/Shiraz compound labels into Syrah", () => {
+    const list = grapesFromProducts([
+      product({ grapes: ["Syrah"] }),
+      product({ grapes: ["Syrah/Shiraz"] }),
+      product({ grapes: ["Shiraz"] }),
+    ]);
+    expect(list.allLabels).toEqual(["Syrah"]);
   });
 
   it("reports Massanne as a typo suspect without rewriting it away from the list if unique", () => {

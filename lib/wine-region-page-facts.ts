@@ -42,6 +42,11 @@ export function grapeCanonicalDisplay(raw: string): string {
   return GRAPE_CANONICAL_BY_KEY[key] ?? raw.trim();
 }
 
+/** Storage key after synonym collapse (Syrah / Shiraz / Syrah/Shiraz → one). */
+export function grapeStorageKey(raw: string): string {
+  return normalizeWineFactKey(grapeCanonicalDisplay(raw));
+}
+
 export function grapesLookingLikeTypos(
   rawGrapes: readonly string[],
 ): Array<{ raw: string; hint: string }> {
@@ -96,7 +101,7 @@ export function grapesFromProducts(
     const seenOnWine = new Set<string>();
     for (const raw of productGrapeNames(product)) {
       rawAll.push(raw);
-      const key = normalizeWineFactKey(raw);
+      const key = grapeStorageKey(raw);
       if (!key || seenOnWine.has(key)) continue;
       seenOnWine.add(key);
       const canonical = grapeCanonicalDisplay(raw);
@@ -107,7 +112,7 @@ export function grapesFromProducts(
         existing.count += 1;
         // Prefer a mapped canonical or a diacritic-bearing display form.
         if (
-          key in GRAPE_CANONICAL_BY_KEY ||
+          normalizeWineFactKey(raw) in GRAPE_CANONICAL_BY_KEY ||
           (/[^\u0000-\u007f]/.test(canonical) &&
             !/[^\u0000-\u007f]/.test(existing.display))
         ) {
