@@ -353,7 +353,7 @@
   },
   "commerce": {
     "minSixMix": "Minst 6 flaskor – du kan blanda",
-    "directBoxDeliveryPromise": "Skickas direkt från producenten i låda",
+    "directBoxDeliveryPromise": "Skickas i låda från Frankrike",
     "palletFillCount": "{filled} av {total} flaskor",
     "palletReadyShort": "Redo",
     "palletRemainingShort": "{remaining} kvar"

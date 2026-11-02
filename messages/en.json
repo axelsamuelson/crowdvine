@@ -353,7 +353,7 @@
   },
   "commerce": {
     "minSixMix": "Minimum 6 bottles – you can mix",
-    "directBoxDeliveryPromise": "Shipped directly from the producer in a box",
+    "directBoxDeliveryPromise": "Shipped in a box from France",
     "palletFillCount": "{filled} of {total} bottles",
     "palletReadyShort": "Ready",
     "palletRemainingShort": "{remaining} left"
