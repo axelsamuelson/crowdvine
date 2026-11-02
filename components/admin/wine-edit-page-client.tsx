@@ -53,6 +53,20 @@ export function WineEditPageClient({
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
               {wine.wine_name} {wine.vintage}
             </h1>
+            {wine.producer?.name ? (
+              wine.producer_id ? (
+                <Link
+                  href={`/admin/producers/${wine.producer_id}`}
+                  className="text-sm text-gray-600 underline underline-offset-2 hover:text-gray-900 dark:text-zinc-400 dark:hover:text-zinc-200"
+                >
+                  {wine.producer.name}
+                </Link>
+              ) : (
+                <p className="text-sm text-gray-600 dark:text-zinc-400">
+                  {wine.producer.name}
+                </p>
+              )
+            ) : null}
             <p className="text-sm text-gray-600 dark:text-zinc-400">
               {saveStatus === "saving"
                 ? "Sparar ändringar…"
