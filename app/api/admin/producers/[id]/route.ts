@@ -8,6 +8,7 @@ import {
 } from "@/lib/countries";
 import { parseProducerLinkFields } from "@/lib/producer-links";
 import { buildWineJsonb } from "@/lib/i18n/wine-locale";
+import { revalidateWineStorefrontCaches } from "@/lib/crowdvine/revalidate-wine-storefront";
 
 type ProducerUpdateRow = Record<
   string,
@@ -88,7 +89,7 @@ export async function PUT(
 
     const { data: currentProducer } = await supabase
       .from("producers")
-      .select("id, shipping_region_id, short_description, bio_long")
+      .select("id, name, shipping_region_id, short_description, bio_long")
       .eq("id", producerId)
       .maybeSingle();
 
@@ -320,6 +321,21 @@ export async function PUT(
     }
 
     console.log("Producer updated:", producer.id);
+
+    const { data: wineRows } = await supabase
+      .from("wines")
+      .select("handle")
+      .eq("producer_id", producerId);
+    const handles = (wineRows ?? [])
+      .map((row) => String((row as { handle?: string | null }).handle ?? "").trim())
+      .filter((handle) => handle.length > 0);
+
+    revalidateWineStorefrontCaches(handles, {
+      producerNames: [
+        currentProducer?.name as string | undefined,
+        producer.name as string | undefined,
+      ],
+    });
 
     return NextResponse.json({ success: true, producer });
   } catch (error: unknown) {

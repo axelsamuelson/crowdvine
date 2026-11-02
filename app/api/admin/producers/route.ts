@@ -7,6 +7,7 @@ import {
 } from "@/lib/countries";
 import { parseProducerLinkFields } from "@/lib/producer-links";
 import { buildWineJsonb } from "@/lib/i18n/wine-locale";
+import { revalidateWineStorefrontCaches } from "@/lib/crowdvine/revalidate-wine-storefront";
 
 /**
  * Get all producers
@@ -173,6 +174,10 @@ export async function POST(request: NextRequest) {
     }
 
     console.log("Producer created:", producer.id);
+
+    revalidateWineStorefrontCaches([], {
+      producerNames: [producer.name as string],
+    });
 
     return NextResponse.json({ success: true, producer });
   } catch (error: any) {

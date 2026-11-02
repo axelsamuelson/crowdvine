@@ -11,6 +11,18 @@ import {
 import { supabaseServer } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { revalidatePath } from "next/cache";
+import { revalidateWineStorefrontCaches } from "@/lib/crowdvine/revalidate-wine-storefront";
+
+async function wineHandlesForProducer(producerId: string): Promise<string[]> {
+  const sb = getSupabaseAdmin();
+  const { data } = await sb
+    .from("wines")
+    .select("handle")
+    .eq("producer_id", producerId);
+  return (data ?? [])
+    .map((row) => String((row as { handle?: string | null }).handle ?? "").trim())
+    .filter((handle) => handle.length > 0);
+}
 
 function normalizeProducerRow(
   row: Record<string, unknown>,
@@ -207,6 +219,12 @@ export async function updateProducer(id: string, data: UpdateProducerData) {
 
   console.log("🔄 Updating producer:", id, data);
 
+  const { data: previous } = await sb
+    .from("producers")
+    .select("name")
+    .eq("id", id)
+    .maybeSingle();
+
   const payload: UpdateProducerData = { ...data };
   if (data.country_code !== undefined) {
     payload.country_code = requireProducerCountryCode(data.country_code);
@@ -235,6 +253,10 @@ export async function updateProducer(id: string, data: UpdateProducerData) {
   revalidatePath("/admin/producers");
   revalidatePath(`/admin/producers/${id}`);
   revalidatePath("/vin");
+  const handles = await wineHandlesForProducer(id);
+  revalidateWineStorefrontCaches(handles, {
+    producerNames: [previous?.name, producer?.name],
+  });
   return producer;
 }
 
