@@ -3,7 +3,7 @@ import Link from "next/link";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 
-import { ProductListShell } from "@/app/vin/components/product-list-shell";
+import { ProductListStaticGrid } from "@/app/vin/components/product-list-static-grid";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -357,7 +357,8 @@ export async function renderWineRegionPage(options: {
           </div>
         </section>
         <div className="pb-12">
-          <ProductListShell products={gridProducts} locale={locale} />
+          {/* Static PLP grid (ServerListPrice) — no ProductsProvider on region routes */}
+          <ProductListStaticGrid products={gridProducts} locale={locale} />
         </div>
 
         {showCharacteristics || showFacts ? (
