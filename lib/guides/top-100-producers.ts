@@ -8,6 +8,8 @@ export interface TopProducer {
   /** Exact alternate names, including a Systembolaget producer_name. */
   aliases?: readonly string[];
   name: string;
+  /** PACT producer when we carry them. The guide-article link stays separate. */
+  producerId?: string;
   region: string;
   country: string;
   grapes: string;
@@ -112,6 +114,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
     rank: 4,
     previousRank: 4,
     name: "Jean-François Ganevat",
+    producerId: "99feb2f6-cca3-4296-b111-87af8f117193",
     region: "Côtes du Jura",
     country: "Frankrike",
     grapes: "Chardonnay, Savagnin, Poulsard, Trousseau",
@@ -172,6 +175,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
     rank: 9,
     previousRank: 9,
     name: "Clos Rougeard (Foucault)",
+    producerId: "eec91ce5-35f6-4f10-b5bf-75af1938b941",
     region: "Saumur-Champigny, Loire",
     country: "Frankrike",
     grapes: "Cabernet Franc, Chenin Blanc",
@@ -184,6 +188,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
     rank: 10,
     previousRank: 10,
     name: "Jean Foillard",
+    producerId: "77606e79-786f-47d8-9d6a-3cf808c662c4",
     region: "Morgon, Beaujolais",
     country: "Frankrike",
     grapes: "Gamay",
@@ -376,6 +381,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
     rank: 26,
     previousRank: 26,
     name: "Hervé Souhaut / Romaneaux-Destezet",
+    producerId: "06f72a9c-cf60-4019-9bf9-3cb5271fcefe",
     region: "Ardèche",
     country: "Frankrike",
     grapes: "Syrah, Viognier",
@@ -412,6 +418,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
     rank: 29,
     previousRank: 29,
     name: "Guy Breton",
+    producerId: "133f8561-e005-45ed-b1ed-4d9b796f5e47",
     region: "Villié-Morgon, Beaujolais",
     country: "Frankrike",
     grapes: "Gamay",
@@ -548,6 +555,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
     rank: 45,
     previousRank: 45,
     name: "Domaine Gauby / Gérard & Lionel Gauby",
+    producerId: "561f49c8-a2a2-4bf4-8d59-92501c33ebc8",
     region: "Calce, Roussillon",
     country: "Frankrike",
     grapes: "Grenache, Carignan, Grenache Blanc, Macabeu, Muscat",
@@ -760,6 +768,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
     rank: 71,
     previousRank: 71,
     name: "Didier Barral / Domaine Léon Barral",
+    producerId: "f54d6a0e-d424-4699-b332-4c3dcd9c62cd",
     region: "Lenthéric, Faugères",
     country: "Frankrike",
     grapes: "Mourvèdre, Carignan, Terret",
@@ -1000,6 +1009,7 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
     rank: 101,
     previousRank: null,
     name: "Sylvain Pataille",
+    producerId: "c061c27f-08da-4822-b3fa-c9fba6caa47a",
     region: "Marsannay, Bourgogne",
     country: "Frankrike",
     grapes: "Pinot Noir, Chardonnay, Aligoté",

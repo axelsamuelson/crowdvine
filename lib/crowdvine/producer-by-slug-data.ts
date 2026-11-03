@@ -14,6 +14,7 @@ const PRODUCER_BY_SLUG_SELECT =
 type ProducerRow = {
   id: string;
   name: string;
+  display_name: string | null;
   region: string | null;
   subregion: string | null;
   country_code: string | null;
@@ -49,6 +50,7 @@ export type ProducerBySlugPayload = {
   producer: {
     id: string;
     name: string;
+    display_name: string | null;
     region: string | null;
     subregion: string | null;
     country: string | null;
@@ -138,6 +140,7 @@ export async function getProducerBySlugForLocale(
     producer: {
       id: producer.id,
       name: producer.name,
+      display_name: producer.display_name ?? null,
       region: producer.region,
       subregion: producer.subregion,
       country: producer.country_code,

@@ -19,6 +19,12 @@ import {
 } from "@/lib/wine-retail-pricing";
 import { DEFAULT_WINE_IMAGE_PATH } from "@/lib/constants";
 import { isWineRegionValue } from "@/lib/wine-regions";
+import {
+  WineNotSourceableError,
+  readSourcingStatus,
+  sourcingPublishResult,
+  type SourcingStatus,
+} from "@/lib/sourcing-status";
 
 function normalizeWineRegionInput(
   value: string | null | undefined,
@@ -109,6 +115,8 @@ export interface Wine {
   is_live?: boolean;
   /** When false, visible in shop but not purchasable. */
   available_for_sale?: boolean;
+  sourcing_status?: SourcingStatus | null;
+  sourcing_note?: string | null;
   /** Latest internal tasting score (1–100), if any. */
   latest_rating_score?: number | null;
   /** Latest internal verdict, if any. */
@@ -172,6 +180,8 @@ export interface CreateWineData {
   // Visibility
   is_live?: boolean;
   available_for_sale?: boolean;
+  sourcing_status?: SourcingStatus;
+  sourcing_note?: string | null;
 }
 
 const WINES_SELECT_FULL = `
@@ -224,6 +234,8 @@ const WINES_SELECT_FULL = `
   b2b_stock,
   is_live,
   available_for_sale,
+  sourcing_status,
+  sourcing_note,
   source_type,
   created_at,
   updated_at
@@ -930,7 +942,21 @@ export async function createWine(data: CreateWineData, locale: WineLocale = "sv"
     b2b_stock: data.b2b_stock ?? null,
     is_live: data.is_live ?? true,
     available_for_sale: data.available_for_sale ?? true,
+    sourcing_status: readSourcingStatus(data.sourcing_status ?? "available"),
+    sourcing_note: data.sourcing_note ?? null,
   };
+  let publish: { warning?: "sourcing_allocation" } = {};
+  try {
+    publish = sourcingPublishResult(
+      insertData.is_live === true,
+      insertData.sourcing_status as SourcingStatus,
+    );
+  } catch (error) {
+    if (error instanceof WineNotSourceableError) {
+      return { error: "wine_not_sourceable" as const };
+    }
+    throw error;
+  }
 
   let result = await sb.from("wines").insert(insertData).select(WINES_SELECT_FULL).single();
 
@@ -1019,7 +1045,10 @@ export async function createWine(data: CreateWineData, locale: WineLocale = "sv"
     producerNames: [producer?.name],
     wineRegions: [wine.region as string | null | undefined],
   });
-  return wineWithProducer;
+  return {
+    ...wineWithProducer,
+    ...(publish.warning ? { warning: publish.warning } : {}),
+  };
 }
 
 export async function updateWine(
@@ -1032,7 +1061,7 @@ export async function updateWine(
   const { data: existing } = await sb
     .from("wines")
     .select(
-      "summary, description, tasting_notes, ageing, winemaker_notes, food_pairing, awards, soil_type, additives, region",
+      "summary, description, tasting_notes, ageing, winemaker_notes, food_pairing, awards, soil_type, additives, region, sourcing_status",
     )
     .eq("id", id)
     .single();
@@ -1168,6 +1197,27 @@ export async function updateWine(
     updateData.is_live = data.is_live;
   if (data.available_for_sale !== undefined)
     updateData.available_for_sale = data.available_for_sale;
+  if (data.sourcing_status !== undefined) {
+    updateData.sourcing_status = readSourcingStatus(data.sourcing_status);
+  }
+  if (data.sourcing_note !== undefined) {
+    updateData.sourcing_note = data.sourcing_note;
+  }
+  const nextStatus = readSourcingStatus(
+    updateData.sourcing_status ??
+      (existing as { sourcing_status?: unknown } | null)?.sourcing_status ??
+      "available",
+  );
+  let publish: { warning?: "sourcing_allocation" } = {};
+  try {
+    publish =
+      data.is_live === true ? sourcingPublishResult(true, nextStatus) : {};
+  } catch (error) {
+    if (error instanceof WineNotSourceableError) {
+      return { error: "wine_not_sourceable" as const };
+    }
+    throw error;
+  }
 
   // Get current wine data for calculation if needed
   let currentWine = null;
@@ -1377,7 +1427,10 @@ export async function updateWine(
       (existing as { region?: string | null } | null)?.region,
     ],
   });
-  return wineWithProducer;
+  return {
+    ...wineWithProducer,
+    ...(publish.warning ? { warning: publish.warning } : {}),
+  };
 }
 
 export async function deleteWine(id: string) {

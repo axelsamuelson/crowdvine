@@ -15,6 +15,12 @@ import {
 } from "@/lib/catalog-types";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { applyCostBasedRetailPricing } from "@/lib/wine-retail-pricing";
+import {
+  InvalidSourcingStatusError,
+  WineNotSourceableError,
+  readSourcingStatus,
+  sourcingPublishResult,
+} from "@/lib/sourcing-status";
 
 function parseWineId(raw: string | undefined): string | null {
   const id = raw?.trim();
@@ -93,13 +99,21 @@ export async function PATCH(
     const { data: existing } = await sb
       .from("wines")
       .select(
-        "summary, description, tasting_notes, ageing, winemaker_notes, food_pairing, awards, soil_type, additives, cost_amount, cost_currency, margin_percentage, price_includes_vat, alcohol_tax_cents, exchange_rate, base_price_cents",
+        "summary, description, tasting_notes, ageing, winemaker_notes, food_pairing, awards, soil_type, additives, cost_amount, cost_currency, margin_percentage, price_includes_vat, alcohol_tax_cents, exchange_rate, base_price_cents, sourcing_status",
       )
       .eq("id", id)
       .single();
 
     const locale = (request.headers.get("x-pact-locale") ?? "sv") as WineLocale;
     const patch = buildWinePatch(body, locale, existing ?? undefined);
+    if (body.is_published === true) {
+      const status = readSourcingStatus(
+        patch.sourcing_status ??
+          (existing as { sourcing_status?: unknown } | null)?.sourcing_status ??
+          "available",
+      );
+      sourcingPublishResult(true, status);
+    }
 
     if (Object.keys(patch).length === 0) {
       return NextResponse.json(
@@ -170,9 +184,32 @@ export async function PATCH(
       return NextResponse.json({ error: "Wine not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ wine: wineRowToApi(data) });
+    const warning =
+      body.is_published === true
+        ? sourcingPublishResult(
+            true,
+            readSourcingStatus(
+              data.sourcing_status ??
+                patch.sourcing_status ??
+                (existing as { sourcing_status?: unknown } | null)
+                  ?.sourcing_status ??
+                "available",
+            ),
+          ).warning
+        : undefined;
+
+    return NextResponse.json({
+      wine: wineRowToApi(data),
+      ...(warning ? { warning } : {}),
+    });
   } catch (e: unknown) {
-    if (e instanceof InvalidWineRegionError) {
+    if (e instanceof WineNotSourceableError) {
+      return NextResponse.json({ error: e.message }, { status: 409 });
+    }
+    if (
+      e instanceof InvalidWineRegionError ||
+      e instanceof InvalidSourcingStatusError
+    ) {
       return NextResponse.json({ error: e.message }, { status: 400 });
     }
     const msg = e instanceof Error ? e.message : "Unknown error";

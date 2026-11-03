@@ -18,18 +18,23 @@ import {
   type WineLocale,
 } from "@/lib/i18n/wine-locale";
 import { isWineRegionValue } from "@/lib/wine-regions";
+import {
+  readSourcingStatus,
+  type SourcingStatus,
+} from "@/lib/sourcing-status";
 
 /** DB columns loaded for producer → API mapping. */
 export const PRODUCER_DB_SELECT =
-  "id, name, region, subregion, country_code, country, founded_year, short_description, bio_long, certification, contact_name, contact_email, status, created_at";
+  "id, name, display_name, region, subregion, country_code, country, founded_year, short_description, bio_long, certification, contact_name, contact_email, status, created_at";
 
 /** DB columns loaded for wine → API mapping. */
 export const WINE_DB_SELECT =
-  "id, producer_id, wine_name, vintage, appellation, region, grape_varieties, color, base_price_cents, volume_liters, summary, description, tasting_notes, alcohol_percentage, abv, farming, additives, serving_temp_c, food_pairing, awards, cost_amount, cost_currency, winemaker_notes, elevation_masl, soil_type, ageing, yield_hl_ha, is_live, created_at, updated_at";
+  "id, producer_id, wine_name, vintage, appellation, region, grape_varieties, color, base_price_cents, volume_liters, summary, description, tasting_notes, alcohol_percentage, abv, farming, additives, serving_temp_c, food_pairing, awards, cost_amount, cost_currency, winemaker_notes, elevation_masl, soil_type, ageing, yield_hl_ha, is_live, sourcing_status, sourcing_note, created_at, updated_at";
 
 export type ProducerApiRow = {
   id: string;
   name: string;
+  display_name: string | null;
   region: string;
   subregion: string | null;
   /** Swedish display name from producers.country. */
@@ -85,6 +90,8 @@ export type WineApiRow = {
   ageing: string | null;
   yield_hl_ha: number | null;
   is_published: boolean;
+  sourcing_status: SourcingStatus;
+  sourcing_note: string | null;
   created_at: string | null;
   updated_at: string | null;
 };
@@ -104,6 +111,7 @@ export function producerRowToApi(
   return {
     id: row.id as string,
     name: row.name as string,
+    display_name: (row.display_name as string | null) ?? null,
     region: row.region as string,
     subregion: (row.subregion as string | null) ?? null,
     country: (row.country as string) ?? "",
@@ -240,6 +248,8 @@ export function wineRowToApi(
     yield_hl_ha:
       row.yield_hl_ha != null ? Number(row.yield_hl_ha) : null,
     is_published: row.is_live === true,
+    sourcing_status: readSourcingStatus(row.sourcing_status ?? "available"),
+    sourcing_note: (row.sourcing_note as string | null) ?? null,
     created_at: (row.created_at as string | null) ?? null,
     updated_at: (row.updated_at as string | null) ?? null,
   };
@@ -321,6 +331,10 @@ export function buildProducerPatch(
   if (body.contact_email === null) patch.contact_email = null;
   else if (typeof body.contact_email === "string") {
     patch.contact_email = body.contact_email.trim() || null;
+  }
+  if (body.display_name === null) patch.display_name = null;
+  else if (typeof body.display_name === "string") {
+    patch.display_name = body.display_name.trim() || null;
   }
 
   return patch;
@@ -526,6 +540,13 @@ export function buildWinePatch(
     );
   }
   if (typeof body.is_published === "boolean") patch.is_live = body.is_published;
+  if (body.sourcing_status !== undefined) {
+    patch.sourcing_status = readSourcingStatus(body.sourcing_status);
+  }
+  if (body.sourcing_note === null) patch.sourcing_note = null;
+  else if (typeof body.sourcing_note === "string") {
+    patch.sourcing_note = body.sourcing_note;
+  }
 
   return patch;
 }

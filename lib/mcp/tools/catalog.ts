@@ -8,6 +8,7 @@ import {
 } from "@/lib/catalog-types";
 import { WINE_REGION_VALUES } from "@/lib/wine-regions";
 import { mcpErrorResult, mcpJsonResult } from "../utils/tool-result";
+import { sourcingStatusSchema } from "@/lib/sourcing-status";
 import { mcpWriteTool } from "../utils/write-tool";
 
 const certificationSchema = z.enum(CATALOG_CERTIFICATION_VALUES);
@@ -223,6 +224,13 @@ export function registerCatalogTools(server: McpServer, sb: SupabaseClient) {
         certification: certificationSchema.nullable().optional(),
         contact_name: z.string().nullable().optional(),
         contact_email: z.string().nullable().optional(),
+        display_name: z
+          .string()
+          .nullable()
+          .optional()
+          .describe(
+            "Name shown in the producer page title and H1. Does not change the slug.",
+          ),
       },
     },
     async (args) => {
@@ -250,14 +258,15 @@ export function registerCatalogTools(server: McpServer, sb: SupabaseClient) {
     "list_wines",
     {
       description:
-        "Lista catalog-viner. Filtrera på producer_id, type, is_published.",
+        "Lista catalog-viner. Filtrera på producer_id, type, is_published, sourcing_status.",
       inputSchema: {
         producer_id: z.string().optional(),
         type: wineTypeSchema.optional(),
         is_published: z.boolean().optional(),
+        sourcing_status: sourcingStatusSchema.optional(),
       },
     },
-    async ({ producer_id, type, is_published }) => {
+    async ({ producer_id, type, is_published, sourcing_status }) => {
       try {
         const params = new URLSearchParams();
         if (producer_id) params.set("producer_id", producer_id);
@@ -265,6 +274,7 @@ export function registerCatalogTools(server: McpServer, sb: SupabaseClient) {
         if (is_published !== undefined) {
           params.set("is_published", String(is_published));
         }
+        if (sourcing_status) params.set("sourcing_status", sourcing_status);
         const qs = params.toString();
         const path = qs ? `/api/wines?${qs}` : "/api/wines";
         const res = await catalogApiJson<{ wines: unknown[] }>(path, {
@@ -321,6 +331,8 @@ export function registerCatalogTools(server: McpServer, sb: SupabaseClient) {
         import_price_eur: z.number().positive().optional(),
         yield_hl_ha: z.number().optional(),
         is_published: z.boolean().optional(),
+        sourcing_status: sourcingStatusSchema.optional(),
+        sourcing_note: z.string().nullable().optional(),
         locale: z.enum(["sv", "en"]).default("sv").optional(),
         ...winePdpContentFields,
       },
@@ -339,7 +351,13 @@ export function registerCatalogTools(server: McpServer, sb: SupabaseClient) {
               "x-pact-locale": locale,
             },
           });
-          if (!res.ok) throw new Error(res.error);
+          if (!res.ok) {
+            throw new Error(
+              res.status === 409
+                ? JSON.stringify({ error: res.error, status: 409 })
+                : res.error,
+            );
+          }
           return res.data;
         },
       );
@@ -362,6 +380,8 @@ export function registerCatalogTools(server: McpServer, sb: SupabaseClient) {
         import_price_eur: z.number().nullable().optional(),
         yield_hl_ha: z.number().nullable().optional(),
         is_published: z.boolean().optional(),
+        sourcing_status: sourcingStatusSchema.optional(),
+        sourcing_note: z.string().nullable().optional(),
         summary: winePdpContentFields.summary.nullable().optional(),
         description: winePdpContentFields.description.nullable().optional(),
         color: winePdpContentFields.color.nullable().optional(),
@@ -397,7 +417,13 @@ export function registerCatalogTools(server: McpServer, sb: SupabaseClient) {
               "x-pact-locale": locale,
             },
           });
-          if (!res.ok) throw new Error(res.error);
+          if (!res.ok) {
+            throw new Error(
+              res.status === 409
+                ? JSON.stringify({ error: res.error, status: 409 })
+                : res.error,
+            );
+          }
           return res.data;
         },
       );
