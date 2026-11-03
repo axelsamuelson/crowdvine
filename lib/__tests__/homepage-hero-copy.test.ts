@@ -6,16 +6,14 @@ import {
 } from "@/lib/homepage-hero-copy";
 
 describe("homepageHeroCopyDefaults", () => {
-  it("returns Swedish H1 lines without English middlemen tagline", () => {
+  it("returns the Swedish pallet headline", () => {
     const sv = homepageHeroCopyDefaults("sv");
-    expect(sv.title.toLowerCase()).toContain("vin utan");
-    expect(sv.title.toLowerCase()).not.toContain("wine without");
-    expect(sv.title.toLowerCase()).toContain("mellanhänder");
+    expect(sv.title).toBe("naturvin per pall");
   });
 
-  it("keeps the English middlemen tagline for EN", () => {
+  it("returns the English pallet headline", () => {
     const en = homepageHeroCopyDefaults("en");
-    expect(en.title.toLowerCase()).toContain("wine without");
+    expect(en.title).toBe("natural wine by the pallet");
   });
 });
 

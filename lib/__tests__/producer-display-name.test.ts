@@ -49,7 +49,14 @@ describe("producer shop titles", () => {
         "sv",
         "Hervé Souhaut",
       ),
-    ).toContain("Hervé Souhaut");
+    ).toBe("Viner från Hervé Souhaut");
+    expect(
+      producerShopPageHeading(
+        "Domaine Romaneaux-Destezet",
+        "en",
+        "Hervé Souhaut",
+      ),
+    ).toBe("Wines from Hervé Souhaut");
   });
 
   it("keeps the legal name when there is no display name", () => {

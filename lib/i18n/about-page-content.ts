@@ -55,7 +55,7 @@ const ABOUT_CONTENT_EN: AboutPageContent = {
     },
     {
       title: "Collective Shipping",
-      body: "When the pallet is full, the wines are shipped together. No warehouses, no detours.",
+      body: "When the pallet is full, the wines are shipped together. No warehouses of our own.",
     },
     {
       title: "Transparent Logistics",
@@ -69,7 +69,6 @@ const ABOUT_CONTENT_EN: AboutPageContent = {
   differenceTitle: "The Difference",
   differenceItems: [
     { label: "No warehouses.", detail: "Wines stay with the winemaker until shipped." },
-    { label: "No middlemen.", detail: "Wines come from small producers in France." },
     { label: "No waste.", detail: "Collective shipping means lower emissions." },
   ],
   differenceTagline: "Crowdsource your wine.",
@@ -108,7 +107,7 @@ const ABOUT_CONTENT_SV: AboutPageContent = {
     },
     {
       title: "Kollektiv frakt",
-      body: "När pallen är full skickas den till Stockholm. Inga lager, inga mellanhänder.",
+      body: "När pallen är full skickas den till Stockholm. Inga egna lager.",
     },
     {
       title: "Transparent logistik",
@@ -122,7 +121,6 @@ const ABOUT_CONTENT_SV: AboutPageContent = {
   differenceTitle: "Skillnaden",
   differenceItems: [
     { label: "Inga lager." },
-    { label: "Inga mellanhänder." },
     { label: "Inget svinn." },
   ],
   differenceTagline: "Crowdsourca ditt vin.",
