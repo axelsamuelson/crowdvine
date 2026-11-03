@@ -324,12 +324,15 @@ export default async function WineCategoryPage(props: PageProps) {
     ],
   };
 
-  const exploreLinks = getCategoryExploreLinks(
-    category,
-    isColorNaturvinHub(category)
-      ? { regionLinks: await getColorHubRegionExploreLinks("en") }
-      : undefined,
-  );
+    const exploreLinks = getCategoryExploreLinks(
+      category,
+      isColorNaturvinHub(category)
+        ? { regionLinks: await getColorHubRegionExploreLinks("en") }
+        : undefined,
+    );
+    const showLanguedocGuideLink =
+      isColorNaturvinHub(category) ||
+      category.slug === "languedoc-natural-wine";
   const regionLabel = category.filter.wineRegion
     ? wineRegionLabel(category.filter.wineRegion, "en")
     : null;
@@ -438,35 +441,41 @@ export default async function WineCategoryPage(props: PageProps) {
           </div>
         ) : null}
 
-        {(category.aboutText || exploreLinks.length > 0) && (
+        {(category.aboutText ||
+          exploreLinks.length > 0 ||
+          showLanguedocGuideLink) && (
           <div className="mt-12 pt-12">
             {category.aboutText ? (
               <p className="mb-8 max-w-xl text-sm text-stone-600">
                 {category.aboutText}
               </p>
             ) : null}
-            <div>
-              <h3 className="mb-3 text-sm font-medium text-stone-900">
-                Explore more
-              </h3>
-              <div className="flex flex-wrap gap-2">
-                {exploreLinks.map((link) => (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    className="text-sm text-stone-600 underline underline-offset-4 hover:text-stone-900"
-                  >
-                    {link.label}
-                  </Link>
-                ))}
-                <Link
-                  href="/guides/languedoc-natural-wine"
-                  className="text-sm text-stone-600 underline underline-offset-4 hover:text-stone-900"
-                >
-                  About natural wine from Languedoc
-                </Link>
+            {exploreLinks.length > 0 || showLanguedocGuideLink ? (
+              <div>
+                <h3 className="mb-3 text-sm font-medium text-stone-900">
+                  Explore more
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {exploreLinks.map((link) => (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      className="text-sm text-stone-600 underline underline-offset-4 hover:text-stone-900"
+                    >
+                      {link.label}
+                    </Link>
+                  ))}
+                  {showLanguedocGuideLink ? (
+                    <Link
+                      href="/guides/languedoc-natural-wine"
+                      className="text-sm text-stone-600 underline underline-offset-4 hover:text-stone-900"
+                    >
+                      About natural wine from Languedoc
+                    </Link>
+                  ) : null}
+                </div>
               </div>
-            </div>
+            ) : null}
           </div>
         )}
 

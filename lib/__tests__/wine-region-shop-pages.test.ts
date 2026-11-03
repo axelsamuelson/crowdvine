@@ -7,6 +7,7 @@ import {
   resolveRegionFilterNavigationUrl,
   selectedWineRegionSlugs,
 } from "@/lib/shop/filter-navigation";
+import { buildFaqPageJsonLd } from "@/lib/wine-category-faq";
 import { mergeWineCategoryContent } from "@/lib/wine-category-content";
 import { getWineCategoryEn, getWineCategorySv } from "@/lib/wine-categories";
 import {
@@ -32,18 +33,55 @@ describe("region shop paths", () => {
     );
   });
 
-  it("uses existing H1, title and meta and leaves the intro empty", () => {
-    const category = mergeWineCategoryContent(getWineCategorySv("naturvin-loire")!);
-    expect(category.h1).toBe("Naturvin från Loire");
-    expect(category.title).toBe(
-      "Naturvin från Loire – producenter och stil | PACT",
+  it("uses editorial Loire copy and FAQ JSON-LD", () => {
+    const sv = mergeWineCategoryContent(getWineCategorySv("naturvin-loire")!);
+    expect(sv.h1).toBe("Naturvin från Loire");
+    expect(sv.description).toContain("Loiredalen följer");
+    expect(sv.contentHeading).toBe("Om naturvin från Loire");
+    expect(sv.longDescription).toContain("sur lie");
+    expect(sv.faq?.map((item) => item.question)).toContain(
+      "Vad betyder Muscadet sur lie?",
     );
-    expect(category.metaDescription).toBe(
-      "Naturvin från Loire – producenter och stil hos PACT. Hemleverans med Budbee.",
+    expect(buildFaqPageJsonLd(sv.faq ?? []).mainEntity).toHaveLength(3);
+
+    const en = mergeWineCategoryContent(
+      getWineCategoryEn("loire-natural-wine")!,
     );
+    expect(en.h1).toBe("Natural wine from the Loire");
+    expect(en.description).toContain("The Loire Valley follows");
+    expect(en.longDescription).toContain("sur lie");
+    expect(en.faq?.[0]?.question).toBe("Which grapes are grown in the Loire?");
+  });
+
+  it("keeps Champagne on the short fallback without empty editorial sections", () => {
+    const category = mergeWineCategoryContent(
+      getWineCategorySv("naturvin-champagne")!,
+    );
+    expect(category.h1).toBe("Naturvin från Champagne");
     expect(category.description).toBe("");
     expect(category.longDescription).toBeUndefined();
+    expect(category.contentHeading).toBeUndefined();
     expect(category.faq).toBeUndefined();
+  });
+
+  it("keeps markdown links in Languedoc FAQ answers", () => {
+    const category = mergeWineCategoryContent(
+      getWineCategorySv("naturvin-languedoc")!,
+    );
+    const pairing = category.faq?.find((item) =>
+      item.question.startsWith("Vad passar"),
+    );
+    expect(pairing?.answer).toContain(
+      "[guiden om naturvin från Languedoc](/guider/naturvin-languedoc)",
+    );
+    const jsonLd = buildFaqPageJsonLd(category.faq ?? []);
+    const answer = jsonLd.mainEntity.find(
+      (item) => item.name === pairing?.question,
+    );
+    expect(answer?.acceptedAnswer.text).toContain(
+      "guiden om naturvin från Languedoc",
+    );
+    expect(answer?.acceptedAnswer.text).not.toContain("](");
   });
 });
 

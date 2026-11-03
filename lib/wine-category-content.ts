@@ -1,5 +1,6 @@
 import type { AppLocale } from "@/lib/i18n/locale";
 import type { WineCategory } from "@/lib/wine-category-types";
+import { WINE_REGION_CATEGORY_CONTENT } from "@/lib/wine-region-category-content";
 import {
   WINE_REGIONS,
   wineRegionPageH1,
@@ -25,10 +26,31 @@ export type WineCategoryContentOverride = Partial<
   >
 >;
 
-/**
- * Temporary region copy: H1, title and meta from the existing region helpers.
- * Intro, long description and FAQ stay empty until editorial copy is added.
- */
+function regionLocaleCopy(
+  region: (typeof WINE_REGIONS)[number],
+  locale: AppLocale,
+): WineCategoryContentOverride {
+  const copy = WINE_REGION_CATEGORY_CONTENT[region.slug]?.[locale];
+  if (copy) {
+    return {
+      h1: copy.h1,
+      title: copy.title,
+      metaDescription: copy.metaDescription,
+      description: copy.description,
+      contentHeading: copy.contentHeading,
+      longDescription: copy.longDescription,
+      faq: copy.faq,
+    };
+  }
+  return {
+    h1: wineRegionPageH1(region, locale),
+    title: wineRegionPageTitle(region, locale),
+    metaDescription: wineRegionPageMetaDescription(region, locale),
+    description: "",
+  };
+}
+
+/** Region PLP copy. Champagne and Alsace keep the short fallback. */
 function regionShopContentOverrides(): Record<
   string,
   Partial<Record<AppLocale, WineCategoryContentOverride>>
@@ -39,20 +61,10 @@ function regionShopContentOverrides(): Record<
   > = {};
   for (const region of WINE_REGIONS) {
     overrides[`naturvin-${region.slug}`] = {
-      sv: {
-        h1: wineRegionPageH1(region, "sv"),
-        title: wineRegionPageTitle(region, "sv"),
-        metaDescription: wineRegionPageMetaDescription(region, "sv"),
-        description: "",
-      },
+      sv: regionLocaleCopy(region, "sv"),
     };
     overrides[region.enSlug] = {
-      en: {
-        h1: wineRegionPageH1(region, "en"),
-        title: wineRegionPageTitle(region, "en"),
-        metaDescription: wineRegionPageMetaDescription(region, "en"),
-        description: "",
-      },
+      en: regionLocaleCopy(region, "en"),
     };
   }
   return overrides;
