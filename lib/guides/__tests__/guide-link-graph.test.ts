@@ -125,11 +125,11 @@ describe("article breadcrumbs", () => {
     expect(en.crumbs.map((crumb) => crumb.label)).toEqual([
       "Home",
       "Natural Wine Guides",
-      "What Is Natural Wine?",
+      "What is natural wine?",
       "What is orange wine?",
     ]);
     expect(en.crumbs[2]).toEqual({
-      label: "What Is Natural Wine?",
+      label: "What is natural wine?",
       href: "/guides/what-is-natural-wine",
     });
     expect(en.jsonLd[2]?.item).toBe(`${BASE}/guides/what-is-natural-wine`);

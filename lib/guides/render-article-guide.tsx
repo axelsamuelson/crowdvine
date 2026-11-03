@@ -21,6 +21,7 @@ import {
   articleLinkText,
   articleParagraphs,
   articlePath,
+  articleVisibleForLocale,
   isGuideArticlePublished,
   type GuideArticleContent,
   type GuideArticleSection,
@@ -192,10 +193,12 @@ export async function renderArticleGuidePage(
     ...(content.updated ? { dateModified: content.updated } : {}),
   };
 
-  const faqs = (content.faqs ?? []).map((faq) => ({
-    question: faq.question[locale],
-    answer: faq.answer[locale],
-  }));
+  const faqs = articleVisibleForLocale(content.faqs ?? [], locale).map(
+    (faq) => ({
+      question: faq.question[locale],
+      answer: faq.answer[locale],
+    }),
+  );
   const faqJsonLd =
     faqs.length > 0
       ? {
@@ -293,16 +296,21 @@ export async function renderArticleGuidePage(
         h1={content.h1[locale]}
         byline={content.author?.byline[locale]}
         lede={content.lede?.[locale] ?? content.hubCard.description[locale]}
-        sections={content.sections.map((section) => ({
-          heading: section.heading?.[locale],
-          headingBadge: section.headingBadge?.[locale],
-          paragraphs: section.blocks
-            ? []
-            : articleParagraphs(section.body, locale),
-          blocks: shellBlocks(section, locale),
-        }))}
+        sections={articleVisibleForLocale(content.sections, locale).map(
+          (section) => ({
+            heading: section.heading?.[locale],
+            headingBadge: section.headingBadge?.[locale],
+            paragraphs: section.blocks
+              ? []
+              : articleParagraphs(section.body, locale),
+            blocks: shellBlocks(section, locale),
+          }),
+        )}
         afterFirstSection={
-          content.sections.length >= 2 && shopCta ? shopCta : undefined
+          articleVisibleForLocale(content.sections, locale).length >= 2 &&
+          shopCta
+            ? shopCta
+            : undefined
         }
         afterSections={shopCta ?? undefined}
         faqs={faqs}

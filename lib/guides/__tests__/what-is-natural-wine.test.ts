@@ -5,7 +5,11 @@ import { bestOrangeNaturalWinesSystembolagetArticle } from "@/lib/guides/article
 import { bestRedNaturalWinesSystembolagetArticle } from "@/lib/guides/articles/best-red-natural-wines-systembolaget";
 import { bestWhiteNaturalWinesSystembolagetArticle } from "@/lib/guides/articles/best-white-natural-wines-systembolaget";
 import { whatIsNaturalWineArticle } from "@/lib/guides/articles/what-is-natural-wine";
-import { articleLinkText } from "@/lib/guides/guide-types";
+import { buildArticleGuideMeta } from "@/lib/guides/guide-article-seo";
+import {
+  articleLinkText,
+  articleVisibleForLocale,
+} from "@/lib/guides/guide-types";
 import { guideCopy } from "@/lib/guides/guide-copy";
 
 function collectStrings(value: unknown, out: string[] = []): string[] {
@@ -29,18 +33,33 @@ describe("what is natural wine", () => {
       "Vad är naturvin? Definition, sulfiter och hur det görs",
     );
     expect(whatIsNaturalWineArticle.title.en).toBe(
-      "What is natural wine? Definition, sulfites, how it's made",
+      "What Is Natural Wine? Meaning, Sulfites and Organic vs Natural",
     );
     expect(whatIsNaturalWineArticle.title.sv.length).toBeLessThanOrEqual(60);
-    expect(whatIsNaturalWineArticle.title.en.length).toBeLessThanOrEqual(60);
+    expect(whatIsNaturalWineArticle.meta.en).toBe(
+      "Natural wine means low intervention: organic grapes, wild fermentation and little or no added sulfites. What it tastes like, US and EU sulfite rules, and how it differs from organic wine.",
+    );
+    expect(whatIsNaturalWineArticle.absoluteTitle).toEqual({ en: true });
+    const enTitle = whatIsNaturalWineArticle.title.en;
+    expect(enTitle.length).toBeLessThanOrEqual(65);
+    expect(`${enTitle} | PACT Wines`.length).toBeGreaterThan(65);
+    expect(
+      buildArticleGuideMeta(
+        whatIsNaturalWineArticle,
+        "en",
+        "https://pactwines.com",
+        "PACT Wines",
+      ).title,
+    ).toEqual({ absolute: enTitle });
     expect(whatIsNaturalWineArticle.h1).toEqual({
       sv: "Vad är naturvin?",
-      en: "What Is Natural Wine?",
+      en: "What is natural wine?",
     });
     expect(whatIsNaturalWineArticle.meta.sv.length).toBeLessThanOrEqual(160);
-    expect(whatIsNaturalWineArticle.meta.en.length).toBeLessThanOrEqual(160);
     expect(
-      whatIsNaturalWineArticle.sections.map((section) => section.heading?.sv),
+      articleVisibleForLocale(whatIsNaturalWineArticle.sections, "sv").map(
+        (section) => section.heading?.sv,
+      ),
     ).toEqual([
       "Naturvin i korthet",
       "Naturvin och sulfiter",
@@ -53,7 +72,25 @@ describe("what is natural wine", () => {
       "Var görs naturvin?",
     ]);
     expect(
-      whatIsNaturalWineArticle.faqs?.map((faq) => faq.question.sv),
+      articleVisibleForLocale(whatIsNaturalWineArticle.sections, "en").map(
+        (section) => section.heading?.en,
+      ),
+    ).toEqual([
+      "What does natural wine mean?",
+      "Low intervention and zero-zero wine",
+      "Natural wine and sulfites",
+      "Natural wine vs organic wine vs biodynamic wine",
+      "What does natural wine taste like?",
+      "Natural wine styles",
+      "White natural wine",
+      "Red natural wine",
+      "Mousy wine: the fault to know about",
+      "Where is natural wine made?",
+    ]);
+    expect(
+      articleVisibleForLocale(whatIsNaturalWineArticle.faqs ?? [], "sv").map(
+        (faq) => faq.question.sv,
+      ),
     ).toEqual([
       "Vad är naturvin?",
       "Innehåller naturvin sulfiter?",
@@ -61,7 +98,19 @@ describe("what is natural wine", () => {
       "Är naturvin samma som orange vin?",
       "Var köper man naturvin i Sverige?",
     ]);
-    expect(whatIsNaturalWineArticle.updated).toBe("2026-10-25");
+    expect(
+      articleVisibleForLocale(whatIsNaturalWineArticle.faqs ?? [], "en").map(
+        (faq) => faq.question.en,
+      ),
+    ).toEqual([
+      "What is natural wine?",
+      "Does natural wine have sulfites?",
+      "Is natural wine organic?",
+      "What is the difference between natural wine and orange wine?",
+      "Why is natural wine cloudy?",
+      "What is a mousy wine?",
+    ]);
+    expect(whatIsNaturalWineArticle.updated).toBe("2026-11-03");
   });
 
   it("states only the sourced sulphur ceilings", () => {
@@ -103,6 +152,31 @@ describe("what is natural wine", () => {
     for (const text of english) {
       expect(text).not.toMatch(/[åäöÅÄÖ]/);
     }
+    const visibleEnglish = [
+      whatIsNaturalWineArticle.title.en,
+      whatIsNaturalWineArticle.meta.en,
+      whatIsNaturalWineArticle.h1.en,
+      whatIsNaturalWineArticle.lede?.en ?? "",
+      ...articleVisibleForLocale(whatIsNaturalWineArticle.sections, "en").flatMap(
+        (section) => [
+          section.heading?.en ?? "",
+          ...(Array.isArray(section.body.en)
+            ? section.body.en
+            : [section.body.en]),
+        ],
+      ),
+      ...articleVisibleForLocale(whatIsNaturalWineArticle.faqs ?? [], "en").flatMap(
+        (faq) => [faq.question.en, faq.answer.en],
+      ),
+      ...whatIsNaturalWineArticle.internalLinks
+        .filter((link) => link.label.en.trim().length > 0)
+        .map((link) => `${link.label.en} ${link.href.en}`),
+    ].join("\n");
+    expect(visibleEnglish).not.toMatch(/Systembolaget/i);
+    expect(visibleEnglish).not.toMatch(/\bSweden\b/);
+    expect(visibleEnglish).toContain("27 CFR 4.32(e)");
+    expect(visibleEnglish).toContain("USDA");
+    expect(visibleEnglish).toContain("100 ppm");
   });
 
   it("strips markdown links in FAQ answers", () => {

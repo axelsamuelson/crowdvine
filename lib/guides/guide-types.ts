@@ -22,6 +22,11 @@ export type GuideArticleAuthor = {
 };
 
 export type GuideArticleSection = {
+  /**
+   * When set, the section is rendered only for these locales.
+   * Omit to show it in both languages.
+   */
+  locales?: readonly AppLocale[];
   heading?: LocalizedString;
   /** Subtle muted badge next to the heading (e.g. rank movement). */
   headingBadge?: LocalizedString;
@@ -88,9 +93,18 @@ export type GuideArticleHubCard = {
 };
 
 export type GuideArticleFaq = {
+  /** When set, the question is rendered only for these locales. */
+  locales?: readonly AppLocale[];
   question: LocalizedString;
   answer: LocalizedString;
 };
+
+export function articleVisibleForLocale<T extends { locales?: readonly AppLocale[] }>(
+  items: readonly T[],
+  locale: AppLocale,
+): T[] {
+  return items.filter((item) => !item.locales || item.locales.includes(locale));
+}
 
 /** Visible anchor from a markdown link, without the URL. */
 export function articleLinkText(text: string): string {
@@ -121,6 +135,11 @@ export type GuideArticleContent = {
    */
   includePurJus?: boolean;
   slug: LocalizedString;
+  /**
+   * Document title is absolute for these locales, so the root layout
+   * template does not append ` | PACT Wines`.
+   */
+  absoluteTitle?: Partial<Record<AppLocale, true>>;
   title: LocalizedString;
   meta: LocalizedString;
   h1: LocalizedString;
