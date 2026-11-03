@@ -54,13 +54,57 @@ function buildPdpSeoTitle(
   return `${base} — ${producerName.trim()}`;
 }
 
-function buildPdpSeoDescription(
+function trimPlaceName(value: string | null | undefined): string | null {
+  const trimmed = value?.trim() ?? "";
+  return trimmed || null;
+}
+
+/** wines.region, then producers.region. Empty when both are missing. */
+export function pdpSeoRegion(
+  wineRegion: string | null | undefined,
+  producerRegion: string | null | undefined,
+): string | null {
+  return trimPlaceName(wineRegion) ?? trimPlaceName(producerRegion);
+}
+
+function pdpSeoSuffix(
+  locale: "sv" | "en",
+  producer: string | null,
+  region: string | null,
+  withDelivery: boolean,
+): string {
+  const delivery =
+    locale === "sv"
+      ? " Hemleverans i Stockholm."
+      : " Home delivery in Stockholm.";
+  let clause = "";
+  if (producer && region) {
+    clause =
+      locale === "sv"
+        ? ` Naturvin från ${producer}, ${region}.`
+        : ` Natural wine from ${producer}, ${region}.`;
+  } else if (producer) {
+    clause =
+      locale === "sv"
+        ? ` Naturvin från ${producer}.`
+        : ` Natural wine from ${producer}.`;
+  } else if (region) {
+    clause =
+      locale === "sv"
+        ? ` Naturvin från ${region}.`
+        : ` Natural wine from ${region}.`;
+  }
+  return withDelivery ? `${clause}${delivery}` : clause;
+}
+
+export function buildPdpSeoDescription(
   locale: "sv" | "en",
   options: {
     summaryText: string | null;
     tastingNotesText: string | null;
     grapeVarieties: string[];
     producerName: string;
+    region?: string | null;
   },
 ): string {
   const { summaryText, tastingNotesText, grapeVarieties, producerName } =
@@ -74,24 +118,10 @@ function buildPdpSeoDescription(
   const producer = isKnownProducerName(producerName)
     ? producerName.trim()
     : null;
+  const region = trimPlaceName(options.region);
 
-  const fullSuffix =
-    locale === "sv"
-      ? producer
-        ? ` Naturvin från ${producer}, Languedoc. Hemleverans i Stockholm.`
-        : " Naturvin från Languedoc. Hemleverans i Stockholm."
-      : producer
-        ? ` Natural wine from ${producer}, Languedoc. Home delivery in Stockholm.`
-        : " Natural wine from Languedoc. Home delivery in Stockholm.";
-
-  const shortSuffix =
-    locale === "sv"
-      ? producer
-        ? ` Naturvin från ${producer}, Languedoc.`
-        : " Naturvin från Languedoc."
-      : producer
-        ? ` Natural wine from ${producer}, Languedoc.`
-        : " Natural wine from Languedoc.";
+  const fullSuffix = pdpSeoSuffix(locale, producer, region, true);
+  const shortSuffix = pdpSeoSuffix(locale, producer, region, false);
 
   const withFull = `${lead}${fullSuffix}`;
   if (withFull.length <= META_DESCRIPTION_MAX_LENGTH) return withFull;
@@ -328,6 +358,7 @@ export async function getCrowdvineProductByHandle(options: {
         tags,
         available_for_sale,
         source_type,
+        region,
         producers!inner(name, display_name, region, subregion, lat, lon, boost_active)
       `;
 
@@ -367,6 +398,7 @@ export async function getCrowdvineProductByHandle(options: {
         tags,
         available_for_sale,
         source_type,
+        region,
         producers!inner(name, display_name, region, subregion, lat, lon, boost_active)
       `;
 
@@ -402,8 +434,8 @@ export async function getCrowdvineProductByHandle(options: {
         base_price_cents, cost_amount, cost_currency, exchange_rate,
         alcohol_tax_cents, margin_percentage, b2b_margin_percentage, b2b_stock,
         label_image_path, producer_id, description, description_html,
-        source_type,
-        producers!inner(name, display_name, boost_active)
+        source_type, region,
+        producers!inner(name, display_name, region, boost_active)
       `;
     result = await sb
       .from("wines")
@@ -661,11 +693,16 @@ export async function getCrowdvineProductByHandle(options: {
     display_name: producerDisplayNameValue,
   });
   const seoTitle = buildPdpSeoTitle(i.wine_name, i.vintage, shownProducerName);
+  const wineRegion =
+    typeof (i as { region?: string | null }).region === "string"
+      ? (i as { region?: string | null }).region
+      : null;
   const seoDescription = buildPdpSeoDescription(localeForWine, {
     summaryText,
     tastingNotesText,
     grapeVarieties,
     producerName: shownProducerName,
+    region: pdpSeoRegion(wineRegion, producerRegion),
   });
 
   const wineEnrichment = {
