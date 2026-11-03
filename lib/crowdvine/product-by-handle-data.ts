@@ -60,37 +60,27 @@ function buildPdpSeoDescription(
     tastingNotesText: string | null;
     grapeVarieties: string[];
     producerName: string;
+    region?: string | null;
   },
 ): string {
-  const { summaryText, tastingNotesText, grapeVarieties, producerName } =
-    options;
+  const { summaryText, tastingNotesText, grapeVarieties, region } = options;
   const grapeFallback = grapeVarieties.join(", ") || "";
   const lead =
     firstSentence(summaryText) || firstSentence(tastingNotesText) || null;
 
   if (!lead) return grapeFallback;
 
-  const producer = isKnownProducerName(producerName)
-    ? producerName.trim()
-    : null;
+  const regionPart = region?.trim() || "Languedoc";
 
   const fullSuffix =
     locale === "sv"
-      ? producer
-        ? ` Naturvin från ${producer}, Languedoc. Hemleverans i Stockholm.`
-        : " Naturvin från Languedoc. Hemleverans i Stockholm."
-      : producer
-        ? ` Natural wine from ${producer}, Languedoc. Home delivery in Stockholm.`
-        : " Natural wine from Languedoc. Home delivery in Stockholm.";
+      ? ` Naturvin från ${regionPart}. Hemleverans med Budbee.`
+      : ` Natural wine from ${regionPart}. Home delivery with Budbee.`;
 
   const shortSuffix =
     locale === "sv"
-      ? producer
-        ? ` Naturvin från ${producer}, Languedoc.`
-        : " Naturvin från Languedoc."
-      : producer
-        ? ` Natural wine from ${producer}, Languedoc.`
-        : " Natural wine from Languedoc.";
+      ? ` Naturvin från ${regionPart}.`
+      : ` Natural wine from ${regionPart}.`;
 
   const withFull = `${lead}${fullSuffix}`;
   if (withFull.length <= META_DESCRIPTION_MAX_LENGTH) return withFull;
@@ -653,6 +643,7 @@ export async function getCrowdvineProductByHandle(options: {
     tastingNotesText,
     grapeVarieties,
     producerName,
+    region: producerRegion,
   });
 
   const wineEnrichment = {

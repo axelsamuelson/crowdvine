@@ -13,7 +13,7 @@ describe("conversion funnel copy (sv)", () => {
 
   it("promises direct-box delivery without inventing a time SLA", () => {
     expect(translate("sv", "commerce.directBoxDeliveryPromise")).toBe(
-      "Skickas direkt från producenten i låda",
+      "Skickas i låda från Frankrike",
     );
     // Customer copy must not invent delivery times; only a marked TODO may set one.
     expect(B2C_DIRECT_BOX_DELIVERY_TIME_TODO).toBeNull();
@@ -45,8 +45,8 @@ describe("conversion funnel copy (en)", () => {
   it("mirrors reserve + min-six + direct-box messaging", () => {
     expect(translate("en", "shop.reserve")).toBe("Reserve");
     expect(translate("en", "commerce.minSixMix")).toMatch(/6/);
-    expect(translate("en", "commerce.directBoxDeliveryPromise")).toMatch(
-      /producer/i,
+    expect(translate("en", "commerce.directBoxDeliveryPromise")).toBe(
+      "Shipped in a box from France",
     );
   });
 });

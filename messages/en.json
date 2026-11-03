@@ -61,7 +61,7 @@
     "heroTitleMiddle": "the middlemen",
     "heroTitleAfter": "",
     "heroBrand": "PACT",
-    "heroHeadline": "Natural wine from Languedoc",
+    "heroHeadline": "Natural wine from the regions of France",
     "heroSubtitle": "A new way to buy wine. More goes to the producer without paying more for the wine.",
     "heroDescription1": "A smarter way to buy wine together.",
     "heroDescription2": "Discover new producers every week.",
@@ -71,7 +71,7 @@
     "allWineBoxes": "All wine boxes",
     "glassDirectFromProducer": "Guaranteed lowest price",
     "glassHomeDelivery": "Home delivery in Stockholm",
-    "glassNoMiddlemen": "No middlemen"
+    "glassNoMiddlemen": "On shared pallets"
   },
   "shop": {
     "pageTitle": "Shop",
@@ -357,7 +357,7 @@
   },
   "commerce": {
     "minSixMix": "Minimum 6 bottles – you can mix",
-    "directBoxDeliveryPromise": "Shipped directly from the producer in a box",
+    "directBoxDeliveryPromise": "Shipped in a box from France",
     "palletFillCount": "{filled} of {total} bottles",
     "palletReadyShort": "Ready",
     "palletRemainingShort": "{remaining} left"

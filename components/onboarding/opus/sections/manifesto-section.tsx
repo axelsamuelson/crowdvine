@@ -27,7 +27,7 @@ export function ManifestoSection() {
           <br />
           Directly from the winemaker.
           <br />
-          No middlemen.
+          On shared pallets.
         </h2>
 
         {/* Gradient mask reveal text */}
@@ -39,7 +39,7 @@ export function ManifestoSection() {
           <br />
           Directly from the winemaker.
           <br />
-          No middlemen.
+          On shared pallets.
         </motion.h2>
       </div>
     </section>

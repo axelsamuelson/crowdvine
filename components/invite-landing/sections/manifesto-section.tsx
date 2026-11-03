@@ -8,7 +8,7 @@ const LINE_2 = "Without middlemen and fully transparent.";
 const LINE_3 = "On producers and consumers terms, only.";
 
 const PRODUCER_LINE_1 = "A community for producers to connect directly with wine lovers.";
-const PRODUCER_LINE_2 = "No middlemen. Fully transparent. You set the terms.";
+const PRODUCER_LINE_2 = "On shared pallets. Fully transparent. You set the terms.";
 
 const BUSINESS_LINE =
   'We represent the new generation of wine redefining the old "dirty" region of Languedoc.';

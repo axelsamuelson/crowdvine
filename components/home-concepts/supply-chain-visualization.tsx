@@ -19,7 +19,7 @@ const supplyChainSteps: SupplyChainStep[] = [
     icon: "🍷",
     details: [
       "Naturvin från små producenter",
-      "Inga mellanhänder",
+      "På delade pallar",
       "Direktkontakt med vinmakaren",
       "Transparent produktion",
     ],
@@ -57,7 +57,7 @@ const supplyChainSteps: SupplyChainStep[] = [
       "Direktleverans eller upphämtning",
       "Full spårbarhet",
       "Rätt vin, rättvist pris",
-      "Inga mellanhänder",
+      "På delade pallar",
     ],
   },
 ];

@@ -14,17 +14,17 @@ const CONTENT_EN: ProducersDirectoryContent = {
   description:
     "Meet the small producers behind PACT’s natural wines — from Faugères to Saint-Chinian. Organic and biodynamic farming, no additives.",
   heading: "Producers",
-  countLabel: (count) => `${count} producers from Languedoc`,
+  countLabel: (count) => `${count} producers in France`,
   shopLabel: "Shop",
   breadcrumbLabel: "Producers",
 };
 
 const CONTENT_SV: ProducersDirectoryContent = {
-  title: "Naturvinproducenter i Languedoc — alla våra producenter",
+  title: "Naturvinsproducenter i Frankrike — alla våra producenter",
   description:
     "Möt småproducenterna bakom PACTs naturviner — från Faugères till Saint-Chinian. Ekologisk och biodynamisk odling, inga tillsatser.",
   heading: "Producenter",
-  countLabel: (count) => `${count} producenter från Languedoc`,
+  countLabel: (count) => `${count} producenter i Frankrike`,
   shopLabel: "Shop",
   breadcrumbLabel: "Producenter",
 };
