@@ -229,9 +229,9 @@ export function wineRegionPageMetaDescription(
   locale: AppLocale,
 ): string {
   if (locale === "sv") {
-    return `Naturvin från ${region.labelSv} hos PACT – producenter, druvor och stilar i det live-urvalet. Regionfakta, profiler och hemleverans med Budbee.`;
+    return `Naturvin från ${region.labelSv} hos PACT – producenter, druvor och stilar i urvalet. Regionfakta, producentprofiler och hemleverans med Budbee.`;
   }
-  return `${region.labelEn} natural wine at PACT – producers, grapes and styles in the live selection, with clear region facts and related producer guides.`;
+  return `${region.labelEn} natural wine at PACT – producers, grapes and styles from the current selection, with region facts and related producer guides.`;
 }
 
 /**

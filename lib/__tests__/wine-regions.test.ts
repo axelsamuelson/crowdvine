@@ -259,6 +259,8 @@ describe("Margaux region landing copy", () => {
       expect(sv.toLowerCase()).not.toContain("hela sverige");
       expect(en.toLowerCase()).not.toContain("hela sverige");
       expect(en.toLowerCase()).not.toContain("all of sweden");
+      expect(sv.toLowerCase()).not.toContain("live");
+      expect(en.toLowerCase()).not.toContain("live");
       expect(sv.length).toBeGreaterThanOrEqual(130);
       expect(sv.length).toBeLessThanOrEqual(160);
       expect(en.length).toBeGreaterThanOrEqual(130);
@@ -281,12 +283,14 @@ describe("Margaux region landing copy", () => {
     }
   });
 
-  it("provides 3–5 factual H2 sections per region and locale", () => {
+  it("provides two factual H2 sections (about + grapes/styles) per region", () => {
     for (const region of WINE_REGIONS) {
       for (const locale of ["sv", "en"] as const) {
         const sections = getWineRegionSections(region.slug, locale);
-        expect(sections.length).toBeGreaterThanOrEqual(3);
-        expect(sections.length).toBeLessThanOrEqual(5);
+        expect(sections.length).toBe(2);
+        expect(sections[1]?.heading.toLowerCase()).toMatch(
+          locale === "sv" ? /druvor och stilar/ : /grapes and styles/,
+        );
         for (const section of sections) {
           expect(section.heading.trim().length).toBeGreaterThan(0);
           expect(section.body.trim().length).toBeGreaterThan(40);

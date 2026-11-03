@@ -1,5 +1,5 @@
 /**
- * Factual FAQ for wine region landing pages — built from live catalog facts
+ * Factual FAQ for wine region landing pages — built from catalog facts
  * and region config. No purchase CTAs, rankings, Systembolaget, or EN delivery.
  */
 
@@ -34,7 +34,8 @@ function regionPhrase(region: WineRegion, locale: AppLocale): string {
 }
 
 /**
- * Build 3–4 factual Q&As from live wine∧producer data + region label.
+ * Build 3–4 factual Q&As from catalog data + region label.
+ * Customer-facing wording only (no internal “live” jargon).
  */
 export function buildWineRegionFaq(
   region: WineRegion,
@@ -48,14 +49,16 @@ export function buildWineRegionFaq(
     items.push({
       question: `Hur många naturviner från ${region.labelSv} finns hos PACT?`,
       answer: `Just nu finns ${facts.wineCount} ${
-        facts.wineCount === 1 ? "live-vin" : "live-viner"
-      } från ${region.labelSv} i urvalet (vin och producent båda live).`,
+        facts.wineCount === 1 ? "vin" : "viner"
+      } från ${facts.producerCount} ${
+        facts.producerCount === 1 ? "producent" : "producenter"
+      } hos PACT.`,
     });
     items.push({
       question: `Vilka producenter från ${region.labelSv} finns i urvalet?`,
       answer:
         facts.producerCount === 0
-          ? `Inga live-producenter från ${region.labelSv} just nu.`
+          ? `Inga producenter från ${region.labelSv} just nu.`
           : facts.producerNames.length <= 8
             ? `${facts.producerCount} ${
                 facts.producerCount === 1 ? "producent" : "producenter"
@@ -68,7 +71,7 @@ export function buildWineRegionFaq(
     if (facts.grapeLabels.length > 0) {
       items.push({
         question: `Vilka druvor syns i naturvin från ${region.labelSv}?`,
-        answer: `I det live-urvalet syns bland annat ${joinList(
+        answer: `I urvalet syns bland annat ${joinList(
           facts.grapeLabels.slice(0, 8),
           "sv",
         )}.`,
@@ -83,15 +86,17 @@ export function buildWineRegionFaq(
   } else {
     items.push({
       question: `How many natural wines from ${label} are at PACT?`,
-      answer: `There ${facts.wineCount === 1 ? "is" : "are"} currently ${
-        facts.wineCount
-      } live ${facts.wineCount === 1 ? "wine" : "wines"} from ${label} in the selection (wine and producer both live).`,
+      answer: `PACT currently has ${facts.wineCount} ${
+        facts.wineCount === 1 ? "wine" : "wines"
+      } from ${facts.producerCount} ${
+        facts.producerCount === 1 ? "producer" : "producers"
+      }.`,
     });
     items.push({
       question: `Which producers from ${label} are in the selection?`,
       answer:
         facts.producerCount === 0
-          ? `There are no live producers from ${label} right now.`
+          ? `There are no producers from ${label} right now.`
           : facts.producerNames.length <= 8
             ? `${facts.producerCount} ${
                 facts.producerCount === 1 ? "producer" : "producers"
@@ -104,7 +109,7 @@ export function buildWineRegionFaq(
     if (facts.grapeLabels.length > 0) {
       items.push({
         question: `Which grapes appear in natural wine from ${label}?`,
-        answer: `In the live selection you will see grapes such as ${joinList(
+        answer: `In the selection you will see grapes such as ${joinList(
           facts.grapeLabels.slice(0, 8),
           "en",
         )}.`,

@@ -20,7 +20,7 @@ export type WineRegionContentFields = {
   characteristicsHeading?: string | null;
   characteristicsBody?: string | null;
   locationBlurb?: string | null;
-  /** Editorial H2 blocks (geography, grapes, styles, …). */
+  /** Editorial H2 blocks (geography, grapes & styles, …). */
   sections?: WineRegionSection[] | null;
 };
 
@@ -41,12 +41,8 @@ export const WINE_REGION_CONTENT: WineRegionContentMap = {
           body: "Languedoc är Frankrikes största vinregion till ytan. Skiffer, kalksten och garrigue präglar appellationer från Minervois till Faugères. Naturvinsodlare arbetar ofta med gamla stockar av Carignan, Grenache, Syrah och Cinsault.",
         },
         {
-          heading: "Druvor i Languedoc",
-          body: "Röda druvor dominerar: Carignan, Grenache, Syrah, Mourvèdre och Cinsault. Vita cuvéer bygger ofta på Grenache Blanc, Clairette, Macabeu eller Rolle. Blandningar är vanliga; enkla druvviner förekommer också.",
-        },
-        {
-          heading: "Stilar från Languedoc",
-          body: "Regionen ger röda, vita, orange och mousserande naturviner. Medelhavsvärme möter svalare höjdlägen, så samma druva kan ge både fruktig och mer stram karaktär beroende på plats.",
+          heading: "Druvor och stilar i Languedoc",
+          body: "Röda druvor dominerar: Carignan, Grenache, Syrah, Mourvèdre och Cinsault. Vita cuvéer bygger ofta på Grenache Blanc, Clairette, Macabeu eller Rolle. Blandningar är vanliga; enkla druvviner förekommer också. Regionen ger röda, vita, orange och mousserande naturviner. Medelhavsvärme möter svalare höjdlägen, så samma druva kan ge både fruktig och mer stram karaktär beroende på plats.",
         },
       ],
     },
@@ -60,12 +56,8 @@ export const WINE_REGION_CONTENT: WineRegionContentMap = {
           body: "The Languedoc is France's largest wine region by area. Schist, limestone and garrigue mark appellations from Minervois to Faugères. Natural growers often work old vines of Carignan, Grenache, Syrah and Cinsault.",
         },
         {
-          heading: "Grapes in the Languedoc",
-          body: "Red varieties dominate: Carignan, Grenache, Syrah, Mourvèdre and Cinsault. White cuvées often build on Grenache Blanc, Clairette, Macabeu or Rolle. Blends are common; single-variety bottles appear too.",
-        },
-        {
-          heading: "Styles from the Languedoc",
-          body: "The region yields red, white, orange and sparkling natural wines. Mediterranean heat meets cooler altitudes, so the same grape can read fruity or more taut depending on site.",
+          heading: "Grapes and styles in the Languedoc",
+          body: "Red varieties dominate: Carignan, Grenache, Syrah, Mourvèdre and Cinsault. White cuvées often build on Grenache Blanc, Clairette, Macabeu or Rolle. Blends are common; single-variety bottles appear too. The region yields red, white, orange and sparkling natural wines. Mediterranean heat meets cooler altitudes, so the same grape can read fruity or more taut depending on site.",
         },
       ],
     },
@@ -79,12 +71,8 @@ export const WINE_REGION_CONTENT: WineRegionContentMap = {
           body: "Beaujolais ligger söder om Bourgogne. Gamay på granit är kärnan. Crus som Morgon, Fleurie och Côte de Brouilly visar hur samma druva skiftar med by och jord.",
         },
         {
-          heading: "Druvor i Beaujolais",
-          body: "Gamay är den dominerande röda druvan. Vita viner är ovanligare och bygger oftast på Chardonnay. Naturvinsproducenter arbetar ofta med hela klasar och kort eller ingen tillsats av svavel.",
-        },
-        {
-          heading: "Stilar från Beaujolais",
-          body: "Rött vin är huvudspåret — från lätta village-viner till mer strukturerade crus. Enstaka vita och mousserande flaskor kompletterar urvalet när de finns live.",
+          heading: "Druvor och stilar i Beaujolais",
+          body: "Gamay är den dominerande röda druvan. Vita viner är ovanligare och bygger oftast på Chardonnay. Naturvinsproducenter arbetar ofta med hela klasar och kort eller ingen tillsats av svavel. Rött vin är huvudspåret — från lätta village-viner till mer strukturerade crus. Enstaka vita och mousserande flaskor kompletterar urvalet när de finns live.",
         },
       ],
     },
@@ -96,12 +84,8 @@ export const WINE_REGION_CONTENT: WineRegionContentMap = {
           body: "Beaujolais sits south of Burgundy. Gamay on granite is the core. Crus such as Morgon, Fleurie and Côte de Brouilly show how the same grape shifts with village and soil.",
         },
         {
-          heading: "Grapes in Beaujolais",
-          body: "Gamay is the dominant red grape. White wines are rarer and usually based on Chardonnay. Natural growers often work whole clusters with little or no added sulphur.",
-        },
-        {
-          heading: "Styles from Beaujolais",
-          body: "Red wine is the main path — from lighter village bottles to more structured crus. Occasional white and sparkling bottles appear when they are live in the selection.",
+          heading: "Grapes and styles in Beaujolais",
+          body: "Gamay is the dominant red grape. White wines are rarer and usually based on Chardonnay. Natural growers often work whole clusters with little or no added sulphur. Red wine is the main path — from lighter village bottles to more structured crus. Occasional white and sparkling bottles appear when they are live in the selection.",
         },
       ],
     },
@@ -115,12 +99,8 @@ export const WINE_REGION_CONTENT: WineRegionContentMap = {
           body: "Loire sträcker sig från Atlanten inåt landet. Klimat och jordar skiftar kraftigt mellan Muscadet, Anjou, Touraine och övre Loire. Naturvin har en stark närvaro i flera delar av dalen.",
         },
         {
-          heading: "Druvor i Loire",
-          body: "Chenins blanc, Cabernet Franc, Sauvignon Blanc, Melon de Bourgogne och Grolleau är vanliga. Röda, vita och mousserande stilar delar ofta samma appellationsgeografi.",
-        },
-        {
-          heading: "Stilar från Loire",
-          body: "Urvalet kan omfatta torra och söta vita, lätta till medelfylla röda, rosé och pet-nat. Svalare lägen ger ofta hög syra och tydlig platsprägel.",
+          heading: "Druvor och stilar i Loire",
+          body: "Chenins blanc, Cabernet Franc, Sauvignon Blanc, Melon de Bourgogne och Grolleau är vanliga. Röda, vita och mousserande stilar delar ofta samma appellationsgeografi. Urvalet kan omfatta torra och söta vita, lätta till medelfylla röda, rosé och pet-nat. Svalare lägen ger ofta hög syra och tydlig platsprägel.",
         },
       ],
     },
@@ -132,12 +112,8 @@ export const WINE_REGION_CONTENT: WineRegionContentMap = {
           body: "The Loire runs inland from the Atlantic. Climate and soils shift sharply between Muscadet, Anjou, Touraine and the upper Loire. Natural wine has a strong presence in several parts of the valley.",
         },
         {
-          heading: "Grapes in the Loire",
-          body: "Chenin Blanc, Cabernet Franc, Sauvignon Blanc, Melon de Bourgogne and Grolleau are common. Red, white and sparkling styles often share the same appellation geography.",
-        },
-        {
-          heading: "Styles from the Loire",
-          body: "The selection can include dry and sweet whites, light to mid-weight reds, rosé and pét-nat. Cooler sites often bring high acidity and a clear sense of place.",
+          heading: "Grapes and styles in the Loire",
+          body: "Chenin Blanc, Cabernet Franc, Sauvignon Blanc, Melon de Bourgogne and Grolleau are common. Red, white and sparkling styles often share the same appellation geography. The selection can include dry and sweet whites, light to mid-weight reds, rosé and pét-nat. Cooler sites often bring high acidity and a clear sense of place.",
         },
       ],
     },
@@ -151,12 +127,8 @@ export const WINE_REGION_CONTENT: WineRegionContentMap = {
           body: "Bourgogne är indelad i byar och klimat där Pinot Noir och Chardonnay är huvuddruvor. Naturvinsorienterade odlare finns i flera delar av regionen, ofta i mindre volymer.",
         },
         {
-          heading: "Druvor i Bourgogne",
-          body: "Pinot Noir och Chardonnay dominerar. Aligoté och Gamay förekommer i vissa lägen. Parcelltänkande är vanligt även hos mindre domäner.",
-        },
-        {
-          heading: "Stilar från Bourgogne",
-          body: "Röda och vita stilla viner är kärnan. Enstaka mousserande eller orange flaskor kan synas i live-urvalet när de finns.",
+          heading: "Druvor och stilar i Bourgogne",
+          body: "Pinot Noir och Chardonnay dominerar. Aligoté och Gamay förekommer i vissa lägen. Parcelltänkande är vanligt även hos mindre domäner. Röda och vita stilla viner är kärnan. Enstaka mousserande eller orange flaskor kan synas i live-urvalet när de finns.",
         },
       ],
     },
@@ -168,12 +140,8 @@ export const WINE_REGION_CONTENT: WineRegionContentMap = {
           body: "Burgundy is organised by village and climate, with Pinot Noir and Chardonnay as the main grapes. Natural-leaning growers work across several parts of the region, often in small volumes.",
         },
         {
-          heading: "Grapes in Burgundy",
-          body: "Pinot Noir and Chardonnay dominate. Aligoté and Gamay appear in some sites. Parcel-level thinking is common even at smaller domaines.",
-        },
-        {
-          heading: "Styles from Burgundy",
-          body: "Still reds and whites are the core. Occasional sparkling or orange bottles can appear in the live selection when available.",
+          heading: "Grapes and styles in Burgundy",
+          body: "Pinot Noir and Chardonnay dominate. Aligoté and Gamay appear in some sites. Parcel-level thinking is common even at smaller domaines. Still reds and whites are the core. Occasional sparkling or orange bottles can appear in the live selection when available.",
         },
       ],
     },
@@ -187,12 +155,8 @@ export const WINE_REGION_CONTENT: WineRegionContentMap = {
           body: "Jura är en liten, sval region. Savagnin, Poulsard och Trousseau ger stilar som skiljer sig från grannregionerna. Ouillé och sous voile är två parallella vita vägar.",
         },
         {
-          heading: "Druvor i Jura",
-          body: "Vita: Savagnin och Chardonnay. Röda: Poulsard (Ploussard), Trousseau och Pinot Noir. Lokala druvor belönar låg intervention i källaren.",
-        },
-        {
-          heading: "Stilar från Jura",
-          body: "Ouillé vita, oxidativa sous voile-viner, ljusa röda och ibland vin jaune-besläktade flaskor. Live-urvalet speglar vilka cuvéer som är tillgängliga just nu.",
+          heading: "Druvor och stilar i Jura",
+          body: "Vita: Savagnin och Chardonnay. Röda: Poulsard (Ploussard), Trousseau och Pinot Noir. Lokala druvor belönar låg intervention i källaren. Ouillé vita, oxidativa sous voile-viner, ljusa röda och ibland vin jaune-besläktade flaskor. Live-urvalet speglar vilka cuvéer som är tillgängliga just nu.",
         },
       ],
     },
@@ -204,12 +168,8 @@ export const WINE_REGION_CONTENT: WineRegionContentMap = {
           body: "The Jura is a small, cool region. Savagnin, Poulsard and Trousseau yield styles unlike neighbouring regions. Ouillé and sous voile are two parallel white paths.",
         },
         {
-          heading: "Grapes in the Jura",
-          body: "Whites: Savagnin and Chardonnay. Reds: Poulsard (Ploussard), Trousseau and Pinot Noir. Local grapes reward low intervention in the cellar.",
-        },
-        {
-          heading: "Styles from the Jura",
-          body: "Ouillé whites, oxidative sous-voile wines, pale reds and occasional vin jaune-related bottles. The live selection reflects which cuvées are available now.",
+          heading: "Grapes and styles in the Jura",
+          body: "Whites: Savagnin and Chardonnay. Reds: Poulsard (Ploussard), Trousseau and Pinot Noir. Local grapes reward low intervention in the cellar. Ouillé whites, oxidative sous-voile wines, pale reds and occasional vin jaune-related bottles. The live selection reflects which cuvées are available now.",
         },
       ],
     },
@@ -223,12 +183,8 @@ export const WINE_REGION_CONTENT: WineRegionContentMap = {
           body: "Champagne är en sval region på krita och kalksten. Naturorienterade odlare arbetar ofta med lägre dosage och mer restriktiv tillsats i källaren än den klassiska standardproduktionen.",
         },
         {
-          heading: "Druvor i Champagne",
-          body: "Pinot Noir, Chardonnay och Meunier är de tre huvuddruvorna. Enstaka andra tillåtna sorter kan förekomma hos mindre odlare.",
-        },
-        {
-          heading: "Stilar från Champagne",
-          body: "Mousserande vin är kärnan. Stillviner (Coteaux Champenois) är mer sällsynta i urvalet när de finns live.",
+          heading: "Druvor och stilar i Champagne",
+          body: "Pinot Noir, Chardonnay och Meunier är de tre huvuddruvorna. Enstaka andra tillåtna sorter kan förekomma hos mindre odlare. Mousserande vin är kärnan. Stillviner (Coteaux Champenois) är mer sällsynta i urvalet när de finns live.",
         },
       ],
     },
@@ -240,12 +196,8 @@ export const WINE_REGION_CONTENT: WineRegionContentMap = {
           body: "Champagne is a cool region on chalk and limestone. Natural-leaning growers often work with lower dosage and more restrained cellar additions than classic standard production.",
         },
         {
-          heading: "Grapes in Champagne",
-          body: "Pinot Noir, Chardonnay and Meunier are the three main grapes. Occasional other permitted varieties appear at smaller growers.",
-        },
-        {
-          heading: "Styles from Champagne",
-          body: "Sparkling wine is the core. Still wines (Coteaux Champenois) are rarer in the selection when they are live.",
+          heading: "Grapes and styles in Champagne",
+          body: "Pinot Noir, Chardonnay and Meunier are the three main grapes. Occasional other permitted varieties appear at smaller growers. Sparkling wine is the core. Still wines (Coteaux Champenois) are rarer in the selection when they are live.",
         },
       ],
     },
@@ -259,12 +211,8 @@ export const WINE_REGION_CONTENT: WineRegionContentMap = {
           body: "Rhônedalen delar sig i norr och syd. Norra delen är ofta Syrah på branta sluttningar; söderut blandas Grenache, Syrah, Mourvèdre och flera vita sorter.",
         },
         {
-          heading: "Druvor i Rhône",
-          body: "Syrah i norr; Grenache, Syrah, Mourvèdre, Cinsault och Carignan i syd. Vita: Viognier, Marsanne, Roussanne, Grenache Blanc med flera.",
-        },
-        {
-          heading: "Stilar från Rhône",
-          body: "Röda, vita och ibland rosé eller orange. Live-urvalet visar vilka appellationer och cuvéer som finns tillgängliga just nu.",
+          heading: "Druvor och stilar i Rhône",
+          body: "Syrah i norr; Grenache, Syrah, Mourvèdre, Cinsault och Carignan i syd. Vita: Viognier, Marsanne, Roussanne, Grenache Blanc med flera. Röda, vita och ibland rosé eller orange. Live-urvalet visar vilka appellationer och cuvéer som finns tillgängliga just nu.",
         },
       ],
     },
@@ -276,12 +224,8 @@ export const WINE_REGION_CONTENT: WineRegionContentMap = {
           body: "The Rhône Valley splits north and south. The north is often Syrah on steep slopes; the south blends Grenache, Syrah, Mourvèdre and several white varieties.",
         },
         {
-          heading: "Grapes in the Rhône Valley",
-          body: "Syrah in the north; Grenache, Syrah, Mourvèdre, Cinsault and Carignan in the south. Whites include Viognier, Marsanne, Roussanne, Grenache Blanc and others.",
-        },
-        {
-          heading: "Styles from the Rhône Valley",
-          body: "Reds, whites and occasional rosé or orange. The live selection shows which appellations and cuvées are available now.",
+          heading: "Grapes and styles in the Rhône Valley",
+          body: "Syrah in the north; Grenache, Syrah, Mourvèdre, Cinsault and Carignan in the south. Whites include Viognier, Marsanne, Roussanne, Grenache Blanc and others. Reds, whites and occasional rosé or orange. The live selection shows which appellations and cuvées are available now.",
         },
       ],
     },
@@ -295,12 +239,8 @@ export const WINE_REGION_CONTENT: WineRegionContentMap = {
           body: "Roussillon ligger mot Pyrenéerna och Medelhavet. Skiffer, granit och varmt klimat ger koncentrerad frukt. Naturvinsodlare arbetar ofta med gamla stockar och torrodling.",
         },
         {
-          heading: "Druvor i Roussillon",
-          body: "Grenache (noir, gris, blanc), Carignan, Syrah, Mourvèdre och Macabeu är vanliga. Vita och orange cuvéer bygger ofta på Grenache Blanc eller Macabeu.",
-        },
-        {
-          heading: "Stilar från Roussillon",
-          body: "Röda, vita, orange och söta traditionella stilar kan förekomma. Live-urvalet speglar vad som finns tillgängligt just nu.",
+          heading: "Druvor och stilar i Roussillon",
+          body: "Grenache (noir, gris, blanc), Carignan, Syrah, Mourvèdre och Macabeu är vanliga. Vita och orange cuvéer bygger ofta på Grenache Blanc eller Macabeu. Röda, vita, orange och söta traditionella stilar kan förekomma. Live-urvalet speglar vad som finns tillgängligt just nu.",
         },
       ],
     },
@@ -312,12 +252,8 @@ export const WINE_REGION_CONTENT: WineRegionContentMap = {
           body: "Roussillon faces the Pyrenees and the Mediterranean. Schist, granite and a warm climate give concentrated fruit. Natural growers often work old vines and dry farming.",
         },
         {
-          heading: "Grapes in Roussillon",
-          body: "Grenache (noir, gris, blanc), Carignan, Syrah, Mourvèdre and Macabeu are common. White and orange cuvées often build on Grenache Blanc or Macabeu.",
-        },
-        {
-          heading: "Styles from Roussillon",
-          body: "Reds, whites, orange and traditional sweet styles can appear. The live selection reflects what is available now.",
+          heading: "Grapes and styles in Roussillon",
+          body: "Grenache (noir, gris, blanc), Carignan, Syrah, Mourvèdre and Macabeu are common. White and orange cuvées often build on Grenache Blanc or Macabeu. Reds, whites, orange and traditional sweet styles can appear. The live selection reflects what is available now.",
         },
       ],
     },
@@ -331,12 +267,8 @@ export const WINE_REGION_CONTENT: WineRegionContentMap = {
           body: "Alsace ligger längs Vogeserna med varierande jordar och ett torrt regnskuggesklimat. Vita druvor och tydlig sortprägel är kännetecken; naturvinsodlare finns i flera byar.",
         },
         {
-          heading: "Druvor i Alsace",
-          body: "Riesling, Pinot Blanc, Pinot Gris, Gewurztraminer, Muscat och Auxerrois är vanliga. Pinot Noir är den viktigaste röda druvan.",
-        },
-        {
-          heading: "Stilar från Alsace",
-          body: "Torra och mer aromatiska vita, orange, enstaka röda och pet-nat. Live-urvalet visar aktuella flaskor.",
+          heading: "Druvor och stilar i Alsace",
+          body: "Riesling, Pinot Blanc, Pinot Gris, Gewurztraminer, Muscat och Auxerrois är vanliga. Pinot Noir är den viktigaste röda druvan. Torra och mer aromatiska vita, orange, enstaka röda och pet-nat. Live-urvalet visar aktuella flaskor.",
         },
       ],
     },
@@ -348,12 +280,8 @@ export const WINE_REGION_CONTENT: WineRegionContentMap = {
           body: "Alsace runs along the Vosges with varied soils and a dry rain-shadow climate. White grapes and clear varietal character are hallmarks; natural growers work in several villages.",
         },
         {
-          heading: "Grapes in Alsace",
-          body: "Riesling, Pinot Blanc, Pinot Gris, Gewurztraminer, Muscat and Auxerrois are common. Pinot Noir is the main red grape.",
-        },
-        {
-          heading: "Styles from Alsace",
-          body: "Dry and more aromatic whites, orange, occasional reds and pét-nat. The live selection shows current bottles.",
+          heading: "Grapes and styles in Alsace",
+          body: "Riesling, Pinot Blanc, Pinot Gris, Gewurztraminer, Muscat and Auxerrois are common. Pinot Noir is the main red grape. Dry and more aromatic whites, orange, occasional reds and pét-nat. The live selection shows current bottles.",
         },
       ],
     },
@@ -367,12 +295,8 @@ export const WINE_REGION_CONTENT: WineRegionContentMap = {
           body: "Sud-Ouest samlar appellationer från Atlantkusten inåt landet. Lokala druvor och varierande klimat ger en bred stilpalett som skiljer sig från Bordeaux och Languedoc.",
         },
         {
-          heading: "Druvor i Sydvästra Frankrike",
-          body: "Lokala sorter som Negrette, Fer Servadou, Tannat, Manseng och Mauzac förekommer tillsammans med mer kända franska druvor beroende på appellation.",
-        },
-        {
-          heading: "Stilar från Sydvästra Frankrike",
-          body: "Röda, vita och mousserande stilar kan synas när flaskor är live. Urvalet speglar aktuella producenter hos PACT.",
+          heading: "Druvor och stilar i Sydvästra Frankrike",
+          body: "Lokala sorter som Negrette, Fer Servadou, Tannat, Manseng och Mauzac förekommer tillsammans med mer kända franska druvor beroende på appellation. Röda, vita och mousserande stilar kan synas när flaskor är live. Urvalet speglar aktuella producenter hos PACT.",
         },
       ],
     },
@@ -384,12 +308,8 @@ export const WINE_REGION_CONTENT: WineRegionContentMap = {
           body: "Southwest France gathers appellations from the Atlantic inland. Local grapes and varied climates give a style range distinct from Bordeaux and the Languedoc.",
         },
         {
-          heading: "Grapes in Southwest France",
-          body: "Local varieties such as Négrette, Fer Servadou, Tannat, Manseng and Mauzac appear alongside better-known French grapes depending on the appellation.",
-        },
-        {
-          heading: "Styles from Southwest France",
-          body: "Red, white and sparkling styles can appear when bottles are live. The selection reflects current producers at PACT.",
+          heading: "Grapes and styles in Southwest France",
+          body: "Local varieties such as Négrette, Fer Servadou, Tannat, Manseng and Mauzac appear alongside better-known French grapes depending on the appellation. Red, white and sparkling styles can appear when bottles are live. The selection reflects current producers at PACT.",
         },
       ],
     },
@@ -414,7 +334,7 @@ export function wineRegionContentHasBody(
   );
 }
 
-/** Editorial H2 sections for a region page (3–5 expected when configured). */
+/** Editorial H2 sections for a region page (paired with wines/producers/FAQ). */
 export function getWineRegionSections(
   slug: WineRegionSlug,
   locale: AppLocale,
