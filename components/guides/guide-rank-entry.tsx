@@ -7,6 +7,8 @@ type GuideRankEntryProps = {
   rank: number;
   title: string;
   meta: string;
+  /** Rendered under the region line. Omitted entries stay as they are. */
+  afterMeta?: ReactNode;
   description?: ReactNode;
   compact?: boolean;
   href?: string;
@@ -21,6 +23,7 @@ export function GuideRankEntry({
   rank,
   title,
   meta,
+  afterMeta,
   description,
   compact = false,
   href,
@@ -68,6 +71,7 @@ export function GuideRankEntry({
             )}
           </h3>
           <p className="mt-1 text-sm text-muted-foreground">{meta}</p>
+          {afterMeta ? <div className="mt-1">{afterMeta}</div> : null}
           {description ? (
             <p
               className={

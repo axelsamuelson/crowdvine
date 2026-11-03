@@ -41,7 +41,12 @@ import {
   TOP_100_PRODUCERS,
   TOP_100_PRODUCERS_DEPARTED,
   TOP_100_PRODUCERS_UPDATED_AT,
+  type TopProducer,
 } from "@/lib/guides/top-100-producers";
+import {
+  getTop100ProducerShopLinks,
+  type Top100ProducerShopLink,
+} from "@/lib/guides/top-100-producer-shop-links";
 import type { AppLocale } from "@/lib/i18n/locale";
 import { categoryPageTitle } from "@/lib/seo/category-page-title";
 import {
@@ -176,10 +181,27 @@ export async function buildProducersGuideMetadata(
   };
 }
 
+function ProducerShopLink({
+  link,
+}: {
+  link: Top100ProducerShopLink | undefined;
+}) {
+  if (!link) return null;
+  return (
+    <Link
+      href={link.href}
+      className="mt-1 block text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground"
+    >
+      {link.label}
+    </Link>
+  );
+}
+
 export async function renderProducersGuidePage(locale: AppLocale) {
-  const [{ seoBaseUrl }, availability] = await Promise.all([
+  const [{ seoBaseUrl }, availability, shopLinks] = await Promise.all([
     getGuideSeoOwnership(),
     getSystembolagetProducerAvailability(),
+    getTop100ProducerShopLinks(locale),
   ]);
   const copy = guideCopy(locale);
   const hubPath = guidePath("hub", locale);
@@ -209,6 +231,8 @@ export async function renderProducersGuidePage(locale: AppLocale) {
 
   const producerMetaLine = (entry: (typeof TOP_100_PRODUCERS)[number]) =>
     `${entry.region} · ${countryLabel(entry.country, locale)} · ${entry.grapes}`;
+  const shopLinkFor = (producer: TopProducer) =>
+    producer.producerId ? shopLinks[producer.producerId] : undefined;
 
   const breadcrumbJsonLd = buildGuideBreadcrumbJsonLd([
     { name: copy.home, item: guideHomeAbsoluteUrl(seoBaseUrl, locale) },
@@ -346,6 +370,11 @@ export async function renderProducersGuidePage(locale: AppLocale) {
                 }
                 title={producer.name}
                 meta={producerMetaLine(producer)}
+                afterMeta={
+                  shopLinkFor(producer) ? (
+                    <ProducerShopLink link={shopLinkFor(producer)} />
+                  ) : undefined
+                }
                 description={linkedProducerBlurb(
                   entryDescription(producer, locale),
                   locale,
@@ -375,6 +404,11 @@ export async function renderProducersGuidePage(locale: AppLocale) {
                 }
                 title={producer.name}
                 meta={producerMetaLine(producer)}
+                afterMeta={
+                  shopLinkFor(producer) ? (
+                    <ProducerShopLink link={shopLinkFor(producer)} />
+                  ) : undefined
+                }
                 description={linkedProducerBlurb(
                   entryDescription(producer, locale),
                   locale,
@@ -427,7 +461,14 @@ export async function renderProducersGuidePage(locale: AppLocale) {
                 />
               ),
               name: producer.name,
-              region: producer.region,
+              region: shopLinkFor(producer) ? (
+                <>
+                  {producer.region}
+                  <ProducerShopLink link={shopLinkFor(producer)} />
+                </>
+              ) : (
+                producer.region
+              ),
               country: countryLabel(producer.country, locale),
               grapes: producer.grapes,
             }))}
@@ -483,6 +524,7 @@ export async function renderProducersGuidePage(locale: AppLocale) {
                   {" "}
                   — {producer.region}
                 </span>
+                <ProducerShopLink link={shopLinkFor(producer)} />
               </li>
             ))}
           </ul>

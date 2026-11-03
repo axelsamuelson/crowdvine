@@ -31,6 +31,11 @@ import {
   createWine,
   updateWine,
 } from "@/lib/actions/wines";
+import {
+  SOURCING_STATUSES,
+  WineNotSourceableError,
+  type SourcingStatus,
+} from "@/lib/sourcing-status";
 import { Producer } from "@/lib/actions/producers";
 import { extractWineArray, extractWineText } from "@/lib/i18n/wine-locale";
 import { WineImageUpload } from "@/components/admin/wine-image-upload";
@@ -191,6 +196,8 @@ export default function WineForm({
     // Visibility (only when editing; new wines default to live)
     is_live: wine?.is_live ?? true,
     available_for_sale: wine?.available_for_sale ?? true,
+    sourcing_status: wine?.sourcing_status ?? "available",
+    sourcing_note: wine?.sourcing_note ?? "",
   });
 
   const [images, setImages] = useState<File[]>([]);
@@ -538,6 +545,10 @@ export default function WineForm({
             : currentLabel || galleryLabel,
         is_live: formData.is_live ?? true,
         available_for_sale: formData.available_for_sale ?? true,
+        sourcing_status: formData.sourcing_status ?? "available",
+        sourcing_note: formData.sourcing_note?.trim()
+          ? formData.sourcing_note.trim()
+          : null,
         b2b_price_cents,
         b2b_cost_sek,
         // Persist the FX the admin calculator used so server save matches PDP
@@ -555,6 +566,13 @@ export default function WineForm({
         savedWine = await updateWine(wine.id, wineData, editLocale);
       } else {
         savedWine = await createWine(wineData, editLocale);
+      }
+
+      if (savedWine && "error" in savedWine) {
+        onSaveStatusChange?.("error");
+        setError("Vinet kan inte sättas live när inköpet är otillgängligt.");
+        toast.error("Vinet kan inte sättas live när inköpet är otillgängligt.");
+        return;
       }
 
       // Save new images to wine_images table, then drop them from the
@@ -588,6 +606,14 @@ export default function WineForm({
         await updateWineGrapeVarieties(savedWine.id, selectedGrapeVarietyIds);
       }
 
+      if (
+        savedWine &&
+        "warning" in savedWine &&
+        savedWine.warning === "sourcing_allocation"
+      ) {
+        toast.message("Vinet är live, men bara som tilldelning.");
+      }
+
       if (wine) {
         // Stay on edit page; refresh server props so sticky title etc. stay in sync
         onSaveStatusChange?.("saved");
@@ -605,7 +631,13 @@ export default function WineForm({
     } catch (err) {
       console.error("Wine creation error:", err);
       onSaveStatusChange?.("error");
-      if (err instanceof Error) {
+      if (
+        err instanceof WineNotSourceableError ||
+        (err instanceof Error && err.message === "wine_not_sourceable")
+      ) {
+        setError("Vinet kan inte sättas live när inköpet är otillgängligt.");
+        toast.error("Vinet kan inte sättas live när inköpet är otillgängligt.");
+      } else if (err instanceof Error) {
         setError(`Failed to save wine: ${err.message}`);
         toast.error(`Kunde inte spara: ${err.message}`);
       } else {
@@ -1226,6 +1258,41 @@ export default function WineForm({
                       className={ADMIN_ACTIVE_SWITCH_CLASS}
                     />
                   </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="sourcing_status">Inköp</Label>
+                  <Select
+                    value={formData.sourcing_status ?? "available"}
+                    onValueChange={(value) =>
+                      handleChange("sourcing_status", value as SourcingStatus)
+                    }
+                  >
+                    <SelectTrigger id="sourcing_status">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SOURCING_STATUSES.map((status) => (
+                        <SelectItem key={status} value={status}>
+                          {status === "available"
+                            ? "Kan beställas"
+                            : status === "allocation"
+                              ? "Tilldelning"
+                              : "Kan inte köpas"}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="sourcing_note">Inköpsanteckning</Label>
+                  <Textarea
+                    id="sourcing_note"
+                    value={formData.sourcing_note ?? ""}
+                    onChange={(event) =>
+                      handleChange("sourcing_note", event.target.value)
+                    }
+                    rows={3}
+                  />
                 </div>
               </AdminFormSection>
             ) : null}

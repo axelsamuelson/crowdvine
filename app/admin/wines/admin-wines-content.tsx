@@ -182,9 +182,11 @@ function extractGrapes(wines: Wine[]): string[] {
 function WineStatusBadges({
   isLive,
   availableForSale,
+  sourcingStatus,
 }: {
   isLive?: boolean;
   availableForSale?: boolean;
+  sourcingStatus?: string | null;
 }) {
   const live = isLive !== false;
   const available = availableForSale !== false;
@@ -217,6 +219,18 @@ function WineStatusBadges({
           )}
         >
           {available ? "Tillgänglig" : "Slut"}
+        </span>
+      ) : null}
+      {sourcingStatus === "allocation" || sourcingStatus === "unavailable" ? (
+        <span
+          className={cn(
+            "inline-flex w-fit items-center rounded-full px-2 py-0.5 text-[11px] font-medium",
+            sourcingStatus === "allocation"
+              ? "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300"
+              : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
+          )}
+        >
+          {sourcingStatus === "allocation" ? "Tilldelning" : "Ej köpbar"}
         </span>
       ) : null}
     </div>
@@ -1005,6 +1019,7 @@ export function AdminWinesContent({
                         <WineStatusBadges
                           isLive={wine.is_live}
                           availableForSale={wine.available_for_sale}
+                          sourcingStatus={wine.sourcing_status}
                         />
                       </div>
                     </div>
@@ -1138,6 +1153,7 @@ export function AdminWinesContent({
                         <WineStatusBadges
                           isLive={wine.is_live}
                           availableForSale={wine.available_for_sale}
+                          sourcingStatus={wine.sourcing_status}
                         />
                       </td>
                       <td className="p-3">

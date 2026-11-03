@@ -15,6 +15,12 @@ import {
 } from "@/lib/catalog-types";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { applyCostBasedRetailPricing } from "@/lib/wine-retail-pricing";
+import {
+  InvalidSourcingStatusError,
+  WineNotSourceableError,
+  readSourcingStatus,
+  sourcingPublishResult,
+} from "@/lib/sourcing-status";
 
 function parseBoolQuery(value: string | null): boolean | undefined {
   if (value === null || value === "") return undefined;
@@ -53,6 +59,17 @@ export async function GET(request: NextRequest) {
     if (producerId) q = q.eq("producer_id", producerId);
     if (type) q = q.eq("color", type);
     if (isPublished !== undefined) q = q.eq("is_live", isPublished);
+    const sourcingStatus = searchParams.get("sourcing_status")?.trim();
+    if (sourcingStatus) {
+      try {
+        q = q.eq("sourcing_status", readSourcingStatus(sourcingStatus));
+      } catch (error) {
+        if (error instanceof InvalidSourcingStatusError) {
+          return NextResponse.json({ error: error.message }, { status: 400 });
+        }
+        throw error;
+      }
+    }
 
     const { data, error } = await q;
     if (error) {
@@ -167,6 +184,14 @@ export async function POST(request: NextRequest) {
       costWasUpdated: hasImportCost,
     });
 
+    const sourcingStatus = readSourcingStatus(
+      pricedRow.sourcing_status ?? "available",
+    );
+    const publish = sourcingPublishResult(
+      pricedRow.is_live === true,
+      sourcingStatus,
+    );
+
     const { data, error } = await sb
       .from("wines")
       .insert(pricedRow)
@@ -178,9 +203,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ wine: wineRowToApi(data) }, { status: 201 });
+    return NextResponse.json(
+      {
+        wine: wineRowToApi(data),
+        ...(publish.warning ? { warning: publish.warning } : {}),
+      },
+      { status: 201 },
+    );
   } catch (e: unknown) {
-    if (e instanceof InvalidWineRegionError) {
+    if (e instanceof WineNotSourceableError) {
+      return NextResponse.json({ error: e.message }, { status: 409 });
+    }
+    if (
+      e instanceof InvalidWineRegionError ||
+      e instanceof InvalidSourcingStatusError
+    ) {
       return NextResponse.json({ error: e.message }, { status: 400 });
     }
     const msg = e instanceof Error ? e.message : "Unknown error";

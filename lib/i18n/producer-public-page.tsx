@@ -56,7 +56,8 @@ import {
 import { buildProducerWineryJsonLd } from "@/lib/seo/producer-json-ld";
 import {
   producerProfileMetaDescription,
-  producerProfilePageTitle,
+  producerPublicDocumentTitle,
+  producerPublicHeading,
   resolveProducerWinemakerForTitle,
 } from "@/lib/seo/producer-profile-metadata";
 import { getSiteConfig } from "@/lib/site-config-server";
@@ -65,6 +66,7 @@ import { getCategoryUrlForGrape } from "@/lib/wine-categories";
 type ProducerPayload = {
   id: string;
   name: string;
+  display_name: string | null;
   region: string | null;
   subregion: string | null;
   country: string | null;
@@ -218,13 +220,14 @@ export async function buildProducerPublicMetadata(
     notFound();
   }
 
-  const { name, region, bio_short, contact_name } = data.producer;
+  const { name, display_name, region, bio_short, contact_name } = data.producer;
   const urls = producerPageUrls(slug);
   const canonical = `${PACT_PUBLIC_ORIGIN}${producerPagePath(slug, pathSegment)}`;
   const winemakerName = resolveProducerWinemakerForTitle(slug, contact_name);
   const pageTitle = categoryPageTitle(
-    producerProfilePageTitle(name, locale, region, {
+    producerPublicDocumentTitle(name, locale, region, {
       winemakerName,
+      displayName: display_name,
     }),
     config.siteName,
   );
@@ -518,7 +521,7 @@ export async function renderProducerPublicPage(options: {
           </Breadcrumb>
 
           <h1 className="mt-6 text-3xl font-medium tracking-[-0.02em]">
-            {producer.name}
+            {producerPublicHeading(producer.name, producer.display_name)}
           </h1>
           {heroParts.length > 0 ? (
             <p className="mt-1 text-sm text-muted-foreground">

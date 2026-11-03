@@ -31,6 +31,28 @@ export function resolveProducerWinemakerForTitle(
   return mapped;
 }
 
+export function producerPublicHeading(
+  producerName: string,
+  displayName?: string | null,
+): string {
+  const display = displayName?.trim();
+  return display || producerName.trim();
+}
+
+export function producerPublicDocumentTitle(
+  producerName: string,
+  locale: AppLocale,
+  region?: string | null,
+  options?: { winemakerName?: string | null; displayName?: string | null },
+): string {
+  const display = options?.displayName?.trim();
+  const name = producerName.trim();
+  if (display) return `${display} (${name})`;
+  return producerProfilePageTitle(name, locale, region, {
+    winemakerName: options?.winemakerName,
+  });
+}
+
 export function producerProfilePageTitle(
   producerName: string,
   locale: AppLocale,
