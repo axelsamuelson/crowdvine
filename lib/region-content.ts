@@ -72,7 +72,7 @@ export const WINE_REGION_CONTENT: WineRegionContentMap = {
         },
         {
           heading: "Druvor och stilar i Beaujolais",
-          body: "Gamay är den dominerande röda druvan. Vita viner är ovanligare och bygger oftast på Chardonnay. Naturvinsproducenter arbetar ofta med hela klasar och kort eller ingen tillsats av svavel. Rött vin är huvudspåret — från lätta village-viner till mer strukturerade crus. Enstaka vita och mousserande flaskor kompletterar urvalet när de finns live.",
+          body: "Gamay är den dominerande röda druvan. Vita viner är ovanligare och bygger oftast på Chardonnay. Naturvinsproducenter arbetar ofta med hela klasar och kort eller ingen tillsats av svavel. Rött vin är huvudspåret — från lätta village-viner till mer strukturerade crus. Enstaka vita och mousserande flaskor kompletterar urvalet när de finns hos PACT.",
         },
       ],
     },
@@ -85,7 +85,7 @@ export const WINE_REGION_CONTENT: WineRegionContentMap = {
         },
         {
           heading: "Grapes and styles in Beaujolais",
-          body: "Gamay is the dominant red grape. White wines are rarer and usually based on Chardonnay. Natural growers often work whole clusters with little or no added sulphur. Red wine is the main path — from lighter village bottles to more structured crus. Occasional white and sparkling bottles appear when they are live in the selection.",
+          body: "Gamay is the dominant red grape. White wines are rarer and usually based on Chardonnay. Natural growers often work whole clusters with little or no added sulphur. Red wine is the main path — from lighter village bottles to more structured crus. Occasional white and sparkling bottles appear when they are in the selection.",
         },
       ],
     },
@@ -128,7 +128,7 @@ export const WINE_REGION_CONTENT: WineRegionContentMap = {
         },
         {
           heading: "Druvor och stilar i Bourgogne",
-          body: "Pinot Noir och Chardonnay dominerar. Aligoté och Gamay förekommer i vissa lägen. Parcelltänkande är vanligt även hos mindre domäner. Röda och vita stilla viner är kärnan. Enstaka mousserande eller orange flaskor kan synas i live-urvalet när de finns.",
+          body: "Pinot Noir och Chardonnay dominerar. Aligoté och Gamay förekommer i vissa lägen. Parcelltänkande är vanligt även hos mindre domäner. Röda och vita stilla viner är kärnan. Enstaka mousserande eller orange flaskor kan synas i urvalet när de finns.",
         },
       ],
     },
@@ -141,7 +141,7 @@ export const WINE_REGION_CONTENT: WineRegionContentMap = {
         },
         {
           heading: "Grapes and styles in Burgundy",
-          body: "Pinot Noir and Chardonnay dominate. Aligoté and Gamay appear in some sites. Parcel-level thinking is common even at smaller domaines. Still reds and whites are the core. Occasional sparkling or orange bottles can appear in the live selection when available.",
+          body: "Pinot Noir and Chardonnay dominate. Aligoté and Gamay appear in some sites. Parcel-level thinking is common even at smaller domaines. Still reds and whites are the core. Occasional sparkling or orange bottles can appear in the selection when available.",
         },
       ],
     },
@@ -156,7 +156,7 @@ export const WINE_REGION_CONTENT: WineRegionContentMap = {
         },
         {
           heading: "Druvor och stilar i Jura",
-          body: "Vita: Savagnin och Chardonnay. Röda: Poulsard (Ploussard), Trousseau och Pinot Noir. Lokala druvor belönar låg intervention i källaren. Ouillé vita, oxidativa sous voile-viner, ljusa röda och ibland vin jaune-besläktade flaskor. Live-urvalet speglar vilka cuvéer som är tillgängliga just nu.",
+          body: "Vita: Savagnin och Chardonnay. Röda: Poulsard (Ploussard), Trousseau och Pinot Noir. Lokala druvor belönar låg intervention i källaren. Ouillé vita, oxidativa sous voile-viner, ljusa röda och ibland vin jaune-besläktade flaskor. Urvalet visar vilka cuvéer som finns hos PACT just nu.",
         },
       ],
     },
@@ -169,7 +169,7 @@ export const WINE_REGION_CONTENT: WineRegionContentMap = {
         },
         {
           heading: "Grapes and styles in the Jura",
-          body: "Whites: Savagnin and Chardonnay. Reds: Poulsard (Ploussard), Trousseau and Pinot Noir. Local grapes reward low intervention in the cellar. Ouillé whites, oxidative sous-voile wines, pale reds and occasional vin jaune-related bottles. The live selection reflects which cuvées are available now.",
+          body: "Whites: Savagnin and Chardonnay. Reds: Poulsard (Ploussard), Trousseau and Pinot Noir. Local grapes reward low intervention in the cellar. Ouillé whites, oxidative sous-voile wines, pale reds and occasional vin jaune-related bottles. The selection shows which cuvées PACT has right now.",
         },
       ],
     },
@@ -184,7 +184,7 @@ export const WINE_REGION_CONTENT: WineRegionContentMap = {
         },
         {
           heading: "Druvor och stilar i Champagne",
-          body: "Pinot Noir, Chardonnay och Meunier är de tre huvuddruvorna. Enstaka andra tillåtna sorter kan förekomma hos mindre odlare. Mousserande vin är kärnan. Stillviner (Coteaux Champenois) är mer sällsynta i urvalet när de finns live.",
+          body: "Pinot Noir, Chardonnay och Meunier är de tre huvuddruvorna. Enstaka andra tillåtna sorter kan förekomma hos mindre odlare. Mousserande vin är kärnan. Stillviner (Coteaux Champenois) är mer sällsynta i urvalet när de finns hos PACT.",
         },
       ],
     },
@@ -197,7 +197,7 @@ export const WINE_REGION_CONTENT: WineRegionContentMap = {
         },
         {
           heading: "Grapes and styles in Champagne",
-          body: "Pinot Noir, Chardonnay and Meunier are the three main grapes. Occasional other permitted varieties appear at smaller growers. Sparkling wine is the core. Still wines (Coteaux Champenois) are rarer in the selection when they are live.",
+          body: "Pinot Noir, Chardonnay and Meunier are the three main grapes. Occasional other permitted varieties appear at smaller growers. Sparkling wine is the core. Still wines (Coteaux Champenois) are rarer in the selection when they are available.",
         },
       ],
     },
@@ -212,7 +212,7 @@ export const WINE_REGION_CONTENT: WineRegionContentMap = {
         },
         {
           heading: "Druvor och stilar i Rhône",
-          body: "Syrah i norr; Grenache, Syrah, Mourvèdre, Cinsault och Carignan i syd. Vita: Viognier, Marsanne, Roussanne, Grenache Blanc med flera. Röda, vita och ibland rosé eller orange. Live-urvalet visar vilka appellationer och cuvéer som finns tillgängliga just nu.",
+          body: "Syrah i norr; Grenache, Syrah, Mourvèdre, Cinsault och Carignan i syd. Vita: Viognier, Marsanne, Roussanne, Grenache Blanc med flera. Röda, vita och ibland rosé eller orange. Urvalet visar vilka appellationer och cuvéer som finns hos PACT just nu.",
         },
       ],
     },
@@ -225,7 +225,7 @@ export const WINE_REGION_CONTENT: WineRegionContentMap = {
         },
         {
           heading: "Grapes and styles in the Rhône Valley",
-          body: "Syrah in the north; Grenache, Syrah, Mourvèdre, Cinsault and Carignan in the south. Whites include Viognier, Marsanne, Roussanne, Grenache Blanc and others. Reds, whites and occasional rosé or orange. The live selection shows which appellations and cuvées are available now.",
+          body: "Syrah in the north; Grenache, Syrah, Mourvèdre, Cinsault and Carignan in the south. Whites include Viognier, Marsanne, Roussanne, Grenache Blanc and others. Reds, whites and occasional rosé or orange. The selection shows which appellations and cuvées PACT has right now.",
         },
       ],
     },
@@ -240,7 +240,7 @@ export const WINE_REGION_CONTENT: WineRegionContentMap = {
         },
         {
           heading: "Druvor och stilar i Roussillon",
-          body: "Grenache (noir, gris, blanc), Carignan, Syrah, Mourvèdre och Macabeu är vanliga. Vita och orange cuvéer bygger ofta på Grenache Blanc eller Macabeu. Röda, vita, orange och söta traditionella stilar kan förekomma. Live-urvalet speglar vad som finns tillgängligt just nu.",
+          body: "Grenache (noir, gris, blanc), Carignan, Syrah, Mourvèdre och Macabeu är vanliga. Vita och orange cuvéer bygger ofta på Grenache Blanc eller Macabeu. Röda, vita, orange och söta traditionella stilar kan förekomma. Urvalet visar vad som finns hos PACT just nu.",
         },
       ],
     },
@@ -253,7 +253,7 @@ export const WINE_REGION_CONTENT: WineRegionContentMap = {
         },
         {
           heading: "Grapes and styles in Roussillon",
-          body: "Grenache (noir, gris, blanc), Carignan, Syrah, Mourvèdre and Macabeu are common. White and orange cuvées often build on Grenache Blanc or Macabeu. Reds, whites, orange and traditional sweet styles can appear. The live selection reflects what is available now.",
+          body: "Grenache (noir, gris, blanc), Carignan, Syrah, Mourvèdre and Macabeu are common. White and orange cuvées often build on Grenache Blanc or Macabeu. Reds, whites, orange and traditional sweet styles can appear. The selection shows what PACT has right now.",
         },
       ],
     },
@@ -268,7 +268,7 @@ export const WINE_REGION_CONTENT: WineRegionContentMap = {
         },
         {
           heading: "Druvor och stilar i Alsace",
-          body: "Riesling, Pinot Blanc, Pinot Gris, Gewurztraminer, Muscat och Auxerrois är vanliga. Pinot Noir är den viktigaste röda druvan. Torra och mer aromatiska vita, orange, enstaka röda och pet-nat. Live-urvalet visar aktuella flaskor.",
+          body: "Riesling, Pinot Blanc, Pinot Gris, Gewurztraminer, Muscat och Auxerrois är vanliga. Pinot Noir är den viktigaste röda druvan. Torra och mer aromatiska vita, orange, enstaka röda och pet-nat. Urvalet visar vad som finns hos PACT just nu.",
         },
       ],
     },
@@ -281,7 +281,7 @@ export const WINE_REGION_CONTENT: WineRegionContentMap = {
         },
         {
           heading: "Grapes and styles in Alsace",
-          body: "Riesling, Pinot Blanc, Pinot Gris, Gewurztraminer, Muscat and Auxerrois are common. Pinot Noir is the main red grape. Dry and more aromatic whites, orange, occasional reds and pét-nat. The live selection shows current bottles.",
+          body: "Riesling, Pinot Blanc, Pinot Gris, Gewurztraminer, Muscat and Auxerrois are common. Pinot Noir is the main red grape. Dry and more aromatic whites, orange, occasional reds and pét-nat. The selection shows what PACT has right now.",
         },
       ],
     },
@@ -296,7 +296,7 @@ export const WINE_REGION_CONTENT: WineRegionContentMap = {
         },
         {
           heading: "Druvor och stilar i Sydvästra Frankrike",
-          body: "Lokala sorter som Negrette, Fer Servadou, Tannat, Manseng och Mauzac förekommer tillsammans med mer kända franska druvor beroende på appellation. Röda, vita och mousserande stilar kan synas när flaskor är live. Urvalet speglar aktuella producenter hos PACT.",
+          body: "Lokala sorter som Negrette, Fer Servadou, Tannat, Manseng och Mauzac förekommer tillsammans med mer kända franska druvor beroende på appellation. Röda, vita och mousserande stilar kan synas i urvalet. Urvalet speglar aktuella producenter hos PACT.",
         },
       ],
     },
@@ -309,7 +309,7 @@ export const WINE_REGION_CONTENT: WineRegionContentMap = {
         },
         {
           heading: "Grapes and styles in Southwest France",
-          body: "Local varieties such as Négrette, Fer Servadou, Tannat, Manseng and Mauzac appear alongside better-known French grapes depending on the appellation. Red, white and sparkling styles can appear when bottles are live. The selection reflects current producers at PACT.",
+          body: "Local varieties such as Négrette, Fer Servadou, Tannat, Manseng and Mauzac appear alongside better-known French grapes depending on the appellation. Red, white and sparkling styles can appear in the selection. The selection reflects current producers at PACT.",
         },
       ],
     },

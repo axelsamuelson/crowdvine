@@ -344,4 +344,25 @@ describe("Margaux region landing copy", () => {
       }
     }
   });
+
+  it("keeps customer-facing region copy free of live jargon", () => {
+    for (const region of WINE_REGIONS) {
+      for (const locale of ["sv", "en"] as const) {
+        const content = getWineRegionContent(region.slug, locale);
+        const texts = [
+          content.intro ?? "",
+          content.locationBlurb ?? "",
+          wineRegionPageMetaDescription(region, locale),
+          ...getWineRegionSections(region.slug, locale).flatMap((s) => [
+            s.heading,
+            s.body,
+          ]),
+        ];
+        for (const text of texts) {
+          expect(text.toLowerCase()).not.toMatch(/\blive\b/);
+          expect(text.toLowerCase()).not.toContain("live-");
+        }
+      }
+    }
+  });
 });
