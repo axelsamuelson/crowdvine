@@ -11,9 +11,9 @@ describe("legacy shop category redirects", () => {
   it("lists direct-import, Languedoc and France slugs for sitemap exclusion", () => {
     expect(LEGACY_SHOP_REDIRECT_SLUGS.has("direktimport-vin")).toBe(true);
     expect(LEGACY_SHOP_REDIRECT_SLUGS.has("direct-import-wine")).toBe(true);
-    expect(LEGACY_SHOP_REDIRECT_SLUGS.has("naturvin-languedoc")).toBe(true);
+    expect(LEGACY_SHOP_REDIRECT_SLUGS.has("naturvin-languedoc")).toBe(false);
+    expect(LEGACY_SHOP_REDIRECT_SLUGS.has("natural-wine-languedoc")).toBe(false);
     expect(LEGACY_SHOP_REDIRECT_SLUGS.has("rott-naturvin-languedoc")).toBe(true);
-    expect(LEGACY_SHOP_REDIRECT_SLUGS.has("natural-wine-languedoc")).toBe(true);
     expect(LEGACY_SHOP_REDIRECT_SLUGS.has("red-natural-wine-languedoc")).toBe(
       true,
     );
@@ -28,7 +28,15 @@ describe("legacy shop category redirects", () => {
   });
 
   it("Languedoc long-tail pages no longer resolve as shop categories", () => {
-    expect(getWineCategorySv("naturvin-languedoc")).toBeUndefined();
+    expect(getWineCategorySv("naturvin-languedoc")?.filter.wineRegion).toBe(
+      "Languedoc",
+    );
+    expect(getWineCategorySv("naturvin-languedoc")?.canonical).toBe(
+      "/vin/naturvin-languedoc",
+    );
+    expect(getWineCategoryEn("languedoc-natural-wine")?.hreflang).toBe(
+      "naturvin-languedoc",
+    );
     expect(getWineCategorySv("rott-naturvin-languedoc")).toBeUndefined();
     expect(getWineCategorySv("vitt-naturvin-languedoc")).toBeUndefined();
     expect(getWineCategorySv("orange-naturvin-languedoc")).toBeUndefined();

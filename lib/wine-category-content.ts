@@ -1,5 +1,11 @@
 import type { AppLocale } from "@/lib/i18n/locale";
 import type { WineCategory } from "@/lib/wine-category-types";
+import {
+  WINE_REGIONS,
+  wineRegionPageH1,
+  wineRegionPageMetaDescription,
+  wineRegionPageTitle,
+} from "@/lib/wine-regions";
 
 /** Optional editorial fields merged onto resolved shop categories. */
 export type WineCategoryContentOverride = Partial<
@@ -19,11 +25,45 @@ export type WineCategoryContentOverride = Partial<
   >
 >;
 
+/**
+ * Temporary region copy: H1, title and meta from the existing region helpers.
+ * Intro, long description and FAQ stay empty until editorial copy is added.
+ */
+function regionShopContentOverrides(): Record<
+  string,
+  Partial<Record<AppLocale, WineCategoryContentOverride>>
+> {
+  const overrides: Record<
+    string,
+    Partial<Record<AppLocale, WineCategoryContentOverride>>
+  > = {};
+  for (const region of WINE_REGIONS) {
+    overrides[`naturvin-${region.slug}`] = {
+      sv: {
+        h1: wineRegionPageH1(region, "sv"),
+        title: wineRegionPageTitle(region, "sv"),
+        metaDescription: wineRegionPageMetaDescription(region, "sv"),
+        description: "",
+      },
+    };
+    overrides[region.enSlug] = {
+      en: {
+        h1: wineRegionPageH1(region, "en"),
+        title: wineRegionPageTitle(region, "en"),
+        metaDescription: wineRegionPageMetaDescription(region, "en"),
+        description: "",
+      },
+    };
+  }
+  return overrides;
+}
+
 /** Editorial overrides keyed by slug; locale nested under each slug. */
 export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
   string,
   Partial<Record<AppLocale, WineCategoryContentOverride>>
 > = {
+  ...regionShopContentOverrides(),
   "biodynamiskt-vin": {
     sv: {
       title: "Biodynamiskt vin i Sverige | PACT Wines",

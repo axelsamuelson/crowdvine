@@ -20,6 +20,11 @@ export type WineCategoryFilter = {
   countryCode?: string;
   /** Match producers.region, e.g. "Languedoc". */
   region?: string;
+  /**
+   * Match wines.region (allowlisted French name, e.g. "Rhône").
+   * Distinct from `region`, which still matches producers.region.
+   */
+  wineRegion?: string;
 };
 
 export type WineCategory = {

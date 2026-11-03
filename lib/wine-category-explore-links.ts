@@ -1,10 +1,19 @@
 import type { AppLocale } from "@/lib/i18n/locale";
+import { getLiveWineRegionCountsMap } from "@/lib/wine-region-live-counts";
 import type { WineCategory } from "@/lib/wine-category-types";
+import {
+  getLinkableWineRegions,
+  wineRegionPageH1,
+  wineRegionPagePath,
+} from "@/lib/wine-regions";
 import {
   WINE_CATEGORIES_EN,
   WINE_CATEGORIES_SV,
 } from "@/lib/wine-categories";
-import { GENERATED_SHOP_FILTER_SLUGS } from "@/lib/wine-shop-filter-categories";
+import {
+  GENERATED_SHOP_FILTER_SLUGS,
+  isWineRegionShopCategory,
+} from "@/lib/wine-shop-filter-categories";
 import { isGrapeOnlyCategory } from "@/lib/wine-grape-categories";
 
 export type CategoryExploreLink = {
@@ -106,6 +115,21 @@ function farmingHubExploreLinks(category: WineCategory): CategoryExploreLink[] {
   }
 
   return links;
+}
+
+/** Indexable-enough regions (≥1 live wine) linked from colour hub pages. */
+export async function getColorHubRegionExploreLinks(
+  locale: AppLocale,
+): Promise<CategoryExploreLink[]> {
+  try {
+    const counts = await getLiveWineRegionCountsMap();
+    return getLinkableWineRegions(counts).map((region) => ({
+      href: wineRegionPagePath(region.slug, locale),
+      label: wineRegionPageH1(region, locale),
+    }));
+  } catch {
+    return [];
+  }
 }
 
 export function isColorNaturvinHub(category: WineCategory): boolean {
@@ -453,11 +477,34 @@ export function getCategoryLongDescriptionHeading(
   return category.locale === "sv" ? `Om ${h1Lower}` : `About ${h1Lower}`;
 }
 
+function appendUniqueLinks(
+  links: CategoryExploreLink[],
+  extra: CategoryExploreLink[] | undefined,
+): CategoryExploreLink[] {
+  if (!extra?.length) return links;
+  const seen = new Set(links.map((link) => link.href));
+  const merged = [...links];
+  for (const link of extra) {
+    if (seen.has(link.href)) continue;
+    seen.add(link.href);
+    merged.push(link);
+  }
+  return merged;
+}
+
 export function getCategoryExploreLinks(
   category: WineCategory,
+  extras?: { regionLinks?: CategoryExploreLink[] },
 ): CategoryExploreLink[] {
+  if (isWineRegionShopCategory(category)) {
+    return extras?.regionLinks ?? [];
+  }
+
   if (isColorNaturvinHub(category)) {
-    return colorHubExploreLinks(category);
+    return appendUniqueLinks(
+      colorHubExploreLinks(category),
+      extras?.regionLinks,
+    );
   }
 
   if (isFarmingMethodHub(category)) {

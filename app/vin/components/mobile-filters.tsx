@@ -47,11 +47,12 @@ import {
   localeFromShopPathname,
   resolveGrapePageFarmingUrl,
   resolveGrapePageUrl,
-  promoteShopFgrapeQueryToPath,
+  finalizeShopFilterNavigationUrl,
+  resolveRegionFilterNavigationUrl,
   resolveShopFilterNavigationUrl,
+  selectedWineRegionSlugs,
   shouldNavigateGrapeFilter,
   shouldNavigateShopFilters,
-  withShopFilterSearchParams,
 } from "@/lib/shop/filter-navigation";
 import type { ShopFarmingFilterValue } from "@/lib/shop/farming-filter";
 import { gateShopFilterHref } from "@/lib/shop/gate-shop-filter-href";
@@ -70,6 +71,7 @@ interface MobileFiltersProps {
   ssrPathname: string;
   /** Category paths with products for this site (sitemap emptiness rule). */
   navigableShopPaths?: readonly string[];
+  linkableRegionSlugs?: readonly string[];
 }
 
 export function MobileFilters({
@@ -80,6 +82,7 @@ export function MobileFilters({
   initialFilterCount = 0,
   ssrPathname,
   navigableShopPaths,
+  linkableRegionSlugs,
 }: MobileFiltersProps) {
   const { t } = useTranslations();
   const paths = useLocalizedPaths();
@@ -119,8 +122,11 @@ export function MobileFilters({
     options?: { omitKeys?: readonly string[] },
   ): string | null => {
     if (!path) return null;
-    return promoteShopFgrapeQueryToPath(
-      withShopFilterSearchParams(path, searchParams, options),
+    return finalizeShopFilterNavigationUrl(
+      path,
+      pathname,
+      searchParams,
+      options,
     );
   };
 
@@ -233,10 +239,32 @@ export function MobileFilters({
   const displayFilterCount =
     clientFilterCount > 0 ? clientFilterCount : initialFilterCount;
 
+  const visibleRegionSlugs = selectedWineRegionSlugs(pathname, selectedRegions);
+
+  const removeRegion = (slug: WineRegionSlug) => {
+    const next = visibleRegionSlugs.filter((s) => s !== slug);
+    const shopLocale = localeFromShopPathname(pathname);
+    if (shouldNavigateShopFilters(pathname)) {
+      router.push(
+        resolveRegionFilterNavigationUrl({
+          locale: shopLocale,
+          currentPath: pathname,
+          search: searchParams.toString(),
+          nextSlugs: next,
+        }),
+      );
+      return;
+    }
+    const serialized = serializeWineRegionParam(next);
+    void setSelectedRegions(
+      serialized ? (serialized.split(",") as WineRegionSlug[]) : null,
+    );
+  };
+
   const selectedRegionChips = useMemo(() => {
     const seen = new Set<string>();
     const chips: { slug: WineRegionSlug; label: string }[] = [];
-    for (const raw of selectedRegions) {
+    for (const raw of visibleRegionSlugs) {
       const slug = raw.trim().toLowerCase();
       if (!isWineRegionSlug(slug) || seen.has(slug)) continue;
       seen.add(slug);
@@ -245,15 +273,7 @@ export function MobileFilters({
       chips.push({ slug, label });
     }
     return chips.sort((a, b) => a.slug.localeCompare(b.slug));
-  }, [selectedRegions, locale]);
-
-  const removeRegion = (slug: WineRegionSlug) => {
-    const next = selectedRegions.filter((s) => s !== slug);
-    const serialized = serializeWineRegionParam(next);
-    void setSelectedRegions(
-      serialized ? (serialized.split(",") as WineRegionSlug[]) : null,
-    );
-  };
+  }, [locale, visibleRegionSlugs]);
 
   return (
     <div className="overflow-x-clip bg-transparent md:hidden">
@@ -348,7 +368,10 @@ export function MobileFilters({
                     getColorHref={resolveColorHref}
                     showSwatchLabels
                   />
-                  <RegionFilter mode="drawer" />
+                  <RegionFilter
+                    mode="drawer"
+                    linkableRegionSlugs={linkableRegionSlugs}
+                  />
                   <FarmingFilter
                     products={originalProducts}
                     mode="drawer"

@@ -18,7 +18,10 @@ import {
 import { producerBoxesSitemapPaths } from "@/lib/producer-boxes/config";
 import { STOCKHOLM_DELIVERY_SITEMAP_SLUGS } from "@/lib/stockholm-delivery-landing/dirtywine-redirect";
 import { WINE_CATEGORIES_EN, WINE_CATEGORIES_SV } from "@/lib/wine-categories";
-import { LEGACY_SHOP_REDIRECT_SLUGS } from "@/lib/wine-shop-filter-categories";
+import {
+  isWineRegionShopCategory,
+  LEGACY_SHOP_REDIRECT_SLUGS,
+} from "@/lib/wine-shop-filter-categories";
 import {
   dedupeSitemapEntries,
   fetchIndexableProducersWithWines,
@@ -26,11 +29,7 @@ import {
   fetchProducerShopSlugs,
 } from "@/lib/sitemap-urls";
 import { getLiveWineRegionCountsMap } from "@/lib/wine-region-live-counts";
-import {
-  WINE_REGION_INDEX_MIN_LIVE,
-  WINE_REGION_SLUGS,
-  getWineRegionPageHref,
-} from "@/lib/wine-regions";
+import { indexableWineRegionPaths } from "@/lib/wine-regions";
 
 export type SitemapSiteProfile = "pact" | "dirtywine";
 
@@ -236,12 +235,14 @@ async function buildSitemapEntriesUncached(
 
   const vinCategoryCandidates = WINE_CATEGORIES_SV.filter(
     (c) =>
+      !isWineRegionShopCategory(c) &&
       !isNoindexCategorySlug(c.slug, "sv") &&
       !LEGACY_SHOP_REDIRECT_SLUGS.has(c.slug) &&
       !(isDirtyWine && STOCKHOLM_DELIVERY_SITEMAP_SLUGS.has(c.slug)),
   );
   const wineCategoryCandidates = WINE_CATEGORIES_EN.filter(
     (c) =>
+      !isWineRegionShopCategory(c) &&
       !isNoindexCategorySlug(c.slug, "en") &&
       !LEGACY_SHOP_REDIRECT_SLUGS.has(c.slug) &&
       !(isDirtyWine && STOCKHOLM_DELIVERY_SITEMAP_SLUGS.has(c.slug)),
@@ -258,6 +259,7 @@ async function buildSitemapEntriesUncached(
           filterGrape: c.filter.filterGrape,
           filterCountryCode: c.filter.countryCode,
           filterRegion: c.filter.region,
+          filterWineRegion: c.filter.wineRegion,
           isB2BSite: isDirtyWine,
         });
         return hasProducts ? weeklyEntry(`${baseUrl}/vin/${c.slug}`, 0.8) : null;
@@ -276,6 +278,7 @@ async function buildSitemapEntriesUncached(
           filterGrape: c.filter.filterGrape,
           filterCountryCode: c.filter.countryCode,
           filterRegion: c.filter.region,
+          filterWineRegion: c.filter.wineRegion,
           isB2BSite: isDirtyWine,
         });
         return hasProducts ? weeklyEntry(`${baseUrl}/wine/${c.slug}`, 0.7) : null;
@@ -295,30 +298,14 @@ async function buildSitemapEntriesUncached(
     ],
   );
 
-  // Region landing pages: sitemap only when ≥3 live wines (wine ∧ producer).
-  // Every region URL goes through getWineRegionPageHref (shared gate).
+  // Region shop pages: sitemap only when ≥3 live wines (wine ∧ producer).
   const regionCounts = await getLiveWineRegionCountsMap();
-  const regionPages: MetadataRoute.Sitemap = WINE_REGION_SLUGS.flatMap(
-    (slug) => {
-      const sv = getWineRegionPageHref(
-        slug,
-        "sv",
-        regionCounts,
-        WINE_REGION_INDEX_MIN_LIVE,
-      );
-      const en = getWineRegionPageHref(
-        slug,
-        "en",
-        regionCounts,
-        WINE_REGION_INDEX_MIN_LIVE,
-      );
-      if (!sv || !en) return [];
-      return [
-        weeklyEntry(`${baseUrl}${sv}`, 0.75),
-        weeklyEntry(`${baseUrl}${en}`, 0.75),
-      ];
-    },
-  );
+  const regionPages: MetadataRoute.Sitemap = indexableWineRegionPaths(
+    regionCounts,
+  ).flatMap(({ sv, en }) => [
+    weeklyEntry(`${baseUrl}${sv}`, 0.75),
+    weeklyEntry(`${baseUrl}${en}`, 0.75),
+  ]);
 
   return dedupeSitemapEntries([
     ...staticPages,

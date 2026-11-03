@@ -32,11 +32,10 @@ import {
   localeFromShopPathname,
   resolveGrapePageFarmingUrl,
   resolveGrapePageUrl,
-  promoteShopFgrapeQueryToPath,
+  finalizeShopFilterNavigationUrl,
   resolveShopFilterNavigationUrl,
   shouldNavigateGrapeFilter,
   shouldNavigateShopFilters,
-  withShopFilterSearchParams,
 } from "@/lib/shop/filter-navigation";
 import type { ShopFarmingFilterValue } from "@/lib/shop/farming-filter";
 import { gateShopFilterHref } from "@/lib/shop/gate-shop-filter-href";
@@ -49,12 +48,14 @@ export function DesktopFilters({
   className,
   ssrPathname,
   navigableShopPaths,
+  linkableRegionSlugs,
 }: {
   collections: Collection[];
   priceSources?: PriceSourceForFilter[];
   className?: string;
   ssrPathname: string;
   navigableShopPaths?: readonly string[];
+  linkableRegionSlugs?: readonly string[];
 }) {
   const { t } = useTranslations();
   const paths = useLocalizedPaths();
@@ -88,8 +89,11 @@ export function DesktopFilters({
     options?: { omitKeys?: readonly string[] },
   ): string | null => {
     if (!path) return null;
-    return promoteShopFgrapeQueryToPath(
-      withShopFilterSearchParams(path, searchParams, options),
+    return finalizeShopFilterNavigationUrl(
+      path,
+      pathname,
+      searchParams,
+      options,
     );
   };
 
@@ -237,7 +241,11 @@ export function DesktopFilters({
                   onColorSelect={handleColorSelect}
                   getColorHref={resolveColorHref}
                 />
-                <RegionFilter mode="sidebar" onSeeAll={openSeeAll} />
+                <RegionFilter
+                  mode="sidebar"
+                  onSeeAll={openSeeAll}
+                  linkableRegionSlugs={linkableRegionSlugs}
+                />
                 <FarmingFilter
                   products={originalProducts}
                   mode="sidebar"
@@ -330,7 +338,10 @@ export function DesktopFilters({
                         onColorSelect={handleColorSelect}
                         getColorHref={resolveColorHref}
                       />
-                      <RegionFilter mode="overlay" />
+                      <RegionFilter
+                        mode="overlay"
+                        linkableRegionSlugs={linkableRegionSlugs}
+                      />
                       <FarmingFilter
                         products={originalProducts}
                         mode="overlay"

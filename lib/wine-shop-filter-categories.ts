@@ -3,6 +3,7 @@ import type {
   WineCategory,
   WineCategoryFilter,
 } from "@/lib/wine-category-types";
+import { WINE_REGIONS, wineRegionPageH1 } from "@/lib/wine-regions";
 
 type Locale = "sv" | "en";
 
@@ -112,11 +113,9 @@ export const LEGACY_SHOP_REDIRECT_SLUGS = new Set<string>([
   "naturvin",
   "direktimport-vin",
   "direct-import-wine",
-  "naturvin-languedoc",
   "rott-naturvin-languedoc",
   "vitt-naturvin-languedoc",
   "orange-naturvin-languedoc",
-  "natural-wine-languedoc",
   "red-natural-wine-languedoc",
   "white-natural-wine-languedoc",
   "orange-natural-wine-languedoc",
@@ -341,7 +340,35 @@ function generateForLocale(locale: Locale): WineCategory[] {
     }
   }
 
+  for (const region of WINE_REGIONS) {
+    const slug = locale === "sv" ? `naturvin-${region.slug}` : region.enSlug;
+    const hreflang = locale === "sv" ? region.enSlug : `naturvin-${region.slug}`;
+    categories.push(
+      buildCategory(
+        locale,
+        slug,
+        wineRegionPageH1(region, locale),
+        { wineRegion: region.value },
+        hreflang,
+      ),
+    );
+  }
+
   return categories;
+}
+
+/** Region PLP: wines.region only, no colour, farming or grape constraint. */
+export function isWineRegionShopCategory(
+  category: Pick<WineCategory, "filter">,
+): boolean {
+  const filter = category.filter;
+  return Boolean(
+    filter.wineRegion &&
+      !filter.color?.length &&
+      !filter.farming?.length &&
+      !filter.filterGrape &&
+      !filter.tags?.length,
+  );
 }
 
 export const GENERATED_WINE_CATEGORIES_SV = generateForLocale("sv");

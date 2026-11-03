@@ -12,6 +12,7 @@ export const WINE_REGION_INDEX_MIN_LIVE = 3;
 export const WINE_REGIONS = [
   {
     slug: "languedoc",
+    enSlug: "languedoc-natural-wine",
     value: "Languedoc",
     labelSv: "Languedoc",
     labelEn: "Languedoc",
@@ -20,6 +21,7 @@ export const WINE_REGIONS = [
   },
   {
     slug: "beaujolais",
+    enSlug: "beaujolais-natural-wine",
     value: "Beaujolais",
     labelSv: "Beaujolais",
     labelEn: "Beaujolais",
@@ -27,6 +29,7 @@ export const WINE_REGIONS = [
   },
   {
     slug: "loire",
+    enSlug: "loire-natural-wine",
     value: "Loire",
     labelSv: "Loire",
     labelEn: "Loire",
@@ -34,6 +37,7 @@ export const WINE_REGIONS = [
   },
   {
     slug: "bourgogne",
+    enSlug: "burgundy-natural-wine",
     value: "Bourgogne",
     labelSv: "Bourgogne",
     labelEn: "Burgundy",
@@ -41,6 +45,7 @@ export const WINE_REGIONS = [
   },
   {
     slug: "jura",
+    enSlug: "jura-natural-wine",
     value: "Jura",
     labelSv: "Jura",
     labelEn: "Jura",
@@ -48,6 +53,7 @@ export const WINE_REGIONS = [
   },
   {
     slug: "champagne",
+    enSlug: "champagne-natural-wine",
     value: "Champagne",
     labelSv: "Champagne",
     labelEn: "Champagne",
@@ -55,6 +61,7 @@ export const WINE_REGIONS = [
   },
   {
     slug: "rhone",
+    enSlug: "rhone-natural-wine",
     value: "Rhône",
     labelSv: "Rhône",
     labelEn: "Rhône Valley",
@@ -62,6 +69,7 @@ export const WINE_REGIONS = [
   },
   {
     slug: "roussillon",
+    enSlug: "roussillon-natural-wine",
     value: "Roussillon",
     labelSv: "Roussillon",
     labelEn: "Roussillon",
@@ -69,6 +77,7 @@ export const WINE_REGIONS = [
   },
   {
     slug: "alsace",
+    enSlug: "alsace-natural-wine",
     value: "Alsace",
     labelSv: "Alsace",
     labelEn: "Alsace",
@@ -76,6 +85,7 @@ export const WINE_REGIONS = [
   },
   {
     slug: "sud-ouest",
+    enSlug: "southwest-france-natural-wine",
     value: "Sud-Ouest",
     labelSv: "Sydvästra Frankrike (Sud-Ouest)",
     labelEn: "Southwest France",
@@ -106,6 +116,9 @@ const REGION_BY_SLUG = new Map<string, WineRegion>(
 );
 const REGION_BY_VALUE = new Map<string, WineRegion>(
   WINE_REGIONS.map((r) => [r.value, r]),
+);
+const REGION_BY_EN_SLUG = new Map<string, WineRegion>(
+  WINE_REGIONS.map((r) => [r.enSlug, r]),
 );
 
 /** Synonyms → canonical `wines.region` value (producer / legacy wine strings). */
@@ -327,21 +340,32 @@ export function getLinkableWineRegionsFromProducts(
   );
 }
 
-export type WineRegionPathSegment = "region" | "regions";
-
-/** Path segment for locale: SV `/region`, EN `/regions`. */
-export function wineRegionPathSegment(
+/** Shop path segment: SV `naturvin-loire`, EN `loire-natural-wine`. */
+export function wineRegionShopSlug(
+  region: WineRegion,
   locale: AppLocale,
-): WineRegionPathSegment {
-  return locale === "en" ? "regions" : "region";
+): string {
+  return locale === "sv" ? `naturvin-${region.slug}` : region.enSlug;
 }
 
-/** Absolute path for a region landing page (no linkability gate). */
+/** Resolve a `/vin` or `/wine` segment to a region, if it is a region PLP. */
+export function wineRegionByShopSlug(segment: string): WineRegion | undefined {
+  const decoded = decodeURIComponent(segment).trim().toLowerCase();
+  if (decoded.startsWith("naturvin-")) {
+    return wineRegionBySlug(decoded.slice("naturvin-".length));
+  }
+  return REGION_BY_EN_SLUG.get(decoded);
+}
+
+/** Absolute path for a region shop page (no linkability gate). */
 export function wineRegionPagePath(
   slug: WineRegionSlug,
   locale: AppLocale,
 ): string {
-  return `/${wineRegionPathSegment(locale)}/${slug}`;
+  const region = wineRegionBySlug(slug);
+  if (!region) return locale === "en" ? "/wine" : "/vin";
+  const prefix = locale === "en" ? "/wine" : "/vin";
+  return `${prefix}/${wineRegionShopSlug(region, locale)}`;
 }
 
 export function wineRegionPageUrls(slug: WineRegionSlug): {
@@ -357,8 +381,9 @@ export function wineRegionPageUrls(slug: WineRegionSlug): {
 }
 
 /**
- * Shared gate for every href to a region landing page.
- * Returns null when the region would 404 (<1 live wine, wine ∧ producer).
+ * Shared gate for every href to a region shop page.
+ * Returns null below `minLive` so chips, sitemap and guides skip thin regions.
+ * The page itself still renders (noindex) when the count is under the index minimum.
  * PLP chips, sitemap, guides, and internal links must use this (or
  * `isWineRegionLinkable` / `getLinkableWineRegions` with the same counts).
  */
@@ -377,14 +402,59 @@ export function getWineRegionPageHref(
   return wineRegionPagePath(region.slug, locale);
 }
 
-/** Switch `/region/{slug}` ↔ `/regions/{slug}` for the locale switcher. */
-export function switchWineRegionPath(
-  pathname: string,
-  newLocale: AppLocale,
-): string | null {
+/**
+ * Sitemap paths for regions with at least `WINE_REGION_INDEX_MIN_LIVE` wines.
+ * Champagne and Alsace stay out while they are under that count.
+ */
+export function indexableWineRegionPaths(
+  liveCountsByValue: ReadonlyMap<string, number>,
+): Array<{ sv: string; en: string }> {
+  const paths: Array<{ sv: string; en: string }> = [];
+  for (const slug of WINE_REGION_SLUGS) {
+    const sv = getWineRegionPageHref(
+      slug,
+      "sv",
+      liveCountsByValue,
+      WINE_REGION_INDEX_MIN_LIVE,
+    );
+    const en = getWineRegionPageHref(
+      slug,
+      "en",
+      liveCountsByValue,
+      WINE_REGION_INDEX_MIN_LIVE,
+    );
+    if (sv && en) paths.push({ sv, en });
+  }
+  return paths;
+}
+
+/** 301 target for retired `/region/{slug}` and `/regions/{slug}` URLs. */
+export function legacyRegionLandingTarget(pathname: string): string | null {
   const match = pathname.match(/^\/(region|regions)\/([^/?#]+)\/?$/);
   if (!match) return null;
   const slug = decodeURIComponent(match[2]).toLowerCase();
   if (!isWineRegionSlug(slug)) return null;
-  return wineRegionPagePath(slug, newLocale);
+  return wineRegionPagePath(slug, match[1] === "regions" ? "en" : "sv");
+}
+
+/**
+ * Locale switch for region shop pages.
+ * Also accepts the retired `/region` and `/regions` paths and sends them to the new URL.
+ */
+export function switchWineRegionPath(
+  pathname: string,
+  newLocale: AppLocale,
+): string | null {
+  const legacy = pathname.match(/^\/(region|regions)\/([^/?#]+)\/?$/);
+  if (legacy) {
+    const slug = decodeURIComponent(legacy[2]).toLowerCase();
+    if (!isWineRegionSlug(slug)) return null;
+    return wineRegionPagePath(slug, newLocale);
+  }
+
+  const shop = pathname.match(/^\/(vin|wine)\/([^/?#]+)\/?$/);
+  if (!shop) return null;
+  const region = wineRegionByShopSlug(decodeURIComponent(shop[2]));
+  if (!region) return null;
+  return wineRegionPagePath(region.slug, newLocale);
 }

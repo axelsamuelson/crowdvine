@@ -11,6 +11,8 @@ import {
 import { isProducerBoxesPath } from "@/lib/producer-boxes/config";
 import { isShopFullBleedPath } from "@/lib/stockholm-delivery-landing/config";
 import { getCachedNavigableShopFilterPaths } from "@/lib/shop/shop-filter-category-availability";
+import { getLiveWineRegionCountsMap } from "@/lib/wine-region-live-counts";
+import { getLinkableWineRegions } from "@/lib/wine-regions";
 import { getShopLayoutResultsCount } from "@/lib/shop/shop-results-count-server";
 import { ShopLayoutClient } from "@/components/shop/shop-layout-client";
 import { headers } from "next/headers";
@@ -56,16 +58,23 @@ export async function ShopLayoutShell({
       : collectionSegment,
   );
   const isB2BSite = await getIsDirtywineSiteFromHeaders();
-  const [initialResultsCount, navigableShopPaths] = await Promise.all([
-    getShopLayoutResultsCount(pathname, parsedSearchParams),
-    getCachedNavigableShopFilterPaths(isB2BSite).catch((error) => {
-      console.warn(
-        "Failed to resolve navigable shop filter paths:",
-        error,
-      );
-      return undefined;
-    }),
-  ]);
+  const [initialResultsCount, navigableShopPaths, linkableRegionSlugs] =
+    await Promise.all([
+      getShopLayoutResultsCount(pathname, parsedSearchParams),
+      getCachedNavigableShopFilterPaths(isB2BSite).catch((error) => {
+        console.warn(
+          "Failed to resolve navigable shop filter paths:",
+          error,
+        );
+        return undefined;
+      }),
+      getLiveWineRegionCountsMap()
+        .then((counts) => getLinkableWineRegions(counts).map((region) => region.slug))
+        .catch((error) => {
+          console.warn("Failed to resolve linkable wine regions:", error);
+          return undefined;
+        }),
+    ]);
 
   return (
     <PageLayoutServer>
@@ -76,6 +85,7 @@ export async function ShopLayoutShell({
         initialResultsCount={initialResultsCount}
         ssrPathname={pathname}
         navigableShopPaths={navigableShopPaths}
+        linkableRegionSlugs={linkableRegionSlugs}
       >
         {children}
       </ShopLayoutClient>

@@ -183,6 +183,7 @@ export async function getShopLayoutResultsCount(
           filterGrape: category.filter.filterGrape,
           filterCountryCode: category.filter.countryCode,
           filterRegion: category.filter.region,
+          filterWineRegion: category.filter.wineRegion,
           isB2BSite,
           ...currencyParams,
         });

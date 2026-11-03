@@ -3,7 +3,10 @@
 import { useQueryState, parseAsArrayOf, parseAsString } from "nuqs";
 import { useParams, usePathname } from "next/navigation";
 import { isProducerCollectionSegment } from "@/lib/shop/producer-collection-segment";
-import { getActiveColorFromPathname } from "@/lib/wine-categories";
+import {
+  getActiveColorFromPathname,
+  getActiveWineRegionFromPathname,
+} from "@/lib/wine-categories";
 
 export function useFilterCount() {
   const params = useParams<{ collection: string }>();
@@ -57,6 +60,8 @@ export function useFilterCount() {
 
   if (regions.length > 0) {
     count += regions.length;
+  } else if (getActiveWineRegionFromPathname(pathname)) {
+    count += 1;
   }
 
   // Count producer collection filter only — wine category paths
@@ -115,9 +120,11 @@ export function useFarmingFilterCount() {
 }
 
 export function useRegionFilterCount() {
+  const pathname = usePathname() || "";
   const [regions] = useQueryState(
     "region",
     parseAsArrayOf(parseAsString).withDefault([]),
   );
-  return regions.length;
+  if (regions.length > 0) return regions.length;
+  return getActiveWineRegionFromPathname(pathname) ? 1 : 0;
 }

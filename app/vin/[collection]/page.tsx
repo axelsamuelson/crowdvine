@@ -45,10 +45,19 @@ import {
 import {
   getCategoryExploreLinks,
   getCategoryLongDescriptionHeading,
+  getColorHubRegionExploreLinks,
+  isColorNaturvinHub,
 } from "@/lib/wine-category-explore-links";
 import { buildFaqPageJsonLd } from "@/lib/wine-category-faq";
 import { CategoryFaqSection } from "@/components/shop/category-faq-section";
-import { WINE_CATEGORIES_SV } from "@/lib/wine-categories";
+import { RegionProducerLinks } from "@/components/shop/region-producer-links";
+import { isWineRegionBelowIndexMinimum } from "@/lib/wine-region-live-counts";
+import {
+  WINE_CATEGORIES_SV,
+  wineCategoryCatalogFilters,
+} from "@/lib/wine-categories";
+import { isWineRegionShopCategory } from "@/lib/wine-shop-filter-categories";
+import { wineRegionLabel } from "@/lib/wine-regions";
 import { resolveGrapeCategoryBySlug } from "@/lib/wine-grape-categories";
 import { ProducerBoxesPage } from "@/components/producer-boxes/producer-boxes-page";
 import { isProducerBoxesSlug } from "@/lib/producer-boxes/config";
@@ -79,16 +88,14 @@ export async function generateMetadata(props: {
     const isB2BSite = isB2BHost(
       headerList.get("x-forwarded-host") ?? headerList.get("host"),
     );
+    const regionBelowIndexMinimum =
+      isWineRegionShopCategory(category) && category.filter.wineRegion
+        ? await isWineRegionBelowIndexMinimum(category.filter.wineRegion)
+        : false;
     const [config, hasProducts] = await Promise.all([
       getSiteConfig(),
       catalogHasProducts({
-        filterColor: category.filter.color,
-        filterTags: category.filter.tags,
-        filterIsNatural: category.filter.isNatural,
-        filterFarming: category.filter.farming,
-        filterGrape: category.filter.filterGrape,
-        filterCountryCode: category.filter.countryCode,
-        filterRegion: category.filter.region,
+        ...wineCategoryCatalogFilters(category.filter),
         isB2BSite,
       }),
     ]);
@@ -108,6 +115,7 @@ export async function generateMetadata(props: {
       robots: categoryPageRobots(slug, "sv", searchParams, {
         emptyListing: !hasProducts,
         thinDynamicGrape: isThinDynamicGrapeCategory(category),
+        regionBelowIndexMinimum,
       }),
       alternates: {
         canonical: canonicalUrl,
@@ -201,13 +209,7 @@ export default async function VinCollectionPage(props: {
     const [config, rawProducts] = await Promise.all([
       getSiteConfig(),
       fetchProductsData({
-        filterColor: category.filter.color,
-        filterTags: category.filter.tags,
-        filterIsNatural: category.filter.isNatural,
-        filterFarming: category.filter.farming,
-        filterGrape: category.filter.filterGrape,
-        filterCountryCode: category.filter.countryCode,
-        filterRegion: category.filter.region,
+        ...wineCategoryCatalogFilters(category.filter),
         isB2BSite,
         locale: "sv",
       }),
@@ -257,7 +259,15 @@ export default async function VinCollectionPage(props: {
       ],
     };
 
-    const exploreLinks = getCategoryExploreLinks(category);
+    const exploreLinks = getCategoryExploreLinks(
+      category,
+      isColorNaturvinHub(category)
+        ? { regionLinks: await getColorHubRegionExploreLinks("sv") }
+        : undefined,
+    );
+    const regionLabel = category.filter.wineRegion
+      ? wineRegionLabel(category.filter.wineRegion, "sv")
+      : null;
     const faqJsonLd =
       category.faq && category.faq.length > 0
         ? buildFaqPageJsonLd(category.faq)
@@ -290,7 +300,9 @@ export default async function VinCollectionPage(props: {
             <h1 className="mb-3 text-3xl font-medium tracking-[-0.02em] text-stone-900">
               {category.h1}
             </h1>
-            <p className="leading-relaxed text-stone-600">{description}</p>
+            {description.trim() ? (
+              <p className="leading-relaxed text-stone-600">{description}</p>
+            ) : null}
             {category.descriptionLink ? (
               <p className="mt-3 leading-relaxed text-stone-600">
                 <Link
@@ -310,6 +322,14 @@ export default async function VinCollectionPage(props: {
             wineSourceSlugs={wineSourceSlugs}
             breadcrumbLabel={category.h1}
           />
+
+          {isWineRegionShopCategory(category) && regionLabel ? (
+            <RegionProducerLinks
+              products={mappedProducts}
+              locale="sv"
+              regionLabel={regionLabel}
+            />
+          ) : null}
 
           {category.longDescription ? (
             <div className="mt-16 pt-12">

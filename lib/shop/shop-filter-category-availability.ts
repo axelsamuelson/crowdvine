@@ -22,6 +22,7 @@ async function categoryHasProductsForSite(
     filterGrape: category.filter.filterGrape,
     filterCountryCode: category.filter.countryCode,
     filterRegion: category.filter.region,
+    filterWineRegion: category.filter.wineRegion,
     isB2BSite,
   });
 }

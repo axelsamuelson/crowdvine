@@ -338,6 +338,7 @@ function applyWineCatalogFilters<Q extends WineCatalogQuery>(
     filterGrape?: string;
     filterCountryCode?: string;
     filterRegion?: string;
+    filterWineRegion?: string;
   },
 ): Q {
   let q = query;
@@ -363,6 +364,9 @@ function applyWineCatalogFilters<Q extends WineCatalogQuery>(
   }
   if (filters?.filterRegion) {
     q = q.eq("producers.region", filters.filterRegion) as Q;
+  }
+  if (filters?.filterWineRegion) {
+    q = q.eq("region", filters.filterWineRegion) as Q;
   }
   return q;
 }
@@ -393,6 +397,8 @@ export async function fetchProductsData(params?: {
   filterCountryCode?: string;
   /** Match producers.region, e.g. "Languedoc". Requires producers!inner. */
   filterRegion?: string;
+  /** Match wines.region (allowlisted French name). */
+  filterWineRegion?: string;
   /** When set, only these wine ids. */
   ids?: readonly string[];
 }): Promise<ProductData[]> {
@@ -447,6 +453,7 @@ export async function fetchProductsData(params?: {
     filterGrape: params?.filterGrape,
     filterCountryCode: params?.filterCountryCode,
     filterRegion: params?.filterRegion,
+    filterWineRegion: params?.filterWineRegion,
   };
 
   const applySort = <Q extends { order: any }>(q: Q): Q => {
@@ -1290,6 +1297,7 @@ export async function catalogHasProducts(filters?: {
   filterGrape?: string;
   filterCountryCode?: string;
   filterRegion?: string;
+  filterWineRegion?: string;
   isB2BSite?: boolean;
 }): Promise<boolean> {
   if (supabaseBuildUsesPlaceholder()) return false;
