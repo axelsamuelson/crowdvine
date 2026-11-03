@@ -144,10 +144,14 @@ describe("region query + linkability helpers", () => {
       ["Beaujolais", 2],
       ["Jura", 0],
     ]);
-    expect(getWineRegionPageHref("loire", "sv", counts)).toBe("/region/loire");
-    expect(getWineRegionPageHref("loire", "en", counts)).toBe("/regions/loire");
+    expect(getWineRegionPageHref("loire", "sv", counts)).toBe(
+      "/vin/naturvin-loire",
+    );
+    expect(getWineRegionPageHref("loire", "en", counts)).toBe(
+      "/wine/loire-natural-wine",
+    );
     expect(getWineRegionPageHref("beaujolais", "sv", counts)).toBe(
-      "/region/beaujolais",
+      "/vin/naturvin-beaujolais",
     );
     expect(getWineRegionPageHref("jura", "sv", counts)).toBeNull();
     expect(
@@ -160,16 +164,30 @@ describe("region query + linkability helpers", () => {
     ).toBeNull();
     expect(
       getWineRegionPageHref("loire", "en", counts, WINE_REGION_INDEX_MIN_LIVE),
-    ).toBe("/regions/loire");
+    ).toBe("/wine/loire-natural-wine");
   });
 
   it("builds locale paths and switches them", () => {
-    expect(wineRegionPagePath("rhone", "sv")).toBe("/region/rhone");
-    expect(wineRegionPagePath("rhone", "en")).toBe("/regions/rhone");
-    expect(switchWineRegionPath("/region/languedoc", "en")).toBe(
-      "/regions/languedoc",
+    expect(wineRegionPagePath("rhone", "sv")).toBe("/vin/naturvin-rhone");
+    expect(wineRegionPagePath("rhone", "en")).toBe("/wine/rhone-natural-wine");
+    expect(wineRegionPagePath("bourgogne", "en")).toBe(
+      "/wine/burgundy-natural-wine",
     );
-    expect(switchWineRegionPath("/regions/loire", "sv")).toBe("/region/loire");
+    expect(wineRegionPagePath("sud-ouest", "en")).toBe(
+      "/wine/southwest-france-natural-wine",
+    );
+    expect(switchWineRegionPath("/vin/naturvin-loire", "en")).toBe(
+      "/wine/loire-natural-wine",
+    );
+    expect(switchWineRegionPath("/wine/burgundy-natural-wine", "sv")).toBe(
+      "/vin/naturvin-bourgogne",
+    );
+    expect(switchWineRegionPath("/region/languedoc", "en")).toBe(
+      "/wine/languedoc-natural-wine",
+    );
+    expect(switchWineRegionPath("/regions/loire", "sv")).toBe(
+      "/vin/naturvin-loire",
+    );
     expect(switchWineRegionPath("/vin", "en")).toBeNull();
   });
 });

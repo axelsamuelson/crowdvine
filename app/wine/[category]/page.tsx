@@ -47,10 +47,19 @@ import {
 import {
   getCategoryExploreLinks,
   getCategoryLongDescriptionHeading,
+  getColorHubRegionExploreLinks,
+  isColorNaturvinHub,
 } from "@/lib/wine-category-explore-links";
 import { buildFaqPageJsonLd } from "@/lib/wine-category-faq";
 import { CategoryFaqSection } from "@/components/shop/category-faq-section";
-import { WINE_CATEGORIES_EN } from "@/lib/wine-categories";
+import { RegionProducerLinks } from "@/components/shop/region-producer-links";
+import { isWineRegionBelowIndexMinimum } from "@/lib/wine-region-live-counts";
+import {
+  WINE_CATEGORIES_EN,
+  wineCategoryCatalogFilters,
+} from "@/lib/wine-categories";
+import { isWineRegionShopCategory } from "@/lib/wine-shop-filter-categories";
+import { wineRegionLabel } from "@/lib/wine-regions";
 import { resolveGrapeCategoryBySlug } from "@/lib/wine-grape-categories";
 import { ProducerBoxesPage } from "@/components/producer-boxes/producer-boxes-page";
 import { isProducerBoxesSlug } from "@/lib/producer-boxes/config";
@@ -81,16 +90,14 @@ export async function generateMetadata(props: {
     const isB2BSite = isB2BHost(
       headerList.get("x-forwarded-host") ?? headerList.get("host"),
     );
+    const regionBelowIndexMinimum =
+      isWineRegionShopCategory(category) && category.filter.wineRegion
+        ? await isWineRegionBelowIndexMinimum(category.filter.wineRegion)
+        : false;
     const [config, hasProducts] = await Promise.all([
       getSiteConfig(),
       catalogHasProducts({
-        filterColor: category.filter.color,
-        filterTags: category.filter.tags,
-        filterIsNatural: category.filter.isNatural,
-        filterFarming: category.filter.farming,
-        filterGrape: category.filter.filterGrape,
-        filterCountryCode: category.filter.countryCode,
-        filterRegion: category.filter.region,
+        ...wineCategoryCatalogFilters(category.filter),
         isB2BSite,
       }),
     ]);
@@ -110,6 +117,7 @@ export async function generateMetadata(props: {
       robots: categoryPageRobots(slug, "en", searchParams, {
         emptyListing: !hasProducts,
         thinDynamicGrape: isThinDynamicGrapeCategory(category),
+        regionBelowIndexMinimum,
       }),
       alternates: {
         canonical: canonicalUrl,
@@ -268,13 +276,7 @@ export default async function WineCategoryPage(props: PageProps) {
     headerList.get("x-forwarded-host") ?? headerList.get("host"),
   );
   const rawProducts = await fetchProductsData({
-    filterColor: category.filter.color,
-    filterTags: category.filter.tags,
-    filterIsNatural: category.filter.isNatural,
-    filterFarming: category.filter.farming,
-    filterGrape: category.filter.filterGrape,
-    filterCountryCode: category.filter.countryCode,
-    filterRegion: category.filter.region,
+    ...wineCategoryCatalogFilters(category.filter),
     isB2BSite,
     displayCurrencyCode: shoppingContext.currencyCode,
     sekToDisplayRate: shoppingContext.sekToDisplayRate,
@@ -322,7 +324,18 @@ export default async function WineCategoryPage(props: PageProps) {
     ],
   };
 
-  const exploreLinks = getCategoryExploreLinks(category);
+    const exploreLinks = getCategoryExploreLinks(
+      category,
+      isColorNaturvinHub(category)
+        ? { regionLinks: await getColorHubRegionExploreLinks("en") }
+        : undefined,
+    );
+    const showLanguedocGuideLink =
+      isColorNaturvinHub(category) ||
+      category.slug === "languedoc-natural-wine";
+  const regionLabel = category.filter.wineRegion
+    ? wineRegionLabel(category.filter.wineRegion, "en")
+    : null;
   const faqJsonLd =
     category.faq && category.faq.length > 0
       ? buildFaqPageJsonLd(category.faq)
@@ -355,7 +368,9 @@ export default async function WineCategoryPage(props: PageProps) {
           <h1 className="mb-3 text-3xl font-medium tracking-[-0.02em] text-stone-900">
             {category.h1}
           </h1>
-          <p className="leading-relaxed text-stone-600">{description}</p>
+          {description.trim() ? (
+            <p className="leading-relaxed text-stone-600">{description}</p>
+          ) : null}
           {category.descriptionLink ? (
             <p className="mt-3 leading-relaxed text-stone-600">
               <Link
@@ -375,6 +390,14 @@ export default async function WineCategoryPage(props: PageProps) {
           wineSourceSlugs={wineSourceSlugs}
           breadcrumbLabel={category.h1}
         />
+
+        {isWineRegionShopCategory(category) && regionLabel ? (
+          <RegionProducerLinks
+            products={mappedProducts}
+            locale="en"
+            regionLabel={regionLabel}
+          />
+        ) : null}
 
         {category.longDescription ? (
           <div className="mt-16 pt-12">
@@ -418,35 +441,41 @@ export default async function WineCategoryPage(props: PageProps) {
           </div>
         ) : null}
 
-        {(category.aboutText || exploreLinks.length > 0) && (
+        {(category.aboutText ||
+          exploreLinks.length > 0 ||
+          showLanguedocGuideLink) && (
           <div className="mt-12 pt-12">
             {category.aboutText ? (
               <p className="mb-8 max-w-xl text-sm text-stone-600">
                 {category.aboutText}
               </p>
             ) : null}
-            <div>
-              <h3 className="mb-3 text-sm font-medium text-stone-900">
-                Explore more
-              </h3>
-              <div className="flex flex-wrap gap-2">
-                {exploreLinks.map((link) => (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    className="text-sm text-stone-600 underline underline-offset-4 hover:text-stone-900"
-                  >
-                    {link.label}
-                  </Link>
-                ))}
-                <Link
-                  href="/guides/languedoc-natural-wine"
-                  className="text-sm text-stone-600 underline underline-offset-4 hover:text-stone-900"
-                >
-                  About natural wine from Languedoc
-                </Link>
+            {exploreLinks.length > 0 || showLanguedocGuideLink ? (
+              <div>
+                <h3 className="mb-3 text-sm font-medium text-stone-900">
+                  Explore more
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {exploreLinks.map((link) => (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      className="text-sm text-stone-600 underline underline-offset-4 hover:text-stone-900"
+                    >
+                      {link.label}
+                    </Link>
+                  ))}
+                  {showLanguedocGuideLink ? (
+                    <Link
+                      href="/guides/languedoc-natural-wine"
+                      className="text-sm text-stone-600 underline underline-offset-4 hover:text-stone-900"
+                    >
+                      About natural wine from Languedoc
+                    </Link>
+                  ) : null}
+                </div>
               </div>
-            </div>
+            ) : null}
           </div>
         )}
 

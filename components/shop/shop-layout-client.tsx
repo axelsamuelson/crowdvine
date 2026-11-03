@@ -19,6 +19,7 @@ export function ShopLayoutClient({
   initialResultsCount,
   ssrPathname,
   navigableShopPaths,
+  linkableRegionSlugs,
 }: {
   children: ReactNode;
   collections: Collection[];
@@ -30,6 +31,7 @@ export function ShopLayoutClient({
   ssrPathname: string;
   /** Category paths with products for this site (sitemap emptiness rule). */
   navigableShopPaths?: string[];
+  linkableRegionSlugs?: string[];
 }) {
   const pathname = usePathname() || ssrPathname;
   if (isShopFullBleedPath(pathname)) {
@@ -50,6 +52,7 @@ export function ShopLayoutClient({
             className="col-span-3 max-md:hidden"
             ssrPathname={ssrPathname}
             navigableShopPaths={navigableShopPaths}
+            linkableRegionSlugs={linkableRegionSlugs}
           />
         </Suspense>
         <div className="col-span-9 flex flex-col max-md:pb-24">
@@ -67,6 +70,7 @@ export function ShopLayoutClient({
               resultsCount={initialResultsCount}
               ssrPathname={ssrPathname}
               navigableShopPaths={navigableShopPaths}
+              linkableRegionSlugs={linkableRegionSlugs}
             />
           </Suspense>
         </div>

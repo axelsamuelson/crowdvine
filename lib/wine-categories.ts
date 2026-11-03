@@ -12,6 +12,7 @@ import {
   resolveGrapeNameFromSlug,
 } from "@/lib/wine-grape-categories";
 import type { WineCategory, WineCategoryFilter } from "@/lib/wine-category-types";
+import { wineRegionByValue, type WineRegion } from "@/lib/wine-regions";
 
 export type { WineCategory, WineCategoryFilter } from "@/lib/wine-category-types";
 
@@ -387,6 +388,47 @@ export function isShopFilterNavigationPath(pathname: string): boolean {
   const category = getWineCategoryFromPathname(pathname);
   if (!category) return false;
   return !category.filter.filterGrape;
+}
+
+/** Catalog query args for a shop category. `region` stays on producers.region. */
+export function wineCategoryCatalogFilters(filter: WineCategoryFilter): {
+  filterColor?: string[];
+  filterTags?: string[];
+  filterIsNatural?: boolean;
+  filterFarming?: string[];
+  filterGrape?: string;
+  filterCountryCode?: string;
+  filterRegion?: string;
+  filterWineRegion?: string;
+} {
+  return {
+    filterColor: filter.color,
+    filterTags: filter.tags,
+    filterIsNatural: filter.isNatural,
+    filterFarming: filter.farming,
+    filterGrape: filter.filterGrape,
+    filterCountryCode: filter.countryCode,
+    filterRegion: filter.region,
+    filterWineRegion: filter.wineRegion,
+  };
+}
+
+/** Region PLP with no colour, farming or grape in the path. */
+export function getActiveWineRegionFromPathname(
+  path: string,
+): WineRegion | null {
+  const category = getWineCategoryFromPathname(path);
+  const value = category?.filter.wineRegion;
+  if (!value) return null;
+  if (
+    category.filter.color?.length ||
+    category.filter.farming?.length ||
+    category.filter.filterGrape ||
+    category.filter.tags?.length
+  ) {
+    return null;
+  }
+  return wineRegionByValue(value) ?? null;
 }
 
 export function getActiveColorFromPathname(path: string): string | null {

@@ -1,4 +1,7 @@
-import { getActiveColorFromPathname } from "@/lib/wine-categories";
+import {
+  getActiveColorFromPathname,
+  getActiveWineRegionFromPathname,
+} from "@/lib/wine-categories";
 import { isProducerCollectionSegment } from "@/lib/shop/producer-collection-segment";
 import { parseWineRegionParam } from "@/lib/wine-regions";
 
@@ -36,7 +39,16 @@ export function countActiveShopFilters(
   count += arrayParam("fgrape").length;
   count += arrayParam("ffarming").length;
   count += arrayParam("fsource").length;
-  count += parseWineRegionParam(searchParams.region).length;
+  const regionSlugs = parseWineRegionParam(searchParams.region);
+  count += regionSlugs.length;
+  if (
+    regionSlugs.length === 0 &&
+    collectionSegment &&
+    (getActiveWineRegionFromPathname(`/vin/${collectionSegment}`) ||
+      getActiveWineRegionFromPathname(`/wine/${collectionSegment}`))
+  ) {
+    count += 1;
+  }
 
   // Wine category paths (rott-naturvin, …) share [collection] but are not producers.
   if (isProducerCollectionSegment(collectionSegment)) {

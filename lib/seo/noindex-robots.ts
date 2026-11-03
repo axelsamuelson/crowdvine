@@ -55,18 +55,25 @@ type ShopSearchParams = { [key: string]: string | string[] | undefined };
 
 /**
  * Robots for shop category / collection listings.
- * Empty product sets and thin dynamic grape PLPs are noindex,follow.
+ * Empty product sets, thin dynamic grape PLPs, and region pages under the
+ * live-wine index minimum are noindex,follow.
  */
 export function categoryPageRobots(
   slug: string,
   locale: "sv" | "en",
   searchParams?: ShopSearchParams,
-  options?: { emptyListing?: boolean; thinDynamicGrape?: boolean },
+  options?: {
+    emptyListing?: boolean;
+    thinDynamicGrape?: boolean;
+    /** Region PLP with fewer than WINE_REGION_INDEX_MIN_LIVE wines. */
+    regionBelowIndexMinimum?: boolean;
+  },
 ): NonNullable<Metadata["robots"]> | undefined {
   if (
     isNoindexCategorySlug(slug, locale) ||
     options?.emptyListing ||
-    options?.thinDynamicGrape
+    options?.thinDynamicGrape ||
+    options?.regionBelowIndexMinimum
   ) {
     return NOINDEX_FOLLOW_ROBOTS;
   }

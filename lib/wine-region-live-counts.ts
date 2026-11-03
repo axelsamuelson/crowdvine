@@ -5,6 +5,7 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import {
   countLiveWinesByRegionValue,
   isWineRegionValue,
+  WINE_REGION_INDEX_MIN_LIVE,
   type WineRegionValue,
 } from "@/lib/wine-regions";
 
@@ -62,4 +63,16 @@ export async function getLiveWineRegionCountsMap(): Promise<
 > {
   const record = await getLiveWineRegionCounts();
   return new Map(Object.entries(record));
+}
+
+/** True when a region PLP should be noindex,follow (under the sitemap minimum). */
+export async function isWineRegionBelowIndexMinimum(
+  wineRegionValue: string,
+): Promise<boolean> {
+  try {
+    const counts = await getLiveWineRegionCountsMap();
+    return (counts.get(wineRegionValue) ?? 0) < WINE_REGION_INDEX_MIN_LIVE;
+  } catch {
+    return true;
+  }
 }

@@ -18,7 +18,11 @@ import {
   WINE_CATEGORY_EN_ALIASES,
   WINE_CATEGORY_SV_ALIASES,
 } from "@/lib/wine-categories";
-import { promoteShopFgrapeQueryToPath } from "@/lib/shop/filter-navigation";
+import {
+  promoteShopFgrapeQueryToPath,
+  promoteShopRegionQueryToPath,
+} from "@/lib/shop/filter-navigation";
+import { legacyRegionLandingTarget } from "@/lib/wine-regions";
 import { LOCALE_COOKIE, parseLocaleCookie } from "@/lib/i18n/locale";
 import { redirectLegacyProducerProfilePath } from "@/lib/i18n/locale-path-redirect";
 import { localeFromShopPath } from "@/lib/i18n/shop-path-locale";
@@ -233,6 +237,12 @@ async function runMiddleware(req: NextRequest) {
   const legacyGrapeRedirect = redirectLegacyShopGrapeFilter(req, pathname);
   if (legacyGrapeRedirect) return legacyGrapeRedirect;
 
+  const legacyRegionRedirect = redirectLegacyShopRegionFilter(req, pathname);
+  if (legacyRegionRedirect) return legacyRegionRedirect;
+
+  const legacyRegionLanding = redirectLegacyRegionLanding(req, pathname);
+  if (legacyRegionLanding) return legacyRegionLanding;
+
   const badSearchRedirect = redirectInvalidShopSearchQuery(req, pathname);
   if (badSearchRedirect) return badSearchRedirect;
 
@@ -445,6 +455,38 @@ function redirectInvalidShopSearchQuery(
   return NextResponse.redirect(u, 301);
 }
 
+/** Lone `?region=` on the shop root → the region PLP. Other params stay noindex. */
+function redirectLegacyShopRegionFilter(
+  req: NextRequest,
+  pathname: string,
+): NextResponse | null {
+  if (pathname !== "/vin" && pathname !== "/wine") return null;
+  if (!req.nextUrl.searchParams.get("region")?.trim()) return null;
+
+  const promoted = promoteShopRegionQueryToPath(
+    `${pathname}${req.nextUrl.search}`,
+  );
+  if (promoted === `${pathname}${req.nextUrl.search}`) return null;
+
+  const u = req.nextUrl.clone();
+  const qIndex = promoted.indexOf("?");
+  u.pathname = qIndex >= 0 ? promoted.slice(0, qIndex) : promoted;
+  u.search = qIndex >= 0 ? promoted.slice(qIndex) : "";
+  return NextResponse.redirect(u, 301);
+}
+
+/** Retired `/region/{slug}` and `/regions/{slug}` landings. */
+function redirectLegacyRegionLanding(
+  req: NextRequest,
+  pathname: string,
+): NextResponse | null {
+  const target = legacyRegionLandingTarget(pathname);
+  if (!target) return null;
+  const u = req.nextUrl.clone();
+  u.pathname = target;
+  return NextResponse.redirect(u, 301);
+}
+
 /** Legacy color hubs and natural farming hubs → natural default (one hop, 301). */
 const LEGACY_WINE_CATEGORY_REDIRECTS_EN: Record<string, string> = {
   "red-wine": "/wine/red-natural-wine",
@@ -452,7 +494,7 @@ const LEGACY_WINE_CATEGORY_REDIRECTS_EN: Record<string, string> = {
   "orange-wine": "/wine/orange-natural-wine",
   "natural-wine": "/wine",
   "direct-import-wine": "/wine",
-  "natural-wine-languedoc": "/wine",
+  "natural-wine-languedoc": "/wine/languedoc-natural-wine",
   "red-natural-wine-languedoc": "/wine/red-natural-wine",
   "white-natural-wine-languedoc": "/wine/white-natural-wine",
   "orange-natural-wine-languedoc": "/wine/orange-natural-wine",
@@ -466,7 +508,6 @@ const LEGACY_WINE_CATEGORY_REDIRECTS_SV: Record<string, string> = {
   "orange-vin": "/vin/orange-naturvin",
   naturvin: "/vin",
   "direktimport-vin": "/vin",
-  "naturvin-languedoc": "/vin",
   "rott-naturvin-languedoc": "/vin/rott-naturvin",
   "vitt-naturvin-languedoc": "/vin/vitt-naturvin",
   "orange-naturvin-languedoc": "/vin/orange-naturvin",

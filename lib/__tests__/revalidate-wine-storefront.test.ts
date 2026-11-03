@@ -40,9 +40,9 @@ describe("revalidateWineStorefrontCaches", () => {
     );
     expect(revalidatePath).toHaveBeenCalledWith("/vin/domaine-danjou-banessy");
     expect(revalidatePath).toHaveBeenCalledWith("/wine/domaine-danjou-banessy");
-    expect(revalidatePath).toHaveBeenCalledWith("/region/loire");
-    expect(revalidatePath).toHaveBeenCalledWith("/regions/loire");
-    expect(revalidatePath).toHaveBeenCalledWith("/region/jura");
-    expect(revalidatePath).toHaveBeenCalledWith("/regions/jura");
+    expect(revalidatePath).toHaveBeenCalledWith("/vin/naturvin-loire");
+    expect(revalidatePath).toHaveBeenCalledWith("/wine/loire-natural-wine");
+    expect(revalidatePath).toHaveBeenCalledWith("/vin/naturvin-jura");
+    expect(revalidatePath).toHaveBeenCalledWith("/wine/jura-natural-wine");
   });
 });

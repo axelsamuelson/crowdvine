@@ -71,7 +71,7 @@ type RegionProducerSummary = {
   subregion: string | null;
 };
 
-function producersFromProducts(
+export function producersFromProducts(
   products: Product[],
   locale: AppLocale,
 ): RegionProducerSummary[] {
