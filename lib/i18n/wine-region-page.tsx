@@ -22,7 +22,10 @@ import {
   shopPathForLocale,
 } from "@/lib/i18n/localized-routes";
 import { mapProductDataToShopProducts } from "@/lib/map-product-data-to-shop-product";
-import { getWineRegionContent } from "@/lib/region-content";
+import {
+  getWineRegionContent,
+  getWineRegionSections,
+} from "@/lib/region-content";
 import {
   defaultOpenGraphImages,
   pageTwitterCard,
@@ -39,7 +42,6 @@ import { fallbackShoppingContext } from "@/lib/shopping-context/defaults";
 import { getCachedShoppingContextFromRequest } from "@/lib/shopping-context/server";
 import { getSiteConfig } from "@/lib/site-config-server";
 import {
-  formatGrapeListLabel,
   grapesFromProducts,
   stylesFromProducts,
 } from "@/lib/wine-region-page-facts";
@@ -47,6 +49,18 @@ import {
   getWineRegionGuideHref,
   getWineRegionGuideLabel,
 } from "@/lib/wine-region-guides";
+import {
+  buildWineRegionFaq,
+  buildWineRegionFaqPageJsonLd,
+} from "@/lib/wine-region-faq";
+import {
+  WINE_REGION_PAGE_REVIEWED_AT,
+  wineRegionReviewedByline,
+} from "@/lib/wine-region-page-reviewed";
+import {
+  findProducerGuideHrefForName,
+  getWineRegionProducerGuideLinks,
+} from "@/lib/wine-region-producer-guides";
 import {
   WINE_REGION_INDEX_MIN_LIVE,
   WINE_REGION_SLUGS,
@@ -69,6 +83,7 @@ type RegionProducerSummary = {
   href: string;
   wineCount: number;
   subregion: string | null;
+  guideHref: string | null;
 };
 
 function producersFromProducts(
@@ -91,6 +106,7 @@ function producersFromProducts(
       href: producerPublicPath(generateProducerSlug(name), locale),
       wineCount: 1,
       subregion: product.producerLocation?.subregion?.trim() || null,
+      guideHref: findProducerGuideHrefForName(name, locale),
     });
   }
   return [...byKey.values()].sort((a, b) =>
@@ -133,12 +149,20 @@ function regionUiCopy(locale: AppLocale) {
       location: "Läge",
       grapes: "Druvor",
       styles: "Stilar",
+      winesFact: "Viner",
+      producersFact: "Producenter",
+      grapesFact: "Druvor",
+      stylesFact: "Stilar",
       producerCount: "Producenter hos PACT",
       producersHeading: (label: string) => `Producenter i ${label}`,
       winesHeading: (label: string) => `Viner från ${label}`,
       wineCount: (n: number) => (n === 1 ? "1 vin" : `${n} viner`),
       producerWines: (n: number) => (n === 1 ? "1 vin" : `${n} viner`),
       characteristicsFallback: "Om regionen",
+      producerGuidesHeading: "Producentguider",
+      producerGuideLink: "Läs guiden",
+      faqHeading: (label: string) => `Vanliga frågor om naturvin från ${label}`,
+      factsHeading: "Fakta i urvalet",
     };
   }
   return {
@@ -148,12 +172,21 @@ function regionUiCopy(locale: AppLocale) {
     location: "Location",
     grapes: "Grapes",
     styles: "Styles",
+    winesFact: "Wines",
+    producersFact: "Producers",
+    grapesFact: "Grapes",
+    stylesFact: "Styles",
     producerCount: "Producers at PACT",
-    producersHeading: (label: string) => `Producers in ${label}`,
+    producersHeading: (label: string) => `${label} natural wine producers`,
     winesHeading: (label: string) => `Wines from ${label}`,
     wineCount: (n: number) => (n === 1 ? "1 wine" : `${n} wines`),
     producerWines: (n: number) => (n === 1 ? "1 wine" : `${n} wines`),
     characteristicsFallback: "About the region",
+    producerGuidesHeading: "Producer guides",
+    producerGuideLink: "Read the guide",
+    faqHeading: (label: string) =>
+      `Frequently asked questions about natural wine from ${label}`,
+    factsHeading: "Selection facts",
   };
 }
 
@@ -215,10 +248,12 @@ export async function renderWineRegionPage(options: {
   if (products.length === 0) notFound();
 
   const content = getWineRegionContent(slug, locale);
+  const sections = getWineRegionSections(slug, locale);
   const label = locale === "en" ? region.labelEn : region.labelSv;
   const ui = regionUiCopy(locale);
   const h1 = wineRegionPageH1(region, locale);
   const intro = content.intro?.trim() || "";
+  const byline = wineRegionReviewedByline(locale);
   const pagePath = wineRegionPagePath(slug, locale);
   const pageUrl = `${PACT_PUBLIC_ORIGIN}${pagePath}`;
   const shopPath = shopPathForLocale(locale);
@@ -229,10 +264,18 @@ export async function renderWineRegionPage(options: {
   const productPrefix = locale === "sv" ? "/produkt" : "/product";
   const producers = producersFromProducts(products, locale);
   const grapeList = grapesFromProducts(products);
-  const grapeLabel = formatGrapeListLabel(grapeList, locale);
   const styles = stylesFromProducts(products, locale);
   const guideHref = getWineRegionGuideHref(slug, locale);
   const guideLabel = getWineRegionGuideLabel(slug, locale);
+  const producerGuideLinks = getWineRegionProducerGuideLinks(slug, locale);
+  const metaDescription = wineRegionPageMetaDescription(region, locale);
+  const faq = buildWineRegionFaq(region, locale, {
+    wineCount: products.length,
+    producerCount: producers.length,
+    producerNames: producers.map((p) => p.name),
+    grapeLabels: grapeList.allLabels,
+    styleLabels: styles,
+  });
 
   if (grapeList.typoSuspects.length > 0) {
     console.info(
@@ -259,12 +302,13 @@ export async function renderWineRegionPage(options: {
   const showCharacteristics = Boolean(
     characteristicsHeading || characteristicsBody,
   );
-  const showLocation = Boolean(locationBlurb);
+  const grapeCount = grapeList.allLabels.length;
+  const styleCount = styles.length;
   const showFacts =
-    showLocation ||
-    grapeLabel.length > 0 ||
-    styles.length > 0 ||
-    producers.length > 0;
+    products.length > 0 ||
+    producers.length > 0 ||
+    grapeCount > 0 ||
+    styleCount > 0;
 
   const breadcrumbJsonLd = {
     "@context": "https://schema.org",
@@ -305,6 +349,23 @@ export async function renderWineRegionPage(options: {
     })),
   };
 
+  const webPageJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    name: h1,
+    description: metaDescription,
+    url: pageUrl,
+    dateModified: WINE_REGION_PAGE_REVIEWED_AT,
+    about: {
+      "@type": "Place",
+      name: label,
+      description: locationBlurb || h1,
+    },
+  };
+
+  const faqJsonLd =
+    faq.length > 0 ? buildWineRegionFaqPageJsonLd(faq) : null;
+
   return (
     <>
       <script
@@ -319,6 +380,20 @@ export async function renderWineRegionPage(options: {
           __html: JSON.stringify(itemListJsonLd),
         }}
       />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(webPageJsonLd),
+        }}
+      />
+      {faqJsonLd ? (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(faqJsonLd),
+          }}
+        />
+      ) : null}
 
       <div className="min-h-screen pt-top-spacing font-sans">
         <div className="px-5 pt-5 text-xs text-muted-foreground md:px-10">
@@ -341,6 +416,7 @@ export async function renderWineRegionPage(options: {
           <h1 className="max-w-[20ch] text-[clamp(2.125rem,5.5vw,4rem)] font-medium leading-[1.05] tracking-[-0.02em]">
             {h1}
           </h1>
+          <p className="mt-3 text-sm text-muted-foreground">{byline}</p>
           {intro ? (
             <p className="mt-4 max-w-[60ch] text-[17px] leading-relaxed text-zinc-700">
               {intro}
@@ -357,6 +433,48 @@ export async function renderWineRegionPage(options: {
             </p>
           ) : null}
         </section>
+
+        {showFacts ? (
+          <section className="px-5 pb-8 md:px-10" aria-label={ui.factsHeading}>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              {ui.factsHeading}
+            </p>
+            <dl className="grid max-w-3xl grid-cols-4 gap-x-2 border-t border-zinc-200 sm:gap-x-8">
+              <div className="py-2.5 sm:py-3.5">
+                <dt className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground sm:text-xs">
+                  {ui.winesFact}
+                </dt>
+                <dd className="mt-0.5 text-sm tabular-nums text-foreground sm:mt-1 sm:text-[15px]">
+                  {products.length}
+                </dd>
+              </div>
+              <div className="py-2.5 sm:py-3.5">
+                <dt className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground sm:text-xs">
+                  {ui.producersFact}
+                </dt>
+                <dd className="mt-0.5 text-sm tabular-nums text-foreground sm:mt-1 sm:text-[15px]">
+                  {producers.length}
+                </dd>
+              </div>
+              <div className="py-2.5 sm:py-3.5">
+                <dt className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground sm:text-xs">
+                  {ui.grapesFact}
+                </dt>
+                <dd className="mt-0.5 text-sm tabular-nums text-foreground sm:mt-1 sm:text-[15px]">
+                  {grapeCount}
+                </dd>
+              </div>
+              <div className="py-2.5 sm:py-3.5">
+                <dt className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground sm:text-xs">
+                  {ui.stylesFact}
+                </dt>
+                <dd className="mt-0.5 text-sm tabular-nums text-foreground sm:mt-1 sm:text-[15px]">
+                  {styleCount}
+                </dd>
+              </div>
+            </dl>
+          </section>
+        ) : null}
 
         <section className="px-5 pb-4 md:px-10">
           <div className="mb-4 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
@@ -401,16 +519,10 @@ export async function renderWineRegionPage(options: {
           </ul>
         )}
 
-        {showCharacteristics || showFacts ? (
-          <section
-            className={`grid gap-8 px-5 pb-12 md:px-10 ${
-              showCharacteristics
-                ? "lg:grid-cols-[1.3fr_1fr] lg:gap-20"
-                : ""
-            }`}
-          >
+        {sections.length > 0 || showCharacteristics ? (
+          <div className="flex flex-col gap-12 px-5 pb-12 md:px-10">
             {showCharacteristics ? (
-              <div>
+              <section>
                 <h2 className="text-[clamp(1.5rem,2.4vw,1.75rem)] font-medium tracking-[-0.02em]">
                   {characteristicsHeading || ui.characteristicsFallback}
                 </h2>
@@ -419,89 +531,117 @@ export async function renderWineRegionPage(options: {
                     {characteristicsBody}
                   </p>
                 ) : null}
-              </div>
+              </section>
             ) : null}
-            {showFacts ? (
-              <dl className="self-start">
-                {showLocation ? (
-                  <div className="border-t border-zinc-200 py-3.5">
-                    <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                      {ui.location}
-                    </dt>
-                    <dd className="mt-1 text-[15px] text-foreground">
-                      {locationBlurb}
-                    </dd>
+            {sections.map((section) => (
+              <section key={section.heading}>
+                <h2 className="text-[clamp(1.5rem,2.4vw,1.75rem)] font-medium tracking-[-0.02em]">
+                  {section.heading}
+                </h2>
+                {section.body.trim() ? (
+                  <div className="mt-3 max-w-[62ch] space-y-3 text-base leading-relaxed text-foreground/80">
+                    {section.body
+                      .split(/\n\n+/)
+                      .map((para) => para.trim())
+                      .filter(Boolean)
+                      .map((para) => (
+                        <p key={para.slice(0, 48)}>{para}</p>
+                      ))}
                   </div>
                 ) : null}
-                {grapeLabel ? (
-                  <div className="border-t border-zinc-200 py-3.5">
-                    <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                      {ui.grapes}
-                    </dt>
-                    <dd className="mt-1 text-[15px] text-foreground">
-                      {grapeLabel}
-                    </dd>
-                  </div>
-                ) : null}
-                {styles.length > 0 ? (
-                  <div className="border-t border-zinc-200 py-3.5">
-                    <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                      {ui.styles}
-                    </dt>
-                    <dd className="mt-1 text-[15px] text-foreground">
-                      {styles.join(", ")}
-                    </dd>
-                  </div>
-                ) : null}
-                {producers.length > 0 ? (
-                  <div className="border-t border-zinc-200 py-3.5">
-                    <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                      {ui.producerCount}
-                    </dt>
-                    <dd className="mt-1 text-[15px] text-foreground">
-                      {producers.length}
-                    </dd>
-                  </div>
-                ) : null}
-              </dl>
-            ) : null}
-          </section>
+              </section>
+            ))}
+          </div>
         ) : null}
 
-        {producers.length > 0 ? (
+        {producers.length > 0 || producerGuideLinks.length > 0 ? (
           <section className="px-5 pb-12 md:px-10">
             <h2 className="mb-1.5 text-[clamp(1.375rem,2.2vw,1.625rem)] font-medium tracking-[-0.02em]">
               {ui.producersHeading(label)}
             </h2>
-            <ul>
-              {producers.map((producer) => (
-                <li
-                  key={producer.id}
-                  className="border-t border-zinc-200 py-3.5"
-                >
-                  <Link
-                    href={producer.href}
-                    className="group flex items-center gap-3.5"
+            {producers.length > 0 ? (
+              <ul>
+                {producers.map((producer) => (
+                  <li
+                    key={producer.id}
+                    className="border-t border-zinc-200 py-3.5"
                   >
-                    <div className="flex size-14 shrink-0 items-center justify-center rounded-full border border-dashed border-zinc-400 text-[11px] text-muted-foreground">
-                      {producer.name.slice(0, 1).toUpperCase()}
+                    <div className="flex items-center gap-3.5">
+                      <Link
+                        href={producer.href}
+                        className="group flex min-w-0 flex-1 items-center gap-3.5"
+                      >
+                        <div className="flex size-14 shrink-0 items-center justify-center rounded-full border border-dashed border-zinc-400 text-[11px] text-muted-foreground">
+                          {producer.name.slice(0, 1).toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-[15px] font-semibold group-hover:underline group-hover:underline-offset-4">
+                            {producer.name}
+                          </div>
+                          <div className="text-[13px] text-muted-foreground">
+                            {[producer.subregion, label]
+                              .filter(Boolean)
+                              .join(", ")}
+                            {" · "}
+                            {ui.producerWines(producer.wineCount)}
+                          </div>
+                        </div>
+                      </Link>
+                      {producer.guideHref ? (
+                        <Link
+                          href={producer.guideHref}
+                          className="shrink-0 text-[13px] underline underline-offset-4 hover:text-foreground"
+                        >
+                          {ui.producerGuideLink}
+                        </Link>
+                      ) : null}
                     </div>
-                    <div>
-                      <div className="text-[15px] font-semibold group-hover:underline group-hover:underline-offset-4">
-                        {producer.name}
-                      </div>
-                      <div className="text-[13px] text-muted-foreground">
-                        {[producer.subregion, label]
-                          .filter(Boolean)
-                          .join(", ")}
-                        {" · "}
-                        {ui.producerWines(producer.wineCount)}
-                      </div>
-                    </div>
-                  </Link>
-                </li>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            {producerGuideLinks.length > 0 ? (
+              <div className={producers.length > 0 ? "mt-8" : undefined}>
+                <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  {ui.producerGuidesHeading}
+                </p>
+                <ul>
+                  {producerGuideLinks.map((guide) => (
+                    <li
+                      key={guide.href}
+                      className="border-t border-zinc-200 py-3.5"
+                    >
+                      <Link
+                        href={guide.href}
+                        className="text-[15px] font-medium underline-offset-4 hover:underline"
+                      >
+                        {guide.name}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+          </section>
+        ) : null}
+
+        {faq.length > 0 ? (
+          <section className="px-5 pb-16 md:px-10">
+            <h2 className="mb-6 text-[clamp(1.375rem,2.2vw,1.625rem)] font-medium tracking-[-0.02em]">
+              {ui.faqHeading(label)}
+            </h2>
+            <dl className="max-w-2xl space-y-6">
+              {faq.map((item) => (
+                <div key={item.question}>
+                  <dt className="text-[15px] font-medium text-foreground">
+                    {item.question}
+                  </dt>
+                  <dd className="mt-2 text-[15px] leading-relaxed text-foreground/80">
+                    {item.answer}
+                  </dd>
+                </div>
               ))}
-            </ul>
+            </dl>
           </section>
         ) : null}
       </div>
