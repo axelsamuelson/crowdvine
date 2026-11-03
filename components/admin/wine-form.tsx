@@ -518,7 +518,13 @@ export default function WineForm({
           ? String(formRest.alcohol_percentage)
           : null;
 
-      // Use first uploaded image as main image if available, otherwise keep existing
+      // Cards, search and cart read label_image_path. The PDP reads the
+      // gallery. Keep the label pointed at a real photo when the field is blank.
+      const galleryLabel =
+        existingImages.find((image) => image.is_primary)?.image_path ||
+        existingImages[0]?.image_path ||
+        "";
+      const currentLabel = formData.label_image_path?.trim() ?? "";
       const wineData = {
         ...formRest,
         abv: abvFromAlcohol,
@@ -527,7 +533,9 @@ export default function WineForm({
         awards: parseCommaList(awards_text),
         handle: generatedHandle,
         label_image_path:
-          imagePaths.length > 0 ? imagePaths[0] : formData.label_image_path,
+          imagePaths.length > 0
+            ? imagePaths[0]
+            : currentLabel || galleryLabel,
         is_live: formData.is_live ?? true,
         available_for_sale: formData.available_for_sale ?? true,
         b2b_price_cents,
