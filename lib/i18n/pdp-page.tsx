@@ -23,6 +23,7 @@ import {
   type ProductPathSegment,
 } from "@/lib/i18n/localized-routes";
 import { translate } from "@/lib/i18n/messages";
+import { producerDisplayName } from "@/lib/producer-display-name";
 import { getCachedPalletZoneStatusForHandle } from "@/lib/pallet/get-zone-status";
 import {
   DEFAULT_OG_IMAGE_URL,
@@ -136,7 +137,11 @@ export async function renderProductPdpPage(options: {
       product.featuredImage?.url ??
       `${config.baseUrl}/pact-og-uploaded.jpg`,
     productUrl,
-    brandName: product.producerName || config.name,
+    brandName:
+      producerDisplayName({
+        name: product.producerName,
+        display_name: product.producerDisplayName,
+      }) || config.name,
     availableForSale: product.availableForSale,
     priceCurrency: product.currencyCode,
     price: product.priceRange.minVariantPrice.amount,
@@ -147,9 +152,15 @@ export async function renderProductPdpPage(options: {
 
   const producerName =
     product.productType === "wine" ? (product.producerName?.trim() ?? "") : "";
-  const producerWinesLabel = producerName
+  const shownProducerName = producerName
+    ? producerDisplayName({
+        name: producerName,
+        display_name: product.producerDisplayName,
+      })
+    : "";
+  const producerWinesLabel = shownProducerName
     ? translate(locale, "product.pdp.breadcrumbProducerWines", {
-        producer: producerName,
+        producer: shownProducerName,
       })
     : null;
 
@@ -168,7 +179,7 @@ export async function renderProductPdpPage(options: {
             {
               "@type": "ListItem",
               position: 2,
-              name: producerWinesLabel ?? producerName,
+              name: producerWinesLabel ?? shownProducerName,
               item: `${config.baseUrl}${producerShopPathFromName(producerName, locale)}`,
             },
             {

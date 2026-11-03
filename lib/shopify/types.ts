@@ -151,6 +151,8 @@ export type Collection = {
   id: string;
   handle: string;
   title: string;
+  /** Raw producers.display_name. Null when the customer should see title. */
+  displayName?: string | null;
   description: string;
   seo: SEO;
   parentCategoryTree: {
@@ -207,6 +209,10 @@ export type Product = {
   /** B2C catalog flag from wines.available_for_sale (ignores B2B stock). */
   catalogAvailableForSale?: boolean;
   producerName?: string;
+  /** Raw producers.display_name. Render with producerDisplayName(). */
+  producerDisplayName?: string | null;
+  /** wines.source_type. Producer-box copy renders only when this is "producer". */
+  sourceType?: string | null;
   /** Producer coordinates for PDP map (from producers table). */
   producerLocation?: {
     lat?: number | null;

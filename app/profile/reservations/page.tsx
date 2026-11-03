@@ -38,6 +38,7 @@ import Link from "next/link";
 import Image from "next/image";
 import type { LucideIcon } from "lucide-react";
 import { DEFAULT_WINE_IMAGE_PATH } from "@/lib/constants";
+import { producerDisplayName } from "@/lib/producer-display-name";
 import { normalizeUserReservationsResponse } from "@/lib/reservations/user-reservations-api";
 import { useShoppingContext } from "@/lib/context/shopping-context-provider";
 import { localizedPathsForLocale } from "@/lib/i18n/localized-paths";
@@ -119,6 +120,7 @@ interface Reservation {
   items: Array<{
     wine_name: string;
     producer_name?: string | null;
+    producer_display_name?: string | null;
     quantity: number;
     producer_decision_status?: string | null;
     producer_approved_quantity?: number | null;
@@ -141,6 +143,7 @@ interface AddressPalletData {
   wines: Array<{
     wine_name: string;
     producer_name?: string | null;
+    producer_display_name?: string | null;
     vintage: string;
     totalQuantity: number;
     approvedQuantity?: number;
@@ -1049,7 +1052,10 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
                               href={paths.shopCollection(getProducerHandle(producerName))}
                               className="text-xs font-medium text-gray-500 hover:text-gray-900 hover:underline transition-colors inline-block"
                             >
-                              {producerName}
+                              {producerDisplayName({
+                                name: producerName,
+                                display_name: wines[0]?.producer_display_name,
+                              })}
                             </Link>
                             <div className="space-y-3">
                               {wines.map((w, idx) => {
@@ -1481,6 +1487,7 @@ export default function ReservationsPage() {
           group.wines.push({
             wine_name: item.wine_name,
             producer_name: producerName,
+            producer_display_name: item.producer_display_name ?? null,
             vintage: item.vintage,
             totalQuantity: item.quantity,
             approvedQuantity: approvedQty,

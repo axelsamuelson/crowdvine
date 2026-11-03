@@ -27,6 +27,7 @@ export type CartLineQuantity = {
   quantity: number;
   producerId?: string;
   producerName?: string;
+  producerDisplayName?: string | null;
 };
 
 export type CartMinimumProgress = {

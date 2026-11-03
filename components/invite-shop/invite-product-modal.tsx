@@ -11,6 +11,7 @@ import Prose from "@/components/prose";
 import { SimpleProductImage } from "./simple-product-image";
 import { calculatePriceBreakdown, formatCurrency, getProductBasePriceCents } from "@/lib/price-breakdown";
 import type { Product } from "@/lib/shopify/types";
+import { producerDisplayName } from "@/lib/producer-display-name";
 
 interface InviteProductModalProps {
   handle: string | null;
@@ -119,11 +120,17 @@ export function InviteProductModal({
                   <h2 className="text-2xl font-semibold text-foreground mb-2">
                     {product.title}
                   </h2>
-                  {product.producerName && (
+                  {producerDisplayName({
+                    name: product.producerName,
+                    display_name: product.producerDisplayName,
+                  }) ? (
                     <p className="text-muted-foreground mb-4">
-                      {product.producerName}
+                      {producerDisplayName({
+                        name: product.producerName,
+                        display_name: product.producerDisplayName,
+                      })}
                     </p>
-                  )}
+                  ) : null}
 
                   {product.priceRange && (
                     <div className="flex flex-col gap-2 mb-6">

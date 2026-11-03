@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { translate } from "@/lib/i18n/messages";
-import { B2C_DIRECT_BOX_DELIVERY_TIME_TODO } from "@/lib/commerce/direct-box-delivery";
+import {
+  B2C_DIRECT_BOX_DELIVERY_TIME_TODO,
+  isProducerSourcedWine,
+} from "@/lib/commerce/direct-box-delivery";
 
 describe("conversion funnel copy (sv)", () => {
   it("exposes Reservera CTA and min-six mix hint", () => {
@@ -17,6 +20,9 @@ describe("conversion funnel copy (sv)", () => {
     );
     // Customer copy must not invent delivery times; only a marked TODO may set one.
     expect(B2C_DIRECT_BOX_DELIVERY_TIME_TODO).toBeNull();
+    expect(isProducerSourcedWine("producer")).toBe(true);
+    expect(isProducerSourcedWine("wholesaler")).toBe(false);
+    expect(isProducerSourcedWine(null)).toBe(false);
   });
 
   it("explains how many more bottles are needed", () => {

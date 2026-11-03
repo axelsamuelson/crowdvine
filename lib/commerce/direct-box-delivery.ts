@@ -10,3 +10,10 @@ export const B2C_DIRECT_BOX_DELIVERY_TIME_TODO: string | null = null;
 /** Message key for the customer-facing direct-box promise (sv/en). */
 export const DIRECT_BOX_DELIVERY_MESSAGE_KEY =
   "commerce.directBoxDeliveryPromise" as const;
+
+/** The producer-box line is true only for wines.source_type = producer. */
+export function isProducerSourcedWine(
+  sourceType: string | null | undefined,
+): boolean {
+  return sourceType?.trim().toLowerCase() === "producer";
+}

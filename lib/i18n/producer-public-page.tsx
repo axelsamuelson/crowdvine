@@ -53,6 +53,7 @@ import {
   defaultOpenGraphImages,
   pageTwitterCard,
 } from "@/lib/seo/default-social";
+import { producerDisplayName } from "@/lib/producer-display-name";
 import { buildProducerWineryJsonLd } from "@/lib/seo/producer-json-ld";
 import {
   producerProfileMetaDescription,
@@ -232,8 +233,9 @@ export async function buildProducerPublicMetadata(
     config.siteName,
   );
   const pageDescription = producerProfileMetaDescription(locale, {
-    producerName: name,
+    producerName: producerDisplayName({ name, display_name }),
     bioShort: bio_short,
+    region,
   });
 
   const visibleWines = await winesVisibleOnRequestHost(
@@ -423,20 +425,21 @@ export async function renderProducerPublicPage(options: {
   const producerPageUrl = `${PACT_PUBLIC_ORIGIN}${producerPagePath(slug, pathSegment)}`;
   const productPathSegment = pathSegment === "producers" ? "product" : "produkt";
 
+  const shownProducerName = producerDisplayName(producer);
   const producerJsonLd = buildProducerWineryJsonLd(
-    { ...producer, pageUrl: producerPageUrl },
+    { ...producer, name: shownProducerName, pageUrl: producerPageUrl },
     wines,
     productPathSegment,
   );
 
   const producerWinesLabel =
     locale === "sv"
-      ? `${producer.name} viner`
-      : `${producer.name} wines`;
+      ? `${shownProducerName} viner`
+      : `${shownProducerName} wines`;
   const producerShopLinkLabel =
     locale === "sv"
-      ? `Köp ${producer.name}s viner →`
-      : `Shop ${producer.name}'s wines →`;
+      ? `Köp ${shownProducerName}s viner →`
+      : `Shop ${shownProducerName}'s wines →`;
   const producerShopUrl = `${config.baseUrl}${producerShopPathFromName(producer.name, locale)}`;
 
   const breadcrumbJsonLd = {
@@ -458,7 +461,7 @@ export async function renderProducerPublicPage(options: {
       {
         "@type": "ListItem",
         position: 3,
-        name: producer.name,
+        name: shownProducerName,
         item: producerPageUrl,
       },
       {
@@ -472,8 +475,8 @@ export async function renderProducerPublicPage(options: {
 
   const winesHeading =
     locale === "sv"
-      ? `Viner från ${producer.name}`
-      : `Wines from ${producer.name}`;
+      ? `Viner från ${shownProducerName}`
+      : `Wines from ${shownProducerName}`;
   const noWinesMessage =
     locale === "sv"
       ? "Inga publicerade viner just nu."
@@ -515,7 +518,7 @@ export async function renderProducerPublicPage(options: {
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbPage>{producer.name}</BreadcrumbPage>
+                <BreadcrumbPage>{shownProducerName}</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
@@ -611,8 +614,8 @@ export async function renderProducerPublicPage(options: {
             <section className="mt-12 border-t pt-10">
               <h2 className="text-xl font-semibold">
                 {locale === "sv"
-                  ? `Om ${producer.name}`
-                  : `About ${producer.name}`}
+                  ? `Om ${shownProducerName}`
+                  : `About ${shownProducerName}`}
               </h2>
               <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
                 {producer.bio_long}

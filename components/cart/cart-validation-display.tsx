@@ -6,6 +6,7 @@ import { CheckCircle, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "@/lib/hooks/use-translations";
 import { useLocalizedPaths } from "@/lib/hooks/use-localized-paths";
+import { producerDisplayName } from "@/lib/producer-display-name";
 
 interface CartValidationDisplayProps {
   validations: ProducerValidation[];
@@ -104,7 +105,11 @@ export function CartValidationDisplay({
                     <div className="flex-1 min-w-0">
                       <div className="flex items-baseline gap-1.5">
                         <span className="text-xs font-medium text-gray-900 truncate">
-                          {validation.groupName || validation.producerName}
+                          {validation.groupName ||
+                            producerDisplayName({
+                              name: validation.producerName,
+                              display_name: validation.producerDisplayName,
+                            })}
                         </span>
                         <span
                           className={`text-xs ${validation.isValid ? "text-green-700" : "text-amber-700"}`}

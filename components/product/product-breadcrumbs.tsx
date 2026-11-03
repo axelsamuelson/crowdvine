@@ -15,11 +15,13 @@ import {
 } from "@/lib/i18n/localized-routes";
 import { producerBoxesPath } from "@/lib/producer-boxes/config";
 import { useTranslations } from "@/lib/hooks/use-translations";
+import { producerDisplayName } from "@/lib/producer-display-name";
 import { cn } from "@/lib/utils";
 
 interface ProductBreadcrumbsProps {
   title: string;
   producerName?: string | null;
+  producerDisplayName?: string | null;
   productType?: string | null;
   className?: string;
 }
@@ -28,11 +30,18 @@ interface ProductBreadcrumbsProps {
 export function ProductBreadcrumbs({
   title,
   producerName,
+  producerDisplayName: producerDisplayNameValue,
   productType,
   className,
 }: ProductBreadcrumbsProps) {
   const { t, context } = useTranslations();
   const producer = producerName?.trim();
+  const shownProducer = producer
+    ? producerDisplayName({
+        name: producer,
+        display_name: producerDisplayNameValue,
+      })
+    : "";
   const shopPath = shopPathForLocale(context.locale);
 
   return (
@@ -66,7 +75,9 @@ export function ProductBreadcrumbs({
                   href={producerShopPathFromName(producer, context.locale)}
                   prefetch
                 >
-                  {t("product.pdp.breadcrumbProducerWines", { producer })}
+                  {t("product.pdp.breadcrumbProducerWines", {
+                    producer: shownProducer,
+                  })}
                 </Link>
               </BreadcrumbLink>
             </BreadcrumbItem>

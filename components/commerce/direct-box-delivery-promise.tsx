@@ -3,6 +3,7 @@ import { translate } from "@/lib/i18n/messages";
 import {
   B2C_DIRECT_BOX_DELIVERY_TIME_TODO,
   DIRECT_BOX_DELIVERY_MESSAGE_KEY,
+  isProducerSourcedWine,
 } from "@/lib/commerce/direct-box-delivery";
 import { cn } from "@/lib/utils";
 
@@ -14,11 +15,15 @@ export function DirectBoxDeliveryPromise({
   locale = "sv",
   className,
   compact = false,
+  sourceType,
 }: {
   locale?: AppLocale;
   className?: string;
   compact?: boolean;
+  sourceType?: string | null;
 }) {
+  if (!isProducerSourcedWine(sourceType)) return null;
+
   const promise = translate(locale, DIRECT_BOX_DELIVERY_MESSAGE_KEY);
   const timeTodo = B2C_DIRECT_BOX_DELIVERY_TIME_TODO?.trim() || null;
 

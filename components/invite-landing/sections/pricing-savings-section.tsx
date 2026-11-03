@@ -47,7 +47,7 @@ export function PricingSavingsSection() {
             <em className="italic">mellanled</em>
           </>
         }
-        subtitle="PACT köper direkt från producenten—utan kedjan av påslag."
+        subtitle="PACT samlar beställningar på en pall"
       />
 
       <motion.div

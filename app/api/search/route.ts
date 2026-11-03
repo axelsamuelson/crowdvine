@@ -3,6 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getCurrentUser } from "@/lib/auth";
 import { getAppUrl } from "@/lib/app-url";
 import { isB2BHost } from "@/lib/b2b-site";
+import { producerDisplayName } from "@/lib/producer-display-name";
 import { fetchHiddenB2BWineIds } from "@/lib/b2b-pallet-stock";
 
 function toProducerHandle(name: string) {
@@ -57,7 +58,7 @@ export async function GET(request: Request) {
         handle,
         base_price_cents,
         label_image_path,
-        producers!inner(name)
+        producers!inner(name, display_name)
       `;
     const winesPromise = (async () => {
       let r = await sb
@@ -81,15 +82,15 @@ export async function GET(request: Request) {
     const producersPromise = (async () => {
       let r = await sb
         .from("producers")
-        .select("id, name, region, logo_image_path, is_live")
-        .or(`name.ilike.%${q}%,region.ilike.%${q}%`)
+        .select("id, name, display_name, region, logo_image_path, is_live")
+        .or(`name.ilike.%${q}%,display_name.ilike.%${q}%,region.ilike.%${q}%`)
         .order("name", { ascending: true })
         .limit(5);
       if (r.error && /is_live|column.*does not exist/i.test(r.error.message ?? "")) {
         r = await sb
           .from("producers")
-          .select("id, name, region, logo_image_path")
-          .or(`name.ilike.%${q}%,region.ilike.%${q}%`)
+          .select("id, name, display_name, region, logo_image_path")
+          .or(`name.ilike.%${q}%,display_name.ilike.%${q}%,region.ilike.%${q}%`)
           .order("name", { ascending: true })
           .limit(5);
       }
@@ -142,7 +143,10 @@ export async function GET(request: Request) {
         id: w.id,
         name: `${w.wine_name}${w.vintage ? ` ${w.vintage}` : ""}`.trim(),
         handle: w.handle,
-        producerName: w.producers?.name || "Unknown Producer",
+        producerName: producerDisplayName({
+          name: w.producers?.name,
+          display_name: w.producers?.display_name,
+        }) || "Unknown Producer",
         color: w.color,
         priceCents: w.base_price_cents,
         imageUrl:
@@ -151,7 +155,10 @@ export async function GET(request: Request) {
       })),
       producers: producers.map((p: any) => ({
         id: p.id,
-        name: p.name,
+        name: producerDisplayName({
+          name: p.name,
+          display_name: p.display_name,
+        }),
         region: p.region,
         handle: toProducerHandle(p.name || "producer"),
         logoUrl: convertToFullUrl(p.logo_image_path),

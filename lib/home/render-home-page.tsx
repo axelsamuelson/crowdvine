@@ -14,6 +14,7 @@ import { getCollections, getProducts } from "@/lib/shopify";
 import { getLabelPosition } from "@/lib/utils";
 import type { Product } from "@/lib/shopify/types";
 import { headers } from "next/headers";
+import { PACT_DEFAULT_COPY } from "@/lib/site-config";
 import { getSiteConfig } from "@/lib/site-config-server";
 import { getHomepageHeroImages } from "@/lib/actions/content";
 import { getHomepageHeroCopy } from "@/lib/get-homepage-hero-copy";
@@ -35,23 +36,24 @@ export async function buildHomeMetadata(locale: AppLocale): Promise<Metadata> {
   const enHome = `${seoOrigin}/en`;
   const canonical = `${seoOrigin}${homePathForLocale(locale)}`;
 
+  const pactCopy = PACT_DEFAULT_COPY[locale];
   const title =
     locale === "sv"
       ? isDirtyWine
-        ? "Dirty Wine — Naturvin från Languedoc, B2B import Stockholm"
-        : "PACT Wines — Köp naturvin online direkt från Languedoc"
+        ? "Dirty Wine – Naturvin för restauranger i Stockholm"
+        : pactCopy.title
       : isDirtyWine
-        ? "Dirty Wine — Natural wine from Languedoc, B2B import Stockholm"
-        : "PACT Wines — Buy natural wine online direct from Languedoc";
+        ? "Dirty Wine – Natural wine for restaurants in Stockholm"
+        : pactCopy.title;
 
   const description =
     locale === "sv"
       ? isDirtyWine
-        ? "Naturvin från Languedoc för restauranger och sommelierer i Stockholm. Direktimport utan grossist. B2B-priser exkl. moms."
-        : "Köp naturvin direktimporterat från småproducenter i Languedoc. Hemleverans i Stockholm. Inga mellanhänder — lägre pris, mer karaktär."
+        ? "Naturvin för restauranger och sommelierer i Stockholm. B2B-priser exkl. moms."
+        : pactCopy.description
       : isDirtyWine
-        ? "Natural wine from Languedoc for restaurants and sommeliers in Stockholm. Direct import without a wholesaler. B2B prices excl. VAT."
-        : "Buy natural wine imported directly from small producers in Languedoc. Home delivery in Stockholm. No middlemen — lower price, more character.";
+        ? "Natural wine for restaurants and sommeliers in Stockholm. B2B prices excl. VAT."
+        : pactCopy.description;
 
   return {
     title: { absolute: title },
@@ -141,6 +143,11 @@ export async function renderHomePage(locale: AppLocale) {
   const [lastProduct, ...restProducts] = featuredProducts;
   const pageUrl = `${PACT_PUBLIC_ORIGIN}${homePathForLocale(locale)}`;
 
+  const jsonLdDescription =
+    config.name === "Dirty Wine"
+      ? config.defaultDescription
+      : PACT_DEFAULT_COPY[locale].description;
+
   const organizationJsonLd =
     locale === "sv"
       ? {
@@ -149,8 +156,7 @@ export async function renderHomePage(locale: AppLocale) {
           name: config.name,
           url: pageUrl,
           logo: `${PACT_PUBLIC_ORIGIN}/favicon.png`,
-          description:
-            "Direktimport av naturvin från Languedoc till Stockholm. Inga mellanhänder, lägre pris, bättre vin.",
+          description: jsonLdDescription,
           areaServed: "Stockholm, Sweden",
           sameAs: ["https://www.instagram.com/pactwines"],
         }
@@ -160,8 +166,7 @@ export async function renderHomePage(locale: AppLocale) {
           name: config.name,
           url: pageUrl,
           logo: `${PACT_PUBLIC_ORIGIN}/favicon.png`,
-          description:
-            "Direct import of natural wine from Languedoc to Stockholm. No middlemen, lower price, better wine.",
+          description: jsonLdDescription,
           areaServed: "Stockholm, Sweden",
           sameAs: ["https://www.instagram.com/pactwines"],
         };
@@ -173,14 +178,14 @@ export async function renderHomePage(locale: AppLocale) {
           "@type": "WebSite",
           name: config.name,
           url: pageUrl,
-          description: "Naturvin direkt från Languedoc till Stockholm.",
+          description: jsonLdDescription,
         }
       : {
           "@context": "https://schema.org",
           "@type": "WebSite",
           name: config.name,
           url: pageUrl,
-          description: "Natural wine direct from Languedoc to Stockholm.",
+          description: jsonLdDescription,
         };
 
   return (

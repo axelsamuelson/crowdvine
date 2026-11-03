@@ -1,4 +1,5 @@
 import type { AppLocale } from "@/lib/i18n/locale";
+import { producerDisplayName } from "@/lib/producer-display-name";
 import { firstSentence } from "@/lib/text/first-sentence";
 
 const META_DESCRIPTION_MAX_LENGTH = 155;
@@ -35,8 +36,10 @@ export function producerPublicHeading(
   producerName: string,
   displayName?: string | null,
 ): string {
-  const display = displayName?.trim();
-  return display || producerName.trim();
+  return producerDisplayName({
+    name: producerName,
+    display_name: displayName,
+  });
 }
 
 export function producerPublicDocumentTitle(
@@ -77,15 +80,18 @@ export function producerProfileMetaDescription(
   options: {
     producerName: string;
     bioShort?: string | null;
+    region?: string | null;
   },
 ): string {
-  const { producerName, bioShort } = options;
+  const { producerName, bioShort, region } = options;
   const possessive = producerPossessive(producerName, locale);
   const lead = firstSentence(bioShort);
+  const regionPart = region?.trim() ?? "";
+  const regionSuffix = regionPart ? `, ${regionPart}` : "";
   const suffix =
     locale === "sv"
-      ? ` Upptäck ${possessive} naturviner — direktimport från Languedoc via PACT.`
-      : ` Discover ${possessive} natural wines — direct import from Languedoc via PACT.`;
+      ? ` Upptäck ${possessive} naturviner${regionSuffix}.`
+      : ` Discover ${possessive} natural wines${regionSuffix}.`;
 
   if (lead) {
     const withSuffix = `${lead}${suffix}`;

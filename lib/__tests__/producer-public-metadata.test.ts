@@ -63,7 +63,9 @@ describe("buildProducerPublicMetadata", () => {
     );
 
     expect(String(meta.title)).toContain("Château del Ranq");
-    expect(meta.description).toBeTruthy();
+    expect(meta.description).toBe(
+      "Short bio in English. Upptäck Château del Ranqs naturviner, Languedoc.",
+    );
     expect(meta.alternates?.canonical).toBe(
       "https://pactwines.com/producenter/chateau-del-ranq",
     );

@@ -50,7 +50,7 @@ export async function GET(
             base_price_cents,
             handle,
             label_image_path,
-            producers(name)
+            producers(name, display_name)
           )
         )
       `,
@@ -144,6 +144,8 @@ export async function GET(
         image_url: item.wines?.label_image_path || undefined,
         product_handle: item.wines?.handle || undefined,
         producer_name: item.wines?.producers?.name || undefined,
+        producer_display_name:
+          item.wines?.producers?.display_name?.trim() || undefined,
         customer_email: profile?.email || user.email,
         customer_name: profile?.full_name || "Valued Customer",
         source: reservation.order_type === "warehouse" ? "warehouse" : "producer",
@@ -175,7 +177,7 @@ export async function GET(
         quantity,
         wine_id,
         to_profile:profiles!to_user_id(id, full_name, avatar_image_path),
-        wine:wines(id, wine_name, vintage, base_price_cents, handle, label_image_path, producers(name))
+        wine:wines(id, wine_name, vintage, base_price_cents, handle, label_image_path, producers(name, display_name))
       `,
       )
       .eq("reservation_id", reservation.id)
@@ -232,6 +234,8 @@ export async function GET(
           wine_name: wineRow.wine_name || "Unknown Wine",
           vintage: wineRow.vintage || "N/A",
           producer_name: wineRow.producers?.name || undefined,
+          producer_display_name:
+            wineRow.producers?.display_name?.trim() || undefined,
           product_handle: wineRow.handle || undefined,
           image_url: wineRow.label_image_path || undefined,
           quantity: qty,

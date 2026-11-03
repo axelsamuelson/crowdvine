@@ -12,6 +12,7 @@ import {
 import { useParams, useSearchParams } from "next/navigation";
 import { ChevronRight, Minus, Plus, X } from "lucide-react";
 import type { Product, ProductVariant, Cart } from "@/lib/shopify/types";
+import { producerDisplayName } from "@/lib/producer-display-name";
 import { useSelectedVariant } from "@/components/products/variant-selector";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -599,7 +600,10 @@ export function AddToCartCase({
                   totalSelected={totalSelected}
                   bumpQty={bumpQty}
                   onOpenDetail={openRowDetail}
-                  producerName={product.producerName}
+                  producerName={producerDisplayName({
+                    name: product.producerName,
+                    display_name: product.producerDisplayName,
+                  })}
                   mixedCaseHeader
                   mixedCaseHeaderSheetSide={sheetSide}
                   showTapRowHint={showTapRowHint}
@@ -641,7 +645,10 @@ export function AddToCartCase({
                 totalSelected={totalSelected}
                 bumpQty={bumpQty}
                 onOpenDetail={openRowDetail}
-                producerName={product.producerName}
+                producerName={producerDisplayName({
+                    name: product.producerName,
+                    display_name: product.producerDisplayName,
+                  })}
                 mixedCaseHeader
                 mixedCaseHeaderSheetSide={sheetSide}
                 showTapRowHint={showTapRowHint}

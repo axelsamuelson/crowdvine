@@ -15,6 +15,7 @@ import {
 import { Footer } from "@/components/layout/footer";
 import { isB2BHost } from "@/lib/b2b-site";
 import { generateProducerSlug } from "@/lib/producer-handle";
+import { producerDisplayName } from "@/lib/producer-display-name";
 import type { AppLocale } from "@/lib/i18n/locale";
 import {
   PACT_PUBLIC_ORIGIN,
@@ -66,6 +67,7 @@ export const REGION_PAGE_WINE_GRID_LIMIT = 24;
 type RegionProducerSummary = {
   id: string;
   name: string;
+  legalName: string;
   href: string;
   wineCount: number;
   subregion: string | null;
@@ -77,9 +79,9 @@ export function producersFromProducts(
 ): RegionProducerSummary[] {
   const byKey = new Map<string, RegionProducerSummary>();
   for (const product of products) {
-    const name = product.producerName?.trim();
-    if (!name) continue;
-    const id = product.producerId ?? generateProducerSlug(name);
+    const legalName = product.producerName?.trim();
+    if (!legalName) continue;
+    const id = product.producerId ?? generateProducerSlug(legalName);
     const existing = byKey.get(id);
     if (existing) {
       existing.wineCount += 1;
@@ -87,14 +89,18 @@ export function producersFromProducts(
     }
     byKey.set(id, {
       id,
-      name,
-      href: producerPublicPath(generateProducerSlug(name), locale),
+      name: producerDisplayName({
+        name: legalName,
+        display_name: product.producerDisplayName,
+      }),
+      legalName,
+      href: producerPublicPath(generateProducerSlug(legalName), locale),
       wineCount: 1,
       subregion: product.producerLocation?.subregion?.trim() || null,
     });
   }
   return [...byKey.values()].sort((a, b) =>
-    a.name.localeCompare(b.name, "sv"),
+    a.legalName.localeCompare(b.legalName, "sv"),
   );
 }
 
@@ -393,7 +399,10 @@ export async function renderWineRegionPage(options: {
                 </Link>
                 {product.producerName ? (
                   <span className="mt-0.5 block text-[13px] text-muted-foreground">
-                    {product.producerName}
+                    {producerDisplayName({
+                      name: product.producerName,
+                      display_name: product.producerDisplayName,
+                    })}
                   </span>
                 ) : null}
               </li>

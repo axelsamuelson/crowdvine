@@ -7,6 +7,7 @@ import { useCartOptional } from "@/components/cart/cart-context";
 import type { ProducerValidation } from "@/lib/checkout-validation";
 import { useTranslations } from "@/lib/hooks/use-translations";
 import { useLocalizedPaths } from "@/lib/hooks/use-localized-paths";
+import { producerDisplayName } from "@/lib/producer-display-name";
 
 const serializeCart = (cart: any) =>
   JSON.stringify(
@@ -99,6 +100,13 @@ export function CompleteOrderRail({ showMobile = false }: { showMobile?: boolean
   if (!isShopRoute || validations.length === 0) return null;
 
   const primary = validations[0];
+  const primaryLabel =
+    producerDisplayName({
+      name: primary?.producerName,
+      display_name: primary?.producerDisplayName,
+    }) ||
+    primary?.producerHandle ||
+    "";
   const primaryCurrent = primary?.quantity || 0;
   const primaryRequired =
     primary?.required ??
@@ -146,7 +154,7 @@ export function CompleteOrderRail({ showMobile = false }: { showMobile?: boolean
             onClick={goToProducer}
             className="flex items-center gap-2 min-w-0 flex-1 rounded-sm border border-gray-200 bg-white/95 backdrop-blur-md shadow-xs px-2.5 py-0.5 text-left hover:bg-white transition-colors"
             aria-label={t("shop.completeOrderFilterProducer", {
-              name: primary?.producerName || primary?.producerHandle || "",
+              name: primaryLabel,
             })}
           >
             <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-900 whitespace-nowrap">
@@ -157,7 +165,7 @@ export function CompleteOrderRail({ showMobile = false }: { showMobile?: boolean
               {primaryCurrent}/{primaryRequired}
             </span>
             <span className="text-[11px] text-gray-900 truncate min-w-0">
-              {primary?.producerName || primary?.producerHandle}
+              {primaryLabel}
             </span>
             {validations.length > 1 && (
               <span className="text-[11px] text-gray-500 whitespace-nowrap">
@@ -210,7 +218,7 @@ export function CompleteOrderRail({ showMobile = false }: { showMobile?: boolean
             }}
             className="w-full bg-white/95 backdrop-blur-md border border-gray-200 rounded-sm px-2 py-1.5 shadow-sm text-left hover:bg-white transition-colors cursor-pointer select-none"
             aria-label={t("shop.completeOrderFilterProducer", {
-              name: primary?.producerName || primary?.producerHandle || "",
+              name: primaryLabel,
             })}
           >
           <div className="flex items-center justify-between gap-3">
@@ -219,7 +227,7 @@ export function CompleteOrderRail({ showMobile = false }: { showMobile?: boolean
                 {t("shop.completeOrder")}
               </div>
                 <div className="text-[11px] text-gray-700 truncate tabular-nums">
-                  {primaryCurrent}/{primaryRequired} • {primary?.producerName || primary?.producerHandle}
+                  {primaryCurrent}/{primaryRequired} • {primaryLabel}
                 {validations.length > 1
                   ? ` (${t("shop.completeOrderMore", { count: validations.length - 1 })})`
                   : ""}

@@ -15,9 +15,11 @@ import { cn } from "@/lib/utils";
 export function ListCardCommerceFooter({
   className,
   children,
+  sourceType,
 }: {
   className?: string;
   children?: React.ReactNode;
+  sourceType?: string | null;
 }) {
   const { context } = useTranslations();
   const locale = (context.locale ?? "sv") as AppLocale;
@@ -26,7 +28,11 @@ export function ListCardCommerceFooter({
   return (
     <div className={cn("space-y-1.5", className)}>
       {!isB2B ? <MinSixBottlesHint locale={locale} compact /> : null}
-      <DirectBoxDeliveryPromise locale={locale} compact />
+      <DirectBoxDeliveryPromise
+        locale={locale}
+        compact
+        sourceType={sourceType}
+      />
       {children}
     </div>
   );

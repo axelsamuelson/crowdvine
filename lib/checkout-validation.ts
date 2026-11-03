@@ -18,6 +18,7 @@ export type CartItem = {
       id: string;
       producerId?: string;
       producerName?: string;
+      producerDisplayName?: string | null;
     };
   };
 };
@@ -30,6 +31,7 @@ export type CartItem = {
 export type ProducerValidation = {
   producerId: string;
   producerName: string;
+  producerDisplayName?: string | null;
   producerHandle: string;
   quantity: number;
   isValid: boolean;
@@ -109,6 +111,7 @@ export function validateCartMinimum(
       quantity: item.quantity,
       producerId: item.merchandise?.product?.producerId,
       producerName: item.merchandise?.product?.producerName,
+      producerDisplayName: item.merchandise?.product?.producerDisplayName,
     }));
     const { progress, lines: lineRows } = computeB2BPackMinimum(lines);
 
@@ -123,6 +126,7 @@ export function validateCartMinimum(
       return {
         producerId: row.producerId || row.id,
         producerName: name,
+        producerDisplayName: row.producerDisplayName,
         producerHandle: row.producerName
           ? generateProducerSlug(row.producerName)
           : "",

@@ -15,7 +15,11 @@ import { useTranslations } from "@/lib/hooks/use-translations";
  * PDP delivery strip: customer sees direct-box promise (not pallet fill).
  * Still emits `pallet_status_viewed` with fill metadata for funnel analytics.
  */
-export function PalletStatusBar() {
+export function PalletStatusBar({
+  sourceType,
+}: {
+  sourceType?: string | null;
+}) {
   const { t, context } = useTranslations();
   const isDirtywineSite = useB2BModeServerHint();
   const { data, isUnavailable } = usePalletZoneStatus();
@@ -46,7 +50,10 @@ export function PalletStatusBar() {
       {unavailableMessage ? (
         <p className="text-sm text-muted-foreground">{unavailableMessage}</p>
       ) : (
-        <DirectBoxDeliveryPromise locale={context.locale} />
+        <DirectBoxDeliveryPromise
+          locale={context.locale}
+          sourceType={sourceType}
+        />
       )}
       {!isDirtywineSite ? (
         <p className="text-xs text-muted-foreground">

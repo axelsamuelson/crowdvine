@@ -8,6 +8,7 @@ import { generateProducerSlug } from "@/lib/producer-handle";
 import { getProducerShopEditorialOverride } from "@/lib/producer-shop-content";
 import { formatProducerCertification } from "@/lib/product/wine-enrichment";
 import { isSeedLapsedOrganicProducer } from "@/lib/shop/verified-organic-producers";
+import { producerDisplayName } from "@/lib/producer-display-name";
 import { producerShopEditorialHeading } from "@/lib/seo/producer-shop-metadata";
 
 function softenAdditiveClaims(text: string, locale: AppLocale): string {
@@ -81,6 +82,10 @@ export function ProducerShopEditorialBlock({
   if (!bio) return null;
 
   const producerName = collection.title.trim();
+  const shownProducerName = producerDisplayName({
+    name: producerName,
+    display_name: collection.displayName,
+  });
   const specParts = producerShopSpecParts(collection, locale);
   const profileHref = producerPublicPath(
     generateProducerSlug(producerName),
@@ -90,7 +95,11 @@ export function ProducerShopEditorialBlock({
   return (
     <div className="p-sides mt-16 max-w-2xl border-t border-stone-100 pt-12">
       <h2 className="text-sm font-medium uppercase tracking-widest text-stone-400">
-        {producerShopEditorialHeading(producerName, locale)}
+        {producerShopEditorialHeading(
+          producerName,
+          locale,
+          collection.displayName,
+        )}
       </h2>
       <div className="mt-4 space-y-4 text-sm leading-relaxed text-stone-600">
         {bio.split("\n\n").map((paragraph) => (
@@ -105,8 +114,8 @@ export function ProducerShopEditorialBlock({
         className="mt-4 inline-block text-sm text-stone-600 underline underline-offset-4 hover:text-foreground"
       >
         {locale === "sv"
-          ? `Läs mer om ${producerName} →`
-          : `Read more about ${producerName} →`}
+          ? `Läs mer om ${shownProducerName} →`
+          : `Read more about ${shownProducerName} →`}
       </Link>
     </div>
   );

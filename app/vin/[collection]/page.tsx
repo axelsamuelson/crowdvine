@@ -149,10 +149,16 @@ export async function generateMetadata(props: {
   }
 
   const shopUrl = `${PACT_PUBLIC_ORIGIN}${producerShopPagePath(collection.title, "sv")}`;
-  const shopTitle = producerShopPageTitle(collection.title, "sv");
+  const producer = asProducerCollectionData(collection);
+  const shopTitle = producerShopPageTitle(
+    collection.title,
+    "sv",
+    collection.displayName,
+  );
   const shopDescription = producerShopMetaDescription("sv", {
     producerName: collection.title,
-    handle: collection.handle,
+    displayName: collection.displayName,
+    region: producer.region,
   });
   const collectionProducts = await getCollectionProducts({
     collection: slug,
@@ -161,7 +167,7 @@ export async function generateMetadata(props: {
   const emptyListing = collectionProducts.length === 0;
 
   return {
-    title: shopTitle,
+    title: { absolute: shopTitle },
     description: shopDescription,
     robots: emptyListing
       ? emptyListingRobots(searchParams)
@@ -435,7 +441,11 @@ export default async function VinCollectionPage(props: {
   }
 
   const config = await getSiteConfig();
-  const shopHeading = producerShopPageHeading(collection.title, "sv");
+  const shopHeading = producerShopPageHeading(
+    collection.title,
+    "sv",
+    collection.displayName,
+  );
   const shopUrl = `${PACT_PUBLIC_ORIGIN}${producerShopPagePath(collection.title, "sv")}`;
   const producerCollection = asProducerCollectionData(collection);
 
