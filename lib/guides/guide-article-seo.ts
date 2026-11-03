@@ -61,7 +61,13 @@ export function buildArticleGuideMeta(
   },
 ): Metadata {
   const pageUrl = `${baseUrl}${articlePath(content, locale)}`;
-  const title = categoryPageTitle(content.title[locale], siteName);
+  const rawTitle = content.title[locale];
+  const title = content.absoluteTitle?.[locale]
+    ? { absolute: rawTitle }
+    : categoryPageTitle(rawTitle, siteName);
+  const socialTitle = content.absoluteTitle?.[locale]
+    ? rawTitle
+    : categoryPageTitle(rawTitle, siteName);
   const description = content.meta[locale];
   const robots = options?.nofollow
     ? { index: false as const, follow: false as const }
@@ -81,13 +87,13 @@ export function buildArticleGuideMeta(
       languages: articleGuideHreflang(content, baseUrl, xDefault),
     },
     openGraph: {
-      title,
+      title: socialTitle,
       description,
       url: pageUrl,
       type: "article",
       locale: locale === "sv" ? "sv_SE" : "en_US",
       images: defaultOpenGraphImages({ siteName, locale }),
     },
-    twitter: pageTwitterCard(title, description),
+    twitter: pageTwitterCard(socialTitle, description),
   };
 }

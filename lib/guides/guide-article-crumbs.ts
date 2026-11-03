@@ -34,7 +34,7 @@ const PRODUCER_LIST_PARENT = {
 } as const;
 
 const STYLE_PARENT = {
-  en: "What Is Natural Wine?",
+  en: "What is natural wine?",
   sv: "Vad är naturvin?",
 } as const;
 
