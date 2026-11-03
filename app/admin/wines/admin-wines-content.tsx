@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQueryState, parseAsArrayOf, parseAsString } from "nuqs";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -22,6 +22,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import {
+  matchesImageFilter,
+  matchesLiveFilter,
+  matchesSourceFilter,
+} from "@/lib/admin/admin-wine-list-filters";
 
 const colorColors: Record<string, string> = {
   red: "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300",
@@ -239,12 +244,30 @@ export function AdminWinesContent({
     parseAsString.withDefault("all"),
   );
   const [searchQuery, setSearchQuery] = useQueryState("q", parseAsString.withDefault(""));
+  const [sourceFilter, setSourceFilter] = useQueryState(
+    "src",
+    parseAsString.withDefault("all"),
+  );
+  const [imageFilter, setImageFilter] = useQueryState(
+    "img",
+    parseAsString.withDefault("all"),
+  );
+  const [wineStatusFilter, setWineStatusFilter] = useQueryState(
+    "ws",
+    parseAsString.withDefault("all"),
+  );
+  const [producerStatusFilter, setProducerStatusFilter] = useQueryState(
+    "ps",
+    parseAsString.withDefault("all"),
+  );
   const [sortBy, setSortBy] = useQueryState("sort", parseAsString.withDefault("wine"));
   const [sortDir, setSortDir] = useQueryState("dir", parseAsString.withDefault("asc"));
 
   const [producerOpen, setProducerOpen] = useState(false);
   const [grapesOpen, setGrapesOpen] = useState(false);
   const [grapeSearch, setGrapeSearch] = useState("");
+  const [moreOpen, setMoreOpen] = useState(false);
+  const didAutoOpenMore = useRef(false);
 
   const producers = useMemo(() => {
     const m = new Map<string, string>();
@@ -353,6 +376,10 @@ export function AdminWinesContent({
       }
       if (ratingFilter === "rated" && !hasInternalRating(w)) return false;
       if (ratingFilter === "unrated" && hasInternalRating(w)) return false;
+      if (!matchesSourceFilter(w.source_type, sourceFilter)) return false;
+      if (!matchesImageFilter(w.has_image === true, imageFilter)) return false;
+      if (!matchesLiveFilter(w.is_live, wineStatusFilter)) return false;
+      if (!matchesLiveFilter(w.producer?.is_live, producerStatusFilter)) return false;
       // Search: match wine name, vintage, producer, grapes, color, handle
       const q = searchQuery.trim().toLowerCase();
       if (q) {
@@ -373,7 +400,18 @@ export function AdminWinesContent({
       }
       return true;
     });
-  }, [wines, ap, ac, ag, ratingFilter, searchQuery]);
+  }, [
+    wines,
+    ap,
+    ac,
+    ag,
+    ratingFilter,
+    searchQuery,
+    sourceFilter,
+    imageFilter,
+    wineStatusFilter,
+    producerStatusFilter,
+  ]);
 
   const sortedWines = useMemo(() => {
     const list = [...filteredWines];
@@ -434,8 +472,23 @@ export function AdminWinesContent({
     setSortDir(defaultDesc ? "desc" : "asc");
   };
 
+  const advancedFilterCount =
+    (sourceFilter !== "all" ? 1 : 0) +
+    (imageFilter !== "all" ? 1 : 0) +
+    (wineStatusFilter !== "all" ? 1 : 0) +
+    (producerStatusFilter !== "all" ? 1 : 0);
   const filterCount =
-    ap.length + ac.length + ag.length + (ratingFilter !== "all" ? 1 : 0);
+    ap.length +
+    ac.length +
+    ag.length +
+    (ratingFilter !== "all" ? 1 : 0) +
+    advancedFilterCount;
+
+  useEffect(() => {
+    if (didAutoOpenMore.current || advancedFilterCount === 0) return;
+    didAutoOpenMore.current = true;
+    setMoreOpen(true);
+  }, [advancedFilterCount]);
   const hasSearch = searchQuery.trim().length > 0;
   const hasActiveFiltersOrSearch = filterCount > 0 || hasSearch;
 
@@ -463,6 +516,10 @@ export function AdminWinesContent({
     setAc([]);
     setAg([]);
     setRatingFilter("all");
+    setSourceFilter("all");
+    setImageFilter("all");
+    setWineStatusFilter("all");
+    setProducerStatusFilter("all");
     setSearchQuery("");
     setProducerOpen(false);
     setGrapesOpen(false);
@@ -721,6 +778,105 @@ export function AdminWinesContent({
               </div>
             </div>
           </div>
+
+          {moreOpen ? (
+            <div className="grid grid-cols-1 gap-3 border-t border-gray-200 pt-3 sm:grid-cols-2 xl:grid-cols-4 dark:border-zinc-800">
+              <div className="flex min-w-0 flex-col gap-1.5">
+                <label className="text-xs font-medium text-gray-600 dark:text-zinc-400">
+                  Source
+                </label>
+                <Select
+                  value={sourceFilter || "all"}
+                  onValueChange={(v) => setSourceFilter(v)}
+                >
+                  <SelectTrigger className="h-10 w-full rounded-lg border-gray-200 bg-white text-sm text-gray-900 sm:h-9 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Alla</SelectItem>
+                    <SelectItem value="producer">Producent</SelectItem>
+                    <SelectItem value="wholesaler">Grossist</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex min-w-0 flex-col gap-1.5">
+                <label className="text-xs font-medium text-gray-600 dark:text-zinc-400">
+                  Bild
+                </label>
+                <Select
+                  value={imageFilter || "all"}
+                  onValueChange={(v) => setImageFilter(v)}
+                >
+                  <SelectTrigger className="h-10 w-full rounded-lg border-gray-200 bg-white text-sm text-gray-900 sm:h-9 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Alla</SelectItem>
+                    <SelectItem value="with">Med bild</SelectItem>
+                    <SelectItem value="without">Saknar bild</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex min-w-0 flex-col gap-1.5">
+                <label className="text-xs font-medium text-gray-600 dark:text-zinc-400">
+                  Status
+                </label>
+                <Select
+                  value={wineStatusFilter || "all"}
+                  onValueChange={(v) => setWineStatusFilter(v)}
+                >
+                  <SelectTrigger className="h-10 w-full rounded-lg border-gray-200 bg-white text-sm text-gray-900 sm:h-9 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Alla</SelectItem>
+                    <SelectItem value="live">Live</SelectItem>
+                    <SelectItem value="hidden">Dold</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex min-w-0 flex-col gap-1.5">
+                <label className="text-xs font-medium text-gray-600 dark:text-zinc-400">
+                  Producentstatus
+                </label>
+                <Select
+                  value={producerStatusFilter || "all"}
+                  onValueChange={(v) => setProducerStatusFilter(v)}
+                >
+                  <SelectTrigger className="h-10 w-full rounded-lg border-gray-200 bg-white text-sm text-gray-900 sm:h-9 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Alla</SelectItem>
+                    <SelectItem value="live">Live</SelectItem>
+                    <SelectItem value="hidden">Dold</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          ) : null}
+
+          <button
+            type="button"
+            onClick={() => setMoreOpen((open) => !open)}
+            aria-expanded={moreOpen}
+            className="mx-auto inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-gray-600 transition-colors hover:text-gray-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+          >
+            More
+            {advancedFilterCount > 0 ? (
+              <span className="text-gray-400 dark:text-zinc-500">
+                ({advancedFilterCount})
+              </span>
+            ) : null}
+            {moreOpen ? (
+              <ChevronUp className="h-3.5 w-3.5 shrink-0" aria-hidden />
+            ) : (
+              <ChevronDown className="h-3.5 w-3.5 shrink-0" aria-hidden />
+            )}
+          </button>
         </div>
       </div>
 

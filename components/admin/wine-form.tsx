@@ -549,9 +549,14 @@ export default function WineForm({
         savedWine = await createWine(wineData, editLocale);
       }
 
-      // Save new images to wine_images table
+      // Save new images to wine_images table, then drop them from the
+      // pending upload list. Leaving the File objects in state makes the
+      // gallery show the saved row and the same file again after refresh,
+      // and the next save uploads a second copy.
       if (savedWine && imagePaths.length > 0) {
-        const { createWineImage } = await import("@/lib/actions/wine-images");
+        const { createWineImage, getWineImages } = await import(
+          "@/lib/actions/wine-images"
+        );
 
         for (let i = 0; i < imagePaths.length; i++) {
           await createWineImage({
@@ -562,6 +567,9 @@ export default function WineForm({
             is_primary: i === 0 && existingImages.length === 0, // First image is primary if no existing images
           });
         }
+
+        setImages([]);
+        setExistingImages(await getWineImages(savedWine.id));
       }
 
       // Update wine-grape varieties relationships

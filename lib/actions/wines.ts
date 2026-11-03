@@ -17,6 +17,7 @@ import {
   resolveSekExchangeRateSync,
   resolveWineAlcoholTaxCents,
 } from "@/lib/wine-retail-pricing";
+import { DEFAULT_WINE_IMAGE_PATH } from "@/lib/constants";
 import { isWineRegionValue } from "@/lib/wine-regions";
 
 function normalizeWineRegionInput(
@@ -45,7 +46,13 @@ export interface Wine {
   producer_id: string;
   producer?: {
     name: string;
+    /** When false, the producer is hidden from the shop. */
+    is_live?: boolean | null;
   };
+  /** Supply origin: `producer` or `wholesaler` (grossist). */
+  source_type?: string | null;
+  /** True when the wine has a label image or a gallery image. */
+  has_image?: boolean;
   created_at: string;
   updated_at: string;
   // New pricing fields
@@ -217,6 +224,7 @@ const WINES_SELECT_FULL = `
   b2b_stock,
   is_live,
   available_for_sale,
+  source_type,
   created_at,
   updated_at
 `;
@@ -266,6 +274,7 @@ const WINES_SELECT_WITHOUT_B2B = `
   abv,
   is_live,
   available_for_sale,
+  source_type,
   created_at,
   updated_at
 `;
@@ -319,6 +328,7 @@ const WINES_SELECT_WITHOUT_EXTENDED_ENRICHMENT = `
   b2b_stock,
   is_live,
   available_for_sale,
+  source_type,
   created_at,
   updated_at
 `;
@@ -367,6 +377,7 @@ const WINES_SELECT_WITHOUT_B2B_NO_EXTENDED = `
   abv,
   is_live,
   available_for_sale,
+  source_type,
   created_at,
   updated_at
 `;
@@ -398,6 +409,7 @@ const WINES_SELECT_FULL_NO_SUMMARY = `
   b2b_stock,
   is_live,
   available_for_sale,
+  source_type,
   created_at,
   updated_at
 `;
@@ -426,6 +438,7 @@ const WINES_SELECT_LEGACY = `
   description_html,
   is_live,
   available_for_sale,
+  source_type,
   created_at,
   updated_at
 `;
@@ -453,6 +466,7 @@ const WINES_SELECT_WITHOUT_B2B_NO_SUMMARY = `
   description_html,
   is_live,
   available_for_sale,
+  source_type,
   created_at,
   updated_at
 `;
@@ -470,6 +484,28 @@ function isExtendedEnrichmentColumnMissingError(error: { message?: string } | nu
 function isOptionalColumnMissingError(error: { message?: string } | null): boolean {
   const msg = error?.message ?? "";
   return /terroir_soil|production_method|tasting_profile_character|classification|tasting_notes|alcohol_percentage/i.test(msg);
+}
+
+function isSourceTypeColumnMissingError(error: { message?: string } | null): boolean {
+  const msg = error?.message ?? "";
+  return /source_type/i.test(msg) && /does not exist|schema cache/i.test(msg);
+}
+
+function stripSourceType(select: string): string {
+  return select.replace(/\n\s*source_type,/, "");
+}
+
+function wineHasCatalogImage(
+  labelPath: string | null | undefined,
+  hasGalleryImage: boolean,
+): boolean {
+  if (hasGalleryImage) return true;
+  const path = (labelPath ?? "").trim().split("?")[0];
+  if (!path) return false;
+  if (path === DEFAULT_WINE_IMAGE_PATH || path.endsWith("/default-wine.png")) {
+    return false;
+  }
+  return true;
 }
 
 function pickWineSelectFallback(error: { message?: string } | null): string | null {
@@ -511,6 +547,15 @@ export async function getWines() {
     .from("wines")
     .select(WINES_SELECT_FULL)
     .order("wine_name");
+
+  if (error && isSourceTypeColumnMissingError(error)) {
+    const retry = await sb
+      .from("wines")
+      .select(stripSourceType(WINES_SELECT_FULL))
+      .order("wine_name");
+    wines = retry.data;
+    error = retry.error;
+  }
 
   if (error && (isB2BColumnMissingError(error) || isExtendedEnrichmentColumnMissingError(error) || isOptionalColumnMissingError(error) || isSummaryColumnMissingError(error) || isSpecsColumnMissingError(error))) {
     const fallbackSelect = pickWineSelectFallback(error);
@@ -588,8 +633,22 @@ export async function getWines() {
   const producerIds = [...new Set(wineList.map((wine) => wine.producer_id))];
   const { data: producers } = await sb
     .from("producers")
-    .select("id, name")
+    .select("id, name, is_live")
     .in("id", producerIds);
+
+  const galleryWineIds = new Set<string>();
+  if (wineList.length > 0) {
+    const { data: imageRows, error: imageError } = await sb
+      .from("wine_images")
+      .select("wine_id");
+    if (imageError) {
+      console.error("Failed to fetch wine_images for admin list:", imageError.message);
+    } else {
+      for (const row of imageRows ?? []) {
+        if (row.wine_id) galleryWineIds.add(row.wine_id as string);
+      }
+    }
+  }
 
   // Create a map for quick lookup
   const producerMap = new Map(producers?.map((p) => [p.id, p]) || []);
@@ -640,8 +699,14 @@ export async function getWines() {
   // Combine wines with their producers and latest rating
   const winesWithProducers = wineList.map((wine) => {
     const rating = latestRatingByWineId.get(wine.id);
+    const row = wine as typeof wine & { source_type?: string | null };
     return {
       ...wine,
+      source_type: row.source_type ?? null,
+      has_image: wineHasCatalogImage(
+        wine.label_image_path,
+        galleryWineIds.has(wine.id),
+      ),
       producer: producerMap.get(wine.producer_id),
       latest_rating_score: rating?.score ?? null,
       latest_rating_verdict: rating?.verdict ?? null,
@@ -659,6 +724,16 @@ export async function getWine(id: string) {
     .select(WINES_SELECT_FULL)
     .eq("id", id)
     .single();
+
+  if (error && isSourceTypeColumnMissingError(error)) {
+    const retry = await sb
+      .from("wines")
+      .select(stripSourceType(WINES_SELECT_FULL))
+      .eq("id", id)
+      .single();
+    wine = retry.data;
+    error = retry.error;
+  }
 
   if (error && (isB2BColumnMissingError(error) || isExtendedEnrichmentColumnMissingError(error) || isOptionalColumnMissingError(error) || isSummaryColumnMissingError(error) || isSpecsColumnMissingError(error))) {
     const fallbackSelect = pickWineSelectFallback(error);

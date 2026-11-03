@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -35,6 +35,12 @@ export function WineImageUpload({
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (images.length === 0 && fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  }, [images.length]);
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
