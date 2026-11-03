@@ -113,7 +113,7 @@ export const WINE_REGION_CONTENT: WineRegionContentMap = {
         },
         {
           heading: "Grapes and styles in the Loire",
-          body: "Chenin Blanc, Cabernet Franc, Sauvignon Blanc, Melon de Bourgogne and Grolleau are common. Red, white and sparkling styles often share the same appellation geography. The selection can include dry and sweet whites, light to mid-weight reds, rosé and pét-nat. Cooler sites often bring high acidity and a clear sense of place.",
+          body: "Chenin Blanc, Cabernet Franc, Sauvignon Blanc, Melon de Bourgogne and Grolleau are common. Red, white and sparkling styles often share the same appellation geography. The selection can include dry and sweet whites, light to mid-weight reds, rosé and pet-nat. Cooler sites often bring high acidity and a clear sense of place.",
         },
       ],
     },
@@ -281,7 +281,7 @@ export const WINE_REGION_CONTENT: WineRegionContentMap = {
         },
         {
           heading: "Grapes and styles in Alsace",
-          body: "Riesling, Pinot Blanc, Pinot Gris, Gewurztraminer, Muscat and Auxerrois are common. Pinot Noir is the main red grape. Dry and more aromatic whites, orange, occasional reds and pét-nat. The selection shows what PACT has right now.",
+          body: "Riesling, Pinot Blanc, Pinot Gris, Gewurztraminer, Muscat and Auxerrois are common. Pinot Noir is the main red grape. Dry and more aromatic whites, orange, occasional reds and pet-nat. The selection shows what PACT has right now.",
         },
       ],
     },

@@ -42,7 +42,6 @@ import { fallbackShoppingContext } from "@/lib/shopping-context/defaults";
 import { getCachedShoppingContextFromRequest } from "@/lib/shopping-context/server";
 import { getSiteConfig } from "@/lib/site-config-server";
 import {
-  formatGrapeListLabel,
   grapesFromProducts,
   stylesFromProducts,
 } from "@/lib/wine-region-page-facts";
@@ -265,7 +264,6 @@ export async function renderWineRegionPage(options: {
   const productPrefix = locale === "sv" ? "/produkt" : "/product";
   const producers = producersFromProducts(products, locale);
   const grapeList = grapesFromProducts(products);
-  const grapeLabel = formatGrapeListLabel(grapeList, locale);
   const styles = stylesFromProducts(products, locale);
   const guideHref = getWineRegionGuideHref(slug, locale);
   const guideLabel = getWineRegionGuideLabel(slug, locale);
@@ -304,11 +302,9 @@ export async function renderWineRegionPage(options: {
   const showCharacteristics = Boolean(
     characteristicsHeading || characteristicsBody,
   );
-  const showLocation = Boolean(locationBlurb);
   const grapeCount = grapeList.allLabels.length;
   const styleCount = styles.length;
   const showFacts =
-    showLocation ||
     products.length > 0 ||
     producers.length > 0 ||
     grapeCount > 0 ||
@@ -439,78 +435,44 @@ export async function renderWineRegionPage(options: {
         </section>
 
         {showFacts ? (
-          <section className="px-5 pb-10 md:px-10" aria-label={ui.factsHeading}>
-            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          <section className="px-5 pb-8 md:px-10" aria-label={ui.factsHeading}>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               {ui.factsHeading}
             </p>
-            <dl className="grid max-w-3xl grid-cols-2 gap-x-8 gap-y-0 sm:grid-cols-4">
-              <div className="border-t border-zinc-200 py-3.5">
-                <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <dl className="grid max-w-3xl grid-cols-4 gap-x-2 border-t border-zinc-200 sm:gap-x-8">
+              <div className="py-2.5 sm:py-3.5">
+                <dt className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground sm:text-xs">
                   {ui.winesFact}
                 </dt>
-                <dd className="mt-1 text-[15px] tabular-nums text-foreground">
+                <dd className="mt-0.5 text-sm tabular-nums text-foreground sm:mt-1 sm:text-[15px]">
                   {products.length}
                 </dd>
               </div>
-              <div className="border-t border-zinc-200 py-3.5">
-                <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <div className="py-2.5 sm:py-3.5">
+                <dt className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground sm:text-xs">
                   {ui.producersFact}
                 </dt>
-                <dd className="mt-1 text-[15px] tabular-nums text-foreground">
+                <dd className="mt-0.5 text-sm tabular-nums text-foreground sm:mt-1 sm:text-[15px]">
                   {producers.length}
                 </dd>
               </div>
-              <div className="border-t border-zinc-200 py-3.5">
-                <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <div className="py-2.5 sm:py-3.5">
+                <dt className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground sm:text-xs">
                   {ui.grapesFact}
                 </dt>
-                <dd className="mt-1 text-[15px] tabular-nums text-foreground">
+                <dd className="mt-0.5 text-sm tabular-nums text-foreground sm:mt-1 sm:text-[15px]">
                   {grapeCount}
                 </dd>
               </div>
-              <div className="border-t border-zinc-200 py-3.5">
-                <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <div className="py-2.5 sm:py-3.5">
+                <dt className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground sm:text-xs">
                   {ui.stylesFact}
                 </dt>
-                <dd className="mt-1 text-[15px] tabular-nums text-foreground">
+                <dd className="mt-0.5 text-sm tabular-nums text-foreground sm:mt-1 sm:text-[15px]">
                   {styleCount}
                 </dd>
               </div>
             </dl>
-            {(showLocation || grapeLabel || styles.length > 0) && (
-              <dl className="mt-2 max-w-3xl">
-                {showLocation ? (
-                  <div className="border-t border-zinc-200 py-3.5">
-                    <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                      {ui.location}
-                    </dt>
-                    <dd className="mt-1 text-[15px] text-foreground">
-                      {locationBlurb}
-                    </dd>
-                  </div>
-                ) : null}
-                {grapeLabel ? (
-                  <div className="border-t border-zinc-200 py-3.5">
-                    <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                      {ui.grapes}
-                    </dt>
-                    <dd className="mt-1 text-[15px] text-foreground">
-                      {grapeLabel}
-                    </dd>
-                  </div>
-                ) : null}
-                {styles.length > 0 ? (
-                  <div className="border-t border-zinc-200 py-3.5">
-                    <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                      {ui.styles}
-                    </dt>
-                    <dd className="mt-1 text-[15px] text-foreground">
-                      {styles.join(", ")}
-                    </dd>
-                  </div>
-                ) : null}
-              </dl>
-            )}
           </section>
         ) : null}
 
