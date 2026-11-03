@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 import Image from "next/image";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { producerDisplayName } from "@/lib/producer-display-name";
 import { MemberPrice } from "@/components/ui/member-price";
 import { Settings } from "lucide-react";
 import {
@@ -37,6 +38,7 @@ interface Wine {
   base_price_cents?: number;
   producers?: {
     name: string;
+    display_name?: string | null;
     logo_image_path?: string | null;
   };
 }
@@ -598,7 +600,9 @@ export default function TastingPage() {
                             <Image src={producerLogoUrl} alt="" width={32} height={32} className="h-8 w-8 object-contain" unoptimized />
                           </div>
                         )}
-                        <p className="text-sm text-neutral-500">{currentWine.producers.name}</p>
+                        <p className="text-sm text-neutral-500">
+                          {producerDisplayName(currentWine.producers)}
+                        </p>
                       </div>
                     )}
                   </div>
@@ -767,7 +771,11 @@ export default function TastingPage() {
                         <TableCell>
                           <div className="flex flex-col">
                             <span className="font-medium text-neutral-900">{wine.wine_name}</span>
-                            <span className="text-sm text-neutral-500">{wine.producers?.name ?? "—"}</span>
+                            <span className="text-sm text-neutral-500">
+                              {wine.producers
+                                ? producerDisplayName(wine.producers)
+                                : "—"}
+                            </span>
                           </div>
                         </TableCell>
                         <TableCell className="text-neutral-600">{wine.vintage || "—"}</TableCell>

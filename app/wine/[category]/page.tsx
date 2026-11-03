@@ -149,10 +149,16 @@ export async function generateMetadata(props: {
 
   const config = await getSiteConfig();
   const shopUrl = `${PACT_PUBLIC_ORIGIN}${producerShopPagePath(collection.title, "en")}`;
-  const shopTitle = producerShopPageTitle(collection.title, "en");
+  const producer = asProducerCollectionData(collection);
+  const shopTitle = producerShopPageTitle(
+    collection.title,
+    "en",
+    collection.displayName,
+  );
   const shopDescription = producerShopMetaDescription("en", {
     producerName: collection.title,
-    handle: collection.handle,
+    displayName: collection.displayName,
+    region: producer.region,
   });
   const collectionProducts = await getCollectionProducts({
     collection: slug,
@@ -161,7 +167,7 @@ export async function generateMetadata(props: {
   const emptyListing = collectionProducts.length === 0;
 
   return {
-    title: shopTitle,
+    title: { absolute: shopTitle },
     description: shopDescription,
     robots: emptyListing
       ? emptyListingRobots(searchParams)
@@ -213,7 +219,11 @@ export default async function WineCategoryPage(props: PageProps) {
       permanentRedirect(`/wine/${collection.handle}`);
     }
 
-    const shopHeading = producerShopPageHeading(collection.title, "en");
+    const shopHeading = producerShopPageHeading(
+      collection.title,
+      "en",
+      collection.displayName,
+    );
     const config = await getSiteConfig();
     const shopUrl = `${PACT_PUBLIC_ORIGIN}${producerShopPagePath(collection.title, "en")}`;
     const producerCollection = asProducerCollectionData(collection);

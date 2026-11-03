@@ -25,11 +25,11 @@ export const WINE_REGION_CONTENT: WineRegionContentMap = {
   languedoc: {
     sv: {
       intro:
-        "Naturvin från Languedoc som vi köper direkt av producenterna och skickar på delade pallar.",
+        "Naturvin från Languedoc som skickas på delade pallar.",
     },
     en: {
       intro:
-        "Natural wine from the Languedoc, bought directly from the producers and shipped on shared pallets.",
+        "Natural wine from the Languedoc, shipped on shared pallets.",
     },
   },
 };

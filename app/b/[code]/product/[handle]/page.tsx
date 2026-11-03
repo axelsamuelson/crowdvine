@@ -13,6 +13,7 @@ import { SimpleProductImage } from "@/components/invite-shop/simple-product-imag
 import { PageLayout } from "@/components/layout/page-layout";
 import { Button } from "@/components/ui/button";
 import type { Product } from "@/lib/shopify/types";
+import { producerDisplayName } from "@/lib/producer-display-name";
 
 export default function InviteProductPage() {
   const params = useParams();
@@ -129,9 +130,17 @@ export default function InviteProductPage() {
             <h1 className="text-2xl font-semibold text-foreground mb-2">
               {product.title}
             </h1>
-            {product.producerName && (
-              <p className="text-muted-foreground mb-2">{product.producerName}</p>
-            )}
+            {producerDisplayName({
+              name: product.producerName,
+              display_name: product.producerDisplayName,
+            }) ? (
+              <p className="text-muted-foreground mb-2">
+                {producerDisplayName({
+                  name: product.producerName,
+                  display_name: product.producerDisplayName,
+                })}
+              </p>
+            ) : null}
             <StockBadge
               b2bStock={product.b2bStock}
               availableForSale={product.availableForSale}

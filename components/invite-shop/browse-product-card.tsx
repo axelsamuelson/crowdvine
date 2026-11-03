@@ -3,6 +3,7 @@
 import React, { memo } from "react";
 import Link from "next/link";
 import { Product } from "@/lib/shopify/types";
+import { producerDisplayName } from "@/lib/producer-display-name";
 import { priceExclVat } from "@/lib/shopify/utils";
 import { useFormatPrice } from "@/lib/hooks/use-format-price";
 import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
@@ -135,11 +136,17 @@ export const BrowseProductCard = memo(
               <p className="text-[8px] leading-tight md:text-sm uppercase 2xl:text-base text-balance line-clamp-2 md:line-clamp-2 break-words overflow-hidden text-foreground">
                 {product.title}
               </p>
-              {product.producerName && (
+              {producerDisplayName({
+                name: product.producerName,
+                display_name: product.producerDisplayName,
+              }) ? (
                 <p className="text-[7px] md:text-xs text-muted-foreground font-normal line-clamp-1 md:line-clamp-1 mt-0.5 leading-tight">
-                  {product.producerName}
+                  {producerDisplayName({
+                    name: product.producerName,
+                    display_name: product.producerDisplayName,
+                  })}
                 </p>
-              )}
+              ) : null}
               <StockBadge
                 b2bStock={(product as any).b2bStock}
                 availableForSale={product.availableForSale}

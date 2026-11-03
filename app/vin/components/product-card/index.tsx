@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 import { useTranslations } from "@/lib/hooks/use-translations";
 import { useLocalizedPaths } from "@/lib/hooks/use-localized-paths";
 import { getProductListPriceSek } from "@/lib/price-breakdown";
+import { producerDisplayName } from "@/lib/producer-display-name";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 import { pricesFromCartAfterAdd } from "@/lib/analytics/cart-event-prices";
 import { PriceViewTracker } from "@/components/analytics/price-view-tracker";
@@ -177,6 +178,10 @@ export const ProductCard = memo(
   const { t, context } = useTranslations();
   const paths = useLocalizedPaths();
   const productHref = paths.product(product.handle);
+  const shownProducerName = producerDisplayName({
+    name: product.producerName,
+    display_name: product.producerDisplayName,
+  });
   const hasNoOptions = product.options.length === 0;
   const hasOneOptionWithOneValue =
     product.options.length === 1 && product.options[0].values.length === 1;
@@ -873,9 +878,9 @@ export const ProductCard = memo(
             >
               {product.title}
             </p>
-            {product.producerName && (
+            {shownProducerName && (
               <p className="text-[7px] md:text-xs text-muted-foreground font-normal line-clamp-1 md:line-clamp-1 mt-0.5 leading-tight">
-                {product.producerName}
+                {shownProducerName}
               </p>
             )}
             <BoostBadgeSlot active={product.producerBoostActive === true} />
@@ -951,9 +956,9 @@ export const ProductCard = memo(
                     }
                   />
                 </div>
-                {product.producerName ? (
+                {shownProducerName ? (
                   <p className="truncate text-[13px] leading-none text-muted-foreground">
-                    {product.producerName}
+                    {shownProducerName}
                   </p>
                 ) : null}
                 <div className="pointer-events-auto pt-0.5">
@@ -1001,9 +1006,9 @@ export const ProductCard = memo(
                     }
                   />
                 </div>
-                {product.producerName ? (
+                {shownProducerName ? (
                   <p className="truncate text-[13px] leading-none text-muted-foreground">
-                    {product.producerName}
+                    {shownProducerName}
                   </p>
                 ) : null}
                 {producerOrdersPaused ? null : (
@@ -1050,9 +1055,9 @@ export const ProductCard = memo(
                   }
                 />
               </div>
-              {product.producerName ? (
+              {shownProducerName ? (
                 <p className="truncate text-[13px] leading-none text-muted-foreground">
-                  {product.producerName}
+                  {shownProducerName}
                 </p>
               ) : null}
               {showCartActions ? (
@@ -1103,9 +1108,9 @@ export const ProductCard = memo(
                   }
                 />
               </div>
-              {product.producerName ? (
+              {shownProducerName ? (
                 <p className="truncate text-[13px] leading-none text-muted-foreground">
-                  {product.producerName}
+                  {shownProducerName}
                 </p>
               ) : null}
               <div className="pointer-events-auto pt-0.5">

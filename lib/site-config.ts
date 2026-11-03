@@ -7,13 +7,26 @@ export type SiteConfig = {
   twitterHandle?: string;
 };
 
+/** Root layout default is Swedish. English is the home page absolute title. */
+export const PACT_DEFAULT_COPY = {
+  sv: {
+    title: "PACT Wines – Köp naturvin online med hemleverans i Stockholm",
+    description:
+      "Naturvin från små producenter, reserverat tillsammans per pall och levererat hem i Stockholm.",
+  },
+  en: {
+    title: "PACT Wines – Buy natural wine online, delivered in Stockholm",
+    description:
+      "Natural wine from small producers, reserved together by the pallet and delivered to your home in Stockholm.",
+  },
+} as const;
+
 export const PACT_CONFIG: SiteConfig = {
   name: "PACT",
   baseUrl: "https://pactwines.com",
   siteName: "PACT Wines",
-  defaultTitle: "PACT Wines — Naturvin direkt från Languedoc",
-  defaultDescription:
-    "Köp naturvin direkt från småproducenter i Languedoc. Hemleverans i Stockholm via PACT.",
+  defaultTitle: PACT_DEFAULT_COPY.sv.title,
+  defaultDescription: PACT_DEFAULT_COPY.sv.description,
 };
 
 export const DIRTY_WINE_CONFIG: SiteConfig = {
@@ -22,5 +35,5 @@ export const DIRTY_WINE_CONFIG: SiteConfig = {
   siteName: "Dirty Wine",
   defaultTitle: "Dirty Wine — Naturvin till Stockholms restauranger",
   defaultDescription:
-    "Naturvin direkt från Languedoc för restauranger och sommelierer i Stockholm. B2B-import via Dirty Wine.",
+    "Naturvin för restauranger i Stockholm. B2B-import via Dirty Wine.",
 };

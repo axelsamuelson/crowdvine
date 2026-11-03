@@ -12,6 +12,7 @@ import Link from "next/link";
 import { formatPrice } from "@/lib/shopify/utils";
 import { MemberPrice } from "@/components/ui/member-price";
 import { getProductListPriceSek } from "@/lib/price-breakdown";
+import { producerDisplayName } from "@/lib/producer-display-name";
 import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
 import { Button } from "@/components/ui/button";
 
@@ -29,6 +30,10 @@ export function FeaturedProductLabel({
   const { t } = useTranslations();
   const paths = useLocalizedPaths();
   const listPriceSek = getProductListPriceSek(product);
+  const shownProducerName = producerDisplayName({
+    name: product.producerName,
+    display_name: product.producerDisplayName,
+  });
   const isB2B = useB2BPriceMode();
   const productType = product.productType;
   const isWineBox = productType === "wine-box";
@@ -109,11 +114,11 @@ export function FeaturedProductLabel({
           {product.title}
         </Link>
         <div className="col-span-1 mb-10">
-          {product.producerName && (
+          {shownProducerName ? (
             <p className="mb-2 text-sm text-muted-foreground font-normal">
-              {product.producerName}
+              {shownProducerName}
             </p>
-          )}
+          ) : null}
           {product.tags.length > 0 ? (
             <p className="mb-3 text-sm italic font-medium">
               {product.tags.join(". ")}
@@ -159,11 +164,11 @@ export function FeaturedProductLabel({
         >
           {product.title}
         </Link>
-        {product.producerName && (
+        {shownProducerName ? (
           <p className="text-xs text-muted-foreground font-normal mb-1">
-            {product.producerName}
+            {shownProducerName}
           </p>
-        )}
+        ) : null}
         <div className="flex gap-2 items-center text-base font-semibold">
           <MemberPrice
             amount={product.priceRange.minVariantPrice.amount}

@@ -23,6 +23,7 @@ import {
   resolveProductAvailableForSale,
 } from "@/lib/wine-availability";
 import { firstSentence } from "@/lib/text/first-sentence";
+import { producerDisplayName } from "@/lib/producer-display-name";
 import {
   buildWineBoxSeoDescription,
   buildWineBoxSeoTitle,
@@ -326,7 +327,8 @@ export async function getCrowdvineProductByHandle(options: {
         soil_type,
         tags,
         available_for_sale,
-        producers!inner(name, region, subregion, lat, lon, boost_active)
+        source_type,
+        producers!inner(name, display_name, region, subregion, lat, lon, boost_active)
       `;
 
   const wineSelectWithoutExtendedEnrichment = `
@@ -364,7 +366,8 @@ export async function getCrowdvineProductByHandle(options: {
         awards,
         tags,
         available_for_sale,
-        producers!inner(name, region, subregion, lat, lon, boost_active)
+        source_type,
+        producers!inner(name, display_name, region, subregion, lat, lon, boost_active)
       `;
 
   let result = await sb
@@ -399,7 +402,8 @@ export async function getCrowdvineProductByHandle(options: {
         base_price_cents, cost_amount, cost_currency, exchange_rate,
         alcohol_tax_cents, margin_percentage, b2b_margin_percentage, b2b_stock,
         label_image_path, producer_id, description, description_html,
-        producers!inner(name, boost_active)
+        source_type,
+        producers!inner(name, display_name, boost_active)
       `;
     result = await sb
       .from("wines")
@@ -631,6 +635,7 @@ export async function getCrowdvineProductByHandle(options: {
   const specs: Record<string, string> = {};
   const producerEmbed = i.producers as {
     name?: string;
+    display_name?: string | null;
     region?: string;
     subregion?: string;
     lat?: number | null;
@@ -647,12 +652,20 @@ export async function getCrowdvineProductByHandle(options: {
 
   const tasteTags = parseWineTasteTags(i.tags);
   const producerName = producerEmbed?.name || UNKNOWN_PRODUCER_LABEL;
-  const seoTitle = buildPdpSeoTitle(i.wine_name, i.vintage, producerName);
+  const producerDisplayNameValue =
+    typeof producerEmbed?.display_name === "string"
+      ? producerEmbed.display_name.trim() || null
+      : null;
+  const shownProducerName = producerDisplayName({
+    name: producerName,
+    display_name: producerDisplayNameValue,
+  });
+  const seoTitle = buildPdpSeoTitle(i.wine_name, i.vintage, shownProducerName);
   const seoDescription = buildPdpSeoDescription(localeForWine, {
     summaryText,
     tastingNotesText,
     grapeVarieties,
-    producerName,
+    producerName: shownProducerName,
   });
 
   const wineEnrichment = {
@@ -711,6 +724,11 @@ export async function getCrowdvineProductByHandle(options: {
     categoryId: i.producer_id,
     producerId: i.producer_id,
     producerName,
+    producerDisplayName: producerDisplayNameValue,
+    sourceType:
+      typeof i.source_type === "string" && i.source_type.trim()
+        ? i.source_type.trim()
+        : null,
     producerLocation: producerEmbed
       ? {
           lat: producerEmbed.lat ?? null,

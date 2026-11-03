@@ -46,6 +46,7 @@ import { pickPdpSiblingWines } from "@/lib/product/pdp-sibling-wines";
 import type { AppLocale } from "@/lib/i18n/locale";
 import type { ZoneStatusPayload } from "@/lib/pallet/zone-status";
 import { generateProducerSlug } from "@/lib/producer-handle";
+import { producerDisplayName } from "@/lib/producer-display-name";
 import type { Product } from "@/lib/shopify/types";
 
 interface ProductPdpLayoutProps {
@@ -86,10 +87,15 @@ export async function ProductPdpLayout({
         product.producerLocation?.region,
     );
 
+  const shownProducerName = producerDisplayName({
+    name: product.producerName,
+    display_name: product.producerDisplayName,
+  });
+
   const producerMap = showProducerMap ? (
     <WineProducerMap
       producer={{
-        name: product.producerName ?? "Producent",
+        name: shownProducerName || "Producent",
         lat: product.producerLocation?.lat,
         lon: product.producerLocation?.lon,
         subregion: product.producerLocation?.subregion,
@@ -132,6 +138,7 @@ export async function ProductPdpLayout({
               <ProductBreadcrumbs
                 title={product.title}
                 producerName={product.producerName}
+                producerDisplayName={product.producerDisplayName}
                 productType={product.productType}
               />
 
@@ -144,6 +151,7 @@ export async function ProductPdpLayout({
                     title={product.title}
                     leadText={product.summary || product.description}
                     producerName={product.producerName}
+                    producerDisplayName={product.producerDisplayName}
                     producerSlug={producerSlug}
                     locale={locale}
                     topLeftBadges={
@@ -182,9 +190,12 @@ export async function ProductPdpLayout({
                     ) : null}
                     {/* SSR direct-box promise; client PalletStatusBar keeps analytics. */}
                     <noscript>
-                      <DirectBoxDeliveryPromise locale={locale} />
+                      <DirectBoxDeliveryPromise
+                        locale={locale}
+                        sourceType={product.sourceType}
+                      />
                     </noscript>
-                    <PalletStatusBar />
+                    <PalletStatusBar sourceType={product.sourceType} />
                     <AddToCartConditional
                       product={product}
                       className="w-full"
@@ -200,13 +211,13 @@ export async function ProductPdpLayout({
                       hasEnrichmentSpecs(
                         product.wineEnrichment,
                         undefined,
-                        product.producerName,
+                        shownProducerName,
                       ) ||
                       (product.wineEnrichment?.taste_tags?.length ?? 0) > 0
                     ) ? (
                       <WineEnrichmentSpecs
                         enrichment={product.wineEnrichment}
-                        producerName={product.producerName}
+                        producerName={shownProducerName}
                       />
                     ) : null}
                     {product.wineEnrichment?.style_scale != null &&
@@ -266,9 +277,9 @@ export async function ProductPdpLayout({
           <div className="md:hidden">{producerMap}</div>
         ) : null}
 
-        {siblingWines.length > 0 && product.producerName ? (
+        {siblingWines.length > 0 && shownProducerName ? (
           <PdpSiblingWinesSection
-            producerName={product.producerName}
+            producerName={shownProducerName}
             locale={locale}
             wines={siblingWines}
           />

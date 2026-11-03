@@ -4,6 +4,7 @@ import { ServerListPrice } from "@/components/commerce/server-list-price";
 import { ProductListImageServer } from "@/app/vin/components/product-list-image-server";
 import { ProductGrid } from "@/app/vin/components/product-grid";
 import type { AppLocale } from "@/lib/i18n/locale";
+import { producerDisplayName } from "@/lib/producer-display-name";
 import type { Product } from "@/lib/shopify/types";
 
 function productHref(handle: string, locale: AppLocale): string {
@@ -20,6 +21,10 @@ function ProductListStaticCard({
   locale: AppLocale;
 }) {
   const href = productHref(product.handle, locale);
+  const shownProducerName = producerDisplayName({
+    name: product.producerName,
+    display_name: product.producerDisplayName,
+  });
 
   return (
     <div className="relative w-full overflow-visible">
@@ -50,9 +55,9 @@ function ProductListStaticCard({
               >
                 {product.title}
               </p>
-              {product.producerName ? (
+              {shownProducerName ? (
                 <p className="text-[7px] md:text-xs text-muted-foreground font-normal line-clamp-1 mt-0.5 leading-tight">
-                  {product.producerName}
+                  {shownProducerName}
                 </p>
               ) : null}
             </div>

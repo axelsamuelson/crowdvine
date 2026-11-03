@@ -28,6 +28,7 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 type CartWineProducer = {
   id?: string;
   name?: string | null;
+  display_name?: string | null;
   boost_active?: boolean | null;
 };
 
@@ -45,6 +46,7 @@ type CartWineRow = {
   exchange_rate?: number | null;
   alcohol_tax_cents?: number | null;
   b2b_margin_percentage?: number | null;
+  source_type?: string | null;
   producers: CartWineProducer | CartWineProducer[] | null;
 };
 
@@ -192,9 +194,11 @@ export class CartService {
             exchange_rate,
             alcohol_tax_cents,
             b2b_margin_percentage,
+            source_type,
             producers (
               id,
               name,
+              display_name,
               boost_active
             )
           )
@@ -357,6 +361,10 @@ export class CartService {
 
         const producerData = producerFromWine(wine);
         const producerName = producerData?.name ?? undefined;
+        const producerDisplayNameValue =
+          typeof producerData?.display_name === "string"
+            ? producerData.display_name.trim() || null
+            : null;
         const producerBoostActive = producerData?.boost_active === true;
 
         const unitListSek = Math.ceil(wine.base_price_cents / 100);
@@ -434,6 +442,11 @@ export class CartService {
               title: wineDisplayTitle(wine.wine_name, wine.vintage),
               handle: wine.handle,
               producerName: producerName,
+              producerDisplayName: producerDisplayNameValue,
+              sourceType:
+                typeof wine.source_type === "string" && wine.source_type.trim()
+                  ? wine.source_type.trim()
+                  : null,
               producerBoostActive,
               description: "",
               descriptionHtml: "",

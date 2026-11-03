@@ -1,3 +1,4 @@
+import { producerDisplayName } from "@/lib/producer-display-name";
 import type { Product } from "@/lib/shopify/types";
 
 export const SHOP_SEARCH_SCOPES = ["all", "wine", "producer", "grape"] as const;
@@ -137,7 +138,15 @@ type SearchFields = {
 
 function buildSearchFields(product: Product): SearchFields {
   const title = foldShopSearchText(product.title ?? "");
-  const producer = foldShopSearchText(product.producerName ?? "");
+  const producer = foldShopSearchText(
+    [
+      product.producerName ?? "",
+      producerDisplayName({
+        name: product.producerName,
+        display_name: product.producerDisplayName,
+      }),
+    ].join(" "),
+  );
   const handle = foldShopSearchText((product.handle ?? "").replace(/-/g, " "));
   const grapes = foldShopSearchText(extractGrapeValues(product).join(" "));
   const colors = foldShopSearchText(extractColorValues(product).join(" "));
@@ -392,10 +401,11 @@ export function buildShopSearchSuggestions(
     label: string,
     kind: ShopSearchSuggestionKind,
     baseScore: number,
+    matchOn?: string,
   ) => {
     const trimmed = label.trim();
     if (!trimmed) return;
-    const folded = foldShopSearchText(trimmed);
+    const folded = foldShopSearchText((matchOn ?? trimmed).trim());
     if (!folded || !folded.includes(needle)) return;
 
     let score = baseScore;
@@ -404,7 +414,7 @@ export function buildShopSearchSuggestions(
     else if (folded.split(" ").some((part) => part.startsWith(needle)))
       score += 30;
 
-    const key = `${kind}:${folded}`;
+    const key = `${kind}:${foldShopSearchText(trimmed)}`;
     const prev = byKey.get(key);
     if (!prev || score > prev.score) {
       byKey.set(key, { label: trimmed, kind, score, folded });
@@ -414,7 +424,14 @@ export function buildShopSearchSuggestions(
   for (const product of products) {
     if (allowWine && product.title) consider(product.title, "wine", 20);
     if (allowProducer && product.producerName) {
-      consider(product.producerName, "producer", 18);
+      const shown = producerDisplayName({
+        name: product.producerName,
+        display_name: product.producerDisplayName,
+      });
+      consider(shown, "producer", 18);
+      if (shown !== product.producerName) {
+        consider(shown, "producer", 18, product.producerName);
+      }
     }
     if (allowGrape) {
       for (const grape of extractGrapeValues(product)) {

@@ -4,6 +4,7 @@ import { CasePurchaseHelpTrigger } from "@/components/cart/case-purchase-help-tr
 import { PeekTabAnchor } from "@/components/pdp/peek-tab-anchor";
 import type { AppLocale } from "@/lib/i18n/locale";
 import { producerPublicPath } from "@/lib/i18n/localized-routes";
+import { producerDisplayName } from "@/lib/producer-display-name";
 import { cn } from "@/lib/utils";
 
 interface WinePdpHeroBoxProps {
@@ -11,6 +12,7 @@ interface WinePdpHeroBoxProps {
   /** Short summary / description for the white box. */
   leadText?: string | null;
   producerName?: string | null;
+  producerDisplayName?: string | null;
   producerSlug?: string | null;
   locale?: AppLocale;
   price: React.ReactNode;
@@ -29,6 +31,7 @@ export function WinePdpHeroBox({
   title,
   leadText,
   producerName,
+  producerDisplayName: producerDisplayNameValue,
   producerSlug,
   locale = "en",
   price,
@@ -38,10 +41,19 @@ export function WinePdpHeroBox({
   className,
 }: WinePdpHeroBoxProps) {
   const lead = leadText?.trim();
+  const legalProducerName = producerName?.trim() ?? "";
+  const shownProducerName = producerDisplayName({
+    name: legalProducerName,
+    display_name: producerDisplayNameValue,
+  });
+  const showLegalName =
+    Boolean(legalProducerName) &&
+    legalProducerName !== UNKNOWN_PRODUCER_LABEL &&
+    shownProducerName.toLowerCase() !== legalProducerName.toLowerCase();
   const showProducerByline =
     Boolean(producerSlug?.trim()) &&
-    Boolean(producerName?.trim()) &&
-    producerName!.trim() !== UNKNOWN_PRODUCER_LABEL;
+    Boolean(shownProducerName) &&
+    shownProducerName !== UNKNOWN_PRODUCER_LABEL;
   const leadRowStart = showProducerByline ? "md:row-start-3" : "md:row-start-2";
 
   return (
@@ -70,8 +82,11 @@ export function WinePdpHeroBox({
               href={producerPublicPath(producerSlug!, locale)}
               className="text-sm text-stone-600 underline underline-offset-2 hover:text-foreground"
             >
-              {producerName}
+              {shownProducerName}
             </Link>
+            {showLegalName ? (
+              <p className="mt-0.5 text-xs text-stone-500">{legalProducerName}</p>
+            ) : null}
           </div>
         ) : null}
 

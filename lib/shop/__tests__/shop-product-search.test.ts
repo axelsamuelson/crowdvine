@@ -217,4 +217,25 @@ describe("shop-product-search", () => {
     expect(grapeOnly.length).toBeGreaterThan(0);
     expect(grapeOnly.every((s) => s.kind === "grape")).toBe(true);
   });
+
+  it("matches both the legal name and the display name", () => {
+    const products = [
+      wine({
+        id: "1",
+        title: "La Souteronne 2025",
+        producerName: "Domaine Romaneaux-Destezet",
+        producerDisplayName: "Hervé Souhaut",
+      }),
+    ];
+    expect(filterAndRankProductsBySearch(products, "souhaut").map((p) => p.id)).toEqual([
+      "1",
+    ]);
+    expect(filterAndRankProductsBySearch(products, "romaneaux").map((p) => p.id)).toEqual([
+      "1",
+    ]);
+    const byLegal = buildShopSearchSuggestions(products, "romaneaux", 8, "producer");
+    const byDisplay = buildShopSearchSuggestions(products, "souhaut", 8, "producer");
+    expect(byLegal.map((s) => s.label)).toEqual(["Hervé Souhaut"]);
+    expect(byDisplay.map((s) => s.label)).toEqual(["Hervé Souhaut"]);
+  });
 });

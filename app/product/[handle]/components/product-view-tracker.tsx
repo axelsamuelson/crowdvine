@@ -14,6 +14,7 @@ type LastViewedProduct = {
   handle: string;
   title: string;
   producerName?: string;
+  producerDisplayName?: string | null;
   color?: string;
   imageUrl?: string;
   price?: string;
@@ -74,7 +75,8 @@ function storeLastViewed(product: Product) {
       id: product.id,
       handle: product.handle,
       title: product.title,
-      producerName: (product as any).producerName || (product as any).vendor,
+      producerName: product.producerName || (product as any).vendor,
+      producerDisplayName: product.producerDisplayName ?? null,
       color: getWineColorName(product),
       imageUrl: product.featuredImage?.url,
       price: (product as any).priceRange?.minVariantPrice?.amount,

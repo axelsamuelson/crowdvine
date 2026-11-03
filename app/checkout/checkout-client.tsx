@@ -11,6 +11,7 @@ import { LEGAL_VERSIONS } from "@/lib/legal/versions";
 import Link from "next/link";
 import { homeDeliveryGuidePath } from "@/lib/guides/home-delivery-guide";
 import type { Cart, CartItem } from "@/lib/shopify/types";
+import { producerDisplayName } from "@/lib/producer-display-name";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -92,7 +93,10 @@ import {
   calculateBoostAwareMaxRedemption,
 } from "@/lib/membership/pact-points-redemption-math";
 import { cn } from "@/lib/utils";
-import { B2C_DIRECT_BOX_DELIVERY_TIME_TODO } from "@/lib/commerce/direct-box-delivery";
+import {
+  B2C_DIRECT_BOX_DELIVERY_TIME_TODO,
+  isProducerSourcedWine,
+} from "@/lib/commerce/direct-box-delivery";
 import { DirectBoxDeliveryPromise } from "@/components/commerce/direct-box-delivery-promise";
 import type { ProducerValidation } from "@/lib/checkout-validation";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -3124,7 +3128,10 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
     const product = line.merchandise.product;
     const imgUrl = product.featuredImage?.url;
     const lineTitle = product.title || line.merchandise.title;
-    const producerLabel = product.producerName ?? "";
+    const producerLabel = producerDisplayName({
+      name: product.producerName,
+      display_name: product.producerDisplayName,
+    });
     const showLineDiscount =
       product.hasDiscount === true &&
       typeof product.originalUnitPriceSek === "number";
@@ -3259,6 +3266,17 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
     [zoneInfo.pallets],
   );
 
+  // Producer-box line only when every wine is wines.source_type = producer.
+  const producerDirectBoxOnly = useMemo(() => {
+    const lines = cart?.lines ?? [];
+    return (
+      lines.length > 0 &&
+      lines.every((line) =>
+        isProducerSourcedWine(line.merchandise.product.sourceType),
+      )
+    );
+  }, [cart?.lines]);
+
   // Customer-facing delivery copy: direct box from producer (no pallet fill).
   // TODO time string only via B2C_DIRECT_BOX_DELIVERY_TIME_TODO — do not invent SLAs.
   const deliveryPromiseLabel = useMemo(() => {
@@ -3268,8 +3286,9 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
     if (st === "shipping_ordered") {
       return t("checkout.deliveryEstimateShippingOrdered");
     }
+    if (!producerDirectBoxOnly) return null;
     return t("commerce.directBoxDeliveryPromise");
-  }, [selectedPallet?.status, t]);
+  }, [producerDirectBoxOnly, selectedPallet?.status, t]);
 
   const handleSelectPallet = useCallback(
     (palletId: string) => {
@@ -3759,9 +3778,13 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
                                 {t("checkout.homeDeliveryBring")}
                               </p>
                               <p className="mt-0.5 text-xs text-muted-foreground">
-                                {t("checkout.deliveryBringHint", {
-                                  estimate: deliveryPromiseLabel,
-                                })}
+                                {deliveryPromiseLabel
+                                  ? t("checkout.deliveryBringHint", {
+                                      estimate: deliveryPromiseLabel,
+                                    })
+                                  : t("checkout.deliveryBringHint", {
+                                      estimate: "",
+                                    }).replace(/^\s*·\s*/, "")}
                               </p>
                               {budbeeAvailable === false && (
                                 <p className="mt-1 text-xs text-amber-500">
@@ -3788,12 +3811,16 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
                       </div>
                     ) : null}
 
-                    {selectedPallet != null ? (
+                    {selectedPallet != null &&
+                    (producerDirectBoxOnly ||
+                      selectedPallet.current_pickup_producer?.name) ? (
                       <div className="space-y-1.5">
                         <p className="text-xs text-muted-foreground">
                           {t("checkout.deliveryPromiseLabel")}
                         </p>
-                        <DirectBoxDeliveryPromise />
+                        {producerDirectBoxOnly ? (
+                          <DirectBoxDeliveryPromise sourceType="producer" />
+                        ) : null}
                         {selectedPallet.current_pickup_producer?.name ? (
                           <p className="text-xs text-muted-foreground">
                             {t("checkout.collectedFrom", {
@@ -4492,7 +4519,11 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
                                     <div className="flex items-start justify-between gap-3">
                                       <div className="min-w-0 flex-1">
                                         <p className="mb-1.5 text-sm font-medium text-foreground">
-                                          {v.groupName || v.producerName}
+                                          {v.groupName ||
+                                            producerDisplayName({
+                                              name: v.producerName,
+                                              display_name: v.producerDisplayName,
+                                            })}
                                         </p>
                                         <p className="mb-2 text-xs text-muted-foreground">
                                           {v.quantity === 1

@@ -17,6 +17,7 @@ import { ColorSwatch } from "@/components/ui/color-picker";
 import { useProductImages } from "../products/variant-selector";
 import { Warehouse } from "lucide-react";
 import { BoostBadge } from "@/components/producer/boost-badge";
+import { producerDisplayName } from "@/lib/producer-display-name";
 import { B2B_PRODUCER_ORDERS_ENABLED } from "@/lib/b2b/flags";
 
 type MerchandiseSearchParams = {
@@ -121,11 +122,17 @@ export function CartItemCard({ item, onCloseCart }: CartItemProps) {
               {item.merchandise.product.title}
             </span>
             <div className="flex flex-wrap items-center gap-2">
-              {item.merchandise.product.producerName && (
+              {producerDisplayName({
+                name: item.merchandise.product.producerName,
+                display_name: item.merchandise.product.producerDisplayName,
+              }) ? (
                 <span className="text-sm text-muted-foreground">
-                  {item.merchandise.product.producerName}
+                  {producerDisplayName({
+                    name: item.merchandise.product.producerName,
+                    display_name: item.merchandise.product.producerDisplayName,
+                  })}
                 </span>
-              )}
+              ) : null}
               {item.merchandise.product.producerBoostActive === true ? (
                 <BoostBadge />
               ) : null}

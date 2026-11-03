@@ -26,6 +26,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Package, Settings, TrendingUp, Wine } from "lucide-react";
 import Link from "next/link";
 import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
+import { producerDisplayName } from "@/lib/producer-display-name";
 import Image from "next/image";
 import { toast } from "sonner";
 import { getLevelDisplayName, MembershipLevel } from "@/lib/membership/points-engine";
@@ -149,6 +150,7 @@ function ProfilePageContent() {
     handle: string;
     title: string;
     producerName?: string;
+    producerDisplayName?: string | null;
     color?: string;
     imageUrl?: string;
     price?: string;
@@ -564,6 +566,7 @@ function ProfilePageContent() {
                         wine_name: it.wine_name,
                         vintage: it.vintage,
                         producer_name: it.producer_name,
+                        producer_display_name: it.producer_display_name,
                         color: it.color,
                         image_path: it.image_path,
                         quantity: it.quantity || 0,
@@ -606,7 +609,10 @@ function ProfilePageContent() {
                           </div>
                           <div className="mt-0.5 flex items-center justify-between gap-3">
                             <p className="truncate text-xs text-muted-foreground">
-                              {w.producer_name || t("profile.unknownProducer")}
+                              {producerDisplayName({
+                                name: w.producer_name,
+                                display_name: w.producer_display_name,
+                              }) || t("profile.unknownProducer")}
                             </p>
                             {w.color ? (
                               <span className="shrink-0 whitespace-nowrap rounded-full border border-border px-2 py-0.5 text-[11px] text-muted-foreground">
@@ -654,7 +660,10 @@ function ProfilePageContent() {
                         </div>
                         <div className="mt-0.5 flex items-center justify-between gap-3">
                           <p className="truncate text-xs text-muted-foreground">
-                            {p.producerName || t("profile.unknownProducer")}
+                            {producerDisplayName({
+                              name: p.producerName,
+                              display_name: p.producerDisplayName,
+                            }) || t("profile.unknownProducer")}
                           </p>
                           {p.color ? (
                             <span className="shrink-0 whitespace-nowrap rounded-full border border-border px-2 py-0.5 text-[11px] text-muted-foreground">

@@ -10,6 +10,7 @@ import {
 import { WhySixBottlesModal } from "./WhySixBottlesModal";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 import { useTranslations } from "@/lib/hooks/use-translations";
+import { producerDisplayName } from "@/lib/producer-display-name";
 
 interface CartValidationHeaderProps {
   validations: ProducerValidation[];
@@ -32,10 +33,14 @@ function BottleProgressRow({
     (current + needed || 6);
   const progress = total > 0 ? Math.min((current / total) * 100, 100) : 0;
   const isComplete = validation.isValid;
+  const shownProducer = producerDisplayName({
+    name: validation.producerName,
+    display_name: validation.producerDisplayName,
+  });
   const label =
-    validation.scope === "cart" || !validation.producerName
+    validation.scope === "cart" || !shownProducer
       ? t("cart.bottleProgressHint")
-      : validation.producerName;
+      : shownProducer;
 
   return (
     <div className="space-y-1">

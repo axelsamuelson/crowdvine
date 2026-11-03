@@ -23,14 +23,14 @@ export type AboutPageContent = {
 };
 
 const ABOUT_CONTENT_EN: AboutPageContent = {
-  title: "How PACT Works — Natural Wine Direct from the Producer",
+  title: "How PACT works – natural wine by the pallet",
   description:
-    "Reserve natural wine online and get it delivered straight from the producer in Languedoc to your door in Stockholm. How PACT works.",
+    "Reserve natural wine online and get it delivered to your door in Stockholm. How PACT works.",
   h1: "About",
   heroSubtitle: "A smarter way to buy wine together.",
   cards: [
-    "We believe the way wine is bought and sold is long overdue for change. Too many hands between producer and drinker. Too much money lost in storage, shipping and markups.",
-    "Our model is simple — and transparent. Private consumers reserve wines directly from independent natural winemakers. When enough bottles are reserved to fill a pallet, the wines are shipped together.",
+    "We believe the way wine is bought and sold is long overdue for change. Too many hands between producer and drinker.",
+    "Our model is simple — and transparent. Private consumers reserve wines from small producers in France. When enough bottles are reserved to fill a pallet, the wines are shipped together.",
     "No warehouses. No distributors. No unnecessary transport. Just real connection between the people who make wine and the people who love it.",
     "We call it crowdsourcing wine — a smarter, cleaner, and more human way to enjoy what's in your glass.",
   ],
@@ -42,7 +42,7 @@ const ABOUT_CONTENT_EN: AboutPageContent = {
   ],
   impactTitle: "Why it matters",
   impactBody: [
-    "By pooling orders, we lower costs for everyone — producers earn more, and consumers pay less.",
+    "By pooling orders, bottles share one pallet.",
     "By removing warehouses and unnecessary shipping, we reduce waste and carbon footprint.",
     "By connecting people directly, we make wine more personal, more sustainable, and more honest.",
   ],
@@ -55,27 +55,25 @@ const ABOUT_CONTENT_EN: AboutPageContent = {
     },
     {
       title: "Collective Shipping",
-      body: "Once the pallet fills (600-700 bottles), wines are collected directly from winemakers. No warehouses, no detours.",
+      body: "When the pallet is full, the wines are shipped together. No warehouses, no detours.",
     },
     {
       title: "Transparent Logistics",
-      body: "Track your pallet from reservation to delivery. Every step is visible — efficient logistics, fair prices.",
+      body: "Track your pallet from reservation to delivery. Every step is visible — efficient logistics.",
     },
     {
       title: "Receive & Enjoy",
-      body: "Your wines arrive direct from the winemaker, untouched and traceable. Pure wine, transparent process, fair price.",
+      body: "Your wines arrive from small producers in France, untouched and traceable. Pure wine, transparent process.",
     },
   ],
   differenceTitle: "The Difference",
   differenceItems: [
     { label: "No warehouses.", detail: "Wines stay with the winemaker until shipped." },
-    { label: "No middlemen.", detail: "Every bottle comes straight from the source." },
+    { label: "No middlemen.", detail: "Wines come from small producers in France." },
     { label: "No waste.", detail: "Collective shipping means lower emissions." },
-    { label: "Fair pricing.", detail: "More value to producers, better prices for you." },
   ],
   differenceTagline: "Crowdsource your wine.",
-  differenceSubtagline:
-    "Buy direct, drink better, and know exactly where your money goes.",
+  differenceSubtagline: "Wine from small producers in France.",
   ctaTitle: "Ready to join?",
   ctaBody:
     "Request access to start your wine journey, or ask an existing member for an invitation.",
@@ -83,34 +81,34 @@ const ABOUT_CONTENT_EN: AboutPageContent = {
 };
 
 const ABOUT_CONTENT_SV: AboutPageContent = {
-  title: "Så fungerar PACT — naturvin direkt från producenten",
+  title: "Så fungerar PACT – naturvin per pall",
   description:
-    "Reservera naturvin online och få det levererat direkt från producenten i Languedoc till din dörr i Stockholm. Så fungerar PACT.",
+    "Reservera naturvin online och få det levererat till din dörr i Stockholm. Så fungerar PACT.",
   h1: "Om PACT",
   heroSubtitle: "Ett smartare sätt att köpa naturvin tillsammans.",
   cards: [
-    "Vi tror att sättet vin köps och säljs på är moget för förändring. Traditionell vinimport innebär lager, mellanhänder och påslag i varje led — kostnader som kunden till slut betalar för utan att få något extra i glaset.",
-    "Vår modell är enkel. Privatpersoner reserverar viner de vill ha. När tillräckligt många beställningar samlats för att fylla en pall skickas vinerna direkt från producenten i Languedoc till Stockholm.",
-    "Inga lager. Inga distributörer. Bara en direkt koppling mellan producenten som gjort vinet och personen som dricker det. Det gör vinet billigare — och relationen äkta.",
-    "Vi kallar det crowdsourcad vinimport. Tillsammans gör vi det som ingen enskild konsument kan göra på egen hand: importerar naturvin direkt från källan.",
+    "Vi tror att sättet vin köps och säljs på är moget för förändring. Traditionell vinimport innebär lager och mellanhänder.",
+    "Vår modell är enkel. Privatpersoner reserverar viner de vill ha. När tillräckligt många beställningar samlats för att fylla en pall skickas vinerna från små producenter i Frankrike till Stockholm.",
+    "Inga lager. Inga distributörer. Varje flaska kommer från små producenter i Frankrike.",
+    "Vi kallar det crowdsourcad vinimport. Tillsammans gör vi det som ingen enskild konsument kan göra på egen hand: importerar naturvin från små producenter i Frankrike.",
   ],
   philosophyTitle: "Vår filosofi",
   philosophyBody: [
-    "Vi arbetar bara med naturvinsproducenter i Languedoc — små gårdar som odlar ekologiskt eller biodynamiskt och gör vin utan tillsatser. Varje flaska speglar en person, en plats och en årgång. Transparens är inte ett marknadsföringsord för oss, det är själva affärsmodellen.",
+    "Vi arbetar med naturvinsproducenter — små gårdar i Frankrike som odlar ekologiskt eller biodynamiskt och gör vin utan tillsatser. Varje flaska speglar en person, en plats och en årgång. Transparens är inte ett marknadsföringsord för oss, det är själva affärsmodellen.",
   ],
   impactTitle: "Varför det spelar roll",
   impactBody: [
-    "Genom att samla beställningar, ta bort lagerledet och koppla konsumenten direkt till producenten sänker vi både pris och klimatavtryck. Du får veta exakt var vinet kommer ifrån, vem som gjort det och hur det tagit sig till din dörr. Det är en ny relation till vin.",
+    "Genom att samla beställningar på en pall delas frakten. Du får veta exakt var vinet kommer ifrån, vem som gjort det och hur det tagit sig till din dörr. Det är en ny relation till vin.",
   ],
   howItWorksTitle: "Så fungerar det",
   steps: [
     {
       title: "Upptäck & reservera",
-      body: "Utforska vårt urval av naturviner från Languedoc och reservera de du vill ha. Din beställning är med och fyller en gemensam pall.",
+      body: "Utforska vårt urval av naturviner från små producenter i Frankrike och reservera de du vill ha. Din beställning är med och fyller en gemensam pall.",
     },
     {
       title: "Kollektiv frakt",
-      body: "När pallen når 600–700 flaskor skickas den direkt från producenten till Stockholm. Inga lager, inga mellanhänder.",
+      body: "När pallen är full skickas den till Stockholm. Inga lager, inga mellanhänder.",
     },
     {
       title: "Transparent logistik",
@@ -118,7 +116,7 @@ const ABOUT_CONTENT_SV: AboutPageContent = {
     },
     {
       title: "Ta emot & njut",
-      body: "Vinet levereras hem till dig i Stockholm, direkt från producenten. Kortare väg, lägre pris, mer karaktär.",
+      body: "Vinet levereras hem till dig i Stockholm från små producenter i Frankrike.",
     },
   ],
   differenceTitle: "Skillnaden",
@@ -126,10 +124,9 @@ const ABOUT_CONTENT_SV: AboutPageContent = {
     { label: "Inga lager." },
     { label: "Inga mellanhänder." },
     { label: "Inget svinn." },
-    { label: "Rättvis prissättning." },
   ],
   differenceTagline: "Crowdsourca ditt vin.",
-  differenceSubtagline: "Köp direkt, drick bättre.",
+  differenceSubtagline: "Vin från små producenter i Frankrike.",
   ctaTitle: "Redo att gå med?",
   ctaBody: "Ansök om tillgång och bli en del av PACT.",
   ctaButton: "Ansök om tillgång",

@@ -276,12 +276,12 @@ describe("Margaux region landing copy", () => {
     }
   });
 
-  it("keeps Languedoc direct-buy intro and omits intro elsewhere", () => {
+  it("keeps the Languedoc pallet intro and omits intro elsewhere", () => {
     expect(getWineRegionContent("languedoc", "sv").intro).toBe(
-      "Naturvin från Languedoc som vi köper direkt av producenterna och skickar på delade pallar.",
+      "Naturvin från Languedoc som skickas på delade pallar.",
     );
     expect(getWineRegionContent("languedoc", "en").intro).toBe(
-      "Natural wine from the Languedoc, bought directly from the producers and shipped on shared pallets.",
+      "Natural wine from the Languedoc, shipped on shared pallets.",
     );
 
     for (const region of WINE_REGIONS) {

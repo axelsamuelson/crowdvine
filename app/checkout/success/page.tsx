@@ -23,6 +23,7 @@ import { useShoppingContext } from "@/lib/context/shopping-context-provider";
 import { formatMoney } from "@/lib/shopping-context/format";
 import type { AppLocale } from "@/lib/i18n/locale";
 import { localizedPathsForLocale } from "@/lib/i18n/localized-paths";
+import { producerDisplayName } from "@/lib/producer-display-name";
 
 function translateReservationStatus(
   status: string,
@@ -72,6 +73,7 @@ interface ReservationDetails {
     image_url?: string;
     product_handle?: string;
     producer_name?: string;
+    producer_display_name?: string | null;
     customer_email?: string;
     customer_name?: string;
     source?: "producer" | "warehouse";
@@ -84,6 +86,7 @@ interface ReservationDetails {
       wine_name: string;
       vintage: string;
       producer_name?: string;
+      producer_display_name?: string | null;
       product_handle?: string;
       image_url?: string;
       quantity: number;
@@ -515,9 +518,15 @@ function CheckoutConfirmationContent() {
                                   <div className="text-gray-900 truncate">
                                     {i.wine_name} {i.vintage}
                                   </div>
-                                  {i.producer_name ? (
+                                  {producerDisplayName({
+                                    name: i.producer_name,
+                                    display_name: i.producer_display_name,
+                                  }) ? (
                                     <div className="text-xs text-gray-500 truncate">
-                                      {i.producer_name}
+                                      {producerDisplayName({
+                                        name: i.producer_name,
+                                        display_name: i.producer_display_name,
+                                      })}
                                     </div>
                                   ) : null}
                                 </div>
@@ -680,11 +689,17 @@ function CheckoutConfirmationContent() {
                                   </Badge>
                                 )}
                               </div>
-                              {item.producer_name && (
+                              {producerDisplayName({
+                                name: item.producer_name,
+                                display_name: item.producer_display_name,
+                              }) ? (
                                 <div className="text-sm text-gray-500 truncate">
-                                  {item.producer_name}
+                                  {producerDisplayName({
+                                    name: item.producer_name,
+                                    display_name: item.producer_display_name,
+                                  })}
                                 </div>
-                              )}
+                              ) : null}
                               <div className="text-xs text-gray-500 mt-1">
                                 {item.quantity}{" "}
                                 {item.quantity === 1

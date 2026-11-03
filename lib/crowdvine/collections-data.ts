@@ -1,10 +1,13 @@
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { generateProducerSlug } from "@/lib/producer-handle";
+import { producerDisplayName } from "@/lib/producer-display-name";
 
 export interface CollectionData {
   id: string;
   handle: string;
   title: string;
+  /** Raw producers.display_name. */
+  displayName?: string | null;
   description: string;
   updatedAt: string;
   createdAt: string;
@@ -25,7 +28,7 @@ export interface CollectionData {
 }
 
 const PRODUCER_SELECT =
-  "id, name, region, short_description, certification, certification_verified_url, certification_in_conversion, certification_lapsed, subregion, founded_year";
+  "id, name, display_name, region, short_description, certification, certification_verified_url, certification_in_conversion, certification_lapsed, subregion, founded_year";
 
 /**
  * Fetch collections (producers + wine boxes) directly from DB.
@@ -51,6 +54,9 @@ export async function fetchCollectionsData(): Promise<CollectionData[]> {
       if (/certification_verified_url/i.test(error.message)) {
         retrySelect = retrySelect.replace(", certification_verified_url", "");
       }
+      if (/display_name/i.test(error.message)) {
+        retrySelect = retrySelect.replace(", display_name", "");
+      }
       const fallback = await sb
         .from("producers")
         .select(retrySelect)
@@ -75,8 +81,15 @@ function buildCollectionsFromProducers(producers: any[]): CollectionData[] {
     id: producer.id,
     handle: generateProducerSlug(producer.name),
     title: producer.name,
+    displayName:
+      typeof producer.display_name === "string" && producer.display_name.trim()
+        ? producer.display_name.trim()
+        : null,
     region: producer.region ?? null,
-    description: `Wines from ${producer.name} in ${producer.region}`,
+    description: `Wines from ${producerDisplayName({
+      name: producer.name,
+      display_name: producer.display_name,
+    })} in ${producer.region}`,
     shortDescription: producer.short_description ?? null,
     certification: producer.certification ?? null,
     certificationVerifiedUrl: producer.certification_verified_url ?? null,

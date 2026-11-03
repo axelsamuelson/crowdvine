@@ -1,5 +1,6 @@
 "use client";
 
+import { producerDisplayName } from "@/lib/producer-display-name";
 import { Collection } from "@/lib/shopify/types";
 import { useParams } from "next/navigation";
 import Link from "next/link";
@@ -13,6 +14,13 @@ import {
   shopFilterOptionClassName,
   shopFilterSheetListClassName,
 } from "./shop-filter-option";
+
+function collectionLabel(collection: Collection): string {
+  return producerDisplayName({
+    name: collection.title,
+    display_name: collection.displayName,
+  });
+}
 
 interface CategoryFilterProps {
   collections: Collection[];
@@ -51,7 +59,7 @@ export function CategoryFilter({
         params.collection === collection.handle ||
         selectedProducers.includes(collection.handle),
     )
-    .map((collection) => collection.title);
+    .map((collection) => collectionLabel(collection));
   // Prefer concrete selection length so colour/farming/grape pages never
   // open Producenter with a phantom (1).
   const producerCount = selectedTitles.length;
@@ -93,6 +101,7 @@ export function CategoryFilter({
           {collections
             .filter((collection) => collection.handle !== "wine-boxes")
             .map((collection, index) => {
+              const label = collectionLabel(collection);
               const isSelected =
                 params.collection === collection.handle ||
                 selectedProducers.includes(collection.handle);
@@ -105,12 +114,12 @@ export function CategoryFilter({
                     href={paths.shopCollection(collection.handle)}
                     aria-pressed={isSelected}
                     aria-label={t("shop.filterByCategory", {
-                      name: collection.title,
+                      name: label,
                     })}
                     prefetch
                   >
                     <ShopFilterOptionContent selected={isSelected}>
-                      {collection.title}
+                      {label}
                     </ShopFilterOptionContent>
                   </Link>
                 </li>

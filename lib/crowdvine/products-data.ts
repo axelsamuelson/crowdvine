@@ -208,7 +208,9 @@ function applyProducerNameSearch<Q extends SupabaseOrBuilder>(
   const t = normalizeShopSearchInput(rawSearch ?? "");
   if (!t) return qb;
   const p = postgrestIlikeValue(`%${escapeForIlikePattern(t)}%`);
-  return qb.or(`name.ilike.${p}`, { foreignTable: "producers" }) as Q;
+  return qb.or(`name.ilike.${p},display_name.ilike.${p}`, {
+    foreignTable: "producers",
+  }) as Q;
 }
 
 /** Collection (single producer): wine fields + producer name (same row’s `producers(name)` embed). */
@@ -248,6 +250,15 @@ function convertToFullUrl(path: string | null | undefined): string {
 const PRODUCER_ORGANIC_VERIFY_SELECT =
   "certification_verified_url, certification_in_conversion";
 
+function rawProducerDisplayName(producers: unknown): string | null {
+  const row = Array.isArray(producers) ? producers[0] : producers;
+  if (!row || typeof row !== "object") return null;
+  const value = (row as { display_name?: string | null }).display_name;
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed || null;
+}
+
 function producerOrganicVerificationFields(producers: unknown): {
   producerCertificationVerifiedUrl?: string | null;
   producerCertificationInConversion?: boolean;
@@ -277,6 +288,8 @@ export interface ProductData {
   categoryId: string;
   producerId: string;
   producerName: string;
+  /** Raw producers.display_name. */
+  producerDisplayName?: string | null;
   /** PACT Points checkout boost (from producers.boost_active). */
   producerBoostActive?: boolean;
   options: Array<{ id: string; name: string; values: Array<{ id: string; name: string } | string> }>;
@@ -441,8 +454,9 @@ export async function fetchProductsData(params?: {
       region,
       is_natural,
       available_for_sale,
+      source_type,
       created_at,
-      producers!inner(name, is_live, boost_active, country_code, ${PRODUCER_ORGANIC_VERIFY_SELECT})
+      producers!inner(name, display_name, is_live, boost_active, country_code, ${PRODUCER_ORGANIC_VERIFY_SELECT})
     `;
 
   const categoryFilters = {
@@ -516,18 +530,21 @@ export async function fetchProductsData(params?: {
     const filtersForRetry = categoryFilters;
     const omitOrganicVerify =
       /certification_verified_url|certification_in_conversion/i.test(msg);
-    const producerEmbed = omitOrganicVerify
+    const producerEmbedBase = omitOrganicVerify
       ? "name, boost_active, country_code"
       : `name, boost_active, country_code, ${PRODUCER_ORGANIC_VERIFY_SELECT}`;
+    const producerEmbed = /display_name/i.test(msg)
+      ? producerEmbedBase
+      : producerEmbedBase.replace("name, ", "name, display_name, ");
     const fallbackSelect = `
       id, wine_name, vintage, grape_varieties, color, handle, base_price_cents,
       cost_amount, cost_currency, exchange_rate, alcohol_tax_cents, margin_percentage,
       b2b_margin_percentage, b2b_stock, label_image_path, producer_id, description,
-      description_html, tags, farming, region, is_natural, available_for_sale, created_at,
+      description_html, tags, farming, region, is_natural, available_for_sale, source_type, created_at,
       producers!inner(${producerEmbed})
     `;
     if (
-      /is_live|column.*does not exist|could not find.*column|producers\.is_live|certification_verified_url|certification_in_conversion/i.test(
+      /is_live|column.*does not exist|could not find.*column|producers\.is_live|certification_verified_url|certification_in_conversion|display_name/i.test(
         msg,
       )
     ) {
@@ -744,6 +761,11 @@ export async function fetchProductsData(params?: {
       categoryId: i.producer_id,
       producerId: i.producer_id,
       producerName: i.producers?.name || "Unknown Producer",
+      producerDisplayName: rawProducerDisplayName(i.producers),
+      sourceType:
+        typeof i.source_type === "string" && i.source_type.trim()
+          ? i.source_type.trim()
+          : null,
       producerBoostActive: (i.producers as { boost_active?: boolean } | null)?.boost_active === true,
       ...producerOrganicVerificationFields(i.producers),
       options: [
@@ -1040,7 +1062,8 @@ export async function fetchCollectionProductsData(
       farming,
       region,
       available_for_sale,
-      producers(name, boost_active, ${PRODUCER_ORGANIC_VERIFY_SELECT})
+      source_type,
+      producers(name, display_name, boost_active, ${PRODUCER_ORGANIC_VERIFY_SELECT})
     `;
   let collQuery = applyWineCollectionSearch(
     sb
@@ -1107,7 +1130,7 @@ export async function fetchCollectionProductsData(
 
   const { data: producerData } = await sb
     .from("producers")
-    .select("name, boost_active")
+    .select("name, display_name, boost_active")
     .eq("id", collectionId)
     .single();
 
@@ -1182,6 +1205,12 @@ export async function fetchCollectionProductsData(
       categoryId: i.producer_id,
       producerId: i.producer_id,
       producerName: producerName || i.producers?.name || `Producer ${collectionId.substring(0, 8)}`,
+      producerDisplayName:
+        rawProducerDisplayName(producerData) ?? rawProducerDisplayName(i.producers),
+      sourceType:
+        typeof i.source_type === "string" && i.source_type.trim()
+          ? i.source_type.trim()
+          : null,
       producerBoostActive:
         collectionProducerBoostActive ||
         (i.producers as { boost_active?: boolean } | null)?.boost_active === true,

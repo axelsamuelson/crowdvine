@@ -26,6 +26,7 @@ import {
   type WineLocale,
 } from "@/lib/i18n/wine-locale";
 import { generateProducerSlug } from "@/lib/producer-handle";
+import { producerDisplayName } from "@/lib/producer-display-name";
 import { categoryPageTitle } from "@/lib/seo/category-page-title";
 import {
   defaultOpenGraphImages,
@@ -37,6 +38,7 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 type ProducerListRow = {
   id: string;
   name: string;
+  display_name?: string | null;
   region: string | null;
   subregion: string | null;
   certification: string | null;
@@ -114,7 +116,7 @@ export async function renderProducersDirectoryPage(locale: AppLocale) {
   const wineLocale: WineLocale = locale === "en" ? "en" : "sv";
 
   const producersRaw = await fetchIndexableProducersFromDb(
-    "id, name, region, subregion, certification, short_description, lat, lon",
+    "id, name, display_name, region, subregion, certification, short_description, lat, lon",
   );
 
   const producersUnfiltered = producersRaw as ProducerListRow[];
@@ -134,7 +136,7 @@ export async function renderProducersDirectoryPage(locale: AppLocale) {
     const slug = generateProducerSlug(producer.name);
     return {
       id: producer.id,
-      name: producer.name,
+      name: producerDisplayName(producer),
       href: paths.producer(slug),
       lat: producer.lat,
       lon: producer.lon,
@@ -201,7 +203,8 @@ export async function renderProducersDirectoryPage(locale: AppLocale) {
                 wineLocale,
                 { fallback: wineLocale === "sv" },
               );
-              const initials = producerInitials(producer.name);
+              const shownName = producerDisplayName(producer);
+              const initials = producerInitials(shownName);
 
               return (
                 <Link
@@ -217,7 +220,7 @@ export async function renderProducersDirectoryPage(locale: AppLocale) {
 
                   <div className="p-4">
                     <h2 className="text-base font-semibold group-hover:underline">
-                      {producer.name}
+                      {shownName}
                     </h2>
                     <p className="mt-0.5 text-xs text-muted-foreground">
                       {producer.region}

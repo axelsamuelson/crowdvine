@@ -21,6 +21,7 @@ import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 import { pricesFromCartAfterAdd } from "@/lib/analytics/cart-event-prices";
 import type { Cart } from "@/lib/shopify/types";
 import { useTranslations } from "@/lib/hooks/use-translations";
+import { producerDisplayName } from "@/lib/producer-display-name";
 
 function dispatchCartRefresh(cart: unknown) {
   if (typeof window === "undefined") return;
@@ -196,9 +197,15 @@ export function ShopWineCaseSheet({
                     >
                       {product.title}
                     </p>
-                    {product.producerName ? (
+                    {producerDisplayName({
+                      name: product.producerName,
+                      display_name: product.producerDisplayName,
+                    }) ? (
                       <p className="mt-0.5 text-xs text-muted-foreground">
-                        {product.producerName}
+                        {producerDisplayName({
+                          name: product.producerName,
+                          display_name: product.producerDisplayName,
+                        })}
                       </p>
                     ) : null}
                   </div>

@@ -96,7 +96,7 @@ export async function GET(
           label_image_path, 
           description,
           base_price_cents,
-          producers(name, logo_image_path)
+          producers(name, display_name, logo_image_path)
         `)
         .in("id", wineOrder);
 

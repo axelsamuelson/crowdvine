@@ -272,7 +272,7 @@ export async function GET() {
             color,
             base_price_cents,
             handle,
-            producers(name)
+            producers(name, display_name)
           )
         `,
           )
@@ -319,6 +319,8 @@ export async function GET() {
               handle: item.wines?.handle || null,
               price_per_bottle_cents: item.wines?.base_price_cents || 0,
               producer_name: item.wines?.producers?.name || null,
+              producer_display_name:
+                item.wines?.producers?.display_name?.trim() || null,
               total_cost_cents:
                 (item.wines?.base_price_cents || 0) * item.quantity,
             };

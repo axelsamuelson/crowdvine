@@ -56,7 +56,7 @@ export async function GET(
         producer_id,
         description,
         description_html,
-        producers(name, region)
+        producers(name, display_name, region)
       `;
     let winesResult = await sb
       .from("wines")
@@ -114,6 +114,10 @@ export async function GET(
         categoryId: wine.producer_id,
         producerId: wine.producer_id,
         producerName: wine.producers?.name || "Unknown",
+        producerDisplayName:
+          typeof wine.producers?.display_name === "string"
+            ? wine.producers.display_name
+            : null,
         featuredImage: {
           url: wine.label_image_path || DEFAULT_WINE_IMAGE_PATH,
           altText: wine.wine_name,

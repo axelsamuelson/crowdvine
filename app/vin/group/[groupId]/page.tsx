@@ -8,6 +8,7 @@ import { DEFAULT_WINE_IMAGE_PATH } from "@/lib/constants";
 import { isB2BHost } from "@/lib/b2b-site";
 import { fetchHiddenB2BWineIds } from "@/lib/b2b-pallet-stock";
 import { wineDisplayTitle } from "@/lib/wine-display-title";
+import { producerDisplayName } from "@/lib/producer-display-name";
 
 export const dynamic = "force-dynamic";
 
@@ -40,6 +41,7 @@ export default async function ProducerGroupPage({ params }: PageProps) {
         producers(
           id,
           name,
+          display_name,
           region
         )
       )
@@ -82,7 +84,7 @@ export default async function ProducerGroupPage({ params }: PageProps) {
       producer_id,
       description,
       description_html,
-      producers(name, region)
+      producers(name, display_name, region)
     `,
     )
     .in("producer_id", producerIds)
@@ -127,6 +129,10 @@ export default async function ProducerGroupPage({ params }: PageProps) {
       categoryId: wine.producer_id,
       producerId: wine.producer_id,
       producerName: wine.producers?.name || "Unknown",
+      producerDisplayName:
+        typeof wine.producers?.display_name === "string"
+          ? wine.producers.display_name
+          : null,
       featuredImage: {
         url: wine.label_image_path || DEFAULT_WINE_IMAGE_PATH,
         altText: wine.wine_name,
@@ -177,7 +183,12 @@ export default async function ProducerGroupPage({ params }: PageProps) {
 
   const producerNames =
     group.producer_group_members
-      ?.map((m: any) => m.producers?.name)
+      ?.map((m: any) =>
+        producerDisplayName({
+          name: m.producers?.name,
+          display_name: m.producers?.display_name,
+        }),
+      )
       .filter(Boolean)
       .join(", ") || "";
 
