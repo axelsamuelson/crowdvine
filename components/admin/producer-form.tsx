@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -148,6 +148,7 @@ export default function ProducerForm({
 
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<ProducerSaveStatus>("idle");
   const [countries, setCountries] = useState<CountryOption[]>([]);
   const [regions, setRegions] = useState<RegionOption[]>([]);
   const [shippingRegions, setShippingRegions] = useState<
@@ -160,6 +161,12 @@ export default function ProducerForm({
   useEffect(() => {
     setLinksVerifiedAt(producer?.links_verified_at ?? null);
   }, [producer?.links_verified_at]);
+
+  useEffect(() => {
+    if (saveStatus !== "saved") return;
+    const timer = window.setTimeout(() => setSaveStatus("idle"), 2500);
+    return () => window.clearTimeout(timer);
+  }, [saveStatus]);
 
   useEffect(() => {
     const loadCountries = async () => {
@@ -215,8 +222,10 @@ export default function ProducerForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     setLoading(true);
     setError("");
+    setSaveStatus("saving");
     onSaveStatusChange?.("saving");
 
     try {
@@ -231,6 +240,7 @@ export default function ProducerForm({
             "Ogiltig webbplats eller Instagram.",
         );
         setLoading(false);
+        setSaveStatus("error");
         onSaveStatusChange?.("error");
         return;
       }
@@ -272,9 +282,15 @@ export default function ProducerForm({
         const result = await response.json();
         console.log("✅ Producer updated:", result.producer);
         setMarkLinksVerified(false);
+        setSaveStatus("saved");
         onSaveStatusChange?.("saved");
         toast.success("Ändringarna är sparade");
-        router.refresh();
+        const path = `/admin/producers/${producer.id}`;
+        window.setTimeout(() => {
+          if (window.location.pathname !== path) {
+            window.location.assign(path);
+          }
+        }, 400);
       } else {
         // Create new producer
         const response = await fetch("/api/admin/producers", {
@@ -300,6 +316,7 @@ export default function ProducerForm({
       }
     } catch (err) {
       console.error("❌ Producer creation error:", err);
+      setSaveStatus("error");
       onSaveStatusChange?.("error");
       const message = err instanceof Error ? err.message : "An error occurred";
       setError(message);
@@ -419,6 +436,7 @@ export default function ProducerForm({
       </div>
       <form
         id={producer ? "producer-edit-form" : undefined}
+        action={producer ? `/admin/producers/${producer.id}` : undefined}
         onSubmit={handleSubmit}
         className="space-y-6"
       >

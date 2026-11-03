@@ -55,10 +55,13 @@ export function ProducerEditPageClient({
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button
-            form="producer-edit-form"
-            type="submit"
+            type="button"
             size="sm"
             disabled={saveStatus === "saving"}
+            onClick={() => {
+              const form = document.getElementById("producer-edit-form");
+              if (form instanceof HTMLFormElement) form.requestSubmit();
+            }}
             className={cn(
               ADMIN_PRIMARY_BUTTON_CLASS,
               "min-w-[9.5rem] text-xs font-medium",
