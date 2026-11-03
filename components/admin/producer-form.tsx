@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -105,11 +106,18 @@ type ShippingRegionOption = {
   country_code: string;
 };
 
+export type ProducerSaveStatus = "idle" | "saving" | "saved" | "error";
+
 interface ProducerFormProps {
   producer?: Producer;
+  /** Sticky header on the edit page listens to this. */
+  onSaveStatusChange?: (status: ProducerSaveStatus) => void;
 }
 
-export default function ProducerForm({ producer }: ProducerFormProps) {
+export default function ProducerForm({
+  producer,
+  onSaveStatusChange,
+}: ProducerFormProps) {
   const [formData, setFormData] = useState<CreateProducerData>({
     name: producer?.name || "",
     region: producer?.region || "",
@@ -133,7 +141,7 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
     website_url: producer?.website_url || "",
     instagram_handle: producer?.instagram_handle || "",
   });
-  const [linksVerifiedAt] = useState<string | null>(
+  const [linksVerifiedAt, setLinksVerifiedAt] = useState<string | null>(
     producer?.links_verified_at ?? null,
   );
   const [markLinksVerified, setMarkLinksVerified] = useState(false);
@@ -148,6 +156,10 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
   const [geocoding, setGeocoding] = useState(false);
   const [geocodeSuccess, setGeocodeSuccess] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    setLinksVerifiedAt(producer?.links_verified_at ?? null);
+  }, [producer?.links_verified_at]);
 
   useEffect(() => {
     const loadCountries = async () => {
@@ -205,6 +217,7 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
     e.preventDefault();
     setLoading(true);
     setError("");
+    onSaveStatusChange?.("saving");
 
     try {
       const parsedLinks = producerLinksInputSchema.safeParse({
@@ -218,6 +231,7 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
             "Ogiltig webbplats eller Instagram.",
         );
         setLoading(false);
+        onSaveStatusChange?.("error");
         return;
       }
 
@@ -257,6 +271,10 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
 
         const result = await response.json();
         console.log("✅ Producer updated:", result.producer);
+        setMarkLinksVerified(false);
+        onSaveStatusChange?.("saved");
+        toast.success("Ändringarna är sparade");
+        router.refresh();
       } else {
         // Create new producer
         const response = await fetch("/api/admin/producers", {
@@ -273,13 +291,19 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
 
         const result = await response.json();
         console.log("✅ Producer created:", result.producer);
+        const createdId = result?.producer?.id as string | undefined;
+        toast.success("Producenten är skapad");
+        router.push(
+          createdId ? `/admin/producers/${createdId}` : "/admin/producers",
+        );
+        router.refresh();
       }
-
-      router.push("/admin/producers");
-      router.refresh();
     } catch (err) {
       console.error("❌ Producer creation error:", err);
-      setError(err instanceof Error ? err.message : "An error occurred");
+      onSaveStatusChange?.("error");
+      const message = err instanceof Error ? err.message : "An error occurred";
+      setError(message);
+      toast.error(`Kunde inte spara: ${message}`);
     } finally {
       setLoading(false);
     }
@@ -393,7 +417,11 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
             : "Create a new wine producer"}
         </p>
       </div>
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form
+        id={producer ? "producer-edit-form" : undefined}
+        onSubmit={handleSubmit}
+        className="space-y-6"
+      >
         {error && (
           <Alert variant="destructive" className="border-red-200 dark:border-red-900/50">
             <AlertDescription className="text-red-800 dark:text-red-200">{error}</AlertDescription>
@@ -809,27 +837,25 @@ export default function ProducerForm({ producer }: ProducerFormProps) {
             }
           />
 
-          <div className="flex justify-end gap-2 pt-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => router.back()}
-              className={cn("text-xs font-medium", ADMIN_OUTLINE_BUTTON_CLASS)}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={loading}
-              className="rounded-lg text-xs font-medium bg-gray-900 dark:bg-zinc-50 text-white dark:text-zinc-900 hover:bg-gray-800 dark:hover:bg-zinc-200"
-            >
-              {loading
-                ? "Saving..."
-                : producer
-                  ? "Update Producer"
-                  : "Create Producer"}
-            </Button>
-          </div>
+          {onSaveStatusChange ? null : (
+            <div className="flex justify-end gap-2 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => router.back()}
+                className={cn("text-xs font-medium", ADMIN_OUTLINE_BUTTON_CLASS)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={loading}
+                className="rounded-lg text-xs font-medium bg-gray-900 dark:bg-zinc-50 text-white dark:text-zinc-900 hover:bg-gray-800 dark:hover:bg-zinc-200"
+              >
+                {loading ? "Saving..." : "Create Producer"}
+              </Button>
+            </div>
+          )}
         </form>
     </div>
   );

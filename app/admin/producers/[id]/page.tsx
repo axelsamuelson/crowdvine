@@ -2,8 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { getProducer } from "@/lib/actions/producers";
 import { DEFAULT_WINE_IMAGE_PATH } from "@/lib/constants";
-import ProducerForm from "@/components/admin/producer-form";
-import { DeleteProducerButton } from "@/components/admin/delete-producer-button";
+import { ProducerEditPageClient } from "@/components/admin/producer-edit-page-client";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { RelatedTasksCard } from "@/components/admin/operations/related-tasks-card";
 import { getTasksForEntity } from "@/lib/actions/operations-entity";
@@ -18,7 +17,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { ADMIN_OUTLINE_BUTTON_CLASS } from "@/lib/admin-form-styles";
-import { Wine, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 
 interface EditProducerPageProps {
   params: Promise<{ id: string }>;
@@ -84,25 +83,7 @@ export default async function EditProducerPage({
     }>;
 
     return (
-      <div className="space-y-6">
-        <div className="flex flex-wrap justify-between items-start gap-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-gray-100 dark:bg-zinc-800">
-              <Wine className="w-5 h-5 text-gray-900 dark:text-zinc-50" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Edit Producer</h1>
-              <p className="text-sm text-gray-600 dark:text-zinc-400">Update producer information</p>
-            </div>
-          </div>
-          <DeleteProducerButton
-            producerId={producer.id}
-            producerName={producer.name}
-          />
-        </div>
-
-        <ProducerForm producer={producer} />
-
+      <ProducerEditPageClient producer={producer}>
         <RelatedTasksCard
           entity_type="producer"
           entity_id={id}
@@ -210,7 +191,7 @@ export default async function EditProducerPage({
             )}
           </div>
         </div>
-      </div>
+      </ProducerEditPageClient>
     );
   } catch (error) {
     notFound();
