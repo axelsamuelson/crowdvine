@@ -283,17 +283,29 @@ describe("Margaux region landing copy", () => {
     }
   });
 
-  it("provides two factual H2 sections (about + grapes/styles) per region", () => {
+  it("uses Margaux draft content H2s (≤5), starting with Vad kännetecknar / What characterises", () => {
     for (const region of WINE_REGIONS) {
       for (const locale of ["sv", "en"] as const) {
         const sections = getWineRegionSections(region.slug, locale);
-        expect(sections.length).toBe(2);
-        expect(sections[1]?.heading.toLowerCase()).toMatch(
-          locale === "sv" ? /druvor och stilar/ : /grapes and styles/,
-        );
+        expect(sections.length).toBeGreaterThanOrEqual(1);
+        expect(sections.length).toBeLessThanOrEqual(5);
+        const first = sections[0]!.heading;
+        if (locale === "sv") {
+          expect(first).toMatch(/^Vad kännetecknar naturvin från /);
+        } else {
+          expect(first).toMatch(/^What characterises natural wine from /);
+        }
+        // Jura: location H2 dropped; paragraph kept under first H2
+        if (region.slug === "jura") {
+          expect(
+            sections.some((s) =>
+              /var ligger jura|where is the jura/i.test(s.heading),
+            ),
+          ).toBe(false);
+          expect(sections[0]!.body).toMatch(/Jura ligger|The Jura lies/);
+        }
         for (const section of sections) {
           expect(section.heading.trim().length).toBeGreaterThan(0);
-          expect(section.body.trim().length).toBeGreaterThan(40);
         }
       }
     }

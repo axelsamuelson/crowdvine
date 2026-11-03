@@ -177,7 +177,7 @@ function regionUiCopy(locale: AppLocale) {
     grapesFact: "Grapes",
     stylesFact: "Styles",
     producerCount: "Producers at PACT",
-    producersHeading: (label: string) => `Producers in ${label}`,
+    producersHeading: (label: string) => `${label} natural wine producers`,
     winesHeading: (label: string) => `Wines from ${label}`,
     wineCount: (n: number) => (n === 1 ? "1 wine" : `${n} wines`),
     producerWines: (n: number) => (n === 1 ? "1 wine" : `${n} wines`),
@@ -538,9 +538,17 @@ export async function renderWineRegionPage(options: {
                 <h2 className="text-[clamp(1.5rem,2.4vw,1.75rem)] font-medium tracking-[-0.02em]">
                   {section.heading}
                 </h2>
-                <p className="mt-3 max-w-[62ch] text-base leading-relaxed text-foreground/80">
-                  {section.body}
-                </p>
+                {section.body.trim() ? (
+                  <div className="mt-3 max-w-[62ch] space-y-3 text-base leading-relaxed text-foreground/80">
+                    {section.body
+                      .split(/\n\n+/)
+                      .map((para) => para.trim())
+                      .filter(Boolean)
+                      .map((para) => (
+                        <p key={para.slice(0, 48)}>{para}</p>
+                      ))}
+                  </div>
+                ) : null}
               </section>
             ))}
           </div>
