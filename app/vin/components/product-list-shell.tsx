@@ -5,8 +5,6 @@ import { ResultsCountBridge } from "@/app/vin/components/results-count-bridge";
 import type { AppLocale } from "@/lib/i18n/locale";
 import type { Collection, Product } from "@/lib/shopify/types";
 
-const STATIC_ABOVE_FOLD = 8;
-
 type ProductListShellProps = {
   products: Product[];
   locale: AppLocale;
@@ -20,7 +18,7 @@ type ProductListShellProps = {
   producerProfileLabel?: string;
 };
 
-/** Server shell: LCP preload + SSR above-fold grid + client product list. */
+/** Server shell: LCP preload + full SSR product grid + client product list. */
 export function ProductListShell({
   products,
   locale,
@@ -48,10 +46,7 @@ export function ProductListShell({
         producerProfileHref={producerProfileHref}
         producerProfileLabel={producerProfileLabel}
       >
-        <ProductListStaticGrid
-          products={products.slice(0, STATIC_ABOVE_FOLD)}
-          locale={locale}
-        />
+        <ProductListStaticGrid products={products} locale={locale} />
       </ProductListContent>
     </>
   );
