@@ -402,7 +402,7 @@ export const whatIsOrangeWineArticle: GuideArticleContent = {
     },
     {
       label: {
-        en: "Best orange natural wines at Systembolaget →",
+        en: "",
         sv: "Bästa orange naturviner på Systembolaget →",
       },
       href: {

@@ -70,4 +70,14 @@ describe("what is orange wine", () => {
       articleVisibleForLocale(whatIsOrangeWineArticle.faqs ?? [], "sv"),
     ).toHaveLength(0);
   });
+
+  it("keeps the Systembolaget further-reading link on Swedish only", () => {
+    const link = whatIsOrangeWineArticle.internalLinks.find((item) =>
+      item.href.sv.includes("basta-orange-naturviner-systembolaget"),
+    );
+    expect(link?.label.en.trim()).toBe("");
+    expect(link?.label.sv).toBe(
+      "Bästa orange naturviner på Systembolaget →",
+    );
+  });
 });
