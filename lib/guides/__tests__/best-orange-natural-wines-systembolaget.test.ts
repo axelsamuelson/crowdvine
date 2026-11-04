@@ -152,6 +152,7 @@ describe("best orange natural wines Systembolaget guide", () => {
       ["Årgång", "2019"],
       ["Druva", "Ribolla Gialla"],
       ["Alkohol", "12 %"],
+      ["Flaska", "500 ml"],
       ["Sortiment", "beställningsvara"],
       ["Odling", "ekologisk (enligt Systembolaget)"],
     ]);
@@ -160,7 +161,18 @@ describe("best orange natural wines Systembolaget guide", () => {
         { ...wine, is_organic: false, vintage: null, origin_level_1: null, country: null },
         "sv",
       ).map((row) => row.term),
-    ).toEqual(["Druva", "Alkohol", "Sortiment"]);
+    ).toEqual(["Druva", "Alkohol", "Flaska", "Sortiment"]);
+    expect(
+      wineFactRows({ ...wine, volume: 750 }, "sv").some((row) => row.term === "Flaska"),
+    ).toBe(false);
+    expect(
+      wineFactRows({ ...wine, volume: null }, "sv").some((row) => row.term === "Flaska"),
+    ).toBe(false);
+    expect(wineFactRows({ ...wine, volume: 1000 }, "sv")).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ term: "Flaska", description: "1 liter" }),
+      ]),
+    );
   });
 
   it("anchors a ranked wine from its name and links only names on the list", () => {

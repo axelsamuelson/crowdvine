@@ -363,6 +363,13 @@ export function wineFactRows(
       description: alcohol,
     });
   }
+  const bottle = formatBottleVolume(wine.volume, locale);
+  if (bottle) {
+    rows.push({
+      term: label("Flaska", "Bottle"),
+      description: bottle,
+    });
+  }
   const assortment = assortmentFact(wine.assortment_text, locale);
   if (assortment) {
     rows.push({
