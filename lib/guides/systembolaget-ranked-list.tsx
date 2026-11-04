@@ -151,8 +151,8 @@ export function linkNamedWines(
       for (let length = wine.words.length - start; length >= 2; length -= 1) {
         const phrase = wine.words.slice(start, start + length).join(" ");
         const owners = named.filter((item) => {
-          const haystack = item.words.join(" ").toLocaleLowerCase("sv-SE");
-          return haystack.includes(phrase.toLocaleLowerCase("sv-SE"));
+          const haystack = foldAnchorText(item.words.join(" ")).folded;
+          return haystack.includes(foldAnchorText(phrase).folded);
         });
         if (owners.length === 1 && owners[0]?.id === wine.id) {
           candidates.push({ phrase, id: wine.id });
@@ -162,23 +162,23 @@ export function linkNamedWines(
   }
   candidates.sort((a, b) => b.phrase.length - a.phrase.length);
   const hits: { start: number; end: number; id: string }[] = [];
-  const folded = text.toLocaleLowerCase("sv-SE");
+  const foldedText = foldAnchorText(text);
   for (const candidate of candidates) {
-    const needle = candidate.phrase.toLocaleLowerCase("sv-SE");
+    const needle = foldAnchorText(candidate.phrase).folded;
     let from = 0;
-    while (from < folded.length) {
-      const index = folded.indexOf(needle, from);
+    while (from < foldedText.folded.length) {
+      const index = foldedText.folded.indexOf(needle, from);
       if (index < 0) break;
-      const end = index + needle.length;
-      const beforeOk =
-        index === 0 || !/[\p{L}\p{N}]/u.test(text[index - 1] ?? "");
-      const afterOk =
-        end >= text.length || !/[\p{L}\p{N}]/u.test(text[end] ?? "");
-      const overlaps = hits.some((hit) => index < hit.end && end > hit.start);
+      const foldedEnd = index + needle.length;
+      const start = foldedText.start[index] ?? 0;
+      const end = foldedText.end[foldedEnd - 1] ?? start;
+      const beforeOk = start === 0 || !/[\p{L}\p{N}]/u.test(text[start - 1] ?? "");
+      const afterOk = end >= text.length || !/[\p{L}\p{N}]/u.test(text[end] ?? "");
+      const overlaps = hits.some((hit) => start < hit.end && end > hit.start);
       if (beforeOk && afterOk && !overlaps) {
-        hits.push({ start: index, end, id: candidate.id });
+        hits.push({ start, end, id: candidate.id });
       }
-      from = end;
+      from = foldedEnd;
     }
   }
   hits.sort((a, b) => b.start - a.start);
@@ -188,6 +188,25 @@ export function linkNamedWines(
     linked = `${linked.slice(0, hit.start)}[${label}](#${hit.id})${linked.slice(hit.end)}`;
   }
   return linked;
+}
+
+/** Lowercase and strip accents so "Koráb" matches the database spelling "Korab". */
+function foldAnchorText(value: string): { folded: string; start: number[]; end: number[] } {
+  let folded = "";
+  const start: number[] = [];
+  const end: number[] = [];
+  for (let index = 0; index < value.length; ) {
+    const char = String.fromCodePoint(value.codePointAt(index) ?? 0);
+    const next = index + char.length;
+    const piece = char.normalize("NFD").replace(/\p{M}/gu, "").toLocaleLowerCase("sv-SE");
+    for (const foldedChar of piece) {
+      folded += foldedChar;
+      start.push(index);
+      end.push(next);
+    }
+    index = next;
+  }
+  return { folded, start, end };
 }
 
 /** Bottle size for the meta line; omit standard 750 ml to keep the line short. */
