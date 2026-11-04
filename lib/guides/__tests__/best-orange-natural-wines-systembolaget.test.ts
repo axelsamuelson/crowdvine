@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+
 import { describe, expect, it } from "vitest";
 
 import {
@@ -5,7 +7,9 @@ import {
   bestOrangeNaturalWinesSystembolagetSvArticle,
 } from "@/lib/guides/articles/best-orange-natural-wines-systembolaget";
 import { articlePath } from "@/lib/guides/guide-types";
+import { wineFactRows } from "@/lib/guides/systembolaget-ranked-list";
 import { categoryPageTitle } from "@/lib/seo/category-page-title";
+import type { SystembolagetGuideWine } from "@/lib/systembolaget/guide-wines";
 
 describe("best orange natural wines Systembolaget guide", () => {
   it("keeps the Swedish URL and English hreflang pair", () => {
@@ -20,9 +24,9 @@ describe("best orange natural wines Systembolaget guide", () => {
     );
   });
 
-  it("uses the draft H1, meta title and description for Swedish", () => {
+  it("uses the restored Swedish H1 and the title without a doubled brand suffix", () => {
     expect(bestOrangeNaturalWinesSystembolagetSvArticle.h1.sv).toBe(
-      "Bra orange vin på Systembolaget",
+      "Bästa orange vin på Systembolaget 2026",
     );
     expect(bestOrangeNaturalWinesSystembolagetSvArticle.meta.sv).toBe(
       "Bästa orange vin på Systembolaget enligt PACT: vårt urval med äkta skalkontakt, fakta om druva och producent samt vanliga frågor.",
@@ -50,91 +54,99 @@ describe("best orange natural wines Systembolaget guide", () => {
     expect(bestOrangeNaturalWinesSystembolagetSvArticle.shopCta).toBeNull();
   });
 
-  it("anchors the shortlist to wine heading ids without prices or shop CTAs", () => {
-    const listSection = bestOrangeNaturalWinesSystembolagetSvArticle.sections.find(
-      (section) => section.heading?.sv === "Listan",
+  it("keeps the editorial sections and drops the hardcoded wine list", () => {
+    const headings = bestOrangeNaturalWinesSystembolagetSvArticle.sections.map(
+      (section) => section.heading?.sv,
     );
-    const ids = (listSection?.blocks ?? [])
-      .filter((block) => block.type === "heading")
-      .map((block) => (block.type === "heading" ? block.id : undefined));
-    expect(ids).toEqual(
-      expect.arrayContaining([
-        "radikon-ribolla",
-        "luc-faller-macerat",
-        "binner-bombisch",
-        "grape-republic-bianco-macerato",
-        "abbazia-san-giorgio-orange-zibibbo",
-        "arndorfer-orange",
-        "qvevris-mze-kisi",
-      ]),
+    expect(headings).toEqual([
+      "Vårt urval i korthet",
+      "Så har vi valt",
+      "Vad vi inte listar",
+      "Vad är orange vin?",
+      "Orange vin och mat",
+    ]);
+    expect(bestOrangeNaturalWinesSystembolagetSvArticle.lede?.sv).toContain(
+      "Listan är oberoende. PACT säljer inte på Systembolaget och tjänar ingenting på vad du väljer.",
     );
-
-    const factBlocks = (listSection?.blocks ?? []).filter(
-      (block) => block.type === "definitions",
+    expect(bestOrangeNaturalWinesSystembolagetSvArticle.lede?.sv).not.toContain(
+      "Vi visar inga priser",
     );
-    expect(factBlocks.length).toBeGreaterThanOrEqual(7);
-    expect(factBlocks[0]).toMatchObject({
-      type: "definitions",
-      items: expect.arrayContaining([
-        expect.objectContaining({
-          term: expect.objectContaining({ sv: "Producent och region" }),
-        }),
-      ]),
-    });
-
-    const odlingCount = factBlocks.filter(
-      (block) =>
-        block.type === "definitions" &&
-        block.items.some((item) => item.term.sv === "Odling"),
-    ).length;
-    expect(odlingCount).toBe(1);
-    expect(
-      factBlocks.every(
-        (block) =>
-          block.type !== "definitions" ||
-          block.items.every(
-            (item) =>
-              item.term.sv !== "Sortiment" ||
-              !/\(ekologiskt enligt Systembolaget\)/.test(item.description.sv),
-          ),
-      ),
-    ).toBe(true);
-    const fallerDefs = (() => {
-      const blocks = listSection?.blocks ?? [];
-      const hi = blocks.findIndex(
-        (block) => block.type === "heading" && block.id === "luc-faller-macerat",
-      );
-      const def = blocks[hi + 1];
-      return def?.type === "definitions" ? def.items : [];
-    })();
-    expect(fallerDefs).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          term: expect.objectContaining({ sv: "Odling" }),
-          description: expect.objectContaining({
-            sv: "ekologisk (enligt Systembolaget)",
-          }),
-        }),
-        expect.objectContaining({
-          term: expect.objectContaining({ sv: "Sortiment" }),
-          description: expect.objectContaining({ sv: "beställningsvara" }),
-        }),
-      ]),
+    expect(bestOrangeNaturalWinesSystembolagetSvArticle.lede?.sv).not.toContain(
+      "Languedoc",
     );
-
-    expect(
-      bestOrangeNaturalWinesSystembolagetSvArticle.shellHeadingClasses
-        ?.sectionHeadingClassName,
-    ).toBeTruthy();
-    expect(
-      bestOrangeNaturalWinesSystembolagetSvArticle.shellHeadingClasses
-        ?.wineHeadingClassName,
-    ).toBeTruthy();
+    const avoid = bestOrangeNaturalWinesSystembolagetSvArticle.sections.find(
+      (section) => section.heading?.en === "What we don't list",
+    );
+    const avoidSv = Array.isArray(avoid?.body.sv)
+      ? avoid.body.sv.join("\n")
+      : (avoid?.body.sv ?? "");
+    expect(avoidSv).toContain("Nanit Orange");
+    expect(avoidSv).toContain("Petite Orange");
+    expect(avoidSv).toContain("Côté Mas");
+    expect(avoidSv).toContain("Santa Julia");
 
     const serialized = JSON.stringify(bestOrangeNaturalWinesSystembolagetSvArticle);
-    expect(serialized).not.toMatch(/\d+\s*kr\b/);
-    expect(serialized).not.toMatch(/köp nu|shop now|lägg i kundvagn/i);
+    expect(serialized).not.toContain("Fler från Radikon");
+    expect(serialized).not.toContain("Också värt att känna till");
+    expect(serialized).not.toContain("Vi visar inga priser");
     expect(serialized).toContain("Inte alla viner på listan är naturvin");
-    expect(serialized).not.toContain("Alla viner här är inte naturviner");
+    expect(bestOrangeNaturalWinesSystembolagetSvArticle.showRankedWineFacts).toBe(
+      true,
+    );
+    expect(bestOrangeNaturalWinesSystembolagetArticle.showRankedWineFacts).toBeUndefined();
+    expect(bestOrangeNaturalWinesSystembolagetArticle.h1.en).toBe(
+      "Best orange natural wines at Systembolaget 2026",
+    );
+
+    const page = readFileSync(
+      "app/guider/basta-orange-naturviner-systembolaget/page.tsx",
+      "utf8",
+    );
+    expect(page).toContain('renderSystembolagetRankedListPage');
+    expect(page).toContain('"orange"');
+    expect(page).not.toContain("renderArticleGuidePage");
+    const english = readFileSync(
+      "app/guides/best-orange-natural-wines-systembolaget/page.tsx",
+      "utf8",
+    );
+    expect(english).toContain("bestOrangeNaturalWinesSystembolagetArticle");
+    expect(english).not.toContain("bestOrangeNaturalWinesSystembolagetSvArticle");
+  });
+
+  it("builds per-wine facts from database fields and omits farming when not organic", () => {
+    const wine = {
+      producer_name: "Radikon",
+      origin_level_1: "Friuli",
+      country: "Italien",
+      grapes: ["Ribolla Gialla"],
+      alcohol_percentage: 12,
+      volume: 500,
+      assortment_text: "Ordervaror",
+      is_organic: true,
+    } as SystembolagetGuideWine;
+    expect(wineFactRows(wine, "sv").map((row) => row.term)).toEqual([
+      "Producent och region",
+      "Druva",
+      "Alkohol",
+      "Sortiment",
+      "Odling",
+    ]);
+    expect(wineFactRows(wine, "sv")).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          term: "Odling",
+          description: "ekologisk (enligt Systembolaget)",
+        }),
+        expect.objectContaining({
+          term: "Sortiment",
+          description: "beställningsvara",
+        }),
+      ]),
+    );
+    expect(
+      wineFactRows({ ...wine, is_organic: false }, "sv").some(
+        (row) => row.term === "Odling",
+      ),
+    ).toBe(false);
   });
 });

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Footer } from "@/components/layout/footer";
 import {
   ARTICLE_GUIDE_BODY_CLASS,
+  ARTICLE_GUIDE_H1_CLASS,
   ARTICLE_GUIDE_H2_CLASS,
   renderArticleRichText,
 } from "@/lib/guides/article-guide-shell";
@@ -30,6 +31,7 @@ import {
   articleParagraphs,
   articlePath,
   isGuideArticlePublished,
+  type GuideArticleBlock,
   type GuideArticleContent,
 } from "@/lib/guides/guide-types";
 import type { AppLocale } from "@/lib/i18n/locale";
@@ -187,6 +189,163 @@ function assortmentLabel(
     : raw;
 }
 
+function assortmentFact(
+  assortmentText: string | null,
+  locale: AppLocale,
+): string | null {
+  const raw = assortmentText?.trim();
+  if (!raw) return null;
+  const lower = raw.toLocaleLowerCase("sv-SE");
+  if (lower.startsWith("ordervar")) {
+    return locale === "sv" ? "beställningsvara" : "order assortment";
+  }
+  if (lower.includes("tillfälligt")) {
+    return locale === "sv" ? "tillfälligt sortiment" : "temporary range";
+  }
+  if (lower.startsWith("fast ")) {
+    return locale === "sv" ? "fast sortiment" : "fixed range";
+  }
+  if (lower.startsWith("webblansering")) {
+    return locale === "sv" ? "webblansering" : "online release";
+  }
+  return raw;
+}
+
+function producerRegionFact(wine: SystembolagetGuideWine): string | null {
+  const parts = [wine.producer_name, wine.origin_level_1, wine.country]
+    .map((part) => part?.trim())
+    .filter((part): part is string => Boolean(part));
+  const unique: string[] = [];
+  for (const part of parts) {
+    const key = part.toLocaleLowerCase("sv-SE");
+    if (unique.some((item) => item.toLocaleLowerCase("sv-SE") === key)) continue;
+    unique.push(part);
+  }
+  return unique.length > 0 ? unique.join(", ") : null;
+}
+
+function alcoholFact(
+  wine: SystembolagetGuideWine,
+  locale: AppLocale,
+): string | null {
+  if (wine.alcohol_percentage == null) return null;
+  const value = Number(wine.alcohol_percentage);
+  if (!Number.isFinite(value)) return null;
+  const rounded = Math.round(value * 10) / 10;
+  const number =
+    locale === "sv" ? String(rounded).replace(".", ",") : String(rounded);
+  const volume = formatBottleVolume(wine.volume, locale);
+  return volume ? `${number} % (${volume})` : `${number} %`;
+}
+
+export function wineFactRows(
+  wine: SystembolagetGuideWine,
+  locale: AppLocale,
+): { term: string; description: string }[] {
+  const label = (sv: string, en: string) => (locale === "sv" ? sv : en);
+  const rows: { term: string; description: string }[] = [];
+  const producer = producerRegionFact(wine);
+  if (producer) {
+    rows.push({
+      term: label("Producent och region", "Producer and region"),
+      description: producer,
+    });
+  }
+  const grapes = (wine.grapes ?? []).map((grape) => grape.trim()).filter(Boolean);
+  if (grapes.length > 0) {
+    rows.push({
+      term: label("Druva", "Grape"),
+      description: grapes.join(", "),
+    });
+  }
+  const alcohol = alcoholFact(wine, locale);
+  if (alcohol) {
+    rows.push({
+      term: label("Alkohol", "Alcohol"),
+      description: alcohol,
+    });
+  }
+  const assortment = assortmentFact(wine.assortment_text, locale);
+  if (assortment) {
+    rows.push({
+      term: label("Sortiment", "Assortment"),
+      description: assortment,
+    });
+  }
+  if (wine.is_organic === true) {
+    rows.push({
+      term: label("Odling", "Farming"),
+      description: label(
+        "ekologisk (enligt Systembolaget)",
+        "organic (according to Systembolaget)",
+      ),
+    });
+  }
+  return rows;
+}
+
+function reviewedByline(byline: string, reviewed: string | null): string {
+  if (!reviewed) return byline;
+  const day = reviewed.slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return byline;
+  if (/(Senast granskad:|Last reviewed:)/.test(byline)) {
+    return byline.replace(
+      /(Senast granskad:|Last reviewed:)\s*\d{4}-\d{2}-\d{2}/,
+      `$1 ${day}`,
+    );
+  }
+  return byline;
+}
+
+function SectionBlocks({
+  blocks,
+  locale,
+  sectionIndex,
+}: {
+  blocks: readonly GuideArticleBlock[];
+  locale: AppLocale;
+  sectionIndex: number;
+}) {
+  return (
+    <>
+      {blocks.map((block, blockIndex) => {
+        if (block.type === "list") {
+          const items = block.items[locale].filter((item) => item.trim());
+          if (items.length === 0) return null;
+          return (
+            <ul
+              key={`list-${blockIndex}`}
+              className="list-disc space-y-2 pl-5"
+            >
+              {items.map((item, itemIndex) => (
+                <li key={itemIndex}>
+                  {renderArticleRichText(
+                    item,
+                    `s${sectionIndex}b${blockIndex}i${itemIndex}`,
+                  )}
+                </li>
+              ))}
+            </ul>
+          );
+        }
+        if (block.type === "paragraphs") {
+          return articleParagraphs(block.body, locale).map(
+            (paragraph, paragraphIndex) => (
+              <p key={`p-${blockIndex}-${paragraphIndex}`}>
+                {renderArticleRichText(
+                  paragraph,
+                  `s${sectionIndex}b${blockIndex}p${paragraphIndex}`,
+                )}
+              </p>
+            ),
+          );
+        }
+        return null;
+      })}
+    </>
+  );
+}
+
 function formatPrice(price: number | null): string | null {
   if (price === null || price === undefined) return null;
   return `${price} kr`;
@@ -263,6 +422,7 @@ export function RankedWineRow({
   showPrice = true,
   launchLabel,
   limitedLabelText,
+  showFacts = false,
 }: {
   wine: SystembolagetGuideWine;
   rank: number;
@@ -287,6 +447,11 @@ export function RankedWineRow({
    * undefined keeps today's label. null hides it.
    */
   limitedLabelText?: string | null;
+  /**
+   * Database fact list (grape, alcohol, assortment, organic).
+   * Off unless the guide opts in.
+   */
+  showFacts?: boolean;
 }) {
   const { producer, secondary } = wineNameParts(wine);
   const badge = showMovement
@@ -414,6 +579,17 @@ export function RankedWineRow({
               <p className="text-[15px] leading-relaxed text-foreground/80">
                 {note}
               </p>
+            ) : null}
+
+            {showFacts ? (
+              <dl className="mt-4 space-y-1 text-sm text-muted-foreground">
+                {wineFactRows(wine, locale).map((row) => (
+                  <div key={row.term} className="grid grid-cols-[9.5rem_minmax(0,1fr)] gap-x-3">
+                    <dt className="text-foreground">{row.term}</dt>
+                    <dd>{row.description}</dd>
+                  </div>
+                ))}
+              </dl>
             ) : null}
 
             {producerNote ? (
@@ -549,6 +725,17 @@ export async function renderSystembolagetRankedListPage(
       url: seoBaseUrl,
     },
     about,
+    ...(locale === "sv" && content.author
+      ? {
+          author: {
+            "@type": "Person" as const,
+            name: content.author.name,
+            ...(content.author.jobTitle
+              ? { jobTitle: content.author.jobTitle }
+              : {}),
+          },
+        }
+      : {}),
     ...(dateModified ? { dateModified } : {}),
   };
 
@@ -630,9 +817,20 @@ export async function renderSystembolagetRankedListPage(
         />
 
         <div className="max-w-[68ch]">
-          <h1 className="mt-6 text-3xl font-bold tracking-tight md:text-4xl">
+          <h1
+            className={
+              content.shellHeadingClasses
+                ? ARTICLE_GUIDE_H1_CLASS
+                : "mt-6 text-3xl font-bold tracking-tight md:text-4xl"
+            }
+          >
             {content.h1[locale]}
           </h1>
+          {locale === "sv" && content.author ? (
+            <p className="mt-3 text-sm text-muted-foreground">
+              {reviewedByline(content.author.byline.sv, dateModified)}
+            </p>
+          ) : null}
 
           <SystembolagetGuideNav
             label={SYSTEMBOLAGET_GUIDE_NAV_LABEL[locale]}
@@ -640,7 +838,13 @@ export async function renderSystembolagetRankedListPage(
             active={category}
           />
 
-          <p className="mt-6 text-lg leading-relaxed text-muted-foreground">
+          <p
+            className={
+              content.shellHeadingClasses
+                ? "mt-4 text-xl leading-relaxed text-muted-foreground"
+                : "mt-6 text-lg leading-relaxed text-muted-foreground"
+            }
+          >
             {intro}
           </p>
 
@@ -660,6 +864,7 @@ export async function renderSystembolagetRankedListPage(
                       rank={index + 1}
                       locale={locale}
                       priority={index < 3}
+                      showFacts={content.showRankedWineFacts === true}
                     />
                   </li>
                 ))}
@@ -694,21 +899,34 @@ export async function renderSystembolagetRankedListPage(
           <div className="mt-14 space-y-14 border-t border-border pt-14">
             {content.sections.map((section, sectionIndex) => (
               <section key={section.heading?.[locale] ?? `section-${sectionIndex}`}>
-                {section.heading ? (
-                  <h2 className={ARTICLE_GUIDE_H2_CLASS}>
+                {section.heading?.[locale] ? (
+                  <h2
+                    className={
+                      content.shellHeadingClasses?.sectionHeadingClassName ??
+                      ARTICLE_GUIDE_H2_CLASS
+                    }
+                  >
                     {section.heading[locale]}
                   </h2>
                 ) : null}
                 <div className={ARTICLE_GUIDE_BODY_CLASS}>
-                  {articleParagraphs(section.body, locale).map(
-                    (paragraph, paragraphIndex) => (
-                      <p key={`${sectionIndex}-${paragraphIndex}`}>
-                        {renderArticleRichText(
-                          paragraph,
-                          `s${sectionIndex}p${paragraphIndex}`,
-                        )}
-                      </p>
-                    ),
+                  {section.blocks?.length ? (
+                    <SectionBlocks
+                      blocks={section.blocks}
+                      locale={locale}
+                      sectionIndex={sectionIndex}
+                    />
+                  ) : (
+                    articleParagraphs(section.body, locale).map(
+                      (paragraph, paragraphIndex) => (
+                        <p key={`${sectionIndex}-${paragraphIndex}`}>
+                          {renderArticleRichText(
+                            paragraph,
+                            `s${sectionIndex}p${paragraphIndex}`,
+                          )}
+                        </p>
+                      ),
+                    )
                   )}
                 </div>
                 {section.heading?.en === "What we don't list" &&
@@ -751,7 +969,12 @@ export async function renderSystembolagetRankedListPage(
 
             {faqs.length > 0 ? (
               <section>
-                <h2 className={ARTICLE_GUIDE_H2_CLASS}>
+                <h2
+                  className={
+                    content.shellHeadingClasses?.sectionHeadingClassName ??
+                    ARTICLE_GUIDE_H2_CLASS
+                  }
+                >
                   {locale === "sv" ? "Vanliga frågor" : "Frequently asked questions"}
                 </h2>
                 <div className="mt-6 space-y-8">
