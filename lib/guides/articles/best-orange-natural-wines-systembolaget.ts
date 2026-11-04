@@ -22,8 +22,8 @@ const AUTHOR = {
 
 /**
  * Shared slug/meta for the orange Systembolaget guide pair.
- * English URL keeps the live ranked-list renderer; Swedish uses the
- * editorial article below (`bestOrangeNaturalWinesSystembolagetSvArticle`).
+ * English URL keeps this object on the ranked-list renderer. The Swedish
+ * page uses `bestOrangeNaturalWinesSystembolagetSvArticle` on the same renderer.
  */
 export const bestOrangeNaturalWinesSystembolagetArticle: GuideArticleContent = {
   updated: "2026-11-01",
@@ -205,11 +205,11 @@ export const bestOrangeNaturalWinesSystembolagetSvArticle: GuideArticleContent =
     },
     h1: {
       en: "Best orange natural wines at Systembolaget 2026",
-      sv: "Bra orange vin på Systembolaget",
+      sv: "Bästa orange vin på Systembolaget 2026",
     },
     lede: {
-      en: "Looking for the best orange wine at Systembolaget? Here is our selection of skin-contact bottles — from Friuli, Alsace, Japan, Sicily, Austria and Georgia. We show no prices.",
-      sv: "Letar du efter bästa orange vin på Systembolaget? Här är vårt urval av orange viner med äkta skalkontakt – från Friuli, Alsace, Japan, Sicilien, Österrike och Georgien. Vi visar inga priser.",
+      en: "Looking for the best orange wine at Systembolaget? Here is our selection of skin-contact bottles — from Friuli, Alsace, Japan, Sicily, Austria and Georgia.",
+      sv: "Letar du efter bästa orange vin på Systembolaget? Här är vårt urval av orange viner med äkta skalkontakt – från Friuli, Alsace, Japan, Sicilien, Österrike och Georgien. Listan är oberoende. PACT säljer inte på Systembolaget och tjänar ingenting på vad du väljer.",
     },
     breadcrumbShort: {
       en: "Best orange natural wines at Systembolaget",
@@ -226,11 +226,12 @@ export const bestOrangeNaturalWinesSystembolagetSvArticle: GuideArticleContent =
       },
       description: {
         en: "An independent shortlist of orange wines with real skin contact at Systembolaget.",
-        sv: "Vårt urval av orange viner med äkta skalkontakt på Systembolaget — från Friuli till Georgien. Inga priser.",
+        sv: "Vårt urval av orange viner med äkta skalkontakt på Systembolaget — från Friuli till Georgien.",
       },
     },
     author: AUTHOR,
     shopCta: null,
+    showRankedWineFacts: true,
     shellHeadingClasses: {
       sectionHeadingClassName: ARTICLE_GUIDE_EDITORIAL_H2_CLASS,
       wineHeadingClassName: ARTICLE_GUIDE_WINE_H3_FIXED_CLASS,
@@ -247,16 +248,16 @@ export const bestOrangeNaturalWinesSystembolagetSvArticle: GuideArticleContent =
             type: "list",
             items: {
               en: [
-                "**Classic Friuli style:** [Radikon Ribolla](#radikon-ribolla) — the reference bottle, unfiltered.",
-                "**Approachable and textured:** [Luc Faller Macerat](#luc-faller-macerat), [Binner Bombisch](#binner-bombisch), [Arndorfer Orange](#arndorfer-orange).",
-                "**Outside Europe and in qvevri:** [Grape Republic Bianco Macerato](#grape-republic-bianco-macerato) (Japan), [Qvevris MZE Kisi](#qvevris-mze-kisi) (Georgia).",
-                "**Southern and aromatic:** [Abbazia San Giorgio Orange Zibibbo](#abbazia-san-giorgio-orange-zibibbo) (Pantelleria).",
+                "**Classic Friuli style:** Radikon Ribolla — the reference bottle, unfiltered.",
+                "**Approachable and textured:** Luc Faller Macerat, Binner Bombisch, Arndorfer Orange.",
+                "**Outside Europe and in qvevri:** Grape Republic Bianco Macerato (Japan), Qvevris MZE Kisi (Georgia).",
+                "**Southern and aromatic:** Abbazia San Giorgio Orange Zibibbo (Pantelleria).",
               ],
               sv: [
-                "**Klassisk Friuli-stil:** [Radikon Ribolla](#radikon-ribolla) – referensflaskan, ofiltrerad.",
-                "**Lättillgängligt och texturerat:** [Luc Faller Macerat](#luc-faller-macerat), [Binner Bombisch](#binner-bombisch), [Arndorfer Orange](#arndorfer-orange).",
-                "**Utanför Europa och i qvevri:** [Grape Republic Bianco Macerato](#grape-republic-bianco-macerato) (Japan), [Qvevris MZE Kisi](#qvevris-mze-kisi) (Georgien).",
-                "**Sydlig och aromatisk:** [Abbazia San Giorgio Orange Zibibbo](#abbazia-san-giorgio-orange-zibibbo) (Pantelleria).",
+                "**Klassisk Friuli-stil:** Radikon Ribolla – referensflaskan, ofiltrerad.",
+                "**Lättillgängligt och texturerat:** Luc Faller Macerat, Binner Bombisch, Arndorfer Orange.",
+                "**Utanför Europa och i qvevri:** Grape Republic Bianco Macerato (Japan), Qvevris MZE Kisi (Georgien).",
+                "**Sydlig och aromatisk:** Abbazia San Giorgio Orange Zibibbo (Pantelleria).",
               ],
             },
           },
@@ -301,442 +302,17 @@ export const bestOrangeNaturalWinesSystembolagetSvArticle: GuideArticleContent =
       },
       {
         heading: {
-          en: "The list",
-          sv: "Listan",
+          en: "What we don't list",
+          sv: "Vad vi inte listar",
         },
-        body: EMPTY,
-        blocks: [
-          {
-            type: "heading",
-            id: "radikon-ribolla",
-            text: {
-              en: "1. Radikon Ribolla 2019",
-              sv: "1. Radikon Ribolla 2019",
-            },
-          },
-          {
-            type: "definitions",
-            items: [
-              {
-                term: {
-                  en: "Producer and region",
-                  sv: "Producent och region",
-                },
-                description: {
-                  en: "Radikon, Friuli-Venezia-Giulia, Italy",
-                  sv: "Radikon, Friuli-Venezia-Giulia, Italien",
-                },
-              },
-              {
-                term: { en: "Grape", sv: "Druva" },
-                description: {
-                  en: "Ribolla Gialla",
-                  sv: "Ribolla Gialla",
-                },
-              },
-              {
-                term: { en: "Skin contact", sv: "Skalkontakt" },
-                description: { en: "long", sv: "lång" },
-              },
-              {
-                term: { en: "Alcohol", sv: "Alkohol" },
-                description: {
-                  en: "12% (50 cl)",
-                  sv: "12 % (50 cl)",
-                },
-              },
-              {
-                term: { en: "Assortment", sv: "Sortiment" },
-                description: {
-                  en: "order assortment",
-                  sv: "beställningsvara",
-                },
-              },
-            ],
-          },
-          {
-            type: "paragraphs",
-            body: {
-              en: [
-                "Pure Ribolla Gialla without filtration — the reference bottle for the Friuli style. Radikon is also on our list of [the world's best natural wine producers](/guides/worlds-best-natural-wine-producers).",
-              ],
-              sv: [
-                "Ren Ribolla Gialla utan filtrering – referensflaskan för Friuli-stilen. Radikon finns med på vår lista över [världens bästa naturvinsproducenter](/guider/varldens-basta-naturvinsproducenter).",
-              ],
-            },
-          },
-          {
-            type: "list",
-            label: {
-              en: "More from Radikon (all order assortment, long skin contact):",
-              sv: "Fler från Radikon (alla beställningsvaror, lång skalkontakt):",
-            },
-            items: {
-              en: [
-                "**Oslavje 2019** — Chardonnay, Sauvignon and Pinot Grigio, 14%. Broader and more complex than Ribolla.",
-                "**Jakot 2019** — Friulano, 13.5%. The name is Tokaj backwards, a protest against the EU ban on calling the grape Tocai Friulano.",
-                "**Slatnik 2022** (13%) and **Sivi Pinot Grigio 2022** (Pinot Grigio, 13.5%).",
-              ],
-              sv: [
-                "**Oslavje 2019** – Chardonnay, Sauvignon och Pinot Grigio, 14 %. Bredare och mer komplex än Ribolla.",
-                "**Jakot 2019** – Friulano, 13,5 %. Namnet är Tokaj baklänges, en protest mot EU-förbudet att kalla druvan Tocai Friulano.",
-                "**Slatnik 2022** (13 %) och **Sivi Pinot Grigio 2022** (Pinot Grigio, 13,5 %).",
-              ],
-            },
-          },
-          {
-            type: "heading",
-            id: "luc-faller-macerat",
-            text: {
-              en: "2. Luc Faller Macerat Pinot Gris 2020",
-              sv: "2. Luc Faller Macerat Pinot Gris 2020",
-            },
-          },
-          {
-            type: "definitions",
-            items: [
-              {
-                term: {
-                  en: "Producer and region",
-                  sv: "Producent och region",
-                },
-                description: {
-                  en: "Faller Henri et Luc, Alsace, France",
-                  sv: "Faller Henri et Luc, Alsace, Frankrike",
-                },
-              },
-              {
-                term: { en: "Grape", sv: "Druva" },
-                description: { en: "Pinot Gris", sv: "Pinot Gris" },
-              },
-              {
-                term: { en: "Skin contact", sv: "Skalkontakt" },
-                description: { en: "yes", sv: "ja" },
-              },
-              {
-                term: { en: "Alcohol", sv: "Alkohol" },
-                description: { en: "13.5%", sv: "13,5 %" },
-              },
-              {
-                term: { en: "Assortment", sv: "Sortiment" },
-                description: {
-                  en: "order assortment",
-                  sv: "beställningsvara",
-                },
-              },
-              {
-                term: { en: "Farming", sv: "Odling" },
-                description: {
-                  en: "organic (per Systembolaget)",
-                  sv: "ekologisk (enligt Systembolaget)",
-                },
-              },
-            ],
-          },
-          {
-            type: "paragraphs",
-            body: {
-              en: [
-                "The producer farms biodynamically and works with minimal intervention; the wine is copper-pink, textured and one of the more approachable bottles in the assortment.",
-              ],
-              sv: [
-                "Producenten odlar biodynamiskt och arbetar med minimal intervention; vinet är kopparrosa, texturerat och ett av de mer lättillgängliga i sortimentet.",
-              ],
-            },
-          },
-          {
-            type: "heading",
-            id: "binner-bombisch",
-            text: {
-              en: "3. Binner Bombisch 2023",
-              sv: "3. Binner Bombisch 2023",
-            },
-          },
-          {
-            type: "definitions",
-            items: [
-              {
-                term: {
-                  en: "Producer and region",
-                  sv: "Producent och region",
-                },
-                description: {
-                  en: "Domaine Christian Binner, Alsace, France",
-                  sv: "Domaine Christian Binner, Alsace, Frankrike",
-                },
-              },
-              {
-                term: { en: "Grape", sv: "Druva" },
-                description: { en: "Riesling", sv: "Riesling" },
-              },
-              {
-                term: { en: "Skin contact", sv: "Skalkontakt" },
-                description: { en: "yes", sv: "ja" },
-              },
-              {
-                term: { en: "Alcohol", sv: "Alkohol" },
-                description: { en: "12%", sv: "12 %" },
-              },
-              {
-                term: { en: "Assortment", sv: "Sortiment" },
-                description: {
-                  en: "order assortment",
-                  sv: "beställningsvara",
-                },
-              },
-            ],
-          },
-          {
-            type: "paragraphs",
-            body: {
-              en: [
-                "Binner is one of few producers with Vin Méthode Nature certification, and Bombisch is a direct, drinkable orange wine from Alsace.",
-              ],
-              sv: [
-                "Binner är en av få producenter med Vin Méthode Nature-certifiering, och Bombisch är ett direkt och drickbart orange vin från Alsace.",
-              ],
-            },
-          },
-          {
-            type: "heading",
-            id: "grape-republic-bianco-macerato",
-            text: {
-              en: "4. Grape Republic Bianco Macerato 2024",
-              sv: "4. Grape Republic Bianco Macerato 2024",
-            },
-          },
-          {
-            type: "definitions",
-            items: [
-              {
-                term: {
-                  en: "Producer and region",
-                  sv: "Producent och region",
-                },
-                description: {
-                  en: "Grape Republic, Yamagata, Japan",
-                  sv: "Grape Republic, Yamagata, Japan",
-                },
-              },
-              {
-                term: { en: "Skin contact", sv: "Skalkontakt" },
-                description: { en: "yes", sv: "ja" },
-              },
-              {
-                term: { en: "Alcohol", sv: "Alkohol" },
-                description: { en: "9%", sv: "9 %" },
-              },
-              {
-                term: { en: "Assortment", sv: "Sortiment" },
-                description: {
-                  en: "temporary range",
-                  sv: "tillfälligt sortiment",
-                },
-              },
-            ],
-          },
-          {
-            type: "paragraphs",
-            body: {
-              en: [
-                "Grape Republic is Japan's best-known natural wine producer, and Bianco Macerato shows that skin contact works just as naturally outside Europe.",
-              ],
-              sv: [
-                "Grape Republic är Japans mest kända naturvinsproducent, och Bianco Macerato visar att skalkontakt fungerar lika självklart utanför Europa.",
-              ],
-            },
-          },
-          {
-            type: "heading",
-            id: "abbazia-san-giorgio-orange-zibibbo",
-            text: {
-              en: "5. Abbazia San Giorgio Orange Zibibbo 2021",
-              sv: "5. Abbazia San Giorgio Orange Zibibbo 2021",
-            },
-          },
-          {
-            type: "definitions",
-            items: [
-              {
-                term: {
-                  en: "Producer and region",
-                  sv: "Producent och region",
-                },
-                description: {
-                  en: "Abbazia San Giorgio, Pantelleria, Sicily, Italy",
-                  sv: "Abbazia San Giorgio, Pantelleria, Sicilien, Italien",
-                },
-              },
-              {
-                term: { en: "Grape", sv: "Druva" },
-                description: { en: "Zibibbo", sv: "Zibibbo" },
-              },
-              {
-                term: { en: "Skin contact", sv: "Skalkontakt" },
-                description: { en: "yes", sv: "ja" },
-              },
-              {
-                term: { en: "Alcohol", sv: "Alkohol" },
-                description: { en: "12%", sv: "12 %" },
-              },
-              {
-                term: { en: "Assortment", sv: "Sortiment" },
-                description: {
-                  en: "order assortment",
-                  sv: "beställningsvara",
-                },
-              },
-            ],
-          },
-          {
-            type: "paragraphs",
-            body: {
-              en: [
-                "Sunny and aromatic — a southern counterweight to the Friuli style.",
-              ],
-              sv: [
-                "Soligt och aromatiskt – en sydlig motvikt till Friuli-stilen.",
-              ],
-            },
-          },
-          {
-            type: "heading",
-            id: "arndorfer-orange",
-            text: {
-              en: "6. Arndorfer Orange",
-              sv: "6. Arndorfer Orange",
-            },
-          },
-          {
-            type: "definitions",
-            items: [
-              {
-                term: {
-                  en: "Producer and region",
-                  sv: "Producent och region",
-                },
-                description: {
-                  en: "Weingut Arndorfer, Kamptal, Austria",
-                  sv: "Weingut Arndorfer, Kamptal, Österrike",
-                },
-              },
-              {
-                term: { en: "Skin contact", sv: "Skalkontakt" },
-                description: { en: "yes", sv: "ja" },
-              },
-              {
-                term: { en: "Alcohol", sv: "Alkohol" },
-                description: {
-                  en: "12% (litre bottle)",
-                  sv: "12 % (literflaska)",
-                },
-              },
-              {
-                term: { en: "Assortment", sv: "Sortiment" },
-                description: {
-                  en: "order assortment",
-                  sv: "beställningsvara",
-                },
-              },
-            ],
-          },
-          {
-            type: "paragraphs",
-            body: {
-              en: [
-                "Martin and Anna Arndorfer run a small estate in Kamptal and belong to the generation of Austrian producers who made orange wine everyday wine without industrialising it.",
-              ],
-              sv: [
-                "Martin och Anna Arndorfer driver en liten gård i Kamptal och hör till den generation österrikiska producenter som gjort orange vin till vardagsvin utan att industrialisera det.",
-              ],
-            },
-          },
-          {
-            type: "heading",
-            id: "qvevris-mze-kisi",
-            text: {
-              en: "7. Qvevris MZE Kisi 2018",
-              sv: "7. Qvevris MZE Kisi 2018",
-            },
-          },
-          {
-            type: "definitions",
-            items: [
-              {
-                term: {
-                  en: "Producer and region",
-                  sv: "Producent och region",
-                },
-                description: {
-                  en: "Twins Wine House, Napareuli, Kakheti, Georgia",
-                  sv: "Twins Wine House, Napareuli, Kakheti, Georgien",
-                },
-              },
-              {
-                term: { en: "Grape", sv: "Druva" },
-                description: { en: "Kisi", sv: "Kisi" },
-              },
-              {
-                term: { en: "Skin contact", sv: "Skalkontakt" },
-                description: {
-                  en: "yes, in qvevri",
-                  sv: "ja, i qvevri",
-                },
-              },
-              {
-                term: { en: "Alcohol", sv: "Alkohol" },
-                description: { en: "12%", sv: "12 %" },
-              },
-              {
-                term: { en: "Assortment", sv: "Sortiment" },
-                description: {
-                  en: "order assortment",
-                  sv: "beställningsvara",
-                },
-              },
-            ],
-          },
-          {
-            type: "paragraphs",
-            body: {
-              en: [
-                "Kisi made in qvevri the way Georgia has worked for millennia — a clear entry to Georgian orange wine.",
-              ],
-              sv: [
-                "Kisi gjort i qvevri på det sätt Georgien arbetat i årtusenden – en tydlig ingång till georgiskt orange vin.",
-              ],
-            },
-          },
-          {
-            type: "heading",
-            text: {
-              en: "Also worth knowing",
-              sv: "Också värt att känna till",
-            },
-          },
-          {
-            type: "list",
-            items: {
-              en: [
-                "**Ignacio Pino Román Naranjo 2025** (Itata, Chile) — Muscat d'Alexandrie from ungrafted bush vines, 13%. Temporary range.",
-              ],
-              sv: [
-                "**Ignacio Pino Román Naranjo 2025** (Itata, Chile) – Muscat d'Alexandrie från ogympade buskstockar, 13 %. Tillfälligt sortiment.",
-              ],
-            },
-          },
-          {
-            type: "paragraphs",
-            body: {
-              en: [
-                "**On additives:** Systembolaget's data does not show additives or sulphite levels for these wines, so we do not state them.",
-              ],
-              sv: [
-                "**Om tillsatser:** Systembolagets data visar inte tillsatser eller sulfithalt för dessa viner, så vi anger dem inte.",
-              ],
-            },
-          },
-        ],
+        body: {
+          en: [
+            "Short macerations on industrial white-wine lines, or skin contact without the farming and cellar discipline behind it, do not belong here. Concrete examples we leave out: Nanit Orange, Iconic Wines Petite Orange, Côté Mas Orange and Santa Julia \"Orange Natural\". If the producer lacks a recognised name and a verifiable history, choose one of the wines above instead.",
+          ],
+          sv: [
+            "Korta macerationer på industriella vitvinslinjer, eller skalkontakt utan odlings- och källardisciplin bakom, hör inte hemma här. Konkreta exempel vi lämnar utanför: Nanit Orange, Iconic Wines Petite Orange, Côté Mas Orange och Santa Julia \"Orange Natural\". Saknar producenten ett erkänt namn och verifierbar historia, välj ett av vinerna ovan istället.",
+          ],
+        },
       },
       {
         heading: {

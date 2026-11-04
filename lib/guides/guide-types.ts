@@ -179,6 +179,12 @@ export type GuideArticleContent = {
     sectionHeadingClassName?: string;
     wineHeadingClassName?: string;
   };
+  /**
+   * Ranked Systembolaget lists only. When true, each recommended row shows
+   * grape, alcohol, assortment and organic facts from the database.
+   * Other lists leave this unset.
+   */
+  showRankedWineFacts?: boolean;
 };
 
 /** `published: false` hides a guide. Omitted means published. */
