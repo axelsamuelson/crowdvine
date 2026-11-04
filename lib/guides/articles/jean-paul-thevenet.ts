@@ -2,6 +2,7 @@ import type { GuideArticleContent } from "@/lib/guides/guide-types";
 
 /** Bilingual producer profile: Jean-Paul Thévenet (Polpo). */
 export const jeanPaulThevenetArticle: GuideArticleContent = {
+  updated: "2026-10-12",
   slug: { en: "jean-paul-thevenet", sv: "jean-paul-thevenet" },
   title: {
     en: "Jean-Paul Thévenet — Morgon natural wine",

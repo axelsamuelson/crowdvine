@@ -2,17 +2,19 @@ import type { GuideArticleContent } from "@/lib/guides/guide-types";
 
 /** Bilingual producer profile: Jean Foillard. */
 export const jeanFoillardArticle: GuideArticleContent = {
+  updated: "2026-11-04",
+  absoluteTitle: { en: true },
   slug: { en: "jean-foillard", sv: "jean-foillard" },
   title: {
-    en: "Jean Foillard and the Gang of Four",
+    en: "Jean Foillard: Morgon, Côte du Py and the Wines",
     sv: "Jean Foillard och Gang of Four",
   },
   meta: {
-    en: "In the 1980s four producers turned their backs on Beaujolais nouveau and changed how the world thinks about Gamay. Jean Foillard and the Gang of Four.",
+    en: "Jean Foillard's domaine in Morgon, his Côte du Py vineyards and how the wines are made. A profile of one of Beaujolais' natural wine pioneers.",
     sv: "På 1980-talet vände fyra producenter ryggen åt Beaujolais nouveau och förändrade hur världen ser på Gamay. Jean Foillard och Gang of Four.",
   },
   h1: {
-    en: "Jean Foillard and the Gang of Four — how Beaujolais found its soul",
+    en: "Jean Foillard",
     sv: "Jean Foillard och Gang of Four — hur Beaujolais hittade sin själ",
   },
   breadcrumbShort: {

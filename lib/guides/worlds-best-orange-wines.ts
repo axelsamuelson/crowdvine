@@ -10,6 +10,7 @@ export const WORLDS_BEST_ORANGE_WINES_PATH =
   WORLDS_BEST_ORANGE_WINES_PATHS.en;
 
 export const worldsBestOrangeWinesGuide = {
+  updated: "2026-10-25",
   path: WORLDS_BEST_ORANGE_WINES_PATHS,
   h1: {
     en: "The world's best orange wines",

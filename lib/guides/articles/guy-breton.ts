@@ -2,6 +2,7 @@ import type { GuideArticleContent } from "@/lib/guides/guide-types";
 
 /** Bilingual producer profile: Guy Breton (P'tit Max). */
 export const guyBretonArticle: GuideArticleContent = {
+  updated: "2026-09-07",
   slug: { en: "guy-breton", sv: "guy-breton" },
   title: {
     en: "Guy Breton — Beaujolais' joyful producer",

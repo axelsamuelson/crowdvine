@@ -5,6 +5,7 @@ import type { GuideArticleContent } from "@/lib/guides/guide-types";
  * Replaces legacy `/languedoc` and `/languedoc/naturvin` (301 → this article).
  */
 export const languedocNaturalWineArticle: GuideArticleContent = {
+  updated: "2026-11-02",
   slug: {
     en: "languedoc-natural-wine",
     sv: "naturvin-languedoc",

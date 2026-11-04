@@ -2,6 +2,7 @@ import type { GuideArticleContent } from "@/lib/guides/guide-types";
 
 /** Bilingual guide: best glou-glou wines in Systembolaget assortment. */
 export const bestGlouGlouWinesSystembolagetArticle: GuideArticleContent = {
+  updated: "2026-10-25",
   slug: {
     en: "best-glou-glou-wines-systembolaget",
     sv: "basta-glouglou-viner-systembolaget",

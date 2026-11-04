@@ -2,17 +2,19 @@ import type { GuideArticleContent } from "@/lib/guides/guide-types";
 
 /** Bilingual regional guide: Jura natural wine. */
 export const juraNaturalWineArticle: GuideArticleContent = {
+  updated: "2026-11-04",
+  absoluteTitle: { en: true },
   slug: { en: "jura-natural-wine", sv: "jura-natural-wine" },
   title: {
-    en: "Jura natural wine — complete guide",
+    en: "Jura Wine: Natural Wine, Vin Jaune and the Producers",
     sv: "Jura naturvin — kompletta guiden",
   },
   meta: {
-    en: "The Jura is small, cold and unlike anywhere else in France — and the spiritual home of natural wine. Grapes, styles and producers.",
+    en: "A guide to Jura wine: Savagnin, Poulsard and Trousseau, vin jaune, ouillé and oxidative whites, and the natural producers who made the region famous.",
     sv: "Jura är litet, svalt och olikt någon annanstans i Frankrike — naturvinets andliga hem. Druvor, stilar och producenter.",
   },
   h1: {
-    en: "Jura natural wine — the complete guide",
+    en: "Jura wine: the complete guide to natural wine from the Jura",
     sv: "Jura naturvin — den kompletta guiden",
   },
   breadcrumbShort: {

@@ -291,16 +291,18 @@ export async function renderWinesGuidePage(locale: AppLocale) {
                 );
               })}
             </ol>
-            <p className="mt-8 text-sm leading-relaxed text-muted-foreground md:text-base">
-              {beginner.moreBefore}
-              <Link
-                href={beginner.moreHref}
-                className="underline underline-offset-4 hover:text-foreground"
-              >
-                {beginner.moreLink}
-              </Link>
-              {beginner.moreAfter}
-            </p>
+            {beginner.moreHref ? (
+              <p className="mt-8 text-sm leading-relaxed text-muted-foreground md:text-base">
+                {beginner.moreBefore}
+                <Link
+                  href={beginner.moreHref}
+                  className="underline underline-offset-4 hover:text-foreground"
+                >
+                  {beginner.moreLink}
+                </Link>
+                {beginner.moreAfter}
+              </p>
+            ) : null}
             <p className="mt-3 text-sm leading-relaxed text-muted-foreground md:text-base">
               {beginner.shopBefore}
               <Link
@@ -426,7 +428,7 @@ export async function renderWinesGuidePage(locale: AppLocale) {
               {copy.wines.crossLinkProducers}
             </Link>
           </p>
-          {bestList ? (
+          {locale === "sv" && bestList ? (
             <p>
               <Link
                 href={bestList.href[locale]}

@@ -86,7 +86,7 @@ export const BEGINNER_PICKS: readonly BeginnerPick[] = [
     origin: { sv: "Loire, mousserande", en: "Loire, sparkling" },
     body: {
       sv: "Chenin Blanc från Montlouis, gjort med méthode ancestrale utan tillsatt jäst eller socker. Ligger i Systembolagets fasta sortiment, så det går att hitta året runt. Art.nr 5808601",
-      en: "Chenin Blanc from Montlouis, made using the ancestral method with no added yeast or sugar. It sits in Systembolaget's fixed assortment, so it can be found year round.",
+      en: "Chenin Blanc from Montlouis, made using the ancestral method with no added yeast or sugar.",
     },
   },
   {
@@ -270,11 +270,11 @@ export function beginnerPickCopy(locale: AppLocale): {
   return {
     heading: "Where to start: natural wines that are easy to find",
     intro:
-      "Most of the wines on the list below are made in small quantities and are hard to find. If you want to try natural wine first, these ten are a better place to start. All are made by recognised producers, most of them in larger volumes, and at the time of writing all are available at Systembolaget in Sweden.",
-    moreBefore: "Want more? See our guide to ",
-    moreLink: "natural wine at Systembolaget",
-    moreHref: "/guides/best-natural-wines-systembolaget",
-    moreAfter: ".",
+      "Most of the wines on the list below are made in small quantities and are hard to find. If you want to try natural wine first, these ten are a better place to start. All are made by recognised producers, most of them in larger volumes.",
+    moreBefore: "",
+    moreLink: "",
+    moreHref: "",
+    moreAfter: "",
     shopBefore: "Prefer to buy from us directly? Explore our ",
     shopLink: "range",
     shopHref: "/wine",

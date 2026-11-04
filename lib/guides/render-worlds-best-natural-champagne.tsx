@@ -74,6 +74,26 @@ export async function renderWorldsBestNaturalChampagnePage(locale: AppLocale) {
     regionCounts,
   );
 
+  const pageUrl = `${seoBaseUrl}${WORLDS_BEST_NATURAL_CHAMPAGNE_PATHS[locale]}`;
+  const articleJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: guide.h1[locale],
+    description: guide.metaDescription[locale],
+    url: pageUrl,
+    inLanguage: locale === "sv" ? "sv-SE" : "en-GB",
+    dateModified: guide.updated,
+    isPartOf: {
+      "@type": "WebSite",
+      name: "PACT",
+      url: seoBaseUrl,
+    },
+    about: {
+      "@type": "Thing",
+      name: locale === "sv" ? "Naturlig champagne" : "Natural champagne",
+    },
+  };
+
   const breadcrumbJsonLd = buildGuideBreadcrumbJsonLd([
     { name: copy.home, item: guideHomeAbsoluteUrl(seoBaseUrl, locale) },
     { name: copy.hubTitle, item: `${seoBaseUrl}${hubPath}` },
@@ -116,6 +136,12 @@ export async function renderWorldsBestNaturalChampagnePage(locale: AppLocale) {
 
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(articleJsonLd),
+        }}
+      />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{

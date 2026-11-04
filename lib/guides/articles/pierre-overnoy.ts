@@ -2,6 +2,7 @@ import type { GuideArticleContent } from "@/lib/guides/guide-types";
 
 /** Bilingual producer profile: Pierre Overnoy. */
 export const pierreOvernoyArticle: GuideArticleContent = {
+  updated: "2026-10-24",
   slug: { en: "pierre-overnoy", sv: "pierre-overnoy" },
   title: {
     en: "Pierre Overnoy — natural wine pioneer",

@@ -10,6 +10,7 @@ export const WORLDS_BEST_NATURAL_CHAMPAGNE_PATH =
   WORLDS_BEST_NATURAL_CHAMPAGNE_PATHS.en;
 
 export const worldsBestNaturalChampagneGuide = {
+  updated: "2026-10-25",
   path: WORLDS_BEST_NATURAL_CHAMPAGNE_PATHS,
   h1: {
     en: "The world's best natural champagne",

@@ -2,6 +2,7 @@ import type { GuideArticleContent } from "@/lib/guides/guide-types";
 
 /** Bilingual regional guide: Georgia natural wine. */
 export const georgiaNaturalWineArticle: GuideArticleContent = {
+  updated: "2026-09-07",
   slug: { en: "georgia-natural-wine", sv: "georgia-natural-wine" },
   title: {
     en: "Georgia natural wine — 8,000-year tradition",

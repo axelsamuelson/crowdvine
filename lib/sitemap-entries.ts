@@ -10,6 +10,8 @@ import { publishedBilingualArticleGuides } from "@/lib/guides/guide-publication"
 import { GUIDE_PATHS } from "@/lib/guides/guide-routes";
 import { TOP_100_PRODUCERS_UPDATED_AT } from "@/lib/guides/top-100-producers";
 import { TOP_100_WINES_UPDATED_AT } from "@/lib/guides/top-100-wines";
+import { worldsBestNaturalChampagneGuide } from "@/lib/guides/worlds-best-natural-champagne";
+import { worldsBestOrangeWinesGuide } from "@/lib/guides/worlds-best-orange-wines";
 import { articlePath } from "@/lib/guides/guide-types";
 import { generateProducerSlug } from "@/lib/producer-handle";
 import {
@@ -130,10 +132,26 @@ function staticPagesForProfile(
         0.75,
         new Date(`${NATURAL_VS_ORGANIC_UPDATED}T00:00:00.000Z`),
       ),
-      weeklyEntry(`${baseUrl}${GUIDE_PATHS.orangeWines.en}`, 0.75),
-      weeklyEntry(`${baseUrl}${GUIDE_PATHS.orangeWines.sv}`, 0.75),
-      weeklyEntry(`${baseUrl}${GUIDE_PATHS.naturalChampagne.en}`, 0.75),
-      weeklyEntry(`${baseUrl}${GUIDE_PATHS.naturalChampagne.sv}`, 0.75),
+      weeklyEntry(
+        `${baseUrl}${GUIDE_PATHS.orangeWines.en}`,
+        0.75,
+        new Date(`${worldsBestOrangeWinesGuide.updated}T00:00:00.000Z`),
+      ),
+      weeklyEntry(
+        `${baseUrl}${GUIDE_PATHS.orangeWines.sv}`,
+        0.75,
+        new Date(`${worldsBestOrangeWinesGuide.updated}T00:00:00.000Z`),
+      ),
+      weeklyEntry(
+        `${baseUrl}${GUIDE_PATHS.naturalChampagne.en}`,
+        0.75,
+        new Date(`${worldsBestNaturalChampagneGuide.updated}T00:00:00.000Z`),
+      ),
+      weeklyEntry(
+        `${baseUrl}${GUIDE_PATHS.naturalChampagne.sv}`,
+        0.75,
+        new Date(`${worldsBestNaturalChampagneGuide.updated}T00:00:00.000Z`),
+      ),
       ...producerBoxesSitemapPaths().map((path) =>
         weeklyEntry(`${baseUrl}${path}`, 0.75),
       ),

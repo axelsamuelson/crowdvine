@@ -2,6 +2,7 @@ import type { GuideArticleContent } from "@/lib/guides/guide-types";
 
 /** Bilingual producer profile: Marcel Lapierre. */
 export const marcelLapierreArticle: GuideArticleContent = {
+  updated: "2026-10-12",
   slug: { en: "marcel-lapierre", sv: "marcel-lapierre" },
   title: {
     en: "Marcel Lapierre — natural Beaujolais pioneer",
