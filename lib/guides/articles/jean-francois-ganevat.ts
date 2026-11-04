@@ -2,6 +2,7 @@ import type { GuideArticleContent } from "@/lib/guides/guide-types";
 
 /** Bilingual producer profile: Jean-François Ganevat. */
 export const jeanFrancoisGanevatArticle: GuideArticleContent = {
+  updated: "2026-09-07",
   slug: { en: "jean-francois-ganevat", sv: "jean-francois-ganevat" },
   title: {
     en: "Jean-François Ganevat — Jura vigneron",

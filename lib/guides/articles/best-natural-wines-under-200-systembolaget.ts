@@ -7,6 +7,7 @@ import type { GuideArticleContent } from "@/lib/guides/guide-types";
  */
 export const bestNaturalWinesUnder200SystembolagetArticle: GuideArticleContent =
   {
+    updated: "2026-09-12",
     slug: {
       en: "best-natural-wines-under-200-systembolaget",
       sv: "basta-naturviner-under-200kr-systembolaget",

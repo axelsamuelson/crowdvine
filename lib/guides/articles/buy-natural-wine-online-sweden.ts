@@ -52,6 +52,7 @@ function systembolagetListsSentence(locale: AppLocale): string {
 
 /** Bilingual guide: buying natural wine online in Sweden. Unpublished until legal review. */
 export const buyNaturalWineOnlineSwedenArticle: GuideArticleContent = {
+  updated: "2026-10-25",
   published: true,
   includePurJus,
   slug: {

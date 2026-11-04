@@ -2,6 +2,7 @@ import type { GuideArticleContent } from "@/lib/guides/guide-types";
 
 /** Bilingual producer profile: Jacques Selosse. */
 export const jacquesSelosseArticle: GuideArticleContent = {
+  updated: "2026-09-07",
   slug: { en: "jacques-selosse", sv: "jacques-selosse" },
   title: {
     en: "Jacques Selosse — grower champagne pioneer",

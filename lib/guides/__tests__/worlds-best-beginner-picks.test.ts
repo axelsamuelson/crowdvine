@@ -58,13 +58,16 @@ describe("BEGINNER_PICKS", () => {
     }
   });
 
-  it("points more links at the live Systembolaget guide paths", () => {
+  it("keeps the Systembolaget more-link on Swedish only", () => {
     expect(beginnerPickCopy("sv").moreHref).toBe(
       "/guider/basta-naturvinerna-pa-systembolaget",
     );
-    expect(beginnerPickCopy("en").moreHref).toBe(
-      "/guides/best-natural-wines-systembolaget",
-    );
+    const en = beginnerPickCopy("en");
+    expect(en.moreHref).toBe("");
+    expect(en.intro).not.toMatch(/Systembolaget|Sweden/);
+    const chenin = BEGINNER_PICKS.find((pick) => pick.productNumber === "5808601");
+    expect(chenin?.body.en).not.toMatch(/Systembolaget|Sweden/);
+    expect(chenin?.body.sv).toContain("Systembolaget");
   });
 
   it("links beginners into the PACT shop and natural wine box", () => {

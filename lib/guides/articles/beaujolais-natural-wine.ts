@@ -2,17 +2,19 @@ import type { GuideArticleContent } from "@/lib/guides/guide-types";
 
 /** Bilingual regional guide: Beaujolais natural wine. */
 export const beaujolaisNaturalWineArticle: GuideArticleContent = {
+  updated: "2026-11-04",
+  absoluteTitle: { en: true },
   slug: { en: "beaujolais-natural-wine", sv: "beaujolais-natural-wine" },
   title: {
-    en: "Beaujolais natural wine — regional guide",
+    en: "Beaujolais Natural Wine: Gamay, the Ten Crus and the Producers",
     sv: "Beaujolais naturvin — regional guide",
   },
   meta: {
-    en: "Beaujolais is one of France's most exciting natural wine regions — Gamay, granite, ten crus and the Gang of Four.",
+    en: "A guide to natural wine in Beaujolais: Gamay on granite, the ten crus, carbonic maceration and the producers to know.",
     sv: "Beaujolais är en av Frankrikes mest spännande naturvinsregioner — Gamay, granit, tio crus och Gang of Four.",
   },
   h1: {
-    en: "Beaujolais natural wine — the complete regional guide",
+    en: "Beaujolais natural wine",
     sv: "Beaujolais naturvin — den kompletta regionala guiden",
   },
   breadcrumbShort: {

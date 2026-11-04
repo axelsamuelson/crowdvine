@@ -161,6 +161,7 @@ export async function renderSystembolagetReleasesPage(
     author: { "@type": "Organization", name: "PACT", url: seoBaseUrl },
     publisher: { "@type": "Organization", name: "PACT", url: seoBaseUrl },
     about,
+    ...(issue?.publishedAt ? { datePublished: issue.publishedAt } : {}),
     ...(dateModified ? { dateModified } : {}),
   };
 

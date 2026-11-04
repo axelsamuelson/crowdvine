@@ -2,6 +2,7 @@ import type { GuideArticleContent } from "@/lib/guides/guide-types";
 
 /** Bilingual producer profile: Joško Gravner. */
 export const joskoGravnerArticle: GuideArticleContent = {
+  updated: "2026-09-07",
   slug: { en: "josko-gravner", sv: "josko-gravner" },
   title: {
     en: "Joško Gravner — how one trip to Georgia…",

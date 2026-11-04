@@ -2,6 +2,7 @@ import type { GuideArticleContent } from "@/lib/guides/guide-types";
 
 /** Bilingual producer profile: Radikon. */
 export const radikonArticle: GuideArticleContent = {
+  updated: "2026-11-04",
   slug: { en: "radikon", sv: "radikon" },
   title: {
     en: "Radikon — Friuli orange wine pioneer",
@@ -129,7 +130,7 @@ export const radikonArticle: GuideArticleContent = {
     },
     {
       label: {
-        en: "Best orange natural wines at Systembolaget →",
+        en: "",
         sv: "Bästa orange naturviner på Systembolaget →",
       },
       href: {

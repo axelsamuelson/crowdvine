@@ -213,10 +213,11 @@ export async function renderProducersGuidePage(locale: AppLocale) {
   );
 
   const byRank = [...TOP_100_PRODUCERS].sort((a, b) => a.rank - b.rank);
+  const showSystembolaget = locale === "sv";
   const rangeNote = systembolagetRangeNote(locale);
   const systembolagetHref = bestList?.href[locale] ?? null;
   const systembolagetMark = (rank: number) => {
-    if (!systembolagetHref) return null;
+    if (!showSystembolaget || !systembolagetHref) return null;
     const label = systembolagetAvailabilityLabel(
       availability[rank] ?? 0,
       locale,
@@ -336,7 +337,7 @@ export async function renderProducersGuidePage(locale: AppLocale) {
           ))}
         </div>
 
-        {bestList ? (
+        {showSystembolaget && bestList ? (
           <p className="mt-8 flex items-start gap-2 text-sm leading-relaxed text-muted-foreground">
             <SystembolagetBagIcon className="mt-0.5 size-4 shrink-0" />
             <span>
@@ -557,7 +558,7 @@ export async function renderProducersGuidePage(locale: AppLocale) {
               {copy.producers.crossLinkWines}
             </Link>
           </p>
-          {bestList ? (
+          {showSystembolaget && bestList ? (
             <p>
               <Link
                 href={bestList.href[locale]}

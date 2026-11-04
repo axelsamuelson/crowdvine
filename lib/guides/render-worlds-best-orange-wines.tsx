@@ -67,6 +67,26 @@ export async function renderWorldsBestOrangeWinesPage(locale: AppLocale) {
   const orangeWines = getOrangeWinesFromTop100();
   const guide = worldsBestOrangeWinesGuide;
 
+  const pageUrl = `${seoBaseUrl}${WORLDS_BEST_ORANGE_WINES_PATHS[locale]}`;
+  const articleJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: guide.h1[locale],
+    description: guide.metaDescription[locale],
+    url: pageUrl,
+    inLanguage: locale === "sv" ? "sv-SE" : "en-GB",
+    dateModified: guide.updated,
+    isPartOf: {
+      "@type": "WebSite",
+      name: "PACT",
+      url: seoBaseUrl,
+    },
+    about: {
+      "@type": "Thing",
+      name: locale === "sv" ? "Orange vin" : "Orange wine",
+    },
+  };
+
   const breadcrumbJsonLd = buildGuideBreadcrumbJsonLd([
     { name: copy.home, item: guideHomeAbsoluteUrl(seoBaseUrl, locale) },
     { name: copy.hubTitle, item: `${seoBaseUrl}${hubPath}` },
@@ -89,6 +109,12 @@ export async function renderWorldsBestOrangeWinesPage(locale: AppLocale) {
 
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(articleJsonLd),
+        }}
+      />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{

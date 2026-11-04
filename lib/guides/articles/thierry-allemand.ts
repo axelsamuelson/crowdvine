@@ -2,6 +2,7 @@ import type { GuideArticleContent } from "@/lib/guides/guide-types";
 
 /** Bilingual producer profile: Thierry Allemand. */
 export const thierryAllemandArticle: GuideArticleContent = {
+  updated: "2026-09-07",
   slug: { en: "thierry-allemand", sv: "thierry-allemand" },
   title: {
     en: "Thierry Allemand — who made Cornas great",
