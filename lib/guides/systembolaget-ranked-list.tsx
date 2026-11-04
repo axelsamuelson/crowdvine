@@ -98,6 +98,98 @@ function wineListName(wine: SystembolagetGuideWine): string {
   return secondary ? `${producer} ${secondary}` : producer;
 }
 
+/** Stable fragment id from the visible wine name, e.g. luc-faller-macerat-pinot-gris. */
+export function slugifyGuideAnchor(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .replace(/ß/g, "ss")
+    .toLocaleLowerCase("sv-SE")
+    .replace(/&/g, " och ")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+export function wineAnchorId(wine: SystembolagetGuideWine): string {
+  return slugifyGuideAnchor(wineListName(wine)) || `vin-${wine.id}`;
+}
+
+/** Unique ids for the current list. A repeated name keeps the product number. */
+export function wineAnchorIds(
+  wines: readonly SystembolagetGuideWine[],
+): Map<number, string> {
+  const bases = wines.map((wine) => wineAnchorId(wine));
+  const counts = new Map<string, number>();
+  for (const id of bases) counts.set(id, (counts.get(id) ?? 0) + 1);
+  const result = new Map<number, string>();
+  wines.forEach((wine, index) => {
+    const base = bases[index] ?? `vin-${wine.id}`;
+    result.set(
+      wine.id,
+      (counts.get(base) ?? 0) > 1 ? `${base}-${wine.product_number}` : base,
+    );
+  });
+  return result;
+}
+
+/**
+ * Link a shortlist mention when it is a unique run of words from a ranked
+ * wine's name. Names that are not on the current list stay plain text.
+ */
+export function linkNamedWines(
+  text: string,
+  wines: readonly SystembolagetGuideWine[],
+): string {
+  const ids = wineAnchorIds(wines);
+  const named = wines.map((wine) => ({
+    id: ids.get(wine.id) ?? wineAnchorId(wine),
+    words: wineListName(wine).split(/\s+/).filter(Boolean),
+  }));
+  const candidates: { phrase: string; id: string }[] = [];
+  for (const wine of named) {
+    for (let start = 0; start < wine.words.length; start += 1) {
+      for (let length = wine.words.length - start; length >= 2; length -= 1) {
+        const phrase = wine.words.slice(start, start + length).join(" ");
+        const owners = named.filter((item) => {
+          const haystack = item.words.join(" ").toLocaleLowerCase("sv-SE");
+          return haystack.includes(phrase.toLocaleLowerCase("sv-SE"));
+        });
+        if (owners.length === 1 && owners[0]?.id === wine.id) {
+          candidates.push({ phrase, id: wine.id });
+        }
+      }
+    }
+  }
+  candidates.sort((a, b) => b.phrase.length - a.phrase.length);
+  const hits: { start: number; end: number; id: string }[] = [];
+  const folded = text.toLocaleLowerCase("sv-SE");
+  for (const candidate of candidates) {
+    const needle = candidate.phrase.toLocaleLowerCase("sv-SE");
+    let from = 0;
+    while (from < folded.length) {
+      const index = folded.indexOf(needle, from);
+      if (index < 0) break;
+      const end = index + needle.length;
+      const beforeOk =
+        index === 0 || !/[\p{L}\p{N}]/u.test(text[index - 1] ?? "");
+      const afterOk =
+        end >= text.length || !/[\p{L}\p{N}]/u.test(text[end] ?? "");
+      const overlaps = hits.some((hit) => index < hit.end && end > hit.start);
+      if (beforeOk && afterOk && !overlaps) {
+        hits.push({ start: index, end, id: candidate.id });
+      }
+      from = end;
+    }
+  }
+  hits.sort((a, b) => b.start - a.start);
+  let linked = text;
+  for (const hit of hits) {
+    const label = text.slice(hit.start, hit.end);
+    linked = `${linked.slice(0, hit.start)}[${label}](#${hit.id})${linked.slice(hit.end)}`;
+  }
+  return linked;
+}
+
 /** Bottle size for the meta line; omit standard 750 ml to keep the line short. */
 export function formatBottleVolume(
   volumeMl: number | null | undefined,
@@ -211,10 +303,14 @@ function assortmentFact(
   return raw;
 }
 
-function producerRegionFact(wine: SystembolagetGuideWine): string | null {
-  const parts = [wine.producer_name, wine.origin_level_1, wine.country]
+function regionFact(
+  wine: SystembolagetGuideWine,
+  locale: AppLocale,
+): string | null {
+  const parts = [wine.origin_level_1, wine.country]
     .map((part) => part?.trim())
-    .filter((part): part is string => Boolean(part));
+    .filter((part): part is string => Boolean(part))
+    .map((part) => localizePlaceName(part, locale));
   const unique: string[] = [];
   for (const part of parts) {
     const key = part.toLocaleLowerCase("sv-SE");
@@ -234,8 +330,7 @@ function alcoholFact(
   const rounded = Math.round(value * 10) / 10;
   const number =
     locale === "sv" ? String(rounded).replace(".", ",") : String(rounded);
-  const volume = formatBottleVolume(wine.volume, locale);
-  return volume ? `${number} % (${volume})` : `${number} %`;
+  return `${number} %`;
 }
 
 export function wineFactRows(
@@ -244,11 +339,14 @@ export function wineFactRows(
 ): { term: string; description: string }[] {
   const label = (sv: string, en: string) => (locale === "sv" ? sv : en);
   const rows: { term: string; description: string }[] = [];
-  const producer = producerRegionFact(wine);
-  if (producer) {
+  const region = regionFact(wine, locale);
+  if (region) {
+    rows.push({ term: label("Region", "Region"), description: region });
+  }
+  if (wine.vintage != null) {
     rows.push({
-      term: label("Producent och region", "Producer and region"),
-      description: producer,
+      term: label("Årgång", "Vintage"),
+      description: String(wine.vintage),
     });
   }
   const grapes = (wine.grapes ?? []).map((grape) => grape.trim()).filter(Boolean);
@@ -263,6 +361,13 @@ export function wineFactRows(
     rows.push({
       term: label("Alkohol", "Alcohol"),
       description: alcohol,
+    });
+  }
+  const bottle = formatBottleVolume(wine.volume, locale);
+  if (bottle) {
+    rows.push({
+      term: label("Flaska", "Bottle"),
+      description: bottle,
     });
   }
   const assortment = assortmentFact(wine.assortment_text, locale);
@@ -284,6 +389,23 @@ export function wineFactRows(
   return rows;
 }
 
+/**
+ * Date for "Senast granskad". The later of the article date and the wines'
+ * last_reviewed_at. The Systembolaget sync timestamp is not included.
+ */
+export function editorialReviewedDate(
+  updated: string | null | undefined,
+  wines: readonly Pick<SystembolagetGuideWine, "last_reviewed_at">[],
+): string | null {
+  let best: string | null = updated ?? null;
+  for (const wine of wines) {
+    const reviewed = wine.last_reviewed_at;
+    if (!reviewed) continue;
+    if (!best || reviewed > best) best = reviewed;
+  }
+  return best;
+}
+
 function reviewedByline(byline: string, reviewed: string | null): string {
   if (!reviewed) return byline;
   const day = reviewed.slice(0, 10);
@@ -301,11 +423,15 @@ function SectionBlocks({
   blocks,
   locale,
   sectionIndex,
+  linkWines,
 }: {
   blocks: readonly GuideArticleBlock[];
   locale: AppLocale;
   sectionIndex: number;
+  linkWines?: readonly SystembolagetGuideWine[];
 }) {
+  const text = (value: string) =>
+    linkWines && linkWines.length > 0 ? linkNamedWines(value, linkWines) : value;
   return (
     <>
       {blocks.map((block, blockIndex) => {
@@ -320,7 +446,7 @@ function SectionBlocks({
               {items.map((item, itemIndex) => (
                 <li key={itemIndex}>
                   {renderArticleRichText(
-                    item,
+                    text(item),
                     `s${sectionIndex}b${blockIndex}i${itemIndex}`,
                   )}
                 </li>
@@ -333,7 +459,7 @@ function SectionBlocks({
             (paragraph, paragraphIndex) => (
               <p key={`p-${blockIndex}-${paragraphIndex}`}>
                 {renderArticleRichText(
-                  paragraph,
+                  text(paragraph),
                   `s${sectionIndex}b${blockIndex}p${paragraphIndex}`,
                 )}
               </p>
@@ -423,6 +549,8 @@ export function RankedWineRow({
   launchLabel,
   limitedLabelText,
   showFacts = false,
+  anchorId,
+  headingClassName,
 }: {
   wine: SystembolagetGuideWine;
   rank: number;
@@ -448,10 +576,15 @@ export function RankedWineRow({
    */
   limitedLabelText?: string | null;
   /**
-   * Database fact list (grape, alcohol, assortment, organic).
+   * Database fact list. Also hides the vintage/region meta line and the
+   * assortment badge, and shows the price once beside the name.
    * Off unless the guide opts in.
    */
   showFacts?: boolean;
+  /** In-page anchor. Only passed when the guide opts into the fact list. */
+  anchorId?: string;
+  /** Wine-name heading class. Only passed with the fact list. */
+  headingClassName?: string;
 }) {
   const { producer, secondary } = wineNameParts(wine);
   const badge = showMovement
@@ -481,6 +614,7 @@ export function RankedWineRow({
   const url = systembolagetProductUrl(wine.product_number);
   const linkLabel =
     locale === "sv" ? "Visa på Systembolaget →" : "View at Systembolaget →";
+  const HeadingTag = showFacts ? "h3" : "h2";
 
   return (
     <article className="border-b border-border py-6 last:border-b-0 md:min-h-[calc(300px+3rem)]">
@@ -527,7 +661,14 @@ export function RankedWineRow({
               <p className="mb-1 text-xs text-muted-foreground">{styleLabel}</p>
             ) : null}
             <div className="flex items-start justify-between gap-3">
-              <h2 className="m-0 min-w-0 text-lg leading-none tracking-tight break-words md:leading-none">
+              <HeadingTag
+                id={showFacts ? anchorId : undefined}
+                className={
+                  showFacts
+                    ? `m-0 min-w-0 break-words ${headingClassName ?? "text-lg leading-snug tracking-tight"}`
+                    : "m-0 min-w-0 text-lg leading-none tracking-tight break-words md:leading-none"
+                }
+              >
                 <span className="font-semibold text-foreground">{producer}</span>
                 {secondary ? (
                   <span className="font-normal text-muted-foreground">
@@ -535,15 +676,21 @@ export function RankedWineRow({
                     {secondary}
                   </span>
                 ) : null}
-              </h2>
+              </HeadingTag>
               {price ? (
-                <p className="shrink-0 pt-0.5 text-base font-medium tabular-nums text-foreground md:hidden">
+                <p
+                  className={
+                    showFacts
+                      ? "shrink-0 pt-0.5 text-base font-medium tabular-nums text-foreground"
+                      : "shrink-0 pt-0.5 text-base font-medium tabular-nums text-foreground md:hidden"
+                  }
+                >
                   {price}
                 </p>
               ) : null}
             </div>
 
-            {meta.length > 0 || price ? (
+            {!showFacts && (meta.length > 0 || price) ? (
               <p className="mt-2 text-sm text-muted-foreground">
                 {meta.join(" · ")}
                 {price ? (
@@ -555,7 +702,7 @@ export function RankedWineRow({
               </p>
             ) : null}
 
-            {assortment ? (
+            {!showFacts && assortment ? (
               <p
                 className={
                   locale === "sv"
@@ -691,6 +838,22 @@ export async function renderSystembolagetRankedListPage(
     }
     return best;
   })();
+  const reviewedDate = editorialReviewedDate(content.updated, wines);
+  const showFacts = content.showRankedWineFacts === true;
+  const anchorIds = showFacts ? wineAnchorIds(wines) : null;
+  const shortlistIndex = showFacts
+    ? content.sections.findIndex(
+        (section) => section.heading?.sv === "Vårt urval i korthet",
+      )
+    : -1;
+  const shortlist =
+    shortlistIndex >= 0 ? content.sections[shortlistIndex] : undefined;
+  const sections = content.sections.filter(
+    (_, index) => index !== shortlistIndex,
+  );
+  const sectionHeadingClass =
+    content.shellHeadingClasses?.sectionHeadingClassName ??
+    ARTICLE_GUIDE_H2_CLASS;
 
   const about =
     content.jsonLdAbout.type === "Person"
@@ -828,7 +991,7 @@ export async function renderSystembolagetRankedListPage(
           </h1>
           {locale === "sv" && content.author ? (
             <p className="mt-3 text-sm text-muted-foreground">
-              {reviewedByline(content.author.byline.sv, dateModified)}
+              {reviewedByline(content.author.byline.sv, reviewedDate)}
             </p>
           ) : null}
 
@@ -848,7 +1011,43 @@ export async function renderSystembolagetRankedListPage(
             {intro}
           </p>
 
+          {shortlist ? (
+            <section className="mt-10">
+              {shortlist.heading?.[locale] ? (
+                <h2 className={sectionHeadingClass}>
+                  {shortlist.heading[locale]}
+                </h2>
+              ) : null}
+              <div className={ARTICLE_GUIDE_BODY_CLASS}>
+                {shortlist.blocks?.length ? (
+                  <SectionBlocks
+                    blocks={shortlist.blocks}
+                    locale={locale}
+                    sectionIndex={shortlistIndex}
+                    linkWines={wines}
+                  />
+                ) : (
+                  articleParagraphs(shortlist.body, locale).map(
+                    (paragraph, paragraphIndex) => (
+                      <p key={`shortlist-${paragraphIndex}`}>
+                        {renderArticleRichText(
+                          linkNamedWines(paragraph, wines),
+                          `shortlist-p${paragraphIndex}`,
+                        )}
+                      </p>
+                    ),
+                  )
+                )}
+              </div>
+            </section>
+          ) : null}
+
           <div className="mt-10">
+            {showFacts ? (
+              <h2 className={sectionHeadingClass}>
+                {locale === "sv" ? "Listan" : "The list"}
+              </h2>
+            ) : null}
             {wines.length === 0 ? (
               <p className="text-[17px] leading-[1.75] text-foreground/80">
                 {locale === "sv"
@@ -864,7 +1063,11 @@ export async function renderSystembolagetRankedListPage(
                       rank={index + 1}
                       locale={locale}
                       priority={index < 3}
-                      showFacts={content.showRankedWineFacts === true}
+                      showFacts={showFacts}
+                      anchorId={anchorIds?.get(wine.id)}
+                      headingClassName={
+                        content.shellHeadingClasses?.wineHeadingClassName
+                      }
                     />
                   </li>
                 ))}
@@ -897,15 +1100,10 @@ export async function renderSystembolagetRankedListPage(
           ) : null}
 
           <div className="mt-14 space-y-14 border-t border-border pt-14">
-            {content.sections.map((section, sectionIndex) => (
+            {sections.map((section, sectionIndex) => (
               <section key={section.heading?.[locale] ?? `section-${sectionIndex}`}>
                 {section.heading?.[locale] ? (
-                  <h2
-                    className={
-                      content.shellHeadingClasses?.sectionHeadingClassName ??
-                      ARTICLE_GUIDE_H2_CLASS
-                    }
-                  >
+                  <h2 className={sectionHeadingClass}>
                     {section.heading[locale]}
                   </h2>
                 ) : null}
@@ -969,12 +1167,7 @@ export async function renderSystembolagetRankedListPage(
 
             {faqs.length > 0 ? (
               <section>
-                <h2
-                  className={
-                    content.shellHeadingClasses?.sectionHeadingClassName ??
-                    ARTICLE_GUIDE_H2_CLASS
-                  }
-                >
+                <h2 className={sectionHeadingClass}>
                   {locale === "sv" ? "Vanliga frågor" : "Frequently asked questions"}
                 </h2>
                 <div className="mt-6 space-y-8">
