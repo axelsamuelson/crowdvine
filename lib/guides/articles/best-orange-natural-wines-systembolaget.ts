@@ -72,7 +72,7 @@ export const bestOrangeNaturalWinesSystembolagetArticle: GuideArticleContent = {
       },
       body: {
         en: [
-          "Most Systembolaget lists of [orange wine](/wine/orange-natural-wine) are written by importers or shops that profit from what you buy. We don't — PACT imports from Languedoc and is not sold at Systembolaget. No affiliate links.",
+          "Most Systembolaget lists of [orange wine](/wine/orange-natural-wine) are written by importers or shops that profit from what you buy. We don't — PACT is not sold at Systembolaget. No affiliate links.",
           "A wine must have organic or biodynamic farming, spontaneous fermentation, meaningful skin contact on white grapes, minimal or no added sulphur (around 30 mg/l added), and a producer with a recognised reputation — not just a certificate. Updated against live assortment data.",
         ],
         sv: [
@@ -292,9 +292,11 @@ export const bestOrangeNaturalWinesSystembolagetSvArticle: GuideArticleContent =
             body: {
               en: [
                 "The list is updated when the assortment changes. Not every wine here is natural wine — where we can document the producer's approach, we say so.",
+                "Systembolaget's data does not show additives or sulphite levels for these wines, so we do not state them.",
               ],
               sv: [
                 "Listan uppdateras när sortimentet ändras. Inte alla viner på listan är naturvin – där vi kan belägga producentens arbetssätt skriver vi det.",
+                "Systembolagets data visar inte tillsatser eller sulfithalt för de här vinerna, så vi anger dem inte.",
               ],
             },
           },
