@@ -2,21 +2,27 @@ import type { GuideArticleContent } from "@/lib/guides/guide-types";
 
 /** Bilingual educational guide: what is orange wine. */
 export const whatIsOrangeWineArticle: GuideArticleContent = {
+  updated: "2026-11-04",
   slug: {
     en: "what-is-orange-wine",
     sv: "vad-ar-orange-vin",
   },
+  absoluteTitle: { en: true },
   title: {
-    en: "What is orange wine? Complete guide",
+    en: "What Is Orange Wine? Skin Contact Wine Explained",
     sv: "Vad är orange vin? Kompletta guiden",
   },
   meta: {
-    en: "Orange wine is white wine fermented on skins for amber colour, tannin and spice. How it's made and how it differs from white wine.",
+    en: "Orange wine is white wine fermented on its skins, like a red. How skin contact wine is made, what it tastes like, where it comes from and how to serve it.",
     sv: "Orange vin är vitt vin jäst på skalen — bärnstensfärg, tannin och krydda. Hur det görs och hur det skiljer sig från vitt vin.",
   },
   h1: {
-    en: "What is orange wine? The complete guide",
+    en: "What is orange wine?",
     sv: "Vad är orange vin? Den kompletta guiden",
+  },
+  lede: {
+    en: "Orange wine is white wine made like a red. Instead of pressing the juice off the skins straight away, the winemaker lets white grapes ferment with their skins for days, weeks or months. The skins give the wine its amber color, its tannin and a texture that ordinary white wine does not have.",
+    sv: "Vitt vin gjort som rött — bärnstensfärg, tanniner och en egen smakvärld. Hur orange vin görs, var det kommer ifrån och vad det passar till.",
   },
   breadcrumbShort: {
     en: "What is orange wine?",
@@ -28,7 +34,7 @@ export const whatIsOrangeWineArticle: GuideArticleContent = {
   },
   hubCard: {
     title: {
-      en: "What is orange wine? The complete guide",
+      en: "What is orange wine?",
       sv: "Vad är orange vin? Den kompletta guiden",
     },
     description: {
@@ -38,6 +44,7 @@ export const whatIsOrangeWineArticle: GuideArticleContent = {
   },
   sections: [
     {
+      locales: ["sv"],
       heading: {
         en: "The simple answer",
         sv: "Det enkla svaret",
@@ -54,6 +61,7 @@ export const whatIsOrangeWineArticle: GuideArticleContent = {
       },
     },
     {
+      locales: ["sv"],
       heading: {
         en: "Eight thousand years old",
         sv: "Åtta tusen år gammal metod",
@@ -70,6 +78,7 @@ export const whatIsOrangeWineArticle: GuideArticleContent = {
       },
     },
     {
+      locales: ["sv"],
       heading: {
         en: "How orange wine is made",
         sv: "Hur orange vin görs",
@@ -88,6 +97,7 @@ export const whatIsOrangeWineArticle: GuideArticleContent = {
       },
     },
     {
+      locales: ["sv"],
       heading: {
         en: "What does orange wine taste like?",
         sv: "Hur smakar orange vin?",
@@ -104,6 +114,7 @@ export const whatIsOrangeWineArticle: GuideArticleContent = {
       },
     },
     {
+      locales: ["sv"],
       heading: {
         en: "Joško Gravner and the modern revival",
         sv: "Joško Gravner och den moderna återfödelsen",
@@ -114,12 +125,13 @@ export const whatIsOrangeWineArticle: GuideArticleContent = {
           "His neighbour Stanko Radikon arrived at the same conclusion independently at the same time. From Oslavje — a village of a few hundred people — the modern orange wine movement spread to the rest of the world.",
         ],
         sv: [
-          "Den moderna orange vinrörelsen började i en liten by på gränsen mellan Italien och Slovenien. 1997 reste Joško Gravner, en framgångsrik konventionell vinproducent i Friuli, till Georgien och kom tillbaka med en helt ny idé om vad vitt vin kunde vara. Från 2001 började han vinifiera i qvevri, med lång skalkontakt och inget tillsatt svavel.",
-          "Hans granne Stanko Radikon kom oberoende av Gravner fram till samma slutsats vid samma tid. Från Oslavje — en by med några hundra invånare — spred sig den moderna orange vinrörelsen till resten av världen.",
+          "Den moderna orange vinrörelsen började i en liten by på gränsen mellan Italien och Slovenien. 2000 reste Joško Gravner, en framgångsrik konventionell vinproducent i Friuli, till Georgien och kom tillbaka med en helt ny idé om vad vitt vin kunde vara. Från 2001 började han vinifiera i qvevri, med lång skalkontakt och inget tillsatt svavel.",
+          "Hans granne Stanko Radikon började med skalkontakt 1995, före Gravner. Från Oslavje — en by med några hundra invånare — spred sig den moderna orange vinrörelsen till resten av världen.",
         ],
       },
     },
     {
+      locales: ["sv"],
       heading: {
         en: "What food does orange wine pair with?",
         sv: "Vad passar orange vin till?",
@@ -144,6 +156,7 @@ export const whatIsOrangeWineArticle: GuideArticleContent = {
       },
     },
     {
+      locales: ["sv"],
       heading: {
         en: "Common questions about orange wine",
         sv: "Vanliga frågor om orange vin",
@@ -161,6 +174,177 @@ export const whatIsOrangeWineArticle: GuideArticleContent = {
           "Är orange vin sött? Nej — orange vin är nästan alltid torrt. Den bärnstensfärgade färgen kan antyda sötma men tanninerna och greppet gör det till en torr, matvänlig stil.",
           "Varför ser orange vin grumligt ut? Många orange viner är ofiltrerade — grumligheten kommer från naturliga partiklar i vinet, inte ett fel.",
         ],
+      },
+    },
+    {
+      locales: ["en"],
+      body: {
+        en: [
+          "It has nothing to do with oranges. The name describes the color, which runs from pale gold to deep amber depending on the grape and how long the skins stay in.",
+        ],
+        sv: [],
+      },
+    },
+    {
+      locales: ["en"],
+      heading: {
+        en: "Orange wine, skin contact wine and amber wine",
+        sv: "",
+      },
+      body: {
+        en: [
+          "The three names mean the same thing. **Skin contact wine** describes the method. **Orange wine** describes the color. In Georgia, where the style is oldest, it is usually called **amber wine**.",
+          "Skin contact is a method, not a philosophy, so an orange wine is not automatically a natural wine. In practice the two overlap a great deal, and many of the best-known orange wines come from natural producers. Read more in [What is natural wine?](/guides/what-is-natural-wine)",
+        ],
+        sv: [],
+      },
+    },
+    {
+      locales: ["en"],
+      heading: {
+        en: "How orange wine is made",
+        sv: "",
+      },
+      body: {
+        en: [
+          "The process starts like any white wine: white grapes are picked and brought to the cellar.",
+          "In conventional white winemaking, the grapes are pressed right away and only the juice is fermented. For orange wine, the crushed grapes, and sometimes whole bunches, ferment together with their skins, the way red wine is made. After fermentation the wine is pressed off the skins and aged.",
+          "The length of skin contact sets the style. A few days give a lighter, more aromatic wine with gentle tannin. Several weeks or months give deeper color, firmer tannin and more savory flavors. Stanko Radikon in Friuli started with seven days of skin contact in 1995 and later moved to around three months for his whites.",
+          "The skins also add phenolic compounds that help protect the wine from oxidation. That is one reason many orange-wine producers use little sulfur. Radikon stopped adding sulfur dioxide in 2003.",
+        ],
+        sv: [],
+      },
+    },
+    {
+      locales: ["en"],
+      heading: {
+        en: "What does orange wine taste like?",
+        sv: "",
+      },
+      body: {
+        en: [
+          "Orange wine sits between white and red. It has the fruit of a white wine and the grip of a red.",
+          "Typical aromas include dried apricot, orange peel, tea, nuts, chamomile and honey. The texture is the giveaway: where most white wine is smooth, orange wine has a light tannic grip that dries the mouth slightly. Despite the amber color, almost all orange wine is dry.",
+          "Many orange wines are bottled unfined and unfiltered, so a slight haze is normal and not a fault.",
+        ],
+        sv: [],
+      },
+    },
+    {
+      locales: ["en"],
+      heading: {
+        en: "Where orange wine comes from",
+        sv: "",
+      },
+      body: {
+        en: [
+          "**Georgia.** The oldest evidence of grape wine anywhere comes from two Neolithic sites south of Tbilisi, Gadachrili Gora and Shulaveris Gora, dated to around 6000–5800 BC (Proceedings of the National Academy of Sciences, 2017). Georgian winemakers ferment and age wine with skins in qvevri, large clay vessels buried in the ground. UNESCO added the qvevri method to its list of Intangible Cultural Heritage in 2013. The classic grape is Rkatsiteli. Read more in [Natural wine from Georgia](/guides/georgia-natural-wine).",
+          "**Friuli and Slovenia.** The modern revival started on the Italian-Slovenian border, around the village of Oslavia. [Stanko Radikon](/guides/radikon) returned to his grandfather's skin-contact methods in 1995. [Joško Gravner](/guides/josko-gravner) travelled to Georgia in 2000 and from 2001 fermented his white wines in qvevri buried in his cellar. Their Ribolla Gialla became the reference point for the style. Friuli also has an older tradition of ramato, copper-colored Pinot Grigio made with brief skin contact.",
+          "**Everywhere else.** Orange wine is now made around the world, in France, Austria, Spain, Australia, South Africa, California and beyond. Many of the producers in our list of [the world's best natural wine producers](/guides/worlds-best-natural-wine-producers) make one.",
+        ],
+        sv: [],
+      },
+    },
+    {
+      locales: ["en"],
+      heading: {
+        en: "Who named orange wine?",
+        sv: "",
+      },
+      body: {
+        en: [
+          "David Harvey of the UK wine merchant Raeburn Fine Wines says he started using the term \"orange wine\" in 2004, because the style had no name and he worried buyers would reject the wines as neither white nor red. The name stuck, though Harvey has said he no longer fully likes it.",
+        ],
+        sv: [],
+      },
+    },
+    {
+      locales: ["en"],
+      heading: {
+        en: "How to serve orange wine",
+        sv: "",
+      },
+      body: {
+        en: [
+          "Serve it cool but not cold, around 54–57°F (12–14°C), warmer than a white and cooler than a red. Fuller, long-macerated wines benefit from a larger glass and some air.",
+        ],
+        sv: [],
+      },
+    },
+    {
+      locales: ["en"],
+      heading: {
+        en: "Food with orange wine",
+        sv: "",
+      },
+      body: {
+        en: [
+          "The tannin and texture make orange wine easy to pair. It works with dishes that are hard for both white and red: savory and umami-rich food such as aged cheese, mushrooms, cured meats and fermented vegetables, and spiced dishes where a white would feel thin and a red too heavy. Lighter, shorter-macerated wines suit grilled fish and vegetables. Avoid very delicate dishes that the tannin would overpower.",
+        ],
+        sv: [],
+      },
+    },
+    {
+      locales: ["en"],
+      heading: {
+        en: "Where to start",
+        sv: "",
+      },
+      body: {
+        en: [
+          "For specific bottles, see [the world's best orange wines](/guides/worlds-best-orange-wines).",
+        ],
+        sv: [],
+      },
+    },
+  ],
+  faqs: [
+    {
+      locales: ["en"],
+      question: { en: "What is orange wine?", sv: "" },
+      answer: {
+        en: "White wine fermented with its grape skins, like a red. The skins give it an amber color, tannin and texture.",
+        sv: "",
+      },
+    },
+    {
+      locales: ["en"],
+      question: { en: "Is orange wine made from oranges?", sv: "" },
+      answer: {
+        en: "No. The name refers to the color, which comes from the grape skins.",
+        sv: "",
+      },
+    },
+    {
+      locales: ["en"],
+      question: { en: "Is orange wine the same as skin contact wine?", sv: "" },
+      answer: {
+        en: "Yes. Skin contact describes the method and orange describes the color. In Georgia the same style is called amber wine.",
+        sv: "",
+      },
+    },
+    {
+      locales: ["en"],
+      question: { en: "Is orange wine natural wine?", sv: "" },
+      answer: {
+        en: "Not necessarily. Skin contact is a method, while natural wine describes low intervention from vineyard to bottle. Many orange wines are also natural wines.",
+        sv: "",
+      },
+    },
+    {
+      locales: ["en"],
+      question: { en: "Is orange wine sweet?", sv: "" },
+      answer: {
+        en: "No. Almost all orange wine is dry, with a light tannic grip.",
+        sv: "",
+      },
+    },
+    {
+      locales: ["en"],
+      question: { en: "How should orange wine be served?", sv: "" },
+      answer: {
+        en: "Around 54–57°F (12–14°C), warmer than white wine and cooler than red.",
+        sv: "",
       },
     },
   ],
@@ -228,7 +412,7 @@ export const whatIsOrangeWineArticle: GuideArticleContent = {
     },
     {
       label: {
-        en: "",
+        en: "The world's best natural wine producers →",
         sv: "Världens 100 bästa naturvinsproducenter →",
       },
       href: {
