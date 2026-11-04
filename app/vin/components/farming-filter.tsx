@@ -1,8 +1,11 @@
 "use client";
 
 import { Product } from "@/lib/shopify/types";
+import { usePathname } from "next/navigation";
 import { useQueryState, parseAsArrayOf, parseAsString } from "nuqs";
 import { useTranslations } from "@/lib/hooks/use-translations";
+import { cn } from "@/lib/utils";
+import { shouldNavigateShopFilters } from "@/lib/shop/filter-navigation";
 import {
   SHOP_FARMING_UI_FILTER_VALUES,
   countProductsByFarming,
@@ -36,29 +39,29 @@ export function FarmingFilter({
   getFarmingHref,
 }: FarmingFilterProps) {
   const { t } = useTranslations();
+  const pathname = usePathname() || "";
+  const navigateFilters = shouldNavigateShopFilters(pathname);
   const [active, setActive] = useQueryState(
     "ffarming",
     parseAsArrayOf(parseAsString).withDefault([]),
   );
 
   const counts = countProductsByFarming(products);
+  const countsReady = products.length > 0;
   const activeUiFarming =
     activeFarming &&
     (SHOP_FARMING_UI_FILTER_VALUES as readonly string[]).includes(activeFarming)
       ? activeFarming
       : undefined;
-  // When category navigation hrefs are available, list Organic/Biodynamic for
-  // SSR <a href>, but hide values that would land on an empty category.
-  const options = getFarmingHref
-    ? SHOP_FARMING_UI_FILTER_VALUES.filter((value) => {
-        const isOn =
-          active.includes(value) || activeUiFarming === value;
-        if (isOn) return true;
-        return getFarmingHref(value) != null;
-      })
-    : SHOP_FARMING_UI_FILTER_VALUES.filter(
-        (value) => (counts.get(value) ?? 0) > 0,
-      );
+  // Navigation mode: keep Organic/Biodynamic <a href>, hide empty categories.
+  // Query mode: href is null, so keep the catalog options and toggle ?ffarming=.
+  const options = SHOP_FARMING_UI_FILTER_VALUES.filter((value) => {
+    if (!getFarmingHref) return (counts.get(value) ?? 0) > 0;
+    const isOn = active.includes(value) || activeUiFarming === value;
+    if (isOn) return true;
+    if (getFarmingHref(value) != null) return true;
+    return !navigateFilters;
+  });
 
   if (options.length === 0) return null;
 
@@ -117,9 +120,36 @@ export function FarmingFilter({
           const isOn = active.includes(value) || activeUiFarming === value;
           const label = t(`product.farming.${value}`);
           const href = getFarmingHref?.(value) ?? null;
+          const hitCount = counts.get(value) ?? 0;
+          const unavailable =
+            !navigateFilters &&
+            href == null &&
+            countsReady &&
+            hitCount === 0 &&
+            !isOn;
           const optionClassName = shopFilterOptionClassName(isOn, {
             density: isSheet ? "sheet" : "default",
           });
+
+          if (unavailable) {
+            return (
+              <button
+                key={value}
+                type="button"
+                disabled
+                className={cn(
+                  optionClassName,
+                  "cursor-not-allowed opacity-40 md:hover:text-neutral-500",
+                )}
+                aria-disabled
+                aria-label={t("shop.filterByFarming", { name: label })}
+              >
+                <ShopFilterOptionContent selected={false}>
+                  {label} (0)
+                </ShopFilterOptionContent>
+              </button>
+            );
+          }
 
           if (href) {
             return (

@@ -6,7 +6,9 @@ import { Product } from "@/lib/shopify/types";
 import { cn } from "@/lib/utils";
 import { useAvailableColors } from "../hooks/use-available-colors";
 import { useColorFilterCount } from "../hooks/use-filter-count";
+import { shouldNavigateShopFilters } from "@/lib/shop/filter-navigation";
 import { AnimatePresence, motion } from "motion/react";
+import { usePathname } from "next/navigation";
 import { useTranslations } from "@/lib/hooks/use-translations";
 import { formatWineColorDisplay } from "@/lib/i18n/wine-color-labels";
 
@@ -40,30 +42,52 @@ export function ColorFilter({
   showSwatchLabels = false,
 }: ColorFilterProps) {
   const { t } = useTranslations();
-  const { availableColors, selectedColors, toggleColor } =
+  const pathname = usePathname() || "";
+  const navigateFilters = shouldNavigateShopFilters(pathname);
+  const { availableColors, selectedColors, toggleColor, colorCounts } =
     useAvailableColors(products, showAllColors, activeColor);
   const colorCount = useColorFilterCount();
+  const countsReady = products.length > 0;
 
   // Category URL hrefs do not need the product list; show colors immediately
   // so server HTML includes <a href> for crawlable filter links.
   const colorsReady =
     Boolean(getColorHref) || showAllColors || products.length > 0;
-  // Hide colors that would navigate to an empty category (no href, not selected).
-  const displayColors = getColorHref
-    ? availableColors.filter((color) => {
-        const name = getColorName(color);
-        if (name === activeColor) return true;
-        if (
-          selectedColors.some((selected) => getColorName(selected) === name)
-        ) {
-          return true;
-        }
-        return getColorHref(name) != null;
-      })
-    : availableColors;
+  // Navigation mode: hide colors that would land on an empty category.
+  // Query mode (producer pages): keep the catalog list when href is null.
+  const displayColors =
+    getColorHref && navigateFilters
+      ? availableColors.filter((color) => {
+          const name = getColorName(color);
+          if (name === activeColor) return true;
+          if (
+            selectedColors.some((selected) => getColorName(selected) === name)
+          ) {
+            return true;
+          }
+          return getColorHref(name) != null;
+        })
+      : availableColors;
   const atLeastOneColor = displayColors.length > 0;
 
+  const isColorSelected = (color: Color | [Color, Color]) => {
+    const name = getColorName(color);
+    return selectedColors.some((selected) => getColorName(selected) === name);
+  };
+
+  const colorHitCount = (color: Color | [Color, Color]) =>
+    colorCounts.get(getColorName(color)) ?? 0;
+
+  const queryColorState = (color: Color | [Color, Color]) => {
+    if (navigateFilters) return undefined;
+    const empty =
+      countsReady && colorHitCount(color) === 0 && !isColorSelected(color);
+    if (!empty) return undefined;
+    return { disabled: true, annotation: "(0)" };
+  };
+
   const handleColorChange = (colorInput: Color | [Color, Color]) => {
+    if (queryColorState(colorInput)?.disabled) return;
     const colorName = getColorName(colorInput);
     if (onColorSelect) {
       const handled = onColorSelect(colorName);
@@ -108,10 +132,11 @@ export function ColorFilter({
             formatDisplayName={(c) => formatWineColorDisplay(t, c)}
             selectColorAria={(name) => t("shop.selectColorAria", { name })}
             getColorHref={
-              getColorHref
+              navigateFilters && getColorHref
                 ? (color) => getColorHref(getColorName(color))
                 : undefined
             }
+            getColorState={navigateFilters ? undefined : queryColorState}
             showLabels
           />
         )}
@@ -147,10 +172,11 @@ export function ColorFilter({
             formatDisplayName={(c) => formatWineColorDisplay(t, c)}
             selectColorAria={(name) => t("shop.selectColorAria", { name })}
             getColorHref={
-              getColorHref
+              navigateFilters && getColorHref
                 ? (color) => getColorHref(getColorName(color))
                 : undefined
             }
+            getColorState={navigateFilters ? undefined : queryColorState}
           />
         )}
       </motion.div>

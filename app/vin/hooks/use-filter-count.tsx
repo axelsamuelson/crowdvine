@@ -8,8 +8,28 @@ import {
   getActiveWineRegionFromPathname,
 } from "@/lib/wine-categories";
 
+type ShopRouteParams = {
+  collection?: string | string[];
+  category?: string | string[];
+};
+
+function paramValue(value: string | string[] | undefined): string | undefined {
+  if (typeof value === "string") return value.length > 0 ? value : undefined;
+  if (Array.isArray(value)) return value.find((part) => part.length > 0);
+  return undefined;
+}
+
+/** Producer handle from /vin/[collection] or /wine/[category]. Category and box slugs are ignored. */
+export function producerSegmentFromParams(
+  params: ShopRouteParams | null,
+): string | undefined {
+  if (!params) return undefined;
+  const segment = paramValue(params.collection) ?? paramValue(params.category);
+  return isProducerCollectionSegment(segment) ? segment : undefined;
+}
+
 export function useFilterCount() {
-  const params = useParams<{ collection: string }>();
+  const params = useParams<ShopRouteParams>();
   const pathname = usePathname() || "";
   const [color] = useQueryState(
     "fcolor",
@@ -66,7 +86,7 @@ export function useFilterCount() {
 
   // Count producer collection filter only — wine category paths
   // (e.g. /vin/rott-naturvin) share [collection] but are not producers.
-  if (isProducerCollectionSegment(params.collection)) {
+  if (producerSegmentFromParams(params)) {
     count += 1;
   }
 
@@ -78,10 +98,10 @@ export function useFilterCount() {
 }
 
 export function useCategoryFilterCount() {
-  const params = useParams<{ collection: string }>();
+  const params = useParams<ShopRouteParams>();
 
   // Return 1 if a producer collection is selected, 0 if not
-  return isProducerCollectionSegment(params.collection) ? 1 : 0;
+  return producerSegmentFromParams(params) ? 1 : 0;
 }
 
 export function useColorFilterCount() {
