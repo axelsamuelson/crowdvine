@@ -2,28 +2,23 @@ import type { Metadata } from "next";
 
 import { bestPetNatWinesSystembolagetSvArticle } from "@/lib/guides/articles/best-pet-nat-wines-systembolaget";
 import {
-  buildArticleGuideMetadata,
-  renderArticleGuidePage,
-} from "@/lib/guides/render-article-guide";
+  buildSystembolagetRankedListMetadata,
+  renderSystembolagetRankedListPage,
+} from "@/lib/guides/systembolaget-ranked-list";
 
 export const revalidate = 600;
 
-export async function generateMetadata(): Promise<Metadata> {
-  const meta = await buildArticleGuideMetadata(
+export function generateMetadata(): Promise<Metadata> {
+  return buildSystembolagetRankedListMetadata(
     bestPetNatWinesSystembolagetSvArticle,
     "sv",
   );
-  // Exact <title>; absolute bypasses root layout `%s | ${siteName}` template.
-  const title = "Bästa pet nat på Systembolaget – vårt urval | PACT";
-  return {
-    ...meta,
-    title: { absolute: title },
-  };
 }
 
 export default function BastaPetNatSystembolagetGuidePage() {
-  return renderArticleGuidePage(
+  return renderSystembolagetRankedListPage(
     bestPetNatWinesSystembolagetSvArticle,
     "sv",
+    "petnat",
   );
 }

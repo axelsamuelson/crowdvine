@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+
 import { describe, expect, it } from "vitest";
 
 import {
@@ -5,7 +7,9 @@ import {
   bestPetNatWinesSystembolagetSvArticle,
 } from "@/lib/guides/articles/best-pet-nat-wines-systembolaget";
 import { articlePath } from "@/lib/guides/guide-types";
+import { linkNamedWines } from "@/lib/guides/systembolaget-ranked-list";
 import { categoryPageTitle } from "@/lib/seo/category-page-title";
+import type { SystembolagetGuideWine } from "@/lib/systembolaget/guide-wines";
 
 describe("best pet nat Systembolaget guide", () => {
   it("keeps the Swedish URL and English hreflang pair", () => {
@@ -22,7 +26,7 @@ describe("best pet nat Systembolaget guide", () => {
 
   it("uses the draft H1, meta title and description for Swedish", () => {
     expect(bestPetNatWinesSystembolagetSvArticle.h1.sv).toBe(
-      "Bästa pet nat på Systembolaget",
+      "Bästa pet nat på Systembolaget 2026",
     );
     expect(bestPetNatWinesSystembolagetSvArticle.meta.sv).toBe(
       "Bästa pet nat på Systembolaget enligt PACT: pét-nat från Loire, Alsace, Mosel, Chile med flera, med fakta om druva och producent, vad pét-nat är och vanliga frågor.",
@@ -50,82 +54,77 @@ describe("best pet nat Systembolaget guide", () => {
     expect(bestPetNatWinesSystembolagetSvArticle.shopCta).toBeNull();
   });
 
-  it("anchors the shortlist to wine heading ids without prices or shop CTAs", () => {
-    const listSection = bestPetNatWinesSystembolagetSvArticle.sections.find(
-      (section) => section.heading?.sv === "Listan",
-    );
-    const ids = (listSection?.blocks ?? [])
-      .filter((block) => block.type === "heading")
-      .map((block) => (block.type === "heading" ? block.id : undefined));
-    expect(ids).toEqual([
-      "haggan-pet-nat",
-      "chidaine-petillant",
-      "fio-piu-piu",
-      "korab-orange-on-leaves",
-      "henriot-bubulle",
-      "faller-muscat",
-      "riedlin-spatburgunder",
-      "la-colombe-de-facto",
-      "pranzegg-miaumiau",
-      "puput-rose",
-      "integrale-rose",
-      "pino-roman-pais",
-      "pequenos-rebentos",
-    ]);
-
-    const factBlocks = (listSection?.blocks ?? []).filter(
-      (block) => block.type === "definitions",
-    );
-    expect(factBlocks.length).toBe(13);
-    expect(factBlocks[0]).toMatchObject({
-      type: "definitions",
-      items: expect.arrayContaining([
-        expect.objectContaining({
-          term: expect.objectContaining({ sv: "Producent och region" }),
-        }),
-      ]),
-    });
-
-    const odlingCount = factBlocks.filter((block) =>
-      block.type === "definitions" &&
-      block.items.some((item) => item.term.sv === "Odling"),
-    ).length;
-    expect(odlingCount).toBe(9);
+  it("keeps the editorial sections and drops the hardcoded wine list", () => {
     expect(
-      factBlocks.every(
-        (block) =>
-          block.type !== "definitions" ||
-          block.items.every(
-            (item) =>
-              item.term.sv !== "Sortiment" ||
-              !/\(ekologiskt enligt Systembolaget\)/.test(item.description.sv),
-          ),
+      bestPetNatWinesSystembolagetSvArticle.sections.map(
+        (section) => section.heading?.sv,
       ),
-    ).toBe(true);
-
-    const grapeFor = (id: string) => {
-      const blocks = listSection?.blocks ?? [];
-      const hi = blocks.findIndex(
-        (block) => block.type === "heading" && block.id === id,
-      );
-      const def = blocks[hi + 1];
-      if (def?.type !== "definitions") return undefined;
-      return def.items.find((item) => item.term.sv === "Druva")?.description.sv;
-    };
-    expect(grapeFor("korab-orange-on-leaves")).toBe("Uppgift saknas");
-    expect(ids).not.toContain("binner-storm");
-
-    const serialized = JSON.stringify(bestPetNatWinesSystembolagetSvArticle);
-    expect(serialized).not.toMatch(/binner/i);
-    expect(serialized).not.toMatch(/\d+\s*kr\b/);
-    expect(serialized).not.toMatch(/köp nu|shop now|lägg i kundvagn/i);
-    expect(serialized).toContain(
-      "Inte alla viner på listan är belagda som naturvin",
+    ).toEqual([
+      "Vårt urval i korthet",
+      "Så har vi valt",
+      "Vad vi inte listar",
+      "Vad är pét-nat?",
+      "Pét-nat och mat",
+    ]);
+    const avoid = bestPetNatWinesSystembolagetSvArticle.sections.find(
+      (section) => section.heading?.en === "What we don't list",
     );
-    expect(serialized).toContain("Fio och Koráb");
-    expect(serialized).not.toContain("Binner, Fio");
-    expect(bestPetNatWinesSystembolagetSvArticle.sections.some(
-      (section) => section.heading?.sv === "Vad är pét-nat?",
-    )).toBe(true);
+    const avoidSv = Array.isArray(avoid?.body.sv)
+      ? avoid.body.sv.join("\n")
+      : (avoid?.body.sv ?? "");
+    expect(avoidSv).toContain(
+      "Mousserande vin som bara har ett naturligt klingande ord på etiketten",
+    );
+    expect(avoidSv).toContain("Vi utgår från producenten, inte från stilnamnet.");
+    const serialized = JSON.stringify(bestPetNatWinesSystembolagetSvArticle);
+    expect(serialized).toContain(
+      "**Om tillsatser:** Systembolagets data visar inte tillsatser eller sulfithalt. Där en importör uppger det (Fio Piu Piu)",
+    );
+    expect(serialized).not.toContain("Inga priser");
+    expect(serialized).not.toContain("#haggan-pet-nat");
+    expect(serialized).not.toContain("Producent och region");
+    expect(bestPetNatWinesSystembolagetSvArticle.showRankedWineFacts).toBe(true);
+    expect(bestPetNatWinesSystembolagetArticle.showRankedWineFacts).toBeUndefined();
+    expect(bestPetNatWinesSystembolagetArticle.h1.en).toBe(
+      "Best pet nat at Systembolaget 2026",
+    );
+    const page = readFileSync(
+      "app/guider/basta-pet-nat-systembolaget/page.tsx",
+      "utf8",
+    );
+    expect(page).toContain("renderSystembolagetRankedListPage");
+    expect(page).toContain('"petnat"');
+    expect(page).not.toContain("renderArticleGuidePage");
+    const english = readFileSync(
+      "app/guides/best-pet-nat-systembolaget/page.tsx",
+      "utf8",
+    );
+    expect(english).toContain("bestPetNatWinesSystembolagetArticle");
+    expect(english).not.toContain("bestPetNatWinesSystembolagetSvArticle");
+  });
+
+  it("links shortlist names to the database wine, including an accented spelling", () => {
+    const korab = {
+      id: 1,
+      product_number: "1",
+      producer_name: "Mgr. Petr Korab",
+      name_bold: "Petr Korab",
+      name_thin: "Orange on Leaves Pet Nat",
+    } as SystembolagetGuideWine;
+    const henriot = {
+      id: 2,
+      product_number: "2",
+      producer_name: "Sandrine Henriot",
+      name_bold: "Sandrine Henriot",
+      name_thin: "PetNat Bubulle",
+    } as SystembolagetGuideWine;
+    expect(
+      linkNamedWines("Petr Koráb Orange on Leaves och Sandrine Henriot PetNat Bubulle.", [
+        korab,
+        henriot,
+      ]),
+    ).toBe(
+      "[Petr Koráb Orange on Leaves](#mgr-petr-korab-orange-on-leaves-pet-nat) och [Sandrine Henriot PetNat Bubulle](#sandrine-henriot-petnat-bubulle).",
+    );
   });
 });
