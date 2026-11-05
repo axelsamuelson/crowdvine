@@ -21,6 +21,10 @@ interface ColorSwatchProps {
   href?: string | null;
   /** Show a small text label under the swatch (mobile PLP filter sheet). */
   showLabel?: boolean;
+  /** Query-mode facet: present in the catalog, zero hits in the current list. */
+  disabled?: boolean;
+  /** Short caption under the swatch, e.g. "(0)". */
+  annotation?: string;
 }
 
 export const sizeClasses = {
@@ -40,13 +44,13 @@ export function ColorSwatch({
   selectColorAria,
   href,
   showLabel = false,
+  disabled = false,
+  annotation,
 }: ColorSwatchProps) {
   const isDualColor = Array.isArray(color);
   const displayName =
     displayNameProp ??
-    (isDualColor
-      ? `${color[0].name} & ${color[1].name}`
-      : color.name);
+    (isDualColor ? `${color[0].name} & ${color[1].name}` : color.name);
   const ariaLabel = selectColorAria
     ? selectColorAria(displayName)
     : `Select color: ${displayName}`;
@@ -77,46 +81,69 @@ export function ColorSwatch({
     <div className="w-full h-full" style={{ backgroundColor: color.value }} />
   );
 
-  const control = href ? (
-    <a
-      href={href}
-      className={className}
-      title={displayName}
-      onClick={(event) => {
-        event.preventDefault();
-        onColorChange(color);
-      }}
-      aria-pressed={isSelected}
-      aria-label={ariaLabel}
-    >
-      {swatchBody}
-      {!showLabel ? <span className="sr-only">{displayName}</span> : null}
-    </a>
-  ) : (
-    <button
-      type="button"
-      className={className}
-      title={displayName}
-      onClick={() => onColorChange(color)}
-      aria-pressed={isSelected}
-      aria-label={ariaLabel}
-    >
-      {swatchBody}
-      {!showLabel ? <span className="sr-only">{displayName}</span> : null}
-    </button>
-  );
+  const swatchClassName = disabled
+    ? cn(
+        className,
+        "cursor-not-allowed opacity-40 hover:opacity-40 hover:ring-accent",
+      )
+    : className;
 
-  if (!showLabel) return control;
+  const control =
+    href && !disabled ? (
+      <a
+        href={href}
+        className={className}
+        title={displayName}
+        onClick={(event) => {
+          event.preventDefault();
+          onColorChange(color);
+        }}
+        aria-pressed={isSelected}
+        aria-label={ariaLabel}
+      >
+        {swatchBody}
+        {!showLabel ? <span className="sr-only">{displayName}</span> : null}
+      </a>
+    ) : (
+      <button
+        type="button"
+        className={swatchClassName}
+        title={displayName}
+        disabled={disabled}
+        onClick={() => {
+          if (disabled) return;
+          onColorChange(color);
+        }}
+        aria-pressed={isSelected}
+        aria-disabled={disabled || undefined}
+        aria-label={ariaLabel}
+      >
+        {swatchBody}
+        {!showLabel ? <span className="sr-only">{displayName}</span> : null}
+      </button>
+    );
+
+  if (!showLabel && !annotation) return control;
 
   return (
     <span className="inline-flex flex-col items-center gap-1">
       {control}
-      <span
-        className="max-w-[3.25rem] truncate text-center text-[10px] font-medium leading-tight text-foreground/70"
-        aria-hidden
-      >
-        {displayName}
-      </span>
+      {showLabel ? (
+        <span
+          className="max-w-[3.25rem] truncate text-center text-[10px] font-medium leading-tight text-foreground/70"
+          aria-hidden
+        >
+          {displayName}
+        </span>
+      ) : null}
+      {annotation ? (
+        <span
+          className="text-center text-[10px] font-medium leading-tight text-foreground/45"
+          aria-hidden
+        >
+          {annotation}
+        </span>
+      ) : null}
     </span>
   );
 }
@@ -132,6 +159,10 @@ interface ColorPickerProps {
   getColorHref?: (color: Color | [Color, Color]) => string | null;
   /** Mobile filter sheet: labels under each swatch. Desktop leaves unset. */
   showLabels?: boolean;
+  /** Query-mode only. Navigation mode leaves this unset. */
+  getColorState?: (
+    color: Color | [Color, Color],
+  ) => { disabled?: boolean; annotation?: string } | undefined;
 }
 
 export function ColorPicker({
@@ -144,6 +175,7 @@ export function ColorPicker({
   selectColorAria,
   getColorHref,
   showLabels = false,
+  getColorState,
 }: ColorPickerProps) {
   const [isClient, setIsClient] = useState(false);
   const atLeastOneColor = selectedColors.length > 0;
@@ -168,8 +200,33 @@ export function ColorPicker({
 
   const ColorWrapper = isClient ? motion.div : "div";
 
+  const renderSwatch = (color: Color | [Color, Color]) => {
+    const state = getColorState?.(color);
+    return (
+      <ColorSwatch
+        color={color}
+        isSelected={isColorSelected(color)}
+        onColorChange={onColorChange}
+        size={size}
+        atLeastOneColorSelected={atLeastOneColor}
+        displayName={formatDisplayName?.(color)}
+        selectColorAria={selectColorAria}
+        href={getColorHref?.(color)}
+        showLabel={showLabels}
+        disabled={state?.disabled}
+        annotation={state?.annotation}
+      />
+    );
+  };
+
   return (
-    <div className={cn("flex flex-wrap gap-1.5", showLabels && "gap-x-2.5 gap-y-2", className)}>
+    <div
+      className={cn(
+        "flex flex-wrap gap-1.5",
+        showLabels && "gap-x-2.5 gap-y-2",
+        className,
+      )}
+    >
       {isClient ? (
         <AnimatePresence initial={false}>
           {colors.map((color, index) => (
@@ -188,19 +245,13 @@ export function ColorPicker({
                 delay: index * 0.05,
                 ease: "easeOut",
               }}
-              className={showLabels ? undefined : sizeClasses[size]}
+              className={
+                showLabels || getColorState?.(color)?.annotation
+                  ? undefined
+                  : sizeClasses[size]
+              }
             >
-              <ColorSwatch
-                color={color}
-                isSelected={isColorSelected(color)}
-                onColorChange={onColorChange}
-                size={size}
-                atLeastOneColorSelected={atLeastOneColor}
-                displayName={formatDisplayName?.(color)}
-                selectColorAria={selectColorAria}
-                href={getColorHref?.(color)}
-                showLabel={showLabels}
-              />
+              {renderSwatch(color)}
             </ColorWrapper>
           ))}
         </AnimatePresence>
@@ -212,19 +263,13 @@ export function ColorPicker({
                 ? `${color[0].value}-${color[1].value}`
                 : color.value
             }
-            className={showLabels ? undefined : sizeClasses[size]}
+            className={
+              showLabels || getColorState?.(color)?.annotation
+                ? undefined
+                : sizeClasses[size]
+            }
           >
-            <ColorSwatch
-              color={color}
-              isSelected={isColorSelected(color)}
-              onColorChange={onColorChange}
-              size={size}
-              atLeastOneColorSelected={atLeastOneColor}
-              displayName={formatDisplayName?.(color)}
-              selectColorAria={selectColorAria}
-              href={getColorHref?.(color)}
-              showLabel={showLabels}
-            />
+            {renderSwatch(color)}
           </ColorWrapper>
         ))
       )}

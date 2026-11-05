@@ -4,7 +4,10 @@ import { producerDisplayName } from "@/lib/producer-display-name";
 import { Collection } from "@/lib/shopify/types";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { useCategoryFilterCount } from "../hooks/use-filter-count";
+import {
+  producerSegmentFromParams,
+  useCategoryFilterCount,
+} from "../hooks/use-filter-count";
 import { useQueryState, parseAsString } from "nuqs";
 import { useTranslations } from "@/lib/hooks/use-translations";
 import { useLocalizedPaths } from "@/lib/hooks/use-localized-paths";
@@ -37,7 +40,11 @@ export function CategoryFilter({
 }: CategoryFilterProps) {
   const { t } = useTranslations();
   const paths = useLocalizedPaths();
-  const params = useParams<{ collection: string }>();
+  const params = useParams<{
+    collection?: string | string[];
+    category?: string | string[];
+  }>();
+  const producerSegment = producerSegmentFromParams(params);
   const [producersParam] = useQueryState(
     "producers",
     parseAsString.withDefault(""),
@@ -56,7 +63,7 @@ export function CategoryFilter({
     .filter((collection) => collection.handle !== "wine-boxes")
     .filter(
       (collection) =>
-        params.collection === collection.handle ||
+        producerSegment === collection.handle ||
         selectedProducers.includes(collection.handle),
     )
     .map((collection) => collectionLabel(collection));
@@ -103,7 +110,7 @@ export function CategoryFilter({
             .map((collection, index) => {
               const label = collectionLabel(collection);
               const isSelected =
-                params.collection === collection.handle ||
+                producerSegment === collection.handle ||
                 selectedProducers.includes(collection.handle);
               return (
                 <li key={`${collection.handle}-${index}`}>
