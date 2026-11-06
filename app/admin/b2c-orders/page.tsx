@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   formatPaymentMethodSummary,
 } from "@/lib/stripe/payment-method-display";
-import { resolveAdminFulfillmentDisplay } from "@/lib/admin/reservations-list-query";
+import { resolveAdminFulfillmentDisplay } from "@/lib/admin/fulfillment-display";
 import {
   Calendar,
   Clock,

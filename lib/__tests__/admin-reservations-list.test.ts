@@ -2,10 +2,8 @@
  * Admin reservations list: fulfillment fields + old-schema fallback + display.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  fetchAdminReservationsList,
-  resolveAdminFulfillmentDisplay,
-} from "@/lib/admin/reservations-list-query";
+import { resolveAdminFulfillmentDisplay } from "@/lib/admin/fulfillment-display";
+import { fetchAdminReservationsList } from "@/lib/admin/reservations-list-query";
 
 describe("resolveAdminFulfillmentDisplay", () => {
   it("shows dispatch status as Fulfillment, not Charge hold", () => {
