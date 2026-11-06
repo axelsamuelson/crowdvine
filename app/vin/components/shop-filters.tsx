@@ -11,13 +11,21 @@ import { ColorFilter } from "./color-filter";
 import { GrapesFilter } from "./grapes-filter";
 import { FarmingFilter } from "./farming-filter";
 import { RegionFilter } from "./region-filter";
-import { CompetitorFilter, type PriceSourceForFilter } from "./competitor-filter";
+import {
+  CompetitorFilter,
+  type PriceSourceForFilter,
+} from "./competitor-filter";
 import { ShopFilterSearch } from "./shop-filter-search";
 import { useProducts } from "@/components/shop/products-provider";
 import { useFilterCount } from "../hooks/use-filter-count";
 import { isProducerBoxesPath } from "@/lib/producer-boxes/config";
 import { ProducerBoxesCta } from "./producer-boxes-cta";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { X } from "lucide-react";
 import { useTranslations } from "@/lib/hooks/use-translations";
 import { useLocalizedPaths } from "@/lib/hooks/use-localized-paths";
@@ -49,6 +57,7 @@ export function DesktopFilters({
   ssrPathname,
   navigableShopPaths,
   linkableRegionSlugs,
+  catalogSourceSlugs,
 }: {
   collections: Collection[];
   priceSources?: PriceSourceForFilter[];
@@ -56,6 +65,7 @@ export function DesktopFilters({
   ssrPathname: string;
   navigableShopPaths?: readonly string[];
   linkableRegionSlugs?: readonly string[];
+  catalogSourceSlugs?: readonly string[];
 }) {
   const { t } = useTranslations();
   const paths = useLocalizedPaths();
@@ -193,9 +203,7 @@ export function DesktopFilters({
     if (isMainShop && originalProducts.length > 0) {
       setProducts(filterProductsByGrapes(originalProducts, [grapeName]));
     }
-    router.push(
-      withPreservedShopFilters(url, { omitKeys: ["fgrape"] }) ?? url,
-    );
+    router.push(withPreservedShopFilters(url, { omitKeys: ["fgrape"] }) ?? url);
     return true;
   };
 
@@ -240,6 +248,8 @@ export function DesktopFilters({
                   activeColor={activeColorName ?? undefined}
                   onColorSelect={handleColorSelect}
                   getColorHref={resolveColorHref}
+                  navigableShopPaths={navigableShopPaths}
+                  pathname={pathname}
                 />
                 <RegionFilter
                   mode="sidebar"
@@ -260,6 +270,7 @@ export function DesktopFilters({
                   onSeeAll={openSeeAll}
                   onGrapeSelect={handleGrapeSelect}
                   activeGrape={activeGrapeName ?? undefined}
+                  pathname={pathname}
                 />
               </>
             )}
@@ -273,6 +284,8 @@ export function DesktopFilters({
                 sources={priceSources}
                 mode="sidebar"
                 onSeeAll={openSeeAll}
+                catalogSourceSlugs={catalogSourceSlugs}
+                pathname={pathname}
               />
             )}
           </Suspense>
@@ -285,7 +298,10 @@ export function DesktopFilters({
 
       {/* Full-screen "See all" overlay (desktop) */}
       <Dialog open={seeAllOpen} onOpenChange={setSeeAllOpen}>
-        <DialogContent hideCloseButton className="w-screen h-[100dvh] max-w-none left-0 top-0 translate-x-0 translate-y-0 p-0 sm:rounded-none">
+        <DialogContent
+          hideCloseButton
+          className="w-screen h-[100dvh] max-w-none left-0 top-0 translate-x-0 translate-y-0 p-0 sm:rounded-none"
+        >
           <div className="h-full w-full flex flex-col bg-background min-h-0">
             <DialogHeader className="shrink-0 px-6 py-4 border-b border-border flex-row items-center justify-between space-y-0">
               <DialogTitle className="text-xl font-semibold">
@@ -333,10 +349,14 @@ export function DesktopFilters({
                     <>
                       <ColorFilter
                         products={originalProducts}
-                        showAllColors={showAllFilterColors || isColorCategoryPage}
+                        showAllColors={
+                          showAllFilterColors || isColorCategoryPage
+                        }
                         activeColor={activeColorName ?? undefined}
                         onColorSelect={handleColorSelect}
                         getColorHref={resolveColorHref}
+                        navigableShopPaths={navigableShopPaths}
+                        pathname={pathname}
                       />
                       <RegionFilter
                         mode="overlay"
@@ -354,12 +374,18 @@ export function DesktopFilters({
                         mode="overlay"
                         onGrapeSelect={handleGrapeSelect}
                         activeGrape={activeGrapeName ?? undefined}
+                        pathname={pathname}
                       />
                     </>
                   )}
                   <CategoryFilter collections={collections} mode="overlay" />
                   {isProducerBoxesPage ? null : (
-                    <CompetitorFilter sources={priceSources} mode="overlay" />
+                    <CompetitorFilter
+                      sources={priceSources}
+                      mode="overlay"
+                      catalogSourceSlugs={catalogSourceSlugs}
+                      pathname={pathname}
+                    />
                   )}
                 </div>
               </Suspense>

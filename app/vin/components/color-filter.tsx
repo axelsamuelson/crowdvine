@@ -6,7 +6,12 @@ import { Product } from "@/lib/shopify/types";
 import { cn } from "@/lib/utils";
 import { useAvailableColors } from "../hooks/use-available-colors";
 import { useColorFilterCount } from "../hooks/use-filter-count";
-import { shouldNavigateShopFilters } from "@/lib/shop/filter-navigation";
+import {
+  shouldNavigateShopFilters,
+  localeFromShopPathname,
+  resolveShopFilterNavigationUrl,
+} from "@/lib/shop/filter-navigation";
+import { gateShopFilterHref } from "@/lib/shop/gate-shop-filter-href";
 import { AnimatePresence, motion } from "motion/react";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "@/lib/hooks/use-translations";
@@ -20,10 +25,28 @@ interface ColorFilterProps {
   activeColor?: string;
   /** Clean category URL for each color when shop filter navigation applies. */
   getColorHref?: (colorName: string) => string | null;
+  /** Category paths that have catalog wines. Query mode uses this, not the fixed color list. */
+  navigableShopPaths?: readonly string[];
+  /** Request path. Parents pass the SSR fallback so /wine stays in navigation mode. */
+  pathname?: string;
   /** Mobile filter sheet only: labels under swatches. */
   showSwatchLabels?: boolean;
 }
 
+function catalogColorIsListed(
+  colorName: string,
+  locale: "sv" | "en",
+  navigablePaths: readonly string[] | undefined,
+): boolean {
+  const url = resolveShopFilterNavigationUrl({
+    locale,
+    currentPath: locale === "en" ? "/wine" : "/vin",
+    nextColorUi: colorName,
+  });
+  const path = url.split("?")[0] ?? url;
+  if (path === "/wine" || path === "/vin") return false;
+  return gateShopFilterHref(path, { isClear: false, navigablePaths }) != null;
+}
 function getColorName(color: Color | [Color, Color]) {
   if (Array.isArray(color)) {
     const [color1, color2] = color;
@@ -39,11 +62,15 @@ export function ColorFilter({
   showAllColors,
   activeColor,
   getColorHref,
+  navigableShopPaths,
+  pathname: pathnameProp,
   showSwatchLabels = false,
 }: ColorFilterProps) {
   const { t } = useTranslations();
-  const pathname = usePathname() || "";
+  const routerPathname = usePathname();
+  const pathname = pathnameProp || routerPathname || "";
   const navigateFilters = shouldNavigateShopFilters(pathname);
+  const locale = localeFromShopPathname(pathname);
   const { availableColors, selectedColors, toggleColor, colorCounts } =
     useAvailableColors(products, showAllColors, activeColor);
   const colorCount = useColorFilterCount();
@@ -54,7 +81,7 @@ export function ColorFilter({
   const colorsReady =
     Boolean(getColorHref) || showAllColors || products.length > 0;
   // Navigation mode: hide colors that would land on an empty category.
-  // Query mode (producer pages): keep the catalog list when href is null.
+  // Query mode: same catalog colors as /wine (navigable category), not the fixed list.
   const displayColors =
     getColorHref && navigateFilters
       ? availableColors.filter((color) => {
@@ -67,7 +94,18 @@ export function ColorFilter({
           }
           return getColorHref(name) != null;
         })
-      : availableColors;
+      : navigateFilters
+        ? availableColors
+        : availableColors.filter((color) => {
+            const name = getColorName(color);
+            if (name === activeColor) return true;
+            if (
+              selectedColors.some((selected) => getColorName(selected) === name)
+            ) {
+              return true;
+            }
+            return catalogColorIsListed(name, locale, navigableShopPaths);
+          });
   const atLeastOneColor = displayColors.length > 0;
 
   const isColorSelected = (color: Color | [Color, Color]) => {
