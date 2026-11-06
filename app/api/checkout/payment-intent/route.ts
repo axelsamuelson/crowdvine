@@ -173,49 +173,13 @@ export async function POST(request: Request) {
     const { gateDirectBoxCheckoutRequest } = await import(
       "@/lib/commerce/fulfillment-channel-server-gates"
     );
+    const {
+      assertDirectBoxRejectsDeferredPipeline,
+      buildDirectBoxPaymentIntentMetadata,
+      DIRECT_BOX_PAYMENT_MODE,
+    } = await import("@/lib/commerce/direct-box-payment-contract");
     const clientChannel = parseFulfillmentChannel(body?.fulfillment_channel);
 
-    // Early direct_box gate: spoof / mode-scoped quote / carrier.
-    // NEVER continue into shared-pallet shipping (99 SEK) for this channel.
-    if (clientChannel === "direct_box") {
-      const cartForDirect = await CartService.getCart();
-      const bottleCountDirect = (cartForDirect?.lines || []).reduce(
-        (s, l) => s + (Number(l.quantity) || 0),
-        0,
-      );
-      const subtotalDirect =
-        parseFloat(String(cartForDirect?.cost?.totalAmount?.amount ?? "0")) ||
-        0;
-      const authDirect = await gateDirectBoxCheckoutRequest({
-        clientChannelRaw: body?.fulfillment_channel,
-        selectedPalletId: null,
-        countryCode: null,
-        bottleCount: bottleCountDirect,
-        productSubtotalSek: subtotalDirect,
-      });
-      if (!authDirect.ok) {
-        return NextResponse.json(
-          { error: authDirect.message, code: authDirect.errorCode },
-          { status: authDirect.httpStatus },
-        );
-      }
-      // Technical gate passed — full PI amount path without pallet remains
-      // operationally gated (eShipping contract / owner price decision).
-      // Do not fall through into shared-pallet pallet_id + 99 SEK path.
-      return NextResponse.json(
-        {
-          error:
-            "direct_box payment-intent amount path is not operationally enabled (eShipping/FR→SE linehaul + owner price decision still required; shared-pallet path not used)",
-          code: "direct_box_amount_path_not_enabled",
-          authorized: true,
-          fulfillment_channel: "direct_box",
-          shippingSek: authDirect.plan.shippingSek,
-        },
-        { status: 400 },
-      );
-    }
-
-    const pallet_id = typeof body?.pallet_id === "string" ? body.pallet_id : "";
     const pact_points_redeem =
       typeof body?.pact_points_redeem === "number" ? body.pact_points_redeem : 0;
     const promoDiscountSek =
@@ -228,6 +192,302 @@ export async function POST(request: Request) {
       Number.isFinite(body.voucher_discount_sek)
         ? Math.max(0, body.voucher_discount_sek)
         : 0;
+
+    // -------------------------------------------------------------------------
+    // direct_box PaymentIntent amount path (no pallet / no deferred SetupIntent)
+    // Fail closed BEFORE any Stripe PI create when carrier/rate missing.
+    // NEVER fall through into shared-pallet pallet_id + pact/99 SEK path.
+    // -------------------------------------------------------------------------
+    if (clientChannel === "direct_box") {
+      // Spoof reject first (no zone/cart/Stripe work when flag OFF).
+      const spoofGate = await gateDirectBoxCheckoutRequest({
+        clientChannelRaw: body?.fulfillment_channel,
+        selectedPalletId: null,
+        countryCode: "SE",
+        bottleCount: 0,
+        productSubtotalSek: 0,
+      });
+      if (
+        !spoofGate.ok &&
+        spoofGate.errorCode === "channel_spoof_rejected"
+      ) {
+        return NextResponse.json(
+          { error: spoofGate.message, code: spoofGate.errorCode },
+          { status: spoofGate.httpStatus },
+        );
+      }
+
+      const cart = await CartService.getCart();
+      if (!cart || !cart.lines?.length) {
+        return NextResponse.json({ error: "Cart is empty" }, { status: 400 });
+      }
+
+      const sbAdminDirect = getSupabaseAdmin();
+      const activeDirect = await resolveActiveGeoZoneForUser(user.id);
+      let zoneTemplateDirect: UserZoneAddressTemplate | null = null;
+      if (activeDirect.geoZoneId) {
+        const { data: zr, error: zrErr } = await sbAdminDirect
+          .from("user_zone_addresses")
+          .select("*")
+          .eq("user_id", user.id)
+          .eq("geo_zone_id", activeDirect.geoZoneId)
+          .maybeSingle();
+        if (zrErr) {
+          console.error("[payment-intent] direct zone address load:", zrErr.message);
+          return NextResponse.json(
+            { error: "Failed to load delivery details for your wine zone" },
+            { status: 500 },
+          );
+        }
+        zoneTemplateDirect = zr as UserZoneAddressTemplate | null;
+      }
+      const deliveryDirect = userZoneRowToDeliveryLines(zoneTemplateDirect);
+      if (!isZoneDeliveryCompleteForActiveGeo(activeDirect, deliveryDirect)) {
+        return NextResponse.json(
+          {
+            error: `Add delivery details for ${activeDirect.displayName} before paying.`,
+          },
+          { status: 400 },
+        );
+      }
+      const countryCodeDirect = deliveryDirect!.countryCode;
+
+      const bottleCountDirect = cart.lines.reduce(
+        (s, l) => s + (Number(l.quantity) || 0),
+        0,
+      );
+      const subtotalDirect =
+        parseFloat(String(cart.cost.totalAmount.amount)) || 0;
+
+      // Full gate (carrier / mode-scoped rate) — before any PI creation.
+      const authDirect = await gateDirectBoxCheckoutRequest({
+        clientChannelRaw: body?.fulfillment_channel,
+        selectedPalletId: null,
+        countryCode: countryCodeDirect,
+        bottleCount: bottleCountDirect,
+        productSubtotalSek: subtotalDirect,
+      });
+      if (!authDirect.ok) {
+        return NextResponse.json(
+          { error: authDirect.message, code: authDirect.errorCode },
+          { status: authDirect.httpStatus },
+        );
+      }
+
+      // Client may still send a leftover pallet_id from UI state — strip it.
+      // Never bind pallet or enter deferred SetupIntent pipeline.
+      const deferredGuard = assertDirectBoxRejectsDeferredPipeline({
+        paymentMode: DIRECT_BOX_PAYMENT_MODE,
+        palletId: null,
+      });
+      if (!deferredGuard.ok) {
+        return NextResponse.json(
+          { error: deferredGuard.message, code: deferredGuard.code },
+          { status: 400 },
+        );
+      }
+
+      const resolvedMarketDirect = await resolveMarketForCountry({
+        countryCode: activeDirect.countryCode,
+        regionCode: activeDirect.regionCode,
+      });
+      if (resolvedMarketDirect.checkoutMode === "conditional_reservation") {
+        return NextResponse.json(
+          {
+            error:
+              "direct_box does not support conditional/deferred reservation checkout",
+            code: "direct_box_rejects_deferred_setup",
+          },
+          { status: 400 },
+        );
+      }
+
+      let boostedLineTotal = 0;
+      let nonBoostedLineTotal = 0;
+      for (const line of cart.lines) {
+        const amt = parseFloat(String(line.cost.totalAmount.amount)) || 0;
+        if (line.merchandise.product.producerBoostActive === true) {
+          boostedLineTotal += amt;
+        } else {
+          nonBoostedLineTotal += amt;
+        }
+      }
+      const availablePoints = await getRedeemableBalance(user.id);
+      const { maxPoints } = calculateBoostAwareMaxRedemption(
+        boostedLineTotal,
+        nonBoostedLineTotal,
+        availablePoints,
+      );
+      const pointsToRedeem = Math.min(
+        Math.max(0, Math.floor(pact_points_redeem)),
+        maxPoints,
+      );
+      const alloc = allocatePactRedemptionPoints(
+        pointsToRedeem,
+        boostedLineTotal,
+        nonBoostedLineTotal,
+      );
+
+      // Server quote uses authorize plan shipping (mode-scoped) — never pact/99.
+      const shippingSek = authDirect.plan.shippingSek;
+      const { amountOre: amountInOre, components } =
+        await computeExpectedAmountOre({
+          userId: user.id,
+          cartId: cart.id,
+          shippingSek,
+          voucherSek: voucherDiscountSek,
+          pactPointsSek: alloc.sekDiscount,
+          promoSek: promoDiscountSek,
+          displayMultiplier: 1,
+          cart,
+        });
+      const quote = buildCheckoutQuote({
+        components,
+        amountOre: amountInOre,
+        pactPointsRedeem: pointsToRedeem,
+        shippingPending: false,
+      });
+      if (amountInOre <= 0) {
+        return NextResponse.json(
+          { error: "Order total cannot be zero" },
+          { status: 400 },
+        );
+      }
+
+      const legalNow = new Date();
+      const requiredAge = resolveMarketAgeMinimum({
+        countryCode: resolvedMarketDirect.countryCode || countryCodeDirect,
+        ageMinimum: resolvedMarketDirect.ageMinimum,
+      });
+      const legalGate = evaluateLegalGate(
+        {
+          dateOfBirth: body?.dateOfBirth,
+          acceptedTermsVersion: body?.acceptedTermsVersion,
+        },
+        legalNow,
+        requiredAge,
+      );
+      if (!legalGate.ok) {
+        if (legalGate.reason === "validation_error") {
+          return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+        }
+        if (legalGate.reason === "age_requirement_not_met") {
+          return NextResponse.json(
+            { error: "age_requirement_not_met" },
+            { status: 403 },
+          );
+        }
+        return NextResponse.json(
+          {
+            error: "terms_version_stale",
+            currentVersion: legalGate.currentVersion,
+          },
+          { status: 409 },
+        );
+      }
+
+      const { error: profileDobErr } = await sbAdminDirect
+        .from("profiles")
+        .update({
+          date_of_birth: legalGate.dateOfBirth,
+          updated_at: legalNow.toISOString(),
+        })
+        .eq("id", user.id);
+      if (profileDobErr) {
+        console.error(
+          "[payment-intent] direct Failed to save date_of_birth:",
+          profileDobErr,
+        );
+        return NextResponse.json(
+          { error: "Failed to save age verification" },
+          { status: 500 },
+        );
+      }
+
+      const carrier = authDirect.plan.carrier;
+      if (carrier.status !== "eligible") {
+        return NextResponse.json(
+          {
+            error: "direct_box carrier not eligible",
+            code: "direct_box_carrier_unconfigured",
+          },
+          { status: 400 },
+        );
+      }
+
+      const purchaseLegalMetadata = legalGateStripeMetadata(legalGate);
+      const metadata = buildDirectBoxPaymentIntentMetadata({
+        userId: user.id,
+        amountOre: amountInOre,
+        shippingSek,
+        carrierId: carrier.carrierId,
+        carrierProduct: carrier.productCode,
+        pactPointsRedeem: pointsToRedeem,
+        voucherDiscountSek,
+        promoDiscountSek,
+        legalMetadata: purchaseLegalMetadata,
+      });
+
+      const customerId = await getOrCreateStripeCustomer(user.id);
+
+      // Idempotent reuse: same user + amount + direct_box open PI.
+      const existingList = await stripe.paymentIntents.list({
+        customer: customerId,
+        limit: 8,
+      });
+      const existing = existingList.data.find((pi) => {
+        const meta = pi.metadata ?? {};
+        return (
+          meta.fulfillment_channel === "direct_box" &&
+          meta.expected_amount_ore === String(amountInOre) &&
+          meta.user_id === user.id &&
+          (pi.status === "requires_payment_method" ||
+            pi.status === "requires_confirmation")
+        );
+      });
+      if (existing?.client_secret) {
+        console.log(
+          "[payment-intent] Reusing open direct_box PaymentIntent:",
+          existing.id,
+        );
+        return NextResponse.json({
+          paymentMode: DIRECT_BOX_PAYMENT_MODE,
+          clientSecret: existing.client_secret,
+          intentId: existing.id,
+          amountInOre,
+          quote,
+          fulfillment_channel: "direct_box",
+          bottlesFilled: 0,
+          palletStatus: null,
+          palletThreshold: PALLET_THRESHOLD,
+        });
+      }
+
+      const intent = await stripe.paymentIntents.create({
+        customer: customerId,
+        amount: amountInOre,
+        currency: stripeCurrency,
+        automatic_payment_methods: { enabled: true },
+        capture_method: "automatic",
+        metadata,
+      });
+
+      console.log("[payment-intent] Created direct_box PaymentIntent:", intent.id);
+
+      return NextResponse.json({
+        paymentMode: DIRECT_BOX_PAYMENT_MODE,
+        clientSecret: intent.client_secret,
+        intentId: intent.id,
+        amountInOre,
+        quote,
+        fulfillment_channel: "direct_box",
+        bottlesFilled: 0,
+        palletStatus: null,
+        palletThreshold: PALLET_THRESHOLD,
+      });
+    }
+
+    const pallet_id = typeof body?.pallet_id === "string" ? body.pallet_id : "";
 
     if (!pallet_id) {
       return NextResponse.json({ error: "Missing pallet_id" }, { status: 400 });
@@ -480,6 +740,7 @@ export async function POST(request: Request) {
       productSubtotalSek: subtotalSek,
       deliveryCountry: countryCode,
       activeZoneCountry: active.countryCode,
+      fulfillmentMode: "shared_pallet",
       pallet: palletRow,
     });
     const shippingSek = shippingCharge.shippingSek;

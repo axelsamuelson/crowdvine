@@ -6,6 +6,7 @@
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
+import { LEGAL_VERSIONS } from "@/lib/legal/versions";
 
 const getCurrentUser = vi.fn();
 const getCart = vi.fn();
@@ -15,6 +16,14 @@ const sendLabelsEmail = vi.fn();
 const constructEvent = vi.fn();
 const resolveAndChargeCheckoutShipping = vi.fn();
 const loadDirectBoxCarrierConfigFromEnv = vi.fn();
+const paymentIntentsCreate = vi.fn();
+const paymentIntentsList = vi.fn();
+const setupIntentsCreate = vi.fn();
+const setupIntentsList = vi.fn();
+const resolveActiveGeoZoneForUser = vi.fn();
+const resolveMarketForCountry = vi.fn();
+const getRedeemableBalance = vi.fn();
+const getOrCreateStripeCustomer = vi.fn();
 
 vi.mock("next/headers", () => ({
   cookies: async () => ({
@@ -48,6 +57,25 @@ function makeThenableQuery(data: unknown = null) {
 vi.mock("@/lib/supabase-admin", () => ({
   getSupabaseAdmin: () => ({
     from: (table: string) => {
+      if (table === "user_zone_addresses") {
+        return makeThenableQuery({
+          id: "uza-1",
+          user_id: "user-1",
+          geo_zone_id: "zone-1",
+          full_name: "Test",
+          phone: "+46700000000",
+          email: "t@example.com",
+          address_line1: "Testgatan 1",
+          address_line2: null,
+          city: "Stockholm",
+          postal_code: "11122",
+          country_code: "SE",
+          region_code: null,
+        });
+      }
+      if (table === "profiles") {
+        return makeThenableQuery({ id: "user-1" });
+      }
       if (table === "order_reservations") {
         return makeThenableQuery({
           id: "res-1",
@@ -78,6 +106,7 @@ vi.mock("@/lib/supabase-admin", () => ({
 
 vi.mock("@/lib/membership/pact-points-engine", () => ({
   confirmPendingRedemption: async () => ({ success: true }),
+  getRedeemableBalance: (...args: unknown[]) => getRedeemableBalance(...args),
 }));
 
 vi.mock("@/lib/stripe", () => ({
@@ -85,11 +114,20 @@ vi.mock("@/lib/stripe", () => ({
     webhooks: {
       constructEvent: (...args: unknown[]) => constructEvent(...args),
     },
+    paymentIntents: {
+      create: (...args: unknown[]) => paymentIntentsCreate(...args),
+      list: (...args: unknown[]) => paymentIntentsList(...args),
+    },
+    setupIntents: {
+      create: (...args: unknown[]) => setupIntentsCreate(...args),
+      list: (...args: unknown[]) => setupIntentsList(...args),
+    },
   },
 }));
 
 vi.mock("@/lib/stripe/customer", () => ({
-  getOrCreateStripeCustomer: async () => "cus_test",
+  getOrCreateStripeCustomer: (...args: unknown[]) =>
+    getOrCreateStripeCustomer(...args),
 }));
 
 vi.mock("@/lib/shopping-context/resolve", () => ({
@@ -105,6 +143,17 @@ vi.mock("@/src/lib/cart-service", () => ({
   CartService: {
     getCart: () => getCart(),
   },
+}));
+
+vi.mock("@/lib/market/resolve-active-geo-zone", () => ({
+  resolveActiveGeoZoneForUser: (...args: unknown[]) =>
+    resolveActiveGeoZoneForUser(...args),
+}));
+
+vi.mock("@/lib/market/resolve-market", () => ({
+  resolveMarketForCountry: (...args: unknown[]) =>
+    resolveMarketForCountry(...args),
+  legacyMarketModeFromResolved: () => "open",
 }));
 
 vi.mock("@/lib/checkout/resolve-checkout-shipping", async () => {
@@ -141,6 +190,23 @@ vi.mock("@/lib/stripe/resolve-payment-method-details", () => ({
   resolvePaymentMethodDetailsFromId: async () => null,
 }));
 
+const DIRECT_CARRIER = {
+  carrierId: "test_only_carrier",
+  productCode: "TEST_DIRECT",
+  allowedCountryCodes: ["SE"],
+  quotingEnabled: true,
+};
+
+const DIRECT_RATE = {
+  shippingSek: 149,
+  shippingPending: false,
+  source: "configured_flat" as const,
+  reason: "test-only direct_box rate (not a production price decision)",
+  countryCode: "SE",
+  rateChannel: "direct_box" as const,
+  fulfillmentMode: "direct_box" as const,
+};
+
 describe("WIRED ROUTE contracts (payment-intent)", () => {
   beforeEach(() => {
     vi.resetModules();
@@ -148,12 +214,61 @@ describe("WIRED ROUTE contracts (payment-intent)", () => {
     getCart.mockReset();
     resolveAndChargeCheckoutShipping.mockReset();
     loadDirectBoxCarrierConfigFromEnv.mockReset();
+    paymentIntentsCreate.mockReset();
+    paymentIntentsList.mockReset();
+    setupIntentsCreate.mockReset();
+    setupIntentsList.mockReset();
+    resolveActiveGeoZoneForUser.mockReset();
+    resolveMarketForCountry.mockReset();
+    getRedeemableBalance.mockReset();
+    getOrCreateStripeCustomer.mockReset();
+
     getCurrentUser.mockResolvedValue({ id: "user-1", email: "u@example.com" });
     getCart.mockResolvedValue({
       id: "cart-1",
-      lines: [{ quantity: 6 }],
+      lines: [
+        {
+          quantity: 6,
+          cost: { totalAmount: { amount: "1200" } },
+          merchandise: { product: { producerBoostActive: false } },
+        },
+      ],
       cost: { totalAmount: { amount: "1200" } },
     });
+    resolveActiveGeoZoneForUser.mockResolvedValue({
+      geoZoneId: "zone-1",
+      marketCode: "SE",
+      countryCode: "SE",
+      regionCode: null,
+      city: "Stockholm",
+      displayName: "Stockholm",
+      zoneType: "city",
+      eligibilityStatus: "open",
+      currencyCode: "SEK",
+      defaultDeliveryZoneId: "dz-1",
+      source: "profile",
+      canStartCampaign: true,
+      canReserveConditionally: false,
+      canCheckoutNormally: true,
+    });
+    resolveMarketForCountry.mockResolvedValue({
+      countryCode: "SE",
+      checkoutMode: "open",
+      isCheckoutEligible: true,
+      isConditionalReservationEligible: false,
+      ageMinimum: 20,
+      reason: null,
+    });
+    getRedeemableBalance.mockResolvedValue(0);
+    getOrCreateStripeCustomer.mockResolvedValue("cus_test");
+    paymentIntentsList.mockResolvedValue({ data: [] });
+    paymentIntentsCreate.mockResolvedValue({
+      id: "pi_direct_test",
+      client_secret: "pi_direct_test_secret",
+      amount: 134900,
+      status: "requires_payment_method",
+    });
+
     process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY = "pk_test_x";
     process.env.STRIPE_SECRET_KEY = "sk_test_x";
     delete process.env.DIRECT_BOX_CHECKOUT_ENABLED;
@@ -180,18 +295,13 @@ describe("WIRED ROUTE contracts (payment-intent)", () => {
     const json = await res.json();
     expect(json.code).toBe("channel_spoof_rejected");
     expect(resolveAndChargeCheckoutShipping).not.toHaveBeenCalled();
+    expect(paymentIntentsCreate).not.toHaveBeenCalled();
+    expect(setupIntentsCreate).not.toHaveBeenCalled();
   });
 
   it("fails not_quoted when only pact/99 SEK rate would apply (wired route)", async () => {
     process.env.DIRECT_BOX_CHECKOUT_ENABLED = "true";
-    loadDirectBoxCarrierConfigFromEnv.mockReturnValue({
-      carrierId: "test_only_carrier",
-      productCode: "TEST_DIRECT",
-      allowedCountryCodes: ["SE"],
-      quotingEnabled: true,
-    });
-    // Simulate resolver returning pact rate if someone forgot mode scope —
-    // gate must still reject via rateChannel check. Prefer honest missing.
+    loadDirectBoxCarrierConfigFromEnv.mockReturnValue(DIRECT_CARRIER);
     resolveAndChargeCheckoutShipping.mockResolvedValue({
       shippingSek: 99,
       shippingPending: false,
@@ -204,23 +314,19 @@ describe("WIRED ROUTE contracts (payment-intent)", () => {
 
     const res = await postPaymentIntent({
       fulfillment_channel: "direct_box",
+      dateOfBirth: "1990-01-01",
+      acceptedTermsVersion: LEGAL_VERSIONS.terms,
     });
     expect(res.status).toBe(400);
     const json = await res.json();
     expect(json.code).toBe("direct_box_not_quoted");
-    expect(resolveAndChargeCheckoutShipping).toHaveBeenCalledWith(
-      expect.objectContaining({ fulfillmentMode: "direct_box", pallet: null }),
-    );
+    expect(paymentIntentsCreate).not.toHaveBeenCalled();
+    expect(setupIntentsCreate).not.toHaveBeenCalled();
   });
 
   it("fails not_quoted when mode-scoped direct_box rate is missing (wired route)", async () => {
     process.env.DIRECT_BOX_CHECKOUT_ENABLED = "true";
-    loadDirectBoxCarrierConfigFromEnv.mockReturnValue({
-      carrierId: "test_only_carrier",
-      productCode: "TEST_DIRECT",
-      allowedCountryCodes: ["SE"],
-      quotingEnabled: true,
-    });
+    loadDirectBoxCarrierConfigFromEnv.mockReturnValue(DIRECT_CARRIER);
     resolveAndChargeCheckoutShipping.mockResolvedValue({
       shippingSek: 0,
       shippingPending: true,
@@ -233,10 +339,97 @@ describe("WIRED ROUTE contracts (payment-intent)", () => {
 
     const res = await postPaymentIntent({
       fulfillment_channel: "direct_box",
+      dateOfBirth: "1990-01-01",
+      acceptedTermsVersion: LEGAL_VERSIONS.terms,
     });
     expect(res.status).toBe(400);
     const json = await res.json();
     expect(json.code).toBe("direct_box_not_quoted");
+    expect(paymentIntentsCreate).not.toHaveBeenCalled();
+  });
+
+  it("fails closed before PI when carrier unconfigured (wired route)", async () => {
+    process.env.DIRECT_BOX_CHECKOUT_ENABLED = "true";
+    loadDirectBoxCarrierConfigFromEnv.mockReturnValue(null);
+    resolveAndChargeCheckoutShipping.mockResolvedValue(DIRECT_RATE);
+
+    const res = await postPaymentIntent({
+      fulfillment_channel: "direct_box",
+      dateOfBirth: "1990-01-01",
+      acceptedTermsVersion: LEGAL_VERSIONS.terms,
+    });
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.code).toBe("direct_box_carrier_unconfigured");
+    expect(paymentIntentsCreate).not.toHaveBeenCalled();
+    expect(setupIntentsCreate).not.toHaveBeenCalled();
+  });
+
+  it("POSITIVE direct path: creates payment_intent with mode-scoped amount/metadata; never setup_intent", async () => {
+    process.env.DIRECT_BOX_CHECKOUT_ENABLED = "true";
+    loadDirectBoxCarrierConfigFromEnv.mockReturnValue(DIRECT_CARRIER);
+    resolveAndChargeCheckoutShipping.mockResolvedValue(DIRECT_RATE);
+
+    const res = await postPaymentIntent({
+      fulfillment_channel: "direct_box",
+      // leftover pallet must not enter deferred pipeline
+      pallet_id: "leftover-pallet",
+      dateOfBirth: "1990-01-01",
+      acceptedTermsVersion: LEGAL_VERSIONS.terms,
+    });
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.paymentMode).toBe("payment_intent");
+    expect(json.fulfillment_channel).toBe("direct_box");
+    expect(json.palletStatus).toBeNull();
+    // 1200 wine + 149 shipping = 1349 SEK → 134900 öre
+    expect(json.amountInOre).toBe(134900);
+    expect(paymentIntentsCreate).toHaveBeenCalledTimes(1);
+    expect(setupIntentsCreate).not.toHaveBeenCalled();
+    expect(setupIntentsList).not.toHaveBeenCalled();
+
+    const createArg = paymentIntentsCreate.mock.calls[0][0];
+    expect(createArg.amount).toBe(134900);
+    expect(createArg.metadata.fulfillment_channel).toBe("direct_box");
+    expect(createArg.metadata.pallet_id).toBe("");
+    expect(createArg.metadata.shipping_rate_channel).toBe("direct_box");
+    expect(createArg.metadata.shipping_sek).toBe("149");
+    expect(createArg.metadata.carrier_id).toBe("test_only_carrier");
+    expect(createArg.metadata.expected_amount_ore).toBe("134900");
+    expect(resolveAndChargeCheckoutShipping).toHaveBeenCalledWith(
+      expect.objectContaining({ fulfillmentMode: "direct_box", pallet: null }),
+    );
+  });
+
+  it("POSITIVE direct path: retries reuse open PI (no duplicate intent)", async () => {
+    process.env.DIRECT_BOX_CHECKOUT_ENABLED = "true";
+    loadDirectBoxCarrierConfigFromEnv.mockReturnValue(DIRECT_CARRIER);
+    resolveAndChargeCheckoutShipping.mockResolvedValue(DIRECT_RATE);
+    paymentIntentsList.mockResolvedValue({
+      data: [
+        {
+          id: "pi_existing",
+          client_secret: "pi_existing_secret",
+          status: "requires_payment_method",
+          metadata: {
+            fulfillment_channel: "direct_box",
+            expected_amount_ore: "134900",
+            user_id: "user-1",
+          },
+        },
+      ],
+    });
+
+    const res = await postPaymentIntent({
+      fulfillment_channel: "direct_box",
+      dateOfBirth: "1990-01-01",
+      acceptedTermsVersion: LEGAL_VERSIONS.terms,
+    });
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.intentId).toBe("pi_existing");
+    expect(paymentIntentsCreate).not.toHaveBeenCalled();
+    expect(setupIntentsCreate).not.toHaveBeenCalled();
   });
 });
 
@@ -268,12 +461,7 @@ describe("WIRED ROUTE contracts (confirm gate via shared server gate)", () => {
       "@/lib/commerce/fulfillment-channel-server-gates"
     );
     process.env.DIRECT_BOX_CHECKOUT_ENABLED = "true";
-    loadDirectBoxCarrierConfigFromEnv.mockReturnValue({
-      carrierId: "test_only_carrier",
-      productCode: "TEST_DIRECT",
-      allowedCountryCodes: ["SE"],
-      quotingEnabled: true,
-    });
+    loadDirectBoxCarrierConfigFromEnv.mockReturnValue(DIRECT_CARRIER);
     resolveAndChargeCheckoutShipping.mockResolvedValue({
       shippingSek: 99,
       shippingPending: false,
@@ -291,9 +479,6 @@ describe("WIRED ROUTE contracts (confirm gate via shared server gate)", () => {
     });
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.errorCode).toBe("direct_box_not_quoted");
-    expect(resolveAndChargeCheckoutShipping).toHaveBeenCalledWith(
-      expect.objectContaining({ fulfillmentMode: "direct_box", pallet: null }),
-    );
   });
 });
 
@@ -308,7 +493,7 @@ describe("WIRED ROUTE contracts (stripe webhook Instabee isolation)", () => {
     process.env.INSTABEE_AUTO_CREATE_ORDERS = "true";
   });
 
-  it("never books Instabee Budbee when PI metadata is direct_box", async () => {
+  it("never books Instabee Budbee when PI metadata is direct_box (retry-safe)", async () => {
     constructEvent.mockReturnValue({
       type: "payment_intent.succeeded",
       data: {
@@ -325,14 +510,16 @@ describe("WIRED ROUTE contracts (stripe webhook Instabee isolation)", () => {
     });
 
     const { POST } = await import("@/app/api/stripe/webhook/route");
-    const res = await POST(
+    const req = () =>
       new NextRequest("http://localhost/api/stripe/webhook", {
         method: "POST",
         headers: { "stripe-signature": "t=1,v1=test" },
         body: "{}",
-      }),
-    );
-    expect(res.status).toBe(200);
+      });
+    const res1 = await POST(req());
+    const res2 = await POST(req());
+    expect(res1.status).toBe(200);
+    expect(res2.status).toBe(200);
     expect(createInstabeeOrder).not.toHaveBeenCalled();
     expect(confirmInstabeePacking).not.toHaveBeenCalled();
   });

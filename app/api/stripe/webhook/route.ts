@@ -10,6 +10,7 @@ import {
 import { sendLabelsEmail } from "@/lib/email/instabee-labels";
 import { emitCheckoutCompletedOnce } from "@/lib/analytics/emit-checkout-completed";
 import { shouldDispatchInstabeeBudbeeHome } from "@/lib/commerce/fulfillment-channel-pipeline";
+import { assertDirectBoxWebhookDispatchIdempotent } from "@/lib/commerce/direct-box-payment-contract";
 
 function paymentIntentLatestChargeId(
   paymentIntent: Stripe.PaymentIntent,
@@ -199,6 +200,10 @@ async function handlePaymentIntentSucceededWebhook(
             ? String((resData as { pallet_id?: string }).pallet_id)
             : palletIdFromMeta ?? null;
 
+        const directDispatch = assertDirectBoxWebhookDispatchIdempotent({
+          paymentMetadataChannel: channelFromMeta,
+          alreadyDispatched: false,
+        });
         if (
           !shouldDispatchInstabeeBudbeeHome({
             fulfillment_channel: null,
@@ -207,8 +212,9 @@ async function handlePaymentIntentSucceededWebhook(
           })
         ) {
           console.log(
-            `[Stripe Webhook] skip Instabee Budbee booking reservation_id=${reservationId} channel=${channelFromMeta ?? "unknown"}`,
+            `[Stripe Webhook] skip Instabee Budbee booking reservation_id=${reservationId} channel=${channelFromMeta ?? "unknown"} reason=${directDispatch.reason}`,
           );
+          // Retries: direct_box never books Instabee; no duplicate fulfilment invented here.
         } else {
         const addrRaw = resData.user_addresses;
         const addr = Array.isArray(addrRaw) ? addrRaw[0] : addrRaw;

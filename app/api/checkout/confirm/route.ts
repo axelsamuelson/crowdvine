@@ -92,6 +92,7 @@ import {
 import { type AuthorizedFulfillmentPlan } from "@/lib/commerce/fulfillment-channel-pipeline";
 import { parseFulfillmentChannel } from "@/lib/commerce/fulfillment-channel";
 import { gateDirectBoxCheckoutRequest } from "@/lib/commerce/fulfillment-channel-server-gates";
+import { assertDirectBoxConfirmIntentBinding } from "@/lib/commerce/direct-box-payment-contract";
 import { validatePromoDiscountCode } from "@/lib/promo-discount-validate";
 import { markExitDiscountRedeemed } from "@/lib/exit-discount/validate";
 import type { PromoDiscountCartItem } from "@/lib/discount-codes";
@@ -987,6 +988,21 @@ export async function POST(request: Request) {
         ? stripe_intent_type
         : null;
 
+    // direct_box must never enter pallet deferred SetupIntent pipeline.
+    if (
+      authorizedFulfillment?.channel === "direct_box" &&
+      intentType === "setup_intent"
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "direct_box confirm rejects setup_intent (pallet deferred-charge pipeline)",
+          code: "direct_box_rejects_deferred_setup",
+        },
+        { status: 400 },
+      );
+    }
+
     if (!deferredLinkCheckout && (!intentId || !intentType)) {
       return NextResponse.json(
         { error: "Missing stripe_intent_id or stripe_intent_type" },
@@ -1185,7 +1201,7 @@ export async function POST(request: Request) {
           voucherSek: voucherSekOff,
           pactPointsRedeem: pact_points_redeem,
           palletId,
-          fulfillmentChannel: null,
+          fulfillmentChannel: authorizedFulfillment?.channel ?? null,
         },
       });
       if (!promoResult.ok) {
@@ -1385,7 +1401,40 @@ export async function POST(request: Request) {
       }
 
       const stripeAmountOre = Number(paymentIntent.amount) || 0;
-      if (!amountsWithinTolerance(expectedAmountOre, stripeAmountOre)) {
+
+      // direct_box: bind server quote + channel; reject client/PI tampering.
+      if (authorizedFulfillment?.channel === "direct_box") {
+        const clientClaimedAmountOre =
+          body &&
+          typeof body === "object" &&
+          "expected_amount_ore" in body &&
+          typeof (body as { expected_amount_ore?: unknown }).expected_amount_ore ===
+            "number"
+            ? (body as { expected_amount_ore: number }).expected_amount_ore
+            : body &&
+                typeof body === "object" &&
+                "total_sek" in body &&
+                typeof (body as { total_sek?: unknown }).total_sek === "number"
+              ? Math.round(
+                  Number((body as { total_sek: number }).total_sek) * 100,
+                )
+              : null;
+        const bind = assertDirectBoxConfirmIntentBinding({
+          intentType,
+          paymentIntentAmountOre: stripeAmountOre,
+          serverExpectedAmountOre: expectedAmountOre,
+          paymentIntentMetadata: stripeIntentMetadata,
+          clientChannelRaw: clientFulfillmentChannelRaw,
+          clientClaimedAmountOre,
+        });
+        if (!bind.ok) {
+          console.error("[direct_box confirm binding rejected]", bind);
+          return NextResponse.json(
+            { error: bind.message, code: bind.code },
+            { status: 400 },
+          );
+        }
+      } else if (!amountsWithinTolerance(expectedAmountOre, stripeAmountOre)) {
         console.error("[amount-mismatch]", {
           expected: expectedAmountOre,
           fromMetadata: stripeAmountOre,
