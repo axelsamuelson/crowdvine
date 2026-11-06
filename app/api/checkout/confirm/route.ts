@@ -97,7 +97,7 @@ import { gateDirectBoxCheckoutRequest } from "@/lib/commerce/fulfillment-channel
 import { assertDirectBoxConfirmIntentBinding } from "@/lib/commerce/direct-box-payment-contract";
 import {
   buildDirectBoxReservationInsertPatch,
-  isMissingSchemaColumnError,
+  isDirectBoxSchemaUnreadyError,
   resolveCheckoutGroupPalletAssignment,
 } from "@/lib/commerce/direct-box-reservation-persistence";
 import { getOrCreateStripeCustomer } from "@/lib/stripe/customer";
@@ -1811,25 +1811,21 @@ export async function POST(request: Request) {
           .select("id")
           .single();
 
-        // Migration 277 may be unapplied — strip fulfillment_channel and retry once.
+        // Migration 277 required for direct_box — fail closed (no charge_blocked_reason fallback).
         if (
           insErr &&
           authorizedFulfillment?.channel === "direct_box" &&
-          isMissingSchemaColumnError(insErr, "fulfillment_channel")
+          isDirectBoxSchemaUnreadyError(insErr)
         ) {
-          const retryPatch = buildDirectBoxReservationInsertPatch({
-            includeChannelColumn: false,
-          });
-          const retryInsert = {
-            ...groupBaseInsert,
-            ...retryPatch,
-          };
-          delete retryInsert.fulfillment_channel;
-          ({ data: row, error: insErr } = await sbAdmin
-            .from("order_reservations")
-            .insert(retryInsert)
-            .select("id")
-            .single());
+          await rollbackCheckoutGroup();
+          return NextResponse.json(
+            {
+              error:
+                "direct_box requires migration 277 (fulfillment_channel + fulfillment_dispatch_status). Schema not ready.",
+              code: "direct_box_schema_unready",
+            },
+            { status: 503 },
+          );
         }
 
         if (insErr || !row?.id) {
@@ -1964,18 +1960,16 @@ export async function POST(request: Request) {
       if (
         reservationError &&
         authorizedFulfillment?.channel === "direct_box" &&
-        isMissingSchemaColumnError(reservationError, "fulfillment_channel")
+        isDirectBoxSchemaUnreadyError(reservationError)
       ) {
-        const retryPatch = buildDirectBoxReservationInsertPatch({
-          includeChannelColumn: false,
-        });
-        const retryInsert = { ...singleBaseInsert, ...retryPatch };
-        delete retryInsert.fulfillment_channel;
-        ({ data: resRow, error: reservationError } = await sbAdmin
-          .from("order_reservations")
-          .insert(retryInsert)
-          .select("id")
-          .single());
+        return NextResponse.json(
+          {
+            error:
+              "direct_box requires migration 277 (fulfillment_channel + fulfillment_dispatch_status). Schema not ready.",
+            code: "direct_box_schema_unready",
+          },
+          { status: 503 },
+        );
       }
 
       if (reservationError || !resRow?.id) {

@@ -12,8 +12,11 @@ import { emitCheckoutCompletedOnce } from "@/lib/analytics/emit-checkout-complet
 import { shouldDispatchInstabeeBudbeeHome } from "@/lib/commerce/fulfillment-channel-pipeline";
 import { assertDirectBoxWebhookDispatchIdempotent } from "@/lib/commerce/direct-box-payment-contract";
 import {
-  DIRECT_BOX_FULFILLMENT_PENDING_REASON,
+  DIRECT_BOX_FULFILLMENT_DISPATCH_PENDING,
   isDirectBoxFulfillmentAlreadyPending,
+  isDirectBoxFulfillmentProgressed,
+  isDirectBoxSchemaUnreadyError,
+  isMissingSchemaColumnError,
 } from "@/lib/commerce/direct-box-reservation-persistence";
 import { parseFulfillmentChannel } from "@/lib/commerce/fulfillment-channel";
 
@@ -166,15 +169,17 @@ async function handlePaymentIntentSucceededWebhook(
   }
 
   // Fulfillment dispatch after paid PI.
-  // direct_box: never Instabee; durable DIRECT_BOX_FULFILLMENT_PENDING handoff
-  // (no invented carrier booking). shared_pallet: optional Instabee Budbee.
+  // direct_box: never Instabee; durable fulfillment_dispatch_status handoff
+  // (no invented carrier booking; never overload charge_blocked_reason).
+  // shared_pallet: optional Instabee Budbee.
   try {
     const palletIdFromMeta = paymentIntent.metadata?.pallet_id;
     const channelFromMeta = paymentIntent.metadata?.fulfillment_channel;
     const channelParsed = parseFulfillmentChannel(channelFromMeta);
 
     const sbAdmin = getSupabaseAdmin();
-    // fulfillment_channel column is draft until migration 277 — gate uses PI metadata.
+    // Base select avoids fulfillment_dispatch_status so shared_pallet works
+    // before migration 277. Direct path loads dispatch status separately.
     const { data: resData } = await sbAdmin
       .from("order_reservations")
       .select(
@@ -205,15 +210,49 @@ async function handlePaymentIntentSucceededWebhook(
           ? String((resData as { pallet_id?: string }).pallet_id)
           : palletIdFromMeta ?? null;
 
+      let dispatchStatus: string | null = null;
+      if (channelParsed === "direct_box") {
+        const { data: dispatchRow, error: dispatchSelErr } = await sbAdmin
+          .from("order_reservations")
+          .select("fulfillment_dispatch_status")
+          .eq("id", reservationId)
+          .maybeSingle();
+        if (
+          dispatchSelErr &&
+          (isDirectBoxSchemaUnreadyError(dispatchSelErr) ||
+            isMissingSchemaColumnError(
+              dispatchSelErr,
+              "fulfillment_dispatch_status",
+            ))
+        ) {
+          console.error(
+            `[Stripe Webhook] direct_box schema unready (migration 277) — fail closed, no charge_blocked_reason fallback reservation_id=${reservationId}:`,
+            dispatchSelErr,
+          );
+        } else {
+          dispatchStatus =
+            typeof (dispatchRow as { fulfillment_dispatch_status?: unknown } | null)
+              ?.fulfillment_dispatch_status === "string"
+              ? String(
+                  (dispatchRow as { fulfillment_dispatch_status: string })
+                    .fulfillment_dispatch_status,
+                )
+              : null;
+        }
+      }
+
+      const alreadyProgressed = isDirectBoxFulfillmentProgressed(dispatchStatus);
       const alreadyPending = isDirectBoxFulfillmentAlreadyPending({
         charge_blocked_reason: (resData as { charge_blocked_reason?: string | null })
           .charge_blocked_reason,
+        fulfillment_dispatch_status: dispatchStatus,
       });
 
       const directDispatch = assertDirectBoxWebhookDispatchIdempotent({
         paymentMetadataChannel: channelFromMeta,
         fulfillmentChannel: channelParsed,
         alreadyMarkedPending: alreadyPending,
+        alreadyProgressed,
       });
 
       if (channelParsed === "direct_box" || directDispatch.shouldMarkFulfillmentPending) {
@@ -221,22 +260,36 @@ async function handlePaymentIntentSucceededWebhook(
           const { error: pendingErr } = await sbAdmin
             .from("order_reservations")
             .update({
-              charge_blocked_reason: DIRECT_BOX_FULFILLMENT_PENDING_REASON,
+              fulfillment_dispatch_status:
+                DIRECT_BOX_FULFILLMENT_DISPATCH_PENDING,
             })
             .eq("id", reservationId);
           if (pendingErr) {
-            console.error(
-              `[Stripe Webhook] failed to mark direct_box fulfillment pending reservation_id=${reservationId}:`,
-              pendingErr,
-            );
+            if (
+              isDirectBoxSchemaUnreadyError(pendingErr) ||
+              isMissingSchemaColumnError(
+                pendingErr,
+                "fulfillment_dispatch_status",
+              )
+            ) {
+              console.error(
+                `[Stripe Webhook] direct_box schema unready (migration 277) — fail closed, no charge_blocked_reason fallback reservation_id=${reservationId}:`,
+                pendingErr,
+              );
+            } else {
+              console.error(
+                `[Stripe Webhook] failed to mark direct_box fulfillment pending reservation_id=${reservationId}:`,
+                pendingErr,
+              );
+            }
           } else {
             console.log(
-              `[Stripe Webhook] marked DIRECT_BOX_FULFILLMENT_PENDING reservation_id=${reservationId} (manual ops handoff; no carrier invented)`,
+              `[Stripe Webhook] marked fulfillment_dispatch_status=${DIRECT_BOX_FULFILLMENT_DISPATCH_PENDING} reservation_id=${reservationId} (manual ops handoff; no carrier invented)`,
             );
           }
         } else {
           console.log(
-            `[Stripe Webhook] direct_box fulfillment already pending reservation_id=${reservationId} — idempotent skip`,
+            `[Stripe Webhook] direct_box fulfillment already ${alreadyProgressed ? "progressed" : "pending"} reservation_id=${reservationId} — idempotent skip`,
           );
         }
         // Never Instabee / never invent direct carrier book.

@@ -1,11 +1,12 @@
 -- DRAFT / REVIEW ONLY — do NOT apply without owner + Hugo/Ines approval.
--- Adds fulfillment_channel on order_reservations and allows direct_box rows in
--- customer_shipping_rates.channel. Does NOT seed any customer price (no 99 SEK
--- for direct_box). Shared-pallet/`pact` rates remain unchanged.
+-- Adds fulfillment_channel + fulfillment_dispatch_status on order_reservations
+-- and allows direct_box rows in customer_shipping_rates.channel.
+-- Does NOT seed any customer price (no 99 SEK for direct_box).
+-- Shared-pallet/`pact` rates remain unchanged.
 --
--- Until applied, runtime writes fulfillment_channel with strip-retry on unknown
--- column, and uses deployed charge_blocked_reason='DIRECT_BOX_FULFILLMENT_PENDING'
--- for durable ops handoff after paid direct_box (no invented carrier booking).
+-- REQUIRED before enabling DIRECT_BOX_CHECKOUT_ENABLED:
+-- direct_box confirm/webhook fail closed without these columns (no ambiguous
+-- charge_blocked_reason overload for ops handoff).
 
 -- order_reservations.fulfillment_channel
 ALTER TABLE order_reservations
@@ -28,12 +29,32 @@ CREATE INDEX IF NOT EXISTS idx_order_reservations_fulfillment_channel
   ON order_reservations (fulfillment_channel)
   WHERE fulfillment_channel IS NOT NULL;
 
--- Optional future dispatch status (not required for handoff — charge_blocked_reason works on deployed schema).
+-- Durable ops handoff for paid direct_box (NOT a billing/charge hold).
 ALTER TABLE order_reservations
   ADD COLUMN IF NOT EXISTS fulfillment_dispatch_status TEXT;
 
+ALTER TABLE order_reservations
+  DROP CONSTRAINT IF EXISTS order_reservations_fulfillment_dispatch_status_check;
+
+ALTER TABLE order_reservations
+  ADD CONSTRAINT order_reservations_fulfillment_dispatch_status_check
+  CHECK (
+    fulfillment_dispatch_status IS NULL
+    OR fulfillment_dispatch_status IN (
+      'pending_manual_handoff',
+      'booked',
+      'skipped',
+      'cancelled',
+      'completed'
+    )
+  );
+
 COMMENT ON COLUMN order_reservations.fulfillment_dispatch_status IS
-  'Optional: pending_manual_handoff | booked | skipped. Until applied, DIRECT_BOX_FULFILLMENT_PENDING uses charge_blocked_reason.';
+  'Ops fulfillment lifecycle for direct_box: pending_manual_handoff | booked | skipped | cancelled | completed. Distinct from charge_blocked_reason (billing holds). Webhook retries must not reset progressed states.';
+
+CREATE INDEX IF NOT EXISTS idx_order_reservations_fulfillment_dispatch_status
+  ON order_reservations (fulfillment_dispatch_status)
+  WHERE fulfillment_dispatch_status IS NOT NULL;
 
 -- Allow mode-scoped direct_box customer shipping rates (empty until owner configures).
 -- Existing `pact` rows (shared-pallet / legacy 99 SEK) are NOT reused for direct_box.

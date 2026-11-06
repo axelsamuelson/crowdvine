@@ -1,8 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   buildDirectBoxReservationInsertPatch,
+  DIRECT_BOX_FULFILLMENT_DISPATCH_PENDING,
   DIRECT_BOX_FULFILLMENT_PENDING_REASON,
+  isBillingChargeHoldReason,
   isDirectBoxFulfillmentAlreadyPending,
+  isDirectBoxFulfillmentProgressed,
+  isDirectBoxSchemaUnreadyError,
   isMissingSchemaColumnError,
   resolveCheckoutGroupPalletAssignment,
 } from "@/lib/commerce/direct-box-reservation-persistence";
@@ -37,43 +41,55 @@ describe("resolveCheckoutGroupPalletAssignment (HIGH1)", () => {
   });
 });
 
-describe("direct_box insert patch + pending detection", () => {
-  it("includes channel + DIRECT_BOX_FULFILLMENT_PENDING reason", () => {
+describe("direct_box insert patch + dispatch status (no charge hold)", () => {
+  it("writes fulfillment_dispatch_status, not charge_blocked_reason", () => {
     expect(buildDirectBoxReservationInsertPatch()).toEqual({
       pallet_id: null,
       shipping_region_id: null,
       fulfillment_channel: "direct_box",
-      charge_blocked_reason: DIRECT_BOX_FULFILLMENT_PENDING_REASON,
+      fulfillment_dispatch_status: DIRECT_BOX_FULFILLMENT_DISPATCH_PENDING,
     });
-    expect(
-      buildDirectBoxReservationInsertPatch({ includeChannelColumn: false }),
-    ).toEqual({
-      pallet_id: null,
-      shipping_region_id: null,
-      charge_blocked_reason: DIRECT_BOX_FULFILLMENT_PENDING_REASON,
-    });
+    expect(buildDirectBoxReservationInsertPatch()).not.toHaveProperty(
+      "charge_blocked_reason",
+    );
   });
 
-  it("detects missing schema column for strip-retry", () => {
+  it("detects schema-unready for fail-closed", () => {
+    expect(
+      isDirectBoxSchemaUnreadyError({
+        message:
+          "Could not find the 'fulfillment_dispatch_status' column of 'order_reservations' in the schema cache",
+      }),
+    ).toBe(true);
     expect(
       isMissingSchemaColumnError(
-        { message: "Could not find the 'fulfillment_channel' column of 'order_reservations' in the schema cache" },
+        {
+          message:
+            "Could not find the 'fulfillment_channel' column of 'order_reservations' in the schema cache",
+        },
         "fulfillment_channel",
       ),
     ).toBe(true);
-    expect(
-      isMissingSchemaColumnError({ message: "unique violation" }, "fulfillment_channel"),
-    ).toBe(false);
   });
 
-  it("idempotent pending detection", () => {
+  it("idempotent pending + progressed detection", () => {
+    expect(
+      isDirectBoxFulfillmentAlreadyPending({
+        fulfillment_dispatch_status: DIRECT_BOX_FULFILLMENT_DISPATCH_PENDING,
+      }),
+    ).toBe(true);
     expect(
       isDirectBoxFulfillmentAlreadyPending({
         charge_blocked_reason: DIRECT_BOX_FULFILLMENT_PENDING_REASON,
       }),
     ).toBe(true);
-    expect(
-      isDirectBoxFulfillmentAlreadyPending({ charge_blocked_reason: null }),
-    ).toBe(false);
+    expect(isDirectBoxFulfillmentProgressed("booked")).toBe(true);
+    expect(isDirectBoxFulfillmentProgressed("pending_manual_handoff")).toBe(
+      false,
+    );
+    expect(isBillingChargeHoldReason(DIRECT_BOX_FULFILLMENT_PENDING_REASON)).toBe(
+      false,
+    );
+    expect(isBillingChargeHoldReason("US_CONDITIONAL")).toBe(true);
   });
 });

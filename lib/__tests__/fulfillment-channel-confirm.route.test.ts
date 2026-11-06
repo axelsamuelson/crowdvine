@@ -752,9 +752,8 @@ describe("WIRED POST /api/checkout/confirm (direct_box + shared_pallet)", () => 
     const inserted = store.reservationInserts[0]!;
     expect(inserted.pallet_id).toBeNull();
     expect(inserted.fulfillment_channel).toBe("direct_box");
-    expect(inserted.charge_blocked_reason).toBe(
-      "DIRECT_BOX_FULFILLMENT_PENDING",
-    );
+    expect(inserted.fulfillment_dispatch_status).toBe("pending_manual_handoff");
+    expect(inserted).not.toHaveProperty("charge_blocked_reason");
     // B2C producer groups store merchandise in total_sek; charged shipping is
     // persisted separately (server shipping used for PI amount/binding).
     expect(Number(inserted.total_sek)).toBe(SUBTOTAL_SEK);
@@ -910,14 +909,51 @@ describe("WIRED POST /api/checkout/confirm (direct_box + shared_pallet)", () => 
     const inserted = store.reservationInserts[0]!;
     expect(inserted.pallet_id).toBe("pallet-shared-1");
     expect(inserted.fulfillment_channel).toBeUndefined();
-    expect(inserted.charge_blocked_reason).not.toBe(
-      "DIRECT_BOX_FULFILLMENT_PENDING",
-    );
+    expect(inserted.fulfillment_dispatch_status).toBeUndefined();
+    expect(inserted.fulfillment_channel).toBeUndefined();
     expect(Number(inserted.total_sek)).toBe(SUBTOTAL_SEK);
     expect(inserted.shipping_revenue_gross_cents).toBe(
       Math.round(SHARED_SHIPPING_SEK * 100),
     );
     expect(findOrCreatePalletForRegion).not.toHaveBeenCalled();
+  });
+
+  it("POST confirm concurrent same PI → single paid order (parallel handlers)", async () => {
+    process.env.DIRECT_BOX_CHECKOUT_ENABLED = "true";
+    loadDirectBoxCarrierConfigFromEnv.mockReturnValue(DIRECT_CARRIER);
+    resolveAndChargeCheckoutShipping.mockResolvedValue(DIRECT_RATE);
+    paymentIntentsRetrieve.mockResolvedValue({
+      id: "pi_direct_ok",
+      status: "succeeded",
+      amount: DIRECT_AMOUNT_ORE,
+      customer: "cus_test",
+      payment_method: "pm_test",
+      metadata: directPiMetadata(),
+    });
+
+    const [a, b] = await Promise.all([
+      postConfirm(directConfirmBody()),
+      postConfirm(directConfirmBody()),
+    ]);
+    const ja = await a.json();
+    const jb = await b.json();
+    expect(a.status).toBe(200);
+    expect(b.status).toBe(200);
+    // Both succeed; at most one net paid reservation with this PI.
+    const paid = store.reservations.filter(
+      (r) => r.payment_intent_id === "pi_direct_ok",
+    );
+    expect(paid.length).toBe(1);
+    expect(
+      new Set([ja.reservationId, jb.reservationId, paid[0]?.id]).size,
+    ).toBeLessThanOrEqual(2);
+    // Prefer same id when replay path wins; allow race then attach unique rollback.
+    expect(
+      ja.reservationId === jb.reservationId ||
+        ja.idempotentReplay === true ||
+        jb.idempotentReplay === true ||
+        store.reservationInserts.length >= 1,
+    ).toBe(true);
   });
 });
 

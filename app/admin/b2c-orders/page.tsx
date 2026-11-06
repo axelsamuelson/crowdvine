@@ -45,6 +45,8 @@ interface AdminReservationListRow {
   region?: string | null;
   is_conditional?: boolean | null;
   charge_blocked_reason?: string | null;
+  fulfillment_channel?: string | null;
+  fulfillment_dispatch_status?: string | null;
   archived_at?: string | null;
   archive_reason?: string | null;
   status_before_archive?: string | null;
@@ -548,12 +550,38 @@ export default function B2cOrdersPage() {
                               US conditional
                             </span>
                           ) : null}
-                          {reservation.charge_blocked_reason ? (
+                          {reservation.fulfillment_dispatch_status ? (
+                            <span
+                              className="text-[10px] text-sky-800 dark:text-sky-200 max-w-[200px] leading-tight"
+                              title={reservation.fulfillment_dispatch_status}
+                            >
+                              Fulfillment:{" "}
+                              {reservation.fulfillment_dispatch_status}
+                            </span>
+                          ) : null}
+                          {reservation.fulfillment_channel === "direct_box" &&
+                          !reservation.fulfillment_dispatch_status ? (
+                            <span className="text-[10px] text-sky-800 dark:text-sky-200 max-w-[200px] leading-tight">
+                              Fulfillment: direct_box (dispatch unset)
+                            </span>
+                          ) : null}
+                          {reservation.charge_blocked_reason &&
+                          reservation.charge_blocked_reason !==
+                            "DIRECT_BOX_FULFILLMENT_PENDING" ? (
                             <span
                               className="text-[10px] text-amber-800 dark:text-amber-200 max-w-[200px] leading-tight"
                               title={reservation.charge_blocked_reason}
                             >
                               Charge hold: {reservation.charge_blocked_reason}
+                            </span>
+                          ) : null}
+                          {reservation.charge_blocked_reason ===
+                          "DIRECT_BOX_FULFILLMENT_PENDING" ? (
+                            <span
+                              className="text-[10px] text-sky-800 dark:text-sky-200 max-w-[200px] leading-tight"
+                              title="Legacy handoff marker (not a billing hold)"
+                            >
+                              Fulfillment: pending manual handoff (legacy)
                             </span>
                           ) : null}
                           {reservation.country_code || reservation.region ? (

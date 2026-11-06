@@ -417,7 +417,7 @@ describe("WIRED ROUTE contracts (payment-intent)", () => {
     );
   });
 
-  it("POSITIVE direct path: retries reuse open PI (no duplicate intent)", async () => {
+  it("POSITIVE direct path: retries reuse open PI when cart_id matches", async () => {
     process.env.DIRECT_BOX_CHECKOUT_ENABLED = "true";
     loadDirectBoxCarrierConfigFromEnv.mockReturnValue(DIRECT_CARRIER);
     resolveAndChargeCheckoutShipping.mockResolvedValue(DIRECT_RATE);
@@ -431,6 +431,8 @@ describe("WIRED ROUTE contracts (payment-intent)", () => {
             fulfillment_channel: "direct_box",
             expected_amount_ore: "134900",
             user_id: "user-1",
+            cart_id: "cart-1",
+            stripe_customer_id: "cus_test",
           },
         },
       ],
@@ -446,6 +448,39 @@ describe("WIRED ROUTE contracts (payment-intent)", () => {
     expect(json.intentId).toBe("pi_existing");
     expect(paymentIntentsCreate).not.toHaveBeenCalled();
     expect(setupIntentsCreate).not.toHaveBeenCalled();
+  });
+
+  it("same amount different cart_id → creates new PI (no stale reuse)", async () => {
+    process.env.DIRECT_BOX_CHECKOUT_ENABLED = "true";
+    loadDirectBoxCarrierConfigFromEnv.mockReturnValue(DIRECT_CARRIER);
+    resolveAndChargeCheckoutShipping.mockResolvedValue(DIRECT_RATE);
+    paymentIntentsList.mockResolvedValue({
+      data: [
+        {
+          id: "pi_other_cart",
+          client_secret: "pi_other_secret",
+          status: "requires_payment_method",
+          metadata: {
+            fulfillment_channel: "direct_box",
+            expected_amount_ore: "134900",
+            user_id: "user-1",
+            cart_id: "cart-OTHER",
+            stripe_customer_id: "cus_test",
+          },
+        },
+      ],
+    });
+
+    const res = await postPaymentIntent({
+      fulfillment_channel: "direct_box",
+      dateOfBirth: "1990-01-01",
+      acceptedTermsVersion: LEGAL_VERSIONS.terms,
+    });
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.intentId).toBe("pi_direct_test");
+    expect(paymentIntentsCreate).toHaveBeenCalledTimes(1);
+    expect(json.intentId).not.toBe("pi_other_cart");
   });
 });
 
@@ -480,7 +515,7 @@ describe("WIRED ROUTE contracts (stripe webhook direct_box pending handoff)", ()
     process.env.INSTABEE_AUTO_CREATE_ORDERS = "true";
   });
 
-  it("marks DIRECT_BOX_FULFILLMENT_PENDING; never Instabee; retry is idempotent", async () => {
+  it("marks fulfillment_dispatch_status pending; never Instabee; retry is idempotent", async () => {
     constructEvent.mockReturnValue({
       type: "payment_intent.succeeded",
       data: {
@@ -508,6 +543,11 @@ describe("WIRED ROUTE contracts (stripe webhook direct_box pending handoff)", ()
     expect(createInstabeeOrder).not.toHaveBeenCalled();
     expect(reservationUpdates).toHaveBeenCalledWith(
       expect.objectContaining({
+        fulfillment_dispatch_status: "pending_manual_handoff",
+      }),
+    );
+    expect(reservationUpdates).not.toHaveBeenCalledWith(
+      expect.objectContaining({
         charge_blocked_reason: "DIRECT_BOX_FULFILLMENT_PENDING",
       }),
     );
@@ -516,10 +556,10 @@ describe("WIRED ROUTE contracts (stripe webhook direct_box pending handoff)", ()
     const res2 = await POST(req());
     expect(res2.status).toBe(200);
     expect(createInstabeeOrder).not.toHaveBeenCalled();
-    // Idempotent: already pending — no second pending write required
+    // Idempotent: already pending — no second pending write
     expect(reservationUpdates).not.toHaveBeenCalledWith(
       expect.objectContaining({
-        charge_blocked_reason: "DIRECT_BOX_FULFILLMENT_PENDING",
+        fulfillment_dispatch_status: "pending_manual_handoff",
       }),
     );
   });

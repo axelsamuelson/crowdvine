@@ -176,6 +176,7 @@ export async function POST(request: Request) {
     const {
       assertDirectBoxRejectsDeferredPipeline,
       buildDirectBoxPaymentIntentMetadata,
+      shouldReuseOpenDirectBoxPaymentIntent,
       DIRECT_BOX_PAYMENT_MODE,
     } = await import("@/lib/commerce/direct-box-payment-contract");
     const clientChannel = parseFulfillmentChannel(body?.fulfillment_channel);
@@ -346,6 +347,8 @@ export async function POST(request: Request) {
         amountOre: amountInOre,
         pactPointsRedeem: pointsToRedeem,
         shippingPending: false,
+        fulfillmentChannel: "direct_box",
+        rateChannel: "direct_box",
       });
       if (amountInOre <= 0) {
         return NextResponse.json(
@@ -431,21 +434,22 @@ export async function POST(request: Request) {
         legalMetadata: purchaseLegalMetadata,
       });
 
-      // Idempotent reuse: same user + amount + direct_box open PI.
+      // Idempotent reuse: same user + cart + customer + amount + channel.
+      // Same amount alone is insufficient (stale open PI across carts).
       const existingList = await stripe.paymentIntents.list({
         customer: customerId,
         limit: 8,
       });
-      const existing = existingList.data.find((pi) => {
-        const meta = pi.metadata ?? {};
-        return (
-          meta.fulfillment_channel === "direct_box" &&
-          meta.expected_amount_ore === String(amountInOre) &&
-          meta.user_id === user.id &&
-          (pi.status === "requires_payment_method" ||
-            pi.status === "requires_confirmation")
-        );
-      });
+      const existing = existingList.data.find((pi) =>
+        shouldReuseOpenDirectBoxPaymentIntent({
+          metadata: pi.metadata ?? {},
+          status: pi.status,
+          sessionUserId: user.id,
+          serverCartId: cart.id,
+          expectedAmountOre: amountInOre,
+          expectedStripeCustomerId: customerId,
+        }),
+      );
       if (existing?.client_secret) {
         console.log(
           "[payment-intent] Reusing open direct_box PaymentIntent:",
@@ -764,6 +768,9 @@ export async function POST(request: Request) {
       amountOre: amountInOre,
       pactPointsRedeem: pointsToRedeem,
       shippingPending: shippingCharge.shippingPending,
+      fulfillmentChannel: "shared_pallet",
+      rateChannel:
+        shippingCharge.rateChannel === "direct_box" ? "direct_box" : "pact",
     });
 
     if (amountInOre <= 0) {

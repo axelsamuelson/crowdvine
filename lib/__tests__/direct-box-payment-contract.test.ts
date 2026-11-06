@@ -6,6 +6,7 @@ import {
   buildDirectBoxPaymentIntentMetadata,
   DIRECT_BOX_PAYMENT_MODE,
   reservationPersistenceForDirectBox,
+  shouldReuseOpenDirectBoxPaymentIntent,
 } from "@/lib/commerce/direct-box-payment-contract";
 
 const baseBindOk = {
@@ -103,6 +104,30 @@ describe("direct_box payment contract", () => {
     if (!amountTamper.ok) expect(amountTamper.code).toBe("amount_tamper_rejected");
   });
 
+  it("PI reuse requires cart_id match (same amount alone insufficient)", () => {
+    const base = {
+      status: "requires_payment_method",
+      sessionUserId: "user-1",
+      serverCartId: "cart-1",
+      expectedAmountOre: 134900,
+      expectedStripeCustomerId: "cus_1",
+      metadata: {
+        fulfillment_channel: "direct_box",
+        expected_amount_ore: "134900",
+        user_id: "user-1",
+        cart_id: "cart-1",
+        stripe_customer_id: "cus_1",
+      },
+    };
+    expect(shouldReuseOpenDirectBoxPaymentIntent(base)).toBe(true);
+    expect(
+      shouldReuseOpenDirectBoxPaymentIntent({
+        ...base,
+        metadata: { ...base.metadata, cart_id: "cart-OTHER" },
+      }),
+    ).toBe(false);
+  });
+
   it("webhook: never Instabee; pending handoff; never invents carrier book", () => {
     const first = assertDirectBoxWebhookDispatchIdempotent({
       paymentMetadataChannel: "direct_box",
@@ -118,6 +143,13 @@ describe("direct_box payment contract", () => {
     });
     expect(retry.shouldMarkFulfillmentPending).toBe(false);
     expect(retry.reason).toBe("already_pending_idempotent_skip");
+
+    const progressed = assertDirectBoxWebhookDispatchIdempotent({
+      paymentMetadataChannel: "direct_box",
+      alreadyProgressed: true,
+    });
+    expect(progressed.shouldMarkFulfillmentPending).toBe(false);
+    expect(progressed.reason).toBe("already_progressed_do_not_reset");
   });
 
   it("persistence shape clears pallet; channel column optional", () => {

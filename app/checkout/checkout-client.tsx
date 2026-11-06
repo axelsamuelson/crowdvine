@@ -129,6 +129,12 @@ import {
   formatCheckoutShippingLabel,
   resolveCheckoutShippingLabelState,
 } from "@/lib/checkout/shipping-label";
+import {
+  buildCheckoutQuoteRequestBody,
+  checkoutHasShippingQuoteContext,
+  shouldBlockCheckoutOnQuote,
+  type QuoteUiStatus,
+} from "@/lib/commerce/direct-box-quote-ui-contract";
 
 
 interface UserProfile {
@@ -339,6 +345,7 @@ function CheckoutContent({
 
   /** Authoritative totals from /api/checkout/quote (or payment-intent). */
   const [serverQuote, setServerQuote] = useState<CheckoutQuote | null>(null);
+  const [quoteStatus, setQuoteStatus] = useState<QuoteUiStatus>("idle");
 
   // 6-bottle validation state
   const [validations, setValidations] = useState<ProducerValidation[]>([]);
@@ -705,7 +712,7 @@ function CheckoutContent({
               budbeeAvailable,
             });
 
-      return isDeliveryCompleteForChannel({
+      const channelReady = isDeliveryCompleteForChannel({
         channel: fulfillmentChannel,
         hasZoneDeliveryReady,
         deliveryZoneReady,
@@ -715,6 +722,14 @@ function CheckoutContent({
         hasUsState,
         carrier,
       });
+      if (!channelReady) return false;
+      // Mode-scoped quote must be ready — never pay on stale/pact/missing totals.
+      const quoteGate = shouldBlockCheckoutOnQuote({
+        fulfillmentChannel,
+        quote: serverQuote,
+        quoteStatus,
+      });
+      return !quoteGate.block;
     },
     [
       directBoxCheckoutEnabled,
@@ -727,6 +742,8 @@ function CheckoutContent({
       isUsConditional,
       selectedPallet,
       deliveryZoneReady,
+      serverQuote,
+      quoteStatus,
       hasProducerItems,
     ],
   );
@@ -1685,7 +1702,11 @@ function CheckoutContent({
             pact_points_redeem: redeemPoints,
             total_sek: quote.total_sek,
             total_ore: quote.total_ore,
+            fulfillment_channel: fulfillmentChannel,
+            rate_channel:
+              fulfillmentChannel === "direct_box" ? "direct_box" : "pact",
           });
+          setQuoteStatus("ready");
         }
 
         setPrefetchedStripeIntent({
@@ -2988,12 +3009,16 @@ function CheckoutContent({
   const selectedPalletId = selectedPallet?.id ?? "";
   const promoDiscountSek = appliedDiscount?.discount_amount_sek ?? 0;
 
-  // Authoritative breakdown for display (same math as payment-intent).
+  // Authoritative breakdown for display (same mode-scoped math as payment-intent).
   useEffect(() => {
     if (!cart?.lines?.length) {
       setServerQuote(null);
+      setQuoteStatus("idle");
       return;
     }
+    // Channel switch / dep change → invalidate immediately (no stale pact totals).
+    setServerQuote(null);
+    setQuoteStatus("loading");
     const controller = new AbortController();
     const timer = window.setTimeout(() => {
       void (async () => {
@@ -3001,18 +3026,22 @@ function CheckoutContent({
           const res = await fetch("/api/checkout/quote", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              ...(selectedPalletId ? { pallet_id: selectedPalletId } : {}),
-              // Same country source as confirm (delivery / active zone).
-              ...(ageCountryCode ? { country_code: ageCountryCode } : {}),
-              pact_points_redeem: redeemPoints,
-              ...(promoDiscountSek > 0
-                ? { promo_discount_sek: promoDiscountSek }
-                : {}),
-            }),
+            body: JSON.stringify(
+              buildCheckoutQuoteRequestBody({
+                fulfillmentChannel,
+                selectedPalletId,
+                countryCode: ageCountryCode,
+                pactPointsRedeem: redeemPoints,
+                promoDiscountSek,
+              }),
+            ),
             signal: controller.signal,
           });
-          if (!res.ok) return;
+          if (!res.ok) {
+            setServerQuote(null);
+            setQuoteStatus("error");
+            return;
+          }
           const data: unknown = await res.json().catch(() => null);
           if (
             data &&
@@ -3021,11 +3050,38 @@ function CheckoutContent({
             (data as { quote?: unknown }).quote &&
             typeof (data as { quote: unknown }).quote === "object"
           ) {
-            setServerQuote((data as { quote: CheckoutQuote }).quote);
+            const next = (data as { quote: CheckoutQuote }).quote;
+            const gate = shouldBlockCheckoutOnQuote({
+              fulfillmentChannel,
+              quote: next,
+              quoteStatus: "ready",
+            });
+            if (gate.block && gate.reason === "quote_channel_mismatch") {
+              setServerQuote(null);
+              setQuoteStatus("stale");
+              return;
+            }
+            if (
+              fulfillmentChannel === "direct_box" &&
+              (gate.reason === "direct_box_pact_rate_forbidden" ||
+                gate.reason === "direct_box_shipping_pending" ||
+                gate.reason === "direct_box_shipping_unquoted")
+            ) {
+              setServerQuote(null);
+              setQuoteStatus("error");
+              return;
+            }
+            setServerQuote(next);
+            setQuoteStatus("ready");
+          } else {
+            setServerQuote(null);
+            setQuoteStatus("error");
           }
         } catch (e) {
           if (e instanceof DOMException && e.name === "AbortError") return;
           if (e instanceof Error && e.name === "AbortError") return;
+          setServerQuote(null);
+          setQuoteStatus("error");
         }
       })();
     }, 150);
@@ -3041,6 +3097,7 @@ function CheckoutContent({
     redeemPoints,
     promoDiscountSek,
     ageCountryCode,
+    fulfillmentChannel,
   ]);
 
   const displaySubtotal = serverQuote?.subtotal_sek ?? bottleCost;
@@ -3048,11 +3105,19 @@ function CheckoutContent({
   const displayPactOff = serverQuote?.pact_points_sek ?? pactPointsSekOff;
   // Shipping is a SEK rate. formatSek converts it into the active currency.
   // A missing country rate shows explanatory copy — never a bogus "$99.0".
+  // direct_box must never fall back to shared/pact 99 via client invention.
   const chargedShippingLabel = formatCheckoutShippingLabel(
     resolveCheckoutShippingLabelState({
-      hasPallet: Boolean(selectedPalletId),
-      shippingPending: serverQuote?.shipping_pending === true,
-      shippingSek: displayShippingSek,
+      hasShippingContext: checkoutHasShippingQuoteContext({
+        fulfillmentChannel,
+        selectedPalletId,
+      }),
+      shippingPending:
+        quoteStatus === "loading" ||
+        quoteStatus === "stale" ||
+        serverQuote?.shipping_pending === true,
+      shippingSek:
+        quoteStatus === "ready" && serverQuote ? displayShippingSek : null,
     }),
     {
       pendingLabel: t("checkout.shippingConfirmedBeforeCharge"),
@@ -3060,9 +3125,13 @@ function CheckoutContent({
       formatSek,
     },
   );
+  // Never invent a total when mode-scoped quote is missing/stale (esp. direct_box).
   const displayTotal =
-    serverQuote?.total_sek ??
-    Math.max(0, bottleCost - pactPointsSekOff - promoDiscountSek);
+    quoteStatus === "ready" && serverQuote
+      ? serverQuote.total_sek
+      : fulfillmentChannel === "direct_box"
+        ? null
+        : Math.max(0, bottleCost - pactPointsSekOff - promoDiscountSek);
   const commitAppliedDiscount = (data: {
     code: string;
     discount_code_id: string;
@@ -3659,7 +3728,9 @@ function CheckoutContent({
                 <div className="flex items-center justify-between pt-2 text-base font-medium text-foreground">
                   <span>{t("checkout.total")}</span>
                   <span className="tabular-nums text-foreground">
-                    {formatChargedAmount(displayTotal)}
+                    {displayTotal == null
+                      ? "…"
+                      : formatChargedAmount(displayTotal)}
                   </span>
                 </div>
               </div>
@@ -4784,7 +4855,7 @@ function CheckoutContent({
                             userId={profile?.id}
                             onIntentCreated={handleStripeIntentCreated}
                             onConfirmReady={handleStripeConfirmReady}
-                            onQuote={(q) =>
+                            onQuote={(q) => {
                               setServerQuote({
                                 subtotal_sek: q.subtotal_sek,
                                 shipping_sek: q.shipping_sek,
@@ -4795,8 +4866,14 @@ function CheckoutContent({
                                 pact_points_redeem: redeemPoints,
                                 total_sek: q.total_sek,
                                 total_ore: q.total_ore,
-                              })
-                            }
+                                fulfillment_channel: fulfillmentChannel,
+                                rate_channel:
+                                  fulfillmentChannel === "direct_box"
+                                    ? "direct_box"
+                                    : "pact",
+                              });
+                              setQuoteStatus("ready");
+                            }}
                             usConditionalPayment={isUsConditional}
                             usConditionalAck={usConditionalAck}
                             legalGate={legalGatePayload}
@@ -4820,7 +4897,9 @@ function CheckoutContent({
                               {t("checkout.total")}
                             </span>
                             <span className="text-2xl font-bold tabular-nums text-foreground">
-                              {formatChargedAmount(displayTotal)}
+                              {displayTotal == null
+                                ? "…"
+                                : formatChargedAmount(displayTotal)}
                             </span>
                           </div>
 
@@ -4842,6 +4921,7 @@ function CheckoutContent({
                               !ageConfirmed ||
                               !termsAccepted ||
                               !authReady ||
+                              displayTotal == null ||
                               (isUsConditional && !usConditionalAck)
                             }
                             onClick={handlePlaceReservation}
@@ -4853,7 +4933,9 @@ function CheckoutContent({
                                 : isUsConditional
                                   ? t("checkout.usConditionalButton")
                                   : t("checkout.placeReservationWithPayment", {
-                                      amount: formatChargedAmount(displayTotal),
+                                      amount: formatChargedAmount(
+                                        displayTotal ?? 0,
+                                      ),
                                     })}
                           </Button>
                         </div>

@@ -262,15 +262,59 @@ export function assertDirectBoxConfirmIntentBinding(input: {
 }
 
 /**
+ * Open-PI reuse must bind cart + customer + amount + channel.
+ * Same amount alone is not enough (stale cart → paid cart_mismatch).
+ */
+export function shouldReuseOpenDirectBoxPaymentIntent(input: {
+  metadata?: Record<string, string | undefined> | null;
+  status?: string | null;
+  sessionUserId: string;
+  serverCartId: string;
+  expectedAmountOre: number;
+  expectedStripeCustomerId: string;
+}): boolean {
+  const meta = input.metadata ?? {};
+  const status = String(input.status ?? "");
+  if (
+    status !== "requires_payment_method" &&
+    status !== "requires_confirmation"
+  ) {
+    return false;
+  }
+  if (parseFulfillmentChannel(meta.fulfillment_channel) !== "direct_box") {
+    return false;
+  }
+  if (String(meta.expected_amount_ore ?? "") !== String(input.expectedAmountOre)) {
+    return false;
+  }
+  if (String(meta.user_id ?? "").trim() !== String(input.sessionUserId).trim()) {
+    return false;
+  }
+  if (String(meta.cart_id ?? "").trim() !== String(input.serverCartId).trim()) {
+    return false;
+  }
+  const metaCustomer = String(meta.stripe_customer_id ?? "").trim();
+  if (
+    metaCustomer &&
+    metaCustomer !== String(input.expectedStripeCustomerId).trim()
+  ) {
+    return false;
+  }
+  return true;
+}
+
+/**
  * Webhook / dispatch: retries must not book Instabee for direct_box.
  * No invented carrier booking — mayBookDirectCarrier is always false until
  * a real contract is wired; durable pending handoff is separate.
+ * Progressed dispatch statuses must not be reset to pending.
  */
 export function assertDirectBoxWebhookDispatchIdempotent(input: {
   fulfillmentChannel?: string | null;
   paymentMetadataChannel?: string | null;
-  /** True when reservation already marked DIRECT_BOX_FULFILLMENT_PENDING (or dispatch status). */
+  /** True when reservation already marked pending OR progressed. */
   alreadyMarkedPending?: boolean;
+  alreadyProgressed?: boolean;
 }): {
   mayBookInstabee: false;
   /** Never invent a live carrier book — always false without authorized implementation. */
@@ -282,6 +326,14 @@ export function assertDirectBoxWebhookDispatchIdempotent(input: {
     parseFulfillmentChannel(input.fulfillmentChannel) ??
     parseFulfillmentChannel(input.paymentMetadataChannel);
   if (channel === "direct_box") {
+    if (input.alreadyProgressed) {
+      return {
+        mayBookInstabee: false,
+        mayBookDirectCarrier: false,
+        shouldMarkFulfillmentPending: false,
+        reason: "already_progressed_do_not_reset",
+      };
+    }
     if (input.alreadyMarkedPending) {
       return {
         mayBookInstabee: false,

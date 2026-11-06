@@ -22,14 +22,22 @@ export type CheckoutShippingLabelState =
  * - pending: no configured rate for the country → explanatory copy, not an amount
  * - free: configured free (or zero configured flat)
  * - amount: configured flat fee in SEK (caller converts/formats with currency)
- * - none: no pallet / no quote yet
+ * - none: no pallet / no quote context yet
+ *
+ * direct_box has shipping quote context without a pallet — callers pass
+ * hasShippingContext=true (not hasPallet alone).
  */
 export function resolveCheckoutShippingLabelState(input: {
-  hasPallet: boolean;
+  hasPallet?: boolean;
+  /** Prefer this — true for shared pallet OR direct_box channel. */
+  hasShippingContext?: boolean;
   shippingPending?: boolean | null;
   shippingSek?: number | null;
 }): CheckoutShippingLabelState {
-  if (!input.hasPallet) return { kind: "none" };
+  const hasContext =
+    input.hasShippingContext === true ||
+    (input.hasShippingContext == null && input.hasPallet === true);
+  if (!hasContext) return { kind: "none" };
   if (input.shippingPending === true) return { kind: "pending" };
   if (input.shippingSek == null || !Number.isFinite(input.shippingSek)) {
     return { kind: "none" };
