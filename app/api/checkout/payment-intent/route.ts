@@ -415,9 +415,12 @@ export async function POST(request: Request) {
         );
       }
 
+      const customerId = await getOrCreateStripeCustomer(user.id);
       const purchaseLegalMetadata = legalGateStripeMetadata(legalGate);
       const metadata = buildDirectBoxPaymentIntentMetadata({
         userId: user.id,
+        cartId: cart.id,
+        stripeCustomerId: customerId,
         amountOre: amountInOre,
         shippingSek,
         carrierId: carrier.carrierId,
@@ -427,8 +430,6 @@ export async function POST(request: Request) {
         promoDiscountSek,
         legalMetadata: purchaseLegalMetadata,
       });
-
-      const customerId = await getOrCreateStripeCustomer(user.id);
 
       // Idempotent reuse: same user + amount + direct_box open PI.
       const existingList = await stripe.paymentIntents.list({

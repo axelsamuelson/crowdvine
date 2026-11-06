@@ -11,6 +11,11 @@ import { sendLabelsEmail } from "@/lib/email/instabee-labels";
 import { emitCheckoutCompletedOnce } from "@/lib/analytics/emit-checkout-completed";
 import { shouldDispatchInstabeeBudbeeHome } from "@/lib/commerce/fulfillment-channel-pipeline";
 import { assertDirectBoxWebhookDispatchIdempotent } from "@/lib/commerce/direct-box-payment-contract";
+import {
+  DIRECT_BOX_FULFILLMENT_PENDING_REASON,
+  isDirectBoxFulfillmentAlreadyPending,
+} from "@/lib/commerce/direct-box-reservation-persistence";
+import { parseFulfillmentChannel } from "@/lib/commerce/fulfillment-channel";
 
 function paymentIntentLatestChargeId(
   paymentIntent: Stripe.PaymentIntent,
@@ -160,26 +165,26 @@ async function handlePaymentIntentSucceededWebhook(
     );
   }
 
-  // Instabee Budbee HOME_DELIVERY — shared_pallet only.
-  // Never book direct_box via Instabee (channel from PI metadata and/or row).
-  if (process.env.INSTABEE_AUTO_CREATE_ORDERS === "true") {
-    try {
-      const palletIdFromMeta = paymentIntent.metadata?.pallet_id;
-      const channelFromMeta = paymentIntent.metadata?.fulfillment_channel;
+  // Fulfillment dispatch after paid PI.
+  // direct_box: never Instabee; durable DIRECT_BOX_FULFILLMENT_PENDING handoff
+  // (no invented carrier booking). shared_pallet: optional Instabee Budbee.
+  try {
+    const palletIdFromMeta = paymentIntent.metadata?.pallet_id;
+    const channelFromMeta = paymentIntent.metadata?.fulfillment_channel;
+    const channelParsed = parseFulfillmentChannel(channelFromMeta);
 
-      // Hämta adress för denna reservation
-      const sbAdmin = getSupabaseAdmin();
-      // Note: fulfillment_channel column is draft-only until migration 277 is
-      // applied — channel gate uses Stripe PI metadata (+ pallet_id) for now.
-      const { data: resData } = await sbAdmin
-        .from("order_reservations")
-        .select(
-          `
+    const sbAdmin = getSupabaseAdmin();
+    // fulfillment_channel column is draft until migration 277 — gate uses PI metadata.
+    const { data: resData } = await sbAdmin
+      .from("order_reservations")
+      .select(
+        `
           id,
           bottles,
           total_sek,
           producer_id,
           pallet_id,
+          charge_blocked_reason,
           user_addresses!inner (
             full_name,
             email,
@@ -190,32 +195,59 @@ async function handlePaymentIntentSucceededWebhook(
             country_code
           )
         `,
-        )
-        .eq("id", reservationId)
-        .maybeSingle();
+      )
+      .eq("id", reservationId)
+      .maybeSingle();
 
-      if (resData) {
-        const rowPalletId =
-          typeof (resData as { pallet_id?: unknown }).pallet_id === "string"
-            ? String((resData as { pallet_id?: string }).pallet_id)
-            : palletIdFromMeta ?? null;
+    if (resData) {
+      const rowPalletId =
+        typeof (resData as { pallet_id?: unknown }).pallet_id === "string"
+          ? String((resData as { pallet_id?: string }).pallet_id)
+          : palletIdFromMeta ?? null;
 
-        const directDispatch = assertDirectBoxWebhookDispatchIdempotent({
-          paymentMetadataChannel: channelFromMeta,
-          alreadyDispatched: false,
-        });
-        if (
-          !shouldDispatchInstabeeBudbeeHome({
-            fulfillment_channel: null,
-            paymentMetadataChannel: channelFromMeta,
-            pallet_id: rowPalletId,
-          })
-        ) {
-          console.log(
-            `[Stripe Webhook] skip Instabee Budbee booking reservation_id=${reservationId} channel=${channelFromMeta ?? "unknown"} reason=${directDispatch.reason}`,
-          );
-          // Retries: direct_box never books Instabee; no duplicate fulfilment invented here.
+      const alreadyPending = isDirectBoxFulfillmentAlreadyPending({
+        charge_blocked_reason: (resData as { charge_blocked_reason?: string | null })
+          .charge_blocked_reason,
+      });
+
+      const directDispatch = assertDirectBoxWebhookDispatchIdempotent({
+        paymentMetadataChannel: channelFromMeta,
+        fulfillmentChannel: channelParsed,
+        alreadyMarkedPending: alreadyPending,
+      });
+
+      if (channelParsed === "direct_box" || directDispatch.shouldMarkFulfillmentPending) {
+        if (directDispatch.shouldMarkFulfillmentPending) {
+          const { error: pendingErr } = await sbAdmin
+            .from("order_reservations")
+            .update({
+              charge_blocked_reason: DIRECT_BOX_FULFILLMENT_PENDING_REASON,
+            })
+            .eq("id", reservationId);
+          if (pendingErr) {
+            console.error(
+              `[Stripe Webhook] failed to mark direct_box fulfillment pending reservation_id=${reservationId}:`,
+              pendingErr,
+            );
+          } else {
+            console.log(
+              `[Stripe Webhook] marked DIRECT_BOX_FULFILLMENT_PENDING reservation_id=${reservationId} (manual ops handoff; no carrier invented)`,
+            );
+          }
         } else {
+          console.log(
+            `[Stripe Webhook] direct_box fulfillment already pending reservation_id=${reservationId} — idempotent skip`,
+          );
+        }
+        // Never Instabee / never invent direct carrier book.
+      } else if (
+        process.env.INSTABEE_AUTO_CREATE_ORDERS === "true" &&
+        shouldDispatchInstabeeBudbeeHome({
+          fulfillment_channel: null,
+          paymentMetadataChannel: channelFromMeta,
+          pallet_id: rowPalletId,
+        })
+      ) {
         const addrRaw = resData.user_addresses;
         const addr = Array.isArray(addrRaw) ? addrRaw[0] : addrRaw;
         if (addr) {
@@ -232,17 +264,14 @@ async function handlePaymentIntentSucceededWebhook(
             totalBottles: bottles,
           };
 
-          // Post Purchase
           await createInstabeeOrder(orderParams);
 
-          // Post Packing — generera fraktsedel
           const packing = await confirmInstabeePacking({
             ...orderParams,
             totalWeightGram: bottles * 1500,
           });
 
           if (packing) {
-            // Spara label på reservationen
             await sbAdmin
               .from("order_reservations")
               .update({
@@ -253,7 +282,6 @@ async function handlePaymentIntentSucceededWebhook(
               })
               .eq("id", resData.id);
 
-            // Skicka label-mail till producent
             if (packing.labelUrl && resData.producer_id) {
               const { data: producerProfile } = await sbAdmin
                 .from("profiles")
@@ -286,16 +314,15 @@ async function handlePaymentIntentSucceededWebhook(
             }
           }
         }
-        } // else shouldDispatchInstabeeBudbeeHome
       }
-    } catch (instabeeErr) {
-      console.error(
-        "[Instabee] Webhook handler failed for reservation:",
-        reservationId,
-        instabeeErr,
-      );
-      // Logga men kasta inte — betalningen är bekräftad
     }
+  } catch (instabeeErr) {
+    console.error(
+      "[Instabee] Webhook handler failed for reservation:",
+      reservationId,
+      instabeeErr,
+    );
+    // Logga men kasta inte — betalningen är bekräftad
   }
 
   const { data: resRow } = await supabase

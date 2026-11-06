@@ -24,6 +24,8 @@ export type DirectBoxPaymentMetadata = {
   carrier_id: string;
   carrier_product: string;
   user_id: string;
+  cart_id: string;
+  stripe_customer_id: string;
   pact_points_redeem: string;
   voucher_discount_sek: string;
   promo_discount_sek: string;
@@ -31,6 +33,8 @@ export type DirectBoxPaymentMetadata = {
 
 export function buildDirectBoxPaymentIntentMetadata(input: {
   userId: string;
+  cartId: string;
+  stripeCustomerId: string;
   amountOre: number;
   shippingSek: number;
   carrierId: string;
@@ -49,6 +53,8 @@ export function buildDirectBoxPaymentIntentMetadata(input: {
     carrier_id: input.carrierId,
     carrier_product: input.carrierProduct,
     user_id: input.userId,
+    cart_id: input.cartId,
+    stripe_customer_id: input.stripeCustomerId,
     pact_points_redeem: String(Math.max(0, Math.floor(input.pactPointsRedeem ?? 0))),
     voucher_discount_sek: String(Math.max(0, input.voucherDiscountSek ?? 0)),
     promo_discount_sek: String(Math.max(0, input.promoDiscountSek ?? 0)),
@@ -86,18 +92,31 @@ export type DirectBoxConfirmBindingFailure = {
     | "channel_tamper_rejected"
     | "amount_tamper_rejected"
     | "amount_mismatch"
-    | "direct_box_intent_metadata_invalid";
+    | "direct_box_intent_metadata_invalid"
+    | "owner_mismatch"
+    | "cart_mismatch"
+    | "customer_mismatch"
+    | "stale_quote";
   message: string;
 };
 
 /**
- * Confirm-time bind: server channel + amount win; client/PI tampering rejected.
+ * Confirm-time bind: server channel + amount + owner/cart/customer win;
+ * client/PI tampering and stale carts rejected.
  */
 export function assertDirectBoxConfirmIntentBinding(input: {
   intentType: string | null | undefined;
   paymentIntentAmountOre: number;
   serverExpectedAmountOre: number;
   paymentIntentMetadata?: Record<string, string | undefined> | null;
+  /** Stripe PaymentIntent.customer id (string) when present. */
+  paymentIntentCustomerId?: string | null;
+  /** Session user id (server). */
+  sessionUserId: string;
+  /** Current cart id (server). */
+  serverCartId: string;
+  /** Expected Stripe customer for session user. */
+  expectedStripeCustomerId: string;
   /** Channel the client submitted on confirm. */
   clientChannelRaw?: string | null;
   /** Optional client-claimed total (öre); if present must match server. */
@@ -144,6 +163,49 @@ export function assertDirectBoxConfirmIntentBinding(input: {
     };
   }
 
+  const metaUser = String(meta.user_id ?? "").trim();
+  if (!metaUser || metaUser !== String(input.sessionUserId).trim()) {
+    return {
+      ok: false,
+      code: "owner_mismatch",
+      message: "PaymentIntent user_id does not match session user",
+    };
+  }
+
+  const metaCart = String(meta.cart_id ?? "").trim();
+  if (!metaCart || metaCart !== String(input.serverCartId).trim()) {
+    return {
+      ok: false,
+      code: "cart_mismatch",
+      message: "PaymentIntent cart_id does not match current cart (stale cart)",
+    };
+  }
+
+  const metaCustomer = String(meta.stripe_customer_id ?? "").trim();
+  const piCustomer = String(input.paymentIntentCustomerId ?? "").trim();
+  const expectedCustomer = String(input.expectedStripeCustomerId).trim();
+  if (!expectedCustomer) {
+    return {
+      ok: false,
+      code: "customer_mismatch",
+      message: "Missing expected Stripe customer for session",
+    };
+  }
+  if (metaCustomer && metaCustomer !== expectedCustomer) {
+    return {
+      ok: false,
+      code: "customer_mismatch",
+      message: "PaymentIntent metadata stripe_customer_id does not match session customer",
+    };
+  }
+  if (piCustomer && piCustomer !== expectedCustomer) {
+    return {
+      ok: false,
+      code: "customer_mismatch",
+      message: "PaymentIntent.customer does not match session Stripe customer",
+    };
+  }
+
   const clientChannel = parseFulfillmentChannel(input.clientChannelRaw);
   if (clientChannel && clientChannel !== "direct_box") {
     return {
@@ -178,8 +240,8 @@ export function assertDirectBoxConfirmIntentBinding(input: {
   ) {
     return {
       ok: false,
-      code: "amount_mismatch",
-      message: "PaymentIntent expected_amount_ore does not match server quote",
+      code: "stale_quote",
+      message: "PaymentIntent expected_amount_ore does not match server quote (stale)",
     };
   }
 
@@ -200,39 +262,45 @@ export function assertDirectBoxConfirmIntentBinding(input: {
 }
 
 /**
- * Webhook / dispatch: retries must not book Instabee for direct_box,
- * and must not invent a second fulfilment when already skipped/booked.
+ * Webhook / dispatch: retries must not book Instabee for direct_box.
+ * No invented carrier booking — mayBookDirectCarrier is always false until
+ * a real contract is wired; durable pending handoff is separate.
  */
 export function assertDirectBoxWebhookDispatchIdempotent(input: {
   fulfillmentChannel?: string | null;
   paymentMetadataChannel?: string | null;
-  alreadyDispatched?: boolean;
-  instabeeCallCount?: number;
+  /** True when reservation already marked DIRECT_BOX_FULFILLMENT_PENDING (or dispatch status). */
+  alreadyMarkedPending?: boolean;
 }): {
   mayBookInstabee: false;
-  mayBookDirectCarrier: boolean;
+  /** Never invent a live carrier book — always false without authorized implementation. */
+  mayBookDirectCarrier: false;
+  shouldMarkFulfillmentPending: boolean;
   reason: string;
 } {
   const channel =
     parseFulfillmentChannel(input.fulfillmentChannel) ??
     parseFulfillmentChannel(input.paymentMetadataChannel);
   if (channel === "direct_box") {
-    if (input.alreadyDispatched) {
+    if (input.alreadyMarkedPending) {
       return {
         mayBookInstabee: false,
         mayBookDirectCarrier: false,
-        reason: "already_dispatched_idempotent_skip",
+        shouldMarkFulfillmentPending: false,
+        reason: "already_pending_idempotent_skip",
       };
     }
     return {
       mayBookInstabee: false,
-      mayBookDirectCarrier: true,
-      reason: "direct_box_never_instabee",
+      mayBookDirectCarrier: false,
+      shouldMarkFulfillmentPending: true,
+      reason: "direct_box_fulfillment_pending_manual_handoff",
     };
   }
   return {
     mayBookInstabee: false,
     mayBookDirectCarrier: false,
+    shouldMarkFulfillmentPending: false,
     reason: "not_direct_box",
   };
 }

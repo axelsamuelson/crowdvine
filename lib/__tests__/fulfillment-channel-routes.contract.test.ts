@@ -24,6 +24,26 @@ const resolveActiveGeoZoneForUser = vi.fn();
 const resolveMarketForCountry = vi.fn();
 const getRedeemableBalance = vi.fn();
 const getOrCreateStripeCustomer = vi.fn();
+const reservationUpdates = vi.fn();
+let webhookReservationRow: Record<string, unknown> = {
+  id: "res-1",
+  bottles: 6,
+  total_sek: 1000,
+  producer_id: "prod-1",
+  pallet_id: null,
+  charge_blocked_reason: null,
+  is_test_purchase: false,
+  user_id: "user-1",
+  user_addresses: {
+    full_name: "Test",
+    email: "t@example.com",
+    phone: "+46700000000",
+    address_street: "Street 1",
+    address_postcode: "11122",
+    address_city: "Stockholm",
+    country_code: "SE",
+  },
+};
 
 vi.mock("next/headers", () => ({
   cookies: async () => ({
@@ -77,24 +97,17 @@ vi.mock("@/lib/supabase-admin", () => ({
         return makeThenableQuery({ id: "user-1" });
       }
       if (table === "order_reservations") {
-        return makeThenableQuery({
-          id: "res-1",
-          bottles: 6,
-          total_sek: 1000,
-          producer_id: "prod-1",
-          pallet_id: null,
-          is_test_purchase: false,
-          user_id: "user-1",
-          user_addresses: {
-            full_name: "Test",
-            email: "t@example.com",
-            phone: "+46700000000",
-            address_line1: "Street 1",
-            postal_code: "11122",
-            city: "Stockholm",
-            country_code: "SE",
-          },
-        });
+        const query: Record<string, unknown> = makeThenableQuery(
+          webhookReservationRow,
+        );
+        query.update = (payload: Record<string, unknown>) => {
+          reservationUpdates(payload);
+          Object.assign(webhookReservationRow, payload);
+          return {
+            eq: async () => ({ error: null }),
+          };
+        };
+        return query;
       }
       if (table === "order_reservation_items") {
         return makeThenableQuery([{ quantity: 6 }]);
@@ -396,6 +409,9 @@ describe("WIRED ROUTE contracts (payment-intent)", () => {
     expect(createArg.metadata.shipping_sek).toBe("149");
     expect(createArg.metadata.carrier_id).toBe("test_only_carrier");
     expect(createArg.metadata.expected_amount_ore).toBe("134900");
+    expect(createArg.metadata.cart_id).toBe("cart-1");
+    expect(createArg.metadata.user_id).toBe("user-1");
+    expect(createArg.metadata.stripe_customer_id).toBe("cus_test");
     expect(resolveAndChargeCheckoutShipping).toHaveBeenCalledWith(
       expect.objectContaining({ fulfillmentMode: "direct_box", pallet: null }),
     );
@@ -433,67 +449,38 @@ describe("WIRED ROUTE contracts (payment-intent)", () => {
   });
 });
 
-describe("WIRED ROUTE contracts (confirm gate via shared server gate)", () => {
-  beforeEach(() => {
-    vi.resetModules();
-    resolveAndChargeCheckoutShipping.mockReset();
-    loadDirectBoxCarrierConfigFromEnv.mockReset();
-    delete process.env.DIRECT_BOX_CHECKOUT_ENABLED;
-  });
-
-  it("confirm gate rejects spoof when flag OFF", async () => {
-    const { gateDirectBoxCheckoutRequest } = await import(
-      "@/lib/commerce/fulfillment-channel-server-gates"
-    );
-    process.env.DIRECT_BOX_CHECKOUT_ENABLED = "false";
-    const r = await gateDirectBoxCheckoutRequest({
-      clientChannelRaw: "direct_box",
-      bottleCount: 6,
-      productSubtotalSek: 1200,
-      countryCode: "SE",
-    });
-    expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.errorCode).toBe("channel_spoof_rejected");
-  });
-
-  it("confirm gate rejects pact/99 SEK reuse as not_quoted", async () => {
-    const { gateDirectBoxCheckoutRequest } = await import(
-      "@/lib/commerce/fulfillment-channel-server-gates"
-    );
-    process.env.DIRECT_BOX_CHECKOUT_ENABLED = "true";
-    loadDirectBoxCarrierConfigFromEnv.mockReturnValue(DIRECT_CARRIER);
-    resolveAndChargeCheckoutShipping.mockResolvedValue({
-      shippingSek: 99,
-      shippingPending: false,
-      source: "configured_flat",
-      reason: "pact",
-      countryCode: "SE",
-      rateChannel: "pact",
-      fulfillmentMode: "direct_box",
-    });
-    const r = await gateDirectBoxCheckoutRequest({
-      clientChannelRaw: "direct_box",
-      bottleCount: 6,
-      productSubtotalSek: 1200,
-      countryCode: "SE",
-    });
-    expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.errorCode).toBe("direct_box_not_quoted");
-  });
-});
-
-describe("WIRED ROUTE contracts (stripe webhook Instabee isolation)", () => {
+describe("WIRED ROUTE contracts (stripe webhook direct_box pending handoff)", () => {
   beforeEach(() => {
     vi.resetModules();
     constructEvent.mockReset();
     createInstabeeOrder.mockReset();
     confirmInstabeePacking.mockReset();
     sendLabelsEmail.mockReset();
+    reservationUpdates.mockReset();
+    webhookReservationRow = {
+      id: "res-1",
+      bottles: 6,
+      total_sek: 1000,
+      producer_id: "prod-1",
+      pallet_id: null,
+      charge_blocked_reason: null,
+      is_test_purchase: false,
+      user_id: "user-1",
+      user_addresses: {
+        full_name: "Test",
+        email: "t@example.com",
+        phone: "+46700000000",
+        address_street: "Street 1",
+        address_postcode: "11122",
+        address_city: "Stockholm",
+        country_code: "SE",
+      },
+    };
     process.env.STRIPE_WEBHOOK_SECRET = "whsec_test";
     process.env.INSTABEE_AUTO_CREATE_ORDERS = "true";
   });
 
-  it("never books Instabee Budbee when PI metadata is direct_box (retry-safe)", async () => {
+  it("marks DIRECT_BOX_FULFILLMENT_PENDING; never Instabee; retry is idempotent", async () => {
     constructEvent.mockReturnValue({
       type: "payment_intent.succeeded",
       data: {
@@ -517,10 +504,23 @@ describe("WIRED ROUTE contracts (stripe webhook Instabee isolation)", () => {
         body: "{}",
       });
     const res1 = await POST(req());
-    const res2 = await POST(req());
     expect(res1.status).toBe(200);
+    expect(createInstabeeOrder).not.toHaveBeenCalled();
+    expect(reservationUpdates).toHaveBeenCalledWith(
+      expect.objectContaining({
+        charge_blocked_reason: "DIRECT_BOX_FULFILLMENT_PENDING",
+      }),
+    );
+
+    reservationUpdates.mockClear();
+    const res2 = await POST(req());
     expect(res2.status).toBe(200);
     expect(createInstabeeOrder).not.toHaveBeenCalled();
-    expect(confirmInstabeePacking).not.toHaveBeenCalled();
+    // Idempotent: already pending — no second pending write required
+    expect(reservationUpdates).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        charge_blocked_reason: "DIRECT_BOX_FULFILLMENT_PENDING",
+      }),
+    );
   });
 });

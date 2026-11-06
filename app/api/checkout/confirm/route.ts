@@ -93,6 +93,12 @@ import { type AuthorizedFulfillmentPlan } from "@/lib/commerce/fulfillment-chann
 import { parseFulfillmentChannel } from "@/lib/commerce/fulfillment-channel";
 import { gateDirectBoxCheckoutRequest } from "@/lib/commerce/fulfillment-channel-server-gates";
 import { assertDirectBoxConfirmIntentBinding } from "@/lib/commerce/direct-box-payment-contract";
+import {
+  buildDirectBoxReservationInsertPatch,
+  isMissingSchemaColumnError,
+  resolveCheckoutGroupPalletAssignment,
+} from "@/lib/commerce/direct-box-reservation-persistence";
+import { getOrCreateStripeCustomer } from "@/lib/stripe/customer";
 import { validatePromoDiscountCode } from "@/lib/promo-discount-validate";
 import { markExitDiscountRedeemed } from "@/lib/exit-discount/validate";
 import type { PromoDiscountCartItem } from "@/lib/discount-codes";
@@ -361,6 +367,54 @@ export async function POST(request: Request) {
     if (!cart || cart.totalQuantity === 0) {
       console.error("Cart is empty");
       return NextResponse.json({ error: "Cart is empty" }, { status: 400 });
+    }
+
+    // Early direct_box gate (after cart+country) — fail closed before address/pallet work.
+    // Enables wired POST confirm negatives; shared_pallet path unchanged.
+    let authorizedFulfillment: AuthorizedFulfillmentPlan | null = null;
+    const clientFulfillmentChannelRaw =
+      typeof body.fulfillment_channel === "string"
+        ? body.fulfillment_channel
+        : typeof body.fulfillmentChannel === "string"
+          ? body.fulfillmentChannel
+          : null;
+    const clientFulfillmentChannel = parseFulfillmentChannel(
+      clientFulfillmentChannelRaw,
+    );
+    if (clientFulfillmentChannel === "direct_box") {
+      const auth = await gateDirectBoxCheckoutRequest({
+        clientChannelRaw: clientFulfillmentChannelRaw,
+        selectedPalletId:
+          typeof body.selectedPalletId === "string"
+            ? body.selectedPalletId
+            : null,
+        countryCode:
+          typeof address.countryCode === "string" ? address.countryCode : null,
+        bottleCount: (cart.lines || []).reduce(
+          (s: number, l: { quantity?: number }) => s + (Number(l.quantity) || 0),
+          0,
+        ),
+        productSubtotalSek:
+          parseFloat(String(cart.cost?.totalAmount?.amount ?? "0")) || 0,
+      });
+      if (!auth.ok) {
+        return NextResponse.json(
+          { error: auth.message, code: auth.errorCode },
+          { status: auth.httpStatus },
+        );
+      }
+      authorizedFulfillment = auth.plan;
+      // Reject deferred SetupIntent early (before address/pallet work).
+      if (body?.stripe_intent_type === "setup_intent") {
+        return NextResponse.json(
+          {
+            error:
+              "direct_box confirm rejects setup_intent (pallet deferred-charge pipeline)",
+            code: "direct_box_rejects_deferred_setup",
+          },
+          { status: 400 },
+        );
+      }
     }
 
     const sbAdminEarly = getSupabaseAdmin();
@@ -694,51 +748,10 @@ export async function POST(request: Request) {
       console.log("Using selected delivery zone:", finalDeliveryZoneId);
     }
 
-    // Pallet: shipping-region automation first, then legacy zone-pair match (determineZones unchanged).
-    // Channel authorize (default-OFF direct_box): reject client spoof; never auto-assign
-    // a pallet for authorized direct_box. Column write waits for migration 277.
+    // Pallet: shipping-region automation first, then legacy zone-pair match.
+    // direct_box already authorized above — never auto-assign a pallet.
     let palletId: string | null = null;
     let reservationShippingRegionId: string | null = null;
-    let authorizedFulfillment: AuthorizedFulfillmentPlan | null = null;
-
-    const clientFulfillmentChannelRaw =
-      typeof body.fulfillment_channel === "string"
-        ? body.fulfillment_channel
-        : typeof body.fulfillmentChannel === "string"
-          ? body.fulfillmentChannel
-          : null;
-    const clientFulfillmentChannel = parseFulfillmentChannel(
-      clientFulfillmentChannelRaw,
-    );
-    // Only intercept when client proposes direct_box (spoof reject if flag OFF).
-    // Default/shared clients keep the existing pallet path unchanged.
-    if (clientFulfillmentChannel === "direct_box") {
-      // Mode-scoped quote only — NEVER reuse shared-pallet/`pact` 99 SEK.
-      const auth = await gateDirectBoxCheckoutRequest({
-        clientChannelRaw: clientFulfillmentChannelRaw,
-        selectedPalletId:
-          typeof body.selectedPalletId === "string"
-            ? body.selectedPalletId
-            : null,
-        countryCode:
-          typeof body.address?.countryCode === "string"
-            ? body.address.countryCode
-            : null,
-        bottleCount: (cart.lines || []).reduce(
-          (s: number, l: { quantity?: number }) => s + (Number(l.quantity) || 0),
-          0,
-        ),
-        productSubtotalSek:
-          parseFloat(String(cart.cost?.totalAmount?.amount ?? "0")) || 0,
-      });
-      if (!auth.ok) {
-        return NextResponse.json(
-          { error: auth.message, code: auth.errorCode },
-          { status: auth.httpStatus },
-        );
-      }
-      authorizedFulfillment = auth.plan;
-    }
 
     if (authorizedFulfillment?.channel === "direct_box") {
       palletId = null;
@@ -1402,7 +1415,7 @@ export async function POST(request: Request) {
 
       const stripeAmountOre = Number(paymentIntent.amount) || 0;
 
-      // direct_box: bind server quote + channel; reject client/PI tampering.
+      // direct_box: bind server quote + owner/cart/customer; reject tampering.
       if (authorizedFulfillment?.channel === "direct_box") {
         const clientClaimedAmountOre =
           body &&
@@ -1419,11 +1432,26 @@ export async function POST(request: Request) {
                   Number((body as { total_sek: number }).total_sek) * 100,
                 )
               : null;
+        const sessionUserId = String(currentUser?.id ?? user?.id ?? "");
+        const expectedCustomerId = await getOrCreateStripeCustomer(sessionUserId);
+        const piCustomerRaw = paymentIntent.customer;
+        const piCustomerId =
+          typeof piCustomerRaw === "string"
+            ? piCustomerRaw
+            : piCustomerRaw &&
+                typeof piCustomerRaw === "object" &&
+                "id" in piCustomerRaw
+              ? String((piCustomerRaw as { id: string }).id)
+              : null;
         const bind = assertDirectBoxConfirmIntentBinding({
           intentType,
           paymentIntentAmountOre: stripeAmountOre,
           serverExpectedAmountOre: expectedAmountOre,
           paymentIntentMetadata: stripeIntentMetadata,
+          paymentIntentCustomerId: piCustomerId,
+          sessionUserId,
+          serverCartId: cart.id,
+          expectedStripeCustomerId: expectedCustomerId,
           clientChannelRaw: clientFulfillmentChannelRaw,
           clientClaimedAmountOre,
         });
@@ -1640,31 +1668,49 @@ export async function POST(request: Request) {
 
       for (let gi = 0; gi < producerGroupsForB2C.length; gi++) {
         const group = producerGroupsForB2C[gi]!;
-        let groupPalletId: string | null = null;
-        let groupShippingRegionId: string | null = null;
+        let sharedGroupPalletId: string | null = null;
+        let sharedGroupShippingRegionId: string | null = null;
 
-        if (body.selectedPalletId && typeof body.selectedPalletId === "string") {
-          groupPalletId = body.selectedPalletId;
-        } else {
-          const regionResult = await resolveShippingRegionForCart(
-            group.lines as CartLine[],
-          );
-          if (
-            regionResult.shippingRegionId &&
-            finalDeliveryZoneId &&
-            !regionResult.hasMultipleRegions
-          ) {
-            const { palletId: regionPalletId } = await findOrCreatePalletForRegion(
-              regionResult.shippingRegionId,
-              finalDeliveryZoneId,
-            );
-            groupPalletId = regionPalletId;
-            groupShippingRegionId = regionResult.shippingRegionId;
+        // Shared-pallet path only — direct_box must never re-bind via selectedPalletId
+        // or findOrCreatePalletForRegion (HIGH1).
+        if (authorizedFulfillment?.channel !== "direct_box") {
+          if (body.selectedPalletId && typeof body.selectedPalletId === "string") {
+            sharedGroupPalletId = body.selectedPalletId;
           } else {
-            groupPalletId = palletId;
-            groupShippingRegionId = reservationShippingRegionId;
+            const regionResult = await resolveShippingRegionForCart(
+              group.lines as CartLine[],
+            );
+            if (
+              regionResult.shippingRegionId &&
+              finalDeliveryZoneId &&
+              !regionResult.hasMultipleRegions
+            ) {
+              const { palletId: regionPalletId } =
+                await findOrCreatePalletForRegion(
+                  regionResult.shippingRegionId,
+                  finalDeliveryZoneId,
+                );
+              sharedGroupPalletId = regionPalletId;
+              sharedGroupShippingRegionId = regionResult.shippingRegionId;
+            } else {
+              sharedGroupPalletId = palletId;
+              sharedGroupShippingRegionId = reservationShippingRegionId;
+            }
           }
         }
+
+        const groupAssign = resolveCheckoutGroupPalletAssignment({
+          channel: authorizedFulfillment?.channel ?? "shared_pallet",
+          bodySelectedPalletId:
+            typeof body.selectedPalletId === "string"
+              ? body.selectedPalletId
+              : null,
+          topLevelPalletId: palletId,
+          sharedGroupPalletId,
+          sharedGroupShippingRegionId,
+        });
+        const groupPalletId = groupAssign.pallet_id;
+        const groupShippingRegionId = groupAssign.shipping_region_id;
 
         const groupVoucherSek = (voucherOrePerGroup[gi] ?? 0) / 100;
         const groupPactSek = (pactOrePerGroup[gi] ?? 0) / 100;
@@ -1706,34 +1752,62 @@ export async function POST(request: Request) {
               )
             : 0;
 
-        const { data: row, error: insErr } = await sbAdmin
+        const groupBaseInsert: Record<string, unknown> = {
+          user_id: currentUser?.id || null,
+          cart_id: cart.id,
+          address_id: savedAddress.id,
+          pickup_zone_id: zones.pickupZoneId,
+          delivery_zone_id: finalDeliveryZoneId,
+          pallet_id: groupPalletId,
+          shipping_region_id: groupShippingRegionId,
+          producer_id: group.producerId,
+          checkout_group_id: checkoutGroupId,
+          market_drop_id: groupMarketDropId,
+          discount_code_id: promoDiscountCodeId,
+          discount_amount_sek: groupPromoSek,
+          total_sek: amountSek,
+          /** Persist charged shipping for Finance audit (öre). Does not rewrite snapshots. */
+          shipping_revenue_gross_cents: groupShippingShareForPersist,
+          is_test_purchase: promoIsTestkop,
+          // Only primary row carries the client idempotency key (UNIQUE).
+          ...(idempotencyKey && createdReservations.length === 0
+            ? { idempotency_key: idempotencyKey }
+            : {}),
+          ...(reservationLegalExtra ?? {}),
+          ...usReservationExtra,
+          ...(authorizedFulfillment?.channel === "direct_box"
+            ? buildDirectBoxReservationInsertPatch({
+                includeChannelColumn: true,
+              })
+            : {}),
+        };
+
+        let { data: row, error: insErr } = await sbAdmin
           .from("order_reservations")
-          .insert({
-            user_id: currentUser?.id || null,
-            cart_id: cart.id,
-            address_id: savedAddress.id,
-            pickup_zone_id: zones.pickupZoneId,
-            delivery_zone_id: finalDeliveryZoneId,
-            pallet_id: groupPalletId,
-            shipping_region_id: groupShippingRegionId,
-            producer_id: group.producerId,
-            checkout_group_id: checkoutGroupId,
-            market_drop_id: groupMarketDropId,
-            discount_code_id: promoDiscountCodeId,
-            discount_amount_sek: groupPromoSek,
-            total_sek: amountSek,
-            /** Persist charged shipping for Finance audit (öre). Does not rewrite snapshots. */
-            shipping_revenue_gross_cents: groupShippingShareForPersist,
-            is_test_purchase: promoIsTestkop,
-            // Only primary row carries the client idempotency key (UNIQUE).
-            ...(idempotencyKey && createdReservations.length === 0
-              ? { idempotency_key: idempotencyKey }
-              : {}),
-            ...(reservationLegalExtra ?? {}),
-            ...usReservationExtra,
-          })
+          .insert(groupBaseInsert)
           .select("id")
           .single();
+
+        // Migration 277 may be unapplied — strip fulfillment_channel and retry once.
+        if (
+          insErr &&
+          authorizedFulfillment?.channel === "direct_box" &&
+          isMissingSchemaColumnError(insErr, "fulfillment_channel")
+        ) {
+          const retryPatch = buildDirectBoxReservationInsertPatch({
+            includeChannelColumn: false,
+          });
+          const retryInsert = {
+            ...groupBaseInsert,
+            ...retryPatch,
+          };
+          delete retryInsert.fulfillment_channel;
+          ({ data: row, error: insErr } = await sbAdmin
+            .from("order_reservations")
+            .insert(retryInsert)
+            .select("id")
+            .single());
+        }
 
         if (insErr || !row?.id) {
           if (
@@ -1832,30 +1906,54 @@ export async function POST(request: Request) {
       reservation = { id: createdReservations[0]!.id };
     } else {
       console.log("Creating order reservation");
-      const { data: resRow, error: reservationError } = await sbAdmin
+      const singleBaseInsert: Record<string, unknown> = {
+        user_id: currentUser?.id || null,
+        cart_id: cart.id,
+        address_id: savedAddress.id,
+        pickup_zone_id: zones.pickupZoneId,
+        delivery_zone_id: finalDeliveryZoneId,
+        pallet_id: palletId,
+        shipping_region_id: reservationShippingRegionId,
+        producer_id: producerIdForReservation,
+        market_drop_id: serverMarketDropIdSingle,
+        discount_code_id: promoDiscountCodeId,
+        discount_amount_sek: promoDiscountAmountSek,
+        total_sek: expectedFinalSek,
+        /** Persist charged shipping for Finance audit (öre). Does not rewrite snapshots. */
+        shipping_revenue_gross_cents: shippingGrossCentsTotal,
+        is_test_purchase: promoIsTestkop,
+        ...(idempotencyKey ? { idempotency_key: idempotencyKey } : {}),
+        ...(reservationLegalExtra ?? {}),
+        ...usReservationExtra,
+        ...(authorizedFulfillment?.channel === "direct_box"
+          ? buildDirectBoxReservationInsertPatch({
+              includeChannelColumn: true,
+            })
+          : {}),
+      };
+
+      let { data: resRow, error: reservationError } = await sbAdmin
         .from("order_reservations")
-        .insert({
-          user_id: currentUser?.id || null,
-          cart_id: cart.id,
-          address_id: savedAddress.id,
-          pickup_zone_id: zones.pickupZoneId,
-          delivery_zone_id: finalDeliveryZoneId,
-          pallet_id: palletId,
-          shipping_region_id: reservationShippingRegionId,
-          producer_id: producerIdForReservation,
-          market_drop_id: serverMarketDropIdSingle,
-          discount_code_id: promoDiscountCodeId,
-          discount_amount_sek: promoDiscountAmountSek,
-          total_sek: expectedFinalSek,
-          /** Persist charged shipping for Finance audit (öre). Does not rewrite snapshots. */
-          shipping_revenue_gross_cents: shippingGrossCentsTotal,
-          is_test_purchase: promoIsTestkop,
-          ...(idempotencyKey ? { idempotency_key: idempotencyKey } : {}),
-          ...(reservationLegalExtra ?? {}),
-          ...usReservationExtra,
-        })
+        .insert(singleBaseInsert)
         .select("id")
         .single();
+
+      if (
+        reservationError &&
+        authorizedFulfillment?.channel === "direct_box" &&
+        isMissingSchemaColumnError(reservationError, "fulfillment_channel")
+      ) {
+        const retryPatch = buildDirectBoxReservationInsertPatch({
+          includeChannelColumn: false,
+        });
+        const retryInsert = { ...singleBaseInsert, ...retryPatch };
+        delete retryInsert.fulfillment_channel;
+        ({ data: resRow, error: reservationError } = await sbAdmin
+          .from("order_reservations")
+          .insert(retryInsert)
+          .select("id")
+          .single());
+      }
 
       if (reservationError || !resRow?.id) {
         if (isUniqueViolation(reservationError) && idempotencyKey) {

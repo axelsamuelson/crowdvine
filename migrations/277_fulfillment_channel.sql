@@ -2,6 +2,10 @@
 -- Adds fulfillment_channel on order_reservations and allows direct_box rows in
 -- customer_shipping_rates.channel. Does NOT seed any customer price (no 99 SEK
 -- for direct_box). Shared-pallet/`pact` rates remain unchanged.
+--
+-- Until applied, runtime writes fulfillment_channel with strip-retry on unknown
+-- column, and uses deployed charge_blocked_reason='DIRECT_BOX_FULFILLMENT_PENDING'
+-- for durable ops handoff after paid direct_box (no invented carrier booking).
 
 -- order_reservations.fulfillment_channel
 ALTER TABLE order_reservations
@@ -23,6 +27,13 @@ COMMENT ON COLUMN order_reservations.fulfillment_channel IS
 CREATE INDEX IF NOT EXISTS idx_order_reservations_fulfillment_channel
   ON order_reservations (fulfillment_channel)
   WHERE fulfillment_channel IS NOT NULL;
+
+-- Optional future dispatch status (not required for handoff — charge_blocked_reason works on deployed schema).
+ALTER TABLE order_reservations
+  ADD COLUMN IF NOT EXISTS fulfillment_dispatch_status TEXT;
+
+COMMENT ON COLUMN order_reservations.fulfillment_dispatch_status IS
+  'Optional: pending_manual_handoff | booked | skipped. Until applied, DIRECT_BOX_FULFILLMENT_PENDING uses charge_blocked_reason.';
 
 -- Allow mode-scoped direct_box customer shipping rates (empty until owner configures).
 -- Existing `pact` rows (shared-pallet / legacy 99 SEK) are NOT reused for direct_box.

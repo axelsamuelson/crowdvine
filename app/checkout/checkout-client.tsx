@@ -100,10 +100,10 @@ import {
 import {
   defaultFulfillmentChannel,
   isDeliveryCompleteForChannel,
-  resolveDirectBoxCarrierEligibility,
   resolveSharedPalletBudbeeEligibility,
   type FulfillmentChannel,
 } from "@/lib/commerce/fulfillment-channel";
+import type { DirectBoxUiAvailability } from "@/lib/commerce/direct-box-ui-contract";
 import { DirectBoxDeliveryPromise } from "@/components/commerce/direct-box-delivery-promise";
 import type { ProducerValidation } from "@/lib/checkout-validation";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -158,10 +158,18 @@ interface UserReward {
 function CheckoutContent({
   platformOpen,
   directBoxCheckoutEnabled = false,
+  directBoxAvailability = {
+    offered: false,
+    deliverySelectable: false,
+    reason: "flag_off" as const,
+    messageKey: null,
+  },
 }: {
   platformOpen: boolean;
   /** Server-gated; default false — shared_pallet behaviour unchanged. */
   directBoxCheckoutEnabled?: boolean;
+  /** Server-derived carrier/quote availability — no env secrets. */
+  directBoxAvailability?: DirectBoxUiAvailability;
 }) {
   const { t, context: shopping } = useShoppingContext();
   const paths = localizedPathsForLocale(shopping.locale);
@@ -674,16 +682,24 @@ function CheckoutContent({
         return true;
       }
 
+      // Server-derived availability (page.tsx) — never invent carrier from client.
       const carrier =
         fulfillmentChannel === "direct_box"
-          ? resolveDirectBoxCarrierEligibility({
-              channel: "direct_box",
-              checkoutEnabled: true,
-              // Client cannot invent a carrier — eligibility stays fail-closed
-              // until server injects config; null ⇒ unavailable.
-              config: null,
-              countryCode: effectiveDelivery?.countryCode ?? "SE",
-            })
+          ? directBoxAvailability.deliverySelectable
+            ? {
+                status: "eligible" as const,
+                channel: "direct_box" as const,
+                carrierId: "server_authorized",
+                productCode: "server_authorized",
+              }
+            : {
+                status: "unavailable" as const,
+                channel: "direct_box" as const,
+                reason: "carrier_unconfigured" as const,
+                messageKey:
+                  directBoxAvailability.messageKey ??
+                  "checkout.directBoxCarrierUnconfigured",
+              }
           : resolveSharedPalletBudbeeEligibility({
               channel: "shared_pallet",
               budbeeAvailable,
@@ -702,9 +718,10 @@ function CheckoutContent({
     },
     [
       directBoxCheckoutEnabled,
+      directBoxAvailability.deliverySelectable,
+      directBoxAvailability.messageKey,
       fulfillmentChannel,
       budbeeAvailable,
-      effectiveDelivery?.countryCode,
       hasZoneDeliveryReady,
       hasUsState,
       isUsConditional,
@@ -3848,7 +3865,8 @@ function CheckoutContent({
                                   {t("checkout.budbeeUnavailable")}
                                 </p>
                               )}
-                              {directBoxCheckoutEnabled && (
+                              {directBoxCheckoutEnabled &&
+                                directBoxAvailability.offered && (
                                 <div className="mt-3 space-y-2">
                                   <label className="flex items-center gap-2 text-xs text-foreground">
                                     <input
@@ -3863,24 +3881,40 @@ function CheckoutContent({
                                     />
                                     shared_pallet
                                   </label>
-                                  <label className="flex items-center gap-2 text-xs text-foreground">
+                                  <label
+                                    className={cn(
+                                      "flex items-center gap-2 text-xs text-foreground",
+                                      !directBoxAvailability.deliverySelectable &&
+                                        "opacity-60",
+                                    )}
+                                  >
                                     <input
                                       type="radio"
                                       name="fulfillment_channel"
                                       checked={
                                         fulfillmentChannel === "direct_box"
                                       }
-                                      onChange={() =>
-                                        setFulfillmentChannel("direct_box")
+                                      disabled={
+                                        !directBoxAvailability.deliverySelectable
                                       }
+                                      onChange={() => {
+                                        if (
+                                          directBoxAvailability.deliverySelectable
+                                        ) {
+                                          setFulfillmentChannel("direct_box");
+                                        }
+                                      }}
                                     />
-                                    direct_box (technical — carrier not
-                                    configured; not operational)
+                                    direct_box
+                                    {!directBoxAvailability.deliverySelectable
+                                      ? " (unavailable — not quoted / carrier unconfigured)"
+                                      : ""}
                                   </label>
-                                  {fulfillmentChannel === "direct_box" && (
+                                  {fulfillmentChannel === "direct_box" &&
+                                    !directBoxAvailability.deliverySelectable && (
                                     <p className="text-xs text-amber-500">
-                                      Direct box carrier unavailable / not
-                                      quoted until a contract is configured.
+                                      Direct box unavailable until server
+                                      reports carrier + mode-scoped quote ready.
                                     </p>
                                   )}
                                 </div>
@@ -4840,9 +4874,11 @@ function CheckoutContent({
 export function CheckoutClient({
   platformOpen = false,
   directBoxCheckoutEnabled = false,
+  directBoxAvailability,
 }: {
   platformOpen?: boolean;
   directBoxCheckoutEnabled?: boolean;
+  directBoxAvailability?: DirectBoxUiAvailability;
 }) {
   return (
     <Suspense
@@ -4859,6 +4895,7 @@ export function CheckoutClient({
       <CheckoutContent
         platformOpen={platformOpen}
         directBoxCheckoutEnabled={directBoxCheckoutEnabled}
+        directBoxAvailability={directBoxAvailability}
       />
       {/* merge modal portal host is inside CheckoutContent */}
     </Suspense>
