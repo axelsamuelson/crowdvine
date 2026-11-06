@@ -82,6 +82,8 @@ import {
   buildReservationSuccessResponse,
   findRecentDuplicateReservation,
   findReservationByIdempotencyKey,
+  findReservationByPaymentIntentId,
+  findReservationBySetupIntentId,
   isUniqueViolation,
   parseIdempotencyKey,
 } from "@/lib/checkout/reservation-idempotency";
@@ -1519,6 +1521,27 @@ export async function POST(request: Request) {
     }
     } // end !deferredLinkCheckout
 
+    // Same Stripe intent already attached → idempotent replay.
+    // Runs AFTER retrieve + binding/amount/legal checks so retries cannot skip them.
+    if (!deferredLinkCheckout && intentId && intentType) {
+      const byIntent =
+        intentType === "payment_intent"
+          ? await findReservationByPaymentIntentId(sbAdmin, intentId)
+          : await findReservationBySetupIntentId(sbAdmin, intentId);
+      if (byIntent) {
+        console.warn("[duplicate-reservation-blocked]", {
+          reason:
+            intentType === "payment_intent"
+              ? "payment_intent_id"
+              : "setup_intent_id",
+          reservation_id: byIntent.id,
+          intent_id: intentId,
+          user_id: user.id,
+        });
+        return NextResponse.json(buildReservationSuccessResponse(byIntent));
+      }
+    }
+
     const checkoutGroupId = b2cProducerCheckout ? crypto.randomUUID() : null;
     const outboundCheckoutGroupId = checkoutGroupId ?? crypto.randomUUID();
 
@@ -2182,6 +2205,21 @@ export async function POST(request: Request) {
         await rollbackCheckoutGroup();
       } else {
         await sbAdmin.from("order_reservations").delete().eq("id", reservation.id);
+      }
+      // Race: another request attached this intent first — replay existing after rollback.
+      if (isUniqueViolation(payAttachErr) && intentId && intentType) {
+        const existing =
+          intentType === "payment_intent"
+            ? await findReservationByPaymentIntentId(sbAdmin, intentId)
+            : await findReservationBySetupIntentId(sbAdmin, intentId);
+        if (existing) {
+          console.warn("[duplicate-reservation-blocked]", {
+            reason: "stripe_intent_unique_violation",
+            reservation_id: existing.id,
+            intent_id: intentId,
+          });
+          return NextResponse.json(buildReservationSuccessResponse(existing));
+        }
       }
       return NextResponse.json(
         { error: "Failed to attach Stripe intent" },
