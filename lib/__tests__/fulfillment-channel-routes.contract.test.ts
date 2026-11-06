@@ -25,6 +25,9 @@ const resolveMarketForCountry = vi.fn();
 const getRedeemableBalance = vi.fn();
 const getOrCreateStripeCustomer = vi.fn();
 const reservationUpdates = vi.fn();
+/** When true: after dispatch-status read returns unset, flip row to booked before update (TOCTOU). */
+let webhookRaceFlipDispatchToBookedAfterRead = false;
+const webhookUpdateOrFilters: string[] = [];
 let webhookReservationRow: Record<string, unknown> = {
   id: "res-1",
   bottles: 6,
@@ -97,15 +100,105 @@ vi.mock("@/lib/supabase-admin", () => ({
         return makeThenableQuery({ id: "user-1" });
       }
       if (table === "order_reservations") {
-        const query: Record<string, unknown> = makeThenableQuery(
-          webhookReservationRow,
-        );
-        query.update = (payload: Record<string, unknown>) => {
-          reservationUpdates(payload);
-          Object.assign(webhookReservationRow, payload);
-          return {
-            eq: async () => ({ error: null }),
-          };
+        let lastSelectCols = "";
+        const query: Record<string, unknown> = {
+          select(cols?: string) {
+            lastSelectCols = String(cols ?? "");
+            return query;
+          },
+          eq() {
+            return query;
+          },
+          in() {
+            return query;
+          },
+          maybeSingle: async () => {
+            if (
+              lastSelectCols.includes("fulfillment_dispatch_status") &&
+              webhookRaceFlipDispatchToBookedAfterRead
+            ) {
+              // Read sees unset; concurrent ops then marks booked before our UPDATE.
+              const data = {
+                fulfillment_dispatch_status:
+                  (webhookReservationRow.fulfillment_dispatch_status as
+                    | string
+                    | null
+                    | undefined) ?? null,
+              };
+              webhookReservationRow.fulfillment_dispatch_status = "booked";
+              return { data, error: null };
+            }
+            return { data: webhookReservationRow, error: null };
+          },
+          single: async () => ({ data: webhookReservationRow, error: null }),
+          then(
+            resolve: (v: { data: unknown; error: null }) => unknown,
+            reject?: (e: unknown) => unknown,
+          ) {
+            return Promise.resolve({
+              data: webhookReservationRow,
+              error: null,
+            }).then(resolve, reject);
+          },
+          update(payload: Record<string, unknown>) {
+            let orClause: string | null = null;
+            const chain: Record<string, unknown> = {};
+            const self = () => chain;
+            chain.eq = self;
+            chain.select = self;
+            chain.or = (clause: string) => {
+              orClause = clause;
+              webhookUpdateOrFilters.push(clause);
+              return chain;
+            };
+            const commit = async () => {
+              const { canApplyDirectBoxPendingMark } = await import(
+                "@/lib/commerce/direct-box-reservation-persistence"
+              );
+              // Honor SQL CAS: do not model the guard away.
+              if (
+                orClause &&
+                !canApplyDirectBoxPendingMark(
+                  webhookReservationRow.fulfillment_dispatch_status as
+                    | string
+                    | null,
+                )
+              ) {
+                return { data: null, error: null };
+              }
+              if (
+                !orClause &&
+                payload.fulfillment_dispatch_status ===
+                  "pending_manual_handoff" &&
+                !canApplyDirectBoxPendingMark(
+                  webhookReservationRow.fulfillment_dispatch_status as
+                    | string
+                    | null,
+                )
+              ) {
+                // Missing .or() must not silently overwrite in this mock either
+                // when status is progressed — fail closed for the race assertion.
+                return { data: null, error: null };
+              }
+              reservationUpdates(payload);
+              Object.assign(webhookReservationRow, payload);
+              return {
+                data: {
+                  id: webhookReservationRow.id,
+                  fulfillment_dispatch_status:
+                    webhookReservationRow.fulfillment_dispatch_status,
+                },
+                error: null,
+              };
+            };
+            chain.maybeSingle = commit;
+            chain.single = commit;
+            chain.then = (
+              resolve: (v: Awaited<ReturnType<typeof commit>>) => unknown,
+              reject?: (e: unknown) => unknown,
+            ) => commit().then(resolve, reject);
+            return chain;
+          },
         };
         return query;
       }
@@ -492,6 +585,8 @@ describe("WIRED ROUTE contracts (stripe webhook direct_box pending handoff)", ()
     confirmInstabeePacking.mockReset();
     sendLabelsEmail.mockReset();
     reservationUpdates.mockReset();
+    webhookRaceFlipDispatchToBookedAfterRead = false;
+    webhookUpdateOrFilters.length = 0;
     webhookReservationRow = {
       id: "res-1",
       bottles: 6,
@@ -551,6 +646,9 @@ describe("WIRED ROUTE contracts (stripe webhook direct_box pending handoff)", ()
         charge_blocked_reason: "DIRECT_BOX_FULFILLMENT_PENDING",
       }),
     );
+    expect(webhookUpdateOrFilters.length).toBeGreaterThan(0);
+    expect(webhookUpdateOrFilters[0]).toMatch(/fulfillment_dispatch_status\.is\.null/);
+    expect(webhookUpdateOrFilters[0]).toMatch(/pending_manual_handoff/);
 
     reservationUpdates.mockClear();
     const res2 = await POST(req());
@@ -562,5 +660,43 @@ describe("WIRED ROUTE contracts (stripe webhook direct_box pending handoff)", ()
         fulfillment_dispatch_status: "pending_manual_handoff",
       }),
     );
+  });
+
+  it("CAS: concurrent booked between read and update is preserved (no pending overwrite)", async () => {
+    webhookRaceFlipDispatchToBookedAfterRead = true;
+    constructEvent.mockReturnValue({
+      type: "payment_intent.succeeded",
+      data: {
+        object: {
+          id: "pi_direct_race",
+          metadata: {
+            reservation_id: "res-1",
+            fulfillment_channel: "direct_box",
+            pallet_id: "",
+          },
+          latest_charge: null,
+        },
+      },
+    });
+
+    const { POST } = await import("@/app/api/stripe/webhook/route");
+    const res = await POST(
+      new NextRequest("http://localhost/api/stripe/webhook", {
+        method: "POST",
+        headers: { "stripe-signature": "t=1,v1=test" },
+        body: "{}",
+      }),
+    );
+    expect(res.status).toBe(200);
+    expect(createInstabeeOrder).not.toHaveBeenCalled();
+    // Guard must have been applied (not modeled away).
+    expect(webhookUpdateOrFilters.length).toBeGreaterThan(0);
+    // Progressive ops state wins — pending mark must not stick.
+    expect(reservationUpdates).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        fulfillment_dispatch_status: "pending_manual_handoff",
+      }),
+    );
+    expect(webhookReservationRow.fulfillment_dispatch_status).toBe("booked");
   });
 });

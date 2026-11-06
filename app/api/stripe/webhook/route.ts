@@ -13,6 +13,7 @@ import { shouldDispatchInstabeeBudbeeHome } from "@/lib/commerce/fulfillment-cha
 import { assertDirectBoxWebhookDispatchIdempotent } from "@/lib/commerce/direct-box-payment-contract";
 import {
   DIRECT_BOX_FULFILLMENT_DISPATCH_PENDING,
+  directBoxPendingMarkOrFilter,
   isDirectBoxFulfillmentAlreadyPending,
   isDirectBoxFulfillmentProgressed,
   isDirectBoxSchemaUnreadyError,
@@ -257,13 +258,18 @@ async function handlePaymentIntentSucceededWebhook(
 
       if (channelParsed === "direct_box" || directDispatch.shouldMarkFulfillmentPending) {
         if (directDispatch.shouldMarkFulfillmentPending) {
-          const { error: pendingErr } = await sbAdmin
+          // Atomic CAS: only write pending when still unset/pending at UPDATE time
+          // so a concurrent booked/skipped cannot be overwritten by read-then-write.
+          const { data: markedRow, error: pendingErr } = await sbAdmin
             .from("order_reservations")
             .update({
               fulfillment_dispatch_status:
                 DIRECT_BOX_FULFILLMENT_DISPATCH_PENDING,
             })
-            .eq("id", reservationId);
+            .eq("id", reservationId)
+            .or(directBoxPendingMarkOrFilter())
+            .select("id,fulfillment_dispatch_status")
+            .maybeSingle();
           if (pendingErr) {
             if (
               isDirectBoxSchemaUnreadyError(pendingErr) ||
@@ -282,6 +288,10 @@ async function handlePaymentIntentSucceededWebhook(
                 pendingErr,
               );
             }
+          } else if (!markedRow) {
+            console.log(
+              `[Stripe Webhook] direct_box fulfillment pending CAS miss reservation_id=${reservationId} — progressed/non-eligible status preserved`,
+            );
           } else {
             console.log(
               `[Stripe Webhook] marked fulfillment_dispatch_status=${DIRECT_BOX_FULFILLMENT_DISPATCH_PENDING} reservation_id=${reservationId} (manual ops handoff; no carrier invented)`,

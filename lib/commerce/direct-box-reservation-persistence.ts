@@ -159,6 +159,31 @@ export function isDirectBoxFulfillmentProgressed(
   );
 }
 
+/**
+ * PostgREST `.or()` filter for webhook CAS: only mark pending when current
+ * dispatch is unset or already-pending — never overwrite booked/skipped/etc.
+ */
+export function directBoxPendingMarkOrFilter(): string {
+  return [
+    "fulfillment_dispatch_status.is.null",
+    `fulfillment_dispatch_status.eq.${DIRECT_BOX_FULFILLMENT_DISPATCH_PENDING}`,
+    "fulfillment_dispatch_status.eq.pending",
+  ].join(",");
+}
+
+/** True when a pending_manual_handoff write is allowed for the current status. */
+export function canApplyDirectBoxPendingMark(
+  status: string | null | undefined,
+): boolean {
+  if (isDirectBoxFulfillmentProgressed(status)) return false;
+  const v = normalizeFulfillmentDispatchStatus(status);
+  return (
+    v === null ||
+    v === DIRECT_BOX_FULFILLMENT_DISPATCH_PENDING ||
+    v === "pending"
+  );
+}
+
 export function isDirectBoxFulfillmentAlreadyPending(row: {
   charge_blocked_reason?: string | null;
   fulfillment_dispatch_status?: string | null;

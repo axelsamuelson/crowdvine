@@ -65,6 +65,21 @@ describe("direct_box insert patch + dispatch status (no charge hold)", () => {
     expect(patch.payment_mode).toBe("payment_intent");
   });
 
+  it("pending-mark CAS filter allows unset/pending only — not booked/skipped", async () => {
+    const {
+      canApplyDirectBoxPendingMark,
+      directBoxPendingMarkOrFilter,
+    } = await import("@/lib/commerce/direct-box-reservation-persistence");
+    expect(canApplyDirectBoxPendingMark(null)).toBe(true);
+    expect(canApplyDirectBoxPendingMark("pending_manual_handoff")).toBe(true);
+    expect(canApplyDirectBoxPendingMark("booked")).toBe(false);
+    expect(canApplyDirectBoxPendingMark("skipped")).toBe(false);
+    const or = directBoxPendingMarkOrFilter();
+    expect(or).toContain("fulfillment_dispatch_status.is.null");
+    expect(or).toContain("pending_manual_handoff");
+    expect(or).not.toMatch(/booked/);
+  });
+
   it("detects schema-unready for fail-closed", () => {
     expect(
       isDirectBoxSchemaUnreadyError({
