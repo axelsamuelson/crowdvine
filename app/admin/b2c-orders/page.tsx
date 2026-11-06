@@ -8,6 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   formatPaymentMethodSummary,
 } from "@/lib/stripe/payment-method-display";
+import { resolveAdminFulfillmentDisplay } from "@/lib/admin/fulfillment-display";
 import {
   Calendar,
   Clock,
@@ -45,6 +46,8 @@ interface AdminReservationListRow {
   region?: string | null;
   is_conditional?: boolean | null;
   charge_blocked_reason?: string | null;
+  fulfillment_channel?: string | null;
+  fulfillment_dispatch_status?: string | null;
   archived_at?: string | null;
   archive_reason?: string | null;
   status_before_archive?: string | null;
@@ -548,14 +551,22 @@ export default function B2cOrdersPage() {
                               US conditional
                             </span>
                           ) : null}
-                          {reservation.charge_blocked_reason ? (
-                            <span
-                              className="text-[10px] text-amber-800 dark:text-amber-200 max-w-[200px] leading-tight"
-                              title={reservation.charge_blocked_reason}
-                            >
-                              Charge hold: {reservation.charge_blocked_reason}
-                            </span>
-                          ) : null}
+                          {resolveAdminFulfillmentDisplay(reservation).map(
+                            (badge, i) =>
+                              badge ? (
+                                <span
+                                  key={`${badge.kind}-${i}`}
+                                  className={
+                                    badge.kind === "charge_hold"
+                                      ? "text-[10px] text-amber-800 dark:text-amber-200 max-w-[200px] leading-tight"
+                                      : "text-[10px] text-sky-800 dark:text-sky-200 max-w-[200px] leading-tight"
+                                  }
+                                  title={badge.title}
+                                >
+                                  {badge.label}
+                                </span>
+                              ) : null,
+                          )}
                           {reservation.country_code || reservation.region ? (
                             <span className="text-[10px] text-gray-500 dark:text-zinc-500 font-mono">
                               {[reservation.country_code, reservation.region]

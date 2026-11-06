@@ -183,4 +183,15 @@ describe("checkout shipping label currency", () => {
       }),
     ).toEqual({ kind: "none" });
   });
+
+  it("direct_box shipping context shows amount without a pallet", () => {
+    expect(
+      resolveCheckoutShippingLabelState({
+        hasShippingContext: true,
+        hasPallet: false,
+        shippingPending: false,
+        shippingSek: 149,
+      }),
+    ).toEqual({ kind: "amount", shippingSek: 149 });
+  });
 });

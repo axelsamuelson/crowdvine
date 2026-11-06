@@ -7,7 +7,12 @@
  */
 
 import { quotePactCustomerShipping } from "@/lib/customer-shipping-quote-server";
-import { customerShippingQuoteToSekMajor } from "@/lib/customer-shipping-pricing";
+import {
+  customerShippingQuoteToSekMajor,
+  rateChannelForFulfillmentMode,
+  type CustomerShippingChannel,
+  type CustomerShippingFulfillmentMode,
+} from "@/lib/customer-shipping-pricing";
 
 /** ISO-3166 alpha-2 or null when missing/invalid (never invent "SE"). */
 export function normalizeCheckoutShippingCountry(
@@ -40,6 +45,11 @@ export async function resolveCheckoutShippingSek(input: {
   productSubtotalSek?: number;
   /** Checkout passes false so a missing country rate is not replaced by pallet amortization. */
   allowLegacyFallback?: boolean;
+  /**
+   * Fulfillment mode selects the rate-table channel.
+   * direct_box never reads pact/shared-pallet 99 SEK rows and never uses legacy pallet amortization.
+   */
+  fulfillmentMode?: CustomerShippingFulfillmentMode;
   pallet: {
     cost_cents?: number | null;
     bottle_capacity?: number | null;
@@ -52,7 +62,12 @@ export async function resolveCheckoutShippingSek(input: {
   complete: boolean;
   freeShipping: boolean;
   reason: string;
+  rateChannel: CustomerShippingChannel | null;
+  fulfillmentMode: CustomerShippingFulfillmentMode;
 }> {
+  const fulfillmentMode: CustomerShippingFulfillmentMode =
+    input.fulfillmentMode === "direct_box" ? "direct_box" : "shared_pallet";
+  const rateChannel = rateChannelForFulfillmentMode(fulfillmentMode);
   const bottles = Math.max(0, Math.floor(input.bottleCount));
   const subtotalCents = Math.max(
     0,
@@ -68,6 +83,8 @@ export async function resolveCheckoutShippingSek(input: {
       complete: false,
       freeShipping: false,
       reason: "Missing checkout shipping country",
+      rateChannel: null,
+      fulfillmentMode,
     };
   }
 
@@ -75,15 +92,23 @@ export async function resolveCheckoutShippingSek(input: {
     bottleCount: bottles,
     countryCode,
     productSubtotalGrossCents: subtotalCents,
-    allowLegacyFallback: input.allowLegacyFallback !== false,
-    legacyPallet: input.pallet
-      ? {
-          costCents: Number(input.pallet.cost_cents) || 0,
-          bottleCapacity: Number(input.pallet.bottle_capacity) || 0,
-          lastMileCostCentsPerBottle:
-            input.pallet.last_mile_cost_cents_per_bottle,
-        }
-      : null,
+    channel: rateChannel,
+    // Never amortize pallet for direct_box; shared keeps caller preference.
+    allowLegacyFallback:
+      fulfillmentMode === "direct_box"
+        ? false
+        : input.allowLegacyFallback !== false,
+    legacyPallet:
+      fulfillmentMode === "direct_box"
+        ? null
+        : input.pallet
+          ? {
+              costCents: Number(input.pallet.cost_cents) || 0,
+              bottleCapacity: Number(input.pallet.bottle_capacity) || 0,
+              lastMileCostCentsPerBottle:
+                input.pallet.last_mile_cost_cents_per_bottle,
+            }
+          : null,
   });
 
   return {
@@ -93,6 +118,8 @@ export async function resolveCheckoutShippingSek(input: {
     complete: quote.complete,
     freeShipping: quote.freeShipping,
     reason: quote.reason,
+    rateChannel: quote.rateChannel,
+    fulfillmentMode,
   };
 }
 
@@ -123,12 +150,16 @@ export type CheckoutShippingChargeResult = {
   source: string;
   reason: string;
   countryCode: string | null;
+  rateChannel: CustomerShippingChannel | null;
+  fulfillmentMode: CustomerShippingFulfillmentMode;
 };
 
 /**
  * Single entry used by quote / payment-intent / confirm / auto-charge.
- * Resolves country, loads the rate for that country only, and applies the
- * charge gate (pending when no configured rate row exists).
+ * Resolves country, loads the rate for that country + fulfillment mode only,
+ * and applies the charge gate (pending when no configured rate row exists).
+ *
+ * direct_box NEVER reuses shared-pallet/`pact` (legacy 99 SEK) rows.
  */
 export async function resolveAndChargeCheckoutShipping(input: {
   bottleCount: number;
@@ -137,12 +168,15 @@ export async function resolveAndChargeCheckoutShipping(input: {
   activeZoneCountry?: string | null;
   /** Explicit override when callers already normalized the country. */
   countryCode?: string | null;
+  fulfillmentMode?: CustomerShippingFulfillmentMode;
   pallet: {
     cost_cents?: number | null;
     bottle_capacity?: number | null;
     last_mile_cost_cents_per_bottle?: number | null;
   } | null;
 }): Promise<CheckoutShippingChargeResult> {
+  const fulfillmentMode: CustomerShippingFulfillmentMode =
+    input.fulfillmentMode === "direct_box" ? "direct_box" : "shared_pallet";
   const countryCode =
     normalizeCheckoutShippingCountry(input.countryCode) ??
     resolveCheckoutShippingCountry({
@@ -157,6 +191,8 @@ export async function resolveAndChargeCheckoutShipping(input: {
       source: "missing_config",
       reason: "Missing checkout shipping country",
       countryCode: null,
+      rateChannel: null,
+      fulfillmentMode,
     };
   }
 
@@ -165,7 +201,8 @@ export async function resolveAndChargeCheckoutShipping(input: {
     productSubtotalSek: input.productSubtotalSek,
     countryCode,
     allowLegacyFallback: false,
-    pallet: input.pallet,
+    fulfillmentMode,
+    pallet: fulfillmentMode === "direct_box" ? null : input.pallet,
   });
   const charge = checkoutCustomerShippingCharge(resolved);
   return {
@@ -174,5 +211,7 @@ export async function resolveAndChargeCheckoutShipping(input: {
     source: resolved.source,
     reason: resolved.reason,
     countryCode,
+    rateChannel: resolved.rateChannel,
+    fulfillmentMode,
   };
 }

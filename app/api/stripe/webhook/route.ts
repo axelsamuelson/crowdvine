@@ -9,6 +9,17 @@ import {
 } from "@/lib/instabee/home-delivery";
 import { sendLabelsEmail } from "@/lib/email/instabee-labels";
 import { emitCheckoutCompletedOnce } from "@/lib/analytics/emit-checkout-completed";
+import { shouldDispatchInstabeeBudbeeHome } from "@/lib/commerce/fulfillment-channel-pipeline";
+import { assertDirectBoxWebhookDispatchIdempotent } from "@/lib/commerce/direct-box-payment-contract";
+import {
+  DIRECT_BOX_FULFILLMENT_DISPATCH_PENDING,
+  directBoxPendingMarkOrFilter,
+  isDirectBoxFulfillmentAlreadyPending,
+  isDirectBoxFulfillmentProgressed,
+  isDirectBoxSchemaUnreadyError,
+  isMissingSchemaColumnError,
+} from "@/lib/commerce/direct-box-reservation-persistence";
+import { parseFulfillmentChannel } from "@/lib/commerce/fulfillment-channel";
 
 function paymentIntentLatestChargeId(
   paymentIntent: Stripe.PaymentIntent,
@@ -158,21 +169,28 @@ async function handlePaymentIntentSucceededWebhook(
     );
   }
 
-  // Instabee — triggas garanterat efter bekräftad betalning
-  if (process.env.INSTABEE_AUTO_CREATE_ORDERS === "true") {
-    try {
-      const palletIdFromMeta = paymentIntent.metadata?.pallet_id;
+  // Fulfillment dispatch after paid PI.
+  // direct_box: never Instabee; durable fulfillment_dispatch_status handoff
+  // (no invented carrier booking; never overload charge_blocked_reason).
+  // shared_pallet: optional Instabee Budbee.
+  try {
+    const palletIdFromMeta = paymentIntent.metadata?.pallet_id;
+    const channelFromMeta = paymentIntent.metadata?.fulfillment_channel;
+    const channelParsed = parseFulfillmentChannel(channelFromMeta);
 
-      // Hämta adress för denna reservation
-      const sbAdmin = getSupabaseAdmin();
-      const { data: resData } = await sbAdmin
-        .from("order_reservations")
-        .select(
-          `
+    const sbAdmin = getSupabaseAdmin();
+    // Base select avoids fulfillment_dispatch_status so shared_pallet works
+    // before migration 277. Direct path loads dispatch status separately.
+    const { data: resData } = await sbAdmin
+      .from("order_reservations")
+      .select(
+        `
           id,
           bottles,
           total_sek,
           producer_id,
+          pallet_id,
+          charge_blocked_reason,
           user_addresses!inner (
             full_name,
             email,
@@ -183,11 +201,116 @@ async function handlePaymentIntentSucceededWebhook(
             country_code
           )
         `,
-        )
-        .eq("id", reservationId)
-        .maybeSingle();
+      )
+      .eq("id", reservationId)
+      .maybeSingle();
 
-      if (resData) {
+    if (resData) {
+      const rowPalletId =
+        typeof (resData as { pallet_id?: unknown }).pallet_id === "string"
+          ? String((resData as { pallet_id?: string }).pallet_id)
+          : palletIdFromMeta ?? null;
+
+      let dispatchStatus: string | null = null;
+      if (channelParsed === "direct_box") {
+        const { data: dispatchRow, error: dispatchSelErr } = await sbAdmin
+          .from("order_reservations")
+          .select("fulfillment_dispatch_status")
+          .eq("id", reservationId)
+          .maybeSingle();
+        if (
+          dispatchSelErr &&
+          (isDirectBoxSchemaUnreadyError(dispatchSelErr) ||
+            isMissingSchemaColumnError(
+              dispatchSelErr,
+              "fulfillment_dispatch_status",
+            ))
+        ) {
+          console.error(
+            `[Stripe Webhook] direct_box schema unready (migration 277) — fail closed, no charge_blocked_reason fallback reservation_id=${reservationId}:`,
+            dispatchSelErr,
+          );
+        } else {
+          dispatchStatus =
+            typeof (dispatchRow as { fulfillment_dispatch_status?: unknown } | null)
+              ?.fulfillment_dispatch_status === "string"
+              ? String(
+                  (dispatchRow as { fulfillment_dispatch_status: string })
+                    .fulfillment_dispatch_status,
+                )
+              : null;
+        }
+      }
+
+      const alreadyProgressed = isDirectBoxFulfillmentProgressed(dispatchStatus);
+      const alreadyPending = isDirectBoxFulfillmentAlreadyPending({
+        charge_blocked_reason: (resData as { charge_blocked_reason?: string | null })
+          .charge_blocked_reason,
+        fulfillment_dispatch_status: dispatchStatus,
+      });
+
+      const directDispatch = assertDirectBoxWebhookDispatchIdempotent({
+        paymentMetadataChannel: channelFromMeta,
+        fulfillmentChannel: channelParsed,
+        alreadyMarkedPending: alreadyPending,
+        alreadyProgressed,
+      });
+
+      if (channelParsed === "direct_box" || directDispatch.shouldMarkFulfillmentPending) {
+        if (directDispatch.shouldMarkFulfillmentPending) {
+          // Atomic CAS: only write pending when still unset/pending at UPDATE time
+          // so a concurrent booked/skipped cannot be overwritten by read-then-write.
+          const { data: markedRow, error: pendingErr } = await sbAdmin
+            .from("order_reservations")
+            .update({
+              fulfillment_dispatch_status:
+                DIRECT_BOX_FULFILLMENT_DISPATCH_PENDING,
+            })
+            .eq("id", reservationId)
+            .or(directBoxPendingMarkOrFilter())
+            .select("id,fulfillment_dispatch_status")
+            .maybeSingle();
+          if (pendingErr) {
+            if (
+              isDirectBoxSchemaUnreadyError(pendingErr) ||
+              isMissingSchemaColumnError(
+                pendingErr,
+                "fulfillment_dispatch_status",
+              )
+            ) {
+              console.error(
+                `[Stripe Webhook] direct_box schema unready (migration 277) — fail closed, no charge_blocked_reason fallback reservation_id=${reservationId}:`,
+                pendingErr,
+              );
+            } else {
+              console.error(
+                `[Stripe Webhook] failed to mark direct_box fulfillment pending reservation_id=${reservationId}:`,
+                pendingErr,
+              );
+            }
+          } else if (!markedRow) {
+            console.log(
+              `[Stripe Webhook] direct_box fulfillment pending CAS miss reservation_id=${reservationId} — progressed/non-eligible status preserved`,
+            );
+          } else {
+            console.log(
+              `[Stripe Webhook] marked fulfillment_dispatch_status=${DIRECT_BOX_FULFILLMENT_DISPATCH_PENDING} reservation_id=${reservationId} (manual ops handoff; no carrier invented)`,
+            );
+          }
+        } else {
+          console.log(
+            `[Stripe Webhook] direct_box fulfillment already ${alreadyProgressed ? "progressed" : "pending"} reservation_id=${reservationId} — idempotent skip`,
+          );
+        }
+        // Never Instabee / never invent direct carrier book.
+      } else if (
+        process.env.INSTABEE_AUTO_CREATE_ORDERS === "true" &&
+        shouldDispatchInstabeeBudbeeHome({
+          fulfillment_channel: null,
+          paymentMetadataChannel: channelFromMeta,
+          pallet_id: rowPalletId,
+        })
+      ) {
         const addrRaw = resData.user_addresses;
         const addr = Array.isArray(addrRaw) ? addrRaw[0] : addrRaw;
         if (addr) {
@@ -204,17 +327,14 @@ async function handlePaymentIntentSucceededWebhook(
             totalBottles: bottles,
           };
 
-          // Post Purchase
           await createInstabeeOrder(orderParams);
 
-          // Post Packing — generera fraktsedel
           const packing = await confirmInstabeePacking({
             ...orderParams,
             totalWeightGram: bottles * 1500,
           });
 
           if (packing) {
-            // Spara label på reservationen
             await sbAdmin
               .from("order_reservations")
               .update({
@@ -225,7 +345,6 @@ async function handlePaymentIntentSucceededWebhook(
               })
               .eq("id", resData.id);
 
-            // Skicka label-mail till producent
             if (packing.labelUrl && resData.producer_id) {
               const { data: producerProfile } = await sbAdmin
                 .from("profiles")
@@ -259,14 +378,14 @@ async function handlePaymentIntentSucceededWebhook(
           }
         }
       }
-    } catch (instabeeErr) {
-      console.error(
-        "[Instabee] Webhook handler failed for reservation:",
-        reservationId,
-        instabeeErr,
-      );
-      // Logga men kasta inte — betalningen är bekräftad
     }
+  } catch (instabeeErr) {
+    console.error(
+      "[Instabee] Webhook handler failed for reservation:",
+      reservationId,
+      instabeeErr,
+    );
+    // Logga men kasta inte — betalningen är bekräftad
   }
 
   const { data: resRow } = await supabase

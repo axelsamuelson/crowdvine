@@ -73,6 +73,8 @@ function palletUsesPaymentIntent(status: string | null | undefined): boolean {
  */
 type RequestBody = {
   pallet_id: string;
+  /** Optional; server re-authorizes. Spoofed direct_box rejected when flag OFF. */
+  fulfillment_channel?: string;
   pact_points_redeem?: number;
   promo_discount_sek?: number;
   voucher_discount_sek?: number;
@@ -165,7 +167,20 @@ export async function POST(request: Request) {
     const bodyUnknown: unknown = await request.json().catch(() => null);
     const body = bodyUnknown as Partial<RequestBody> | null;
 
-    const pallet_id = typeof body?.pallet_id === "string" ? body.pallet_id : "";
+    const { parseFulfillmentChannel } = await import(
+      "@/lib/commerce/fulfillment-channel"
+    );
+    const { gateDirectBoxCheckoutRequest } = await import(
+      "@/lib/commerce/fulfillment-channel-server-gates"
+    );
+    const {
+      assertDirectBoxRejectsDeferredPipeline,
+      buildDirectBoxPaymentIntentMetadata,
+      shouldReuseOpenDirectBoxPaymentIntent,
+      DIRECT_BOX_PAYMENT_MODE,
+    } = await import("@/lib/commerce/direct-box-payment-contract");
+    const clientChannel = parseFulfillmentChannel(body?.fulfillment_channel);
+
     const pact_points_redeem =
       typeof body?.pact_points_redeem === "number" ? body.pact_points_redeem : 0;
     const promoDiscountSek =
@@ -178,6 +193,306 @@ export async function POST(request: Request) {
       Number.isFinite(body.voucher_discount_sek)
         ? Math.max(0, body.voucher_discount_sek)
         : 0;
+
+    // -------------------------------------------------------------------------
+    // direct_box PaymentIntent amount path (no pallet / no deferred SetupIntent)
+    // Fail closed BEFORE any Stripe PI create when carrier/rate missing.
+    // NEVER fall through into shared-pallet pallet_id + pact/99 SEK path.
+    // -------------------------------------------------------------------------
+    if (clientChannel === "direct_box") {
+      // Spoof reject first (no zone/cart/Stripe work when flag OFF).
+      const spoofGate = await gateDirectBoxCheckoutRequest({
+        clientChannelRaw: body?.fulfillment_channel,
+        selectedPalletId: null,
+        countryCode: "SE",
+        bottleCount: 0,
+        productSubtotalSek: 0,
+      });
+      if (
+        !spoofGate.ok &&
+        spoofGate.errorCode === "channel_spoof_rejected"
+      ) {
+        return NextResponse.json(
+          { error: spoofGate.message, code: spoofGate.errorCode },
+          { status: spoofGate.httpStatus },
+        );
+      }
+
+      const cart = await CartService.getCart();
+      if (!cart || !cart.lines?.length) {
+        return NextResponse.json({ error: "Cart is empty" }, { status: 400 });
+      }
+
+      const sbAdminDirect = getSupabaseAdmin();
+      const activeDirect = await resolveActiveGeoZoneForUser(user.id);
+      let zoneTemplateDirect: UserZoneAddressTemplate | null = null;
+      if (activeDirect.geoZoneId) {
+        const { data: zr, error: zrErr } = await sbAdminDirect
+          .from("user_zone_addresses")
+          .select("*")
+          .eq("user_id", user.id)
+          .eq("geo_zone_id", activeDirect.geoZoneId)
+          .maybeSingle();
+        if (zrErr) {
+          console.error("[payment-intent] direct zone address load:", zrErr.message);
+          return NextResponse.json(
+            { error: "Failed to load delivery details for your wine zone" },
+            { status: 500 },
+          );
+        }
+        zoneTemplateDirect = zr as UserZoneAddressTemplate | null;
+      }
+      const deliveryDirect = userZoneRowToDeliveryLines(zoneTemplateDirect);
+      if (!isZoneDeliveryCompleteForActiveGeo(activeDirect, deliveryDirect)) {
+        return NextResponse.json(
+          {
+            error: `Add delivery details for ${activeDirect.displayName} before paying.`,
+          },
+          { status: 400 },
+        );
+      }
+      const countryCodeDirect = deliveryDirect!.countryCode;
+
+      const bottleCountDirect = cart.lines.reduce(
+        (s, l) => s + (Number(l.quantity) || 0),
+        0,
+      );
+      const subtotalDirect =
+        parseFloat(String(cart.cost.totalAmount.amount)) || 0;
+
+      // Full gate (carrier / mode-scoped rate) — before any PI creation.
+      const authDirect = await gateDirectBoxCheckoutRequest({
+        clientChannelRaw: body?.fulfillment_channel,
+        selectedPalletId: null,
+        countryCode: countryCodeDirect,
+        bottleCount: bottleCountDirect,
+        productSubtotalSek: subtotalDirect,
+      });
+      if (!authDirect.ok) {
+        return NextResponse.json(
+          { error: authDirect.message, code: authDirect.errorCode },
+          { status: authDirect.httpStatus },
+        );
+      }
+
+      // Client may still send a leftover pallet_id from UI state — strip it.
+      // Never bind pallet or enter deferred SetupIntent pipeline.
+      const deferredGuard = assertDirectBoxRejectsDeferredPipeline({
+        paymentMode: DIRECT_BOX_PAYMENT_MODE,
+        palletId: null,
+      });
+      if (!deferredGuard.ok) {
+        return NextResponse.json(
+          { error: deferredGuard.message, code: deferredGuard.code },
+          { status: 400 },
+        );
+      }
+
+      const resolvedMarketDirect = await resolveMarketForCountry({
+        countryCode: activeDirect.countryCode,
+        regionCode: activeDirect.regionCode,
+      });
+      if (resolvedMarketDirect.checkoutMode === "conditional_reservation") {
+        return NextResponse.json(
+          {
+            error:
+              "direct_box does not support conditional/deferred reservation checkout",
+            code: "direct_box_rejects_deferred_setup",
+          },
+          { status: 400 },
+        );
+      }
+
+      let boostedLineTotal = 0;
+      let nonBoostedLineTotal = 0;
+      for (const line of cart.lines) {
+        const amt = parseFloat(String(line.cost.totalAmount.amount)) || 0;
+        if (line.merchandise.product.producerBoostActive === true) {
+          boostedLineTotal += amt;
+        } else {
+          nonBoostedLineTotal += amt;
+        }
+      }
+      const availablePoints = await getRedeemableBalance(user.id);
+      const { maxPoints } = calculateBoostAwareMaxRedemption(
+        boostedLineTotal,
+        nonBoostedLineTotal,
+        availablePoints,
+      );
+      const pointsToRedeem = Math.min(
+        Math.max(0, Math.floor(pact_points_redeem)),
+        maxPoints,
+      );
+      const alloc = allocatePactRedemptionPoints(
+        pointsToRedeem,
+        boostedLineTotal,
+        nonBoostedLineTotal,
+      );
+
+      // Server quote uses authorize plan shipping (mode-scoped) — never pact/99.
+      const shippingSek = authDirect.plan.shippingSek;
+      const { amountOre: amountInOre, components } =
+        await computeExpectedAmountOre({
+          userId: user.id,
+          cartId: cart.id,
+          shippingSek,
+          voucherSek: voucherDiscountSek,
+          pactPointsSek: alloc.sekDiscount,
+          promoSek: promoDiscountSek,
+          displayMultiplier: 1,
+          cart,
+        });
+      const quote = buildCheckoutQuote({
+        components,
+        amountOre: amountInOre,
+        pactPointsRedeem: pointsToRedeem,
+        shippingPending: false,
+        fulfillmentChannel: "direct_box",
+        rateChannel: "direct_box",
+      });
+      if (amountInOre <= 0) {
+        return NextResponse.json(
+          { error: "Order total cannot be zero" },
+          { status: 400 },
+        );
+      }
+
+      const legalNow = new Date();
+      const requiredAge = resolveMarketAgeMinimum({
+        countryCode: resolvedMarketDirect.countryCode || countryCodeDirect,
+        ageMinimum: resolvedMarketDirect.ageMinimum,
+      });
+      const legalGate = evaluateLegalGate(
+        {
+          dateOfBirth: body?.dateOfBirth,
+          acceptedTermsVersion: body?.acceptedTermsVersion,
+        },
+        legalNow,
+        requiredAge,
+      );
+      if (!legalGate.ok) {
+        if (legalGate.reason === "validation_error") {
+          return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+        }
+        if (legalGate.reason === "age_requirement_not_met") {
+          return NextResponse.json(
+            { error: "age_requirement_not_met" },
+            { status: 403 },
+          );
+        }
+        return NextResponse.json(
+          {
+            error: "terms_version_stale",
+            currentVersion: legalGate.currentVersion,
+          },
+          { status: 409 },
+        );
+      }
+
+      const { error: profileDobErr } = await sbAdminDirect
+        .from("profiles")
+        .update({
+          date_of_birth: legalGate.dateOfBirth,
+          updated_at: legalNow.toISOString(),
+        })
+        .eq("id", user.id);
+      if (profileDobErr) {
+        console.error(
+          "[payment-intent] direct Failed to save date_of_birth:",
+          profileDobErr,
+        );
+        return NextResponse.json(
+          { error: "Failed to save age verification" },
+          { status: 500 },
+        );
+      }
+
+      const carrier = authDirect.plan.carrier;
+      if (carrier.status !== "eligible") {
+        return NextResponse.json(
+          {
+            error: "direct_box carrier not eligible",
+            code: "direct_box_carrier_unconfigured",
+          },
+          { status: 400 },
+        );
+      }
+
+      const customerId = await getOrCreateStripeCustomer(user.id);
+      const purchaseLegalMetadata = legalGateStripeMetadata(legalGate);
+      const metadata = buildDirectBoxPaymentIntentMetadata({
+        userId: user.id,
+        cartId: cart.id,
+        stripeCustomerId: customerId,
+        amountOre: amountInOre,
+        shippingSek,
+        carrierId: carrier.carrierId,
+        carrierProduct: carrier.productCode,
+        pactPointsRedeem: pointsToRedeem,
+        voucherDiscountSek,
+        promoDiscountSek,
+        legalMetadata: purchaseLegalMetadata,
+      });
+
+      // Idempotent reuse: same user + cart + customer + amount + channel.
+      // Same amount alone is insufficient (stale open PI across carts).
+      const existingList = await stripe.paymentIntents.list({
+        customer: customerId,
+        limit: 8,
+      });
+      const existing = existingList.data.find((pi) =>
+        shouldReuseOpenDirectBoxPaymentIntent({
+          metadata: pi.metadata ?? {},
+          status: pi.status,
+          sessionUserId: user.id,
+          serverCartId: cart.id,
+          expectedAmountOre: amountInOre,
+          expectedStripeCustomerId: customerId,
+        }),
+      );
+      if (existing?.client_secret) {
+        console.log(
+          "[payment-intent] Reusing open direct_box PaymentIntent:",
+          existing.id,
+        );
+        return NextResponse.json({
+          paymentMode: DIRECT_BOX_PAYMENT_MODE,
+          clientSecret: existing.client_secret,
+          intentId: existing.id,
+          amountInOre,
+          quote,
+          fulfillment_channel: "direct_box",
+          bottlesFilled: 0,
+          palletStatus: null,
+          palletThreshold: PALLET_THRESHOLD,
+        });
+      }
+
+      const intent = await stripe.paymentIntents.create({
+        customer: customerId,
+        amount: amountInOre,
+        currency: stripeCurrency,
+        automatic_payment_methods: { enabled: true },
+        capture_method: "automatic",
+        metadata,
+      });
+
+      console.log("[payment-intent] Created direct_box PaymentIntent:", intent.id);
+
+      return NextResponse.json({
+        paymentMode: DIRECT_BOX_PAYMENT_MODE,
+        clientSecret: intent.client_secret,
+        intentId: intent.id,
+        amountInOre,
+        quote,
+        fulfillment_channel: "direct_box",
+        bottlesFilled: 0,
+        palletStatus: null,
+        palletThreshold: PALLET_THRESHOLD,
+      });
+    }
+
+    const pallet_id = typeof body?.pallet_id === "string" ? body.pallet_id : "";
 
     if (!pallet_id) {
       return NextResponse.json({ error: "Missing pallet_id" }, { status: 400 });
@@ -430,6 +745,7 @@ export async function POST(request: Request) {
       productSubtotalSek: subtotalSek,
       deliveryCountry: countryCode,
       activeZoneCountry: active.countryCode,
+      fulfillmentMode: "shared_pallet",
       pallet: palletRow,
     });
     const shippingSek = shippingCharge.shippingSek;
@@ -452,6 +768,9 @@ export async function POST(request: Request) {
       amountOre: amountInOre,
       pactPointsRedeem: pointsToRedeem,
       shippingPending: shippingCharge.shippingPending,
+      fulfillmentChannel: "shared_pallet",
+      rateChannel:
+        shippingCharge.rateChannel === "direct_box" ? "direct_box" : "pact",
     });
 
     if (amountInOre <= 0) {
@@ -596,6 +915,7 @@ export async function POST(request: Request) {
       const metadata: Record<string, string> = {
         user_id: user.id,
         pallet_id,
+        fulfillment_channel: clientChannel ?? "shared_pallet",
         pact_points_redeem: String(pointsToRedeem),
         expected_amount_ore: String(amountInOre),
         voucher_discount_sek: String(voucherDiscountSek),
@@ -650,6 +970,7 @@ export async function POST(request: Request) {
       metadata: {
         user_id: user.id,
         pallet_id,
+        fulfillment_channel: clientChannel ?? "shared_pallet",
         pact_points_redeem: String(pointsToRedeem),
         expected_amount_ore: String(amountInOre),
         voucher_discount_sek: String(voucherDiscountSek),

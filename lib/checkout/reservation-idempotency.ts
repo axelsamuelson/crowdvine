@@ -80,6 +80,65 @@ export async function findRecentDuplicateReservation(
   };
 }
 
+/**
+ * Same Stripe PaymentIntent already attached → replay (no second order).
+ * Used after PI retrieve + binding/amount checks so retries cannot skip auth.
+ */
+export async function findReservationByPaymentIntentId(
+  sb: SupabaseClient,
+  paymentIntentId: string,
+): Promise<ExistingReservationRef | null> {
+  const id = String(paymentIntentId || "").trim();
+  if (!id) return null;
+  const { data, error } = await sb
+    .from("order_reservations")
+    .select("id, checkout_group_id")
+    .eq("payment_intent_id", id)
+    .maybeSingle();
+  if (error) {
+    console.warn(
+      "[reservation-idempotency] lookup by payment_intent_id:",
+      error.message,
+    );
+    return null;
+  }
+  if (!data?.id) return null;
+  return {
+    id: String(data.id),
+    checkout_group_id:
+      typeof data.checkout_group_id === "string" ? data.checkout_group_id : null,
+  };
+}
+
+/**
+ * Same Stripe SetupIntent already attached → replay (shared_pallet deferred path).
+ */
+export async function findReservationBySetupIntentId(
+  sb: SupabaseClient,
+  setupIntentId: string,
+): Promise<ExistingReservationRef | null> {
+  const id = String(setupIntentId || "").trim();
+  if (!id) return null;
+  const { data, error } = await sb
+    .from("order_reservations")
+    .select("id, checkout_group_id")
+    .eq("setup_intent_id", id)
+    .maybeSingle();
+  if (error) {
+    console.warn(
+      "[reservation-idempotency] lookup by setup_intent_id:",
+      error.message,
+    );
+    return null;
+  }
+  if (!data?.id) return null;
+  return {
+    id: String(data.id),
+    checkout_group_id:
+      typeof data.checkout_group_id === "string" ? data.checkout_group_id : null,
+  };
+}
+
 export function buildReservationSuccessResponse(
   existing: ExistingReservationRef,
   opts?: { message?: string },

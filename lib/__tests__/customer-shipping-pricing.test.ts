@@ -36,12 +36,68 @@ const PACT_SE_99 = [
   },
 ];
 
+/** Test-only direct_box mode-scoped row — not a production price decision. */
+const DIRECT_BOX_SE_TEST = [
+  {
+    id: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+    channel: "direct_box" as const,
+    countryCode: "SE",
+    flatFeeCents: 14900,
+    freeShipping: false,
+    freeShippingThresholdCents: null,
+    minBottles: null,
+    maxBottles: null,
+    active: true,
+    validFrom: null,
+    validTo: null,
+  },
+];
+
 const legacyZero = {
   costCents: 0,
   bottleCapacity: 720,
   lastMileCostCentsPerBottle: 0,
   bottles: 6,
 };
+
+describe("mode-scoped rates: direct_box never reuses pact/99 SEK", () => {
+  it("pact channel still resolves Sweden 99 SEK", () => {
+    const q = resolveCustomerShippingQuote({
+      channel: "pact",
+      bottleCount: 6,
+      countryCode: "SE",
+      rates: [...PACT_SE_99, ...DIRECT_BOX_SE_TEST],
+    });
+    expect(q.grossCents).toBe(9900);
+    expect(q.rateChannel).toBe("pact");
+  });
+
+  it("direct_box ignores pact rows even when 99 SEK is present", () => {
+    const q = resolveCustomerShippingQuote({
+      channel: "direct_box",
+      bottleCount: 6,
+      countryCode: "SE",
+      rates: PACT_SE_99,
+      allowLegacyFallback: true,
+      legacy: legacyZero,
+    });
+    expect(q.source).toBe("missing_config");
+    expect(q.rateChannel).toBeNull();
+    expect(q.grossCents).toBe(0);
+  });
+
+  it("direct_box uses only explicit direct_box rate rows", () => {
+    const q = resolveCustomerShippingQuote({
+      channel: "direct_box",
+      bottleCount: 6,
+      countryCode: "SE",
+      rates: [...PACT_SE_99, ...DIRECT_BOX_SE_TEST],
+    });
+    expect(q.source).toBe("configured_flat");
+    expect(q.rateChannel).toBe("direct_box");
+    expect(q.grossCents).toBe(14900);
+  });
+});
 
 describe("PACT Sweden 99 SEK per order (authorized)", () => {
   for (const bottles of [1, 6, 12] as const) {

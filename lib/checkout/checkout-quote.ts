@@ -12,6 +12,10 @@ export type CheckoutQuote = {
   total_ore: number;
   /** No rate for this country: show the pending copy and charge nothing. */
   shipping_pending: boolean;
+  /** Mode that produced this quote — client must refetch on channel switch. */
+  fulfillment_channel?: "shared_pallet" | "direct_box";
+  /** Rate-table channel actually used (never pact for direct_box). */
+  rate_channel?: "pact" | "direct_box" | null;
 };
 
 export function buildCheckoutQuote(args: {
@@ -19,6 +23,8 @@ export function buildCheckoutQuote(args: {
   amountOre: number;
   pactPointsRedeem: number;
   shippingPending?: boolean;
+  fulfillmentChannel?: "shared_pallet" | "direct_box";
+  rateChannel?: "pact" | "direct_box" | null;
 }): CheckoutQuote {
   const { components, amountOre, pactPointsRedeem } = args;
   return {
@@ -31,5 +37,11 @@ export function buildCheckoutQuote(args: {
     total_sek: components.finalMajor,
     total_ore: amountOre,
     shipping_pending: args.shippingPending === true,
+    ...(args.fulfillmentChannel
+      ? { fulfillment_channel: args.fulfillmentChannel }
+      : {}),
+    ...(args.rateChannel !== undefined
+      ? { rate_channel: args.rateChannel }
+      : {}),
   };
 }
