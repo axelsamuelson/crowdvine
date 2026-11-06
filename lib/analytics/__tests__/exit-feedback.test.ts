@@ -4,21 +4,26 @@ import {
   EXIT_FEEDBACK_ANSWERED_KEY,
   EXIT_FEEDBACK_DISMISS_DAYS,
   EXIT_FEEDBACK_DISMISS_UNTIL_KEY,
+  EXIT_FEEDBACK_DISMISSED_KEY,
   EXIT_FEEDBACK_MIN_ACTIVE_MS,
+  EXIT_FEEDBACK_PRIVACY_HELPER,
   EXIT_FEEDBACK_REASONS,
   EXIT_FEEDBACK_REASON_OPTIONS,
-  EXIT_FEEDBACK_SESSION_ID_KEY,
-  getExitFeedbackSessionId,
+  EXIT_FEEDBACK_SHOWN_KEY,
   hasAnsweredExitFeedback,
   hasCheckoutStartedInSession,
+  hasExitFeedbackBeenShown,
+  hasExitFeedbackForceOpen,
   hasExitFeedbackTestOverride,
   hasMetExitFeedbackActiveTime,
+  hasStickyExitFeedbackDismiss,
   isExitFeedbackBlockedPath,
   isExitFeedbackDismissActive,
   isExitFeedbackReason,
   isInternalExitFeedbackSession,
   markExitFeedbackAnswered,
   markExitFeedbackDismissed,
+  markExitFeedbackShown,
   normalizeExitFeedbackAnswer,
   resolveExitFeedbackStep,
   sanitizeExitFeedbackPage,
@@ -148,6 +153,8 @@ describe("exit-feedback helpers", () => {
     markExitFeedbackAnswered();
     expect(hasAnsweredExitFeedback()).toBe(true);
     expect(localStorage.getItem(EXIT_FEEDBACK_ANSWERED_KEY)).toBe("1");
+    expect(hasStickyExitFeedbackDismiss()).toBe(true);
+    expect(hasExitFeedbackBeenShown()).toBe(true);
     expect(
       shouldSuppressExitFeedbackUi({
         hostname: "pactwines.com",
@@ -169,22 +176,18 @@ describe("exit-feedback helpers", () => {
     ).toBe(true);
   });
 
-  it("3) soft dismiss lasts at least 30 days via localStorage timestamp", () => {
+  it("3) dismiss sticks via localStorage + sessionStorage shown", () => {
     const now = Date.parse("2026-10-31T12:00:00.000Z");
     markExitFeedbackDismissed(now, EXIT_FEEDBACK_DISMISS_DAYS);
-    const until = localStorage.getItem(EXIT_FEEDBACK_DISMISS_UNTIL_KEY);
-    expect(until).toBeTruthy();
+    expect(localStorage.getItem(EXIT_FEEDBACK_DISMISSED_KEY)).toBe("1");
+    expect(localStorage.getItem(EXIT_FEEDBACK_DISMISS_UNTIL_KEY)).toBeTruthy();
+    expect(sessionStorage.getItem(EXIT_FEEDBACK_SHOWN_KEY)).toBe("1");
     expect(isExitFeedbackDismissActive(now + 1000)).toBe(true);
-    expect(
-      isExitFeedbackDismissActive(
-        now + EXIT_FEEDBACK_DISMISS_DAYS * 24 * 60 * 60 * 1000 - 1000,
-      ),
-    ).toBe(true);
     expect(
       isExitFeedbackDismissActive(
         now + EXIT_FEEDBACK_DISMISS_DAYS * 24 * 60 * 60 * 1000 + 1000,
       ),
-    ).toBe(false);
+    ).toBe(true);
     expect(
       shouldSuppressExitFeedbackUi({
         hostname: "pactwines.com",
@@ -194,12 +197,27 @@ describe("exit-feedback helpers", () => {
     ).toBe(true);
   });
 
-  it("3b) session id uses localStorage not sessionStorage shown flag", () => {
-    const a = getExitFeedbackSessionId();
-    const b = getExitFeedbackSessionId();
-    expect(a).toBeTruthy();
-    expect(a).toBe(b);
-    expect(localStorage.getItem(EXIT_FEEDBACK_SESSION_ID_KEY)).toBe(a);
+  it("3b) session shown suppresses without sticky dismiss", () => {
+    markExitFeedbackShown();
+    expect(hasExitFeedbackBeenShown()).toBe(true);
+    expect(hasStickyExitFeedbackDismiss()).toBe(false);
+    expect(
+      shouldSuppressExitFeedbackUi({
+        hostname: "pactwines.com",
+        pathname: "/vin",
+        search: "?exit_test=1",
+        isInternalDeviceFn: () => false,
+      }),
+    ).toBe(true);
+    expect(hasExitFeedbackForceOpen("?exit_test=1&exit_open=1")).toBe(true);
+    expect(
+      shouldSuppressExitFeedbackUi({
+        hostname: "pactwines.com",
+        pathname: "/vin",
+        search: "?exit_test=1&exit_open=1",
+        isInternalDeviceFn: () => false,
+      }),
+    ).toBe(false);
   });
 
   it("4) blocks checkout, payment, cart; requires 25s active time", () => {
@@ -281,7 +299,7 @@ describe("exit-feedback helpers", () => {
     ).toBe(false);
   });
 
-  it("normalizes answers and exposes reason codes", () => {
+  it("normalizes answers and exposes reason codes + privacy helper", () => {
     expect(normalizeExitFeedbackAnswer("  hej  ")).toBe("hej");
     expect(
       normalizeExitFeedbackAnswer("x".repeat(EXIT_FEEDBACK_ANSWER_MAX + 1)),
@@ -289,5 +307,10 @@ describe("exit-feedback helpers", () => {
     expect(EXIT_FEEDBACK_REASONS).toHaveLength(6);
     expect(EXIT_FEEDBACK_REASON_OPTIONS).toHaveLength(6);
     expect(isExitFeedbackReason("price")).toBe(true);
+    expect(
+      EXIT_FEEDBACK_REASON_OPTIONS.find((o) => o.value === "delivery_unclear")
+        ?.label,
+    ).toBe("Osäker på hur leveransen fungerar");
+    expect(EXIT_FEEDBACK_PRIVACY_HELPER).toBe("Skriv inte personuppgifter här.");
   });
 });

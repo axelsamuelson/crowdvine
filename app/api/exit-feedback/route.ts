@@ -6,36 +6,27 @@ import {
   EXIT_FEEDBACK_ANSWER_MAX,
   EXIT_FEEDBACK_PAGE_MAX,
   EXIT_FEEDBACK_REASONS,
-  EXIT_FEEDBACK_SESSION_ID_MAX,
   normalizeExitFeedbackAnswer,
   sanitizeExitFeedbackPage,
 } from "@/lib/analytics/exit-feedback";
 
-/** Rate limit by anonymous session_id only — never by IP, never log IP. */
+/**
+ * Coarse in-memory rate limit (no session_id, never by IP, never log IP).
+ * Bucket is process-local; protects against accidental double-submits.
+ */
 const WINDOW_MS = 60 * 60 * 1000;
-const MAX_PER_WINDOW = 5;
-const rateBuckets = new Map<string, number[]>();
+const MAX_PER_WINDOW = 60;
+let recentInserts: number[] = [];
 
-function allowSession(sessionId: string): boolean {
+function allowInsert(): boolean {
   const now = Date.now();
-  const prev = rateBuckets.get(sessionId) ?? [];
-  const pruned = prev.filter((t) => now - t < WINDOW_MS);
-  if (pruned.length >= MAX_PER_WINDOW) {
-    rateBuckets.set(sessionId, pruned);
-    return false;
-  }
-  pruned.push(now);
-  rateBuckets.set(sessionId, pruned);
+  recentInserts = recentInserts.filter((t) => now - t < WINDOW_MS);
+  if (recentInserts.length >= MAX_PER_WINDOW) return false;
+  recentInserts.push(now);
   return true;
 }
 
 const bodySchema = z.object({
-  session_id: z
-    .string()
-    .trim()
-    .min(8)
-    .max(EXIT_FEEDBACK_SESSION_ID_MAX)
-    .regex(/^[\w-]+$/),
   step: z.enum(["checkout", "cart"]),
   page: z.string().trim().min(1).max(EXIT_FEEDBACK_PAGE_MAX + 200),
   reason: z.enum(EXIT_FEEDBACK_REASONS),
@@ -57,7 +48,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
   }
 
-  const { session_id, step, reason } = parsed.data;
+  // Ignore any legacy session_id / visitor_id / user_id clients may still send.
+  const { step, reason } = parsed.data;
   const page = sanitizeExitFeedbackPage(parsed.data.page);
   const is_internal = parsed.data.is_internal === true;
 
@@ -70,14 +62,13 @@ export async function POST(request: Request) {
   }
   const answer = normalizeExitFeedbackAnswer(parsed.data.answer ?? null);
 
-  if (!allowSession(session_id)) {
+  if (!allowInsert()) {
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }
 
   try {
     const sb = getSupabaseAdmin();
     const { error } = await sb.from("exit_feedback").insert({
-      session_id,
       step,
       page,
       reason,
@@ -91,6 +82,7 @@ export async function POST(request: Request) {
     }
 
     // Logged-in users: persist answered-at so the popup never returns on other devices.
+    // Does not link the answer row itself to user_id.
     try {
       const user = await getCurrentUser();
       if (user?.id) {

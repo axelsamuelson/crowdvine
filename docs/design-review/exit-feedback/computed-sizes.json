@@ -1,0 +1,32 @@
+{
+  "mobile-390": {
+    "innerWidth": 390,
+    "devicePixelRatio": 1,
+    "titleFontSize": "16px",
+    "titleFontWeight": "600",
+    "titleTextWrap": "balance",
+    "titleText": "Vad hindrade dig från att reservera i dag?",
+    "optionFontSize": "15px",
+    "hintFontSize": "12px",
+    "hintColor": "rgb(95, 95, 95)",
+    "buttonBg": "rgb(10, 10, 10)",
+    "buttonColor": "rgb(255, 255, 255)",
+    "buttonOpacity": "1",
+    "buttonDisabled": false
+  },
+  "desktop-1440": {
+    "innerWidth": 1440,
+    "devicePixelRatio": 1,
+    "titleFontSize": "15px",
+    "titleFontWeight": "600",
+    "titleTextWrap": "balance",
+    "titleText": "Vad hindrade dig från att reservera i dag?",
+    "optionFontSize": "14px",
+    "hintFontSize": "12px",
+    "hintColor": "rgb(95, 95, 95)",
+    "buttonBg": "rgb(10, 10, 10)",
+    "buttonColor": "rgb(255, 255, 255)",
+    "buttonOpacity": "1",
+    "buttonDisabled": false
+  }
+}
