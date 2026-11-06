@@ -12,9 +12,14 @@ import {
 } from "@/lib/customer-shipping-pricing";
 
 function mapRate(row: Record<string, unknown>): CustomerShippingRateRow {
+  const rawChannel = String(row.channel ?? "pact")
+    .trim()
+    .toLowerCase();
+  const channel: CustomerShippingRateRow["channel"] =
+    rawChannel === "direct_box" ? "direct_box" : "pact";
   return {
     id: String(row.id),
-    channel: (row.channel as CustomerShippingRateRow["channel"]) || "pact",
+    channel,
     countryCode: row.country_code != null ? String(row.country_code) : null,
     flatFeeCents: Math.round(Number(row.flat_fee_cents) || 0),
     freeShipping: row.free_shipping === true,
@@ -50,6 +55,11 @@ export async function quotePactCustomerShipping(input: {
   bottleCount: number;
   countryCode?: string | null;
   productSubtotalGrossCents?: number;
+  /**
+   * Rate-table channel. Default `pact` (shared_pallet).
+   * Pass `direct_box` for mode-scoped direct quotes — never falls back to pact/99 SEK.
+   */
+  channel?: CustomerShippingRateRow["channel"];
   legacyPallet?: {
     costCents: number;
     bottleCapacity: number;
@@ -59,10 +69,12 @@ export async function quotePactCustomerShipping(input: {
   allowLegacyFallback?: boolean;
 }): Promise<CustomerShippingQuote> {
   const rates = await loadCustomerShippingRates();
-  const allowLegacy = input.allowLegacyFallback !== false;
+  const channel = input.channel === "direct_box" ? "direct_box" : "pact";
+  const allowLegacy =
+    channel === "direct_box" ? false : input.allowLegacyFallback !== false;
 
   let legacy: LegacyPalletShippingInput | null = null;
-  if (input.legacyPallet) {
+  if (channel !== "direct_box" && input.legacyPallet) {
     legacy = {
       costCents: input.legacyPallet.costCents,
       bottleCapacity: input.legacyPallet.bottleCapacity,
@@ -74,7 +86,7 @@ export async function quotePactCustomerShipping(input: {
   }
 
   return resolveCustomerShippingQuote({
-    channel: "pact",
+    channel,
     countryCode: input.countryCode ?? "SE",
     bottleCount: input.bottleCount,
     productSubtotalGrossCents: input.productSubtotalGrossCents,

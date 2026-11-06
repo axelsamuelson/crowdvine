@@ -11,7 +11,15 @@
 import { DEFAULT_VAT_RATE } from "@/lib/contribution-assumptions";
 import { grossToNetCents } from "@/lib/pallet-contribution";
 
-export type CustomerShippingChannel = "pact";
+/**
+ * Rate-table channel (DB `customer_shipping_rates.channel`).
+ * - `pact` — shared_pallet / legacy B2C flat fee (e.g. Sweden 99 SEK)
+ * - `direct_box` — explicit direct-case revenue rates only (never invent / never seed 99)
+ */
+export type CustomerShippingChannel = "pact" | "direct_box";
+
+/** Checkout fulfilment mode → which rate-table channel may be charged. */
+export type CustomerShippingFulfillmentMode = "shared_pallet" | "direct_box";
 
 export type CustomerShippingSource =
   | "configured_flat"
@@ -29,6 +37,8 @@ export type CustomerShippingQuote = {
   freeShipping: boolean;
   /** True when a deliberate commercial rule resolved (configured or explicit free). */
   complete: boolean;
+  /** Rate-table channel that produced this quote (null when missing_config). */
+  rateChannel: CustomerShippingChannel | null;
 };
 
 export type CustomerShippingRateRow = {
@@ -44,6 +54,13 @@ export type CustomerShippingRateRow = {
   validFrom: string | null;
   validTo: string | null;
 };
+
+/** Map fulfillment mode to the only rate channel allowed for that mode. */
+export function rateChannelForFulfillmentMode(
+  mode: CustomerShippingFulfillmentMode,
+): CustomerShippingChannel {
+  return mode === "direct_box" ? "direct_box" : "pact";
+}
 
 export type LegacyPalletShippingInput = {
   costCents: number;
@@ -74,6 +91,10 @@ export function resolveCustomerShippingQuote(input: {
   const channel = input.channel ?? "pact";
   const now = input.now ?? new Date();
   const country = (input.countryCode || "SE").toUpperCase();
+
+  // direct_box must never fall back to shared-pallet amortization / Budbee path.
+  const allowLegacy =
+    channel === "direct_box" ? false : input.allowLegacyFallback === true;
 
   const active = input.rates.filter((r) => {
     if (!r.active) return false;
@@ -113,6 +134,7 @@ export function resolveCustomerShippingQuote(input: {
           : `Free shipping threshold ${rate.freeShippingThresholdCents} öre met`,
         freeShipping: true,
         complete: true,
+        rateChannel: channel,
       };
     }
 
@@ -126,10 +148,11 @@ export function resolveCustomerShippingQuote(input: {
       reason: `Configured flat fee ${gross} öre`,
       freeShipping: false,
       complete: true,
+      rateChannel: channel,
     };
   }
 
-  if (input.allowLegacyFallback && input.legacy) {
+  if (allowLegacy && input.legacy) {
     const legacyGross = legacyAmortizedShippingGrossCents(input.legacy);
     return {
       grossCents: legacyGross,
@@ -141,6 +164,8 @@ export function resolveCustomerShippingQuote(input: {
         "No active customer_shipping_rates row; using deprecated cost_cents/capacity + last-mile",
       freeShipping: legacyGross === 0,
       complete: false,
+      // Legacy amortization is shared-pallet only — never attribute to direct_box.
+      rateChannel: "pact",
     };
   }
 
@@ -150,9 +175,13 @@ export function resolveCustomerShippingQuote(input: {
     currency: "SEK",
     vatRate,
     source: "missing_config",
-    reason: "No active customer shipping rate configured",
+    reason:
+      channel === "direct_box"
+        ? "No active direct_box customer shipping rate configured (shared-pallet/pact rates are not reused)"
+        : "No active customer shipping rate configured",
     freeShipping: false,
     complete: false,
+    rateChannel: null,
   };
 }
 

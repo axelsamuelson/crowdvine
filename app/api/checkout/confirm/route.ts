@@ -89,6 +89,9 @@ import {
   parseFirstTouchPayload,
   type FirstTouch,
 } from "@/lib/analytics/visitor-identity";
+import { type AuthorizedFulfillmentPlan } from "@/lib/commerce/fulfillment-channel-pipeline";
+import { parseFulfillmentChannel } from "@/lib/commerce/fulfillment-channel";
+import { gateDirectBoxCheckoutRequest } from "@/lib/commerce/fulfillment-channel-server-gates";
 import { validatePromoDiscountCode } from "@/lib/promo-discount-validate";
 import { markExitDiscountRedeemed } from "@/lib/exit-discount/validate";
 import type { PromoDiscountCartItem } from "@/lib/discount-codes";
@@ -221,6 +224,7 @@ export async function POST(request: Request) {
         },
         selectedDeliveryZoneId: formData.get("selectedDeliveryZoneId"),
         selectedPalletId: formData.get("selectedPalletId"),
+        fulfillment_channel: formData.get("fulfillment_channel"),
         shareBottles: formData.get("shareBottles"),
         voucher_code:
           typeof voucherCodeField === "string" ? voucherCodeField : undefined,
@@ -690,10 +694,57 @@ export async function POST(request: Request) {
     }
 
     // Pallet: shipping-region automation first, then legacy zone-pair match (determineZones unchanged).
+    // Channel authorize (default-OFF direct_box): reject client spoof; never auto-assign
+    // a pallet for authorized direct_box. Column write waits for migration 277.
     let palletId: string | null = null;
     let reservationShippingRegionId: string | null = null;
+    let authorizedFulfillment: AuthorizedFulfillmentPlan | null = null;
 
-    if (body.selectedPalletId) {
+    const clientFulfillmentChannelRaw =
+      typeof body.fulfillment_channel === "string"
+        ? body.fulfillment_channel
+        : typeof body.fulfillmentChannel === "string"
+          ? body.fulfillmentChannel
+          : null;
+    const clientFulfillmentChannel = parseFulfillmentChannel(
+      clientFulfillmentChannelRaw,
+    );
+    // Only intercept when client proposes direct_box (spoof reject if flag OFF).
+    // Default/shared clients keep the existing pallet path unchanged.
+    if (clientFulfillmentChannel === "direct_box") {
+      // Mode-scoped quote only — NEVER reuse shared-pallet/`pact` 99 SEK.
+      const auth = await gateDirectBoxCheckoutRequest({
+        clientChannelRaw: clientFulfillmentChannelRaw,
+        selectedPalletId:
+          typeof body.selectedPalletId === "string"
+            ? body.selectedPalletId
+            : null,
+        countryCode:
+          typeof body.address?.countryCode === "string"
+            ? body.address.countryCode
+            : null,
+        bottleCount: (cart.lines || []).reduce(
+          (s: number, l: { quantity?: number }) => s + (Number(l.quantity) || 0),
+          0,
+        ),
+        productSubtotalSek:
+          parseFloat(String(cart.cost?.totalAmount?.amount ?? "0")) || 0,
+      });
+      if (!auth.ok) {
+        return NextResponse.json(
+          { error: auth.message, code: auth.errorCode },
+          { status: auth.httpStatus },
+        );
+      }
+      authorizedFulfillment = auth.plan;
+    }
+
+    if (authorizedFulfillment?.channel === "direct_box") {
+      palletId = null;
+      console.log(
+        "[Checkout API] direct_box authorized — skipping pallet assignment",
+      );
+    } else if (body.selectedPalletId) {
       palletId = body.selectedPalletId;
       console.log("Using selected pallet:", palletId);
     } else {
@@ -1021,9 +1072,13 @@ export async function POST(request: Request) {
     // Server-side amount validation (never trust client totals)
     // ------------------------------------------------------------
     // Shared with /api/checkout/payment-intent via computeExpectedAmountOre.
+    // direct_box uses the already mode-scoped authorize plan fee — never
+    // re-resolve via shared-pallet/`pact` (legacy 99 SEK) rates.
     let shippingSek = 0;
     try {
-      if (palletId) {
+      if (authorizedFulfillment?.channel === "direct_box") {
+        shippingSek = authorizedFulfillment.shippingSek;
+      } else if (palletId) {
         const { data: palletRow, error: palletErr } = await sbAdmin
           .from("pallets")
           .select("id, name, cost_cents, bottle_capacity, last_mile_cost_cents_per_bottle")
@@ -1042,6 +1097,7 @@ export async function POST(request: Request) {
             productSubtotalSek: subtotalSek,
             deliveryCountry: address.countryCode,
             activeZoneCountry: activeCheckout.countryCode,
+            fulfillmentMode: "shared_pallet",
             pallet: palletRow,
           });
           shippingSek = charge.shippingSek;

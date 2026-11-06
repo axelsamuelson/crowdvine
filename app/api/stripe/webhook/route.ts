@@ -9,6 +9,7 @@ import {
 } from "@/lib/instabee/home-delivery";
 import { sendLabelsEmail } from "@/lib/email/instabee-labels";
 import { emitCheckoutCompletedOnce } from "@/lib/analytics/emit-checkout-completed";
+import { shouldDispatchInstabeeBudbeeHome } from "@/lib/commerce/fulfillment-channel-pipeline";
 
 function paymentIntentLatestChargeId(
   paymentIntent: Stripe.PaymentIntent,
@@ -158,13 +159,17 @@ async function handlePaymentIntentSucceededWebhook(
     );
   }
 
-  // Instabee — triggas garanterat efter bekräftad betalning
+  // Instabee Budbee HOME_DELIVERY — shared_pallet only.
+  // Never book direct_box via Instabee (channel from PI metadata and/or row).
   if (process.env.INSTABEE_AUTO_CREATE_ORDERS === "true") {
     try {
       const palletIdFromMeta = paymentIntent.metadata?.pallet_id;
+      const channelFromMeta = paymentIntent.metadata?.fulfillment_channel;
 
       // Hämta adress för denna reservation
       const sbAdmin = getSupabaseAdmin();
+      // Note: fulfillment_channel column is draft-only until migration 277 is
+      // applied — channel gate uses Stripe PI metadata (+ pallet_id) for now.
       const { data: resData } = await sbAdmin
         .from("order_reservations")
         .select(
@@ -173,6 +178,7 @@ async function handlePaymentIntentSucceededWebhook(
           bottles,
           total_sek,
           producer_id,
+          pallet_id,
           user_addresses!inner (
             full_name,
             email,
@@ -188,6 +194,22 @@ async function handlePaymentIntentSucceededWebhook(
         .maybeSingle();
 
       if (resData) {
+        const rowPalletId =
+          typeof (resData as { pallet_id?: unknown }).pallet_id === "string"
+            ? String((resData as { pallet_id?: string }).pallet_id)
+            : palletIdFromMeta ?? null;
+
+        if (
+          !shouldDispatchInstabeeBudbeeHome({
+            fulfillment_channel: null,
+            paymentMetadataChannel: channelFromMeta,
+            pallet_id: rowPalletId,
+          })
+        ) {
+          console.log(
+            `[Stripe Webhook] skip Instabee Budbee booking reservation_id=${reservationId} channel=${channelFromMeta ?? "unknown"}`,
+          );
+        } else {
         const addrRaw = resData.user_addresses;
         const addr = Array.isArray(addrRaw) ? addrRaw[0] : addrRaw;
         if (addr) {
@@ -258,6 +280,7 @@ async function handlePaymentIntentSucceededWebhook(
             }
           }
         }
+        } // else shouldDispatchInstabeeBudbeeHome
       }
     } catch (instabeeErr) {
       console.error(

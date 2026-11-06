@@ -97,6 +97,13 @@ import {
   B2C_DIRECT_BOX_DELIVERY_TIME_TODO,
   isProducerSourcedWine,
 } from "@/lib/commerce/direct-box-delivery";
+import {
+  defaultFulfillmentChannel,
+  isDeliveryCompleteForChannel,
+  resolveDirectBoxCarrierEligibility,
+  resolveSharedPalletBudbeeEligibility,
+  type FulfillmentChannel,
+} from "@/lib/commerce/fulfillment-channel";
 import { DirectBoxDeliveryPromise } from "@/components/commerce/direct-box-delivery-promise";
 import type { ProducerValidation } from "@/lib/checkout-validation";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -148,7 +155,14 @@ interface UserReward {
   used: boolean;
 }
 
-function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
+function CheckoutContent({
+  platformOpen,
+  directBoxCheckoutEnabled = false,
+}: {
+  platformOpen: boolean;
+  /** Server-gated; default false — shared_pallet behaviour unchanged. */
+  directBoxCheckoutEnabled?: boolean;
+}) {
   const { t, context: shopping } = useShoppingContext();
   const paths = localizedPathsForLocale(shopping.locale);
   const { formatSek } = useDisplayMoney();
@@ -279,6 +293,9 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
   const [budbeeAvailable, setBudbeeAvailable] = useState<boolean | null>(
     null,
   );
+  /** Channel UI state — only selectable when directBoxCheckoutEnabled. */
+  const [fulfillmentChannel, setFulfillmentChannel] =
+    useState<FulfillmentChannel>(defaultFulfillmentChannel);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [shareAllocation, setShareAllocation] = useState<ShareAllocation | null>(
     null,
@@ -643,18 +660,51 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
   const deliveryComplete = useMemo(
     () => {
       // Contact (name/email) is collected in payment / auth — do not block step 3.
-      if (!hasZoneDeliveryReady) return false;
-      if (isUsConditional) {
-        if (!hasUsState) return false;
-        // US conditional always needs an active pallet for SetupIntent.
-        return selectedPallet != null;
+      // Default-OFF direct_box: preserve legacy shared_pallet gates byte-for-byte.
+      if (!directBoxCheckoutEnabled) {
+        if (!hasZoneDeliveryReady) return false;
+        if (isUsConditional) {
+          if (!hasUsState) return false;
+          // US conditional always needs an active pallet for SetupIntent.
+          return selectedPallet != null;
+        }
+        if (!deliveryZoneReady) return false;
+        // Producer wines need a matched pallet for shipping + Stripe; warehouse-only can continue.
+        if (hasProducerItems) return selectedPallet != null;
+        return true;
       }
-      if (!deliveryZoneReady) return false;
-      // Producer wines need a matched pallet for shipping + Stripe; warehouse-only can continue.
-      if (hasProducerItems) return selectedPallet != null;
-      return true;
+
+      const carrier =
+        fulfillmentChannel === "direct_box"
+          ? resolveDirectBoxCarrierEligibility({
+              channel: "direct_box",
+              checkoutEnabled: true,
+              // Client cannot invent a carrier — eligibility stays fail-closed
+              // until server injects config; null ⇒ unavailable.
+              config: null,
+              countryCode: effectiveDelivery?.countryCode ?? "SE",
+            })
+          : resolveSharedPalletBudbeeEligibility({
+              channel: "shared_pallet",
+              budbeeAvailable,
+            });
+
+      return isDeliveryCompleteForChannel({
+        channel: fulfillmentChannel,
+        hasZoneDeliveryReady,
+        deliveryZoneReady,
+        hasProducerItems,
+        selectedPallet,
+        isUsConditional,
+        hasUsState,
+        carrier,
+      });
     },
     [
+      directBoxCheckoutEnabled,
+      fulfillmentChannel,
+      budbeeAvailable,
+      effectiveDelivery?.countryCode,
       hasZoneDeliveryReady,
       hasUsState,
       isUsConditional,
@@ -2418,7 +2468,10 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
     if (selectedPallet) {
       formData.append("selectedPalletId", selectedPallet.id);
     }
-    
+    if (directBoxCheckoutEnabled) {
+      formData.append("fulfillment_channel", fulfillmentChannel);
+    }
+
     // Payment method removed - using new payment flow
 
     // User rewards
@@ -2662,6 +2715,9 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
       }
       if (selectedPallet?.id) {
         formData.append("selectedPalletId", selectedPallet.id);
+      }
+      if (directBoxCheckoutEnabled) {
+        formData.append("fulfillment_channel", fulfillmentChannel);
       }
       if (shareFriendIds && shareAllocation) {
         formData.append(
@@ -3786,10 +3842,48 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
                                       estimate: "",
                                     }).replace(/^\s*·\s*/, "")}
                               </p>
-                              {budbeeAvailable === false && (
+                              {budbeeAvailable === false &&
+                                fulfillmentChannel === "shared_pallet" && (
                                 <p className="mt-1 text-xs text-amber-500">
                                   {t("checkout.budbeeUnavailable")}
                                 </p>
+                              )}
+                              {directBoxCheckoutEnabled && (
+                                <div className="mt-3 space-y-2">
+                                  <label className="flex items-center gap-2 text-xs text-foreground">
+                                    <input
+                                      type="radio"
+                                      name="fulfillment_channel"
+                                      checked={
+                                        fulfillmentChannel === "shared_pallet"
+                                      }
+                                      onChange={() =>
+                                        setFulfillmentChannel("shared_pallet")
+                                      }
+                                    />
+                                    shared_pallet
+                                  </label>
+                                  <label className="flex items-center gap-2 text-xs text-foreground">
+                                    <input
+                                      type="radio"
+                                      name="fulfillment_channel"
+                                      checked={
+                                        fulfillmentChannel === "direct_box"
+                                      }
+                                      onChange={() =>
+                                        setFulfillmentChannel("direct_box")
+                                      }
+                                    />
+                                    direct_box (technical — carrier not
+                                    configured; not operational)
+                                  </label>
+                                  {fulfillmentChannel === "direct_box" && (
+                                    <p className="text-xs text-amber-500">
+                                      Direct box carrier unavailable / not
+                                      quoted until a contract is configured.
+                                    </p>
+                                  )}
+                                </div>
                               )}
                             </div>
                           </div>
@@ -4745,8 +4839,10 @@ function CheckoutContent({ platformOpen }: { platformOpen: boolean }) {
 
 export function CheckoutClient({
   platformOpen = false,
+  directBoxCheckoutEnabled = false,
 }: {
   platformOpen?: boolean;
+  directBoxCheckoutEnabled?: boolean;
 }) {
   return (
     <Suspense
@@ -4760,7 +4856,10 @@ export function CheckoutClient({
       </div>
       }
     >
-      <CheckoutContent platformOpen={platformOpen} />
+      <CheckoutContent
+        platformOpen={platformOpen}
+        directBoxCheckoutEnabled={directBoxCheckoutEnabled}
+      />
       {/* merge modal portal host is inside CheckoutContent */}
     </Suspense>
   );

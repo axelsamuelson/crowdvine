@@ -73,6 +73,8 @@ function palletUsesPaymentIntent(status: string | null | undefined): boolean {
  */
 type RequestBody = {
   pallet_id: string;
+  /** Optional; server re-authorizes. Spoofed direct_box rejected when flag OFF. */
+  fulfillment_channel?: string;
   pact_points_redeem?: number;
   promo_discount_sek?: number;
   voucher_discount_sek?: number;
@@ -164,6 +166,54 @@ export async function POST(request: Request) {
 
     const bodyUnknown: unknown = await request.json().catch(() => null);
     const body = bodyUnknown as Partial<RequestBody> | null;
+
+    const { parseFulfillmentChannel } = await import(
+      "@/lib/commerce/fulfillment-channel"
+    );
+    const { gateDirectBoxCheckoutRequest } = await import(
+      "@/lib/commerce/fulfillment-channel-server-gates"
+    );
+    const clientChannel = parseFulfillmentChannel(body?.fulfillment_channel);
+
+    // Early direct_box gate: spoof / mode-scoped quote / carrier.
+    // NEVER continue into shared-pallet shipping (99 SEK) for this channel.
+    if (clientChannel === "direct_box") {
+      const cartForDirect = await CartService.getCart();
+      const bottleCountDirect = (cartForDirect?.lines || []).reduce(
+        (s, l) => s + (Number(l.quantity) || 0),
+        0,
+      );
+      const subtotalDirect =
+        parseFloat(String(cartForDirect?.cost?.totalAmount?.amount ?? "0")) ||
+        0;
+      const authDirect = await gateDirectBoxCheckoutRequest({
+        clientChannelRaw: body?.fulfillment_channel,
+        selectedPalletId: null,
+        countryCode: null,
+        bottleCount: bottleCountDirect,
+        productSubtotalSek: subtotalDirect,
+      });
+      if (!authDirect.ok) {
+        return NextResponse.json(
+          { error: authDirect.message, code: authDirect.errorCode },
+          { status: authDirect.httpStatus },
+        );
+      }
+      // Technical gate passed — full PI amount path without pallet remains
+      // operationally gated (eShipping contract / owner price decision).
+      // Do not fall through into shared-pallet pallet_id + 99 SEK path.
+      return NextResponse.json(
+        {
+          error:
+            "direct_box payment-intent amount path is not operationally enabled (eShipping/FR→SE linehaul + owner price decision still required; shared-pallet path not used)",
+          code: "direct_box_amount_path_not_enabled",
+          authorized: true,
+          fulfillment_channel: "direct_box",
+          shippingSek: authDirect.plan.shippingSek,
+        },
+        { status: 400 },
+      );
+    }
 
     const pallet_id = typeof body?.pallet_id === "string" ? body.pallet_id : "";
     const pact_points_redeem =
@@ -596,6 +646,7 @@ export async function POST(request: Request) {
       const metadata: Record<string, string> = {
         user_id: user.id,
         pallet_id,
+        fulfillment_channel: clientChannel ?? "shared_pallet",
         pact_points_redeem: String(pointsToRedeem),
         expected_amount_ore: String(amountInOre),
         voucher_discount_sek: String(voucherDiscountSek),
@@ -650,6 +701,7 @@ export async function POST(request: Request) {
       metadata: {
         user_id: user.id,
         pallet_id,
+        fulfillment_channel: clientChannel ?? "shared_pallet",
         pact_points_redeem: String(pointsToRedeem),
         expected_amount_ore: String(amountInOre),
         voucher_discount_sek: String(voucherDiscountSek),
