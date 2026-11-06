@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { isUnauthorizedResponse, requireAdminOr401 } from "@/lib/admin-auth-http";
+import { fetchAdminReservationsList } from "@/lib/admin/reservations-list-query";
 import { z } from "zod";
 
 const deleteReservationsSchema = z
@@ -41,80 +42,25 @@ export async function GET(request: Request) {
       archiveFilter,
     });
 
-    let query = sbAdmin
-      .from("order_reservations")
-      .select(
-        `
-        id,
-        status,
-        payment_status,
-        payment_mode,
-        payment_method_type,
-        payment_method_brand,
-        payment_method_last4,
-        created_at,
-        user_id,
-        delivery_zone_id,
-        pickup_zone_id,
-        checkout_group_id,
-        shipping_region_id,
-        cart_id,
-        address_id,
-        pallet_id,
-        market_code,
-        country_code,
-        region,
-        is_conditional,
-        charge_blocked_reason,
-        archived_at,
-        archive_reason,
-        status_before_archive,
-        delivery:pallet_zones!delivery_zone_id (
-          id,
-          name
-        ),
-        shipping_region:shipping_regions!shipping_region_id (
-          id,
-          name
-        ),
-        pallet:pallets!pallet_id (
-          id,
-          name
-        )
-      `,
-      )
-      .order("created_at", { ascending: false })
-      .limit(200);
+    const listResult = await fetchAdminReservationsList(sbAdmin, archiveFilter);
 
-    if (archiveFilter === "archived") {
-      query = query.eq("status", "archived");
-    } else if (archiveFilter === "active") {
-      query = query.neq("status", "archived").is("archived_at", null);
-    }
-
-    const { data: reservations, error: reservationsError } = await query;
-
-    if (reservationsError) {
+    if (listResult.error) {
       console.error(
         "❌ [Reservations API] Error fetching reservations:",
-        reservationsError,
+        listResult.error,
       );
-      console.error("Error details:", {
-        code: reservationsError.code,
-        message: reservationsError.message,
-        details: reservationsError.details,
-        hint: reservationsError.hint,
-      });
-
       return NextResponse.json({
         reservations: [],
-        error: reservationsError.message,
+        error: listResult.error.message,
       });
     }
 
-    const baseReservations = Array.isArray(reservations) ? reservations : [];
+    const baseReservations = listResult.reservations;
     console.log(
       `✅ [Reservations API] Found ${baseReservations.length} reservations`,
+      {
+        fulfillmentColumnsAvailable: listResult.fulfillmentColumnsAvailable,
+      },
     );
 
     if (baseReservations.length === 0) {

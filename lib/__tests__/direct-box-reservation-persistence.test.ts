@@ -54,6 +54,17 @@ describe("direct_box insert patch + dispatch status (no charge hold)", () => {
     );
   });
 
+  it("primary insert may bind payment_intent_id for unique-at-insert idempotency", () => {
+    const patch = buildDirectBoxReservationInsertPatch({
+      paymentIntentId: "pi_x",
+      paymentMethodId: "pm_x",
+      paymentMethodType: "card",
+    });
+    expect(patch.payment_intent_id).toBe("pi_x");
+    expect(patch.payment_status).toBe("paid");
+    expect(patch.payment_mode).toBe("payment_intent");
+  });
+
   it("detects schema-unready for fail-closed", () => {
     expect(
       isDirectBoxSchemaUnreadyError({

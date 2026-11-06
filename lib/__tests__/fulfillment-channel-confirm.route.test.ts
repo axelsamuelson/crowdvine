@@ -65,13 +65,17 @@ const {
 });
 
 function makeThenable<T>(data: T, error: unknown = null) {
-  const result = { data, error };
-  return {
-    ...result,
-    then(resolve: (v: typeof result) => unknown, reject?: (e: unknown) => unknown) {
-      return Promise.resolve(result).then(resolve, reject);
-    },
+  const result = { data, error } as {
+    data: T;
+    error: unknown;
+    then: (
+      resolve: (v: { data: T; error: unknown }) => unknown,
+      reject?: (e: unknown) => unknown,
+    ) => Promise<unknown>;
   };
+  result.then = (resolve, reject) =>
+    Promise.resolve({ data, error }).then(resolve, reject);
+  return result;
 }
 
 function buildAdminClient() {
@@ -174,6 +178,24 @@ function buildAdminClient() {
             return query;
           },
           insert(payload: Record<string, unknown>) {
+            // Simulate idx_order_reservations_payment_intent_id_unique at INSERT.
+            const pi = payload.payment_intent_id;
+            if (
+              typeof pi === "string" &&
+              pi &&
+              store.reservations.some((r) => r.payment_intent_id === pi)
+            ) {
+              return {
+                select: () => ({
+                  single: async () =>
+                    makeThenable(null, {
+                      code: "23505",
+                      message:
+                        "duplicate key value violates unique constraint idx_order_reservations_payment_intent_id_unique",
+                    }),
+                }),
+              };
+            }
             store.reservationInserts.push({ ...payload });
             const row = {
               id: `res-${store.reservations.length + 1}`,
@@ -754,6 +776,9 @@ describe("WIRED POST /api/checkout/confirm (direct_box + shared_pallet)", () => 
     expect(inserted.fulfillment_channel).toBe("direct_box");
     expect(inserted.fulfillment_dispatch_status).toBe("pending_manual_handoff");
     expect(inserted).not.toHaveProperty("charge_blocked_reason");
+    // Atomic PI bind at insert (migration 138 unique) — no post-insert attach race.
+    expect(inserted.payment_intent_id).toBe("pi_direct_ok");
+    expect(inserted.payment_status).toBe("paid");
     // B2C producer groups store merchandise in total_sek; charged shipping is
     // persisted separately (server shipping used for PI amount/binding).
     expect(Number(inserted.total_sek)).toBe(SUBTOTAL_SEK);
@@ -918,7 +943,17 @@ describe("WIRED POST /api/checkout/confirm (direct_box + shared_pallet)", () => 
     expect(findOrCreatePalletForRegion).not.toHaveBeenCalled();
   });
 
-  it("POST confirm concurrent same PI → single paid order (parallel handlers)", async () => {
+  /**
+   * Concurrent same-PI confirm: handler binds payment_intent_id at INSERT so
+   * idx_order_reservations_payment_intent_id_unique (migrations/138_*.sql;
+   * documented by draft migrations/278_*.sql) rejects the twin before items /
+   * clearCart / attach race. Mock approximates UNIQUE via sync check-and-set
+   * in insert(); that proves the application path (bind → 23505 → replay) under
+   * Promise.all. It does NOT prove Postgres MVCC under real parallel clients —
+   * production correctness still depends on that index remaining present.
+   * No in-process serverless lock.
+   */
+  it("POST confirm concurrent same PI → at most one durable insert (unique at INSERT)", async () => {
     process.env.DIRECT_BOX_CHECKOUT_ENABLED = "true";
     loadDirectBoxCarrierConfigFromEnv.mockReturnValue(DIRECT_CARRIER);
     resolveAndChargeCheckoutShipping.mockResolvedValue(DIRECT_RATE);
@@ -931,6 +966,8 @@ describe("WIRED POST /api/checkout/confirm (direct_box + shared_pallet)", () => 
       metadata: directPiMetadata(),
     });
 
+    const clearCallsBefore = clearCart.mock.calls.length;
+    const itemsBefore = store.items.length;
     const [a, b] = await Promise.all([
       postConfirm(directConfirmBody()),
       postConfirm(directConfirmBody()),
@@ -939,21 +976,44 @@ describe("WIRED POST /api/checkout/confirm (direct_box + shared_pallet)", () => 
     const jb = await b.json();
     expect(a.status).toBe(200);
     expect(b.status).toBe(200);
-    // Both succeed; at most one net paid reservation with this PI.
-    const paid = store.reservations.filter(
+
+    // Durable rows with this PI — unique enforced at INSERT (migration 138).
+    const withPi = store.reservations.filter(
       (r) => r.payment_intent_id === "pi_direct_ok",
     );
-    expect(paid.length).toBe(1);
-    expect(
-      new Set([ja.reservationId, jb.reservationId, paid[0]?.id]).size,
-    ).toBeLessThanOrEqual(2);
-    // Prefer same id when replay path wins; allow race then attach unique rollback.
+    expect(withPi).toHaveLength(1);
+    // Successful inserts carrying the PI (loser gets 23505, not pushed).
+    const insertsWithPi = store.reservationInserts.filter(
+      (r) => r.payment_intent_id === "pi_direct_ok",
+    );
+    expect(insertsWithPi).toHaveLength(1);
+    expect(insertsWithPi[0]?.fulfillment_dispatch_status).toBe(
+      "pending_manual_handoff",
+    );
+    expect(insertsWithPi[0]?.payment_status).toBe("paid");
+    // Loser must not leave an unpaid twin without payment_intent_id.
+    const unpaidTwins = store.reservations.filter(
+      (r) => !r.payment_intent_id && r.fulfillment_channel === "direct_box",
+    );
+    expect(unpaidTwins).toHaveLength(0);
     expect(
       ja.reservationId === jb.reservationId ||
-        ja.idempotentReplay === true ||
-        jb.idempotentReplay === true ||
-        store.reservationInserts.length >= 1,
+        ja.idempotentReplay ||
+        jb.idempotentReplay,
     ).toBe(true);
+    // Winner may clear cart / write items once; loser replays without a second
+    // durable order or item fan-out.
+    expect(clearCart.mock.calls.length - clearCallsBefore).toBeLessThanOrEqual(
+      1,
+    );
+    expect(store.items.length - itemsBefore).toBeGreaterThan(0);
+    // Same cart lines once — not doubled by the losing confirm.
+    const itemReservationIds = new Set(
+      store.items
+        .slice(itemsBefore)
+        .map((row) => String(row.reservation_id ?? "")),
+    );
+    expect(itemReservationIds.size).toBe(1);
   });
 });
 

@@ -73,16 +73,45 @@ export function resolveCheckoutGroupPalletAssignment(input: {
  * Patch fields for order_reservations insert/update on direct_box.
  * Requires migration 277 columns — callers fail closed on missing schema
  * (no charge_blocked_reason overload; no silent strip-retry into billing hold).
+ *
+ * When confirming a succeeded PaymentIntent, pass paymentIntentId on the
+ * **primary** row so idx_order_reservations_payment_intent_id_unique (migration
+ * 138) rejects concurrent duplicates at INSERT — no ephemeral unpaid twin.
  */
-export function buildDirectBoxReservationInsertPatch(_input?: {
+export function buildDirectBoxReservationInsertPatch(input?: {
   includeChannelColumn?: boolean;
+  /** Primary row only — binds unique payment_intent_id at insert time. */
+  paymentIntentId?: string | null;
+  paymentMethodId?: string | null;
+  paymentMethodType?: string | null;
+  paymentMethodBrand?: string | null;
+  paymentMethodLast4?: string | null;
 }): Record<string, unknown> {
-  return {
+  const patch: Record<string, unknown> = {
     pallet_id: null,
     shipping_region_id: null,
     fulfillment_channel: "direct_box" as const,
     fulfillment_dispatch_status: DIRECT_BOX_FULFILLMENT_DISPATCH_PENDING,
   };
+  const pi = String(input?.paymentIntentId ?? "").trim();
+  if (pi) {
+    patch.payment_intent_id = pi;
+    patch.payment_mode = "payment_intent";
+    patch.payment_status = "paid";
+    if (input?.paymentMethodId) {
+      patch.payment_method_id = input.paymentMethodId;
+    }
+    if (input?.paymentMethodType) {
+      patch.payment_method_type = input.paymentMethodType;
+    }
+    if (input?.paymentMethodBrand) {
+      patch.payment_method_brand = input.paymentMethodBrand;
+    }
+    if (input?.paymentMethodLast4) {
+      patch.payment_method_last4 = input.paymentMethodLast4;
+    }
+  }
+  return patch;
 }
 
 /** Detect PostgREST / Postgres unknown-column errors for fail-closed schema checks. */

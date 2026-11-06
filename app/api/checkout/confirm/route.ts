@@ -1542,6 +1542,24 @@ export async function POST(request: Request) {
       }
     }
 
+    // Resolve PM details early for direct_box so payment_intent_id can bind at INSERT
+    // (migration 138 unique) — concurrent doubles fail at insert, not after side effects.
+    let directInsertPaymentDetails: {
+      payment_method_type: string | null;
+      payment_method_brand: string | null;
+      payment_method_last4: string | null;
+    } | null = null;
+    if (
+      authorizedFulfillment?.channel === "direct_box" &&
+      intentType === "payment_intent" &&
+      intentId &&
+      stripePaymentMethodId
+    ) {
+      directInsertPaymentDetails = await resolvePaymentMethodDetailsFromId(
+        stripePaymentMethodId,
+      );
+    }
+
     const checkoutGroupId = b2cProducerCheckout ? crypto.randomUUID() : null;
     const outboundCheckoutGroupId = checkoutGroupId ?? crypto.randomUUID();
 
@@ -1801,6 +1819,24 @@ export async function POST(request: Request) {
           ...(authorizedFulfillment?.channel === "direct_box"
             ? buildDirectBoxReservationInsertPatch({
                 includeChannelColumn: true,
+                // Primary only — unique payment_intent_id at insert (migration 138).
+                ...(createdReservations.length === 0 &&
+                intentType === "payment_intent" &&
+                intentId
+                  ? {
+                      paymentIntentId: intentId,
+                      paymentMethodId: stripePaymentMethodId,
+                      paymentMethodType:
+                        directInsertPaymentDetails?.payment_method_type ??
+                        "card",
+                      paymentMethodBrand:
+                        directInsertPaymentDetails?.payment_method_brand ??
+                        null,
+                      paymentMethodLast4:
+                        directInsertPaymentDetails?.payment_method_last4 ??
+                        null,
+                    }
+                  : {}),
               })
             : {}),
         };
@@ -1829,6 +1865,28 @@ export async function POST(request: Request) {
         }
 
         if (insErr || !row?.id) {
+          if (
+            isUniqueViolation(insErr) &&
+            authorizedFulfillment?.channel === "direct_box" &&
+            intentType === "payment_intent" &&
+            intentId
+          ) {
+            await rollbackCheckoutGroup();
+            const existing = await findReservationByPaymentIntentId(
+              sbAdmin,
+              intentId,
+            );
+            if (existing) {
+              console.warn("[duplicate-reservation-blocked]", {
+                reason: "payment_intent_id_unique_at_insert",
+                reservation_id: existing.id,
+                intent_id: intentId,
+              });
+              return NextResponse.json(
+                buildReservationSuccessResponse(existing),
+              );
+            }
+          }
           if (
             isUniqueViolation(insErr) &&
             idempotencyKey &&
@@ -1947,6 +2005,18 @@ export async function POST(request: Request) {
         ...(authorizedFulfillment?.channel === "direct_box"
           ? buildDirectBoxReservationInsertPatch({
               includeChannelColumn: true,
+              ...(intentType === "payment_intent" && intentId
+                ? {
+                    paymentIntentId: intentId,
+                    paymentMethodId: stripePaymentMethodId,
+                    paymentMethodType:
+                      directInsertPaymentDetails?.payment_method_type ?? "card",
+                    paymentMethodBrand:
+                      directInsertPaymentDetails?.payment_method_brand ?? null,
+                    paymentMethodLast4:
+                      directInsertPaymentDetails?.payment_method_last4 ?? null,
+                  }
+                : {}),
             })
           : {}),
       };
@@ -1973,6 +2043,25 @@ export async function POST(request: Request) {
       }
 
       if (reservationError || !resRow?.id) {
+        if (
+          isUniqueViolation(reservationError) &&
+          authorizedFulfillment?.channel === "direct_box" &&
+          intentType === "payment_intent" &&
+          intentId
+        ) {
+          const existing = await findReservationByPaymentIntentId(
+            sbAdmin,
+            intentId,
+          );
+          if (existing) {
+            console.warn("[duplicate-reservation-blocked]", {
+              reason: "payment_intent_id_unique_at_insert",
+              reservation_id: existing.id,
+              intent_id: intentId,
+            });
+            return NextResponse.json(buildReservationSuccessResponse(existing));
+          }
+        }
         if (isUniqueViolation(reservationError) && idempotencyKey) {
           const existing = await findReservationByIdempotencyKey(
             sbAdmin,
