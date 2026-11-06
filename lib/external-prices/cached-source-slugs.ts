@@ -37,6 +37,19 @@ export const getCachedAllWineSourceSlugs = unstable_cache(
   { revalidate: 300 },
 );
 
+/** Distinct price-source slugs that have an approved offer in the catalog. */
+export function listCatalogPriceSourceSlugs(
+  allSlugs: Record<string, string[]>,
+): string[] {
+  const set = new Set<string>();
+  for (const slugs of Object.values(allSlugs)) {
+    for (const slug of slugs) {
+      if (slug) set.add(slug);
+    }
+  }
+  return [...set].sort();
+}
+
 export function pickWineSourceSlugsForProducts(
   allSlugs: Record<string, string[]>,
   wineIds: string[],

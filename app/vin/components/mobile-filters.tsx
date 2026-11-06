@@ -17,7 +17,10 @@ import { ColorFilter } from "./color-filter";
 import { GrapesFilter } from "./grapes-filter";
 import { FarmingFilter } from "./farming-filter";
 import { RegionFilter } from "./region-filter";
-import { CompetitorFilter, type PriceSourceForFilter } from "./competitor-filter";
+import {
+  CompetitorFilter,
+  type PriceSourceForFilter,
+} from "./competitor-filter";
 import { useFilterCount } from "../hooks/use-filter-count";
 import { isProducerBoxesPath } from "@/lib/producer-boxes/config";
 import { ProducerBoxesCta } from "./producer-boxes-cta";
@@ -72,6 +75,7 @@ interface MobileFiltersProps {
   /** Category paths with products for this site (sitemap emptiness rule). */
   navigableShopPaths?: readonly string[];
   linkableRegionSlugs?: readonly string[];
+  catalogSourceSlugs?: readonly string[];
 }
 
 export function MobileFilters({
@@ -83,6 +87,7 @@ export function MobileFilters({
   ssrPathname,
   navigableShopPaths,
   linkableRegionSlugs,
+  catalogSourceSlugs,
 }: MobileFiltersProps) {
   const { t } = useTranslations();
   const paths = useLocalizedPaths();
@@ -226,9 +231,7 @@ export function MobileFilters({
     if (isMainShop && originalProducts.length > 0) {
       setProducts(filterProductsByGrapes(originalProducts, [grapeName]));
     }
-    router.push(
-      withPreservedShopFilters(url, { omitKeys: ["fgrape"] }) ?? url,
-    );
+    router.push(withPreservedShopFilters(url, { omitKeys: ["fgrape"] }) ?? url);
     return true;
   };
 
@@ -366,6 +369,8 @@ export function MobileFilters({
                     activeColor={activeColorName ?? undefined}
                     onColorSelect={handleColorSelect}
                     getColorHref={resolveColorHref}
+                    navigableShopPaths={navigableShopPaths}
+                    pathname={pathname}
                     showSwatchLabels
                   />
                   <RegionFilter
@@ -384,12 +389,18 @@ export function MobileFilters({
                     mode="drawer"
                     onGrapeSelect={handleGrapeSelect}
                     activeGrape={activeGrapeName ?? undefined}
+                    pathname={pathname}
                   />
                 </>
               )}
               <CategoryFilter collections={collections} mode="drawer" />
               {isProducerBoxesPage ? null : (
-                <CompetitorFilter sources={priceSources} mode="drawer" />
+                <CompetitorFilter
+                  sources={priceSources}
+                  mode="drawer"
+                  catalogSourceSlugs={catalogSourceSlugs}
+                  pathname={pathname}
+                />
               )}
             </div>
           </div>

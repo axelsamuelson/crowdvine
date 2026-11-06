@@ -11,6 +11,10 @@ import {
 import { isProducerBoxesPath } from "@/lib/producer-boxes/config";
 import { isShopFullBleedPath } from "@/lib/stockholm-delivery-landing/config";
 import { getCachedNavigableShopFilterPaths } from "@/lib/shop/shop-filter-category-availability";
+import {
+  getCachedAllWineSourceSlugs,
+  listCatalogPriceSourceSlugs,
+} from "@/lib/external-prices/cached-source-slugs";
 import { getLiveWineRegionCountsMap } from "@/lib/wine-region-live-counts";
 import { getLinkableWineRegions } from "@/lib/wine-regions";
 import { getShopLayoutResultsCount } from "@/lib/shop/shop-results-count-server";
@@ -41,7 +45,11 @@ export async function ShopLayoutShell({
   let priceSources: { id: string; name: string; slug: string }[] = [];
   try {
     const sources = await getCachedPriceSources();
-    priceSources = sources.map((s) => ({ id: s.id, name: s.name, slug: s.slug }));
+    priceSources = sources.map((s) => ({
+      id: s.id,
+      name: s.name,
+      slug: s.slug,
+    }));
   } catch (error) {
     console.warn("Failed to fetch price sources in shop layout:", error);
   }
@@ -58,23 +66,32 @@ export async function ShopLayoutShell({
       : collectionSegment,
   );
   const isB2BSite = await getIsDirtywineSiteFromHeaders();
-  const [initialResultsCount, navigableShopPaths, linkableRegionSlugs] =
-    await Promise.all([
-      getShopLayoutResultsCount(pathname, parsedSearchParams),
-      getCachedNavigableShopFilterPaths(isB2BSite).catch((error) => {
-        console.warn(
-          "Failed to resolve navigable shop filter paths:",
-          error,
-        );
+  const [
+    initialResultsCount,
+    navigableShopPaths,
+    linkableRegionSlugs,
+    catalogSourceSlugs,
+  ] = await Promise.all([
+    getShopLayoutResultsCount(pathname, parsedSearchParams),
+    getCachedNavigableShopFilterPaths(isB2BSite).catch((error) => {
+      console.warn("Failed to resolve navigable shop filter paths:", error);
+      return undefined;
+    }),
+    getLiveWineRegionCountsMap()
+      .then((counts) =>
+        getLinkableWineRegions(counts).map((region) => region.slug),
+      )
+      .catch((error) => {
+        console.warn("Failed to resolve linkable wine regions:", error);
         return undefined;
       }),
-      getLiveWineRegionCountsMap()
-        .then((counts) => getLinkableWineRegions(counts).map((region) => region.slug))
-        .catch((error) => {
-          console.warn("Failed to resolve linkable wine regions:", error);
-          return undefined;
-        }),
-    ]);
+    getCachedAllWineSourceSlugs()
+      .then(listCatalogPriceSourceSlugs)
+      .catch((error) => {
+        console.warn("Failed to resolve catalog price sources:", error);
+        return undefined;
+      }),
+  ]);
 
   return (
     <PageLayoutServer>
@@ -86,6 +103,7 @@ export async function ShopLayoutShell({
         ssrPathname={pathname}
         navigableShopPaths={navigableShopPaths}
         linkableRegionSlugs={linkableRegionSlugs}
+        catalogSourceSlugs={catalogSourceSlugs}
       >
         {children}
       </ShopLayoutClient>

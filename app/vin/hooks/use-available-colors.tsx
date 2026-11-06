@@ -145,8 +145,8 @@ export function useAvailableColors(
   };
 
   // Navigation (/wine, colour/farming categories) keeps the previous list.
-  // Query mode (producer pages) always offers the catalog color set; hits are
-  // counted separately so empty colors can stay visible.
+  // Query mode still returns the fixed vocabulary; ColorFilter keeps only the
+  // colors whose category has wines in the catalog.
   const panelColors =
     !inNavigationMode || showAllColors ? allColors : availableColors;
 
