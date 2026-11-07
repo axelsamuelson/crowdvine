@@ -100,10 +100,10 @@ export function Footer({ initialLogos }: { initialLogos?: SiteLogos }) {
                             100 best wines
                           </Link>
                           <Link
-                            href="/guides/best-natural-wines-systembolaget"
+                            href="/guides/what-is-natural-wine"
                             className="text-sm text-background/70 hover:text-background transition-colors hover:underline"
                           >
-                            {SYSTEMBOLAGET_BEST_UPLINK.anchor.en}
+                            What is natural wine?
                           </Link>
                         </>
                       ) : (
