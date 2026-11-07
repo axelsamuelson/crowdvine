@@ -170,9 +170,10 @@ describe("checkout OFF audit matrix — evidence class ledger (documentation ass
         ? "covered_in_checkout_audit_webhook_pg_not_full_next_route"
         : "BLOCKED_missing_db_or_stripe",
       real_carrier_budbee_instabee: "BLOCKED_no_carrier_creds_default_off",
-      guest_member_admin_full_flows: "BLOCKED_no_isolated_supabase_auth",
-      cart_mutation_stale_inventory: "BLOCKED_no_shop_supabase",
-      app_e2e_seeded_member_cart_auth: "BLOCKED_no_isolated_supabase_auth",
+      guest_member_admin_full_flows: "BLOCKED_awaiting_runtime_supabase_keys",
+      cart_mutation_stale_inventory: "BLOCKED_awaiting_runtime_supabase_keys",
+      app_e2e_seeded_member_cart_auth: "BLOCKED_awaiting_runtime_supabase_keys",
+      isolated_supabase_project: "msdfjrrokcmjifetuwgc_schema_seeded_auth_user_pending_keys",
     } as const;
 
     expect(ledger.unit_mocked_channel_gates).toContain("covered");
