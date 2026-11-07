@@ -110,7 +110,7 @@ describe("what is natural wine", () => {
       "Why is natural wine cloudy?",
       "What is a mousy wine?",
     ]);
-    expect(whatIsNaturalWineArticle.updated).toBe("2026-11-03");
+    expect(whatIsNaturalWineArticle.updated).toBe("2026-11-07");
   });
 
   it("states only the sourced sulphur ceilings", () => {
@@ -174,6 +174,32 @@ describe("what is natural wine", () => {
     ].join("\n");
     expect(visibleEnglish).not.toMatch(/Systembolaget/i);
     expect(visibleEnglish).not.toMatch(/\bSweden\b/);
+    const comparison = whatIsNaturalWineArticle.sections.find(
+      (section) =>
+        section.heading?.en ===
+        "Natural wine vs organic wine vs biodynamic wine",
+    );
+    const comparisonBody = Array.isArray(comparison?.body.en)
+      ? comparison.body.en
+      : [];
+    expect(comparisonBody).toHaveLength(4);
+    expect(comparisonBody[3]).toContain(
+      "[Natural vs organic vs biodynamic wine](/guides/natural-vs-organic-vs-biodynamic-wine)",
+    );
+    expect(comparisonBody.join("\n")).not.toContain("limits above");
+    const further = whatIsNaturalWineArticle.internalLinks.find(
+      (link) => link.href.en === "/guides/natural-vs-organic-vs-biodynamic-wine",
+    );
+    expect(further?.label.en).toBe("Natural vs organic vs biodynamic wine →");
+    expect(further?.label.sv.trim()).toBe("");
+    const swedishRegion = whatIsNaturalWineArticle.sections
+      .flatMap((section) =>
+        Array.isArray(section.body.sv) ? section.body.sv : [section.body.sv],
+      )
+      .join("\n");
+    expect(swedishRegion).not.toContain("Det är därifrån PACT importerar");
+    expect(swedishRegion).toContain("/guider/naturvin-languedoc");
+    expect(swedishRegion).toContain("/vin/naturvin-lada");
     expect(visibleEnglish).toContain("27 CFR 4.32(e)");
     expect(visibleEnglish).toContain("USDA");
     expect(visibleEnglish).toContain("100 ppm");

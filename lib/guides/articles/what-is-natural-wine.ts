@@ -6,7 +6,7 @@ import type { GuideArticleContent } from "@/lib/guides/guide-types";
  * Vin Méthode Nature charter; EU 1169/2011 Annex II (label above 10 mg/l).
  */
 export const whatIsNaturalWineArticle: GuideArticleContent = {
-  updated: "2026-11-03",
+  updated: "2026-11-07",
   slug: {
     en: "what-is-natural-wine",
     sv: "vad-ar-naturvin",
@@ -218,7 +218,7 @@ export const whatIsNaturalWineArticle: GuideArticleContent = {
         ],
         sv: [
           "Naturvin görs i dag i många länder. Rörelsen växte fram i Frankrike, framför allt i Beaujolais, Jura och Loire. På 1980-talet började producenter, under inflytande av kemisten Jules Chauvet, odla ekologiskt och vinifiera med få eller inga tillsatser.",
-          "Languedoc är en av regionerna där arbetssättet är vanligt. Skiffer, kalk och gamla stockar ger karaktär åt Carignan, Grenache, Syrah och Cinsault. Det är därifrån PACT importerar. Läs mer i guiden om [naturvin från Languedoc](/guider/naturvin-languedoc). Vill du lära känna en gård därifrån kan du börja med en [naturvinslåda](/vin/naturvin-lada): sex flaskor från samma producent.",
+          "Languedoc är en av regionerna där arbetssättet är vanligt. Skiffer, kalk och gamla stockar ger karaktär åt Carignan, Grenache, Syrah och Cinsault. Läs mer i guiden om [naturvin från Languedoc](/guider/naturvin-languedoc). Vill du lära känna en gård därifrån kan du börja med en [naturvinslåda](/vin/naturvin-lada): sex flaskor från samma producent.",
         ],
       },
     },
@@ -279,11 +279,9 @@ export const whatIsNaturalWineArticle: GuideArticleContent = {
       body: {
         en: [
           "Organic, biodynamic and natural wine are three different things, even when they overlap.",
-          "**Organic wine** is a certification. What it allows in the cellar depends on where the wine is labeled.",
-          "In the United States there are two categories, set by the USDA National Organic Program. A wine labeled **organic**, with the USDA organic seal, may not have any added sulfites, and the naturally occurring level must stay below 10 ppm. A wine labeled **made with organic grapes** may have added sulfur dioxide up to 100 ppm, but may not use the USDA seal. In the EU, organic wine may contain added sulfur up to the limits above, and many cellar additives are still allowed, including cultured yeast.",
-          "That makes a USDA-organic wine stricter on sulfur than many natural wines, which often get a small dose at bottling. It does not make it a natural wine: the organic rules govern ingredients and sulfur, not whether fermentation was spontaneous or the wine was fined and filtered.",
-          "**Biodynamic wine** builds on organic farming with additional practices, treating the farm as a whole. It is often certified by Demeter. Biodynamic certification is mainly about farming. A biodynamic wine can be natural, but the certificate does not by itself require native yeast or no added sulfur.",
-          "**Natural wine** sets expectations for the whole chain, from vineyard to bottle, without a shared certificate. An organic wine is not automatically natural, and a natural wine is not always certified organic.",
+          "Organic and biodynamic are certifications, mainly about how the grapes are farmed. Organic rules also limit sulfur and some cellar additives, but still allow cultured yeast and filtration. In the US, a wine labeled organic may not have any added sulfites, so a USDA-organic wine can be stricter on sulfur than many natural wines.",
+          "Natural wine covers the whole chain, from vineyard to bottle, and has no legal definition. An organic wine is not automatically natural, and a natural wine is not always certified organic.",
+          "For the rules behind each label, with sulfite limits for the EU, the US, Demeter and Vin Méthode Nature, see [Natural vs organic vs biodynamic wine](/guides/natural-vs-organic-vs-biodynamic-wine).",
         ],
         sv: [],
       },
@@ -452,6 +450,16 @@ export const whatIsNaturalWineArticle: GuideArticleContent = {
     },
   ],
   internalLinks: [
+    {
+      label: {
+        en: "Natural vs organic vs biodynamic wine →",
+        sv: "",
+      },
+      href: {
+        en: "/guides/natural-vs-organic-vs-biodynamic-wine",
+        sv: "/guides/natural-vs-organic-vs-biodynamic-wine",
+      },
+    },
     {
       label: {
         en: "What is orange wine? →",
