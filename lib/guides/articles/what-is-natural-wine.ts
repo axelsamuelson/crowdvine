@@ -313,7 +313,7 @@ export const whatIsNaturalWineArticle: GuideArticleContent = {
       body: {
         en: [
           "**Orange wine and skin contact wine.** Orange wine is white wine fermented on its skins, like a red. The skins give an amber color, tannin and texture. Skin contact is a method, not a guarantee of natural wine, but many of the best-known orange wines come from natural producers. Read more in [What is orange wine?](/guides/what-is-orange-wine)",
-          "**Pét-nat.** Short for pétillant naturel, a sparkling wine bottled before the first fermentation has finished, so the bubbles come from that same fermentation. Pét-nats are often cloudy and more gently sparkling than Champagne.",
+          "[Pét-nat](/guides/what-is-pet-nat). Short for pétillant naturel, a sparkling wine bottled before the first fermentation has finished, so the bubbles come from that same fermentation. Pét-nats are often cloudy and more gently sparkling than Champagne.",
           "**Carbonic maceration.** Whole bunches ferment in a tank filled with carbon dioxide, so fermentation starts inside each grape. The result is fruity and soft, with low tannin. It is the method behind many Beaujolais natural wines, made famous by the [Gang of Four](/guides/gang-of-four-wine) in Morgon in the 1980s.",
         ],
         sv: [],
