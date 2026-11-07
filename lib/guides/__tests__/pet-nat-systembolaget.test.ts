@@ -3,6 +3,9 @@ import { describe, expect, it } from "vitest";
 import { bestPetNatWinesSystembolagetArticle } from "@/lib/guides/articles/best-pet-nat-wines-systembolaget";
 import { buyNaturalWineOnlineSwedenArticle } from "@/lib/guides/articles/buy-natural-wine-online-sweden";
 import { whatIsPetNatArticle } from "@/lib/guides/articles/what-is-pet-nat";
+import { whatIsNaturalWineArticle } from "@/lib/guides/articles/what-is-natural-wine";
+import { buildArticleGuideMeta } from "@/lib/guides/guide-article-seo";
+import { articleVisibleForLocale } from "@/lib/guides/guide-types";
 import { guideCopy } from "@/lib/guides/guide-copy";
 import {
   isIndexableGuideHref,
@@ -109,22 +112,98 @@ describe("pet nat Systembolaget guides", () => {
     expect(article.lede?.sv.split(/(?<=\.)\s+/).length).toBeGreaterThanOrEqual(2);
     expect(article.lede?.sv.split(/(?<=\.)\s+/).length).toBeLessThanOrEqual(3);
     expect(article.meta.sv.length).toBeLessThanOrEqual(155);
-    expect(article.meta.en.length).toBeLessThanOrEqual(155);
-    expect(article.sections.map((section) => section.heading?.sv)).toEqual([
+    expect(
+      articleVisibleForLocale(article.sections, "sv").map(
+        (section) => section.heading?.sv,
+      ),
+    ).toEqual([
       "Vad det betyder",
       "Hur det görs",
       "Skillnad mot champagne och cava",
       "Så serverar du",
       "Vad du ska titta efter",
     ]);
-    expect(article.faqs).toHaveLength(3);
-    const hrefs = article.internalLinks.map((link) => link.href.sv);
+    expect(articleVisibleForLocale(article.faqs ?? [], "sv")).toHaveLength(3);
+    const hrefs = article.internalLinks
+      .filter((link) => link.label.sv.trim().length > 0)
+      .map((link) => link.href.sv);
     expect(hrefs).toEqual([
       "/guider/basta-pet-nat-systembolaget",
       "/guider/basta-mousserande-naturviner-systembolaget",
       "/guider/vad-ar-naturvin",
       "/guider/basta-naturvinerna-pa-systembolaget",
     ]);
+  });
+
+  it("replaces the English explainer and keeps Systembolaget links off that page", () => {
+    const article = whatIsPetNatArticle;
+    const title = "What Is Pet Nat? Pétillant Naturel Wine Explained";
+    expect(article.title.en).toBe(title);
+    expect(article.h1.en).toBe("What is pet nat?");
+    expect(article.absoluteTitle).toEqual({ en: true });
+    expect(article.updated).toBe("2026-11-07");
+    expect(article.hubCard.description.en).toBe(
+      "What pétillant naturel means, how it is made, and how it differs from Champagne and Prosecco.",
+    );
+    expect(
+      buildArticleGuideMeta(article, "en", "https://pactwines.com", "PACT Wines")
+        .title,
+    ).toEqual({ absolute: title });
+    expect(
+      articleVisibleForLocale(article.sections, "en").map(
+        (section) => section.heading?.en ?? "",
+      ),
+    ).toEqual([
+      "",
+      "What does pétillant naturel mean?",
+      "How pet nat is made",
+      "Pet nat vs Champagne",
+      "Pet nat vs Prosecco",
+      "Where pet nat comes from",
+      "Pet nat styles",
+      "What does pet nat taste like?",
+      "How to open and serve pet nat",
+      "How to find a good pet nat",
+    ]);
+    const en = articleVisibleForLocale(article.sections, "en")
+      .flatMap((section) =>
+        Array.isArray(section.body.en) ? section.body.en : [section.body.en],
+      )
+      .join("\n");
+    expect(en).toContain("43–50°F (6–10°C)");
+    expect(en).toContain("Christian Chaussard");
+    expect(en).toContain("[What is orange wine?](/guides/what-is-orange-wine)");
+    expect(en).not.toContain("Systembolaget");
+    expect(
+      articleVisibleForLocale(article.faqs ?? [], "en").map(
+        (faq) => faq.question.en,
+      ),
+    ).toEqual([
+      "What is pet nat?",
+      "Is pet nat the same as Champagne?",
+      "Is pet nat natural wine?",
+      "Is pet nat sweet?",
+      "Why is pet nat cloudy?",
+      "How do you open a bottle of pet nat?",
+    ]);
+    expect(
+      article.internalLinks
+        .filter((link) => link.label.en.trim().length > 0)
+        .map((link) => link.href.en),
+    ).toEqual([
+      "/guides/what-is-natural-wine",
+      "/guides/what-is-orange-wine",
+      "/guides/worlds-best-natural-wine-producers",
+    ]);
+    const styles = whatIsNaturalWineArticle.sections.find(
+      (section) => section.heading?.en === "Natural wine styles",
+    );
+    const stylesEn = Array.isArray(styles?.body.en)
+      ? styles.body.en.join("\n")
+      : (styles?.body.en ?? "");
+    expect(stylesEn).toContain(
+      "[Pét-nat](/guides/what-is-pet-nat)",
+    );
   });
 
   it("has no em dashes and no Swedish letters in English copy", () => {
