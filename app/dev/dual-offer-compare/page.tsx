@@ -75,13 +75,17 @@ export default function DualOfferCompareDevPage() {
   return (
     <main className="min-h-screen bg-background text-foreground">
       <div className="mx-auto max-w-3xl px-4 py-6 space-y-4 font-sans">
-        <p className="text-xs text-muted-foreground">
-          Cart: 8 bottles · destination SE · sample prices only · Geist
-          font-sans · migration 279 unapplied (payment fail-closed)
-        </p>
         <Suspense fallback={<p className="text-sm text-muted-foreground">…</p>}>
           <DualOfferReviewLocales dual={dual} />
         </Suspense>
+        <aside
+          className="rounded-lg border border-dashed border-muted-foreground/40 bg-muted/20 px-3 py-2 font-mono text-[11px] text-muted-foreground"
+          data-testid="dual-offer-page-diagnostics"
+        >
+          Fixture cart: 8 bottles (mixed 145+160 SEK) · destination SE ·
+          weighted avg bottle = wines_subtotal/bottle_count · migration 279
+          unapplied · not authenticated /checkout
+        </aside>
       </div>
     </main>
   );
