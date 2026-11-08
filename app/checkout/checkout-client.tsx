@@ -41,6 +41,7 @@ import {
   type StripeConfirmResult,
 } from "@/components/checkout/stripe-payment-section";
 import type { CheckoutQuote } from "@/lib/checkout/checkout-quote";
+import { checkoutChargeTimingMessageKey } from "@/lib/checkout/charge-timing-copy";
 import { toast } from "sonner";
 import {
   MapPin,
@@ -383,6 +384,15 @@ function CheckoutContent({
     isUsConditionalReservationsEnabledClient() &&
     checkoutMarketCountry != null &&
     getCountryMarketMode(checkoutMarketCountry) === "conditional_reservation";
+
+  const chargeTimingCopyKey = useMemo(
+    () =>
+      checkoutChargeTimingMessageKey({
+        paymentMode,
+        isUsConditional,
+      }),
+    [paymentMode, isUsConditional],
+  );
 
   const effectiveDelivery = useMemo(() => {
     return userZoneRowToDeliveryLines(zoneAddressRow) ?? deliveryDraft;
@@ -4903,9 +4913,11 @@ function CheckoutContent({
                             </span>
                           </div>
 
-                          <p className="text-sm text-stone-600">
-                            {t("checkout.noChargeUntilPalletCloses")}
-                          </p>
+                          {chargeTimingCopyKey ? (
+                            <p className="text-sm text-stone-600">
+                              {t(`checkout.${chargeTimingCopyKey}`)}
+                            </p>
+                          ) : null}
 
                           <Button
                             type="button"

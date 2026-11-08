@@ -489,6 +489,7 @@
     "termsLinkPrivacy": "privacy policy",
     "termsVersionStale": "The terms have been updated. Please read and accept the new terms.",
     "noChargeUntilPalletCloses": "Nothing is charged now. You pay only when the pallet closes.",
+    "chargedOnConfirm": "Your card will be charged now when you confirm payment.",
     "otpEmailHint": "We use this address for order updates.",
     "preparingCheckout": "Preparing payment…",
     "guestSessionFailed": "Could not prepare payment. Please try again.",
