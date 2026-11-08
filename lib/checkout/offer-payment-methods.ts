@@ -1,0 +1,84 @@
+/**
+ * Per-offer payment method capability allowlist.
+ * Default DENY for anything not explicitly verified for that offer.
+ * Candidates (card/wallets/Swish/Klarna/…) are NOT approved by listing them —
+ * only `verified` entries may pass. Do not claim universal off-session limits.
+ */
+
+import type { FulfillmentChannel } from "@/lib/commerce/fulfillment-channel";
+
+export type PaymentMethodCapability = {
+  /** Stripe-ish type id e.g. card, klarna, swish */
+  method: string;
+  /**
+   * verified = tested for this offer's debit model;
+   * candidate = may appear in Elements but must NOT be asserted compatible;
+   * denied = fail closed.
+   */
+  status: "verified" | "candidate" | "denied";
+  /** Whether off_session reuse was verified for THIS offer (unknown ≠ false claim). */
+  off_session: "verified_yes" | "verified_no" | "unknown";
+};
+
+/** Empty allowlist → deny all until product verifies methods per offer. */
+const SHARED_PALLET_METHODS: PaymentMethodCapability[] = [
+  // Card is historically used for SI + later off_session charge — still must
+  // be explicitly marked when product confirms; keep candidate until then.
+  { method: "card", status: "candidate", off_session: "unknown" },
+  { method: "link", status: "candidate", off_session: "unknown" },
+  { method: "klarna", status: "candidate", off_session: "unknown" },
+  { method: "amazon_pay", status: "candidate", off_session: "unknown" },
+  { method: "blik", status: "candidate", off_session: "unknown" },
+  { method: "bancontact", status: "candidate", off_session: "unknown" },
+  { method: "swish", status: "candidate", off_session: "unknown" },
+];
+
+const DIRECT_BOX_METHODS: PaymentMethodCapability[] = [
+  { method: "card", status: "candidate", off_session: "unknown" },
+  { method: "link", status: "candidate", off_session: "unknown" },
+  { method: "klarna", status: "candidate", off_session: "unknown" },
+  { method: "amazon_pay", status: "candidate", off_session: "unknown" },
+  { method: "swish", status: "candidate", off_session: "unknown" },
+];
+
+export function methodsForOffer(
+  offer: FulfillmentChannel,
+): PaymentMethodCapability[] {
+  return offer === "direct_box" ? DIRECT_BOX_METHODS : SHARED_PALLET_METHODS;
+}
+
+export function isMethodAllowedForOffer(args: {
+  offer: FulfillmentChannel;
+  method: string;
+}): { allow: boolean; reason: string | null; capability: PaymentMethodCapability | null } {
+  const method = String(args.method || "")
+    .trim()
+    .toLowerCase();
+  if (!method) {
+    return { allow: false, reason: "method_missing", capability: null };
+  }
+  const capability =
+    methodsForOffer(args.offer).find((m) => m.method === method) ?? null;
+  if (!capability) {
+    return { allow: false, reason: "method_not_in_allowlist", capability: null };
+  }
+  if (capability.status === "denied") {
+    return { allow: false, reason: "method_denied", capability };
+  }
+  if (capability.status !== "verified") {
+    // Candidates must not pass final consent until verified.
+    return { allow: false, reason: "method_unverified", capability };
+  }
+  return { allow: true, reason: null, capability };
+}
+
+/**
+ * Filter Stripe Payment Element types for display hints only.
+ * Unverified candidates may still be shown in preview UI but final action
+ * stays blocked via isMethodAllowedForOffer.
+ */
+export function previewVisibleMethods(offer: FulfillmentChannel): string[] {
+  return methodsForOffer(offer)
+    .filter((m) => m.status === "verified" || m.status === "candidate")
+    .map((m) => m.method);
+}

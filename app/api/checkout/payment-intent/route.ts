@@ -36,6 +36,11 @@ import {
 import { computeExpectedAmountOre } from "@/lib/checkout/expected-amount";
 import { buildCheckoutQuote } from "@/lib/checkout/checkout-quote";
 import { resolveAndChargeCheckoutShipping } from "@/lib/checkout/resolve-checkout-shipping";
+import {
+  findReusableSharedPalletIntent,
+  sharedPalletIntentFlightKey,
+  withSharedPalletIntentSingleFlight,
+} from "@/lib/checkout/shared-pallet-intent-idempotency";
 import { resolveMarketAgeMinimum } from "@/lib/age-limits";
 import {
   evaluateLegalGate,
@@ -931,14 +936,22 @@ export async function POST(request: Request) {
         metadata.terms_version = US_CONDITIONAL_TERMS_VERSION;
       }
 
-      const intent = await stripe.setupIntents.create({
-        customer: customerId,
-        ...(usConditional
-          ? { payment_method_types: ["card"] }
-          : { automatic_payment_methods: { enabled: true } }),
-        usage: "off_session",
-        metadata,
+      const flightKey = sharedPalletIntentFlightKey({
+        mode: "setup_intent",
+        userId: user.id,
+        palletId: pallet_id,
+        amountOre: amountInOre,
       });
+      const intent = await withSharedPalletIntentSingleFlight(flightKey, () =>
+        stripe!.setupIntents.create({
+          customer: customerId,
+          ...(usConditional
+            ? { payment_method_types: ["card"] }
+            : { automatic_payment_methods: { enabled: true } }),
+          usage: "off_session",
+          metadata,
+        }),
+      );
 
       console.log("[payment-intent] Created SetupIntent:", intent.id);
 
@@ -961,23 +974,66 @@ export async function POST(request: Request) {
       );
     }
 
-    const intent = await stripe.paymentIntents.create({
+    // Shared-pallet PI: reuse open matching intents (same problem as dual client POSTs).
+    const existingPiList = await stripe!.paymentIntents.list({
       customer: customerId,
-      amount: amountInOre,
-      currency: stripeCurrency,
-      automatic_payment_methods: { enabled: true },
-      capture_method: "automatic",
-      metadata: {
-        user_id: user.id,
-        pallet_id,
-        fulfillment_channel: clientChannel ?? "shared_pallet",
-        pact_points_redeem: String(pointsToRedeem),
-        expected_amount_ore: String(amountInOre),
-        voucher_discount_sek: String(voucherDiscountSek),
-        promo_discount_sek: String(promoDiscountSek),
-        ...purchaseLegalMetadata,
-      },
+      limit: 8,
     });
+    const reusablePi = findReusableSharedPalletIntent({
+      intents: existingPiList.data.map((pi) => ({
+        id: pi.id,
+        status: pi.status,
+        client_secret: pi.client_secret,
+        metadata: (pi.metadata ?? undefined) as Record<string, string> | null,
+      })),
+      sessionUserId: user.id,
+      palletId: pallet_id,
+      expectedAmountOre: amountInOre,
+      mode: "payment_intent",
+    });
+    if (reusablePi?.client_secret) {
+      console.log(
+        "[payment-intent] Reusing open shared_pallet PaymentIntent:",
+        reusablePi.id,
+      );
+      return NextResponse.json({
+        paymentMode,
+        clientSecret: reusablePi.client_secret,
+        intentId: reusablePi.id,
+        amountInOre,
+        quote,
+        bottlesFilled,
+        palletStatus: palletStatusResponse,
+        palletThreshold: PALLET_THRESHOLD,
+      });
+    }
+
+    const piMetadata: Record<string, string> = {
+      user_id: user.id,
+      pallet_id,
+      fulfillment_channel: clientChannel ?? "shared_pallet",
+      pact_points_redeem: String(pointsToRedeem),
+      expected_amount_ore: String(amountInOre),
+      voucher_discount_sek: String(voucherDiscountSek),
+      promo_discount_sek: String(promoDiscountSek),
+      ...purchaseLegalMetadata,
+    };
+    const piFlightKey = sharedPalletIntentFlightKey({
+      mode: "payment_intent",
+      userId: user.id,
+      palletId: pallet_id,
+      amountOre: amountInOre,
+    });
+    const intent = await withSharedPalletIntentSingleFlight(piFlightKey, () =>
+      stripe!.paymentIntents.create({
+        customer: customerId,
+        amount: amountInOre,
+        currency: stripeCurrency,
+        automatic_payment_methods: { enabled: true },
+        capture_method: "automatic",
+        metadata: piMetadata,
+      }),
+    );
 
     console.log("[payment-intent] Created PaymentIntent:", intent.id);
 
