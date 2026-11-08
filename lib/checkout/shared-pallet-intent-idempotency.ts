@@ -1,18 +1,14 @@
 /**
  * Idempotent reuse + Stripe Idempotency-Key for shared-pallet intents.
  *
- * HIGH1: Reuse must bind cart, currency, legal, promo/points, customer, and
- * the PaymentIntent's actual amount — not amount alone (stale cart risk).
- * HIGH2: Process-local single-flight is NOT distributed; Stripe Idempotency-Key
- * is the cross-instance create guard. List+create run inside one flight.
- * MEDIUM: PI reuse only `requires_payment_method` with no attached method.
+ * Reuse binds cart, currency, legal, promo/points, customer, and PI amount.
+ * Process-local single-flight is NOT distributed; Stripe Idempotency-Key is.
+ * PI/SI handoff only when fresh state is requires_payment_method, no PM.
  *
- * Idempotency replay: Stripe returns the *original* create body for ~24h even
- * if that intent was later canceled/succeeded/had a method attached. Always
- * re-validate with the same reuse invariants. Recovery uses a deterministic
- * supersedes key (context + dead intent id) — never rotate randomly, never
- * cancel/charge the dead intent. PI succeeded/processing → fail closed
- * (already charged / in flight); do not mint a second chargeable PI.
+ * Stripe Idempotency-Key returns the *original create body* for ~24h, not the
+ * live intent status. After create/replay, always retrieve by id and validate
+ * that fresh object. Never mint a sibling intent when a same-context prior is
+ * paid, in-flight, attached, canceled, or otherwise non-handoffable.
  */
 
 import { createHash } from "crypto";
@@ -58,14 +54,8 @@ export type SharedPalletIntentContext = {
 export type SharedPalletIntentReuseInput = {
   intents: StripeIntentLike[];
   context: SharedPalletIntentContext;
-  /** Discriminator for docs/tests — matching uses intent fields + metadata. */
   intentKind: "payment_intent" | "setup_intent";
 };
-
-export type SharedPalletIntentReplayDisposition =
-  | "ready"
-  | "recover"
-  | "fail_closed";
 
 export class SharedPalletIntentUnusableError extends Error {
   readonly code: string;
@@ -94,82 +84,14 @@ function metaEq(
   return String(meta[key] ?? "").trim() === String(expected).trim();
 }
 
-/**
- * Shared-pallet PaymentIntent reuse — fail closed on any context drift.
- * Only requires_payment_method; never requires_confirmation (attached PM risk).
- */
-export function shouldReuseOpenSharedPalletPaymentIntent(args: {
+/** Server-derived snapshot identity (no status / PM / client_secret). */
+export function matchesSharedPalletIntentIdentity(args: {
   candidate: StripeIntentLike;
   context: SharedPalletIntentContext;
+  intentKind: "payment_intent" | "setup_intent";
 }): boolean {
-  const { candidate, context } = args;
+  const { candidate, context, intentKind } = args;
   const meta = candidate.metadata ?? {};
-  if (String(candidate.status || "") !== "requires_payment_method") return false;
-  if (candidate.payment_method) return false;
-  if (!candidate.client_secret) return false;
-  if (Number(candidate.amount) !== Number(context.expectedAmountOre)) return false;
-  if (
-    String(candidate.currency || "")
-      .trim()
-      .toLowerCase() !== String(context.currency).trim().toLowerCase()
-  ) {
-    return false;
-  }
-  if (
-    candidate.customer &&
-    String(candidate.customer).trim() !== String(context.stripeCustomerId).trim()
-  ) {
-    return false;
-  }
-  if (!metaEq(meta, "user_id", context.sessionUserId)) return false;
-  if (!metaEq(meta, "cart_id", context.cartId)) return false;
-  if (!metaEq(meta, "pallet_id", context.palletId)) return false;
-  if (!metaEq(meta, "expected_amount_ore", String(context.expectedAmountOre))) {
-    return false;
-  }
-  if (!metaEq(meta, "fulfillment_channel", "shared_pallet")) return false;
-  if (meta.reservation_mode === "conditional") return false;
-  if (!metaEq(meta, "age_verified_dob", context.ageVerifiedDob)) return false;
-  if (!metaEq(meta, "age_verification_method", context.ageVerificationMethod)) {
-    return false;
-  }
-  if (
-    context.purchaseTermsVersion &&
-    !metaEq(meta, "purchase_terms_version", context.purchaseTermsVersion)
-  ) {
-    return false;
-  }
-  if (!metaEq(meta, "pact_points_redeem", String(context.pactPointsRedeem))) {
-    return false;
-  }
-  if (!metaEq(meta, "promo_discount_sek", String(context.promoDiscountSek))) {
-    return false;
-  }
-  if (
-    !metaEq(meta, "voucher_discount_sek", String(context.voucherDiscountSek))
-  ) {
-    return false;
-  }
-  const metaCustomer = String(meta.stripe_customer_id ?? "").trim();
-  if (metaCustomer && metaCustomer !== String(context.stripeCustomerId).trim()) {
-    return false;
-  }
-  return true;
-}
-
-/**
- * SetupIntent reuse — requires_payment_method only, no attached method.
- * Supports both shared (non-conditional) and US conditional SI snapshots.
- */
-export function shouldReuseOpenSharedPalletSetupIntent(args: {
-  candidate: StripeIntentLike;
-  context: SharedPalletIntentContext;
-}): boolean {
-  const { candidate, context } = args;
-  const meta = candidate.metadata ?? {};
-  if (String(candidate.status || "") !== "requires_payment_method") return false;
-  if (candidate.payment_method) return false;
-  if (!candidate.client_secret) return false;
   if (!metaEq(meta, "user_id", context.sessionUserId)) return false;
   if (!metaEq(meta, "cart_id", context.cartId)) return false;
   if (!metaEq(meta, "pallet_id", context.palletId)) return false;
@@ -192,6 +114,43 @@ export function shouldReuseOpenSharedPalletSetupIntent(args: {
     return false;
   }
 
+  if (intentKind === "payment_intent") {
+    if (!metaEq(meta, "fulfillment_channel", "shared_pallet")) return false;
+    if (meta.reservation_mode === "conditional") return false;
+    if (Number(candidate.amount) !== Number(context.expectedAmountOre)) {
+      return false;
+    }
+    if (
+      String(candidate.currency || "")
+        .trim()
+        .toLowerCase() !== String(context.currency).trim().toLowerCase()
+    ) {
+      return false;
+    }
+    if (
+      candidate.customer &&
+      String(candidate.customer).trim() !==
+        String(context.stripeCustomerId).trim()
+    ) {
+      return false;
+    }
+    const metaCustomer = String(meta.stripe_customer_id ?? "").trim();
+    if (
+      metaCustomer &&
+      metaCustomer !== String(context.stripeCustomerId).trim()
+    ) {
+      return false;
+    }
+    if (
+      context.purchaseTermsVersion &&
+      !metaEq(meta, "purchase_terms_version", context.purchaseTermsVersion)
+    ) {
+      return false;
+    }
+    return true;
+  }
+
+  // setup_intent
   if (context.usConditional) {
     if (meta.reservation_mode !== "conditional") return false;
     if (!metaEq(meta, "country_code", "US")) return false;
@@ -215,6 +174,53 @@ export function shouldReuseOpenSharedPalletSetupIntent(args: {
   ) {
     return false;
   }
+  return true;
+}
+
+/**
+ * Shared-pallet PaymentIntent reuse — fail closed on any context drift.
+ * Only requires_payment_method; never requires_confirmation (attached PM risk).
+ */
+export function shouldReuseOpenSharedPalletPaymentIntent(args: {
+  candidate: StripeIntentLike;
+  context: SharedPalletIntentContext;
+}): boolean {
+  const { candidate, context } = args;
+  if (
+    !matchesSharedPalletIntentIdentity({
+      candidate,
+      context,
+      intentKind: "payment_intent",
+    })
+  ) {
+    return false;
+  }
+  if (String(candidate.status || "") !== "requires_payment_method") return false;
+  if (candidate.payment_method) return false;
+  if (!candidate.client_secret) return false;
+  return true;
+}
+
+/**
+ * SetupIntent reuse — requires_payment_method only, no attached method.
+ */
+export function shouldReuseOpenSharedPalletSetupIntent(args: {
+  candidate: StripeIntentLike;
+  context: SharedPalletIntentContext;
+}): boolean {
+  const { candidate, context } = args;
+  if (
+    !matchesSharedPalletIntentIdentity({
+      candidate,
+      context,
+      intentKind: "setup_intent",
+    })
+  ) {
+    return false;
+  }
+  if (String(candidate.status || "") !== "requires_payment_method") return false;
+  if (candidate.payment_method) return false;
+  if (!candidate.client_secret) return false;
   return true;
 }
 
@@ -243,36 +249,28 @@ export function isReusableSharedPalletIntent(args: {
 }
 
 /**
- * After list-miss create (including Stripe Idempotency-Key replay), decide
- * whether the returned object is checkout-ready, recoverable, or fail-closed.
- *
- * PI succeeded/processing: already charged / in flight — never mint another
- * chargeable PI under a recovery key for the same cart snapshot.
+ * Same-context prior that is NOT handoffable. List must fail closed on these
+ * before create — otherwise Idempotency-Key replay can return a stale RPM
+ * create body while live state is paid / in-flight / attached / canceled.
  */
-export function sharedPalletIntentReplayDisposition(args: {
-  intentKind: "payment_intent" | "setup_intent";
-  candidate: StripeIntentLike;
-  context: SharedPalletIntentContext;
-}): SharedPalletIntentReplayDisposition {
-  if (
-    isReusableSharedPalletIntent({
-      intentKind: args.intentKind,
-      candidate: args.candidate,
-      context: args.context,
-    })
-  ) {
-    return "ready";
-  }
-  const status = String(args.candidate.status || "")
-    .trim()
-    .toLowerCase();
-  if (
-    args.intentKind === "payment_intent" &&
-    (status === "succeeded" || status === "processing")
-  ) {
-    return "fail_closed";
-  }
-  return "recover";
+export function findBlockingSharedPalletIntent(
+  input: SharedPalletIntentReuseInput,
+): StripeIntentLike | null {
+  return (
+    input.intents.find(
+      (candidate) =>
+        matchesSharedPalletIntentIdentity({
+          candidate,
+          context: input.context,
+          intentKind: input.intentKind,
+        }) &&
+        !isReusableSharedPalletIntent({
+          intentKind: input.intentKind,
+          candidate,
+          context: input.context,
+        }),
+    ) ?? null
+  );
 }
 
 /**
@@ -314,32 +312,12 @@ export function buildSharedPalletStripeIdempotencyKey(parts: {
   context: SharedPalletIntentContext;
 }): string {
   const digest = createHash("sha256")
-    .update(sharedPalletIdempotencyMaterial(parts.intentKind, parts.context), "utf8")
+    .update(
+      sharedPalletIdempotencyMaterial(parts.intentKind, parts.context),
+      "utf8",
+    )
     .digest("hex");
   return `sp_${parts.intentKind}_${SHARED_PALLET_IDEMPOTENCY_VERSION}_${digest}`;
-}
-
-/**
- * Deterministic recovery key when base-key replay returns a non-reusable
- * intent. Binds the dead intent id so concurrent callers converge on one
- * successor create — not a random rotate-every-retry.
- */
-export function buildSharedPalletRecoveryIdempotencyKey(parts: {
-  intentKind: "payment_intent" | "setup_intent";
-  context: SharedPalletIntentContext;
-  supersedesIntentId: string;
-}): string {
-  const dead = String(parts.supersedesIntentId || "").trim();
-  if (!dead) {
-    throw new Error("recovery idempotency key requires supersedesIntentId");
-  }
-  const material = [
-    sharedPalletIdempotencyMaterial(parts.intentKind, parts.context),
-    "recover_from",
-    dead,
-  ].join("|");
-  const digest = createHash("sha256").update(material, "utf8").digest("hex");
-  return `sp_${parts.intentKind}_${SHARED_PALLET_IDEMPOTENCY_VERSION}_r_${digest}`;
 }
 
 /** Metadata bound on create so later reuse can fail closed. */
@@ -368,93 +346,71 @@ export function buildSharedPalletIntentMetadata(
 }
 
 /**
- * Create (or accept Idempotency-Key replay), validate, and optionally recover
- * once under a deterministic supersedes key. Does not cancel/charge intents.
+ * Create under Idempotency-Key, then retrieve authoritative live state.
+ * Never trusts the create/replay body for status/PM/secret handoff.
+ * Never mints a sibling intent on mismatch — fail closed (409).
  */
-export async function createSharedPalletIntentWithReplayGuard<
+export async function createSharedPalletIntentWithFreshRetrieve<
   T extends StripeIntentLike,
 >(args: {
   intentKind: "payment_intent" | "setup_intent";
   context: SharedPalletIntentContext;
   create: (idempotencyKey: string) => Promise<T>;
+  retrieve: (intentId: string) => Promise<T>;
   toLike?: (intent: T) => StripeIntentLike;
-}): Promise<{
-  intent: T;
-  idempotencyKeyUsed: string;
-  recoveredFromId: string | null;
-}> {
+}): Promise<{ intent: T; idempotencyKeyUsed: string }> {
   const toLike =
-    args.toLike ??
-    ((intent: T) => intent as unknown as StripeIntentLike);
+    args.toLike ?? ((intent: T) => intent as unknown as StripeIntentLike);
 
-  const baseKey = buildSharedPalletStripeIdempotencyKey({
+  const idempotencyKey = buildSharedPalletStripeIdempotencyKey({
     intentKind: args.intentKind,
     context: args.context,
   });
-  const first = await args.create(baseKey);
-  const firstLike = toLike(first);
-  const firstDisposition = sharedPalletIntentReplayDisposition({
-    intentKind: args.intentKind,
-    candidate: firstLike,
-    context: args.context,
-  });
-  if (firstDisposition === "ready") {
-    return {
-      intent: first,
-      idempotencyKeyUsed: baseKey,
-      recoveredFromId: null,
-    };
-  }
-  if (firstDisposition === "fail_closed") {
+  const created = await args.create(idempotencyKey);
+  const createdLike = toLike(created);
+  const intentId = String(createdLike.id || "").trim();
+  if (!intentId) {
     throw new SharedPalletIntentUnusableError({
-      code:
-        args.intentKind === "payment_intent"
-          ? "prior_payment_intent_terminal"
-          : "prior_setup_intent_unusable",
-      message:
-        "Prior Stripe intent under this checkout snapshot is no longer usable for a fresh requires_payment_method handoff.",
-      intentId: firstLike.id,
-      intentStatus: firstLike.status,
-    });
-  }
-
-  const deadId = String(firstLike.id || "").trim();
-  if (!deadId) {
-    throw new SharedPalletIntentUnusableError({
-      code: "idempotent_replay_missing_intent_id",
-      message: "Idempotent Stripe replay returned a non-reusable intent without id.",
+      code: "create_missing_intent_id",
+      message: "Stripe create/replay returned no intent id.",
       intentId: null,
-      intentStatus: firstLike.status,
+      intentStatus: createdLike.status ?? null,
     });
   }
 
-  const recoveryKey = buildSharedPalletRecoveryIdempotencyKey({
-    intentKind: args.intentKind,
-    context: args.context,
-    supersedesIntentId: deadId,
-  });
-  const second = await args.create(recoveryKey);
-  const secondLike = toLike(second);
+  let fresh: T;
+  try {
+    fresh = await args.retrieve(intentId);
+  } catch (err) {
+    throw new SharedPalletIntentUnusableError({
+      code: "intent_retrieve_failed",
+      message:
+        err instanceof Error
+          ? `Failed to retrieve authoritative Stripe intent: ${err.message}`
+          : "Failed to retrieve authoritative Stripe intent.",
+      intentId,
+      intentStatus: null,
+    });
+  }
+
+  const freshLike = toLike(fresh);
   if (
     !isReusableSharedPalletIntent({
       intentKind: args.intentKind,
-      candidate: secondLike,
+      candidate: freshLike,
       context: args.context,
     })
   ) {
     throw new SharedPalletIntentUnusableError({
-      code: "intent_recovery_unusable",
+      code: "prior_intent_not_handoffable",
       message:
-        "Recovery Stripe create did not yield a reusable requires_payment_method intent.",
-      intentId: secondLike.id,
-      intentStatus: secondLike.status,
+        "Authoritative Stripe intent for this checkout snapshot is not a fresh requires_payment_method handoff (paid, in-flight, attached, canceled, or mismatched).",
+      intentId: freshLike.id,
+      intentStatus: freshLike.status,
     });
   }
-  return {
-    intent: second,
-    idempotencyKeyUsed: recoveryKey,
-    recoveredFromId: deadId,
-  };
+
+  return { intent: fresh, idempotencyKeyUsed: idempotencyKey };
 }
 
 /**
@@ -463,9 +419,7 @@ export async function createSharedPalletIntentWithReplayGuard<
  */
 const inflight = new Map<string, Promise<unknown>>();
 
-export function sharedPalletIntentFlightKey(
-  idempotencyKey: string,
-): string {
+export function sharedPalletIntentFlightKey(idempotencyKey: string): string {
   return idempotencyKey;
 }
 

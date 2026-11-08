@@ -39,7 +39,8 @@ import { resolveAndChargeCheckoutShipping } from "@/lib/checkout/resolve-checkou
 import {
   buildSharedPalletIntentMetadata,
   buildSharedPalletStripeIdempotencyKey,
-  createSharedPalletIntentWithReplayGuard,
+  createSharedPalletIntentWithFreshRetrieve,
+  findBlockingSharedPalletIntent,
   findReusableSharedPalletIntent,
   SharedPalletIntentUnusableError,
   sharedPalletIntentFlightKey,
@@ -926,9 +927,9 @@ export async function POST(request: Request) {
       });
       const flightKey = sharedPalletIntentFlightKey(idempotencyKey);
 
-      // List + create inside one flight; Stripe Idempotency-Key covers
-      // multi-instance races. Create results are re-validated; canceled /
-      // attached replays recover via deterministic supersedes key.
+      // List + create inside one flight. Create/replay body is NOT trusted —
+      // retrieve authoritative state. Same-context non-handoffable priors
+      // fail closed (no sibling create).
       const intent = await withSharedPalletIntentSingleFlight(
         flightKey,
         async () => {
@@ -936,15 +937,33 @@ export async function POST(request: Request) {
             customer: customerId,
             limit: 8,
           });
+          const listed = existingIntents.data.map((si) =>
+            toStripeIntentLike(si),
+          );
 
           const reusable = findReusableSharedPalletIntent({
-            intents: existingIntents.data.map((si) => toStripeIntentLike(si)),
+            intents: listed,
             context: sharedIntentContext,
             intentKind: "setup_intent",
           });
           if (reusable) {
             const full = existingIntents.data.find((s) => s.id === reusable.id);
             if (full) return full;
+          }
+
+          const blocking = findBlockingSharedPalletIntent({
+            intents: listed,
+            context: sharedIntentContext,
+            intentKind: "setup_intent",
+          });
+          if (blocking) {
+            throw new SharedPalletIntentUnusableError({
+              code: "prior_intent_not_handoffable",
+              message:
+                "A prior SetupIntent for this checkout snapshot is not handoffable; refusing to create a sibling.",
+              intentId: blocking.id,
+              intentStatus: blocking.status,
+            });
           }
 
           const metadata = buildSharedPalletIntentMetadata(
@@ -961,7 +980,7 @@ export async function POST(request: Request) {
               : {},
           );
 
-          const created = await createSharedPalletIntentWithReplayGuard({
+          const created = await createSharedPalletIntentWithFreshRetrieve({
             intentKind: "setup_intent",
             context: sharedIntentContext,
             toLike: toStripeIntentLike,
@@ -977,6 +996,7 @@ export async function POST(request: Request) {
                 },
                 { idempotencyKey: key },
               ),
+            retrieve: (id) => stripe!.setupIntents.retrieve(id),
           });
           return created.intent;
         },
@@ -1025,8 +1045,10 @@ export async function POST(request: Request) {
           customer: customerId,
           limit: 8,
         });
+        const listed = existingPiList.data.map((pi) => toStripeIntentLike(pi));
+
         const reusablePi = findReusableSharedPalletIntent({
-          intents: existingPiList.data.map((pi) => toStripeIntentLike(pi)),
+          intents: listed,
           context: sharedIntentContext,
           intentKind: "payment_intent",
         });
@@ -1035,8 +1057,23 @@ export async function POST(request: Request) {
           if (full) return full;
         }
 
+        const blocking = findBlockingSharedPalletIntent({
+          intents: listed,
+          context: sharedIntentContext,
+          intentKind: "payment_intent",
+        });
+        if (blocking) {
+          throw new SharedPalletIntentUnusableError({
+            code: "prior_intent_not_handoffable",
+            message:
+              "A prior PaymentIntent for this checkout snapshot is not handoffable; refusing to create a sibling.",
+            intentId: blocking.id,
+            intentStatus: blocking.status,
+          });
+        }
+
         const piMetadata = buildSharedPalletIntentMetadata(sharedIntentContext);
-        const created = await createSharedPalletIntentWithReplayGuard({
+        const created = await createSharedPalletIntentWithFreshRetrieve({
           intentKind: "payment_intent",
           context: sharedIntentContext,
           toLike: toStripeIntentLike,
@@ -1052,6 +1089,7 @@ export async function POST(request: Request) {
               },
               { idempotencyKey: key },
             ),
+          retrieve: (id) => stripe!.paymentIntents.retrieve(id),
         });
         return created.intent;
       },

@@ -3,13 +3,12 @@ import {
   SHARED_PALLET_IDEMPOTENCY_VERSION,
   SharedPalletIntentUnusableError,
   buildSharedPalletIntentMetadata,
-  buildSharedPalletRecoveryIdempotencyKey,
   buildSharedPalletStripeIdempotencyKey,
-  createSharedPalletIntentWithReplayGuard,
+  createSharedPalletIntentWithFreshRetrieve,
+  findBlockingSharedPalletIntent,
   findReusableSharedPalletIntent,
   resetSharedPalletIntentFlightsForTests,
   sharedPalletIntentFlightKey,
-  sharedPalletIntentReplayDisposition,
   shouldReuseOpenSharedPalletPaymentIntent,
   withSharedPalletIntentSingleFlight,
   type SharedPalletIntentContext,
@@ -409,197 +408,147 @@ describe("shared-pallet distributed create idempotency", () => {
   });
 });
 
-describe("shared-pallet idempotent replay guard", () => {
+describe("shared-pallet fresh-retrieve fail-closed", () => {
   beforeEach(() => {
     resetSharedPalletIntentFlightsForTests();
   });
 
-  it("disposition: canceled/attached → recover; succeeded/processing PI → fail_closed", () => {
+  it("same-context terminal/inflight/attached intents are blockers (not reusable)", () => {
+    for (const status of [
+      "succeeded",
+      "processing",
+      "canceled",
+      "requires_action",
+      "requires_confirmation",
+      "requires_capture",
+    ]) {
+      expect(
+        findBlockingSharedPalletIntent({
+          intentKind: "payment_intent",
+          context: baseContext,
+          intents: [matchingPi({ id: `pi_${status}`, status })],
+        })?.status,
+      ).toBe(status);
+    }
     expect(
-      sharedPalletIntentReplayDisposition({
+      findBlockingSharedPalletIntent({
         intentKind: "payment_intent",
         context: baseContext,
-        candidate: matchingPi({ status: "canceled" }),
-      }),
-    ).toBe("recover");
+        intents: [matchingPi({ payment_method: "pm_1" })],
+      })?.payment_method,
+    ).toBe("pm_1");
     expect(
-      sharedPalletIntentReplayDisposition({
+      findBlockingSharedPalletIntent({
         intentKind: "payment_intent",
         context: baseContext,
-        candidate: matchingPi({ payment_method: "pm_1" }),
+        intents: [matchingPi()],
       }),
-    ).toBe("recover");
-    expect(
-      sharedPalletIntentReplayDisposition({
-        intentKind: "payment_intent",
-        context: baseContext,
-        candidate: matchingPi({ status: "succeeded" }),
-      }),
-    ).toBe("fail_closed");
-    expect(
-      sharedPalletIntentReplayDisposition({
-        intentKind: "payment_intent",
-        context: baseContext,
-        candidate: matchingPi({ status: "processing" }),
-      }),
-    ).toBe("fail_closed");
-    expect(
-      sharedPalletIntentReplayDisposition({
-        intentKind: "payment_intent",
-        context: baseContext,
-        candidate: matchingPi(),
-      }),
-    ).toBe("ready");
+    ).toBeNull();
   });
 
-  it("list miss + same-key canceled replay recovers once under deterministic supersedes key", async () => {
-    const baseKey = buildSharedPalletStripeIdempotencyKey({
-      intentKind: "payment_intent",
-      context: baseContext,
-    });
-    const recoveryKey = buildSharedPalletRecoveryIdempotencyKey({
-      intentKind: "payment_intent",
-      context: baseContext,
-      supersedesIntentId: "pi_dead",
-    });
-    const keys: string[] = [];
-    const result = await createSharedPalletIntentWithReplayGuard({
-      intentKind: "payment_intent",
-      context: baseContext,
-      create: async (key) => {
-        keys.push(key);
-        if (key === baseKey) {
-          return matchingPi({ id: "pi_dead", status: "canceled" });
-        }
-        expect(key).toBe(recoveryKey);
-        return matchingPi({ id: "pi_fresh" });
-      },
-    });
-    expect(result.intent.id).toBe("pi_fresh");
-    expect(result.recoveredFromId).toBe("pi_dead");
-    expect(result.idempotencyKeyUsed).toBe(recoveryKey);
-    expect(keys).toEqual([baseKey, recoveryKey]);
-  });
-
-  it("same-key succeeded PI fails closed without recovery create", async () => {
-    const baseKey = buildSharedPalletStripeIdempotencyKey({
-      intentKind: "payment_intent",
-      context: baseContext,
-    });
+  it("create returns cached RPM body but retrieve succeeded → fail closed, no second create", async () => {
     let creates = 0;
+    let retrieves = 0;
+    const cachedCreateBody = matchingPi({
+      id: "pi_stale_cache",
+      status: "requires_payment_method",
+      client_secret: "sec_stale_do_not_return",
+    });
     await expect(
-      createSharedPalletIntentWithReplayGuard({
+      createSharedPalletIntentWithFreshRetrieve({
         intentKind: "payment_intent",
         context: baseContext,
-        create: async (key) => {
+        create: async () => {
           creates += 1;
-          expect(key).toBe(baseKey);
-          return matchingPi({ id: "pi_paid", status: "succeeded" });
+          return cachedCreateBody;
+        },
+        retrieve: async (id) => {
+          retrieves += 1;
+          expect(id).toBe("pi_stale_cache");
+          return matchingPi({
+            id: "pi_stale_cache",
+            status: "succeeded",
+            client_secret: "sec_stale_do_not_return",
+            payment_method: "pm_charged",
+          });
         },
       }),
-    ).rejects.toBeInstanceOf(SharedPalletIntentUnusableError);
+    ).rejects.toMatchObject({
+      name: "SharedPalletIntentUnusableError",
+      code: "prior_intent_not_handoffable",
+    });
     expect(creates).toBe(1);
+    expect(retrieves).toBe(1);
   });
 
-  it("attached-method SI replay recovers; concurrent callers share recovery key", async () => {
-    const baseKey = buildSharedPalletStripeIdempotencyKey({
-      intentKind: "setup_intent",
-      context: baseContext,
-    });
-    const recoveryKey = buildSharedPalletRecoveryIdempotencyKey({
-      intentKind: "setup_intent",
-      context: baseContext,
-      supersedesIntentId: "seti_dead",
-    });
-    const cache = new Map<string, StripeIntentLike>();
-    cache.set(
-      baseKey,
-      {
-        id: "seti_dead",
-        status: "requires_payment_method",
-        client_secret: "sec_old",
-        payment_method: "pm_attached",
-        metadata: buildSharedPalletIntentMetadata(baseContext),
-      },
-    );
+  it("create cached RPM + retrieve canceled/attached/action/confirmation → fail closed", async () => {
+    for (const live of [
+      { status: "canceled", payment_method: null },
+      { status: "requires_payment_method", payment_method: "pm_att" },
+      { status: "requires_action", payment_method: "pm_x" },
+      { status: "requires_confirmation", payment_method: "pm_y" },
+      { status: "requires_capture", payment_method: "pm_z" },
+      { status: "processing", payment_method: "pm_p" },
+    ]) {
+      await expect(
+        createSharedPalletIntentWithFreshRetrieve({
+          intentKind: "payment_intent",
+          context: baseContext,
+          create: async () =>
+            matchingPi({
+              id: "pi_x",
+              status: "requires_payment_method",
+              client_secret: "sec_cached",
+            }),
+          retrieve: async () =>
+            matchingPi({
+              id: "pi_x",
+              status: live.status,
+              payment_method: live.payment_method,
+              client_secret: "sec_cached",
+            }),
+        }),
+      ).rejects.toBeInstanceOf(SharedPalletIntentUnusableError);
+    }
+  });
 
-    const create = async (key: string) => {
-      const hit = cache.get(key);
-      if (hit) return hit;
-      const fresh: StripeIntentLike = {
-        id: "seti_fresh",
-        status: "requires_payment_method",
-        client_secret: "sec_fresh",
-        payment_method: null,
-        metadata: buildSharedPalletIntentMetadata(baseContext),
-      };
-      cache.set(key, fresh);
-      return fresh;
-    };
-
-    const [a, b] = await Promise.all([
-      createSharedPalletIntentWithReplayGuard({
-        intentKind: "setup_intent",
+  it("retrieve failure fails closed", async () => {
+    await expect(
+      createSharedPalletIntentWithFreshRetrieve({
+        intentKind: "payment_intent",
         context: baseContext,
-        create,
+        create: async () => matchingPi({ id: "pi_r" }),
+        retrieve: async () => {
+          throw new Error("stripe down");
+        },
       }),
-      createSharedPalletIntentWithReplayGuard({
-        intentKind: "setup_intent",
-        context: baseContext,
-        create,
-      }),
-    ]);
-    expect(a.intent.id).toBe("seti_fresh");
-    expect(b.intent.id).toBe("seti_fresh");
-    expect(a.idempotencyKeyUsed).toBe(recoveryKey);
-    expect(b.idempotencyKeyUsed).toBe(recoveryKey);
+    ).rejects.toMatchObject({ code: "intent_retrieve_failed" });
   });
 
-  it("legitimate stable retry returns ready intent without recovery key", async () => {
-    const baseKey = buildSharedPalletStripeIdempotencyKey({
+  it("stable open: create cache + retrieve RPM returns fresh secret only", async () => {
+    const result = await createSharedPalletIntentWithFreshRetrieve({
       intentKind: "payment_intent",
       context: baseContext,
+      create: async () =>
+        matchingPi({
+          id: "pi_ok",
+          client_secret: "sec_from_create_cache",
+        }),
+      retrieve: async () =>
+        matchingPi({
+          id: "pi_ok",
+          client_secret: "sec_from_fresh_retrieve",
+        }),
     });
-    let creates = 0;
-    const open = matchingPi({ id: "pi_stable" });
-    const first = await createSharedPalletIntentWithReplayGuard({
-      intentKind: "payment_intent",
-      context: baseContext,
-      create: async (key) => {
-        creates += 1;
-        expect(key).toBe(baseKey);
-        return open;
-      },
-    });
-    const second = await createSharedPalletIntentWithReplayGuard({
-      intentKind: "payment_intent",
-      context: baseContext,
-      create: async (key) => {
-        creates += 1;
-        expect(key).toBe(baseKey);
-        return open; // Stripe idempotent replay of same open PI
-      },
-    });
-    expect(first.recoveredFromId).toBeNull();
-    expect(second.recoveredFromId).toBeNull();
-    expect(first.intent.id).toBe("pi_stable");
-    expect(second.intent.id).toBe("pi_stable");
-    expect(creates).toBe(2);
+    expect(result.intent.client_secret).toBe("sec_from_fresh_retrieve");
   });
 
-  it("rejects missing client_secret as non-ready (PI/SI)", () => {
+  it("rejects missing client_secret on fresh state", () => {
     expect(
       shouldReuseOpenSharedPalletPaymentIntent({
         candidate: matchingPi({ client_secret: null }),
         context: baseContext,
       }),
     ).toBe(false);
-    expect(
-      sharedPalletIntentReplayDisposition({
-        intentKind: "payment_intent",
-        context: baseContext,
-        candidate: matchingPi({ client_secret: "" }),
-      }),
-    ).toBe("recover");
   });
 });

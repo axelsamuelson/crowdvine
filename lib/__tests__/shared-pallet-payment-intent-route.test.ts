@@ -1,14 +1,15 @@
 /**
  * Wired shared-pallet payment-intent route tests — local mocks only.
- * Covers Idempotency-Key replay recovery, PI client_secret fail-closed,
- * and US conditional terms version binding.
+ *
+ * Models real Stripe Idempotency-Key behavior: create() returns the original
+ * cached create body (often still RPM), while retrieve()/list report live
+ * status. Asserts no stale client_secret handoff and no sibling create.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { LEGAL_VERSIONS } from "@/lib/legal/versions";
 import { US_CONDITIONAL_TERMS_VERSION } from "@/lib/countries";
 import {
   buildSharedPalletIntentMetadata,
-  buildSharedPalletRecoveryIdempotencyKey,
   buildSharedPalletStripeIdempotencyKey,
   resetSharedPalletIntentFlightsForTests,
   type SharedPalletIntentContext,
@@ -18,8 +19,10 @@ const getCurrentUser = vi.fn();
 const getCart = vi.fn();
 const paymentIntentsCreate = vi.fn();
 const paymentIntentsList = vi.fn();
+const paymentIntentsRetrieve = vi.fn();
 const setupIntentsCreate = vi.fn();
 const setupIntentsList = vi.fn();
+const setupIntentsRetrieve = vi.fn();
 const resolveActiveGeoZoneForUser = vi.fn();
 const resolveMarketForCountry = vi.fn();
 const getRedeemableBalance = vi.fn();
@@ -90,15 +93,11 @@ function makeThenableQuery(data: unknown = null) {
 vi.mock("@/lib/supabase-admin", () => ({
   getSupabaseAdmin: () => ({
     from: (table: string) => {
-      if (table === "pallets") {
-        return makeThenableQuery(palletRow);
-      }
+      if (table === "pallets") return makeThenableQuery(palletRow);
       if (table === "user_zone_addresses") {
         return makeThenableQuery(zoneAddressRow);
       }
-      if (table === "profiles") {
-        return makeThenableQuery({ id: USER_ID });
-      }
+      if (table === "profiles") return makeThenableQuery({ id: USER_ID });
       return makeThenableQuery(null);
     },
   }),
@@ -122,10 +121,12 @@ vi.mock("@/lib/stripe", () => ({
     paymentIntents: {
       create: (...args: unknown[]) => paymentIntentsCreate(...args),
       list: (...args: unknown[]) => paymentIntentsList(...args),
+      retrieve: (...args: unknown[]) => paymentIntentsRetrieve(...args),
     },
     setupIntents: {
       create: (...args: unknown[]) => setupIntentsCreate(...args),
       list: (...args: unknown[]) => setupIntentsList(...args),
+      retrieve: (...args: unknown[]) => setupIntentsRetrieve(...args),
     },
   },
 }));
@@ -175,7 +176,41 @@ vi.mock("@/lib/checkout/resolve-checkout-shipping", async () => {
   };
 });
 
-describe("WIRED shared-pallet payment-intent (idempotency replay)", () => {
+function expectedPiContext(amountOre: number): SharedPalletIntentContext {
+  return {
+    sessionUserId: USER_ID,
+    cartId: CART_ID,
+    palletId: PALLET_ID,
+    expectedAmountOre: amountOre,
+    currency: "sek",
+    stripeCustomerId: CUSTOMER_ID,
+    pactPointsRedeem: 0,
+    promoDiscountSek: 0,
+    voucherDiscountSek: 0,
+    ageVerifiedDob: "1990-01-01",
+    ageVerificationMethod: "self_declared_dob",
+    purchaseTermsVersion: LEGAL_VERSIONS.terms,
+    usConditional: false,
+    usRegion: null,
+    usConditionalTermsVersion: null,
+  };
+}
+
+function rpmCreateBody(id: string, amountOre: number, secret: string) {
+  const ctx = expectedPiContext(amountOre);
+  return {
+    id,
+    status: "requires_payment_method",
+    client_secret: secret,
+    amount: amountOre,
+    currency: "sek",
+    customer: CUSTOMER_ID,
+    payment_method: null,
+    metadata: buildSharedPalletIntentMetadata(ctx),
+  };
+}
+
+describe("WIRED shared-pallet PI fresh-retrieve fail-closed", () => {
   beforeEach(() => {
     vi.resetModules();
     resetSharedPalletIntentFlightsForTests();
@@ -183,8 +218,10 @@ describe("WIRED shared-pallet payment-intent (idempotency replay)", () => {
     getCart.mockReset();
     paymentIntentsCreate.mockReset();
     paymentIntentsList.mockReset();
+    paymentIntentsRetrieve.mockReset();
     setupIntentsCreate.mockReset();
     setupIntentsList.mockReset();
+    setupIntentsRetrieve.mockReset();
     resolveActiveGeoZoneForUser.mockReset();
     resolveMarketForCountry.mockReset();
     getRedeemableBalance.mockReset();
@@ -295,223 +332,120 @@ describe("WIRED shared-pallet payment-intent (idempotency replay)", () => {
     );
   }
 
-  function expectedPiContext(amountOre: number): SharedPalletIntentContext {
-    return {
-      sessionUserId: USER_ID,
-      cartId: CART_ID,
-      palletId: PALLET_ID,
-      expectedAmountOre: amountOre,
-      currency: "sek",
-      stripeCustomerId: CUSTOMER_ID,
-      pactPointsRedeem: 0,
-      promoDiscountSek: 0,
-      voucherDiscountSek: 0,
-      ageVerifiedDob: "1990-01-01",
-      ageVerificationMethod: "self_declared_dob",
-      purchaseTermsVersion: LEGAL_VERSIONS.terms,
-      usConditional: false,
-      usRegion: null,
-      usConditionalTermsVersion: null,
-    };
-  }
-
-  it("stable create: list miss then Idempotency-Key create returns RPM PI", async () => {
+  it("stable create: create cache RPM + retrieve RPM returns fresh secret", async () => {
     paymentIntentsCreate.mockImplementation(
-      async (params: Record<string, unknown>, opts?: { idempotencyKey?: string }) => ({
-        id: "pi_new",
-        status: "requires_payment_method",
-        client_secret: "pi_new_secret",
-        amount: params.amount,
-        currency: params.currency,
-        customer: CUSTOMER_ID,
-        payment_method: null,
-        metadata: params.metadata,
-        _key: opts?.idempotencyKey,
-      }),
+      async (params: Record<string, unknown>) =>
+        rpmCreateBody("pi_new", Number(params.amount), "sec_create_cache"),
+    );
+    paymentIntentsRetrieve.mockImplementation(async (id: string) =>
+      rpmCreateBody(id, 99900, "sec_fresh_retrieve"),
     );
 
     const res = await postPaymentIntent();
     expect(res.status).toBe(200);
     const json = await res.json();
-    expect(json.paymentMode).toBe("payment_intent");
     expect(json.intentId).toBe("pi_new");
-    expect(json.clientSecret).toBe("pi_new_secret");
+    expect(json.clientSecret).toBe("sec_fresh_retrieve");
+    expect(json.clientSecret).not.toBe("sec_create_cache");
     expect(paymentIntentsCreate).toHaveBeenCalledTimes(1);
-    const key = paymentIntentsCreate.mock.calls[0][1]?.idempotencyKey as string;
-    expect(key).toMatch(/^sp_payment_intent_v2_/);
+    expect(paymentIntentsRetrieve).toHaveBeenCalledTimes(1);
   });
 
-  it("list miss + same-key canceled replay recovers with supersedes key (no charge/cancel)", async () => {
-    let amountOre = 0;
-    paymentIntentsCreate.mockImplementation(
-      async (params: Record<string, unknown>, opts?: { idempotencyKey?: string }) => {
-        amountOre = Number(params.amount);
-        const ctx = expectedPiContext(amountOre);
-        const baseKey = buildSharedPalletStripeIdempotencyKey({
-          intentKind: "payment_intent",
-          context: ctx,
-        });
-        const recoveryKey = buildSharedPalletRecoveryIdempotencyKey({
-          intentKind: "payment_intent",
-          context: ctx,
-          supersedesIntentId: "pi_canceled_cached",
-        });
-        if (opts?.idempotencyKey === baseKey) {
-          return {
-            id: "pi_canceled_cached",
-            status: "canceled",
-            client_secret: "pi_canceled_secret",
-            amount: amountOre,
-            currency: "sek",
-            customer: CUSTOMER_ID,
-            payment_method: null,
-            metadata: buildSharedPalletIntentMetadata(ctx),
-          };
-        }
-        expect(opts?.idempotencyKey).toBe(recoveryKey);
-        return {
-          id: "pi_recovered",
-          status: "requires_payment_method",
-          client_secret: "pi_recovered_secret",
-          amount: amountOre,
+  it.each([
+    ["succeeded", "pm_paid"],
+    ["processing", "pm_proc"],
+    ["canceled", null],
+    ["requires_action", "pm_act"],
+    ["requires_confirmation", "pm_conf"],
+    ["requires_capture", "pm_cap"],
+  ] as const)(
+    "create returns cached RPM while retrieve is %s → 409, no second create, no stale secret",
+    async (liveStatus, pm) => {
+      paymentIntentsCreate.mockImplementation(
+        async (params: Record<string, unknown>) =>
+          rpmCreateBody(
+            "pi_cached",
+            Number(params.amount),
+            "sec_STALE_MUST_NOT_RETURN",
+          ),
+      );
+      paymentIntentsRetrieve.mockImplementation(async () => ({
+        ...rpmCreateBody("pi_cached", 99900, "sec_STALE_MUST_NOT_RETURN"),
+        status: liveStatus,
+        payment_method: pm,
+      }));
+
+      const res = await postPaymentIntent();
+      expect(res.status).toBe(409);
+      const json = await res.json();
+      expect(json.code).toBe("prior_intent_not_handoffable");
+      expect(json.clientSecret).toBeUndefined();
+      expect(paymentIntentsCreate).toHaveBeenCalledTimes(1);
+      expect(paymentIntentsRetrieve).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it("list sees same-context succeeded → 409 before create (no stale key create)", async () => {
+    const ctx = expectedPiContext(99900);
+    paymentIntentsList.mockResolvedValue({
+      data: [
+        {
+          id: "pi_listed_paid",
+          status: "succeeded",
+          client_secret: "sec_paid",
+          amount: 99900,
           currency: "sek",
           customer: CUSTOMER_ID,
-          payment_method: null,
+          payment_method: "pm_x",
           metadata: buildSharedPalletIntentMetadata(ctx),
-        };
-      },
-    );
+        },
+      ],
+    });
 
     const res = await postPaymentIntent();
-    expect(res.status).toBe(200);
-    const json = await res.json();
-    expect(json.intentId).toBe("pi_recovered");
-    expect(json.clientSecret).toBe("pi_recovered_secret");
-    expect(paymentIntentsCreate).toHaveBeenCalledTimes(2);
-    const keys = paymentIntentsCreate.mock.calls.map(
-      (c) => c[1]?.idempotencyKey as string,
-    );
-    expect(keys[0]).not.toBe(keys[1]);
-    expect(keys[1]).toContain("_r_");
+    expect(res.status).toBe(409);
+    expect(paymentIntentsCreate).not.toHaveBeenCalled();
+    expect(paymentIntentsRetrieve).not.toHaveBeenCalled();
   });
 
-  it("list miss + same-key succeeded replay fails closed (no second chargeable PI)", async () => {
+  it("retrieve failure → 409 fail closed", async () => {
     paymentIntentsCreate.mockImplementation(
-      async (params: Record<string, unknown>) => {
-        const ctx = expectedPiContext(Number(params.amount));
-        return {
-          id: "pi_succeeded_cached",
-          status: "succeeded",
-          client_secret: "pi_succeeded_secret",
-          amount: params.amount,
-          currency: "sek",
-          customer: CUSTOMER_ID,
-          payment_method: "pm_charged",
-          metadata: buildSharedPalletIntentMetadata(ctx),
-        };
-      },
+      async (params: Record<string, unknown>) =>
+        rpmCreateBody("pi_r", Number(params.amount), "sec_c"),
     );
+    paymentIntentsRetrieve.mockRejectedValue(new Error("stripe timeout"));
 
     const res = await postPaymentIntent();
     expect(res.status).toBe(409);
     const json = await res.json();
-    expect(json.code).toBe("prior_payment_intent_terminal");
+    expect(json.code).toBe("intent_retrieve_failed");
     expect(paymentIntentsCreate).toHaveBeenCalledTimes(1);
   });
 
-  it("attached-method replay recovers; concurrent posts share recovery identity", async () => {
-    const cache = new Map<string, Record<string, unknown>>();
+  it("fresh retrieve missing client_secret → 409 (C)", async () => {
     paymentIntentsCreate.mockImplementation(
-      async (params: Record<string, unknown>, opts?: { idempotencyKey?: string }) => {
-        const key = String(opts?.idempotencyKey || "");
-        const hit = cache.get(key);
-        if (hit) return hit;
-        const ctx = expectedPiContext(Number(params.amount));
-        const baseKey = buildSharedPalletStripeIdempotencyKey({
-          intentKind: "payment_intent",
-          context: ctx,
-        });
-        let obj: Record<string, unknown>;
-        if (key === baseKey) {
-          obj = {
-            id: "pi_attached",
-            status: "requires_payment_method",
-            client_secret: "pi_attached_secret",
-            amount: params.amount,
-            currency: "sek",
-            customer: CUSTOMER_ID,
-            payment_method: "pm_old",
-            metadata: buildSharedPalletIntentMetadata(ctx),
-          };
-        } else {
-          obj = {
-            id: "pi_open_after_recover",
-            status: "requires_payment_method",
-            client_secret: "pi_open_secret",
-            amount: params.amount,
-            currency: "sek",
-            customer: CUSTOMER_ID,
-            payment_method: null,
-            metadata: buildSharedPalletIntentMetadata(ctx),
-          };
-        }
-        cache.set(key, obj);
-        return obj;
-      },
+      async (params: Record<string, unknown>) =>
+        rpmCreateBody("pi_nosec", Number(params.amount), "sec_cache"),
     );
-
-    const [a, b] = await Promise.all([
-      postPaymentIntent(),
-      postPaymentIntent(),
-    ]);
-    expect(a.status).toBe(200);
-    expect(b.status).toBe(200);
-    const ja = await a.json();
-    const jb = await b.json();
-    expect(ja.intentId).toBe("pi_open_after_recover");
-    expect(jb.intentId).toBe("pi_open_after_recover");
-  });
-
-  it("PI missing client_secret fails closed", async () => {
-    paymentIntentsCreate.mockImplementation(
-      async (params: Record<string, unknown>) => {
-        const ctx = expectedPiContext(Number(params.amount));
-        return {
-          id: "pi_nosecret",
-          status: "requires_payment_method",
-          client_secret: null,
-          amount: params.amount,
-          currency: "sek",
-          customer: CUSTOMER_ID,
-          payment_method: null,
-          metadata: buildSharedPalletIntentMetadata(ctx),
-        };
-      },
-    );
+    paymentIntentsRetrieve.mockImplementation(async () => ({
+      ...rpmCreateBody("pi_nosec", 99900, "sec_cache"),
+      client_secret: null,
+    }));
 
     const res = await postPaymentIntent();
-    // Replay guard treats missing secret as recover; recovery also missing → 409
-    // OR if somehow returned past guard, route 500 missing_client_secret.
-    expect([409, 500]).toContain(res.status);
-    const json = await res.json();
-    if (res.status === 500) {
-      expect(json.code).toBe("missing_client_secret");
-    } else {
-      expect(json.code).toBe("intent_recovery_unusable");
-    }
+    expect(res.status).toBe(409);
+    expect((await res.json()).code).toBe("prior_intent_not_handoffable");
   });
 
-  it("legitimate list reuse of open matching PI never creates", async () => {
-    // amount = 900 wine + 99 shipping = 99900 öre
-    const amountOre = 99900;
-    const ctx = expectedPiContext(amountOre);
+  it("list reuse of open matching PI never creates", async () => {
+    const ctx = expectedPiContext(99900);
     paymentIntentsList.mockResolvedValue({
       data: [
         {
           id: "pi_listed",
           status: "requires_payment_method",
           client_secret: "pi_listed_secret",
-          amount: amountOre,
+          amount: 99900,
           currency: "sek",
           customer: CUSTOMER_ID,
           payment_method: null,
@@ -522,13 +456,36 @@ describe("WIRED shared-pallet payment-intent (idempotency replay)", () => {
 
     const res = await postPaymentIntent();
     expect(res.status).toBe(200);
-    const json = await res.json();
-    expect(json.intentId).toBe("pi_listed");
+    expect((await res.json()).intentId).toBe("pi_listed");
     expect(paymentIntentsCreate).not.toHaveBeenCalled();
+  });
+
+  it("concurrent stable retries share one create+retrieve under flight", async () => {
+    let creates = 0;
+    paymentIntentsCreate.mockImplementation(
+      async (params: Record<string, unknown>) => {
+        creates += 1;
+        await new Promise((r) => setTimeout(r, 30));
+        return rpmCreateBody("pi_once", Number(params.amount), "sec_c");
+      },
+    );
+    paymentIntentsRetrieve.mockImplementation(async () =>
+      rpmCreateBody("pi_once", 99900, "sec_f"),
+    );
+
+    const [a, b] = await Promise.all([
+      postPaymentIntent(),
+      postPaymentIntent(),
+    ]);
+    expect(a.status).toBe(200);
+    expect(b.status).toBe(200);
+    expect(creates).toBe(1);
+    expect((await a.json()).clientSecret).toBe("sec_f");
+    expect((await b.json()).clientSecret).toBe("sec_f");
   });
 });
 
-describe("WIRED shared-pallet SetupIntent US terms binding", () => {
+describe("WIRED shared-pallet SI fresh-retrieve + US terms (B)", () => {
   beforeEach(() => {
     vi.resetModules();
     resetSharedPalletIntentFlightsForTests();
@@ -536,8 +493,10 @@ describe("WIRED shared-pallet SetupIntent US terms binding", () => {
     getCart.mockReset();
     paymentIntentsCreate.mockReset();
     paymentIntentsList.mockReset();
+    paymentIntentsRetrieve.mockReset();
     setupIntentsCreate.mockReset();
     setupIntentsList.mockReset();
+    setupIntentsRetrieve.mockReset();
     resolveActiveGeoZoneForUser.mockReset();
     resolveMarketForCountry.mockReset();
     getRedeemableBalance.mockReset();
@@ -629,7 +588,7 @@ describe("WIRED shared-pallet SetupIntent US terms binding", () => {
     process.env.STRIPE_SECRET_KEY = "sk_test_x";
   });
 
-  it("US SI create binds terms_version into metadata and Idempotency-Key", async () => {
+  it("US SI: binds terms_version into metadata+key; create cache vs retrieve attached → 409 no sibling", async () => {
     setupIntentsCreate.mockImplementation(
       async (
         params: Record<string, unknown>,
@@ -637,12 +596,36 @@ describe("WIRED shared-pallet SetupIntent US terms binding", () => {
       ) => ({
         id: "seti_us",
         status: "requires_payment_method",
-        client_secret: "seti_us_secret",
+        client_secret: "seti_STALE",
         payment_method: null,
         metadata: params.metadata,
         _key: opts?.idempotencyKey,
       }),
     );
+    setupIntentsRetrieve.mockResolvedValue({
+      id: "seti_us",
+      status: "requires_payment_method",
+      client_secret: "seti_STALE",
+      payment_method: "pm_attached",
+      metadata: {
+        user_id: USER_ID,
+        cart_id: CART_ID,
+        pallet_id: PALLET_ID,
+        expected_amount_ore: "99900",
+        reservation_mode: "conditional",
+        country_code: "US",
+        market_code: "US",
+        region: "CA",
+        terms_version: US_CONDITIONAL_TERMS_VERSION,
+        age_verified_dob: "1990-01-01",
+        age_verification_method: "self_declared_dob",
+        pact_points_redeem: "0",
+        promo_discount_sek: "0",
+        voucher_discount_sek: "0",
+        stripe_customer_id: CUSTOMER_ID,
+        fulfillment_channel: "shared_pallet",
+      },
+    });
 
     const { POST } = await import("@/app/api/checkout/payment-intent/route");
     const res = await POST(
@@ -656,18 +639,12 @@ describe("WIRED shared-pallet SetupIntent US terms binding", () => {
         }),
       }),
     );
-    expect(res.status).toBe(200);
-    const json = await res.json();
-    expect(json.paymentMode).toBe("setup_intent");
-    expect(json.intentId).toBe("seti_us");
+    expect(res.status).toBe(409);
+    expect((await res.json()).code).toBe("prior_intent_not_handoffable");
     expect(setupIntentsCreate).toHaveBeenCalledTimes(1);
     const [params, opts] = setupIntentsCreate.mock.calls[0];
     expect(params.metadata.terms_version).toBe(US_CONDITIONAL_TERMS_VERSION);
-    expect(params.metadata.reservation_mode).toBe("conditional");
-    expect(params.metadata.region).toBe("CA");
     const key = opts?.idempotencyKey as string;
-    expect(key).toMatch(/^sp_setup_intent_v2_/);
-
     const expectedCtx: SharedPalletIntentContext = {
       sessionUserId: USER_ID,
       cartId: CART_ID,
@@ -700,5 +677,41 @@ describe("WIRED shared-pallet SetupIntent US terms binding", () => {
         },
       }),
     );
+  });
+
+  it("US SI stable: retrieve RPM returns fresh secret", async () => {
+    setupIntentsCreate.mockImplementation(
+      async (params: Record<string, unknown>) => ({
+        id: "seti_ok",
+        status: "requires_payment_method",
+        client_secret: "seti_cache",
+        payment_method: null,
+        metadata: params.metadata,
+      }),
+    );
+    setupIntentsRetrieve.mockImplementation(async () => ({
+      id: "seti_ok",
+      status: "requires_payment_method",
+      client_secret: "seti_fresh",
+      payment_method: null,
+      metadata: setupIntentsCreate.mock.calls[0][0].metadata,
+    }));
+
+    const { POST } = await import("@/app/api/checkout/payment-intent/route");
+    const res = await POST(
+      new Request("http://localhost/api/checkout/payment-intent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          pallet_id: PALLET_ID,
+          dateOfBirth: "1990-01-01",
+          us_conditional_ack: true,
+        }),
+      }),
+    );
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.paymentMode).toBe("setup_intent");
+    expect(json.clientSecret).toBe("seti_fresh");
   });
 });
