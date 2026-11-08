@@ -4938,7 +4938,7 @@ function CheckoutContent({
                           <Button
                             type="button"
                             data-checkout-place-cta={placeOrderCta.key}
-                            className="h-auto min-h-10 w-full whitespace-normal break-words border-transparent bg-black px-4 py-3 text-center text-sm leading-snug text-white shadow-none ring-0 hover:border-transparent hover:bg-black/90 hover:shadow-none focus-visible:border-transparent focus-visible:bg-black/90 focus-visible:ring-white/40 sm:text-base"
+                            className="!h-auto min-h-10 w-full !whitespace-normal break-words border-transparent bg-black !px-6 py-3 text-center text-sm leading-snug text-white shadow-none ring-0 hover:border-transparent hover:bg-black/90 hover:shadow-none focus-visible:border-transparent focus-visible:bg-black/90 focus-visible:ring-white/40 sm:text-base"
                             disabled={
                               !stripeConfirmFn ||
                               !paymentMode ||

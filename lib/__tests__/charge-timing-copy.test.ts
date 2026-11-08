@@ -143,8 +143,11 @@ describe("checkout charge-timing wiring", () => {
       join(__dirname, "../../app/checkout/checkout-client.tsx"),
       "utf8",
     );
-    expect(checkout).toMatch(/data-checkout-place-cta[\s\S]*whitespace-normal/);
+    expect(checkout).toMatch(
+      /data-checkout-place-cta[\s\S]*!?whitespace-normal/,
+    );
     expect(checkout).toMatch(/data-checkout-place-cta[\s\S]*break-words/);
-    expect(checkout).toMatch(/data-checkout-place-cta[\s\S]*h-auto/);
+    expect(checkout).toMatch(/data-checkout-place-cta[\s\S]*!?h-auto/);
   });
 });
+
