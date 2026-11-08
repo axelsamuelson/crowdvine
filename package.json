@@ -25,6 +25,8 @@
     "checkout-audit:assert-stripe": "node scripts/checkout-audit/assert-stripe-sandbox.mjs",
     "checkout-audit:apply-local": "bash scripts/checkout-audit/apply-local.sh",
     "checkout-audit:create-auth-user": "node scripts/checkout-audit/create-test-auth-user.mjs",
+    "checkout-audit:webhook-matrix": "node scripts/checkout-audit/run-webhook-matrix.mjs",
+    "checkout-audit:browser-e2e": "node scripts/checkout-audit/browser-checkout-e2e.mjs",
     "test:checkout-audit-pg": "vitest run lib/__tests__/checkout-off-pg-isolation.test.ts",
     "test:checkout-audit-stripe": "vitest run lib/__tests__/checkout-audit-stripe-sandbox.test.ts",
     "test:checkout-audit-webhook": "vitest run lib/__tests__/checkout-audit-webhook-pg.test.ts",

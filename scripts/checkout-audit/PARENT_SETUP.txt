@@ -15,6 +15,9 @@ SQL artifacts (apply via Supabase MCP or SQL editor on the TEST project only):
   scripts/checkout-audit/supabase/01_schema_core.sql
   scripts/checkout-audit/supabase/02_rls.sql
   scripts/checkout-audit/supabase/03_seed_catalog.sql
+  scripts/checkout-audit/supabase/04_membership_gate.sql  (middleware /checkout gate)
+  scripts/checkout-audit/supabase/05_app_compat_columns.sql (cart/checkout select columns)
+  scripts/checkout-audit/supabase/06_reservation_write_policies.sql (user-scoped items INSERT for confirm)
 
 Cursor Cloud Agents → RuntimeSecrets (repo-scoped) — exact names the app reads:
   NEXT_PUBLIC_SUPABASE_URL=https://msdfjrrokcmjifetuwgc.supabase.co

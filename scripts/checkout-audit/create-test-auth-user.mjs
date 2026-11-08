@@ -140,6 +140,21 @@ const { error: profErr } = await admin.from("profiles").upsert(
 );
 if (profErr) fail(`profiles upsert: ${profErr.message}`);
 
+// Middleware gates /checkout on user_memberships.level !== 'requester'
+const { error: memErr } = await admin.from("user_memberships").upsert(
+  {
+    user_id: userId,
+    level: "basic",
+    impact_points: 0,
+    invite_quota_monthly: 0,
+    invites_used_this_month: 0,
+    level_assigned_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  { onConflict: "user_id" },
+);
+if (memErr) fail(`user_memberships upsert: ${memErr.message}`);
+
 const { error: prefErr } = await admin.from("user_zone_preferences").upsert(
   {
     user_id: userId,
@@ -202,6 +217,7 @@ console.log(
   JSON.stringify({
     ok: true,
     profile: true,
+    membershipLevel: "basic",
     zoneAddress: true,
     cartId,
     sessionId,

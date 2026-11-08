@@ -106,7 +106,10 @@ ON CONFLICT (id) DO UPDATE SET
   base_price_cents = EXCLUDED.base_price_cents,
   is_live = true;
 
--- PI path requires direct-charge pallet status
+-- PI path requires direct-charge pallet status.
+-- Use `complete` (not `shipping_ordered`): findOrCreatePalletForRegion only
+-- accepts open|consolidating|complete, while palletUsesPaymentIntent still
+-- treats complete as PaymentIntent / Betala nu.
 INSERT INTO pallets (
   id, name, delivery_zone_id, pickup_zone_id, shipping_region_id,
   cost_cents, last_mile_cost_cents_per_bottle, bottle_capacity,
@@ -117,10 +120,10 @@ INSERT INTO pallets (
   'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1',
   'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa2',
   'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb0',
-  500000, 0, 300, 6, 'shipping_ordered', 'auto'
+  500000, 0, 300, 6, 'complete', 'auto'
 )
 ON CONFLICT (id) DO UPDATE SET
-  status = 'shipping_ordered',
+  status = 'complete',
   delivery_zone_id = EXCLUDED.delivery_zone_id,
   pickup_zone_id = EXCLUDED.pickup_zone_id;
 
