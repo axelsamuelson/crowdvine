@@ -29,9 +29,9 @@ import {
   buildOfferQuote,
   buildSyntheticDirectOfferFromShared,
   buildUnavailableOfferQuote,
-  isDualOfferCompareEnabled,
   type OfferLineSnapshot,
 } from "@/lib/checkout/offer-quote";
+import { isDualOfferCheckoutSurfaceAllowed } from "@/lib/checkout/dual-offer-surface-gate";
 import { previewVisibleMethods } from "@/lib/checkout/offer-payment-methods";
 
 export const dynamic = "force-dynamic";
@@ -48,7 +48,8 @@ type Body = {
 
 export async function POST(request: Request) {
   try {
-    if (!isDualOfferCompareEnabled()) {
+    // Flag OFF by default; production (non-preview) denied even if flag set.
+    if (!isDualOfferCheckoutSurfaceAllowed()) {
       return NextResponse.json(
         { error: "not_found", code: "dual_offer_compare_disabled" },
         { status: 404 },

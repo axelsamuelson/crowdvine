@@ -1,32 +1,28 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
-import { DualOfferComparePreview } from "@/components/checkout/dual-offer-compare-preview";
+import { isDualOfferCheckoutSurfaceAllowed } from "@/lib/checkout/dual-offer-surface-gate";
 import {
   buildDualOfferQuoteSet,
   buildOfferQuote,
   buildSyntheticDirectOfferFromShared,
-  isDualOfferCompareEnabled,
   type OfferLineSnapshot,
 } from "@/lib/checkout/offer-quote";
 import type { CheckoutQuote } from "@/lib/checkout/checkout-quote";
+import { DualOfferReviewLocales } from "./review-locales";
 
 export const metadata: Metadata = {
-  title: "Dual-offer compare (preview)",
+  title: "Dual-offer checkout review (preview)",
   robots: { index: false, follow: false },
 };
 
 /**
- * Synthetic fixture page — no live Stripe/DB writes.
+ * Inès / independent design review surface.
+ * Synthetic fixture — no live Stripe/DB writes.
  * Visible only when CHECKOUT_DUAL_OFFER_COMPARE=true and not production.
  */
 export default function DualOfferCompareDevPage() {
-  if (
-    process.env.NODE_ENV === "production" &&
-    process.env.VERCEL_ENV !== "preview"
-  ) {
-    notFound();
-  }
-  if (!isDualOfferCompareEnabled()) {
+  if (!isDualOfferCheckoutSurfaceAllowed()) {
     notFound();
   }
 
@@ -76,5 +72,17 @@ export default function DualOfferCompareDevPage() {
     destination_country: "SE",
   });
 
-  return <DualOfferComparePreview initialDual={dual} locale="sv" />;
+  return (
+    <main className="min-h-screen bg-background text-foreground">
+      <div className="mx-auto max-w-3xl px-4 py-6 space-y-4 font-sans">
+        <p className="text-xs text-muted-foreground">
+          Cart: 8 bottles · destination SE · sample prices only · Geist
+          font-sans · migration 279 unapplied (payment fail-closed)
+        </p>
+        <Suspense fallback={<p className="text-sm text-muted-foreground">…</p>}>
+          <DualOfferReviewLocales dual={dual} />
+        </Suspense>
+      </div>
+    </main>
+  );
 }

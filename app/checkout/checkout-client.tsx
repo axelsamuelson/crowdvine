@@ -41,6 +41,7 @@ import {
   type StripeConfirmResult,
 } from "@/components/checkout/stripe-payment-section";
 import type { CheckoutQuote } from "@/lib/checkout/checkout-quote";
+import { DualOfferCheckoutPanel } from "@/components/checkout/dual-offer-checkout-panel";
 import { toast } from "sonner";
 import {
   MapPin,
@@ -170,12 +171,18 @@ function CheckoutContent({
     reason: "flag_off" as const,
     messageKey: null,
   },
+  dualOfferCompareSurfaceAllowed = false,
 }: {
   platformOpen: boolean;
   /** Server-gated; default false — shared_pallet behaviour unchanged. */
   directBoxCheckoutEnabled?: boolean;
   /** Server-derived carrier/quote availability — no env secrets. */
   directBoxAvailability?: DirectBoxUiAvailability;
+  /**
+   * Dual-offer compare panel (test/preview only). Default false — OFF checkout
+   * unchanged. Never enables DIRECT_BOX or live dual payment.
+   */
+  dualOfferCompareSurfaceAllowed?: boolean;
 }) {
   const { t, context: shopping } = useShoppingContext();
   const paths = localizedPathsForLocale(shopping.locale);
@@ -4132,6 +4139,21 @@ function CheckoutContent({
                         {t("checkout.usConditionalCopy")}
                       </p>
                     ) : null}
+
+                    {dualOfferCompareSurfaceAllowed &&
+                    selectedPallet?.id &&
+                    deliveryPreviewReady &&
+                    !zoneLoading ? (
+                      <DualOfferCheckoutPanel
+                        locale={shopping.locale === "en" ? "en" : "sv"}
+                        fetchArgs={{
+                          palletId: selectedPallet.id,
+                          countryCode: ageCountryCode,
+                          allowSyntheticDirect: true,
+                        }}
+                        className="pt-4 border-t border-border"
+                      />
+                    ) : null}
                   </div>
                 )}
               </div>
@@ -4957,10 +4979,12 @@ export function CheckoutClient({
   platformOpen = false,
   directBoxCheckoutEnabled = false,
   directBoxAvailability,
+  dualOfferCompareSurfaceAllowed = false,
 }: {
   platformOpen?: boolean;
   directBoxCheckoutEnabled?: boolean;
   directBoxAvailability?: DirectBoxUiAvailability;
+  dualOfferCompareSurfaceAllowed?: boolean;
 }) {
   return (
     <Suspense
@@ -4978,6 +5002,7 @@ export function CheckoutClient({
         platformOpen={platformOpen}
         directBoxCheckoutEnabled={directBoxCheckoutEnabled}
         directBoxAvailability={directBoxAvailability}
+        dualOfferCompareSurfaceAllowed={dualOfferCompareSurfaceAllowed}
       />
       {/* merge modal portal host is inside CheckoutContent */}
     </Suspense>
