@@ -42,6 +42,10 @@ import {
 } from "@/components/checkout/stripe-payment-section";
 import type { CheckoutQuote } from "@/lib/checkout/checkout-quote";
 import { DualOfferCheckoutPanel } from "@/components/checkout/dual-offer-checkout-panel";
+import {
+  isDualOfferReviewCheckoutActive,
+  mayRunLegacySharedPalletPaymentUi,
+} from "@/lib/checkout/dual-offer-checkout-isolation";
 import { toast } from "sonner";
 import {
   MapPin,
@@ -648,6 +652,24 @@ function CheckoutContent({
   const addressStepComplete = hasZoneDeliveryReady && hasContactForCheckout;
   /** Address step unlocks as soon as postal is set — zone loading must not lock the form. */
   const deliveryPreviewReady = hasPostalCode;
+
+  /**
+   * Dual-offer review isolation (preview/test only): when the dual panel is
+   * mounted, legacy shared-pallet Pay / PI prefetch must not run.
+   * Flag OFF → both helpers keep normal checkout.
+   */
+  const dualOfferReviewActive = isDualOfferReviewCheckoutActive({
+    dualOfferCompareSurfaceAllowed,
+    hasSelectedPallet: Boolean(selectedPallet?.id),
+    deliveryPreviewReady,
+    zoneLoading,
+  });
+  const legacySharedPalletPaymentAllowed = mayRunLegacySharedPalletPaymentUi({
+    dualOfferCompareSurfaceAllowed,
+    hasSelectedPallet: Boolean(selectedPallet?.id),
+    deliveryPreviewReady,
+    zoneLoading,
+  });
 
   const zoneLocationKey = useMemo(() => {
     const postal =
@@ -1594,7 +1616,13 @@ function CheckoutContent({
   }, [complianceComplete, complianceStepRevealed, cart]);
 
   // Warm Stripe.js + create Setup/PaymentIntent after compliance is complete.
+  // Dual-offer review isolation: never prefetch / keep intents while dual surface active.
   useEffect(() => {
+    if (!legacySharedPalletPaymentAllowed) {
+      setPrefetchedStripeIntent(null);
+      stripePrefetchKeyRef.current = null;
+      return;
+    }
     if (!paymentCardRevealed || !authReady || !selectedPallet?.id) {
       return;
     }
@@ -1737,6 +1765,7 @@ function CheckoutContent({
       controller.abort();
     };
   }, [
+    legacySharedPalletPaymentAllowed,
     paymentCardRevealed,
     complianceComplete,
     legalGatePayload,
@@ -1750,14 +1779,25 @@ function CheckoutContent({
   ]);
 
   // If age/terms become incomplete again, collapse payment.
+  // Also collapse when dual-offer review becomes active so a prior reveal
+  // cannot leave Stripe Elements / Pay armed beside the dual panel.
   useEffect(() => {
     if (!complianceStepRevealed || !complianceComplete) {
       setPaymentCardRevealed(false);
     }
   }, [complianceStepRevealed, complianceComplete]);
 
+  useEffect(() => {
+    if (dualOfferReviewActive) {
+      setPaymentCardRevealed(false);
+      setPrefetchedStripeIntent(null);
+      stripePrefetchKeyRef.current = null;
+    }
+  }, [dualOfferReviewActive]);
+
   const handleContinueToPayment = useCallback(() => {
     if (!complianceComplete) return;
+    if (!legacySharedPalletPaymentAllowed) return;
     setPaymentCardRevealed(true);
     window.setTimeout(() => {
       paymentSectionRef.current?.scrollIntoView({
@@ -1765,7 +1805,7 @@ function CheckoutContent({
         block: "nearest",
       });
     }, 80);
-  }, [complianceComplete]);
+  }, [complianceComplete, legacySharedPalletPaymentAllowed]);
 
   // Initial zone matching when cart and zone context are loaded
   useEffect(() => {
@@ -2657,6 +2697,11 @@ function CheckoutContent({
   );
 
   const handlePlaceReservation = useCallback(async () => {
+    // Dual-offer review isolation: never place reservation via legacy CTA.
+    if (!legacySharedPalletPaymentAllowed) {
+      setStripeError(t("checkout.dualOfferLegacyPayBlocked"));
+      return;
+    }
     // Layer 1: sync ref blocks double-click before React re-renders disabled state.
     if (isSubmittingRef.current) return;
     isSubmittingRef.current = true;
@@ -2960,6 +3005,7 @@ function CheckoutContent({
     redeemPoints,
     t,
     friendlyStripeErrorMessage,
+    legacySharedPalletPaymentAllowed,
   ]);
 
   // Merchandise total from cart (matches per-line line.cost.totalAmount, incl. member + pallet early-bird)
@@ -4140,10 +4186,7 @@ function CheckoutContent({
                       </p>
                     ) : null}
 
-                    {dualOfferCompareSurfaceAllowed &&
-                    selectedPallet?.id &&
-                    deliveryPreviewReady &&
-                    !zoneLoading ? (
+                    {dualOfferReviewActive && selectedPallet?.id ? (
                       <DualOfferCheckoutPanel
                         locale={shopping.locale === "en" ? "en" : "sv"}
                         fetchArgs={{
@@ -4151,6 +4194,11 @@ function CheckoutContent({
                           countryCode: ageCountryCode,
                           allowSyntheticDirect: true,
                         }}
+                        openIntentIds={
+                          prefetchedStripeIntent?.intentId
+                            ? [prefetchedStripeIntent.intentId]
+                            : undefined
+                        }
                         className="pt-4 border-t border-border"
                       />
                     ) : null}
@@ -4697,7 +4745,8 @@ function CheckoutContent({
                             </p>
                           ) : null}
                         </div>
-                        {!paymentCardRevealed ? (
+                        {!paymentCardRevealed &&
+                        legacySharedPalletPaymentAllowed ? (
                           <Button
                             type="button"
                             className="w-full border-transparent bg-black text-white shadow-none ring-0 hover:border-transparent hover:bg-black/90 hover:shadow-none focus-visible:border-transparent focus-visible:bg-black/90 focus-visible:ring-white/40"
@@ -4706,6 +4755,14 @@ function CheckoutContent({
                           >
                             {t("checkout.continueToPayment")}
                           </Button>
+                        ) : null}
+                        {dualOfferReviewActive ? (
+                          <p
+                            className="text-sm font-medium text-foreground"
+                            data-testid="dual-offer-legacy-pay-blocked-notice"
+                          >
+                            {t("checkout.dualOfferLegacyPayBlocked")}
+                          </p>
                         ) : null}
                       </>
                     ) : hasProducerItems && !selectedPallet ? (
@@ -4804,7 +4861,22 @@ function CheckoutContent({
                   {t("checkout.payment")}
                 </h2>
 
-                {!paymentCardRevealed ? (
+                {dualOfferReviewActive ? (
+                  <div
+                    className="space-y-2 rounded-lg border border-dashed border-border bg-muted/20 p-4"
+                    data-testid="dual-offer-payment-isolated"
+                  >
+                    <p className="text-sm font-semibold text-foreground">
+                      {t("checkout.dualOfferPaymentIsolatedTitle")}
+                    </p>
+                    <p className="text-sm text-foreground">
+                      {t("checkout.dualOfferLegacyPayBlocked")}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {t("checkout.dualOfferNoPrefetch")}
+                    </p>
+                  </div>
+                ) : !paymentCardRevealed ? (
                   <p className="text-sm text-muted-foreground">
                     {t("checkout.stepPaymentLocked")}
                   </p>
@@ -4866,7 +4938,7 @@ function CheckoutContent({
                             ) : null}
                           </div>
                         ) : null}
-                        {authReady ? (
+                        {authReady && legacySharedPalletPaymentAllowed ? (
                           <StripePaymentSection
                             key={`stripe-${selectedPallet.id}`}
                             palletId={selectedPallet.id}
@@ -4931,8 +5003,10 @@ function CheckoutContent({
 
                           <Button
                             type="button"
+                            data-testid="checkout-place-reservation"
                             className="w-full border-transparent bg-black text-white shadow-none ring-0 hover:border-transparent hover:bg-black/90 hover:shadow-none focus-visible:border-transparent focus-visible:bg-black/90 focus-visible:ring-white/40"
                             disabled={
+                              !legacySharedPalletPaymentAllowed ||
                               !stripeConfirmFn ||
                               !paymentMode ||
                               !stripeIntentId ||
