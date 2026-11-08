@@ -64,8 +64,28 @@ export function verifyOfferPayloadUntampered(quote: OfferQuote): boolean {
     debit_timing_code: quote.debit_timing.code,
     delivery_terms_code: quote.delivery_terms.code,
   });
-  const hash = hashOfferPayload(canonical);
-  return buildOfferQuoteId(hash) === quote.quote_id;
+  const digest = hashOfferPayload(canonical);
+  if (digest !== quote.content_digest) return false;
+  // quote_id must still match scoped acceptance identity (tenant + cart).
+  const expectedId = buildOfferQuoteId({
+    userId: quote.user_id,
+    cartId: quote.cart_id,
+    offer: quote.offer,
+    contentDigest: digest,
+  });
+  return expectedId === quote.quote_id;
+}
+
+/** True when valid_until is set and now is at/after that instant. */
+export function isOfferQuoteExpired(
+  quote: OfferQuote,
+  nowIso: string = new Date().toISOString(),
+): boolean {
+  if (!quote.valid_until) return false;
+  const until = Date.parse(quote.valid_until);
+  const now = Date.parse(nowIso);
+  if (!Number.isFinite(until) || !Number.isFinite(now)) return true;
+  return now >= until;
 }
 
 /**
@@ -192,11 +212,13 @@ export function acceptSelectedOfferQuote(args: {
     delivery_terms_code: quote.delivery_terms.code,
   });
 
+  const contentDigest = hashOfferPayload(canonical);
   const acceptance: OfferAcceptanceRecord = {
     quote_id: quote.quote_id,
     offer: quote.offer,
     accepted_at: args.accepted_at ?? new Date().toISOString(),
-    payload_hash: hashOfferPayload(canonical),
+    payload_hash: contentDigest,
+    content_digest: contentDigest,
     explicit_acceptance: true,
   };
 
@@ -220,6 +242,7 @@ export function acceptSelectedOfferQuote(args: {
 /** Final CTA must stay disabled while uncertain or without acceptance. */
 export function mayEnableFinalCheckoutAction(
   state: OfferCheckoutSessionState,
+  nowIso?: string,
 ): { allow: boolean; reason: string | null } {
   if (state.uncertainty_block) {
     return { allow: false, reason: state.uncertainty_reason ?? "uncertain" };
@@ -234,8 +257,18 @@ export function mayEnableFinalCheckoutAction(
   if (!verifyOfferPayloadUntampered(quote)) {
     return { allow: false, reason: "quote_tampered" };
   }
+  // Synthetic / unverified preview money must never unlock Pay / Reserve.
+  if (quote.pricing_source === "synthetic_fixture") {
+    return { allow: false, reason: "synthetic_fixture_not_payable" };
+  }
   if (quote.pricing_source === "unavailable") {
     return { allow: false, reason: "pricing_unavailable" };
+  }
+  if (quote.pricing_source !== "live_catalog") {
+    return { allow: false, reason: "pricing_unverified" };
+  }
+  if (isOfferQuoteExpired(quote, nowIso)) {
+    return { allow: false, reason: "quote_expired" };
   }
   if (quote.shipping_pending) {
     return { allow: false, reason: "shipping_pending" };

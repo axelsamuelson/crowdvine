@@ -63,8 +63,16 @@ export type OfferLineSnapshot = {
  */
 export type OfferQuote = CheckoutQuote & {
   schema_version: typeof OFFER_QUOTE_SCHEMA_VERSION;
-  /** Stable id for this computed quote (hash of canonical payload). */
+  /**
+   * Acceptance identity — scoped to user + cart + offer + content_digest.
+   * Never equal to content_digest alone (global UNIQUE would collide tenants).
+   */
   quote_id: string;
+  /** SHA-256 of canonical money/lines/terms (no tenant/cart). Tamper check. */
+  content_digest: string;
+  /** Tenant/cart scope bound into quote_id (null only for unavailable stubs). */
+  user_id: string | null;
+  cart_id: string | null;
   offer: FulfillmentChannel;
   pricing_source: OfferPricingSource;
   currency: "SEK";
@@ -107,8 +115,10 @@ export type OfferAcceptanceRecord = {
   quote_id: string;
   offer: FulfillmentChannel;
   accepted_at: string;
-  /** SHA-256 of canonical offer payload at acceptance (tamper detection). */
+  /** SHA-256 of canonical offer content at acceptance (tamper detection). */
   payload_hash: string;
+  /** Same as quote.content_digest at acceptance. */
+  content_digest: string;
   /** Explicit customer acceptance of THIS quote — not payment confirmation. */
   explicit_acceptance: true;
 };
@@ -203,8 +213,29 @@ export function hashOfferPayload(canonicalJson: string): string {
   return createHash("sha256").update(canonicalJson, "utf8").digest("hex");
 }
 
-export function buildOfferQuoteId(payloadHash: string): string {
-  return `oq_${payloadHash.slice(0, 32)}`;
+/**
+ * Acceptance identity — MUST include tenant + cart so identical offer content
+ * for two users/carts never collide under a global UNIQUE(quote_id).
+ */
+export function buildOfferQuoteId(parts: {
+  userId: string | null | undefined;
+  cartId: string | null | undefined;
+  offer: FulfillmentChannel;
+  contentDigest: string;
+}): string {
+  const material = [
+    String(parts.userId ?? "").trim() || "nouser",
+    String(parts.cartId ?? "").trim() || "nocart",
+    parts.offer,
+    parts.contentDigest,
+  ].join("|");
+  const digest = createHash("sha256").update(material, "utf8").digest("hex");
+  return `oq_${digest.slice(0, 32)}`;
+}
+
+/** @deprecated Prefer content_digest field; kept for clear naming in call sites. */
+export function buildOfferContentDigest(canonicalJson: string): string {
+  return hashOfferPayload(canonicalJson);
 }
 
 export function buildOfferQuote(args: {
@@ -214,6 +245,8 @@ export function buildOfferQuote(args: {
   destination_country: string | null;
   destination_zone_id?: string | null;
   pricing_source: OfferPricingSource;
+  user_id?: string | null;
+  cart_id?: string | null;
   computed_at?: string;
   valid_until?: string | null;
   unavailable_reason?: string | null;
@@ -250,8 +283,15 @@ export function buildOfferQuote(args: {
     debit_timing_code: debit_timing.code,
     delivery_terms_code: delivery_terms.code,
   });
-  const payload_hash = hashOfferPayload(canonical);
-  const quote_id = buildOfferQuoteId(payload_hash);
+  const content_digest = buildOfferContentDigest(canonical);
+  const user_id = args.user_id ?? null;
+  const cart_id = args.cart_id ?? null;
+  const quote_id = buildOfferQuoteId({
+    userId: user_id,
+    cartId: cart_id,
+    offer: args.offer,
+    contentDigest: content_digest,
+  });
   const computed_at = args.computed_at ?? new Date().toISOString();
 
   return {
@@ -259,6 +299,9 @@ export function buildOfferQuote(args: {
     fulfillment_channel: args.offer,
     schema_version: OFFER_QUOTE_SCHEMA_VERSION,
     quote_id,
+    content_digest,
+    user_id,
+    cart_id,
     offer: args.offer,
     pricing_source: args.pricing_source,
     currency: "SEK",
@@ -282,6 +325,8 @@ export function buildUnavailableOfferQuote(args: {
   offer: FulfillmentChannel;
   reason: string;
   destination_country?: string | null;
+  user_id?: string | null;
+  cart_id?: string | null;
   computed_at?: string;
 }): OfferQuote {
   const emptyMoney: CheckoutQuote = {
@@ -303,6 +348,8 @@ export function buildUnavailableOfferQuote(args: {
     wine_lines: [],
     destination_country: args.destination_country ?? null,
     pricing_source: "unavailable",
+    user_id: args.user_id ?? null,
+    cart_id: args.cart_id ?? null,
     computed_at: args.computed_at,
     valid_until: null,
     unavailable_reason: args.reason,
@@ -368,6 +415,8 @@ export function buildSyntheticDirectOfferFromShared(args: {
       args.shared.destination_country ?? fixture.destination_country,
     destination_zone_id: args.shared.destination_zone_id,
     pricing_source: "synthetic_fixture",
+    user_id: args.shared.user_id,
+    cart_id: args.shared.cart_id,
     computed_at: args.shared.computed_at,
     valid_until: args.shared.valid_until,
     unavailable_reason: null,

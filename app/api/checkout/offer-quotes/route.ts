@@ -145,6 +145,8 @@ export async function POST(request: Request) {
       offer: "shared_pallet",
       reason: "pallet_required",
       destination_country: countryCode,
+      user_id: user.id,
+      cart_id: String(cart.id),
     });
 
     if (pallet_id) {
@@ -190,6 +192,8 @@ export async function POST(request: Request) {
           wine_lines,
           destination_country: countryCode,
           pricing_source: "live_catalog",
+          user_id: user.id,
+          cart_id: String(cart.id),
           unavailable_reason: charge.shippingPending
             ? "shipping_pending"
             : null,
@@ -199,6 +203,8 @@ export async function POST(request: Request) {
           offer: "shared_pallet",
           reason: palletErr ? "pallet_load_failed" : "pallet_not_found",
           destination_country: countryCode,
+          user_id: user.id,
+          cart_id: String(cart.id),
         });
       }
     }
@@ -208,6 +214,8 @@ export async function POST(request: Request) {
       offer: "direct_box",
       reason: "direct_box_disabled",
       destination_country: countryCode,
+      user_id: user.id,
+      cart_id: String(cart.id),
     });
 
     if (isDirectBoxCheckoutEnabled()) {
@@ -246,12 +254,16 @@ export async function POST(request: Request) {
           wine_lines,
           destination_country: countryCode,
           pricing_source: "live_catalog",
+          user_id: user.id,
+          cart_id: String(cart.id),
         });
       } else {
         direct = buildUnavailableOfferQuote({
           offer: "direct_box",
           reason: auth.errorCode || "direct_box_gate_failed",
           destination_country: countryCode,
+          user_id: user.id,
+          cart_id: String(cart.id),
         });
       }
     } else if (

@@ -65,6 +65,8 @@ export default function DualOfferCompareDevPage() {
     wine_lines,
     destination_country: "SE",
     pricing_source: "synthetic_fixture",
+    user_id: "preview-user",
+    cart_id: "synthetic-preview-cart",
   });
   const direct = buildSyntheticDirectOfferFromShared({ shared });
   const dual = buildDualOfferQuoteSet({

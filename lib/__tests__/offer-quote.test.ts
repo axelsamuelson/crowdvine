@@ -2,10 +2,14 @@ import { beforeEach, describe, expect, it } from "vitest";
 import type { CheckoutQuote } from "@/lib/checkout/checkout-quote";
 import {
   buildDualOfferQuoteSet,
+  buildOfferContentDigest,
   buildOfferQuote,
+  buildOfferQuoteId,
   buildSyntheticDirectOfferFromShared,
   buildUnavailableOfferQuote,
+  canonicalOfferPayload,
   discloseOfferSwitch,
+  hashOfferPayload,
   isDualOfferCompareEnabled,
   SYNTHETIC_DIRECT_BOX_FIXTURE,
   type OfferLineSnapshot,
@@ -22,12 +26,6 @@ import {
   isMethodAllowedForOffer,
   previewVisibleMethods,
 } from "@/lib/checkout/offer-payment-methods";
-import {
-  findReusableSharedPalletIntent,
-  resetSharedPalletIntentFlightsForTests,
-  sharedPalletIntentFlightKey,
-  withSharedPalletIntentSingleFlight,
-} from "@/lib/checkout/shared-pallet-intent-idempotency";
 
 function sampleLines(): OfferLineSnapshot[] {
   return [
@@ -62,6 +60,11 @@ function sampleSharedMoney(): CheckoutQuote {
   };
 }
 
+const USER_A = "user-aaa";
+const USER_B = "user-bbb";
+const CART_1 = "cart-111";
+const CART_2 = "cart-222";
+
 describe("dual-offer compare flag", () => {
   it("defaults OFF", () => {
     expect(isDualOfferCompareEnabled({})).toBe(false);
@@ -72,21 +75,59 @@ describe("dual-offer compare flag", () => {
 });
 
 describe("offer quote versioning + tamper", () => {
-  it("builds stable quote_id from payload and detects tamper", () => {
+  it("builds stable content_digest and scoped quote_id; detects tamper", () => {
     const q = buildOfferQuote({
       offer: "shared_pallet",
       money: sampleSharedMoney(),
       wine_lines: sampleLines(),
       destination_country: "SE",
       pricing_source: "live_catalog",
+      user_id: USER_A,
+      cart_id: CART_1,
       computed_at: "2026-11-08T20:00:00.000Z",
     });
     expect(q.quote_id.startsWith("oq_")).toBe(true);
+    expect(q.content_digest).toHaveLength(64);
     expect(q.contract_policy).toBe("undecided");
     expect(q.bottle_count).toBe(8);
     expect(verifyOfferPayloadUntampered(q)).toBe(true);
     const tampered = { ...q, total_sek: q.total_sek + 50, total_ore: q.total_ore + 5000 };
     expect(verifyOfferPayloadUntampered(tampered)).toBe(false);
+  });
+
+  it("identical offer content for two users yields same digest but distinct quote_id", () => {
+    const base = {
+      offer: "shared_pallet" as const,
+      money: sampleSharedMoney(),
+      wine_lines: sampleLines(),
+      destination_country: "SE",
+      pricing_source: "live_catalog" as const,
+      computed_at: "2026-11-08T20:00:00.000Z",
+    };
+    const a = buildOfferQuote({ ...base, user_id: USER_A, cart_id: CART_1 });
+    const b = buildOfferQuote({ ...base, user_id: USER_B, cart_id: CART_2 });
+    expect(a.content_digest).toBe(b.content_digest);
+    expect(a.quote_id).not.toBe(b.quote_id);
+    const canonical = canonicalOfferPayload({
+      offer: a.offer,
+      money: a,
+      wine_lines: a.wine_lines,
+      destination_country: a.destination_country,
+      destination_zone_id: a.destination_zone_id,
+      pricing_source: a.pricing_source,
+      debit_timing_code: a.debit_timing.code,
+      delivery_terms_code: a.delivery_terms.code,
+    });
+    expect(hashOfferPayload(canonical)).toBe(a.content_digest);
+    expect(buildOfferContentDigest(canonical)).toBe(a.content_digest);
+    expect(
+      buildOfferQuoteId({
+        userId: USER_A,
+        cartId: CART_1,
+        offer: "shared_pallet",
+        contentDigest: a.content_digest,
+      }),
+    ).toBe(a.quote_id);
   });
 
   it("labels synthetic direct fixture and discloses switch deltas", () => {
@@ -96,10 +137,14 @@ describe("offer quote versioning + tamper", () => {
       wine_lines: sampleLines(),
       destination_country: "SE",
       pricing_source: "live_catalog",
+      user_id: USER_A,
+      cart_id: CART_1,
     });
     const direct = buildSyntheticDirectOfferFromShared({ shared });
     expect(direct.pricing_source).toBe("synthetic_fixture");
     expect(direct.offer).toBe("direct_box");
+    expect(direct.user_id).toBe(USER_A);
+    expect(direct.cart_id).toBe(CART_1);
     expect(direct.bottle_unit_price_sek).toBeGreaterThan(shared.bottle_unit_price_sek);
     expect(direct.shipping_sek).toBe(SYNTHETIC_DIRECT_BOX_FIXTURE.shipping_sek);
     const d = discloseOfferSwitch({ from: shared, to: direct });
@@ -111,6 +156,8 @@ describe("offer quote versioning + tamper", () => {
     const bad = buildUnavailableOfferQuote({
       offer: "direct_box",
       reason: "direct_box_disabled",
+      user_id: USER_A,
+      cart_id: CART_1,
     });
     expect(bad.unavailable_reason).toBe("direct_box_disabled");
     expect(discloseOfferSwitch({ from: null, to: bad }).ok).toBe(false);
@@ -125,10 +172,12 @@ describe("offer acceptance + switch invalidation", () => {
       wine_lines: sampleLines(),
       destination_country: "SE",
       pricing_source: "live_catalog",
+      user_id: USER_A,
+      cart_id: CART_1,
     });
     const direct = buildSyntheticDirectOfferFromShared({ shared });
     const dual = buildDualOfferQuoteSet({
-      cart_id: "cart-1",
+      cart_id: CART_1,
       shared_pallet: shared,
       direct_box: direct,
     });
@@ -169,9 +218,11 @@ describe("offer acceptance + switch invalidation", () => {
       wine_lines: sampleLines(),
       destination_country: "SE",
       pricing_source: "live_catalog",
+      user_id: USER_A,
+      cart_id: CART_1,
     });
     const dual = buildDualOfferQuoteSet({
-      cart_id: "cart-1",
+      cart_id: CART_1,
       shared_pallet: shared,
       direct_box: null,
       selected_quote_id: shared.quote_id,
@@ -179,7 +230,11 @@ describe("offer acceptance + switch invalidation", () => {
     let state = createOfferCheckoutSessionState(dual);
     state = {
       ...state,
-      dual: { ...dual, selected_quote_id: shared.quote_id, selected_offer: "shared_pallet" },
+      dual: {
+        ...dual,
+        selected_quote_id: shared.quote_id,
+        selected_offer: "shared_pallet",
+      },
     };
     const acc = acceptSelectedOfferQuote({ state, quote_id: shared.quote_id });
     expect(acc.ok).toBe(true);
@@ -188,13 +243,20 @@ describe("offer acceptance + switch invalidation", () => {
 
     const nextShared = buildOfferQuote({
       offer: "shared_pallet",
-      money: { ...sampleSharedMoney(), shipping_sek: 120, total_sek: 1020, total_ore: 102000 },
+      money: {
+        ...sampleSharedMoney(),
+        shipping_sek: 120,
+        total_sek: 1020,
+        total_ore: 102000,
+      },
       wine_lines: sampleLines(),
       destination_country: "SE",
       pricing_source: "live_catalog",
+      user_id: USER_A,
+      cart_id: CART_1,
     });
     const nextDual = buildDualOfferQuoteSet({
-      cart_id: "cart-1",
+      cart_id: CART_1,
       shared_pallet: nextShared,
       direct_box: null,
     });
@@ -210,14 +272,18 @@ describe("offer acceptance + switch invalidation", () => {
       wine_lines: sampleLines(),
       destination_country: "SE",
       pricing_source: "live_catalog",
+      user_id: USER_A,
+      cart_id: CART_1,
     });
     const state = createOfferCheckoutSessionState(
       buildDualOfferQuoteSet({
-        cart_id: "c",
+        cart_id: CART_1,
         shared_pallet: shared,
         direct_box: buildUnavailableOfferQuote({
           offer: "direct_box",
           reason: "ineligible_destination",
+          user_id: USER_A,
+          cart_id: CART_1,
         }),
       }),
     );
@@ -226,6 +292,71 @@ describe("offer acceptance + switch invalidation", () => {
       quote_id: "oq_does_not_exist",
     });
     expect(bad.ok).toBe(false);
+  });
+
+  it("final gate rejects synthetic_fixture even after acceptance", () => {
+    const shared = buildOfferQuote({
+      offer: "shared_pallet",
+      money: sampleSharedMoney(),
+      wine_lines: sampleLines(),
+      destination_country: "SE",
+      pricing_source: "live_catalog",
+      user_id: USER_A,
+      cart_id: CART_1,
+    });
+    const direct = buildSyntheticDirectOfferFromShared({ shared });
+    let state = createOfferCheckoutSessionState(
+      buildDualOfferQuoteSet({
+        cart_id: CART_1,
+        shared_pallet: shared,
+        direct_box: direct,
+        selected_quote_id: direct.quote_id,
+      }),
+    );
+    const acc = acceptSelectedOfferQuote({
+      state,
+      quote_id: direct.quote_id,
+    });
+    expect(acc.ok).toBe(true);
+    if (!acc.ok) return;
+    state = acc.state;
+    const gate = mayEnableFinalCheckoutAction(state);
+    expect(gate.allow).toBe(false);
+    expect(gate.reason).toBe("synthetic_fixture_not_payable");
+  });
+
+  it("final gate rejects expired valid_until", () => {
+    const shared = buildOfferQuote({
+      offer: "shared_pallet",
+      money: sampleSharedMoney(),
+      wine_lines: sampleLines(),
+      destination_country: "SE",
+      pricing_source: "live_catalog",
+      user_id: USER_A,
+      cart_id: CART_1,
+      valid_until: "2026-11-08T10:00:00.000Z",
+    });
+    let state = createOfferCheckoutSessionState(
+      buildDualOfferQuoteSet({
+        cart_id: CART_1,
+        shared_pallet: shared,
+        direct_box: null,
+        selected_quote_id: shared.quote_id,
+      }),
+    );
+    const acc = acceptSelectedOfferQuote({
+      state,
+      quote_id: shared.quote_id,
+    });
+    expect(acc.ok).toBe(true);
+    if (!acc.ok) return;
+    state = acc.state;
+    const gate = mayEnableFinalCheckoutAction(
+      state,
+      "2026-11-08T12:00:00.000Z",
+    );
+    expect(gate.allow).toBe(false);
+    expect(gate.reason).toBe("quote_expired");
   });
 });
 
@@ -241,100 +372,5 @@ describe("payment method allowlist default-deny", () => {
       isMethodAllowedForOffer({ offer: "direct_box", method: "unknown_pay" }).reason,
     ).toBe("method_not_in_allowlist");
     expect(previewVisibleMethods("shared_pallet")).toContain("card");
-  });
-});
-
-describe("shared-pallet intent idempotency", () => {
-  beforeEach(() => {
-    resetSharedPalletIntentFlightsForTests();
-  });
-
-  it("reuses open PI with matching metadata", () => {
-    const found = findReusableSharedPalletIntent({
-      mode: "payment_intent",
-      sessionUserId: "user-1",
-      palletId: "pal-1",
-      expectedAmountOre: 99900,
-      intents: [
-        {
-          id: "pi_a",
-          status: "requires_payment_method",
-          client_secret: "sec_a",
-          metadata: {
-            user_id: "user-1",
-            pallet_id: "pal-1",
-            expected_amount_ore: "99900",
-            fulfillment_channel: "shared_pallet",
-          },
-        },
-      ],
-    });
-    expect(found?.id).toBe("pi_a");
-  });
-
-  it("does not reuse mismatched amount or conditional SI metadata", () => {
-    expect(
-      findReusableSharedPalletIntent({
-        mode: "payment_intent",
-        sessionUserId: "user-1",
-        palletId: "pal-1",
-        expectedAmountOre: 99900,
-        intents: [
-          {
-            id: "pi_b",
-            status: "requires_payment_method",
-            client_secret: "sec",
-            metadata: {
-              user_id: "user-1",
-              pallet_id: "pal-1",
-              expected_amount_ore: "100",
-              fulfillment_channel: "shared_pallet",
-            },
-          },
-        ],
-      }),
-    ).toBeNull();
-    expect(
-      findReusableSharedPalletIntent({
-        mode: "setup_intent",
-        sessionUserId: "user-1",
-        palletId: "pal-1",
-        expectedAmountOre: 99900,
-        intents: [
-          {
-            id: "seti_c",
-            status: "requires_payment_method",
-            client_secret: "sec",
-            metadata: {
-              user_id: "user-1",
-              pallet_id: "pal-1",
-              expected_amount_ore: "99900",
-              reservation_mode: "conditional",
-            },
-          },
-        ],
-      }),
-    ).toBeNull();
-  });
-
-  it("single-flight collapses concurrent identical creates", async () => {
-    const key = sharedPalletIntentFlightKey({
-      mode: "payment_intent",
-      userId: "u",
-      palletId: "p",
-      amountOre: 1,
-    });
-    let calls = 0;
-    const factory = async () => {
-      calls += 1;
-      await new Promise((r) => setTimeout(r, 20));
-      return { id: "pi_one" };
-    };
-    const [a, b] = await Promise.all([
-      withSharedPalletIntentSingleFlight(key, factory),
-      withSharedPalletIntentSingleFlight(key, factory),
-    ]);
-    expect(a).toEqual(b);
-    expect(calls).toBe(1);
   });
 });

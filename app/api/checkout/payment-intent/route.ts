@@ -37,9 +37,12 @@ import { computeExpectedAmountOre } from "@/lib/checkout/expected-amount";
 import { buildCheckoutQuote } from "@/lib/checkout/checkout-quote";
 import { resolveAndChargeCheckoutShipping } from "@/lib/checkout/resolve-checkout-shipping";
 import {
+  buildSharedPalletIntentMetadata,
+  buildSharedPalletStripeIdempotencyKey,
   findReusableSharedPalletIntent,
   sharedPalletIntentFlightKey,
   withSharedPalletIntentSingleFlight,
+  type SharedPalletIntentContext,
 } from "@/lib/checkout/shared-pallet-intent-idempotency";
 import { resolveMarketAgeMinimum } from "@/lib/age-limits";
 import {
@@ -865,50 +868,133 @@ export async function POST(request: Request) {
 
     const customerId = await getOrCreateStripeCustomer(user.id);
 
+    const sharedIntentContext: SharedPalletIntentContext = {
+      sessionUserId: user.id,
+      cartId: String(cart.id),
+      palletId: pallet_id,
+      expectedAmountOre: amountInOre,
+      currency: stripeCurrency,
+      stripeCustomerId: customerId,
+      pactPointsRedeem: pointsToRedeem,
+      promoDiscountSek,
+      voucherDiscountSek,
+      ageVerifiedDob: purchaseLegalMetadata.age_verified_dob,
+      ageVerificationMethod: purchaseLegalMetadata.age_verification_method,
+      purchaseTermsVersion: usConditional
+        ? null
+        : (purchaseLegalMetadata.purchase_terms_version ?? null),
+      usConditional,
+      usRegion: usConditional ? usStateUpper : null,
+    };
+
     if (paymentMode === "setup_intent") {
-      const existingIntents = await stripe.setupIntents.list({
-        customer: customerId,
-        limit: 8,
+      const idempotencyKey = buildSharedPalletStripeIdempotencyKey({
+        intentKind: "setup_intent",
+        context: sharedIntentContext,
       });
+      const flightKey = sharedPalletIntentFlightKey(idempotencyKey);
 
-      const existing = existingIntents.data.find((si) => {
-        const meta = si.metadata ?? {};
-        const isConditional = meta.reservation_mode === "conditional";
-        if (usConditional !== isConditional) return false;
-        if (
-          usConditional &&
-          (meta.region !== usStateUpper ||
-            meta.country_code !== "US" ||
-            meta.market_code !== "US")
-        ) {
-          return false;
-        }
-        if (
-          meta.age_verified_dob !== purchaseLegalMetadata.age_verified_dob ||
-          meta.age_verification_method !==
-            purchaseLegalMetadata.age_verification_method
-        ) {
-          return false;
-        }
-        if (
-          !usConditional &&
-          meta.purchase_terms_version !== purchaseLegalMetadata.purchase_terms_version
-        ) {
-          return false;
-        }
-        return (
-          meta.pallet_id === pallet_id &&
-          meta.expected_amount_ore === String(amountInOre) &&
-          si.status === "requires_payment_method"
+      // List + create inside one flight; Stripe Idempotency-Key covers
+      // multi-instance races that process-local flight cannot.
+      const intent = await withSharedPalletIntentSingleFlight(
+        flightKey,
+        async () => {
+          const existingIntents = await stripe!.setupIntents.list({
+            customer: customerId,
+            limit: 8,
+          });
+
+          if (usConditional) {
+            const existing = existingIntents.data.find((si) => {
+              const meta = si.metadata ?? {};
+              if (meta.reservation_mode !== "conditional") return false;
+              if (
+                meta.region !== usStateUpper ||
+                meta.country_code !== "US" ||
+                meta.market_code !== "US"
+              ) {
+                return false;
+              }
+              if (
+                meta.age_verified_dob !==
+                  purchaseLegalMetadata.age_verified_dob ||
+                meta.age_verification_method !==
+                  purchaseLegalMetadata.age_verification_method
+              ) {
+                return false;
+              }
+              return (
+                meta.user_id === user.id &&
+                meta.cart_id === String(cart.id) &&
+                meta.pallet_id === pallet_id &&
+                meta.expected_amount_ore === String(amountInOre) &&
+                si.status === "requires_payment_method" &&
+                !si.payment_method &&
+                Boolean(si.client_secret)
+              );
+            });
+            if (existing) return existing;
+          } else {
+            const reusable = findReusableSharedPalletIntent({
+              intents: existingIntents.data.map((si) => ({
+                id: si.id,
+                status: si.status,
+                client_secret: si.client_secret,
+                metadata: (si.metadata ?? undefined) as
+                  | Record<string, string>
+                  | null,
+                payment_method:
+                  typeof si.payment_method === "string"
+                    ? si.payment_method
+                    : si.payment_method?.id ?? null,
+              })),
+              context: sharedIntentContext,
+              intentKind: "setup_intent",
+            });
+            if (reusable) {
+              const full = existingIntents.data.find((s) => s.id === reusable.id);
+              if (full) return full;
+            }
+          }
+
+          const metadata = buildSharedPalletIntentMetadata(
+            sharedIntentContext,
+            usConditional && usStateUpper
+              ? {
+                  country_code: "US",
+                  region: usStateUpper,
+                  market_code: "US",
+                  reservation_mode: "conditional",
+                  conditional_ack_confirmed: "true",
+                  terms_version: US_CONDITIONAL_TERMS_VERSION,
+                }
+              : {},
+          );
+
+          return stripe!.setupIntents.create(
+            {
+              customer: customerId,
+              ...(usConditional
+                ? { payment_method_types: ["card"] }
+                : { automatic_payment_methods: { enabled: true } }),
+              usage: "off_session",
+              metadata,
+            },
+            { idempotencyKey },
+          );
+        },
+      );
+
+      if (intent.client_secret) {
+        console.log(
+          "[payment-intent] SetupIntent ready:",
+          intent.id,
+          "(reuse or create)",
         );
-      });
-
-      if (existing?.client_secret) {
-        console.log("[payment-intent] Reusing open SetupIntent:", existing.id);
         return NextResponse.json({
           paymentMode,
-          clientSecret: existing.client_secret,
-          intentId: existing.id,
+          clientSecret: intent.client_secret,
+          intentId: intent.id,
           amountInOre,
           quote,
           bottlesFilled,
@@ -916,55 +1002,10 @@ export async function POST(request: Request) {
           palletThreshold: PALLET_THRESHOLD,
         });
       }
-
-      const metadata: Record<string, string> = {
-        user_id: user.id,
-        pallet_id,
-        fulfillment_channel: clientChannel ?? "shared_pallet",
-        pact_points_redeem: String(pointsToRedeem),
-        expected_amount_ore: String(amountInOre),
-        voucher_discount_sek: String(voucherDiscountSek),
-        promo_discount_sek: String(promoDiscountSek),
-        ...purchaseLegalMetadata,
-      };
-      if (usConditional && usStateUpper) {
-        metadata.country_code = "US";
-        metadata.region = usStateUpper;
-        metadata.market_code = "US";
-        metadata.reservation_mode = "conditional";
-        metadata.conditional_ack_confirmed = "true";
-        metadata.terms_version = US_CONDITIONAL_TERMS_VERSION;
-      }
-
-      const flightKey = sharedPalletIntentFlightKey({
-        mode: "setup_intent",
-        userId: user.id,
-        palletId: pallet_id,
-        amountOre: amountInOre,
-      });
-      const intent = await withSharedPalletIntentSingleFlight(flightKey, () =>
-        stripe!.setupIntents.create({
-          customer: customerId,
-          ...(usConditional
-            ? { payment_method_types: ["card"] }
-            : { automatic_payment_methods: { enabled: true } }),
-          usage: "off_session",
-          metadata,
-        }),
+      return NextResponse.json(
+        { error: "SetupIntent missing client_secret" },
+        { status: 500 },
       );
-
-      console.log("[payment-intent] Created SetupIntent:", intent.id);
-
-      return NextResponse.json({
-        paymentMode,
-        clientSecret: intent.client_secret,
-        intentId: intent.id,
-        amountInOre,
-        quote,
-        bottlesFilled,
-        palletStatus: palletStatusResponse,
-        palletThreshold: PALLET_THRESHOLD,
-      });
     }
 
     if (usConditional) {
@@ -974,68 +1015,66 @@ export async function POST(request: Request) {
       );
     }
 
-    // Shared-pallet PI: reuse open matching intents (same problem as dual client POSTs).
-    const existingPiList = await stripe!.paymentIntents.list({
-      customer: customerId,
-      limit: 8,
+    const piIdempotencyKey = buildSharedPalletStripeIdempotencyKey({
+      intentKind: "payment_intent",
+      context: sharedIntentContext,
     });
-    const reusablePi = findReusableSharedPalletIntent({
-      intents: existingPiList.data.map((pi) => ({
-        id: pi.id,
-        status: pi.status,
-        client_secret: pi.client_secret,
-        metadata: (pi.metadata ?? undefined) as Record<string, string> | null,
-      })),
-      sessionUserId: user.id,
-      palletId: pallet_id,
-      expectedAmountOre: amountInOre,
-      mode: "payment_intent",
-    });
-    if (reusablePi?.client_secret) {
-      console.log(
-        "[payment-intent] Reusing open shared_pallet PaymentIntent:",
-        reusablePi.id,
-      );
-      return NextResponse.json({
-        paymentMode,
-        clientSecret: reusablePi.client_secret,
-        intentId: reusablePi.id,
-        amountInOre,
-        quote,
-        bottlesFilled,
-        palletStatus: palletStatusResponse,
-        palletThreshold: PALLET_THRESHOLD,
-      });
-    }
+    const piFlightKey = sharedPalletIntentFlightKey(piIdempotencyKey);
 
-    const piMetadata: Record<string, string> = {
-      user_id: user.id,
-      pallet_id,
-      fulfillment_channel: clientChannel ?? "shared_pallet",
-      pact_points_redeem: String(pointsToRedeem),
-      expected_amount_ore: String(amountInOre),
-      voucher_discount_sek: String(voucherDiscountSek),
-      promo_discount_sek: String(promoDiscountSek),
-      ...purchaseLegalMetadata,
-    };
-    const piFlightKey = sharedPalletIntentFlightKey({
-      mode: "payment_intent",
-      userId: user.id,
-      palletId: pallet_id,
-      amountOre: amountInOre,
-    });
-    const intent = await withSharedPalletIntentSingleFlight(piFlightKey, () =>
-      stripe!.paymentIntents.create({
-        customer: customerId,
-        amount: amountInOre,
-        currency: stripeCurrency,
-        automatic_payment_methods: { enabled: true },
-        capture_method: "automatic",
-        metadata: piMetadata,
-      }),
+    const intent = await withSharedPalletIntentSingleFlight(
+      piFlightKey,
+      async () => {
+        const existingPiList = await stripe!.paymentIntents.list({
+          customer: customerId,
+          limit: 8,
+        });
+        const reusablePi = findReusableSharedPalletIntent({
+          intents: existingPiList.data.map((pi) => ({
+            id: pi.id,
+            status: pi.status,
+            client_secret: pi.client_secret,
+            amount: pi.amount,
+            currency: pi.currency,
+            customer:
+              typeof pi.customer === "string"
+                ? pi.customer
+                : pi.customer?.id ?? null,
+            payment_method:
+              typeof pi.payment_method === "string"
+                ? pi.payment_method
+                : pi.payment_method?.id ?? null,
+            metadata: (pi.metadata ?? undefined) as
+              | Record<string, string>
+              | null,
+          })),
+          context: sharedIntentContext,
+          intentKind: "payment_intent",
+        });
+        if (reusablePi) {
+          const full = existingPiList.data.find((p) => p.id === reusablePi.id);
+          if (full) return full;
+        }
+
+        const piMetadata = buildSharedPalletIntentMetadata(sharedIntentContext);
+        return stripe!.paymentIntents.create(
+          {
+            customer: customerId,
+            amount: amountInOre,
+            currency: stripeCurrency,
+            automatic_payment_methods: { enabled: true },
+            capture_method: "automatic",
+            metadata: piMetadata,
+          },
+          { idempotencyKey: piIdempotencyKey },
+        );
+      },
     );
 
-    console.log("[payment-intent] Created PaymentIntent:", intent.id);
+    console.log(
+      "[payment-intent] PaymentIntent ready:",
+      intent.id,
+      "(reuse or create)",
+    );
 
     return NextResponse.json({
       paymentMode,
