@@ -1,11 +1,15 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   SHARED_PALLET_IDEMPOTENCY_VERSION,
+  SharedPalletIntentUnusableError,
   buildSharedPalletIntentMetadata,
+  buildSharedPalletRecoveryIdempotencyKey,
   buildSharedPalletStripeIdempotencyKey,
+  createSharedPalletIntentWithReplayGuard,
   findReusableSharedPalletIntent,
   resetSharedPalletIntentFlightsForTests,
   sharedPalletIntentFlightKey,
+  sharedPalletIntentReplayDisposition,
   shouldReuseOpenSharedPalletPaymentIntent,
   withSharedPalletIntentSingleFlight,
   type SharedPalletIntentContext,
@@ -196,11 +200,17 @@ describe("shared-pallet SI reuse invariants", () => {
     expect(found?.id).toBe("seti_ok");
   });
 
-  it("does not reuse conditional SI via shared helper", () => {
+  it("does not reuse incomplete US conditional SI metadata", () => {
     expect(
       findReusableSharedPalletIntent({
         intentKind: "setup_intent",
-        context: { ...baseContext, usConditional: true },
+        context: {
+          ...baseContext,
+          usConditional: true,
+          usRegion: "CA",
+          usConditionalTermsVersion: "US_CONDITIONAL_RESERVATION_v1",
+          purchaseTermsVersion: null,
+        },
         intents: [
           {
             id: "seti_c",
@@ -214,6 +224,38 @@ describe("shared-pallet SI reuse invariants", () => {
         ],
       }),
     ).toBeNull();
+  });
+
+  it("reuses US conditional SI when region + terms_version match", () => {
+    const usCtx: SharedPalletIntentContext = {
+      ...baseContext,
+      usConditional: true,
+      usRegion: "CA",
+      usConditionalTermsVersion: "US_CONDITIONAL_RESERVATION_v1",
+      purchaseTermsVersion: null,
+    };
+    const found = findReusableSharedPalletIntent({
+      intentKind: "setup_intent",
+      context: usCtx,
+      intents: [
+        {
+          id: "seti_us",
+          status: "requires_payment_method",
+          client_secret: "sec_us",
+          payment_method: null,
+          metadata: {
+            ...buildSharedPalletIntentMetadata(usCtx, {
+              country_code: "US",
+              region: "CA",
+              market_code: "US",
+              reservation_mode: "conditional",
+              terms_version: "US_CONDITIONAL_RESERVATION_v1",
+            }),
+          },
+        },
+      ],
+    });
+    expect(found?.id).toBe("seti_us");
   });
 });
 
@@ -341,5 +383,223 @@ describe("shared-pallet distributed create idempotency", () => {
       context: { ...baseContext, cartId: "old-cart" },
     });
     expect(keyUnchanged).not.toBe(keyAfterCartChange);
+  });
+
+  it("US conditional terms_version participates in Idempotency-Key material", () => {
+    const usBase: SharedPalletIntentContext = {
+      ...baseContext,
+      usConditional: true,
+      usRegion: "NY",
+      purchaseTermsVersion: null,
+      usConditionalTermsVersion: "US_CONDITIONAL_RESERVATION_v1",
+    };
+    const keyV1 = buildSharedPalletStripeIdempotencyKey({
+      intentKind: "setup_intent",
+      context: usBase,
+    });
+    const keyV2 = buildSharedPalletStripeIdempotencyKey({
+      intentKind: "setup_intent",
+      context: {
+        ...usBase,
+        usConditionalTermsVersion: "US_CONDITIONAL_RESERVATION_v2",
+      },
+    });
+    expect(keyV1).not.toBe(keyV2);
+    expect(keyV1).toContain(SHARED_PALLET_IDEMPOTENCY_VERSION);
+  });
+});
+
+describe("shared-pallet idempotent replay guard", () => {
+  beforeEach(() => {
+    resetSharedPalletIntentFlightsForTests();
+  });
+
+  it("disposition: canceled/attached → recover; succeeded/processing PI → fail_closed", () => {
+    expect(
+      sharedPalletIntentReplayDisposition({
+        intentKind: "payment_intent",
+        context: baseContext,
+        candidate: matchingPi({ status: "canceled" }),
+      }),
+    ).toBe("recover");
+    expect(
+      sharedPalletIntentReplayDisposition({
+        intentKind: "payment_intent",
+        context: baseContext,
+        candidate: matchingPi({ payment_method: "pm_1" }),
+      }),
+    ).toBe("recover");
+    expect(
+      sharedPalletIntentReplayDisposition({
+        intentKind: "payment_intent",
+        context: baseContext,
+        candidate: matchingPi({ status: "succeeded" }),
+      }),
+    ).toBe("fail_closed");
+    expect(
+      sharedPalletIntentReplayDisposition({
+        intentKind: "payment_intent",
+        context: baseContext,
+        candidate: matchingPi({ status: "processing" }),
+      }),
+    ).toBe("fail_closed");
+    expect(
+      sharedPalletIntentReplayDisposition({
+        intentKind: "payment_intent",
+        context: baseContext,
+        candidate: matchingPi(),
+      }),
+    ).toBe("ready");
+  });
+
+  it("list miss + same-key canceled replay recovers once under deterministic supersedes key", async () => {
+    const baseKey = buildSharedPalletStripeIdempotencyKey({
+      intentKind: "payment_intent",
+      context: baseContext,
+    });
+    const recoveryKey = buildSharedPalletRecoveryIdempotencyKey({
+      intentKind: "payment_intent",
+      context: baseContext,
+      supersedesIntentId: "pi_dead",
+    });
+    const keys: string[] = [];
+    const result = await createSharedPalletIntentWithReplayGuard({
+      intentKind: "payment_intent",
+      context: baseContext,
+      create: async (key) => {
+        keys.push(key);
+        if (key === baseKey) {
+          return matchingPi({ id: "pi_dead", status: "canceled" });
+        }
+        expect(key).toBe(recoveryKey);
+        return matchingPi({ id: "pi_fresh" });
+      },
+    });
+    expect(result.intent.id).toBe("pi_fresh");
+    expect(result.recoveredFromId).toBe("pi_dead");
+    expect(result.idempotencyKeyUsed).toBe(recoveryKey);
+    expect(keys).toEqual([baseKey, recoveryKey]);
+  });
+
+  it("same-key succeeded PI fails closed without recovery create", async () => {
+    const baseKey = buildSharedPalletStripeIdempotencyKey({
+      intentKind: "payment_intent",
+      context: baseContext,
+    });
+    let creates = 0;
+    await expect(
+      createSharedPalletIntentWithReplayGuard({
+        intentKind: "payment_intent",
+        context: baseContext,
+        create: async (key) => {
+          creates += 1;
+          expect(key).toBe(baseKey);
+          return matchingPi({ id: "pi_paid", status: "succeeded" });
+        },
+      }),
+    ).rejects.toBeInstanceOf(SharedPalletIntentUnusableError);
+    expect(creates).toBe(1);
+  });
+
+  it("attached-method SI replay recovers; concurrent callers share recovery key", async () => {
+    const baseKey = buildSharedPalletStripeIdempotencyKey({
+      intentKind: "setup_intent",
+      context: baseContext,
+    });
+    const recoveryKey = buildSharedPalletRecoveryIdempotencyKey({
+      intentKind: "setup_intent",
+      context: baseContext,
+      supersedesIntentId: "seti_dead",
+    });
+    const cache = new Map<string, StripeIntentLike>();
+    cache.set(
+      baseKey,
+      {
+        id: "seti_dead",
+        status: "requires_payment_method",
+        client_secret: "sec_old",
+        payment_method: "pm_attached",
+        metadata: buildSharedPalletIntentMetadata(baseContext),
+      },
+    );
+
+    const create = async (key: string) => {
+      const hit = cache.get(key);
+      if (hit) return hit;
+      const fresh: StripeIntentLike = {
+        id: "seti_fresh",
+        status: "requires_payment_method",
+        client_secret: "sec_fresh",
+        payment_method: null,
+        metadata: buildSharedPalletIntentMetadata(baseContext),
+      };
+      cache.set(key, fresh);
+      return fresh;
+    };
+
+    const [a, b] = await Promise.all([
+      createSharedPalletIntentWithReplayGuard({
+        intentKind: "setup_intent",
+        context: baseContext,
+        create,
+      }),
+      createSharedPalletIntentWithReplayGuard({
+        intentKind: "setup_intent",
+        context: baseContext,
+        create,
+      }),
+    ]);
+    expect(a.intent.id).toBe("seti_fresh");
+    expect(b.intent.id).toBe("seti_fresh");
+    expect(a.idempotencyKeyUsed).toBe(recoveryKey);
+    expect(b.idempotencyKeyUsed).toBe(recoveryKey);
+  });
+
+  it("legitimate stable retry returns ready intent without recovery key", async () => {
+    const baseKey = buildSharedPalletStripeIdempotencyKey({
+      intentKind: "payment_intent",
+      context: baseContext,
+    });
+    let creates = 0;
+    const open = matchingPi({ id: "pi_stable" });
+    const first = await createSharedPalletIntentWithReplayGuard({
+      intentKind: "payment_intent",
+      context: baseContext,
+      create: async (key) => {
+        creates += 1;
+        expect(key).toBe(baseKey);
+        return open;
+      },
+    });
+    const second = await createSharedPalletIntentWithReplayGuard({
+      intentKind: "payment_intent",
+      context: baseContext,
+      create: async (key) => {
+        creates += 1;
+        expect(key).toBe(baseKey);
+        return open; // Stripe idempotent replay of same open PI
+      },
+    });
+    expect(first.recoveredFromId).toBeNull();
+    expect(second.recoveredFromId).toBeNull();
+    expect(first.intent.id).toBe("pi_stable");
+    expect(second.intent.id).toBe("pi_stable");
+    expect(creates).toBe(2);
+  });
+
+  it("rejects missing client_secret as non-ready (PI/SI)", () => {
+    expect(
+      shouldReuseOpenSharedPalletPaymentIntent({
+        candidate: matchingPi({ client_secret: null }),
+        context: baseContext,
+      }),
+    ).toBe(false);
+    expect(
+      sharedPalletIntentReplayDisposition({
+        intentKind: "payment_intent",
+        context: baseContext,
+        candidate: matchingPi({ client_secret: "" }),
+      }),
+    ).toBe("recover");
   });
 });

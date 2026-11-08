@@ -39,10 +39,13 @@ import { resolveAndChargeCheckoutShipping } from "@/lib/checkout/resolve-checkou
 import {
   buildSharedPalletIntentMetadata,
   buildSharedPalletStripeIdempotencyKey,
+  createSharedPalletIntentWithReplayGuard,
   findReusableSharedPalletIntent,
+  SharedPalletIntentUnusableError,
   sharedPalletIntentFlightKey,
   withSharedPalletIntentSingleFlight,
   type SharedPalletIntentContext,
+  type StripeIntentLike,
 } from "@/lib/checkout/shared-pallet-intent-idempotency";
 import { resolveMarketAgeMinimum } from "@/lib/age-limits";
 import {
@@ -885,7 +888,36 @@ export async function POST(request: Request) {
         : (purchaseLegalMetadata.purchase_terms_version ?? null),
       usConditional,
       usRegion: usConditional ? usStateUpper : null,
+      usConditionalTermsVersion: usConditional
+        ? US_CONDITIONAL_TERMS_VERSION
+        : null,
     };
+
+    const toStripeIntentLike = (raw: {
+      id: string;
+      status: string;
+      client_secret?: string | null;
+      amount?: number | null;
+      currency?: string | null;
+      customer?: string | { id?: string } | null;
+      payment_method?: string | { id?: string } | null;
+      metadata?: Record<string, string> | null;
+    }): StripeIntentLike => ({
+      id: raw.id,
+      status: raw.status,
+      client_secret: raw.client_secret,
+      amount: raw.amount,
+      currency: raw.currency,
+      customer:
+        typeof raw.customer === "string"
+          ? raw.customer
+          : raw.customer?.id ?? null,
+      payment_method:
+        typeof raw.payment_method === "string"
+          ? raw.payment_method
+          : raw.payment_method?.id ?? null,
+      metadata: (raw.metadata ?? undefined) as Record<string, string> | null,
+    });
 
     if (paymentMode === "setup_intent") {
       const idempotencyKey = buildSharedPalletStripeIdempotencyKey({
@@ -895,7 +927,8 @@ export async function POST(request: Request) {
       const flightKey = sharedPalletIntentFlightKey(idempotencyKey);
 
       // List + create inside one flight; Stripe Idempotency-Key covers
-      // multi-instance races that process-local flight cannot.
+      // multi-instance races. Create results are re-validated; canceled /
+      // attached replays recover via deterministic supersedes key.
       const intent = await withSharedPalletIntentSingleFlight(
         flightKey,
         async () => {
@@ -904,57 +937,14 @@ export async function POST(request: Request) {
             limit: 8,
           });
 
-          if (usConditional) {
-            const existing = existingIntents.data.find((si) => {
-              const meta = si.metadata ?? {};
-              if (meta.reservation_mode !== "conditional") return false;
-              if (
-                meta.region !== usStateUpper ||
-                meta.country_code !== "US" ||
-                meta.market_code !== "US"
-              ) {
-                return false;
-              }
-              if (
-                meta.age_verified_dob !==
-                  purchaseLegalMetadata.age_verified_dob ||
-                meta.age_verification_method !==
-                  purchaseLegalMetadata.age_verification_method
-              ) {
-                return false;
-              }
-              return (
-                meta.user_id === user.id &&
-                meta.cart_id === String(cart.id) &&
-                meta.pallet_id === pallet_id &&
-                meta.expected_amount_ore === String(amountInOre) &&
-                si.status === "requires_payment_method" &&
-                !si.payment_method &&
-                Boolean(si.client_secret)
-              );
-            });
-            if (existing) return existing;
-          } else {
-            const reusable = findReusableSharedPalletIntent({
-              intents: existingIntents.data.map((si) => ({
-                id: si.id,
-                status: si.status,
-                client_secret: si.client_secret,
-                metadata: (si.metadata ?? undefined) as
-                  | Record<string, string>
-                  | null,
-                payment_method:
-                  typeof si.payment_method === "string"
-                    ? si.payment_method
-                    : si.payment_method?.id ?? null,
-              })),
-              context: sharedIntentContext,
-              intentKind: "setup_intent",
-            });
-            if (reusable) {
-              const full = existingIntents.data.find((s) => s.id === reusable.id);
-              if (full) return full;
-            }
+          const reusable = findReusableSharedPalletIntent({
+            intents: existingIntents.data.map((si) => toStripeIntentLike(si)),
+            context: sharedIntentContext,
+            intentKind: "setup_intent",
+          });
+          if (reusable) {
+            const full = existingIntents.data.find((s) => s.id === reusable.id);
+            if (full) return full;
           }
 
           const metadata = buildSharedPalletIntentMetadata(
@@ -971,17 +961,24 @@ export async function POST(request: Request) {
               : {},
           );
 
-          return stripe!.setupIntents.create(
-            {
-              customer: customerId,
-              ...(usConditional
-                ? { payment_method_types: ["card"] }
-                : { automatic_payment_methods: { enabled: true } }),
-              usage: "off_session",
-              metadata,
-            },
-            { idempotencyKey },
-          );
+          const created = await createSharedPalletIntentWithReplayGuard({
+            intentKind: "setup_intent",
+            context: sharedIntentContext,
+            toLike: toStripeIntentLike,
+            create: (key) =>
+              stripe!.setupIntents.create(
+                {
+                  customer: customerId,
+                  ...(usConditional
+                    ? { payment_method_types: ["card"] }
+                    : { automatic_payment_methods: { enabled: true } }),
+                  usage: "off_session",
+                  metadata,
+                },
+                { idempotencyKey: key },
+              ),
+          });
+          return created.intent;
         },
       );
 
@@ -1003,7 +1000,7 @@ export async function POST(request: Request) {
         });
       }
       return NextResponse.json(
-        { error: "SetupIntent missing client_secret" },
+        { error: "SetupIntent missing client_secret", code: "missing_client_secret" },
         { status: 500 },
       );
     }
@@ -1029,24 +1026,7 @@ export async function POST(request: Request) {
           limit: 8,
         });
         const reusablePi = findReusableSharedPalletIntent({
-          intents: existingPiList.data.map((pi) => ({
-            id: pi.id,
-            status: pi.status,
-            client_secret: pi.client_secret,
-            amount: pi.amount,
-            currency: pi.currency,
-            customer:
-              typeof pi.customer === "string"
-                ? pi.customer
-                : pi.customer?.id ?? null,
-            payment_method:
-              typeof pi.payment_method === "string"
-                ? pi.payment_method
-                : pi.payment_method?.id ?? null,
-            metadata: (pi.metadata ?? undefined) as
-              | Record<string, string>
-              | null,
-          })),
+          intents: existingPiList.data.map((pi) => toStripeIntentLike(pi)),
           context: sharedIntentContext,
           intentKind: "payment_intent",
         });
@@ -1056,19 +1036,36 @@ export async function POST(request: Request) {
         }
 
         const piMetadata = buildSharedPalletIntentMetadata(sharedIntentContext);
-        return stripe!.paymentIntents.create(
-          {
-            customer: customerId,
-            amount: amountInOre,
-            currency: stripeCurrency,
-            automatic_payment_methods: { enabled: true },
-            capture_method: "automatic",
-            metadata: piMetadata,
-          },
-          { idempotencyKey: piIdempotencyKey },
-        );
+        const created = await createSharedPalletIntentWithReplayGuard({
+          intentKind: "payment_intent",
+          context: sharedIntentContext,
+          toLike: toStripeIntentLike,
+          create: (key) =>
+            stripe!.paymentIntents.create(
+              {
+                customer: customerId,
+                amount: amountInOre,
+                currency: stripeCurrency,
+                automatic_payment_methods: { enabled: true },
+                capture_method: "automatic",
+                metadata: piMetadata,
+              },
+              { idempotencyKey: key },
+            ),
+        });
+        return created.intent;
       },
     );
+
+    if (!intent.client_secret) {
+      return NextResponse.json(
+        {
+          error: "PaymentIntent missing client_secret",
+          code: "missing_client_secret",
+        },
+        { status: 500 },
+      );
+    }
 
     console.log(
       "[payment-intent] PaymentIntent ready:",
@@ -1089,6 +1086,17 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("=== CHECKOUT PAYMENT INTENT ERROR ===");
     console.error(error);
+    if (error instanceof SharedPalletIntentUnusableError) {
+      return NextResponse.json(
+        {
+          error: error.message,
+          code: error.code,
+          intentId: error.intentId,
+          intentStatus: error.intentStatus,
+        },
+        { status: 409 },
+      );
+    }
     const message = error instanceof Error ? error.message : "Internal server error";
     return NextResponse.json({ error: message }, { status: 500 });
   }
