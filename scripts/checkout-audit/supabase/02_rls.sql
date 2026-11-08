@@ -99,7 +99,9 @@ DROP POLICY IF EXISTS audit_shipping_regions_select ON shipping_regions;
 CREATE POLICY audit_shipping_regions_select ON shipping_regions FOR SELECT USING (true);
 
 -- Shipping rates: no anon/authenticated policies (service role only) — matches prod intent
--- Order reservations: users read own; writes via service role in checkout/webhook
+-- Order reservations: users read own.
+-- NOTE: confirm route inserts items via user-scoped supabaseServer() — see
+-- 06_reservation_write_policies.sql for INSERT/UPDATE policies required for browser E2E.
 DROP POLICY IF EXISTS audit_order_reservations_select_own ON order_reservations;
 CREATE POLICY audit_order_reservations_select_own ON order_reservations
   FOR SELECT USING (auth.uid() = user_id);
