@@ -531,7 +531,9 @@ export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
   const selectedTitle =
     state?.dual.selected_offer === "direct_box"
       ? copy.dualOfferDirectTitle
-      : copy.dualOfferSharedTitle;
+      : state?.dual.selected_offer === "shared_pallet"
+        ? copy.dualOfferSharedTitle
+        : "—";
 
   const quoteIds = [
     state?.dual.shared_pallet?.quote_id,
