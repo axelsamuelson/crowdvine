@@ -41,7 +41,10 @@ import {
   type StripeConfirmResult,
 } from "@/components/checkout/stripe-payment-section";
 import type { CheckoutQuote } from "@/lib/checkout/checkout-quote";
-import { checkoutChargeTimingMessageKey } from "@/lib/checkout/charge-timing-copy";
+import {
+  checkoutChargeTimingMessageKey,
+  checkoutPlaceOrderCtaMessageKey,
+} from "@/lib/checkout/charge-timing-copy";
 import { toast } from "sonner";
 import {
   MapPin,
@@ -392,6 +395,16 @@ function CheckoutContent({
         isUsConditional,
       }),
     [paymentMode, isUsConditional],
+  );
+
+  const placeOrderCta = useMemo(
+    () =>
+      checkoutPlaceOrderCtaMessageKey({
+        paymentMode,
+        isUsConditional,
+        isSubmitting,
+      }),
+    [paymentMode, isUsConditional, isSubmitting],
   );
 
   const effectiveDelivery = useMemo(() => {
@@ -4914,14 +4927,18 @@ function CheckoutContent({
                           </div>
 
                           {chargeTimingCopyKey ? (
-                            <p className="text-sm text-stone-600">
+                            <p
+                              className="text-sm text-stone-600"
+                              data-checkout-charge-timing={chargeTimingCopyKey}
+                            >
                               {t(`checkout.${chargeTimingCopyKey}`)}
                             </p>
                           ) : null}
 
                           <Button
                             type="button"
-                            className="w-full border-transparent bg-black text-white shadow-none ring-0 hover:border-transparent hover:bg-black/90 hover:shadow-none focus-visible:border-transparent focus-visible:bg-black/90 focus-visible:ring-white/40"
+                            data-checkout-place-cta={placeOrderCta.key}
+                            className="h-auto min-h-10 w-full whitespace-normal break-words border-transparent bg-black px-4 py-3 text-center text-sm leading-snug text-white shadow-none ring-0 hover:border-transparent hover:bg-black/90 hover:shadow-none focus-visible:border-transparent focus-visible:bg-black/90 focus-visible:ring-white/40 sm:text-base"
                             disabled={
                               !stripeConfirmFn ||
                               !paymentMode ||
@@ -4938,17 +4955,13 @@ function CheckoutContent({
                             }
                             onClick={handlePlaceReservation}
                           >
-                            {isSubmitting
-                              ? t("checkout.processing")
-                              : paymentMode === "payment_intent"
-                                ? t("checkout.payNow")
-                                : isUsConditional
-                                  ? t("checkout.usConditionalButton")
-                                  : t("checkout.placeReservationWithPayment", {
-                                      amount: formatChargedAmount(
-                                        displayTotal ?? 0,
-                                      ),
-                                    })}
+                            {placeOrderCta.needsAmount
+                              ? t(`checkout.${placeOrderCta.key}`, {
+                                  amount: formatChargedAmount(
+                                    displayTotal ?? 0,
+                                  ),
+                                })
+                              : t(`checkout.${placeOrderCta.key}`)}
                           </Button>
                         </div>
                       </>
