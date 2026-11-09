@@ -47,6 +47,10 @@ import {
   mayRunLegacySharedPalletPaymentUi,
 } from "@/lib/checkout/dual-offer-checkout-isolation";
 import { customerZoneSaveErrorMessage } from "@/lib/checkout/dual-offer-customer-copy";
+import {
+  checkoutChargeTimingMessageKey,
+  checkoutPlaceOrderCtaMessageKey,
+} from "@/lib/checkout/charge-timing-copy";
 import { toast } from "sonner";
 import {
   MapPin,
@@ -3310,6 +3314,25 @@ function CheckoutContent({
   const currencyCode =
     shopping.currencyCode || cart?.cost?.totalAmount?.currencyCode || "SEK";
 
+  const chargeTimingCopyKey = useMemo(
+    () =>
+      checkoutChargeTimingMessageKey({
+        paymentMode,
+        isUsConditional,
+      }),
+    [paymentMode, isUsConditional],
+  );
+
+  const placeOrderCta = useMemo(
+    () =>
+      checkoutPlaceOrderCtaMessageKey({
+        paymentMode,
+        isUsConditional,
+        isSubmitting,
+      }),
+    [paymentMode, isUsConditional, isSubmitting],
+  );
+
   const orderLines: CartItem[] = cart?.lines ?? [];
 
   const renderCartLineRow = (line: CartItem) => {
@@ -5019,14 +5042,20 @@ function CheckoutContent({
                             </span>
                           </div>
 
-                          <p className="text-sm text-stone-600">
-                            {t("checkout.noChargeUntilPalletCloses")}
-                          </p>
+                          {chargeTimingCopyKey ? (
+                            <p
+                              className="text-sm text-stone-600"
+                              data-checkout-charge-timing={chargeTimingCopyKey}
+                            >
+                              {t(`checkout.${chargeTimingCopyKey}`)}
+                            </p>
+                          ) : null}
 
                           <Button
                             type="button"
                             data-testid="checkout-place-reservation"
-                            className="w-full border-transparent bg-black text-white shadow-none ring-0 hover:border-transparent hover:bg-black/90 hover:shadow-none focus-visible:border-transparent focus-visible:bg-black/90 focus-visible:ring-white/40"
+                            data-checkout-place-cta={placeOrderCta.key}
+                            className="!h-auto min-h-10 w-full !whitespace-normal break-words !rounded-xl border-transparent bg-black !px-5 py-3 text-center text-sm leading-snug text-white shadow-none ring-0 hover:border-transparent hover:bg-black/90 hover:shadow-none focus-visible:border-transparent focus-visible:bg-black/90 focus-visible:ring-white/40 sm:text-base"
                             disabled={
                               !legacySharedPalletPaymentAllowed ||
                               !stripeConfirmFn ||
@@ -5044,17 +5073,19 @@ function CheckoutContent({
                             }
                             onClick={handlePlaceReservation}
                           >
-                            {isSubmitting
+                            {placeOrderCta.key === "processing"
                               ? t("checkout.processing")
-                              : paymentMode === "payment_intent"
+                              : placeOrderCta.key === "payNow"
                                 ? t("checkout.payNow")
-                                : isUsConditional
+                                : placeOrderCta.key === "usConditionalButton"
                                   ? t("checkout.usConditionalButton")
-                                  : t("checkout.placeReservationWithPayment", {
-                                      amount: formatChargedAmount(
-                                        displayTotal ?? 0,
-                                      ),
-                                    })}
+                                  : placeOrderCta.needsAmount
+                                    ? t("checkout.placeReservationWithPayment", {
+                                        amount: formatChargedAmount(
+                                          displayTotal ?? 0,
+                                        ),
+                                      })
+                                    : t("checkout.placeReservation")}
                           </Button>
                         </div>
                       </>

@@ -532,6 +532,7 @@
     "termsLinkPurchase": "köpvillkoren",
     "termsLinkPrivacy": "integritetspolicyn",
     "termsVersionStale": "Villkoren har uppdaterats. Läs igenom och godkänn de nya villkoren.",
+    "chargedOnConfirm": "Ditt kort debiteras nu när du bekräftar.",
     "noChargeUntilPalletCloses": "Inget dras nu. Du betalar först när pallen stänger.",
     "otpEmailHint": "Vi använder den här adressen för orderuppdateringar.",
     "preparingCheckout": "Förbereder betalning…",
