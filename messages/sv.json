@@ -532,7 +532,7 @@
     "dualOfferDiagnosticsTitle": "Granskningsdiagnostik (inte kundyta)",
     "dualOfferPersistenceNote": "Snapshot-persistens saknas — livebetalning fail-closed",
     "zoneConfigCustomerMessage": "Kontrollera orten i leveransadressen. Om felet kvarstår, kontakta support.",
-    "sellingEntity": "Avtalspart: EURPACT OÜ (reg. 17538270), Estland",
+    "sellingEntity": "Säljare: EURPACT OÜ (reg. 17538270), Estland",
     "ageConfirm": "Jag bekräftar att jag är {age} år eller äldre.",
     "ageDeliveryIdHint": "Du måste ha fyllt {age} år för att beställa. Legitimation kontrolleras vid leverans.",
     "ageGateBlocked": "Du måste ha fyllt {age} år för att beställa.",
