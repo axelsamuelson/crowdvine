@@ -3002,6 +3002,48 @@ export async function POST(request: Request) {
           "@/lib/email/claim-email-send"
         );
 
+        // Shared-pallet senast {datum} for confirmation email (compute; no migration).
+        let chargeDeadlineAt: string | null = null;
+        let chargeDeadlineLabel: string | null = null;
+        try {
+          const { computeSharedPalletChargeDeadlineIso, formatSharedPalletChargeDeadline } =
+            await import("@/lib/checkout/shared-pallet-deadline");
+          const { isPalletBasedReservation } = await import(
+            "@/lib/commerce/is-pallet-based-reservation"
+          );
+          const emailPalletId =
+            typeof palletId === "string" && palletId.trim()
+              ? palletId.trim()
+              : "";
+          if (
+            emailPalletId &&
+            isPalletBasedReservation({ pallet_id: emailPalletId })
+          ) {
+            const { data: palletForDeadline } = await sbAdmin
+              .from("pallets")
+              .select("created_at")
+              .eq("id", emailPalletId)
+              .maybeSingle();
+            const created =
+              palletForDeadline &&
+              typeof (palletForDeadline as { created_at?: unknown })
+                .created_at === "string"
+                ? (palletForDeadline as { created_at: string }).created_at
+                : null;
+            chargeDeadlineAt =
+              computeSharedPalletChargeDeadlineIso(created);
+            chargeDeadlineLabel = formatSharedPalletChargeDeadline(
+              chargeDeadlineAt,
+              "sv",
+            );
+          }
+        } catch (deadlineErr) {
+          console.warn(
+            "[checkout/confirm] charge deadline for email skipped:",
+            deadlineErr,
+          );
+        }
+
         const emailData = {
           customerEmail: address.email,
           customerName: address.fullName,
@@ -3028,6 +3070,8 @@ export async function POST(request: Request) {
             postalCode: address.postcode,
             country: address.countryCode,
           },
+          chargeDeadlineAt,
+          chargeDeadlineLabel,
         };
 
         const sendResult = await sendTransactionalEmailOnce({

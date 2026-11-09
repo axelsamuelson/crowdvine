@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { computeSharedPalletChargeDeadlineIso } from "@/lib/checkout/shared-pallet-deadline";
+import { isPalletBasedReservation } from "@/lib/commerce/is-pallet-based-reservation";
 
 export async function GET(
   request: Request,
@@ -40,7 +42,7 @@ export async function GET(
         payment_method_type,
         total_sek,
         discount_amount_sek,
-        pallet:pallets(name, cost_cents, bottle_capacity),
+        pallet:pallets(name, cost_cents, bottle_capacity, created_at),
         order_reservation_items(
           item_id,
           quantity,
@@ -284,6 +286,19 @@ export async function GET(
         ? storedTotalSek + discountAmountSek
         : wineSubtotalCents / 100;
 
+    // fulfillment_channel column is draft (migration 277) — detect shared pallet via pallet_id.
+    const palletCreatedAt =
+      reservation.pallet &&
+      typeof (reservation.pallet as { created_at?: unknown }).created_at ===
+        "string"
+        ? (reservation.pallet as { created_at: string }).created_at
+        : null;
+    const chargeDeadlineAt = isPalletBasedReservation({
+      pallet_id: reservation.pallet_id,
+    })
+      ? computeSharedPalletChargeDeadlineIso(palletCreatedAt)
+      : null;
+
     // Transform the data to match the expected format
     const transformedReservation = {
       id: reservation.id,
@@ -295,6 +310,8 @@ export async function GET(
       pallet_name: reservation.pallet?.name || "Unknown Pallet",
       pallet_cost_cents: reservation.pallet?.cost_cents || 0,
       pallet_capacity: reservation.pallet?.bottle_capacity || 0,
+      /** Shared-pallet charge/close deadline (created_at + 28d). Null for direct. */
+      charge_deadline_at: chargeDeadlineAt,
       pickup_zone: pickupZoneName || "Unknown Pickup Zone",
       delivery_zone: deliveryZoneName || "Unknown Delivery Zone",
       delivery_address: deliveryAddress,

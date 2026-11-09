@@ -24,6 +24,7 @@ import { formatMoney } from "@/lib/shopping-context/format";
 import type { AppLocale } from "@/lib/i18n/locale";
 import { localizedPathsForLocale } from "@/lib/i18n/localized-paths";
 import { producerDisplayName } from "@/lib/producer-display-name";
+import { formatSharedPalletChargeDeadline } from "@/lib/checkout/shared-pallet-deadline";
 
 function translateReservationStatus(
   status: string,
@@ -50,6 +51,8 @@ interface ReservationDetails {
   pallet_name?: string;
   pallet_cost_cents?: number;
   pallet_capacity?: number;
+  /** Shared-pallet charge/close deadline ISO (created_at + 28d). */
+  charge_deadline_at?: string | null;
   pickup_zone?: string;
   delivery_zone?: string;
   delivery_address?: string;
@@ -313,6 +316,14 @@ function CheckoutConfirmationContent() {
     return formatMoney(cents / 100, currencyCode, appLocale);
   };
 
+  const deadlineLocale = appLocale === "en" ? "en" : "sv";
+  const chargeDeadlineLabel = reservation?.charge_deadline_at
+    ? formatSharedPalletChargeDeadline(
+        reservation.charge_deadline_at,
+        deadlineLocale,
+      )
+    : null;
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -338,7 +349,11 @@ function CheckoutConfirmationContent() {
             <p className="text-gray-500">
               {ambiguousLanding
                 ? t("checkout.successSubtitleError")
-                : t("checkout.successSubtitleConfirmed")}
+                : chargeDeadlineLabel
+                  ? t("checkout.successSubtitleConfirmedWithDeadline", {
+                      datum: chargeDeadlineLabel,
+                    })
+                  : t("checkout.successSubtitleConfirmed")}
             </p>
             {reservation && (
               <div className="flex items-center gap-2 text-sm text-gray-500 mt-3">
@@ -346,6 +361,21 @@ function CheckoutConfirmationContent() {
                 <span>{formatDate(reservation.created_at)}</span>
               </div>
             )}
+            {chargeDeadlineLabel ? (
+              <div
+                className="mt-3 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800"
+                data-testid="success-charge-deadline"
+              >
+                <div className="font-medium">
+                  {t("checkout.successChargeDeadline", {
+                    datum: chargeDeadlineLabel,
+                  })}
+                </div>
+                <p className="text-gray-500 mt-0.5">
+                  {t("checkout.successChargeDeadlineHint")}
+                </p>
+              </div>
+            ) : null}
           </div>
 
           <div
@@ -756,7 +786,13 @@ function CheckoutConfirmationContent() {
                       <div className="h-6 w-6 rounded-full bg-gray-900 text-white flex items-center justify-center text-xs font-medium shrink-0">
                         2
                       </div>
-                      <div>{t("checkout.successStep2")}</div>
+                      <div>
+                        {chargeDeadlineLabel
+                          ? t("checkout.successStep2WithDeadline", {
+                              datum: chargeDeadlineLabel,
+                            })
+                          : t("checkout.successStep2")}
+                      </div>
                     </div>
                     <div className="flex gap-3">
                       <div className="h-6 w-6 rounded-full bg-gray-900 text-white flex items-center justify-center text-xs font-medium shrink-0">

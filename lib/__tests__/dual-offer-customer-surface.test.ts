@@ -78,6 +78,21 @@ describe("dual-offer customer surface guards", () => {
     expect(panelSrc).toMatch(/showDirectOffer/);
   });
 
+  it("order confirmation page surfaces charge deadline from reservation API", () => {
+    const successSrc = readFileSync(
+      resolve(process.cwd(), "app/checkout/success/page.tsx"),
+      "utf8",
+    );
+    const reservationApiSrc = readFileSync(
+      resolve(process.cwd(), "app/api/user/reservations/[id]/route.ts"),
+      "utf8",
+    );
+    expect(successSrc).toMatch(/success-charge-deadline|successChargeDeadline/);
+    expect(successSrc).toMatch(/charge_deadline_at/);
+    expect(reservationApiSrc).toMatch(/computeSharedPalletChargeDeadlineIso/);
+    expect(reservationApiSrc).toMatch(/created_at/);
+  });
+
   it("humanizes block reasons without leaking raw codes", () => {
     const sv = humanizeDualOfferBlockReason("contract_policy_undecided", "sv");
     expect(sv).not.toMatch(/contract_policy/);
