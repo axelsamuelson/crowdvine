@@ -3,12 +3,14 @@
 Owner decisions (Axel) for what happens when a shared pallet reaches its
 last date without filling, plus related charge / cancel / email behaviour.
 
-**Status:** Spec only for close-time automation. Customer-facing
-`senast {datum}` is already shown in dual-offer checkout and on order
-confirmation (page + confirmation email) in the dual-offer PR.
+**Status:** Implemented behind flags in the dual-offer PR (default OFF).
+Customer-facing `senast {datum}` is shown in dual-offer checkout and on
+order confirmation. Close-time automation lives under
+`lib/checkout/pallet-close/` + cron `/api/cron/pallet-close`.
 
-**Do not** apply migrations or send the new emails from this document
-until a dedicated implementation PR lands.
+**Do not** apply migration `281_pallet_close_flow.sql` or enable
+`PALLET_CLOSE_FLOW_ENABLED` / `CHECKOUT_DUAL_OFFER_COMPARE` in production
+until the owner decides. Cron is inert while the gate is off.
 
 ---
 
