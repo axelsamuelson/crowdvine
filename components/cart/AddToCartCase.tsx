@@ -936,7 +936,7 @@ function MixedCaseWineListPanel({
           <p className="mt-1 text-sm text-muted-foreground">
             Total{" "}
             <span className="font-semibold tabular-nums text-foreground">
-              {formatSek(Math.ceil(selectedCaseTotalCents / 100))}
+              {formatSek(b2cWholeKronorFromOre(selectedCaseTotalCents))}
             </span>
           </p>
           {showTapRowHint ? (

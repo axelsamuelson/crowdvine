@@ -1,4 +1,5 @@
 import { DEFAULT_WINE_IMAGE_PATH } from "@/lib/constants";
+import { b2cWholeKronorFromOre } from "@/lib/cart/b2c-line-pricing";
 import { extractWineText } from "@/lib/i18n/wine-locale";
 import type { AppLocale } from "@/lib/i18n/locale";
 import { translate } from "@/lib/i18n/messages";
@@ -141,7 +142,7 @@ export async function getQuizWines(locale: AppLocale): Promise<TasteQuizWine[]> 
         grapes: parseGrapes(row.grape_varieties),
         soil: extractWineText(row.soil_type, locale) ?? "",
         style_scale: styleScale,
-        price: Math.round((row.base_price_cents ?? 0) / 100),
+        price: b2cWholeKronorFromOre(row.base_price_cents ?? 0),
         tags,
       } satisfies TasteQuizWine;
     })
