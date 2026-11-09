@@ -168,8 +168,17 @@ describe("pricing golden: price-breakdown (B2B + B2C decompose)", () => {
       base_price_cents: wine.base_price_cents,
     });
     expect(breakdown.listTotalInclVat).toBe(156);
-    // Component ceils can leave total 0.01 above the binding list (locked, not fixed here).
-    expect(breakdown.total).toBe(156.01);
+    // Binding total is the integer list unit; parts sum exactly (no 156.01 drift).
+    expect(breakdown.total).toBe(156);
+    expect(
+      Math.round(
+        (breakdown.cost +
+          breakdown.alcoholTax +
+          breakdown.margin +
+          breakdown.vat) *
+          100,
+      ),
+    ).toBe(15600);
   });
 
   it("B2B breakdown total stays whole-SEK round for Up Tempo + ~6.67 shipping", () => {

@@ -17,7 +17,9 @@ export function formatPrice(
 ) {
   const numAmount = typeof amount === "string" ? parseFloat(amount) : amount;
   const decimals = displayFractionDigits(currencyCode);
-  const roundedAmount = roundAmountForDisplay(numAmount, currencyCode, "ceil");
+  const mode =
+    currencyCode.trim().toUpperCase() === "SEK" ? "round" : "ceil";
+  const roundedAmount = roundAmountForDisplay(numAmount, currencyCode, mode);
 
   return new Intl.NumberFormat(intlLocale, {
     style: "currency",

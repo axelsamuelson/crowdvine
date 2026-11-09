@@ -199,7 +199,11 @@ export function calculateB2BPriceBreakdown(
 
 /**
  * Decompose B2C retail price inkl. moms into cost, alcohol tax, margin, VAT.
- * Uses stored import cost when available; otherwise derives cost from list price.
+ *
+ * CFO binding: `totalInclVat` is already the whole-kronor list unit (half-up from
+ * öre). Components are derived in integer öre so they always sum exactly to
+ * that total — never reconstruct a float total and ceil it (that produced
+ * 294.01 → 295 / 310.01 → 311 after hydration).
  */
 function decomposeRetailPriceInclVat(
   totalInclVat: number,
@@ -211,11 +215,14 @@ function decomposeRetailPriceInclVat(
   PriceBreakdownResult,
   "cost" | "alcoholTax" | "margin" | "vat" | "total"
 > {
-  const alcoholTaxCents = resolveWineAlcoholTaxCents(wine.alcohol_tax_cents);
-  const alcoholTax = Math.ceil((alcoholTaxCents / 100) * 100) / 100;
+  const totalSek = Math.round(totalInclVat);
+  // Binding total in öre (whole kronor × 100).
+  const totalOre = totalSek * 100;
+  // 25% VAT: excl = total × 4/5 in integer öre; VAT is the remainder.
+  const netOre = Math.round((totalOre * 4) / 5);
+  const vatOre = totalOre - netOre;
 
-  const priceBeforeVat = totalInclVat / 1.25;
-  const vat = Math.ceil((totalInclVat - priceBeforeVat) * 100) / 100;
+  const alcoholTaxOre = resolveWineAlcoholTaxCents(wine.alcohol_tax_cents);
 
   const bottleCostRaw = (wine.cost_amount || 0) * (wine.exchange_rate || 0);
   const useImportCost =
@@ -224,74 +231,29 @@ function decomposeRetailPriceInclVat(
     Number.isFinite(bottleCostRaw) &&
     bottleCostRaw > 0;
 
+  let costOre: number;
   if (useImportCost) {
-    const cost = Math.ceil(bottleCostRaw * 100) / 100;
-    let margin = Math.ceil((priceBeforeVat - cost - alcoholTax) * 100) / 100;
-
-    let calculatedTotal = Math.ceil(
-      (cost + alcoholTax + margin + vat) * 100,
-    ) / 100;
-
-    const diff = totalInclVat - calculatedTotal;
-    if (Math.abs(diff) >= 0.01) {
-      margin = Math.ceil((margin + diff) * 100) / 100;
-      calculatedTotal = totalInclVat;
-    }
-
-    return {
-      cost,
-      alcoholTax,
-      margin,
-      vat,
-      total: calculatedTotal,
-    };
+    costOre = Math.round(bottleCostRaw * 100);
+  } else {
+    const marginPercent = wine.margin_percentage || 0;
+    // Reverse cost from net excl. VAT with margin: net = cost×(1+m/100) + tax
+    // → cost = (net - tax) / (1 + m/100)
+    const denom = 1 + marginPercent / 100;
+    costOre =
+      denom > 0
+        ? Math.round(((netOre - alcoholTaxOre) / 100 / denom) * 100)
+        : 0;
   }
 
-  const marginPercent = wine.margin_percentage;
-  const costInSek = Math.ceil(
-    ((priceBeforeVat - alcoholTax) / (1 + marginPercent / 100)) * 100,
-  ) / 100;
-
-  const margin = Math.ceil((costInSek * (marginPercent / 100)) * 100) / 100;
-
-  let calculatedTotal = Math.ceil(
-    (costInSek + alcoholTax + margin + vat) * 100,
-  ) / 100;
-
-  const expectedTotal = totalInclVat;
-  const diff = expectedTotal - calculatedTotal;
-  if (Math.abs(diff) >= 0.01) {
-    const adjustedCost = Math.ceil((costInSek + diff) * 100) / 100;
-    calculatedTotal = Math.ceil(
-      (adjustedCost + alcoholTax + margin + vat) * 100,
-    ) / 100;
-    const finalDiff = expectedTotal - calculatedTotal;
-    if (Math.abs(finalDiff) >= 0.01) {
-      const finalCost = Math.ceil((adjustedCost + finalDiff) * 100) / 100;
-      calculatedTotal = expectedTotal;
-      return {
-        cost: finalCost,
-        alcoholTax,
-        margin,
-        vat,
-        total: calculatedTotal,
-      };
-    }
-    return {
-      cost: adjustedCost,
-      alcoholTax,
-      margin,
-      vat,
-      total: calculatedTotal,
-    };
-  }
+  // Margin absorbs any remainder so cost + tax + margin + vat === total exactly.
+  const marginOre = netOre - costOre - alcoholTaxOre;
 
   return {
-    cost: costInSek,
-    alcoholTax,
-    margin,
-    vat,
-    total: calculatedTotal,
+    cost: costOre / 100,
+    alcoholTax: alcoholTaxOre / 100,
+    margin: marginOre / 100,
+    vat: vatOre / 100,
+    total: totalSek,
   };
 }
 
@@ -318,14 +280,29 @@ export function calculatePriceBreakdown(
   wine: WinePricingData,
   memberDiscountPercent: number = 0,
 ): PriceBreakdownResult {
+  // Binding list unit: half-up whole kronor from stored öre (never ceil).
   const listTotalInclVat = Math.round(wine.base_price_cents / 100);
   const originalMarginPercentage = wine.margin_percentage;
 
   const base = decomposeRetailPriceInclVat(listTotalInclVat, wine);
+  // Guard: components must sum to the integer total (no float drift).
+  const partsSumOre = Math.round(
+    (base.cost + base.alcoholTax + base.margin + base.vat) * 100,
+  );
+  if (partsSumOre !== listTotalInclVat * 100) {
+    base.margin =
+      (listTotalInclVat * 100 -
+        Math.round(base.cost * 100) -
+        Math.round(base.alcoholTax * 100) -
+        Math.round(base.vat * 100)) /
+      100;
+    base.total = listTotalInclVat;
+  }
 
   if (memberDiscountPercent <= 0) {
     return {
       ...base,
+      total: listTotalInclVat,
       marginPercentage: originalMarginPercentage,
       originalMarginPercentage,
       listTotalInclVat,
@@ -343,6 +320,7 @@ export function calculatePriceBreakdown(
     alcoholTax: base.alcoholTax,
     margin: base.margin,
     vat: base.vat,
+    // Display/charge total is the integer discounted unit — never a float rebuild.
     total: discountedTotal,
     marginPercentage: originalMarginPercentage,
     originalMarginPercentage,
@@ -367,7 +345,9 @@ export function formatCurrency(
   const currencyCode = options.currencyCode ?? "SEK";
   const intlLocale = options.intlLocale ?? "sv-SE";
   const decimals = displayFractionDigits(currencyCode);
-  const roundedAmount = roundAmountForDisplay(amount, currencyCode, "ceil");
+  const mode =
+    currencyCode.trim().toUpperCase() === "SEK" ? "round" : "ceil";
+  const roundedAmount = roundAmountForDisplay(amount, currencyCode, mode);
   return new Intl.NumberFormat(intlLocale, {
     style: "currency",
     currency: currencyCode,
