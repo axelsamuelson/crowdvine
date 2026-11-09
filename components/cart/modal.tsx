@@ -400,15 +400,15 @@ export default function CartModal() {
     );
   };
 
-  // Keep the open drawer mountable during optimistic first-add even if cart
-  // was previously undefined; badge stays hidden until cart has hydrated.
-  if ((!cartReady || !cart) && !isOpen) {
-    return null;
-  }
+  // Always reserve badge chrome while hydrating — never return null (that
+  // dropped MENU-adjacent space) and never flash CART (0) before cartReady.
+  // Non-empty cache / optimistic cart may show early; empty only after ready.
+  const showCartBadge =
+    !!cart && (cartReady || cart.totalQuantity > 0);
 
   return (
     <>
-      {cartReady && cart ? (
+      {showCartBadge ? (
       <Button
         aria-label={t("cart.openCart")}
         onClick={openCart}
@@ -446,7 +446,7 @@ export default function CartModal() {
         />
       )}
       <AnimatePresence>
-        {isOpen && (
+        {isOpen && cart && (
           <>
             {/* Backdrop */}
             <motion.div
