@@ -6,11 +6,11 @@
  */
 import type { PricingConfig } from "@/lib/pricing/types";
 
-/** B2C retail formula → integer öre (`calculateRetailPriceCents`). */
+/** B2C retail formula → whole kronor incl. VAT (`calculateRetailPriceCents`). */
 export const B2C_RETAIL_TODAY: PricingConfig = {
   channel: "b2c",
   fxSource: "explicit",
-  rounding: "round_ore",
+  rounding: "round_sek",
   vatRate: 0.25,
 };
 
@@ -32,12 +32,12 @@ export const B2B_COMMERCIAL_TODAY: PricingConfig = {
 
 /**
  * When no stored rate: B2C retail hardcoded EUR/USD/GBP map (never 1 for EUR).
- * Pair with any rounding; typically `round_ore` for retail.
+ * Pair with whole-kronor consumer rounding (`round_sek`).
  */
 export const B2C_RETAIL_FX_FALLBACK: PricingConfig = {
   channel: "b2c",
   fxSource: "retail_fallback",
-  rounding: "round_ore",
+  rounding: "round_sek",
   vatRate: 0.25,
 };
 

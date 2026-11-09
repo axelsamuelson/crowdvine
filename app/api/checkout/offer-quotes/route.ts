@@ -27,12 +27,12 @@ import { gateDirectBoxCheckoutRequest } from "@/lib/commerce/fulfillment-channel
 import {
   buildDualOfferQuoteSet,
   buildOfferQuote,
-  buildSyntheticDirectOfferFromShared,
   buildUnavailableOfferQuote,
   type OfferLineSnapshot,
 } from "@/lib/checkout/offer-quote";
 import { isDualOfferCheckoutSurfaceAllowed } from "@/lib/checkout/dual-offer-surface-gate";
 import { previewVisibleMethods } from "@/lib/checkout/offer-payment-methods";
+import { computeSharedPalletChargeDeadlineIso } from "@/lib/checkout/shared-pallet-deadline";
 
 export const dynamic = "force-dynamic";
 
@@ -77,7 +77,8 @@ export async function POST(request: Request) {
       Number.isFinite(body.voucher_discount_sek)
         ? Math.max(0, body.voucher_discount_sek)
         : 0;
-    const allowSynthetic = body?.allow_synthetic_direct === true;
+    // Legacy body flag ignored: customer checkout never invents synthetic direct.
+    void body?.allow_synthetic_direct;
 
     const cart = await CartService.getCart();
     if (!cart || !cart.lines?.length) {
@@ -155,7 +156,7 @@ export async function POST(request: Request) {
       const { data: palletRow, error: palletErr } = await sbAdmin
         .from("pallets")
         .select(
-          "bottle_capacity, id, name, cost_cents, last_mile_cost_cents_per_bottle",
+          "bottle_capacity, id, name, cost_cents, last_mile_cost_cents_per_bottle, created_at",
         )
         .eq("id", pallet_id)
         .maybeSingle();
@@ -187,6 +188,11 @@ export async function POST(request: Request) {
           rateChannel:
             charge.rateChannel === "direct_box" ? "direct_box" : "pact",
         });
+        const palletCreatedAt =
+          palletRow &&
+          typeof (palletRow as { created_at?: unknown }).created_at === "string"
+            ? (palletRow as { created_at: string }).created_at
+            : null;
         shared = buildOfferQuote({
           offer: "shared_pallet",
           money,
@@ -198,6 +204,8 @@ export async function POST(request: Request) {
           unavailable_reason: charge.shippingPending
             ? "shipping_pending"
             : null,
+          charge_deadline_at:
+            computeSharedPalletChargeDeadlineIso(palletCreatedAt),
         });
       } else {
         shared = buildUnavailableOfferQuote({
@@ -267,18 +275,15 @@ export async function POST(request: Request) {
           cart_id: String(cart.id),
         });
       }
-    } else if (
-      allowSynthetic &&
-      !shared.unavailable_reason &&
-      shared.pricing_source === "live_catalog"
-    ) {
-      direct = buildSyntheticDirectOfferFromShared({ shared });
     }
+    // Customer checkout: never invent synthetic direct when the flag is OFF.
+    // /dev review uses in-process fixtures, not this route's synthetic branch.
 
     const dual = buildDualOfferQuoteSet({
       cart_id: String(cart.id),
       shared_pallet: shared,
-      direct_box: direct,
+      // Omit direct from the compare set entirely when the flag is OFF.
+      direct_box: isDirectBoxCheckoutEnabled() ? direct : null,
       destination_country: countryCode,
     });
 
@@ -286,18 +291,16 @@ export async function POST(request: Request) {
       dual,
       method_preview: {
         shared_pallet: previewVisibleMethods("shared_pallet"),
-        direct_box: previewVisibleMethods("direct_box"),
+        direct_box: isDirectBoxCheckoutEnabled()
+          ? previewVisibleMethods("direct_box")
+          : [],
       },
       flags: {
         dual_offer_compare: true,
         direct_box_checkout_enabled: isDirectBoxCheckoutEnabled(),
-        synthetic_direct_used:
-          direct.pricing_source === "synthetic_fixture",
+        synthetic_direct_used: false,
       },
-      notice:
-        direct.pricing_source === "synthetic_fixture"
-          ? "SYNTHETIC_PREVIEW_ONLY — not production rates or margins"
-          : null,
+      notice: null,
     });
   } catch (error) {
     console.error("[checkout/offer-quotes]", error);

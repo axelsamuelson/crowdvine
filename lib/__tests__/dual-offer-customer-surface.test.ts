@@ -73,6 +73,9 @@ describe("dual-offer customer surface guards", () => {
     expect(checkoutSrc).toMatch(/dual-offer-checkout-header-shield/);
     expect(checkoutSrc).toMatch(/!dualOfferReviewActive/);
     expect(checkoutSrc).not.toMatch(/\/api\/user\/rewards/);
+    expect(checkoutSrc).toMatch(/showDirectOffer=\{directBoxCheckoutEnabled\}/);
+    expect(panelSrc).toMatch(/dualOfferFinalCtaShared|dual-offer-legal-line/);
+    expect(panelSrc).toMatch(/showDirectOffer/);
   });
 
   it("humanizes block reasons without leaking raw codes", () => {

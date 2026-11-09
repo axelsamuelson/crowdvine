@@ -90,6 +90,11 @@ export type OfferQuote = CheckoutQuote & {
   wines_subtotal_sek: number;
   delivery_terms: OfferDeliveryTerms;
   debit_timing: OfferDebitTiming;
+  /**
+   * Shared pallet: card charge / close deadline (created_at + 4 weeks).
+   * Null for direct / unavailable / unknown open date.
+   */
+  charge_deadline_at: string | null;
   /** Placeholder only — must stay undecided until legal policy is approved. */
   contract_policy: OfferContractPolicyPlaceholder;
   /** Why this offer cannot be selected (fail closed). */
@@ -146,32 +151,34 @@ export function isDualOfferCompareEnabled(
 export function sharedPalletDeliveryTerms(): OfferDeliveryTerms {
   return {
     code: "shared_pallet_collective_fill",
-    previewLabelSv: "Delad pall — längre väntan, kollektiv fyllnad",
-    previewLabelEn: "Shared pallet — longer wait, collective fill",
+    previewLabelSv:
+      "Delad pall — leverans när pallen fylls eller senast inom 4 veckor",
+    previewLabelEn:
+      "Shared pallet — ships when full or within 4 weeks at the latest",
   };
 }
 
 export function directBoxDeliveryTerms(): OfferDeliveryTerms {
   return {
     code: "direct_box_independent",
-    previewLabelSv: "Direkt — kortare leverans (föreslagen förmåga)",
-    previewLabelEn: "Direct — shorter delivery (proposed capability)",
+    previewLabelSv: "Hemleverans med Budbee inom 5–10 arbetsdagar",
+    previewLabelEn: "Home delivery with Budbee within 5–10 business days",
   };
 }
 
 export function sharedPalletDebitTiming(): OfferDebitTiming {
   return {
     code: "no_immediate_debit",
-    previewLabelSv: "Ingen omedelbar debitering",
-    previewLabelEn: "No immediate debit",
+    previewLabelSv: "Kortet debiteras när pallen stänger",
+    previewLabelEn: "Card is charged when the pallet closes",
   };
 }
 
 export function directBoxDebitTiming(): OfferDebitTiming {
   return {
     code: "immediate_on_confirm_proposed",
-    previewLabelSv: "Omedelbar betalning vid bekräftelse (föreslaget)",
-    previewLabelEn: "Immediate payment on confirm (proposed)",
+    previewLabelSv: "Kortet debiteras nu",
+    previewLabelEn: "Card is charged now",
   };
 }
 
@@ -185,6 +192,7 @@ export function canonicalOfferPayload(parts: {
   pricing_source: OfferPricingSource;
   debit_timing_code: OfferDebitTiming["code"];
   delivery_terms_code: OfferDeliveryTerms["code"];
+  charge_deadline_at?: string | null;
 }): string {
   const sortedLines = [...parts.wine_lines].sort((a, b) =>
     a.wine_id.localeCompare(b.wine_id),
@@ -197,6 +205,7 @@ export function canonicalOfferPayload(parts: {
     pricing_source: parts.pricing_source,
     debit_timing_code: parts.debit_timing_code,
     delivery_terms_code: parts.delivery_terms_code,
+    charge_deadline_at: parts.charge_deadline_at ?? null,
     subtotal_sek: parts.money.subtotal_sek,
     shipping_sek: parts.money.shipping_sek,
     promo_discount_sek: parts.money.promo_discount_sek,
@@ -250,6 +259,8 @@ export function buildOfferQuote(args: {
   computed_at?: string;
   valid_until?: string | null;
   unavailable_reason?: string | null;
+  /** Shared pallet charge/close deadline (created_at + 4 weeks). */
+  charge_deadline_at?: string | null;
 }): OfferQuote {
   const bottle_count = args.wine_lines.reduce(
     (s, l) => s + Math.max(0, Math.floor(l.quantity)),
@@ -273,6 +284,10 @@ export function buildOfferQuote(args: {
       ? directBoxDebitTiming()
       : sharedPalletDebitTiming();
 
+  const charge_deadline_at =
+    args.offer === "shared_pallet"
+      ? (args.charge_deadline_at ?? null)
+      : null;
   const canonical = canonicalOfferPayload({
     offer: args.offer,
     money: args.money,
@@ -282,6 +297,7 @@ export function buildOfferQuote(args: {
     pricing_source: args.pricing_source,
     debit_timing_code: debit_timing.code,
     delivery_terms_code: delivery_terms.code,
+    charge_deadline_at,
   });
   const content_digest = buildOfferContentDigest(canonical);
   const user_id = args.user_id ?? null;
@@ -315,6 +331,7 @@ export function buildOfferQuote(args: {
     wines_subtotal_sek,
     delivery_terms,
     debit_timing,
+    charge_deadline_at,
     contract_policy: "undecided",
     unavailable_reason: args.unavailable_reason ?? null,
   };

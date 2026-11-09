@@ -62,15 +62,13 @@ export function humanizeDualOfferBlockReason(
   return dualOfferMsg(locale, key);
 }
 
+/** @deprecated Prefer dual-offer legal CTA lines; kept for callers that only need a short hint. */
 export function selectedOfferConfirmHint(
   quote: OfferQuote | null,
   locale: DualOfferUiLocale,
 ): string {
   if (!quote) return dualOfferMsg(locale, "dualOfferConfirmHintNone");
-  if (quote.offer === "direct_box") {
-    return dualOfferMsg(locale, "dualOfferConfirmHintDirect");
-  }
-  return dualOfferMsg(locale, "dualOfferConfirmHintShared");
+  return dualOfferMsg(locale, "dualOfferConfirmHintNone");
 }
 
 /** English API strings that must never toast raw to customers. */

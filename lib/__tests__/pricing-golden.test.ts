@@ -46,7 +46,7 @@ import {
   type PricingGoldenWine,
 } from "@/lib/__tests__/fixtures/pricing-golden-wines";
 
-/** Mirrors reservation-auto-charge.ts unit list SEK (Math.ceil öre→SEK). */
+/** Mirrors reservation-auto-charge.ts unit list SEK (öre→SEK). Whole-kronor prices are exact. */
 function reservationAutoChargeUnitListSek(basePriceCents: number): number {
   return Math.ceil(basePriceCents / 100);
 }
@@ -72,25 +72,26 @@ function costFields(wine: PricingGoldenWine) {
 
 describe("pricing golden: wine-retail-pricing", () => {
   it.each([
-    ["a-love-supreme-2024", 15641],
-    ["up-tempo-2024", 17380],
-    ["hippie-killer-2023", 13032],
-    ["blanc-de-noir-2024", 20684],
-    ["flore-et-sens-2023", 16498],
-    // Stored shop price is 15700; live formula with 20% B2C margin ≠ stored.
-    ["resiste-sek-b2b-card", 14405],
-  ] as const)("%s → calculateRetailPriceCents = %i öre", (id, cents) => {
+    ["a-love-supreme-2024", 15600],
+    ["up-tempo-2024", 17400],
+    ["hippie-killer-2023", 13000],
+    ["blanc-de-noir-2024", 20700],
+    ["flore-et-sens-2023", 16500],
+    ["resiste-sek-b2b-card", 14400],
+  ] as const)("%s → calculateRetailPriceCents = %i öre (whole kronor)", (id, cents) => {
     expect(calculateRetailPriceCents(retailOpts(wineById(id)))).toBe(cents);
   });
 
-  it("buildRetailPriceBreakdown matches öre + exposes cost/tax/VAT for Up Tempo", () => {
+  it("buildRetailPriceBreakdown matches whole kronor + VAT from total for Up Tempo", () => {
     const wine = wineById("up-tempo-2024");
     const b = buildRetailPriceBreakdown(retailOpts(wine));
     expect(b.isValid).toBe(true);
-    expect(b.finalPriceCents).toBe(17380);
+    expect(b.finalPriceCents).toBe(17400);
+    expect(b.finalPrice).toBe(174);
     expect(b.alcoholTaxInSek).toBe(22.19);
     expect(b.costAmountInSek).toBeCloseTo(8 * 11.13, 10);
     expect(b.vatRate).toBe(0.25);
+    expect(b.vatAmountSek).toBeCloseTo(174 - 174 / 1.25, 10);
   });
 
   it("locks EUR/USD/GBP hardcoded FX fallbacks (never 1)", () => {
@@ -157,7 +158,7 @@ describe("pricing golden: price-breakdown (B2B + B2C decompose)", () => {
     },
   );
 
-  it("calculatePriceBreakdown B2C list total uses Math.ceil(öre/100) (PDP path)", () => {
+  it("calculatePriceBreakdown B2C list total is whole-kronor unit (PDP path)", () => {
     const wine = wineById("a-love-supreme-2024");
     const breakdown = calculatePriceBreakdown({
       cost_amount: wine.cost_amount,
@@ -166,9 +167,9 @@ describe("pricing golden: price-breakdown (B2B + B2C decompose)", () => {
       margin_percentage: wine.margin_percentage,
       base_price_cents: wine.base_price_cents,
     });
-    expect(breakdown.listTotalInclVat).toBe(157);
-    // Component ceils can leave total 0.01 above the list ceil (locked, not fixed here).
-    expect(breakdown.total).toBe(157.01);
+    expect(breakdown.listTotalInclVat).toBe(156);
+    // Component ceils can leave total 0.01 above the binding list (locked, not fixed here).
+    expect(breakdown.total).toBe(156.01);
   });
 
   it("B2B breakdown total stays whole-SEK round for Up Tempo + ~6.67 shipping", () => {
@@ -308,14 +309,14 @@ describe("pricing golden: inquiry-price-math", () => {
 
 describe("pricing golden: reservation-auto-charge unit list SEK", () => {
   it.each([
-    ["a-love-supreme-2024", 157],
+    ["a-love-supreme-2024", 156],
     ["up-tempo-2024", 174],
-    ["hippie-killer-2023", 131],
+    ["hippie-killer-2023", 130],
     ["blanc-de-noir-2024", 207],
     ["flore-et-sens-2023", 165],
-    ["resiste-sek-b2b-card", 157],
+    ["resiste-sek-b2b-card", 144],
   ] as const)(
-    "%s stored base_price_cents → ceil unit list = %i SEK",
+    "%s stored base_price_cents → whole-kronor unit list = %i SEK",
     (id, unitSek) => {
       const wine = wineById(id);
       expect(reservationAutoChargeUnitListSek(wine.base_price_cents)).toBe(

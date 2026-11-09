@@ -50,6 +50,7 @@ export function DualOfferReviewLocales(props: { dual: DualOfferQuoteSet }) {
         key={locale}
         initialDual={props.dual}
         locale={locale}
+        showDirectOffer
         showDiagnostics
         className="scroll-mt-top-spacing"
       />

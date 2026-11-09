@@ -63,6 +63,10 @@ export default function DualOfferCompareDevPage() {
     pricing_source: "synthetic_fixture",
     user_id: "preview-user",
     cart_id: "synthetic-preview-cart",
+    // Review fixture: open now → senast = +4 weeks
+    charge_deadline_at: new Date(
+      Date.now() + 28 * 24 * 60 * 60 * 1000,
+    ).toISOString(),
   });
   const direct = buildSyntheticDirectOfferFromShared({ shared });
   const dual = buildDualOfferQuoteSet({

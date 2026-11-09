@@ -88,10 +88,21 @@ export function buildRetailPriceBreakdown(opts: {
   const isValid = denom > 0 && Number.isFinite(costInSek);
 
   const priceExVat = isValid ? costInSek / denom : 0;
-  const finalPrice = isValid ? priceExVat * (1 + vatRate) : 0;
-  const finalPriceCents = Math.round(finalPrice * 100);
+  const finalPriceRaw = isValid ? priceExVat * (1 + vatRate) : 0;
+  // PACT B2C consumer unit price incl. VAT is binding in whole kronor.
+  // Dirty Wine / B2B paths do not use this function.
+  const finalPrice =
+    opts.priceIncludesVat !== false
+      ? Math.round(finalPriceRaw)
+      : finalPriceRaw;
+  const finalPriceCents =
+    opts.priceIncludesVat !== false
+      ? Math.round(finalPrice) * 100
+      : Math.round(finalPriceRaw * 100);
   const netProfitSek = Math.max(0, priceExVat - costInSek);
-  const vatAmountSek = Math.max(0, finalPrice - priceExVat);
+  // VAT derived once from the (rounded) consumer total, not from pre-round parts.
+  const vatAmountSek =
+    vatRate > 0 ? Math.max(0, finalPrice - finalPrice / (1 + vatRate)) : 0;
 
   return {
     isValid,

@@ -63,6 +63,7 @@ export function verifyOfferPayloadUntampered(quote: OfferQuote): boolean {
     pricing_source: quote.pricing_source,
     debit_timing_code: quote.debit_timing.code,
     delivery_terms_code: quote.delivery_terms.code,
+    charge_deadline_at: quote.charge_deadline_at,
   });
   const digest = hashOfferPayload(canonical);
   if (digest !== quote.content_digest) return false;
@@ -210,6 +211,7 @@ export function acceptSelectedOfferQuote(args: {
     pricing_source: quote.pricing_source,
     debit_timing_code: quote.debit_timing.code,
     delivery_terms_code: quote.delivery_terms.code,
+    charge_deadline_at: quote.charge_deadline_at,
   });
 
   const contentDigest = hashOfferPayload(canonical);
@@ -316,6 +318,7 @@ export function reconcileAcceptanceAfterRecompute(args: {
     pricing_source: nextQuote.pricing_source,
     debit_timing_code: nextQuote.debit_timing.code,
     delivery_terms_code: nextQuote.delivery_terms.code,
+    charge_deadline_at: nextQuote.charge_deadline_at,
   });
   if (hashOfferPayload(canonical) !== prev.payload_hash) {
     return {

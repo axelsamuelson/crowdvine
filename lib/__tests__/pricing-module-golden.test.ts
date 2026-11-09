@@ -48,20 +48,20 @@ function b2bInput(
   };
 }
 
-describe("lib/pricing golden: B2C retail (round_ore + explicit FX)", () => {
+describe("lib/pricing golden: B2C retail (round_sek + explicit FX)", () => {
   it.each([
-    ["a-love-supreme-2024", 15641],
-    ["up-tempo-2024", 17380],
-    ["hippie-killer-2023", 13032],
-    ["blanc-de-noir-2024", 20684],
-    ["flore-et-sens-2023", 16498],
-    ["resiste-sek-b2b-card", 14405],
-  ] as const)("%s → totalOre = %i", (id, cents) => {
+    ["a-love-supreme-2024", 15600],
+    ["up-tempo-2024", 17400],
+    ["hippie-killer-2023", 13000],
+    ["blanc-de-noir-2024", 20700],
+    ["flore-et-sens-2023", 16500],
+    ["resiste-sek-b2b-card", 14400],
+  ] as const)("%s → totalOre = %i (whole kronor)", (id, cents) => {
     const result = calculateUnitPrice(b2cInput(wineById(id)), B2C_RETAIL_TODAY);
     expect(result).not.toBeNull();
     expect(result!.totalOre).toBe(cents);
     expect(result!.listTotalOre).toBe(cents);
-    expect(result!.config.rounding).toBe("round_ore");
+    expect(result!.config.rounding).toBe("round_sek");
     expect(result!.config.fxSource).toBe("explicit");
   });
 
@@ -230,12 +230,12 @@ describe("lib/pricing: FX source configs (documented divergences)", () => {
     const withB2bFx: PricingConfig = {
       channel: "b2c",
       fxSource: "b2b_cost_fallback",
-      rounding: "round_ore",
+      rounding: "round_sek",
       vatRate: 0.25,
     };
     const b2bFx = calculateUnitPrice(input, withB2bFx)!;
-    expect(retail.totalOre).toBe(15772);
-    expect(b2bFx.totalOre).toBe(4561);
+    expect(retail.totalOre).toBe(15800);
+    expect(b2bFx.totalOre).toBe(4600);
     expect(retail.totalOre - b2bFx.totalOre).toBeGreaterThan(10_000);
   });
 
@@ -252,40 +252,31 @@ describe("lib/pricing: FX source configs (documented divergences)", () => {
 });
 
 describe("lib/pricing: rounding applied once at the end", () => {
-  it("breakdown components stay full-precision; only totalOre is rounded", () => {
+  it("breakdown components stay full-precision; totalOre is whole kronor", () => {
     const wine = wineById("a-love-supreme-2024");
     const result = calculateUnitPrice(b2cInput(wine), B2C_RETAIL_TODAY)!;
-    // Raw: 156.40625 SEK → 15641 öre once at end (not ceil of components).
+    // Raw: 156.40625 SEK → round_sek → 15600 öre once at end.
     expect(result.breakdown.costOre + result.breakdown.alcoholTaxOre).toBeCloseTo(
       10010,
       10,
     );
     expect(result.breakdown.priceExVatOre).toBeCloseTo(12512.5, 10);
     expect(result.breakdown.vatOre).toBeCloseTo(3128.125, 10);
-    expect(result.totalOre).toBe(15641);
-    // Component ceils would invent 157.01 — this module does not.
-    const componentCeilSek =
-      Math.ceil(result.breakdown.costOre) / 100 +
-      Math.ceil(result.breakdown.alcoholTaxOre) / 100 +
-      Math.ceil(result.breakdown.marginOre) / 100 +
-      Math.ceil(result.breakdown.vatOre) / 100;
-    expect(componentCeilSek).not.toBe(result.totalSek);
+    expect(result.totalOre).toBe(15600);
+    expect(result.totalSek).toBe(156);
   });
 });
 
 describe("lib/pricing: member + pallet discounts (post formula)", () => {
-  it("B2C member 10% on A Love Supreme list 15641 öre", () => {
+  it("B2C member 10% on A Love Supreme list 15600 öre", () => {
     const wine = wineById("a-love-supreme-2024");
     const result = calculateUnitPrice(b2cInput(wine), B2C_RETAIL_TODAY, {
       memberDiscountPercent: 10,
     })!;
-    // list 156.41 → ceil display path uses rounded list; member uses listTotalOre/100
-    // After round_ore, list is 15641 öre = 156.41 SEK
-    // memberDiscountedTotalInclVat(156.41, 10) = ceil(140.769) path via toFixed
-    const expectedOre = applyB2cMemberDiscountOre(15641, 10);
-    expect(result.listTotalOre).toBe(15641);
+    const expectedOre = applyB2cMemberDiscountOre(15600, 10);
+    expect(result.listTotalOre).toBe(15600);
     expect(result.totalOre).toBe(expectedOre);
-    expect(result.memberDiscountOre).toBe(15641 - expectedOre);
+    expect(result.memberDiscountOre).toBe(15600 - expectedOre);
     expect(result.totalOre).toBeLessThan(result.listTotalOre);
   });
 
@@ -295,10 +286,10 @@ describe("lib/pricing: member + pallet discounts (post formula)", () => {
       memberDiscountPercent: 10,
       palletTier: 20,
     })!;
-    const afterMember = applyB2cMemberDiscountOre(17380, 10);
+    const afterMember = applyB2cMemberDiscountOre(17400, 10);
     const afterPallet = applyPalletDiscountOre(afterMember, 20);
     expect(result.totalOre).toBe(afterPallet);
-    expect(result.memberDiscountOre).toBe(17380 - afterMember);
+    expect(result.memberDiscountOre).toBe(17400 - afterMember);
     expect(result.palletDiscountOre).toBe(afterMember - afterPallet);
   });
 

@@ -117,6 +117,7 @@ describe("offer quote versioning + tamper", () => {
       pricing_source: a.pricing_source,
       debit_timing_code: a.debit_timing.code,
       delivery_terms_code: a.delivery_terms.code,
+      charge_deadline_at: a.charge_deadline_at,
     });
     expect(hashOfferPayload(canonical)).toBe(a.content_digest);
     expect(buildOfferContentDigest(canonical)).toBe(a.content_digest);
@@ -361,16 +362,22 @@ describe("offer acceptance + switch invalidation", () => {
 });
 
 describe("payment method allowlist default-deny", () => {
-  it("denies unverified candidates and unknown methods", () => {
+  it("shared pallet phase 1: card verified; Klarna/BLIK denied", () => {
+    expect(
+      isMethodAllowedForOffer({ offer: "shared_pallet", method: "card" }),
+    ).toMatchObject({ allow: true, reason: null });
     expect(
       isMethodAllowedForOffer({ offer: "shared_pallet", method: "klarna" }).allow,
     ).toBe(false);
     expect(
       isMethodAllowedForOffer({ offer: "shared_pallet", method: "klarna" }).reason,
-    ).toBe("method_unverified");
+    ).toBe("method_denied");
+    expect(
+      isMethodAllowedForOffer({ offer: "shared_pallet", method: "blik" }).reason,
+    ).toBe("method_denied");
     expect(
       isMethodAllowedForOffer({ offer: "direct_box", method: "unknown_pay" }).reason,
     ).toBe("method_not_in_allowlist");
-    expect(previewVisibleMethods("shared_pallet")).toContain("card");
+    expect(previewVisibleMethods("shared_pallet")).toEqual(["card"]);
   });
 });

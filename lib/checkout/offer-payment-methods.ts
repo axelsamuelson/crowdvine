@@ -1,8 +1,10 @@
 /**
  * Per-offer payment method capability allowlist.
  * Default DENY for anything not explicitly verified for that offer.
- * Candidates (card/wallets/Swish/Klarna/…) are NOT approved by listing them —
- * only `verified` entries may pass. Do not claim universal off-session limits.
+ *
+ * Shared pallet phase 1: card only (SetupIntent → charge at pallet close).
+ * Klarna / BLIK / Swish / etc. denied for pallet. Direct (still OFF) keeps
+ * candidates for when the flag is enabled — immediate charge.
  */
 
 import type { FulfillmentChannel } from "@/lib/commerce/fulfillment-channel";
@@ -20,21 +22,24 @@ export type PaymentMethodCapability = {
   off_session: "verified_yes" | "verified_no" | "unknown";
 };
 
-/** Empty allowlist → deny all until product verifies methods per offer. */
+/** Shared pallet phase 1 — card only (saved SI, charged at close). */
 const SHARED_PALLET_METHODS: PaymentMethodCapability[] = [
-  // Card is historically used for SI + later off_session charge — still must
-  // be explicitly marked when product confirms; keep candidate until then.
-  { method: "card", status: "candidate", off_session: "unknown" },
-  { method: "link", status: "candidate", off_session: "unknown" },
-  { method: "klarna", status: "candidate", off_session: "unknown" },
-  { method: "amazon_pay", status: "candidate", off_session: "unknown" },
-  { method: "blik", status: "candidate", off_session: "unknown" },
-  { method: "bancontact", status: "candidate", off_session: "unknown" },
-  { method: "swish", status: "candidate", off_session: "unknown" },
+  {
+    method: "card",
+    status: "verified",
+    off_session: "verified_yes",
+  },
+  { method: "link", status: "denied", off_session: "unknown" },
+  { method: "klarna", status: "denied", off_session: "verified_no" },
+  { method: "amazon_pay", status: "denied", off_session: "unknown" },
+  { method: "blik", status: "denied", off_session: "verified_no" },
+  { method: "bancontact", status: "denied", off_session: "unknown" },
+  { method: "swish", status: "denied", off_session: "verified_no" },
 ];
 
+/** Direct box — immediate charge when enabled; still candidates until live. */
 const DIRECT_BOX_METHODS: PaymentMethodCapability[] = [
-  { method: "card", status: "candidate", off_session: "unknown" },
+  { method: "card", status: "candidate", off_session: "verified_no" },
   { method: "link", status: "candidate", off_session: "unknown" },
   { method: "klarna", status: "candidate", off_session: "unknown" },
   { method: "amazon_pay", status: "candidate", off_session: "unknown" },

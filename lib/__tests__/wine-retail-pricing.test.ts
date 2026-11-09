@@ -12,7 +12,7 @@ describe("wine retail pricing", () => {
     expect(resolveSekExchangeRateSync("EUR", 11.2)).toBe(11.2);
   });
 
-  it("matches admin/PDP formula for A Love Supreme inputs", () => {
+  it("matches admin/PDP formula for A Love Supreme inputs (whole kronor)", () => {
     const cents = calculateRetailPriceCents({
       costAmount: 7,
       exchangeRate: 11.2,
@@ -20,10 +20,11 @@ describe("wine retail pricing", () => {
       marginPercentage: 90.4,
       alcoholTaxCents: 2219,
     });
-    expect(cents).toBe(130977);
+    // Pre-round was 130977 öre → binding consumer unit 131 kr.
+    expect(cents).toBe(131000);
   });
 
-  it("reproduces saved 163 SEK when FX was wrongly 1 + tax 5.55", () => {
+  it("reproduces ~163 SEK when FX was wrongly 1 + tax 5.55 (whole kronor)", () => {
     const cents = calculateRetailPriceCents({
       costAmount: 7,
       exchangeRate: 1,
@@ -31,7 +32,8 @@ describe("wine retail pricing", () => {
       marginPercentage: 90.4,
       alcoholTaxCents: 555,
     });
-    expect(cents).toBe(16341);
+    // Pre-round was 16341 öre → binding consumer unit 163 kr.
+    expect(cents).toBe(16300);
   });
 
   it("implies margin so cost+FX reproduce the shop price", () => {

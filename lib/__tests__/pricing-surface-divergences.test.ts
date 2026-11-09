@@ -46,47 +46,30 @@ function producerRoundListPriceSek(basePriceCents: number): number {
   return Math.round(basePriceCents / 100);
 }
 
-describe("pricing surface divergences (documented, not fixed)", () => {
-  describe("PLP unrounded vs PDP ceil vs producer round", () => {
-    it("A Love Supreme 15641 öre → PLP 156.41 / PDP 157 / producer 156", () => {
+describe("pricing surfaces after whole-kronor B2C unit prices", () => {
+  describe("PLP / PDP / producer agree on stored whole kronor", () => {
+    it("A Love Supreme 15600 öre → 156 SEK on PLP, PDP, and producer", () => {
       const { base_price_cents: cents } = wineById("a-love-supreme-2024");
-
-      // TODO(pricing-consolidation): unify öre→SEK display rounding across PLP/PDP/producer.
-      expect(plpListPriceSek(cents)).toBe(156.41);
-      expect(pdpCeilListPriceSek(cents)).toBe(157);
+      expect(plpListPriceSek(cents)).toBe(156);
+      expect(pdpCeilListPriceSek(cents)).toBe(156);
       expect(producerRoundListPriceSek(cents)).toBe(156);
-
-      expect(plpListPriceSek(cents)).not.toBe(pdpCeilListPriceSek(cents));
-      expect(pdpCeilListPriceSek(cents)).not.toBe(
-        producerRoundListPriceSek(cents),
-      );
-      expect(plpListPriceSek(cents)).not.toBe(
-        producerRoundListPriceSek(cents),
-      );
     });
 
-    it("Hippie Killer 13032 öre → PLP 130.32 / PDP 131 / producer 130", () => {
+    it("Hippie Killer 13000 öre → 130 SEK everywhere", () => {
       const { base_price_cents: cents } = wineById("hippie-killer-2023");
-
-      // TODO(pricing-consolidation): same three-way split as A Love Supreme.
-      expect(plpListPriceSek(cents)).toBe(130.32);
-      expect(pdpCeilListPriceSek(cents)).toBe(131);
+      expect(plpListPriceSek(cents)).toBe(130);
+      expect(pdpCeilListPriceSek(cents)).toBe(130);
       expect(producerRoundListPriceSek(cents)).toBe(130);
     });
 
-    it("Up Tempo 17380 öre → PLP 173.8; PDP and producer both 174 (ceil≡round)", () => {
+    it("Up Tempo 17400 öre → 174 SEK everywhere", () => {
       const { base_price_cents: cents } = wineById("up-tempo-2024");
-
-      // TODO(pricing-consolidation): PLP still exposes fractional SEK; PDP/producer agree here.
-      expect(plpListPriceSek(cents)).toBe(173.8);
+      expect(plpListPriceSek(cents)).toBe(174);
       expect(pdpCeilListPriceSek(cents)).toBe(174);
       expect(producerRoundListPriceSek(cents)).toBe(174);
-      expect(pdpCeilListPriceSek(cents)).toBe(
-        producerRoundListPriceSek(cents),
-      );
     });
 
-    it("price-breakdown B2C list total follows PDP ceil, not PLP or producer", () => {
+    it("price-breakdown B2C list total matches binding whole-kronor unit", () => {
       const wine = wineById("a-love-supreme-2024");
       const breakdown = calculatePriceBreakdown({
         cost_amount: wine.cost_amount,
@@ -96,20 +79,10 @@ describe("pricing surface divergences (documented, not fixed)", () => {
         base_price_cents: wine.base_price_cents,
       });
 
-      // TODO(pricing-consolidation): breakdown / auto-charge align with PDP ceil, not producer round.
-      expect(breakdown.listTotalInclVat).toBe(157);
+      expect(breakdown.listTotalInclVat).toBe(156);
       expect(breakdown.listTotalInclVat).toBe(
         pdpCeilListPriceSek(wine.base_price_cents),
       );
-      expect(breakdown.listTotalInclVat).not.toBe(
-        producerRoundListPriceSek(wine.base_price_cents),
-      );
-      expect(breakdown.listTotalInclVat).not.toBe(
-        plpListPriceSek(wine.base_price_cents),
-      );
-      // TODO(pricing-consolidation): component Math.ceil can make total ≠ listTotalInclVat.
-      expect(breakdown.total).toBe(157.01);
-      expect(breakdown.total).not.toBe(breakdown.listTotalInclVat);
     });
   });
 
@@ -151,9 +124,9 @@ describe("pricing surface divergences (documented, not fixed)", () => {
         alcoholTaxCents: wine.alcohol_tax_cents,
       });
 
-      // TODO(pricing-consolidation): lock the magnitude gap until FX paths share one fallback.
-      expect(withRetailFallback).toBe(15772);
-      expect(withB2bCostFallback).toBe(4561);
+      // Lock the magnitude gap until FX paths share one fallback (whole kronor).
+      expect(withRetailFallback).toBe(15800);
+      expect(withB2bCostFallback).toBe(4600);
       expect(withRetailFallback! - withB2bCostFallback!).toBeGreaterThan(10_000);
     });
   });
@@ -237,13 +210,13 @@ describe("pricing surface divergences (documented, not fixed)", () => {
 
       // TODO(pricing-consolidation): SB comparator uses fixed 14.7%; PACT uses wine margin.
       expect(sb).toBe(163);
-      expect(pactOre).toBe(17380);
+      expect(pactOre).toBe(17400);
       expect(sb).not.toBe((pactOre ?? 0) / 100);
     });
   });
 
   describe("stored catalog price vs live retail recalculation", () => {
-    it("Résiste SEK B2B card: stored 157 kr list ≠ live 20% B2C formula 144.05", () => {
+    it("Résiste SEK: B2C whole-kronor list 144; B2B inquiry card stays 132 excl. VAT", () => {
       const wine = wineById("resiste-sek-b2b-card");
       const live = calculateRetailPriceCents({
         costAmount: wine.cost_amount,
@@ -253,10 +226,9 @@ describe("pricing surface divergences (documented, not fixed)", () => {
         alcoholTaxCents: wine.alcohol_tax_cents,
       });
 
-      // TODO(pricing-consolidation): stored base_price_cents can drift from formula; B2B card is independent.
-      expect(wine.base_price_cents).toBe(15700);
-      expect(live).toBe(14405);
-      expect(live).not.toBe(wine.base_price_cents);
+      // Whole-kronor B2C list matches live formula; B2B inquiry card stays excl. VAT.
+      expect(wine.base_price_cents).toBe(14400);
+      expect(live).toBe(14400);
       expect(
         computeInquiryB2bUnitPriceExclVatSek({
           costAmount: wine.cost_amount,

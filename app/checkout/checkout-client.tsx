@@ -4158,8 +4158,9 @@ function CheckoutContent({
                         fetchArgs={{
                           palletId: selectedPallet.id,
                           countryCode: ageCountryCode,
-                          allowSyntheticDirect: true,
+                          allowSyntheticDirect: false,
                         }}
+                        showDirectOffer={directBoxCheckoutEnabled}
                         openIntentIds={
                           prefetchedStripeIntent?.intentId
                             ? [prefetchedStripeIntent.intentId]

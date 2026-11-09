@@ -17,10 +17,23 @@ export function formatOfferSek(
   locale: "sv" | "en",
 ): string {
   if (n == null || !Number.isFinite(n)) return "—";
+  const whole = Math.abs(n - Math.round(n)) < 1e-9;
   return new Intl.NumberFormat(locale === "sv" ? "sv-SE" : "en-SE", {
     style: "currency",
     currency: "SEK",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+    minimumFractionDigits: whole ? 0 : 2,
+    maximumFractionDigits: whole ? 0 : 2,
   }).format(n);
+}
+
+/** Whole kronor amount for legal CTA button text (no currency symbol). */
+export function formatOfferTotalKr(
+  n: number | null | undefined,
+  locale: "sv" | "en",
+): string {
+  if (n == null || !Number.isFinite(n)) return "—";
+  return new Intl.NumberFormat(locale === "sv" ? "sv-SE" : "en-SE", {
+    maximumFractionDigits: 0,
+    minimumFractionDigits: 0,
+  }).format(Math.round(n));
 }

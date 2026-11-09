@@ -6,15 +6,15 @@ import {
 
 describe("wine box bottle-sum pricing", () => {
   it("reads the same bottle list price producer boxes use (base_price_cents)", () => {
-    expect(wineBoxBottlePriceCents(15641)).toBe(15641);
+    expect(wineBoxBottlePriceCents(15600)).toBe(15600);
     expect(wineBoxBottlePriceCents(null)).toBeUndefined();
     expect(wineBoxBottlePriceCents(undefined)).toBeUndefined();
   });
 
   it("prices Meigoon Box as 3×Ultravision + 3×Extralucide (inkl. moms)", () => {
     // Live Meigoon Box contents (Ultravision 3 + Extralucide 3).
-    const ultravisionCents = 15641; // 156.41 SEK inkl. moms, 20% margin
-    const extralucideCents = 16510; // 165.10 SEK inkl. moms, 20% margin
+    const ultravisionCents = 15600; // 156 SEK inkl. moms (whole kronor)
+    const extralucideCents = 16500; // 165 SEK inkl. moms (whole kronor)
 
     const priced = computeWineBoxPriceFromLines([
       {
@@ -62,8 +62,8 @@ describe("wine box bottle-sum pricing", () => {
     expect(priced.finalPrice).toBe(
       3 * (ultravisionCents / 100) + 3 * (extralucideCents / 100),
     );
-    expect(priced.totalCents).toBe(96453);
-    expect(priced.finalPrice).toBe(964.53);
+    expect(priced.totalCents).toBe(96300);
+    expect(priced.finalPrice).toBe(963);
   });
 
   it("does not use the old (cost × FX + tax) × 1.15 ex-VAT formula", () => {
@@ -75,14 +75,14 @@ describe("wine box bottle-sum pricing", () => {
         wineId: "u",
         wineName: "Ultravision",
         vintage: "2023",
-        basePriceCents: 15641,
+        basePriceCents: 15600,
         quantity: 3,
       },
       {
         wineId: "e",
         wineName: "Extralucide",
         vintage: "2023",
-        basePriceCents: 16510,
+        basePriceCents: 16500,
         quantity: 3,
       },
     ]);
