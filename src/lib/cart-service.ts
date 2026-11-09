@@ -4,9 +4,9 @@ import { getMemberDiscountForUserId } from "../../lib/membership/server-member-d
 import { getLevelDisplayName } from "../../lib/membership/points-engine";
 import { formatCartDiscountLabel } from "../../lib/cart/discount-label";
 import { resolveWineImageSrc } from "../../lib/cart/wine-image-url";
-import { memberDiscountedTotalInclVat } from "../../lib/price-breakdown";
 import { resolvePalletEarlyBirdContext } from "../../lib/pallet-early-bird-context";
-import { applyPalletDiscount, type DiscountTier } from "../../lib/pallet-discount";
+import type { DiscountTier } from "../../lib/pallet-discount";
+import { b2cLineTotalSek } from "@/lib/cart/b2c-line-pricing";
 import { supabaseServer } from "../../lib/supabase-server";
 import type { Cart, CartItem } from "../../lib/shopify/types";
 import { getOrSetCartId, clearCartId } from "./cookies";
@@ -375,20 +375,16 @@ export class CartService {
         const producerBoostActive = producerData?.boost_active === true;
 
         const unitListSek = Math.ceil(wine.base_price_cents / 100);
-        const unitMemberSek = memberDiscountedTotalInclVat(
-          unitListSek,
-          memberDiscountPercent,
-        );
-        const lineTotalMember = unitMemberSek * row.quantity;
-        // Pallet early-bird discount is applied multiplicatively on top of member price,
-        // not additively. A 200 SEK member price with 20% early-bird = 160 SEK, not
-        // 200 * (1 - memberPct - 0.20).
-        const lineTotalSek =
-          palletTier > 0
-            ? applyPalletDiscount(lineTotalMember, palletTier)
-            : lineTotalMember;
+        // Round discounted unit (member + early-bird) to whole kronor first;
+        // line total = unit × qty so UI "2 × 86 kr" always equals the line.
+        const { unitSek: unitChargedSek, lineTotalSek } = b2cLineTotalSek({
+          listUnitSek: unitListSek,
+          memberPercent: memberDiscountPercent,
+          earlyBirdTier: (palletTier || 0) as DiscountTier,
+          quantity: row.quantity,
+        });
         const lineTotalDisplay = toDisplay(lineTotalSek);
-        const unitDisplay = toDisplay(unitMemberSek);
+        const unitDisplay = toDisplay(unitChargedSek);
 
         const discountLabel = formatCartDiscountLabel({
           memberName: memberLevelName,

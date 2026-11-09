@@ -353,6 +353,26 @@ export function DualOfferPurchaseActions(props: {
           : model.finalCtaLabel}
       </button>
 
+      {/* Helper (card incomplete) first, then terms under the bind button. */}
+      {model.confirmNote ? (
+        <p
+          className="text-sm text-foreground"
+          data-testid="dual-offer-final-reason"
+        >
+          {model.confirmNote}
+        </p>
+      ) : null}
+
+      {isBind && model.errorNote ? (
+        <p
+          className="text-sm text-destructive"
+          data-testid="dual-offer-bind-error"
+          role="alert"
+        >
+          {model.errorNote}
+        </p>
+      ) : null}
+
       {isBind ? (
         <p
           className="text-xs text-foreground/70"
@@ -377,25 +397,6 @@ export function DualOfferPurchaseActions(props: {
               </>
             );
           })()}
-        </p>
-      ) : null}
-
-      {model.confirmNote ? (
-        <p
-          className="text-sm text-foreground"
-          data-testid="dual-offer-final-reason"
-        >
-          {model.confirmNote}
-        </p>
-      ) : null}
-
-      {isBind && model.errorNote ? (
-        <p
-          className="text-sm text-destructive"
-          data-testid="dual-offer-bind-error"
-          role="alert"
-        >
-          {model.errorNote}
         </p>
       ) : null}
     </div>
@@ -504,6 +505,7 @@ export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
   const showPalletFillStatus = props.showPalletFillStatus !== false;
   const palletFill = props.palletFill ?? null;
   const requestGen = useRef(0);
+  const hasHydratedQuoteRef = useRef(Boolean(props.initialDual));
   const [loading, setLoading] = useState(Boolean(props.fetchArgs));
   const [error, setError] = useState(false);
   const [state, setState] = useState<OfferCheckoutSessionState | null>(() =>
@@ -536,8 +538,14 @@ export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
   const fetchSynthetic = props.fetchArgs?.allowSyntheticDirect;
   const initialDual = props.initialDual;
 
+  // Keep openIntentIds in a ref so preference reconcile does not recreate the
+  // fetch effect (that used to flash Leverans: Delad pall skeleton).
+  const openIntentIdsRef = useRef(props.openIntentIds);
+  openIntentIdsRef.current = props.openIntentIds;
+
   const ensurePreferredSelected = useCallback(
     (next: OfferCheckoutSessionState): OfferCheckoutSessionState => {
+      const openIntentIds = openIntentIdsRef.current;
       if (
         preferOffer === "direct_box" &&
         showDirectOffer &&
@@ -550,7 +558,7 @@ export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
         return switchSelectedOffer({
           state: next,
           toOffer: "direct_box",
-          openIntentIds: props.openIntentIds,
+          openIntentIds,
         }).state;
       }
       if (showDirectOffer) return next;
@@ -561,10 +569,10 @@ export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
       return switchSelectedOffer({
         state: next,
         toOffer: "shared_pallet",
-        openIntentIds: props.openIntentIds,
+        openIntentIds,
       }).state;
     },
-    [showDirectOffer, preferOffer, props.openIntentIds],
+    [showDirectOffer, preferOffer],
   );
 
   useEffect(() => {
@@ -580,7 +588,11 @@ export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
       return;
     }
     const gen = ++requestGen.current;
-    setLoading(true);
+    // Silent refresh when we already have a quote — avoid Delad pall skeleton flash.
+    // Retry button clears hasHydratedQuoteRef before bumping reloadToken.
+    if (!hasHydratedQuoteRef.current) {
+      setLoading(true);
+    }
     setError(false);
     const body = {
       pallet_id: fetchPalletId,
@@ -611,6 +623,7 @@ export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
           onStateChange?.(next);
           return next;
         });
+        hasHydratedQuoteRef.current = true;
         setLoading(false);
       })
       .catch(() => {
@@ -820,7 +833,7 @@ export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
           </h2>
         )}
 
-        {loading ? (
+        {loading && !state ? (
           <div
             className="space-y-3"
             data-testid="dual-offer-loading"
@@ -832,7 +845,7 @@ export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
           </div>
         ) : null}
 
-        {error ? (
+        {error && !state ? (
           <div className="space-y-2" data-testid="dual-offer-error">
             <p className="text-sm text-destructive">
               {dualOfferMsg(locale, "dualOfferError")}
@@ -841,14 +854,17 @@ export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
               type="button"
               className="rounded-md border border-border px-3 py-1.5 text-sm"
               data-testid="dual-offer-retry"
-              onClick={() => setReloadToken((n) => n + 1)}
+              onClick={() => {
+                hasHydratedQuoteRef.current = false;
+                setReloadToken((n) => n + 1);
+              }}
             >
               {dualOfferMsg(locale, "dualOfferRetry")}
             </button>
           </div>
         ) : null}
 
-        {state && !loading && !error ? (
+        {state && !error ? (
           compareMode ? (
             <>
               <div

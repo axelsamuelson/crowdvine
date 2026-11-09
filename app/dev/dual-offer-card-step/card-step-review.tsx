@@ -14,12 +14,29 @@ import {
   buildSharedPalletBindCopy,
 } from "@/components/checkout/dual-offer-checkout-panel";
 import { dualOfferMsg } from "@/lib/checkout/dual-offer-customer-copy";
+import {
+  sharedPalletLinkEnabled,
+  sharedPalletPaymentElementOptions,
+} from "@/lib/checkout/shared-pallet-stripe-link";
 
 type Locale = "sv" | "en";
+
+const pactDevAppearance = {
+  theme: "flat" as const,
+  variables: {
+    colorPrimary: "#0A0A0A",
+    colorBackground: "#ffffff",
+    colorText: "#0A0A0A",
+    colorTextSecondary: "#666666",
+    fontFamily: "Geist, ui-sans-serif, sans-serif",
+    borderRadius: "6px",
+  },
+};
 
 function CardStepInner(props: {
   locale: Locale;
   totalSek: number;
+  forceError: boolean;
 }) {
   const stripe = useStripe();
   const elements = useElements();
@@ -35,6 +52,10 @@ function CardStepInner(props: {
     showDirectOffer: false,
   });
 
+  const peOptions = sharedPalletPaymentElementOptions({
+    linkEnabled: sharedPalletLinkEnabled(),
+  });
+
   const onContinue = () => {
     setError(null);
     setStep("card");
@@ -45,6 +66,14 @@ function CardStepInner(props: {
     setBusy(true);
     setError(null);
     try {
+      if (props.forceError) {
+        setError(
+          props.locale === "en"
+            ? "Your card number is incomplete."
+            : "Kortnumret är ofullständigt.",
+        );
+        return;
+      }
       const result = await stripe.confirmSetup({
         elements,
         redirect: "if_required",
@@ -91,18 +120,38 @@ function CardStepInner(props: {
     );
   }
 
+  const showError =
+    error ||
+    (props.forceError
+      ? props.locale === "en"
+        ? "Your card number is incomplete."
+        : "Kortnumret är ofullständigt."
+      : null);
+
   return (
     <div className="space-y-4" data-testid="dual-offer-card-step-live">
+      <p className="text-xs text-muted-foreground" data-testid="dev-link-enabled">
+        link_enabled={String(sharedPalletLinkEnabled())}
+      </p>
       <div className="rounded-xl border border-border bg-background p-4">
         <PaymentElement
           options={{
-            layout: "tabs",
-            paymentMethodOrder: ["card"],
-            wallets: { applePay: "never", googlePay: "never" },
+            layout: {
+              type: "accordion",
+              defaultCollapsed: false,
+              radios: true,
+              spacedAccordionItems: false,
+            },
+            ...peOptions,
           }}
           onChange={(e) => setComplete(e.complete === true)}
         />
       </div>
+      <p className="text-xs text-muted-foreground">
+        {props.locale === "en"
+          ? "Seller: EURPACT OÜ (reg. 17538270), Estonia"
+          : "Avtalspart: EURPACT OÜ (reg. 17538270), Estland"}
+      </p>
       <DualOfferPurchaseActions
         model={{
           locale: props.locale,
@@ -115,7 +164,7 @@ function CardStepInner(props: {
           confirmNote: !complete
             ? dualOfferMsg(props.locale, "dualOfferCardIncomplete")
             : null,
-          errorNote: error,
+          errorNote: showError,
           onConfirm: () => void onBind(),
         }}
       />
@@ -123,13 +172,21 @@ function CardStepInner(props: {
   );
 }
 
-function StaticCardMock(props: { locale: Locale; totalSek: number }) {
+function StaticCardMock(props: {
+  locale: Locale;
+  totalSek: number;
+  forceError: boolean;
+}) {
   const bind = buildSharedPalletBindCopy({
     locale: props.locale,
     totalSek: props.totalSek,
     chargeDeadlineAt: null,
     showDirectOffer: false,
   });
+  const err =
+    props.locale === "en"
+      ? "Your card number is incomplete."
+      : "Kortnumret är ofullständigt.";
   return (
     <div className="space-y-4" data-testid="dual-offer-card-step-mock">
       <DualOfferPurchaseActions
@@ -153,15 +210,15 @@ function StaticCardMock(props: { locale: Locale; totalSek: number }) {
             4242 4242 4242
           </div>
         </div>
-        <p
-          className="text-sm text-destructive"
-          data-testid="dual-offer-card-step-error"
-          role="alert"
-        >
-          {props.locale === "en"
-            ? "Your card number is incomplete."
-            : "Kortnumret är ofullständigt."}
-        </p>
+        {props.forceError ? (
+          <p
+            className="text-sm text-destructive"
+            data-testid="dual-offer-card-step-error"
+            role="alert"
+          >
+            {err}
+          </p>
+        ) : null}
       </div>
       <DualOfferPurchaseActions
         model={{
@@ -172,10 +229,7 @@ function StaticCardMock(props: { locale: Locale; totalSek: number }) {
           legalLine: bind.legalLine,
           disabled: true,
           confirmNote: dualOfferMsg(props.locale, "dualOfferCardIncomplete"),
-          errorNote:
-            props.locale === "en"
-              ? "Your card number is incomplete."
-              : "Kortnumret är ofullständigt.",
+          errorNote: props.forceError ? err : null,
           onConfirm: () => {},
         }}
       />
@@ -196,6 +250,9 @@ export function DualOfferCardStepReview() {
   const [locale, setLocale] = useState<Locale>(initial);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [forceError, setForceError] = useState(
+    () => search.get("error") === "1" || search.get("error") === "true",
+  );
   const pk = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.trim() || "";
   const totalSek = 1283;
 
@@ -238,57 +295,96 @@ export function DualOfferCardStepReview() {
     router.replace(`${pathname}?${params.toString()}`);
   };
 
+  const toggleError = () => {
+    const next = !forceError;
+    setForceError(next);
+    const params = new URLSearchParams(search.toString());
+    if (next) params.set("error", "1");
+    else params.delete("error");
+    router.replace(`${pathname}?${params.toString()}`);
+  };
+
   return (
     <div className="space-y-6">
       <div className="space-y-2">
         <h1 className="text-xl font-semibold tracking-tight">
-          {locale === "en"
-            ? "4. Payment (review)"
-            : "4. Betalning (granskning)"}
+          {locale === "en" ? "4. Card (review)" : "4. Betalkort (granskning)"}
         </h1>
         <p className="text-sm text-muted-foreground">
           {locale === "en"
-            ? "Preview-only: continue → card → binding buy button. Matches checkout."
-            : "Endast förhandsvisning: fortsätt → kort → bindande köpknapp. Speglar checkout."}
+            ? "Preview-only: continue → Payment Element (card-only, Link off) → binding buy. Toggle error for screenshots."
+            : "Endast förhandsvisning: fortsätt → Payment Element (endast kort, Link av) → bindande köp. Växla fel för skärmdumpar."}
         </p>
-        <div
-          className="flex gap-2"
-          role="group"
-          aria-label="Locale"
-          data-testid="dual-offer-card-step-locale"
-        >
+        <div className="flex flex-wrap gap-2">
+          <div
+            className="flex gap-2"
+            role="group"
+            aria-label="Locale"
+            data-testid="dual-offer-card-step-locale"
+          >
+            <button
+              type="button"
+              className={`rounded-md border px-3 py-1.5 text-sm ${
+                locale === "sv" ? "border-foreground" : "border-border"
+              }`}
+              onClick={() => setLang("sv")}
+            >
+              Svenska
+            </button>
+            <button
+              type="button"
+              className={`rounded-md border px-3 py-1.5 text-sm ${
+                locale === "en" ? "border-foreground" : "border-border"
+              }`}
+              onClick={() => setLang("en")}
+            >
+              English
+            </button>
+          </div>
           <button
             type="button"
             className={`rounded-md border px-3 py-1.5 text-sm ${
-              locale === "sv" ? "border-foreground" : "border-border"
+              forceError ? "border-destructive text-destructive" : "border-border"
             }`}
-            onClick={() => setLang("sv")}
+            data-testid="dual-offer-card-step-error-toggle"
+            onClick={toggleError}
           >
-            Svenska
-          </button>
-          <button
-            type="button"
-            className={`rounded-md border px-3 py-1.5 text-sm ${
-              locale === "en" ? "border-foreground" : "border-border"
-            }`}
-            onClick={() => setLang("en")}
-          >
-            English
+            {forceError
+              ? locale === "en"
+                ? "Error: on"
+                : "Fel: på"
+              : locale === "en"
+                ? "Error: off"
+                : "Fel: av"}
           </button>
         </div>
       </div>
 
       {!pk || loadError || !clientSecret || !stripePromise ? (
-        <StaticCardMock locale={locale} totalSek={totalSek} />
+        <StaticCardMock
+          locale={locale}
+          totalSek={totalSek}
+          forceError={forceError}
+        />
       ) : (
         <Elements
           stripe={stripePromise}
           options={{
             clientSecret,
-            appearance: { theme: "stripe" },
+            appearance: pactDevAppearance,
+            fonts: [
+              {
+                cssSrc:
+                  "https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&display=swap",
+              },
+            ],
           }}
         >
-          <CardStepInner locale={locale} totalSek={totalSek} />
+          <CardStepInner
+            locale={locale}
+            totalSek={totalSek}
+            forceError={forceError}
+          />
         </Elements>
       )}
     </div>

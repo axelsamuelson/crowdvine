@@ -54,6 +54,7 @@ import {
   mayRunLegacySharedPalletPaymentUi,
   mayStartSharedPalletCardSave,
 } from "@/lib/checkout/dual-offer-checkout-isolation";
+import { sharedPalletLinkEnabled } from "@/lib/checkout/shared-pallet-stripe-link";
 import {
   customerZoneSaveErrorMessage,
   dualOfferMsg,
@@ -216,6 +217,11 @@ function CheckoutContent({
   const [cart, setCart] = useState<Cart | null>(null);
   /** True after the first /api/crowdvine/cart attempt finishes (ok or error). */
   const [cartFetchDone, setCartFetchDone] = useState(false);
+  /**
+   * Fresh logged-in sessions: wait for /api/cart/merge before treating an
+   * empty cart as empty (avoids cart (0) / empty-checkout flash).
+   */
+  const [postAuthCartReady, setPostAuthCartReady] = useState(false);
   const formatChargedAmount = useCallback(
     (amount: number, currencyCode?: string | null) =>
       formatCartLinePrice(
@@ -448,13 +454,18 @@ function CheckoutContent({
 
   function checkoutEventMeta(step: CheckoutAnalyticsStep) {
     const base = checkoutMetaRef.current;
-    return {
+    const meta: Record<string, string | number | boolean> = {
       step,
       market: base.market,
       currency: base.currency,
       cart_value: base.cart_value,
       bottle_count: base.bottle_count,
     };
+    // Card-step CRO: always stamp Link policy on payment-step analytics.
+    if (step === "payment") {
+      meta.link_enabled = sharedPalletLinkEnabled();
+    }
+    return meta;
   }
 
   function emitCheckoutError(
@@ -941,12 +952,14 @@ function CheckoutContent({
     if (isUsConditional) {
       return { dateOfBirth: dob, acceptedTermsVersion: "" };
     }
-    if (!termsAccepted) return null;
+    // Dual-offer: terms version rides with SetupIntent once DOB is known;
+    // customer-visible acceptance is the bind CTA terms line.
+    if (!termsAccepted && !dualOfferCardStepUnlocked) return null;
     return {
       dateOfBirth: dob,
       acceptedTermsVersion: LEGAL_VERSIONS.terms,
     };
-  }, [dateOfBirth, isUsConditional, termsAccepted]);
+  }, [dateOfBirth, isUsConditional, termsAccepted, dualOfferCardStepUnlocked]);
 
   const zoneOrUsPalletReady = deliveryZoneReady;
 
@@ -1022,7 +1035,7 @@ function CheckoutContent({
     const cartValue =
       parseFloat(String(cart.cost?.totalAmount?.amount ?? "0")) || 0;
     const bottleCount = cart.totalQuantity;
-    const meta = {
+    const meta: Record<string, string | number | boolean> = {
       step: checkoutStep,
       market: (checkoutMarketCountry || ageCountryCode || "SE").toUpperCase(),
       currency:
@@ -1030,10 +1043,13 @@ function CheckoutContent({
       cart_value: cartValue,
       bottle_count: bottleCount,
     };
+    if (checkoutStep === "payment") {
+      meta.link_enabled = sharedPalletLinkEnabled();
+    }
     checkoutStepRef.current = checkoutStep;
     checkoutMetaRef.current = {
-      market: meta.market,
-      currency: meta.currency,
+      market: String(meta.market),
+      currency: String(meta.currency),
       cart_value: cartValue,
       bottle_count: bottleCount,
     };
@@ -1332,24 +1348,31 @@ function CheckoutContent({
     t,
   ]);
 
-  // After magic-link return: session is set, attach/merge anonymous cart once.
-  const cartMergedAfterAuthRef = useRef(false);
+  // After auth is known: merge (if logged in) then fetch cart once. Keeps the
+  // skeleton up until the post-auth cart is known — no empty-cart flash.
+  const cartHydratedAfterAuthRef = useRef(false);
   useEffect(() => {
-    if (!authReady || cartMergedAfterAuthRef.current) return;
-    cartMergedAfterAuthRef.current = true;
+    if (!authChecked || cartHydratedAfterAuthRef.current) return;
+    cartHydratedAfterAuthRef.current = true;
     void (async () => {
       try {
-        await fetch("/api/cart/merge", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ strategy: "auto" }),
-        });
-        await fetchCart();
+        if (authReady) {
+          await fetch("/api/cart/merge", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ strategy: "auto" }),
+          });
+        }
       } catch {
         // cart still available via cv_cart_id
       }
+      try {
+        await fetchCart();
+      } finally {
+        setPostAuthCartReady(true);
+      }
     })();
-  }, [authReady, fetchCart]);
+  }, [authChecked, authReady, fetchCart]);
 
   const handleCartMerge = useCallback(
     async (strategy: "keep_session" | "keep_user" | "merge") => {
@@ -1446,7 +1469,7 @@ function CheckoutContent({
   }, []);
 
   useEffect(() => {
-    fetchCart();
+    // Cart hydrate waits for authChecked (see post-auth merge effect).
     void fetchProfile().then(() => void fetchZoneShopContext());
     fetchPactPointsBalance();
 
@@ -1459,7 +1482,6 @@ function CheckoutContent({
       window.history.replaceState({}, "", cleanUrl);
     }
   }, [
-    fetchCart,
     fetchProfile,
     fetchZoneShopContext,
     fetchPactPointsBalance,
@@ -1647,9 +1669,12 @@ function CheckoutContent({
     return () => window.clearTimeout(revealTimer);
   }, [deliveryComplete]);
 
+  // Dual-offer card path: terms are recorded on the binding confirm (legal +
+  // terms line under Köp), not via a mid-flow checkbox — so PE can mount as
+  // soon as continue unlocks + DOB is valid.
   const complianceComplete =
     ageConfirmed &&
-    termsAccepted &&
+    (dualOfferCardStepUnlocked || termsAccepted) &&
     (!isUsConditional || usConditionalAck);
 
   useEffect(() => {
@@ -1828,13 +1853,13 @@ function CheckoutContent({
   ]);
 
   // If age/terms become incomplete again, collapse payment.
-  // Also collapse when dual-offer review becomes active so a prior reveal
-  // cannot leave Stripe Elements / Pay armed beside the dual panel.
+  // Dual-offer card unlock keeps PE mounted (terms are under bind CTA).
   useEffect(() => {
+    if (dualOfferCardStepUnlocked) return;
     if (!complianceStepRevealed || !complianceComplete) {
       setPaymentCardRevealed(false);
     }
-  }, [complianceStepRevealed, complianceComplete]);
+  }, [complianceStepRevealed, complianceComplete, dualOfferCardStepUnlocked]);
 
   useEffect(() => {
     if (!dualOfferReviewActive) {
@@ -1866,7 +1891,9 @@ function CheckoutContent({
   const handleSharedPalletCardStepRequest = useCallback(() => {
     setDualOfferCardStepUnlocked(true);
     setPaymentCardRevealed(true);
-    // Compliance (age/terms) is required before SetupIntent create.
+    // Record terms version now so SetupIntent / PE can create without a
+    // checkbox; the bind CTA still shows the terms line as acceptance UI.
+    handleTermsChecked(true);
     if (!complianceStepRevealed) {
       setComplianceStepRevealed(true);
     }
@@ -1876,7 +1903,7 @@ function CheckoutContent({
         block: "nearest",
       });
     }, 80);
-  }, [complianceStepRevealed]);
+  }, [complianceStepRevealed, handleTermsChecked]);
 
   // Initial zone matching when cart and zone context are loaded
   useEffect(() => {
@@ -3001,6 +3028,7 @@ function CheckoutContent({
           decline_code: confirmed.stripeError?.decline_code ?? null,
           // Helpful high-level signal for Nära köp (card_declined, do_not_honor, etc).
           success: false,
+          link_enabled: sharedPalletLinkEnabled(),
         },
       });
       const stripeCode = confirmed.stripeError?.code ?? "";
@@ -3418,8 +3446,17 @@ function CheckoutContent({
     const originalLineTotalSek = showLineDiscount
       ? product.originalUnitPriceSek! * line.quantity
       : null;
+    // Prefer stamped whole-kronor unit from cart (after discounts); never
+    // derive unit as line÷qty (that reintroduces half-kronor display drift).
+    const stampedUnit = parseFloat(
+      product.priceRange?.minVariantPrice?.amount ?? "",
+    );
     const unitAmount =
-      line.quantity > 0 ? totalForLine / line.quantity : totalForLine;
+      Number.isFinite(stampedUnit) && stampedUnit > 0
+        ? stampedUnit
+        : line.quantity > 0
+          ? totalForLine / line.quantity
+          : totalForLine;
     const unitPriceLabel = formatChargedAmount(
       unitAmount,
       line.cost.totalAmount.currencyCode,
@@ -3632,10 +3669,10 @@ function CheckoutContent({
   // text based on zone (Bring for Stockholm, others for other zones).
 
   // IMPORTANT: keep these conditional returns AFTER all hooks above to preserve hook order
-  // Keep skeleton until the first cart fetch finishes — never flash empty-cart
-  // while cart is still null / hydrating.
-  if (loading || !cartFetchDone || cart == null) {
+  // Keep skeleton until cart is known post-auth — never flash empty-cart / (0).
+  if (loading || !cartFetchDone || !postAuthCartReady || cart == null) {
     // Mirror loaded checkout shell: max-w-5xl + lg:grid-cols-[1fr_400px].
+    // Heights approximate sections 1–4 + sticky order sidebar.
     return (
       <main
         className="min-h-screen bg-background"
@@ -3656,20 +3693,34 @@ function CheckoutContent({
                 <div className="h-14 w-full rounded bg-muted/40" />
                 <div className="h-4 w-2/3 rounded bg-muted/40" />
                 <div className="h-4 w-1/2 rounded bg-muted/40" />
-                <div className="h-8 w-full rounded bg-muted/50" />
+                <div className="mt-2 h-16 w-full rounded bg-muted/40" />
+                <div className="h-10 w-full rounded bg-muted/50" />
               </div>
             </aside>
             <div className="order-2 min-w-0 space-y-0 lg:order-1">
-              {/* Postcode / delivery — one block */}
+              {/* 1. Postnummer + delivery block */}
               <section className="space-y-3 border-b border-border py-6 first:pt-0">
                 <div className="h-5 w-40 rounded bg-muted/60" />
                 <div className="h-3 w-52 max-w-full rounded bg-muted/40" />
                 <div className="h-10 w-full max-w-xs rounded bg-muted/40" />
+                <div className="h-20 w-full rounded-lg bg-muted/40" />
               </section>
-              {/* Address block */}
+              {/* 2. Leveransadress */}
               <section className="space-y-3 border-b border-border py-6">
-                <div className="h-5 w-36 rounded bg-muted/60" />
-                <div className="h-24 w-full rounded bg-muted/40" />
+                <div className="h-5 w-44 rounded bg-muted/60" />
+                <div className="h-10 w-full rounded bg-muted/40" />
+                <div className="h-10 w-full rounded bg-muted/40" />
+                <div className="h-10 w-2/3 max-w-sm rounded bg-muted/40" />
+              </section>
+              {/* 3. Ålder */}
+              <section className="space-y-3 border-b border-border py-6">
+                <div className="h-5 w-28 rounded bg-muted/60" />
+                <div className="h-24 w-full rounded-md bg-muted/40" />
+              </section>
+              {/* 4. Betalkort */}
+              <section className="space-y-3 border-b border-border py-6">
+                <div className="h-5 w-32 rounded bg-muted/60" />
+                <div className="h-36 w-full rounded-md bg-muted/40" />
               </section>
             </div>
           </div>
@@ -4937,9 +4988,24 @@ function CheckoutContent({
                               }
                               className="max-w-xs min-h-[44px]"
                               autoComplete="bday"
+                              placeholder={
+                                shopping.locale === "en"
+                                  ? "YYYY-MM-DD"
+                                  : "ÅÅÅÅ-MM-DD"
+                              }
+                              aria-describedby="age-dob-format"
                             />
-                            <p className="text-xs text-muted-foreground">
-                              {t("checkout.ageDeliveryIdHint", { age: requiredAge })}
+                            <p
+                              id="age-dob-format"
+                              className="text-xs text-muted-foreground"
+                            >
+                              {shopping.locale === "en"
+                                ? "YYYY-MM-DD"
+                                : "ÅÅÅÅ-MM-DD"}
+                              {" · "}
+                              {t("checkout.ageDeliveryIdHint", {
+                                age: requiredAge,
+                              })}
                             </p>
                             {ageDobError ? (
                               <p className="text-xs text-destructive">
@@ -4947,39 +5013,42 @@ function CheckoutContent({
                               </p>
                             ) : null}
                           </div>
-                          <div className="flex items-start gap-3 min-h-[44px]">
-                            <Checkbox
-                              id="terms-accept"
-                              checked={termsAccepted}
-                              onCheckedChange={(v) =>
-                                handleTermsChecked(v === true)
-                              }
-                              className="mt-1 min-h-[44px] min-w-[44px]"
-                            />
-                            <label
-                              htmlFor="terms-accept"
-                              className="text-sm leading-snug text-foreground pt-2"
-                            >
-                              {t("checkout.termsAcceptPrefix")}{" "}
-                              <Link
-                                href="/villkor"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="underline underline-offset-2"
+                          {/* Dual-offer card path: terms live under the bind CTA. */}
+                          {!dualOfferCardStepUnlocked ? (
+                            <div className="flex items-start gap-3 min-h-[44px]">
+                              <Checkbox
+                                id="terms-accept"
+                                checked={termsAccepted}
+                                onCheckedChange={(v) =>
+                                  handleTermsChecked(v === true)
+                                }
+                                className="mt-1 min-h-[44px] min-w-[44px]"
+                              />
+                              <label
+                                htmlFor="terms-accept"
+                                className="text-sm leading-snug text-foreground pt-2"
                               >
-                                {t("checkout.termsLinkPurchase")}
-                              </Link>{" "}
-                              {t("checkout.termsAcceptAnd")}{" "}
-                              <Link
-                                href="/integritetspolicy"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="underline underline-offset-2"
-                              >
-                                {t("checkout.termsLinkPrivacy")}
-                              </Link>
-                            </label>
-                          </div>
+                                {t("checkout.termsAcceptPrefix")}{" "}
+                                <Link
+                                  href="/villkor"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="underline underline-offset-2"
+                                >
+                                  {t("checkout.termsLinkPurchase")}
+                                </Link>{" "}
+                                {t("checkout.termsAcceptAnd")}{" "}
+                                <Link
+                                  href="/integritetspolicy"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="underline underline-offset-2"
+                                >
+                                  {t("checkout.termsLinkPrivacy")}
+                                </Link>
+                              </label>
+                            </div>
+                          ) : null}
                           {termsStale ? (
                             <p className="text-xs text-destructive">
                               {t("checkout.termsVersionStale")}{" "}
@@ -5105,7 +5174,8 @@ function CheckoutContent({
                 dualOfferReviewActive &&
                   !dualOfferCardStepUnlocked &&
                   "hidden",
-                complianceComplete && paymentCardRevealed
+                (dualOfferCardStepUnlocked || complianceComplete) &&
+                paymentCardRevealed
                   ? "opacity-100 translate-y-0"
                   : "opacity-50 translate-y-1",
               )}
@@ -5117,9 +5187,7 @@ function CheckoutContent({
             >
               <div className="space-y-3">
                 <h2 className="text-base font-semibold text-foreground">
-                  {dualOfferCardStepUnlocked
-                    ? t("checkout.dualOfferCardStepTitle")
-                    : t("checkout.payment")}
+                  {t("checkout.payment")}
                 </h2>
 
                 {dualOfferReviewActive && !dualOfferCardStepUnlocked ? (

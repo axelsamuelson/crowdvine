@@ -291,14 +291,14 @@ export const TRACKED_USER_EVENTS_CATALOG: TrackedEventCatalogEntry[] = [
     eventType: "checkout_step_viewed",
     category: "checkout",
     description:
-      "Ett kassasteg visades (metadata.step: postal | delivery | age_terms | payment). En gång per steg och besök, efter checkout_started.",
+      "Ett kassasteg visades (metadata.step: postal | delivery | age_terms | payment). En gång per steg och besök, efter checkout_started. Card-step (payment) also includes link_enabled (boolean) for shared-pallet Stripe Link policy.",
     sources: ["client"],
   },
   {
     eventType: "checkout_step_completed",
     category: "checkout",
     description:
-      "Ett kassasteg blev klart (metadata.step). En gång per steg och besök.",
+      "Ett kassasteg blev klart (metadata.step). En gång per steg och besök. Card-step (payment) also includes link_enabled (boolean).",
     sources: ["client"],
   },
   {

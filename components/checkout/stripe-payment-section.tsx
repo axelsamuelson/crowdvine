@@ -10,6 +10,10 @@ import {
 } from "@stripe/react-stripe-js";
 import { Button } from "@/components/ui/button";
 import { useShoppingContextOptional } from "@/lib/context/shopping-context-provider";
+import {
+  sharedPalletLinkEnabled,
+  sharedPalletPaymentElementOptions,
+} from "@/lib/checkout/shared-pallet-stripe-link";
 import { stripeLocaleForAppLocale } from "@/lib/i18n/locale";
 
 type PaymentMode = "setup_intent" | "payment_intent";
@@ -168,9 +172,9 @@ export function warmStripeJs(): void {
 const pactAppearance = {
   theme: "flat",
   variables: {
-    colorPrimary: "#000000",
+    colorPrimary: "#0A0A0A",
     colorBackground: "#ffffff",
-    colorText: "#000000",
+    colorText: "#0A0A0A",
     colorTextSecondary: "#666666",
     colorTextPlaceholder: "#999999",
     colorDanger: "#dc2626",
@@ -441,6 +445,12 @@ function StripeElementInner({
     };
   }, [confirm]);
 
+  const cardOnlyOptions = cardOnly
+    ? sharedPalletPaymentElementOptions({
+        linkEnabled: sharedPalletLinkEnabled(),
+      })
+    : null;
+
   return (
     <PaymentElement
       options={{
@@ -450,15 +460,7 @@ function StripeElementInner({
           radios: true,
           spacedAccordionItems: false,
         },
-        ...(cardOnly
-          ? {
-              paymentMethodOrder: ["card"],
-              wallets: {
-                applePay: "never" as const,
-                googlePay: "never" as const,
-              },
-            }
-          : {}),
+        ...(cardOnlyOptions ?? {}),
       }}
       onChange={(event) => {
         onPaymentElementComplete?.(event.complete === true);
@@ -803,11 +805,6 @@ export function StripePaymentSection({
             : t("checkout.stripeCardSavedOnShip")}
         </p>
       ) : null}
-      {paymentMode === "payment_intent" ? (
-        <p className="text-sm text-muted-foreground">
-          {t("checkout.stripeBottlesShip714")}
-        </p>
-      ) : null}
       {paymentElementLoadError ? (
         <div className="space-y-2 rounded-md border border-border bg-background p-4">
           <p className="text-sm text-destructive">{paymentElementLoadError}</p>
@@ -826,6 +823,13 @@ export function StripePaymentSection({
             clientSecret,
             appearance: pactAppearance,
             locale: stripeLocale,
+            // Stripe iframes cannot see Next font CSS variables — load Geist for PE.
+            fonts: [
+              {
+                cssSrc:
+                  "https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&display=swap",
+              },
+            ],
           }}
         >
           <StripeElementInner

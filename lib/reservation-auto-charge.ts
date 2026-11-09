@@ -8,8 +8,8 @@ import { getOrCreateStripeCustomer } from "@/lib/stripe/customer";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getMemberDiscountPercentForUserId } from "@/lib/membership/server-member-discount";
 import { resolvePalletEarlyBirdContext } from "@/lib/pallet-early-bird-context";
-import { applyPalletDiscount } from "@/lib/pallet-discount";
-import { memberDiscountedTotalInclVat } from "@/lib/price-breakdown";
+import { b2cLineTotalSek } from "@/lib/cart/b2c-line-pricing";
+import type { DiscountTier } from "@/lib/pallet-discount";
 import { resolveAndChargeCheckoutShipping } from "@/lib/checkout/resolve-checkout-shipping";
 import { allocatePactRedemptionPoints } from "@/lib/membership/pact-points-redemption-math";
 
@@ -163,15 +163,12 @@ async function resolveReservationChargeAmountInOre(params: {
 
     const baseCents = Number(wine.base_price_cents) || 0;
     const unitListSek = Math.ceil(baseCents / 100);
-    const unitMemberSek = memberDiscountedTotalInclVat(
-      unitListSek,
-      memberDiscountPercent,
-    );
-    const lineTotalMember = unitMemberSek * qty;
-    const lineTotalSek =
-      palletTier > 0
-        ? applyPalletDiscount(lineTotalMember, palletTier)
-        : lineTotalMember;
+    const { lineTotalSek } = b2cLineTotalSek({
+      listUnitSek: unitListSek,
+      memberPercent: memberDiscountPercent,
+      earlyBirdTier: (palletTier || 0) as DiscountTier,
+      quantity: qty,
+    });
 
     subtotalSek += lineTotalSek;
 
