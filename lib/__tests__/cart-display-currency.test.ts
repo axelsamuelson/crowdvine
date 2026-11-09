@@ -32,14 +32,26 @@ describe("cart drawer currency", () => {
 });
 
 describe("cart discount label", () => {
-  it("lists Privilege and early-bird together", () => {
+  it("lists Privilege and early-bird together (SV typography)", () => {
     expect(
       formatCartDiscountLabel({
         memberName: "Privilege",
         memberPercent: 15,
         earlyBirdPercent: 20,
+        locale: "sv",
       }),
-    ).toBe("Privilege 15% · Early-bird 20%");
+    ).toBe("Privilege 15% · Early bird −20 %");
+  });
+
+  it("uses compact early-bird copy in EN", () => {
+    expect(
+      formatCartDiscountLabel({
+        memberName: "Privilege",
+        memberPercent: 15,
+        earlyBirdPercent: 20,
+        locale: "en",
+      }),
+    ).toBe("Privilege 15% · Early bird −20%");
   });
 
   it("does not use an early-bird-only label when a member discount also applies", () => {
@@ -48,11 +60,12 @@ describe("cart discount label", () => {
       memberName: "Privilege",
       memberPercent: 15,
       earlyBirdPercent: 20,
+      locale: "sv",
     });
     expect(label).not.toBe("Early-bird · 20% off");
     expect(label).not.toBe("Early-bird 20%");
     expect(label).toContain("Privilege 15%");
-    expect(label).toContain("Early-bird 20%");
+    expect(label).toContain("Early bird −20 %");
   });
 
   it("shows only the discount that applies", () => {
@@ -61,6 +74,7 @@ describe("cart discount label", () => {
         memberName: "Privilege",
         memberPercent: 15,
         earlyBirdPercent: 0,
+        locale: "sv",
       }),
     ).toBe("Privilege 15%");
     expect(
@@ -68,8 +82,9 @@ describe("cart discount label", () => {
         memberName: null,
         memberPercent: 0,
         earlyBirdPercent: 20,
+        locale: "sv",
       }),
-    ).toBe("Early-bird 20%");
+    ).toBe("Early bird −20 %");
   });
 
   it("still shows the member percent when the level name is missing", () => {
@@ -78,7 +93,8 @@ describe("cart discount label", () => {
         memberName: null,
         memberPercent: 15,
         earlyBirdPercent: 20,
+        locale: "en",
       }),
-    ).toBe("15% · Early-bird 20%");
+    ).toBe("15% · Early bird −20%");
   });
 });

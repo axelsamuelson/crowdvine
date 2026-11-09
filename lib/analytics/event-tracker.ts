@@ -238,18 +238,28 @@ export class AnalyticsTracker {
       user_agent: navigator.userAgent,
     };
 
+    // Preview/test DBs often lag migrations 181/186 (visitor_id / country_code).
+    // Once detected, prefer the stripped payload so we do not spam 400s.
+    const schemaLag =
+      typeof window !== "undefined" &&
+      window.sessionStorage?.getItem("pact_ue_schema_lag") === "1";
+
+    const stripNewCols = <T extends Record<string, unknown>>(row: T) => {
+      const {
+        visitor_id: _omitVisitor,
+        country_code: _omitCountry,
+        ...rest
+      } = row;
+      return rest;
+    };
+
     if (keepalive) {
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
       const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
       if (!supabaseUrl || !anonKey) return;
-      // Keepalive must stay schema-tolerant: preview DBs may lack
-      // visitor_id / country_code until migrations 181/186 are applied.
-      // Send core columns only so unload does not spam 400s.
-      const {
-        visitor_id: _v,
-        country_code: _c,
-        ...keepaliveCore
-      } = eventData;
+      // Keepalive always omits visitor_id / country_code so unload stays
+      // schema-tolerant (preview DBs without 181/186).
+      const keepaliveCore = stripNewCols(eventData);
       try {
         void fetch(`${supabaseUrl}/rest/v1/user_events`, {
           method: "POST",
@@ -276,16 +286,21 @@ export class AnalyticsTracker {
     }
 
     try {
-      const { error } = await supabase.from("user_events").insert(eventData);
+      const firstPayload = schemaLag ? stripNewCols(eventData) : eventData;
+      const { error } = await supabase.from("user_events").insert(firstPayload);
       if (error) {
         const m = error.message || "";
-        // Pre-migration: visitor_id / country_code columns may not exist yet.
-        if (/visitor_id|country_code|schema cache|Could not find/i.test(m)) {
-          const {
-            visitor_id: _omitVisitor,
-            country_code: _omitCountry,
-            ...withoutNewCols
-          } = eventData;
+        // Preview/test DBs may lag migrations (visitor_id / country_code /
+        // schema cache). Retry without those columns — not a product bug.
+        if (
+          /visitor_id|country_code|schema cache|Could not find|PGRST/i.test(m)
+        ) {
+          try {
+            window.sessionStorage?.setItem("pact_ue_schema_lag", "1");
+          } catch {
+            // ignore
+          }
+          const withoutNewCols = stripNewCols(eventData);
           let retryPayload: Record<string, unknown> = withoutNewCols;
           if (/country_code/i.test(m) && !/visitor_id/i.test(m)) {
             retryPayload = {
@@ -295,7 +310,10 @@ export class AnalyticsTracker {
           }
           const retry = await supabase.from("user_events").insert(retryPayload);
           if (retry.error && process.env.NODE_ENV === "development") {
-            console.warn("[analytics] user_events insert:", retry.error.message);
+            console.warn(
+              "[analytics] user_events insert (schema lag):",
+              retry.error.message,
+            );
           }
           return;
         }

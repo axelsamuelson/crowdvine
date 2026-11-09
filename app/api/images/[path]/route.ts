@@ -35,11 +35,12 @@ export async function GET(
 
     if (error) {
       console.error("Error downloading file:", error);
-      return NextResponse.json({ error: "File not found" }, { status: 404 });
+      // Prefer static default over JSON 404 so cart/checkout img tags don't 400/404.
+      return NextResponse.redirect(new URL("/default-wine.png", request.url));
     }
 
     if (!data) {
-      return NextResponse.json({ error: "File not found" }, { status: 404 });
+      return NextResponse.redirect(new URL("/default-wine.png", request.url));
     }
 
     // Convert blob to buffer
@@ -83,9 +84,6 @@ export async function GET(
     });
   } catch (error) {
     console.error("Image proxy error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+    return NextResponse.redirect(new URL("/default-wine.png", request.url));
   }
 }

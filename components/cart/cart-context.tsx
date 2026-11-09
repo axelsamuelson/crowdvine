@@ -31,6 +31,8 @@ type CartAction =
 
 type UseCartReturn = {
   isPending: boolean;
+  /** False until the first server/cache cart resolve finishes — hide badge until then. */
+  cartReady: boolean;
   cart: Cart | undefined;
   addItem: (
     variant: ProductVariant,
@@ -212,6 +214,7 @@ function cartReducer(state: Cart | undefined, action: CartAction): Cart {
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [isPending, startTransition] = useTransition();
   const [cart, setCart] = useState<Cart | undefined>(undefined);
+  const [cartReady, setCartReady] = useState(false);
   const [optimisticCart, updateOptimisticCart] = useOptimistic<
     Cart | undefined,
     CartAction
@@ -242,6 +245,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
     // If we have cached data, we're already initialized
     if (cachedCart) {
+      setCartReady(true);
       // Still fetch fresh data in background, but don't block UI
       CartActions.getCart()
         .then((freshCart) => {
@@ -280,6 +284,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       })
       .catch(() => {
         // Silent fail - cart will remain undefined
+      })
+      .finally(() => {
+        setCartReady(true);
       });
   }, []);
 
@@ -445,8 +452,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       addItem: add,
       updateItem: update,
       isPending,
+      cartReady,
     }),
-    [optimisticCart, add, update, isPending],
+    [optimisticCart, add, update, isPending, cartReady],
   );
 
   // Always render children immediately - don't block the UI

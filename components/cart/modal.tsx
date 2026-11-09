@@ -7,7 +7,6 @@ import { useFormStatus } from "react-dom";
 import { useCart } from "./cart-context";
 import { motion, AnimatePresence } from "motion/react";
 import { Button } from "../ui/button";
-import { Badge } from "../ui/badge";
 import { Loader } from "../ui/loader";
 import { CartItemCard } from "./cart-item";
 import { cartLineB2bLineTotalExclVat } from "@/lib/b2b/inquiry-price-math";
@@ -229,7 +228,7 @@ export default function CartModal() {
   const { t } = useTranslations();
   const paths = useLocalizedPaths();
   const isDirtywineSite = useB2BModeServerHint();
-  const { cart, isPending } = useCart();
+  const { cart, isPending, cartReady } = useCart();
   const [isOpen, setIsOpen] = useState(false);
   const [validations, setValidations] = useState<ProducerValidation[]>([]);
   const [requiredQuantity, setRequiredQuantity] = useState<number | undefined>();
@@ -402,14 +401,14 @@ export default function CartModal() {
   };
 
   // Keep the open drawer mountable during optimistic first-add even if cart
-  // was previously undefined; badge stays hidden until we have cart data.
-  if (!cart && !isOpen) {
+  // was previously undefined; badge stays hidden until cart has hydrated.
+  if ((!cartReady || !cart) && !isOpen) {
     return null;
   }
 
   return (
     <>
-      {cart ? (
+      {cartReady && cart ? (
       <Button
         aria-label={t("cart.openCart")}
         onClick={openCart}

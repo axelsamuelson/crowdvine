@@ -3,6 +3,7 @@ import { getCurrentUser } from "../../lib/auth";
 import { getMemberDiscountForUserId } from "../../lib/membership/server-member-discount";
 import { getLevelDisplayName } from "../../lib/membership/points-engine";
 import { formatCartDiscountLabel } from "../../lib/cart/discount-label";
+import { resolveWineImageSrc } from "../../lib/cart/wine-image-url";
 import { memberDiscountedTotalInclVat } from "../../lib/price-breakdown";
 import { resolvePalletEarlyBirdContext } from "../../lib/pallet-early-bird-context";
 import { applyPalletDiscount, type DiscountTier } from "../../lib/pallet-discount";
@@ -11,6 +12,7 @@ import type { Cart, CartItem } from "../../lib/shopify/types";
 import { getOrSetCartId, clearCartId } from "./cookies";
 import { convertSekForDisplay } from "@/lib/shopping-context/currency-convert";
 import { resolveDisplayCurrency } from "@/lib/shopping-context/display-currency";
+import { getShoppingContextFromRequest } from "@/lib/shopping-context/server";
 import { bindCartOwnerAndTouch } from "@/lib/cart/reconcile-on-auth";
 import { getCurrentUser as getSessionUser } from "@/lib/supabase-server";
 import { isB2BHost } from "@/lib/b2b-site";
@@ -155,6 +157,11 @@ export class CartService {
     try {
       const display = await resolveDisplayCurrency();
       const { currencyCode: displayCurrency, sekToDisplayRate } = display;
+      const shoppingLocale = await getShoppingContextFromRequest({
+        skipUser: true,
+      })
+        .then((ctx) => (ctx.locale === "en" ? "en" : "sv"))
+        .catch(() => "sv" as const);
       const toDisplay = (sek: number) =>
         Math.ceil(
           convertSekForDisplay(sek, displayCurrency, sekToDisplayRate),
@@ -387,6 +394,7 @@ export class CartService {
           memberName: memberLevelName,
           memberPercent: memberDiscountPercent,
           earlyBirdPercent: palletTier,
+          locale: shoppingLocale,
         });
 
         const hasDiscount =
@@ -477,7 +485,7 @@ export class CartService {
               },
               featuredImage: {
                 id: `${wine.id}-img`,
-                url: wine.label_image_path,
+                url: resolveWineImageSrc(wine.label_image_path),
                 altText: wine.wine_name,
                 width: 600,
                 height: 600,
@@ -487,7 +495,7 @@ export class CartService {
               images: [
                 {
                   id: `${wine.id}-img`,
-                  url: wine.label_image_path,
+                  url: resolveWineImageSrc(wine.label_image_path),
                   altText: wine.wine_name,
                   width: 600,
                   height: 600,

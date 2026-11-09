@@ -93,6 +93,8 @@ import {
 } from "@/lib/analytics/checkout-errors";
 import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
 import { formatCartLinePrice } from "@/lib/shopping-context/format";
+import { resolveWineImageSrc } from "@/lib/cart/wine-image-url";
+import { DEFAULT_WINE_IMAGE_PATH } from "@/lib/constants";
 import type { PalletInfo } from "@/lib/zone-matching";
 import {
   ShareBottlesDialog,
@@ -3353,7 +3355,7 @@ function CheckoutContent({
   const renderCartLineRow = (line: CartItem) => {
     const totalForLine = parseFloat(line.cost.totalAmount.amount);
     const product = line.merchandise.product;
-    const imgUrl = product.featuredImage?.url;
+    const imgUrl = resolveWineImageSrc(product.featuredImage?.url);
     const lineTitle = product.title || line.merchandise.title;
     const producerLabel = producerDisplayName({
       name: product.producerName,
@@ -3374,20 +3376,14 @@ function CheckoutContent({
           {/* Prefer static default-wine.png over /api/images proxy (400 when path missing). */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={
-              imgUrl &&
-              !/\/api\/images\/?$/i.test(imgUrl) &&
-              !/\/api\/images\/(?:default-wine\.png)?$/i.test(imgUrl)
-                ? imgUrl
-                : "/default-wine.png"
-            }
+            src={imgUrl}
             alt={product.featuredImage?.altText || lineTitle}
             className="h-full w-full object-cover"
             onError={(e) => {
               const el = e.currentTarget;
               if (el.dataset.fallback === "1") return;
               el.dataset.fallback = "1";
-              el.src = "/default-wine.png";
+              el.src = DEFAULT_WINE_IMAGE_PATH;
             }}
           />
         </div>
