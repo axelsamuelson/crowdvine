@@ -17,13 +17,8 @@ export function formatOfferSek(
   n: number | null | undefined,
   locale: "sv" | "en",
 ): string {
-  if (n == null || !Number.isFinite(n)) return "—";
-  return new Intl.NumberFormat(locale === "sv" ? "sv-SE" : "en-SE", {
-    style: "currency",
-    currency: "SEK",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(Math.round(n));
+  // EN must read "148 SEK" (never Intl "kr 148" / "148 kr").
+  return formatOfferTotalAmountLabel(n, locale);
 }
 
 /** Whole kronor amount for legal CTA button text (no currency symbol). */

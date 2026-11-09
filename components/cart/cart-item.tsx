@@ -19,6 +19,7 @@ import { BoostBadge } from "@/components/producer/boost-badge";
 import { producerDisplayName } from "@/lib/producer-display-name";
 import { B2B_PRODUCER_ORDERS_ENABLED } from "@/lib/b2b/flags";
 import { resolveWineImageSrc } from "@/lib/cart/wine-image-url";
+import { localizeCartDiscountLabel } from "@/lib/cart/discount-label";
 
 type MerchandiseSearchParams = {
   [key: string]: string;
@@ -162,7 +163,8 @@ export function CartItemCard({ item, onCloseCart }: CartItemProps) {
             </span>
             {item.discountLabel ? (
               <span className="inline-flex items-center text-xs px-2 py-0.5 rounded-md bg-amber-100 text-amber-700 font-medium w-fit">
-                {item.discountLabel}
+                {localizeCartDiscountLabel(item.discountLabel, locale) ??
+                  item.discountLabel}
               </span>
             ) : null}
             {showExclVat && (

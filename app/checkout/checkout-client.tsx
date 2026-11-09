@@ -44,6 +44,7 @@ import type { CheckoutQuote } from "@/lib/checkout/checkout-quote";
 import {
   DualOfferCheckoutPanel,
   DualOfferPurchaseActions,
+  buildSharedPalletBindCopy,
   type DualOfferPurchaseActionsModel,
 } from "@/components/checkout/dual-offer-checkout-panel";
 import type { OfferCheckoutSessionState } from "@/lib/checkout/offer-acceptance";
@@ -51,8 +52,12 @@ import { formatOfferSek } from "@/lib/checkout/dual-offer-display";
 import {
   isDualOfferReviewCheckoutActive,
   mayRunLegacySharedPalletPaymentUi,
+  mayStartSharedPalletCardSave,
 } from "@/lib/checkout/dual-offer-checkout-isolation";
-import { customerZoneSaveErrorMessage } from "@/lib/checkout/dual-offer-customer-copy";
+import {
+  customerZoneSaveErrorMessage,
+  dualOfferMsg,
+} from "@/lib/checkout/dual-offer-customer-copy";
 import {
   checkoutChargeTimingMessageKey,
   checkoutPlaceOrderCtaMessageKey,
@@ -99,6 +104,7 @@ import {
 import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
 import { formatCartLinePrice } from "@/lib/shopping-context/format";
 import { resolveWineImageSrc } from "@/lib/cart/wine-image-url";
+import { localizeCartDiscountLabel } from "@/lib/cart/discount-label";
 import { DEFAULT_WINE_IMAGE_PATH } from "@/lib/constants";
 import type { PalletInfo } from "@/lib/zone-matching";
 import {
@@ -689,6 +695,7 @@ function CheckoutContent({
    */
   const [dualOfferCardStepUnlocked, setDualOfferCardStepUnlocked] =
     useState(false);
+  const [paymentElementComplete, setPaymentElementComplete] = useState(false);
 
   const dualOfferReviewActive = isDualOfferReviewCheckoutActive({
     dualOfferCompareSurfaceAllowed,
@@ -1832,13 +1839,15 @@ function CheckoutContent({
   useEffect(() => {
     if (!dualOfferReviewActive) {
       setDualOfferCardStepUnlocked(false);
+      setPaymentElementComplete(false);
       return;
     }
-    // Dual review active but buy not clicked yet: keep Stripe cold.
+    // Dual review active but continue not clicked yet: keep Stripe cold.
     if (!dualOfferCardStepUnlocked) {
       setPaymentCardRevealed(false);
       setPrefetchedStripeIntent(null);
       stripePrefetchKeyRef.current = null;
+      setPaymentElementComplete(false);
     }
   }, [dualOfferReviewActive, dualOfferCardStepUnlocked]);
 
@@ -3452,7 +3461,10 @@ function CheckoutContent({
           </p>
           {line.discountLabel ? (
             <span className="mt-1 inline-flex items-center rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-700">
-              {line.discountLabel}
+              {localizeCartDiscountLabel(
+                line.discountLabel,
+                shopping.locale,
+              ) ?? line.discountLabel}
             </span>
           ) : null}
         </div>
@@ -3623,42 +3635,46 @@ function CheckoutContent({
   // Keep skeleton until the first cart fetch finishes — never flash empty-cart
   // while cart is still null / hydrating.
   if (loading || !cartFetchDone || cart == null) {
-    // Mirror real 1280 checkout: left column (no boxes) + right order summary.
+    // Mirror loaded checkout shell: max-w-5xl + lg:grid-cols-[1fr_400px].
     return (
-      <div
-        className="mx-auto max-w-6xl px-4 pb-16 pt-top-spacing lg:px-6"
+      <main
+        className="min-h-screen bg-background"
         data-testid="checkout-cart-loading"
         aria-busy="true"
         aria-label={t("checkout.loadingCart")}
       >
-        <div className="animate-pulse space-y-6">
-          <div className="h-9 w-28 rounded bg-gray-200" />
-          <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,24rem)] lg:items-start">
-            <div className="space-y-6">
-              <div className="space-y-3 border-b border-border pb-6">
-                <div className="h-5 w-40 rounded bg-gray-200" />
-                <div className="h-3 w-48 rounded bg-gray-200" />
-                <div className="h-10 w-full max-w-sm rounded bg-gray-200" />
+        <div className="mx-auto max-w-5xl space-y-8 p-6 pt-top-spacing animate-pulse">
+          <div className="space-y-2">
+            <div className="h-8 w-40 rounded bg-muted/60" />
+            <div className="h-4 w-64 max-w-full rounded bg-muted/40" />
+          </div>
+          <div className="flex flex-col gap-8 lg:grid lg:grid-cols-[1fr_400px] lg:items-start">
+            <aside className="order-1 w-full min-w-0 space-y-3 lg:sticky lg:top-8 lg:order-2 lg:self-start">
+              <div className="h-5 w-36 rounded bg-muted/60" />
+              <div className="space-y-3 rounded-xl border border-border bg-background p-4">
+                <div className="h-14 w-full rounded bg-muted/40" />
+                <div className="h-14 w-full rounded bg-muted/40" />
+                <div className="h-4 w-2/3 rounded bg-muted/40" />
+                <div className="h-4 w-1/2 rounded bg-muted/40" />
+                <div className="h-8 w-full rounded bg-muted/50" />
               </div>
-              <div className="space-y-3 border-b border-border pb-6">
-                <div className="h-5 w-36 rounded bg-gray-200" />
-                <div className="h-20 w-full rounded bg-gray-200" />
-              </div>
-              <div className="space-y-3">
-                <div className="h-5 w-32 rounded bg-gray-200" />
-                <div className="h-24 w-full rounded bg-gray-200" />
-              </div>
-            </div>
-            <aside className="space-y-4 rounded-xl border border-border bg-background p-4">
-              <div className="h-5 w-28 rounded bg-gray-200" />
-              <div className="h-16 w-full rounded bg-gray-200" />
-              <div className="h-16 w-full rounded bg-gray-200" />
-              <div className="h-8 w-2/3 rounded bg-gray-200" />
-              <div className="h-11 w-full rounded bg-gray-200" />
             </aside>
+            <div className="order-2 min-w-0 space-y-0 lg:order-1">
+              {/* Postcode / delivery — one block */}
+              <section className="space-y-3 border-b border-border py-6 first:pt-0">
+                <div className="h-5 w-40 rounded bg-muted/60" />
+                <div className="h-3 w-52 max-w-full rounded bg-muted/40" />
+                <div className="h-10 w-full max-w-xs rounded bg-muted/40" />
+              </section>
+              {/* Address block */}
+              <section className="space-y-3 border-b border-border py-6">
+                <div className="h-5 w-36 rounded bg-muted/60" />
+                <div className="h-24 w-full rounded bg-muted/40" />
+              </section>
+            </div>
           </div>
         </div>
-      </div>
+      </main>
     );
   }
 
@@ -3984,9 +4000,14 @@ function CheckoutContent({
               </div>
               </div>
 
-              {/* Desktop: purchase CTA sticky under Totalt (dual-offer). */}
-              {dualOfferReviewActive && dualOfferPurchase ? (
-                <div className="mt-6 hidden lg:block">
+              {/* Desktop: non-binding continue only (before card step). */}
+              {dualOfferReviewActive &&
+              !dualOfferCardStepUnlocked &&
+              dualOfferPurchase ? (
+                <div
+                  className="mt-6 hidden lg:block"
+                  data-testid="dual-offer-continue-sticky"
+                >
                   <DualOfferPurchaseActions model={dualOfferPurchase} />
                 </div>
               ) : null}
@@ -4392,22 +4413,6 @@ function CheckoutContent({
                         onSharedPalletCardStepRequest={
                           handleSharedPalletCardStepRequest
                         }
-                        onConfirmSharedPalletPurchase={() => {
-                          void handlePlaceReservation();
-                        }}
-                        sharedPalletPurchaseReady={Boolean(
-                          stripeConfirmFn &&
-                            paymentMode &&
-                            stripeIntentId &&
-                            ageConfirmed &&
-                            termsAccepted &&
-                            authReady &&
-                            !isSubmitting &&
-                            !isStripeConfirming &&
-                            !isFinalizingReservation &&
-                            displayTotal != null &&
-                            !(isUsConditional && !usConditionalAck),
-                        )}
                         showPalletFillStatus={showCheckoutPalletFillStatus}
                         palletFill={
                           selectedPallet
@@ -4856,11 +4861,13 @@ function CheckoutContent({
               </div>
             </section>
 
-            {/* Mobile: purchase CTA at bottom after address (dual-offer). */}
-            {dualOfferReviewActive && dualOfferPurchase ? (
+            {/* Mobile: non-binding continue after address (before card step). */}
+            {dualOfferReviewActive &&
+            !dualOfferCardStepUnlocked &&
+            dualOfferPurchase ? (
               <section
                 className="py-6 border-b border-border last:border-0 lg:hidden"
-                data-testid="dual-offer-purchase-mobile"
+                data-testid="dual-offer-continue-mobile"
               >
                 <DualOfferPurchaseActions model={dualOfferPurchase} />
               </section>
@@ -5228,76 +5235,150 @@ function CheckoutContent({
                             onLegalGateError={handleLegalGateError}
                             prefetchedIntent={prefetchedStripeIntent}
                             cardOnly
+                            onPaymentElementComplete={setPaymentElementComplete}
                           />
                         ) : null}
 
-                        {stripeError ? (
-                          <p className="mt-3 text-sm text-destructive">
-                            {stripeError}
-                          </p>
-                        ) : null}
-
-                        <div className="mt-6 space-y-4 border-t border-border pt-4">
-                          <p className="text-xs text-muted-foreground">
-                            {t("checkout.sellingEntity")}
-                          </p>
-                          <div className="flex items-center justify-between py-4">
-                            <span className="text-base font-semibold text-foreground">
-                              {t("checkout.total")}
-                            </span>
-                            <span className="text-2xl font-bold tabular-nums text-foreground">
-                              {displayTotal == null
-                                ? "…"
-                                : formatChargedAmount(displayTotal)}
-                            </span>
-                          </div>
-
-                          {chargeTimingCopyKey ? (
-                            <p
-                              className="text-sm text-stone-600"
-                              data-checkout-charge-timing={chargeTimingCopyKey}
-                            >
-                              {t(`checkout.${chargeTimingCopyKey}`)}
+                        {dualOfferCardStepUnlocked &&
+                        dualOfferSelectedQuote &&
+                        mayStartSharedPalletCardSave(dualOfferSelectedQuote) ? (
+                          <div className="mt-6 space-y-4 border-t border-border pt-4">
+                            <p className="text-xs text-muted-foreground">
+                              {t("checkout.sellingEntity")}
                             </p>
-                          ) : null}
+                            {(() => {
+                              const bind = buildSharedPalletBindCopy({
+                                locale:
+                                  shopping.locale === "en" ? "en" : "sv",
+                                totalSek: dualOfferSelectedQuote.total_sek,
+                                chargeDeadlineAt:
+                                  dualOfferSelectedQuote.charge_deadline_at,
+                                showDirectOffer: directBoxCheckoutEnabled,
+                              });
+                              const bindDisabled =
+                                !legacySharedPalletPaymentAllowed ||
+                                !stripeConfirmFn ||
+                                !paymentMode ||
+                                !stripeIntentId ||
+                                !paymentElementComplete ||
+                                isSubmitting ||
+                                zoneLoading ||
+                                isStripeConfirming ||
+                                isFinalizingReservation ||
+                                !ageConfirmed ||
+                                !termsAccepted ||
+                                !authReady ||
+                                displayTotal == null ||
+                                (isUsConditional && !usConditionalAck);
+                              const bindLoading =
+                                isSubmitting ||
+                                isStripeConfirming ||
+                                isFinalizingReservation;
+                              return (
+                                <DualOfferPurchaseActions
+                                  model={{
+                                    locale:
+                                      shopping.locale === "en" ? "en" : "sv",
+                                    variant: "bind",
+                                    finalCtaLabel: bind.finalCtaLabel,
+                                    totalInclLine: bind.totalInclLine,
+                                    legalLine: bind.legalLine,
+                                    disabled: bindDisabled,
+                                    loading: bindLoading,
+                                    confirmNote: !paymentElementComplete
+                                      ? dualOfferMsg(
+                                          shopping.locale === "en"
+                                            ? "en"
+                                            : "sv",
+                                          "dualOfferCardIncomplete",
+                                        )
+                                      : null,
+                                    errorNote: stripeError,
+                                    onConfirm: () => {
+                                      void handlePlaceReservation();
+                                    },
+                                  }}
+                                />
+                              );
+                            })()}
+                          </div>
+                        ) : (
+                          <>
+                            {stripeError ? (
+                              <p className="mt-3 text-sm text-destructive">
+                                {stripeError}
+                              </p>
+                            ) : null}
 
-                          <Button
-                            type="button"
-                            data-testid="checkout-place-reservation"
-                            data-checkout-place-cta={placeOrderCta.key}
-                            className="!h-auto min-h-10 w-full !whitespace-normal break-words !rounded-xl border-transparent bg-black !px-5 py-3 text-center text-sm leading-snug text-white shadow-none ring-0 hover:border-transparent hover:bg-black/90 hover:shadow-none focus-visible:border-transparent focus-visible:bg-black/90 focus-visible:ring-white/40 sm:text-base"
-                            disabled={
-                              !legacySharedPalletPaymentAllowed ||
-                              !stripeConfirmFn ||
-                              !paymentMode ||
-                              !stripeIntentId ||
-                              isSubmitting ||
-                              zoneLoading ||
-                              isStripeConfirming ||
-                              isFinalizingReservation ||
-                              !ageConfirmed ||
-                              !termsAccepted ||
-                              !authReady ||
-                              displayTotal == null ||
-                              (isUsConditional && !usConditionalAck)
-                            }
-                            onClick={handlePlaceReservation}
-                          >
-                            {placeOrderCta.key === "processing"
-                              ? t("checkout.processing")
-                              : placeOrderCta.key === "payNow"
-                                ? t("checkout.payNow")
-                                : placeOrderCta.key === "usConditionalButton"
-                                  ? t("checkout.usConditionalButton")
-                                  : placeOrderCta.needsAmount
-                                    ? t("checkout.placeReservationWithPayment", {
-                                        amount: formatChargedAmount(
-                                          displayTotal ?? 0,
-                                        ),
-                                      })
-                                    : t("checkout.placeReservation")}
-                          </Button>
-                        </div>
+                            <div className="mt-6 space-y-4 border-t border-border pt-4">
+                              <p className="text-xs text-muted-foreground">
+                                {t("checkout.sellingEntity")}
+                              </p>
+                              <div className="flex items-center justify-between py-4">
+                                <span className="text-base font-semibold text-foreground">
+                                  {t("checkout.total")}
+                                </span>
+                                <span className="text-2xl font-bold tabular-nums text-foreground">
+                                  {displayTotal == null
+                                    ? "…"
+                                    : formatChargedAmount(displayTotal)}
+                                </span>
+                              </div>
+
+                              {chargeTimingCopyKey ? (
+                                <p
+                                  className="text-sm text-stone-600"
+                                  data-checkout-charge-timing={
+                                    chargeTimingCopyKey
+                                  }
+                                >
+                                  {t(`checkout.${chargeTimingCopyKey}`)}
+                                </p>
+                              ) : null}
+
+                              <Button
+                                type="button"
+                                data-testid="checkout-place-reservation"
+                                data-checkout-place-cta={placeOrderCta.key}
+                                className="!h-auto min-h-10 w-full !whitespace-normal break-words !rounded-xl border-transparent bg-black !px-5 py-3 text-center text-sm leading-snug text-white shadow-none ring-0 hover:border-transparent hover:bg-black/90 hover:shadow-none focus-visible:border-transparent focus-visible:bg-black/90 focus-visible:ring-white/40 sm:text-base"
+                                disabled={
+                                  !legacySharedPalletPaymentAllowed ||
+                                  !stripeConfirmFn ||
+                                  !paymentMode ||
+                                  !stripeIntentId ||
+                                  isSubmitting ||
+                                  zoneLoading ||
+                                  isStripeConfirming ||
+                                  isFinalizingReservation ||
+                                  !ageConfirmed ||
+                                  !termsAccepted ||
+                                  !authReady ||
+                                  displayTotal == null ||
+                                  (isUsConditional && !usConditionalAck)
+                                }
+                                onClick={handlePlaceReservation}
+                              >
+                                {placeOrderCta.key === "processing"
+                                  ? t("checkout.processing")
+                                  : placeOrderCta.key === "payNow"
+                                    ? t("checkout.payNow")
+                                    : placeOrderCta.key ===
+                                        "usConditionalButton"
+                                      ? t("checkout.usConditionalButton")
+                                      : placeOrderCta.needsAmount
+                                        ? t(
+                                            "checkout.placeReservationWithPayment",
+                                            {
+                                              amount: formatChargedAmount(
+                                                displayTotal ?? 0,
+                                              ),
+                                            },
+                                          )
+                                        : t("checkout.placeReservation")}
+                              </Button>
+                            </div>
+                          </>
+                        )}
                       </>
                     ) : null}
                   </div>

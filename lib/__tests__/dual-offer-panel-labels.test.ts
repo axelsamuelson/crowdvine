@@ -83,12 +83,14 @@ describe("dual-offer bottle label honesty", () => {
     expect(quote.bottle_unit_price_sek).toBe(145);
   });
 
-  it("formats SEK as whole kronor (no ,00)", () => {
-    const s = formatOfferSek(1283, "sv");
-    expect(s).toMatch(/1[\s\u00a0]?283/);
-    expect(s).toMatch(/kr|SEK/i);
+  it("formats SEK as whole kronor (no ,00); EN uses SEK not kr", () => {
+    const s = formatOfferSek(1283, "sv").replace(/\u00a0/g, " ");
+    expect(s).toMatch(/1 283/);
+    expect(s).toMatch(/kr/);
     expect(s).not.toMatch(/,00|\.00/);
-    expect(formatOfferSek(1283.4, "en")).not.toMatch(/\.00|,00/);
+    const en = formatOfferSek(148, "en").replace(/\u00a0/g, " ");
+    expect(en).toBe("148 SEK");
+    expect(en).not.toMatch(/kr/i);
   });
 
   it("CTA amount label uses kr in SV and SEK in EN", () => {

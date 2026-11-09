@@ -72,17 +72,17 @@ describe("dual-offer customer surface guards", () => {
     expect(panelSrc).toMatch(/dualOfferLegalLineSharedWithSwitch/);
   });
 
-  it("wires shared-pallet buy → card step unlock → SetupIntent confirm", () => {
+  it("wires continue → card unlock → binding Köp after Payment Element", () => {
     expect(panelSrc).toMatch(/mayStartSharedPalletCardSave/);
     expect(panelSrc).toMatch(/onSharedPalletCardStepRequest/);
-    expect(panelSrc).toMatch(/onConfirmSharedPalletPurchase/);
-    expect(panelSrc).toMatch(/dualOfferEnterCard/);
+    expect(panelSrc).toMatch(/dualOfferContinueToCard/);
+    expect(panelSrc).toMatch(/variant: \"continue\"/);
     expect(checkoutSrc).toMatch(/dualOfferCardStepUnlocked/);
     expect(checkoutSrc).toMatch(/handleSharedPalletCardStepRequest/);
-    expect(checkoutSrc).toMatch(/sharedPalletCardStepUnlocked/);
-    expect(checkoutSrc).toMatch(/data-testid=\{[\s\S]*dual-offer-card-step/);
+    expect(checkoutSrc).toMatch(/buildSharedPalletBindCopy/);
+    expect(checkoutSrc).toMatch(/variant: \"bind\"/);
+    expect(checkoutSrc).toMatch(/paymentElementComplete/);
     expect(checkoutSrc).toMatch(/cardOnly/);
-    // Payment section stays locked until buy unlocks (not permanently hidden).
     expect(checkoutSrc).toMatch(
       /dualOfferReviewActive &&\s*!dualOfferCardStepUnlocked/,
     );

@@ -147,6 +147,8 @@ type Props = {
   }) => void;
   /** Shared pallet: Payment Element shows card only (no wallets / Link). */
   cardOnly?: boolean;
+  /** Fires when Stripe reports the Payment Element complete/incomplete. */
+  onPaymentElementComplete?: (complete: boolean) => void;
 };
 
 const publishableKey =
@@ -234,6 +236,7 @@ function StripeElementInner({
   amountOre,
   paymentFormLoadFailedLabel,
   cardOnly = false,
+  onPaymentElementComplete,
 }: {
   paymentMode: PaymentMode;
   clientSecret: string;
@@ -245,6 +248,7 @@ function StripeElementInner({
   amountOre?: number;
   paymentFormLoadFailedLabel: string;
   cardOnly?: boolean;
+  onPaymentElementComplete?: (complete: boolean) => void;
 }) {
   const stripe = useStripe();
   const elements = useElements();
@@ -456,6 +460,9 @@ function StripeElementInner({
             }
           : {}),
       }}
+      onChange={(event) => {
+        onPaymentElementComplete?.(event.complete === true);
+      }}
       onLoadError={(event) => {
         const err = event.error;
         const message =
@@ -484,6 +491,7 @@ export function StripePaymentSection({
   prefetchedIntent = null,
   onLegalGateError,
   cardOnly = false,
+  onPaymentElementComplete,
 }: Props) {
   const shoppingCtx = useShoppingContextOptional();
   const t = shoppingCtx?.t ?? ((key: string) => key);
@@ -831,6 +839,7 @@ export function StripePaymentSection({
             amountOre={amountOreHint}
             paymentFormLoadFailedLabel={t("checkout.stripePaymentFormLoadFailed")}
             cardOnly={cardOnly}
+            onPaymentElementComplete={onPaymentElementComplete}
           />
         </Elements>
       )}

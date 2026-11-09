@@ -282,31 +282,48 @@ function OfferRow(props: {
   );
 }
 
+export type DualOfferPurchaseActionsVariant = "continue" | "bind";
+
 export type DualOfferPurchaseActionsModel = {
   locale: Locale;
+  /**
+   * `continue` = non-binding step (no Totalt / legal / terms).
+   * `bind` = order-placing button with payment obligation (after Payment Element).
+   */
+  variant: DualOfferPurchaseActionsVariant;
   finalCtaLabel: string;
-  /** Totalt X inkl. moms och frakt — above the binding line. */
+  /** Totalt X inkl. moms och frakt — above the binding line (`bind` only). */
   totalInclLine: string | null;
   legalLine: string | null;
   disabled: boolean;
+  /** Show spinner / confirming label on the button. */
+  loading?: boolean;
   confirmNote: string | null;
+  /** Inline Stripe / validation error under the button (`bind` only). */
+  errorNote?: string | null;
   onConfirm: () => void;
+  testId?: string;
 };
 
-/** Binding sentence + purchase button + terms (moved under Totalt / mobile bottom). */
+/** Continue-to-card or binding purchase CTA (+ legal block when variant=bind). */
 export function DualOfferPurchaseActions(props: {
   model: DualOfferPurchaseActionsModel;
   className?: string;
 }) {
   const { model, className } = props;
   const { locale } = model;
+  const isBind = model.variant === "bind";
+  const rootTestId =
+    model.testId ??
+    (isBind ? "dual-offer-bind-actions" : "dual-offer-continue-actions");
 
   return (
     <div
       className={`space-y-3 font-sans ${className ?? ""}`}
-      data-testid="dual-offer-purchase-actions"
+      data-testid={rootTestId}
+      data-variant={model.variant}
     >
-      {model.totalInclLine ? (
+      {isBind && model.totalInclLine ? (
         <p
           className="text-sm font-medium text-foreground"
           data-testid="dual-offer-total-incl"
@@ -314,7 +331,7 @@ export function DualOfferPurchaseActions(props: {
           {model.totalInclLine}
         </p>
       ) : null}
-      {model.legalLine ? (
+      {isBind && model.legalLine ? (
         <p
           className="text-sm text-foreground"
           data-testid="dual-offer-legal-line"
@@ -325,38 +342,43 @@ export function DualOfferPurchaseActions(props: {
 
       <button
         type="button"
-        data-testid="dual-offer-final"
+        data-testid={isBind ? "dual-offer-final" : "dual-offer-continue"}
         className="w-full rounded-xl bg-foreground text-background px-4 py-3 text-sm font-semibold disabled:opacity-40"
-        disabled={model.disabled}
+        disabled={model.disabled || model.loading === true}
+        aria-busy={model.loading === true}
         onClick={model.onConfirm}
       >
-        {model.finalCtaLabel}
+        {model.loading
+          ? dualOfferMsg(locale, "dualOfferCardConfirming")
+          : model.finalCtaLabel}
       </button>
 
-      <p
-        className="text-xs text-foreground/70"
-        data-testid="dual-offer-terms-line"
-      >
-        {(() => {
-          const marker = "<<<TERMS>>>";
-          const template = dualOfferMsg(locale, "dualOfferTermsLine", {
-            terms: marker,
-          });
-          const [before, after] = template.split(marker);
-          return (
-            <>
-              {before}
-              <Link
-                href="/villkor"
-                className="underline underline-offset-2 text-foreground"
-              >
-                {dualOfferMsg(locale, "dualOfferTermsLink")}
-              </Link>
-              {after}
-            </>
-          );
-        })()}
-      </p>
+      {isBind ? (
+        <p
+          className="text-xs text-foreground/70"
+          data-testid="dual-offer-terms-line"
+        >
+          {(() => {
+            const marker = "<<<TERMS>>>";
+            const template = dualOfferMsg(locale, "dualOfferTermsLine", {
+              terms: marker,
+            });
+            const [before, after] = template.split(marker);
+            return (
+              <>
+                {before}
+                <Link
+                  href="/villkor"
+                  className="underline underline-offset-2 text-foreground"
+                >
+                  {dualOfferMsg(locale, "dualOfferTermsLink")}
+                </Link>
+                {after}
+              </>
+            );
+          })()}
+        </p>
+      ) : null}
 
       {model.confirmNote ? (
         <p
@@ -366,8 +388,63 @@ export function DualOfferPurchaseActions(props: {
           {model.confirmNote}
         </p>
       ) : null}
+
+      {isBind && model.errorNote ? (
+        <p
+          className="text-sm text-destructive"
+          data-testid="dual-offer-bind-error"
+          role="alert"
+        >
+          {model.errorNote}
+        </p>
+      ) : null}
     </div>
   );
+}
+
+/** Shared-pallet binding legal copy + Totalt line for the final Köp button. */
+export function buildSharedPalletBindCopy(args: {
+  locale: Locale;
+  totalSek: number;
+  chargeDeadlineAt: string | null | undefined;
+  showDirectOffer: boolean;
+}): {
+  totalLabel: string;
+  totalInclLine: string;
+  legalLine: string;
+  finalCtaLabel: string;
+} {
+  const totalLabel = formatOfferTotalAmountLabel(args.totalSek, args.locale);
+  const deadlineLabel = formatSharedPalletChargeDeadline(
+    args.chargeDeadlineAt,
+    args.locale,
+  );
+  const withSwitch = args.showDirectOffer;
+  const legalLine = deadlineLabel
+    ? dualOfferMsg(
+        args.locale,
+        withSwitch
+          ? "dualOfferLegalLineSharedWithSwitch"
+          : "dualOfferLegalLineShared",
+        { total: totalLabel, datum: deadlineLabel },
+      )
+    : dualOfferMsg(
+        args.locale,
+        withSwitch
+          ? "dualOfferLegalLineSharedWithSwitchNoDate"
+          : "dualOfferLegalLineSharedNoDate",
+        { total: totalLabel },
+      );
+  return {
+    totalLabel,
+    totalInclLine: dualOfferMsg(args.locale, "dualOfferTotalIncl", {
+      total: totalLabel,
+    }),
+    legalLine,
+    finalCtaLabel: dualOfferMsg(args.locale, "dualOfferFinalCtaShared", {
+      total: totalLabel,
+    }),
+  };
 }
 
 export type DualOfferCheckoutPanelProps = {
@@ -414,13 +491,6 @@ export type DualOfferCheckoutPanelProps = {
   onSharedPalletCardStepRequest?: () => void;
   /** True once parent has unlocked the card-save step. */
   sharedPalletCardStepUnlocked?: boolean;
-  /**
-   * When card step is unlocked and Stripe confirm is ready, parent places the
-   * reservation (confirm SetupIntent → /api/checkout/confirm).
-   */
-  onConfirmSharedPalletPurchase?: () => void;
-  /** Disables the dual CTA until age/terms + SetupIntent confirm are ready. */
-  sharedPalletPurchaseReady?: boolean;
 };
 
 export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
@@ -589,21 +659,14 @@ export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
 
   const cardStepUnlocked = props.sharedPalletCardStepUnlocked === true;
   const onSharedPalletCardStepRequest = props.onSharedPalletCardStepRequest;
-  const onConfirmSharedPalletPurchase = props.onConfirmSharedPalletPurchase;
-  const sharedPalletPurchaseReady = props.sharedPalletPurchaseReady === true;
 
-  const onFinalConfirm = useCallback(() => {
+  /**
+   * Non-binding step only. Binding Köp CTA lives after Payment Element (parent).
+   * Never places reservation / confirms SetupIntent from this click.
+   */
+  const onContinueToCard = useCallback(() => {
     if (!state?.dual.selected_quote_id || !selectedQuote) return;
-
-    // After unlock: CTA confirms SetupIntent + creates reservation (parent).
-    if (
-      cardStepUnlocked &&
-      mayStartSharedPalletCardSave(selectedQuote) &&
-      onConfirmSharedPalletPurchase
-    ) {
-      onConfirmSharedPalletPurchase();
-      return;
-    }
+    if (cardStepUnlocked) return;
 
     const result = acceptSelectedOfferQuote({
       state,
@@ -616,14 +679,12 @@ export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
     }
     publish(result.state);
 
-    // Owner shared-pallet flow: buy → card field (same page) → SI → reservation.
     if (mayStartSharedPalletCardSave(selectedQuote)) {
-      setConfirmNote(dualOfferMsg(locale, "dualOfferEnterCard"));
+      setConfirmNote(null);
       onSharedPalletCardStepRequest?.();
       return;
     }
 
-    // Direct / synthetic / unavailable: keep fail-closed live-payment gate.
     const liveGate = evaluateDualOfferLivePaymentGate({ state: result.state });
     setConfirmNote(
       liveGate.allow
@@ -637,100 +698,51 @@ export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
     locale,
     cardStepUnlocked,
     onSharedPalletCardStepRequest,
-    onConfirmSharedPalletPurchase,
   ]);
 
-  const finalDisabled =
+  const continueDisabled =
     !purchaseEnabled ||
     loading ||
     error ||
     !state?.dual.selected_quote_id ||
-    Boolean(selectedQuote?.unavailable_reason) ||
-    (cardStepUnlocked &&
-      mayStartSharedPalletCardSave(selectedQuote ?? { offer: null, pricing_source: null }) &&
-      !sharedPalletPurchaseReady);
+    Boolean(selectedQuote?.unavailable_reason);
 
-  const totalLabel = selectedQuote
-    ? formatOfferTotalAmountLabel(selectedQuote.total_sek, locale)
-    : "—";
-  const deadlineLabel = selectedQuote
-    ? formatSharedPalletChargeDeadline(
-        selectedQuote.charge_deadline_at,
-        locale,
-      )
-    : null;
-
-  const finalCtaLabel = !selectedQuote
-    ? dualOfferMsg(locale, "dualOfferFinalCta")
-    : cardStepUnlocked && mayStartSharedPalletCardSave(selectedQuote)
-      ? dualOfferMsg(locale, "dualOfferConfirmCardCta", { total: totalLabel })
-      : selectedQuote.offer === "direct_box"
-        ? dualOfferMsg(locale, "dualOfferFinalCtaDirect", { total: totalLabel })
-        : dualOfferMsg(locale, "dualOfferFinalCtaShared", { total: totalLabel });
-
-  const legalLine = !selectedQuote
-    ? null
-    : selectedQuote.offer === "direct_box"
-      ? dualOfferMsg(locale, "dualOfferLegalLineDirect", { total: totalLabel })
-      : (() => {
-          // Merge binding + wait/cancel[/switch] once — charge timing appears
-          // only in the final sentence (not repeated from the old debit line).
-          const withSwitch = showDirectOffer;
-          if (deadlineLabel) {
-            return dualOfferMsg(
-              locale,
-              withSwitch
-                ? "dualOfferLegalLineSharedWithSwitch"
-                : "dualOfferLegalLineShared",
-              { total: totalLabel, datum: deadlineLabel },
-            );
-          }
-          return dualOfferMsg(
-            locale,
-            withSwitch
-              ? "dualOfferLegalLineSharedWithSwitchNoDate"
-              : "dualOfferLegalLineSharedNoDate",
-            { total: totalLabel },
-          );
-        })();
-
-  const totalInclLine = selectedQuote
-    ? dualOfferMsg(locale, "dualOfferTotalIncl", { total: totalLabel })
-    : null;
-
+  // Sticky / early CTA: continue-only until card step unlocks, then null
+  // (binding block mounts after Payment Element in checkout-client).
   const purchaseModel = useMemo<DualOfferPurchaseActionsModel | null>(() => {
+    if (cardStepUnlocked) return null;
     if (loading) {
       return {
         locale,
-        finalCtaLabel: dualOfferMsg(locale, "dualOfferFinalCta"),
+        variant: "continue",
+        finalCtaLabel: dualOfferMsg(locale, "dualOfferContinueToCard"),
         totalInclLine: null,
         legalLine: null,
         disabled: true,
         confirmNote: null,
-        onConfirm: onFinalConfirm,
+        onConfirm: onContinueToCard,
       };
     }
     if (error || !state) return null;
     return {
       locale,
-      finalCtaLabel,
-      totalInclLine,
-      legalLine,
-      disabled: finalDisabled,
+      variant: "continue",
+      finalCtaLabel: dualOfferMsg(locale, "dualOfferContinueToCard"),
+      totalInclLine: null,
+      legalLine: null,
+      disabled: continueDisabled,
       confirmNote,
-      onConfirm: onFinalConfirm,
+      onConfirm: onContinueToCard,
     };
   }, [
+    cardStepUnlocked,
     loading,
     error,
     state,
     locale,
-    finalCtaLabel,
-    totalInclLine,
-    legalLine,
-    finalDisabled,
+    continueDisabled,
     confirmNote,
-    onFinalConfirm,
+    onContinueToCard,
   ]);
 
   const onPurchaseActionsChange = props.onPurchaseActionsChange;

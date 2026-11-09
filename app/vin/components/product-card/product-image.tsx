@@ -94,7 +94,13 @@ export const ProductImage = memo(({ product, priority = false, index = 0 }: Prod
         fetchPriority={priority || index < 3 ? "high" : "auto"}
         placeholder={imageToShow?.thumbhash ? "blur" : undefined}
         blurDataURL={imageToShow?.thumbhash}
-        unoptimized={false}
+        // Static default-wine through /_next/image has returned 400 on preview;
+        // serve the file directly when falling back.
+        unoptimized={
+          !imageToShow?.url ||
+          imageUrl === DEFAULT_WINE_IMAGE_PATH ||
+          /default-wine\.png$/i.test(imageUrl)
+        }
       />
     </div>
   );

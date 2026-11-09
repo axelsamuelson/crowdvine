@@ -6,6 +6,11 @@ import {
   readGeoCountryCode,
 } from "@/lib/analytics/visitor-identity";
 import { isStaleRefreshTokenError, isAuthNetworkError } from "@/lib/auth/session-errors";
+import {
+  isUserEventsSchemaError,
+  isUserEventsSchemaLag,
+  markUserEventsSchemaLag,
+} from "@/lib/analytics/user-events-schema-lag";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
 /** Where a Reserve / add-to-cart CTA was clicked. */
@@ -238,11 +243,9 @@ export class AnalyticsTracker {
       user_agent: navigator.userAgent,
     };
 
-    // Preview/test DBs often lag migrations 181/186 (visitor_id / country_code).
-    // Once detected, prefer the stripped payload so we do not spam 400s.
-    const schemaLag =
-      typeof window !== "undefined" &&
-      window.sessionStorage?.getItem("pact_ue_schema_lag") === "1";
+    // Preview/audit DBs may use a stub user_events (event_name only) or lag
+    // migrations 181/186. Once a 400/column miss is seen, stop all posts.
+    if (isUserEventsSchemaLag()) return;
 
     const stripNewCols = <T extends Record<string, unknown>>(row: T) => {
       const {
@@ -254,13 +257,11 @@ export class AnalyticsTracker {
     };
 
     if (keepalive) {
-      // Once schema lag is known, skip unload posts entirely (stop 400 spam).
-      if (schemaLag) return;
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
       const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
       if (!supabaseUrl || !anonKey) return;
-      // Keepalive always omits visitor_id / country_code so unload stays
-      // schema-tolerant (preview DBs without 181/186).
+      // Keepalive omits visitor_id / country_code; still stop after first 400
+      // (stub preview schemas reject event_type entirely).
       const keepaliveCore = stripNewCols(eventData);
       try {
         void fetch(`${supabaseUrl}/rest/v1/user_events`, {
@@ -276,11 +277,7 @@ export class AnalyticsTracker {
         })
           .then((res) => {
             if (!res.ok && res.status >= 400 && res.status < 500) {
-              try {
-                window.sessionStorage?.setItem("pact_ue_schema_lag", "1");
-              } catch {
-                // ignore
-              }
+              markUserEventsSchemaLag();
             }
           })
           .catch(() => {
@@ -300,34 +297,23 @@ export class AnalyticsTracker {
     }
 
     try {
-      const firstPayload = schemaLag ? stripNewCols(eventData) : eventData;
-      const { error } = await supabase.from("user_events").insert(firstPayload);
+      const { error } = await supabase.from("user_events").insert(eventData);
       if (error) {
         const m = error.message || "";
-        // Preview/test DBs may lag migrations (visitor_id / country_code /
-        // schema cache). Retry without those columns — not a product bug.
-        if (
-          /visitor_id|country_code|schema cache|Could not find|PGRST/i.test(m)
-        ) {
-          try {
-            window.sessionStorage?.setItem("pact_ue_schema_lag", "1");
-          } catch {
-            // ignore
-          }
+        if (isUserEventsSchemaError(m)) {
+          markUserEventsSchemaLag();
+          // Retry once without visitor_id/country_code in case only 181/186 lag.
+          // If the stub schema lacks event_type entirely, this also fails → stop.
           const withoutNewCols = stripNewCols(eventData);
-          let retryPayload: Record<string, unknown> = withoutNewCols;
-          if (/country_code/i.test(m) && !/visitor_id/i.test(m)) {
-            retryPayload = {
-              ...withoutNewCols,
-              visitor_id: eventData.visitor_id,
-            };
-          }
-          const retry = await supabase.from("user_events").insert(retryPayload);
-          if (retry.error && process.env.NODE_ENV === "development") {
-            console.warn(
-              "[analytics] user_events insert (schema lag):",
-              retry.error.message,
-            );
+          const retry = await supabase.from("user_events").insert(withoutNewCols);
+          if (retry.error) {
+            markUserEventsSchemaLag();
+            if (process.env.NODE_ENV === "development") {
+              console.warn(
+                "[analytics] user_events schema lag — inserts disabled:",
+                retry.error.message,
+              );
+            }
           }
           return;
         }

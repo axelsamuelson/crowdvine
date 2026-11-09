@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { formatCartDiscountLabel } from "@/lib/cart/discount-label";
+import {
+  formatCartDiscountLabel,
+  localizeCartDiscountLabel,
+} from "@/lib/cart/discount-label";
 import {
   formatCartLinePrice,
   formatMoney,
@@ -96,5 +99,14 @@ describe("cart discount label", () => {
         locale: "en",
       }),
     ).toBe("15% · Early bird −20%");
+  });
+
+  it("remaps a server-stamped EN early-bird label for SV UI", () => {
+    expect(localizeCartDiscountLabel("Early bird −20%", "sv")).toBe(
+      "Tidig bokning −20 %",
+    );
+    expect(
+      localizeCartDiscountLabel("Privilege 15% · Early bird −20%", "sv"),
+    ).toBe("Privilege 15% · Tidig bokning −20 %");
   });
 });
