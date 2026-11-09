@@ -150,6 +150,11 @@ export default function AdminPalletDetails({
   });
   const [savingRules, setSavingRules] = useState(false);
   const [savingStatus, setSavingStatus] = useState(false);
+  const [deliveryNotifyBusy, setDeliveryNotifyBusy] = useState(false);
+  const [windowStart, setWindowStart] = useState("");
+  const [windowEnd, setWindowEnd] = useState("");
+  const [deliveryDayInput, setDeliveryDayInput] = useState("");
+  const [expectedDateInput, setExpectedDateInput] = useState("");
   const [palletStatus, setPalletStatus] = useState<string>(
     typeof pallet.status === "string" && pallet.status.length > 0
       ? pallet.status
@@ -369,6 +374,39 @@ export default function AdminPalletDetails({
       });
     } finally {
       setSavingStatus(false);
+    }
+  };
+
+  const postDeliveryNotify = async (
+    body: Record<string, string>,
+  ): Promise<void> => {
+    setDeliveryNotifyBusy(true);
+    try {
+      const resp = await fetch(
+        `/api/admin/pallets/${palletId}/delivery-notify`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        },
+      );
+      const data = await resp.json().catch(() => null);
+      if (!resp.ok || data?.ok === false) {
+        throw new Error(
+          data?.message || data?.error || "Delivery notify failed",
+        );
+      }
+      const emailNote = data?.emailsEnabled
+        ? `Emails: ${data.sent ?? 0} sent, ${data.skipped ?? 0} skipped`
+        : "Saved (emails off — flag/Resend)";
+      toast.success("Delivery notify updated", { description: emailNote });
+      fetchPalletData();
+    } catch (e) {
+      toast.error("Delivery notify failed", {
+        description: e instanceof Error ? e.message : "Unknown error",
+      });
+    } finally {
+      setDeliveryNotifyBusy(false);
     }
   };
 
@@ -1394,6 +1432,7 @@ export default function AdminPalletDetails({
               <SelectItem value="awaiting_pickup">awaiting_pickup</SelectItem>
               <SelectItem value="picked_up">picked_up</SelectItem>
               <SelectItem value="in_transit">in_transit</SelectItem>
+              <SelectItem value="shipped">shipped</SelectItem>
               <SelectItem value="out_for_delivery">out_for_delivery</SelectItem>
               <SelectItem value="delivered">delivered</SelectItem>
               <SelectItem value="cancelled">cancelled</SelectItem>
@@ -1403,6 +1442,106 @@ export default function AdminPalletDetails({
             <span className="text-xs text-gray-500">Saving…</span>
           ) : null}
         </div>
+
+        <div className="mt-6 rounded-lg border border-dashed border-gray-200 p-4 dark:border-zinc-700">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400">
+            Customer delivery emails
+          </h3>
+          <p className="mt-1 text-xs text-gray-500 dark:text-zinc-500">
+            Behind pallet-close flags. Dates as YYYY-MM-DD. No Budbee. Each
+            email type once per reservation (delay once per expected date).
+          </p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-3">
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-gray-800 dark:text-zinc-200">
+                1. Pallen har skickats
+              </p>
+              <Input
+                type="date"
+                value={windowStart}
+                onChange={(e) => setWindowStart(e.target.value)}
+                className="h-8 text-xs"
+                disabled={deliveryNotifyBusy}
+              />
+              <Input
+                type="date"
+                value={windowEnd}
+                onChange={(e) => setWindowEnd(e.target.value)}
+                className="h-8 text-xs"
+                disabled={deliveryNotifyBusy}
+              />
+              <Button
+                type="button"
+                size="sm"
+                className="h-8 w-full text-xs"
+                disabled={deliveryNotifyBusy || !windowStart || !windowEnd}
+                onClick={() =>
+                  void postDeliveryNotify({
+                    action: "mark_shipped",
+                    windowStart,
+                    windowEnd,
+                  })
+                }
+              >
+                Mark shipped + notify
+              </Button>
+            </div>
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-gray-800 dark:text-zinc-200">
+                2. Leveransdag
+              </p>
+              <Input
+                type="date"
+                value={deliveryDayInput}
+                onChange={(e) => setDeliveryDayInput(e.target.value)}
+                className="h-8 text-xs"
+                disabled={deliveryNotifyBusy}
+              />
+              <Button
+                type="button"
+                size="sm"
+                className="h-8 w-full text-xs"
+                disabled={deliveryNotifyBusy || !deliveryDayInput}
+                onClick={() =>
+                  void postDeliveryNotify({
+                    action: "mark_arrived_sweden",
+                    deliveryDay: deliveryDayInput,
+                  })
+                }
+              >
+                Arrived Sweden + notify
+              </Button>
+            </div>
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-gray-800 dark:text-zinc-200">
+                Delay — new expected date
+              </p>
+              <Input
+                type="date"
+                value={expectedDateInput}
+                onChange={(e) => setExpectedDateInput(e.target.value)}
+                className="h-8 text-xs"
+                disabled={deliveryNotifyBusy}
+              />
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-8 w-full text-xs"
+                disabled={deliveryNotifyBusy || !expectedDateInput}
+                onClick={() =>
+                  void postDeliveryNotify({
+                    action: "set_expected_date",
+                    expectedDate: expectedDateInput,
+                  })
+                }
+              >
+                Set expected + notify
+              </Button>
+            </div>
+          </div>
+        </div>
+
         <dl className="mt-4 grid gap-3 sm:grid-cols-2 text-sm">
           <div>
             <dt className="text-xs text-gray-500 dark:text-zinc-500">Region</dt>

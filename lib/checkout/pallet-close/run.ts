@@ -151,6 +151,17 @@ async function processChargePath(opts: {
     if (shouldSendEmail()) {
       await sendPalletClosedChargedEmailOnce({ reservationId: row.id });
     }
+    try {
+      const { recordPalletClosedAtIfMissing } = await import(
+        "@/lib/checkout/pallet-delivery-notify/notify"
+      );
+      await recordPalletClosedAtIfMissing({
+        palletId: row.pallet_id,
+        closedAt: now,
+      });
+    } catch (e) {
+      console.warn("[pallet-close] recordPalletClosedAtIfMissing", e);
+    }
     summary.charged += 1;
     summary.actions.push({
       reservationId: row.id,

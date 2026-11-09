@@ -61,8 +61,11 @@ Customer receives a **choice email** with:
 1. **Pallet closed / charged** — successful close charge (or filled-pallet charge).
 2. **Choice email** — last date reached, not full: wait / cancel [/ direct if flag on].
 3. **Cancellation** — customer cancel, 7-day no-answer, or failed-pay window expired.
+4. **Pallen har skickats** — admin marks shipped + estimated delivery window (`lib/checkout/pallet-delivery-notify/`).
+5. **Leveransdag** — admin marks arrived in Sweden + delivery day.
+6. **Delay notice** — admin sets a new expected date; if &gt;30 days after close without delivery, include cancel-for-full-refund (refund within 14 days).
 
-No emails are sent from this spec alone.
+Post-close delivery emails: migration **`282_pallet_delivery_notify.sql` (file only — not applied)**. Same gate. Idempotent via `email_sends` (shipped / day once per reservation; delay once per expected date). No emails are sent while flags/Resend are off.
 
 ---
 
