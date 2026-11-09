@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 
 /**
  * Shared list-card commerce strip: min-6 hint (PACT only) + direct-box delivery promise.
+ * Direct-box line is gated by DIRECT_BOX_CHECKOUT_ENABLED (pass showDirectBox).
  * Dirty Wine (restaurants) has no bottle minimum — hide the min-6 line there.
  * Note: PACT PLP product cards use the hover/tap commerce box instead of this footer.
  */
@@ -16,10 +17,12 @@ export function ListCardCommerceFooter({
   className,
   children,
   sourceType,
+  showDirectBox = false,
 }: {
   className?: string;
   children?: React.ReactNode;
   sourceType?: string | null;
+  showDirectBox?: boolean;
 }) {
   const { context } = useTranslations();
   const locale = (context.locale ?? "sv") as AppLocale;
@@ -32,6 +35,7 @@ export function ListCardCommerceFooter({
         locale={locale}
         compact
         sourceType={sourceType}
+        enabled={showDirectBox}
       />
       {children}
     </div>

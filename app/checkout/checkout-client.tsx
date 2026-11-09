@@ -3669,6 +3669,7 @@ function CheckoutContent({
   }, [cart?.lines]);
 
   // Customer-facing delivery copy: direct box from producer (no pallet fill).
+  // Hidden unless DIRECT_BOX_CHECKOUT_ENABLED (same gate as dual-offer direct row).
   // TODO time string only via B2C_DIRECT_BOX_DELIVERY_TIME_TODO — do not invent SLAs.
   const deliveryPromiseLabel = useMemo(() => {
     const timeTodo = B2C_DIRECT_BOX_DELIVERY_TIME_TODO?.trim();
@@ -3677,9 +3678,14 @@ function CheckoutContent({
     if (st === "shipping_ordered") {
       return t("checkout.deliveryEstimateShippingOrdered");
     }
-    if (!producerDirectBoxOnly) return null;
+    if (!directBoxCheckoutEnabled || !producerDirectBoxOnly) return null;
     return t("commerce.directBoxDeliveryPromise");
-  }, [producerDirectBoxOnly, selectedPallet?.status, t]);
+  }, [
+    directBoxCheckoutEnabled,
+    producerDirectBoxOnly,
+    selectedPallet?.status,
+    t,
+  ]);
 
   const handleSelectPallet = useCallback(
     (palletId: string) => {
@@ -4339,8 +4345,11 @@ function CheckoutContent({
                         <p className="text-xs text-muted-foreground">
                           {t("checkout.deliveryPromiseLabel")}
                         </p>
-                        {producerDirectBoxOnly ? (
-                          <DirectBoxDeliveryPromise sourceType="producer" />
+                        {directBoxCheckoutEnabled && producerDirectBoxOnly ? (
+                          <DirectBoxDeliveryPromise
+                            sourceType="producer"
+                            enabled={directBoxCheckoutEnabled}
+                          />
                         ) : null}
                         {selectedPallet.current_pickup_producer?.name ? (
                           <p className="text-xs text-muted-foreground">

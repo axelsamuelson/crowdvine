@@ -5,6 +5,7 @@ import {
 } from "@/lib/i18n/wine-locale";
 import { generateProducerSlug } from "@/lib/producer-handle";
 import { fetchIndexableProducersFromDb } from "@/lib/crowdvine/indexable-producers";
+import { b2cWholeKronorFromOre } from "@/lib/cart/b2c-line-pricing";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import type { AppLocale } from "@/lib/i18n/locale";
 
@@ -94,7 +95,7 @@ function mapWineRow(row: WineRow, locale: WineLocale) {
     color: row.color,
     price_sek:
       row.base_price_cents != null
-        ? Math.round(row.base_price_cents / 100)
+        ? b2cWholeKronorFromOre(row.base_price_cents)
         : 0,
     summary: extractWineText(
       row.summary as Record<string, string> | string | null,

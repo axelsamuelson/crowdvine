@@ -3,6 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { DEFAULT_WINE_IMAGE_PATH } from "@/lib/constants";
 import { isB2BHost } from "@/lib/b2b-site";
 import { fetchHiddenB2BWineIds } from "@/lib/b2b-pallet-stock";
+import { b2cWholeKronorFromOre } from "@/lib/cart/b2c-line-pricing";
 import { wineDisplayTitle } from "@/lib/wine-display-title";
 
 export async function GET(
@@ -124,11 +125,11 @@ export async function GET(
         },
         priceRange: {
           minVariantPrice: {
-            amount: (wine.base_price_cents / 100).toString(),
+            amount: b2cWholeKronorFromOre(wine.base_price_cents).toString(),
             currencyCode: "SEK",
           },
           maxVariantPrice: {
-            amount: (wine.base_price_cents / 100).toString(),
+            amount: b2cWholeKronorFromOre(wine.base_price_cents).toString(),
             currencyCode: "SEK",
           },
         },
@@ -139,7 +140,7 @@ export async function GET(
             availableForSale: true,
             selectedOptions: [],
             price: {
-              amount: (wine.base_price_cents / 100).toString(),
+              amount: b2cWholeKronorFromOre(wine.base_price_cents).toString(),
               currencyCode: "SEK",
             },
           },

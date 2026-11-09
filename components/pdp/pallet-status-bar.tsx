@@ -17,8 +17,11 @@ import { useTranslations } from "@/lib/hooks/use-translations";
  */
 export function PalletStatusBar({
   sourceType,
+  showDirectBoxPromise = false,
 }: {
   sourceType?: string | null;
+  /** Pass from server via isDirectBoxCheckoutEnabled() — env is not on the client. */
+  showDirectBoxPromise?: boolean;
 }) {
   const { t, context } = useTranslations();
   const isDirtywineSite = useB2BModeServerHint();
@@ -53,6 +56,7 @@ export function PalletStatusBar({
         <DirectBoxDeliveryPromise
           locale={context.locale}
           sourceType={sourceType}
+          enabled={showDirectBoxPromise}
         />
       )}
       {!isDirtywineSite ? (

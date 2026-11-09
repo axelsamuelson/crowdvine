@@ -1,21 +1,14 @@
 /**
- * Pricing consolidation step 1 — documents CURRENT cross-surface divergences.
+ * Pricing consolidation — B2C list unit is one half-up whole-kronor source
+ * (`b2cWholeKronorFromOre`). Remaining TODOs are FX / B2B / Systembolaget only.
  *
- * Explicit expectations + TODO(pricing-consolidation) markers. Do NOT "fix"
- * these to agree in this PR; later steps unify rounding / FX fallbacks.
- *
- * Display surfaces (inline in crowdvine mappers / charge path):
- * - PLP:          lib/crowdvine/products-data.ts — base_price_cents / 100 (unrounded)
- * - PDP:          lib/crowdvine/product-by-handle-data.ts — Math.ceil(öre/100)
- * - Producer page: lib/crowdvine/producer-by-slug-data.ts — Math.round(öre/100)
- * - Auto-charge:  lib/reservation-auto-charge.ts — Math.ceil(öre/100) (same as PDP)
- *
- * Formula / FX surfaces:
+ * Formula / FX surfaces still diverge (documented below):
  * - wine-retail-pricing vs b2b-wine-cost FX fallback when rate missing
  * - B2B unrounded (pallet commercial) vs Math.round (shop / inquiry)
  * - Systembolaget fixed 14.7% margin vs PACT B2C margin + VAT path
  */
 import { describe, expect, it } from "vitest";
+import { b2cWholeKronorFromOre } from "@/lib/cart/b2c-line-pricing";
 import { computeB2bCustomerUnitPriceExclVatSek } from "@/lib/b2b-pallet-commercial";
 import { computeInquiryB2bUnitPriceExclVatSek } from "@/lib/b2b/inquiry-price-math";
 import { getEffectiveExchangeRate } from "@/lib/b2b-wine-cost";
@@ -31,42 +24,31 @@ import {
 } from "@/lib/wine-retail-pricing";
 import { wineById } from "@/lib/__tests__/fixtures/pricing-golden-wines";
 
-/** PLP amount today: unrounded major units from öre. */
-function plpListPriceSek(basePriceCents: number): number {
-  return basePriceCents / 100;
-}
-
-/** PDP / cart / reservation-auto-charge amount today. */
-function pdpCeilListPriceSek(basePriceCents: number): number {
-  return Math.ceil(basePriceCents / 100);
-}
-
-/** Producer page price_sek today. */
-function producerRoundListPriceSek(basePriceCents: number): number {
-  return Math.round(basePriceCents / 100);
+/** Canonical B2C list unit (PLP / PDP / producer / cart / charge). */
+function listPriceSek(basePriceCents: number): number {
+  return b2cWholeKronorFromOre(basePriceCents);
 }
 
 describe("pricing surfaces after whole-kronor B2C unit prices", () => {
   describe("PLP / PDP / producer agree on stored whole kronor", () => {
     it("A Love Supreme 15600 öre → 156 SEK on PLP, PDP, and producer", () => {
       const { base_price_cents: cents } = wineById("a-love-supreme-2024");
-      expect(plpListPriceSek(cents)).toBe(156);
-      expect(pdpCeilListPriceSek(cents)).toBe(156);
-      expect(producerRoundListPriceSek(cents)).toBe(156);
+      expect(listPriceSek(cents)).toBe(156);
     });
 
     it("Hippie Killer 13000 öre → 130 SEK everywhere", () => {
       const { base_price_cents: cents } = wineById("hippie-killer-2023");
-      expect(plpListPriceSek(cents)).toBe(130);
-      expect(pdpCeilListPriceSek(cents)).toBe(130);
-      expect(producerRoundListPriceSek(cents)).toBe(130);
+      expect(listPriceSek(cents)).toBe(130);
     });
 
     it("Up Tempo 17400 öre → 174 SEK everywhere", () => {
       const { base_price_cents: cents } = wineById("up-tempo-2024");
-      expect(plpListPriceSek(cents)).toBe(174);
-      expect(pdpCeilListPriceSek(cents)).toBe(174);
-      expect(producerRoundListPriceSek(cents)).toBe(174);
+      expect(listPriceSek(cents)).toBe(174);
+    });
+
+    it("fractional öre: 29326 → 293 everywhere (not ceil 294)", () => {
+      expect(listPriceSek(29326)).toBe(293);
+      expect(listPriceSek(31000)).toBe(310);
     });
 
     it("price-breakdown B2C list total matches binding whole-kronor unit", () => {
@@ -81,7 +63,7 @@ describe("pricing surfaces after whole-kronor B2C unit prices", () => {
 
       expect(breakdown.listTotalInclVat).toBe(156);
       expect(breakdown.listTotalInclVat).toBe(
-        pdpCeilListPriceSek(wine.base_price_cents),
+        listPriceSek(wine.base_price_cents),
       );
     });
   });

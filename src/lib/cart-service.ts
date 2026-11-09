@@ -6,7 +6,10 @@ import { formatCartDiscountLabel } from "../../lib/cart/discount-label";
 import { resolveWineImageSrc } from "../../lib/cart/wine-image-url";
 import { resolvePalletEarlyBirdContext } from "../../lib/pallet-early-bird-context";
 import type { DiscountTier } from "../../lib/pallet-discount";
-import { b2cLineTotalSek } from "@/lib/cart/b2c-line-pricing";
+import {
+  b2cLineTotalSek,
+  b2cWholeKronorFromOre,
+} from "@/lib/cart/b2c-line-pricing";
 import { supabaseServer } from "../../lib/supabase-server";
 import type { Cart, CartItem } from "../../lib/shopify/types";
 import { getOrSetCartId, clearCartId } from "./cookies";
@@ -162,8 +165,9 @@ export class CartService {
       })
         .then((ctx) => (ctx.locale === "en" ? "en" : "sv"))
         .catch(() => "sv" as const);
+      // Whole-kronor B2C units are already half-up; keep half-up after FX.
       const toDisplay = (sek: number) =>
-        Math.ceil(
+        Math.round(
           convertSekForDisplay(sek, displayCurrency, sekToDisplayRate),
         );
 
@@ -374,7 +378,7 @@ export class CartService {
             : null;
         const producerBoostActive = producerData?.boost_active === true;
 
-        const unitListSek = Math.ceil(wine.base_price_cents / 100);
+        const unitListSek = b2cWholeKronorFromOre(wine.base_price_cents);
         // Round discounted unit (member + early-bird) to whole kronor first;
         // line total = unit × qty so UI "2 × 86 kr" always equals the line.
         const { unitSek: unitChargedSek, lineTotalSek } = b2cLineTotalSek({

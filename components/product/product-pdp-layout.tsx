@@ -7,6 +7,7 @@ import { MinSixBottlesHint } from "@/components/commerce/min-six-bottles-hint";
 import { ServerListPrice } from "@/components/commerce/server-list-price";
 import { PageLayoutServer } from "@/components/layout/page-layout-server";
 import { PalletStatusBar } from "@/components/pdp/pallet-status-bar";
+import { isDirectBoxCheckoutEnabled } from "@/lib/commerce/fulfillment-channel";
 import { PalletZoneStatusProvider } from "@/components/pdp/pallet-zone-status-provider";
 import Prose from "@/components/prose";
 import { ProductBreadcrumbs } from "@/components/product/product-breadcrumbs";
@@ -188,14 +189,21 @@ export async function ProductPdpLayout({
                     {!isDirtywine && product.productType === "wine" ? (
                       <MinSixBottlesHint locale={locale} />
                     ) : null}
-                    {/* SSR direct-box promise; client PalletStatusBar keeps analytics. */}
-                    <noscript>
-                      <DirectBoxDeliveryPromise
-                        locale={locale}
-                        sourceType={product.sourceType}
-                      />
-                    </noscript>
-                    <PalletStatusBar sourceType={product.sourceType} />
+                    {/* SSR direct-box promise; client PalletStatusBar keeps analytics.
+                        Hidden unless DIRECT_BOX_CHECKOUT_ENABLED. */}
+                    {isDirectBoxCheckoutEnabled() ? (
+                      <noscript>
+                        <DirectBoxDeliveryPromise
+                          locale={locale}
+                          sourceType={product.sourceType}
+                          enabled
+                        />
+                      </noscript>
+                    ) : null}
+                    <PalletStatusBar
+                      sourceType={product.sourceType}
+                      showDirectBoxPromise={isDirectBoxCheckoutEnabled()}
+                    />
                     <AddToCartConditional
                       product={product}
                       className="w-full"

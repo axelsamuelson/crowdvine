@@ -2,6 +2,7 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { wineDisplayTitle } from "@/lib/wine-display-title";
 import { getAppUrl, getInternalFetchHeaders } from "@/lib/app-url";
 import { DEFAULT_WINE_IMAGE_PATH } from "@/lib/constants";
+import { b2cWholeKronorFromOre } from "@/lib/cart/b2c-line-pricing";
 import { calculateRoundedB2BPriceExclVat } from "@/lib/price-breakdown";
 import { resolveWineAlcoholTaxCents } from "@/lib/wine-alcohol-tax";
 import { isB2BHost } from "@/lib/b2b-site";
@@ -821,7 +822,7 @@ export async function getCrowdvineProductByHandle(options: {
         title: "750 ml",
         availableForSale,
         price: {
-          amount: Math.ceil(i.base_price_cents / 100).toString(),
+          amount: b2cWholeKronorFromOre(i.base_price_cents).toString(),
           currencyCode: "SEK",
         },
         selectedOptions: [
@@ -844,11 +845,11 @@ export async function getCrowdvineProductByHandle(options: {
     ],
     priceRange: {
       minVariantPrice: {
-        amount: Math.ceil(i.base_price_cents / 100).toString(),
+        amount: b2cWholeKronorFromOre(i.base_price_cents).toString(),
         currencyCode: "SEK",
       },
       maxVariantPrice: {
-        amount: Math.ceil(i.base_price_cents / 100).toString(),
+        amount: b2cWholeKronorFromOre(i.base_price_cents).toString(),
         currencyCode: "SEK",
       },
     },

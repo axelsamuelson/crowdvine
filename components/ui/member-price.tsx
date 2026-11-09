@@ -198,8 +198,8 @@ export function MemberPrice({
         ? parsedAmount
         : null;
 
-  // B2B exkl. moms: round like admin (147.2 → 147). B2C inkl: keep ceil.
-  const moneyRound = showExclVat ? ("round" as const) : ("ceil" as const);
+  // B2B exkl. moms + B2C inkl. moms: half-up whole kronor (CFO).
+  const moneyRound = "round" as const;
 
   const formatListPrice = (value: number) =>
     listPriceSek != null

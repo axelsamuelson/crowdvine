@@ -10,7 +10,7 @@ export type PalletTier = 0 | 10 | 20;
 
 /**
  * B2C member discount on gross list price (öre).
- * Matches `memberDiscountedTotalInclVat`: ceil after float normalization.
+ * Matches `memberDiscountedTotalInclVat`: half-up whole kronor after float normalization.
  */
 export function applyB2cMemberDiscountOre(
   listTotalOre: number,
@@ -19,7 +19,7 @@ export function applyB2cMemberDiscountOre(
   if (!(memberDiscountPercent > 0) || !(listTotalOre > 0)) return listTotalOre;
   const listSek = listTotalOre / 100;
   const raw = listSek * (1 - memberDiscountPercent / 100);
-  return Math.ceil(Number.parseFloat(raw.toFixed(2))) * 100;
+  return Math.round(Number.parseFloat(raw.toFixed(2))) * 100;
 }
 
 /**

@@ -8,7 +8,10 @@ import { getOrCreateStripeCustomer } from "@/lib/stripe/customer";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getMemberDiscountPercentForUserId } from "@/lib/membership/server-member-discount";
 import { resolvePalletEarlyBirdContext } from "@/lib/pallet-early-bird-context";
-import { b2cLineTotalSek } from "@/lib/cart/b2c-line-pricing";
+import {
+  b2cLineTotalSek,
+  b2cWholeKronorFromOre,
+} from "@/lib/cart/b2c-line-pricing";
 import type { DiscountTier } from "@/lib/pallet-discount";
 import { resolveAndChargeCheckoutShipping } from "@/lib/checkout/resolve-checkout-shipping";
 import { allocatePactRedemptionPoints } from "@/lib/membership/pact-points-redemption-math";
@@ -162,7 +165,7 @@ async function resolveReservationChargeAmountInOre(params: {
     if (qty <= 0) continue;
 
     const baseCents = Number(wine.base_price_cents) || 0;
-    const unitListSek = Math.ceil(baseCents / 100);
+    const unitListSek = b2cWholeKronorFromOre(baseCents);
     const { lineTotalSek } = b2cLineTotalSek({
       listUnitSek: unitListSek,
       memberPercent: memberDiscountPercent,

@@ -30,7 +30,10 @@ export function getProductListPriceSek(product: {
   priceRange?: { minVariantPrice?: { amount: string | number } };
 }): number | null {
   const cents = getProductBasePriceCents(product);
-  return cents > 0 ? cents / 100 : null;
+  if (!(cents > 0)) return null;
+  // Same half-up whole-kronor binding as PLP/PDP/cart/Stripe (CFO).
+  // Inline Math.round so this module does not import cart helpers.
+  return Math.round(cents / 100);
 }
 
 /** B2B price exkl moms: (costInSek + shippingPerBottleSek) / (1 - b2b_margin/100) */
@@ -293,8 +296,8 @@ function decomposeRetailPriceInclVat(
 }
 
 /**
- * Member discount on B2C list price — matches {@link MemberPrice} / shop cards:
- * ceil(listPrice * (1 - discount/100)) after float normalization.
+ * Member discount on B2C list price — matches {@link MemberPrice} / shop cards.
+ * CFO: unit after discount → nearest whole krona, half up (Math.round).
  */
 export function memberDiscountedTotalInclVat(
   listPriceInclVat: number,
@@ -302,7 +305,7 @@ export function memberDiscountedTotalInclVat(
 ): number {
   if (memberDiscountPercent <= 0) return listPriceInclVat;
   const raw = listPriceInclVat * (1 - memberDiscountPercent / 100);
-  return Math.ceil(Number.parseFloat(raw.toFixed(2)));
+  return Math.round(Number.parseFloat(raw.toFixed(2)));
 }
 
 /**
@@ -315,7 +318,7 @@ export function calculatePriceBreakdown(
   wine: WinePricingData,
   memberDiscountPercent: number = 0,
 ): PriceBreakdownResult {
-  const listTotalInclVat = Math.ceil(wine.base_price_cents / 100);
+  const listTotalInclVat = Math.round(wine.base_price_cents / 100);
   const originalMarginPercentage = wine.margin_percentage;
 
   const base = decomposeRetailPriceInclVat(listTotalInclVat, wine);
