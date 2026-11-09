@@ -1186,6 +1186,12 @@ function CheckoutContent({
           items: cartData.lines?.length || 0,
         });
         setCart(cartData);
+        // Keep header badge in sync after post-auth merge (avoids sticky (0)).
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(
+            new CustomEvent("cart-refresh", { detail: cartData }),
+          );
+        }
       } else {
         // Fail soft: treat as empty so we do not spin forever.
         setCart({

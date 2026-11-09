@@ -247,8 +247,24 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       console.warn("Failed to load cached cart:", error);
     }
 
-    CartActions.getCart()
-      .then((freshCart) => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        // Logged-in fresh sessions: merge anonymous → user cart BEFORE the
+        // first getCart, otherwise the badge settles on (0) while checkout
+        // already shows the merged lines.
+        await fetch("/api/cart/merge", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ strategy: "auto" }),
+        });
+      } catch {
+        // Guests / merge failures: still proceed to getCart.
+      }
+      if (cancelled) return;
+      try {
+        const freshCart = await CartActions.getCart();
+        if (cancelled) return;
         if (freshCart) {
           setCart(freshCart);
           try {
@@ -260,13 +276,16 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         } else {
           setCart(undefined);
         }
-      })
-      .catch(() => {
+      } catch {
         // Silent fail — badge stays on skeleton until we mark ready below.
-      })
-      .finally(() => {
-        setCartReady(true);
-      });
+      } finally {
+        if (!cancelled) setCartReady(true);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Separate useEffect for cart-refresh event listener
