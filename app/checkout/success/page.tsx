@@ -26,6 +26,7 @@ import { localizedPathsForLocale } from "@/lib/i18n/localized-paths";
 import { producerDisplayName } from "@/lib/producer-display-name";
 import { formatSharedPalletChargeDeadline } from "@/lib/checkout/shared-pallet-deadline";
 import { formatSharedPalletCloseDeliveryCopy } from "@/lib/checkout/shared-pallet-close-delivery-copy";
+import { MarketingConsentCheckbox } from "@/components/checkout/marketing-consent-checkbox";
 
 function translateReservationStatus(
   status: string,
@@ -343,44 +344,58 @@ function CheckoutConfirmationContent() {
   return (
     <main className="min-h-screen bg-gray-50">
       <div className="max-w-5xl mx-auto p-6 pt-top-spacing space-y-8">
-        {/* Header */}
+        {/* Header — legal/design-approved confirmation copy */}
         <div className="flex items-start justify-between gap-6">
           <div className="min-w-0">
-            <h1 className="text-2xl font-medium text-gray-900 mb-2">
-              {ambiguousLanding
-                ? t("checkout.successTitleError")
-                : t("checkout.successTitleConfirmed")}
-            </h1>
-            <p className="text-gray-500">
-              {ambiguousLanding
-                ? t("checkout.successSubtitleError")
-                : chargeDeadlineLabel
-                  ? t("checkout.successSubtitleConfirmedWithDeadline", {
-                      datum: chargeDeadlineLabel,
-                    })
-                  : t("checkout.successSubtitleConfirmed")}
-            </p>
+            {ambiguousLanding ? (
+              <>
+                <h1 className="text-2xl font-medium text-gray-900 mb-2">
+                  {t("checkout.successTitleError")}
+                </h1>
+                <p className="text-gray-500">
+                  {t("checkout.successSubtitleError")}
+                </p>
+              </>
+            ) : (
+              <>
+                <h1 className="text-2xl font-medium text-gray-900 mb-2">
+                  {t("checkout.successTitleConfirmed")}
+                </h1>
+                {(() => {
+                  const belopp = Math.round(
+                    reservation?.total_sek != null &&
+                      Number.isFinite(Number(reservation.total_sek))
+                      ? Number(reservation.total_sek)
+                      : (reservation?.total_amount_cents || 0) / 100,
+                  );
+                  const email = reservation?.customer_email?.trim() || "—";
+                  const datum = chargeDeadlineLabel || "—";
+                  return (
+                    <p
+                      className="text-gray-800 text-base leading-relaxed"
+                      data-testid="success-purchase-complete"
+                    >
+                      {t("checkout.successPurchaseComplete", {
+                        belopp: String(belopp),
+                        datum,
+                        email,
+                      })}
+                    </p>
+                  );
+                })()}
+                {reservation ? (
+                  <MarketingConsentCheckbox
+                    email={reservation.customer_email}
+                  />
+                ) : null}
+              </>
+            )}
             {reservation && (
               <div className="flex items-center gap-2 text-sm text-gray-500 mt-3">
                 <Calendar className="w-4 h-4" />
                 <span>{formatDate(reservation.created_at)}</span>
               </div>
             )}
-            {chargeDeadlineLabel ? (
-              <div
-                className="mt-3 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800"
-                data-testid="success-charge-deadline"
-              >
-                <div className="font-medium">
-                  {t("checkout.successChargeDeadline", {
-                    datum: chargeDeadlineLabel,
-                  })}
-                </div>
-                <p className="text-gray-500 mt-0.5">
-                  {t("checkout.successChargeDeadlineHint")}
-                </p>
-              </div>
-            ) : null}
             <div
               className="mt-3 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700"
               data-testid="success-close-delivery-copy"

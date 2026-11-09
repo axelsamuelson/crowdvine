@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Header } from "./index";
+import { CheckoutMinimalHeader } from "./checkout-minimal-header";
 import { Collection } from "@/lib/shopify/types";
 import type { SiteLogos } from "@/lib/context/site-logo-provider";
 
@@ -63,6 +64,15 @@ export function ConditionalHeader({
   }, []);
 
   const activePathname = hasMounted ? pathname || ssrPathname : ssrPathname;
+
+  // Checkout form: logo + back-to-cart only (no site nav). Success stays chrome-free.
+  const isCheckoutFormRoute =
+    activePathname === "/checkout" ||
+    activePathname.startsWith("/checkout/stripe-return");
+
+  if (isCheckoutFormRoute) {
+    return <CheckoutMinimalHeader initialLogos={initialLogos} />;
+  }
 
   if (shouldHideHeader(activePathname, isDirtywineSite)) {
     return null;

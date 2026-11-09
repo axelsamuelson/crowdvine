@@ -169,6 +169,7 @@ export function warmStripeJs(): void {
   void stripePromise;
 }
 
+/** Match checkout Rabattkod input: border #E4E4E7, radius 6px, height 36px. */
 const pactAppearance = {
   theme: "flat",
   variables: {
@@ -191,13 +192,16 @@ const pactAppearance = {
   },
   rules: {
     ".Input": {
-      border: "1px solid hsl(var(--border))",
+      border: "1px solid #E4E4E7",
       boxShadow: "none",
-      padding: "10px 12px",
+      padding: "7px 12px",
       fontSize: "14px",
+      lineHeight: "20px",
+      minHeight: "36px",
+      height: "36px",
     },
     ".Input:focus": {
-      border: "1px solid hsl(var(--foreground))",
+      border: "1px solid #0A0A0A",
       boxShadow: "none",
     },
     ".Label": {
@@ -206,12 +210,12 @@ const pactAppearance = {
       marginBottom: "6px",
     },
     ".AccordionItem": {
-      border: "1px solid hsl(var(--border))",
+      border: "1px solid #E4E4E7",
       boxShadow: "none",
       padding: "12px 16px",
     },
     ".AccordionItem--selected": {
-      border: "1px solid hsl(var(--foreground))",
+      border: "1px solid #0A0A0A",
     },
     ".TermsText": {
       fontSize: "11px",
@@ -220,11 +224,15 @@ const pactAppearance = {
     },
     ".PickerItem": {
       padding: "12px 16px",
-      border: "1px solid hsl(var(--border))",
+      border: "1px solid #E4E4E7",
       boxShadow: "none",
     },
     ".PickerItem--selected": {
-      border: "1px solid hsl(var(--foreground))",
+      border: "1px solid #0A0A0A",
+    },
+    ".Error": {
+      fontSize: "12px",
+      color: "#dc2626",
     },
   },
 } as const;
@@ -799,10 +807,13 @@ export function StripePaymentSection({
   return (
     <div className="space-y-3">
       {paymentMode === "setup_intent" ? (
-        <p className="text-sm text-muted-foreground">
+        <p
+          className="text-sm text-muted-foreground"
+          data-testid="checkout-card-charge-timing"
+        >
           {usConditionalPayment
             ? t("checkout.stripeCardVerifiedNotCharged")
-            : t("checkout.stripeCardSavedOnShip")}
+            : t("checkout.stripeNothingChargedNow")}
         </p>
       ) : null}
       {paymentElementLoadError ? (
@@ -823,11 +834,11 @@ export function StripePaymentSection({
             clientSecret,
             appearance: pactAppearance,
             locale: stripeLocale,
-            // Stripe iframes cannot see Next font CSS variables — load Geist for PE.
+            // Stripe iframes need a public CSS with woff2 — Geist via fontsource CDN.
             fonts: [
               {
                 cssSrc:
-                  "https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&display=swap",
+                  "https://cdn.jsdelivr.net/fontsource/geist-sans@5.2.5/index.css",
               },
             ],
           }}

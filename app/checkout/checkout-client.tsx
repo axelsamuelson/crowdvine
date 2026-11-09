@@ -862,14 +862,34 @@ function CheckoutContent({
   }, [isUsConditional, selectedPallet?.delivery_zone_id, selectedPallet?.id]);
 
   const handleAgeDobChange = useCallback(
-    (value: string) => {
-      setDateOfBirth(value);
-      if (!value.trim()) {
+    (raw: string) => {
+      // Digits-only → ÅÅÅÅ-MM-DD mask (never type=date — browsers show 01/15/1990 in sv).
+      const digits = raw.replace(/\D/g, "").slice(0, 8);
+      let masked = digits;
+      if (digits.length > 4) {
+        masked = `${digits.slice(0, 4)}-${digits.slice(4)}`;
+      }
+      if (digits.length > 6) {
+        masked = `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6)}`;
+      }
+      setDateOfBirth(masked);
+      if (!masked.trim()) {
         setAgeConfirmed(false);
         setAgeDobError(null);
         return;
       }
-      const ok = meetsAgeRequirement(value, requiredAge);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(masked)) {
+        setAgeConfirmed(false);
+        setAgeDobError(t("checkout.dobInvalidFormat"));
+        return;
+      }
+      const parsed = Date.parse(`${masked}T00:00:00`);
+      if (!Number.isFinite(parsed)) {
+        setAgeConfirmed(false);
+        setAgeDobError(t("checkout.dobInvalidFormat"));
+        return;
+      }
+      const ok = meetsAgeRequirement(masked, requiredAge);
       if (!ok) {
         setAgeConfirmed(false);
         setAgeDobError(
@@ -3677,7 +3697,7 @@ function CheckoutContent({
   // IMPORTANT: keep these conditional returns AFTER all hooks above to preserve hook order
   // Keep skeleton until cart is known post-auth — never flash empty-cart / (0).
   if (loading || !cartFetchDone || !postAuthCartReady || cart == null) {
-    // Mirror loaded checkout shell: max-w-5xl + lg:grid-cols-[1fr_400px].
+    // Mirror loaded checkout shell: max-w-[1280px] + two columns at ≥1280.
     // Heights approximate sections 1–4 + sticky order sidebar.
     return (
       <main
@@ -3686,13 +3706,13 @@ function CheckoutContent({
         aria-busy="true"
         aria-label={t("checkout.loadingCart")}
       >
-        <div className="mx-auto max-w-5xl space-y-8 p-6 pt-top-spacing animate-pulse">
+        <div className="mx-auto max-w-[1280px] space-y-8 p-6 pt-top-spacing animate-pulse">
           <div className="space-y-2">
             <div className="h-8 w-40 rounded bg-muted/60" />
             <div className="h-4 w-64 max-w-full rounded bg-muted/40" />
           </div>
-          <div className="flex flex-col gap-8 lg:grid lg:grid-cols-[1fr_400px] lg:items-start">
-            <aside className="order-1 w-full min-w-0 space-y-3 lg:sticky lg:top-8 lg:order-2 lg:self-start">
+          <div className="flex flex-col gap-8 min-[1280px]:grid min-[1280px]:grid-cols-[1fr_400px] min-[1280px]:items-start">
+            <aside className="order-1 w-full min-w-0 space-y-3 min-[1280px]:sticky min-[1280px]:top-8 min-[1280px]:order-2 min-[1280px]:self-start">
               <div className="h-5 w-36 rounded bg-muted/60" />
               <div className="space-y-3 rounded-xl border border-border bg-background p-4">
                 <div className="h-14 w-full rounded bg-muted/40" />
@@ -3848,14 +3868,7 @@ function CheckoutContent({
         transparent fixed site header so scrolled panel text cannot show through
         MENY/PACT. Does not alter global header styles or OFF-checkout.
       */}
-      {dualOfferReviewActive ? (
-        <div
-          aria-hidden
-          data-testid="dual-offer-checkout-header-shield"
-          className="pointer-events-none fixed inset-x-0 top-0 z-40 h-[var(--top-spacing)] bg-background"
-        />
-      ) : null}
-      <div className="mx-auto max-w-5xl space-y-8 p-6 pt-top-spacing">
+      <div className="mx-auto max-w-[1280px] space-y-8 p-6 pt-top-spacing">
         <div>
           <h1 className="mb-2 text-2xl font-medium text-foreground">
             {t("checkout.title")}
@@ -3863,13 +3876,13 @@ function CheckoutContent({
           <p className="text-muted-foreground">{t("checkout.subtitle")}</p>
         </div>
 
-        <div className="flex flex-col gap-8 lg:grid lg:grid-cols-[1fr_400px] lg:items-start">
-          <aside className="order-1 w-full min-w-0 lg:sticky lg:top-8 lg:order-2 lg:self-start">
+        <div className="flex flex-col gap-8 min-[1280px]:grid min-[1280px]:grid-cols-[1fr_400px] min-[1280px]:items-start">
+          <aside className="order-1 w-full min-w-0 min-[1280px]:sticky min-[1280px]:top-8 min-[1280px]:order-2 min-[1280px]:self-start">
             <div className="space-y-3">
-              {/* 390: one expandable row; lg+: always expanded */}
+              {/* <1280: one expandable row; ≥1280: always expanded */}
               <button
                 type="button"
-                className="flex w-full items-center justify-between gap-2 text-left text-sm font-medium text-foreground lg:hidden"
+                className="flex w-full items-center justify-between gap-2 text-left text-sm font-medium text-foreground min-[1280px]:hidden"
                 aria-expanded={orderSummaryExpanded}
                 data-testid="checkout-order-summary-toggle"
                 onClick={() => setOrderSummaryExpanded((v) => !v)}
@@ -3889,7 +3902,7 @@ function CheckoutContent({
                   )}
                 </span>
               </button>
-              <p className="mb-3 hidden text-sm font-medium text-foreground lg:block">
+              <p className="mb-3 hidden text-sm font-medium text-foreground min-[1280px]:block">
                 {t("checkout.yourOrder")} ({cart.totalQuantity}{" "}
                 {cart.totalQuantity === 1
                   ? t("checkout.bottle")
@@ -3897,7 +3910,7 @@ function CheckoutContent({
               </p>
               <div
                 className={cn(
-                  !orderSummaryExpanded && "hidden lg:block",
+                  !orderSummaryExpanded && "hidden min-[1280px]:block",
                 )}
                 data-testid="checkout-order-summary-body"
               >
@@ -4062,7 +4075,7 @@ function CheckoutContent({
               !dualOfferCardStepUnlocked &&
               dualOfferPurchase ? (
                 <div
-                  className="mt-6 hidden lg:block"
+                  className="mt-6 hidden min-[1280px]:block"
                   data-testid="dual-offer-continue-sticky"
                 >
                   <DualOfferPurchaseActions model={dualOfferPurchase} />
@@ -4071,7 +4084,7 @@ function CheckoutContent({
             </div>
           </aside>
 
-          <div className="order-2 min-w-0 space-y-4 lg:order-1">
+          <div className="order-2 min-w-0 space-y-4 min-[1280px]:order-1">
             {/* 1. Postnummer → leveransalternativ */}
             <section className="py-6 first:pt-0 border-b border-border last:border-0">
               <div className="space-y-4">
@@ -4634,40 +4647,31 @@ function CheckoutContent({
                       const fields: Array<{
                         id: FieldId;
                         label: string;
-                        unlocked: boolean;
                         done: boolean;
                       }> = [
                         {
                           id: "fullName",
                           label: t("checkout.fullName"),
-                          unlocked: true,
                           done: nameOk,
                         },
                         {
                           id: "email",
                           label: t("checkout.email"),
-                          unlocked: editMode || nameOk,
                           done: emailOk,
                         },
                         {
                           id: "phone",
                           label: t("checkout.phone"),
-                          unlocked: editMode || (nameOk && emailOk),
                           done: phoneOk,
                         },
                         {
                           id: "street",
                           label: t("checkout.streetAddress"),
-                          unlocked:
-                            editMode || (nameOk && emailOk && phoneOk),
                           done: streetOk,
                         },
                         {
                           id: "city",
                           label: t("checkout.city"),
-                          unlocked:
-                            editMode ||
-                            (nameOk && emailOk && phoneOk && streetOk),
                           done: cityOk,
                         },
                       ];
@@ -4675,202 +4679,155 @@ function CheckoutContent({
                         fields.push({
                           id: "regionCode",
                           label: t("checkout.stateTerritory"),
-                          unlocked:
-                            editMode ||
-                            (nameOk &&
-                              emailOk &&
-                              phoneOk &&
-                              streetOk &&
-                              cityOk),
                           done: stateOk,
                         });
                       }
-
-                      const activeId = editMode
-                        ? null
-                        : (fields.find((f) => f.unlocked && !f.done)?.id ??
-                          null);
-
-                      const nextLocked = fields.find((f) => !f.unlocked);
 
                       const patch = (partial: Partial<ZoneDeliveryLines>) =>
                         setDeliveryDraft((d) =>
                           d ? { ...d, ...partial } : d,
                         );
 
-                      // Progressive disclosure: only render unlocked fields
-                      // (no dimmed empty placeholders that look like dead ends).
-                      const visibleFields = editMode
-                        ? fields
-                        : fields.filter((f) => f.unlocked);
-
+                      // All address fields visible at once for browser autofill.
                       return (
                         <>
                           <p className="text-sm text-muted-foreground">
                             {t("checkout.addDeliveryHint")}
                           </p>
-                          {visibleFields.map((field) => {
-                            const isActive = field.id === activeId;
-                            const isDone =
-                              !editMode && field.unlocked && field.done;
+                          {fields.map((field) => {
                             const showInlineError =
-                              isActive &&
-                              !isDone &&
-                              ((field.id === "fullName" &&
+                              (field.id === "fullName" &&
                                 (deliveryDraft.fullName ?? "").trim().length ===
                                   1) ||
-                                (field.id === "email" &&
-                                  (deliveryDraft.email ?? "").length > 0 &&
-                                  !(deliveryDraft.email ?? "").includes("@")) ||
-                                (field.id === "phone" &&
-                                  (deliveryDraft.phone ?? "").trim().length >
-                                    0 &&
-                                  (deliveryDraft.phone ?? "").trim().length <
-                                    6));
+                              (field.id === "email" &&
+                                (deliveryDraft.email ?? "").length > 0 &&
+                                !(deliveryDraft.email ?? "").includes("@")) ||
+                              (field.id === "phone" &&
+                                (deliveryDraft.phone ?? "").trim().length > 0 &&
+                                (deliveryDraft.phone ?? "").trim().length < 6);
 
                             return (
-                              <div
-                                key={field.id}
-                                className={cn(
-                                  "transition-all duration-300 origin-top animate-in fade-in-0 slide-in-from-bottom-1",
-                                  isDone && "opacity-80",
-                                  (isActive || editMode) && "opacity-100",
-                                )}
-                              >
-                                <div className="space-y-1.5">
-                                  <Label
-                                    htmlFor={`checkout-${field.id}`}
-                                    className={cn(
-                                      isDone && "text-xs text-muted-foreground",
-                                      (isActive || editMode) && "text-sm",
-                                    )}
-                                  >
-                                    {field.label}
-                                  </Label>
+                              <div key={field.id} className="space-y-1.5">
+                                <Label
+                                  htmlFor={`checkout-${field.id}`}
+                                  className="text-sm"
+                                >
+                                  {field.label}
+                                </Label>
 
-                                  {field.id === "regionCode" ? (
-                                    <Select
-                                      value={deliveryDraft.regionCode ?? ""}
-                                      onValueChange={(v) =>
-                                        patch({
-                                          regionCode: v || null,
-                                        })
-                                      }
-                                    >
-                                      <SelectTrigger
-                                        className={cn(
-                                          "min-h-12 text-base",
-                                          isDone && "min-h-10 text-sm",
-                                        )}
-                                      >
-                                        <SelectValue
-                                          placeholder={t(
-                                            "checkout.selectState",
-                                          )}
-                                        />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        {listUsStateCodesSorted().map((c) => (
-                                          <SelectItem key={c} value={c}>
-                                            {c}
-                                          </SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
-                                  ) : (
-                                    <Input
-                                      id={`checkout-${field.id}`}
-                                      type={
-                                        field.id === "email"
+                                {field.id === "regionCode" ? (
+                                  <Select
+                                    value={deliveryDraft.regionCode ?? ""}
+                                    onValueChange={(v) =>
+                                      patch({
+                                        regionCode: v || null,
+                                      })
+                                    }
+                                  >
+                                    <SelectTrigger className="h-9 min-h-9 text-sm">
+                                      <SelectValue
+                                        placeholder={t("checkout.selectState")}
+                                      />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {listUsStateCodesSorted().map((c) => (
+                                        <SelectItem key={c} value={c}>
+                                          {c}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                ) : (
+                                  <Input
+                                    id={`checkout-${field.id}`}
+                                    name={
+                                      field.id === "fullName"
+                                        ? "name"
+                                        : field.id === "email"
                                           ? "email"
                                           : field.id === "phone"
                                             ? "tel"
-                                            : "text"
-                                      }
-                                      inputMode={
-                                        field.id === "phone"
+                                            : field.id === "street"
+                                              ? "street-address"
+                                              : "address-level2"
+                                    }
+                                    type={
+                                      field.id === "email"
+                                        ? "email"
+                                        : field.id === "phone"
                                           ? "tel"
-                                          : field.id === "email"
-                                            ? "email"
-                                            : "text"
-                                      }
-                                      enterKeyHint={
-                                        isActive && nextLocked
-                                          ? "next"
-                                          : "done"
-                                      }
-                                      value={
-                                        field.id === "fullName"
-                                          ? (deliveryDraft.fullName ?? "")
-                                          : field.id === "email"
-                                            ? (deliveryDraft.email ?? "")
-                                            : field.id === "phone"
-                                              ? (deliveryDraft.phone ?? "")
-                                              : field.id === "street"
-                                                ? deliveryDraft.street
-                                                : deliveryDraft.city
-                                      }
-                                      autoComplete={
-                                        field.id === "fullName"
-                                          ? "name"
-                                          : field.id === "email"
-                                            ? "email"
-                                            : field.id === "phone"
-                                              ? "tel"
-                                              : field.id === "street"
-                                                ? "street-address"
-                                                : "address-level2"
-                                      }
-                                      autoCapitalize={
-                                        field.id === "email"
-                                          ? "none"
-                                          : undefined
-                                      }
-                                      autoCorrect={
-                                        field.id === "email" ? "off" : undefined
-                                      }
-                                      autoFocus={isActive}
-                                      aria-invalid={
-                                        showInlineError ? true : undefined
-                                      }
-                                      className={cn(
-                                        "min-h-12 text-base",
-                                        isDone && "min-h-10 text-sm",
-                                      )}
-                                      onChange={(e) => {
-                                        const v = e.target.value;
-                                        if (field.id === "fullName")
-                                          patch({ fullName: v });
-                                        else if (field.id === "email")
-                                          patch({ email: v });
-                                        else if (field.id === "phone")
-                                          patch({ phone: v });
-                                        else if (field.id === "street")
-                                          patch({ street: v });
-                                        else if (field.id === "city")
-                                          patch({ city: v });
-                                      }}
-                                    />
-                                  )}
-                                  {showInlineError ? (
-                                    <p
-                                      className="text-sm text-destructive"
-                                      role="alert"
-                                    >
-                                      {t("checkout.fieldRequired")}
-                                    </p>
-                                  ) : null}
-                                </div>
+                                          : "text"
+                                    }
+                                    inputMode={
+                                      field.id === "phone"
+                                        ? "tel"
+                                        : field.id === "email"
+                                          ? "email"
+                                          : "text"
+                                    }
+                                    value={
+                                      field.id === "fullName"
+                                        ? (deliveryDraft.fullName ?? "")
+                                        : field.id === "email"
+                                          ? (deliveryDraft.email ?? "")
+                                          : field.id === "phone"
+                                            ? (deliveryDraft.phone ?? "")
+                                            : field.id === "street"
+                                              ? deliveryDraft.street
+                                              : deliveryDraft.city
+                                    }
+                                    autoComplete={
+                                      field.id === "fullName"
+                                        ? "name"
+                                        : field.id === "email"
+                                          ? "email"
+                                          : field.id === "phone"
+                                            ? "tel"
+                                            : field.id === "street"
+                                              ? "street-address"
+                                              : "address-level2"
+                                    }
+                                    autoCapitalize={
+                                      field.id === "email" ? "none" : undefined
+                                    }
+                                    autoCorrect={
+                                      field.id === "email" ? "off" : undefined
+                                    }
+                                    aria-invalid={
+                                      showInlineError ? true : undefined
+                                    }
+                                    className="h-9 min-h-9 text-sm"
+                                    onChange={(e) => {
+                                      const v = e.target.value;
+                                      if (field.id === "fullName")
+                                        patch({ fullName: v });
+                                      else if (field.id === "email")
+                                        patch({ email: v });
+                                      else if (field.id === "phone")
+                                        patch({ phone: v });
+                                      else if (field.id === "street")
+                                        patch({ street: v });
+                                      else if (field.id === "city")
+                                        patch({ city: v });
+                                    }}
+                                  />
+                                )}
+                                {field.id === "phone" ? (
+                                  <p className="text-xs text-muted-foreground">
+                                    {t("checkout.phoneDeliveryHint")}
+                                  </p>
+                                ) : null}
+                                {showInlineError ? (
+                                  <p
+                                    className="text-sm text-destructive"
+                                    role="alert"
+                                  >
+                                    {t("checkout.fieldRequired")}
+                                  </p>
+                                ) : null}
                               </div>
                             );
                           })}
-                          {!editMode && nextLocked ? (
-                            <p className="text-xs text-muted-foreground">
-                              {t("checkout.nextFieldHint", {
-                                label: nextLocked.label,
-                              })}
-                            </p>
-                          ) : null}
 
                           {editMode ? (
                             <div className="flex items-center gap-3 pt-1">
@@ -4923,7 +4880,7 @@ function CheckoutContent({
             !dualOfferCardStepUnlocked &&
             dualOfferPurchase ? (
               <section
-                className="py-6 border-b border-border last:border-0 lg:hidden"
+                className="py-6 border-b border-border last:border-0 min-[1280px]:hidden"
                 data-testid="dual-offer-continue-mobile"
               >
                 <DualOfferPurchaseActions model={dualOfferPurchase} />
@@ -4986,28 +4943,23 @@ function CheckoutContent({
                             </Label>
                             <Input
                               id="age-dob"
-                              type="date"
+                              type="text"
+                              inputMode="numeric"
+                              autoComplete="bday"
+                              placeholder={t("checkout.dobPlaceholder")}
                               value={dateOfBirth}
-                              max={new Date().toISOString().slice(0, 10)}
                               onChange={(e) =>
                                 handleAgeDobChange(e.target.value)
                               }
-                              className="max-w-xs min-h-[44px]"
-                              autoComplete="bday"
-                              placeholder={
-                                shopping.locale === "en"
-                                  ? "YYYY-MM-DD"
-                                  : "ÅÅÅÅ-MM-DD"
-                              }
+                              className="max-w-xs h-9 min-h-9 text-sm"
                               aria-describedby="age-dob-format"
+                              maxLength={10}
                             />
                             <p
                               id="age-dob-format"
                               className="text-xs text-muted-foreground"
                             >
-                              {shopping.locale === "en"
-                                ? "YYYY-MM-DD"
-                                : "ÅÅÅÅ-MM-DD"}
+                              {t("checkout.dobPlaceholder")}
                               {" · "}
                               {t("checkout.ageDeliveryIdHint", {
                                 age: requiredAge,

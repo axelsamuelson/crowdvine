@@ -375,7 +375,7 @@ export function DualOfferCardStepReview() {
             fonts: [
               {
                 cssSrc:
-                  "https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&display=swap",
+                  "https://cdn.jsdelivr.net/fontsource/geist-sans@5.2.5/index.css",
               },
             ],
           }}

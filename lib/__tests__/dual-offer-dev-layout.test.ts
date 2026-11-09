@@ -38,10 +38,10 @@ describe("dual-offer /dev review layout clearance", () => {
     expect(pageSrc).not.toMatch(/components\/layout\/header/);
   });
 
-  it("adds checkout-only opaque header shield when dual-offer review is active", () => {
-    expect(checkoutSrc).toMatch(/dual-offer-checkout-header-shield/);
-    expect(checkoutSrc).toMatch(/dualOfferReviewActive \? \(/);
+  it("checkout uses minimal chrome (logo + back) — no site nav rewrite here", () => {
+    // Header chrome lives in ConditionalHeader → CheckoutMinimalHeader.
     expect(checkoutSrc).not.toMatch(/components\/layout\/header/);
+    expect(checkoutSrc).toMatch(/max-w-\[1280px\]/);
   });
 
   it("does not weaken OFF-path payment isolation helpers", () => {

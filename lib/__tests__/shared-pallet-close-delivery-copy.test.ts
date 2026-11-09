@@ -16,6 +16,7 @@ import {
   sharedPalletDeliveryTerms,
 } from "@/lib/checkout/offer-quote";
 import { dualOfferMsg } from "@/lib/checkout/dual-offer-customer-copy";
+import { formatSharedPalletChargeDeadline } from "@/lib/checkout/shared-pallet-deadline";
 
 describe("shared pallet close/delivery copy (owner — no Budbee)", () => {
   it("keeps one SV and one EN constant as the single source", () => {
@@ -100,5 +101,20 @@ describe("shared pallet close/delivery copy (owner — no Budbee)", () => {
 
     expect(CHECKOUT_PALLET_CLOSE_LINE_SV).toContain("{datum}");
     expect(CHECKOUT_PALLET_CLOSE_LINE_EN).toContain("{datum}");
+  });
+
+  it("formats close date as full long month (SV/EN)", () => {
+    const iso = "2026-12-05T12:00:00.000Z";
+    const sv = formatSharedPalletChargeDeadline(iso, "sv");
+    const en = formatSharedPalletChargeDeadline(iso, "en");
+    expect(sv).toMatch(/5\s+december\s+2026/i);
+    expect(en).toMatch(/5\s+December\s+2026/i);
+    const notice = formatCheckoutPalletDeliveryLines("sv", sv);
+    expect(notice.closeLine).toBe(
+      `Pallen stänger när den är full, senast ${sv}.`,
+    );
+    expect(notice.deliveryLine).toBe(
+      "Leverans normalt 2–3 veckor därefter, alltid inom 30 dagar.",
+    );
   });
 });
