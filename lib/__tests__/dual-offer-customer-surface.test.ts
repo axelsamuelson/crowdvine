@@ -72,6 +72,22 @@ describe("dual-offer customer surface guards", () => {
     expect(panelSrc).toMatch(/dualOfferLegalLineSharedWithSwitch/);
   });
 
+  it("wires shared-pallet buy → card step unlock → SetupIntent confirm", () => {
+    expect(panelSrc).toMatch(/mayStartSharedPalletCardSave/);
+    expect(panelSrc).toMatch(/onSharedPalletCardStepRequest/);
+    expect(panelSrc).toMatch(/onConfirmSharedPalletPurchase/);
+    expect(panelSrc).toMatch(/dualOfferEnterCard/);
+    expect(checkoutSrc).toMatch(/dualOfferCardStepUnlocked/);
+    expect(checkoutSrc).toMatch(/handleSharedPalletCardStepRequest/);
+    expect(checkoutSrc).toMatch(/sharedPalletCardStepUnlocked/);
+    expect(checkoutSrc).toMatch(/data-testid=\{[\s\S]*dual-offer-card-step/);
+    expect(checkoutSrc).toMatch(/cardOnly/);
+    // Payment section stays locked until buy unlocks (not permanently hidden).
+    expect(checkoutSrc).toMatch(
+      /dualOfferReviewActive &&\s*!dualOfferCardStepUnlocked/,
+    );
+  });
+
   it("keeps diagnostics behind showDiagnostics (not default customer mount)", () => {
     expect(panelSrc).toMatch(/showDiagnostics/);
     expect(panelSrc).toMatch(/showDiagnostics === true/);

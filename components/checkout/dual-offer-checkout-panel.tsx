@@ -25,6 +25,7 @@ import {
   switchSelectedOffer,
   type OfferCheckoutSessionState,
 } from "@/lib/checkout/offer-acceptance";
+import { mayStartSharedPalletCardSave } from "@/lib/checkout/dual-offer-checkout-isolation";
 import {
   evaluateDualOfferLivePaymentGate,
   OFFER_SNAPSHOT_PERSISTENCE_AVAILABLE,
@@ -406,6 +407,20 @@ export type DualOfferCheckoutPanelProps = {
    */
   showPalletFillStatus?: boolean;
   palletFill?: CheckoutPalletFillInput | null;
+  /**
+   * Shared-pallet buy: after quote acceptance, parent unlocks SetupIntent /
+   * Payment Element / confirm→reservation on the same checkout page.
+   */
+  onSharedPalletCardStepRequest?: () => void;
+  /** True once parent has unlocked the card-save step. */
+  sharedPalletCardStepUnlocked?: boolean;
+  /**
+   * When card step is unlocked and Stripe confirm is ready, parent places the
+   * reservation (confirm SetupIntent → /api/checkout/confirm).
+   */
+  onConfirmSharedPalletPurchase?: () => void;
+  /** Disables the dual CTA until age/terms + SetupIntent confirm are ready. */
+  sharedPalletPurchaseReady?: boolean;
 };
 
 export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
@@ -572,8 +587,24 @@ export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
       : state.dual.shared_pallet
     : null;
 
+  const cardStepUnlocked = props.sharedPalletCardStepUnlocked === true;
+  const onSharedPalletCardStepRequest = props.onSharedPalletCardStepRequest;
+  const onConfirmSharedPalletPurchase = props.onConfirmSharedPalletPurchase;
+  const sharedPalletPurchaseReady = props.sharedPalletPurchaseReady === true;
+
   const onFinalConfirm = useCallback(() => {
     if (!state?.dual.selected_quote_id || !selectedQuote) return;
+
+    // After unlock: CTA confirms SetupIntent + creates reservation (parent).
+    if (
+      cardStepUnlocked &&
+      mayStartSharedPalletCardSave(selectedQuote) &&
+      onConfirmSharedPalletPurchase
+    ) {
+      onConfirmSharedPalletPurchase();
+      return;
+    }
+
     const result = acceptSelectedOfferQuote({
       state,
       quote_id: state.dual.selected_quote_id,
@@ -584,20 +615,40 @@ export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
       return;
     }
     publish(result.state);
+
+    // Owner shared-pallet flow: buy → card field (same page) → SI → reservation.
+    if (mayStartSharedPalletCardSave(selectedQuote)) {
+      setConfirmNote(dualOfferMsg(locale, "dualOfferEnterCard"));
+      onSharedPalletCardStepRequest?.();
+      return;
+    }
+
+    // Direct / synthetic / unavailable: keep fail-closed live-payment gate.
     const liveGate = evaluateDualOfferLivePaymentGate({ state: result.state });
     setConfirmNote(
       liveGate.allow
         ? dualOfferMsg(locale, "dualOfferConfirmSuccess")
         : humanizeDualOfferBlockReason(liveGate.reason, locale),
     );
-  }, [state, selectedQuote, publish, locale]);
+  }, [
+    state,
+    selectedQuote,
+    publish,
+    locale,
+    cardStepUnlocked,
+    onSharedPalletCardStepRequest,
+    onConfirmSharedPalletPurchase,
+  ]);
 
   const finalDisabled =
     !purchaseEnabled ||
     loading ||
     error ||
     !state?.dual.selected_quote_id ||
-    Boolean(selectedQuote?.unavailable_reason);
+    Boolean(selectedQuote?.unavailable_reason) ||
+    (cardStepUnlocked &&
+      mayStartSharedPalletCardSave(selectedQuote ?? { offer: null, pricing_source: null }) &&
+      !sharedPalletPurchaseReady);
 
   const totalLabel = selectedQuote
     ? formatOfferTotalAmountLabel(selectedQuote.total_sek, locale)
@@ -611,9 +662,11 @@ export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
 
   const finalCtaLabel = !selectedQuote
     ? dualOfferMsg(locale, "dualOfferFinalCta")
-    : selectedQuote.offer === "direct_box"
-      ? dualOfferMsg(locale, "dualOfferFinalCtaDirect", { total: totalLabel })
-      : dualOfferMsg(locale, "dualOfferFinalCtaShared", { total: totalLabel });
+    : cardStepUnlocked && mayStartSharedPalletCardSave(selectedQuote)
+      ? dualOfferMsg(locale, "dualOfferConfirmCardCta", { total: totalLabel })
+      : selectedQuote.offer === "direct_box"
+        ? dualOfferMsg(locale, "dualOfferFinalCtaDirect", { total: totalLabel })
+        : dualOfferMsg(locale, "dualOfferFinalCtaShared", { total: totalLabel });
 
   const legalLine = !selectedQuote
     ? null

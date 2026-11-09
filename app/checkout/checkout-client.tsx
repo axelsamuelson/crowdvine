@@ -687,6 +687,9 @@ function CheckoutContent({
    * mounted, legacy shared-pallet Pay / PI prefetch must not run.
    * Flag OFF → both helpers keep normal checkout.
    */
+  const [dualOfferCardStepUnlocked, setDualOfferCardStepUnlocked] =
+    useState(false);
+
   const dualOfferReviewActive = isDualOfferReviewCheckoutActive({
     dualOfferCompareSurfaceAllowed,
     hasSelectedPallet: Boolean(selectedPallet?.id),
@@ -698,6 +701,7 @@ function CheckoutContent({
     hasSelectedPallet: Boolean(selectedPallet?.id),
     deliveryPreviewReady,
     zoneLoading,
+    sharedPalletCardStepUnlocked: dualOfferCardStepUnlocked,
   });
 
   const zoneLocationKey = useMemo(() => {
@@ -1826,12 +1830,17 @@ function CheckoutContent({
   }, [complianceStepRevealed, complianceComplete]);
 
   useEffect(() => {
-    if (dualOfferReviewActive) {
+    if (!dualOfferReviewActive) {
+      setDualOfferCardStepUnlocked(false);
+      return;
+    }
+    // Dual review active but buy not clicked yet: keep Stripe cold.
+    if (!dualOfferCardStepUnlocked) {
       setPaymentCardRevealed(false);
       setPrefetchedStripeIntent(null);
       stripePrefetchKeyRef.current = null;
     }
-  }, [dualOfferReviewActive]);
+  }, [dualOfferReviewActive, dualOfferCardStepUnlocked]);
 
   const handleContinueToPayment = useCallback(() => {
     if (!complianceComplete) return;
@@ -1844,6 +1853,21 @@ function CheckoutContent({
       });
     }, 80);
   }, [complianceComplete, legacySharedPalletPaymentAllowed]);
+
+  const handleSharedPalletCardStepRequest = useCallback(() => {
+    setDualOfferCardStepUnlocked(true);
+    setPaymentCardRevealed(true);
+    // Compliance (age/terms) is required before SetupIntent create.
+    if (!complianceStepRevealed) {
+      setComplianceStepRevealed(true);
+    }
+    window.setTimeout(() => {
+      (complianceSectionRef.current ?? paymentSectionRef.current)?.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+      });
+    }, 80);
+  }, [complianceStepRevealed]);
 
   // Initial zone matching when cart and zone context are loaded
   useEffect(() => {
@@ -4364,6 +4388,26 @@ function CheckoutContent({
                         purchaseEnabled={deliveryComplete}
                         onPurchaseActionsChange={handleDualOfferPurchaseChange}
                         onStateChange={setDualOfferSession}
+                        sharedPalletCardStepUnlocked={dualOfferCardStepUnlocked}
+                        onSharedPalletCardStepRequest={
+                          handleSharedPalletCardStepRequest
+                        }
+                        onConfirmSharedPalletPurchase={() => {
+                          void handlePlaceReservation();
+                        }}
+                        sharedPalletPurchaseReady={Boolean(
+                          stripeConfirmFn &&
+                            paymentMode &&
+                            stripeIntentId &&
+                            ageConfirmed &&
+                            termsAccepted &&
+                            authReady &&
+                            !isSubmitting &&
+                            !isStripeConfirming &&
+                            !isFinalizingReservation &&
+                            displayTotal != null &&
+                            !(isUsConditional && !usConditionalAck),
+                        )}
                         showPalletFillStatus={showCheckoutPalletFillStatus}
                         palletFill={
                           selectedPallet
@@ -4826,7 +4870,10 @@ function CheckoutContent({
               ref={complianceSectionRef}
               className={cn(
                 "py-6 border-b border-border last:border-0 transition-[opacity,transform] duration-500 ease-out",
-                dualOfferReviewActive && "hidden",
+                // Dual buy unlocks age/terms so SetupIntent can be created.
+                dualOfferReviewActive &&
+                  !dualOfferCardStepUnlocked &&
+                  "hidden",
                 deliveryComplete && complianceStepRevealed
                   ? "opacity-100 translate-y-0"
                   : "opacity-50 translate-y-1",
@@ -4941,7 +4988,8 @@ function CheckoutContent({
                           ) : null}
                         </div>
                         {!paymentCardRevealed &&
-                        legacySharedPalletPaymentAllowed ? (
+                        legacySharedPalletPaymentAllowed &&
+                        !dualOfferCardStepUnlocked ? (
                           <Button
                             type="button"
                             className="w-full border-transparent bg-black text-white shadow-none ring-0 hover:border-transparent hover:bg-black/90 hover:shadow-none focus-visible:border-transparent focus-visible:bg-black/90 focus-visible:ring-white/40"
@@ -4951,7 +4999,7 @@ function CheckoutContent({
                             {t("checkout.continueToPayment")}
                           </Button>
                         ) : null}
-                        {dualOfferReviewActive ? (
+                        {dualOfferReviewActive && !dualOfferCardStepUnlocked ? (
                           <p
                             className="text-sm font-medium text-foreground"
                             data-testid="dual-offer-legacy-pay-blocked-notice"
@@ -5046,18 +5094,28 @@ function CheckoutContent({
               ref={paymentSectionRef}
               className={cn(
                 "py-6 border-b border-border last:border-0 transition-[opacity,transform] duration-500 ease-out",
-                dualOfferReviewActive && "hidden",
+                // Locked until dual buy; then same SetupIntent card step as legacy.
+                dualOfferReviewActive &&
+                  !dualOfferCardStepUnlocked &&
+                  "hidden",
                 complianceComplete && paymentCardRevealed
                   ? "opacity-100 translate-y-0"
                   : "opacity-50 translate-y-1",
               )}
+              data-testid={
+                dualOfferCardStepUnlocked
+                  ? "dual-offer-card-step"
+                  : undefined
+              }
             >
               <div className="space-y-3">
                 <h2 className="text-base font-semibold text-foreground">
-                  {t("checkout.payment")}
+                  {dualOfferCardStepUnlocked
+                    ? t("checkout.dualOfferCardStepTitle")
+                    : t("checkout.payment")}
                 </h2>
 
-                {dualOfferReviewActive ? (
+                {dualOfferReviewActive && !dualOfferCardStepUnlocked ? (
                   <div
                     className="space-y-2 rounded-lg border border-dashed border-border bg-muted/20 p-4"
                     data-testid="dual-offer-payment-isolated"
@@ -5169,6 +5227,7 @@ function CheckoutContent({
                             legalGate={legalGatePayload}
                             onLegalGateError={handleLegalGateError}
                             prefetchedIntent={prefetchedStripeIntent}
+                            cardOnly
                           />
                         ) : null}
 

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   isDualOfferReviewCheckoutActive,
   mayRunLegacySharedPalletPaymentUi,
+  mayStartSharedPalletCardSave,
 } from "@/lib/checkout/dual-offer-checkout-isolation";
 
 describe("dual-offer checkout isolation", () => {
@@ -21,9 +22,15 @@ describe("dual-offer checkout isolation", () => {
     expect(mayRunLegacySharedPalletPaymentUi(off)).toBe(true);
   });
 
-  it("ON + quoteable destination isolates dual review", () => {
+  it("ON + quoteable destination isolates until buy unlocks card step", () => {
     expect(isDualOfferReviewCheckoutActive(ready)).toBe(true);
     expect(mayRunLegacySharedPalletPaymentUi(ready)).toBe(false);
+    expect(
+      mayRunLegacySharedPalletPaymentUi({
+        ...ready,
+        sharedPalletCardStepUnlocked: true,
+      }),
+    ).toBe(true);
   });
 
   it("ON but no pallet does not isolate (panel not mounted)", () => {
@@ -44,10 +51,41 @@ describe("dual-offer checkout isolation", () => {
     expect(mayRunLegacySharedPalletPaymentUi(args)).toBe(true);
   });
 
-  it("legacy pay remains blocked across switch/back while dual surface stays active", () => {
-    // Simulate offer switch / acceptance — isolation depends only on surface,
-    // not on which offer is selected or whether quote was accepted.
+  it("card step stays locked across switch/back until buy unlocks", () => {
     expect(mayRunLegacySharedPalletPaymentUi(ready)).toBe(false);
     expect(mayRunLegacySharedPalletPaymentUi({ ...ready })).toBe(false);
+  });
+});
+
+describe("mayStartSharedPalletCardSave", () => {
+  it("allows live shared_pallet only", () => {
+    expect(
+      mayStartSharedPalletCardSave({
+        offer: "shared_pallet",
+        pricing_source: "live_catalog",
+      }),
+    ).toBe(true);
+  });
+
+  it("denies synthetic, direct, and unavailable quotes", () => {
+    expect(
+      mayStartSharedPalletCardSave({
+        offer: "shared_pallet",
+        pricing_source: "synthetic_fixture",
+      }),
+    ).toBe(false);
+    expect(
+      mayStartSharedPalletCardSave({
+        offer: "direct_box",
+        pricing_source: "live_catalog",
+      }),
+    ).toBe(false);
+    expect(
+      mayStartSharedPalletCardSave({
+        offer: "shared_pallet",
+        pricing_source: "live_catalog",
+        unavailable_reason: "shipping_pending",
+      }),
+    ).toBe(false);
   });
 });

@@ -145,6 +145,8 @@ type Props = {
     status: 403 | 409 | 400;
     currentVersion?: string;
   }) => void;
+  /** Shared pallet: Payment Element shows card only (no wallets / Link). */
+  cardOnly?: boolean;
 };
 
 const publishableKey =
@@ -231,6 +233,7 @@ function StripeElementInner({
   userId,
   amountOre,
   paymentFormLoadFailedLabel,
+  cardOnly = false,
 }: {
   paymentMode: PaymentMode;
   clientSecret: string;
@@ -241,6 +244,7 @@ function StripeElementInner({
   userId?: string;
   amountOre?: number;
   paymentFormLoadFailedLabel: string;
+  cardOnly?: boolean;
 }) {
   const stripe = useStripe();
   const elements = useElements();
@@ -442,6 +446,15 @@ function StripeElementInner({
           radios: true,
           spacedAccordionItems: false,
         },
+        ...(cardOnly
+          ? {
+              paymentMethodOrder: ["card"],
+              wallets: {
+                applePay: "never" as const,
+                googlePay: "never" as const,
+              },
+            }
+          : {}),
       }}
       onLoadError={(event) => {
         const err = event.error;
@@ -470,6 +483,7 @@ export function StripePaymentSection({
   legalGate = null,
   prefetchedIntent = null,
   onLegalGateError,
+  cardOnly = false,
 }: Props) {
   const shoppingCtx = useShoppingContextOptional();
   const t = shoppingCtx?.t ?? ((key: string) => key);
@@ -816,6 +830,7 @@ export function StripePaymentSection({
             userId={userId}
             amountOre={amountOreHint}
             paymentFormLoadFailedLabel={t("checkout.stripePaymentFormLoadFailed")}
+            cardOnly={cardOnly}
           />
         </Elements>
       )}

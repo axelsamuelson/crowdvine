@@ -1,7 +1,10 @@
 /**
- * Isolates dual-offer REVIEW checkout from legacy shared-pallet Pay / PI prefetch.
- * When active: no payment-intent create/prefetch and no place-reservation CTA.
- * Does NOT enable dual-offer live payment/order binding.
+ * Isolates dual-offer checkout from legacy shared-pallet Pay / PI prefetch
+ * until the customer clicks buy on a payable shared-pallet quote.
+ *
+ * Owner flow (shared pallet, DIRECT off):
+ * buy → card field (SetupIntent / Payment Element, card only) →
+ * confirm SetupIntent → reservation (charged when pallet closes).
  */
 
 export type DualOfferReviewIsolationInput = {
@@ -13,6 +16,11 @@ export type DualOfferReviewIsolationInput = {
   deliveryPreviewReady: boolean;
   /** Zone still loading — not yet a stable dual surface. */
   zoneLoading?: boolean;
+  /**
+   * After dual-offer buy on a live shared-pallet quote, unlocks the same
+   * SetupIntent + Payment Element + confirm→reservation path as legacy.
+   */
+  sharedPalletCardStepUnlocked?: boolean;
 };
 
 /**
@@ -29,9 +37,28 @@ export function isDualOfferReviewCheckoutActive(
   return true;
 }
 
-/** Legacy Stripe Elements / Pay / PI prefetch must stay disabled. */
+/**
+ * Shared-pallet Stripe Elements / PI prefetch / place-reservation.
+ * Flag OFF → always allowed. Flag ON → blocked until buy unlocks the card step.
+ */
 export function mayRunLegacySharedPalletPaymentUi(
   args: DualOfferReviewIsolationInput,
 ): boolean {
-  return !isDualOfferReviewCheckoutActive(args);
+  if (!isDualOfferReviewCheckoutActive(args)) return true;
+  return args.sharedPalletCardStepUnlocked === true;
+}
+
+/**
+ * Whether dual-offer buy may open the card-save step for this quote.
+ * Requires live shared-pallet catalog pricing (not synthetic / unavailable).
+ */
+export function mayStartSharedPalletCardSave(args: {
+  offer: string | null | undefined;
+  pricing_source: string | null | undefined;
+  unavailable_reason?: string | null;
+}): boolean {
+  if (args.offer !== "shared_pallet") return false;
+  if (args.pricing_source !== "live_catalog") return false;
+  if (args.unavailable_reason) return false;
+  return true;
 }

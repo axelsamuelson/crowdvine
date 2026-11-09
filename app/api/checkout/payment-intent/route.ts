@@ -988,9 +988,9 @@ export async function POST(request: Request) {
               stripe!.setupIntents.create(
                 {
                   customer: customerId,
-                  ...(usConditional
-                    ? { payment_method_types: ["card"] }
-                    : { automatic_payment_methods: { enabled: true } }),
+                  // Shared pallet: card only (save now, charge at close).
+                  // Never enable Klarna/Swish/etc. via automatic_payment_methods.
+                  payment_method_types: ["card"],
                   usage: "off_session",
                   metadata,
                 },
