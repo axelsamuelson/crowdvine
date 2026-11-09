@@ -233,23 +233,30 @@ function applyProducerNameSearchForCollection<Q extends SupabaseOrBuilder>(
 }
 
 function convertToFullUrl(path: string | null | undefined): string {
-  if (!path) return getAppUrl() + DEFAULT_WINE_IMAGE_PATH;
+  // Keep default-wine relative so next/image can use unoptimized local asset
+  // (absolute vercel.app/default-wine.png through the optimizer returns 400).
+  if (!path) return DEFAULT_WINE_IMAGE_PATH;
 
   const cleanPath = path.trim().replace(/\n/g, "");
   if (
     !cleanPath ||
     cleanPath === DEFAULT_WINE_IMAGE_PATH ||
-    /default-wine\.png$/i.test(cleanPath)
+    /(?:^|\/)default-wine\.png$/i.test(cleanPath)
   ) {
-    return getAppUrl() + DEFAULT_WINE_IMAGE_PATH;
+    return DEFAULT_WINE_IMAGE_PATH;
   }
 
-  if (cleanPath.startsWith("http")) return cleanPath;
+  if (cleanPath.startsWith("http")) {
+    if (/(?:^|\/)default-wine\.png$/i.test(cleanPath)) {
+      return DEFAULT_WINE_IMAGE_PATH;
+    }
+    return cleanPath;
+  }
   if (cleanPath.startsWith("/uploads/")) {
     const baseUrl = getAppUrl();
     const fileName = cleanPath.replace("/uploads/", "").trim();
     if (!fileName || /default-wine\.png$/i.test(fileName)) {
-      return getAppUrl() + DEFAULT_WINE_IMAGE_PATH;
+      return DEFAULT_WINE_IMAGE_PATH;
     }
     return `${baseUrl}/api/images/${fileName}`;
   }

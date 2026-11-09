@@ -244,8 +244,13 @@ export class AnalyticsTracker {
     };
 
     // Preview/audit DBs may use a stub user_events (event_name only) or lag
-    // migrations 181/186. Once a 400/column miss is seen, stop all posts.
-    if (isUserEventsSchemaLag()) return;
+    // migrations 181/186. After first column miss, insert stub shape only —
+    // never keep POSTing the production payload (repeated 400s).
+    const stubRow = {
+      user_id: userId,
+      event_name: eventType,
+      event_metadata: eventMetadata,
+    };
 
     const stripNewCols = <T extends Record<string, unknown>>(row: T) => {
       const {
@@ -260,9 +265,9 @@ export class AnalyticsTracker {
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
       const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
       if (!supabaseUrl || !anonKey) return;
-      // Keepalive omits visitor_id / country_code; still stop after first 400
-      // (stub preview schemas reject event_type entirely).
-      const keepaliveCore = stripNewCols(eventData);
+      const body = isUserEventsSchemaLag()
+        ? stubRow
+        : stripNewCols(eventData);
       try {
         void fetch(`${supabaseUrl}/rest/v1/user_events`, {
           method: "POST",
@@ -272,7 +277,7 @@ export class AnalyticsTracker {
             "Content-Type": "application/json",
             Prefer: "return=minimal",
           },
-          body: JSON.stringify(keepaliveCore),
+          body: JSON.stringify(body),
           keepalive: true,
         })
           .then((res) => {
@@ -297,23 +302,43 @@ export class AnalyticsTracker {
     }
 
     try {
+      if (isUserEventsSchemaLag()) {
+        const stub = await supabase.from("user_events").insert(stubRow);
+        if (
+          stub.error &&
+          process.env.NODE_ENV === "development" &&
+          stub.error.message
+        ) {
+          console.warn(
+            "[analytics] user_events stub insert:",
+            stub.error.message,
+          );
+        }
+        return;
+      }
+
       const { error } = await supabase.from("user_events").insert(eventData);
       if (error) {
         const m = error.message || "";
-        if (isUserEventsSchemaError(m)) {
+        if (isUserEventsSchemaError(m) || /400|PGRST/i.test(m)) {
           markUserEventsSchemaLag();
-          // Retry once without visitor_id/country_code in case only 181/186 lag.
-          // If the stub schema lacks event_type entirely, this also fails → stop.
+          // Retry once without visitor_id/country_code (181/186 lag).
           const withoutNewCols = stripNewCols(eventData);
-          const retry = await supabase.from("user_events").insert(withoutNewCols);
-          if (retry.error) {
-            markUserEventsSchemaLag();
-            if (process.env.NODE_ENV === "development") {
-              console.warn(
-                "[analytics] user_events schema lag — inserts disabled:",
-                retry.error.message,
-              );
-            }
+          const retry = await supabase
+            .from("user_events")
+            .insert(withoutNewCols);
+          if (!retry.error) return;
+          markUserEventsSchemaLag();
+          // Audit stub: only event_name (+ metadata/user_id).
+          const stub = await supabase.from("user_events").insert(stubRow);
+          if (
+            stub.error &&
+            process.env.NODE_ENV === "development"
+          ) {
+            console.warn(
+              "[analytics] user_events schema lag — stub insert failed:",
+              stub.error.message,
+            );
           }
           return;
         }

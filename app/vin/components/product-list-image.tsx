@@ -41,6 +41,11 @@ export const ProductListImage = memo(function ProductListImage({
         fetchPriority={index < 2 ? "high" : isAboveFold ? "auto" : "low"}
         placeholder={imageToShow?.thumbhash ? "blur" : undefined}
         blurDataURL={imageToShow?.thumbhash}
+        unoptimized={
+          !imageToShow?.url ||
+          imageUrl === DEFAULT_WINE_IMAGE_PATH ||
+          /default-wine\.png$/i.test(imageUrl)
+        }
       />
     </div>
   );

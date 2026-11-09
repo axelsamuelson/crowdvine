@@ -24,7 +24,12 @@ export function resolveWineImageSrc(
   }
 
   if (/^https?:\/\//i.test(clean)) {
-    if (/\/api\/images\/?(?:default-wine\.png)?$/i.test(clean)) {
+    // Absolute default-wine URLs (often getAppUrl()+path from a prior deploy)
+    // must become the relative static asset — /_next/image 400s on them.
+    if (
+      /(?:^|\/)default-wine\.png$/i.test(clean) ||
+      /\/api\/images\/?(?:default-wine\.png)?$/i.test(clean)
+    ) {
       return DEFAULT_WINE_IMAGE_PATH;
     }
     return clean;

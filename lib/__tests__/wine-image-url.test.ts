@@ -10,6 +10,16 @@ describe("resolveWineImageSrc", () => {
       "/default-wine.png",
     );
     expect(resolveWineImageSrc("/api/images/")).toBe("/default-wine.png");
+    expect(
+      resolveWineImageSrc(
+        "https://crowdvine-baepg06hf-avesamuelson-7603s-projects.vercel.app/default-wine.png",
+      ),
+    ).toBe("/default-wine.png");
+    expect(
+      resolveWineImageSrc(
+        "https://example.vercel.app/api/images/default-wine.png",
+      ),
+    ).toBe("/default-wine.png");
   });
 
   it("maps uploads and bare keys to /api/images", () => {
