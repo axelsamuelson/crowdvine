@@ -7,8 +7,6 @@ import {
   createUnsubscribeToken,
 } from "@/lib/marketing/new-pallet-open-consent";
 
-export const runtime = "nodejs";
-
 /**
  * Toggle new-pallet-open marketing consent for the signed-in user.
  * Checked → insert/reactivate; unchecked → set withdrawn_at.

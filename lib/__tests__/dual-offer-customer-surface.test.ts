@@ -92,8 +92,8 @@ describe("dual-offer customer surface guards", () => {
     expect(panelSrc).toMatch(/showDiagnostics/);
     expect(panelSrc).toMatch(/showDiagnostics === true/);
     expect(checkoutSrc).not.toMatch(/showDiagnostics=\{true\}/);
-    expect(checkoutSrc).toMatch(/dual-offer-checkout-header-shield/);
-    expect(checkoutSrc).toMatch(/!dualOfferReviewActive/);
+    // Checkout chrome is logo + back-to-cart via CheckoutMinimalHeader (no site nav).
+    expect(checkoutSrc).toMatch(/max-w-\[1280px\]/);
     expect(checkoutSrc).not.toMatch(/\/api\/user\/rewards/);
     expect(checkoutSrc).toMatch(/showDirectOffer=\{directBoxCheckoutEnabled\}/);
     expect(checkoutSrc).toMatch(/inlinePurchase=\{false\}/);
@@ -106,7 +106,7 @@ describe("dual-offer customer surface guards", () => {
     expect(panelSrc).not.toMatch(/Selected: \{offer\}/);
   });
 
-  it("order confirmation page surfaces charge deadline from reservation API", () => {
+  it("order confirmation page wires reservation deadline + delivery copy + marketing consent", () => {
     const successSrc = readFileSync(
       resolve(process.cwd(), "app/checkout/success/page.tsx"),
       "utf8",
@@ -115,12 +115,18 @@ describe("dual-offer customer surface guards", () => {
       resolve(process.cwd(), "app/api/user/reservations/[id]/route.ts"),
       "utf8",
     );
-    expect(successSrc).toMatch(/success-charge-deadline|successChargeDeadline/);
+    const headerSrc = readFileSync(
+      resolve(process.cwd(), "components/layout/header/conditional-header.tsx"),
+      "utf8",
+    );
+    expect(successSrc).toMatch(/success-purchase-complete|successPurchaseComplete/);
+    expect(successSrc).toMatch(/MarketingConsentCheckbox/);
     expect(successSrc).toMatch(/charge_deadline_at/);
     expect(successSrc).toMatch(/formatSharedPalletCloseDeliveryCopy/);
     expect(successSrc).toMatch(/success-close-delivery-copy/);
     expect(reservationApiSrc).toMatch(/computeSharedPalletChargeDeadlineIso/);
     expect(reservationApiSrc).toMatch(/created_at/);
+    expect(headerSrc).toMatch(/CheckoutMinimalHeader/);
   });
 
   it("humanizes block reasons without leaking raw codes", () => {

@@ -2,8 +2,6 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { NEW_PALLET_OPEN_PURPOSE } from "@/lib/marketing/new-pallet-open-consent";
 
-export const runtime = "nodejs";
-
 /**
  * One-click unsubscribe for new-pallet-opening marketing mail.
  * Does not send email — only sets withdrawn_at.
