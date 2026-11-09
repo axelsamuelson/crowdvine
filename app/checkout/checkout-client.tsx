@@ -4189,15 +4189,6 @@ function CheckoutContent({
                             <span className="whitespace-nowrap text-sm tabular-nums text-foreground">
                               {chargedShippingLabel ?? "—"}
                             </span>
-                            {/* eslint-disable-next-line @next/next/no-img-element -- static brand asset from /public */}
-                            <img
-                              src="/budbee-logo.png"
-                              alt="Budbee"
-                              width={96}
-                              height={36}
-                              className="h-5 w-auto max-w-[100px] shrink-0 object-contain object-right mix-blend-multiply"
-                              aria-hidden
-                            />
                           </div>
                         </div>
                       </div>

@@ -41,6 +41,10 @@ import {
   type DualOfferUiLocale,
 } from "@/lib/checkout/dual-offer-customer-copy";
 import { formatSharedPalletChargeDeadline } from "@/lib/checkout/shared-pallet-deadline";
+import {
+  directBoxDeliveryCopy,
+  formatSharedPalletCloseDeliveryCopy,
+} from "@/lib/checkout/shared-pallet-close-delivery-copy";
 import { CheckoutPalletFillStatus } from "@/components/checkout/checkout-pallet-fill-status";
 import type { CheckoutPalletFillInput } from "@/lib/checkout/pallet-fill-display";
 
@@ -49,6 +53,10 @@ export { formatOfferSek } from "@/lib/checkout/dual-offer-display";
 type Locale = DualOfferUiLocale;
 
 function deliveryLabel(quote: OfferQuote, locale: Locale): string {
+  // Direct: home delivery only — no ETA (carrier contract unsigned).
+  if (quote.offer === "direct_box") {
+    return directBoxDeliveryCopy(locale);
+  }
   return locale === "sv"
     ? quote.delivery_terms.previewLabelSv
     : quote.delivery_terms.previewLabelEn;
@@ -68,12 +76,8 @@ function sharedCloseDeliveryLine(
   if (quote.offer !== "shared_pallet") {
     return deliveryLabel(quote, locale);
   }
-  if (deadlineLabel) {
-    return dualOfferMsg(locale, "dualOfferSharedCloseDelivery", {
-      datum: deadlineLabel,
-    });
-  }
-  return dualOfferMsg(locale, "dualOfferSharedCloseDeliveryNoDate");
+  // Single SV/EN constants — lib/checkout/shared-pallet-close-delivery-copy.ts
+  return formatSharedPalletCloseDeliveryCopy(locale, deadlineLabel);
 }
 
 function OfferRowSkeleton() {

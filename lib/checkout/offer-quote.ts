@@ -14,6 +14,11 @@
 import { createHash } from "crypto";
 import type { CheckoutQuote } from "@/lib/checkout/checkout-quote";
 import type { FulfillmentChannel } from "@/lib/commerce/fulfillment-channel";
+import {
+  DIRECT_BOX_DELIVERY_COPY_EN,
+  DIRECT_BOX_DELIVERY_COPY_SV,
+  formatSharedPalletCloseDeliveryCopy,
+} from "@/lib/checkout/shared-pallet-close-delivery-copy";
 
 export const OFFER_QUOTE_SCHEMA_VERSION = 1 as const;
 
@@ -151,22 +156,21 @@ export function isDualOfferCompareEnabled(
 }
 
 export function sharedPalletDeliveryTerms(): OfferDeliveryTerms {
+  // Date-bearing UI uses formatSharedPalletCloseDeliveryCopy(locale, datum).
+  // Preview labels are the same SV/EN constants without a date filled in.
   return {
     code: "shared_pallet_collective_fill",
-    // Date-bearing customer copy is built in DualOfferCheckoutPanel
-    // (dualOfferSharedCloseDelivery*) so senast {datum} stays accurate.
-    previewLabelSv:
-      "Pallen stänger när den är full. Leverans med Budbee 1–2 veckor därefter.",
-    previewLabelEn:
-      "The pallet closes when full. Delivered by Budbee 1–2 weeks after.",
+    previewLabelSv: formatSharedPalletCloseDeliveryCopy("sv", null),
+    previewLabelEn: formatSharedPalletCloseDeliveryCopy("en", null),
   };
 }
 
 export function directBoxDeliveryTerms(): OfferDeliveryTerms {
+  // No carrier brand, no delivery ETA while carrier contract is unsigned.
   return {
     code: "direct_box_independent",
-    previewLabelSv: "Hemleverans med Budbee inom 5–10 arbetsdagar",
-    previewLabelEn: "Home delivery with Budbee within 5–10 business days",
+    previewLabelSv: DIRECT_BOX_DELIVERY_COPY_SV,
+    previewLabelEn: DIRECT_BOX_DELIVERY_COPY_EN,
   };
 }
 
