@@ -8,9 +8,15 @@ Customer-facing `senast {datum}` is shown in dual-offer checkout and on
 order confirmation. Close-time automation lives under
 `lib/checkout/pallet-close/` + cron `/api/cron/pallet-close`.
 
-**Do not** apply migration `281_pallet_close_flow.sql` or enable
-`PALLET_CLOSE_FLOW_ENABLED` / `CHECKOUT_DUAL_OFFER_COMPARE` in production
-until the owner decides. Cron is inert while the gate is off.
+**Gate (defense in depth):** both `PALLET_CLOSE_FLOW_ENABLED=true` **and**
+`CHECKOUT_DUAL_OFFER_COMPARE=true`. Cron no-ops otherwise.
+
+**Do not** apply migration `281` (or 279/280) to prod from an agent — TEST
+Supabase first, prod only after owner yes. Cron is inert while the gate is off.
+
+**Lifecycle ownership:** when the gate is on (or a row already has
+`pallet_close_state`), reservation-expiry cron skips that row
+(`pallet_close_flow_owns`) so there is no double-handling.
 
 ---
 
@@ -153,14 +159,13 @@ at close, new crons, new migrations applied to prod.
 
 ---
 
-## Open questions for implementation PR
+## Owner decisions (locked)
 
-1. Persist `charge_deadline_at` on reservation at confirm time for stable
-   audit, or always recompute from pallet until first extension?
-2. Detach Stripe PaymentMethod vs Customer — detach only the SetupIntent
-   PM used for this reservation, or all PMs?
-3. Choice / cancel links: magic-link auth vs signed token without login?
-4. Interaction with existing `reservation-expiry` extension asks when both
-   windows could overlap.
-5. Direct switch at close: reuse dual-offer quote API or a dedicated
-   close-time quote endpoint?
+1. Migrations 279/280/281 → isolated TEST Supabase first; prod only after
+   owner yes. Agents never apply.
+2. `PALLET_CLOSE_FLOW_ENABLED` required in addition to dual-offer compare.
+3. Detach only the PM saved on this reservation (never other customer PMs).
+4. Close-flow-owned reservations excluded from reservation-expiry cron.
+5. Switch-to-direct keeps `/checkout?pallet_close_switch=…` redirect; new
+   quote + explicit acceptance; unreachable when
+   `DIRECT_BOX_CHECKOUT_ENABLED` is false.

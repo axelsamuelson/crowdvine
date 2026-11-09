@@ -171,6 +171,7 @@ function CheckoutContent({
     messageKey: null,
   },
   dualOfferCompareSurfaceAllowed = false,
+  palletCloseSwitchDirect = null,
 }: {
   platformOpen: boolean;
   /** Server-gated; default false — shared_pallet behaviour unchanged. */
@@ -182,6 +183,16 @@ function CheckoutContent({
    * unchanged. Never enables DIRECT_BOX or live dual payment.
    */
   dualOfferCompareSurfaceAllowed?: boolean;
+  /**
+   * Pallet-close switch-to-direct entry (server-resolved). Requires DIRECT flag;
+   * forces a new quote + explicit acceptance.
+   */
+  palletCloseSwitchDirect?: {
+    reservationId: string;
+    requireNewQuote: true;
+    requireExplicitAcceptance: true;
+    preferredFulfillment: "direct_box";
+  } | null;
 }) {
   const { t, context: shopping } = useShoppingContext();
   const paths = localizedPathsForLocale(shopping.locale);
@@ -314,7 +325,11 @@ function CheckoutContent({
   );
   /** Channel UI state — only selectable when directBoxCheckoutEnabled. */
   const [fulfillmentChannel, setFulfillmentChannel] =
-    useState<FulfillmentChannel>(defaultFulfillmentChannel);
+    useState<FulfillmentChannel>(() =>
+      palletCloseSwitchDirect && directBoxCheckoutEnabled
+        ? "direct_box"
+        : defaultFulfillmentChannel(),
+    );
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [shareAllocation, setShareAllocation] = useState<ShareAllocation | null>(
     null,
@@ -4239,6 +4254,12 @@ function CheckoutContent({
                           allowSyntheticDirect: false,
                         }}
                         showDirectOffer={directBoxCheckoutEnabled}
+                        forceFreshSession={Boolean(palletCloseSwitchDirect)}
+                        preferOffer={
+                          palletCloseSwitchDirect
+                            ? "direct_box"
+                            : null
+                        }
                         openIntentIds={
                           prefetchedStripeIntent?.intentId
                             ? [prefetchedStripeIntent.intentId]

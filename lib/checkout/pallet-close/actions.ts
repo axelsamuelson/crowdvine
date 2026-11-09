@@ -100,8 +100,8 @@ export async function applyPalletCloseCancel(opts: {
 
 /**
  * Switch-to-direct is only allowed when DIRECT_BOX_CHECKOUT_ENABLED.
- * Does not auto-charge or invent a quote — returns a URL path for a new
- * explicit dual-offer / direct acceptance session.
+ * Returns a checkout redirect that forces a NEW direct quote + explicit
+ * acceptance (never reuses the shared-pallet quote).
  */
 export async function beginPalletCloseSwitchDirect(opts: {
   reservationId: string;
@@ -132,12 +132,12 @@ export async function beginPalletCloseSwitchDirect(opts: {
     reservation_id: row.id,
     pallet_id: row.pallet_id,
     event: "choice_switch_direct_started",
-    meta: {},
+    meta: { require_new_quote: true, require_explicit_acceptance: true },
   });
 
-  // Customer must still accept a new direct quote explicitly.
+  // Fresh checkout session: new quote + explicit acceptance required.
   return {
     ok: true,
-    nextPath: `/checkout?pallet_close_switch=${encodeURIComponent(row.id)}&fulfillment=direct_box`,
+    nextPath: `/checkout?pallet_close_switch=${encodeURIComponent(row.id)}&fulfillment=direct_box&require_new_quote=1`,
   };
 }

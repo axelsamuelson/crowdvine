@@ -260,6 +260,12 @@ export type DualOfferCheckoutPanelProps = {
   onStateChange?: (state: OfferCheckoutSessionState) => void;
   /** When false (DIRECT_BOX_CHECKOUT_ENABLED off), hide the direct row. */
   showDirectOffer?: boolean;
+  /**
+   * Pallet-close switch-to-direct: always mint a fresh session (no acceptance
+   * reconcile) and prefer the direct offer when shown.
+   */
+  forceFreshSession?: boolean;
+  preferOffer?: "shared_pallet" | "direct_box" | null;
   showDiagnostics?: boolean;
   className?: string;
 };
@@ -268,6 +274,8 @@ export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
   const locale = props.locale ?? "sv";
   const showDiagnostics = props.showDiagnostics === true;
   const showDirectOffer = props.showDirectOffer === true;
+  const forceFreshSession = props.forceFreshSession === true;
+  const preferOffer = props.preferOffer ?? null;
   const requestGen = useRef(0);
   const [loading, setLoading] = useState(Boolean(props.fetchArgs));
   const [error, setError] = useState(false);
@@ -281,7 +289,10 @@ export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
   const [detailsOpen, setDetailsOpen] = useState<{
     shared_pallet: boolean;
     direct_box: boolean;
-  }>({ shared_pallet: true, direct_box: false });
+  }>({
+    shared_pallet: preferOffer !== "direct_box",
+    direct_box: preferOffer === "direct_box",
+  });
 
   const publish = useCallback(
     (next: OfferCheckoutSessionState) => {
@@ -298,8 +309,23 @@ export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
   const fetchSynthetic = props.fetchArgs?.allowSyntheticDirect;
   const initialDual = props.initialDual;
 
-  const ensureSharedSelected = useCallback(
+  const ensurePreferredSelected = useCallback(
     (next: OfferCheckoutSessionState): OfferCheckoutSessionState => {
+      if (
+        preferOffer === "direct_box" &&
+        showDirectOffer &&
+        next.dual.direct_box &&
+        !next.dual.direct_box.unavailable_reason
+      ) {
+        if (next.dual.selected_offer === "direct_box" && !next.acceptance) {
+          return next;
+        }
+        return switchSelectedOffer({
+          state: next,
+          toOffer: "direct_box",
+          openIntentIds: props.openIntentIds,
+        }).state;
+      }
       if (showDirectOffer) return next;
       if (!next.dual.shared_pallet || next.dual.shared_pallet.unavailable_reason) {
         return next;
@@ -311,14 +337,14 @@ export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
         openIntentIds: props.openIntentIds,
       }).state;
     },
-    [showDirectOffer, props.openIntentIds],
+    [showDirectOffer, preferOffer, props.openIntentIds],
   );
 
   useEffect(() => {
     if (!fetchPalletId) {
       if (initialDual) {
         let next = createOfferCheckoutSessionState(initialDual);
-        next = ensureSharedSelected(next);
+        next = ensurePreferredSelected(next);
         setState(next);
         onStateChange?.(next);
         setLoading(false);
@@ -346,7 +372,8 @@ export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
         if (gen !== requestGen.current) return;
         setState((prev) => {
           let next: OfferCheckoutSessionState;
-          if (!prev) {
+          if (!prev || forceFreshSession) {
+            // New quote set + no prior acceptance (pallet-close switch path).
             next = createOfferCheckoutSessionState(j.dual);
           } else {
             next = reconcileAcceptanceAfterRecompute({
@@ -354,7 +381,7 @@ export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
               nextDual: j.dual,
             });
           }
-          next = ensureSharedSelected(next);
+          next = ensurePreferredSelected(next);
           onStateChange?.(next);
           return next;
         });
@@ -372,7 +399,8 @@ export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
     initialDual,
     reloadToken,
     onStateChange,
-    ensureSharedSelected,
+    ensurePreferredSelected,
+    forceFreshSession,
   ]);
 
   const onSelect = useCallback(

@@ -5,8 +5,9 @@ import { runPalletCloseJob } from "@/lib/checkout/pallet-close/run";
  * Hourly shared-pallet close flow (deadline / charge / choice / timeouts).
  * Secured by CRON_SECRET: Authorization: Bearer ${CRON_SECRET}
  *
- * Gated by isPalletCloseFlowEnabled() (CHECKOUT_DUAL_OFFER_COMPARE or
- * PALLET_CLOSE_FLOW_ENABLED). Defaults OFF — production stays inert.
+ * Gated by isPalletCloseFlowEnabled() — requires BOTH
+ * PALLET_CLOSE_FLOW_ENABLED and CHECKOUT_DUAL_OFFER_COMPARE (default OFF).
+ * Cron no-ops when the gate is off.
  */
 export async function GET(request: NextRequest) {
   try {

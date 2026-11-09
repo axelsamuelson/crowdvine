@@ -66,6 +66,8 @@ export async function cancelReservationAndDetachPaymentMethod(opts: {
   }
 
   let detached = Boolean(row.payment_method_detached_at);
+  // Detach ONLY the PaymentMethod saved on this reservation — never other
+  // customer PMs on the Stripe Customer.
   const pmId =
     typeof row.payment_method_id === "string" ? row.payment_method_id.trim() : "";
 
