@@ -2,15 +2,20 @@
  * Checkout pallet fill status helpers (CRO-facing dual-offer block).
  *
  * Fill count policy: INCLUDE the customer's own cart bottles that will join
- * this shared pallet (producer / default lines). Reserved bottles on the
- * pallet come from zone matching (`currentBottles`); cart qty is added so the
- * shopper sees the post-purchase fill level they are contributing to.
+ * this shared pallet. Always show the count text (no "opened" prefix).
+ * Progress bar: only when fillRatio >= PALLET_BAR_MIN_FILL (default 15%).
  */
 
 export const CHECKOUT_PALLET_FILL_INCLUDES_CUSTOMER_CART = true as const;
 
-/** Below this fraction of capacity, use the "pallet has opened" copy. */
-export const CHECKOUT_PALLET_FILL_OPENED_THRESHOLD = 0.2;
+/**
+ * Below this fraction of capacity, hide the progress bar (count text still shown).
+ * CRO: 0.15 — change in one place when A/B decides otherwise.
+ */
+export const PALLET_BAR_MIN_FILL = 0.15;
+
+/** @deprecated Use PALLET_BAR_MIN_FILL — kept for import stability. */
+export const CHECKOUT_PALLET_FILL_OPENED_THRESHOLD = PALLET_BAR_MIN_FILL;
 
 export type CheckoutPalletFillInput = {
   palletId: string | null | undefined;
@@ -33,7 +38,11 @@ export type CheckoutPalletFillDisplay = {
   capacity: number;
   /** 0–100 for the thin progress bar. */
   fillPercent: number;
-  /** True when fillRatio < OPENED_THRESHOLD. */
+  /** True when fillRatio >= PALLET_BAR_MIN_FILL. */
+  showBar: boolean;
+  /**
+   * @deprecated Always false — opened prefix removed; count text is universal.
+   */
   useOpenedCopy: boolean;
   includesCustomerCart: typeof CHECKOUT_PALLET_FILL_INCLUDES_CUSTOMER_CART;
 };
@@ -76,7 +85,8 @@ export function resolveCheckoutPalletFillDisplay(
     fillCount,
     capacity: Math.round(capacity),
     fillPercent,
-    useOpenedCopy: fillRatio < CHECKOUT_PALLET_FILL_OPENED_THRESHOLD,
+    showBar: fillRatio >= PALLET_BAR_MIN_FILL,
+    useOpenedCopy: false,
     includesCustomerCart: CHECKOUT_PALLET_FILL_INCLUDES_CUSTOMER_CART,
   };
 }

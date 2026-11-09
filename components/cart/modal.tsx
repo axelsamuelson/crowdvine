@@ -429,13 +429,22 @@ export default function CartModal() {
             <span className="max-md:hidden">{t("cart.cartLabel")}</span>
           </div>
         ) : (
-          <>
-            <span className="max-md:hidden">{t("cart.cartLabel")}</span> (
-            {cart.totalQuantity})
-          </>
+          <span className="inline-flex items-center tabular-nums leading-none">
+            <span className="max-md:hidden">
+              {t("cart.cartLabel")} ({cart.totalQuantity})
+            </span>
+            <span className="md:hidden">({cart.totalQuantity})</span>
+          </span>
         )}
       </Button>
-      ) : null}
+      ) : (
+        // Reserve badge space while cart hydrates — never flash (0).
+        <span
+          className="inline-block h-7 w-10 shrink-0 rounded-sm bg-muted/40 animate-pulse md:w-16"
+          aria-hidden
+          data-testid="cart-badge-skeleton"
+        />
+      )}
       <AnimatePresence>
         {isOpen && (
           <>

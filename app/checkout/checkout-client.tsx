@@ -132,6 +132,7 @@ import {
   listUsStateCodesSorted,
 } from "@/lib/countries";
 import { isUsConditionalReservationsEnabledClient } from "@/lib/market/feature-flags";
+import { locationLabelFromZone } from "@/lib/market/location-label";
 import { useShoppingContext } from "@/lib/context/shopping-context-provider";
 import { localizedPathsForLocale } from "@/lib/i18n/localized-paths";
 import { useDisplayMoney } from "@/lib/hooks/use-display-money";
@@ -3598,28 +3599,39 @@ function CheckoutContent({
   // Keep skeleton until the first cart fetch finishes — never flash empty-cart
   // while cart is still null / hydrating.
   if (loading || !cartFetchDone || cart == null) {
+    // Mirror real 1280 checkout: left column (no boxes) + right order summary.
     return (
       <div
-        className="max-w-4xl mx-auto p-6 pt-top-spacing"
+        className="mx-auto max-w-6xl px-4 pb-16 pt-top-spacing lg:px-6"
         data-testid="checkout-cart-loading"
         aria-busy="true"
         aria-label={t("checkout.loadingCart")}
       >
         <div className="animate-pulse space-y-6">
-          <div className="h-8 bg-gray-200 rounded w-48 mb-4" />
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-3 rounded-xl border border-border p-4">
-              <div className="h-4 bg-gray-200 rounded w-1/3" />
-              <div className="h-16 bg-gray-200 rounded" />
-              <div className="h-16 bg-gray-200 rounded" />
-              <div className="h-10 bg-gray-200 rounded" />
+          <div className="h-9 w-28 rounded bg-gray-200" />
+          <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,24rem)] lg:items-start">
+            <div className="space-y-6">
+              <div className="space-y-3 border-b border-border pb-6">
+                <div className="h-5 w-40 rounded bg-gray-200" />
+                <div className="h-3 w-48 rounded bg-gray-200" />
+                <div className="h-10 w-full max-w-sm rounded bg-gray-200" />
+              </div>
+              <div className="space-y-3 border-b border-border pb-6">
+                <div className="h-5 w-36 rounded bg-gray-200" />
+                <div className="h-20 w-full rounded bg-gray-200" />
+              </div>
+              <div className="space-y-3">
+                <div className="h-5 w-32 rounded bg-gray-200" />
+                <div className="h-24 w-full rounded bg-gray-200" />
+              </div>
             </div>
-            <div className="space-y-3 rounded-xl border border-border p-4">
-              <div className="h-4 bg-gray-200 rounded w-1/2" />
-              <div className="h-14 bg-gray-200 rounded" />
-              <div className="h-14 bg-gray-200 rounded" />
-              <div className="h-8 bg-gray-200 rounded w-2/3" />
-            </div>
+            <aside className="space-y-4 rounded-xl border border-border bg-background p-4">
+              <div className="h-5 w-28 rounded bg-gray-200" />
+              <div className="h-16 w-full rounded bg-gray-200" />
+              <div className="h-16 w-full rounded bg-gray-200" />
+              <div className="h-8 w-2/3 rounded bg-gray-200" />
+              <div className="h-11 w-full rounded bg-gray-200" />
+            </aside>
           </div>
         </div>
       </div>
@@ -3919,7 +3931,12 @@ function CheckoutContent({
                         type="button"
                         variant="outline"
                         size="sm"
-                        className="shrink-0"
+                        className={cn(
+                          "shrink-0",
+                          discountCodeInput.trim() &&
+                            !discountApplying &&
+                            "border-foreground/40 text-foreground",
+                        )}
                         disabled={discountApplying || !discountCodeInput.trim()}
                         onClick={() => void applyDiscountCode()}
                       >
@@ -3964,7 +3981,12 @@ function CheckoutContent({
                     <p className="text-xs text-muted-foreground">
                       {t("checkout.shoppingIn")}{" "}
                       <span className="font-medium text-foreground/80">
-                        {activeShop.displayName}
+                        {locationLabelFromZone(
+                          activeShop.displayName || "",
+                          activeShop.countryCode || "",
+                          shopping.locale === "en" ? "en" : "sv",
+                          activeShop.displayName || "",
+                        )}
                       </span>
                       <span> · </span>
                       <span>{activeShop.currencyCode}</span>

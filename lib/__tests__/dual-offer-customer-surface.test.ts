@@ -66,7 +66,7 @@ describe("dual-offer customer surface guards", () => {
     expect(panelSrc).toMatch(/dualOfferBottleAvg|offerBottleAverageLabelKey/);
     expect(panelSrc).toMatch(/DualOfferPurchaseActions/);
     expect(panelSrc).toMatch(/dual-offer-shared-only-block|dualOfferSharedOnlyTitle/);
-    expect(panelSrc).toMatch(/formatSharedPalletCloseDeliveryCopy/);
+    expect(panelSrc).toMatch(/formatCheckoutPalletDeliveryLines/);
     expect(panelSrc).not.toMatch(/Budbee/);
     expect(panelSrc).toMatch(/CheckoutPalletFillStatus/);
     expect(panelSrc).toMatch(/dualOfferLegalLineSharedWithSwitch/);

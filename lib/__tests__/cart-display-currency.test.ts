@@ -40,7 +40,7 @@ describe("cart discount label", () => {
         earlyBirdPercent: 20,
         locale: "sv",
       }),
-    ).toBe("Privilege 15% · Early bird −20 %");
+    ).toBe("Privilege 15% · Tidig bokning −20 %");
   });
 
   it("uses compact early-bird copy in EN", () => {
@@ -65,7 +65,7 @@ describe("cart discount label", () => {
     expect(label).not.toBe("Early-bird · 20% off");
     expect(label).not.toBe("Early-bird 20%");
     expect(label).toContain("Privilege 15%");
-    expect(label).toContain("Early bird −20 %");
+    expect(label).toContain("Tidig bokning −20 %");
   });
 
   it("shows only the discount that applies", () => {
@@ -84,7 +84,7 @@ describe("cart discount label", () => {
         earlyBirdPercent: 20,
         locale: "sv",
       }),
-    ).toBe("Early bird −20 %");
+    ).toBe("Tidig bokning −20 %");
   });
 
   it("still shows the member percent when the level name is missing", () => {

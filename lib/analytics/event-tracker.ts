@@ -254,6 +254,8 @@ export class AnalyticsTracker {
     };
 
     if (keepalive) {
+      // Once schema lag is known, skip unload posts entirely (stop 400 spam).
+      if (schemaLag) return;
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
       const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
       if (!supabaseUrl || !anonKey) return;
@@ -271,7 +273,19 @@ export class AnalyticsTracker {
           },
           body: JSON.stringify(keepaliveCore),
           keepalive: true,
-        });
+        })
+          .then((res) => {
+            if (!res.ok && res.status >= 400 && res.status < 500) {
+              try {
+                window.sessionStorage?.setItem("pact_ue_schema_lag", "1");
+              } catch {
+                // ignore
+              }
+            }
+          })
+          .catch(() => {
+            // unload — ignore
+          });
       } catch {
         // unload — ignore
       }
@@ -422,6 +436,8 @@ export class AnalyticsTracker {
     fill_count?: number;
     capacity?: number;
     pallet_id?: string;
+    /** Whether the thin fill bar is shown (CRO threshold). */
+    show_bar?: boolean;
   }) {
     return this.trackEvent({
       eventType: "pallet_status_viewed",
@@ -441,6 +457,7 @@ export class AnalyticsTracker {
         ...(extras?.fill_count != null ? { fill_count: extras.fill_count } : {}),
         ...(extras?.capacity != null ? { capacity: extras.capacity } : {}),
         ...(extras?.pallet_id ? { pallet_id: extras.pallet_id } : {}),
+        ...(extras?.show_bar != null ? { show_bar: extras.show_bar } : {}),
       },
     });
   }

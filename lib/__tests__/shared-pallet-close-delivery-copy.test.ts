@@ -1,9 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
+  CHECKOUT_PALLET_CLOSE_LINE_EN,
+  CHECKOUT_PALLET_CLOSE_LINE_SV,
+  CHECKOUT_PALLET_DELIVERY_LINE_EN,
+  CHECKOUT_PALLET_DELIVERY_LINE_SV,
   DIRECT_BOX_DELIVERY_COPY_EN,
   DIRECT_BOX_DELIVERY_COPY_SV,
   SHARED_PALLET_CLOSE_DELIVERY_COPY_EN,
   SHARED_PALLET_CLOSE_DELIVERY_COPY_SV,
+  formatCheckoutPalletDeliveryLines,
   formatSharedPalletCloseDeliveryCopy,
 } from "@/lib/checkout/shared-pallet-close-delivery-copy";
 import {
@@ -74,5 +79,26 @@ describe("shared pallet close/delivery copy (owner — no Budbee)", () => {
     expect(
       dualOfferMsg("sv", "dualOfferLegalLineDirect", { total: "1" }),
     ).not.toMatch(/Budbee|arbetsdagar|5–10/i);
+  });
+
+  it("checkout uses two short lines without debit or delivery-day sentence", () => {
+    const sv = formatCheckoutPalletDeliveryLines("sv", "7 dec");
+    expect(sv.closeLine).toBe(
+      "Pallen stänger när den är full, senast 7 dec.",
+    );
+    expect(sv.deliveryLine).toBe(CHECKOUT_PALLET_DELIVERY_LINE_SV);
+    expect(sv.closeLine + sv.deliveryLine).not.toMatch(/debiter|kort/i);
+    expect(sv.deliveryLine).not.toMatch(/leveransfönster|leveransdagen/i);
+
+    const en = formatCheckoutPalletDeliveryLines("en", "7 Dec");
+    expect(en.closeLine).toBe(
+      "The pallet closes when full, by 7 Dec at the latest.",
+    );
+    expect(en.deliveryLine).toBe(CHECKOUT_PALLET_DELIVERY_LINE_EN);
+    expect(en.closeLine + en.deliveryLine).not.toMatch(/charge|card/i);
+    expect(en.deliveryLine).not.toMatch(/delivery window|delivery day/i);
+
+    expect(CHECKOUT_PALLET_CLOSE_LINE_SV).toContain("{datum}");
+    expect(CHECKOUT_PALLET_CLOSE_LINE_EN).toContain("{datum}");
   });
 });

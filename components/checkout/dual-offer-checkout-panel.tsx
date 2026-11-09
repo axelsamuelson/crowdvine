@@ -43,7 +43,7 @@ import {
 import { formatSharedPalletChargeDeadline } from "@/lib/checkout/shared-pallet-deadline";
 import {
   directBoxDeliveryCopy,
-  formatSharedPalletCloseDeliveryCopy,
+  formatCheckoutPalletDeliveryLines,
 } from "@/lib/checkout/shared-pallet-close-delivery-copy";
 import { CheckoutPalletFillStatus } from "@/components/checkout/checkout-pallet-fill-status";
 import type { CheckoutPalletFillInput } from "@/lib/checkout/pallet-fill-display";
@@ -68,16 +68,19 @@ function debitLabel(quote: OfferQuote, locale: Locale): string {
     : quote.debit_timing.previewLabelEn;
 }
 
-function sharedCloseDeliveryLine(
+function sharedCheckoutDeliveryLines(
   quote: OfferQuote,
   locale: Locale,
   deadlineLabel: string | null,
-): string {
+): { closeLine: string; deliveryLine: string } | null {
   if (quote.offer !== "shared_pallet") {
-    return deliveryLabel(quote, locale);
+    return {
+      closeLine: deliveryLabel(quote, locale),
+      deliveryLine: "",
+    };
   }
-  // Single SV/EN constants — lib/checkout/shared-pallet-close-delivery-copy.ts
-  return formatSharedPalletCloseDeliveryCopy(locale, deadlineLabel);
+  // Checkout: two short lines (full owner constant stays on confirmation/email).
+  return formatCheckoutPalletDeliveryLines(locale, deadlineLabel);
 }
 
 function OfferRowSkeleton() {
@@ -281,6 +284,8 @@ function OfferRow(props: {
 export type DualOfferPurchaseActionsModel = {
   locale: Locale;
   finalCtaLabel: string;
+  /** Totalt X inkl. moms och frakt — above the binding line. */
+  totalInclLine: string | null;
   legalLine: string | null;
   disabled: boolean;
   confirmNote: string | null;
@@ -300,6 +305,14 @@ export function DualOfferPurchaseActions(props: {
       className={`space-y-3 font-sans ${className ?? ""}`}
       data-testid="dual-offer-purchase-actions"
     >
+      {model.totalInclLine ? (
+        <p
+          className="text-sm font-medium text-foreground"
+          data-testid="dual-offer-total-incl"
+        >
+          {model.totalInclLine}
+        </p>
+      ) : null}
       {model.legalLine ? (
         <p
           className="text-sm text-foreground"
@@ -628,11 +641,16 @@ export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
           );
         })();
 
+  const totalInclLine = selectedQuote
+    ? dualOfferMsg(locale, "dualOfferTotalIncl", { total: totalLabel })
+    : null;
+
   const purchaseModel = useMemo<DualOfferPurchaseActionsModel | null>(() => {
     if (loading) {
       return {
         locale,
         finalCtaLabel: dualOfferMsg(locale, "dualOfferFinalCta"),
+        totalInclLine: null,
         legalLine: null,
         disabled: true,
         confirmNote: null,
@@ -643,6 +661,7 @@ export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
     return {
       locale,
       finalCtaLabel,
+      totalInclLine,
       legalLine,
       disabled: finalDisabled,
       confirmNote,
@@ -654,6 +673,7 @@ export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
     state,
     locale,
     finalCtaLabel,
+    totalInclLine,
     legalLine,
     finalDisabled,
     confirmNote,
@@ -823,24 +843,28 @@ export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
               ) : null}
 
               {sharedQuote && !sharedQuote.unavailable_reason ? (
-                <>
-                  <p
-                    className="text-sm text-foreground/85"
-                    data-testid="dual-offer-delivery-shared_pallet"
-                  >
-                    {sharedCloseDeliveryLine(
-                      sharedQuote,
-                      locale,
-                      sharedDeadline,
-                    )}
-                  </p>
-                  <p
-                    className="text-sm text-foreground/85"
-                    data-testid="dual-offer-debit-shared_pallet"
-                  >
-                    {debitLabel(sharedQuote, locale)}
-                  </p>
-                </>
+                (() => {
+                  const lines = sharedCheckoutDeliveryLines(
+                    sharedQuote,
+                    locale,
+                    sharedDeadline,
+                  );
+                  return (
+                    <div
+                      className="space-y-1"
+                      data-testid="dual-offer-delivery-shared_pallet"
+                    >
+                      <p className="text-sm text-foreground/85">
+                        {lines?.closeLine}
+                      </p>
+                      {lines?.deliveryLine ? (
+                        <p className="text-sm text-foreground/85">
+                          {lines.deliveryLine}
+                        </p>
+                      ) : null}
+                    </div>
+                  );
+                })()
               ) : sharedQuote?.unavailable_reason ? (
                 <p className="text-sm text-muted-foreground">
                   {sharedQuote.unavailable_reason}

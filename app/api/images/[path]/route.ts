@@ -1,5 +1,25 @@
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+
+/** Serve static default wine as 200 bytes — never redirect (breaks /_next/image). */
+async function defaultWineResponse(): Promise<NextResponse> {
+  try {
+    const filePath = path.join(process.cwd(), "public", "default-wine.png");
+    const buf = await readFile(filePath);
+    return new NextResponse(buf, {
+      status: 200,
+      headers: {
+        "Content-Type": "image/png",
+        "Cache-Control": "public, max-age=86400",
+        "Access-Control-Allow-Origin": "*",
+      },
+    });
+  } catch {
+    return new NextResponse(null, { status: 204 });
+  }
+}
 
 export async function GET(
   request: NextRequest,
@@ -7,49 +27,35 @@ export async function GET(
 ) {
   try {
     const resolvedParams = await params;
-    const { path } = resolvedParams;
+    const { path: rawPath } = resolvedParams;
 
-    if (!path) {
-      // Prefer static default over opaque 400 for missing/empty image keys.
-      return NextResponse.redirect(new URL("/default-wine.png", request.url));
+    if (!rawPath) {
+      return defaultWineResponse();
     }
 
-    // Clean up any newline characters or whitespace
-    const cleanPath = path.trim().replace(/\n/g, "");
+    const cleanPath = rawPath.trim().replace(/\n/g, "");
 
     if (!cleanPath || /^default-wine\.png$/i.test(cleanPath)) {
-      return NextResponse.redirect(new URL("/default-wine.png", request.url));
+      return defaultWineResponse();
     }
 
-    // If it's already a full URL, redirect to it
     if (cleanPath.startsWith("http")) {
       return NextResponse.redirect(cleanPath);
     }
 
     const supabase = getSupabaseAdmin();
-
-    // Get the file from Supabase Storage
     const { data, error } = await supabase.storage
       .from("uploads")
       .download(cleanPath);
 
-    if (error) {
-      console.error("Error downloading file:", error);
-      // Prefer static default over JSON 404 so cart/checkout img tags don't 400/404.
-      return NextResponse.redirect(new URL("/default-wine.png", request.url));
+    if (error || !data) {
+      if (error) console.error("Error downloading file:", error);
+      return defaultWineResponse();
     }
 
-    if (!data) {
-      return NextResponse.redirect(new URL("/default-wine.png", request.url));
-    }
-
-    // Convert blob to buffer
     const buffer = await data.arrayBuffer();
-
-    // Determine content type based on file extension
     const extension = cleanPath.split(".").pop()?.toLowerCase();
-    let contentType = "image/jpeg"; // default
-
+    let contentType = "image/jpeg";
     switch (extension) {
       case "png":
         contentType = "image/png";
@@ -65,25 +71,24 @@ export async function GET(
         break;
     }
 
-    // Return the image with proper headers
-    // För logo-bilder, använd no-cache för att säkerställa att nya loggor visas direkt
-    const isLogo = cleanPath.toLowerCase().includes('logo');
-    const cacheControl = isLogo 
+    const isLogo = cleanPath.toLowerCase().includes("logo");
+    const cacheControl = isLogo
       ? "no-cache, no-store, must-revalidate"
       : "public, max-age=31536000, immutable";
-    
+
     return new NextResponse(buffer, {
       status: 200,
       headers: {
         "Content-Type": contentType,
         "Cache-Control": cacheControl,
-        "Pragma": isLogo ? "no-cache" : undefined,
-        "Expires": isLogo ? "0" : undefined,
+        ...(isLogo
+          ? { Pragma: "no-cache", Expires: "0" }
+          : {}),
         "Access-Control-Allow-Origin": "*",
       },
     });
   } catch (error) {
     console.error("Image proxy error:", error);
-    return NextResponse.redirect(new URL("/default-wine.png", request.url));
+    return defaultWineResponse();
   }
 }

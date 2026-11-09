@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   CHECKOUT_PALLET_FILL_INCLUDES_CUSTOMER_CART,
   CHECKOUT_PALLET_FILL_OPENED_THRESHOLD,
+  PALLET_BAR_MIN_FILL,
   resolveCheckoutPalletFillDisplay,
 } from "@/lib/checkout/pallet-fill-display";
 import { dualOfferMsg } from "@/lib/checkout/dual-offer-customer-copy";
@@ -21,21 +22,72 @@ describe("resolveCheckoutPalletFillDisplay", () => {
     expect(d!.capacity).toBe(600);
     expect(d!.includesCustomerCart).toBe(true);
     expect(d!.useOpenedCopy).toBe(false);
+    expect(d!.showBar).toBe(true);
   });
 
-  it("uses opened copy below 20% fill and never hides for low fill", () => {
-    expect(CHECKOUT_PALLET_FILL_OPENED_THRESHOLD).toBe(0.2);
+  it("aliases CHECKOUT_PALLET_FILL_OPENED_THRESHOLD to PALLET_BAR_MIN_FILL", () => {
+    expect(PALLET_BAR_MIN_FILL).toBe(0.15);
+    expect(CHECKOUT_PALLET_FILL_OPENED_THRESHOLD).toBe(PALLET_BAR_MIN_FILL);
+  });
+
+  it("hides the bar below 15% fill but still returns count text fields", () => {
+    // 16 / 300 ≈ 5.3% < 0.15
     const d = resolveCheckoutPalletFillDisplay({
       palletId: "p1",
-      reservedBottles: 30,
-      capacity: 600,
-      cartBottles: 8,
+      reservedBottles: 10,
+      capacity: 300,
+      cartBottles: 6,
       fillAvailable: true,
     });
     expect(d).not.toBeNull();
-    expect(d!.fillCount).toBe(38);
-    expect(d!.useOpenedCopy).toBe(true);
-    expect(d!.fillPercent).toBeLessThan(20);
+    expect(d!.fillCount).toBe(16);
+    expect(d!.capacity).toBe(300);
+    expect(d!.fillPercent).toBeLessThan(15);
+    expect(d!.showBar).toBe(false);
+    expect(d!.useOpenedCopy).toBe(false);
+  });
+
+  it("shows the bar at exactly 15% fill", () => {
+    // 45 / 300 = 0.15
+    const d = resolveCheckoutPalletFillDisplay({
+      palletId: "p1",
+      reservedBottles: 40,
+      capacity: 300,
+      cartBottles: 5,
+      fillAvailable: true,
+    });
+    expect(d).not.toBeNull();
+    expect(d!.fillCount).toBe(45);
+    expect(d!.fillPercent).toBe(15);
+    expect(d!.showBar).toBe(true);
+  });
+
+  it("shows the bar above 15% fill", () => {
+    // 46 / 300 ≈ 15.3% > 0.15
+    const d = resolveCheckoutPalletFillDisplay({
+      palletId: "p1",
+      reservedBottles: 40,
+      capacity: 300,
+      cartBottles: 6,
+      fillAvailable: true,
+    });
+    expect(d).not.toBeNull();
+    expect(d!.fillCount).toBe(46);
+    expect(d!.showBar).toBe(true);
+  });
+
+  it("just below threshold stays bar-hidden", () => {
+    // 44 / 300 ≈ 14.67% < 0.15
+    const d = resolveCheckoutPalletFillDisplay({
+      palletId: "p1",
+      reservedBottles: 40,
+      capacity: 300,
+      cartBottles: 4,
+      fillAvailable: true,
+    });
+    expect(d).not.toBeNull();
+    expect(d!.fillCount).toBe(44);
+    expect(d!.showBar).toBe(false);
   });
 
   it("hides entirely when fill is missing or unavailable", () => {
@@ -76,43 +128,43 @@ describe("resolveCheckoutPalletFillDisplay", () => {
 });
 
 describe("checkout pallet fill + legal copy", () => {
-  it("SV/EN fill labels match CRO wording", () => {
+  it("SV/EN fill labels are count-only (no opened prefix)", () => {
     expect(
       dualOfferMsg("sv", "dualOfferPalletFillStatus", {
-        filled: "412",
-        total: "600",
+        filled: "16",
+        total: "300",
       }),
-    ).toBe("Pallen: 412 av 600 flaskor beställda");
+    ).toBe("16 av 300 flaskor beställda");
     expect(
       dualOfferMsg("en", "dualOfferPalletFillStatus", {
-        filled: "412",
-        total: "600",
+        filled: "16",
+        total: "300",
       }),
-    ).toBe("Pallet: 412 of 600 bottles ordered");
+    ).toBe("16 of 300 bottles ordered");
+    // Opened key kept as alias of the same count-only string.
     expect(
       dualOfferMsg("sv", "dualOfferPalletFillOpened", {
-        filled: "38",
-        total: "600",
+        filled: "16",
+        total: "300",
       }),
-    ).toBe("Pallen har öppnat: 38 av 600 flaskor beställda");
+    ).toBe("16 av 300 flaskor beställda");
     expect(
       dualOfferMsg("en", "dualOfferPalletFillOpened", {
-        filled: "38",
-        total: "600",
+        filled: "16",
+        total: "300",
       }),
-    ).toBe("The pallet has opened: 38 of 600 bottles ordered");
+    ).toBe("16 of 300 bottles ordered");
   });
 
-  it("legal line merges wait/cancel once and gains switch when direct on", () => {
+  it("legal line charges once and gains switch when direct on", () => {
     const sv = dualOfferMsg("sv", "dualOfferLegalLineShared", {
       total: "1 283 kr",
       datum: "7 dec",
     });
-    expect(sv).toMatch(/vänta eller avboka utan kostnad/);
+    expect(sv).toBe(
+      "Köpet är bindande. Vi sparar ditt kort och debiterar 1 283 kr först när pallen stänger, senast 7 dec. Fylls inte pallen väljer du själv om du vill vänta eller avboka utan kostnad.",
+    );
     expect(sv).not.toMatch(/eller byta/);
-    // Charge timing once
-    expect(sv.match(/debiteras först när pallen stänger/g)?.length).toBe(1);
-    expect(sv).not.toMatch(/debiterar .* när pallen stänger.*debiteras först/);
 
     const svSwitch = dualOfferMsg("sv", "dualOfferLegalLineSharedWithSwitch", {
       total: "1 283 kr",
@@ -124,9 +176,10 @@ describe("checkout pallet fill + legal copy", () => {
       total: "1 283 SEK",
       datum: "7 Dec",
     });
-    expect(en).toMatch(/wait or cancel free of charge/);
+    expect(en).toBe(
+      "The purchase is binding. We save your card and charge 1 283 SEK only when the pallet closes, by 7 Dec at the latest. If the pallet doesn't fill, you choose whether to wait or cancel free of charge.",
+    );
     expect(en).not.toMatch(/or switch/);
-    expect(en.match(/only charged when the pallet closes/g)?.length).toBe(1);
 
     const enSwitch = dualOfferMsg("en", "dualOfferLegalLineSharedWithSwitch", {
       total: "1 283 SEK",
