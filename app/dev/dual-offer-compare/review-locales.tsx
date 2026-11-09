@@ -15,8 +15,16 @@ export function DualOfferReviewLocales(props: { dual: DualOfferQuoteSet }) {
   }, [search]);
   const [locale, setLocale] = useState<"sv" | "en">(initial);
   return (
-    <div className="space-y-4">
-      <div className="flex gap-2" role="group" aria-label="Locale">
+    <div
+      className="space-y-4 scroll-mt-top-spacing"
+      data-testid="dual-offer-review-root"
+    >
+      <div
+        className="flex gap-2 scroll-mt-top-spacing"
+        role="group"
+        aria-label="Locale"
+        data-testid="dual-offer-locale-row"
+      >
         <button
           type="button"
           data-testid="dual-offer-locale-sv"
@@ -42,6 +50,7 @@ export function DualOfferReviewLocales(props: { dual: DualOfferQuoteSet }) {
         key={locale}
         initialDual={props.dual}
         locale={locale}
+        className="scroll-mt-top-spacing"
       />
     </div>
   );

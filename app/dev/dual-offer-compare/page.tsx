@@ -73,13 +73,17 @@ export default function DualOfferCompareDevPage() {
   });
 
   return (
-    <main className="min-h-screen bg-background text-foreground">
+    // Review-only clearance below sticky site chrome. Does not change global header.
+    <main
+      className="min-h-screen bg-background text-foreground pt-top-spacing"
+      data-testid="dual-offer-dev-main"
+    >
       <div className="mx-auto max-w-3xl px-4 py-6 space-y-4 font-sans">
         <Suspense fallback={<p className="text-sm text-muted-foreground">…</p>}>
           <DualOfferReviewLocales dual={dual} />
         </Suspense>
         <aside
-          className="rounded-lg border border-dashed border-muted-foreground/40 bg-muted/20 px-3 py-2 font-mono text-[11px] text-muted-foreground"
+          className="scroll-mt-top-spacing rounded-lg border border-dashed border-muted-foreground/40 bg-muted/20 px-3 py-2 font-mono text-[11px] text-muted-foreground"
           data-testid="dual-offer-page-diagnostics"
         >
           Fixture cart: 8 bottles (mixed 145+160 SEK) · destination SE ·
