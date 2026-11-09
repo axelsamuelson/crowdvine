@@ -146,15 +146,9 @@ function OfferRow(props: {
           }`}
         >
           <p data-testid={`dual-offer-delivery-${quote.offer}`}>
-            <span className="text-muted-foreground">
-              {dualOfferMsg(locale, "dualOfferDelivery")}:{" "}
-            </span>
             {deliveryLabel(quote, locale)}
           </p>
           <p data-testid={`dual-offer-debit-${quote.offer}`}>
-            <span className="text-muted-foreground">
-              {dualOfferMsg(locale, "dualOfferDebit")}:{" "}
-            </span>
             {debitLabel(quote, locale)}
           </p>
         </div>
@@ -579,34 +573,23 @@ export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
 
             {selectedQuote ? (
               <div
-                className="space-y-1.5 rounded-lg border border-border bg-muted/20 px-3 py-3 text-sm"
+                className="space-y-1 text-sm"
                 data-testid="dual-offer-pre-cta-summary"
               >
-                <p>
-                  <span className="text-muted-foreground">
-                    {dualOfferMsg(locale, "dualOfferSummaryOffer")}:{" "}
-                  </span>
-                  <span className="font-medium">{selectedTitle}</span>
-                </p>
-                <p>
-                  <span className="text-muted-foreground">
-                    {dualOfferMsg(locale, "dualOfferTotal")}{" "}
-                    {dualOfferMsg(locale, "dualOfferInclVat")}:{" "}
-                  </span>
-                  <span className="font-semibold tabular-nums">
-                    {formatOfferSek(selectedQuote.total_sek, locale)}
+                <p className="font-medium text-foreground">{selectedTitle}</p>
+                <p className="tabular-nums font-semibold text-foreground">
+                  {formatOfferSek(selectedQuote.total_sek, locale)}{" "}
+                  <span className="font-normal text-muted-foreground">
+                    {dualOfferMsg(locale, "dualOfferInclVat")}
                   </span>
                 </p>
-                <p data-testid="dual-offer-delivery-summary">
-                  <span className="text-muted-foreground">
-                    {dualOfferMsg(locale, "dualOfferDelivery")}:{" "}
-                  </span>
+                <p
+                  className="text-foreground/85"
+                  data-testid="dual-offer-delivery-summary"
+                >
                   {deliveryLabel(selectedQuote, locale)}
                 </p>
-                <p>
-                  <span className="text-muted-foreground">
-                    {dualOfferMsg(locale, "dualOfferDebit")}:{" "}
-                  </span>
+                <p className="text-foreground/85">
                   {debitLabel(selectedQuote, locale)}
                   {selectedQuote.offer === "shared_pallet" && deadlineLabel
                     ? ` · ${dualOfferMsg(locale, "dualOfferDeadlinePrefix", {

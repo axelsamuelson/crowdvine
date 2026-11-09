@@ -82,9 +82,11 @@ describe("dual-offer bottle label honesty", () => {
     expect(quote.bottle_unit_price_sek).toBe(145);
   });
 
-  it("formats SEK with Swedish locale conventions", () => {
-    const s = formatOfferSek(1289, "sv");
-    expect(s).toMatch(/1[\s\u00a0]?289/);
+  it("formats SEK as whole kronor (no ,00)", () => {
+    const s = formatOfferSek(1283, "sv");
+    expect(s).toMatch(/1[\s\u00a0]?283/);
     expect(s).toMatch(/kr|SEK/i);
+    expect(s).not.toMatch(/,00|\.00/);
+    expect(formatOfferSek(1283.4, "en")).not.toMatch(/\.00|,00/);
   });
 });

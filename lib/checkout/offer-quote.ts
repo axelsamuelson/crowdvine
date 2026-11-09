@@ -43,6 +43,8 @@ export type OfferDeliveryTerms = {
 export type OfferDebitTiming = {
   code:
     | "no_immediate_debit"
+    | "immediate_on_confirm"
+    /** @deprecated Alias kept for old snapshots until dual-offer goes live. */
     | "immediate_on_confirm_proposed"
     | "unknown";
   previewLabelSv: string;
@@ -176,7 +178,7 @@ export function sharedPalletDebitTiming(): OfferDebitTiming {
 
 export function directBoxDebitTiming(): OfferDebitTiming {
   return {
-    code: "immediate_on_confirm_proposed",
+    code: "immediate_on_confirm",
     previewLabelSv: "Kortet debiteras nu",
     previewLabelEn: "Card is charged now",
   };

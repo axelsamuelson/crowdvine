@@ -10,11 +10,16 @@ export async function GET(
     const { path } = resolvedParams;
 
     if (!path) {
-      return NextResponse.json({ error: "Path is required" }, { status: 400 });
+      // Prefer static default over opaque 400 for missing/empty image keys.
+      return NextResponse.redirect(new URL("/default-wine.png", request.url));
     }
 
     // Clean up any newline characters or whitespace
     const cleanPath = path.trim().replace(/\n/g, "");
+
+    if (!cleanPath || /^default-wine\.png$/i.test(cleanPath)) {
+      return NextResponse.redirect(new URL("/default-wine.png", request.url));
+    }
 
     // If it's already a full URL, redirect to it
     if (cleanPath.startsWith("http")) {

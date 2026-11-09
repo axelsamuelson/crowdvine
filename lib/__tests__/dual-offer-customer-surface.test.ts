@@ -76,6 +76,9 @@ describe("dual-offer customer surface guards", () => {
     expect(checkoutSrc).toMatch(/showDirectOffer=\{directBoxCheckoutEnabled\}/);
     expect(panelSrc).toMatch(/dualOfferFinalCtaShared|dual-offer-legal-line/);
     expect(panelSrc).toMatch(/showDirectOffer/);
+    expect(panelSrc).not.toMatch(/proposed capability|proposed model|Immediate payment on confirm \(proposed\)/i);
+    expect(panelSrc).not.toMatch(/dualOfferFinalCtaWithOffer|Confirm \{offer\}/);
+    expect(panelSrc).not.toMatch(/Selected: \{offer\}/);
   });
 
   it("order confirmation page surfaces charge deadline from reservation API", () => {

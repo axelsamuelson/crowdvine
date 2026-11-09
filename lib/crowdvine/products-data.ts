@@ -236,11 +236,21 @@ function convertToFullUrl(path: string | null | undefined): string {
   if (!path) return getAppUrl() + DEFAULT_WINE_IMAGE_PATH;
 
   const cleanPath = path.trim().replace(/\n/g, "");
+  if (
+    !cleanPath ||
+    cleanPath === DEFAULT_WINE_IMAGE_PATH ||
+    /default-wine\.png$/i.test(cleanPath)
+  ) {
+    return getAppUrl() + DEFAULT_WINE_IMAGE_PATH;
+  }
 
   if (cleanPath.startsWith("http")) return cleanPath;
   if (cleanPath.startsWith("/uploads/")) {
     const baseUrl = getAppUrl();
-    const fileName = cleanPath.replace("/uploads/", "");
+    const fileName = cleanPath.replace("/uploads/", "").trim();
+    if (!fileName || /default-wine\.png$/i.test(fileName)) {
+      return getAppUrl() + DEFAULT_WINE_IMAGE_PATH;
+    }
     return `${baseUrl}/api/images/${fileName}`;
   }
   const baseUrl = getAppUrl();

@@ -185,6 +185,8 @@ function CheckoutContent({
   const countryDisplayLocale = shopping.locale === "sv" ? "sv" : "en";
   const uiLocalizationEnabled = shopping.uiLocalizationEnabled;
   const [cart, setCart] = useState<Cart | null>(null);
+  /** True after the first /api/crowdvine/cart attempt finishes (ok or error). */
+  const [cartFetchDone, setCartFetchDone] = useState(false);
   const formatChargedAmount = useCallback(
     (amount: number, currencyCode?: string | null) =>
       formatCartLinePrice(
@@ -1118,10 +1120,33 @@ function CheckoutContent({
           items: cartData.lines?.length || 0,
         });
         setCart(cartData);
+      } else {
+        // Fail soft: treat as empty so we do not spin forever.
+        setCart({
+          id: "",
+          lines: [],
+          totalQuantity: 0,
+          cost: {
+            totalAmount: { amount: "0", currencyCode: "SEK" },
+            subtotalAmount: { amount: "0", currencyCode: "SEK" },
+            totalTaxAmount: { amount: "0", currencyCode: "SEK" },
+          },
+        } as Cart);
       }
     } catch (error) {
       console.error("Failed to fetch cart:", error);
+      setCart({
+        id: "",
+        lines: [],
+        totalQuantity: 0,
+        cost: {
+          totalAmount: { amount: "0", currencyCode: "SEK" },
+          subtotalAmount: { amount: "0", currencyCode: "SEK" },
+          totalTaxAmount: { amount: "0", currencyCode: "SEK" },
+        },
+      } as Cart);
     } finally {
+      setCartFetchDone(true);
       setLoading(false);
     }
   }, []);
@@ -3308,14 +3333,25 @@ function CheckoutContent({
         className="flex items-start gap-3 border-b border-border py-3 last:border-0"
       >
         <div className="h-14 w-14 shrink-0 overflow-hidden rounded-md bg-muted">
-          {imgUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={imgUrl}
-              alt={product.featuredImage?.altText || lineTitle}
-              className="h-full w-full object-cover"
-            />
-          ) : null}
+          {/* Prefer static default-wine.png over /api/images proxy (400 when path missing). */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={
+              imgUrl &&
+              !/\/api\/images\/?$/i.test(imgUrl) &&
+              !/\/api\/images\/(?:default-wine\.png)?$/i.test(imgUrl)
+                ? imgUrl
+                : "/default-wine.png"
+            }
+            alt={product.featuredImage?.altText || lineTitle}
+            className="h-full w-full object-cover"
+            onError={(e) => {
+              const el = e.currentTarget;
+              if (el.dataset.fallback === "1") return;
+              el.dataset.fallback = "1";
+              el.src = "/default-wine.png";
+            }}
+          />
         </div>
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-medium text-foreground">{lineTitle}</p>
@@ -3468,19 +3504,38 @@ function CheckoutContent({
   // text based on zone (Bring for Stockholm, others for other zones).
 
   // IMPORTANT: keep these conditional returns AFTER all hooks above to preserve hook order
-  if (loading) {
+  // Keep skeleton until the first cart fetch finishes — never flash empty-cart
+  // while cart is still null / hydrating.
+  if (loading || !cartFetchDone || cart == null) {
     return (
-      <div className="max-w-4xl mx-auto p-6 pt-top-spacing">
+      <div
+        className="max-w-4xl mx-auto p-6 pt-top-spacing"
+        data-testid="checkout-cart-loading"
+        aria-busy="true"
+        aria-label={t("checkout.loadingCart")}
+      >
         <div className="animate-pulse space-y-6">
-          <div className="h-8 bg-gray-200 rounded mb-4"></div>
-          <div className="h-4 bg-gray-200 rounded mb-2"></div>
-          <div className="h-4 bg-gray-200 rounded"></div>
+          <div className="h-8 bg-gray-200 rounded w-48 mb-4" />
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-3 rounded-xl border border-border p-4">
+              <div className="h-4 bg-gray-200 rounded w-1/3" />
+              <div className="h-16 bg-gray-200 rounded" />
+              <div className="h-16 bg-gray-200 rounded" />
+              <div className="h-10 bg-gray-200 rounded" />
+            </div>
+            <div className="space-y-3 rounded-xl border border-border p-4">
+              <div className="h-4 bg-gray-200 rounded w-1/2" />
+              <div className="h-14 bg-gray-200 rounded" />
+              <div className="h-14 bg-gray-200 rounded" />
+              <div className="h-8 bg-gray-200 rounded w-2/3" />
+            </div>
+          </div>
         </div>
       </div>
     );
   }
 
-  if (!cart || cart.totalQuantity === 0) {
+  if (cart.totalQuantity === 0) {
     return (
       <div className="max-w-4xl mx-auto p-6 pt-top-spacing">
         <h1 className="text-2xl font-semibold mb-4">{t("checkout.title")}</h1>

@@ -242,6 +242,14 @@ export class AnalyticsTracker {
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
       const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
       if (!supabaseUrl || !anonKey) return;
+      // Keepalive must stay schema-tolerant: preview DBs may lack
+      // visitor_id / country_code until migrations 181/186 are applied.
+      // Send core columns only so unload does not spam 400s.
+      const {
+        visitor_id: _v,
+        country_code: _c,
+        ...keepaliveCore
+      } = eventData;
       try {
         void fetch(`${supabaseUrl}/rest/v1/user_events`, {
           method: "POST",
@@ -251,7 +259,7 @@ export class AnalyticsTracker {
             "Content-Type": "application/json",
             Prefer: "return=minimal",
           },
-          body: JSON.stringify(eventData),
+          body: JSON.stringify(keepaliveCore),
           keepalive: true,
         });
       } catch {

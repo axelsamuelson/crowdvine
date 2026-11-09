@@ -12,18 +12,18 @@ export function isMixedBottleBasket(quote: OfferQuote): boolean {
   return unitPrices.size > 1;
 }
 
+/** Customer dual-offer money: always whole kronor (no ',00' / '.00'). */
 export function formatOfferSek(
   n: number | null | undefined,
   locale: "sv" | "en",
 ): string {
   if (n == null || !Number.isFinite(n)) return "—";
-  const whole = Math.abs(n - Math.round(n)) < 1e-9;
   return new Intl.NumberFormat(locale === "sv" ? "sv-SE" : "en-SE", {
     style: "currency",
     currency: "SEK",
-    minimumFractionDigits: whole ? 0 : 2,
-    maximumFractionDigits: whole ? 0 : 2,
-  }).format(n);
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(Math.round(n));
 }
 
 /** Whole kronor amount for legal CTA button text (no currency symbol). */
