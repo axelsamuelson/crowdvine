@@ -162,7 +162,7 @@ export const TRACKED_USER_EVENTS_CATALOG: TrackedEventCatalogEntry[] = [
     eventType: "pallet_status_viewed",
     category: "navigation",
     description:
-      "Pallet fill/status bar became visible. Metadata: fill_percent, bottles_remaining, is_ready_to_ship.",
+      "Pallet fill/status bar became visible. Metadata: fill_percent, bottles_remaining, is_ready_to_ship; checkout also sends fill_count, capacity, pallet_id.",
     sources: ["client"],
   },
   {

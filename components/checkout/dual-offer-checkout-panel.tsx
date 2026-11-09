@@ -41,6 +41,8 @@ import {
   type DualOfferUiLocale,
 } from "@/lib/checkout/dual-offer-customer-copy";
 import { formatSharedPalletChargeDeadline } from "@/lib/checkout/shared-pallet-deadline";
+import { CheckoutPalletFillStatus } from "@/components/checkout/checkout-pallet-fill-status";
+import type { CheckoutPalletFillInput } from "@/lib/checkout/pallet-fill-display";
 
 export { formatOfferSek } from "@/lib/checkout/dual-offer-display";
 
@@ -382,11 +384,11 @@ export type DualOfferCheckoutPanelProps = {
     model: DualOfferPurchaseActionsModel | null,
   ) => void;
   /**
-   * Discreet pallet fill line. Default on when palletFill is provided;
-   * pass false to hide for CRO experiments.
+   * Discreet pallet fill status (CRO). Default on; pass false to hide.
+   * When fill data is missing/stale, the child component returns null.
    */
   showPalletFillStatus?: boolean;
-  palletFill?: { filled: number; total: number } | null;
+  palletFill?: CheckoutPalletFillInput | null;
 };
 
 export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
@@ -600,14 +602,27 @@ export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
     ? null
     : selectedQuote.offer === "direct_box"
       ? dualOfferMsg(locale, "dualOfferLegalLineDirect", { total: totalLabel })
-      : deadlineLabel
-        ? dualOfferMsg(locale, "dualOfferLegalLineShared", {
-            total: totalLabel,
-            datum: deadlineLabel,
-          })
-        : dualOfferMsg(locale, "dualOfferLegalLineSharedNoDate", {
-            total: totalLabel,
-          });
+      : (() => {
+          // Merge binding + wait/cancel[/switch] once — charge timing appears
+          // only in the final sentence (not repeated from the old debit line).
+          const withSwitch = showDirectOffer;
+          if (deadlineLabel) {
+            return dualOfferMsg(
+              locale,
+              withSwitch
+                ? "dualOfferLegalLineSharedWithSwitch"
+                : "dualOfferLegalLineShared",
+              { total: totalLabel, datum: deadlineLabel },
+            );
+          }
+          return dualOfferMsg(
+            locale,
+            withSwitch
+              ? "dualOfferLegalLineSharedWithSwitchNoDate"
+              : "dualOfferLegalLineSharedNoDate",
+            { total: totalLabel },
+          );
+        })();
 
   const purchaseModel = useMemo<DualOfferPurchaseActionsModel | null>(() => {
     if (loading) {
@@ -791,20 +806,16 @@ export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
               className="space-y-2"
               data-testid="dual-offer-shared-only-block"
             >
-              {showPalletFillStatus &&
-              palletFill &&
-              Number.isFinite(palletFill.filled) &&
-              Number.isFinite(palletFill.total) &&
-              palletFill.total > 0 ? (
-                <p
-                  className="text-sm text-foreground/70"
-                  data-testid="dual-offer-pallet-fill"
-                >
-                  {dualOfferMsg(locale, "dualOfferPalletFillStatus", {
-                    filled: String(Math.round(palletFill.filled)),
-                    total: String(Math.round(palletFill.total)),
-                  })}
-                </p>
+              {showPalletFillStatus && palletFill ? (
+                <CheckoutPalletFillStatus
+                  locale={locale}
+                  enabled={showPalletFillStatus}
+                  palletId={palletFill.palletId}
+                  reservedBottles={palletFill.reservedBottles}
+                  capacity={palletFill.capacity}
+                  cartBottles={palletFill.cartBottles}
+                  fillAvailable={palletFill.fillAvailable}
+                />
               ) : null}
 
               {sharedQuote && !sharedQuote.unavailable_reason ? (

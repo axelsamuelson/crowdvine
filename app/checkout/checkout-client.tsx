@@ -4355,8 +4355,18 @@ function CheckoutContent({
                         palletFill={
                           selectedPallet
                             ? {
-                                filled: selectedPallet.currentBottles,
-                                total: selectedPallet.maxBottles,
+                                palletId: selectedPallet.id,
+                                // Reserved on pallet (excludes this cart); cart
+                                // producer bottles are added in resolveCheckoutPalletFillDisplay.
+                                reservedBottles: selectedPallet.currentBottles,
+                                capacity: selectedPallet.maxBottles,
+                                cartBottles: producerItems.reduce(
+                                  (sum, line) => sum + (line.quantity || 0),
+                                  0,
+                                ),
+                                // Zone matching only attaches pallets with a
+                                // successful fill query — treat as available.
+                                fillAvailable: true,
                               }
                             : null
                         }

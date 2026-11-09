@@ -417,7 +417,11 @@ export class AnalyticsTracker {
     fill_percent?: number;
     bottles_remaining?: number;
     is_ready_to_ship?: boolean;
-    source?: "product" | "list";
+    source?: "product" | "list" | "checkout";
+    /** Absolute fill count shown to the customer (may include cart). */
+    fill_count?: number;
+    capacity?: number;
+    pallet_id?: string;
   }) {
     return this.trackEvent({
       eventType: "pallet_status_viewed",
@@ -434,6 +438,9 @@ export class AnalyticsTracker {
           ? { is_ready_to_ship: extras.is_ready_to_ship }
           : {}),
         ...(extras?.source ? { source: extras.source } : {}),
+        ...(extras?.fill_count != null ? { fill_count: extras.fill_count } : {}),
+        ...(extras?.capacity != null ? { capacity: extras.capacity } : {}),
+        ...(extras?.pallet_id ? { pallet_id: extras.pallet_id } : {}),
       },
     });
   }

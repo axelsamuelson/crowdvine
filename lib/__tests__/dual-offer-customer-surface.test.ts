@@ -67,6 +67,8 @@ describe("dual-offer customer surface guards", () => {
     expect(panelSrc).toMatch(/DualOfferPurchaseActions/);
     expect(panelSrc).toMatch(/dual-offer-shared-only-block|dualOfferSharedOnlyTitle/);
     expect(panelSrc).toMatch(/dualOfferSharedCloseDelivery/);
+    expect(panelSrc).toMatch(/CheckoutPalletFillStatus/);
+    expect(panelSrc).toMatch(/dualOfferLegalLineSharedWithSwitch/);
   });
 
   it("keeps diagnostics behind showDiagnostics (not default customer mount)", () => {
