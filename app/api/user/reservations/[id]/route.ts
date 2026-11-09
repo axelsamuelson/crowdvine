@@ -3,6 +3,10 @@ import { getCurrentUser } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { computeSharedPalletChargeDeadlineIso } from "@/lib/checkout/shared-pallet-deadline";
 import { isPalletBasedReservation } from "@/lib/commerce/is-pallet-based-reservation";
+import {
+  confirmationDisplayTotalSek,
+  confirmationOrderTypeFromFulfillment,
+} from "@/lib/reservations/confirmation-display-total";
 
 export async function GET(
   request: Request,
@@ -25,7 +29,10 @@ export async function GET(
       userId: user.id,
     });
 
-    // Get specific reservation with related data
+    // Get specific reservation with related data.
+    // Avoid selecting columns that older/preview DBs may lack (e.g. order_type
+    // from migration 076) — missing columns make PostgREST fail the whole GET
+    // and the confirmation page falls back to "0 kr" / "—".
     const { data: reservation, error } = await supabase
       .from("order_reservations")
       .select(
@@ -38,10 +45,12 @@ export async function GET(
         delivery_zone_id,
         address_id,
         user_id,
-        order_type,
         payment_method_type,
+        payment_mode,
+        fulfillment_channel,
         total_sek,
         discount_amount_sek,
+        shipping_revenue_gross_cents,
         pallet:pallets(name, cost_cents, bottle_capacity, created_at),
         order_reservation_items(
           item_id,
@@ -150,7 +159,11 @@ export async function GET(
           item.wines?.producers?.display_name?.trim() || undefined,
         customer_email: profile?.email || user.email,
         customer_name: profile?.full_name || "Valued Customer",
-        source: reservation.order_type === "warehouse" ? "warehouse" : "producer",
+        source:
+          reservation.fulfillment_channel === "warehouse" ||
+          reservation.fulfillment_channel === "direct_box"
+            ? "warehouse"
+            : "producer",
       })) || [];
 
     // Fetch shared bottle allocations (optional)
@@ -266,7 +279,10 @@ export async function GET(
       0,
     );
 
-    const shippingCostCents = 0;
+    const shippingCostCents = Math.max(
+      0,
+      Math.round(Number(reservation.shipping_revenue_gross_cents) || 0),
+    );
     const storedTotalSek =
       reservation.total_sek != null && Number.isFinite(Number(reservation.total_sek))
         ? Number(reservation.total_sek)
@@ -275,18 +291,18 @@ export async function GET(
       0,
       Number(reservation.discount_amount_sek) || 0,
     );
-    // Prefer the reservation's charged total (post-discount). Fall back to item sum
-    // only for legacy rows that predate total_sek.
-    const totalAmountCents =
-      storedTotalSek != null
-        ? Math.round(storedTotalSek * 100)
-        : wineSubtotalCents + shippingCostCents;
-    const subtotalSek =
-      storedTotalSek != null
-        ? storedTotalSek + discountAmountSek
-        : wineSubtotalCents / 100;
+    const wineTotalSek =
+      storedTotalSek != null ? storedTotalSek : wineSubtotalCents / 100;
+    // Customer-facing charge total = wine + shipping (matches checkout CTA).
+    const displayTotalSek = confirmationDisplayTotalSek({
+      totalSek: storedTotalSek,
+      shippingRevenueGrossCents: shippingCostCents,
+      wineSubtotalCentsFallback: wineSubtotalCents,
+    });
+    const totalAmountCents = Math.round(displayTotalSek * 100);
+    const subtotalSek = wineTotalSek + discountAmountSek;
 
-    // fulfillment_channel column is draft (migration 277) — detect shared pallet via pallet_id.
+    // Detect shared pallet via pallet_id (fulfillment_channel may be null on older rows).
     const palletCreatedAt =
       reservation.pallet &&
       typeof (reservation.pallet as { created_at?: unknown }).created_at ===
@@ -298,6 +314,12 @@ export async function GET(
     })
       ? computeSharedPalletChargeDeadlineIso(palletCreatedAt)
       : null;
+
+    const fulfillmentChannel =
+      typeof reservation.fulfillment_channel === "string"
+        ? reservation.fulfillment_channel
+        : null;
+    const orderType = confirmationOrderTypeFromFulfillment(fulfillmentChannel);
 
     // Transform the data to match the expected format
     const transformedReservation = {
@@ -315,14 +337,17 @@ export async function GET(
       pickup_zone: pickupZoneName || "Unknown Pickup Zone",
       delivery_zone: deliveryZoneName || "Unknown Delivery Zone",
       delivery_address: deliveryAddress,
-      total_sek: storedTotalSek,
+      /** Wine/subtotal total in SEK (excludes shipping). */
+      total_sek: displayTotalSek,
+      /** Wine-only total before shipping (for debugging / line math). */
+      wines_total_sek: wineTotalSek,
       discount_amount_sek: discountAmountSek,
       subtotal_sek: subtotalSek,
       total_amount_cents: totalAmountCents,
       shipping_cost_cents: shippingCostCents,
       customer_email: profile?.email || user.email,
       customer_name: profile?.full_name || "Valued Customer",
-      order_type: reservation.order_type || "producer",
+      order_type: orderType,
       payment_method_type: reservation.payment_method_type || "card",
       items,
       shared,

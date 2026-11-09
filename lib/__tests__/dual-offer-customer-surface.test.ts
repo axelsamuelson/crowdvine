@@ -126,6 +126,11 @@ describe("dual-offer customer surface guards", () => {
     expect(successSrc).toMatch(/success-close-delivery-copy/);
     expect(reservationApiSrc).toMatch(/computeSharedPalletChargeDeadlineIso/);
     expect(reservationApiSrc).toMatch(/created_at/);
+    expect(reservationApiSrc).toMatch(/shipping_revenue_gross_cents/);
+    expect(reservationApiSrc).toMatch(/confirmationDisplayTotalSek/);
+    expect(reservationApiSrc).not.toMatch(
+      /select\(\s*`[\s\S]*?\border_type\b[\s\S]*?`\s*\)/,
+    );
     expect(headerSrc).toMatch(/CheckoutMinimalHeader/);
   });
 

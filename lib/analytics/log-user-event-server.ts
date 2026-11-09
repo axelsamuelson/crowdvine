@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import type { EventCategory, EventType } from "./event-tracker";
 import type { FirstTouch } from "./visitor-identity";
+import { isUserEventsSchemaError } from "./user-events-schema-lag";
 
 function isLikelyBotUserAgent(ua: string | null | undefined): boolean {
   if (!ua) return false;
@@ -18,6 +19,10 @@ function isLikelyBotUserAgent(ua: string | null | undefined): boolean {
  *
  * Tags `internal` and `likely_bot` on ALL events when applicable.
  * Attaches first_touch + visitor flags whenever provided.
+ *
+ * Preview/audit DBs may still be on the stub shape (event_name only). On
+ * column/schema errors we fall back like the browser tracker — never swallow
+ * reservation_completed without at least attempting a stub insert.
  */
 export async function logUserEventServer(opts: {
   userId?: string | null;
@@ -65,13 +70,17 @@ export async function logUserEventServer(opts: {
 
     let internal = opts.internal === true || metadata.internal === true;
     if (!internal && opts.userId) {
-      const { data: excl } = await sb
-        .from("admin_metrics_excluded_profiles")
-        .select("profile_id")
-        .eq("profile_id", opts.userId)
-        .maybeSingle();
-      if (excl?.profile_id) {
-        internal = true;
+      try {
+        const { data: excl, error: exclErr } = await sb
+          .from("admin_metrics_excluded_profiles")
+          .select("profile_id")
+          .eq("profile_id", opts.userId)
+          .maybeSingle();
+        if (!exclErr && excl?.profile_id) {
+          internal = true;
+        }
+      } catch {
+        // Table may be absent on audit DBs — ignore.
       }
     }
     if (internal) {
@@ -85,9 +94,10 @@ export async function logUserEventServer(opts: {
       metadata = { ...metadata, likely_bot: true };
     }
 
+    const sessionId = opts.sessionId?.trim() || `server_${randomUUID()}`;
     const row = {
       user_id: opts.userId ?? null,
-      session_id: opts.sessionId?.trim() || `server_${randomUUID()}`,
+      session_id: sessionId,
       visitor_id: visitorId,
       country_code: countryCode,
       event_type: opts.eventType,
@@ -98,26 +108,40 @@ export async function logUserEventServer(opts: {
       user_agent: userAgent,
     };
 
-    await sb
-      .from("user_events")
-      .insert(row)
-      .then(({ error }) => {
-        if (!error) return;
-        if (
-          !/visitor_id|country_code|schema cache|Could not find/i.test(
-            error.message || "",
-          )
-        ) {
-          console.error("logUserEventServer:", error.message);
-          return;
-        }
-        // Pre-migration fallback
-        const { visitor_id: _v, country_code: _c, ...withoutNew } = row;
-        void sb.from("user_events").insert({
-          ...withoutNew,
-          session_id: opts.sessionId?.trim() || `server_${randomUUID()}`,
-        });
-      });
+    const stubRow = {
+      user_id: opts.userId ?? null,
+      event_name: opts.eventType,
+      event_metadata: metadata,
+    };
+
+    const { error } = await sb.from("user_events").insert(row);
+    if (!error) return;
+
+    const message = error.message || "";
+    if (
+      !isUserEventsSchemaError(message) &&
+      !/visitor_id|country_code|schema cache|Could not find/i.test(message)
+    ) {
+      console.error("logUserEventServer:", message);
+      return;
+    }
+
+    // Pre-migration / partial lag: drop visitor_id + country_code first.
+    const { visitor_id: _v, country_code: _c, ...withoutNew } = row;
+    const retry = await sb.from("user_events").insert({
+      ...withoutNew,
+      session_id: sessionId,
+    });
+    if (!retry.error) return;
+
+    // Audit stub: event_name only (matches browser event-tracker fallback).
+    const stub = await sb.from("user_events").insert(stubRow);
+    if (stub.error) {
+      console.error(
+        "logUserEventServer: stub insert failed:",
+        stub.error.message || retry.error?.message || message,
+      );
+    }
   } catch (e) {
     console.error("logUserEventServer:", e);
   }
