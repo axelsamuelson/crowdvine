@@ -1,6 +1,7 @@
 /**
  * Shared-pallet close + post-close delivery copy (customer-facing).
- * Pending legal/ops sign-off — change SV/EN here only (no Budbee / carrier brand).
+ * Owner-approved — change SV/EN here only (no Budbee / carrier brand).
+ * Also used on order confirmation page + confirmation email.
  *
  * Placeholder: `{datum}` = localized charge-deadline date from
  * `formatSharedPalletChargeDeadline`.
@@ -8,11 +9,11 @@
 
 /** Swedish — single source for the shared-pallet close/delivery line. */
 export const SHARED_PALLET_CLOSE_DELIVERY_COPY_SV =
-  "Pallen stänger när den är full, senast {datum}. Leverans sker normalt inom 1–2 veckor efter att pallen stängt, och du får exakt leveransdag när pallen stängt.";
+  "Pallen stänger när den är full, senast {datum}. Leverans sker normalt inom 2–3 veckor efter att pallen stängt och alltid senast 30 dagar efter. När pallen har skickats får du ett beräknat leveransfönster, och leveransdagen när vinet nått Sverige.";
 
 /** English — single source for the shared-pallet close/delivery line. */
 export const SHARED_PALLET_CLOSE_DELIVERY_COPY_EN =
-  "The pallet closes when full, by {datum} at the latest. Delivery normally takes 1–2 weeks after the pallet closes, and you'll get the exact delivery day when it closes.";
+  "The pallet closes when full, by {datum} at the latest. Delivery normally takes 2–3 weeks after the pallet closes and always within 30 days. Once the pallet has shipped you'll get an estimated delivery window, and the delivery day once the wine has reached Sweden.";
 
 /**
  * Direct-box delivery label: home delivery only — no carrier brand, no ETA

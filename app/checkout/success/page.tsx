@@ -25,6 +25,7 @@ import type { AppLocale } from "@/lib/i18n/locale";
 import { localizedPathsForLocale } from "@/lib/i18n/localized-paths";
 import { producerDisplayName } from "@/lib/producer-display-name";
 import { formatSharedPalletChargeDeadline } from "@/lib/checkout/shared-pallet-deadline";
+import { formatSharedPalletCloseDeliveryCopy } from "@/lib/checkout/shared-pallet-close-delivery-copy";
 
 function translateReservationStatus(
   status: string,
@@ -323,6 +324,10 @@ function CheckoutConfirmationContent() {
         deadlineLocale,
       )
     : null;
+  const closeDeliveryCopy = formatSharedPalletCloseDeliveryCopy(
+    deadlineLocale,
+    chargeDeadlineLabel,
+  );
 
   if (loading) {
     return (
@@ -376,6 +381,12 @@ function CheckoutConfirmationContent() {
                 </p>
               </div>
             ) : null}
+            <div
+              className="mt-3 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700"
+              data-testid="success-close-delivery-copy"
+            >
+              {closeDeliveryCopy}
+            </div>
           </div>
 
           <div
@@ -798,7 +809,9 @@ function CheckoutConfirmationContent() {
                       <div className="h-6 w-6 rounded-full bg-gray-900 text-white flex items-center justify-center text-xs font-medium shrink-0">
                         3
                       </div>
-                      <div>{t("checkout.successStep3")}</div>
+                      <div data-testid="success-step3-delivery">
+                        {closeDeliveryCopy}
+                      </div>
                     </div>
                   </div>
                 </CardContent>

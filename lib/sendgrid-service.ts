@@ -1,5 +1,6 @@
 import { sendEmail } from "@/lib/email";
 import { escapeHtmlBasic } from "@/lib/email/escape-html";
+import { formatSharedPalletCloseDeliveryCopy } from "@/lib/checkout/shared-pallet-close-delivery-copy";
 import {
   getWelcomeEmailTemplate,
   getWelcomeEmailText,
@@ -110,6 +111,11 @@ export async function buildOrderConfirmationHtml(
     ? `<img src="${logoUrl}" alt="PACT" style="width: 120px; height: auto; max-width: 200px;" />`
     : `<div style="font-size: 24px; font-weight: bold; color: #000000; letter-spacing: 2px;">PACT</div>`;
   const deadlineLabel = String(data.chargeDeadlineLabel || "").trim();
+  // Owner-approved shared close/delivery copy (same constant as checkout).
+  const closeDeliveryCopy = formatSharedPalletCloseDeliveryCopy(
+    "en",
+    deadlineLabel || null,
+  );
   const deadlineHtml = deadlineLabel
     ? `<div class="order-info" style="margin-top: 16px; background: #f8f9fa;">
                 <h2 style="margin-top: 0;">Payment timing</h2>
@@ -119,6 +125,10 @@ export async function buildOrderConfirmationHtml(
                 </p>
               </div>`
     : "";
+  const deliveryHtml = `<div class="order-info" style="margin-top: 16px; background: #f8f9fa;">
+                <h2 style="margin-top: 0;">Delivery</h2>
+                <p style="margin: 0; color: #555; font-size: 14px;">${closeDeliveryCopy}</p>
+              </div>`;
   const itemsHtml = data.items
     .map(
       (item) => `
@@ -240,6 +250,7 @@ export async function buildOrderConfirmationHtml(
               </div>
 
               ${deadlineHtml}
+              ${deliveryHtml}
 
               <h3>Items Ordered</h3>
               <table class="items-table">
@@ -326,6 +337,10 @@ export function buildOrderConfirmationText(data: OrderConfirmationData): string 
     )
     .join("\n");
   const deadlineLabel = String(data.chargeDeadlineLabel || "").trim();
+  const closeDeliveryCopy = formatSharedPalletCloseDeliveryCopy(
+    "en",
+    deadlineLabel || null,
+  );
   const deadlineBlock = deadlineLabel
     ? `
 Payment timing:
@@ -333,6 +348,10 @@ Charged by ${deadlineLabel} at the latest (senast ${deadlineLabel}).
 We save your card and charge when the shared pallet fills, or by this date. You can cancel free of charge until then.
 `
     : "";
+  const deliveryBlock = `
+Delivery:
+${closeDeliveryCopy}
+`;
 
   return `
 Order Confirmation - ${data.orderId}
@@ -343,7 +362,7 @@ Thank you for your order! Here are the details:
 
 Order ID: ${data.orderId}
 Order Date: ${data.orderDate}
-${deadlineBlock}
+${deadlineBlock}${deliveryBlock}
 Items Ordered:
 ${itemsText}
 

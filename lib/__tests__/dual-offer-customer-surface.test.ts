@@ -101,6 +101,8 @@ describe("dual-offer customer surface guards", () => {
     );
     expect(successSrc).toMatch(/success-charge-deadline|successChargeDeadline/);
     expect(successSrc).toMatch(/charge_deadline_at/);
+    expect(successSrc).toMatch(/formatSharedPalletCloseDeliveryCopy/);
+    expect(successSrc).toMatch(/success-close-delivery-copy/);
     expect(reservationApiSrc).toMatch(/computeSharedPalletChargeDeadlineIso/);
     expect(reservationApiSrc).toMatch(/created_at/);
   });

@@ -12,16 +12,20 @@ import {
 } from "@/lib/checkout/offer-quote";
 import { dualOfferMsg } from "@/lib/checkout/dual-offer-customer-copy";
 
-describe("shared pallet close/delivery copy (CEO — no Budbee)", () => {
+describe("shared pallet close/delivery copy (owner — no Budbee)", () => {
   it("keeps one SV and one EN constant as the single source", () => {
     expect(SHARED_PALLET_CLOSE_DELIVERY_COPY_SV).toBe(
-      "Pallen stänger när den är full, senast {datum}. Leverans sker normalt inom 1–2 veckor efter att pallen stängt, och du får exakt leveransdag när pallen stängt.",
+      "Pallen stänger när den är full, senast {datum}. Leverans sker normalt inom 2–3 veckor efter att pallen stängt och alltid senast 30 dagar efter. När pallen har skickats får du ett beräknat leveransfönster, och leveransdagen när vinet nått Sverige.",
     );
     expect(SHARED_PALLET_CLOSE_DELIVERY_COPY_EN).toBe(
-      "The pallet closes when full, by {datum} at the latest. Delivery normally takes 1–2 weeks after the pallet closes, and you'll get the exact delivery day when it closes.",
+      "The pallet closes when full, by {datum} at the latest. Delivery normally takes 2–3 weeks after the pallet closes and always within 30 days. Once the pallet has shipped you'll get an estimated delivery window, and the delivery day once the wine has reached Sweden.",
     );
     expect(SHARED_PALLET_CLOSE_DELIVERY_COPY_SV).not.toMatch(/Budbee/i);
     expect(SHARED_PALLET_CLOSE_DELIVERY_COPY_EN).not.toMatch(/Budbee/i);
+    expect(SHARED_PALLET_CLOSE_DELIVERY_COPY_SV).toMatch(/2–3 veckor/);
+    expect(SHARED_PALLET_CLOSE_DELIVERY_COPY_EN).toMatch(/2–3 weeks/);
+    expect(SHARED_PALLET_CLOSE_DELIVERY_COPY_SV).toMatch(/30 dagar/);
+    expect(SHARED_PALLET_CLOSE_DELIVERY_COPY_EN).toMatch(/30 days/);
   });
 
   it("formats with datum and omits date clause when missing", () => {
@@ -31,11 +35,18 @@ describe("shared pallet close/delivery copy (CEO — no Budbee)", () => {
     expect(formatSharedPalletCloseDeliveryCopy("en", "7 Dec")).toContain(
       "by 7 Dec at the latest",
     );
-    expect(formatSharedPalletCloseDeliveryCopy("sv", null)).not.toMatch(
-      /senast/,
+    // Close-date clause omitted; post-close "senast 30 dagar" / "within 30 days" stay.
+    expect(formatSharedPalletCloseDeliveryCopy("sv", null)).toBe(
+      "Pallen stänger när den är full. Leverans sker normalt inom 2–3 veckor efter att pallen stängt och alltid senast 30 dagar efter. När pallen har skickats får du ett beräknat leveransfönster, och leveransdagen när vinet nått Sverige.",
     );
-    expect(formatSharedPalletCloseDeliveryCopy("en", null)).not.toMatch(
-      /at the latest/,
+    expect(formatSharedPalletCloseDeliveryCopy("en", null)).toBe(
+      "The pallet closes when full. Delivery normally takes 2–3 weeks after the pallet closes and always within 30 days. Once the pallet has shipped you'll get an estimated delivery window, and the delivery day once the wine has reached Sweden.",
+    );
+    expect(formatSharedPalletCloseDeliveryCopy("sv", null)).toMatch(
+      /2–3 veckor/,
+    );
+    expect(formatSharedPalletCloseDeliveryCopy("en", null)).toMatch(
+      /2–3 weeks/,
     );
   });
 
