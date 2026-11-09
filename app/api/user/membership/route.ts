@@ -58,7 +58,8 @@ export async function GET() {
 
     const displayLevel = normalizeMembershipLevel(membership.level);
 
-    // Get perks for current tier (admin is not a tier — map to privilege for lookup)
+    // Get perks for current tier (admin is not a tier — map to privilege for lookup).
+    // Perks are additive UX — never fail the whole membership payload on lookup error.
     const { data: perks, error: perksError } = await sb
       .from("membership_perks")
       .select("*")
@@ -66,7 +67,10 @@ export async function GET() {
       .eq("is_active", true)
       .order("sort_order");
 
-    if (perksError) throw perksError;
+    if (perksError) {
+      console.error("[membership] membership_perks lookup failed:", perksError);
+    }
+    const safePerks = perksError ? [] : perks || [];
 
     // Get available invites
     const inviteInfo = await getAvailableInvites(user.id);
@@ -149,7 +153,7 @@ export async function GET() {
         total: inviteInfo.total,
         resetsAt: membership.last_quota_reset,
       },
-      perks: perks || [],
+      perks: safePerks,
     });
   } catch (error) {
     console.error("Error fetching membership:", error);

@@ -22,6 +22,10 @@ describe("dual-offer /dev review layout clearance", () => {
     resolve(process.cwd(), "app/dev/dual-offer-compare/page.tsx"),
     "utf8",
   );
+  const checkoutSrc = readFileSync(
+    resolve(process.cwd(), "app/checkout/checkout-client.tsx"),
+    "utf8",
+  );
 
   it("scopes scrollport + opaque header shield to the review route only", () => {
     expect(pageSrc).toMatch(/top-\[var\(--top-spacing\)\]/);
@@ -32,6 +36,12 @@ describe("dual-offer /dev review layout clearance", () => {
     // Must not rewrite ConditionalHeader / global header component.
     expect(pageSrc).not.toMatch(/ConditionalHeader/);
     expect(pageSrc).not.toMatch(/components\/layout\/header/);
+  });
+
+  it("adds checkout-only opaque header shield when dual-offer review is active", () => {
+    expect(checkoutSrc).toMatch(/dual-offer-checkout-header-shield/);
+    expect(checkoutSrc).toMatch(/dualOfferReviewActive \? \(/);
+    expect(checkoutSrc).not.toMatch(/components\/layout\/header/);
   });
 
   it("does not weaken OFF-path payment isolation helpers", () => {

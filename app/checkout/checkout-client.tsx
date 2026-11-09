@@ -46,6 +46,7 @@ import {
   isDualOfferReviewCheckoutActive,
   mayRunLegacySharedPalletPaymentUi,
 } from "@/lib/checkout/dual-offer-checkout-isolation";
+import { customerZoneSaveErrorMessage } from "@/lib/checkout/dual-offer-customer-copy";
 import { toast } from "sonner";
 import {
   MapPin,
@@ -156,16 +157,6 @@ interface UserProfile {
   created_at: string;
 }
 
-interface UserReward {
-  id: string;
-  bottles: number;
-  discount_percentage: number;
-  type: "account_created" | "reservation_made";
-  friend_email?: string;
-  earned_at: string;
-  used: boolean;
-}
-
 function CheckoutContent({
   platformOpen,
   directBoxCheckoutEnabled = false,
@@ -249,9 +240,6 @@ function CheckoutContent({
   );
   // Payment method selection removed - payment happens when pallet fills
   const [selectedPallet, setSelectedPallet] = useState<PalletInfo | null>(null);
-  const [userRewards, setUserRewards] = useState<UserReward[]>([]);
-  const [selectedRewards, setSelectedRewards] = useState<UserReward[]>([]);
-  const [useRewards, setUseRewards] = useState(false);
   const checkoutCompletedRef = useRef(false);
   const paymentStepCompletedRef = useRef(false);
   /** Bottle count for abandon guards (effect has [] deps — must not close over cart). */
@@ -1357,18 +1345,6 @@ function CheckoutContent({
     void fetchZoneShopContext();
   }, [authReady, fetchZoneShopContext]);
 
-  const fetchUserRewards = useCallback(async () => {
-    try {
-      const response = await fetch("/api/user/rewards");
-      if (response.ok) {
-        const data = await response.json();
-        setUserRewards(data.rewards || []);
-      }
-    } catch (error) {
-      console.error("Failed to fetch rewards:", error);
-    }
-  }, []);
-
   const fetchPactPointsBalance = useCallback(async () => {
     try {
       const res = await fetch("/api/user/membership");
@@ -1397,7 +1373,6 @@ function CheckoutContent({
   useEffect(() => {
     fetchCart();
     void fetchProfile().then(() => void fetchZoneShopContext());
-    fetchUserRewards();
     fetchPactPointsBalance();
 
     // Check if returning from Stripe payment method setup
@@ -1412,7 +1387,6 @@ function CheckoutContent({
     fetchCart,
     fetchProfile,
     fetchZoneShopContext,
-    fetchUserRewards,
     fetchPactPointsBalance,
   ]);
 
@@ -2338,8 +2312,20 @@ function CheckoutContent({
           return;
         }
         if (!res.ok) {
-          const j = (await res.json().catch(() => ({}))) as { error?: string };
-          throw new Error(j.error || t("checkout.saveFailed"));
+          const j = (await res.json().catch(() => ({}))) as {
+            error?: string;
+            code?: string;
+          };
+          const locale =
+            shopping.locale === "en" ? ("en" as const) : ("sv" as const);
+          throw new Error(
+            customerZoneSaveErrorMessage(
+              j.code === "geo_zone_misconfigured"
+                ? "Wine zone is misconfigured"
+                : j.error,
+              locale,
+            ) || t("checkout.saveFailed"),
+          );
         }
         const j = (await res.json()) as { address?: UserZoneAddressTemplate };
         if (j.address) {
@@ -2558,13 +2544,6 @@ function CheckoutContent({
     }
 
     // Payment method removed - using new payment flow
-
-    // User rewards
-    if (useRewards) {
-      selectedRewards.forEach((reward, index) => {
-        formData.append(`rewardId_${index}`, reward.id);
-      });
-    }
 
     // Optional: share allocations
     if (shareAllocation && shareFriendIds && shareFriendIds.length > 0) {
@@ -3013,13 +2992,6 @@ function CheckoutContent({
     ? parseFloat(cart.cost.totalAmount.amount)
     : 0;
 
-  // Old rewards discount (being deprecated) — display only; not in payment total
-  const rewardsDiscountAmount = useRewards
-    ? selectedRewards.reduce((total, reward) => {
-        return total + (bottleCost * reward.discount_percentage) / 100;
-      }, 0)
-    : 0;
-
   const { boostedLineTotal, nonBoostedLineTotal } = useMemo(() => {
     if (!cart?.lines?.length) {
       return { boostedLineTotal: 0, nonBoostedLineTotal: 0 };
@@ -3309,9 +3281,6 @@ function CheckoutContent({
       setRedeemPoints(maxRedemption);
     }
   }, [maxRedemption, redeemPoints]);
-
-  // Filter available rewards (membership system - no bottle rewards anymore)
-  const availableRewards: UserReward[] = [];
 
   const currencyCode =
     shopping.currencyCode || cart?.cost?.totalAmount?.currencyCode || "SEK";
@@ -3603,11 +3572,7 @@ function CheckoutContent({
         onOpenChange={setShareDialogOpen}
         userId={profile?.id || null}
         currencyCode={currencyCode}
-        discountRate={
-          bottleCost > 0
-            ? Math.max(0, Math.min(1, rewardsDiscountAmount / bottleCost))
-            : 0
-        }
+        discountRate={0}
         cartLines={(cart?.lines || []).map((l) => ({
           id: l.id,
           title: l.merchandise.title,
@@ -3623,6 +3588,18 @@ function CheckoutContent({
       />
 
     <main className="min-h-screen bg-background">
+      {/*
+        Dual-offer checkout only: opaque underlay beneath the intentionally
+        transparent fixed site header so scrolled panel text cannot show through
+        MENY/PACT. Does not alter global header styles or OFF-checkout.
+      */}
+      {dualOfferReviewActive ? (
+        <div
+          aria-hidden
+          data-testid="dual-offer-checkout-header-shield"
+          className="pointer-events-none fixed inset-x-0 top-0 z-40 h-[var(--top-spacing)] bg-background"
+        />
+      ) : null}
       <div className="mx-auto max-w-5xl space-y-8 p-6 pt-top-spacing">
         <div>
           <h1 className="mb-2 text-2xl font-medium text-foreground">
@@ -3716,19 +3693,6 @@ function CheckoutContent({
                     </span>
                   </div>
                 ) : null}
-                {useRewards && selectedRewards.length > 0 ? (
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">
-                      {t("checkout.voucher", {
-                        count: String(selectedRewards.length),
-                      })}
-                    </span>
-                    <span className="font-medium tabular-nums text-foreground">
-                      −{formatChargedAmount(rewardsDiscountAmount)}
-                    </span>
-                  </div>
-                ) : null}
-
                 {appliedDiscount ? (
                   <div className="flex items-center justify-between gap-2 text-emerald-700 dark:text-emerald-400">
                     <span>
@@ -3942,7 +3906,8 @@ function CheckoutContent({
                       </div>
                     ) : null}
 
-                    {!isUsConditional &&
+                    {!dualOfferReviewActive &&
+                    !isUsConditional &&
                     (selectedPallet != null ||
                       Boolean(zoneInfo.deliveryZone) ||
                       zoneInfo.selectedDeliveryZoneId != null) ? (
@@ -4063,7 +4028,8 @@ function CheckoutContent({
                       </div>
                     ) : null}
 
-                    {selectedPallet != null &&
+                    {!dualOfferReviewActive &&
+                    selectedPallet != null &&
                     (producerDirectBoxOnly ||
                       selectedPallet.current_pickup_producer?.name) ? (
                       <div className="space-y-1.5">

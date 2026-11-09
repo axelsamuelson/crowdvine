@@ -43,15 +43,16 @@ If the branch auto-deploys a preview, set `CHECKOUT_DUAL_OFFER_COMPARE=true` **o
 
 Do **not** promote or retarget production.
 
-## Review checklist for Inès
+## Review checklist for Inès (customer surface polish)
 
-- [ ] Mobile ~375/390 and desktop ~1440, SV and EN
-- [ ] Bottle, wines subtotal, freight, VAT/fees note, total equally prominent
-- [ ] Delivery timing + debit timing shown together
-- [ ] Switch discloses bottle + total change; no silent switch
-- [ ] Accept quote ≠ Pay; final CTA blocked with explicit reason
-- [ ] Synthetic badge conspicuous; sample-price disclaimer visible
-- [ ] Geist (`font-sans`) on review surface
+- [ ] Mobile ~375/390: two compact offer rows; total same position; snittpris labeled
+- [ ] Details (snitt/viner/frakt) only for selected or behind “Visa detaljer”
+- [ ] No ▶ VALD / diagnostics / synthetic badges / raw gate codes on `/checkout`
+- [ ] Selecting an offer drives quote; final CTA carries explicit acceptance (fail-closed)
+- [ ] Header does not overlap panel (checkout opaque shield; `/dev` scrollport)
+- [ ] When dual panel active, legacy Budbee delivery row is hidden — offer = delivery choice
+- [ ] Geist (`font-sans`) only — no Instrument Serif
+- [ ] Error: Swedish retry copy; loading skeletons; final CTA disabled while loading
 
 ## Difference: mocked preview vs actual test checkout
 

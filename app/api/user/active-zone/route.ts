@@ -62,21 +62,32 @@ export async function PATCH(request: NextRequest) {
     const row = gz as Record<string, unknown>;
     if (!row.is_active) {
       return NextResponse.json(
-        { error: "Geo zone is not active" },
+        { error: "Geo zone is not active", code: "geo_zone_inactive" },
         { status: 400 },
       );
     }
     const elig = String(row.eligibility_status ?? "").toLowerCase();
     if (elig === "disabled") {
       return NextResponse.json(
-        { error: "Geo zone is disabled" },
+        { error: "Geo zone is disabled", code: "geo_zone_disabled" },
         { status: 400 },
       );
     }
-    const city = String(row.city ?? "").trim();
-    if (!city) {
+    // Country-level zones (empty city) are allowed; customer's address city
+    // is validated on delivery save. Missing country_code is a config error.
+    const countryCode = String(row.country_code ?? "")
+      .trim()
+      .toUpperCase();
+    if (!countryCode || countryCode.length !== 2) {
+      console.error(
+        "[active-zone PATCH] misconfigured geo_zone missing country_code",
+        { activeGeoZoneId },
+      );
       return NextResponse.json(
-        { error: "Wine zone must include a city" },
+        {
+          error: "Wine zone is misconfigured",
+          code: "geo_zone_misconfigured",
+        },
         { status: 400 },
       );
     }

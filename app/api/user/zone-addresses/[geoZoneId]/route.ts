@@ -46,8 +46,14 @@ export async function PATCH(
     const sb = getSupabaseAdmin();
     const gate = await validateEligibleGeoZoneId(sb, geoZoneId);
     if (!gate.ok) {
+      // code is for client mapping; message is log/admin English only.
+      console.error("[zone-addresses PATCH] geo gate failed", {
+        geoZoneId,
+        code: gate.code,
+        message: gate.message,
+      });
       return NextResponse.json(
-        { error: gate.message },
+        { error: gate.message, code: gate.code },
         { status: gate.status },
       );
     }
