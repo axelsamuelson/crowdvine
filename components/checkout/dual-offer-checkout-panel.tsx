@@ -6,10 +6,14 @@
  * acceptance of the selected quote_id (fail-closed on mismatch/expiry).
  * Legal CTA copy states payment obligation (C-249/21).
  * Direct row is shown only when DIRECT_BOX_CHECKOUT_ENABLED (showDirectOffer).
+ *
+ * Shared-only (direct hidden): one plain block — heading, close+delivery,
+ * charge timing — no selectable card / duplicate totals. Purchase CTA is
+ * rendered via DualOfferPurchaseActions (sticky under Totalt / mobile bottom).
  */
 
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
   DualOfferQuoteSet,
   OfferQuote,
@@ -27,7 +31,7 @@ import {
 } from "@/lib/checkout/dual-offer-payment-boundary";
 import {
   formatOfferSek,
-  formatOfferTotalKr,
+  formatOfferTotalAmountLabel,
 } from "@/lib/checkout/dual-offer-display";
 import {
   dualOfferMsg,
@@ -52,6 +56,22 @@ function debitLabel(quote: OfferQuote, locale: Locale): string {
   return locale === "sv"
     ? quote.debit_timing.previewLabelSv
     : quote.debit_timing.previewLabelEn;
+}
+
+function sharedCloseDeliveryLine(
+  quote: OfferQuote,
+  locale: Locale,
+  deadlineLabel: string | null,
+): string {
+  if (quote.offer !== "shared_pallet") {
+    return deliveryLabel(quote, locale);
+  }
+  if (deadlineLabel) {
+    return dualOfferMsg(locale, "dualOfferSharedCloseDelivery", {
+      datum: deadlineLabel,
+    });
+  }
+  return dualOfferMsg(locale, "dualOfferSharedCloseDeliveryNoDate");
 }
 
 function OfferRowSkeleton() {
@@ -86,6 +106,8 @@ function OfferRow(props: {
   onToggleDetails: () => void;
   disabled?: boolean;
   selectable?: boolean;
+  /** Compare mode still shows the compact price header; hide Snittpris/Viner/Frakt/Totalt breakdown. */
+  showPriceBreakdown?: boolean;
 }) {
   const { quote, locale } = props;
   if (!quote) {
@@ -98,7 +120,9 @@ function OfferRow(props: {
   }
   const unavailable = Boolean(quote.unavailable_reason);
   const bottleLabel = dualOfferMsg(locale, offerBottleAverageLabelKey());
-  const showDetails = props.selected || props.detailsOpen;
+  const showDetails =
+    props.showPriceBreakdown !== false &&
+    (props.selected || props.detailsOpen);
   const totalSuffix = offerTotalsIncludeVat()
     ? ` ${dualOfferMsg(locale, "dualOfferInclVat")}`
     : "";
@@ -185,7 +209,7 @@ function OfferRow(props: {
         <div className="p-3">{body}</div>
       )}
 
-      {!unavailable ? (
+      {!unavailable && props.showPriceBreakdown !== false ? (
         <div className={`px-3 pb-3 ${selectable ? "pl-10" : ""}`}>
           {selectable && !props.selected ? (
             <button
@@ -248,6 +272,84 @@ function OfferRow(props: {
   );
 }
 
+export type DualOfferPurchaseActionsModel = {
+  locale: Locale;
+  finalCtaLabel: string;
+  legalLine: string | null;
+  disabled: boolean;
+  confirmNote: string | null;
+  onConfirm: () => void;
+};
+
+/** Binding sentence + purchase button + terms (moved under Totalt / mobile bottom). */
+export function DualOfferPurchaseActions(props: {
+  model: DualOfferPurchaseActionsModel;
+  className?: string;
+}) {
+  const { model, className } = props;
+  const { locale } = model;
+
+  return (
+    <div
+      className={`space-y-3 font-sans ${className ?? ""}`}
+      data-testid="dual-offer-purchase-actions"
+    >
+      {model.legalLine ? (
+        <p
+          className="text-sm text-foreground"
+          data-testid="dual-offer-legal-line"
+        >
+          {model.legalLine}
+        </p>
+      ) : null}
+
+      <button
+        type="button"
+        data-testid="dual-offer-final"
+        className="w-full rounded-xl bg-foreground text-background px-4 py-3 text-sm font-semibold disabled:opacity-40"
+        disabled={model.disabled}
+        onClick={model.onConfirm}
+      >
+        {model.finalCtaLabel}
+      </button>
+
+      <p
+        className="text-xs text-foreground/70"
+        data-testid="dual-offer-terms-line"
+      >
+        {(() => {
+          const marker = "<<<TERMS>>>";
+          const template = dualOfferMsg(locale, "dualOfferTermsLine", {
+            terms: marker,
+          });
+          const [before, after] = template.split(marker);
+          return (
+            <>
+              {before}
+              <Link
+                href="/villkor"
+                className="underline underline-offset-2 text-foreground"
+              >
+                {dualOfferMsg(locale, "dualOfferTermsLink")}
+              </Link>
+              {after}
+            </>
+          );
+        })()}
+      </p>
+
+      {model.confirmNote ? (
+        <p
+          className="text-sm text-foreground"
+          data-testid="dual-offer-final-reason"
+        >
+          {model.confirmNote}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 export type DualOfferCheckoutPanelProps = {
   locale?: Locale;
   initialDual?: DualOfferQuoteSet | null;
@@ -268,6 +370,23 @@ export type DualOfferCheckoutPanelProps = {
   preferOffer?: "shared_pallet" | "direct_box" | null;
   showDiagnostics?: boolean;
   className?: string;
+  /**
+   * When false, purchase CTA is not rendered inline — parent mounts
+   * DualOfferPurchaseActions from onPurchaseActionsChange (checkout layout).
+   * Dev/compare pages keep inlinePurchase true.
+   */
+  inlinePurchase?: boolean;
+  /** Address/postal complete — gates the purchase button. */
+  purchaseEnabled?: boolean;
+  onPurchaseActionsChange?: (
+    model: DualOfferPurchaseActionsModel | null,
+  ) => void;
+  /**
+   * Discreet pallet fill line. Default on when palletFill is provided;
+   * pass false to hide for CRO experiments.
+   */
+  showPalletFillStatus?: boolean;
+  palletFill?: { filled: number; total: number } | null;
 };
 
 export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
@@ -276,6 +395,10 @@ export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
   const showDirectOffer = props.showDirectOffer === true;
   const forceFreshSession = props.forceFreshSession === true;
   const preferOffer = props.preferOffer ?? null;
+  const inlinePurchase = props.inlinePurchase !== false;
+  const purchaseEnabled = props.purchaseEnabled !== false;
+  const showPalletFillStatus = props.showPalletFillStatus !== false;
+  const palletFill = props.palletFill ?? null;
   const requestGen = useRef(0);
   const [loading, setLoading] = useState(Boolean(props.fetchArgs));
   const [error, setError] = useState(false);
@@ -373,7 +496,6 @@ export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
         setState((prev) => {
           let next: OfferCheckoutSessionState;
           if (!prev || forceFreshSession) {
-            // New quote set + no prior acceptance (pallet-close switch path).
             next = createOfferCheckoutSessionState(j.dual);
           } else {
             next = reconcileAcceptanceAfterRecompute({
@@ -452,20 +574,14 @@ export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
   }, [state, selectedQuote, publish, locale]);
 
   const finalDisabled =
+    !purchaseEnabled ||
     loading ||
     error ||
     !state?.dual.selected_quote_id ||
     Boolean(selectedQuote?.unavailable_reason);
 
-  const selectedTitle =
-    state?.dual.selected_offer === "direct_box"
-      ? dualOfferMsg(locale, "dualOfferDirectTitle")
-      : state?.dual.selected_offer === "shared_pallet"
-        ? dualOfferMsg(locale, "dualOfferSharedTitle")
-        : null;
-
-  const totalKr = selectedQuote
-    ? formatOfferTotalKr(selectedQuote.total_sek, locale)
+  const totalLabel = selectedQuote
+    ? formatOfferTotalAmountLabel(selectedQuote.total_sek, locale)
     : "—";
   const deadlineLabel = selectedQuote
     ? formatSharedPalletChargeDeadline(
@@ -477,21 +593,71 @@ export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
   const finalCtaLabel = !selectedQuote
     ? dualOfferMsg(locale, "dualOfferFinalCta")
     : selectedQuote.offer === "direct_box"
-      ? dualOfferMsg(locale, "dualOfferFinalCtaDirect", { total: totalKr })
-      : dualOfferMsg(locale, "dualOfferFinalCtaShared", { total: totalKr });
+      ? dualOfferMsg(locale, "dualOfferFinalCtaDirect", { total: totalLabel })
+      : dualOfferMsg(locale, "dualOfferFinalCtaShared", { total: totalLabel });
 
   const legalLine = !selectedQuote
     ? null
     : selectedQuote.offer === "direct_box"
-      ? dualOfferMsg(locale, "dualOfferLegalLineDirect", { total: totalKr })
+      ? dualOfferMsg(locale, "dualOfferLegalLineDirect", { total: totalLabel })
       : deadlineLabel
         ? dualOfferMsg(locale, "dualOfferLegalLineShared", {
-            total: totalKr,
+            total: totalLabel,
             datum: deadlineLabel,
           })
         : dualOfferMsg(locale, "dualOfferLegalLineSharedNoDate", {
-            total: totalKr,
+            total: totalLabel,
           });
+
+  const purchaseModel = useMemo<DualOfferPurchaseActionsModel | null>(() => {
+    if (loading) {
+      return {
+        locale,
+        finalCtaLabel: dualOfferMsg(locale, "dualOfferFinalCta"),
+        legalLine: null,
+        disabled: true,
+        confirmNote: null,
+        onConfirm: onFinalConfirm,
+      };
+    }
+    if (error || !state) return null;
+    return {
+      locale,
+      finalCtaLabel,
+      legalLine,
+      disabled: finalDisabled,
+      confirmNote,
+      onConfirm: onFinalConfirm,
+    };
+  }, [
+    loading,
+    error,
+    state,
+    locale,
+    finalCtaLabel,
+    legalLine,
+    finalDisabled,
+    confirmNote,
+    onFinalConfirm,
+  ]);
+
+  const onPurchaseActionsChange = props.onPurchaseActionsChange;
+  const onPurchaseActionsChangeRef = useRef(onPurchaseActionsChange);
+  onPurchaseActionsChangeRef.current = onPurchaseActionsChange;
+
+  useEffect(() => {
+    if (inlinePurchase) {
+      onPurchaseActionsChangeRef.current?.(null);
+      return;
+    }
+    onPurchaseActionsChangeRef.current?.(purchaseModel);
+  }, [inlinePurchase, purchaseModel]);
+
+  useEffect(() => {
+    return () => {
+      onPurchaseActionsChangeRef.current?.(null);
+    };
+  }, []);
 
   const quoteIds = [
     state?.dual.shared_pallet?.quote_id,
@@ -499,7 +665,21 @@ export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
   ].filter(Boolean);
 
   const compareMode =
-    showDirectOffer && Boolean(state?.dual.direct_box || state?.dual.shared_pallet);
+    showDirectOffer &&
+    Boolean(state?.dual.direct_box || state?.dual.shared_pallet);
+
+  const sharedQuote = state?.dual.shared_pallet ?? null;
+  const sharedDeadline = sharedQuote
+    ? formatSharedPalletChargeDeadline(
+        sharedQuote.charge_deadline_at,
+        locale,
+      )
+    : null;
+
+  const purchaseSlot =
+    inlinePurchase && purchaseModel ? (
+      <DualOfferPurchaseActions model={purchaseModel} />
+    ) : null;
 
   return (
     <section
@@ -508,24 +688,33 @@ export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
       aria-labelledby="dual-offer-heading"
     >
       <div
-        className="space-y-4 rounded-xl border border-border bg-background p-4 sm:p-5"
+        className={
+          compareMode
+            ? "space-y-4 rounded-xl border border-border bg-background p-4 sm:p-5"
+            : "space-y-3"
+        }
         data-testid="dual-offer-customer-panel"
       >
-        <header className="space-y-1.5">
+        {compareMode ? (
+          <header className="space-y-1.5">
+            <h2
+              id="dual-offer-heading"
+              className="text-lg font-semibold text-foreground tracking-tight"
+            >
+              {dualOfferMsg(locale, "dualOfferTitle")}
+            </h2>
+            <p className="text-sm text-foreground/80">
+              {dualOfferMsg(locale, "dualOfferSubtitle")}
+            </p>
+          </header>
+        ) : (
           <h2
             id="dual-offer-heading"
-            className="text-lg font-semibold text-foreground tracking-tight"
+            className="text-base font-semibold text-foreground tracking-tight"
           >
-            {compareMode
-              ? dualOfferMsg(locale, "dualOfferTitle")
-              : dualOfferMsg(locale, "dualOfferSharedOnlyTitle")}
+            {dualOfferMsg(locale, "dualOfferSharedOnlyTitle")}
           </h2>
-          <p className="text-sm text-foreground/80">
-            {compareMode
-              ? dualOfferMsg(locale, "dualOfferSubtitle")
-              : dualOfferMsg(locale, "dualOfferSharedOnlySubtitle")}
-          </p>
-        </header>
+        )}
 
         {loading ? (
           <div
@@ -556,32 +745,29 @@ export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
         ) : null}
 
         {state && !loading && !error ? (
-          <>
-            <div
-              className="grid gap-3"
-              role={compareMode ? "radiogroup" : undefined}
-              aria-label={
-                compareMode
-                  ? dualOfferMsg(locale, "dualOfferTitle")
-                  : undefined
-              }
-            >
-              <OfferRow
-                title={dualOfferMsg(locale, "dualOfferSharedTitle")}
-                quote={state.dual.shared_pallet}
-                selected={state.dual.selected_offer === "shared_pallet"}
-                onSelect={() => onSelect("shared_pallet")}
-                locale={locale}
-                detailsOpen={detailsOpen.shared_pallet}
-                onToggleDetails={() =>
-                  setDetailsOpen((d) => ({
-                    ...d,
-                    shared_pallet: !d.shared_pallet,
-                  }))
-                }
-                selectable={compareMode}
-              />
-              {showDirectOffer ? (
+          compareMode ? (
+            <>
+              <div
+                className="grid gap-3"
+                role="radiogroup"
+                aria-label={dualOfferMsg(locale, "dualOfferTitle")}
+              >
+                <OfferRow
+                  title={dualOfferMsg(locale, "dualOfferSharedTitle")}
+                  quote={state.dual.shared_pallet}
+                  selected={state.dual.selected_offer === "shared_pallet"}
+                  onSelect={() => onSelect("shared_pallet")}
+                  locale={locale}
+                  detailsOpen={detailsOpen.shared_pallet}
+                  onToggleDetails={() =>
+                    setDetailsOpen((d) => ({
+                      ...d,
+                      shared_pallet: !d.shared_pallet,
+                    }))
+                  }
+                  selectable
+                  showPriceBreakdown={false}
+                />
                 <OfferRow
                   title={dualOfferMsg(locale, "dualOfferDirectTitle")}
                   quote={state.dual.direct_box}
@@ -595,102 +781,67 @@ export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
                       direct_box: !d.direct_box,
                     }))
                   }
+                  showPriceBreakdown={false}
                 />
-              ) : null}
-            </div>
-
-            {selectedQuote ? (
-              <div
-                className="space-y-1 text-sm"
-                data-testid="dual-offer-pre-cta-summary"
-              >
-                <p className="font-medium text-foreground">{selectedTitle}</p>
-                <p className="tabular-nums font-semibold text-foreground">
-                  {formatOfferSek(selectedQuote.total_sek, locale)}{" "}
-                  <span className="font-normal text-muted-foreground">
-                    {dualOfferMsg(locale, "dualOfferInclVat")}
-                  </span>
-                </p>
-                <p
-                  className="text-foreground/85"
-                  data-testid="dual-offer-delivery-summary"
-                >
-                  {deliveryLabel(selectedQuote, locale)}
-                </p>
-                <p className="text-foreground/85">
-                  {debitLabel(selectedQuote, locale)}
-                  {selectedQuote.offer === "shared_pallet" && deadlineLabel
-                    ? ` · ${dualOfferMsg(locale, "dualOfferDeadlinePrefix", {
-                        datum: deadlineLabel,
-                      })}`
-                    : null}
-                </p>
               </div>
-            ) : (
-              <p
-                className="text-sm text-foreground/80"
-                data-testid="dual-offer-confirm-hint"
-              >
-                {dualOfferMsg(locale, "dualOfferConfirmHintNone")}
-              </p>
-            )}
-
-            {legalLine ? (
-              <p
-                className="text-sm text-foreground"
-                data-testid="dual-offer-legal-line"
-              >
-                {legalLine}
-              </p>
-            ) : null}
-
-            <button
-              type="button"
-              data-testid="dual-offer-final"
-              className="w-full rounded-xl bg-foreground text-background px-4 py-3 text-sm font-semibold disabled:opacity-40"
-              disabled={finalDisabled}
-              onClick={onFinalConfirm}
+              {purchaseSlot}
+            </>
+          ) : (
+            <div
+              className="space-y-2"
+              data-testid="dual-offer-shared-only-block"
             >
-              {finalCtaLabel}
-            </button>
+              {showPalletFillStatus &&
+              palletFill &&
+              Number.isFinite(palletFill.filled) &&
+              Number.isFinite(palletFill.total) &&
+              palletFill.total > 0 ? (
+                <p
+                  className="text-sm text-foreground/70"
+                  data-testid="dual-offer-pallet-fill"
+                >
+                  {dualOfferMsg(locale, "dualOfferPalletFillStatus", {
+                    filled: String(Math.round(palletFill.filled)),
+                    total: String(Math.round(palletFill.total)),
+                  })}
+                </p>
+              ) : null}
 
-            <p
-              className="text-xs text-muted-foreground"
-              data-testid="dual-offer-terms-line"
-            >
-              {(() => {
-                const marker = "<<<TERMS>>>";
-                const template = dualOfferMsg(locale, "dualOfferTermsLine", {
-                  terms: marker,
-                });
-                const [before, after] = template.split(marker);
-                return (
-                  <>
-                    {before}
-                    <Link
-                      href="/villkor"
-                      className="underline underline-offset-2 text-foreground"
-                    >
-                      {dualOfferMsg(locale, "dualOfferTermsLink")}
-                    </Link>
-                    {after}
-                  </>
-                );
-              })()}
-            </p>
+              {sharedQuote && !sharedQuote.unavailable_reason ? (
+                <>
+                  <p
+                    className="text-sm text-foreground/85"
+                    data-testid="dual-offer-delivery-shared_pallet"
+                  >
+                    {sharedCloseDeliveryLine(
+                      sharedQuote,
+                      locale,
+                      sharedDeadline,
+                    )}
+                  </p>
+                  <p
+                    className="text-sm text-foreground/85"
+                    data-testid="dual-offer-debit-shared_pallet"
+                  >
+                    {debitLabel(sharedQuote, locale)}
+                  </p>
+                </>
+              ) : sharedQuote?.unavailable_reason ? (
+                <p className="text-sm text-muted-foreground">
+                  {sharedQuote.unavailable_reason}
+                </p>
+              ) : (
+                <p className="text-sm text-foreground/80">
+                  {dualOfferMsg(locale, "dualOfferConfirmHintNone")}
+                </p>
+              )}
 
-            {confirmNote ? (
-              <p
-                className="text-sm text-foreground"
-                data-testid="dual-offer-final-reason"
-              >
-                {confirmNote}
-              </p>
-            ) : null}
-          </>
+              {purchaseSlot}
+            </div>
+          )
         ) : null}
 
-        {loading ? (
+        {loading && inlinePurchase ? (
           <button
             type="button"
             data-testid="dual-offer-final"

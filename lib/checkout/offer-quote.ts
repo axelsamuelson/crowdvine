@@ -153,10 +153,12 @@ export function isDualOfferCompareEnabled(
 export function sharedPalletDeliveryTerms(): OfferDeliveryTerms {
   return {
     code: "shared_pallet_collective_fill",
+    // Date-bearing customer copy is built in DualOfferCheckoutPanel
+    // (dualOfferSharedCloseDelivery*) so senast {datum} stays accurate.
     previewLabelSv:
-      "Delad pall — leverans när pallen fylls eller senast inom 4 veckor",
+      "Pallen stänger när den är full. Leverans med Budbee 1–2 veckor därefter.",
     previewLabelEn:
-      "Shared pallet — ships when full or within 4 weeks at the latest",
+      "The pallet closes when full. Delivered by Budbee 1–2 weeks after.",
   };
 }
 

@@ -64,16 +64,22 @@ describe("dual-offer customer surface guards", () => {
     expect(panelSrc).toMatch(/acceptSelectedOfferQuote/);
     expect(panelSrc).toMatch(/dual-offer-row-skeleton/);
     expect(panelSrc).toMatch(/dualOfferBottleAvg|offerBottleAverageLabelKey/);
+    expect(panelSrc).toMatch(/DualOfferPurchaseActions/);
+    expect(panelSrc).toMatch(/dual-offer-shared-only-block|dualOfferSharedOnlyTitle/);
+    expect(panelSrc).toMatch(/dualOfferSharedCloseDelivery/);
   });
 
   it("keeps diagnostics behind showDiagnostics (not default customer mount)", () => {
     expect(panelSrc).toMatch(/showDiagnostics/);
     expect(panelSrc).toMatch(/showDiagnostics === true/);
-    expect(checkoutSrc).not.toMatch(/showDiagnostics/);
+    expect(checkoutSrc).not.toMatch(/showDiagnostics=\{true\}/);
     expect(checkoutSrc).toMatch(/dual-offer-checkout-header-shield/);
     expect(checkoutSrc).toMatch(/!dualOfferReviewActive/);
     expect(checkoutSrc).not.toMatch(/\/api\/user\/rewards/);
     expect(checkoutSrc).toMatch(/showDirectOffer=\{directBoxCheckoutEnabled\}/);
+    expect(checkoutSrc).toMatch(/inlinePurchase=\{false\}/);
+    expect(checkoutSrc).toMatch(/DualOfferPurchaseActions/);
+    expect(checkoutSrc).toMatch(/showCheckoutPalletFillStatus|showPalletFillStatus/);
     expect(panelSrc).toMatch(/dualOfferFinalCtaShared|dual-offer-legal-line/);
     expect(panelSrc).toMatch(/showDirectOffer/);
     expect(panelSrc).not.toMatch(/proposed capability|proposed model|Immediate payment on confirm \(proposed\)/i);

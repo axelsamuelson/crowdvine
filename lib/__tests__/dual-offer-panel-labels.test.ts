@@ -6,6 +6,7 @@ import {
 import type { CheckoutQuote } from "@/lib/checkout/checkout-quote";
 import {
   formatOfferSek,
+  formatOfferTotalAmountLabel,
   isMixedBottleBasket,
 } from "@/lib/checkout/dual-offer-display";
 
@@ -88,5 +89,11 @@ describe("dual-offer bottle label honesty", () => {
     expect(s).toMatch(/kr|SEK/i);
     expect(s).not.toMatch(/,00|\.00/);
     expect(formatOfferSek(1283.4, "en")).not.toMatch(/\.00|,00/);
+  });
+
+  it("CTA amount label uses kr in SV and SEK in EN", () => {
+    expect(formatOfferTotalAmountLabel(1283, "sv")).toMatch(/1[\s\u00a0]?283\s*kr/);
+    expect(formatOfferTotalAmountLabel(1283, "en")).toMatch(/1[\s\u00a0]?283\s*SEK/);
+    expect(formatOfferTotalAmountLabel(1283, "en")).not.toMatch(/\bkr\b/);
   });
 });

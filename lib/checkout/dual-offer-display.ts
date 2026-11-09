@@ -37,3 +37,16 @@ export function formatOfferTotalKr(
     minimumFractionDigits: 0,
   }).format(Math.round(n));
 }
+
+/**
+ * CTA / binding-line money label: SV keeps "kr", EN uses "SEK"
+ * (e.g. "1 283 kr" / "1 283 SEK").
+ */
+export function formatOfferTotalAmountLabel(
+  n: number | null | undefined,
+  locale: "sv" | "en",
+): string {
+  const amount = formatOfferTotalKr(n, locale);
+  if (amount === "—") return amount;
+  return locale === "en" ? `${amount} SEK` : `${amount} kr`;
+}

@@ -41,7 +41,13 @@ import {
   type StripeConfirmResult,
 } from "@/components/checkout/stripe-payment-section";
 import type { CheckoutQuote } from "@/lib/checkout/checkout-quote";
-import { DualOfferCheckoutPanel } from "@/components/checkout/dual-offer-checkout-panel";
+import {
+  DualOfferCheckoutPanel,
+  DualOfferPurchaseActions,
+  type DualOfferPurchaseActionsModel,
+} from "@/components/checkout/dual-offer-checkout-panel";
+import type { OfferCheckoutSessionState } from "@/lib/checkout/offer-acceptance";
+import { formatOfferSek } from "@/lib/checkout/dual-offer-display";
 import {
   isDualOfferReviewCheckoutActive,
   mayRunLegacySharedPalletPaymentUi,
@@ -58,7 +64,6 @@ import {
   Check,
   ArrowRight,
   FileText,
-  ChevronRight,
 } from "lucide-react";
 import { clearZoneCache } from "@/lib/zone-matching";
 import { ensureVisitorIdentity } from "@/lib/analytics/visitor-identity";
@@ -333,6 +338,18 @@ function CheckoutContent({
         : defaultFulfillmentChannel(),
     );
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  /** Dual-offer purchase bar (sticky under Totalt / mobile after address). */
+  const [dualOfferPurchase, setDualOfferPurchase] =
+    useState<DualOfferPurchaseActionsModel | null>(null);
+  const [dualOfferSession, setDualOfferSession] =
+    useState<OfferCheckoutSessionState | null>(null);
+  /** Mobile order summary starts collapsed (Inès 390). */
+  const [orderSummaryExpanded, setOrderSummaryExpanded] = useState(false);
+  /**
+   * Discreet pallet fill status on dual-offer block. Flip to false for CRO
+   * hide without removing the wiring.
+   */
+  const showCheckoutPalletFillStatus = true;
   const [shareAllocation, setShareAllocation] = useState<ShareAllocation | null>(
     null,
   );
@@ -3367,6 +3384,16 @@ function CheckoutContent({
     const originalLineTotalSek = showLineDiscount
       ? product.originalUnitPriceSek! * line.quantity
       : null;
+    const unitAmount =
+      line.quantity > 0 ? totalForLine / line.quantity : totalForLine;
+    const unitPriceLabel = formatChargedAmount(
+      unitAmount,
+      line.cost.totalAmount.currencyCode,
+    );
+    const lineTotalLabel = formatChargedAmount(
+      totalForLine,
+      line.cost.totalAmount.currencyCode,
+    );
     return (
       <div
         key={line.id}
@@ -3392,8 +3419,11 @@ function CheckoutContent({
           {producerLabel ? (
             <p className="mt-0.5 text-xs text-muted-foreground">{producerLabel}</p>
           ) : null}
-          <p className="text-xs text-muted-foreground">
-            {t("checkout.qty", { count: String(line.quantity) })}
+          <p className="text-xs text-muted-foreground tabular-nums">
+            {t("checkout.qtyTimesUnit", {
+              count: String(line.quantity),
+              unitPrice: unitPriceLabel,
+            })}
           </p>
           {line.discountLabel ? (
             <span className="mt-1 inline-flex items-center rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-700">
@@ -3403,23 +3433,50 @@ function CheckoutContent({
         </div>
         <div className="shrink-0 text-right">
           {showLineDiscount && originalLineTotalSek !== null ? (
-            <>
-              <p className="text-xs text-muted-foreground line-through tabular-nums">
-                {formatSek(originalLineTotalSek)}
-              </p>
-              <p className="text-sm font-medium tabular-nums text-foreground">
-                {formatChargedAmount(totalForLine, line.cost.totalAmount.currencyCode)}
-              </p>
-            </>
-          ) : (
-            <p className="text-sm font-medium tabular-nums text-foreground">
-              {formatChargedAmount(totalForLine, line.cost.totalAmount.currencyCode)}
+            <p className="text-xs text-muted-foreground line-through tabular-nums">
+              {formatSek(originalLineTotalSek)}
             </p>
-          )}
+          ) : null}
+          <p className="text-[11px] text-muted-foreground">
+            {t("checkout.lineTotalLabel")}
+          </p>
+          <p className="text-sm font-medium tabular-nums text-foreground">
+            {lineTotalLabel}
+          </p>
         </div>
       </div>
     );
   };
+
+  const handleDualOfferPurchaseChange = useCallback(
+    (model: DualOfferPurchaseActionsModel | null) => {
+      setDualOfferPurchase((prev) => {
+        if (prev === model) return prev;
+        if (!prev && !model) return prev;
+        if (
+          prev &&
+          model &&
+          prev.finalCtaLabel === model.finalCtaLabel &&
+          prev.legalLine === model.legalLine &&
+          prev.disabled === model.disabled &&
+          prev.confirmNote === model.confirmNote &&
+          prev.locale === model.locale
+        ) {
+          // Keep latest onConfirm closure without forcing a re-render.
+          prev.onConfirm = model.onConfirm;
+          return prev;
+        }
+        return model;
+      });
+    },
+    [],
+  );
+
+  const dualOfferSelectedQuote = dualOfferSession?.dual.selected_offer
+    ? dualOfferSession.dual.selected_offer === "direct_box"
+      ? dualOfferSession.dual.direct_box
+      : dualOfferSession.dual.shared_pallet
+    : dualOfferSession?.dual.shared_pallet ?? null;
 
   const checkBudbeeAvailability = useCallback(
     async (postalCode: string, countryCode: string = "SE") => {
@@ -3700,14 +3757,58 @@ function CheckoutContent({
         <div className="flex flex-col gap-8 lg:grid lg:grid-cols-[1fr_400px] lg:items-start">
           <aside className="order-1 w-full min-w-0 lg:sticky lg:top-8 lg:order-2 lg:self-start">
             <div className="space-y-3">
-              <p className="text-sm font-medium text-foreground mb-3">
+              {/* 390: one expandable row; lg+: always expanded */}
+              <button
+                type="button"
+                className="flex w-full items-center justify-between gap-2 text-left text-sm font-medium text-foreground lg:hidden"
+                aria-expanded={orderSummaryExpanded}
+                data-testid="checkout-order-summary-toggle"
+                onClick={() => setOrderSummaryExpanded((v) => !v)}
+              >
+                <span>
+                  {t(
+                    cart.totalQuantity === 1
+                      ? "checkout.orderSummaryCollapsedOne"
+                      : "checkout.orderSummaryCollapsed",
+                    {
+                      count: String(cart.totalQuantity),
+                      total:
+                        displayTotal == null
+                          ? "…"
+                          : formatChargedAmount(displayTotal),
+                    },
+                  )}
+                </span>
+              </button>
+              <p className="mb-3 hidden text-sm font-medium text-foreground lg:block">
                 {t("checkout.yourOrder")} ({cart.totalQuantity}{" "}
                 {cart.totalQuantity === 1
                   ? t("checkout.bottle")
                   : t("checkout.bottles")})
               </p>
+              <div
+                className={cn(
+                  !orderSummaryExpanded && "hidden lg:block",
+                )}
+                data-testid="checkout-order-summary-body"
+              >
               <div>{orderLines.map(renderCartLineRow)}</div>
               <div className="space-y-2 border-t border-border pt-4 mt-4 text-sm">
+                {dualOfferReviewActive &&
+                dualOfferSelectedQuote &&
+                !dualOfferSelectedQuote.unavailable_reason ? (
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">
+                      {t("checkout.dualOfferBottleAvg")}
+                    </span>
+                    <span className="tabular-nums text-foreground">
+                      {formatOfferSek(
+                        dualOfferSelectedQuote.bottle_unit_price_sek,
+                        shopping.locale === "en" ? "en" : "sv",
+                      )}
+                    </span>
+                  </div>
+                ) : null}
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">
                     {t("checkout.subtotal")}
@@ -3840,29 +3941,14 @@ function CheckoutContent({
                   </span>
                 </div>
               </div>
-            </div>
+              </div>
 
-            <div
-              className="border-b border-border my-6"
-              role="separator"
-              aria-hidden="true"
-            />
-
-            <div className="space-y-4">
-              <Button
-                type="button"
-                variant="ghost"
-                className="w-full justify-between text-muted-foreground hover:text-foreground"
-                onClick={() => setShareDialogOpen(true)}
-              >
-                <span>
-                  {t("checkout.shareBottles")}
-                  {(shareFriendIds?.length ?? 0) > 0
-                    ? ` (${shareFriendIds?.length})`
-                    : ""}
-                </span>
-                <ChevronRight className="h-4 w-4 shrink-0" aria-hidden />
-              </Button>
+              {/* Desktop: purchase CTA sticky under Totalt (dual-offer). */}
+              {dualOfferReviewActive && dualOfferPurchase ? (
+                <div className="mt-6 hidden lg:block">
+                  <DualOfferPurchaseActions model={dualOfferPurchase} />
+                </div>
+              ) : null}
             </div>
           </aside>
 
@@ -4260,6 +4346,19 @@ function CheckoutContent({
                           prefetchedStripeIntent?.intentId
                             ? [prefetchedStripeIntent.intentId]
                             : undefined
+                        }
+                        inlinePurchase={false}
+                        purchaseEnabled={deliveryComplete}
+                        onPurchaseActionsChange={handleDualOfferPurchaseChange}
+                        onStateChange={setDualOfferSession}
+                        showPalletFillStatus={showCheckoutPalletFillStatus}
+                        palletFill={
+                          selectedPallet
+                            ? {
+                                filled: selectedPallet.currentBottles,
+                                total: selectedPallet.maxBottles,
+                              }
+                            : null
                         }
                         className="pt-4 border-t border-border"
                       />
@@ -4690,10 +4789,21 @@ function CheckoutContent({
               </div>
             </section>
 
+            {/* Mobile: purchase CTA at bottom after address (dual-offer). */}
+            {dualOfferReviewActive && dualOfferPurchase ? (
+              <section
+                className="py-6 border-b border-border last:border-0 lg:hidden"
+                data-testid="dual-offer-purchase-mobile"
+              >
+                <DualOfferPurchaseActions model={dualOfferPurchase} />
+              </section>
+            ) : null}
+
             <section
               ref={complianceSectionRef}
               className={cn(
                 "py-6 border-b border-border last:border-0 transition-[opacity,transform] duration-500 ease-out",
+                dualOfferReviewActive && "hidden",
                 deliveryComplete && complianceStepRevealed
                   ? "opacity-100 translate-y-0"
                   : "opacity-50 translate-y-1",
@@ -4913,6 +5023,7 @@ function CheckoutContent({
               ref={paymentSectionRef}
               className={cn(
                 "py-6 border-b border-border last:border-0 transition-[opacity,transform] duration-500 ease-out",
+                dualOfferReviewActive && "hidden",
                 complianceComplete && paymentCardRevealed
                   ? "opacity-100 translate-y-0"
                   : "opacity-50 translate-y-1",
