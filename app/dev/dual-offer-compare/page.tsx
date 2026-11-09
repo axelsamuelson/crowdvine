@@ -73,26 +73,39 @@ export default function DualOfferCompareDevPage() {
   });
 
   return (
-    // Review-route only: scrollport starts below the fixed transparent site header
-    // so MENY/PACT never visually superimpose comparison text at any scrollY.
-    // Does not alter global header styles or OFF-checkout.
-    <main
-      className="fixed inset-x-0 bottom-0 top-[var(--top-spacing)] z-0 overflow-y-auto overscroll-y-contain bg-background text-foreground"
-      data-testid="dual-offer-dev-main"
-    >
-      <div className="mx-auto max-w-3xl px-4 py-6 space-y-4 font-sans">
-        <Suspense fallback={<p className="text-sm text-muted-foreground">…</p>}>
-          <DualOfferReviewLocales dual={dual} />
-        </Suspense>
-        <aside
-          className="rounded-lg border border-dashed border-muted-foreground/40 bg-muted/20 px-3 py-2 font-mono text-[11px] text-muted-foreground"
-          data-testid="dual-offer-page-diagnostics"
-        >
-          Fixture cart: 8 bottles (mixed 145+160 SEK) · destination SE ·
-          weighted avg bottle = wines_subtotal/bottle_count · migration 279
-          unapplied · not authenticated /checkout
-        </aside>
-      </div>
-    </main>
+    <>
+      {/*
+        Review-route only: opaque underlay beneath the intentionally transparent
+        fixed site header so scrolled comparison text cannot show through MENY/PACT.
+        Does not alter global header styles or OFF-checkout.
+      */}
+      <div
+        aria-hidden
+        data-testid="dual-offer-dev-header-shield"
+        className="pointer-events-none fixed inset-x-0 top-0 z-40 h-[var(--top-spacing)] bg-background"
+      />
+      {/*
+        Isolated scrollport below --top-spacing: comparison text never occupies
+        the header band at arbitrary scrollY (stronger than scroll-target clearance).
+      */}
+      <main
+        className="fixed inset-x-0 bottom-0 top-[var(--top-spacing)] z-0 overflow-y-auto overscroll-y-contain bg-background text-foreground"
+        data-testid="dual-offer-dev-main"
+      >
+        <div className="mx-auto max-w-3xl px-4 py-6 space-y-4 font-sans">
+          <Suspense fallback={<p className="text-sm text-muted-foreground">…</p>}>
+            <DualOfferReviewLocales dual={dual} />
+          </Suspense>
+          <aside
+            className="rounded-lg border border-dashed border-muted-foreground/40 bg-muted/20 px-3 py-2 font-mono text-[11px] text-muted-foreground"
+            data-testid="dual-offer-page-diagnostics"
+          >
+            Fixture cart: 8 bottles (mixed 145+160 SEK) · destination SE ·
+            weighted avg bottle = wines_subtotal/bottle_count · migration 279
+            unapplied · not authenticated /checkout
+          </aside>
+        </div>
+      </main>
+    </>
   );
 }
