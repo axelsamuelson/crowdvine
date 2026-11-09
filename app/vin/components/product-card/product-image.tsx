@@ -67,8 +67,12 @@ export const ProductImage = memo(({ product, priority = false, index = 0 }: Prod
     };
   }, [shouldLoad, imageToShow?.url]);
 
-  // If no image is available, use default wine image
-  const imageUrl = imageToShow?.url || DEFAULT_WINE_IMAGE_PATH;
+  // If no image is available, use default wine image. Absolute
+  // …/default-wine.png from prior deploys must stay relative.
+  const imageUrl =
+    !imageToShow?.url || /(?:^|\/)default-wine\.png$/i.test(imageToShow.url)
+      ? DEFAULT_WINE_IMAGE_PATH
+      : imageToShow.url;
 
   // Don't render image until it should load (unless priority)
   if (!shouldLoad && !priority) {
