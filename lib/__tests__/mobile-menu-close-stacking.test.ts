@@ -44,9 +44,11 @@ describe("mobile menu close stacking (PACT + Dirty Wine)", () => {
     expect(menuSrc).toMatch(/min-h-11/);
     expect(menuSrc).toMatch(/min-w-11/);
     expect(menuSrc).toMatch(/h-11/);
+    expect(menuSrc).toMatch(/text-foreground hover:text-foreground/);
     expect(sv.common.closeMenu).toBe("Stäng meny");
     expect(en.common.closeMenu).toBe("Close menu");
     expect(sv.common.close).toBe("Stäng");
     expect(en.common.close).toBe("Close");
   });
 });
+
