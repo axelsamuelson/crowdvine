@@ -1,34 +1,34 @@
 import { NextRequest, NextResponse } from "next/server";
-import { runReservationExpiryJob } from "@/lib/reservations/expiry-run";
 
 /**
- * Daily: 30-day extension asks / 7-day no-reply cancels / optional max-age end.
- * Secured by CRON_SECRET: Authorization: Bearer ${CRON_SECRET}
+ * Reservation expiry / extension-ask cron — DISABLED (Axel 2026-11-10).
  *
- * Gates (defaults live after Axel approval; env can override off):
- * - RESERVATION_EXPIRY_ENABLED (default true)
- * - RESERVATION_EXPIRY_DRY_RUN (default false)
- * - RESERVATION_EXPIRY_SEND_EMAIL (default true)
+ * Shared-pallet orders have no time limit; do not send
+ * "Vill du ge din reservation 30 dagar till?" or auto-cancel on no reply.
+ *
+ * Cron entry removed from vercel.json. This route remains as a safety net:
+ * authenticated calls return 200 and do nothing (no emails, status changes,
+ * or cancellations). Job logic stays in lib/reservations/expiry-run.ts for a
+ * follow-up PR that reworks it into status emails.
+ *
+ * Secured by CRON_SECRET: Authorization: Bearer ${CRON_SECRET}
  */
 export async function GET(request: NextRequest) {
-  try {
-    const auth = request.headers.get("authorization");
-    const secret = process.env.CRON_SECRET;
-    if (!secret || auth !== `Bearer ${secret}`) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 200 },
-      );
-    }
-
-    const summary = await runReservationExpiryJob();
-    return NextResponse.json({ success: true, summary }, { status: 200 });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    console.error("[cron/reservation-expiry]", message);
+  const auth = request.headers.get("authorization");
+  const secret = process.env.CRON_SECRET;
+  if (!secret || auth !== `Bearer ${secret}`) {
     return NextResponse.json(
-      { success: false, error: message },
+      { success: false, error: "Unauthorized" },
       { status: 200 },
     );
   }
+
+  return NextResponse.json(
+    {
+      disabled: true,
+      reason:
+        "shared pallet orders have no time limit (Axel 2026-11-10)",
+    },
+    { status: 200 },
+  );
 }
