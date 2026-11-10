@@ -306,10 +306,10 @@ export function CartValidationHeader({
       >
         <div className="bg-background/95 backdrop-blur-md border border-border/30 rounded-lg p-3 space-y-2">
           <div className="flex items-center justify-between gap-2">
-            <WhyLink onOpen={() => setShowWhyModal(true)} />
             <span className="text-xs font-semibold tabular-nums text-foreground">
               {t("cart.bottleProgress", { current, total })}
             </span>
+            <WhyLink onOpen={() => setShowWhyModal(true)} />
           </div>
           <div className="relative h-1.5 bg-foreground/[0.08] rounded-full overflow-hidden">
             <div
