@@ -54,7 +54,8 @@ export function MobileMenu({
       ]
     : [
         { href: paths.home, label: t("common.home") },
-        { href: paths.shop, label: t("common.shop") },
+        // Same label as desktop header (Alla viner / All wines); footer keeps common.shop.
+        { href: paths.shop, label: t("nav.shopAll") },
         { href: paths.guides, label: t("common.guides") },
         { href: paths.about, label: t("common.about") },
         { href: "/profile", label: t("common.profile") },

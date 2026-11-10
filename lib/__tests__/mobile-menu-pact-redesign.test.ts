@@ -43,15 +43,30 @@ describe("PACT mobile menu redesign", () => {
     expect(menuSrc).not.toMatch(/icon: User/);
   });
 
-  it("orders PACT items Hem → Butik → Guider → Om oss → Profil; Admin secondary", () => {
+  it("orders PACT items Hem → Alla viner → Guider → Om oss → Profil; Admin secondary", () => {
     const pactBlock = menuSrc.match(
       /isDirtywineSite\s*\?\s*\[[\s\S]*?\]\s*:\s*\[([\s\S]*?)\]/,
     )?.[1];
     expect(pactBlock).toBeTruthy();
+    // Shop row uses desktop header key nav.shopAll (Alla viner / All wines).
+    expect(pactBlock).toMatch(/t\("nav\.shopAll"\)/);
+    expect(pactBlock).not.toMatch(/t\("common\.shop"\)/);
     const order = [
-      ...pactBlock!.matchAll(/t\("common\.(home|shop|guides|about|profile)"\)/g),
+      ...pactBlock!.matchAll(
+        /t\("(common\.(home|guides|about|profile)|nav\.shopAll)"\)/g,
+      ),
     ].map((m) => m[1]);
-    expect(order).toEqual(["home", "shop", "guides", "about", "profile"]);
+    expect(order).toEqual([
+      "common.home",
+      "nav.shopAll",
+      "common.guides",
+      "common.about",
+      "common.profile",
+    ]);
+    expect(sv.nav.shopAll).toBe("Alla viner");
+    expect(en.nav.shopAll).toBe("All wines");
+    expect(sv.common.shop).toBe("Butik");
+    expect(en.common.shop).toBe("Shop");
     expect(menuSrc).toMatch(/data-testid="mobile-menu-nav-admin"/);
     expect(menuSrc).toMatch(/mt-6 flex flex-col/);
     expect(menuSrc).toMatch(/text-\[#737373\]/);
