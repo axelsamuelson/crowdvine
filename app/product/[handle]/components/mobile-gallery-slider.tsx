@@ -56,7 +56,7 @@ export function MobileGallerySlider({ product }: MobileGallerySliderProps) {
           {validImages.map((image, index) => (
             <div
               key={`${image.url}-${image.selectedOptions?.map((o, idx) => `${o.name},${o.value}`).join("-") || index}`}
-              className="relative h-full w-full flex-shrink-0 pt-[var(--top-spacing)]"
+              className="relative h-full w-full flex-shrink-0 pt-[calc(var(--top-spacing)+0.75rem)]"
             >
               <Image
                 style={{
