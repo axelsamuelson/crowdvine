@@ -131,6 +131,7 @@
     "showWines": "Show {count} wines",
     "wineBoxOff": "{percent}% OFF",
     "addCase": "Reserve",
+    "buy": "Buy",
     "reserve": "Reserve",
     "viewProductAria": "View details for {title}, price {price}",
     "viewProduct": "View product",
@@ -167,6 +168,7 @@
     "addMoreBottles": "Add {needed} more bottles to proceed to checkout",
     "addMoreBottlesGeneric": "Add more bottles to proceed to checkout",
     "bottleProgress": "{current} of {total} bottles",
+    "bottleProgressFull": "{current} of {total} bottles – the box is full",
     "bottleProgressHint": "Minimum 6 bottles – you can mix",
     "needMoreBottlesShort": "{needed} more bottles",
     "proceedToCheckout": "Proceed to Checkout",
@@ -357,7 +359,7 @@
     "eligibilityInterest": "Interest only"
   },
   "commerce": {
-    "minSixMix": "Minimum 6 bottles – you can mix",
+    "minSixMix": "Minimum 6 bottles per order – mix freely across the wines.",
     "directBoxDeliveryPromise": "Shipped directly from the producer in a box",
     "palletFillCount": "{filled} of {total} bottles",
     "palletReadyShort": "Ready",

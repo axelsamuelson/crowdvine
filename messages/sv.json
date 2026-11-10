@@ -131,6 +131,7 @@
     "showWines": "Visa {count} viner",
     "wineBoxOff": "{percent}% RABATT",
     "addCase": "Reservera",
+    "buy": "Köp",
     "reserve": "Reservera",
     "viewProductAria": "Visa detaljer för {title}, pris {price}",
     "viewProduct": "Visa produkt",
@@ -167,6 +168,7 @@
     "addMoreBottles": "Lägg till {needed} flaskor till för att gå till kassan",
     "addMoreBottlesGeneric": "Lägg till fler flaskor för att gå till kassan",
     "bottleProgress": "{current} av {total} flaskor",
+    "bottleProgressFull": "{current} av {total} flaskor – lådan är full",
     "bottleProgressHint": "Minst 6 flaskor – du kan blanda",
     "needMoreBottlesShort": "{needed} flaskor till",
     "proceedToCheckout": "Gå till kassan",
@@ -357,7 +359,7 @@
     "eligibilityInterest": "Endast intresseanmälan"
   },
   "commerce": {
-    "minSixMix": "Minst 6 flaskor – du kan blanda",
+    "minSixMix": "Minst 6 flaskor per order – blanda fritt mellan vinerna.",
     "directBoxDeliveryPromise": "Skickas direkt från producenten i låda",
     "palletFillCount": "{filled} av {total} flaskor",
     "palletReadyShort": "Redo",

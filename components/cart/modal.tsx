@@ -234,6 +234,17 @@ export default function CartModal() {
   useBodyScrollLock(isOpen);
 
   useEffect(() => {
+    // Signal sticky ATC / overlays without coupling React trees.
+    document.documentElement.setAttribute(
+      "data-cart-drawer-open",
+      isOpen ? "true" : "false",
+    );
+    if (!isOpen) {
+      document.documentElement.removeAttribute("data-cart-drawer-open");
+    }
+    window.dispatchEvent(
+      new CustomEvent("cart-drawer-open-change", { detail: { open: isOpen } }),
+    );
     if (isOpen && !wasOpenRef.current) {
       void AnalyticsTracker.trackEvent({
         eventType: "cart_opened",
@@ -242,6 +253,9 @@ export default function CartModal() {
       });
     }
     wasOpenRef.current = isOpen;
+    return () => {
+      document.documentElement.removeAttribute("data-cart-drawer-open");
+    };
   }, [isOpen]);
 
   // Validate cart whenever it changes (with debounce)
@@ -393,10 +407,8 @@ export default function CartModal() {
     );
   };
 
-  // Always reserve badge chrome while hydrating — never return null (that
-  // dropped MENU-adjacent space) and never flash CART (0) before cartReady.
-  // Non-empty cache / optimistic cart may show early; empty only after ready.
-  // During the first add (empty → N), prefer loading over a misleading (0).
+  // After hydrate: always show a real cart control (including empty (0)).
+  // While hydrating / first-add in flight: invisible same-size spacer — no grey box.
   const showNeutralLoading =
     isPending && (!cart || cart.totalQuantity === 0);
   const showCartBadge =
@@ -434,12 +446,11 @@ export default function CartModal() {
         )}
       </Button>
       ) : (
-        // Reserve badge space while cart hydrates / first add mutates —
-        // never flash (0).
+        // Invisible spacer only — no grey placeholder box when empty/hydrating.
         <span
-          className="inline-block h-7 w-10 shrink-0 rounded-sm bg-muted/40 animate-pulse md:w-16"
+          className="inline-block h-7 w-10 shrink-0 md:w-16"
           aria-hidden
-          data-testid="cart-badge-skeleton"
+          data-testid="cart-badge-spacer"
         />
       )}
       <AnimatePresence>

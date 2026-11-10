@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
-import type { ReactNode } from "react";
+import type { ReactNode, Ref } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader } from "@/components/ui/loader";
 import { cn } from "@/lib/utils";
@@ -21,6 +21,8 @@ export interface CaseModeSelectorProps {
   /** Optional control rendered beside the primary CTA (e.g. B2B link on PDP). */
   ctaAside?: ReactNode;
   className?: string;
+  /** Ref on the primary CTA for sticky-bar IntersectionObserver. */
+  ctaRef?: Ref<HTMLButtonElement>;
 }
 
 /**
@@ -35,6 +37,7 @@ export function CaseModeSelector({
   pending = false,
   ctaAside,
   className,
+  ctaRef,
 }: CaseModeSelectorProps) {
   const { t } = useTranslations();
   const ctaLabel = label ?? t("shop.addCase");
@@ -45,10 +48,12 @@ export function CaseModeSelector({
     <div className={cn("flex w-full flex-col gap-2", className)}>
       <div className="flex w-full items-center gap-3">
         <Button
+          ref={ctaRef}
           type="button"
           size="lg"
           disabled={disabled || pending}
           onClick={onConfirm}
+          data-pdp-main-cta=""
           className="h-11 min-w-0 flex-1 rounded-md border-0 bg-black text-white hover:bg-black/90"
         >
           <AnimatePresence initial={false} mode="wait">

@@ -6,11 +6,15 @@ import {
 } from "@/lib/commerce/direct-box-delivery";
 
 describe("conversion funnel copy (sv)", () => {
-  it("exposes Reservera CTA and min-six mix hint", () => {
+  it("exposes Köp on PDP buy key; keeps Reservera for PLP links; min-six mix hint", () => {
+    expect(translate("sv", "shop.buy")).toBe("Köp");
     expect(translate("sv", "shop.reserve")).toBe("Reservera");
     expect(translate("sv", "shop.addCase")).toBe("Reservera");
     expect(translate("sv", "commerce.minSixMix")).toBe(
-      "Minst 6 flaskor – du kan blanda",
+      "Minst 6 flaskor per order – blanda fritt mellan vinerna.",
+    );
+    expect(translate("sv", "cart.bottleProgressFull", { current: 6, total: 6 })).toBe(
+      "6 av 6 flaskor – lådan är full",
     );
   });
 
@@ -48,9 +52,13 @@ describe("conversion funnel copy (sv)", () => {
 });
 
 describe("conversion funnel copy (en)", () => {
-  it("mirrors reserve + min-six + direct-box messaging", () => {
+  it("mirrors buy + reserve + min-six + direct-box messaging", () => {
+    expect(translate("en", "shop.buy")).toBe("Buy");
     expect(translate("en", "shop.reserve")).toBe("Reserve");
-    expect(translate("en", "commerce.minSixMix")).toMatch(/6/);
+    expect(translate("en", "commerce.minSixMix")).toMatch(/Minimum 6 bottles per order/i);
+    expect(translate("en", "cart.bottleProgressFull", { current: 6, total: 6 })).toMatch(
+      /box is full/i,
+    );
     expect(translate("en", "commerce.directBoxDeliveryPromise")).toMatch(
       /producer/i,
     );

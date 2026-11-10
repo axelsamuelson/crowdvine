@@ -35,7 +35,8 @@ export function DesktopGalleryWrapper({ children }: DesktopGalleryWrapperProps) 
   return (
     <div 
       ref={containerRef}
-      className="hidden overflow-y-auto relative col-span-7 col-start-6 w-full md:block" 
+      // pt-top-spacing keeps the first gallery image below the solid fixed header at 1440.
+      className="hidden overflow-y-auto relative col-span-7 col-start-6 w-full md:block md:pt-top-spacing" 
       style={{ 
         touchAction: 'pan-y', 
         overscrollBehavior: 'auto'

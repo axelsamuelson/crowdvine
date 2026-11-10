@@ -186,8 +186,9 @@ export async function ProductPdpLayout({
                     compareAtPrice={compareAtPrice}
                   />
                   <div className="w-full space-y-3">
+                    {/* Info block: 6-bottle rule on its own row with delivery info (not by the CTA). */}
                     {!isDirtywine && product.productType === "wine" ? (
-                      <MinSixBottlesHint locale={locale} />
+                      <MinSixBottlesHint locale={locale} trackSurface="pdp_info" />
                     ) : null}
                     {/* SSR direct-box promise; client PalletStatusBar keeps analytics.
                         Hidden unless DIRECT_BOX_CHECKOUT_ENABLED. */}

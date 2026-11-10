@@ -9,6 +9,7 @@ import {
 } from "@/lib/checkout-validation";
 import { WhySixBottlesModal } from "./WhySixBottlesModal";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
+import { emitOnce } from "@/lib/analytics/emit-once";
 import { useTranslations } from "@/lib/hooks/use-translations";
 import { producerDisplayName } from "@/lib/producer-display-name";
 
@@ -48,28 +49,23 @@ function BottleProgressRow({
         <span className="text-xs text-muted-foreground font-medium truncate">
           {label}
         </span>
-        <span
-          className={`text-xs font-semibold tabular-nums shrink-0 ${
-            isComplete ? "text-emerald-700" : "text-amber-700"
-          }`}
-        >
+        <span className="text-xs font-semibold tabular-nums shrink-0 text-foreground">
           {isComplete
-            ? t("cart.bottleProgress", { current, total: current || 6 })
+            ? t("cart.bottleProgressFull", {
+                current: current || 6,
+                total: current || 6,
+              })
             : t("cart.bottleProgress", { current, total })}
         </span>
       </div>
       <div className="relative h-2 bg-foreground/[0.08] rounded-full overflow-hidden">
         <div
-          className={`absolute inset-y-0 left-0 rounded-full transition-all duration-500 ease-out ${
-            isComplete
-              ? "bg-gradient-to-r from-green-500 to-green-600"
-              : "bg-gradient-to-r from-amber-500 to-amber-600"
-          }`}
+          className="absolute inset-y-0 left-0 rounded-full bg-foreground/35 transition-all duration-500 ease-out"
           style={{ width: `${progress}%` }}
         />
       </div>
       {!isComplete ? (
-        <p className="text-[11px] text-amber-800/90">
+        <p className="text-[11px] text-muted-foreground">
           {t("cart.needMoreBottlesShort", { needed })}
         </p>
       ) : null}
@@ -114,6 +110,16 @@ export function CartValidationHeader({
 
   useEffect(() => {
     if (isValidating) return;
+
+    // Cart progress / empty educational header both surface the 6-bottle rule.
+    emitOnce("six_pack_rule_viewed:cart", () => {
+      void AnalyticsTracker.trackEvent({
+        eventType: "six_pack_rule_viewed",
+        eventCategory: "engagement",
+        metadata: { surface: "cart" },
+      });
+    });
+
     if (validations.length === 0) return;
 
     const tracking = cartMinimumTrackingMeta(
@@ -198,6 +204,8 @@ export function CartValidationHeader({
   }
 
   if (allValid && validations.length > 0) {
+    const totalBottles = validations.reduce((s, v) => s + (v.quantity || 0), 0);
+    const fullTotal = requiredQuantity || totalBottles || 6;
     return (
       <motion.div
         initial={{ opacity: 0, y: -10 }}
@@ -207,8 +215,8 @@ export function CartValidationHeader({
         <div className="bg-background/95 backdrop-blur-md border border-border/30 rounded-lg p-3 space-y-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-              <span className="text-xs text-emerald-700 font-medium">
+              <CheckCircle2 className="w-3.5 h-3.5 text-foreground/70" />
+              <span className="text-xs text-foreground font-medium">
                 {t("cart.readyToCheckout")}
               </span>
             </div>
@@ -225,6 +233,18 @@ export function CartValidationHeader({
             >
               {t("cart.why")}
             </button>
+          </div>
+          <p className="text-xs font-medium text-foreground tabular-nums">
+            {t("cart.bottleProgressFull", {
+              current: Math.min(totalBottles, fullTotal) || fullTotal,
+              total: fullTotal,
+            })}
+          </p>
+          <div className="relative h-2 bg-foreground/[0.08] rounded-full overflow-hidden">
+            <div
+              className="absolute inset-y-0 left-0 w-full rounded-full bg-foreground/35"
+              aria-hidden
+            />
           </div>
           <p className="text-[11px] text-muted-foreground">
             {t("cart.bottleProgressHint")}
@@ -288,11 +308,11 @@ export function CartValidationHeader({
       animate={{ opacity: 1, y: 0 }}
       className="px-3 md:px-4 mb-2"
     >
-      <div className="bg-amber-50/90 dark:bg-amber-950/30 backdrop-blur-md border border-amber-200/60 rounded-lg p-3">
+      <div className="bg-background/95 backdrop-blur-md border border-border/30 rounded-lg p-3">
         <div className="space-y-2.5">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0 space-y-0.5">
-              <p className="text-xs font-semibold text-amber-900 dark:text-amber-100">
+              <p className="text-xs font-semibold text-foreground">
                 {isCartScoped
                   ? t("cart.needMoreBottlesShort", {
                       needed: totalNeeded || invalidValidations[0]?.needed || 0,
@@ -305,7 +325,7 @@ export function CartValidationHeader({
                         count: invalidValidations.length,
                       })}
               </p>
-              <p className="text-[11px] text-amber-800/80 dark:text-amber-200/80">
+              <p className="text-[11px] text-muted-foreground">
                 {t("cart.bottleProgressHint")}
                 {!isCartScoped && totalNeeded > 0
                   ? ` · ${t("cart.needMoreBottlesShort", { needed: totalNeeded })}`
@@ -321,20 +341,20 @@ export function CartValidationHeader({
                     eventCategory: "engagement",
                   });
                 }}
-                className="text-xs text-amber-800/70 hover:text-amber-900 transition-colors min-h-9 px-1"
+                className="text-xs text-muted-foreground/70 hover:text-foreground transition-colors min-h-9 px-1"
                 title={t("cart.whySixAria")}
               >
                 {t("cart.why")}
               </button>
               <button
                 onClick={() => setIsExpanded(!isExpanded)}
-                className="p-2 hover:bg-amber-100/80 rounded transition-colors min-h-9 min-w-9"
+                className="p-2 hover:bg-muted rounded transition-colors min-h-9 min-w-9"
                 aria-expanded={isExpanded}
               >
                 {isExpanded ? (
-                  <ChevronUp className="w-4 h-4 text-amber-800" />
+                  <ChevronUp className="w-4 h-4 text-foreground/70" />
                 ) : (
-                  <ChevronDown className="w-4 h-4 text-amber-800" />
+                  <ChevronDown className="w-4 h-4 text-foreground/70" />
                 )}
               </button>
             </div>

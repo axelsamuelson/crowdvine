@@ -32,15 +32,31 @@ import { AddToCart } from "./add-to-cart";
 import { CaseModeSelector } from "./case-mode-selector";
 import { MixedCaseWineGallery } from "./mixed-case-wine-gallery";
 import { WineSpecsList } from "@/components/product/wine-specs-list";
+import { PdpStickyBuyBar } from "@/components/product/pdp-sticky-buy-bar";
 import Prose from "@/components/prose";
 import { useTranslations } from "@/lib/hooks/use-translations";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
+import { emitOnce } from "@/lib/analytics/emit-once";
 import { pricesFromCartAfterAdd } from "@/lib/analytics/cart-event-prices";
+import {
+  MIX_BOX_OPEN_ATTR,
+  setDocumentFlag,
+} from "@/lib/pdp/overlay-open";
 import { useCartOptional } from "./cart-context";
 import {
   buildOptimisticCaseCart,
   requestCartOpen,
 } from "@/lib/cart/optimistic-case-cart";
+
+function trackSixPackRuleFirstAdd() {
+  emitOnce("six_pack_rule_viewed:first_add", () => {
+    void AnalyticsTracker.trackEvent({
+      eventType: "six_pack_rule_viewed",
+      eventCategory: "engagement",
+      metadata: { surface: "first_add" },
+    });
+  });
+}
 
 type PurchaseMode = "same" | "mixed";
 
@@ -318,6 +334,9 @@ export function AddToCartCase({
   /** Once true, the one-time row hint is never shown again this session. */
   const tapRowHintShownThisSessionRef = useRef(false);
   const mixedAutoOpenDoneRef = useRef(false);
+  const mainCtaRef = useRef<HTMLButtonElement | null>(null);
+  /** Sticky bar only on full PDP (not shop handoff sheetOnly). */
+  const showStickyBuyBar = !sheetOnly;
 
   useEffect(() => {
     if (!initialMixedSheetOpen || mixedAutoOpenDoneRef.current) return;
@@ -483,6 +502,7 @@ export function AddToCartCase({
               price_version: "v1",
             },
           );
+          trackSixPackRuleFirstAdd();
         } else {
           // Revert optimistic snapshot on failure (best-effort).
           if (cartApi?.cart) dispatchCartRefresh(cartApi.cart);
@@ -503,6 +523,12 @@ export function AddToCartCase({
       }
     });
   };
+
+  useEffect(() => {
+    return () => {
+      setDocumentFlag(MIX_BOX_OPEN_ATTR, false);
+    };
+  }, []);
 
   const handleConfirmMixed = () => {
     if (previewDisabled) return;
@@ -560,8 +586,10 @@ export function AddToCartCase({
             price_version: "v1",
           },
         );
+        trackSixPackRuleFirstAdd();
         setDetailWineId(null);
         setSheetOpen(false);
+        setDocumentFlag(MIX_BOX_OPEN_ATTR, false);
       } catch {
         setBatchAddError(t("cart.networkError"));
         void AnalyticsTracker.trackAddToCartFailed({
@@ -575,6 +603,12 @@ export function AddToCartCase({
 
   const handleSheetOpenChange = (open: boolean) => {
     setSheetOpen(open);
+    setDocumentFlag(MIX_BOX_OPEN_ATTR, open);
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("mix-box-open-change", { detail: { open } }),
+      );
+    }
     onMixedSheetOpenChange?.(open);
     if (open) {
       setBatchAddError(null);
@@ -778,16 +812,32 @@ export function AddToCartCase({
         }
         pending={mode === "same" && isSamePending}
         ctaAside={ctaAside}
+        ctaRef={mainCtaRef}
         label={
           !resolvedVariant
             ? t("product.selectOne")
             : isSoldOut
               ? t("product.outOfStock")
-              : t("shop.addCase")
+              : t("shop.buy")
         }
       />
 
       {mixedCaseSheet}
+
+      {showStickyBuyBar ? (
+        <PdpStickyBuyBar
+          product={product}
+          mainCtaRef={mainCtaRef}
+          onBuy={handleMainCta}
+          disabled={
+            !resolvedVariant ||
+            isSoldOut ||
+            (mode === "mixed" && isBatchPending)
+          }
+          pending={mode === "same" && isSamePending}
+          mixBoxOpen={sheetOpen}
+        />
+      ) : null}
     </div>
   );
 }

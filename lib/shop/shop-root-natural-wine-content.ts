@@ -17,7 +17,7 @@ export type ShopRootNaturalWineContent = {
 const SV: ShopRootNaturalWineContent = {
   h1: "Naturvin",
   intro:
-    "Här hittar du alla våra naturviner, från rött och vitt till orange och rosé. Du reserverar flaskor online, och vinet levereras till Stockholm när pallen är full.",
+    "Här hittar du alla våra naturviner, från rött och vitt till orange och rosé. Du köper flaskor online, och vinet levereras till Stockholm när pallen är full.",
   contentHeading: "Om naturvin",
   longDescription:
     "Naturvin är vin gjort som det gjordes innan den industriella vinframställningen tog över — druvor odlade ekologiskt eller biodynamiskt, jäsning med druvans egna vilda jästsvampar, och ingenting tillsatt i källaren. Inga syntetiska bekämpningsmedel i vingården, ingen tillsatt jäst, inget socker, inga enzymer, ingen filtrering. På sin höjd en liten mängd svavel vid buteljering — ofta inte ens det.\n\nResultatet är vin som smakar av sin plats och sin årgång snarare än av en standardiserad process. Naturvin är levande, ibland oförutsägbart, alltid ärligt. Ett rött naturvin från gamla Carignan-stockar i Faugères smakar helt annorlunda än ett från kalkjorden i Puisserguier — och det är hela poängen.\n\nVi säljer naturvin online med leverans i Stockholm. Ingen mellanhand, inget centrallager, inga påslag i onödiga led. När tillräckligt många har reserverat viner för att fylla en pall skickas den till Stockholm.",
@@ -59,7 +59,7 @@ const SV: ShopRootNaturalWineContent = {
 const EN: ShopRootNaturalWineContent = {
   h1: "Natural Wine",
   intro:
-    "Here you'll find all our natural wines, from red and white to orange and rosé. You reserve bottles online, and the wine is delivered to Stockholm when the pallet is full.",
+    "Here you'll find all our natural wines, from red and white to orange and rosé. You buy bottles online, and the wine is delivered to Stockholm when the pallet is full.",
   contentHeading: "About natural wine",
   longDescription:
     "Natural wine is wine made the way it was before industrial winemaking took over — grapes grown organically or biodynamically, fermentation with the grape's own wild yeasts, and nothing added in the cellar. No synthetic pesticides in the vineyard, no added yeast, no sugar, no enzymes, no filtration. At most a small amount of sulphur at bottling — often not even that.\n\nThe result is wine that tastes of its place and its vintage rather than of a standardised process. Natural wine is alive, sometimes unpredictable, always honest. A red natural wine from old Carignan vines in Faugères tastes completely different from one grown on the limestone of Puisserguier — and that is the whole point.\n\nWe sell natural wine online with delivery in Stockholm. No middleman, no central warehouse, no unnecessary markups. When enough people have reserved wines to fill a pallet, it ships to Stockholm.",
