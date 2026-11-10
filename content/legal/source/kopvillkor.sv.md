@@ -76,8 +76,7 @@ Ibland kan en producent inte leverera ett vin du köpt, till exempel om lagret t
 
 ## 4. Priser
 
-- Alla priser anges i svenska kronor och **inklusive svensk moms och svensk alkoholskatt**
-- **Totalpriset i kassan inkluderar moms och frakt. Inga andra avgifter tillkommer.**
+- Alla priser anges i svenska kronor. **Totalpriset i kassan inkluderar moms och frakt. Inga andra avgifter tillkommer.**
 - Det totalpris du ser i kassan är det som debiteras när pallen stänger. Vi höjer aldrig priset efter ditt köp.
 - Vid ett uppenbart felaktigt pris har vi rätt att annullera köpet innan ditt kort debiteras. Vi meddelar dig då.
 

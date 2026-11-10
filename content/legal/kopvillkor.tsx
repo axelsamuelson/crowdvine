@@ -175,10 +175,7 @@ export default function KopvillkorContent() {
       <LegalH2 id="punkt-4">4. Priser</LegalH2>
       <LegalList>
         <li>
-          Alla priser anges i svenska kronor och{" "}
-          <LegalStrong>inklusive svensk moms och svensk alkoholskatt</LegalStrong>
-        </li>
-        <li>
+          Alla priser anges i svenska kronor.{" "}
           <LegalStrong>
             Totalpriset i kassan inkluderar moms och frakt. Inga andra avgifter
             tillkommer.
