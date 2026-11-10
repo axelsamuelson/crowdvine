@@ -119,26 +119,42 @@ export function AddToCartButton({
 
         if (resolvedVariant) {
           startTransition(async () => {
-            const cart = isB2B
-              ? await addB2BQuantity(resolvedVariant.id, B2B_MIN_LINE_BOTTLES)
-              : await addItem(resolvedVariant, product);
-            const { list_price, unit_price } = pricesFromCartAfterAdd(
-              cart,
-              product.id,
-              product,
-            );
-            void AnalyticsTracker.trackAddToCart(
-              product.id,
-              product.title,
-              list_price,
-              {
-                quantity: isB2B ? B2B_MIN_LINE_BOTTLES : 1,
-                source: isB2B ? "b2b" : "product",
+            try {
+              const cart = isB2B
+                ? await addB2BQuantity(resolvedVariant.id, B2B_MIN_LINE_BOTTLES)
+                : await addItem(resolvedVariant, product);
+              if (!cart) {
+                void AnalyticsTracker.trackAddToCartFailed({
+                  reason: "empty_cart",
+                  productId: product.id,
+                  source: isB2B ? "b2b" : "product",
+                });
+                return;
+              }
+              const { list_price, unit_price } = pricesFromCartAfterAdd(
+                cart,
+                product.id,
+                product,
+              );
+              void AnalyticsTracker.trackAddToCart(
+                product.id,
+                product.title,
                 list_price,
-                unit_price,
-                price_version: "v1",
-              },
-            );
+                {
+                  quantity: isB2B ? B2B_MIN_LINE_BOTTLES : 1,
+                  source: isB2B ? "b2b" : "product",
+                  list_price,
+                  unit_price,
+                  price_version: "v1",
+                },
+              );
+            } catch {
+              void AnalyticsTracker.trackAddToCartFailed({
+                reason: "network_error",
+                productId: product.id,
+                source: isB2B ? "b2b" : "product",
+              });
+            }
           });
         }
       }}

@@ -282,48 +282,74 @@ export const ProductCard = memo(
     if (variant) {
       void (async () => {
         let updated: Cart | null = null;
+        const source = showExclVat ? "b2b" : "list";
 
-        if (showExclVat) {
-          // Dirty Wine: single bottles allowed (default add 1)
-          const response = await fetch("/api/cart/add-quantity", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              variantId: variant.id,
-              quantity: B2B_MIN_LINE_BOTTLES,
-              source: "producer",
-            }),
-          });
-          if (response.ok) {
-            const result = await response.json();
-            updated = (result.cart as Cart | undefined) ?? null;
-            if (updated && typeof window !== "undefined") {
-              window.dispatchEvent(
-                new CustomEvent("cart-refresh", { detail: updated }),
-              );
+        try {
+          if (showExclVat) {
+            // Dirty Wine: single bottles allowed (default add 1)
+            const response = await fetch("/api/cart/add-quantity", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                variantId: variant.id,
+                quantity: B2B_MIN_LINE_BOTTLES,
+                source: "producer",
+              }),
+            });
+            if (response.ok) {
+              const result = await response.json();
+              updated = (result.cart as Cart | undefined) ?? null;
+              if (updated && typeof window !== "undefined") {
+                window.dispatchEvent(
+                  new CustomEvent("cart-refresh", { detail: updated }),
+                );
+              }
+            } else {
+              void AnalyticsTracker.trackAddToCartFailed({
+                reason: "http_error",
+                productId: product.id,
+                source,
+                http_status: response.status,
+              });
+              return;
             }
+          } else {
+            updated = await cart.addItem(variant, product);
           }
-        } else {
-          updated = await cart.addItem(variant, product);
-        }
 
-        const { list_price, unit_price } = pricesFromCartAfterAdd(
-          updated,
-          product.id,
-          product,
-        );
-        void AnalyticsTracker.trackAddToCart(
-          product.id,
-          product.title,
-          list_price,
-          {
-            quantity: showExclVat ? B2B_MIN_LINE_BOTTLES : 1,
-            source: showExclVat ? "b2b" : "list",
+          if (!updated) {
+            void AnalyticsTracker.trackAddToCartFailed({
+              reason: "empty_cart",
+              productId: product.id,
+              source,
+            });
+            return;
+          }
+
+          const { list_price, unit_price } = pricesFromCartAfterAdd(
+            updated,
+            product.id,
+            product,
+          );
+          void AnalyticsTracker.trackAddToCart(
+            product.id,
+            product.title,
             list_price,
-            unit_price,
-            price_version: "v1",
-          },
-        );
+            {
+              quantity: showExclVat ? B2B_MIN_LINE_BOTTLES : 1,
+              source,
+              list_price,
+              unit_price,
+              price_version: "v1",
+            },
+          );
+        } catch {
+          void AnalyticsTracker.trackAddToCartFailed({
+            reason: "network_error",
+            productId: product.id,
+            source,
+          });
+        }
       })();
     }
   };

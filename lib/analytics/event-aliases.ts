@@ -57,6 +57,7 @@ const EVENT_TYPE_LABELS_SV: Readonly<Record<string, string>> = {
   producer_reservation_rejected: "Producent avslog reservation",
   terms_accepted: "Köpvillkor godkända",
   add_to_cart: "Tillagd i varukorg",
+  add_to_cart_failed: "Misslyckad tillägg i varukorg",
   remove_from_cart: "Borttagen från varukorg",
   cart_opened: "Varukorg öppnad",
   cart_validation_shown: "Visade 6-pack-validering",

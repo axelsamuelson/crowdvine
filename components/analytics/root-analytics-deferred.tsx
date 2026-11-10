@@ -38,11 +38,6 @@ const ExitFeedbackPrompt = dynamic(
   { ssr: false },
 );
 
-const Analytics = dynamic(
-  () => import("@vercel/analytics/react").then((m) => m.Analytics),
-  { ssr: false },
-);
-
 const Toaster = dynamic(() => import("sonner").then((m) => m.Toaster), {
   ssr: false,
 });
@@ -50,6 +45,8 @@ const Toaster = dynamic(() => import("sonner").then((m) => m.Toaster), {
 /**
  * @param isB2B — dirtywine.se / B2B hosts must not mount the exit popup
  * (shared root layout previously loaded it on both portals).
+ *
+ * Vercel Web Analytics stays off — first-party events go to POST /api/e only.
  */
 export function RootAnalyticsDeferred({
   isB2B = false,
@@ -63,7 +60,6 @@ export function RootAnalyticsDeferred({
       <PageViewTracker />
       <SessionEngagementTracker />
       {!isB2B ? <ExitFeedbackPrompt /> : null}
-      <Analytics />
     </>
   );
 }

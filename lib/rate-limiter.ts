@@ -9,7 +9,7 @@ interface RateLimitEntry {
 class RateLimiter {
   private requests: Map<string, RateLimitEntry> = new Map();
   private readonly windowMs: number;
-  private readonly maxRequests: number;
+  readonly maxRequests: number;
 
   constructor(windowMs: number = 15 * 60 * 1000, maxRequests: number = 100) {
     this.windowMs = windowMs; // 15 minutes default
@@ -70,6 +70,9 @@ export const signupLimiter = new RateLimiter(60 * 60 * 1000, 3); // 3 requests p
 export const generalLimiter = new RateLimiter(15 * 60 * 1000, 100); // 100 requests per 15 minutes
 /** Dirtywine B2B inquiry form — 5 submits per 15 minutes per IP. */
 export const b2bInquiryLimiter = new RateLimiter(15 * 60 * 1000, 5);
+
+/** First-party analytics ingest (`POST /api/e`) — generous for page_view bursts. */
+export const analyticsIngestLimiter = new RateLimiter(60 * 1000, 180); // 180 / minute / IP
 
 // Helper function to get client identifier
 export function getClientIdentifier(request: Request): string {
@@ -146,6 +149,7 @@ setInterval(
     signupLimiter.cleanup();
     generalLimiter.cleanup();
     b2bInquiryLimiter.cleanup();
+    analyticsIngestLimiter.cleanup();
   },
   5 * 60 * 1000,
 );
