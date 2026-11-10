@@ -91,6 +91,38 @@ export const WINE_REGIONS = [
     labelEn: "Southwest France",
     h1EnArticle: null,
   },
+  {
+    slug: "corse",
+    enSlug: "corsica-natural-wine",
+    value: "Corse",
+    labelSv: "Korsika (Corse)",
+    labelEn: "Corsica",
+    h1EnArticle: null,
+  },
+  {
+    slug: "provence",
+    enSlug: "provence-natural-wine",
+    value: "Provence",
+    labelSv: "Provence",
+    labelEn: "Provence",
+    h1EnArticle: null,
+  },
+  {
+    slug: "savoie",
+    enSlug: "savoie-natural-wine",
+    value: "Savoie",
+    labelSv: "Savoie",
+    labelEn: "Savoie",
+    h1EnArticle: null,
+  },
+  {
+    slug: "bugey",
+    enSlug: "bugey-natural-wine",
+    value: "Bugey",
+    labelSv: "Bugey",
+    labelEn: "Bugey",
+    h1EnArticle: null,
+  },
 ] as const;
 
 export type WineRegionSlug = (typeof WINE_REGIONS)[number]["slug"];
@@ -133,6 +165,10 @@ const REGION_SYNONYMS: Record<string, WineRegionValue> = {
   Roussillon: "Roussillon",
   Alsace: "Alsace",
   "Sud-Ouest": "Sud-Ouest",
+  Corse: "Corse",
+  Provence: "Provence",
+  Savoie: "Savoie",
+  Bugey: "Bugey",
   "Vallée du Rhône": "Rhône",
   Rhone: "Rhône",
   "Rhone Valley": "Rhône",
@@ -141,6 +177,7 @@ const REGION_SYNONYMS: Record<string, WineRegionValue> = {
   "Southwest France": "Sud-Ouest",
   "Sud Ouest": "Sud-Ouest",
   Aveyron: "Sud-Ouest",
+  Corsica: "Corse",
 };
 
 export function isWineRegionValue(value: unknown): value is WineRegionValue {
