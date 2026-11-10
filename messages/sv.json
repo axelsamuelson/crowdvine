@@ -1160,7 +1160,7 @@
     "lateCancelFlowDisabled": "Du kan avboka här om leveransen inte har skett inom 30 dagar efter att pallen stängt.",
     "palletRowLabel": "Pallen",
     "totalShort": "Totalt",
-    "pointsUnit": "poäng"
+    "pointsUnit": "{count, plural, one {poäng} other {poäng}}"
   },
   "auth": {
     "welcomeBack": "Välkommen tillbaka",

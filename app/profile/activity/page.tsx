@@ -6,6 +6,7 @@ import {
   UserPlus,
   Package,
   TrendingUp,
+  Ticket,
   Award,
   Calendar,
   Loader2,
@@ -82,6 +83,7 @@ export default function ActivityPage() {
   const getEventIcon = (eventType: string) => {
     if (eventType.includes("invite")) return UserPlus;
     if (eventType === "own_order") return Package;
+    if (eventType === "migration_from_voucher") return Ticket;
     if (eventType.startsWith("migration_")) return TrendingUp;
     return Award;
   };
@@ -284,8 +286,8 @@ export default function ActivityPage() {
                                 }`}
                               >
                                 {isPositive
-                                  ? `+${abs} ${t("profile.pointsUnit")}`
-                                  : `−${abs} ${t("profile.pointsUnit")}`}
+                                  ? `+${abs} ${t("profile.pointsUnit", { count: abs })}`
+                                  : `−${abs} ${t("profile.pointsUnit", { count: abs })}`}
                               </div>
                             </div>
                           </div>

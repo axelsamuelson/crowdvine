@@ -1160,7 +1160,7 @@
     "lateCancelFlowDisabled": "You can cancel here if delivery hasn't happened within 30 days of the pallet closing.",
     "palletRowLabel": "Pallet",
     "totalShort": "Total",
-    "pointsUnit": "pts"
+    "pointsUnit": "{count, plural, one {point} other {points}}"
   },
   "auth": {
     "welcomeBack": "Welcome back",

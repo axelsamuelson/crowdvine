@@ -291,8 +291,11 @@ describe("PACT points conversion coupon", () => {
       "utf8",
     );
     expect(activity).toMatch(/pointsUnit/);
+    expect(activity).toMatch(/migration_from_voucher[\s\S]*Ticket|Ticket[\s\S]*migration_from_voucher/);
     expect(activity).not.toMatch(/ pts`/);
     expect(activity).toMatch(/bg-gray-50/);
     expect(activity).not.toMatch(/bg-blue-50|text-purple-600/);
+    expect(translate("en", "profile.pointsUnit", { count: 1 })).toBe("point");
+    expect(translate("en", "profile.pointsUnit", { count: 500 })).toBe("points");
   });
 });
