@@ -87,7 +87,7 @@ export default function LateDeliveryCancelPage() {
           href="/profile/reservations"
           className="text-sm text-gray-600 underline underline-offset-4"
         >
-          ← Tillbaka till reservationer
+          ← Tillbaka till mina köp
         </Link>
         <h1 className="text-2xl font-medium text-gray-900">
           Avboka med full återbetalning
@@ -120,7 +120,7 @@ export default function LateDeliveryCancelPage() {
               className="mt-4"
               onClick={() => router.push("/profile/reservations")}
             >
-              Visa reservationer
+              Visa mina köp
             </Button>
           </div>
         ) : eligible ? (

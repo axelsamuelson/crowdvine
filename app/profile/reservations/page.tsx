@@ -503,7 +503,7 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
           <div className="relative h-12 w-12 md:h-16 md:w-16 overflow-hidden rounded-xl ring-1 ring-gray-200 bg-gray-100 mx-auto">
             <Image
               src={primaryImage}
-              alt="Reserved product"
+              alt="Ordered product"
               fill
               className="object-cover"
               priority
@@ -593,7 +593,7 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
                               </span>
                             </div>
                             <div className="flex justify-between text-sm">
-                              <span className="text-gray-500">Reserved</span>
+                              <span className="text-gray-500">{t("profile.reserved")}</span>
                               <span className="font-medium text-gray-900">
                                 {progressBottles} bottles
                               </span>
@@ -731,7 +731,7 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
                     </div>
                     {group.latestReservationStatus && (
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">Reservation</span>
+                        <span className="text-gray-500">{t("profile.reservation")}</span>
                         <span className="font-medium text-gray-900">{group.latestReservationStatus}</span>
                       </div>
                     )}
@@ -803,7 +803,7 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
                   </div>
                   <Button variant="outline" className="w-full bg-transparent mt-4" size="sm">
                     <ExternalLink className="mr-2 h-4 w-4" />
-                    View full reservations
+                    {t("profile.viewFullOrders")}
                   </Button>
                 </Card>
 
@@ -1038,7 +1038,7 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
                     </div>
                     <Button variant="outline" className="w-full bg-transparent mt-4" size="sm">
                       <ExternalLink className="mr-2 h-4 w-4" />
-                      View full reservations
+                      {t("profile.viewFullOrders")}
                     </Button>
                   </Card>
                 </div>
@@ -1050,7 +1050,7 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
                 <Card className="p-4 md:p-5 bg-white border border-gray-200 rounded-2xl">
                   <h4 className="mb-3 flex items-center gap-2 text-sm font-semibold">
                     <Wine className="h-4 w-4 text-muted-foreground" />
-                    Reserved Wines
+                    {t("profile.orderedWines")}
                   </h4>
                   {group.wines.length === 0 ? (
                     <p className="text-sm text-muted-foreground">

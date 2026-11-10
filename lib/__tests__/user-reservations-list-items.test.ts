@@ -41,6 +41,7 @@ describe("GET /api/user/reservations list items", () => {
     expect(en.profile.resStatusWaitingPallet).toBe(
       "Waiting for the pallet to close",
     );
-    expect(sv.profile.yourReservation).toBe("Din reservation");
+    expect(sv.profile.yourReservation).toBe("Ditt köp");
+    expect(en.profile.yourReservation).toBe("Your order");
   });
 });

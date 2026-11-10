@@ -7,7 +7,7 @@ function StripeReturnFallback() {
       <div className="mx-auto max-w-md space-y-3 p-6 pt-top-spacing text-center">
         <div className="mx-auto h-10 w-10 animate-spin rounded-full border-b-2 border-foreground" />
         <h1 className="text-lg font-medium text-foreground">
-          Finalizing your reservation…
+          Completing your purchase…
         </h1>
         <p className="text-sm text-muted-foreground">
           Please wait while we verify your payment.
