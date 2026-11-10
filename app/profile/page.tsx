@@ -38,6 +38,7 @@ import { useTranslations } from "@/lib/hooks/use-translations";
 import { useLocalizedPaths } from "@/lib/hooks/use-localized-paths";
 import { cn } from "@/lib/utils";
 import type { AppLocale } from "@/lib/i18n/locale";
+import { formatWineColorLabel } from "@/lib/i18n/wine-color-labels";
 
 interface UserProfile {
   id: string;
@@ -640,7 +641,7 @@ function ProfilePageContent() {
                             </p>
                             {w.color ? (
                               <span className="shrink-0 whitespace-nowrap rounded-full border border-border px-2 py-0.5 text-[11px] text-muted-foreground">
-                                {w.color}
+                                {formatWineColorLabel(t, w.color)}
                               </span>
                             ) : null}
                           </div>
@@ -691,7 +692,7 @@ function ProfilePageContent() {
                           </p>
                           {p.color ? (
                             <span className="shrink-0 whitespace-nowrap rounded-full border border-border px-2 py-0.5 text-[11px] text-muted-foreground">
-                              {p.color}
+                              {formatWineColorLabel(t, p.color)}
                             </span>
                           ) : null}
                         </div>

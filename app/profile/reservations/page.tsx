@@ -470,28 +470,28 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
 
           {/* Overlay (homepage-card style) */}
           <div className="absolute flex p-sides inset-0 items-end justify-end pointer-events-none">
-            <div className="pointer-events-auto max-w-full flex items-stretch gap-2 w-full">
+            <div className="pointer-events-auto max-w-full flex items-end gap-2 w-full">
               {group.palletCapacity && group.palletCapacity > 0 && (
-                <div className="flex items-center justify-center flex-1 min-w-0 px-1">
-                  <span className="text-sm md:text-base font-semibold text-foreground leading-snug">
-                    {t("checkout.palletFillCount", {
+                <div className="flex items-end pb-1 shrink-0 max-w-[42%]">
+                  <span className="text-sm md:text-base font-semibold text-foreground leading-snug whitespace-normal">
+                    {t("commerce.palletFillCount", {
                       filled: String(progressBottles),
                       total: String(group.palletCapacity),
                     })}
                   </span>
                 </div>
               )}
-              <div className="flex gap-3 items-center p-2.5 pl-4 bg-white/95 backdrop-blur-sm rounded-lg min-w-0 flex-[1.4] max-w-[75%] shadow-button ring-1 ring-border/10 transition-transform duration-300 ease-out group-hover/card:-translate-y-0.5 group-hover/card:shadow-button-hover">
-                <div className="pr-4 leading-4 min-w-0">
+              <div className="flex gap-3 items-center p-2.5 pl-4 bg-white/95 backdrop-blur-sm rounded-lg min-w-0 flex-1 shadow-button ring-1 ring-border/10 transition-transform duration-300 ease-out group-hover/card:-translate-y-0.5 group-hover/card:shadow-button-hover">
+                <div className="pr-4 leading-4 min-w-0 w-full">
                   <p className="w-full text-xs md:text-sm font-semibold text-foreground/90 mb-1 break-words">
                     {group.palletName}
                   </p>
                   {group.orderNumberShort ? (
-                    <p className="text-[11px] text-muted-foreground font-normal mb-0.5 tabular-nums break-all">
+                    <p className="text-[11px] text-muted-foreground font-normal mb-0.5 tabular-nums whitespace-nowrap">
                       {t("checkout.successOrderNumber")}: {group.orderNumberShort}
                     </p>
                   ) : null}
-                  <p className="text-[11px] text-muted-foreground font-normal mb-1 break-words whitespace-normal">
+                  <p className="text-[11px] text-muted-foreground font-normal mb-1 whitespace-nowrap overflow-hidden text-ellipsis">
                     {formatBottleSummary(group, t)} •{" "}
                     {t("profile.winesCount", { count: group.wines.length })}
                   </p>
@@ -505,7 +505,7 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
         </div>
       </DialogTrigger>
 
-      <DialogContent className="max-h-[95vh] md:max-h-[90vh] max-w-[95vw] md:max-w-4xl p-0 bg-gray-50 border-0 rounded-none md:rounded-2xl m-0 md:m-4 h-[95vh] md:h-[90vh] flex flex-col overflow-hidden">
+      <DialogContent className="max-h-[95vh] md:max-h-[90vh] max-w-[95vw] md:max-w-4xl p-0 bg-gray-50 border-0 rounded-none md:rounded-2xl m-0 md:m-4 h-auto flex flex-col overflow-hidden">
         <DialogHeader className="gap-3 md:gap-4 px-4 md:px-6 pt-4 md:pt-6 pb-3 md:pb-5 text-center border-b border-gray-200 bg-white shrink-0">
           <div className="relative h-12 w-12 md:h-16 md:w-16 overflow-hidden rounded-xl ring-1 ring-gray-200 bg-gray-100 mx-auto">
             <Image
@@ -516,9 +516,11 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
               priority
             />
           </div>
-          <div className="space-y-1">
-            <DialogTitle className="text-sm md:text-base font-semibold tracking-tight px-2">{group.palletName}</DialogTitle>
-            <DialogDescription className="text-xs md:text-sm">
+          <div className="space-y-1 text-center">
+            <DialogTitle className="text-sm md:text-base font-semibold tracking-tight px-2 text-center">
+              {group.palletName}
+            </DialogTitle>
+            <DialogDescription className="text-xs md:text-sm text-center">
               {t("profile.trackReservation")}
             </DialogDescription>
           </div>
@@ -542,8 +544,8 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
           </div>
         </div>
 
-        <div className="flex-1 min-h-0 flex flex-col bg-gray-50">
-          <Tabs defaultValue="pallet" className="flex h-full flex-col min-h-0">
+        <div className="min-h-0 flex flex-col bg-gray-50 overflow-y-auto">
+          <Tabs defaultValue="pallet" className="flex flex-col min-h-0">
             <div className="px-3 md:px-4 pt-2 pb-1.5 bg-white border-b border-gray-200 shrink-0">
               <TabsList className="w-full grid grid-cols-3 rounded-full bg-white border border-gray-200 h-auto gap-1 p-1">
                 <TabsTrigger value="pallet" className="gap-1.5 text-xs flex-1 px-2 md:px-3 py-1.5 md:py-2 h-auto text-[10px] md:text-xs rounded-full">
@@ -563,37 +565,50 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
 
             <TabsContent
               value="pallet"
-              className="mt-0 flex-1 min-h-0 overflow-y-auto pb-4 md:pb-6 px-3 md:px-4"
+              className="mt-0 overflow-visible pb-4 md:pb-6 px-3 md:px-4"
             >
               <div className="space-y-4 pt-4">
                 <Card className="p-4 md:p-5 bg-white border border-gray-200 rounded-2xl">
                   <div className="space-y-3 text-sm text-gray-900">
+                    {group.palletCapacity && group.palletCapacity > 0 ? (
+                      <div className="flex justify-between gap-3">
+                        <span className="text-gray-500">
+                          {t("profile.palletRowLabel")}
+                        </span>
+                        <span className="font-medium text-right tabular-nums">
+                          {t("commerce.palletFillCount", {
+                            filled: String(progressBottles),
+                            total: String(group.palletCapacity),
+                          })}
+                        </span>
+                      </div>
+                    ) : null}
                     <div className="flex justify-between gap-3">
-                      <span className="text-gray-500">{t("profile.status")}</span>
-                      <span className="font-medium text-right">
-                        {summaryStatusLabel}
+                      <span className="text-gray-500">
+                        {t("profile.yourBottles")}
+                      </span>
+                      <span className="font-medium text-right tabular-nums">
+                        {yourBottlesCount}
                       </span>
                     </div>
-                    {chargeDeadlineLabel ? (
-                      <p>
-                        {t("profile.palletClosesBy", {
-                          datum: chargeDeadlineLabel,
-                        })}
-                      </p>
+                    <div className="flex justify-between gap-3">
+                      <span className="text-gray-500">
+                        {t("profile.totalShort")}
+                      </span>
+                      <span className="font-medium text-right tabular-nums">
+                        {formatPrice(group.totalCostCents)}
+                      </span>
+                    </div>
+                    {group.orderNumberShort ? (
+                      <div className="flex justify-between gap-3">
+                        <span className="text-gray-500">
+                          {t("checkout.successOrderNumber")}
+                        </span>
+                        <span className="font-medium text-right tabular-nums whitespace-nowrap">
+                          {group.orderNumberShort}
+                        </span>
+                      </div>
                     ) : null}
-                    {group.palletCapacity && group.palletCapacity > 0 ? (
-                      <p>
-                        {t("profile.palletBottlesRow", {
-                          filled: String(progressBottles),
-                          total: String(group.palletCapacity),
-                        })}
-                      </p>
-                    ) : null}
-                    <p>
-                      {t("profile.yourBottlesRow", {
-                        count: String(yourBottlesCount),
-                      })}
-                    </p>
                   </div>
                 </Card>
 
@@ -612,7 +627,7 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
 
             <TabsContent
               value="tracking"
-              className="mt-0 flex-1 min-h-0 overflow-y-auto pb-4 md:pb-6 px-3 md:px-4"
+              className="mt-0 overflow-visible pb-4 md:pb-6 px-3 md:px-4"
             >
               <div className="space-y-4 pt-4">
                 <Card className="p-4 md:p-5 bg-white border border-gray-200 rounded-2xl">
@@ -775,7 +790,7 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
                               {group.palletCapacity && group.palletCapacity > 0 && (
                                 <>
                                   <p className="text-xs text-gray-500 mt-0.5">
-                                    {t("checkout.palletFillCount", {
+                                    {t("commerce.palletFillCount", {
                                       filled: String(progressBottles),
                                       total: String(group.palletCapacity),
                                     })}
@@ -927,7 +942,7 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
               </div>
             </TabsContent>
 
-            <TabsContent value="wines" className="mt-0 flex-1 min-h-0 overflow-y-auto pb-4 md:pb-6 px-3 md:px-4">
+            <TabsContent value="wines" className="mt-0 overflow-visible pb-4 md:pb-6 px-3 md:px-4">
               <div className="space-y-4 pt-4">
                 <Card className="p-4 md:p-5 bg-white border border-gray-200 rounded-2xl">
                   <h4 className="mb-3 flex items-center gap-2 text-sm font-semibold">

@@ -147,7 +147,8 @@
     "membershipPriority": "Priority",
     "membershipPrivilege": "Privilege",
     "membershipAdmin": "Admin",
-    "membershipDiscount": "{level} · {percent}%"
+    "membershipDiscount": "{level} · {percent}%",
+    "wineColorSparkling": "Sparkling"
   },
   "cart": {
     "products": "Products",
@@ -1151,10 +1152,13 @@
     "lateCancelViewOrders": "View my orders",
     "lateCancelCta": "Cancel and request refund",
     "lateCancelBusy": "Cancelling…",
-    "lateCancelUnavailable": "This option is not available",
+    "lateCancelUnavailable": "This option isn't available right now.",
     "lateCancelError": "Could not cancel",
     "deliveryNotStarted": "Not started",
-    "noWinesOnPallet": "No wines found for this pallet."
+    "noWinesOnPallet": "No wines found for this pallet.",
+    "lateCancelFlowDisabled": "This option isn't available right now.",
+    "palletRowLabel": "Pallet",
+    "totalShort": "Total"
   },
   "auth": {
     "welcomeBack": "Welcome back",

@@ -147,7 +147,8 @@
     "membershipPriority": "Priority",
     "membershipPrivilege": "Privilege",
     "membershipAdmin": "Admin",
-    "membershipDiscount": "{level} · {percent}%"
+    "membershipDiscount": "{level} · {percent}%",
+    "wineColorSparkling": "Mousserande"
   },
   "cart": {
     "products": "Produkter",
@@ -1151,10 +1152,13 @@
     "lateCancelViewOrders": "Visa mina köp",
     "lateCancelCta": "Avboka och begär återbetalning",
     "lateCancelBusy": "Avbokar…",
-    "lateCancelUnavailable": "Alternativet är inte tillgängligt",
+    "lateCancelUnavailable": "Det här alternativet är inte tillgängligt just nu.",
     "lateCancelError": "Kunde inte avboka",
     "deliveryNotStarted": "Ej påbörjad",
-    "noWinesOnPallet": "Inga viner på den här pallen."
+    "noWinesOnPallet": "Inga viner på den här pallen.",
+    "lateCancelFlowDisabled": "Det här alternativet är inte tillgängligt just nu.",
+    "palletRowLabel": "Pallen",
+    "totalShort": "Totalt"
   },
   "auth": {
     "welcomeBack": "Välkommen tillbaka",

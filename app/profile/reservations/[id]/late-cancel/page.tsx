@@ -135,8 +135,9 @@ export default function LateDeliveryCancelPage() {
           </div>
         ) : (
           <p className="text-sm text-gray-600">
-            {t("profile.lateCancelUnavailable")}
-            {reason ? ` (${reason})` : ""}.
+            {reason === "flow_disabled"
+              ? t("profile.lateCancelFlowDisabled")
+              : t("profile.lateCancelUnavailable")}
           </p>
         )}
       </div>
