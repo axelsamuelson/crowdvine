@@ -70,8 +70,7 @@ Sometimes a producer cannot deliver a wine you have bought, for example if stock
 
 ## 4. Prices
 
-- All prices are stated in Swedish kronor and **include Swedish VAT and Swedish alcohol tax**
-- **The total price at checkout includes VAT and shipping. No other fees are added.**
+- All prices are stated in Swedish kronor. **The total price at checkout includes VAT and shipping. No other fees are added.**
 - The total price you see at checkout is the amount charged when the pallet closes. We never raise the price after your purchase.
 - If a price is obviously wrong, we have the right to cancel the purchase before your card is charged. We will let you know if this happens.
 

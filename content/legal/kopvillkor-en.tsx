@@ -191,12 +191,7 @@ export default function KopvillkorEnContent() {
       <LegalH2 id="punkt-4">4. Prices</LegalH2>
       <LegalList>
         <li>
-          All prices are stated in Swedish kronor and{" "}
-          <LegalStrong>
-            include Swedish VAT and Swedish alcohol tax
-          </LegalStrong>
-        </li>
-        <li>
+          All prices are stated in Swedish kronor.{" "}
           <LegalStrong>
             The total price at checkout includes VAT and shipping. No other
             fees are added.
