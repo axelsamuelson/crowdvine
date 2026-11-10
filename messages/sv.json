@@ -1038,6 +1038,7 @@
     "eventExpiration": "Poäng har gått ut",
     "eventMigratedIp": "Migrerat från Impact Points",
     "eventMigratedVoucher": "Poäng ersatta med kupong",
+    "eventConvertedToCoupon": "Poäng omvandlade till kupong",
     "eventAdjustment": "Justering",
     "eventFoundingGrant": "Välkommen som grundarmedlem",
     "resStatusDeclined": "Nekad",

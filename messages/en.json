@@ -1038,6 +1038,7 @@
     "eventExpiration": "Points expired",
     "eventMigratedIp": "Migrated from Impact Points",
     "eventMigratedVoucher": "Points replaced by coupon",
+    "eventConvertedToCoupon": "Points converted to coupon",
     "eventAdjustment": "Adjustment",
     "eventFoundingGrant": "Founding Member welcome",
     "resStatusDeclined": "Declined",
