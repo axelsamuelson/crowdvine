@@ -162,16 +162,22 @@ export function PdpStickyBuyBar({
     const footer =
       document.querySelector("footer") ||
       document.querySelector("[data-site-footer]");
-    if (!footer || typeof IntersectionObserver === "undefined") return;
+    if (!footer) return;
 
-    const obs = new IntersectionObserver(
-      (entries) => {
-        setFooterVisible(entries.some((e) => e.isIntersecting));
-      },
-      { threshold: 0 },
-    );
-    obs.observe(footer);
-    return () => obs.disconnect();
+    // Only treat as "at footer" when the footer has substantially entered the
+    // viewport (not a few peeking pixels on short PDPs). Threshold: footer top
+    // crosses the upper 40% of the viewport.
+    const update = () => {
+      const top = footer.getBoundingClientRect().top;
+      setFooterVisible(top < window.innerHeight * 0.4);
+    };
+    update();
+    window.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
   }, []);
 
   const shouldShow =
