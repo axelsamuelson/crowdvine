@@ -13,13 +13,13 @@ import {
   buildPalletClosePaymentFailedEmail,
   type PalletCloseEmailLocale,
 } from "@/lib/checkout/pallet-close/emails";
+import { resolveAmountOre } from "@/lib/checkout/pallet-close/resolve-amount-ore";
 import { formatSharedPalletChargeDeadline } from "@/lib/checkout/shared-pallet-deadline";
 
 async function resolveRecipient(reservationId: string): Promise<{
   email: string | null;
   name: string;
   locale: PalletCloseEmailLocale;
-  amountSek: number;
   palletName: string | null;
 }> {
   const sb = getSupabaseAdmin();
@@ -47,38 +47,19 @@ async function resolveRecipient(reservationId: string): Promise<{
     }
   }
 
+  const palletEmbed = row?.pallet as
+    | { name?: unknown }
+    | { name?: unknown }[]
+    | null
+    | undefined;
+  const palletObj = Array.isArray(palletEmbed) ? palletEmbed[0] : palletEmbed;
   const palletName =
-    row?.pallet && typeof (row.pallet as { name?: unknown }).name === "string"
-      ? String((row.pallet as { name: string }).name)
-      : null;
-
-  // Best-effort amount from line items (öre → SEK). Missing items → 0.
-  let amountSek = 0;
-  const { data: items } = await sb
-    .from("order_reservation_items")
-    .select("quantity, wines(base_price_cents)")
-    .eq("reservation_id", reservationId);
-  if (items?.length) {
-    let ore = 0;
-    for (const it of items) {
-      const qty = Number(it.quantity) || 0;
-      const wine = it.wines as
-        | { base_price_cents?: number }
-        | { base_price_cents?: number }[]
-        | null;
-      const unit = Array.isArray(wine)
-        ? Number(wine[0]?.base_price_cents) || 0
-        : Number(wine?.base_price_cents) || 0;
-      ore += qty * unit;
-    }
-    amountSek = Math.round(ore / 100);
-  }
+    palletObj && typeof palletObj.name === "string" ? palletObj.name : null;
 
   return {
     email,
     name,
     locale,
-    amountSek,
     palletName,
   };
 }
@@ -88,11 +69,38 @@ export async function sendPalletClosedChargedEmailOnce(opts: {
 }): Promise<"sent" | "skipped" | "failed"> {
   const r = await resolveRecipient(opts.reservationId);
   if (!r.email) return "failed";
+
+  // Same source as the charge — never guess from catalog wine prices.
+  const amountOre = await resolveAmountOre(opts.reservationId);
+  if (amountOre == null || amountOre <= 0) {
+    console.error(
+      "[pallet-close] amount unavailable — refusing charged email guess",
+      { reservationId: opts.reservationId },
+    );
+    try {
+      await getSupabaseAdmin().from("pallet_close_events").insert({
+        reservation_id: opts.reservationId,
+        event: "amount_unavailable",
+        meta: {
+          reason: "missing_expected_amount_and_total_sek",
+          context: "pallet_closed_charged_email",
+        },
+      });
+    } catch (err) {
+      console.error(
+        "[pallet-close] failed to record amount_unavailable for charged email",
+        { reservationId: opts.reservationId, err },
+      );
+    }
+    return "failed";
+  }
+  const amountSek = Math.round(amountOre / 100);
+
   const built = buildPalletClosedChargedEmail({
     locale: r.locale,
     customerName: r.name,
     reservationId: opts.reservationId,
-    amountSek: r.amountSek,
+    amountSek,
     palletName: r.palletName,
   });
   return sendTransactionalEmailOnce({

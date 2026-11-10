@@ -272,6 +272,9 @@ export async function runReservationExpiryJob(
   }
 
   const sb = getSupabaseAdmin();
+  // Do not select fulfillment_channel — migration 277 is not applied in
+  // production; PostgREST rejects unknown columns. Without the column, treat
+  // channel as null / shared_pallet; isPalletBasedReservation uses pallet_id.
   const { data: rows, error } = await sb
     .from("order_reservations")
     .select(
@@ -281,7 +284,6 @@ export async function runReservationExpiryJob(
       archived_at,
       created_at,
       pallet_id,
-      fulfillment_channel,
       payment_mode,
       payment_status,
       payment_method_id,
