@@ -2,7 +2,7 @@
  * Time-based coverage thresholds from the pallet's first active order.
  *
  * days 0–6: cap only (no coverage threshold)
- * from day 7: 150%
+ * from day 7: 125%
  * from day 14: 100%
  * from day 21: floor 70%
  * Never below the floor once day ≥ floor day.
@@ -17,7 +17,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 export type CoverageThresholdPhase =
   | "cap_only"
-  | "coverage_150"
+  | "coverage_day7"
   | "coverage_100"
   | "coverage_floor";
 
@@ -60,10 +60,10 @@ export function resolveCoverageThreshold(
       dayIndex,
     };
   }
-  if (dayIndex >= cfg.coverage150FromDay) {
+  if (dayIndex >= cfg.coverageDay7FromDay) {
     return {
-      phase: "coverage_150",
-      requiredCoverage: cfg.coverage150,
+      phase: "coverage_day7",
+      requiredCoverage: cfg.coverageDay7,
       dayIndex,
     };
   }

@@ -172,7 +172,7 @@ export async function runPalletCoverageClose(opts?: {
 
   const sb = getSupabaseAdmin();
 
-  // Process sold-out choice timeouts (default: remove). TODO(Axel): confirm.
+  // Process sold-out choice timeouts (no answer → remove, don't charge).
   const { data: pendingLines } = await sb
     .from("order_reservation_items")
     .select("id, reservation_id, sold_out_choice_reply_by, quantity, item_id")

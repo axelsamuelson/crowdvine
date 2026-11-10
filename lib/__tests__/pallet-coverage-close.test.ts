@@ -137,23 +137,22 @@ describe("coverage formula (Instabee in denominator only)", () => {
     expect(needed).toBe(25);
   });
 
-  it("reference: 150% needs ~96 identical 6-packs (Ingrid ≈54 noted as open question)", () => {
-    // Correct formula: n = 1.5*F / (C - 1.5*I) ≈ 96, not 54.
+  it("reference: ~64 identical 6-packs ≈ 125% coverage (day-7 threshold)", () => {
+    // 64 six-packs ≈ 124.9%; ceil to clear 125% is 65 — both count as ≈64.
+    const c64 = computePalletCoverage(nSixPackOrders(64), cfg);
+    expect(c64.coverageRatio).toBeGreaterThan(1.24);
+    expect(c64.coverageRatio).toBeLessThan(1.26);
+
     const needed = ordersNeededForCoverageRatio(
-      1.5,
+      1.25,
       defaultSixPackContributionBeforePalletOre(cfg),
       cfg,
     );
-    expect(needed).toBeGreaterThanOrEqual(95);
-    expect(needed).toBeLessThanOrEqual(97);
-
-    const c54 = computePalletCoverage(nSixPackOrders(54), cfg);
-    // 54 orders is well above 100% but below 150% under the corrected formula.
-    expect(c54.coverageRatio).toBeGreaterThan(1.0);
-    expect(c54.coverageRatio).toBeLessThan(1.5);
+    expect(needed).toBeGreaterThanOrEqual(64);
+    expect(needed).toBeLessThanOrEqual(65);
 
     const atNeeded = computePalletCoverage(nSixPackOrders(needed), cfg);
-    expect(atNeeded.coverageRatio).toBeGreaterThanOrEqual(1.5 - 0.02);
+    expect(atNeeded.coverageRatio).toBeGreaterThanOrEqual(1.25 - 0.001);
   });
 
   it("mixes non-6-pack orders in coverage", () => {
@@ -183,14 +182,15 @@ describe("time-based thresholds", () => {
     }
   });
 
-  it("from day 7: 150%", () => {
+  it("from day 7: 125%", () => {
     const t = resolveCoverageThreshold(
       first,
       new Date(first.getTime() + 7 * 86400000),
       cfg,
     );
-    expect(t.phase).toBe("coverage_150");
-    expect(t.requiredCoverage).toBe(1.5);
+    expect(t.phase).toBe("coverage_day7");
+    expect(t.requiredCoverage).toBe(1.25);
+    expect(cfg.coverageDay7).toBe(1.25);
   });
 
   it("from day 14: 100%", () => {
@@ -388,7 +388,7 @@ describe("sold-out at lock: replace / remove / charge / timeout", () => {
     expect(adj.replacementDeltaOre).toBe(0);
   });
 
-  it("default no-answer timeout removes pending lines (TODO Axel confirm)", () => {
+  it("no-answer timeout removes pending lines (don't charge)", () => {
     const pending = markWineUnavailableOnLines(baseLines(), "w1");
     const timed = applySoldOutChoiceTimeout(pending);
     expect(timed[0]!.state).toBe("removed");
@@ -412,9 +412,9 @@ describe("progress display X av Y (current threshold)", () => {
     expect(p.filledBottles).toBe(30);
   });
 
-  it("recomputes Y when threshold drops from 150% to 100%", () => {
+  it("recomputes Y when threshold drops from 125% to 100%", () => {
     const orders = nSixPackOrders(20);
-    const at150 = bottlesNeededForCurrentThreshold({
+    const atDay7 = bottlesNeededForCurrentThreshold({
       orders,
       firstOrderAt: first,
       now: new Date(first.getTime() + 7 * 86400000),
@@ -426,9 +426,9 @@ describe("progress display X av Y (current threshold)", () => {
       now: new Date(first.getTime() + 14 * 86400000),
       cfg,
     });
-    expect(at150.threshold.requiredCoverage).toBe(1.5);
+    expect(atDay7.threshold.requiredCoverage).toBe(1.25);
     expect(at100.threshold.requiredCoverage).toBe(1.0);
-    expect(at100.targetBottles).toBeLessThan(at150.targetBottles);
+    expect(at100.targetBottles).toBeLessThan(atDay7.targetBottles);
   });
 });
 

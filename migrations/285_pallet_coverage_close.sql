@@ -88,7 +88,7 @@ ALTER TABLE order_reservation_items
   ADD COLUMN IF NOT EXISTS sold_out_choice_reply_by TIMESTAMPTZ;
 
 COMMENT ON COLUMN order_reservation_items.sold_out_choice_reply_by IS
-  'Deadline for customer sold-out choice. TODO(Axel): confirm default no-answer = remove.';
+  'Deadline for customer sold-out choice. No answer → remove line and do not charge (Axel 00:41).';
 
 CREATE INDEX IF NOT EXISTS idx_order_reservation_items_sold_out_pending
   ON order_reservation_items (sold_out_choice_state, sold_out_choice_reply_by)

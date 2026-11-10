@@ -1,6 +1,6 @@
 # Shared-pallet coverage close (Axel 2026-11-11)
 
-Coverage-based lock rule (Ingrid CFO formula) + sold-out-at-lock choice (00:30).
+Coverage-based lock rule (Ingrid CFO formula) + sold-out-at-lock choice (00:30 / 00:41).
 
 **Status:** Implemented behind flags (default OFF). Migration **`285_pallet_coverage_close.sql`** is file-only — do **not** apply from an agent.
 
@@ -20,10 +20,12 @@ contribution_before_pallet = wine_margin − EPR + shipping_ex_VAT − Stripe
 coverage = sum(contribution) / (fixed_pallet_cost + sum(Instabee))
 ```
 
-Instabee is denominator-only. Cap 600 bottles → lock immediately. Time thresholds from first order; schedule next Monday (configurable) when threshold met; re-check at lock.
+Instabee is denominator-only. Cap 600 bottles → lock immediately. Time thresholds from first order (day 7 → **125%**, day 14 → 100%, day 21 → floor 70%); schedule next Monday (configurable) when threshold met; re-check at lock.
+
+Env knobs: `PALLET_COVERAGE_DAY_7` / `PALLET_COVERAGE_RATIO_DAY7` (default 1.25), plus `_DAY_100` / `_RATIO_100`, `_DAY_FLOOR` / `_RATIO_FLOOR`.
 
 **Sold-out at lock**
 
-Admin marks wine unavailable → lines `pending_choice` → email + `/pallet-lock-choice`. Charge = original − removed + pricier replacement delta only. No answer → remove (TODO(Axel) confirm).
+Admin marks wine unavailable → lines `pending_choice` → email + `/pallet-lock-choice`. Charge = original − removed + pricier replacement delta only. No answer → **remove and don't charge** (Axel confirmed 00:41).
 
 Code: `lib/pallet-coverage-close/`. Cron: `/api/cron/pallet-coverage-close`.

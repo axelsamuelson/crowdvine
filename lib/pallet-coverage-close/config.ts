@@ -58,11 +58,12 @@ export const PALLET_COVERAGE_CLOSE_DEFAULTS = {
   /** Day thresholds counted from the pallet's first active order. */
   thresholdDayStarts: {
     /** days 0–6: cap only (threshold null). */
-    coverage150FromDay: 7,
+    coverageDay7FromDay: 7,
     coverage100FromDay: 14,
     coverageFloorFromDay: 21,
   },
-  coverage150: 1.5,
+  /** From day 7: 125% coverage (Axel 00:41). */
+  coverageDay7: 1.25,
   coverage100: 1.0,
   coverageFloor: 0.7,
   /** Optional extra guard (kr). Null disables. */
@@ -71,7 +72,7 @@ export const PALLET_COVERAGE_CLOSE_DEFAULTS = {
   lockWeekday: 1,
   /**
    * Sold-out customer choice reply window (days).
-   * TODO(Axel): confirm default no-answer = remove & don't charge.
+   * No answer → remove wine and don't charge (Axel confirmed 00:41).
    */
   soldOutChoiceReplyDays: 7,
 } as const;
@@ -87,10 +88,10 @@ export type PalletCoverageCloseConfig = {
   instabeeOrePerOrder: number;
   fixedPalletCostOre: number;
   bottleCap: number;
-  coverage150FromDay: number;
+  coverageDay7FromDay: number;
   coverage100FromDay: number;
   coverageFloorFromDay: number;
-  coverage150: number;
+  coverageDay7: number;
   coverage100: number;
   coverageFloor: number;
   maxLossPerPalletOre: number | null;
@@ -173,10 +174,10 @@ export function getPalletCoverageCloseConfig(
       ),
     ),
     bottleCap: envInt(env, "PALLET_COVERAGE_BOTTLE_CAP", d.bottleCap),
-    coverage150FromDay: envInt(
+    coverageDay7FromDay: envInt(
       env,
-      "PALLET_COVERAGE_DAY_150",
-      d.thresholdDayStarts.coverage150FromDay,
+      "PALLET_COVERAGE_DAY_7",
+      d.thresholdDayStarts.coverageDay7FromDay,
     ),
     coverage100FromDay: envInt(
       env,
@@ -188,7 +189,7 @@ export function getPalletCoverageCloseConfig(
       "PALLET_COVERAGE_DAY_FLOOR",
       d.thresholdDayStarts.coverageFloorFromDay,
     ),
-    coverage150: envNumber(env, "PALLET_COVERAGE_RATIO_150", d.coverage150),
+    coverageDay7: envNumber(env, "PALLET_COVERAGE_RATIO_DAY7", d.coverageDay7),
     coverage100: envNumber(env, "PALLET_COVERAGE_RATIO_100", d.coverage100),
     coverageFloor: envNumber(env, "PALLET_COVERAGE_RATIO_FLOOR", d.coverageFloor),
     maxLossPerPalletOre,

@@ -6,8 +6,8 @@
  * (b) the line is removed and not charged.
  *
  * Admin marks a wine unavailable on a locked/scheduled pallet → affected
- * lines enter pending_choice. Default for no answer = (b) remove.
- * TODO(Axel): confirm default no-answer = remove & don't charge.
+ * lines enter pending_choice. No answer → (b) remove and don't charge
+ * (Axel confirmed 2026-11-11 00:41).
  */
 
 import {
@@ -148,7 +148,7 @@ export function markWineUnavailableOnLines(
 }
 
 /**
- * Default no-answer: remove (b). TODO(Axel): confirm.
+ * No customer answer → remove the wine and don't charge (Axel 00:41).
  */
 export function applySoldOutChoiceTimeout(
   lines: SoldOutLineSnapshot[],
