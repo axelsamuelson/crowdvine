@@ -67,22 +67,33 @@ describe("delivery notify email builders (SV+EN, no Budbee)", () => {
       locale: "sv",
       customerName: "Ada",
       reservationId: "r1",
-      windowStart: "2026-04-01",
-      windowEnd: "2026-04-07",
+      windowStart: "2026-05-12",
+      windowEnd: "2026-05-18",
+      palletName: "Stockholm A",
     });
     expect(sv.subject).toBe("Pallen har skickats");
-    expect(sv.text).toMatch(/2026-04-01–2026-04-07/);
+    expect(sv.text).toMatch(/12–18 maj/i);
+    expect(sv.text).toContain(
+      "Vi mejlar leveransdagen när vinet har nått Sverige",
+    );
     expect(sv.html + sv.text).not.toMatch(/Budbee/i);
+    expect(sv.html + sv.text).not.toContain("Stockholm A");
+    expect(sv.html).toContain("Se din order");
+    expect(sv.html).not.toContain("localhost");
 
     const en = buildPalletShippedEmail({
       locale: "en",
       customerName: "Ada",
       reservationId: "r1",
-      windowStart: "2026-04-01",
-      windowEnd: "2026-04-07",
+      windowStart: "2026-05-12",
+      windowEnd: "2026-05-18",
     });
     expect(en.subject).toBe("The pallet has shipped");
+    expect(en.text).toMatch(/12–18 May/i);
     expect(en.text).toMatch(/Estimated delivery window/);
+    expect(en.text).toContain(
+      "We'll email the delivery date once the wine has reached Sweden",
+    );
   });
 
   it("builds leveransdag email", () => {

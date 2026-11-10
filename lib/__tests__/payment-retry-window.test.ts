@@ -109,16 +109,18 @@ describe("failed / cancelled payment email domain + copy", () => {
       paymentUrl: "https://checkout.stripe.com/c/pay/cs_test",
       locale: "sv" as const,
     };
-    expect(paymentFailedSubject("sv")).toBe(
-      "Vi kunde inte dra betalningen för din order",
-    );
+    expect(paymentFailedSubject("sv")).toBe("Vi kunde inte dra betalningen");
     const text = buildPaymentFailedText(body);
     expect(text).toContain("3 dagar");
     expect(text).toContain("13 november 2026");
-    expect(text).toContain("pactwines.com");
     expect(text).not.toContain("pact.wine");
     expect(text).not.toContain("72 hours");
-    expect(buildPaymentFailedHtml(body)).toContain("Betala nu");
+    const html = buildPaymentFailedHtml(body);
+    expect(html).toContain("Betala nu");
+    expect(html).toContain("font-family:Geist");
+    expect(html).toContain("Tartu mnt 67/1-13b");
+    expect(html).toContain("customer@pactwines.com");
+    expect(html).not.toContain("pact.wine");
   });
 
   it("EN failed-charge email mirrors SV", () => {
@@ -130,12 +132,13 @@ describe("failed / cancelled payment email domain + copy", () => {
       paymentUrl: "https://checkout.stripe.com/c/pay/cs_test",
       locale: "en",
     });
-    expect(paymentFailedSubject("en")).toMatch(/couldn't take payment/i);
+    expect(paymentFailedSubject("en")).toBe("We couldn't take payment");
     expect(text).toContain("3 days");
+    expect(text).toContain("SEK 1,290");
     expect(text).not.toContain("pact.wine");
   });
 
-  it("cancelled payment email uses pactwines.com not pact.wine", () => {
+  it("cancelled payment email — one 3-day sentence, no points, open pallets copy", () => {
     const html = buildPaymentCancelledHtml({
       reservationId: "ord-1",
       reason: "Payment was not completed within 3 days.",
@@ -149,7 +152,21 @@ describe("failed / cancelled payment email domain + copy", () => {
     });
     expect(html).toContain("pactwines.com");
     expect(html).not.toContain("pact.wine");
-    expect(text).toContain("pactwines.com");
-    expect(text).not.toContain("pact.wine");
+    expect(html).toContain("font-family:Geist");
+    expect(html).toContain("Your order has been cancelled – nothing was charged");
+    expect(text).toContain("open pallets at pactwines.com");
+    expect(text).not.toContain("PACT Points");
+    // Reason string must not duplicate the 3-day sentence
+    expect(text.match(/within 3 days/gi)?.length ?? 0).toBe(1);
+    expect(html.match(/within 3 days/gi)?.length ?? 0).toBe(1);
+
+    const sv = buildPaymentCancelledText({
+      reservationId: "ord-1",
+      reason: "Betalningen gick inte igenom inom 3 dagar.",
+      locale: "sv",
+    });
+    expect(sv.match(/inom 3 dagar/gi)?.length ?? 0).toBe(1);
+    expect(sv).toContain("de öppna pallarna på pactwines.com");
+    expect(sv).not.toContain("PACT Points");
   });
 });

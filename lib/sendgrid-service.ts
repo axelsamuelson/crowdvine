@@ -2,6 +2,16 @@ import { sendEmail } from "@/lib/email";
 import { escapeHtmlBasic } from "@/lib/email/escape-html";
 import { formatSharedPalletCloseDeliveryCopy } from "@/lib/checkout/shared-pallet-close-delivery-copy";
 import {
+  formatOrderAmountSek,
+  getEmailAppUrl,
+  inlineLinkHtml,
+  orderReservationsUrl,
+  p,
+  payNowCtaLabel,
+  primaryButtonHtml,
+  wrapOrderEmail,
+} from "@/lib/email/order-email-chrome";
+import {
   getWelcomeEmailTemplate,
   getWelcomeEmailText,
 } from "./email-templates";
@@ -303,7 +313,7 @@ export async function buildOrderConfirmationHtml(
               </div>
 
               <div style="text-align: center; margin: 30px 0;">
-                <a href="${getAppUrl()}/profile/reservations" class="button">
+                <a href="${getEmailAppUrl()}/profile/reservations" class="button">
                   View your order
                 </a>
               </div>
@@ -564,49 +574,70 @@ export type PaymentFailedEmailBody = {
   profileUrl?: string;
 };
 
-function formatFailedAmount(
-  amountSek: number | null | undefined,
-  locale: "sv" | "en",
-): string {
-  const n = Number(amountSek);
-  if (!Number.isFinite(n) || n < 0) {
-    return locale === "sv" ? "beloppet" : "the amount";
-  }
-  const formatted = new Intl.NumberFormat(
-    locale === "sv" ? "sv-SE" : "en-GB",
-    { maximumFractionDigits: 0, minimumFractionDigits: 0 },
-  ).format(Math.round(n));
-  return locale === "sv" ? `${formatted} kr` : `${formatted} SEK`;
-}
-
 export function buildPaymentFailedHtml(data: PaymentFailedEmailBody): string {
   const locale = data.locale === "en" ? "en" : "sv";
   const name = escapeHtmlBasic(
     (data.customerName || "").trim() || (locale === "sv" ? "hej" : "hi"),
   );
   const orderId = escapeHtmlBasic(data.reservationId);
-  const amount = escapeHtmlBasic(formatFailedAmount(data.amountSek, locale));
+  const amount = escapeHtmlBasic(formatOrderAmountSek(data.amountSek, locale));
   const payBy = escapeHtmlBasic(data.payByLabel);
   const payUrl =
     data.paymentUrl ||
     `${(data.profileUrl || "https://pactwines.com").replace(/\/$/, "")}/profile#payment`;
-  const safeUrl = escapeHtmlBasic(payUrl);
+  const payLabel = payNowCtaLabel(locale);
+  const title = paymentFailedSubject(locale);
 
   if (locale === "sv") {
-    return `<p>Hej ${name},</p><p>Pallen för din order <strong>${orderId}</strong> har stängt, men vi kunde inte dra ${amount} från ditt kort.</p><p>Du har till och med <strong>${payBy}</strong> (3 dagar) på dig att betala. Använd länken nedan för att godkänna betalningen eller byta kort. Vi försöker också dra beloppet igen under tiden.</p><p>Har betalningen inte gått igenom senast ${payBy} avbryts ordern och inget dras.</p><p><a href="${safeUrl}" style="display:inline-block;background:#000;color:#fff;padding:12px 20px;text-decoration:none;border-radius:4px;">Betala nu</a></p><p style="color:#666;font-size:12px;">EURPACT OÜ · customer@pactwines.com</p>`;
+    return wrapOrderEmail({
+      locale: "sv",
+      title,
+      orderId: data.reservationId,
+      bodyHtml: [
+        p(`Hej ${name},`),
+        p(
+          `Pallen för din order <strong>${orderId}</strong> har stängt, men vi kunde inte dra ${amount} från ditt kort.`,
+        ),
+        p(
+          `Du har till och med <strong>${payBy}</strong> (3 dagar) på dig att betala. Använd länken nedan för att godkänna betalningen eller byta kort. Vi försöker också dra beloppet igen under tiden.`,
+        ),
+        p(
+          `Har betalningen inte gått igenom senast ${payBy} avbryts ordern och inget dras.`,
+        ),
+        `<p style="margin:24px 0;">${primaryButtonHtml(payUrl, payLabel)}</p>`,
+      ].join(""),
+    });
   }
 
-  return `<p>Hi ${name},</p><p>The pallet for your order <strong>${orderId}</strong> has closed, but we couldn't charge ${amount} to your card.</p><p>You have until <strong>${payBy}</strong> (3 days) to pay. Use the link below to approve the payment or change card. We'll also try the charge again in the meantime.</p><p>If payment hasn't gone through by ${payBy}, the order will be cancelled and nothing will be charged.</p><p><a href="${safeUrl}" style="display:inline-block;background:#000;color:#fff;padding:12px 20px;text-decoration:none;border-radius:4px;">Pay now</a></p><p style="color:#666;font-size:12px;">EURPACT OÜ · customer@pactwines.com</p>`;
+  return wrapOrderEmail({
+    locale: "en",
+    title,
+    orderId: data.reservationId,
+    bodyHtml: [
+      p(`Hi ${name},`),
+      p(
+        `The pallet for your order <strong>${orderId}</strong> has closed, but we couldn't charge ${amount} to your card.`,
+      ),
+      p(
+        `You have until <strong>${payBy}</strong> (3 days) to pay. Use the link below to approve the payment or change card. We'll also try the charge again in the meantime.`,
+      ),
+      p(
+        `If payment hasn't gone through by ${payBy}, the order will be cancelled and nothing will be charged.`,
+      ),
+      `<p style="margin:24px 0;">${primaryButtonHtml(payUrl, payLabel)}</p>`,
+    ].join(""),
+  });
 }
 
 export function buildPaymentFailedText(data: PaymentFailedEmailBody): string {
   const locale = data.locale === "en" ? "en" : "sv";
   const name =
     (data.customerName || "").trim() || (locale === "sv" ? "hej" : "hi");
-  const amount = formatFailedAmount(data.amountSek, locale);
+  const amount = formatOrderAmountSek(data.amountSek, locale);
   const payUrl =
     data.paymentUrl ||
     `${(data.profileUrl || "https://pactwines.com").replace(/\/$/, "")}/profile#payment`;
+  const payLabel = payNowCtaLabel(locale);
 
   if (locale === "sv") {
     return `Hej ${name},
@@ -617,9 +648,8 @@ Du har till och med ${data.payByLabel} (3 dagar) på dig att betala. Använd lä
 
 Har betalningen inte gått igenom senast ${data.payByLabel} avbryts ordern och inget dras.
 
-Betala nu: ${payUrl}
-
-EURPACT OÜ · customer@pactwines.com`;
+${payLabel}: ${payUrl}
+`;
   }
 
   return `Hi ${name},
@@ -630,24 +660,30 @@ You have until ${data.payByLabel} (3 days) to pay. Use the link below to approve
 
 If payment hasn't gone through by ${data.payByLabel}, the order will be cancelled and nothing will be charged.
 
-Pay now: ${payUrl}
-
-EURPACT OÜ · customer@pactwines.com`;
+${payLabel}: ${payUrl}
+`;
 }
 
 export function paymentFailedSubject(locale: "sv" | "en" = "sv"): string {
   return locale === "sv"
-    ? "Vi kunde inte dra betalningen för din order"
-    : "We couldn't take payment for your order";
+    ? "Vi kunde inte dra betalningen"
+    : "We couldn't take payment";
 }
 
 export type PaymentCancelledEmailBody = {
   reservationId: string;
+  /** Kept for call-site compat; not rendered (avoids duplicate 3-day sentence). */
   reason: string;
   locale?: "sv" | "en";
   customerName?: string;
 };
 
+/**
+ * Payment-cancelled after 3-day window.
+ * Coupons/discount codes are NOT restored on cancel — no coupon line.
+ * Pending PACT Points are reversed in code, but Juliette: do not mention
+ * a generic points refund line in this email.
+ */
 export function buildPaymentCancelledHtml(
   data: PaymentCancelledEmailBody,
 ): string {
@@ -656,10 +692,44 @@ export function buildPaymentCancelledHtml(
     (data.customerName || "").trim() || (locale === "sv" ? "hej" : "hi"),
   );
   const orderId = escapeHtmlBasic(data.reservationId);
+  const title =
+    locale === "sv"
+      ? "Din order är avbruten – inget har dragits"
+      : "Your order has been cancelled – nothing was charged";
+
   if (locale === "sv") {
-    return `<p>Hej ${name},</p><p>Vi har avbrutit din order <strong>${orderId}</strong> eftersom betalningen inte gick igenom inom 3 dagar. Inget belopp har dragits från ditt kort.</p><p>${escapeHtmlBasic(data.reason)}</p><p>Eventuella PACT Points har återförts till ditt konto.</p><p>Vill du vara med på en kommande pall hittar du dem på <a href="https://pactwines.com">pactwines.com</a>.</p><p style="color:#666;font-size:12px;">EURPACT OÜ · customer@pactwines.com</p>`;
+    return wrapOrderEmail({
+      locale: "sv",
+      title,
+      orderId: data.reservationId,
+      bodyHtml: [
+        p(`Hej ${name},`),
+        p(
+          `Vi har avbrutit din order <strong>${orderId}</strong> eftersom betalningen inte gick igenom inom 3 dagar. Inget belopp har dragits från ditt kort.`,
+        ),
+        p(
+          `Vill du vara med på en kommande pall hittar du de öppna pallarna på ${inlineLinkHtml("https://pactwines.com", "pactwines.com")}.`,
+        ),
+        `<p style="margin:24px 0;">${primaryButtonHtml(orderReservationsUrl(), "Se din order")}</p>`,
+      ].join(""),
+    });
   }
-  return `<p>Hi ${name},</p><p>We have cancelled your order <strong>${orderId}</strong> because payment did not go through within 3 days. Nothing was charged to your card.</p><p>${escapeHtmlBasic(data.reason)}</p><p>Any PACT Points used on this order have been refunded to your account.</p><p>If you'd like to join a future pallet, you'll find them at <a href="https://pactwines.com">pactwines.com</a>.</p><p style="color:#666;font-size:12px;">EURPACT OÜ · customer@pactwines.com</p>`;
+
+  return wrapOrderEmail({
+    locale: "en",
+    title,
+    orderId: data.reservationId,
+    bodyHtml: [
+      p(`Hi ${name},`),
+      p(
+        `We have cancelled your order <strong>${orderId}</strong> because payment did not go through within 3 days. Nothing was charged to your card.`,
+      ),
+      p(
+        `If you’d like to join a future pallet, you’ll find the open pallets at ${inlineLinkHtml("https://pactwines.com", "pactwines.com")}.`,
+      ),
+      `<p style="margin:24px 0;">${primaryButtonHtml(orderReservationsUrl(), "View your order")}</p>`,
+    ].join(""),
+  });
 }
 
 export function buildPaymentCancelledText(
@@ -673,25 +743,15 @@ export function buildPaymentCancelledText(
 
 Vi har avbrutit din order ${data.reservationId} eftersom betalningen inte gick igenom inom 3 dagar. Inget belopp har dragits från ditt kort.
 
-${data.reason}
-
-Eventuella PACT Points har återförts till ditt konto.
-
-Vill du vara med på en kommande pall hittar du dem på pactwines.com.
-
-EURPACT OÜ · customer@pactwines.com`;
+Vill du vara med på en kommande pall hittar du de öppna pallarna på pactwines.com.
+`;
   }
   return `Hi ${name},
 
 We have cancelled your order ${data.reservationId} because payment did not go through within 3 days. Nothing was charged to your card.
 
-${data.reason}
-
-Any PACT Points used on this order have been refunded to your account.
-
-If you'd like to join a future pallet, you'll find them at pactwines.com.
-
-EURPACT OÜ · customer@pactwines.com`;
+If you’d like to join a future pallet, you’ll find the open pallets at pactwines.com.
+`;
 }
 
 export async function sendPaymentConfirmedEmail({

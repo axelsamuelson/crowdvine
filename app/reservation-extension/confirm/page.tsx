@@ -23,6 +23,7 @@ function resolveLocale(raw: string): AppLocale {
  * Legacy extension-confirm page.
  * Confirmation is no longer required (Axel 2026-11-10).
  * Any visit shows a fixed friendly message and changes nothing in the DB.
+ * Uses the site layout (header + Geist from root layout).
  */
 export default async function ReservationExtensionConfirmPage({
   searchParams,
@@ -31,43 +32,29 @@ export default async function ReservationExtensionConfirmPage({
 }) {
   const params = await searchParams;
   const locale = resolveLocale(firstParam(params.lang).trim().toLowerCase());
-  const copyOk = EXTENSION_CONFIRM_PAGE_COPY[locale];
+  const copy = EXTENSION_CONFIRM_PAGE_COPY[locale];
   const body = EXTENSION_LEGACY_LINK_BODY[locale];
 
-  return <ConfirmShell title={copyOk.title} body={body} locale={locale} ok />;
-}
-
-function ConfirmShell({
-  title,
-  body,
-  locale,
-  ok = false,
-}: {
-  title: string;
-  body: string;
-  locale: AppLocale;
-  ok?: boolean;
-}) {
-  const cta = EXTENSION_CONFIRM_PAGE_COPY[locale].cta;
   return (
-    <main className="mx-auto flex min-h-[70vh] max-w-lg flex-col justify-center px-6 py-16">
-      <p className="mb-6 text-sm font-semibold tracking-[0.2em] text-neutral-500">
-        PACT
-      </p>
+    <main className="mx-auto flex min-h-[70vh] max-w-lg flex-col justify-center px-6 py-16 font-sans">
       <h1 className="text-3xl font-semibold tracking-tight text-neutral-900">
-        {title}
+        {copy.title}
       </h1>
       <p className="mt-4 text-base leading-relaxed text-neutral-700">{body}</p>
-      <Link
-        href="/"
-        className={`mt-10 inline-flex w-fit items-center justify-center rounded-md px-5 py-2.5 text-sm font-medium ${
-          ok
-            ? "bg-neutral-900 text-white hover:bg-neutral-800"
-            : "border border-neutral-300 text-neutral-900 hover:bg-neutral-50"
-        }`}
-      >
-        {cta}
-      </Link>
+      <div className="mt-10 flex flex-wrap gap-3">
+        <Link
+          href="/profile/reservations"
+          className="inline-flex items-center justify-center rounded-[4px] bg-[#0A0A0A] px-5 py-2.5 text-sm font-medium text-white hover:bg-neutral-800"
+        >
+          {copy.orderCta}
+        </Link>
+        <Link
+          href="/profile/reservations"
+          className="inline-flex items-center justify-center rounded-[4px] border border-[#0A0A0A] bg-white px-5 py-2.5 text-sm font-medium text-[#0A0A0A] hover:bg-neutral-50"
+        >
+          {copy.cancelCta}
+        </Link>
+      </div>
     </main>
   );
 }

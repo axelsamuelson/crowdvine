@@ -1,6 +1,16 @@
 import type { AppLocale } from "@/lib/i18n/locale";
 import { escapeHtmlBasic } from "@/lib/email/escape-html";
 import { DAY_MS } from "@/lib/reservations/expiry-config";
+import {
+  cancelCtaLabel,
+  formatOrderAmountSek,
+  orderCtaLabel,
+  orderEmailFooterLine,
+  p,
+  primaryButtonHtml,
+  secondaryButtonHtml,
+  wrapOrderEmail,
+} from "@/lib/email/order-email-chrome";
 
 export type StatusEmailParams = {
   locale: AppLocale;
@@ -11,6 +21,8 @@ export type StatusEmailParams = {
   amountSek: number | null;
   orderUrl: string;
   cancelUrl: string;
+  /** Show PACT Points line only when points used on the order (>0). */
+  pointsUsed?: number | null;
 };
 
 /** @deprecated Extension ask removed — kept for type imports during transition. */
@@ -41,10 +53,19 @@ export const QUESTIONS_LINE_SV =
 export const QUESTIONS_LINE_EN =
   "Questions? Reply to this email or write to customer@pactwines.com.";
 
+/** Juliette legal footer (locale-correct). Prefer orderEmailFooterLine. */
 export const STATUS_FOOTER_SV =
-  "EURPACT OÜ, säljare på pactwines.com · customer@pactwines.com";
+  "Säljare: EURPACT OÜ (reg.nr 17538270), Tartu mnt 67/1-13b, 10115 Tallinn, Estland · customer@pactwines.com";
 export const STATUS_FOOTER_EN =
-  "EURPACT OÜ, seller at pactwines.com · customer@pactwines.com";
+  "Seller: EURPACT OÜ (reg. no. 17538270), Tartu mnt 67/1-13b, 10115 Tallinn, Estonia · customer@pactwines.com";
+
+/** @deprecated Use formatOrderAmountSek from order-email-chrome. */
+export function formatReservedAmountSek(
+  amountSek: number | null | undefined,
+  locale: AppLocale,
+): string {
+  return formatOrderAmountSek(amountSek, locale === "en" ? "en" : "sv");
+}
 
 /** Swedish-style long date, e.g. "6 november 2026". */
 export function formatExtensionDeadlineDate(
@@ -59,33 +80,14 @@ export function formatExtensionDeadlineDate(
   }).format(date);
 }
 
-/** Order amount for email copy, e.g. "1 250 kr". */
-export function formatReservedAmountSek(
-  amountSek: number | null | undefined,
-  locale: AppLocale,
-): string {
-  const n = Number(amountSek);
-  if (!Number.isFinite(n) || n < 0) {
-    return locale === "sv" ? "beloppet" : "the amount";
-  }
-  const formatted = new Intl.NumberFormat(
-    locale === "sv" ? "sv-SE" : "en-GB",
-    {
-      maximumFractionDigits: 0,
-      minimumFractionDigits: 0,
-    },
-  ).format(Math.round(n));
-  return locale === "sv" ? `${formatted} kr` : `${formatted} SEK`;
-}
-
 export function termsUrlForLocale(locale: AppLocale): string {
   return locale === "sv" ? TERMS_URL_SV : TERMS_URL_EN;
 }
 
 export function statusEmailSubject(locale: AppLocale): string {
   return locale === "sv"
-    ? "Läget för din PACT-pall"
-    : "An update on your PACT pallet";
+    ? "Pallen fylls fortfarande"
+    : "Your pallet is still filling up";
 }
 
 /** @deprecated */
@@ -103,82 +105,123 @@ export function expiryCancelledSubject(
     : "Your order has been cancelled – nothing was charged";
 }
 
-export function buildStatusEmailText(p: StatusEmailParams): string {
-  const name = p.customerName.trim() || (p.locale === "sv" ? "hej" : "hi");
-  const amount = formatReservedAmountSek(p.amountSek, p.locale);
-  const orderId = p.orderId;
-  const antal = Math.max(0, Math.floor(p.bottlesOrdered));
-  const grans = Math.max(0, Math.floor(p.bottlesNeeded));
+function pointsLine(
+  locale: AppLocale,
+  pointsUsed: number | null | undefined,
+): string | null {
+  const n = Number(pointsUsed);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  const pts = Math.floor(n);
+  if (locale === "sv") {
+    return `Du använder ${pts} PACT Points på den här ordern.`;
+  }
+  return `You’re using ${pts} PACT Points on this order.`;
+}
 
-  if (p.locale === "sv") {
+export function buildStatusEmailText(pParams: StatusEmailParams): string {
+  const name =
+    pParams.customerName.trim() || (pParams.locale === "sv" ? "hej" : "hi");
+  const amount = formatOrderAmountSek(
+    pParams.amountSek,
+    pParams.locale === "en" ? "en" : "sv",
+  );
+  const orderId = pParams.orderId;
+  const antal = Math.max(0, Math.floor(pParams.bottlesOrdered));
+  const grans = Math.max(0, Math.floor(pParams.bottlesNeeded));
+  const points = pointsLine(pParams.locale, pParams.pointsUsed);
+  const footer = orderEmailFooterLine(
+    pParams.locale === "en" ? "en" : "sv",
+    orderId,
+  );
+  const orderCta = orderCtaLabel(pParams.locale === "en" ? "en" : "sv");
+  const cancelCta = cancelCtaLabel(pParams.locale === "en" ? "en" : "sv");
+
+  if (pParams.locale === "sv") {
     return `Hej ${name},
 
 Din order ${orderId} väntar fortfarande på att pallen ska fyllas. Just nu är ${antal} av ${grans} flaskor beställda.
-
+${points ? `\n${points}\n` : ""}
 Du behöver inte göra något. Din order ligger kvar tills pallen stänger, och först då dras ${amount} från ditt sparade kort. Vi mejlar dig när det händer.
 
-Vill du inte vänta längre kan du avbryta utan kostnad fram till att pallen stänger.
+Vill du inte vänta längre kan du avbryta utan kostnad tills pallen stänger.
 
-Se din order: ${p.orderUrl}
-Avbryt ordern: ${p.cancelUrl}
+${orderCta}: ${pParams.orderUrl}
+${cancelCta}: ${pParams.cancelUrl}
 
-${STATUS_FOOTER_SV}`;
+${footer}`;
   }
 
   return `Hi ${name},
 
 Your order ${orderId} is still waiting for the pallet to fill. Right now ${antal} of ${grans} bottles have been ordered.
-
+${points ? `\n${points}\n` : ""}
 You don't need to do anything. Your order stays in place until the pallet closes, and only then will ${amount} be charged to your saved card. We'll email you when that happens.
 
 If you'd rather not wait, you can cancel free of charge until the pallet closes.
 
-View your order: ${p.orderUrl}
-Cancel order: ${p.cancelUrl}
+${orderCta}: ${pParams.orderUrl}
+${cancelCta}: ${pParams.cancelUrl}
 
-${STATUS_FOOTER_EN}`;
+${footer}`;
 }
 
-export function buildStatusEmailHtml(p: StatusEmailParams): string {
+export function buildStatusEmailHtml(pParams: StatusEmailParams): string {
+  const locale = pParams.locale === "en" ? "en" : "sv";
   const name = escapeHtmlBasic(
-    p.customerName.trim() || (p.locale === "sv" ? "hej" : "hi"),
+    pParams.customerName.trim() || (locale === "sv" ? "hej" : "hi"),
   );
   const amount = escapeHtmlBasic(
-    formatReservedAmountSek(p.amountSek, p.locale),
+    formatOrderAmountSek(pParams.amountSek, locale),
   );
-  const orderId = escapeHtmlBasic(p.orderId);
-  const orderUrl = escapeHtmlBasic(p.orderUrl);
-  const cancelUrl = escapeHtmlBasic(p.cancelUrl);
-  const antal = Math.max(0, Math.floor(p.bottlesOrdered));
-  const grans = Math.max(0, Math.floor(p.bottlesNeeded));
+  const orderId = escapeHtmlBasic(pParams.orderId);
+  const antal = Math.max(0, Math.floor(pParams.bottlesOrdered));
+  const grans = Math.max(0, Math.floor(pParams.bottlesNeeded));
+  const points = pointsLine(pParams.locale, pParams.pointsUsed);
+  const title = statusEmailSubject(pParams.locale);
+  const orderCta = orderCtaLabel(locale);
+  const cancelCta = cancelCtaLabel(locale);
 
-  if (p.locale === "sv") {
-    return wrapEmail(
-      "Läget för din PACT-pall",
-      `<p style="color:#333;font-size:16px;line-height:1.6;margin:0 0 16px 0;">Hej ${name},</p>
-<p style="color:#333;font-size:16px;line-height:1.6;margin:0 0 16px 0;">Din order ${orderId} väntar fortfarande på att pallen ska fyllas. Just nu är ${antal} av ${grans} flaskor beställda.</p>
-<p style="color:#333;font-size:16px;line-height:1.6;margin:0 0 16px 0;">Du behöver inte göra något. Din order ligger kvar tills pallen stänger, och först då dras ${amount} från ditt sparade kort. Vi mejlar dig när det händer.</p>
-<p style="color:#333;font-size:16px;line-height:1.6;margin:0 0 16px 0;">Vill du inte vänta längre kan du avbryta utan kostnad fram till att pallen stänger.</p>
-<p style="margin:24px 0;">
-  <a href="${orderUrl}" style="display:inline-block;background:#000;color:#fff;text-decoration:none;padding:12px 20px;border-radius:4px;font-size:16px;margin:0 8px 8px 0;">Se din order</a>
-  <a href="${cancelUrl}" style="display:inline-block;background:#fff;color:#000;border:1px solid #000;text-decoration:none;padding:12px 20px;border-radius:4px;font-size:16px;margin:0 8px 8px 0;">Avbryt ordern</a>
-</p>
-<p style="color:#666;font-size:12px;line-height:1.6;margin:0;">${escapeHtmlBasic(STATUS_FOOTER_SV)}</p>`,
-    );
+  if (locale === "sv") {
+    return wrapOrderEmail({
+      locale: "sv",
+      title,
+      orderId: pParams.orderId,
+      bodyHtml: [
+        p(`Hej ${name},`),
+        p(
+          `Din order ${orderId} väntar fortfarande på att pallen ska fyllas. Just nu är ${antal} av ${grans} flaskor beställda.`,
+        ),
+        points ? p(escapeHtmlBasic(points)) : "",
+        p(
+          `Du behöver inte göra något. Din order ligger kvar tills pallen stänger, och först då dras ${amount} från ditt sparade kort. Vi mejlar dig när det händer.`,
+        ),
+        p(
+          "Vill du inte vänta längre kan du avbryta utan kostnad tills pallen stänger.",
+        ),
+        `<p style="margin:24px 0;">${primaryButtonHtml(pParams.orderUrl, orderCta)}${secondaryButtonHtml(pParams.cancelUrl, cancelCta)}</p>`,
+      ].join(""),
+    });
   }
 
-  return wrapEmail(
-    "An update on your PACT pallet",
-    `<p style="color:#333;font-size:16px;line-height:1.6;margin:0 0 16px 0;">Hi ${name},</p>
-<p style="color:#333;font-size:16px;line-height:1.6;margin:0 0 16px 0;">Your order ${orderId} is still waiting for the pallet to fill. Right now ${antal} of ${grans} bottles have been ordered.</p>
-<p style="color:#333;font-size:16px;line-height:1.6;margin:0 0 16px 0;">You don't need to do anything. Your order stays in place until the pallet closes, and only then will ${amount} be charged to your saved card. We'll email you when that happens.</p>
-<p style="color:#333;font-size:16px;line-height:1.6;margin:0 0 16px 0;">If you'd rather not wait, you can cancel free of charge until the pallet closes.</p>
-<p style="margin:24px 0;">
-  <a href="${orderUrl}" style="display:inline-block;background:#000;color:#fff;text-decoration:none;padding:12px 20px;border-radius:4px;font-size:16px;margin:0 8px 8px 0;">View your order</a>
-  <a href="${cancelUrl}" style="display:inline-block;background:#fff;color:#000;border:1px solid #000;text-decoration:none;padding:12px 20px;border-radius:4px;font-size:16px;margin:0 8px 8px 0;">Cancel order</a>
-</p>
-<p style="color:#666;font-size:12px;line-height:1.6;margin:0;">${escapeHtmlBasic(STATUS_FOOTER_EN)}</p>`,
-  );
+  return wrapOrderEmail({
+    locale: "en",
+    title,
+    orderId: pParams.orderId,
+    bodyHtml: [
+      p(`Hi ${name},`),
+      p(
+        `Your order ${orderId} is still waiting for the pallet to fill. Right now ${antal} of ${grans} bottles have been ordered.`,
+      ),
+      points ? p(escapeHtmlBasic(points)) : "",
+      p(
+        `You don't need to do anything. Your order stays in place until the pallet closes, and only then will ${amount} be charged to your saved card. We'll email you when that happens.`,
+      ),
+      p(
+        "If you'd rather not wait, you can cancel free of charge until the pallet closes.",
+      ),
+      `<p style="margin:24px 0;">${primaryButtonHtml(pParams.orderUrl, orderCta)}${secondaryButtonHtml(pParams.cancelUrl, cancelCta)}</p>`,
+    ].join(""),
+  });
 }
 
 /** @deprecated */
@@ -211,10 +254,11 @@ export function buildExtensionAskHtml(p: ExtensionAskEmailParams): string {
 
 /** @deprecated Auto-cancel copy removed. */
 export function buildExpiryCancelledText(
-  p: ExpiryCancelledEmailParams,
+  params: ExpiryCancelledEmailParams,
 ): string {
-  const name = p.customerName.trim() || (p.locale === "sv" ? "hej" : "hi");
-  if (p.locale === "sv") {
+  const name =
+    params.customerName.trim() || (params.locale === "sv" ? "hej" : "hi");
+  if (params.locale === "sv") {
     return `Hej ${name},\n\nDin order ligger kvar — vi avbokar den inte automatiskt längre.\n\n${QUESTIONS_LINE_SV}\n\n/PACT`;
   }
   return `Hi ${name},\n\nYour order stays in place — we no longer cancel automatically.\n\n${QUESTIONS_LINE_EN}\n\n/PACT`;
@@ -222,26 +266,28 @@ export function buildExpiryCancelledText(
 
 /** @deprecated */
 export function buildExpiryCancelledHtml(
-  p: ExpiryCancelledEmailParams,
+  params: ExpiryCancelledEmailParams,
 ): string {
-  const text = buildExpiryCancelledText(p);
+  const text = buildExpiryCancelledText(params);
   const paragraphs = text
     .split(/\n\n+/)
     .map((block) => {
       const safe = escapeHtmlBasic(block).replace(/\n/g, "<br>");
-      return `<p style="color:#333;font-size:16px;line-height:1.6;margin:0 0 16px 0;">${safe}</p>`;
+      return p(safe);
     })
     .join("");
-  return wrapEmail(
-    p.locale === "sv" ? "Orderstatus" : "Order status",
-    paragraphs,
-  );
+  return wrapOrderEmail({
+    locale: params.locale === "en" ? "en" : "sv",
+    title: params.locale === "sv" ? "Orderstatus" : "Order status",
+    orderId: "—",
+    bodyHtml: paragraphs,
+  });
 }
 
-/** Exact copy for legacy /reservation-extension/confirm links. */
+/** Exact body for legacy /reservation-extension/confirm links. */
 export const EXTENSION_LEGACY_LINK_BODY = {
-  sv: "Din order ligger kvar, du behöver inte göra något",
-  en: "Your order stays, no action needed",
+  sv: "Din order ligger kvar tills pallen stänger. Du behöver inte göra något.",
+  en: "Your order stays in place until the pallet closes. You don't need to do anything.",
 } as const;
 
 /**
@@ -267,11 +313,17 @@ export function extensionNewEndDate(
 export const EXTENSION_CONFIRM_PAGE_COPY = {
   sv: {
     title: "Ingen åtgärd behövs",
-    cta: "Till pactwines.com",
+    body: EXTENSION_LEGACY_LINK_BODY.sv,
+    orderCta: "Se din order",
+    cancelCta: "Avbryt ordern",
+    cta: "Se din order",
   },
   en: {
     title: "No action needed",
-    cta: "Go to pactwines.com",
+    body: EXTENSION_LEGACY_LINK_BODY.en,
+    orderCta: "View your order",
+    cancelCta: "Cancel order",
+    cta: "View your order",
   },
 } as const;
 
@@ -299,22 +351,3 @@ export const EXTENSION_CONFIRM_PAGE_ERROR_COPY = {
     not_eligible: EXTENSION_LEGACY_LINK_BODY.en,
   },
 } as const;
-
-function wrapEmail(title: string, bodyHtml: string): string {
-  const safeTitle = escapeHtmlBasic(title);
-  return `<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${safeTitle}</title></head>
-<body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background-color:#f8f9fa;">
-  <div style="max-width:600px;margin:0 auto;background:#ffffff;">
-    <div style="background:#000;padding:28px 20px;text-align:center;">
-      <h1 style="color:#fff;margin:0;font-size:26px;font-weight:600;">PACT</h1>
-    </div>
-    <div style="padding:36px 20px;">${bodyHtml}</div>
-    <div style="background:#f8f9fa;padding:16px;text-align:center;border-top:1px solid #e9ecef;">
-      <p style="color:#666;font-size:12px;margin:0;">PACT · customer@pactwines.com</p>
-    </div>
-  </div>
-</body>
-</html>`;
-}

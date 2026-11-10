@@ -1,6 +1,6 @@
 import { sendEmail } from "@/lib/email";
 import { sendTransactionalEmailOnce } from "@/lib/email/claim-email-send";
-import { getAppUrl } from "@/lib/app-url";
+import { getEmailAppUrl } from "@/lib/email/order-email-chrome";
 import { isPalletCloseFlowEnabled } from "@/lib/checkout/pallet-close/flags";
 import { createPalletCloseActionToken } from "@/lib/checkout/pallet-close/tokens";
 import type { AppLocale } from "@/lib/i18n/locale";
@@ -377,7 +377,7 @@ export async function runReservationExpiryJob(
         summary.wouldSendStatusEmails += 1;
         summary.statusEmails = summary.wouldSendStatusEmails;
 
-        const baseUrl = getAppUrl().replace(/\/$/, "");
+        const baseUrl = getEmailAppUrl().replace(/\/$/, "");
         const orderUrl = `${baseUrl}/profile/reservations`;
         let cancelUrl = orderUrl;
 
@@ -390,6 +390,23 @@ export async function runReservationExpiryJob(
           const fill = await fillForPallet(palletId, pallet);
           bottlesOrdered = fill.bottlesFilled;
           bottlesNeeded = fill.minBottlesToShip;
+        }
+
+        // Points used on the order (pending redemption events); show line only if >0.
+        let pointsUsed: number | null = null;
+        try {
+          const { data: ptRows } = await sb
+            .from("pact_points_events")
+            .select("points_delta")
+            .eq("related_order_id", row.id)
+            .eq("event_type", "redemption");
+          const sum = (ptRows ?? []).reduce((acc, r) => {
+            const d = Number(r.points_delta) || 0;
+            return acc + (d < 0 ? Math.abs(d) : 0);
+          }, 0);
+          pointsUsed = sum > 0 ? sum : null;
+        } catch {
+          pointsUsed = null;
         }
 
         // Dry-run / sendEmail=false: count only — no tokens, no DB milestone, no mail.
@@ -433,6 +450,7 @@ export async function runReservationExpiryJob(
           amountSek: Number.isFinite(amountRaw) ? amountRaw : null,
           orderUrl,
           cancelUrl,
+          pointsUsed,
         };
 
         let mailResult: string = "no_recipient";

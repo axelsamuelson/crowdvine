@@ -15,10 +15,18 @@ describe("pallet-close email builders", () => {
       amountSek: 1290,
       palletName: "Stockholm A",
     });
-    expect(m.subject).toMatch(/debiter|stängde|betalning/i);
+    expect(m.subject).toBe("Pallen har stängt – betalningen är klar");
     expect(m.html).toContain("font-family:Geist");
-    expect(m.html).toContain("1290 kr");
-    expect(m.text).toContain("1290 kr");
+    expect(m.html).toContain("1\u202F290 kr");
+    expect(m.text).toContain("1\u202F290 kr");
+    expect(m.html + m.text).not.toContain("Stockholm A");
+    expect(m.html).toContain("pactwines.com/profile/reservations");
+    expect(m.html).not.toContain("localhost");
+    expect(m.html).toContain("Se din order");
+    expect(m.html).toContain("border-radius:4px");
+    expect(m.html).toContain("Tartu mnt 67/1-13b");
+    expect(m.text).toContain("Vi mejlar dig när pallen har skickats");
+    expect(m.text).toContain("inom 30 dagar");
   });
 
   it("builds English choice email with wait/cancel/direct links", () => {
@@ -73,10 +81,27 @@ describe("pallet-close email builders", () => {
       payByLabel: "4 December 2026",
       paymentLinkUrl: "https://checkout.stripe.com/c/pay/cs_test",
     });
-    expect(m.subject.toLowerCase()).toContain("couldn't take payment");
+    expect(m.subject).toBe("We couldn't take payment");
     expect(m.html).toContain("checkout.stripe.com");
+    expect(m.html).toContain("font-family:Geist");
+    expect(m.html).toContain("border-radius:4px");
     expect(m.text).toContain("3 days");
     expect(m.text).toContain("order will be cancelled");
     expect(m.text).not.toContain("reservation is cancelled");
+  });
+
+  it("cancel confirm uses future-pallet copy and no coupon/points line", () => {
+    const m = buildPalletCloseCancelledEmail({
+      locale: "sv",
+      customerName: "Alex",
+      reservationId: "res-1",
+      reason: "customer_cancel",
+    });
+    expect(m.text).toContain(
+      "Vill du vara med på en kommande pall hittar du de öppna pallarna på pactwines.com.",
+    );
+    expect(m.text).not.toContain("PACT Points");
+    expect(m.text).not.toContain("kupong");
+    expect(m.html).toContain("Se din order");
   });
 });
