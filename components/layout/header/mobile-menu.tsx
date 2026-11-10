@@ -226,7 +226,9 @@ export function MobileMenu({
                         })}
                         {(isAdmin || role === "producer") && (
                           <div
-                            className="mt-6 flex flex-col"
+                            // Bottom rule closes the admin/producer block (same 1px as row borders);
+                            // ShopLinks parent mt-10 keeps 40px to Populära (matches logged-out).
+                            className="mt-6 flex flex-col border-b border-[rgba(10,10,10,0.10)]"
                             data-testid="mobile-menu-nav-admin"
                           >
                             {isAdmin ? (
