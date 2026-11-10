@@ -11,6 +11,7 @@ import {
 import { PageLayout } from "@/components/layout/page-layout";
 import { B2BProfileLayout } from "@/components/profile/b2b-profile-layout";
 import { ReferralInviteCard } from "@/components/profile/referral-invite-card";
+import { ProfilePactConversionCouponCard } from "@/components/profile/pact-conversion-coupon-card";
 import { PaymentMethodsSection } from "@/components/profile/payment-methods-section";
 import { LevelBadge } from "@/components/membership/level-badge";
 import { PactPointsTimeline, type PactPointsEvent } from "@/components/membership/pact-points-timeline";
@@ -841,6 +842,8 @@ function ProfilePageContent() {
             invitedCount={referralInfo.invitedCount}
             activatedCount={referralInfo.activatedCount}
           />
+
+          <ProfilePactConversionCouponCard />
 
           <div className="border-b border-border">
             <div className="flex overflow-x-auto scrollbar-hide">

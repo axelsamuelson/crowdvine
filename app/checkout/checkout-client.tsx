@@ -318,6 +318,15 @@ function CheckoutContent({
   } | null>(null);
   const [discountError, setDiscountError] = useState<string | null>(null);
   const [discountApplying, setDiscountApplying] = useState(false);
+  const [accountCoupons, setAccountCoupons] = useState<
+    Array<{
+      id: string;
+      code: string;
+      value_sek: number;
+      valid_until: string | null;
+      description: string | null;
+    }>
+  >([]);
   const [pendingTestkopDiscount, setPendingTestkopDiscount] = useState<{
     code: string;
     discount_code_id: string;
@@ -1399,6 +1408,41 @@ function CheckoutContent({
       }
     })();
   }, [authChecked, authReady, fetchCart]);
+
+  // Account-bound promo coupons (e.g. PACT points conversion) for one-click apply.
+  useEffect(() => {
+    if (!authReady) {
+      setAccountCoupons([]);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch("/api/user/coupons");
+        if (!res.ok) {
+          if (!cancelled) setAccountCoupons([]);
+          return;
+        }
+        const data = (await res.json()) as {
+          coupons?: Array<{
+            id: string;
+            code: string;
+            value_sek: number;
+            valid_until: string | null;
+            description: string | null;
+          }>;
+        };
+        if (!cancelled) {
+          setAccountCoupons(Array.isArray(data.coupons) ? data.coupons : []);
+        }
+      } catch {
+        if (!cancelled) setAccountCoupons([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [authReady]);
 
   const handleCartMerge = useCallback(
     async (strategy: "keep_session" | "keep_user" | "merge") => {
@@ -3354,9 +3398,10 @@ function CheckoutContent({
     setPendingTestkopDiscount(null);
   };
 
-  const applyDiscountCode = async () => {
-    const code = discountCodeInput.trim();
+  const applyDiscountCode = async (codeOverride?: string) => {
+    const code = (codeOverride ?? discountCodeInput).trim();
     if (!code) return;
+    if (codeOverride) setDiscountCodeInput(code);
     setDiscountError(null);
     setDiscountApplying(true);
     try {
@@ -4062,6 +4107,32 @@ function CheckoutContent({
                   </div>
                 ) : (
                   <div className="space-y-2 pt-1">
+                    {accountCoupons.length > 0 ? (
+                      <div
+                        className="space-y-2"
+                        data-testid="checkout-account-coupons"
+                      >
+                        {accountCoupons.map((c) => (
+                          <button
+                            key={c.id}
+                            type="button"
+                            disabled={discountApplying}
+                            onClick={() => void applyDiscountCode(c.code)}
+                            className="flex w-full items-center justify-between gap-2 rounded-md border border-foreground/20 bg-muted/40 px-3 py-2 text-left text-sm transition hover:border-foreground/40 hover:bg-muted/70 disabled:opacity-60"
+                            data-testid="checkout-account-coupon"
+                          >
+                            <span className="min-w-0 truncate font-medium">
+                              {t("checkout.yourCouponOffer", {
+                                amount: formatSek(c.value_sek),
+                              })}
+                            </span>
+                            <span className="shrink-0 text-xs font-medium underline underline-offset-2">
+                              {t("checkout.applyYourCoupon")}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
                     <div className="flex gap-2">
                       <Input
                         placeholder={t("checkout.discountCode")}

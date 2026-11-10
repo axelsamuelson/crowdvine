@@ -54,7 +54,7 @@ export async function validatePromoDiscountCode(params: {
   const { data: row, error } = await params.sb
     .from("promo_discount_codes")
     .select(
-      "id, code, type, value, applies_to, purpose, max_uses, max_uses_per_user, user_id, valid_from, valid_until, active",
+      "id, code, type, value, applies_to, purpose, description, max_uses, max_uses_per_user, user_id, valid_from, valid_until, active",
     )
     .eq("code", normalizedCode)
     .maybeSingle();
@@ -169,6 +169,7 @@ export async function validatePromoDiscountCode(params: {
     applies_to,
     cart_value_sek: params.cart_value_sek,
     items: params.items,
+    description: typeof row.description === "string" ? row.description : null,
   });
   const final_total_sek = Math.max(
     0,
