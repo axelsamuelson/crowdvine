@@ -17,11 +17,18 @@ describe("shared-pallet Stripe Link constant", () => {
     expect(opts.wallets.applePay).toBe("never");
     expect(opts.wallets.googlePay).toBe("never");
     expect(opts.wallets.link).toBe("never");
+    expect(opts.layout.radios).toBe(false);
+    expect(opts.fields.billingDetails.address.country).toBe("never");
+    expect(opts.business.name).toBe("EURPACT OÜ");
   });
 
   it("can enable Link wallet when overridden", () => {
-    const opts = sharedPalletPaymentElementOptions({ linkEnabled: true });
+    const opts = sharedPalletPaymentElementOptions({
+      linkEnabled: true,
+      businessName: "PACT",
+    });
     expect(opts.wallets.link).toBe("auto");
     expect(opts.paymentMethodOrder).toEqual(["card"]);
+    expect(opts.business.name).toBe("PACT");
   });
 });

@@ -2,7 +2,7 @@
  * Cart and checkout line label for member and early-bird discounts.
  * A single early-bird label must not hide a member discount on the same price.
  *
- * SV: "Tidig bokning −20 %" · EN compact: "Early bird −20%".
+ * SV: "Tidig bokning −20 %" · EN: "Early bird −20 %" (minus + space before %).
  */
 
 export type DiscountLabelLocale = "sv" | "en";
@@ -20,7 +20,7 @@ function formatEarlyBirdPart(
   if (locale === "sv") {
     return `Tidig bokning −${percent} %`;
   }
-  return `Early bird −${percent}%`;
+  return `Early bird −${percent} %`;
 }
 
 export function formatCartDiscountLabel(input: {
@@ -63,6 +63,6 @@ export function localizeCartDiscountLabel(
       .replace(/Tidig bokning\s*[−\-–]?\s*(\d+)\s*%/gi, "Tidig bokning −$1 %");
   }
   return trimmed
-    .replace(/Tidig bokning\s*[−\-–]?\s*(\d+)\s*%/gi, "Early bird −$1%")
-    .replace(/Early[- ]?bird\s*[−\-–]?\s*(\d+)\s*%/gi, "Early bird −$1%");
+    .replace(/Tidig bokning\s*[−\-–]?\s*(\d+)\s*%/gi, "Early bird −$1 %")
+    .replace(/Early[- ]?bird\s*[−\-–]?\s*(\d+)\s*%/gi, "Early bird −$1 %");
 }

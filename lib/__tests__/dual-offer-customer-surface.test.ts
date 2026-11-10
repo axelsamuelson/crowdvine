@@ -123,7 +123,11 @@ describe("dual-offer customer surface guards", () => {
     expect(successSrc).toMatch(/MarketingConsentCheckbox/);
     expect(successSrc).toMatch(/charge_deadline_at/);
     expect(successSrc).toMatch(/formatSharedPalletCloseDeliveryCopy/);
-    expect(successSrc).toMatch(/success-close-delivery-copy/);
+    expect(successSrc).toMatch(/success-step3-delivery|success-total-incl/);
+    expect(successSrc).toMatch(/successOrderedAt|successOrderNumber/);
+    expect(successSrc).toMatch(/confirmationSharedPalletCity/);
+    expect(successSrc).not.toMatch(/DollarSign/);
+    expect(successSrc).not.toMatch(/success-close-delivery-copy/);
     expect(reservationApiSrc).toMatch(/computeSharedPalletChargeDeadlineIso/);
     expect(reservationApiSrc).toMatch(/created_at/);
     expect(reservationApiSrc).toMatch(/shipping_revenue_gross_cents/);
@@ -132,6 +136,7 @@ describe("dual-offer customer surface guards", () => {
       /select\(\s*`[\s\S]*?\border_type\b[\s\S]*?`\s*\)/,
     );
     expect(headerSrc).toMatch(/CheckoutMinimalHeader/);
+    expect(headerSrc).toMatch(/checkout\/success/);
   });
 
   it("humanizes block reasons without leaking raw codes", () => {

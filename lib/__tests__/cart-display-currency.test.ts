@@ -54,7 +54,7 @@ describe("cart discount label", () => {
         earlyBirdPercent: 20,
         locale: "en",
       }),
-    ).toBe("Privilege 15% · Early bird −20%");
+    ).toBe("Privilege 15% · Early bird −20 %");
   });
 
   it("does not use an early-bird-only label when a member discount also applies", () => {
@@ -98,15 +98,18 @@ describe("cart discount label", () => {
         earlyBirdPercent: 20,
         locale: "en",
       }),
-    ).toBe("15% · Early bird −20%");
+    ).toBe("15% · Early bird −20 %");
   });
 
   it("remaps a server-stamped EN early-bird label for SV UI", () => {
     expect(localizeCartDiscountLabel("Early bird −20%", "sv")).toBe(
       "Tidig bokning −20 %",
     );
+    expect(localizeCartDiscountLabel("Early bird −20 %", "sv")).toBe(
+      "Tidig bokning −20 %",
+    );
     expect(
-      localizeCartDiscountLabel("Privilege 15% · Early bird −20%", "sv"),
+      localizeCartDiscountLabel("Privilege 15% · Early bird −20 %", "sv"),
     ).toBe("Privilege 15% · Tidig bokning −20 %");
   });
 });

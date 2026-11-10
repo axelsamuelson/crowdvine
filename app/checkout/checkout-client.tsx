@@ -3552,7 +3552,7 @@ function CheckoutContent({
             })}
           </p>
           {line.discountLabel ? (
-            <span className="mt-1 inline-flex items-center rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-700">
+            <span className="mt-1 inline-flex items-center rounded-md bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground">
               {localizeCartDiscountLabel(
                 line.discountLabel,
                 shopping.locale,
@@ -5305,6 +5305,7 @@ function CheckoutContent({
                             onLegalGateError={handleLegalGateError}
                             prefetchedIntent={prefetchedStripeIntent}
                             cardOnly
+                            billingCountryCode={ageCountryCode}
                             onPaymentElementComplete={setPaymentElementComplete}
                           />
                         ) : null}
@@ -5312,7 +5313,7 @@ function CheckoutContent({
                         {dualOfferCardStepUnlocked &&
                         dualOfferSelectedQuote &&
                         mayStartSharedPalletCardSave(dualOfferSelectedQuote) ? (
-                          <div className="mt-6 space-y-4 border-t border-border pt-4">
+                          <div className="mt-3 space-y-3 border-t border-border pt-3">
                             <p className="text-xs text-muted-foreground">
                               {t("checkout.sellingEntity")}
                             </p>

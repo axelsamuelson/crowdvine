@@ -15,11 +15,25 @@ export function sharedPalletLinkEnabled(): boolean {
 /**
  * Payment Element `options` extras for shared-pallet card step.
  * Always card-first; Link wallet only when the constant is true.
+ * Country is never collected in-PE — passed on confirm from delivery address.
  */
 export function sharedPalletPaymentElementOptions(args?: {
   linkEnabled?: boolean;
+  businessName?: string;
 }): {
   paymentMethodOrder: ["card"];
+  layout: {
+    type: "accordion";
+    defaultCollapsed: false;
+    radios: false;
+    spacedAccordionItems: false;
+  };
+  business: { name: string };
+  fields: {
+    billingDetails: {
+      address: { country: "never" };
+    };
+  };
   wallets: {
     applePay: "never";
     googlePay: "never";
@@ -27,8 +41,25 @@ export function sharedPalletPaymentElementOptions(args?: {
   };
 } {
   const linkOn = args?.linkEnabled ?? sharedPalletLinkEnabled();
+  const businessName =
+    typeof args?.businessName === "string" && args.businessName.trim()
+      ? args.businessName.trim()
+      : "EURPACT OÜ";
   return {
     paymentMethodOrder: ["card"],
+    // Accordion + radios:false avoids a lone "Kort"/"Card" method tab.
+    layout: {
+      type: "accordion",
+      defaultCollapsed: false,
+      radios: false,
+      spacedAccordionItems: false,
+    },
+    business: { name: businessName },
+    fields: {
+      billingDetails: {
+        address: { country: "never" },
+      },
+    },
     wallets: {
       applePay: "never",
       googlePay: "never",

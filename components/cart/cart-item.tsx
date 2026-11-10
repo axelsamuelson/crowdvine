@@ -162,7 +162,7 @@ export function CartItemCard({ item, onCloseCart }: CartItemProps) {
               )}
             </span>
             {item.discountLabel ? (
-              <span className="inline-flex items-center text-xs px-2 py-0.5 rounded-md bg-amber-100 text-amber-700 font-medium w-fit">
+              <span className="inline-flex items-center text-xs px-2 py-0.5 rounded-md bg-muted text-muted-foreground font-medium w-fit">
                 {localizeCartDiscountLabel(item.discountLabel, locale) ??
                   item.discountLabel}
               </span>

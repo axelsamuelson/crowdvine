@@ -4,11 +4,13 @@ import { useState } from "react";
 import Link from "next/link";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useShoppingContextOptional } from "@/lib/context/shopping-context-provider";
+import { isMarketingConsentCheckoutEnabled } from "@/lib/marketing/checkout-consent-flag";
 import { NEW_PALLET_OPEN_CONSENT_TEXT_VERSION } from "@/lib/marketing/new-pallet-open-consent";
 
 /**
  * Unchecked-by-default marketing opt-in on the confirmation page.
  * Saves on change (no separate coloured CTA).
+ * Gated by MARKETING_CONSENT_CHECKOUT_ENABLED (default OFF).
  */
 export function MarketingConsentCheckbox(props: {
   email: string | null | undefined;
@@ -18,6 +20,10 @@ export function MarketingConsentCheckbox(props: {
   const [checked, setChecked] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  if (!isMarketingConsentCheckoutEnabled()) {
+    return null;
+  }
 
   const privacyMarker = "<<<PRIVACY>>>";
   const template = t("checkout.marketingConsentNewPallet", {

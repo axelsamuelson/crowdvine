@@ -123,7 +123,7 @@ describe("dual-offer binding CTA (distance-selling)", () => {
 describe("SV Early bird + EN SEK display", () => {
   it("localizes Early bird → Tidig bokning in SV UI", () => {
     expect(
-      localizeCartDiscountLabel("Early bird −20%", "sv"),
+      localizeCartDiscountLabel("Early bird −20 %", "sv"),
     ).toBe("Tidig bokning −20 %");
     expect(
       formatCartDiscountLabel({

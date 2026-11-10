@@ -125,7 +125,7 @@ describe("confirmation success surface contracts", () => {
     );
   });
 
-  it("success page shows approved belopp/datum/email + unchecked marketing consent", () => {
+  it("success page shows approved belopp/datum/email + gated marketing consent", () => {
     const successSrc = readFileSync(
       resolve(process.cwd(), "app/checkout/success/page.tsx"),
       "utf8",
@@ -141,11 +141,14 @@ describe("confirmation success surface contracts", () => {
     expect(successSrc).toMatch(/MarketingConsentCheckbox/);
     expect(successSrc).toMatch(/successStatusWaitingPallet|confirmationStatusMessageKey/);
     expect(successSrc).toMatch(/shortReservationReference/);
+    expect(successSrc).toMatch(/successTotalIncl/);
+    expect(successSrc).toMatch(/line-clamp-2/);
     expect(successSrc).not.toMatch(/successProducerOrder/);
     expect(successSrc).not.toMatch(/successProducer\}/);
     expect(consentSrc).toMatch(/useState\(false\)/);
     expect(consentSrc).toMatch(/\/api\/marketing\/consent/);
     expect(consentSrc).toMatch(/NEW_PALLET_OPEN_CONSENT_TEXT_VERSION/);
+    expect(consentSrc).toMatch(/isMarketingConsentCheckoutEnabled/);
   });
 
   it("formats long Swedish close date for confirmation copy", () => {

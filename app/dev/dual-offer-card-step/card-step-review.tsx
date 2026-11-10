@@ -18,6 +18,11 @@ import {
   sharedPalletLinkEnabled,
   sharedPalletPaymentElementOptions,
 } from "@/lib/checkout/shared-pallet-stripe-link";
+import {
+  STRIPE_GEIST_FONT_FAMILY,
+  STRIPE_GEIST_SANS_WOFF2,
+  stripePaymentElementBusinessName,
+} from "@/lib/checkout/stripe-seller-display";
 
 type Locale = "sv" | "en";
 
@@ -28,7 +33,7 @@ const pactDevAppearance = {
     colorBackground: "#ffffff",
     colorText: "#0A0A0A",
     colorTextSecondary: "#666666",
-    fontFamily: "Geist, ui-sans-serif, sans-serif",
+    fontFamily: `${STRIPE_GEIST_FONT_FAMILY}, ui-sans-serif, sans-serif`,
     borderRadius: "6px",
   },
 };
@@ -54,6 +59,7 @@ function CardStepInner(props: {
 
   const peOptions = sharedPalletPaymentElementOptions({
     linkEnabled: sharedPalletLinkEnabled(),
+    businessName: stripePaymentElementBusinessName(),
   });
 
   const onContinue = () => {
@@ -374,8 +380,9 @@ export function DualOfferCardStepReview() {
             appearance: pactDevAppearance,
             fonts: [
               {
-                cssSrc:
-                  "https://cdn.jsdelivr.net/fontsource/geist-sans@5.2.5/index.css",
+                family: STRIPE_GEIST_FONT_FAMILY,
+                src: `url(${STRIPE_GEIST_SANS_WOFF2})`,
+                weight: "400",
               },
             ],
           }}

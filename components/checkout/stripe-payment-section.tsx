@@ -14,6 +14,11 @@ import {
   sharedPalletLinkEnabled,
   sharedPalletPaymentElementOptions,
 } from "@/lib/checkout/shared-pallet-stripe-link";
+import {
+  STRIPE_GEIST_FONT_FAMILY,
+  STRIPE_GEIST_SANS_WOFF2,
+  stripePaymentElementBusinessName,
+} from "@/lib/checkout/stripe-seller-display";
 import { stripeLocaleForAppLocale } from "@/lib/i18n/locale";
 
 type PaymentMode = "setup_intent" | "payment_intent";
@@ -151,6 +156,8 @@ type Props = {
   }) => void;
   /** Shared pallet: Payment Element shows card only (no wallets / Link). */
   cardOnly?: boolean;
+  /** ISO country from delivery address — PE hides country field; confirm passes it. */
+  billingCountryCode?: string | null;
   /** Fires when Stripe reports the Payment Element complete/incomplete. */
   onPaymentElementComplete?: (complete: boolean) => void;
 };
@@ -179,7 +186,8 @@ const pactAppearance = {
     colorTextSecondary: "#666666",
     colorTextPlaceholder: "#999999",
     colorDanger: "#dc2626",
-    fontFamily: "Geist, ui-sans-serif, sans-serif",
+    // Must match Fontsource @font-face family ("Geist Sans"), not "Geist".
+    fontFamily: `${STRIPE_GEIST_FONT_FAMILY}, ui-sans-serif, sans-serif`,
     fontSizeBase: "14px",
     fontSizeSm: "12px",
     fontSizeXs: "11px",
@@ -248,6 +256,7 @@ function StripeElementInner({
   amountOre,
   paymentFormLoadFailedLabel,
   cardOnly = false,
+  billingCountryCode = null,
   onPaymentElementComplete,
 }: {
   paymentMode: PaymentMode;
@@ -260,6 +269,7 @@ function StripeElementInner({
   amountOre?: number;
   paymentFormLoadFailedLabel: string;
   cardOnly?: boolean;
+  billingCountryCode?: string | null;
   onPaymentElementComplete?: (complete: boolean) => void;
 }) {
   const stripe = useStripe();
@@ -299,13 +309,26 @@ function StripeElementInner({
     }
 
     const return_url = `${window.location.origin}/checkout/stripe-return`;
+    const country =
+      typeof billingCountryCode === "string" &&
+      /^[A-Za-z]{2}$/.test(billingCountryCode.trim())
+        ? billingCountryCode.trim().toUpperCase()
+        : "SE";
+    const confirmParams = {
+      return_url,
+      payment_method_data: {
+        billing_details: {
+          address: { country },
+        },
+      },
+    };
 
     if (paymentMode === "setup_intent") {
       const { error, setupIntent } = await stripe.confirmSetup({
         elements,
         clientSecret,
         redirect: "always",
-        confirmParams: { return_url },
+        confirmParams,
       });
       const setupStatus = setupIntent?.status;
       if (error || !setupIntent?.id || setupStatus !== "succeeded") {
@@ -373,7 +396,7 @@ function StripeElementInner({
       elements,
       clientSecret,
       redirect: "if_required",
-      confirmParams: { return_url },
+      confirmParams,
     });
     const piStatus = paymentIntent?.status;
     if (error || !paymentIntent?.id || piStatus !== "succeeded") {
@@ -437,6 +460,7 @@ function StripeElementInner({
     };
   }, [
     amountOre,
+    billingCountryCode,
     clientSecret,
     elements,
     knownIntentId,
@@ -456,19 +480,27 @@ function StripeElementInner({
   const cardOnlyOptions = cardOnly
     ? sharedPalletPaymentElementOptions({
         linkEnabled: sharedPalletLinkEnabled(),
+        businessName: stripePaymentElementBusinessName(),
       })
     : null;
 
   return (
     <PaymentElement
       options={{
-        layout: {
-          type: "accordion",
-          defaultCollapsed: false,
-          radios: true,
-          spacedAccordionItems: false,
-        },
-        ...(cardOnlyOptions ?? {}),
+        ...(cardOnlyOptions ?? {
+          layout: {
+            type: "accordion",
+            defaultCollapsed: false,
+            radios: false,
+            spacedAccordionItems: false,
+          },
+          fields: {
+            billingDetails: {
+              address: { country: "never" },
+            },
+          },
+          business: { name: stripePaymentElementBusinessName() },
+        }),
       }}
       onChange={(event) => {
         onPaymentElementComplete?.(event.complete === true);
@@ -501,6 +533,7 @@ export function StripePaymentSection({
   prefetchedIntent = null,
   onLegalGateError,
   cardOnly = false,
+  billingCountryCode = null,
   onPaymentElementComplete,
 }: Props) {
   const shoppingCtx = useShoppingContextOptional();
@@ -834,11 +867,12 @@ export function StripePaymentSection({
             clientSecret,
             appearance: pactAppearance,
             locale: stripeLocale,
-            // Stripe iframes need a public CSS with woff2 — Geist via fontsource CDN.
+            // Stripe iframes load fonts via absolute woff2 (cssSrc CDN path 404'd).
             fonts: [
               {
-                cssSrc:
-                  "https://cdn.jsdelivr.net/fontsource/geist-sans@5.2.5/index.css",
+                family: STRIPE_GEIST_FONT_FAMILY,
+                src: `url(${STRIPE_GEIST_SANS_WOFF2})`,
+                weight: "400",
               },
             ],
           }}
@@ -854,6 +888,7 @@ export function StripePaymentSection({
             amountOre={amountOreHint}
             paymentFormLoadFailedLabel={t("checkout.stripePaymentFormLoadFailed")}
             cardOnly={cardOnly}
+            billingCountryCode={billingCountryCode ?? null}
             onPaymentElementComplete={onPaymentElementComplete}
           />
         </Elements>
