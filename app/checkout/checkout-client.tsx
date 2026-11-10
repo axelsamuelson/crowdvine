@@ -116,6 +116,7 @@ import {
   allocatePactRedemptionPoints,
   calculateBoostAwareMaxRedemption,
 } from "@/lib/membership/pact-points-redemption-math";
+import { isPactPointsConversionCoupon } from "@/lib/membership/pact-points-conversion";
 import { cn } from "@/lib/utils";
 import {
   B2C_DIRECT_BOX_DELIVERY_TIME_TODO,
@@ -315,6 +316,7 @@ function CheckoutContent({
     type: "percent" | "sek";
     value: number;
     purpose: "normal" | "testkop";
+    description: string | null;
   } | null>(null);
   const [discountError, setDiscountError] = useState<string | null>(null);
   const [discountApplying, setDiscountApplying] = useState(false);
@@ -335,6 +337,7 @@ function CheckoutContent({
     type: "percent" | "sek";
     value: number;
     purpose: "testkop";
+    description: string | null;
   } | null>(null);
   const [postalCodeDraft, setPostalCodeDraft] = useState("");
   const [editingAddress, setEditingAddress] = useState(false);
@@ -3389,6 +3392,7 @@ function CheckoutContent({
     type: "percent" | "sek";
     value: number;
     purpose: "normal" | "testkop";
+    description: string | null;
   }) => {
     setAppliedDiscount(data);
     if (data.purpose === "testkop") {
@@ -3447,6 +3451,8 @@ function CheckoutContent({
         purpose: (data.purpose === "testkop" ? "testkop" : "normal") as
           | "normal"
           | "testkop",
+        description:
+          typeof data.description === "string" ? data.description : null,
       };
 
       if (next.purpose === "testkop") {
@@ -4088,13 +4094,19 @@ function CheckoutContent({
                 {appliedDiscount ? (
                   <div className="flex items-center justify-between gap-2 text-emerald-700 dark:text-emerald-400">
                     <span>
-                      {t("checkout.discountApplied", {
-                        code: appliedDiscount.code,
-                        amount:
-                          appliedDiscount.type === "percent"
-                            ? `−${formatChargedAmount(appliedDiscount.discount_amount_sek)} (−${appliedDiscount.value}%)`
-                            : `−${formatChargedAmount(appliedDiscount.discount_amount_sek)}`,
-                      })}
+                      {isPactPointsConversionCoupon(appliedDiscount.description)
+                        ? t("checkout.conversionCouponApplied", {
+                            amount: `−${Math.round(appliedDiscount.discount_amount_sek)} ${
+                              shopping.locale === "en" ? "SEK" : "kr"
+                            }`,
+                          })
+                        : t("checkout.discountApplied", {
+                            code: appliedDiscount.code,
+                            amount:
+                              appliedDiscount.type === "percent"
+                                ? `−${formatChargedAmount(appliedDiscount.discount_amount_sek)} (−${appliedDiscount.value}%)`
+                                : `−${formatChargedAmount(appliedDiscount.discount_amount_sek)}`,
+                          })}
                     </span>
                     <button
                       type="button"

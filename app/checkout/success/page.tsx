@@ -60,6 +60,8 @@ interface ReservationDetails {
   customer_name?: string;
   order_type?: "producer" | "warehouse";
   payment_method_type?: "card" | "invoice";
+  /** True when order confirmation was claimed/sent (email_sends). */
+  confirmation_email_sent?: boolean;
   items: Array<{
     wine_name: string;
     quantity: number;
@@ -155,6 +157,8 @@ function CheckoutConfirmationContent() {
   const reservationIdParam = searchParams.get("reservationId");
   const checkoutGroupIdParam = searchParams.get("checkoutGroupId");
   const message = searchParams.get("message");
+  const confirmationEmailSentParam =
+    searchParams.get("confirmationEmailSent") === "1";
 
   const hasIdParams = Boolean(
     reservationIdParam?.trim() || checkoutGroupIdParam?.trim(),
@@ -365,16 +369,27 @@ function CheckoutConfirmationContent() {
               {(() => {
                 const email = reservation?.customer_email?.trim() || "—";
                 const datum = chargeDeadlineLabel || "—";
+                const confirmationEmailSent =
+                  reservation?.confirmation_email_sent === true ||
+                  confirmationEmailSentParam;
                 return (
                   <p
                     className="text-gray-800 text-base leading-relaxed"
                     data-testid="success-purchase-complete"
+                    data-confirmation-email-sent={
+                      confirmationEmailSent ? "1" : "0"
+                    }
                   >
-                    {t("checkout.successPurchaseComplete", {
-                      belopp: String(totalSekRounded),
-                      datum,
-                      email,
-                    })}
+                    {confirmationEmailSent
+                      ? t("checkout.successPurchaseComplete", {
+                          belopp: String(totalSekRounded),
+                          datum,
+                          email,
+                        })
+                      : t("checkout.successPurchaseCompleteNoEmail", {
+                          belopp: String(totalSekRounded),
+                          datum,
+                        })}
                   </p>
                 );
               })()}
@@ -454,14 +469,20 @@ function CheckoutConfirmationContent() {
               )}
               <div className="flex flex-col sm:flex-row gap-3 mt-6">
                 <Button
-                  onClick={() => router.push("/profile/reservations")}
+                  onClick={() =>
+                    router.push(
+                      appLocale === "en"
+                        ? "/en/profile/reservations"
+                        : "/profile/reservations",
+                    )
+                  }
                   className="bg-black hover:bg-black/90 text-white rounded-full"
                 >
                   {t("checkout.successViewReservations")}
                 </Button>
                 <Button
                   variant="outline"
-                  onClick={() => router.push("/vin")}
+                  onClick={() => router.push(paths.shop)}
                   className="rounded-full"
                 >
                   {t("checkout.continueShopping")}
@@ -679,14 +700,20 @@ function CheckoutConfirmationContent() {
 
             <div className="flex flex-col sm:flex-row gap-3">
               <Button
-                onClick={() => router.push("/profile/reservations")}
+                onClick={() =>
+                  router.push(
+                    appLocale === "en"
+                      ? "/en/profile/reservations"
+                      : "/profile/reservations",
+                  )
+                }
                 className="bg-black hover:bg-black/90 text-white rounded-full flex-1"
               >
                 {t("checkout.successViewReservations")}
               </Button>
               <Button
                 variant="outline"
-                onClick={() => router.push("/vin")}
+                onClick={() => router.push(paths.shop)}
                 className="rounded-full flex-1"
               >
                 {t("checkout.continueShopping")}

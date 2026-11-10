@@ -88,18 +88,24 @@ function getLocalizedPath(
   const guide = switchGuidePath(pathname, newLocale);
   if (guide) return guide;
 
-  // Checkout language pair (middleware rewrites /en/checkout → /checkout).
+  // Checkout + profile language pairs (middleware rewrites /en/… → shared tree).
   if (
-    (pathname === "/checkout" || pathname.startsWith("/checkout/")) &&
+    (pathname === "/checkout" ||
+      pathname.startsWith("/checkout/") ||
+      pathname === "/profile" ||
+      pathname.startsWith("/profile/")) &&
     newLocale === "en"
   ) {
     return `/en${pathname}`;
   }
   if (
-    (pathname === "/en/checkout" || pathname.startsWith("/en/checkout/")) &&
+    (pathname === "/en/checkout" ||
+      pathname.startsWith("/en/checkout/") ||
+      pathname === "/en/profile" ||
+      pathname.startsWith("/en/profile/")) &&
     newLocale === "sv"
   ) {
-    return pathname.replace(/^\/en/, "") || "/checkout";
+    return pathname.replace(/^\/en/, "") || "/";
   }
 
   // /vin → /wine och vice versa

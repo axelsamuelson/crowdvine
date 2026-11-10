@@ -351,6 +351,16 @@ export async function GET(
         : null;
     const orderType = confirmationOrderTypeFromFulfillment(fulfillmentChannel);
 
+    // Claim row in email_sends means confirmation was queued/sent (idempotent claim-before-send).
+    const { data: confirmationEmailRow } = await supabase
+      .from("email_sends")
+      .select("id")
+      .eq("reservation_id", reservation.id)
+      .eq("email_type", "order_confirmation")
+      .limit(1)
+      .maybeSingle();
+    const confirmationEmailSent = Boolean(confirmationEmailRow?.id);
+
     // Transform the data to match the expected format
     const palletNameRaw =
       typeof reservation.pallet?.name === "string"
@@ -390,6 +400,8 @@ export async function GET(
       order_type: orderType,
       fulfillment_channel: fulfillmentChannel,
       payment_method_type: reservation.payment_method_type || "card",
+      /** True when order_confirmation was claimed in email_sends (queued/sent). */
+      confirmation_email_sent: confirmationEmailSent,
       /**
        * Home-delivery shared pallet never exposes a pickup zone (customer
        * does not pick up). Warehouse/direct may still surface one when set.

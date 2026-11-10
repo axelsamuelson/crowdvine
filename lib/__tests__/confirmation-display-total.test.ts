@@ -135,6 +135,8 @@ describe("confirmation success surface contracts", () => {
       "utf8",
     );
     expect(successSrc).toMatch(/successPurchaseComplete/);
+    expect(successSrc).toMatch(/successPurchaseCompleteNoEmail/);
+    expect(successSrc).toMatch(/confirmation_email_sent|confirmationEmailSent/);
     expect(successSrc).toMatch(/Math\.round/);
     expect(successSrc).toMatch(/chargeDeadlineLabel/);
     expect(successSrc).toMatch(/customer_email/);
@@ -161,6 +163,10 @@ describe("confirmation success surface contracts", () => {
     expect(en.checkout.successViewReservations).toBe("View my orders");
     expect(sv.profile.reservationsTitle).toBe("Mina köp");
     expect(en.profile.reservationsTitle).toBe("My orders");
+    expect(sv.checkout.successPurchaseCompleteNoEmail).toMatch(/Tack!/);
+    expect(en.checkout.successPurchaseCompleteNoEmail).toMatch(/Thank you!/);
+    expect(sv.checkout.successPurchaseCompleteNoEmail).not.toMatch(/mejlat/);
+    expect(en.checkout.successPurchaseCompleteNoEmail).not.toMatch(/emailed/i);
   });
 
   it("formats long Swedish close date for confirmation copy", () => {

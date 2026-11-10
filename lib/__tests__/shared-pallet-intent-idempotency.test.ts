@@ -30,6 +30,7 @@ const baseContext: SharedPalletIntentContext = {
   purchaseTermsVersion: "terms-v1",
   usConditional: false,
   usRegion: null,
+  checkoutGeneration: 0,
 };
 
 function matchingPi(
@@ -277,7 +278,7 @@ describe("shared-pallet distributed create idempotency", () => {
     expect(a.startsWith("sp_payment_intent_")).toBe(true);
   });
 
-  it("Idempotency-Key changes when cart/currency/legal/amount drifts", () => {
+  it("Idempotency-Key changes when cart/currency/legal/amount/generation drifts", () => {
     const base = buildSharedPalletStripeIdempotencyKey({
       intentKind: "payment_intent",
       context: baseContext,
@@ -306,6 +307,63 @@ describe("shared-pallet distributed create idempotency", () => {
         context: { ...baseContext, ageVerifiedDob: "1985-05-05" },
       }),
     ).not.toBe(base);
+    expect(
+      buildSharedPalletStripeIdempotencyKey({
+        intentKind: "payment_intent",
+        context: { ...baseContext, checkoutGeneration: 1 },
+      }),
+    ).not.toBe(base);
+  });
+
+  it("same generation keeps key (double-click); post-purchase generation mints new key", () => {
+    const attempt = buildSharedPalletStripeIdempotencyKey({
+      intentKind: "setup_intent",
+      context: { ...baseContext, checkoutGeneration: 0 },
+    });
+    expect(
+      buildSharedPalletStripeIdempotencyKey({
+        intentKind: "setup_intent",
+        context: { ...baseContext, checkoutGeneration: 0 },
+      }),
+    ).toBe(attempt);
+    expect(
+      buildSharedPalletStripeIdempotencyKey({
+        intentKind: "setup_intent",
+        context: { ...baseContext, checkoutGeneration: 1 },
+      }),
+    ).not.toBe(attempt);
+  });
+
+  it("terminal same-context priors do not block; in-flight with PM still blocks", () => {
+    expect(
+      findBlockingSharedPalletIntent({
+        intentKind: "setup_intent",
+        context: baseContext,
+        intents: [
+          matchingPi(
+            { id: "seti_done", status: "succeeded", payment_method: "pm_1" },
+            {},
+          ),
+        ],
+      }),
+    ).toBeNull();
+
+    expect(
+      findBlockingSharedPalletIntent({
+        intentKind: "payment_intent",
+        context: baseContext,
+        intents: [
+          matchingPi(
+            {
+              id: "pi_inflight",
+              status: "requires_confirmation",
+              payment_method: "pm_1",
+            },
+            {},
+          ),
+        ],
+      })?.id,
+    ).toBe("pi_inflight");
   });
 
   it("process-local single-flight collapses concurrent identical creates", async () => {
@@ -413,11 +471,9 @@ describe("shared-pallet fresh-retrieve fail-closed", () => {
     resetSharedPalletIntentFlightsForTests();
   });
 
-  it("same-context terminal/inflight/attached intents are blockers (not reusable)", () => {
+  it("same-context in-flight/attached block; terminal succeeded/canceled do not", () => {
     for (const status of [
-      "succeeded",
       "processing",
-      "canceled",
       "requires_action",
       "requires_confirmation",
       "requires_capture",
@@ -429,6 +485,15 @@ describe("shared-pallet fresh-retrieve fail-closed", () => {
           intents: [matchingPi({ id: `pi_${status}`, status })],
         })?.status,
       ).toBe(status);
+    }
+    for (const status of ["succeeded", "canceled", "cancelled", "expired"]) {
+      expect(
+        findBlockingSharedPalletIntent({
+          intentKind: "payment_intent",
+          context: baseContext,
+          intents: [matchingPi({ id: `pi_${status}`, status })],
+        }),
+      ).toBeNull();
     }
     expect(
       findBlockingSharedPalletIntent({
@@ -446,44 +511,88 @@ describe("shared-pallet fresh-retrieve fail-closed", () => {
     ).toBeNull();
   });
 
-  it("create returns cached RPM body but retrieve succeeded → fail closed, no second create", async () => {
+  it("create returns cached RPM body but retrieve succeeded → supersede with salt, mint sibling", async () => {
     let creates = 0;
     let retrieves = 0;
-    const cachedCreateBody = matchingPi({
-      id: "pi_stale_cache",
-      status: "requires_payment_method",
-      client_secret: "sec_stale_do_not_return",
-    });
-    await expect(
-      createSharedPalletIntentWithFreshRetrieve({
-        intentKind: "payment_intent",
-        context: baseContext,
-        create: async () => {
-          creates += 1;
-          return cachedCreateBody;
-        },
-        retrieve: async (id) => {
-          retrieves += 1;
-          expect(id).toBe("pi_stale_cache");
+    const result = await createSharedPalletIntentWithFreshRetrieve({
+      intentKind: "payment_intent",
+      context: baseContext,
+      create: async (key) => {
+        creates += 1;
+        if (creates === 1) {
+          expect(key).not.toContain("pi_stale_cache");
+          return matchingPi({
+            id: "pi_stale_cache",
+            status: "requires_payment_method",
+            client_secret: "sec_stale_do_not_return",
+          });
+        }
+        return matchingPi({
+          id: "pi_sibling",
+          status: "requires_payment_method",
+          client_secret: "sec_sibling_create",
+        });
+      },
+      retrieve: async (id) => {
+        retrieves += 1;
+        if (id === "pi_stale_cache") {
           return matchingPi({
             id: "pi_stale_cache",
             status: "succeeded",
             client_secret: "sec_stale_do_not_return",
             payment_method: "pm_charged",
           });
-        },
-      }),
-    ).rejects.toMatchObject({
-      name: "SharedPalletIntentUnusableError",
-      code: "prior_intent_not_handoffable",
+        }
+        return matchingPi({
+          id: "pi_sibling",
+          status: "requires_payment_method",
+          client_secret: "sec_sibling_fresh",
+        });
+      },
     });
-    expect(creates).toBe(1);
-    expect(retrieves).toBe(1);
+    expect(result.intent.id).toBe("pi_sibling");
+    expect(result.intent.client_secret).toBe("sec_sibling_fresh");
+    expect(creates).toBe(2);
+    expect(retrieves).toBe(2);
   });
 
-  it("create cached RPM + retrieve canceled/attached/action/confirmation → fail closed", async () => {
+  it("create cached RPM + retrieve canceled → supersede sibling; in-flight still fail closed", async () => {
+    let creates = 0;
+    const canceledResult = await createSharedPalletIntentWithFreshRetrieve({
+      intentKind: "payment_intent",
+      context: baseContext,
+      create: async () => {
+        creates += 1;
+        if (creates === 1) {
+          return matchingPi({
+            id: "pi_canceled_cache",
+            status: "requires_payment_method",
+            client_secret: "sec_cached",
+          });
+        }
+        return matchingPi({
+          id: "pi_after_cancel",
+          client_secret: "sec_new",
+        });
+      },
+      retrieve: async (id) => {
+        if (id === "pi_canceled_cache") {
+          return matchingPi({
+            id: "pi_canceled_cache",
+            status: "canceled",
+            client_secret: "sec_cached",
+          });
+        }
+        return matchingPi({
+          id: "pi_after_cancel",
+          client_secret: "sec_new_fresh",
+        });
+      },
+    });
+    expect(canceledResult.intent.id).toBe("pi_after_cancel");
+    expect(creates).toBe(2);
+
     for (const live of [
-      { status: "canceled", payment_method: null },
       { status: "requires_payment_method", payment_method: "pm_att" },
       { status: "requires_action", payment_method: "pm_x" },
       { status: "requires_confirmation", payment_method: "pm_y" },

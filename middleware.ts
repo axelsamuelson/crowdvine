@@ -211,11 +211,16 @@ async function runMiddleware(req: NextRequest) {
   const wineAliasRedirect = redirectWineCategoryAlias(req, pathname);
   if (wineAliasRedirect) return wineAliasRedirect;
 
-  // English checkout URLs: keep /en/checkout in the browser (locale cookie +
-  // pathLocale) while serving the shared App Router /checkout tree.
-  if (pathname === "/en/checkout" || pathname.startsWith("/en/checkout/")) {
+  // English URL prefixes: keep /en/… in the browser (locale cookie + pathLocale)
+  // while serving the shared App Router trees (no app/en/* except homepage).
+  if (
+    pathname === "/en/checkout" ||
+    pathname.startsWith("/en/checkout/") ||
+    pathname === "/en/profile" ||
+    pathname.startsWith("/en/profile/")
+  ) {
     const u = req.nextUrl.clone();
-    u.pathname = pathname.replace(/^\/en/, "") || "/checkout";
+    u.pathname = pathname.replace(/^\/en/, "") || "/";
     const rewriteHeaders = new Headers(req.headers);
     rewriteHeaders.set("x-pathname", pathname);
     rewriteHeaders.set("x-search", req.nextUrl.search);

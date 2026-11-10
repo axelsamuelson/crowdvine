@@ -195,6 +195,10 @@ describe("pact_points_earning_enabled runtime switch", () => {
     expect(membershipApi).toMatch(/pactPointsEarningEnabled/);
     expect(profile).toMatch(/pactPointsEarningEnabled/);
     expect(profile).toMatch(/howToEarnPact/);
+    // Hide zero-balance tile when earning is OFF (redeem still needs balance > 0).
+    expect(profile).toMatch(
+      /pactPointsEarningEnabled[\s\S]{0,120}balance[\s\S]{0,80}>\s*0|balance[\s\S]{0,80}>\s*0[\s\S]{0,120}pactPointsEarningEnabled/,
+    );
     expect(boost).toMatch(/usePactPointsEarningEnabled/);
     expect(welcome).toMatch(/earningEnabled/);
   });

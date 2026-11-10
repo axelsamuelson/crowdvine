@@ -2937,9 +2937,6 @@ export async function POST(request: Request) {
     const successMessage = usConditionalCheckout
       ? "Conditional reservation placed — your card was verified. You will not be charged until the drop is approved for your state."
       : "Reservation placed successfully";
-    const successUrl = `/checkout/success?success=true&reservationId=${reservation.id}${checkoutGroupQuery}&message=${encodeURIComponent(
-      successMessage,
-    )}`;
 
     const reservationEvents =
       b2cProducerCheckout && createdReservations.length > 0
@@ -2990,7 +2987,11 @@ export async function POST(request: Request) {
 
     const markInternal = clientInternal || reservationIsTestPurchase;
 
+    /** True when order confirmation was sent or already claimed (queued). */
+    let confirmationEmailSent = false;
+
     // Order confirmation: server-side only, once per reservation (email_sends claim).
+    // Provider: Resend via sendGridService (legacy name). Gated by RESEND_API_KEY.
     try {
       if (!process.env.RESEND_API_KEY?.trim()) {
         console.info(
@@ -3082,11 +3083,14 @@ export async function POST(request: Request) {
         });
 
         if (sendResult === "sent") {
+          confirmationEmailSent = true;
           console.log(
             "📧 Order confirmation email sent to:",
             address.email,
           );
         } else if (sendResult === "skipped") {
+          // Prior claim means the confirmation was already queued/sent for this reservation.
+          confirmationEmailSent = true;
           console.warn(
             "[email_sends] skip order_confirmation — already claimed for",
             reservation.id,
@@ -3101,6 +3105,10 @@ export async function POST(request: Request) {
     } catch (emailError) {
       console.error("📧 Error sending order confirmation email:", emailError);
     }
+
+    const successUrl = `/checkout/success?success=true&reservationId=${reservation.id}${checkoutGroupQuery}&message=${encodeURIComponent(
+      successMessage,
+    )}${confirmationEmailSent ? "&confirmationEmailSent=1" : ""}`;
 
     for (const ev of reservationEvents) {
       if (process.env.NODE_ENV === "development") {
@@ -3163,6 +3171,7 @@ export async function POST(request: Request) {
       reservations: reservationsForResponse,
       reservation: reservationsForResponse[0],
       redirectUrl: successUrl,
+      confirmationEmailSent,
       voucherApplied,
       ...(voucherApplied ? { voucherDiscountCents } : {}),
       ...(pactPointsRedeemed > 0

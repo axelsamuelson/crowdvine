@@ -912,6 +912,24 @@ export async function POST(request: Request) {
 
     const customerId = await getOrCreateStripeCustomer(user.id);
 
+    // Generation = completed reservations for this user. Rises after each
+    // successful confirm so an identical cart does not replay a consumed SI.
+    let checkoutGeneration = 0;
+    try {
+      const { count: reservationCount, error: genErr } = await sbAdmin
+        .from("order_reservations")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .is("archived_at", null);
+      if (genErr) {
+        console.warn("[payment-intent] checkoutGeneration count failed:", genErr);
+      } else {
+        checkoutGeneration = Math.max(0, Number(reservationCount) || 0);
+      }
+    } catch (genEx) {
+      console.warn("[payment-intent] checkoutGeneration lookup failed:", genEx);
+    }
+
     const sharedIntentContext: SharedPalletIntentContext = {
       sessionUserId: user.id,
       cartId: String(cart.id),
@@ -932,6 +950,7 @@ export async function POST(request: Request) {
       usConditionalTermsVersion: usConditional
         ? US_CONDITIONAL_TERMS_VERSION
         : null,
+      checkoutGeneration,
     };
 
     const toStripeIntentLike = (raw: {

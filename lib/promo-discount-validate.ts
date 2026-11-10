@@ -21,6 +21,7 @@ export type PromoValidationSuccess = {
   value: number;
   applies_to: PromoDiscountAppliesTo;
   purpose: PromoDiscountPurpose;
+  description: string | null;
   discount_amount_sek: number;
   final_total_sek: number;
   /** Present when the code is an exit-popup lead. */
@@ -156,6 +157,7 @@ export async function validatePromoDiscountCode(params: {
       value,
       applies_to: "item",
       purpose,
+      description: typeof row.description === "string" ? row.description : null,
       discount_amount_sek: exitResult.discountAmountSek,
       final_total_sek,
       is_exit_discount: true,
@@ -163,13 +165,15 @@ export async function validatePromoDiscountCode(params: {
     };
   }
 
+  const description =
+    typeof row.description === "string" ? row.description : null;
   const discount_amount_sek = calculatePromoDiscountAmountSek({
     type,
     value,
     applies_to,
     cart_value_sek: params.cart_value_sek,
     items: params.items,
-    description: typeof row.description === "string" ? row.description : null,
+    description,
   });
   const final_total_sek = Math.max(
     0,
@@ -184,6 +188,7 @@ export async function validatePromoDiscountCode(params: {
     value,
     applies_to,
     purpose,
+    description,
     discount_amount_sek,
     final_total_sek,
   };

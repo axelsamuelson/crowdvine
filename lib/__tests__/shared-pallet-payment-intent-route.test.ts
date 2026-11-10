@@ -73,12 +73,13 @@ vi.mock("@/lib/supabase-server", () => ({
   getCurrentUser: () => getCurrentUser(),
 }));
 
-function makeThenableQuery(data: unknown = null) {
-  const result = { data, error: null };
+function makeThenableQuery(data: unknown = null, count = 0) {
+  const result = { data, error: null, count };
   const query: Record<string, unknown> = {
     select: () => query,
     eq: () => query,
     in: () => query,
+    is: () => query,
     update: () => query,
     maybeSingle: async () => result,
     single: async () => result,
@@ -193,6 +194,7 @@ function expectedPiContext(amountOre: number): SharedPalletIntentContext {
     usConditional: false,
     usRegion: null,
     usConditionalTermsVersion: null,
+    checkoutGeneration: 0,
   };
 }
 
@@ -353,8 +355,52 @@ describe("WIRED shared-pallet PI fresh-retrieve fail-closed", () => {
 
   it.each([
     ["succeeded", "pm_paid"],
-    ["processing", "pm_proc"],
     ["canceled", null],
+  ] as const)(
+    "create returns cached RPM while retrieve is %s → supersede sibling create (not 409)",
+    async (liveStatus, pm) => {
+      let createCount = 0;
+      paymentIntentsCreate.mockImplementation(
+        async (params: Record<string, unknown>) => {
+          createCount += 1;
+          if (createCount === 1) {
+            return rpmCreateBody(
+              "pi_cached",
+              Number(params.amount),
+              "sec_STALE_MUST_NOT_RETURN",
+            );
+          }
+          return rpmCreateBody(
+            "pi_sibling",
+            Number(params.amount),
+            "sec_sibling_create",
+          );
+        },
+      );
+      paymentIntentsRetrieve.mockImplementation(async (id: string) => {
+        if (id === "pi_cached") {
+          return {
+            ...rpmCreateBody("pi_cached", 99900, "sec_STALE_MUST_NOT_RETURN"),
+            status: liveStatus,
+            payment_method: pm,
+          };
+        }
+        return rpmCreateBody("pi_sibling", 99900, "sec_sibling_fresh");
+      });
+
+      const res = await postPaymentIntent();
+      expect(res.status).toBe(200);
+      const json = await res.json();
+      expect(json.intentId).toBe("pi_sibling");
+      expect(json.clientSecret).toBe("sec_sibling_fresh");
+      expect(json.clientSecret).not.toBe("sec_STALE_MUST_NOT_RETURN");
+      expect(paymentIntentsCreate).toHaveBeenCalledTimes(2);
+      expect(paymentIntentsRetrieve).toHaveBeenCalledTimes(2);
+    },
+  );
+
+  it.each([
+    ["processing", "pm_proc"],
     ["requires_action", "pm_act"],
     ["requires_confirmation", "pm_conf"],
     ["requires_capture", "pm_cap"],
@@ -385,7 +431,7 @@ describe("WIRED shared-pallet PI fresh-retrieve fail-closed", () => {
     },
   );
 
-  it("list sees same-context succeeded → 409 before create (no stale key create)", async () => {
+  it("list sees same-context succeeded → does not block; creates fresh RPM", async () => {
     const ctx = expectedPiContext(99900);
     paymentIntentsList.mockResolvedValue({
       data: [
@@ -401,11 +447,19 @@ describe("WIRED shared-pallet PI fresh-retrieve fail-closed", () => {
         },
       ],
     });
+    paymentIntentsCreate.mockImplementation(
+      async (params: Record<string, unknown>) =>
+        rpmCreateBody("pi_new", Number(params.amount), "sec_new"),
+    );
+    paymentIntentsRetrieve.mockImplementation(async () =>
+      rpmCreateBody("pi_new", 99900, "sec_new"),
+    );
 
     const res = await postPaymentIntent();
-    expect(res.status).toBe(409);
-    expect(paymentIntentsCreate).not.toHaveBeenCalled();
-    expect(paymentIntentsRetrieve).not.toHaveBeenCalled();
+    expect(res.status).toBe(200);
+    expect(paymentIntentsCreate).toHaveBeenCalled();
+    const json = await res.json();
+    expect(json.clientSecret).toBe("sec_new");
   });
 
   it("retrieve failure → 409 fail closed", async () => {
@@ -689,6 +743,7 @@ describe("WIRED shared-pallet SI fresh-retrieve + US terms (B)", () => {
       usConditional: true,
       usRegion: "CA",
       usConditionalTermsVersion: US_CONDITIONAL_TERMS_VERSION,
+      checkoutGeneration: 0,
     };
     expect(key).toBe(
       buildSharedPalletStripeIdempotencyKey({

@@ -8,7 +8,8 @@
  * Stripe Idempotency-Key returns the *original create body* for ~24h, not the
  * live intent status. After create/replay, always retrieve by id and validate
  * that fresh object. Never mint a sibling intent when a same-context prior is
- * paid, in-flight, attached, canceled, or otherwise non-handoffable.
+ * paid / in-flight / attached. Terminal (succeeded/canceled) priors must NOT
+ * block a new purchase — bump checkoutGeneration (or supersede salt) instead.
  */
 
 import { createHash } from "crypto";
@@ -49,6 +50,17 @@ export type SharedPalletIntentContext = {
    * Stripe's ~24h key window does not collide (same key / different params).
    */
   usConditionalTermsVersion?: string | null;
+  /**
+   * Rises after each completed reservation for the user so a post-purchase
+   * identical cart gets a new Stripe Idempotency-Key (SI/PI keys last ~24h).
+   * Double-click within the same attempt shares the same generation.
+   */
+  checkoutGeneration: number;
+  /**
+   * One-shot salt when a same-key create/replay returned a terminal intent —
+   * forces a sibling create without changing generation for the next attempt.
+   */
+  idempotencySalt?: string | null;
 };
 
 export type SharedPalletIntentReuseInput = {
@@ -110,6 +122,15 @@ export function matchesSharedPalletIntentIdentity(args: {
   }
   if (
     !metaEq(meta, "voucher_discount_sek", String(context.voucherDiscountSek))
+  ) {
+    return false;
+  }
+  if (
+    !metaEq(
+      meta,
+      "checkout_generation",
+      String(Math.max(0, Math.floor(Number(context.checkoutGeneration) || 0))),
+    )
   ) {
     return false;
   }
@@ -248,37 +269,64 @@ export function isReusableSharedPalletIntent(args: {
     : shouldReuseOpenSharedPalletSetupIntent(args);
 }
 
+/** Terminal Stripe statuses — never block a new purchase attempt. */
+export function isTerminalSharedPalletIntentStatus(
+  status: string | null | undefined,
+): boolean {
+  const s = String(status || "")
+    .trim()
+    .toLowerCase();
+  return (
+    s === "succeeded" ||
+    s === "canceled" ||
+    s === "cancelled" ||
+    s === "expired"
+  );
+}
+
 /**
- * Same-context prior that is NOT handoffable. List must fail closed on these
- * before create — otherwise Idempotency-Key replay can return a stale RPM
- * create body while live state is paid / in-flight / attached / canceled.
+ * Same-context prior that is NOT handoffable and still in-flight.
+ * Terminal (succeeded/canceled) intents never block — a new key/generation
+ * (or supersede salt) must mint a sibling instead.
  */
 export function findBlockingSharedPalletIntent(
   input: SharedPalletIntentReuseInput,
 ): StripeIntentLike | null {
   return (
-    input.intents.find(
-      (candidate) =>
-        matchesSharedPalletIntentIdentity({
+    input.intents.find((candidate) => {
+      if (
+        !matchesSharedPalletIntentIdentity({
           candidate,
           context: input.context,
           intentKind: input.intentKind,
-        }) &&
-        !isReusableSharedPalletIntent({
+        })
+      ) {
+        return false;
+      }
+      if (
+        isReusableSharedPalletIntent({
           intentKind: input.intentKind,
           candidate,
           context: input.context,
-        }),
-    ) ?? null
+        })
+      ) {
+        return false;
+      }
+      if (isTerminalSharedPalletIntentStatus(candidate.status)) {
+        return false;
+      }
+      return true;
+    }) ?? null
   );
 }
 
 /**
  * Deterministic Stripe Idempotency-Key (≤255 chars).
  * Versioned so semantics can expire/rotate; Stripe keys last ~24h.
- * v2: includes usConditionalTermsVersion in material.
+ * v3: checkoutGeneration (+ optional supersede salt) so a completed purchase
+ * does not replay a consumed SetupIntent for an identical cart.
  */
-export const SHARED_PALLET_IDEMPOTENCY_VERSION = "v2";
+export const SHARED_PALLET_IDEMPOTENCY_VERSION = "v3";
 
 function sharedPalletIdempotencyMaterial(
   intentKind: "payment_intent" | "setup_intent",
@@ -304,6 +352,8 @@ function sharedPalletIdempotencyMaterial(
     context.usConditional
       ? String(context.usConditionalTermsVersion ?? "").trim()
       : "",
+    String(Math.max(0, Math.floor(Number(context.checkoutGeneration) || 0))),
+    String(context.idempotencySalt ?? "").trim(),
   ].join("|");
 }
 
@@ -342,6 +392,9 @@ export function buildSharedPalletIntentMetadata(
   if (context.purchaseTermsVersion) {
     meta.purchase_terms_version = context.purchaseTermsVersion;
   }
+  meta.checkout_generation = String(
+    Math.max(0, Math.floor(Number(context.checkoutGeneration) || 0)),
+  );
   return meta;
 }
 
@@ -395,22 +448,44 @@ export async function createSharedPalletIntentWithFreshRetrieve<
 
   const freshLike = toLike(fresh);
   if (
-    !isReusableSharedPalletIntent({
+    isReusableSharedPalletIntent({
       intentKind: args.intentKind,
       candidate: freshLike,
       context: args.context,
     })
   ) {
-    throw new SharedPalletIntentUnusableError({
-      code: "prior_intent_not_handoffable",
-      message:
-        "Authoritative Stripe intent for this checkout snapshot is not a fresh requires_payment_method handoff (paid, in-flight, attached, canceled, or mismatched).",
-      intentId: freshLike.id,
-      intentStatus: freshLike.status,
+    return { intent: fresh, idempotencyKeyUsed: idempotencyKey };
+  }
+
+  // Consumed/terminal intent returned via Stripe Idempotency-Key replay —
+  // mint a sibling with a one-shot salt so a new purchase is never blocked.
+  if (isTerminalSharedPalletIntentStatus(freshLike.status)) {
+    const salt = String(freshLike.id || "").trim() || `gen_${Date.now()}`;
+    if (String(args.context.idempotencySalt ?? "").trim() === salt) {
+      throw new SharedPalletIntentUnusableError({
+        code: "prior_intent_not_handoffable",
+        message:
+          "Supersede create still returned a non-handoffable intent; refusing infinite retry.",
+        intentId: freshLike.id,
+        intentStatus: freshLike.status,
+      });
+    }
+    return createSharedPalletIntentWithFreshRetrieve({
+      ...args,
+      context: {
+        ...args.context,
+        idempotencySalt: salt,
+      },
     });
   }
 
-  return { intent: fresh, idempotencyKeyUsed: idempotencyKey };
+  throw new SharedPalletIntentUnusableError({
+    code: "prior_intent_not_handoffable",
+    message:
+      "Authoritative Stripe intent for this checkout snapshot is not a fresh requires_payment_method handoff (in-flight, attached, or mismatched).",
+    intentId: freshLike.id,
+    intentStatus: freshLike.status,
+  });
 }
 
 /**

@@ -796,6 +796,8 @@ function ProfilePageContent() {
                 {orderStats.uniqueProducers}
               </p>
             </button>
+            {(membershipData.pactPointsEarningEnabled ||
+              (membershipData.pactPoints?.balance ?? 0) > 0) && (
             <button
               type="button"
               onClick={() => setDashTab("activity")}
@@ -820,6 +822,7 @@ function ProfilePageContent() {
                 </p>
               ) : null}
             </button>
+            )}
             <button
               type="button"
               onClick={() => {
