@@ -18,6 +18,21 @@ import { useTranslations } from "@/lib/hooks/use-translations";
 import { useLocalizedPaths } from "@/lib/hooks/use-localized-paths";
 import { cn } from "@/lib/utils";
 
+/** PACT mobile nav row — desktop header uppercase nav + Inès tokens. */
+const PACT_NAV_ROW =
+  "flex h-14 w-full items-center border-t border-[rgba(10,10,10,0.10)] text-[15px] font-medium uppercase tracking-[0.02em] text-[#0A0A0A] active:bg-[rgba(10,10,10,0.04)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/70 focus-visible:ring-offset-4 focus-visible:ring-offset-foreground/20";
+
+const PACT_NAV_CURRENT = "underline decoration-1 underline-offset-4";
+
+const PACT_NAV_SECONDARY =
+  "flex h-14 w-full items-center border-t border-[rgba(10,10,10,0.10)] text-[15px] font-medium uppercase tracking-[0.02em] text-[#737373] active:bg-[rgba(10,10,10,0.04)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/70 focus-visible:ring-offset-4 focus-visible:ring-offset-foreground/20";
+
+function isNavCurrent(pathname: string | null, href: string, homeHref: string) {
+  if (!pathname) return false;
+  if (href === homeHref) return pathname === homeHref;
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
 export function MobileMenu({
   collections,
   popularCollections,
@@ -31,7 +46,7 @@ export function MobileMenu({
   const paths = useLocalizedPaths();
   const { isOpen, openMobileMenu, closeMobileMenu } = useMobileMenu();
   // Dirty Wine: omit Profil / Om oss / Guider (PACT-only; guides 301 → CORS).
-  // PACT order (Inès): Hem, Butik, Guider, Om oss, Profil — sentence case via messages.
+  // PACT order (Inès): Hem, Butik, Guider, Om oss, Profil.
   const navItems = isDirtywineSite
     ? [
         { href: paths.shop, label: t("common.shop") },
@@ -50,12 +65,10 @@ export function MobileMenu({
   const { isAdmin } = useAdminStatus();
   const [isClient, setIsClient] = useState(false);
 
-  // Ensure animations only run on client
   useEffect(() => {
     setIsClient(true);
   }, []);
 
-  // Close menu on window resize
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth >= 768) {
@@ -66,69 +79,9 @@ export function MobileMenu({
     return () => window.removeEventListener("resize", handleResize);
   }, [isOpen]);
 
-  // Close menu when route changes
   useEffect(() => {
     closeMobileMenu();
   }, [pathname]);
-
-  const roleLinks = (
-    <>
-      {role === "producer" && (
-        isDirtywineSite ? (
-          <Button
-            key="/producer"
-            size="sm"
-            variant="secondary"
-            onClick={closeMobileMenu}
-            className="justify-start uppercase bg-background/50"
-            asChild
-          >
-            <Link href="/producer" prefetch>
-              <Factory className="w-4 h-4 mr-2" />
-              {t("nav.producer")}
-            </Link>
-          </Button>
-        ) : (
-          <Link
-            key="/producer"
-            href="/producer"
-            prefetch
-            onClick={closeMobileMenu}
-            className="flex w-full items-center border-b border-border py-3 text-sm text-foreground transition-colors hover:underline"
-          >
-            {t("nav.producer")}
-          </Link>
-        )
-      )}
-      {isAdmin && (
-        isDirtywineSite ? (
-          <Button
-            key="/admin"
-            size="sm"
-            variant="secondary"
-            onClick={closeMobileMenu}
-            className="justify-start uppercase bg-background/50"
-            asChild
-          >
-            <Link href="/admin" prefetch>
-              <Shield className="w-4 h-4 mr-2" />
-              {t("nav.admin")}
-            </Link>
-          </Button>
-        ) : (
-          <Link
-            key="/admin"
-            href="/admin"
-            prefetch
-            onClick={closeMobileMenu}
-            className="flex w-full items-center border-b border-border py-3 text-sm text-foreground transition-colors hover:underline"
-          >
-            {t("nav.admin")}
-          </Link>
-        )
-      )}
-    </>
-  );
 
   return (
     <>
@@ -148,12 +101,10 @@ export function MobileMenu({
         {t("common.menu")}
       </Button>
 
-      {/* Don't render motion components during SSR */}
       {isClient && (
         <AnimatePresence>
           {isOpen && (
             <>
-              {/* Backdrop — above header cart so «Stäng»/Close stays tappable */}
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -164,7 +115,6 @@ export function MobileMenu({
                 aria-hidden="true"
               />
 
-              {/* Panel */}
               <motion.div
                 initial={{ x: "-100%" }}
                 animate={{ x: 0 }}
@@ -184,8 +134,8 @@ export function MobileMenu({
                       data-testid="mobile-menu-close"
                       aria-label={t("common.closeMenu")}
                       onClick={closeMobileMenu}
-                      // ≥44×44 hit target; full-contrast like the Meny heading.
-                      className="h-11 min-h-11 min-w-11 px-3 text-foreground hover:text-foreground"
+                      // 56×44 hit area; Geist 500 / 15px / #0A0A0A
+                      className="h-11 min-h-11 min-w-[56px] px-3 text-[15px] font-medium text-[#0A0A0A] hover:bg-transparent hover:text-[#0A0A0A]"
                     >
                       {t("common.close")}
                     </Button>
@@ -197,12 +147,38 @@ export function MobileMenu({
                     </div>
                   )}
 
-                  {/* Scrollable content area */}
                   <div className="mx-[-0.75rem] flex-1 overflow-y-auto px-3 md:mx-[-1rem] md:px-4">
                     {isDirtywineSite ? (
                       // Dirty Wine: keep pill grid unchanged.
                       <nav className="mb-10 grid grid-cols-2 gap-x-6 gap-y-4">
-                        {roleLinks}
+                        {role === "producer" && (
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={closeMobileMenu}
+                            className="justify-start uppercase bg-background/50"
+                            asChild
+                          >
+                            <Link href="/producer" prefetch>
+                              <Factory className="mr-2 h-4 w-4" />
+                              {t("nav.producer")}
+                            </Link>
+                          </Button>
+                        )}
+                        {isAdmin && (
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={closeMobileMenu}
+                            className="justify-start uppercase bg-background/50"
+                            asChild
+                          >
+                            <Link href="/admin" prefetch>
+                              <Shield className="mr-2 h-4 w-4" />
+                              {t("nav.admin")}
+                            </Link>
+                          </Button>
+                        )}
                         {navItems.map((item) => (
                           <Button
                             key={item.href}
@@ -219,28 +195,65 @@ export function MobileMenu({
                         ))}
                       </nav>
                     ) : (
-                      // PACT: footer Navigation list style — vertical text-sm rows + thin dividers.
-                      // Matched from components/layout/footer.tsx (Navigation links).
+                      // PACT: desktop header nav casing (uppercase) + Inès row tokens.
+                      // Desktop match: components/layout/header/index.tsx (~115–128).
                       <nav
-                        className="mb-10 flex flex-col"
+                        className="mb-0 flex flex-col"
                         data-testid="mobile-menu-nav-pact"
                       >
-                        {roleLinks}
-                        {navItems.map((item) => (
-                          <Link
-                            key={item.href}
-                            href={item.href}
-                            prefetch
-                            onClick={closeMobileMenu}
-                            className="flex w-full items-center border-b border-border py-3 text-sm text-foreground transition-colors hover:underline last:border-b-0"
+                        {navItems.map((item) => {
+                          const current = isNavCurrent(
+                            pathname,
+                            item.href,
+                            paths.home,
+                          );
+                          return (
+                            <Link
+                              key={item.href}
+                              href={item.href}
+                              prefetch
+                              onClick={closeMobileMenu}
+                              aria-current={current ? "page" : undefined}
+                              className={cn(
+                                PACT_NAV_ROW,
+                                current && PACT_NAV_CURRENT,
+                              )}
+                            >
+                              {item.label}
+                            </Link>
+                          );
+                        })}
+                        {(isAdmin || role === "producer") && (
+                          <div
+                            className="mt-6 flex flex-col"
+                            data-testid="mobile-menu-nav-admin"
                           >
-                            {item.label}
-                          </Link>
-                        ))}
+                            {isAdmin ? (
+                              <Link
+                                href="/admin"
+                                prefetch
+                                onClick={closeMobileMenu}
+                                className={PACT_NAV_SECONDARY}
+                              >
+                                {t("nav.admin")}
+                              </Link>
+                            ) : null}
+                            {role === "producer" ? (
+                              <Link
+                                href="/producer"
+                                prefetch
+                                onClick={closeMobileMenu}
+                                className={PACT_NAV_SECONDARY}
+                              >
+                                {t("nav.producer")}
+                              </Link>
+                            ) : null}
+                          </div>
+                        )}
                       </nav>
                     )}
 
-                    <div className="mb-10">
+                    <div className={cn(isDirtywineSite ? "mb-10" : "mb-10 mt-10")}>
                       <ShopLinks
                         label={t("home.popularProducers")}
                         locale={paths.locale}
@@ -250,14 +263,30 @@ export function MobileMenu({
                         })}
                         collections={popularCollections}
                         onLinkClick={closeMobileMenu}
+                        {...(!isDirtywineSite
+                          ? {
+                              // 40px above label via parent mt-10; label/names per Inès.
+                              labelClassName:
+                                "text-[13px] font-medium uppercase tracking-[0.04em] text-[#737373] md:text-[13px]",
+                              listClassName: "mt-0 flex flex-col gap-0",
+                              linkClassName:
+                                "flex h-10 items-center text-[17px] font-normal text-[#0A0A0A] no-underline hover:no-underline",
+                              emptyMessageClassName: "text-[#737373]",
+                            }
+                          : {})}
                       />
                     </div>
                   </div>
 
-                  {/* Footer - always visible at bottom */}
                   <div className="mt-auto border-t border-gray-200/50 pt-6">
-                    <div className="mb-4 text-sm leading-tight opacity-50">
-                      <p className={cn(isDirtywineSite && "italic")}>
+                    <div className="mb-4">
+                      <p
+                        className={cn(
+                          isDirtywineSite
+                            ? "text-sm italic leading-tight opacity-50"
+                            : "text-[14px] font-normal leading-tight text-[#737373]",
+                        )}
+                      >
                         {t("home.tagline")}
                       </p>
                     </div>

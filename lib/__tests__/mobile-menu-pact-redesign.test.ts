@@ -3,16 +3,16 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 /**
- * PACT mobile menu redesign (Inès): vertical footer-style links, order, no icons,
- * Close contrast; Dirty Wine pill grid unchanged.
+ * PACT mobile menu redesign (Inès full spec): desktop-header uppercase rows,
+ * admin secondary, producers typography; Dirty Wine pills unchanged.
  */
 describe("PACT mobile menu redesign", () => {
   const menuSrc = readFileSync(
     resolve(process.cwd(), "components/layout/header/mobile-menu.tsx"),
     "utf8",
   );
-  const footerSrc = readFileSync(
-    resolve(process.cwd(), "components/layout/footer.tsx"),
+  const headerSrc = readFileSync(
+    resolve(process.cwd(), "components/layout/header/index.tsx"),
     "utf8",
   );
   const en = JSON.parse(
@@ -28,21 +28,22 @@ describe("PACT mobile menu redesign", () => {
     );
   });
 
-  it("uses a PACT vertical list matching footer Navigation link tokens", () => {
-    // Footer Navigation links: text-sm + transition-colors + hover:underline
-    expect(footerSrc).toMatch(
-      /className="text-sm text-background\/70 hover:text-background transition-colors hover:underline"/,
+  it("matches desktop header uppercase nav (Geist 500 / uppercase) for PACT rows", () => {
+    // Desktop PACT nav: font-semibold text-base + uppercase
+    expect(headerSrc).toMatch(
+      /font-semibold text-base transition-colors duration-200/,
     );
+    expect(headerSrc).toMatch(/isDirtywineSite \? "normal-case" : "uppercase"/);
     expect(menuSrc).toMatch(/data-testid="mobile-menu-nav-pact"/);
-    expect(menuSrc).toMatch(
-      /border-b border-border py-3 text-sm text-foreground transition-colors hover:underline/,
-    );
-    // No Profil-only icon / no User import on PACT path
-    expect(menuSrc).not.toMatch(/from "lucide-react".*User|User \} from "lucide-react"/);
+    expect(menuSrc).toMatch(/text-\[15px\] font-medium uppercase tracking-\[0\.02em\] text-\[#0A0A0A\]/);
+    expect(menuSrc).toMatch(/h-14/);
+    expect(menuSrc).toMatch(/border-\[rgba\(10,10,10,0\.10\)\]/);
+    expect(menuSrc).toMatch(/underline decoration-1 underline-offset-4/);
+    expect(menuSrc).toMatch(/active:bg-\[rgba\(10,10,10,0\.04\)\]/);
     expect(menuSrc).not.toMatch(/icon: User/);
   });
 
-  it("orders PACT items Hem → Butik → Guider → Om oss → Profil", () => {
+  it("orders PACT items Hem → Butik → Guider → Om oss → Profil; Admin secondary", () => {
     const pactBlock = menuSrc.match(
       /isDirtywineSite\s*\?\s*\[[\s\S]*?\]\s*:\s*\[([\s\S]*?)\]/,
     )?.[1];
@@ -51,19 +52,35 @@ describe("PACT mobile menu redesign", () => {
       ...pactBlock!.matchAll(/t\("common\.(home|shop|guides|about|profile)"\)/g),
     ].map((m) => m[1]);
     expect(order).toEqual(["home", "shop", "guides", "about", "profile"]);
+    expect(menuSrc).toMatch(/data-testid="mobile-menu-nav-admin"/);
+    expect(menuSrc).toMatch(/mt-6 flex flex-col/);
+    expect(menuSrc).toMatch(/text-\[#737373\]/);
+  });
+
+  it("styles popular producers label/names for PACT only", () => {
+    expect(menuSrc).toMatch(
+      /text-\[13px\] font-medium uppercase tracking-\[0\.04em\] text-\[#737373\]/,
+    );
+    expect(menuSrc).toMatch(
+      /flex h-10 items-center text-\[17px\] font-normal text-\[#0A0A0A\]/,
+    );
+    expect(en.home.popularProducers).toBe("Popular producers");
+    expect(sv.home.popularProducers).toBe("Populära producenter");
   });
 
   it("keeps Close contrast + PR217 a11y/stacking hooks", () => {
     expect(menuSrc).toMatch(/data-testid="mobile-menu-close"/);
     expect(menuSrc).toMatch(/aria-label=\{t\("common\.closeMenu"\)\}/);
-    expect(menuSrc).toMatch(
-      /h-11 min-h-11 min-w-11 px-3 text-foreground hover:text-foreground/,
-    );
+    expect(menuSrc).toMatch(/min-w-\[56px\]/);
+    expect(menuSrc).toMatch(/h-11 min-h-11/);
+    expect(menuSrc).toMatch(/text-\[15px\] font-medium text-\[#0A0A0A\]/);
     expect(menuSrc).toMatch(/fixed inset-0 z-\[60\]/);
   });
 
   it("tagline: not italic on PACT; EN sentence case; SV wording unchanged", () => {
-    expect(menuSrc).toMatch(/className=\{cn\(isDirtywineSite && "italic"\)\}/);
+    expect(menuSrc).toMatch(
+      /text-\[14px\] font-normal leading-tight text-\[#737373\]/,
+    );
     expect(en.home.tagline).toBe("Producers and consumers together");
     expect(sv.home.tagline).toBe("Producenter och konsumenter tillsammans");
   });

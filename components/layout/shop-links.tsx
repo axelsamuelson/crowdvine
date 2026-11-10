@@ -14,6 +14,11 @@ interface ShopLinksProps {
   /** Max producers to show (Popular producers list). */
   limit?: number;
   className?: string;
+  /** Optional overrides (PACT mobile menu redesign). */
+  labelClassName?: string;
+  listClassName?: string;
+  linkClassName?: string;
+  emptyMessageClassName?: string;
   onLinkClick?: () => void;
 }
 
@@ -25,6 +30,10 @@ export function ShopLinks({
   limit = 10,
   align = "left",
   className,
+  labelClassName,
+  listClassName,
+  linkClassName,
+  emptyMessageClassName,
   onLinkClick,
 }: ShopLinksProps) {
   const paths = localizedPathsForLocale(locale);
@@ -37,21 +46,40 @@ export function ShopLinks({
     <div
       className={cn(align === "right" ? "text-right" : "text-left", className)}
     >
-      <h4 className="text-lg font-extrabold md:text-xl">{label}</h4>
+      <h4
+        className={cn(
+          "text-lg font-extrabold md:text-xl",
+          labelClassName,
+        )}
+      >
+        {label}
+      </h4>
 
       {/* Debug info */}
       {filteredCollections.length === 0 && emptyMessage && (
-        <p className="text-sm text-gray-500 mt-2">{emptyMessage}</p>
+        <p
+          className={cn(
+            "mt-2 text-sm text-gray-500",
+            emptyMessageClassName,
+          )}
+        >
+          {emptyMessage}
+        </p>
       )}
 
-      <ul className="flex flex-col gap-1.5 leading-5 mt-5">
+      <ul
+        className={cn(
+          "mt-5 flex flex-col gap-1.5 leading-5",
+          listClassName,
+        )}
+      >
         {filteredCollections.map((item, index) => (
           <li key={`${item.handle}-${index}`}>
             <Link
               href={paths.shopCollection(item.handle)}
               prefetch
               onClick={onLinkClick}
-              className="hover:underline text-gray-900"
+              className={cn("text-gray-900 hover:underline", linkClassName)}
             >
               {item.title}
             </Link>
