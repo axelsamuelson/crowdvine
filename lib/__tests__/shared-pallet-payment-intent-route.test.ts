@@ -483,6 +483,34 @@ describe("WIRED shared-pallet PI fresh-retrieve fail-closed", () => {
     expect((await a.json()).clientSecret).toBe("sec_f");
     expect((await b.json()).clientSecret).toBe("sec_f");
   });
+
+  it("rejects B2C cart below 6 bottles before creating SetupIntent", async () => {
+    // Pallet still in deferred SetupIntent phase (not shipping_ordered PI).
+    palletRow = {
+      ...palletRow,
+      status: "filling",
+    };
+    getCart.mockResolvedValue({
+      id: CART_ID,
+      totalQuantity: 2,
+      lines: [
+        {
+          quantity: 2,
+          cost: { totalAmount: { amount: "300" } },
+          merchandise: { product: { producerBoostActive: false } },
+        },
+      ],
+      cost: { totalAmount: { amount: "300" } },
+    });
+
+    const res = await postPaymentIntent();
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.code).toBe("cart_minimum_not_met");
+    expect(String(json.error)).toMatch(/at least 6 bottles/i);
+    expect(setupIntentsCreate).not.toHaveBeenCalled();
+    expect(paymentIntentsCreate).not.toHaveBeenCalled();
+  });
 });
 
 describe("WIRED shared-pallet SI fresh-retrieve + US terms (B)", () => {

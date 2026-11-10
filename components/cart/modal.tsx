@@ -403,8 +403,11 @@ export default function CartModal() {
   // Always reserve badge chrome while hydrating — never return null (that
   // dropped MENU-adjacent space) and never flash CART (0) before cartReady.
   // Non-empty cache / optimistic cart may show early; empty only after ready.
+  // During the first add (empty → N), prefer loading over a misleading (0).
+  const showNeutralLoading =
+    isPending && (!cart || cart.totalQuantity === 0);
   const showCartBadge =
-    !!cart && (cartReady || cart.totalQuantity > 0);
+    !!cart && (cartReady || cart.totalQuantity > 0) && !showNeutralLoading;
 
   return (
     <>
@@ -438,7 +441,8 @@ export default function CartModal() {
         )}
       </Button>
       ) : (
-        // Reserve badge space while cart hydrates — never flash (0).
+        // Reserve badge space while cart hydrates / first add mutates —
+        // never flash (0).
         <span
           className="inline-block h-7 w-10 shrink-0 rounded-sm bg-muted/40 animate-pulse md:w-16"
           aria-hidden

@@ -1723,6 +1723,13 @@ function CheckoutContent({
       stripePrefetchKeyRef.current = null;
       return;
     }
+    // Never create SetupIntent / PaymentIntent while the order is blocked
+    // (B2C cart below 6 bottles). Matches confirm-route rejection.
+    if (!isValidCart) {
+      setPrefetchedStripeIntent(null);
+      stripePrefetchKeyRef.current = null;
+      return;
+    }
     if (!paymentCardRevealed || !authReady || !selectedPallet?.id) {
       return;
     }
@@ -1866,6 +1873,7 @@ function CheckoutContent({
     };
   }, [
     legacySharedPalletPaymentAllowed,
+    isValidCart,
     paymentCardRevealed,
     complianceComplete,
     legalGatePayload,
@@ -1915,6 +1923,8 @@ function CheckoutContent({
   }, [complianceComplete, legacySharedPalletPaymentAllowed]);
 
   const handleSharedPalletCardStepRequest = useCallback(() => {
+    // Blocked carts must never unlock Payment Element / SetupIntent create.
+    if (!isValidCart) return;
     setDualOfferCardStepUnlocked(true);
     setPaymentCardRevealed(true);
     // Record terms version now so SetupIntent / PE can create without a
@@ -1929,7 +1939,18 @@ function CheckoutContent({
         block: "nearest",
       });
     }, 80);
-  }, [complianceStepRevealed, handleTermsChecked]);
+  }, [complianceStepRevealed, handleTermsChecked, isValidCart]);
+
+  // If the cart drops below the 6-bottle minimum after continue, collapse the
+  // card step so no SetupIntent is created or confirmed for a blocked order.
+  useEffect(() => {
+    if (isValidCart || !dualOfferCardStepUnlocked) return;
+    setDualOfferCardStepUnlocked(false);
+    setPaymentCardRevealed(false);
+    setPrefetchedStripeIntent(null);
+    stripePrefetchKeyRef.current = null;
+    setPaymentElementComplete(false);
+  }, [isValidCart, dualOfferCardStepUnlocked]);
 
   // Initial zone matching when cart and zone context are loaded
   useEffect(() => {
@@ -4485,7 +4506,13 @@ function CheckoutContent({
                             : undefined
                         }
                         inlinePurchase={false}
-                        purchaseEnabled={deliveryComplete}
+                        purchaseEnabled={deliveryComplete && isValidCart}
+                        cartMinimumMet={isValidCart}
+                        cartBlockedNote={
+                          isValidCart
+                            ? null
+                            : `${t("checkout.orderBlocked")} – ${t("checkout.addBottlesRequirement")}`
+                        }
                         onPurchaseActionsChange={handleDualOfferPurchaseChange}
                         onStateChange={setDualOfferSession}
                         sharedPalletCardStepUnlocked={dualOfferCardStepUnlocked}
@@ -5290,7 +5317,11 @@ function CheckoutContent({
                                   dualOfferSelectedQuote.charge_deadline_at,
                                 showDirectOffer: directBoxCheckoutEnabled,
                               });
+                              const cartBlockedHelper = !isValidCart
+                                ? `${t("checkout.orderBlocked")} – ${t("checkout.addBottlesRequirement")}`
+                                : null;
                               const bindDisabled =
+                                !isValidCart ||
                                 !legacySharedPalletPaymentAllowed ||
                                 !stripeConfirmFn ||
                                 !paymentMode ||
@@ -5320,14 +5351,16 @@ function CheckoutContent({
                                     legalLine: bind.legalLine,
                                     disabled: bindDisabled,
                                     loading: bindLoading,
-                                    confirmNote: !paymentElementComplete
-                                      ? dualOfferMsg(
-                                          shopping.locale === "en"
-                                            ? "en"
-                                            : "sv",
-                                          "dualOfferCardIncomplete",
-                                        )
-                                      : null,
+                                    confirmNote: cartBlockedHelper
+                                      ? cartBlockedHelper
+                                      : !paymentElementComplete
+                                        ? dualOfferMsg(
+                                            shopping.locale === "en"
+                                              ? "en"
+                                              : "sv",
+                                            "dualOfferCardIncomplete",
+                                          )
+                                        : null,
                                     errorNote: stripeError,
                                     onConfirm: () => {
                                       void handlePlaceReservation();

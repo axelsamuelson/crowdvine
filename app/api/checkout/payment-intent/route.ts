@@ -7,6 +7,8 @@ import { stripe } from "@/lib/stripe";
 import { getOrCreateStripeCustomer } from "@/lib/stripe/customer";
 import { CartService } from "@/src/lib/cart-service";
 import { sumReservedBottlesOnPallet } from "@/lib/pallet-fill-count";
+import { isB2BHost } from "@/lib/b2b-site";
+import type { CartItem as SixBottleCartItem } from "@/lib/checkout-validation";
 import {
   allocatePactRedemptionPoints,
   calculateBoostAwareMaxRedemption,
@@ -75,6 +77,40 @@ const PALLET_DIRECT_CHARGE_STATUSES = new Set([
 function palletUsesPaymentIntent(status: string | null | undefined): boolean {
   return PALLET_DIRECT_CHARGE_STATUSES.has(
     String(status ?? "").toLowerCase().trim(),
+  );
+}
+
+/**
+ * Reject SetupIntent / PaymentIntent create when the cart fails the channel
+ * minimum (B2C ≥ 6 bottles). Mirrors /api/checkout/confirm so blocked carts
+ * never get a confirmable Stripe intent.
+ */
+async function rejectIfCartBelowMinimum(
+  cart: { lines?: ReadonlyArray<{ quantity?: number }> | null },
+  request: Request,
+): Promise<NextResponse | null> {
+  const host =
+    request.headers.get("x-forwarded-host") ?? request.headers.get("host");
+  const minimumChannel = isB2BHost(host) ? "b2b" : "b2c";
+  const { validateSixBottleRule } = await import("@/lib/checkout-validation");
+  const validation = await validateSixBottleRule(
+    (cart.lines ?? []) as unknown as SixBottleCartItem[],
+    { channel: minimumChannel },
+  );
+  if (validation.isValid) return null;
+  return NextResponse.json(
+    {
+      error:
+        minimumChannel === "b2b"
+          ? "Each order line must have at least 1 bottle"
+          : "Order must contain at least 6 bottles (any wines)",
+      code: "cart_minimum_not_met",
+      validationErrors: validation.errors,
+      requiredQuantity: validation.requiredQuantity,
+      neededTotal: validation.neededTotal,
+      channel: validation.channel,
+    },
+    { status: 400 },
   );
 }
 
@@ -234,6 +270,8 @@ export async function POST(request: Request) {
       if (!cart || !cart.lines?.length) {
         return NextResponse.json({ error: "Cart is empty" }, { status: 400 });
       }
+      const cartMinDirect = await rejectIfCartBelowMinimum(cart, request);
+      if (cartMinDirect) return cartMinDirect;
 
       const sbAdminDirect = getSupabaseAdmin();
       const activeDirect = await resolveActiveGeoZoneForUser(user.id);
@@ -541,6 +579,8 @@ export async function POST(request: Request) {
     if (!cart || !cart.lines?.length) {
       return NextResponse.json({ error: "Cart is empty" }, { status: 400 });
     }
+    const cartMinShared = await rejectIfCartBelowMinimum(cart, request);
+    if (cartMinShared) return cartMinShared;
 
     const active = await resolveActiveGeoZoneForUser(user.id);
     let zoneTemplate: UserZoneAddressTemplate | null = null;

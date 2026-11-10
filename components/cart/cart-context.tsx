@@ -213,6 +213,12 @@ function cartReducer(state: Cart | undefined, action: CartAction): Cart {
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [isPending, startTransition] = useTransition();
+  /**
+   * True for the full add/update fetch (not just the optimistic transition).
+   * Prevents the header badge from flashing CART (0) while the first add
+   * is in flight after an empty cart.
+   */
+  const [isMutating, setIsMutating] = useState(false);
   const [cart, setCart] = useState<Cart | undefined>(undefined);
   /**
    * True only after the first server getCart settles.
@@ -331,29 +337,34 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const update = useCallback(
     async (lineId: string, merchandiseId: string, nextQuantity: number) => {
-      // Optimistic update for instant UI feedback
-      startTransition(() => {
-        updateOptimisticCart({
-          type: "UPDATE_ITEM",
-          payload: { merchandiseId, nextQuantity },
+      setIsMutating(true);
+      try {
+        // Optimistic update for instant UI feedback
+        startTransition(() => {
+          updateOptimisticCart({
+            type: "UPDATE_ITEM",
+            payload: { merchandiseId, nextQuantity },
+          });
         });
-      });
 
-      // Perform server update
-      const fresh = await CartActions.updateItem({
-        lineId,
-        quantity: nextQuantity,
-      });
+        // Perform server update
+        const fresh = await CartActions.updateItem({
+          lineId,
+          quantity: nextQuantity,
+        });
 
-      if (fresh) {
-        setCart(fresh);
-        // Update localStorage cache
-        try {
-          localStorage.setItem("cart-cache", JSON.stringify(fresh));
-          localStorage.setItem("cart-cache-time", Date.now().toString());
-        } catch (error) {
-          console.warn("Failed to cache cart:", error);
+        if (fresh) {
+          setCart(fresh);
+          // Update localStorage cache
+          try {
+            localStorage.setItem("cart-cache", JSON.stringify(fresh));
+            localStorage.setItem("cart-cache-time", Date.now().toString());
+          } catch (error) {
+            console.warn("Failed to cache cart:", error);
+          }
         }
+      } finally {
+        setIsMutating(false);
       }
     },
     [updateOptimisticCart],
@@ -382,6 +393,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         normalizedVariantId,
       );
 
+      setIsMutating(true);
       // Optimistic update for instant UI feedback
       startTransition(() => {
         console.log("🛒 Performing optimistic update...");
@@ -438,6 +450,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         console.error("🛒 Simple API route error:", apiError);
         // If add failed, revert optimistic update
         setCart(cart);
+      } finally {
+        setIsMutating(false);
       }
       return fresh;
     },
@@ -449,10 +463,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       cart: optimisticCart, // Don't create empty cart - let it be undefined until loaded
       addItem: add,
       updateItem: update,
-      isPending,
+      // Cover optimistic transition + full network mutate so badge never
+      // flashes (0) during the first add-to-cart.
+      isPending: isPending || isMutating,
       cartReady,
     }),
-    [optimisticCart, add, update, isPending, cartReady],
+    [optimisticCart, add, update, isPending, isMutating, cartReady],
   );
 
   // Always render children immediately - don't block the UI

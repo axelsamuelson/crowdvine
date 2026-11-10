@@ -476,6 +476,14 @@ export type DualOfferCheckoutPanelProps = {
   inlinePurchase?: boolean;
   /** Address/postal complete — gates the purchase button. */
   purchaseEnabled?: boolean;
+  /**
+   * B2C 6-bottle cart minimum. When false, Fortsätt is disabled and
+   * card-step unlock is refused. Pair with `cartBlockedNote` (existing
+   * checkout.orderBlocked copy — no new marketing strings).
+   */
+  cartMinimumMet?: boolean;
+  /** Existing blocked-order helper; shown under Fortsätt when minimum unmet. */
+  cartBlockedNote?: string | null;
   onPurchaseActionsChange?: (
     model: DualOfferPurchaseActionsModel | null,
   ) => void;
@@ -502,6 +510,8 @@ export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
   const preferOffer = props.preferOffer ?? null;
   const inlinePurchase = props.inlinePurchase !== false;
   const purchaseEnabled = props.purchaseEnabled !== false;
+  const cartMinimumMet = props.cartMinimumMet !== false;
+  const cartBlockedNote = props.cartBlockedNote ?? null;
   const showPalletFillStatus = props.showPalletFillStatus !== false;
   const palletFill = props.palletFill ?? null;
   const requestGen = useRef(0);
@@ -680,6 +690,10 @@ export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
   const onContinueToCard = useCallback(() => {
     if (!state?.dual.selected_quote_id || !selectedQuote) return;
     if (cardStepUnlocked) return;
+    if (!cartMinimumMet) {
+      setConfirmNote(cartBlockedNote);
+      return;
+    }
 
     const result = acceptSelectedOfferQuote({
       state,
@@ -711,10 +725,13 @@ export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
     locale,
     cardStepUnlocked,
     onSharedPalletCardStepRequest,
+    cartMinimumMet,
+    cartBlockedNote,
   ]);
 
   const continueDisabled =
     !purchaseEnabled ||
+    !cartMinimumMet ||
     loading ||
     error ||
     !state?.dual.selected_quote_id ||
@@ -744,7 +761,7 @@ export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
       totalInclLine: null,
       legalLine: null,
       disabled: continueDisabled,
-      confirmNote,
+      confirmNote: !cartMinimumMet ? cartBlockedNote : confirmNote,
       onConfirm: onContinueToCard,
     };
   }, [
@@ -756,6 +773,8 @@ export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
     continueDisabled,
     confirmNote,
     onContinueToCard,
+    cartMinimumMet,
+    cartBlockedNote,
   ]);
 
   const onPurchaseActionsChange = props.onPurchaseActionsChange;

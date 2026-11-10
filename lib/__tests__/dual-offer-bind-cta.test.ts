@@ -81,6 +81,25 @@ describe("dual-offer binding CTA (distance-selling)", () => {
     expect(checkoutSrc).toMatch(/buildSharedPalletBindCopy/);
   });
 
+  it("blocked cart (<6 bottles) disables Fortsätt + bind and blocks SetupIntent", () => {
+    // Continue CTA: cart minimum gates purchase + helper reuses orderBlocked copy.
+    expect(panelSrc).toMatch(/cartMinimumMet/);
+    expect(panelSrc).toMatch(/!cartMinimumMet/);
+    expect(panelSrc).toMatch(/cartBlockedNote/);
+    expect(checkoutSrc).toMatch(/cartMinimumMet=\{isValidCart\}/);
+    expect(checkoutSrc).toMatch(/checkout\.orderBlocked/);
+    expect(checkoutSrc).toMatch(/checkout\.addBottlesRequirement/);
+    // Bind CTA must include !isValidCart in disabled expression.
+    expect(checkoutSrc).toMatch(
+      /const bindDisabled =\s*!isValidCart \|\|/s,
+    );
+    // Card-step unlock + SI prefetch refused while blocked.
+    expect(checkoutSrc).toMatch(
+      /handleSharedPalletCardStepRequest[\s\S]*?if \(!isValidCart\) return/,
+    );
+    expect(checkoutSrc).toMatch(/if \(!isValidCart\) \{\s*setPrefetchedStripeIntent\(null\)/s);
+  });
+
   it("live shared pallet may start card save; synthetic may not", () => {
     expect(
       mayStartSharedPalletCardSave({

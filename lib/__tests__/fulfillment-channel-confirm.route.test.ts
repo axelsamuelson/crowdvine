@@ -943,6 +943,52 @@ describe("WIRED POST /api/checkout/confirm (direct_box + shared_pallet)", () => 
     expect(findOrCreatePalletForRegion).not.toHaveBeenCalled();
   });
 
+  it("POST confirm: B2C cart below 6 bottles is rejected (no reservation)", async () => {
+    process.env.DIRECT_BOX_CHECKOUT_ENABLED = "false";
+    getCart.mockResolvedValue({
+      ...cartFixture("cart-blocked-2"),
+      totalQuantity: 2,
+      lines: [
+        {
+          id: "line-1",
+          quantity: 2,
+          source: "producer",
+          cost: { totalAmount: { amount: "400" } },
+          merchandise: {
+            id: "w1",
+            product: {
+              title: "Test Wine",
+              producerBoostActive: false,
+              priceRange: { minVariantPrice: { amount: "200" } },
+            },
+          },
+        },
+      ],
+      cost: { totalAmount: { amount: "400" } },
+    });
+    setupIntentsRetrieve.mockResolvedValue({
+      id: "seti_blocked",
+      status: "succeeded",
+      payment_method: "pm_test",
+      metadata: {
+        expected_amount_ore: "49900",
+        ...LEGAL_META,
+      },
+    });
+
+    const res = await postConfirm({
+      address: baseAddress,
+      fulfillment_channel: "shared_pallet",
+      selectedPalletId: "pallet-shared-1",
+      stripe_intent_id: "seti_blocked",
+      stripe_intent_type: "setup_intent",
+    });
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(String(json.error)).toMatch(/at least 6 bottles/i);
+    expect(store.reservationInserts).toHaveLength(0);
+  });
+
   /**
    * Concurrent same-PI confirm: handler binds payment_intent_id at INSERT so
    * idx_order_reservations_payment_intent_id_unique (migrations/138_*.sql;
