@@ -28,7 +28,9 @@ import {
 } from "@/lib/checkout/pallet-close/types";
 import { isDirectBoxCheckoutEnabled } from "@/lib/commerce/fulfillment-channel";
 import { isPalletBasedReservation } from "@/lib/commerce/is-pallet-based-reservation";
-import { stripe } from "@/lib/stripe";
+import { resolveAmountOre } from "@/lib/checkout/pallet-close/resolve-amount-ore";
+
+export { resolveAmountOre };
 
 export type PalletCloseRunSummary = {
   enabled: boolean;
@@ -66,43 +68,6 @@ export const PALLET_CLOSE_SNAPSHOT_SELECT =
   "id, pallet_id, payment_status, payment_method_id, setup_intent_id, payment_intent_id, status, cancelled_at, charge_deadline_at, pallet_close_state, pallet_close_choice, pallet_close_choice_sent_at, pallet_close_choice_reply_by, pallet_close_extension_count, offsession_charge_failed_at, offsession_pay_by, payment_method_detached_at, pallet_close_charge_idempotency_key, payment_mode, user_id";
 
 const SNAPSHOT_SELECT = PALLET_CLOSE_SNAPSHOT_SELECT;
-
-/**
- * Resolve the customer-facing charge amount in öre.
- *
- * Prefer SetupIntent metadata.expected_amount_ore (what checkout bound).
- * Else use order_reservations.total_sek * 100 (customer total incl. VAT /
- * shipping after discounts). Never guess from catalog wine prices — those
- * exclude shipping/discounts and are not whole-kronor rounded.
- * Returns null when neither source is available (caller must refuse).
- */
-export async function resolveAmountOre(
-  reservationId: string,
-): Promise<number | null> {
-  const sb = getSupabaseAdmin();
-  const { data: row } = await sb
-    .from("order_reservations")
-    .select("setup_intent_id, total_sek")
-    .eq("id", reservationId)
-    .maybeSingle();
-  if (row?.setup_intent_id && stripe) {
-    try {
-      const si = await stripe.setupIntents.retrieve(String(row.setup_intent_id));
-      const ore = Number(
-        (si.metadata as { expected_amount_ore?: string } | null)
-          ?.expected_amount_ore,
-      );
-      if (Number.isFinite(ore) && ore > 0) return Math.round(ore);
-    } catch {
-      /* fall through to total_sek */
-    }
-  }
-  const totalSek = Number((row as { total_sek?: unknown } | null)?.total_sek);
-  if (Number.isFinite(totalSek) && totalSek > 0) {
-    return Math.round(totalSek * 100);
-  }
-  return null;
-}
 
 async function resolveDeadlineIso(
   row: PalletCloseReservationSnapshot & {
