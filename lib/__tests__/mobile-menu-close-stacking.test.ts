@@ -38,15 +38,18 @@ describe("mobile menu close stacking (PACT + Dirty Wine)", () => {
     expect(menuSrc).not.toMatch(/p-modal-sides z-50/);
   });
 
-  it("gives Close a ≥44×44 hit area, aria-label, and test id", () => {
+  it("gives Close a ≥44×44 / 56-wide hit area, aria-label, and test id", () => {
     expect(menuSrc).toMatch(/data-testid="mobile-menu-close"/);
     expect(menuSrc).toMatch(/aria-label=\{t\("common\.closeMenu"\)\}/);
     expect(menuSrc).toMatch(/min-h-11/);
-    expect(menuSrc).toMatch(/min-w-11/);
+    expect(menuSrc).toMatch(/min-w-\[56px\]/);
     expect(menuSrc).toMatch(/h-11/);
+    expect(menuSrc).toMatch(/text-\[#0A0A0A\]/);
     expect(sv.common.closeMenu).toBe("Stäng meny");
     expect(en.common.closeMenu).toBe("Close menu");
     expect(sv.common.close).toBe("Stäng");
     expect(en.common.close).toBe("Close");
   });
 });
+
+

@@ -31,9 +31,6 @@ export async function HomeSidebar({ collections }: HomeSidebarProps) {
         locale={locale}
         limit={10}
         label={t("home.popularProducers")}
-        emptyMessage={t("home.noProducersFound", {
-          count: collections?.length ?? 0,
-        })}
       />
     </aside>
   );
