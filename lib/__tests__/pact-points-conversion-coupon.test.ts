@@ -73,6 +73,38 @@ describe("PACT points conversion coupon", () => {
     expect(body.error).toBe("Unauthorized");
   });
 
+  it("GET /api/user/coupons returns [] when promo table is missing", async () => {
+    getCurrentUser.mockResolvedValue({ id: "user-1", email: "u@example.com" });
+    fromMock.mockImplementation((table: string) => {
+      if (table === "promo_discount_codes") {
+        return {
+          select: () => ({
+            eq: () => ({
+              eq: () => ({
+                gt: () => ({
+                  order: () =>
+                    Promise.resolve({
+                      data: null,
+                      error: {
+                        code: "42P01",
+                        message: 'relation "promo_discount_codes" does not exist',
+                      },
+                    }),
+                }),
+              }),
+            }),
+          }),
+        };
+      }
+      return {};
+    });
+    const { GET } = await import("@/app/api/user/coupons/route");
+    const res = await GET();
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.coupons).toEqual([]);
+  });
+
   it("GET /api/user/coupons returns only own active unused rows", async () => {
     getCurrentUser.mockResolvedValue({ id: "user-1", email: "u@example.com" });
 

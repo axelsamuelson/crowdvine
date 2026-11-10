@@ -539,7 +539,19 @@ function ProfilePageContent() {
               <span className="text-xs">{t("profile.totalBottles")}</span>
             </div>
             <p className="text-2xl font-semibold text-gray-900">
-              {reservations.reduce((sum, r) => sum + ((r.items || []).reduce((s: number, it: any) => s + (it.quantity || 0), 0)), 0)}
+              {reservations.reduce((sum, r) => {
+                const fromApi = Number(
+                  (r as { bottleCount?: number }).bottleCount,
+                );
+                if (Number.isFinite(fromApi) && fromApi > 0) return sum + fromApi;
+                return (
+                  sum +
+                  ((r.items || []) as Array<{ quantity?: number }>).reduce(
+                    (s, it) => s + (Number(it.quantity) || 0),
+                    0,
+                  )
+                );
+              }, 0)}
             </p>
           </div>
 

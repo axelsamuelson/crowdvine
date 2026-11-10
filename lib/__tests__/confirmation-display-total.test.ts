@@ -175,6 +175,9 @@ describe("confirmation success surface contracts", () => {
     expect(en.checkout.successStep2WithDeadline).toMatch(
       /When the pallet is full/,
     );
+    expect(successSrc).toMatch(/successStep3/);
+    expect(sv.checkout.successStep3).toMatch(/2–3 veckor/);
+    expect(en.checkout.successStep3).toMatch(/2–3 weeks/);
   });
 
   it("formats long Swedish close date for confirmation copy", () => {

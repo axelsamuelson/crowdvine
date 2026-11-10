@@ -15,7 +15,6 @@ import type { AppLocale } from "@/lib/i18n/locale";
 import { localizedPathsForLocale } from "@/lib/i18n/localized-paths";
 import { producerDisplayName } from "@/lib/producer-display-name";
 import { formatSharedPalletChargeDeadline } from "@/lib/checkout/shared-pallet-deadline";
-import { formatSharedPalletCloseDeliveryCopy } from "@/lib/checkout/shared-pallet-close-delivery-copy";
 import { MarketingConsentCheckbox } from "@/components/checkout/marketing-consent-checkbox";
 import {
   confirmationStatusMessageKey,
@@ -23,7 +22,6 @@ import {
 } from "@/lib/reservations/confirmation-display-total";
 import { confirmationSharedPalletCity } from "@/lib/reservations/confirmation-destination-label";
 import { resolveWineImageSrc } from "@/lib/cart/wine-image-url";
-import { DEFAULT_WINE_IMAGE_PATH } from "@/lib/constants";
 
 function translateReservationStatus(
   status: string,
@@ -72,6 +70,8 @@ interface ReservationDetails {
     /** Charged line total in whole kronor (preferred). */
     line_total_sek?: number;
     image_url?: string;
+    /** Raw storage path — same field Mina köp / list API resolve. */
+    label_image_path?: string | null;
     product_handle?: string;
     producer_name?: string;
     producer_display_name?: string | null;
@@ -310,10 +310,6 @@ function CheckoutConfirmationContent() {
         deadlineLocale,
       )
     : null;
-  const closeDeliveryCopy = formatSharedPalletCloseDeliveryCopy(
-    deadlineLocale,
-    chargeDeadlineLabel,
-  );
 
   if (loading) {
     return (
@@ -566,29 +562,15 @@ function CheckoutConfirmationContent() {
                         className="flex gap-4 rounded-2xl border border-gray-200 bg-gray-50 p-4"
                       >
                         <div className="relative w-16 h-16 shrink-0 overflow-hidden rounded-xl bg-gray-200 border border-gray-200">
-                          {(() => {
-                            const src = resolveWineImageSrc(item.image_url);
-                            const hasProductImage =
-                              Boolean(item.image_url?.trim()) &&
-                              src !== DEFAULT_WINE_IMAGE_PATH;
-                            if (!hasProductImage) {
-                              return (
-                                <div
-                                  className="absolute inset-0 bg-gray-200"
-                                  aria-hidden
-                                />
-                              );
-                            }
-                            return (
-                              <Image
-                                src={src}
-                                alt={`${item.wine_name} ${item.vintage}`}
-                                fill
-                                className="object-cover"
-                                sizes="64px"
-                              />
-                            );
-                          })()}
+                          <Image
+                            src={resolveWineImageSrc(
+                              item.image_url ?? item.label_image_path,
+                            )}
+                            alt={`${item.wine_name} ${item.vintage}`}
+                            fill
+                            className="object-cover"
+                            sizes="64px"
+                          />
                         </div>
 
                         <div className="flex-1 min-w-0">
@@ -711,7 +693,7 @@ function CheckoutConfirmationContent() {
                       3
                     </div>
                     <div data-testid="success-step3-delivery">
-                      {closeDeliveryCopy}
+                      {t("checkout.successStep3")}
                     </div>
                   </div>
                 </div>

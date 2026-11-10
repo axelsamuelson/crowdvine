@@ -151,25 +151,81 @@ export async function GET(
       .eq("id", user.id)
       .maybeSingle();
 
-    const rawItems =
-      reservation.order_reservation_items?.map((item) => ({
-        wine_name: item.wines?.wine_name || "Wine",
+    // Batch-load wines by item_id — same source as GET /api/user/reservations
+    // (Mina köp). Nested wines joins can omit label_image_path on Preview.
+    type WineRow = {
+      id: string;
+      wine_name?: string | null;
+      vintage?: string | null;
+      base_price_cents?: number | null;
+      handle?: string | null;
+      label_image_path?: string | null;
+      producers?:
+        | { name?: string | null; display_name?: string | null }
+        | Array<{ name?: string | null; display_name?: string | null }>
+        | null;
+    };
+    const lineRows = (reservation.order_reservation_items || []) as Array<{
+      item_id?: string;
+      quantity?: number;
+      wines?: WineRow | WineRow[] | null;
+    }>;
+    const wineIds = Array.from(
+      new Set(
+        lineRows
+          .map((it) => String(it.item_id || "").trim())
+          .filter((id) => id.length > 0),
+      ),
+    );
+    const wineById = new Map<string, WineRow>();
+    if (wineIds.length > 0) {
+      const { data: wines, error: winesError } = await supabase
+        .from("wines")
+        .select(
+          "id, wine_name, vintage, base_price_cents, handle, label_image_path, producers(name, display_name)",
+        )
+        .in("id", wineIds);
+      if (winesError) {
+        console.error(
+          "[GET /api/user/reservations/:id] wines batch error:",
+          winesError,
+        );
+      } else {
+        for (const w of (wines || []) as WineRow[]) {
+          if (w?.id) wineById.set(String(w.id), w);
+        }
+      }
+    }
+
+    const rawItems = lineRows.map((item) => {
+      const wineId = String(item.item_id || "").trim();
+      const nested = Array.isArray(item.wines) ? item.wines[0] : item.wines;
+      const wine = (wineId && wineById.get(wineId)) || nested || null;
+      const producerRaw = wine?.producers;
+      const producer = Array.isArray(producerRaw)
+        ? producerRaw[0]
+        : producerRaw;
+      const labelPath =
+        typeof wine?.label_image_path === "string"
+          ? wine.label_image_path
+          : null;
+      const resolvedImage = resolveWineImageSrc(labelPath);
+      return {
+        wine_name: wine?.wine_name || "Wine",
         quantity: item.quantity,
-        vintage: item.wines?.vintage || "",
-        price_cents: item.wines?.base_price_cents || 0,
-        image_url: (() => {
-          const raw = item.wines?.label_image_path || null;
-          const resolved = resolveWineImageSrc(raw);
-          return resolved === DEFAULT_WINE_IMAGE_PATH && !raw?.trim()
+        vintage: wine?.vintage || "",
+        price_cents: wine?.base_price_cents || 0,
+        label_image_path: labelPath,
+        // Same resolver + path as Mina köp list (`image_path`).
+        image_url:
+          resolvedImage === DEFAULT_WINE_IMAGE_PATH && !labelPath?.trim()
             ? undefined
-            : resolved === DEFAULT_WINE_IMAGE_PATH
+            : resolvedImage === DEFAULT_WINE_IMAGE_PATH
               ? undefined
-              : resolved;
-        })(),
-        product_handle: item.wines?.handle || undefined,
-        producer_name: item.wines?.producers?.name || undefined,
-        producer_display_name:
-          item.wines?.producers?.display_name?.trim() || undefined,
+              : resolvedImage,
+        product_handle: wine?.handle || undefined,
+        producer_name: producer?.name || undefined,
+        producer_display_name: producer?.display_name?.trim() || undefined,
         customer_email: profile?.email || user.email,
         customer_name: profile?.full_name || undefined,
         source:
@@ -177,7 +233,8 @@ export async function GET(
           reservation.fulfillment_channel === "direct_box"
             ? ("warehouse" as const)
             : ("producer" as const),
-      })) || [];
+      };
+    });
 
     // Fetch shared bottle allocations (optional)
     let shared:
@@ -265,7 +322,16 @@ export async function GET(
           producer_display_name:
             wineRow.producers?.display_name?.trim() || undefined,
           product_handle: wineRow.handle || undefined,
-          image_url: wineRow.label_image_path || undefined,
+          image_url: (() => {
+            const raw = wineRow.label_image_path || null;
+            const resolved = resolveWineImageSrc(raw);
+            return resolved === DEFAULT_WINE_IMAGE_PATH && !raw?.trim()
+              ? undefined
+              : resolved === DEFAULT_WINE_IMAGE_PATH
+                ? undefined
+                : resolved;
+          })(),
+          label_image_path: wineRow.label_image_path || null,
           quantity: qty,
           price_cents: priceCents,
         };

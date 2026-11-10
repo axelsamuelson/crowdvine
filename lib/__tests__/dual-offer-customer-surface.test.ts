@@ -122,7 +122,8 @@ describe("dual-offer customer surface guards", () => {
     expect(successSrc).toMatch(/success-purchase-complete|successPurchaseComplete/);
     expect(successSrc).toMatch(/MarketingConsentCheckbox/);
     expect(successSrc).toMatch(/charge_deadline_at/);
-    expect(successSrc).toMatch(/formatSharedPalletCloseDeliveryCopy/);
+    expect(successSrc).toMatch(/successStep3/);
+    expect(successSrc).not.toMatch(/formatSharedPalletCloseDeliveryCopy/);
     expect(successSrc).toMatch(/success-step3-delivery|success-total-incl/);
     expect(successSrc).toMatch(/successOrderedAt|successOrderNumber/);
     expect(successSrc).toMatch(/confirmationSharedPalletCity/);

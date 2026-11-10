@@ -40,6 +40,20 @@ export async function GET() {
       .order("valid_until", { ascending: true });
 
     if (error) {
+      const code = String((error as { code?: string }).code || "");
+      const msg = String((error as { message?: string }).message || "");
+      // Preview/TEST may lack promo_discount_codes — degrade to empty list.
+      if (
+        code === "42P01" ||
+        code === "PGRST205" ||
+        /does not exist|schema cache|Could not find/i.test(msg)
+      ) {
+        console.warn("[api/user/coupons] table missing; returning []", {
+          code,
+          msg,
+        });
+        return NextResponse.json({ coupons: [] });
+      }
       console.error("[api/user/coupons] lookup:", error);
       return NextResponse.json({ error: "Failed to load coupons" }, { status: 500 });
     }

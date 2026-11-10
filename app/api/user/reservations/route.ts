@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { resolveWineImageSrc } from "@/lib/cart/wine-image-url";
+import { computeSharedPalletChargeDeadlineIso } from "@/lib/checkout/shared-pallet-deadline";
 import {
   confirmationDisplayTotalSek,
   shortReservationReference,
@@ -180,7 +181,9 @@ export async function GET() {
       // Avoid optional columns (is_complete) that have 42703'd on Preview schema cache.
       const { data: pallets, error: palletsError } = await supabase
         .from("pallets")
-        .select("id, name, bottle_capacity, status, pickup_zone_id, delivery_zone_id")
+        .select(
+          "id, name, bottle_capacity, status, created_at, pickup_zone_id, delivery_zone_id",
+        )
         .in("pickup_zone_id", allDerivedPickupZoneIds)
         .in("delivery_zone_id", deliveryZoneIds);
 
@@ -244,6 +247,44 @@ export async function GET() {
       });
     }
 
+    // Direct pallet rows (by reservation.pallet_id) for capacity + charge deadline
+    // (same created_at + 28d source as checkout / confirmation).
+    type PalletMeta = {
+      id: string;
+      name?: string | null;
+      bottle_capacity?: number | null;
+      status?: string | null;
+      created_at?: string | null;
+    };
+    const palletById = new Map<string, PalletMeta>();
+    const directPalletIds = Array.from(
+      new Set(
+        reservations
+          .map((r) =>
+            typeof r.pallet_id === "string" && r.pallet_id.trim()
+              ? r.pallet_id.trim()
+              : null,
+          )
+          .filter((id): id is string => Boolean(id)),
+      ),
+    );
+    if (directPalletIds.length > 0) {
+      const { data: byIdRows, error: byIdErr } = await supabase
+        .from("pallets")
+        .select("id, name, bottle_capacity, status, created_at")
+        .in("id", directPalletIds);
+      if (byIdErr) {
+        console.error(
+          "Error fetching pallets by id for reservations:",
+          byIdErr,
+        );
+      } else {
+        for (const p of (byIdRows || []) as PalletMeta[]) {
+          if (p?.id) palletById.set(String(p.id), p);
+        }
+      }
+    }
+
     // Transform the data to match the expected format
     const transformedReservations = await Promise.all(
       reservations.map(async (reservation) => {
@@ -256,6 +297,25 @@ export async function GET() {
         let palletCapacity = null;
         let palletIsComplete = false;
         let palletStatus = null;
+        let palletCreatedAt: string | null = null;
+
+        if (palletId && palletById.has(palletId)) {
+          const direct = palletById.get(palletId)!;
+          palletName = direct.name || palletName;
+          palletCapacity = direct.bottle_capacity ?? null;
+          palletStatus = direct.status ?? null;
+          palletCreatedAt =
+            typeof direct.created_at === "string" ? direct.created_at : null;
+          const st = String(direct.status || "").toLowerCase();
+          palletIsComplete =
+            st === "complete" ||
+            st === "awaiting_pickup" ||
+            st === "picked_up" ||
+            st === "in_transit" ||
+            st === "out_for_delivery" ||
+            st === "shipped" ||
+            st === "delivered";
+        }
 
         const derivedPickupZoneId =
           derivedPickupZoneByReservationId.get(reservation.id) || null;
@@ -266,7 +326,12 @@ export async function GET() {
           if (pallet) {
             palletName = pallet.name;
             if (!palletId) palletId = pallet.id;
-            palletCapacity = pallet.bottle_capacity;
+            if (palletCapacity == null) {
+              palletCapacity = pallet.bottle_capacity;
+            }
+            if (!palletCreatedAt && typeof pallet.created_at === "string") {
+              palletCreatedAt = pallet.created_at;
+            }
             const st = String(pallet.status || "").toLowerCase();
             palletIsComplete =
               st === "complete" ||
@@ -278,6 +343,13 @@ export async function GET() {
               st === "delivered";
             palletStatus = pallet.status;
           }
+        }
+
+        // If zone match set palletId but meta came only from zone map, fill created_at.
+        if (palletId && !palletCreatedAt && palletById.has(palletId)) {
+          const direct = palletById.get(palletId)!;
+          palletCreatedAt =
+            typeof direct.created_at === "string" ? direct.created_at : null;
         }
 
         // Get delivery address instead of zone names
@@ -406,6 +478,10 @@ export async function GET() {
             ? resRow.charge_blocked_reason
             : null;
 
+        const chargeDeadlineAt = isSharedPallet
+          ? computeSharedPalletChargeDeadlineIso(palletCreatedAt)
+          : null;
+
         return {
           id: reservation.id,
           order_id: reservation.order_id || reservation.id,
@@ -420,6 +496,8 @@ export async function GET() {
               : palletCapacity,
           pallet_is_complete: palletIsComplete,
           pallet_status: palletStatus,
+          /** Same created_at+28d source as checkout confirmation. */
+          charge_deadline_at: chargeDeadlineAt,
           delivery_address: deliveryAddress,
           total_cost_cents: totalCostCents,
           charged_total_sek: chargedTotalSek,
