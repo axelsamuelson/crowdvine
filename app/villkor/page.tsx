@@ -22,9 +22,9 @@ export async function generateMetadata(): Promise<Metadata> {
     description: DESCRIPTION,
     alternates: {
       canonical,
-      // EN /terms is still Swedish body + noindex — do not advertise it as an equivalent.
       languages: {
         sv: canonical,
+        en: `${PACT_PUBLIC_ORIGIN}/terms`,
         "x-default": canonical,
       },
     },
@@ -40,6 +40,7 @@ export default function VillkorPage() {
       lastUpdated={version}
       version={version}
       toc={KOPVILLKOR_TOC}
+      locale="sv"
     >
       <KopvillkorContent />
     </LegalPageLayout>

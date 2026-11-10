@@ -15,6 +15,8 @@ type LegalPageLayoutProps = {
   children: ReactNode;
   /** Optional TOC using existing section headings as link text */
   toc?: LegalTocItem[];
+  /** UI chrome locale for “Last updated” / TOC aria-label. Defaults to Swedish. */
+  locale?: "sv" | "en";
 };
 
 export function LegalPageLayout({
@@ -23,18 +25,23 @@ export function LegalPageLayout({
   version,
   children,
   toc,
+  locale = "sv",
 }: LegalPageLayoutProps) {
+  const metaLine =
+    locale === "en"
+      ? `Last updated ${lastUpdated} · Version ${version}`
+      : `Senast uppdaterad ${lastUpdated} · Version ${version}`;
+  const tocAriaLabel = locale === "en" ? "Contents" : "Innehåll";
+
   return (
     <main data-legal-page className="bg-background min-h-screen">
       <div className="mx-auto max-w-3xl px-5 py-16 pt-24 sm:px-6 sm:py-24 sm:pt-28">
         <h1 className="text-3xl sm:text-4xl font-medium tracking-tight text-[#0A0A0A]">
           {title}
         </h1>
-        <p className="mt-3 text-sm text-[#404040]">
-          Senast uppdaterad {lastUpdated} · Version {version}
-        </p>
+        <p className="mt-3 text-sm text-[#404040]">{metaLine}</p>
         {toc && toc.length > 0 ? (
-          <nav aria-label="Innehåll" className="mt-6">
+          <nav aria-label={tocAriaLabel} className="mt-6">
             <ul className="space-y-1.5 text-sm text-[#404040]">
               {toc.map((item) => (
                 <li key={item.id}>
