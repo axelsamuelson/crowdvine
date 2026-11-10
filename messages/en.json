@@ -392,7 +392,7 @@
     "boostWorth2x": "Worth 2× against boosted producers in this order",
     "pactPointsDiscount": "PACT Points discount",
     "progressBonus": "Progress bonus ({percent}%)",
-    "voucher": "Voucher ({count})",
+    "voucher": "Coupon ({count})",
     "total": "Total",
     "discountCode": "Discount code",
     "add": "Add",
@@ -708,7 +708,8 @@
     "successStatusWaitingPallet": "Waiting for the pallet to close",
     "successReservationRef": "Reference",
     "successShipping": "Shipping",
-    "haveDiscountCode": "Have a discount code?"
+    "haveDiscountCode": "Have a discount code?",
+    "couponHalfOrderCapNotice": "The coupon can cover up to half of the order value."
   },
   "tasteQuiz": {
     "unknownProducer": "Unknown producer",
@@ -898,8 +899,8 @@
     "pactPoints": "PACT Points",
     "earnedAllTime": "{count} earned all time",
     "couponTitle": "Coupon",
-    "couponValidUntil": "Valid until {date}",
-    "pactPointsReplacedByCoupon": "Your PACT points have been exchanged for a coupon worth {belopp}. You can use it at checkout.",
+    "couponValidUntil": "Valid through {date}",
+    "pactPointsReplacedByCoupon": "Your PACT points have been replaced by a coupon worth {belopp} (1 kr per point). It is valid through {date} and can cover up to half of your order. You can use it at checkout.",
     "invited": "Invited",
     "orders": "Orders",
     "payment": "Payment",
@@ -1036,7 +1037,7 @@
     "eventRedemption": "Used at checkout",
     "eventExpiration": "Points expired",
     "eventMigratedIp": "Migrated from Impact Points",
-    "eventMigratedVoucher": "Migrated from voucher",
+    "eventMigratedVoucher": "Points replaced by coupon",
     "eventAdjustment": "Adjustment",
     "eventFoundingGrant": "Founding Member welcome",
     "resStatusDeclined": "Declined",
@@ -1158,7 +1159,8 @@
     "noWinesOnPallet": "No wines found for this pallet.",
     "lateCancelFlowDisabled": "You can cancel here if delivery hasn't happened within 30 days of the pallet closing.",
     "palletRowLabel": "Pallet",
-    "totalShort": "Total"
+    "totalShort": "Total",
+    "couponAmount": "Value {amount}"
   },
   "auth": {
     "welcomeBack": "Welcome back",

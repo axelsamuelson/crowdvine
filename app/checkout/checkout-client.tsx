@@ -117,6 +117,7 @@ import {
   calculateBoostAwareMaxRedemption,
 } from "@/lib/membership/pact-points-redemption-math";
 import { isPactPointsConversionCoupon } from "@/lib/membership/pact-points-conversion";
+import { isPromoDiscountReducedByConversionHalfCap } from "@/lib/discount-codes";
 import { cn } from "@/lib/utils";
 import {
   B2C_DIRECT_BOX_DELIVERY_TIME_TODO,
@@ -3356,6 +3357,38 @@ function CheckoutContent({
   const displaySubtotal = serverQuote?.subtotal_sek ?? bottleCost;
   const displayShippingSek = serverQuote?.shipping_sek;
   const displayPactOff = serverQuote?.pact_points_sek ?? pactPointsSekOff;
+
+  const conversionCouponHalfCapReduced = useMemo(() => {
+    if (!appliedDiscount) return false;
+    const items =
+      cart?.lines?.map((line) => {
+        const qty = Number(line.quantity) || 0;
+        const lineTotal =
+          parseFloat(String(line.cost.totalAmount.amount)) || 0;
+        return {
+          wine_id: String(line.merchandise.id),
+          quantity: qty,
+          unit_price: qty > 0 ? lineTotal / qty : 0,
+        };
+      }) ?? [];
+    const cart_value_sek =
+      (parseFloat(cart?.cost?.totalAmount?.amount ?? "0") || 0) +
+      (serverQuote?.shipping_pending ? 0 : (displayShippingSek ?? 0));
+    return isPromoDiscountReducedByConversionHalfCap({
+      type: appliedDiscount.type,
+      value: appliedDiscount.value,
+      applies_to: "order",
+      cart_value_sek,
+      items,
+      description: appliedDiscount.description,
+    });
+  }, [
+    appliedDiscount,
+    cart?.lines,
+    cart?.cost?.totalAmount?.amount,
+    serverQuote?.shipping_pending,
+    displayShippingSek,
+  ]);
   // Shipping is a SEK rate. formatSek converts it into the active currency.
   // A missing country rate shows explanatory copy — never a bogus "$99.0".
   // direct_box must never fall back to shared/pact 99 via client invention.
@@ -4093,30 +4126,40 @@ function CheckoutContent({
                   </div>
                 ) : null}
                 {appliedDiscount ? (
-                  <div className="flex items-center justify-between gap-2 text-[#0A0A0A]">
-                    <span>
-                      {isPactPointsConversionCoupon(appliedDiscount.description)
-                        ? t("checkout.conversionCouponApplied", {
-                            amount: `${Math.round(appliedDiscount.discount_amount_sek)} ${
-                              shopping.locale === "en" ? "SEK" : "kr"
-                            }`,
-                          })
-                        : t("checkout.discountApplied", {
-                            code: appliedDiscount.code,
-                            amount:
-                              appliedDiscount.type === "percent"
-                                ? `−${formatChargedAmount(appliedDiscount.discount_amount_sek)} (−${appliedDiscount.value}%)`
-                                : `−${formatChargedAmount(appliedDiscount.discount_amount_sek)}`,
-                          })}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={clearAppliedDiscount}
-                      className="shrink-0 text-lg leading-none text-muted-foreground hover:text-foreground"
-                      aria-label={t("checkout.removeDiscount")}
-                    >
-                      ×
-                    </button>
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between gap-2 text-[#0A0A0A]">
+                      <span>
+                        {isPactPointsConversionCoupon(appliedDiscount.description)
+                          ? t("checkout.conversionCouponApplied", {
+                              amount: `${Math.round(appliedDiscount.discount_amount_sek)} ${
+                                shopping.locale === "en" ? "SEK" : "kr"
+                              }`,
+                            })
+                          : t("checkout.discountApplied", {
+                              code: appliedDiscount.code,
+                              amount:
+                                appliedDiscount.type === "percent"
+                                  ? `−${formatChargedAmount(appliedDiscount.discount_amount_sek)} (−${appliedDiscount.value}%)`
+                                  : `−${formatChargedAmount(appliedDiscount.discount_amount_sek)}`,
+                            })}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={clearAppliedDiscount}
+                        className="shrink-0 text-lg leading-none text-muted-foreground hover:text-foreground"
+                        aria-label={t("checkout.removeDiscount")}
+                      >
+                        ×
+                      </button>
+                    </div>
+                    {conversionCouponHalfCapReduced ? (
+                      <p
+                        className="text-[11px] text-muted-foreground"
+                        data-testid="checkout-coupon-half-cap-notice"
+                      >
+                        {t("checkout.couponHalfOrderCapNotice")}
+                      </p>
+                    ) : null}
                   </div>
                 ) : (
                   <div className="space-y-2 pt-1">

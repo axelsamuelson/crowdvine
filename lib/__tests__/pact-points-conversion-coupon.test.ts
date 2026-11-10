@@ -1,11 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { calculatePromoDiscountAmountSek } from "@/lib/discount-codes";
+import {
+  calculatePromoDiscountAmountSek,
+  isPromoDiscountReducedByConversionHalfCap,
+} from "@/lib/discount-codes";
 import {
   PACT_POINTS_CONVERSION_DESCRIPTION,
   isPactPointsConversionCoupon,
 } from "@/lib/membership/pact-points-conversion";
+import { translate } from "@/lib/i18n/messages";
 
 const getCurrentUser = vi.fn();
 const fromMock = vi.fn();
@@ -62,6 +66,68 @@ describe("PACT points conversion coupon", () => {
         description: "other",
       }),
     ).toBe(400);
+
+    expect(
+      isPromoDiscountReducedByConversionHalfCap({
+        type: "sek",
+        value: 400,
+        applies_to: "order",
+        cart_value_sek: 741,
+        items,
+        description: PACT_POINTS_CONVERSION_DESCRIPTION,
+      }),
+    ).toBe(true);
+
+    expect(
+      isPromoDiscountReducedByConversionHalfCap({
+        type: "sek",
+        value: 200,
+        applies_to: "order",
+        cart_value_sek: 741,
+        items,
+        description: PACT_POINTS_CONVERSION_DESCRIPTION,
+      }),
+    ).toBe(false);
+
+    expect(
+      isPromoDiscountReducedByConversionHalfCap({
+        type: "sek",
+        value: 400,
+        applies_to: "order",
+        cart_value_sek: 741,
+        items,
+        description: "other",
+      }),
+    ).toBe(false);
+  });
+
+  it("interpolates {date} and {belopp} in conversion coupon copy", () => {
+    const sv = translate("sv", "profile.pactPointsReplacedByCoupon", {
+      belopp: "150 kr",
+      date: "10 november 2027",
+    });
+    const en = translate("en", "profile.pactPointsReplacedByCoupon", {
+      belopp: "150 SEK",
+      date: "November 10, 2027",
+    });
+    expect(sv).toContain("150 kr");
+    expect(sv).toContain("10 november 2027");
+    expect(sv).toContain("halva ordervärdet");
+    expect(en).toContain("150 SEK");
+    expect(en).toContain("November 10, 2027");
+    expect(en).toContain("half of your order");
+    expect(translate("sv", "profile.couponValidUntil", { date: "10 november 2027" })).toBe(
+      "Gäller till och med 10 november 2027",
+    );
+    expect(translate("en", "profile.couponValidUntil", { date: "November 10, 2027" })).toBe(
+      "Valid through November 10, 2027",
+    );
+    expect(translate("sv", "checkout.couponHalfOrderCapNotice")).toBe(
+      "Kupongen kan användas för högst halva ordervärdet.",
+    );
+    expect(translate("en", "checkout.couponHalfOrderCapNotice")).toBe(
+      "The coupon can cover up to half of the order value.",
+    );
   });
 
   it("GET /api/user/coupons requires auth", async () => {
@@ -180,18 +246,30 @@ describe("PACT points conversion coupon", () => {
 
     expect(profilePage).toMatch(/ProfilePactConversionCouponCard/);
     expect(card).toMatch(/pactPointsReplacedByCoupon/);
+    expect(card).toMatch(/date:\s*validLabel/);
+    expect(card).toMatch(/couponAmount/);
     expect(card).toMatch(/\/api\/user\/coupons/);
     expect(checkout).toMatch(/checkout-account-coupons/);
     expect(checkout).toMatch(/applyDiscountCode\(c\.code\)/);
+    expect(checkout).toMatch(/couponHalfOrderCapNotice/);
+    expect(checkout).toMatch(/isPromoDiscountReducedByConversionHalfCap/);
     expect(validate).toMatch(/description/);
     expect(sv).toMatch(
-      /Dina PACT-poäng har bytts mot en kupong på \{belopp\}/,
+      /Dina PACT-poäng har ersatts av en kupong på \{belopp\}/,
     );
     expect(en).toMatch(
-      /Your PACT points have been exchanged for a coupon worth \{belopp\}/,
+      /Your PACT points have been replaced by a coupon worth \{belopp\}/,
     );
+    expect(sv).toMatch(/\{date\}/);
+    expect(en).toMatch(/\{date\}/);
+    expect(en).toMatch(/"voucher": "Coupon \(\{count\}\)"/);
     expect(checkout).toMatch(/haveDiscountCode/);
     expect(sv).toMatch(/Har du en rabattkod\?/);
     expect(en).toMatch(/Have a discount code\?/);
+    const referral = readFileSync(
+      resolve(process.cwd(), "components/profile/referral-invite-card.tsx"),
+      "utf8",
+    );
+    expect(referral).toMatch(/SHOW_REFERRAL_REWARD_HEADLINE = false/);
   });
 });

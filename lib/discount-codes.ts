@@ -75,3 +75,21 @@ export function calculatePromoDiscountAmountSek(params: {
 
   return Math.min(amount, cart);
 }
+
+/** True when the conversion 50% wine cap lowered the discount vs uncapped promo math. */
+export function isPromoDiscountReducedByConversionHalfCap(params: {
+  type: PromoDiscountType;
+  value: number;
+  applies_to: PromoDiscountAppliesTo;
+  cart_value_sek: number;
+  items: PromoDiscountCartItem[];
+  description?: string | null;
+}): boolean {
+  if (!isPactPointsConversionCoupon(params.description)) return false;
+  const uncapped = calculatePromoDiscountAmountSek({
+    ...params,
+    description: null,
+  });
+  const capped = calculatePromoDiscountAmountSek(params);
+  return capped < uncapped;
+}

@@ -14,6 +14,9 @@ export interface ReferralInviteCardProps {
   className?: string;
 }
 
+/** Juliette/Axel: hide ≈170 kr free-bottle referral copy until Axel decides. Key kept. */
+const SHOW_REFERRAL_REWARD_HEADLINE = false;
+
 export function ReferralInviteCard({
   inviteUrl,
   invitedCount,
@@ -108,12 +111,14 @@ export function ReferralInviteCard({
         </Button>
       </div>
 
-      <div className="mt-5 space-y-2 rounded-xl bg-muted/40 px-4 py-3 text-sm text-foreground">
-        <p className="font-medium text-foreground">{t("profile.whatYouGet")}</p>
-        <p className="text-muted-foreground leading-snug">
-          {t("profile.referralRewardHeadline")}
-        </p>
-      </div>
+      {SHOW_REFERRAL_REWARD_HEADLINE ? (
+        <div className="mt-5 space-y-2 rounded-xl bg-muted/40 px-4 py-3 text-sm text-foreground">
+          <p className="font-medium text-foreground">{t("profile.whatYouGet")}</p>
+          <p className="text-muted-foreground leading-snug">
+            {t("profile.referralRewardHeadline")}
+          </p>
+        </div>
+      ) : null}
 
       <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2 border-t border-border pt-4 text-sm">
         <div>

@@ -67,9 +67,14 @@ export function ProfilePactConversionCouponCard() {
             })
           : null;
         const isConversion = isPactPointsConversionCoupon(c.description);
-        const titleLine = validLabel
-          ? `${t("profile.couponTitle")} · ${amountPlain} · ${t("profile.couponValidUntil", { date: validLabel })}`
-          : `${t("profile.couponTitle")} · ${amountPlain}`;
+        const titleParts = [
+          t("profile.couponTitle"),
+          t("profile.couponAmount", { amount: amountPlain }),
+        ];
+        if (validLabel) {
+          titleParts.push(t("profile.couponValidUntil", { date: validLabel }));
+        }
+        const titleLine = titleParts.join(" · ");
         return (
           <div
             key={c.id}
@@ -84,6 +89,7 @@ export function ProfilePactConversionCouponCard() {
               <p className="text-sm text-foreground pt-1">
                 {t("profile.pactPointsReplacedByCoupon", {
                   belopp: formatSek(c.value_sek),
+                  date: validLabel ?? "",
                 })}
               </p>
             ) : null}

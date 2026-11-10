@@ -708,7 +708,8 @@
     "successStatusWaitingPallet": "Väntar på att pallen stänger",
     "successReservationRef": "Referens",
     "successShipping": "Frakt",
-    "haveDiscountCode": "Har du en rabattkod?"
+    "haveDiscountCode": "Har du en rabattkod?",
+    "couponHalfOrderCapNotice": "Kupongen kan användas för högst halva ordervärdet."
   },
   "tasteQuiz": {
     "unknownProducer": "Okänd producent",
@@ -898,8 +899,8 @@
     "pactPoints": "PACT-poäng",
     "earnedAllTime": "{count} intjänade totalt",
     "couponTitle": "Kupong",
-    "couponValidUntil": "Gäller till {date}",
-    "pactPointsReplacedByCoupon": "Dina PACT-poäng har bytts mot en kupong på {belopp}. Du använder den i kassan.",
+    "couponValidUntil": "Gäller till och med {date}",
+    "pactPointsReplacedByCoupon": "Dina PACT-poäng har ersatts av en kupong på {belopp} (1 kr per poäng). Den gäller till och med {date} och kan användas för högst halva ordervärdet. Du använder den i kassan.",
     "invited": "Inbjudna",
     "orders": "Order",
     "payment": "Betalning",
@@ -1036,7 +1037,7 @@
     "eventRedemption": "Använt i kassan",
     "eventExpiration": "Poäng har gått ut",
     "eventMigratedIp": "Migrerat från Impact Points",
-    "eventMigratedVoucher": "Migrerat från kupong",
+    "eventMigratedVoucher": "Poäng ersatta med kupong",
     "eventAdjustment": "Justering",
     "eventFoundingGrant": "Välkommen som grundarmedlem",
     "resStatusDeclined": "Nekad",
@@ -1158,7 +1159,8 @@
     "noWinesOnPallet": "Inga viner på den här pallen.",
     "lateCancelFlowDisabled": "Du kan avboka här om leveransen inte har skett inom 30 dagar efter att pallen stängt.",
     "palletRowLabel": "Pallen",
-    "totalShort": "Totalt"
+    "totalShort": "Totalt",
+    "couponAmount": "Värde {amount}"
   },
   "auth": {
     "welcomeBack": "Välkommen tillbaka",

@@ -389,7 +389,9 @@ export default function ProfilePerksPage() {
                 <CardTitle className="text-base">
                   {t("profile.lockedPerksTitle")}
                 </CardTitle>
-                <CardDescription>{t("profile.lockedPerksDesc")}</CardDescription>
+                {data.pactPointsEarningEnabled ? (
+                  <CardDescription>{t("profile.lockedPerksDesc")}</CardDescription>
+                ) : null}
               </CardHeader>
               <CardContent>
                 {data.nextLevel ? (
