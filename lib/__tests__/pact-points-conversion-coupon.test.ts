@@ -292,10 +292,23 @@ describe("PACT points conversion coupon", () => {
     );
     expect(activity).toMatch(/pointsUnit/);
     expect(activity).toMatch(/migration_from_voucher[\s\S]*Ticket|Ticket[\s\S]*migration_from_voucher/);
+    expect(activity).toMatch(/converted_to_coupon/);
+    expect(activity).toMatch(/eventConvertedToCoupon/);
+    expect(activity).toMatch(
+      /converted_to_coupon[\s\S]*Ticket|Ticket[\s\S]*converted_to_coupon/,
+    );
     expect(activity).not.toMatch(/ pts`/);
     expect(activity).toMatch(/bg-gray-50/);
     expect(activity).not.toMatch(/bg-blue-50|text-purple-600/);
     expect(translate("en", "profile.pointsUnit", { count: 1 })).toBe("point");
     expect(translate("en", "profile.pointsUnit", { count: 500 })).toBe("points");
+    expect(translate("sv", "profile.eventConvertedToCoupon")).toBe(
+      "Poäng omvandlade till kupong",
+    );
+    expect(translate("en", "profile.eventConvertedToCoupon")).toBe(
+      "Points converted to coupon",
+    );
+    expect(sv).toMatch(/"eventConvertedToCoupon": "Poäng omvandlade till kupong"/);
+    expect(en).toMatch(/"eventConvertedToCoupon": "Points converted to coupon"/);
   });
 });

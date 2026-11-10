@@ -83,7 +83,11 @@ export default function ActivityPage() {
   const getEventIcon = (eventType: string) => {
     if (eventType.includes("invite")) return UserPlus;
     if (eventType === "own_order") return Package;
-    if (eventType === "migration_from_voucher") return Ticket;
+    if (
+      eventType === "migration_from_voucher" ||
+      eventType === "converted_to_coupon"
+    )
+      return Ticket;
     if (eventType.startsWith("migration_")) return TrendingUp;
     return Award;
   };
@@ -116,6 +120,8 @@ export default function ActivityPage() {
         return t("profile.eventMigratedIp");
       case "migration_from_voucher":
         return t("profile.eventMigratedVoucher");
+      case "converted_to_coupon":
+        return t("profile.eventConvertedToCoupon");
       case "manual_adjustment":
         return t("profile.eventAdjustment");
       case "founding_member_grant":
