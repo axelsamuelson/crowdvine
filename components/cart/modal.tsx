@@ -603,9 +603,12 @@ function CheckoutButton({
           onClick={goAddMore}
           className="font-semibold cursor-pointer whitespace-nowrap text-base transition-all disabled:pointer-events-none disabled:opacity-50 h-12 rounded-md px-3 flex items-center justify-center gap-2 w-full bg-white text-[#0A0A0A] border border-[#0A0A0A] hover:bg-neutral-50 shadow-none"
         >
-          <Plus className="size-5 shrink-0" aria-hidden />
+          <Plus className="size-5 shrink-0" strokeWidth={2.25} aria-hidden />
           <span className="leading-snug">
-            {t("cart.addMoreBottlesOutlineCta", { needed: neededBottles })}
+            {t("cart.addMoreBottlesOutlineCta", { needed: neededBottles }).replace(
+              /^\+\s*/,
+              "",
+            )}
           </span>
         </Button>
       ) : null}
