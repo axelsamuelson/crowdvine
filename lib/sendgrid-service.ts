@@ -16,7 +16,6 @@ import {
   getWelcomeEmailText,
 } from "./email-templates";
 import { getSiteContentByKey } from "./actions/content";
-import { getAppUrl } from "./app-url";
 
 // Cache for logo to avoid repeated database calls
 let logoCache: { value: string | null; timestamp: number } | null = null;
