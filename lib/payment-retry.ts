@@ -19,61 +19,56 @@ import {
   sendPaymentCancelledEmail,
   sendPaymentConfirmedEmail,
 } from "@/lib/sendgrid-service";
+import { createPalletClosePaymentLink } from "@/lib/checkout/pallet-close/payment-link";
+import { resolveAmountOre } from "@/lib/checkout/pallet-close/resolve-amount-ore";
+import {
+  decidePaymentRetrySchedule,
+  PAYMENT_RETRY_INTERVAL_MS,
+  PAYMENT_RETRY_PAY_WINDOW_MS,
+  paymentRetryMayWritePayWindow,
+  resolvePaymentRetryPayWindow,
+} from "@/lib/payment-retry-window";
+
+export {
+  decidePaymentRetrySchedule,
+  PAYMENT_RETRY_INTERVAL_MS,
+  PAYMENT_RETRY_PAY_WINDOW_MS,
+  paymentRetryMayWritePayWindow,
+  resolvePaymentRetryPayWindow,
+} from "@/lib/payment-retry-window";
 
 const CANCELLATION_REASON_DB = "Payment failed after pay window expired";
 const CANCELLATION_REASON_EMAIL =
   "Payment was not completed within 3 days of the failed charge.";
 
-/** Customer has this long to pay after the first failed charge (Axel 2026-11-10). */
-export const PAYMENT_RETRY_PAY_WINDOW_MS = 3 * 24 * 60 * 60 * 1000;
-
-/** Retry interval while inside the pay window. */
-export const PAYMENT_RETRY_INTERVAL_MS = 24 * 60 * 60 * 1000;
-
-/**
- * Pure decision: cancel after the 3-day window, otherwise schedule the next retry.
- * windowStartedAt = first failed charge time.
- */
-export function decidePaymentRetrySchedule(opts: {
-  now: Date;
-  windowStartedAt: Date;
-}):
-  | { action: "cancel"; payByAt: Date }
-  | { action: "schedule"; at: Date; payByAt: Date } {
-  const payByAt = new Date(
-    opts.windowStartedAt.getTime() + PAYMENT_RETRY_PAY_WINDOW_MS,
-  );
-  if (opts.now.getTime() >= payByAt.getTime()) {
-    return { action: "cancel", payByAt };
-  }
-  const candidate = new Date(opts.now.getTime() + PAYMENT_RETRY_INTERVAL_MS);
-  const at =
-    candidate.getTime() > payByAt.getTime() ? payByAt : candidate;
-  // If the only remaining slot is essentially now, cancel instead of looping.
-  if (at.getTime() <= opts.now.getTime() + 60_000) {
-    return { action: "cancel", payByAt };
-  }
-  return { action: "schedule", at, payByAt };
-}
+export type SchedulePaymentRetryResult = {
+  action: "scheduled" | "cancelled" | "skipped";
+  payByAt?: string;
+  /** True only when this call opened a new 3-day window (send failed-charge email once). */
+  windowOpened?: boolean;
+  /** Stripe Checkout URL for paying / updating card — only set when windowOpened. */
+  paymentLinkUrl?: string;
+};
 
 /**
  * After a failed charge, schedule the next retry or cancel after the 3-day window.
  * attemptNumber is kept for call-site compatibility; the window is time-based.
  *
- * Controls today (before this change): attemptNumber >= 3 → cancel;
- * MS_24H / MS_72H for retryHours 24|72 in lib/payment-retry.ts + webhook.
+ * Never writes offsession_* when pallet-close owns pay_link_pending/charging.
+ * Opens the window (and creates a pay link) only once — subsequent failures reuse
+ * the same pay-by date and do not re-open.
  */
 export async function schedulePaymentRetry(
   reservationId: string,
   _attemptNumber: number,
-): Promise<{ action: "scheduled" | "cancelled" | "skipped"; payByAt?: string }> {
+): Promise<SchedulePaymentRetryResult> {
   const sb = getSupabaseAdmin();
   const now = new Date();
 
   const { data: existing } = await sb
     .from("order_reservations")
     .select(
-      "status, archived_at, cancelled_at, offsession_charge_failed_at, offsession_pay_by, pallet_close_state",
+      "status, archived_at, cancelled_at, offsession_charge_failed_at, offsession_pay_by, offsession_payment_link_url, pallet_close_state, pallet_id",
     )
     .eq("id", reservationId)
     .maybeSingle();
@@ -88,52 +83,124 @@ export async function schedulePaymentRetry(
     return { action: "skipped" };
   }
 
-  // Reuse offsession_* columns (already migrated) for the 3-day pay window
-  // when not in pallet-close pay_link_pending (that flow owns the same fields).
-  const state = String(existing?.pallet_close_state ?? "");
-  const payLinkOwns = state === "pay_link_pending";
+  const window = resolvePaymentRetryPayWindow({
+    now,
+    palletCloseState: existing?.pallet_close_state,
+    existingFailedAt: existing?.offsession_charge_failed_at,
+    existingPayBy: existing?.offsession_pay_by,
+  });
 
-  let windowStartedAt: Date;
-  let payByAt: Date;
+  if (window.kind === "skip_owned_by_pallet_close") {
+    // Pallet-close cron owns timeout + pay-link email for this reservation.
+    return { action: "skipped" };
+  }
 
-  if (payLinkOwns && existing?.offsession_pay_by) {
-    payByAt = new Date(String(existing.offsession_pay_by));
-    windowStartedAt = existing.offsession_charge_failed_at
-      ? new Date(String(existing.offsession_charge_failed_at))
-      : new Date(payByAt.getTime() - PAYMENT_RETRY_PAY_WINDOW_MS);
-  } else if (existing?.offsession_pay_by && existing?.offsession_charge_failed_at) {
-    windowStartedAt = new Date(String(existing.offsession_charge_failed_at));
-    payByAt = new Date(String(existing.offsession_pay_by));
-  } else {
-    windowStartedAt = now;
-    payByAt = new Date(now.getTime() + PAYMENT_RETRY_PAY_WINDOW_MS);
-    if (!payLinkOwns) {
-      const { error: windowErr } = await sb
-        .from("order_reservations")
-        .update({
-          offsession_charge_failed_at: windowStartedAt.toISOString(),
-          offsession_pay_by: payByAt.toISOString(),
-        })
-        .eq("id", reservationId)
-        .neq("status", "archived")
-        .is("archived_at", null);
-      if (windowErr) {
-        console.error(
-          `[RETRY] schedulePaymentRetry set pay window reservation_id=${reservationId}:`,
-          windowErr.message,
-        );
-      }
+  let paymentLinkUrl: string | undefined;
+  if (window.kind === "open") {
+    if (!paymentRetryMayWritePayWindow(existing?.pallet_close_state)) {
+      return { action: "skipped" };
     }
+    // Conditional write: never overwrite an existing pay-by (race with pallet-close).
+    const { data: written, error: windowErr } = await sb
+      .from("order_reservations")
+      .update({
+        offsession_charge_failed_at: window.windowStartedAt.toISOString(),
+        offsession_pay_by: window.payByAt.toISOString(),
+      })
+      .eq("id", reservationId)
+      .is("offsession_pay_by", null)
+      .neq("status", "archived")
+      .is("archived_at", null)
+      .select("id")
+      .maybeSingle();
+
+    if (windowErr) {
+      console.error(
+        `[RETRY] schedulePaymentRetry set pay window reservation_id=${reservationId}:`,
+        windowErr.message,
+      );
+      return { action: "skipped" };
+    }
+    if (!written) {
+      // Another writer (e.g. pallet-close) set the window first — reload and reuse.
+      const { data: again } = await sb
+        .from("order_reservations")
+        .select(
+          "offsession_charge_failed_at, offsession_pay_by, offsession_payment_link_url, pallet_close_state",
+        )
+        .eq("id", reservationId)
+        .maybeSingle();
+      const reused = resolvePaymentRetryPayWindow({
+        now,
+        palletCloseState: again?.pallet_close_state,
+        existingFailedAt: again?.offsession_charge_failed_at,
+        existingPayBy: again?.offsession_pay_by,
+      });
+      if (reused.kind === "skip_owned_by_pallet_close") {
+        return { action: "skipped" };
+      }
+      if (reused.kind === "reuse") {
+        const decision = decidePaymentRetrySchedule({
+          now,
+          windowStartedAt: reused.windowStartedAt,
+        });
+        if (decision.action === "cancel") {
+          await cancelFailedReservation(reservationId);
+          return {
+            action: "cancelled",
+            payByAt: decision.payByAt.toISOString(),
+            windowOpened: false,
+          };
+        }
+        await sb
+          .from("order_reservations")
+          .update({ retry_scheduled_at: decision.at.toISOString() })
+          .eq("id", reservationId)
+          .neq("status", "archived")
+          .is("archived_at", null);
+        return {
+          action: "scheduled",
+          payByAt: decision.payByAt.toISOString(),
+          windowOpened: false,
+          paymentLinkUrl:
+            typeof again?.offsession_payment_link_url === "string"
+              ? again.offsession_payment_link_url
+              : undefined,
+        };
+      }
+      return { action: "skipped" };
+    }
+
+    // Create a real Stripe Checkout pay link (profile#payment only manages cards).
+    const amountOre = await resolveAmountOre(reservationId);
+    if (amountOre != null && amountOre > 0) {
+      const link = await createPalletClosePaymentLink({
+        reservationId,
+        amountOre,
+        palletId:
+          typeof existing?.pallet_id === "string" ? existing.pallet_id : null,
+      });
+      if (link.ok) paymentLinkUrl = link.url;
+    }
+  } else if (
+    typeof existing?.offsession_payment_link_url === "string" &&
+    existing.offsession_payment_link_url.trim()
+  ) {
+    paymentLinkUrl = existing.offsession_payment_link_url.trim();
   }
 
   const decision = decidePaymentRetrySchedule({
     now,
-    windowStartedAt,
+    windowStartedAt: window.windowStartedAt,
   });
 
   if (decision.action === "cancel") {
     await cancelFailedReservation(reservationId);
-    return { action: "cancelled", payByAt: decision.payByAt.toISOString() };
+    return {
+      action: "cancelled",
+      payByAt: decision.payByAt.toISOString(),
+      windowOpened: false,
+    };
   }
 
   const { error } = await sb
@@ -150,7 +217,12 @@ export async function schedulePaymentRetry(
     );
   }
 
-  return { action: "scheduled", payByAt: decision.payByAt.toISOString() };
+  return {
+    action: "scheduled",
+    payByAt: decision.payByAt.toISOString(),
+    windowOpened: window.windowOpened === true,
+    paymentLinkUrl,
+  };
 }
 
 export async function cancelFailedReservation(

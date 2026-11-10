@@ -37,6 +37,11 @@ export type ExpiryRunSummary = {
   scanned: number;
   skipped: number;
   waits: number;
+  /** Decisions that would send a status email (at most one per order per run). */
+  wouldSendStatusEmails: number;
+  /** Emails actually handed to the mailer (0 when sendEmail=false or dryRun). */
+  statusEmailsSent: number;
+  /** @deprecated Alias of wouldSendStatusEmails. */
   statusEmails: number;
   /** @deprecated Always 0 — extension asks removed. */
   asks: number;
@@ -137,7 +142,7 @@ async function recordStatusEmailSent(opts: {
 }
 
 /**
- * Legacy extension confirm — no longer extends or mutates.
+ * Legacy extension confirm — no longer extends or mutates anything.
  * Returns a friendly ok so old links never error.
  */
 export async function applyReservationExtensionConfirm(opts: {
@@ -151,12 +156,7 @@ export async function applyReservationExtensionConfirm(opts: {
   const now = opts.now ?? new Date();
   const extensionDays =
     opts.extensionDays ?? getReservationExpiryConfig().statusIntervalDays;
-  // Clear any leftover reply deadline so cron never auto-cancels.
-  const sb = getSupabaseAdmin();
-  await sb
-    .from("order_reservations")
-    .update({ extension_reply_by: null })
-    .eq("id", opts.reservationId);
+  // Intentionally no DB writes — old links must change nothing.
   return {
     ok: true,
     newEndDate: new Date(now.getTime() + extensionDays * 24 * 60 * 60 * 1000),
@@ -178,6 +178,8 @@ export async function runReservationExpiryJob(
     scanned: 0,
     skipped: 0,
     waits: 0,
+    wouldSendStatusEmails: 0,
+    statusEmailsSent: 0,
     statusEmails: 0,
     asks: 0,
     cancelledNoReply: 0,
@@ -371,39 +373,13 @@ export async function runReservationExpiryJob(
       }
 
       if (decision.action === "send_status_email") {
+        // At most one status email decision per order per run (duePeriod only).
+        summary.wouldSendStatusEmails += 1;
+        summary.statusEmails = summary.wouldSendStatusEmails;
+
         const baseUrl = getAppUrl().replace(/\/$/, "");
         const orderUrl = `${baseUrl}/profile/reservations`;
         let cancelUrl = orderUrl;
-        if (!config.dryRun) {
-          try {
-            // Cancel token valid for a long window — free cancel until pallet closes.
-            const expiresAt = new Date(
-              now.getTime() + 365 * 24 * 60 * 60 * 1000,
-            );
-            const tok = await createPalletCloseActionToken({
-              reservationId: row.id,
-              action: "cancel",
-              expiresAt,
-            });
-            cancelUrl = tok.url;
-          } catch (e) {
-            console.error(
-              `[reservation-expiry] cancel token reservation_id=${row.id}:`,
-              e,
-            );
-            cancelUrl = orderUrl;
-          }
-        }
-
-        const recorded = await recordStatusEmailSent({
-          reservationId: row.id,
-          periodDay: decision.periodDay,
-          dryRun: config.dryRun,
-        });
-        if (!recorded) {
-          summary.errors += 1;
-          continue;
-        }
 
         const amountRaw = Number(
           (row as { total_sek?: number | string | null }).total_sek,
@@ -414,6 +390,38 @@ export async function runReservationExpiryJob(
           const fill = await fillForPallet(palletId, pallet);
           bottlesOrdered = fill.bottlesFilled;
           bottlesNeeded = fill.minBottlesToShip;
+        }
+
+        // Dry-run / sendEmail=false: count only — no tokens, no DB milestone, no mail.
+        if (config.dryRun || !config.sendEmail) {
+          summary.actions.push({
+            ...logBase,
+            periodDay: decision.periodDay,
+            mailResult: config.dryRun ? "dry_run" : "send_disabled",
+            wouldSend: true,
+          });
+          console.log(
+            `[reservation-expiry] STATUS would-send period=${decision.periodDay} reservation_id=${row.id} dryRun=${config.dryRun} sendEmail=${config.sendEmail}`,
+          );
+          continue;
+        }
+
+        try {
+          const expiresAt = new Date(
+            now.getTime() + 365 * 24 * 60 * 60 * 1000,
+          );
+          const tok = await createPalletCloseActionToken({
+            reservationId: row.id,
+            action: "cancel",
+            expiresAt,
+          });
+          cancelUrl = tok.url;
+        } catch (e) {
+          console.error(
+            `[reservation-expiry] cancel token reservation_id=${row.id}:`,
+            e,
+          );
+          cancelUrl = orderUrl;
         }
 
         const statusParams = {
@@ -436,19 +444,40 @@ export async function runReservationExpiryJob(
             subject: statusEmailSubject(locale),
             html: buildStatusEmailHtml(statusParams),
             text: buildStatusEmailText(statusParams),
-            dryRun: config.dryRun,
-            sendEmail: config.sendEmail,
+            dryRun: false,
+            sendEmail: true,
           });
         }
 
-        summary.statusEmails += 1;
+        // Only mark the period after a real send (or skip=already claimed).
+        // Failed sends leave milestone unset so a later run can retry.
+        if (mailResult === "sent" || mailResult === "skipped") {
+          const recorded = await recordStatusEmailSent({
+            reservationId: row.id,
+            periodDay: decision.periodDay,
+            dryRun: false,
+          });
+          if (!recorded) summary.errors += 1;
+          if (mailResult === "sent") summary.statusEmailsSent += 1;
+        } else if (mailResult === "no_recipient") {
+          // No email address — still advance milestone so we don't loop forever.
+          await recordStatusEmailSent({
+            reservationId: row.id,
+            periodDay: decision.periodDay,
+            dryRun: false,
+          });
+        } else {
+          summary.errors += 1;
+        }
+
         summary.actions.push({
           ...logBase,
           periodDay: decision.periodDay,
           mailResult,
+          wouldSend: true,
         });
         console.log(
-          `[reservation-expiry] STATUS period=${decision.periodDay} reservation_id=${row.id} mail=${mailResult} dryRun=${config.dryRun}`,
+          `[reservation-expiry] STATUS period=${decision.periodDay} reservation_id=${row.id} mail=${mailResult}`,
         );
       }
     } catch (e) {

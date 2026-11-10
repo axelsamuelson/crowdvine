@@ -139,7 +139,9 @@ export function isPalletStillAwaitingFill(
   const status = String(pallet.status ?? "").trim().toLowerCase();
   if (!status) return true;
   if (isPalletShippingLocked(status)) return false;
-  if (status === "complete") return false;
+  if (status === "complete" || status === "closed" || status === "cancelled") {
+    return false;
+  }
   return true;
 }
 

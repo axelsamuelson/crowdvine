@@ -52,7 +52,7 @@ export const SAMPLE_PAYMENT_FAILED: PaymentFailedEmailBody = {
   customerName: "Anna",
   amountSek: 1290,
   payByLabel: "13 november 2026",
-  paymentUrl: "https://pactwines.com/profile#payment",
+  paymentUrl: "https://checkout.stripe.com/c/pay/cs_test_demo",
   locale: "sv",
   reason: "Kortet nekades av banken (insufficient funds).",
 };

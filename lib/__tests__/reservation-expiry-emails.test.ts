@@ -74,16 +74,19 @@ describe("pallet status email copy (Juliette §1)", () => {
     expect(html).not.toContain("Ge reservationen");
   });
 
-  it("legacy extension confirm page is friendly, not an error", () => {
+  it("legacy extension confirm page shows exact fixed copy", () => {
     expect(EXTENSION_CONFIRM_PAGE_COPY.sv.title).toBe("Ingen åtgärd behövs");
-    expect(EXTENSION_CONFIRM_PAGE_ERROR_COPY.sv.title).toBe(
-      "Ingen åtgärd behövs",
+    expect(buildExtensionConfirmSuccessBody({ locale: "sv" })).toBe(
+      "Din order ligger kvar, du behöver inte göra något",
     );
-    expect(EXTENSION_CONFIRM_PAGE_ERROR_COPY.en.expired).toMatch(
-      /don't need to confirm/i,
+    expect(buildExtensionConfirmSuccessBody({ locale: "en" })).toBe(
+      "Your order stays, no action needed",
     );
-    const body = buildExtensionConfirmSuccessBody({ locale: "sv" });
-    expect(body).toContain("Du behöver inte bekräfta");
-    expect(body).not.toContain("gäller i 30 dagar till");
+    expect(EXTENSION_CONFIRM_PAGE_ERROR_COPY.sv.expired).toBe(
+      "Din order ligger kvar, du behöver inte göra något",
+    );
+    expect(EXTENSION_CONFIRM_PAGE_ERROR_COPY.en.expired).toBe(
+      "Your order stays, no action needed",
+    );
   });
 });

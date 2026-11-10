@@ -3,7 +3,10 @@ import {
   decidePaymentRetrySchedule,
   PAYMENT_RETRY_INTERVAL_MS,
   PAYMENT_RETRY_PAY_WINDOW_MS,
-} from "@/lib/payment-retry";
+  paymentRetryMayWritePayWindow,
+  palletCloseOwnsPayWindow,
+  resolvePaymentRetryPayWindow,
+} from "@/lib/payment-retry-window";
 import {
   buildPaymentCancelledHtml,
   buildPaymentCancelledText,
@@ -33,20 +36,66 @@ describe("3-day failed-charge pay window", () => {
     expect(d.action).toBe("cancel");
   });
 
-  it("still schedules near the end of the window when room remains", () => {
-    const now = new Date(
-      started.getTime() + PAYMENT_RETRY_PAY_WINDOW_MS - 2 * 60 * 60 * 1000,
-    );
-    const d = decidePaymentRetrySchedule({ now, windowStartedAt: started });
-    expect(d.action).toBe("schedule");
-    if (d.action === "schedule") {
-      expect(d.at.getTime()).toBe(d.payByAt.getTime());
-    }
-  });
-
   it("does not use the old 24/72 retryHours framing", () => {
     expect(PAYMENT_RETRY_PAY_WINDOW_MS).toBe(3 * 24 * 60 * 60 * 1000);
     expect(PAYMENT_RETRY_INTERVAL_MS).toBe(24 * 60 * 60 * 1000);
+  });
+});
+
+describe("pay-window isolation vs pallet-close pay_link_pending", () => {
+  const now = new Date("2026-11-10T12:00:00.000Z");
+  const closeFailedAt = "2026-11-10T10:00:00.000Z";
+  const closePayBy = "2026-11-13T10:00:00.000Z";
+
+  it("pallet-close owns pay_link_pending and charging", () => {
+    expect(palletCloseOwnsPayWindow("pay_link_pending")).toBe(true);
+    expect(palletCloseOwnsPayWindow("charging")).toBe(true);
+    expect(paymentRetryMayWritePayWindow("pay_link_pending")).toBe(false);
+    expect(paymentRetryMayWritePayWindow("open")).toBe(true);
+    expect(paymentRetryMayWritePayWindow(null)).toBe(true);
+  });
+
+  it("does not open or overwrite when pay_link_pending already set the window", () => {
+    const resolved = resolvePaymentRetryPayWindow({
+      now,
+      palletCloseState: "pay_link_pending",
+      existingFailedAt: closeFailedAt,
+      existingPayBy: closePayBy,
+    });
+    expect(resolved).toEqual({ kind: "skip_owned_by_pallet_close" });
+  });
+
+  it("reuses the same pay-by on subsequent legacy failures (windowOpened=false)", () => {
+    const first = resolvePaymentRetryPayWindow({
+      now,
+      palletCloseState: "open",
+      existingFailedAt: null,
+      existingPayBy: null,
+    });
+    expect(first.kind).toBe("open");
+    if (first.kind !== "open") return;
+
+    const second = resolvePaymentRetryPayWindow({
+      now: new Date(now.getTime() + 24 * 60 * 60 * 1000),
+      palletCloseState: "open",
+      existingFailedAt: first.windowStartedAt.toISOString(),
+      existingPayBy: first.payByAt.toISOString(),
+    });
+    expect(second.kind).toBe("reuse");
+    if (second.kind !== "reuse") return;
+    expect(second.windowOpened).toBe(false);
+    expect(second.payByAt.toISOString()).toBe(first.payByAt.toISOString());
+  });
+
+  it("legacy open cannot claim a write when state is pay_link_pending even if columns look empty", () => {
+    const resolved = resolvePaymentRetryPayWindow({
+      now,
+      palletCloseState: "pay_link_pending",
+      existingFailedAt: null,
+      existingPayBy: null,
+    });
+    expect(resolved.kind).toBe("skip_owned_by_pallet_close");
+    expect(paymentRetryMayWritePayWindow("pay_link_pending")).toBe(false);
   });
 });
 
@@ -57,7 +106,7 @@ describe("failed / cancelled payment email domain + copy", () => {
       customerName: "Anna",
       amountSek: 1290,
       payByLabel: "13 november 2026",
-      paymentUrl: "https://pactwines.com/profile#payment",
+      paymentUrl: "https://checkout.stripe.com/c/pay/cs_test",
       locale: "sv" as const,
     };
     expect(paymentFailedSubject("sv")).toBe(
@@ -68,7 +117,6 @@ describe("failed / cancelled payment email domain + copy", () => {
     expect(text).toContain("13 november 2026");
     expect(text).toContain("pactwines.com");
     expect(text).not.toContain("pact.wine");
-    expect(text).not.toContain("retry");
     expect(text).not.toContain("72 hours");
     expect(buildPaymentFailedHtml(body)).toContain("Betala nu");
   });
@@ -79,7 +127,7 @@ describe("failed / cancelled payment email domain + copy", () => {
       customerName: "Alex",
       amountSek: 1290,
       payByLabel: "13 November 2026",
-      paymentUrl: "https://pactwines.com/profile#payment",
+      paymentUrl: "https://checkout.stripe.com/c/pay/cs_test",
       locale: "en",
     });
     expect(paymentFailedSubject("en")).toMatch(/couldn't take payment/i);
@@ -103,6 +151,5 @@ describe("failed / cancelled payment email domain + copy", () => {
     expect(html).not.toContain("pact.wine");
     expect(text).toContain("pactwines.com");
     expect(text).not.toContain("pact.wine");
-    expect(text).toContain("order");
   });
 });

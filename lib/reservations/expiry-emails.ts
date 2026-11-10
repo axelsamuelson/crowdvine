@@ -238,6 +238,12 @@ export function buildExpiryCancelledHtml(
   );
 }
 
+/** Exact copy for legacy /reservation-extension/confirm links. */
+export const EXTENSION_LEGACY_LINK_BODY = {
+  sv: "Din order ligger kvar, du behöver inte göra något",
+  en: "Your order stays, no action needed",
+} as const;
+
 /**
  * Friendly body when someone opens an old extension link.
  * Extension / confirmation is no longer required (Axel 2026-11-10).
@@ -247,10 +253,7 @@ export function buildExtensionConfirmSuccessBody(opts: {
   newEndDate?: Date;
   extensionDays?: number;
 }): string {
-  if (opts.locale === "sv") {
-    return `Du behöver inte bekräfta något. Din order ligger kvar tills pallen stänger, och du kan avbryta utan kostnad fram till dess. Inget belopp dras förrän pallen når sin gräns.`;
-  }
-  return `You don't need to confirm anything. Your order stays in place until the pallet closes, and you can cancel free of charge until then. Nothing is charged until the pallet reaches its threshold.`;
+  return EXTENSION_LEGACY_LINK_BODY[opts.locale];
 }
 
 export function extensionNewEndDate(
@@ -279,33 +282,21 @@ export const EXTENSION_CONFIRM_PAGE_COPY = {
 export const EXTENSION_CONFIRM_PAGE_ERROR_COPY = {
   sv: {
     title: "Ingen åtgärd behövs",
-    missing_token:
-      "Du behöver inte bekräfta något. Din order ligger kvar tills pallen stänger — avbryt när du vill via ditt konto.",
-    not_found:
-      "Du behöver inte bekräfta något. Din order ligger kvar tills pallen stänger — avbryt när du vill via ditt konto.",
-    expired:
-      "Du behöver inte bekräfta något. Din order ligger kvar tills pallen stänger — avbryt när du vill via ditt konto.",
-    already_used:
-      "Du behöver inte bekräfta något. Din order ligger kvar tills pallen stänger — avbryt när du vill via ditt konto.",
-    db_error:
-      "Du behöver inte bekräfta något. Din order ligger kvar tills pallen stänger. Mejla customer@pactwines.com om du har frågor.",
-    not_eligible:
-      "Du behöver inte bekräfta något. Din order ligger kvar tills pallen stänger — avbryt när du vill via ditt konto.",
+    missing_token: EXTENSION_LEGACY_LINK_BODY.sv,
+    not_found: EXTENSION_LEGACY_LINK_BODY.sv,
+    expired: EXTENSION_LEGACY_LINK_BODY.sv,
+    already_used: EXTENSION_LEGACY_LINK_BODY.sv,
+    db_error: EXTENSION_LEGACY_LINK_BODY.sv,
+    not_eligible: EXTENSION_LEGACY_LINK_BODY.sv,
   },
   en: {
     title: "No action needed",
-    missing_token:
-      "You don't need to confirm anything. Your order stays until the pallet closes — cancel any time from your account.",
-    not_found:
-      "You don't need to confirm anything. Your order stays until the pallet closes — cancel any time from your account.",
-    expired:
-      "You don't need to confirm anything. Your order stays until the pallet closes — cancel any time from your account.",
-    already_used:
-      "You don't need to confirm anything. Your order stays until the pallet closes — cancel any time from your account.",
-    db_error:
-      "You don't need to confirm anything. Your order stays until the pallet closes. Email customer@pactwines.com if you have questions.",
-    not_eligible:
-      "You don't need to confirm anything. Your order stays until the pallet closes — cancel any time from your account.",
+    missing_token: EXTENSION_LEGACY_LINK_BODY.en,
+    not_found: EXTENSION_LEGACY_LINK_BODY.en,
+    expired: EXTENSION_LEGACY_LINK_BODY.en,
+    already_used: EXTENSION_LEGACY_LINK_BODY.en,
+    db_error: EXTENSION_LEGACY_LINK_BODY.en,
+    not_eligible: EXTENSION_LEGACY_LINK_BODY.en,
   },
 } as const;
 

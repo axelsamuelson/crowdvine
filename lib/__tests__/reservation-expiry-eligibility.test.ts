@@ -257,6 +257,15 @@ describe("decideReservationExpiryAction — no auto-cancellation", () => {
 
     expect(
       decideReservationExpiryAction(
+        reservation(),
+        { status: "cancelled", is_complete: false },
+        now,
+        baseConfig,
+      ),
+    ).toEqual({ action: "skip", reason: "pallet_ready_or_locked" });
+
+    expect(
+      decideReservationExpiryAction(
         reservation({ status: "archived", archived_at: "2026-02-01T00:00:00Z" }),
         openPallet,
         now,
@@ -272,5 +281,24 @@ describe("decideReservationExpiryAction — no auto-cancellation", () => {
         baseConfig,
       ),
     ).toEqual({ action: "flag_charged", reason: "already_charged" });
+  });
+
+  it("first run after deploy: at most one period per order; based on created_at age", () => {
+    // Order created 100 days ago, never got a status/extension milestone.
+    // Due period = floor(100/28)*28 = 84 — single send_status_email, not 28+56+84.
+    const now = new Date("2026-04-11T00:00:00.000Z");
+    const decision = decideReservationExpiryAction(
+      reservation({
+        created_at: "2026-01-01T00:00:00.000Z",
+        extension_ask_milestone_day: null,
+      }),
+      openPallet,
+      now,
+      baseConfig,
+    );
+    expect(decision).toEqual({
+      action: "send_status_email",
+      periodDay: 84,
+    });
   });
 });

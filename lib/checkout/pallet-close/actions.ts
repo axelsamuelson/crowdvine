@@ -76,8 +76,9 @@ export async function applyPalletCloseCancel(opts: {
   // Already cancelled — idempotent success.
   if (row.cancelled_at) return { ok: true };
 
-  // Axel 2026-11-10: free cancel until the pallet closes / charge succeeds.
-  // Allow from choice_pending and from open/extended/null while unpaid.
+  // Axel 2026-11-10: free cancel while the pallet is open and charge has not
+  // succeeded. Blocked once paid. Applies for open / extended / null /
+  // choice_pending (and other unpaid close states).
   if (String(row.payment_status) === "paid") {
     return { ok: false, reason: "already_paid" };
   }
@@ -87,7 +88,7 @@ export async function applyPalletCloseCancel(opts: {
     nowIso: now.toISOString(),
   });
   // choice_cancel only validates from choice_pending; other unpaid states
-  // still cancel free of charge (status status-email cancel links).
+  // still cancel free of charge (status-email cancel links).
   if (
     !transition.ok &&
     transition.reason !== "terminal_state" &&

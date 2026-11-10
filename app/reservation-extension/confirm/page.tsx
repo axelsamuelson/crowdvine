@@ -1,10 +1,8 @@
 import Link from "next/link";
 import {
-  buildExtensionConfirmSuccessBody,
   EXTENSION_CONFIRM_PAGE_COPY,
-  EXTENSION_CONFIRM_PAGE_ERROR_COPY,
+  EXTENSION_LEGACY_LINK_BODY,
 } from "@/lib/reservations/expiry-emails";
-import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import type { AppLocale } from "@/lib/i18n/locale";
 import { isAppLocale } from "@/lib/i18n/locale";
 
@@ -23,8 +21,8 @@ function resolveLocale(raw: string): AppLocale {
 
 /**
  * Legacy extension-confirm page.
- * Confirmation / extension is no longer required (Axel 2026-11-10).
- * Any old link shows a friendly message — never an error.
+ * Confirmation is no longer required (Axel 2026-11-10).
+ * Any visit shows a fixed friendly message and changes nothing in the DB.
  */
 export default async function ReservationExtensionConfirmPage({
   searchParams,
@@ -32,46 +30,11 @@ export default async function ReservationExtensionConfirmPage({
   searchParams: SearchParams;
 }) {
   const params = await searchParams;
-  const token = firstParam(params.token).trim();
   const locale = resolveLocale(firstParam(params.lang).trim().toLowerCase());
   const copyOk = EXTENSION_CONFIRM_PAGE_COPY[locale];
+  const body = EXTENSION_LEGACY_LINK_BODY[locale];
 
-  // Best-effort: clear any leftover reply deadline so cron never auto-cancels.
-  if (token) {
-    try {
-      const sb = getSupabaseAdmin();
-      const { createHash } = await import("node:crypto");
-      const tokenHash = createHash("sha256")
-        .update(token, "utf8")
-        .digest("hex");
-      const { data } = await sb
-        .from("reservation_extension_tokens")
-        .select("reservation_id")
-        .eq("token_hash", tokenHash)
-        .maybeSingle();
-      if (data?.reservation_id) {
-        await sb
-          .from("order_reservations")
-          .update({ extension_reply_by: null })
-          .eq("id", data.reservation_id);
-      }
-    } catch {
-      // Friendly page regardless of DB issues.
-    }
-  }
-
-  const body = token
-    ? buildExtensionConfirmSuccessBody({ locale })
-    : EXTENSION_CONFIRM_PAGE_ERROR_COPY[locale].missing_token;
-
-  return (
-    <ConfirmShell
-      title={copyOk.title}
-      body={body}
-      locale={locale}
-      ok
-    />
-  );
+  return <ConfirmShell title={copyOk.title} body={body} locale={locale} ok />;
 }
 
 function ConfirmShell({

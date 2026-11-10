@@ -43,15 +43,20 @@ function setEnv(key: (typeof KEYS)[number], value: string | undefined) {
 }
 
 describe("getReservationExpiryConfig", () => {
-  it("defaults to enabled, live, send on, 4-week status cadence, no max age", () => {
+  it("defaults to enabled, live, send OFF (opt-in), 4-week cadence, no max age", () => {
     for (const key of KEYS) setEnv(key, undefined);
     const cfg = getReservationExpiryConfig();
     expect(cfg.enabled).toBe(true);
     expect(cfg.dryRun).toBe(false);
-    expect(cfg.sendEmail).toBe(true);
+    expect(cfg.sendEmail).toBe(false);
     expect(cfg.maxAgeDays).toBeNull();
     expect(cfg.statusIntervalDays).toBe(28);
     expect(cfg.extensionDays).toBe(28);
+  });
+
+  it("opts in to sending only when RESERVATION_EXPIRY_SEND_EMAIL=true", () => {
+    setEnv("RESERVATION_EXPIRY_SEND_EMAIL", "true");
+    expect(getReservationExpiryConfig().sendEmail).toBe(true);
   });
 
   it("ignores RESERVATION_MAX_AGE_DAYS so open orders are never hard-expired", () => {

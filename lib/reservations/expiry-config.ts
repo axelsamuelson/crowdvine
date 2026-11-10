@@ -48,21 +48,21 @@ export function getReservationExpiryConfig() {
      */
     maxAgeDays: null as number | null,
     /**
-     * Master switch. Default ON.
+     * Master switch. Default ON (job may scan / dry-run).
      * Set RESERVATION_EXPIRY_ENABLED=false to pause without a deploy.
      */
     enabled: envBool("RESERVATION_EXPIRY_ENABLED", true),
     /**
      * When true (and enabled), only log intended actions — no DB writes,
-     * Stripe changes, or emails. Default OFF (live). Set true to dry-run.
+     * Stripe changes, or emails. Default OFF.
      */
     dryRun: envBool("RESERVATION_EXPIRY_DRY_RUN", false),
     /**
-     * Customer emails. Default ON.
+     * Customer emails. Default OFF (opt-in after Axel reviews dry-run).
+     * Set RESERVATION_EXPIRY_SEND_EMAIL=true in Vercel to turn sending on.
      * Dry-run never sends even when this is true.
-     * Set RESERVATION_EXPIRY_SEND_EMAIL=false to keep mutations without mail.
      */
-    sendEmail: envBool("RESERVATION_EXPIRY_SEND_EMAIL", true),
+    sendEmail: envBool("RESERVATION_EXPIRY_SEND_EMAIL", false),
   } as const;
 }
 

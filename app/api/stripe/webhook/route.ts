@@ -537,8 +537,10 @@ async function handlePaymentIntentPaymentFailedWebhook(
 
   if (!isAuthenticationRequired) {
     const { schedulePaymentRetry } = await import("@/lib/payment-retry");
+    let scheduled: Awaited<ReturnType<typeof schedulePaymentRetry>> | null =
+      null;
     try {
-      await schedulePaymentRetry(reservationId, nextAttempts);
+      scheduled = await schedulePaymentRetry(reservationId, nextAttempts);
     } catch (e) {
       console.error(
         `[Stripe Webhook] reservation_id=${reservationId} schedulePaymentRetry:`,
@@ -546,17 +548,15 @@ async function handlePaymentIntentPaymentFailedWebhook(
       );
     }
 
-    if (toEmail) {
+    // Exactly one failed-charge email per pay window — only when the window opens.
+    if (toEmail && scheduled?.windowOpened && scheduled.payByAt) {
       const { sendPaymentFailedEmail } = await import("@/lib/sendgrid-service");
       const { getAppUrl } = await import("@/lib/app-url");
-      const { PAYMENT_RETRY_PAY_WINDOW_MS } = await import(
-        "@/lib/payment-retry"
-      );
       const baseUrl =
         process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ||
         getAppUrl().replace(/\/$/, "") ||
         "https://pactwines.com";
-      const payByAt = new Date(Date.now() + PAYMENT_RETRY_PAY_WINDOW_MS);
+      const payByAt = new Date(scheduled.payByAt);
       let locale: "sv" | "en" = "sv";
       let customerName = "";
       if (userId) {
@@ -584,11 +584,16 @@ async function handlePaymentIntentPaymentFailedWebhook(
           timeZone: "Europe/Stockholm",
         },
       ).format(payByAt);
+      // Prefer Stripe Checkout pay link; profile#payment only manages cards
+      // and does not open the payment tab via hash.
+      const paymentUrl =
+        scheduled.paymentLinkUrl?.trim() ||
+        `${baseUrl}/profile/reservations`;
       const sent = await sendPaymentFailedEmail({
         to: toEmail,
         reservationId,
         payByLabel,
-        paymentUrl: `${baseUrl}/profile#payment`,
+        paymentUrl,
         locale,
         customerName,
         reason,
@@ -598,7 +603,7 @@ async function handlePaymentIntentPaymentFailedWebhook(
           `[Stripe Webhook] reservation_id=${reservationId} payment failed email not sent`,
         );
       }
-    } else {
+    } else if (!toEmail && scheduled?.windowOpened) {
       console.warn(
         `[Stripe Webhook] reservation_id=${reservationId} no profile email for payment failure`,
       );
