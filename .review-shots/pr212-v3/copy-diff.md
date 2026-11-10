@@ -22,8 +22,8 @@ Dirty Wine keeps Reservera via new key `shop.reserveDirty`.
 | `shop.reserveDirty` *(new)* | — | Reservera | — | Reserve |
 | `shop.buy` | Köp | Köp *(unchanged)* | Buy | Buy *(unchanged)* |
 | `cart.bottlesCount` *(new)* | — | `{count, plural, one {# flaska} other {# flaskor}}` | — | `{count, plural, one {# bottle} other {# bottles}}` |
-| `cart.addMoreBottlesShortCta` *(new)* | — | Lägg till {needed} flaskor till | — | Add {needed} more bottles |
-| `cart.needMoreMixHint` *(new)* | — | {needed} flaskor till – blanda fritt mellan vinerna. | — | {needed} more bottles – mix freely across wines. |
+| `cart.addMoreBottlesOutlineCta` *(new)* | — | `{needed, plural, one {+ Lägg till 1 flaska till} other {+ Lägg till # flaskor till}}` | — | `{needed, plural, one {+ Add 1 more bottle} other {+ Add # more bottles}}` |
+| `cart.needMoreMixHint` *(new)* | — | plural: `1 flaska till – …` / `# flaskor till – …` | — | plural: `1 more bottle – …` / `# more bottles – …` |
 | `cart.bottleProgressFull` | … – lådan är full | … – lådan är full *(SV unchanged)* | … – the box is full | … – your case is full |
 
 ---
