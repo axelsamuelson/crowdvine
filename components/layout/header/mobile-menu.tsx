@@ -259,9 +259,6 @@ export function MobileMenu({
                         label={t("home.popularProducers")}
                         locale={paths.locale}
                         limit={10}
-                        emptyMessage={t("home.noProducersFound", {
-                          count: collections?.length ?? 0,
-                        })}
                         collections={popularCollections}
                         onLinkClick={closeMobileMenu}
                         {...(!isDirtywineSite
@@ -272,7 +269,6 @@ export function MobileMenu({
                               listClassName: "mt-0 flex flex-col gap-0",
                               linkClassName:
                                 "flex h-10 items-center text-[17px] font-normal text-[#0A0A0A] no-underline hover:no-underline",
-                              emptyMessageClassName: "text-[#737373]",
                             }
                           : {})}
                       />

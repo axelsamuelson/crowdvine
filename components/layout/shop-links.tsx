@@ -9,7 +9,10 @@ interface ShopLinksProps {
   locale?: AppLocale;
   align?: "left" | "right";
   label?: string;
-  /** Shown when no producer collections are available. */
+  /**
+   * @deprecated Empty lists hide the whole section — never show a count/debug message.
+   * Kept optional so call sites can drop the prop without breaking.
+   */
   emptyMessage?: string;
   /** Max producers to show (Popular producers list). */
   limit?: number;
@@ -26,14 +29,12 @@ export function ShopLinks({
   collections,
   locale = "sv",
   label = "Shop",
-  emptyMessage,
   limit = 10,
   align = "left",
   className,
   labelClassName,
   listClassName,
   linkClassName,
-  emptyMessageClassName,
   onLinkClick,
 }: ShopLinksProps) {
   const paths = localizedPathsForLocale(locale);
@@ -41,6 +42,11 @@ export function ShopLinks({
     collections?.filter((collection) => collection.handle !== "wine-boxes") ||
     []
   ).slice(0, Math.max(0, limit));
+
+  // Never show label + debug empty copy (e.g. "0 samlingar") to customers.
+  if (filteredCollections.length === 0) {
+    return null;
+  }
 
   return (
     <div
@@ -54,18 +60,6 @@ export function ShopLinks({
       >
         {label}
       </h4>
-
-      {/* Debug info */}
-      {filteredCollections.length === 0 && emptyMessage && (
-        <p
-          className={cn(
-            "mt-2 text-sm text-gray-500",
-            emptyMessageClassName,
-          )}
-        >
-          {emptyMessage}
-        </p>
-      )}
 
       <ul
         className={cn(
