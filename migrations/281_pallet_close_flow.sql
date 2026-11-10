@@ -1,6 +1,6 @@
--- DRAFT / NOT APPLIED — shared-pallet close flow columns + choice tokens.
+-- Shared-pallet close flow columns + choice tokens.
 -- See docs/checkout/pallet-close-flow.md.
--- Do NOT run from an agent against prod/staging.
+-- Axel approved applying on 2026-11-10 (test first, then prod by Hugo).
 
 -- ---------------------------------------------------------------------------
 -- order_reservations: close / choice / off-session pay-window audit fields
@@ -136,3 +136,10 @@ CREATE INDEX IF NOT EXISTS idx_pallet_close_events_reservation
 
 COMMENT ON TABLE pallet_close_events IS
   'Append-only close-flow audit (codes/booleans only — no PII).';
+
+ALTER TABLE public.pallet_close_action_tokens ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.pallet_close_events ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.pallet_close_action_tokens FROM anon, authenticated;
+REVOKE ALL ON public.pallet_close_events FROM anon, authenticated;
+GRANT ALL ON public.pallet_close_action_tokens TO service_role;
+GRANT ALL ON public.pallet_close_events TO service_role;

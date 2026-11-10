@@ -1,7 +1,7 @@
--- DRAFT / NOT APPLIED — shared-pallet post-close delivery customer emails.
+-- Shared-pallet post-close delivery customer emails.
 -- Shipped window / arrived Sweden / delay notice + late-delivery cancel audit.
 -- Behind PALLET_CLOSE_FLOW_ENABLED (+ CHECKOUT_DUAL_OFFER_COMPARE).
--- Do NOT run from an agent against prod/staging.
+-- Axel approved applying on 2026-11-10 (test first, then prod by Hugo).
 
 -- ---------------------------------------------------------------------------
 -- pallets: delivery notification fields (admin-entered)

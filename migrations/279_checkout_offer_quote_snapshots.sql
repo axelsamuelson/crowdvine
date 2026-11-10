@@ -1,4 +1,4 @@
--- DRAFT / REVIEW ONLY — do NOT apply without owner approval.
+-- Axel approved applying on 2026-11-10 (test first, then prod by Hugo).
 -- Dual-offer accepted quote snapshots for immutable reuse by
 -- order / payment / confirmation / later debit.
 -- Does NOT enable DIRECT_BOX_CHECKOUT_ENABLED.

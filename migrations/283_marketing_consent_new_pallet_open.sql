@@ -1,6 +1,7 @@
--- DRAFT / NOT APPLIED — marketing consent for "new pallets opening" emails.
+-- Marketing consent for "new pallets opening" emails.
 -- Legal: store timestamp, text version id, email (+ user id), withdrawal timestamp.
--- Purpose scoped to new_pallet_open only. Do NOT run against prod/staging from an agent.
+-- Purpose scoped to new_pallet_open only.
+-- Axel approved applying on 2026-11-10 (test first, then prod by Hugo).
 
 -- ---------------------------------------------------------------------------
 -- marketing_consents
