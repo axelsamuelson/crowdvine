@@ -1,6 +1,6 @@
 import { cache } from "react";
 import { headers, cookies } from "next/headers";
-import { LOCALE_COOKIE } from "@/lib/i18n/locale";
+import { LOCALE_COOKIE, localeFromLangQuery } from "@/lib/i18n/locale";
 import { localeFromShopPath } from "@/lib/i18n/shop-path-locale";
 import { resolveShoppingContext } from "@/lib/shopping-context/resolve";
 import type { ShoppingContext } from "@/lib/shopping-context/types";
@@ -13,6 +13,7 @@ export async function getShoppingContextFromRequest(options?: {
   const cookieStore = await cookies();
   const host = h.get("host") ?? null;
   const pathname = h.get("x-pathname")?.trim() || "/";
+  const search = h.get("x-search")?.trim() || "";
   const user = options?.skipUser
     ? null
     : await getCurrentUser().catch(() => null);
@@ -22,7 +23,8 @@ export async function getShoppingContextFromRequest(options?: {
     host,
     cookieLocale: cookieStore.get(LOCALE_COOKIE)?.value ?? null,
     acceptLanguage: h.get("accept-language"),
-    pathLocale: localeFromShopPath(pathname),
+    // Path locale wins; ?lang= covers locale-neutral pages (legacy email links).
+    pathLocale: localeFromShopPath(pathname) ?? localeFromLangQuery(search),
   });
 }
 

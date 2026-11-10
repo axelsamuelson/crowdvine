@@ -51,6 +51,7 @@ import { getCachedShoppingContextFromRequest } from "@/lib/shopping-context/serv
 import { getCachedWineFewLeftThreshold } from "@/lib/wine-settings-cache";
 import { type SiteConfig } from "@/lib/site-config";
 import { getSiteConfig } from "@/lib/site-config-server";
+import { localeFromLangQuery } from "@/lib/i18n/locale";
 import { localeFromShopPath } from "@/lib/i18n/shop-path-locale";
 import {
   buildRootTwitterMetadata,
@@ -160,7 +161,9 @@ export default async function RootLayout({
       }),
     ]);
 
-  const pathLocale = localeFromShopPath(ssrPathname);
+  const search = requestHeaders.get("x-search")?.trim() || "";
+  const pathLocale =
+    localeFromShopPath(ssrPathname) ?? localeFromLangQuery(search);
   const htmlLang = pathLocale ?? shoppingContext.locale;
 
   return (

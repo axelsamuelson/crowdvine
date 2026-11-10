@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { LOCALE_COOKIE } from "@/lib/i18n/locale";
+import { LOCALE_COOKIE, localeFromLangQuery } from "@/lib/i18n/locale";
 import { localeFromShopPath } from "@/lib/i18n/shop-path-locale";
 import { resolveShoppingContext } from "@/lib/shopping-context/resolve";
 
@@ -14,10 +14,14 @@ export async function GET(request: NextRequest) {
     const host = request.headers.get("host");
     const cookieLocale = request.cookies.get(LOCALE_COOKIE)?.value ?? null;
     const referer = request.headers.get("referer");
-    let pathLocale = localeFromShopPath(request.nextUrl.pathname);
+    let pathLocale =
+      localeFromShopPath(request.nextUrl.pathname) ??
+      localeFromLangQuery(request.nextUrl.searchParams);
     if (!pathLocale && referer) {
       try {
-        pathLocale = localeFromShopPath(new URL(referer).pathname);
+        const ref = new URL(referer);
+        pathLocale =
+          localeFromShopPath(ref.pathname) ?? localeFromLangQuery(ref.search);
       } catch {
         /* ignore malformed referer */
       }

@@ -23,7 +23,11 @@ import {
   promoteShopRegionQueryToPath,
 } from "@/lib/shop/filter-navigation";
 import { legacyRegionLandingTarget } from "@/lib/wine-regions";
-import { LOCALE_COOKIE, parseLocaleCookie } from "@/lib/i18n/locale";
+import {
+  LOCALE_COOKIE,
+  localeFromLangQuery,
+  parseLocaleCookie,
+} from "@/lib/i18n/locale";
 import { redirectLegacyProducerProfilePath } from "@/lib/i18n/locale-path-redirect";
 import { localeFromShopPath } from "@/lib/i18n/shop-path-locale";
 import { GEO_COUNTRY_COOKIE } from "@/lib/analytics/visitor-identity";
@@ -92,7 +96,10 @@ function nextWithPathname(req: NextRequest): NextResponse {
   requestHeaders.set("x-pathname", pathname);
   requestHeaders.set("x-search", req.nextUrl.search);
 
-  const pathLocale = localeFromShopPath(pathname);
+  // Path pairs (/vin vs /wine) win; otherwise honor explicit ?lang= from email links
+  // so chrome (header nav) matches page copy on locale-neutral routes.
+  const pathLocale =
+    localeFromShopPath(pathname) ?? localeFromLangQuery(req.nextUrl.searchParams);
   if (pathLocale) {
     requestHeaders.set("x-pact-locale", pathLocale);
   }
