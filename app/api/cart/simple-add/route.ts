@@ -182,9 +182,11 @@ export async function POST(request: Request) {
     console.log("🔧 Item added/updated successfully");
 
     const touchPromise = bindCartOwnerAndTouch(dbCartId, userId);
+    // Same pricing as checkout/quote: member + early-bird via getCart().
+    // Never skip early-bird here — that made the drawer show list totals
+    // (e.g. 107×6=642) while checkout charged discounted wine (86×6=516).
     const cart = await CartService.getCart({
       cartDbId: dbCartId,
-      skipEarlyBird: true,
     });
     await touchPromise;
     if (!cart) {
