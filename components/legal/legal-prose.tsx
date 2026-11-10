@@ -18,7 +18,13 @@ const SCROLL_MT = "scroll-mt-24 md:scroll-mt-28";
 
 export function LegalProse({ children, className }: LegalNodeProps) {
   return (
-    <div className={cn("space-y-6 leading-relaxed", BODY, className)}>
+    <div
+      className={cn(
+        "legal-prose space-y-6 leading-relaxed",
+        BODY,
+        className,
+      )}
+    >
       {children}
     </div>
   );
@@ -45,8 +51,9 @@ export function LegalH3({ children, className, id }: LegalNodeProps) {
     <h3
       id={id}
       className={cn(
-        // 16–17px medium; 32px above, 8px below
-        "text-base sm:text-[17px] font-medium mt-8 mb-2",
+        // Size/weight here; vertical rhythm set in legal-page.css so it
+        // wins over LegalProse space-y without collapsing into 24px.
+        "text-base sm:text-[17px] font-medium",
         INK,
         SCROLL_MT,
         className,
