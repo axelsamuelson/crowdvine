@@ -6,7 +6,6 @@ import {
 } from "@/lib/analytics/first-party-event";
 
 const base = {
-  user_id: null,
   session_id: "session_1234567890_abc",
   visitor_id: "vis_1",
   country_code: "SE",
@@ -25,6 +24,7 @@ describe("validateFirstPartyEventPayload", () => {
     if (!result.ok) return;
     expect(result.event.event_type).toBe("page_view");
     expect(result.event.country_code).toBe("SE");
+    expect(result.event).not.toHaveProperty("user_id");
   });
 
   it("rejects unknown event_type", () => {
@@ -39,11 +39,35 @@ describe("validateFirstPartyEventPayload", () => {
     });
   });
 
-  it("rejects unknown top-level fields", () => {
+  it("rejects server-only event_type checkout_completed", () => {
     const result = validateFirstPartyEventPayload({
       ...base,
+      event_type: "checkout_completed",
+      event_category: "checkout",
+    });
+    expect(result).toEqual({
+      ok: false,
+      error: "Invalid event_type",
+      status: 400,
+    });
+  });
+
+  it("strips client user_id / host / site without rejecting", () => {
+    const result = validateFirstPartyEventPayload({
+      ...base,
+      user_id: "11111111-1111-4111-8111-111111111111",
       host: "evil.example",
       site: "pact",
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.event).not.toHaveProperty("user_id");
+  });
+
+  it("rejects other unknown top-level fields", () => {
+    const result = validateFirstPartyEventPayload({
+      ...base,
+      forged_field: true,
     });
     expect(result.ok).toBe(false);
     if (result.ok) return;
@@ -72,18 +96,6 @@ describe("validateFirstPartyEventPayload", () => {
     expect(result).toMatchObject({
       ok: false,
       error: "Missing session_id",
-      status: 400,
-    });
-  });
-
-  it("rejects invalid user_id", () => {
-    const result = validateFirstPartyEventPayload({
-      ...base,
-      user_id: "not-a-uuid",
-    });
-    expect(result).toMatchObject({
-      ok: false,
-      error: "Invalid user_id",
       status: 400,
     });
   });

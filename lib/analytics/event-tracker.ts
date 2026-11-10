@@ -5,8 +5,7 @@ import {
   readFirstTouchForMetadata,
   readGeoCountryCode,
 } from "@/lib/analytics/visitor-identity";
-import { isStaleRefreshTokenError, isAuthNetworkError } from "@/lib/auth/session-errors";
-import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { isAuthNetworkError } from "@/lib/auth/session-errors";
 
 /** First-party analytics ingest (replaces direct Supabase REST from the browser). */
 export const FIRST_PARTY_ANALYTICS_PATH = "/api/e";
@@ -139,8 +138,8 @@ interface TrackEventParams {
   pageUrl?: string;
   referrer?: string;
   /**
-   * Use fetch keepalive so the insert survives page unload
-   * (visibility hidden / pagehide / unmount). Skips auth lookup.
+   * Use sendBeacon / fetch keepalive so the insert survives page unload
+   * (visibility hidden / pagehide / unmount).
    */
   keepalive?: boolean;
 }
@@ -210,51 +209,15 @@ export class AnalyticsTracker {
       eventMetadata = { ...eventMetadata, internal: true };
     }
 
-    let userId: string | null = null;
-
-    if (!keepalive) {
-      let supabase;
-      try {
-        supabase = getSupabaseBrowserClient();
-      } catch {
-        return;
-      }
-
-      try {
-        const {
-          data: { user },
-          error: authError,
-        } = await supabase.auth.getUser();
-        if (authError) {
-          if (isStaleRefreshTokenError(authError)) {
-            await supabase.auth.signOut({ scope: "local" });
-          } else if (process.env.NODE_ENV === "development") {
-            console.warn("[analytics] auth.getUser:", authError.message);
-          }
-        } else {
-          userId = user?.id ?? null;
-        }
-      } catch (e) {
-        if (isStaleRefreshTokenError(e)) {
-          await supabase.auth.signOut({ scope: "local" });
-        } else if (
-          !isAuthNetworkError(e) &&
-          process.env.NODE_ENV === "development"
-        ) {
-          console.warn("[analytics] auth.getUser:", e);
-        }
-      }
-    }
-
-    // Never send client-claimed site/host — server derives from Host.
+    // Never send client-claimed user_id / site / host — server resolves those.
     const {
       site: _clientSite,
       host: _clientHost,
+      user_id: _clientUserId,
       ...safeMetadata
     } = eventMetadata as Record<string, unknown>;
 
     const eventData = {
-      user_id: userId,
       session_id: this.getSessionId(),
       visitor_id: visitorId || null,
       country_code: countryCode,

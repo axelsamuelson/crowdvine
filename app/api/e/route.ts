@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { getCurrentUser } from "@/lib/supabase-server";
 import {
   FIRST_PARTY_EVENT_MAX_BYTES,
   validateFirstPartyEventPayload,
@@ -89,8 +90,17 @@ export async function POST(request: Request) {
   const event = validated.event;
   const event_metadata = withServerSiteMetadata(event.event_metadata, site);
 
+  // Never trust client user_id — resolve from the signed-in session only.
+  let userId: string | null = null;
+  try {
+    const user = await getCurrentUser();
+    userId = user?.id ?? null;
+  } catch {
+    userId = null;
+  }
+
   const fullRow = {
-    user_id: event.user_id,
+    user_id: userId,
     session_id: event.session_id,
     visitor_id: event.visitor_id,
     country_code: event.country_code,
@@ -106,7 +116,7 @@ export async function POST(request: Request) {
 
   // Migration 284 may not be applied yet — same row without host/site.
   const withoutHostSite = {
-    user_id: event.user_id,
+    user_id: userId,
     session_id: event.session_id,
     visitor_id: event.visitor_id,
     country_code: event.country_code,
@@ -120,7 +130,7 @@ export async function POST(request: Request) {
 
   // Pre-181/186 lag: drop visitor_id + country_code.
   const withoutVisitorCountry = {
-    user_id: event.user_id,
+    user_id: userId,
     session_id: event.session_id,
     event_type: event.event_type,
     event_category: event.event_category,
@@ -132,7 +142,7 @@ export async function POST(request: Request) {
 
   // Audit stub shape.
   const stubRow = {
-    user_id: event.user_id,
+    user_id: userId,
     event_name: event.event_type,
     event_metadata,
   };

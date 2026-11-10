@@ -12,8 +12,11 @@ export const FIRST_PARTY_VISITOR_ID_MAX = 128;
 export const FIRST_PARTY_METADATA_MAX_KEYS = 64;
 export const FIRST_PARTY_METADATA_MAX_DEPTH = 4;
 
+/** Only catalog events that may be emitted from the browser. */
 const ALLOWED_EVENT_TYPES = new Set<string>(
-  TRACKED_USER_EVENTS_CATALOG.map((e) => e.eventType),
+  TRACKED_USER_EVENTS_CATALOG.filter((e) => e.sources.includes("client")).map(
+    (e) => e.eventType,
+  ),
 );
 
 const ALLOWED_CATEGORIES = new Set<EventCategory>([
@@ -31,7 +34,6 @@ const ALLOWED_CATEGORIES = new Set<EventCategory>([
 
 /** Top-level keys accepted from the client payload. */
 const ALLOWED_TOP_LEVEL = new Set([
-  "user_id",
   "session_id",
   "visitor_id",
   "country_code",
@@ -42,6 +44,9 @@ const ALLOWED_TOP_LEVEL = new Set([
   "referrer",
   "user_agent",
 ]);
+
+/** Legacy/client noise: stripped before validation, never trusted. */
+const STRIPPED_TOP_LEVEL = new Set(["user_id", "host", "site"]);
 
 /**
  * Metadata keys that must never be stored (PII / contact / free-text identity).
@@ -84,11 +89,7 @@ const BLOCKED_METADATA_KEYS = new Set([
   "site",
 ]);
 
-const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
 export type FirstPartyEventPayload = {
-  user_id: string | null;
   session_id: string;
   visitor_id: string | null;
   country_code: string | null;
@@ -161,7 +162,7 @@ function sanitizeMetadataObject(
 
 /**
  * Validate + sanitize a client analytics payload.
- * Does not trust or keep client host/site — caller sets those from Host.
+ * Does not trust or keep client host/site/user_id — caller sets those server-side.
  */
 export function validateFirstPartyEventPayload(
   raw: unknown,
@@ -170,18 +171,25 @@ export function validateFirstPartyEventPayload(
     return { ok: false, error: "Invalid payload", status: 400 };
   }
 
-  for (const key of Object.keys(raw)) {
+  // Strip untrusted identity / site fields; never reject solely for their presence.
+  const cleaned: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(raw)) {
+    if (STRIPPED_TOP_LEVEL.has(key)) continue;
+    cleaned[key] = value;
+  }
+
+  for (const key of Object.keys(cleaned)) {
     if (!ALLOWED_TOP_LEVEL.has(key)) {
       return { ok: false, error: `Unknown field: ${key}`, status: 400 };
     }
   }
 
-  const eventType = raw.event_type;
+  const eventType = cleaned.event_type;
   if (typeof eventType !== "string" || !ALLOWED_EVENT_TYPES.has(eventType)) {
     return { ok: false, error: "Invalid event_type", status: 400 };
   }
 
-  const eventCategory = raw.event_category;
+  const eventCategory = cleaned.event_category;
   if (
     typeof eventCategory !== "string" ||
     !ALLOWED_CATEGORIES.has(eventCategory as EventCategory)
@@ -189,43 +197,36 @@ export function validateFirstPartyEventPayload(
     return { ok: false, error: "Invalid event_category", status: 400 };
   }
 
-  const sessionRaw = raw.session_id;
+  const sessionRaw = cleaned.session_id;
   if (typeof sessionRaw !== "string" || !sessionRaw.trim()) {
     return { ok: false, error: "Missing session_id", status: 400 };
   }
   const session_id = truncate(sessionRaw.trim(), FIRST_PARTY_SESSION_ID_MAX);
 
-  let user_id: string | null = null;
-  if (raw.user_id != null) {
-    if (typeof raw.user_id !== "string" || !UUID_RE.test(raw.user_id.trim())) {
-      return { ok: false, error: "Invalid user_id", status: 400 };
-    }
-    user_id = raw.user_id.trim();
-  }
-
   let visitor_id: string | null = null;
-  if (raw.visitor_id != null && raw.visitor_id !== "") {
-    if (typeof raw.visitor_id !== "string") {
+  if (cleaned.visitor_id != null && cleaned.visitor_id !== "") {
+    if (typeof cleaned.visitor_id !== "string") {
       return { ok: false, error: "Invalid visitor_id", status: 400 };
     }
-    visitor_id = truncate(raw.visitor_id.trim(), FIRST_PARTY_VISITOR_ID_MAX) || null;
+    visitor_id =
+      truncate(cleaned.visitor_id.trim(), FIRST_PARTY_VISITOR_ID_MAX) || null;
   }
 
   let country_code: string | null = null;
-  if (raw.country_code != null && raw.country_code !== "") {
-    if (typeof raw.country_code !== "string") {
+  if (cleaned.country_code != null && cleaned.country_code !== "") {
+    if (typeof cleaned.country_code !== "string") {
       return { ok: false, error: "Invalid country_code", status: 400 };
     }
-    const cc = raw.country_code.trim().toUpperCase();
+    const cc = cleaned.country_code.trim().toUpperCase();
     if (/^[A-Z]{2}$/.test(cc) && cc !== "XX") country_code = cc;
   }
 
   let event_metadata: Record<string, unknown> = {};
-  if (raw.event_metadata != null) {
-    if (!isPlainObject(raw.event_metadata)) {
+  if (cleaned.event_metadata != null) {
+    if (!isPlainObject(cleaned.event_metadata)) {
       return { ok: false, error: "Invalid event_metadata", status: 400 };
     }
-    event_metadata = sanitizeMetadataObject(raw.event_metadata);
+    event_metadata = sanitizeMetadataObject(cleaned.event_metadata);
     const metaBytes = Buffer.byteLength(JSON.stringify(event_metadata), "utf8");
     if (metaBytes > FIRST_PARTY_METADATA_MAX_BYTES) {
       return { ok: false, error: "event_metadata too large", status: 413 };
@@ -233,22 +234,21 @@ export function validateFirstPartyEventPayload(
   }
 
   const page_url =
-    typeof raw.page_url === "string"
-      ? truncate(raw.page_url.trim(), FIRST_PARTY_PAGE_URL_MAX) || null
+    typeof cleaned.page_url === "string"
+      ? truncate(cleaned.page_url.trim(), FIRST_PARTY_PAGE_URL_MAX) || null
       : null;
   const referrer =
-    typeof raw.referrer === "string"
-      ? truncate(raw.referrer.trim(), FIRST_PARTY_REFERRER_MAX) || null
+    typeof cleaned.referrer === "string"
+      ? truncate(cleaned.referrer.trim(), FIRST_PARTY_REFERRER_MAX) || null
       : null;
   const user_agent =
-    typeof raw.user_agent === "string"
-      ? truncate(raw.user_agent.trim(), FIRST_PARTY_USER_AGENT_MAX) || null
+    typeof cleaned.user_agent === "string"
+      ? truncate(cleaned.user_agent.trim(), FIRST_PARTY_USER_AGENT_MAX) || null
       : null;
 
   return {
     ok: true,
     event: {
-      user_id,
       session_id,
       visitor_id,
       country_code,
