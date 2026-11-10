@@ -4,6 +4,7 @@
 
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import type { MembershipLevel } from "@/lib/membership/points-engine";
+import { isPactPointsEarningEnabled } from "@/lib/membership/pact-points-earning-config";
 
 export const PACT_POINTS_FIRST_VOUCHER_THRESHOLD = 5;
 export const PACT_POINTS_PER_BOTTLE_BASE = 1;
@@ -75,6 +76,14 @@ export async function awardPactPointsForOwnOrder(
   newBalance: number;
   error?: string;
 }> {
+  if (!(await isPactPointsEarningEnabled())) {
+    try {
+      const bal = await getRedeemableBalance(userId);
+      return { success: true, pointsAwarded: 0, newBalance: bal };
+    } catch {
+      return { success: true, pointsAwarded: 0, newBalance: 0 };
+    }
+  }
   const pointsAwarded = calculateBottlePoints(bottleCount, level);
   if (pointsAwarded <= 0) {
     try {
@@ -133,6 +142,14 @@ export async function awardPactPointsForOwnOrder(
 export async function awardPactPointsWelcomeBonus(
   userId: string,
 ): Promise<{ success: boolean; newBalance: number; error?: string }> {
+  if (!(await isPactPointsEarningEnabled())) {
+    try {
+      const bal = await getRedeemableBalance(userId);
+      return { success: true, newBalance: bal };
+    } catch {
+      return { success: true, newBalance: 0 };
+    }
+  }
   const sb = getSupabaseAdmin();
   try {
     const { data: existing, error: exErr } = await sb
@@ -190,6 +207,14 @@ export async function awardPactPointsForInviteFirstOrder(
   inviteeUserId: string,
   relatedOrderId: string,
 ): Promise<{ success: boolean; newBalance: number; error?: string }> {
+  if (!(await isPactPointsEarningEnabled())) {
+    try {
+      const bal = await getRedeemableBalance(inviterUserId);
+      return { success: true, newBalance: bal };
+    } catch {
+      return { success: true, newBalance: 0 };
+    }
+  }
   const sb = getSupabaseAdmin();
   try {
     const { data: existing, error: exErr } = await sb
@@ -250,6 +275,14 @@ export async function awardPactPointsForReview(
   userId: string,
   relatedOrderId: string,
 ): Promise<{ success: boolean; newBalance: number; error?: string }> {
+  if (!(await isPactPointsEarningEnabled())) {
+    try {
+      const bal = await getRedeemableBalance(userId);
+      return { success: true, newBalance: bal };
+    } catch {
+      return { success: true, newBalance: 0 };
+    }
+  }
   const sb = getSupabaseAdmin();
   try {
     const { data: existing, error: exErr } = await sb
@@ -306,6 +339,14 @@ export async function awardPactPointsForReview(
 export async function awardPactPointsForZoneSet(
   userId: string,
 ): Promise<{ success: boolean; newBalance: number; error?: string }> {
+  if (!(await isPactPointsEarningEnabled())) {
+    try {
+      const bal = await getRedeemableBalance(userId);
+      return { success: true, newBalance: bal };
+    } catch {
+      return { success: true, newBalance: 0 };
+    }
+  }
   const sb = getSupabaseAdmin();
   try {
     const { data: existing, error: exErr } = await sb

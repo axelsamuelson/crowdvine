@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Header } from "./index";
+import { CheckoutMinimalHeader } from "./checkout-minimal-header";
 import { Collection } from "@/lib/shopify/types";
 import type { SiteLogos } from "@/lib/context/site-logo-provider";
 
@@ -21,7 +22,6 @@ function shouldHideHeader(
 ): boolean {
   const isAdminRoute = pathname.startsWith("/admin");
   const isAccessRequestRoute = pathname === "/access-request";
-  const isCheckoutSuccessRoute = pathname === "/checkout/success";
   const isLogInRoute = pathname === "/log-in";
   const isMapTopoRoute = pathname === "/map-topo";
   const isTastingRoute = pathname.startsWith("/tasting");
@@ -39,7 +39,6 @@ function shouldHideHeader(
     isTastingRoute ||
     isAdminRoute ||
     isAccessRequestRoute ||
-    isCheckoutSuccessRoute ||
     isLogInRoute ||
     isMapTopoRoute ||
     isInvitationRoute ||
@@ -63,6 +62,20 @@ export function ConditionalHeader({
   }, []);
 
   const activePathname = hasMounted ? pathname || ssrPathname : ssrPathname;
+
+  // Checkout form + confirmation: logo + back-to-cart only (no site nav).
+  // /en/checkout is rewritten to /checkout but the browser path stays /en/….
+  const isCheckoutChromeRoute =
+    activePathname === "/checkout" ||
+    activePathname === "/en/checkout" ||
+    activePathname === "/checkout/success" ||
+    activePathname === "/en/checkout/success" ||
+    activePathname.startsWith("/checkout/stripe-return") ||
+    activePathname.startsWith("/en/checkout/stripe-return");
+
+  if (isCheckoutChromeRoute) {
+    return <CheckoutMinimalHeader initialLogos={initialLogos} />;
+  }
 
   if (shouldHideHeader(activePathname, isDirtywineSite)) {
     return null;

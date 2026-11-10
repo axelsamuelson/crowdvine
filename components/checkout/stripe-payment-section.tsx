@@ -10,6 +10,15 @@ import {
 } from "@stripe/react-stripe-js";
 import { Button } from "@/components/ui/button";
 import { useShoppingContextOptional } from "@/lib/context/shopping-context-provider";
+import {
+  sharedPalletLinkEnabled,
+  sharedPalletPaymentElementOptions,
+} from "@/lib/checkout/shared-pallet-stripe-link";
+import {
+  STRIPE_GEIST_FONT_FAMILY,
+  STRIPE_GEIST_SANS_WOFF2,
+  stripePaymentElementBusinessName,
+} from "@/lib/checkout/stripe-seller-display";
 import { stripeLocaleForAppLocale } from "@/lib/i18n/locale";
 
 type PaymentMode = "setup_intent" | "payment_intent";
@@ -145,6 +154,12 @@ type Props = {
     status: 403 | 409 | 400;
     currentVersion?: string;
   }) => void;
+  /** Shared pallet: Payment Element shows card only (no wallets / Link). */
+  cardOnly?: boolean;
+  /** ISO country from delivery address — PE hides country field; confirm passes it. */
+  billingCountryCode?: string | null;
+  /** Fires when Stripe reports the Payment Element complete/incomplete. */
+  onPaymentElementComplete?: (complete: boolean) => void;
 };
 
 const publishableKey =
@@ -161,16 +176,18 @@ export function warmStripeJs(): void {
   void stripePromise;
 }
 
+/** Match checkout Rabattkod input: border #E4E4E7, radius 6px, height 36px. */
 const pactAppearance = {
   theme: "flat",
   variables: {
-    colorPrimary: "#000000",
+    colorPrimary: "#0A0A0A",
     colorBackground: "#ffffff",
-    colorText: "#000000",
+    colorText: "#0A0A0A",
     colorTextSecondary: "#666666",
     colorTextPlaceholder: "#999999",
     colorDanger: "#dc2626",
-    fontFamily: "Geist, ui-sans-serif, sans-serif",
+    // Must match Fontsource @font-face family ("Geist Sans"), not "Geist".
+    fontFamily: `${STRIPE_GEIST_FONT_FAMILY}, ui-sans-serif, sans-serif`,
     fontSizeBase: "14px",
     fontSizeSm: "12px",
     fontSizeXs: "11px",
@@ -183,13 +200,16 @@ const pactAppearance = {
   },
   rules: {
     ".Input": {
-      border: "1px solid hsl(var(--border))",
+      border: "1px solid #E4E4E7",
       boxShadow: "none",
-      padding: "10px 12px",
+      padding: "7px 12px",
       fontSize: "14px",
+      lineHeight: "20px",
+      minHeight: "36px",
+      height: "36px",
     },
     ".Input:focus": {
-      border: "1px solid hsl(var(--foreground))",
+      border: "1px solid #0A0A0A",
       boxShadow: "none",
     },
     ".Label": {
@@ -198,12 +218,12 @@ const pactAppearance = {
       marginBottom: "6px",
     },
     ".AccordionItem": {
-      border: "1px solid hsl(var(--border))",
+      border: "1px solid #E4E4E7",
       boxShadow: "none",
       padding: "12px 16px",
     },
     ".AccordionItem--selected": {
-      border: "1px solid hsl(var(--foreground))",
+      border: "1px solid #0A0A0A",
     },
     ".TermsText": {
       fontSize: "11px",
@@ -212,11 +232,15 @@ const pactAppearance = {
     },
     ".PickerItem": {
       padding: "12px 16px",
-      border: "1px solid hsl(var(--border))",
+      border: "1px solid #E4E4E7",
       boxShadow: "none",
     },
     ".PickerItem--selected": {
-      border: "1px solid hsl(var(--foreground))",
+      border: "1px solid #0A0A0A",
+    },
+    ".Error": {
+      fontSize: "12px",
+      color: "#dc2626",
     },
   },
 } as const;
@@ -231,6 +255,9 @@ function StripeElementInner({
   userId,
   amountOre,
   paymentFormLoadFailedLabel,
+  cardOnly = false,
+  billingCountryCode = null,
+  onPaymentElementComplete,
 }: {
   paymentMode: PaymentMode;
   clientSecret: string;
@@ -241,6 +268,9 @@ function StripeElementInner({
   userId?: string;
   amountOre?: number;
   paymentFormLoadFailedLabel: string;
+  cardOnly?: boolean;
+  billingCountryCode?: string | null;
+  onPaymentElementComplete?: (complete: boolean) => void;
 }) {
   const stripe = useStripe();
   const elements = useElements();
@@ -279,13 +309,26 @@ function StripeElementInner({
     }
 
     const return_url = `${window.location.origin}/checkout/stripe-return`;
+    const country =
+      typeof billingCountryCode === "string" &&
+      /^[A-Za-z]{2}$/.test(billingCountryCode.trim())
+        ? billingCountryCode.trim().toUpperCase()
+        : "SE";
+    const confirmParams = {
+      return_url,
+      payment_method_data: {
+        billing_details: {
+          address: { country },
+        },
+      },
+    };
 
     if (paymentMode === "setup_intent") {
       const { error, setupIntent } = await stripe.confirmSetup({
         elements,
         clientSecret,
         redirect: "always",
-        confirmParams: { return_url },
+        confirmParams,
       });
       const setupStatus = setupIntent?.status;
       if (error || !setupIntent?.id || setupStatus !== "succeeded") {
@@ -353,7 +396,7 @@ function StripeElementInner({
       elements,
       clientSecret,
       redirect: "if_required",
-      confirmParams: { return_url },
+      confirmParams,
     });
     const piStatus = paymentIntent?.status;
     if (error || !paymentIntent?.id || piStatus !== "succeeded") {
@@ -417,6 +460,7 @@ function StripeElementInner({
     };
   }, [
     amountOre,
+    billingCountryCode,
     clientSecret,
     elements,
     knownIntentId,
@@ -433,15 +477,33 @@ function StripeElementInner({
     };
   }, [confirm]);
 
+  const cardOnlyOptions = cardOnly
+    ? sharedPalletPaymentElementOptions({
+        linkEnabled: sharedPalletLinkEnabled(),
+        businessName: stripePaymentElementBusinessName(),
+      })
+    : null;
+
   return (
     <PaymentElement
       options={{
-        layout: {
-          type: "accordion",
-          defaultCollapsed: false,
-          radios: true,
-          spacedAccordionItems: false,
-        },
+        ...(cardOnlyOptions ?? {
+          layout: {
+            type: "accordion",
+            defaultCollapsed: false,
+            radios: false,
+            spacedAccordionItems: false,
+          },
+          fields: {
+            billingDetails: {
+              address: { country: "never" },
+            },
+          },
+          business: { name: stripePaymentElementBusinessName() },
+        }),
+      }}
+      onChange={(event) => {
+        onPaymentElementComplete?.(event.complete === true);
       }}
       onLoadError={(event) => {
         const err = event.error;
@@ -470,6 +532,9 @@ export function StripePaymentSection({
   legalGate = null,
   prefetchedIntent = null,
   onLegalGateError,
+  cardOnly = false,
+  billingCountryCode = null,
+  onPaymentElementComplete,
 }: Props) {
   const shoppingCtx = useShoppingContextOptional();
   const t = shoppingCtx?.t ?? ((key: string) => key);
@@ -775,15 +840,13 @@ export function StripePaymentSection({
   return (
     <div className="space-y-3">
       {paymentMode === "setup_intent" ? (
-        <p className="text-sm text-muted-foreground">
+        <p
+          className="text-sm text-muted-foreground"
+          data-testid="checkout-card-charge-timing"
+        >
           {usConditionalPayment
             ? t("checkout.stripeCardVerifiedNotCharged")
-            : t("checkout.stripeCardSavedOnShip")}
-        </p>
-      ) : null}
-      {paymentMode === "payment_intent" ? (
-        <p className="text-sm text-muted-foreground">
-          {t("checkout.stripeBottlesShip714")}
+            : t("checkout.stripeNothingChargedNow")}
         </p>
       ) : null}
       {paymentElementLoadError ? (
@@ -804,6 +867,14 @@ export function StripePaymentSection({
             clientSecret,
             appearance: pactAppearance,
             locale: stripeLocale,
+            // Stripe iframes load fonts via absolute woff2 (cssSrc CDN path 404'd).
+            fonts: [
+              {
+                family: STRIPE_GEIST_FONT_FAMILY,
+                src: `url(${STRIPE_GEIST_SANS_WOFF2})`,
+                weight: "400",
+              },
+            ],
           }}
         >
           <StripeElementInner
@@ -816,6 +887,9 @@ export function StripePaymentSection({
             userId={userId}
             amountOre={amountOreHint}
             paymentFormLoadFailedLabel={t("checkout.stripePaymentFormLoadFailed")}
+            cardOnly={cardOnly}
+            billingCountryCode={billingCountryCode ?? null}
+            onPaymentElementComplete={onPaymentElementComplete}
           />
         </Elements>
       )}

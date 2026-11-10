@@ -4,6 +4,7 @@ import {
   type MembershipLevel,
 } from "@/lib/membership/points-engine";
 import { isMembershipDiscountEligible } from "@/lib/membership/membership-discount-eligible";
+import { isMemberTierDiscountEnabled } from "@/lib/membership/member-discount-config";
 import type { PortalSearchParams } from "@/lib/b2b-site";
 
 export type MemberDiscount = {
@@ -15,6 +16,7 @@ export type MemberDiscount = {
  * Discount % from active membership perks (same parsing as client
  * {@link MembershipProvider} / discount perk_value like "10% off").
  * Returns 0 on dirtywine.se (and localhost with ?b2b=1).
+ * Also returns 0% when `member_tier_discount_enabled` site_content is off (default).
  */
 export async function getMemberDiscountForUserId(
   userId: string,
@@ -24,6 +26,10 @@ export async function getMemberDiscountForUserId(
     options?.host != null &&
     !isMembershipDiscountEligible(options.host, options.searchParams ?? null)
   ) {
+    return { percent: 0, level: null };
+  }
+
+  if (!(await isMemberTierDiscountEnabled())) {
     return { percent: 0, level: null };
   }
 

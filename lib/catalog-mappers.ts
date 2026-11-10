@@ -18,6 +18,7 @@ import {
   type WineLocale,
 } from "@/lib/i18n/wine-locale";
 import { isWineRegionValue } from "@/lib/wine-regions";
+import { b2cWholeKronorFromOre } from "@/lib/cart/b2c-line-pricing";
 import {
   readSourcingStatus,
   type SourcingStatus,
@@ -199,7 +200,7 @@ export function wineRowToApi(
     type: (row.color as string | null) ?? null,
     color: (row.color as string | null) ?? null,
     price_sek:
-      basePriceCents != null ? Math.round(basePriceCents / 100) : 0,
+      basePriceCents != null ? b2cWholeKronorFromOre(basePriceCents) : 0,
     bottle_size_ml:
       volumeLiters != null ? Math.round(volumeLiters * 1000) : 750,
     summary: extractWineText(

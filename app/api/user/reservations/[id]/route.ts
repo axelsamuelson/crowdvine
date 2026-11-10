@@ -1,6 +1,17 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { computeSharedPalletChargeDeadlineIso } from "@/lib/checkout/shared-pallet-deadline";
+import { isPalletBasedReservation } from "@/lib/commerce/is-pallet-based-reservation";
+import {
+  confirmationChargedLineTotalsSek,
+  confirmationDisplayTotalSek,
+  confirmationOrderTypeFromFulfillment,
+  isCustomerFacingLabel,
+} from "@/lib/reservations/confirmation-display-total";
+import { b2cWholeKronorFromOre } from "@/lib/cart/b2c-line-pricing";
+import { resolveWineImageSrc } from "@/lib/cart/wine-image-url";
+import { DEFAULT_WINE_IMAGE_PATH } from "@/lib/constants";
 
 export async function GET(
   request: Request,
@@ -23,7 +34,10 @@ export async function GET(
       userId: user.id,
     });
 
-    // Get specific reservation with related data
+    // Get specific reservation with related data.
+    // Avoid selecting columns that older/preview DBs may lack (e.g. order_type
+    // from migration 076) — missing columns make PostgREST fail the whole GET
+    // and the confirmation page falls back to "0 kr" / "—".
     const { data: reservation, error } = await supabase
       .from("order_reservations")
       .select(
@@ -36,11 +50,13 @@ export async function GET(
         delivery_zone_id,
         address_id,
         user_id,
-        order_type,
         payment_method_type,
+        payment_mode,
+        fulfillment_channel,
         total_sek,
         discount_amount_sek,
-        pallet:pallets(name, cost_cents, bottle_capacity),
+        shipping_revenue_gross_cents,
+        pallet:pallets(name, cost_cents, bottle_capacity, created_at),
         order_reservation_items(
           item_id,
           quantity,
@@ -135,21 +151,90 @@ export async function GET(
       .eq("id", user.id)
       .maybeSingle();
 
-    const items =
-      reservation.order_reservation_items?.map((item) => ({
-        wine_name: item.wines?.wine_name || "Unknown Wine",
+    // Batch-load wines by item_id — same source as GET /api/user/reservations
+    // (Mina köp). Nested wines joins can omit label_image_path on Preview.
+    type WineRow = {
+      id: string;
+      wine_name?: string | null;
+      vintage?: string | null;
+      base_price_cents?: number | null;
+      handle?: string | null;
+      label_image_path?: string | null;
+      producers?:
+        | { name?: string | null; display_name?: string | null }
+        | Array<{ name?: string | null; display_name?: string | null }>
+        | null;
+    };
+    const lineRows = (reservation.order_reservation_items || []) as Array<{
+      item_id?: string;
+      quantity?: number;
+      wines?: WineRow | WineRow[] | null;
+    }>;
+    const wineIds = Array.from(
+      new Set(
+        lineRows
+          .map((it) => String(it.item_id || "").trim())
+          .filter((id) => id.length > 0),
+      ),
+    );
+    const wineById = new Map<string, WineRow>();
+    if (wineIds.length > 0) {
+      const { data: wines, error: winesError } = await supabase
+        .from("wines")
+        .select(
+          "id, wine_name, vintage, base_price_cents, handle, label_image_path, producers(name, display_name)",
+        )
+        .in("id", wineIds);
+      if (winesError) {
+        console.error(
+          "[GET /api/user/reservations/:id] wines batch error:",
+          winesError,
+        );
+      } else {
+        for (const w of (wines || []) as WineRow[]) {
+          if (w?.id) wineById.set(String(w.id), w);
+        }
+      }
+    }
+
+    const rawItems = lineRows.map((item) => {
+      const wineId = String(item.item_id || "").trim();
+      const nested = Array.isArray(item.wines) ? item.wines[0] : item.wines;
+      const wine = (wineId && wineById.get(wineId)) || nested || null;
+      const producerRaw = wine?.producers;
+      const producer = Array.isArray(producerRaw)
+        ? producerRaw[0]
+        : producerRaw;
+      const labelPath =
+        typeof wine?.label_image_path === "string"
+          ? wine.label_image_path
+          : null;
+      const resolvedImage = resolveWineImageSrc(labelPath);
+      return {
+        wine_name: wine?.wine_name || "Wine",
         quantity: item.quantity,
-        vintage: item.wines?.vintage || "N/A",
-        price_cents: item.wines?.base_price_cents || 0,
-        image_url: item.wines?.label_image_path || undefined,
-        product_handle: item.wines?.handle || undefined,
-        producer_name: item.wines?.producers?.name || undefined,
-        producer_display_name:
-          item.wines?.producers?.display_name?.trim() || undefined,
+        vintage: wine?.vintage || "",
+        price_cents: wine?.base_price_cents || 0,
+        label_image_path: labelPath,
+        // Same resolver + path as Mina köp list (`image_path`).
+        image_url:
+          resolvedImage === DEFAULT_WINE_IMAGE_PATH && !labelPath?.trim()
+            ? undefined
+            : resolvedImage === DEFAULT_WINE_IMAGE_PATH
+              ? undefined
+              : resolvedImage,
+        product_handle: wine?.handle || undefined,
+        producer_name: producer?.name || undefined,
+        producer_display_name: producer?.display_name?.trim() || undefined,
         customer_email: profile?.email || user.email,
-        customer_name: profile?.full_name || "Valued Customer",
-        source: reservation.order_type === "warehouse" ? "warehouse" : "producer",
-      })) || [];
+        customer_name: profile?.full_name || undefined,
+        source:
+          reservation.fulfillment_channel === "warehouse" ||
+          reservation.fulfillment_channel === "direct_box"
+            ? ("warehouse" as const)
+            : ("producer" as const),
+      };
+    });
 
     // Fetch shared bottle allocations (optional)
     let shared:
@@ -237,7 +322,16 @@ export async function GET(
           producer_display_name:
             wineRow.producers?.display_name?.trim() || undefined,
           product_handle: wineRow.handle || undefined,
-          image_url: wineRow.label_image_path || undefined,
+          image_url: (() => {
+            const raw = wineRow.label_image_path || null;
+            const resolved = resolveWineImageSrc(raw);
+            return resolved === DEFAULT_WINE_IMAGE_PATH && !raw?.trim()
+              ? undefined
+              : resolved === DEFAULT_WINE_IMAGE_PATH
+                ? undefined
+                : resolved;
+          })(),
+          label_image_path: wineRow.label_image_path || null,
           quantity: qty,
           price_cents: priceCents,
         };
@@ -259,12 +353,15 @@ export async function GET(
       shared = [];
     }
 
-    const wineSubtotalCents = items.reduce(
+    const wineSubtotalCents = rawItems.reduce(
       (sum, item) => sum + (item.price_cents || 0) * (item.quantity || 0),
       0,
     );
 
-    const shippingCostCents = 0;
+    const shippingCostCents = Math.max(
+      0,
+      Math.round(Number(reservation.shipping_revenue_gross_cents) || 0),
+    );
     const storedTotalSek =
       reservation.total_sek != null && Number.isFinite(Number(reservation.total_sek))
         ? Number(reservation.total_sek)
@@ -273,18 +370,78 @@ export async function GET(
       0,
       Number(reservation.discount_amount_sek) || 0,
     );
-    // Prefer the reservation's charged total (post-discount). Fall back to item sum
-    // only for legacy rows that predate total_sek.
-    const totalAmountCents =
+    const wineTotalSek =
       storedTotalSek != null
-        ? Math.round(storedTotalSek * 100)
-        : wineSubtotalCents + shippingCostCents;
-    const subtotalSek =
-      storedTotalSek != null
-        ? storedTotalSek + discountAmountSek
-        : wineSubtotalCents / 100;
+        ? Math.round(storedTotalSek)
+        : Math.round(wineSubtotalCents / 100);
+    // Customer-facing charge total = wine + shipping (matches checkout CTA).
+    const displayTotalSek = confirmationDisplayTotalSek({
+      totalSek: storedTotalSek,
+      shippingRevenueGrossCents: shippingCostCents,
+      wineSubtotalCentsFallback: wineSubtotalCents,
+    });
+    const totalAmountCents = Math.round(displayTotalSek * 100);
+    const subtotalSek = wineTotalSek + discountAmountSek;
+    const shippingSek = Math.round(shippingCostCents / 100);
+
+    // Charged line totals (integer kronor) so lines + shipping === display total.
+    const chargedLineSek = confirmationChargedLineTotalsSek({
+      lines: rawItems.map((item) => ({
+        quantity: item.quantity,
+        listUnitOre: item.price_cents,
+      })),
+      winesTotalSek: wineTotalSek,
+    });
+    const items = rawItems.map((item, index) => {
+      const lineTotalSek = chargedLineSek[index] ?? 0;
+      const qty = Math.max(0, Math.floor(Number(item.quantity) || 0));
+      const unitSek =
+        qty > 0
+          ? Math.round(lineTotalSek / qty)
+          : b2cWholeKronorFromOre(item.price_cents);
+      return {
+        ...item,
+        /** Charged line total in whole kronor (post-discount allocation). */
+        line_total_sek: lineTotalSek,
+        /** Charged unit kronor for display; öre kept for legacy clients. */
+        price_cents: unitSek * 100,
+      };
+    });
+
+    // Detect shared pallet via pallet_id (fulfillment_channel may be null on older rows).
+    const palletCreatedAt =
+      reservation.pallet &&
+      typeof (reservation.pallet as { created_at?: unknown }).created_at ===
+        "string"
+        ? (reservation.pallet as { created_at: string }).created_at
+        : null;
+    const chargeDeadlineAt = isPalletBasedReservation({
+      pallet_id: reservation.pallet_id,
+    })
+      ? computeSharedPalletChargeDeadlineIso(palletCreatedAt)
+      : null;
+
+    const fulfillmentChannel =
+      typeof reservation.fulfillment_channel === "string"
+        ? reservation.fulfillment_channel
+        : null;
+    const orderType = confirmationOrderTypeFromFulfillment(fulfillmentChannel);
+
+    // Claim row in email_sends means confirmation was queued/sent (idempotent claim-before-send).
+    const { data: confirmationEmailRow } = await supabase
+      .from("email_sends")
+      .select("id")
+      .eq("reservation_id", reservation.id)
+      .eq("email_type", "order_confirmation")
+      .limit(1)
+      .maybeSingle();
+    const confirmationEmailSent = Boolean(confirmationEmailRow?.id);
 
     // Transform the data to match the expected format
+    const palletNameRaw =
+      typeof reservation.pallet?.name === "string"
+        ? reservation.pallet.name
+        : null;
     const transformedReservation = {
       id: reservation.id,
       // order_reservations.order_id does not exist in DB; use reservation id as a stable display id
@@ -292,21 +449,42 @@ export async function GET(
       status: reservation.status,
       created_at: reservation.created_at,
       pallet_id: reservation.pallet_id,
-      pallet_name: reservation.pallet?.name || "Unknown Pallet",
+      pallet_name: isCustomerFacingLabel(palletNameRaw) ? palletNameRaw : null,
       pallet_cost_cents: reservation.pallet?.cost_cents || 0,
       pallet_capacity: reservation.pallet?.bottle_capacity || 0,
-      pickup_zone: pickupZoneName || "Unknown Pickup Zone",
-      delivery_zone: deliveryZoneName || "Unknown Delivery Zone",
+      /** Shared-pallet charge/close deadline (created_at + 28d). Null for direct. */
+      charge_deadline_at: chargeDeadlineAt,
+      // Never send "Unknown …" stubs; omit pickup for home-delivery (null zone).
+      pickup_zone: isCustomerFacingLabel(pickupZoneName)
+        ? pickupZoneName
+        : null,
+      delivery_zone: isCustomerFacingLabel(deliveryZoneName)
+        ? deliveryZoneName
+        : null,
       delivery_address: deliveryAddress,
-      total_sek: storedTotalSek,
+      /** Charged total wine + shipping in SEK (matches checkout CTA). */
+      total_sek: displayTotalSek,
+      /** Wine-only charged total before shipping. */
+      wines_total_sek: wineTotalSek,
       discount_amount_sek: discountAmountSek,
       subtotal_sek: subtotalSek,
       total_amount_cents: totalAmountCents,
       shipping_cost_cents: shippingCostCents,
+      shipping_sek: shippingSek,
       customer_email: profile?.email || user.email,
-      customer_name: profile?.full_name || "Valued Customer",
-      order_type: reservation.order_type || "producer",
+      customer_name: profile?.full_name || null,
+      order_type: orderType,
+      fulfillment_channel: fulfillmentChannel,
       payment_method_type: reservation.payment_method_type || "card",
+      /** True when order_confirmation was claimed in email_sends (queued/sent). */
+      confirmation_email_sent: confirmationEmailSent,
+      /**
+       * Home-delivery shared pallet never exposes a pickup zone (customer
+       * does not pick up). Warehouse/direct may still surface one when set.
+       */
+      show_pickup_zone:
+        fulfillmentChannel === "warehouse" ||
+        fulfillmentChannel === "direct_box",
       items,
       shared,
     };

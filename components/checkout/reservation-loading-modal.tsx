@@ -15,7 +15,7 @@ export function ReservationLoadingModal({
   title,
   description,
 }: ReservationLoadingModalProps) {
-  const t = typeof title === "string" && title.trim() ? title.trim() : "Confirming Reservation";
+  const t = typeof title === "string" && title.trim() ? title.trim() : "Confirming purchase";
   const d =
     typeof description === "string" && description.trim()
       ? description.trim()

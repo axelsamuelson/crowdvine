@@ -68,7 +68,13 @@ export function ProductPriceDisplay({
         />
       );
     } else {
-      // On B2C site: show inkl. moms (breakdown.total is inkl. moms for B2C)
+      // B2C: always show the shared whole-kronor list/discounted unit.
+      // Never ceil a reconstructed float total (breakdown parts are illustrative).
+      const displayTotal =
+        typeof breakdown.memberDiscountAmount === "number" &&
+        breakdown.memberDiscountAmount > 0
+          ? breakdown.total
+          : (listPriceSek ?? breakdown.listTotalInclVat ?? breakdown.total);
       return (
         <MemberPrice
           amount={product.priceRange.minVariantPrice.amount}
@@ -76,7 +82,7 @@ export function ProductPriceDisplay({
           basePriceSek={listPriceSek ?? undefined}
           className={className}
           showBadge={showMembershipBadge}
-          calculatedTotalPrice={breakdown.total}
+          calculatedTotalPrice={displayTotal}
           forceShowExclVat={false}
           vatExcludedShortLabel={t("common.exclVat")}
         />

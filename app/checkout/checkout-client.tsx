@@ -41,6 +41,28 @@ import {
   type StripeConfirmResult,
 } from "@/components/checkout/stripe-payment-section";
 import type { CheckoutQuote } from "@/lib/checkout/checkout-quote";
+import {
+  DualOfferCheckoutPanel,
+  DualOfferPurchaseActions,
+  buildSharedPalletBindCopy,
+  type DualOfferPurchaseActionsModel,
+} from "@/components/checkout/dual-offer-checkout-panel";
+import type { OfferCheckoutSessionState } from "@/lib/checkout/offer-acceptance";
+import { formatOfferSek } from "@/lib/checkout/dual-offer-display";
+import {
+  isDualOfferReviewCheckoutActive,
+  mayRunLegacySharedPalletPaymentUi,
+  mayStartSharedPalletCardSave,
+} from "@/lib/checkout/dual-offer-checkout-isolation";
+import { sharedPalletLinkEnabled } from "@/lib/checkout/shared-pallet-stripe-link";
+import {
+  customerZoneSaveErrorMessage,
+  dualOfferMsg,
+} from "@/lib/checkout/dual-offer-customer-copy";
+import {
+  checkoutChargeTimingMessageKey,
+  checkoutPlaceOrderCtaMessageKey,
+} from "@/lib/checkout/charge-timing-copy";
 import { toast } from "sonner";
 import {
   MapPin,
@@ -48,7 +70,6 @@ import {
   Check,
   ArrowRight,
   FileText,
-  ChevronRight,
 } from "lucide-react";
 import { clearZoneCache } from "@/lib/zone-matching";
 import { ensureVisitorIdentity } from "@/lib/analytics/visitor-identity";
@@ -83,6 +104,9 @@ import {
 } from "@/lib/analytics/checkout-errors";
 import { useB2BPriceMode } from "@/lib/hooks/use-b2b-price-mode";
 import { formatCartLinePrice } from "@/lib/shopping-context/format";
+import { resolveWineImageSrc } from "@/lib/cart/wine-image-url";
+import { localizeCartDiscountLabel } from "@/lib/cart/discount-label";
+import { DEFAULT_WINE_IMAGE_PATH } from "@/lib/constants";
 import type { PalletInfo } from "@/lib/zone-matching";
 import {
   ShareBottlesDialog,
@@ -92,6 +116,8 @@ import {
   allocatePactRedemptionPoints,
   calculateBoostAwareMaxRedemption,
 } from "@/lib/membership/pact-points-redemption-math";
+import { isPactPointsConversionCoupon } from "@/lib/membership/pact-points-conversion";
+import { isPromoDiscountReducedByConversionHalfCap } from "@/lib/discount-codes";
 import { cn } from "@/lib/utils";
 import {
   B2C_DIRECT_BOX_DELIVERY_TIME_TODO,
@@ -115,6 +141,7 @@ import {
   listUsStateCodesSorted,
 } from "@/lib/countries";
 import { isUsConditionalReservationsEnabledClient } from "@/lib/market/feature-flags";
+import { locationLabelFromZone } from "@/lib/market/location-label";
 import { useShoppingContext } from "@/lib/context/shopping-context-provider";
 import { localizedPathsForLocale } from "@/lib/i18n/localized-paths";
 import { useDisplayMoney } from "@/lib/hooks/use-display-money";
@@ -151,16 +178,6 @@ interface UserProfile {
   created_at: string;
 }
 
-interface UserReward {
-  id: string;
-  bottles: number;
-  discount_percentage: number;
-  type: "account_created" | "reservation_made";
-  friend_email?: string;
-  earned_at: string;
-  used: boolean;
-}
-
 function CheckoutContent({
   platformOpen,
   directBoxCheckoutEnabled = false,
@@ -170,12 +187,29 @@ function CheckoutContent({
     reason: "flag_off" as const,
     messageKey: null,
   },
+  dualOfferCompareSurfaceAllowed = false,
+  palletCloseSwitchDirect = null,
 }: {
   platformOpen: boolean;
   /** Server-gated; default false — shared_pallet behaviour unchanged. */
   directBoxCheckoutEnabled?: boolean;
   /** Server-derived carrier/quote availability — no env secrets. */
   directBoxAvailability?: DirectBoxUiAvailability;
+  /**
+   * Dual-offer compare panel (test/preview only). Default false — OFF checkout
+   * unchanged. Never enables DIRECT_BOX or live dual payment.
+   */
+  dualOfferCompareSurfaceAllowed?: boolean;
+  /**
+   * Pallet-close switch-to-direct entry (server-resolved). Requires DIRECT flag;
+   * forces a new quote + explicit acceptance.
+   */
+  palletCloseSwitchDirect?: {
+    reservationId: string;
+    requireNewQuote: true;
+    requireExplicitAcceptance: true;
+    preferredFulfillment: "direct_box";
+  } | null;
 }) {
   const { t, context: shopping } = useShoppingContext();
   const paths = localizedPathsForLocale(shopping.locale);
@@ -183,6 +217,13 @@ function CheckoutContent({
   const countryDisplayLocale = shopping.locale === "sv" ? "sv" : "en";
   const uiLocalizationEnabled = shopping.uiLocalizationEnabled;
   const [cart, setCart] = useState<Cart | null>(null);
+  /** True after the first /api/crowdvine/cart attempt finishes (ok or error). */
+  const [cartFetchDone, setCartFetchDone] = useState(false);
+  /**
+   * Fresh logged-in sessions: wait for /api/cart/merge before treating an
+   * empty cart as empty (avoids cart (0) / empty-checkout flash).
+   */
+  const [postAuthCartReady, setPostAuthCartReady] = useState(false);
   const formatChargedAmount = useCallback(
     (amount: number, currencyCode?: string | null) =>
       formatCartLinePrice(
@@ -238,9 +279,6 @@ function CheckoutContent({
   );
   // Payment method selection removed - payment happens when pallet fills
   const [selectedPallet, setSelectedPallet] = useState<PalletInfo | null>(null);
-  const [userRewards, setUserRewards] = useState<UserReward[]>([]);
-  const [selectedRewards, setSelectedRewards] = useState<UserReward[]>([]);
-  const [useRewards, setUseRewards] = useState(false);
   const checkoutCompletedRef = useRef(false);
   const paymentStepCompletedRef = useRef(false);
   /** Bottle count for abandon guards (effect has [] deps — must not close over cart). */
@@ -271,6 +309,7 @@ function CheckoutContent({
   const pendingZoneOverrideRef = useRef<ZoneDeliveryLines | null>(null);
   const lastZoneLocationKeyRef = useRef("");
   const [discountCodeInput, setDiscountCodeInput] = useState("");
+  const [discountCodeOpen, setDiscountCodeOpen] = useState(false);
   const [appliedDiscount, setAppliedDiscount] = useState<{
     code: string;
     discount_code_id: string;
@@ -279,9 +318,19 @@ function CheckoutContent({
     type: "percent" | "sek";
     value: number;
     purpose: "normal" | "testkop";
+    description: string | null;
   } | null>(null);
   const [discountError, setDiscountError] = useState<string | null>(null);
   const [discountApplying, setDiscountApplying] = useState(false);
+  const [accountCoupons, setAccountCoupons] = useState<
+    Array<{
+      id: string;
+      code: string;
+      value_sek: number;
+      valid_until: string | null;
+      description: string | null;
+    }>
+  >([]);
   const [pendingTestkopDiscount, setPendingTestkopDiscount] = useState<{
     code: string;
     discount_code_id: string;
@@ -290,6 +339,7 @@ function CheckoutContent({
     type: "percent" | "sek";
     value: number;
     purpose: "testkop";
+    description: string | null;
   } | null>(null);
   const [postalCodeDraft, setPostalCodeDraft] = useState("");
   const [editingAddress, setEditingAddress] = useState(false);
@@ -309,8 +359,24 @@ function CheckoutContent({
   );
   /** Channel UI state — only selectable when directBoxCheckoutEnabled. */
   const [fulfillmentChannel, setFulfillmentChannel] =
-    useState<FulfillmentChannel>(defaultFulfillmentChannel);
+    useState<FulfillmentChannel>(() =>
+      palletCloseSwitchDirect && directBoxCheckoutEnabled
+        ? "direct_box"
+        : defaultFulfillmentChannel(),
+    );
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  /** Dual-offer purchase bar (sticky under Totalt / mobile after address). */
+  const [dualOfferPurchase, setDualOfferPurchase] =
+    useState<DualOfferPurchaseActionsModel | null>(null);
+  const [dualOfferSession, setDualOfferSession] =
+    useState<OfferCheckoutSessionState | null>(null);
+  /** Mobile order summary starts collapsed (Inès 390). */
+  const [orderSummaryExpanded, setOrderSummaryExpanded] = useState(false);
+  /**
+   * Discreet pallet fill status on dual-offer block. Flip to false for CRO
+   * hide without removing the wiring.
+   */
+  const showCheckoutPalletFillStatus = true;
   const [shareAllocation, setShareAllocation] = useState<ShareAllocation | null>(
     null,
   );
@@ -402,13 +468,18 @@ function CheckoutContent({
 
   function checkoutEventMeta(step: CheckoutAnalyticsStep) {
     const base = checkoutMetaRef.current;
-    return {
+    const meta: Record<string, string | number | boolean> = {
       step,
       market: base.market,
       currency: base.currency,
       cart_value: base.cart_value,
       bottle_count: base.bottle_count,
     };
+    // Card-step CRO: always stamp Link policy on payment-step analytics.
+    if (step === "payment") {
+      meta.link_enabled = sharedPalletLinkEnabled();
+    }
+    return meta;
   }
 
   function emitCheckoutError(
@@ -642,6 +713,29 @@ function CheckoutContent({
   /** Address step unlocks as soon as postal is set — zone loading must not lock the form. */
   const deliveryPreviewReady = hasPostalCode;
 
+  /**
+   * Dual-offer review isolation (preview/test only): when the dual panel is
+   * mounted, legacy shared-pallet Pay / PI prefetch must not run.
+   * Flag OFF → both helpers keep normal checkout.
+   */
+  const [dualOfferCardStepUnlocked, setDualOfferCardStepUnlocked] =
+    useState(false);
+  const [paymentElementComplete, setPaymentElementComplete] = useState(false);
+
+  const dualOfferReviewActive = isDualOfferReviewCheckoutActive({
+    dualOfferCompareSurfaceAllowed,
+    hasSelectedPallet: Boolean(selectedPallet?.id),
+    deliveryPreviewReady,
+    zoneLoading,
+  });
+  const legacySharedPalletPaymentAllowed = mayRunLegacySharedPalletPaymentUi({
+    dualOfferCompareSurfaceAllowed,
+    hasSelectedPallet: Boolean(selectedPallet?.id),
+    deliveryPreviewReady,
+    zoneLoading,
+    sharedPalletCardStepUnlocked: dualOfferCardStepUnlocked,
+  });
+
   const zoneLocationKey = useMemo(() => {
     const postal =
       effectiveDelivery?.postal?.trim() || postalCodeDraft.trim() || "";
@@ -782,14 +876,34 @@ function CheckoutContent({
   }, [isUsConditional, selectedPallet?.delivery_zone_id, selectedPallet?.id]);
 
   const handleAgeDobChange = useCallback(
-    (value: string) => {
-      setDateOfBirth(value);
-      if (!value.trim()) {
+    (raw: string) => {
+      // Digits-only → ÅÅÅÅ-MM-DD mask (never type=date — browsers show 01/15/1990 in sv).
+      const digits = raw.replace(/\D/g, "").slice(0, 8);
+      let masked = digits;
+      if (digits.length > 4) {
+        masked = `${digits.slice(0, 4)}-${digits.slice(4)}`;
+      }
+      if (digits.length > 6) {
+        masked = `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6)}`;
+      }
+      setDateOfBirth(masked);
+      if (!masked.trim()) {
         setAgeConfirmed(false);
         setAgeDobError(null);
         return;
       }
-      const ok = meetsAgeRequirement(value, requiredAge);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(masked)) {
+        setAgeConfirmed(false);
+        setAgeDobError(t("checkout.dobInvalidFormat"));
+        return;
+      }
+      const parsed = Date.parse(`${masked}T00:00:00`);
+      if (!Number.isFinite(parsed)) {
+        setAgeConfirmed(false);
+        setAgeDobError(t("checkout.dobInvalidFormat"));
+        return;
+      }
+      const ok = meetsAgeRequirement(masked, requiredAge);
       if (!ok) {
         setAgeConfirmed(false);
         setAgeDobError(
@@ -872,12 +986,14 @@ function CheckoutContent({
     if (isUsConditional) {
       return { dateOfBirth: dob, acceptedTermsVersion: "" };
     }
-    if (!termsAccepted) return null;
+    // Dual-offer: terms version rides with SetupIntent once DOB is known;
+    // customer-visible acceptance is the bind CTA terms line.
+    if (!termsAccepted && !dualOfferCardStepUnlocked) return null;
     return {
       dateOfBirth: dob,
       acceptedTermsVersion: LEGAL_VERSIONS.terms,
     };
-  }, [dateOfBirth, isUsConditional, termsAccepted]);
+  }, [dateOfBirth, isUsConditional, termsAccepted, dualOfferCardStepUnlocked]);
 
   const zoneOrUsPalletReady = deliveryZoneReady;
 
@@ -953,7 +1069,7 @@ function CheckoutContent({
     const cartValue =
       parseFloat(String(cart.cost?.totalAmount?.amount ?? "0")) || 0;
     const bottleCount = cart.totalQuantity;
-    const meta = {
+    const meta: Record<string, string | number | boolean> = {
       step: checkoutStep,
       market: (checkoutMarketCountry || ageCountryCode || "SE").toUpperCase(),
       currency:
@@ -961,10 +1077,13 @@ function CheckoutContent({
       cart_value: cartValue,
       bottle_count: bottleCount,
     };
+    if (checkoutStep === "payment") {
+      meta.link_enabled = sharedPalletLinkEnabled();
+    }
     checkoutStepRef.current = checkoutStep;
     checkoutMetaRef.current = {
-      market: meta.market,
-      currency: meta.currency,
+      market: String(meta.market),
+      currency: String(meta.currency),
       cart_value: cartValue,
       bottle_count: bottleCount,
     };
@@ -1101,10 +1220,39 @@ function CheckoutContent({
           items: cartData.lines?.length || 0,
         });
         setCart(cartData);
+        // Keep header badge in sync after post-auth merge (avoids sticky (0)).
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(
+            new CustomEvent("cart-refresh", { detail: cartData }),
+          );
+        }
+      } else {
+        // Fail soft: treat as empty so we do not spin forever.
+        setCart({
+          id: "",
+          lines: [],
+          totalQuantity: 0,
+          cost: {
+            totalAmount: { amount: "0", currencyCode: "SEK" },
+            subtotalAmount: { amount: "0", currencyCode: "SEK" },
+            totalTaxAmount: { amount: "0", currencyCode: "SEK" },
+          },
+        } as Cart);
       }
     } catch (error) {
       console.error("Failed to fetch cart:", error);
+      setCart({
+        id: "",
+        lines: [],
+        totalQuantity: 0,
+        cost: {
+          totalAmount: { amount: "0", currencyCode: "SEK" },
+          subtotalAmount: { amount: "0", currencyCode: "SEK" },
+          totalTaxAmount: { amount: "0", currencyCode: "SEK" },
+        },
+      } as Cart);
     } finally {
+      setCartFetchDone(true);
       setLoading(false);
     }
   }, []);
@@ -1240,24 +1388,66 @@ function CheckoutContent({
     t,
   ]);
 
-  // After magic-link return: session is set, attach/merge anonymous cart once.
-  const cartMergedAfterAuthRef = useRef(false);
+  // After auth is known: merge (if logged in) then fetch cart once. Keeps the
+  // skeleton up until the post-auth cart is known — no empty-cart flash.
+  const cartHydratedAfterAuthRef = useRef(false);
   useEffect(() => {
-    if (!authReady || cartMergedAfterAuthRef.current) return;
-    cartMergedAfterAuthRef.current = true;
+    if (!authChecked || cartHydratedAfterAuthRef.current) return;
+    cartHydratedAfterAuthRef.current = true;
     void (async () => {
       try {
-        await fetch("/api/cart/merge", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ strategy: "auto" }),
-        });
-        await fetchCart();
+        if (authReady) {
+          await fetch("/api/cart/merge", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ strategy: "auto" }),
+          });
+        }
       } catch {
         // cart still available via cv_cart_id
       }
+      try {
+        await fetchCart();
+      } finally {
+        setPostAuthCartReady(true);
+      }
     })();
-  }, [authReady, fetchCart]);
+  }, [authChecked, authReady, fetchCart]);
+
+  // Account-bound promo coupons (e.g. PACT points conversion) for one-click apply.
+  useEffect(() => {
+    if (!authReady) {
+      setAccountCoupons([]);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch("/api/user/coupons");
+        if (!res.ok) {
+          if (!cancelled) setAccountCoupons([]);
+          return;
+        }
+        const data = (await res.json()) as {
+          coupons?: Array<{
+            id: string;
+            code: string;
+            value_sek: number;
+            valid_until: string | null;
+            description: string | null;
+          }>;
+        };
+        if (!cancelled) {
+          setAccountCoupons(Array.isArray(data.coupons) ? data.coupons : []);
+        }
+      } catch {
+        if (!cancelled) setAccountCoupons([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [authReady]);
 
   const handleCartMerge = useCallback(
     async (strategy: "keep_session" | "keep_user" | "merge") => {
@@ -1328,18 +1518,6 @@ function CheckoutContent({
     void fetchZoneShopContext();
   }, [authReady, fetchZoneShopContext]);
 
-  const fetchUserRewards = useCallback(async () => {
-    try {
-      const response = await fetch("/api/user/rewards");
-      if (response.ok) {
-        const data = await response.json();
-        setUserRewards(data.rewards || []);
-      }
-    } catch (error) {
-      console.error("Failed to fetch rewards:", error);
-    }
-  }, []);
-
   const fetchPactPointsBalance = useCallback(async () => {
     try {
       const res = await fetch("/api/user/membership");
@@ -1366,9 +1544,8 @@ function CheckoutContent({
   }, []);
 
   useEffect(() => {
-    fetchCart();
+    // Cart hydrate waits for authChecked (see post-auth merge effect).
     void fetchProfile().then(() => void fetchZoneShopContext());
-    fetchUserRewards();
     fetchPactPointsBalance();
 
     // Check if returning from Stripe payment method setup
@@ -1380,10 +1557,8 @@ function CheckoutContent({
       window.history.replaceState({}, "", cleanUrl);
     }
   }, [
-    fetchCart,
     fetchProfile,
     fetchZoneShopContext,
-    fetchUserRewards,
     fetchPactPointsBalance,
   ]);
 
@@ -1563,15 +1738,18 @@ function CheckoutContent({
       setComplianceStepRevealed(true);
       complianceSectionRef.current?.scrollIntoView({
         behavior: "smooth",
-        block: "nearest",
+        block: "start",
       });
     }, 420);
     return () => window.clearTimeout(revealTimer);
   }, [deliveryComplete]);
 
+  // Dual-offer card path: terms are recorded on the binding confirm (legal +
+  // terms line under Köp), not via a mid-flow checkbox — so PE can mount as
+  // soon as continue unlocks + DOB is valid.
   const complianceComplete =
     ageConfirmed &&
-    termsAccepted &&
+    (dualOfferCardStepUnlocked || termsAccepted) &&
     (!isUsConditional || usConditionalAck);
 
   useEffect(() => {
@@ -1587,7 +1765,20 @@ function CheckoutContent({
   }, [complianceComplete, complianceStepRevealed, cart]);
 
   // Warm Stripe.js + create Setup/PaymentIntent after compliance is complete.
+  // Dual-offer review isolation: never prefetch / keep intents while dual surface active.
   useEffect(() => {
+    if (!legacySharedPalletPaymentAllowed) {
+      setPrefetchedStripeIntent(null);
+      stripePrefetchKeyRef.current = null;
+      return;
+    }
+    // Never create SetupIntent / PaymentIntent while the order is blocked
+    // (B2C cart below 6 bottles). Matches confirm-route rejection.
+    if (!isValidCart) {
+      setPrefetchedStripeIntent(null);
+      stripePrefetchKeyRef.current = null;
+      return;
+    }
     if (!paymentCardRevealed || !authReady || !selectedPallet?.id) {
       return;
     }
@@ -1730,6 +1921,8 @@ function CheckoutContent({
       controller.abort();
     };
   }, [
+    legacySharedPalletPaymentAllowed,
+    isValidCart,
     paymentCardRevealed,
     complianceComplete,
     legalGatePayload,
@@ -1743,22 +1936,70 @@ function CheckoutContent({
   ]);
 
   // If age/terms become incomplete again, collapse payment.
+  // Dual-offer card unlock keeps PE mounted (terms are under bind CTA).
   useEffect(() => {
+    if (dualOfferCardStepUnlocked) return;
     if (!complianceStepRevealed || !complianceComplete) {
       setPaymentCardRevealed(false);
     }
-  }, [complianceStepRevealed, complianceComplete]);
+  }, [complianceStepRevealed, complianceComplete, dualOfferCardStepUnlocked]);
+
+  useEffect(() => {
+    if (!dualOfferReviewActive) {
+      setDualOfferCardStepUnlocked(false);
+      setPaymentElementComplete(false);
+      return;
+    }
+    // Dual review active but continue not clicked yet: keep Stripe cold.
+    if (!dualOfferCardStepUnlocked) {
+      setPaymentCardRevealed(false);
+      setPrefetchedStripeIntent(null);
+      stripePrefetchKeyRef.current = null;
+      setPaymentElementComplete(false);
+    }
+  }, [dualOfferReviewActive, dualOfferCardStepUnlocked]);
 
   const handleContinueToPayment = useCallback(() => {
     if (!complianceComplete) return;
+    if (!legacySharedPalletPaymentAllowed) return;
     setPaymentCardRevealed(true);
     window.setTimeout(() => {
       paymentSectionRef.current?.scrollIntoView({
         behavior: "smooth",
-        block: "nearest",
+        block: "start",
       });
     }, 80);
-  }, [complianceComplete]);
+  }, [complianceComplete, legacySharedPalletPaymentAllowed]);
+
+  const handleSharedPalletCardStepRequest = useCallback(() => {
+    // Blocked carts must never unlock Payment Element / SetupIntent create.
+    if (!isValidCart) return;
+    setDualOfferCardStepUnlocked(true);
+    setPaymentCardRevealed(true);
+    // Record terms version now so SetupIntent / PE can create without a
+    // checkbox; the bind CTA still shows the terms line as acceptance UI.
+    handleTermsChecked(true);
+    if (!complianceStepRevealed) {
+      setComplianceStepRevealed(true);
+    }
+    window.setTimeout(() => {
+      (complianceSectionRef.current ?? paymentSectionRef.current)?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }, 80);
+  }, [complianceStepRevealed, handleTermsChecked, isValidCart]);
+
+  // If the cart drops below the 6-bottle minimum after continue, collapse the
+  // card step so no SetupIntent is created or confirmed for a blocked order.
+  useEffect(() => {
+    if (isValidCart || !dualOfferCardStepUnlocked) return;
+    setDualOfferCardStepUnlocked(false);
+    setPaymentCardRevealed(false);
+    setPrefetchedStripeIntent(null);
+    stripePrefetchKeyRef.current = null;
+    setPaymentElementComplete(false);
+  }, [isValidCart, dualOfferCardStepUnlocked]);
 
   // Initial zone matching when cart and zone context are loaded
   useEffect(() => {
@@ -2291,8 +2532,20 @@ function CheckoutContent({
           return;
         }
         if (!res.ok) {
-          const j = (await res.json().catch(() => ({}))) as { error?: string };
-          throw new Error(j.error || t("checkout.saveFailed"));
+          const j = (await res.json().catch(() => ({}))) as {
+            error?: string;
+            code?: string;
+          };
+          const locale =
+            shopping.locale === "en" ? ("en" as const) : ("sv" as const);
+          throw new Error(
+            customerZoneSaveErrorMessage(
+              j.code === "geo_zone_misconfigured"
+                ? "Wine zone is misconfigured"
+                : j.error,
+              locale,
+            ) || t("checkout.saveFailed"),
+          );
         }
         const j = (await res.json()) as { address?: UserZoneAddressTemplate };
         if (j.address) {
@@ -2512,13 +2765,6 @@ function CheckoutContent({
 
     // Payment method removed - using new payment flow
 
-    // User rewards
-    if (useRewards) {
-      selectedRewards.forEach((reward, index) => {
-        formData.append(`rewardId_${index}`, reward.id);
-      });
-    }
-
     // Optional: share allocations
     if (shareAllocation && shareFriendIds && shareFriendIds.length > 0) {
       formData.append(
@@ -2570,7 +2816,11 @@ function CheckoutContent({
         emitCheckoutStepCompleted("payment");
         checkoutCompletedRef.current = true;
         clearCheckoutAnalyticsSession();
-        window.location.href = redirectUrl || "/checkout/success";
+        window.location.href =
+          redirectUrl ||
+          (shopping.locale === "en"
+            ? "/en/checkout/success"
+            : "/checkout/success");
       } else {
         setIsFinalizingReservation(false); // Hide modal on error
         void AnalyticsTracker.trackEvent({
@@ -2650,6 +2900,11 @@ function CheckoutContent({
   );
 
   const handlePlaceReservation = useCallback(async () => {
+    // Dual-offer review isolation: never place reservation via legacy CTA.
+    if (!legacySharedPalletPaymentAllowed) {
+      setStripeError(t("checkout.dualOfferLegacyPayBlocked"));
+      return;
+    }
     // Layer 1: sync ref blocks double-click before React re-renders disabled state.
     if (isSubmittingRef.current) return;
     isSubmittingRef.current = true;
@@ -2827,7 +3082,11 @@ function CheckoutContent({
       checkoutCompletedRef.current = true;
       clearCheckoutAnalyticsSession();
       // Do not releaseSubmit — navigate away; keep button disabled.
-      window.location.href = redirectUrl || "/checkout/success";
+      const fallbackSuccess =
+        shopping.locale === "en"
+          ? "/en/checkout/success"
+          : "/checkout/success";
+      window.location.href = redirectUrl || fallbackSuccess;
     };
 
     if (!stripeConfirmFn || !paymentMode || !stripeIntentId) {
@@ -2873,6 +3132,7 @@ function CheckoutContent({
           decline_code: confirmed.stripeError?.decline_code ?? null,
           // Helpful high-level signal for Nära köp (card_declined, do_not_honor, etc).
           success: false,
+          link_enabled: sharedPalletLinkEnabled(),
         },
       });
       const stripeCode = confirmed.stripeError?.code ?? "";
@@ -2953,18 +3213,12 @@ function CheckoutContent({
     redeemPoints,
     t,
     friendlyStripeErrorMessage,
+    legacySharedPalletPaymentAllowed,
   ]);
 
   // Merchandise total from cart (matches per-line line.cost.totalAmount, incl. member + pallet early-bird)
   const bottleCost = cart
     ? parseFloat(cart.cost.totalAmount.amount)
-    : 0;
-
-  // Old rewards discount (being deprecated) — display only; not in payment total
-  const rewardsDiscountAmount = useRewards
-    ? selectedRewards.reduce((total, reward) => {
-        return total + (bottleCost * reward.discount_percentage) / 100;
-      }, 0)
     : 0;
 
   const { boostedLineTotal, nonBoostedLineTotal } = useMemo(() => {
@@ -3003,8 +3257,6 @@ function CheckoutContent({
       ).sekDiscount,
     [redeemPoints, boostedLineTotal, nonBoostedLineTotal],
   );
-
-  const hasBoostedProducerInOrder = boostedLineTotal > 0;
 
   const selectedPalletId = selectedPallet?.id ?? "";
   const promoDiscountSek = appliedDiscount?.discount_amount_sek ?? 0;
@@ -3103,6 +3355,38 @@ function CheckoutContent({
   const displaySubtotal = serverQuote?.subtotal_sek ?? bottleCost;
   const displayShippingSek = serverQuote?.shipping_sek;
   const displayPactOff = serverQuote?.pact_points_sek ?? pactPointsSekOff;
+
+  const conversionCouponHalfCapReduced = useMemo(() => {
+    if (!appliedDiscount) return false;
+    const items =
+      cart?.lines?.map((line) => {
+        const qty = Number(line.quantity) || 0;
+        const lineTotal =
+          parseFloat(String(line.cost.totalAmount.amount)) || 0;
+        return {
+          wine_id: String(line.merchandise.id),
+          quantity: qty,
+          unit_price: qty > 0 ? lineTotal / qty : 0,
+        };
+      }) ?? [];
+    const cart_value_sek =
+      (parseFloat(cart?.cost?.totalAmount?.amount ?? "0") || 0) +
+      (serverQuote?.shipping_pending ? 0 : (displayShippingSek ?? 0));
+    return isPromoDiscountReducedByConversionHalfCap({
+      type: appliedDiscount.type,
+      value: appliedDiscount.value,
+      applies_to: "order",
+      cart_value_sek,
+      items,
+      description: appliedDiscount.description,
+    });
+  }, [
+    appliedDiscount,
+    cart?.lines,
+    cart?.cost?.totalAmount?.amount,
+    serverQuote?.shipping_pending,
+    displayShippingSek,
+  ]);
   // Shipping is a SEK rate. formatSek converts it into the active currency.
   // A missing country rate shows explanatory copy — never a bogus "$99.0".
   // direct_box must never fall back to shared/pact 99 via client invention.
@@ -3140,6 +3424,7 @@ function CheckoutContent({
     type: "percent" | "sek";
     value: number;
     purpose: "normal" | "testkop";
+    description: string | null;
   }) => {
     setAppliedDiscount(data);
     if (data.purpose === "testkop") {
@@ -3149,9 +3434,10 @@ function CheckoutContent({
     setPendingTestkopDiscount(null);
   };
 
-  const applyDiscountCode = async () => {
-    const code = discountCodeInput.trim();
+  const applyDiscountCode = async (codeOverride?: string) => {
+    const code = (codeOverride ?? discountCodeInput).trim();
     if (!code) return;
+    if (codeOverride) setDiscountCodeInput(code);
     setDiscountError(null);
     setDiscountApplying(true);
     try {
@@ -3197,6 +3483,8 @@ function CheckoutContent({
         purpose: (data.purpose === "testkop" ? "testkop" : "normal") as
           | "normal"
           | "testkop",
+        description:
+          typeof data.description === "string" ? data.description : null,
       };
 
       if (next.purpose === "testkop") {
@@ -3257,18 +3545,34 @@ function CheckoutContent({
     }
   }, [maxRedemption, redeemPoints]);
 
-  // Filter available rewards (membership system - no bottle rewards anymore)
-  const availableRewards: UserReward[] = [];
-
   const currencyCode =
     shopping.currencyCode || cart?.cost?.totalAmount?.currencyCode || "SEK";
+
+  const chargeTimingCopyKey = useMemo(
+    () =>
+      checkoutChargeTimingMessageKey({
+        paymentMode,
+        isUsConditional,
+      }),
+    [paymentMode, isUsConditional],
+  );
+
+  const placeOrderCta = useMemo(
+    () =>
+      checkoutPlaceOrderCtaMessageKey({
+        paymentMode,
+        isUsConditional,
+        isSubmitting,
+      }),
+    [paymentMode, isUsConditional, isSubmitting],
+  );
 
   const orderLines: CartItem[] = cart?.lines ?? [];
 
   const renderCartLineRow = (line: CartItem) => {
     const totalForLine = parseFloat(line.cost.totalAmount.amount);
     const product = line.merchandise.product;
-    const imgUrl = product.featuredImage?.url;
+    const imgUrl = resolveWineImageSrc(product.featuredImage?.url);
     const lineTitle = product.title || line.merchandise.title;
     const producerLabel = producerDisplayName({
       name: product.producerName,
@@ -3280,54 +3584,111 @@ function CheckoutContent({
     const originalLineTotalSek = showLineDiscount
       ? product.originalUnitPriceSek! * line.quantity
       : null;
+    // Prefer stamped whole-kronor unit from cart (after discounts); never
+    // derive unit as line÷qty (that reintroduces half-kronor display drift).
+    const stampedUnit = parseFloat(
+      product.priceRange?.minVariantPrice?.amount ?? "",
+    );
+    const unitAmount =
+      Number.isFinite(stampedUnit) && stampedUnit > 0
+        ? stampedUnit
+        : line.quantity > 0
+          ? totalForLine / line.quantity
+          : totalForLine;
+    const unitPriceLabel = formatChargedAmount(
+      unitAmount,
+      line.cost.totalAmount.currencyCode,
+    );
+    const lineTotalLabel = formatChargedAmount(
+      totalForLine,
+      line.cost.totalAmount.currencyCode,
+    );
     return (
       <div
         key={line.id}
         className="flex items-start gap-3 border-b border-border py-3 last:border-0"
       >
         <div className="h-14 w-14 shrink-0 overflow-hidden rounded-md bg-muted">
-          {imgUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={imgUrl}
-              alt={product.featuredImage?.altText || lineTitle}
-              className="h-full w-full object-cover"
-            />
-          ) : null}
+          {/* Prefer static default-wine.png over /api/images proxy (400 when path missing). */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={imgUrl}
+            alt={product.featuredImage?.altText || lineTitle}
+            className="h-full w-full object-cover"
+            onError={(e) => {
+              const el = e.currentTarget;
+              if (el.dataset.fallback === "1") return;
+              el.dataset.fallback = "1";
+              el.src = DEFAULT_WINE_IMAGE_PATH;
+            }}
+          />
         </div>
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-medium text-foreground">{lineTitle}</p>
           {producerLabel ? (
             <p className="mt-0.5 text-xs text-muted-foreground">{producerLabel}</p>
           ) : null}
-          <p className="text-xs text-muted-foreground">
-            {t("checkout.qty", { count: String(line.quantity) })}
+          <p className="text-xs text-muted-foreground tabular-nums">
+            {t("checkout.qtyTimesUnit", {
+              count: String(line.quantity),
+              unitPrice: unitPriceLabel,
+            })}
           </p>
           {line.discountLabel ? (
-            <span className="mt-1 inline-flex items-center rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-700">
-              {line.discountLabel}
+            <span className="mt-1 inline-flex items-center rounded-md bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground">
+              {localizeCartDiscountLabel(
+                line.discountLabel,
+                shopping.locale,
+              ) ?? line.discountLabel}
             </span>
           ) : null}
         </div>
         <div className="shrink-0 text-right">
           {showLineDiscount && originalLineTotalSek !== null ? (
-            <>
-              <p className="text-xs text-muted-foreground line-through tabular-nums">
-                {formatSek(originalLineTotalSek)}
-              </p>
-              <p className="text-sm font-medium tabular-nums text-foreground">
-                {formatChargedAmount(totalForLine, line.cost.totalAmount.currencyCode)}
-              </p>
-            </>
-          ) : (
-            <p className="text-sm font-medium tabular-nums text-foreground">
-              {formatChargedAmount(totalForLine, line.cost.totalAmount.currencyCode)}
+            <p className="text-xs text-muted-foreground line-through tabular-nums">
+              {formatSek(originalLineTotalSek)}
             </p>
-          )}
+          ) : null}
+          <p className="text-[11px] text-muted-foreground">
+            {t("checkout.lineTotalLabel")}
+          </p>
+          <p className="text-sm font-medium tabular-nums text-foreground">
+            {lineTotalLabel}
+          </p>
         </div>
       </div>
     );
   };
+
+  const handleDualOfferPurchaseChange = useCallback(
+    (model: DualOfferPurchaseActionsModel | null) => {
+      setDualOfferPurchase((prev) => {
+        if (prev === model) return prev;
+        if (!prev && !model) return prev;
+        if (
+          prev &&
+          model &&
+          prev.finalCtaLabel === model.finalCtaLabel &&
+          prev.legalLine === model.legalLine &&
+          prev.disabled === model.disabled &&
+          prev.confirmNote === model.confirmNote &&
+          prev.locale === model.locale
+        ) {
+          // Keep latest onConfirm closure without forcing a re-render.
+          prev.onConfirm = model.onConfirm;
+          return prev;
+        }
+        return model;
+      });
+    },
+    [],
+  );
+
+  const dualOfferSelectedQuote = dualOfferSession?.dual.selected_offer
+    ? dualOfferSession.dual.selected_offer === "direct_box"
+      ? dualOfferSession.dual.direct_box
+      : dualOfferSession.dual.shared_pallet
+    : dualOfferSession?.dual.shared_pallet ?? null;
 
   const checkBudbeeAvailability = useCallback(
     async (postalCode: string, countryCode: string = "SE") => {
@@ -3420,6 +3781,7 @@ function CheckoutContent({
   }, [cart?.lines]);
 
   // Customer-facing delivery copy: direct box from producer (no pallet fill).
+  // Hidden unless DIRECT_BOX_CHECKOUT_ENABLED (same gate as dual-offer direct row).
   // TODO time string only via B2C_DIRECT_BOX_DELIVERY_TIME_TODO — do not invent SLAs.
   const deliveryPromiseLabel = useMemo(() => {
     const timeTodo = B2C_DIRECT_BOX_DELIVERY_TIME_TODO?.trim();
@@ -3428,9 +3790,14 @@ function CheckoutContent({
     if (st === "shipping_ordered") {
       return t("checkout.deliveryEstimateShippingOrdered");
     }
-    if (!producerDirectBoxOnly) return null;
+    if (!directBoxCheckoutEnabled || !producerDirectBoxOnly) return null;
     return t("commerce.directBoxDeliveryPromise");
-  }, [producerDirectBoxOnly, selectedPallet?.status, t]);
+  }, [
+    directBoxCheckoutEnabled,
+    producerDirectBoxOnly,
+    selectedPallet?.status,
+    t,
+  ]);
 
   const handleSelectPallet = useCallback(
     (palletId: string) => {
@@ -3446,19 +3813,67 @@ function CheckoutContent({
   // text based on zone (Bring for Stockholm, others for other zones).
 
   // IMPORTANT: keep these conditional returns AFTER all hooks above to preserve hook order
-  if (loading) {
+  // Keep skeleton until cart is known post-auth — never flash empty-cart / (0).
+  if (loading || !cartFetchDone || !postAuthCartReady || cart == null) {
+    // Mirror loaded checkout shell: max-w-[1280px] + two columns at ≥1280.
+    // Heights approximate sections 1–4 + sticky order sidebar.
     return (
-      <div className="max-w-4xl mx-auto p-6 pt-top-spacing">
-        <div className="animate-pulse space-y-6">
-          <div className="h-8 bg-gray-200 rounded mb-4"></div>
-          <div className="h-4 bg-gray-200 rounded mb-2"></div>
-          <div className="h-4 bg-gray-200 rounded"></div>
+      <main
+        className="min-h-screen bg-background"
+        data-testid="checkout-cart-loading"
+        aria-busy="true"
+        aria-label={t("checkout.loadingCart")}
+      >
+        <div className="mx-auto max-w-[1280px] space-y-8 p-6 pt-top-spacing animate-pulse">
+          <div className="space-y-2">
+            <div className="h-8 w-40 rounded bg-muted/60" />
+            <div className="h-4 w-64 max-w-full rounded bg-muted/40" />
+          </div>
+          <div className="flex flex-col gap-8 min-[1280px]:grid min-[1280px]:grid-cols-[1fr_400px] min-[1280px]:items-start">
+            <aside className="order-1 w-full min-w-0 space-y-3 min-[1280px]:sticky min-[1280px]:top-8 min-[1280px]:order-2 min-[1280px]:self-start">
+              <div className="h-5 w-36 rounded bg-muted/60" />
+              <div className="space-y-3 rounded-xl border border-border bg-background p-4">
+                <div className="h-14 w-full rounded bg-muted/40" />
+                <div className="h-14 w-full rounded bg-muted/40" />
+                <div className="h-4 w-2/3 rounded bg-muted/40" />
+                <div className="h-4 w-1/2 rounded bg-muted/40" />
+                <div className="mt-2 h-16 w-full rounded bg-muted/40" />
+                <div className="h-10 w-full rounded bg-muted/50" />
+              </div>
+            </aside>
+            <div className="order-2 min-w-0 space-y-0 lg:order-1">
+              {/* 1. Postnummer + delivery block */}
+              <section className="space-y-3 border-b border-border py-6 first:pt-0">
+                <div className="h-5 w-40 rounded bg-muted/60" />
+                <div className="h-3 w-52 max-w-full rounded bg-muted/40" />
+                <div className="h-10 w-full max-w-xs rounded bg-muted/40" />
+                <div className="h-20 w-full rounded-lg bg-muted/40" />
+              </section>
+              {/* 2. Leveransadress */}
+              <section className="space-y-3 border-b border-border py-6">
+                <div className="h-5 w-44 rounded bg-muted/60" />
+                <div className="h-10 w-full rounded bg-muted/40" />
+                <div className="h-10 w-full rounded bg-muted/40" />
+                <div className="h-10 w-2/3 max-w-sm rounded bg-muted/40" />
+              </section>
+              {/* 3. Ålder */}
+              <section className="space-y-3 border-b border-border py-6">
+                <div className="h-5 w-28 rounded bg-muted/60" />
+                <div className="h-24 w-full rounded-md bg-muted/40" />
+              </section>
+              {/* 4. Betalkort */}
+              <section className="space-y-3 border-b border-border py-6">
+                <div className="h-5 w-32 rounded bg-muted/60" />
+                <div className="h-36 w-full rounded-md bg-muted/40" />
+              </section>
+            </div>
+          </div>
         </div>
-      </div>
+      </main>
     );
   }
 
-  if (!cart || cart.totalQuantity === 0) {
+  if (cart.totalQuantity === 0) {
     return (
       <div className="max-w-4xl mx-auto p-6 pt-top-spacing">
         <h1 className="text-2xl font-semibold mb-4">{t("checkout.title")}</h1>
@@ -3550,11 +3965,7 @@ function CheckoutContent({
         onOpenChange={setShareDialogOpen}
         userId={profile?.id || null}
         currencyCode={currencyCode}
-        discountRate={
-          bottleCost > 0
-            ? Math.max(0, Math.min(1, rewardsDiscountAmount / bottleCost))
-            : 0
-        }
+        discountRate={0}
         cartLines={(cart?.lines || []).map((l) => ({
           id: l.id,
           title: l.merchandise.title,
@@ -3570,7 +3981,12 @@ function CheckoutContent({
       />
 
     <main className="min-h-screen bg-background">
-      <div className="mx-auto max-w-5xl space-y-8 p-6 pt-top-spacing">
+      {/*
+        Dual-offer checkout only: opaque underlay beneath the intentionally
+        transparent fixed site header so scrolled panel text cannot show through
+        MENY/PACT. Does not alter global header styles or OFF-checkout.
+      */}
+      <div className="mx-auto max-w-[1280px] space-y-8 p-6 pt-top-spacing">
         <div>
           <h1 className="mb-2 text-2xl font-medium text-foreground">
             {t("checkout.title")}
@@ -3578,17 +3994,61 @@ function CheckoutContent({
           <p className="text-muted-foreground">{t("checkout.subtitle")}</p>
         </div>
 
-        <div className="flex flex-col gap-8 lg:grid lg:grid-cols-[1fr_400px] lg:items-start">
-          <aside className="order-1 w-full min-w-0 lg:sticky lg:top-8 lg:order-2 lg:self-start">
+        <div className="flex flex-col gap-8 min-[1280px]:grid min-[1280px]:grid-cols-[1fr_400px] min-[1280px]:items-start">
+          <aside className="order-1 w-full min-w-0 min-[1280px]:sticky min-[1280px]:top-[calc(var(--top-spacing)+1rem)] min-[1280px]:order-2 min-[1280px]:self-start">
             <div className="space-y-3">
-              <p className="text-sm font-medium text-foreground mb-3">
+              {/* <1280: one expandable row; ≥1280: always expanded */}
+              <button
+                type="button"
+                className="flex w-full items-center justify-between gap-2 text-left text-sm font-medium text-foreground min-[1280px]:hidden"
+                aria-expanded={orderSummaryExpanded}
+                data-testid="checkout-order-summary-toggle"
+                onClick={() => setOrderSummaryExpanded((v) => !v)}
+              >
+                <span>
+                  {t(
+                    cart.totalQuantity === 1
+                      ? "checkout.orderSummaryCollapsedOne"
+                      : "checkout.orderSummaryCollapsed",
+                    {
+                      count: String(cart.totalQuantity),
+                      total:
+                        displayTotal == null
+                          ? "…"
+                          : formatChargedAmount(displayTotal),
+                    },
+                  )}
+                </span>
+              </button>
+              <p className="mb-3 hidden text-sm font-medium text-foreground min-[1280px]:block">
                 {t("checkout.yourOrder")} ({cart.totalQuantity}{" "}
                 {cart.totalQuantity === 1
                   ? t("checkout.bottle")
                   : t("checkout.bottles")})
               </p>
+              <div
+                className={cn(
+                  !orderSummaryExpanded && "hidden min-[1280px]:block",
+                )}
+                data-testid="checkout-order-summary-body"
+              >
               <div>{orderLines.map(renderCartLineRow)}</div>
               <div className="space-y-2 border-t border-border pt-4 mt-4 text-sm">
+                {dualOfferReviewActive &&
+                dualOfferSelectedQuote &&
+                !dualOfferSelectedQuote.unavailable_reason ? (
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">
+                      {t("checkout.dualOfferBottleAvg")}
+                    </span>
+                    <span className="tabular-nums text-foreground">
+                      {formatOfferSek(
+                        dualOfferSelectedQuote.bottle_unit_price_sek,
+                        shopping.locale === "en" ? "en" : "sv",
+                      )}
+                    </span>
+                  </div>
+                ) : null}
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">
                     {t("checkout.subtotal")}
@@ -3646,11 +4106,6 @@ function CheckoutContent({
                         {t("checkout.useAll")}
                       </button>
                     </div>
-                    {hasBoostedProducerInOrder ? (
-                      <p className="text-[11px] text-violet-700">
-                        {t("checkout.boostWorth2x")}
-                      </p>
-                    ) : null}
                   </div>
                 ) : null}
                 {redeemPoints > 0 ? (
@@ -3663,62 +4118,119 @@ function CheckoutContent({
                     </span>
                   </div>
                 ) : null}
-                {useRewards && selectedRewards.length > 0 ? (
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">
-                      {t("checkout.voucher", {
-                        count: String(selectedRewards.length),
-                      })}
-                    </span>
-                    <span className="font-medium tabular-nums text-foreground">
-                      −{formatChargedAmount(rewardsDiscountAmount)}
-                    </span>
-                  </div>
-                ) : null}
-
                 {appliedDiscount ? (
-                  <div className="flex items-center justify-between gap-2 text-emerald-700 dark:text-emerald-400">
-                    <span>
-                      {t("checkout.discountApplied", {
-                        code: appliedDiscount.code,
-                        amount:
-                          appliedDiscount.type === "percent"
-                            ? `−${formatChargedAmount(appliedDiscount.discount_amount_sek)} (−${appliedDiscount.value}%)`
-                            : `−${formatChargedAmount(appliedDiscount.discount_amount_sek)}`,
-                      })}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={clearAppliedDiscount}
-                      className="shrink-0 text-lg leading-none text-muted-foreground hover:text-foreground"
-                      aria-label={t("checkout.removeDiscount")}
-                    >
-                      ×
-                    </button>
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between gap-2 text-[#0A0A0A]">
+                      <span>
+                        {isPactPointsConversionCoupon(appliedDiscount.description)
+                          ? t("checkout.conversionCouponApplied", {
+                              amount: `${Math.round(appliedDiscount.discount_amount_sek)} ${
+                                shopping.locale === "en" ? "SEK" : "kr"
+                              }`,
+                            })
+                          : t("checkout.discountApplied", {
+                              code: appliedDiscount.code,
+                              amount:
+                                appliedDiscount.type === "percent"
+                                  ? `−${formatChargedAmount(appliedDiscount.discount_amount_sek)} (−${appliedDiscount.value}%)`
+                                  : `−${formatChargedAmount(appliedDiscount.discount_amount_sek)}`,
+                            })}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={clearAppliedDiscount}
+                        className="shrink-0 text-lg leading-none text-muted-foreground hover:text-foreground"
+                        aria-label={t("checkout.removeDiscount")}
+                      >
+                        ×
+                      </button>
+                    </div>
+                    {conversionCouponHalfCapReduced ? (
+                      <p
+                        className="text-[11px] text-muted-foreground"
+                        data-testid="checkout-coupon-half-cap-notice"
+                      >
+                        {t("checkout.couponHalfOrderCapNotice")}
+                      </p>
+                    ) : null}
                   </div>
                 ) : (
                   <div className="space-y-2 pt-1">
-                    <div className="flex gap-2">
-                      <Input
-                        placeholder={t("checkout.discountCode")}
-                        value={discountCodeInput}
-                        onChange={(e) => {
-                          setDiscountCodeInput(e.target.value);
-                          setDiscountError(null);
-                        }}
-                        className="h-9 rounded-md border border-zinc-200 bg-white pl-3 text-sm text-zinc-900 shadow-sm placeholder:text-zinc-500 focus-visible:ring-zinc-300"
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="shrink-0"
-                        disabled={discountApplying || !discountCodeInput.trim()}
-                        onClick={() => void applyDiscountCode()}
+                    {accountCoupons.length > 0 ? (
+                      <div
+                        className="space-y-2"
+                        data-testid="checkout-account-coupons"
                       >
-                        {t("checkout.applyDiscount")}
-                      </Button>
-                    </div>
+                        {accountCoupons.map((c) => {
+                          const amountLabel =
+                            shopping.locale === "en"
+                              ? `${Math.round(c.value_sek)} SEK`
+                              : `${Math.round(c.value_sek)} kr`;
+                          return (
+                            <button
+                              key={c.id}
+                              type="button"
+                              disabled={discountApplying}
+                              onClick={() => void applyDiscountCode(c.code)}
+                              className="w-full text-left text-sm text-[#0A0A0A] transition hover:opacity-80 disabled:opacity-60"
+                              data-testid="checkout-account-coupon"
+                            >
+                              <span className="font-medium">
+                                {t("checkout.yourCouponOffer", {
+                                  amount: amountLabel,
+                                })}
+                              </span>
+                              <span className="text-muted-foreground">
+                                {" · "}
+                              </span>
+                              <span className="underline underline-offset-2">
+                                {t("checkout.applyYourCoupon")}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : null}
+                    {discountCodeOpen ? (
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder={t("checkout.discountCode")}
+                          value={discountCodeInput}
+                          onChange={(e) => {
+                            setDiscountCodeInput(e.target.value);
+                            setDiscountError(null);
+                          }}
+                          className="h-9 rounded-md border border-zinc-200 bg-white pl-3 text-sm text-zinc-900 shadow-sm placeholder:text-zinc-500 focus-visible:ring-zinc-300"
+                          autoFocus
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className={cn(
+                            "shrink-0",
+                            discountCodeInput.trim() &&
+                              !discountApplying &&
+                              "border-foreground/40 text-foreground",
+                          )}
+                          disabled={
+                            discountApplying || !discountCodeInput.trim()
+                          }
+                          onClick={() => void applyDiscountCode()}
+                        >
+                          {t("checkout.applyDiscount")}
+                        </Button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setDiscountCodeOpen(true)}
+                        className="text-sm text-muted-foreground underline underline-offset-2 hover:text-foreground"
+                        data-testid="checkout-have-discount-code"
+                      >
+                        {t("checkout.haveDiscountCode")}
+                      </button>
+                    )}
                     {discountError ? (
                       <p className="text-xs text-red-600">{discountError}</p>
                     ) : null}
@@ -3734,33 +4246,23 @@ function CheckoutContent({
                   </span>
                 </div>
               </div>
-            </div>
+              </div>
 
-            <div
-              className="border-b border-border my-6"
-              role="separator"
-              aria-hidden="true"
-            />
-
-            <div className="space-y-4">
-              <Button
-                type="button"
-                variant="ghost"
-                className="w-full justify-between text-muted-foreground hover:text-foreground"
-                onClick={() => setShareDialogOpen(true)}
-              >
-                <span>
-                  {t("checkout.shareBottles")}
-                  {(shareFriendIds?.length ?? 0) > 0
-                    ? ` (${shareFriendIds?.length})`
-                    : ""}
-                </span>
-                <ChevronRight className="h-4 w-4 shrink-0" aria-hidden />
-              </Button>
+              {/* Desktop: non-binding continue only (before card step). */}
+              {dualOfferReviewActive &&
+              !dualOfferCardStepUnlocked &&
+              dualOfferPurchase ? (
+                <div
+                  className="mt-6 hidden min-[1280px]:block"
+                  data-testid="dual-offer-continue-sticky"
+                >
+                  <DualOfferPurchaseActions model={dualOfferPurchase} />
+                </div>
+              ) : null}
             </div>
           </aside>
 
-          <div className="order-2 min-w-0 space-y-4 lg:order-1">
+          <div className="order-2 min-w-0 space-y-4 min-[1280px]:order-1">
             {/* 1. Postnummer → leveransalternativ */}
             <section className="py-6 first:pt-0 border-b border-border last:border-0">
               <div className="space-y-4">
@@ -3772,7 +4274,12 @@ function CheckoutContent({
                     <p className="text-xs text-muted-foreground">
                       {t("checkout.shoppingIn")}{" "}
                       <span className="font-medium text-foreground/80">
-                        {activeShop.displayName}
+                        {locationLabelFromZone(
+                          activeShop.displayName || "",
+                          activeShop.countryCode || "",
+                          shopping.locale === "en" ? "en" : "sv",
+                          activeShop.displayName || "",
+                        )}
                       </span>
                       <span> · </span>
                       <span>{activeShop.currencyCode}</span>
@@ -3889,7 +4396,8 @@ function CheckoutContent({
                       </div>
                     ) : null}
 
-                    {!isUsConditional &&
+                    {!dualOfferReviewActive &&
+                    !isUsConditional &&
                     (selectedPallet != null ||
                       Boolean(zoneInfo.deliveryZone) ||
                       zoneInfo.selectedDeliveryZoneId != null) ? (
@@ -3996,29 +4504,24 @@ function CheckoutContent({
                             <span className="whitespace-nowrap text-sm tabular-nums text-foreground">
                               {chargedShippingLabel ?? "—"}
                             </span>
-                            {/* eslint-disable-next-line @next/next/no-img-element -- static brand asset from /public */}
-                            <img
-                              src="/budbee-logo.png"
-                              alt="Budbee"
-                              width={96}
-                              height={36}
-                              className="h-5 w-auto max-w-[100px] shrink-0 object-contain object-right mix-blend-multiply"
-                              aria-hidden
-                            />
                           </div>
                         </div>
                       </div>
                     ) : null}
 
-                    {selectedPallet != null &&
+                    {!dualOfferReviewActive &&
+                    selectedPallet != null &&
                     (producerDirectBoxOnly ||
                       selectedPallet.current_pickup_producer?.name) ? (
                       <div className="space-y-1.5">
                         <p className="text-xs text-muted-foreground">
                           {t("checkout.deliveryPromiseLabel")}
                         </p>
-                        {producerDirectBoxOnly ? (
-                          <DirectBoxDeliveryPromise sourceType="producer" />
+                        {directBoxCheckoutEnabled && producerDirectBoxOnly ? (
+                          <DirectBoxDeliveryPromise
+                            sourceType="producer"
+                            enabled={directBoxCheckoutEnabled}
+                          />
                         ) : null}
                         {selectedPallet.current_pickup_producer?.name ? (
                           <p className="text-xs text-muted-foreground">
@@ -4131,6 +4634,63 @@ function CheckoutContent({
                       <p className="text-sm text-muted-foreground">
                         {t("checkout.usConditionalCopy")}
                       </p>
+                    ) : null}
+
+                    {dualOfferReviewActive && selectedPallet?.id ? (
+                      <DualOfferCheckoutPanel
+                        locale={shopping.locale === "en" ? "en" : "sv"}
+                        fetchArgs={{
+                          palletId: selectedPallet.id,
+                          countryCode: ageCountryCode,
+                          allowSyntheticDirect: false,
+                        }}
+                        showDirectOffer={directBoxCheckoutEnabled}
+                        forceFreshSession={Boolean(palletCloseSwitchDirect)}
+                        preferOffer={
+                          palletCloseSwitchDirect
+                            ? "direct_box"
+                            : null
+                        }
+                        openIntentIds={
+                          prefetchedStripeIntent?.intentId
+                            ? [prefetchedStripeIntent.intentId]
+                            : undefined
+                        }
+                        inlinePurchase={false}
+                        purchaseEnabled={deliveryComplete && isValidCart}
+                        cartMinimumMet={isValidCart}
+                        cartBlockedNote={
+                          isValidCart
+                            ? null
+                            : `${t("checkout.orderBlocked")} – ${t("checkout.addBottlesRequirement")}`
+                        }
+                        onPurchaseActionsChange={handleDualOfferPurchaseChange}
+                        onStateChange={setDualOfferSession}
+                        sharedPalletCardStepUnlocked={dualOfferCardStepUnlocked}
+                        onSharedPalletCardStepRequest={
+                          handleSharedPalletCardStepRequest
+                        }
+                        showPalletFillStatus={showCheckoutPalletFillStatus}
+                        palletFill={
+                          selectedPallet
+                            ? {
+                                palletId: selectedPallet.id,
+                                // Reserved on pallet (excludes this cart); cart
+                                // producer bottles are added in resolveCheckoutPalletFillDisplay.
+                                reservedBottles: selectedPallet.currentBottles,
+                                capacity: selectedPallet.maxBottles,
+                                cartBottles: producerItems.reduce(
+                                  (sum, line) => sum + (line.quantity || 0),
+                                  0,
+                                ),
+                                // Zone matching only attaches pallets with a
+                                // successful fill query — treat as available.
+                                fillAvailable: true,
+                              }
+                            : null
+                        }
+                        className="pt-4 border-t border-border"
+                      />
                     ) : null}
                   </div>
                 )}
@@ -4274,40 +4834,31 @@ function CheckoutContent({
                       const fields: Array<{
                         id: FieldId;
                         label: string;
-                        unlocked: boolean;
                         done: boolean;
                       }> = [
                         {
                           id: "fullName",
                           label: t("checkout.fullName"),
-                          unlocked: true,
                           done: nameOk,
                         },
                         {
                           id: "email",
                           label: t("checkout.email"),
-                          unlocked: editMode || nameOk,
                           done: emailOk,
                         },
                         {
                           id: "phone",
                           label: t("checkout.phone"),
-                          unlocked: editMode || (nameOk && emailOk),
                           done: phoneOk,
                         },
                         {
                           id: "street",
                           label: t("checkout.streetAddress"),
-                          unlocked:
-                            editMode || (nameOk && emailOk && phoneOk),
                           done: streetOk,
                         },
                         {
                           id: "city",
                           label: t("checkout.city"),
-                          unlocked:
-                            editMode ||
-                            (nameOk && emailOk && phoneOk && streetOk),
                           done: cityOk,
                         },
                       ];
@@ -4315,202 +4866,155 @@ function CheckoutContent({
                         fields.push({
                           id: "regionCode",
                           label: t("checkout.stateTerritory"),
-                          unlocked:
-                            editMode ||
-                            (nameOk &&
-                              emailOk &&
-                              phoneOk &&
-                              streetOk &&
-                              cityOk),
                           done: stateOk,
                         });
                       }
-
-                      const activeId = editMode
-                        ? null
-                        : (fields.find((f) => f.unlocked && !f.done)?.id ??
-                          null);
-
-                      const nextLocked = fields.find((f) => !f.unlocked);
 
                       const patch = (partial: Partial<ZoneDeliveryLines>) =>
                         setDeliveryDraft((d) =>
                           d ? { ...d, ...partial } : d,
                         );
 
-                      // Progressive disclosure: only render unlocked fields
-                      // (no dimmed empty placeholders that look like dead ends).
-                      const visibleFields = editMode
-                        ? fields
-                        : fields.filter((f) => f.unlocked);
-
+                      // All address fields visible at once for browser autofill.
                       return (
                         <>
                           <p className="text-sm text-muted-foreground">
                             {t("checkout.addDeliveryHint")}
                           </p>
-                          {visibleFields.map((field) => {
-                            const isActive = field.id === activeId;
-                            const isDone =
-                              !editMode && field.unlocked && field.done;
+                          {fields.map((field) => {
                             const showInlineError =
-                              isActive &&
-                              !isDone &&
-                              ((field.id === "fullName" &&
+                              (field.id === "fullName" &&
                                 (deliveryDraft.fullName ?? "").trim().length ===
                                   1) ||
-                                (field.id === "email" &&
-                                  (deliveryDraft.email ?? "").length > 0 &&
-                                  !(deliveryDraft.email ?? "").includes("@")) ||
-                                (field.id === "phone" &&
-                                  (deliveryDraft.phone ?? "").trim().length >
-                                    0 &&
-                                  (deliveryDraft.phone ?? "").trim().length <
-                                    6));
+                              (field.id === "email" &&
+                                (deliveryDraft.email ?? "").length > 0 &&
+                                !(deliveryDraft.email ?? "").includes("@")) ||
+                              (field.id === "phone" &&
+                                (deliveryDraft.phone ?? "").trim().length > 0 &&
+                                (deliveryDraft.phone ?? "").trim().length < 6);
 
                             return (
-                              <div
-                                key={field.id}
-                                className={cn(
-                                  "transition-all duration-300 origin-top animate-in fade-in-0 slide-in-from-bottom-1",
-                                  isDone && "opacity-80",
-                                  (isActive || editMode) && "opacity-100",
-                                )}
-                              >
-                                <div className="space-y-1.5">
-                                  <Label
-                                    htmlFor={`checkout-${field.id}`}
-                                    className={cn(
-                                      isDone && "text-xs text-muted-foreground",
-                                      (isActive || editMode) && "text-sm",
-                                    )}
-                                  >
-                                    {field.label}
-                                  </Label>
+                              <div key={field.id} className="space-y-1.5">
+                                <Label
+                                  htmlFor={`checkout-${field.id}`}
+                                  className="text-sm"
+                                >
+                                  {field.label}
+                                </Label>
 
-                                  {field.id === "regionCode" ? (
-                                    <Select
-                                      value={deliveryDraft.regionCode ?? ""}
-                                      onValueChange={(v) =>
-                                        patch({
-                                          regionCode: v || null,
-                                        })
-                                      }
-                                    >
-                                      <SelectTrigger
-                                        className={cn(
-                                          "min-h-12 text-base",
-                                          isDone && "min-h-10 text-sm",
-                                        )}
-                                      >
-                                        <SelectValue
-                                          placeholder={t(
-                                            "checkout.selectState",
-                                          )}
-                                        />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        {listUsStateCodesSorted().map((c) => (
-                                          <SelectItem key={c} value={c}>
-                                            {c}
-                                          </SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
-                                  ) : (
-                                    <Input
-                                      id={`checkout-${field.id}`}
-                                      type={
-                                        field.id === "email"
+                                {field.id === "regionCode" ? (
+                                  <Select
+                                    value={deliveryDraft.regionCode ?? ""}
+                                    onValueChange={(v) =>
+                                      patch({
+                                        regionCode: v || null,
+                                      })
+                                    }
+                                  >
+                                    <SelectTrigger className="h-9 min-h-9 text-sm">
+                                      <SelectValue
+                                        placeholder={t("checkout.selectState")}
+                                      />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {listUsStateCodesSorted().map((c) => (
+                                        <SelectItem key={c} value={c}>
+                                          {c}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                ) : (
+                                  <Input
+                                    id={`checkout-${field.id}`}
+                                    name={
+                                      field.id === "fullName"
+                                        ? "name"
+                                        : field.id === "email"
                                           ? "email"
                                           : field.id === "phone"
                                             ? "tel"
-                                            : "text"
-                                      }
-                                      inputMode={
-                                        field.id === "phone"
+                                            : field.id === "street"
+                                              ? "street-address"
+                                              : "address-level2"
+                                    }
+                                    type={
+                                      field.id === "email"
+                                        ? "email"
+                                        : field.id === "phone"
                                           ? "tel"
-                                          : field.id === "email"
-                                            ? "email"
-                                            : "text"
-                                      }
-                                      enterKeyHint={
-                                        isActive && nextLocked
-                                          ? "next"
-                                          : "done"
-                                      }
-                                      value={
-                                        field.id === "fullName"
-                                          ? (deliveryDraft.fullName ?? "")
-                                          : field.id === "email"
-                                            ? (deliveryDraft.email ?? "")
-                                            : field.id === "phone"
-                                              ? (deliveryDraft.phone ?? "")
-                                              : field.id === "street"
-                                                ? deliveryDraft.street
-                                                : deliveryDraft.city
-                                      }
-                                      autoComplete={
-                                        field.id === "fullName"
-                                          ? "name"
-                                          : field.id === "email"
-                                            ? "email"
-                                            : field.id === "phone"
-                                              ? "tel"
-                                              : field.id === "street"
-                                                ? "street-address"
-                                                : "address-level2"
-                                      }
-                                      autoCapitalize={
-                                        field.id === "email"
-                                          ? "none"
-                                          : undefined
-                                      }
-                                      autoCorrect={
-                                        field.id === "email" ? "off" : undefined
-                                      }
-                                      autoFocus={isActive}
-                                      aria-invalid={
-                                        showInlineError ? true : undefined
-                                      }
-                                      className={cn(
-                                        "min-h-12 text-base",
-                                        isDone && "min-h-10 text-sm",
-                                      )}
-                                      onChange={(e) => {
-                                        const v = e.target.value;
-                                        if (field.id === "fullName")
-                                          patch({ fullName: v });
-                                        else if (field.id === "email")
-                                          patch({ email: v });
-                                        else if (field.id === "phone")
-                                          patch({ phone: v });
-                                        else if (field.id === "street")
-                                          patch({ street: v });
-                                        else if (field.id === "city")
-                                          patch({ city: v });
-                                      }}
-                                    />
-                                  )}
-                                  {showInlineError ? (
-                                    <p
-                                      className="text-sm text-destructive"
-                                      role="alert"
-                                    >
-                                      {t("checkout.fieldRequired")}
-                                    </p>
-                                  ) : null}
-                                </div>
+                                          : "text"
+                                    }
+                                    inputMode={
+                                      field.id === "phone"
+                                        ? "tel"
+                                        : field.id === "email"
+                                          ? "email"
+                                          : "text"
+                                    }
+                                    value={
+                                      field.id === "fullName"
+                                        ? (deliveryDraft.fullName ?? "")
+                                        : field.id === "email"
+                                          ? (deliveryDraft.email ?? "")
+                                          : field.id === "phone"
+                                            ? (deliveryDraft.phone ?? "")
+                                            : field.id === "street"
+                                              ? deliveryDraft.street
+                                              : deliveryDraft.city
+                                    }
+                                    autoComplete={
+                                      field.id === "fullName"
+                                        ? "name"
+                                        : field.id === "email"
+                                          ? "email"
+                                          : field.id === "phone"
+                                            ? "tel"
+                                            : field.id === "street"
+                                              ? "street-address"
+                                              : "address-level2"
+                                    }
+                                    autoCapitalize={
+                                      field.id === "email" ? "none" : undefined
+                                    }
+                                    autoCorrect={
+                                      field.id === "email" ? "off" : undefined
+                                    }
+                                    aria-invalid={
+                                      showInlineError ? true : undefined
+                                    }
+                                    className="h-9 min-h-9 text-sm"
+                                    onChange={(e) => {
+                                      const v = e.target.value;
+                                      if (field.id === "fullName")
+                                        patch({ fullName: v });
+                                      else if (field.id === "email")
+                                        patch({ email: v });
+                                      else if (field.id === "phone")
+                                        patch({ phone: v });
+                                      else if (field.id === "street")
+                                        patch({ street: v });
+                                      else if (field.id === "city")
+                                        patch({ city: v });
+                                    }}
+                                  />
+                                )}
+                                {field.id === "phone" ? (
+                                  <p className="text-xs text-muted-foreground">
+                                    {t("checkout.phoneDeliveryHint")}
+                                  </p>
+                                ) : null}
+                                {showInlineError ? (
+                                  <p
+                                    className="text-sm text-destructive"
+                                    role="alert"
+                                  >
+                                    {t("checkout.fieldRequired")}
+                                  </p>
+                                ) : null}
                               </div>
                             );
                           })}
-                          {!editMode && nextLocked ? (
-                            <p className="text-xs text-muted-foreground">
-                              {t("checkout.nextFieldHint", {
-                                label: nextLocked.label,
-                              })}
-                            </p>
-                          ) : null}
 
                           {editMode ? (
                             <div className="flex items-center gap-3 pt-1">
@@ -4558,10 +5062,26 @@ function CheckoutContent({
               </div>
             </section>
 
+            {/* Mobile: non-binding continue after address (before card step). */}
+            {dualOfferReviewActive &&
+            !dualOfferCardStepUnlocked &&
+            dualOfferPurchase ? (
+              <section
+                className="py-6 border-b border-border last:border-0 min-[1280px]:hidden"
+                data-testid="dual-offer-continue-mobile"
+              >
+                <DualOfferPurchaseActions model={dualOfferPurchase} />
+              </section>
+            ) : null}
+
             <section
               ref={complianceSectionRef}
               className={cn(
-                "py-6 border-b border-border last:border-0 transition-[opacity,transform] duration-500 ease-out",
+                "scroll-mt-top-spacing py-6 border-b border-border last:border-0 transition-[opacity,transform] duration-500 ease-out",
+                // Dual buy unlocks age/terms so SetupIntent can be created.
+                dualOfferReviewActive &&
+                  !dualOfferCardStepUnlocked &&
+                  "hidden",
                 deliveryComplete && complianceStepRevealed
                   ? "opacity-100 translate-y-0"
                   : "opacity-50 translate-y-1",
@@ -4610,17 +5130,27 @@ function CheckoutContent({
                             </Label>
                             <Input
                               id="age-dob"
-                              type="date"
+                              type="text"
+                              inputMode="numeric"
+                              autoComplete="bday"
+                              placeholder={t("checkout.dobPlaceholder")}
                               value={dateOfBirth}
-                              max={new Date().toISOString().slice(0, 10)}
                               onChange={(e) =>
                                 handleAgeDobChange(e.target.value)
                               }
-                              className="max-w-xs min-h-[44px]"
-                              autoComplete="bday"
+                              className="max-w-xs h-9 min-h-9 text-sm"
+                              aria-describedby="age-dob-format"
+                              maxLength={10}
                             />
-                            <p className="text-xs text-muted-foreground">
-                              {t("checkout.ageDeliveryIdHint", { age: requiredAge })}
+                            <p
+                              id="age-dob-format"
+                              className="text-xs text-muted-foreground"
+                            >
+                              {t("checkout.dobPlaceholder")}
+                              {" · "}
+                              {t("checkout.ageDeliveryIdHint", {
+                                age: requiredAge,
+                              })}
                             </p>
                             {ageDobError ? (
                               <p className="text-xs text-destructive">
@@ -4628,39 +5158,42 @@ function CheckoutContent({
                               </p>
                             ) : null}
                           </div>
-                          <div className="flex items-start gap-3 min-h-[44px]">
-                            <Checkbox
-                              id="terms-accept"
-                              checked={termsAccepted}
-                              onCheckedChange={(v) =>
-                                handleTermsChecked(v === true)
-                              }
-                              className="mt-1 min-h-[44px] min-w-[44px]"
-                            />
-                            <label
-                              htmlFor="terms-accept"
-                              className="text-sm leading-snug text-foreground pt-2"
-                            >
-                              {t("checkout.termsAcceptPrefix")}{" "}
-                              <Link
-                                href="/villkor"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="underline underline-offset-2"
+                          {/* Dual-offer card path: terms live under the bind CTA. */}
+                          {!dualOfferCardStepUnlocked ? (
+                            <div className="flex items-start gap-3 min-h-[44px]">
+                              <Checkbox
+                                id="terms-accept"
+                                checked={termsAccepted}
+                                onCheckedChange={(v) =>
+                                  handleTermsChecked(v === true)
+                                }
+                                className="mt-1 min-h-[44px] min-w-[44px]"
+                              />
+                              <label
+                                htmlFor="terms-accept"
+                                className="text-sm leading-snug text-foreground pt-2"
                               >
-                                {t("checkout.termsLinkPurchase")}
-                              </Link>{" "}
-                              {t("checkout.termsAcceptAnd")}{" "}
-                              <Link
-                                href="/integritetspolicy"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="underline underline-offset-2"
-                              >
-                                {t("checkout.termsLinkPrivacy")}
-                              </Link>
-                            </label>
-                          </div>
+                                {t("checkout.termsAcceptPrefix")}{" "}
+                                <Link
+                                  href="/villkor"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="underline underline-offset-2"
+                                >
+                                  {t("checkout.termsLinkPurchase")}
+                                </Link>{" "}
+                                {t("checkout.termsAcceptAnd")}{" "}
+                                <Link
+                                  href="/integritetspolicy"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="underline underline-offset-2"
+                                >
+                                  {t("checkout.termsLinkPrivacy")}
+                                </Link>
+                              </label>
+                            </div>
+                          ) : null}
                           {termsStale ? (
                             <p className="text-xs text-destructive">
                               {t("checkout.termsVersionStale")}{" "}
@@ -4675,7 +5208,9 @@ function CheckoutContent({
                             </p>
                           ) : null}
                         </div>
-                        {!paymentCardRevealed ? (
+                        {!paymentCardRevealed &&
+                        legacySharedPalletPaymentAllowed &&
+                        !dualOfferCardStepUnlocked ? (
                           <Button
                             type="button"
                             className="w-full border-transparent bg-black text-white shadow-none ring-0 hover:border-transparent hover:bg-black/90 hover:shadow-none focus-visible:border-transparent focus-visible:bg-black/90 focus-visible:ring-white/40"
@@ -4684,6 +5219,14 @@ function CheckoutContent({
                           >
                             {t("checkout.continueToPayment")}
                           </Button>
+                        ) : null}
+                        {dualOfferReviewActive && !dualOfferCardStepUnlocked ? (
+                          <p
+                            className="text-sm font-medium text-foreground"
+                            data-testid="dual-offer-legacy-pay-blocked-notice"
+                          >
+                            {t("checkout.dualOfferLegacyPayBlocked")}
+                          </p>
                         ) : null}
                       </>
                     ) : hasProducerItems && !selectedPallet ? (
@@ -4771,18 +5314,43 @@ function CheckoutContent({
             <section
               ref={paymentSectionRef}
               className={cn(
-                "py-6 border-b border-border last:border-0 transition-[opacity,transform] duration-500 ease-out",
-                complianceComplete && paymentCardRevealed
+                "scroll-mt-top-spacing py-6 border-b border-border last:border-0 transition-[opacity,transform] duration-500 ease-out",
+                // Locked until dual buy; then same SetupIntent card step as legacy.
+                dualOfferReviewActive &&
+                  !dualOfferCardStepUnlocked &&
+                  "hidden",
+                (dualOfferCardStepUnlocked || complianceComplete) &&
+                paymentCardRevealed
                   ? "opacity-100 translate-y-0"
                   : "opacity-50 translate-y-1",
               )}
+              data-testid={
+                dualOfferCardStepUnlocked
+                  ? "dual-offer-card-step"
+                  : undefined
+              }
             >
               <div className="space-y-3">
                 <h2 className="text-base font-semibold text-foreground">
                   {t("checkout.payment")}
                 </h2>
 
-                {!paymentCardRevealed ? (
+                {dualOfferReviewActive && !dualOfferCardStepUnlocked ? (
+                  <div
+                    className="space-y-2 rounded-lg border border-dashed border-border bg-muted/20 p-4"
+                    data-testid="dual-offer-payment-isolated"
+                  >
+                    <p className="text-sm font-semibold text-foreground">
+                      {t("checkout.dualOfferPaymentIsolatedTitle")}
+                    </p>
+                    <p className="text-sm text-foreground">
+                      {t("checkout.dualOfferLegacyPayBlocked")}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {t("checkout.dualOfferNoPrefetch")}
+                    </p>
+                  </div>
+                ) : !paymentCardRevealed ? (
                   <p className="text-sm text-muted-foreground">
                     {t("checkout.stepPaymentLocked")}
                   </p>
@@ -4844,7 +5412,7 @@ function CheckoutContent({
                             ) : null}
                           </div>
                         ) : null}
-                        {authReady ? (
+                        {authReady && legacySharedPalletPaymentAllowed ? (
                           <StripePaymentSection
                             key={`stripe-${selectedPallet.id}`}
                             palletId={selectedPallet.id}
@@ -4879,66 +5447,158 @@ function CheckoutContent({
                             legalGate={legalGatePayload}
                             onLegalGateError={handleLegalGateError}
                             prefetchedIntent={prefetchedStripeIntent}
+                            cardOnly
+                            billingCountryCode={ageCountryCode}
+                            onPaymentElementComplete={setPaymentElementComplete}
                           />
                         ) : null}
 
-                        {stripeError ? (
-                          <p className="mt-3 text-sm text-destructive">
-                            {stripeError}
-                          </p>
-                        ) : null}
-
-                        <div className="mt-6 space-y-4 border-t border-border pt-4">
-                          <p className="text-xs text-muted-foreground">
-                            {t("checkout.sellingEntity")}
-                          </p>
-                          <div className="flex items-center justify-between py-4">
-                            <span className="text-base font-semibold text-foreground">
-                              {t("checkout.total")}
-                            </span>
-                            <span className="text-2xl font-bold tabular-nums text-foreground">
-                              {displayTotal == null
-                                ? "…"
-                                : formatChargedAmount(displayTotal)}
-                            </span>
+                        {dualOfferCardStepUnlocked &&
+                        dualOfferSelectedQuote &&
+                        mayStartSharedPalletCardSave(dualOfferSelectedQuote) ? (
+                          <div className="mt-3 space-y-3 border-t border-border pt-3">
+                            <p className="text-xs text-muted-foreground">
+                              {t("checkout.sellingEntity")}
+                            </p>
+                            {(() => {
+                              const bind = buildSharedPalletBindCopy({
+                                locale:
+                                  shopping.locale === "en" ? "en" : "sv",
+                                totalSek: dualOfferSelectedQuote.total_sek,
+                                chargeDeadlineAt:
+                                  dualOfferSelectedQuote.charge_deadline_at,
+                                showDirectOffer: directBoxCheckoutEnabled,
+                              });
+                              const cartBlockedHelper = !isValidCart
+                                ? `${t("checkout.orderBlocked")} – ${t("checkout.addBottlesRequirement")}`
+                                : null;
+                              const bindDisabled =
+                                !isValidCart ||
+                                !legacySharedPalletPaymentAllowed ||
+                                !stripeConfirmFn ||
+                                !paymentMode ||
+                                !stripeIntentId ||
+                                !paymentElementComplete ||
+                                isSubmitting ||
+                                zoneLoading ||
+                                isStripeConfirming ||
+                                isFinalizingReservation ||
+                                !ageConfirmed ||
+                                !termsAccepted ||
+                                !authReady ||
+                                displayTotal == null ||
+                                (isUsConditional && !usConditionalAck);
+                              const bindLoading =
+                                isSubmitting ||
+                                isStripeConfirming ||
+                                isFinalizingReservation;
+                              return (
+                                <DualOfferPurchaseActions
+                                  model={{
+                                    locale:
+                                      shopping.locale === "en" ? "en" : "sv",
+                                    variant: "bind",
+                                    finalCtaLabel: bind.finalCtaLabel,
+                                    totalInclLine: bind.totalInclLine,
+                                    legalLine: bind.legalLine,
+                                    disabled: bindDisabled,
+                                    loading: bindLoading,
+                                    confirmNote: cartBlockedHelper
+                                      ? cartBlockedHelper
+                                      : !paymentElementComplete
+                                        ? dualOfferMsg(
+                                            shopping.locale === "en"
+                                              ? "en"
+                                              : "sv",
+                                            "dualOfferCardIncomplete",
+                                          )
+                                        : null,
+                                    errorNote: stripeError,
+                                    onConfirm: () => {
+                                      void handlePlaceReservation();
+                                    },
+                                  }}
+                                />
+                              );
+                            })()}
                           </div>
+                        ) : (
+                          <>
+                            {stripeError ? (
+                              <p className="mt-3 text-sm text-destructive">
+                                {stripeError}
+                              </p>
+                            ) : null}
 
-                          <p className="text-sm text-stone-600">
-                            {t("checkout.noChargeUntilPalletCloses")}
-                          </p>
+                            <div className="mt-6 space-y-4 border-t border-border pt-4">
+                              <p className="text-xs text-muted-foreground">
+                                {t("checkout.sellingEntity")}
+                              </p>
+                              <div className="flex items-center justify-between py-4">
+                                <span className="text-base font-semibold text-foreground">
+                                  {t("checkout.total")}
+                                </span>
+                                <span className="text-2xl font-bold tabular-nums text-foreground">
+                                  {displayTotal == null
+                                    ? "…"
+                                    : formatChargedAmount(displayTotal)}
+                                </span>
+                              </div>
 
-                          <Button
-                            type="button"
-                            className="w-full border-transparent bg-black text-white shadow-none ring-0 hover:border-transparent hover:bg-black/90 hover:shadow-none focus-visible:border-transparent focus-visible:bg-black/90 focus-visible:ring-white/40"
-                            disabled={
-                              !stripeConfirmFn ||
-                              !paymentMode ||
-                              !stripeIntentId ||
-                              isSubmitting ||
-                              zoneLoading ||
-                              isStripeConfirming ||
-                              isFinalizingReservation ||
-                              !ageConfirmed ||
-                              !termsAccepted ||
-                              !authReady ||
-                              displayTotal == null ||
-                              (isUsConditional && !usConditionalAck)
-                            }
-                            onClick={handlePlaceReservation}
-                          >
-                            {isSubmitting
-                              ? t("checkout.processing")
-                              : paymentMode === "payment_intent"
-                                ? t("checkout.payNow")
-                                : isUsConditional
-                                  ? t("checkout.usConditionalButton")
-                                  : t("checkout.placeReservationWithPayment", {
-                                      amount: formatChargedAmount(
-                                        displayTotal ?? 0,
-                                      ),
-                                    })}
-                          </Button>
-                        </div>
+                              {chargeTimingCopyKey ? (
+                                <p
+                                  className="text-sm text-stone-600"
+                                  data-checkout-charge-timing={
+                                    chargeTimingCopyKey
+                                  }
+                                >
+                                  {t(`checkout.${chargeTimingCopyKey}`)}
+                                </p>
+                              ) : null}
+
+                              <Button
+                                type="button"
+                                data-testid="checkout-place-reservation"
+                                data-checkout-place-cta={placeOrderCta.key}
+                                className="!h-auto min-h-10 w-full !whitespace-normal break-words !rounded-xl border-transparent bg-black !px-5 py-3 text-center text-sm leading-snug text-white shadow-none ring-0 hover:border-transparent hover:bg-black/90 hover:shadow-none focus-visible:border-transparent focus-visible:bg-black/90 focus-visible:ring-white/40 sm:text-base"
+                                disabled={
+                                  !legacySharedPalletPaymentAllowed ||
+                                  !stripeConfirmFn ||
+                                  !paymentMode ||
+                                  !stripeIntentId ||
+                                  isSubmitting ||
+                                  zoneLoading ||
+                                  isStripeConfirming ||
+                                  isFinalizingReservation ||
+                                  !ageConfirmed ||
+                                  !termsAccepted ||
+                                  !authReady ||
+                                  displayTotal == null ||
+                                  (isUsConditional && !usConditionalAck)
+                                }
+                                onClick={handlePlaceReservation}
+                              >
+                                {placeOrderCta.key === "processing"
+                                  ? t("checkout.processing")
+                                  : placeOrderCta.key === "payNow"
+                                    ? t("checkout.payNow")
+                                    : placeOrderCta.key ===
+                                        "usConditionalButton"
+                                      ? t("checkout.usConditionalButton")
+                                      : placeOrderCta.needsAmount
+                                        ? t(
+                                            "checkout.placeReservationWithPayment",
+                                            {
+                                              amount: formatChargedAmount(
+                                                displayTotal ?? 0,
+                                              ),
+                                            },
+                                          )
+                                        : t("checkout.placeReservation")}
+                              </Button>
+                            </div>
+                          </>
+                        )}
                       </>
                     ) : null}
                   </div>
@@ -4957,10 +5617,12 @@ export function CheckoutClient({
   platformOpen = false,
   directBoxCheckoutEnabled = false,
   directBoxAvailability,
+  dualOfferCompareSurfaceAllowed = false,
 }: {
   platformOpen?: boolean;
   directBoxCheckoutEnabled?: boolean;
   directBoxAvailability?: DirectBoxUiAvailability;
+  dualOfferCompareSurfaceAllowed?: boolean;
 }) {
   return (
     <Suspense
@@ -4978,6 +5640,7 @@ export function CheckoutClient({
         platformOpen={platformOpen}
         directBoxCheckoutEnabled={directBoxCheckoutEnabled}
         directBoxAvailability={directBoxAvailability}
+        dualOfferCompareSurfaceAllowed={dualOfferCompareSurfaceAllowed}
       />
       {/* merge modal portal host is inside CheckoutContent */}
     </Suspense>

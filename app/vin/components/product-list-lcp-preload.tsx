@@ -14,8 +14,19 @@ export function ProductListLcpPreload({ products }: { products: Product[] }) {
       {top.map((product, index) => {
         const image = featuredImageForProduct(product);
         const src = image?.url || DEFAULT_WINE_IMAGE_PATH;
-        if (!src || (src.startsWith("/") && src === DEFAULT_WINE_IMAGE_PATH)) {
-          return null;
+        const href = buildNextImagePreloadHref(src, 640);
+        // Skip optimizer preload for the static default bottle.
+        if (href === DEFAULT_WINE_IMAGE_PATH) {
+          return (
+            <link
+              key={product.id}
+              rel="preload"
+              as="image"
+              href={DEFAULT_WINE_IMAGE_PATH}
+              // @ts-expect-error fetchPriority is valid on link in modern browsers
+              fetchPriority={index === 0 ? "high" : "auto"}
+            />
+          );
         }
 
         return (
@@ -23,7 +34,7 @@ export function ProductListLcpPreload({ products }: { products: Product[] }) {
             key={product.id}
             rel="preload"
             as="image"
-            href={buildNextImagePreloadHref(src, 640)}
+            href={href}
             // @ts-expect-error fetchPriority is valid on link in modern browsers
             fetchPriority={index === 0 ? "high" : "auto"}
           />

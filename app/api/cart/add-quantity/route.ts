@@ -252,9 +252,10 @@ export async function POST(request: Request) {
       "@/lib/cart/reconcile-on-auth"
     );
     const touchPromise = bindCartOwnerAndTouch(dbCartId, userId);
+    // Same pricing as checkout/quote: member + early-bird via getCart().
+    // Never skip early-bird here — drawer must match charged wine totals.
     const cart = await CartService.getCart({
       cartDbId: dbCartId,
-      skipEarlyBird: true,
     });
     await touchPromise;
     if (!cart) {

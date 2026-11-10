@@ -1,4 +1,5 @@
 import { isPalletBasedReservation } from "@/lib/commerce/is-pallet-based-reservation";
+import { isReservationOwnedByPalletCloseFlow } from "@/lib/checkout/pallet-close/lifecycle-ownership";
 import { PALLET_FILL_STATUSES } from "@/lib/pallet-fill-count";
 import { isPalletShippingLocked } from "@/lib/pallet-ship-progress";
 import {
@@ -24,6 +25,8 @@ export type ExpiryReservationRow = {
   created_at?: string | null;
   pallet_id?: string | null;
   fulfillment_channel?: string | null;
+  payment_mode?: string | null;
+  pallet_close_state?: string | null;
   payment_status?: string | null;
   payment_method_id?: string | null;
   setup_intent_id?: string | null;
@@ -129,6 +132,7 @@ export function decideReservationExpiryAction(
     ReservationExpiryConfig,
     "maxAgeDays" | "extensionDays" | "replyDays"
   >,
+  opts: { palletCloseFlowEnabled?: boolean } = {},
 ): ExpiryDecision {
   if (isReservationArchived(row)) {
     return { action: "skip", reason: "archived" };
@@ -138,6 +142,13 @@ export function decideReservationExpiryAction(
   }
   if (!isPalletBasedReservation(row)) {
     return { action: "skip", reason: "not_pallet_based" };
+  }
+  if (
+    isReservationOwnedByPalletCloseFlow(row, {
+      palletCloseFlowEnabled: opts.palletCloseFlowEnabled === true,
+    })
+  ) {
+    return { action: "skip", reason: "pallet_close_flow_owns" };
   }
   if (!isPalletStillAwaitingFill(pallet)) {
     return { action: "skip", reason: "pallet_ready_or_locked" };

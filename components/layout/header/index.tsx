@@ -108,7 +108,10 @@ export function Header({
       <nav className="relative z-10 flex gap-2 justify-end items-center md:col-span-9 xl:col-span-10">
         <div className="items-center gap-5 py-0.5 pr-3 bg-transparent hidden md:flex min-w-0">
           {/* Complete order rail should stretch to the left edge of the content column */}
-          <CompleteOrderRailDynamic />
+          {/* Hide on checkout — progress rail overlaps dual-offer on mobile. */}
+          {pathname?.startsWith("/checkout") ? null : (
+            <CompleteOrderRailDynamic />
+          )}
           <ul className="flex items-center gap-5 pl-3 shrink-0">
             {navItems.map((item) => (
               <li key={item.href}>

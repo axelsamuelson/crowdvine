@@ -6,7 +6,8 @@ import {
   roundAmountForDisplay,
 } from "@/lib/shopping-context/format";
 
-// Format price utility - consistent across server and client
+// Format price utility - consistent across server and client.
+// SEK B2C list units are whole kronor (half-up from öre) — never ceil 293.26 → 294.
 export const formatPrice = (
   price: string | number,
   currencyCode: string,
@@ -14,7 +15,9 @@ export const formatPrice = (
 ): string => {
   const amount = typeof price === "string" ? parseFloat(price) : price;
   const decimals = displayFractionDigits(currencyCode);
-  const roundedAmount = roundAmountForDisplay(amount, currencyCode, "ceil");
+  const mode =
+    currencyCode.trim().toUpperCase() === "SEK" ? "round" : "ceil";
+  const roundedAmount = roundAmountForDisplay(amount, currencyCode, mode);
 
   return new Intl.NumberFormat(intlLocale, {
     style: "currency",

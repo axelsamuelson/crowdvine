@@ -3,13 +3,13 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Globe } from "lucide-react";
-import { getCountryDisplayName } from "@/lib/countries";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { useTranslations } from "@/lib/hooks/use-translations";
+import { locationLabelFromZone } from "@/lib/market/location-label";
 import type { ResolvedActiveGeoZone } from "@/lib/market/resolve-active-geo-zone";
 import { cn } from "@/lib/utils";
 
@@ -26,20 +26,6 @@ function isSwedenWineZone(
   zone: Pick<ResolvedActiveGeoZone, "countryCode">,
 ): boolean {
   return zone.countryCode?.trim().toUpperCase() === "SE";
-}
-
-function locationLabelFromZone(
-  displayName: string,
-  countryCode: string,
-  locale: "en" | "sv",
-  fallback: string,
-): string {
-  if (displayName) {
-    const parts = displayName.split(",").map((p) => p.trim()).filter(Boolean);
-    if (parts.length > 0) return parts[parts.length - 1]!;
-  }
-  if (countryCode) return getCountryDisplayName(countryCode, locale);
-  return fallback;
 }
 
 function ZoneTriggerLabel({

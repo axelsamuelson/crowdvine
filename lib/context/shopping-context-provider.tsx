@@ -16,6 +16,7 @@ import {
   intlLocaleForAppLocale,
   type AppLocale,
 } from "@/lib/i18n/locale";
+import { localeFromShopPath } from "@/lib/i18n/shop-path-locale";
 import { translate } from "@/lib/i18n/messages";
 import { switchAboutPath } from "@/lib/i18n/about-page-content";
 import { switchGuidePath } from "@/lib/guides/switch-guide-path";
@@ -86,6 +87,26 @@ function getLocalizedPath(
 
   const guide = switchGuidePath(pathname, newLocale);
   if (guide) return guide;
+
+  // Checkout + profile language pairs (middleware rewrites /en/… → shared tree).
+  if (
+    (pathname === "/checkout" ||
+      pathname.startsWith("/checkout/") ||
+      pathname === "/profile" ||
+      pathname.startsWith("/profile/")) &&
+    newLocale === "en"
+  ) {
+    return `/en${pathname}`;
+  }
+  if (
+    (pathname === "/en/checkout" ||
+      pathname.startsWith("/en/checkout/") ||
+      pathname === "/en/profile" ||
+      pathname.startsWith("/en/profile/")) &&
+    newLocale === "sv"
+  ) {
+    return pathname.replace(/^\/en/, "") || "/";
+  }
 
   // /vin → /wine och vice versa
   if (pathname === "/vin" && newLocale === "en") return "/wine";
@@ -206,6 +227,18 @@ export function ShoppingContextProvider({
       document.documentElement.lang = context.locale;
     }
   }, [context.locale]);
+
+  // Keep shopping.locale aligned with the URL (/en/…) so the language switcher
+  // reflects the active page locale after client navigations.
+  useEffect(() => {
+    const pathLocale = localeFromShopPath(pathname || "");
+    if (!pathLocale || pathLocale === context.locale) return;
+    if (!context.availableLocales.includes(pathLocale)) return;
+    setLocaleCookie(pathLocale);
+    setContext((prev) =>
+      applyLocalePolicyToContext({ ...prev, locale: pathLocale }),
+    );
+  }, [pathname, context.locale, context.availableLocales]);
 
   useEffect(() => {
     return () => refreshAbortRef.current?.abort("unmount");

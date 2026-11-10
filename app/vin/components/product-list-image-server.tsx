@@ -4,6 +4,7 @@ import { DEFAULT_WINE_IMAGE_PATH } from "@/lib/constants";
 import {
   featuredImageForProduct,
   PLP_IMAGE_QUALITY,
+  resolvePlpImageSrc,
 } from "@/lib/shop/plp-image";
 import type { Product } from "@/lib/shopify/types";
 
@@ -17,8 +18,9 @@ export function ProductListImageServer({
   index?: number;
 }) {
   const imageToShow = featuredImageForProduct(product);
-  const imageUrl = imageToShow?.url || DEFAULT_WINE_IMAGE_PATH;
+  const imageUrl = resolvePlpImageSrc(imageToShow?.url);
   const isAboveFold = priority || index < 4;
+  const isDefaultWine = imageUrl === DEFAULT_WINE_IMAGE_PATH;
 
   return (
     <div className="block size-full overflow-clip [&_img]:block">
@@ -35,6 +37,7 @@ export function ProductListImageServer({
         fetchPriority={index < 2 ? "high" : isAboveFold ? "auto" : "low"}
         placeholder={imageToShow?.thumbhash ? "blur" : undefined}
         blurDataURL={imageToShow?.thumbhash}
+        unoptimized={isDefaultWine}
       />
     </div>
   );

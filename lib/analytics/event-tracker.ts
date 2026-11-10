@@ -6,6 +6,11 @@ import {
   readGeoCountryCode,
 } from "@/lib/analytics/visitor-identity";
 import { isStaleRefreshTokenError, isAuthNetworkError } from "@/lib/auth/session-errors";
+import {
+  isUserEventsSchemaError,
+  isUserEventsSchemaLag,
+  markUserEventsSchemaLag,
+} from "@/lib/analytics/user-events-schema-lag";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
 /** Where a Reserve / add-to-cart CTA was clicked. */
@@ -238,10 +243,31 @@ export class AnalyticsTracker {
       user_agent: navigator.userAgent,
     };
 
+    // Preview/audit DBs may use a stub user_events (event_name only) or lag
+    // migrations 181/186. After first column miss, insert stub shape only —
+    // never keep POSTing the production payload (repeated 400s).
+    const stubRow = {
+      user_id: userId,
+      event_name: eventType,
+      event_metadata: eventMetadata,
+    };
+
+    const stripNewCols = <T extends Record<string, unknown>>(row: T) => {
+      const {
+        visitor_id: _omitVisitor,
+        country_code: _omitCountry,
+        ...rest
+      } = row;
+      return rest;
+    };
+
     if (keepalive) {
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
       const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
       if (!supabaseUrl || !anonKey) return;
+      const body = isUserEventsSchemaLag()
+        ? stubRow
+        : stripNewCols(eventData);
       try {
         void fetch(`${supabaseUrl}/rest/v1/user_events`, {
           method: "POST",
@@ -251,9 +277,17 @@ export class AnalyticsTracker {
             "Content-Type": "application/json",
             Prefer: "return=minimal",
           },
-          body: JSON.stringify(eventData),
+          body: JSON.stringify(body),
           keepalive: true,
-        });
+        })
+          .then((res) => {
+            if (!res.ok && res.status >= 400 && res.status < 500) {
+              markUserEventsSchemaLag();
+            }
+          })
+          .catch(() => {
+            // unload — ignore
+          });
       } catch {
         // unload — ignore
       }
@@ -268,26 +302,43 @@ export class AnalyticsTracker {
     }
 
     try {
+      if (isUserEventsSchemaLag()) {
+        const stub = await supabase.from("user_events").insert(stubRow);
+        if (
+          stub.error &&
+          process.env.NODE_ENV === "development" &&
+          stub.error.message
+        ) {
+          console.warn(
+            "[analytics] user_events stub insert:",
+            stub.error.message,
+          );
+        }
+        return;
+      }
+
       const { error } = await supabase.from("user_events").insert(eventData);
       if (error) {
         const m = error.message || "";
-        // Pre-migration: visitor_id / country_code columns may not exist yet.
-        if (/visitor_id|country_code|schema cache|Could not find/i.test(m)) {
-          const {
-            visitor_id: _omitVisitor,
-            country_code: _omitCountry,
-            ...withoutNewCols
-          } = eventData;
-          let retryPayload: Record<string, unknown> = withoutNewCols;
-          if (/country_code/i.test(m) && !/visitor_id/i.test(m)) {
-            retryPayload = {
-              ...withoutNewCols,
-              visitor_id: eventData.visitor_id,
-            };
-          }
-          const retry = await supabase.from("user_events").insert(retryPayload);
-          if (retry.error && process.env.NODE_ENV === "development") {
-            console.warn("[analytics] user_events insert:", retry.error.message);
+        if (isUserEventsSchemaError(m) || /400|PGRST/i.test(m)) {
+          markUserEventsSchemaLag();
+          // Retry once without visitor_id/country_code (181/186 lag).
+          const withoutNewCols = stripNewCols(eventData);
+          const retry = await supabase
+            .from("user_events")
+            .insert(withoutNewCols);
+          if (!retry.error) return;
+          markUserEventsSchemaLag();
+          // Audit stub: only event_name (+ metadata/user_id).
+          const stub = await supabase.from("user_events").insert(stubRow);
+          if (
+            stub.error &&
+            process.env.NODE_ENV === "development"
+          ) {
+            console.warn(
+              "[analytics] user_events schema lag — stub insert failed:",
+              stub.error.message,
+            );
           }
           return;
         }
@@ -391,7 +442,13 @@ export class AnalyticsTracker {
     fill_percent?: number;
     bottles_remaining?: number;
     is_ready_to_ship?: boolean;
-    source?: "product" | "list";
+    source?: "product" | "list" | "checkout";
+    /** Absolute fill count shown to the customer (may include cart). */
+    fill_count?: number;
+    capacity?: number;
+    pallet_id?: string;
+    /** Whether the thin fill bar is shown (CRO threshold). */
+    show_bar?: boolean;
   }) {
     return this.trackEvent({
       eventType: "pallet_status_viewed",
@@ -408,6 +465,10 @@ export class AnalyticsTracker {
           ? { is_ready_to_ship: extras.is_ready_to_ship }
           : {}),
         ...(extras?.source ? { source: extras.source } : {}),
+        ...(extras?.fill_count != null ? { fill_count: extras.fill_count } : {}),
+        ...(extras?.capacity != null ? { capacity: extras.capacity } : {}),
+        ...(extras?.pallet_id ? { pallet_id: extras.pallet_id } : {}),
+        ...(extras?.show_bar != null ? { show_bar: extras.show_bar } : {}),
       },
     });
   }

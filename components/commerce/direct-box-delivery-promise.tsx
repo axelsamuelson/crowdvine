@@ -5,10 +5,12 @@ import {
   DIRECT_BOX_DELIVERY_MESSAGE_KEY,
   isProducerSourcedWine,
 } from "@/lib/commerce/direct-box-delivery";
+import { isDirectBoxCheckoutEnabled } from "@/lib/commerce/fulfillment-channel";
 import { cn } from "@/lib/utils";
 
 /**
  * Customer-facing B2C delivery promise: direct box from producer.
+ * Hidden unless DIRECT_BOX_CHECKOUT_ENABLED (same gate as checkout direct row).
  * No pallet fill / capacity. Optional time string only via marked TODO constant.
  */
 export function DirectBoxDeliveryPromise({
@@ -16,12 +18,18 @@ export function DirectBoxDeliveryPromise({
   className,
   compact = false,
   sourceType,
+  enabled,
 }: {
   locale?: AppLocale;
   className?: string;
   compact?: boolean;
   sourceType?: string | null;
+  /** Override; defaults to DIRECT_BOX_CHECKOUT_ENABLED. */
+  enabled?: boolean;
 }) {
+  const show =
+    enabled !== undefined ? enabled : isDirectBoxCheckoutEnabled();
+  if (!show) return null;
   if (!isProducerSourcedWine(sourceType)) return null;
 
   const promise = translate(locale, DIRECT_BOX_DELIVERY_MESSAGE_KEY);

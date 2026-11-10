@@ -3,14 +3,19 @@ import { getCurrentUser } from "../../lib/auth";
 import { getMemberDiscountForUserId } from "../../lib/membership/server-member-discount";
 import { getLevelDisplayName } from "../../lib/membership/points-engine";
 import { formatCartDiscountLabel } from "../../lib/cart/discount-label";
-import { memberDiscountedTotalInclVat } from "../../lib/price-breakdown";
+import { resolveWineImageSrc } from "../../lib/cart/wine-image-url";
 import { resolvePalletEarlyBirdContext } from "../../lib/pallet-early-bird-context";
-import { applyPalletDiscount, type DiscountTier } from "../../lib/pallet-discount";
+import type { DiscountTier } from "../../lib/pallet-discount";
+import {
+  b2cLineTotalSek,
+  b2cWholeKronorFromOre,
+} from "@/lib/cart/b2c-line-pricing";
 import { supabaseServer } from "../../lib/supabase-server";
 import type { Cart, CartItem } from "../../lib/shopify/types";
 import { getOrSetCartId, clearCartId } from "./cookies";
 import { convertSekForDisplay } from "@/lib/shopping-context/currency-convert";
 import { resolveDisplayCurrency } from "@/lib/shopping-context/display-currency";
+import { getShoppingContextFromRequest } from "@/lib/shopping-context/server";
 import { bindCartOwnerAndTouch } from "@/lib/cart/reconcile-on-auth";
 import { getCurrentUser as getSessionUser } from "@/lib/supabase-server";
 import { isB2BHost } from "@/lib/b2b-site";
@@ -155,8 +160,14 @@ export class CartService {
     try {
       const display = await resolveDisplayCurrency();
       const { currencyCode: displayCurrency, sekToDisplayRate } = display;
+      const shoppingLocale = await getShoppingContextFromRequest({
+        skipUser: true,
+      })
+        .then((ctx) => (ctx.locale === "en" ? "en" : "sv"))
+        .catch(() => "sv" as const);
+      // Whole-kronor B2C units are already half-up; keep half-up after FX.
       const toDisplay = (sek: number) =>
-        Math.ceil(
+        Math.round(
           convertSekForDisplay(sek, displayCurrency, sekToDisplayRate),
         );
 
@@ -367,26 +378,23 @@ export class CartService {
             : null;
         const producerBoostActive = producerData?.boost_active === true;
 
-        const unitListSek = Math.ceil(wine.base_price_cents / 100);
-        const unitMemberSek = memberDiscountedTotalInclVat(
-          unitListSek,
-          memberDiscountPercent,
-        );
-        const lineTotalMember = unitMemberSek * row.quantity;
-        // Pallet early-bird discount is applied multiplicatively on top of member price,
-        // not additively. A 200 SEK member price with 20% early-bird = 160 SEK, not
-        // 200 * (1 - memberPct - 0.20).
-        const lineTotalSek =
-          palletTier > 0
-            ? applyPalletDiscount(lineTotalMember, palletTier)
-            : lineTotalMember;
+        const unitListSek = b2cWholeKronorFromOre(wine.base_price_cents);
+        // Round discounted unit (member + early-bird) to whole kronor first;
+        // line total = unit × qty so UI "2 × 86 kr" always equals the line.
+        const { unitSek: unitChargedSek, lineTotalSek } = b2cLineTotalSek({
+          listUnitSek: unitListSek,
+          memberPercent: memberDiscountPercent,
+          earlyBirdTier: (palletTier || 0) as DiscountTier,
+          quantity: row.quantity,
+        });
         const lineTotalDisplay = toDisplay(lineTotalSek);
-        const unitDisplay = toDisplay(unitMemberSek);
+        const unitDisplay = toDisplay(unitChargedSek);
 
         const discountLabel = formatCartDiscountLabel({
           memberName: memberLevelName,
           memberPercent: memberDiscountPercent,
           earlyBirdPercent: palletTier,
+          locale: shoppingLocale,
         });
 
         const hasDiscount =
@@ -477,7 +485,7 @@ export class CartService {
               },
               featuredImage: {
                 id: `${wine.id}-img`,
-                url: wine.label_image_path,
+                url: resolveWineImageSrc(wine.label_image_path),
                 altText: wine.wine_name,
                 width: 600,
                 height: 600,
@@ -487,7 +495,7 @@ export class CartService {
               images: [
                 {
                   id: `${wine.id}-img`,
-                  url: wine.label_image_path,
+                  url: resolveWineImageSrc(wine.label_image_path),
                   altText: wine.wine_name,
                   width: 600,
                   height: 600,

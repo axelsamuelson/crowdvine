@@ -2937,9 +2937,6 @@ export async function POST(request: Request) {
     const successMessage = usConditionalCheckout
       ? "Conditional reservation placed — your card was verified. You will not be charged until the drop is approved for your state."
       : "Reservation placed successfully";
-    const successUrl = `/checkout/success?success=true&reservationId=${reservation.id}${checkoutGroupQuery}&message=${encodeURIComponent(
-      successMessage,
-    )}`;
 
     const reservationEvents =
       b2cProducerCheckout && createdReservations.length > 0
@@ -2990,7 +2987,11 @@ export async function POST(request: Request) {
 
     const markInternal = clientInternal || reservationIsTestPurchase;
 
+    /** True when order confirmation was sent or already claimed (queued). */
+    let confirmationEmailSent = false;
+
     // Order confirmation: server-side only, once per reservation (email_sends claim).
+    // Provider: Resend via sendGridService (legacy name). Gated by RESEND_API_KEY.
     try {
       if (!process.env.RESEND_API_KEY?.trim()) {
         console.info(
@@ -3001,6 +3002,48 @@ export async function POST(request: Request) {
         const { sendTransactionalEmailOnce } = await import(
           "@/lib/email/claim-email-send"
         );
+
+        // Shared-pallet senast {datum} for confirmation email (compute; no migration).
+        let chargeDeadlineAt: string | null = null;
+        let chargeDeadlineLabel: string | null = null;
+        try {
+          const { computeSharedPalletChargeDeadlineIso, formatSharedPalletChargeDeadline } =
+            await import("@/lib/checkout/shared-pallet-deadline");
+          const { isPalletBasedReservation } = await import(
+            "@/lib/commerce/is-pallet-based-reservation"
+          );
+          const emailPalletId =
+            typeof palletId === "string" && palletId.trim()
+              ? palletId.trim()
+              : "";
+          if (
+            emailPalletId &&
+            isPalletBasedReservation({ pallet_id: emailPalletId })
+          ) {
+            const { data: palletForDeadline } = await sbAdmin
+              .from("pallets")
+              .select("created_at")
+              .eq("id", emailPalletId)
+              .maybeSingle();
+            const created =
+              palletForDeadline &&
+              typeof (palletForDeadline as { created_at?: unknown })
+                .created_at === "string"
+                ? (palletForDeadline as { created_at: string }).created_at
+                : null;
+            chargeDeadlineAt =
+              computeSharedPalletChargeDeadlineIso(created);
+            chargeDeadlineLabel = formatSharedPalletChargeDeadline(
+              chargeDeadlineAt,
+              "sv",
+            );
+          }
+        } catch (deadlineErr) {
+          console.warn(
+            "[checkout/confirm] charge deadline for email skipped:",
+            deadlineErr,
+          );
+        }
 
         const emailData = {
           customerEmail: address.email,
@@ -3028,6 +3071,8 @@ export async function POST(request: Request) {
             postalCode: address.postcode,
             country: address.countryCode,
           },
+          chargeDeadlineAt,
+          chargeDeadlineLabel,
         };
 
         const sendResult = await sendTransactionalEmailOnce({
@@ -3038,11 +3083,14 @@ export async function POST(request: Request) {
         });
 
         if (sendResult === "sent") {
+          confirmationEmailSent = true;
           console.log(
             "📧 Order confirmation email sent to:",
             address.email,
           );
         } else if (sendResult === "skipped") {
+          // Prior claim means the confirmation was already queued/sent for this reservation.
+          confirmationEmailSent = true;
           console.warn(
             "[email_sends] skip order_confirmation — already claimed for",
             reservation.id,
@@ -3057,6 +3105,10 @@ export async function POST(request: Request) {
     } catch (emailError) {
       console.error("📧 Error sending order confirmation email:", emailError);
     }
+
+    const successUrl = `/checkout/success?success=true&reservationId=${reservation.id}${checkoutGroupQuery}&message=${encodeURIComponent(
+      successMessage,
+    )}${confirmationEmailSent ? "&confirmationEmailSent=1" : ""}`;
 
     for (const ev of reservationEvents) {
       if (process.env.NODE_ENV === "development") {
@@ -3119,6 +3171,7 @@ export async function POST(request: Request) {
       reservations: reservationsForResponse,
       reservation: reservationsForResponse[0],
       redirectUrl: successUrl,
+      confirmationEmailSent,
       voucherApplied,
       ...(voucherApplied ? { voucherDiscountCents } : {}),
       ...(pactPointsRedeemed > 0

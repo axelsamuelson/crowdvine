@@ -33,6 +33,16 @@ export function formatMoney(
       ? Math.round(amount * 10 ** decimals) / 10 ** decimals
       : Math.ceil(amount * 10 ** decimals) / 10 ** decimals;
 
+  const code = currencyCode.trim().toUpperCase() || "SEK";
+  // EN + SEK: always "1 283 SEK" (never "kr 1,283") for checkout consistency.
+  if (code === "SEK" && locale === "en") {
+    const amountLabel = new Intl.NumberFormat("sv-SE", {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+    }).format(rounded);
+    return `${amountLabel} SEK`;
+  }
+
   return new Intl.NumberFormat(intlLocaleForAppLocale(locale), {
     style: "currency",
     currency: currencyCode,

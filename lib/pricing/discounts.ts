@@ -10,7 +10,7 @@ export type PalletTier = 0 | 10 | 20;
 
 /**
  * B2C member discount on gross list price (öre).
- * Matches `memberDiscountedTotalInclVat`: ceil after float normalization.
+ * Matches `memberDiscountedTotalInclVat`: half-up whole kronor after float normalization.
  */
 export function applyB2cMemberDiscountOre(
   listTotalOre: number,
@@ -19,7 +19,7 @@ export function applyB2cMemberDiscountOre(
   if (!(memberDiscountPercent > 0) || !(listTotalOre > 0)) return listTotalOre;
   const listSek = listTotalOre / 100;
   const raw = listSek * (1 - memberDiscountPercent / 100);
-  return Math.ceil(Number.parseFloat(raw.toFixed(2))) * 100;
+  return Math.round(Number.parseFloat(raw.toFixed(2))) * 100;
 }
 
 /**
@@ -54,8 +54,15 @@ export function applyPalletDiscountOre(
   return Math.round((priceOre / 100) * factor) * 100;
 }
 
-/** Tier from bottles already reserved on the 300-bottle scale. */
-export function getPalletDiscountTier(bottlesFilled: number): PalletTier {
+/**
+ * Tier from bottles already reserved on the 300-bottle scale.
+ * Pass `{ enabled: false }` to force 0% (runtime site_content switch).
+ */
+export function getPalletDiscountTier(
+  bottlesFilled: number,
+  opts?: { enabled?: boolean },
+): PalletTier {
+  if (opts?.enabled === false) return 0;
   if (bottlesFilled < 100) return 20;
   if (bottlesFilled < 200) return 10;
   return 0;

@@ -29,7 +29,15 @@ describe("cart/checkout display wiring", () => {
 
     expect(checkout).toContain("formatCartLinePrice");
     expect(checkout).toContain("formatChargedAmount");
-    expect(checkout).not.toMatch(/\$\{Math\.round\([^)]+\)\} kr/);
+    // Coupon offer/applied copy intentionally uses "100 kr" / "100 SEK" (Inès);
+    // other checkout amounts still go through formatChargedAmount.
+    const checkoutWithoutCouponAmounts = checkout.replace(
+      /shopping\.locale === "en"\s*\?\s*`\$\{Math\.round\([^`]+\} SEK`\s*:\s*`\$\{Math\.round\([^`]+\} kr`/g,
+      "COUPON_AMOUNT",
+    );
+    expect(checkoutWithoutCouponAmounts).not.toMatch(
+      /\$\{Math\.round\([^)]+\)\} kr/,
+    );
 
     // Case sheet prices are SEK storage → convert via formatSek, never formatPrice(..., "SEK")
     expect(addToCartCase).toContain("formatSek");

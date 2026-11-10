@@ -67,8 +67,12 @@ export const ProductImage = memo(({ product, priority = false, index = 0 }: Prod
     };
   }, [shouldLoad, imageToShow?.url]);
 
-  // If no image is available, use default wine image
-  const imageUrl = imageToShow?.url || DEFAULT_WINE_IMAGE_PATH;
+  // If no image is available, use default wine image. Absolute
+  // …/default-wine.png from prior deploys must stay relative.
+  const imageUrl =
+    !imageToShow?.url || /(?:^|\/)default-wine\.png$/i.test(imageToShow.url)
+      ? DEFAULT_WINE_IMAGE_PATH
+      : imageToShow.url;
 
   // Don't render image until it should load (unless priority)
   if (!shouldLoad && !priority) {
@@ -94,7 +98,13 @@ export const ProductImage = memo(({ product, priority = false, index = 0 }: Prod
         fetchPriority={priority || index < 3 ? "high" : "auto"}
         placeholder={imageToShow?.thumbhash ? "blur" : undefined}
         blurDataURL={imageToShow?.thumbhash}
-        unoptimized={false}
+        // Static default-wine through /_next/image has returned 400 on preview;
+        // serve the file directly when falling back.
+        unoptimized={
+          !imageToShow?.url ||
+          imageUrl === DEFAULT_WINE_IMAGE_PATH ||
+          /default-wine\.png$/i.test(imageUrl)
+        }
       />
     </div>
   );

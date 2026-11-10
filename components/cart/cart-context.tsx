@@ -31,6 +31,8 @@ type CartAction =
 
 type UseCartReturn = {
   isPending: boolean;
+  /** False until the first server/cache cart resolve finishes — hide badge until then. */
+  cartReady: boolean;
   cart: Cart | undefined;
   addItem: (
     variant: ProductVariant,
@@ -211,63 +213,66 @@ function cartReducer(state: Cart | undefined, action: CartAction): Cart {
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [isPending, startTransition] = useTransition();
+  /**
+   * True for the full add/update fetch (not just the optimistic transition).
+   * Prevents the header badge from flashing CART (0) while the first add
+   * is in flight after an empty cart.
+   */
+  const [isMutating, setIsMutating] = useState(false);
   const [cart, setCart] = useState<Cart | undefined>(undefined);
+  /**
+   * True only after the first server getCart settles.
+   * Never set from localStorage alone — a stale cache of (0) must not flash
+   * in the header badge before the real quantity is known.
+   */
+  const [cartReady, setCartReady] = useState(false);
   const [optimisticCart, updateOptimisticCart] = useOptimistic<
     Cart | undefined,
     CartAction
   >(cart, cartReducer);
 
   useEffect(() => {
-    // Try to load from localStorage first for instant display
-    const loadCachedCart = () => {
-      try {
-        const cachedCart = localStorage.getItem("cart-cache");
-        if (cachedCart) {
-          const parsedCart = JSON.parse(cachedCart);
-          // Check if cache is not too old (5 minutes)
-          const cacheTime = localStorage.getItem("cart-cache-time");
-          if (cacheTime && Date.now() - parseInt(cacheTime) < 5 * 60 * 1000) {
+    // Warm drawer from cache (optional) but keep cartReady false until server.
+    try {
+      const cachedCart = localStorage.getItem("cart-cache");
+      if (cachedCart) {
+        const cacheTime = localStorage.getItem("cart-cache-time");
+        if (cacheTime && Date.now() - parseInt(cacheTime) < 5 * 60 * 1000) {
+          const parsedCart = JSON.parse(cachedCart) as Cart;
+          // Only warm non-empty cache into state; empty cache would flash (0).
+          if (
+            parsedCart &&
+            typeof parsedCart.totalQuantity === "number" &&
+            parsedCart.totalQuantity > 0
+          ) {
             setCart(parsedCart);
-            return parsedCart;
           }
         }
-      } catch (error) {
-        console.warn("Failed to load cached cart:", error);
       }
-      return null;
-    };
-
-    // Load cached cart immediately
-    const cachedCart = loadCachedCart();
-
-    // If we have cached data, we're already initialized
-    if (cachedCart) {
-      // Still fetch fresh data in background, but don't block UI
-      CartActions.getCart()
-        .then((freshCart) => {
-          if (freshCart) {
-            setCart(freshCart);
-            // Cache the fresh cart data
-            try {
-              localStorage.setItem("cart-cache", JSON.stringify(freshCart));
-              localStorage.setItem("cart-cache-time", Date.now().toString());
-            } catch (error) {
-              console.warn("Failed to cache cart:", error);
-            }
-          }
-        })
-        .catch(() => {
-          // Silent fail for background refresh
-        });
-      return;
+    } catch (error) {
+      console.warn("Failed to load cached cart:", error);
     }
 
-    // No cached data, fetch from server
-    CartActions.getCart()
-      .then((freshCart) => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        // Logged-in fresh sessions: merge anonymous → user cart BEFORE the
+        // first getCart, otherwise the badge settles on (0) while checkout
+        // already shows the merged lines.
+        await fetch("/api/cart/merge", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ strategy: "auto" }),
+        });
+      } catch {
+        // Guests / merge failures: still proceed to getCart.
+      }
+      if (cancelled) return;
+      try {
+        const freshCart = await CartActions.getCart();
+        if (cancelled) return;
         if (freshCart) {
           setCart(freshCart);
-          // Cache the fresh cart data
           try {
             localStorage.setItem("cart-cache", JSON.stringify(freshCart));
             localStorage.setItem("cart-cache-time", Date.now().toString());
@@ -277,10 +282,16 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         } else {
           setCart(undefined);
         }
-      })
-      .catch(() => {
-        // Silent fail - cart will remain undefined
-      });
+      } catch {
+        // Silent fail — badge stays on skeleton until we mark ready below.
+      } finally {
+        if (!cancelled) setCartReady(true);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Separate useEffect for cart-refresh event listener
@@ -326,29 +337,34 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const update = useCallback(
     async (lineId: string, merchandiseId: string, nextQuantity: number) => {
-      // Optimistic update for instant UI feedback
-      startTransition(() => {
-        updateOptimisticCart({
-          type: "UPDATE_ITEM",
-          payload: { merchandiseId, nextQuantity },
+      setIsMutating(true);
+      try {
+        // Optimistic update for instant UI feedback
+        startTransition(() => {
+          updateOptimisticCart({
+            type: "UPDATE_ITEM",
+            payload: { merchandiseId, nextQuantity },
+          });
         });
-      });
 
-      // Perform server update
-      const fresh = await CartActions.updateItem({
-        lineId,
-        quantity: nextQuantity,
-      });
+        // Perform server update
+        const fresh = await CartActions.updateItem({
+          lineId,
+          quantity: nextQuantity,
+        });
 
-      if (fresh) {
-        setCart(fresh);
-        // Update localStorage cache
-        try {
-          localStorage.setItem("cart-cache", JSON.stringify(fresh));
-          localStorage.setItem("cart-cache-time", Date.now().toString());
-        } catch (error) {
-          console.warn("Failed to cache cart:", error);
+        if (fresh) {
+          setCart(fresh);
+          // Update localStorage cache
+          try {
+            localStorage.setItem("cart-cache", JSON.stringify(fresh));
+            localStorage.setItem("cart-cache-time", Date.now().toString());
+          } catch (error) {
+            console.warn("Failed to cache cart:", error);
+          }
         }
+      } finally {
+        setIsMutating(false);
       }
     },
     [updateOptimisticCart],
@@ -377,6 +393,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         normalizedVariantId,
       );
 
+      setIsMutating(true);
       // Optimistic update for instant UI feedback
       startTransition(() => {
         console.log("🛒 Performing optimistic update...");
@@ -433,6 +450,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         console.error("🛒 Simple API route error:", apiError);
         // If add failed, revert optimistic update
         setCart(cart);
+      } finally {
+        setIsMutating(false);
       }
       return fresh;
     },
@@ -444,9 +463,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       cart: optimisticCart, // Don't create empty cart - let it be undefined until loaded
       addItem: add,
       updateItem: update,
-      isPending,
+      // Cover optimistic transition + full network mutate so badge never
+      // flashes (0) during the first add-to-cart.
+      isPending: isPending || isMutating,
+      cartReady,
     }),
-    [optimisticCart, add, update, isPending],
+    [optimisticCart, add, update, isPending, isMutating, cartReady],
   );
 
   // Always render children immediately - don't block the UI

@@ -71,6 +71,7 @@ export async function POST(request: NextRequest) {
       value: result.value,
       applies_to: result.applies_to,
       purpose: result.purpose,
+      description: result.description,
       discount_amount_sek: result.discount_amount_sek,
       final_total_sek: result.final_total_sek,
       is_exit_discount: result.is_exit_discount === true,

@@ -1,6 +1,8 @@
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { wineDisplayTitle } from "@/lib/wine-display-title";
 import { getAppUrl, getInternalFetchHeaders } from "@/lib/app-url";
+import { DEFAULT_WINE_IMAGE_PATH } from "@/lib/constants";
+import { b2cWholeKronorFromOre } from "@/lib/cart/b2c-line-pricing";
 import { calculateRoundedB2BPriceExclVat } from "@/lib/price-breakdown";
 import { resolveWineAlcoholTaxCents } from "@/lib/wine-alcohol-tax";
 import { isB2BHost } from "@/lib/b2b-site";
@@ -528,16 +530,31 @@ export async function getCrowdvineProductByHandle(options: {
 
   // Helper function to convert relative paths to full URLs
   const convertToFullUrl = (path: string | null | undefined): string => {
-    if (!path)
-      return "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&h=600&fit=crop";
+    if (!path) return DEFAULT_WINE_IMAGE_PATH;
 
     // Clean up any newline characters or whitespace
     const cleanPath = path.trim().replace(/\n/g, "");
 
-    if (cleanPath.startsWith("http")) return cleanPath; // Already a full URL
+    if (
+      !cleanPath ||
+      cleanPath === DEFAULT_WINE_IMAGE_PATH ||
+      /(?:^|\/)default-wine\.png$/i.test(cleanPath)
+    ) {
+      return DEFAULT_WINE_IMAGE_PATH;
+    }
+
+    if (cleanPath.startsWith("http")) {
+      if (/(?:^|\/)default-wine\.png$/i.test(cleanPath)) {
+        return DEFAULT_WINE_IMAGE_PATH;
+      }
+      return cleanPath; // Already a full URL
+    }
     if (cleanPath.startsWith("/uploads/")) {
       const baseUrl = getAppUrl();
-      const fileName = cleanPath.replace("/uploads/", "");
+      const fileName = cleanPath.replace("/uploads/", "").trim();
+      if (!fileName || /default-wine\.png$/i.test(fileName)) {
+        return DEFAULT_WINE_IMAGE_PATH;
+      }
       return `${baseUrl}/api/images/${fileName}`;
     }
     const baseUrl = getAppUrl();
@@ -805,7 +822,7 @@ export async function getCrowdvineProductByHandle(options: {
         title: "750 ml",
         availableForSale,
         price: {
-          amount: Math.ceil(i.base_price_cents / 100).toString(),
+          amount: b2cWholeKronorFromOre(i.base_price_cents).toString(),
           currencyCode: "SEK",
         },
         selectedOptions: [
@@ -828,11 +845,11 @@ export async function getCrowdvineProductByHandle(options: {
     ],
     priceRange: {
       minVariantPrice: {
-        amount: Math.ceil(i.base_price_cents / 100).toString(),
+        amount: b2cWholeKronorFromOre(i.base_price_cents).toString(),
         currencyCode: "SEK",
       },
       maxVariantPrice: {
-        amount: Math.ceil(i.base_price_cents / 100).toString(),
+        amount: b2cWholeKronorFromOre(i.base_price_cents).toString(),
         currencyCode: "SEK",
       },
     },

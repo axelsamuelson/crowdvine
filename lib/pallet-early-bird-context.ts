@@ -1,7 +1,8 @@
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { determineZones, type DeliveryAddress } from "@/lib/zone-matching";
 import { getPalletFillData } from "@/lib/pallet-fill-count";
-import { getPalletDiscountTier, type DiscountTier } from "@/lib/pallet-discount";
+import type { DiscountTier } from "@/lib/pallet-discount";
+import { resolvePalletDiscountTier } from "@/lib/pricing/early-bird-config";
 import {
   STOCKHOLM_FALLBACK_GEO_ADDRESS,
   resolveDefaultStockholmDeliveryZoneId,
@@ -322,7 +323,7 @@ export async function resolvePalletEarlyBirdContext(
       fill;
     return {
       bottlesFilled,
-      discountTier: getPalletDiscountTier(bottlesFilled),
+      discountTier: await resolvePalletDiscountTier(bottlesFilled),
       bottleCapacity,
       minBottlesToShip,
       shipProgress,

@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "motion/react";
 import { Loader } from "@/components/ui/loader";
+import { b2cWholeKronorFromOre } from "@/lib/cart/b2c-line-pricing";
 import { useDisplayMoney } from "@/lib/hooks/use-display-money";
 import {
   Sheet,
@@ -213,7 +214,7 @@ function MixedCaseWineDetailBody({
           </h2>
         ) : null}
         <p className={cn("text-base font-semibold", !hideTitleBlock && "mt-1")}>
-          {formatSek(Math.ceil(wine.base_price_cents / 100))}
+          {formatSek(b2cWholeKronorFromOre(wine.base_price_cents))}
           <span className="text-xs font-normal text-muted-foreground"> / bottle</span>
         </p>
       </div>
@@ -870,7 +871,7 @@ function MixedCaseWineListPanel({
                       {soldOut ? (
                         t("product.outOfStock")
                       ) : (
-                        formatSek(Math.ceil(w.base_price_cents / 100))
+                        formatSek(b2cWholeKronorFromOre(w.base_price_cents))
                       )}
                     </p>
                   </div>
@@ -935,7 +936,7 @@ function MixedCaseWineListPanel({
           <p className="mt-1 text-sm text-muted-foreground">
             Total{" "}
             <span className="font-semibold tabular-nums text-foreground">
-              {formatSek(Math.ceil(selectedCaseTotalCents / 100))}
+              {formatSek(b2cWholeKronorFromOre(selectedCaseTotalCents))}
             </span>
           </p>
           {showTapRowHint ? (

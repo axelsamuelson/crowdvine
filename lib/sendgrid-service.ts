@@ -1,5 +1,6 @@
 import { sendEmail } from "@/lib/email";
 import { escapeHtmlBasic } from "@/lib/email/escape-html";
+import { formatSharedPalletCloseDeliveryCopy } from "@/lib/checkout/shared-pallet-close-delivery-copy";
 import {
   getWelcomeEmailTemplate,
   getWelcomeEmailText,
@@ -91,6 +92,13 @@ export interface OrderConfirmationData {
     postalCode: string;
     country: string;
   };
+  /**
+   * Shared-pallet charge/close deadline (ISO). When set, confirmation copy
+   * shows “senast {datum}” / “by {datum} at the latest”.
+   */
+  chargeDeadlineAt?: string | null;
+  /** Pre-formatted locale label for the deadline (preferred for email body). */
+  chargeDeadlineLabel?: string | null;
 }
 
 /** Builds order confirmation HTML (logo from site content). */
@@ -102,6 +110,25 @@ export async function buildOrderConfirmationHtml(
   const logoHtml = logoUrl
     ? `<img src="${logoUrl}" alt="PACT" style="width: 120px; height: auto; max-width: 200px;" />`
     : `<div style="font-size: 24px; font-weight: bold; color: #000000; letter-spacing: 2px;">PACT</div>`;
+  const deadlineLabel = String(data.chargeDeadlineLabel || "").trim();
+  // Owner-approved shared close/delivery copy (same constant as checkout).
+  const closeDeliveryCopy = formatSharedPalletCloseDeliveryCopy(
+    "en",
+    deadlineLabel || null,
+  );
+  const deadlineHtml = deadlineLabel
+    ? `<div class="order-info" style="margin-top: 16px; background: #f8f9fa;">
+                <h2 style="margin-top: 0;">Payment timing</h2>
+                <p style="margin: 0;"><strong>Charged by ${deadlineLabel} at the latest</strong></p>
+                <p style="margin: 8px 0 0; color: #555; font-size: 14px;">
+                  We save your card and charge when the shared pallet fills, or by this date at the latest (senast ${deadlineLabel}). You can cancel free of charge until then.
+                </p>
+              </div>`
+    : "";
+  const deliveryHtml = `<div class="order-info" style="margin-top: 16px; background: #f8f9fa;">
+                <h2 style="margin-top: 0;">Delivery</h2>
+                <p style="margin: 0; color: #555; font-size: 14px;">${closeDeliveryCopy}</p>
+              </div>`;
   const itemsHtml = data.items
     .map(
       (item) => `
@@ -222,6 +249,9 @@ export async function buildOrderConfirmationHtml(
                 <p><strong>Customer:</strong> ${data.customerName}</p>
               </div>
 
+              ${deadlineHtml}
+              ${deliveryHtml}
+
               <h3>Items Ordered</h3>
               <table class="items-table">
                 <thead>
@@ -278,7 +308,11 @@ export async function buildOrderConfirmationHtml(
                 </a>
               </div>
 
-              <p>We'll send you another email when your order ships. If you have any questions, please don't hesitate to contact us.</p>
+              <p>${
+                deadlineLabel
+                  ? "We'll email you again when the pallet closes and your card is charged, or if we need a choice from you at the last date."
+                  : "We'll send you another email when your order ships."
+              } If you have any questions, please don't hesitate to contact us.</p>
               
               <p>Thank you for choosing PACT!</p>
               <p><strong>The PACT Team</strong></p>
@@ -302,6 +336,22 @@ export function buildOrderConfirmationText(data: OrderConfirmationData): string 
         `${item.name} (Qty: ${item.quantity}) - ${item.price.toFixed(2)} SEK`,
     )
     .join("\n");
+  const deadlineLabel = String(data.chargeDeadlineLabel || "").trim();
+  const closeDeliveryCopy = formatSharedPalletCloseDeliveryCopy(
+    "en",
+    deadlineLabel || null,
+  );
+  const deadlineBlock = deadlineLabel
+    ? `
+Payment timing:
+Charged by ${deadlineLabel} at the latest (senast ${deadlineLabel}).
+We save your card and charge when the shared pallet fills, or by this date. You can cancel free of charge until then.
+`
+    : "";
+  const deliveryBlock = `
+Delivery:
+${closeDeliveryCopy}
+`;
 
   return `
 Order Confirmation - ${data.orderId}
@@ -312,7 +362,7 @@ Thank you for your order! Here are the details:
 
 Order ID: ${data.orderId}
 Order Date: ${data.orderDate}
-
+${deadlineBlock}${deliveryBlock}
 Items Ordered:
 ${itemsText}
 
@@ -332,7 +382,11 @@ ${data.shippingAddress.street}
 ${data.shippingAddress.postalCode} ${data.shippingAddress.city}
 ${data.shippingAddress.country}
 
-We'll send you another email when your order ships. If you have any questions, please don't hesitate to contact us.
+${
+  deadlineLabel
+    ? "We'll email you again when the pallet closes and your card is charged, or if we need a choice from you at the last date."
+    : "We'll send you another email when your order ships."
+} If you have any questions, please don't hesitate to contact us.
 
 Thank you for choosing PACT!
 
@@ -483,13 +537,13 @@ export function buildPaymentConfirmedHtml(
   data: PaymentConfirmedEmailBody,
 ): string {
   const safePallet = escapeHtmlBasic(data.palletName);
-  return `<p>Great news! Your payment of <strong>${data.amountSek} kr</strong> has been confirmed for reservation <strong>${escapeHtmlBasic(data.reservationId)}</strong>.</p><p>Your wines will be delivered via Budbee Home Delivery once the pallet ships.</p><p>Pallet: <strong>${safePallet}</strong></p>`;
+  return `<p>Great news! Your payment of <strong>${data.amountSek} kr</strong> has been confirmed for reservation <strong>${escapeHtmlBasic(data.reservationId)}</strong>.</p><p>Your wines will be delivered via home delivery once the pallet ships.</p><p>Pallet: <strong>${safePallet}</strong></p>`;
 }
 
 export function buildPaymentConfirmedText(
   data: PaymentConfirmedEmailBody,
 ): string {
-  return `Great news! Your payment of ${data.amountSek} kr has been confirmed for reservation ${data.reservationId}. Your wines will be delivered via Budbee Home Delivery once the pallet ships.\n\nPallet: ${data.palletName}`;
+  return `Great news! Your payment of ${data.amountSek} kr has been confirmed for reservation ${data.reservationId}. Your wines will be delivered via home delivery once the pallet ships.\n\nPallet: ${data.palletName}`;
 }
 
 export type PaymentFailedEmailBody = {

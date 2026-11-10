@@ -65,12 +65,17 @@ export function B2BProfileLayout({
   const [section, setSection] = useState<B2BSection>("overview");
 
   const userName = profile?.full_name || "Kontakt";
-  const totalBottles = reservations.reduce(
-    (sum, r) =>
+  const totalBottles = reservations.reduce((sum, r) => {
+    const fromApi = Number(r.bottleCount);
+    if (Number.isFinite(fromApi) && fromApi > 0) return sum + fromApi;
+    return (
       sum +
-      (r.items || []).reduce((s: number, it: any) => s + (it.quantity || 0), 0),
-    0,
-  );
+      (r.items || []).reduce(
+        (s: number, it: any) => s + (Number(it.quantity) || 0),
+        0,
+      )
+    );
+  }, 0);
   const uniquePallets = new Set(
     reservations.map((r) => r.pallet_id).filter(Boolean),
   ).size;

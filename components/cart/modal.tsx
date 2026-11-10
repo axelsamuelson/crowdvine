@@ -7,7 +7,6 @@ import { useFormStatus } from "react-dom";
 import { useCart } from "./cart-context";
 import { motion, AnimatePresence } from "motion/react";
 import { Button } from "../ui/button";
-import { Badge } from "../ui/badge";
 import { Loader } from "../ui/loader";
 import { CartItemCard } from "./cart-item";
 import { cartLineB2bLineTotalExclVat } from "@/lib/b2b/inquiry-price-math";
@@ -71,11 +70,6 @@ const CartItems = ({
       )
     : totalAmount;
   const [pactPointsBalance, setPactPointsBalance] = useState<number | null>(null);
-  const hasBoostedProducerInCart = Boolean(
-    cart?.lines?.some(
-      (line) => line.merchandise.product.producerBoostActive === true,
-    ),
-  );
 
   useEffect(() => {
     const run = async () => {
@@ -158,9 +152,7 @@ const CartItems = ({
               </div>
               <span className="text-xs text-muted-foreground">
                 {t("cart.pactPointsAvailable", { balance: pactPointsBalance })}
-                {hasBoostedProducerInCart
-                  ? t("cart.pactPointsBoost")
-                  : t("cart.pactPointsCheckout")}
+                {t("cart.pactPointsCheckout")}
               </span>
             </div>
           ) : null}
@@ -229,7 +221,7 @@ export default function CartModal() {
   const { t } = useTranslations();
   const paths = useLocalizedPaths();
   const isDirtywineSite = useB2BModeServerHint();
-  const { cart, isPending } = useCart();
+  const { cart, isPending, cartReady } = useCart();
   const [isOpen, setIsOpen] = useState(false);
   const [validations, setValidations] = useState<ProducerValidation[]>([]);
   const [requiredQuantity, setRequiredQuantity] = useState<number | undefined>();
@@ -401,15 +393,18 @@ export default function CartModal() {
     );
   };
 
-  // Keep the open drawer mountable during optimistic first-add even if cart
-  // was previously undefined; badge stays hidden until we have cart data.
-  if (!cart && !isOpen) {
-    return null;
-  }
+  // Always reserve badge chrome while hydrating — never return null (that
+  // dropped MENU-adjacent space) and never flash CART (0) before cartReady.
+  // Non-empty cache / optimistic cart may show early; empty only after ready.
+  // During the first add (empty → N), prefer loading over a misleading (0).
+  const showNeutralLoading =
+    isPending && (!cart || cart.totalQuantity === 0);
+  const showCartBadge =
+    !!cart && (cartReady || cart.totalQuantity > 0) && !showNeutralLoading;
 
   return (
     <>
-      {cart ? (
+      {showCartBadge ? (
       <Button
         aria-label={t("cart.openCart")}
         onClick={openCart}
@@ -430,15 +425,25 @@ export default function CartModal() {
             <span className="max-md:hidden">{t("cart.cartLabel")}</span>
           </div>
         ) : (
-          <>
-            <span className="max-md:hidden">{t("cart.cartLabel")}</span> (
-            {cart.totalQuantity})
-          </>
+          <span className="inline-flex items-center tabular-nums leading-none">
+            <span className="max-md:hidden">
+              {t("cart.cartLabel")} ({cart.totalQuantity})
+            </span>
+            <span className="md:hidden">({cart.totalQuantity})</span>
+          </span>
         )}
       </Button>
-      ) : null}
+      ) : (
+        // Reserve badge space while cart hydrates / first add mutates —
+        // never flash (0).
+        <span
+          className="inline-block h-7 w-10 shrink-0 rounded-sm bg-muted/40 animate-pulse md:w-16"
+          aria-hidden
+          data-testid="cart-badge-skeleton"
+        />
+      )}
       <AnimatePresence>
-        {isOpen && (
+        {isOpen && cart && (
           <>
             {/* Backdrop */}
             <motion.div
@@ -513,13 +518,17 @@ function CheckoutButton({
   /** Dirtywine inquiry checkout mode — CTA goes to /b2b/inquiry. */
   inquiryMode?: boolean;
 }) {
-  const { t } = useTranslations();
+  const { t, context: shopping } = useTranslations();
   const paths = useLocalizedPaths();
   const { pending } = useFormStatus();
   const { cart, isPending } = useCart();
   const router = useRouter();
 
-  const checkoutUrl = inquiryMode ? B2B_INQUIRY_PATH : cart?.checkoutUrl;
+  const checkoutUrl = inquiryMode
+    ? B2B_INQUIRY_PATH
+    : shopping.locale === "en"
+      ? "/en/checkout"
+      : cart?.checkoutUrl || "/checkout";
 
   // Check if there are validation errors
   const hasValidationErrors = validations.some((v) => !v.isValid);

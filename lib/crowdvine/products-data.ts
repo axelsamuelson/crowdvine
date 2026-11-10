@@ -13,6 +13,7 @@ import {
   buildWineBoxSeoDescription,
   buildWineBoxSeoTitle,
 } from "@/lib/seo/wine-box-metadata";
+import { b2cWholeKronorFromOre } from "@/lib/cart/b2c-line-pricing";
 import { calculateRoundedB2BPriceExclVat } from "@/lib/price-breakdown";
 import { resolveWineAlcoholTaxCents } from "@/lib/wine-alcohol-tax";
 import { convertSekForDisplay } from "@/lib/shopping-context/currency-convert";
@@ -58,7 +59,9 @@ function displayPriceFromSek(
   amountSek: number,
   displayCurrencyCode: string,
   sekToDisplayRate: number,
-  round: "ceil" | "round" = "ceil",
+  // B2C list units are already whole kronor (half-up from öre); keep half-up
+  // for FX display so SEK never ceil-drifts (293.26 → 294).
+  round: "ceil" | "round" = "round",
 ) {
   const v = convertSekForDisplay(amountSek, displayCurrencyCode, sekToDisplayRate);
   const n = roundAmountForDisplay(v, displayCurrencyCode, round);
@@ -233,14 +236,31 @@ function applyProducerNameSearchForCollection<Q extends SupabaseOrBuilder>(
 }
 
 function convertToFullUrl(path: string | null | undefined): string {
-  if (!path) return getAppUrl() + DEFAULT_WINE_IMAGE_PATH;
+  // Keep default-wine relative so next/image can use unoptimized local asset
+  // (absolute vercel.app/default-wine.png through the optimizer returns 400).
+  if (!path) return DEFAULT_WINE_IMAGE_PATH;
 
   const cleanPath = path.trim().replace(/\n/g, "");
+  if (
+    !cleanPath ||
+    cleanPath === DEFAULT_WINE_IMAGE_PATH ||
+    /(?:^|\/)default-wine\.png$/i.test(cleanPath)
+  ) {
+    return DEFAULT_WINE_IMAGE_PATH;
+  }
 
-  if (cleanPath.startsWith("http")) return cleanPath;
+  if (cleanPath.startsWith("http")) {
+    if (/(?:^|\/)default-wine\.png$/i.test(cleanPath)) {
+      return DEFAULT_WINE_IMAGE_PATH;
+    }
+    return cleanPath;
+  }
   if (cleanPath.startsWith("/uploads/")) {
     const baseUrl = getAppUrl();
-    const fileName = cleanPath.replace("/uploads/", "");
+    const fileName = cleanPath.replace("/uploads/", "").trim();
+    if (!fileName || /default-wine\.png$/i.test(fileName)) {
+      return DEFAULT_WINE_IMAGE_PATH;
+    }
     return `${baseUrl}/api/images/${fileName}`;
   }
   const baseUrl = getAppUrl();
@@ -791,7 +811,7 @@ export async function fetchProductsData(params?: {
           title: "750 ml",
           availableForSale,
           price: displayPriceFromSek(
-            i.base_price_cents / 100,
+            b2cWholeKronorFromOre(i.base_price_cents),
             displayCurrencyCode,
             sekToDisplayRate,
           ),
@@ -803,12 +823,12 @@ export async function fetchProductsData(params?: {
       ],
       priceRange: {
         minVariantPrice: displayPriceFromSek(
-          i.base_price_cents / 100,
+          b2cWholeKronorFromOre(i.base_price_cents),
           displayCurrencyCode,
           sekToDisplayRate,
         ),
         maxVariantPrice: displayPriceFromSek(
-          i.base_price_cents / 100,
+          b2cWholeKronorFromOre(i.base_price_cents),
           displayCurrencyCode,
           sekToDisplayRate,
         ),
@@ -1238,7 +1258,7 @@ export async function fetchCollectionProductsData(
           title: "750 ml",
           availableForSale,
           price: displayPriceFromSek(
-            i.base_price_cents / 100,
+            b2cWholeKronorFromOre(i.base_price_cents),
             displayCurrencyCode,
             sekToDisplayRate,
           ),
@@ -1250,12 +1270,12 @@ export async function fetchCollectionProductsData(
       ],
       priceRange: {
         minVariantPrice: displayPriceFromSek(
-          i.base_price_cents / 100,
+          b2cWholeKronorFromOre(i.base_price_cents),
           displayCurrencyCode,
           sekToDisplayRate,
         ),
         maxVariantPrice: displayPriceFromSek(
-          i.base_price_cents / 100,
+          b2cWholeKronorFromOre(i.base_price_cents),
           displayCurrencyCode,
           sekToDisplayRate,
         ),

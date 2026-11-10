@@ -12,6 +12,9 @@ import {
   checkAndResetQuotaIfNeeded,
 } from "@/lib/membership/invite-quota";
 import { getCurrentTier, TIER_THRESHOLDS } from "@/lib/membership/pact-points-engine";
+import { isMemberTierDiscountEnabled } from "@/lib/membership/member-discount-config";
+import { isPactPointsEarningEnabled } from "@/lib/membership/pact-points-earning-config";
+import { sanitizeCustomerPerks } from "@/lib/membership/sanitize-perk-description";
 
 function getNextPactTier(current: MembershipLevel): MembershipLevel | null {
   if (current === "founding_member") return null;
@@ -58,7 +61,8 @@ export async function GET() {
 
     const displayLevel = normalizeMembershipLevel(membership.level);
 
-    // Get perks for current tier (admin is not a tier — map to privilege for lookup)
+    // Get perks for current tier (admin is not a tier — map to privilege for lookup).
+    // Perks are additive UX — never fail the whole membership payload on lookup error.
     const { data: perks, error: perksError } = await sb
       .from("membership_perks")
       .select("*")
@@ -66,7 +70,21 @@ export async function GET() {
       .eq("is_active", true)
       .order("sort_order");
 
-    if (perksError) throw perksError;
+    if (perksError) {
+      console.error("[membership] membership_perks lookup failed:", perksError);
+    }
+    // When member-tier price discounts are off (default), strip discount perks
+    // so PLP/PDP client UI matches cart/checkout/charge at list price.
+    const [memberDiscountOn, pactPointsEarningEnabled] = await Promise.all([
+      isMemberTierDiscountEnabled(),
+      isPactPointsEarningEnabled(),
+    ]);
+    const safePerks = sanitizeCustomerPerks(
+      (perksError ? [] : perks || []).filter((p) => {
+        if (p?.perk_type === "discount" && !memberDiscountOn) return false;
+        return true;
+      }),
+    );
 
     // Get available invites
     const inviteInfo = await getAvailableInvites(user.id);
@@ -141,6 +159,8 @@ export async function GET() {
         pointsToNextTier,
         nextTierThreshold,
       },
+      /** When false (default), hide earn-points copy; redeem still works. */
+      pactPointsEarningEnabled,
       levelInfo: currentLevelInfo,
       nextLevel: nextLevelInfo,
       invites: {
@@ -149,7 +169,7 @@ export async function GET() {
         total: inviteInfo.total,
         resetsAt: membership.last_quota_reset,
       },
-      perks: perks || [],
+      perks: safePerks,
     });
   } catch (error) {
     console.error("Error fetching membership:", error);

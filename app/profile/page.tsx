@@ -11,6 +11,7 @@ import {
 import { PageLayout } from "@/components/layout/page-layout";
 import { B2BProfileLayout } from "@/components/profile/b2b-profile-layout";
 import { ReferralInviteCard } from "@/components/profile/referral-invite-card";
+import { ProfilePactConversionCouponCard } from "@/components/profile/pact-conversion-coupon-card";
 import { PaymentMethodsSection } from "@/components/profile/payment-methods-section";
 import { LevelBadge } from "@/components/membership/level-badge";
 import { PactPointsTimeline, type PactPointsEvent } from "@/components/membership/pact-points-timeline";
@@ -37,6 +38,7 @@ import { useTranslations } from "@/lib/hooks/use-translations";
 import { useLocalizedPaths } from "@/lib/hooks/use-localized-paths";
 import { cn } from "@/lib/utils";
 import type { AppLocale } from "@/lib/i18n/locale";
+import { formatWineColorLabel } from "@/lib/i18n/wine-color-labels";
 
 interface UserProfile {
   id: string;
@@ -67,6 +69,8 @@ interface MembershipData {
     pointsToNextTier: number | null;
     nextTierThreshold: number | null;
   };
+  /** Default false — hide how-to-earn / progression promises when OFF. */
+  pactPointsEarningEnabled?: boolean;
   levelInfo: {
     level: MembershipLevel;
     name: string;
@@ -106,6 +110,13 @@ function ProfilePageContent() {
     number | null
   >(null);
   const membershipTierTracked = useRef(false);
+  const pactEarningEnabledRef = useRef(false);
+
+  useEffect(() => {
+    pactEarningEnabledRef.current = Boolean(
+      membershipData?.pactPointsEarningEnabled,
+    );
+  }, [membershipData?.pactPointsEarningEnabled]);
 
   useEffect(() => {
     if (!membershipData?.membership?.level || membershipTierTracked.current)
@@ -294,7 +305,9 @@ function ProfilePageContent() {
 
           // If an invitation was used, show toast and refresh IP
           if (payload.eventType === "UPDATE" && payload.new?.used_at) {
-            toast.success(t("profile.inviteUsedToast"));
+            if (pactEarningEnabledRef.current) {
+              toast.success(t("profile.inviteUsedToast"));
+            }
             fetchMembershipData();
             fetchPactEvents();
           }
@@ -527,7 +540,19 @@ function ProfilePageContent() {
               <span className="text-xs">{t("profile.totalBottles")}</span>
             </div>
             <p className="text-2xl font-semibold text-gray-900">
-              {reservations.reduce((sum, r) => sum + ((r.items || []).reduce((s: number, it: any) => s + (it.quantity || 0), 0)), 0)}
+              {reservations.reduce((sum, r) => {
+                const fromApi = Number(
+                  (r as { bottleCount?: number }).bottleCount,
+                );
+                if (Number.isFinite(fromApi) && fromApi > 0) return sum + fromApi;
+                return (
+                  sum +
+                  ((r.items || []) as Array<{ quantity?: number }>).reduce(
+                    (s, it) => s + (Number(it.quantity) || 0),
+                    0,
+                  )
+                );
+              }, 0)}
             </p>
           </div>
 
@@ -616,7 +641,7 @@ function ProfilePageContent() {
                             </p>
                             {w.color ? (
                               <span className="shrink-0 whitespace-nowrap rounded-full border border-border px-2 py-0.5 text-[11px] text-muted-foreground">
-                                {w.color}
+                                {formatWineColorLabel(t, w.color)}
                               </span>
                             ) : null}
                           </div>
@@ -667,7 +692,7 @@ function ProfilePageContent() {
                           </p>
                           {p.color ? (
                             <span className="shrink-0 whitespace-nowrap rounded-full border border-border px-2 py-0.5 text-[11px] text-muted-foreground">
-                              {p.color}
+                              {formatWineColorLabel(t, p.color)}
                             </span>
                           ) : null}
                         </div>
@@ -707,13 +732,15 @@ function ProfilePageContent() {
                 <h1 className="text-2xl font-semibold tracking-tight text-foreground">
                   {userName}
                 </h1>
-                <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <LevelBadge
-                    level={membershipData.membership.level}
-                    size="md"
-                    showLabel
-                  />
-                </div>
+                {membershipData.pactPointsEarningEnabled ? (
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <LevelBadge
+                      level={membershipData.membership.level}
+                      size="md"
+                      showLabel
+                    />
+                  </div>
+                ) : null}
                 {membershipData.membership.level === "founding_member" ? (
                   <div className="mt-3 w-full max-w-sm rounded-xl border border-amber-200 bg-amber-50 p-4 space-y-1">
                     <p className="text-sm font-medium text-amber-900">
@@ -784,6 +811,8 @@ function ProfilePageContent() {
                 {orderStats.uniqueProducers}
               </p>
             </button>
+            {(membershipData.pactPointsEarningEnabled ||
+              (membershipData.pactPoints?.balance ?? 0) > 0) && (
             <button
               type="button"
               onClick={() => setDashTab("activity")}
@@ -800,12 +829,15 @@ function ProfilePageContent() {
               <p className="mt-1 text-2xl font-semibold tabular-nums leading-none">
                 {membershipData.pactPoints?.balance ?? 0}
               </p>
-              <p className="mt-1 text-[10px] text-muted-foreground">
-                {t("profile.earnedAllTime", {
-                  count: String(membershipData.pactPoints?.lifetime ?? 0),
-                })}
-              </p>
+              {membershipData.pactPointsEarningEnabled ? (
+                <p className="mt-1 text-[10px] text-muted-foreground">
+                  {t("profile.earnedAllTime", {
+                    count: String(membershipData.pactPoints?.lifetime ?? 0),
+                  })}
+                </p>
+              ) : null}
             </button>
+            )}
             <button
               type="button"
               onClick={() => {
@@ -828,6 +860,8 @@ function ProfilePageContent() {
             invitedCount={referralInfo.invitedCount}
             activatedCount={referralInfo.activatedCount}
           />
+
+          <ProfilePactConversionCouponCard />
 
           <div className="border-b border-border">
             <div className="flex overflow-x-auto scrollbar-hide">
@@ -900,11 +934,13 @@ function ProfilePageContent() {
                     <p className="text-2xl font-semibold tabular-nums leading-none mt-1">
                       {membershipData.pactPoints.balance}
                     </p>
-                    <p className="text-[10px] text-muted-foreground mt-2">
-                      {t("profile.earnedAllTime", {
-                        count: String(membershipData.pactPoints.lifetime),
-                      })}
-                    </p>
+                    {membershipData.pactPointsEarningEnabled ? (
+                      <p className="text-[10px] text-muted-foreground mt-2">
+                        {t("profile.earnedAllTime", {
+                          count: String(membershipData.pactPoints.lifetime),
+                        })}
+                      </p>
+                    ) : null}
                   </div>
                 </section>
                 <section className="space-y-3">
@@ -928,7 +964,8 @@ function ProfilePageContent() {
                       </span>
                     </div>
 
-                    {membershipData.pactPoints.nextTier &&
+                    {membershipData.pactPointsEarningEnabled &&
+                    membershipData.pactPoints.nextTier &&
                     membershipData.pactPoints.nextTierThreshold ? (
                       <div className="mt-3">
                         <div className="h-1 rounded-full bg-border overflow-hidden">
@@ -961,17 +998,20 @@ function ProfilePageContent() {
                           })}
                         </p>
                       </div>
-                    ) : (
+                    ) : membershipData.pactPointsEarningEnabled ? (
                       <p className="mt-3 text-xs text-muted-foreground">
                         {t("profile.topTierReached")}
                       </p>
-                    )}
+                    ) : null}
 
-                    <p className="text-[10px] text-muted-foreground mt-2">
-                      {t("profile.basedOn12Months")}
-                    </p>
+                    {membershipData.pactPointsEarningEnabled ? (
+                      <p className="text-[10px] text-muted-foreground mt-2">
+                        {t("profile.basedOn12Months")}
+                      </p>
+                    ) : null}
                   </div>
                 </section>
+                {membershipData.pactPointsEarningEnabled ? (
                 <section className="space-y-3">
                   <h2 className="text-base font-semibold text-foreground">
                     {t("profile.howToEarnPact")}
@@ -1037,6 +1077,7 @@ function ProfilePageContent() {
                     </div>
                   </div>
                 </section>
+                ) : null}
                 <section className="space-y-3">
                   <div className="flex items-center justify-between">
                     <h2 className="text-base font-semibold text-foreground">

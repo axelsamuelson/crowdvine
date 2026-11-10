@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "fs";
+import { resolve } from "path";
 
 import { localeFromShopPath } from "@/lib/i18n/shop-path-locale";
 
@@ -32,8 +34,30 @@ describe("localeFromShopPath", () => {
     expect(localeFromShopPath("/en")).toBe("en");
   });
 
+  it("maps /en/checkout and /en/profile to English (middleware rewrite targets)", () => {
+    expect(localeFromShopPath("/en/checkout")).toBe("en");
+    expect(localeFromShopPath("/en/checkout/success")).toBe("en");
+    expect(localeFromShopPath("/en/profile")).toBe("en");
+    expect(localeFromShopPath("/en/profile/reservations")).toBe("en");
+  });
+
   it("returns null for shared/unpaired paths", () => {
     expect(localeFromShopPath("/checkout")).toBeNull();
+    expect(localeFromShopPath("/profile")).toBeNull();
     expect(localeFromShopPath("/taste-quiz")).toBeNull();
   });
 });
+
+describe("en checkout/profile middleware rewrite", () => {
+  it("rewrites /en/checkout and /en/profile to the shared App Router trees", () => {
+    const src = readFileSync(
+      resolve(process.cwd(), "middleware.ts"),
+      "utf8",
+    );
+    expect(src).toMatch(/\/en\/checkout/);
+    expect(src).toMatch(/\/en\/profile/);
+    expect(src).toMatch(/NextResponse\.rewrite/);
+    expect(src).toMatch(/x-pact-locale\",\s*\"en\"/);
+  });
+});
+

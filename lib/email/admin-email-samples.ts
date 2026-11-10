@@ -36,6 +36,9 @@ export const SAMPLE_ORDER_CONFIRMATION: OrderConfirmationData = {
     postalCode: "111 22",
     country: "Sverige",
   },
+  // Sample shared-pallet senast date (created_at + 28d style).
+  chargeDeadlineAt: "2026-06-03T00:00:00.000Z",
+  chargeDeadlineLabel: "3 juni 2026",
 };
 
 export const SAMPLE_PAYMENT_CONFIRMED: PaymentConfirmedEmailBody = {

@@ -9,7 +9,13 @@ const MobileMenu = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="flex h-10 w-10 items-center justify-center" aria-hidden />
+      <span
+        className="inline-flex h-10 min-w-[3.25rem] items-center justify-center rounded-sm bg-muted/40 px-2 text-[10px] font-semibold uppercase tracking-wide text-foreground/40 animate-pulse"
+        aria-hidden
+        data-testid="mobile-menu-loading"
+      >
+        MENU
+      </span>
     ),
   },
 );

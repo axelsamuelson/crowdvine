@@ -187,7 +187,7 @@ export function PaymentMethodSelector({
                 </h3>
                 <p className="text-gray-600 mb-4">
                   You'll be redirected to Stripe to securely add your payment
-                  method. This will be saved for future reservations.
+                  method. This will be saved for future purchases.
                 </p>
               </div>
               <div className="flex gap-2">
@@ -264,7 +264,7 @@ export function PaymentMethodSelector({
       {paymentMethods.length > 0 && (
         <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded-lg">
           <p>
-            <strong>Reservation Checkout:</strong> No payment will be charged
+            <strong>Checkout:</strong> No payment will be charged
             now. We only charge when the matching pallet is triggered.
           </p>
         </div>

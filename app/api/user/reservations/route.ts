@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { resolveWineImageSrc } from "@/lib/cart/wine-image-url";
+import { computeSharedPalletChargeDeadlineIso } from "@/lib/checkout/shared-pallet-deadline";
+import {
+  confirmationDisplayTotalSek,
+  shortReservationReference,
+} from "@/lib/reservations/confirmation-display-total";
 import { buildReservationSummaryGroups } from "@/lib/reservations/user-reservations-api";
 
 export async function GET() {
@@ -68,12 +74,27 @@ export async function GET() {
       new Set((reservationItems || []).map((i: any) => i.item_id)),
     );
 
-    // Fetch wine -> producer_id mapping
+    // Fetch wine details once (avoid N+1 nested selects that fail closed on
+    // optional columns like producer_decision_status in some Preview schemas).
+    type WineRow = {
+      id: string;
+      producer_id?: string | null;
+      wine_name?: string | null;
+      vintage?: string | null;
+      label_image_path?: string | null;
+      grape_varieties?: string | null;
+      color?: string | null;
+      base_price_cents?: number | null;
+      handle?: string | null;
+    };
+    const wineById = new Map<string, WineRow>();
     const wineProducerByWineId = new Map<string, string>();
     if (wineIds.length > 0) {
       const { data: wines, error: winesError } = await supabase
         .from("wines")
-        .select("id, producer_id")
+        .select(
+          "id, producer_id, wine_name, vintage, label_image_path, grape_varieties, color, base_price_cents, handle",
+        )
         .in("id", wineIds);
 
       if (winesError) {
@@ -84,19 +105,25 @@ export async function GET() {
         );
       }
 
-      (wines || []).forEach((w: any) => {
-        if (w?.id && w?.producer_id) wineProducerByWineId.set(w.id, w.producer_id);
+      (wines || []).forEach((w: WineRow) => {
+        if (!w?.id) return;
+        wineById.set(String(w.id), w);
+        if (w.producer_id) wineProducerByWineId.set(String(w.id), String(w.producer_id));
       });
     }
 
     const producerIds = Array.from(new Set(Array.from(wineProducerByWineId.values())));
 
-    // Fetch producer -> pickup_zone_id mapping
+    // Fetch producer -> pickup_zone_id + display names
     const pickupZoneByProducerId = new Map<string, string | null>();
+    const producerMetaById = new Map<
+      string,
+      { name: string | null; display_name: string | null }
+    >();
     if (producerIds.length > 0) {
       const { data: producers, error: producersError } = await supabase
         .from("producers")
-        .select("id, pickup_zone_id")
+        .select("id, pickup_zone_id, name, display_name")
         .in("id", producerIds);
 
       if (producersError) {
@@ -107,9 +134,14 @@ export async function GET() {
         );
       }
 
-      (producers || []).forEach((p: any) =>
-        pickupZoneByProducerId.set(p.id, p.pickup_zone_id || null),
-      );
+      (producers || []).forEach((p: any) => {
+        pickupZoneByProducerId.set(p.id, p.pickup_zone_id || null);
+        producerMetaById.set(String(p.id), {
+          name: typeof p.name === "string" ? p.name : null,
+          display_name:
+            typeof p.display_name === "string" ? p.display_name.trim() || null : null,
+        });
+      });
     }
 
     // Build reservation -> derivedPickupZoneId (or null)
@@ -146,9 +178,12 @@ export async function GET() {
 
     const palletByKey = new Map<string, any>();
     if (allDerivedPickupZoneIds.length > 0 && deliveryZoneIds.length > 0) {
+      // Avoid optional columns (is_complete) that have 42703'd on Preview schema cache.
       const { data: pallets, error: palletsError } = await supabase
         .from("pallets")
-        .select("id, name, bottle_capacity, is_complete, status, pickup_zone_id, delivery_zone_id")
+        .select(
+          "id, name, bottle_capacity, status, created_at, pickup_zone_id, delivery_zone_id",
+        )
         .in("pickup_zone_id", allDerivedPickupZoneIds)
         .in("delivery_zone_id", deliveryZoneIds);
 
@@ -212,15 +247,75 @@ export async function GET() {
       });
     }
 
+    // Direct pallet rows (by reservation.pallet_id) for capacity + charge deadline
+    // (same created_at + 28d source as checkout / confirmation).
+    type PalletMeta = {
+      id: string;
+      name?: string | null;
+      bottle_capacity?: number | null;
+      status?: string | null;
+      created_at?: string | null;
+    };
+    const palletById = new Map<string, PalletMeta>();
+    const directPalletIds = Array.from(
+      new Set(
+        reservations
+          .map((r) =>
+            typeof r.pallet_id === "string" && r.pallet_id.trim()
+              ? r.pallet_id.trim()
+              : null,
+          )
+          .filter((id): id is string => Boolean(id)),
+      ),
+    );
+    if (directPalletIds.length > 0) {
+      const { data: byIdRows, error: byIdErr } = await supabase
+        .from("pallets")
+        .select("id, name, bottle_capacity, status, created_at")
+        .in("id", directPalletIds);
+      if (byIdErr) {
+        console.error(
+          "Error fetching pallets by id for reservations:",
+          byIdErr,
+        );
+      } else {
+        for (const p of (byIdRows || []) as PalletMeta[]) {
+          if (p?.id) palletById.set(String(p.id), p);
+        }
+      }
+    }
+
     // Transform the data to match the expected format
     const transformedReservations = await Promise.all(
       reservations.map(async (reservation) => {
         // Get pallet name and capacity based on zones
         let palletName = "Unassigned Pallet";
-        let palletId = null;
+        let palletId: string | null =
+          typeof reservation.pallet_id === "string" && reservation.pallet_id.trim()
+            ? reservation.pallet_id.trim()
+            : null;
         let palletCapacity = null;
         let palletIsComplete = false;
         let palletStatus = null;
+        let palletCreatedAt: string | null = null;
+
+        if (palletId && palletById.has(palletId)) {
+          const direct = palletById.get(palletId)!;
+          palletName = direct.name || palletName;
+          palletCapacity = direct.bottle_capacity ?? null;
+          palletStatus = direct.status ?? null;
+          palletCreatedAt =
+            typeof direct.created_at === "string" ? direct.created_at : null;
+          const st = String(direct.status || "").toLowerCase();
+          palletIsComplete =
+            st === "complete" ||
+            st === "awaiting_pickup" ||
+            st === "picked_up" ||
+            st === "in_transit" ||
+            st === "out_for_delivery" ||
+            st === "shipped" ||
+            st === "delivered";
+        }
 
         const derivedPickupZoneId =
           derivedPickupZoneByReservationId.get(reservation.id) || null;
@@ -230,11 +325,31 @@ export async function GET() {
           const pallet = palletByKey.get(key);
           if (pallet) {
             palletName = pallet.name;
-            palletId = pallet.id;
-            palletCapacity = pallet.bottle_capacity;
-            palletIsComplete = pallet.is_complete || false;
+            if (!palletId) palletId = pallet.id;
+            if (palletCapacity == null) {
+              palletCapacity = pallet.bottle_capacity;
+            }
+            if (!palletCreatedAt && typeof pallet.created_at === "string") {
+              palletCreatedAt = pallet.created_at;
+            }
+            const st = String(pallet.status || "").toLowerCase();
+            palletIsComplete =
+              st === "complete" ||
+              st === "awaiting_pickup" ||
+              st === "picked_up" ||
+              st === "in_transit" ||
+              st === "out_for_delivery" ||
+              st === "shipped" ||
+              st === "delivered";
             palletStatus = pallet.status;
           }
+        }
+
+        // If zone match set palletId but meta came only from zone map, fill created_at.
+        if (palletId && !palletCreatedAt && palletById.has(palletId)) {
+          const direct = palletById.get(palletId)!;
+          palletCreatedAt =
+            typeof direct.created_at === "string" ? direct.created_at : null;
         }
 
         // Get delivery address instead of zone names
@@ -254,82 +369,57 @@ export async function GET() {
           }
         }
 
-        // Get reservation items with wine details and costs
-        const { data: items, error: itemsError } = await supabase
-          .from("order_reservation_items")
-          .select(
-            `
-          id,
-          item_id,
-          quantity,
-          producer_decision_status,
-          producer_approved_quantity,
-          wines(
-            wine_name,
-            vintage,
-            label_image_path,
-            grape_varieties,
-            color,
-            base_price_cents,
-            handle,
-            producers(name, display_name)
-          )
-        `,
-          )
-          .eq("reservation_id", reservation.id);
-
-        if (itemsError) {
-          console.error(`Error fetching items for reservation ${reservation.id}:`, itemsError);
-          // Continue with empty items array if there's an error
-        }
-
-        // Calculate costs - handle gracefully if items is null or wines relation failed
-        const itemsWithCosts =
-          items?.map((item) => {
-            // Handle case where wines relation might be null
-            if (!item.wines) {
-              return {
-                wine_name: "Unknown Wine",
-                quantity: item.quantity,
-                producer_decision_status: item.producer_decision_status || null,
-                producer_approved_quantity: null,
-                vintage: "N/A",
-                image_path: null,
-                grape_varieties: null,
-                color: null,
-                handle: null,
-                price_per_bottle_cents: 0,
-                producer_name: null,
-                total_cost_cents: 0,
-              };
-            }
+        // Build line items from the batch-loaded order_reservation_items + wines.
+        // Do NOT nest-select producer_decision_* (42703 on some Preview caches → empty card).
+        const rawItemsForReservation = (reservationItems || []).filter(
+          (it: { reservation_id?: string }) =>
+            String(it.reservation_id) === String(reservation.id),
+        );
+        const itemsWithCosts = rawItemsForReservation.map(
+          (item: { item_id?: string; quantity?: number }) => {
+            const wineId = String(item.item_id || "");
+            const wine = wineById.get(wineId);
+            const qty = Math.max(0, Number(item.quantity) || 0);
+            const unitCents = Math.max(0, Number(wine?.base_price_cents) || 0);
+            const producerId = wine?.producer_id
+              ? String(wine.producer_id)
+              : wineProducerByWineId.get(wineId) || null;
+            const producerMeta = producerId
+              ? producerMetaById.get(producerId)
+              : undefined;
             return {
-              wine_name: item.wines?.wine_name || "Unknown Wine",
-              quantity: item.quantity,
-              producer_decision_status: item.producer_decision_status || null,
-              producer_approved_quantity:
-                item.producer_approved_quantity === null ||
-                item.producer_approved_quantity === undefined
-                  ? null
-                  : Number(item.producer_approved_quantity) || 0,
-              vintage: item.wines?.vintage || "N/A",
-              image_path: item.wines?.label_image_path || null,
-              grape_varieties: item.wines?.grape_varieties || null,
-              color: item.wines?.color || null,
-              handle: item.wines?.handle || null,
-              price_per_bottle_cents: item.wines?.base_price_cents || 0,
-              producer_name: item.wines?.producers?.name || null,
-              producer_display_name:
-                item.wines?.producers?.display_name?.trim() || null,
-              total_cost_cents:
-                (item.wines?.base_price_cents || 0) * item.quantity,
+              wine_name: wine?.wine_name || "Wine",
+              quantity: qty,
+              producer_decision_status: null as string | null,
+              producer_approved_quantity: null as number | null,
+              vintage: wine?.vintage || "",
+              image_path: resolveWineImageSrc(wine?.label_image_path ?? null),
+              grape_varieties: wine?.grape_varieties || null,
+              color: wine?.color || null,
+              handle: wine?.handle || null,
+              price_per_bottle_cents: unitCents,
+              producer_name: producerMeta?.name || null,
+              producer_display_name: producerMeta?.display_name || null,
+              total_cost_cents: unitCents * qty,
             };
-          }) || [];
+          },
+        );
 
-        const totalCostCents = itemsWithCosts.reduce(
+        const wineSubtotalCents = itemsWithCosts.reduce(
           (sum, item) => sum + item.total_cost_cents,
           0,
         );
+        // Prefer stored charged total (wine + shipping) — same as confirmation.
+        const chargedTotalSek = confirmationDisplayTotalSek({
+          totalSek:
+            reservation.total_sek != null &&
+            Number.isFinite(Number(reservation.total_sek))
+              ? Number(reservation.total_sek)
+              : null,
+          shippingRevenueGrossCents: reservation.shipping_revenue_gross_cents,
+          wineSubtotalCentsFallback: wineSubtotalCents,
+        });
+        const totalCostCents = Math.round(chargedTotalSek * 100);
 
         const resRow = reservation as Record<string, unknown>;
         const mdIdRaw = resRow.market_drop_id;
@@ -359,9 +449,11 @@ export async function GET() {
           md && typeof (md as { display_destination?: string }).display_destination === "string"
             ? String((md as { display_destination: string }).display_destination).trim() || null
             : null;
+        // Locale-neutral labels: client translates shared pallet / your reservation.
+        const isSharedPallet = Boolean(palletId);
         const customerPalletLabel = displayDestination
           ? `${displayDestination} pallet`
-          : "Your reservation";
+          : null;
 
         const mdSourceId =
           md && (md as { source_pallet_id?: unknown }).source_pallet_id != null
@@ -386,9 +478,14 @@ export async function GET() {
             ? resRow.charge_blocked_reason
             : null;
 
+        const chargeDeadlineAt = isSharedPallet
+          ? computeSharedPalletChargeDeadlineIso(palletCreatedAt)
+          : null;
+
         return {
           id: reservation.id,
           order_id: reservation.order_id || reservation.id,
+          order_number_short: shortReservationReference(String(reservation.id)),
           status: reservation.status,
           created_at: reservation.created_at,
           pallet_id: palletId,
@@ -399,8 +496,20 @@ export async function GET() {
               : palletCapacity,
           pallet_is_complete: palletIsComplete,
           pallet_status: palletStatus,
+          /** Same created_at+28d source as checkout confirmation. */
+          charge_deadline_at: chargeDeadlineAt,
           delivery_address: deliveryAddress,
           total_cost_cents: totalCostCents,
+          charged_total_sek: chargedTotalSek,
+          total_sek:
+            reservation.total_sek != null &&
+            Number.isFinite(Number(reservation.total_sek))
+              ? Number(reservation.total_sek)
+              : null,
+          shipping_revenue_gross_cents:
+            reservation.shipping_revenue_gross_cents != null
+              ? Number(reservation.shipping_revenue_gross_cents) || 0
+              : null,
           items: itemsWithCosts,
           payment_status: reservation.payment_status,
           payment_link: reservation.payment_link,
@@ -426,6 +535,7 @@ export async function GET() {
           bottleCount,
           bottleVerb,
           customerPalletLabel,
+          isSharedPallet,
           isConditional,
           chargeBlockedReason,
           marketDropReservedBottles:
@@ -447,7 +557,10 @@ export async function GET() {
       bottle_count: Number(r.bottleCount) || 0,
       is_conditional: Boolean(r.isConditional),
       bottle_verb: r.bottleVerb as "requested" | "ordered",
-      customer_pallet_label: String(r.customerPalletLabel || "Your reservation"),
+      customer_pallet_label: String(
+        r.customerPalletLabel ||
+          (r.isSharedPallet ? "shared_pallet" : "your_reservation"),
+      ),
       display_destination:
         r.displayDestination != null ? String(r.displayDestination) : null,
       market_drop_id:

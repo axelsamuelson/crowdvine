@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from "motion/react";
 import Link from "next/link";
 import Image from "next/image";
 import { X, Filter, Search, RotateCcw } from "lucide-react";
+import { b2cWholeKronorFromOre } from "@/lib/cart/b2c-line-pricing";
 import {
   applyMapboxAccessToken,
   getMapboxGl,
@@ -346,7 +347,10 @@ export function MapOfMakersVisualization() {
 
   const maxPrice = useMemo(() => {
     return Math.max(
-      ...producers.flatMap((p) => p.wines?.map((w) => w.base_price_cents / 100) || [0]),
+      ...producers.flatMap(
+        (p) =>
+          p.wines?.map((w) => b2cWholeKronorFromOre(w.base_price_cents)) || [0],
+      ),
       1000
     );
   }, [producers]);
@@ -968,7 +972,7 @@ export function MapOfMakersVisualization() {
                               {wine.vintage} • {wine.color}
                             </p>
                             <p className="text-sm font-medium text-foreground mt-1">
-                              {Math.round(wine.base_price_cents / 100)} SEK
+                              {b2cWholeKronorFromOre(wine.base_price_cents)} SEK
                             </p>
                           </div>
                         </Link>

@@ -43,6 +43,10 @@ import { normalizeUserReservationsResponse } from "@/lib/reservations/user-reser
 import { useShoppingContext } from "@/lib/context/shopping-context-provider";
 import { localizedPathsForLocale } from "@/lib/i18n/localized-paths";
 import { useDisplayMoney } from "@/lib/hooks/use-display-money";
+import {
+  formatSharedPalletChargeDeadline,
+} from "@/lib/checkout/shared-pallet-deadline";
+import type { AppLocale } from "@/lib/i18n/locale";
 
 export type ResStatusKey =
   | "declined"
@@ -60,6 +64,7 @@ export type ResStatusKey =
   | "payment_pending"
   | "pallet_complete"
   | "awaiting_producer"
+  | "waiting_pallet"
   | "pallet_consolidating"
   | "reservation_placed"
   | "producer_review";
@@ -80,6 +85,7 @@ const RES_STATUS_MSG: Record<ResStatusKey, string> = {
   payment_pending: "profile.resStatusPaymentPending",
   pallet_complete: "profile.resStatusPalletComplete",
   awaiting_producer: "profile.resStatusAwaitingProducer",
+  waiting_pallet: "profile.resStatusWaitingPallet",
   pallet_consolidating: "profile.resStatusPalletConsolidating",
   reservation_placed: "profile.resStatusReservationPlaced",
   producer_review: "profile.resStatusProducerReview",
@@ -111,12 +117,17 @@ interface Reservation {
   marketDropId?: string | null;
   bottleCount?: number;
   bottleVerb?: string;
-  customerPalletLabel?: string;
+  customerPalletLabel?: string | null;
+  isSharedPallet?: boolean;
+  order_number_short?: string;
+  charged_total_sek?: number;
   isConditional?: boolean;
   logisticsPalletName?: string;
   marketDropReservedBottles?: number | null;
   marketDropCapacityBottles?: number | null;
   displayDestination?: string | null;
+  /** Same created_at+28d ISO as checkout confirmation. */
+  charge_deadline_at?: string | null;
   items: Array<{
     wine_name: string;
     producer_name?: string | null;
@@ -138,6 +149,7 @@ interface AddressPalletData {
   addressPalletKey: string;
   palletId?: string | null;
   palletName: string;
+  orderNumberShort?: string | null;
   palletStatus?: string | null;
   deliveryAddress: string;
   wines: Array<{
@@ -176,6 +188,7 @@ interface AddressPalletData {
   }>;
   conditionalBottleTotal?: number;
   orderedBottleDisplayTotal?: number;
+  chargeDeadlineAt?: string | null;
 }
 
 function getProducerOutcome(status: string | undefined): ResStatusKey {
@@ -184,7 +197,8 @@ function getProducerOutcome(status: string | undefined): ResStatusKey {
   if (s === "partly_approved") return "partly_approved";
   if (s === "approved" || s === "placed" || s === "pending_payment" || s === "confirmed")
     return "approved";
-  if (s === "pending_producer_approval") return "pending";
+  // B2C shared-pallet confirm uses this status — customer copy matches confirmation.
+  if (s === "pending_producer_approval") return "waiting_pallet";
   if (s === "conditional_pending") return "us_conditional";
   return "pending";
 }
@@ -217,6 +231,7 @@ function getSummaryStatus(group: AddressPalletData): ResStatusKey {
   if (palletComplete) return "pallet_complete";
 
   const producerOutcome = getProducerOutcome(reservationStatus);
+  if (producerOutcome === "waiting_pallet") return "waiting_pallet";
   if (producerOutcome === "pending") return "awaiting_producer";
   if (producerOutcome === "declined") return "declined";
   if (producerOutcome === "partly_approved") return "partly_approved";
@@ -236,6 +251,11 @@ const timelineStatusConfig: Record<
     icon: Clock,
     containerClass: "border border-amber-200 bg-amber-50",
     iconClass: "text-amber-700",
+  },
+  waiting_pallet: {
+    icon: Clock,
+    containerClass: "border border-border bg-background",
+    iconClass: "text-muted-foreground",
   },
   partly_approved: {
     icon: CheckCircle2,
@@ -392,6 +412,7 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
   const paths = localizedPathsForLocale(shopping.locale);
   const { formatSek } = useDisplayMoney();
   const intlLocale = shopping.intlLocale;
+  const appLocale = (shopping.locale === "en" ? "en" : "sv") as AppLocale;
   const formatPrice = (cents: number) => formatSek(cents / 100);
   const [open, setOpen] = useState(false);
 
@@ -415,6 +436,13 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
     group.palletCapacity && group.palletCapacity > 0
       ? (progressBottles / group.palletCapacity) * 100
       : 0;
+  const chargeDeadlineLabel = group.chargeDeadlineAt
+    ? formatSharedPalletChargeDeadline(group.chargeDeadlineAt, appLocale)
+    : null;
+  const yourBottlesCount =
+    group.orderedBottleDisplayTotal && group.orderedBottleDisplayTotal > 0
+      ? group.orderedBottleDisplayTotal
+      : group.totalBottles;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -432,40 +460,38 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
 
           {/* Status badge - top right */}
           <div className="absolute top-3 right-3 pointer-events-none">
-            <Badge variant="outline" className="text-[10px] bg-white/95 backdrop-blur-sm shadow-sm">
+            <Badge
+              variant="outline"
+              className="text-[10px] bg-white/95 backdrop-blur-sm shadow-sm normal-case tracking-normal"
+            >
               {summaryStatusLabel}
             </Badge>
           </div>
 
           {/* Overlay (homepage-card style) */}
           <div className="absolute flex p-sides inset-0 items-end justify-end pointer-events-none">
-            <div className="pointer-events-auto max-w-full flex items-stretch gap-2 w-full">
-              {/* Procenten i utrymmet mellan vänsterkant och vit box */}
-              {group.palletCapacity && group.palletCapacity > 0 && (
-                <div className="flex items-center justify-center flex-1 min-w-0 group/percentage">
-                  <div className="relative">
-                    <span className="text-3xl font-semibold text-foreground whitespace-nowrap transition-all duration-300 group-hover/percentage:opacity-0 group-hover/percentage:scale-95">
-                      {Math.round((progressBottles / group.palletCapacity) * 100)}%
-                    </span>
-                    <div className="absolute inset-0 flex flex-col items-center justify-center opacity-0 group-hover/percentage:opacity-100 transition-all duration-300 scale-95 group-hover/percentage:scale-100">
-                      <span className="text-2xl font-semibold text-foreground whitespace-nowrap">
-                        {progressBottles} / {group.palletCapacity}
-                      </span>
-                      <span className="text-sm text-muted-foreground whitespace-nowrap mt-0.5">
-                        {t("profile.bottles")}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )}
-              <div className="flex gap-3 items-center p-2.5 pl-4 bg-white/95 backdrop-blur-sm rounded-lg max-w-[60%] shadow-button ring-1 ring-border/10 transition-transform duration-300 ease-out group-hover/card:-translate-y-0.5 group-hover/card:shadow-button-hover">
-                <div className="pr-4 leading-4 overflow-hidden">
-                  <p className="inline-block w-full truncate text-xs md:text-sm font-semibold text-foreground/90 mb-1">
+            <div className="pointer-events-auto max-w-full flex items-end w-full">
+              <div className="flex gap-3 items-center p-2.5 pl-4 bg-white/95 backdrop-blur-sm rounded-lg min-w-0 flex-1 shadow-button ring-1 ring-border/10 transition-transform duration-300 ease-out group-hover/card:-translate-y-0.5 group-hover/card:shadow-button-hover">
+                <div className="pr-4 leading-4 min-w-0 w-full">
+                  <p className="w-full text-xs md:text-sm font-semibold text-foreground/90 mb-1 break-words">
                     {group.palletName}
                   </p>
-                  <p className="text-[11px] text-muted-foreground font-normal mb-1 truncate">
-                    {formatBottleSummary(group, t)} • {group.wines.length}{" "}
-                    {t("profile.wines")}
+                  {group.palletCapacity && group.palletCapacity > 0 ? (
+                    <p className="text-[11px] text-muted-foreground font-normal mb-0.5 whitespace-nowrap">
+                      {t("commerce.palletFillCount", {
+                        filled: String(progressBottles),
+                        total: String(group.palletCapacity),
+                      })}
+                    </p>
+                  ) : null}
+                  {group.orderNumberShort ? (
+                    <p className="text-[11px] text-muted-foreground font-normal mb-0.5 tabular-nums whitespace-nowrap">
+                      {t("checkout.successOrderNumber")}: {group.orderNumberShort}
+                    </p>
+                  ) : null}
+                  <p className="text-[11px] text-muted-foreground font-normal mb-1 break-words">
+                    {formatBottleSummary(group, t)} •{" "}
+                    {t("profile.winesCount", { count: group.wines.length })}
                   </p>
                   <div className="flex gap-2 items-center text-sm md:text-base font-semibold">
                     <span className="text-sm md:text-base font-semibold">{formatPrice(group.totalCostCents)}</span>
@@ -477,20 +503,22 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
         </div>
       </DialogTrigger>
 
-      <DialogContent className="max-h-[95vh] md:max-h-[90vh] max-w-[95vw] md:max-w-4xl p-0 bg-gray-50 border-0 rounded-none md:rounded-2xl m-0 md:m-4 h-[95vh] md:h-[90vh] flex flex-col overflow-hidden">
+      <DialogContent className="max-h-[95vh] md:max-h-[90vh] max-w-[95vw] md:max-w-4xl p-0 bg-gray-50 border-0 rounded-none md:rounded-2xl m-0 md:m-4 h-auto flex flex-col overflow-hidden">
         <DialogHeader className="gap-3 md:gap-4 px-4 md:px-6 pt-4 md:pt-6 pb-3 md:pb-5 text-center border-b border-gray-200 bg-white shrink-0">
           <div className="relative h-12 w-12 md:h-16 md:w-16 overflow-hidden rounded-xl ring-1 ring-gray-200 bg-gray-100 mx-auto">
             <Image
               src={primaryImage}
-              alt="Reserved product"
+              alt="Ordered product"
               fill
               className="object-cover"
               priority
             />
           </div>
-          <div className="space-y-1">
-            <DialogTitle className="text-sm md:text-base font-semibold tracking-tight px-2">{group.palletName}</DialogTitle>
-            <DialogDescription className="text-xs md:text-sm">
+          <div className="space-y-1 text-center">
+            <DialogTitle className="text-sm md:text-base font-semibold tracking-tight px-2 text-center">
+              {group.palletName}
+            </DialogTitle>
+            <DialogDescription className="text-xs md:text-sm text-center">
               {t("profile.trackReservation")}
             </DialogDescription>
           </div>
@@ -502,32 +530,20 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
               <StatusIcon className={`h-4 w-4 md:h-5 md:w-5 ${statusConfig.iconClass}`} />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-1.5 md:gap-2 flex-wrap">
-                <h3 className="text-sm md:text-base font-semibold text-foreground truncate">
-                  {summaryStatusLabel}
-                </h3>
-                <Badge
-                  variant="outline"
-                  className="text-[10px] md:text-xs shrink-0"
-                >
-                  {t("profile.active")}
-                </Badge>
-              </div>
-              <p className="text-xs md:text-sm text-muted-foreground truncate">
-                {t("profile.latest", {
-                  date: formatDate(
-                    group.latestOrderDate,
-                    intlLocale,
-                    t("profile.invalidDate"),
-                  ),
-                })}
-              </p>
+              <h3 className="text-sm md:text-base font-semibold text-foreground break-words">
+                {summaryStatusLabel}
+              </h3>
+              {chargeDeadlineLabel ? (
+                <p className="text-xs md:text-sm text-muted-foreground break-words">
+                  {t("profile.palletClosesBy", { datum: chargeDeadlineLabel })}
+                </p>
+              ) : null}
             </div>
           </div>
         </div>
 
-        <div className="flex-1 min-h-0 flex flex-col bg-gray-50">
-          <Tabs defaultValue="pallet" className="flex h-full flex-col min-h-0">
+        <div className="min-h-0 flex flex-col bg-gray-50 overflow-y-auto">
+          <Tabs defaultValue="pallet" className="flex flex-col min-h-0">
             <div className="px-3 md:px-4 pt-2 pb-1.5 bg-white border-b border-gray-200 shrink-0">
               <TabsList className="w-full grid grid-cols-3 rounded-full bg-white border border-gray-200 h-auto gap-1 p-1">
                 <TabsTrigger value="pallet" className="gap-1.5 text-xs flex-1 px-2 md:px-3 py-1.5 md:py-2 h-auto text-[10px] md:text-xs rounded-full">
@@ -547,193 +563,50 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
 
             <TabsContent
               value="pallet"
-              className="mt-0 flex-1 min-h-0 overflow-y-auto pb-4 md:pb-6 px-3 md:px-4"
+              className="mt-0 overflow-visible pb-4 md:pb-6 px-3 md:px-4"
             >
               <div className="space-y-4 pt-4">
                 <Card className="p-4 md:p-5 bg-white border border-gray-200 rounded-2xl">
-                  <h4 className="mb-3 flex items-center gap-2 text-sm font-semibold">
-                    <Package className="h-4 w-4 text-muted-foreground" />
-                    Pallet Information
-                  </h4>
-                  <div className="space-y-3">
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">Pallet Name</span>
-                        <span className="font-medium text-gray-900">{group.palletName}</span>
-                      </div>
-                      {group.palletCapacity && (
-                        <>
-                          <Separator className="my-2" />
-                          <div className="space-y-2">
-                            <div className="flex justify-between text-sm">
-                              <span className="text-gray-500">Capacity</span>
-                              <span className="font-medium text-gray-900">
-                                {group.palletCapacity} bottles
-                              </span>
-                            </div>
-                            <div className="flex justify-between text-sm">
-                              <span className="text-gray-500">Reserved</span>
-                              <span className="font-medium text-gray-900">
-                                {progressBottles} bottles
-                              </span>
-                            </div>
-                            <div className="flex justify-between text-sm">
-                              <span className="text-gray-500">Your bottles</span>
-                              <span className="font-medium text-gray-900">
-                                {group.totalRequestedBottles && group.totalRequestedBottles > group.totalBottles
-                                  ? `${group.totalBottles} / ${group.totalRequestedBottles}`
-                                  : group.totalBottles}{" "}
-                                bottles
-                              </span>
-                            </div>
-                            <div className="space-y-1.5 pt-1.5">
-                              <div className="flex justify-between text-xs text-gray-500">
-                                <span>Progress</span>
-                                <span>
-                                  {Math.round(
-                                    (progressBottles / group.palletCapacity) * 100
-                                  )}
-                                  %
-                                </span>
-                              </div>
-                              <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-                                <div
-                                  className={`h-full rounded-full transition-all ${
-                                    group.palletIsComplete
-                                      ? "bg-emerald-500"
-                                      : (progressBottles / group.palletCapacity) * 100 >= 90
-                                        ? "bg-amber-500"
-                                        : "bg-gray-900"
-                                  }`}
-                                  style={{
-                                    width: `${Math.min(
-                                      (progressBottles / group.palletCapacity) * 100,
-                                      100
-                                    )}%`,
-                                  }}
-                                />
-                              </div>
-                            </div>
-                            {group.palletIsComplete && (
-                              <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200">
-                                <div className="flex items-center gap-2 text-emerald-900">
-                                  <CheckCircle2 className="h-4 w-4" />
-                                  <span className="text-sm font-semibold">
-                                    Pallet is complete
-                                  </span>
-                                </div>
-                                <p className="text-xs text-emerald-800 mt-1">
-                                  This pallet has reached full capacity and is ready
-                                  for processing.
-                                </p>
-                              </div>
-                            )}
-                            {!group.palletIsComplete &&
-                              (progressBottles / group.palletCapacity) * 100 >= 90 && (
-                                <div className="p-3 rounded-lg bg-amber-50 border border-amber-200">
-                                  <div className="flex items-center gap-2 text-amber-800">
-                                    <Clock className="h-4 w-4" />
-                                    <span className="text-sm font-semibold">
-                                      Almost full
-                                    </span>
-                                  </div>
-                                  <p className="text-xs text-amber-800/90 mt-1">
-                                    This pallet is over 90% full. Invite friends or add
-                                    more bottles to complete it.
-                                  </p>
-                                </div>
-                              )}
-                          </div>
-                        </>
-                      )}
-                      {!group.palletCapacity && (
-                        <div className="p-3 rounded-lg bg-gray-50 border border-gray-200">
-                          <p className="text-xs text-gray-500">
-                            Capacity information not available for this pallet.
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </Card>
-
-                <Card className="p-4 md:p-5 bg-white border border-gray-200 rounded-2xl">
-                  <h4 className="mb-3 flex items-center gap-2 text-sm font-semibold">
-                    <Package className="h-4 w-4 text-muted-foreground" />
-                    Summary
-                  </h4>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Total Wines</span>
-                      <span className="font-medium text-gray-900">
-                        {group.wines.length} wine{group.wines.length !== 1 ? "s" : ""}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Your bottles (approved)</span>
-                      <span className="font-medium text-gray-900">{group.totalBottles} bottles</span>
-                    </div>
-                    {typeof group.totalRequestedBottles === "number" &&
-                    group.totalRequestedBottles !== group.totalBottles ? (
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">Your bottles (requested)</span>
-                        <span className="font-medium text-gray-900">{group.totalRequestedBottles} bottles</span>
+                  <div className="space-y-3 text-sm text-gray-900">
+                    {group.palletCapacity && group.palletCapacity > 0 ? (
+                      <div className="flex justify-between gap-3">
+                        <span className="text-gray-500">
+                          {t("profile.palletRowLabel")}
+                        </span>
+                        <span className="font-medium text-right tabular-nums">
+                          {t("commerce.palletFillCount", {
+                            filled: String(progressBottles),
+                            total: String(group.palletCapacity),
+                          })}
+                        </span>
                       </div>
                     ) : null}
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Orders</span>
-                      <span className="font-medium text-gray-900">
-                        {group.orderCount} order{group.orderCount !== 1 ? "s" : ""}
+                    <div className="flex justify-between gap-3">
+                      <span className="text-gray-500">
+                        {t("profile.yourBottles")}
+                      </span>
+                      <span className="font-medium text-right tabular-nums">
+                        {yourBottlesCount}
                       </span>
                     </div>
-                    <Separator className="my-2" />
-                    <div className="flex justify-between items-center">
-                      <span className="text-base font-medium text-gray-900">Total Cost</span>
-                      <span className="text-lg font-medium text-gray-900">
+                    <div className="flex justify-between gap-3">
+                      <span className="text-gray-500">
+                        {t("profile.totalShort")}
+                      </span>
+                      <span className="font-medium text-right tabular-nums">
                         {formatPrice(group.totalCostCents)}
                       </span>
                     </div>
-                  </div>
-                </Card>
-
-                <Card className="p-4 md:p-5 bg-white border border-gray-200 rounded-2xl">
-                  <h4 className="mb-3 flex items-center gap-2 text-sm font-semibold">
-                    <MapPin className="h-4 w-4 text-muted-foreground" />
-                    Delivery
-                  </h4>
-                  <div className="space-y-2">
-                    <div className="flex flex-col gap-1">
-                      <span className="text-xs text-gray-500">Address</span>
-                      <span className="font-medium text-sm text-gray-900 break-words">
-                        {group.deliveryAddress}
-                      </span>
-                    </div>
-                    {group.latestReservationStatus && (
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">Reservation</span>
-                        <span className="font-medium text-gray-900">{group.latestReservationStatus}</span>
-                      </div>
-                    )}
-                    {group.palletStatus && (
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">Pallet</span>
-                        <span className="font-medium text-gray-900">{group.palletStatus}</span>
-                      </div>
-                    )}
-                    {group.paymentStatus && (
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">Payment</span>
-                        <span className="font-medium text-gray-900">{group.paymentStatus}</span>
-                      </div>
-                    )}
-                    {group.paymentDeadline && (
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">Deadline</span>
-                        <span className="font-medium text-gray-900">
-                          {new Date(group.paymentDeadline).toLocaleDateString("sv-SE")}
+                    {group.orderNumberShort ? (
+                      <div className="flex justify-between gap-3">
+                        <span className="text-gray-500">
+                          {t("checkout.successOrderNumber")}
+                        </span>
+                        <span className="font-medium text-right tabular-nums whitespace-nowrap">
+                          {group.orderNumberShort}
                         </span>
                       </div>
-                    )}
+                    ) : null}
                   </div>
                 </Card>
 
@@ -744,7 +617,7 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
                       onClick={() => window.open(group.paymentLink, "_blank")}
                     >
                       <CreditCard className="mr-2 h-4 w-4" />
-                      Pay now
+                      {t("profile.payNow")}
                     </Button>
                   ) : null)}
               </div>
@@ -752,21 +625,21 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
 
             <TabsContent
               value="tracking"
-              className="mt-0 flex-1 min-h-0 overflow-y-auto pb-4 md:pb-6 px-3 md:px-4"
+              className="mt-0 overflow-visible pb-4 md:pb-6 px-3 md:px-4"
             >
               <div className="space-y-4 pt-4">
                 <Card className="p-4 md:p-5 bg-white border border-gray-200 rounded-2xl">
                   <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
                     <div className="space-y-2">
-                      <p className="text-xs text-gray-500">Pallet</p>
+                      <p className="text-xs text-gray-500">{t("profile.palletTab")}</p>
                       <div className="flex items-center gap-2">
                         <p className="font-medium text-sm text-gray-900 break-words">{group.palletName}</p>
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <p className="text-xs text-gray-500">Reference</p>
+                      <p className="text-xs text-gray-500">{t("profile.reference")}</p>
                       <div className="flex items-center gap-2">
-                        <p className="font-sans tabular-nums text-sm font-medium truncate flex-1 min-w-0">
+                        <p className="font-sans tabular-nums text-sm font-medium break-all flex-1 min-w-0">
                           {group.addressPalletKey}
                         </p>
                         <Button
@@ -782,7 +655,7 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
                   </div>
                   <Button variant="outline" className="w-full bg-transparent mt-4" size="sm">
                     <ExternalLink className="mr-2 h-4 w-4" />
-                    View full reservations
+                    {t("profile.viewFullOrders")}
                   </Button>
                 </Card>
 
@@ -823,9 +696,14 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
                       {/* Step 2: Producer review */}
                       {(() => {
                         const producerStatus = getProducerOutcome(group.latestReservationStatus);
-                        const isComplete = producerStatus === "Approved" || producerStatus === "Partly approved";
-                        const isActive = producerStatus === "Pending";
-                        const isDeclined = producerStatus === "Declined";
+                        const producerLabel = resStatusLabel(producerStatus, t);
+                        const isComplete =
+                          producerStatus === "approved" ||
+                          producerStatus === "partly_approved";
+                        const isActive =
+                          producerStatus === "pending" ||
+                          producerStatus === "waiting_pallet";
+                        const isDeclined = producerStatus === "declined";
                         return (
                           <div className="flex items-start gap-4">
                             <div className={`relative z-10 flex h-8 w-8 items-center justify-center rounded-full border-2 ${
@@ -837,23 +715,38 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
                               {isComplete ? <CheckCircle2 className="h-4 w-4" /> : <Clock className="h-4 w-4" />}
                             </div>
                             <div className="flex-1 pt-1">
-                              <div className="flex items-center justify-between">
+                              <div className="flex items-center justify-between gap-2">
                                 <h4 className={`text-sm font-semibold ${
                                   isActive ? "text-amber-700" : isDeclined ? "text-red-700" : "text-gray-900"
                                 }`}>
-                                  Producer review
+                                  {t("profile.producerReview")}
                                 </h4>
                                 <Badge variant="outline" className={`text-xs ${
                                   isActive ? "border-amber-200 bg-amber-50 text-amber-700" :
                                   isDeclined ? "border-red-200 bg-red-50 text-red-700" :
                                   "border-emerald-200 bg-emerald-50 text-emerald-700"
                                 }`}>
-                                  {producerStatus}
+                                  {producerLabel}
                                 </Badge>
                               </div>
                               {group.wines && group.wines.length > 0 && (
                                 <p className="text-xs text-gray-500 mt-0.5">
-                                  {group.wines.reduce((sum, w) => sum + (Number(w.approvedQuantity || 0)), 0)} / {group.wines.reduce((sum, w) => sum + Number(w.totalQuantity || 0), 0)} bottles approved
+                                  {t("profile.bottlesApprovedShort", {
+                                    approved: String(
+                                      group.wines.reduce(
+                                        (sum, w) =>
+                                          sum + (Number(w.approvedQuantity || 0)),
+                                        0,
+                                      ),
+                                    ),
+                                    requested: String(
+                                      group.wines.reduce(
+                                        (sum, w) =>
+                                          sum + Number(w.totalQuantity || 0),
+                                        0,
+                                      ),
+                                    ),
+                                  })}
                                 </p>
                               )}
                             </div>
@@ -880,13 +773,25 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
                                   {t("profile.palletConsolidating")}
                                 </h4>
                                 <Badge variant="outline" className="text-xs">
-                                  {group.palletStatus || (isComplete ? "complete" : "open")}
+                                  {group.palletStatus
+                                    ? // Never show internal enums; fall back to customer labels.
+                                      /^[a-z0-9_]+$/i.test(String(group.palletStatus))
+                                      ? isComplete
+                                        ? t("profile.palletStatusComplete")
+                                        : t("profile.palletOpen")
+                                      : group.palletStatus
+                                    : isComplete
+                                      ? t("profile.palletStatusComplete")
+                                      : t("profile.palletOpen")}
                                 </Badge>
                               </div>
                               {group.palletCapacity && group.palletCapacity > 0 && (
                                 <>
                                   <p className="text-xs text-gray-500 mt-0.5">
-                                    {progressBottles} / {group.palletCapacity} bottles
+                                    {t("commerce.palletFillCount", {
+                                      filled: String(progressBottles),
+                                      total: String(group.palletCapacity),
+                                    })}
                                   </p>
                                   <div className="mt-2 h-1.5 rounded-full bg-gray-100 overflow-hidden">
                                     <div
@@ -921,19 +826,26 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
                                 <h4 className={`text-sm font-semibold ${
                                   isPending ? "text-amber-700" : "text-gray-900"
                                 }`}>
-                                  Payment
+                                  {t("profile.paymentLabel")}
                                 </h4>
                                 <Badge variant="outline" className={`text-xs ${
                                   isPending ? "border-amber-200 bg-amber-50 text-amber-700" :
                                   isPaid ? "border-emerald-200 bg-emerald-50 text-emerald-700" :
                                   ""
                                 }`}>
-                                  {group.paymentStatus || "pending"}
+                                  {isPaid
+                                    ? t("profile.resStatusPaid")
+                                    : isPending
+                                      ? t("profile.resStatusPaymentPending")
+                                      : t("profile.paymentPendingShort")}
                                 </Badge>
                               </div>
                               {group.paymentDeadline && (
                                 <p className="text-xs text-gray-500 mt-0.5">
-                                  Deadline: {new Date(group.paymentDeadline).toLocaleDateString("sv-SE")}
+                                  {t("profile.deadline")}:{" "}
+                                  {new Date(
+                                    group.paymentDeadline,
+                                  ).toLocaleDateString(intlLocale)}
                                 </p>
                               )}
                               {isPending && group.paymentLink && (
@@ -943,7 +855,7 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
                                   onClick={() => window.open(group.paymentLink, "_blank")}
                                 >
                                   <CreditCard className="mr-2 h-3 w-3" />
-                                  Pay now
+                                  {t("profile.payNow")}
                                 </Button>
                               )}
                             </div>
@@ -965,21 +877,25 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
                               {isDelivered ? <CheckCircle2 className="h-4 w-4" /> : <Truck className="h-4 w-4" />}
                             </div>
                             <div className="flex-1 pt-1">
-                              <div className="flex items-center justify-between">
+                              <div className="flex items-center justify-between gap-2">
                                 <h4 className={`text-sm font-semibold ${
                                   isInTransit ? "text-blue-700" : "text-gray-900"
                                 }`}>
-                                  Delivery
+                                  {t("profile.delivery")}
                                 </h4>
                                 <Badge variant="outline" className={`text-xs ${
                                   isDelivered ? "border-emerald-200 bg-emerald-50 text-emerald-700" :
                                   isInTransit ? "border-blue-200 bg-blue-50 text-blue-700" :
                                   ""
                                 }`}>
-                                  {isDelivered ? "Delivered" : isInTransit ? "In transit" : "Not started"}
+                                  {isDelivered
+                                    ? t("profile.resStatusDelivered")
+                                    : isInTransit
+                                      ? t("profile.resStatusInTransit")
+                                      : t("profile.deliveryNotStarted")}
                                 </Badge>
                               </div>
-                              <p className="text-xs text-gray-500 mt-0.5">
+                              <p className="text-xs text-gray-500 mt-0.5 break-words">
                                 {group.deliveryAddress}
                               </p>
                             </div>
@@ -993,15 +909,15 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
                   <Card className="p-4 md:p-5 bg-white border border-gray-200 rounded-2xl">
                     <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
                       <div className="space-y-2">
-                        <p className="text-xs text-gray-500">Pallet</p>
+                        <p className="text-xs text-gray-500">{t("profile.palletTab")}</p>
                         <div className="flex items-center gap-2">
                           <p className="font-medium text-sm text-gray-900 break-words">{group.palletName}</p>
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <p className="text-xs text-gray-500">Reference</p>
+                        <p className="text-xs text-gray-500">{t("profile.reference")}</p>
                         <div className="flex items-center gap-2">
-                          <p className="font-sans tabular-nums text-sm font-medium truncate flex-1 min-w-0">
+                          <p className="font-sans tabular-nums text-sm font-medium break-all flex-1 min-w-0">
                             {group.addressPalletKey}
                           </p>
                           <Button
@@ -1017,23 +933,23 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
                     </div>
                     <Button variant="outline" className="w-full bg-transparent mt-4" size="sm">
                       <ExternalLink className="mr-2 h-4 w-4" />
-                      View full reservations
+                      {t("profile.viewFullOrders")}
                     </Button>
                   </Card>
                 </div>
               </div>
             </TabsContent>
 
-            <TabsContent value="wines" className="mt-0 flex-1 min-h-0 overflow-y-auto pb-4 md:pb-6 px-3 md:px-4">
+            <TabsContent value="wines" className="mt-0 overflow-visible pb-4 md:pb-6 px-3 md:px-4">
               <div className="space-y-4 pt-4">
                 <Card className="p-4 md:p-5 bg-white border border-gray-200 rounded-2xl">
                   <h4 className="mb-3 flex items-center gap-2 text-sm font-semibold">
                     <Wine className="h-4 w-4 text-muted-foreground" />
-                    Reserved Wines
+                    {t("profile.orderedWines")}
                   </h4>
                   {group.wines.length === 0 ? (
                     <p className="text-sm text-muted-foreground">
-                      No wines found for this pallet.
+                      {t("profile.noWinesOnPallet")}
                     </p>
                   ) : (
                     <div className="space-y-3">
@@ -1145,6 +1061,15 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
 
 export default function ReservationsPage() {
   const { t, context: shopping } = useShoppingContext();
+
+  // Keep <title> in sync with the visible page heading (SV/EN).
+  useEffect(() => {
+    const heading = t("profile.reservationsTitle");
+    const sitePart = document.title.includes("|")
+      ? document.title.split("|").slice(1).join("|").trim()
+      : "";
+    document.title = sitePart ? `${heading} | ${sitePart}` : heading;
+  }, [t, shopping.locale]);
   const paths = localizedPathsForLocale(shopping.locale);
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1282,10 +1207,15 @@ export default function ReservationsPage() {
         const palletInfo = reservation.pallet_id
           ? palletInfoById.get(reservation.pallet_id)
           : undefined;
+        const labelFromApi = reservation.customerPalletLabel?.trim() || "";
         const displayName =
-          reservation.customerPalletLabel?.trim() ||
-          reservation.pallet_name ||
-          "Unassigned Pallet";
+          labelFromApi &&
+          labelFromApi !== "shared_pallet" &&
+          labelFromApi !== "your_reservation"
+            ? labelFromApi
+            : reservation.isSharedPallet || reservation.pallet_id
+              ? t("checkout.successOnPallet")
+              : t("profile.yourReservation");
         const producerItems =
           reservation.items?.map((it) => ({
             wine_name: it.wine_name,
@@ -1304,6 +1234,7 @@ export default function ReservationsPage() {
           addressPalletKey,
           palletId: reservation.pallet_id ?? null,
           palletName: displayName,
+          orderNumberShort: reservation.order_number_short ?? null,
           palletStatus: palletInfo?.status ?? reservation.pallet_status ?? null,
           deliveryAddress:
             reservation.delivery_address || "No delivery address",
@@ -1330,16 +1261,25 @@ export default function ReservationsPage() {
           producerItems,
           conditionalBottleTotal: 0,
           orderedBottleDisplayTotal: 0,
+          chargeDeadlineAt: reservation.charge_deadline_at ?? null,
         });
       }
 
       const group = addressPalletMap.get(addressPalletKey)!;
       group.orderCount++;
+      if (reservation.order_number_short) {
+        group.orderNumberShort = reservation.order_number_short;
+      }
+      if (reservation.charge_deadline_at) {
+        // Prefer the newest reservation's deadline when grouping.
+        group.chargeDeadlineAt = reservation.charge_deadline_at;
+      }
       const countedStatuses = new Set([
         "placed",
         "approved",
         "partly_approved",
         "pending_payment",
+        "pending_producer_approval",
         "confirmed",
       ]);
 
@@ -1559,9 +1499,6 @@ export default function ReservationsPage() {
               <h1 className="text-2xl font-medium text-gray-900">
                 {t("profile.reservationsTitle")}
               </h1>
-              <p className="text-gray-500 mt-1">
-                {t("profile.reservationsSubtitle")}
-              </p>
             </div>
           </div>
 

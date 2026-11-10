@@ -1,5 +1,6 @@
 import { sendEmail } from "@/lib/email";
 import { sendTransactionalEmailOnce } from "@/lib/email/claim-email-send";
+import { isPalletCloseFlowEnabled } from "@/lib/checkout/pallet-close/flags";
 import type { AppLocale } from "@/lib/i18n/locale";
 import { isAppLocale } from "@/lib/i18n/locale";
 import { PALLET_FILL_STATUSES } from "@/lib/pallet-fill-count";
@@ -280,6 +281,8 @@ export async function runReservationExpiryJob(
       archived_at,
       created_at,
       pallet_id,
+      fulfillment_channel,
+      payment_mode,
       payment_status,
       payment_method_id,
       setup_intent_id,
@@ -348,7 +351,9 @@ export async function runReservationExpiryJob(
     const palletId =
       typeof row.pallet_id === "string" ? row.pallet_id.trim() : "";
     const pallet = palletId ? palletById.get(palletId) ?? null : null;
-    const decision = decideReservationExpiryAction(row, pallet, now, config);
+    const decision = decideReservationExpiryAction(row, pallet, now, config, {
+      palletCloseFlowEnabled: isPalletCloseFlowEnabled(),
+    });
 
     const profileRaw = row.profiles;
     const profile = Array.isArray(profileRaw) ? profileRaw[0] : profileRaw;

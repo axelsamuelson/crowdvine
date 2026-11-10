@@ -7,6 +7,7 @@ import { headers } from "next/headers";
 import { DEFAULT_WINE_IMAGE_PATH } from "@/lib/constants";
 import { isB2BHost } from "@/lib/b2b-site";
 import { fetchHiddenB2BWineIds } from "@/lib/b2b-pallet-stock";
+import { b2cWholeKronorFromOre } from "@/lib/cart/b2c-line-pricing";
 import { wineDisplayTitle } from "@/lib/wine-display-title";
 import { producerDisplayName } from "@/lib/producer-display-name";
 
@@ -139,11 +140,11 @@ export default async function ProducerGroupPage({ params }: PageProps) {
       },
       priceRange: {
         minVariantPrice: {
-          amount: (wine.base_price_cents / 100).toString(),
+          amount: b2cWholeKronorFromOre(wine.base_price_cents).toString(),
           currencyCode: "SEK",
         },
         maxVariantPrice: {
-          amount: (wine.base_price_cents / 100).toString(),
+          amount: b2cWholeKronorFromOre(wine.base_price_cents).toString(),
           currencyCode: "SEK",
         },
       },
@@ -154,7 +155,7 @@ export default async function ProducerGroupPage({ params }: PageProps) {
           availableForSale: true,
           selectedOptions: [],
           price: {
-            amount: (wine.base_price_cents / 100).toString(),
+            amount: b2cWholeKronorFromOre(wine.base_price_cents).toString(),
             currencyCode: "SEK",
           },
         },

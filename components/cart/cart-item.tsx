@@ -1,9 +1,8 @@
 "use client";
 
 import { CartItem } from "@/lib/shopify/types";
-import { DEFAULT_OPTION } from "@/lib/constants";
+import { DEFAULT_OPTION, DEFAULT_WINE_IMAGE_PATH } from "@/lib/constants";
 import { createUrl, getColorHex } from "@/lib/utils";
-import Image from "next/image";
 import Link from "next/link";
 import { DeleteItemButton } from "./delete-item-button";
 import { EditItemQuantityButton } from "./edit-item-quantity-button";
@@ -19,6 +18,8 @@ import { Warehouse } from "lucide-react";
 import { BoostBadge } from "@/components/producer/boost-badge";
 import { producerDisplayName } from "@/lib/producer-display-name";
 import { B2B_PRODUCER_ORDERS_ENABLED } from "@/lib/b2b/flags";
+import { resolveWineImageSrc } from "@/lib/cart/wine-image-url";
+import { localizeCartDiscountLabel } from "@/lib/cart/discount-label";
 
 type MerchandiseSearchParams = {
   [key: string]: string;
@@ -62,10 +63,14 @@ export function CartItemCard({ item, onCloseCart }: CartItemProps) {
   );
 
   const [renderImage] = imgs;
+  const imageSrc = resolveWineImageSrc(
+    renderImage?.url ?? item.merchandise.product.featuredImage?.url,
+  );
+  const imageAlt =
+    renderImage?.altText ||
+    item.merchandise.product.featuredImage?.altText ||
+    item.merchandise.product.title;
 
-  // Check if image is available
-  const hasImage = renderImage && renderImage.url;
-  
   return (
     <div
       className="cart-item bg-popover rounded-lg px-2 py-1"
@@ -73,22 +78,21 @@ export function CartItemCard({ item, onCloseCart }: CartItemProps) {
     >
       <div className="flex flex-row gap-6">
         <div className="relative size-[120px] overflow-hidden rounded-sm shrink-0">
-          {hasImage ? (
-            <Image
-              className="size-full object-cover"
-              width={240}
-              height={240}
-              blurDataURL={renderImage.url}
-              alt={renderImage.altText || item.merchandise.product.title}
-              src={renderImage.url}
-            />
-          ) : (
-            <div className="size-full bg-muted flex items-center justify-center">
-              <span className="text-muted-foreground text-xs">
-                {t("cart.noImage")}
-              </span>
-            </div>
-          )}
+          {/* Same resolver/fallback as checkout — never leave "Ingen bild". */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            className="size-full object-cover"
+            width={240}
+            height={240}
+            alt={imageAlt}
+            src={imageSrc}
+            onError={(e) => {
+              const el = e.currentTarget;
+              if (el.dataset.fallback === "1") return;
+              el.dataset.fallback = "1";
+              el.src = DEFAULT_WINE_IMAGE_PATH;
+            }}
+          />
 
           {/* Color pill overlay */}
           {colorOption && (
@@ -158,8 +162,9 @@ export function CartItemCard({ item, onCloseCart }: CartItemProps) {
               )}
             </span>
             {item.discountLabel ? (
-              <span className="inline-flex items-center text-xs px-2 py-0.5 rounded-md bg-amber-100 text-amber-700 font-medium w-fit">
-                {item.discountLabel}
+              <span className="inline-flex items-center text-xs px-2 py-0.5 rounded-md bg-muted text-muted-foreground font-medium w-fit">
+                {localizeCartDiscountLabel(item.discountLabel, locale) ??
+                  item.discountLabel}
               </span>
             ) : null}
             {showExclVat && (
