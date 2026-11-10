@@ -17,12 +17,21 @@ import {
   resolveCheckoutPalletFillDisplay,
   type CheckoutPalletFillInput,
 } from "@/lib/checkout/pallet-fill-display";
+import {
+  coverageCheckoutHint,
+  coverageProgressLabel,
+} from "@/lib/pallet-coverage-close/customer-copy";
 
 export type CheckoutPalletFillStatusProps = CheckoutPalletFillInput & {
   locale: DualOfferUiLocale;
   /** Default true — flip false for CRO hide without unmounting wiring. */
   enabled?: boolean;
   className?: string;
+  /**
+   * Coverage-close: show TODO(Juliette/Margaux) placeholders and treat
+   * `capacity` as bottles needed for the current threshold (Y).
+   */
+  useCoverageCloseCopy?: boolean;
 };
 
 export function CheckoutPalletFillStatus(props: CheckoutPalletFillStatusProps) {
@@ -51,14 +60,24 @@ export function CheckoutPalletFillStatus(props: CheckoutPalletFillStatusProps) {
 
   if (!display) return null;
 
-  const label = dualOfferMsg(props.locale, "dualOfferPalletFillStatus", {
-    filled: String(display.fillCount),
-    total: String(display.capacity),
-  });
+  const locale = props.locale === "en" ? "en" : "sv";
+  const label = props.useCoverageCloseCopy
+    ? coverageProgressLabel({
+        locale,
+        filled: display.fillCount,
+        target: display.capacity,
+      })
+    : dualOfferMsg(props.locale, "dualOfferPalletFillStatus", {
+        filled: String(display.fillCount),
+        total: String(display.capacity),
+      });
+  const hint = props.useCoverageCloseCopy
+    ? coverageCheckoutHint(locale)
+    : null;
 
   return (
     <VisibleOnceTracker
-      onceKey={`pallet_status_viewed:checkout:${display.palletId}:${display.fillCount}:${display.capacity}:${display.showBar ? "bar" : "nobar"}`}
+      onceKey={`pallet_status_viewed:checkout:${display.palletId}:${display.fillCount}:${display.capacity}:${display.showBar ? "bar" : "nobar"}:${props.useCoverageCloseCopy ? "cov" : "leg"}`}
       onVisible={onVisible}
       className={props.className}
       threshold={0.25}
@@ -68,10 +87,14 @@ export function CheckoutPalletFillStatus(props: CheckoutPalletFillStatusProps) {
         data-testid="dual-offer-pallet-fill"
         data-includes-cart={display.includesCustomerCart ? "1" : "0"}
         data-show-bar={display.showBar ? "1" : "0"}
+        data-coverage-close={props.useCoverageCloseCopy ? "1" : "0"}
       >
         <p className="text-sm text-foreground/80 leading-snug whitespace-nowrap overflow-hidden text-ellipsis max-[374px]:whitespace-normal">
           {label}
         </p>
+        {hint ? (
+          <p className="text-xs text-muted-foreground leading-snug">{hint}</p>
+        ) : null}
         {display.showBar ? (
           <div
             className="h-1 w-full overflow-hidden rounded-full bg-foreground/10"
