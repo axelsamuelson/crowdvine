@@ -120,20 +120,43 @@ export function PdpStickyBuyBar({
   }, [recomputeOverlays]);
 
   useEffect(() => {
-    const cta = mainCtaRef.current;
-    if (!cta || typeof IntersectionObserver === "undefined") return;
+    if (typeof IntersectionObserver === "undefined") return;
 
-    const obs = new IntersectionObserver(
-      (entries) => {
-        const entry = entries[0];
-        // Hidden when not intersecting (threshold 0 + bottom rootMargin).
-        setMainCtaHidden(!(entry?.isIntersecting ?? true));
-      },
-      { threshold: 0, rootMargin: "0px 0px -8px 0px" },
-    );
-    obs.observe(cta);
-    return () => obs.disconnect();
-  }, [mainCtaRef]);
+    let obs: IntersectionObserver | null = null;
+    let cancelled = false;
+    let retryId = 0;
+
+    const attach = (): boolean => {
+      const cta =
+        mainCtaRef.current ||
+        document.querySelector<HTMLElement>("[data-pdp-main-cta]");
+      if (!cta || cancelled) return false;
+
+      obs = new IntersectionObserver(
+        (entries) => {
+          const entry = entries[0];
+          // Hidden when not intersecting (threshold 0 + bottom rootMargin).
+          setMainCtaHidden(!(entry?.isIntersecting ?? true));
+        },
+        { threshold: 0, rootMargin: "0px 0px -8px 0px" },
+      );
+      obs.observe(cta);
+      return true;
+    };
+
+    // Ref may not be populated on first paint (CaseModeSelector mounts after).
+    if (!attach()) {
+      retryId = window.setInterval(() => {
+        if (attach()) window.clearInterval(retryId);
+      }, 100);
+    }
+
+    return () => {
+      cancelled = true;
+      if (retryId) window.clearInterval(retryId);
+      obs?.disconnect();
+    };
+  }, [mainCtaRef, product.id]);
 
   useEffect(() => {
     const footer =
