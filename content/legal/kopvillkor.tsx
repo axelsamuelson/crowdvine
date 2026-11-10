@@ -75,81 +75,61 @@ export default function KopvillkorContent() {
       <LegalP>
         PACT samlar flera beställningar till en gemensam transport från
         producenterna i Frankrike till Sverige. Det är därför vinet kan kosta
-        vad det gör. Det innebär också att köpet går till annorlunda än i en
-        vanlig webbshop, och det är viktigt att du förstår hur.
+        vad det gör. Det betyder också att det går till lite annorlunda än i en
+        vanlig webbshop.
       </LegalP>
       <LegalP>
-        <LegalStrong>Steg 1. Du reserverar.</LegalStrong> Du väljer viner och
-        lägger en reservation. Du anger dina kortuppgifter, men{" "}
-        <LegalStrong>inget belopp dras och kortet reserveras inte</LegalStrong>.
-        Du får en bekräftelse på din reservation via e-post.
+        <LegalStrong>Steg 1. Du köper.</LegalStrong> Du väljer viner och
+        slutför köpet i kassan.{" "}
+        <LegalStrong>Köpet är bindande när du klickar på köpknappen.</LegalStrong>{" "}
+        Ditt kort sparas hos vår betalleverantör Stripe, men inget belopp dras
+        än. Du får en orderbekräftelse med de här villkoren via e-post.
       </LegalP>
       <LegalP>
         <LegalStrong>Steg 2. Pallen fylls.</LegalStrong> Pallen är först
-        virtuell: du ser hur många flaskor som beställts jämfört med den tröskel
-        som krävs. Vi samlar reservationer tills tröskeln nås. Först när pallen
-        närmar sig tröskeln väljs producent och upphämtningsplats, och pallen
-        blir fysisk.
+        virtuell. Du ser hur många flaskor som har beställts och hur många som
+        behövs för att pallen ska kunna skickas.
       </LegalP>
       <LegalP>
-        <LegalStrong>Steg 3. Pallen stänger och betalning sker.</LegalStrong>{" "}
-        När pallen når sin tröskel stänger vi den och{" "}
-        <LegalStrong>då först debiteras ditt kort</LegalStrong> med det belopp
-        som framgick av din reservation. Du får ett kvitto via e-post. Först i
-        detta ögonblick uppstår ett bindande köpavtal mellan dig och EURPACT
-        OÜ.
+        <LegalStrong>Steg 3. Pallen stänger och ditt kort debiteras.</LegalStrong>{" "}
+        Pallen stänger när den har nått gränsen för att kunna skickas.{" "}
+        <LegalStrong>Först då debiteras ditt kort</LegalStrong> med det belopp
+        som stod i kassan. Du får ett kvitto via e-post.
       </LegalP>
       <LegalP>
         <LegalStrong>Steg 4. Leverans.</LegalStrong> Din order packas i lådor
-        direkt hos producenterna i Frankrike, transporteras till Sverige och
-        levereras hem till dig med ID-kontroll.
+        hos producenterna i Frankrike, transporteras till Sverige och levereras
+        hem till dig med ID-kontroll (se punkt 7).
       </LegalP>
 
-      <LegalH3>Din reservation är inte ett bindande köp</LegalH3>
+      <LegalH3>Avbryta innan pallen stänger</LegalH3>
       <LegalP>
-        Fram till att pallen stänger och betalning genomförs kan du{" "}
-        <LegalStrong>när som helst avboka din reservation utan kostnad</LegalStrong>
-        , via ditt konto eller genom att mejla oss.
+        Fram till att pallen stänger kan du{" "}
+        <LegalStrong>avbryta ditt köp utan kostnad</LegalStrong>, via ditt
+        konto eller genom att mejla customer@pactwines.com. Inget belopp dras
+        då. Efter leveransen har du dessutom ångerrätt enligt punkt 9.
       </LegalP>
 
-      <LegalH3>Vad händer om pallen inte fylls</LegalH3>
+      <LegalH3>Om det tar tid att fylla pallen</LegalH3>
       <LegalP>
-        Din reservation gäller i <LegalStrong>30 dagar åt gången</LegalStrong>.
+        Det finns ingen tidsgräns för när pallen ska vara full.{" "}
+        <LegalStrong>
+          Din order ligger kvar tills pallen stänger eller tills du själv
+          avbryter.
+        </LegalStrong>{" "}
+        Du behöver inte göra något för att behålla den. Inget belopp dras förrän
+        pallen stänger. I ditt konto ser du hur nära gränsen pallen är, och vi
+        mejlar dig regelbundet om läget, med en länk där du kan avbryta.
       </LegalP>
       <LegalP>
-        Om pallen fortfarande inte nått nödvändig volym (tröskeln) när de 30
-        dagarna gått skickar vi ett e-postmeddelande. Där anger vi ett konkret
-        sista datum — inom <LegalStrong>7 dagar</LegalStrong> — då du behöver
-        bekräfta via länken i mejlet om du vill behålla reservationen.
-      </LegalP>
-      <LegalList>
-        <li>
-          Bekräftar du senast det datumet gäller reservationen i ytterligare 30
-          dagar
-        </li>
-        <li>
-          Du kan förlänga på samma sätt{" "}
-          <LegalStrong>hur många gånger du vill</LegalStrong>, 30 dagar i
-          taget, så länge pallen väntar på volym. Det finns ingen bortre
-          tidsgräns
-        </li>
-        <li>
-          Bekräftar du inte senast det datumet avslutas reservationen
-          automatiskt och <LegalStrong>inget belopp debiteras</LegalStrong>
-        </li>
-      </LegalList>
-      <LegalP>
-        När pallen når sin tröskel debiteras det belopp du reserverat. När en
-        reservation avslutas utan att pallen fyllts debiteras{" "}
-        <LegalStrong>inget belopp</LegalStrong>. Din sparade betalmetod tas
-        bort eller kan användas för en kommande pall enligt ditt val. Vi
-        informerar dig via e-post.
+        När en order avbryts tas ditt sparade kort bort, om du inte väljer att
+        spara det för ett kommande köp.
       </LegalP>
 
       <LegalH3>Om en producent inte kan leverera</LegalH3>
       <LegalP>
-        Ibland kan en producent inte leverera ett vin du reserverat, till
-        exempel om lagret tar slut efter att pallen stängt. Då gäller följande:
+        Ibland kan en producent inte leverera ett vin du köpt, till exempel om
+        lagret tar slut efter att pallen stängt. Då gäller följande:
       </LegalP>
       <LegalList>
         <li>
@@ -178,41 +158,45 @@ export default function KopvillkorContent() {
           <LegalStrong>inklusive svensk moms och svensk alkoholskatt</LegalStrong>
         </li>
         <li>
-          Priset du ser vid reservationen är det pris som debiteras när pallen
-          stänger. Vi ändrar aldrig priset på en befintlig reservation uppåt
+          <LegalStrong>
+            Totalpriset i kassan inkluderar moms och frakt. Inga andra avgifter
+            tillkommer.
+          </LegalStrong>
         </li>
-        <li>Fraktkostnad anges separat innan du bekräftar reservationen</li>
         <li>
-          Vi reserverar oss för uppenbara felaktiga prisangivelser. Om ett pris
-          är uppenbart fel har vi rätt att annullera reservationen och informera
-          dig, innan betalning sker
+          Det totalpris du ser i kassan är det som debiteras när pallen stänger.
+          Vi höjer aldrig priset efter ditt köp.
+        </li>
+        <li>
+          Vid ett uppenbart felaktigt pris har vi rätt att annullera köpet innan
+          ditt kort debiteras. Vi meddelar dig då.
         </li>
       </LegalList>
 
       <LegalH2>5. Betalning</LegalH2>
       <LegalP>
-        Betalning sker via vår betalleverantör Stripe med de betalsätt som
-        visas i kassan, i dag kort, Klarna och Link. När du reserverar sparas
-        ditt betalsätt hos Stripe, men inga pengar dras eller reserveras.
-        Beloppet dras när pallen är full och vi beställer frakten. Reserverar
-        du på en pall som redan är på väg att skickas dras beloppet direkt.
-        Betalar du med Klarna gäller även Klarnas villkor, som visas i kassan.
-        Vi sparar inga kortuppgifter själva.
-      </LegalP>
-      <LegalP>Betalningar hanteras av Stripe. Vi lagrar aldrig ditt fullständiga kortnummer.</LegalP>
-      <LegalP>
-        Din bank kan komma att kräva en säkerhetsverifiering (BankID eller
-        motsvarande) antingen vid reservationen eller vid debiteringen.
+        Du betalar med kort via vår betalleverantör Stripe. När du köper sparas
+        ditt kort hos Stripe, och{" "}
+        <LegalStrong>
+          du godkänner att vi drar det belopp som stod i kassan när pallen
+          stänger
+        </LegalStrong>
+        , utan att du behöver godkänna igen. Inget belopp dras eller reserveras
+        innan dess. Vi sparar inga kortuppgifter själva och lagrar aldrig ditt
+        fullständiga kortnummer.
       </LegalP>
       <LegalP>
-        <LegalStrong>Om betalningen inte kan genomföras</LegalStrong> när pallen
-        stänger, till exempel för att kortet gått ut eller saknar täckning:
-        Om dragningen från ditt sparade kort misslyckas gör vi nya försök efter{" "}
-        <LegalStrong>24 och 72 timmar</LegalStrong>. Kräver banken extra
-        verifiering (3D Secure) får du ett mejl med en länk för att godkänna
-        betalningen. Misslyckas tre försök avbryts beställningen och{" "}
-        <LegalStrong>inget dras</LegalStrong>. Varorna återgår då till
-        försäljning.
+        Din bank kan begära en säkerhetsverifiering (BankID eller motsvarande)
+        när du köper eller när kortet debiteras.
+      </LegalP>
+      <LegalP>
+        <LegalStrong>Om dragningen inte går igenom</LegalStrong> när pallen
+        stänger, till exempel för att kortet har gått ut eller saknar täckning,
+        mejlar vi dig. Du har då <LegalStrong>3 dagar</LegalStrong> på dig att
+        betala, till exempel med ett annat kort eller genom att godkänna
+        betalningen via länken i mejlet om banken kräver extra verifiering (3D
+        Secure). Under tiden gör vi nya försök. Har betalningen inte gått igenom
+        inom 3 dagar avslutas köpet och <LegalStrong>inget dras</LegalStrong>.
       </LegalP>
       <LegalP>
         Betalning sker enligt{" "}
@@ -228,22 +212,29 @@ export default function KopvillkorContent() {
       <LegalH2>6. Beställningsbekräftelse och avtal</LegalH2>
       <LegalList>
         <li>
-          Reservationsbekräftelsen är en bekräftelse på att vi tagit emot din
-          reservation, inte ett bindande köpavtal
+          <LegalStrong>
+            Köpet är bindande när du klickar på köpknappen i kassan.
+          </LegalStrong>{" "}
+          Du får då en orderbekräftelse via e-post med de här villkoren.
         </li>
         <li>
-          Bindande avtal uppstår när pallen stänger och betalningen genomförs.
-          Du får då en orderbekräftelse med kvitto
+          När pallen stänger och ditt kort debiteras får du ett kvitto.
         </li>
       </LegalList>
 
       <LegalH2>7. Leverans</LegalH2>
       <LegalList>
-        <li>Leverans sker med hemleverans och ID-kontroll av Budbee</li>
+        <li>
+          Leverans sker med hemleverans och ID-kontroll av vår transportpartner
+        </li>
         <li>
           Leveranstiden är normalt <LegalStrong>2–3 veckor</LegalStrong> efter
           att pallen har stängt, och alltid senast 30 dagar efter. Vid
           överlämning kontrolleras mottagarens ålder (20 år) med legitimation
+        </li>
+        <li>
+          Har du inte fått din leverans inom 30 dagar efter att pallen stängde
+          får du avbryta köpet. Du får då tillbaka hela beloppet inom 14 dagar.
         </li>
         <li>
           Angivna leveranstider är uppskattningar. Transport från Frankrike kan
@@ -264,8 +255,8 @@ export default function KopvillkorContent() {
       <LegalH2>8. Om leverans inte kan genomföras</LegalH2>
       <LegalP>
         Om du inte är hemma, inte kan legitimera dig eller inte är minst 20 år
-        gör Budbee ett nytt leveransförsök. Kan leveransen inte genomföras då
-        heller returneras varan.
+        gör vår transportpartner ett nytt leveransförsök. Kan leveransen inte
+        genomföras då heller returneras varan.
       </LegalP>
       <LegalP>
         Vid retur betalar du den faktiska returfraktkostnaden, utan påslag. Om
@@ -280,12 +271,6 @@ export default function KopvillkorContent() {
         följer av 2 kap. 14 § lagen (2005:59) om distansavtal och avtal utanför
         affärslokaler.
       </LegalP>
-      <LegalP>
-        Hur ett uteblivet leveransförsök hanteras beskrivs av{" "}
-        <LegalLink href="https://budbee.com/se/kundservice/leveranser/">
-          Budbee
-        </LegalLink>.
-      </LegalP>
 
       <LegalH2>9. Ångerrätt</LegalH2>
       <LegalP>
@@ -299,9 +284,9 @@ export default function KopvillkorContent() {
         betalar tillbaka hela beloppet, inklusive den ursprungliga
         leveranskostnaden för standardleverans, senast 14 dagar efter att vi
         fått ditt meddelande. Vi får vänta med återbetalningen tills vi har fått
-        tillbaka varorna. Returfrakt och värdeminskning regleras i §8.
-        Ångerrätten gäller inte om du har reserverat flaskor men inte betalat
-        något än. Då avbokar du utan kostnad.
+        tillbaka varorna. Returfrakt och värdeminskning regleras i §8. Fram till
+        att pallen stänger kan du dessutom avbryta köpet utan kostnad, se punkt
+        3.
       </LegalP>
 
       <LegalH2>10. Reklamation</LegalH2>
@@ -360,9 +345,8 @@ export default function KopvillkorContent() {
 
       <LegalH2>14. Ändringar av villkoren</LegalH2>
       <LegalP>
-        De villkor som gällde när du lade din reservation är de som gäller för
-        det köpet. Ändringar av dessa villkor påverkar inte redan lagda
-        reservationer.
+        De villkor som gällde när du köpte är de som gäller för det köpet.
+        Ändringar påverkar inte köp som redan har gjorts.
       </LegalP>
     </LegalProse>
   );
