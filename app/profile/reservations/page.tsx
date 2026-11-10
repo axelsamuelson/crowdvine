@@ -472,8 +472,8 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
           <div className="absolute flex p-sides inset-0 items-end justify-end pointer-events-none">
             <div className="pointer-events-auto max-w-full flex items-end gap-2 w-full">
               {group.palletCapacity && group.palletCapacity > 0 && (
-                <div className="flex items-end pb-1 shrink-0 max-w-[42%]">
-                  <span className="text-sm md:text-base font-semibold text-foreground leading-snug whitespace-normal">
+                <div className="flex items-end pb-1 shrink-0">
+                  <span className="text-sm md:text-base font-semibold text-foreground leading-snug whitespace-nowrap">
                     {t("commerce.palletFillCount", {
                       filled: String(progressBottles),
                       total: String(group.palletCapacity),
@@ -491,7 +491,7 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
                       {t("checkout.successOrderNumber")}: {group.orderNumberShort}
                     </p>
                   ) : null}
-                  <p className="text-[11px] text-muted-foreground font-normal mb-1 whitespace-nowrap overflow-hidden text-ellipsis">
+                  <p className="text-[11px] text-muted-foreground font-normal mb-1 break-words">
                     {formatBottleSummary(group, t)} •{" "}
                     {t("profile.winesCount", { count: group.wines.length })}
                   </p>
