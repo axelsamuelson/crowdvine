@@ -72,16 +72,10 @@ export function Header({
       )}
     >
       {/*
-        Dirty Wine: wrapper above header cart (z-10) so the open menu panel /
-        «Stäng» are not covered by the cart badge. PACT keeps z-10.
+        Stack the mobile menu above the header cart (nav z-10) so open-panel
+        «Stäng»/Close is never covered by the cart badge. Same for PACT + Dirty Wine.
       */}
-      <div
-        className={
-          isDirtywineSite
-            ? "block flex-none md:hidden relative z-[60]"
-            : "block flex-none md:hidden relative z-10"
-        }
-      >
+      <div className="relative z-[60] block flex-none md:hidden">
         <MobileMenuDynamic
           collections={collections}
           popularCollections={popularCollections}

@@ -91,17 +91,13 @@ export function MobileMenu({
         <AnimatePresence>
           {isOpen && (
             <>
-              {/* Backdrop — above header chrome so cart cannot cover «Stäng» */}
+              {/* Backdrop — above header cart so «Stäng»/Close stays tappable */}
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.3, ease: "easeInOut" }}
-                className={
-                  isDirtywineSite
-                    ? "fixed inset-0 z-[60] bg-foreground/30"
-                    : "fixed inset-0 z-50 bg-foreground/30"
-                }
+                className="fixed inset-0 z-[60] bg-foreground/30"
                 onClick={closeMobileMenu}
                 aria-hidden="true"
               />
@@ -112,20 +108,20 @@ export function MobileMenu({
                 animate={{ x: 0 }}
                 exit={{ x: "-100%" }}
                 transition={{ duration: 0.3, ease: "easeInOut" }}
-                className={
-                  isDirtywineSite
-                    ? "fixed top-0 bottom-0 left-0 flex w-full md:w-[400px] p-modal-sides z-[60]"
-                    : "fixed top-0 bottom-0 left-0 flex w-full md:w-[400px] p-modal-sides z-50"
-                }
+                className="fixed bottom-0 left-0 top-0 z-[60] flex w-full p-modal-sides md:w-[400px]"
               >
                 <div className="flex flex-col p-3 w-full rounded bg-muted md:p-4 overflow-hidden">
-                  <div className="flex justify-between items-baseline pl-2 mb-10">
+                  <div className="mb-10 flex items-center justify-between pl-2">
                     <p className="text-2xl font-semibold">{t("common.menu")}</p>
                     <Button
+                      type="button"
                       size="sm"
                       variant="ghost"
+                      data-testid="mobile-menu-close"
                       aria-label={t("common.closeMenu")}
                       onClick={closeMobileMenu}
+                      // ≥44×44 hit target (WCAG); label stays visual Stäng/Close.
+                      className="h-11 min-h-11 min-w-11 px-3"
                     >
                       {t("common.close")}
                     </Button>
