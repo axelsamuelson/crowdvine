@@ -68,7 +68,9 @@ describe("PACT mobile menu redesign", () => {
     expect(sv.common.shop).toBe("Butik");
     expect(en.common.shop).toBe("Shop");
     expect(menuSrc).toMatch(/data-testid="mobile-menu-nav-admin"/);
-    expect(menuSrc).toMatch(/mt-6 flex flex-col/);
+    expect(menuSrc).toMatch(
+      /mt-6 flex flex-col border-b border-\[rgba\(10,10,10,0\.10\)\]/,
+    );
     expect(menuSrc).toMatch(/text-\[#737373\]/);
   });
 
