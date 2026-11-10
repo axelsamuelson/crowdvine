@@ -87,10 +87,9 @@ export default function ActivityPage() {
   };
 
   const getEventColor = (eventType: string) => {
-    if (eventType.includes("invite")) return "text-blue-600 bg-blue-50";
-    if (eventType === "own_order") return "text-green-600 bg-green-50";
-    if (eventType.startsWith("migration_")) return "text-purple-600 bg-purple-50";
-    return "text-gray-600 bg-gray-50";
+    // Neutral activity chrome (no accent colours).
+    void eventType;
+    return "text-[#0A0A0A] bg-gray-100";
   };
 
   const labelFor = (event: PactPointsEvent) => {
@@ -284,7 +283,9 @@ export default function ActivityPage() {
                                     : "bg-gray-100 text-gray-600"
                                 }`}
                               >
-                                {isPositive ? `+${abs} pts` : `−${abs} pts`}
+                                {isPositive
+                                  ? `+${abs} ${t("profile.pointsUnit")}`
+                                  : `−${abs} ${t("profile.pointsUnit")}`}
                               </div>
                             </div>
                           </div>
@@ -293,9 +294,6 @@ export default function ActivityPage() {
                             <div className="flex items-center gap-1">
                               <Calendar className="w-3 h-3" />
                               {formatDate(event.created_at)}
-                            </div>
-                            <div className="capitalize">
-                              {labelFor(event)}
                             </div>
                           </div>
                         </div>
@@ -309,9 +307,8 @@ export default function ActivityPage() {
 
           {/* Summary Footer */}
           {!loading && filteredEvents.length > 0 && (
-            <div className="mt-8 p-4 bg-blue-50 rounded-lg border border-blue-100">
-              <p className="text-sm text-blue-800 text-center">
-                <strong>{filteredEvents.length}</strong>{" "}
+            <div className="mt-8 p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <p className="text-sm text-[#0A0A0A] text-center">
                 {filteredEvents.length === 1
                   ? t("profile.eventDisplayed", {
                       count: String(filteredEvents.length),

@@ -70,11 +70,6 @@ const CartItems = ({
       )
     : totalAmount;
   const [pactPointsBalance, setPactPointsBalance] = useState<number | null>(null);
-  const hasBoostedProducerInCart = Boolean(
-    cart?.lines?.some(
-      (line) => line.merchandise.product.producerBoostActive === true,
-    ),
-  );
 
   useEffect(() => {
     const run = async () => {
@@ -157,9 +152,7 @@ const CartItems = ({
               </div>
               <span className="text-xs text-muted-foreground">
                 {t("cart.pactPointsAvailable", { balance: pactPointsBalance })}
-                {hasBoostedProducerInCart
-                  ? t("cart.pactPointsBoost")
-                  : t("cart.pactPointsCheckout")}
+                {t("cart.pactPointsCheckout")}
               </span>
             </div>
           ) : null}

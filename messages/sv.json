@@ -709,7 +709,7 @@
     "successReservationRef": "Referens",
     "successShipping": "Frakt",
     "haveDiscountCode": "Har du en rabattkod?",
-    "couponHalfOrderCapNotice": "Kupongen kan användas för högst halva ordervärdet."
+    "couponHalfOrderCapNotice": "Kupongen kan användas för högst halva vinvärdet."
   },
   "tasteQuiz": {
     "unknownProducer": "Okänd producent",
@@ -900,7 +900,7 @@
     "earnedAllTime": "{count} intjänade totalt",
     "couponTitle": "Kupong",
     "couponValidUntil": "Gäller till och med {date}",
-    "pactPointsReplacedByCoupon": "Dina PACT-poäng har ersatts av en kupong på {belopp} (1 kr per poäng). Den gäller till och med {date} och kan användas för högst halva ordervärdet. Du använder den i kassan.",
+    "pactPointsReplacedByCoupon": "Dina PACT-poäng har ersatts av den här kupongen (1 kr per poäng). Den kan användas för högst halva vinvärdet i en order. Du använder den i kassan.",
     "invited": "Inbjudna",
     "orders": "Order",
     "payment": "Betalning",
@@ -1025,8 +1025,8 @@
     "justNow": "Just nu",
     "hoursAgo": "för {hours} tim sedan",
     "daysAgo": "för {days} dagar sedan",
-    "eventsDisplayed": "{count} händelser visas",
-    "eventDisplayed": "{count} händelse visas",
+    "eventsDisplayed": "{count} händelser",
+    "eventDisplayed": "{count} händelse",
     "filtered": "(filtrerat)",
     "eventOrder": "Order ({count} flaskor)",
     "eventOrderShort": "Order",
@@ -1160,7 +1160,7 @@
     "lateCancelFlowDisabled": "Du kan avboka här om leveransen inte har skett inom 30 dagar efter att pallen stängt.",
     "palletRowLabel": "Pallen",
     "totalShort": "Totalt",
-    "couponAmount": "Värde {amount}"
+    "pointsUnit": "poäng"
   },
   "auth": {
     "welcomeBack": "Välkommen tillbaka",

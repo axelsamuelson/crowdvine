@@ -101,21 +101,27 @@ describe("PACT points conversion coupon", () => {
     ).toBe(false);
   });
 
-  it("interpolates {date} and {belopp} in conversion coupon copy", () => {
-    const sv = translate("sv", "profile.pactPointsReplacedByCoupon", {
-      belopp: "150 kr",
-      date: "10 november 2027",
-    });
-    const en = translate("en", "profile.pactPointsReplacedByCoupon", {
-      belopp: "150 SEK",
-      date: "November 10, 2027",
-    });
-    expect(sv).toContain("150 kr");
-    expect(sv).toContain("10 november 2027");
-    expect(sv).toContain("halva ordervärdet");
-    expect(en).toContain("150 SEK");
-    expect(en).toContain("November 10, 2027");
-    expect(en).toContain("half of your order");
+  it("uses wine-value (not shipping) half-cap copy, matching points redemption base", () => {
+    // Evidence: calculateBoostAwareMaxRedemption caps at 50% of
+    // boostedLineTotal + nonBoostedLineTotal (wine lines only).
+    const redemption = readFileSync(
+      resolve(process.cwd(), "lib/membership/pact-points-redemption-math.ts"),
+      "utf8",
+    );
+    expect(redemption).toMatch(
+      /50% of \(boostedLineTotal \+ nonBoostedLineTotal\) SEK cap/,
+    );
+    expect(redemption).toMatch(
+      /const orderTotal = boosted \+ nonBoosted;/,
+    );
+    expect(redemption).not.toMatch(/shipping/i);
+
+    const svBody = translate("sv", "profile.pactPointsReplacedByCoupon");
+    const enBody = translate("en", "profile.pactPointsReplacedByCoupon");
+    expect(svBody).toContain("halva vinvärdet");
+    expect(svBody).not.toMatch(/\{belopp\}|\{date\}/);
+    expect(enBody).toContain("half the value of the wine");
+    expect(enBody).not.toMatch(/\{belopp\}|\{date\}/);
     expect(translate("sv", "profile.couponValidUntil", { date: "10 november 2027" })).toBe(
       "Gäller till och med 10 november 2027",
     );
@@ -123,10 +129,10 @@ describe("PACT points conversion coupon", () => {
       "Valid through November 10, 2027",
     );
     expect(translate("sv", "checkout.couponHalfOrderCapNotice")).toBe(
-      "Kupongen kan användas för högst halva ordervärdet.",
+      "Kupongen kan användas för högst halva vinvärdet.",
     );
     expect(translate("en", "checkout.couponHalfOrderCapNotice")).toBe(
-      "The coupon can cover up to half of the order value.",
+      "The coupon can cover up to half the value of the wine.",
     );
   });
 
@@ -245,23 +251,27 @@ describe("PACT points conversion coupon", () => {
     const en = readFileSync(resolve(process.cwd(), "messages/en.json"), "utf8");
 
     expect(profilePage).toMatch(/ProfilePactConversionCouponCard/);
+    expect(profilePage).toMatch(
+      /pactPointsEarningEnabled \? \([\s\S]*LevelBadge/,
+    );
     expect(card).toMatch(/pactPointsReplacedByCoupon/);
-    expect(card).toMatch(/date:\s*validLabel/);
-    expect(card).toMatch(/couponAmount/);
+    expect(card).toMatch(/couponValidUntil/);
+    expect(card).not.toMatch(/couponAmount/);
     expect(card).toMatch(/\/api\/user\/coupons/);
     expect(checkout).toMatch(/checkout-account-coupons/);
     expect(checkout).toMatch(/applyDiscountCode\(c\.code\)/);
     expect(checkout).toMatch(/couponHalfOrderCapNotice/);
     expect(checkout).toMatch(/isPromoDiscountReducedByConversionHalfCap/);
+    expect(checkout).not.toMatch(/boostWorth2x/);
     expect(validate).toMatch(/description/);
     expect(sv).toMatch(
-      /Dina PACT-poäng har ersatts av en kupong på \{belopp\}/,
+      /Dina PACT-poäng har ersatts av den här kupongen \(1 kr per poäng\)/,
     );
     expect(en).toMatch(
-      /Your PACT points have been replaced by a coupon worth \{belopp\}/,
+      /Your PACT points have been replaced by this coupon \(1 kr per point\)/,
     );
-    expect(sv).toMatch(/\{date\}/);
-    expect(en).toMatch(/\{date\}/);
+    expect(sv).toMatch(/halva vinvärdet/);
+    expect(en).toMatch(/half the value of the wine/);
     expect(en).toMatch(/"voucher": "Coupon \(\{count\}\)"/);
     expect(checkout).toMatch(/haveDiscountCode/);
     expect(sv).toMatch(/Har du en rabattkod\?/);
@@ -271,5 +281,18 @@ describe("PACT points conversion coupon", () => {
       "utf8",
     );
     expect(referral).toMatch(/SHOW_REFERRAL_REWARD_HEADLINE = false/);
+    const cartModal = readFileSync(
+      resolve(process.cwd(), "components/cart/modal.tsx"),
+      "utf8",
+    );
+    expect(cartModal).not.toMatch(/pactPointsBoost/);
+    const activity = readFileSync(
+      resolve(process.cwd(), "app/profile/activity/page.tsx"),
+      "utf8",
+    );
+    expect(activity).toMatch(/pointsUnit/);
+    expect(activity).not.toMatch(/ pts`/);
+    expect(activity).toMatch(/bg-gray-50/);
+    expect(activity).not.toMatch(/bg-blue-50|text-purple-600/);
   });
 });

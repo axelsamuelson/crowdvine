@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { isPactPointsConversionCoupon } from "@/lib/membership/pact-points-conversion";
 import { useTranslations } from "@/lib/hooks/use-translations";
-import { useDisplayMoney } from "@/lib/hooks/use-display-money";
 
 export type UserCoupon = {
   id: string;
@@ -15,7 +14,6 @@ export type UserCoupon = {
 
 export function ProfilePactConversionCouponCard() {
   const { t, context: shopping } = useTranslations();
-  const { formatSek } = useDisplayMoney();
   const intlLocale = shopping.intlLocale;
   const [coupons, setCoupons] = useState<UserCoupon[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -67,30 +65,27 @@ export function ProfilePactConversionCouponCard() {
             })
           : null;
         const isConversion = isPactPointsConversionCoupon(c.description);
-        const titleParts = [
-          t("profile.couponTitle"),
-          t("profile.couponAmount", { amount: amountPlain }),
-        ];
-        if (validLabel) {
-          titleParts.push(t("profile.couponValidUntil", { date: validLabel }));
-        }
-        const titleLine = titleParts.join(" · ");
         return (
           <div
             key={c.id}
-            className="rounded-xl border border-border bg-card px-4 py-3 space-y-1"
+            className="rounded-xl border border-border bg-card px-4 py-3 space-y-2"
             data-testid="profile-pact-coupon-card"
             data-conversion={isConversion ? "true" : "false"}
           >
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              {titleLine}
+              {t("profile.couponTitle")}
             </p>
+            <p className="text-2xl font-semibold tabular-nums text-foreground leading-none">
+              {amountPlain}
+            </p>
+            {validLabel ? (
+              <p className="text-xs text-muted-foreground normal-case">
+                {t("profile.couponValidUntil", { date: validLabel })}
+              </p>
+            ) : null}
             {isConversion ? (
               <p className="text-sm text-foreground pt-1">
-                {t("profile.pactPointsReplacedByCoupon", {
-                  belopp: formatSek(c.value_sek),
-                  date: validLabel ?? "",
-                })}
+                {t("profile.pactPointsReplacedByCoupon")}
               </p>
             ) : null}
           </div>

@@ -3258,8 +3258,6 @@ function CheckoutContent({
     [redeemPoints, boostedLineTotal, nonBoostedLineTotal],
   );
 
-  const hasBoostedProducerInOrder = boostedLineTotal > 0;
-
   const selectedPalletId = selectedPallet?.id ?? "";
   const promoDiscountSek = appliedDiscount?.discount_amount_sek ?? 0;
 
@@ -4108,11 +4106,6 @@ function CheckoutContent({
                         {t("checkout.useAll")}
                       </button>
                     </div>
-                    {hasBoostedProducerInOrder ? (
-                      <p className="text-[11px] text-violet-700">
-                        {t("checkout.boostWorth2x")}
-                      </p>
-                    ) : null}
                   </div>
                 ) : null}
                 {redeemPoints > 0 ? (

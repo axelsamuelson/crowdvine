@@ -732,13 +732,15 @@ function ProfilePageContent() {
                 <h1 className="text-2xl font-semibold tracking-tight text-foreground">
                   {userName}
                 </h1>
-                <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <LevelBadge
-                    level={membershipData.membership.level}
-                    size="md"
-                    showLabel
-                  />
-                </div>
+                {membershipData.pactPointsEarningEnabled ? (
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <LevelBadge
+                      level={membershipData.membership.level}
+                      size="md"
+                      showLabel
+                    />
+                  </div>
+                ) : null}
                 {membershipData.membership.level === "founding_member" ? (
                   <div className="mt-3 w-full max-w-sm rounded-xl border border-amber-200 bg-amber-50 p-4 space-y-1">
                     <p className="text-sm font-medium text-amber-900">

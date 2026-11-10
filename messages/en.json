@@ -709,7 +709,7 @@
     "successReservationRef": "Reference",
     "successShipping": "Shipping",
     "haveDiscountCode": "Have a discount code?",
-    "couponHalfOrderCapNotice": "The coupon can cover up to half of the order value."
+    "couponHalfOrderCapNotice": "The coupon can cover up to half the value of the wine."
   },
   "tasteQuiz": {
     "unknownProducer": "Unknown producer",
@@ -900,7 +900,7 @@
     "earnedAllTime": "{count} earned all time",
     "couponTitle": "Coupon",
     "couponValidUntil": "Valid through {date}",
-    "pactPointsReplacedByCoupon": "Your PACT points have been replaced by a coupon worth {belopp} (1 kr per point). It is valid through {date} and can cover up to half of your order. You can use it at checkout.",
+    "pactPointsReplacedByCoupon": "Your PACT points have been replaced by this coupon (1 kr per point). It can cover up to half the value of the wine in an order. You can use it at checkout.",
     "invited": "Invited",
     "orders": "Orders",
     "payment": "Payment",
@@ -1025,8 +1025,8 @@
     "justNow": "Just now",
     "hoursAgo": "{hours}h ago",
     "daysAgo": "{days}d ago",
-    "eventsDisplayed": "{count} events displayed",
-    "eventDisplayed": "{count} event displayed",
+    "eventsDisplayed": "{count} events",
+    "eventDisplayed": "{count} event",
     "filtered": "(filtered)",
     "eventOrder": "Order ({count} bottles)",
     "eventOrderShort": "Order",
@@ -1160,7 +1160,7 @@
     "lateCancelFlowDisabled": "You can cancel here if delivery hasn't happened within 30 days of the pallet closing.",
     "palletRowLabel": "Pallet",
     "totalShort": "Total",
-    "couponAmount": "Value {amount}"
+    "pointsUnit": "pts"
   },
   "auth": {
     "welcomeBack": "Welcome back",
