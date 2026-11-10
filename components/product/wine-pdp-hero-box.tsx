@@ -68,7 +68,11 @@ export function WinePdpHeroBox({
       ) : null}
       <div
         className={cn(
-          "relative z-10 rounded-md bg-popover px-3 py-3 md:grid md:min-h-[9.5rem] md:grid-cols-2 md:gap-x-4 md:gap-y-4 md:px-4 md:py-5",
+          "relative z-10 rounded-md bg-popover px-3 py-3 md:grid md:grid-cols-2 md:gap-x-4 md:gap-y-3 md:px-4 md:py-4",
+          // Reserve height only when lead copy fills the box — avoid empty band under the producer.
+          lead ? "md:min-h-[9.5rem]" : null,
+          // Room for the absolute case-help control without inflating an empty title box.
+          showCaseHelp && !lead ? "pb-10 md:pb-11" : null,
           className,
         )}
       >

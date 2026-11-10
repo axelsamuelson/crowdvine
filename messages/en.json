@@ -176,7 +176,7 @@
     "bottleProgressHint": "Minimum 6 bottles – you can mix",
     "needMoreBottlesShort": "{needed} more bottles",
     "needMoreMixHint": "{needed, plural, one {1 more bottle – mix freely across wines.} other {# more bottles – mix freely across wines.}}",
-    "proceedToCheckout": "Proceed to Checkout",
+    "proceedToCheckout": "Go to checkout",
     "sendInquiry": "Send inquiry",
     "loginToSendInquiry": "Log in to send an inquiry",
     "producerOrdersPaused": "Producer orders are paused. Remove the line to continue.",

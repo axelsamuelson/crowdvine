@@ -49,14 +49,14 @@ export function MobileGallerySlider({ product }: MobileGallerySliderProps) {
   if (totalImages === 0) return null;
 
   return (
-    <div className="relative w-full h-full" style={{ clipPath: 'inset(0)' }}>
-      {/* Embla Carousel */}
-      <div className="h-full" ref={emblaRef} style={{ overflow: 'clip' }}>
+    <div className="relative w-full h-full" style={{ clipPath: "inset(0)" }}>
+      {/* Embla Carousel — pad below solid header so the full bottle (neck) is visible */}
+      <div className="h-full" ref={emblaRef} style={{ overflow: "clip" }}>
         <div className="flex h-full">
           {validImages.map((image, index) => (
             <div
               key={`${image.url}-${image.selectedOptions?.map((o, idx) => `${o.name},${o.value}`).join("-") || index}`}
-              className="flex-shrink-0 w-full h-full relative"
+              className="relative h-full w-full flex-shrink-0 pt-[var(--top-spacing)]"
             >
               <Image
                 style={{
@@ -66,7 +66,7 @@ export function MobileGallerySlider({ product }: MobileGallerySliderProps) {
                 alt={image.altText || product.title}
                 width={image.width || 600}
                 height={image.height || 600}
-                className="w-full h-full object-cover"
+                className="h-full w-full object-contain object-top"
                 sizes="100vw"
                 quality={index === 0 ? 80 : 75}
                 priority={index === 0}
