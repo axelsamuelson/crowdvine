@@ -5,7 +5,6 @@ import {
 } from "@/lib/admin-auth-http";
 import { markWineUnavailableOnPallet } from "@/lib/pallet-coverage-close/admin-mark-unavailable";
 
-export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**

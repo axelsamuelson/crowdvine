@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { runPalletCoverageClose } from "@/lib/pallet-coverage-close/run";
 
-export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
