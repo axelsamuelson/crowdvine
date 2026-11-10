@@ -1156,7 +1156,7 @@
     "lateCancelError": "Kunde inte avboka",
     "deliveryNotStarted": "Ej påbörjad",
     "noWinesOnPallet": "Inga viner på den här pallen.",
-    "lateCancelFlowDisabled": "Det här alternativet är inte tillgängligt just nu.",
+    "lateCancelFlowDisabled": "Du kan avboka här om leveransen inte har skett inom 30 dagar efter att pallen stängt.",
     "palletRowLabel": "Pallen",
     "totalShort": "Totalt"
   },

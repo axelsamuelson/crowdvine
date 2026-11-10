@@ -1156,7 +1156,7 @@
     "lateCancelError": "Could not cancel",
     "deliveryNotStarted": "Not started",
     "noWinesOnPallet": "No wines found for this pallet.",
-    "lateCancelFlowDisabled": "This option isn't available right now.",
+    "lateCancelFlowDisabled": "You can cancel here if delivery hasn't happened within 30 days of the pallet closing.",
     "palletRowLabel": "Pallet",
     "totalShort": "Total"
   },

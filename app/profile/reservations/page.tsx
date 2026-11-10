@@ -470,22 +470,20 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
 
           {/* Overlay (homepage-card style) */}
           <div className="absolute flex p-sides inset-0 items-end justify-end pointer-events-none">
-            <div className="pointer-events-auto max-w-full flex items-end gap-2 w-full">
-              {group.palletCapacity && group.palletCapacity > 0 && (
-                <div className="flex items-end pb-1 shrink-0">
-                  <span className="text-sm md:text-base font-semibold text-foreground leading-snug whitespace-nowrap">
-                    {t("commerce.palletFillCount", {
-                      filled: String(progressBottles),
-                      total: String(group.palletCapacity),
-                    })}
-                  </span>
-                </div>
-              )}
+            <div className="pointer-events-auto max-w-full flex items-end w-full">
               <div className="flex gap-3 items-center p-2.5 pl-4 bg-white/95 backdrop-blur-sm rounded-lg min-w-0 flex-1 shadow-button ring-1 ring-border/10 transition-transform duration-300 ease-out group-hover/card:-translate-y-0.5 group-hover/card:shadow-button-hover">
                 <div className="pr-4 leading-4 min-w-0 w-full">
                   <p className="w-full text-xs md:text-sm font-semibold text-foreground/90 mb-1 break-words">
                     {group.palletName}
                   </p>
+                  {group.palletCapacity && group.palletCapacity > 0 ? (
+                    <p className="text-[11px] text-muted-foreground font-normal mb-0.5 whitespace-nowrap">
+                      {t("commerce.palletFillCount", {
+                        filled: String(progressBottles),
+                        total: String(group.palletCapacity),
+                      })}
+                    </p>
+                  ) : null}
                   {group.orderNumberShort ? (
                     <p className="text-[11px] text-muted-foreground font-normal mb-0.5 tabular-nums whitespace-nowrap">
                       {t("checkout.successOrderNumber")}: {group.orderNumberShort}
