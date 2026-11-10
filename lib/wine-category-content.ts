@@ -772,7 +772,7 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
     en: {
       contentHeading: "About red & orange biodynamic wine",
       longDescription:
-        "Red & orange biodynamic wine brings together bottles where the producer farms biodynamically and expresses both red grapes and orange winemaking — field blends, parallel harvests in the same cuvée, or wines that move between light skin contact and classic red fermentation.\n\nThe category captures Languedoc's experimental side: the same vineyard, the same biodynamic philosophy, but several expressions in the range. You can find everything from easy-drinking reds with a hint of skin contact to amber wines with clear tannin. The grape base is southern French — Grenache, Carignan, Syrah and local white varieties.\n\nBuy before the pallet fills.",
+        "Red & orange biodynamic wine brings together bottles where the producer farms biodynamically and expresses both red grapes and orange winemaking — field blends, parallel harvests in the same cuvée, or wines that move between light skin contact and classic red fermentation.\n\nThe category captures Languedoc's experimental side: the same vineyard, the same biodynamic philosophy, but several expressions in the range. You can find everything from easy-drinking reds with a hint of skin contact to amber wines with clear tannin. The grape base is southern French — Grenache, Carignan, Syrah and local white varieties.\n\nBuy before the pallet closes.",
       tastingProfile: [
         "Biodynamic farming according to the producer",
         "Spectrum between red and orange",

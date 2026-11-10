@@ -1,6 +1,6 @@
-# PACT copy changes — PR212 round 2 (points 6–7)
+# PACT copy changes — PR212 round 2 + Margaux approval
 
-Readable before/after for Margaux. **Dirty Wine / legal payment-timing copy left unchanged.**
+Readable before/after. **Dirty Wine / `content/legal/kopvillkor*` left unchanged.**
 
 ## Decision: `shop.addCase`
 
@@ -25,6 +25,8 @@ Dirty Wine keeps Reservera via new key `shop.reserveDirty`.
 | `cart.addMoreBottlesOutlineCta` *(new)* | — | `{needed, plural, one {+ Lägg till 1 flaska till} other {+ Lägg till # flaskor till}}` | — | `{needed, plural, one {+ Add 1 more bottle} other {+ Add # more bottles}}` |
 | `cart.needMoreMixHint` *(new)* | — | plural: `1 flaska till – …` / `# flaskor till – …` | — | plural: `1 more bottle – …` / `# more bottles – …` |
 | `cart.bottleProgressFull` | … – lådan är full | … – lådan är full *(SV unchanged)* | … – the box is full | … – your case is full |
+| `checkout.stripeCardSavedOnShip` | … debiteras först när pallen **skickas** | … när pallen **stänger** | … charged only when the pallet **ships** | … when the pallet **closes** |
+| `checkout.successChargeDeadlineHint` | … när pallen **fylls** … | … när pallen **stänger** … | … when the pallet **fills** … | … when the pallet **closes** … |
 
 ---
 
@@ -35,16 +37,16 @@ Dirty Wine keeps Reservera via new key `shop.reserveDirty`.
 | `intro` | … Du köper flaskor online, och vinet **levereras till Stockholm när pallen är full.** | … Du köper flaskor online, och vinet **levereras hem till dig när pallen stänger.** |
 | `aboutText` | Du **reserverar** … **till Stockholm när pallen är full.** | Du **köper** … **hem till dig när pallen stänger.** |
 | FAQ “Hur köper…” | På PACT **reserverar** du … | På PACT **köper** du … |
-| longDescription closing | När tillräckligt många har **reserverat** … skickas den **till Stockholm**. | När tillräckligt många har **köpt** … skickas den. |
+| longDescription closing | … skickas den. | … **skickas den hem till dig.** |
 
 | Field | Old EN | New EN |
 | --- | --- | --- |
 | `intro` | … delivered **to Stockholm when the pallet is full.** | … delivered **to your door when the pallet closes.** |
 | `aboutText` | You **reserve** … **to Stockholm when the pallet is full.** | You **buy** … **to your door when the pallet closes.** |
 | FAQ “How do I buy…” | On PACT you **reserve** the natural wines… | On PACT you **buy** the natural wines… |
-| longDescription closing | When enough people have **reserved** … ships **to Stockholm**. | When enough people have **bought** … ships. |
+| longDescription closing | … it ships. | … **ships to your door.** |
 
-Dirty Wine intros (`SV_DIRTYWINE_INTRO` / `EN_DIRTYWINE_INTRO`) still use **reserverar / reserve + Stockholm** — unchanged.
+Dirty Wine intros still use **reserverar / reserve + Stockholm** — unchanged.
 
 ---
 
@@ -58,44 +60,28 @@ Dirty Wine intros (`SV_DIRTYWINE_INTRO` / `EN_DIRTYWINE_INTRO`) still use **rese
 | SV | step 3 | från **reservation** till… | från **köp** till… |
 | EN | meta description | **Reserve** natural wine… Stockholm | **Buy** natural wine… (no Stockholm) |
 | EN | card 2 | consumers **reserve** / bottles are **reserved** | consumers **buy** / bottles are **bought** |
-| EN | step 1 | Discover & **Reserve** / **Reserve** the bottles | Discover & **buy** / **Buy** the bottles |
+| EN | step 1 title | Discover & **buy** | Discover & **Buy** |
+| EN | step 1 body | **Reserve** the bottles… | **Buy** the bottles… |
 | EN | step 3 | from **reservation** to delivery | from **order** to delivery |
-
-Payment-timing sentences: none altered on about (no “card charged when…” lines here).
 
 ---
 
-## Invite / how-it-works
+## Invite / how-it-works (`how-pact-works-section.tsx`)
 
-| File | Old | New |
-| --- | --- | --- |
-| `how-pact-works-section.tsx` pill | Reservera | Köp |
-| same, title | Reservera, betala senare | Köp, betala senare |
-| same, description | Debiteras när pallen avgår. | **unchanged** (payment timing) |
-| same, legend | reserverad | köpt |
-| `how-it-works-section.tsx` | Reserve in a pallet / Reserve your bottles… | Buy in a pallet / Buy your bottles… |
-| `WineDiscoverySection.tsx` | Reservera → | Köp → |
-| `PalletActivitySection.tsx` | reserverad | köpt |
+| Spot | Old SV | New SV | Old EN | New EN |
+| --- | --- | --- | --- | --- |
+| step 02 title | Köp, betala senare | **Köp nu – betala när pallen stänger** | — | **Buy now – pay when the pallet closes** |
+| step 02 description | Debiteras när pallen **avgår**. | Debiteras när pallen **stänger**. | — | **Charged when the pallet closes.** |
+| pill | Reservera → Köp | Köp | — | Buy |
+| legend | reserverad → köpt | köpt | — | — |
 
 ---
 
 ## Category SEO / long copy (`lib/wine-category-content.ts`)
 
-Pattern replacements (SV):
-
-- `Du reserverar flaskor online` → `Du köper flaskor online`
-- `Du reserverar online` → `Du köper online`
-- `…skickas vinet till Stockholm` / `hemleverans i Stockholm` → home delivery / when pallet closes (no Stockholm)
-- `har reserverat` → `har köpt`
-
-Pattern replacements (EN):
-
-- `You reserve bottles online` → `You buy bottles online`
-- `You reserve online` → `You buy online`
-- `Reserve online and the wine is delivered when the pallet is full.` → `Buy online and the wine is delivered to your door when the pallet closes.`
-- `Reserve before the pallet to Stockholm fills.` → `Buy before the pallet fills.`
-
-No Budbee named. No payment-charge timing sentences in this file were edited.
+- `Du reserverar…` → `Du köper…` / `You reserve…` → `You buy…`
+- `Buy before the pallet fills.` → **`Buy before the pallet closes.`**
+- Home delivery / pallet closes (no Stockholm) where previously Stockholm
 
 ---
 
@@ -103,10 +89,8 @@ No Budbee named. No payment-charge timing sentences in this file were edited.
 
 | Pattern | New |
 | --- | --- |
-| reservera innan pallen till Stockholm fylls | köp innan pallen fylls |
-| Reservera de flaskor… | Köp de flaskor… |
-| reserve before the pallet to Stockholm fills | buy before the pallet fills |
-| Reserve the bottles… | Buy the bottles… |
+| köp innan pallen **fylls** | köp innan pallen **stänger** |
+| buy before the pallet **fills** | buy before the pallet **closes** |
 
 ---
 
@@ -114,5 +98,5 @@ No Budbee named. No payment-charge timing sentences in this file were edited.
 
 - Dirty Wine UI strings via `shop.reserveDirty` / Dirty Wine shop intros
 - `content/legal/kopvillkor*` reservation + payment-when-pallet-closes wording
-- Checkout strings that already say payment is taken when the pallet closes (e.g. invite “Debiteras när pallen avgår”, `placeReservationWithPayment`)
 - Analytics event type names (`reservation_completed`, etc.)
+- Delivery-window copy that says “when the pallet ships” (not charge timing), e.g. `successStep3`

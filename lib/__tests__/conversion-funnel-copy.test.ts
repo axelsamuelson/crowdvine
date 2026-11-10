@@ -38,6 +38,12 @@ describe("conversion funnel copy (sv)", () => {
     const intro = getShopRootNaturalWineContent("sv").intro;
     expect(intro).toContain("levereras hem till dig när pallen stänger");
     expect(intro).not.toMatch(/Stockholm|Budbee/i);
+    expect(getShopRootNaturalWineContent("sv").longDescription).toMatch(
+      /skickas den hem till dig\.?$/,
+    );
+    expect(getShopRootNaturalWineContent("en").longDescription).toMatch(
+      /ships to your door\.?$/,
+    );
   });
 
   it("promises direct-box delivery without inventing a time SLA", () => {

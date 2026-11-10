@@ -50,7 +50,7 @@ const ABOUT_CONTENT_EN: AboutPageContent = {
   howItWorksTitle: "How It Works",
   steps: [
     {
-      title: "Discover & buy",
+      title: "Discover & Buy",
       body: "Explore curated natural wines from independent producers. Buy the bottles you want — your order joins a shared pallet with others.",
     },
     {
