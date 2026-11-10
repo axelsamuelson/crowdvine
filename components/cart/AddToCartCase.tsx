@@ -822,7 +822,7 @@ export function AddToCartCase({
               ? t("product.outOfStock")
               : // PACT: Köp/Buy. Dirty Wine keeps Reservera / Reserve.
                 isDirtywineSite
-                ? t("shop.addCase")
+                ? t("shop.reserveDirty")
                 : t("shop.buy")
         }
       />

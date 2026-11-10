@@ -21,6 +21,26 @@ interface CartValidationHeaderProps {
   neededTotal?: number;
 }
 
+function WhyLink({ onOpen }: { onOpen: () => void }) {
+  const { t } = useTranslations();
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        onOpen();
+        AnalyticsTracker.trackEvent({
+          eventType: "why_modal_opened",
+          eventCategory: "engagement",
+        });
+      }}
+      className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline transition-colors min-h-9 px-1 shrink-0"
+      title={t("cart.whySixAria")}
+    >
+      {t("cart.why")}
+    </button>
+  );
+}
+
 function BottleProgressRow({
   validation,
 }: {
@@ -60,7 +80,7 @@ function BottleProgressRow({
       </div>
       <div className="relative h-2 bg-foreground/[0.08] rounded-full overflow-hidden">
         <div
-          className="absolute inset-y-0 left-0 rounded-full bg-foreground/35 transition-all duration-500 ease-out"
+          className="absolute inset-y-0 left-0 rounded-full bg-[#0A0A0A] transition-all duration-500 ease-out"
           style={{ width: `${progress}%` }}
         />
       </div>
@@ -208,6 +228,7 @@ export function CartValidationHeader({
     );
   }
 
+  // 6/6 complete: checkmark + full copy + progress line only.
   if (allValid && validations.length > 0) {
     const totalBottles = validations.reduce((s, v) => s + (v.quantity || 0), 0);
     const fullTotal = requiredQuantity || totalBottles || 6;
@@ -218,42 +239,21 @@ export function CartValidationHeader({
         className="px-3 md:px-4 mb-2"
       >
         <div className="bg-background/95 backdrop-blur-md border border-border/30 rounded-lg p-3 space-y-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-3.5 h-3.5 text-foreground/70" />
-              <span className="text-xs text-foreground font-medium">
-                {t("cart.readyToCheckout")}
-              </span>
-            </div>
-            <button
-              onClick={() => {
-                setShowWhyModal(true);
-                AnalyticsTracker.trackEvent({
-                  eventType: "why_modal_opened",
-                  eventCategory: "engagement",
-                });
-              }}
-              className="text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors min-h-9 px-1"
-              title={t("cart.whySixAria")}
-            >
-              {t("cart.why")}
-            </button>
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-3.5 h-3.5 text-foreground/70 shrink-0" />
+            <p className="text-xs font-medium text-foreground tabular-nums">
+              {t("cart.bottleProgressFull", {
+                current: Math.min(totalBottles, fullTotal) || fullTotal,
+                total: fullTotal,
+              })}
+            </p>
           </div>
-          <p className="text-xs font-medium text-foreground tabular-nums">
-            {t("cart.bottleProgressFull", {
-              current: Math.min(totalBottles, fullTotal) || fullTotal,
-              total: fullTotal,
-            })}
-          </p>
-          <div className="relative h-2 bg-foreground/[0.08] rounded-full overflow-hidden">
+          <div className="relative h-1.5 bg-foreground/[0.08] rounded-full overflow-hidden">
             <div
-              className="absolute inset-y-0 left-0 w-full rounded-full bg-foreground/35"
+              className="absolute inset-y-0 left-0 w-full rounded-full bg-[#0A0A0A]"
               aria-hidden
             />
           </div>
-          <p className="text-[11px] text-muted-foreground">
-            {t("cart.bottleProgressHint")}
-          </p>
         </div>
 
         <WhySixBottlesModal
@@ -279,20 +279,47 @@ export function CartValidationHeader({
                 {t("cart.learnSixBottleRule")}
               </span>
             </div>
-            <button
-              onClick={() => {
-                setShowWhyModal(true);
-                AnalyticsTracker.trackEvent({
-                  eventType: "why_modal_opened",
-                  eventCategory: "engagement",
-                });
-              }}
-              className="text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors min-h-9 px-1 shrink-0"
-              title={t("cart.whySixAria")}
-            >
-              {t("cart.why")}
-            </button>
+            <WhyLink onOpen={() => setShowWhyModal(true)} />
           </div>
+        </div>
+
+        <WhySixBottlesModal
+          isOpen={showWhyModal}
+          onClose={() => setShowWhyModal(false)}
+        />
+      </motion.div>
+    );
+  }
+
+  // Incomplete cart-scoped progress: shortened box (Inès round 2).
+  if (isCartScoped) {
+    const current = validations.reduce((s, v) => s + (v.quantity || 0), 0);
+    const total = requiredQuantity || 6;
+    const needed = totalNeeded || Math.max(0, total - current);
+    const progress = total > 0 ? Math.min((current / total) * 100, 100) : 0;
+
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="px-3 md:px-4 mb-2"
+      >
+        <div className="bg-background/95 backdrop-blur-md border border-border/30 rounded-lg p-3 space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <WhyLink onOpen={() => setShowWhyModal(true)} />
+            <span className="text-xs font-semibold tabular-nums text-foreground">
+              {t("cart.bottleProgress", { current, total })}
+            </span>
+          </div>
+          <div className="relative h-1.5 bg-foreground/[0.08] rounded-full overflow-hidden">
+            <div
+              className="absolute inset-y-0 left-0 rounded-full bg-[#0A0A0A] transition-all duration-500 ease-out"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            {t("cart.needMoreMixHint", { needed })}
+          </p>
         </div>
 
         <WhySixBottlesModal
@@ -318,40 +345,25 @@ export function CartValidationHeader({
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0 space-y-0.5">
               <p className="text-xs font-semibold text-foreground">
-                {isCartScoped
-                  ? t("cart.needMoreBottlesShort", {
-                      needed: totalNeeded || invalidValidations[0]?.needed || 0,
+                {invalidValidations.length === 1
+                  ? t("cart.oneProducerNeedsMore", {
+                      needed: invalidValidations[0].needed,
                     })
-                  : invalidValidations.length === 1
-                    ? t("cart.oneProducerNeedsMore", {
-                        needed: invalidValidations[0].needed,
-                      })
-                    : t("cart.producersNeedMore", {
-                        count: invalidValidations.length,
-                      })}
+                  : t("cart.producersNeedMore", {
+                      count: invalidValidations.length,
+                    })}
               </p>
               <p className="text-[11px] text-muted-foreground">
                 {t("cart.bottleProgressHint")}
-                {!isCartScoped && totalNeeded > 0
+                {totalNeeded > 0
                   ? ` · ${t("cart.needMoreBottlesShort", { needed: totalNeeded })}`
                   : ""}
               </p>
             </div>
             <div className="flex items-center gap-1 shrink-0">
+              <WhyLink onOpen={() => setShowWhyModal(true)} />
               <button
-                onClick={() => {
-                  setShowWhyModal(true);
-                  AnalyticsTracker.trackEvent({
-                    eventType: "why_modal_opened",
-                    eventCategory: "engagement",
-                  });
-                }}
-                className="text-xs text-muted-foreground/70 hover:text-foreground transition-colors min-h-9 px-1"
-                title={t("cart.whySixAria")}
-              >
-                {t("cart.why")}
-              </button>
-              <button
+                type="button"
                 onClick={() => setIsExpanded(!isExpanded)}
                 className="p-2 hover:bg-muted rounded transition-colors min-h-9 min-w-9"
                 aria-expanded={isExpanded}
@@ -374,9 +386,7 @@ export function CartValidationHeader({
                 />
               ))}
               <p className="text-[11px] text-muted-foreground">
-                {isCartScoped
-                  ? t("cart.mixFreelyCart")
-                  : t("cart.mixFreelyWithinProducer")}
+                {t("cart.mixFreelyWithinProducer")}
               </p>
             </div>
           ) : null}

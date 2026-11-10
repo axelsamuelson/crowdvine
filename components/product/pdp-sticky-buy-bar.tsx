@@ -176,22 +176,19 @@ export function PdpStickyBuyBar({
     const footer =
       document.querySelector("footer") ||
       document.querySelector("[data-site-footer]");
-    if (!footer) return;
+    if (!footer || typeof IntersectionObserver === "undefined") return;
 
-    // Only treat as "at footer" when the footer has substantially entered the
-    // viewport (not a few peeking pixels on short PDPs). Threshold: footer top
-    // crosses the upper 40% of the viewport.
-    const update = () => {
-      const top = footer.getBoundingClientRect().top;
-      setFooterVisible(top < window.innerHeight * 0.4);
-    };
-    update();
-    window.addEventListener("scroll", update, { passive: true });
-    window.addEventListener("resize", update);
-    return () => {
-      window.removeEventListener("scroll", update);
-      window.removeEventListener("resize", update);
-    };
+    // Hide as soon as the footer's top edge enters the viewport — never cover
+    // Navigation / Guider in the footer.
+    const obs = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        setFooterVisible(Boolean(entry?.isIntersecting));
+      },
+      { threshold: 0, rootMargin: "0px" },
+    );
+    obs.observe(footer);
+    return () => obs.disconnect();
   }, []);
 
   const shouldShow =
@@ -233,11 +230,18 @@ export function PdpStickyBuyBar({
 
   const reduced = reduceMotionRef.current;
 
+  // Unmount while overlays are open so a translucent cart backdrop cannot
+  // reveal the black Köp chrome peeking under the drawer.
+  if (overlayOpen || !isMobile) {
+    return null;
+  }
+
   return (
     <div
       className={cn(
         "pointer-events-none fixed inset-x-0 bottom-0 z-40 md:hidden",
         "px-4 pb-[max(1rem,env(safe-area-inset-bottom))]",
+        !shouldShow && "invisible",
       )}
       aria-hidden={!shouldShow}
     >

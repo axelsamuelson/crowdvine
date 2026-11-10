@@ -115,7 +115,7 @@ const CartItems = ({
 
       <CartContainer className="flex justify-between px-2 text-sm text-muted-foreground">
         <span>{t("cart.products")}</span>
-        <span>{t("cart.items", { count: cart.lines.length })}</span>
+        <span>{t("cart.bottlesCount", { count: cart.totalQuantity })}</span>
       </CartContainer>
       <div className="flex flex-col flex-1 min-h-0">
         <div className="relative flex min-h-0 flex-1 flex-col py-4 overflow-x-hidden">
@@ -473,9 +473,11 @@ export default function CartModal() {
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ duration: 0.3, ease: "easeInOut" }}
-              className="fixed top-0 bottom-0 right-0 flex w-full md:w-[500px] p-modal-sides z-50"
+              // Mobile: full-bleed to the bottom (safe-area on inner panel) so no
+              // gap reveals the PDP sticky bar under the drawer.
+              className="fixed inset-y-0 right-0 z-50 flex w-full md:top-0 md:bottom-0 md:w-[500px] md:p-modal-sides"
             >
-              <div className="flex flex-col py-3 w-full rounded bg-muted md:py-4">
+              <div className="flex h-full w-full flex-col bg-muted pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:rounded md:py-4">
                 <CartContainer className="flex justify-between items-center mb-10">
                   {/* Back to Shop Button */}
                   <Link href={paths.shop} onClick={closeCart}>
@@ -581,11 +583,11 @@ function CheckoutButton({
     <Button
       type="submit"
       disabled={shouldDisableButton}
-      className={`font-semibold cursor-pointer whitespace-nowrap text-base transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive border border-transparent shadow-xs h-12 rounded-md px-3 has-[>svg]:pr-3 [&_svg:not([class*='size-'])]:size-6 flex relative gap-3 justify-between items-center w-full ${
+      className={
         hasValidationErrors
-          ? "bg-amber-600 hover:bg-amber-700 text-white"
-          : "bg-primary text-primary-foreground hover:bg-primary/90"
-      }`}
+          ? "font-semibold cursor-pointer whitespace-nowrap text-base transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] border border-transparent shadow-xs h-12 rounded-md px-3 has-[>svg]:pr-3 [&_svg:not([class*='size-'])]:size-6 flex relative gap-3 justify-between items-center w-full bg-[#0A0A0A] hover:bg-[#0A0A0A]/90 text-white"
+          : "font-semibold cursor-pointer whitespace-nowrap text-base transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] border border-transparent shadow-xs h-12 rounded-md px-3 has-[>svg]:pr-3 [&_svg:not([class*='size-'])]:size-6 flex relative gap-3 justify-between items-center w-full bg-[#0A0A0A] hover:bg-[#0A0A0A]/90 text-white"
+      }
       onClick={() => {
         // Don't allow clicks during validation
         if (isValidating || producerOrdersPaused) {
@@ -620,7 +622,7 @@ function CheckoutButton({
                 {isValidating
                   ? t("cart.validating")
                   : hasValidationErrors
-                    ? t("cart.addMoreBottles", {
+                    ? t("cart.addMoreBottlesShortCta", {
                         needed: invalidValidations.reduce(
                           (sum, v) => sum + (v.needed || 0),
                           0,

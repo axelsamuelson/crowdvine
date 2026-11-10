@@ -38,9 +38,9 @@ const STEPS = [
   },
   {
     num: "02",
-    pill: "Reservera",
+    pill: "Köp",
     pillClass: inviteStoryPills.muted,
-    title: "Reservera, betala senare",
+    title: "Köp, betala senare",
     description: "Debiteras när pallen avgår.",
   },
   {
@@ -250,7 +250,7 @@ export function HowPactWorksSection() {
           <div className="flex flex-wrap items-center gap-4">
             <span className="inline-flex items-center gap-1.5">
               <span className="size-2.5 rounded-[2px] invite-pallet-reserved shrink-0" />
-              reserverad
+              köpt
             </span>
             <span className="inline-flex items-center gap-1.5">
               <span className="size-2.5 rounded-[2px] invite-pallet-yours shrink-0" />

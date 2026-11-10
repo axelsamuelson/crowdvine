@@ -25,12 +25,12 @@ export type AboutPageContent = {
 const ABOUT_CONTENT_EN: AboutPageContent = {
   title: "How PACT works – natural wine by the pallet",
   description:
-    "Reserve natural wine online and get it delivered to your door in Stockholm. How PACT works.",
+    "Buy natural wine online and get it delivered to your door. How PACT works.",
   h1: "About",
   heroSubtitle: "A smarter way to buy wine together.",
   cards: [
     "We believe the way wine is bought and sold is long overdue for change. Too many hands between producer and drinker.",
-    "Our model is simple — and transparent. Private consumers reserve wines from small producers in France. When enough bottles are reserved to fill a pallet, the wines are shipped together.",
+    "Our model is simple — and transparent. Private consumers buy wines from small producers in France. When enough bottles are bought to fill a pallet, the wines are shipped together.",
     "No warehouses. No distributors. No unnecessary transport. Just real connection between the people who make wine and the people who love it.",
     "We call it crowdsourcing wine — a smarter, cleaner, and more human way to enjoy what's in your glass.",
   ],
@@ -50,8 +50,8 @@ const ABOUT_CONTENT_EN: AboutPageContent = {
   howItWorksTitle: "How It Works",
   steps: [
     {
-      title: "Discover & Reserve",
-      body: "Explore curated natural wines from independent producers. Reserve the bottles you want — your order joins a shared pallet with others.",
+      title: "Discover & buy",
+      body: "Explore curated natural wines from independent producers. Buy the bottles you want — your order joins a shared pallet with others.",
     },
     {
       title: "Collective Shipping",
@@ -59,7 +59,7 @@ const ABOUT_CONTENT_EN: AboutPageContent = {
     },
     {
       title: "Transparent Logistics",
-      body: "Track your pallet from reservation to delivery. Every step is visible — efficient logistics.",
+      body: "Track your pallet from order to delivery. Every step is visible — efficient logistics.",
     },
     {
       title: "Receive & Enjoy",
@@ -82,12 +82,12 @@ const ABOUT_CONTENT_EN: AboutPageContent = {
 const ABOUT_CONTENT_SV: AboutPageContent = {
   title: "Så fungerar PACT – naturvin per pall",
   description:
-    "Reservera naturvin online och få det levererat till din dörr i Stockholm. Så fungerar PACT.",
+    "Köp naturvin online och få det levererat till din dörr. Så fungerar PACT.",
   h1: "Om PACT",
   heroSubtitle: "Ett smartare sätt att köpa naturvin tillsammans.",
   cards: [
     "Vi tror att sättet vin köps och säljs på är moget för förändring. Traditionell vinimport innebär lager och mellanhänder.",
-    "Vår modell är enkel. Privatpersoner reserverar viner de vill ha. När tillräckligt många beställningar samlats för att fylla en pall skickas vinerna från små producenter i Frankrike till Stockholm.",
+    "Vår modell är enkel. Privatpersoner köper viner de vill ha. När tillräckligt många beställningar samlats för att fylla en pall skickas vinerna från små producenter i Frankrike.",
     "Inga lager. Inga distributörer. Varje flaska kommer från små producenter i Frankrike.",
     "Vi kallar det crowdsourcad vinimport. Tillsammans gör vi det som ingen enskild konsument kan göra på egen hand: importerar naturvin från små producenter i Frankrike.",
   ],
@@ -102,20 +102,20 @@ const ABOUT_CONTENT_SV: AboutPageContent = {
   howItWorksTitle: "Så fungerar det",
   steps: [
     {
-      title: "Upptäck & reservera",
-      body: "Utforska vårt urval av naturviner från små producenter i Frankrike och reservera de du vill ha. Din beställning är med och fyller en gemensam pall.",
+      title: "Upptäck & köp",
+      body: "Utforska vårt urval av naturviner från små producenter i Frankrike och köp de du vill ha. Din beställning är med och fyller en gemensam pall.",
     },
     {
       title: "Kollektiv frakt",
-      body: "När pallen är full skickas den till Stockholm. Inga egna lager.",
+      body: "När pallen är full skickas den. Inga egna lager.",
     },
     {
       title: "Transparent logistik",
-      body: "Följ pallens status i realtid — från reservation till att den fylls och skickas. Du vet alltid var din beställning befinner sig.",
+      body: "Följ pallens status i realtid — från köp till att den fylls och skickas. Du vet alltid var din beställning befinner sig.",
     },
     {
       title: "Ta emot & njut",
-      body: "Vinet levereras hem till dig i Stockholm från små producenter i Frankrike.",
+      body: "Vinet levereras hem till dig från små producenter i Frankrike.",
     },
   ],
   differenceTitle: "Skillnaden",

@@ -14,9 +14,9 @@ const STEPS = [
   },
   {
     step: 2,
-    title: "Reserve in a pallet",
+    title: "Buy in a pallet",
     description:
-      "Join a pallet with other members to reach the minimum order. Reserve your bottles and see the pallet fill up in real time.",
+      "Join a pallet with other members to reach the minimum order. Buy your bottles and see the pallet fill up in real time.",
     image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&h=400&fit=crop",
     icon: Package,
   },
