@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { User } from "lucide-react";
-import { createClient } from "@/utils/supabase/client";
+import { tryCreateClient } from "@/utils/supabase/client";
 import {
   isAuthNetworkError,
   isStaleRefreshTokenError,
@@ -29,9 +29,15 @@ export function ProfileIcon({
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    checkAuthStatus();
+    const supabase = tryCreateClient();
+    if (!supabase) {
+      setIsAuthenticated(false);
+      setLoading(false);
+      return;
+    }
 
-    const supabase = createClient();
+    void checkAuthStatus();
+
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -44,7 +50,11 @@ export function ProfileIcon({
 
   const checkAuthStatus = async () => {
     try {
-      const supabase = createClient();
+      const supabase = tryCreateClient();
+      if (!supabase) {
+        setIsAuthenticated(false);
+        return;
+      }
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -52,8 +62,8 @@ export function ProfileIcon({
     } catch (error) {
       if (isStaleRefreshTokenError(error)) {
         try {
-          const supabase = createClient();
-          await supabase.auth.signOut({ scope: "local" });
+          const supabase = tryCreateClient();
+          await supabase?.auth.signOut({ scope: "local" });
         } catch {
           /* ignore */
         }
@@ -61,7 +71,7 @@ export function ProfileIcon({
         !isAuthNetworkError(error) &&
         process.env.NODE_ENV === "development"
       ) {
-        console.error("Error checking auth status:", error);
+        console.warn("Error checking auth status:", error);
       }
       setIsAuthenticated(false);
     } finally {

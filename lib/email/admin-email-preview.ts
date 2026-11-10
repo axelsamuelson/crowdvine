@@ -73,7 +73,7 @@ const SUBJECTS: Record<AdminEmailTemplateId, string> = {
   order_confirmation: `Order Confirmation — ${SAMPLE_ORDER_CONFIRMATION.orderId}`,
   payment_confirmed: "Payment confirmed — your PACT order is on its way",
   payment_failed: "Vi kunde inte dra betalningen för din order",
-  payment_cancelled: "Din order är avbruten – inget har dragits",
+  payment_cancelled: "Din order är avbruten – betalningen gick inte igenom",
   pallet_ready: "🍷 Your Pallet is Ready",
   payment_reminder: `⏰ Payment Reminder — ${SAMPLE_PAYMENT_REMINDER.hoursRemaining} hours remaining`,
   operations_digest: "Operations — weekly summary",

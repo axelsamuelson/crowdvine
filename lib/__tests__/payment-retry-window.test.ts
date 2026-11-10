@@ -129,15 +129,36 @@ describe("failed / cancelled payment email domain + copy", () => {
     const text = buildPaymentFailedText({
       reservationId: "ord-1",
       customerName: "Alex",
-      amountSek: 1290,
+      amountSek: 1250,
       payByLabel: "13 November 2026",
       paymentUrl: "https://checkout.stripe.com/c/pay/cs_test",
       locale: "en",
     });
     expect(paymentFailedSubject("en")).toBe("We couldn't take payment");
     expect(text).toContain("3 days");
-    expect(text).toContain("SEK 1,290");
+    expect(text).toContain("SEK 1,250");
+    expect(buildPaymentFailedHtml({
+      reservationId: "ord-1",
+      customerName: "Alex",
+      amountSek: 1250,
+      payByLabel: "13 November 2026",
+      paymentUrl: "https://checkout.stripe.com/c/pay/cs_test",
+      locale: "en",
+    })).toContain("SEK 1,250");
     expect(text).not.toContain("pact.wine");
+  });
+
+  it("payment-cancelled heading/subject use Margaux copy", () => {
+    const html = buildPaymentCancelledHtml({
+      reservationId: "ord-1",
+      reason: "x",
+      locale: "sv",
+      customerName: "Anna",
+    });
+    expect(html).toContain(
+      "Din order är avbruten – betalningen gick inte igenom",
+    );
+    expect(html).not.toContain("inget har dragits</h1>");
   });
 
   it("cancelled payment email — one 3-day sentence, no points, open pallets copy", () => {
@@ -155,7 +176,9 @@ describe("failed / cancelled payment email domain + copy", () => {
     expect(html).toContain("pactwines.com");
     expect(html).not.toContain("pact.wine");
     expect(html).toContain("font-family:Geist");
-    expect(html).toContain("Your order has been cancelled – nothing was charged");
+    expect(html).toContain(
+      "Your order has been cancelled – payment didn't go through",
+    );
     expect(text).toContain("open pallets at pactwines.com");
     expect(text).not.toContain("PACT Points");
     // Reason string must not duplicate the 3-day sentence

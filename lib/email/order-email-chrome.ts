@@ -128,9 +128,12 @@ export function wrapOrderEmail(opts: {
   orderId: string;
 }): string {
   const title = escapeHtmlBasic(opts.title);
-  const footer = escapeHtmlBasic(
-    orderEmailFooterLine(opts.locale, opts.orderId),
-  );
+  const address =
+    "Tartu mnt 67/1-13b, 10115 Tallinn";
+  const footerHtml =
+    opts.locale === "sv"
+      ? `Säljare: EURPACT OÜ (reg.nr 17538270), <span style="white-space:nowrap;">${address}</span>, Estland · customer@pactwines.com · Order ${escapeHtmlBasic(opts.orderId)}`
+      : `Seller: EURPACT OÜ (reg. no. 17538270), <span style="white-space:nowrap;">${address}</span>, Estonia · customer@pactwines.com · Order ${escapeHtmlBasic(opts.orderId)}`;
   return `<!DOCTYPE html>
 <html lang="${opts.locale}" style="color-scheme:light;">
 <head>
@@ -169,7 +172,7 @@ export function wrapOrderEmail(opts: {
     <div class="pact-email-body" style="padding:8px 28px 32px;color:#111111;">
       <h1 class="pact-email-h1" style="font-size:22px;font-weight:500;margin:0 0 16px;color:#111111;line-height:1.3;">${title}</h1>
       ${opts.bodyHtml}
-      <p class="pact-email-footer" style="margin-top:28px;font-size:12px;line-height:1.5;color:#555555;">${footer}</p>
+      <p class="pact-email-footer" style="margin-top:28px;font-size:12px;line-height:1.5;color:#555555;">${footerHtml}</p>
     </div>
   </div>
 </body>

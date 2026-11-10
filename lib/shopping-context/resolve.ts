@@ -16,7 +16,7 @@ import {
   type ResolvedActiveGeoZone,
 } from "@/lib/market/resolve-active-geo-zone";
 import { resolveMarketForCountry } from "@/lib/market/resolve-market";
-import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { tryGetSupabaseAdmin } from "@/lib/supabase-admin";
 import { applyLocalePolicyToContext } from "@/lib/shopping-context/apply-locale-policy";
 import { resolveDisplayCurrencyCode } from "@/lib/shopping-context/currency-policy";
 import { getSekToDisplayRate } from "@/lib/shopping-context/display-currency";
@@ -37,7 +37,8 @@ async function loadUserPreferredLocale(
   userId: string,
 ): Promise<AppLocale | null> {
   try {
-    const sb = getSupabaseAdmin();
+    const sb = tryGetSupabaseAdmin();
+    if (!sb) return null;
     const { data, error } = await sb
       .from("profiles")
       .select("preferred_locale")

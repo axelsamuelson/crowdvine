@@ -41,7 +41,7 @@ export function buildPalletShippedEmail(opts: {
     const subject = "Pallen har skickats";
     const text = `Hej ${name},
 
-Pallen har skickats. Beräknat leveransfönster: ${window}.
+Vinet är på väg till Sverige. Beräknat leveransfönster: ${window}.
 
 Vi mejlar leveransdagen när vinet har nått Sverige.
 
@@ -53,7 +53,7 @@ ${cta}: ${orderUrl}
       orderId: opts.reservationId,
       bodyHtml: [
         p(`Hej ${escapeHtmlBasic(name)},`),
-        p("Pallen har skickats."),
+        p("Vinet är på väg till Sverige."),
         p(
           `Beräknat leveransfönster: <strong>${escapeHtmlBasic(window)}</strong>.`,
         ),
@@ -71,7 +71,7 @@ ${cta}: ${orderUrl}
   const subject = "The pallet has shipped";
   const text = `Hi ${name},
 
-The pallet has shipped. Estimated delivery window: ${window}.
+Your wine is on its way to Sweden. Estimated delivery window: ${window}.
 
 We'll email the delivery date once the wine has reached Sweden.
 
@@ -83,7 +83,7 @@ ${cta}: ${orderUrl}
     orderId: opts.reservationId,
     bodyHtml: [
       p(`Hi ${escapeHtmlBasic(name)},`),
-      p("The pallet has shipped."),
+      p("Your wine is on its way to Sweden."),
       p(
         `Estimated delivery window: <strong>${escapeHtmlBasic(window)}</strong>.`,
       ),

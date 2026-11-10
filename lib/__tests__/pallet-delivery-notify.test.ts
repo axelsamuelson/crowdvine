@@ -72,6 +72,9 @@ describe("delivery notify email builders (SV+EN, no Budbee)", () => {
       palletName: "Stockholm A",
     });
     expect(sv.subject).toBe("Pallen har skickats");
+    expect(sv.text).toContain("Vinet är på väg till Sverige");
+    expect(sv.html).toContain("Vinet är på väg till Sverige");
+    expect(sv.text).not.toMatch(/^Pallen har skickats\./m);
     expect(sv.text).toMatch(/12–18 maj/i);
     expect(sv.text).toContain(
       "Vi mejlar leveransdagen när vinet har nått Sverige",
@@ -80,6 +83,8 @@ describe("delivery notify email builders (SV+EN, no Budbee)", () => {
     expect(sv.html + sv.text).not.toContain("Stockholm A");
     expect(sv.html).toContain("Se din order");
     expect(sv.html).not.toContain("localhost");
+    expect(sv.html).toContain('white-space:nowrap');
+    expect(sv.html).toContain("Tartu mnt 67/1-13b, 10115 Tallinn");
 
     const en = buildPalletShippedEmail({
       locale: "en",
@@ -89,6 +94,8 @@ describe("delivery notify email builders (SV+EN, no Budbee)", () => {
       windowEnd: "2026-05-18",
     });
     expect(en.subject).toBe("The pallet has shipped");
+    expect(en.text).toContain("Your wine is on its way to Sweden");
+    expect(en.html).toContain("Your wine is on its way to Sweden");
     expect(en.text).toMatch(/12–18 May/i);
     expect(en.text).toMatch(/Estimated delivery window/);
     expect(en.text).toContain(

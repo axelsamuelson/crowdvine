@@ -794,8 +794,8 @@ export function buildPaymentCancelledHtml(
   const orderId = escapeHtmlBasic(data.reservationId);
   const title =
     locale === "sv"
-      ? "Din order är avbruten – inget har dragits"
-      : "Your order has been cancelled – nothing was charged";
+      ? "Din order är avbruten – betalningen gick inte igenom"
+      : "Your order has been cancelled – payment didn't go through";
 
   if (locale === "sv") {
     return wrapOrderEmail({
@@ -996,8 +996,8 @@ export async function sendPaymentCancelledEmail({
   );
   const subject =
     locale === "sv"
-      ? "Din order är avbruten – inget har dragits"
-      : "Your order has been cancelled – nothing was charged";
+      ? "Din order är avbruten – betalningen gick inte igenom"
+      : "Your order has been cancelled – payment didn't go through";
   const body: PaymentCancelledEmailBody = {
     reservationId,
     reason,
