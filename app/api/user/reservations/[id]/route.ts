@@ -35,9 +35,12 @@ export async function GET(
     });
 
     // Get specific reservation with related data.
-    // Avoid selecting columns that older/preview DBs may lack (e.g. order_type
-    // from migration 076) — missing columns make PostgREST fail the whole GET
-    // and the confirmation page falls back to "0 kr" / "—".
+    // Avoid selecting columns that older/preview/prod DBs may lack (e.g.
+    // order_type from migration 076, fulfillment_channel from migration 277).
+    // Missing columns make PostgREST fail the whole GET and the confirmation
+    // page shows http_500. Migration 277 is not applied in production — do not
+    // select fulfillment_channel (treat as null / shared_pallet default).
+    // Same schema-compat approach as the Stripe webhook base select.
     const { data: reservation, error } = await supabase
       .from("order_reservations")
       .select(
@@ -52,7 +55,6 @@ export async function GET(
         user_id,
         payment_method_type,
         payment_mode,
-        fulfillment_channel,
         total_sek,
         discount_amount_sek,
         shipping_revenue_gross_cents,
@@ -228,11 +230,8 @@ export async function GET(
         producer_display_name: producer?.display_name?.trim() || undefined,
         customer_email: profile?.email || user.email,
         customer_name: profile?.full_name || undefined,
-        source:
-          reservation.fulfillment_channel === "warehouse" ||
-          reservation.fulfillment_channel === "direct_box"
-            ? ("warehouse" as const)
-            : ("producer" as const),
+        // Without migration 277, channel is absent → shared_pallet / producer.
+        source: "producer" as const,
       };
     });
 
@@ -421,10 +420,8 @@ export async function GET(
       ? computeSharedPalletChargeDeadlineIso(palletCreatedAt)
       : null;
 
-    const fulfillmentChannel =
-      typeof reservation.fulfillment_channel === "string"
-        ? reservation.fulfillment_channel
-        : null;
+    // Migration 277 not selected — shared_pallet default for confirmation.
+    const fulfillmentChannel: string | null = null;
     const orderType = confirmationOrderTypeFromFulfillment(fulfillmentChannel);
 
     // Claim row in email_sends means confirmation was queued/sent (idempotent claim-before-send).

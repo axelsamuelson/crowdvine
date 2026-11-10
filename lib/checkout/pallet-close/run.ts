@@ -59,14 +59,30 @@ function shouldSendEmail(): boolean {
   return Boolean(process.env.RESEND_API_KEY?.trim());
 }
 
-const SNAPSHOT_SELECT =
-  "id, pallet_id, payment_status, payment_method_id, setup_intent_id, payment_intent_id, status, cancelled_at, charge_deadline_at, pallet_close_state, pallet_close_choice, pallet_close_choice_sent_at, pallet_close_choice_reply_by, pallet_close_extension_count, offsession_charge_failed_at, offsession_pay_by, payment_method_detached_at, pallet_close_charge_idempotency_key, fulfillment_channel, payment_mode, user_id";
+// Do not select fulfillment_channel — migration 277 is not applied in
+// production; PostgREST rejects unknown columns. Without the column, treat
+// channel as null / shared_pallet; isPalletBasedReservation uses pallet_id.
+export const PALLET_CLOSE_SNAPSHOT_SELECT =
+  "id, pallet_id, payment_status, payment_method_id, setup_intent_id, payment_intent_id, status, cancelled_at, charge_deadline_at, pallet_close_state, pallet_close_choice, pallet_close_choice_sent_at, pallet_close_choice_reply_by, pallet_close_extension_count, offsession_charge_failed_at, offsession_pay_by, payment_method_detached_at, pallet_close_charge_idempotency_key, payment_mode, user_id";
 
-async function resolveAmountOre(reservationId: string): Promise<number> {
+const SNAPSHOT_SELECT = PALLET_CLOSE_SNAPSHOT_SELECT;
+
+/**
+ * Resolve the customer-facing charge amount in öre.
+ *
+ * Prefer SetupIntent metadata.expected_amount_ore (what checkout bound).
+ * Else use order_reservations.total_sek * 100 (customer total incl. VAT /
+ * shipping after discounts). Never guess from catalog wine prices — those
+ * exclude shipping/discounts and are not whole-kronor rounded.
+ * Returns null when neither source is available (caller must refuse).
+ */
+export async function resolveAmountOre(
+  reservationId: string,
+): Promise<number | null> {
   const sb = getSupabaseAdmin();
   const { data: row } = await sb
     .from("order_reservations")
-    .select("setup_intent_id")
+    .select("setup_intent_id, total_sek")
     .eq("id", reservationId)
     .maybeSingle();
   if (row?.setup_intent_id && stripe) {
@@ -78,26 +94,14 @@ async function resolveAmountOre(reservationId: string): Promise<number> {
       );
       if (Number.isFinite(ore) && ore > 0) return Math.round(ore);
     } catch {
-      /* fall through */
+      /* fall through to total_sek */
     }
   }
-  const { data: items } = await sb
-    .from("order_reservation_items")
-    .select("quantity, wines(base_price_cents)")
-    .eq("reservation_id", reservationId);
-  let ore = 0;
-  for (const it of items || []) {
-    const qty = Number(it.quantity) || 0;
-    const wine = it.wines as
-      | { base_price_cents?: number }
-      | { base_price_cents?: number }[]
-      | null;
-    const unit = Array.isArray(wine)
-      ? Number(wine[0]?.base_price_cents) || 0
-      : Number(wine?.base_price_cents) || 0;
-    ore += qty * unit;
+  const totalSek = Number((row as { total_sek?: unknown } | null)?.total_sek);
+  if (Number.isFinite(totalSek) && totalSek > 0) {
+    return Math.round(totalSek * 100);
   }
-  return Math.round(ore);
+  return null;
 }
 
 async function resolveDeadlineIso(
@@ -187,9 +191,32 @@ async function processChargePath(opts: {
     return;
   }
 
-  // failed → payment link window
+  // failed → payment link window (only with a known customer-facing amount)
   const payByIso = addDaysIso(now, PAY_LINK_DAYS);
   const amountOre = await resolveAmountOre(row.id);
+  if (amountOre == null || amountOre <= 0) {
+    console.error(
+      "[pallet-close] amount unavailable — refusing pay-link / charge guess",
+      { reservationId: row.id, chargeReason: chargeResult.reason },
+    );
+    summary.errors += 1;
+    summary.actions.push({
+      reservationId: row.id,
+      action: "amount_unavailable",
+      reason: chargeResult.reason,
+    });
+    await getSupabaseAdmin().from("pallet_close_events").insert({
+      reservation_id: row.id,
+      pallet_id: row.pallet_id,
+      event: "amount_unavailable",
+      meta: {
+        reason: "missing_expected_amount_and_total_sek",
+        charge_reason: chargeResult.reason,
+      },
+    });
+    return;
+  }
+
   let paymentLinkUrl: string | null = null;
   const link = await createPalletClosePaymentLink({
     reservationId: row.id,
@@ -560,13 +587,12 @@ export async function runPalletCloseJob(
       summary.errors += 1;
     } else {
       for (const raw of rows || []) {
-        const row = raw as PalletCloseReservationSnapshot & {
-          fulfillment_channel?: string | null;
-        };
+        const row = raw as PalletCloseReservationSnapshot;
+        // fulfillment_channel omitted (migration 277 not in prod) → null default.
         if (
           !isPalletBasedReservation({
             pallet_id: row.pallet_id,
-            fulfillment_channel: row.fulfillment_channel,
+            fulfillment_channel: null,
           })
         ) {
           continue;

@@ -114,7 +114,8 @@ describe("confirmation success surface contracts", () => {
       resolve(process.cwd(), "app/api/user/reservations/[id]/route.ts"),
       "utf8",
     );
-    // Select list must not request order_type (absent on some preview/test DBs).
+    // Select list must not request order_type (absent on some preview/test DBs)
+    // or fulfillment_channel (migration 277 not applied in production).
     expect(src).toMatch(/shipping_revenue_gross_cents/);
     expect(src).toMatch(/fulfillment_channel/);
     expect(src).toMatch(/confirmationDisplayTotalSek/);
@@ -122,6 +123,9 @@ describe("confirmation success surface contracts", () => {
     expect(src).not.toMatch(/Unknown Pickup Zone/);
     expect(src).not.toMatch(
       /select\(\s*`[\s\S]*?\border_type\b[\s\S]*?`\s*\)/,
+    );
+    expect(src).not.toMatch(
+      /select\(\s*`[\s\S]*?\bfulfillment_channel\b[\s\S]*?`\s*\)/,
     );
   });
 
