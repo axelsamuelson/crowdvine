@@ -10,11 +10,30 @@ import {
   LegalTd,
   LegalTh,
 } from "@/components/legal/legal-prose";
+import type { LegalTocItem } from "@/components/legal/legal-page-layout";
+
+/** Section headings for TOC — labels match H2 text exactly (no new copy). */
+export const KOPVILLKOR_TOC: LegalTocItem[] = [
+  { id: "punkt-1", label: "1. Om oss" },
+  { id: "punkt-2", label: "2. Åldersgräns" },
+  { id: "punkt-3", label: "3. Så fungerar en pall" },
+  { id: "punkt-4", label: "4. Priser" },
+  { id: "punkt-5", label: "5. Betalning" },
+  { id: "punkt-6", label: "6. Beställningsbekräftelse och avtal" },
+  { id: "punkt-7", label: "7. Leverans" },
+  { id: "punkt-8", label: "8. Om leverans inte kan genomföras" },
+  { id: "punkt-9", label: "9. Ångerrätt" },
+  { id: "punkt-10", label: "10. Reklamation" },
+  { id: "punkt-11", label: "11. Ditt konto" },
+  { id: "punkt-12", label: "12. Personuppgifter" },
+  { id: "punkt-13", label: "13. Tvist och tillämplig lag" },
+  { id: "punkt-14", label: "14. Ändringar av villkoren" },
+];
 
 export default function KopvillkorContent() {
   return (
     <LegalProse>
-      <LegalH2>1. Om oss</LegalH2>
+      <LegalH2 id="punkt-1">1. Om oss</LegalH2>
       <LegalP>Din motpart vid köp på pactwines.com är:</LegalP>
       <LegalTable>
         <tbody>
@@ -49,7 +68,7 @@ export default function KopvillkorContent() {
         alkoholskatt och svensk moms för varje leverans.
       </LegalP>
 
-      <LegalH2>2. Åldersgräns</LegalH2>
+      <LegalH2 id="punkt-2">2. Åldersgräns</LegalH2>
       <LegalP>
         <LegalStrong>Du måste ha fyllt 20 år för att beställa på pactwines.com.</LegalStrong>
       </LegalP>
@@ -63,7 +82,7 @@ export default function KopvillkorContent() {
         <li>Varor får inte lämnas ut till någon annan än beställaren</li>
         <li>
           Om leverans inte kan genomföras på grund av utebliven eller underkänd
-          legitimation, se punkt 8
+          legitimation, se <LegalLink href="#punkt-8">punkt 8</LegalLink>
         </li>
       </LegalList>
       <LegalP>
@@ -71,7 +90,7 @@ export default function KopvillkorContent() {
         vidare till någon under 20 år.
       </LegalP>
 
-      <LegalH2>3. Så fungerar en pall</LegalH2>
+      <LegalH2 id="punkt-3">3. Så fungerar en pall</LegalH2>
       <LegalP>
         PACT samlar flera beställningar till en gemensam transport från
         producenterna i Frankrike till Sverige. Det är därför vinet kan kosta
@@ -99,7 +118,8 @@ export default function KopvillkorContent() {
       <LegalP>
         <LegalStrong>Steg 4. Leverans.</LegalStrong> Din order packas i lådor
         hos producenterna i Frankrike, transporteras till Sverige och levereras
-        hem till dig med ID-kontroll (se punkt 7).
+        hem till dig med ID-kontroll (se{" "}
+        <LegalLink href="#punkt-7">punkt 7</LegalLink>).
       </LegalP>
 
       <LegalH3>Avbryta innan pallen stänger</LegalH3>
@@ -107,7 +127,8 @@ export default function KopvillkorContent() {
         Fram till att pallen stänger kan du{" "}
         <LegalStrong>avbryta ditt köp utan kostnad</LegalStrong>, via ditt
         konto eller genom att mejla customer@pactwines.com. Inget belopp dras
-        då. Efter leveransen har du dessutom ångerrätt enligt punkt 9.
+        då. Efter leveransen har du dessutom ångerrätt enligt{" "}
+        <LegalLink href="#punkt-9">punkt 9</LegalLink>.
       </LegalP>
 
       <LegalH3>Om det tar tid att fylla pallen</LegalH3>
@@ -151,7 +172,7 @@ export default function KopvillkorContent() {
         </li>
       </LegalList>
 
-      <LegalH2>4. Priser</LegalH2>
+      <LegalH2 id="punkt-4">4. Priser</LegalH2>
       <LegalList>
         <li>
           Alla priser anges i svenska kronor och{" "}
@@ -173,7 +194,7 @@ export default function KopvillkorContent() {
         </li>
       </LegalList>
 
-      <LegalH2>5. Betalning</LegalH2>
+      <LegalH2 id="punkt-5">5. Betalning</LegalH2>
       <LegalP>
         Du betalar med kort via vår betalleverantör Stripe. När du köper sparas
         ditt kort hos Stripe, och{" "}
@@ -209,7 +230,7 @@ export default function KopvillkorContent() {
         </LegalLink>.
       </LegalP>
 
-      <LegalH2>6. Beställningsbekräftelse och avtal</LegalH2>
+      <LegalH2 id="punkt-6">6. Beställningsbekräftelse och avtal</LegalH2>
       <LegalList>
         <li>
           <LegalStrong>
@@ -222,7 +243,7 @@ export default function KopvillkorContent() {
         </li>
       </LegalList>
 
-      <LegalH2>7. Leverans</LegalH2>
+      <LegalH2 id="punkt-7">7. Leverans</LegalH2>
       <LegalList>
         <li>
           Leverans sker med hemleverans och ID-kontroll av vår transportpartner
@@ -252,7 +273,7 @@ export default function KopvillkorContent() {
         pengarna tillbaka. Kontakta oss på customer@pactwines.com.
       </LegalP>
 
-      <LegalH2>8. Om leverans inte kan genomföras</LegalH2>
+      <LegalH2 id="punkt-8">8. Om leverans inte kan genomföras</LegalH2>
       <LegalP>
         Om du inte är hemma, inte kan legitimera dig eller inte är minst 20 år
         gör vår transportpartner ett nytt leveransförsök. Kan leveransen inte
@@ -272,7 +293,7 @@ export default function KopvillkorContent() {
         affärslokaler.
       </LegalP>
 
-      <LegalH2>9. Ångerrätt</LegalH2>
+      <LegalH2 id="punkt-9">9. Ångerrätt</LegalH2>
       <LegalP>
         Du har 14 dagars ångerrätt enligt lagen (2005:59) om distansavtal och
         avtal utanför affärslokaler. Ångerfristen börjar dagen efter att du har
@@ -284,12 +305,13 @@ export default function KopvillkorContent() {
         betalar tillbaka hela beloppet, inklusive den ursprungliga
         leveranskostnaden för standardleverans, senast 14 dagar efter att vi
         fått ditt meddelande. Vi får vänta med återbetalningen tills vi har fått
-        tillbaka varorna. Returfrakt och värdeminskning regleras i §8. Fram till
-        att pallen stänger kan du dessutom avbryta köpet utan kostnad, se punkt
-        3.
+        tillbaka varorna. Returfrakt och värdeminskning regleras i{" "}
+        <LegalLink href="#punkt-8">§8</LegalLink>. Fram till att pallen stänger
+        kan du dessutom avbryta köpet utan kostnad, se{" "}
+        <LegalLink href="#punkt-3">punkt 3</LegalLink>.
       </LegalP>
 
-      <LegalH2>10. Reklamation</LegalH2>
+      <LegalH2 id="punkt-10">10. Reklamation</LegalH2>
       <LegalP>
         Är vinet felaktigt, till exempel korkat, skadat vid leverans eller inte
         det du beställt, har du rätt att reklamera enligt konsumentköplagen
@@ -302,7 +324,7 @@ export default function KopvillkorContent() {
         reklamationsnämnden (arn.se).
       </LegalP>
 
-      <LegalH2>11. Ditt konto</LegalH2>
+      <LegalH2 id="punkt-11">11. Ditt konto</LegalH2>
       <LegalP>
         Du ansvarar för att uppgifterna du lämnar är korrekta och för att hålla
         dina inloggningsuppgifter skyddade. Vi kan stänga av ett konto vid
@@ -314,13 +336,13 @@ export default function KopvillkorContent() {
         utgöra brott enligt alkohollagen.
       </LegalP>
 
-      <LegalH2>12. Personuppgifter</LegalH2>
+      <LegalH2 id="punkt-12">12. Personuppgifter</LegalH2>
       <LegalP>
         Hur vi behandlar dina personuppgifter beskrivs i vår{" "}
         <LegalLink href="/integritetspolicy">integritetspolicy</LegalLink>.
       </LegalP>
 
-      <LegalH2>13. Tvist och tillämplig lag</LegalH2>
+      <LegalH2 id="punkt-13">13. Tvist och tillämplig lag</LegalH2>
       <LegalP>
         För detta avtal gäller <LegalStrong>svensk rätt</LegalStrong>. Som
         konsument med hemvist i Sverige har du alltid det skydd som följer av
@@ -343,7 +365,7 @@ export default function KopvillkorContent() {
         rekommendationer.
       </LegalP>
 
-      <LegalH2>14. Ändringar av villkoren</LegalH2>
+      <LegalH2 id="punkt-14">14. Ändringar av villkoren</LegalH2>
       <LegalP>
         De villkor som gällde när du köpte är de som gäller för det köpet.
         Ändringar påverkar inte köp som redan har gjorts.

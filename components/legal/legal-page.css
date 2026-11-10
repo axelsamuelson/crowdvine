@@ -1,0 +1,11 @@
+/*
+ * Legal pages only. Solid site header (no transparency) without editing the
+ * shared header component used by open CRO work.
+ */
+body:has([data-legal-page]) header {
+  background-color: hsl(var(--background));
+  border-bottom: 1px solid hsl(var(--border) / 0.4);
+  /* Flush with the viewport top (esp. 390): no extra offset above the bar */
+  top: 0;
+  margin-top: 0;
+}

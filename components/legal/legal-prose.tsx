@@ -6,31 +6,52 @@ import { cn } from "@/lib/utils";
 type LegalNodeProps = {
   children: ReactNode;
   className?: string;
+  id?: string;
 };
+
+/** Body / table values per design review: neutral-700 */
+const BODY = "text-[#404040]";
+/** Headings and bold: near-black */
+const INK = "text-[#0A0A0A]";
+/** Clear fixed header (~legal chrome) when jumping to #punkt-N */
+const SCROLL_MT = "scroll-mt-24 md:scroll-mt-28";
 
 export function LegalProse({ children, className }: LegalNodeProps) {
   return (
-    <div
-      className={cn("space-y-6 text-muted-foreground leading-relaxed", className)}
-    >
+    <div className={cn("space-y-6 leading-relaxed", BODY, className)}>
       {children}
     </div>
   );
 }
 
-export function LegalH2({ children, className }: LegalNodeProps) {
+export function LegalH2({ children, className, id }: LegalNodeProps) {
   return (
     <h2
-      className={cn("text-xl font-medium text-foreground pt-4", className)}
+      id={id}
+      className={cn(
+        "text-xl font-medium pt-4",
+        INK,
+        SCROLL_MT,
+        className,
+      )}
     >
       {children}
     </h2>
   );
 }
 
-export function LegalH3({ children, className }: LegalNodeProps) {
+export function LegalH3({ children, className, id }: LegalNodeProps) {
   return (
-    <h3 className={cn("text-base font-medium text-foreground", className)}>
+    <h3
+      id={id}
+      className={cn(
+        // 16–17px medium; 32px above, 8px below
+        "text-base sm:text-[17px] font-medium mt-8 mb-2",
+        INK,
+        SCROLL_MT,
+        className,
+      )}
+    >
       {children}
     </h3>
   );
@@ -69,10 +90,7 @@ export function LegalLink({
   children: ReactNode;
   className?: string;
 }) {
-  const classes = cn(
-    "underline underline-offset-2 text-foreground",
-    className,
-  );
+  const classes = cn("underline underline-offset-2", INK, className);
   if (isExternalHref(href)) {
     const external = href.startsWith("http");
     return (
@@ -96,9 +114,7 @@ export function LegalLink({
 
 export function LegalStrong({ children, className }: LegalNodeProps) {
   return (
-    <strong className={cn("font-medium text-foreground", className)}>
-      {children}
-    </strong>
+    <strong className={cn("font-medium", INK, className)}>{children}</strong>
   );
 }
 
@@ -114,7 +130,9 @@ export function LegalTh({ children, className }: LegalNodeProps) {
   return (
     <th
       className={cn(
-        "border-b border-border py-2 pr-4 text-left align-top text-foreground",
+        // Label column ~40% / 220px at desktop (design review)
+        "border-b border-border py-2 pr-4 text-left align-top font-medium w-[40%] md:w-[220px] md:max-w-[220px]",
+        INK,
         className,
       )}
     >
@@ -128,6 +146,7 @@ export function LegalTd({ children, className }: LegalNodeProps) {
     <td
       className={cn(
         "border-b border-border py-2 pr-4 text-left align-top",
+        BODY,
         className,
       )}
     >

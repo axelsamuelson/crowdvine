@@ -4,7 +4,9 @@
 import type { Metadata } from "next";
 
 import { LegalPageLayout } from "@/components/legal/legal-page-layout";
-import KopvillkorContent from "@/content/legal/kopvillkor";
+import KopvillkorContent, {
+  KOPVILLKOR_TOC,
+} from "@/content/legal/kopvillkor";
 import { LEGAL_VERSIONS } from "@/lib/legal/versions";
 import { getSiteConfig } from "@/lib/site-config-server";
 import { PACT_PUBLIC_ORIGIN } from "@/lib/i18n/localized-routes";
@@ -42,6 +44,7 @@ export default function TermsPage() {
       title={TITLE}
       lastUpdated={version}
       version={version}
+      toc={KOPVILLKOR_TOC}
     >
       <KopvillkorContent />
     </LegalPageLayout>
