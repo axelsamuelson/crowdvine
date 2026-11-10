@@ -6,11 +6,11 @@ import { b2cWholeKronorFromOre } from "@/lib/cart/b2c-line-pricing";
 
 /**
  * Cart drawer vs checkout wine parity.
- * Review case: Synthetic Résiste base_price_cents=10700 → list 107 kr × 6 = 642
- * with early-bird 20% → unit 86 × 6 = 516 (checkout wine) + 99 shipping = 615.
+ * CFO 2026-11-10: early-bird + member discounts default OFF → full list price.
+ * Same path: CartService.getCart → computeExpectedAmountOre → charge.
  */
-describe("cart add responses include early-bird (parity with checkout)", () => {
-  it("simple-add and add-quantity do not skip early-bird on getCart", () => {
+describe("cart / checkout / charge parity at full list price (discounts off)", () => {
+  it("simple-add and add-quantity use full getCart (shared price path)", () => {
     const simpleAdd = readFileSync(
       resolve(process.cwd(), "app/api/cart/simple-add/route.ts"),
       "utf8",
@@ -25,20 +25,18 @@ describe("cart add responses include early-bird (parity with checkout)", () => {
     expect(addQuantity).toMatch(/CartService\.getCart\(/);
   });
 
-  it("early-bird 20% turns list 107×6=642 into charged wine 516", () => {
+  it("with tiers/member at 0: 107×6=642 list equals charged wine", () => {
     const listUnitSek = b2cWholeKronorFromOre(10700);
     expect(listUnitSek).toBe(107);
-    const listTotal = listUnitSek * 6;
-    expect(listTotal).toBe(642);
 
     const { unitSek, lineTotalSek } = b2cLineTotalSek({
       listUnitSek,
       memberPercent: 0,
-      earlyBirdTier: 20,
+      earlyBirdTier: 0,
       quantity: 6,
     });
-    expect(unitSek).toBe(86);
-    expect(lineTotalSek).toBe(516);
-    expect(lineTotalSek + 99).toBe(615);
+    expect(unitSek).toBe(107);
+    expect(lineTotalSek).toBe(642);
+    expect(lineTotalSek + 99).toBe(741);
   });
 });

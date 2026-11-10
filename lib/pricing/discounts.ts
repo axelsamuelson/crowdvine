@@ -54,8 +54,15 @@ export function applyPalletDiscountOre(
   return Math.round((priceOre / 100) * factor) * 100;
 }
 
-/** Tier from bottles already reserved on the 300-bottle scale. */
-export function getPalletDiscountTier(bottlesFilled: number): PalletTier {
+/**
+ * Tier from bottles already reserved on the 300-bottle scale.
+ * Pass `{ enabled: false }` to force 0% (runtime site_content switch).
+ */
+export function getPalletDiscountTier(
+  bottlesFilled: number,
+  opts?: { enabled?: boolean },
+): PalletTier {
+  if (opts?.enabled === false) return 0;
   if (bottlesFilled < 100) return 20;
   if (bottlesFilled < 200) return 10;
   return 0;

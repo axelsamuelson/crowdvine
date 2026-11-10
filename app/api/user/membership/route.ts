@@ -12,6 +12,7 @@ import {
   checkAndResetQuotaIfNeeded,
 } from "@/lib/membership/invite-quota";
 import { getCurrentTier, TIER_THRESHOLDS } from "@/lib/membership/pact-points-engine";
+import { isMemberTierDiscountEnabled } from "@/lib/membership/member-discount-config";
 
 function getNextPactTier(current: MembershipLevel): MembershipLevel | null {
   if (current === "founding_member") return null;
@@ -70,7 +71,13 @@ export async function GET() {
     if (perksError) {
       console.error("[membership] membership_perks lookup failed:", perksError);
     }
-    const safePerks = perksError ? [] : perks || [];
+    // When member-tier price discounts are off (default), strip discount perks
+    // so PLP/PDP client UI matches cart/checkout/charge at list price.
+    const memberDiscountOn = await isMemberTierDiscountEnabled();
+    const safePerks = (perksError ? [] : perks || []).filter((p) => {
+      if (p?.perk_type === "discount" && !memberDiscountOn) return false;
+      return true;
+    });
 
     // Get available invites
     const inviteInfo = await getAvailableInvites(user.id);

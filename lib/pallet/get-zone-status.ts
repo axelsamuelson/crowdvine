@@ -6,7 +6,7 @@ import {
   resolveWineIdForProductHandle,
 } from "@/lib/pallet-early-bird-context";
 import { deliveryEstimateLabelFromFillPercent } from "@/lib/pallet-delivery-estimate-label";
-import { getPalletDiscountTier } from "@/lib/pallet-discount";
+import { resolvePalletDiscountTier } from "@/lib/pricing/early-bird-config";
 import {
   resolveActiveGeoZoneAnonymous,
   resolveActiveGeoZoneForUser,
@@ -247,7 +247,7 @@ export async function getPalletZoneStatusForHandle(
         if (drop && !dropBlockedByGeo) {
           dropState = "existing";
           marketDropId = drop.id;
-          discountTier = getPalletDiscountTier(bottlesFilled);
+          discountTier = await resolvePalletDiscountTier(bottlesFilled);
           showEarlyBird = true;
           if (isCustomerConditionalDrop(drop)) {
             statusPrimary = statusPrimaryForExistingConditionalDrop(drop);

@@ -22,12 +22,16 @@ export function EarlyBirdBadge({
   // Dirty Wine has no early-bird pricing — keep the badge PACT-only.
   if (isB2B || !allowEarlyBird || !data) return null;
 
+  const earlyBirdPercent = Number(data.discountTier) || 0;
+  // When runtime switch forces 0% (or fill is past early-bird), hide entirely.
+  if (earlyBirdPercent <= 0) return null;
+
   const label =
     formatCartDiscountLabel({
       memberPercent: 0,
-      earlyBirdPercent: Number(data.discountTier) || 0,
+      earlyBirdPercent,
       locale: context.locale === "en" ? "en" : "sv",
-    }) ?? `Early bird −${data.discountTier}%`;
+    }) ?? `Early bird −${earlyBirdPercent} %`;
 
   return (
     <PdpPriceBadge
