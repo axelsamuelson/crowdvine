@@ -1,5 +1,6 @@
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { PACT_POINTS_EXPIRY_DAYS } from "@/lib/membership/pact-points-engine";
+import { isPactPointsEarningEnabled } from "@/lib/membership/pact-points-earning-config";
 import {
   FOUNDING_MEMBER_DOUBLE_IP,
   FOUNDING_MEMBER_MAX_COUNT,
@@ -108,32 +109,40 @@ export async function checkAndGrantFoundingMember(
       return { granted: false, error: rpcError.message };
     }
 
-    try {
-      const { error: pactGrantErr } = await sb.rpc("award_pact_points", {
-        p_user_id: userId,
-        p_event_type: "founding_member_grant",
-        p_points_delta: 100,
-        p_bottle_count: null,
-        p_related_order_id: _reservationId,
-        p_related_user_id: null,
-        p_description: "Founding Member welcome PACT Points bonus",
-        p_expires_in_days: PACT_POINTS_EXPIRY_DAYS,
-      });
-      if (pactGrantErr) {
-        console.error("[FOUNDING] award_pact_points founding_member_grant failed", {
-          user_id: userId,
-          event_type: "founding_member_grant",
-          order_id: _reservationId,
-          error: pactGrantErr,
+    if (await isPactPointsEarningEnabled()) {
+      try {
+        const { error: pactGrantErr } = await sb.rpc("award_pact_points", {
+          p_user_id: userId,
+          p_event_type: "founding_member_grant",
+          p_points_delta: 100,
+          p_bottle_count: null,
+          p_related_order_id: _reservationId,
+          p_related_user_id: null,
+          p_description: "Founding Member welcome PACT Points bonus",
+          p_expires_in_days: PACT_POINTS_EXPIRY_DAYS,
         });
+        if (pactGrantErr) {
+          console.error(
+            "[FOUNDING] award_pact_points founding_member_grant failed",
+            {
+              user_id: userId,
+              event_type: "founding_member_grant",
+              order_id: _reservationId,
+              error: pactGrantErr,
+            },
+          );
+        }
+      } catch (pactEx) {
+        console.error(
+          "[FOUNDING] award_pact_points founding_member_grant failed",
+          {
+            user_id: userId,
+            event_type: "founding_member_grant",
+            order_id: _reservationId,
+            error: pactEx,
+          },
+        );
       }
-    } catch (pactEx) {
-      console.error("[FOUNDING] award_pact_points founding_member_grant failed", {
-        user_id: userId,
-        event_type: "founding_member_grant",
-        order_id: _reservationId,
-        error: pactEx,
-      });
     }
 
     return {

@@ -13,6 +13,7 @@ import {
 } from "@/lib/membership/invite-quota";
 import { getCurrentTier, TIER_THRESHOLDS } from "@/lib/membership/pact-points-engine";
 import { isMemberTierDiscountEnabled } from "@/lib/membership/member-discount-config";
+import { isPactPointsEarningEnabled } from "@/lib/membership/pact-points-earning-config";
 
 function getNextPactTier(current: MembershipLevel): MembershipLevel | null {
   if (current === "founding_member") return null;
@@ -73,7 +74,10 @@ export async function GET() {
     }
     // When member-tier price discounts are off (default), strip discount perks
     // so PLP/PDP client UI matches cart/checkout/charge at list price.
-    const memberDiscountOn = await isMemberTierDiscountEnabled();
+    const [memberDiscountOn, pactPointsEarningEnabled] = await Promise.all([
+      isMemberTierDiscountEnabled(),
+      isPactPointsEarningEnabled(),
+    ]);
     const safePerks = (perksError ? [] : perks || []).filter((p) => {
       if (p?.perk_type === "discount" && !memberDiscountOn) return false;
       return true;
@@ -152,6 +156,8 @@ export async function GET() {
         pointsToNextTier,
         nextTierThreshold,
       },
+      /** When false (default), hide earn-points copy; redeem still works. */
+      pactPointsEarningEnabled,
       levelInfo: currentLevelInfo,
       nextLevel: nextLevelInfo,
       invites: {

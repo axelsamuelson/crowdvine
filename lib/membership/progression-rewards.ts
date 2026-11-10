@@ -9,6 +9,7 @@
 
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { MembershipLevel, LEVEL_THRESHOLDS } from "./points-engine";
+import { isPactPointsEarningEnabled } from "@/lib/membership/pact-points-earning-config";
 
 export interface ProgressionBuff {
   id: string;
@@ -69,6 +70,9 @@ export async function awardProgressionBuff(
   currentLevel: MembershipLevel,
   ipEventId?: string,
 ): Promise<{ success: boolean; buff?: ProgressionBuff; error?: string }> {
+  if (!(await isPactPointsEarningEnabled())) {
+    return { success: true };
+  }
   const sb = getSupabaseAdmin();
 
   try {

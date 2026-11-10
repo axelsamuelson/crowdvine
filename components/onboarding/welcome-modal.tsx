@@ -91,7 +91,10 @@ const membershipLevels: Record<WelcomeModalMembershipLevel, MembershipConfig> = 
   },
 };
 
-const getSteps = (membershipLevel: WelcomeModalMembershipLevel) => {
+const getSteps = (
+  membershipLevel: WelcomeModalMembershipLevel,
+  earningEnabled: boolean,
+) => {
   const levelConfig = membershipLevels[membershipLevel];
 
   return [
@@ -248,7 +251,7 @@ const getSteps = (membershipLevel: WelcomeModalMembershipLevel) => {
     {
       id: 4,
       title: "Your Membership",
-      subtitle: "Earn points, unlock perks",
+      subtitle: earningEnabled ? "Earn points, unlock perks" : "Your member status",
       icon: Users,
       content: (
         <div className="space-y-6 max-w-md mx-auto h-[280px] flex flex-col justify-center">
@@ -259,11 +262,13 @@ const getSteps = (membershipLevel: WelcomeModalMembershipLevel) => {
               {levelConfig.displayName}
             </div>
             <p className="text-sm text-muted-foreground">
-              {levelConfig.description}
+              {earningEnabled
+                ? levelConfig.description
+                : "You are a PACT member. Redeem existing points at checkout."}
             </p>
           </div>
 
-          {levelConfig.nextLevel ? (
+          {earningEnabled && levelConfig.nextLevel ? (
             <>
               <div className="space-y-3">
                 <p className="text-sm font-medium text-foreground text-center">
@@ -296,16 +301,16 @@ const getSteps = (membershipLevel: WelcomeModalMembershipLevel) => {
                 </p>
               </div>
             </>
-          ) : (
+          ) : earningEnabled ? (
             <div className="text-center py-4">
               <p className="text-sm text-muted-foreground">
                 You&apos;ve reached the highest membership level!
               </p>
             </div>
-          )}
+          ) : null}
 
           <p className="text-sm text-center text-muted-foreground pt-2">
-            Track your progress in your profile
+            Track your status in your profile
           </p>
         </div>
       ),
@@ -351,6 +356,7 @@ export function WelcomeModal({ isOpen, onClose }: WelcomeModalProps) {
   const [direction, setDirection] = useState(0);
   const [membershipLevel, setMembershipLevel] =
     useState<WelcomeModalMembershipLevel>("basic");
+  const [earningEnabled, setEarningEnabled] = useState(false);
   const [loading, setLoading] = useState(true);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
@@ -373,11 +379,13 @@ export function WelcomeModal({ isOpen, onClose }: WelcomeModalProps) {
           const level = data.membership?.level || "basic";
           console.log("🎓 [Modal] Using membership level:", level);
           setMembershipLevel(welcomeModalTier(level));
+          setEarningEnabled(Boolean(data.pactPointsEarningEnabled));
         } else {
           console.error(
             "🎓 [Modal] Failed to fetch membership, defaulting to basic",
           );
           setMembershipLevel("basic");
+          setEarningEnabled(false);
         }
       } catch (error) {
         console.error("🎓 [Modal] Error fetching membership:", error);
@@ -393,7 +401,7 @@ export function WelcomeModal({ isOpen, onClose }: WelcomeModalProps) {
     }
   }, [isOpen]);
 
-  const steps = getSteps(membershipLevel);
+  const steps = getSteps(membershipLevel, earningEnabled);
   const step = steps[currentStep];
   const Icon = step.icon;
 

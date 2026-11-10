@@ -6,6 +6,7 @@
  */
 
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { isPactPointsEarningEnabled } from "@/lib/membership/pact-points-earning-config";
 
 export type MembershipLevel =
   | "requester"
@@ -146,6 +147,9 @@ export async function awardPointsForInviteSignup(
   inviterUserId: string,
   invitedUserId: string,
 ): Promise<{ success: boolean; newTotal: number; error?: string }> {
+  if (!(await isPactPointsEarningEnabled())) {
+    return { success: true, newTotal: 0 };
+  }
   const sb = getSupabaseAdmin();
 
   try {
@@ -175,6 +179,9 @@ export async function awardPointsForInviteReservation(
   invitedUserId: string,
   orderId?: string,
 ): Promise<{ success: boolean; newTotal: number; error?: string }> {
+  if (!(await isPactPointsEarningEnabled())) {
+    return { success: true, newTotal: 0 };
+  }
   const sb = getSupabaseAdmin();
 
   try {
@@ -261,6 +268,9 @@ export async function awardPointsForOwnOrder(
   orderId: string,
   overridePoints?: number,
 ): Promise<{ success: boolean; newTotal: number; error?: string }> {
+  if (!(await isPactPointsEarningEnabled())) {
+    return { success: true, newTotal: 0 };
+  }
   const sb = getSupabaseAdmin();
 
   const tier = resolveOwnOrderTier(bottleCount);
@@ -314,6 +324,9 @@ export async function awardPointsForPalletMilestone(
   userId: string,
   palletCount: number,
 ): Promise<{ success: boolean; newTotal: number; error?: string }> {
+  if (!(await isPactPointsEarningEnabled())) {
+    return { success: true, newTotal: 0 };
+  }
   const sb = getSupabaseAdmin();
 
   // Define milestones with their points and event types
@@ -572,6 +585,9 @@ export async function awardPointsForInviteSecondOrder(
   invitedUserId: string,
   orderId?: string,
 ): Promise<{ success: boolean; newTotal: number; error?: string }> {
+  if (!(await isPactPointsEarningEnabled())) {
+    return { success: true, newTotal: 0 };
+  }
   const sb = getSupabaseAdmin();
 
   try {
@@ -633,6 +649,9 @@ export async function awardPointsForReview(
   error?: string;
   rateLimited?: boolean;
 }> {
+  if (!(await isPactPointsEarningEnabled())) {
+    return { success: true, newTotal: 0 };
+  }
   const sb = getSupabaseAdmin();
 
   try {
@@ -683,6 +702,9 @@ export async function awardPointsForShare(
   error?: string;
   rateLimited?: boolean;
 }> {
+  if (!(await isPactPointsEarningEnabled())) {
+    return { success: true, newTotal: 0 };
+  }
   const sb = getSupabaseAdmin();
 
   try {

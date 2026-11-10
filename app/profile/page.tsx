@@ -67,6 +67,8 @@ interface MembershipData {
     pointsToNextTier: number | null;
     nextTierThreshold: number | null;
   };
+  /** Default false — hide how-to-earn / progression promises when OFF. */
+  pactPointsEarningEnabled?: boolean;
   levelInfo: {
     level: MembershipLevel;
     name: string;
@@ -106,6 +108,13 @@ function ProfilePageContent() {
     number | null
   >(null);
   const membershipTierTracked = useRef(false);
+  const pactEarningEnabledRef = useRef(false);
+
+  useEffect(() => {
+    pactEarningEnabledRef.current = Boolean(
+      membershipData?.pactPointsEarningEnabled,
+    );
+  }, [membershipData?.pactPointsEarningEnabled]);
 
   useEffect(() => {
     if (!membershipData?.membership?.level || membershipTierTracked.current)
@@ -294,7 +303,9 @@ function ProfilePageContent() {
 
           // If an invitation was used, show toast and refresh IP
           if (payload.eventType === "UPDATE" && payload.new?.used_at) {
-            toast.success(t("profile.inviteUsedToast"));
+            if (pactEarningEnabledRef.current) {
+              toast.success(t("profile.inviteUsedToast"));
+            }
             fetchMembershipData();
             fetchPactEvents();
           }
@@ -800,11 +811,13 @@ function ProfilePageContent() {
               <p className="mt-1 text-2xl font-semibold tabular-nums leading-none">
                 {membershipData.pactPoints?.balance ?? 0}
               </p>
-              <p className="mt-1 text-[10px] text-muted-foreground">
-                {t("profile.earnedAllTime", {
-                  count: String(membershipData.pactPoints?.lifetime ?? 0),
-                })}
-              </p>
+              {membershipData.pactPointsEarningEnabled ? (
+                <p className="mt-1 text-[10px] text-muted-foreground">
+                  {t("profile.earnedAllTime", {
+                    count: String(membershipData.pactPoints?.lifetime ?? 0),
+                  })}
+                </p>
+              ) : null}
             </button>
             <button
               type="button"
@@ -900,11 +913,13 @@ function ProfilePageContent() {
                     <p className="text-2xl font-semibold tabular-nums leading-none mt-1">
                       {membershipData.pactPoints.balance}
                     </p>
-                    <p className="text-[10px] text-muted-foreground mt-2">
-                      {t("profile.earnedAllTime", {
-                        count: String(membershipData.pactPoints.lifetime),
-                      })}
-                    </p>
+                    {membershipData.pactPointsEarningEnabled ? (
+                      <p className="text-[10px] text-muted-foreground mt-2">
+                        {t("profile.earnedAllTime", {
+                          count: String(membershipData.pactPoints.lifetime),
+                        })}
+                      </p>
+                    ) : null}
                   </div>
                 </section>
                 <section className="space-y-3">
@@ -928,7 +943,8 @@ function ProfilePageContent() {
                       </span>
                     </div>
 
-                    {membershipData.pactPoints.nextTier &&
+                    {membershipData.pactPointsEarningEnabled &&
+                    membershipData.pactPoints.nextTier &&
                     membershipData.pactPoints.nextTierThreshold ? (
                       <div className="mt-3">
                         <div className="h-1 rounded-full bg-border overflow-hidden">
@@ -961,17 +977,20 @@ function ProfilePageContent() {
                           })}
                         </p>
                       </div>
-                    ) : (
+                    ) : membershipData.pactPointsEarningEnabled ? (
                       <p className="mt-3 text-xs text-muted-foreground">
                         {t("profile.topTierReached")}
                       </p>
-                    )}
+                    ) : null}
 
-                    <p className="text-[10px] text-muted-foreground mt-2">
-                      {t("profile.basedOn12Months")}
-                    </p>
+                    {membershipData.pactPointsEarningEnabled ? (
+                      <p className="text-[10px] text-muted-foreground mt-2">
+                        {t("profile.basedOn12Months")}
+                      </p>
+                    ) : null}
                   </div>
                 </section>
+                {membershipData.pactPointsEarningEnabled ? (
                 <section className="space-y-3">
                   <h2 className="text-base font-semibold text-foreground">
                     {t("profile.howToEarnPact")}
@@ -1037,6 +1056,7 @@ function ProfilePageContent() {
                     </div>
                   </div>
                 </section>
+                ) : null}
                 <section className="space-y-3">
                   <div className="flex items-center justify-between">
                     <h2 className="text-base font-semibold text-foreground">

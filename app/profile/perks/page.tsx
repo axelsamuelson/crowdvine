@@ -64,6 +64,7 @@ type MembershipData = {
         minPoints: number;
       }
     | null;
+  pactPointsEarningEnabled?: boolean;
   perks: Perk[];
 };
 
@@ -316,7 +317,7 @@ export default function ProfilePerksPage() {
           </CardHeader>
 
           <CardContent>
-            {progress ? (
+            {data.pactPointsEarningEnabled && progress ? (
               <div className="space-y-3">
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
                   <span>
@@ -393,16 +394,18 @@ export default function ProfilePerksPage() {
               <CardContent>
                 {data.nextLevel ? (
                   <div className="space-y-4">
-                    <div className="rounded-lg border border-border bg-muted/20 p-3">
-                      <p className="text-xs text-muted-foreground">
-                        {t("profile.nextLevelUnlock", {
-                          name: data.nextLevel.name,
-                          points: String(data.nextLevel.pointsNeeded),
-                        })}
-                      </p>
-                    </div>
+                    {data.pactPointsEarningEnabled ? (
+                      <div className="rounded-lg border border-border bg-muted/20 p-3">
+                        <p className="text-xs text-muted-foreground">
+                          {t("profile.nextLevelUnlock", {
+                            name: data.nextLevel.name,
+                            points: String(data.nextLevel.pointsNeeded),
+                          })}
+                        </p>
+                      </div>
+                    ) : null}
 
-                    <Separator />
+                    {data.pactPointsEarningEnabled ? <Separator /> : null}
 
                     {nextPerks.length === 0 ? (
                       <p className="text-sm text-muted-foreground">

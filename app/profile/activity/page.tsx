@@ -35,9 +35,21 @@ export default function ActivityPage() {
   const [events, setEvents] = useState<PactPointsEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<FilterType>("all");
+  const [earningEnabled, setEarningEnabled] = useState(false);
 
   useEffect(() => {
     fetchEvents();
+    void (async () => {
+      try {
+        const res = await fetch("/api/user/membership");
+        if (res.ok) {
+          const data = await res.json();
+          setEarningEnabled(Boolean(data.pactPointsEarningEnabled));
+        }
+      } catch {
+        setEarningEnabled(false);
+      }
+    })();
   }, []);
 
   const fetchEvents = async () => {
@@ -154,7 +166,9 @@ export default function ActivityPage() {
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
               {t("profile.activityTitle")}
             </h1>
-            <p className="text-gray-600">{t("profile.activitySubtitle")}</p>
+            {earningEnabled ? (
+              <p className="text-gray-600">{t("profile.activitySubtitle")}</p>
+            ) : null}
           </div>
 
           {/* Filters */}
@@ -219,7 +233,9 @@ export default function ActivityPage() {
               </h3>
               <p className="text-gray-600 mb-6">
                 {filter === "all"
-                  ? t("profile.noActivityAll")
+                  ? earningEnabled
+                    ? t("profile.noActivityAll")
+                    : t("profile.noActivityTitle")
                   : t("profile.noActivityFilter", { filter: filterLabel })}
               </p>
               {filter !== "all" && (

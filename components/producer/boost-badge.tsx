@@ -2,9 +2,12 @@
 
 import { cn } from "@/lib/utils";
 import { useTranslations } from "@/lib/hooks/use-translations";
+import { usePactPointsEarningEnabled } from "@/lib/hooks/use-pact-points-earning-enabled";
 
 export function BoostBadge({ className }: { className?: string }) {
   const { t } = useTranslations();
+  const earningEnabled = usePactPointsEarningEnabled();
+  if (!earningEnabled) return null;
   return (
     <span
       className={cn(
@@ -26,15 +29,17 @@ export function BoostBadgeSlot({
   active: boolean;
   className?: string;
 }) {
+  const earningEnabled = usePactPointsEarningEnabled();
+  const show = active && earningEnabled;
   return (
     <div
       className={cn(
         "mt-0.5 min-h-[18px] md:min-h-[22px]",
-        !active && "min-h-0",
+        !show && "min-h-0",
         className,
       )}
     >
-      {active ? <BoostBadge /> : null}
+      {show ? <BoostBadge /> : null}
     </div>
   );
 }
