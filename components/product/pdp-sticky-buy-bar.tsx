@@ -173,13 +173,14 @@ export function PdpStickyBuyBar({
   }, [mainCtaRef, product.id]);
 
   useEffect(() => {
-    const footer =
+    // Prefer the Navigation sentinel so the large footer logo can peek without
+    // killing sticky — still hides before Navigation/Guider are covered.
+    const target =
+      document.querySelector("[data-sticky-hide-sentinel]") ||
       document.querySelector("footer") ||
       document.querySelector("[data-site-footer]");
-    if (!footer || typeof IntersectionObserver === "undefined") return;
+    if (!target || typeof IntersectionObserver === "undefined") return;
 
-    // Hide as soon as the footer's top edge enters the viewport — never cover
-    // Navigation / Guider in the footer.
     const obs = new IntersectionObserver(
       (entries) => {
         const entry = entries[0];
@@ -187,7 +188,7 @@ export function PdpStickyBuyBar({
       },
       { threshold: 0, rootMargin: "0px" },
     );
-    obs.observe(footer);
+    obs.observe(target);
     return () => obs.disconnect();
   }, []);
 
