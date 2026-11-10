@@ -9,6 +9,7 @@ import {
   inviteStory,
   inviteStoryPills,
 } from "@/components/invite-landing/invite-story-ui";
+import { useTranslations } from "@/lib/hooks/use-translations";
 
 const DISPLAY_CAPACITY = 180;
 const GRID_COLS = 24;
@@ -28,7 +29,7 @@ type LivePalletDisplay = {
   fromApi: boolean;
 };
 
-const STEPS = [
+const STEPS_SV = [
   {
     num: "01",
     pill: "Bläddra",
@@ -38,10 +39,10 @@ const STEPS = [
   },
   {
     num: "02",
-    pill: "Reservera",
+    pill: "Köp",
     pillClass: inviteStoryPills.muted,
-    title: "Reservera, betala senare",
-    description: "Debiteras när pallen avgår.",
+    title: "Köp nu – betala när pallen stänger",
+    description: "Debiteras när pallen stänger.",
   },
   {
     num: "03",
@@ -56,6 +57,37 @@ const STEPS = [
     pillClass: inviteStoryPills.primary,
     title: "Hem till dig",
     description: "Du får besked när den är på väg.",
+  },
+] as const;
+
+const STEPS_EN = [
+  {
+    num: "01",
+    pill: "Browse",
+    pillClass: inviteStoryPills.secondary,
+    title: "Wines from the producer",
+    description: "Direct from Languedoc.",
+  },
+  {
+    num: "02",
+    pill: "Buy",
+    pillClass: inviteStoryPills.muted,
+    title: "Buy now – pay when the pallet closes",
+    description: "Charged when the pallet closes.",
+  },
+  {
+    num: "03",
+    pill: "Pool",
+    pillClass: inviteStoryPills.accent,
+    title: "The pallet fills and ships",
+    description: "One shipment when enough people join.",
+  },
+  {
+    num: "04",
+    pill: "Delivery",
+    pillClass: inviteStoryPills.primary,
+    title: "To your door",
+    description: "You’ll hear when it’s on the way.",
   },
 ] as const;
 
@@ -117,6 +149,8 @@ const CELL_CLASS: Record<"reserved" | "yours" | "open", string> = {
 };
 
 export function HowPactWorksSection() {
+  const { context } = useTranslations();
+  const steps = context.locale === "en" ? STEPS_EN : STEPS_SV;
   const [loading, setLoading] = useState(true);
   const [live, setLive] = useState<LivePalletDisplay>({
     filled: PLACEHOLDER_FILLED,
@@ -175,7 +209,7 @@ export function HowPactWorksSection() {
       />
 
       <ol className={cn(inviteStory.stepList, "mb-14")}>
-        {STEPS.map((step, i) => (
+        {steps.map((step, i) => (
           <motion.li
             key={step.num}
             className={inviteStory.stepItem}
@@ -250,7 +284,7 @@ export function HowPactWorksSection() {
           <div className="flex flex-wrap items-center gap-4">
             <span className="inline-flex items-center gap-1.5">
               <span className="size-2.5 rounded-[2px] invite-pallet-reserved shrink-0" />
-              reserverad
+              köpt
             </span>
             <span className="inline-flex items-center gap-1.5">
               <span className="size-2.5 rounded-[2px] invite-pallet-yours shrink-0" />

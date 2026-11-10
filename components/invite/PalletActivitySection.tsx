@@ -27,7 +27,7 @@ function ActivityCard({ item }: { item: InviteActivityItem }) {
       </p>
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
-          reserverad
+          köpt
         </span>
         <span className="text-xs text-muted-foreground">{item.reservedAgo}</span>
       </div>

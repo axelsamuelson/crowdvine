@@ -68,7 +68,9 @@ export function WinePdpHeroBox({
       ) : null}
       <div
         className={cn(
-          "relative z-10 rounded-md bg-popover px-3 py-3 md:grid md:min-h-[9.5rem] md:grid-cols-2 md:gap-x-4 md:gap-y-4 md:px-4 md:py-5",
+          "relative z-10 rounded-md bg-popover px-3 py-3 md:grid md:grid-cols-2 md:gap-x-4 md:gap-y-3 md:px-4 md:py-4",
+          // Reserve height only when lead copy fills the box — avoid empty band under the producer.
+          lead ? "md:min-h-[9.5rem]" : null,
           className,
         )}
       >
@@ -90,9 +92,11 @@ export function WinePdpHeroBox({
           </div>
         ) : null}
 
-        <div className="flex flex-wrap items-center gap-3 max-md:mt-4 md:col-start-2 md:row-start-1 md:justify-self-end md:self-start">
+        <div className="flex flex-wrap items-center gap-2 max-md:mt-3 md:col-start-2 md:row-start-1 md:justify-self-end md:self-start">
           {price}
           {compareAtPrice}
+          {/* Inline with price so the title box stays tight when there is no lead copy. */}
+          {showCaseHelp ? <CasePurchaseHelpTrigger variant="plain" /> : null}
         </div>
 
         {lead ? (
@@ -104,12 +108,6 @@ export function WinePdpHeroBox({
           >
             {lead}
           </p>
-        ) : null}
-
-        {showCaseHelp ? (
-          <div className="absolute bottom-3 right-3 md:bottom-4 md:right-4">
-            <CasePurchaseHelpTrigger variant="plain" />
-          </div>
         ) : null}
       </div>
     </div>

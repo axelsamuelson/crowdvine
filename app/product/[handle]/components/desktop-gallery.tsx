@@ -39,7 +39,12 @@ export const DesktopGallery = ({ product }: { product: Product }) => {
             height={image.height || 600}
             sizes={idx === 0 ? "(max-width: 1200px) 50vw, 600px" : "(max-width: 1200px) 50vw, 600px"}
             priority={idx === 0}
-            className="w-full object-cover cursor-zoom-in"
+            className={
+              idx === 0
+                ? // First image: whole bottle visible under the solid header (object-contain + top pad).
+                  "w-full object-contain object-top cursor-zoom-in pt-4 md:pt-6"
+                : "w-full object-cover cursor-zoom-in"
+            }
             quality={idx === 0 ? 80 : 75}
             onClick={() => {
               if (zoomTracked.current) return;

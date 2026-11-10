@@ -88,7 +88,7 @@ function WineCard({
             className="mt-6 w-full text-sm font-medium text-foreground hover:text-muted-foreground transition-colors text-left"
             onClick={() => scrollToSignup(reducedMotion)}
           >
-            Reservera →
+            Köp →
           </button>
         </CardItem>
       </CardBody>

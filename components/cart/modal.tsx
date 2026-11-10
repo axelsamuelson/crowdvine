@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, PlusCircleIcon, ArrowLeft } from "lucide-react";
+import { ArrowRight, Plus, PlusCircleIcon, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
@@ -115,7 +115,7 @@ const CartItems = ({
 
       <CartContainer className="flex justify-between px-2 text-sm text-muted-foreground">
         <span>{t("cart.products")}</span>
-        <span>{t("cart.items", { count: cart.lines.length })}</span>
+        <span>{t("cart.bottlesCount", { count: cart.totalQuantity })}</span>
       </CartContainer>
       <div className="flex flex-col flex-1 min-h-0">
         <div className="relative flex min-h-0 flex-1 flex-col py-4 overflow-x-hidden">
@@ -234,6 +234,17 @@ export default function CartModal() {
   useBodyScrollLock(isOpen);
 
   useEffect(() => {
+    // Signal sticky ATC / overlays without coupling React trees.
+    document.documentElement.setAttribute(
+      "data-cart-drawer-open",
+      isOpen ? "true" : "false",
+    );
+    if (!isOpen) {
+      document.documentElement.removeAttribute("data-cart-drawer-open");
+    }
+    window.dispatchEvent(
+      new CustomEvent("cart-drawer-open-change", { detail: { open: isOpen } }),
+    );
     if (isOpen && !wasOpenRef.current) {
       void AnalyticsTracker.trackEvent({
         eventType: "cart_opened",
@@ -242,6 +253,9 @@ export default function CartModal() {
       });
     }
     wasOpenRef.current = isOpen;
+    return () => {
+      document.documentElement.removeAttribute("data-cart-drawer-open");
+    };
   }, [isOpen]);
 
   // Validate cart whenever it changes (with debounce)
@@ -393,10 +407,8 @@ export default function CartModal() {
     );
   };
 
-  // Always reserve badge chrome while hydrating — never return null (that
-  // dropped MENU-adjacent space) and never flash CART (0) before cartReady.
-  // Non-empty cache / optimistic cart may show early; empty only after ready.
-  // During the first add (empty → N), prefer loading over a misleading (0).
+  // After hydrate: always show a real cart control (including empty (0)).
+  // While hydrating / first-add in flight: invisible same-size spacer — no grey box.
   const showNeutralLoading =
     isPending && (!cart || cart.totalQuantity === 0);
   const showCartBadge =
@@ -434,12 +446,11 @@ export default function CartModal() {
         )}
       </Button>
       ) : (
-        // Reserve badge space while cart hydrates / first add mutates —
-        // never flash (0).
+        // Invisible spacer only — no grey placeholder box when empty/hydrating.
         <span
-          className="inline-block h-7 w-10 shrink-0 rounded-sm bg-muted/40 animate-pulse md:w-16"
+          className="inline-block h-7 w-10 shrink-0 md:w-16"
           aria-hidden
-          data-testid="cart-badge-skeleton"
+          data-testid="cart-badge-spacer"
         />
       )}
       <AnimatePresence>
@@ -462,9 +473,11 @@ export default function CartModal() {
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ duration: 0.3, ease: "easeInOut" }}
-              className="fixed top-0 bottom-0 right-0 flex w-full md:w-[500px] p-modal-sides z-50"
+              // Mobile: full-bleed to the bottom (safe-area on inner panel) so no
+              // gap reveals the PDP sticky bar under the drawer.
+              className="fixed inset-y-0 right-0 z-50 flex w-full md:top-0 md:bottom-0 md:w-[500px] md:p-modal-sides"
             >
-              <div className="flex flex-col py-3 w-full rounded bg-muted md:py-4">
+              <div className="flex h-full w-full flex-col bg-muted pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:rounded md:py-4">
                 <CartContainer className="flex justify-between items-center mb-10">
                   {/* Back to Shop Button */}
                   <Link href={paths.shop} onClick={closeCart}>
@@ -520,6 +533,7 @@ function CheckoutButton({
 }) {
   const { t, context: shopping } = useTranslations();
   const paths = useLocalizedPaths();
+  const isDirtywineSite = useB2BModeServerHint();
   const { pending } = useFormStatus();
   const { cart, isPending } = useCart();
   const router = useRouter();
@@ -530,14 +544,16 @@ function CheckoutButton({
       ? "/en/checkout"
       : cart?.checkoutUrl || "/checkout";
 
-  // Check if there are validation errors
   const hasValidationErrors = validations.some((v) => !v.isValid);
   const invalidValidations = validations.filter((v) => !v.isValid);
   const isCartScoped = validations.some((v) => v.scope === "cart");
+  const neededBottles = invalidValidations.reduce(
+    (sum, v) => sum + (v.needed || 0),
+    0,
+  );
 
-  // B2C cart-total minimum → shop. B2B pack lines → producer pages when known.
+  // B2C cart-total minimum → shop (PLP). B2B pack lines → producer pages when known.
   let redirectUrl = paths.shop;
-
   if (!isCartScoped && invalidValidations.length === 1) {
     const firstInvalidValidation = invalidValidations[0];
     redirectUrl = firstInvalidValidation?.groupId
@@ -556,74 +572,89 @@ function CheckoutButton({
   }
 
   const isLoading = pending || isValidating;
-
-  // Button should be disabled if:
-  // 1. Validation is in progress, OR
-  // 2. Normal checkout is disabled AND no validation errors (so user can't click checkout when it's disabled)
-  // 3. But if there are validation errors, button should be clickable to redirect to producer page
-  const shouldDisableButton =
+  const showAddMore = !isDirtywineSite && hasValidationErrors && neededBottles > 0;
+  const checkoutLocked = showAddMore;
+  const checkoutDisabled =
     producerOrdersPaused ||
     isValidating ||
+    checkoutLocked ||
     ((!checkoutUrl || isPending) && !hasValidationErrors);
 
-  return (
-    <Button
-      type="submit"
-      disabled={shouldDisableButton}
-      className={`font-semibold cursor-pointer whitespace-nowrap text-base transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive border border-transparent shadow-xs h-12 rounded-md px-3 has-[>svg]:pr-3 [&_svg:not([class*='size-'])]:size-6 flex relative gap-3 justify-between items-center w-full ${
-        hasValidationErrors
-          ? "bg-amber-600 hover:bg-amber-700 text-white"
-          : "bg-primary text-primary-foreground hover:bg-primary/90"
-      }`}
-      onClick={() => {
-        // Don't allow clicks during validation
-        if (isValidating || producerOrdersPaused) {
-          return;
-        }
+  const goAddMore = () => {
+    if (isValidating || producerOrdersPaused) return;
+    closeCart();
+    router.push(redirectUrl);
+  };
 
-        if (hasValidationErrors) {
-          // Redirect to producer/group page to add more bottles
-          closeCart();
-          router.push(redirectUrl);
-        } else if (checkoutUrl) {
-          // Normal checkout flow
-          closeCart();
-          router.push(checkoutUrl);
-        }
-      }}
-    >
-      <AnimatePresence initial={false} mode="wait">
-        <motion.div
-          key={isLoading ? "loading" : "content"}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.15 }}
-          className="flex justify-center items-center w-full"
+  const goCheckout = () => {
+    if (checkoutLocked || isValidating || producerOrdersPaused || !checkoutUrl) {
+      return;
+    }
+    closeCart();
+    router.push(checkoutUrl);
+  };
+
+  return (
+    <div className="flex w-full flex-col gap-2">
+      {showAddMore ? (
+        <Button
+          type="button"
+          disabled={isValidating || producerOrdersPaused}
+          onClick={goAddMore}
+          className="font-semibold cursor-pointer whitespace-nowrap text-base transition-all disabled:pointer-events-none disabled:opacity-50 h-12 rounded-md px-3 flex items-center justify-center gap-2 w-full bg-white text-[#0A0A0A] border border-[#0A0A0A] hover:bg-neutral-50 shadow-none"
         >
-          {isLoading ? (
-            <Loader size="default" />
-          ) : (
-            <div className="flex justify-between items-center w-full gap-2">
-              <span className="text-left leading-snug">
-                {isValidating
-                  ? t("cart.validating")
-                  : hasValidationErrors
-                    ? t("cart.addMoreBottles", {
-                        needed: invalidValidations.reduce(
-                          (sum, v) => sum + (v.needed || 0),
-                          0,
-                        ),
-                      })
-                    : inquiryMode
-                      ? t("cart.sendInquiry")
-                      : t("cart.proceedToCheckout")}
-              </span>
-              <ArrowRight className="size-6 shrink-0" />
-            </div>
-          )}
-        </motion.div>
-      </AnimatePresence>
-    </Button>
+          <Plus className="size-5 shrink-0" strokeWidth={2.25} aria-hidden />
+          <span className="leading-snug">
+            {t("cart.addMoreBottlesOutlineCta", { needed: neededBottles }).replace(
+              /^\+\s*/,
+              "",
+            )}
+          </span>
+        </Button>
+      ) : null}
+
+      <Button
+        type="submit"
+        disabled={checkoutDisabled}
+        aria-disabled={checkoutLocked || checkoutDisabled ? true : undefined}
+        className={cn(
+          "font-semibold whitespace-nowrap text-base transition-all [&_svg]:pointer-events-none shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] shadow-xs h-12 rounded-md px-3 has-[>svg]:pr-3 [&_svg:not([class*='size-'])]:size-6 flex relative gap-3 justify-between items-center w-full",
+          checkoutLocked
+            ? "bg-neutral-200 text-neutral-500 border border-transparent pointer-events-none cursor-not-allowed hover:bg-neutral-200"
+            : "cursor-pointer border border-transparent bg-[#0A0A0A] hover:bg-[#0A0A0A]/90 text-white disabled:pointer-events-none disabled:opacity-50",
+        )}
+        onClick={(e) => {
+          if (checkoutLocked) {
+            e.preventDefault();
+            return;
+          }
+          goCheckout();
+        }}
+      >
+        <AnimatePresence initial={false} mode="wait">
+          <motion.div
+            key={isLoading ? "loading" : checkoutLocked ? "locked" : "content"}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="flex justify-center items-center w-full"
+          >
+            {isLoading ? (
+              <Loader size="default" />
+            ) : (
+              <div className="flex justify-between items-center w-full gap-2">
+                <span className="text-left leading-snug">
+                  {inquiryMode && !checkoutLocked
+                    ? t("cart.sendInquiry")
+                    : t("cart.proceedToCheckout")}
+                </span>
+                <ArrowRight className="size-6 shrink-0" />
+              </div>
+            )}
+          </motion.div>
+        </AnimatePresence>
+      </Button>
+    </div>
   );
 }
