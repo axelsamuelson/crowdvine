@@ -1145,6 +1145,15 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
 
 export default function ReservationsPage() {
   const { t, context: shopping } = useShoppingContext();
+
+  // Keep <title> in sync with the visible page heading (SV/EN).
+  useEffect(() => {
+    const heading = t("profile.reservationsTitle");
+    const sitePart = document.title.includes("|")
+      ? document.title.split("|").slice(1).join("|").trim()
+      : "";
+    document.title = sitePart ? `${heading} | ${sitePart}` : heading;
+  }, [t, shopping.locale]);
   const paths = localizedPathsForLocale(shopping.locale);
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [loading, setLoading] = useState(true);
