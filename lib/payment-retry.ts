@@ -20,45 +20,125 @@ import {
   sendPaymentConfirmedEmail,
 } from "@/lib/sendgrid-service";
 
-const CANCELLATION_REASON_DB = "Payment failed after maximum retries";
+const CANCELLATION_REASON_DB = "Payment failed after pay window expired";
 const CANCELLATION_REASON_EMAIL =
-  "Your card could not be charged after multiple attempts.";
+  "Payment was not completed within 3 days of the failed charge.";
 
-const MS_24H = 24 * 60 * 60 * 1000;
-const MS_72H = 72 * 60 * 60 * 1000;
+/** Customer has this long to pay after the first failed charge (Axel 2026-11-10). */
+export const PAYMENT_RETRY_PAY_WINDOW_MS = 3 * 24 * 60 * 60 * 1000;
+
+/** Retry interval while inside the pay window. */
+export const PAYMENT_RETRY_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
 /**
- * After a failed charge, schedule the next retry or cancel after max attempts.
- * attemptNumber is payment_attempts after the failure (1 = first failure → 24h).
+ * Pure decision: cancel after the 3-day window, otherwise schedule the next retry.
+ * windowStartedAt = first failed charge time.
+ */
+export function decidePaymentRetrySchedule(opts: {
+  now: Date;
+  windowStartedAt: Date;
+}):
+  | { action: "cancel"; payByAt: Date }
+  | { action: "schedule"; at: Date; payByAt: Date } {
+  const payByAt = new Date(
+    opts.windowStartedAt.getTime() + PAYMENT_RETRY_PAY_WINDOW_MS,
+  );
+  if (opts.now.getTime() >= payByAt.getTime()) {
+    return { action: "cancel", payByAt };
+  }
+  const candidate = new Date(opts.now.getTime() + PAYMENT_RETRY_INTERVAL_MS);
+  const at =
+    candidate.getTime() > payByAt.getTime() ? payByAt : candidate;
+  // If the only remaining slot is essentially now, cancel instead of looping.
+  if (at.getTime() <= opts.now.getTime() + 60_000) {
+    return { action: "cancel", payByAt };
+  }
+  return { action: "schedule", at, payByAt };
+}
+
+/**
+ * After a failed charge, schedule the next retry or cancel after the 3-day window.
+ * attemptNumber is kept for call-site compatibility; the window is time-based.
+ *
+ * Controls today (before this change): attemptNumber >= 3 → cancel;
+ * MS_24H / MS_72H for retryHours 24|72 in lib/payment-retry.ts + webhook.
  */
 export async function schedulePaymentRetry(
   reservationId: string,
-  attemptNumber: number,
-): Promise<void> {
-  if (attemptNumber >= 3) {
-    await cancelFailedReservation(reservationId);
-    return;
-  }
-
-  const ms = attemptNumber >= 2 ? MS_72H : MS_24H;
-  const when = new Date(Date.now() + ms).toISOString();
-
+  _attemptNumber: number,
+): Promise<{ action: "scheduled" | "cancelled" | "skipped"; payByAt?: string }> {
   const sb = getSupabaseAdmin();
+  const now = new Date();
+
   const { data: existing } = await sb
     .from("order_reservations")
-    .select("status, archived_at")
+    .select(
+      "status, archived_at, cancelled_at, offsession_charge_failed_at, offsession_pay_by, pallet_close_state",
+    )
     .eq("id", reservationId)
     .maybeSingle();
+
   if (
     existing &&
-    (String(existing.status) === "archived" || existing.archived_at != null)
+    (String(existing.status) === "archived" ||
+      existing.archived_at != null ||
+      existing.cancelled_at != null ||
+      String(existing.status) === "cancelled")
   ) {
-    return;
+    return { action: "skipped" };
+  }
+
+  // Reuse offsession_* columns (already migrated) for the 3-day pay window
+  // when not in pallet-close pay_link_pending (that flow owns the same fields).
+  const state = String(existing?.pallet_close_state ?? "");
+  const payLinkOwns = state === "pay_link_pending";
+
+  let windowStartedAt: Date;
+  let payByAt: Date;
+
+  if (payLinkOwns && existing?.offsession_pay_by) {
+    payByAt = new Date(String(existing.offsession_pay_by));
+    windowStartedAt = existing.offsession_charge_failed_at
+      ? new Date(String(existing.offsession_charge_failed_at))
+      : new Date(payByAt.getTime() - PAYMENT_RETRY_PAY_WINDOW_MS);
+  } else if (existing?.offsession_pay_by && existing?.offsession_charge_failed_at) {
+    windowStartedAt = new Date(String(existing.offsession_charge_failed_at));
+    payByAt = new Date(String(existing.offsession_pay_by));
+  } else {
+    windowStartedAt = now;
+    payByAt = new Date(now.getTime() + PAYMENT_RETRY_PAY_WINDOW_MS);
+    if (!payLinkOwns) {
+      const { error: windowErr } = await sb
+        .from("order_reservations")
+        .update({
+          offsession_charge_failed_at: windowStartedAt.toISOString(),
+          offsession_pay_by: payByAt.toISOString(),
+        })
+        .eq("id", reservationId)
+        .neq("status", "archived")
+        .is("archived_at", null);
+      if (windowErr) {
+        console.error(
+          `[RETRY] schedulePaymentRetry set pay window reservation_id=${reservationId}:`,
+          windowErr.message,
+        );
+      }
+    }
+  }
+
+  const decision = decidePaymentRetrySchedule({
+    now,
+    windowStartedAt,
+  });
+
+  if (decision.action === "cancel") {
+    await cancelFailedReservation(reservationId);
+    return { action: "cancelled", payByAt: decision.payByAt.toISOString() };
   }
 
   const { error } = await sb
     .from("order_reservations")
-    .update({ retry_scheduled_at: when })
+    .update({ retry_scheduled_at: decision.at.toISOString() })
     .eq("id", reservationId)
     .neq("status", "archived")
     .is("archived_at", null);
@@ -69,6 +149,8 @@ export async function schedulePaymentRetry(
       error.message,
     );
   }
+
+  return { action: "scheduled", payByAt: decision.payByAt.toISOString() };
 }
 
 export async function cancelFailedReservation(
@@ -196,15 +278,22 @@ export async function cancelFailedReservation(
 
   const userId = typeof row.user_id === "string" ? row.user_id : null;
   let toEmail: string | null = null;
+  let locale: "sv" | "en" = "sv";
   if (userId) {
     const { data: prof } = await sb
       .from("profiles")
-      .select("email")
+      .select("email, preferred_locale")
       .eq("id", userId)
       .maybeSingle();
     const em = prof?.email;
     if (typeof em === "string" && em.includes("@")) {
       toEmail = em.trim();
+    }
+    if (
+      typeof prof?.preferred_locale === "string" &&
+      prof.preferred_locale.toLowerCase().startsWith("en")
+    ) {
+      locale = "en";
     }
   }
 
@@ -214,6 +303,7 @@ export async function cancelFailedReservation(
         to: toEmail,
         reservationId,
         reason: CANCELLATION_REASON_EMAIL,
+        locale,
       });
     } catch (e) {
       console.error(
@@ -224,7 +314,7 @@ export async function cancelFailedReservation(
   }
 
   console.log(
-    `[RETRY] Reservation ${reservationId} cancelled after max payment retries`,
+    `[RETRY] Reservation ${reservationId} cancelled after 3-day pay window`,
   );
 }
 
@@ -315,7 +405,7 @@ export async function retryFailedPayments(): Promise<{
         const { data: fresh, error: freshErr } = await sb
           .from("order_reservations")
           .select(
-            "id, user_id, pallet_id, payment_mode, payment_status, payment_method_id, setup_intent_id, payment_attempts, status, terms_version, terms_accepted_at, age_verified_at, created_at",
+            "id, user_id, pallet_id, payment_mode, payment_status, payment_method_id, setup_intent_id, payment_attempts, status, terms_version, terms_accepted_at, age_verified_at, created_at, is_conditional, charge_blocked_reason",
           )
           .eq("id", id)
           .maybeSingle();
@@ -504,8 +594,8 @@ export async function retryFailedPayments(): Promise<{
             .eq("id", id)
             .maybeSingle();
           const attempts = Number(after?.payment_attempts) || 0;
-          await schedulePaymentRetry(id, attempts);
-          if (attempts >= 3) cancelled += 1;
+          const scheduled = await schedulePaymentRetry(id, attempts);
+          if (scheduled.action === "cancelled") cancelled += 1;
           else failed += 1;
         } else {
           failed += 1;

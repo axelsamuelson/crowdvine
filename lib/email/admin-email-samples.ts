@@ -49,15 +49,18 @@ export const SAMPLE_PAYMENT_CONFIRMED: PaymentConfirmedEmailBody = {
 
 export const SAMPLE_PAYMENT_FAILED: PaymentFailedEmailBody = {
   reservationId: "resv_8f3a2c1d",
+  customerName: "Anna",
+  amountSek: 1290,
+  payByLabel: "13 november 2026",
+  paymentUrl: "https://pactwines.com/profile#payment",
+  locale: "sv",
   reason: "Kortet nekades av banken (insufficient funds).",
-  retryHours: 72,
-  profileUrl: "https://pactwines.com/profile",
 };
 
 export const SAMPLE_PAYMENT_CANCELLED: PaymentCancelledEmailBody = {
   reservationId: "resv_8f3a2c1d",
   reason:
-    "Vi kunde inte genomföra betalningen efter flera försök. Reservationen har frigjorts.",
+    "Betalningen gick inte igenom inom 3 dagar. Ordern har avbrutits.",
 };
 
 export const SAMPLE_PALLET_READY = {

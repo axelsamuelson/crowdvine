@@ -546,24 +546,59 @@ async function handlePaymentIntentPaymentFailedWebhook(
       );
     }
 
-    if (toEmail && nextAttempts < 3) {
+    if (toEmail) {
       const { sendPaymentFailedEmail } = await import("@/lib/sendgrid-service");
-      const profileUrl =
-        process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "https://pact.wine";
-      const retryHours: 24 | 72 = nextAttempts === 1 ? 24 : 72;
+      const { getAppUrl } = await import("@/lib/app-url");
+      const { PAYMENT_RETRY_PAY_WINDOW_MS } = await import(
+        "@/lib/payment-retry"
+      );
+      const baseUrl =
+        process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ||
+        getAppUrl().replace(/\/$/, "") ||
+        "https://pactwines.com";
+      const payByAt = new Date(Date.now() + PAYMENT_RETRY_PAY_WINDOW_MS);
+      let locale: "sv" | "en" = "sv";
+      let customerName = "";
+      if (userId) {
+        const { data: profLang } = await supabase
+          .from("profiles")
+          .select("preferred_locale, full_name")
+          .eq("id", userId)
+          .maybeSingle();
+        if (
+          typeof profLang?.preferred_locale === "string" &&
+          profLang.preferred_locale.toLowerCase().startsWith("en")
+        ) {
+          locale = "en";
+        }
+        if (typeof profLang?.full_name === "string") {
+          customerName = profLang.full_name;
+        }
+      }
+      const payByLabel = new Intl.DateTimeFormat(
+        locale === "sv" ? "sv-SE" : "en-GB",
+        {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+          timeZone: "Europe/Stockholm",
+        },
+      ).format(payByAt);
       const sent = await sendPaymentFailedEmail({
         to: toEmail,
         reservationId,
+        payByLabel,
+        paymentUrl: `${baseUrl}/profile#payment`,
+        locale,
+        customerName,
         reason,
-        retryHours,
-        profileUrl,
       });
       if (!sent) {
         console.warn(
           `[Stripe Webhook] reservation_id=${reservationId} payment failed email not sent`,
         );
       }
-    } else if (!toEmail) {
+    } else {
       console.warn(
         `[Stripe Webhook] reservation_id=${reservationId} no profile email for payment failure`,
       );

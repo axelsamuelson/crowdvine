@@ -2,22 +2,32 @@ import type { AppLocale } from "@/lib/i18n/locale";
 import { escapeHtmlBasic } from "@/lib/email/escape-html";
 import { DAY_MS } from "@/lib/reservations/expiry-config";
 
+export type StatusEmailParams = {
+  locale: AppLocale;
+  customerName: string;
+  orderId: string;
+  bottlesOrdered: number;
+  bottlesNeeded: number;
+  amountSek: number | null;
+  orderUrl: string;
+  cancelUrl: string;
+};
+
+/** @deprecated Extension ask removed — kept for type imports during transition. */
 export type ExtensionAskEmailParams = {
   locale: AppLocale;
   customerName: string;
   confirmUrl: string;
   replyDays: number;
   extensionDays: number;
-  /** Concrete reply deadline (e.g. replyBy from the ask). */
   deadlineDate: Date;
-  /** Reserved total in SEK (order_reservations.total_sek). */
   amountSek: number | null;
 };
 
+/** @deprecated Auto-cancel emails removed. */
 export type ExpiryCancelledEmailParams = {
   locale: AppLocale;
   customerName: string;
-  /** no_reply | max_age (max_age only when an optional cap is configured) */
   kind: "no_reply" | "max_age";
   maxAgeDays?: number | null;
 };
@@ -30,6 +40,11 @@ export const QUESTIONS_LINE_SV =
   "Frågor? Svara på detta mejl eller skriv till customer@pactwines.com.";
 export const QUESTIONS_LINE_EN =
   "Questions? Reply to this email or write to customer@pactwines.com.";
+
+export const STATUS_FOOTER_SV =
+  "EURPACT OÜ, säljare på pactwines.com · customer@pactwines.com";
+export const STATUS_FOOTER_EN =
+  "EURPACT OÜ, seller at pactwines.com · customer@pactwines.com";
 
 /** Swedish-style long date, e.g. "6 november 2026". */
 export function formatExtensionDeadlineDate(
@@ -44,14 +59,14 @@ export function formatExtensionDeadlineDate(
   }).format(date);
 }
 
-/** Reserved amount for email copy, e.g. "1 250 kr". */
+/** Order amount for email copy, e.g. "1 250 kr". */
 export function formatReservedAmountSek(
   amountSek: number | null | undefined,
   locale: AppLocale,
 ): string {
   const n = Number(amountSek);
   if (!Number.isFinite(n) || n < 0) {
-    return locale === "sv" ? "det reserverade beloppet" : "the reserved amount";
+    return locale === "sv" ? "beloppet" : "the amount";
   }
   const formatted = new Intl.NumberFormat(
     locale === "sv" ? "sv-SE" : "en-GB",
@@ -67,164 +82,148 @@ export function termsUrlForLocale(locale: AppLocale): string {
   return locale === "sv" ? TERMS_URL_SV : TERMS_URL_EN;
 }
 
-export function extensionAskSubject(locale: AppLocale): string {
+export function statusEmailSubject(locale: AppLocale): string {
   return locale === "sv"
-    ? "Vill du ge din PACT-reservation 30 dagar till?"
-    : "Do you want to give your PACT reservation 30 more days?";
+    ? "Läget för din PACT-pall"
+    : "An update on your PACT pallet";
 }
 
+/** @deprecated */
+export function extensionAskSubject(locale: AppLocale): string {
+  return statusEmailSubject(locale);
+}
+
+/** @deprecated */
 export function expiryCancelledSubject(
   locale: AppLocale,
-  kind: "no_reply" | "max_age",
+  _kind: "no_reply" | "max_age",
 ): string {
-  if (locale === "sv") {
-    return kind === "max_age"
-      ? "Din PACT-reservation har avslutats (köpvillkor p. 3)"
-      : "Din PACT-reservation har avslutats";
-  }
-  return kind === "max_age"
-    ? "Your PACT reservation has ended (terms of purchase §3)"
-    : "Your PACT reservation has ended";
+  return locale === "sv"
+    ? "Din order är avbruten – inget har dragits"
+    : "Your order has been cancelled – nothing was charged";
 }
 
-export function buildExtensionAskText(p: ExtensionAskEmailParams): string {
+export function buildStatusEmailText(p: StatusEmailParams): string {
   const name = p.customerName.trim() || (p.locale === "sv" ? "hej" : "hi");
-  const deadline = formatExtensionDeadlineDate(p.deadlineDate, p.locale);
   const amount = formatReservedAmountSek(p.amountSek, p.locale);
-  const termsUrl = termsUrlForLocale(p.locale);
-  const days = p.extensionDays;
+  const orderId = p.orderId;
+  const antal = Math.max(0, Math.floor(p.bottlesOrdered));
+  const grans = Math.max(0, Math.floor(p.bottlesNeeded));
 
   if (p.locale === "sv") {
     return `Hej ${name},
 
-Din reservation hos PACT har nu gällt i ${days} dagar och pallen har ännu inte nått den volym som krävs. Enligt köpvillkoren (punkt 3) gäller en reservation i ${days} dagar åt gången. Vill du behålla den bekräftar du senast ${deadline} via länken nedan (ingen inloggning krävs):
+Din order ${orderId} väntar fortfarande på att pallen ska fyllas. Just nu är ${antal} av ${grans} flaskor beställda.
 
-${p.confirmUrl}
+Du behöver inte göra något. Din order ligger kvar tills pallen stänger, och först då dras ${amount} från ditt sparade kort. Vi mejlar dig när det händer.
 
-När du bekräftar gäller reservationen i ${days} dagar till, och när pallen når sin gräns debiteras det belopp du reserverat (${amount}). Om du inte bekräftar avslutas reservationen automatiskt och inget belopp debiteras. Du kan förlänga igen på samma sätt så länge pallen väntar på volym.
+Vill du inte vänta längre kan du avbryta utan kostnad fram till att pallen stänger.
 
-Köpvillkor: ${termsUrl}
+Se din order: ${p.orderUrl}
+Avbryt ordern: ${p.cancelUrl}
 
-${QUESTIONS_LINE_SV}
-
-/PACT`;
+${STATUS_FOOTER_SV}`;
   }
 
   return `Hi ${name},
 
-Your reservation with PACT has now been in effect for ${days} days and the pallet has not yet reached the required volume. Under the terms of purchase (section 3), a reservation is valid for ${days} days at a time. If you want to keep it, please confirm by ${deadline} using the link below (no login required):
+Your order ${orderId} is still waiting for the pallet to fill. Right now ${antal} of ${grans} bottles have been ordered.
 
-${p.confirmUrl}
+You don't need to do anything. Your order stays in place until the pallet closes, and only then will ${amount} be charged to your saved card. We'll email you when that happens.
 
-When you confirm, the reservation remains valid for another ${days} days, and when the pallet reaches its limit the amount you reserved (${amount}) will be charged. If you do not confirm, the reservation ends automatically and no amount is charged. You can extend again in the same way for as long as the pallet is waiting on volume.
+If you'd rather not wait, you can cancel free of charge until the pallet closes.
 
-Terms of purchase: ${termsUrl}
+View your order: ${p.orderUrl}
+Cancel order: ${p.cancelUrl}
 
-${QUESTIONS_LINE_EN}
-
-/PACT`;
+${STATUS_FOOTER_EN}`;
 }
 
-export function buildExtensionAskHtml(p: ExtensionAskEmailParams): string {
+export function buildStatusEmailHtml(p: StatusEmailParams): string {
   const name = escapeHtmlBasic(
     p.customerName.trim() || (p.locale === "sv" ? "hej" : "hi"),
-  );
-  const url = escapeHtmlBasic(p.confirmUrl);
-  const deadline = escapeHtmlBasic(
-    formatExtensionDeadlineDate(p.deadlineDate, p.locale),
   );
   const amount = escapeHtmlBasic(
     formatReservedAmountSek(p.amountSek, p.locale),
   );
-  const termsUrl = escapeHtmlBasic(termsUrlForLocale(p.locale));
-  const days = p.extensionDays;
+  const orderId = escapeHtmlBasic(p.orderId);
+  const orderUrl = escapeHtmlBasic(p.orderUrl);
+  const cancelUrl = escapeHtmlBasic(p.cancelUrl);
+  const antal = Math.max(0, Math.floor(p.bottlesOrdered));
+  const grans = Math.max(0, Math.floor(p.bottlesNeeded));
 
   if (p.locale === "sv") {
     return wrapEmail(
-      "Förläng din reservation",
+      "Läget för din PACT-pall",
       `<p style="color:#333;font-size:16px;line-height:1.6;margin:0 0 16px 0;">Hej ${name},</p>
-<p style="color:#333;font-size:16px;line-height:1.6;margin:0 0 16px 0;">Din reservation hos PACT har nu gällt i ${days} dagar och pallen har ännu inte nått den volym som krävs. Enligt köpvillkoren (punkt 3) gäller en reservation i ${days} dagar åt gången. Vill du behålla den bekräftar du senast ${deadline} via länken nedan (ingen inloggning krävs):</p>
-<p style="margin:24px 0;"><a href="${url}" style="display:inline-block;background:#000;color:#fff;text-decoration:none;padding:12px 20px;border-radius:4px;font-size:16px;">Ge reservationen ${days} dagar till</a></p>
-<p style="color:#666;font-size:14px;line-height:1.6;margin:0 0 16px 0;">Eller öppna länken:<br><a href="${url}" style="color:#000;">${url}</a></p>
-<p style="color:#333;font-size:16px;line-height:1.6;margin:0 0 16px 0;">När du bekräftar gäller reservationen i ${days} dagar till, och när pallen når sin gräns debiteras det belopp du reserverat (${amount}). Om du inte bekräftar avslutas reservationen automatiskt och inget belopp debiteras. Du kan förlänga igen på samma sätt så länge pallen väntar på volym.</p>
-<p style="color:#333;font-size:16px;line-height:1.6;margin:0 0 16px 0;"><a href="${termsUrl}" style="color:#000;">Köpvillkor</a> (${termsUrl})</p>
-<p style="color:#333;font-size:16px;line-height:1.6;margin:0;">${escapeHtmlBasic(QUESTIONS_LINE_SV)}</p>`,
+<p style="color:#333;font-size:16px;line-height:1.6;margin:0 0 16px 0;">Din order ${orderId} väntar fortfarande på att pallen ska fyllas. Just nu är ${antal} av ${grans} flaskor beställda.</p>
+<p style="color:#333;font-size:16px;line-height:1.6;margin:0 0 16px 0;">Du behöver inte göra något. Din order ligger kvar tills pallen stänger, och först då dras ${amount} från ditt sparade kort. Vi mejlar dig när det händer.</p>
+<p style="color:#333;font-size:16px;line-height:1.6;margin:0 0 16px 0;">Vill du inte vänta längre kan du avbryta utan kostnad fram till att pallen stänger.</p>
+<p style="margin:24px 0;">
+  <a href="${orderUrl}" style="display:inline-block;background:#000;color:#fff;text-decoration:none;padding:12px 20px;border-radius:4px;font-size:16px;margin:0 8px 8px 0;">Se din order</a>
+  <a href="${cancelUrl}" style="display:inline-block;background:#fff;color:#000;border:1px solid #000;text-decoration:none;padding:12px 20px;border-radius:4px;font-size:16px;margin:0 8px 8px 0;">Avbryt ordern</a>
+</p>
+<p style="color:#666;font-size:12px;line-height:1.6;margin:0;">${escapeHtmlBasic(STATUS_FOOTER_SV)}</p>`,
     );
   }
 
   return wrapEmail(
-    "Extend your reservation",
+    "An update on your PACT pallet",
     `<p style="color:#333;font-size:16px;line-height:1.6;margin:0 0 16px 0;">Hi ${name},</p>
-<p style="color:#333;font-size:16px;line-height:1.6;margin:0 0 16px 0;">Your reservation with PACT has now been in effect for ${days} days and the pallet has not yet reached the required volume. Under the terms of purchase (section 3), a reservation is valid for ${days} days at a time. If you want to keep it, please confirm by ${deadline} using the link below (no login required):</p>
-<p style="margin:24px 0;"><a href="${url}" style="display:inline-block;background:#000;color:#fff;text-decoration:none;padding:12px 20px;border-radius:4px;font-size:16px;">Give the reservation ${days} more days</a></p>
-<p style="color:#666;font-size:14px;line-height:1.6;margin:0 0 16px 0;">Or open this link:<br><a href="${url}" style="color:#000;">${url}</a></p>
-<p style="color:#333;font-size:16px;line-height:1.6;margin:0 0 16px 0;">When you confirm, the reservation remains valid for another ${days} days, and when the pallet reaches its limit the amount you reserved (${amount}) will be charged. If you do not confirm, the reservation ends automatically and no amount is charged. You can extend again in the same way for as long as the pallet is waiting on volume.</p>
-<p style="color:#333;font-size:16px;line-height:1.6;margin:0 0 16px 0;"><a href="${termsUrl}" style="color:#000;">Terms of purchase</a> (${termsUrl})</p>
-<p style="color:#333;font-size:16px;line-height:1.6;margin:0;">${escapeHtmlBasic(QUESTIONS_LINE_EN)}</p>`,
+<p style="color:#333;font-size:16px;line-height:1.6;margin:0 0 16px 0;">Your order ${orderId} is still waiting for the pallet to fill. Right now ${antal} of ${grans} bottles have been ordered.</p>
+<p style="color:#333;font-size:16px;line-height:1.6;margin:0 0 16px 0;">You don't need to do anything. Your order stays in place until the pallet closes, and only then will ${amount} be charged to your saved card. We'll email you when that happens.</p>
+<p style="color:#333;font-size:16px;line-height:1.6;margin:0 0 16px 0;">If you'd rather not wait, you can cancel free of charge until the pallet closes.</p>
+<p style="margin:24px 0;">
+  <a href="${orderUrl}" style="display:inline-block;background:#000;color:#fff;text-decoration:none;padding:12px 20px;border-radius:4px;font-size:16px;margin:0 8px 8px 0;">View your order</a>
+  <a href="${cancelUrl}" style="display:inline-block;background:#fff;color:#000;border:1px solid #000;text-decoration:none;padding:12px 20px;border-radius:4px;font-size:16px;margin:0 8px 8px 0;">Cancel order</a>
+</p>
+<p style="color:#666;font-size:12px;line-height:1.6;margin:0;">${escapeHtmlBasic(STATUS_FOOTER_EN)}</p>`,
   );
 }
 
-export function buildExpiryCancelledText(p: ExpiryCancelledEmailParams): string {
-  const name = p.customerName.trim() || (p.locale === "sv" ? "hej" : "hi");
-  const questions = p.locale === "sv" ? QUESTIONS_LINE_SV : QUESTIONS_LINE_EN;
-
-  if (p.locale === "sv") {
-    if (p.kind === "max_age") {
-      const days = p.maxAgeDays ?? 90;
-      return `Hej ${name},
-
-Din reservation hos PACT har avslutats automatiskt enligt köpvillkoren punkt 3, eftersom pallen inte nådde nödvändig volym inom ${days} dagar från din reservation.
-
-Inget belopp har debiterats.
-
-Du är varmt välkommen att lägga en ny reservation när du vill: ${SITE}
-
-${questions}
-
-/PACT`;
-    }
-    return `Hej ${name},
-
-Din reservation hos PACT har avslutats automatiskt eftersom vi inte fick en bekräftelse på att du ville förlänga den.
-
-Inget belopp har debiterats. Flaskorna är åter tillgängliga.
-
-Du är varmt välkommen att lägga en ny reservation när du vill: ${SITE}
-
-${questions}
-
-/PACT`;
-  }
-
-  if (p.kind === "max_age") {
-    const days = p.maxAgeDays ?? 90;
-    return `Hi ${name},
-
-Your reservation with PACT has ended automatically under the terms of purchase section 3, because the pallet did not reach the required volume within ${days} days of your reservation.
-
-No amount has been charged.
-
-You are warmly welcome to place a new reservation whenever you like: ${SITE}
-
-${questions}
-
-/PACT`;
-  }
-
-  return `Hi ${name},
-
-Your reservation with PACT has ended automatically because we did not receive confirmation that you wanted to extend it.
-
-No amount has been charged. The bottles have been released.
-
-You are warmly welcome to place a new reservation whenever you like: ${SITE}
-
-${questions}
-
-/PACT`;
+/** @deprecated */
+export function buildExtensionAskText(p: ExtensionAskEmailParams): string {
+  return buildStatusEmailText({
+    locale: p.locale,
+    customerName: p.customerName,
+    orderId: "—",
+    bottlesOrdered: 0,
+    bottlesNeeded: 0,
+    amountSek: p.amountSek,
+    orderUrl: p.confirmUrl,
+    cancelUrl: p.confirmUrl,
+  });
 }
 
-export function buildExpiryCancelledHtml(p: ExpiryCancelledEmailParams): string {
+/** @deprecated */
+export function buildExtensionAskHtml(p: ExtensionAskEmailParams): string {
+  return buildStatusEmailHtml({
+    locale: p.locale,
+    customerName: p.customerName,
+    orderId: "—",
+    bottlesOrdered: 0,
+    bottlesNeeded: 0,
+    amountSek: p.amountSek,
+    orderUrl: p.confirmUrl,
+    cancelUrl: p.confirmUrl,
+  });
+}
+
+/** @deprecated Auto-cancel copy removed. */
+export function buildExpiryCancelledText(
+  p: ExpiryCancelledEmailParams,
+): string {
+  const name = p.customerName.trim() || (p.locale === "sv" ? "hej" : "hi");
+  if (p.locale === "sv") {
+    return `Hej ${name},\n\nDin order ligger kvar — vi avbokar den inte automatiskt längre.\n\n${QUESTIONS_LINE_SV}\n\n/PACT`;
+  }
+  return `Hi ${name},\n\nYour order stays in place — we no longer cancel automatically.\n\n${QUESTIONS_LINE_EN}\n\n/PACT`;
+}
+
+/** @deprecated */
+export function buildExpiryCancelledHtml(
+  p: ExpiryCancelledEmailParams,
+): string {
   const text = buildExpiryCancelledText(p);
   const paragraphs = text
     .split(/\n\n+/)
@@ -234,22 +233,24 @@ export function buildExpiryCancelledHtml(p: ExpiryCancelledEmailParams): string 
     })
     .join("");
   return wrapEmail(
-    p.locale === "sv" ? "Reservation avslutad" : "Reservation ended",
+    p.locale === "sv" ? "Orderstatus" : "Order status",
     paragraphs,
   );
 }
 
+/**
+ * Friendly body when someone opens an old extension link.
+ * Extension / confirmation is no longer required (Axel 2026-11-10).
+ */
 export function buildExtensionConfirmSuccessBody(opts: {
   locale: AppLocale;
-  newEndDate: Date;
+  newEndDate?: Date;
   extensionDays?: number;
 }): string {
-  const end = formatExtensionDeadlineDate(opts.newEndDate, opts.locale);
-  const days = opts.extensionDays ?? 30;
   if (opts.locale === "sv") {
-    return `Du har bekräftat att din reservation gäller i ${days} dagar till, till och med ${end}. Inget belopp debiteras nu – betalning dras först när pallen nått sin gräns. Vi hör av oss igen om pallen fortfarande inte är redo.`;
+    return `Du behöver inte bekräfta något. Din order ligger kvar tills pallen stänger, och du kan avbryta utan kostnad fram till dess. Inget belopp dras förrän pallen når sin gräns.`;
   }
-  return `You have confirmed that your reservation is valid for another ${days} days, until ${end}. No amount is charged now – payment is taken only when the pallet has reached its limit. We will be in touch again if the pallet is still not ready.`;
+  return `You don't need to confirm anything. Your order stays in place until the pallet closes, and you can cancel free of charge until then. Nothing is charged until the pallet reaches its threshold.`;
 }
 
 export function extensionNewEndDate(
@@ -259,42 +260,52 @@ export function extensionNewEndDate(
   return new Date(confirmedAt.getTime() + extensionDays * DAY_MS);
 }
 
-/** Static chrome for the confirmation page (body is built with the end date). */
+/** Friendly chrome for the legacy extension confirmation page. */
 export const EXTENSION_CONFIRM_PAGE_COPY = {
   sv: {
-    title: "Tack — din reservation fortsätter",
+    title: "Ingen åtgärd behövs",
     cta: "Till pactwines.com",
   },
   en: {
-    title: "Thank you — your reservation continues",
+    title: "No action needed",
     cta: "Go to pactwines.com",
   },
 } as const;
 
+/**
+ * Old extension links must show a friendly message (not an error).
+ * All codes map to the same reassuring copy.
+ */
 export const EXTENSION_CONFIRM_PAGE_ERROR_COPY = {
   sv: {
-    title: "Länken fungerar inte",
-    missing_token: "Länken saknar en giltig kod.",
-    not_found: "Länken är ogiltig.",
+    title: "Ingen åtgärd behövs",
+    missing_token:
+      "Du behöver inte bekräfta något. Din order ligger kvar tills pallen stänger — avbryt när du vill via ditt konto.",
+    not_found:
+      "Du behöver inte bekräfta något. Din order ligger kvar tills pallen stänger — avbryt när du vill via ditt konto.",
     expired:
-      "Länken har gått ut. Kontakta oss på customer@pactwines.com om du fortfarande vill förlänga.",
-    already_used: "Länken har redan använts.",
+      "Du behöver inte bekräfta något. Din order ligger kvar tills pallen stänger — avbryt när du vill via ditt konto.",
+    already_used:
+      "Du behöver inte bekräfta något. Din order ligger kvar tills pallen stänger — avbryt när du vill via ditt konto.",
     db_error:
-      "Något gick fel. Försök igen om en stund eller mejla customer@pactwines.com.",
+      "Du behöver inte bekräfta något. Din order ligger kvar tills pallen stänger. Mejla customer@pactwines.com om du har frågor.",
     not_eligible:
-      "Reservationen kan inte förlängas (den kan redan vara avslutad eller pallen är redo).",
+      "Du behöver inte bekräfta något. Din order ligger kvar tills pallen stänger — avbryt när du vill via ditt konto.",
   },
   en: {
-    title: "This link does not work",
-    missing_token: "The link is missing a valid code.",
-    not_found: "This link is invalid.",
+    title: "No action needed",
+    missing_token:
+      "You don't need to confirm anything. Your order stays until the pallet closes — cancel any time from your account.",
+    not_found:
+      "You don't need to confirm anything. Your order stays until the pallet closes — cancel any time from your account.",
     expired:
-      "This link has expired. Contact us at customer@pactwines.com if you still want to extend.",
-    already_used: "This link has already been used.",
+      "You don't need to confirm anything. Your order stays until the pallet closes — cancel any time from your account.",
+    already_used:
+      "You don't need to confirm anything. Your order stays until the pallet closes — cancel any time from your account.",
     db_error:
-      "Something went wrong. Try again shortly or email customer@pactwines.com.",
+      "You don't need to confirm anything. Your order stays until the pallet closes. Email customer@pactwines.com if you have questions.",
     not_eligible:
-      "This reservation can no longer be extended (it may already have ended or the pallet is ready).",
+      "You don't need to confirm anything. Your order stays until the pallet closes — cancel any time from your account.",
   },
 } as const;
 

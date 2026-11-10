@@ -34,7 +34,7 @@ function shell(opts: {
     <div style="padding:8px 28px 32px;">
       <h1 style="font-size:22px;font-weight:500;margin:0 0 16px;">${esc(opts.title)}</h1>
       ${opts.bodyHtml}
-      <p style="margin-top:28px;font-size:12px;color:#666;">Säljare: EURPACT OÜ (reg. 17538270), Estland<br/>Reservation ${esc(opts.reservationId)}</p>
+      <p style="margin-top:28px;font-size:12px;color:#666;">Säljare: EURPACT OÜ (reg. 17538270), Estland<br/>Order ${esc(opts.reservationId)}</p>
     </div>
   </div>
 </body>
@@ -74,7 +74,7 @@ export function buildPalletShippedEmail(opts: {
     const html = shell({
       title: subject,
       reservationId: opts.reservationId,
-      bodyHtml: `<p>Hej ${esc(name)},</p><p>Pallen har skickats${pallet ? ` (${esc(pallet)})` : ""}.</p><p>Beräknat leveransfönster: <strong>${esc(window)}</strong>.</p><p>Du får leveransdagen när vinet nått Sverige.</p><p><a href="${esc(getAppUrl())}/profile/reservations" style="display:inline-block;margin-top:12px;padding:10px 16px;background:#111;color:#fff;text-decoration:none;border-radius:8px;">Visa reservation</a></p>`,
+      bodyHtml: `<p>Hej ${esc(name)},</p><p>Pallen har skickats${pallet ? ` (${esc(pallet)})` : ""}.</p><p>Beräknat leveransfönster: <strong>${esc(window)}</strong>.</p><p>Du får leveransdagen när vinet nått Sverige.</p><p><a href="${esc(getAppUrl())}/profile/reservations" style="display:inline-block;margin-top:12px;padding:10px 16px;background:#111;color:#fff;text-decoration:none;border-radius:8px;">Visa order</a></p>`,
     });
     return { subject, html, text };
   }
@@ -84,7 +84,7 @@ export function buildPalletShippedEmail(opts: {
   const html = shell({
     title: subject,
     reservationId: opts.reservationId,
-    bodyHtml: `<p>Hi ${esc(name)},</p><p>The pallet has shipped${pallet ? ` (${esc(pallet)})` : ""}.</p><p>Estimated delivery window: <strong>${esc(window)}</strong>.</p><p>You'll get the delivery day once the wine has reached Sweden.</p><p><a href="${esc(getAppUrl())}/profile/reservations" style="display:inline-block;margin-top:12px;padding:10px 16px;background:#111;color:#fff;text-decoration:none;border-radius:8px;">View reservation</a></p>`,
+    bodyHtml: `<p>Hi ${esc(name)},</p><p>The pallet has shipped${pallet ? ` (${esc(pallet)})` : ""}.</p><p>Estimated delivery window: <strong>${esc(window)}</strong>.</p><p>You'll get the delivery day once the wine has reached Sweden.</p><p><a href="${esc(getAppUrl())}/profile/reservations" style="display:inline-block;margin-top:12px;padding:10px 16px;background:#111;color:#fff;text-decoration:none;border-radius:8px;">View order</a></p>`,
   });
   return { subject, html, text };
 }
@@ -108,7 +108,7 @@ export function buildPalletDeliveryDayEmail(opts: {
     const html = shell({
       title: subject,
       reservationId: opts.reservationId,
-      bodyHtml: `<p>Hej ${esc(name)},</p><p>Vinet har nått Sverige${pallet ? ` (${esc(pallet)})` : ""}.</p><p>Leveransdag: <strong>${esc(day)}</strong>.</p><p><a href="${esc(getAppUrl())}/profile/reservations" style="display:inline-block;margin-top:12px;padding:10px 16px;background:#111;color:#fff;text-decoration:none;border-radius:8px;">Visa reservation</a></p>`,
+      bodyHtml: `<p>Hej ${esc(name)},</p><p>Vinet har nått Sverige${pallet ? ` (${esc(pallet)})` : ""}.</p><p>Leveransdag: <strong>${esc(day)}</strong>.</p><p><a href="${esc(getAppUrl())}/profile/reservations" style="display:inline-block;margin-top:12px;padding:10px 16px;background:#111;color:#fff;text-decoration:none;border-radius:8px;">Visa order</a></p>`,
     });
     return { subject, html, text };
   }
@@ -118,7 +118,7 @@ export function buildPalletDeliveryDayEmail(opts: {
   const html = shell({
     title: subject,
     reservationId: opts.reservationId,
-    bodyHtml: `<p>Hi ${esc(name)},</p><p>The wine has reached Sweden${pallet ? ` (${esc(pallet)})` : ""}.</p><p>Delivery day: <strong>${esc(day)}</strong>.</p><p><a href="${esc(getAppUrl())}/profile/reservations" style="display:inline-block;margin-top:12px;padding:10px 16px;background:#111;color:#fff;text-decoration:none;border-radius:8px;">View reservation</a></p>`,
+    bodyHtml: `<p>Hi ${esc(name)},</p><p>The wine has reached Sweden${pallet ? ` (${esc(pallet)})` : ""}.</p><p>Delivery day: <strong>${esc(day)}</strong>.</p><p><a href="${esc(getAppUrl())}/profile/reservations" style="display:inline-block;margin-top:12px;padding:10px 16px;background:#111;color:#fff;text-decoration:none;border-radius:8px;">View order</a></p>`,
   });
   return { subject, html, text };
 }

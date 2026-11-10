@@ -1,11 +1,32 @@
-import { readFileSync } from "node:fs";
-import path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
+
+const runReservationExpiryJob = vi.fn();
+
+vi.mock("@/lib/reservations/expiry-run", () => ({
+  runReservationExpiryJob: (...args: unknown[]) =>
+    runReservationExpiryJob(...args),
+}));
 
 describe("GET /api/cron/reservation-expiry", () => {
   beforeEach(() => {
     vi.resetModules();
+    runReservationExpiryJob.mockReset();
+    runReservationExpiryJob.mockResolvedValue({
+      enabled: true,
+      dryRun: false,
+      sendEmail: true,
+      scanned: 0,
+      skipped: 0,
+      waits: 0,
+      statusEmails: 0,
+      asks: 0,
+      cancelledNoReply: 0,
+      hardExpired: 0,
+      flaggedCharged: 0,
+      errors: 0,
+      actions: [],
+    });
     vi.stubEnv("CRON_SECRET", "test-cron-secret");
   });
 
@@ -23,30 +44,21 @@ describe("GET /api/cron/reservation-expiry", () => {
     );
   }
 
-  it("does not import or call the expiry job (safety net is a pure no-op)", () => {
-    const src = readFileSync(
-      path.join(
-        process.cwd(),
-        "app/api/cron/reservation-expiry/route.ts",
-      ),
-      "utf8",
-    );
-    expect(src).not.toMatch(/runReservationExpiryJob/);
-    expect(src).not.toMatch(/from ["']@\/lib\/reservations\/expiry-run["']/);
-  });
-
-  it("returns disabled and does nothing when authorized with CRON_SECRET", async () => {
+  it("runs the status-email job when authorized", async () => {
     const res = await get("Bearer test-cron-secret");
     expect(res.status).toBe(200);
-    await expect(res.json()).resolves.toEqual({
-      disabled: true,
-      reason: "shared pallet orders have no time limit (Axel 2026-11-10)",
-    });
+    expect(runReservationExpiryJob).toHaveBeenCalledTimes(1);
+    const body = await res.json();
+    expect(body.success).toBe(true);
+    expect(body.mode).toBe("status_email");
+    expect(body.summary.cancelledNoReply).toBe(0);
+    expect(body.summary.hardExpired).toBe(0);
   });
 
-  it("rejects unauthorized callers without running expiry work", async () => {
+  it("rejects unauthorized callers without running the job", async () => {
     const res = await get("Bearer wrong");
     expect(res.status).toBe(200);
+    expect(runReservationExpiryJob).not.toHaveBeenCalled();
     await expect(res.json()).resolves.toEqual({
       success: false,
       error: "Unauthorized",

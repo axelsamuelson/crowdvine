@@ -6,12 +6,14 @@ import {
   reservationExpiryReplyTo,
   RESERVATION_EXPIRY_FROM_HARDCODED,
   RESERVATION_EXPIRY_REPLY_TO_HARDCODED,
+  statusUpdateEmailType,
 } from "@/lib/reservations/expiry-config";
 
 const KEYS = [
   "RESERVATION_EXPIRY_ENABLED",
   "RESERVATION_EXPIRY_DRY_RUN",
   "RESERVATION_EXPIRY_SEND_EMAIL",
+  "RESERVATION_STATUS_EMAIL_DAYS",
   "RESERVATION_EXTENSION_DAYS",
   "RESERVATION_EXTENSION_REPLY_DAYS",
   "RESERVATION_MAX_AGE_DAYS",
@@ -41,15 +43,25 @@ function setEnv(key: (typeof KEYS)[number], value: string | undefined) {
 }
 
 describe("getReservationExpiryConfig", () => {
-  it("defaults to enabled, live (not dry-run), send on, unlimited cap", () => {
+  it("defaults to enabled, live, send on, 4-week status cadence, no max age", () => {
     for (const key of KEYS) setEnv(key, undefined);
     const cfg = getReservationExpiryConfig();
     expect(cfg.enabled).toBe(true);
     expect(cfg.dryRun).toBe(false);
     expect(cfg.sendEmail).toBe(true);
     expect(cfg.maxAgeDays).toBeNull();
-    expect(cfg.extensionDays).toBe(30);
-    expect(cfg.replyDays).toBe(7);
+    expect(cfg.statusIntervalDays).toBe(28);
+    expect(cfg.extensionDays).toBe(28);
+  });
+
+  it("ignores RESERVATION_MAX_AGE_DAYS so open orders are never hard-expired", () => {
+    setEnv("RESERVATION_MAX_AGE_DAYS", "90");
+    expect(getReservationExpiryConfig().maxAgeDays).toBeNull();
+  });
+
+  it("allows status interval override", () => {
+    setEnv("RESERVATION_STATUS_EMAIL_DAYS", "14");
+    expect(getReservationExpiryConfig().statusIntervalDays).toBe(14);
   });
 
   it("allows env overrides to disable or dry-run", () => {
@@ -62,21 +74,12 @@ describe("getReservationExpiryConfig", () => {
     expect(cfg.sendEmail).toBe(false);
   });
 
-  it("treats empty/null/unlimited max age as unlimited", () => {
-    setEnv("RESERVATION_MAX_AGE_DAYS", "");
-    expect(getReservationExpiryConfig().maxAgeDays).toBeNull();
-    setEnv("RESERVATION_MAX_AGE_DAYS", "null");
-    expect(getReservationExpiryConfig().maxAgeDays).toBeNull();
-    setEnv("RESERVATION_MAX_AGE_DAYS", "unlimited");
-    expect(getReservationExpiryConfig().maxAgeDays).toBeNull();
+  it("builds period-scoped email types for idempotency", () => {
+    expect(statusUpdateEmailType(28)).toBe("pallet_status_update_28");
+    expect(statusUpdateEmailType(56)).toBe("pallet_status_update_56");
   });
 
-  it("accepts a finite optional cap", () => {
-    setEnv("RESERVATION_MAX_AGE_DAYS", "90");
-    expect(getReservationExpiryConfig().maxAgeDays).toBe(90);
-  });
-
-  it("hard-codes From and Reply-To for expiry mail (ignores RESEND_FROM / noreply)", () => {
+  it("hard-codes From and Reply-To for status mail", () => {
     expect(RESERVATION_EXPIRY_FROM_HARDCODED).toBe(
       "PACT <customer@pactwines.com>",
     );
@@ -91,7 +94,6 @@ describe("getReservationExpiryConfig", () => {
 
     expect(reservationExpiryFrom()).toBe("PACT <customer@pactwines.com>");
     expect(reservationExpiryReplyTo()).toBe("customer@pactwines.com");
-    // Other transactional mail still uses the global From env.
     expect(defaultResendFrom()).toBe("PACT <noreply@pactwines.com>");
   });
 });

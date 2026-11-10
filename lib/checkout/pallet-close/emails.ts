@@ -34,7 +34,7 @@ function shell(opts: {
     <div style="padding:8px 28px 32px;">
       <h1 style="font-size:22px;font-weight:500;margin:0 0 16px;">${esc(opts.title)}</h1>
       ${opts.bodyHtml}
-      <p style="margin-top:28px;font-size:12px;color:#666;">Säljare: EURPACT OÜ (reg. 17538270), Estland<br/>Reservation ${esc(opts.reservationId)}</p>
+      <p style="margin-top:28px;font-size:12px;color:#666;">Säljare: EURPACT OÜ (reg. 17538270), Estland<br/>Order ${esc(opts.reservationId)}</p>
     </div>
   </div>
 </body>
@@ -56,7 +56,7 @@ export function buildPalletClosedChargedEmail(opts: {
     const html = shell({
       title: subject,
       reservationId: opts.reservationId,
-      bodyHtml: `<p>Hej ${esc(name)},</p><p>Pallen har stängt och vi har debiterat <strong>${amount} kr</strong> från ditt sparade kort${opts.palletName ? ` (${esc(opts.palletName)})` : ""}.</p><p><a href="${esc(getAppUrl())}/profile/reservations" style="display:inline-block;margin-top:12px;padding:10px 16px;background:#111;color:#fff;text-decoration:none;border-radius:8px;">Visa reservation</a></p>`,
+      bodyHtml: `<p>Hej ${esc(name)},</p><p>Pallen har stängt och vi har debiterat <strong>${amount} kr</strong> från ditt sparade kort${opts.palletName ? ` (${esc(opts.palletName)})` : ""}.</p><p><a href="${esc(getAppUrl())}/profile/reservations" style="display:inline-block;margin-top:12px;padding:10px 16px;background:#111;color:#fff;text-decoration:none;border-radius:8px;">Visa order</a></p>`,
     });
     return { subject, html, text };
   }
@@ -65,7 +65,7 @@ export function buildPalletClosedChargedEmail(opts: {
   const html = shell({
     title: subject,
     reservationId: opts.reservationId,
-    bodyHtml: `<p>Hi ${esc(name)},</p><p>The pallet has closed and we charged <strong>${amount} kr</strong> to your saved card${opts.palletName ? ` (${esc(opts.palletName)})` : ""}.</p><p><a href="${esc(getAppUrl())}/profile/reservations" style="display:inline-block;margin-top:12px;padding:10px 16px;background:#111;color:#fff;text-decoration:none;border-radius:8px;">View reservation</a></p>`,
+    bodyHtml: `<p>Hi ${esc(name)},</p><p>The pallet has closed and we charged <strong>${amount} kr</strong> to your saved card${opts.palletName ? ` (${esc(opts.palletName)})` : ""}.</p><p><a href="${esc(getAppUrl())}/profile/reservations" style="display:inline-block;margin-top:12px;padding:10px 16px;background:#111;color:#fff;text-decoration:none;border-radius:8px;">View order</a></p>`,
   });
   return { subject, html, text };
 }
@@ -117,38 +117,39 @@ export function buildPalletCloseCancelledEmail(opts: {
     | "other";
 }): { subject: string; html: string; text: string } {
   const name = opts.customerName || (opts.locale === "sv" ? "du" : "there");
+  // Juliette draft §2 (customer cancel) + same framing for other cancel reasons.
   if (opts.locale === "sv") {
-    const subject = "Reservation avbokad — ingen debitering";
+    const subject = "Din order är avbruten – inget har dragits";
     const why =
       opts.reason === "choice_timeout"
         ? "Vi fick inget svar inom 7 dagar."
         : opts.reason === "pay_link_timeout"
           ? "Betalningslänken gick ut."
           : opts.reason === "customer_cancel"
-            ? "Du valde att avboka."
-            : "Reservationen avbokades.";
-    const text = `Hej ${name},\n\n${why} Ingen debitering har skett och det sparade kortet har kopplats bort.\n`;
+            ? "Vi har avbrutit din order som du bad om."
+            : "Vi har avbrutit din order.";
+    const text = `Hej ${name},\n\n${why} Inget belopp har dragits från ditt kort, och det sparade kortet är borttaget.\n\nVill du vara med på en kommande pall hittar du dem på pactwines.com.\n\nEURPACT OÜ · customer@pactwines.com\n`;
     const html = shell({
       title: subject,
       reservationId: opts.reservationId,
-      bodyHtml: `<p>Hej ${esc(name)},</p><p>${esc(why)} Ingen debitering har skett och det sparade kortet har kopplats bort.</p>`,
+      bodyHtml: `<p>Hej ${esc(name)},</p><p>${esc(why)} Inget belopp har dragits från ditt kort, och det sparade kortet är borttaget.</p><p>Vill du vara med på en kommande pall hittar du dem på <a href="https://pactwines.com">pactwines.com</a>.</p><p style="color:#666;font-size:12px;">EURPACT OÜ · customer@pactwines.com</p>`,
     });
     return { subject, html, text };
   }
-  const subject = "Reservation cancelled — no charge";
+  const subject = "Your order has been cancelled – nothing was charged";
   const why =
     opts.reason === "choice_timeout"
       ? "We did not receive a reply within 7 days."
       : opts.reason === "pay_link_timeout"
         ? "The payment link expired."
         : opts.reason === "customer_cancel"
-          ? "You chose to cancel."
-          : "The reservation was cancelled.";
-  const text = `Hi ${name},\n\n${why} No charge was made and the saved card was detached.\n`;
+          ? "We have cancelled your order as you asked."
+          : "We have cancelled your order.";
+  const text = `Hi ${name},\n\n${why} Nothing was charged to your card, and the saved card has been removed.\n\nIf you'd like to join a future pallet, you'll find them at pactwines.com.\n\nEURPACT OÜ · customer@pactwines.com\n`;
   const html = shell({
     title: subject,
     reservationId: opts.reservationId,
-    bodyHtml: `<p>Hi ${esc(name)},</p><p>${esc(why)} No charge was made and the saved card was detached.</p>`,
+    bodyHtml: `<p>Hi ${esc(name)},</p><p>${esc(why)} Nothing was charged to your card, and the saved card has been removed.</p><p>If you'd like to join a future pallet, you'll find them at <a href="https://pactwines.com">pactwines.com</a>.</p><p style="color:#666;font-size:12px;">EURPACT OÜ · customer@pactwines.com</p>`,
   });
   return { subject, html, text };
 }
@@ -162,21 +163,21 @@ export function buildPalletClosePaymentFailedEmail(opts: {
 }): { subject: string; html: string; text: string } {
   const name = opts.customerName || (opts.locale === "sv" ? "du" : "there");
   if (opts.locale === "sv") {
-    const subject = "Betalningen misslyckades — betala inom 3 dagar";
-    const text = `Hej ${name},\n\nVi kunde inte debitera ditt sparade kort när pallen stängde. Betala senast ${opts.payByLabel} via länken:\n${opts.paymentLinkUrl}\n\nAnnars avbokas reservationen utan kostnad.\n`;
+    const subject = "Vi kunde inte dra betalningen för din order";
+    const text = `Hej ${name},\n\nPallen för din order ${opts.reservationId} har stängt, men vi kunde inte dra beloppet från ditt kort.\n\nDu har till och med ${opts.payByLabel} (3 dagar) på dig att betala. Använd länken nedan för att godkänna betalningen eller byta kort. Vi försöker också dra beloppet igen under tiden.\n\nHar betalningen inte gått igenom senast ${opts.payByLabel} avbryts ordern och inget dras.\n\nBetala nu: ${opts.paymentLinkUrl}\n\nEURPACT OÜ · customer@pactwines.com\n`;
     const html = shell({
       title: subject,
       reservationId: opts.reservationId,
-      bodyHtml: `<p>Hej ${esc(name)},</p><p>Vi kunde inte debitera ditt sparade kort när pallen stängde. Betala senast <strong>${esc(opts.payByLabel)}</strong>:</p><p><a href="${esc(opts.paymentLinkUrl)}" style="display:inline-block;margin-top:8px;padding:10px 16px;background:#111;color:#fff;text-decoration:none;border-radius:8px;">Betala nu</a></p><p>Annars avbokas reservationen utan kostnad.</p>`,
+      bodyHtml: `<p>Hej ${esc(name)},</p><p>Pallen för din order har stängt, men vi kunde inte dra beloppet från ditt kort.</p><p>Du har till och med <strong>${esc(opts.payByLabel)}</strong> (3 dagar) på dig att betala. Använd länken nedan för att godkänna betalningen eller byta kort. Vi försöker också dra beloppet igen under tiden.</p><p>Har betalningen inte gått igenom senast ${esc(opts.payByLabel)} avbryts ordern och inget dras.</p><p><a href="${esc(opts.paymentLinkUrl)}" style="display:inline-block;margin-top:8px;padding:10px 16px;background:#111;color:#fff;text-decoration:none;border-radius:8px;">Betala nu</a></p><p style="color:#666;font-size:12px;">EURPACT OÜ · customer@pactwines.com</p>`,
     });
     return { subject, html, text };
   }
-  const subject = "Payment failed — pay within 3 days";
-  const text = `Hi ${name},\n\nWe could not charge your saved card when the pallet closed. Please pay by ${opts.payByLabel}:\n${opts.paymentLinkUrl}\n\nOtherwise the reservation is cancelled at no cost.\n`;
+  const subject = "We couldn't take payment for your order";
+  const text = `Hi ${name},\n\nThe pallet for your order ${opts.reservationId} has closed, but we couldn't charge your card.\n\nYou have until ${opts.payByLabel} (3 days) to pay. Use the link below to approve the payment or change card. We'll also try the charge again in the meantime.\n\nIf payment hasn't gone through by ${opts.payByLabel}, the order will be cancelled and nothing will be charged.\n\nPay now: ${opts.paymentLinkUrl}\n\nEURPACT OÜ · customer@pactwines.com\n`;
   const html = shell({
     title: subject,
     reservationId: opts.reservationId,
-    bodyHtml: `<p>Hi ${esc(name)},</p><p>We could not charge your saved card when the pallet closed. Please pay by <strong>${esc(opts.payByLabel)}</strong>:</p><p><a href="${esc(opts.paymentLinkUrl)}" style="display:inline-block;margin-top:8px;padding:10px 16px;background:#111;color:#fff;text-decoration:none;border-radius:8px;">Pay now</a></p><p>Otherwise the reservation is cancelled at no cost.</p>`,
+    bodyHtml: `<p>Hi ${esc(name)},</p><p>The pallet for your order has closed, but we couldn't charge your card.</p><p>You have until <strong>${esc(opts.payByLabel)}</strong> (3 days) to pay. Use the link below to approve the payment or change card. We'll also try the charge again in the meantime.</p><p>If payment hasn't gone through by ${esc(opts.payByLabel)}, the order will be cancelled and nothing will be charged.</p><p><a href="${esc(opts.paymentLinkUrl)}" style="display:inline-block;margin-top:8px;padding:10px 16px;background:#111;color:#fff;text-decoration:none;border-radius:8px;">Pay now</a></p><p style="color:#666;font-size:12px;">EURPACT OÜ · customer@pactwines.com</p>`,
   });
   return { subject, html, text };
 }

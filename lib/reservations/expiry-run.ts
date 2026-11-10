@@ -1,18 +1,22 @@
 import { sendEmail } from "@/lib/email";
 import { sendTransactionalEmailOnce } from "@/lib/email/claim-email-send";
+import { getAppUrl } from "@/lib/app-url";
 import { isPalletCloseFlowEnabled } from "@/lib/checkout/pallet-close/flags";
+import { createPalletCloseActionToken } from "@/lib/checkout/pallet-close/tokens";
 import type { AppLocale } from "@/lib/i18n/locale";
 import { isAppLocale } from "@/lib/i18n/locale";
-import { PALLET_FILL_STATUSES } from "@/lib/pallet-fill-count";
+import {
+  getPalletFillData,
+  PALLET_FILL_STATUSES,
+} from "@/lib/pallet-fill-count";
+import { DEFAULT_MIN_BOTTLES_TO_COMPLETE } from "@/lib/pallet-ship-progress";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
-import { archiveReservation } from "@/lib/reservations/archive";
 import {
   getReservationExpiryConfig,
   reservationExpiryFrom,
   reservationExpiryReplyTo,
   RESERVATION_EXPIRY_ADMIN_FLAGS,
-  RESERVATION_EXPIRY_ARCHIVE_REASONS,
-  RESERVATION_EXPIRY_EMAIL_TYPES,
+  statusUpdateEmailType,
   type ReservationExpiryConfig,
 } from "@/lib/reservations/expiry-config";
 import {
@@ -21,15 +25,10 @@ import {
   type ExpiryReservationRow,
 } from "@/lib/reservations/expiry-eligibility";
 import {
-  buildExpiryCancelledHtml,
-  buildExpiryCancelledText,
-  buildExtensionAskHtml,
-  buildExtensionAskText,
-  expiryCancelledSubject,
-  extensionAskSubject,
-  extensionNewEndDate,
+  buildStatusEmailHtml,
+  buildStatusEmailText,
+  statusEmailSubject,
 } from "@/lib/reservations/expiry-emails";
-import { createReservationExtensionToken } from "@/lib/reservations/expiry-tokens";
 
 export type ExpiryRunSummary = {
   enabled: boolean;
@@ -38,8 +37,12 @@ export type ExpiryRunSummary = {
   scanned: number;
   skipped: number;
   waits: number;
+  statusEmails: number;
+  /** @deprecated Always 0 — extension asks removed. */
   asks: number;
+  /** @deprecated Always 0 — no auto-cancel for no reply. */
   cancelledNoReply: number;
+  /** @deprecated Always 0 — no hard max-age cancel. */
   hardExpired: number;
   flaggedCharged: number;
   errors: number;
@@ -81,30 +84,6 @@ async function sendExpiryMail(opts: {
   });
 }
 
-async function clearUnchargedStripeLinkage(
-  reservationId: string,
-  dryRun: boolean,
-): Promise<void> {
-  if (dryRun) return;
-  const sb = getSupabaseAdmin();
-  // Leave SetupIntent / PaymentMethod on the Stripe customer alone; only
-  // unlink from this reservation row so nothing is charged from expiry.
-  const { error } = await sb
-    .from("order_reservations")
-    .update({
-      payment_method_id: null,
-      setup_intent_id: null,
-      retry_scheduled_at: null,
-    })
-    .eq("id", reservationId);
-  if (error) {
-    console.error(
-      `[reservation-expiry] clear stripe linkage reservation_id=${reservationId}:`,
-      error.message,
-    );
-  }
-}
-
 async function flagChargedForAdmin(
   reservationId: string,
   dryRun: boolean,
@@ -127,31 +106,13 @@ async function flagChargedForAdmin(
   }
 }
 
-async function endReservationForExpiry(opts: {
+/**
+ * Record that a status email period was handled.
+ * Clears any legacy extension_reply_by so old open asks never trigger cancel.
+ */
+async function recordStatusEmailSent(opts: {
   reservationId: string;
-  reason: string;
-  dryRun: boolean;
-}): Promise<boolean> {
-  if (opts.dryRun) return true;
-  await clearUnchargedStripeLinkage(opts.reservationId, false);
-  const result = await archiveReservation({
-    reservationId: opts.reservationId,
-    reason: opts.reason,
-  });
-  if (!result.ok) {
-    console.error(
-      `[reservation-expiry] archive failed reservation_id=${opts.reservationId}:`,
-      result.error,
-    );
-    return false;
-  }
-  return true;
-}
-
-async function recordExtensionAsk(opts: {
-  reservationId: string;
-  milestoneDay: number;
-  replyBy: Date;
+  periodDay: number;
   dryRun: boolean;
 }): Promise<boolean> {
   if (opts.dryRun) return true;
@@ -161,13 +122,13 @@ async function recordExtensionAsk(opts: {
     .from("order_reservations")
     .update({
       extension_ask_sent_at: now,
-      extension_ask_milestone_day: opts.milestoneDay,
-      extension_reply_by: opts.replyBy.toISOString(),
+      extension_ask_milestone_day: opts.periodDay,
+      extension_reply_by: null,
     })
     .eq("id", opts.reservationId);
   if (error) {
     console.error(
-      `[reservation-expiry] record ask reservation_id=${opts.reservationId}:`,
+      `[reservation-expiry] record status reservation_id=${opts.reservationId}:`,
       error.message,
     );
     return false;
@@ -176,7 +137,8 @@ async function recordExtensionAsk(opts: {
 }
 
 /**
- * Apply a successful extension confirmation (token already consumed).
+ * Legacy extension confirm — no longer extends or mutates.
+ * Returns a friendly ok so old links never error.
  */
 export async function applyReservationExtensionConfirm(opts: {
   reservationId: string;
@@ -186,60 +148,18 @@ export async function applyReservationExtensionConfirm(opts: {
   | { ok: true; newEndDate: Date; extensionDays: number }
   | { ok: false; code: "not_eligible"; message: string }
 > {
-  const sb = getSupabaseAdmin();
   const now = opts.now ?? new Date();
   const extensionDays =
-    opts.extensionDays ?? getReservationExpiryConfig().extensionDays;
-
-  const { data: row, error } = await sb
+    opts.extensionDays ?? getReservationExpiryConfig().statusIntervalDays;
+  // Clear any leftover reply deadline so cron never auto-cancels.
+  const sb = getSupabaseAdmin();
+  await sb
     .from("order_reservations")
-    .select(
-      "id, status, archived_at, extension_reply_by, extensions_confirmed_count, payment_status",
-    )
-    .eq("id", opts.reservationId)
-    .maybeSingle();
-
-  if (error || !row) {
-    return {
-      ok: false,
-      code: "not_eligible",
-      message: "Reservation not found",
-    };
-  }
-
-  if (row.archived_at != null || String(row.status) === "archived") {
-    return {
-      ok: false,
-      code: "not_eligible",
-      message: "Reservation already ended",
-    };
-  }
-
-  const confirmed =
-    Math.max(0, Math.floor(Number(row.extensions_confirmed_count) || 0)) + 1;
-
-  const { error: updErr } = await sb
-    .from("order_reservations")
-    .update({
-      extensions_confirmed_count: confirmed,
-      last_extension_confirmed_at: now.toISOString(),
-      extension_ask_sent_at: null,
-      extension_ask_milestone_day: null,
-      extension_reply_by: null,
-    })
+    .update({ extension_reply_by: null })
     .eq("id", opts.reservationId);
-
-  if (updErr) {
-    return {
-      ok: false,
-      code: "not_eligible",
-      message: updErr.message,
-    };
-  }
-
   return {
     ok: true,
-    newEndDate: extensionNewEndDate(now, extensionDays),
+    newEndDate: new Date(now.getTime() + extensionDays * 24 * 60 * 60 * 1000),
     extensionDays,
   };
 }
@@ -258,6 +178,7 @@ export async function runReservationExpiryJob(
     scanned: 0,
     skipped: 0,
     waits: 0,
+    statusEmails: 0,
     asks: 0,
     cancelledNoReply: 0,
     hardExpired: 0,
@@ -332,7 +253,7 @@ export async function runReservationExpiryJob(
   if (palletIds.length > 0) {
     const { data: pallets, error: pErr } = await sb
       .from("pallets")
-      .select("id, status, is_complete")
+      .select("id, status, is_complete, bottle_capacity, min_bottles_to_complete")
       .in("id", palletIds);
     if (pErr) {
       console.error("[reservation-expiry] load pallets:", pErr.message);
@@ -346,8 +267,44 @@ export async function runReservationExpiryJob(
 
   summary.scanned = reservations.length;
   console.log(
-    `[reservation-expiry] enabled=${config.enabled} dryRun=${config.dryRun} sendEmail=${config.sendEmail} scanned=${summary.scanned} maxAgeDays=${config.maxAgeDays}`,
+    `[reservation-expiry] enabled=${config.enabled} dryRun=${config.dryRun} sendEmail=${config.sendEmail} scanned=${summary.scanned} statusIntervalDays=${config.statusIntervalDays}`,
   );
+
+  const fillCache = new Map<
+    string,
+    { bottlesFilled: number; minBottlesToShip: number }
+  >();
+
+  async function fillForPallet(palletId: string, pallet: ExpiryPalletRow) {
+    const cached = fillCache.get(palletId);
+    if (cached) return cached;
+    try {
+      const data = await getPalletFillData(
+        palletId,
+        Number(pallet.bottle_capacity) || 0,
+        pallet.min_bottles_to_complete != null
+          ? Number(pallet.min_bottles_to_complete)
+          : DEFAULT_MIN_BOTTLES_TO_COMPLETE,
+      );
+      const value = {
+        bottlesFilled: data.bottlesFilled,
+        minBottlesToShip: data.minBottlesToShip,
+      };
+      fillCache.set(palletId, value);
+      return value;
+    } catch (e) {
+      console.error(
+        `[reservation-expiry] fill data pallet_id=${palletId}:`,
+        e,
+      );
+      const fallback = {
+        bottlesFilled: 0,
+        minBottlesToShip: DEFAULT_MIN_BOTTLES_TO_COMPLETE,
+      };
+      fillCache.set(palletId, fallback);
+      return fallback;
+    }
+  }
 
   for (const row of reservations) {
     const palletId =
@@ -374,6 +331,24 @@ export async function runReservationExpiryJob(
     };
 
     try {
+      // Safety: never auto-cancel, even if a stale caller expected it.
+      if (
+        (decision as { action?: string }).action === "cancel_no_reply" ||
+        (decision as { action?: string }).action === "hard_expire"
+      ) {
+        summary.waits += 1;
+        summary.actions.push({
+          ...logBase,
+          action: "wait",
+          reason: "auto_cancel_disabled",
+          blockedAction: (decision as { action: string }).action,
+        });
+        console.log(
+          `[reservation-expiry] BLOCKED auto-cancel reservation_id=${row.id} action=${(decision as { action: string }).action}`,
+        );
+        continue;
+      }
+
       if (decision.action === "skip") {
         summary.skipped += 1;
         summary.actions.push({ ...logBase, reason: decision.reason });
@@ -395,126 +370,85 @@ export async function runReservationExpiryJob(
         continue;
       }
 
-      if (decision.action === "send_extension_ask") {
-        let confirmUrl = "(dry-run)";
+      if (decision.action === "send_status_email") {
+        const baseUrl = getAppUrl().replace(/\/$/, "");
+        const orderUrl = `${baseUrl}/profile/reservations`;
+        let cancelUrl = orderUrl;
         if (!config.dryRun) {
-          const token = await createReservationExtensionToken({
-            reservationId: row.id,
-            expiresAt: decision.replyBy,
-          });
-          confirmUrl = token.url;
-          const recorded = await recordExtensionAsk({
-            reservationId: row.id,
-            milestoneDay: decision.milestoneDay,
-            replyBy: decision.replyBy,
-            dryRun: false,
-          });
-          if (!recorded) {
-            summary.errors += 1;
-            continue;
+          try {
+            // Cancel token valid for a long window — free cancel until pallet closes.
+            const expiresAt = new Date(
+              now.getTime() + 365 * 24 * 60 * 60 * 1000,
+            );
+            const tok = await createPalletCloseActionToken({
+              reservationId: row.id,
+              action: "cancel",
+              expiresAt,
+            });
+            cancelUrl = tok.url;
+          } catch (e) {
+            console.error(
+              `[reservation-expiry] cancel token reservation_id=${row.id}:`,
+              e,
+            );
+            cancelUrl = orderUrl;
           }
-        } else {
-          await recordExtensionAsk({
-            reservationId: row.id,
-            milestoneDay: decision.milestoneDay,
-            replyBy: decision.replyBy,
-            dryRun: true,
-          });
+        }
+
+        const recorded = await recordStatusEmailSent({
+          reservationId: row.id,
+          periodDay: decision.periodDay,
+          dryRun: config.dryRun,
+        });
+        if (!recorded) {
+          summary.errors += 1;
+          continue;
         }
 
         const amountRaw = Number(
           (row as { total_sek?: number | string | null }).total_sek,
         );
-        const askParams = {
+        let bottlesOrdered = 0;
+        let bottlesNeeded = DEFAULT_MIN_BOTTLES_TO_COMPLETE;
+        if (palletId && pallet) {
+          const fill = await fillForPallet(palletId, pallet);
+          bottlesOrdered = fill.bottlesFilled;
+          bottlesNeeded = fill.minBottlesToShip;
+        }
+
+        const statusParams = {
           locale,
           customerName,
-          confirmUrl,
-          replyDays: config.replyDays,
-          extensionDays: config.extensionDays,
-          deadlineDate: decision.replyBy,
+          orderId: row.id,
+          bottlesOrdered,
+          bottlesNeeded,
           amountSek: Number.isFinite(amountRaw) ? amountRaw : null,
+          orderUrl,
+          cancelUrl,
         };
+
         let mailResult: string = "no_recipient";
         if (toEmail) {
           mailResult = await sendExpiryMail({
-            emailType: RESERVATION_EXPIRY_EMAIL_TYPES.extensionAsk,
+            emailType: statusUpdateEmailType(decision.periodDay),
             to: toEmail,
             reservationId: row.id,
-            subject: extensionAskSubject(locale),
-            html: buildExtensionAskHtml(askParams),
-            text: buildExtensionAskText(askParams),
+            subject: statusEmailSubject(locale),
+            html: buildStatusEmailHtml(statusParams),
+            text: buildStatusEmailText(statusParams),
             dryRun: config.dryRun,
             sendEmail: config.sendEmail,
           });
         }
 
-        summary.asks += 1;
+        summary.statusEmails += 1;
         summary.actions.push({
           ...logBase,
-          milestoneDay: decision.milestoneDay,
-          replyBy: decision.replyBy.toISOString(),
+          periodDay: decision.periodDay,
           mailResult,
         });
         console.log(
-          `[reservation-expiry] ASK milestone=${decision.milestoneDay} reservation_id=${row.id} mail=${mailResult} dryRun=${config.dryRun}`,
-        );
-        continue;
-      }
-
-      if (
-        decision.action === "cancel_no_reply" ||
-        decision.action === "hard_expire"
-      ) {
-        const archiveReason =
-          decision.action === "hard_expire"
-            ? RESERVATION_EXPIRY_ARCHIVE_REASONS.maxAge
-            : RESERVATION_EXPIRY_ARCHIVE_REASONS.noExtension;
-        const ended = await endReservationForExpiry({
-          reservationId: row.id,
-          reason: archiveReason,
-          dryRun: config.dryRun,
-        });
-        if (!ended) {
-          summary.errors += 1;
-          continue;
-        }
-
-        const kind =
-          decision.action === "hard_expire" ? "max_age" : "no_reply";
-        const emailType =
-          kind === "max_age"
-            ? RESERVATION_EXPIRY_EMAIL_TYPES.cancelledMaxAge
-            : RESERVATION_EXPIRY_EMAIL_TYPES.cancelledNoReply;
-        const cancelParams = {
-          locale,
-          customerName,
-          kind: kind as "no_reply" | "max_age",
-          maxAgeDays: config.maxAgeDays,
-        };
-        let mailResult: string = "no_recipient";
-        if (toEmail) {
-          mailResult = await sendExpiryMail({
-            emailType,
-            to: toEmail,
-            reservationId: row.id,
-            subject: expiryCancelledSubject(locale, kind),
-            html: buildExpiryCancelledHtml(cancelParams),
-            text: buildExpiryCancelledText(cancelParams),
-            dryRun: config.dryRun,
-            sendEmail: config.sendEmail,
-          });
-        }
-
-        if (decision.action === "hard_expire") summary.hardExpired += 1;
-        else summary.cancelledNoReply += 1;
-
-        summary.actions.push({
-          ...logBase,
-          archiveReason,
-          mailResult,
-        });
-        console.log(
-          `[reservation-expiry] END ${decision.action} reservation_id=${row.id} mail=${mailResult} dryRun=${config.dryRun}`,
+          `[reservation-expiry] STATUS period=${decision.periodDay} reservation_id=${row.id} mail=${mailResult} dryRun=${config.dryRun}`,
         );
       }
     } catch (e) {

@@ -52,8 +52,8 @@ export default async function PalletCloseCancelPage({
         title={lang === "sv" ? "Kunde inte avboka" : "Could not cancel"}
         body={
           lang === "sv"
-            ? "Reservationen går inte att avboka just nu."
-            : "This reservation cannot be cancelled right now."
+            ? "Ordern går inte att avbryta just nu."
+            : "This order cannot be cancelled right now."
         }
       />
     );
@@ -61,11 +61,15 @@ export default async function PalletCloseCancelPage({
 
   return (
     <Shell
-      title={lang === "sv" ? "Reservation avbokad" : "Reservation cancelled"}
+      title={
+        lang === "sv"
+          ? "Din order är avbruten – inget har dragits"
+          : "Your order has been cancelled – nothing was charged"
+      }
       body={
         lang === "sv"
-          ? "Ingen debitering har skett. Det sparade kortet har kopplats bort."
-          : "No charge was made. The saved card was detached."
+          ? "Inget belopp har dragits från ditt kort, och det sparade kortet är borttaget."
+          : "Nothing was charged to your card, and the saved card has been removed."
       }
       ok
     />

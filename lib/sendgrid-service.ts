@@ -304,7 +304,7 @@ export async function buildOrderConfirmationHtml(
 
               <div style="text-align: center; margin: 30px 0;">
                 <a href="${getAppUrl()}/profile/reservations" class="button">
-                  View Your Reservations
+                  View your order
                 </a>
               </div>
 
@@ -537,59 +537,161 @@ export function buildPaymentConfirmedHtml(
   data: PaymentConfirmedEmailBody,
 ): string {
   const safePallet = escapeHtmlBasic(data.palletName);
-  return `<p>Great news! Your payment of <strong>${data.amountSek} kr</strong> has been confirmed for reservation <strong>${escapeHtmlBasic(data.reservationId)}</strong>.</p><p>Your wines will be delivered via home delivery once the pallet ships.</p><p>Pallet: <strong>${safePallet}</strong></p>`;
+  return `<p>Great news! Your payment of <strong>${data.amountSek} kr</strong> has been confirmed for order <strong>${escapeHtmlBasic(data.reservationId)}</strong>.</p><p>Your wines will be delivered via home delivery once the pallet ships.</p><p>Pallet: <strong>${safePallet}</strong></p>`;
 }
 
 export function buildPaymentConfirmedText(
   data: PaymentConfirmedEmailBody,
 ): string {
-  return `Great news! Your payment of ${data.amountSek} kr has been confirmed for reservation ${data.reservationId}. Your wines will be delivered via home delivery once the pallet ships.\n\nPallet: ${data.palletName}`;
+  return `Great news! Your payment of ${data.amountSek} kr has been confirmed for order ${data.reservationId}. Your wines will be delivered via home delivery once the pallet ships.\n\nPallet: ${data.palletName}`;
 }
 
 export type PaymentFailedEmailBody = {
   reservationId: string;
-  reason: string;
-  retryHours: 24 | 72;
-  profileUrl: string;
+  /** Display name; empty → Hej/Hi fallback. */
+  customerName?: string;
+  amountSek?: number | null;
+  /** Deadline label, e.g. "13 november 2026". */
+  payByLabel: string;
+  /** Absolute pay / update-card URL. */
+  paymentUrl: string;
+  locale?: "sv" | "en";
+  /** @deprecated Prefer payByLabel + paymentUrl. */
+  reason?: string;
+  /** @deprecated Replaced by 3-day pay window. */
+  retryHours?: 24 | 72;
+  /** @deprecated Prefer paymentUrl. */
+  profileUrl?: string;
 };
 
+function formatFailedAmount(
+  amountSek: number | null | undefined,
+  locale: "sv" | "en",
+): string {
+  const n = Number(amountSek);
+  if (!Number.isFinite(n) || n < 0) {
+    return locale === "sv" ? "beloppet" : "the amount";
+  }
+  const formatted = new Intl.NumberFormat(
+    locale === "sv" ? "sv-SE" : "en-GB",
+    { maximumFractionDigits: 0, minimumFractionDigits: 0 },
+  ).format(Math.round(n));
+  return locale === "sv" ? `${formatted} kr` : `${formatted} SEK`;
+}
+
 export function buildPaymentFailedHtml(data: PaymentFailedEmailBody): string {
-  const safeReason = escapeHtmlBasic(data.reason);
-  const base = data.profileUrl.replace(/\/$/, "");
-  const paymentProfileUrl = `${base}/profile#payment`;
-  return `<p>We tried to charge your card for reservation <strong>${escapeHtmlBasic(data.reservationId)}</strong> but the payment failed: ${safeReason}.</p><p>We will automatically retry your payment in <strong>${data.retryHours}</strong> hours. You can update your payment method at <a href="${paymentProfileUrl}">${paymentProfileUrl}</a>.</p>`;
+  const locale = data.locale === "en" ? "en" : "sv";
+  const name = escapeHtmlBasic(
+    (data.customerName || "").trim() || (locale === "sv" ? "hej" : "hi"),
+  );
+  const orderId = escapeHtmlBasic(data.reservationId);
+  const amount = escapeHtmlBasic(formatFailedAmount(data.amountSek, locale));
+  const payBy = escapeHtmlBasic(data.payByLabel);
+  const payUrl =
+    data.paymentUrl ||
+    `${(data.profileUrl || "https://pactwines.com").replace(/\/$/, "")}/profile#payment`;
+  const safeUrl = escapeHtmlBasic(payUrl);
+
+  if (locale === "sv") {
+    return `<p>Hej ${name},</p><p>Pallen för din order <strong>${orderId}</strong> har stängt, men vi kunde inte dra ${amount} från ditt kort.</p><p>Du har till och med <strong>${payBy}</strong> (3 dagar) på dig att betala. Använd länken nedan för att godkänna betalningen eller byta kort. Vi försöker också dra beloppet igen under tiden.</p><p>Har betalningen inte gått igenom senast ${payBy} avbryts ordern och inget dras.</p><p><a href="${safeUrl}" style="display:inline-block;background:#000;color:#fff;padding:12px 20px;text-decoration:none;border-radius:4px;">Betala nu</a></p><p style="color:#666;font-size:12px;">EURPACT OÜ · customer@pactwines.com</p>`;
+  }
+
+  return `<p>Hi ${name},</p><p>The pallet for your order <strong>${orderId}</strong> has closed, but we couldn't charge ${amount} to your card.</p><p>You have until <strong>${payBy}</strong> (3 days) to pay. Use the link below to approve the payment or change card. We'll also try the charge again in the meantime.</p><p>If payment hasn't gone through by ${payBy}, the order will be cancelled and nothing will be charged.</p><p><a href="${safeUrl}" style="display:inline-block;background:#000;color:#fff;padding:12px 20px;text-decoration:none;border-radius:4px;">Pay now</a></p><p style="color:#666;font-size:12px;">EURPACT OÜ · customer@pactwines.com</p>`;
 }
 
 export function buildPaymentFailedText(data: PaymentFailedEmailBody): string {
-  const base = data.profileUrl.replace(/\/$/, "");
-  const paymentProfileUrl = `${base}/profile#payment`;
-  return `We tried to charge your card for reservation ${data.reservationId} but the payment failed: ${data.reason}.
+  const locale = data.locale === "en" ? "en" : "sv";
+  const name =
+    (data.customerName || "").trim() || (locale === "sv" ? "hej" : "hi");
+  const amount = formatFailedAmount(data.amountSek, locale);
+  const payUrl =
+    data.paymentUrl ||
+    `${(data.profileUrl || "https://pactwines.com").replace(/\/$/, "")}/profile#payment`;
 
-We will automatically retry your payment in ${data.retryHours} hours. You can update your payment method at ${paymentProfileUrl}`;
+  if (locale === "sv") {
+    return `Hej ${name},
+
+Pallen för din order ${data.reservationId} har stängt, men vi kunde inte dra ${amount} från ditt kort.
+
+Du har till och med ${data.payByLabel} (3 dagar) på dig att betala. Använd länken nedan för att godkänna betalningen eller byta kort. Vi försöker också dra beloppet igen under tiden.
+
+Har betalningen inte gått igenom senast ${data.payByLabel} avbryts ordern och inget dras.
+
+Betala nu: ${payUrl}
+
+EURPACT OÜ · customer@pactwines.com`;
+  }
+
+  return `Hi ${name},
+
+The pallet for your order ${data.reservationId} has closed, but we couldn't charge ${amount} to your card.
+
+You have until ${data.payByLabel} (3 days) to pay. Use the link below to approve the payment or change card. We'll also try the charge again in the meantime.
+
+If payment hasn't gone through by ${data.payByLabel}, the order will be cancelled and nothing will be charged.
+
+Pay now: ${payUrl}
+
+EURPACT OÜ · customer@pactwines.com`;
+}
+
+export function paymentFailedSubject(locale: "sv" | "en" = "sv"): string {
+  return locale === "sv"
+    ? "Vi kunde inte dra betalningen för din order"
+    : "We couldn't take payment for your order";
 }
 
 export type PaymentCancelledEmailBody = {
   reservationId: string;
   reason: string;
+  locale?: "sv" | "en";
+  customerName?: string;
 };
 
 export function buildPaymentCancelledHtml(
   data: PaymentCancelledEmailBody,
 ): string {
-  const safeReason = escapeHtmlBasic(data.reason);
-  return `<p>Unfortunately we had to cancel your reservation <strong>${escapeHtmlBasic(data.reservationId)}</strong> because we were unable to process your payment after multiple attempts.</p><p>${safeReason}</p><p>Any PACT Points used on this order have been refunded to your account.</p><p>You're welcome to place a new reservation at <a href="https://pact.wine">pact.wine</a>.</p>`;
+  const locale = data.locale === "en" ? "en" : "sv";
+  const name = escapeHtmlBasic(
+    (data.customerName || "").trim() || (locale === "sv" ? "hej" : "hi"),
+  );
+  const orderId = escapeHtmlBasic(data.reservationId);
+  if (locale === "sv") {
+    return `<p>Hej ${name},</p><p>Vi har avbrutit din order <strong>${orderId}</strong> eftersom betalningen inte gick igenom inom 3 dagar. Inget belopp har dragits från ditt kort.</p><p>${escapeHtmlBasic(data.reason)}</p><p>Eventuella PACT Points har återförts till ditt konto.</p><p>Vill du vara med på en kommande pall hittar du dem på <a href="https://pactwines.com">pactwines.com</a>.</p><p style="color:#666;font-size:12px;">EURPACT OÜ · customer@pactwines.com</p>`;
+  }
+  return `<p>Hi ${name},</p><p>We have cancelled your order <strong>${orderId}</strong> because payment did not go through within 3 days. Nothing was charged to your card.</p><p>${escapeHtmlBasic(data.reason)}</p><p>Any PACT Points used on this order have been refunded to your account.</p><p>If you'd like to join a future pallet, you'll find them at <a href="https://pactwines.com">pactwines.com</a>.</p><p style="color:#666;font-size:12px;">EURPACT OÜ · customer@pactwines.com</p>`;
 }
 
 export function buildPaymentCancelledText(
   data: PaymentCancelledEmailBody,
 ): string {
-  return `Unfortunately we had to cancel your reservation ${data.reservationId} because we were unable to process your payment after multiple attempts.
+  const locale = data.locale === "en" ? "en" : "sv";
+  const name =
+    (data.customerName || "").trim() || (locale === "sv" ? "hej" : "hi");
+  if (locale === "sv") {
+    return `Hej ${name},
+
+Vi har avbrutit din order ${data.reservationId} eftersom betalningen inte gick igenom inom 3 dagar. Inget belopp har dragits från ditt kort.
+
+${data.reason}
+
+Eventuella PACT Points har återförts till ditt konto.
+
+Vill du vara med på en kommande pall hittar du dem på pactwines.com.
+
+EURPACT OÜ · customer@pactwines.com`;
+  }
+  return `Hi ${name},
+
+We have cancelled your order ${data.reservationId} because payment did not go through within 3 days. Nothing was charged to your card.
 
 ${data.reason}
 
 Any PACT Points used on this order have been refunded to your account.
 
-You're welcome to place a new reservation at pact.wine.`;
+If you'd like to join a future pallet, you'll find them at pactwines.com.
+
+EURPACT OÜ · customer@pactwines.com`;
 }
 
 export async function sendPaymentConfirmedEmail({
@@ -630,22 +732,42 @@ export async function sendPaymentConfirmedEmail({
 export async function sendPaymentFailedEmail({
   to,
   reservationId,
+  payByLabel,
+  paymentUrl,
+  locale = "sv",
+  customerName,
+  amountSek,
   reason,
   retryHours,
   profileUrl,
 }: {
   to: string;
   reservationId: string;
-  reason: string;
-  retryHours: 24 | 72;
-  profileUrl: string;
+  payByLabel: string;
+  paymentUrl: string;
+  locale?: "sv" | "en";
+  customerName?: string;
+  amountSek?: number | null;
+  /** @deprecated */
+  reason?: string;
+  /** @deprecated */
+  retryHours?: 24 | 72;
+  /** @deprecated */
+  profileUrl?: string;
 }): Promise<boolean> {
   const { sendTransactionalEmailOnce } = await import(
     "@/lib/email/claim-email-send"
   );
-  const subject = "Action required — payment failed for your PACT order";
+  const subject = paymentFailedSubject(locale);
   const body: PaymentFailedEmailBody = {
     reservationId,
+    payByLabel,
+    paymentUrl:
+      paymentUrl ||
+      `${(profileUrl || "https://pactwines.com").replace(/\/$/, "")}/profile#payment`,
+    locale,
+    customerName,
+    amountSek,
     reason,
     retryHours,
     profileUrl,
@@ -669,16 +791,28 @@ export async function sendPaymentCancelledEmail({
   to,
   reservationId,
   reason,
+  locale = "sv",
+  customerName,
 }: {
   to: string;
   reservationId: string;
   reason: string;
+  locale?: "sv" | "en";
+  customerName?: string;
 }): Promise<boolean> {
   const { sendTransactionalEmailOnce } = await import(
     "@/lib/email/claim-email-send"
   );
-  const subject = "Your PACT reservation has been cancelled";
-  const body: PaymentCancelledEmailBody = { reservationId, reason };
+  const subject =
+    locale === "sv"
+      ? "Din order är avbruten – inget har dragits"
+      : "Your order has been cancelled – nothing was charged";
+  const body: PaymentCancelledEmailBody = {
+    reservationId,
+    reason,
+    locale,
+    customerName,
+  };
   const result = await sendTransactionalEmailOnce({
     emailType: "payment_cancelled",
     recipient: to,
@@ -703,13 +837,13 @@ export function buildPaymentAuthenticationRequiredHtml(
   data: PaymentAuthenticationRequiredBody,
 ): string {
   const safeLink = escapeHtmlBasic(data.authenticateUrl);
-  return `<p>Din bank kräver extra verifiering (3D Secure / BankID) för att slutföra betalningen för din PACT-reservation <strong>${escapeHtmlBasic(data.reservationId)}</strong>.</p><p>Automatiska omförsök räcker inte — du behöver bekräfta betalningen en gång i webbläsaren.</p><p><a href="${data.authenticateUrl}" style="display:inline-block;background:#000000;color:#ffffff;padding:12px 24px;text-decoration:none;border-radius:4px;font-weight:500;">Verifiera betalning</a></p><p style="font-size:14px;color:#666;">Om knappen inte fungerar, kopiera länken:<br/><span style="word-break:break-all;">${safeLink}</span></p>`;
+  return `<p>Din bank kräver extra verifiering (3D Secure / BankID) för att slutföra betalningen för din PACT-order <strong>${escapeHtmlBasic(data.reservationId)}</strong>.</p><p>Automatiska omförsök räcker inte — du behöver bekräfta betalningen en gång i webbläsaren.</p><p><a href="${data.authenticateUrl}" style="display:inline-block;background:#000000;color:#ffffff;padding:12px 24px;text-decoration:none;border-radius:4px;font-weight:500;">Verifiera betalning</a></p><p style="font-size:14px;color:#666;">Om knappen inte fungerar, kopiera länken:<br/><span style="word-break:break-all;">${safeLink}</span></p>`;
 }
 
 export function buildPaymentAuthenticationRequiredText(
   data: PaymentAuthenticationRequiredBody,
 ): string {
-  return `Din bank kräver extra verifiering för att slutföra betalningen för din PACT-reservation ${data.reservationId}.
+  return `Din bank kräver extra verifiering för att slutföra betalningen för din PACT-order ${data.reservationId}.
 
 Automatiska omförsök räcker inte — öppna länken och bekräfta betalningen i webbläsaren:
 

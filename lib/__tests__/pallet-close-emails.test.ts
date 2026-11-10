@@ -51,19 +51,21 @@ describe("pallet-close email builders", () => {
     expect(m.text).not.toContain("direktleverans");
   });
 
-  it("builds cancellation copy for timeout reasons", () => {
+  it("builds cancellation copy for timeout reasons (order wording)", () => {
     const m = buildPalletCloseCancelledEmail({
       locale: "sv",
       customerName: "Alex",
       reservationId: "res-1",
       reason: "choice_timeout",
     });
-    expect(m.subject).toMatch(/avbokad/i);
+    expect(m.subject).toMatch(/order är avbruten/i);
     expect(m.text).toMatch(/7 dagar/i);
+    expect(m.text).toContain("pactwines.com");
+    expect(m.text).not.toContain("pact.wine");
     expect(m.html).toContain("font-family:Geist");
   });
 
-  it("builds payment-failed email with pay link", () => {
+  it("builds payment-failed email with 3-day pay link", () => {
     const m = buildPalletClosePaymentFailedEmail({
       locale: "en",
       customerName: "Alex",
@@ -71,9 +73,10 @@ describe("pallet-close email builders", () => {
       payByLabel: "4 December 2026",
       paymentLinkUrl: "https://checkout.stripe.com/c/pay/cs_test",
     });
-    expect(m.subject.toLowerCase()).toContain("payment failed");
+    expect(m.subject.toLowerCase()).toContain("couldn't take payment");
     expect(m.html).toContain("checkout.stripe.com");
-    expect(m.subject.toLowerCase()).toContain("within 3 days");
-    expect(m.text).toContain("cancelled at no cost");
+    expect(m.text).toContain("3 days");
+    expect(m.text).toContain("order will be cancelled");
+    expect(m.text).not.toContain("reservation is cancelled");
   });
 });

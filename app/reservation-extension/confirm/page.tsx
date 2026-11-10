@@ -1,11 +1,10 @@
 import Link from "next/link";
-import { applyReservationExtensionConfirm } from "@/lib/reservations/expiry-run";
 import {
   buildExtensionConfirmSuccessBody,
   EXTENSION_CONFIRM_PAGE_COPY,
   EXTENSION_CONFIRM_PAGE_ERROR_COPY,
 } from "@/lib/reservations/expiry-emails";
-import { consumeReservationExtensionToken } from "@/lib/reservations/expiry-tokens";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import type { AppLocale } from "@/lib/i18n/locale";
 import { isAppLocale } from "@/lib/i18n/locale";
 
@@ -22,6 +21,11 @@ function resolveLocale(raw: string): AppLocale {
   return isAppLocale(raw) ? raw : "sv";
 }
 
+/**
+ * Legacy extension-confirm page.
+ * Confirmation / extension is no longer required (Axel 2026-11-10).
+ * Any old link shows a friendly message — never an error.
+ */
 export default async function ReservationExtensionConfirmPage({
   searchParams,
 }: {
@@ -31,48 +35,43 @@ export default async function ReservationExtensionConfirmPage({
   const token = firstParam(params.token).trim();
   const locale = resolveLocale(firstParam(params.lang).trim().toLowerCase());
   const copyOk = EXTENSION_CONFIRM_PAGE_COPY[locale];
-  const copyErr = EXTENSION_CONFIRM_PAGE_ERROR_COPY[locale];
 
-  if (!token) {
-    return (
-      <ConfirmShell
-        title={copyErr.title}
-        body={copyErr.missing_token}
-        locale={locale}
-      />
-    );
+  // Best-effort: clear any leftover reply deadline so cron never auto-cancels.
+  if (token) {
+    try {
+      const sb = getSupabaseAdmin();
+      const { createHash } = await import("node:crypto");
+      const tokenHash = createHash("sha256")
+        .update(token, "utf8")
+        .digest("hex");
+      const { data } = await sb
+        .from("reservation_extension_tokens")
+        .select("reservation_id")
+        .eq("token_hash", tokenHash)
+        .maybeSingle();
+      if (data?.reservation_id) {
+        await sb
+          .from("order_reservations")
+          .update({ extension_reply_by: null })
+          .eq("id", data.reservation_id);
+      }
+    } catch {
+      // Friendly page regardless of DB issues.
+    }
   }
 
-  const consumed = await consumeReservationExtensionToken(token);
-  if (!consumed.ok) {
-    const body =
-      copyErr[consumed.code as keyof typeof copyErr] ?? copyErr.db_error;
-    return (
-      <ConfirmShell title={copyErr.title} body={String(body)} locale={locale} />
-    );
-  }
+  const body = token
+    ? buildExtensionConfirmSuccessBody({ locale })
+    : EXTENSION_CONFIRM_PAGE_ERROR_COPY[locale].missing_token;
 
-  const applied = await applyReservationExtensionConfirm({
-    reservationId: consumed.reservationId,
-  });
-
-  if (!applied.ok) {
-    return (
-      <ConfirmShell
-        title={copyErr.title}
-        body={copyErr.not_eligible}
-        locale={locale}
-      />
-    );
-  }
-
-  const body = buildExtensionConfirmSuccessBody({
-    locale,
-    newEndDate: applied.newEndDate,
-    extensionDays: applied.extensionDays,
-  });
-
-  return <ConfirmShell title={copyOk.title} body={body} locale={locale} ok />;
+  return (
+    <ConfirmShell
+      title={copyOk.title}
+      body={body}
+      locale={locale}
+      ok
+    />
+  );
 }
 
 function ConfirmShell({
