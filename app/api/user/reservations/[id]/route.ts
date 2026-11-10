@@ -4,9 +4,12 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { computeSharedPalletChargeDeadlineIso } from "@/lib/checkout/shared-pallet-deadline";
 import { isPalletBasedReservation } from "@/lib/commerce/is-pallet-based-reservation";
 import {
+  confirmationChargedLineTotalsSek,
   confirmationDisplayTotalSek,
   confirmationOrderTypeFromFulfillment,
+  isCustomerFacingLabel,
 } from "@/lib/reservations/confirmation-display-total";
+import { b2cWholeKronorFromOre } from "@/lib/cart/b2c-line-pricing";
 
 export async function GET(
   request: Request,
@@ -146,11 +149,11 @@ export async function GET(
       .eq("id", user.id)
       .maybeSingle();
 
-    const items =
+    const rawItems =
       reservation.order_reservation_items?.map((item) => ({
-        wine_name: item.wines?.wine_name || "Unknown Wine",
+        wine_name: item.wines?.wine_name || "Wine",
         quantity: item.quantity,
-        vintage: item.wines?.vintage || "N/A",
+        vintage: item.wines?.vintage || "",
         price_cents: item.wines?.base_price_cents || 0,
         image_url: item.wines?.label_image_path || undefined,
         product_handle: item.wines?.handle || undefined,
@@ -158,12 +161,12 @@ export async function GET(
         producer_display_name:
           item.wines?.producers?.display_name?.trim() || undefined,
         customer_email: profile?.email || user.email,
-        customer_name: profile?.full_name || "Valued Customer",
+        customer_name: profile?.full_name || undefined,
         source:
           reservation.fulfillment_channel === "warehouse" ||
           reservation.fulfillment_channel === "direct_box"
-            ? "warehouse"
-            : "producer",
+            ? ("warehouse" as const)
+            : ("producer" as const),
       })) || [];
 
     // Fetch shared bottle allocations (optional)
@@ -274,7 +277,7 @@ export async function GET(
       shared = [];
     }
 
-    const wineSubtotalCents = items.reduce(
+    const wineSubtotalCents = rawItems.reduce(
       (sum, item) => sum + (item.price_cents || 0) * (item.quantity || 0),
       0,
     );
@@ -292,7 +295,9 @@ export async function GET(
       Number(reservation.discount_amount_sek) || 0,
     );
     const wineTotalSek =
-      storedTotalSek != null ? storedTotalSek : wineSubtotalCents / 100;
+      storedTotalSek != null
+        ? Math.round(storedTotalSek)
+        : Math.round(wineSubtotalCents / 100);
     // Customer-facing charge total = wine + shipping (matches checkout CTA).
     const displayTotalSek = confirmationDisplayTotalSek({
       totalSek: storedTotalSek,
@@ -301,6 +306,31 @@ export async function GET(
     });
     const totalAmountCents = Math.round(displayTotalSek * 100);
     const subtotalSek = wineTotalSek + discountAmountSek;
+    const shippingSek = Math.round(shippingCostCents / 100);
+
+    // Charged line totals (integer kronor) so lines + shipping === display total.
+    const chargedLineSek = confirmationChargedLineTotalsSek({
+      lines: rawItems.map((item) => ({
+        quantity: item.quantity,
+        listUnitOre: item.price_cents,
+      })),
+      winesTotalSek: wineTotalSek,
+    });
+    const items = rawItems.map((item, index) => {
+      const lineTotalSek = chargedLineSek[index] ?? 0;
+      const qty = Math.max(0, Math.floor(Number(item.quantity) || 0));
+      const unitSek =
+        qty > 0
+          ? Math.round(lineTotalSek / qty)
+          : b2cWholeKronorFromOre(item.price_cents);
+      return {
+        ...item,
+        /** Charged line total in whole kronor (post-discount allocation). */
+        line_total_sek: lineTotalSek,
+        /** Charged unit kronor for display; öre kept for legacy clients. */
+        price_cents: unitSek * 100,
+      };
+    });
 
     // Detect shared pallet via pallet_id (fulfillment_channel may be null on older rows).
     const palletCreatedAt =
@@ -322,6 +352,10 @@ export async function GET(
     const orderType = confirmationOrderTypeFromFulfillment(fulfillmentChannel);
 
     // Transform the data to match the expected format
+    const palletNameRaw =
+      typeof reservation.pallet?.name === "string"
+        ? reservation.pallet.name
+        : null;
     const transformedReservation = {
       id: reservation.id,
       // order_reservations.order_id does not exist in DB; use reservation id as a stable display id
@@ -329,26 +363,40 @@ export async function GET(
       status: reservation.status,
       created_at: reservation.created_at,
       pallet_id: reservation.pallet_id,
-      pallet_name: reservation.pallet?.name || "Unknown Pallet",
+      pallet_name: isCustomerFacingLabel(palletNameRaw) ? palletNameRaw : null,
       pallet_cost_cents: reservation.pallet?.cost_cents || 0,
       pallet_capacity: reservation.pallet?.bottle_capacity || 0,
       /** Shared-pallet charge/close deadline (created_at + 28d). Null for direct. */
       charge_deadline_at: chargeDeadlineAt,
-      pickup_zone: pickupZoneName || "Unknown Pickup Zone",
-      delivery_zone: deliveryZoneName || "Unknown Delivery Zone",
+      // Never send "Unknown …" stubs; omit pickup for home-delivery (null zone).
+      pickup_zone: isCustomerFacingLabel(pickupZoneName)
+        ? pickupZoneName
+        : null,
+      delivery_zone: isCustomerFacingLabel(deliveryZoneName)
+        ? deliveryZoneName
+        : null,
       delivery_address: deliveryAddress,
-      /** Wine/subtotal total in SEK (excludes shipping). */
+      /** Charged total wine + shipping in SEK (matches checkout CTA). */
       total_sek: displayTotalSek,
-      /** Wine-only total before shipping (for debugging / line math). */
+      /** Wine-only charged total before shipping. */
       wines_total_sek: wineTotalSek,
       discount_amount_sek: discountAmountSek,
       subtotal_sek: subtotalSek,
       total_amount_cents: totalAmountCents,
       shipping_cost_cents: shippingCostCents,
+      shipping_sek: shippingSek,
       customer_email: profile?.email || user.email,
-      customer_name: profile?.full_name || "Valued Customer",
+      customer_name: profile?.full_name || null,
       order_type: orderType,
+      fulfillment_channel: fulfillmentChannel,
       payment_method_type: reservation.payment_method_type || "card",
+      /**
+       * Home-delivery shared pallet never exposes a pickup zone (customer
+       * does not pick up). Warehouse/direct may still surface one when set.
+       */
+      show_pickup_zone:
+        fulfillmentChannel === "warehouse" ||
+        fulfillmentChannel === "direct_box",
       items,
       shared,
     };

@@ -88,6 +88,20 @@ function getLocalizedPath(
   const guide = switchGuidePath(pathname, newLocale);
   if (guide) return guide;
 
+  // Checkout language pair (middleware rewrites /en/checkout → /checkout).
+  if (
+    (pathname === "/checkout" || pathname.startsWith("/checkout/")) &&
+    newLocale === "en"
+  ) {
+    return `/en${pathname}`;
+  }
+  if (
+    (pathname === "/en/checkout" || pathname.startsWith("/en/checkout/")) &&
+    newLocale === "sv"
+  ) {
+    return pathname.replace(/^\/en/, "") || "/checkout";
+  }
+
   // /vin → /wine och vice versa
   if (pathname === "/vin" && newLocale === "en") return "/wine";
   if (pathname === "/wine" && newLocale === "sv") return "/vin";

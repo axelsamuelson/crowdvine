@@ -22,7 +22,9 @@ function shouldHideHeader(
 ): boolean {
   const isAdminRoute = pathname.startsWith("/admin");
   const isAccessRequestRoute = pathname === "/access-request";
-  const isCheckoutSuccessRoute = pathname === "/checkout/success";
+  const isCheckoutSuccessRoute =
+    pathname === "/checkout/success" ||
+    pathname === "/en/checkout/success";
   const isLogInRoute = pathname === "/log-in";
   const isMapTopoRoute = pathname === "/map-topo";
   const isTastingRoute = pathname.startsWith("/tasting");
@@ -66,9 +68,12 @@ export function ConditionalHeader({
   const activePathname = hasMounted ? pathname || ssrPathname : ssrPathname;
 
   // Checkout form: logo + back-to-cart only (no site nav). Success stays chrome-free.
+  // /en/checkout is rewritten to /checkout but the browser path stays /en/….
   const isCheckoutFormRoute =
     activePathname === "/checkout" ||
-    activePathname.startsWith("/checkout/stripe-return");
+    activePathname === "/en/checkout" ||
+    activePathname.startsWith("/checkout/stripe-return") ||
+    activePathname.startsWith("/en/checkout/stripe-return");
 
   if (isCheckoutFormRoute) {
     return <CheckoutMinimalHeader initialLogos={initialLogos} />;

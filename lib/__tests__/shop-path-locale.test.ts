@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "fs";
+import { resolve } from "path";
 
 import { localeFromShopPath } from "@/lib/i18n/shop-path-locale";
 
@@ -32,8 +34,26 @@ describe("localeFromShopPath", () => {
     expect(localeFromShopPath("/en")).toBe("en");
   });
 
+  it("maps /en/checkout to English (middleware rewrite target)", () => {
+    expect(localeFromShopPath("/en/checkout")).toBe("en");
+    expect(localeFromShopPath("/en/checkout/success")).toBe("en");
+  });
+
   it("returns null for shared/unpaired paths", () => {
     expect(localeFromShopPath("/checkout")).toBeNull();
     expect(localeFromShopPath("/taste-quiz")).toBeNull();
   });
 });
+
+describe("en checkout middleware rewrite", () => {
+  it("rewrites /en/checkout to the shared checkout App Router tree", () => {
+    const src = readFileSync(
+      resolve(process.cwd(), "middleware.ts"),
+      "utf8",
+    );
+    expect(src).toMatch(/\/en\/checkout/);
+    expect(src).toMatch(/NextResponse\.rewrite/);
+    expect(src).toMatch(/x-pact-locale\",\s*\"en\"/);
+  });
+});
+

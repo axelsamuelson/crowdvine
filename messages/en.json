@@ -695,7 +695,10 @@
     "successStatusConfirmed": "Confirmed",
     "successStatusShipped": "Shipped",
     "successStatusDelivered": "Delivered",
-    "successStatusCancelled": "Cancelled"
+    "successStatusCancelled": "Cancelled",
+    "successStatusWaitingPallet": "Waiting for the pallet to close",
+    "successReservationRef": "Reference",
+    "successShipping": "Shipping"
   },
   "tasteQuiz": {
     "unknownProducer": "Unknown producer",

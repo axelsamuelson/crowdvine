@@ -1689,7 +1689,7 @@ function CheckoutContent({
       setComplianceStepRevealed(true);
       complianceSectionRef.current?.scrollIntoView({
         behavior: "smooth",
-        block: "nearest",
+        block: "start",
       });
     }, 420);
     return () => window.clearTimeout(revealTimer);
@@ -1917,7 +1917,7 @@ function CheckoutContent({
     window.setTimeout(() => {
       paymentSectionRef.current?.scrollIntoView({
         behavior: "smooth",
-        block: "nearest",
+        block: "start",
       });
     }, 80);
   }, [complianceComplete, legacySharedPalletPaymentAllowed]);
@@ -1936,7 +1936,7 @@ function CheckoutContent({
     window.setTimeout(() => {
       (complianceSectionRef.current ?? paymentSectionRef.current)?.scrollIntoView({
         behavior: "smooth",
-        block: "nearest",
+        block: "start",
       });
     }, 80);
   }, [complianceStepRevealed, handleTermsChecked, isValidCart]);
@@ -2767,7 +2767,11 @@ function CheckoutContent({
         emitCheckoutStepCompleted("payment");
         checkoutCompletedRef.current = true;
         clearCheckoutAnalyticsSession();
-        window.location.href = redirectUrl || "/checkout/success";
+        window.location.href =
+          redirectUrl ||
+          (shopping.locale === "en"
+            ? "/en/checkout/success"
+            : "/checkout/success");
       } else {
         setIsFinalizingReservation(false); // Hide modal on error
         void AnalyticsTracker.trackEvent({
@@ -3029,7 +3033,11 @@ function CheckoutContent({
       checkoutCompletedRef.current = true;
       clearCheckoutAnalyticsSession();
       // Do not releaseSubmit — navigate away; keep button disabled.
-      window.location.href = redirectUrl || "/checkout/success";
+      const fallbackSuccess =
+        shopping.locale === "en"
+          ? "/en/checkout/success"
+          : "/checkout/success";
+      window.location.href = redirectUrl || fallbackSuccess;
     };
 
     if (!stripeConfirmFn || !paymentMode || !stripeIntentId) {
@@ -3904,7 +3912,7 @@ function CheckoutContent({
         </div>
 
         <div className="flex flex-col gap-8 min-[1280px]:grid min-[1280px]:grid-cols-[1fr_400px] min-[1280px]:items-start">
-          <aside className="order-1 w-full min-w-0 min-[1280px]:sticky min-[1280px]:top-8 min-[1280px]:order-2 min-[1280px]:self-start">
+          <aside className="order-1 w-full min-w-0 min-[1280px]:sticky min-[1280px]:top-[calc(var(--top-spacing)+1rem)] min-[1280px]:order-2 min-[1280px]:self-start">
             <div className="space-y-3">
               {/* <1280: one expandable row; ≥1280: always expanded */}
               <button
@@ -4926,7 +4934,7 @@ function CheckoutContent({
             <section
               ref={complianceSectionRef}
               className={cn(
-                "py-6 border-b border-border last:border-0 transition-[opacity,transform] duration-500 ease-out",
+                "scroll-mt-top-spacing py-6 border-b border-border last:border-0 transition-[opacity,transform] duration-500 ease-out",
                 // Dual buy unlocks age/terms so SetupIntent can be created.
                 dualOfferReviewActive &&
                   !dualOfferCardStepUnlocked &&
@@ -5163,7 +5171,7 @@ function CheckoutContent({
             <section
               ref={paymentSectionRef}
               className={cn(
-                "py-6 border-b border-border last:border-0 transition-[opacity,transform] duration-500 ease-out",
+                "scroll-mt-top-spacing py-6 border-b border-border last:border-0 transition-[opacity,transform] duration-500 ease-out",
                 // Locked until dual buy; then same SetupIntent card step as legacy.
                 dualOfferReviewActive &&
                   !dualOfferCardStepUnlocked &&

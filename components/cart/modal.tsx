@@ -525,13 +525,17 @@ function CheckoutButton({
   /** Dirtywine inquiry checkout mode — CTA goes to /b2b/inquiry. */
   inquiryMode?: boolean;
 }) {
-  const { t } = useTranslations();
+  const { t, context: shopping } = useTranslations();
   const paths = useLocalizedPaths();
   const { pending } = useFormStatus();
   const { cart, isPending } = useCart();
   const router = useRouter();
 
-  const checkoutUrl = inquiryMode ? B2B_INQUIRY_PATH : cart?.checkoutUrl;
+  const checkoutUrl = inquiryMode
+    ? B2B_INQUIRY_PATH
+    : shopping.locale === "en"
+      ? "/en/checkout"
+      : cart?.checkoutUrl || "/checkout";
 
   // Check if there are validation errors
   const hasValidationErrors = validations.some((v) => !v.isValid);

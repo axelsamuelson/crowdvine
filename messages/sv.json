@@ -695,7 +695,10 @@
     "successStatusConfirmed": "Bekräftad",
     "successStatusShipped": "Skickad",
     "successStatusDelivered": "Levererad",
-    "successStatusCancelled": "Avbruten"
+    "successStatusCancelled": "Avbruten",
+    "successStatusWaitingPallet": "Väntar på att pallen stänger",
+    "successReservationRef": "Referens",
+    "successShipping": "Frakt"
   },
   "tasteQuiz": {
     "unknownProducer": "Okänd producent",

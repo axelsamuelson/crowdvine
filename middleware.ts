@@ -211,6 +211,31 @@ async function runMiddleware(req: NextRequest) {
   const wineAliasRedirect = redirectWineCategoryAlias(req, pathname);
   if (wineAliasRedirect) return wineAliasRedirect;
 
+  // English checkout URLs: keep /en/checkout in the browser (locale cookie +
+  // pathLocale) while serving the shared App Router /checkout tree.
+  if (pathname === "/en/checkout" || pathname.startsWith("/en/checkout/")) {
+    const u = req.nextUrl.clone();
+    u.pathname = pathname.replace(/^\/en/, "") || "/checkout";
+    const rewriteHeaders = new Headers(req.headers);
+    rewriteHeaders.set("x-pathname", pathname);
+    rewriteHeaders.set("x-search", req.nextUrl.search);
+    rewriteHeaders.set("x-pact-locale", "en");
+    const res = NextResponse.rewrite(u, {
+      request: { headers: rewriteHeaders },
+    });
+    const currentLocale = parseLocaleCookie(
+      req.cookies.get(LOCALE_COOKIE)?.value,
+    );
+    if (currentLocale !== "en") {
+      res.cookies.set(LOCALE_COOKIE, "en", {
+        path: "/",
+        maxAge: LOCALE_COOKIE_MAX_AGE,
+        sameSite: "lax",
+      });
+    }
+    return withGeoCountryCookie(req, res);
+  }
+
   // /shop → /vin redirects (301 permanent)
   if (pathname === "/shop") {
     const u = req.nextUrl.clone();

@@ -1,8 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
+  confirmationChargedLineTotalsSek,
   confirmationDisplayTotalSek,
   confirmationOrderTypeFromFulfillment,
+  confirmationStatusMessageKey,
+  isCustomerFacingLabel,
+  shortReservationReference,
 } from "@/lib/reservations/confirmation-display-total";
+import { b2cWholeKronorFromOre } from "@/lib/cart/b2c-line-pricing";
 import { formatSharedPalletChargeDeadline } from "@/lib/checkout/shared-pallet-deadline";
 import { readFileSync } from "fs";
 import { resolve } from "path";
@@ -48,6 +53,61 @@ describe("confirmationOrderTypeFromFulfillment", () => {
   });
 });
 
+describe("confirmationChargedLineTotalsSek", () => {
+  it("allocates charged wine so lines + shipping equal display total (review case)", () => {
+    // Catalog: 21100 öre → 211 kr × 6 = 1266 list; charged wine 1014 + ship 99 = 1113.
+    const listUnitOre = 21100;
+    expect(b2cWholeKronorFromOre(listUnitOre)).toBe(211);
+    const winesTotalSek = 1014;
+    const shippingSek = 99;
+    const lines = confirmationChargedLineTotalsSek({
+      lines: [{ quantity: 6, listUnitOre }],
+      winesTotalSek,
+    });
+    expect(lines).toEqual([1014]);
+    expect(
+      confirmationDisplayTotalSek({
+        totalSek: winesTotalSek,
+        shippingRevenueGrossCents: shippingSek * 100,
+      }),
+    ).toBe(1113);
+    expect(lines.reduce((s, n) => s + n, 0) + shippingSek).toBe(1113);
+  });
+
+  it("pro-rates multi-line carts to whole kronor without drift", () => {
+    const winesTotalSek = 1000;
+    const lines = confirmationChargedLineTotalsSek({
+      lines: [
+        { quantity: 2, listUnitOre: 21100 },
+        { quantity: 4, listUnitOre: 15000 },
+      ],
+      winesTotalSek,
+    });
+    expect(lines.reduce((s, n) => s + n, 0)).toBe(1000);
+    expect(lines.every((n) => Number.isInteger(n))).toBe(true);
+  });
+});
+
+describe("confirmation customer-facing helpers", () => {
+  it("maps pending_producer_approval to waiting-pallet copy key", () => {
+    expect(confirmationStatusMessageKey("pending_producer_approval")).toBe(
+      "checkout.successStatusWaitingPallet",
+    );
+    expect(confirmationStatusMessageKey("PENDING_PRODUCER_APPROVAL")).toBe(
+      "checkout.successStatusWaitingPallet",
+    );
+    expect(confirmationStatusMessageKey("weird_internal")).toBeNull();
+  });
+
+  it("rejects Unknown… stubs and shortens reservation ids", () => {
+    expect(isCustomerFacingLabel("Unknown Pickup Zone")).toBe(false);
+    expect(isCustomerFacingLabel("Synthetic Stockholm Delivery")).toBe(true);
+    expect(
+      shortReservationReference("3b6be085-ed8b-4e76-9018-69916ff327d9"),
+    ).toBe("3B6BE085");
+  });
+});
+
 describe("confirmation success surface contracts", () => {
   it("reservation GET avoids selecting missing order_type and includes shipping + deadline fields", () => {
     const src = readFileSync(
@@ -58,6 +118,8 @@ describe("confirmation success surface contracts", () => {
     expect(src).toMatch(/shipping_revenue_gross_cents/);
     expect(src).toMatch(/fulfillment_channel/);
     expect(src).toMatch(/confirmationDisplayTotalSek/);
+    expect(src).toMatch(/confirmationChargedLineTotalsSek/);
+    expect(src).not.toMatch(/Unknown Pickup Zone/);
     expect(src).not.toMatch(
       /select\(\s*`[\s\S]*?\border_type\b[\s\S]*?`\s*\)/,
     );
@@ -77,6 +139,10 @@ describe("confirmation success surface contracts", () => {
     expect(successSrc).toMatch(/chargeDeadlineLabel/);
     expect(successSrc).toMatch(/customer_email/);
     expect(successSrc).toMatch(/MarketingConsentCheckbox/);
+    expect(successSrc).toMatch(/successStatusWaitingPallet|confirmationStatusMessageKey/);
+    expect(successSrc).toMatch(/shortReservationReference/);
+    expect(successSrc).not.toMatch(/successProducerOrder/);
+    expect(successSrc).not.toMatch(/successProducer\}/);
     expect(consentSrc).toMatch(/useState\(false\)/);
     expect(consentSrc).toMatch(/\/api\/marketing\/consent/);
     expect(consentSrc).toMatch(/NEW_PALLET_OPEN_CONSENT_TEXT_VERSION/);

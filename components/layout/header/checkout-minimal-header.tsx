@@ -29,8 +29,11 @@ export function CheckoutMinimalHeader(props: { initialLogos?: SiteLogos }) {
       window.dispatchEvent(new CustomEvent("cart-open-request"));
     }
     // Leave checkout so the cart drawer is usable on the storefront.
-    if (pathname?.startsWith("/checkout")) {
-      router.push("/");
+    if (
+      pathname?.startsWith("/checkout") ||
+      pathname?.startsWith("/en/checkout")
+    ) {
+      router.push(locale === "en" ? "/en" : "/");
     }
   };
 

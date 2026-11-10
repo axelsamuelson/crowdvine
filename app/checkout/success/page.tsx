@@ -27,22 +27,18 @@ import { producerDisplayName } from "@/lib/producer-display-name";
 import { formatSharedPalletChargeDeadline } from "@/lib/checkout/shared-pallet-deadline";
 import { formatSharedPalletCloseDeliveryCopy } from "@/lib/checkout/shared-pallet-close-delivery-copy";
 import { MarketingConsentCheckbox } from "@/components/checkout/marketing-consent-checkbox";
+import {
+  confirmationStatusMessageKey,
+  isCustomerFacingLabel,
+  shortReservationReference,
+} from "@/lib/reservations/confirmation-display-total";
 
 function translateReservationStatus(
   status: string,
   t: (key: string) => string,
-): string {
-  const keyByStatus: Record<string, string> = {
-    placed: "checkout.successStatusPlaced",
-    confirmed: "checkout.successStatusConfirmed",
-    shipped: "checkout.successStatusShipped",
-    delivered: "checkout.successStatusDelivered",
-    cancelled: "checkout.successStatusCancelled",
-  };
-  const key = keyByStatus[status.toLowerCase()];
-  return key
-    ? t(key)
-    : status.charAt(0).toUpperCase() + status.slice(1);
+): string | null {
+  const key = confirmationStatusMessageKey(status);
+  return key ? t(key) : null;
 }
 
 interface ReservationDetails {
@@ -55,11 +51,15 @@ interface ReservationDetails {
   pallet_capacity?: number;
   /** Shared-pallet charge/close deadline ISO (created_at + 28d). */
   charge_deadline_at?: string | null;
-  pickup_zone?: string;
-  delivery_zone?: string;
+  pickup_zone?: string | null;
+  delivery_zone?: string | null;
   delivery_address?: string;
-  /** Charged total from order_reservations.total_sek (SEK). */
+  /** Charged total wine + shipping (SEK). */
   total_sek?: number | null;
+  wines_total_sek?: number | null;
+  shipping_sek?: number | null;
+  show_pickup_zone?: boolean;
+  fulfillment_channel?: string | null;
   /** Promo discount from order_reservations.discount_amount_sek (SEK). */
   discount_amount_sek?: number;
   /** Pre-discount amount (total_sek + discount_amount_sek) when totals are stored. */
@@ -75,6 +75,8 @@ interface ReservationDetails {
     quantity: number;
     vintage: string;
     price_cents: number;
+    /** Charged line total in whole kronor (preferred). */
+    line_total_sek?: number;
     image_url?: string;
     product_handle?: string;
     producer_name?: string;
@@ -467,21 +469,36 @@ function CheckoutConfirmationContent() {
             <Card className="p-6 bg-white border border-gray-200 rounded-2xl">
               <CardContent className="p-0 space-y-6">
                 <div className="flex items-start justify-between gap-4">
-                  <div className="min-w-0">
+                  <div className="min-w-0 hidden sm:block">
                     <div className="text-sm text-gray-500">
-                      {t("checkout.successReservationId")}
+                      {t("checkout.successReservationRef")}
                     </div>
-                    <div className="font-sans tabular-nums text-sm text-gray-900 break-all mt-1">
-                      {reservation.id}
+                    <div
+                      className="font-sans tabular-nums text-sm text-gray-900 mt-1"
+                      title={reservation.id}
+                    >
+                      {shortReservationReference(reservation.id)}
                     </div>
                   </div>
-                  <Badge className={getStatusColor(reservation.status)}>
-                    {translateReservationStatus(reservation.status, t)}
-                  </Badge>
+                  {(() => {
+                    const statusLabel = translateReservationStatus(
+                      reservation.status,
+                      t,
+                    );
+                    if (!statusLabel) return null;
+                    return (
+                      <Badge
+                        className={`${getStatusColor(reservation.status)} normal-case tracking-normal`}
+                      >
+                        {statusLabel}
+                      </Badge>
+                    );
+                  })()}
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  {reservation.pickup_zone && (
+                  {reservation.show_pickup_zone &&
+                  isCustomerFacingLabel(reservation.pickup_zone) ? (
                     <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
                       <div className="text-xs text-gray-500 mb-1">
                         {t("checkout.successPickupZone")}
@@ -490,8 +507,8 @@ function CheckoutConfirmationContent() {
                         {reservation.pickup_zone}
                       </div>
                     </div>
-                  )}
-                  {reservation.delivery_zone && (
+                  ) : null}
+                  {isCustomerFacingLabel(reservation.delivery_zone) ? (
                     <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
                       <div className="text-xs text-gray-500 mb-1">
                         {t("checkout.successDeliveryZone")}
@@ -500,8 +517,8 @@ function CheckoutConfirmationContent() {
                         {reservation.delivery_zone}
                       </div>
                     </div>
-                  )}
-                  {reservation.pallet_name && (
+                  ) : null}
+                  {isCustomerFacingLabel(reservation.pallet_name) ? (
                     <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
                       <div className="text-xs text-gray-500 mb-1">
                         {t("checkout.pallet")}
@@ -510,7 +527,7 @@ function CheckoutConfirmationContent() {
                         {reservation.pallet_name}
                       </div>
                     </div>
-                  )}
+                  ) : null}
                 </div>
 
                 {reservation.delivery_address && (
@@ -681,31 +698,22 @@ function CheckoutConfirmationContent() {
                     <div className="text-lg font-medium text-gray-900">
                       {t("checkout.successReservedBottles")}
                     </div>
-                    {reservation.order_type && (
-                      <Badge 
-                        variant="outline" 
-                        className={
-                          reservation.order_type === "warehouse"
-                            ? "bg-green-50 border-green-200 text-green-700"
-                            : "bg-blue-50 border-blue-200 text-blue-700"
-                        }
-                      >
-                        {reservation.order_type === "warehouse"
-                          ? t("checkout.successWarehouseOrder")
-                          : t("checkout.successProducerOrder")}
-                      </Badge>
-                    )}
                   </div>
 
                   <div className="space-y-3">
-                    {reservation.items.map((item, index) => (
+                    {reservation.items.map((item, index) => {
+                      const lineSek =
+                        typeof item.line_total_sek === "number" &&
+                        Number.isFinite(item.line_total_sek)
+                          ? Math.round(item.line_total_sek)
+                          : Math.round(
+                              ((item.price_cents || 0) * (item.quantity || 0)) /
+                                100,
+                            );
+                      return (
                       <div
                         key={index}
-                        className={`flex gap-4 rounded-2xl border p-4 ${
-                          item.source === "warehouse"
-                            ? "border-green-200 bg-green-50"
-                            : "border-gray-200 bg-gray-50"
-                        }`}
+                        className="flex gap-4 rounded-2xl border border-gray-200 bg-gray-50 p-4"
                       >
                         <div className="relative w-16 h-16 shrink-0 overflow-hidden rounded-xl bg-gray-100 border border-gray-200">
                           {item.image_url ? (
@@ -726,24 +734,9 @@ function CheckoutConfirmationContent() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
-                              <div className="flex items-center gap-2 mb-1">
-                                <div className="text-sm font-medium text-gray-900 truncate">
-                                  {item.wine_name} {item.vintage}
-                                </div>
-                                {item.source && (
-                                  <Badge 
-                                    variant="outline" 
-                                    className={
-                                      item.source === "warehouse"
-                                        ? "bg-green-100 border-green-300 text-green-700 text-[10px] px-1.5 py-0"
-                                        : "bg-blue-100 border-blue-300 text-blue-700 text-[10px] px-1.5 py-0"
-                                    }
-                                  >
-                                    {item.source === "warehouse"
-                                      ? t("checkout.successWarehouse")
-                                      : t("checkout.successProducer")}
-                                  </Badge>
-                                )}
+                              <div className="text-sm font-medium text-gray-900 truncate mb-1">
+                                {item.wine_name}
+                                {item.vintage ? ` ${item.vintage}` : ""}
                               </div>
                               {producerDisplayName({
                                 name: item.producer_name,
@@ -762,20 +755,20 @@ function CheckoutConfirmationContent() {
                                   ? t("checkout.bottle")
                                   : t("checkout.bottles")}
                                 {item.source === "warehouse" && (
-                                  <span className="ml-2 text-green-600">
+                                  <span className="ml-2 text-muted-foreground">
                                     • {t("checkout.successDirectDelivery")}
                                   </span>
                                 )}
                                 {item.source === "producer" && (
-                                  <span className="ml-2 text-blue-600">
+                                  <span className="ml-2 text-muted-foreground">
                                     • {t("checkout.successOnPallet")}
                                   </span>
                                 )}
                               </div>
                             </div>
 
-                            <div className="text-sm font-medium text-gray-900 whitespace-nowrap">
-                              {formatPrice(item.price_cents * item.quantity)}
+                            <div className="text-sm font-medium text-gray-900 whitespace-nowrap tabular-nums">
+                              {formatMoney(lineSek, currencyCode, appLocale)}
                             </div>
                           </div>
 
@@ -791,8 +784,30 @@ function CheckoutConfirmationContent() {
                           )}
                         </div>
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
+
+                  {(() => {
+                    const shippingSek =
+                      reservation.shipping_sek != null &&
+                      Number.isFinite(Number(reservation.shipping_sek))
+                        ? Math.round(Number(reservation.shipping_sek))
+                        : Math.round(
+                            (Number(reservation.shipping_cost_cents) || 0) / 100,
+                          );
+                    if (shippingSek <= 0) return null;
+                    return (
+                      <div className="mt-4 flex items-baseline justify-between gap-3 border-t border-gray-200 pt-3 text-sm">
+                        <span className="text-gray-500">
+                          {t("checkout.successShipping")}
+                        </span>
+                        <span className="tabular-nums text-gray-900">
+                          {formatMoney(shippingSek, currencyCode, appLocale)}
+                        </span>
+                      </div>
+                    );
+                  })()}
                 </CardContent>
               </Card>
 

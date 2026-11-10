@@ -98,6 +98,10 @@ describe("dual-offer binding CTA (distance-selling)", () => {
       /handleSharedPalletCardStepRequest[\s\S]*?if \(!isValidCart\) return/,
     );
     expect(checkoutSrc).toMatch(/if \(!isValidCart\) \{\s*setPrefetchedStripeIntent\(null\)/s);
+    // Final Köp only mounts after card-step unlock — unreachable while blocked.
+    expect(checkoutSrc).toMatch(
+      /dualOfferCardStepUnlocked &&\s*dualOfferSelectedQuote &&\s*mayStartSharedPalletCardSave/s,
+    );
   });
 
   it("live shared pallet may start card save; synthetic may not", () => {
