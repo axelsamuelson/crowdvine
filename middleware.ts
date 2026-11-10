@@ -23,13 +23,10 @@ import {
   promoteShopRegionQueryToPath,
 } from "@/lib/shop/filter-navigation";
 import { legacyRegionLandingTarget } from "@/lib/wine-regions";
-import {
-  LOCALE_COOKIE,
-  localeFromLangQuery,
-  parseLocaleCookie,
-} from "@/lib/i18n/locale";
+import { LOCALE_COOKIE, parseLocaleCookie } from "@/lib/i18n/locale";
 import { redirectLegacyProducerProfilePath } from "@/lib/i18n/locale-path-redirect";
 import { localeFromShopPath } from "@/lib/i18n/shop-path-locale";
+import { resolveRequestUiLocale } from "@/lib/i18n/request-ui-locale";
 import { GEO_COUNTRY_COOKIE } from "@/lib/analytics/visitor-identity";
 import {
   isGuidePath,
@@ -96,17 +93,17 @@ function nextWithPathname(req: NextRequest): NextResponse {
   requestHeaders.set("x-pathname", pathname);
   requestHeaders.set("x-search", req.nextUrl.search);
 
-  // Path pairs (/vin vs /wine) win; otherwise honor explicit ?lang= from email links
-  // so chrome (header nav) matches page copy on locale-neutral routes.
-  const pathLocale =
-    localeFromShopPath(pathname) ?? localeFromLangQuery(req.nextUrl.searchParams);
-  if (pathLocale) {
-    requestHeaders.set("x-pact-locale", pathLocale);
+  // Path pairs (/vin vs /wine) win; otherwise honor explicit ?lang= for UI chrome
+  // on locale-neutral routes. ?lang= must NOT write pact_locale (request-scoped only).
+  const { pathLocale, uiLocale, shouldPersistLocaleCookie } =
+    resolveRequestUiLocale(pathname, req.nextUrl.searchParams);
+  if (uiLocale) {
+    requestHeaders.set("x-pact-locale", uiLocale);
   }
 
   const res = NextResponse.next({ request: { headers: requestHeaders } });
 
-  if (pathLocale) {
+  if (shouldPersistLocaleCookie && pathLocale) {
     const currentLocale = parseLocaleCookie(req.cookies.get(LOCALE_COOKIE)?.value);
     if (currentLocale !== pathLocale) {
       res.cookies.set(LOCALE_COOKIE, pathLocale, {
