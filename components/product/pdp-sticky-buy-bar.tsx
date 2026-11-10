@@ -16,8 +16,11 @@ import {
   CART_DRAWER_OPEN_ATTR,
   isCookieBannerOpen,
   isDocumentFlagOpen,
+  isMainCtaScrolledPast,
   isOnScreenKeyboardOpen,
   MIX_BOX_OPEN_ATTR,
+  observeBodyChildList,
+  splitTitleAndVintage,
 } from "@/lib/pdp/overlay-open";
 import { cn } from "@/lib/utils";
 import type { Product } from "@/lib/shopify/types";
@@ -36,8 +39,9 @@ type Props = {
 const STICKY_SCROLL_PADDING = "calc(4.5rem + env(safe-area-inset-bottom, 0px))";
 
 /**
- * Mobile-only sticky buy bar on PDP. Shows when the main CTA leaves the
- * viewport; hidden at footer, overlays, and when the keyboard is up.
+ * Mobile-only sticky buy bar on PDP (PACT). Shows only after the main CTA has
+ * scrolled *above* the viewport — never when it is still below the fold.
+ * Hidden at footer, overlays, and when the keyboard is up.
  */
 export function PdpStickyBuyBar({
   product,
@@ -49,17 +53,21 @@ export function PdpStickyBuyBar({
 }: Props) {
   const { t } = useTranslations();
   const { formatSek } = useDisplayMoney();
-  const [mainCtaHidden, setMainCtaHidden] = useState(false);
+  const [ctaScrolledPast, setCtaScrolledPast] = useState(false);
   const [footerVisible, setFooterVisible] = useState(false);
   const [overlayOpen, setOverlayOpen] = useState(false);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const shownTrackedRef = useRef(false);
+  /** Once per page view per wine_id — never reset on hide. */
+  const shownTrackedForWineRef = useRef<string | null>(null);
   const reduceMotionRef = useRef(false);
 
   const bottlePriceSek = getProductListPriceSek(product);
   const priceLabel =
     bottlePriceSek != null ? formatSek(bottlePriceSek) : null;
+  const { name: titleName, vintage: titleVintage } = splitTitleAndVintage(
+    product.title,
+  );
 
   const recomputeOverlays = useCallback(() => {
     const cartOpen = isDocumentFlagOpen(CART_DRAWER_OPEN_ATTR);
@@ -103,19 +111,23 @@ export function PdpStickyBuyBar({
     const vv = window.visualViewport;
     vv?.addEventListener("resize", onFlag);
     vv?.addEventListener("scroll", onFlag);
-    const mo = new MutationObserver(onFlag);
-    mo.observe(document.documentElement, {
+
+    // Attribute flags on <html> only — no subtree walk.
+    const attrMo = new MutationObserver(onFlag);
+    attrMo.observe(document.documentElement, {
       attributes: true,
       attributeFilter: [CART_DRAWER_OPEN_ATTR, MIX_BOX_OPEN_ATTR],
-      childList: true,
-      subtree: true,
     });
+    // Cookie banners typically mount as body children — childList only, debounced.
+    const stopBody = observeBodyChildList(onFlag, 100);
+
     return () => {
       window.removeEventListener("cart-drawer-open-change", onFlag);
       window.removeEventListener("mix-box-open-change", onFlag);
       vv?.removeEventListener("resize", onFlag);
       vv?.removeEventListener("scroll", onFlag);
-      mo.disconnect();
+      attrMo.disconnect();
+      stopBody();
     };
   }, [recomputeOverlays]);
 
@@ -135,8 +147,10 @@ export function PdpStickyBuyBar({
       obs = new IntersectionObserver(
         (entries) => {
           const entry = entries[0];
-          // Hidden when not intersecting (threshold 0 + bottom rootMargin).
-          setMainCtaHidden(!(entry?.isIntersecting ?? true));
+          if (!entry) return;
+          // Only "scrolled past" when the button is above the viewport —
+          // not when it is still below the fold (not yet reached).
+          setCtaScrolledPast(isMainCtaScrolledPast(entry));
         },
         { threshold: 0, rootMargin: "0px 0px -8px 0px" },
       );
@@ -182,19 +196,17 @@ export function PdpStickyBuyBar({
 
   const shouldShow =
     isMobile &&
-    mainCtaHidden &&
+    ctaScrolledPast &&
     !footerVisible &&
     !overlayOpen &&
     !keyboardOpen &&
     !disabled;
 
   useEffect(() => {
-    if (!shouldShow) {
-      shownTrackedRef.current = false;
-      return;
-    }
-    if (shownTrackedRef.current) return;
-    shownTrackedRef.current = true;
+    if (!shouldShow) return;
+    // At most once per page view per wine_id (do not reset on hide/show).
+    if (shownTrackedForWineRef.current === product.id) return;
+    shownTrackedForWineRef.current = product.id;
     void AnalyticsTracker.trackEvent({
       eventType: "sticky_atc_shown",
       eventCategory: "cart",
@@ -249,8 +261,11 @@ export function PdpStickyBuyBar({
         data-visible={shouldShow ? "true" : "false"}
       >
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium text-foreground">
-            {product.title}
+          <p className="flex min-w-0 items-baseline gap-1 text-sm font-medium text-foreground">
+            <span className="min-w-0 truncate">{titleName}</span>
+            {titleVintage ? (
+              <span className="shrink-0 tabular-nums">{titleVintage}</span>
+            ) : null}
           </p>
           {priceLabel ? (
             <p className="text-xs text-muted-foreground tabular-nums">

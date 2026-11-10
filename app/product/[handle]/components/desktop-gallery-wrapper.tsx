@@ -1,6 +1,8 @@
 "use client";
 
 import { ReactNode, useEffect, useRef } from "react";
+import { useB2BModeServerHint } from "@/lib/context/b2b-mode-context";
+import { cn } from "@/lib/utils";
 
 interface DesktopGalleryWrapperProps {
   children: ReactNode;
@@ -8,6 +10,8 @@ interface DesktopGalleryWrapperProps {
 
 export function DesktopGalleryWrapper({ children }: DesktopGalleryWrapperProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  // PACT solid header only — Dirty Wine keeps gallery flush under transparent chrome.
+  const isDirtywineSite = useB2BModeServerHint();
 
   useEffect(() => {
     const container = containerRef.current;
@@ -35,8 +39,11 @@ export function DesktopGalleryWrapper({ children }: DesktopGalleryWrapperProps) 
   return (
     <div 
       ref={containerRef}
-      // pt-top-spacing keeps the first gallery image below the solid fixed header at 1440.
-      className="hidden overflow-y-auto relative col-span-7 col-start-6 w-full md:block md:pt-top-spacing" 
+      className={cn(
+        "hidden overflow-y-auto relative col-span-7 col-start-6 w-full md:block",
+        // pt-top-spacing keeps the first gallery image below the solid fixed header at 1440 (PACT).
+        !isDirtywineSite && "md:pt-top-spacing",
+      )}
       style={{ 
         touchAction: 'pan-y', 
         overscrollBehavior: 'auto'

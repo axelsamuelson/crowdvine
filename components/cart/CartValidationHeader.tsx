@@ -110,17 +110,22 @@ export function CartValidationHeader({
 
   useEffect(() => {
     if (isValidating) return;
-
-    // Cart progress / empty educational header both surface the 6-bottle rule.
-    emitOnce("six_pack_rule_viewed:cart", () => {
-      void AnalyticsTracker.trackEvent({
-        eventType: "six_pack_rule_viewed",
-        eventCategory: "engagement",
-        metadata: { surface: "cart" },
-      });
-    });
-
+    // Do not fire six_pack_rule_viewed for an empty cart (educational empty state only).
     if (validations.length === 0) return;
+
+    const bottlesInCart = validations.reduce(
+      (s, v) => s + (v.quantity || 0),
+      0,
+    );
+    if (bottlesInCart > 0) {
+      emitOnce("six_pack_rule_viewed:cart", () => {
+        void AnalyticsTracker.trackEvent({
+          eventType: "six_pack_rule_viewed",
+          eventCategory: "engagement",
+          metadata: { surface: "cart" },
+        });
+      });
+    }
 
     const tracking = cartMinimumTrackingMeta(
       {

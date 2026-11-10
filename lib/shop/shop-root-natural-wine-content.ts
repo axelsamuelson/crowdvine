@@ -98,8 +98,22 @@ const EN: ShopRootNaturalWineContent = {
   ],
 };
 
+/** Dirty Wine keeps reserve wording; PACT uses buy/köper on the shop intro. */
+const SV_DIRTYWINE_INTRO =
+  "Här hittar du alla våra naturviner, från rött och vitt till orange och rosé. Du reserverar flaskor online, och vinet levereras till Stockholm när pallen är full.";
+const EN_DIRTYWINE_INTRO =
+  "Here you'll find all our natural wines, from red and white to orange and rosé. You reserve bottles online, and the wine is delivered to Stockholm when the pallet is full.";
+
 export function getShopRootNaturalWineContent(
   locale: AppLocale,
+  options?: { isB2BSite?: boolean },
 ): ShopRootNaturalWineContent {
-  return locale === "sv" ? SV : EN;
+  const base = locale === "sv" ? SV : EN;
+  if (options?.isB2BSite) {
+    return {
+      ...base,
+      intro: locale === "sv" ? SV_DIRTYWINE_INTRO : EN_DIRTYWINE_INTRO,
+    };
+  }
+  return base;
 }

@@ -35,6 +35,7 @@ import { WineSpecsList } from "@/components/product/wine-specs-list";
 import { PdpStickyBuyBar } from "@/components/product/pdp-sticky-buy-bar";
 import Prose from "@/components/prose";
 import { useTranslations } from "@/lib/hooks/use-translations";
+import { useB2BModeServerHint } from "@/lib/context/b2b-mode-context";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 import { emitOnce } from "@/lib/analytics/emit-once";
 import { pricesFromCartAfterAdd } from "@/lib/analytics/cart-event-prices";
@@ -318,6 +319,7 @@ export function AddToCartCase({
   }
 
   const { t } = useTranslations();
+  const isDirtywineSite = useB2BModeServerHint();
   const cartApi = useCartOptional();
   const [mode, setMode] = useState<PurchaseMode>("same");
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -335,8 +337,8 @@ export function AddToCartCase({
   const tapRowHintShownThisSessionRef = useRef(false);
   const mixedAutoOpenDoneRef = useRef(false);
   const mainCtaRef = useRef<HTMLButtonElement | null>(null);
-  /** Sticky bar only on full PDP (not shop handoff sheetOnly). */
-  const showStickyBuyBar = !sheetOnly;
+  /** Sticky bar: PACT full PDP only (not Dirty Wine, not shop handoff sheetOnly). */
+  const showStickyBuyBar = !sheetOnly && !isDirtywineSite;
 
   useEffect(() => {
     if (!initialMixedSheetOpen || mixedAutoOpenDoneRef.current) return;
@@ -818,7 +820,10 @@ export function AddToCartCase({
             ? t("product.selectOne")
             : isSoldOut
               ? t("product.outOfStock")
-              : t("shop.buy")
+              : // PACT: Köp/Buy. Dirty Wine keeps Reservera / Reserve.
+                isDirtywineSite
+                ? t("shop.addCase")
+                : t("shop.buy")
         }
       />
 
