@@ -322,6 +322,7 @@ export const EXTENSION_CONFIRM_PAGE_COPY = {
     title: "No action needed",
     body: EXTENSION_LEGACY_LINK_BODY.en,
     orderCta: "View your order",
+    /** @deprecated No cancel token on legacy page — CTA removed. */
     cancelCta: "Cancel order",
     cta: "View your order",
   },

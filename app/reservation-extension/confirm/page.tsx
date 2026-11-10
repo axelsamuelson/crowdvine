@@ -24,6 +24,9 @@ function resolveLocale(raw: string): AppLocale {
  * Confirmation is no longer required (Axel 2026-11-10).
  * Any visit shows a fixed friendly message and changes nothing in the DB.
  * Uses the site layout (header + Geist from root layout).
+ *
+ * Cancel CTA removed: this page has no reservation cancel token; free cancel
+ * is only available via signed `/pallet-close/cancel?token=…` links.
  */
 export default async function ReservationExtensionConfirmPage({
   searchParams,
@@ -47,12 +50,6 @@ export default async function ReservationExtensionConfirmPage({
           className="inline-flex items-center justify-center rounded-[4px] bg-[#0A0A0A] px-5 py-2.5 text-sm font-medium text-white hover:bg-neutral-800"
         >
           {copy.orderCta}
-        </Link>
-        <Link
-          href="/profile/reservations"
-          className="inline-flex items-center justify-center rounded-[4px] border border-[#0A0A0A] bg-white px-5 py-2.5 text-sm font-medium text-[#0A0A0A] hover:bg-neutral-50"
-        >
-          {copy.cancelCta}
         </Link>
       </div>
     </main>

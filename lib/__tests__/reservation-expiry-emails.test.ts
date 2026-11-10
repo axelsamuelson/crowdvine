@@ -128,7 +128,6 @@ describe("pallet status email copy (Juliette / Margaux / Inès)", () => {
       "Your order stays in place until the pallet closes. You don't need to do anything.",
     );
     expect(EXTENSION_CONFIRM_PAGE_COPY.sv.orderCta).toBe("Se din order");
-    expect(EXTENSION_CONFIRM_PAGE_COPY.sv.cancelCta).toBe("Avbryt ordern");
     expect(EXTENSION_CONFIRM_PAGE_ERROR_COPY.sv.expired).toContain(
       "tills pallen stänger",
     );

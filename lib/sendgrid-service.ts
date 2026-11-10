@@ -5,10 +5,12 @@ import {
   formatOrderAmountSek,
   getEmailAppUrl,
   inlineLinkHtml,
+  orderCtaLabel,
   orderReservationsUrl,
   p,
   payNowCtaLabel,
   primaryButtonHtml,
+  withOrderEmailTextFooter,
   wrapOrderEmail,
 } from "@/lib/email/order-email-chrome";
 import {
@@ -539,20 +541,105 @@ export { escapeHtmlBasic };
 export type PaymentConfirmedEmailBody = {
   reservationId: string;
   amountSek: number;
-  palletName: string;
+  /** @deprecated Internal pallet names must not appear in customer emails. */
+  palletName?: string | null;
+  locale?: "sv" | "en";
+  customerName?: string;
 };
 
+/**
+ * Non–shared-pallet payment confirmation (direct/other flows).
+ * Shared-pallet charges use buildPalletClosedChargedEmail only — callers must
+ * skip this when reservation.pallet_id is set.
+ */
 export function buildPaymentConfirmedHtml(
   data: PaymentConfirmedEmailBody,
 ): string {
-  const safePallet = escapeHtmlBasic(data.palletName);
-  return `<p>Great news! Your payment of <strong>${data.amountSek} kr</strong> has been confirmed for order <strong>${escapeHtmlBasic(data.reservationId)}</strong>.</p><p>Your wines will be delivered via home delivery once the pallet ships.</p><p>Pallet: <strong>${safePallet}</strong></p>`;
+  const locale = data.locale === "sv" ? "sv" : "en";
+  const amount = escapeHtmlBasic(formatOrderAmountSek(data.amountSek, locale));
+  const orderId = escapeHtmlBasic(data.reservationId);
+  const name = escapeHtmlBasic(
+    (data.customerName || "").trim() || (locale === "sv" ? "du" : "there"),
+  );
+  const cta = orderCtaLabel(locale);
+  const title =
+    locale === "sv"
+      ? "Betalningen är bekräftad"
+      : "Payment confirmed";
+
+  if (locale === "sv") {
+    return wrapOrderEmail({
+      locale: "sv",
+      title,
+      orderId: data.reservationId,
+      bodyHtml: [
+        p(`Hej ${name},`),
+        p(
+          `Din betalning på <strong>${amount}</strong> för order <strong>${orderId}</strong> är bekräftad.`,
+        ),
+        p("Vi mejlar dig när ordern har skickats."),
+        `<p style="margin:24px 0;">${primaryButtonHtml(orderReservationsUrl(), cta)}</p>`,
+      ].join(""),
+    });
+  }
+
+  return wrapOrderEmail({
+    locale: "en",
+    title,
+    orderId: data.reservationId,
+    bodyHtml: [
+      p(`Hi ${name},`),
+      p(
+        `Your payment of <strong>${amount}</strong> for order <strong>${orderId}</strong> has been confirmed.`,
+      ),
+      p("We’ll email you when the order has shipped."),
+      `<p style="margin:24px 0;">${primaryButtonHtml(orderReservationsUrl(), cta)}</p>`,
+    ].join(""),
+  });
 }
 
 export function buildPaymentConfirmedText(
   data: PaymentConfirmedEmailBody,
 ): string {
-  return `Great news! Your payment of ${data.amountSek} kr has been confirmed for order ${data.reservationId}. Your wines will be delivered via home delivery once the pallet ships.\n\nPallet: ${data.palletName}`;
+  const locale = data.locale === "sv" ? "sv" : "en";
+  const amount = formatOrderAmountSek(data.amountSek, locale);
+  const name =
+    (data.customerName || "").trim() || (locale === "sv" ? "du" : "there");
+  const cta = orderCtaLabel(locale);
+  const orderUrl = orderReservationsUrl();
+  if (locale === "sv") {
+    return withOrderEmailTextFooter(
+      `Hej ${name},
+
+Din betalning på ${amount} för order ${data.reservationId} är bekräftad.
+
+Vi mejlar dig när ordern har skickats.
+
+${cta}: ${orderUrl}
+`,
+      "sv",
+      data.reservationId,
+    );
+  }
+  return withOrderEmailTextFooter(
+    `Hi ${name},
+
+Your payment of ${amount} for order ${data.reservationId} has been confirmed.
+
+We’ll email you when the order has shipped.
+
+${cta}: ${orderUrl}
+`,
+    "en",
+    data.reservationId,
+  );
+}
+
+/** Shared-pallet reservations must not get payment_confirmed (charged email owns it). */
+export function shouldSendPaymentConfirmedEmail(opts: {
+  palletId?: string | null;
+}): boolean {
+  return !(opts.palletId && String(opts.palletId).trim());
 }
 
 export type PaymentFailedEmailBody = {
@@ -573,6 +660,14 @@ export type PaymentFailedEmailBody = {
   profileUrl?: string;
 };
 
+/** True Stripe Checkout (or similar) pay URL — never /profile#payment. */
+export function isCollectablePaymentUrl(url: string | null | undefined): boolean {
+  const u = (url || "").trim();
+  if (!u) return false;
+  if (/\/profile#payment/i.test(u) || /#payment\b/i.test(u)) return false;
+  return /^https?:\/\//i.test(u);
+}
+
 export function buildPaymentFailedHtml(data: PaymentFailedEmailBody): string {
   const locale = data.locale === "en" ? "en" : "sv";
   const name = escapeHtmlBasic(
@@ -581,11 +676,13 @@ export function buildPaymentFailedHtml(data: PaymentFailedEmailBody): string {
   const orderId = escapeHtmlBasic(data.reservationId);
   const amount = escapeHtmlBasic(formatOrderAmountSek(data.amountSek, locale));
   const payBy = escapeHtmlBasic(data.payByLabel);
-  const payUrl =
-    data.paymentUrl ||
-    `${(data.profileUrl || "https://pactwines.com").replace(/\/$/, "")}/profile#payment`;
+  const payUrl = (data.paymentUrl || "").trim();
+  const hasPay = isCollectablePaymentUrl(payUrl);
   const payLabel = payNowCtaLabel(locale);
   const title = paymentFailedSubject(locale);
+  const payCta = hasPay
+    ? `<p style="margin:24px 0;">${primaryButtonHtml(payUrl, payLabel)}</p>`
+    : "";
 
   if (locale === "sv") {
     return wrapOrderEmail({
@@ -603,7 +700,7 @@ export function buildPaymentFailedHtml(data: PaymentFailedEmailBody): string {
         p(
           `Har betalningen inte gått igenom senast ${payBy} avbryts ordern och inget dras.`,
         ),
-        `<p style="margin:24px 0;">${primaryButtonHtml(payUrl, payLabel)}</p>`,
+        payCta,
       ].join(""),
     });
   }
@@ -623,7 +720,7 @@ export function buildPaymentFailedHtml(data: PaymentFailedEmailBody): string {
       p(
         `If payment hasn't gone through by ${payBy}, the order will be cancelled and nothing will be charged.`,
       ),
-      `<p style="margin:24px 0;">${primaryButtonHtml(payUrl, payLabel)}</p>`,
+      payCta,
     ].join(""),
   });
 }
@@ -633,34 +730,38 @@ export function buildPaymentFailedText(data: PaymentFailedEmailBody): string {
   const name =
     (data.customerName || "").trim() || (locale === "sv" ? "hej" : "hi");
   const amount = formatOrderAmountSek(data.amountSek, locale);
-  const payUrl =
-    data.paymentUrl ||
-    `${(data.profileUrl || "https://pactwines.com").replace(/\/$/, "")}/profile#payment`;
+  const payUrl = (data.paymentUrl || "").trim();
+  const hasPay = isCollectablePaymentUrl(payUrl);
   const payLabel = payNowCtaLabel(locale);
+  const payLine = hasPay ? `\n${payLabel}: ${payUrl}\n` : "\n";
 
   if (locale === "sv") {
-    return `Hej ${name},
+    return withOrderEmailTextFooter(
+      `Hej ${name},
 
 Pallen för din order ${data.reservationId} har stängt, men vi kunde inte dra ${amount} från ditt kort.
 
 Du har till och med ${data.payByLabel} (3 dagar) på dig att betala. Använd länken nedan för att godkänna betalningen eller byta kort. Vi försöker också dra beloppet igen under tiden.
 
 Har betalningen inte gått igenom senast ${data.payByLabel} avbryts ordern och inget dras.
-
-${payLabel}: ${payUrl}
-`;
+${payLine}`,
+      "sv",
+      data.reservationId,
+    );
   }
 
-  return `Hi ${name},
+  return withOrderEmailTextFooter(
+    `Hi ${name},
 
 The pallet for your order ${data.reservationId} has closed, but we couldn't charge ${amount} to your card.
 
 You have until ${data.payByLabel} (3 days) to pay. Use the link below to approve the payment or change card. We'll also try the charge again in the meantime.
 
 If payment hasn't gone through by ${data.payByLabel}, the order will be cancelled and nothing will be charged.
-
-${payLabel}: ${payUrl}
-`;
+${payLine}`,
+    "en",
+    data.reservationId,
+  );
 }
 
 export function paymentFailedSubject(locale: "sv" | "en" = "sv"): string {
@@ -738,19 +839,27 @@ export function buildPaymentCancelledText(
   const name =
     (data.customerName || "").trim() || (locale === "sv" ? "hej" : "hi");
   if (locale === "sv") {
-    return `Hej ${name},
+    return withOrderEmailTextFooter(
+      `Hej ${name},
 
 Vi har avbrutit din order ${data.reservationId} eftersom betalningen inte gick igenom inom 3 dagar. Inget belopp har dragits från ditt kort.
 
 Vill du vara med på en kommande pall hittar du de öppna pallarna på pactwines.com.
-`;
+`,
+      "sv",
+      data.reservationId,
+    );
   }
-  return `Hi ${name},
+  return withOrderEmailTextFooter(
+    `Hi ${name},
 
 We have cancelled your order ${data.reservationId} because payment did not go through within 3 days. Nothing was charged to your card.
 
 If you’d like to join a future pallet, you’ll find the open pallets at pactwines.com.
-`;
+`,
+    "en",
+    data.reservationId,
+  );
 }
 
 export async function sendPaymentConfirmedEmail({
@@ -758,21 +867,40 @@ export async function sendPaymentConfirmedEmail({
   reservationId,
   amountSek,
   palletName,
+  locale = "en",
+  customerName,
+  palletId,
 }: {
   to: string;
   reservationId: string;
   amountSek: number;
-  palletName: string;
+  /** @deprecated Ignored — never shown in customer copy. */
+  palletName?: string | null;
+  locale?: "sv" | "en";
+  customerName?: string;
+  /** When set, shared-pallet charge — skip (charged email is the only one). */
+  palletId?: string | null;
 }): Promise<boolean> {
+  if (!shouldSendPaymentConfirmedEmail({ palletId })) {
+    console.log(
+      `[email] skip payment_confirmed for shared-pallet reservation_id=${reservationId}`,
+    );
+    return true;
+  }
   const { sendTransactionalEmailOnce } = await import(
     "@/lib/email/claim-email-send"
   );
-  const subject = "Payment confirmed — your PACT order is on its way";
+  const subject =
+    locale === "sv"
+      ? "Betalningen är bekräftad"
+      : "Payment confirmed — your PACT order is on its way";
   const body: PaymentConfirmedEmailBody = {
     reservationId,
     amountSek,
-    palletName,
+    locale,
+    customerName,
   };
+  void palletName;
   const result = await sendTransactionalEmailOnce({
     emailType: "payment_confirmed",
     recipient: to,
@@ -814,6 +942,15 @@ export async function sendPaymentFailedEmail({
   /** @deprecated */
   profileUrl?: string;
 }): Promise<boolean> {
+  void profileUrl;
+  void reason;
+  void retryHours;
+  if (!isCollectablePaymentUrl(paymentUrl)) {
+    console.error(
+      `[email] payment_failed refused — missing Stripe pay link reservation_id=${reservationId} paymentUrl=${paymentUrl || "(empty)"}`,
+    );
+    return false;
+  }
   const { sendTransactionalEmailOnce } = await import(
     "@/lib/email/claim-email-send"
   );
@@ -821,15 +958,10 @@ export async function sendPaymentFailedEmail({
   const body: PaymentFailedEmailBody = {
     reservationId,
     payByLabel,
-    paymentUrl:
-      paymentUrl ||
-      `${(profileUrl || "https://pactwines.com").replace(/\/$/, "")}/profile#payment`,
+    paymentUrl: paymentUrl.trim(),
     locale,
     customerName,
     amountSek,
-    reason,
-    retryHours,
-    profileUrl,
   };
   const result = await sendTransactionalEmailOnce({
     emailType: "payment_failed",

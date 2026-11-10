@@ -121,6 +121,8 @@ describe("failed / cancelled payment email domain + copy", () => {
     expect(html).toContain("Tartu mnt 67/1-13b");
     expect(html).toContain("customer@pactwines.com");
     expect(html).not.toContain("pact.wine");
+    expect(html).toContain("color-scheme");
+    expect(text).toContain("Tartu mnt 67/1-13b");
   });
 
   it("EN failed-charge email mirrors SV", () => {

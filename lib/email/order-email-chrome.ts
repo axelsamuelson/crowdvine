@@ -1,6 +1,7 @@
 /**
  * Shared chrome for PACT customer order emails (Inès template + Juliette footer).
  * White background, centred PACT wordmark, Geist stack, #0A0A0A primary CTA (4px).
+ * Forced light color-scheme so dark-mode clients keep wordmark + CTA visible.
  */
 
 import { escapeHtmlBasic } from "@/lib/email/escape-html";
@@ -63,15 +64,33 @@ export function orderEmailFooterLine(
   return `Seller: EURPACT OÜ (reg. no. 17538270), Tartu mnt 67/1-13b, 10115 Tallinn, Estonia · customer@pactwines.com · Order ${orderId}`;
 }
 
+/** Append Juliette footer to text/plain bodies (once). */
+export function withOrderEmailTextFooter(
+  body: string,
+  locale: OrderEmailLocale,
+  orderId: string,
+): string {
+  const trimmed = body.replace(/\s+$/, "");
+  const footer = orderEmailFooterLine(locale, orderId);
+  if (trimmed.includes(footer) || trimmed.includes("EURPACT OÜ (reg.")) {
+    return `${trimmed}\n`;
+  }
+  return `${trimmed}\n\n${footer}\n`;
+}
+
 const FONT =
   "Geist,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif";
 
+/**
+ * Primary CTA — bgcolor + border so dark-mode clients keep a visible button
+ * when they invert or strip background styles.
+ */
 export function primaryButtonHtml(href: string, label: string): string {
-  return `<a href="${escapeHtmlBasic(href)}" style="display:inline-block;margin:0 8px 8px 0;padding:12px 20px;background:#0A0A0A;color:#ffffff;text-decoration:none;border-radius:4px;font-size:16px;font-weight:500;">${escapeHtmlBasic(label)}</a>`;
+  return `<a class="pact-cta-primary" href="${escapeHtmlBasic(href)}" bgcolor="#0A0A0A" style="display:inline-block;margin:0 8px 8px 0;padding:12px 20px;background-color:#0A0A0A;background:#0A0A0A;color:#ffffff !important;text-decoration:none;border-radius:4px;border:1px solid #0A0A0A;font-size:16px;font-weight:500;"><span style="color:#ffffff !important;">${escapeHtmlBasic(label)}</span></a>`;
 }
 
 export function secondaryButtonHtml(href: string, label: string): string {
-  return `<a href="${escapeHtmlBasic(href)}" style="display:inline-block;margin:0 8px 8px 0;padding:12px 20px;background:#ffffff;color:#0A0A0A;border:1px solid #0A0A0A;text-decoration:none;border-radius:4px;font-size:16px;font-weight:500;">${escapeHtmlBasic(label)}</a>`;
+  return `<a class="pact-cta-secondary" href="${escapeHtmlBasic(href)}" bgcolor="#ffffff" style="display:inline-block;margin:0 8px 8px 0;padding:12px 20px;background-color:#ffffff;background:#ffffff;color:#0A0A0A !important;border:1px solid #0A0A0A;text-decoration:none;border-radius:4px;font-size:16px;font-weight:500;"><span style="color:#0A0A0A !important;">${escapeHtmlBasic(label)}</span></a>`;
 }
 
 export function inlineLinkHtml(href: string, label: string): string {
@@ -91,7 +110,7 @@ export function payNowCtaLabel(locale: OrderEmailLocale): string {
 }
 
 const P_STYLE =
-  "color:#111;font-size:16px;line-height:1.6;margin:0 0 16px 0;";
+  "color:#111111;font-size:16px;line-height:1.6;margin:0 0 16px 0;";
 
 export function p(html: string): string {
   return `<p style="${P_STYLE}">${html}</p>`;
@@ -100,6 +119,7 @@ export function p(html: string): string {
 /**
  * Full HTML document for all PACT order emails.
  * Footer appears once (locale-correct); EN never gets a Swedish footer.
+ * color-scheme:light keeps wordmark/CTA readable in dark-mode clients.
  */
 export function wrapOrderEmail(opts: {
   locale: OrderEmailLocale;
@@ -112,19 +132,44 @@ export function wrapOrderEmail(opts: {
     orderEmailFooterLine(opts.locale, opts.orderId),
   );
   return `<!DOCTYPE html>
-<html lang="${opts.locale}">
+<html lang="${opts.locale}" style="color-scheme:light;">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="light only" />
+  <meta name="supported-color-schemes" content="light" />
   <title>${title}</title>
+  <style>
+    :root { color-scheme: light only; supported-color-schemes: light; }
+    @media (prefers-color-scheme: dark) {
+      body, .pact-email-root, .pact-email-card {
+        background-color: #ffffff !important;
+        color: #111111 !important;
+      }
+      .pact-wordmark, .pact-email-h1, .pact-email-body, .pact-email-body p {
+        color: #111111 !important;
+      }
+      .pact-email-footer {
+        color: #555555 !important;
+      }
+      .pact-cta-primary {
+        background-color: #0A0A0A !important;
+        border-color: #0A0A0A !important;
+        color: #ffffff !important;
+      }
+      .pact-cta-primary span {
+        color: #ffffff !important;
+      }
+    }
+  </style>
 </head>
-<body style="margin:0;padding:0;background:#ffffff;font-family:${FONT};color:#111;">
-  <div style="max-width:600px;margin:0 auto;background:#ffffff;">
-    <div style="padding:32px 24px 8px;text-align:center;letter-spacing:2px;font-weight:600;font-size:18px;">PACT</div>
-    <div style="padding:8px 28px 32px;">
-      <h1 style="font-size:22px;font-weight:500;margin:0 0 16px;color:#111;line-height:1.3;">${title}</h1>
+<body class="pact-email-root" style="margin:0;padding:0;background:#ffffff;background-color:#ffffff;font-family:${FONT};color:#111111;color-scheme:light only;">
+  <div class="pact-email-card" style="max-width:600px;margin:0 auto;background:#ffffff;background-color:#ffffff;">
+    <div class="pact-wordmark" style="padding:32px 24px 8px;text-align:center;letter-spacing:2px;font-weight:600;font-size:18px;color:#0A0A0A;">PACT</div>
+    <div class="pact-email-body" style="padding:8px 28px 32px;color:#111111;">
+      <h1 class="pact-email-h1" style="font-size:22px;font-weight:500;margin:0 0 16px;color:#111111;line-height:1.3;">${title}</h1>
       ${opts.bodyHtml}
-      <p style="margin-top:28px;font-size:12px;line-height:1.5;color:#666;">${footer}</p>
+      <p class="pact-email-footer" style="margin-top:28px;font-size:12px;line-height:1.5;color:#555555;">${footer}</p>
     </div>
   </div>
 </body>
@@ -180,7 +225,6 @@ export function formatDeliveryWindowLabel(
 function parseLooseDate(raw: string): Date | null {
   const s = String(raw).trim();
   if (!s) return null;
-  // ISO date or datetime
   if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
     const d = new Date(s.length === 10 ? `${s}T12:00:00+02:00` : s);
     return Number.isNaN(d.getTime()) ? null : d;

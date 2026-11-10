@@ -10,6 +10,7 @@ import {
   orderReservationsUrl,
   p,
   primaryButtonHtml,
+  withOrderEmailTextFooter,
   wrapOrderEmail,
   type OrderEmailLocale,
 } from "@/lib/email/order-email-chrome";
@@ -60,7 +61,11 @@ ${cta}: ${orderUrl}
         `<p style="margin:24px 0;">${primaryButtonHtml(orderUrl, cta)}</p>`,
       ].join(""),
     });
-    return { subject, html, text };
+    return {
+      subject,
+      html,
+      text: withOrderEmailTextFooter(text, "sv", opts.reservationId),
+    };
   }
 
   const subject = "The pallet has shipped";
@@ -86,7 +91,11 @@ ${cta}: ${orderUrl}
       `<p style="margin:24px 0;">${primaryButtonHtml(orderUrl, cta)}</p>`,
     ].join(""),
   });
-  return { subject, html, text };
+  return {
+    subject,
+    html,
+    text: withOrderEmailTextFooter(text, "en", opts.reservationId),
+  };
 }
 
 /** (2) Leveransdag — delivery day after arrived in Sweden. */
@@ -122,7 +131,11 @@ ${cta}: ${orderUrl}
         `<p style="margin:24px 0;">${primaryButtonHtml(orderUrl, cta)}</p>`,
       ].join(""),
     });
-    return { subject, html, text };
+    return {
+      subject,
+      html,
+      text: withOrderEmailTextFooter(text, "sv", opts.reservationId),
+    };
   }
 
   const subject = "Delivery day";
@@ -143,7 +156,11 @@ ${cta}: ${orderUrl}
       `<p style="margin:24px 0;">${primaryButtonHtml(orderUrl, cta)}</p>`,
     ].join(""),
   });
-  return { subject, html, text };
+  return {
+    subject,
+    html,
+    text: withOrderEmailTextFooter(text, "en", opts.reservationId),
+  };
 }
 
 /** Delay notice — new expected date; optional late-cancel link. */
@@ -187,7 +204,11 @@ Leveransen är försenad. Ny beräknad leveransdag: ${date}.${cancelText}`;
         cancelHtml,
       ].join(""),
     });
-    return { subject, html, text };
+    return {
+      subject,
+      html,
+      text: withOrderEmailTextFooter(text, "sv", opts.reservationId),
+    };
   }
 
   const subject = "Updated expected delivery date";
@@ -213,5 +234,9 @@ Delivery is delayed. New expected delivery date: ${date}.${cancelText}`;
       cancelHtml,
     ].join(""),
   });
-  return { subject, html, text };
+  return {
+    subject,
+    html,
+    text: withOrderEmailTextFooter(text, "en", opts.reservationId),
+  };
 }

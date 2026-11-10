@@ -44,7 +44,8 @@ export const SAMPLE_ORDER_CONFIRMATION: OrderConfirmationData = {
 export const SAMPLE_PAYMENT_CONFIRMED: PaymentConfirmedEmailBody = {
   reservationId: "resv_8f3a2c1d",
   amountSek: 4782,
-  palletName: "Pall Nord — vårleverans 2026",
+  locale: "en",
+  customerName: "Alex",
 };
 
 export const SAMPLE_PAYMENT_FAILED: PaymentFailedEmailBody = {

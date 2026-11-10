@@ -427,10 +427,13 @@ async function handlePaymentIntentSucceededWebhook(
   if (toEmail) {
     const { sendPaymentConfirmedEmail } = await import("@/lib/sendgrid-service");
     const amountSek = Math.round((paymentIntent.amount ?? 0) / 100);
+    // Shared-pallet charges: pallet_closed_charged is the only customer email.
     const sent = await sendPaymentConfirmedEmail({
       to: toEmail,
       reservationId,
       amountSek,
+      palletId,
+      // palletName ignored — never shown in customer copy
       palletName,
     });
     if (!sent) {
@@ -551,11 +554,6 @@ async function handlePaymentIntentPaymentFailedWebhook(
     // Exactly one failed-charge email per pay window — only when the window opens.
     if (toEmail && scheduled?.windowOpened && scheduled.payByAt) {
       const { sendPaymentFailedEmail } = await import("@/lib/sendgrid-service");
-      const { getAppUrl } = await import("@/lib/app-url");
-      const baseUrl =
-        process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ||
-        getAppUrl().replace(/\/$/, "") ||
-        "https://pactwines.com";
       const payByAt = new Date(scheduled.payByAt);
       let locale: "sv" | "en" = "sv";
       let customerName = "";
@@ -584,24 +582,29 @@ async function handlePaymentIntentPaymentFailedWebhook(
           timeZone: "Europe/Stockholm",
         },
       ).format(payByAt);
-      // Prefer Stripe Checkout pay link; profile#payment only manages cards
-      // and does not open the payment tab via hash.
-      const paymentUrl =
-        scheduled.paymentLinkUrl?.trim() ||
-        `${baseUrl}/profile/reservations`;
-      const sent = await sendPaymentFailedEmail({
-        to: toEmail,
-        reservationId,
-        payByLabel,
-        paymentUrl,
-        locale,
-        customerName,
-        reason,
-      });
-      if (!sent) {
-        console.warn(
-          `[Stripe Webhook] reservation_id=${reservationId} payment failed email not sent`,
+      // Stripe Checkout pay link only — never /profile#payment (cannot collect).
+      const paymentUrl = scheduled.paymentLinkUrl?.trim() || "";
+      if (!paymentUrl) {
+        console.error(
+          `[Stripe Webhook] reservation_id=${reservationId} failed-charge email skipped — no Stripe pay link (window opened)`,
         );
+      } else {
+        const amountSek = Math.round((paymentIntent.amount ?? 0) / 100);
+        const sent = await sendPaymentFailedEmail({
+          to: toEmail,
+          reservationId,
+          payByLabel,
+          paymentUrl,
+          locale,
+          customerName,
+          amountSek,
+          reason,
+        });
+        if (!sent) {
+          console.warn(
+            `[Stripe Webhook] reservation_id=${reservationId} payment failed email not sent`,
+          );
+        }
       }
     } else if (!toEmail && scheduled?.windowOpened) {
       console.warn(

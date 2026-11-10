@@ -12,6 +12,7 @@ import {
   p,
   payNowCtaLabel,
   primaryButtonHtml,
+  withOrderEmailTextFooter,
   wrapOrderEmail,
   type OrderEmailLocale,
 } from "@/lib/email/order-email-chrome";
@@ -68,7 +69,11 @@ ${cta}: ${orderUrl}
         `<p style="margin:24px 0;">${primaryButtonHtml(orderUrl, cta)}</p>`,
       ].join(""),
     });
-    return { subject, html, text };
+    return {
+      subject,
+      html,
+      text: withOrderEmailTextFooter(text, "sv", opts.reservationId),
+    };
   }
 
   const subject = "The pallet has closed – payment complete";
@@ -96,7 +101,11 @@ ${cta}: ${orderUrl}
       `<p style="margin:24px 0;">${primaryButtonHtml(orderUrl, cta)}</p>`,
     ].join(""),
   });
-  return { subject, html, text };
+  return {
+    subject,
+    html,
+    text: withOrderEmailTextFooter(text, "en", opts.reservationId),
+  };
 }
 
 export function buildPalletCloseChoiceEmail(opts: {
@@ -205,7 +214,11 @@ ${cta}: ${orderUrl}
         `<p style="margin:24px 0;">${primaryButtonHtml(orderUrl, cta)}</p>`,
       ].join(""),
     });
-    return { subject, html, text };
+    return {
+      subject,
+      html,
+      text: withOrderEmailTextFooter(text, "sv", opts.reservationId),
+    };
   }
 
   const subject = "Your order has been cancelled – nothing was charged";
@@ -240,7 +253,11 @@ ${cta}: ${orderUrl}
       `<p style="margin:24px 0;">${primaryButtonHtml(orderUrl, cta)}</p>`,
     ].join(""),
   });
-  return { subject, html, text };
+  return {
+    subject,
+    html,
+    text: withOrderEmailTextFooter(text, "en", opts.reservationId),
+  };
 }
 
 export function buildPalletClosePaymentFailedEmail(opts: {
@@ -249,22 +266,30 @@ export function buildPalletClosePaymentFailedEmail(opts: {
   reservationId: string;
   payByLabel: string;
   paymentLinkUrl: string;
+  amountSek?: number | null;
 }): { subject: string; html: string; text: string } {
   const name = opts.customerName || (opts.locale === "sv" ? "du" : "there");
   const payLabel = payNowCtaLabel(opts.locale);
+  const amount = formatOrderAmountSek(opts.amountSek, opts.locale);
+  const payCta =
+    opts.paymentLinkUrl && opts.paymentLinkUrl.trim()
+      ? `<p style="margin:24px 0;">${primaryButtonHtml(opts.paymentLinkUrl.trim(), payLabel)}</p>`
+      : "";
+  const payText =
+    opts.paymentLinkUrl && opts.paymentLinkUrl.trim()
+      ? `\n${payLabel}: ${opts.paymentLinkUrl.trim()}\n`
+      : "\n";
 
   if (opts.locale === "sv") {
     const subject = "Vi kunde inte dra betalningen";
     const text = `Hej ${name},
 
-Pallen för din order har stängt, men vi kunde inte dra beloppet från ditt kort.
+Pallen för din order har stängt, men vi kunde inte dra ${amount} från ditt kort.
 
 Du har till och med ${opts.payByLabel} (3 dagar) på dig att betala. Använd länken nedan för att godkänna betalningen eller byta kort. Vi försöker också dra beloppet igen under tiden.
 
 Har betalningen inte gått igenom senast ${opts.payByLabel} avbryts ordern och inget dras.
-
-${payLabel}: ${opts.paymentLinkUrl}
-`;
+${payText}`;
     const html = wrapOrderEmail({
       locale: "sv",
       title: subject,
@@ -272,7 +297,7 @@ ${payLabel}: ${opts.paymentLinkUrl}
       bodyHtml: [
         p(`Hej ${escapeHtmlBasic(name)},`),
         p(
-          "Pallen för din order har stängt, men vi kunde inte dra beloppet från ditt kort.",
+          `Pallen för din order har stängt, men vi kunde inte dra <strong>${escapeHtmlBasic(amount)}</strong> från ditt kort.`,
         ),
         p(
           `Du har till och med <strong>${escapeHtmlBasic(opts.payByLabel)}</strong> (3 dagar) på dig att betala. Använd länken nedan för att godkänna betalningen eller byta kort. Vi försöker också dra beloppet igen under tiden.`,
@@ -280,23 +305,25 @@ ${payLabel}: ${opts.paymentLinkUrl}
         p(
           `Har betalningen inte gått igenom senast ${escapeHtmlBasic(opts.payByLabel)} avbryts ordern och inget dras.`,
         ),
-        `<p style="margin:24px 0;">${primaryButtonHtml(opts.paymentLinkUrl, payLabel)}</p>`,
+        payCta,
       ].join(""),
     });
-    return { subject, html, text };
+    return {
+      subject,
+      html,
+      text: withOrderEmailTextFooter(text, "sv", opts.reservationId),
+    };
   }
 
   const subject = "We couldn't take payment";
   const text = `Hi ${name},
 
-The pallet for your order has closed, but we couldn't charge your card.
+The pallet for your order has closed, but we couldn't charge ${amount} to your card.
 
 You have until ${opts.payByLabel} (3 days) to pay. Use the link below to approve the payment or change card. We'll also try the charge again in the meantime.
 
 If payment hasn't gone through by ${opts.payByLabel}, the order will be cancelled and nothing will be charged.
-
-${payLabel}: ${opts.paymentLinkUrl}
-`;
+${payText}`;
   const html = wrapOrderEmail({
     locale: "en",
     title: subject,
@@ -304,7 +331,7 @@ ${payLabel}: ${opts.paymentLinkUrl}
     bodyHtml: [
       p(`Hi ${escapeHtmlBasic(name)},`),
       p(
-        "The pallet for your order has closed, but we couldn't charge your card.",
+        `The pallet for your order has closed, but we couldn't charge <strong>${escapeHtmlBasic(amount)}</strong> to your card.`,
       ),
       p(
         `You have until <strong>${escapeHtmlBasic(opts.payByLabel)}</strong> (3 days) to pay. Use the link below to approve the payment or change card. We'll also try the charge again in the meantime.`,
@@ -312,8 +339,12 @@ ${payLabel}: ${opts.paymentLinkUrl}
       p(
         `If payment hasn't gone through by ${escapeHtmlBasic(opts.payByLabel)}, the order will be cancelled and nothing will be charged.`,
       ),
-      `<p style="margin:24px 0;">${primaryButtonHtml(opts.paymentLinkUrl, payLabel)}</p>`,
+      payCta,
     ].join(""),
   });
-  return { subject, html, text };
+  return {
+    subject,
+    html,
+    text: withOrderEmailTextFooter(text, "en", opts.reservationId),
+  };
 }

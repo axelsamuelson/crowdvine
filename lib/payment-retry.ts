@@ -15,10 +15,7 @@ import {
   chargeCreatedAfterIso,
   isChargeEligible,
 } from "@/lib/legal/charge-eligibility";
-import {
-  sendPaymentCancelledEmail,
-  sendPaymentConfirmedEmail,
-} from "@/lib/sendgrid-service";
+import { sendPaymentCancelledEmail } from "@/lib/sendgrid-service";
 import { createPalletClosePaymentLink } from "@/lib/checkout/pallet-close/payment-link";
 import { resolveAmountOre } from "@/lib/checkout/pallet-close/resolve-amount-ore";
 import {
@@ -603,53 +600,14 @@ export async function retryFailedPayments(): Promise<{
             }
           }
 
-          let palletName = "Your pallet";
-          const { data: pal } = await sb
-            .from("pallets")
-            .select("name")
-            .eq("id", palletId)
-            .maybeSingle();
-          if (
-            pal?.name &&
-            typeof pal.name === "string" &&
-            pal.name.trim() !== ""
-          ) {
-            palletName = pal.name.trim();
-          }
-
-          const { data: piRow } = await sb
-            .from("order_reservations")
-            .select("payment_intent_id")
-            .eq("id", id)
-            .maybeSingle();
-          const piId =
-            piRow &&
-            typeof piRow.payment_intent_id === "string" &&
-            piRow.payment_intent_id.trim() !== ""
-              ? piRow.payment_intent_id.trim()
-              : null;
-
-          let amountSek = 0;
-          if (piId && stripe) {
-            try {
-              const pi = await stripe.paymentIntents.retrieve(piId);
-              amountSek = Math.round((pi.amount ?? 0) / 100);
-            } catch (e) {
-              console.warn(
-                `[RETRY] retryFailedPayments PI amount reservation_id=${id}:`,
-                e,
-              );
-            }
-          }
-
           if (toEmail) {
             try {
-              await sendPaymentConfirmedEmail({
-                to: toEmail,
-                reservationId: id,
-                amountSek,
-                palletName,
-              });
+              // Shared-pallet retry success → charged email (idempotent), not
+              // the legacy payment_confirmed mail.
+              const { sendPalletClosedChargedEmailOnce } = await import(
+                "@/lib/checkout/pallet-close/send"
+              );
+              await sendPalletClosedChargedEmailOnce({ reservationId: id });
             } catch (e) {
               console.error(
                 `[RETRY] retryFailedPayments email reservation_id=${id}:`,

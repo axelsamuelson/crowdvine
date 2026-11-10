@@ -80,14 +80,18 @@ describe("pallet-close email builders", () => {
       reservationId: "res-1",
       payByLabel: "4 December 2026",
       paymentLinkUrl: "https://checkout.stripe.com/c/pay/cs_test",
+      amountSek: 1250,
     });
     expect(m.subject).toBe("We couldn't take payment");
     expect(m.html).toContain("checkout.stripe.com");
     expect(m.html).toContain("font-family:Geist");
     expect(m.html).toContain("border-radius:4px");
+    expect(m.html).toContain("SEK 1,250");
     expect(m.text).toContain("3 days");
+    expect(m.text).toContain("SEK 1,250");
     expect(m.text).toContain("order will be cancelled");
     expect(m.text).not.toContain("reservation is cancelled");
+    expect(m.text).toContain("Tartu mnt 67/1-13b");
   });
 
   it("cancel confirm uses future-pallet copy and no coupon/points line", () => {
