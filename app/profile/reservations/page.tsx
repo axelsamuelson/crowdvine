@@ -60,6 +60,7 @@ export type ResStatusKey =
   | "payment_pending"
   | "pallet_complete"
   | "awaiting_producer"
+  | "waiting_pallet"
   | "pallet_consolidating"
   | "reservation_placed"
   | "producer_review";
@@ -80,6 +81,7 @@ const RES_STATUS_MSG: Record<ResStatusKey, string> = {
   payment_pending: "profile.resStatusPaymentPending",
   pallet_complete: "profile.resStatusPalletComplete",
   awaiting_producer: "profile.resStatusAwaitingProducer",
+  waiting_pallet: "profile.resStatusWaitingPallet",
   pallet_consolidating: "profile.resStatusPalletConsolidating",
   reservation_placed: "profile.resStatusReservationPlaced",
   producer_review: "profile.resStatusProducerReview",
@@ -111,7 +113,10 @@ interface Reservation {
   marketDropId?: string | null;
   bottleCount?: number;
   bottleVerb?: string;
-  customerPalletLabel?: string;
+  customerPalletLabel?: string | null;
+  isSharedPallet?: boolean;
+  order_number_short?: string;
+  charged_total_sek?: number;
   isConditional?: boolean;
   logisticsPalletName?: string;
   marketDropReservedBottles?: number | null;
@@ -138,6 +143,7 @@ interface AddressPalletData {
   addressPalletKey: string;
   palletId?: string | null;
   palletName: string;
+  orderNumberShort?: string | null;
   palletStatus?: string | null;
   deliveryAddress: string;
   wines: Array<{
@@ -184,7 +190,8 @@ function getProducerOutcome(status: string | undefined): ResStatusKey {
   if (s === "partly_approved") return "partly_approved";
   if (s === "approved" || s === "placed" || s === "pending_payment" || s === "confirmed")
     return "approved";
-  if (s === "pending_producer_approval") return "pending";
+  // B2C shared-pallet confirm uses this status — customer copy matches confirmation.
+  if (s === "pending_producer_approval") return "waiting_pallet";
   if (s === "conditional_pending") return "us_conditional";
   return "pending";
 }
@@ -217,6 +224,7 @@ function getSummaryStatus(group: AddressPalletData): ResStatusKey {
   if (palletComplete) return "pallet_complete";
 
   const producerOutcome = getProducerOutcome(reservationStatus);
+  if (producerOutcome === "waiting_pallet") return "waiting_pallet";
   if (producerOutcome === "pending") return "awaiting_producer";
   if (producerOutcome === "declined") return "declined";
   if (producerOutcome === "partly_approved") return "partly_approved";
@@ -236,6 +244,11 @@ const timelineStatusConfig: Record<
     icon: Clock,
     containerClass: "border border-amber-200 bg-amber-50",
     iconClass: "text-amber-700",
+  },
+  waiting_pallet: {
+    icon: Clock,
+    containerClass: "border border-border bg-background",
+    iconClass: "text-muted-foreground",
   },
   partly_approved: {
     icon: CheckCircle2,
@@ -432,7 +445,10 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
 
           {/* Status badge - top right */}
           <div className="absolute top-3 right-3 pointer-events-none">
-            <Badge variant="outline" className="text-[10px] bg-white/95 backdrop-blur-sm shadow-sm">
+            <Badge
+              variant="outline"
+              className="text-[10px] bg-white/95 backdrop-blur-sm shadow-sm normal-case tracking-normal"
+            >
               {summaryStatusLabel}
             </Badge>
           </div>
@@ -463,6 +479,11 @@ function PalletDialog({ group }: { group: AddressPalletData }) {
                   <p className="inline-block w-full truncate text-xs md:text-sm font-semibold text-foreground/90 mb-1">
                     {group.palletName}
                   </p>
+                  {group.orderNumberShort ? (
+                    <p className="text-[11px] text-muted-foreground font-normal mb-0.5 truncate tabular-nums">
+                      {t("checkout.successOrderNumber")}: {group.orderNumberShort}
+                    </p>
+                  ) : null}
                   <p className="text-[11px] text-muted-foreground font-normal mb-1 truncate">
                     {formatBottleSummary(group, t)} • {group.wines.length}{" "}
                     {t("profile.wines")}
@@ -1291,10 +1312,15 @@ export default function ReservationsPage() {
         const palletInfo = reservation.pallet_id
           ? palletInfoById.get(reservation.pallet_id)
           : undefined;
+        const labelFromApi = reservation.customerPalletLabel?.trim() || "";
         const displayName =
-          reservation.customerPalletLabel?.trim() ||
-          reservation.pallet_name ||
-          "Unassigned Pallet";
+          labelFromApi &&
+          labelFromApi !== "shared_pallet" &&
+          labelFromApi !== "your_reservation"
+            ? labelFromApi
+            : reservation.isSharedPallet || reservation.pallet_id
+              ? t("checkout.successOnPallet")
+              : t("profile.yourReservation");
         const producerItems =
           reservation.items?.map((it) => ({
             wine_name: it.wine_name,
@@ -1313,6 +1339,7 @@ export default function ReservationsPage() {
           addressPalletKey,
           palletId: reservation.pallet_id ?? null,
           palletName: displayName,
+          orderNumberShort: reservation.order_number_short ?? null,
           palletStatus: palletInfo?.status ?? reservation.pallet_status ?? null,
           deliveryAddress:
             reservation.delivery_address || "No delivery address",
@@ -1344,11 +1371,15 @@ export default function ReservationsPage() {
 
       const group = addressPalletMap.get(addressPalletKey)!;
       group.orderCount++;
+      if (reservation.order_number_short) {
+        group.orderNumberShort = reservation.order_number_short;
+      }
       const countedStatuses = new Set([
         "placed",
         "approved",
         "partly_approved",
         "pending_payment",
+        "pending_producer_approval",
         "confirmed",
       ]);
 
@@ -1568,9 +1599,6 @@ export default function ReservationsPage() {
               <h1 className="text-2xl font-medium text-gray-900">
                 {t("profile.reservationsTitle")}
               </h1>
-              <p className="text-gray-500 mt-1">
-                {t("profile.reservationsSubtitle")}
-              </p>
             </div>
           </div>
 

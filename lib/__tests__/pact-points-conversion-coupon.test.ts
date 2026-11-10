@@ -153,10 +153,13 @@ describe("PACT points conversion coupon", () => {
     expect(checkout).toMatch(/applyDiscountCode\(c\.code\)/);
     expect(validate).toMatch(/description/);
     expect(sv).toMatch(
-      /Dina PACT-poäng har ersatts av den här kupongen/,
+      /Dina PACT-poäng har bytts mot en kupong på \{belopp\}/,
     );
     expect(en).toMatch(
-      /Your PACT points have been replaced by this coupon/,
+      /Your PACT points have been exchanged for a coupon worth \{belopp\}/,
     );
+    expect(checkout).toMatch(/haveDiscountCode/);
+    expect(sv).toMatch(/Har du en rabattkod\?/);
+    expect(en).toMatch(/Have a discount code\?/);
   });
 });

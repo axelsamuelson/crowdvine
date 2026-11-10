@@ -22,6 +22,8 @@ import {
   shortReservationReference,
 } from "@/lib/reservations/confirmation-display-total";
 import { confirmationSharedPalletCity } from "@/lib/reservations/confirmation-destination-label";
+import { resolveWineImageSrc } from "@/lib/cart/wine-image-url";
+import { DEFAULT_WINE_IMAGE_PATH } from "@/lib/constants";
 
 function translateReservationStatus(
   status: string,
@@ -341,7 +343,7 @@ function CheckoutConfirmationContent() {
 
   return (
     <main className="min-h-screen bg-gray-50">
-      <div className="mx-auto w-full max-w-[640px] px-6 py-8 space-y-8">
+      <div className="mx-auto w-full max-w-[640px] px-6 pt-top-spacing pb-8 space-y-8">
         {/* Icon above heading so mobile content shares one column width */}
         <div className="space-y-4">
           <div
@@ -372,6 +374,10 @@ function CheckoutConfirmationContent() {
                 const confirmationEmailSent =
                   reservation?.confirmation_email_sent === true ||
                   confirmationEmailSentParam;
+                const belopp =
+                  appLocale === "en"
+                    ? `${totalSekRounded} SEK`
+                    : `${totalSekRounded} kr`;
                 return (
                   <p
                     className="text-gray-800 text-base leading-relaxed"
@@ -382,12 +388,12 @@ function CheckoutConfirmationContent() {
                   >
                     {confirmationEmailSent
                       ? t("checkout.successPurchaseComplete", {
-                          belopp: String(totalSekRounded),
+                          belopp,
                           datum,
                           email,
                         })
                       : t("checkout.successPurchaseCompleteNoEmail", {
-                          belopp: String(totalSekRounded),
+                          belopp,
                           datum,
                         })}
                   </p>
@@ -560,15 +566,29 @@ function CheckoutConfirmationContent() {
                         className="flex gap-4 rounded-2xl border border-gray-200 bg-gray-50 p-4"
                       >
                         <div className="relative w-16 h-16 shrink-0 overflow-hidden rounded-xl bg-gray-200 border border-gray-200">
-                          {item.image_url ? (
-                            <Image
-                              src={item.image_url}
-                              alt={`${item.wine_name} ${item.vintage}`}
-                              fill
-                              className="object-cover"
-                              sizes="64px"
-                            />
-                          ) : null}
+                          {(() => {
+                            const src = resolveWineImageSrc(item.image_url);
+                            const hasProductImage =
+                              Boolean(item.image_url?.trim()) &&
+                              src !== DEFAULT_WINE_IMAGE_PATH;
+                            if (!hasProductImage) {
+                              return (
+                                <div
+                                  className="absolute inset-0 bg-gray-200"
+                                  aria-hidden
+                                />
+                              );
+                            }
+                            return (
+                              <Image
+                                src={src}
+                                alt={`${item.wine_name} ${item.vintage}`}
+                                fill
+                                className="object-cover"
+                                sizes="64px"
+                              />
+                            );
+                          })()}
                         </div>
 
                         <div className="flex-1 min-w-0">

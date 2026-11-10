@@ -55,14 +55,21 @@ export function ProfilePactConversionCouponCard() {
   return (
     <div className="space-y-3" data-testid="profile-pact-coupons">
       {coupons.map((c) => {
+        const amountPlain =
+          shopping.locale === "en"
+            ? `${Math.round(c.value_sek)} SEK`
+            : `${Math.round(c.value_sek)} kr`;
         const validLabel = c.valid_until
           ? new Date(c.valid_until).toLocaleDateString(intlLocale, {
               year: "numeric",
-              month: "short",
+              month: "long",
               day: "numeric",
             })
           : null;
         const isConversion = isPactPointsConversionCoupon(c.description);
+        const titleLine = validLabel
+          ? `${t("profile.couponTitle")} · ${amountPlain} · ${t("profile.couponValidUntil", { date: validLabel })}`
+          : `${t("profile.couponTitle")} · ${amountPlain}`;
         return (
           <div
             key={c.id}
@@ -71,19 +78,13 @@ export function ProfilePactConversionCouponCard() {
             data-conversion={isConversion ? "true" : "false"}
           >
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              {t("profile.couponTitle")}
+              {titleLine}
             </p>
-            <p className="text-2xl font-semibold tabular-nums leading-none">
-              {formatSek(c.value_sek)}
-            </p>
-            {validLabel ? (
-              <p className="text-xs text-muted-foreground">
-                {t("profile.couponValidUntil", { date: validLabel })}
-              </p>
-            ) : null}
             {isConversion ? (
               <p className="text-sm text-foreground pt-1">
-                {t("profile.pactPointsReplacedByCoupon")}
+                {t("profile.pactPointsReplacedByCoupon", {
+                  belopp: formatSek(c.value_sek),
+                })}
               </p>
             ) : null}
           </div>

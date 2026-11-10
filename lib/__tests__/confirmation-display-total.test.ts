@@ -163,10 +163,18 @@ describe("confirmation success surface contracts", () => {
     expect(en.checkout.successViewReservations).toBe("View my orders");
     expect(sv.profile.reservationsTitle).toBe("Mina köp");
     expect(en.profile.reservationsTitle).toBe("My orders");
-    expect(sv.checkout.successPurchaseCompleteNoEmail).toMatch(/Tack!/);
-    expect(en.checkout.successPurchaseCompleteNoEmail).toMatch(/Thank you!/);
+    expect(sv.checkout.successPurchaseCompleteNoEmail).toMatch(/debiterar/);
+    expect(en.checkout.successPurchaseCompleteNoEmail).toMatch(/charge/i);
     expect(sv.checkout.successPurchaseCompleteNoEmail).not.toMatch(/mejlat/);
     expect(en.checkout.successPurchaseCompleteNoEmail).not.toMatch(/emailed/i);
+    expect(sv.checkout.successPurchaseComplete).not.toMatch(/Tack!/);
+    expect(en.checkout.successPurchaseComplete).not.toMatch(
+      /Thank you! Your purchase is complete/i,
+    );
+    expect(sv.checkout.successStep2WithDeadline).toMatch(/När pallen är full/);
+    expect(en.checkout.successStep2WithDeadline).toMatch(
+      /When the pallet is full/,
+    );
   });
 
   it("formats long Swedish close date for confirmation copy", () => {

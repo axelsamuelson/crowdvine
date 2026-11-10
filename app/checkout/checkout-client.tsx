@@ -308,6 +308,7 @@ function CheckoutContent({
   const pendingZoneOverrideRef = useRef<ZoneDeliveryLines | null>(null);
   const lastZoneLocationKeyRef = useRef("");
   const [discountCodeInput, setDiscountCodeInput] = useState("");
+  const [discountCodeOpen, setDiscountCodeOpen] = useState(false);
   const [appliedDiscount, setAppliedDiscount] = useState<{
     code: string;
     discount_code_id: string;
@@ -4092,11 +4093,11 @@ function CheckoutContent({
                   </div>
                 ) : null}
                 {appliedDiscount ? (
-                  <div className="flex items-center justify-between gap-2 text-emerald-700 dark:text-emerald-400">
+                  <div className="flex items-center justify-between gap-2 text-[#0A0A0A]">
                     <span>
                       {isPactPointsConversionCoupon(appliedDiscount.description)
                         ? t("checkout.conversionCouponApplied", {
-                            amount: `−${Math.round(appliedDiscount.discount_amount_sek)} ${
+                            amount: `${Math.round(appliedDiscount.discount_amount_sek)} ${
                               shopping.locale === "en" ? "SEK" : "kr"
                             }`,
                           })
@@ -4124,53 +4125,76 @@ function CheckoutContent({
                         className="space-y-2"
                         data-testid="checkout-account-coupons"
                       >
-                        {accountCoupons.map((c) => (
-                          <button
-                            key={c.id}
-                            type="button"
-                            disabled={discountApplying}
-                            onClick={() => void applyDiscountCode(c.code)}
-                            className="flex w-full items-center justify-between gap-2 rounded-md border border-foreground/20 bg-muted/40 px-3 py-2 text-left text-sm transition hover:border-foreground/40 hover:bg-muted/70 disabled:opacity-60"
-                            data-testid="checkout-account-coupon"
-                          >
-                            <span className="min-w-0 truncate font-medium">
-                              {t("checkout.yourCouponOffer", {
-                                amount: formatSek(c.value_sek),
-                              })}
-                            </span>
-                            <span className="shrink-0 text-xs font-medium underline underline-offset-2">
-                              {t("checkout.applyYourCoupon")}
-                            </span>
-                          </button>
-                        ))}
+                        {accountCoupons.map((c) => {
+                          const amountLabel =
+                            shopping.locale === "en"
+                              ? `${Math.round(c.value_sek)} SEK`
+                              : `${Math.round(c.value_sek)} kr`;
+                          return (
+                            <button
+                              key={c.id}
+                              type="button"
+                              disabled={discountApplying}
+                              onClick={() => void applyDiscountCode(c.code)}
+                              className="w-full text-left text-sm text-[#0A0A0A] transition hover:opacity-80 disabled:opacity-60"
+                              data-testid="checkout-account-coupon"
+                            >
+                              <span className="font-medium">
+                                {t("checkout.yourCouponOffer", {
+                                  amount: amountLabel,
+                                })}
+                              </span>
+                              <span className="text-muted-foreground">
+                                {" · "}
+                              </span>
+                              <span className="underline underline-offset-2">
+                                {t("checkout.applyYourCoupon")}
+                              </span>
+                            </button>
+                          );
+                        })}
                       </div>
                     ) : null}
-                    <div className="flex gap-2">
-                      <Input
-                        placeholder={t("checkout.discountCode")}
-                        value={discountCodeInput}
-                        onChange={(e) => {
-                          setDiscountCodeInput(e.target.value);
-                          setDiscountError(null);
-                        }}
-                        className="h-9 rounded-md border border-zinc-200 bg-white pl-3 text-sm text-zinc-900 shadow-sm placeholder:text-zinc-500 focus-visible:ring-zinc-300"
-                      />
-                      <Button
+                    {discountCodeOpen ? (
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder={t("checkout.discountCode")}
+                          value={discountCodeInput}
+                          onChange={(e) => {
+                            setDiscountCodeInput(e.target.value);
+                            setDiscountError(null);
+                          }}
+                          className="h-9 rounded-md border border-zinc-200 bg-white pl-3 text-sm text-zinc-900 shadow-sm placeholder:text-zinc-500 focus-visible:ring-zinc-300"
+                          autoFocus
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className={cn(
+                            "shrink-0",
+                            discountCodeInput.trim() &&
+                              !discountApplying &&
+                              "border-foreground/40 text-foreground",
+                          )}
+                          disabled={
+                            discountApplying || !discountCodeInput.trim()
+                          }
+                          onClick={() => void applyDiscountCode()}
+                        >
+                          {t("checkout.applyDiscount")}
+                        </Button>
+                      </div>
+                    ) : (
+                      <button
                         type="button"
-                        variant="outline"
-                        size="sm"
-                        className={cn(
-                          "shrink-0",
-                          discountCodeInput.trim() &&
-                            !discountApplying &&
-                            "border-foreground/40 text-foreground",
-                        )}
-                        disabled={discountApplying || !discountCodeInput.trim()}
-                        onClick={() => void applyDiscountCode()}
+                        onClick={() => setDiscountCodeOpen(true)}
+                        className="text-sm text-muted-foreground underline underline-offset-2 hover:text-foreground"
+                        data-testid="checkout-have-discount-code"
                       >
-                        {t("checkout.applyDiscount")}
-                      </Button>
-                    </div>
+                        {t("checkout.haveDiscountCode")}
+                      </button>
+                    )}
                     {discountError ? (
                       <p className="text-xs text-red-600">{discountError}</p>
                     ) : null}

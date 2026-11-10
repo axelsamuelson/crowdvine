@@ -10,6 +10,8 @@ import {
   isCustomerFacingLabel,
 } from "@/lib/reservations/confirmation-display-total";
 import { b2cWholeKronorFromOre } from "@/lib/cart/b2c-line-pricing";
+import { resolveWineImageSrc } from "@/lib/cart/wine-image-url";
+import { DEFAULT_WINE_IMAGE_PATH } from "@/lib/constants";
 
 export async function GET(
   request: Request,
@@ -155,7 +157,15 @@ export async function GET(
         quantity: item.quantity,
         vintage: item.wines?.vintage || "",
         price_cents: item.wines?.base_price_cents || 0,
-        image_url: item.wines?.label_image_path || undefined,
+        image_url: (() => {
+          const raw = item.wines?.label_image_path || null;
+          const resolved = resolveWineImageSrc(raw);
+          return resolved === DEFAULT_WINE_IMAGE_PATH && !raw?.trim()
+            ? undefined
+            : resolved === DEFAULT_WINE_IMAGE_PATH
+              ? undefined
+              : resolved;
+        })(),
         product_handle: item.wines?.handle || undefined,
         producer_name: item.wines?.producers?.name || undefined,
         producer_display_name:
