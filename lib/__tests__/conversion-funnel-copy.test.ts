@@ -20,11 +20,17 @@ describe("conversion funnel copy (sv)", () => {
     );
     expect(translate("sv", "cart.bottlesCount", { count: 1 })).toBe("1 flaska");
     expect(translate("sv", "cart.bottlesCount", { count: 2 })).toBe("2 flaskor");
-    expect(translate("sv", "cart.addMoreBottlesShortCta", { needed: 4 })).toBe(
-      "Lägg till 4 flaskor till",
+    expect(translate("sv", "cart.addMoreBottlesOutlineCta", { needed: 4 })).toBe(
+      "+ Lägg till 4 flaskor till",
+    );
+    expect(translate("sv", "cart.addMoreBottlesOutlineCta", { needed: 1 })).toBe(
+      "+ Lägg till 1 flaska till",
     );
     expect(translate("sv", "cart.needMoreMixHint", { needed: 4 })).toBe(
       "4 flaskor till – blanda fritt mellan vinerna.",
+    );
+    expect(translate("sv", "cart.needMoreMixHint", { needed: 1 })).toBe(
+      "1 flaska till – blanda fritt mellan vinerna.",
     );
   });
 

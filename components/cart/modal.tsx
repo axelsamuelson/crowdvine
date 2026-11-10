@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, PlusCircleIcon, ArrowLeft } from "lucide-react";
+import { ArrowRight, Plus, PlusCircleIcon, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
@@ -533,6 +533,7 @@ function CheckoutButton({
 }) {
   const { t, context: shopping } = useTranslations();
   const paths = useLocalizedPaths();
+  const isDirtywineSite = useB2BModeServerHint();
   const { pending } = useFormStatus();
   const { cart, isPending } = useCart();
   const router = useRouter();
@@ -543,14 +544,16 @@ function CheckoutButton({
       ? "/en/checkout"
       : cart?.checkoutUrl || "/checkout";
 
-  // Check if there are validation errors
   const hasValidationErrors = validations.some((v) => !v.isValid);
   const invalidValidations = validations.filter((v) => !v.isValid);
   const isCartScoped = validations.some((v) => v.scope === "cart");
+  const neededBottles = invalidValidations.reduce(
+    (sum, v) => sum + (v.needed || 0),
+    0,
+  );
 
-  // B2C cart-total minimum → shop. B2B pack lines → producer pages when known.
+  // B2C cart-total minimum → shop (PLP). B2B pack lines → producer pages when known.
   let redirectUrl = paths.shop;
-
   if (!isCartScoped && invalidValidations.length === 1) {
     const firstInvalidValidation = invalidValidations[0];
     redirectUrl = firstInvalidValidation?.groupId
@@ -569,74 +572,86 @@ function CheckoutButton({
   }
 
   const isLoading = pending || isValidating;
-
-  // Button should be disabled if:
-  // 1. Validation is in progress, OR
-  // 2. Normal checkout is disabled AND no validation errors (so user can't click checkout when it's disabled)
-  // 3. But if there are validation errors, button should be clickable to redirect to producer page
-  const shouldDisableButton =
+  const showAddMore = !isDirtywineSite && hasValidationErrors && neededBottles > 0;
+  const checkoutLocked = showAddMore;
+  const checkoutDisabled =
     producerOrdersPaused ||
     isValidating ||
+    checkoutLocked ||
     ((!checkoutUrl || isPending) && !hasValidationErrors);
 
-  return (
-    <Button
-      type="submit"
-      disabled={shouldDisableButton}
-      className={
-        hasValidationErrors
-          ? "font-semibold cursor-pointer whitespace-nowrap text-base transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] border border-transparent shadow-xs h-12 rounded-md px-3 has-[>svg]:pr-3 [&_svg:not([class*='size-'])]:size-6 flex relative gap-3 justify-between items-center w-full bg-[#0A0A0A] hover:bg-[#0A0A0A]/90 text-white"
-          : "font-semibold cursor-pointer whitespace-nowrap text-base transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] border border-transparent shadow-xs h-12 rounded-md px-3 has-[>svg]:pr-3 [&_svg:not([class*='size-'])]:size-6 flex relative gap-3 justify-between items-center w-full bg-[#0A0A0A] hover:bg-[#0A0A0A]/90 text-white"
-      }
-      onClick={() => {
-        // Don't allow clicks during validation
-        if (isValidating || producerOrdersPaused) {
-          return;
-        }
+  const goAddMore = () => {
+    if (isValidating || producerOrdersPaused) return;
+    closeCart();
+    router.push(redirectUrl);
+  };
 
-        if (hasValidationErrors) {
-          // Redirect to producer/group page to add more bottles
-          closeCart();
-          router.push(redirectUrl);
-        } else if (checkoutUrl) {
-          // Normal checkout flow
-          closeCart();
-          router.push(checkoutUrl);
-        }
-      }}
-    >
-      <AnimatePresence initial={false} mode="wait">
-        <motion.div
-          key={isLoading ? "loading" : "content"}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.15 }}
-          className="flex justify-center items-center w-full"
+  const goCheckout = () => {
+    if (checkoutLocked || isValidating || producerOrdersPaused || !checkoutUrl) {
+      return;
+    }
+    closeCart();
+    router.push(checkoutUrl);
+  };
+
+  return (
+    <div className="flex w-full flex-col gap-2">
+      {showAddMore ? (
+        <Button
+          type="button"
+          disabled={isValidating || producerOrdersPaused}
+          onClick={goAddMore}
+          className="font-semibold cursor-pointer whitespace-nowrap text-base transition-all disabled:pointer-events-none disabled:opacity-50 h-12 rounded-md px-3 flex items-center justify-center gap-2 w-full bg-white text-[#0A0A0A] border border-[#0A0A0A] hover:bg-neutral-50 shadow-none"
         >
-          {isLoading ? (
-            <Loader size="default" />
-          ) : (
-            <div className="flex justify-between items-center w-full gap-2">
-              <span className="text-left leading-snug">
-                {isValidating
-                  ? t("cart.validating")
-                  : hasValidationErrors
-                    ? t("cart.addMoreBottlesShortCta", {
-                        needed: invalidValidations.reduce(
-                          (sum, v) => sum + (v.needed || 0),
-                          0,
-                        ),
-                      })
-                    : inquiryMode
-                      ? t("cart.sendInquiry")
-                      : t("cart.proceedToCheckout")}
-              </span>
-              <ArrowRight className="size-6 shrink-0" />
-            </div>
-          )}
-        </motion.div>
-      </AnimatePresence>
-    </Button>
+          <Plus className="size-5 shrink-0" aria-hidden />
+          <span className="leading-snug">
+            {t("cart.addMoreBottlesOutlineCta", { needed: neededBottles })}
+          </span>
+        </Button>
+      ) : null}
+
+      <Button
+        type="submit"
+        disabled={checkoutDisabled}
+        aria-disabled={checkoutLocked || checkoutDisabled ? true : undefined}
+        className={cn(
+          "font-semibold whitespace-nowrap text-base transition-all [&_svg]:pointer-events-none shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] shadow-xs h-12 rounded-md px-3 has-[>svg]:pr-3 [&_svg:not([class*='size-'])]:size-6 flex relative gap-3 justify-between items-center w-full",
+          checkoutLocked
+            ? "bg-neutral-200 text-neutral-500 border border-transparent pointer-events-none cursor-not-allowed hover:bg-neutral-200"
+            : "cursor-pointer border border-transparent bg-[#0A0A0A] hover:bg-[#0A0A0A]/90 text-white disabled:pointer-events-none disabled:opacity-50",
+        )}
+        onClick={(e) => {
+          if (checkoutLocked) {
+            e.preventDefault();
+            return;
+          }
+          goCheckout();
+        }}
+      >
+        <AnimatePresence initial={false} mode="wait">
+          <motion.div
+            key={isLoading ? "loading" : checkoutLocked ? "locked" : "content"}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="flex justify-center items-center w-full"
+          >
+            {isLoading ? (
+              <Loader size="default" />
+            ) : (
+              <div className="flex justify-between items-center w-full gap-2">
+                <span className="text-left leading-snug">
+                  {inquiryMode && !checkoutLocked
+                    ? t("cart.sendInquiry")
+                    : t("cart.proceedToCheckout")}
+                </span>
+                <ArrowRight className="size-6 shrink-0" />
+              </div>
+            )}
+          </motion.div>
+        </AnimatePresence>
+      </Button>
+    </div>
   );
 }
