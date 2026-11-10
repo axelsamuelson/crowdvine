@@ -143,9 +143,20 @@ export function ShopWineCaseSheet({
             },
           );
           onOpenChange(false);
+        } else {
+          void AnalyticsTracker.trackAddToCartFailed({
+            reason: "http_error",
+            productId: product.id,
+            source: analyticsSource,
+            http_status: response.status,
+          });
         }
       } catch {
-        /* noop */
+        void AnalyticsTracker.trackAddToCartFailed({
+          reason: "network_error",
+          productId: product.id,
+          source: analyticsSource,
+        });
       }
     });
   }, [analyticsSource, mode, onOpenChange, product, resolvedVariant]);

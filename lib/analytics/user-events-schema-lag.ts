@@ -36,7 +36,7 @@ export function markUserEventsSchemaLag(): void {
 /** True when PostgREST / Postgres error looks like a schema/column mismatch. */
 export function isUserEventsSchemaError(message: string | null | undefined): boolean {
   const m = String(message ?? "");
-  return /visitor_id|country_code|event_type|event_category|session_id|page_url|user_agent|referrer|event_name|schema cache|Could not find|PGRST|column/i.test(
+  return /visitor_id|country_code|event_type|event_category|session_id|page_url|user_agent|referrer|event_name|\bhost\b|\bsite\b|schema cache|Could not find|PGRST|column/i.test(
     m,
   );
 }

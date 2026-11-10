@@ -155,9 +155,20 @@ export function AddToCartWithSource({
               statusText: response.statusText,
               error: errorText,
             });
+            void AnalyticsTracker.trackAddToCartFailed({
+              reason: "http_error",
+              productId: product.id,
+              source: "b2b",
+              http_status: response.status,
+            });
           }
         } catch (error) {
           console.error("🛒 [PDP] Error adding to cart:", error);
+          void AnalyticsTracker.trackAddToCartFailed({
+            reason: "network_error",
+            productId: product.id,
+            source: "b2b",
+          });
         }
       });
     }

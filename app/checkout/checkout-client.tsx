@@ -1092,7 +1092,6 @@ function CheckoutContent({
       void AnalyticsTracker.trackCheckoutStarted(cartValue, bottleCount, {
         cart_value: cartValue,
         bottle_count: bottleCount,
-        site: "pact",
         payment_method: "card",
         list_price,
         unit_price,

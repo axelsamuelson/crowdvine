@@ -220,6 +220,13 @@ export const TRACKED_USER_EVENTS_CATALOG: TrackedEventCatalogEntry[] = [
     sources: ["client"],
   },
   {
+    eventType: "add_to_cart_failed",
+    category: "cart",
+    description:
+      "Add-to-cart request failed. Metadata.reason: http_error | network_error | empty_cart | unknown; optional productId, source, http_status. No PII.",
+    sources: ["client"],
+  },
+  {
     eventType: "remove_from_cart",
     category: "cart",
     description: "Line item removed from cart (quantity set to 0 / delete).",

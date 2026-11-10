@@ -131,9 +131,20 @@ export function AddToCartWithQuantity({
             setQuantity(B2B_MIN_LINE_BOTTLES);
           } else {
             console.error("🛒 [PDP] Failed to add items to cart");
+            void AnalyticsTracker.trackAddToCartFailed({
+              reason: "http_error",
+              productId: product.id,
+              source: "b2b",
+              http_status: response.status,
+            });
           }
         } catch (error) {
           console.error("🛒 [PDP] Error adding to cart:", error);
+          void AnalyticsTracker.trackAddToCartFailed({
+            reason: "network_error",
+            productId: product.id,
+            source: "b2b",
+          });
         }
       });
     }

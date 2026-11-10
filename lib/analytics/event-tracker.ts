@@ -5,16 +5,30 @@ import {
   readFirstTouchForMetadata,
   readGeoCountryCode,
 } from "@/lib/analytics/visitor-identity";
-import { isStaleRefreshTokenError, isAuthNetworkError } from "@/lib/auth/session-errors";
-import {
-  isUserEventsSchemaError,
-  isUserEventsSchemaLag,
-  markUserEventsSchemaLag,
-} from "@/lib/analytics/user-events-schema-lag";
-import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { isAuthNetworkError } from "@/lib/auth/session-errors";
+
+/** First-party analytics ingest (replaces direct Supabase REST from the browser). */
+export const FIRST_PARTY_ANALYTICS_PATH = "/api/e";
+
+/**
+ * Legacy unused path: browser → Supabase REST `user_events`.
+ * Kept removable for rollback; the live tracker posts to {@link FIRST_PARTY_ANALYTICS_PATH}.
+ */
+export function legacySupabaseUserEventsRestUrl(
+  supabaseUrl: string = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
+): string {
+  return `${supabaseUrl.replace(/\/$/, "")}/rest/v1/user_events`;
+}
 
 /** Where a Reserve / add-to-cart CTA was clicked. */
 export type CartEventSource = "list" | "product" | "guide" | "b2b" | "pdp_case";
+
+/** Machine reason codes for add_to_cart_failed — never free-text / PII. */
+export type AddToCartFailReason =
+  | "http_error"
+  | "network_error"
+  | "empty_cart"
+  | "unknown";
 
 export type EventType =
   // Access & Auth
@@ -53,6 +67,7 @@ export type EventType =
   | "guide_filter"
   // Cart & Validation
   | "add_to_cart"
+  | "add_to_cart_failed"
   | "remove_from_cart"
   | "cart_opened"
   | "cart_validation_shown"
@@ -123,8 +138,8 @@ interface TrackEventParams {
   pageUrl?: string;
   referrer?: string;
   /**
-   * Use fetch keepalive so the insert survives page unload
-   * (visibility hidden / pagehide / unmount). Skips auth lookup.
+   * Use sendBeacon / fetch keepalive so the insert survives page unload
+   * (visibility hidden / pagehide / unmount).
    */
   keepalive?: boolean;
 }
@@ -194,166 +209,77 @@ export class AnalyticsTracker {
       eventMetadata = { ...eventMetadata, internal: true };
     }
 
-    let userId: string | null = null;
-
-    if (!keepalive) {
-      let supabase;
-      try {
-        supabase = getSupabaseBrowserClient();
-      } catch {
-        return;
-      }
-
-      try {
-        const {
-          data: { user },
-          error: authError,
-        } = await supabase.auth.getUser();
-        if (authError) {
-          if (isStaleRefreshTokenError(authError)) {
-            await supabase.auth.signOut({ scope: "local" });
-          } else if (process.env.NODE_ENV === "development") {
-            console.warn("[analytics] auth.getUser:", authError.message);
-          }
-        } else {
-          userId = user?.id ?? null;
-        }
-      } catch (e) {
-        if (isStaleRefreshTokenError(e)) {
-          await supabase.auth.signOut({ scope: "local" });
-        } else if (
-          !isAuthNetworkError(e) &&
-          process.env.NODE_ENV === "development"
-        ) {
-          console.warn("[analytics] auth.getUser:", e);
-        }
-      }
-    }
+    // Never send client-claimed user_id / site / host — server resolves those.
+    const {
+      site: _clientSite,
+      host: _clientHost,
+      user_id: _clientUserId,
+      ...safeMetadata
+    } = eventMetadata as Record<string, unknown>;
 
     const eventData = {
-      user_id: userId,
       session_id: this.getSessionId(),
       visitor_id: visitorId || null,
       country_code: countryCode,
       event_type: eventType,
       event_category: eventCategory,
-      event_metadata: eventMetadata,
+      event_metadata: safeMetadata,
       page_url: pageUrl || window.location.href,
       referrer: safeReferrer || null,
       user_agent: navigator.userAgent,
     };
 
-    // Preview/audit DBs may use a stub user_events (event_name only) or lag
-    // migrations 181/186. After first column miss, insert stub shape only —
-    // never keep POSTing the production payload (repeated 400s).
-    const stubRow = {
-      user_id: userId,
-      event_name: eventType,
-      event_metadata: eventMetadata,
-    };
+    const body = JSON.stringify(eventData);
 
-    const stripNewCols = <T extends Record<string, unknown>>(row: T) => {
-      const {
-        visitor_id: _omitVisitor,
-        country_code: _omitCountry,
-        ...rest
-      } = row;
-      return rest;
-    };
-
-    if (keepalive) {
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-      if (!supabaseUrl || !anonKey) return;
-      const body = isUserEventsSchemaLag()
-        ? stubRow
-        : stripNewCols(eventData);
+    const postFirstParty = (useKeepalive: boolean) => {
       try {
-        void fetch(`${supabaseUrl}/rest/v1/user_events`, {
+        if (
+          useKeepalive &&
+          typeof navigator !== "undefined" &&
+          typeof navigator.sendBeacon === "function"
+        ) {
+          const blob = new Blob([body], { type: "application/json" });
+          if (navigator.sendBeacon(FIRST_PARTY_ANALYTICS_PATH, blob)) {
+            return;
+          }
+        }
+        void fetch(FIRST_PARTY_ANALYTICS_PATH, {
           method: "POST",
-          headers: {
-            apikey: anonKey,
-            Authorization: `Bearer ${anonKey}`,
-            "Content-Type": "application/json",
-            Prefer: "return=minimal",
-          },
-          body: JSON.stringify(body),
-          keepalive: true,
-        })
-          .then((res) => {
-            if (!res.ok && res.status >= 400 && res.status < 500) {
-              markUserEventsSchemaLag();
-            }
-          })
-          .catch(() => {
-            // unload — ignore
-          });
+          headers: { "Content-Type": "application/json" },
+          body,
+          keepalive: useKeepalive,
+          credentials: "same-origin",
+        }).catch(() => {
+          // unload / network — ignore
+        });
       } catch {
         // unload — ignore
       }
-      return;
-    }
+    };
 
-    let supabase;
-    try {
-      supabase = getSupabaseBrowserClient();
-    } catch {
+    if (keepalive) {
+      postFirstParty(true);
       return;
     }
 
     try {
-      if (isUserEventsSchemaLag()) {
-        const stub = await supabase.from("user_events").insert(stubRow);
-        if (
-          stub.error &&
-          process.env.NODE_ENV === "development" &&
-          stub.error.message
-        ) {
-          console.warn(
-            "[analytics] user_events stub insert:",
-            stub.error.message,
-          );
-        }
-        return;
-      }
-
-      const { error } = await supabase.from("user_events").insert(eventData);
-      if (error) {
-        const m = error.message || "";
-        if (isUserEventsSchemaError(m) || /400|PGRST/i.test(m)) {
-          markUserEventsSchemaLag();
-          // Retry once without visitor_id/country_code (181/186 lag).
-          const withoutNewCols = stripNewCols(eventData);
-          const retry = await supabase
-            .from("user_events")
-            .insert(withoutNewCols);
-          if (!retry.error) return;
-          markUserEventsSchemaLag();
-          // Audit stub: only event_name (+ metadata/user_id).
-          const stub = await supabase.from("user_events").insert(stubRow);
-          if (
-            stub.error &&
-            process.env.NODE_ENV === "development"
-          ) {
-            console.warn(
-              "[analytics] user_events schema lag — stub insert failed:",
-              stub.error.message,
-            );
-          }
-          return;
-        }
-        if (
-          process.env.NODE_ENV === "development" &&
-          m &&
-          !/failed to fetch|fetch/i.test(m)
-        ) {
-          console.warn("[analytics] user_events insert:", m);
-        }
+      const res = await fetch(FIRST_PARTY_ANALYTICS_PATH, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body,
+        credentials: "same-origin",
+      });
+      if (
+        !res.ok &&
+        process.env.NODE_ENV === "development" &&
+        res.status >= 400
+      ) {
+        console.warn("[analytics] /api/e:", res.status);
       }
     } catch (e) {
       if (isAuthNetworkError(e)) return;
       if (process.env.NODE_ENV === "development") {
-        console.warn("[analytics] user_events:", e);
+        console.warn("[analytics] /api/e:", e);
       }
     }
   }
@@ -410,6 +336,29 @@ export class AnalyticsTracker {
         ...(extras?.unit_price != null ? { unit_price: extras.unit_price } : {}),
         ...(extras?.price_version
           ? { price_version: extras.price_version }
+          : {}),
+      },
+    });
+  }
+
+  /**
+   * Add-to-cart failure. Metadata uses reason codes only — no error message / PII.
+   */
+  static trackAddToCartFailed(extras: {
+    reason: AddToCartFailReason;
+    productId?: string;
+    source?: CartEventSource | string;
+    http_status?: number;
+  }) {
+    return this.trackEvent({
+      eventType: "add_to_cart_failed",
+      eventCategory: "cart",
+      metadata: {
+        reason: extras.reason,
+        ...(extras.productId ? { productId: extras.productId } : {}),
+        ...(extras.source ? { source: extras.source } : {}),
+        ...(extras.http_status != null
+          ? { http_status: extras.http_status }
           : {}),
       },
     });
@@ -477,6 +426,7 @@ export class AnalyticsTracker {
     cartValue: number,
     itemCount: number,
     extras?: {
+      /** @deprecated Ignored — site is derived server-side from Host. */
       site?: string;
       payment_method?: string;
       list_price?: number;
@@ -500,7 +450,7 @@ export class AnalyticsTracker {
         ...(extras?.step ? { step: extras.step } : {}),
         ...(extras?.market ? { market: extras.market } : {}),
         ...(extras?.currency ? { currency: extras.currency } : {}),
-        site: extras?.site ?? "pact",
+        // site is set server-side on /api/e — do not default to 'pact' here
         payment_method: extras?.payment_method ?? "card",
         ...(extras?.list_price != null ? { list_price: extras.list_price } : {}),
         ...(extras?.unit_price != null ? { unit_price: extras.unit_price } : {}),

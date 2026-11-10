@@ -486,9 +486,20 @@ export function AddToCartCase({
         } else {
           // Revert optimistic snapshot on failure (best-effort).
           if (cartApi?.cart) dispatchCartRefresh(cartApi.cart);
+          void AnalyticsTracker.trackAddToCartFailed({
+            reason: "http_error",
+            productId: product.id,
+            source: analyticsSource,
+            http_status: response.status,
+          });
         }
       } catch {
         if (cartApi?.cart) dispatchCartRefresh(cartApi.cart);
+        void AnalyticsTracker.trackAddToCartFailed({
+          reason: "network_error",
+          productId: product.id,
+          source: analyticsSource,
+        });
       }
     });
   };
@@ -520,6 +531,12 @@ export function AddToCartCase({
               ? result.error
               : t("cart.addMixedCaseError"),
           );
+          void AnalyticsTracker.trackAddToCartFailed({
+            reason: "http_error",
+            productId: product.id,
+            source: analyticsSource,
+            http_status: response.status,
+          });
           return;
         }
 
@@ -547,6 +564,11 @@ export function AddToCartCase({
         setSheetOpen(false);
       } catch {
         setBatchAddError(t("cart.networkError"));
+        void AnalyticsTracker.trackAddToCartFailed({
+          reason: "network_error",
+          productId: product.id,
+          source: analyticsSource,
+        });
       }
     });
   };
