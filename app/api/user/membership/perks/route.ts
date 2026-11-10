@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getCurrentUser } from "@/lib/auth";
 import { isMemberTierDiscountEnabled } from "@/lib/membership/member-discount-config";
+import { sanitizeCustomerPerks } from "@/lib/membership/sanitize-perk-description";
 
 /**
  * GET /api/user/membership/perks?level=gold
@@ -33,10 +34,12 @@ export async function GET(request: Request) {
     if (error) throw error;
 
     const memberDiscountOn = await isMemberTierDiscountEnabled();
-    const safePerks = (perks || []).filter((p) => {
-      if (p?.perk_type === "discount" && !memberDiscountOn) return false;
-      return true;
-    });
+    const safePerks = sanitizeCustomerPerks(
+      (perks || []).filter((p) => {
+        if (p?.perk_type === "discount" && !memberDiscountOn) return false;
+        return true;
+      }),
+    );
 
     return NextResponse.json({ perks: safePerks });
   } catch (error) {

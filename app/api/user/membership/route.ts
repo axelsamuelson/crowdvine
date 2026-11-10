@@ -14,6 +14,7 @@ import {
 import { getCurrentTier, TIER_THRESHOLDS } from "@/lib/membership/pact-points-engine";
 import { isMemberTierDiscountEnabled } from "@/lib/membership/member-discount-config";
 import { isPactPointsEarningEnabled } from "@/lib/membership/pact-points-earning-config";
+import { sanitizeCustomerPerks } from "@/lib/membership/sanitize-perk-description";
 
 function getNextPactTier(current: MembershipLevel): MembershipLevel | null {
   if (current === "founding_member") return null;
@@ -78,10 +79,12 @@ export async function GET() {
       isMemberTierDiscountEnabled(),
       isPactPointsEarningEnabled(),
     ]);
-    const safePerks = (perksError ? [] : perks || []).filter((p) => {
-      if (p?.perk_type === "discount" && !memberDiscountOn) return false;
-      return true;
-    });
+    const safePerks = sanitizeCustomerPerks(
+      (perksError ? [] : perks || []).filter((p) => {
+        if (p?.perk_type === "discount" && !memberDiscountOn) return false;
+        return true;
+      }),
+    );
 
     // Get available invites
     const inviteInfo = await getAvailableInvites(user.id);

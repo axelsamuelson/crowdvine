@@ -88,7 +88,7 @@ export const IP_CONFIG = {
   RATE_LIMIT_HOURS: 24, // Hours between rate-limited actions
 } as const;
 
-/** Permanent discount % shown in UI / parity with membership_perks for founding tier */
+/** Historical founding tier % in membership_perks (gated by member_tier_discount_enabled). */
 export const FOUNDING_MEMBER_DISCOUNT_PERCENT = 15;
 
 /** Reserved for Prompt B — double IP on qualifying events */
