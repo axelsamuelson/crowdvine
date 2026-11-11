@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,6 +46,8 @@ interface ReservationEditFormProps {
   zones: Zone[];
   pallets: Pallet[];
   wines: Wine[];
+  /** Full-width slot under the Order header (e.g. direct-box panel). */
+  afterHeader?: ReactNode;
 }
 
 type Zone = { id: string; name: string; type: "pickup" | "delivery" | string };
@@ -195,6 +197,7 @@ export default function ReservationEditForm({
   zones,
   pallets,
   wines,
+  afterHeader,
 }: ReservationEditFormProps) {
   const router = useRouter();
   const [isArchived, setIsArchived] = useState(
@@ -481,6 +484,12 @@ export default function ReservationEditForm({
           </Button>
         </div>
       </div>
+
+      {afterHeader ? (
+        <div className="w-full" data-testid="reservation-after-header">
+          {afterHeader}
+        </div>
+      ) : null}
 
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
         {/* LEFT: main */}

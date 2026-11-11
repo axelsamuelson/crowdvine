@@ -164,40 +164,30 @@ export default async function B2cOrderEditPage({
     },
   );
 
-  const orderNumber =
-    (typeof reservation.order_id === "string" &&
-      reservation.order_id.trim()) ||
-    reservation.id.substring(0, 8).toUpperCase();
-
   return (
     <div className="container mx-auto space-y-6 py-8">
-      <div className="space-y-1">
-        <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
-          Order {orderNumber}
-        </h1>
-      </div>
-
-      {isDirectBox ? (
-        <DirectBoxFulfillmentPanel
-          reservationId={reservation.id}
-          orderCreatedAt={reservation.created_at}
-          fulfillmentDispatchStatus={
-            reservation.fulfillment_dispatch_status ?? null
-          }
-          deliveredAt={reservation.delivered_at ?? null}
-          statusUpdatedAt={
-            reservation.fulfillment_dispatch_status_updated_at ?? null
-          }
-          items={pickListItems}
-          shipments={shipments}
-        />
-      ) : null}
-
       <ReservationEditForm
         reservation={reservation}
         zones={zones || []}
         pallets={pallets || []}
         wines={wines || []}
+        afterHeader={
+          isDirectBox ? (
+            <DirectBoxFulfillmentPanel
+              reservationId={reservation.id}
+              orderCreatedAt={reservation.created_at}
+              fulfillmentDispatchStatus={
+                reservation.fulfillment_dispatch_status ?? null
+              }
+              deliveredAt={reservation.delivered_at ?? null}
+              statusUpdatedAt={
+                reservation.fulfillment_dispatch_status_updated_at ?? null
+              }
+              items={pickListItems}
+              shipments={shipments}
+            />
+          ) : null
+        }
       />
     </div>
   );
