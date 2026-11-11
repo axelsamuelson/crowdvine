@@ -3,10 +3,28 @@
  * Client-safe — no next/headers or Supabase imports.
  */
 
+import {
+  DISPATCH_STATUS_LABELS_SV,
+  isDirectBoxDispatchStatus,
+  normalizeDispatchStatus,
+} from "@/lib/commerce/direct-box-dispatch";
+
 export type AdminFulfillmentBadge =
   | { kind: "fulfillment"; label: string; title?: string }
   | { kind: "charge_hold"; label: string; title: string }
   | null;
+
+const CHANNEL_LABEL_SV: Record<string, string> = {
+  direct_box: "Direktleverans",
+  shared_pallet: "Delad pall",
+};
+
+function dispatchStatusLabelSv(dispatch: string): string {
+  if (isDirectBoxDispatchStatus(dispatch)) {
+    return DISPATCH_STATUS_LABELS_SV[dispatch];
+  }
+  return dispatch;
+}
 
 /** Never labels DIRECT_BOX handoff as Charge hold. */
 export function resolveAdminFulfillmentDisplay(row: {
@@ -19,21 +37,26 @@ export function resolveAdminFulfillmentDisplay(row: {
   const channel = String(row.fulfillment_channel ?? "").trim();
   const hold = String(row.charge_blocked_reason ?? "").trim();
 
+  const channelLabel = CHANNEL_LABEL_SV[channel] ?? channel;
+
   if (dispatch) {
-    const isPending = dispatch === "pending_manual_handoff";
+    const statusLabel = dispatchStatusLabelSv(dispatch);
     out.push({
       kind: "fulfillment",
-      label: isPending
-        ? "Direct box: pending_manual_handoff"
-        : channel === "direct_box"
-          ? `Direct box: ${dispatch}`
-          : `Fulfillment: ${dispatch}`,
+      label:
+        channel === "direct_box"
+          ? `${channelLabel}: ${statusLabel}`
+          : `Fulfillment: ${statusLabel}`,
       title: dispatch,
     });
   } else if (channel === "direct_box") {
+    const pending = DISPATCH_STATUS_LABELS_SV[
+      normalizeDispatchStatus(null)
+    ];
     out.push({
       kind: "fulfillment",
-      label: "Direct box: pending_manual_handoff (dispatch unset)",
+      label: `${channelLabel}: ${pending}`,
+      title: "pending_manual_handoff",
     });
   }
 
