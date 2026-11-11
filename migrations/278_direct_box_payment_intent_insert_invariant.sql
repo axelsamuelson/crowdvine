@@ -1,4 +1,3 @@
--- DRAFT / REVIEW ONLY — do NOT apply without owner + Hugo/Ines approval.
 -- Documents the DB invariant that makes concurrent direct_box confirm idempotent.
 --
 -- No new index: migration 138 already created

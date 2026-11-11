@@ -2,7 +2,7 @@
 -- REQUIRES migration 277 first (customer_shipping_rates.channel allows 'direct_box').
 -- flat_fee_cents = 14900 (149 SEK incl. VAT) PER BOX of 6 bottles.
 -- Application multiplies by (bottle_count / 6) in lib/customer-shipping-pricing.ts.
--- Do NOT apply from an agent. Order in prod: 277 → 278 → 288.
+-- Order in prod: 277 → 278 → 288.
 
 INSERT INTO customer_shipping_rates (
   channel,

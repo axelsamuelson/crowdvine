@@ -1,0 +1,63 @@
+import { describe, expect, it } from "vitest";
+import {
+  allowedDispatchTransitions,
+  assertDispatchTransition,
+  canTransitionDispatchStatus,
+  normalizeDispatchStatus,
+} from "@/lib/commerce/direct-box-dispatch";
+
+describe("direct-box dispatch transitions", () => {
+  it("normalizes null/unknown to pending_manual_handoff", () => {
+    expect(normalizeDispatchStatus(null)).toBe("pending_manual_handoff");
+    expect(normalizeDispatchStatus(undefined)).toBe("pending_manual_handoff");
+    expect(normalizeDispatchStatus("nope")).toBe("pending_manual_handoff");
+  });
+
+  it("allows pending_manual_handoff → booked | skipped | cancelled", () => {
+    expect(allowedDispatchTransitions("pending_manual_handoff")).toEqual([
+      "booked",
+      "skipped",
+      "cancelled",
+    ]);
+    expect(canTransitionDispatchStatus(null, "booked")).toBe(true);
+    expect(canTransitionDispatchStatus("pending_manual_handoff", "skipped")).toBe(
+      true,
+    );
+    expect(
+      canTransitionDispatchStatus("pending_manual_handoff", "cancelled"),
+    ).toBe(true);
+    expect(
+      canTransitionDispatchStatus("pending_manual_handoff", "completed"),
+    ).toBe(false);
+  });
+
+  it("allows booked → completed | cancelled", () => {
+    expect(allowedDispatchTransitions("booked")).toEqual([
+      "completed",
+      "cancelled",
+    ]);
+    expect(canTransitionDispatchStatus("booked", "completed")).toBe(true);
+    expect(canTransitionDispatchStatus("booked", "cancelled")).toBe(true);
+    expect(canTransitionDispatchStatus("booked", "skipped")).toBe(false);
+    expect(canTransitionDispatchStatus("booked", "pending_manual_handoff")).toBe(
+      false,
+    );
+  });
+
+  it("blocks transitions from terminal statuses", () => {
+    for (const terminal of ["completed", "cancelled", "skipped"] as const) {
+      expect(allowedDispatchTransitions(terminal)).toEqual([]);
+      expect(canTransitionDispatchStatus(terminal, "booked")).toBe(false);
+    }
+  });
+
+  it("assertDispatchTransition throws on illegal moves", () => {
+    expect(() =>
+      assertDispatchTransition("pending_manual_handoff", "completed"),
+    ).toThrow(/Illegal/);
+    expect(() => assertDispatchTransition("booked", "skipped")).toThrow(
+      /Illegal/,
+    );
+    expect(assertDispatchTransition("booked", "completed")).toBe("completed");
+  });
+});
