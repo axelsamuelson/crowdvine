@@ -71,9 +71,10 @@ export const PALLET_COVERAGE_CLOSE_DEFAULTS = {
   /** Weekday for scheduled lock (0=Sun … 1=Mon … 6=Sat). */
   lockWeekday: 1,
   /**
-   * Sold-out customer choice reply window (days).
-   * No answer → remove wine and don't charge (Axel confirmed 00:41).
-   */
+    * Sold-out customer choice reply window (days).
+    * No answer: remove if packing stays valid; else cancel whole order
+    * without charge (Axel 01:00 packing rule).
+    */
   soldOutChoiceReplyDays: 7,
 } as const;
 

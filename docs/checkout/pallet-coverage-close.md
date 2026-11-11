@@ -24,8 +24,17 @@ Instabee is denominator-only. Cap 600 bottles → lock immediately. Time thresho
 
 Env knobs: `PALLET_COVERAGE_DAY_7` / `PALLET_COVERAGE_RATIO_DAY7` (default 1.25), plus `_DAY_100` / `_RATIO_100`, `_DAY_FLOOR` / `_RATIO_FLOOR`.
 
-**Sold-out at lock**
+**Sold-out at lock** (Axel 01:00 packing rule)
 
-Admin marks wine unavailable → lines `pending_choice` → email + `/pallet-lock-choice`. Charge = original − removed + pricier replacement delta only. No answer → **remove and don't charge** (Axel confirmed 00:41).
+Each producer/wholesaler packs boxes of **6** (`wines.source_type` + `producer_id` / `source_name`). Mix within a source is OK.
 
-Code: `lib/pallet-coverage-close/`. Cron: `/api/cron/pallet-coverage-close`.
+Admin marks wine unavailable → lines `pending_choice` → email + `/pallet-lock-choice`.
+
+- If removing the wine still leaves every source at a multiple of 6 → **replace** (same source) or **remove**.
+- If removal would break packing → **replace** (same source) or **cancel the whole order** (nothing charged; bottles leave the pallet).
+- No answer: remove when packing stays valid; otherwise cancel the whole order without charge.
+- Coverage is recomputed after removal/cancellation (cron loads only active reservations / non-removed lines).
+
+Charge when not cancelled = original − removed + pricier replacement delta only.
+
+Code: `lib/pallet-coverage-close/` + `lib/cart/packing-source.ts`. Cron: `/api/cron/pallet-coverage-close`.

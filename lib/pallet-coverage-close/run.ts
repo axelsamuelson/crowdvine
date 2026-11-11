@@ -1,6 +1,8 @@
 /**
  * Coverage-close cron runner. Default OFF (PALLET_COVERAGE_CLOSE_ENABLED).
- * Never auto-cancels orders. Charges only after lock (existing charge path).
+ * Does not auto-cancel for coverage shortfalls. Sold-out packing timeouts may
+ * cancel an order when removal would break the 6-per-source rule (Axel 01:00).
+ * Charges only after lock (existing charge path).
  */
 
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
@@ -15,7 +17,12 @@ import { buildPalletLockHeadsUpEmail } from "@/lib/pallet-coverage-close/emails"
 import { sendTransactionalEmailOnce } from "@/lib/email/claim-email-send";
 import { sendEmail } from "@/lib/email";
 import { createPalletCloseActionToken } from "@/lib/checkout/pallet-close/tokens";
-import { applySoldOutChoiceTimeout } from "@/lib/pallet-coverage-close/sold-out-choice";
+import { cancelReservationAndDetachPaymentMethod } from "@/lib/checkout/pallet-close/cancel";
+import {
+  applySoldOutChoiceTimeout,
+  packingSourceIdForWine,
+  type SoldOutLineSnapshot,
+} from "@/lib/pallet-coverage-close/sold-out-choice";
 import { resolveAmountOre } from "@/lib/checkout/pallet-close/resolve-amount-ore";
 
 export type CoverageCloseRunSummary = {
@@ -27,6 +34,7 @@ export type CoverageCloseRunSummary = {
   scheduleCleared: number;
   headsUpSent: number;
   soldOutTimedOut: number;
+  soldOutOrderCancelled: number;
   skipped: number;
   errors: number;
   actions: Array<Record<string, unknown>>;
@@ -161,6 +169,7 @@ export async function runPalletCoverageClose(opts?: {
     scheduleCleared: 0,
     headsUpSent: 0,
     soldOutTimedOut: 0,
+    soldOutOrderCancelled: 0,
     skipped: 0,
     errors: 0,
     actions: [],
@@ -172,7 +181,8 @@ export async function runPalletCoverageClose(opts?: {
 
   const sb = getSupabaseAdmin();
 
-  // Process sold-out choice timeouts (no answer → remove, don't charge).
+  // Sold-out timeouts: remove when packing stays valid; else cancel order.
+  // Coverage is recomputed below from active (non-cancelled) reservations.
   const { data: pendingLines } = await sb
     .from("order_reservation_items")
     .select("id, reservation_id, sold_out_choice_reply_by, quantity, item_id")
@@ -180,32 +190,130 @@ export async function runPalletCoverageClose(opts?: {
     .lt("sold_out_choice_reply_by", now.toISOString())
     .limit(200);
 
+  const pendingByReservation = new Map<string, string[]>();
   for (const line of pendingLines ?? []) {
-    const timed = applySoldOutChoiceTimeout([
-      {
-        lineId: line.id as string,
-        wineId: String(line.item_id),
-        quantity: Number(line.quantity) || 0,
-        originalAmountOre: 0,
-        state: "pending_choice",
-      },
-    ])[0]!;
-    const { error } = await sb
+    const rid = String(line.reservation_id);
+    const list = pendingByReservation.get(rid) ?? [];
+    list.push(String(line.id));
+    pendingByReservation.set(rid, list);
+  }
+
+  for (const [reservationId, pendingIds] of pendingByReservation) {
+    const { data: orderLines, error: linesErr } = await sb
       .from("order_reservation_items")
-      .update({
-        sold_out_choice_state: timed.state,
-        sold_out_choice_at: now.toISOString(),
-        sold_out_replacement_wine_id: null,
-        sold_out_replacement_amount_ore: null,
-      })
-      .eq("id", line.id)
-      .eq("sold_out_choice_state", "pending_choice");
-    if (!error) {
-      summary.soldOutTimedOut += 1;
+      .select(
+        "id, item_id, quantity, sold_out_choice_state, wines(source_type, source_name, producer_id, base_price_cents)",
+      )
+      .eq("reservation_id", reservationId);
+
+    if (linesErr || !orderLines?.length) {
+      summary.errors += 1;
       summary.actions.push({
-        event: "sold_out_timeout_removed",
-        line_id: line.id,
+        event: "sold_out_timeout_load_error",
+        reservation_id: reservationId,
+        message: linesErr?.message,
       });
+      continue;
+    }
+
+    const snapshots: SoldOutLineSnapshot[] = orderLines.map((row) => {
+      const wineRaw = (
+        row as {
+          wines?:
+            | {
+                source_type?: string | null;
+                source_name?: string | null;
+                producer_id?: string | null;
+                base_price_cents?: number | null;
+              }
+            | {
+                source_type?: string | null;
+                source_name?: string | null;
+                producer_id?: string | null;
+                base_price_cents?: number | null;
+              }[]
+            | null;
+        }
+      ).wines;
+      const wine = Array.isArray(wineRaw) ? wineRaw[0] : wineRaw;
+      const qty = Math.max(0, Math.floor(Number(row.quantity) || 0));
+      const unit = Number(wine?.base_price_cents) || 0;
+      const sourceType = wine?.source_type ?? "producer";
+      const sourceName = wine?.source_name ?? null;
+      const producerId = wine?.producer_id ?? null;
+      return {
+        lineId: String(row.id),
+        wineId: String(row.item_id),
+        quantity: qty,
+        originalAmountOre: Math.round(unit * qty),
+        state:
+          (row.sold_out_choice_state as SoldOutLineSnapshot["state"]) || "ok",
+        packingSourceId: packingSourceIdForWine({
+          sourceType,
+          sourceName,
+          producerId,
+        }),
+        sourceType,
+        sourceName,
+        producerId,
+      };
+    });
+
+    const timed = applySoldOutChoiceTimeout(snapshots, pendingIds);
+
+    if (timed.outcome === "cancel_order") {
+      const cancel = await cancelReservationAndDetachPaymentMethod({
+        reservationId,
+        reason: "sold_out_pack_timeout",
+        now,
+      });
+      if (cancel.ok) {
+        await sb
+          .from("order_reservation_items")
+          .update({
+            sold_out_choice_state: "removed",
+            sold_out_choice_at: now.toISOString(),
+            sold_out_replacement_wine_id: null,
+            sold_out_replacement_amount_ore: null,
+          })
+          .eq("reservation_id", reservationId);
+        summary.soldOutOrderCancelled += 1;
+        summary.soldOutTimedOut += pendingIds.length;
+        summary.actions.push({
+          event: "sold_out_timeout_cancel_order",
+          reservation_id: reservationId,
+          line_ids: pendingIds,
+        });
+      } else {
+        summary.errors += 1;
+        summary.actions.push({
+          event: "sold_out_timeout_cancel_failed",
+          reservation_id: reservationId,
+          message: cancel.message,
+        });
+      }
+      continue;
+    }
+
+    for (const lineId of pendingIds) {
+      const { error } = await sb
+        .from("order_reservation_items")
+        .update({
+          sold_out_choice_state: "removed",
+          sold_out_choice_at: now.toISOString(),
+          sold_out_replacement_wine_id: null,
+          sold_out_replacement_amount_ore: null,
+        })
+        .eq("id", lineId)
+        .eq("sold_out_choice_state", "pending_choice");
+      if (!error) {
+        summary.soldOutTimedOut += 1;
+        summary.actions.push({
+          event: "sold_out_timeout_removed",
+          line_id: lineId,
+          reservation_id: reservationId,
+        });
+      }
     }
   }
 

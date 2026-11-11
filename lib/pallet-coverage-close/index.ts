@@ -50,15 +50,24 @@ export {
 export {
   applySoldOutChoice,
   applySoldOutChoiceTimeout,
+  applySoldOutCustomerDecision,
+  canRemoveSoldOutLine,
   computeChargeAfterSoldOutChoices,
+  isPackingValidWithoutLines,
+  isReplacementSamePackingSource,
   isSoldOutChoicePastDeadline,
   markWineUnavailableOnLines,
+  packingSourceIdForWine,
+  resolveSoldOutAllowedChoices,
   soldOutChoiceDeadlineAt,
+  withPackingSource,
   SOLD_OUT_LINE_STATES,
   type ChargeAdjustmentResult,
+  type SoldOutAllowedChoices,
   type SoldOutChoice,
   type SoldOutLineSnapshot,
   type SoldOutLineState,
+  type SoldOutTimeoutResult,
 } from "@/lib/pallet-coverage-close/sold-out-choice";
 
 export {

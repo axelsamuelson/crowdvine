@@ -22,9 +22,17 @@ import { ordersNeededForCoverageRatio } from "@/lib/pallet-coverage-close/progre
 import {
   applySoldOutChoice,
   applySoldOutChoiceTimeout,
+  applySoldOutCustomerDecision,
+  canRemoveSoldOutLine,
   computeChargeAfterSoldOutChoices,
+  isReplacementSamePackingSource,
   markWineUnavailableOnLines,
+  packingSourceIdForWine,
+  resolveSoldOutAllowedChoices,
+  withPackingSource,
   type SoldOutLineSnapshot,
+  isSoldOutChoicePastDeadline,
+  soldOutChoiceDeadlineAt,
 } from "@/lib/pallet-coverage-close/sold-out-choice";
 import {
   resolveOrderPalletAssignment,
@@ -43,9 +51,9 @@ import {
   coverageTermsPlaceholder,
 } from "@/lib/pallet-coverage-close/customer-copy";
 import {
-  isSoldOutChoicePastDeadline,
-  soldOutChoiceDeadlineAt,
-} from "@/lib/pallet-coverage-close/sold-out-choice";
+  computePackingSourceProgress,
+  PACK_BOTTLES_PER_SOURCE,
+} from "@/lib/cart/packing-source";
 
 function nSixPackOrders(n: number) {
   return Array.from({ length: n }, () => ({ bottleCount: 6 }));
@@ -313,33 +321,131 @@ describe("one open shared pallet only", () => {
   });
 });
 
-describe("sold-out at lock: replace / remove / charge / timeout", () => {
-  const baseLines = (): SoldOutLineSnapshot[] => [
-    {
+describe("sold-out at lock: packing + replace / remove / cancel / charge / timeout", () => {
+  const producerA = "prod-a";
+  const producerB = "prod-b";
+  const wholesalerName = "Le Clos Saint Gabriel";
+
+  /** Two full 6-packs from different producers — removal of either stays valid. */
+  const twoProducerSixes = (): SoldOutLineSnapshot[] => [
+    withPackingSource({
       lineId: "l1",
       wineId: "w1",
       quantity: 6,
       originalAmountOre: 90_000,
       state: "ok",
-    },
-    {
+      sourceType: "producer",
+      producerId: producerA,
+    }),
+    withPackingSource({
       lineId: "l2",
       wineId: "w2",
       quantity: 6,
       originalAmountOre: 80_000,
       state: "ok",
-    },
+      sourceType: "producer",
+      producerId: producerB,
+    }),
   ];
 
+  /** Mixed 3+3 same producer — removing one wine breaks packing. */
+  const mixedSameProducer = (): SoldOutLineSnapshot[] => [
+    withPackingSource({
+      lineId: "l1",
+      wineId: "w1",
+      quantity: 3,
+      originalAmountOre: 45_000,
+      state: "ok",
+      sourceType: "producer",
+      producerId: producerA,
+    }),
+    withPackingSource({
+      lineId: "l2",
+      wineId: "w2",
+      quantity: 3,
+      originalAmountOre: 40_000,
+      state: "ok",
+      sourceType: "producer",
+      producerId: producerA,
+    }),
+  ];
+
+  /** Wholesaler 4 + producer 6 — removing wholesaler wine leaves producer OK but wholesaler 0. */
+  const wholesalerAndProducer = (): SoldOutLineSnapshot[] => [
+    withPackingSource({
+      lineId: "l1",
+      wineId: "w-ws",
+      quantity: 6,
+      originalAmountOre: 70_000,
+      state: "ok",
+      sourceType: "wholesaler",
+      sourceName: wholesalerName,
+      producerId: producerA,
+    }),
+    withPackingSource({
+      lineId: "l2",
+      wineId: "w-p",
+      quantity: 6,
+      originalAmountOre: 80_000,
+      state: "ok",
+      sourceType: "producer",
+      producerId: producerB,
+    }),
+  ];
+
+  it("packing source ids distinguish producer vs wholesaler", () => {
+    expect(
+      packingSourceIdForWine({
+        sourceType: "producer",
+        producerId: producerA,
+      }),
+    ).toBe(`producer:${producerA}`);
+    expect(
+      packingSourceIdForWine({
+        sourceType: "wholesaler",
+        sourceName: wholesalerName,
+        producerId: producerA,
+      }),
+    ).toBe(`wholesaler:${wholesalerName.toLowerCase()}`);
+    expect(PACK_BOTTLES_PER_SOURCE).toBe(6);
+  });
+
   it("admin mark unavailable flips matching lines to pending_choice", () => {
-    const next = markWineUnavailableOnLines(baseLines(), "w1");
+    const next = markWineUnavailableOnLines(twoProducerSixes(), "w1");
     expect(next[0]!.state).toBe("pending_choice");
     expect(next[1]!.state).toBe("ok");
   });
 
+  it("when removal keeps multiples of 6: choices are replace or remove", () => {
+    const pending = markWineUnavailableOnLines(twoProducerSixes(), "w1");
+    expect(canRemoveSoldOutLine(pending, "l1")).toBe(true);
+    expect(resolveSoldOutAllowedChoices(pending, "l1").choices).toEqual([
+      "replace",
+      "remove",
+    ]);
+  });
+
+  it("when removal breaks packing: choices are replace or cancel_order (not remove)", () => {
+    const pending = markWineUnavailableOnLines(mixedSameProducer(), "w1");
+    expect(canRemoveSoldOutLine(pending, "l1")).toBe(false);
+    expect(resolveSoldOutAllowedChoices(pending, "l1").choices).toEqual([
+      "replace",
+      "cancel_order",
+    ]);
+    const rejected = applySoldOutCustomerDecision({
+      lines: pending,
+      lineId: "l1",
+      choice: "remove",
+    });
+    expect(rejected.ok).toBe(false);
+  });
+
   it("remove: charge = original minus removed line", () => {
-    const lines = markWineUnavailableOnLines(baseLines(), "w1").map((l) =>
-      l.lineId === "l1" ? applySoldOutChoice({ line: l, choice: "remove" }) : l,
+    const lines = markWineUnavailableOnLines(twoProducerSixes(), "w1").map(
+      (l) =>
+        l.lineId === "l1"
+          ? applySoldOutChoice({ line: l, choice: "remove" })
+          : l,
     );
     const adj = computeChargeAfterSoldOutChoices({
       originalOrderAmountOre: 170_000,
@@ -347,38 +453,40 @@ describe("sold-out at lock: replace / remove / charge / timeout", () => {
     });
     expect(adj.chargeAmountOre).toBe(80_000);
     expect(adj.removedAmountOre).toBe(90_000);
+    expect(adj.orderCancelled).toBe(false);
   });
 
   it("pricier replacement: charge adds only the positive delta", () => {
-    const lines = markWineUnavailableOnLines(baseLines(), "w1").map((l) =>
-      l.lineId === "l1"
-        ? applySoldOutChoice({
-            line: l,
-            choice: "replace",
-            replacementWineId: "w3",
-            replacementAmountOre: 100_000,
-          })
-        : l,
+    const lines = markWineUnavailableOnLines(twoProducerSixes(), "w1").map(
+      (l) =>
+        l.lineId === "l1"
+          ? applySoldOutChoice({
+              line: l,
+              choice: "replace",
+              replacementWineId: "w3",
+              replacementAmountOre: 100_000,
+            })
+          : l,
     );
     const adj = computeChargeAfterSoldOutChoices({
       originalOrderAmountOre: 170_000,
       lines,
     });
-    // 170k - 90k + 100k = 180k; delta = 10k
     expect(adj.chargeAmountOre).toBe(180_000);
     expect(adj.replacementDeltaOre).toBe(10_000);
   });
 
-  it("cheaper replacement: charges the lower replacement amount (no credit beyond swap)", () => {
-    const lines = markWineUnavailableOnLines(baseLines(), "w1").map((l) =>
-      l.lineId === "l1"
-        ? applySoldOutChoice({
-            line: l,
-            choice: "replace",
-            replacementWineId: "w3",
-            replacementAmountOre: 70_000,
-          })
-        : l,
+  it("cheaper replacement: charges the lower replacement amount", () => {
+    const lines = markWineUnavailableOnLines(twoProducerSixes(), "w1").map(
+      (l) =>
+        l.lineId === "l1"
+          ? applySoldOutChoice({
+              line: l,
+              choice: "replace",
+              replacementWineId: "w3",
+              replacementAmountOre: 70_000,
+            })
+          : l,
     );
     const adj = computeChargeAfterSoldOutChoices({
       originalOrderAmountOre: 170_000,
@@ -388,11 +496,129 @@ describe("sold-out at lock: replace / remove / charge / timeout", () => {
     expect(adj.replacementDeltaOre).toBe(0);
   });
 
-  it("no-answer timeout removes pending lines (don't charge)", () => {
-    const pending = markWineUnavailableOnLines(baseLines(), "w1");
+  it("replacement must be from the same packing source", () => {
+    const pending = markWineUnavailableOnLines(mixedSameProducer(), "w1");
+    const line = pending[0]!;
+    expect(
+      isReplacementSamePackingSource(line, {
+        sourceType: "producer",
+        producerId: producerA,
+      }),
+    ).toBe(true);
+    expect(
+      isReplacementSamePackingSource(line, {
+        sourceType: "producer",
+        producerId: producerB,
+      }),
+    ).toBe(false);
+    const bad = applySoldOutCustomerDecision({
+      lines: pending,
+      lineId: "l1",
+      choice: "replace",
+      replacementWineId: "w-other",
+      replacementAmountOre: 45_000,
+      replacementPacking: {
+        sourceType: "producer",
+        producerId: producerB,
+      },
+    });
+    expect(bad.ok).toBe(false);
+  });
+
+  it("cancel_order: charge 0 and all lines removed", () => {
+    const pending = markWineUnavailableOnLines(mixedSameProducer(), "w1");
+    const decision = applySoldOutCustomerDecision({
+      lines: pending,
+      lineId: "l1",
+      choice: "cancel_order",
+    });
+    expect(decision.ok).toBe(true);
+    if (!decision.ok) return;
+    expect(decision.orderCancelled).toBe(true);
+    expect(decision.lines.every((l) => l.state === "removed")).toBe(true);
+    const adj = computeChargeAfterSoldOutChoices({
+      originalOrderAmountOre: 85_000,
+      lines: decision.lines,
+      orderCancelled: true,
+    });
+    expect(adj.chargeAmountOre).toBe(0);
+    expect(adj.orderCancelled).toBe(true);
+  });
+
+  it("no-answer timeout removes when packing stays valid", () => {
+    const pending = markWineUnavailableOnLines(twoProducerSixes(), "w1");
     const timed = applySoldOutChoiceTimeout(pending);
-    expect(timed[0]!.state).toBe("removed");
-    expect(timed[1]!.state).toBe("ok");
+    expect(timed.outcome).toBe("remove");
+    expect(timed.orderCancelled).toBe(false);
+    expect(timed.lines[0]!.state).toBe("removed");
+    expect(timed.lines[1]!.state).toBe("ok");
+  });
+
+  it("no-answer timeout cancels whole order when packing would break", () => {
+    const pending = markWineUnavailableOnLines(mixedSameProducer(), "w1");
+    const timed = applySoldOutChoiceTimeout(pending);
+    expect(timed.outcome).toBe("cancel_order");
+    expect(timed.orderCancelled).toBe(true);
+    expect(timed.lines.every((l) => l.state === "removed")).toBe(true);
+    const adj = computeChargeAfterSoldOutChoices({
+      originalOrderAmountOre: 85_000,
+      lines: timed.lines,
+      orderCancelled: true,
+    });
+    expect(adj.chargeAmountOre).toBe(0);
+  });
+
+  it("wholesaler full case can be removed without cancel (producer case remains)", () => {
+    const pending = markWineUnavailableOnLines(wholesalerAndProducer(), "w-ws");
+    expect(canRemoveSoldOutLine(pending, "l1")).toBe(true);
+    const timed = applySoldOutChoiceTimeout(pending);
+    expect(timed.outcome).toBe("remove");
+    expect(timed.lines[0]!.state).toBe("removed");
+    expect(timed.lines[1]!.state).toBe("ok");
+  });
+
+  it("mixed wines within wholesaler: remove one of 3+3 → cancel", () => {
+    const lines = [
+      withPackingSource({
+        lineId: "l1",
+        wineId: "wa",
+        quantity: 3,
+        originalAmountOre: 30_000,
+        state: "ok",
+        sourceType: "wholesaler",
+        sourceName: wholesalerName,
+      }),
+      withPackingSource({
+        lineId: "l2",
+        wineId: "wb",
+        quantity: 3,
+        originalAmountOre: 30_000,
+        state: "ok",
+        sourceType: "wholesaler",
+        sourceName: wholesalerName,
+      }),
+    ];
+    const pending = markWineUnavailableOnLines(lines, "wa");
+    expect(canRemoveSoldOutLine(pending, "l1")).toBe(false);
+    expect(applySoldOutChoiceTimeout(pending).outcome).toBe("cancel_order");
+  });
+
+  it("coverage bottle totals drop removed / cancelled lines via packing progress", () => {
+    const pending = markWineUnavailableOnLines(twoProducerSixes(), "w1");
+    const timed = applySoldOutChoiceTimeout(pending);
+    const progress = computePackingSourceProgress(
+      timed.lines
+        .filter((l) => l.state !== "removed")
+        .map((l) => ({
+          quantity: l.quantity,
+          sourceType: l.sourceType,
+          sourceName: l.sourceName,
+          producerId: l.producerId,
+        })),
+    );
+    expect(progress).toHaveLength(1);
+    expect(progress[0]!.quantity).toBe(6);
+    expect(progress[0]!.isValid).toBe(true);
   });
 });
 
@@ -445,7 +671,7 @@ describe("checkout / terms placeholders", () => {
   });
 });
 
-describe("sold-out choice deadline (configurable; default remove)", () => {
+describe("sold-out choice deadline (configurable)", () => {
   it("deadline uses config days; past deadline detected", () => {
     const cfg = getPalletCoverageCloseConfig({
       PALLET_COVERAGE_SOLD_OUT_CHOICE_DAYS: "3",
