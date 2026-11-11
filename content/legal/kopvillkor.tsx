@@ -101,8 +101,8 @@ export default function KopvillkorContent() {
         <li>
           <LegalStrong>Direktleverans.</LegalStrong> Flaskpriset är 5 % högre
           och frakten är 149 kr per låda om 6 flaskor. Ditt kort debiteras när
-          du köper och vinet levereras normalt inom 5–10 arbetsdagar. Se punkt
-          3 b.
+          du köper och vinet levereras normalt inom 5–10 arbetsdagar. Se{" "}
+          <LegalLink href="#punkt-3b">punkt 3 b</LegalLink>.
         </li>
       </LegalList>
       <LegalP>
@@ -161,7 +161,7 @@ export default function KopvillkorContent() {
         spara det för ett kommande köp.
       </LegalP>
 
-      <LegalH3>Direktleverans</LegalH3>
+      <LegalH3 id="punkt-3b">3 b. Direktleverans</LegalH3>
       <LegalP>
         <LegalStrong>Du köper och betalar.</LegalStrong> Köpet är bindande när
         du klickar på köpknappen. Ditt kort debiteras direkt med totalpriset i
@@ -187,7 +187,7 @@ export default function KopvillkorContent() {
         ångra köpet redan innan leveransen.
       </LegalP>
 
-      <LegalH3>Lådor om 6 flaskor</LegalH3>
+      <LegalH3 id="punkt-3c">3 c. Lådor om 6 flaskor</LegalH3>
       <LegalP>
         Vinet packas i lådor om 6 flaskor hos varje producent eller grossist.
         Därför måste antalet flaskor från samma producent eller grossist vara 6,

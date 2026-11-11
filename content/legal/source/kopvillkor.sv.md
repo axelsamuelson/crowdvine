@@ -69,7 +69,7 @@ Det finns ingen tidsgräns för när pallen ska vara full. **Din order ligger kv
 
 När en order avbryts tas ditt sparade kort bort, om du inte väljer att spara det för ett kommande köp.
 
-### Direktleverans
+### 3 b. Direktleverans
 
 **Du köper och betalar.** Köpet är bindande när du klickar på köpknappen. Ditt kort debiteras direkt med totalpriset i kassan. Du får en orderbekräftelse med de här villkoren och ett kvitto via e-post.
 
@@ -79,7 +79,7 @@ När en order avbryts tas ditt sparade kort bort, om du inte väljer att spara d
 
 **Ångerrätt.** Du har samma ångerrätt som vid delad pall, se punkt 9. Du kan ångra köpet redan innan leveransen.
 
-### Lådor om 6 flaskor
+### 3 c. Lådor om 6 flaskor
 
 Vinet packas i lådor om 6 flaskor hos varje producent eller grossist. Därför måste antalet flaskor från samma producent eller grossist vara 6, 12, 18 och så vidare. Du får blanda olika viner från samma producent eller grossist i en låda, och du kan köpa från flera i samma order. Varukorgen visar om en låda inte är full.
 
