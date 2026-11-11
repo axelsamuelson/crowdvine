@@ -3,6 +3,7 @@ import {
   allowedDispatchTransitions,
   assertDispatchTransition,
   canTransitionDispatchStatus,
+  DISPATCH_STATUS_LABELS_SV,
   normalizeDispatchStatus,
 } from "@/lib/commerce/direct-box-dispatch";
 
@@ -59,5 +60,13 @@ describe("direct-box dispatch transitions", () => {
       /Illegal/,
     );
     expect(assertDispatchTransition("booked", "completed")).toBe("completed");
+  });
+
+  it("uses Swedish ops labels without developer jargon", () => {
+    expect(DISPATCH_STATUS_LABELS_SV.pending_manual_handoff).toBe(
+      "Väntar på upphämtning",
+    );
+    expect(DISPATCH_STATUS_LABELS_SV.skipped).toBe("Skippad");
+    expect(DISPATCH_STATUS_LABELS_SV.cancelled).toBe("Avbruten");
   });
 });

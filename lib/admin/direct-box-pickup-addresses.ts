@@ -8,7 +8,7 @@ export const WHOLESALER_PICKUP_ADDRESS_FALLBACKS: Record<string, string> = {
   "le clos saint gabriel": "Marché de Gros, Béziers",
 };
 
-export const ADDRESS_MISSING_LABEL = "adress saknas";
+export const ADDRESS_MISSING_LABEL = "Adress saknas";
 
 export function wholesalerPickupAddressFallback(
   sourceName: string | null | undefined,

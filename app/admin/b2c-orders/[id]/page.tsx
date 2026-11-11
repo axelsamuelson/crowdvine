@@ -6,7 +6,7 @@ import { DirectBoxFulfillmentPanel } from "@/components/admin/direct-box-fulfill
 import type { PickListItemInput } from "@/lib/admin/direct-box-pick-list";
 
 export const metadata = {
-  title: "B2C Order",
+  title: "Order",
 };
 
 interface B2cOrderEditPageProps {
@@ -161,15 +161,17 @@ export default async function B2cOrderEditPage({
     },
   );
 
+  const orderNumber =
+    (typeof reservation.order_id === "string" &&
+      reservation.order_id.trim()) ||
+    reservation.id.substring(0, 8).toUpperCase();
+
   return (
     <div className="container mx-auto space-y-6 py-8">
       <div className="space-y-1">
         <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
-          B2C Order
+          Order {orderNumber}
         </h1>
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">
-          Update reservation details and items
-        </p>
       </div>
 
       {isDirectBox ? (

@@ -78,9 +78,9 @@ export function assertDispatchTransition(
 
 export const DISPATCH_STATUS_LABELS_SV: Record<DirectBoxDispatchStatus, string> =
   {
-    pending_manual_handoff: "Väntar handoff",
+    pending_manual_handoff: "Väntar på upphämtning",
     booked: "Bokad (UPS)",
     completed: "Levererad",
     cancelled: "Avbruten",
-    skipped: "Skipped",
+    skipped: "Skippad",
   };

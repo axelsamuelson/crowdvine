@@ -33,6 +33,9 @@ export type PickListSourceGroup = {
   bottles: number;
   boxes: number;
   pickupAddress: string;
+  addressMissing: boolean;
+  /** Producer UUID for "Lägg till adress" link; null for wholesaler. */
+  producerId: string | null;
   wines: PickListWineLine[];
 };
 
@@ -97,6 +100,7 @@ export function buildDirectBoxPickList(args: {
     source: PackingSource;
     bottles: number;
     pickupAddress: string;
+    producerId: string | null;
     wines: Map<string, PickListWineLine>;
   };
   const byKey = new Map<string, Acc>();
@@ -115,10 +119,15 @@ export function buildDirectBoxPickList(args: {
 
     let acc = byKey.get(source.id);
     if (!acc) {
+      const producerId =
+        source.kind === "producer"
+          ? String(item.producerId ?? "").trim() || null
+          : null;
       acc = {
         source,
         bottles: 0,
         pickupAddress: resolvePickupAddressForSource(source, item),
+        producerId,
         wines: new Map(),
       };
       byKey.set(source.id, acc);
@@ -140,17 +149,22 @@ export function buildDirectBoxPickList(args: {
   }
 
   const sources: PickListSourceGroup[] = [...byKey.values()]
-    .map((acc) => ({
-      sourceKey: acc.source.id,
-      sourceLabel: acc.source.displayName,
-      kind: acc.source.kind,
-      bottles: acc.bottles,
-      boxes: boxesFromBottles(acc.bottles),
-      pickupAddress: acc.pickupAddress,
-      wines: [...acc.wines.values()].sort((a, b) =>
-        a.wineName.localeCompare(b.wineName, "sv"),
-      ),
-    }))
+    .map((acc) => {
+      const addressMissing = acc.pickupAddress === ADDRESS_MISSING_LABEL;
+      return {
+        sourceKey: acc.source.id,
+        sourceLabel: acc.source.displayName,
+        kind: acc.source.kind,
+        bottles: acc.bottles,
+        boxes: boxesFromBottles(acc.bottles),
+        pickupAddress: acc.pickupAddress,
+        addressMissing,
+        producerId: acc.producerId,
+        wines: [...acc.wines.values()].sort((a, b) =>
+          a.wineName.localeCompare(b.wineName, "sv"),
+        ),
+      };
+    })
     .sort((a, b) => a.sourceLabel.localeCompare(b.sourceLabel, "sv"));
 
   const totalBottles = sources.reduce((s, g) => s + g.bottles, 0);

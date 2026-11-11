@@ -95,6 +95,10 @@ describe("direct-box pick list boxes", () => {
 
     const missing = list.sources.find((s) => s.sourceLabel === "Sans Adress");
     expect(missing?.pickupAddress).toBe(ADDRESS_MISSING_LABEL);
+    expect(missing?.addressMissing).toBe(true);
+    expect(missing?.producerId).toBe("p3");
+    expect(alpha?.addressMissing).toBe(false);
+    expect(clos?.addressMissing).toBe(false);
   });
 
   it("sums boxes per source when one source has 12 bottles", () => {
