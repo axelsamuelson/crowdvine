@@ -33,8 +33,12 @@ export function LegalPageLayout({
       : `Senast uppdaterad ${lastUpdated} · Version ${version}`;
   const tocAriaLabel = locale === "en" ? "Contents" : "Innehåll";
 
+  // Root <html lang> can stay "sv" on static EN legal routes when
+  // x-pathname is unavailable; scope content language on this wrapper.
+  const contentLang = locale === "en" ? "en" : "sv";
+
   return (
-    <main data-legal-page className="bg-background min-h-screen">
+    <main data-legal-page lang={contentLang} className="bg-background min-h-screen">
       <div className="mx-auto max-w-3xl px-5 py-16 pt-24 sm:px-6 sm:py-24 sm:pt-28">
         <h1 className="text-3xl sm:text-4xl font-medium tracking-tight text-[#0A0A0A]">
           {title}

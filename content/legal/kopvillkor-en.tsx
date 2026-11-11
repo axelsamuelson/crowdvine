@@ -33,6 +33,10 @@ export const KOPVILLKOR_EN_TOC: LegalTocItem[] = [
 export default function KopvillkorEnContent() {
   return (
     <LegalProse>
+      <LegalP>
+        This is a translation. If the English and Swedish versions differ, the
+        Swedish version applies.
+      </LegalP>
       <LegalH2 id="punkt-1">1. About us</LegalH2>
       <LegalP>Your counterparty when you buy on pactwines.com is:</LegalP>
       <LegalTable>
@@ -55,13 +59,6 @@ export default function KopvillkorEnContent() {
           <tr>
             <LegalTh>Email</LegalTh>
             <LegalTd>customer@pactwines.com</LegalTd>
-          </tr>
-          <tr>
-            <LegalTh>
-              Registered with Skatteverket (the Swedish Tax Agency) as a
-              distance seller of alcohol
-            </LegalTh>
-            <LegalTd>[FILL IN REGISTRATION NUMBER]</LegalTd>
           </tr>
         </tbody>
       </LegalTable>
