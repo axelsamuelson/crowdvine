@@ -1,0 +1,46 @@
+crowdvine-checkout-audit — parent setup (no secrets in this file)
+=================================================================
+
+Authorized project (ONLY):
+  ref:    msdfjrrokcmjifetuwgc
+  name:   crowdvine-checkout-audit
+  org:    wlcmtxznaviamywbgwam
+  region: eu-north-1
+  URL:    https://msdfjrrokcmjifetuwgc.supabase.co
+
+FORBIDDEN:
+  abrnvjqwpdkodgrtezeg (production) — never add its keys to this agent / RuntimeSecrets for checkout audit.
+
+SQL artifacts (apply via Supabase MCP or SQL editor on the TEST project only):
+  scripts/checkout-audit/supabase/01_schema_core.sql
+  scripts/checkout-audit/supabase/02_rls.sql
+  scripts/checkout-audit/supabase/03_seed_catalog.sql
+
+Cursor Cloud Agents → RuntimeSecrets (repo-scoped) — exact names the app reads:
+  NEXT_PUBLIC_SUPABASE_URL=https://msdfjrrokcmjifetuwgc.supabase.co
+  NEXT_PUBLIC_SUPABASE_ANON_KEY=<Dashboard → Project Settings → API → anon public>
+  SUPABASE_SERVICE_ROLE_KEY=<Dashboard → Project Settings → API → service_role (server only)>
+
+Optional aliases (scripts accept either):
+  CHECKOUT_AUDIT_SUPABASE_URL          (same URL as above)
+  CHECKOUT_AUDIT_SUPABASE_ANON_KEY
+  CHECKOUT_AUDIT_SUPABASE_SERVICE_ROLE_KEY
+
+Auth member password (never commit / never paste into chat / PR):
+  CHECKOUT_AUDIT_TEST_USER_PASSWORD=<strong random; parent-only>
+
+Already verified Stripe audit secrets (keep; map for Next):
+  CHECKOUT_AUDIT_STRIPE_TEST_KEY              → STRIPE_SECRET_KEY
+  CHECKOUT_AUDIT_STRIPE_PUBLISHABLE_KEY       → NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+  (VM-only ephemeral whsec for webhook tests) → STRIPE_WEBHOOK_SECRET
+
+Do NOT enable:
+  DIRECT_BOX_CHECKOUT_ENABLED
+
+After secrets are saved for THIS agent:
+  node scripts/checkout-audit/assert-isolated-supabase.mjs
+  node scripts/checkout-audit/create-test-auth-user.mjs
+  # then start Next with mapped env and exercise /checkout + POST /api/stripe/webhook
+
+Dashboard key path:
+  https://supabase.com/dashboard/project/msdfjrrokcmjifetuwgc/settings/api
