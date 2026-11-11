@@ -371,7 +371,7 @@ describe("WIRED ROUTE contracts (payment-intent)", () => {
     paymentIntentsCreate.mockResolvedValue({
       id: "pi_direct_test",
       client_secret: "pi_direct_test_secret",
-      amount: 134900,
+      amount: 140900,
       status: "requires_payment_method",
     });
 
@@ -488,20 +488,22 @@ describe("WIRED ROUTE contracts (payment-intent)", () => {
     expect(json.paymentMode).toBe("payment_intent");
     expect(json.fulfillment_channel).toBe("direct_box");
     expect(json.palletStatus).toBeNull();
-    // 1200 wine + 149 shipping = 1349 SEK → 134900 öre
-    expect(json.amountInOre).toBe(134900);
+    // Catalog 200×6=1200 → markup 210×6=1260 + 149 shipping = 1409 SEK → 140900 öre
+    expect(json.amountInOre).toBe(140900);
     expect(paymentIntentsCreate).toHaveBeenCalledTimes(1);
     expect(setupIntentsCreate).not.toHaveBeenCalled();
     expect(setupIntentsList).not.toHaveBeenCalled();
 
     const createArg = paymentIntentsCreate.mock.calls[0][0];
-    expect(createArg.amount).toBe(134900);
+    expect(createArg.amount).toBe(140900);
+    expect(createArg.payment_method_types).toEqual(["card"]);
+    expect(createArg.automatic_payment_methods).toBeUndefined();
     expect(createArg.metadata.fulfillment_channel).toBe("direct_box");
     expect(createArg.metadata.pallet_id).toBe("");
     expect(createArg.metadata.shipping_rate_channel).toBe("direct_box");
     expect(createArg.metadata.shipping_sek).toBe("149");
     expect(createArg.metadata.carrier_id).toBe("test_only_carrier");
-    expect(createArg.metadata.expected_amount_ore).toBe("134900");
+    expect(createArg.metadata.expected_amount_ore).toBe("140900");
     expect(createArg.metadata.cart_id).toBe("cart-1");
     expect(createArg.metadata.user_id).toBe("user-1");
     expect(createArg.metadata.stripe_customer_id).toBe("cus_test");
@@ -522,7 +524,7 @@ describe("WIRED ROUTE contracts (payment-intent)", () => {
           status: "requires_payment_method",
           metadata: {
             fulfillment_channel: "direct_box",
-            expected_amount_ore: "134900",
+            expected_amount_ore: "140900",
             user_id: "user-1",
             cart_id: "cart-1",
             stripe_customer_id: "cus_test",
@@ -555,7 +557,7 @@ describe("WIRED ROUTE contracts (payment-intent)", () => {
           status: "requires_payment_method",
           metadata: {
             fulfillment_channel: "direct_box",
-            expected_amount_ore: "134900",
+            expected_amount_ore: "140900",
             user_id: "user-1",
             cart_id: "cart-OTHER",
             stripe_customer_id: "cus_test",

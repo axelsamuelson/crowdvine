@@ -185,6 +185,26 @@ function OfferRow(props: {
           <p data-testid={`dual-offer-debit-${quote.offer}`}>
             {debitLabel(quote, locale)}
           </p>
+          {quote.bottle_count > 0 ? (
+            <p
+              className="tabular-nums"
+              data-testid={`dual-offer-bottle-price-${quote.offer}`}
+            >
+              {bottleLabel}:{" "}
+              {formatOfferSek(
+                quote.subtotal_sek / quote.bottle_count,
+                locale,
+              )}
+            </p>
+          ) : null}
+          {quote.offer === "direct_box" ? (
+            <p
+              className="text-xs text-muted-foreground leading-relaxed"
+              data-testid="dual-offer-direct-body"
+            >
+              {dualOfferMsg(locale, "directBoxBody")}
+            </p>
+          ) : null}
         </div>
       )}
     </>

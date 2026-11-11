@@ -1240,6 +1240,24 @@ export async function POST(request: Request) {
       ReturnType<typeof computeExpectedAmountOre>
     >["components"];
     try {
+      let directSubtotalOverride: number | null = null;
+      if (authorizedFulfillment?.channel === "direct_box") {
+        const {
+          getDirectBoxPriceMarkupPercent,
+          directBoxUnitPriceSek,
+        } = await import("@/lib/commerce/direct-box-pricing");
+        const markupPct = getDirectBoxPriceMarkupPercent();
+        let sum = 0;
+        for (const line of cart.lines || []) {
+          const qty = Math.max(0, Math.floor(Number(line.quantity) || 0));
+          const catalogUnit =
+            qty > 0
+              ? (parseFloat(String(line.cost.totalAmount.amount)) || 0) / qty
+              : 0;
+          sum += directBoxUnitPriceSek(catalogUnit, markupPct) * qty;
+        }
+        directSubtotalOverride = sum;
+      }
       const computed = await computeExpectedAmountOre({
         userId: currentUser?.id ?? user?.id ?? "",
         cartId: cart.id,
@@ -1249,6 +1267,7 @@ export async function POST(request: Request) {
         promoSek: promoDiscountAmountSek,
         displayMultiplier: 1,
         cart,
+        subtotalOverrideSek: directSubtotalOverride,
       });
       expectedAmountOre = computed.amountOre;
       amountComponents = computed.components;
