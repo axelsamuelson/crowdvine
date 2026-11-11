@@ -16,7 +16,6 @@ Your counterparty when you buy on pactwines.com is:
 | Registration number | 17538270 |
 | Address | Tartu mnt 67/1-13b, Kesklinna linnaosa, 10115 Tallinn, Harju maakond, Estonia |
 | Email | customer@pactwines.com |
-| Registered with Skatteverket (the Swedish Tax Agency) as a distance seller of alcohol | [FILL IN REGISTRATION NUMBER] |
 
 EURPACT OÜ is an Estonian company and sells alcohol at a distance to consumers in Sweden. EURPACT OÜ declares and pays Swedish alcohol tax and Swedish VAT for each delivery.
 

@@ -56,13 +56,6 @@ export default function KopvillkorEnContent() {
             <LegalTh>Email</LegalTh>
             <LegalTd>customer@pactwines.com</LegalTd>
           </tr>
-          <tr>
-            <LegalTh>
-              Registered with Skatteverket (the Swedish Tax Agency) as a
-              distance seller of alcohol
-            </LegalTh>
-            <LegalTd>[FILL IN REGISTRATION NUMBER]</LegalTd>
-          </tr>
         </tbody>
       </LegalTable>
       <LegalP>

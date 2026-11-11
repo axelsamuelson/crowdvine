@@ -1,7 +1,5 @@
 # Köpvillkor
 
-> **UTKAST.** Framtaget av Daniel Holm (Compliance), med ställningstagande av Sofia Bergström (GC) den 25 augusti 2026 enligt `gc-stallningstagande-angerratt-och-villkor.md`. Tvistlösningen (p. 13) är oförändrad. Punkt 9 och 10 är omskrivna 2026-10-29 på ägarens instruktion och avviker från GC-dokumentet, se anmärkningen under punkt 9. Punkt 3, 4, 5, 6, 7, 9 och 14 uppdaterade 2026-11-10 enligt text som Axel godkänt ord för ord (delad pall utan tidsgräns, gratis avbokning tills pallen stänger, debitering vid stängning, 3 dagar vid misslyckad dragning, leverans inom 30 dagar). Punkt 7 (leveranstid och leveransområde) uppdaterad 2026-11-09: normalt 2–3 veckor efter att pallen har stängt, alltid senast 30 dagar efter. Punkt 8 (returkostnad) ifylld 2026-11-03; antal leveransförsök orört. Bolagsadress uppdaterad 2026-11-04 till äriregister-form (Kesklinna linnaosa, Harju maakond; postnummer 10115 behållet då det redan fanns i repo). Punkt 8 (undersökning/värdeminskning vid retur, 2 kap. 14 § distansavtalslagen) tillagd 2026-11-05. Övriga fält markerade `[FYLL I]` måste fyllas i innan sidan går live. Ingen extern advokat har granskat texten.
-
 Senast uppdaterad: 2026-11-11
 
 ---
@@ -16,7 +14,6 @@ Din motpart vid köp på pactwines.com är:
 | Registreringsnummer | 17538270 |
 | Adress | Tartu mnt 67/1-13b, Kesklinna linnaosa, 10115 Tallinn, Harju maakond, Estland |
 | E-post | customer@pactwines.com |
-| Registrerad som distansförsäljare av alkohol hos Skatteverket | [FYLL I REGISTRERINGSNUMMER] |
 
 EURPACT OÜ är ett estniskt bolag och säljer alkohol på distans till konsumenter i Sverige. EURPACT OÜ redovisar och betalar svensk alkoholskatt och svensk moms för varje leverans.
 
