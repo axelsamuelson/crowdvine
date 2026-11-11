@@ -2,7 +2,7 @@
 
 > **UTKAST.** Framtaget av Daniel Holm (Compliance), med ställningstagande av Sofia Bergström (GC) den 25 augusti 2026 enligt `gc-stallningstagande-angerratt-och-villkor.md`. Tvistlösningen (p. 13) är oförändrad. Punkt 9 och 10 är omskrivna 2026-10-29 på ägarens instruktion och avviker från GC-dokumentet, se anmärkningen under punkt 9. Punkt 3, 4, 5, 6, 7, 9 och 14 uppdaterade 2026-11-10 enligt text som Axel godkänt ord för ord (delad pall utan tidsgräns, gratis avbokning tills pallen stänger, debitering vid stängning, 3 dagar vid misslyckad dragning, leverans inom 30 dagar). Punkt 7 (leveranstid och leveransområde) uppdaterad 2026-11-09: normalt 2–3 veckor efter att pallen har stängt, alltid senast 30 dagar efter. Punkt 8 (returkostnad) ifylld 2026-11-03; antal leveransförsök orört. Bolagsadress uppdaterad 2026-11-04 till äriregister-form (Kesklinna linnaosa, Harju maakond; postnummer 10115 behållet då det redan fanns i repo). Punkt 8 (undersökning/värdeminskning vid retur, 2 kap. 14 § distansavtalslagen) tillagd 2026-11-05. Övriga fält markerade `[FYLL I]` måste fyllas i innan sidan går live. Ingen extern advokat har granskat texten.
 
-Senast uppdaterad: 2026-11-10
+Senast uppdaterad: 2026-11-11
 
 ---
 
@@ -44,6 +44,11 @@ Vi säljer inte till någon som vi har anledning att anta ska lämna varan vidar
 
 ## 3. Så fungerar en pall
 
+Du kan välja mellan två leveranssätt i kassan:
+
+- **Delad pall.** Lägre flaskpris och frakt. Din order skickas tillsammans med andras när pallen är full. Inget dras förrän pallen stänger. Se nedan.
+- **Direktleverans.** Flaskpriset är 5 % högre och frakten är 149 kr per låda om 6 flaskor. Ditt kort debiteras när du köper och vinet levereras normalt inom 5–10 arbetsdagar. Se punkt 3 b.
+
 PACT samlar flera beställningar till en gemensam transport från producenterna i Frankrike till Sverige. Det är därför vinet kan kosta vad det gör. Det betyder också att det går till lite annorlunda än i en vanlig webbshop.
 
 **Steg 1. Du köper.** Du väljer viner och slutför köpet i kassan. **Köpet är bindande när du klickar på köpknappen.** Ditt kort sparas hos vår betalleverantör Stripe, men inget belopp dras än. Du får en orderbekräftelse med de här villkoren via e-post.
@@ -64,13 +69,27 @@ Det finns ingen tidsgräns för när pallen ska vara full. **Din order ligger kv
 
 När en order avbryts tas ditt sparade kort bort, om du inte väljer att spara det för ett kommande köp.
 
+### Direktleverans
+
+**Du köper och betalar.** Köpet är bindande när du klickar på köpknappen. Ditt kort debiteras direkt med totalpriset i kassan. Du får en orderbekräftelse med de här villkoren och ett kvitto via e-post.
+
+**Leverans.** Dina lådor packas i Frankrike och vi skickar dem med UPS hem till dig. Leveranstiden är normalt **5–10 arbetsdagar** från att ordern är bekräftad och betald. Har du inte fått din leverans inom 30 dagar får du avbryta köpet och får då tillbaka hela beloppet inom 14 dagar.
+
+**Ålderskontroll.** UPS kontrollerar vid överlämningen att mottagaren har fyllt 20 år. Visa giltig legitimation. Om ålderskontrollen inte går igenom lämnas vinet inte ut, det skickas tillbaka till oss och du får tillbaka pengarna utan avgift.
+
+**Ångerrätt.** Du har samma ångerrätt som vid delad pall, se punkt 9. Du kan ångra köpet redan innan leveransen.
+
+### Lådor om 6 flaskor
+
+Vinet packas i lådor om 6 flaskor hos varje producent eller grossist. Därför måste antalet flaskor från samma producent eller grossist vara 6, 12, 18 och så vidare. Du får blanda olika viner från samma producent eller grossist i en låda, och du kan köpa från flera i samma order. Varukorgen visar om en låda inte är full.
+
 ### Om en producent inte kan leverera
 
-Ibland kan en producent inte leverera ett vin du köpt, till exempel om lagret tar slut efter att pallen stängt. Då gäller följande:
+Det händer att ett vin tar slut efter att du har köpt.
 
-- Vi erbjuder dig först ett **likvärdigt ersättningsvin**
-- Byte sker **bara om du godkänner** ersättningsvinet
-- Avböjer du, eller godkänner du inte ersättningen, får du pengarna tillbaka för de viner som inte levereras — **utan onödigt dröjsmål och senast inom 14 dagar** om du redan har debiterats. Har du inte debiterats ännu debiteras du inte för de vinerna
+- Vi erbjuder dig först ett **likvärdigt ersättningsvin** från samma producent eller grossist. Byte sker bara om du godkänner det.
+- Går det att stryka vinet utan att en låda blir ofullständig får du välja att stryka det i stället. Du får då tillbaka pengarna för det vinet, eller debiteras inte för det om du ännu inte har debiterats.
+- Om vinet inte kan strykas utan att en låda blir ofullständig och du inte godkänner ersättningsvinet, **avbryts hela ordern**. Du får då tillbaka hela beloppet utan onödigt dröjsmål och senast inom 14 dagar, eller debiteras inte alls om du ännu inte har debiterats.
 
 ---
 
@@ -79,12 +98,15 @@ Ibland kan en producent inte leverera ett vin du köpt, till exempel om lagret t
 - Alla priser anges i svenska kronor. **Totalpriset i kassan inkluderar moms och frakt. Inga andra avgifter tillkommer.**
 - Det totalpris du ser i kassan är det som debiteras när pallen stänger. Vi höjer aldrig priset efter ditt köp.
 - Vid ett uppenbart felaktigt pris har vi rätt att annullera köpet innan ditt kort debiteras. Vi meddelar dig då.
+- Vid direktleverans är flaskpriset 5 % högre än vid delad pall, avrundat till hela kronor, och frakten är 149 kr per låda om 6 flaskor. Båda ingår i totalpriset i kassan.
 
 ---
 
 ## 5. Betalning
 
 Du betalar med kort via vår betalleverantör Stripe. När du köper sparas ditt kort hos Stripe, och **du godkänner att vi drar det belopp som stod i kassan när pallen stänger**, utan att du behöver godkänna igen. Inget belopp dras eller reserveras innan dess. Vi sparar inga kortuppgifter själva och lagrar aldrig ditt fullständiga kortnummer.
+
+Vid direktleverans debiteras ditt kort när du köper, inte när en pall stänger. Stycket om misslyckad dragning gäller bara delad pall.
 
 Din bank kan begära en säkerhetsverifiering (BankID eller motsvarande) när du köper eller när kortet debiteras.
 
@@ -106,7 +128,8 @@ Betalning sker enligt [Stripes villkor för betalningstjänsten](https://stripe.
 ## 7. Leverans
 
 - Leverans sker med hemleverans och ID-kontroll av vår transportpartner
-- Leveranstiden är normalt **2–3 veckor** efter att pallen har stängt, och alltid senast 30 dagar efter. Vid överlämning kontrolleras mottagarens ålder (20 år) med legitimation
+- **Delad pall:** normalt 2–3 veckor efter att pallen har stängt, alltid inom 30 dagar.
+- **Direktleverans:** normalt 5–10 arbetsdagar från att ordern är bekräftad och betald, alltid inom 30 dagar.
 - Har du inte fått din leverans inom 30 dagar efter att pallen stängde får du avbryta köpet. Du får då tillbaka hela beloppet inom 14 dagar.
 - Angivna leveranstider är uppskattningar. Transport från Frankrike kan påverkas av tull, väder och producenternas kapacitet
 - **Risken för varan går över på dig först när du tagit emot den.** Skadas eller försvinner varan under transport är det vårt ansvar
