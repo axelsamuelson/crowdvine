@@ -14,6 +14,7 @@ import { useTranslations } from "@/lib/hooks/use-translations";
 import {
   formatPackingSourceCustomerLabel,
   fullBoxCountFromBottles,
+  packingBoxSummary,
 } from "@/lib/cart/packing-source-display";
 import { PACK_BOTTLES_PER_SOURCE } from "@/lib/cart/packing-source";
 
@@ -114,8 +115,10 @@ export function CartValidationHeader({
   const allValid = validations.every((v) => v.isValid);
   const invalidCount = validations.filter((v) => !v.isValid).length;
   const isCartScoped = validations.some((v) => v.scope === "cart");
-  const fullCount = validations.filter((v) => v.isValid).length;
-  const sourceCount = validations.length;
+  // Count BOXES, not sources: full = Σ floor(n/6), total = Σ ceil(n/6).
+  const { full: fullBoxCount, total: targetBoxCount } = packingBoxSummary(
+    validations.map((v) => v.quantity || 0),
+  );
 
   const derivedNeeded = validations.reduce(
     (sum, v) => sum + (v.isValid ? 0 : v.needed),
@@ -308,8 +311,8 @@ export function CartValidationHeader({
               <CheckCircle2 className="w-3.5 h-3.5 text-foreground/70 shrink-0" />
             ) : null}
             {t("cart.fullBoxesSummary", {
-              full: fullCount,
-              total: sourceCount,
+              full: fullBoxCount,
+              total: targetBoxCount,
             })}
           </p>
           <WhySixBottlesTrigger />

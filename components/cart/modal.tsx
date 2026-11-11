@@ -190,7 +190,7 @@ const CartItems = ({
         />
       ) : null}
 
-      <CartContainer className="flex justify-between px-2 text-sm text-muted-foreground">
+      <CartContainer className="flex justify-between text-sm text-muted-foreground">
         <span>{t("cart.products")}</span>
         <span>{t("cart.bottlesCount", { count: cart.totalQuantity })}</span>
       </CartContainer>
@@ -341,10 +341,10 @@ const CartItems = ({
               </Link>
             </p>
           ) : null}
-          <div className="flex justify-between items-center pt-1 pb-1 mb-1.5 text-lg font-semibold">
-            <p>{t("cart.total")}</p>
+          <div className="flex justify-between items-center pt-1 pb-1 mb-1.5 text-lg font-semibold text-[#0A0A0A]">
+            <p className="text-[#0A0A0A]">{t("cart.total")}</p>
             <div className="text-right">
-              <span className="text-base text-foreground block">
+              <span className="text-base text-[#0A0A0A] block">
                 {formatCartLinePrice(
                   displayTotal,
                   cart.cost.totalAmount.currencyCode,

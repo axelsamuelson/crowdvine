@@ -60,3 +60,28 @@ export function fullBoxCountFromBottles(bottles: number): number {
   const n = Math.max(0, Math.floor(Number(bottles) || 0));
   return Math.floor(n / 6);
 }
+
+/** Boxes needed for a bottle count (ceil). Empty → 0. */
+export function targetBoxCountFromBottles(bottles: number): number {
+  const n = Math.max(0, Math.floor(Number(bottles) || 0));
+  if (n <= 0) return 0;
+  return Math.ceil(n / 6);
+}
+
+/**
+ * Cart summary counters: full boxes vs boxes in progress.
+ * - full = Σ floor(nᵢ / 6)
+ * - total = Σ ceil(nᵢ / 6)
+ * Example: 8 bottles from one source → { full: 1, total: 2 }.
+ */
+export function packingBoxSummary(
+  quantities: ReadonlyArray<number>,
+): { full: number; total: number } {
+  let full = 0;
+  let total = 0;
+  for (const q of quantities) {
+    full += fullBoxCountFromBottles(q);
+    total += targetBoxCountFromBottles(q);
+  }
+  return { full, total };
+}
