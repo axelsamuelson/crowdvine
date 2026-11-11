@@ -49,6 +49,12 @@ export async function getGrapeVarieties(): Promise<GrapeVariety[]> {
     .order("name");
 
   if (error) {
+    // Older / TEST schemas may lack grape_varieties — don't surface as a Next.js issue on wine edit.
+    if (
+      /schema cache|Could not find.*table|does not exist/i.test(error.message)
+    ) {
+      return [];
+    }
     console.error("Get grape varieties error:", error);
     throw new Error(error.message);
   }
@@ -199,6 +205,11 @@ export async function getWineGrapeVarieties(wineId: string): Promise<string[]> {
     .eq("wine_id", wineId);
 
   if (error) {
+    if (
+      /schema cache|Could not find.*table|does not exist/i.test(error.message)
+    ) {
+      return [];
+    }
     console.error("Get wine grape varieties error:", error);
     throw new Error(error.message);
   }

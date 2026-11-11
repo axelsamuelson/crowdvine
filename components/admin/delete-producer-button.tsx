@@ -49,10 +49,10 @@ export function DeleteProducerButton({
           type="button"
           variant="outline"
           size="sm"
+          aria-label="Ta bort producent"
           className="rounded-lg border-red-200 text-xs font-medium text-red-700 hover:bg-red-50 dark:border-red-900/50 dark:text-red-400 dark:hover:bg-red-950/40"
         >
-          <Trash2 className="h-4 w-4" />
-          <span className="sr-only">Ta bort producent</span>
+          <Trash2 className="h-4 w-4" aria-hidden />
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent className="rounded-xl border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
