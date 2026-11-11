@@ -769,7 +769,7 @@ function CheckoutButton({
           className="font-semibold cursor-pointer whitespace-nowrap text-base transition-all disabled:pointer-events-none disabled:opacity-50 h-12 rounded-md px-3 flex items-center justify-center gap-2 w-full bg-white text-[#0A0A0A] border border-[#0A0A0A] hover:bg-neutral-50 shadow-none"
         >
           <Plus className="size-5 shrink-0" strokeWidth={2.25} aria-hidden />
-          <span className="leading-snug whitespace-nowrap truncate">
+          <span className="leading-snug whitespace-nowrap text-sm sm:text-base">
             {addMoreLabel}
           </span>
         </Button>
