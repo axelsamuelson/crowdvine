@@ -1205,6 +1205,7 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
                 <Input
                   id="shipped_at"
                   type="date"
+                  lang="sv-SE"
                   value={shippedAt}
                   onChange={(e) => setShippedAt(e.target.value)}
                   className={cn(inputClass, "[color-scheme:light] dark:[color-scheme:dark]")}
@@ -1217,6 +1218,7 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
                 <Input
                   id="delivered_at"
                   type="date"
+                  lang="sv-SE"
                   value={deliveredAt}
                   onChange={(e) => setDeliveredAt(e.target.value)}
                   className={cn(inputClass, "[color-scheme:light] dark:[color-scheme:dark]")}

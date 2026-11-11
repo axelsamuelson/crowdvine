@@ -35,11 +35,18 @@ export function AdminLayoutClient({
   const logCountRef = useRef(0);
 
   // Native <input type="date"> follows document language → åååå-mm-dd in sv-SE.
-  useEffect(() => {
+  // Root layout may set lang="sv"; keep html.lang pinned while admin is mounted.
+  useLayoutEffect(() => {
     const html = document.documentElement;
     const previousLang = html.lang;
-    html.lang = "sv-SE";
+    const apply = () => {
+      if (html.lang !== "sv-SE") html.lang = "sv-SE";
+    };
+    apply();
+    const observer = new MutationObserver(apply);
+    observer.observe(html, { attributes: true, attributeFilter: ["lang"] });
     return () => {
+      observer.disconnect();
       html.lang = previousLang;
     };
   }, []);
