@@ -20,6 +20,7 @@ export type CartItem = {
       producerDisplayName?: string | null;
       sourceType?: string | null;
       sourceName?: string | null;
+      region?: string | null;
     };
   };
 };
@@ -45,6 +46,8 @@ export type ProducerValidation = {
   scope?: "cart" | "line" | "producer" | "source";
   /** producer | wholesaler when scope is source. */
   sourceKind?: "producer" | "wholesaler";
+  /** Distinct wine regions for wholesaler Blandlåda labels. */
+  regions?: string[];
 };
 
 export type ValidationResult = {
@@ -162,6 +165,7 @@ export function validateCartMinimum(
     producerDisplayName: item.merchandise?.product?.producerDisplayName,
     sourceType: item.merchandise?.product?.sourceType,
     sourceName: item.merchandise?.product?.sourceName,
+    region: item.merchandise?.product?.region,
   }));
 
   const { progress, sources } = computeB2CPackingMinimum(lines);
@@ -172,23 +176,25 @@ export function validateCartMinimum(
 
   const producerValidations: ProducerValidation[] = sources.map((row) => ({
     producerId: row.id,
+    // Internal / redirect name — UI formats wholesaler as Blandlåda.
     producerName: row.displayName,
     producerDisplayName: row.displayName,
-    producerHandle: generateProducerSlug(row.displayName),
+    producerHandle:
+      row.kind === "producer" ? generateProducerSlug(row.displayName) : "",
     quantity: row.quantity,
     isValid: row.isValid,
     needed: row.needed,
     required: row.required,
     scope: "source",
     sourceKind: row.kind,
+    regions: row.regions,
   }));
 
   const errors = producerValidations
     .filter((v) => !v.isValid)
     .map(
       (v) =>
-        // TODO(Margaux): customer-facing validation error copy
-        `TODO(Margaux): ${v.producerName}: ${v.quantity} bottles — add ${v.needed} more for a multiple of ${B2C_CART_MIN_BOTTLES}.`,
+        `${v.producerName}: ${v.quantity} bottles — add ${v.needed} more for a multiple of ${B2C_CART_MIN_BOTTLES}.`,
     );
 
   return fromProgress(progress, producerValidations, errors);

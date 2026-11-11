@@ -37,6 +37,7 @@ export type CartLineQuantity = {
   producerDisplayName?: string | null;
   sourceType?: string | null;
   sourceName?: string | null;
+  region?: string | null;
 };
 
 export type CartMinimumProgress = {
@@ -119,6 +120,7 @@ export function computeB2CPackingMinimum(
       sourceName: line.sourceName,
       producerId: line.producerId,
       displayName,
+      region: line.region,
     });
   }
 

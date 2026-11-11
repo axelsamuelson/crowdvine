@@ -53,6 +53,7 @@ type CartWineRow = {
   b2b_margin_percentage?: number | null;
   source_type?: string | null;
   source_name?: string | null;
+  region?: string | null;
   producers: CartWineProducer | CartWineProducer[] | null;
 };
 
@@ -208,6 +209,7 @@ export class CartService {
             b2b_margin_percentage,
             source_type,
             source_name,
+            region,
             producers (
               id,
               name,
@@ -464,6 +466,10 @@ export class CartService {
               sourceName:
                 typeof wine.source_name === "string" && wine.source_name.trim()
                   ? wine.source_name.trim()
+                  : null,
+              region:
+                typeof wine.region === "string" && wine.region.trim()
+                  ? wine.region.trim()
                   : null,
               producerBoostActive,
               description: "",

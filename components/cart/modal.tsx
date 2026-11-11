@@ -29,6 +29,12 @@ import {
 import { B2B_INQUIRY_PATH } from "@/lib/b2b/inquiry-login";
 import { homeDeliveryGuidePath } from "@/lib/guides/home-delivery-guide";
 import { shouldAutoOpenCartOnQuantityChange } from "@/lib/cart/should-auto-open-cart";
+import { resolvePackingSourceId } from "@/lib/cart/packing-source";
+import {
+  formatPackingSourceCustomerLabel,
+  wholesalerBoxRegionLabel,
+} from "@/lib/cart/packing-source-display";
+import { producerDisplayName } from "@/lib/producer-display-name";
 
 const CartContainer = ({
   children,
@@ -101,6 +107,74 @@ const CartItems = ({
 
   if (!cart) return <></>;
 
+  const locale = context.locale === "en" ? "en" : "sv";
+  const sourceGroups = (() => {
+    if (showExclVat || validations.every((v) => v.scope === "cart")) {
+      return null;
+    }
+    const byId = new Map<
+      string,
+      {
+        validation: ProducerValidation | null;
+        lines: typeof cart.lines;
+        label: string;
+      }
+    >();
+    for (const item of cart.lines) {
+      const product = item.merchandise.product;
+      const packingId = resolvePackingSourceId({
+        sourceType: product?.sourceType,
+        sourceName: product?.sourceName,
+        producerId: product?.producerId,
+        displayName: producerDisplayName({
+          name: product?.producerName,
+          display_name: product?.producerDisplayName,
+        }),
+      });
+      const validation =
+        validations.find((v) => v.producerId === packingId) ?? null;
+      const label = validation
+        ? validation.sourceKind === "wholesaler"
+          ? formatPackingSourceCustomerLabel({
+              kind: "wholesaler",
+              regions: validation.regions,
+              locale,
+            })
+          : formatPackingSourceCustomerLabel({
+              kind: "producer",
+              producerName:
+                validation.producerDisplayName || validation.producerName,
+              locale,
+            })
+        : formatPackingSourceCustomerLabel({
+            kind:
+              product?.sourceType?.toLowerCase() === "wholesaler" ||
+              product?.sourceType?.toLowerCase() === "wholesale"
+                ? "wholesaler"
+                : "producer",
+            producerName: producerDisplayName({
+              name: product?.producerName,
+              display_name: product?.producerDisplayName,
+            }),
+            regions: product?.region ? [product.region] : [],
+            locale,
+          });
+      const prev = byId.get(packingId);
+      if (prev) {
+        prev.lines.push(item);
+        if (!prev.validation && validation) prev.validation = validation;
+      } else {
+        byId.set(packingId, { validation, lines: [item], label });
+      }
+    }
+    // Incomplete sources first (match header ordering).
+    return [...byId.values()].sort((a, b) => {
+      const aOk = a.validation?.isValid ? 1 : 0;
+      const bOk = b.validation?.isValid ? 1 : 0;
+      return aOk - bOk;
+    });
+  })();
+
   return (
     <div className="flex flex-col justify-between h-full overflow-hidden">
       {/* PACT only: Dirty Wine has no bottle minimum / pack rule. */}
@@ -120,18 +194,75 @@ const CartItems = ({
       <div className="flex flex-col flex-1 min-h-0">
         <div className="relative flex min-h-0 flex-1 flex-col py-4 overflow-x-hidden">
           <CartContainer className="flex min-h-0 flex-1 flex-col">
-            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain flex flex-col gap-y-3">
+            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain flex flex-col gap-y-4">
               <AnimatePresence>
-                {cart.lines.map((item, i) => (
-                  <motion.div
-                    key={item.merchandise.id}
-                    layout
-                    exit={{ opacity: 0, x: -20 }}
-                    transition={{ duration: 0.3, delay: i * 0.1, ease: "easeOut" }}
-                  >
-                    <CartItemCard item={item} onCloseCart={closeCart} />
-                  </motion.div>
-                ))}
+                {sourceGroups
+                  ? sourceGroups.map((group, gi) => (
+                      <motion.div
+                        key={group.validation?.producerId || group.label}
+                        layout
+                        className="flex flex-col gap-y-2"
+                      >
+                        <div className="flex items-baseline justify-between gap-2 px-0.5">
+                          <p className="text-xs font-semibold text-foreground truncate">
+                            {group.label}
+                          </p>
+                          {group.validation ? (
+                            <p className="text-[11px] tabular-nums text-muted-foreground shrink-0">
+                              {group.validation.isValid
+                                ? t("cart.bottleProgressFull", {
+                                    current: group.validation.quantity,
+                                    total: group.validation.quantity,
+                                    boxes: Math.max(
+                                      1,
+                                      Math.floor(
+                                        (group.validation.quantity || 0) / 6,
+                                      ),
+                                    ),
+                                  })
+                                : t("cart.bottleProgress", {
+                                    current: group.validation.quantity,
+                                    total:
+                                      group.validation.required ||
+                                      group.validation.quantity +
+                                        group.validation.needed,
+                                  })}
+                            </p>
+                          ) : null}
+                        </div>
+                        {group.lines.map((item, i) => (
+                          <motion.div
+                            key={item.merchandise.id}
+                            layout
+                            exit={{ opacity: 0, x: -20 }}
+                            transition={{
+                              duration: 0.3,
+                              delay: (gi + i) * 0.05,
+                              ease: "easeOut",
+                            }}
+                          >
+                            <CartItemCard
+                              item={item}
+                              onCloseCart={closeCart}
+                            />
+                          </motion.div>
+                        ))}
+                      </motion.div>
+                    ))
+                  : cart.lines.map((item, i) => (
+                      <motion.div
+                        key={item.merchandise.id}
+                        layout
+                        exit={{ opacity: 0, x: -20 }}
+                        transition={{
+                          duration: 0.3,
+                          delay: i * 0.1,
+                          ease: "easeOut",
+                        }}
+                      >
+                        <CartItemCard item={item} onCloseCart={closeCart} />
+                      </motion.div>
+                    ))}
               </AnimatePresence>
             </div>
           </CartContainer>
@@ -547,12 +678,11 @@ function CheckoutButton({
   const hasValidationErrors = validations.some((v) => !v.isValid);
   const invalidValidations = validations.filter((v) => !v.isValid);
   const isCartScoped = validations.some((v) => v.scope === "cart");
-  const neededBottles = invalidValidations.reduce(
-    (sum, v) => sum + (v.needed || 0),
-    0,
-  );
+  const locale = shopping.locale === "en" ? "en" : "sv";
+  const firstIncomplete = invalidValidations[0];
+  const neededBottles = firstIncomplete?.needed || 0;
 
-  // B2C cart-total minimum → shop (PLP). B2B pack lines → producer pages when known.
+  // B2C incomplete source → shop (PLP). B2B pack lines → producer pages when known.
   let redirectUrl = paths.shop;
   if (!isCartScoped && invalidValidations.length === 1) {
     const firstInvalidValidation = invalidValidations[0];
@@ -580,6 +710,33 @@ function CheckoutButton({
     checkoutLocked ||
     ((!checkoutUrl || isPending) && !hasValidationErrors);
 
+  const addMoreLabel = (() => {
+    if (!firstIncomplete) {
+      return t("cart.addMoreBottlesOutlineCta", { needed: neededBottles }).replace(
+        /^\+\s*/,
+        "",
+      );
+    }
+    if (firstIncomplete.sourceKind === "wholesaler") {
+      const region = wholesalerBoxRegionLabel(
+        firstIncomplete.regions ?? [],
+        locale,
+      );
+      return t("cart.addMoreFromWholesalerCta", {
+        needed: neededBottles,
+        region,
+      });
+    }
+    const name =
+      firstIncomplete.producerDisplayName ||
+      firstIncomplete.producerName ||
+      "";
+    return t("cart.addMoreFromProducerCta", {
+      needed: neededBottles,
+      name,
+    });
+  })();
+
   const goAddMore = () => {
     if (isValidating || producerOrdersPaused) return;
     closeCart();
@@ -604,12 +761,7 @@ function CheckoutButton({
           className="font-semibold cursor-pointer whitespace-nowrap text-base transition-all disabled:pointer-events-none disabled:opacity-50 h-12 rounded-md px-3 flex items-center justify-center gap-2 w-full bg-white text-[#0A0A0A] border border-[#0A0A0A] hover:bg-neutral-50 shadow-none"
         >
           <Plus className="size-5 shrink-0" strokeWidth={2.25} aria-hidden />
-          <span className="leading-snug">
-            {t("cart.addMoreBottlesOutlineCta", { needed: neededBottles }).replace(
-              /^\+\s*/,
-              "",
-            )}
-          </span>
+          <span className="leading-snug text-left">{addMoreLabel}</span>
         </Button>
       ) : null}
 
@@ -647,9 +799,13 @@ function CheckoutButton({
                 <span className="text-left leading-snug">
                   {inquiryMode && !checkoutLocked
                     ? t("cart.sendInquiry")
-                    : t("cart.proceedToCheckout")}
+                    : checkoutLocked
+                      ? t("cart.checkoutLockedCta")
+                      : t("cart.proceedToCheckout")}
                 </span>
-                <ArrowRight className="size-6 shrink-0" />
+                {!checkoutLocked ? (
+                  <ArrowRight className="size-6 shrink-0" />
+                ) : null}
               </div>
             )}
           </motion.div>
