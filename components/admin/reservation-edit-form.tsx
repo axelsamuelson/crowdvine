@@ -13,27 +13,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Separator } from "@/components/ui/separator";
-import {
-  Trash2,
-  Plus,
-  Save,
-  ArrowLeft,
-  Package,
-  User,
-  MapPin,
-  Calendar,
-  DollarSign,
-} from "lucide-react";
+import { Trash2, Plus, Save, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -431,7 +412,7 @@ export default function ReservationEditForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-10 pb-10">
+    <form onSubmit={handleSubmit} className="space-y-10 pb-10 text-gray-900 dark:text-zinc-100">
       {error && (
         <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>
@@ -455,7 +436,7 @@ export default function ReservationEditForm({
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0 space-y-2">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+              <h1 className="text-2xl font-bold tracking-tight !text-gray-900 dark:!text-white">
                 Order #{reservationIdShort}
               </h1>
               <span
@@ -490,7 +471,7 @@ export default function ReservationEditForm({
         {/* LEFT: main */}
         <div className="space-y-6">
           {/* Order items */}
-          <Card className="rounded-lg border border-gray-200 bg-white p-6 shadow-none dark:border-[#1F1F23] dark:bg-[#0F0F12]">
+          <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm text-gray-900 dark:border-[#1F1F23] dark:bg-[#0F0F12] dark:text-zinc-100 dark:shadow-none">
             <div className="flex items-start justify-between gap-4">
               <div className="text-xs font-medium uppercase tracking-widest text-gray-500 dark:text-zinc-500">
                 Order items
@@ -507,8 +488,117 @@ export default function ReservationEditForm({
               </Button>
             </div>
 
-            <div className="mt-4 overflow-x-auto">
-              <table className="w-full">
+            {/* Mobile: stacked rows (table columns overflow at 390) */}
+            <div className="mt-4 space-y-3 sm:hidden">
+              {items.map((item, index) => {
+                const unitCents = item.wine?.base_price_cents ?? 0;
+                const lineTotalCents = unitCents * (item.quantity ?? 0);
+                const img = item.wine?.label_image_path ?? null;
+                const name = item.wine?.wine_name ?? "Select wine";
+                const vintage = item.wine?.vintage ?? "";
+                return (
+                  <div
+                    key={item.id}
+                    className="space-y-3 rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-[#1F1F23] dark:bg-zinc-900/50"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="h-12 w-12 shrink-0 overflow-hidden rounded-md bg-gray-100 dark:bg-zinc-800">
+                        {img ? (
+                          <Image
+                            src={img}
+                            alt={name}
+                            width={48}
+                            height={48}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : null}
+                      </div>
+                      <div className="min-w-0 flex-1 space-y-1">
+                        <div className="text-sm font-medium text-gray-900 dark:text-zinc-100">
+                          {item.wine ? `${name} ${vintage}`.trim() : name}
+                        </div>
+                        <Select
+                          value={item.item_id || undefined}
+                          onValueChange={(value) =>
+                            handleItemWineChange(index, value)
+                          }
+                        >
+                          <SelectTrigger
+                            className={cn("h-9 w-full text-sm", ADMIN_FIELD_CLASS)}
+                          >
+                            <SelectValue placeholder="Select wine" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {wines.map((wine) => (
+                              <SelectItem key={wine.id} value={wine.id}>
+                                {wine.wine_name} {wine.vintage}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {item.wine?.grape_varieties ? (
+                          <p className={cn("truncate", ADMIN_HELP_TEXT_CLASS)}>
+                            {item.wine.grape_varieties}
+                          </p>
+                        ) : null}
+                      </div>
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => removeItem(index)}
+                        className="h-9 shrink-0 px-2"
+                        aria-label="Remove item"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="space-y-1">
+                        <div className="text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-zinc-500">
+                          Qty
+                        </div>
+                        <Input
+                          type="number"
+                          min="1"
+                          value={item.quantity}
+                          onChange={(e) =>
+                            handleItemQuantityChange(
+                              index,
+                              parseInt(e.target.value) || 1,
+                            )
+                          }
+                          className={cn(
+                            "h-9 w-full text-right text-sm tabular-nums",
+                            ADMIN_FIELD_CLASS,
+                          )}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <div className="text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-zinc-500">
+                          Unit
+                        </div>
+                        <div className="flex h-9 items-center justify-end text-sm tabular-nums text-gray-800 dark:text-zinc-200">
+                          {formatPrice(unitCents)}
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <div className="text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-zinc-500">
+                          Total
+                        </div>
+                        <div className="flex h-9 items-center justify-end text-sm font-medium tabular-nums text-gray-900 dark:text-zinc-100">
+                          {formatPrice(lineTotalCents)}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop table */}
+            <div className="mt-4 hidden overflow-x-auto sm:block">
+              <table className="w-full min-w-[36rem]">
                 <thead>
                   <tr className="border-b border-gray-200 text-[11px] uppercase tracking-wide text-gray-500 dark:border-[#1F1F23] dark:text-zinc-500">
                     <th className="py-2 pr-4 text-left">Item</th>
@@ -544,7 +634,7 @@ export default function ReservationEditForm({
                               ) : null}
                             </div>
                             <div className="min-w-0 flex-1">
-                              <div className="text-sm font-medium text-gray-900 dark:text-zinc-100 truncate">
+                              <div className="truncate text-sm font-medium text-gray-900 dark:text-zinc-100">
                                 {item.wine ? `${name} ${vintage}`.trim() : name}
                               </div>
                               <div className="mt-1">
@@ -554,7 +644,12 @@ export default function ReservationEditForm({
                                     handleItemWineChange(index, value)
                                   }
                                 >
-                                  <SelectTrigger className={cn("h-9 w-full text-sm", ADMIN_FIELD_CLASS)}>
+                                  <SelectTrigger
+                                    className={cn(
+                                      "h-9 w-full text-sm",
+                                      ADMIN_FIELD_CLASS,
+                                    )}
+                                  >
                                     <SelectValue placeholder="Select wine" />
                                   </SelectTrigger>
                                   <SelectContent>
@@ -567,7 +662,12 @@ export default function ReservationEditForm({
                                 </Select>
                               </div>
                               {item.wine?.grape_varieties ? (
-                                <p className={cn("mt-1 truncate", ADMIN_HELP_TEXT_CLASS)}>
+                                <p
+                                  className={cn(
+                                    "mt-1 truncate",
+                                    ADMIN_HELP_TEXT_CLASS,
+                                  )}
+                                >
                                   {item.wine.grape_varieties}
                                 </p>
                               ) : null}
@@ -637,10 +737,10 @@ export default function ReservationEditForm({
                 </div>
               </div>
             </div>
-          </Card>
+          </section>
 
           {/* Payment */}
-          <Card className="rounded-lg border border-gray-200 bg-white p-6 shadow-none dark:border-[#1F1F23] dark:bg-[#0F0F12]">
+          <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm text-gray-900 dark:border-[#1F1F23] dark:bg-[#0F0F12] dark:text-zinc-100 dark:shadow-none">
             <div className="text-xs font-medium uppercase tracking-widest text-gray-500 dark:text-zinc-500">
               Payment
             </div>
@@ -705,10 +805,10 @@ export default function ReservationEditForm({
                 </div>
               ) : null}
             </div>
-          </Card>
+          </section>
 
           {/* Notes */}
-          <Card className="rounded-lg border border-gray-200 bg-white p-6 shadow-none dark:border-[#1F1F23] dark:bg-[#0F0F12]">
+          <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm text-gray-900 dark:border-[#1F1F23] dark:bg-[#0F0F12] dark:text-zinc-100 dark:shadow-none">
             <div className="text-xs font-medium uppercase tracking-widest text-gray-500 dark:text-zinc-500">
               Notes
             </div>
@@ -745,13 +845,13 @@ export default function ReservationEditForm({
                 />
               </div>
             </div>
-          </Card>
+          </section>
         </div>
 
         {/* RIGHT: sidebar */}
         <aside className="space-y-6 lg:sticky lg:top-6 lg:self-start">
           {/* Reservation summary */}
-          <Card className="rounded-lg border border-gray-200 bg-white p-6 shadow-none dark:border-[#1F1F23] dark:bg-[#0F0F12]">
+          <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm text-gray-900 dark:border-[#1F1F23] dark:bg-[#0F0F12] dark:text-zinc-100 dark:shadow-none">
             <div className="text-xs font-medium uppercase tracking-widest text-gray-500 dark:text-zinc-500">
               Reservation summary
             </div>
@@ -793,10 +893,10 @@ export default function ReservationEditForm({
                 </div>
               )}
             </div>
-          </Card>
+          </section>
 
           {/* Customer */}
-          <Card className="rounded-lg border border-gray-200 bg-white p-6 shadow-none dark:border-[#1F1F23] dark:bg-[#0F0F12]">
+          <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm text-gray-900 dark:border-[#1F1F23] dark:bg-[#0F0F12] dark:text-zinc-100 dark:shadow-none">
             <div className="text-xs font-medium uppercase tracking-widest text-gray-500 dark:text-zinc-500">
               Customer
             </div>
@@ -816,10 +916,10 @@ export default function ReservationEditForm({
                 </Link>
               ) : null}
             </div>
-          </Card>
+          </section>
 
           {/* Delivery */}
-          <Card className="rounded-lg border border-gray-200 bg-white p-6 shadow-none dark:border-[#1F1F23] dark:bg-[#0F0F12]">
+          <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm text-gray-900 dark:border-[#1F1F23] dark:bg-[#0F0F12] dark:text-zinc-100 dark:shadow-none">
             <div className="text-xs font-medium uppercase tracking-widest text-gray-500 dark:text-zinc-500">
               Delivery
             </div>
@@ -856,10 +956,10 @@ export default function ReservationEditForm({
                 </span>
               </div>
             </div>
-          </Card>
+          </section>
 
           {/* Status management */}
-          <Card className="rounded-lg border border-gray-200 bg-white p-6 shadow-none dark:border-[#1F1F23] dark:bg-[#0F0F12]">
+          <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm text-gray-900 dark:border-[#1F1F23] dark:bg-[#0F0F12] dark:text-zinc-100 dark:shadow-none">
             <div className="text-xs font-medium uppercase tracking-widest text-gray-500 dark:text-zinc-500">
               Status management
             </div>
@@ -1029,7 +1129,7 @@ export default function ReservationEditForm({
                 {loading ? "Saving..." : "Save changes"}
               </Button>
             </div>
-          </Card>
+          </section>
         </aside>
       </div>
     </form>
