@@ -70,3 +70,16 @@ describe("direct-box dispatch transitions", () => {
     expect(DISPATCH_STATUS_LABELS_SV.cancelled).toBe("Avbruten");
   });
 });
+
+describe("cancel dispatch dialog copy", () => {
+  it("keeps question and uses Behåll / Avbryt leveransen", async () => {
+    const { CANCEL_DISPATCH_DIALOG } = await import(
+      "@/components/admin/direct-box-fulfillment-panel"
+    );
+    expect(CANCEL_DISPATCH_DIALOG.question).toBe(
+      "Är du säker på att du vill avbryta den här direktleveransen?",
+    );
+    expect(CANCEL_DISPATCH_DIALOG.keep).toBe("Behåll");
+    expect(CANCEL_DISPATCH_DIALOG.confirm).toBe("Avbryt leveransen");
+  });
+});

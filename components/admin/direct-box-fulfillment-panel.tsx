@@ -18,6 +18,16 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { Package, Truck, Trash2, Plus, MapPin, Calendar } from "lucide-react";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   allowedDispatchTransitions,
   DISPATCH_STATUS_LABELS_SV,
   normalizeDispatchStatus,
@@ -30,6 +40,12 @@ import {
 
 const ICON_CLASS = "h-4 w-4 shrink-0 text-[#737373]";
 const FIELD_FONT = "font-[inherit]";
+
+export const CANCEL_DISPATCH_DIALOG = {
+  question: "Är du säker på att du vill avbryta den här direktleveransen?",
+  keep: "Behåll",
+  confirm: "Avbryt leveransen",
+} as const;
 
 /** Format ISO → sv-SE `åååå-mm-dd hh:mm` for the custom datetime field. */
 export function formatDeliveredAtSv(iso: string | null | undefined): string {
@@ -103,6 +119,7 @@ export function DirectBoxFulfillmentPanel({
   const [trackingDrafts, setTrackingDrafts] = useState<
     Record<string, { tracking: string; boxes: string }>
   >({});
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
 
   const current = normalizeDispatchStatus(fulfillmentDispatchStatus);
   const nextStatuses = allowedDispatchTransitions(current);
@@ -120,12 +137,6 @@ export function DirectBoxFulfillmentPanel({
   );
 
   async function transitionTo(status: DirectBoxDispatchStatus) {
-    if (status === "cancelled") {
-      const ok = window.confirm(
-        "Är du säker på att du vill avbryta den här direktleveransen?",
-      );
-      if (!ok) return;
-    }
     setBusy(true);
     setError(null);
     try {
@@ -148,6 +159,15 @@ export function DirectBoxFulfillmentPanel({
     } finally {
       setBusy(false);
     }
+  }
+
+  function requestCancel() {
+    setCancelDialogOpen(true);
+  }
+
+  async function confirmCancel() {
+    setCancelDialogOpen(false);
+    await transitionTo("cancelled");
   }
 
   async function saveDeliveredAt() {
@@ -327,7 +347,7 @@ export function DirectBoxFulfillmentPanel({
                     variant="outline"
                     className={`${FIELD_FONT} border-red-300 text-[#B91C1C] hover:bg-red-50 hover:text-[#B91C1C]`}
                     disabled={busy}
-                    onClick={() => transitionTo("cancelled")}
+                    onClick={requestCancel}
                     data-testid="dispatch-to-cancelled"
                   >
                     Avbruten
@@ -571,6 +591,37 @@ export function DirectBoxFulfillmentPanel({
           )}
         </CardContent>
       </Card>
+
+      <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+        <AlertDialogContent
+          className={FIELD_FONT}
+          data-testid="cancel-dispatch-dialog"
+        >
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-base font-medium leading-snug">
+              {CANCEL_DISPATCH_DIALOG.question}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="sr-only">
+              Bekräfta om du vill avbryta direktleveransen.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className={FIELD_FONT}>
+              {CANCEL_DISPATCH_DIALOG.keep}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className={`${FIELD_FONT} border-transparent bg-[#B91C1C] text-white hover:bg-[#991B1B] hover:text-white focus-visible:ring-[#B91C1C]/40`}
+              onClick={(e) => {
+                e.preventDefault();
+                void confirmCancel();
+              }}
+              data-testid="confirm-cancel-dispatch"
+            >
+              {CANCEL_DISPATCH_DIALOG.confirm}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
