@@ -217,7 +217,8 @@ function OfferRow(props: {
         </p>
       ) : (
         <div className={selectable ? "pl-7" : ""}>
-          {/* Row 2 — key facts (same structure both cards) */}
+          {/* Row 2 — key facts (delivery + charge). Snittpris only when
+              the selected/open breakdown is not already showing it. */}
           <div className={`mt-2 space-y-1 ${factClass}`}>
             <p data-testid={`dual-offer-delivery-${quote.offer}`}>
               {offerDeliveryFact(quote, locale)}
@@ -225,7 +226,7 @@ function OfferRow(props: {
             <p data-testid={`dual-offer-debit-${quote.offer}`}>
               {debitLabel(quote, locale)}
             </p>
-            {quote.bottle_count > 0 ? (
+            {quote.bottle_count > 0 && !showDetails ? (
               <p
                 className="tabular-nums"
                 data-testid={`dual-offer-bottle-price-${quote.offer}`}
