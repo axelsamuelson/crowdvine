@@ -3,17 +3,10 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { Package, Truck, Trash2, Plus, MapPin, Calendar } from "lucide-react";
@@ -28,7 +21,16 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
+  ADMIN_FORM_FIELDS_CLASS,
+  ADMIN_HELP_TEXT_CLASS,
+  ADMIN_LABEL_CLASS,
+  ADMIN_OUTLINE_BUTTON_CLASS,
+} from "@/lib/admin-form-styles";
+import { cn } from "@/lib/utils";
+import {
   allowedDispatchTransitions,
+  DISPATCH_STATUS_ACTION_LABELS_SV,
+  DISPATCH_STATUS_BADGE_CLASS,
   DISPATCH_STATUS_LABELS_SV,
   normalizeDispatchStatus,
   type DirectBoxDispatchStatus,
@@ -38,46 +40,38 @@ import {
   type PickListItemInput,
 } from "@/lib/admin/direct-box-pick-list";
 
-const ICON_CLASS = "h-4 w-4 shrink-0 text-[#737373]";
-const FIELD_FONT = "font-[inherit]";
+const ICON_CLASS = "h-4 w-4 shrink-0 text-gray-500 dark:text-zinc-400";
+
+const ADMIN_PRIMARY_BTN =
+  "rounded-lg bg-gray-900 text-xs font-medium text-white hover:bg-gray-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200";
+
+const DASHBOARD_CARD =
+  "rounded-xl border border-gray-200 bg-white p-6 dark:border-[#1F1F23] dark:bg-[#0F0F12]";
+
+const DIALOG_SURFACE =
+  "rounded-xl border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-900";
 
 export const CANCEL_DISPATCH_DIALOG = {
   question: "Är du säker på att du vill avbryta den här direktleveransen?",
+  consequence:
+    "Ordern markeras som avbruten. Spårning och plocklista behålls, men leveransen går inte vidare.",
   keep: "Behåll",
   confirm: "Avbryt leveransen",
 } as const;
 
-/** Format ISO → sv-SE `åååå-mm-dd hh:mm` for the custom datetime field. */
-export function formatDeliveredAtSv(iso: string | null | undefined): string {
+export const DELETE_SHIPMENT_DIALOG = {
+  question: "Ta bort spårningsnummer?",
+  consequence: "Spårningsnumret tas bort från den här källan. Du kan lägga till det igen senare.",
+  keep: "Behåll",
+  confirm: "Ta bort",
+} as const;
+
+function toDatetimeLocalValue(iso: string | null | undefined): string {
   if (!iso) return "";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  const hh = String(d.getHours()).padStart(2, "0");
-  const mm = String(d.getMinutes()).padStart(2, "0");
-  return `${y}-${m}-${day} ${hh}:${mm}`;
-}
-
-/** Parse `åååå-mm-dd hh:mm` (or `åååå-mm-ddThh:mm`) to ISO, or null if empty. */
-export function parseDeliveredAtSv(raw: string): string | null {
-  const trimmed = raw.trim();
-  if (!trimmed) return null;
-  const normalized = trimmed.replace("T", " ");
-  const m = /^(\d{4})-(\d{2})-(\d{2})[ ](\d{2}):(\d{2})$/.exec(normalized);
-  if (!m) throw new Error("Ogiltigt datum. Använd åååå-mm-dd hh:mm");
-  const d = new Date(
-    Number(m[1]),
-    Number(m[2]) - 1,
-    Number(m[3]),
-    Number(m[4]),
-    Number(m[5]),
-  );
-  if (Number.isNaN(d.getTime())) {
-    throw new Error("Ogiltigt datum. Använd åååå-mm-dd hh:mm");
-  }
-  return d.toISOString();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
 export type DirectBoxShipmentRow = {
@@ -114,12 +108,13 @@ export function DirectBoxFulfillmentPanel({
   const [error, setError] = useState<string | null>(null);
   const [shipments, setShipments] = useState(initialShipments);
   const [deliveredDraft, setDeliveredDraft] = useState(
-    formatDeliveredAtSv(deliveredAt),
+    toDatetimeLocalValue(deliveredAt),
   );
   const [trackingDrafts, setTrackingDrafts] = useState<
     Record<string, { tracking: string; boxes: string }>
   >({});
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [deleteShipmentId, setDeleteShipmentId] = useState<string | null>(null);
 
   const current = normalizeDispatchStatus(fulfillmentDispatchStatus);
   const nextStatuses = allowedDispatchTransitions(current);
@@ -151,18 +146,17 @@ export function DirectBoxFulfillmentPanel({
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
         setError(json.error || `Kunde inte uppdatera status (${res.status})`);
+        toast.error("Kunde inte uppdatera status");
         return;
       }
+      toast.success(`Status: ${DISPATCH_STATUS_LABELS_SV[status]}`);
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Nätverksfel");
+      toast.error("Nätverksfel");
     } finally {
       setBusy(false);
     }
-  }
-
-  function requestCancel() {
-    setCancelDialogOpen(true);
   }
 
   async function confirmCancel() {
@@ -174,11 +168,11 @@ export function DirectBoxFulfillmentPanel({
     setBusy(true);
     setError(null);
     try {
-      let value: string | null;
-      try {
-        value = parseDeliveredAtSv(deliveredDraft);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Ogiltigt datum");
+      const value = deliveredDraft.trim()
+        ? new Date(deliveredDraft).toISOString()
+        : null;
+      if (deliveredDraft.trim() && Number.isNaN(new Date(deliveredDraft).getTime())) {
+        setError("Ogiltigt datum");
         setBusy(false);
         return;
       }
@@ -193,11 +187,14 @@ export function DirectBoxFulfillmentPanel({
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
         setError(json.error || "Kunde inte spara leveransdatum");
+        toast.error("Kunde inte spara leveransdatum");
         return;
       }
+      toast.success("Leveransdatum sparat");
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Nätverksfel");
+      toast.error("Nätverksfel");
     } finally {
       setBusy(false);
     }
@@ -237,6 +234,7 @@ export function DirectBoxFulfillmentPanel({
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
         setError(json.error || "Kunde inte spara spårningsnummer");
+        toast.error("Kunde inte spara spårningsnummer");
         return;
       }
       setShipments((prev) => {
@@ -248,16 +246,20 @@ export function DirectBoxFulfillmentPanel({
         delete next[sourceKey];
         return next;
       });
+      toast.success("Spårningsnummer sparat");
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Nätverksfel");
+      toast.error("Nätverksfel");
     } finally {
       setBusy(false);
     }
   }
 
-  async function deleteShipment(shipmentId: string) {
-    if (!confirm("Ta bort spårningsnummer?")) return;
+  async function confirmDeleteShipment() {
+    const shipmentId = deleteShipmentId;
+    setDeleteShipmentId(null);
+    if (!shipmentId) return;
     setBusy(true);
     setError(null);
     try {
@@ -268,12 +270,15 @@ export function DirectBoxFulfillmentPanel({
       if (!res.ok) {
         const json = await res.json().catch(() => ({}));
         setError(json.error || "Kunde inte ta bort");
+        toast.error("Kunde inte ta bort spårningsnummer");
         return;
       }
       setShipments((prev) => prev.filter((s) => s.id !== shipmentId));
+      toast.success("Spårningsnummer borttaget");
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Nätverksfel");
+      toast.error("Nätverksfel");
     } finally {
       setBusy(false);
     }
@@ -281,7 +286,7 @@ export function DirectBoxFulfillmentPanel({
 
   return (
     <div
-      className={`space-y-4 ${FIELD_FONT}`}
+      className={cn("space-y-4", ADMIN_FORM_FIELDS_CLASS)}
       lang="sv-SE"
       data-testid="direct-box-fulfillment-panel"
     >
@@ -291,22 +296,33 @@ export function DirectBoxFulfillmentPanel({
         </Alert>
       ) : null}
 
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-lg">
+      <section className={DASHBOARD_CARD}>
+        <div className="mb-4">
+          <h2 className="flex items-center gap-2 text-lg font-bold text-gray-900 dark:text-white">
             <Truck className={ICON_CLASS} aria-hidden />
             Direktleverans (UPS)
-          </CardTitle>
-          <CardDescription>Status, spårning och plocklista</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+          </h2>
+          <p className={cn("mt-1", ADMIN_HELP_TEXT_CLASS)}>
+            Status, spårning och plocklista
+          </p>
+        </div>
+
+        <div className="space-y-4">
           <div className="flex flex-wrap items-center gap-3">
-            <span className="text-sm text-zinc-600">Status:</span>
-            <Badge variant="secondary" data-testid="dispatch-status">
+            <span className="text-sm text-zinc-600 dark:text-zinc-400">
+              Status:
+            </span>
+            <span
+              className={cn(
+                "inline-flex rounded-md px-2 py-0.5 text-xs font-medium",
+                DISPATCH_STATUS_BADGE_CLASS[current],
+              )}
+              data-testid="dispatch-status"
+            >
               {DISPATCH_STATUS_LABELS_SV[current]}
-            </Badge>
+            </span>
             {statusUpdatedAt ? (
-              <span className="text-xs text-zinc-500">
+              <span className="text-xs text-gray-500 dark:text-zinc-400">
                 uppdaterad{" "}
                 {new Date(statusUpdatedAt).toLocaleString("sv-SE", {
                   year: "numeric",
@@ -328,13 +344,19 @@ export function DirectBoxFulfillmentPanel({
                       key={s}
                       type="button"
                       size="sm"
-                      variant={s === "skipped" ? "outline" : "default"}
-                      className={FIELD_FONT}
+                      variant="outline"
+                      className={cn(
+                        s === "skipped"
+                          ? ADMIN_OUTLINE_BUTTON_CLASS
+                          : ADMIN_PRIMARY_BTN,
+                        "text-xs font-medium",
+                      )}
                       disabled={busy}
                       onClick={() => transitionTo(s)}
                       data-testid={`dispatch-to-${s}`}
                     >
-                      {DISPATCH_STATUS_LABELS_SV[s]}
+                      {DISPATCH_STATUS_ACTION_LABELS_SV[s] ??
+                        DISPATCH_STATUS_LABELS_SV[s]}
                     </Button>
                   ))}
                 </div>
@@ -345,84 +367,96 @@ export function DirectBoxFulfillmentPanel({
                     type="button"
                     size="sm"
                     variant="outline"
-                    className={`${FIELD_FONT} border-red-300 text-[#B91C1C] hover:bg-red-50 hover:text-[#B91C1C]`}
+                    className={cn(
+                      "rounded-lg border-red-200 text-xs font-medium text-red-700 hover:bg-red-50 dark:border-red-900/60 dark:text-red-400 dark:hover:bg-red-950/40",
+                    )}
                     disabled={busy}
-                    onClick={requestCancel}
+                    onClick={() => setCancelDialogOpen(true)}
                     data-testid="dispatch-to-cancelled"
                   >
-                    Avbruten
+                    Avbryt leveransen…
                   </Button>
                 </div>
               ) : null}
             </div>
           ) : (
-            <p className="text-sm text-zinc-500">Inga ytterligare övergångar.</p>
+            <p className="text-sm text-zinc-600 dark:text-zinc-400">
+              Inga ytterligare övergångar.
+            </p>
           )}
 
-          <Separator />
+          <Separator className="bg-gray-200 dark:bg-zinc-800" />
 
           <div className="grid gap-2 sm:grid-cols-[1fr_auto] sm:items-end">
             <div className="space-y-1">
-              <Label htmlFor="delivered_at">Levererad</Label>
+              <Label htmlFor="delivered_at" className={ADMIN_LABEL_CLASS}>
+                Levererad
+              </Label>
               <Input
                 id="delivered_at"
-                type="text"
-                inputMode="numeric"
+                type="datetime-local"
                 lang="sv-SE"
-                placeholder="åååå-mm-dd hh:mm"
-                autoComplete="off"
-                className={FIELD_FONT}
                 value={deliveredDraft}
                 onChange={(e) => setDeliveredDraft(e.target.value)}
                 disabled={busy}
-                aria-describedby="delivered_at_hint"
               />
-              <p id="delivered_at_hint" className="text-xs text-zinc-500">
-                Format: åååå-mm-dd hh:mm
-              </p>
             </div>
             <Button
               type="button"
-              variant="secondary"
               size="sm"
-              className={FIELD_FONT}
+              variant="outline"
+              className={cn(ADMIN_OUTLINE_BUTTON_CLASS, "text-xs font-medium")}
               disabled={busy}
               onClick={saveDeliveredAt}
             >
               Spara datum
             </Button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-lg">
+      <section className={DASHBOARD_CARD}>
+        <div className="mb-4">
+          <h2 className="flex items-center gap-2 text-lg font-bold text-gray-900 dark:text-white">
             <Package className={ICON_CLASS} aria-hidden />
             Plocklista
-          </CardTitle>
-          <CardDescription className="flex flex-wrap gap-x-4 gap-y-1">
+          </h2>
+          <div
+            className={cn(
+              "mt-2 flex flex-wrap gap-x-4 gap-y-1",
+              ADMIN_HELP_TEXT_CLASS,
+            )}
+          >
             <span className="inline-flex items-center gap-1">
               <Calendar className={ICON_CLASS} aria-hidden />
               Order: {pickList.orderDateIso}
             </span>
             <span>
-              Mål upphämtning: <strong>{pickList.targetPickupIso}</strong> (+3
-              arbetsdagar)
+              Mål upphämtning:{" "}
+              <strong className="text-gray-900 dark:text-zinc-100">
+                {pickList.targetPickupIso}
+              </strong>{" "}
+              (+3 arbetsdagar)
             </span>
             <span>
-              Senast: <strong>{pickList.latestPickupIso}</strong> (+5
-              arbetsdagar)
+              Senast:{" "}
+              <strong className="text-gray-900 dark:text-zinc-100">
+                {pickList.latestPickupIso}
+              </strong>{" "}
+              (+5 arbetsdagar)
             </span>
             <span>
               Totalt {pickList.totalBoxes} lådor / {pickList.totalBottles}{" "}
               flaskor
             </span>
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
+          </div>
+        </div>
+
+        <div className="space-y-6">
           {pickList.sources.length === 0 ? (
-            <p className="text-sm text-zinc-500">Inga rader på ordern.</p>
+            <p className="text-sm text-zinc-600 dark:text-zinc-400">
+              Inga rader på ordern.
+            </p>
           ) : (
             pickList.sources.map((src) => {
               const shipment = shipments.find(
@@ -432,41 +466,46 @@ export function DirectBoxFulfillmentPanel({
                 tracking: shipment?.tracking_number ?? "",
                 boxes: String(shipment?.boxes ?? src.boxes),
               };
+              const trackingFieldId = `tracking-${src.sourceKey}`;
               const boxesFieldId = `boxes-${src.sourceKey}`;
               return (
                 <div
                   key={src.sourceKey}
-                  className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800"
+                  className="rounded-lg border border-gray-200 p-4 dark:border-zinc-800"
                   data-testid={`pick-source-${src.sourceKey}`}
                 >
                   <div className="mb-3 space-y-1">
                     <div className="flex items-center justify-between gap-2">
-                      <h3 className="min-w-0 flex-1 font-medium">
+                      <h3 className="min-w-0 flex-1 text-sm font-semibold text-gray-900 dark:text-zinc-100">
                         {src.sourceLabel}
                       </h3>
-                      <Badge variant="outline" className="shrink-0">
+                      <span className="inline-flex shrink-0 rounded-md bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700 dark:bg-zinc-800 dark:text-zinc-300">
                         {src.kind === "wholesaler" ? "Grossist" : "Producent"}
-                      </Badge>
+                      </span>
                     </div>
                     <p className="text-sm text-zinc-600 dark:text-zinc-400">
                       {src.boxes} låda{src.boxes === 1 ? "" : "or"} (
                       {src.bottles} flaskor)
                     </p>
                     {src.addressMissing ? (
-                      <p className="mt-1 flex flex-wrap items-start gap-x-2 gap-y-1 text-sm font-medium text-[#B91C1C]">
-                        <span className="inline-flex items-start gap-1">
-                          <MapPin className={`${ICON_CLASS} mt-0.5`} aria-hidden />
+                      <div className="mt-2 space-y-1 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm dark:border-amber-800/50 dark:bg-amber-900/20">
+                        <p className="flex items-center gap-1.5 font-medium text-amber-900 dark:text-amber-200">
+                          <MapPin className="h-4 w-4 shrink-0" aria-hidden />
                           Adress saknas
-                        </span>
+                        </p>
                         {src.kind === "producer" && src.producerId ? (
                           <Link
                             href={`/admin/producers/${src.producerId}`}
-                            className="underline underline-offset-2 hover:opacity-80"
+                            className="text-xs font-medium text-amber-800 underline underline-offset-2 hover:opacity-80 dark:text-amber-300/90"
                           >
                             Lägg till adress
                           </Link>
-                        ) : null}
-                      </p>
+                        ) : (
+                          <p className="text-xs text-amber-800 dark:text-amber-300/90">
+                            Ingen upphämtningsadress för den här källan.
+                          </p>
+                        )}
+                      </div>
                     ) : (
                       <p className="mt-1 flex items-start gap-1 text-sm text-zinc-600 dark:text-zinc-400">
                         <MapPin className={`${ICON_CLASS} mt-0.5`} aria-hidden />
@@ -475,7 +514,7 @@ export function DirectBoxFulfillmentPanel({
                     )}
                   </div>
 
-                  <ul className="mb-3 space-y-1 text-sm">
+                  <ul className="mb-3 space-y-1 text-sm text-gray-900 dark:text-zinc-100">
                     {src.wines.map((w) => (
                       <li
                         key={w.wineId || w.wineName}
@@ -485,25 +524,25 @@ export function DirectBoxFulfillmentPanel({
                           {w.wineName}
                           {w.vintage ? ` (${w.vintage})` : ""}
                         </span>
-                        <span className="tabular-nums text-zinc-600">
+                        <span className="tabular-nums text-zinc-600 dark:text-zinc-400">
                           ×{w.quantity}
                         </span>
                       </li>
                     ))}
                   </ul>
 
-                  <Separator className="my-3" />
+                  <Separator className="my-3 bg-gray-200 dark:bg-zinc-800" />
 
                   <div className="space-y-2">
-                    <Label className="text-xs uppercase tracking-wide text-zinc-500">
+                    <p className="text-xs font-medium uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
                       UPS-spårning
-                    </Label>
+                    </p>
                     {shipment ? (
                       <div className="flex flex-wrap items-center gap-2 text-sm">
-                        <code className="rounded bg-zinc-100 px-2 py-1 dark:bg-zinc-900">
+                        <code className="rounded bg-gray-100 px-2 py-1 font-mono text-xs text-gray-900 dark:bg-zinc-800 dark:text-zinc-100">
                           {shipment.tracking_number}
                         </code>
-                        <span className="text-zinc-500">
+                        <span className="text-zinc-600 dark:text-zinc-400">
                           {shipment.boxes} kolli
                           {shipment.boxes === 1 ? "" : "n"} ·{" "}
                           {shipment.carrier.toUpperCase()}
@@ -512,23 +551,25 @@ export function DirectBoxFulfillmentPanel({
                           type="button"
                           size="sm"
                           variant="ghost"
-                          className={FIELD_FONT}
                           disabled={busy}
-                          onClick={() => deleteShipment(shipment.id)}
+                          onClick={() => setDeleteShipmentId(shipment.id)}
                           aria-label="Ta bort spårningsnummer"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-4 w-4 text-gray-500 dark:text-zinc-400" />
                         </Button>
                       </div>
                     ) : null}
                     <div className="grid gap-2 sm:grid-cols-[1fr_7rem_auto] sm:items-end">
                       <div className="space-y-1">
-                        <Label className="text-xs text-zinc-500">
+                        <Label
+                          htmlFor={trackingFieldId}
+                          className={cn("text-xs", ADMIN_LABEL_CLASS)}
+                        >
                           Spårningsnummer
                         </Label>
                         <Input
+                          id={trackingFieldId}
                           placeholder="Spårningsnummer"
-                          className={FIELD_FONT}
                           value={draft.tracking}
                           disabled={busy}
                           onChange={(e) =>
@@ -545,7 +586,7 @@ export function DirectBoxFulfillmentPanel({
                       <div className="space-y-1">
                         <Label
                           htmlFor={boxesFieldId}
-                          className="text-xs text-zinc-500"
+                          className={cn("text-xs", ADMIN_LABEL_CLASS)}
                         >
                           Antal kollin
                         </Label>
@@ -553,7 +594,6 @@ export function DirectBoxFulfillmentPanel({
                           id={boxesFieldId}
                           type="number"
                           min={1}
-                          className={FIELD_FONT}
                           value={draft.boxes}
                           disabled={busy}
                           onChange={(e) =>
@@ -570,7 +610,8 @@ export function DirectBoxFulfillmentPanel({
                       <Button
                         type="button"
                         size="sm"
-                        className={FIELD_FONT}
+                        variant="outline"
+                        className={cn(ADMIN_PRIMARY_BTN, "text-xs font-medium")}
                         disabled={busy}
                         onClick={() =>
                           saveShipment(
@@ -580,7 +621,7 @@ export function DirectBoxFulfillmentPanel({
                           )
                         }
                       >
-                        <Plus className="mr-1 h-4 w-4" />
+                        <Plus className="mr-1 h-3.5 w-3.5" />
                         {shipment ? "Uppdatera" : "Lägg till"}
                       </Button>
                     </div>
@@ -589,28 +630,30 @@ export function DirectBoxFulfillmentPanel({
               );
             })
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
       <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
         <AlertDialogContent
-          className={FIELD_FONT}
+          className={DIALOG_SURFACE}
           data-testid="cancel-dispatch-dialog"
         >
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-base font-medium leading-snug">
+            <AlertDialogTitle className="text-gray-900 dark:text-white">
               {CANCEL_DISPATCH_DIALOG.question}
             </AlertDialogTitle>
-            <AlertDialogDescription className="sr-only">
-              Bekräfta om du vill avbryta direktleveransen.
+            <AlertDialogDescription className="text-sm text-zinc-600 dark:text-zinc-400">
+              {CANCEL_DISPATCH_DIALOG.consequence}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className={FIELD_FONT}>
+          <AlertDialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <AlertDialogCancel
+              className={cn(ADMIN_OUTLINE_BUTTON_CLASS, "mt-0 text-xs font-medium")}
+            >
               {CANCEL_DISPATCH_DIALOG.keep}
             </AlertDialogCancel>
             <AlertDialogAction
-              className={`${FIELD_FONT} border-transparent bg-[#B91C1C] text-white hover:bg-[#991B1B] hover:text-white focus-visible:ring-[#B91C1C]/40`}
+              className="rounded-lg bg-red-600 text-xs font-medium text-white hover:bg-red-700"
               onClick={(e) => {
                 e.preventDefault();
                 void confirmCancel();
@@ -618,6 +661,40 @@ export function DirectBoxFulfillmentPanel({
               data-testid="confirm-cancel-dispatch"
             >
               {CANCEL_DISPATCH_DIALOG.confirm}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={deleteShipmentId !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeleteShipmentId(null);
+        }}
+      >
+        <AlertDialogContent className={DIALOG_SURFACE}>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-gray-900 dark:text-white">
+              {DELETE_SHIPMENT_DIALOG.question}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-sm text-zinc-600 dark:text-zinc-400">
+              {DELETE_SHIPMENT_DIALOG.consequence}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <AlertDialogCancel
+              className={cn(ADMIN_OUTLINE_BUTTON_CLASS, "mt-0 text-xs font-medium")}
+            >
+              {DELETE_SHIPMENT_DIALOG.keep}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="rounded-lg bg-red-600 text-xs font-medium text-white hover:bg-red-700"
+              onClick={(e) => {
+                e.preventDefault();
+                void confirmDeleteShipment();
+              }}
+            >
+              {DELETE_SHIPMENT_DIALOG.confirm}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

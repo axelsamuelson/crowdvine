@@ -66,6 +66,7 @@ describe("direct-box dispatch transitions", () => {
     expect(DISPATCH_STATUS_LABELS_SV.pending_manual_handoff).toBe(
       "Väntar på upphämtning",
     );
+    expect(DISPATCH_STATUS_LABELS_SV.booked).toBe("Bokad");
     expect(DISPATCH_STATUS_LABELS_SV.skipped).toBe("Skippad");
     expect(DISPATCH_STATUS_LABELS_SV.cancelled).toBe("Avbruten");
   });
@@ -79,6 +80,7 @@ describe("cancel dispatch dialog copy", () => {
     expect(CANCEL_DISPATCH_DIALOG.question).toBe(
       "Är du säker på att du vill avbryta den här direktleveransen?",
     );
+    expect(CANCEL_DISPATCH_DIALOG.consequence.length).toBeGreaterThan(10);
     expect(CANCEL_DISPATCH_DIALOG.keep).toBe("Behåll");
     expect(CANCEL_DISPATCH_DIALOG.confirm).toBe("Avbryt leveransen");
   });
