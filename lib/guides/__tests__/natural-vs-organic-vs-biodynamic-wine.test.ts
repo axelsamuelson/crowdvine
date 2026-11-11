@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -8,7 +9,6 @@ import {
   naturalVsOrganicAuthor,
   naturalVsOrganicFaqs,
   naturalVsOrganicMeta,
-  naturalVsOrganicProducerGroups,
 } from "@/lib/guides/articles/natural-vs-organic-vs-biodynamic-wine";
 import { guideCopy } from "@/lib/guides/guide-copy";
 import { switchGuidePath } from "@/lib/guides/switch-guide-path";
@@ -26,7 +26,7 @@ describe("natural vs organic vs biodynamic wine guide", () => {
     expect(NATURAL_VS_ORGANIC_PATH).toBe(
       "/guides/natural-vs-organic-vs-biodynamic-wine",
     );
-    expect(NATURAL_VS_ORGANIC_UPDATED).toBe("2026-11-01");
+    expect(NATURAL_VS_ORGANIC_UPDATED).toBe("2026-11-07");
   });
 
   it("credits Axel Samuelson as founder for Person schema", () => {
@@ -75,14 +75,18 @@ describe("natural vs organic vs biodynamic wine guide", () => {
     ]);
   });
 
-  it("lists producer groups without prices or shop CTAs", () => {
-    expect(naturalVsOrganicProducerGroups.map((g) => g.heading)).toEqual([
-      "Certified biodynamic",
-      "Certified organic",
-      "Natural, not certified",
-    ]);
-    const blob = JSON.stringify(naturalVsOrganicProducerGroups);
-    expect(blob).not.toMatch(/kr|SEK|€|\$|buy|shop|price/i);
+  it("keeps Our producers without a Languedoc-only claim or producer list", () => {
+    const source = readFileSync(
+      "lib/guides/render-natural-vs-organic-guide.tsx",
+      "utf8",
+    );
+    expect(source).toContain("Our producers");
+    expect(source.replace(/\s+/g, " ")).toContain(
+      "For every wine we list the additives and sulfites the producer reports.",
+    );
+    expect(source).not.toContain("Languedoc");
+    expect(source).not.toContain("Béziers");
+    expect(source).not.toContain("naturalVsOrganicProducerGroups");
   });
 
   it("appears on the English guide hub only", () => {

@@ -11,7 +11,6 @@ import {
   naturalVsOrganicHubCard,
   naturalVsOrganicInternalLinks,
   naturalVsOrganicMeta,
-  naturalVsOrganicProducerGroups,
 } from "@/lib/guides/articles/natural-vs-organic-vs-biodynamic-wine";
 import {
   ARTICLE_GUIDE_BODY_CLASS,
@@ -32,28 +31,6 @@ import {
   pageTwitterCard,
 } from "@/lib/seo/default-social";
 import { homePathForLocale } from "@/lib/i18n/localized-routes";
-
-function ProducerLinks({
-  producers,
-}: {
-  producers: { name: string; href: string }[];
-}) {
-  return (
-    <p>
-      {producers.map((producer, index) => (
-        <span key={producer.href}>
-          {index > 0 ? ", " : null}
-          <Link
-            href={producer.href}
-            className="underline underline-offset-4 hover:text-foreground"
-          >
-            {producer.name}
-          </Link>
-        </span>
-      ))}
-    </p>
-  );
-}
 
 export async function buildNaturalVsOrganicMetadata(): Promise<Metadata> {
   const { seoBaseUrl, config } = await getGuideSeoOwnership();
@@ -346,18 +323,6 @@ export async function renderNaturalVsOrganicGuidePage() {
             <section>
               <h2 className={ARTICLE_GUIDE_H2_CLASS}>Our producers</h2>
               <div className={ARTICLE_GUIDE_BODY_CLASS}>
-                <p>
-                  PACT works with small producers in the Languedoc, around
-                  Béziers. Their farming status, as recorded in our database:
-                </p>
-                {naturalVsOrganicProducerGroups.map((group) => (
-                  <div key={group.heading}>
-                    <p>
-                      <strong>{group.heading}</strong>
-                    </p>
-                    <ProducerLinks producers={group.producers} />
-                  </div>
-                ))}
                 <p>
                   For every wine we list the additives and sulfites the producer
                   reports.
