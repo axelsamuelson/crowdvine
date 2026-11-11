@@ -549,7 +549,7 @@ export default function ReservationEditForm({
                         variant="ghost"
                         size="icon"
                         onClick={() => removeItem(index)}
-                        className="h-8 w-8 shrink-0 text-gray-400 hover:bg-transparent hover:text-red-600 dark:hover:text-red-400"
+                        className="h-8 w-8 shrink-0 border-0 bg-transparent p-0 text-gray-400 shadow-none ring-0 hover:bg-transparent hover:text-red-600 dark:hover:bg-transparent dark:hover:text-red-400"
                         aria-label="Ta bort rad"
                       >
                         <Trash2 className="h-4 w-4" />
@@ -700,7 +700,7 @@ export default function ReservationEditForm({
                             variant="ghost"
                             size="icon"
                             onClick={() => removeItem(index)}
-                            className="h-8 w-8 text-gray-400 hover:bg-transparent hover:text-red-600 dark:hover:text-red-400"
+                            className="h-8 w-8 border-0 bg-transparent p-0 text-gray-400 shadow-none ring-0 hover:bg-transparent hover:text-red-600 dark:hover:bg-transparent dark:hover:text-red-400"
                             aria-label="Ta bort rad"
                           >
                             <Trash2 className="h-4 w-4" />
