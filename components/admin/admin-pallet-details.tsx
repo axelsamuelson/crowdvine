@@ -543,21 +543,21 @@ export default function AdminPalletDetails({
   const getStatusBadge = (status: string) => {
     const statusUpper = status.toUpperCase();
     const colorMap: { [key: string]: string } = {
-      PLACED: "bg-blue-500/15 text-blue-300 border-blue-500/25",
-      PENDING: "bg-amber-500/15 text-amber-300 border-amber-500/25",
-      CONFIRMED: "bg-emerald-500/15 text-emerald-300 border-emerald-500/25",
-      OPEN: "bg-blue-500/15 text-blue-300 border-blue-500/25",
-      CONSOLIDATING: "bg-amber-500/15 text-amber-300 border-amber-500/25",
-      SHIPPED: "bg-violet-500/15 text-violet-300 border-violet-500/25",
-      DELIVERED: "bg-emerald-500/15 text-emerald-300 border-emerald-500/25",
-      CANCELLED: "bg-red-500/15 text-red-300 border-red-500/25",
+      PLACED: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+      PENDING: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+      CONFIRMED: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
+      OPEN: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+      CONSOLIDATING: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+      SHIPPED: "bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400",
+      DELIVERED: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
+      CANCELLED: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
     };
 
     return (
       <span
-        className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium ${
+        className={`inline-flex rounded-md px-2 py-0.5 text-xs font-medium ${
           colorMap[statusUpper] ||
-          "bg-zinc-800 text-zinc-300 border-[#1F1F23]"
+          "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-zinc-400"
         }`}
       >
         {status}
@@ -569,7 +569,7 @@ export default function AdminPalletDetails({
     const s = status.toLowerCase();
     if (/fail|declin|cancel|void/.test(s)) {
       return (
-        <span className="inline-flex rounded-full border border-red-500/25 bg-red-500/15 px-2 py-0.5 text-[11px] font-medium text-red-300">
+        <span className="inline-flex rounded-md bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700 dark:bg-red-900/30 dark:text-red-400">
           Failed
         </span>
       );
@@ -580,20 +580,20 @@ export default function AdminPalletDetails({
       )
     ) {
       return (
-        <span className="inline-flex rounded-full border border-amber-500/25 bg-amber-500/15 px-2 py-0.5 text-[11px] font-medium text-amber-300">
+        <span className="inline-flex rounded-md bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
           Pending
         </span>
       );
     }
     if (/confirm|paid|complete|deliver|ship/.test(s)) {
       return (
-        <span className="inline-flex rounded-full border border-emerald-500/25 bg-emerald-500/15 px-2 py-0.5 text-[11px] font-medium text-emerald-300">
+        <span className="inline-flex rounded-md bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
           Paid
         </span>
       );
     }
     return (
-      <span className="inline-flex rounded-full border border-[#1F1F23] bg-zinc-800 px-2 py-0.5 text-[11px] font-medium text-zinc-400">
+      <span className="inline-flex rounded-md bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700 dark:bg-gray-800 dark:text-zinc-400">
         —
       </span>
     );
@@ -1081,7 +1081,7 @@ export default function AdminPalletDetails({
       </section>
 
       {/* Reservations */}
-      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-200 dark:border-[#1F1F23] dark:bg-[#0F0F12]">
+      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-[#1F1F23] dark:bg-[#0F0F12]">
         <div className="flex flex-wrap items-start justify-between gap-4 border-b border-gray-200 dark:border-[#1F1F23] px-5 py-4">
             <div>
               <h2 className="text-sm font-semibold text-gray-900 dark:text-zinc-100">
@@ -1128,7 +1128,7 @@ export default function AdminPalletDetails({
           </div>
         <div className="px-2 pb-2">
           {reservations.length === 0 ? (
-            <div className="px-4 py-10 text-center text-sm text-zinc-500">
+            <div className="px-4 py-10 text-center text-sm text-gray-500 dark:text-zinc-500">
               No reservations yet
             </div>
           ) : (
@@ -1136,25 +1136,25 @@ export default function AdminPalletDetails({
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-gray-200 dark:border-[#1F1F23]">
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-zinc-500">
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-zinc-500">
                       Customer
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-zinc-500">
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-zinc-500">
                       Wines
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-zinc-500">
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-zinc-500">
                       Bottles
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-zinc-500">
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-zinc-500">
                       Status
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-zinc-500">
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-zinc-500">
                       Payment
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-zinc-500">
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-zinc-500">
                       Date
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-zinc-500">
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-zinc-500">
                       Actions
                     </th>
                   </tr>
@@ -1163,19 +1163,19 @@ export default function AdminPalletDetails({
                   {reservations.map((reservation) => (
                     <tr
                       key={reservation.id}
-                      className="border-b border-gray-200 dark:border-[#1F1F23] text-sm text-zinc-300 hover:bg-[#0F0F12]/50"
+                      className="border-b border-gray-200 text-sm text-gray-700 hover:bg-gray-50 dark:border-[#1F1F23] dark:text-zinc-300 dark:hover:bg-[#0F0F12]/50"
                     >
                       <td className="px-4 py-3">
                         <div>
                           <div className="font-medium text-gray-900 dark:text-zinc-100">
                             {reservation.user_name || "Unknown"}
                           </div>
-                          <div className="text-xs text-zinc-500">
+                          <div className="text-xs text-gray-500 dark:text-zinc-500">
                             {reservation.user_email}
                           </div>
                         </div>
                       </td>
-                      <td className="max-w-[200px] px-4 py-3 text-xs text-zinc-400">
+                      <td className="max-w-[200px] px-4 py-3 text-xs text-gray-500 dark:text-zinc-400">
                         {reservation.items
                           .map((it) => `${it.wine_name} ×${it.quantity}`)
                           .join(", ")}
@@ -1189,7 +1189,7 @@ export default function AdminPalletDetails({
                       <td className="px-4 py-3">
                         {getPaymentBadge(reservation.status)}
                       </td>
-                      <td className="px-4 py-3 tabular-nums text-zinc-500">
+                      <td className="px-4 py-3 tabular-nums text-gray-500 dark:text-zinc-500">
                         {new Date(reservation.created_at).toLocaleDateString()}
                       </td>
                       <td className="px-4 py-3">
@@ -1198,7 +1198,7 @@ export default function AdminPalletDetails({
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="h-8 px-2 text-xs text-zinc-400 hover:text-gray-900 dark:text-zinc-100"
+                              className="h-8 px-2 text-xs text-gray-500 hover:text-gray-900 dark:text-zinc-400 dark:hover:text-zinc-100"
                             >
                               View
                             </Button>
@@ -1208,7 +1208,7 @@ export default function AdminPalletDetails({
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-8 px-2 text-xs text-zinc-500 hover:bg-red-500/10 hover:text-red-400"
+                                className="h-8 px-2 text-xs text-gray-500 hover:bg-red-500/10 hover:text-red-400 dark:text-zinc-500"
                                 disabled={deletingReservationId === reservation.id}
                               >
                                 {deletingReservationId === reservation.id ? "Deleting..." : "Delete"}
@@ -1250,22 +1250,22 @@ export default function AdminPalletDetails({
           Wine allocation
         </h2>
         {reservations.length === 0 ? (
-          <p className="text-sm text-zinc-500">No wines yet</p>
+          <p className="text-sm text-gray-500 dark:text-zinc-500">No wines yet</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-[#1F1F23]">
-                  <th className="py-2 pr-4 text-left text-xs font-medium uppercase tracking-wide text-zinc-500">
+                <tr className="border-b border-gray-200 dark:border-[#1F1F23]">
+                  <th className="py-2 pr-4 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-zinc-500">
                     Wine name
                   </th>
-                  <th className="py-2 pr-4 text-left text-xs font-medium uppercase tracking-wide text-zinc-500">
+                  <th className="py-2 pr-4 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-zinc-500">
                     Producer
                   </th>
-                  <th className="py-2 pr-4 text-left text-xs font-medium uppercase tracking-wide text-zinc-500">
+                  <th className="py-2 pr-4 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-zinc-500">
                     Bottles
                   </th>
-                  <th className="py-2 text-left text-xs font-medium uppercase tracking-wide text-zinc-500">
+                  <th className="py-2 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-zinc-500">
                     % of physical pallet
                   </th>
                 </tr>
@@ -1297,16 +1297,16 @@ export default function AdminPalletDetails({
                     return (
                       <tr
                         key={idx}
-                        className="border-b border-[#1F1F23] text-zinc-300 last:border-0"
+                        className="border-b border-gray-200 text-gray-700 last:border-0 dark:border-[#1F1F23] dark:text-zinc-300"
                       >
-                        <td className="py-2 pr-4 font-medium text-zinc-100">
+                        <td className="py-2 pr-4 font-medium text-gray-900 dark:text-zinc-100">
                           {wine.wine}
                         </td>
-                        <td className="py-2 pr-4 text-zinc-400">{wine.producer}</td>
-                        <td className="py-2 pr-4 tabular-nums text-zinc-200">
+                        <td className="py-2 pr-4 text-gray-500 dark:text-zinc-400">{wine.producer}</td>
+                        <td className="py-2 pr-4 tabular-nums text-gray-800 dark:text-zinc-200">
                           {wine.quantity}
                         </td>
-                        <td className="py-2 tabular-nums text-zinc-500">
+                        <td className="py-2 tabular-nums text-gray-500 dark:text-zinc-500">
                           {pct}%
                         </td>
                       </tr>
@@ -1668,17 +1668,17 @@ export default function AdminPalletDetails({
                 bottles). Profit conditions must not be treated as live readiness.
               </p>
       {/* Completion Rules (Klaviyo-like segment builder) */}
-      <Card className="rounded-lg border border-[#1F1F23] bg-[#0F0F12] p-6 shadow-none">
+      <Card className="rounded-lg border border-gray-200 bg-white p-6 shadow-none dark:border-[#1F1F23] dark:bg-[#0F0F12]">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <div className="text-sm font-medium text-zinc-100">
+            <div className="text-sm font-medium text-gray-900 dark:text-zinc-100">
               Completion rules
             </div>
-            <div className="mt-1 text-sm text-zinc-500">
+            <div className="mt-1 text-sm text-gray-500 dark:text-zinc-500">
               {formatCompletionRules(rules)}
             </div>
             {metrics && (
-              <div className="mt-2 text-xs text-zinc-500">
+              <div className="mt-2 text-xs text-gray-500 dark:text-zinc-500">
                 Live metrics: Bottles={metrics.currentBottles}, Profit (SEK ex VAT)={metrics.profitSek}, Complete={String(metrics.isComplete)}
               </div>
             )}
@@ -1687,7 +1687,7 @@ export default function AdminPalletDetails({
             <Button
               variant="outline"
               size="sm"
-              className="rounded-md border-[#1F1F23] bg-transparent text-xs text-zinc-300 hover:bg-zinc-900"
+              className="rounded-md border-gray-200 bg-transparent text-xs text-gray-700 hover:bg-gray-50 dark:border-[#1F1F23] dark:text-zinc-300 dark:hover:bg-zinc-900"
               onClick={addGroup}
             >
               <Plus className="mr-2 h-4 w-4" />
@@ -1695,7 +1695,7 @@ export default function AdminPalletDetails({
             </Button>
             <Button
               size="sm"
-              className="rounded-md bg-zinc-100 text-xs text-zinc-900 hover:bg-zinc-200"
+              className="rounded-md bg-gray-900 text-xs text-white hover:bg-gray-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
               onClick={saveRules}
               disabled={savingRules}
             >
@@ -1705,15 +1705,17 @@ export default function AdminPalletDetails({
         </div>
 
         <div className="mt-5 space-y-4">
-          <div className="text-xs font-medium text-zinc-500">
+          <div className="text-xs font-medium text-gray-500 dark:text-zinc-500">
             Priority order matters: first matching step wins. ELSE = Incomplete.
           </div>
 
           {(rules.groups || []).map((group, gi) => (
             <div
               key={gi}
-              className={`rounded-xl border border-[#1F1F23] p-4 ${
-                gi === 0 ? "bg-[#0F0F12]" : "bg-zinc-900/30"
+              className={`rounded-xl border border-gray-200 p-4 dark:border-[#1F1F23] ${
+                gi === 0
+                  ? "bg-white dark:bg-[#0F0F12]"
+                  : "bg-gray-50 dark:bg-zinc-900/30"
               }`}
               draggable
               onDragStart={() => setDraggingGroupIndex(gi)}
@@ -1729,14 +1731,14 @@ export default function AdminPalletDetails({
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-2">
-                    <div className="text-xs font-semibold text-zinc-100">
+                    <div className="text-xs font-semibold text-gray-900 dark:text-zinc-100">
                       Step {gi + 1}
                     </div>
-                    <span className="text-[10px] uppercase tracking-wide text-zinc-500">
+                    <span className="text-[10px] uppercase tracking-wide text-gray-500 dark:text-zinc-500">
                       {stepLabel(gi)}
                     </span>
                   </div>
-                  <div className="flex items-center gap-1 text-zinc-500">
+                  <div className="flex items-center gap-1 text-gray-500 dark:text-zinc-500">
                     <GripVertical className="w-4 h-4" />
                     <span className="text-xs">Drag to reorder</span>
                   </div>
@@ -1751,7 +1753,7 @@ export default function AdminPalletDetails({
                       }))
                     }
                   >
-                    <SelectTrigger className="h-8 w-28 border-[#1F1F23] bg-zinc-900 text-xs">
+                    <SelectTrigger className="h-8 w-28 border-gray-200 bg-white text-xs dark:border-zinc-700 dark:bg-zinc-800">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -1759,13 +1761,13 @@ export default function AdminPalletDetails({
                       <SelectItem value="OR">OR</SelectItem>
                     </SelectContent>
                   </Select>
-                  <span className="text-xs text-zinc-500">between conditions</span>
+                  <span className="text-xs text-gray-500 dark:text-zinc-500">between conditions</span>
                 </div>
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
                     size="sm"
-                    className="rounded-md border-[#1F1F23] bg-transparent text-xs text-zinc-300 hover:bg-zinc-900"
+                    className="rounded-md border-gray-200 bg-transparent text-xs text-gray-700 hover:bg-gray-50 dark:border-[#1F1F23] dark:text-zinc-300 dark:hover:bg-zinc-900"
                     onClick={() => addCondition(gi)}
                   >
                     <Plus className="w-4 h-4 mr-2" />
@@ -1775,7 +1777,7 @@ export default function AdminPalletDetails({
                     <Button
                       variant="outline"
                       size="sm"
-                      className="rounded-md border-[#1F1F23] bg-transparent text-xs text-zinc-300 hover:bg-zinc-900"
+                      className="rounded-md border-gray-200 bg-transparent text-xs text-gray-700 hover:bg-gray-50 dark:border-[#1F1F23] dark:text-zinc-300 dark:hover:bg-zinc-900"
                       onClick={() => moveGroup(gi, gi - 1)}
                       title="Move up"
                     >
@@ -1786,7 +1788,7 @@ export default function AdminPalletDetails({
                     <Button
                       variant="outline"
                       size="sm"
-                      className="rounded-md border-[#1F1F23] bg-transparent text-xs text-zinc-300 hover:bg-zinc-900"
+                      className="rounded-md border-gray-200 bg-transparent text-xs text-gray-700 hover:bg-gray-50 dark:border-[#1F1F23] dark:text-zinc-300 dark:hover:bg-zinc-900"
                       onClick={() => moveGroup(gi, gi + 1)}
                       title="Move down"
                     >
@@ -1796,7 +1798,7 @@ export default function AdminPalletDetails({
                   <Button
                     variant="outline"
                     size="sm"
-                    className="rounded-md border-[#1F1F23] bg-transparent text-xs text-zinc-300 hover:bg-zinc-900"
+                    className="rounded-md border-gray-200 bg-transparent text-xs text-gray-700 hover:bg-gray-50 dark:border-[#1F1F23] dark:text-zinc-300 dark:hover:bg-zinc-900"
                     onClick={() => removeGroup(gi)}
                   >
                     <Trash2 className="w-4 h-4" />
@@ -1806,7 +1808,7 @@ export default function AdminPalletDetails({
 
               <div className="mt-4 space-y-3">
                 {(group.conditions || []).length === 0 ? (
-                  <div className="text-sm text-zinc-500">No conditions yet.</div>
+                  <div className="text-sm text-gray-500 dark:text-zinc-500">No conditions yet.</div>
                 ) : (
                   group.conditions.map((c, ci) => (
                     <div
@@ -1814,14 +1816,14 @@ export default function AdminPalletDetails({
                       className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end"
                     >
                       <div className="md:col-span-4 space-y-2">
-                        <div className="text-xs text-zinc-500">Metric</div>
+                        <div className="text-xs text-gray-500 dark:text-zinc-500">Metric</div>
                         <Select
                           value={c.metric}
                           onValueChange={(v) =>
                             updateCondition(gi, ci, { metric: v as any })
                           }
                         >
-                          <SelectTrigger className="h-8 border-[#1F1F23] bg-zinc-900 text-xs">
+                          <SelectTrigger className="h-8 border-gray-200 bg-white text-xs dark:border-zinc-700 dark:bg-zinc-800">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -1834,14 +1836,14 @@ export default function AdminPalletDetails({
                       </div>
 
                       <div className="md:col-span-2 space-y-2">
-                        <div className="text-xs text-zinc-500">Operator</div>
+                        <div className="text-xs text-gray-500 dark:text-zinc-500">Operator</div>
                         <Select
                           value={c.op}
                           onValueChange={(v) =>
                             updateCondition(gi, ci, { op: v as any })
                           }
                         >
-                          <SelectTrigger className="h-8 border-[#1F1F23] bg-zinc-900 text-xs">
+                          <SelectTrigger className="h-8 border-gray-200 bg-white text-xs dark:border-zinc-700 dark:bg-zinc-800">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -1854,10 +1856,10 @@ export default function AdminPalletDetails({
                       </div>
 
                       <div className="md:col-span-4 space-y-2">
-                        <div className="text-xs text-zinc-500">Value</div>
+                        <div className="text-xs text-gray-500 dark:text-zinc-500">Value</div>
                         <Input
                           type="number"
-                          className="no-spinner border-[#1F1F23] bg-zinc-900 text-zinc-100"
+                          className="no-spinner border-gray-200 bg-white text-gray-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
                           value={String(c.value ?? "")}
                           onChange={(e) =>
                             updateCondition(gi, ci, {
@@ -1871,7 +1873,7 @@ export default function AdminPalletDetails({
                         <Button
                           variant="outline"
                           size="sm"
-                          className="rounded-md border-[#1F1F23] bg-transparent text-xs text-zinc-300 hover:bg-zinc-900"
+                          className="rounded-md border-gray-200 bg-transparent text-xs text-gray-700 hover:bg-gray-50 dark:border-[#1F1F23] dark:text-zinc-300 dark:hover:bg-zinc-900"
                           onClick={() => removeCondition(gi, ci)}
                         >
                           <Trash2 className="w-4 h-4" />
@@ -1884,10 +1886,10 @@ export default function AdminPalletDetails({
             </div>
           ))}
 
-          <div className="rounded-xl border border-dashed border-[#1F1F23] bg-zinc-900/20 p-4">
-            <div className="text-xs font-semibold text-zinc-200">ELSE</div>
-            <div className="mt-1 text-sm text-zinc-500">
-              Pallet is <span className="font-medium text-zinc-300">Incomplete</span>
+          <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/50 p-4 dark:border-[#1F1F23] dark:bg-zinc-900/20">
+            <div className="text-xs font-semibold text-gray-800 dark:text-zinc-200">ELSE</div>
+            <div className="mt-1 text-sm text-gray-500 dark:text-zinc-500">
+              Pallet is <span className="font-medium text-gray-700 dark:text-zinc-300">Incomplete</span>
             </div>
           </div>
         </div>

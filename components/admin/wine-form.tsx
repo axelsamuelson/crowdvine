@@ -706,8 +706,8 @@ export default function WineForm({
           description="Namn, producent, färg och volym."
         >
           <div className="grid grid-cols-1 gap-3">
-            <div className="grid grid-cols-[180px_1fr] items-center gap-x-4">
-              <Label htmlFor="wine_name" className="text-right text-sm">
+            <div className="grid grid-cols-1 md:grid-cols-[180px_1fr] min-w-0 items-center gap-x-4">
+              <Label htmlFor="wine_name" className="text-left text-sm md:text-right">
                 Vinnamn *
               </Label>
               <Input
@@ -718,8 +718,8 @@ export default function WineForm({
               />
             </div>
 
-            <div className="grid grid-cols-[180px_1fr] items-center gap-x-4">
-              <Label htmlFor="vintage" className="text-right text-sm">
+            <div className="grid grid-cols-1 md:grid-cols-[180px_1fr] min-w-0 items-center gap-x-4">
+              <Label htmlFor="vintage" className="text-left text-sm md:text-right">
                 Vintage *
               </Label>
               <Input
@@ -733,8 +733,8 @@ export default function WineForm({
           </div>
 
           <div className="grid grid-cols-1 gap-3">
-            <div className="grid grid-cols-[180px_1fr] items-center gap-x-4">
-              <Label htmlFor="producer_id" className="text-right text-sm">
+            <div className="grid grid-cols-1 md:grid-cols-[180px_1fr] min-w-0 items-center gap-x-4">
+              <Label htmlFor="producer_id" className="text-left text-sm md:text-right">
                 Producent *
               </Label>
               <Select
@@ -748,15 +748,17 @@ export default function WineForm({
                 <SelectContent>
                   {producers.map((producer) => (
                     <SelectItem key={producer.id} value={producer.id}>
-                      {producer.name} ({producer.region})
+                      {producer.region?.trim()
+                        ? `${producer.name} (${producer.region})`
+                        : producer.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
-            <div className="grid grid-cols-[180px_1fr] items-start gap-x-4">
-              <Label htmlFor="color" className="pt-2 text-right text-sm">
+            <div className="grid grid-cols-1 md:grid-cols-[180px_1fr] min-w-0 items-start gap-x-4">
+              <Label htmlFor="color" className="pt-0 text-left text-sm md:pt-2 md:text-right">
                 Färg *
               </Label>
               <div>
@@ -785,8 +787,8 @@ export default function WineForm({
           </div>
 
           <div className="grid grid-cols-1 gap-3">
-            <div className="grid grid-cols-[180px_1fr] items-center gap-x-4">
-              <Label htmlFor="volume_liters" className="text-right text-sm">
+            <div className="grid grid-cols-1 md:grid-cols-[180px_1fr] min-w-0 items-center gap-x-4">
+              <Label htmlFor="volume_liters" className="text-left text-sm md:text-right">
                 Volym (liter)
               </Label>
               <Input
@@ -858,8 +860,8 @@ export default function WineForm({
           description="Rutorna under Lägg i varukorg. Vinets region är SSOT för filter och regionssidor; standard vid skapande från producent."
         >
           <div className="grid grid-cols-1 gap-3">
-            <div className="grid grid-cols-[180px_1fr] items-center gap-x-4">
-              <Label htmlFor="appellation" className="text-right text-sm">
+            <div className="grid grid-cols-1 md:grid-cols-[180px_1fr] min-w-0 items-center gap-x-4">
+              <Label htmlFor="appellation" className="text-left text-sm md:text-right">
                 Appellation
               </Label>
               <Input
@@ -870,8 +872,8 @@ export default function WineForm({
               />
             </div>
 
-            <div className="grid grid-cols-[180px_1fr] items-center gap-x-4">
-              <Label htmlFor="region" className="text-right text-sm">
+            <div className="grid grid-cols-1 md:grid-cols-[180px_1fr] min-w-0 items-center gap-x-4">
+              <Label htmlFor="region" className="text-left text-sm md:text-right">
                 Region
               </Label>
               <Select
@@ -897,8 +899,8 @@ export default function WineForm({
               </Select>
             </div>
 
-            <div className="grid grid-cols-[180px_1fr] items-center gap-x-4">
-              <Label htmlFor="alcohol_percentage" className="text-right text-sm">
+            <div className="grid grid-cols-1 md:grid-cols-[180px_1fr] min-w-0 items-center gap-x-4">
+              <Label htmlFor="alcohol_percentage" className="text-left text-sm md:text-right">
                 Alkohol (%)
               </Label>
               <Input
@@ -925,8 +927,8 @@ export default function WineForm({
               />
             </div>
 
-            <div className="grid grid-cols-[180px_1fr] items-center gap-x-4">
-              <Label htmlFor="farming" className="text-right text-sm">
+            <div className="grid grid-cols-1 md:grid-cols-[180px_1fr] min-w-0 items-center gap-x-4">
+              <Label htmlFor="farming" className="text-left text-sm md:text-right">
                 Odling
               </Label>
               <Select
@@ -949,8 +951,8 @@ export default function WineForm({
               </Select>
             </div>
 
-            <div className="grid grid-cols-[180px_1fr] items-start gap-x-4">
-              <Label htmlFor="additives" className="pt-2 text-right text-sm">
+            <div className="grid grid-cols-1 md:grid-cols-[180px_1fr] min-w-0 items-start gap-x-4">
+              <Label htmlFor="additives" className="pt-0 text-left text-sm md:pt-2 md:text-right">
                 Tillsatser
               </Label>
               <div>
@@ -968,8 +970,8 @@ export default function WineForm({
               </div>
             </div>
 
-            <div className="grid grid-cols-[180px_1fr] items-center gap-x-4">
-              <Label htmlFor="serving_temp_c" className="text-right text-sm">
+            <div className="grid grid-cols-1 md:grid-cols-[180px_1fr] min-w-0 items-center gap-x-4">
+              <Label htmlFor="serving_temp_c" className="text-left text-sm md:text-right">
                 Serveringstemperatur (°C)
               </Label>
               <Input
@@ -982,8 +984,8 @@ export default function WineForm({
               />
             </div>
 
-            <div className="grid grid-cols-[180px_1fr] items-center gap-x-4">
-              <Label htmlFor="elevation_masl" className="text-right text-sm">
+            <div className="grid grid-cols-1 md:grid-cols-[180px_1fr] min-w-0 items-center gap-x-4">
+              <Label htmlFor="elevation_masl" className="text-left text-sm md:text-right">
                 Höjd över havet (m)
               </Label>
               <Input
@@ -1009,8 +1011,8 @@ export default function WineForm({
               />
             </div>
 
-            <div className="grid grid-cols-[180px_1fr] items-center gap-x-4">
-              <Label htmlFor="style_scale" className="text-right text-sm">
+            <div className="grid grid-cols-1 md:grid-cols-[180px_1fr] min-w-0 items-center gap-x-4">
+              <Label htmlFor="style_scale" className="text-left text-sm md:text-right">
                 Stil (1–5)
               </Label>
               <div>
@@ -1044,8 +1046,8 @@ export default function WineForm({
               </div>
             </div>
 
-            <div className="grid grid-cols-[180px_1fr] items-center gap-x-4">
-              <Label htmlFor="soil_type" className="text-right text-sm">
+            <div className="grid grid-cols-1 md:grid-cols-[180px_1fr] min-w-0 items-center gap-x-4">
+              <Label htmlFor="soil_type" className="text-left text-sm md:text-right">
                 Jordtyp
               </Label>
               <Input

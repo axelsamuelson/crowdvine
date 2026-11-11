@@ -123,8 +123,8 @@ const navigationGroups: NavGroup[] = [
     name: "Bokningar",
     icon: Calendar,
     items: [
-      { name: "B2C Orders", href: "/admin/b2c-orders", icon: Calendar },
-      { name: "B2B Orders", href: "/admin/b2b-orders", icon: FileText },
+      { name: "B2C-ordrar", href: "/admin/b2c-orders", icon: Calendar },
+      { name: "B2B-ordrar", href: "/admin/b2b-orders", icon: FileText },
       {
         name: "B2B-förfrågningar",
         href: "/admin/b2b-inquiries",
@@ -334,7 +334,7 @@ export function Sidebar({ userEmail, onSignOut, mobileOpen, onMobileClose }: Sid
             className="w-full justify-start text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1F1F23]"
           >
             <LogOut className="mr-3 h-4 w-4" />
-            Sign out
+            Logga ut
           </Button>
         </div>
       </div>
