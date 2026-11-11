@@ -348,12 +348,20 @@ const CartItems = ({
   );
 };
 
-export default function CartModal() {
+export default function CartModal({
+  defaultOpen = false,
+  hideTrigger = false,
+}: {
+  /** Open the drawer on mount (design-review fixtures). */
+  defaultOpen?: boolean;
+  /** Hide the header bag button when the page hosts its own open drawer. */
+  hideTrigger?: boolean;
+} = {}) {
   const { t } = useTranslations();
   const paths = useLocalizedPaths();
   const isDirtywineSite = useB2BModeServerHint();
   const { cart, isPending, cartReady } = useCart();
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(defaultOpen);
   const [validations, setValidations] = useState<ProducerValidation[]>([]);
   const [requiredQuantity, setRequiredQuantity] = useState<number | undefined>();
   const [neededTotal, setNeededTotal] = useState<number | undefined>();
@@ -547,7 +555,7 @@ export default function CartModal() {
 
   return (
     <>
-      {showCartBadge ? (
+      {!hideTrigger && showCartBadge ? (
       <Button
         aria-label={t("cart.openCart")}
         onClick={openCart}
@@ -576,14 +584,14 @@ export default function CartModal() {
           </span>
         )}
       </Button>
-      ) : (
+      ) : !hideTrigger ? (
         // Invisible spacer only — no grey placeholder box when empty/hydrating.
         <span
           className="inline-block h-7 w-10 shrink-0 md:w-16"
           aria-hidden
           data-testid="cart-badge-spacer"
         />
-      )}
+      ) : null}
       <AnimatePresence>
         {isOpen && cart && (
           <>
@@ -761,7 +769,9 @@ function CheckoutButton({
           className="font-semibold cursor-pointer whitespace-nowrap text-base transition-all disabled:pointer-events-none disabled:opacity-50 h-12 rounded-md px-3 flex items-center justify-center gap-2 w-full bg-white text-[#0A0A0A] border border-[#0A0A0A] hover:bg-neutral-50 shadow-none"
         >
           <Plus className="size-5 shrink-0" strokeWidth={2.25} aria-hidden />
-          <span className="leading-snug text-left">{addMoreLabel}</span>
+          <span className="leading-snug whitespace-nowrap truncate">
+            {addMoreLabel}
+          </span>
         </Button>
       ) : null}
 
@@ -796,16 +806,12 @@ function CheckoutButton({
               <Loader size="default" />
             ) : (
               <div className="flex justify-between items-center w-full gap-2">
-                <span className="text-left leading-snug">
+                <span className="text-left leading-snug whitespace-nowrap">
                   {inquiryMode && !checkoutLocked
                     ? t("cart.sendInquiry")
-                    : checkoutLocked
-                      ? t("cart.checkoutLockedCta")
-                      : t("cart.proceedToCheckout")}
+                    : t("cart.proceedToCheckout")}
                 </span>
-                {!checkoutLocked ? (
-                  <ArrowRight className="size-6 shrink-0" />
-                ) : null}
+                <ArrowRight className="size-6 shrink-0" />
               </div>
             )}
           </motion.div>

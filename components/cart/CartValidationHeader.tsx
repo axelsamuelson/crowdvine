@@ -317,11 +317,6 @@ export function CartValidationHeader({
                 total: sourceCount,
               })}
             </p>
-            {!allValid && totalNeeded > 0 ? (
-              <p className="text-[11px] text-muted-foreground">
-                {t("cart.needMoreBottlesShort", { needed: totalNeeded })}
-              </p>
-            ) : null}
           </div>
           <WhySixBottlesTrigger />
         </div>
