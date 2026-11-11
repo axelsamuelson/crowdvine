@@ -294,41 +294,25 @@ export function CartValidationHeader({
     );
   }
 
-  const ordered = [
-    ...validations.filter((v) => !v.isValid),
-    ...validations.filter((v) => v.isValid),
-  ];
-
+  // Summary only — per-source progress lives in the grouped list headers.
   return (
     <motion.div
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
       className="px-3 md:px-4 mb-2"
     >
-      <div className="bg-background/95 backdrop-blur-md border border-border/30 rounded-lg p-3 space-y-2.5">
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0 space-y-0.5">
-            <p className="text-xs font-semibold text-foreground tabular-nums flex items-center gap-1.5">
-              {allValid ? (
-                <CheckCircle2 className="w-3.5 h-3.5 text-foreground/70 shrink-0" />
-              ) : null}
-              {t("cart.fullBoxesSummary", {
-                full: fullCount,
-                total: sourceCount,
-              })}
-            </p>
-          </div>
+      <div className="bg-background/95 backdrop-blur-md border border-border/30 rounded-lg p-3">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-xs font-semibold text-foreground tabular-nums flex items-center gap-1.5 min-w-0">
+            {allValid ? (
+              <CheckCircle2 className="w-3.5 h-3.5 text-foreground/70 shrink-0" />
+            ) : null}
+            {t("cart.fullBoxesSummary", {
+              full: fullCount,
+              total: sourceCount,
+            })}
+          </p>
           <WhySixBottlesTrigger />
-        </div>
-
-        <div className="space-y-2.5">
-          {ordered.map((validation) => (
-            <BottleProgressRow
-              key={`${validation.scope || "row"}-${validation.producerId}-${validation.producerHandle}`}
-              validation={validation}
-              locale={locale}
-            />
-          ))}
         </div>
       </div>
     </motion.div>

@@ -249,7 +249,11 @@
     "addMoreFromWholesalerCta": "{needed, plural, one {Add 1 more bottle to Mixed box from {region}} other {Add # more bottles to Mixed box from {region}}}",
     "checkoutLockedCta": "Complete your boxes to continue",
     "fullBoxesSummary": "Full boxes: {full} of {total}",
-    "whyPopoverBody": "Our wines are packed in boxes of 6 bottles where they ship from, and every box has to be full. That's why bottles are counted per box: 6, 12, 18 and so on. You can mix different wines in the same box."
+    "whyPopoverBody": "Our wines are packed in boxes of 6 bottles where they ship from, and every box has to be full. That's why bottles are counted per box: 6, 12, 18 and so on. You can mix different wines in the same box.",
+    "addMoreFromProducerShortCta": "{needed, plural, one {+ Add 1 from {name}} other {+ Add # from {name}}}",
+    "addMoreFromWholesalerShortCta": "{needed, plural, one {+ Add 1 to Mixed box from {region}} other {+ Add # to Mixed box from {region}}}",
+    "addMoreFromProducerHint": "{needed, plural, one {Add 1 more bottle from {name} to complete a box.} other {Add # more bottles from {name} to complete a box.}}",
+    "addMoreFromWholesalerHint": "{needed, plural, one {Add 1 more bottle to Mixed box from {region}.} other {Add # more bottles to Mixed box from {region}.}}"
   },
   "product": {
     "addToCart": "Add to cart",

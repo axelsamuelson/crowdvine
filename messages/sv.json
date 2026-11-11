@@ -249,7 +249,11 @@
     "addMoreFromWholesalerCta": "{needed, plural, one {Lägg till 1 flaska till i Blandlåda från {region}} other {Lägg till # flaskor till i Blandlåda från {region}}}",
     "checkoutLockedCta": "Fyll dina lådor för att gå vidare",
     "fullBoxesSummary": "Fulla lådor: {full} av {total}",
-    "whyPopoverBody": "Vinerna packas i lådor om 6 flaskor där de skickas ifrån, och varje låda måste vara full. Därför räknar vi flaskorna per låda: 6, 12, 18 och så vidare. Du kan blanda olika viner i samma låda."
+    "whyPopoverBody": "Vinerna packas i lådor om 6 flaskor där de skickas ifrån, och varje låda måste vara full. Därför räknar vi flaskorna per låda: 6, 12, 18 och så vidare. Du kan blanda olika viner i samma låda.",
+    "addMoreFromProducerShortCta": "{needed, plural, one {+ Lägg till 1 från {name}} other {+ Lägg till # från {name}}}",
+    "addMoreFromWholesalerShortCta": "{needed, plural, one {+ Lägg till 1 i Blandlåda från {region}} other {+ Lägg till # i Blandlåda från {region}}}",
+    "addMoreFromProducerHint": "{needed, plural, one {Lägg till 1 flaska till från {name} för en full låda.} other {Lägg till # flaskor till från {name} för en full låda.}}",
+    "addMoreFromWholesalerHint": "{needed, plural, one {Lägg till 1 flaska till i Blandlåda från {region}.} other {Lägg till # flaskor till i Blandlåda från {region}.}}"
   },
   "product": {
     "addToCart": "Lägg i varukorg",
