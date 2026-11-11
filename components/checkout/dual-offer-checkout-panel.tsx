@@ -155,13 +155,13 @@ function OfferRow(props: {
               {props.selected ? "✓" : ""}
             </span>
           ) : null}
-          <h3 className="font-semibold text-base leading-tight truncate">
+          <h3 className="min-w-0 font-semibold text-base leading-tight">
             {props.title}
           </h3>
         </div>
         {!unavailable ? (
           <p
-            className="shrink-0 text-lg font-semibold tabular-nums leading-none text-right"
+            className="shrink-0 whitespace-nowrap text-lg font-semibold tabular-nums leading-none text-right"
             data-testid={`dual-offer-total-${quote.offer}`}
           >
             {formatOfferSek(quote.total_sek, locale)}
@@ -179,9 +179,12 @@ function OfferRow(props: {
             selectable ? "pl-7" : ""
           }`}
         >
-          <p data-testid={`dual-offer-delivery-${quote.offer}`}>
-            {deliveryLabel(quote, locale)}
-          </p>
+          {/* Direct title already carries the 5–10 day line — don't repeat it. */}
+          {quote.offer === "direct_box" ? null : (
+            <p data-testid={`dual-offer-delivery-${quote.offer}`}>
+              {deliveryLabel(quote, locale)}
+            </p>
+          )}
           <p data-testid={`dual-offer-debit-${quote.offer}`}>
             {debitLabel(quote, locale)}
           </p>
