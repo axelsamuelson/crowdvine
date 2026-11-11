@@ -20,15 +20,20 @@ export function resolveAdminFulfillmentDisplay(row: {
   const hold = String(row.charge_blocked_reason ?? "").trim();
 
   if (dispatch) {
+    const isPending = dispatch === "pending_manual_handoff";
     out.push({
       kind: "fulfillment",
-      label: `Fulfillment: ${dispatch}`,
+      label: isPending
+        ? "Direct box: pending_manual_handoff"
+        : channel === "direct_box"
+          ? `Direct box: ${dispatch}`
+          : `Fulfillment: ${dispatch}`,
       title: dispatch,
     });
   } else if (channel === "direct_box") {
     out.push({
       kind: "fulfillment",
-      label: "Fulfillment: direct_box (dispatch unset)",
+      label: "Direct box: pending_manual_handoff (dispatch unset)",
     });
   }
 

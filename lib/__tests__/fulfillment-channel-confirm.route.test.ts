@@ -529,8 +529,12 @@ const SHARED_RATE = {
 };
 
 const SUBTOTAL_SEK = 1200;
+/** Catalog 200 kr/bottle × 1.05 markup → 210; ×6 = 1260 (Axel 01:24). */
+const DIRECT_SUBTOTAL_SEK = 210 * 6;
 const DIRECT_SHIPPING_SEK = 149;
-const DIRECT_AMOUNT_ORE = Math.round((SUBTOTAL_SEK + DIRECT_SHIPPING_SEK) * 100);
+const DIRECT_AMOUNT_ORE = Math.round(
+  (DIRECT_SUBTOTAL_SEK + DIRECT_SHIPPING_SEK) * 100,
+);
 const SHARED_SHIPPING_SEK = 99;
 const SHARED_AMOUNT_ORE = Math.round((SUBTOTAL_SEK + SHARED_SHIPPING_SEK) * 100);
 

@@ -73,6 +73,9 @@ export type EventType =
   | "cart_validation_shown"
   | "cart_validation_passed"
   | "cart_validation_failed"
+  | "sticky_atc_shown"
+  | "sticky_atc_clicked"
+  | "six_pack_rule_viewed"
   | "why_modal_opened"
   // Checkout
   | "checkout_started"

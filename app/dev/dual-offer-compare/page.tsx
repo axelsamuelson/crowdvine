@@ -20,6 +20,8 @@ export const metadata: Metadata = {
  * Inès / independent design review surface.
  * Synthetic fixture — no live Stripe/DB writes.
  * Visible only when CHECKOUT_DUAL_OFFER_COMPARE=true and not production.
+ *
+ * Fixture: 12 bottles from one source (2 boxes) so direct shipping = 2 × 149.
  */
 export default function DualOfferCompareDevPage() {
   if (!isDualOfferCheckoutSurfaceAllowed()) {
@@ -29,18 +31,12 @@ export default function DualOfferCompareDevPage() {
   const wine_lines: OfferLineSnapshot[] = [
     {
       wine_id: "dddddddd-dddd-dddd-dddd-ddddddddddd1",
-      quantity: 6,
+      quantity: 12,
       unit_price_sek: 145,
-      line_total_sek: 870,
-    },
-    {
-      wine_id: "dddddddd-dddd-dddd-dddd-ddddddddddd2",
-      quantity: 2,
-      unit_price_sek: 160,
-      line_total_sek: 320,
+      line_total_sek: 1740,
     },
   ];
-  const wines_subtotal = 1190;
+  const wines_subtotal = 1740;
   const shipping = 99;
   const money: CheckoutQuote = {
     subtotal_sek: wines_subtotal,
@@ -63,7 +59,6 @@ export default function DualOfferCompareDevPage() {
     pricing_source: "synthetic_fixture",
     user_id: "preview-user",
     cart_id: "synthetic-preview-cart",
-    // Review fixture: open now → senast = +4 weeks
     charge_deadline_at: new Date(
       Date.now() + 28 * 24 * 60 * 60 * 1000,
     ).toISOString(),
@@ -78,20 +73,11 @@ export default function DualOfferCompareDevPage() {
 
   return (
     <>
-      {/*
-        Review-route only: opaque underlay beneath the intentionally transparent
-        fixed site header so scrolled comparison text cannot show through MENY/PACT.
-        Does not alter global header styles or OFF-checkout.
-      */}
       <div
         aria-hidden
         data-testid="dual-offer-dev-header-shield"
         className="pointer-events-none fixed inset-x-0 top-0 z-40 h-[var(--top-spacing)] bg-background"
       />
-      {/*
-        Isolated scrollport below --top-spacing: comparison text never occupies
-        the header band at arbitrary scrollY (stronger than scroll-target clearance).
-      */}
       <main
         className="fixed inset-x-0 bottom-0 top-[var(--top-spacing)] z-0 overflow-y-auto overscroll-y-contain bg-background text-foreground"
         data-testid="dual-offer-dev-main"
@@ -100,14 +86,6 @@ export default function DualOfferCompareDevPage() {
           <Suspense fallback={<p className="text-sm text-muted-foreground">…</p>}>
             <DualOfferReviewLocales dual={dual} />
           </Suspense>
-          <aside
-            className="rounded-lg border border-dashed border-muted-foreground/40 bg-muted/20 px-3 py-2 font-mono text-[11px] text-muted-foreground"
-            data-testid="dual-offer-page-diagnostics"
-          >
-            Fixture cart: 8 bottles (mixed 145+160 SEK) · destination SE ·
-            weighted avg bottle = wines_subtotal/bottle_count · migration 279
-            unapplied · not authenticated /checkout
-          </aside>
         </div>
       </main>
     </>

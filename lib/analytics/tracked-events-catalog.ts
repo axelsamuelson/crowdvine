@@ -259,6 +259,27 @@ export const TRACKED_USER_EVENTS_CATALOG: TrackedEventCatalogEntry[] = [
       "Cart failed 6-bottle (or similar) rules. Metadata: required_quantity, needed_total, invalid_count.",
     sources: ["client"],
   },
+  {
+    eventType: "sticky_atc_shown",
+    category: "cart",
+    description:
+      "Mobile PDP sticky buy bar became visible after the main CTA left the viewport. Metadata: main_cta_hidden (bool), scroll_depth (0–1), viewport (e.g. mobile:390), wine_id. No PII.",
+    sources: ["client"],
+  },
+  {
+    eventType: "sticky_atc_clicked",
+    category: "cart",
+    description:
+      "User tapped Köp on the mobile PDP sticky buy bar (same action as main CTA). Metadata: main_cta_hidden (bool), scroll_depth (0–1), viewport (e.g. mobile:390), wine_id. No PII.",
+    sources: ["client"],
+  },
+  {
+    eventType: "six_pack_rule_viewed",
+    category: "engagement",
+    description:
+      "Six-bottle minimum rule copy was shown. Metadata: surface one of pdp_info | first_add | cart. No PII.",
+    sources: ["client"],
+  },
   // checkout
   {
     eventType: "checkout_started",

@@ -109,6 +109,48 @@ describe("validateFirstPartyEventPayload", () => {
     });
     expect(result.ok).toBe(true);
   });
+
+  it("accepts sticky_atc_shown / sticky_atc_clicked with Camille metadata (no PII)", () => {
+    const meta = {
+      main_cta_hidden: true,
+      scroll_depth: 0.42,
+      viewport: "mobile:390",
+      wine_id: "wine_abc",
+      email: "should-strip@example.com",
+    };
+    for (const event_type of ["sticky_atc_shown", "sticky_atc_clicked"] as const) {
+      const result = validateFirstPartyEventPayload({
+        ...base,
+        event_type,
+        event_category: "cart",
+        event_metadata: meta,
+      });
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.event.event_metadata).toEqual({
+        main_cta_hidden: true,
+        scroll_depth: 0.42,
+        viewport: "mobile:390",
+        wine_id: "wine_abc",
+      });
+      expect(result.event.event_metadata).not.toHaveProperty("email");
+    }
+  });
+
+  it("accepts six_pack_rule_viewed with surface allowlist values", () => {
+    for (const surface of ["pdp_info", "first_add", "cart"] as const) {
+      const result = validateFirstPartyEventPayload({
+        ...base,
+        event_type: "six_pack_rule_viewed",
+        event_category: "engagement",
+        event_metadata: { surface, name: "PII" },
+      });
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.event.event_metadata).toEqual({ surface });
+      expect(result.event.event_metadata).not.toHaveProperty("name");
+    }
+  });
 });
 
 describe("withServerSiteMetadata", () => {

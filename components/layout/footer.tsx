@@ -21,14 +21,19 @@ export function Footer({ initialLogos }: { initialLogos?: SiteLogos }) {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="bg-background p-sides">
+    <footer className="bg-background p-sides" data-site-footer="">
       <div className="w-full md:min-h-[420px] p-sides md:p-11 text-background bg-foreground rounded-[12px] flex flex-col justify-between gap-10 max-md:gap-8">
         <div className="flex flex-col gap-8">
           <div className="flex flex-col gap-8 md:flex-row md:items-start md:justify-between md:gap-10 lg:gap-16">
             <FooterLogoSvg className={footerLogoClass} initialLogos={initialLogos} />
 
             <div className="flex min-w-0 flex-col gap-6 sm:flex-row sm:items-start sm:gap-10 lg:gap-14 md:pt-0.5">
-              <nav aria-labelledby="footer-navigation-label" className="min-w-0">
+              {/* Sticky ATC hides when this nav enters the viewport (never cover Navigation/Guider). */}
+              <nav
+                aria-labelledby="footer-navigation-label"
+                className="min-w-0"
+                data-sticky-hide-sentinel=""
+              >
                 <div className="flex flex-col gap-3">
                   <p
                     id="footer-navigation-label"

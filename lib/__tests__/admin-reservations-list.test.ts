@@ -15,7 +15,7 @@ describe("resolveAdminFulfillmentDisplay", () => {
     expect(badges).toEqual([
       {
         kind: "fulfillment",
-        label: "Fulfillment: pending_manual_handoff",
+        label: "Direct box: pending_manual_handoff",
         title: "pending_manual_handoff",
       },
     ]);

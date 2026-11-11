@@ -20,12 +20,12 @@ import { getSiteConfig } from "@/lib/site-config-server";
 import { buildFaqPageJsonLd } from "@/lib/wine-category-faq";
 
 async function ShopRootJsonLd({ locale }: { locale: "sv" | "en" }) {
-  const content = getShopRootNaturalWineContent(locale);
   const config = await getSiteConfig();
   const headerList = await headers();
   const isB2BSite = isB2BHost(
     headerList.get("x-forwarded-host") ?? headerList.get("host"),
   );
+  const content = getShopRootNaturalWineContent(locale, { isB2BSite });
   const shoppingContext = await getCachedShoppingContextFromRequest().catch(
     () => fallbackShoppingContext(),
   );
@@ -125,11 +125,13 @@ async function ShopRootJsonLd({ locale }: { locale: "sv" | "en" }) {
 }
 
 async function ShopRootBelowFold({ locale }: { locale: "sv" | "en" }) {
-  const content = getShopRootNaturalWineContent(locale);
   const headerList = await headers();
   const isDirtywineSite = isB2BHost(
     headerList.get("x-forwarded-host") ?? headerList.get("host"),
   );
+  const content = getShopRootNaturalWineContent(locale, {
+    isB2BSite: isDirtywineSite,
+  });
   const exploreHref =
     locale === "sv" ? "/vin/rott-naturvin" : "/wine/red-natural-wine";
   const exploreLabel =
@@ -238,7 +240,11 @@ export async function MainShopContent({
   locale: "sv" | "en";
 }) {
   const sp = await searchParams;
-  const content = getShopRootNaturalWineContent(locale);
+  const headerList = await headers();
+  const isB2BSite = isB2BHost(
+    headerList.get("x-forwarded-host") ?? headerList.get("host"),
+  );
+  const content = getShopRootNaturalWineContent(locale, { isB2BSite });
 
   return (
     <>

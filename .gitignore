@@ -47,3 +47,6 @@ next-env.d.ts
 .cursor/mcp.json
 supabase/.temp/
 tmp/
+
+# Agent / design-review screenshots (keep in /opt/cursor/artifacts only)
+.review-shots/

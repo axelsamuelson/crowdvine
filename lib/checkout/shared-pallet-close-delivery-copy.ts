@@ -31,8 +31,9 @@ export const CHECKOUT_PALLET_DELIVERY_LINE_EN =
  * Direct-box delivery label: home delivery only — no carrier brand, no ETA
  * (carrier contract unsigned; DIRECT may still be OFF in production).
  */
-export const DIRECT_BOX_DELIVERY_COPY_SV = "Hemleverans";
-export const DIRECT_BOX_DELIVERY_COPY_EN = "Home delivery";
+/** Axel 01:24 / Margaux — never mention UPS/carrier brand in customer UI. */
+export const DIRECT_BOX_DELIVERY_COPY_SV = "Direktleverans – 5–10 arbetsdagar";
+export const DIRECT_BOX_DELIVERY_COPY_EN = "Direct delivery – 5–10 working days";
 
 function applyDatum(template: string, datum: string): string {
   return template.replace(/\{datum\}/g, datum);
