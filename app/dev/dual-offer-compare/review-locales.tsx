@@ -51,7 +51,6 @@ export function DualOfferReviewLocales(props: { dual: DualOfferQuoteSet }) {
         initialDual={props.dual}
         locale={locale}
         showDirectOffer
-        showDiagnostics
         className="scroll-mt-top-spacing"
       />
     </div>

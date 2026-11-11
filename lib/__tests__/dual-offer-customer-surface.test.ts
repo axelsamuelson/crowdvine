@@ -94,7 +94,13 @@ describe("dual-offer customer surface guards", () => {
   it("keeps diagnostics behind showDiagnostics (not default customer mount)", () => {
     expect(panelSrc).toMatch(/showDiagnostics/);
     expect(panelSrc).toMatch(/showDiagnostics === true/);
+    expect(panelSrc).toMatch(/VERCEL_ENV/);
     expect(checkoutSrc).not.toMatch(/showDiagnostics=\{true\}/);
+    const reviewLocales = readFileSync(
+      resolve(process.cwd(), "app/dev/dual-offer-compare/review-locales.tsx"),
+      "utf8",
+    );
+    expect(reviewLocales).not.toMatch(/showDiagnostics/);
     // Checkout chrome is logo + back-to-cart via CheckoutMinimalHeader (no site nav).
     expect(checkoutSrc).toMatch(/max-w-\[1280px\]/);
     expect(checkoutSrc).not.toMatch(/\/api\/user\/rewards/);

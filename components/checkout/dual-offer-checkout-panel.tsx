@@ -106,6 +106,32 @@ function OfferRowSkeleton() {
   );
 }
 
+function offerDeliveryFact(
+  quote: OfferQuote,
+  locale: Locale,
+): string {
+  if (quote.offer === "direct_box") {
+    return dualOfferMsg(locale, "dualOfferDirectDeliveryFact");
+  }
+  return dualOfferMsg(locale, "dualOfferSharedDeliveryFact");
+}
+
+function offerExplanationBody(
+  quote: OfferQuote,
+  locale: Locale,
+  deadlineLabel: string | null,
+): string {
+  if (quote.offer === "direct_box") {
+    return dualOfferMsg(locale, "directBoxBody");
+  }
+  if (deadlineLabel) {
+    return dualOfferMsg(locale, "dualOfferSharedBody", {
+      datum: deadlineLabel,
+    });
+  }
+  return dualOfferMsg(locale, "dualOfferSharedBodyNoDate");
+}
+
 function OfferRow(props: {
   title: string;
   quote: OfferQuote | null;
@@ -118,6 +144,8 @@ function OfferRow(props: {
   selectable?: boolean;
   /** Compare mode still shows the compact price header; hide Snittpris/Viner/Frakt/Totalt breakdown. */
   showPriceBreakdown?: boolean;
+  /** Localized shared-pallet charge deadline for explanation body. */
+  deadlineLabel?: string | null;
 }) {
   const { quote, locale } = props;
   if (!quote) {
@@ -140,9 +168,12 @@ function OfferRow(props: {
 
   const factClass =
     "text-[14px] leading-snug text-[#525252]";
+  const explainClass =
+    "text-[14px] leading-relaxed text-[#525252]";
 
   const body = (
     <>
+      {/* Row 1 — title + total */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2 min-w-0">
           {selectable ? (
@@ -185,43 +216,47 @@ function OfferRow(props: {
           {quote.unavailable_reason}
         </p>
       ) : (
-        <div
-          className={`mt-2 space-y-1 ${factClass} ${
-            selectable ? "pl-7" : ""
-          }`}
-        >
-          {/* Direct title already carries the 5–10 day line — don't repeat it. */}
-          {quote.offer === "direct_box" ? null : (
+        <div className={selectable ? "pl-7" : ""}>
+          {/* Row 2 — key facts (same structure both cards) */}
+          <div className={`mt-2 space-y-1 ${factClass}`}>
             <p data-testid={`dual-offer-delivery-${quote.offer}`}>
-              {deliveryLabel(quote, locale)}
+              {offerDeliveryFact(quote, locale)}
             </p>
-          )}
-          <p data-testid={`dual-offer-debit-${quote.offer}`}>
-            {debitLabel(quote, locale)}
-          </p>
-          {quote.bottle_count > 0 ? (
+            <p data-testid={`dual-offer-debit-${quote.offer}`}>
+              {debitLabel(quote, locale)}
+            </p>
+            {quote.bottle_count > 0 ? (
+              <p
+                className="tabular-nums"
+                data-testid={`dual-offer-bottle-price-${quote.offer}`}
+              >
+                {bottleLabel}:{" "}
+                {formatOfferSek(
+                  quote.subtotal_sek / quote.bottle_count,
+                  locale,
+                )}
+              </p>
+            ) : null}
+          </div>
+          {/* Row 3 — explanation (same size/colour both cards) */}
+          <div className={`mt-2 space-y-1 ${explainClass}`}>
             <p
-              className="tabular-nums"
-              data-testid={`dual-offer-bottle-price-${quote.offer}`}
+              data-testid={
+                quote.offer === "direct_box"
+                  ? "dual-offer-direct-body"
+                  : "dual-offer-shared-body"
+              }
             >
-              {bottleLabel}:{" "}
-              {formatOfferSek(
-                quote.subtotal_sek / quote.bottle_count,
+              {offerExplanationBody(
+                quote,
                 locale,
+                props.deadlineLabel ?? null,
               )}
             </p>
-          ) : null}
-          {quote.offer === "direct_box" ? (
-            <p
-              className="leading-relaxed"
-              data-testid="dual-offer-direct-body"
-            >
-              {dualOfferMsg(locale, "directBoxBody")}
+            <p data-testid={`dual-offer-age-${quote.offer}`}>
+              {dualOfferMsg(locale, "dualOfferAgeCheckLine")}
             </p>
-          ) : null}
-          <p data-testid={`dual-offer-age-${quote.offer}`}>
-            {dualOfferMsg(locale, "dualOfferAgeCheckLine")}
-          </p>
+          </div>
         </div>
       )}
     </>
@@ -541,7 +576,13 @@ export type DualOfferCheckoutPanelProps = {
 
 export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
   const locale = props.locale ?? "sv";
-  const showDiagnostics = props.showDiagnostics === true;
+  // Review-only: never render diagnostics in production (even if a caller passes true).
+  const showDiagnostics =
+    props.showDiagnostics === true &&
+    !(
+      process.env.NODE_ENV === "production" &&
+      String(process.env.VERCEL_ENV ?? "").trim() !== "preview"
+    );
   const showDirectOffer = props.showDirectOffer === true;
   const forceFreshSession = props.forceFreshSession === true;
   const preferOffer = props.preferOffer ?? null;
@@ -942,7 +983,7 @@ export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
                     }))
                   }
                   selectable
-                  showPriceBreakdown={false}
+                  deadlineLabel={sharedDeadline}
                 />
                 <OfferRow
                   title={dualOfferMsg(locale, "dualOfferDirectTitle")}
@@ -957,7 +998,8 @@ export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
                       direct_box: !d.direct_box,
                     }))
                   }
-                  showPriceBreakdown={false}
+                  selectable
+                  deadlineLabel={sharedDeadline}
                 />
               </div>
               {purchaseSlot}
