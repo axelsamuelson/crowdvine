@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,6 +34,8 @@ interface ReservationEditFormProps {
   zones: Zone[];
   pallets: Pallet[];
   wines: Wine[];
+  /** Full-width slot under the Order header (e.g. direct-box panel). */
+  afterHeader?: ReactNode;
 }
 
 type Zone = { id: string; name: string; type: "pickup" | "delivery" | string };
@@ -101,23 +103,23 @@ type Reservation = {
 function formatReservationStatus(status: string | null | undefined): string {
   switch (status) {
     case "pending_producer_approval":
-      return "Pending approval";
+      return "Väntar på godkännande";
     case "approved":
-      return "Approved";
+      return "Godkänd";
     case "partly_approved":
-      return "Partly approved";
+      return "Delvis godkänd";
     case "placed":
-      return "Placed";
+      return "Lagd";
     case "confirmed":
-      return "Confirmed";
+      return "Bekräftad";
     case "pending_payment":
-      return "Pending payment";
+      return "Väntar på betalning";
     case "cancelled":
-      return "Cancelled";
+      return "Avbruten";
     case "rejected":
-      return "Rejected";
+      return "Avvisad";
     case "archived":
-      return "Archived";
+      return "Arkiverad";
     default:
       return status ?? "—";
   }
@@ -145,13 +147,13 @@ function reservationStatusPillClass(status: string | null | undefined): string {
 function formatPaymentStatus(status: string | null | undefined): string {
   switch (status) {
     case "paid":
-      return "Paid";
+      return "Betald";
     case "pending":
-      return "Awaiting payment";
+      return "Väntar på betalning";
     case "failed":
-      return "Payment failed";
+      return "Betalning misslyckades";
     default:
-      return "Not charged yet";
+      return "Ej debiterad ännu";
   }
 }
 
@@ -183,6 +185,7 @@ export default function ReservationEditForm({
   zones,
   pallets,
   wines,
+  afterHeader,
 }: ReservationEditFormProps) {
   const router = useRouter();
   const [isArchived, setIsArchived] = useState(
@@ -327,7 +330,7 @@ export default function ReservationEditForm({
         );
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
-          throw new Error(data.error || "Failed to unarchive reservation");
+          throw new Error(data.error || "Kunde inte avarkivera reservationen");
         }
         const restored =
           typeof data.reservation?.status === "string"
@@ -339,7 +342,7 @@ export default function ReservationEditForm({
         router.refresh();
       } else {
         const confirmed = confirm(
-          "Archive this reservation? It stays in the database but will no longer count as an active order. No email is sent.",
+          "Arkivera den här reservationen? Den stannar i databasen men räknas inte längre som en aktiv order. Ingen e-post skickas.",
         );
         if (!confirmed) return;
         const res = await fetch(
@@ -354,7 +357,7 @@ export default function ReservationEditForm({
         );
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
-          throw new Error(data.error || "Failed to archive reservation");
+          throw new Error(data.error || "Kunde inte arkivera reservationen");
         }
         setIsArchived(true);
         setFormData((prev) => ({ ...prev, status: "archived" }));
@@ -363,7 +366,7 @@ export default function ReservationEditForm({
     } catch (err) {
       console.error("Archive toggle error:", err);
       setError(
-        err instanceof Error ? err.message : "Failed to update archive state",
+        err instanceof Error ? err.message : "Kunde inte uppdatera arkivstatus",
       );
     } finally {
       setArchiveBusy(false);
@@ -397,14 +400,14 @@ export default function ReservationEditForm({
 
       if (!reservationResponse.ok) {
         const errorData = await reservationResponse.json();
-        throw new Error(errorData.error || "Failed to update reservation");
+        throw new Error(errorData.error || "Kunde inte uppdatera reservationen");
       }
 
       router.push("/admin/b2c-orders");
     } catch (err) {
       console.error("Error updating reservation:", err);
       setError(
-        err instanceof Error ? err.message : "Failed to update reservation",
+        err instanceof Error ? err.message : "Kunde inte uppdatera reservationen",
       );
     } finally {
       setLoading(false);
@@ -432,7 +435,7 @@ export default function ReservationEditForm({
         >
           <Link href="/admin/b2c-orders">
             <ArrowLeft className="h-4 w-4 shrink-0" />
-            Back to B2C Orders
+            Tillbaka till B2C-ordrar
           </Link>
         </Button>
 
@@ -454,7 +457,7 @@ export default function ReservationEditForm({
               </span>
             </div>
             <p className="text-sm text-gray-500 dark:text-zinc-500">
-              Created {formatDate(reservation.created_at)}
+              Skapad {formatDate(reservation.created_at)}
             </p>
           </div>
 
@@ -465,19 +468,25 @@ export default function ReservationEditForm({
             className="h-8 shrink-0 rounded-lg text-xs font-medium bg-gray-900 text-white hover:bg-gray-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 disabled:opacity-60"
           >
             <Save className="mr-2 h-4 w-4" />
-            {loading ? "Saving..." : "Save Changes"}
+            {loading ? "Sparar…" : "Spara ändringar"}
           </Button>
         </div>
       </div>
 
+      {afterHeader ? (
+        <div className="w-full" data-testid="reservation-after-header">
+          {afterHeader}
+        </div>
+      ) : null}
+
       <div className="grid min-w-0 gap-6 lg:grid-cols-[1fr_320px]">
         {/* LEFT: main */}
         <div className="min-w-0 space-y-6">
-          {/* Order items */}
+          {/* Orderrader */}
           <section className="min-w-0 rounded-xl border border-gray-200 bg-white p-4 shadow-sm text-gray-900 dark:border-[#1F1F23] dark:bg-[#0F0F12] dark:text-zinc-100 dark:shadow-none sm:p-6">
             <div className="flex min-w-0 flex-wrap items-start justify-between gap-3">
               <div className="text-xs font-medium uppercase tracking-widest text-gray-500 dark:text-zinc-500">
-                Order items
+                Orderrader
               </div>
               <Button
                 type="button"
@@ -487,7 +496,7 @@ export default function ReservationEditForm({
                 className={cn(ADMIN_OUTLINE_BUTTON_CLASS, "h-8 text-xs")}
               >
                 <Plus className="mr-2 h-4 w-4" />
-                Add item
+                Lägg till rad
               </Button>
             </div>
 
@@ -497,7 +506,7 @@ export default function ReservationEditForm({
                 const unitCents = item.wine?.base_price_cents ?? 0;
                 const lineTotalCents = unitCents * (item.quantity ?? 0);
                 const img = item.wine?.label_image_path ?? null;
-                const name = item.wine?.wine_name ?? "Select wine";
+                const name = item.wine?.wine_name ?? "Välj vin";
                 return (
                   <div
                     key={item.id}
@@ -528,7 +537,7 @@ export default function ReservationEditForm({
                               ADMIN_FIELD_CLASS,
                             )}
                           >
-                            <SelectValue placeholder="Select wine" />
+                            <SelectValue placeholder="Välj vin" />
                           </SelectTrigger>
                           <SelectContent>
                             {wines.map((wine) => (
@@ -558,7 +567,7 @@ export default function ReservationEditForm({
                     <div className="grid min-w-0 grid-cols-3 gap-2">
                       <div className="min-w-0 space-y-1">
                         <div className="text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-zinc-500">
-                          Qty
+                          Antal
                         </div>
                         <Input
                           type="number"
@@ -578,7 +587,7 @@ export default function ReservationEditForm({
                       </div>
                       <div className="min-w-0 space-y-1">
                         <div className="text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-zinc-500">
-                          Unit
+                          Styckpris
                         </div>
                         <div className="flex h-9 items-center justify-end truncate text-sm tabular-nums text-gray-800 dark:text-zinc-200">
                           {formatPrice(unitCents)}
@@ -586,7 +595,7 @@ export default function ReservationEditForm({
                       </div>
                       <div className="min-w-0 space-y-1">
                         <div className="text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-zinc-500">
-                          Total
+                          Totalt
                         </div>
                         <div className="flex h-9 items-center justify-end truncate text-sm font-medium tabular-nums text-gray-900 dark:text-zinc-100">
                           {formatPrice(lineTotalCents)}
@@ -603,11 +612,11 @@ export default function ReservationEditForm({
               <table className="w-full min-w-[36rem]">
                 <thead>
                   <tr className="border-b border-gray-200 text-[11px] uppercase tracking-wide text-gray-500 dark:border-[#1F1F23] dark:text-zinc-500">
-                    <th className="py-2 pr-4 text-left">Item</th>
-                    <th className="py-2 pr-3 text-right">Qty</th>
-                    <th className="py-2 pr-3 text-right">Unit</th>
-                    <th className="py-2 text-right">Total</th>
-                    <th className="py-2 pl-3 text-right" aria-label="Actions" />
+                    <th className="py-2 pr-4 text-left">Artikel</th>
+                    <th className="py-2 pr-3 text-right">Antal</th>
+                    <th className="py-2 pr-3 text-right">Styckpris</th>
+                    <th className="py-2 text-right">Summa</th>
+                    <th className="py-2 pl-3 text-right" aria-label="Åtgärder" />
                   </tr>
                 </thead>
                 <tbody>
@@ -615,7 +624,7 @@ export default function ReservationEditForm({
                     const unitCents = item.wine?.base_price_cents ?? 0;
                     const lineTotalCents = unitCents * (item.quantity ?? 0);
                     const img = item.wine?.label_image_path ?? null;
-                    const name = item.wine?.wine_name ?? "Select wine";
+                    const name = item.wine?.wine_name ?? "Välj vin";
                     return (
                       <tr
                         key={item.id}
@@ -647,7 +656,7 @@ export default function ReservationEditForm({
                                     ADMIN_FIELD_CLASS,
                                   )}
                                 >
-                                  <SelectValue placeholder="Select wine" />
+                                  <SelectValue placeholder="Välj vin" />
                                 </SelectTrigger>
                                 <SelectContent>
                                   {wines.map((wine) => (
@@ -720,17 +729,17 @@ export default function ReservationEditForm({
             <div className="mt-4 flex justify-end">
               <div className="w-full max-w-sm space-y-2 text-sm">
                 <div className="flex items-center justify-between text-gray-500 dark:text-zinc-400">
-                  <span>Subtotal</span>
+                  <span>Delsumma</span>
                   <span className="tabular-nums">
                     {formatPrice(calculateTotalCost())}
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-gray-500 dark:text-zinc-500">
-                  <span>Shipping</span>
+                  <span>Frakt</span>
                   <span>—</span>
                 </div>
                 <div className="flex items-center justify-between border-t border-gray-200 pt-3 dark:border-[#1F1F23]">
-                  <span className="font-semibold text-gray-900 dark:text-zinc-100">Total</span>
+                  <span className="font-semibold text-gray-900 dark:text-zinc-100">Totalt</span>
                   <span className="text-lg font-bold tabular-nums text-gray-900 dark:text-zinc-100">
                     {formatPrice(calculateTotalCost())}
                   </span>
@@ -739,14 +748,14 @@ export default function ReservationEditForm({
             </div>
           </section>
 
-          {/* Payment */}
+          {/* Betalning */}
           <section className="min-w-0 rounded-xl border border-gray-200 bg-white p-4 shadow-sm text-gray-900 dark:border-[#1F1F23] dark:bg-[#0F0F12] dark:text-zinc-100 dark:shadow-none sm:p-6">
             <div className="text-xs font-medium uppercase tracking-widest text-gray-500 dark:text-zinc-500">
-              Payment
+              Betalning
             </div>
             <div className="mt-4 space-y-3 text-sm">
               <div className="flex items-center justify-between gap-4">
-                <span className="text-gray-500 dark:text-zinc-500">Payment method</span>
+                <span className="text-gray-500 dark:text-zinc-500">Betalningsmetod</span>
                 <span className="text-gray-900 dark:text-zinc-100">
                   {formatPaymentMethodTypeLabel(reservation.payment_method_type)}
                 </span>
@@ -755,7 +764,7 @@ export default function ReservationEditForm({
               reservation.payment_method_brand ||
               reservation.payment_method_last4 ? (
                 <div className="flex items-center justify-between gap-4">
-                  <span className="text-gray-500 dark:text-zinc-500">Card used</span>
+                  <span className="text-gray-500 dark:text-zinc-500">Kort</span>
                   <span className="text-right text-gray-900 dark:text-zinc-100">
                     {[
                       reservation.payment_method_brand
@@ -771,17 +780,17 @@ export default function ReservationEditForm({
                 </div>
               ) : null}
               <div className="flex items-center justify-between gap-4">
-                <span className="text-gray-500 dark:text-zinc-500">Stripe environment</span>
+                <span className="text-gray-500 dark:text-zinc-500">Stripe-miljö</span>
                 <span className="text-gray-900 dark:text-zinc-100">{getStripeEnvLabel()}</span>
               </div>
               <div className="flex items-center justify-between gap-4">
-                <span className="text-gray-500 dark:text-zinc-500">Payment mode</span>
+                <span className="text-gray-500 dark:text-zinc-500">Betalningsläge</span>
                 <span className="text-gray-900 dark:text-zinc-100">
                   {reservation.payment_mode ?? "—"}
                 </span>
               </div>
               <div className="flex items-center justify-between gap-4">
-                <span className="text-gray-500 dark:text-zinc-500">Payment status</span>
+                <span className="text-gray-500 dark:text-zinc-500">Betalningsstatus</span>
                 <span
                   className={`inline-flex rounded-md px-2 py-0.5 text-xs font-medium ${paymentPill}`}
                 >
@@ -807,21 +816,21 @@ export default function ReservationEditForm({
             </div>
           </section>
 
-          {/* Notes */}
+          {/* Anteckningar */}
           <section className="min-w-0 rounded-xl border border-gray-200 bg-white p-4 shadow-sm text-gray-900 dark:border-[#1F1F23] dark:bg-[#0F0F12] dark:text-zinc-100 dark:shadow-none sm:p-6">
             <div className="text-xs font-medium uppercase tracking-widest text-gray-500 dark:text-zinc-500">
-              Notes
+              Anteckningar
             </div>
             <div className="mt-4 grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="order_id" className={cn("text-xs", ADMIN_LABEL_CLASS)}>
-                  Order ID
+                  Order-ID
                 </Label>
                 <Input
                   id="order_id"
                   value={formData.order_id}
                   onChange={(e) => handleInputChange("order_id", e.target.value)}
-                  placeholder="Order reference"
+                  placeholder="Orderreferens"
                   className={cn(
                     "h-9 text-sm placeholder:text-gray-400 dark:placeholder:text-zinc-500",
                     ADMIN_FIELD_CLASS,
@@ -830,13 +839,13 @@ export default function ReservationEditForm({
               </div>
               <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="notes" className={cn("text-xs", ADMIN_LABEL_CLASS)}>
-                  Internal notes
+                  Interna anteckningar
                 </Label>
                 <Textarea
                   id="notes"
                   value={formData.notes}
                   onChange={(e) => handleInputChange("notes", e.target.value)}
-                  placeholder="Additional notes or comments"
+                  placeholder="Övriga anteckningar"
                   rows={3}
                   className={cn(
                     "min-h-[100px] text-sm placeholder:text-gray-400 dark:placeholder:text-zinc-500",
@@ -850,10 +859,10 @@ export default function ReservationEditForm({
 
         {/* RIGHT: sidebar */}
         <aside className="min-w-0 space-y-6 lg:sticky lg:top-6 lg:self-start">
-          {/* Reservation summary */}
+          {/* Reservationsöversikt */}
           <section className="min-w-0 rounded-xl border border-gray-200 bg-white p-4 shadow-sm text-gray-900 dark:border-[#1F1F23] dark:bg-[#0F0F12] dark:text-zinc-100 dark:shadow-none sm:p-6">
             <div className="text-xs font-medium uppercase tracking-widest text-gray-500 dark:text-zinc-500">
-              Reservation summary
+              Reservationsöversikt
             </div>
             <div className="mt-4 space-y-3 text-sm">
               <div className="flex items-center justify-between gap-3">
@@ -865,14 +874,14 @@ export default function ReservationEditForm({
                 </span>
               </div>
               <div className="flex items-center justify-between gap-4">
-                <span className="text-gray-500 dark:text-zinc-500">Created</span>
+                <span className="text-gray-500 dark:text-zinc-500">Skapad</span>
                 <span className="text-gray-900 dark:text-zinc-100">
                   {formatDate(reservation.created_at)}
                 </span>
               </div>
               {reservation.checkout_group_id ? (
                 <div className="flex items-center justify-between gap-4">
-                  <span className="text-gray-500 dark:text-zinc-500">Checkout group</span>
+                  <span className="text-gray-500 dark:text-zinc-500">Kassagrupp</span>
                   <span className="font-mono text-xs text-gray-500 dark:text-zinc-400">
                     {reservation.checkout_group_id.substring(0, 8).toUpperCase()}
                   </span>
@@ -880,7 +889,7 @@ export default function ReservationEditForm({
               ) : null}
               {selectedPallet ? (
                 <div className="flex items-center justify-between gap-4">
-                  <span className="text-gray-500 dark:text-zinc-500">Pallet</span>
+                  <span className="text-gray-500 dark:text-zinc-500">Pall</span>
                   <Link
                     href={`/admin/pallets/${selectedPallet.id}`}
                     className="text-sm font-medium text-gray-900 underline underline-offset-2 dark:text-zinc-100"
@@ -890,45 +899,45 @@ export default function ReservationEditForm({
                 </div>
               ) : (
                 <div className="flex items-center justify-between gap-4">
-                  <span className="text-gray-500 dark:text-zinc-500">Pallet</span>
+                  <span className="text-gray-500 dark:text-zinc-500">Pall</span>
                   <span className="text-gray-900 dark:text-zinc-100">—</span>
                 </div>
               )}
             </div>
           </section>
 
-          {/* Customer */}
+          {/* Kund */}
           <section className="min-w-0 rounded-xl border border-gray-200 bg-white p-4 shadow-sm text-gray-900 dark:border-[#1F1F23] dark:bg-[#0F0F12] dark:text-zinc-100 dark:shadow-none sm:p-6">
             <div className="text-xs font-medium uppercase tracking-widest text-gray-500 dark:text-zinc-500">
-              Customer
+              Kund
             </div>
             <div className="mt-4 space-y-2">
               <div className="text-sm font-semibold text-gray-900 dark:text-zinc-100">
-                {reservation.user_id ? "Customer" : "—"}
+                {reservation.user_id ? "Kund" : "—"}
               </div>
               <div className="break-all font-mono text-xs text-gray-500 dark:text-zinc-500">
-                {reservation.user_id ?? "No user_id"}
+                {reservation.user_id ?? "Inget user_id"}
               </div>
               {reservation.user_id ? (
                 <Link
                   href={`/admin/users/${reservation.user_id}`}
                   className="inline-flex text-xs font-medium text-gray-800 underline underline-offset-2 dark:text-zinc-200"
                 >
-                  View customer →
+                  Visa kund
                 </Link>
               ) : null}
             </div>
           </section>
 
-          {/* Delivery */}
+          {/* Leverans */}
           <section className="min-w-0 rounded-xl border border-gray-200 bg-white p-4 shadow-sm text-gray-900 dark:border-[#1F1F23] dark:bg-[#0F0F12] dark:text-zinc-100 dark:shadow-none sm:p-6">
             <div className="text-xs font-medium uppercase tracking-widest text-gray-500 dark:text-zinc-500">
-              Delivery
+              Leverans
             </div>
             <div className="mt-4 space-y-3">
               <div className="space-y-2">
                 <Label htmlFor="delivery_address" className={cn("text-xs", ADMIN_LABEL_CLASS)}>
-                  Address
+                  Adress
                 </Label>
                 <Textarea
                   id="delivery_address"
@@ -936,7 +945,7 @@ export default function ReservationEditForm({
                   onChange={(e) =>
                     handleInputChange("delivery_address", e.target.value)
                   }
-                  placeholder="Full delivery address"
+                  placeholder="Fullständig leveransadress"
                   rows={3}
                   className={cn(
                     "min-h-[100px] text-sm placeholder:text-gray-400 dark:placeholder:text-zinc-500",
@@ -946,13 +955,13 @@ export default function ReservationEditForm({
               </div>
 
               <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-500 dark:text-zinc-500">Delivery zone</span>
+                <span className="text-gray-500 dark:text-zinc-500">Leveranszon</span>
                 <span className="text-gray-900 dark:text-zinc-100">
                   {selectedDeliveryZone?.name ?? "—"}
                 </span>
               </div>
               <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-500 dark:text-zinc-500">Pickup zone</span>
+                <span className="text-gray-500 dark:text-zinc-500">Upphämtningszon</span>
                 <span className="text-gray-900 dark:text-zinc-100">
                   {selectedPickupZone?.name ?? "—"}
                 </span>
@@ -960,18 +969,18 @@ export default function ReservationEditForm({
             </div>
           </section>
 
-          {/* Status management */}
+          {/* Statushantering */}
           <section className="min-w-0 rounded-xl border border-gray-200 bg-white p-4 shadow-sm text-gray-900 dark:border-[#1F1F23] dark:bg-[#0F0F12] dark:text-zinc-100 dark:shadow-none sm:p-6">
             <div className="text-xs font-medium uppercase tracking-widest text-gray-500 dark:text-zinc-500">
-              Status management
+              Statushantering
             </div>
             <div className="mt-4 space-y-4">
               <div className="rounded-md border border-gray-200 bg-gray-50 p-3 space-y-3 dark:border-[#1F1F23] dark:bg-zinc-900/50">
                 <div className="flex items-center justify-between gap-2">
                   <div>
-                    <p className="text-sm text-gray-900 dark:text-zinc-100">Archive</p>
+                    <p className="text-sm text-gray-900 dark:text-zinc-100">Arkiv</p>
                     <p className="text-[11px] text-gray-500 dark:text-zinc-500 mt-0.5">
-                      Keep in DB; exclude from active orders. No email sent.
+                      Stannar i databasen; räknas inte som aktiv order. Ingen e-post skickas.
                     </p>
                   </div>
                   <span
@@ -990,19 +999,19 @@ export default function ReservationEditForm({
                       htmlFor="archive_reason"
                       className={cn("text-xs", ADMIN_LABEL_CLASS)}
                     >
-                      Archive reason (optional)
+                      Arkivorsak (valfritt)
                     </Label>
                     <Input
                       id="archive_reason"
                       value={archiveReason}
                       onChange={(e) => setArchiveReason(e.target.value)}
-                      placeholder="e.g. stale Middle Languedoc pallet"
+                      placeholder="t.ex. gammal Middle Languedoc-pall"
                       className={cn("h-9 text-sm", ADMIN_FIELD_CLASS)}
                     />
                   </div>
                 ) : reservation.status_before_archive ? (
                   <p className="text-[11px] text-gray-500 dark:text-zinc-500">
-                    Previous status: {reservation.status_before_archive}
+                    Tidigare status: {reservation.status_before_archive}
                   </p>
                 ) : null}
                 <Button
@@ -1014,16 +1023,16 @@ export default function ReservationEditForm({
                   className={cn(ADMIN_OUTLINE_BUTTON_CLASS, "w-full text-xs")}
                 >
                   {archiveBusy
-                    ? "Working…"
+                    ? "Arbetar…"
                     : isArchived
-                      ? "Unarchive"
-                      : "Archive reservation"}
+                      ? "Avarkivera"
+                      : "Arkivera reservation"}
                 </Button>
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="status" className={cn("text-xs", ADMIN_LABEL_CLASS)}>
-                  Reservation status
+                  Reservationsstatus
                 </Label>
                 <Select
                   value={formData.status || undefined}
@@ -1031,34 +1040,34 @@ export default function ReservationEditForm({
                   disabled={isArchived}
                 >
                   <SelectTrigger className={cn("h-9 text-sm", ADMIN_FIELD_CLASS)}>
-                    <SelectValue placeholder="Select status" />
+                    <SelectValue placeholder="Välj status" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="pending">Väntande</SelectItem>
                     <SelectItem value="pending_producer_approval">
-                      pending_producer_approval
+                      Väntar på godkännande
                     </SelectItem>
-                    <SelectItem value="approved">approved</SelectItem>
-                    <SelectItem value="partly_approved">partly_approved</SelectItem>
-                    <SelectItem value="placed">placed</SelectItem>
-                    <SelectItem value="pending_payment">pending_payment</SelectItem>
-                    <SelectItem value="confirmed">confirmed</SelectItem>
-                    <SelectItem value="rejected">rejected</SelectItem>
-                    <SelectItem value="cancelled">cancelled</SelectItem>
+                    <SelectItem value="approved">Godkänd</SelectItem>
+                    <SelectItem value="partly_approved">Delvis godkänd</SelectItem>
+                    <SelectItem value="placed">Lagd</SelectItem>
+                    <SelectItem value="pending_payment">Väntar på betalning</SelectItem>
+                    <SelectItem value="confirmed">Bekräftad</SelectItem>
+                    <SelectItem value="rejected">Avvisad</SelectItem>
+                    <SelectItem value="cancelled">Avbruten</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="pallet_id" className={cn("text-xs", ADMIN_LABEL_CLASS)}>
-                  Pallet
+                  Pall
                 </Label>
                 <Select
                   value={formData.pallet_id || undefined}
                   onValueChange={(value) => handleInputChange("pallet_id", value)}
                 >
                   <SelectTrigger className={cn("h-9 text-sm", ADMIN_FIELD_CLASS)}>
-                    <SelectValue placeholder="Select pallet" />
+                    <SelectValue placeholder="Välj pall" />
                   </SelectTrigger>
                   <SelectContent>
                     {pallets.map((pallet) => (
@@ -1073,7 +1082,7 @@ export default function ReservationEditForm({
               <div className="grid grid-cols-1 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="pickup_zone" className={cn("text-xs", ADMIN_LABEL_CLASS)}>
-                    Pickup zone
+                    Upphämtningszon
                   </Label>
                   <Select
                     value={formData.pickup_zone_id || undefined}
@@ -1082,7 +1091,7 @@ export default function ReservationEditForm({
                     }
                   >
                     <SelectTrigger className={cn("h-9 text-sm", ADMIN_FIELD_CLASS)}>
-                      <SelectValue placeholder="Select pickup zone" />
+                      <SelectValue placeholder="Välj upphämtningszon" />
                     </SelectTrigger>
                     <SelectContent>
                       {zones
@@ -1097,7 +1106,7 @@ export default function ReservationEditForm({
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="delivery_zone" className={cn("text-xs", ADMIN_LABEL_CLASS)}>
-                    Delivery zone
+                    Leveranszon
                   </Label>
                   <Select
                     value={formData.delivery_zone_id || undefined}
@@ -1106,7 +1115,7 @@ export default function ReservationEditForm({
                     }
                   >
                     <SelectTrigger className={cn("h-9 text-sm", ADMIN_FIELD_CLASS)}>
-                      <SelectValue placeholder="Select delivery zone" />
+                      <SelectValue placeholder="Välj leveranszon" />
                     </SelectTrigger>
                     <SelectContent>
                       {zones
@@ -1128,7 +1137,7 @@ export default function ReservationEditForm({
                 className="h-9 w-full rounded-lg text-xs font-medium bg-gray-900 text-white hover:bg-gray-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 disabled:opacity-60"
               >
                 <Save className="mr-2 h-4 w-4" />
-                {loading ? "Saving..." : "Save changes"}
+                {loading ? "Sparar…" : "Spara ändringar"}
               </Button>
             </div>
           </section>
