@@ -213,6 +213,8 @@ export type Product = {
   producerDisplayName?: string | null;
   /** wines.source_type. Producer-box copy renders only when this is "producer". */
   sourceType?: string | null;
+  /** wines.source_name — wholesaler packing identity when sourceType is wholesaler. */
+  sourceName?: string | null;
   /** Producer coordinates for PDP map (from producers table). */
   producerLocation?: {
     lat?: number | null;

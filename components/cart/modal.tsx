@@ -29,6 +29,12 @@ import {
 import { B2B_INQUIRY_PATH } from "@/lib/b2b/inquiry-login";
 import { homeDeliveryGuidePath } from "@/lib/guides/home-delivery-guide";
 import { shouldAutoOpenCartOnQuantityChange } from "@/lib/cart/should-auto-open-cart";
+import { resolvePackingSourceId } from "@/lib/cart/packing-source";
+import {
+  formatPackingSourceCustomerLabel,
+  wholesalerBoxRegionLabel,
+} from "@/lib/cart/packing-source-display";
+import { producerDisplayName } from "@/lib/producer-display-name";
 
 const CartContainer = ({
   children,
@@ -101,6 +107,77 @@ const CartItems = ({
 
   if (!cart) return <></>;
 
+  const locale = context.locale === "en" ? "en" : "sv";
+  // Always group on PACT B2C — never flash a flat list while validations load
+  // (empty validations.every(cart) was true and caused duplicate flat+grouped).
+  const sourceGroups = (() => {
+    if (showExclVat) return null;
+    const isLegacyCartScope =
+      validations.length > 0 && validations.every((v) => v.scope === "cart");
+    if (isLegacyCartScope) return null;
+
+    const byId = new Map<
+      string,
+      {
+        validation: ProducerValidation | null;
+        lines: typeof cart.lines;
+        label: string;
+      }
+    >();
+    for (const item of cart.lines) {
+      const product = item.merchandise.product;
+      const packingId = resolvePackingSourceId({
+        sourceType: product?.sourceType,
+        sourceName: product?.sourceName,
+        producerId: product?.producerId,
+        displayName: producerDisplayName({
+          name: product?.producerName,
+          display_name: product?.producerDisplayName,
+        }),
+      });
+      const validation =
+        validations.find((v) => v.producerId === packingId) ?? null;
+      const label = validation
+        ? validation.sourceKind === "wholesaler"
+          ? formatPackingSourceCustomerLabel({
+              kind: "wholesaler",
+              regions: validation.regions,
+              locale,
+            })
+          : formatPackingSourceCustomerLabel({
+              kind: "producer",
+              producerName:
+                validation.producerDisplayName || validation.producerName,
+              locale,
+            })
+        : formatPackingSourceCustomerLabel({
+            kind:
+              product?.sourceType?.toLowerCase() === "wholesaler" ||
+              product?.sourceType?.toLowerCase() === "wholesale"
+                ? "wholesaler"
+                : "producer",
+            producerName: producerDisplayName({
+              name: product?.producerName,
+              display_name: product?.producerDisplayName,
+            }),
+            regions: product?.region ? [product.region] : [],
+            locale,
+          });
+      const prev = byId.get(packingId);
+      if (prev) {
+        prev.lines.push(item);
+        if (!prev.validation && validation) prev.validation = validation;
+      } else {
+        byId.set(packingId, { validation, lines: [item], label });
+      }
+    }
+    return [...byId.values()].sort((a, b) => {
+      const aOk = a.validation?.isValid ? 1 : 0;
+      const bOk = b.validation?.isValid ? 1 : 0;
+      return aOk - bOk;
+    });
+  })();
+
   return (
     <div className="flex flex-col justify-between h-full overflow-hidden">
       {/* PACT only: Dirty Wine has no bottle minimum / pack rule. */}
@@ -113,25 +190,110 @@ const CartItems = ({
         />
       ) : null}
 
-      <CartContainer className="flex justify-between px-2 text-sm text-muted-foreground">
-        <span>{t("cart.products")}</span>
-        <span>{t("cart.bottlesCount", { count: cart.totalQuantity })}</span>
+      <CartContainer className="flex justify-between text-sm text-muted-foreground">
+        {/* Match group header inset (px-0.5) so Produkter aligns with cards. */}
+        <div className="flex w-full justify-between px-0.5">
+          <span>{t("cart.products")}</span>
+          <span>{t("cart.bottlesCount", { count: cart.totalQuantity })}</span>
+        </div>
       </CartContainer>
       <div className="flex flex-col flex-1 min-h-0">
         <div className="relative flex min-h-0 flex-1 flex-col py-4 overflow-x-hidden">
           <CartContainer className="flex min-h-0 flex-1 flex-col">
-            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain flex flex-col gap-y-3">
-              <AnimatePresence>
-                {cart.lines.map((item, i) => (
-                  <motion.div
-                    key={item.merchandise.id}
-                    layout
-                    exit={{ opacity: 0, x: -20 }}
-                    transition={{ duration: 0.3, delay: i * 0.1, ease: "easeOut" }}
-                  >
-                    <CartItemCard item={item} onCloseCart={closeCart} />
-                  </motion.div>
-                ))}
+            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain flex flex-col gap-y-4">
+              <AnimatePresence mode="sync">
+                {sourceGroups
+                  ? sourceGroups.map((group, gi) => {
+                      const v = group.validation;
+                      const current = v?.quantity ?? 0;
+                      const needed = v?.needed ?? 0;
+                      const total =
+                        v?.required ??
+                        (current + needed || 6);
+                      const progress =
+                        total > 0
+                          ? Math.min((current / total) * 100, 100)
+                          : 0;
+                      const isComplete = Boolean(v?.isValid);
+                      return (
+                      <motion.div
+                        key={`group-${group.validation?.producerId || group.label}`}
+                        layout
+                        className="flex flex-col gap-y-2"
+                      >
+                        <div className="space-y-1.5 px-0.5">
+                          <div className="flex items-baseline justify-between gap-2">
+                            <p className="text-xs font-semibold text-foreground truncate">
+                              {group.label}
+                            </p>
+                            {v ? (
+                              <p className="text-[11px] tabular-nums text-muted-foreground shrink-0">
+                                {isComplete
+                                  ? t("cart.bottleProgressFull", {
+                                      current,
+                                      total: current,
+                                      boxes: Math.max(
+                                        1,
+                                        Math.floor(current / 6),
+                                      ),
+                                    })
+                                  : t("cart.bottleProgress", {
+                                      current,
+                                      total,
+                                    })}
+                              </p>
+                            ) : null}
+                          </div>
+                          {v ? (
+                            <>
+                              <div className="relative h-1.5 bg-foreground/[0.08] rounded-full overflow-hidden">
+                                <div
+                                  className="absolute inset-y-0 left-0 rounded-full bg-[#0A0A0A] transition-all duration-500 ease-out"
+                                  style={{ width: `${progress}%` }}
+                                />
+                              </div>
+                              {!isComplete && needed > 0 ? (
+                                <p className="text-[11px] text-muted-foreground">
+                                  {t("cart.needMoreBottlesShort", { needed })}
+                                </p>
+                              ) : null}
+                            </>
+                          ) : null}
+                        </div>
+                        {group.lines.map((item, i) => (
+                          <motion.div
+                            key={item.merchandise.id}
+                            layout
+                            exit={{ opacity: 0, x: -20 }}
+                            transition={{
+                              duration: 0.2,
+                              delay: (gi + i) * 0.03,
+                              ease: "easeOut",
+                            }}
+                          >
+                            <CartItemCard
+                              item={item}
+                              onCloseCart={closeCart}
+                            />
+                          </motion.div>
+                        ))}
+                      </motion.div>
+                      );
+                    })
+                  : cart.lines.map((item, i) => (
+                      <motion.div
+                        key={item.merchandise.id}
+                        layout
+                        exit={{ opacity: 0, x: -20 }}
+                        transition={{
+                          duration: 0.3,
+                          delay: i * 0.1,
+                          ease: "easeOut",
+                        }}
+                      >
+                        <CartItemCard item={item} onCloseCart={closeCart} />
+                      </motion.div>
+                    ))}
               </AnimatePresence>
             </div>
           </CartContainer>
@@ -182,10 +344,10 @@ const CartItems = ({
               </Link>
             </p>
           ) : null}
-          <div className="flex justify-between items-center pt-1 pb-1 mb-1.5 text-lg font-semibold">
-            <p>{t("cart.total")}</p>
+          <div className="flex justify-between items-center pt-1 pb-1 mb-1.5 text-lg font-semibold text-[#0A0A0A]">
+            <p className="text-[#0A0A0A]">{t("cart.total")}</p>
             <div className="text-right">
-              <span className="text-base text-foreground block">
+              <span className="text-base text-[#0A0A0A] block">
                 {formatCartLinePrice(
                   displayTotal,
                   cart.cost.totalAmount.currencyCode,
@@ -217,12 +379,20 @@ const CartItems = ({
   );
 };
 
-export default function CartModal() {
+export default function CartModal({
+  defaultOpen = false,
+  hideTrigger = false,
+}: {
+  /** Open the drawer on mount (design-review fixtures). */
+  defaultOpen?: boolean;
+  /** Hide the header bag button when the page hosts its own open drawer. */
+  hideTrigger?: boolean;
+} = {}) {
   const { t } = useTranslations();
   const paths = useLocalizedPaths();
   const isDirtywineSite = useB2BModeServerHint();
   const { cart, isPending, cartReady } = useCart();
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(defaultOpen);
   const [validations, setValidations] = useState<ProducerValidation[]>([]);
   const [requiredQuantity, setRequiredQuantity] = useState<number | undefined>();
   const [neededTotal, setNeededTotal] = useState<number | undefined>();
@@ -416,7 +586,7 @@ export default function CartModal() {
 
   return (
     <>
-      {showCartBadge ? (
+      {!hideTrigger && showCartBadge ? (
       <Button
         aria-label={t("cart.openCart")}
         onClick={openCart}
@@ -445,14 +615,14 @@ export default function CartModal() {
           </span>
         )}
       </Button>
-      ) : (
+      ) : !hideTrigger ? (
         // Invisible spacer only — no grey placeholder box when empty/hydrating.
         <span
           className="inline-block h-7 w-10 shrink-0 md:w-16"
           aria-hidden
           data-testid="cart-badge-spacer"
         />
-      )}
+      ) : null}
       <AnimatePresence>
         {isOpen && cart && (
           <>
@@ -547,12 +717,11 @@ function CheckoutButton({
   const hasValidationErrors = validations.some((v) => !v.isValid);
   const invalidValidations = validations.filter((v) => !v.isValid);
   const isCartScoped = validations.some((v) => v.scope === "cart");
-  const neededBottles = invalidValidations.reduce(
-    (sum, v) => sum + (v.needed || 0),
-    0,
-  );
+  const locale = shopping.locale === "en" ? "en" : "sv";
+  const firstIncomplete = invalidValidations[0];
+  const neededBottles = firstIncomplete?.needed || 0;
 
-  // B2C cart-total minimum → shop (PLP). B2B pack lines → producer pages when known.
+  // B2C incomplete source → shop (PLP). B2B pack lines → producer pages when known.
   let redirectUrl = paths.shop;
   if (!isCartScoped && invalidValidations.length === 1) {
     const firstInvalidValidation = invalidValidations[0];
@@ -580,6 +749,30 @@ function CheckoutButton({
     checkoutLocked ||
     ((!checkoutUrl || isPending) && !hasValidationErrors);
 
+  const addMoreLabel = (() => {
+    if (!firstIncomplete) {
+      return t("cart.addMoreBottlesOutlineCta", { needed: neededBottles });
+    }
+    if (firstIncomplete.sourceKind === "wholesaler") {
+      const region = wholesalerBoxRegionLabel(
+        firstIncomplete.regions ?? [],
+        locale,
+      );
+      return t("cart.addMoreFromWholesalerShortCta", {
+        needed: neededBottles,
+        region,
+      });
+    }
+    const name =
+      firstIncomplete.producerDisplayName ||
+      firstIncomplete.producerName ||
+      "";
+    return t("cart.addMoreFromProducerShortCta", {
+      needed: neededBottles,
+      name,
+    });
+  })();
+
   const goAddMore = () => {
     if (isValidating || producerOrdersPaused) return;
     closeCart();
@@ -601,14 +794,10 @@ function CheckoutButton({
           type="button"
           disabled={isValidating || producerOrdersPaused}
           onClick={goAddMore}
-          className="font-semibold cursor-pointer whitespace-nowrap text-base transition-all disabled:pointer-events-none disabled:opacity-50 h-12 rounded-md px-3 flex items-center justify-center gap-2 w-full bg-white text-[#0A0A0A] border border-[#0A0A0A] hover:bg-neutral-50 shadow-none"
+          className="font-semibold cursor-pointer text-sm sm:text-base transition-all disabled:pointer-events-none disabled:opacity-50 min-h-12 h-auto py-2.5 rounded-md px-3 flex items-center justify-center gap-2 w-full max-w-full overflow-hidden bg-white text-[#0A0A0A] border border-[#0A0A0A] hover:bg-neutral-50 shadow-none"
         >
-          <Plus className="size-5 shrink-0" strokeWidth={2.25} aria-hidden />
-          <span className="leading-snug">
-            {t("cart.addMoreBottlesOutlineCta", { needed: neededBottles }).replace(
-              /^\+\s*/,
-              "",
-            )}
+          <span className="leading-snug text-center text-balance break-words">
+            {addMoreLabel}
           </span>
         </Button>
       ) : null}
@@ -616,12 +805,12 @@ function CheckoutButton({
       <Button
         type="submit"
         disabled={checkoutDisabled}
-        aria-disabled={checkoutLocked || checkoutDisabled ? true : undefined}
+        aria-disabled={checkoutLocked || checkoutDisabled}
         className={cn(
-          "font-semibold whitespace-nowrap text-base transition-all [&_svg]:pointer-events-none shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] shadow-xs h-12 rounded-md px-3 has-[>svg]:pr-3 [&_svg:not([class*='size-'])]:size-6 flex relative gap-3 justify-between items-center w-full",
+          "font-semibold whitespace-nowrap text-base transition-all [&_svg]:pointer-events-none shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] shadow-xs h-12 rounded-md px-3 flex relative items-center w-full",
           checkoutLocked
-            ? "bg-neutral-200 text-neutral-500 border border-transparent pointer-events-none cursor-not-allowed hover:bg-neutral-200"
-            : "cursor-pointer border border-transparent bg-[#0A0A0A] hover:bg-[#0A0A0A]/90 text-white disabled:pointer-events-none disabled:opacity-50",
+            ? "bg-neutral-100 text-neutral-400 border border-neutral-200 pointer-events-none cursor-not-allowed hover:bg-neutral-100 justify-center gap-0 opacity-100"
+            : "cursor-pointer border border-transparent bg-[#0A0A0A] hover:bg-[#0A0A0A]/90 text-white disabled:pointer-events-none disabled:opacity-50 justify-between gap-3 has-[>svg]:pr-3 [&_svg:not([class*='size-'])]:size-6",
         )}
         onClick={(e) => {
           if (checkoutLocked) {
@@ -642,10 +831,14 @@ function CheckoutButton({
           >
             {isLoading ? (
               <Loader size="default" />
+            ) : checkoutLocked ? (
+              <span className="text-center leading-snug text-neutral-400">
+                {t("cart.proceedToCheckout")}
+              </span>
             ) : (
               <div className="flex justify-between items-center w-full gap-2">
-                <span className="text-left leading-snug">
-                  {inquiryMode && !checkoutLocked
+                <span className="text-left leading-snug whitespace-nowrap">
+                  {inquiryMode
                     ? t("cart.sendInquiry")
                     : t("cart.proceedToCheckout")}
                 </span>

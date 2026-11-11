@@ -38,7 +38,7 @@ function pruneCache() {
 
 /**
  * Validate current cart against channel minimum rules
- * (B2C: ≥6 bottles total; B2B: quantity ≥1 per line, no pack minimum).
+ * (B2C: multiples of 6 per packing source; B2B: quantity ≥1 per line).
  */
 export async function GET() {
   try {

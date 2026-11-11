@@ -489,6 +489,32 @@ export function useCart(): UseCartReturn {
 }
 
 /**
+ * Nested override for design-review / fixture surfaces. Replaces the parent
+ * {@link CartProvider} for descendants only (e.g. an in-page CartModal).
+ */
+export function FixtureCartProvider({
+  cart,
+  children,
+}: {
+  cart: Cart;
+  children: React.ReactNode;
+}) {
+  const value = useMemo<UseCartReturn>(
+    () => ({
+      cart,
+      cartReady: true,
+      isPending: false,
+      addItem: async () => cart,
+      updateItem: async () => {},
+    }),
+    [cart],
+  );
+  return (
+    <CartContext.Provider value={value}>{children}</CartContext.Provider>
+  );
+}
+
+/**
  * Same context as {@link useCart} but returns undefined when there is no provider
  * (e.g. layout segments or SSR quirks). Prefer {@link useCart} when the tree must
  * always be under {@link CartProvider}.
