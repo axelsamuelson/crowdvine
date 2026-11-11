@@ -246,23 +246,23 @@ export default function PalletsPage() {
       <div className="space-y-10">
         <div className="flex justify-between items-start gap-4">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-zinc-100">
+            <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
               Pallets
             </h1>
-            <p className="text-sm text-zinc-500 mt-1">Loading…</p>
+            <p className="text-sm text-gray-500 dark:text-zinc-500 mt-1">Loading…</p>
           </div>
         </div>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {[...Array(6)].map((_, i) => (
             <div
               key={i}
-              className="bg-[#0F0F12] rounded-lg p-5 border border-[#1F1F23] animate-pulse"
+              className="bg-white rounded-lg p-5 border border-gray-200 dark:bg-[#0F0F12] dark:border-[#1F1F23] animate-pulse"
             >
-              <div className="h-5 bg-zinc-800 rounded w-3/4 mb-3" />
-              <div className="h-4 bg-zinc-800 rounded w-1/2 mb-4" />
+              <div className="h-5 bg-gray-200 dark:bg-zinc-800 rounded w-3/4 mb-3" />
+              <div className="h-4 bg-gray-200 dark:bg-zinc-800 rounded w-1/2 mb-4" />
               <div className="space-y-2">
-                <div className="h-3 bg-zinc-800 rounded" />
-                <div className="h-3 bg-zinc-800 rounded w-2/3" />
+                <div className="h-3 bg-gray-200 dark:bg-zinc-800 rounded" />
+                <div className="h-3 bg-gray-200 dark:bg-zinc-800 rounded w-2/3" />
               </div>
             </div>
           ))}
@@ -276,31 +276,31 @@ export default function PalletsPage() {
       <div className="space-y-10">
         <div className="flex justify-between items-start gap-4">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-zinc-100">
+            <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
               Pallets
             </h1>
-            <p className="text-sm text-zinc-500 mt-1">
+            <p className="text-sm text-gray-500 dark:text-zinc-500 mt-1">
               Monitor pallet status and wine allocations
             </p>
           </div>
           <Link
             href="/admin/pallets/new"
-            className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors shrink-0 pt-1"
+            className="text-xs text-gray-500 hover:text-gray-700 dark:text-zinc-500 dark:hover:text-zinc-300 transition-colors shrink-0 pt-1"
           >
             + Add pallet
           </Link>
         </div>
-        <div className="bg-[#0F0F12] rounded-lg p-12 border border-[#1F1F23] flex flex-col items-center justify-center">
-          <AlertCircle className="h-12 w-12 text-red-400 mb-4" />
-          <h3 className="text-sm font-semibold text-zinc-100 mb-2">
+        <div className="bg-white rounded-lg p-12 border border-gray-200 dark:bg-[#0F0F12] dark:border-[#1F1F23] flex flex-col items-center justify-center">
+          <AlertCircle className="h-12 w-12 text-red-500 dark:text-red-400 mb-4" />
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-zinc-100 mb-2">
             Error Loading Pallets
           </h3>
-          <p className="text-xs text-zinc-500 mb-4">{error}</p>
+          <p className="text-xs text-gray-500 dark:text-zinc-500 mb-4">{error}</p>
           <Button
             onClick={() => window.location.reload()}
             variant="ghost"
             size="sm"
-            className="text-xs text-zinc-300 h-8"
+            className="text-xs text-gray-700 dark:text-zinc-300 h-8"
           >
             Try Again
           </Button>
@@ -322,10 +322,10 @@ export default function PalletsPage() {
     <div className="space-y-10">
       <div className="flex justify-between items-start gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-zinc-100">
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
             Pallar
           </h1>
-          <p className="text-sm text-zinc-500 mt-1 max-w-lg">
+          <p className="text-sm text-gray-600 dark:text-zinc-400 mt-1 max-w-lg">
             Kapacitet och reservationer. Varje PACT-pall har leveranszon; ursprung
             är fraktregion eller upphämtningszon.
           </p>
@@ -339,16 +339,16 @@ export default function PalletsPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={handleTabChange}>
-        <TabsList className="bg-zinc-900/70 border border-zinc-800 rounded-lg p-1 h-auto">
+        <TabsList className="bg-gray-50 dark:bg-zinc-900/70 border border-gray-100 dark:border-zinc-800 rounded-lg p-1 h-auto">
           <TabsTrigger
             value="pact"
-            className="rounded-md data-[state=active]:bg-[#0F0F12] data-[state=active]:text-zinc-100 text-xs font-medium text-zinc-500 px-3 py-1.5"
+            className="rounded-md data-[state=active]:bg-white dark:data-[state=active]:bg-[#0F0F12] data-[state=active]:text-gray-900 dark:data-[state=active]:text-zinc-100 text-xs font-medium text-gray-500 dark:text-zinc-500 px-3 py-1.5"
           >
             PACT
           </TabsTrigger>
           <TabsTrigger
             value="b2b"
-            className="rounded-md data-[state=active]:bg-[#0F0F12] data-[state=active]:text-zinc-100 text-xs font-medium text-zinc-500 px-3 py-1.5"
+            className="rounded-md data-[state=active]:bg-white dark:data-[state=active]:bg-[#0F0F12] data-[state=active]:text-gray-900 dark:data-[state=active]:text-zinc-100 text-xs font-medium text-gray-500 dark:text-zinc-500 px-3 py-1.5"
           >
             Dirty Wine
           </TabsTrigger>

@@ -165,30 +165,28 @@ export default async function B2cOrderEditPage({
   );
 
   return (
-    <div className="container mx-auto space-y-6 py-8">
-      <ReservationEditForm
-        reservation={reservation}
-        zones={zones || []}
-        pallets={pallets || []}
-        wines={wines || []}
-        afterHeader={
-          isDirectBox ? (
-            <DirectBoxFulfillmentPanel
-              reservationId={reservation.id}
-              orderCreatedAt={reservation.created_at}
-              fulfillmentDispatchStatus={
-                reservation.fulfillment_dispatch_status ?? null
-              }
-              deliveredAt={reservation.delivered_at ?? null}
-              statusUpdatedAt={
-                reservation.fulfillment_dispatch_status_updated_at ?? null
-              }
-              items={pickListItems}
-              shipments={shipments}
-            />
-          ) : null
-        }
-      />
-    </div>
+    <ReservationEditForm
+      reservation={reservation}
+      zones={zones || []}
+      pallets={pallets || []}
+      wines={wines || []}
+      afterHeader={
+        isDirectBox ? (
+          <DirectBoxFulfillmentPanel
+            reservationId={reservation.id}
+            orderCreatedAt={reservation.created_at}
+            fulfillmentDispatchStatus={
+              reservation.fulfillment_dispatch_status ?? null
+            }
+            deliveredAt={reservation.delivered_at ?? null}
+            statusUpdatedAt={
+              reservation.fulfillment_dispatch_status_updated_at ?? null
+            }
+            items={pickListItems}
+            shipments={shipments}
+          />
+        ) : null
+      }
+    />
   );
 }

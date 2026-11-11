@@ -1,8 +1,8 @@
 # Köpvillkor
 
-> **UTKAST.** Framtaget av Daniel Holm (Compliance), med ställningstagande av Sofia Bergström (GC) den 25 augusti 2026 enligt `gc-stallningstagande-angerratt-och-villkor.md`. Tvistlösningen (p. 13) är oförändrad. Punkt 9 och 10 är omskrivna 2026-10-29 på ägarens instruktion och avviker från GC-dokumentet, se anmärkningen under punkt 9. Punkt 3 (giltighetstid och producent som inte kan leverera) uppdaterad 2026-10-31, i linje med reservationsmejlen (30 dagar åt gången, bekräftelse via länk senast angivet datum inom 7 dagar, obegränsat antal förlängningar). Punkt 7 (leveranstid och leveransområde) uppdaterad 2026-11-09: normalt 2–3 veckor efter att pallen har stängt, alltid senast 30 dagar efter. Punkt 5 (misslyckad debitering: omförsök efter 24/72 h, 3D Secure-länk, avbrott efter tre försök utan dragning) uppdaterad 2026-11-02 enligt `lib/payment-retry.ts` och Stripe-webhook. Punkt 8 (returkostnad) ifylld 2026-11-03; antal leveransförsök orört. Bolagsadress uppdaterad 2026-11-04 till äriregister-form (Kesklinna linnaosa, Harju maakond; postnummer 10115 behållet då det redan fanns i repo). Punkt 8 (undersökning/värdeminskning vid retur, 2 kap. 14 § distansavtalslagen) tillagd 2026-11-05. Övriga fält markerade `[FYLL I]` måste fyllas i innan sidan går live. Ingen extern advokat har granskat texten.
+> **UTKAST.** Framtaget av Daniel Holm (Compliance), med ställningstagande av Sofia Bergström (GC) den 25 augusti 2026 enligt `gc-stallningstagande-angerratt-och-villkor.md`. Tvistlösningen (p. 13) är oförändrad. Punkt 9 och 10 är omskrivna 2026-10-29 på ägarens instruktion och avviker från GC-dokumentet, se anmärkningen under punkt 9. Punkt 3, 4, 5, 6, 7, 9 och 14 uppdaterade 2026-11-10 enligt text som Axel godkänt ord för ord (delad pall utan tidsgräns, gratis avbokning tills pallen stänger, debitering vid stängning, 3 dagar vid misslyckad dragning, leverans inom 30 dagar). Punkt 7 (leveranstid och leveransområde) uppdaterad 2026-11-09: normalt 2–3 veckor efter att pallen har stängt, alltid senast 30 dagar efter. Punkt 8 (returkostnad) ifylld 2026-11-03; antal leveransförsök orört. Bolagsadress uppdaterad 2026-11-04 till äriregister-form (Kesklinna linnaosa, Harju maakond; postnummer 10115 behållet då det redan fanns i repo). Punkt 8 (undersökning/värdeminskning vid retur, 2 kap. 14 § distansavtalslagen) tillagd 2026-11-05. Övriga fält markerade `[FYLL I]` måste fyllas i innan sidan går live. Ingen extern advokat har granskat texten.
 
-Senast uppdaterad: 2026-11-10
+Senast uppdaterad: 2026-11-11
 
 ---
 
@@ -42,62 +42,77 @@ Vi säljer inte till någon som vi har anledning att anta ska lämna varan vidar
 
 ---
 
-## 3. Så fungerar en pall
+## 3. Så köper du
 
-PACT samlar flera beställningar till en gemensam transport från producenterna i Frankrike till Sverige. Det är därför vinet kan kosta vad det gör. Det innebär också att köpet går till annorlunda än i en vanlig webbshop, och det är viktigt att du förstår hur.
+Du kan välja mellan två leveranssätt i kassan:
 
-**Steg 1. Du reserverar.** Du väljer viner och lägger en reservation. Du anger dina kortuppgifter, men **inget belopp dras och kortet reserveras inte**. Du får en bekräftelse på din reservation via e-post.
+- **Delad pall.** Lägre flaskpris och frakt. Din order skickas tillsammans med andras när pallen är full. Inget dras förrän pallen stänger. Se nedan.
+- **Direktleverans.** Flaskpriset är 5 % högre och frakten är 149 kr per låda om 6 flaskor. Ditt kort debiteras när du köper och vinet levereras normalt inom 5–10 arbetsdagar. Se punkt 3 b.
 
-**Steg 2. Pallen fylls.** Pallen är först virtuell: du ser hur många flaskor som beställts jämfört med den tröskel som krävs. Vi samlar reservationer tills tröskeln nås. Först när pallen närmar sig tröskeln väljs producent och upphämtningsplats, och pallen blir fysisk.
+### Så fungerar en pall
 
-**Steg 3. Pallen stänger och betalning sker.** När pallen når sin tröskel stänger vi den och **då först debiteras ditt kort** med det belopp som framgick av din reservation. Du får ett kvitto via e-post. Först i detta ögonblick uppstår ett bindande köpavtal mellan dig och EURPACT OÜ.
+PACT samlar flera beställningar till en gemensam transport från producenterna i Frankrike till Sverige. Det är därför vinet kan kosta vad det gör. Det betyder också att det går till lite annorlunda än i en vanlig webbshop.
 
-**Steg 4. Leverans.** Din order packas i lådor direkt hos producenterna i Frankrike, transporteras till Sverige och levereras hem till dig med ID-kontroll.
+**Steg 1. Du köper.** Du väljer viner och slutför köpet i kassan. **Köpet är bindande när du klickar på köpknappen.** Ditt kort sparas hos vår betalleverantör Stripe, men inget belopp dras än. Du får en orderbekräftelse med de här villkoren via e-post.
 
-### Din reservation är inte ett bindande köp
+**Steg 2. Pallen fylls.** Pallen är först virtuell. Du ser hur många flaskor som har beställts och hur många som behövs för att pallen ska kunna skickas.
 
-Fram till att pallen stänger och betalning genomförs kan du **när som helst avboka din reservation utan kostnad**, via ditt konto eller genom att mejla oss.
+**Steg 3. Pallen stänger och ditt kort debiteras.** Pallen stänger när den har nått gränsen för att kunna skickas. **Först då debiteras ditt kort** med det belopp som stod i kassan. Du får ett kvitto via e-post.
 
-### Vad händer om pallen inte fylls
+**Steg 4. Leverans.** Din order packas i lådor hos producenterna i Frankrike, transporteras till Sverige och levereras hem till dig med ID-kontroll (se punkt 7).
 
-Din reservation gäller i **30 dagar åt gången**.
+### Avbryta innan pallen stänger
 
-Om pallen fortfarande inte nått nödvändig volym (tröskeln) när de 30 dagarna gått skickar vi ett e-postmeddelande. Där anger vi ett konkret sista datum — inom **7 dagar** — då du behöver bekräfta via länken i mejlet om du vill behålla reservationen.
+Fram till att pallen stänger kan du **avbryta ditt köp utan kostnad**, via ditt konto eller genom att mejla customer@pactwines.com. Inget belopp dras då. Efter leveransen har du dessutom ångerrätt enligt punkt 9.
 
-- Bekräftar du senast det datumet gäller reservationen i ytterligare 30 dagar
-- Du kan förlänga på samma sätt **hur många gånger du vill**, 30 dagar i taget, så länge pallen väntar på volym. Det finns ingen bortre tidsgräns
-- Bekräftar du inte senast det datumet avslutas reservationen automatiskt och **inget belopp debiteras**
+### Om det tar tid att fylla pallen
 
-När pallen når sin tröskel debiteras det belopp du reserverat. När en reservation avslutas utan att pallen fyllts debiteras **inget belopp**. Din sparade betalmetod tas bort eller kan användas för en kommande pall enligt ditt val. Vi informerar dig via e-post.
+Det finns ingen tidsgräns för när pallen ska vara full. **Din order ligger kvar tills pallen stänger eller tills du själv avbryter.** Du behöver inte göra något för att behålla den. Inget belopp dras förrän pallen stänger. I ditt konto ser du hur nära gränsen pallen är, och vi mejlar dig regelbundet om läget, med en länk där du kan avbryta.
+
+När en order avbryts tas ditt sparade kort bort, om du inte väljer att spara det för ett kommande köp.
+
+### 3 b. Direktleverans
+
+**Du köper och betalar.** Köpet är bindande när du klickar på köpknappen. Ditt kort debiteras direkt med totalpriset i kassan. Du får en orderbekräftelse med de här villkoren och ett kvitto via e-post.
+
+**Leverans.** Dina lådor packas i Frankrike och vi skickar dem med UPS hem till dig. Leveranstiden är normalt **5–10 arbetsdagar** från att ordern är bekräftad och betald. Har du inte fått din leverans inom 30 dagar får du avbryta köpet och får då tillbaka hela beloppet inom 14 dagar.
+
+**Ålderskontroll.** UPS kontrollerar vid överlämningen att mottagaren har fyllt 20 år. Visa giltig legitimation. Om ålderskontrollen inte går igenom lämnas vinet inte ut, det skickas tillbaka till oss och du får tillbaka pengarna utan avgift.
+
+**Ångerrätt.** Du har samma ångerrätt som vid delad pall, se punkt 9. Du kan ångra köpet redan innan leveransen.
+
+### 3 c. Lådor om 6 flaskor
+
+Vinet packas i lådor om 6 flaskor hos varje producent eller grossist. Därför måste antalet flaskor från samma producent eller grossist vara 6, 12, 18 och så vidare. Du får blanda olika viner från samma producent eller grossist i en låda, och du kan köpa från flera i samma order. Varukorgen visar om en låda inte är full.
 
 ### Om en producent inte kan leverera
 
-Ibland kan en producent inte leverera ett vin du reserverat, till exempel om lagret tar slut efter att pallen stängt. Då gäller följande:
+Det händer att ett vin tar slut efter att du har köpt.
 
-- Vi erbjuder dig först ett **likvärdigt ersättningsvin**
-- Byte sker **bara om du godkänner** ersättningsvinet
-- Avböjer du, eller godkänner du inte ersättningen, får du pengarna tillbaka för de viner som inte levereras — **utan onödigt dröjsmål och senast inom 14 dagar** om du redan har debiterats. Har du inte debiterats ännu debiteras du inte för de vinerna
+- Vi erbjuder dig först ett **likvärdigt ersättningsvin** från samma producent eller grossist. Byte sker bara om du godkänner det.
+- Går det att stryka vinet utan att en låda blir ofullständig får du välja att stryka det i stället. Du får då tillbaka pengarna för det vinet, eller debiteras inte för det om du ännu inte har debiterats.
+- Om vinet inte kan strykas utan att en låda blir ofullständig och du inte godkänner ersättningsvinet, **avbryts hela ordern**. Du får då tillbaka hela beloppet utan onödigt dröjsmål och senast inom 14 dagar, eller debiteras inte alls om du ännu inte har debiterats.
 
 ---
 
 ## 4. Priser
 
-- Alla priser anges i svenska kronor och **inklusive svensk moms och svensk alkoholskatt**
-- Priset du ser vid reservationen är det pris som debiteras när pallen stänger. Vi ändrar aldrig priset på en befintlig reservation uppåt
-- Fraktkostnad anges separat innan du bekräftar reservationen
-- Vi reserverar oss för uppenbara felaktiga prisangivelser. Om ett pris är uppenbart fel har vi rätt att annullera reservationen och informera dig, innan betalning sker
+- Alla priser anges i svenska kronor. **Totalpriset i kassan inkluderar moms och frakt. Inga andra avgifter tillkommer.**
+- Det totalpris du ser i kassan är det som debiteras när pallen stänger. Vi höjer aldrig priset efter ditt köp.
+- Vid ett uppenbart felaktigt pris har vi rätt att annullera köpet innan ditt kort debiteras. Vi meddelar dig då.
+- Vid direktleverans är flaskpriset 5 % högre än vid delad pall, avrundat till hela kronor, och frakten är 149 kr per låda om 6 flaskor. Båda ingår i totalpriset i kassan.
 
 ---
 
 ## 5. Betalning
 
-Betalning sker via vår betalleverantör Stripe med de betalsätt som visas i kassan, i dag kort, Klarna och Link. När du reserverar sparas ditt betalsätt hos Stripe, men inga pengar dras eller reserveras. Beloppet dras när pallen är full och vi beställer frakten. Reserverar du på en pall som redan är på väg att skickas dras beloppet direkt. Betalar du med Klarna gäller även Klarnas villkor, som visas i kassan. Vi sparar inga kortuppgifter själva.
+Du betalar med kort via vår betalleverantör Stripe. När du köper sparas ditt kort hos Stripe, och **du godkänner att vi drar det belopp som stod i kassan när pallen stänger**, utan att du behöver godkänna igen. Inget belopp dras eller reserveras innan dess. Vi sparar inga kortuppgifter själva och lagrar aldrig ditt fullständiga kortnummer.
 
-Betalningar hanteras av Stripe. Vi lagrar aldrig ditt fullständiga kortnummer.
+Vid direktleverans debiteras ditt kort när du köper, inte när en pall stänger. Stycket om misslyckad dragning gäller bara delad pall.
 
-Din bank kan komma att kräva en säkerhetsverifiering (BankID eller motsvarande) antingen vid reservationen eller vid debiteringen.
+Din bank kan begära en säkerhetsverifiering (BankID eller motsvarande) när du köper eller när kortet debiteras.
 
-**Om betalningen inte kan genomföras** när pallen stänger, till exempel för att kortet gått ut eller saknar täckning: Om dragningen från ditt sparade kort misslyckas gör vi nya försök efter **24 och 72 timmar**. Kräver banken extra verifiering (3D Secure) får du ett mejl med en länk för att godkänna betalningen. Misslyckas tre försök avbryts beställningen och **inget dras**. Varorna återgår då till försäljning.
+**Om dragningen inte går igenom** när pallen stänger, till exempel för att kortet har gått ut eller saknar täckning, mejlar vi dig. Du har då **3 dagar** på dig att betala, till exempel med ett annat kort eller genom att godkänna betalningen via länken i mejlet om banken kräver extra verifiering (3D Secure). Under tiden gör vi nya försök. Har betalningen inte gått igenom inom 3 dagar avslutas köpet och **inget dras**.
 
 Betalning sker enligt [Stripes villkor för betalningstjänsten](https://stripe.com/legal/ssa). Där regleras vilka betalmedel som kan användas och hur en betalning genomförs. Använder du en av Stripes egna konsumenttjänster gäller även [Stripes konsumentvillkor](https://stripe.com/legal/consumer).
 
@@ -107,15 +122,17 @@ Betalning sker enligt [Stripes villkor för betalningstjänsten](https://stripe.
 
 ## 6. Beställningsbekräftelse och avtal
 
-- Reservationsbekräftelsen är en bekräftelse på att vi tagit emot din reservation, inte ett bindande köpavtal
-- Bindande avtal uppstår när pallen stänger och betalningen genomförs. Du får då en orderbekräftelse med kvitto
+- **Köpet är bindande när du klickar på köpknappen i kassan.** Du får då en orderbekräftelse via e-post med de här villkoren.
+- När pallen stänger och ditt kort debiteras får du ett kvitto.
 
 ---
 
 ## 7. Leverans
 
-- Leverans sker med hemleverans och ID-kontroll av Budbee
-- Leveranstiden är normalt **2–3 veckor** efter att pallen har stängt, och alltid senast 30 dagar efter. Vid överlämning kontrolleras mottagarens ålder (20 år) med legitimation
+- Leverans sker med hemleverans och ID-kontroll av vår transportpartner
+- **Delad pall:** normalt 2–3 veckor efter att pallen har stängt, alltid inom 30 dagar.
+- **Direktleverans:** normalt 5–10 arbetsdagar från att ordern är bekräftad och betald, alltid inom 30 dagar.
+- Har du inte fått din leverans inom 30 dagar efter att pallen stängde eller, vid direktleverans, efter att ordern bekräftades, får du avbryta köpet. Du får då tillbaka hela beloppet inom 14 dagar.
 - Angivna leveranstider är uppskattningar. Transport från Frankrike kan påverkas av tull, väder och producenternas kapacitet
 - **Risken för varan går över på dig först när du tagit emot den.** Skadas eller försvinner varan under transport är det vårt ansvar
 
@@ -125,13 +142,11 @@ Om leveransen blir väsentligt försenad har du rätt att häva köpet och få p
 
 ## 8. Om leverans inte kan genomföras
 
-Om du inte är hemma, inte kan legitimera dig eller inte är minst 20 år gör Budbee ett nytt leveransförsök. Kan leveransen inte genomföras då heller returneras varan.
+Om du inte är hemma, inte kan legitimera dig eller inte är minst 20 år gör vår transportpartner ett nytt leveransförsök. Kan leveransen inte genomföras då heller returneras varan.
 
 Vid retur betalar du den faktiska returfraktkostnaden, utan påslag. Om överlämningen nekas vid ålderskontrollen tar vi inte ut någon avgift.
 
 Du får undersöka varan på samma sätt som i en butik, men inte mer än så. Har en flaska öppnats, eller förvarats eller hanterats så att vinet kan ha tagit skada, till exempel i värme eller direkt solljus, ansvarar du för värdeminskningen. Vi får då göra ett avdrag från återbetalningen som motsvarar värdeminskningen, upp till flaskans fulla pris. Detta följer av 2 kap. 14 § lagen (2005:59) om distansavtal och avtal utanför affärslokaler.
-
-Hur ett uteblivet leveransförsök hanteras beskrivs av [Budbee](https://budbee.com/se/kundservice/leveranser/).
 
 > **Anmärkning, ej del av publicerad text.** Budbees kundservice skriver att en hemleverans med ID-krav som inte kan lämnas ombokas. Budbees allmänna villkor från 2018 säger att ett nytt leveransförsök görs på Budbees initiativ om inget annat avtalats, och att gods som inte levererats lagras i 14 dagar. Antalet leveransförsök ("ett nytt") är oförändrat — inte beslutat att ändra. Returkostnad ifylld 2026-11-03: faktisk returfrakt utan påslag; ingen avgift vid nekad ålderskontroll (lagstadgad kontroll, inte avtalsbrott).
 
@@ -139,7 +154,7 @@ Hur ett uteblivet leveransförsök hanteras beskrivs av [Budbee](https://budbee.
 
 ## 9. Ångerrätt
 
-Du har 14 dagars ångerrätt enligt lagen (2005:59) om distansavtal och avtal utanför affärslokaler. Ångerfristen börjar dagen efter att du har tagit emot vinet. Köper du flera flaskor som levereras vid olika tillfällen börjar fristen när du har tagit emot den sista. Vill du ångra köpet mejlar du customer@pactwines.com, eller använder standardformuläret för ånger från Konsumentverket, inom fristen. Skicka sedan tillbaka varorna senast 14 dagar efter att du meddelat oss. Vi betalar tillbaka hela beloppet, inklusive den ursprungliga leveranskostnaden för standardleverans, senast 14 dagar efter att vi fått ditt meddelande. Vi får vänta med återbetalningen tills vi har fått tillbaka varorna. Returfrakt och värdeminskning regleras i §8. Ångerrätten gäller inte om du har reserverat flaskor men inte betalat något än. Då avbokar du utan kostnad.
+Du har 14 dagars ångerrätt enligt lagen (2005:59) om distansavtal och avtal utanför affärslokaler. Ångerfristen börjar dagen efter att du har tagit emot vinet. Köper du flera flaskor som levereras vid olika tillfällen börjar fristen när du har tagit emot den sista. Vill du ångra köpet mejlar du customer@pactwines.com, eller använder standardformuläret för ånger från Konsumentverket, inom fristen. Skicka sedan tillbaka varorna senast 14 dagar efter att du meddelat oss. Vi betalar tillbaka hela beloppet, inklusive den ursprungliga leveranskostnaden för standardleverans, senast 14 dagar efter att vi fått ditt meddelande. Vi får vänta med återbetalningen tills vi har fått tillbaka varorna. Returfrakt och värdeminskning regleras i §8. Fram till att pallen stänger kan du dessutom avbryta köpet utan kostnad, se punkt 3.
 
 ## 10. Reklamation
 
@@ -174,4 +189,4 @@ Vi medverkar i tvistlösning inför ARN och följer nämndens rekommendationer.
 
 ## 14. Ändringar av villkoren
 
-De villkor som gällde när du lade din reservation är de som gäller för det köpet. Ändringar av dessa villkor påverkar inte redan lagda reservationer.
+De villkor som gällde när du köpte är de som gäller för det köpet. Ändringar påverkar inte köp som redan har gjorts.

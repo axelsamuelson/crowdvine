@@ -54,6 +54,12 @@ export async function getWineInternalRatings(
     .order("created_at", { ascending: false });
 
   if (error) {
+    // TEST / older DBs may not have the ratings table yet — don't 404 wine edit.
+    if (
+      /schema cache|Could not find.*table|does not exist/i.test(error.message)
+    ) {
+      return [];
+    }
     throw new Error(error.message);
   }
 

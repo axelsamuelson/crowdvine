@@ -455,6 +455,34 @@ const WINES_SELECT_LEGACY = `
   updated_at
 `;
 
+/** Bare columns present on older TEST schemas (no calculated/supplier pricing meta). */
+const WINES_SELECT_MINIMAL = `
+  id,
+  handle,
+  wine_name,
+  vintage,
+  grape_varieties,
+  color,
+  label_image_path,
+  base_price_cents,
+  producer_id,
+  cost_currency,
+  cost_amount,
+  alcohol_tax_cents,
+  price_includes_vat,
+  margin_percentage,
+  exchange_rate,
+  description,
+  description_html,
+  farming,
+  region,
+  is_live,
+  available_for_sale,
+  source_type,
+  created_at,
+  updated_at
+`;
+
 const WINES_SELECT_WITHOUT_B2B_NO_SUMMARY = `
   id,
   handle,
@@ -495,7 +523,18 @@ function isExtendedEnrichmentColumnMissingError(error: { message?: string } | nu
 
 function isOptionalColumnMissingError(error: { message?: string } | null): boolean {
   const msg = error?.message ?? "";
-  return /terroir_soil|production_method|tasting_profile_character|classification|tasting_notes|alcohol_percentage/i.test(msg);
+  return /terroir_soil|production_method|tasting_profile_character|classification|tasting_notes|alcohol_percentage|exchange_rate_source|exchange_rate_date|exchange_rate_period|calculated_price_cents|supplier_price|sb_price|volume_liters|b2b_cost_sek|sourcing_status|sourcing_note/i.test(
+    msg,
+  );
+}
+
+function isMinimalPricingColumnMissingError(error: {
+  message?: string;
+} | null): boolean {
+  const msg = error?.message ?? "";
+  return /calculated_price_cents|supplier_price|sb_price|volume_liters|exchange_rate_source|exchange_rate_date|exchange_rate_period/i.test(
+    msg,
+  );
 }
 
 function isSourceTypeColumnMissingError(error: { message?: string } | null): boolean {
@@ -525,6 +564,9 @@ function pickWineSelectFallback(error: { message?: string } | null): string | nu
     return isB2BColumnMissingError(error)
       ? WINES_SELECT_WITHOUT_B2B_NO_EXTENDED
       : WINES_SELECT_WITHOUT_EXTENDED_ENRICHMENT;
+  }
+  if (isMinimalPricingColumnMissingError(error)) {
+    return WINES_SELECT_MINIMAL;
   }
   if (isOptionalColumnMissingError(error)) {
     return WINES_SELECT_LEGACY;
@@ -747,7 +789,7 @@ export async function getWine(id: string) {
     error = retry.error;
   }
 
-  if (error && (isB2BColumnMissingError(error) || isExtendedEnrichmentColumnMissingError(error) || isOptionalColumnMissingError(error) || isSummaryColumnMissingError(error) || isSpecsColumnMissingError(error))) {
+  if (error && (isB2BColumnMissingError(error) || isExtendedEnrichmentColumnMissingError(error) || isOptionalColumnMissingError(error) || isMinimalPricingColumnMissingError(error) || isSummaryColumnMissingError(error) || isSpecsColumnMissingError(error))) {
     const fallbackSelect = pickWineSelectFallback(error);
     if (!fallbackSelect) throw new Error(error.message);
     let fallback = await sb
@@ -755,6 +797,17 @@ export async function getWine(id: string) {
       .select(fallbackSelect)
       .eq("id", id)
       .single();
+    if (
+      fallback.error &&
+      (isMinimalPricingColumnMissingError(fallback.error) ||
+        isOptionalColumnMissingError(fallback.error))
+    ) {
+      fallback = await sb
+        .from("wines")
+        .select(WINES_SELECT_MINIMAL)
+        .eq("id", id)
+        .single();
+    }
     if (fallback.error && (isSummaryColumnMissingError(fallback.error) || isSpecsColumnMissingError(fallback.error))) {
       fallback = await sb
         .from("wines")
@@ -812,6 +865,10 @@ export async function getWine(id: string) {
         yield_hl_ha: d.yield_hl_ha ?? null,
         ageing: d.ageing ?? null,
         soil_type: d.soil_type ?? null,
+        calculated_price_cents: d.calculated_price_cents ?? null,
+        supplier_price: d.supplier_price ?? null,
+        sb_price: d.sb_price ?? null,
+        volume_liters: d.volume_liters ?? null,
       };
       wine = (stripExtended ? withNullExtendedEnrichment(row) : row) as any;
       error = null;

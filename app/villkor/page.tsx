@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 
 import { LegalPageLayout } from "@/components/legal/legal-page-layout";
-import KopvillkorContent from "@/content/legal/kopvillkor";
+import KopvillkorContent, {
+  KOPVILLKOR_TOC,
+} from "@/content/legal/kopvillkor";
 import { LEGAL_VERSIONS } from "@/lib/legal/versions";
 import { getSiteConfig } from "@/lib/site-config-server";
 import { PACT_PUBLIC_ORIGIN } from "@/lib/i18n/localized-routes";
@@ -20,9 +22,9 @@ export async function generateMetadata(): Promise<Metadata> {
     description: DESCRIPTION,
     alternates: {
       canonical,
-      // EN /terms is still Swedish body + noindex — do not advertise it as an equivalent.
       languages: {
         sv: canonical,
+        en: `${PACT_PUBLIC_ORIGIN}/terms`,
         "x-default": canonical,
       },
     },
@@ -37,6 +39,8 @@ export default function VillkorPage() {
       title={TITLE}
       lastUpdated={version}
       version={version}
+      toc={KOPVILLKOR_TOC}
+      locale="sv"
     >
       <KopvillkorContent />
     </LegalPageLayout>

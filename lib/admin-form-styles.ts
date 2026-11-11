@@ -26,3 +26,7 @@ export const ADMIN_TOGGLE_ROW_CLASS =
 /** Green = on/active, red = off/inactive (shop visibility, pallet stock, etc.). */
 export const ADMIN_ACTIVE_SWITCH_CLASS =
   "data-[state=checked]:bg-emerald-600 dark:data-[state=checked]:bg-emerald-500 data-[state=unchecked]:bg-red-500 dark:data-[state=unchecked]:bg-red-600";
+
+/** Green = on/active, gray = off (optional boosts / non-critical toggles). */
+export const ADMIN_NEUTRAL_SWITCH_CLASS =
+  "data-[state=checked]:bg-emerald-600 dark:data-[state=checked]:bg-emerald-500 data-[state=unchecked]:bg-gray-300 dark:data-[state=unchecked]:bg-zinc-600";

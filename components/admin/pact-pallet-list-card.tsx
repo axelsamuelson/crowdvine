@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DeletePalletButton } from "@/components/admin/delete-pallet-button";
 import { cn } from "@/lib/utils";
@@ -195,9 +196,13 @@ export function PactPalletListCard({ pallet, onDeleted }: Props) {
             {warnings.map((w) => (
               <li
                 key={w}
-                className="text-[11px] text-amber-700 dark:text-amber-500"
+                className="flex items-start gap-1.5 text-[11px] text-amber-700 dark:text-amber-500"
               >
-                ⚠ {w}
+                <AlertTriangle
+                  className="mt-0.5 h-3 w-3 shrink-0 text-amber-600 dark:text-amber-500"
+                  aria-hidden
+                />
+                <span>{w}</span>
               </li>
             ))}
           </ul>
