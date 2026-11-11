@@ -112,9 +112,9 @@ export function WineEditPageClient({
   );
 
   return (
-    <div className="space-y-6">
+    <div>
       {/* Mobile: full header scrolls away (Visa PDP / Ta bort live here). */}
-      <div className="space-y-3 rounded-xl border border-gray-200 bg-white px-4 py-3 dark:border-[#1F1F23] dark:bg-[#0F0F12] md:hidden">
+      <div className="mb-4 space-y-3 rounded-xl border border-gray-200 bg-white px-4 py-3 dark:border-[#1F1F23] dark:bg-[#0F0F12] md:hidden">
         <div className="flex items-start gap-3">
           <div className="rounded-lg bg-gray-100 p-2 dark:bg-zinc-800">
             <Wine className="h-5 w-5 text-gray-900 dark:text-zinc-50" />
@@ -130,40 +130,49 @@ export function WineEditPageClient({
         <div className="flex flex-wrap items-center gap-2">{secondaryActions}</div>
       </div>
 
-      {/* Mobile: compact opaque sticky bar — name + Spara only. */}
-      <div className="sticky top-0 z-10 -mx-3 flex h-14 items-center justify-between gap-3 border-b border-gray-200 bg-white px-3 dark:border-zinc-800 dark:bg-zinc-950 sm:-mx-6 sm:px-6 md:hidden">
-        <p className="min-w-0 truncate text-sm font-semibold text-gray-900 dark:text-zinc-100">
-          {wineTitle}
-        </p>
-        {saveButton}
-      </div>
-
-      {/* Desktop: opaque sticky full header (no translucency / gap). */}
-      <div className="sticky top-0 z-10 hidden flex-wrap items-center justify-between gap-4 rounded-xl border border-gray-200 bg-white px-4 py-3 dark:border-[#1F1F23] dark:bg-[#0F0F12] md:flex">
-        <div className="flex min-w-0 items-center gap-3">
-          <div className="rounded-lg bg-gray-100 p-2 dark:bg-zinc-800">
-            <Wine className="h-5 w-5 text-gray-900 dark:text-zinc-50" />
-          </div>
-          <div className="min-w-0">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-              {wineTitle}
-            </h1>
-            {producerLine}
-            {statusLine}
-          </div>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {secondaryActions}
+      {/*
+        Mobile compact sticky: pull into the admin main's pt-4/pt-6 so nothing
+        shows through above the bar; opaque white / zinc-950; ~56px control row.
+      */}
+      <div className="sticky -top-4 z-10 -mx-3 mt-0 border-b border-gray-200 bg-white px-3 pt-4 dark:border-zinc-800 dark:bg-zinc-950 sm:-mx-6 sm:-top-6 sm:px-6 sm:pt-6 md:hidden">
+        <div className="flex h-14 items-center justify-between gap-3">
+          <p className="min-w-0 truncate text-sm font-semibold text-gray-900 dark:text-zinc-100">
+            {wineTitle}
+          </p>
           {saveButton}
         </div>
       </div>
 
-      <WineForm
-        wine={wine}
-        producers={producers}
-        afterProductDropdowns={afterProductDropdowns}
-        onSaveStatusChange={setSaveStatus}
-      />
+      {/* Desktop: opaque sticky full header; extend into main pt so no gap. */}
+      <div className="sticky -top-4 z-10 mb-6 hidden bg-white pt-4 dark:bg-[#0F0F12] sm:-top-6 sm:pt-6 md:block">
+        <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-gray-200 bg-white px-4 py-3 dark:border-[#1F1F23] dark:bg-[#0F0F12]">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="rounded-lg bg-gray-100 p-2 dark:bg-zinc-800">
+              <Wine className="h-5 w-5 text-gray-900 dark:text-zinc-50" />
+            </div>
+            <div className="min-w-0">
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                {wineTitle}
+              </h1>
+              {producerLine}
+              {statusLine}
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {secondaryActions}
+            {saveButton}
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-6 md:mt-0">
+        <WineForm
+          wine={wine}
+          producers={producers}
+          afterProductDropdowns={afterProductDropdowns}
+          onSaveStatusChange={setSaveStatus}
+        />
+      </div>
     </div>
   );
 }
