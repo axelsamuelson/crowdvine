@@ -138,6 +138,9 @@ function OfferRow(props: {
     : "";
   const selectable = props.selectable !== false;
 
+  const factClass =
+    "text-[14px] leading-snug text-[#525252]";
+
   const body = (
     <>
       <div className="flex items-start justify-between gap-3">
@@ -160,22 +163,30 @@ function OfferRow(props: {
           </h3>
         </div>
         {!unavailable ? (
-          <p
-            className="shrink-0 whitespace-nowrap text-lg font-semibold tabular-nums leading-none text-right"
-            data-testid={`dual-offer-total-${quote.offer}`}
-          >
-            {formatOfferSek(quote.total_sek, locale)}
-          </p>
+          <div className="shrink-0 text-right">
+            <p
+              className="whitespace-nowrap text-lg font-semibold tabular-nums leading-none"
+              data-testid={`dual-offer-total-${quote.offer}`}
+            >
+              {formatOfferSek(quote.total_sek, locale)}
+            </p>
+            <p
+              className="mt-1 text-[14px] leading-none text-[#525252]"
+              data-testid={`dual-offer-incl-shipping-${quote.offer}`}
+            >
+              {dualOfferMsg(locale, "dualOfferInclShipping")}
+            </p>
+          </div>
         ) : null}
       </div>
 
       {unavailable ? (
-        <p className="mt-2 text-sm text-muted-foreground pl-7">
+        <p className={`mt-2 ${factClass} ${selectable ? "pl-7" : ""}`}>
           {quote.unavailable_reason}
         </p>
       ) : (
         <div
-          className={`mt-2 space-y-1 text-sm text-foreground/85 ${
+          className={`mt-2 space-y-1 ${factClass} ${
             selectable ? "pl-7" : ""
           }`}
         >
@@ -202,12 +213,15 @@ function OfferRow(props: {
           ) : null}
           {quote.offer === "direct_box" ? (
             <p
-              className="text-xs text-muted-foreground leading-relaxed"
+              className="leading-relaxed"
               data-testid="dual-offer-direct-body"
             >
               {dualOfferMsg(locale, "directBoxBody")}
             </p>
           ) : null}
+          <p data-testid={`dual-offer-age-${quote.offer}`}>
+            {dualOfferMsg(locale, "dualOfferAgeCheckLine")}
+          </p>
         </div>
       )}
     </>

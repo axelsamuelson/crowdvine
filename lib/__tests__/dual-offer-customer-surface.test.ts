@@ -70,6 +70,9 @@ describe("dual-offer customer surface guards", () => {
     expect(panelSrc).not.toMatch(/Budbee/);
     expect(panelSrc).toMatch(/CheckoutPalletFillStatus/);
     expect(panelSrc).toMatch(/dualOfferLegalLineSharedWithSwitch/);
+    expect(panelSrc).toMatch(/dualOfferAgeCheckLine/);
+    expect(panelSrc).toMatch(/dual-offer-age-\$\{quote\.offer\}/);
+    expect(panelSrc).toMatch(/dualOfferInclShipping/);
   });
 
   it("wires continue → card unlock → binding Köp after Payment Element", () => {

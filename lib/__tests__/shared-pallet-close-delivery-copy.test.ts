@@ -93,15 +93,35 @@ describe("shared pallet close/delivery copy (owner — no Budbee)", () => {
     expect(sv).toContain("Ditt kort debiteras 100 kr nu.");
     expect(sv).toContain("Frakt 149 kr per låda om 6 flaskor");
     expect(sv).toContain("5–10 arbetsdagar");
+    expect(sv).toContain(
+      "Vi kontrollerar att du har fyllt 20 år när vinet lämnas över.",
+    );
+    expect(sv).not.toContain("Vid leverans kontrolleras");
     expect(en).toContain("Your card is charged 100 SEK now.");
     expect(en).toContain("SEK 149 per box of 6 bottles");
     expect(en).toContain("5–10 working days");
-    expect(sv).not.toMatch(/UPS|Budbee|Instabee/i);
-    expect(en).not.toMatch(/UPS|Budbee|Instabee/i);
-    // keep leftover assertions compatible
+    expect(en).toContain(
+      "We check that you are 20 or older when the wine is handed over.",
+    );
+    expect(en).not.toContain("Proof of age");
+    expect(sv).not.toMatch(/UPS|Budbee|Instabee|BankID/i);
+    expect(en).not.toMatch(/UPS|Budbee|Instabee|BankID/i);
     expect(
       dualOfferMsg("sv", "dualOfferLegalLineDirect", { total: "1" }),
-    ).not.toMatch(/Budbee|UPS/i);
+    ).not.toMatch(/Budbee|UPS|BankID/i);
+  });
+
+  it("shared age check line is neutral and shown for both offers", () => {
+    const sv = dualOfferMsg("sv", "dualOfferAgeCheckLine");
+    const en = dualOfferMsg("en", "dualOfferAgeCheckLine");
+    expect(sv).toBe(
+      "Vi kontrollerar att du har fyllt 20 år när vinet lämnas över.",
+    );
+    expect(en).toBe(
+      "We check that you are 20 or older when the wine is handed over.",
+    );
+    expect(sv).not.toMatch(/UPS|Budbee|Instabee|BankID/i);
+    expect(en).not.toMatch(/UPS|Budbee|Instabee|BankID/i);
   });
 
   it("checkout uses two short lines without debit or delivery-day sentence", () => {
