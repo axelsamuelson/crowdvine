@@ -56,13 +56,24 @@ describe("shared pallet close/delivery copy (owner — no Budbee)", () => {
     );
   });
 
-  it("direct delivery copy has no carrier brand and no ETA", () => {
-    expect(DIRECT_BOX_DELIVERY_COPY_SV).toBe("Hemleverans");
-    expect(DIRECT_BOX_DELIVERY_COPY_EN).toBe("Home delivery");
-    expect(directBoxDeliveryTerms().previewLabelSv).toBe("Hemleverans");
-    expect(directBoxDeliveryTerms().previewLabelEn).toBe("Home delivery");
+  it("direct delivery copy has no carrier brand (Axel/Margaux 5–10 working days)", () => {
+    expect(DIRECT_BOX_DELIVERY_COPY_SV).toBe(
+      "Direktleverans – 5–10 arbetsdagar",
+    );
+    expect(DIRECT_BOX_DELIVERY_COPY_EN).toBe(
+      "Direct delivery – 5–10 working days",
+    );
+    expect(directBoxDeliveryTerms().previewLabelSv).toBe(
+      DIRECT_BOX_DELIVERY_COPY_SV,
+    );
+    expect(directBoxDeliveryTerms().previewLabelEn).toBe(
+      DIRECT_BOX_DELIVERY_COPY_EN,
+    );
     expect(directBoxDeliveryTerms().previewLabelSv).not.toMatch(
-      /Budbee|veckor|days/i,
+      /UPS|Budbee|Instabee/i,
+    );
+    expect(directBoxDeliveryTerms().previewLabelEn).not.toMatch(
+      /UPS|Budbee|Instabee/i,
     );
   });
 
@@ -72,14 +83,45 @@ describe("shared pallet close/delivery copy (owner — no Budbee)", () => {
     expect(terms.previewLabelEn).not.toMatch(/Budbee/i);
   });
 
-  it("direct legal line has no Budbee and no delivery window", () => {
-    expect(dualOfferMsg("sv", "dualOfferLegalLineDirect", { total: "100 kr" }))
-      .toBe("Ditt kort debiteras 100 kr nu. Hemleverans.");
-    expect(dualOfferMsg("en", "dualOfferLegalLineDirect", { total: "100 SEK" }))
-      .toBe("Your card is charged 100 SEK now. Home delivery.");
+  it("direct legal line uses Margaux copy and never names UPS/Budbee", () => {
+    const sv = dualOfferMsg("sv", "dualOfferLegalLineDirect", {
+      total: "100 kr",
+    });
+    const en = dualOfferMsg("en", "dualOfferLegalLineDirect", {
+      total: "100 SEK",
+    });
+    expect(sv).toContain("Ditt kort debiteras 100 kr nu.");
+    expect(sv).toContain("Frakt 149 kr per låda om 6 flaskor");
+    expect(sv).toContain("5–10 arbetsdagar");
+    expect(sv).toContain(
+      "Vi kontrollerar att du har fyllt 20 år när vinet lämnas över.",
+    );
+    expect(sv).not.toContain("Vid leverans kontrolleras");
+    expect(en).toContain("Your card is charged 100 SEK now.");
+    expect(en).toContain("SEK 149 per box of 6 bottles");
+    expect(en).toContain("5–10 working days");
+    expect(en).toContain(
+      "We check that you are 20 or older when the wine is handed over.",
+    );
+    expect(en).not.toContain("Proof of age");
+    expect(sv).not.toMatch(/UPS|Budbee|Instabee|BankID/i);
+    expect(en).not.toMatch(/UPS|Budbee|Instabee|BankID/i);
     expect(
       dualOfferMsg("sv", "dualOfferLegalLineDirect", { total: "1" }),
-    ).not.toMatch(/Budbee|arbetsdagar|5–10/i);
+    ).not.toMatch(/Budbee|UPS|BankID/i);
+  });
+
+  it("shared age check line is neutral and shown for both offers", () => {
+    const sv = dualOfferMsg("sv", "dualOfferAgeCheckLine");
+    const en = dualOfferMsg("en", "dualOfferAgeCheckLine");
+    expect(sv).toBe(
+      "Vi kontrollerar att du har fyllt 20 år när vinet lämnas över.",
+    );
+    expect(en).toBe(
+      "We check that you are 20 or older when the wine is handed over.",
+    );
+    expect(sv).not.toMatch(/UPS|Budbee|Instabee|BankID/i);
+    expect(en).not.toMatch(/UPS|Budbee|Instabee|BankID/i);
   });
 
   it("checkout uses two short lines without debit or delivery-day sentence", () => {

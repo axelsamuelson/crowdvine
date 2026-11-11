@@ -19,6 +19,11 @@ import {
   DIRECT_BOX_DELIVERY_COPY_SV,
   formatSharedPalletCloseDeliveryCopy,
 } from "@/lib/checkout/shared-pallet-close-delivery-copy";
+import {
+  directBoxShippingSek,
+  directBoxUnitPriceSek,
+  getDirectBoxPriceMarkupPercent,
+} from "@/lib/commerce/direct-box-pricing";
 
 export const OFFER_QUOTE_SCHEMA_VERSION = 1 as const;
 
@@ -135,12 +140,17 @@ export type OfferAcceptanceRecord = {
   explicit_acceptance: true;
 };
 
-/** Synthetic SE preview fixture — labeled, not a production rate card. */
+/**
+ * Dual-offer compare preview fixture. Money uses live markup helpers
+ * (DIRECT_BOX_PRICE_MARKUP_PERCENT, default 5%) but stays labeled
+ * `synthetic_fixture` so it can never unlock live Pay / Reserve.
+ * Live checkout builds its own live_catalog quotes separately.
+ */
 export const SYNTHETIC_DIRECT_BOX_FIXTURE = {
   pricing_source: "synthetic_fixture" as const,
   label: "SYNTHETIC_PREVIEW_ONLY",
-  /** Relative uplift vs shared bottle subtotal for preview compare only. */
-  bottle_price_multiplier: 1.12,
+  /** Relative uplift vs shared bottle — mirrors default live markup. */
+  bottle_price_multiplier: 1.05,
   shipping_sek: 149,
   destination_country: "SE",
 };
@@ -382,14 +392,18 @@ export function buildUnavailableOfferQuote(args: {
 }
 
 /**
- * Preview-only direct offer from synthetic fixture uplift.
- * Must stay labeled synthetic_fixture — never write these as live rates.
+ * Preview-only direct offer for dual-offer compare. Uses live markup helpers
+ * for money, but must stay labeled `synthetic_fixture` — never unlocks Pay.
  */
 export function buildSyntheticDirectOfferFromShared(args: {
   shared: OfferQuote;
   fixture?: typeof SYNTHETIC_DIRECT_BOX_FIXTURE;
+  markupPercent?: number;
+  shippingPerBoxSek?: number;
 }): OfferQuote {
   const fixture = args.fixture ?? SYNTHETIC_DIRECT_BOX_FIXTURE;
+  const markup =
+    args.markupPercent ?? getDirectBoxPriceMarkupPercent(process.env);
   if (args.shared.unavailable_reason || args.shared.bottle_count <= 0) {
     return buildUnavailableOfferQuote({
       offer: "direct_box",
@@ -398,18 +412,24 @@ export function buildSyntheticDirectOfferFromShared(args: {
     });
   }
   const wine_lines: OfferLineSnapshot[] = args.shared.wine_lines.map((l) => {
-    const unit =
-      Math.round(l.unit_price_sek * fixture.bottle_price_multiplier * 100) /
-      100;
+    const unit = directBoxUnitPriceSek(l.unit_price_sek, markup);
     return {
       wine_id: l.wine_id,
       quantity: l.quantity,
       unit_price_sek: unit,
-      line_total_sek: Math.round(unit * l.quantity * 100) / 100,
+      line_total_sek: unit * l.quantity,
     };
   });
   const wines_subtotal = wine_lines.reduce((s, l) => s + l.line_total_sek, 0);
-  const shipping = fixture.shipping_sek;
+  const ship = directBoxShippingSek({
+    bottleCount: args.shared.bottle_count,
+    feePerBoxOre: Math.round(
+      (args.shippingPerBoxSek ?? fixture.shipping_sek) * 100,
+    ),
+  });
+  // Preview always shows a shipping figure (fixture fallback) so compare UI
+  // is usable for incomplete packs; live checkout still requires multiples of 6.
+  const shipping = ship.complete ? ship.shippingSek : fixture.shipping_sek;
   const total =
     Math.round(
       (wines_subtotal +

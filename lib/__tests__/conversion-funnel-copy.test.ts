@@ -65,12 +65,11 @@ describe("conversion funnel copy (sv)", () => {
     );
   });
 
-  it("promises direct-box delivery without inventing a time SLA", () => {
+  it("promises direct-box delivery with Axel-approved window (5–10 working days)", () => {
     expect(translate("sv", "commerce.directBoxDeliveryPromise")).toBe(
-      "Skickas direkt från producenten i låda",
+      "Direktleverans – 5–10 arbetsdagar",
     );
-    // Customer copy must not invent delivery times; only a marked TODO may set one.
-    expect(B2C_DIRECT_BOX_DELIVERY_TIME_TODO).toBeNull();
+    expect(B2C_DIRECT_BOX_DELIVERY_TIME_TODO).toBe("5–10 arbetsdagar");
     expect(isProducerSourcedWine("producer")).toBe(true);
     expect(isProducerSourcedWine("wholesaler")).toBe(false);
     expect(isProducerSourcedWine(null)).toBe(false);
@@ -135,8 +134,8 @@ describe("conversion funnel copy (en)", () => {
     ).toBe("6 of 6 bottles – 1 box");
     expect(translate("en", "cart.bottlesCount", { count: 1 })).toBe("1 bottle");
     expect(translate("en", "cart.bottlesCount", { count: 2 })).toBe("2 bottles");
-    expect(translate("en", "commerce.directBoxDeliveryPromise")).toMatch(
-      /producer/i,
+    expect(translate("en", "commerce.directBoxDeliveryPromise")).toBe(
+      "Direct delivery – 5–10 working days",
     );
     expect(translate("en", "cart.checkoutLockedCta")).toBe(
       "Complete your boxes to continue",

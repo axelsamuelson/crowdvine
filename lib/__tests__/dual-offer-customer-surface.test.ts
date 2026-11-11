@@ -70,6 +70,9 @@ describe("dual-offer customer surface guards", () => {
     expect(panelSrc).not.toMatch(/Budbee/);
     expect(panelSrc).toMatch(/CheckoutPalletFillStatus/);
     expect(panelSrc).toMatch(/dualOfferLegalLineSharedWithSwitch/);
+    expect(panelSrc).toMatch(/dualOfferAgeCheckLine/);
+    expect(panelSrc).toMatch(/dual-offer-age-\$\{quote\.offer\}/);
+    expect(panelSrc).toMatch(/dualOfferInclShipping/);
   });
 
   it("wires continue → card unlock → binding Köp after Payment Element", () => {
@@ -91,7 +94,13 @@ describe("dual-offer customer surface guards", () => {
   it("keeps diagnostics behind showDiagnostics (not default customer mount)", () => {
     expect(panelSrc).toMatch(/showDiagnostics/);
     expect(panelSrc).toMatch(/showDiagnostics === true/);
+    expect(panelSrc).toMatch(/VERCEL_ENV/);
     expect(checkoutSrc).not.toMatch(/showDiagnostics=\{true\}/);
+    const reviewLocales = readFileSync(
+      resolve(process.cwd(), "app/dev/dual-offer-compare/review-locales.tsx"),
+      "utf8",
+    );
+    expect(reviewLocales).not.toMatch(/showDiagnostics/);
     // Checkout chrome is logo + back-to-cart via CheckoutMinimalHeader (no site nav).
     expect(checkoutSrc).toMatch(/max-w-\[1280px\]/);
     expect(checkoutSrc).not.toMatch(/\/api\/user\/rewards/);
@@ -245,19 +254,15 @@ describe("direct offer per-line öre rounding (8-bottle case)", () => {
       cart_id: "c",
     });
     const direct = buildSyntheticDirectOfferFromShared({ shared });
-    // Per-line: round(unit*1.12,2) then round(unit*qty,2); sum is source of truth.
-    expect(direct.wine_lines[0]?.unit_price_sek).toBe(165.76);
-    expect(direct.wine_lines[1]?.unit_price_sek).toBe(165.75);
-    expect(direct.wines_subtotal_sek).toBe(1326.06);
+    // Per-line: whole-kronor catalog × 1.05 (DIRECT_BOX_PRICE_MARKUP_PERCENT).
+    expect(direct.wine_lines[0]?.unit_price_sek).toBe(155);
+    expect(direct.wine_lines[1]?.unit_price_sek).toBe(155);
+    expect(direct.wines_subtotal_sek).toBe(1240);
     expect(direct.bottle_count).toBe(8);
-    // Cart-weighted average rounded to öre — 1326.06/8 = 165.7575 → 165.76
-    expect(direct.bottle_unit_price_sek).toBe(165.76);
-    // Remultiplying rounded snitt ≠ exact subtotal (0.02 öre display gap).
+    // Cart-weighted average — 1240/8 = 155
+    expect(direct.bottle_unit_price_sek).toBe(155);
     expect(
       Math.round(direct.bottle_unit_price_sek * direct.bottle_count * 100) / 100,
-    ).toBe(1326.08);
-    expect(direct.bottle_unit_price_sek * direct.bottle_count).not.toBe(
-      direct.wines_subtotal_sek,
-    );
+    ).toBe(1240);
   });
 });

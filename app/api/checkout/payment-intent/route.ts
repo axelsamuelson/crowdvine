@@ -353,10 +353,23 @@ export async function POST(request: Request) {
         );
       }
 
+      const {
+        getDirectBoxPriceMarkupPercent,
+        directBoxUnitPriceSek,
+      } = await import("@/lib/commerce/direct-box-pricing");
+      const markupPct = getDirectBoxPriceMarkupPercent();
       let boostedLineTotal = 0;
       let nonBoostedLineTotal = 0;
+      let directSubtotalSek = 0;
       for (const line of cart.lines) {
-        const amt = parseFloat(String(line.cost.totalAmount.amount)) || 0;
+        const qty = Math.max(0, Math.floor(Number(line.quantity) || 0));
+        const catalogUnit =
+          qty > 0
+            ? (parseFloat(String(line.cost.totalAmount.amount)) || 0) / qty
+            : 0;
+        const directUnit = directBoxUnitPriceSek(catalogUnit, markupPct);
+        const amt = directUnit * qty;
+        directSubtotalSek += amt;
         if (line.merchandise.product.producerBoostActive === true) {
           boostedLineTotal += amt;
         } else {
@@ -391,6 +404,7 @@ export async function POST(request: Request) {
           promoSek: promoDiscountSek,
           displayMultiplier: 1,
           cart,
+          subtotalOverrideSek: directSubtotalSek,
         });
       const quote = buildCheckoutQuote({
         components,
@@ -518,11 +532,12 @@ export async function POST(request: Request) {
         });
       }
 
+      // Axel 01:24: direct_box is card-only — no Klarna / APM.
       const intent = await stripe.paymentIntents.create({
         customer: customerId,
         amount: amountInOre,
         currency: stripeCurrency,
-        automatic_payment_methods: { enabled: true },
+        payment_method_types: ["card"],
         capture_method: "automatic",
         metadata,
       });

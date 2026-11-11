@@ -44,13 +44,23 @@ export async function computeExpectedAmountOre(args: {
   displayMultiplier?: number;
   /** Optional preloaded cart to avoid a second getCart() in the same request. */
   cart?: Cart | null;
+  /**
+   * When set (e.g. direct_box marked-up bottle subtotal), replaces cart.cost
+   * so quote / PaymentIntent / confirm share one server amount.
+   */
+  subtotalOverrideSek?: number | null;
 }): Promise<ExpectedAmountResult> {
   const cart = args.cart ?? (await CartService.getCart());
   if (!cart || !cart.lines?.length) {
     throw new Error("Cart is empty");
   }
 
-  const subtotal = parseFloat(String(cart.cost.totalAmount.amount)) || 0;
+  const cartSubtotal = parseFloat(String(cart.cost.totalAmount.amount)) || 0;
+  const subtotal =
+    args.subtotalOverrideSek != null &&
+    Number.isFinite(Number(args.subtotalOverrideSek))
+      ? Math.max(0, Number(args.subtotalOverrideSek))
+      : cartSubtotal;
   const shippingSek = Math.max(0, Number(args.shippingSek) || 0);
   const voucherSek = Math.max(0, Number(args.voucherSek) || 0);
   const pactPointsSek = Math.max(0, Number(args.pactPointsSek) || 0);
