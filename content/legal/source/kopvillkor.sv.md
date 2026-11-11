@@ -42,12 +42,14 @@ Vi säljer inte till någon som vi har anledning att anta ska lämna varan vidar
 
 ---
 
-## 3. Så fungerar en pall
+## 3. Så köper du
 
 Du kan välja mellan två leveranssätt i kassan:
 
 - **Delad pall.** Lägre flaskpris och frakt. Din order skickas tillsammans med andras när pallen är full. Inget dras förrän pallen stänger. Se nedan.
 - **Direktleverans.** Flaskpriset är 5 % högre och frakten är 149 kr per låda om 6 flaskor. Ditt kort debiteras när du köper och vinet levereras normalt inom 5–10 arbetsdagar. Se punkt 3 b.
+
+### Så fungerar en pall
 
 PACT samlar flera beställningar till en gemensam transport från producenterna i Frankrike till Sverige. Det är därför vinet kan kosta vad det gör. Det betyder också att det går till lite annorlunda än i en vanlig webbshop.
 
@@ -130,7 +132,7 @@ Betalning sker enligt [Stripes villkor för betalningstjänsten](https://stripe.
 - Leverans sker med hemleverans och ID-kontroll av vår transportpartner
 - **Delad pall:** normalt 2–3 veckor efter att pallen har stängt, alltid inom 30 dagar.
 - **Direktleverans:** normalt 5–10 arbetsdagar från att ordern är bekräftad och betald, alltid inom 30 dagar.
-- Har du inte fått din leverans inom 30 dagar efter att pallen stängde får du avbryta köpet. Du får då tillbaka hela beloppet inom 14 dagar.
+- Har du inte fått din leverans inom 30 dagar efter att pallen stängde eller, vid direktleverans, efter att ordern bekräftades, får du avbryta köpet. Du får då tillbaka hela beloppet inom 14 dagar.
 - Angivna leveranstider är uppskattningar. Transport från Frankrike kan påverkas av tull, väder och producenternas kapacitet
 - **Risken för varan går över på dig först när du tagit emot den.** Skadas eller försvinner varan under transport är det vårt ansvar
 

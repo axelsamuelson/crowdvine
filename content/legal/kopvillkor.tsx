@@ -16,7 +16,7 @@ import type { LegalTocItem } from "@/components/legal/legal-page-layout";
 export const KOPVILLKOR_TOC: LegalTocItem[] = [
   { id: "punkt-1", label: "1. Om oss" },
   { id: "punkt-2", label: "2. Åldersgräns" },
-  { id: "punkt-3", label: "3. Så fungerar en pall" },
+  { id: "punkt-3", label: "3. Så köper du" },
   { id: "punkt-4", label: "4. Priser" },
   { id: "punkt-5", label: "5. Betalning" },
   { id: "punkt-6", label: "6. Beställningsbekräftelse och avtal" },
@@ -90,7 +90,7 @@ export default function KopvillkorContent() {
         vidare till någon under 20 år.
       </LegalP>
 
-      <LegalH2 id="punkt-3">3. Så fungerar en pall</LegalH2>
+      <LegalH2 id="punkt-3">3. Så köper du</LegalH2>
       <LegalP>Du kan välja mellan två leveranssätt i kassan:</LegalP>
       <LegalList>
         <li>
@@ -105,6 +105,7 @@ export default function KopvillkorContent() {
           <LegalLink href="#punkt-3b">punkt 3 b</LegalLink>.
         </li>
       </LegalList>
+      <LegalH3>Så fungerar en pall</LegalH3>
       <LegalP>
         PACT samlar flera beställningar till en gemensam transport från
         producenterna i Frankrike till Sverige. Det är därför vinet kan kosta
@@ -310,7 +311,8 @@ export default function KopvillkorContent() {
         </li>
         <li>
           Har du inte fått din leverans inom 30 dagar efter att pallen stängde
-          får du avbryta köpet. Du får då tillbaka hela beloppet inom 14 dagar.
+          eller, vid direktleverans, efter att ordern bekräftades, får du
+          avbryta köpet. Du får då tillbaka hela beloppet inom 14 dagar.
         </li>
         <li>
           Angivna leveranstider är uppskattningar. Transport från Frankrike kan

@@ -1,12 +1,9 @@
-// TODO: Replace Swedish content with English legal copy when available.
-// Do not ship half-translated legal text. Indexed Swedish lives at /villkor.
-
 import type { Metadata } from "next";
 
 import { LegalPageLayout } from "@/components/legal/legal-page-layout";
-import KopvillkorContent, {
-  KOPVILLKOR_TOC,
-} from "@/content/legal/kopvillkor";
+import KopvillkorEnContent, {
+  KOPVILLKOR_EN_TOC,
+} from "@/content/legal/kopvillkor-en";
 import { LEGAL_VERSIONS } from "@/lib/legal/versions";
 import { getSiteConfig } from "@/lib/site-config-server";
 import { PACT_PUBLIC_ORIGIN } from "@/lib/i18n/localized-routes";
@@ -23,10 +20,8 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: TITLE,
     description: DESCRIPTION,
-    robots: { index: false, follow: true },
     alternates: {
       canonical,
-      // Body is still Swedish. Point x-default at the indexable SV page until EN copy ships.
       languages: {
         en: canonical,
         sv: `${PACT_PUBLIC_ORIGIN}/villkor`,
@@ -44,9 +39,10 @@ export default function TermsPage() {
       title={TITLE}
       lastUpdated={version}
       version={version}
-      toc={KOPVILLKOR_TOC}
+      toc={KOPVILLKOR_EN_TOC}
+      locale="en"
     >
-      <KopvillkorContent />
+      <KopvillkorEnContent />
     </LegalPageLayout>
   );
 }
