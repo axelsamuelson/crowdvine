@@ -8,13 +8,13 @@ import WineForm, {
 } from "@/components/admin/wine-form";
 import { DeleteWineButton } from "@/components/admin/delete-wine-button";
 import { Button } from "@/components/ui/button";
-import {
-  ADMIN_OUTLINE_BUTTON_CLASS,
-  ADMIN_PRIMARY_BUTTON_CLASS,
-} from "@/lib/admin-form-styles";
+import { ADMIN_OUTLINE_BUTTON_CLASS } from "@/lib/admin-form-styles";
 import { cn } from "@/lib/utils";
 import type { Wine } from "@/lib/actions/wines";
 import type { Producer } from "@/lib/actions/producers";
+
+const ADMIN_PRIMARY_DUAL =
+  "rounded-lg text-xs font-medium bg-gray-900 text-white hover:bg-gray-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200";
 
 type WineEditPageClientProps = {
   wine: Wine;
@@ -44,7 +44,7 @@ export function WineEditPageClient({
 
   return (
     <div className="space-y-6">
-      <div className="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-white/10 bg-[#0F0F12]/90 px-4 py-3 backdrop-blur-sm">
+      <div className="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-gray-200 bg-white/90 px-4 py-3 backdrop-blur-sm dark:border-[#1F1F23] dark:bg-[#0F0F12]/90">
         <div className="flex items-center gap-3">
           <div className="rounded-lg bg-gray-100 p-2 dark:bg-zinc-800">
             <Wine className="h-5 w-5 text-gray-900 dark:text-zinc-50" />
@@ -96,10 +96,10 @@ export function WineEditPageClient({
             size="sm"
             disabled={saveStatus === "saving"}
             className={cn(
-              ADMIN_PRIMARY_BUTTON_CLASS,
-              "text-xs font-medium min-w-[7.5rem]",
+              ADMIN_PRIMARY_DUAL,
+              "min-w-[7.5rem]",
               saveStatus === "saved" &&
-                "bg-emerald-600 hover:bg-emerald-600 text-white",
+                "bg-emerald-600 text-white hover:bg-emerald-600 dark:bg-emerald-600 dark:text-white dark:hover:bg-emerald-600",
             )}
           >
             {saveStatus === "saving" ? (

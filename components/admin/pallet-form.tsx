@@ -15,6 +15,11 @@ import {
 } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
+  ADMIN_FIELD_CLASS,
+  ADMIN_HELP_TEXT_CLASS,
+  ADMIN_LABEL_CLASS,
+} from "@/lib/admin-form-styles";
+import {
   DEFAULT_MIN_BOTTLES_TO_COMPLETE,
   DEFAULT_PHYSICAL_BOTTLE_CAPACITY,
 } from "@/lib/pallet-ship-progress";
@@ -59,14 +64,12 @@ interface PalletFormProps {
   pallet?: Pallet;
 }
 
-const inputDarkClass =
-  "border-[#1F1F23] bg-zinc-900 text-zinc-100 placeholder:text-zinc-600 focus-visible:ring-zinc-700";
+const inputClass = `${ADMIN_FIELD_CLASS} placeholder:text-gray-400 dark:placeholder:text-zinc-500`;
 
-const selectTriggerDarkClass =
-  "border-[#1F1F23] bg-zinc-900 text-zinc-100";
+const selectTriggerClass = ADMIN_FIELD_CLASS;
 
-const selectContentDarkClass =
-  "border-[#1F1F23] bg-zinc-900 text-zinc-100";
+const selectContentClass =
+  "border-gray-200 bg-white text-gray-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100";
 
 export default function PalletForm({ pallet }: PalletFormProps) {
   const [formData, setFormData] = useState<CreatePalletData>({
@@ -203,26 +206,23 @@ export default function PalletForm({ pallet }: PalletFormProps) {
   return (
     <form className="space-y-8" onSubmit={handleSubmit}>
       {error && (
-        <Alert
-          variant="destructive"
-          className="border-red-500/30 bg-red-950/30 text-red-200"
-        >
+        <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
-      <div className="space-y-6 rounded-lg border border-[#1F1F23] bg-[#0F0F12] p-6">
-        <h2 className="text-sm font-medium uppercase tracking-wide text-zinc-400">
+      <div className="space-y-6 rounded-lg border border-gray-200 bg-white p-6 dark:border-[#1F1F23] dark:bg-[#0F0F12]">
+        <h2 className="text-sm font-medium uppercase tracking-wide text-gray-500 dark:text-zinc-400">
           Basic info
         </h2>
 
         <div className="space-y-2">
-          <Label htmlFor="name" className="text-sm text-zinc-300">
+          <Label htmlFor="name" className={`text-sm ${ADMIN_LABEL_CLASS}`}>
             Name
           </Label>
           <Input
             id="name"
-            className={inputDarkClass}
+            className={inputClass}
             value={formData.name}
             onChange={(e) => handleChange("name", e.target.value)}
             placeholder="Standard Pallet"
@@ -231,12 +231,12 @@ export default function PalletForm({ pallet }: PalletFormProps) {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="description" className="text-sm text-zinc-300">
+          <Label htmlFor="description" className={`text-sm ${ADMIN_LABEL_CLASS}`}>
             Description
           </Label>
           <Textarea
             id="description"
-            className={inputDarkClass}
+            className={inputClass}
             value={formData.description}
             onChange={(e) => handleChange("description", e.target.value)}
             placeholder="Description of the pallet..."
@@ -245,14 +245,14 @@ export default function PalletForm({ pallet }: PalletFormProps) {
         </div>
       </div>
 
-      <div className="space-y-6 rounded-lg border border-[#1F1F23] bg-[#0F0F12] p-6">
-        <h2 className="text-sm font-medium uppercase tracking-wide text-zinc-400">
+      <div className="space-y-6 rounded-lg border border-gray-200 bg-white p-6 dark:border-[#1F1F23] dark:bg-[#0F0F12]">
+        <h2 className="text-sm font-medium uppercase tracking-wide text-gray-500 dark:text-zinc-400">
           Routing
         </h2>
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="delivery_zone_id" className="text-sm text-zinc-300">
+            <Label htmlFor="delivery_zone_id" className={`text-sm ${ADMIN_LABEL_CLASS}`}>
               Delivery Zone
             </Label>
             <Select
@@ -264,11 +264,11 @@ export default function PalletForm({ pallet }: PalletFormProps) {
             >
               <SelectTrigger
                 id="delivery_zone_id"
-                className={selectTriggerDarkClass}
+                className={selectTriggerClass}
               >
                 <SelectValue placeholder="Select delivery zone" />
               </SelectTrigger>
-              <SelectContent className={selectContentDarkClass}>
+              <SelectContent className={selectContentClass}>
                 {deliveryZones.map((zone) => (
                   <SelectItem key={zone.id} value={zone.id}>
                     {zone.name}
@@ -279,7 +279,7 @@ export default function PalletForm({ pallet }: PalletFormProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="pickup_zone_id" className="text-sm text-zinc-300">
+            <Label htmlFor="pickup_zone_id" className={`text-sm ${ADMIN_LABEL_CLASS}`}>
               Pickup Zone
             </Label>
             <Select
@@ -289,11 +289,11 @@ export default function PalletForm({ pallet }: PalletFormProps) {
             >
               <SelectTrigger
                 id="pickup_zone_id"
-                className={selectTriggerDarkClass}
+                className={selectTriggerClass}
               >
                 <SelectValue placeholder="Select pickup zone" />
               </SelectTrigger>
-              <SelectContent className={selectContentDarkClass}>
+              <SelectContent className={selectContentClass}>
                 {pickupZones.map((zone) => (
                   <SelectItem key={zone.id} value={zone.id}>
                     {zone.name}
@@ -305,21 +305,21 @@ export default function PalletForm({ pallet }: PalletFormProps) {
         </div>
       </div>
 
-      <div className="space-y-6 rounded-lg border border-[#1F1F23] bg-[#0F0F12] p-6">
-        <h2 className="text-sm font-medium uppercase tracking-wide text-zinc-400">
+      <div className="space-y-6 rounded-lg border border-gray-200 bg-white p-6 dark:border-[#1F1F23] dark:bg-[#0F0F12]">
+        <h2 className="text-sm font-medium uppercase tracking-wide text-gray-500 dark:text-zinc-400">
           Capacity & Cost
         </h2>
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="cost_cents" className="text-sm text-zinc-300">
+            <Label htmlFor="cost_cents" className={`text-sm ${ADMIN_LABEL_CLASS}`}>
               Cost (SEK)
             </Label>
             <Input
               id="cost_cents"
               type="number"
               step="0.01"
-              className={inputDarkClass}
+              className={inputClass}
               value={(formData.cost_cents / 100).toFixed(2)}
               onChange={(e) =>
                 handleChange(
@@ -333,13 +333,13 @@ export default function PalletForm({ pallet }: PalletFormProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="bottle_capacity" className="text-sm text-zinc-300">
+            <Label htmlFor="bottle_capacity" className={`text-sm ${ADMIN_LABEL_CLASS}`}>
               Bottle capacity (physical)
             </Label>
             <Input
               id="bottle_capacity"
               type="number"
-              className={inputDarkClass}
+              className={inputClass}
               value={formData.bottle_capacity}
               onChange={(e) =>
                 handleChange("bottle_capacity", parseInt(e.target.value) || 0)
@@ -347,7 +347,7 @@ export default function PalletForm({ pallet }: PalletFormProps) {
               placeholder="720"
               required
             />
-            <p className="text-xs text-zinc-500">
+            <p className={ADMIN_HELP_TEXT_CLASS}>
               Physical pallet capacity used for freight amortization.
             </p>
           </div>
@@ -355,14 +355,14 @@ export default function PalletForm({ pallet }: PalletFormProps) {
           <div className="space-y-2">
             <Label
               htmlFor="min_bottles_to_complete"
-              className="text-sm text-zinc-300"
+              className={`text-sm ${ADMIN_LABEL_CLASS}`}
             >
               Minimum bottles to ship
             </Label>
             <Input
               id="min_bottles_to_complete"
               type="number"
-              className={inputDarkClass}
+              className={inputClass}
               value={formData.min_bottles_to_complete}
               onChange={(e) =>
                 handleChange(
@@ -373,7 +373,7 @@ export default function PalletForm({ pallet }: PalletFormProps) {
               placeholder={String(DEFAULT_MIN_BOTTLES_TO_COMPLETE)}
               required
             />
-            <p className="text-xs text-zinc-500">
+            <p className={ADMIN_HELP_TEXT_CLASS}>
               Threshold for ship-ready / completion. Independent of physical
               capacity.
             </p>
@@ -382,7 +382,7 @@ export default function PalletForm({ pallet }: PalletFormProps) {
           <div className="space-y-2 md:col-span-2">
             <Label
               htmlFor="last_mile_cost_cents_per_bottle"
-              className="text-sm text-zinc-300"
+              className={`text-sm ${ADMIN_LABEL_CLASS}`}
             >
               Last mile per bottle (SEK)
             </Label>
@@ -390,7 +390,7 @@ export default function PalletForm({ pallet }: PalletFormProps) {
               id="last_mile_cost_cents_per_bottle"
               type="number"
               step="0.01"
-              className={inputDarkClass}
+              className={inputClass}
               value={
                 formData.last_mile_cost_cents_per_bottle > 0
                   ? (formData.last_mile_cost_cents_per_bottle / 100).toFixed(2)
@@ -415,14 +415,14 @@ export default function PalletForm({ pallet }: PalletFormProps) {
           type="button"
           variant="ghost"
           onClick={handleCancel}
-          className="text-zinc-400 hover:bg-zinc-900 hover:text-zinc-100"
+          className="text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-100"
         >
           Cancel
         </Button>
         <Button
           type="submit"
           disabled={loading}
-          className="bg-zinc-100 text-zinc-900 hover:bg-zinc-200"
+          className="rounded-lg text-xs font-medium bg-gray-900 text-white hover:bg-gray-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
         >
           {loading
             ? "Saving..."

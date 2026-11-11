@@ -1617,16 +1617,16 @@ export default function B2BPalletForm({ shipmentId }: { shipmentId?: string }) {
                     }
                     className="w-fit"
                   >
-                    <TabsList className="h-auto rounded-lg border border-zinc-800 bg-zinc-900/70 p-1">
+                    <TabsList className="h-auto rounded-lg border border-gray-100 bg-gray-50 p-1 dark:border-zinc-800 dark:bg-zinc-900/70">
                       <TabsTrigger
                         value="wines"
-                        className="rounded-md px-3 py-1.5 text-xs font-medium text-zinc-500 data-[state=active]:bg-[#0F0F12] data-[state=active]:text-zinc-100"
+                        className="rounded-md px-3 py-1.5 text-xs font-medium text-gray-500 data-[state=active]:bg-white data-[state=active]:text-gray-900 dark:text-zinc-500 dark:data-[state=active]:bg-[#0F0F12] dark:data-[state=active]:text-zinc-100"
                       >
                         Viner
                       </TabsTrigger>
                       <TabsTrigger
                         value="producers"
-                        className="rounded-md px-3 py-1.5 text-xs font-medium text-zinc-500 data-[state=active]:bg-[#0F0F12] data-[state=active]:text-zinc-100"
+                        className="rounded-md px-3 py-1.5 text-xs font-medium text-gray-500 data-[state=active]:bg-white data-[state=active]:text-gray-900 dark:text-zinc-500 dark:data-[state=active]:bg-[#0F0F12] dark:data-[state=active]:text-zinc-100"
                       >
                         Producenter
                       </TabsTrigger>
