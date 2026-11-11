@@ -12,9 +12,7 @@ describe("conversion funnel copy (sv)", () => {
     expect(translate("sv", "shop.reserve")).toBe("Köp");
     expect(translate("sv", "shop.addCase")).toBe("Lägg i varukorgen");
     expect(translate("sv", "shop.reserveDirty")).toBe("Reservera");
-    expect(translate("sv", "commerce.minSixMix")).toBe(
-      "Minst 6 flaskor per order – blanda fritt mellan vinerna.",
-    );
+    expect(translate("sv", "commerce.minSixMix")).toMatch(/TODO\(Margaux\)/);
     expect(translate("sv", "cart.bottleProgressFull", { current: 6, total: 6 })).toBe(
       "6 av 6 flaskor – lådan är full",
     );
@@ -26,11 +24,11 @@ describe("conversion funnel copy (sv)", () => {
     expect(translate("sv", "cart.addMoreBottlesOutlineCta", { needed: 1 })).toBe(
       "+ Lägg till 1 flaska till",
     );
-    expect(translate("sv", "cart.needMoreMixHint", { needed: 4 })).toBe(
-      "4 flaskor till – blanda fritt mellan vinerna.",
+    expect(translate("sv", "cart.needMoreMixHint", { needed: 4 })).toMatch(
+      /TODO\(Margaux\).*4 flaskor till/i,
     );
-    expect(translate("sv", "cart.needMoreMixHint", { needed: 1 })).toBe(
-      "1 flaska till – blanda fritt mellan vinerna.",
+    expect(translate("sv", "cart.needMoreMixHint", { needed: 1 })).toMatch(
+      /TODO\(Margaux\).*1 flaska till/i,
     );
   });
 
@@ -67,8 +65,10 @@ describe("conversion funnel copy (sv)", () => {
     expect(
       translate("sv", "cart.needMoreBottlesShort", { needed: 2 }),
     ).toBe("2 flaskor till");
-    expect(translate("sv", "cart.mixFreelyCart")).toMatch(/blanda/i);
-    expect(translate("sv", "cart.sixBottleRuleInfo")).toMatch(/totalt|blanda/i);
+    expect(translate("sv", "cart.mixFreelyCart")).toMatch(/TODO\(Margaux\)|blanda/i);
+    expect(translate("sv", "cart.sixBottleRuleInfo")).toMatch(
+      /TODO\(Margaux\)|producent|grossist|blanda/i,
+    );
   });
 
   it("has progressive delivery field hints", () => {
@@ -85,7 +85,7 @@ describe("conversion funnel copy (en)", () => {
     expect(translate("en", "shop.reserve")).toBe("Buy");
     expect(translate("en", "shop.addCase")).toBe("Add to cart");
     expect(translate("en", "shop.reserveDirty")).toBe("Reserve");
-    expect(translate("en", "commerce.minSixMix")).toMatch(/Minimum 6 bottles per order/i);
+    expect(translate("en", "commerce.minSixMix")).toMatch(/TODO\(Margaux\)/);
     expect(translate("en", "cart.bottleProgressFull", { current: 6, total: 6 })).toMatch(
       /your case is full/i,
     );

@@ -61,7 +61,7 @@ function BottleProgressRow({
   const label =
     validation.scope === "cart" || !shownProducer
       ? t("cart.bottleProgressHint")
-      : shownProducer;
+      : shownProducer || validation.producerName;
 
   return (
     <div className="space-y-1">
@@ -346,10 +346,14 @@ export function CartValidationHeader({
             <div className="min-w-0 space-y-0.5">
               <p className="text-xs font-semibold text-foreground">
                 {invalidValidations.length === 1
-                  ? t("cart.oneProducerNeedsMore", {
+                  ? t("cart.packSourceNeedsMore", {
+                      name:
+                        invalidValidations[0].producerDisplayName ||
+                        invalidValidations[0].producerName ||
+                        "",
                       needed: invalidValidations[0].needed,
                     })
-                  : t("cart.producersNeedMore", {
+                  : t("cart.packSourcesNeedMore", {
                       count: invalidValidations.length,
                     })}
               </p>
