@@ -304,7 +304,7 @@ export function DirectBoxFulfillmentPanel({
             Direktleverans (UPS)
           </h2>
           <p className={cn("mt-1", ADMIN_HELP_TEXT_CLASS)}>
-            Status, spårning och plocklista
+            Status och leveransdatum
           </p>
         </div>
 
