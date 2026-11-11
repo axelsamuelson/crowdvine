@@ -1,6 +1,6 @@
 /**
  * Admin pick list for a direct_box order: boxes per packing source,
- * wine lines, pickup address, and pickup deadlines.
+ * wine lines, sender address, contact email, and Access Point dropoff deadlines.
  */
 
 import {
@@ -11,11 +11,12 @@ import {
 import { targetBoxCountFromBottles } from "@/lib/cart/packing-source-display";
 import {
   ADDRESS_MISSING_LABEL,
-  formatProducerPickupAddress,
-  wholesalerPickupAddressFallback,
+  EMAIL_MISSING_LABEL,
+  formatProducerSenderAddress,
+  wholesalerSenderAddressFallback,
 } from "@/lib/admin/direct-box-pickup-addresses";
 import {
-  directBoxPickupDeadlines,
+  directBoxDropoffDeadlines,
   formatIsoDateUTC,
 } from "@/lib/admin/direct-box-business-days";
 
@@ -32,9 +33,13 @@ export type PickListSourceGroup = {
   kind: PackingSource["kind"];
   bottles: number;
   boxes: number;
-  pickupAddress: string;
+  /** Avsändaradress (producer address or wholesaler fallback). */
+  senderAddress: string;
   addressMissing: boolean;
-  /** Producer UUID for "Lägg till adress" link; null for wholesaler. */
+  /** Producer contact_email when present; null when missing. */
+  contactEmail: string | null;
+  emailMissing: boolean;
+  /** Producer UUID for "Lägg till …" links; null for wholesaler. */
   producerId: string | null;
   wines: PickListWineLine[];
 };
@@ -42,8 +47,10 @@ export type PickListSourceGroup = {
 export type DirectBoxPickList = {
   reservationId: string;
   orderDateIso: string;
-  targetPickupIso: string;
-  latestPickupIso: string;
+  /** Target Access Point dropoff day (+3 business days). */
+  targetDropoffIso: string;
+  /** Hard-limit Access Point dropoff day (+5 business days). */
+  latestDropoffIso: string;
   sources: PickListSourceGroup[];
   totalBottles: number;
   totalBoxes: number;
@@ -61,6 +68,7 @@ export type PickListItemInput = {
   producerAddressStreet?: string | null;
   producerAddressPostcode?: string | null;
   producerAddressCity?: string | null;
+  producerContactEmail?: string | null;
   region?: string | null;
 };
 
@@ -68,20 +76,29 @@ export function boxesFromBottles(bottles: number): number {
   return targetBoxCountFromBottles(bottles);
 }
 
-export function resolvePickupAddressForSource(
+export function resolveSenderAddressForSource(
   source: PackingSource,
   item: PickListItemInput,
 ): string {
   if (source.kind === "wholesaler") {
     return (
-      wholesalerPickupAddressFallback(item.sourceName) ?? ADDRESS_MISSING_LABEL
+      wholesalerSenderAddressFallback(item.sourceName) ?? ADDRESS_MISSING_LABEL
     );
   }
-  return formatProducerPickupAddress({
+  return formatProducerSenderAddress({
     address_street: item.producerAddressStreet,
     address_postcode: item.producerAddressPostcode,
     address_city: item.producerAddressCity,
   });
+}
+
+export function resolveContactEmailForSource(
+  source: PackingSource,
+  item: PickListItemInput,
+): string | null {
+  if (source.kind !== "producer") return null;
+  const email = String(item.producerContactEmail ?? "").trim();
+  return email || null;
 }
 
 export function buildDirectBoxPickList(args: {
@@ -93,13 +110,14 @@ export function buildDirectBoxPickList(args: {
     args.orderDate instanceof Date
       ? args.orderDate
       : new Date(args.orderDate);
-  const { targetPickupAt, latestPickupAt } =
-    directBoxPickupDeadlines(orderDate);
+  const { targetDropoffAt, latestDropoffAt } =
+    directBoxDropoffDeadlines(orderDate);
 
   type Acc = {
     source: PackingSource;
     bottles: number;
-    pickupAddress: string;
+    senderAddress: string;
+    contactEmail: string | null;
     producerId: string | null;
     wines: Map<string, PickListWineLine>;
   };
@@ -126,7 +144,8 @@ export function buildDirectBoxPickList(args: {
       acc = {
         source,
         bottles: 0,
-        pickupAddress: resolvePickupAddressForSource(source, item),
+        senderAddress: resolveSenderAddressForSource(source, item),
+        contactEmail: resolveContactEmailForSource(source, item),
         producerId,
         wines: new Map(),
       };
@@ -150,15 +169,21 @@ export function buildDirectBoxPickList(args: {
 
   const sources: PickListSourceGroup[] = [...byKey.values()]
     .map((acc) => {
-      const addressMissing = acc.pickupAddress === ADDRESS_MISSING_LABEL;
+      const addressMissing = acc.senderAddress === ADDRESS_MISSING_LABEL;
+      const emailMissing =
+        acc.source.kind === "producer"
+          ? !acc.contactEmail
+          : true; /* wholesaler: always "missing", no edit link */
       return {
         sourceKey: acc.source.id,
         sourceLabel: acc.source.displayName,
         kind: acc.source.kind,
         bottles: acc.bottles,
         boxes: boxesFromBottles(acc.bottles),
-        pickupAddress: acc.pickupAddress,
+        senderAddress: acc.senderAddress,
         addressMissing,
+        contactEmail: acc.contactEmail,
+        emailMissing,
         producerId: acc.producerId,
         wines: [...acc.wines.values()].sort((a, b) =>
           a.wineName.localeCompare(b.wineName, "sv"),
@@ -173,12 +198,12 @@ export function buildDirectBoxPickList(args: {
   return {
     reservationId: args.reservationId,
     orderDateIso: formatIsoDateUTC(orderDate),
-    targetPickupIso: formatIsoDateUTC(targetPickupAt),
-    latestPickupIso: formatIsoDateUTC(latestPickupAt),
+    targetDropoffIso: formatIsoDateUTC(targetDropoffAt),
+    latestDropoffIso: formatIsoDateUTC(latestDropoffAt),
     sources,
     totalBottles,
     totalBoxes,
   };
 }
 
-export { PACK_BOTTLES_PER_SOURCE };
+export { PACK_BOTTLES_PER_SOURCE, EMAIL_MISSING_LABEL };

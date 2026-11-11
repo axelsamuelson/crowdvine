@@ -1,14 +1,17 @@
 import { describe, expect, it } from "vitest";
 import {
   addBusinessDays,
-  directBoxPickupDeadlines,
+  directBoxDropoffDeadlines,
   formatIsoDateUTC,
 } from "@/lib/admin/direct-box-business-days";
 import {
   boxesFromBottles,
   buildDirectBoxPickList,
 } from "@/lib/admin/direct-box-pick-list";
-import { ADDRESS_MISSING_LABEL } from "@/lib/admin/direct-box-pickup-addresses";
+import {
+  ADDRESS_MISSING_LABEL,
+  EMAIL_MISSING_LABEL,
+} from "@/lib/admin/direct-box-pickup-addresses";
 
 describe("direct-box business days", () => {
   it("skips weekends when adding business days", () => {
@@ -21,12 +24,12 @@ describe("direct-box business days", () => {
     expect(formatIsoDateUTC(addBusinessDays(fri, 5))).toBe("2026-11-13");
   });
 
-  it("computes target (+3) and latest (+5) pickup deadlines", () => {
+  it("computes target (+3) and latest (+5) Access Point dropoff deadlines", () => {
     const order = new Date(Date.UTC(2026, 10, 9)); // Monday
-    const { targetPickupAt, latestPickupAt } =
-      directBoxPickupDeadlines(order);
-    expect(formatIsoDateUTC(targetPickupAt)).toBe("2026-11-12");
-    expect(formatIsoDateUTC(latestPickupAt)).toBe("2026-11-16"); // skips Sat/Sun
+    const { targetDropoffAt, latestDropoffAt } =
+      directBoxDropoffDeadlines(order);
+    expect(formatIsoDateUTC(targetDropoffAt)).toBe("2026-11-12");
+    expect(formatIsoDateUTC(latestDropoffAt)).toBe("2026-11-16"); // skips Sat/Sun
   });
 });
 
@@ -40,7 +43,7 @@ describe("direct-box pick list boxes", () => {
     expect(boxesFromBottles(18)).toBe(3);
   });
 
-  it("groups by packing source and formats addresses", () => {
+  it("groups by packing source and formats sender addresses + email", () => {
     const list = buildDirectBoxPickList({
       reservationId: "res-1",
       orderDate: "2026-11-09T10:00:00.000Z",
@@ -56,6 +59,7 @@ describe("direct-box pick list boxes", () => {
           producerAddressStreet: "12 Rue du Vin",
           producerAddressPostcode: "34000",
           producerAddressCity: "Montpellier",
+          producerContactEmail: "alpha@example.com",
         },
         {
           wineId: "w2",
@@ -73,30 +77,36 @@ describe("direct-box pick list boxes", () => {
           sourceType: "producer",
           producerId: "p3",
           producerName: "Sans Adress",
-          // empty address → adress saknas
+          // empty address + email → saknas
         },
       ],
     });
 
     expect(list.totalBottles).toBe(18);
     expect(list.totalBoxes).toBe(3);
-    expect(list.targetPickupIso).toBe("2026-11-12");
-    expect(list.latestPickupIso).toBe("2026-11-16");
+    expect(list.targetDropoffIso).toBe("2026-11-12");
+    expect(list.latestDropoffIso).toBe("2026-11-16");
 
     const alpha = list.sources.find((s) => s.sourceLabel === "Domaine Alpha");
     expect(alpha?.boxes).toBe(1);
-    expect(alpha?.pickupAddress).toBe("12 Rue du Vin, 34000 Montpellier");
+    expect(alpha?.senderAddress).toBe("12 Rue du Vin, 34000 Montpellier");
+    expect(alpha?.contactEmail).toBe("alpha@example.com");
+    expect(alpha?.emailMissing).toBe(false);
 
     const clos = list.sources.find((s) =>
       s.sourceKey.includes("le clos saint gabriel"),
     );
-    expect(clos?.pickupAddress).toBe("Marché de Gros, Béziers");
+    expect(clos?.senderAddress).toBe("Marché de Gros, Béziers");
     expect(clos?.boxes).toBe(1);
+    expect(clos?.emailMissing).toBe(true);
+    expect(clos?.contactEmail).toBeNull();
 
     const missing = list.sources.find((s) => s.sourceLabel === "Sans Adress");
-    expect(missing?.pickupAddress).toBe(ADDRESS_MISSING_LABEL);
+    expect(missing?.senderAddress).toBe(ADDRESS_MISSING_LABEL);
     expect(missing?.addressMissing).toBe(true);
+    expect(missing?.emailMissing).toBe(true);
     expect(missing?.producerId).toBe("p3");
+    expect(EMAIL_MISSING_LABEL).toBe("E-post saknas");
     expect(alpha?.addressMissing).toBe(false);
     expect(clos?.addressMissing).toBe(false);
   });
@@ -115,6 +125,7 @@ describe("direct-box pick list boxes", () => {
           producerName: "P",
           producerAddressStreet: "X",
           producerAddressCity: "Y",
+          producerContactEmail: "p@example.com",
         },
         {
           wineId: "b",
@@ -125,6 +136,7 @@ describe("direct-box pick list boxes", () => {
           producerName: "P",
           producerAddressStreet: "X",
           producerAddressCity: "Y",
+          producerContactEmail: "p@example.com",
         },
       ],
     });

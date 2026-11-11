@@ -46,7 +46,8 @@ export default async function B2cOrderEditPage({
             name,
             address_street,
             address_postcode,
-            address_city
+            address_city,
+            contact_email
           )
         )
       ),
@@ -139,6 +140,7 @@ export default async function B2cOrderEditPage({
           address_street?: string | null;
           address_postcode?: string | null;
           address_city?: string | null;
+          contact_email?: string | null;
         } | null;
       } | null;
     }) => {
@@ -156,6 +158,7 @@ export default async function B2cOrderEditPage({
         producerAddressStreet: producer?.address_street ?? null,
         producerAddressPostcode: producer?.address_postcode ?? null,
         producerAddressCity: producer?.address_city ?? null,
+        producerContactEmail: producer?.contact_email ?? null,
         region: wine?.region ?? null,
       };
     },

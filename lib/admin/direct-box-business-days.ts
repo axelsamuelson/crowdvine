@@ -1,5 +1,5 @@
 /**
- * Business-day helpers for direct_box pickup deadlines (admin pick list).
+ * Business-day helpers for direct_box Access Point dropoff deadlines (admin pick list).
  * Weekends (Sat/Sun) are skipped; no holiday calendar.
  */
 
@@ -23,14 +23,17 @@ export function addBusinessDays(from: Date, businessDays: number): Date {
   return d;
 }
 
-/** Target pickup day = order date + 3 business days; latest = + 5. */
-export function directBoxPickupDeadlines(orderDate: Date): {
-  targetPickupAt: Date;
-  latestPickupAt: Date;
+/**
+ * Target Access Point dropoff day = order date + 3 business days;
+ * hard limit = + 5. (Source drops boxes at UPS Access Point; Axel books in portal.)
+ */
+export function directBoxDropoffDeadlines(orderDate: Date): {
+  targetDropoffAt: Date;
+  latestDropoffAt: Date;
 } {
   return {
-    targetPickupAt: addBusinessDays(orderDate, 3),
-    latestPickupAt: addBusinessDays(orderDate, 5),
+    targetDropoffAt: addBusinessDays(orderDate, 3),
+    latestDropoffAt: addBusinessDays(orderDate, 5),
   };
 }
 

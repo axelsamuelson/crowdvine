@@ -9,7 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
-import { Package, Truck, Trash2, Plus, MapPin, Calendar } from "lucide-react";
+import { Package, Truck, Trash2, Plus, MapPin, Calendar, Mail } from "lucide-react";
+import { EMAIL_MISSING_LABEL } from "@/lib/admin/direct-box-pickup-addresses";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -432,16 +433,15 @@ export function DirectBoxFulfillmentPanel({
               Order: {pickList.orderDateIso}
             </span>
             <span>
-              Mål upphämtning:{" "}
+              Sista inlämningsdag på Access Point:{" "}
               <strong className="text-gray-900 dark:text-zinc-100">
-                {pickList.targetPickupIso}
+                {pickList.targetDropoffIso}
               </strong>{" "}
               (+3 arbetsdagar)
-            </span>
-            <span>
-              Senast:{" "}
+              {" · "}
+              hård gräns{" "}
               <strong className="text-gray-900 dark:text-zinc-100">
-                {pickList.latestPickupIso}
+                {pickList.latestDropoffIso}
               </strong>{" "}
               (+5 arbetsdagar)
             </span>
@@ -502,16 +502,45 @@ export function DirectBoxFulfillmentPanel({
                           </Link>
                         ) : (
                           <p className="text-xs text-amber-800 dark:text-amber-300/90">
-                            Ingen upphämtningsadress för den här källan.
+                            Ingen avsändaradress för den här källan.
                           </p>
                         )}
                       </div>
                     ) : (
                       <p className="mt-1 flex items-start gap-1 text-sm text-zinc-600 dark:text-zinc-400">
                         <MapPin className={`${ICON_CLASS} mt-0.5`} aria-hidden />
-                        <span>{src.pickupAddress}</span>
+                        <span>
+                          <span className="sr-only">Avsändaradress: </span>
+                          {src.senderAddress}
+                        </span>
                       </p>
                     )}
+                    {src.emailMissing ? (
+                      <div className="mt-2 space-y-1 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm dark:border-amber-800/50 dark:bg-amber-900/20">
+                        <p className="flex items-center gap-1.5 font-medium text-amber-900 dark:text-amber-200">
+                          <Mail className="h-4 w-4 shrink-0" aria-hidden />
+                          {EMAIL_MISSING_LABEL}
+                        </p>
+                        {src.kind === "producer" && src.producerId ? (
+                          <Link
+                            href={`/admin/producers/${src.producerId}`}
+                            className="text-xs font-medium text-amber-800 underline underline-offset-2 hover:opacity-80 dark:text-amber-300/90"
+                          >
+                            Lägg till e-post
+                          </Link>
+                        ) : null}
+                      </div>
+                    ) : src.contactEmail ? (
+                      <p className="mt-1 flex items-start gap-1 text-sm text-zinc-600 dark:text-zinc-400">
+                        <Mail className={`${ICON_CLASS} mt-0.5`} aria-hidden />
+                        <a
+                          href={`mailto:${src.contactEmail}`}
+                          className="underline-offset-2 hover:underline"
+                        >
+                          {src.contactEmail}
+                        </a>
+                      </p>
+                    ) : null}
                   </div>
 
                   <ul className="mb-3 space-y-1 text-sm text-gray-900 dark:text-zinc-100">

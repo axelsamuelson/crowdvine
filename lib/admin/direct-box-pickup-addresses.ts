@@ -1,26 +1,34 @@
 /**
- * Hardcoded wholesaler pickup address fallbacks for admin pick lists.
+ * Hardcoded wholesaler sender-address fallbacks for admin pick lists.
  * Not stored in DB — config only (Axel 2026-11-11).
  */
 
-export const WHOLESALER_PICKUP_ADDRESS_FALLBACKS: Record<string, string> = {
+export const WHOLESALER_SENDER_ADDRESS_FALLBACKS: Record<string, string> = {
   // source_name normalized lower-case key (matches packing-source key)
   "le clos saint gabriel": "Marché de Gros, Béziers",
 };
 
-export const ADDRESS_MISSING_LABEL = "Adress saknas";
+/** @deprecated Use {@link WHOLESALER_SENDER_ADDRESS_FALLBACKS} */
+export const WHOLESALER_PICKUP_ADDRESS_FALLBACKS =
+  WHOLESALER_SENDER_ADDRESS_FALLBACKS;
 
-export function wholesalerPickupAddressFallback(
+export const ADDRESS_MISSING_LABEL = "Adress saknas";
+export const EMAIL_MISSING_LABEL = "E-post saknas";
+
+export function wholesalerSenderAddressFallback(
   sourceName: string | null | undefined,
 ): string | null {
   const key = String(sourceName ?? "")
     .trim()
     .toLowerCase();
   if (!key) return null;
-  return WHOLESALER_PICKUP_ADDRESS_FALLBACKS[key] ?? null;
+  return WHOLESALER_SENDER_ADDRESS_FALLBACKS[key] ?? null;
 }
 
-export function formatProducerPickupAddress(input: {
+/** @deprecated Use {@link wholesalerSenderAddressFallback} */
+export const wholesalerPickupAddressFallback = wholesalerSenderAddressFallback;
+
+export function formatProducerSenderAddress(input: {
   address_street?: string | null;
   address_postcode?: string | null;
   address_city?: string | null;
@@ -34,3 +42,6 @@ export function formatProducerPickupAddress(input: {
     .join(", ");
   return line || ADDRESS_MISSING_LABEL;
 }
+
+/** @deprecated Use {@link formatProducerSenderAddress} */
+export const formatProducerPickupAddress = formatProducerSenderAddress;
