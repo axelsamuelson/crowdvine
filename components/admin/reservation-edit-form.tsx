@@ -412,7 +412,10 @@ export default function ReservationEditForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-10 pb-10 text-gray-900 dark:text-zinc-100">
+    <form
+      onSubmit={handleSubmit}
+      className="min-w-0 w-full max-w-full space-y-10 overflow-x-clip pb-10 text-gray-900 dark:text-zinc-100"
+    >
       {error && (
         <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>
@@ -467,12 +470,12 @@ export default function ReservationEditForm({
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+      <div className="grid min-w-0 gap-6 lg:grid-cols-[1fr_320px]">
         {/* LEFT: main */}
-        <div className="space-y-6">
+        <div className="min-w-0 space-y-6">
           {/* Order items */}
-          <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm text-gray-900 dark:border-[#1F1F23] dark:bg-[#0F0F12] dark:text-zinc-100 dark:shadow-none">
-            <div className="flex items-start justify-between gap-4">
+          <section className="min-w-0 rounded-xl border border-gray-200 bg-white p-4 shadow-sm text-gray-900 dark:border-[#1F1F23] dark:bg-[#0F0F12] dark:text-zinc-100 dark:shadow-none sm:p-6">
+            <div className="flex min-w-0 flex-wrap items-start justify-between gap-3">
               <div className="text-xs font-medium uppercase tracking-widest text-gray-500 dark:text-zinc-500">
                 Order items
               </div>
@@ -495,15 +498,14 @@ export default function ReservationEditForm({
                 const lineTotalCents = unitCents * (item.quantity ?? 0);
                 const img = item.wine?.label_image_path ?? null;
                 const name = item.wine?.wine_name ?? "Select wine";
-                const vintage = item.wine?.vintage ?? "";
                 return (
                   <div
                     key={item.id}
-                    className="space-y-3 rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-[#1F1F23] dark:bg-zinc-900/50"
+                    className="min-w-0 space-y-3 rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-[#1F1F23] dark:bg-zinc-900/50"
                   >
-                    <div className="flex items-start gap-3">
-                      <div className="h-12 w-12 shrink-0 overflow-hidden rounded-md bg-gray-100 dark:bg-zinc-800">
-                        {img ? (
+                    <div className="flex min-w-0 items-start gap-2">
+                      {img ? (
+                        <div className="h-12 w-12 shrink-0 overflow-hidden rounded-md bg-gray-100 dark:bg-zinc-800">
                           <Image
                             src={img}
                             alt={name}
@@ -511,12 +513,9 @@ export default function ReservationEditForm({
                             height={48}
                             className="h-full w-full object-cover"
                           />
-                        ) : null}
-                      </div>
-                      <div className="min-w-0 flex-1 space-y-1">
-                        <div className="text-sm font-medium text-gray-900 dark:text-zinc-100">
-                          {item.wine ? `${name} ${vintage}`.trim() : name}
                         </div>
+                      ) : null}
+                      <div className="min-w-0 flex-1 space-y-1">
                         <Select
                           value={item.item_id || undefined}
                           onValueChange={(value) =>
@@ -524,7 +523,10 @@ export default function ReservationEditForm({
                           }
                         >
                           <SelectTrigger
-                            className={cn("h-9 w-full text-sm", ADMIN_FIELD_CLASS)}
+                            className={cn(
+                              "h-9 w-full min-w-0 text-sm",
+                              ADMIN_FIELD_CLASS,
+                            )}
                           >
                             <SelectValue placeholder="Select wine" />
                           </SelectTrigger>
@@ -544,17 +546,17 @@ export default function ReservationEditForm({
                       </div>
                       <Button
                         type="button"
-                        variant="destructive"
-                        size="sm"
+                        variant="ghost"
+                        size="icon"
                         onClick={() => removeItem(index)}
-                        className="h-9 shrink-0 px-2"
-                        aria-label="Remove item"
+                        className="h-8 w-8 shrink-0 text-gray-400 hover:bg-transparent hover:text-red-600 dark:hover:text-red-400"
+                        aria-label="Ta bort rad"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
-                    <div className="grid grid-cols-3 gap-2">
-                      <div className="space-y-1">
+                    <div className="grid min-w-0 grid-cols-3 gap-2">
+                      <div className="min-w-0 space-y-1">
                         <div className="text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-zinc-500">
                           Qty
                         </div>
@@ -569,24 +571,24 @@ export default function ReservationEditForm({
                             )
                           }
                           className={cn(
-                            "h-9 w-full text-right text-sm tabular-nums",
+                            "no-spinner h-9 w-full min-w-0 text-right text-sm tabular-nums",
                             ADMIN_FIELD_CLASS,
                           )}
                         />
                       </div>
-                      <div className="space-y-1">
+                      <div className="min-w-0 space-y-1">
                         <div className="text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-zinc-500">
                           Unit
                         </div>
-                        <div className="flex h-9 items-center justify-end text-sm tabular-nums text-gray-800 dark:text-zinc-200">
+                        <div className="flex h-9 items-center justify-end truncate text-sm tabular-nums text-gray-800 dark:text-zinc-200">
                           {formatPrice(unitCents)}
                         </div>
                       </div>
-                      <div className="space-y-1">
+                      <div className="min-w-0 space-y-1">
                         <div className="text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-zinc-500">
                           Total
                         </div>
-                        <div className="flex h-9 items-center justify-end text-sm font-medium tabular-nums text-gray-900 dark:text-zinc-100">
+                        <div className="flex h-9 items-center justify-end truncate text-sm font-medium tabular-nums text-gray-900 dark:text-zinc-100">
                           {formatPrice(lineTotalCents)}
                         </div>
                       </div>
@@ -614,16 +616,15 @@ export default function ReservationEditForm({
                     const lineTotalCents = unitCents * (item.quantity ?? 0);
                     const img = item.wine?.label_image_path ?? null;
                     const name = item.wine?.wine_name ?? "Select wine";
-                    const vintage = item.wine?.vintage ?? "";
                     return (
                       <tr
                         key={item.id}
                         className="border-b border-gray-200 last:border-0 dark:border-[#1F1F23]"
                       >
                         <td className="py-3 pr-4">
-                          <div className="flex items-center gap-3">
-                            <div className="h-12 w-12 shrink-0 overflow-hidden rounded-md bg-gray-100 dark:bg-zinc-800">
-                              {img ? (
+                          <div className="flex min-w-0 items-center gap-3">
+                            {img ? (
+                              <div className="h-12 w-12 shrink-0 overflow-hidden rounded-md bg-gray-100 dark:bg-zinc-800">
                                 <Image
                                   src={img}
                                   alt={name}
@@ -631,36 +632,31 @@ export default function ReservationEditForm({
                                   height={48}
                                   className="h-full w-full object-cover"
                                 />
-                              ) : null}
-                            </div>
+                              </div>
+                            ) : null}
                             <div className="min-w-0 flex-1">
-                              <div className="truncate text-sm font-medium text-gray-900 dark:text-zinc-100">
-                                {item.wine ? `${name} ${vintage}`.trim() : name}
-                              </div>
-                              <div className="mt-1">
-                                <Select
-                                  value={item.item_id || undefined}
-                                  onValueChange={(value) =>
-                                    handleItemWineChange(index, value)
-                                  }
+                              <Select
+                                value={item.item_id || undefined}
+                                onValueChange={(value) =>
+                                  handleItemWineChange(index, value)
+                                }
+                              >
+                                <SelectTrigger
+                                  className={cn(
+                                    "h-9 w-full text-sm",
+                                    ADMIN_FIELD_CLASS,
+                                  )}
                                 >
-                                  <SelectTrigger
-                                    className={cn(
-                                      "h-9 w-full text-sm",
-                                      ADMIN_FIELD_CLASS,
-                                    )}
-                                  >
-                                    <SelectValue placeholder="Select wine" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {wines.map((wine) => (
-                                      <SelectItem key={wine.id} value={wine.id}>
-                                        {wine.wine_name} {wine.vintage}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </div>
+                                  <SelectValue placeholder="Select wine" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {wines.map((wine) => (
+                                    <SelectItem key={wine.id} value={wine.id}>
+                                      {wine.wine_name} {wine.vintage}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
                               {item.wine?.grape_varieties ? (
                                 <p
                                   className={cn(
@@ -687,7 +683,7 @@ export default function ReservationEditForm({
                               )
                             }
                             className={cn(
-                              "h-9 w-20 text-right text-sm tabular-nums",
+                              "no-spinner h-9 w-20 text-right text-sm tabular-nums",
                               ADMIN_FIELD_CLASS,
                             )}
                           />
@@ -701,11 +697,11 @@ export default function ReservationEditForm({
                         <td className="py-3 pl-3 align-top text-right">
                           <Button
                             type="button"
-                            variant="destructive"
-                            size="sm"
+                            variant="ghost"
+                            size="icon"
                             onClick={() => removeItem(index)}
-                            className="h-9 px-2"
-                            aria-label="Remove item"
+                            className="h-8 w-8 text-gray-400 hover:bg-transparent hover:text-red-600 dark:hover:text-red-400"
+                            aria-label="Ta bort rad"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -740,7 +736,7 @@ export default function ReservationEditForm({
           </section>
 
           {/* Payment */}
-          <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm text-gray-900 dark:border-[#1F1F23] dark:bg-[#0F0F12] dark:text-zinc-100 dark:shadow-none">
+          <section className="min-w-0 rounded-xl border border-gray-200 bg-white p-4 shadow-sm text-gray-900 dark:border-[#1F1F23] dark:bg-[#0F0F12] dark:text-zinc-100 dark:shadow-none sm:p-6">
             <div className="text-xs font-medium uppercase tracking-widest text-gray-500 dark:text-zinc-500">
               Payment
             </div>
@@ -808,7 +804,7 @@ export default function ReservationEditForm({
           </section>
 
           {/* Notes */}
-          <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm text-gray-900 dark:border-[#1F1F23] dark:bg-[#0F0F12] dark:text-zinc-100 dark:shadow-none">
+          <section className="min-w-0 rounded-xl border border-gray-200 bg-white p-4 shadow-sm text-gray-900 dark:border-[#1F1F23] dark:bg-[#0F0F12] dark:text-zinc-100 dark:shadow-none sm:p-6">
             <div className="text-xs font-medium uppercase tracking-widest text-gray-500 dark:text-zinc-500">
               Notes
             </div>
@@ -849,16 +845,18 @@ export default function ReservationEditForm({
         </div>
 
         {/* RIGHT: sidebar */}
-        <aside className="space-y-6 lg:sticky lg:top-6 lg:self-start">
+        <aside className="min-w-0 space-y-6 lg:sticky lg:top-6 lg:self-start">
           {/* Reservation summary */}
-          <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm text-gray-900 dark:border-[#1F1F23] dark:bg-[#0F0F12] dark:text-zinc-100 dark:shadow-none">
+          <section className="min-w-0 rounded-xl border border-gray-200 bg-white p-4 shadow-sm text-gray-900 dark:border-[#1F1F23] dark:bg-[#0F0F12] dark:text-zinc-100 dark:shadow-none sm:p-6">
             <div className="text-xs font-medium uppercase tracking-widest text-gray-500 dark:text-zinc-500">
               Reservation summary
             </div>
             <div className="mt-4 space-y-3 text-sm">
-              <div className="flex items-center justify-between gap-4">
-                <span className="text-gray-500 dark:text-zinc-500">Reservation</span>
-                <span className="font-mono text-xs text-gray-500 dark:text-zinc-400">
+              <div className="flex items-center justify-between gap-3">
+                <span className="shrink-0 text-gray-500 dark:text-zinc-500">
+                  Reservation
+                </span>
+                <span className="min-w-0 truncate font-mono text-xs text-gray-500 dark:text-zinc-400">
                   {reservation.id}
                 </span>
               </div>
@@ -896,7 +894,7 @@ export default function ReservationEditForm({
           </section>
 
           {/* Customer */}
-          <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm text-gray-900 dark:border-[#1F1F23] dark:bg-[#0F0F12] dark:text-zinc-100 dark:shadow-none">
+          <section className="min-w-0 rounded-xl border border-gray-200 bg-white p-4 shadow-sm text-gray-900 dark:border-[#1F1F23] dark:bg-[#0F0F12] dark:text-zinc-100 dark:shadow-none sm:p-6">
             <div className="text-xs font-medium uppercase tracking-widest text-gray-500 dark:text-zinc-500">
               Customer
             </div>
@@ -904,7 +902,7 @@ export default function ReservationEditForm({
               <div className="text-sm font-semibold text-gray-900 dark:text-zinc-100">
                 {reservation.user_id ? "Customer" : "—"}
               </div>
-              <div className="text-xs font-mono text-gray-500 dark:text-zinc-500">
+              <div className="break-all font-mono text-xs text-gray-500 dark:text-zinc-500">
                 {reservation.user_id ?? "No user_id"}
               </div>
               {reservation.user_id ? (
@@ -919,7 +917,7 @@ export default function ReservationEditForm({
           </section>
 
           {/* Delivery */}
-          <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm text-gray-900 dark:border-[#1F1F23] dark:bg-[#0F0F12] dark:text-zinc-100 dark:shadow-none">
+          <section className="min-w-0 rounded-xl border border-gray-200 bg-white p-4 shadow-sm text-gray-900 dark:border-[#1F1F23] dark:bg-[#0F0F12] dark:text-zinc-100 dark:shadow-none sm:p-6">
             <div className="text-xs font-medium uppercase tracking-widest text-gray-500 dark:text-zinc-500">
               Delivery
             </div>
@@ -959,7 +957,7 @@ export default function ReservationEditForm({
           </section>
 
           {/* Status management */}
-          <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm text-gray-900 dark:border-[#1F1F23] dark:bg-[#0F0F12] dark:text-zinc-100 dark:shadow-none">
+          <section className="min-w-0 rounded-xl border border-gray-200 bg-white p-4 shadow-sm text-gray-900 dark:border-[#1F1F23] dark:bg-[#0F0F12] dark:text-zinc-100 dark:shadow-none sm:p-6">
             <div className="text-xs font-medium uppercase tracking-widest text-gray-500 dark:text-zinc-500">
               Status management
             </div>
