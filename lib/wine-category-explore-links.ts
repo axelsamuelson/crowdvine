@@ -1,6 +1,11 @@
 import type { AppLocale } from "@/lib/i18n/locale";
+import { getLiveWineCharacterCountsMap } from "@/lib/wine-character-live-counts";
 import { getLiveWineRegionCountsMap } from "@/lib/wine-region-live-counts";
 import type { WineCategory } from "@/lib/wine-category-types";
+import {
+  WINE_CHARACTER_PATH_VALUE,
+  getWineCharacterPageHref,
+} from "@/lib/wine-character-tags";
 import {
   getLinkableWineRegions,
   wineRegionPageH1,
@@ -12,6 +17,7 @@ import {
 } from "@/lib/wine-categories";
 import {
   GENERATED_SHOP_FILTER_SLUGS,
+  isWineCharacterShopCategory,
   isWineRegionShopCategory,
 } from "@/lib/wine-shop-filter-categories";
 import { isGrapeOnlyCategory } from "@/lib/wine-grape-categories";
@@ -121,15 +127,41 @@ function farmingHubExploreLinks(category: WineCategory): CategoryExploreLink[] {
 export async function getColorHubRegionExploreLinks(
   locale: AppLocale,
 ): Promise<CategoryExploreLink[]> {
+  const links: CategoryExploreLink[] = [];
   try {
     const counts = await getLiveWineRegionCountsMap();
-    return getLinkableWineRegions(counts).map((region) => ({
-      href: wineRegionPagePath(region.slug, locale),
-      label: wineRegionPageH1(region, locale),
-    }));
+    for (const region of getLinkableWineRegions(counts)) {
+      links.push({
+        href: wineRegionPagePath(region.slug, locale),
+        label: wineRegionPageH1(region, locale),
+      });
+    }
   } catch {
-    return [];
+    // Region explore links are optional when counts are unavailable.
   }
+
+  try {
+    const characterCounts = await getLiveWineCharacterCountsMap();
+    const characterHref = getWineCharacterPageHref(
+      WINE_CHARACTER_PATH_VALUE,
+      locale,
+      characterCounts,
+      1,
+    );
+    if (characterHref) {
+      links.push({
+        href: characterHref,
+        label:
+          locale === "sv"
+            ? "Lättdruckna naturviner"
+            : "Easy-drinking natural wines",
+      });
+    }
+  } catch {
+    // Character explore link is optional when counts are unavailable.
+  }
+
+  return links;
 }
 
 export function isColorNaturvinHub(category: WineCategory): boolean {
@@ -496,7 +528,7 @@ export function getCategoryExploreLinks(
   category: WineCategory,
   extras?: { regionLinks?: CategoryExploreLink[] },
 ): CategoryExploreLink[] {
-  if (isWineRegionShopCategory(category)) {
+  if (isWineRegionShopCategory(category) || isWineCharacterShopCategory(category)) {
     return extras?.regionLinks ?? [];
   }
 

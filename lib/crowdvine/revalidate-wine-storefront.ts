@@ -100,4 +100,6 @@ export function revalidateWineStorefrontCaches(
   revalidatePath("/");
   revalidatePath("/vin");
   revalidatePath("/wine");
+  revalidatePath("/vin/lattdruckna-naturviner");
+  revalidatePath("/wine/easy-drinking-natural-wine");
 }

@@ -1,5 +1,10 @@
 import type { AppLocale } from "@/lib/i18n/locale";
 import type { WineCategory } from "@/lib/wine-category-types";
+import { WINE_CHARACTER_CATEGORY_CONTENT } from "@/lib/wine-character-category-content";
+import {
+  WINE_CHARACTER_PATH_VALUE,
+  wineCharacterPageSlug,
+} from "@/lib/wine-character-tags";
 import { WINE_REGION_CATEGORY_CONTENT } from "@/lib/wine-region-category-content";
 import {
   WINE_REGIONS,
@@ -70,12 +75,51 @@ function regionShopContentOverrides(): Record<
   return overrides;
 }
 
+function characterLocaleCopy(
+  locale: AppLocale,
+): WineCategoryContentOverride | null {
+  const copy = WINE_CHARACTER_CATEGORY_CONTENT[WINE_CHARACTER_PATH_VALUE]?.[locale];
+  if (!copy) return null;
+  return {
+    h1: copy.h1,
+    title: copy.title,
+    metaDescription: copy.metaDescription,
+    description: copy.description,
+    aboutText: copy.aboutText,
+    contentHeading: copy.contentHeading,
+    longDescription: copy.longDescription,
+    faq: copy.faq,
+  };
+}
+
+function characterShopContentOverrides(): Record<
+  string,
+  Partial<Record<AppLocale, WineCategoryContentOverride>>
+> {
+  const svSlug = wineCharacterPageSlug(WINE_CHARACTER_PATH_VALUE, "sv");
+  const enSlug = wineCharacterPageSlug(WINE_CHARACTER_PATH_VALUE, "en");
+  const overrides: Record<
+    string,
+    Partial<Record<AppLocale, WineCategoryContentOverride>>
+  > = {};
+  if (svSlug) {
+    const sv = characterLocaleCopy("sv");
+    if (sv) overrides[svSlug] = { sv };
+  }
+  if (enSlug) {
+    const en = characterLocaleCopy("en");
+    if (en) overrides[enSlug] = { en };
+  }
+  return overrides;
+}
+
 /** Editorial overrides keyed by slug; locale nested under each slug. */
 export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
   string,
   Partial<Record<AppLocale, WineCategoryContentOverride>>
 > = {
   ...regionShopContentOverrides(),
+  ...characterShopContentOverrides(),
   "biodynamiskt-vin": {
     sv: {
       title: "Biodynamiskt vin i Sverige | PACT Wines",

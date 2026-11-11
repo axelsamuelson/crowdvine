@@ -45,7 +45,7 @@ export const BILINGUAL_GUIDE_SLUG_PAIRS = [
     en: "best-natural-wines-under-200-systembolaget",
     sv: "basta-naturviner-under-200kr-systembolaget",
   },
-  { en: "best-glou-glou-wines-systembolaget", sv: "basta-glouglou-viner-systembolaget" },
+  { en: "easy-drinking-natural-wines-systembolaget", sv: "lattdruckna-naturviner-systembolaget" },
   { en: "best-pet-nat-systembolaget", sv: "basta-pet-nat-systembolaget" },
   {
     en: "new-natural-wines-systembolaget",

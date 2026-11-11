@@ -9,12 +9,19 @@ import {
   getActiveColorFromPathname,
   getActiveFarmingFromPathname,
   getActiveGrapeFromPathname,
+  getActiveWineCharacterFromPathname,
   getActiveWineRegionFromPathname,
   getCategoryUrlForGrape,
   getCategoryUrlForGrapeAndFarming,
   getWineCategoryFromPathname,
   isShopFilterNavigationPath,
 } from "@/lib/wine-categories";
+import {
+  parseWineCharacterParam,
+  serializeWineCharacterParam,
+  wineCharacterPagePath,
+  type WineCharacterFilterValue,
+} from "@/lib/wine-character-tags";
 import {
   parseWineRegionParam,
   serializeWineRegionParam,
@@ -133,6 +140,27 @@ export function promoteShopRegionQueryToPath(url: string): string {
 }
 
 /**
+ * Main shop `?character=light_easy` alone → character PLP.
+ * Other values and combinations stay on the query (noindex).
+ */
+export function promoteShopCharacterQueryToPath(url: string): string {
+  if (!url) return url;
+  const qIndex = url.indexOf("?");
+  const path = qIndex >= 0 ? url.slice(0, qIndex) : url;
+  if (path !== "/vin" && path !== "/wine") return url;
+
+  const params = new URLSearchParams(qIndex >= 0 ? url.slice(qIndex + 1) : "");
+  if (params.size !== 1 || !params.has("character")) return url;
+
+  const values = parseWineCharacterParam(params.getAll("character"));
+  if (values.length !== 1) return url;
+
+  const locale = path === "/vin" ? "sv" : "en";
+  const characterPath = wineCharacterPagePath(values[0], locale);
+  return characterPath ?? url;
+}
+
+/**
  * When leaving a region PLP for a colour, farming or grape URL, keep that
  * region as `?region=` so the combination stays noindex.
  */
@@ -159,8 +187,34 @@ export function carryPathWineRegion(
 }
 
 /**
- * Preserve query filters, carry a path region onto combo URLs, then collapse
- * a lone main-shop region or grape query onto its indexable path.
+ * When leaving a character PLP for another path dimension, keep that
+ * character as `?character=` so the combination stays noindex.
+ */
+export function carryPathWineCharacter(
+  destination: string,
+  currentPath: string,
+): string {
+  const character = getActiveWineCharacterFromPathname(currentPath);
+  if (!character || !destination) return destination;
+
+  const qIndex = destination.indexOf("?");
+  const destPath = qIndex >= 0 ? destination.slice(0, qIndex) : destination;
+  if (getActiveWineCharacterFromPathname(destPath) === character) {
+    return destination;
+  }
+
+  const params = new URLSearchParams(
+    qIndex >= 0 ? destination.slice(qIndex + 1) : "",
+  );
+  if (!params.get("character")) {
+    params.set("character", character);
+  }
+  return withShopFilterSearchParams(destPath, params);
+}
+
+/**
+ * Preserve query filters, carry path region/character onto combo URLs, then
+ * collapse a lone main-shop region, character or grape query onto its path.
  */
 export function finalizeShopFilterNavigationUrl(
   destination: string,
@@ -170,7 +224,10 @@ export function finalizeShopFilterNavigationUrl(
 ): string {
   const preserved = withShopFilterSearchParams(destination, search, options);
   const withRegion = carryPathWineRegion(preserved, currentPath);
-  return promoteShopRegionQueryToPath(promoteShopFgrapeQueryToPath(withRegion));
+  const withCharacter = carryPathWineCharacter(withRegion, currentPath);
+  return promoteShopCharacterQueryToPath(
+    promoteShopRegionQueryToPath(promoteShopFgrapeQueryToPath(withCharacter)),
+  );
 }
 
 /** Selected region slugs: query wins; otherwise the region PLP in the path. */
@@ -186,8 +243,44 @@ export function selectedWineRegionSlugs(
   return pathRegion ? [pathRegion.slug] : [];
 }
 
+/** Selected character values: query wins; otherwise the character PLP in the path. */
+export function selectedWineCharacterValues(
+  pathname: string,
+  queryValues: readonly string[],
+): WineCharacterFilterValue[] {
+  const fromQuery = parseWineCharacterParam(
+    queryValues.length ? queryValues.join(",") : null,
+  );
+  if (fromQuery.length > 0) return fromQuery;
+  const pathCharacter = getActiveWineCharacterFromPathname(pathname);
+  return pathCharacter ? [pathCharacter] : [];
+}
+
+function hasNonRegionPathFilter(currentPath: string): boolean {
+  const category = getWineCategoryFromPathname(currentPath);
+  return Boolean(
+    category?.filter.color?.length ||
+      category?.filter.farming?.length ||
+      category?.filter.filterGrape ||
+      category?.filter.tags?.length ||
+      getActiveGrapeFromPathname(currentPath),
+  );
+}
+
+function hasNonCharacterPathFilter(currentPath: string): boolean {
+  const category = getWineCategoryFromPathname(currentPath);
+  return Boolean(
+    category?.filter.color?.length ||
+      category?.filter.farming?.length ||
+      category?.filter.filterGrape ||
+      category?.filter.wineRegion ||
+      getActiveGrapeFromPathname(currentPath) ||
+      getActiveWineRegionFromPathname(currentPath),
+  );
+}
+
 /**
- * One region and no colour/farming/grape in the path → region PLP.
+ * One region and no colour/farming/grape/character in the path → region PLP.
  * Clearing that region → shop root. Anything else stays on `?region=`.
  */
 export function resolveRegionFilterNavigationUrl(options: {
@@ -202,13 +295,7 @@ export function resolveRegionFilterNavigationUrl(options: {
     serializeWineRegionParam(options.nextSlugs) ?? "",
   );
   const pathRegion = getActiveWineRegionFromPathname(currentPath);
-  const category = getWineCategoryFromPathname(currentPath);
-  const hasOtherPathFilter = Boolean(
-    category?.filter.color?.length ||
-      category?.filter.farming?.length ||
-      category?.filter.filterGrape ||
-      getActiveGrapeFromPathname(currentPath),
-  );
+  const hasOtherPathFilter = hasNonRegionPathFilter(currentPath);
 
   const params = new URLSearchParams(
     typeof options.search === "string"
@@ -234,6 +321,53 @@ export function resolveRegionFilterNavigationUrl(options: {
       : currentPath.split("?")[0] || root;
   if (next.length > 0) {
     params.set("region", next.join(","));
+  }
+  return withShopFilterSearchParams(base, params);
+}
+
+/**
+ * Exactly one character value with a path (light_easy) and no other path
+ * dimension → character PLP. Clearing → shop root. Everything else stays on
+ * `?character=`.
+ */
+export function resolveCharacterFilterNavigationUrl(options: {
+  locale: "sv" | "en";
+  currentPath: string;
+  search: string | URLSearchParams | null | undefined;
+  nextValues: readonly string[];
+}): string {
+  const { locale, currentPath } = options;
+  const root = shopRoot(locale);
+  const next = parseWineCharacterParam(
+    serializeWineCharacterParam(options.nextValues) ?? "",
+  );
+  const pathCharacter = getActiveWineCharacterFromPathname(currentPath);
+  const hasOtherPathFilter = hasNonCharacterPathFilter(currentPath);
+
+  const params = new URLSearchParams(
+    typeof options.search === "string"
+      ? options.search.replace(/^\?/, "")
+      : (options.search?.toString() ?? ""),
+  );
+  params.delete("character");
+
+  if (next.length === 1 && !hasOtherPathFilter) {
+    const characterPath = wineCharacterPagePath(next[0], locale);
+    if (characterPath) {
+      return withShopFilterSearchParams(characterPath, params);
+    }
+  }
+
+  if (next.length === 0 && pathCharacter && !hasOtherPathFilter) {
+    return withShopFilterSearchParams(root, params);
+  }
+
+  const base =
+    pathCharacter && !hasOtherPathFilter
+      ? root
+      : currentPath.split("?")[0] || root;
+  if (next.length > 0) {
+    params.set("character", next.join(","));
   }
   return withShopFilterSearchParams(base, params);
 }

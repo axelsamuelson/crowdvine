@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { bestGlouGlouWinesSystembolagetArticle } from "@/lib/guides/articles/best-glou-glou-wines-systembolaget";
+import { easyDrinkingNaturalWinesSystembolagetArticle } from "@/lib/guides/articles/easy-drinking-natural-wines-systembolaget";
 import {
   buildSystembolagetRankedListMetadata,
   renderSystembolagetRankedListPage,
@@ -10,14 +10,14 @@ export const revalidate = 600;
 
 export function generateMetadata(): Promise<Metadata> {
   return buildSystembolagetRankedListMetadata(
-    bestGlouGlouWinesSystembolagetArticle,
+    easyDrinkingNaturalWinesSystembolagetArticle,
     "sv",
   );
 }
 
-export default function BastaGlouglouVinerSystembolagetGuidePage() {
+export default function LattdrucknaNaturvinerSystembolagetGuidePage() {
   return renderSystembolagetRankedListPage(
-    bestGlouGlouWinesSystembolagetArticle,
+    easyDrinkingNaturalWinesSystembolagetArticle,
     "sv",
     "glouglou",
   );

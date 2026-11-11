@@ -132,16 +132,16 @@ export const SYSTEMBOLAGET_RANKED_LISTS = [
   {
     category: "glouglou" as const satisfies GuideWineCategory,
     href: {
-      en: "/guides/best-glou-glou-wines-systembolaget",
-      sv: "/guider/basta-glouglou-viner-systembolaget",
+      en: "/guides/easy-drinking-natural-wines-systembolaget",
+      sv: "/guider/lattdruckna-naturviner-systembolaget",
     },
     label: {
-      en: "Best glou-glou wines at Systembolaget →",
-      sv: "Bästa glou-glou-vinerna på Systembolaget →",
+      en: "Easy-drinking natural wines at Systembolaget →",
+      sv: "Lättdruckna naturviner på Systembolaget →",
     },
     h1: {
-      en: "Best glou-glou wines at Systembolaget 2026",
-      sv: "Bästa glou-glou-vinerna på Systembolaget 2026",
+      en: "Easy-drinking natural wines at Systembolaget",
+      sv: "Lättdruckna naturviner på Systembolaget",
     },
   },
   {
@@ -230,7 +230,7 @@ const SYSTEMBOLAGET_GUIDE_NAV_SHORT: Record<
   sparkling: { sv: "Mousserande", en: "Sparkling" },
   rose: { sv: "Rosé", en: "Rosé" },
   budget: { sv: "Under 200 kr", en: "Under 200" },
-  glouglou: { sv: "Glou-glou", en: "Glou-glou" },
+  glouglou: { sv: "Lättdruckna viner", en: "Easy-drinking wines" },
   petnat: { sv: "Pet nat", en: "Pet nat" },
 };
 

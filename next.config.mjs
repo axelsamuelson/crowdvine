@@ -119,6 +119,17 @@ const nextConfig = {
         destination: "/guides",
         permanent: true,
       },
+      // Glou-glou Systembolaget list renamed to easy-drinking / lättdruckna
+      {
+        source: "/guider/basta-glouglou-viner-systembolaget",
+        destination: "/guider/lattdruckna-naturviner-systembolaget",
+        statusCode: 301,
+      },
+      {
+        source: "/guides/best-glou-glou-wines-systembolaget",
+        destination: "/guides/easy-drinking-natural-wines-systembolaget",
+        statusCode: 301,
+      },
       // Colour what-is guides merged into the main natural-wine explainer (301)
       {
         source: "/guider/vad-ar-vitt-naturvin",
