@@ -34,6 +34,16 @@ export function AdminLayoutClient({
   const mainRef = useRef<HTMLDivElement | null>(null);
   const logCountRef = useRef(0);
 
+  // Native <input type="date"> follows document language → åååå-mm-dd in sv-SE.
+  useEffect(() => {
+    const html = document.documentElement;
+    const previousLang = html.lang;
+    html.lang = "sv-SE";
+    return () => {
+      html.lang = previousLang;
+    };
+  }, []);
+
   useEffect(() => {
     const el = mainRef.current;
     if (!el) return;
@@ -173,7 +183,10 @@ export function AdminLayoutClient({
       disableTransitionOnChange
     >
       <AdminBreadcrumbDetailProvider>
-        <div className="flex h-dvh max-h-dvh min-h-0 w-full bg-white pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)] dark:bg-[#0F0F12]">
+        <div
+          lang="sv-SE"
+          className="flex h-dvh max-h-dvh min-h-0 w-full bg-white pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)] dark:bg-[#0F0F12]"
+        >
           <Sidebar
             userEmail={userEmail}
             onSignOut={handleSignOut}

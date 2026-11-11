@@ -61,7 +61,7 @@ export function DeleteB2BPalletButton({
         <Button
           variant="outline"
           size="sm"
-          className="rounded-lg text-xs font-medium h-8 flex-1 border-gray-200 dark:border-zinc-700 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30"
+          className="h-8 flex-1 rounded-lg border-gray-200 text-xs font-medium text-red-600 shadow-none ring-0 ring-offset-0 hover:bg-red-50 hover:text-red-700 focus:ring-0 focus:ring-offset-0 focus-visible:ring-2 focus-visible:ring-red-500/40 focus-visible:ring-offset-0 dark:border-zinc-700 dark:hover:bg-red-950/30"
           disabled={isDeleting}
         >
           <Trash2 className="h-4 w-4" />

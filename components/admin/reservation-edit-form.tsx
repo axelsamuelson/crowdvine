@@ -671,7 +671,7 @@ export default function ReservationEditForm({
                           </div>
                         </td>
 
-                        <td className="py-3 pr-3 align-top text-right">
+                        <td className="py-3 pr-3 align-middle text-right">
                           <Input
                             type="number"
                             min="1"
@@ -688,13 +688,17 @@ export default function ReservationEditForm({
                             )}
                           />
                         </td>
-                        <td className="py-3 pr-3 align-top text-right text-sm tabular-nums text-gray-800 dark:text-zinc-200">
-                          {formatPrice(unitCents)}
+                        <td className="py-3 pr-3 align-middle text-right text-sm tabular-nums text-gray-800 dark:text-zinc-200">
+                          <div className="flex h-9 items-center justify-end">
+                            {formatPrice(unitCents)}
+                          </div>
                         </td>
-                        <td className="py-3 align-top text-right text-sm font-medium tabular-nums text-gray-900 dark:text-zinc-100">
-                          {formatPrice(lineTotalCents)}
+                        <td className="py-3 align-middle text-right text-sm font-medium tabular-nums text-gray-900 dark:text-zinc-100">
+                          <div className="flex h-9 items-center justify-end">
+                            {formatPrice(lineTotalCents)}
+                          </div>
                         </td>
-                        <td className="py-3 pl-3 align-top text-right">
+                        <td className="py-3 pl-3 align-middle text-right">
                           <Button
                             type="button"
                             variant="ghost"
