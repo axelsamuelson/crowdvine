@@ -21,9 +21,10 @@ function bottleAlt(wine: SystembolagetGuideWine): string {
 }
 
 /**
- * Fixed bottle frame at mobile and desktop. Missing or broken Systembolaget
- * images show a neutral grey outline (no PACT logo) so every card keeps the
- * same rhythm and height.
+ * Fixed bottle frame at mobile and desktop. The grey outline is always painted
+ * under the photo so the frame is never empty while a lazy image loads, or if
+ * the CDN asset fails without a usable onError. The photo layers on top when
+ * it loads; missing/broken URLs leave the outline visible.
  */
 export function SystembolagetBottleImage({
   wine,
@@ -37,7 +38,7 @@ export function SystembolagetBottleImage({
   const alt = bottleAlt(wine);
   const remote = systembolagetImageUrl(wine.image_url, size);
   const [failed, setFailed] = useState(false);
-  const showPlaceholder = !remote || failed;
+  const showPhoto = Boolean(remote) && !failed;
 
   return (
     <div
@@ -46,21 +47,20 @@ export function SystembolagetBottleImage({
         aspectRatio: `${SB_BOTTLE_FRAME_WIDTH} / ${SB_BOTTLE_FRAME_HEIGHT}`,
       }}
     >
-      {showPlaceholder ? (
-        <SystembolagetBottlePlaceholder />
-      ) : (
+      <SystembolagetBottlePlaceholder className="absolute inset-0 h-full w-full" />
+      {showPhoto ? (
         <Image
-          src={remote}
+          src={remote!}
           alt={alt}
           width={SB_BOTTLE_FRAME_WIDTH}
           height={SB_BOTTLE_FRAME_HEIGHT}
-          className="block h-full w-full object-contain object-top"
+          className="relative z-10 block h-full w-full object-contain object-top"
           sizes="(min-width: 768px) 160px, 64px"
           priority={priority}
           loading={priority ? undefined : "lazy"}
           onError={() => setFailed(true)}
         />
-      )}
+      ) : null}
     </div>
   );
 }
