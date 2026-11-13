@@ -9,6 +9,7 @@ import { useTranslations } from "@/lib/hooks/use-translations";
 import { useLocalizedPaths } from "@/lib/hooks/use-localized-paths";
 import { FooterShoppingContext } from "@/components/market/header-shopping-context";
 import { useB2BModeServerHint } from "@/lib/context/b2b-mode-context";
+import { DIRTYWINE_CONTACT_EMAIL } from "@/lib/b2b/brand";
 import type { SiteLogos } from "@/lib/context/site-logo-provider";
 
 const footerLogoClass =
@@ -242,6 +243,14 @@ export function Footer({ initialLogos }: { initialLogos?: SiteLogos }) {
           />
           <div className="flex items-center gap-4 max-md:flex-col max-md:items-start max-md:gap-3">
             <OnboardingButton />
+            {isDirtywineSite ? (
+              <a
+                href={`mailto:${DIRTYWINE_CONTACT_EMAIL}`}
+                className="text-sm text-background/70 hover:text-background transition-colors hover:underline"
+              >
+                Kontakt
+              </a>
+            ) : null}
             <p className="text-base text-background/60">
               {t("home.allRightsReserved", { year })}
             </p>
