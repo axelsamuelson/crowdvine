@@ -15,12 +15,34 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LogoSvg } from "@/components/layout/header/logo-svg";
+import type { AppLocale } from "@/lib/i18n/locale";
 import { normalizeMembershipLevel } from "@/lib/membership/points-engine";
+import { palletDeliveryEstimateLabel } from "@/lib/pallet-delivery-estimate-label";
+import { useTranslations } from "@/lib/hooks/use-translations";
 
 interface WelcomeModalProps {
   isOpen: boolean;
   onClose: () => void;
+  /** Override shopping locale (e.g. screenshot preview). */
+  locale?: AppLocale;
 }
+
+const STEP3_COPY = {
+  sv: {
+    subtitle: "Följ ditt köp",
+    orderConfirmed: "Köpet är bekräftat",
+    bottlesBought:
+      "Dina flaskor är köpta och väntar på att pallen fylls",
+    bottlesToGo: "213 flaskor kvar —",
+  },
+  en: {
+    subtitle: "Follow your order",
+    orderConfirmed: "Order confirmed",
+    bottlesBought:
+      "Your bottles are bought and waiting for the pallet to fill",
+    bottlesToGo: "213 bottles to go —",
+  },
+} as const;
 
 type WelcomeModalMembershipLevel =
   | "basic"
@@ -94,8 +116,11 @@ const membershipLevels: Record<WelcomeModalMembershipLevel, MembershipConfig> = 
 const getSteps = (
   membershipLevel: WelcomeModalMembershipLevel,
   earningEnabled: boolean,
+  locale: AppLocale,
 ) => {
   const levelConfig = membershipLevels[membershipLevel];
+  const step3 = STEP3_COPY[locale];
+  const deliveryEstimate = palletDeliveryEstimateLabel(locale);
 
   return [
     {
@@ -184,7 +209,7 @@ const getSteps = (
     {
       id: 3,
       title: "Pallets & Progress",
-      subtitle: "Watch your reservation come to life",
+      subtitle: step3.subtitle,
       icon: Truck,
       content: (
         <div className="space-y-6 max-w-md mx-auto h-[280px] flex flex-col justify-center">
@@ -204,8 +229,7 @@ const getSteps = (
               />
             </div>
             <p className="text-xs text-center text-muted-foreground">
-              213 bottles to go — Delivered normally 2–3 weeks after the
-              pallet closes
+              {step3.bottlesToGo} {deliveryEstimate}
             </p>
           </div>
 
@@ -214,10 +238,10 @@ const getSteps = (
               <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
               <div>
                 <p className="text-sm font-medium text-foreground">
-                  Reservation Confirmed
+                  {step3.orderConfirmed}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Your bottles are reserved
+                  {step3.bottlesBought}
                 </p>
               </div>
             </div>
@@ -352,7 +376,13 @@ function welcomeModalTier(raw: string): WelcomeModalMembershipLevel {
   return n as WelcomeModalMembershipLevel;
 }
 
-export function WelcomeModal({ isOpen, onClose }: WelcomeModalProps) {
+export function WelcomeModal({
+  isOpen,
+  onClose,
+  locale: localeProp,
+}: WelcomeModalProps) {
+  const { context } = useTranslations();
+  const locale: AppLocale = localeProp ?? context.locale;
   const [currentStep, setCurrentStep] = useState(0);
   const [direction, setDirection] = useState(0);
   const [membershipLevel, setMembershipLevel] =
@@ -402,7 +432,7 @@ export function WelcomeModal({ isOpen, onClose }: WelcomeModalProps) {
     }
   }, [isOpen]);
 
-  const steps = getSteps(membershipLevel, earningEnabled);
+  const steps = getSteps(membershipLevel, earningEnabled, locale);
   const step = steps[currentStep];
   const Icon = step.icon;
 

@@ -1,6 +1,11 @@
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
+  COST_DIRECT,
+  COST_INTRO_NOTE,
+  HOW_LONG_DIRECT,
+  deliveryCostBody,
+  howLongDeliveryBody,
   naturalWineHomeDeliveryArticle,
   whereWeDeliverBody,
   WHERE_WE_DELIVER_DIRECT,
@@ -16,6 +21,11 @@ const WHERE_WE_DELIVER_BASE_SV =
   "Vi levererar hem till dig i hela Budbees leveransområde i Sverige. Om din adress ingår ser du när du anger postnumret i kassan. Leveransen sker normalt inom 2–3 veckor efter att pallen har stängt och alltid senast 30 dagar efter. Vid överlämningen kontrollerar budet din legitimation, och du måste vara minst 20 år. Om du inte kan visa giltig legitimation lämnas inte vinet ut. Fraktkostnaden visas i kassan innan du betalar.";
 const WHERE_WE_DELIVER_BASE_EN =
   "We deliver to your door anywhere in Budbee's delivery area in Sweden. You can check whether your address is covered by entering your postcode at checkout. Delivery normally takes 2–3 weeks after the pallet has closed and always within 30 days. On delivery, the courier checks your ID and you must be at least 20 years old. If you can't show valid ID, the wine won't be handed over. The shipping cost is shown at checkout before you pay.";
+
+const HOW_LONG_BASE_SV =
+  "Leveransen sker normalt inom 2–3 veckor efter att pallen stängt och alltid senast 30 dagar efter. När pallen har skickats får du ett beräknat leveransfönster, och leveransdagen när vinet nått Sverige. Hur lång tid det tar innan pallen stänger beror på hur snabbt den fylls.";
+const HOW_LONG_BASE_EN =
+  "Delivery normally takes 2–3 weeks after the pallet closes and always within 30 days. Once the pallet has shipped you'll get an estimated delivery window, and the delivery day once the wine has reached Sweden. How long it takes before the pallet closes depends on how quickly it fills.";
 
 describe("natural wine home delivery guide", () => {
   const prevDirectBox = process.env.DIRECT_BOX_CHECKOUT_ENABLED;
@@ -111,26 +121,20 @@ describe("natural wine home delivery guide", () => {
       "Payment",
       "Questions",
     ]);
-    expect(naturalWineHomeDeliveryArticle.lede?.sv).toContain(
-      "Du reserverar vinet online",
-    );
-    expect(naturalWineHomeDeliveryArticle.lede?.en).toContain(
-      "You reserve the wine online",
-    );
-    expect(naturalWineHomeDeliveryArticle.meta.sv).toBe(
-      "Beställ naturvin online med hemleverans i Budbees leveransområde i Sverige. Så fungerar reservation, pall, leveranstid, ålderskontroll och kostnad.",
-    );
-    expect(naturalWineHomeDeliveryArticle.meta.en).toBe(
-      "Order natural wine online with home delivery in Budbee's Sweden coverage area. How reservation, pallet, delivery time, age check and cost work.",
-    );
     expect(whereWeDeliverBody(false).sv).toEqual([WHERE_WE_DELIVER_BASE_SV]);
     expect(whereWeDeliverBody(false).en).toEqual([WHERE_WE_DELIVER_BASE_EN]);
-    expect(naturalWineHomeDeliveryArticle.sections[1]?.body.sv).toEqual([
-      "Leveransen sker normalt inom 2–3 veckor efter att pallen stängt och alltid senast 30 dagar efter. När pallen har skickats får du ett beräknat leveransfönster, och leveransdagen när vinet nått Sverige. Hur lång tid det tar innan pallen stänger beror på hur snabbt den fylls.",
-    ]);
-    expect(naturalWineHomeDeliveryArticle.sections[1]?.body.en).toEqual([
-      "Delivery normally takes 2–3 weeks after the pallet closes and always within 30 days. Once the pallet has shipped you'll get an estimated delivery window, and the delivery day once the wine has reached Sweden. How long it takes before the pallet closes depends on how quickly it fills.",
-    ]);
+    expect(howLongDeliveryBody(false).sv).toEqual([HOW_LONG_BASE_SV]);
+    expect(howLongDeliveryBody(false).en).toEqual([HOW_LONG_BASE_EN]);
+    expect(deliveryCostBody(false)).toEqual({
+      sv: [
+        "Leveransen kostar 99 kr per order, inklusive moms.",
+        COST_INTRO_NOTE.sv,
+      ],
+      en: [
+        "Delivery costs SEK 99 per order, including VAT.",
+        COST_INTRO_NOTE.en,
+      ],
+    });
     const stockholmOnly =
       /endast Stockholm|only in Stockholm|leverans i Stockholm|hemleverans i Stockholm|in Stockholm/i;
     const guideBlobs = [
@@ -150,21 +154,44 @@ describe("natural wine home delivery guide", () => {
     }
   });
 
-  it("gates the direct-delivery paragraph behind DIRECT_BOX_CHECKOUT_ENABLED", () => {
-    expect(whereWeDeliverBody(false)).toEqual({
-      sv: [WHERE_WE_DELIVER_BASE_SV],
-      en: [WHERE_WE_DELIVER_BASE_EN],
-    });
+  it("gates direct-delivery paragraphs behind DIRECT_BOX_CHECKOUT_ENABLED", () => {
     expect(whereWeDeliverBody(true)).toEqual({
       sv: [WHERE_WE_DELIVER_BASE_SV, WHERE_WE_DELIVER_DIRECT.sv],
       en: [WHERE_WE_DELIVER_BASE_EN, WHERE_WE_DELIVER_DIRECT.en],
     });
-    expect(WHERE_WE_DELIVER_DIRECT.sv).toContain("UPS Standard");
-    expect(WHERE_WE_DELIVER_DIRECT.en).toContain("UPS Standard");
-    expect(WHERE_WE_DELIVER_DIRECT.sv).toContain("5–10 arbetsdagar");
-    expect(WHERE_WE_DELIVER_DIRECT.en).toContain("5–10 working days");
-    // Budbee stays in the shared-pallet paragraph only.
-    expect(WHERE_WE_DELIVER_DIRECT.sv).not.toMatch(/Budbee/i);
-    expect(WHERE_WE_DELIVER_DIRECT.en).not.toMatch(/Budbee/i);
+    expect(WHERE_WE_DELIVER_DIRECT.sv).toBe(
+      "Vid direktleverans packas lådorna i Frankrike och skickas med UPS Standard. Budet kontrollerar legitimation vid överlämningen, och mottagaren måste ha fyllt 20 år.",
+    );
+    expect(WHERE_WE_DELIVER_DIRECT.en).toBe(
+      "With direct delivery, the boxes are packed in France and sent with UPS Standard. The courier checks ID on delivery, and the recipient must be at least 20 years old.",
+    );
+    expect(WHERE_WE_DELIVER_DIRECT.sv).not.toMatch(/5–10/);
+    expect(WHERE_WE_DELIVER_DIRECT.en).not.toMatch(/5–10/);
+
+    expect(howLongDeliveryBody(true)).toEqual({
+      sv: [HOW_LONG_BASE_SV, HOW_LONG_DIRECT.sv],
+      en: [HOW_LONG_BASE_EN, HOW_LONG_DIRECT.en],
+    });
+
+    expect(deliveryCostBody(true)).toEqual({
+      sv: [
+        "Leveransen kostar 99 kr per order, inklusive moms.",
+        COST_INTRO_NOTE.sv,
+        COST_DIRECT.sv,
+      ],
+      en: [
+        "Delivery costs SEK 99 per order, including VAT.",
+        COST_INTRO_NOTE.en,
+        COST_DIRECT.en,
+      ],
+    });
+  });
+
+  it("always adds the ungated introductory-price note for 99 kr", () => {
+    // Case: 99 kr sentence did not already say introductory → added COST_INTRO_NOTE.
+    expect(COST_INTRO_NOTE.sv).toBe("99 kr är ett introduktionspris tills vidare.");
+    expect(COST_INTRO_NOTE.en).toBe("SEK 99 is an introductory price for now.");
+    expect(deliveryCostBody(false).sv).toContain(COST_INTRO_NOTE.sv);
+    expect(deliveryCostBody(false).en).toContain(COST_INTRO_NOTE.en);
   });
 });

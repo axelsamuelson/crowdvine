@@ -89,12 +89,12 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
         "Tydlig platskaraktär och mineralitet",
         "Låga skördar och manuellt vingårdsarbete",
         "Rött, vitt och orange från Languedoc",
-        "Leverans i Stockholm",
+        "Leverans i hela Sverige",
       ],
       foodPairing:
         "Biodynamiskt vin från Languedoc passar till medelhavsmat — grillat lamm, ratatouille, svamp, chark och mogna ostar. Lättare röda och orangeviner kan serveras något svalare; fylligare röda till långkok och grytor.",
       aboutText:
-        "Biodynamiskt vin från producenter som arbetar biodynamiskt, med leverans i Stockholm.",
+        "Biodynamiskt vin från producenter som arbetar biodynamiskt, med leverans i hela Sverige.",
       faq: [
         {
           question: "Vad är biodynamiskt vin?",
@@ -127,12 +127,12 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
         "Clear sense of place and minerality",
         "Low yields and manual vineyard work",
         "Red, white and orange from Languedoc",
-        "Delivery in Stockholm",
+        "Delivery across Sweden",
       ],
       foodPairing:
         "Biodynamic wine from Languedoc suits Mediterranean food — grilled lamb, ratatouille, mushrooms, charcuterie and mature cheeses. Lighter reds and orange wines can be served slightly chilled; fuller reds with slow-cooked dishes and stews.",
       aboutText:
-        "Biodynamic wine from producers who farm biodynamically, with delivery in Stockholm.",
+        "Biodynamic wine from producers who farm biodynamically, with delivery across Sweden.",
       faq: [
         {
           question: "What is biodynamic wine?",
@@ -156,7 +156,7 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
     sv: {
       title: "Ekologiskt vin i Sverige | PACT Wines",
       metaDescription:
-        "Köp ekologiskt vin i Sverige med hemleverans Stockholm. EU-certifierade producenter — utan mellanhänder via PACT.",
+        "Köp ekologiskt vin i Sverige med hemleverans i Sverige. EU-certifierade producenter — utan mellanhänder via PACT.",
       contentHeading: "Om ekologiskt vin",
       longDescription:
         "Ekologiskt vin innebär att druvorna odlas enligt EU:s ekologiska regler — utan syntetiska bekämpningsmedel, utan konstgödsel och med krav på jordhälsa och biodiversitet i vingården. Certifieringen (t.ex. AB-märket) gäller odlingsmetoden; i källaren får producenten fortfarande arbeta på olika sätt, från klassisk vinifiering till minimal intervention.\n\nSkillnaden mot biodynamiskt vin är tydlig: ekologiskt definierar vad som inte får användas i vingården; biodynamiskt lägger till en helhetssyn med kompostpreparat, dynamiska sprayningar och vingårdens rytm. Skillnaden mot naturvin är också viktig — naturvin ställer krav både i vingård och källare (vild jäsning, inga tillsatser), medan ekologiskt vin i första hand handlar om hur druvorna odlas. Många av våra producenter gör både och, men det är inte samma sak.\n\nAtt köpa ekologiskt vin i Sverige via Systembolaget eller importörer ger ofta begränsat urval och höga priser. Du köper flaskor online, och när pallen stänger skickas vinet hem till dig.",
@@ -165,12 +165,12 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
         "Inga syntetiska bekämpningsmedel i vingården",
         "Rött, vitt och orange från Languedoc",
         "Tydlig frukt och platskaraktär",
-        "Leverans i Stockholm",
+        "Leverans i hela Sverige",
       ],
       foodPairing:
         "Ekologiskt vin från Languedoc passar till medelhavsmat — grillat lamm, ratatouille, fisk, chark och grönsaksrätter. Lättare röda och orangeviner kan serveras något svalare; fylligare röda till grytor och ost.",
       aboutText:
-        "Ekologiskt vin från certifierade producenter, med leverans i Stockholm.",
+        "Ekologiskt vin från certifierade producenter, med leverans i hela Sverige.",
       faq: [
         {
           question: "Vad är ekologiskt vin?",
@@ -203,12 +203,12 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
         "No synthetic pesticides in the vineyard",
         "Red, white and orange from Languedoc",
         "Clear fruit and sense of place",
-        "Delivery in Stockholm",
+        "Delivery across Sweden",
       ],
       foodPairing:
         "Organic wine from Languedoc suits Mediterranean food — grilled lamb, ratatouille, fish, charcuterie and vegetable dishes. Lighter reds and orange wines can be served slightly chilled; fuller reds with stews and cheese.",
       aboutText:
-        "Organic wine from certified producers, with delivery in Stockholm.",
+        "Organic wine from certified producers, with delivery across Sweden.",
       faq: [
         {
           question: "What is organic wine?",
@@ -328,7 +328,7 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
     sv: {
       title: "Vitt naturvin online | PACT Wines",
       metaDescription:
-        "Köp vitt naturvin online. Handplockade flaskor — mineralitet och skalkontakt. Hemleverans Stockholm via PACT.",
+        "Köp vitt naturvin online. Handplockade flaskor — mineralitet och skalkontakt. Hemleverans i Sverige via PACT.",
       contentHeading: "Om vitt naturvin",
       longDescription:
         "Vitt naturvin är en av de mest spännande kategorierna inom naturvinsvärlden — och en av de svåraste att göra bra. Utan tillsatt svavel att skydda de känsliga vita druvorna krävs precision i vingård och källare. De producenter som lyckas gör viner med en textur, salinitet och mineralitet som konventionella vita viner sällan når.\n\nI Languedoc görs vitt naturvin ofta med skalkontakt eller oxidativa metoder som ger vinerna kropp och komplexitet. Druvor som Grenache Blanc, Vermentino, Roussanne och Marsanne trivs i det varma klimatet men behåller sin friskhet hos rätt producent — som Sybil Baldassarre på La Graine Sauvage, vars vita viner från 450 meters höjd i Faugères hör till de mest omskrivna i Languedoc.\n\nVårt urval av vita naturviner är litet och handplockat. Vi tar bara in viner som vi själva vill dricka.",
@@ -371,7 +371,7 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
     en: {
       title: "White Natural Wine Online | PACT Wines",
       metaDescription:
-        "Buy white natural wine online. Hand-picked bottles — minerality and skin contact. Home delivery Stockholm via PACT.",
+        "Buy white natural wine online. Hand-picked bottles — minerality and skin contact. Home delivery in Sweden via PACT.",
       contentHeading: "About white natural wine",
       longDescription:
         "White natural wine is one of the most exciting categories in the natural wine world — and one of the hardest to do well. Without added sulphur to protect the delicate white grapes, precision is required in the vineyard and cellar. The producers who succeed make wines with a texture, salinity and minerality that conventional whites rarely reach.\n\nIn Languedoc, white natural wine is often made with skin contact or oxidative methods that give the wines body and complexity. Grapes like Grenache Blanc, Vermentino, Roussanne and Marsanne thrive in the warm climate but keep their freshness with the right producer — like Sybil Baldassarre at La Graine Sauvage, whose white wines from 450 metres altitude in Faugères are among the most written-about in Languedoc.\n\nOur selection of white natural wines is small and hand-picked. We only bring in wines we want to drink ourselves.",
@@ -528,7 +528,7 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
       foodPairing:
         "Den här typen av vin är mångsidig vid bordet. De rödare exemplaren passar chark, grillat och medelhavsinspirerade rätter; de mer orangea klarar kryddstark mat, ugnsrostade grönsaker och hårdost. Servera svalare än ett tungt rött — ofta 12–16°C beroende på stil.",
       aboutText:
-        "Ett kurerat urval rött & orange naturvin, levererat till Stockholm när pallen är full.",
+        "Ett kurerat urval rött & orange naturvin, skickas hem till dig i Sverige när pallen är full.",
     },
   },
   "red-and-orange-natural-wine": {
@@ -549,7 +549,7 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
       foodPairing:
         "This type of wine is versatile at the table. The redder examples suit charcuterie, grilled dishes and Mediterranean food; the more orange ones handle spice, roasted vegetables and hard cheese. Serve cooler than a heavy red — often 12–16°C depending on style.",
       aboutText:
-        "A curated selection of red & orange natural wine, delivered to Stockholm when the pallet is full.",
+        "A curated selection of red & orange natural wine, shipped to your door in Sweden when the pallet is full.",
     },
   },
   "rod-och-vit-vin": {
@@ -567,7 +567,7 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
       foodPairing:
         "Ett av de mest flexibla vinerna till middag. Passar grillat, pizza, kyckling, fisk i ugn och medelhavssallader. Fungerar även till lättare chark. Servera lätt kyld, runt 12–14°C, för maximal fräschör.",
       aboutText:
-        "Rött & vitt vin: field blends från små producenter, med leverans i Stockholm.",
+        "Rött & vitt vin: field blends från små producenter, med leverans i hela Sverige.",
     },
   },
   "red-and-white-wine": {
@@ -585,14 +585,14 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
       foodPairing:
         "One of the most flexible wines for dinner. Suits grilled food, pizza, chicken, baked fish and Mediterranean salads. Works with lighter charcuterie too. Serve lightly chilled, around 12–14°C, for maximum freshness.",
       aboutText:
-        "Red & white wine: field blends from small producers, with delivery in Stockholm.",
+        "Red & white wine: field blends from small producers, with delivery across Sweden.",
     },
   },
   "rott-biodynamiskt-vin": {
     sv: {
       title: "Rött biodynamiskt vin | PACT Wines",
       metaDescription:
-        "Köp rött biodynamiskt vin online. Röda viner från producenter som arbetar biodynamiskt — hemleverans Stockholm via PACT.",
+        "Köp rött biodynamiskt vin online. Röda viner från producenter som arbetar biodynamiskt — hemleverans i Sverige via PACT.",
       contentHeading: "Om rött biodynamiskt vin",
       longDescription:
         "Biodynamiskt vin går ett steg längre än ekologiskt: vingården sköts enligt biodynamiska principer med fokus på jordhälsa, biodiversitet och en helhetssyn på vingården som levande system. Rött biodynamiskt vin från Languedoc kombinerar den filosofin med regionens naturliga styrkor — gamla Carignan-stockar, Grenache på stenig mark och Syrah med pepprig precision.\n\nI glaset möter du ofta ren frukt, tydlig mineralitet och en känsla av plats som kommer från låga skördar och manuellt arbete. Att producenten arbetar biodynamiskt är inte garanti för smak, men signalerar att odlingen investerats djupt i vingården — något som syns särskilt i torra, solutsatta lägen i södra Frankrike.\n\nAlla röda biodynamiska viner i sortimentet kommer från producenter som arbetar biodynamiskt. ",
@@ -606,7 +606,7 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
       foodPairing:
         "Passar till det som rött vin från Medelhavet gör bäst: lamm, grytor, grillat, svamp och mogna ostar. Lättare stilar fungerar även till chark och pizza. Servera något svalare om vinet känns saftigt och ungt.",
       aboutText:
-        "Rött biodynamiskt vin från producenter som arbetar biodynamiskt, med leverans i Stockholm.",
+        "Rött biodynamiskt vin från producenter som arbetar biodynamiskt, med leverans i hela Sverige.",
     },
   },
   "red-biodynamic-wine": {
@@ -627,14 +627,14 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
       foodPairing:
         "Suits what Mediterranean red does best: lamb, stews, grilled food, mushrooms and aged cheeses. Lighter styles also work with charcuterie and pizza. Serve slightly cooler if the wine feels juicy and young.",
       aboutText:
-        "Red biodynamic wine from producers who farm biodynamically, with delivery in Stockholm.",
+        "Red biodynamic wine from producers who farm biodynamically, with delivery across Sweden.",
     },
   },
   "vitt-biodynamiskt-vin": {
     sv: {
       title: "Vitt biodynamiskt vin | PACT Wines",
       metaDescription:
-        "Köp vitt biodynamiskt vin online. Vita viner från producenter som arbetar biodynamiskt — hemleverans Stockholm via PACT.",
+        "Köp vitt biodynamiskt vin online. Vita viner från producenter som arbetar biodynamiskt — hemleverans i Sverige via PACT.",
       contentHeading: "Om vitt biodynamiskt vin",
       longDescription:
         "Vitt biodynamiskt vin kombinerar biodynamisk vingårdsfilosofi — jordhälsa, biodiversitet och odling enligt biodynamiska principer — med Languedocs naturliga fördelar för vita druvor: lång växtsäsong, kustnärhet och svalare höjdlägen som ger fräschör och arom.\n\nI glaset hittar du allt från rena, citrusdrivna viner på Vermentino och Grenache Blanc till mer texturala flaskor med kort skalkontakt eller oxidativ hantering. Biodynamisk odling handlar om helheten i vingården; i källaren arbetar producenterna ofta med låg intervention, vilket ger vita viner med tydlig platskaraktär snarare än standardiserad stil.\n\nDu köper flaskor online, och vinet skickas hem till dig när pallen stänger.",
@@ -643,12 +643,12 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
         "Frisk syra och medelhavsfrukt",
         "Vermentino, Grenache Blanc, Roussanne m.fl.",
         "Från kust- och höjdlägesvingårdar",
-        "Leverans i Stockholm",
+        "Leverans i hela Sverige",
       ],
       foodPairing:
         "Skaldjur, grillad fisk, sallader, getost och lättare kycklingrätter. Viner med mer textur passar även till grönsaksrätter i ugn. Servera kallt, runt 10–12°C.",
       aboutText:
-        "Vitt biodynamiskt vin från producenter som arbetar biodynamiskt, med leverans i Stockholm.",
+        "Vitt biodynamiskt vin från producenter som arbetar biodynamiskt, med leverans i hela Sverige.",
     },
   },
   "white-biodynamic-wine": {
@@ -664,19 +664,19 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
         "Fresh acidity and Mediterranean fruit",
         "Vermentino, Grenache Blanc, Roussanne and more",
         "From coastal and altitude vineyards",
-        "Delivery in Stockholm",
+        "Delivery across Sweden",
       ],
       foodPairing:
         "Shellfish, grilled fish, salads, goat's cheese and lighter chicken dishes. More textured wines also suit baked vegetable dishes. Serve chilled, around 10–12°C.",
       aboutText:
-        "White biodynamic wine from producers who farm biodynamically, with delivery in Stockholm.",
+        "White biodynamic wine from producers who farm biodynamically, with delivery across Sweden.",
     },
   },
   "orange-biodynamiskt-vin": {
     sv: {
       title: "Orange biodynamiskt vin | PACT Wines",
       metaDescription:
-        "Köp orange biodynamiskt vin online. Skalkontaktviner från producenter som arbetar biodynamiskt — hemleverans Stockholm via PACT.",
+        "Köp orange biodynamiskt vin online. Skalkontaktviner från producenter som arbetar biodynamiskt — hemleverans i Sverige via PACT.",
       contentHeading: "Om orange biodynamiskt vin",
       longDescription:
         "Orange biodynamiskt vin förenar två idéer som passar varandra: skalkontakt på vita druvor som ger färg, tannin och textur — och biodynamisk odling som stärker vingårdens ekosystem och ger sunda, koncentrerade druvor att arbeta med.\n\nI Languedoc görs orangevin ofta på Grenache Blanc, Macabeu och andra lokala sorter med dagar eller veckor på skalet. Att producenten arbetar biodynamiskt signalerar djup investering i vingården; resultatet kan variera från lätt, te-liknande viner till mer strukturerade flaskor med kryddig garrigue och fast tannin.\n\nUrval på PACT är litet och kuraterat. Du köper flaskor online, och vinet skickas hem till dig när pallen stänger.",
@@ -718,7 +718,7 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
     sv: {
       contentHeading: "Om rött & vitt biodynamiskt vin",
       longDescription:
-        "Rött & vitt biodynamiskt vin — field blends eller co-fermentation — är flaskor där röda och vita druvor skördas och jäser tillsammans, från vingårdar som sköts enligt biodynamiska principer. Det ger viner med färg och struktur någonstans mellan rosé och lätt rött, ofta med mer frukt och fräschör än tunga röda.\n\nI Languedoc blandas ofta Grenache, Carignan eller Cinsault med vita druvor som Grenache Blanc eller Macabeu. Biodynamisk odling gäller vingården enligt producentens arbetssätt; stilen i glaset kan variera från nästan roséfärgat till djupare granat. Gemensamt är låga skördar, manuellt arbete och producenter som ser vingården som ett levande system.\n\nPACTs urval är litet. Vinet skickas till Stockholm när pallen är full.",
+        "Rött & vitt biodynamiskt vin — field blends eller co-fermentation — är flaskor där röda och vita druvor skördas och jäser tillsammans, från vingårdar som sköts enligt biodynamiska principer. Det ger viner med färg och struktur någonstans mellan rosé och lätt rött, ofta med mer frukt och fräschör än tunga röda.\n\nI Languedoc blandas ofta Grenache, Carignan eller Cinsault med vita druvor som Grenache Blanc eller Macabeu. Biodynamisk odling gäller vingården enligt producentens arbetssätt; stilen i glaset kan variera från nästan roséfärgat till djupare granat. Gemensamt är låga skördar, manuellt arbete och producenter som ser vingården som ett levande system.\n\nPACTs urval är litet. Vinet skickas hem till dig i Sverige när pallen är full.",
       tastingProfile: [
         "Biodynamisk odling enligt producenten",
         "Co-fermentation av röda och vita druvor",
@@ -736,7 +736,7 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
     en: {
       contentHeading: "About red & white biodynamic wine",
       longDescription:
-        "Red & white biodynamic wine — field blends or co-fermentation — is wine where red and white grapes are harvested and fermented together, from vineyards managed on biodynamic principles. That gives bottles with colour and structure somewhere between rosé and light red, often with more fruit and freshness than heavy reds.\n\nIn Languedoc, Grenache, Carignan or Cinsault are often blended with white grapes like Grenache Blanc or Macabeu. Biodynamic farming applies to the vineyard according to the producer's practice; styles in the glass can range from almost rosé-coloured to deeper garnet. What they share is low yields, manual work and producers who see the vineyard as a living system.\n\nPACT's selection is small. The wine ships to Stockholm when the pallet is full.",
+        "Red & white biodynamic wine — field blends or co-fermentation — is wine where red and white grapes are harvested and fermented together, from vineyards managed on biodynamic principles. That gives bottles with colour and structure somewhere between rosé and light red, often with more fruit and freshness than heavy reds.\n\nIn Languedoc, Grenache, Carignan or Cinsault are often blended with white grapes like Grenache Blanc or Macabeu. Biodynamic farming applies to the vineyard according to the producer's practice; styles in the glass can range from almost rosé-coloured to deeper garnet. What they share is low yields, manual work and producers who see the vineyard as a living system.\n\nPACT's selection is small. The wine is shipped to your door in Sweden when the pallet is full.",
       tastingProfile: [
         "Biodynamic farming according to the producer",
         "Co-fermentation of red and white grapes",
@@ -760,7 +760,7 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
         "Spektrum mellan rött och orange",
         "Fältblandningar och skalkontakt",
         "Grenache, Carignan, Syrah och lokala vita druvor",
-        "Leverans i Stockholm",
+        "Leverans i hela Sverige",
       ],
       foodPairing:
         "Medelhavsmat, grillade grönsaker, chark och kryddiga rätter. Servera svalt — testa 12–15°C.",
@@ -778,7 +778,7 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
         "Spectrum between red and orange",
         "Field blends and skin contact",
         "Grenache, Carignan, Syrah and local white grapes",
-        "Delivery in Stockholm",
+        "Delivery across Sweden",
       ],
       foodPairing:
         "Mediterranean food, grilled vegetables, charcuterie and spiced dishes. Serve slightly chilled — try 12–15°C.",
@@ -790,7 +790,7 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
     sv: {
       title: "Vitt ekologiskt vin | PACT Wines",
       metaDescription:
-        "Köp vitt ekologiskt vin online. Certifierat ekologiska vita viner — hemleverans Stockholm via PACT.",
+        "Köp vitt ekologiskt vin online. Certifierat ekologiska vita viner — hemleverans i Sverige via PACT.",
       contentHeading: "Om vitt ekologiskt vin",
       longDescription:
         "Ekologiskt vin innebär att druvorna odlas utan syntetiska bekämpningsmedel, konstgödsel och med respekt för jord och ekosystem — certifierat enligt EU:s ekologiska regler. Vitt ekologiskt vin från Languedoc utnyttjar regionens långa växtsäsong och kustnära eller höjdbelägna vingårdar för att ge friska, aromatiska viner med tydlig frukt.\n\nHär hittar du allt från rena, friska viner på Vermentino och Grenache Blanc till mer texturala stilar med kort skalkontakt. Många producenter arbetar också med minimal intervention i källaren, även om ekologisk certifiering i sig handlar om vingården. Det ger vita viner som är lätta att dricka men ändå har personlighet.\n\nNär tillräckligt många har köpt fylls en pall, och vinet skickas hem.",
@@ -804,7 +804,7 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
       foodPairing:
         "Perfekt till fisk, skaldjur, sallader, getost och lättare kycklingrätter. Viner med mer kropp klarar även grönsaksrätter i ugn och medelhavsinspirerad mat. Servera kallt men inte iskallt — 10–12°C är ofta idealiskt.",
       aboutText:
-        "Vitt ekologiskt vin från certifierade producenter, med leverans i Stockholm.",
+        "Vitt ekologiskt vin från certifierade producenter, med leverans i hela Sverige.",
     },
   },
   "white-organic-wine": {
@@ -814,7 +814,7 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
         "Buy white organic wine online. Certified organic white wines — home delivery in Sweden via PACT.",
       contentHeading: "About white organic wine",
       longDescription:
-        "Organic wine means grapes grown without synthetic pesticides or fertilisers, with respect for soil and ecosystem — certified under EU organic rules. White organic wine from Languedoc uses the region's long growing season and coastal or altitude vineyards to produce fresh, aromatic wines with clear fruit.\n\nHere you'll find everything from clean, crisp wines on Vermentino and Grenache Blanc to more textured styles with short skin contact. Many producers also work with minimal intervention in the cellar, even though organic certification itself concerns the vineyard. That gives white wines that are easy to drink but still have personality.\n\nWhen enough people have reserved, a pallet fills and the wine ships to Stockholm.",
+        "Organic wine means grapes grown without synthetic pesticides or fertilisers, with respect for soil and ecosystem — certified under EU organic rules. White organic wine from Languedoc uses the region's long growing season and coastal or altitude vineyards to produce fresh, aromatic wines with clear fruit.\n\nHere you'll find everything from clean, crisp wines on Vermentino and Grenache Blanc to more textured styles with short skin contact. Many producers also work with minimal intervention in the cellar, even though organic certification itself concerns the vineyard. That gives white wines that are easy to drink but still have personality.\n\nWhen enough people have reserved, a pallet fills and the wine is shipped to your door in Sweden.",
       tastingProfile: [
         "EU-certified organic farming",
         "Fresh white wines with clear fruit",
@@ -825,14 +825,14 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
       foodPairing:
         "Perfect with fish, shellfish, salads, goat's cheese and lighter chicken dishes. Wines with more body also handle baked vegetables and Mediterranean food. Serve cold but not ice-cold — 10–12°C is often ideal.",
       aboutText:
-        "White organic wine from certified producers, with delivery in Stockholm.",
+        "White organic wine from certified producers, with delivery across Sweden.",
     },
   },
   "orange-ekologiskt-vin": {
     sv: {
       title: "Orange ekologiskt vin | PACT Wines",
       metaDescription:
-        "Köp orange ekologiskt vin. Certifierat ekologiska skalkontaktviner — hemleverans Stockholm via PACT.",
+        "Köp orange ekologiskt vin. Certifierat ekologiska skalkontaktviner — hemleverans i Sverige via PACT.",
       contentHeading: "Om orange ekologiskt vin",
       longDescription:
         "Orange ekologiskt vin förenar skalkontakt på vita druvor med ekologisk odling enligt EU:s regler — utan syntetiska bekämpningsmedel i vingården och med fokus på jordhälsa och biodiversitet. Skalkontakten ger färg, tannin och textur som ett rött vin skulle ha, men med vit druvas frukt och syra.\n\nI Languedoc görs orangevin ofta på Grenache Blanc, Macabeu och andra lokala sorter. Ekologisk certifiering gäller vingården; i källaren arbetar många producenter med minimal intervention, vilket ger flaskor med tydlig platskaraktär. Stilarna spänner från lätt och te-liknande till mer strukturerade viner med kryddig garrigue.\n\nDu köper flaskor online, och vinet skickas hem till dig när pallen stänger.",
@@ -841,7 +841,7 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
         "Vita druvor med skalkontakt",
         "Amberfärg, textur och medelhavsörter",
         "Grenache Blanc, Macabeu och lokala sorter",
-        "Leverans i Stockholm",
+        "Leverans i hela Sverige",
       ],
       foodPairing:
         "Kryddstark mat, grillad fisk, svamp, hårdost och medelhavsinspirerade rätter. Servera lätt kyld, runt 12–14°C.",
@@ -862,7 +862,7 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
         "White grapes with skin contact",
         "Amber colour, texture and Mediterranean herbs",
         "Grenache Blanc, Macabeu and local varieties",
-        "Delivery in Stockholm",
+        "Delivery across Sweden",
       ],
       foodPairing:
         "Spiced food, grilled fish, mushrooms, hard cheese and Mediterranean-inspired dishes. Serve lightly chilled, around 12–14°C.",
@@ -885,7 +885,7 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
       foodPairing:
         "Fungerar till medelhavsmat, grillade grönsaker, chark och rätter med kryddor som kräver både frukt och struktur. Servera svalt — testa 12–15°C och justera efter hur orange vinet känns.",
       aboutText:
-        "Rött & orange ekologiskt vin i ett kurerat urval, med leverans i Stockholm.",
+        "Rött & orange ekologiskt vin i ett kurerat urval, med leverans i hela Sverige.",
     },
   },
   "red-and-orange-organic-wine": {
@@ -903,14 +903,14 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
       foodPairing:
         "Works with Mediterranean food, grilled vegetables, charcuterie and dishes with spice that need both fruit and structure. Serve cool — try 12–15°C and adjust depending on how orange the wine feels.",
       aboutText:
-        "Red & orange organic wine in a curated selection, with delivery in Stockholm.",
+        "Red & orange organic wine in a curated selection, with delivery across Sweden.",
     },
   },
   "rott-ekologiskt-vin": {
     sv: {
       title: "Rött ekologiskt vin | PACT Wines",
       metaDescription:
-        "Köp rött ekologiskt vin online. Carignan, Grenache och Syrah — EU-certifierat, hemleverans Stockholm via PACT.",
+        "Köp rött ekologiskt vin online. Carignan, Grenache och Syrah — EU-certifierat, hemleverans i Sverige via PACT.",
       contentHeading: "Om rött ekologiskt vin",
       longDescription:
         "Rött ekologiskt vin från Languedoc bygger på sydfransk druvtradition — Carignan, Grenache, Syrah, Cinsault — odlad enligt EU:s ekologiska regler. Utan syntetiska bekämpningsmedel och med fokus på jordhälsa får vingårdarna uttrycka plats tydligare, vilket ofta syns i renare frukt och mer transparent smak.\n\nStilarna spänner från lätta, nästan svalserverade röda till mer strukturerade viner från gamla stockar. Ekologisk certifiering handlar om vingården; i källaren kan producenterna fortfarande arbeta med minimal intervention eller mer klassiska metoder. På PACT väljer vi producenter vars ekologiska röda viner vi tycker är genuint bra — inte bara korrekt certifierade.",
@@ -924,14 +924,14 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
       foodPairing:
         "Klassiska röda kombinationer: lamm, gryta, grillat, svamp och ost. Lättare viner till chark och pizza. Servera något svalare för unga, fruktiga stilar.",
       aboutText:
-        "Rött ekologiskt vin från certifierade producenter, med leverans i Stockholm.",
+        "Rött ekologiskt vin från certifierade producenter, med leverans i hela Sverige.",
     },
   },
   "red-organic-wine": {
     en: {
       title: "Red Organic Wine | PACT Wines",
       metaDescription:
-        "Buy red organic wine online. Carignan, Grenache and Syrah — EU-certified, home delivery Stockholm via PACT.",
+        "Buy red organic wine online. Carignan, Grenache and Syrah — EU-certified, home delivery in Sweden via PACT.",
       contentHeading: "About red organic wine",
       longDescription:
         "Red organic wine from Languedoc builds on southern French grape tradition — Carignan, Grenache, Syrah, Cinsault — grown under EU organic rules. Without synthetic pesticides and with a focus on soil health, vineyards express place more clearly, which often shows in cleaner fruit and more transparent flavour.\n\nStyles range from light, almost chillable reds to more structured wines from old vines. Organic certification concerns the vineyard; in the cellar producers may still work with minimal intervention or more classic methods. At PACT we choose producers whose organic reds we think are genuinely good — not just correctly certified.",
@@ -945,7 +945,7 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
       foodPairing:
         "Classic red pairings: lamb, stew, grilled food, mushrooms and cheese. Lighter wines with charcuterie and pizza. Serve slightly cooler for young, fruity styles.",
       aboutText:
-        "Red organic wine from certified producers, with delivery in Stockholm.",
+        "Red organic wine from certified producers, with delivery across Sweden.",
     },
   },
   "rod-och-vit-naturvin": {
