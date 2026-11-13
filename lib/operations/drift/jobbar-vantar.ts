@@ -25,6 +25,7 @@ export interface DriftQueueLike {
   created_at?: string
   company?: string | null
   project_id?: string | null
+  task_id?: string | null
 }
 
 export interface DriftAgentLike {

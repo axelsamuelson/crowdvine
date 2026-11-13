@@ -28,19 +28,31 @@ import type {
   DriftBotRow,
   DriftCompanyFilter,
   DriftOverviewData,
+  DriftPagarBotGroup,
   DriftPipelineProject,
   DriftPipelineTaskCard,
   DriftQueueItem,
   DriftTab,
+  DriftTaskDetail,
 } from "@/lib/operations/drift/types"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { DriftDetailPanel } from "./drift-detail-panel"
 
 const OPEN_LINK_CLASS =
   "shrink-0 pt-0.5 text-sm font-medium text-gray-900 underline underline-offset-2 decoration-gray-300 hover:text-gray-700 dark:text-zinc-100 dark:decoration-zinc-500 dark:hover:text-zinc-200"
 
 const SOURCE_BADGE_CLASS =
   "inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+
+const PROJECT_TAG_CLASS =
+  "inline-flex items-center rounded-md border border-gray-200 bg-transparent px-2 py-0.5 text-xs font-medium text-gray-700 dark:border-zinc-600 dark:text-zinc-300"
+
+const WAIT_YOU_BADGE_CLASS =
+  "inline-flex items-center rounded-md border border-gray-900 px-2 py-0.5 text-xs font-medium text-gray-900 dark:border-zinc-200 dark:text-zinc-100"
+
+const WAIT_REVIEW_BADGE_CLASS =
+  "inline-flex items-center rounded-md bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500 dark:bg-zinc-800 dark:text-zinc-400"
 
 const PAUSED_BADGE_CLASS =
   "inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium bg-zinc-100 text-zinc-600 dark:bg-zinc-800/60 dark:text-zinc-300"
@@ -315,7 +327,7 @@ export function DriftOverviewClient({
   const [showAllQueue, setShowAllQueue] = useState(false)
   const [showSilentBots, setShowSilentBots] = useState(false)
   const [expandedProjectId, setExpandedProjectId] = useState<string | null>(
-    () => data.projects[0]?.id ?? null,
+    () => projectId,
   )
   const [showOlderByProject, setShowOlderByProject] = useState<
     Record<string, boolean>
@@ -325,7 +337,12 @@ export function DriftOverviewClient({
   const [draftProject, setDraftProject] = useState(projectId ?? "")
   const [navigating, setNavigating] = useState(false)
   const [filterPortalReady, setFilterPortalReady] = useState(false)
+  const [detail, setDetail] = useState<DriftTaskDetail | null>(null)
+  const [collapsedPagarOwners, setCollapsedPagarOwners] = useState<
+    Record<string, boolean>
+  >({})
   const weekRef = useRef<HTMLHeadingElement | null>(null)
+  const projectSectionRefs = useRef<Record<string, HTMLElement | null>>({})
   const filterTitleId = useId()
   const filtersActive = Boolean(owner || projectId)
 
@@ -356,14 +373,27 @@ export function DriftOverviewClient({
     }
   }, [godkannande])
 
+  // v4.1: expand only when ?project= is set — never default to alphabetical first.
+  useEffect(() => {
+    setExpandedProjectId(projectId)
+  }, [projectId])
+
   useEffect(() => {
     if (
       expandedProjectId &&
       !data.projects.some((p) => p.id === expandedProjectId)
     ) {
-      setExpandedProjectId(data.projects[0]?.id ?? null)
+      setExpandedProjectId(null)
     }
   }, [data.projects, expandedProjectId])
+
+  useEffect(() => {
+    if (initialTab !== "pipeline" || !projectId) return
+    const el = projectSectionRefs.current[projectId]
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" })
+    }
+  }, [initialTab, projectId, data.projects])
 
   const pushParams = useCallback(
     (next: {
@@ -394,6 +424,34 @@ export function DriftOverviewClient({
     },
     [pushParams],
   )
+
+  const openDetail = useCallback((next: DriftTaskDetail) => {
+    setDetail(next)
+  }, [])
+
+  const closeDetail = useCallback(() => {
+    setDetail(null)
+  }, [])
+
+  const showInPipeline = useCallback(
+    (nextProjectId: string | null) => {
+      setDetail(null)
+      setExpandedProjectId(nextProjectId)
+      pushParams({
+        tab: "pipeline",
+        projectId: nextProjectId,
+        godkannande: null,
+      })
+    },
+    [pushParams],
+  )
+
+  const togglePagarGroup = useCallback((ownerKey: string) => {
+    setCollapsedPagarOwners((prev) => ({
+      ...prev,
+      [ownerKey]: !prev[ownerKey],
+    }))
+  }, [])
 
   const onSummaryClick = (target: "oversikt" | "pipeline" | "veckan") => {
     if (target === "pipeline") {
@@ -712,6 +770,42 @@ export function DriftOverviewClient({
             </p>
           </section>
 
+          <section aria-labelledby="pagar-heading">
+            <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+              <h2
+                id="pagar-heading"
+                className="text-lg font-bold text-gray-900 dark:text-white"
+              >
+                Pågår
+              </h2>
+              <p className="text-xs text-gray-500 dark:text-zinc-400">
+                <span className="font-medium tabular-nums text-gray-800 dark:text-zinc-200">
+                  {data.summary.pagar}
+                </span>{" "}
+                uppgifter
+              </p>
+            </div>
+            {data.pagarGroups.length === 0 ? (
+              <div className="rounded-xl border border-gray-200 bg-white px-5 py-8 text-center dark:border-[#1F1F23] dark:bg-[#0F0F12]">
+                <p className="text-sm text-gray-500 dark:text-zinc-400">
+                  Inget pågår just nu.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {data.pagarGroups.map((group) => (
+                  <PagarBotGroup
+                    key={group.ownerKey}
+                    group={group}
+                    collapsed={!!collapsedPagarOwners[group.ownerKey]}
+                    onToggle={() => togglePagarGroup(group.ownerKey)}
+                    onOpen={openDetail}
+                  />
+                ))}
+              </div>
+            )}
+          </section>
+
           <section aria-labelledby="veckan-heading">
             <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
               <h2
@@ -739,26 +833,37 @@ export function DriftOverviewClient({
                   {data.weekItems.map((item) => {
                     const badge = sourceBadgeLabel(item.source)
                     return (
-                      <li key={item.id} className="px-5 py-3.5">
-                        <p
-                          className="text-sm font-medium leading-snug text-gray-900 line-clamp-2 dark:text-white"
-                          title={item.heading}
+                      <li key={item.id}>
+                        <button
+                          type="button"
+                          className="w-full px-5 py-3.5 text-left hover:bg-gray-50 dark:hover:bg-zinc-900/40"
+                          onClick={() => openDetail(item.detail)}
                         >
-                          {item.heading}
-                        </p>
-                        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
-                          {item.owner ? (
-                            <span className="text-xs text-gray-500 dark:text-zinc-400">
-                              {item.owner}
-                            </span>
-                          ) : null}
-                          <time className="text-xs tabular-nums text-gray-500 dark:text-zinc-400">
-                            {item.atLabel}
-                          </time>
-                          {badge ? (
-                            <span className={SOURCE_BADGE_CLASS}>{badge}</span>
-                          ) : null}
-                        </div>
+                          <p
+                            className="text-sm font-medium leading-snug text-gray-900 line-clamp-2 dark:text-white"
+                            title={item.heading}
+                          >
+                            {item.heading}
+                          </p>
+                          <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+                            {item.owner ? (
+                              <span className="text-xs text-gray-500 dark:text-zinc-400">
+                                {item.owner}
+                              </span>
+                            ) : null}
+                            <time className="text-xs tabular-nums text-gray-500 dark:text-zinc-400">
+                              {item.atLabel}
+                            </time>
+                            {item.projectTag ? (
+                              <span className={PROJECT_TAG_CLASS}>
+                                {item.projectTag}
+                              </span>
+                            ) : null}
+                            {badge ? (
+                              <span className={SOURCE_BADGE_CLASS}>{badge}</span>
+                            ) : null}
+                          </div>
+                        </button>
                       </li>
                     )
                   })}
@@ -872,6 +977,9 @@ export function DriftOverviewClient({
                   return (
                     <section
                       key={project.id}
+                      ref={(el) => {
+                        projectSectionRefs.current[project.id] = el
+                      }}
                       className="border-b border-gray-200 last:border-b-0 dark:border-[#1F1F23]"
                     >
                       <button
@@ -1068,6 +1176,92 @@ export function DriftOverviewClient({
             document.body,
           )
         : null}
+
+      <DriftDetailPanel
+        detail={detail}
+        open={!!detail}
+        onClose={closeDetail}
+        onShowInPipeline={showInPipeline}
+      />
+    </div>
+  )
+}
+
+function PagarBotGroup({
+  group,
+  collapsed,
+  onToggle,
+  onOpen,
+}: {
+  group: DriftPagarBotGroup
+  collapsed: boolean
+  onToggle: () => void
+  onOpen: (detail: DriftTaskDetail) => void
+}) {
+  return (
+    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-[#1F1F23] dark:bg-[#0F0F12]">
+      <button
+        type="button"
+        className="flex w-full items-center justify-between gap-3 px-5 py-3 text-left sm:cursor-default"
+        aria-expanded={!collapsed}
+        onClick={onToggle}
+      >
+        <div className="flex min-w-0 items-baseline gap-2">
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+            {group.ownerLabel}
+          </h3>
+          <span className="text-xs tabular-nums text-gray-500 dark:text-zinc-400">
+            {group.count}
+          </span>
+        </div>
+        <ChevronDown
+          className={cn(
+            "h-4 w-4 shrink-0 text-gray-400 transition-transform sm:hidden dark:text-zinc-500",
+            collapsed && "-rotate-90",
+          )}
+          aria-hidden="true"
+        />
+      </button>
+      <div
+        className={cn(
+          "divide-y divide-gray-200 border-t border-gray-200 dark:divide-[#1F1F23] dark:border-[#1F1F23]",
+          collapsed && "hidden sm:block",
+        )}
+      >
+        {group.tasks.map((task) => (
+          <button
+            key={task.id}
+            type="button"
+            className="flex w-full flex-col gap-1.5 px-5 py-3.5 text-left hover:bg-gray-50 dark:hover:bg-zinc-900/40"
+            onClick={() => onOpen(task.detail)}
+          >
+            <p
+              className="text-sm font-medium leading-snug text-gray-900 line-clamp-2 dark:text-white"
+              title={task.heading}
+            >
+              {task.heading}
+            </p>
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              {task.projectTag ? (
+                <span className={PROJECT_TAG_CLASS}>{task.projectTag}</span>
+              ) : null}
+              {task.badge === "waiting_for_you" ? (
+                <span className={WAIT_YOU_BADGE_CLASS}>Väntar på dig</span>
+              ) : null}
+              {task.badge === "waiting_for_review" ? (
+                <span className={WAIT_REVIEW_BADGE_CLASS}>
+                  Väntar på granskning
+                </span>
+              ) : null}
+              {task.dateLabel ? (
+                <time className="text-xs tabular-nums text-gray-500 dark:text-zinc-400">
+                  {task.dateLabel}
+                </time>
+              ) : null}
+            </div>
+          </button>
+        ))}
+      </div>
     </div>
   )
 }

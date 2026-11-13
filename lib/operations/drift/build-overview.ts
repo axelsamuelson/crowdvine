@@ -13,7 +13,13 @@ import {
   taskOwnerNames,
   type DriftTaskLike,
 } from "./column-rules"
-import { formatDriftTaskHeadingLine } from "./display-title"
+import {
+  deriveDriftTaskBadge,
+  extractPrUrlFromDescription,
+  formatDriftTaskHeadingLine,
+  formatProjectTagLabel,
+  stripDescriptionForPanel,
+} from "./display-title"
 import {
   deriveJobbarPa,
   deriveVantarPa,
@@ -31,9 +37,12 @@ import type {
   DriftBotRow,
   DriftCompanyFilter,
   DriftOverviewData,
+  DriftPagarBotGroup,
+  DriftPagarTask,
   DriftPipelineProject,
   DriftPipelineTaskCard,
   DriftQueueItem,
+  DriftTaskDetail,
   DriftWeekItem,
 } from "./types"
 
@@ -64,6 +73,7 @@ export interface DriftBuildInput {
       question?: string | null
       detail?: string | null
       recommendation?: string | null
+      task_id?: string | null
     }
   >
 }
@@ -78,6 +88,62 @@ function taskCompany(
 
 function companyOk(c: OpsCompany, filter: DriftCompanyFilter): boolean {
   return filter === "both" || c === filter
+}
+
+function statusLabelForTask(
+  task: DriftTaskLike,
+  now: Date,
+): string {
+  const col = classifyDriftColumn(task, now)
+  switch (col) {
+    case "pagar":
+      return "Pågår"
+    case "pagang":
+      return "På gång"
+    case "backlog":
+      return "Backlog"
+    case "klart":
+      return "Klart"
+    case "cancelled":
+      return "Avbruten"
+    default:
+      return task.status
+  }
+}
+
+function detailDateLabel(
+  task: DriftTaskLike,
+  now: Date,
+): string {
+  const col = classifyDriftColumn(task, now)
+  if (col === "klart") {
+    const stamp = task.completed_at ?? task.updated_at
+    return stamp ? formatStockholmDateTime(stamp) : "—"
+  }
+  if (task.due_date) return formatStockholmDate(task.due_date)
+  return "—"
+}
+
+function toDetail(
+  task: DriftTaskLike & { description?: string | null; project_id?: string | null },
+  projectName: string | null,
+  now: Date,
+): DriftTaskDetail {
+  const owners = taskOwnerNames(task)
+  const marker = parseTaskSourceMarker(task.description)
+  const prNumber = marker?.kind === "pr" ? marker.prNumber : null
+  return {
+    id: task.id,
+    heading: formatDriftTaskHeadingLine(task, projectName),
+    description: stripDescriptionForPanel(task.description),
+    owner: owners[0] ?? null,
+    projectId: task.project_id ?? null,
+    projectName: projectName ? formatProjectTagLabel(projectName) : null,
+    statusLabel: statusLabelForTask(task, now),
+    dateLabel: detailDateLabel(task, now),
+    prNumber,
+    prUrl: prNumber ? extractPrUrlFromDescription(task.description) : null,
+  }
 }
 
 function toCard(
@@ -101,16 +167,26 @@ function toCard(
   }
 }
 
+function ownerGroupKey(task: DriftTaskLike): { key: string; label: string } {
+  const owners = taskOwnerNames(task)
+  if (owners.length === 0) return { key: "__none__", label: "Utan ägare" }
+  // Preserve shared ownership as a single group label (e.g. Margaux/Saga)
+  const label = owners.join("/")
+  return { key: label.toLowerCase(), label }
+}
+
 export function buildDriftOverview(input: DriftBuildInput): DriftOverviewData {
   const now = input.now ?? new Date()
   const today = stockholmYmd(now)
   const projectCompanyById = new Map<string, OpsCompany>()
+  const projectNameById = new Map<string, string>()
   for (const p of input.projects) {
     if (p.deleted_at) continue
     projectCompanyById.set(
       p.id,
       p.company === "dirtywine" ? "dirtywine" : "pact",
     )
+    projectNameById.set(p.id, p.name)
   }
 
   const tasksInCompany = input.tasks.filter((t) => {
@@ -134,6 +210,12 @@ export function buildDriftOverview(input: DriftBuildInput): DriftOverviewData {
           : "pact"
     return companyOk(c, input.companyFilter)
   })
+
+  const waitingQueueTaskIds = new Set(
+    queueInCompany
+      .map((q) => q.task_id)
+      .filter((id): id is string => !!id),
+  )
 
   const sortedQueue = [...queueInCompany].sort((a, b) => {
     const aOver = !!(a.deadline && a.deadline < today)
@@ -164,10 +246,61 @@ export function buildDriftOverview(input: DriftBuildInput): DriftOverviewData {
   let klartWeek = 0
   for (const t of tasksFiltered) {
     const col = classifyDriftColumn(t, now)
-    if (col === "pagar") pagar += 1
+    // Summary «Pågår» = in_progress without [PAUSAD] (v4.1)
+    if (t.status === "in_progress" && !isPausedTitle(t.title)) pagar += 1
     else if (col === "pagang") pagang += 1
     else if (col === "klart" && isDoneThisWeek(t, now)) klartWeek += 1
   }
+
+  // Pågår per bot: in_progress without [PAUSAD]
+  const pagarTasks = tasksFiltered.filter(
+    (t) => t.status === "in_progress" && !isPausedTitle(t.title),
+  )
+
+  const pagarByOwner = new Map<string, DriftPagarTask[]>()
+  const ownerLabels = new Map<string, string>()
+  for (const t of pagarTasks) {
+    const { key, label } = ownerGroupKey(t)
+    ownerLabels.set(key, label)
+    const projectName = t.project_id
+      ? (projectNameById.get(t.project_id) ?? null)
+      : null
+    const badge = deriveDriftTaskBadge({
+      status: t.status,
+      title: t.title,
+      description: t.description,
+      waitingQueueTaskIds,
+      taskId: t.id,
+    })
+    const item: DriftPagarTask = {
+      id: t.id,
+      heading: formatDriftTaskHeadingLine(t, projectName),
+      projectTag: formatProjectTagLabel(projectName),
+      dateLabel: t.due_date ? formatStockholmDate(t.due_date) : null,
+      badge,
+      detail: toDetail(t, projectName, now),
+    }
+    const list = pagarByOwner.get(key) ?? []
+    list.push(item)
+    pagarByOwner.set(key, list)
+  }
+
+  const pagarGroups: DriftPagarBotGroup[] = Array.from(pagarByOwner.entries())
+    .map(([key, tasks]) => ({
+      ownerKey: key,
+      ownerLabel: ownerLabels.get(key) ?? key,
+      count: tasks.length,
+      hasWaitingForYou: tasks.some((t) => t.badge === "waiting_for_you"),
+      tasks,
+    }))
+    .sort((a, b) => {
+      if (a.ownerKey === "__none__") return 1
+      if (b.ownerKey === "__none__") return -1
+      if (a.hasWaitingForYou !== b.hasWaitingForYou) {
+        return a.hasWaitingForYou ? -1 : 1
+      }
+      return a.ownerLabel.localeCompare(b.ownerLabel, "sv")
+    })
 
   const weekCandidates = tasksFiltered
     .filter((t) => isDoneThisWeek(t, now))
@@ -175,18 +308,22 @@ export function buildDriftOverview(input: DriftBuildInput): DriftOverviewData {
     .slice(0, 5)
 
   const weekItems: DriftWeekItem[] = weekCandidates.map((t) => {
-    const project = input.projects.find((p) => p.id === t.project_id)
+    const projectName = t.project_id
+      ? (projectNameById.get(t.project_id) ?? null)
+      : null
     const marker = parseTaskSourceMarker(t.description)
     const owners = taskOwnerNames(t)
     const at = t.completed_at ?? t.updated_at ?? ""
     return {
       id: t.id,
-      heading: formatDriftTaskHeadingLine(t, project?.name ?? null),
+      heading: formatDriftTaskHeadingLine(t, projectName),
       owner: owners[0] ?? null,
       at,
       atLabel: formatStockholmDateTime(at),
       source: marker?.kind ?? null,
-      projectName: project?.name ?? null,
+      projectName,
+      projectTag: formatProjectTagLabel(projectName),
+      detail: toDetail(t, projectName, now),
     }
   })
 
@@ -278,7 +415,6 @@ export function buildDriftOverview(input: DriftBuildInput): DriftOverviewData {
       .map((p) => p.id),
   )
 
-  // Include orphan tasks under synthetic "Utan projektkoppling"
   const UNASSIGNED = "__unassigned__"
   const groups = new Map<string, typeof input.tasks>()
   for (const t of tasksFiltered) {
@@ -306,7 +442,6 @@ export function buildDriftOverview(input: DriftBuildInput): DriftOverviewData {
     const tasks = groups.get(p.id) ?? []
     if (tasks.length === 0 && p.id === UNASSIGNED) continue
     if (input.projectFilter && p.id !== input.projectFilter) continue
-    // Show project if any task survives OR no owner filter and project has zero matching — skip empty when filtering
     if (tasks.length === 0 && input.ownerFilter) continue
     if (tasks.length === 0 && input.projectFilter) continue
     if (tasks.length === 0) continue
@@ -315,7 +450,7 @@ export function buildDriftOverview(input: DriftBuildInput): DriftOverviewData {
     const ownerFilterActive = !!input.ownerFilter
     const klarWeekTasks = tasks.filter((t) => isDoneThisWeek(t, now))
     const olderTasks = tasks.filter((t) => isDoneOlderWithin30Days(t, now))
-    const pagarTasks = tasks.filter((t) => classifyDriftColumn(t, now) === "pagar")
+    const pagarColTasks = tasks.filter((t) => classifyDriftColumn(t, now) === "pagar")
     const pagangTasks = tasks.filter((t) => classifyDriftColumn(t, now) === "pagang")
     const backlogTasks = tasks.filter(
       (t) => classifyDriftColumn(t, now) === "backlog",
@@ -339,7 +474,7 @@ export function buildDriftOverview(input: DriftBuildInput): DriftOverviewData {
       companyLabel: formatOpsCompanyLabel(company),
       archived: p.status === "archived",
       counts: {
-        pagar: pagarTasks.length,
+        pagar: pagarColTasks.length,
         pagang: pagangTasks.length,
         backlog: backlogTasks.length,
         klartWeek: klarWeekTasks.length,
@@ -358,7 +493,7 @@ export function buildDriftOverview(input: DriftBuildInput): DriftOverviewData {
           : olderTasks
               .sort((a, b) => doneSortKey(b).localeCompare(doneSortKey(a)))
               .map((t) => toCard(t, p.name)),
-        pagar: pagarTasks.map((t) => toCard(t, p.name)),
+        pagar: pagarColTasks.map((t) => toCard(t, p.name)),
         pagang: pagangTasks.map((t) => toCard(t, p.name)),
         backlog: backlogTasks.map((t) => toCard(t, p.name)),
       },
@@ -399,6 +534,7 @@ export function buildDriftOverview(input: DriftBuildInput): DriftOverviewData {
       klartWeek,
     },
     queue: queueItems,
+    pagarGroups,
     weekItems,
     bots,
     projects: projectsOut,

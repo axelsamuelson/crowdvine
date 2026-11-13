@@ -43,12 +43,14 @@ export async function GET() {
     // Check and reset quota if needed
     await checkAndResetQuotaIfNeeded(user.id);
 
-    // Get membership data
+    // Get membership data. Use maybeSingle so a missing row is 404, not a
+    // PostgREST PGRST116 error promoted to HTTP 500 (which surfaces as a
+    // Next.js dev "1 Issue" badge on every authenticated page).
     const { data: membership, error: membershipError } = await sb
       .from("user_memberships")
       .select("*")
       .eq("user_id", user.id)
-      .single();
+      .maybeSingle();
 
     if (membershipError) throw membershipError;
 
