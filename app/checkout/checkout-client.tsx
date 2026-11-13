@@ -263,6 +263,8 @@ function CheckoutContent({
   const [guestSessionError, setGuestSessionError] = useState<string | null>(
     null,
   );
+  /** Existing account: show OTP login instead of auto-session. */
+  const [guestRequiresLogin, setGuestRequiresLogin] = useState(false);
   const [guestSessionPending, setGuestSessionPending] = useState(false);
   const [guestRetryNonce, setGuestRetryNonce] = useState(0);
   const guestEnsureAttemptedRef = useRef<string | null>(null);
@@ -1301,16 +1303,19 @@ function CheckoutContent({
     }
   }, [fetchProfile, fetchCart]);
 
-  // Open platform: silent session from delivery email — no mid-checkout login wall.
+  // Open platform: silent session from delivery email — no mid-checkout login wall
+  // for brand-new emails. Existing accounts get requiresLogin → OTP (CheckoutEmailAuth).
   useEffect(() => {
     if (!platformOpen) return;
     setGuestSessionError(null);
+    setGuestRequiresLogin(false);
     guestEnsureAttemptedRef.current = null;
   }, [platformOpen, deliveryDraft?.email]);
 
   useEffect(() => {
     if (!platformOpen) return;
     if (!deliveryComplete || authReady || !authChecked) return;
+    if (guestRequiresLogin) return;
 
     const email = (deliveryDraft?.email ?? "").trim().toLowerCase();
     if (!email.includes("@")) return;
@@ -1332,11 +1337,18 @@ function CheckoutContent({
           ok?: boolean;
           alreadyAuthenticated?: boolean;
           autoSignedIn?: boolean;
+          requiresLogin?: boolean;
           session?: { access_token: string; refresh_token: string };
           error?: string;
         } | null;
 
         if (cancelled) return;
+
+        if (res.status === 409 || data?.requiresLogin) {
+          setGuestRequiresLogin(true);
+          setGuestSessionError(null);
+          return;
+        }
 
         if (data?.alreadyAuthenticated) {
           await ensureProfileAfterAuth();
@@ -1384,6 +1396,7 @@ function CheckoutContent({
     deliveryDraft?.email,
     ensureProfileAfterAuth,
     guestRetryNonce,
+    guestRequiresLogin,
     t,
   ]);
 
@@ -5389,29 +5402,51 @@ function CheckoutContent({
                           />
                         ) : null}
                         {authChecked && !authReady && platformOpen ? (
-                          <div className="space-y-2">
-                            <p className="text-sm text-muted-foreground">
-                              {guestSessionPending
-                                ? t("checkout.preparingCheckout")
-                                : guestSessionError
-                                  ? guestSessionError
-                                  : t("checkout.preparingCheckout")}
-                            </p>
-                            {guestSessionError ? (
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  guestEnsureAttemptedRef.current = null;
-                                  setGuestSessionError(null);
-                                  setGuestRetryNonce((n) => n + 1);
-                                }}
-                              >
-                                {t("checkout.tryAgain")}
-                              </Button>
-                            ) : null}
-                          </div>
+                          guestRequiresLogin ? (
+                            <CheckoutEmailAuth
+                              initialEmail={
+                                (deliveryDraft?.email ?? "").trim().toLowerCase()
+                              }
+                              emailHint={t("checkout.otpEmailHint")}
+                              checkInbox={t("checkout.otpCheckInbox")}
+                              emailLabel={t("checkout.otpEmailLabel")}
+                              sendLinkLabel={t("checkout.otpSendLink")}
+                              onAuthenticated={() => {
+                                void ensureProfileAfterAuth();
+                              }}
+                              onWallShown={() => {
+                                lastCheckoutBlockerRef.current = {
+                                  reason: "login_wall",
+                                  field: "auth",
+                                  code: "login_required",
+                                };
+                              }}
+                            />
+                          ) : (
+                            <div className="space-y-2">
+                              <p className="text-sm text-muted-foreground">
+                                {guestSessionPending
+                                  ? t("checkout.preparingCheckout")
+                                  : guestSessionError
+                                    ? guestSessionError
+                                    : t("checkout.preparingCheckout")}
+                              </p>
+                              {guestSessionError ? (
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    guestEnsureAttemptedRef.current = null;
+                                    setGuestSessionError(null);
+                                    setGuestRetryNonce((n) => n + 1);
+                                  }}
+                                >
+                                  {t("checkout.tryAgain")}
+                                </Button>
+                              ) : null}
+                            </div>
+                          )
                         ) : null}
                         {authReady && legacySharedPalletPaymentAllowed ? (
                           <StripePaymentSection
