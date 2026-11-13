@@ -556,8 +556,13 @@ export function WelcomeModal({
                 <X className="w-4 h-4 text-muted-foreground" />
               </button>
 
-              {/* Content */}
-              <div className="p-8 md:p-12">
+              {/* Content — SV nav labels need extra horizontal room below md */}
+              <div
+                className={cn(
+                  "p-8 md:p-12",
+                  locale === "sv" && "max-md:px-4 max-md:py-6",
+                )}
+              >
                 {/* Header with Icon */}
                 <div className="flex flex-col items-center text-center mb-8">
                   {currentStep !== 0 && (
@@ -630,7 +635,7 @@ export function WelcomeModal({
                 <div
                   className={cn(
                     "flex items-center justify-between whitespace-nowrap",
-                    locale === "sv" ? "gap-1 md:gap-4" : "gap-4",
+                    locale === "sv" ? "gap-0.5 md:gap-4" : "gap-4",
                   )}
                 >
                   <Button
@@ -639,7 +644,8 @@ export function WelcomeModal({
                     disabled={currentStep === 0}
                     className={cn(
                       "gap-2 shrink-0",
-                      locale === "sv" && "gap-1 px-2 md:gap-2 md:px-4",
+                      locale === "sv" &&
+                        "gap-0.5 px-1.5 text-[13px] md:gap-2 md:px-4 md:text-sm",
                     )}
                   >
                     <ArrowLeft className="w-4 h-4" />
@@ -651,7 +657,8 @@ export function WelcomeModal({
                     variant="ghost"
                     className={cn(
                       "text-muted-foreground min-w-0",
-                      locale === "sv" && "shrink px-2 md:px-4",
+                      locale === "sv" &&
+                        "shrink px-1.5 text-[13px] md:px-4 md:text-sm",
                     )}
                   >
                     {nav.skip}
@@ -661,7 +668,8 @@ export function WelcomeModal({
                     onClick={handleNext}
                     className={cn(
                       "bg-foreground text-background hover:bg-foreground/90 gap-2 shrink-0",
-                      locale === "sv" && "gap-1.5 px-3 md:gap-2 md:px-4",
+                      locale === "sv" &&
+                        "gap-1 px-2.5 text-[13px] md:gap-2 md:px-4 md:text-sm",
                     )}
                   >
                     {currentStep === steps.length - 1 ? (
