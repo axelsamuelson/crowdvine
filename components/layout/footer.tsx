@@ -79,7 +79,7 @@ export function Footer({ initialLogos }: { initialLogos?: SiteLogos }) {
                         <PdpB2BLink
                           locale={context.locale}
                           variant="footer"
-                          className="w-fit"
+                          className="w-fit min-w-max"
                         />
                       </>
                     )}

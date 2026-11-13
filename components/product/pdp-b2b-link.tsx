@@ -56,7 +56,7 @@ export function PdpB2BLink({
       aria-label={copy.hint}
       data-testid="pact-foretag-link"
       className={cn(
-        "group inline-flex items-center gap-1 text-sm transition-colors",
+        "group inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-sm transition-colors",
         isFooter
           ? "text-background/50 hover:text-background"
           : "text-stone-500 hover:text-foreground",
