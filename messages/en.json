@@ -383,7 +383,7 @@
     "directBoxBottleMarkupNote": "Bottle prices are 5% higher than on a shared pallet",
     "sellerLine": "Seller: EURPACT OÜ, Tallinn, Estonia",
     "withdrawalLine": "14-day right of withdrawal",
-    "sharedPalletDelivery": "Shared pallet: After closing, we deliver within 30 days, normally within 2–3 weeks.",
+    "sharedPalletDelivery": "Shared pallet: We deliver within 30 days after the pallet closes, normally within 2–3 weeks.",
     "palletFillCount": "{filled} of {total} bottles",
     "palletReadyShort": "Ready",
     "palletRemainingShort": "{remaining} left"

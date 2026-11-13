@@ -31,7 +31,7 @@ describe("PACT seller/consumer disclosure copy", () => {
       "14-day right of withdrawal",
     );
     expect(translate("en", "commerce.sharedPalletDelivery")).toBe(
-      "Shared pallet: After closing, we deliver within 30 days, normally within 2–3 weeks.",
+      "Shared pallet: We deliver within 30 days after the pallet closes, normally within 2–3 weeks.",
     );
   });
 
