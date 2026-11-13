@@ -202,17 +202,17 @@ export function AdminLayoutClient({
           />
 
           <div className="flex min-h-0 min-w-0 w-full flex-1 flex-col">
-            <header className="h-16 flex-shrink-0 border-b border-gray-200 dark:border-[#1F1F23] flex items-center">
+            <header className="flex h-16 w-full flex-shrink-0 items-center border-b border-gray-200 bg-white dark:border-[#1F1F23] dark:bg-[#0F0F12]">
               <Button
                 variant="ghost"
                 size="icon"
-                className="lg:hidden ml-2"
+                className="shrink-0 lg:hidden"
                 onClick={() => setMobileOpen(true)}
                 aria-label="Open menu"
               >
                 <Menu className="h-5 w-5 text-gray-600 dark:text-gray-300" />
               </Button>
-              <div className="flex-1 min-w-0">
+              <div className="h-full min-w-0 flex-1">
                 <AdminTopNav userEmail={userEmail} onSignOut={handleSignOut} />
               </div>
             </header>

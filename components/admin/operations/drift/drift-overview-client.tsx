@@ -10,6 +10,7 @@ import {
   useRef,
   useState,
 } from "react"
+import { createPortal } from "react-dom"
 import {
   ChevronDown,
   ChevronRight,
@@ -280,18 +281,20 @@ function QueueRow({
 function BotVantarCell({ bot }: { bot: DriftBotRow }) {
   if (bot.vantarTone === "none") {
     return (
-      <span className="text-xs text-gray-400 dark:text-zinc-500">—</span>
+      <span className="whitespace-nowrap text-left text-xs text-gray-400 dark:text-zinc-500">
+        —
+      </span>
     )
   }
   if (bot.vantarTone === "red") {
     return (
-      <span className="inline-block text-xs font-medium text-red-600 dark:text-red-400 whitespace-pre-line">
-        {bot.vantarPa.replace(", ", "\n")}
+      <span className="whitespace-nowrap text-left text-xs font-medium text-red-600 dark:text-red-400">
+        {bot.vantarPa}
       </span>
     )
   }
   return (
-    <span className="text-xs font-medium text-gray-700 dark:text-zinc-300">
+    <span className="whitespace-nowrap text-left text-xs font-medium text-gray-700 dark:text-zinc-300">
       {bot.vantarPa}
     </span>
   )
@@ -321,8 +324,14 @@ export function DriftOverviewClient({
   const [draftOwner, setDraftOwner] = useState(owner ?? "")
   const [draftProject, setDraftProject] = useState(projectId ?? "")
   const [navigating, setNavigating] = useState(false)
+  const [filterPortalReady, setFilterPortalReady] = useState(false)
   const weekRef = useRef<HTMLHeadingElement | null>(null)
   const filterTitleId = useId()
+  const filtersActive = Boolean(owner || projectId)
+
+  useEffect(() => {
+    setFilterPortalReady(true)
+  }, [])
 
   useEffect(() => {
     setTab(initialTab)
@@ -612,32 +621,39 @@ export function DriftOverviewClient({
           className="space-y-10"
         >
           <section aria-labelledby="vantan-heading">
-            <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
-              <h2
-                id="vantan-heading"
-                className="text-lg font-bold text-gray-900 dark:text-white"
-              >
-                Väntar på Axel
-              </h2>
-              {data.summary.waiting > 0 ? (
-                <p className="text-xs text-gray-500 dark:text-zinc-400">
-                  <span className="font-medium tabular-nums text-gray-800 dark:text-zinc-200">
-                    {data.summary.waiting}
-                  </span>{" "}
-                  {data.summary.waiting === 1 ? "fråga" : "frågor"}
-                  {data.summary.waitingOverdue > 0 ? (
-                    <>
-                      <span className="mx-1.5 text-gray-300 dark:text-zinc-600">
-                        ·
-                      </span>
-                      <span className="font-medium text-red-600 dark:text-red-400">
-                        {data.summary.waitingOverdue}{" "}
-                        {data.summary.waitingOverdue === 1
-                          ? "förfallen"
-                          : "förfallna"}
-                      </span>
-                    </>
-                  ) : null}
+            <div className="mb-4">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <h2
+                  id="vantan-heading"
+                  className="text-lg font-bold text-gray-900 dark:text-white"
+                >
+                  Väntar på Axel
+                </h2>
+                {data.summary.waiting > 0 ? (
+                  <p className="text-xs text-gray-500 dark:text-zinc-400">
+                    <span className="font-medium tabular-nums text-gray-800 dark:text-zinc-200">
+                      {data.summary.waiting}
+                    </span>{" "}
+                    {data.summary.waiting === 1 ? "fråga" : "frågor"}
+                    {data.summary.waitingOverdue > 0 ? (
+                      <>
+                        <span className="mx-1.5 text-gray-300 dark:text-zinc-600">
+                          ·
+                        </span>
+                        <span className="font-medium text-red-600 dark:text-red-400">
+                          {data.summary.waitingOverdue}{" "}
+                          {data.summary.waitingOverdue === 1
+                            ? "förfallen"
+                            : "förfallna"}
+                        </span>
+                      </>
+                    ) : null}
+                  </p>
+                ) : null}
+              </div>
+              {filtersActive ? (
+                <p className="mt-1 text-xs text-gray-500 dark:text-zinc-400">
+                  Visar alla frågor, filtret gäller inte här
                 </p>
               ) : null}
             </div>
@@ -953,102 +969,105 @@ export function DriftOverviewClient({
         </div>
       ) : null}
 
-      {filterOpen ? (
-        <div
-          className="fixed inset-0 z-50"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby={filterTitleId}
-        >
-          <button
-            type="button"
-            className="absolute inset-0 bg-black/80 lg:bg-black/40"
-            aria-label="Stäng filter"
-            onClick={() => setFilterOpen(false)}
-          />
-          <div className="absolute inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto rounded-t-xl border border-gray-200 bg-white p-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] shadow-lg dark:border-zinc-800 dark:bg-zinc-900 lg:inset-auto lg:right-8 lg:top-32 lg:w-[22rem] lg:rounded-xl lg:p-5">
+      {filterOpen && filterPortalReady
+        ? createPortal(
             <div
-              className="mx-auto mb-3 h-1 w-10 rounded-full bg-gray-300 dark:bg-zinc-600 lg:hidden"
-              aria-hidden="true"
-            />
-            <div className="mb-4 flex items-center justify-between">
-              <h2
-                id={filterTitleId}
-                className="text-lg font-bold text-gray-900 dark:text-white"
-              >
-                Filter
-              </h2>
+              className="fixed inset-0 z-[100]"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby={filterTitleId}
+            >
               <button
                 type="button"
-                className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-gray-600 hover:bg-gray-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                className="absolute inset-0 bg-black/80 lg:bg-black/40"
                 aria-label="Stäng filter"
                 onClick={() => setFilterOpen(false)}
-              >
-                <X className="h-4 w-4" aria-hidden="true" />
-              </button>
-            </div>
-            <div className={cn(ADMIN_FORM_FIELDS_CLASS, "space-y-4")}>
-              <label className="block" htmlFor="drift-filter-owner">
-                <span className="mb-1 block text-xs font-medium text-gray-700 dark:text-zinc-300">
-                  Ägare
-                </span>
-                <select
-                  id="drift-filter-owner"
-                  className="h-10 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-                  value={draftOwner}
-                  onChange={(e) => setDraftOwner(e.target.value)}
-                >
-                  <option value="">Alla ägare</option>
-                  <option value="__none__">Utan ägare</option>
-                  {data.ownerOptions.map((name) => (
-                    <option key={name} value={name}>
-                      {name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="block" htmlFor="drift-filter-project">
-                <span className="mb-1 block text-xs font-medium text-gray-700 dark:text-zinc-300">
-                  Projekt
-                </span>
-                <select
-                  id="drift-filter-project"
-                  className="h-10 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-                  value={draftProject}
-                  onChange={(e) => setDraftProject(e.target.value)}
-                >
-                  <option value="">Alla projekt</option>
-                  <option value="__unassigned__">Utan projektkoppling</option>
-                  {data.projectOptions.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-            <div className="mt-6 flex flex-col gap-2 sm:flex-row">
-              <button
-                type="button"
-                className="inline-flex h-10 flex-1 items-center justify-center rounded-lg bg-gray-900 text-xs font-medium text-white dark:bg-zinc-50 dark:text-zinc-900"
-                onClick={applyFilters}
-              >
-                Visa resultat
-              </button>
-              <button
-                type="button"
-                className={cn(
-                  "inline-flex h-10 flex-1 items-center justify-center border text-xs font-medium",
-                  ADMIN_OUTLINE_BUTTON_CLASS,
-                )}
-                onClick={clearFilters}
-              >
-                Rensa
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+              />
+              <div className="absolute inset-x-0 bottom-0 z-[101] max-h-[85vh] overflow-y-auto rounded-t-xl border border-gray-200 bg-white p-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] shadow-lg dark:border-zinc-800 dark:bg-zinc-900 lg:inset-auto lg:right-8 lg:top-32 lg:w-[22rem] lg:rounded-xl lg:p-5">
+                <div
+                  className="mx-auto mb-3 h-1 w-10 rounded-full bg-gray-300 dark:bg-zinc-600 lg:hidden"
+                  aria-hidden="true"
+                />
+                <div className="mb-4 flex items-center justify-between">
+                  <h2
+                    id={filterTitleId}
+                    className="text-lg font-bold text-gray-900 dark:text-white"
+                  >
+                    Filter
+                  </h2>
+                  <button
+                    type="button"
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-gray-600 hover:bg-gray-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                    aria-label="Stäng filter"
+                    onClick={() => setFilterOpen(false)}
+                  >
+                    <X className="h-4 w-4" aria-hidden="true" />
+                  </button>
+                </div>
+                <div className={cn(ADMIN_FORM_FIELDS_CLASS, "space-y-4")}>
+                  <label className="block" htmlFor="drift-filter-owner">
+                    <span className="mb-1 block text-xs font-medium text-gray-700 dark:text-zinc-300">
+                      Ägare
+                    </span>
+                    <select
+                      id="drift-filter-owner"
+                      className="h-10 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                      value={draftOwner}
+                      onChange={(e) => setDraftOwner(e.target.value)}
+                    >
+                      <option value="">Alla ägare</option>
+                      <option value="__none__">Utan ägare</option>
+                      {data.ownerOptions.map((name) => (
+                        <option key={name} value={name}>
+                          {name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="block" htmlFor="drift-filter-project">
+                    <span className="mb-1 block text-xs font-medium text-gray-700 dark:text-zinc-300">
+                      Projekt
+                    </span>
+                    <select
+                      id="drift-filter-project"
+                      className="h-10 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                      value={draftProject}
+                      onChange={(e) => setDraftProject(e.target.value)}
+                    >
+                      <option value="">Alla projekt</option>
+                      <option value="__unassigned__">Utan projektkoppling</option>
+                      {data.projectOptions.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+                <div className="mt-6 flex flex-col gap-2">
+                  <button
+                    type="button"
+                    className="inline-flex h-11 w-full items-center justify-center rounded-lg bg-gray-900 text-sm font-medium text-white hover:bg-gray-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+                    onClick={applyFilters}
+                  >
+                    Visa resultat
+                  </button>
+                  <button
+                    type="button"
+                    className={cn(
+                      "inline-flex h-11 w-full items-center justify-center border text-sm font-medium",
+                      ADMIN_OUTLINE_BUTTON_CLASS,
+                    )}
+                    onClick={clearFilters}
+                  >
+                    Rensa
+                  </button>
+                </div>
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
     </div>
   )
 }
@@ -1124,7 +1143,7 @@ function BotTableRow({
       <td className="px-5 py-3.5 align-top text-sm text-gray-700 dark:text-zinc-300">
         <span className="line-clamp-2">{bot.jobbarPa}</span>
       </td>
-      <td className="px-5 py-3.5 align-top">
+      <td className="px-5 py-3.5 align-top text-left">
         <BotVantarCell bot={bot} />
       </td>
     </tr>
