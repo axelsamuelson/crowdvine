@@ -31,7 +31,6 @@ import {
   applyNaturalWineCopyVariant,
   contentVariantFromAuthUser,
   isNaturalWineHiddenVariantTag,
-  readContentVariantFromStorage,
 } from "@/lib/onboarding/welcome-modal-content-variant";
 import { createClient } from "@/utils/supabase/client";
 
@@ -139,13 +138,9 @@ export function WelcomeModal({
     };
 
     const resolveVariant = async () => {
+      // No cookie / localStorage — tag must follow the person (canvas 12/11).
       if (previewHideNaturalWine != null) {
         setHideNaturalWine(Boolean(previewHideNaturalWine));
-        return;
-      }
-      const stored = readContentVariantFromStorage();
-      if (isNaturalWineHiddenVariantTag(stored)) {
-        setHideNaturalWine(true);
         return;
       }
       try {

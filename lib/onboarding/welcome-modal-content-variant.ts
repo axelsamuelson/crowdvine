@@ -1,16 +1,19 @@
 /**
- * Axel 12/11: members with the content-variant tag must not see
- * "naturvin" / "natural wine". Prefer existing helpers if present; otherwise
- * detect via auth user_metadata/app_metadata.content_variant (or
- * hide_natural_wine) and rewrite to hantverksvin / craft wine.
+ * Welcome-modal stopgap for Axel’s 12/11 “hidden content” / hantverksvin idea.
  *
- * Known tag values: "hantverk" | "hantverksvin" | "hide_natural" | "hide_natural_wine"
+ * Repo + design canvas (12/11): no person tag, glossary, or catalog filter is
+ * built yet (“Inget är byggt”). Full program is PR-plan A–F and needs Axel OK.
+ * Canvas rule: tag follows the person — not a cookie / address.
+ *
+ * Until PR A ships a real profile tag, the welcome modal only:
+ * - reads auth user_metadata/app_metadata.content_variant (or hide_natural_wine)
+ * - accepts an explicit preview prop on /dev/welcome-modal (?hideNatural=1)
+ * and rewrites naturvin → hantverksvin / natural wine → craft wine in modal copy.
  */
 
 import type { AppLocale } from "@/lib/i18n/locale";
 
 export const WELCOME_CONTENT_VARIANT_META_KEY = "content_variant";
-export const WELCOME_CONTENT_VARIANT_STORAGE_KEY = "pact_content_variant";
 
 const VARIANT_TAG_VALUES = new Set([
   "hantverk",
@@ -29,7 +32,7 @@ export function isNaturalWineHiddenVariantTag(
   return VARIANT_TAG_VALUES.has(String(raw).trim().toLowerCase());
 }
 
-/** Read variant tag from Supabase auth user metadata bags. */
+/** Read variant tag from Supabase auth user metadata bags (person-scoped). */
 export function contentVariantFromAuthUser(user: {
   user_metadata?: Record<string, unknown> | null;
   app_metadata?: Record<string, unknown> | null;
@@ -43,27 +46,6 @@ export function contentVariantFromAuthUser(user: {
       bag.hide_natural;
     if (typeof v === "string" && v.trim()) return v.trim();
     if (v === true) return "hantverk";
-  }
-  return null;
-}
-
-export function readContentVariantFromStorage(): string | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const fromLs = window.localStorage.getItem(
-      WELCOME_CONTENT_VARIANT_STORAGE_KEY,
-    );
-    if (fromLs) return fromLs;
-  } catch {
-    // ignore
-  }
-  try {
-    const match = document.cookie.match(
-      /(?:^|;\s*)pact_content_variant=([^;]+)/,
-    );
-    if (match?.[1]) return decodeURIComponent(match[1]);
-  } catch {
-    // ignore
   }
   return null;
 }

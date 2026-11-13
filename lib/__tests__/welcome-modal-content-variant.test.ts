@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import {
   applyNaturalWineCopyVariant,
   contentVariantFromAuthUser,
@@ -51,6 +53,16 @@ describe("welcome modal natural-wine content variant (Axel 12/11)", () => {
     expect(en).toContain("producer or wholesaler");
     expect(applyNaturalWineCopyVariant(sv, "sv", true)).toBe(sv);
     expect(applyNaturalWineCopyVariant(en, "en", true)).toBe(en);
+  });
+
+  it("does not ship cookie/localStorage helpers (tag follows the person)", () => {
+    const src = readFileSync(
+      resolve(process.cwd(), "lib/onboarding/welcome-modal-content-variant.ts"),
+      "utf8",
+    );
+    expect(src).not.toMatch(/document\.cookie/);
+    expect(src).not.toMatch(/localStorage/);
+    expect(src).toMatch(/contentVariantFromAuthUser/);
   });
 
   it("rewrites every naturvin/natural-wine occurrence across welcome copy", () => {
