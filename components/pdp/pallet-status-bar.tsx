@@ -5,6 +5,7 @@ import { useCallback } from "react";
 
 import { VisibleOnceTracker } from "@/components/analytics/visible-once-tracker";
 import { DirectBoxDeliveryPromise } from "@/components/commerce/direct-box-delivery-promise";
+import { MinSixBottlesHint } from "@/components/commerce/min-six-bottles-hint";
 import { PactSellerConsumerInfo } from "@/components/commerce/pact-seller-consumer-info";
 import { usePalletZoneStatus } from "@/components/pdp/pallet-zone-status-provider";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
@@ -15,17 +16,21 @@ import { useTranslations } from "@/lib/hooks/use-translations";
 /**
  * PDP delivery strip: customer sees direct-box promise (not pallet fill).
  * Still emits `pallet_status_viewed` with fill metadata for funnel analytics.
+ * Optional 6-bottle rule row sits among delivery rows (same muted text style).
  */
 export function PalletStatusBar({
   sourceType,
   showDirectBoxPromise = false,
   showSharedPalletPromise = false,
+  showSixPackRule = false,
 }: {
   sourceType?: string | null;
   /** Pass from server via isDirectBoxCheckoutEnabled() — env is not on the client. */
   showDirectBoxPromise?: boolean;
   /** PACT wine PDP: shared-pallet delivery line next to direct-box row. */
   showSharedPalletPromise?: boolean;
+  /** PACT wine PDP: 6-bottle rule as a plain delivery-style row (fires six_pack_rule_viewed). */
+  showSixPackRule?: boolean;
 }) {
   const { t, context } = useTranslations();
   const isDirtywineSite = useB2BModeServerHint();
@@ -54,6 +59,12 @@ export function PalletStatusBar({
       onVisible={onPalletVisible}
       className="w-full min-w-0 overflow-clip space-y-2"
     >
+      {showSixPackRule && !isDirtywineSite ? (
+        <MinSixBottlesHint
+          locale={context.locale}
+          trackSurface="pdp_info"
+        />
+      ) : null}
       {unavailableMessage ? (
         <p className="text-sm text-muted-foreground">{unavailableMessage}</p>
       ) : (
