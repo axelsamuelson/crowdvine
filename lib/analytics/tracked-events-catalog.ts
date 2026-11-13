@@ -441,6 +441,33 @@ export const TRACKED_USER_EVENTS_CATALOG: TrackedEventCatalogEntry[] = [
     sources: ["client"],
   },
   {
+    eventType: "welcome_shown",
+    category: "engagement",
+    description:
+      "Welcome modal opened once after first login/signup (flag-gated).",
+    sources: ["client"],
+  },
+  {
+    eventType: "welcome_step_viewed",
+    category: "engagement",
+    description: "Welcome modal step became visible. Metadata: step (1–3).",
+    sources: ["client"],
+  },
+  {
+    eventType: "welcome_dismissed",
+    category: "engagement",
+    description:
+      "Welcome modal closed via Stäng/Hoppa över. Metadata: step, method (close|skip).",
+    sources: ["client"],
+  },
+  {
+    eventType: "welcome_cta_clicked",
+    category: "engagement",
+    description:
+      "Welcome modal final CTA (Se vinerna / See the wines) clicked.",
+    sources: ["client"],
+  },
+  {
     eventType: "scroll_depth",
     category: "engagement",
     description: "Scroll depth milestone (25/50/75/100) on PDP / how-it-works.",

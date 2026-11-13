@@ -40,6 +40,8 @@ describe("retired /onboarding Opus template", () => {
     const src = read("components/onboarding/onboarding-provider.tsx");
     expect(src).not.toMatch(/push\s*\(\s*["']\/onboarding["']/);
     expect(src).not.toMatch(/router\.push/);
-    expect(src).toMatch(/no-op/i);
+    // showWelcome opens WelcomeModal when the feature flag is on (never the retired route).
+    expect(src).toMatch(/WelcomeModal/);
+    expect(src).toMatch(/isWelcomeModalEnabled/);
   });
 });

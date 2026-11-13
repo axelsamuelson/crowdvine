@@ -406,10 +406,14 @@ export async function getUserMembership(userId: string) {
 }
 
 /**
- * Get display name for membership level (English)
+ * Get display name for membership level.
+ * Optional locale: SV uses Brons/Guld; EN uses Bronze/Gold (profile + welcome modal).
  */
-export function getLevelDisplayName(level: MembershipLevel): string {
-  const levelNames: Record<MembershipLevel, string> = {
+export function getLevelDisplayName(
+  level: MembershipLevel,
+  locale: "en" | "sv" = "en",
+): string {
+  const levelNamesEn: Record<MembershipLevel, string> = {
     requester: "Requester",
     basic: "Basic",
     brons: "Bronze",
@@ -418,7 +422,17 @@ export function getLevelDisplayName(level: MembershipLevel): string {
     privilege: "Privilege",
     founding_member: "Founding Member",
   };
+  const levelNamesSv: Record<MembershipLevel, string> = {
+    requester: "Requester",
+    basic: "Basic",
+    brons: "Brons",
+    silver: "Silver",
+    guld: "Guld",
+    privilege: "Privilege",
+    founding_member: "Founding Member",
+  };
 
+  const levelNames = locale === "sv" ? levelNamesSv : levelNamesEn;
   return levelNames[level] || level.charAt(0).toUpperCase() + level.slice(1);
 }
 

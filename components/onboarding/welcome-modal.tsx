@@ -1,513 +1,155 @@
-// DO NOT MOUNT in its current state (design review, Inès 2026-11-01): English copy, Title Case headings, pill buttons and copy like 'Pure wine' don't follow PACT's design system. Ask design (Inès) before activating.
+/**
+ * Welcome modal — short 3-step copy (Margaux kort-v2).
+ * Mount is gated by OnboardingProvider + NEXT_PUBLIC_WELCOME_MODAL_ENABLED (default OFF).
+ * Preview: /dev/welcome-modal
+ */
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, type ReactNode } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import {
-  X,
-  ArrowRight,
-  ArrowLeft,
-  Wine,
-  Users,
-  Package,
-  Truck,
-  CheckCircle,
-} from "lucide-react";
+import { X, ArrowRight, ArrowLeft, Wine, Package, Users } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { LogoSvg } from "@/components/layout/header/logo-svg";
 import type { AppLocale } from "@/lib/i18n/locale";
-import { normalizeMembershipLevel } from "@/lib/membership/points-engine";
-import { palletDeliveryEstimateLabel } from "@/lib/pallet-delivery-estimate-label";
 import { useTranslations } from "@/lib/hooks/use-translations";
 import { cn } from "@/lib/utils";
+import { isDirectBoxCheckoutEnabled } from "@/lib/commerce/fulfillment-channel";
+import { shopPathForLocale } from "@/lib/i18n/localized-routes";
+import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
+import {
+  welcomeModalLevelDisplayName,
+  welcomeModalTier,
+  type WelcomeModalMembershipLevel,
+} from "@/lib/onboarding/welcome-modal-membership";
+import {
+  WELCOME_MODAL_COPY,
+  welcomeModalStep1Body,
+  welcomeModalStep2Card2Body,
+  welcomeModalStep3Body,
+} from "@/lib/onboarding/welcome-modal-copy";
+
+export type WelcomeDismissMethod = "close" | "skip";
 
 interface WelcomeModalProps {
   isOpen: boolean;
-  onClose: () => void;
+  onClose: (opts?: { method?: WelcomeDismissMethod | "cta" }) => void;
   /** Override shopping locale (e.g. screenshot preview). */
   locale?: AppLocale;
-}
-
-const WELCOME_NAV = {
-  sv: { back: "Tillbaka", skip: "Hoppa över", next: "Nästa", close: "Stäng" },
-  en: { back: "Back", skip: "Skip", next: "Next", close: "Close" },
-} as const;
-
-const STEP3_COPY = {
-  sv: {
-    title: "Pallar och status",
-    subtitle: "Följ ditt köp",
-    palletProgress: "Så fylls pallen",
-    bottlesCount: "487 / 700 flaskor",
-    bottlesToGo: "213 flaskor kvar —",
-    orderConfirmed: "Köpet är bekräftat",
-    bottlesBought:
-      "Dina flaskor är köpta och väntar på att pallen fylls",
-    palletComplete: "Pallen är full",
-    waitingCapacity: "Väntar på transport",
-    inTransit: "På väg",
-    shippingToYou: "Skickas till dig",
-    emailUpdates: "Du får ett mejl vid varje steg.",
-  },
-  en: {
-    title: "Pallets & Progress",
-    subtitle: "Follow your order",
-    palletProgress: "Pallet Progress",
-    bottlesCount: "487 / 700 bottles",
-    bottlesToGo: "213 bottles to go —",
-    orderConfirmed: "Order confirmed",
-    bottlesBought:
-      "Your bottles are bought and waiting for the pallet to fill",
-    palletComplete: "Pallet Complete",
-    waitingCapacity: "Waiting for capacity",
-    inTransit: "In Transit",
-    shippingToYou: "Shipping to you",
-    emailUpdates: "You'll receive email updates at each stage",
-  },
-} as const;
-
-type WelcomeModalMembershipLevel =
-  | "basic"
-  | "brons"
-  | "silver"
-  | "guld"
-  | "privilege"
-  | "founding_member";
-
-interface MembershipConfig {
-  displayName: string;
-  color: string;
-  bgColor: string;
-  nextLevel: string | null;
-  pointsToNext: number | null;
-  description: string;
-}
-
-const membershipLevels: Record<WelcomeModalMembershipLevel, MembershipConfig> = {
-  basic: {
-    displayName: "Basic",
-    color: "text-slate-900",
-    bgColor: "bg-slate-100",
-    nextLevel: "Plus",
-    pointsToNext: 5,
-    description: "Entry level access to all wines and basic community features",
-  },
-  brons: {
-    displayName: "Plus",
-    color: "text-indigo-900",
-    bgColor: "bg-indigo-100",
-    nextLevel: "Premium",
-    pointsToNext: 10,
-    description: "Enhanced invite quota and queue priority for popular drops",
-  },
-  silver: {
-    displayName: "Premium",
-    color: "text-emerald-900",
-    bgColor: "bg-emerald-100",
-    nextLevel: "Priority",
-    pointsToNext: 20,
-    description: "Early access to new releases and reduced service fees",
-  },
-  guld: {
-    displayName: "Priority",
-    color: "text-amber-900",
-    bgColor: "bg-amber-100",
-    nextLevel: "Privilege",
-    pointsToNext: 35,
-    description: "High invite quota, priority access, and exclusive perks",
-  },
-  privilege: {
-    displayName: "Privilege",
-    color: "text-rose-900",
-    bgColor: "bg-rose-100",
-    nextLevel: null,
-    pointsToNext: null,
-    description: "Maximum invite quota, top priority, and exclusive benefits",
-  },
-  founding_member: {
-    displayName: "Founding Member",
-    color: "text-amber-950",
-    bgColor: "bg-[#1a1a2e] border border-[#C0A060]",
-    nextLevel: null,
-    pointsToNext: null,
-    description:
-      "Founding member pricing, top invite quota, and thanks for believing in PACT early",
-  },
-};
-
-const getSteps = (
-  membershipLevel: WelcomeModalMembershipLevel,
-  earningEnabled: boolean,
-  locale: AppLocale,
-) => {
-  const levelConfig = membershipLevels[membershipLevel];
-  const step3 = STEP3_COPY[locale];
-  const deliveryEstimate = palletDeliveryEstimateLabel(locale);
-
-  return [
-    {
-      id: 1,
-      title: "Welcome to",
-      subtitle: "A smarter way to buy wine together",
-      icon: Wine,
-      content: (
-        <div className="space-y-6 text-center h-[280px] flex flex-col justify-center">
-          <div className="flex justify-center mb-6">
-            <LogoSvg className="h-16 w-auto" />
-          </div>
-          <p className="text-base text-muted-foreground leading-relaxed max-w-md mx-auto">
-            We buy wine together, directly from winemakers, without middlemen or
-            markups. A new system built on transparency, better prices, and a
-            shared pact between producers and consumers.
-          </p>
-        </div>
-      ),
-    },
-    {
-      id: 2,
-      title: "How It Works",
-      subtitle: "Crowdsourcing wine, step by step",
-      icon: Package,
-      content: (
-        <div className="space-y-4 max-w-md mx-auto h-[280px] flex flex-col justify-center">
-          <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-full bg-foreground text-background flex items-center justify-center text-xs font-medium flex-shrink-0 mt-0.5">
-              1
-            </div>
-            <div>
-              <h4 className="font-medium text-foreground text-sm mb-1">
-                Discover & Buy
-              </h4>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                Browse curated natural wines and buy bottles.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-full bg-foreground text-background flex items-center justify-center text-xs font-medium flex-shrink-0 mt-0.5">
-              2
-            </div>
-            <div>
-              <h4 className="font-medium text-foreground text-sm mb-1">
-                Collective Shipping
-              </h4>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                When the pallet fills, wines ship directly from winemakers.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-full bg-foreground text-background flex items-center justify-center text-xs font-medium flex-shrink-0 mt-0.5">
-              3
-            </div>
-            <div>
-              <h4 className="font-medium text-foreground text-sm mb-1">
-                Track Progress
-              </h4>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                See exactly where your wine is at every step.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-full bg-foreground text-background flex items-center justify-center text-xs font-medium flex-shrink-0 mt-0.5">
-              4
-            </div>
-            <div>
-              <h4 className="font-medium text-foreground text-sm mb-1">
-                Receive & Enjoy
-              </h4>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                Pure wine from winemaker to your door.
-              </p>
-            </div>
-          </div>
-        </div>
-      ),
-    },
-    {
-      id: 3,
-      title: step3.title,
-      subtitle: step3.subtitle,
-      icon: Truck,
-      content: (
-        <div className="space-y-6 max-w-md mx-auto h-[280px] flex flex-col justify-center">
-          <div className="space-y-3">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">
-                {step3.palletProgress}
-              </span>
-              <span className="font-medium text-foreground">
-                {step3.bottlesCount}
-              </span>
-            </div>
-            <div className="h-3 bg-muted rounded-full overflow-hidden">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: "70%" }}
-                transition={{ duration: 1.5, ease: "easeOut" }}
-                className="h-full bg-foreground rounded-full"
-              />
-            </div>
-            <p className="text-xs text-center text-muted-foreground">
-              {step3.bottlesToGo} {deliveryEstimate}
-            </p>
-          </div>
-
-          <div className="space-y-3 pt-2">
-            <div className="flex items-start gap-3">
-              <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-medium text-foreground">
-                  {step3.orderConfirmed}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {step3.bottlesBought}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3 opacity-40">
-              <Package className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  {step3.palletComplete}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {step3.waitingCapacity}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3 opacity-40">
-              <Truck className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  {step3.inTransit}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {step3.shippingToYou}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <p className="text-sm text-center text-muted-foreground pt-2">
-            {step3.emailUpdates}
-          </p>
-        </div>
-      ),
-    },
-    {
-      id: 4,
-      title: "Your Membership",
-      subtitle: earningEnabled ? "Earn points, unlock perks" : "Your member status",
-      icon: Users,
-      content: (
-        <div className="space-y-6 max-w-md mx-auto h-[280px] flex flex-col justify-center">
-          <div className="text-center space-y-3">
-            <div
-              className={`inline-flex items-center justify-center w-16 h-16 rounded-full ${levelConfig.bgColor} ${levelConfig.color} text-base font-medium`}
-            >
-              {levelConfig.displayName}
-            </div>
-            <p className="text-sm text-muted-foreground">
-              {earningEnabled
-                ? levelConfig.description
-                : "You are a PACT member. Redeem existing points at checkout."}
-            </p>
-          </div>
-
-          {earningEnabled && levelConfig.nextLevel ? (
-            <>
-              <div className="space-y-3">
-                <p className="text-sm font-medium text-foreground text-center">
-                  Earn PACT Points by:
-                </p>
-                <div className="space-y-2 text-sm text-muted-foreground text-center">
-                  <p>Buying wine — 1+ points per bottle, more at higher tiers</p>
-                  <p>Inviting friends — 30 points when they order</p>
-                  <p>Reviewing wines — 10 points after delivery</p>
-                  <p>Setting your delivery zone — 5 points (one-time bonus)</p>
-                  <p className="pt-2 font-medium text-foreground">
-                    Plus 50 PACT Points welcome bonus to start!
-                  </p>
-                </div>
-              </div>
-
-              <div className="pt-2">
-                <div className="flex items-center justify-center gap-3">
-                  <span className="text-sm font-medium">
-                    {levelConfig.displayName}
-                  </span>
-                  <ArrowRight className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm font-medium text-orange-600">
-                    {levelConfig.nextLevel}
-                  </span>
-                </div>
-                <p className="text-xs text-center text-muted-foreground mt-2">
-                  {levelConfig.pointsToNext} points to unlock{" "}
-                  {levelConfig.nextLevel}
-                </p>
-              </div>
-            </>
-          ) : earningEnabled ? (
-            <div className="text-center py-4">
-              <p className="text-sm text-muted-foreground">
-                You&apos;ve reached the highest membership level!
-              </p>
-            </div>
-          ) : null}
-
-          <p className="text-sm text-center text-muted-foreground pt-2">
-            Track your status in your profile
-          </p>
-        </div>
-      ),
-    },
-    {
-      id: 5,
-      title: "Ready to Start?",
-      subtitle: "Explore wines and make your first order",
-      icon: Wine,
-      content: (
-        <div className="space-y-8 text-center h-[280px] flex flex-col justify-center">
-          <div className="space-y-4">
-            <p className="text-base text-muted-foreground leading-relaxed max-w-md mx-auto">
-              Browse our curated selection of natural wines, buy your
-              bottles, and watch your pallet fill up.
-            </p>
-            <p className="text-sm text-muted-foreground">
-              Remember: wines are shipped in 6-bottle multiples per producer.
-            </p>
-          </div>
-
-          <div className="bg-foreground text-background rounded-2xl p-8 space-y-4">
-            <p className="text-lg font-light">Crowdsource your wine.</p>
-            <p className="text-sm opacity-70">
-              Buy direct, drink better, and know exactly where your money goes.
-            </p>
-          </div>
-        </div>
-      ),
-    },
-  ];
-};
-
-function welcomeModalTier(raw: string): WelcomeModalMembershipLevel {
-  const n = normalizeMembershipLevel(raw);
-  if (n === "requester") return "basic";
-  if (n === "founding_member") return "founding_member";
-  return n as WelcomeModalMembershipLevel;
+  /** Preview overrides (dev harness / screenshots). */
+  previewMembershipLevel?: WelcomeModalMembershipLevel;
+  previewEarningEnabled?: boolean;
+  /** Override DIRECT_BOX_CHECKOUT_ENABLED (pass from server; env is not on the client). */
+  directBoxCheckoutEnabled?: boolean;
+  /** 0-based step index. */
+  initialStep?: number;
+  /** When true, skip membership fetch (preview). */
+  previewMode?: boolean;
 }
 
 export function WelcomeModal({
   isOpen,
   onClose,
   locale: localeProp,
+  previewMembershipLevel,
+  previewEarningEnabled,
+  directBoxCheckoutEnabled,
+  initialStep = 0,
+  previewMode = false,
 }: WelcomeModalProps) {
   const { context } = useTranslations();
   const locale: AppLocale = localeProp ?? context.locale;
-  const [currentStep, setCurrentStep] = useState(0);
+  const router = useRouter();
+  const copy = WELCOME_MODAL_COPY[locale];
+  const nav = copy.nav;
+
+  const [currentStep, setCurrentStep] = useState(initialStep);
   const [direction, setDirection] = useState(0);
   const [membershipLevel, setMembershipLevel] =
-    useState<WelcomeModalMembershipLevel>("basic");
-  const [earningEnabled, setEarningEnabled] = useState(false);
-  const [loading, setLoading] = useState(true);
+    useState<WelcomeModalMembershipLevel>(previewMembershipLevel ?? "basic");
+  const [earningEnabled, setEarningEnabled] = useState(
+    previewEarningEnabled ?? false,
+  );
+  const [loading, setLoading] = useState(
+    !previewMode && previewMembershipLevel == null,
+  );
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+  const shownTracked = useRef(false);
+  const lastStepTracked = useRef<number | null>(null);
 
-  // Minimum distance for swipe detection
+  const directBoxEnabled =
+    directBoxCheckoutEnabled !== undefined
+      ? directBoxCheckoutEnabled
+      : isDirectBoxCheckoutEnabled();
+
   const minSwipeDistance = 50;
+  const stepCount = 3;
+  const stepNumber = currentStep + 1;
 
-  // Fetch user's membership level
   useEffect(() => {
+    if (previewMode || previewMembershipLevel != null) {
+      setMembershipLevel(previewMembershipLevel ?? "basic");
+      setEarningEnabled(previewEarningEnabled ?? false);
+      setLoading(false);
+      return;
+    }
+
     const fetchMembership = async () => {
       try {
-        console.log("🎓 [Modal] Fetching membership level...");
-        const response = await fetch("/api/user/membership");
-        console.log("🎓 [Modal] Membership response status:", response.status);
-
+        const response = await fetch("/api/user/membership", {
+          credentials: "same-origin",
+        });
         if (response.ok) {
           const data = await response.json();
-          console.log("🎓 [Modal] Membership data:", data);
-          const level = data.membership?.level || "basic";
-          console.log("🎓 [Modal] Using membership level:", level);
-          setMembershipLevel(welcomeModalTier(level));
+          setMembershipLevel(welcomeModalTier(data.membership?.level || "basic"));
           setEarningEnabled(Boolean(data.pactPointsEarningEnabled));
         } else {
-          console.error(
-            "🎓 [Modal] Failed to fetch membership, defaulting to basic",
-          );
           setMembershipLevel("basic");
           setEarningEnabled(false);
         }
-      } catch (error) {
-        console.error("🎓 [Modal] Error fetching membership:", error);
-        // Default to basic if there's an error
+      } catch {
         setMembershipLevel("basic");
+        setEarningEnabled(false);
       } finally {
         setLoading(false);
       }
     };
 
     if (isOpen) {
-      fetchMembership();
+      void fetchMembership();
     }
-  }, [isOpen]);
+  }, [
+    isOpen,
+    previewMode,
+    previewMembershipLevel,
+    previewEarningEnabled,
+  ]);
 
-  const steps = getSteps(membershipLevel, earningEnabled, locale);
-  const step = steps[currentStep];
-  const Icon = step.icon;
-  const nav = WELCOME_NAV[locale];
+  useEffect(() => {
+    setCurrentStep(initialStep);
+  }, [initialStep]);
 
-  const handleNext = () => {
-    if (currentStep < steps.length - 1) {
-      setDirection(1);
-      setCurrentStep(currentStep + 1);
-    } else {
-      onClose();
+  useEffect(() => {
+    if (!isOpen || loading) return;
+    if (!shownTracked.current) {
+      shownTracked.current = true;
+      void AnalyticsTracker.trackEvent({
+        eventType: "welcome_shown",
+        eventCategory: "engagement",
+      });
     }
-  };
-
-  const handlePrev = () => {
-    if (currentStep > 0) {
-      setDirection(-1);
-      setCurrentStep(currentStep - 1);
+    if (lastStepTracked.current !== stepNumber) {
+      lastStepTracked.current = stepNumber;
+      void AnalyticsTracker.trackEvent({
+        eventType: "welcome_step_viewed",
+        eventCategory: "engagement",
+        metadata: { step: stepNumber },
+      });
     }
-  };
+  }, [isOpen, loading, stepNumber]);
 
-  const handleSkip = () => {
-    onClose();
-  };
-
-  // Touch handlers for swipe functionality
-  const onTouchStart = (e: React.TouchEvent) => {
-    setTouchEnd(null);
-    setTouchStart(e.targetTouches[0].clientX);
-  };
-
-  const onTouchMove = (e: React.TouchEvent) => {
-    setTouchEnd(e.targetTouches[0].clientX);
-  };
-
-  const onTouchEnd = () => {
-    if (!touchStart || !touchEnd) return;
-
-    const distance = touchStart - touchEnd;
-    const isLeftSwipe = distance > minSwipeDistance;
-    const isRightSwipe = distance < -minSwipeDistance;
-
-    if (isLeftSwipe && currentStep < steps.length - 1) {
-      handleNext();
-    } else if (isRightSwipe && currentStep > 0) {
-      handlePrev();
-    }
-  };
-
-  // Prevent body scroll when modal is open
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
@@ -519,7 +161,133 @@ export function WelcomeModal({
     };
   }, [isOpen]);
 
-  // Don't render until membership is loaded
+  const levelName = welcomeModalLevelDisplayName(membershipLevel, locale);
+
+  const steps: {
+    id: number;
+    title: string;
+    subtitle?: string;
+    icon: typeof Wine;
+    content: ReactNode;
+  }[] = [
+    {
+      id: 1,
+      title: copy.step1.title,
+      subtitle: copy.step1.subtitle,
+      icon: Wine,
+      content: (
+        <div className="space-y-6 text-center flex flex-col justify-center">
+          <div className="flex justify-center mb-2">
+            <LogoSvg className="h-14 w-auto" />
+          </div>
+          <p className="text-base text-muted-foreground leading-relaxed max-w-md mx-auto">
+            {welcomeModalStep1Body(locale, directBoxEnabled)}
+          </p>
+        </div>
+      ),
+    },
+    {
+      id: 2,
+      title: copy.step2.title,
+      icon: Package,
+      content: (
+        <div className="space-y-4 max-w-md mx-auto flex flex-col justify-center">
+          {copy.step2.cards.map((card, index) => {
+            const body =
+              index === 1
+                ? welcomeModalStep2Card2Body(locale, directBoxEnabled)
+                : card.body;
+            return (
+              <div key={card.title} className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-full bg-foreground text-background flex items-center justify-center text-xs font-medium flex-shrink-0 mt-0.5">
+                  {index + 1}
+                </div>
+                <div>
+                  <h4 className="font-medium text-foreground text-sm mb-1">
+                    {card.title}
+                  </h4>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    {body}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ),
+    },
+    {
+      id: 3,
+      title: copy.step3.title,
+      icon: Users,
+      content: (
+        <div className="space-y-4 text-center max-w-md mx-auto flex flex-col justify-center">
+          <p className="text-base text-muted-foreground leading-relaxed">
+            {welcomeModalStep3Body(locale, levelName)}
+          </p>
+          {earningEnabled ? (
+            <p className="text-sm text-foreground font-medium">
+              {copy.step3.bodyPointsBonus}
+            </p>
+          ) : null}
+        </div>
+      ),
+    },
+  ];
+
+  const step = steps[currentStep] ?? steps[0];
+  const Icon = step.icon;
+
+  const handleNext = () => {
+    if (currentStep < stepCount - 1) {
+      setDirection(1);
+      setCurrentStep(currentStep + 1);
+      return;
+    }
+    void AnalyticsTracker.trackEvent({
+      eventType: "welcome_cta_clicked",
+      eventCategory: "engagement",
+      metadata: { step: stepNumber },
+    });
+    onClose({ method: "cta" });
+    router.push(shopPathForLocale(locale));
+  };
+
+  const handlePrev = () => {
+    if (currentStep > 0) {
+      setDirection(-1);
+      setCurrentStep(currentStep - 1);
+    }
+  };
+
+  const handleDismiss = (method: WelcomeDismissMethod) => {
+    void AnalyticsTracker.trackEvent({
+      eventType: "welcome_dismissed",
+      eventCategory: "engagement",
+      metadata: { step: stepNumber, method },
+    });
+    onClose({ method });
+  };
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    const distance = touchStart - touchEnd;
+    if (distance > minSwipeDistance && currentStep < stepCount - 1) {
+      handleNext();
+    } else if (distance < -minSwipeDistance && currentStep > 0) {
+      handlePrev();
+    }
+  };
+
   if (loading && isOpen) {
     return null;
   }
@@ -528,18 +296,20 @@ export function WelcomeModal({
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm"
-            onClick={handleSkip}
+            onClick={() => handleDismiss("close")}
           />
 
-          {/* Modal */}
           <div className="fixed inset-0 z-[101] flex items-center justify-center p-4">
             <motion.div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="welcome-modal-title"
+              data-testid="welcome-modal"
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
@@ -547,23 +317,21 @@ export function WelcomeModal({
               className="relative w-full max-w-3xl bg-background rounded-3xl shadow-2xl overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Close Button */}
               <button
-                onClick={handleSkip}
+                type="button"
+                onClick={() => handleDismiss("close")}
                 className="absolute top-6 right-6 z-10 w-8 h-8 flex items-center justify-center rounded-full bg-muted hover:bg-muted/80 transition-colors"
                 aria-label={nav.close}
               >
                 <X className="w-4 h-4 text-muted-foreground" />
               </button>
 
-              {/* Content — SV nav labels need extra horizontal room below md */}
               <div
                 className={cn(
                   "p-8 md:p-12",
                   locale === "sv" && "max-md:px-4 max-md:py-6",
                 )}
               >
-                {/* Header with Icon */}
                 <div className="flex flex-col items-center text-center mb-8">
                   {currentStep !== 0 && (
                     <motion.div
@@ -584,16 +352,20 @@ export function WelcomeModal({
                     transition={{ duration: 0.3, delay: 0.1 }}
                     className="space-y-2"
                   >
-                    <h2 className="text-3xl md:text-4xl font-light text-foreground">
+                    <h2
+                      id="welcome-modal-title"
+                      className="text-3xl md:text-4xl font-light text-foreground"
+                    >
                       {step.title}
                     </h2>
-                    <p className="text-sm md:text-base text-muted-foreground">
-                      {step.subtitle}
-                    </p>
+                    {step.subtitle ? (
+                      <p className="text-sm md:text-base text-muted-foreground">
+                        {step.subtitle}
+                      </p>
+                    ) : null}
                   </motion.div>
                 </div>
 
-                {/* Step Content */}
                 <AnimatePresence mode="wait" custom={direction}>
                   <motion.div
                     ref={contentRef}
@@ -612,11 +384,15 @@ export function WelcomeModal({
                   </motion.div>
                 </AnimatePresence>
 
-                {/* Progress Dots */}
-                <div className="flex justify-center gap-2 mb-8">
+                <div
+                  className="flex justify-center gap-2 mb-8"
+                  data-testid="welcome-modal-dots"
+                  data-dot-count={stepCount}
+                >
                   {steps.map((_, index) => (
                     <button
                       key={index}
+                      type="button"
                       onClick={() => {
                         setDirection(index > currentStep ? 1 : -1);
                         setCurrentStep(index);
@@ -626,12 +402,11 @@ export function WelcomeModal({
                           ? "w-8 bg-foreground"
                           : "w-2 bg-foreground/20 hover:bg-foreground/40"
                       }`}
-                      aria-label={`Go to step ${index + 1}`}
+                      aria-label={nav.goToStep.replace("{n}", String(index + 1))}
                     />
                   ))}
                 </div>
 
-                {/* Navigation — SV labels are longer; compact only below md so 1440/EN stay unchanged */}
                 <div
                   className={cn(
                     "flex items-center justify-between whitespace-nowrap",
@@ -652,17 +427,21 @@ export function WelcomeModal({
                     {nav.back}
                   </Button>
 
-                  <Button
-                    onClick={handleSkip}
-                    variant="ghost"
-                    className={cn(
-                      "text-muted-foreground min-w-0",
-                      locale === "sv" &&
-                        "shrink px-1.5 text-[13px] md:px-4 md:text-sm",
-                    )}
-                  >
-                    {nav.skip}
-                  </Button>
+                  {currentStep < stepCount - 1 ? (
+                    <Button
+                      onClick={() => handleDismiss("skip")}
+                      variant="ghost"
+                      className={cn(
+                        "text-muted-foreground min-w-0",
+                        locale === "sv" &&
+                          "shrink px-1.5 text-[13px] md:px-4 md:text-sm",
+                      )}
+                    >
+                      {nav.skip}
+                    </Button>
+                  ) : (
+                    <span className="min-w-0" />
+                  )}
 
                   <Button
                     onClick={handleNext}
@@ -672,8 +451,8 @@ export function WelcomeModal({
                         "gap-1 px-2.5 text-[13px] md:gap-2 md:px-4 md:text-sm",
                     )}
                   >
-                    {currentStep === steps.length - 1 ? (
-                      "Get Started"
+                    {currentStep === stepCount - 1 ? (
+                      nav.cta
                     ) : (
                       <>
                         {nav.next}
