@@ -1,12 +1,14 @@
 import { PACT_PUBLIC_ORIGIN } from "@/lib/i18n/localized-routes";
 
-/** Authorized PACT Sweden flat shipping: 99 SEK incl. VAT per order. */
-export const PACT_SE_SHIPPING_PRICE = "99.00";
-export const PACT_SE_SHIPPING_CURRENCY = "SEK";
-
 /**
  * Shared B2C MerchantReturnPolicy for Product Offer JSON-LD (pactwines.com).
- * merchantReturnDays is counted from delivery (not order/purchase date).
+ *
+ * Grounded ONLY in published purchase terms (`content/legal/source/kopvillkor.sv.md`
+ * §8–§9 and `kopvillkor.en.md` §8–§9):
+ * - 14-day right of withdrawal from the day after delivery
+ * - Customer pays actual return shipping (no mark-up)
+ * - applicableCountry SE (Sweden delivery market)
+ *
  * Do not attach this to Dirty Wine (B2B) pages — those are not covered by
  * the consumer withdrawal window described here.
  */
@@ -18,12 +20,20 @@ export const PACT_B2C_MERCHANT_RETURN_POLICY = {
   merchantReturnDays: 14,
   returnMethod: "https://schema.org/ReturnByMail",
   returnFees: "https://schema.org/ReturnFeesCustomerResponsibility",
+  refundType: "https://schema.org/FullRefund",
 } as const;
+
+/** Direct-delivery shipping rate stated in purchase terms (149 kr / box of 6). */
+export const PACT_SE_DIRECT_SHIPPING_PRICE = "149.00";
+export const PACT_SE_SHIPPING_CURRENCY = "SEK";
 
 /**
  * Shared Offer shipping + return policy for Product JSON-LD.
- * Shipping matches checkout (99 SEK/order). Return policy is
- * {@link PACT_B2C_MERCHANT_RETURN_POLICY} (14 days from delivery).
+ *
+ * Shipping fields are included only when clearly stated in the published terms.
+ * Shared-pallet shipping amount is not named in the terms, so PreOrder offers
+ * get destination SE only (no invented rate or transit window).
+ * Direct delivery states 149 kr / box of 6 and normally 5–10 working days.
  */
 export function productOfferCommerceFields(options?: {
   termsUrl?: string;
@@ -32,38 +42,41 @@ export function productOfferCommerceFields(options?: {
    * Defaults to true for pactwines.com Offer markup.
    */
   includeReturnPolicy?: boolean;
+  /**
+   * When true, attach terms-backed direct-delivery rate and delivery window.
+   * When false (shared pallet / PreOrder), omit rate and deliveryTime.
+   */
+  directDelivery?: boolean;
 }) {
   const termsUrl = options?.termsUrl ?? `${PACT_PUBLIC_ORIGIN}/villkor`;
   const includeReturnPolicy = options?.includeReturnPolicy ?? true;
+  const directDelivery = options?.directDelivery ?? false;
+
+  // Terms state "5–10 working days" for direct delivery; schema.org DAY is not
+  // the same unit, so deliveryTime is omitted rather than guessed as calendar days.
+  const shippingDetails = directDelivery
+    ? {
+        "@type": "OfferShippingDetails" as const,
+        shippingRate: {
+          "@type": "MonetaryAmount" as const,
+          value: PACT_SE_DIRECT_SHIPPING_PRICE,
+          currency: PACT_SE_SHIPPING_CURRENCY,
+        },
+        shippingDestination: {
+          "@type": "DefinedRegion" as const,
+          addressCountry: "SE",
+        },
+      }
+    : {
+        "@type": "OfferShippingDetails" as const,
+        shippingDestination: {
+          "@type": "DefinedRegion" as const,
+          addressCountry: "SE",
+        },
+      };
 
   return {
-    shippingDetails: {
-      "@type": "OfferShippingDetails",
-      shippingRate: {
-        "@type": "MonetaryAmount",
-        value: PACT_SE_SHIPPING_PRICE,
-        currency: PACT_SE_SHIPPING_CURRENCY,
-      },
-      shippingDestination: {
-        "@type": "DefinedRegion",
-        addressCountry: "SE",
-      },
-      deliveryTime: {
-        "@type": "ShippingDeliveryTime",
-        handlingTime: {
-          "@type": "QuantitativeValue",
-          minValue: 1,
-          maxValue: 14,
-          unitCode: "DAY",
-        },
-        transitTime: {
-          "@type": "QuantitativeValue",
-          minValue: 1,
-          maxValue: 7,
-          unitCode: "DAY",
-        },
-      },
-    },
+    shippingDetails,
     ...(includeReturnPolicy
       ? {
           hasMerchantReturnPolicy: {
