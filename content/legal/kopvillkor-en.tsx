@@ -193,10 +193,22 @@ export default function KopvillkorEnContent() {
         back within 14 days.
       </LegalP>
       <LegalP>
-        <LegalStrong>Age check.</LegalStrong> On handover, UPS checks that the
-        recipient is at least 20 years old. Show valid ID. If the age check is
-        not passed, the wine is not handed over, it is sent back to us and you
-        get your money back with no fee.
+        <LegalStrong>Age check.</LegalStrong> UPS checks at handover that the
+        recipient is at least 20 years old. Show valid ID. If the age check
+        fails, the wine will not be handed over.
+      </LegalP>
+      <LegalP>
+        <LegalStrong>If the box cannot be handed over.</LegalStrong> If UPS
+        cannot hand over the box, for example because no one is home, the box
+        is not collected or the age check fails, it is sent back to the
+        producer. Once the box is back, we refund what you paid for the wine,
+        but not the shipping. If you still want the wine, we will send it again
+        for a new shipping fee of SEK 149 per box. If the box did not arrive
+        because of us or UPS, you instead get the full amount back including
+        shipping, or a new delivery at no cost. Your right of withdrawal
+        applies as usual: if you cancel the purchase before the box has been
+        delivered, you also get the shipping fee back, but we deduct the
+        actual cost of returning the box.
       </LegalP>
       <LegalP>
         <LegalStrong>Right of withdrawal.</LegalStrong> You have the same
@@ -362,9 +374,11 @@ export default function KopvillkorEnContent() {
 
       <LegalH2 id="punkt-8">8. If delivery cannot be completed</LegalH2>
       <LegalP>
-        If you are not at home, cannot show ID or are not at least 20 years
-        old, our delivery partner will make a new delivery attempt. If delivery
-        cannot be completed then either, the goods are returned.
+        For shared pallets: If you are not at home, cannot show ID or are not
+        at least 20 years old, our delivery partner will make a new delivery
+        attempt. If delivery cannot be completed then either, the goods are
+        returned. For direct delivery,{" "}
+        <LegalLink href="#punkt-3b">point 3 b</LegalLink> applies.
       </LegalP>
       <LegalP>
         In the event of a return, you pay the actual cost of return shipping,

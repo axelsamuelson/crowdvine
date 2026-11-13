@@ -9,6 +9,7 @@
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { applySv3bAmendment } from "../lib/legal/kopvillkor-2026-11-13-amendment";
 
 const EXPECTED_SHA256 =
   "578afd136248ed76e31f77ed357990d6c5b80d735e116def620304b562bb9620";
@@ -133,18 +134,22 @@ function main() {
       continue;
     }
 
-    if (!published.includes(body)) {
+    // 2026-11-13 amendment supersedes the §3b age-check sentence and adds a paragraph.
+    const expected =
+      section.id === "punkt-3b" ? applySv3bAmendment(body) : body;
+
+    if (!published.includes(expected)) {
       console.error(
-        `FAIL ${section.id}: approved body not found character-for-character in kopvillkor.sv.md (${body.length} chars)`,
+        `FAIL ${section.id}: approved body not found character-for-character in kopvillkor.sv.md (${expected.length} chars)`,
       );
       console.error("--- approved body ---");
-      console.error(body);
+      console.error(expected);
       console.error("---");
       failed += 1;
       continue;
     }
 
-    const plain = body.replace(/\*\*/g, "").replace(/^-\s*/gm, "");
+    const plain = expected.replace(/\*\*/g, "").replace(/^-\s*/gm, "");
     const probe = plain
       .split("\n")
       .map((l) => l.trim())
@@ -157,7 +162,7 @@ function main() {
       continue;
     }
 
-    console.log(`OK ${section.id} (${body.length} chars verbatim in .sv.md)`);
+    console.log(`OK ${section.id} (${expected.length} chars verbatim in .sv.md)`);
   }
 
   if (failed) {

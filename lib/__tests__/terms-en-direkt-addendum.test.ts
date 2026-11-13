@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createHash } from "node:crypto";
 import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
+import { applyEn3bAmendment } from "@/lib/legal/kopvillkor-2026-11-13-amendment";
 
 const EXPECTED_SHA256 =
   "1b9dfe864c9c52ec581290192b48bd89d97ce32e019ad8cbb4d368d9db169914";
@@ -138,11 +139,15 @@ describe("EN terms direct-delivery addendum (GODKAND-1241)", () => {
       ).replace(/\r\n/g, "\n");
 
       for (const section of SECTIONS) {
-        const body = extractBody(
+        let body = extractBody(
           publishable,
           section.heading,
           section.nextHeading,
         );
+        // 2026-11-13 amendment supersedes the §3b age-check sentence and adds a paragraph.
+        if (section.id === "section-3b") {
+          body = applyEn3bAmendment(body);
+        }
         expect(
           published.includes(body),
           `${section.id} missing verbatim (${body.length} chars): ${body.slice(0, 60)}`,

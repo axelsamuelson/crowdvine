@@ -2,7 +2,7 @@
 
 # Terms of purchase
 
-Last updated: 2026-11-11
+Last updated: 2026-11-13
 
 ---
 
@@ -70,7 +70,9 @@ When an order is cancelled, your saved card is removed, unless you choose to kee
 
 **Delivery.** Your boxes are packed in France and we send them to your home with UPS. Delivery time is normally **5–10 working days** from when the order is confirmed and paid. If you have not received your delivery within 30 days, you may cancel the purchase. You will then get the full amount back within 14 days.
 
-**Age check.** On handover, UPS checks that the recipient is at least 20 years old. Show valid ID. If the age check is not passed, the wine is not handed over, it is sent back to us and you get your money back with no fee.
+**Age check.** UPS checks at handover that the recipient is at least 20 years old. Show valid ID. If the age check fails, the wine will not be handed over.
+
+**If the box cannot be handed over.** If UPS cannot hand over the box, for example because no one is home, the box is not collected or the age check fails, it is sent back to the producer. Once the box is back, we refund what you paid for the wine, but not the shipping. If you still want the wine, we will send it again for a new shipping fee of SEK 149 per box. If the box did not arrive because of us or UPS, you instead get the full amount back including shipping, or a new delivery at no cost. Your right of withdrawal applies as usual: if you cancel the purchase before the box has been delivered, you also get the shipping fee back, but we deduct the actual cost of returning the box.
 
 **Right of withdrawal.** You have the same right of withdrawal as for a shared pallet, see section 9. You can withdraw from the purchase even before delivery.
 
@@ -133,7 +135,7 @@ If delivery is significantly delayed, you have the right to terminate the purcha
 
 ## 8. If delivery cannot be completed
 
-If you are not at home, cannot show ID or are not at least 20 years old, our delivery partner will make a new delivery attempt. If delivery cannot be completed then either, the goods are returned.
+For shared pallets: If you are not at home, cannot show ID or are not at least 20 years old, our delivery partner will make a new delivery attempt. If delivery cannot be completed then either, the goods are returned. For direct delivery, point 3 b applies.
 
 In the event of a return, you pay the actual cost of return shipping, without any mark-up. If the handover is refused at the age check, we do not charge any fee.
 
