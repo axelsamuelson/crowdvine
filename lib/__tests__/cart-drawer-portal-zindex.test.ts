@@ -13,4 +13,18 @@ describe("cart drawer stacks above header MENY", () => {
     expect(src).toMatch(/z-\[70\]/);
     expect(src).toMatch(/data-testid="cart-drawer-panel"/);
   });
+
+  it("locks body scroll, closes on Escape/backdrop, and traps/restores focus", () => {
+    const src = readFileSync(
+      resolve(process.cwd(), "components/cart/modal.tsx"),
+      "utf8",
+    );
+    expect(src).toMatch(/useBodyScrollLock\(isOpen\)/);
+    expect(src).toMatch(/event\.key === ["']Escape["']/);
+    expect(src).toMatch(/data-testid="cart-drawer-backdrop"/);
+    expect(src).toMatch(/aria-modal="true"/);
+    expect(src).toMatch(/triggerRef/);
+    expect(src).toMatch(/getFocusable|focusableSelector/);
+    expect(src).toMatch(/restoreTo|triggerRef\.current/);
+  });
 });
