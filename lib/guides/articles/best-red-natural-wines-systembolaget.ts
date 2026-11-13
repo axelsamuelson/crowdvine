@@ -42,7 +42,7 @@ export const bestRedNaturalWinesSystembolagetArticle: GuideArticleContent = {
   },
   lede: {
     en: "Here is red natural wine at Systembolaget in one list: red natural wines you can actually buy right now. The list is independent: PACT does not sell at Systembolaget and earns nothing from what you choose.",
-    sv: "Letar du efter rött naturvin på Systembolaget? Här är vårt urval av röda viner från odlare som arbetar ekologiskt eller biodynamiskt och med låg intervention i källaren, från Loire, Beaujolais, Sicilien, Österrike, Spanien och Chile. Listan följer Systembolagets sortiment och uppdateras när det ändras. Vi visar inga priser i vår text.",
+    sv: "Letar du efter rött naturvin på Systembolaget? Här är vårt urval av röda viner från odlare som arbetar ekologiskt eller biodynamiskt och med låg intervention i källaren, från Loire, Beaujolais, Sicilien, Österrike, Spanien och Chile. Listan följer Systembolagets sortiment och uppdateras när det ändras. Priserna på korten är Systembolagets egna.",
   },
   breadcrumbShort: {
     en: "Best red natural wines at Systembolaget 2026",
@@ -208,7 +208,7 @@ export const bestRedNaturalWinesSystembolagetSvArticle: GuideArticleContent = {
   },
   lede: {
     en: "Looking for red natural wine at Systembolaget? Here is our selection of red wines from growers who farm organically or biodynamically with low intervention in the cellar.",
-    sv: "Letar du efter rött naturvin på Systembolaget? Här är vårt urval av röda viner från odlare som arbetar ekologiskt eller biodynamiskt och med låg intervention i källaren, från Loire, Beaujolais, Sicilien, Österrike, Spanien och Chile. Listan följer Systembolagets sortiment och uppdateras när det ändras. Vi visar inga priser i vår text.",
+    sv: "Letar du efter rött naturvin på Systembolaget? Här är vårt urval av röda viner från odlare som arbetar ekologiskt eller biodynamiskt och med låg intervention i källaren, från Loire, Beaujolais, Sicilien, Österrike, Spanien och Chile. Listan följer Systembolagets sortiment och uppdateras när det ändras. Priserna på korten är Systembolagets egna.",
   },
   breadcrumbShort: {
     en: "Best red natural wines at Systembolaget",

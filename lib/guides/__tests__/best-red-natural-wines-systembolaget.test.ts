@@ -65,7 +65,7 @@ describe("best red natural wines Systembolaget guide", () => {
       "Rött naturvin och mat",
     ]);
     expect(bestRedNaturalWinesSystembolagetSvArticle.lede?.sv).toContain(
-      "Vi visar inga priser i vår text.",
+      "Priserna på korten är Systembolagets egna.",
     );
     expect(bestRedNaturalWinesSystembolagetSvArticle.lede?.sv).not.toContain(
       "Languedoc",
