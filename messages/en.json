@@ -381,6 +381,9 @@
     "directBoxBody": "We ship your boxes straight to your door. Shipping is SEK 149 per box of 6 bottles. Bottle prices are 5% higher than on a shared pallet. Delivery time is counted from when your order is confirmed and paid.",
     "directBoxShippingPerBox": "Shipping SEK 149 per box of 6 bottles",
     "directBoxBottleMarkupNote": "Bottle prices are 5% higher than on a shared pallet",
+    "sellerLine": "Seller: EURPACT OÜ, Tallinn, Estonia",
+    "withdrawalLine": "14-day right of withdrawal",
+    "sharedPalletDelivery": "Shared pallet: We deliver within 30 days after the pallet closes, normally within 2–3 weeks.",
     "palletFillCount": "{filled} of {total} bottles",
     "palletReadyShort": "Ready",
     "palletRemainingShort": "{remaining} left"

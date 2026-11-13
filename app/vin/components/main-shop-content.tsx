@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { headers } from "next/headers";
 
 import ProductList from "@/app/vin/components/product-list";
+import { PactSellerConsumerInfo } from "@/components/commerce/pact-seller-consumer-info";
 import { CategoryFaqSection } from "@/components/shop/category-faq-section";
 import { isB2BHost } from "@/lib/b2b-site";
 import { mapProductDataToShopProducts } from "@/lib/map-product-data-to-shop-product";
@@ -258,6 +259,9 @@ export async function MainShopContent({
           </h1>
           <p className="leading-relaxed text-stone-600">{content.intro}</p>
         </div>
+        {!isB2BSite ? (
+          <PactSellerConsumerInfo locale={locale} className="mb-8 max-w-2xl" />
+        ) : null}
       </div>
       <ProductList collection={storeCatalog.rootCategoryId} searchParams={sp} />
       <ShopRootBelowFold locale={locale} />
