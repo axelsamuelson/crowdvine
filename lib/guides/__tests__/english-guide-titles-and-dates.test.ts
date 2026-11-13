@@ -72,14 +72,19 @@ describe("English guide titles", () => {
 
   it("points the English footer Guides column at the natural-wine explainer", () => {
     const footer = readFileSync("components/layout/footer.tsx", "utf8");
-    const english = footer.slice(
-      footer.indexOf('paths.shop.startsWith("/wine")'),
-      footer.indexOf(") : ("),
-    );
+    // Anchor on the Guides nav (not the first locale ternary in footer.tsx —
+    // Navigation also has a Dirty Wine Kontakt branch with `) : (`).
+    const guidesNav = footer.match(
+      /id="footer-guides-label"[\s\S]*?<\/nav>/,
+    )?.[0];
+    expect(guidesNav).toBeTruthy();
+    const wineBranchIdx = guidesNav!.indexOf('paths.shop.startsWith("/wine")');
+    const splitIdx = guidesNav!.indexOf(") : (", wineBranchIdx);
+    const english = guidesNav!.slice(wineBranchIdx, splitIdx);
+    const swedish = guidesNav!.slice(splitIdx);
     expect(english).toContain('href="/guides/what-is-natural-wine"');
     expect(english).toContain("What is natural wine?");
     expect(english).not.toContain("best-natural-wines-systembolaget");
-    const swedish = footer.slice(footer.indexOf(") : ("));
     expect(swedish).toContain('href="/guider/basta-naturvinerna-pa-systembolaget"');
     expect(swedish).toContain("SYSTEMBOLAGET_BEST_UPLINK.anchor.sv");
   });

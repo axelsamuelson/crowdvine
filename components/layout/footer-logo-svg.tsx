@@ -6,12 +6,20 @@ import {
   useSiteLogosOptional,
   type SiteLogos,
 } from "@/lib/context/site-logo-provider";
+import { useB2BModeServerHint } from "@/lib/context/b2b-mode-context";
+import { getSiteWordmark } from "@/lib/b2b/brand";
 
 export function clearFooterLogoCache() {
   window.dispatchEvent(new CustomEvent("footerLogoCacheCleared"));
 }
 
-function PactWordmark({ className }: { className?: string }) {
+function SiteWordmark({
+  className,
+  label,
+}: {
+  className?: string;
+  label: string;
+}) {
   return (
     <div
       className={cn(
@@ -19,7 +27,7 @@ function PactWordmark({ className }: { className?: string }) {
         className,
       )}
     >
-      PACT
+      {label}
     </div>
   );
 }
@@ -52,6 +60,8 @@ export function FooterLogoSvg({
   className?: string;
   initialLogos?: SiteLogos;
 }) {
+  const isDirtyWine = useB2BModeServerHint();
+  const wordmark = getSiteWordmark(isDirtyWine);
   const logos = useSiteLogosOptional();
   const footerLogo =
     logos?.footerLogo ?? initialLogos?.footerLogo ?? null;
@@ -63,11 +73,11 @@ export function FooterLogoSvg({
     return (
       <LogoImage
         url={logoUrl}
-        alt="PACT Wines logo"
+        alt={`${wordmark} logo`}
         className={cn("h-auto w-auto block shrink-0", className)}
       />
     );
   }
 
-  return <PactWordmark className={className} />;
+  return <SiteWordmark className={className} label={wordmark} />;
 }
