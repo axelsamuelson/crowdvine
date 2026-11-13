@@ -526,6 +526,13 @@ export default function CartModal({
     };
   }, [isOpen]);
 
+  // Welcome modal (and others) must not cover the cart drawer.
+  useEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent("cart-drawer-state", { detail: { open: isOpen } }),
+    );
+  }, [isOpen]);
+
   const openCart = () => setIsOpen(true);
   const closeCart = () => setIsOpen(false);
 
