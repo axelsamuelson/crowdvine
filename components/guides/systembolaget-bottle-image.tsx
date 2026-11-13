@@ -25,6 +25,9 @@ function bottleAlt(wine: SystembolagetGuideWine): string {
  * under the photo so the frame is never empty while a lazy image loads, or if
  * the CDN asset fails without a usable onError. The photo layers on top when
  * it loads; missing/broken URLs leave the outline visible.
+ *
+ * Image URLs go through `systembolagetImageUrl`, which appends `_{size}.png`
+ * when the stored CDN path has no extension (bare paths 404).
  */
 export function SystembolagetBottleImage({
   wine,

@@ -19,12 +19,7 @@ import {
   RankedWineRow,
   wineNameParts,
 } from "@/lib/guides/systembolaget-ranked-list";
-import {
-  formatReleaseCardLabel,
-  formatReleaseGroupHeading,
-  formatReleaseUpdatedLabel,
-  groupReleaseWines,
-} from "@/lib/guides/systembolaget-release-groups";
+import { formatReleaseUpdatedLabel } from "@/lib/guides/systembolaget-release-groups";
 import {
   articlePath,
   isGuideArticlePublished,
@@ -41,17 +36,14 @@ import {
   systembolagetProductUrl,
   type SystembolagetGuideWine,
 } from "@/lib/systembolaget/guide-wines";
-import { getLatestRecommendationIssue } from "@/lib/systembolaget/recommendation-wines";
+import {
+  formatIssueWeekHeading,
+  getPublishedRecommendationIssues,
+} from "@/lib/systembolaget/recommendation-wines";
 
 const EMPTY_COPY = {
   sv: "Inga nya naturviner just nu. Listan uppdateras när Systembolaget släpper nya viner.",
   en: "No new natural wines right now. The list updates when Systembolaget releases new wines.",
-} as const;
-
-const SECTION_HEADING = {
-  upcoming: { sv: "Kommande släpp", en: "Coming soon" },
-  released: { sv: "Nyss släppta", en: "Just released" },
-  orderItems: { sv: "Ordervaror", en: "Order assortment" },
 } as const;
 
 function wineListName(wine: SystembolagetGuideWine): string {
@@ -100,31 +92,20 @@ export async function renderSystembolagetReleasesPage(
   content: GuideArticleContent,
   locale: AppLocale,
 ) {
-  // Public calendar reads the latest published weekly issue from
-  // systembolaget_recommendations (via systembolaget_recommendation_wines),
-  // not systembolaget_curated / systembolaget_guide_wines category "new".
-  const issue = await getLatestRecommendationIssue();
-  const wines = issue?.wines ?? [];
-  const calendar = groupReleaseWines(wines, new Date());
-  const shown = [
-    ...calendar.upcoming.flatMap((group) => group.wines),
-    ...calendar.released.flatMap((group) => group.wines),
-    ...calendar.orderItems,
-  ];
+  // Public page reads all published weekly issues from
+  // systembolaget_recommendations (via systembolaget_recommendation_wines).
+  // The view only includes availability_state available|limited, so sold-out
+  // wines (and empty weeks) drop off automatically.
+  const { issues, latestPublishedAt } =
+    await getPublishedRecommendationIssues();
+  const shown = issues.flatMap((issue) => issue.wines);
   const { seoBaseUrl } = await getGuideSeoOwnership();
   const copy = guideCopy(locale);
   const hubPath = guidePath("hub", locale);
   const pagePath = articlePath(content, locale);
   const pageUrl = `${seoBaseUrl}${pagePath}`;
   const intro = content.lede?.[locale] ?? content.hubCard.description[locale];
-  const updatedLabel = formatReleaseUpdatedLabel(
-    issue?.publishedAt ?? null,
-    locale,
-  );
-  const bothEmpty =
-    calendar.upcoming.length === 0 &&
-    calendar.released.length === 0 &&
-    calendar.orderItems.length === 0;
+  const updatedLabel = formatReleaseUpdatedLabel(latestPublishedAt, locale);
 
   const about =
     content.jsonLdAbout.type === "Person"
@@ -146,9 +127,9 @@ export async function renderSystembolagetReleasesPage(
           };
 
   const dateModified =
-    issue?.publishedAt && issue.publishedAt > (content.updated ?? "")
-      ? issue.publishedAt
-      : content.updated ?? issue?.publishedAt ?? undefined;
+    latestPublishedAt && latestPublishedAt > (content.updated ?? "")
+      ? latestPublishedAt
+      : content.updated ?? latestPublishedAt ?? undefined;
 
   const articleJsonLd = {
     "@context": "https://schema.org",
@@ -161,7 +142,7 @@ export async function renderSystembolagetReleasesPage(
     author: { "@type": "Organization", name: "PACT", url: seoBaseUrl },
     publisher: { "@type": "Organization", name: "PACT", url: seoBaseUrl },
     about,
-    ...(issue?.publishedAt ? { datePublished: issue.publishedAt } : {}),
+    ...(latestPublishedAt ? { datePublished: latestPublishedAt } : {}),
     ...(dateModified ? { dateModified } : {}),
   };
 
@@ -206,13 +187,6 @@ export async function renderSystembolagetReleasesPage(
           })),
         }
       : null;
-
-  const sections = (
-    [
-      ["upcoming", calendar.upcoming],
-      ["released", calendar.released],
-    ] as const
-  ).filter(([, groups]) => groups.length > 0);
 
   let cardIndex = 0;
 
@@ -259,88 +233,44 @@ export async function renderSystembolagetReleasesPage(
             {intro}
           </p>
 
-          {bothEmpty ? (
+          {issues.length === 0 ? (
             <p className="mt-10 text-[17px] leading-[1.75] text-foreground/80">
               {EMPTY_COPY[locale]}
             </p>
           ) : (
             <div className="mt-10 space-y-12">
-              {sections.map(([kind, groups]) => (
-                <section key={kind} aria-labelledby={`releases-${kind}`}>
-                  <h2 id={`releases-${kind}`} className={ARTICLE_GUIDE_H2_CLASS}>
-                    {SECTION_HEADING[kind][locale]}
-                  </h2>
-                  <div className="mt-6 space-y-8">
-                    {groups.map((group) => (
-                      <div key={group.dateKey}>
-                        <h3 className="text-base font-semibold tracking-tight text-foreground">
-                          {formatReleaseGroupHeading(group.dateKey, locale)}
-                        </h3>
-                        <ol className="list-none p-0">
-                          {group.wines.map((wine) => {
-                            const priority = cardIndex < 3;
-                            cardIndex += 1;
-                            return (
-                              <li key={wine.id}>
-                                <RankedWineRow
-                                  wine={wine}
-                                  rank={0}
-                                  locale={locale}
-                                  priority={priority}
-                                  showRank={false}
-                                  showPrice={false}
-                                  launchLabel={formatReleaseCardLabel(
-                                    group.dateKey,
-                                    locale,
-                                    kind,
-                                  )}
-                                  limitedLabelText={limitedQuantityLabel(
-                                    wine,
-                                    locale,
-                                  )}
-                                />
-                              </li>
-                            );
-                          })}
-                        </ol>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-              ))}
-
-              {calendar.orderItems.length > 0 ? (
-                <section aria-labelledby="releases-order-items">
-                  <h2
-                    id="releases-order-items"
-                    className={ARTICLE_GUIDE_H2_CLASS}
-                  >
-                    {SECTION_HEADING.orderItems[locale]}
-                  </h2>
-                  <ol className="mt-6 list-none p-0">
-                    {calendar.orderItems.map((wine) => {
-                      const priority = cardIndex < 3;
-                      cardIndex += 1;
-                      return (
-                        <li key={wine.id}>
-                          <RankedWineRow
-                            wine={wine}
-                            rank={0}
-                            locale={locale}
-                            priority={priority}
-                            showRank={false}
-                            showPrice={false}
-                            limitedLabelText={limitedQuantityLabel(
-                              wine,
-                              locale,
-                            )}
-                          />
-                        </li>
-                      );
-                    })}
-                  </ol>
-                </section>
-              ) : null}
+              {issues.map((issue) => {
+                const headingId = `releases-week-${issue.issueYear}-${issue.issueWeek}`;
+                return (
+                  <section key={headingId} aria-labelledby={headingId}>
+                    <h2 id={headingId} className={ARTICLE_GUIDE_H2_CLASS}>
+                      {formatIssueWeekHeading(issue.issueWeek, locale)}
+                    </h2>
+                    <ol className="mt-6 list-none p-0">
+                      {issue.wines.map((wine) => {
+                        const priority = cardIndex < 3;
+                        cardIndex += 1;
+                        return (
+                          <li key={wine.id}>
+                            <RankedWineRow
+                              wine={wine}
+                              rank={0}
+                              locale={locale}
+                              priority={priority}
+                              showRank={false}
+                              showPrice
+                              limitedLabelText={limitedQuantityLabel(
+                                wine,
+                                locale,
+                              )}
+                            />
+                          </li>
+                        );
+                      })}
+                    </ol>
+                  </section>
+                );
+              })}
             </div>
           )}
 

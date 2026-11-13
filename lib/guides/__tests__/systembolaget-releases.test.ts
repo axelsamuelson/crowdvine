@@ -13,6 +13,11 @@ import {
   type ReleaseWine,
 } from "@/lib/guides/systembolaget-release-groups";
 import { GUIDE_WINE_CATEGORIES } from "@/lib/systembolaget/guide-wine-categories";
+import {
+  formatIssueWeekHeading,
+  groupRecommendationIssuesByWeek,
+  type RecommendationIssueWine,
+} from "@/lib/systembolaget/recommendation-wines";
 
 const TODAY = new Date("2026-10-28T12:00:00+01:00");
 
@@ -180,5 +185,100 @@ describe("Systembolaget release calendar", () => {
       newNaturalWinesSystembolagetArticle.lede?.en ?? "",
     ].join(" ");
     expect(blob.toLowerCase()).not.toMatch(/\bpris(er)?\b|\bprices?\b/);
+  });
+
+  it("formats issue week headings as Vecka / Week", () => {
+    expect(formatIssueWeekHeading(46, "sv")).toBe("Vecka 46");
+    expect(formatIssueWeekHeading(44, "en")).toBe("Week 44");
+  });
+
+  it("groups recommendation wines by issue week, newest first", () => {
+    const base = {
+      product_number: "1",
+      verdict: "recommended" as const,
+      category: "new" as const,
+      editorial_note_sv: "x",
+      editorial_note_en: null,
+      producer_note_sv: null,
+      producer_note_en: null,
+      top_100_producer_name: null,
+      previous_sort_order: null,
+      previous_rank: undefined,
+      first_published_at: null,
+      last_reviewed_at: null,
+      rank_status: "new" as const,
+      rank_delta: null,
+      name_bold: "Wine",
+      name_thin: null,
+      producer_name: "Producer",
+      category_level_2: null,
+      country: null,
+      origin_level_1: null,
+      vintage: null,
+      price: 179,
+      volume: null,
+      alcohol_percentage: null,
+      grapes: null,
+      assortment_text: null,
+      is_organic: null,
+      image_url: null,
+      synced_at: "2026-11-13T00:00:00.000Z",
+      availability_state: "available" as const,
+      store_count: 10,
+      wine_score: null,
+      score_adjust: 0,
+      product_launch_date: null,
+      published_at: "2026-11-13T13:36:24.573Z",
+    };
+
+    const wines: RecommendationIssueWine[] = [
+      {
+        ...base,
+        id: 1,
+        issue_year: 2026,
+        issue_week: 44,
+        sort_order: 2,
+        published_at: "2026-10-30T13:50:57.999Z",
+      },
+      {
+        ...base,
+        id: 2,
+        issue_year: 2026,
+        issue_week: 46,
+        sort_order: 1,
+        published_at: "2026-11-13T13:36:24.573Z",
+      },
+      {
+        ...base,
+        id: 3,
+        issue_year: 2026,
+        issue_week: 46,
+        sort_order: 2,
+        published_at: "2026-11-13T13:36:24.573Z",
+      },
+      {
+        ...base,
+        id: 4,
+        issue_year: 2026,
+        issue_week: 37,
+        sort_order: 1,
+        published_at: "2026-09-12T14:49:07.842Z",
+      },
+      {
+        ...base,
+        id: 5,
+        issue_year: 2026,
+        issue_week: 44,
+        sort_order: 1,
+        published_at: "2026-10-30T13:50:57.999Z",
+      },
+    ];
+
+    const issues = groupRecommendationIssuesByWeek(wines);
+    expect(issues.map((issue) => issue.issueWeek)).toEqual([46, 44, 37]);
+    expect(issues[0]?.wines.map((wine) => wine.id)).toEqual([2, 3]);
+    expect(issues[1]?.wines.map((wine) => wine.id)).toEqual([5, 1]);
+    expect(issues[2]?.wines.map((wine) => wine.id)).toEqual([4]);
+    expect(issues.every((issue) => issue.wines.length > 0)).toBe(true);
   });
 });
