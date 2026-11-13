@@ -4,7 +4,14 @@ import { useEffect, useMemo, useRef, useState, Suspense, useCallback } from "rea
 import { CartMergeModal } from "@/components/cart/cart-merge-modal";
 import { CheckoutEmailAuth } from "@/components/checkout/checkout-email-auth";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
-import { meetsAgeRequirement, resolveMarketAgeMinimum } from "@/lib/age-limits";
+import {
+  meetsAgeRequirement,
+  resolveMarketAgeMinimum,
+} from "@/lib/age-limits";
+import {
+  maskIsoDateDigits,
+  parseCheckoutDateOfBirthInput,
+} from "@/lib/checkout/date-of-birth-input";
 import { PRICE_VERSION } from "@/lib/analytics/price-version";
 import { pricesFromCheckoutCart } from "@/lib/analytics/cart-event-prices";
 import { LEGAL_VERSIONS } from "@/lib/legal/versions";
@@ -879,66 +886,63 @@ function CheckoutContent({
 
   const handleAgeDobChange = useCallback(
     (raw: string) => {
-      // Digits-only → ÅÅÅÅ-MM-DD mask (never type=date — browsers show 01/15/1990 in sv).
-      const digits = raw.replace(/\D/g, "").slice(0, 8);
-      let masked = digits;
-      if (digits.length > 4) {
-        masked = `${digits.slice(0, 4)}-${digits.slice(4)}`;
-      }
-      if (digits.length > 6) {
-        masked = `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6)}`;
-      }
+      // Digits-only → ÅÅÅÅ-MM-DD / YYYY-MM-DD mask (never type=date).
+      const masked = maskIsoDateDigits(raw);
       setDateOfBirth(masked);
-      if (!masked.trim()) {
-        setAgeConfirmed(false);
+      const parsed = parseCheckoutDateOfBirthInput(masked, requiredAge);
+      if (parsed.ok) {
         setAgeDobError(null);
-        return;
-      }
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(masked)) {
-        setAgeConfirmed(false);
-        setAgeDobError(t("checkout.dobInvalidFormat"));
-        return;
-      }
-      const parsed = Date.parse(`${masked}T00:00:00`);
-      if (!Number.isFinite(parsed)) {
-        setAgeConfirmed(false);
-        setAgeDobError(t("checkout.dobInvalidFormat"));
-        return;
-      }
-      const ok = meetsAgeRequirement(masked, requiredAge);
-      if (!ok) {
-        setAgeConfirmed(false);
-        setAgeDobError(
-          t("checkout.ageUnderLimit", { age: String(requiredAge) }),
-        );
+        setAgeConfirmed(true);
         dateOfBirthFilledRef.current = true;
-        void AnalyticsTracker.trackEvent({
-          eventType: "age_confirmation_failed",
-          eventCategory: "checkout",
-          metadata: {
-            country_code: ageCountryCode,
-            required_age: requiredAge,
-            has_date_of_birth: true,
-            code: "age_under_minimum",
-          },
+        emitOnce(ageVerificationPassedKey(ageCountryCode), () => {
+          void AnalyticsTracker.trackEvent({
+            eventType: "age_confirmed",
+            eventCategory: "checkout",
+            metadata: {
+              country_code: ageCountryCode,
+              required_age: requiredAge,
+              has_date_of_birth: true,
+            },
+          });
         });
-        emitCheckoutError("age_terms", "date_of_birth", "age_under_minimum");
         return;
       }
-      setAgeDobError(null);
-      setAgeConfirmed(true);
+      setAgeConfirmed(false);
+      if (parsed.reason === "incomplete") {
+        // Still typing, or cleared — no error until a full invalid date.
+        if (!parsed.iso) setAgeDobError(null);
+        else if (/^\d{4}-\d{2}-\d{2}$/.test(parsed.iso)) {
+          // Defensive: treat complete-looking incomplete as invalid format.
+          setAgeDobError(t("checkout.dobInvalidFormat"));
+          dateOfBirthFilledRef.current = true;
+          emitCheckoutError("age_terms", "date_of_birth", "invalid_format");
+        } else {
+          setAgeDobError(null);
+        }
+        return;
+      }
+      if (parsed.reason === "invalid_format") {
+        setAgeDobError(t("checkout.dobInvalidFormat"));
+        dateOfBirthFilledRef.current = true;
+        emitCheckoutError("age_terms", "date_of_birth", "invalid_format");
+        return;
+      }
+      // under_age — required; blocks purchase. Input value preserved above.
+      setAgeDobError(
+        t("checkout.ageUnderLimit", { age: String(requiredAge) }),
+      );
       dateOfBirthFilledRef.current = true;
-      emitOnce(ageVerificationPassedKey(ageCountryCode), () => {
-        void AnalyticsTracker.trackEvent({
-          eventType: "age_confirmed",
-          eventCategory: "checkout",
-          metadata: {
-            country_code: ageCountryCode,
-            required_age: requiredAge,
-            has_date_of_birth: true,
-          },
-        });
+      void AnalyticsTracker.trackEvent({
+        eventType: "age_confirmation_failed",
+        eventCategory: "checkout",
+        metadata: {
+          country_code: ageCountryCode,
+          required_age: requiredAge,
+          has_date_of_birth: true,
+          code: "age_under_minimum",
+        },
       });
+      emitCheckoutError("age_terms", "date_of_birth", "age_under_minimum");
     },
     [ageCountryCode, requiredAge, t],
   );
@@ -5142,6 +5146,13 @@ function CheckoutContent({
                             <Label htmlFor="age-dob" className="text-sm">
                               {t("checkout.ageDateOfBirth")}
                             </Label>
+                            <p
+                              id="age-dob-helper"
+                              className="text-xs text-muted-foreground"
+                              data-testid="age-dob-helper"
+                            >
+                              {t("checkout.ageDeliveryIdHint")}
+                            </p>
                             <Input
                               id="age-dob"
                               type="text"
@@ -5153,21 +5164,21 @@ function CheckoutContent({
                                 handleAgeDobChange(e.target.value)
                               }
                               className="max-w-xs h-9 min-h-9 text-sm"
-                              aria-describedby="age-dob-format"
+                              aria-describedby="age-dob-helper age-dob-format"
                               maxLength={10}
+                              required
                             />
                             <p
                               id="age-dob-format"
                               className="text-xs text-muted-foreground"
                             >
                               {t("checkout.dobPlaceholder")}
-                              {" · "}
-                              {t("checkout.ageDeliveryIdHint", {
-                                age: requiredAge,
-                              })}
                             </p>
                             {ageDobError ? (
-                              <p className="text-xs text-destructive">
+                              <p
+                                className="text-xs text-destructive"
+                                data-testid="age-dob-error"
+                              >
                                 {ageDobError}
                               </p>
                             ) : null}
