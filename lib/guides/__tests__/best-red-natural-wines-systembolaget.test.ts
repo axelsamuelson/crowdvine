@@ -40,6 +40,34 @@ describe("best red natural wines Systembolaget guide", () => {
     ).toBe("Rött naturvin på Systembolaget 2026: vårt urval");
   });
 
+  it("uses the English handoff H1, meta title and description", () => {
+    expect(bestRedNaturalWinesSystembolagetArticle.h1.en).toBe(
+      "Red natural wine at Systembolaget",
+    );
+    expect(bestRedNaturalWinesSystembolagetArticle.meta.en).toBe(
+      "Red natural wine at Systembolaget according to PACT: light, chillable reds, classics from the Loire and Beaujolais, Sicily, Austria and Chile, with facts on producer and grape and common questions.",
+    );
+    expect(bestRedNaturalWinesSystembolagetArticle.title.en).toBe(
+      "Red natural wine at Systembolaget 2026: our selection | PACT Wines",
+    );
+    expect(bestRedNaturalWinesSystembolagetArticle.lede?.en).toContain(
+      "The prices on the cards are Systembolaget's own.",
+    );
+    expect(bestRedNaturalWinesSystembolagetArticle.showRankedWineFacts).toBe(
+      true,
+    );
+    expect(
+      bestRedNaturalWinesSystembolagetArticle.sections.map(
+        (section) => section.heading?.en,
+      ),
+    ).toEqual([
+      "Our selection at a glance",
+      "How we chose",
+      "What is red natural wine?",
+      "Red natural wine and food",
+    ]);
+  });
+
   it("credits Axel Samuelson with Person-ready author fields and FAQ schema source", () => {
     const author = bestRedNaturalWinesSystembolagetSvArticle.author;
     expect(author?.name).toBe("Axel Samuelson");
@@ -47,9 +75,15 @@ describe("best red natural wines Systembolaget guide", () => {
     expect(author?.byline.sv).toBe(
       "Av Axel Samuelson, grundare av PACT · Senast granskad: 2026-11-09",
     );
+    expect(author?.byline.en).toBe(
+      "By Axel Samuelson, founder of PACT · Last reviewed: 2026-11-09",
+    );
     expect(
       bestRedNaturalWinesSystembolagetSvArticle.faqs?.length,
     ).toBeGreaterThanOrEqual(6);
+    expect(bestRedNaturalWinesSystembolagetArticle.faqs?.length).toBeGreaterThanOrEqual(
+      6,
+    );
     expect(bestRedNaturalWinesSystembolagetSvArticle.shopCta).toBeNull();
   });
 
@@ -79,12 +113,6 @@ describe("best red natural wines Systembolaget guide", () => {
     expect(bestRedNaturalWinesSystembolagetSvArticle.showRankedWineFacts).toBe(
       true,
     );
-    expect(
-      bestRedNaturalWinesSystembolagetArticle.showRankedWineFacts,
-    ).toBeUndefined();
-    expect(bestRedNaturalWinesSystembolagetArticle.h1.en).toBe(
-      "Best red natural wines at Systembolaget 2026",
-    );
 
     const page = readFileSync(
       "app/guider/basta-roda-naturviner-systembolaget/page.tsx",
@@ -102,15 +130,24 @@ describe("best red natural wines Systembolaget guide", () => {
     expect(english).not.toContain("bestRedNaturalWinesSystembolagetSvArticle");
   });
 
-  it("keeps Swedish shortlist wine names for auto-linking without hard-coded anchors", () => {
-    const shortlist = bestRedNaturalWinesSystembolagetSvArticle.sections[0];
-    const items = shortlist?.blocks?.[0];
-    expect(items?.type).toBe("list");
-    if (items?.type !== "list") return;
-    const joined = items.items.sv.join("\n");
-    expect(joined).toContain("Lamoresca Nerocapitano");
-    expect(joined).toContain("Sandrine Henriot Morgon Vagabond");
-    expect(joined).toContain("Gut Oggau Josephine");
-    expect(joined).not.toMatch(/\]\(#/);
+  it("keeps shortlist wine names for auto-linking without hard-coded anchors", () => {
+    const shortlistSv = bestRedNaturalWinesSystembolagetSvArticle.sections[0];
+    const itemsSv = shortlistSv?.blocks?.[0];
+    expect(itemsSv?.type).toBe("list");
+    if (itemsSv?.type !== "list") return;
+    const joinedSv = itemsSv.items.sv.join("\n");
+    expect(joinedSv).toContain("Lamoresca Nerocapitano");
+    expect(joinedSv).toContain("Sandrine Henriot Morgon Vagabond");
+    expect(joinedSv).toContain("Gut Oggau Josephine");
+    expect(joinedSv).not.toMatch(/\]\(#/);
+
+    const shortlistEn = bestRedNaturalWinesSystembolagetArticle.sections[0];
+    const itemsEn = shortlistEn?.blocks?.[0];
+    expect(itemsEn?.type).toBe("list");
+    if (itemsEn?.type !== "list") return;
+    const joinedEn = itemsEn.items.en.join("\n");
+    expect(joinedEn).toContain("Lamoresca Nerocapitano");
+    expect(joinedEn).toContain("Sandrine Henriot Morgon Vagabond");
+    expect(joinedEn).not.toMatch(/\]\(#/);
   });
 });
