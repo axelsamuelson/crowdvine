@@ -564,7 +564,11 @@ export function DriftOverviewClient({
             label="på gång"
             onClick={() => onSummaryClick("pipeline")}
           />
-          <Sep />
+          {/* Mobile: Klart on its own line (wrap when the summary is tight at 390). */}
+          <span className="hidden text-gray-300 dark:text-zinc-600 sm:inline" aria-hidden="true">
+            {" · "}
+          </span>
+          <br className="sm:hidden" aria-hidden="true" />
           <SummaryBtn
             n={data.summary.klartWeek}
             label="klart denna vecka"
