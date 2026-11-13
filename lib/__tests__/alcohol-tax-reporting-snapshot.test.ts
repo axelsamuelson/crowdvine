@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildAlcoholTaxReportingLines } from "@/lib/skatteverket/alcohol-tax-reporting-snapshot";
+import { computeSwedishWineAlcoholTaxSek } from "@/lib/skatteverket/wine-alcohol-tax";
 
 const snappedAt = "2026-11-13T12:00:00.000Z";
 
@@ -49,8 +50,46 @@ describe("buildAlcoholTaxReportingLines", () => {
     expect(line.alcoholPercentage).toBe(13);
     expect(line.alcoholTaxSek).toBe(133.11);
     expect(line.needsReview).toBe(false);
+    expect(line.productTaxCategory).toBeNull();
+    expect(line.smallProducerReductionPct).toBeNull();
     expect(line.snappedAt).toBe(snappedAt);
     expect(line.triggerSource).toBe("pallet_close");
+  });
+
+  it("rounds tax once on total litres for every trigger path (never 133.14)", () => {
+    for (const triggerSource of [
+      "pallet_close",
+      "direct_box_confirm",
+      "legacy_auto_charge",
+    ] as const) {
+      const { lines } = buildAlcoholTaxReportingLines({
+        reservationId: `res-${triggerSource}`,
+        buyer,
+        items: [
+          {
+            orderReservationItemId: `item-${triggerSource}`,
+            wineId: "wine-round",
+            wineName: "Round Me",
+            vintage: null,
+            quantity: 6,
+            volumeLiters: 0.75,
+            abv: null,
+            alcoholPercentage: 13,
+          },
+        ],
+        snappedAt,
+        triggerSource,
+      });
+      expect(lines[0]!.alcoholTaxSek).toBe(133.11);
+      expect(lines[0]!.alcoholTaxSek).not.toBe(133.14);
+      // Same helper all paths use
+      expect(
+        computeSwedishWineAlcoholTaxSek({
+          abvPercent: 13,
+          volumeLiters: 6 * 0.75,
+        }),
+      ).toBe(133.11);
+    }
   });
 
   it("stores NULL tax and needs_review when ABV is missing (never guesses)", () => {
@@ -79,6 +118,33 @@ describe("buildAlcoholTaxReportingLines", () => {
     expect(lines[0]!.alcoholTaxSek).toBeNull();
     expect(lines[0]!.needsReview).toBe(true);
     expect(lines[0]!.productName).toBe("Mystery");
+  });
+
+  it("flags fortified/mellanklass for review with null tax (never applies 37.34)", () => {
+    const { lines, needsReviewCount } = buildAlcoholTaxReportingLines({
+      reservationId: "res-fortified",
+      buyer,
+      items: [
+        {
+          orderReservationItemId: "item-fort",
+          wineId: "wine-fort",
+          wineName: "Port Style",
+          vintage: null,
+          quantity: 1,
+          volumeLiters: 0.75,
+          abv: null,
+          alcoholPercentage: 14,
+          classification: "fortified",
+        },
+      ],
+      snappedAt,
+      triggerSource: "pallet_close",
+    });
+
+    expect(needsReviewCount).toBe(1);
+    expect(lines[0]!.needsReview).toBe(true);
+    expect(lines[0]!.alcoholTaxSek).toBeNull();
+    expect(lines[0]!.productTaxCategory).toBeNull();
   });
 
   it("defaults bottle volume to 0.75 L when wine volume is missing", () => {

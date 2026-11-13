@@ -7,6 +7,9 @@
 -- - Additive only; does not alter existing order/item schemas.
 --
 -- Access: service_role + platform admins only. No anon/authenticated access.
+--
+-- Rates (verified Ingrid/CFO): Skatteverket from 2024-01-01; SFS 2026:738
+-- documents small-producer reductions from 2026-07-01 (not applied yet).
 
 CREATE TABLE IF NOT EXISTS public.alcohol_tax_reporting_lines (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -30,9 +33,26 @@ CREATE TABLE IF NOT EXISTS public.alcohol_tax_reporting_lines (
   bottle_volume_liters NUMERIC(12, 4) CHECK (bottle_volume_liters IS NULL OR bottle_volume_liters > 0),
   -- ABV as numeric percent (e.g. 13.5). NULL when missing — never guessed.
   alcohol_percentage NUMERIC(6, 3),
-  -- Alcohol tax for this line in SEK (rate × volume_liters). NULL when needs_review.
+  -- Alcohol tax for this line in SEK (rate × volume_liters, rounded once).
+  -- NULL when needs_review.
   alcohol_tax_sek NUMERIC(12, 4),
   needs_review BOOLEAN NOT NULL DEFAULT FALSE,
+  -- TODO: Reserved for future explicit Skatteverket product class
+  -- (still wine vs mellanklass/fortified). Always NULL until we have a
+  -- trusted product-type field. Never invent fortified/mellanklass rates
+  -- (e.g. 37,34 kr/l) — flag needs_review instead when indicated.
+  product_tax_category TEXT,
+  -- Small-producer reduction % (SFS 2026:738, 3 a §, from 2026-07-01).
+  -- Always NULL for now; requires a producer certificate before use.
+  -- Full statutory tax is stored in alcohol_tax_sek until then.
+  small_producer_reduction_pct NUMERIC(5, 2)
+    CHECK (
+      small_producer_reduction_pct IS NULL
+      OR (
+        small_producer_reduction_pct >= 0
+        AND small_producer_reduction_pct <= 100
+      )
+    ),
   snapped_at TIMESTAMPTZ NOT NULL,
   trigger_source TEXT NOT NULL
     CHECK (
@@ -58,13 +78,19 @@ COMMENT ON COLUMN public.alcohol_tax_reporting_lines.alcohol_percentage IS
   'Frozen ABV percent at snapshot time. NULL + needs_review when wine ABV was missing — never invent a value.';
 
 COMMENT ON COLUMN public.alcohol_tax_reporting_lines.alcohol_tax_sek IS
-  'Line alcohol tax in SEK = Skatteverket wine rate (SEK/L by ABV band) × volume_liters. NULL when needs_review.';
+  'Line alcohol tax in SEK = Skatteverket wine rate (SEK/L by ABV band) × volume_liters, rounded once to 2 decimals. NULL when needs_review.';
 
 COMMENT ON COLUMN public.alcohol_tax_reporting_lines.volume_liters IS
-  'Total litres for the line (bottle_volume_liters × quantity).';
+  'Total litres for the line (bottle_volume_liters × quantity). Tax is computed on this total, not per bottle then multiplied.';
 
 COMMENT ON COLUMN public.alcohol_tax_reporting_lines.needs_review IS
-  'True when ABV was missing at snapshot; tax left NULL for manual review.';
+  'True when ABV was missing/out-of-band or fortified/mellanklass was indicated; tax left NULL for manual review.';
+
+COMMENT ON COLUMN public.alcohol_tax_reporting_lines.product_tax_category IS
+  'TODO: future Skatteverket product class (still wine vs mellanklass). Always NULL until an explicit product-type field exists; never guess fortified rates.';
+
+COMMENT ON COLUMN public.alcohol_tax_reporting_lines.small_producer_reduction_pct IS
+  'Small-producer reduction % (SFS 2026:738 3 a §). Always NULL until a producer certificate is available; full tax stored meanwhile.';
 
 CREATE INDEX IF NOT EXISTS idx_alcohol_tax_reporting_lines_reservation
   ON public.alcohol_tax_reporting_lines (reservation_id);

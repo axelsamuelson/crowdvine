@@ -3,6 +3,7 @@ import {
   computeSwedishWineAlcoholTaxSek,
   parseWineAbvPercent,
   swedishWineAlcoholTaxSekPerLiter,
+  wineIndicatesFortifiedOrMellanklass,
 } from "@/lib/skatteverket/wine-alcohol-tax";
 
 describe("swedishWineAlcoholTaxSekPerLiter", () => {
@@ -12,13 +13,12 @@ describe("swedishWineAlcoholTaxSekPerLiter", () => {
     expect(swedishWineAlcoholTaxSekPerLiter(Number.NaN)).toBeNull();
   });
 
-  it("returns null outside wine tax scope (≤1.2% or >18%)", () => {
-    expect(swedishWineAlcoholTaxSekPerLiter(1.2)).toBeNull();
-    expect(swedishWineAlcoholTaxSekPerLiter(0)).toBeNull();
+  it("returns null when ABV is >18% (out of wine tax bands)", () => {
     expect(swedishWineAlcoholTaxSekPerLiter(18.1)).toBeNull();
+    expect(swedishWineAlcoholTaxSekPerLiter(20)).toBeNull();
   });
 
-  it("maps ABV bands to Skatteverket SEK/liter rates (from 2024-01-01)", () => {
+  it("maps ABV bands with över X / högst Y (no gaps)", () => {
     expect(swedishWineAlcoholTaxSekPerLiter(2.25)?.sekPerLiter).toBe(0);
     expect(swedishWineAlcoholTaxSekPerLiter(2.26)?.sekPerLiter).toBe(10.38);
     expect(swedishWineAlcoholTaxSekPerLiter(4.5)?.sekPerLiter).toBe(10.38);
@@ -32,6 +32,14 @@ describe("swedishWineAlcoholTaxSekPerLiter", () => {
     expect(swedishWineAlcoholTaxSekPerLiter(15.01)?.sekPerLiter).toBe(61.9);
     expect(swedishWineAlcoholTaxSekPerLiter(18)?.sekPerLiter).toBe(61.9);
   });
+
+  it("places just-over boundary values in the next band (no gaps)", () => {
+    expect(swedishWineAlcoholTaxSekPerLiter(2.255)?.sekPerLiter).toBe(10.38);
+    expect(swedishWineAlcoholTaxSekPerLiter(4.505)?.sekPerLiter).toBe(15.34);
+    expect(swedishWineAlcoholTaxSekPerLiter(7.005)?.sekPerLiter).toBe(21.12);
+    expect(swedishWineAlcoholTaxSekPerLiter(8.505)?.sekPerLiter).toBe(29.58);
+    expect(swedishWineAlcoholTaxSekPerLiter(15.005)?.sekPerLiter).toBe(61.9);
+  });
 });
 
 describe("computeSwedishWineAlcoholTaxSek", () => {
@@ -44,13 +52,16 @@ describe("computeSwedishWineAlcoholTaxSek", () => {
     ).toBe(22.19);
   });
 
-  it("scales by quantity/volume (6 × 0.75 L = 4.5 L → 133.11 SEK)", () => {
+  it("rounds ONCE on line total litres (6×0.75 L at 13% = 133.11, never 133.14)", () => {
+    // Correct: 29.58 × 4.5 = 133.11. Wrong (per-bottle then ×qty): 22.19 × 6 = 133.14.
+    const totalLiters = 6 * 0.75;
     expect(
       computeSwedishWineAlcoholTaxSek({
-        abvPercent: 12.5,
-        volumeLiters: 4.5,
+        abvPercent: 13,
+        volumeLiters: totalLiters,
       }),
     ).toBe(133.11);
+    expect(22.19 * 6).toBeCloseTo(133.14, 10);
   });
 
   it("uses the 15–18% band for high-ABV wine", () => {
@@ -98,5 +109,32 @@ describe("parseWineAbvPercent", () => {
     expect(parseWineAbvPercent(null, null)).toBeNull();
     expect(parseWineAbvPercent("", "")).toBeNull();
     expect(parseWineAbvPercent("n/a", "x")).toBeNull();
+  });
+});
+
+describe("wineIndicatesFortifiedOrMellanklass", () => {
+  it("detects fortified / mellanklass markers", () => {
+    expect(
+      wineIndicatesFortifiedOrMellanklass({ classification: "fortified" }),
+    ).toBe(true);
+    expect(
+      wineIndicatesFortifiedOrMellanklass({ wineName: "Maury mellanklass" }),
+    ).toBe(true);
+    expect(wineIndicatesFortifiedOrMellanklass({ color: "starkvin" })).toBe(
+      true,
+    );
+    expect(
+      wineIndicatesFortifiedOrMellanklass({ tags: ["Portvin", "red"] }),
+    ).toBe(true);
+  });
+
+  it("does not flag ordinary still wine", () => {
+    expect(
+      wineIndicatesFortifiedOrMellanklass({
+        wineName: "Premices",
+        color: "red",
+        classification: null,
+      }),
+    ).toBe(false);
   });
 });

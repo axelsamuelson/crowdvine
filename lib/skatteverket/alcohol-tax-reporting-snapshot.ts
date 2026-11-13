@@ -1,12 +1,17 @@
 /**
  * Build and persist frozen Skatteverket alcohol-tax reporting lines.
  * Written once at charge/close with service_role; never recomputed.
+ *
+ * Tax amounts always go through computeSwedishWineAlcoholTaxSek on the
+ * line's TOTAL litres (quantity × bottle volume), rounded once — shared by
+ * pallet_close, direct_box_confirm, and legacy_auto_charge.
  */
 
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import {
   computeSwedishWineAlcoholTaxSek,
   parseWineAbvPercent,
+  wineIndicatesFortifiedOrMellanklass,
 } from "@/lib/skatteverket/wine-alcohol-tax";
 
 export type AlcoholTaxSnapshotTrigger =
@@ -30,6 +35,17 @@ export type AlcoholTaxReportingLineInput = {
   alcoholPercentage: number | null;
   alcoholTaxSek: number | null;
   needsReview: boolean;
+  /**
+   * Reserved for a future explicit Skatteverket product class
+   * (e.g. still wine vs mellanklass). Always null until we have a
+   * trusted product-type field — never invent fortified rates.
+   */
+  productTaxCategory: string | null;
+  /**
+   * Small-producer reduction % (SFS 2026:738 3 a §). Always null for now;
+   * requires a producer certificate before use. Full tax is stored.
+   */
+  smallProducerReductionPct: number | null;
   snappedAt: string;
   triggerSource: AlcoholTaxSnapshotTrigger;
 };
@@ -66,6 +82,10 @@ type ItemWineRow = {
     volume_liters: number | string | null;
     alcohol_percentage: string | number | null;
     abv: string | null;
+    color: string | null;
+    classification: string | null;
+    tags: string | string[] | null;
+    additives: string | null;
   } | null;
 };
 
@@ -89,6 +109,10 @@ export function buildAlcoholTaxReportingLines(opts: {
     volumeLiters: number | null;
     abv: string | null;
     alcoholPercentage: string | number | null;
+    color?: string | null;
+    classification?: string | null;
+    tags?: string | string[] | null;
+    additives?: string | null;
   }>;
   snappedAt: string;
   triggerSource: AlcoholTaxSnapshotTrigger;
@@ -107,18 +131,31 @@ export function buildAlcoholTaxReportingLines(opts: {
         ? Number(item.volumeLiters)
         : DEFAULT_BOTTLE_LITERS;
 
+    // Total litres for the line — tax is computed on this total, rounded once.
     const volumeLiters = bottleLiters * qty;
     const abvPercent = parseWineAbvPercent(item.abv, item.alcoholPercentage);
+    const fortifiedOrMellanklass = wineIndicatesFortifiedOrMellanklass({
+      wineName: item.wineName,
+      color: item.color,
+      classification: item.classification,
+      tags: item.tags,
+      additives: item.additives,
+    });
+
+    // TODO: Without an explicit product_tax_category we assume still wine
+    // bands when no fortified/mellanklass marker is present. Do NOT apply
+    // mellanklass 37,34 kr/l — flag for review instead when indicated.
     const taxSek =
-      abvPercent == null
+      fortifiedOrMellanklass || abvPercent == null
         ? null
         : computeSwedishWineAlcoholTaxSek({
             abvPercent,
             volumeLiters,
           });
 
-    // Missing ABV, or ABV outside wine bands → flag for review; never guess tax.
-    const needsReview = abvPercent == null || taxSek == null;
+    // Missing ABV, out-of-band ABV, or fortified/mellanklass → review; never guess.
+    const needsReview =
+      fortifiedOrMellanklass || abvPercent == null || taxSek == null;
     if (needsReview) needsReviewCount += 1;
 
     const productName = formatProductName(item.wineName, item.vintage);
@@ -139,6 +176,8 @@ export function buildAlcoholTaxReportingLines(opts: {
       alcoholPercentage: abvPercent,
       alcoholTaxSek: needsReview ? null : taxSek,
       needsReview,
+      productTaxCategory: null,
+      smallProducerReductionPct: null,
       snappedAt: opts.snappedAt,
       triggerSource: opts.triggerSource,
     });
@@ -182,6 +221,8 @@ function toDbRow(line: AlcoholTaxReportingLineInput) {
     alcohol_percentage: line.alcoholPercentage,
     alcohol_tax_sek: line.alcoholTaxSek,
     needs_review: line.needsReview,
+    product_tax_category: line.productTaxCategory,
+    small_producer_reduction_pct: line.smallProducerReductionPct,
     snapped_at: line.snappedAt,
     trigger_source: line.triggerSource,
   };
@@ -249,24 +290,79 @@ export async function persistAlcoholTaxReportingSnapshot(opts: {
     }
   }
 
-  const { data: items, error: itemsErr } = await sb
-    .from("order_reservation_items")
-    .select(
-      "id, item_id, quantity, wines:item_id ( id, wine_name, vintage, volume_liters, alcohol_percentage, abv )",
-    )
-    .eq("reservation_id", reservationId);
+  // Prefer full wine fields; fall back if optional columns are missing on older DBs.
+  let itemRows: ItemWineRow[] = [];
+  {
+    const fullSelect =
+      "id, item_id, quantity, wines:item_id ( id, wine_name, vintage, volume_liters, alcohol_percentage, abv, color, classification, tags, additives )";
+    const { data: items, error: itemsErr } = await sb
+      .from("order_reservation_items")
+      .select(fullSelect)
+      .eq("reservation_id", reservationId);
 
-  if (itemsErr) {
-    console.error("[alcohol-tax-snapshot] load items", itemsErr.message);
-    return {
-      ok: false,
-      inserted: 0,
-      needsReviewCount: 0,
-      error: itemsErr.message,
-    };
+    if (
+      itemsErr &&
+      /column|does not exist|classification|additives|abv|volume_liters|alcohol_percentage|tags/i.test(
+        itemsErr.message ?? "",
+      )
+    ) {
+      const { data: fallback, error: fbErr } = await sb
+        .from("order_reservation_items")
+        .select(
+          "id, item_id, quantity, wines:item_id ( id, wine_name, vintage, color )",
+        )
+        .eq("reservation_id", reservationId);
+      if (fbErr) {
+        console.error("[alcohol-tax-snapshot] load items", fbErr.message);
+        return {
+          ok: false,
+          inserted: 0,
+          needsReviewCount: 0,
+          error: fbErr.message,
+        };
+      }
+      itemRows = (fallback ?? []).map((row) => {
+        const r = row as {
+          id: string;
+          item_id: string | null;
+          quantity: number | null;
+          wines: {
+            id: string;
+            wine_name: string | null;
+            vintage: string | number | null;
+            color: string | null;
+          } | null;
+        };
+        return {
+          id: r.id,
+          item_id: r.item_id,
+          quantity: r.quantity,
+          wines: r.wines
+            ? {
+                ...r.wines,
+                volume_liters: null,
+                alcohol_percentage: null,
+                abv: null,
+                classification: null,
+                tags: null,
+                additives: null,
+              }
+            : null,
+        };
+      });
+    } else if (itemsErr) {
+      console.error("[alcohol-tax-snapshot] load items", itemsErr.message);
+      return {
+        ok: false,
+        inserted: 0,
+        needsReviewCount: 0,
+        error: itemsErr.message,
+      };
+    } else {
+      itemRows = (items ?? []) as unknown as ItemWineRow[];
+    }
   }
 
-  const itemRows = (items ?? []) as unknown as ItemWineRow[];
   const built = buildAlcoholTaxReportingLines({
     reservationId,
     buyer: {
@@ -289,6 +385,10 @@ export async function persistAlcoholTaxReportingSnapshot(opts: {
           wine?.volume_liters != null ? Number(wine.volume_liters) : null,
         abv: wine?.abv ?? null,
         alcoholPercentage: wine?.alcohol_percentage ?? null,
+        color: wine?.color ?? null,
+        classification: wine?.classification ?? null,
+        tags: wine?.tags ?? null,
+        additives: wine?.additives ?? null,
       };
     }),
     snappedAt,
@@ -302,7 +402,7 @@ export async function persistAlcoholTaxReportingSnapshot(opts: {
   for (const line of built.lines) {
     if (!line.needsReview) continue;
     console.warn(
-      "[alcohol-tax-snapshot] needs_review — missing or out-of-band ABV",
+      "[alcohol-tax-snapshot] needs_review — missing/out-of-band ABV or fortified/mellanklass",
       {
         reservationId,
         itemId: line.orderReservationItemId,
