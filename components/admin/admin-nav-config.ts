@@ -27,6 +27,7 @@ import {
   Image,
   PenSquare,
   Wallet,
+  Activity,
 } from "lucide-react";
 
 export interface AdminNavItem {
@@ -137,6 +138,11 @@ export const adminNavigationGroups: AdminNavGroup[] = [
     name: "Drift",
     icon: ListTodo,
     items: [
+      {
+        name: "Driftöversikt",
+        href: "/admin/operations",
+        icon: Activity,
+      },
       { name: "Mål", href: "/admin/operations/goals", icon: Flag },
       {
         name: "Delmål",

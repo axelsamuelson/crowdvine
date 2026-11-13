@@ -9,7 +9,6 @@ import {
 
 /** Removed per ops_approval_queue 648d5e92 (Axel: Använder ingen – ta bort ur menyn). */
 const REMOVED_HREFS = [
-  "/admin/operations",
   "/admin/strategy-map",
   "/admin/home-concepts",
 ] as const;
@@ -21,7 +20,7 @@ describe("admin nav config (ops approval 648d5e92 / f297c243 step 1)", () => {
   const hrefs = items.map((i) => i.href);
   const names = items.map((i) => i.name);
 
-  it("does not include Operations overview / strategy map or Home concepts", () => {
+  it("does not include strategy map or Home concepts", () => {
     for (const href of REMOVED_HREFS) {
       expect(hrefs).not.toContain(href);
     }
@@ -45,7 +44,7 @@ describe("admin nav config (ops approval 648d5e92 / f297c243 step 1)", () => {
     expect(names).not.toContain("Business");
   });
 
-  it("uses Drift group with Mål + Delmål (separate routes)", () => {
+  it("uses Drift group with Driftöversikt first, then Mål + Delmål", () => {
     for (const group of adminNavigationGroups) {
       expect(group.items.length).toBeGreaterThan(0);
     }
@@ -53,6 +52,7 @@ describe("admin nav config (ops approval 648d5e92 / f297c243 step 1)", () => {
     expect(drift).toBeDefined();
     expect(adminNavigationGroups.find((g) => g.name === "Operations")).toBeUndefined();
     expect(drift!.items.map((i) => i.href)).toEqual([
+      "/admin/operations",
       "/admin/operations/goals",
       "/admin/operations/objectives",
       "/admin/operations/projects",
@@ -60,12 +60,14 @@ describe("admin nav config (ops approval 648d5e92 / f297c243 step 1)", () => {
       "/admin/operations/my-work",
     ]);
     expect(drift!.items.map((i) => i.name)).toEqual([
+      "Driftöversikt",
       "Mål",
       "Delmål",
       "Projekt",
       "Uppgifter",
       "Min arbetsyta",
     ]);
+    expect(drift!.items[0]?.name).toBe("Driftöversikt");
     expect(names).not.toContain("Objectives");
   });
 

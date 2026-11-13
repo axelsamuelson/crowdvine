@@ -125,6 +125,14 @@ function getBreadcrumbs(
     ];
   }
 
+  /** Driftöversikt leaf — avoid «Drift» twice when segment maps to group name. */
+  if (norm === "/admin/operations") {
+    return [
+      { label: "CrowdVine", href: "/admin" },
+      { label: "Driftöversikt", href: "/admin/operations" },
+    ];
+  }
+
   const segments = pathname.replace(/^\/admin\/?/, "").split("/").filter(Boolean);
   const crumbs: { label: string; href: string }[] = [
     { label: "CrowdVine", href: "/admin" },
@@ -166,7 +174,7 @@ export function AdminTopNav({ userEmail, onSignOut }: AdminTopNavProps) {
   );
 
   return (
-    <nav className="px-3 sm:px-6 flex items-center justify-between bg-white dark:bg-[#0F0F12] border-b border-gray-200 dark:border-[#1F1F23] h-full">
+    <nav className="flex h-full items-center justify-between bg-transparent px-2 sm:px-6">
       <div className="font-medium text-sm hidden min-w-0 flex-1 sm:flex sm:flex-wrap sm:items-center sm:gap-x-1 sm:pr-4">
         {breadcrumbs.map((item, index) => (
           <div key={item.href + index} className="flex min-w-0 items-center">
