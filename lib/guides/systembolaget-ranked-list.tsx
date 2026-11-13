@@ -267,29 +267,29 @@ function assortmentLabel(
   if (!raw) return null;
   const lower = raw.toLocaleLowerCase("sv-SE");
 
-  // SV keeps the existing uppercase labels; EN uses Systembolaget's English terms.
+  // Both locales use uppercase + tracking in the card label.
   if (lower.startsWith("ordervar")) {
-    return locale === "sv" ? "ORDERVARA" : "Order range";
+    return locale === "sv" ? "ORDERVARA" : "ORDER RANGE";
   }
   if (lower.includes("tillfälligt")) {
-    return locale === "sv" ? "TILLFÄLLIGT SORTIMENT" : "Temporary range";
+    return locale === "sv" ? "TILLFÄLLIGT SORTIMENT" : "TEMPORARY RANGE";
   }
   if (lower.startsWith("fast ")) {
-    return locale === "sv" ? "FAST SORTIMENT" : "Fixed range";
+    return locale === "sv" ? "FAST SORTIMENT" : "FIXED RANGE";
   }
   if (lower.startsWith("webblansering")) {
-    return locale === "sv" ? "WEBBLANSERINGAR" : "Online release";
+    return locale === "sv" ? "WEBBLANSERINGAR" : "ONLINE RELEASE";
   }
   if (lower.includes("lokalt") && lower.includes("småskaligt")) {
-    return locale === "sv" ? "LOKALT & SMÅSKALIGT" : "Local & Small-scale";
+    return locale === "sv" ? "LOKALT & SMÅSKALIGT" : "LOCAL & SMALL-SCALE";
   }
   if (lower.startsWith("säsong") || lower === "sasong") {
-    return locale === "sv" ? "SÄSONG" : "Seasonal";
+    return locale === "sv" ? "SÄSONG" : "SEASONAL";
   }
 
   return locale === "sv"
     ? raw.toLocaleUpperCase("sv-SE")
-    : raw;
+    : raw.toLocaleUpperCase("en-GB");
 }
 
 function assortmentFact(
@@ -685,13 +685,7 @@ export function RankedWineRow({
             ) : null}
 
             {!showFacts && assortment ? (
-              <p
-                className={
-                  locale === "sv"
-                    ? "mt-1 text-xs uppercase tracking-[0.08em] text-muted-foreground"
-                    : "mt-1 text-xs tracking-[0.02em] text-muted-foreground"
-                }
-              >
+              <p className="mt-1 text-xs uppercase tracking-[0.08em] text-muted-foreground">
                 {assortment}
               </p>
             ) : null}
