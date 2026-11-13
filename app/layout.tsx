@@ -20,6 +20,7 @@ import { MembershipProvider } from "@/lib/context/membership-context";
 import { PortalProvider } from "@/lib/context/portal-context";
 import { OnboardingProvider } from "@/components/onboarding/onboarding-provider";
 import { isDirectBoxCheckoutEnabled } from "@/lib/commerce/fulfillment-channel";
+import { isWelcomeModalEnabled } from "@/lib/onboarding/welcome-modal-flag";
 import { cn } from "../lib/utils";
 import V0SetupLoader from "@/components/v0-setup-loader";
 import { RootAnalyticsDeferred } from "@/components/analytics/root-analytics-deferred";
@@ -183,6 +184,7 @@ export default async function RootLayout({
           <CartProvider>
             <OnboardingProvider
               directBoxCheckoutEnabled={isDirectBoxCheckoutEnabled()}
+              welcomeModalEnabled={isWelcomeModalEnabled()}
             >
               <V0Provider isV0={isV0}>
                 <MobileMenuProvider>

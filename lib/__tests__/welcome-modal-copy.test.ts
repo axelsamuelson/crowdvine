@@ -20,21 +20,17 @@ describe("welcome modal kort-v2 copy", () => {
     expect(WELCOME_MODAL_COPY.en.step1.title).toBe("Welcome to PACT");
   });
 
-  it("uses Margaux final card 3 leverantör/supplier wording", () => {
+  it("uses Margaux card 3 producent/grossist wording (sha256 3a51bb47)", () => {
     const sv = WELCOME_MODAL_COPY.sv.step2.cards[2];
     const en = WELCOME_MODAL_COPY.en.step2.cards[2];
     expect(sv.title).toBe("Hela lådor.");
     expect(sv.body).toBe(
-      "6 flaskor per leverantör (6, 12, 18 …). Blanda fritt från samma leverantör.",
+      "6 flaskor per producent eller grossist (6, 12, 18 …). Viner från samma producent eller grossist går att blanda.",
     );
     expect(en.title).toBe("Full boxes.");
     expect(en.body).toBe(
-      "6 bottles per supplier (6, 12, 18 …). Mix freely from the same supplier.",
+      "6 bottles per producer or wholesaler (6, 12, 18 …). Wines from the same producer or wholesaler can be mixed.",
     );
-    expect(sv.body.toLowerCase()).not.toContain("grossist");
-    expect(en.body.toLowerCase()).not.toContain("wholesaler");
-    expect(sv.body.toLowerCase()).not.toContain("producent");
-    expect(en.body.toLowerCase()).not.toContain("producer");
   });
 
   it("gates direct-delivery appends", () => {

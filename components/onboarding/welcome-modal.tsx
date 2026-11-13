@@ -1,6 +1,6 @@
 /**
- * Welcome modal — short 3-step copy (Margaux kort-v2).
- * Mount is gated by OnboardingProvider + NEXT_PUBLIC_WELCOME_MODAL_ENABLED (default OFF).
+ * Welcome modal — short 3-step copy (Margaux kort-v2, sha256 3a51bb47…).
+ * Mount is gated by OnboardingProvider + WELCOME_MODAL_ENABLED (default OFF).
  * Preview: /dev/welcome-modal
  */
 "use client";
@@ -10,7 +10,6 @@ import { motion, AnimatePresence } from "motion/react";
 import { X, ArrowRight, ArrowLeft, Wine, Package, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { LogoSvg } from "@/components/layout/header/logo-svg";
 import type { AppLocale } from "@/lib/i18n/locale";
 import { useTranslations } from "@/lib/hooks/use-translations";
 import { cn } from "@/lib/utils";
@@ -28,6 +27,13 @@ import {
   welcomeModalStep2Card2Body,
   welcomeModalStep3Body,
 } from "@/lib/onboarding/welcome-modal-copy";
+import {
+  applyNaturalWineCopyVariant,
+  contentVariantFromAuthUser,
+  isNaturalWineHiddenVariantTag,
+  readContentVariantFromStorage,
+} from "@/lib/onboarding/welcome-modal-content-variant";
+import { createClient } from "@/utils/supabase/client";
 
 export type WelcomeDismissMethod = "close" | "skip";
 
@@ -45,6 +51,11 @@ interface WelcomeModalProps {
   initialStep?: number;
   /** When true, skip membership fetch (preview). */
   previewMode?: boolean;
+  /**
+   * Force Axel 12/11 content variant (hide naturvin / natural wine).
+   * Preview harness: ?hideNatural=1
+   */
+  previewHideNaturalWine?: boolean;
 }
 
 export function WelcomeModal({
@@ -56,6 +67,7 @@ export function WelcomeModal({
   directBoxCheckoutEnabled,
   initialStep = 0,
   previewMode = false,
+  previewHideNaturalWine,
 }: WelcomeModalProps) {
   const { context } = useTranslations();
   const locale: AppLocale = localeProp ?? context.locale;
@@ -69,6 +81,9 @@ export function WelcomeModal({
     useState<WelcomeModalMembershipLevel>(previewMembershipLevel ?? "basic");
   const [earningEnabled, setEarningEnabled] = useState(
     previewEarningEnabled ?? false,
+  );
+  const [hideNaturalWine, setHideNaturalWine] = useState(
+    Boolean(previewHideNaturalWine),
   );
   const [loading, setLoading] = useState(
     !previewMode && previewMembershipLevel == null,
@@ -88,10 +103,14 @@ export function WelcomeModal({
   const stepCount = 3;
   const stepNumber = currentStep + 1;
 
+  const v = (text: string) =>
+    applyNaturalWineCopyVariant(text, locale, hideNaturalWine);
+
   useEffect(() => {
     if (previewMode || previewMembershipLevel != null) {
       setMembershipLevel(previewMembershipLevel ?? "basic");
       setEarningEnabled(previewEarningEnabled ?? false);
+      setHideNaturalWine(Boolean(previewHideNaturalWine));
       setLoading(false);
       return;
     }
@@ -103,7 +122,9 @@ export function WelcomeModal({
         });
         if (response.ok) {
           const data = await response.json();
-          setMembershipLevel(welcomeModalTier(data.membership?.level || "basic"));
+          setMembershipLevel(
+            welcomeModalTier(data.membership?.level || "basic"),
+          );
           setEarningEnabled(Boolean(data.pactPointsEarningEnabled));
         } else {
           setMembershipLevel("basic");
@@ -117,14 +138,36 @@ export function WelcomeModal({
       }
     };
 
+    const resolveVariant = async () => {
+      if (previewHideNaturalWine != null) {
+        setHideNaturalWine(Boolean(previewHideNaturalWine));
+        return;
+      }
+      const stored = readContentVariantFromStorage();
+      if (isNaturalWineHiddenVariantTag(stored)) {
+        setHideNaturalWine(true);
+        return;
+      }
+      try {
+        const supabase = createClient();
+        const { data } = await supabase.auth.getUser();
+        const tag = contentVariantFromAuthUser(data.user);
+        setHideNaturalWine(isNaturalWineHiddenVariantTag(tag));
+      } catch {
+        setHideNaturalWine(false);
+      }
+    };
+
     if (isOpen) {
       void fetchMembership();
+      void resolveVariant();
     }
   }, [
     isOpen,
     previewMode,
     previewMembershipLevel,
     previewEarningEnabled,
+    previewHideNaturalWine,
   ]);
 
   useEffect(() => {
@@ -172,23 +215,20 @@ export function WelcomeModal({
   }[] = [
     {
       id: 1,
-      title: copy.step1.title,
-      subtitle: copy.step1.subtitle,
+      title: v(copy.step1.title),
+      subtitle: v(copy.step1.subtitle),
       icon: Wine,
       content: (
         <div className="space-y-6 text-center flex flex-col justify-center">
-          <div className="flex justify-center mb-2">
-            <LogoSvg className="h-14 w-auto" />
-          </div>
           <p className="text-base text-muted-foreground leading-relaxed max-w-md mx-auto">
-            {welcomeModalStep1Body(locale, directBoxEnabled)}
+            {v(welcomeModalStep1Body(locale, directBoxEnabled))}
           </p>
         </div>
       ),
     },
     {
       id: 2,
-      title: copy.step2.title,
+      title: v(copy.step2.title),
       icon: Package,
       content: (
         <div className="space-y-4 max-w-md mx-auto flex flex-col justify-center">
@@ -204,10 +244,10 @@ export function WelcomeModal({
                 </div>
                 <div>
                   <h4 className="font-medium text-foreground text-sm mb-1">
-                    {card.title}
+                    {v(card.title)}
                   </h4>
                   <p className="text-sm text-muted-foreground leading-relaxed">
-                    {body}
+                    {v(body)}
                   </p>
                 </div>
               </div>
@@ -218,16 +258,16 @@ export function WelcomeModal({
     },
     {
       id: 3,
-      title: copy.step3.title,
+      title: v(copy.step3.title),
       icon: Users,
       content: (
         <div className="space-y-4 text-center max-w-md mx-auto flex flex-col justify-center">
           <p className="text-base text-muted-foreground leading-relaxed">
-            {welcomeModalStep3Body(locale, levelName)}
+            {v(welcomeModalStep3Body(locale, levelName))}
           </p>
           {earningEnabled ? (
             <p className="text-sm text-foreground font-medium">
-              {copy.step3.bodyPointsBonus}
+              {v(copy.step3.bodyPointsBonus)}
             </p>
           ) : null}
         </div>
@@ -310,6 +350,7 @@ export function WelcomeModal({
               aria-modal="true"
               aria-labelledby="welcome-modal-title"
               data-testid="welcome-modal"
+              data-hide-natural-wine={hideNaturalWine ? "1" : "0"}
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
@@ -333,33 +374,32 @@ export function WelcomeModal({
                 )}
               >
                 <div className="flex flex-col items-center text-center mb-8">
-                  {currentStep !== 0 && (
-                    <motion.div
-                      key={currentStep}
-                      initial={{ scale: 0.8, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      transition={{ duration: 0.3 }}
-                      className="w-16 h-16 rounded-full bg-foreground/5 flex items-center justify-center mb-6"
-                    >
-                      <Icon className="w-8 h-8 text-foreground" />
-                    </motion.div>
-                  )}
+                  {/* Icon chrome on every step (incl. step 1) — grey circle like 2/3 */}
+                  <motion.div
+                    key={`icon-${currentStep}`}
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ duration: 0.3 }}
+                    className="w-16 h-16 rounded-full bg-foreground/5 flex items-center justify-center mb-6"
+                  >
+                    <Icon className="w-8 h-8 text-foreground" />
+                  </motion.div>
 
                   <motion.div
                     key={`title-${currentStep}`}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3, delay: 0.1 }}
-                    className="space-y-2"
+                    className="space-y-2 w-full"
                   >
                     <h2
                       id="welcome-modal-title"
-                      className="text-3xl md:text-4xl font-light text-foreground"
+                      className="text-3xl md:text-4xl font-light text-foreground px-12 max-md:px-12"
                     >
                       {step.title}
                     </h2>
                     {step.subtitle ? (
-                      <p className="text-sm md:text-base text-muted-foreground">
+                      <p className="text-sm md:text-base text-muted-foreground px-12 max-md:px-12">
                         {step.subtitle}
                       </p>
                     ) : null}
@@ -402,7 +442,10 @@ export function WelcomeModal({
                           ? "w-8 bg-foreground"
                           : "w-2 bg-foreground/20 hover:bg-foreground/40"
                       }`}
-                      aria-label={nav.goToStep.replace("{n}", String(index + 1))}
+                      aria-label={nav.goToStep.replace(
+                        "{n}",
+                        String(index + 1),
+                      )}
                     />
                   ))}
                 </div>
@@ -417,10 +460,14 @@ export function WelcomeModal({
                     variant="ghost"
                     onClick={handlePrev}
                     disabled={currentStep === 0}
+                    aria-hidden={currentStep === 0}
+                    tabIndex={currentStep === 0 ? -1 : undefined}
                     className={cn(
                       "gap-2 shrink-0",
                       locale === "sv" &&
                         "gap-0.5 px-1.5 text-[13px] md:gap-2 md:px-4 md:text-sm",
+                      // Keep layout space on step 1; invisible, not removed.
+                      currentStep === 0 && "invisible pointer-events-none",
                     )}
                   >
                     <ArrowLeft className="w-4 h-4" />

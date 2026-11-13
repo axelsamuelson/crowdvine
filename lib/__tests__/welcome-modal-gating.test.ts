@@ -97,6 +97,19 @@ describe("welcome modal mount wiring", () => {
     expect(src).toMatch(/isWelcomeModalAllowedPath/);
     expect(src).toMatch(/onboarding_seen|fetchWelcomeSeen|markWelcomeSeenRemote/);
     expect(src).not.toMatch(/push\s*\(\s*["']\/onboarding["']/);
+    // Never render modal tree for anonymous visitors — members only.
+    expect(src).toMatch(/mayRenderModal/);
+    expect(src).toMatch(/isMember/);
+    expect(src).toMatch(/cart-drawer-state|cartOpen/);
+  });
+
+  it("root layout passes welcomeModalEnabled from the server (client env is empty)", () => {
+    const layout = readFileSync(
+      resolve(process.cwd(), "app/layout.tsx"),
+      "utf8",
+    );
+    expect(layout).toMatch(/isWelcomeModalEnabled/);
+    expect(layout).toMatch(/welcomeModalEnabled=\{isWelcomeModalEnabled\(\)\}/);
   });
 
   it("modal tracks required events and uses earningEnabled", () => {

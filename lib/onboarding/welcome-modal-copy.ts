@@ -1,7 +1,7 @@
 /**
  * Welcome modal short copy — 3 steps (Margaux kort-v2, 2026-11-13).
- * Source: /cursor/stores/bot/handoff/welcome-modal-kort-v2.md (sha256 ecd056b1…).
- * Step 2 card 3: final Margaux wording uses leverantör / supplier (not grossist/wholesaler).
+ * Source: /cursor/stores/bot/handoff/welcome-modal-kort-v2.md (sha256 3a51bb47…).
+ * Step 2 card 3: Margaux (13/11) — producent/grossist same wording as step 1.
  */
 
 import type { AppLocale } from "@/lib/i18n/locale";
@@ -37,7 +37,7 @@ export const WELCOME_MODAL_COPY = {
         },
         {
           title: "Hela lådor.",
-          body: "6 flaskor per leverantör (6, 12, 18 …). Blanda fritt från samma leverantör.",
+          body: "6 flaskor per producent eller grossist (6, 12, 18 …). Viner från samma producent eller grossist går att blanda.",
         },
       ],
     },
@@ -77,7 +77,7 @@ export const WELCOME_MODAL_COPY = {
         },
         {
           title: "Full boxes.",
-          body: "6 bottles per supplier (6, 12, 18 …). Mix freely from the same supplier.",
+          body: "6 bottles per producer or wholesaler (6, 12, 18 …). Wines from the same producer or wholesaler can be mixed.",
         },
       ],
     },

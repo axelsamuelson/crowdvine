@@ -26,6 +26,8 @@ export function WelcomeModalPreviewClient() {
   const theme = params.get("theme") === "dark" ? "dark" : "light";
   const direct =
     params.get("direct") === "1" || params.get("direct") === "true";
+  const hideNatural =
+    params.get("hideNatural") === "1" || params.get("hideNatural") === "true";
 
   const stepIdParam = params.get("stepId");
   const stepParam = params.get("step");
@@ -110,6 +112,7 @@ export function WelcomeModalPreviewClient() {
     tier,
     earning ? "earn" : "noearn",
     direct ? "direct" : "nodirect",
+    hideNatural ? "hidenatural" : "natural",
   ].join("-");
 
   return (
@@ -124,6 +127,7 @@ export function WelcomeModalPreviewClient() {
         previewEarningEnabled={earning}
         previewMode
         directBoxCheckoutEnabled={direct}
+        previewHideNaturalWine={hideNatural}
       />
     </div>
   );
