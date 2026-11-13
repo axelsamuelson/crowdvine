@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { NOINDEX_PAGE_ROBOTS } from "@/lib/seo/noindex-robots";
 import { HomeSidebar } from "@/components/layout/sidebar/home-sidebar";
 import { Footer } from "@/components/layout/footer";
 import { LatestProductCard } from "@/components/products/latest-product-card";
@@ -16,6 +18,11 @@ import { getCurrentAdmin } from "@/lib/admin-auth-server";
 import { getRequestHostFromHeaders } from "@/lib/b2b-site-server";
 
 // Disable static generation for now - make it dynamic
+
+export const metadata: Metadata = {
+  robots: NOINDEX_PAGE_ROBOTS,
+};
+
 export const dynamic = "force-dynamic";
 
 export default async function Concept7Page() {

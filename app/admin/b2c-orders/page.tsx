@@ -14,8 +14,6 @@ import {
   Clock,
   CheckCircle,
   Search,
-  Download,
-  MoreHorizontal,
   Trash2,
   ArrowRight,
 } from "lucide-react";
@@ -291,21 +289,6 @@ export default function B2cOrdersPage() {
           >
             <Search className="h-3.5 w-3.5 mr-2" />
             Refresh
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="rounded-lg text-xs font-medium border-gray-200 dark:border-zinc-700 text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-800/50"
-          >
-            <Download className="h-3.5 w-3.5 mr-2" />
-            Export
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="rounded-lg text-xs font-medium border-gray-200 dark:border-zinc-700 text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-800/50"
-          >
-            <MoreHorizontal className="h-3.5 w-3.5" />
           </Button>
         </div>
       </div>
