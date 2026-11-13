@@ -121,9 +121,14 @@ function offerExplanationBody(
   quote: OfferQuote,
   locale: Locale,
   deadlineLabel: string | null,
+  useCoverageCloseCopy?: boolean,
 ): string {
   if (quote.offer === "direct_box") {
     return dualOfferMsg(locale, "directBoxBody");
+  }
+  // Coverage-close ladder (SV KASSAN approved; EN still TODO in customer-copy).
+  if (useCoverageCloseCopy) {
+    return coverageCheckoutHint(locale);
   }
   if (deadlineLabel) {
     return dualOfferMsg(locale, "dualOfferSharedBody", {
@@ -147,6 +152,8 @@ function OfferRow(props: {
   showPriceBreakdown?: boolean;
   /** Localized shared-pallet charge deadline for explanation body. */
   deadlineLabel?: string | null;
+  /** When true, shared-pallet body uses coverageCheckoutHint (KASSAN). */
+  useCoverageCloseCopy?: boolean;
 }) {
   const { quote, locale } = props;
   if (!quote) {
@@ -248,11 +255,17 @@ function OfferRow(props: {
                   ? "dual-offer-direct-body"
                   : "dual-offer-shared-body"
               }
+              data-coverage-close={
+                quote.offer === "shared_pallet" && props.useCoverageCloseCopy
+                  ? "1"
+                  : "0"
+              }
             >
               {offerExplanationBody(
                 quote,
                 locale,
                 props.deadlineLabel ?? null,
+                props.useCoverageCloseCopy,
               )}
             </p>
             <p data-testid={`dual-offer-age-${quote.offer}`}>
@@ -993,6 +1006,7 @@ export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
                   }
                   selectable
                   deadlineLabel={sharedDeadline}
+                  useCoverageCloseCopy={useCoverageCloseCopy}
                 />
                 <OfferRow
                   title={dualOfferMsg(locale, "dualOfferDirectTitle")}

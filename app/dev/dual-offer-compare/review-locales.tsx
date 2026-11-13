@@ -61,6 +61,7 @@ export function DualOfferReviewLocales(props: { dual: DualOfferQuoteSet }) {
         </button>
       </div>
       <DualOfferCheckoutPanel
+        useCoverageCloseCopy
         key={locale}
         initialDual={props.dual}
         locale={locale}
