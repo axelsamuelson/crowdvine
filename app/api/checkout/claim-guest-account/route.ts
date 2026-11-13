@@ -3,7 +3,6 @@ import { getCurrentUser } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { logUserEventServer } from "@/lib/analytics/log-user-event-server";
 import { isGuestCheckoutEnabled } from "@/lib/checkout/guest-checkout-flag";
-import { isPlatformOpen } from "@/lib/platform-open";
 import {
   NEW_PALLET_OPEN_CONSENT_TEXT_VERSION,
   NEW_PALLET_OPEN_PURPOSE,
@@ -15,9 +14,11 @@ import {
  *
  * Optional confirmation-page account claim for guest checkout identities.
  * Consent (marketingOptIn) is never assumed — client must send explicit true.
+ * Requires GUEST_CHECKOUT_ENABLED (reads guest_checkout_at / account_claimed_at
+ * — columns from migration 291; must not run when flag is OFF).
  */
 export async function POST(request: NextRequest) {
-  if (!isGuestCheckoutEnabled() && !isPlatformOpen()) {
+  if (!isGuestCheckoutEnabled()) {
     return NextResponse.json(
       { error: "Guest account claim is not available." },
       { status: 403 },

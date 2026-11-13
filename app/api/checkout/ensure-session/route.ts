@@ -105,11 +105,11 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Guest-checkout flag alone is SE-only; PLATFORM_OPEN keeps broader access.
+  // Guest-checkout flag alone is SE-only (require explicit SE; empty ≠ SE).
+  // PLATFORM_OPEN keeps broader access without a country gate.
   if (
     !platformOpen &&
     guestCheckoutEnabled &&
-    countryCode &&
     !isSwedishGuestCheckoutMarket(countryCode)
   ) {
     return NextResponse.json(
@@ -195,15 +195,22 @@ export async function POST(request: NextRequest) {
     }
 
     if (!existingProfile) {
-      const { error: profileError } = await sb.from("profiles").insert({
+      // guest_checkout_at only when flag ON — column may not exist until
+      // migration 291; PLATFORM_OPEN-only prod must not write it.
+      const profileInsert: Record<string, unknown> = {
         id: userId,
         email,
         role: "user",
         access_granted_at: now,
         updated_at: now,
-        guest_checkout_at: now,
         ...(fullName.length > 1 ? { full_name: fullName } : {}),
-      });
+      };
+      if (guestCheckoutEnabled) {
+        profileInsert.guest_checkout_at = now;
+      }
+      const { error: profileError } = await sb
+        .from("profiles")
+        .insert(profileInsert);
       if (profileError) {
         console.error("[checkout/ensure-session] profile insert:", profileError);
         return NextResponse.json(
@@ -229,7 +236,7 @@ export async function POST(request: NextRequest) {
       ok: true,
       autoSignedIn: true,
       userId,
-      guest: true,
+      guest: guestCheckoutEnabled,
       session: {
         access_token: verified.session.access_token,
         refresh_token: verified.session.refresh_token,
