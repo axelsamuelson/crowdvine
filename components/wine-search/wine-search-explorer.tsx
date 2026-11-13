@@ -165,7 +165,9 @@ export function WineSearchExplorer() {
   const [wineTab, setWineTab] = useState("all");
   const [byGlass, setByGlass] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  /** User-facing fetch failure (Swedish). Technical detail stays in console / title only. */
+  const [fetchFailed, setFetchFailed] = useState(false);
+  const [technicalError, setTechnicalError] = useState<string | null>(null);
   const [data, setData] = useState<MenuSearchResponse | null>(null);
   const [sortKey, setSortKey] = useState<SortKey>("newest");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
@@ -203,7 +205,8 @@ export function WineSearchExplorer() {
 
   const runFetch = useCallback(async () => {
     setLoading(true);
-    setError(null);
+    setFetchFailed(false);
+    setTechnicalError(null);
     try {
       const params = new URLSearchParams({
         q: debouncedQuery,
@@ -228,11 +231,14 @@ export function WineSearchExplorer() {
       });
       const json = (await res.json()) as MenuSearchResponse & { error?: string };
       if (!res.ok) {
-        throw new Error(json.error || "Kunde inte hämta data");
+        throw new Error(json.error || `HTTP ${res.status}`);
       }
       setData(json);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Något gick fel");
+      const detail = e instanceof Error ? e.message : String(e);
+      console.error("[Hitta vin] fetch failed:", detail);
+      setTechnicalError(detail);
+      setFetchFailed(true);
       setData(null);
     } finally {
       setLoading(false);
@@ -411,15 +417,19 @@ export function WineSearchExplorer() {
           </div>
         </div>
 
-        <p className={isAdmin ? "my-4 text-sm text-zinc-600 dark:text-zinc-400" : "my-4 text-sm text-zinc-600"}>
-          Visar {groupedRows.length} unika viner från {krogarOnPage} krogar på denna sida
-          {totalWines > PER_PAGE ? (
-            <span className={isAdmin ? "text-zinc-500 dark:text-zinc-500" : "text-zinc-500"}>
-              {" "}
-              · sida {data?.page ?? page} ({totalWines} unika totalt)
-            </span>
-          ) : null}
-        </p>
+        {!fetchFailed ? (
+          <p className={isAdmin ? "my-4 text-sm text-zinc-600 dark:text-zinc-400" : "my-4 text-sm text-zinc-600"}>
+            Visar {groupedRows.length} unika viner från {krogarOnPage} krogar på denna sida
+            {totalWines > PER_PAGE ? (
+              <span className={isAdmin ? "text-zinc-500 dark:text-zinc-500" : "text-zinc-500"}>
+                {" "}
+                · sida {data?.page ?? page} ({totalWines} unika totalt)
+              </span>
+            ) : null}
+          </p>
+        ) : (
+          <div className="my-4" />
+        )}
 
         {data?._fallback && (
           <p className={isAdmin ? "mb-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:bg-amber-950/40 dark:text-amber-200" : "mb-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-900"}>
@@ -427,16 +437,46 @@ export function WineSearchExplorer() {
           </p>
         )}
 
-        {error && (
-          <p className={isAdmin ? "mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800 dark:bg-red-950/40 dark:text-red-200" : "mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800"}>
-            {error}
-          </p>
+        {fetchFailed && (
+          <div
+            className={
+              isAdmin
+                ? "mb-3 flex flex-col gap-3 rounded-lg bg-red-50 px-3 py-3 text-sm text-red-800 dark:bg-red-950/40 dark:text-red-200 sm:flex-row sm:items-center sm:justify-between"
+                : "mb-3 flex flex-col gap-3 rounded-lg bg-red-50 px-3 py-3 text-sm text-red-800 sm:flex-row sm:items-center sm:justify-between"
+            }
+            title={technicalError ?? undefined}
+          >
+            <p>Kunde inte hämta vinlistorna. Försök igen.</p>
+            <button
+              type="button"
+              onClick={() => void runFetch()}
+              disabled={loading}
+              className={
+                isAdmin
+                  ? "inline-flex shrink-0 items-center justify-center rounded-lg border border-red-300 bg-white px-3 py-1.5 text-sm font-medium text-red-900 hover:bg-red-50 disabled:opacity-60 dark:border-red-800 dark:bg-zinc-900 dark:text-red-100 dark:hover:bg-zinc-800"
+                  : "inline-flex shrink-0 items-center justify-center rounded-lg border border-red-300 bg-white px-3 py-1.5 text-sm font-medium text-red-900 hover:bg-red-50 disabled:opacity-60"
+              }
+            >
+              Försök igen
+            </button>
+          </div>
         )}
 
         <div className={tableCard}>
           {loading ? (
             <div className="p-2">
               <TableSkeleton isAdmin={isAdmin} />
+            </div>
+          ) : fetchFailed ? (
+            <div
+              className={
+                isAdmin
+                  ? "px-4 py-10 text-center text-sm text-zinc-500 dark:text-zinc-400"
+                  : "px-4 py-10 text-center text-sm text-zinc-500"
+              }
+              title={technicalError ?? undefined}
+            >
+              Kunde inte hämta vinlistorna. Försök igen.
             </div>
           ) : (
             <table className="w-full min-w-[880px] border-collapse text-left text-sm">
@@ -491,7 +531,7 @@ export function WineSearchExplorer() {
                 </tr>
               </thead>
               <tbody>
-                {!loading && groupedRows.length === 0 && (
+                {!loading && !fetchFailed && groupedRows.length === 0 && (
                   <tr>
                     <td
                       colSpan={9}

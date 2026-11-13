@@ -50,7 +50,7 @@ export const adminTopLevelNav: AdminNavItem[] = [
 /**
  * Admin sidebar groups (desktop + mobile sheet).
  * Pages may still exist without a menu entry (ops approval 648d5e92 / f297c243 step 1).
- * Labels are Swedish; keep English only where English content is managed (e.g. Business).
+ * Labels are Swedish (Drift group = former Operations).
  */
 export const adminNavigationGroups: AdminNavGroup[] = [
   {
@@ -75,7 +75,11 @@ export const adminNavigationGroups: AdminNavGroup[] = [
     icon: Users,
     items: [
       { name: "Användare", href: "/admin/users", icon: Users },
-      { name: "Business", href: "/admin/users/business", icon: Building2 },
+      {
+        name: "Företagskonton",
+        href: "/admin/users/business",
+        icon: Building2,
+      },
       { name: "Medlemskap", href: "/admin/memberships", icon: Award },
       { name: "Åtkomstkontroll", href: "/admin/access-control", icon: Shield },
     ],
@@ -130,11 +134,15 @@ export const adminNavigationGroups: AdminNavGroup[] = [
     ],
   },
   {
-    name: "Operations",
+    name: "Drift",
     icon: ListTodo,
     items: [
       { name: "Mål", href: "/admin/operations/goals", icon: Flag },
-      { name: "Objectives", href: "/admin/operations/objectives", icon: Target },
+      {
+        name: "Delmål",
+        href: "/admin/operations/objectives",
+        icon: Target,
+      },
       { name: "Projekt", href: "/admin/operations/projects", icon: FolderKanban },
       { name: "Uppgifter", href: "/admin/operations/tasks", icon: ListTodo },
       { name: "Min arbetsyta", href: "/admin/operations/my-work", icon: UserCheck },
