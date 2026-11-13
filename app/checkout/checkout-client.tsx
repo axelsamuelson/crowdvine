@@ -4005,7 +4005,7 @@ function CheckoutContent({
         transparent fixed site header so scrolled panel text cannot show through
         MENY/PACT. Does not alter global header styles or OFF-checkout.
       */}
-      <div className="mx-auto max-w-[1280px] space-y-8 p-6 pt-top-spacing">
+      <div className="mx-auto max-w-[1280px] space-y-8 px-6 pb-6 pt-[calc(var(--top-spacing)+1.5rem)]">
         <div>
           <h1 className="mb-2 text-2xl font-medium text-foreground">
             {t("checkout.title")}
