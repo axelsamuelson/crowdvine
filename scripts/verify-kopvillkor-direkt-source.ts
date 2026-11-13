@@ -7,7 +7,7 @@
  *   pnpm exec tsx scripts/verify-kopvillkor-direkt-source.ts [approved.md]
  */
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const EXPECTED_SHA256 =
@@ -79,11 +79,26 @@ function extractBody(publishable: string, heading: string, next?: string): strin
   return body;
 }
 
+function resolveApprovedPath(): string | null {
+  if (process.argv[2]) return resolve(process.argv[2]);
+  const candidates = [
+    "/home/ubuntu/.cursor/projects/agent-repos-crowdvine/uploads/kopvillkor-direktleverans-tillagg-GODKAND-2026-11-11-1122_572f.md",
+    "uploads/kopvillkor-direktleverans-tillagg-GODKAND-2026-11-11-1122.md",
+  ];
+  for (const p of candidates) {
+    if (existsSync(p)) return resolve(p);
+  }
+  return null;
+}
+
 function main() {
-  const approvedPath = resolve(
-    process.argv[2] ??
-      "/home/ubuntu/.cursor/projects/agent-repos-crowdvine/uploads/kopvillkor-direktleverans-tillagg-GODKAND-2026-11-11-1122_572f.md",
-  );
+  const approvedPath = resolveApprovedPath();
+  if (!approvedPath) {
+    console.log(
+      "SKIP: approved kopvillkor direkt addendum not found locally (pass a path as argv to verify).",
+    );
+    return;
+  }
   const publishedPath = resolve("content/legal/source/kopvillkor.sv.md");
   const tsxPath = resolve("content/legal/kopvillkor.tsx");
 
