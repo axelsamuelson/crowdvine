@@ -97,22 +97,25 @@ export function OnboardingProvider({
     }
 
     let cancelled = false;
-    const supabase = createClient();
+    let subscription: { unsubscribe: () => void } | null = null;
 
-    void supabase.auth.getUser().then(({ data }) => {
-      if (cancelled) return;
-      setUserId(data.user?.id ?? null);
-    });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUserId(session?.user?.id ?? null);
-    });
+    try {
+      const supabase = createClient();
+      void supabase.auth.getUser().then(({ data }) => {
+        if (cancelled) return;
+        setUserId(data.user?.id ?? null);
+      });
+      subscription = supabase.auth.onAuthStateChange((_event, session) => {
+        setUserId(session?.user?.id ?? null);
+      }).data.subscription;
+    } catch {
+      // Missing Supabase env (local screenshot / CI without secrets) — stay anonymous.
+      setUserId(null);
+    }
 
     return () => {
       cancelled = true;
-      subscription.unsubscribe();
+      subscription?.unsubscribe();
     };
   }, [flagOn]);
 
