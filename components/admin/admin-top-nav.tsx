@@ -125,6 +125,14 @@ function getBreadcrumbs(
     ];
   }
 
+  /** Driftöversikt leaf — avoid «Drift» twice when segment maps to group name. */
+  if (norm === "/admin/operations") {
+    return [
+      { label: "CrowdVine", href: "/admin" },
+      { label: "Driftöversikt", href: "/admin/operations" },
+    ];
+  }
+
   const segments = pathname.replace(/^\/admin\/?/, "").split("/").filter(Boolean);
   const crumbs: { label: string; href: string }[] = [
     { label: "CrowdVine", href: "/admin" },
