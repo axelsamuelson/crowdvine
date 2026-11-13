@@ -603,8 +603,8 @@ export function RankedWineRow({
       <div
         className={
           showRank
-            ? "grid grid-cols-[auto_auto_minmax(0,1fr)] items-start gap-x-3 gap-y-3 md:gap-x-4"
-            : "grid grid-cols-[auto_minmax(0,1fr)] items-start gap-x-3 gap-y-3 md:gap-x-4"
+            ? "grid grid-cols-[auto_4rem_minmax(0,1fr)] items-start gap-x-3 gap-y-3 md:grid-cols-[auto_10rem_minmax(0,1fr)] md:gap-x-4"
+            : "grid grid-cols-[4rem_minmax(0,1fr)] items-start gap-x-3 gap-y-3 md:grid-cols-[10rem_minmax(0,1fr)] md:gap-x-4"
         }
       >
         {showRank ? (
