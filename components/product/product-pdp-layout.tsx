@@ -4,6 +4,7 @@ import { CartSourceProviderConditional } from "@/components/cart/cart-source-pro
 import { AddToCartConditional } from "@/components/cart/add-to-cart-conditional";
 import { DirectBoxDeliveryPromise } from "@/components/commerce/direct-box-delivery-promise";
 import { MinSixBottlesHint } from "@/components/commerce/min-six-bottles-hint";
+import { PactSellerConsumerInfo } from "@/components/commerce/pact-seller-consumer-info";
 import { ServerListPrice } from "@/components/commerce/server-list-price";
 import { PageLayoutServer } from "@/components/layout/page-layout-server";
 import { PalletStatusBar } from "@/components/pdp/pallet-status-bar";
@@ -196,24 +197,41 @@ export async function ProductPdpLayout({
                         ) : null
                       }
                     />
-                    {/* Info block below buy / ×6 selector: 6-bottle rule + delivery (PACT). */}
+                    {/* Info block below buy / ×6 selector: 6-bottle rule + seller/consumer + delivery (PACT). */}
                     {!isDirtywine && product.productType === "wine" ? (
-                      <MinSixBottlesHint locale={locale} trackSurface="pdp_info" />
+                      <>
+                        <MinSixBottlesHint locale={locale} trackSurface="pdp_info" />
+                        <PactSellerConsumerInfo
+                          locale={locale}
+                          showSharedPallet={false}
+                        />
+                      </>
                     ) : null}
                     {/* SSR direct-box promise; client PalletStatusBar keeps analytics.
-                        Hidden unless DIRECT_BOX_CHECKOUT_ENABLED. */}
-                    {isDirectBoxCheckoutEnabled() ? (
-                      <noscript>
+                        Direct-box row hidden unless DIRECT_BOX_CHECKOUT_ENABLED. */}
+                    <noscript>
+                      {isDirectBoxCheckoutEnabled() ? (
                         <DirectBoxDeliveryPromise
                           locale={locale}
                           sourceType={product.sourceType}
                           enabled
                         />
-                      </noscript>
-                    ) : null}
+                      ) : null}
+                      {!isDirtywine && product.productType === "wine" ? (
+                        <PactSellerConsumerInfo
+                          locale={locale}
+                          showSeller={false}
+                          showWithdrawal={false}
+                          showSharedPallet
+                        />
+                      ) : null}
+                    </noscript>
                     <PalletStatusBar
                       sourceType={product.sourceType}
                       showDirectBoxPromise={isDirectBoxCheckoutEnabled()}
+                      showSharedPalletPromise={
+                        !isDirtywine && product.productType === "wine"
+                      }
                     />
                     {product.productType === "wine" &&
                     (

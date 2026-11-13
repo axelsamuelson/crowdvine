@@ -381,6 +381,9 @@
     "directBoxBody": "Vi skickar dina lådor direkt hem till dig. Frakt 149 kr per låda om 6 flaskor. Flaskpriset är 5 % högre än på delad pall. Leveranstiden räknas från att ordern är bekräftad och betald.",
     "directBoxShippingPerBox": "Frakt 149 kr per låda om 6 flaskor",
     "directBoxBottleMarkupNote": "Flaskpriset är 5 % högre än på delad pall",
+    "sellerLine": "Säljare: EURPACT OÜ, Tallinn, Estland",
+    "withdrawalLine": "14 dagars ångerrätt",
+    "sharedPalletDelivery": "Delad pall: Efter stängningen levererar vi inom 30 dagar, normalt inom 2–3 veckor.",
     "palletFillCount": "{filled} av {total} flaskor",
     "palletReadyShort": "Redo",
     "palletRemainingShort": "{remaining} kvar"
