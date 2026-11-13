@@ -3890,7 +3890,8 @@ function CheckoutContent({
   if (cart.totalQuantity === 0) {
     return (
       <main className="min-h-screen bg-background">
-        <div className="mx-auto max-w-[1280px] space-y-8 p-6 pt-top-spacing">
+        {/* Fixed header is h-[var(--top-spacing)]+border; add p-6 (1.5rem) below it. */}
+        <div className="mx-auto max-w-[1280px] space-y-8 px-6 pb-6 pt-[calc(var(--top-spacing)+1.5rem)]">
           <div>
             <h1 className="mb-4 text-2xl font-semibold">{t("checkout.title")}</h1>
             <p className="text-gray-600">{t("checkout.emptyCart")}</p>
