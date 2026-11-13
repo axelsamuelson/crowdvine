@@ -1,0 +1,45 @@
+{
+  "@context": "https://schema.org",
+  "@type": "Product",
+  "name": "L 2023",
+  "description": "Naturvin från Languedoc",
+  "image": "https://pactwines.com/pact-og-uploaded.jpg",
+  "url": "https://pactwines.com/produkt/l-2023",
+  "sku": "l-2023",
+  "brand": {
+    "@type": "Brand",
+    "name": "Test Producer"
+  },
+  "offers": {
+    "@type": "Offer",
+    "availability": "https://schema.org/PreOrder",
+    "priceCurrency": "SEK",
+    "price": "174",
+    "url": "https://pactwines.com/produkt/l-2023",
+    "sku": "l-2023",
+    "seller": {
+      "@type": "Organization",
+      "name": "PACT",
+      "sameAs": [
+        "https://www.instagram.com/pactwines"
+      ]
+    },
+    "shippingDetails": {
+      "@type": "OfferShippingDetails",
+      "shippingDestination": {
+        "@type": "DefinedRegion",
+        "addressCountry": "SE"
+      }
+    },
+    "hasMerchantReturnPolicy": {
+      "@type": "MerchantReturnPolicy",
+      "applicableCountry": "SE",
+      "returnPolicyCategory": "https://schema.org/MerchantReturnFiniteReturnWindow",
+      "merchantReturnDays": 14,
+      "returnMethod": "https://schema.org/ReturnByMail",
+      "returnFees": "https://schema.org/ReturnFeesCustomerResponsibility",
+      "refundType": "https://schema.org/FullRefund",
+      "url": "https://pactwines.com/villkor"
+    }
+  }
+}
