@@ -22,7 +22,7 @@ describe("DirectBoxDeliveryPromise gated by DIRECT_BOX_CHECKOUT_ENABLED", () => 
     expect(layout).toMatch(/showDirectBoxPromise=\{isDirectBoxCheckoutEnabled\(\)\}/);
   });
 
-  it("checkout hides promise unless directBoxCheckoutEnabled", () => {
+  it("checkout shows direct promise only when directBoxCheckoutEnabled", () => {
     const checkout = readFileSync(
       resolve(process.cwd(), "app/checkout/checkout-client.tsx"),
       "utf8",
@@ -30,8 +30,7 @@ describe("DirectBoxDeliveryPromise gated by DIRECT_BOX_CHECKOUT_ENABLED", () => 
     expect(checkout).toMatch(
       /directBoxCheckoutEnabled && producerDirectBoxOnly/,
     );
-    expect(checkout).toMatch(
-      /!directBoxCheckoutEnabled \|\| !producerDirectBoxOnly/,
-    );
+    expect(checkout).toMatch(/checkout\.deliveryEstimate2to3Weeks/);
   });
 });
+

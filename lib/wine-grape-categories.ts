@@ -37,7 +37,7 @@ export function buildDynamicGrapeCategory(
       locale: "sv",
       h1: `${grapeName}-viner`,
       title: `${grapeName} — naturvin | PACT Wines`,
-      metaDescription: `Köp ${grapeName}-viner. Ekologiskt och biodynamiskt. Hemleverans i Stockholm.`,
+      metaDescription: `Köp ${grapeName}-viner. Ekologiskt och biodynamiskt. Hemleverans i Sverige.`,
       // Site name resolved at request time via localizeGeneratedCategoryCopy.
       description: `${grapeName}-viner online hos PACT Wines.`,
       filter: { filterGrape: grapeName },
@@ -51,7 +51,7 @@ export function buildDynamicGrapeCategory(
     locale: "en",
     h1: `${grapeName} Wines`,
     title: `${grapeName} Wines | PACT Wines`,
-    metaDescription: `Buy ${grapeName} wines. Organic and biodynamic. Home delivery in Stockholm.`,
+    metaDescription: `Buy ${grapeName} wines. Organic and biodynamic. Home delivery in Sweden.`,
     description: `${grapeName} Wines online at PACT Wines.`,
     filter: { filterGrape: grapeName },
     hreflang: slug,

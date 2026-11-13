@@ -70,7 +70,7 @@
     "collapseTasteQuiz": "Close",
     "allWineBoxes": "All wine boxes",
     "glassDirectFromProducer": "Guaranteed lowest price",
-    "glassHomeDelivery": "Home delivery in Stockholm",
+    "glassHomeDelivery": "Home delivery in Sweden",
     "glassNoMiddlemen": "No middlemen"
   },
   "shop": {
@@ -477,9 +477,7 @@
     "deliveryBringHint": "{estimate} · Signature and age verification required",
     "budbeeUnavailable": "Home delivery is not available for your postal code. Contact us for alternatives.",
     "deliveryOptionAria": "Delivery option: home delivery",
-    "deliveryEstimate2to4Weeks": "2–4 weeks",
-    "deliveryEstimate1to2Weeks": "2–3 weeks",
-    "deliveryEstimateWithin1Week": "Within 1 week",
+    "deliveryEstimate2to3Weeks": "Delivered normally 2–3 weeks after the pallet closes",
     "deliveryEstimateShippingOrdered": "Shipping ordered · Estimated delivery 7–14 days",
     "progressBonusActiveTitle": "Active Progress Bonus",
     "progressBonusAppliedNext": "Applied to your next order",

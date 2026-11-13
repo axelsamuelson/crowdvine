@@ -70,7 +70,7 @@
     "collapseTasteQuiz": "Stäng",
     "allWineBoxes": "Alla vinlådor",
     "glassDirectFromProducer": "Garanterat lägsta pris",
-    "glassHomeDelivery": "Hemleverans i Stockholm",
+    "glassHomeDelivery": "Hemleverans i Sverige",
     "glassNoMiddlemen": "Inga mellanhänder"
   },
   "shop": {
@@ -477,9 +477,7 @@
     "deliveryBringHint": "{estimate} · Signatur och ålderskontroll krävs",
     "budbeeUnavailable": "Hemleverans är inte tillgänglig för ditt postnummer. Kontakta oss för alternativ.",
     "deliveryOptionAria": "Leveransalternativ: hemleverans",
-    "deliveryEstimate2to4Weeks": "2–4 veckor",
-    "deliveryEstimate1to2Weeks": "2–3 veckor",
-    "deliveryEstimateWithin1Week": "Inom 1 vecka",
+    "deliveryEstimate2to3Weeks": "Levereras normalt 2–3 veckor efter att pallen stänger",
     "deliveryEstimateShippingOrdered": "Frakt beställd · Beräknad leverans 7–14 dagar",
     "progressBonusActiveTitle": "Aktiv progressionsbonus",
     "progressBonusAppliedNext": "Gäller din nästa order",

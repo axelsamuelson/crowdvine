@@ -287,11 +287,11 @@ describe("Margaux region landing copy", () => {
     );
   });
 
-  it("SV meta ends with Budbee; EN meta omits Budbee; never hela Sverige", () => {
+  it("SV meta ends with Hemleverans i Sverige; EN omits home delivery; never hela Sverige", () => {
     for (const region of WINE_REGIONS) {
       const sv = wineRegionPageMetaDescription(region, "sv");
       const en = wineRegionPageMetaDescription(region, "en");
-      expect(sv.endsWith("Hemleverans med Budbee.")).toBe(true);
+      expect(sv.endsWith("Hemleverans i Sverige.")).toBe(true);
       expect(en.endsWith("at PACT.")).toBe(true);
       expect(en.toLowerCase()).not.toContain("budbee");
       expect(en.toLowerCase()).not.toContain("home delivery");
