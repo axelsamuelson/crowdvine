@@ -3166,6 +3166,44 @@ export async function POST(request: Request) {
         },
       });
 
+      // Guest checkout conversion (unclaimed guest identity).
+      if (currentUser?.id) {
+        void (async () => {
+          try {
+            const { data: guestProfile } = await getSupabaseAdmin()
+              .from("profiles")
+              .select("guest_checkout_at, account_claimed_at")
+              .eq("id", currentUser.id)
+              .maybeSingle();
+            if (
+              guestProfile?.guest_checkout_at &&
+              !guestProfile?.account_claimed_at
+            ) {
+              void logUserEventServer({
+                userId: currentUser.id,
+                visitorId,
+                countryCode,
+                eventType: "guest_checkout_completed",
+                eventCategory: "checkout",
+                firstTouch,
+                internal: markInternal,
+                metadata: {
+                  reservation_id: ev.reservation_id,
+                  payment_mode: paymentMode,
+                  payment_status: paymentStatus,
+                  market: address.countryCode || countryCode || null,
+                },
+              });
+            }
+          } catch (guestEvErr) {
+            console.warn(
+              "[checkout/confirm] guest_checkout_completed:",
+              guestEvErr,
+            );
+          }
+        })();
+      }
+
       if (paymentStatus === "paid") {
         void emitCheckoutCompletedOnce({
           reservationId: ev.reservation_id,

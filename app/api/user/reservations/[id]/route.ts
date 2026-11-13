@@ -146,10 +146,12 @@ export async function GET(
       }
     }
 
-    // Get user profile information for email
+    // Get user profile information for email + guest-checkout claim state
     const { data: profile } = await supabase
       .from("profiles")
-      .select("full_name, email")
+      .select(
+        "full_name, email, guest_checkout_at, account_claimed_at",
+      )
       .eq("id", user.id)
       .maybeSingle();
 
@@ -470,6 +472,10 @@ export async function GET(
       shipping_sek: shippingSek,
       customer_email: profile?.email || user.email,
       customer_name: profile?.full_name || null,
+      /** Unclaimed guest checkout identity — show optional account offer. */
+      is_guest_checkout: Boolean(
+        profile?.guest_checkout_at && !profile?.account_claimed_at,
+      ),
       order_type: orderType,
       fulfillment_channel: fulfillmentChannel,
       payment_method_type: reservation.payment_method_type || "card",
