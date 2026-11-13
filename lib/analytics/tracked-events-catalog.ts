@@ -280,6 +280,13 @@ export const TRACKED_USER_EVENTS_CATALOG: TrackedEventCatalogEntry[] = [
       "Six-bottle minimum rule copy was shown. Metadata: surface one of pdp_info | first_add | cart. No PII.",
     sources: ["client"],
   },
+  {
+    eventType: "pdp_section_opened",
+    category: "engagement",
+    description:
+      "A collapsible PDP enrichment section was opened. Metadata.section identifies which (e.g. price_breakdown). No PII.",
+    sources: ["client"],
+  },
   // checkout
   {
     eventType: "checkout_started",

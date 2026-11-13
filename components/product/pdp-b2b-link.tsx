@@ -8,10 +8,7 @@ import { cn } from "@/lib/utils";
 
 const DIRTYWINE_ORIGIN = "https://dirtywine.se";
 
-const COPY: Record<
-  AppLocale,
-  { label: string; hint: string }
-> = {
+const COPY: Record<AppLocale, { label: string; hint: string }> = {
   sv: {
     label: "För företag",
     hint: "Öppna samma vin på Dirty Wine (B2B)",
@@ -25,13 +22,22 @@ const COPY: Record<
 type Props = {
   locale?: AppLocale;
   className?: string;
+  /**
+   * `footer` — secondary inverted chrome for the site footer (PACT only).
+   * Default keeps the quieter PDP / light-surface style.
+   */
+  variant?: "default" | "footer";
 };
 
 /**
- * Quiet B2C → B2B escape hatch. Lives under primary purchase actions —
- * not next to consumer price — so it doesn’t compete with buy intent.
+ * Quiet B2C → B2B escape hatch. Lives in the PACT site footer (secondary),
+ * not next to the primary buy CTA.
  */
-export function PdpB2BLink({ locale = "en", className }: Props) {
+export function PdpB2BLink({
+  locale = "en",
+  className,
+  variant = "default",
+}: Props) {
   const isB2B = useB2BModeServerHint();
   const pathname = usePathname();
 
@@ -39,6 +45,7 @@ export function PdpB2BLink({ locale = "en", className }: Props) {
 
   const copy = COPY[locale] ?? COPY.en;
   const href = `${DIRTYWINE_ORIGIN}${pathname}`;
+  const isFooter = variant === "footer";
 
   return (
     <a
@@ -47,13 +54,23 @@ export function PdpB2BLink({ locale = "en", className }: Props) {
       rel="noopener noreferrer"
       title={copy.hint}
       aria-label={copy.hint}
+      data-testid="pact-foretag-link"
       className={cn(
-        "group inline-flex items-center gap-1 text-sm text-stone-500 transition-colors",
-        "hover:text-foreground",
+        "group inline-flex items-center gap-1 text-sm transition-colors",
+        isFooter
+          ? "text-background/50 hover:text-background"
+          : "text-stone-500 hover:text-foreground",
         className,
       )}
     >
-      <span className="underline underline-offset-4 decoration-stone-300 group-hover:decoration-foreground/40">
+      <span
+        className={cn(
+          "underline underline-offset-4",
+          isFooter
+            ? "decoration-background/25 group-hover:decoration-background/50"
+            : "decoration-stone-300 group-hover:decoration-foreground/40",
+        )}
+      >
         {copy.label}
       </span>
       <ArrowUpRight

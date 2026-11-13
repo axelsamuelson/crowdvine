@@ -44,7 +44,10 @@ export function ProductPriceInfoBox({ product }: ProductPriceInfoBoxProps) {
       : breakdown.total;
 
   return (
-    <WineEnrichmentCollapsible title={t("product.pdp.priceBreakdown")}>
+    <WineEnrichmentCollapsible
+      title={t("product.pdp.priceBreakdown")}
+      analyticsSection="price_breakdown"
+    >
       <PriceBreakdown
         costAmount={breakdown.cost}
         alcoholTax={breakdown.alcoholTax}

@@ -31,7 +31,6 @@ import { DesktopGalleryWrapper } from "@/app/product/[handle]/components/desktop
 import { ProductHeroPrice } from "@/app/product/[handle]/components/product-hero-price";
 import { PdpSiblingWinesSection } from "@/components/product/pdp-sibling-wines-section";
 import { WineProducerMap } from "@/components/product/wine-producer-map";
-import { PdpB2BLink } from "@/components/product/pdp-b2b-link";
 import { getIsDirtywineSiteFromHeaders } from "@/lib/b2b-site-server";
 
 // Below-fold carousel (framer-motion + ProductCard). Keep enrichment SSR'd in the
@@ -191,11 +190,6 @@ export async function ProductPdpLayout({
                       product={product}
                       className="w-full"
                       previewDisabled={addToCartPreviewDisabled}
-                      ctaAside={
-                        product.productType === "wine" ? (
-                          <PdpB2BLink locale={locale} />
-                        ) : null
-                      }
                     />
                     {/* Info block below buy / ×6 selector: 6-bottle rule + seller/consumer + delivery (PACT). */}
                     {!isDirtywine && product.productType === "wine" ? (
