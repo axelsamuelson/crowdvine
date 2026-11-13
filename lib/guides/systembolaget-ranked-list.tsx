@@ -1062,7 +1062,11 @@ export async function renderSystembolagetRankedListPage(
           ) : null}
 
           <div className="mt-10">
-            {showFacts ? (
+            {content.listHeading?.[locale] ? (
+              <h2 className={sectionHeadingClass}>
+                {content.listHeading[locale]}
+              </h2>
+            ) : showFacts ? (
               <h2 className={sectionHeadingClass}>
                 {locale === "sv" ? "Listan" : "The list"}
               </h2>

@@ -145,6 +145,11 @@ export type GuideArticleContent = {
   h1: LocalizedString;
   /** Optional deck under the H1; falls back to hubCard.description when omitted. */
   lede?: LocalizedString;
+  /**
+   * Optional H2 rendered immediately above the ranked wine list
+   * (Systembolaget ranked lists).
+   */
+  listHeading?: LocalizedString;
   breadcrumbShort: LocalizedString;
   furtherReadingHeading: LocalizedString;
   hubCard: GuideArticleHubCard;

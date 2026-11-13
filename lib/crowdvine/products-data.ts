@@ -330,6 +330,8 @@ export interface ProductData {
   images: Array<{ id: string; url: string; altText: string; width?: number; height?: number }>;
   seo: { title: string; description: string };
   tags: string[];
+  /** wines.tags taste/character labels (shop Karaktär filter). */
+  taste_tags?: string[];
   /** wines.farming certification (shop filter). */
   farming?: string | null;
   /** Canonical wines.region (allowlisted) for shop region filter. */
@@ -843,6 +845,9 @@ export async function fetchProductsData(params?: {
       images,
       seo: { title: i.wine_name, description: "" },
       tags: [...grapeVarieties, ...(colorName ? [colorName] : [])],
+      taste_tags: Array.isArray(i.tags)
+        ? i.tags.filter((tag: unknown): tag is string => typeof tag === "string")
+        : [],
       farming: (i.farming as string | null | undefined) ?? null,
       region: (i.region as string | null | undefined) ?? null,
       availableForSale,
@@ -1298,6 +1303,9 @@ export async function fetchCollectionProductsData(
       ],
       seo: { title: i.wine_name, description: "" },
       tags: [...grapeVarieties, ...(colorName ? [colorName] : [])],
+      taste_tags: Array.isArray(i.tags)
+        ? i.tags.filter((tag: unknown): tag is string => typeof tag === "string")
+        : [],
       farming: (i.farming as string | null | undefined) ?? null,
       region: (i.region as string | null | undefined) ?? null,
       availableForSale,

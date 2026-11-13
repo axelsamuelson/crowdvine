@@ -32,6 +32,7 @@ import {
 import { filterProductsByColors } from "@/lib/shop/filter-products-by-color";
 import { filterProductsByGrapes } from "@/lib/shop/filter-products-by-grape";
 import { filterProductsByFarming } from "@/lib/shop/farming-filter";
+import { filterProductsByCharacter } from "@/lib/shop/filter-products-by-character";
 import { filterProductsByRegions } from "@/lib/shop/filter-products-by-region";
 import { filterProductsBySource } from "@/lib/shop/filter-products-by-source";
 interface ProductListContentProps {
@@ -100,6 +101,10 @@ export function ProductListContent({
     "region",
     parseAsArrayOf(parseAsString).withDefault([]),
   );
+  const [characterFilters] = useQueryState(
+    "character",
+    parseAsArrayOf(parseAsString).withDefault([]),
+  );
   const [urlQ, setQ] = useQueryState(
     "q",
     parseAsString.withOptions({ shallow: true, history: "replace" }),
@@ -123,6 +128,9 @@ export function ProductListContent({
     if (grapeFilters.length) out = filterProductsByGrapes(out, grapeFilters);
     if (farmingFilters.length) out = filterProductsByFarming(out, farmingFilters);
     if (regionFilters.length) out = filterProductsByRegions(out, regionFilters);
+    if (characterFilters.length) {
+      out = filterProductsByCharacter(out, characterFilters);
+    }
     if (sourceFilters.length) {
       out = filterProductsBySource(out, sourceFilters, wineSourceSlugs);
     }
@@ -133,6 +141,7 @@ export function ProductListContent({
     grapeFilters,
     farmingFilters,
     regionFilters,
+    characterFilters,
     sourceFilters,
     wineSourceSlugs,
   ]);
