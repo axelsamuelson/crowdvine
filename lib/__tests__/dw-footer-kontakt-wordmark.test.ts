@@ -24,28 +24,30 @@ describe("getSiteWordmark", () => {
 describe("Dirty Wine footer Kontakt link", () => {
   const footerSrc = read("components/layout/footer.tsx");
 
-  it("adds Kontakt mailto only behind the Dirty Wine site hint", () => {
-    expect(footerSrc).toMatch(/DIRTYWINE_CONTACT_EMAIL/);
-    expect(footerSrc).toContain("Kontakt");
-    expect(footerSrc).toMatch(
+  it("places Kontakt as the third Navigation row after Hem and Butik", () => {
+    const navBlock = footerSrc.match(
+      /id="footer-navigation-label"[\s\S]*?<\/nav>/,
+    )?.[0];
+    expect(navBlock).toBeTruthy();
+    expect(navBlock).toMatch(
+      /t\("common\.home"\)[\s\S]*?t\("common\.shop"\)[\s\S]*?Kontakt/,
+    );
+    expect(navBlock).toMatch(
       /isDirtywineSite\s*\?\s*\([\s\S]*?mailto:\$\{DIRTYWINE_CONTACT_EMAIL\}[\s\S]*?Kontakt/,
     );
     expect(DIRTYWINE_CONTACT_EMAIL).toBe("hello@dirtywine.se");
   });
 
-  it("styles Kontakt like other footer text links", () => {
+  it("styles Kontakt like Hem/Butik footer text links", () => {
     expect(footerSrc).toMatch(
-      /Kontakt[\s\S]*?text-sm text-background\/70 hover:text-background transition-colors hover:underline|text-sm text-background\/70 hover:text-background transition-colors hover:underline[\s\S]*?Kontakt/,
+      /mailto:\$\{DIRTYWINE_CONTACT_EMAIL\}[\s\S]*?className="text-sm text-background\/70 hover:text-background transition-colors hover:underline"[\s\S]*?Kontakt/,
     );
   });
 
-  it("does not add Kontakt outside the Dirty Wine branch", () => {
-    // PACT path must not hard-code Kontakt as a bare unconditional link.
-    const kontaktBlocks = [
-      ...footerSrc.matchAll(/Kontakt/g),
-    ];
+  it("does not place Kontakt near Hjälp/copyright and keeps a single Dirty Wine instance", () => {
+    expect(footerSrc).toMatch(/<OnboardingButton \/>\s*<p className="text-base text-background\/60">/);
+    const kontaktBlocks = [...footerSrc.matchAll(/Kontakt/g)];
     expect(kontaktBlocks.length).toBe(1);
-    expect(footerSrc).toMatch(/isDirtywineSite \? \(/);
   });
 });
 

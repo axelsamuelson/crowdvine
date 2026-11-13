@@ -55,7 +55,14 @@ export function Footer({ initialLogos }: { initialLogos?: SiteLogos }) {
                     >
                       {t("common.shop")}
                     </Link>
-                    {!isDirtywineSite ? (
+                    {isDirtywineSite ? (
+                      <a
+                        href={`mailto:${DIRTYWINE_CONTACT_EMAIL}`}
+                        className="text-sm text-background/70 hover:text-background transition-colors hover:underline"
+                      >
+                        Kontakt
+                      </a>
+                    ) : (
                       <>
                         <Link
                           href={paths.about}
@@ -70,7 +77,7 @@ export function Footer({ initialLogos }: { initialLogos?: SiteLogos }) {
                           {t("common.profile")}
                         </Link>
                       </>
-                    ) : null}
+                    )}
                   </div>
                 </div>
               </nav>
@@ -243,14 +250,6 @@ export function Footer({ initialLogos }: { initialLogos?: SiteLogos }) {
           />
           <div className="flex items-center gap-4 max-md:flex-col max-md:items-start max-md:gap-3">
             <OnboardingButton />
-            {isDirtywineSite ? (
-              <a
-                href={`mailto:${DIRTYWINE_CONTACT_EMAIL}`}
-                className="text-sm text-background/70 hover:text-background transition-colors hover:underline"
-              >
-                Kontakt
-              </a>
-            ) : null}
             <p className="text-base text-background/60">
               {t("home.allRightsReserved", { year })}
             </p>
