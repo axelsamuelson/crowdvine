@@ -67,9 +67,8 @@ export function AccessRequestClient({
   return (
     <main className="relative min-h-screen font-sans">
       {/*
-        One fixed stacking context so WebGL cannot paint over HTML chrome.
-        Visual look matches pre-fix (mix-blend-exclusion, translucent CTA) —
-        stacking / z-order only; no opaque plates.
+        Fixed stacking context: gallery under chrome. Light scrim behind
+        logo/text/button (no mix-blend, no opaque black plates).
       */}
       <div className="fixed inset-0 isolate overflow-hidden">
         <div
@@ -87,56 +86,72 @@ export function AccessRequestClient({
           />
         </div>
 
-        {/* Only CTA overlay — above gallery */}
+        {/* CTA chrome above gallery */}
         <div
-          className="pointer-events-none absolute inset-0 z-10 flex h-[100dvh] items-center justify-center px-3 mix-blend-exclusion text-white"
+          className="pointer-events-none absolute inset-0 z-10 flex h-[100dvh] items-center justify-center px-3 text-foreground"
           style={{ transform: "translateZ(0)" }}
         >
-          <div className="pointer-events-auto flex w-full max-w-md flex-col items-center justify-center gap-6 text-center">
-            <div className="flex justify-center">
-              <FooterLogoSvg className="h-16 w-auto text-white sm:h-20 lg:h-24" />
-            </div>
-            {showNoB2BMessage ? (
-              <>
-                <p className="text-sm text-white/90">
-                  {t("accessRequest.noB2bMessage")}
-                </p>
+          <div className="pointer-events-auto relative w-full max-w-md">
+            <div
+              aria-hidden
+              className="pointer-events-none absolute -inset-x-4 -inset-y-6 rounded-2xl bg-background/80 backdrop-blur-md"
+            />
+            <div className="relative flex flex-col items-center justify-center gap-6 text-center">
+              <div className="flex justify-center">
+                <FooterLogoSvg className="h-16 w-auto text-foreground sm:h-20 lg:h-24" />
+              </div>
+              {showNoB2BMessage ? (
+                <>
+                  <p className="text-sm font-medium text-foreground">
+                    {t("accessRequest.noB2bMessage")}
+                  </p>
+                  <Button
+                    variant="iconButton"
+                    onClick={() => {
+                      window.location.href = PACT_ORIGIN;
+                    }}
+                    className="w-full font-semibold"
+                    size="lg"
+                  >
+                    {t("accessRequest.goToPact")}
+                  </Button>
+                </>
+              ) : (
                 <Button
+                  variant="iconButton"
                   onClick={() => {
-                    window.location.href = PACT_ORIGIN;
+                    const urlParams = new URLSearchParams(
+                      window.location.search,
+                    );
+                    const next =
+                      urlParams.get("next") ||
+                      urlParams.get("redirectedFrom") ||
+                      "/";
+                    window.location.href = `/log-in?next=${encodeURIComponent(next)}`;
                   }}
-                  className="w-full bg-white/20 hover:bg-white/30 border-white/30 text-white font-semibold backdrop-blur-sm shadow-lg transition-all duration-300 ease-out"
+                  className="w-full font-semibold"
                   size="lg"
                 >
-                  {t("accessRequest.goToPact")}
+                  {t("accessRequest.membersOnly")}
                 </Button>
-              </>
-            ) : (
-              <Button
-                onClick={() => {
-                  const urlParams = new URLSearchParams(window.location.search);
-                  const next =
-                    urlParams.get("next") ||
-                    urlParams.get("redirectedFrom") ||
-                    "/";
-                  window.location.href = `/log-in?next=${encodeURIComponent(next)}`;
-                }}
-                className="w-full bg-white/20 hover:bg-white/30 border-white/30 text-white font-semibold backdrop-blur-sm shadow-lg transition-all duration-300 ease-out"
-                size="lg"
-              >
-                {t("accessRequest.membersOnly")}
-              </Button>
-            )}
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Bottom instructions — uppercase via CSS; strings stay sentence case */}
+        {/* Bottom motto — solid foreground; light scrim */}
         <div
-          className="pointer-events-none absolute bottom-10 left-0 right-0 z-10 text-center font-sans uppercase tracking-[0.04em] text-[11px] font-semibold text-white/90 mix-blend-exclusion"
+          className="pointer-events-none absolute bottom-10 left-0 right-0 z-10 flex justify-center px-3"
           style={{ transform: "translateZ(0)" }}
         >
-          <p>{t("accessRequest.tagline")}</p>
-          <p className="opacity-60">{t("accessRequest.invitationLine")}</p>
+          <div className="relative px-4 py-2 text-center font-sans text-[11px] font-semibold uppercase tracking-[0.04em] text-foreground">
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 -z-10 rounded-lg bg-background/80 backdrop-blur-md"
+            />
+            <p>{t("accessRequest.tagline")}</p>
+            <p>{t("accessRequest.invitationLine")}</p>
+          </div>
         </div>
       </div>
     </main>
