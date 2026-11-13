@@ -2,7 +2,6 @@
 
 import { SidebarLinks } from "./sidebar/product-sidebar-links";
 import { FooterLogoSvg } from "./footer-logo-svg";
-import { OnboardingButton } from "./onboarding-button";
 import Link from "next/link";
 import { SYSTEMBOLAGET_BEST_UPLINK } from "@/lib/guides/systembolaget-list-links";
 import { useTranslations } from "@/lib/hooks/use-translations";
@@ -241,7 +240,6 @@ export function Footer({ initialLogos }: { initialLogos?: SiteLogos }) {
             invert
           />
           <div className="flex items-center gap-4 max-md:flex-col max-md:items-start max-md:gap-3">
-            <OnboardingButton />
             <p className="text-base text-background/60">
               {t("home.allRightsReserved", { year })}
             </p>

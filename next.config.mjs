@@ -24,6 +24,17 @@ const nextConfig = {
   },
   async redirects() {
     return [
+      // Retired Opus SaaS template — never serve to customers (any host/locale).
+      {
+        source: "/onboarding",
+        destination: "/",
+        permanent: true,
+      },
+      {
+        source: "/en/onboarding",
+        destination: "/",
+        permanent: true,
+      },
       {
         source: "/admin/operations/okrs",
         destination: "/admin/operations/objectives",
