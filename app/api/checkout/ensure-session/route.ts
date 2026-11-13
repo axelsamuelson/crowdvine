@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { isPlatformOpen } from "@/lib/platform-open";
+import { isGuestCheckoutEnabled } from "@/lib/checkout/guest-checkout-flag";
+import { isSwedishGuestCheckoutMarket } from "@/lib/checkout/guest-checkout-eligibility";
 import {
   finalizeSignupAfterAuth,
   signupCookiesFromRequest,
@@ -32,16 +34,26 @@ function requiresLoginResponse() {
 /**
  * POST /api/checkout/ensure-session
  *
- * Open-platform guest checkout: establish a browser session from the delivery
- * email without a login wall — only for brand-new emails. Existing accounts
- * (any role) must use OTP login; we never mint tokens or rewrite profiles for them.
+ * Silent guest checkout session from the delivery email — only for brand-new
+ * emails. Available when PLATFORM_OPEN=true, or when GUEST_CHECKOUT_ENABLED=true
+ * for Swedish (SE) visitors.
+ *
+ * Existing accounts (any role) must use OTP login: we never mint tokens or
+ * rewrite profiles for them (409 requiresLogin).
+ *
+ * Creates a real auth.users + profiles row so Stripe customer, SetupIntent,
+ * off_session pallet-close charge, emails, and admin views keep working via
+ * order_reservations.user_id.
  */
 export async function POST(request: NextRequest) {
-  if (!isPlatformOpen()) {
+  const platformOpen = isPlatformOpen();
+  const guestCheckoutEnabled = isGuestCheckoutEnabled();
+
+  if (!platformOpen && !guestCheckoutEnabled) {
     return NextResponse.json(
       {
         error:
-          "Guest checkout session is only available when the platform is open.",
+          "Guest checkout session is only available when the platform is open or guest checkout is enabled.",
       },
       { status: 403 },
     );
@@ -74,14 +86,35 @@ export async function POST(request: NextRequest) {
 
   const body = (await request.json().catch(() => null)) as {
     email?: unknown;
+    fullName?: unknown;
+    countryCode?: unknown;
   } | null;
   const emailRaw = typeof body?.email === "string" ? body.email : "";
   const email = normalizeEmail(emailRaw);
+  const fullName =
+    typeof body?.fullName === "string" ? body.fullName.trim() : "";
+  const countryCode =
+    typeof body?.countryCode === "string"
+      ? body.countryCode.trim().toUpperCase()
+      : "";
 
   if (!isValidEmail(email)) {
     return NextResponse.json(
       { error: "A valid email is required." },
       { status: 400 },
+    );
+  }
+
+  // Guest-checkout flag alone is SE-only; PLATFORM_OPEN keeps broader access.
+  if (
+    !platformOpen &&
+    guestCheckoutEnabled &&
+    countryCode &&
+    !isSwedishGuestCheckoutMarket(countryCode)
+  ) {
+    return NextResponse.json(
+      { error: "Guest checkout is only available for Sweden." },
+      { status: 403 },
     );
   }
 
@@ -168,6 +201,8 @@ export async function POST(request: NextRequest) {
         role: "user",
         access_granted_at: now,
         updated_at: now,
+        guest_checkout_at: now,
+        ...(fullName.length > 1 ? { full_name: fullName } : {}),
       });
       if (profileError) {
         console.error("[checkout/ensure-session] profile insert:", profileError);
@@ -184,16 +219,17 @@ export async function POST(request: NextRequest) {
       email,
       visitorId: cookies.visitorId,
       firstTouchCookie: cookies.firstTouchCookie,
-      countryCode: cookies.countryCode,
+      countryCode: cookies.countryCode || countryCode || null,
       cartSessionId: cookies.cartSessionId,
       source: "checkout_guest",
-      emitSignupCompleted: wasSignup,
+      emitSignupCompleted: wasSignup && !guestCheckoutEnabled,
     });
 
     return NextResponse.json({
       ok: true,
       autoSignedIn: true,
       userId,
+      guest: true,
       session: {
         access_token: verified.session.access_token,
         refresh_token: verified.session.refresh_token,

@@ -59,17 +59,19 @@ const PUBLIC_PATH_PREFIXES = [
 ] as const;
 
 /**
- * Extra public prefixes when PLATFORM_OPEN=true.
+ * Extra public prefixes when PLATFORM_OPEN=true or GUEST_CHECKOUT_ENABLED=true.
  * /vin and /product are already public; /checkout is the critical addition.
  */
-const PLATFORM_OPEN_PUBLIC_PREFIXES = ["/checkout", "/b2b/inquiry"] as const;
+const OPEN_CHECKOUT_PUBLIC_PREFIXES = ["/checkout", "/b2b/inquiry"] as const;
 
 export function isPublicAppPath(
   pathname: string,
-  opts?: { platformOpen?: boolean },
+  opts?: { platformOpen?: boolean; guestCheckoutEnabled?: boolean },
 ): boolean {
-  const prefixes = opts?.platformOpen
-    ? [...PUBLIC_PATH_PREFIXES, ...PLATFORM_OPEN_PUBLIC_PREFIXES]
+  const openCheckout =
+    Boolean(opts?.platformOpen) || Boolean(opts?.guestCheckoutEnabled);
+  const prefixes = openCheckout
+    ? [...PUBLIC_PATH_PREFIXES, ...OPEN_CHECKOUT_PUBLIC_PREFIXES]
     : PUBLIC_PATH_PREFIXES;
   return prefixes.some(
     (p) => pathname === p || pathname.startsWith(`${p}/`),

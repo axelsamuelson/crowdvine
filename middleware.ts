@@ -9,6 +9,7 @@ import {
   isPublicAppPath,
 } from "@/lib/auth/public-paths";
 import { isPlatformOpen } from "@/lib/platform-open";
+import { isGuestCheckoutEnabled } from "@/lib/checkout/guest-checkout-flag";
 import {
   isDirtywineHost,
   isDirtywineProductionHost,
@@ -284,7 +285,11 @@ async function runMiddleware(req: NextRequest) {
   }
 
   const platformOpen = isPlatformOpen();
-  const isPublic = isPublicAppPath(pathname, { platformOpen });
+  const guestCheckoutEnabled = isGuestCheckoutEnabled();
+  const isPublic = isPublicAppPath(pathname, {
+    platformOpen,
+    guestCheckoutEnabled,
+  });
 
   // OAuth discovery (RFC 8414, RFC 9728) and MCP API — bypass Supabase session / membership gate.
   // /.well-known/* includes oauth-authorization-server and oauth-protected-resource/...
@@ -368,9 +373,10 @@ async function runMiddleware(req: NextRequest) {
     }
 
     // pactwines.com / localhost (default): require login
-    // PLATFORM_OPEN: browse + checkout already treated as public above; other
-    // gated paths still require auth. Unauthenticated users never reach here
-    // for /checkout when PLATFORM_OPEN (isPublic includes it).
+    // PLATFORM_OPEN / GUEST_CHECKOUT_ENABLED: browse + checkout already
+    // treated as public above; other gated paths still require auth.
+    // Unauthenticated users never reach here for /checkout when either flag
+    // opens checkout (isPublic includes it).
     if (!user) {
       console.log(
         "🚫 MIDDLEWARE: No user found, redirecting to access-request",
@@ -402,11 +408,13 @@ async function runMiddleware(req: NextRequest) {
       membershipLevel: membership?.level,
       profileRole: profile?.role,
       platformOpen,
+      guestCheckoutEnabled,
     });
 
-    // PLATFORM_OPEN: skip membership-level gate for browse and checkout paths
+    // PLATFORM_OPEN / guest checkout: skip membership-level gate for browse + checkout
     const skipMembershipGate =
-      platformOpen && isOpenPlatformBrowseOrCheckoutPath(pathname);
+      (platformOpen || guestCheckoutEnabled) &&
+      isOpenPlatformBrowseOrCheckoutPath(pathname);
 
     // Redirect requesters to access-pending page (unless they're already there)
     // Producers/admins should not be blocked by membership gating.

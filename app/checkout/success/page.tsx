@@ -16,6 +16,7 @@ import { localizedPathsForLocale } from "@/lib/i18n/localized-paths";
 import { producerDisplayName } from "@/lib/producer-display-name";
 import { formatSharedPalletChargeDeadline } from "@/lib/checkout/shared-pallet-deadline";
 import { MarketingConsentCheckbox } from "@/components/checkout/marketing-consent-checkbox";
+import { GuestAccountOffer } from "@/components/checkout/guest-account-offer";
 import {
   confirmationStatusMessageKey,
   shortReservationReference,
@@ -58,6 +59,8 @@ interface ReservationDetails {
   shipping_cost_cents?: number;
   customer_email?: string;
   customer_name?: string;
+  /** Unclaimed guest checkout — optional account offer on confirmation. */
+  is_guest_checkout?: boolean;
   order_type?: "producer" | "warehouse";
   payment_method_type?: "card" | "invoice";
   /** True when order confirmation was claimed/sent (email_sends). */
@@ -395,7 +398,12 @@ function CheckoutConfirmationContent() {
                   </p>
                 );
               })()}
-              {reservation ? (
+              {reservation?.is_guest_checkout ? (
+                <GuestAccountOffer
+                  email={reservation.customer_email}
+                  reservationId={reservation.id}
+                />
+              ) : reservation ? (
                 <MarketingConsentCheckbox email={reservation.customer_email} />
               ) : null}
             </>
