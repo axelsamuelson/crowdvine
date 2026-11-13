@@ -18,7 +18,8 @@ export const WELCOME_MODAL_COPY = {
     },
     step1: {
       title: "Välkommen till PACT",
-      subtitle: "Naturvin från Frankrike på delade pallar",
+      // NBSP before last word avoids a 390px orphan ("pallar") with text-balance.
+      subtitle: "Naturvin från Frankrike på delade\u00A0pallar",
       body: "Vi samlar allas köp på en gemensam pall från Languedoc. Vinerna från Languedoc köper vi direkt av producenterna, övriga via grossist i Languedoc.",
       bodyDirectAppend:
         "Vill du inte vänta på pallen kan du välja direktleverans till ett högre pris.",
@@ -58,7 +59,8 @@ export const WELCOME_MODAL_COPY = {
     },
     step1: {
       title: "Welcome to PACT",
-      subtitle: "French natural wine on shared pallets",
+      // NBSP before last word avoids a 390px orphan ("pallets") with text-balance.
+      subtitle: "French natural wine on shared\u00A0pallets",
       body: "We gather everyone's orders on a shared pallet from Languedoc. We buy the Languedoc wines directly from the producers and the rest through wholesalers in Languedoc.",
       bodyDirectAppend:
         "If you'd rather not wait for the pallet, you can choose direct delivery at a higher price.",

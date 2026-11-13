@@ -123,4 +123,14 @@ describe("welcome modal mount wiring", () => {
     expect(src).toMatch(/welcome_cta_clicked/);
     expect(src).toMatch(/earningEnabled/);
   });
+
+  it("step 1 subtitle uses text-balance and body max-width to avoid orphans", () => {
+    const src = readFileSync(
+      resolve(process.cwd(), "components/onboarding/welcome-modal.tsx"),
+      "utf8",
+    );
+    expect(src).toMatch(
+      /step\.subtitle[\s\S]{0,200}?className="[^"]*max-w-md[^"]*text-balance/,
+    );
+  });
 });

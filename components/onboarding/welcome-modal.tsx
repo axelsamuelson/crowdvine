@@ -394,7 +394,7 @@ export function WelcomeModal({
                       {step.title}
                     </h2>
                     {step.subtitle ? (
-                      <p className="text-sm md:text-base text-muted-foreground px-12 max-md:px-12">
+                      <p className="text-sm md:text-base text-muted-foreground px-12 max-md:px-12 max-w-md mx-auto text-balance">
                         {step.subtitle}
                       </p>
                     ) : null}
