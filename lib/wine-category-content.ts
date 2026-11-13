@@ -80,7 +80,7 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
     sv: {
       title: "Biodynamiskt vin i Sverige | PACT Wines",
       metaDescription:
-        "Köp biodynamiskt vin i Sverige med hemleverans i Sverige. Producenter som arbetar biodynamiskt — utan mellanhänder via PACT.",
+        "Köp biodynamiskt vin online med hemleverans i hela Sverige. Producenter som arbetar biodynamiskt — utan mellanhänder via PACT.",
       contentHeading: "Om biodynamiskt vin",
       longDescription:
         "Biodynamiskt vin bygger på en helhetssyn av vingården som levande ekosystem — inte bara att undvika kemiska medel, utan att aktivt stärka jordhälsa, biodiversitet och balans mellan jord, planta och djur. Odlingsmetoden följer ofta biodynamiska principer: kompostpreparat, dynamiska sprayningar och skörd som planeras efter vingårdens rytm snarare än enbart kalendern.\n\nSkillnaden mot ekologiskt vin ligger i metoden. Ekologiskt fokuserar på vad du inte får använda; biodynamiskt lägger till en aktiv vingårdsfilosofi där jorden, stockarna och till och med månfaserna är en del av besluten. I Languedoc har biodynamisk odling blivit särskilt stark bland små, oberoende producenter som redan arbetar med låga skördar och minimal intervention i källaren.\n\nDu köper flaskor online, och när pallen stänger skickas vinet hem till dig.",
@@ -118,7 +118,7 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
     en: {
       title: "Biodynamic Wine in Sweden | PACT Wines",
       metaDescription:
-        "Buy biodynamic wine in Sweden with home delivery in Sweden. Producers who farm biodynamically — without middlemen via PACT.",
+        "Buy biodynamic wine online with home delivery across Sweden. Producers who farm biodynamically — without middlemen via PACT.",
       contentHeading: "About biodynamic wine",
       longDescription:
         "Biodynamic wine is built on seeing the vineyard as a living ecosystem — not just avoiding chemicals, but actively strengthening soil health, biodiversity and balance between soil, plant and animal life. The method often follows biodynamic principles: compost preparations, dynamic sprays and harvest timed to the vineyard's rhythms rather than the calendar alone.\n\nThe difference from organic wine is in the approach. Organic focuses on what you cannot use; biodynamic adds an active vineyard philosophy where soil, vines and even lunar phases inform decisions. In Languedoc, biodynamic farming has become especially strong among small, independent producers already working with low yields and minimal cellar intervention.\n\nYou buy bottles online, and when the pallet closes the wine ships to your door.",
@@ -156,7 +156,7 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
     sv: {
       title: "Ekologiskt vin i Sverige | PACT Wines",
       metaDescription:
-        "Köp ekologiskt vin i Sverige med hemleverans i Sverige. EU-certifierade producenter — utan mellanhänder via PACT.",
+        "Köp ekologiskt vin online med hemleverans i hela Sverige. EU-certifierade producenter — utan mellanhänder via PACT.",
       contentHeading: "Om ekologiskt vin",
       longDescription:
         "Ekologiskt vin innebär att druvorna odlas enligt EU:s ekologiska regler — utan syntetiska bekämpningsmedel, utan konstgödsel och med krav på jordhälsa och biodiversitet i vingården. Certifieringen (t.ex. AB-märket) gäller odlingsmetoden; i källaren får producenten fortfarande arbeta på olika sätt, från klassisk vinifiering till minimal intervention.\n\nSkillnaden mot biodynamiskt vin är tydlig: ekologiskt definierar vad som inte får användas i vingården; biodynamiskt lägger till en helhetssyn med kompostpreparat, dynamiska sprayningar och vingårdens rytm. Skillnaden mot naturvin är också viktig — naturvin ställer krav både i vingård och källare (vild jäsning, inga tillsatser), medan ekologiskt vin i första hand handlar om hur druvorna odlas. Många av våra producenter gör både och, men det är inte samma sak.\n\nAtt köpa ekologiskt vin i Sverige via Systembolaget eller importörer ger ofta begränsat urval och höga priser. Du köper flaskor online, och när pallen stänger skickas vinet hem till dig.",
@@ -194,7 +194,7 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
     en: {
       title: "Organic Wine in Sweden | PACT Wines",
       metaDescription:
-        "Buy organic wine in Sweden with home delivery in Sweden. EU-certified producers — without middlemen via PACT.",
+        "Buy organic wine online with home delivery across Sweden. EU-certified producers — without middlemen via PACT.",
       contentHeading: "About organic wine",
       longDescription:
         "Organic wine means grapes grown under EU organic rules — no synthetic pesticides, no chemical fertilisers and requirements for soil health and biodiversity in the vineyard. Certification (e.g. the EU organic logo) covers farming; in the cellar producers may still work in different ways, from classic winemaking to minimal intervention.\n\nThe difference from biodynamic wine is clear: organic defines what cannot be used in the vineyard; biodynamic adds a holistic view with compost preparations, dynamic sprays and the vineyard's rhythms. The difference from natural wine matters too — natural wine sets rules in both vineyard and cellar (wild fermentation, no additives), while organic wine primarily concerns how grapes are grown. Many of our producers do both, but they are not the same thing.\n\nBuying organic wine in Sweden through the monopoly or traditional importers often means limited choice and high prices. You buy bottles online, and when the pallet closes the wine ships to your door.",

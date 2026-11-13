@@ -27,20 +27,41 @@ interface WelcomeModalProps {
   locale?: AppLocale;
 }
 
+const WELCOME_NAV = {
+  sv: { back: "Tillbaka", skip: "Hoppa över", next: "Nästa", close: "Stäng" },
+  en: { back: "Back", skip: "Skip", next: "Next", close: "Close" },
+} as const;
+
 const STEP3_COPY = {
   sv: {
+    title: "Pallar och status",
     subtitle: "Följ ditt köp",
+    palletProgress: "Så fylls pallen",
+    bottlesCount: "487 / 700 flaskor",
+    bottlesToGo: "213 flaskor kvar —",
     orderConfirmed: "Köpet är bekräftat",
     bottlesBought:
       "Dina flaskor är köpta och väntar på att pallen fylls",
-    bottlesToGo: "213 flaskor kvar —",
+    palletComplete: "Pallen är full",
+    waitingCapacity: "Väntar på transport",
+    inTransit: "På väg",
+    shippingToYou: "Skickas till dig",
+    emailUpdates: "Du får ett mejl vid varje steg.",
   },
   en: {
+    title: "Pallets & Progress",
     subtitle: "Follow your order",
+    palletProgress: "Pallet Progress",
+    bottlesCount: "487 / 700 bottles",
+    bottlesToGo: "213 bottles to go —",
     orderConfirmed: "Order confirmed",
     bottlesBought:
       "Your bottles are bought and waiting for the pallet to fill",
-    bottlesToGo: "213 bottles to go —",
+    palletComplete: "Pallet Complete",
+    waitingCapacity: "Waiting for capacity",
+    inTransit: "In Transit",
+    shippingToYou: "Shipping to you",
+    emailUpdates: "You'll receive email updates at each stage",
   },
 } as const;
 
@@ -154,10 +175,10 @@ const getSteps = (
             </div>
             <div>
               <h4 className="font-medium text-foreground text-sm mb-1">
-                Discover & Reserve
+                Discover & Buy
               </h4>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Browse curated natural wines and reserve bottles.
+                Browse curated natural wines and buy bottles.
               </p>
             </div>
           </div>
@@ -208,16 +229,18 @@ const getSteps = (
     },
     {
       id: 3,
-      title: "Pallets & Progress",
+      title: step3.title,
       subtitle: step3.subtitle,
       icon: Truck,
       content: (
         <div className="space-y-6 max-w-md mx-auto h-[280px] flex flex-col justify-center">
           <div className="space-y-3">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Pallet Progress</span>
+              <span className="text-muted-foreground">
+                {step3.palletProgress}
+              </span>
               <span className="font-medium text-foreground">
-                487 / 700 bottles
+                {step3.bottlesCount}
               </span>
             </div>
             <div className="h-3 bg-muted rounded-full overflow-hidden">
@@ -249,10 +272,10 @@ const getSteps = (
               <Package className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-0.5" />
               <div>
                 <p className="text-sm font-medium text-muted-foreground">
-                  Pallet Complete
+                  {step3.palletComplete}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Waiting for capacity
+                  {step3.waitingCapacity}
                 </p>
               </div>
             </div>
@@ -260,15 +283,17 @@ const getSteps = (
               <Truck className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-0.5" />
               <div>
                 <p className="text-sm font-medium text-muted-foreground">
-                  In Transit
+                  {step3.inTransit}
                 </p>
-                <p className="text-xs text-muted-foreground">Shipping to you</p>
+                <p className="text-xs text-muted-foreground">
+                  {step3.shippingToYou}
+                </p>
               </div>
             </div>
           </div>
 
           <p className="text-sm text-center text-muted-foreground pt-2">
-            You&apos;ll receive email updates at each stage
+            {step3.emailUpdates}
           </p>
         </div>
       ),
@@ -343,13 +368,13 @@ const getSteps = (
     {
       id: 5,
       title: "Ready to Start?",
-      subtitle: "Explore wines and make your first reservation",
+      subtitle: "Explore wines and make your first order",
       icon: Wine,
       content: (
         <div className="space-y-8 text-center h-[280px] flex flex-col justify-center">
           <div className="space-y-4">
             <p className="text-base text-muted-foreground leading-relaxed max-w-md mx-auto">
-              Browse our curated selection of natural wines, reserve your
+              Browse our curated selection of natural wines, buy your
               bottles, and watch your pallet fill up.
             </p>
             <p className="text-sm text-muted-foreground">
@@ -435,6 +460,7 @@ export function WelcomeModal({
   const steps = getSteps(membershipLevel, earningEnabled, locale);
   const step = steps[currentStep];
   const Icon = step.icon;
+  const nav = WELCOME_NAV[locale];
 
   const handleNext = () => {
     if (currentStep < steps.length - 1) {
@@ -524,7 +550,7 @@ export function WelcomeModal({
               <button
                 onClick={handleSkip}
                 className="absolute top-6 right-6 z-10 w-8 h-8 flex items-center justify-center rounded-full bg-muted hover:bg-muted/80 transition-colors"
-                aria-label="Close"
+                aria-label={nav.close}
               >
                 <X className="w-4 h-4 text-muted-foreground" />
               </button>
@@ -608,7 +634,7 @@ export function WelcomeModal({
                     className="gap-2"
                   >
                     <ArrowLeft className="w-4 h-4" />
-                    Back
+                    {nav.back}
                   </Button>
 
                   <Button
@@ -616,7 +642,7 @@ export function WelcomeModal({
                     variant="ghost"
                     className="text-muted-foreground"
                   >
-                    Skip
+                    {nav.skip}
                   </Button>
 
                   <Button
@@ -627,7 +653,7 @@ export function WelcomeModal({
                       "Get Started"
                     ) : (
                       <>
-                        Next
+                        {nav.next}
                         <ArrowRight className="w-4 h-4" />
                       </>
                     )}

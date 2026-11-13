@@ -2,11 +2,16 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import {
   COST_DIRECT,
-  COST_INTRO_NOTE,
+  COST_SHARED,
   HOW_LONG_DIRECT,
+  NOT_HOME_DIRECT,
+  NOT_HOME_SHARED,
+  PAYMENT_DIRECT,
   deliveryCostBody,
   howLongDeliveryBody,
   naturalWineHomeDeliveryArticle,
+  notHomeBody,
+  paymentBody,
   whereWeDeliverBody,
   WHERE_WE_DELIVER_DIRECT,
 } from "@/lib/guides/articles/natural-wine-home-delivery";
@@ -15,7 +20,11 @@ import {
   resolveHomeDeliveryGuidePath,
 } from "@/lib/guides/home-delivery-guide";
 import { publishedBilingualArticleGuides } from "@/lib/guides/guide-publication";
-import { articlePath, isGuideArticlePublished } from "@/lib/guides/guide-types";
+import {
+  articleLinkText,
+  articlePath,
+  isGuideArticlePublished,
+} from "@/lib/guides/guide-types";
 
 const WHERE_WE_DELIVER_BASE_SV =
   "Vi levererar hem till dig i hela Budbees leveransområde i Sverige. Om din adress ingår ser du när du anger postnumret i kassan. Leveransen sker normalt inom 2–3 veckor efter att pallen har stängt och alltid senast 30 dagar efter. Vid överlämningen kontrollerar budet din legitimation, och du måste vara minst 20 år. Om du inte kan visa giltig legitimation lämnas inte vinet ut. Fraktkostnaden visas i kassan innan du betalar.";
@@ -26,6 +35,11 @@ const HOW_LONG_BASE_SV =
   "Leveransen sker normalt inom 2–3 veckor efter att pallen stängt och alltid senast 30 dagar efter. När pallen har skickats får du ett beräknat leveransfönster, och leveransdagen när vinet nått Sverige. Hur lång tid det tar innan pallen stänger beror på hur snabbt den fylls.";
 const HOW_LONG_BASE_EN =
   "Delivery normally takes 2–3 weeks after the pallet closes and always within 30 days. Once the pallet has shipped you'll get an estimated delivery window, and the delivery day once the wine has reached Sweden. How long it takes before the pallet closes depends on how quickly it fills.";
+
+const PAYMENT_SHARED_SV =
+  "Du betalar med kort. Beloppet dras vid ett enda tillfälle, när pallen stänger.";
+const PAYMENT_SHARED_EN =
+  "You pay by card. The amount is charged once, when the pallet closes.";
 
 describe("natural wine home delivery guide", () => {
   const prevDirectBox = process.env.DIRECT_BOX_CHECKOUT_ENABLED;
@@ -93,7 +107,8 @@ describe("natural wine home delivery guide", () => {
     ];
     for (const text of blobs) {
       // Em dash only — numeric ranges may use en dash (e.g. 2–3 weeks).
-      expect(text).not.toMatch(/—/);
+      // Strip markdown links so URL fragments are not mistaken for copy.
+      expect(articleLinkText(text ?? "")).not.toMatch(/—/);
       expect(text).not.toMatch(/\[FYLL I/);
     }
   });
@@ -126,14 +141,16 @@ describe("natural wine home delivery guide", () => {
     expect(howLongDeliveryBody(false).sv).toEqual([HOW_LONG_BASE_SV]);
     expect(howLongDeliveryBody(false).en).toEqual([HOW_LONG_BASE_EN]);
     expect(deliveryCostBody(false)).toEqual({
-      sv: [
-        "Leveransen kostar 99 kr per order, inklusive moms.",
-        COST_INTRO_NOTE.sv,
-      ],
-      en: [
-        "Delivery costs SEK 99 per order, including VAT.",
-        COST_INTRO_NOTE.en,
-      ],
+      sv: [COST_SHARED.sv],
+      en: [COST_SHARED.en],
+    });
+    expect(notHomeBody(false)).toEqual({
+      sv: [NOT_HOME_SHARED.sv],
+      en: [NOT_HOME_SHARED.en],
+    });
+    expect(paymentBody(false)).toEqual({
+      sv: [PAYMENT_SHARED_SV],
+      en: [PAYMENT_SHARED_EN],
     });
     const stockholmOnly =
       /endast Stockholm|only in Stockholm|leverans i Stockholm|hemleverans i Stockholm|in Stockholm/i;
@@ -174,24 +191,50 @@ describe("natural wine home delivery guide", () => {
     });
 
     expect(deliveryCostBody(true)).toEqual({
-      sv: [
-        "Leveransen kostar 99 kr per order, inklusive moms.",
-        COST_INTRO_NOTE.sv,
-        COST_DIRECT.sv,
-      ],
-      en: [
-        "Delivery costs SEK 99 per order, including VAT.",
-        COST_INTRO_NOTE.en,
-        COST_DIRECT.en,
-      ],
+      sv: [COST_SHARED.sv, COST_DIRECT.sv],
+      en: [COST_SHARED.en, COST_DIRECT.en],
+    });
+
+    expect(notHomeBody(true)).toEqual({
+      sv: [NOT_HOME_SHARED.sv, NOT_HOME_DIRECT.sv],
+      en: [NOT_HOME_SHARED.en, NOT_HOME_DIRECT.en],
+    });
+
+    expect(paymentBody(true)).toEqual({
+      sv: [PAYMENT_SHARED_SV, PAYMENT_DIRECT.sv],
+      en: [PAYMENT_SHARED_EN, PAYMENT_DIRECT.en],
     });
   });
 
-  it("always adds the ungated introductory-price note for 99 kr", () => {
-    // Case: 99 kr sentence did not already say introductory → added COST_INTRO_NOTE.
-    expect(COST_INTRO_NOTE.sv).toBe("99 kr är ett introduktionspris tills vidare.");
-    expect(COST_INTRO_NOTE.en).toBe("SEK 99 is an introductory price for now.");
-    expect(deliveryCostBody(false).sv).toContain(COST_INTRO_NOTE.sv);
-    expect(deliveryCostBody(false).en).toContain(COST_INTRO_NOTE.en);
+  it("uses one shared-pallet cost paragraph (intro folded in)", () => {
+    expect(COST_SHARED.sv).toBe(
+      "Leverans på delad pall kostar 99 kr per order inklusive moms, ett introduktionspris tills vidare.",
+    );
+    expect(COST_SHARED.en).toBe(
+      "Delivery on a shared pallet costs SEK 99 per order including VAT, an introductory price for now.",
+    );
+    expect(deliveryCostBody(false).sv).toHaveLength(1);
+    expect(deliveryCostBody(false).en).toHaveLength(1);
+  });
+
+  it("prefixes not-home shared paragraph and links direct to terms #punkt-3b", () => {
+    expect(NOT_HOME_SHARED.sv.startsWith("Gäller delad pall:")).toBe(true);
+    expect(NOT_HOME_SHARED.en.startsWith("For shared pallets:")).toBe(true);
+    expect(NOT_HOME_DIRECT.sv).toContain(
+      "[köpvillkoren, punkt 3 b](/villkor#punkt-3b)",
+    );
+    expect(NOT_HOME_DIRECT.en).toContain(
+      "[the terms of purchase apply, see point 3 b](/terms#punkt-3b)",
+    );
+    expect(NOT_HOME_DIRECT.sv).not.toMatch(/Hämtas lådan inte inom några dagar/);
+    expect(NOT_HOME_DIRECT.en).not.toMatch(
+      /If the box is not collected within a few days/,
+    );
+    expect(PAYMENT_DIRECT.sv).toBe(
+      "Vid direktleverans dras beloppet när du lägger ordern.",
+    );
+    expect(PAYMENT_DIRECT.en).toBe(
+      "With direct delivery, the amount is charged when you place the order.",
+    );
   });
 });

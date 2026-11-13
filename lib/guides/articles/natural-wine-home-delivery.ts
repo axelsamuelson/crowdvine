@@ -22,20 +22,50 @@ export const HOW_LONG_DIRECT = {
   sv: "Direktleverans tar normalt 5–10 arbetsdagar från att ordern är bekräftad och betald, alltid inom 30 dagar.",
 } as const;
 
-/** Shared-pallet cost: 99 kr is introductory (always shown). */
-export const COST_INTRO_NOTE = {
-  en: "SEK 99 is an introductory price for now.",
-  sv: "99 kr är ett introduktionspris tills vidare.",
-} as const;
-
-const COST_BASE = {
-  en: "Delivery costs SEK 99 per order, including VAT.",
-  sv: "Leveransen kostar 99 kr per order, inklusive moms.",
+/**
+ * Shared-pallet cost: one paragraph (99 kr + introductory).
+ * Separate COST_INTRO_NOTE removed — folded into COST_SHARED.
+ */
+export const COST_SHARED = {
+  en: "Delivery on a shared pallet costs SEK 99 per order including VAT, an introductory price for now.",
+  sv: "Leverans på delad pall kostar 99 kr per order inklusive moms, ett introduktionspris tills vidare.",
 } as const;
 
 export const COST_DIRECT = {
   en: "Direct delivery costs SEK 149 including VAT per box of 6 bottles.",
   sv: "Direktleverans kostar 149 kr inklusive moms per låda om 6 flaskor.",
+} as const;
+
+/** Shared-pallet not-home body (Budbee-style). */
+export const NOT_HOME_SHARED = {
+  en: "For shared pallets: If the delivery cannot be completed, a new attempt is made the next day. After two attempts the wine is returned.",
+  sv: "Gäller delad pall: Om leveransen inte kan genomföras görs ett nytt försök nästa dag. Efter två försök returneras vinet.",
+} as const;
+
+/**
+ * Direct-delivery not-home body (UPS) — gated by checkout flag.
+ * Juliette legal correction: refund/reship sentences replaced with terms link
+ * to #punkt-3b (verified on content/legal/kopvillkor.tsx + kopvillkor-en.tsx).
+ * Inline markdown links rendered by ArticleParagraph / renderArticleRichText.
+ */
+export const NOT_HOME_DIRECT = {
+  en: "For direct delivery: If you are not home, UPS normally makes several delivery attempts on weekdays or leaves the box at a UPS Access Point near you. UPS will tell you where it is. The box is never left outside your door. Bring ID when you collect it; you must be at least 20 years old. If UPS cannot hand over the box, for example because it is not collected, [the terms of purchase apply, see point 3 b](/terms#punkt-3b).",
+  sv: "Gäller direktleverans: Om du inte är hemma gör UPS normalt flera leveransförsök på vardagar eller lämnar lådan på ett UPS Access Point nära dig. Du får besked från UPS om var den finns. Lådan lämnas aldrig utanför dörren. Ta med legitimation när du hämtar den, du måste ha fyllt 20 år. Kan UPS inte lämna över lådan, till exempel för att den inte hämtas ut, gäller det som står i [köpvillkoren, punkt 3 b](/villkor#punkt-3b).",
+} as const;
+
+const PAYMENT_SHARED = {
+  en: "You pay by card. The amount is charged once, when the pallet closes.",
+  sv: "Du betalar med kort. Beloppet dras vid ett enda tillfälle, när pallen stänger.",
+} as const;
+
+/**
+ * Confirmed in lib/commerce/direct-box-payment-contract.ts:
+ * direct_box always uses immediate PaymentIntent (never SetupIntent).
+ * Amount is charged when the order is placed.
+ */
+export const PAYMENT_DIRECT = {
+  en: "With direct delivery, the amount is charged when you place the order.",
+  sv: "Vid direktleverans dras beloppet när du lägger ordern.",
 } as const;
 
 export function whereWeDeliverBody(
@@ -69,17 +99,46 @@ export function howLongDeliveryBody(
 }
 
 /**
- * Cost section: 99 kr + always-on intro note; optional gated direct-box 149 kr.
- * Case applied: 99 kr sentence did not say introductory → added COST_INTRO_NOTE (not gated).
+ * Cost section: one shared-pallet paragraph; optional gated direct-box 149 kr.
  */
 export function deliveryCostBody(
   includeDirectDelivery = isDirectBoxCheckoutEnabled(),
 ): { en: string[]; sv: string[] } {
-  const en = [COST_BASE.en, COST_INTRO_NOTE.en];
-  const sv = [COST_BASE.sv, COST_INTRO_NOTE.sv];
+  const en = [COST_SHARED.en];
+  const sv = [COST_SHARED.sv];
   if (includeDirectDelivery) {
     en.push(COST_DIRECT.en);
     sv.push(COST_DIRECT.sv);
+  }
+  return { en, sv };
+}
+
+/**
+ * Not-home section: shared-pallet Budbee paragraph; optional gated UPS direct.
+ */
+export function notHomeBody(
+  includeDirectDelivery = isDirectBoxCheckoutEnabled(),
+): { en: string[]; sv: string[] } {
+  const en = [NOT_HOME_SHARED.en];
+  const sv = [NOT_HOME_SHARED.sv];
+  if (includeDirectDelivery) {
+    en.push(NOT_HOME_DIRECT.en);
+    sv.push(NOT_HOME_DIRECT.sv);
+  }
+  return { en, sv };
+}
+
+/**
+ * Payment section: shared-pallet charge-at-close; optional gated direct charge-at-order.
+ */
+export function paymentBody(
+  includeDirectDelivery = isDirectBoxCheckoutEnabled(),
+): { en: string[]; sv: string[] } {
+  const en = [PAYMENT_SHARED.en];
+  const sv = [PAYMENT_SHARED.sv];
+  if (includeDirectDelivery) {
+    en.push(PAYMENT_DIRECT.en);
+    sv.push(PAYMENT_DIRECT.sv);
   }
   return { en, sv };
 }
@@ -165,13 +224,8 @@ export const naturalWineHomeDeliveryArticle: GuideArticleContent = {
         en: "If you are not at home",
         sv: "Om du inte är hemma",
       },
-      body: {
-        en: [
-          "If the delivery cannot be completed, a new attempt is made the next day. After two attempts the wine is returned.",
-        ],
-        sv: [
-          "Om leveransen inte kan genomföras görs ett nytt försök nästa dag. Efter två försök returneras vinet.",
-        ],
+      get body() {
+        return notHomeBody();
       },
     },
     {
@@ -179,13 +233,8 @@ export const naturalWineHomeDeliveryArticle: GuideArticleContent = {
         en: "Payment",
         sv: "Betalning",
       },
-      body: {
-        en: [
-          "You pay by card. The amount is charged once, when the pallet closes.",
-        ],
-        sv: [
-          "Du betalar med kort. Beloppet dras vid ett enda tillfälle, när pallen stänger.",
-        ],
+      get body() {
+        return paymentBody();
       },
     },
     {
