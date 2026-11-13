@@ -469,15 +469,10 @@ export function WineSearchExplorer() {
             </div>
           ) : fetchFailed ? (
             <div
-              className={
-                isAdmin
-                  ? "px-4 py-10 text-center text-sm text-zinc-500 dark:text-zinc-400"
-                  : "px-4 py-10 text-center text-sm text-zinc-500"
-              }
+              className="min-h-[8rem]"
               title={technicalError ?? undefined}
-            >
-              Kunde inte hämta vinlistorna. Försök igen.
-            </div>
+              aria-hidden
+            />
           ) : (
             <table className="w-full min-w-[880px] border-collapse text-left text-sm">
               <thead>
