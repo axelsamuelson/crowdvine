@@ -87,6 +87,7 @@ Sometimes a wine sells out after you have bought.
 - We will first offer you an **equivalent replacement wine** from the same producer or wholesaler. The wine is replaced only if you accept it.
 - If the wine can be removed without leaving a box incomplete, you may choose to remove it instead. You will then get your money back for that wine, or you will not be charged for it if you have not been charged yet.
 - If the wine cannot be removed without leaving a box incomplete and you do not accept the replacement wine, **the entire order is cancelled**. You will then get the full amount back without undue delay and no later than within 14 days, or you will not be charged at all if you have not been charged yet.
+- For direct delivery, you have **2 working days** to reply to our offer. If you do not reply within that time, the entire order is cancelled and you get the full amount back without undue delay and no later than within 14 days. If you accept the replacement wine, the delivery time is counted from your acceptance.
 
 ---
 
@@ -135,7 +136,7 @@ If delivery is significantly delayed, you have the right to terminate the purcha
 
 ## 8. If delivery cannot be completed
 
-For shared pallets: If you are not at home, cannot show ID or are not at least 20 years old, our delivery partner will make a new delivery attempt. If delivery cannot be completed then either, the goods are returned.
+**For shared pallets:** If you are not at home, cannot show ID or are not at least 20 years old, our delivery partner will make a new delivery attempt. If delivery cannot be completed then either, the goods are returned.
 
 In the event of a return, you pay the actual cost of return shipping, without any mark-up. If the handover is refused at the age check, we do not charge any fee. For direct delivery, point 3 b applies.
 

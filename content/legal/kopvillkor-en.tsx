@@ -248,6 +248,14 @@ export default function KopvillkorEnContent() {
           within 14 days, or you will not be charged at all if you have not
           been charged yet.
         </li>
+        <li>
+          For direct delivery, you have{" "}
+          <LegalStrong>2 working days</LegalStrong> to reply to our offer. If
+          you do not reply within that time, the entire order is cancelled and
+          you get the full amount back without undue delay and no later than
+          within 14 days. If you accept the replacement wine, the delivery time
+          is counted from your acceptance.
+        </li>
       </LegalList>
 
       <LegalH2 id="punkt-4">4. Prices</LegalH2>
@@ -374,10 +382,10 @@ export default function KopvillkorEnContent() {
 
       <LegalH2 id="punkt-8">8. If delivery cannot be completed</LegalH2>
       <LegalP>
-        For shared pallets: If you are not at home, cannot show ID or are not
-        at least 20 years old, our delivery partner will make a new delivery
-        attempt. If delivery cannot be completed then either, the goods are
-        returned.
+        <LegalStrong>For shared pallets:</LegalStrong> If you are not at home,
+        cannot show ID or are not at least 20 years old, our delivery partner
+        will make a new delivery attempt. If delivery cannot be completed then
+        either, the goods are returned.
       </LegalP>
       <LegalP>
         In the event of a return, you pay the actual cost of return shipping,

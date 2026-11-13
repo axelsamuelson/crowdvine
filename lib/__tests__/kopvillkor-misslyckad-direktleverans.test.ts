@@ -4,10 +4,12 @@ import { resolve } from "node:path";
 import {
   EN_AGE_CHECK_NEW,
   EN_FAILED_HANDOVER,
+  EN_REPLACEMENT_WINE_REPLY_BULLET,
   EN_TRANSPORT_P1_NEW,
   EN_TRANSPORT_P2_NEW,
   SV_AGE_CHECK_NEW,
   SV_FAILED_HANDOVER,
+  SV_REPLACEMENT_WINE_REPLY_BULLET,
   SV_TRANSPORT_P1_NEW,
   SV_TRANSPORT_P2_NEW,
 } from "@/lib/legal/kopvillkor-2026-11-13-amendment";
@@ -45,6 +47,7 @@ describe("köpvillkor misslyckad direktleverans (2026-11-13)", () => {
       SV_FAILED_HANDOVER,
       SV_TRANSPORT_P1_NEW,
       SV_TRANSPORT_P2_NEW,
+      SV_REPLACEMENT_WINE_REPLY_BULLET,
     ]) {
       expect(svMd.includes(excerpt), `sv.md missing: ${excerpt.slice(0, 48)}`).toBe(
         true,
@@ -55,6 +58,7 @@ describe("köpvillkor misslyckad direktleverans (2026-11-13)", () => {
       EN_FAILED_HANDOVER,
       EN_TRANSPORT_P1_NEW,
       EN_TRANSPORT_P2_NEW,
+      EN_REPLACEMENT_WINE_REPLY_BULLET,
     ]) {
       expect(enMd.includes(excerpt), `en.md missing: ${excerpt.slice(0, 48)}`).toBe(
         true,

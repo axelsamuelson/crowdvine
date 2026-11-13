@@ -11,10 +11,12 @@ import { resolve } from "node:path";
 import {
   EN_AGE_CHECK_NEW,
   EN_FAILED_HANDOVER,
+  EN_REPLACEMENT_WINE_REPLY_BULLET,
   EN_TRANSPORT_P1_NEW,
   EN_TRANSPORT_P2_NEW,
   SV_AGE_CHECK_NEW,
   SV_FAILED_HANDOVER,
+  SV_REPLACEMENT_WINE_REPLY_BULLET,
   SV_TRANSPORT_P1_NEW,
   SV_TRANSPORT_P2_NEW,
 } from "../lib/legal/kopvillkor-2026-11-13-amendment";
@@ -46,6 +48,11 @@ function main() {
       excerpt: SV_TRANSPORT_P2_NEW,
     },
     {
+      id: "sv-replacement-reply",
+      path: "content/legal/source/kopvillkor.sv.md",
+      excerpt: SV_REPLACEMENT_WINE_REPLY_BULLET,
+    },
+    {
       id: "en-age",
       path: "content/legal/source/kopvillkor.en.md",
       excerpt: EN_AGE_CHECK_NEW,
@@ -64,6 +71,11 @@ function main() {
       id: "en-transport-p2",
       path: "content/legal/source/kopvillkor.en.md",
       excerpt: EN_TRANSPORT_P2_NEW,
+    },
+    {
+      id: "en-replacement-reply",
+      path: "content/legal/source/kopvillkor.en.md",
+      excerpt: EN_REPLACEMENT_WINE_REPLY_BULLET,
     },
   ];
 
@@ -137,6 +149,11 @@ function main() {
       "tar vi inte ut någon avgift. För direktleverans gäller",
     ],
     [
+      "tsx-sv-replacement-reply",
+      svFlat,
+      SV_REPLACEMENT_WINE_REPLY_BULLET.replace(/\*\*/g, ""),
+    ],
+    [
       "tsx-en-age",
       enFlat,
       "If the age check fails, the wine will not be handed over.",
@@ -156,10 +173,50 @@ function main() {
       enFlat,
       "we do not charge any fee. For direct delivery, point 3 b applies.",
     ],
+    [
+      "tsx-en-replacement-reply",
+      enFlat,
+      EN_REPLACEMENT_WINE_REPLY_BULLET.replace(/\*\*/g, ""),
+    ],
   ];
   for (const [id, flat, phrase] of tsxProbes) {
     if (!flat.includes(phrase)) {
       console.error(`FAIL ${id}: plain text missing from tsx`);
+      failed += 1;
+    } else {
+      console.log(`OK ${id}`);
+    }
+  }
+
+  const svTsxRaw = readFileSync(
+    resolve("content/legal/kopvillkor.tsx"),
+    "utf8",
+  );
+  const enTsxRaw = readFileSync(
+    resolve("content/legal/kopvillkor-en.tsx"),
+    "utf8",
+  );
+  const boldProbes: [string, string, string][] = [
+    ["tsx-sv-bold-2-arbetsdagar", svTsxRaw, "<LegalStrong>2 arbetsdagar</LegalStrong>"],
+    [
+      "tsx-sv-bold-vid-delad-pall",
+      svTsxRaw,
+      "<LegalStrong>Vid delad pall:</LegalStrong>",
+    ],
+    [
+      "tsx-en-bold-2-working-days",
+      enTsxRaw,
+      "<LegalStrong>2 working days</LegalStrong>",
+    ],
+    [
+      "tsx-en-bold-for-shared-pallets",
+      enTsxRaw,
+      "<LegalStrong>For shared pallets:</LegalStrong>",
+    ],
+  ];
+  for (const [id, raw, needle] of boldProbes) {
+    if (!raw.includes(needle)) {
+      console.error(`FAIL ${id}: bold markup missing from tsx`);
       failed += 1;
     } else {
       console.log(`OK ${id}`);

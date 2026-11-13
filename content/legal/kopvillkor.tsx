@@ -225,6 +225,14 @@ export default function KopvillkorContent() {
           hela beloppet utan onödigt dröjsmål och senast inom 14 dagar, eller
           debiteras inte alls om du ännu inte har debiterats.
         </li>
+        <li>
+          Vid direktleverans har du{" "}
+          <LegalStrong>2 arbetsdagar</LegalStrong> på dig att svara på vårt
+          erbjudande. Svarar du inte inom den tiden avbryts hela ordern och du
+          får tillbaka hela beloppet utan onödigt dröjsmål och senast inom 14
+          dagar. Godkänner du ersättningsvinet räknas leveranstiden från ditt
+          ja.
+        </li>
       </LegalList>
 
       <LegalH2 id="punkt-4">4. Priser</LegalH2>
@@ -340,9 +348,10 @@ export default function KopvillkorContent() {
 
       <LegalH2 id="punkt-8">8. Om leverans inte kan genomföras</LegalH2>
       <LegalP>
-        Vid delad pall: Om du inte är hemma, inte kan legitimera dig eller inte
-        är minst 20 år gör vår transportpartner ett nytt leveransförsök. Kan
-        leveransen inte genomföras då heller returneras varan.
+        <LegalStrong>Vid delad pall:</LegalStrong> Om du inte är hemma, inte
+        kan legitimera dig eller inte är minst 20 år gör vår transportpartner
+        ett nytt leveransförsök. Kan leveransen inte genomföras då heller
+        returneras varan.
       </LegalP>
       <LegalP>
         Vid retur betalar du den faktiska returfraktkostnaden, utan påslag. Om

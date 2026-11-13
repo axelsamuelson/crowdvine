@@ -91,6 +91,7 @@ Det händer att ett vin tar slut efter att du har köpt.
 - Vi erbjuder dig först ett **likvärdigt ersättningsvin** från samma producent eller grossist. Byte sker bara om du godkänner det.
 - Går det att stryka vinet utan att en låda blir ofullständig får du välja att stryka det i stället. Du får då tillbaka pengarna för det vinet, eller debiteras inte för det om du ännu inte har debiterats.
 - Om vinet inte kan strykas utan att en låda blir ofullständig och du inte godkänner ersättningsvinet, **avbryts hela ordern**. Du får då tillbaka hela beloppet utan onödigt dröjsmål och senast inom 14 dagar, eller debiteras inte alls om du ännu inte har debiterats.
+- Vid direktleverans har du **2 arbetsdagar** på dig att svara på vårt erbjudande. Svarar du inte inom den tiden avbryts hela ordern och du får tillbaka hela beloppet utan onödigt dröjsmål och senast inom 14 dagar. Godkänner du ersättningsvinet räknas leveranstiden från ditt ja.
 
 ---
 
@@ -141,7 +142,7 @@ Om leveransen blir väsentligt försenad har du rätt att häva köpet och få p
 
 ## 8. Om leverans inte kan genomföras
 
-Vid delad pall: Om du inte är hemma, inte kan legitimera dig eller inte är minst 20 år gör vår transportpartner ett nytt leveransförsök. Kan leveransen inte genomföras då heller returneras varan.
+**Vid delad pall:** Om du inte är hemma, inte kan legitimera dig eller inte är minst 20 år gör vår transportpartner ett nytt leveransförsök. Kan leveransen inte genomföras då heller returneras varan.
 
 Vid retur betalar du den faktiska returfraktkostnaden, utan påslag. Om överlämningen nekas vid ålderskontrollen tar vi inte ut någon avgift. För direktleverans gäller punkt 3 b.
 
