@@ -26,6 +26,7 @@ describe("PACT För företag link placement", () => {
     expect(link).toMatch(/label: "För företag"/);
     expect(link).toMatch(/label: "For business"/);
     expect(link).toMatch(/https:\/\/dirtywine\.se/);
+    expect(link).toMatch(/whitespace-nowrap/);
   });
 
   it("logs pdp_section_opened with section=price_breakdown when opened", () => {
