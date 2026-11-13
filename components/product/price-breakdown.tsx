@@ -315,6 +315,7 @@ function buildBreakdownRows(
         memberDiscount: 0,
       };
 
+  // Customer-facing: never show margin / påslag / markup (product decision).
   const barSegments: BarSegment[] = [
     { lineKey: "bottleCost", amount: costAmount, percentage: bp.cost },
     { lineKey: "alcoholTax", amount: alcoholTax, percentage: bp.alcoholTax },
@@ -330,7 +331,6 @@ function buildBreakdownRows(
         ]
       : []),
     { lineKey: "vat", amount: vat, percentage: bp.vat },
-    { lineKey: "margin", amount: margin, percentage: bp.margin },
   ];
 
   const pctOfMember = (x: number) =>
@@ -356,11 +356,6 @@ function buildBreakdownRows(
           },
         ]
       : []),
-    {
-      lineKey: "margin",
-      amount: margin,
-      rowPercent: pctOfMember(margin),
-    },
     ...(hasMemberDiscount && memberDiscountAmount > 0
       ? [
           {
@@ -376,6 +371,14 @@ function buildBreakdownRows(
       rowPercent: pctOfMember(vat),
     },
   ];
+
+  // Re-scale bar shares among visible (non-margin) segments so the strip fills.
+  const barSum = barSegments.reduce((s, c) => s + Math.max(0, c.percentage), 0);
+  if (barSum > 0) {
+    for (const seg of barSegments) {
+      seg.percentage = (Math.max(0, seg.percentage) / barSum) * 100;
+    }
+  }
 
   return { barSegments, tableRows };
 }
