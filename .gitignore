@@ -53,3 +53,6 @@ tmp/
 
 # Agent / design-review screenshots (keep in /opt/cursor/artifacts only)
 .review-shots/
+
+# Review / agent verification screenshots — never commit (public repo)
+/artifacts/
