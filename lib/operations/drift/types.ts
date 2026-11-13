@@ -1,4 +1,5 @@
 import type { OpsAgentCompany, OpsCompany } from "@/lib/operations/ops-agents"
+import type { DriftTaskBadge } from "./display-title"
 
 export type DriftCompanyFilter = OpsCompany | "both"
 export type DriftTab = "oversikt" | "botar" | "pipeline"
@@ -15,6 +16,20 @@ export interface DriftQueueItem {
   openHref: string
 }
 
+/** Payload for the v4.1 detail panel (desktop side / mobile sheet). */
+export interface DriftTaskDetail {
+  id: string
+  heading: string
+  description: string
+  owner: string | null
+  projectId: string | null
+  projectName: string | null
+  statusLabel: string
+  dateLabel: string
+  prNumber: number | null
+  prUrl: string | null
+}
+
 export interface DriftWeekItem {
   id: string
   heading: string
@@ -23,6 +38,25 @@ export interface DriftWeekItem {
   atLabel: string
   source: "pr" | "ops_agent_log" | null
   projectName: string | null
+  projectTag: string | null
+  detail: DriftTaskDetail
+}
+
+export interface DriftPagarTask {
+  id: string
+  heading: string
+  projectTag: string | null
+  dateLabel: string | null
+  badge: DriftTaskBadge
+  detail: DriftTaskDetail
+}
+
+export interface DriftPagarBotGroup {
+  ownerKey: string
+  ownerLabel: string
+  count: number
+  hasWaitingForYou: boolean
+  tasks: DriftPagarTask[]
 }
 
 export interface DriftBotRow {
@@ -85,6 +119,7 @@ export interface DriftOverviewData {
     klartWeek: number
   }
   queue: DriftQueueItem[]
+  pagarGroups: DriftPagarBotGroup[]
   weekItems: DriftWeekItem[]
   bots: DriftBotRow[]
   projects: DriftPipelineProject[]

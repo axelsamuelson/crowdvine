@@ -47,7 +47,7 @@ export async function getDriftOverview(input?: {
     sb
       .from("ops_approval_queue")
       .select(
-        "id, agent, kind, title, detail, question, recommendation, deadline, status, created_at, company, project_id",
+        "id, agent, kind, title, detail, question, recommendation, deadline, status, created_at, company, project_id, task_id",
       )
       .eq("status", "väntar")
       .order("created_at", { ascending: true }),
