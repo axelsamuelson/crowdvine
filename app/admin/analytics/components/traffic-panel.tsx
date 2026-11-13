@@ -25,6 +25,7 @@ import {
   ANALYTICS_CHANNELS,
   channelLabel,
 } from "@/lib/analytics/analytics-channel";
+import { formatStockholmDisplayDate } from "@/lib/analytics/stockholm-time";
 
 type DailyPoint = {
   date: string;
@@ -295,7 +296,8 @@ export function TrafficPanel({
         </p>
         {data.truncated && data.earliestCoveredDate ? (
           <p className="text-xs text-gray-500 dark:text-zinc-500 mb-3">
-            Visar data från {data.earliestCoveredDate}
+            Visar data från{" "}
+            {formatStockholmDisplayDate(data.earliestCoveredDate)}
           </p>
         ) : null}
         {selectedDates.length > 0 ? (

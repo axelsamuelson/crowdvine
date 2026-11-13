@@ -17,6 +17,7 @@ import { FunnelStepBadgeEl } from "./funnel-step-badge";
 import { WeeklyIntentFunnel } from "./weekly-intent-funnel";
 import {
   formatStockholmDate,
+  formatStockholmDisplayDate,
   formatStockholmTime,
 } from "@/lib/analytics/stockholm-time";
 import { eventTypeLabelSv } from "@/lib/analytics/event-aliases";
@@ -97,7 +98,7 @@ export function IntentPanel({
           setWeeklyFunnel(json.weeklyFunnel ?? []);
           setTruncatedNote(
             json.truncated && json.earliestCoveredDate
-              ? `Visar data från ${json.earliestCoveredDate}`
+              ? `Visar data från ${formatStockholmDisplayDate(json.earliestCoveredDate)}`
               : null,
           );
         }
