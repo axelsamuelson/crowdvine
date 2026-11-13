@@ -48,10 +48,7 @@ import {
 } from "@/lib/checkout/shared-pallet-close-delivery-copy";
 import { CheckoutPalletFillStatus } from "@/components/checkout/checkout-pallet-fill-status";
 import type { CheckoutPalletFillInput } from "@/lib/checkout/pallet-fill-display";
-import {
-  coverageCheckoutHint,
-  coverageTermsPlaceholder,
-} from "@/lib/pallet-coverage-close/customer-copy";
+import { coverageCheckoutHint } from "@/lib/pallet-coverage-close/customer-copy";
 
 export { formatOfferSek } from "@/lib/checkout/dual-offer-display";
 
@@ -571,8 +568,9 @@ export type DualOfferCheckoutPanelProps = {
   showPalletFillStatus?: boolean;
   palletFill?: CheckoutPalletFillInput | null;
   /**
-   * Coverage-close UI: TODO(Juliette/Margaux) placeholders; capacity = current
-   * threshold Y. No countdown. Default false until PALLET_COVERAGE_CLOSE_ENABLED.
+   * Coverage-close UI: SV checkout ladder uses approved KASSAN copy
+   * (`coverageCheckoutHint`); EN still TODO. Capacity = current threshold Y.
+   * No countdown. Default false until PALLET_COVERAGE_CLOSE_ENABLED.
    */
   useCoverageCloseCopy?: boolean;
   /**
@@ -1037,8 +1035,11 @@ export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
                 (() => {
                   const lines = useCoverageCloseCopy
                     ? {
+                        // KASSAN (SV approved) already includes delivery timing.
+                        // Do not surface coverageTermsPlaceholder here — villkor
+                        // copy is a separate PR.
                         closeLine: coverageCheckoutHint(locale),
-                        deliveryLine: coverageTermsPlaceholder(locale),
+                        deliveryLine: null as string | null,
                       }
                     : sharedCheckoutDeliveryLines(
                         sharedQuote,

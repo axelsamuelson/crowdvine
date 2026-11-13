@@ -659,12 +659,15 @@ describe("progress display X av Y (current threshold)", () => {
 });
 
 describe("checkout / terms placeholders", () => {
-  it("progress and checkout copy are TODO(Juliette/Margaux)", () => {
+  it("SV checkout hint is approved KASSAN text; EN and other copy stay TODO", () => {
     expect(coverageProgressLabel({ locale: "sv", filled: 12, target: 258 })).toContain(
       "TODO(Juliette/Margaux)",
     );
     expect(coverageProgressLabel({ locale: "sv", filled: 12, target: 258 })).toContain(
       "12 av 258 flaskor",
+    );
+    expect(coverageCheckoutHint("sv")).toBe(
+      "Pallen skickas när tillräckligt många flaskor är beställda. Gränsen kan sänkas med tiden, så att pallen kan skickas tidigare. Vi kan inte lova ett datum för när den stänger. Inget dras förrän pallen stänger, och fram till dess kan du avbryta utan kostnad. Innan vi drar pengarna mejlar vi dig belopp och datum. Efter stängningen levererar vi inom 30 dagar, normalt inom 2–3 veckor.",
     );
     expect(coverageCheckoutHint("en")).toContain("TODO(Juliette/Margaux)");
     expect(coverageTermsPlaceholder("sv")).toContain("TODO(Juliette/Margaux)");

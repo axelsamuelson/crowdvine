@@ -7,6 +7,7 @@ import { isDirectBoxCheckoutEnabled } from "@/lib/commerce/fulfillment-channel";
 import { buildDirectBoxUiAvailability } from "@/lib/commerce/direct-box-ui-contract";
 import { isDualOfferCheckoutSurfaceAllowed } from "@/lib/checkout/dual-offer-surface-gate";
 import { resolvePalletCloseSwitchDirectEntry } from "@/lib/checkout/pallet-close/switch-direct";
+import { getPalletCoverageCloseConfig } from "@/lib/pallet-coverage-close/config";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
@@ -35,12 +36,15 @@ export default async function CheckoutPage({
   const directBoxAvailability = buildDirectBoxUiAvailability();
   // Dual-offer compare: flag OFF by default + production deny (preview/local only).
   const dualOfferCompareSurfaceAllowed = isDualOfferCheckoutSurfaceAllowed();
+  // Coverage-close ladder copy (approved SV KASSAN) — same master gate as cron.
+  const coverageCloseCopyEnabled = getPalletCoverageCloseConfig().enabled;
   return (
     <CheckoutClient
       platformOpen={isPlatformOpen()}
       directBoxCheckoutEnabled={isDirectBoxCheckoutEnabled()}
       directBoxAvailability={directBoxAvailability}
       dualOfferCompareSurfaceAllowed={dualOfferCompareSurfaceAllowed}
+      coverageCloseCopyEnabled={coverageCloseCopyEnabled}
       palletCloseSwitchDirect={
         switchEntry.ok
           ? {

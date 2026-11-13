@@ -1,10 +1,14 @@
 /**
  * Customer-facing copy for coverage-close progress / checkout / terms snippets.
  *
- * ALL strings are PLACEHOLDERS — TODO(Juliette/Margaux).
- * Axel must approve word for word before enabling in production UI.
- * Do not edit content/legal/*.
+ * SV checkout hint (`coverageCheckoutHint("sv")`) approved word-for-word
+ * 443bd26c (KASSAN only). EN and remaining strings stay TODO until separate
+ * approval. Do not edit content/legal/* here.
  */
+
+/** Approved SV checkout ladder text — 443bd26c / KASSAN. Do not paraphrase. */
+export const COVERAGE_CHECKOUT_HINT_SV_APPROVED =
+  "Pallen skickas när tillräckligt många flaskor är beställda. Gränsen kan sänkas med tiden, så att pallen kan skickas tidigare. Vi kan inte lova ett datum för när den stänger. Inget dras förrän pallen stänger, och fram till dess kan du avbryta utan kostnad. Innan vi drar pengarna mejlar vi dig belopp och datum. Efter stängningen levererar vi inom 30 dagar, normalt inom 2–3 veckor.";
 
 export function coverageProgressLabel(opts: {
   locale: "sv" | "en";
@@ -19,10 +23,13 @@ export function coverageProgressLabel(opts: {
 }
 
 export function coverageCheckoutHint(locale: "sv" | "en"): string {
-  // TODO(Juliette/Margaux) — no countdown / deadline in customer UI
-  return locale === "en"
-    ? "TODO(Juliette/Margaux): The pallet locks when coverage is reached or at the bottle cap. No countdown is shown."
-    : "TODO(Juliette/Margaux): Pallen låses när täckningen nås eller vid flasktaket. Ingen nedräkning visas.";
+  // EN: still placeholder — no separate EN approval yet.
+  // SV: approved 443bd26c (KASSAN). Replaces 70%-floor / Monday-lock /
+  // warning-email / no-countdown placeholder wording.
+  if (locale === "en") {
+    return "TODO(Juliette/Margaux): The pallet locks when coverage is reached or at the bottle cap. No countdown is shown.";
+  }
+  return COVERAGE_CHECKOUT_HINT_SV_APPROVED;
 }
 
 export function coverageTermsPlaceholder(locale: "sv" | "en"): string {

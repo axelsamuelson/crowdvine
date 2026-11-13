@@ -11,7 +11,7 @@ Coverage-based lock rule (Ingrid CFO formula) + sold-out-at-lock choice (00:30 /
 | `PALLET_COVERAGE_CLOSE_ENABLED` | OFF | Cron + one-open assignment + new pallet defaults |
 | `PALLET_COVERAGE_CLOSE_SEND_EMAIL` | OFF | Heads-up + sold-out choice emails (like `RESERVATION_EXPIRY_SEND_EMAIL`) |
 
-`DIRECT_BOX_CHECKOUT_ENABLED` stays OFF. Do not edit `content/legal/*`. Customer copy is `TODO(Juliette/Margaux)` until Axel approves word for word.
+`DIRECT_BOX_CHECKOUT_ENABLED` stays OFF. Do not edit `content/legal/*`. SV checkout ladder (`coverageCheckoutHint("sv")`, KASSAN / 443bd26c) is approved; EN and other customer copy remain `TODO(Juliette/Margaux)` until separate approval.
 
 **Coverage**
 

@@ -17,19 +17,16 @@ import {
   resolveCheckoutPalletFillDisplay,
   type CheckoutPalletFillInput,
 } from "@/lib/checkout/pallet-fill-display";
-import {
-  coverageCheckoutHint,
-  coverageProgressLabel,
-} from "@/lib/pallet-coverage-close/customer-copy";
-
 export type CheckoutPalletFillStatusProps = CheckoutPalletFillInput & {
   locale: DualOfferUiLocale;
   /** Default true — flip false for CRO hide without unmounting wiring. */
   enabled?: boolean;
   className?: string;
   /**
-   * Coverage-close: show TODO(Juliette/Margaux) placeholders and treat
-   * `capacity` as bottles needed for the current threshold (Y).
+   * Coverage-close: treat `capacity` as bottles needed for the current
+   * threshold (Y). Progress-label copy stays on the legacy dual-offer string
+   * until separately approved; the long KASSAN ladder lives on the panel
+   * close line, not here.
    */
   useCoverageCloseCopy?: boolean;
 };
@@ -60,20 +57,11 @@ export function CheckoutPalletFillStatus(props: CheckoutPalletFillStatusProps) {
 
   if (!display) return null;
 
-  const locale = props.locale === "en" ? "en" : "sv";
-  const label = props.useCoverageCloseCopy
-    ? coverageProgressLabel({
-        locale,
-        filled: display.fillCount,
-        target: display.capacity,
-      })
-    : dualOfferMsg(props.locale, "dualOfferPalletFillStatus", {
-        filled: String(display.fillCount),
-        total: String(display.capacity),
-      });
-  const hint = props.useCoverageCloseCopy
-    ? coverageCheckoutHint(locale)
-    : null;
+  const label = dualOfferMsg(props.locale, "dualOfferPalletFillStatus", {
+    filled: String(display.fillCount),
+    total: String(display.capacity),
+  });
+  const hint = null;
 
   return (
     <VisibleOnceTracker

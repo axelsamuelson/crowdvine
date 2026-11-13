@@ -188,6 +188,7 @@ function CheckoutContent({
     messageKey: null,
   },
   dualOfferCompareSurfaceAllowed = false,
+  coverageCloseCopyEnabled = false,
   palletCloseSwitchDirect = null,
 }: {
   platformOpen: boolean;
@@ -200,6 +201,11 @@ function CheckoutContent({
    * unchanged. Never enables DIRECT_BOX or live dual payment.
    */
   dualOfferCompareSurfaceAllowed?: boolean;
+  /**
+   * Coverage-close checkout ladder (SV KASSAN). Default false until
+   * PALLET_COVERAGE_CLOSE_ENABLED.
+   */
+  coverageCloseCopyEnabled?: boolean;
   /**
    * Pallet-close switch-to-direct entry (server-resolved). Requires DIRECT flag;
    * forces a new quote + explicit acceptance.
@@ -4652,6 +4658,7 @@ function CheckoutContent({
                             ? "direct_box"
                             : null
                         }
+                        useCoverageCloseCopy={coverageCloseCopyEnabled}
                         openIntentIds={
                           prefetchedStripeIntent?.intentId
                             ? [prefetchedStripeIntent.intentId]
@@ -5619,11 +5626,20 @@ export function CheckoutClient({
   directBoxCheckoutEnabled = false,
   directBoxAvailability,
   dualOfferCompareSurfaceAllowed = false,
+  coverageCloseCopyEnabled = false,
+  palletCloseSwitchDirect = null,
 }: {
   platformOpen?: boolean;
   directBoxCheckoutEnabled?: boolean;
   directBoxAvailability?: DirectBoxUiAvailability;
   dualOfferCompareSurfaceAllowed?: boolean;
+  coverageCloseCopyEnabled?: boolean;
+  palletCloseSwitchDirect?: {
+    reservationId: string;
+    requireNewQuote: true;
+    requireExplicitAcceptance: true;
+    preferredFulfillment: "direct_box";
+  } | null;
 }) {
   return (
     <Suspense
@@ -5642,6 +5658,8 @@ export function CheckoutClient({
         directBoxCheckoutEnabled={directBoxCheckoutEnabled}
         directBoxAvailability={directBoxAvailability}
         dualOfferCompareSurfaceAllowed={dualOfferCompareSurfaceAllowed}
+        coverageCloseCopyEnabled={coverageCloseCopyEnabled}
+        palletCloseSwitchDirect={palletCloseSwitchDirect}
       />
       {/* merge modal portal host is inside CheckoutContent */}
     </Suspense>
