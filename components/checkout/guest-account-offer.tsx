@@ -130,6 +130,7 @@ export function GuestAccountOffer(props: {
           onClick={() => void claim()}
           disabled={submitting}
           data-testid="guest-account-create"
+          className="bg-black text-white hover:bg-black/90"
         >
           {submitting
             ? t("checkout.processing")

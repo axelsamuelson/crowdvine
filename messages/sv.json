@@ -591,6 +591,7 @@
     "chargedOnConfirm": "Ditt kort debiteras nu när du bekräftar.",
     "noChargeUntilPalletCloses": "Inget dras nu. Du betalar först när pallen stänger.",
     "otpEmailHint": "Vi använder den här adressen för orderuppdateringar.",
+    "requiresLoginBody": "Det finns redan ett konto med den här e-postadressen. Vi skickar en inloggningslänk dit, sedan slutför du köpet här. Din varukorg sparas.",
     "preparingCheckout": "Förbereder betalning…",
     "guestSessionFailed": "Kunde inte förbereda betalningen. Försök igen.",
     "guestAccountTitle": "Skapa konto (valfritt)",

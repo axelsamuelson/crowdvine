@@ -591,6 +591,7 @@
     "chargedOnConfirm": "Your card is charged now when you confirm.",
     "noChargeUntilPalletCloses": "Nothing is charged now. You pay only when the pallet closes.",
     "otpEmailHint": "We use this address for order updates.",
+    "requiresLoginBody": "There's already an account with this email. We'll send you a sign-in link, then you can finish your purchase here. Your cart is saved.",
     "preparingCheckout": "Preparing payment…",
     "guestSessionFailed": "Could not prepare payment. Please try again.",
     "guestAccountTitle": "Create an account (optional)",

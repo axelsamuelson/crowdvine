@@ -3878,7 +3878,7 @@ function CheckoutContent({
         aria-busy="true"
         aria-label={t("checkout.loadingCart")}
       >
-        <div className="mx-auto max-w-[1280px] space-y-8 p-6 pt-top-spacing animate-pulse">
+        <div className="mx-auto max-w-[1280px] space-y-8 p-6 pt-[calc(var(--top-spacing)+1.5rem)] animate-pulse">
           <div className="space-y-2">
             <div className="h-8 w-40 rounded bg-muted/60" />
             <div className="h-4 w-64 max-w-full rounded bg-muted/40" />
@@ -3929,7 +3929,7 @@ function CheckoutContent({
 
   if (cart.totalQuantity === 0) {
     return (
-      <div className="max-w-4xl mx-auto p-6 pt-top-spacing">
+      <div className="max-w-4xl mx-auto p-6 pt-[calc(var(--top-spacing)+1.5rem)]">
         <h1 className="text-2xl font-semibold mb-4">{t("checkout.title")}</h1>
         <p className="text-gray-600">{t("checkout.emptyCart")}</p>
         <a
@@ -4040,7 +4040,7 @@ function CheckoutContent({
         transparent fixed site header so scrolled panel text cannot show through
         MENY/PACT. Does not alter global header styles or OFF-checkout.
       */}
-      <div className="mx-auto max-w-[1280px] space-y-8 p-6 pt-top-spacing">
+      <div className="mx-auto max-w-[1280px] space-y-8 p-6 pt-[calc(var(--top-spacing)+1.5rem)]">
         <div>
           <h1 className="mb-2 text-2xl font-medium text-foreground">
             {t("checkout.title")}
@@ -4049,7 +4049,7 @@ function CheckoutContent({
         </div>
 
         <div className="flex flex-col gap-8 min-[1280px]:grid min-[1280px]:grid-cols-[1fr_400px] min-[1280px]:items-start">
-          <aside className="order-1 w-full min-w-0 min-[1280px]:sticky min-[1280px]:top-[calc(var(--top-spacing)+1rem)] min-[1280px]:order-2 min-[1280px]:self-start">
+          <aside className="order-1 w-full min-w-0 min-[1280px]:sticky min-[1280px]:top-[calc(var(--top-spacing)+1.5rem+1rem)] min-[1280px]:order-2 min-[1280px]:self-start">
             <div className="space-y-3">
               {/* <1280: one expandable row; ≥1280: always expanded */}
               <button
@@ -5449,7 +5449,7 @@ function CheckoutContent({
                               initialEmail={
                                 (deliveryDraft?.email ?? "").trim().toLowerCase()
                               }
-                              emailHint={t("checkout.otpEmailHint")}
+                              emailHint={t("checkout.requiresLoginBody")}
                               checkInbox={t("checkout.otpCheckInbox")}
                               emailLabel={t("checkout.otpEmailLabel")}
                               sendLinkLabel={t("checkout.otpSendLink")}
@@ -5466,7 +5466,7 @@ function CheckoutContent({
                             />
                           ) : (
                             <div
-                              className="space-y-2"
+                              className="space-y-3"
                               data-testid="guest-checkout-preparing"
                             >
                               <p className="text-sm text-muted-foreground">
@@ -5489,7 +5489,17 @@ function CheckoutContent({
                                 >
                                   {t("checkout.tryAgain")}
                                 </Button>
-                              ) : null}
+                              ) : (
+                                <Button
+                                  type="button"
+                                  data-testid="checkout-place-reservation"
+                                  className="!h-auto min-h-10 w-full !whitespace-normal break-words !rounded-xl border-transparent bg-black !px-5 py-3 text-center text-sm leading-snug text-white shadow-none ring-0 hover:border-transparent hover:bg-black/90 hover:shadow-none focus-visible:border-transparent focus-visible:bg-black/90 focus-visible:ring-white/40 sm:text-base"
+                                  disabled
+                                  aria-busy="true"
+                                >
+                                  {t("checkout.placeReservation")}
+                                </Button>
+                              )}
                             </div>
                           )
                         ) : null}
@@ -5553,12 +5563,14 @@ function CheckoutContent({
                               const cartBlockedHelper = !isValidCart
                                 ? `${t("checkout.orderBlocked")} – ${t("checkout.addBottlesRequirement")}`
                                 : null;
+                              const paymentPreparing =
+                                !stripeConfirmFn ||
+                                !paymentMode ||
+                                !stripeIntentId;
                               const bindDisabled =
                                 !isValidCart ||
                                 !legacySharedPalletPaymentAllowed ||
-                                !stripeConfirmFn ||
-                                !paymentMode ||
-                                !stripeIntentId ||
+                                paymentPreparing ||
                                 !paymentElementComplete ||
                                 isSubmitting ||
                                 zoneLoading ||
@@ -5584,16 +5596,19 @@ function CheckoutContent({
                                     legalLine: bind.legalLine,
                                     disabled: bindDisabled,
                                     loading: bindLoading,
+                                    busy: paymentPreparing || bindLoading,
                                     confirmNote: cartBlockedHelper
                                       ? cartBlockedHelper
-                                      : !paymentElementComplete
-                                        ? dualOfferMsg(
-                                            shopping.locale === "en"
-                                              ? "en"
-                                              : "sv",
-                                            "dualOfferCardIncomplete",
-                                          )
-                                        : null,
+                                      : paymentPreparing
+                                        ? t("checkout.preparingCheckout")
+                                        : !paymentElementComplete
+                                          ? dualOfferMsg(
+                                              shopping.locale === "en"
+                                                ? "en"
+                                                : "sv",
+                                              "dualOfferCardIncomplete",
+                                            )
+                                          : null,
                                     errorNote: stripeError,
                                     onConfirm: () => {
                                       void handlePlaceReservation();
@@ -5637,6 +5652,17 @@ function CheckoutContent({
                                 </p>
                               ) : null}
 
+                              {!stripeConfirmFn ||
+                              !paymentMode ||
+                              !stripeIntentId ? (
+                                <p
+                                  className="text-sm text-muted-foreground"
+                                  data-testid="checkout-preparing-payment"
+                                >
+                                  {t("checkout.preparingCheckout")}
+                                </p>
+                              ) : null}
+
                               <Button
                                 type="button"
                                 data-testid="checkout-place-reservation"
@@ -5656,6 +5682,16 @@ function CheckoutContent({
                                   !authReady ||
                                   displayTotal == null ||
                                   (isUsConditional && !usConditionalAck)
+                                }
+                                aria-busy={
+                                  !stripeConfirmFn ||
+                                  !paymentMode ||
+                                  !stripeIntentId ||
+                                  isSubmitting ||
+                                  isStripeConfirming ||
+                                  isFinalizingReservation
+                                    ? true
+                                    : undefined
                                 }
                                 onClick={handlePlaceReservation}
                               >
@@ -5717,7 +5753,7 @@ export function CheckoutClient({
   return (
     <Suspense
       fallback={
-      <div className="max-w-4xl mx-auto p-6 pt-top-spacing">
+      <div className="max-w-4xl mx-auto p-6 pt-[calc(var(--top-spacing)+1.5rem)]">
         <div className="animate-pulse space-y-6">
           <div className="h-8 bg-gray-200 rounded mb-4"></div>
           <div className="h-4 bg-gray-200 rounded mb-2"></div>
