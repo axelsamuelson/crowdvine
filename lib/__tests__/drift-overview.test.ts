@@ -125,29 +125,51 @@ describe("classifyDriftColumn / column rules", () => {
   })
 })
 
-describe("formatDriftTaskHeadingLine (PR override)", () => {
-  it("never shows English PR title when Swedish line 2 exists", () => {
+describe("formatDriftTaskHeadingLine (title-only)", () => {
+  it("uses cleaned title even when description has URL then Mergad line", () => {
     const heading = formatDriftTaskHeadingLine(
       {
-        title: "PR246: Hotfix: checkout ensure-session account takeover",
+        title: "Köpvillkor: ersättningsvin inom två arbetsdagar",
         description:
-          "källa: PR #246\nÅtgärdade session-kapning i checkout ensure-session",
+          "källa: PR #233\nhttps://github.com/axelsamuelson/crowdvine/pull/233\nMergad 12 nov. av Juliette",
       },
-      "Konvertering (CRO)",
+      "SEED: Juridik och konsumentvillkor",
     )
-    expect(heading).toBe("Åtgärdade session-kapning i checkout ensure-session")
-    expect(heading).not.toMatch(/Hotfix/i)
+    expect(heading).toBe("Köpvillkor: ersättningsvin inom två arbetsdagar")
+    expect(heading).not.toMatch(/github\.com/i)
+    expect(heading).not.toMatch(/Mergad/i)
   })
 
-  it("falls back to PR #n when only English title exists", () => {
+  it("strips [Namn] and [PAUSAD] prefixes from the title", () => {
+    expect(
+      formatDriftTaskHeadingLine({
+        title: "[Margaux] [PAUSAD] Systembolagsguide omskrivning",
+        description:
+          "källa: PR #243\nhttps://github.com/axelsamuelson/crowdvine/pull/243\nMergad 13 nov.",
+      }),
+    ).toBe("Systembolagsguide omskrivning")
+  })
+
+  it("falls back to PR #n when cleaned title is empty", () => {
     const heading = formatDriftTaskHeadingLine(
       {
-        title: "PR246: Hotfix: checkout ensure-session account takeover",
-        description: "källa: PR #246",
+        title: "   ",
+        description: "källa: PR #246\nhttps://github.com/example/repo/pull/246",
       },
       "Konvertering (CRO)",
     )
     expect(heading).toBe("PR #246 · Konvertering (CRO)")
+  })
+
+  it("falls back to PR #n when title is only bracket prefixes", () => {
+    const heading = formatDriftTaskHeadingLine(
+      {
+        title: "[Hugo] [PAUSAD]",
+        description: "källa: PR #250",
+      },
+      "SEO",
+    )
+    expect(heading).toBe("PR #250 · SEO")
   })
 })
 
@@ -354,7 +376,7 @@ describe("buildDriftOverview summary counts", () => {
       klartWeek: 1,
     })
     expect(data.queue[0]?.id).toBe("q-overdue")
-    expect(data.weekItems[0]?.heading).toBe("Köpvillkor uppdaterade")
+    expect(data.weekItems[0]?.heading).toBe("Klart i veckan")
     expect(formatQueueDeadlineLabel("2026-11-12", true)).toMatch(/Förfallen/)
 
     const elsa = data.bots.find((b) => b.name === "Elsa")
