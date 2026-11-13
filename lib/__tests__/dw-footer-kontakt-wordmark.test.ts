@@ -44,10 +44,18 @@ describe("Dirty Wine footer Kontakt link", () => {
     );
   });
 
-  it("does not place Kontakt near Hjälp/copyright and keeps a single Dirty Wine instance", () => {
-    expect(footerSrc).toMatch(/<OnboardingButton \/>\s*<p className="text-base text-background\/60">/);
+  it("keeps a single Dirty Wine Kontakt in Navigation; none near copyright (post-#239)", () => {
+    // OnboardingButton retired in #239 — copyright row is text-only.
+    expect(footerSrc).not.toMatch(/OnboardingButton/);
+    expect(footerSrc).toMatch(
+      /flex items-center gap-4 max-md:flex-col max-md:items-start max-md:gap-3">\s*<p className="text-base text-background\/60">/,
+    );
     const kontaktBlocks = [...footerSrc.matchAll(/Kontakt/g)];
     expect(kontaktBlocks.length).toBe(1);
+    // PACT Navigation branch uses Om oss / Profil — not Kontakt.
+    expect(footerSrc).toMatch(
+      /isDirtywineSite\s*\?\s*\([\s\S]*?Kontakt[\s\S]*?\)\s*:\s*\([\s\S]*?t\("common\.about"\)[\s\S]*?t\("common\.profile"\)/,
+    );
   });
 });
 
