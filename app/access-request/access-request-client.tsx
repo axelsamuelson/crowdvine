@@ -65,60 +65,79 @@ export function AccessRequestClient({
   }, [showNoB2BMessage]);
 
   return (
-    <main className="min-h-screen font-sans">
-      <InfiniteGallery
-        images={galleryImages}
-        speed={1.2}
-        zSpacing={3}
-        visibleCount={12}
-        falloff={{ near: 0.8, far: 14 }}
-        className="h-[100dvh] w-full rounded-lg overflow-hidden"
-      />
+    <main className="relative min-h-screen font-sans">
+      {/*
+        One fixed stacking context so WebGL cannot paint over HTML chrome.
+        Visual look matches pre-fix (mix-blend-exclusion, translucent CTA) —
+        stacking / z-order only; no opaque plates.
+      */}
+      <div className="fixed inset-0 isolate overflow-hidden">
+        <div
+          className="absolute inset-0 z-0"
+          style={{ transform: "translateZ(0)" }}
+          aria-hidden
+        >
+          <InfiniteGallery
+            images={galleryImages}
+            speed={1.2}
+            zSpacing={3}
+            visibleCount={12}
+            falloff={{ near: 0.8, far: 14 }}
+            className="h-full w-full"
+          />
+        </div>
 
-      {/* Only CTA overlay */}
-      <div className="h-[100dvh] inset-0 pointer-events-none fixed flex items-center justify-center px-3 mix-blend-exclusion text-white">
-        <div className="pointer-events-auto w-full max-w-md flex flex-col items-center justify-center gap-6 text-center">
-          <div className="flex justify-center">
-            <FooterLogoSvg className="h-16 sm:h-20 lg:h-24 w-auto text-white" />
-          </div>
-          {showNoB2BMessage ? (
-            <>
-              <p className="text-sm text-white/90">
-                {t("accessRequest.noB2bMessage")}
-              </p>
+        {/* Only CTA overlay — above gallery */}
+        <div
+          className="pointer-events-none absolute inset-0 z-10 flex h-[100dvh] items-center justify-center px-3 mix-blend-exclusion text-white"
+          style={{ transform: "translateZ(0)" }}
+        >
+          <div className="pointer-events-auto flex w-full max-w-md flex-col items-center justify-center gap-6 text-center">
+            <div className="flex justify-center">
+              <FooterLogoSvg className="h-16 w-auto text-white sm:h-20 lg:h-24" />
+            </div>
+            {showNoB2BMessage ? (
+              <>
+                <p className="text-sm text-white/90">
+                  {t("accessRequest.noB2bMessage")}
+                </p>
+                <Button
+                  onClick={() => {
+                    window.location.href = PACT_ORIGIN;
+                  }}
+                  className="w-full bg-white/20 hover:bg-white/30 border-white/30 text-white font-semibold backdrop-blur-sm shadow-lg transition-all duration-300 ease-out"
+                  size="lg"
+                >
+                  {t("accessRequest.goToPact")}
+                </Button>
+              </>
+            ) : (
               <Button
                 onClick={() => {
-                  window.location.href = PACT_ORIGIN;
+                  const urlParams = new URLSearchParams(window.location.search);
+                  const next =
+                    urlParams.get("next") ||
+                    urlParams.get("redirectedFrom") ||
+                    "/";
+                  window.location.href = `/log-in?next=${encodeURIComponent(next)}`;
                 }}
                 className="w-full bg-white/20 hover:bg-white/30 border-white/30 text-white font-semibold backdrop-blur-sm shadow-lg transition-all duration-300 ease-out"
                 size="lg"
               >
-                {t("accessRequest.goToPact")}
+                {t("accessRequest.membersOnly")}
               </Button>
-            </>
-          ) : (
-            <Button
-              onClick={() => {
-                const urlParams = new URLSearchParams(window.location.search);
-                const next =
-                  urlParams.get("next") ||
-                  urlParams.get("redirectedFrom") ||
-                  "/";
-                window.location.href = `/log-in?next=${encodeURIComponent(next)}`;
-              }}
-              className="w-full bg-white/20 hover:bg-white/30 border-white/30 text-white font-semibold backdrop-blur-sm shadow-lg transition-all duration-300 ease-out"
-              size="lg"
-            >
-              {t("accessRequest.membersOnly")}
-            </Button>
-          )}
+            )}
+          </div>
         </div>
-      </div>
 
-      {/* Bottom instructions — uppercase via CSS; strings stay sentence case */}
-      <div className="text-center fixed bottom-10 left-0 right-0 font-sans uppercase tracking-[0.04em] text-[11px] font-semibold text-white/90 mix-blend-exclusion">
-        <p>{t("accessRequest.tagline")}</p>
-        <p className="opacity-60">{t("accessRequest.invitationLine")}</p>
+        {/* Bottom instructions — uppercase via CSS; strings stay sentence case */}
+        <div
+          className="pointer-events-none absolute bottom-10 left-0 right-0 z-10 text-center font-sans uppercase tracking-[0.04em] text-[11px] font-semibold text-white/90 mix-blend-exclusion"
+          style={{ transform: "translateZ(0)" }}
+        >
+          <p>{t("accessRequest.tagline")}</p>
+          <p className="opacity-60">{t("accessRequest.invitationLine")}</p>
+        </div>
       </div>
     </main>
   );
