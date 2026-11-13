@@ -437,6 +437,7 @@
     "stripeNothingChargedNow": "Nothing is charged now. Your card is charged only when the pallet closes.",
     "dobPlaceholder": "YYYY-MM-DD",
     "dobInvalidFormat": "Enter date of birth as YYYY-MM-DD.",
+    "dobNonexistent": "That date doesn't exist. Please check your date of birth.",
     "streetAddress": "Street address",
     "city": "City",
     "postalCode": "Postal code",

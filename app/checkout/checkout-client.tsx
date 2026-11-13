@@ -1,6 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, Suspense, useCallback } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  Suspense,
+  useCallback,
+  type ChangeEvent,
+  type KeyboardEvent,
+} from "react";
 import { CartMergeModal } from "@/components/cart/cart-merge-modal";
 import { CheckoutEmailAuth } from "@/components/checkout/checkout-email-auth";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -9,7 +18,8 @@ import {
   resolveMarketAgeMinimum,
 } from "@/lib/age-limits";
 import {
-  maskIsoDateDigits,
+  applyBackspaceOverHyphen,
+  formatDobInputChange,
   parseCheckoutDateOfBirthInput,
 } from "@/lib/checkout/date-of-birth-input";
 import { PRICE_VERSION } from "@/lib/analytics/price-version";
@@ -398,6 +408,8 @@ function CheckoutContent({
   const [ageConfirmed, setAgeConfirmed] = useState(false);
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [ageDobError, setAgeDobError] = useState<string | null>(null);
+  const ageDobInputRef = useRef<HTMLInputElement | null>(null);
+  const ageDobCaretRef = useRef<number | null>(null);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [termsStale, setTermsStale] = useState(false);
   const [usConditionalAck, setUsConditionalAck] = useState(false);
@@ -884,11 +896,22 @@ function CheckoutContent({
     }
   }, [isUsConditional, selectedPallet?.delivery_zone_id, selectedPallet?.id]);
 
-  const handleAgeDobChange = useCallback(
-    (raw: string) => {
-      // Digits-only → ÅÅÅÅ-MM-DD / YYYY-MM-DD mask (never type=date).
-      const masked = maskIsoDateDigits(raw);
+  const applyAgeDobValue = useCallback(
+    (masked: string, caret: number) => {
+      ageDobCaretRef.current = caret;
       setDateOfBirth(masked);
+      // Restore caret after React commits the controlled value (no jump).
+      queueMicrotask(() => {
+        const el = ageDobInputRef.current;
+        const nextCaret = ageDobCaretRef.current;
+        if (!el || nextCaret == null) return;
+        try {
+          el.setSelectionRange(nextCaret, nextCaret);
+        } catch {
+          /* input may not support selection yet */
+        }
+      });
+
       const parsed = parseCheckoutDateOfBirthInput(masked, requiredAge);
       if (parsed.ok) {
         setAgeDobError(null);
@@ -911,20 +934,19 @@ function CheckoutContent({
       if (parsed.reason === "incomplete") {
         // Still typing, or cleared — no error until a full invalid date.
         if (!parsed.iso) setAgeDobError(null);
-        else if (/^\d{4}-\d{2}-\d{2}$/.test(parsed.iso)) {
-          // Defensive: treat complete-looking incomplete as invalid format.
-          setAgeDobError(t("checkout.dobInvalidFormat"));
-          dateOfBirthFilledRef.current = true;
-          emitCheckoutError("age_terms", "date_of_birth", "invalid_format");
-        } else {
-          setAgeDobError(null);
-        }
+        else setAgeDobError(null);
         return;
       }
       if (parsed.reason === "invalid_format") {
         setAgeDobError(t("checkout.dobInvalidFormat"));
         dateOfBirthFilledRef.current = true;
         emitCheckoutError("age_terms", "date_of_birth", "invalid_format");
+        return;
+      }
+      if (parsed.reason === "nonexistent_date") {
+        setAgeDobError(t("checkout.dobNonexistent"));
+        dateOfBirthFilledRef.current = true;
+        emitCheckoutError("age_terms", "date_of_birth", "nonexistent_date");
         return;
       }
       // under_age — required; blocks purchase. Input value preserved above.
@@ -945,6 +967,30 @@ function CheckoutContent({
       emitCheckoutError("age_terms", "date_of_birth", "age_under_minimum");
     },
     [ageCountryCode, requiredAge, t],
+  );
+
+  const handleAgeDobChange = useCallback(
+    (e: ChangeEvent<HTMLInputElement>) => {
+      const raw = e.target.value;
+      const selectionStart = e.target.selectionStart;
+      const { value, caret } = formatDobInputChange(raw, selectionStart);
+      applyAgeDobValue(value, caret);
+    },
+    [applyAgeDobValue],
+  );
+
+  const handleAgeDobKeyDown = useCallback(
+    (e: KeyboardEvent<HTMLInputElement>) => {
+      if (e.key !== "Backspace") return;
+      const el = e.currentTarget;
+      const start = el.selectionStart ?? 0;
+      const end = el.selectionEnd ?? 0;
+      const special = applyBackspaceOverHyphen(el.value, start, end);
+      if (!special) return;
+      e.preventDefault();
+      applyAgeDobValue(special.value, special.caret);
+    },
+    [applyAgeDobValue],
   );
 
   const handleTermsChecked = useCallback((checked: boolean) => {
@@ -5154,17 +5200,26 @@ function CheckoutContent({
                               {t("checkout.ageDeliveryIdHint")}
                             </p>
                             <Input
+                              ref={ageDobInputRef}
                               id="age-dob"
                               type="text"
                               inputMode="numeric"
                               autoComplete="bday"
                               placeholder={t("checkout.dobPlaceholder")}
                               value={dateOfBirth}
-                              onChange={(e) =>
-                                handleAgeDobChange(e.target.value)
+                              onChange={handleAgeDobChange}
+                              onKeyDown={handleAgeDobKeyDown}
+                              className={
+                                ageDobError
+                                  ? "max-w-xs h-9 min-h-9 text-sm border-destructive focus-visible:ring-destructive"
+                                  : "max-w-xs h-9 min-h-9 text-sm"
                               }
-                              className="max-w-xs h-9 min-h-9 text-sm"
-                              aria-describedby="age-dob-helper age-dob-format"
+                              aria-invalid={ageDobError ? true : undefined}
+                              aria-describedby={
+                                ageDobError
+                                  ? "age-dob-helper age-dob-format age-dob-error"
+                                  : "age-dob-helper age-dob-format"
+                              }
                               maxLength={10}
                               required
                             />
@@ -5176,6 +5231,8 @@ function CheckoutContent({
                             </p>
                             {ageDobError ? (
                               <p
+                                id="age-dob-error"
+                                role="alert"
                                 className="text-xs text-destructive"
                                 data-testid="age-dob-error"
                               >

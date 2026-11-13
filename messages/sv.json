@@ -437,6 +437,7 @@
     "stripeNothingChargedNow": "Inget debiteras nu. Kortet debiteras först när pallen stänger.",
     "dobPlaceholder": "ÅÅÅÅ-MM-DD",
     "dobInvalidFormat": "Ange födelsedatum som ÅÅÅÅ-MM-DD.",
+    "dobNonexistent": "Datumet finns inte. Kontrollera födelsedatumet.",
     "streetAddress": "Gatuadress",
     "city": "Stad",
     "postalCode": "Postnummer",
