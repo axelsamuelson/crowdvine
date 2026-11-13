@@ -8,6 +8,7 @@ import {
   ARTICLE_GUIDE_H2_CLASS,
   renderArticleRichText,
 } from "@/lib/guides/article-guide-shell";
+import { neutralizeGuideEditorialNote } from "@/lib/guides/neutralize-guide-editorial-note";
 import { buildArticleGuideMeta } from "@/lib/guides/guide-article-seo";
 import {
   GuideBreadcrumbs,
@@ -530,6 +531,7 @@ export function RankedWineRow({
   launchLabel,
   limitedLabelText,
   showFacts = false,
+  neutralizeEditorialNotes = false,
   anchorId,
   headingClassName,
 }: {
@@ -562,6 +564,11 @@ export function RankedWineRow({
    * Off unless the guide opts in.
    */
   showFacts?: boolean;
+  /**
+   * Strip value judgements from editorial notes at render time.
+   * Off unless the guide opts in (white Systembolaget editorial list).
+   */
+  neutralizeEditorialNotes?: boolean;
   /** In-page anchor. Only passed when the guide opts into the fact list. */
   anchorId?: string;
   /** Wine-name heading class. Only passed with the fact list. */
@@ -580,16 +587,21 @@ export function RankedWineRow({
       : limitedAvailabilityLabel(wine.availability_state, locale);
   const styleLabel = primaryStyleLabel(wine.primary_style, locale);
   const price = showPrice ? formatPrice(wine.price) : null;
-  const note =
+  const rawNote =
     locale === "en"
       ? wine.editorial_note_en?.trim() || wine.editorial_note_sv.trim()
       : wine.editorial_note_sv.trim();
+  const note = neutralizeEditorialNotes
+    ? neutralizeGuideEditorialNote(rawNote)
+    : rawNote;
   const rawProducerNote =
     locale === "en"
       ? wine.producer_note_en?.trim() || wine.producer_note_sv?.trim() || null
       : wine.producer_note_sv?.trim() || null;
   const producerNote = resolveRankTokens(
-    rawProducerNote,
+    neutralizeEditorialNotes
+      ? neutralizeGuideEditorialNote(rawProducerNote) || null
+      : rawProducerNote,
     wine.top_100_producer_name,
   );
   const url = systembolagetProductUrl(wine.product_number);
@@ -821,6 +833,8 @@ export async function renderSystembolagetRankedListPage(
   })();
   const reviewedDate = editorialReviewedDate(content.updated, wines);
   const showFacts = content.showRankedWineFacts === true;
+  const neutralizeEditorialNotes =
+    content.neutralizeRankedEditorialNotes === true;
   const anchorIds = showFacts ? wineAnchorIds(wines) : null;
   const shortlistIndex = showFacts
     ? content.sections.findIndex(
@@ -1045,6 +1059,7 @@ export async function renderSystembolagetRankedListPage(
                       locale={locale}
                       priority={index < 3}
                       showFacts={showFacts}
+                      neutralizeEditorialNotes={neutralizeEditorialNotes}
                       anchorId={anchorIds?.get(wine.id)}
                       headingClassName={
                         content.shellHeadingClasses?.wineHeadingClassName

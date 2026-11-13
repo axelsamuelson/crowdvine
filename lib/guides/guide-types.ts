@@ -185,6 +185,11 @@ export type GuideArticleContent = {
    * Other lists leave this unset.
    */
   showRankedWineFacts?: boolean;
+  /**
+   * Ranked Systembolaget lists only. When true, strip value judgements from
+   * database editorial notes at render time (do not write back to the DB).
+   */
+  neutralizeRankedEditorialNotes?: boolean;
 };
 
 /** `published: false` hides a guide. Omitted means published. */
