@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useContext, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
 import { ChevronRight, LogOut } from "lucide-react";
 import { AdminBreadcrumbDetailContext } from "@/components/admin/admin-breadcrumb-detail-context";
@@ -16,6 +16,27 @@ import { Button } from "@/components/ui/button";
 interface AdminTopNavProps {
   userEmail: string;
   onSignOut: () => void;
+}
+
+function AvatarButton({
+  userEmail,
+  ...props
+}: {
+  userEmail: string;
+} & React.ComponentProps<"button">) {
+  return (
+    <button
+      type="button"
+      className="focus:outline-none flex items-center gap-2 p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-[#1F1F23] transition-colors"
+      {...props}
+    >
+      <div className="h-8 w-8 rounded-full bg-gray-200 dark:bg-[#1F1F23] flex items-center justify-center ring-2 ring-gray-200 dark:ring-[#2B2B30]">
+        <span className="text-gray-700 dark:text-gray-300 font-medium text-sm">
+          {userEmail.charAt(0).toUpperCase()}
+        </span>
+      </div>
+    </button>
+  );
 }
 
 /** Tydliga etiketter för vanliga admin-segment (UUID:er m.m. lämnas som korta stubbar). */
@@ -167,6 +188,13 @@ function getBreadcrumbs(
 export function AdminTopNav({ userEmail, onSignOut }: AdminTopNavProps) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  // Mount Radix menu only on the client. ThemeToggle returns null until mounted,
+  // which shifts useId ordering and made DropdownMenuTrigger's radix id mismatch
+  // SSR vs CSR (Next.js "1 Issue" hydration badge on /admin).
+  const [menuMounted, setMenuMounted] = useState(false);
+  useEffect(() => {
+    setMenuMounted(true);
+  }, []);
   const detailCtx = useContext(AdminBreadcrumbDetailContext);
   const breadcrumbs = useMemo(
     () => getBreadcrumbs(pathname, detailCtx?.detail ?? null),
@@ -199,49 +227,44 @@ export function AdminTopNav({ userEmail, onSignOut }: AdminTopNavProps) {
 
       <div className="flex items-center gap-2 sm:gap-4 ml-auto">
         <ThemeToggle />
-        <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
-          <DropdownMenuTrigger asChild>
-            <button
-              type="button"
-              className="focus:outline-none flex items-center gap-2 p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-[#1F1F23] transition-colors"
-            >
-              <div className="h-8 w-8 rounded-full bg-gray-200 dark:bg-[#1F1F23] flex items-center justify-center ring-2 ring-gray-200 dark:ring-[#2B2B30]">
-                <span className="text-gray-700 dark:text-gray-300 font-medium text-sm">
-                  {userEmail.charAt(0).toUpperCase()}
-                </span>
-              </div>
-            </button>
-          </DropdownMenuTrigger>
-          {/*
-            Mount portal content only while open. Radix portals SSR in-place but
-            client-portals to document.body, which shifts the admin shell tree.
-          */}
-          {menuOpen ? (
-            <DropdownMenuContent
-              align="end"
-              sideOffset={8}
-              className="w-72 bg-white dark:bg-[#0F0F12] border border-gray-200 dark:border-[#1F1F23] rounded-lg shadow-lg"
-            >
-              <div className="p-3 border-b border-gray-100 dark:border-[#1F1F23]">
-                <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                  {userEmail}
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Admin</p>
-              </div>
-              <div className="p-1">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full justify-start text-gray-700 dark:text-gray-300"
-                  onClick={onSignOut}
-                >
-                  <LogOut className="h-4 w-4 mr-2" />
-                  Logga ut
-                </Button>
-              </div>
-            </DropdownMenuContent>
-          ) : null}
-        </DropdownMenu>
+        {menuMounted ? (
+          <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
+            <DropdownMenuTrigger asChild>
+              <AvatarButton userEmail={userEmail} />
+            </DropdownMenuTrigger>
+            {/*
+              Mount portal content only while open. Radix portals SSR in-place but
+              client-portals to document.body, which shifts the admin shell tree.
+            */}
+            {menuOpen ? (
+              <DropdownMenuContent
+                align="end"
+                sideOffset={8}
+                className="w-72 bg-white dark:bg-[#0F0F12] border border-gray-200 dark:border-[#1F1F23] rounded-lg shadow-lg"
+              >
+                <div className="p-3 border-b border-gray-100 dark:border-[#1F1F23]">
+                  <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                    {userEmail}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Admin</p>
+                </div>
+                <div className="p-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full justify-start text-gray-700 dark:text-gray-300"
+                    onClick={onSignOut}
+                  >
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Logga ut
+                  </Button>
+                </div>
+              </DropdownMenuContent>
+            ) : null}
+          </DropdownMenu>
+        ) : (
+          <AvatarButton userEmail={userEmail} aria-hidden="true" tabIndex={-1} />
+        )}
       </div>
     </nav>
   );

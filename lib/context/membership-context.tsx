@@ -34,6 +34,21 @@ export function MembershipProvider({
   // useEffect (not useLayoutEffect): membership is non-critical chrome; avoid
   // blocking paint/hydration on every public page.
   useEffect(() => {
+    // Admin shell does not use member perks; skip the fetch so a missing
+    // membership row cannot surface as a Next.js dev "Failed to load resource"
+    // / issues badge on /admin/*.
+    if (
+      typeof window !== "undefined" &&
+      window.location.pathname.startsWith("/admin")
+    ) {
+      setMembershipData({
+        level: null,
+        discountPercentage: 0,
+        loading: false,
+      });
+      return;
+    }
+
     if (!hasSupabaseAuthCookieHint()) {
       setMembershipData({
         level: null,
