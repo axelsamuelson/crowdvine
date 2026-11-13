@@ -76,6 +76,7 @@ import { assertClientMarketDropIdAllowed } from "@/lib/market/resolve-market-dro
 import { resolveOrCreateMarketDropIdForCheckout } from "@/lib/market/get-or-create-market-drop";
 import { resolveActiveGeoZoneForUser } from "@/lib/market/resolve-active-geo-zone";
 import { logUserEventServer } from "@/lib/analytics/log-user-event-server";
+import { isGuestCheckoutEnabled } from "@/lib/checkout/guest-checkout-flag";
 import { emitCheckoutCompletedOnce } from "@/lib/analytics/emit-checkout-completed";
 import { readVisitorIdentityFromCookies } from "@/lib/analytics/visitor-identity-server";
 import {
@@ -3165,6 +3166,44 @@ export async function POST(request: Request) {
             : {}),
         },
       });
+
+      // Guest checkout conversion — only when flag ON (columns need migration 291).
+      if (currentUser?.id && isGuestCheckoutEnabled()) {
+        void (async () => {
+          try {
+            const { data: guestProfile } = await getSupabaseAdmin()
+              .from("profiles")
+              .select("guest_checkout_at, account_claimed_at")
+              .eq("id", currentUser.id)
+              .maybeSingle();
+            if (
+              guestProfile?.guest_checkout_at &&
+              !guestProfile?.account_claimed_at
+            ) {
+              void logUserEventServer({
+                userId: currentUser.id,
+                visitorId,
+                countryCode,
+                eventType: "guest_checkout_completed",
+                eventCategory: "checkout",
+                firstTouch,
+                internal: markInternal,
+                metadata: {
+                  reservation_id: ev.reservation_id,
+                  payment_mode: paymentMode,
+                  payment_status: paymentStatus,
+                  market: address.countryCode || countryCode || null,
+                },
+              });
+            }
+          } catch (guestEvErr) {
+            console.warn(
+              "[checkout/confirm] guest_checkout_completed:",
+              guestEvErr,
+            );
+          }
+        })();
+      }
 
       if (paymentStatus === "paid") {
         void emitCheckoutCompletedOnce({

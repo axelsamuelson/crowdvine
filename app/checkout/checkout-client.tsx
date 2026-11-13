@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState, Suspense, useCallback } from "react";
 import { CartMergeModal } from "@/components/cart/cart-merge-modal";
 import { CheckoutEmailAuth } from "@/components/checkout/checkout-email-auth";
+import { resolveGuestCheckoutAuthPath } from "@/lib/checkout/guest-checkout-eligibility";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { meetsAgeRequirement, resolveMarketAgeMinimum } from "@/lib/age-limits";
 import { PRICE_VERSION } from "@/lib/analytics/price-version";
@@ -180,6 +181,7 @@ interface UserProfile {
 
 function CheckoutContent({
   platformOpen,
+  guestCheckoutEnabled = false,
   directBoxCheckoutEnabled = false,
   directBoxAvailability = {
     offered: false,
@@ -191,6 +193,11 @@ function CheckoutContent({
   palletCloseSwitchDirect = null,
 }: {
   platformOpen: boolean;
+  /**
+   * GUEST_CHECKOUT_ENABLED (default false). When on + SE market: skip mid-checkout
+   * OTP wall regardless of platformOpen; silent ensure-session instead.
+   */
+  guestCheckoutEnabled?: boolean;
   /** Server-gated; default false — shared_pallet behaviour unchanged. */
   directBoxCheckoutEnabled?: boolean;
   /** Server-derived carrier/quote availability — no env secrets. */
@@ -455,6 +462,19 @@ function CheckoutContent({
   const effectiveDelivery = useMemo(() => {
     return userZoneRowToDeliveryLines(zoneAddressRow) ?? deliveryDraft;
   }, [zoneAddressRow, deliveryDraft]);
+
+  const guestAuthPath = resolveGuestCheckoutAuthPath({
+    guestCheckoutEnabled,
+    platformOpen,
+    countryCode:
+      effectiveDelivery?.countryCode ||
+      checkoutMarketCountry ||
+      deliveryDraft?.countryCode ||
+      null,
+    authReady,
+  });
+  const useSilentEnsureSession = guestAuthPath.useEnsureSession;
+  const showCheckoutLoginWall = guestAuthPath.showLoginWall;
 
   const ageCountryCode = (
     effectiveDelivery?.countryCode ||
@@ -1303,17 +1323,18 @@ function CheckoutContent({
     }
   }, [fetchProfile, fetchCart]);
 
-  // Open platform: silent session from delivery email — no mid-checkout login wall
-  // for brand-new emails. Existing accounts get requiresLogin → OTP (CheckoutEmailAuth).
+  // Silent session from delivery email — no mid-checkout login wall for
+  // brand-new emails (PLATFORM_OPEN or GUEST_CHECKOUT_ENABLED + SE).
+  // Existing accounts: ensure-session 409 requiresLogin → OTP (CheckoutEmailAuth).
   useEffect(() => {
-    if (!platformOpen) return;
+    if (!useSilentEnsureSession) return;
     setGuestSessionError(null);
     setGuestRequiresLogin(false);
     guestEnsureAttemptedRef.current = null;
-  }, [platformOpen, deliveryDraft?.email]);
+  }, [useSilentEnsureSession, deliveryDraft?.email]);
 
   useEffect(() => {
-    if (!platformOpen) return;
+    if (!useSilentEnsureSession) return;
     if (!deliveryComplete || authReady || !authChecked) return;
     if (guestRequiresLogin) return;
 
@@ -1321,6 +1342,16 @@ function CheckoutContent({
     if (!email.includes("@")) return;
     if (guestEnsureAttemptedRef.current === email) return;
     guestEnsureAttemptedRef.current = email;
+
+    const fullName = (deliveryDraft?.fullName ?? "").trim();
+    const countryCode = (
+      effectiveDelivery?.countryCode ||
+      checkoutMarketCountry ||
+      deliveryDraft?.countryCode ||
+      ""
+    )
+      .trim()
+      .toUpperCase();
 
     let cancelled = false;
     setGuestSessionPending(true);
@@ -1331,7 +1362,11 @@ function CheckoutContent({
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
-          body: JSON.stringify({ email }),
+          body: JSON.stringify({
+            email,
+            ...(fullName ? { fullName } : {}),
+            ...(countryCode ? { countryCode } : {}),
+          }),
         });
         const data = (await res.json().catch(() => null)) as {
           ok?: boolean;
@@ -1389,11 +1424,15 @@ function CheckoutContent({
       cancelled = true;
     };
   }, [
-    platformOpen,
+    useSilentEnsureSession,
     deliveryComplete,
     authReady,
     authChecked,
     deliveryDraft?.email,
+    deliveryDraft?.fullName,
+    deliveryDraft?.countryCode,
+    effectiveDelivery?.countryCode,
+    checkoutMarketCountry,
     ensureProfileAfterAuth,
     guestRetryNonce,
     guestRequiresLogin,
@@ -2958,8 +2997,8 @@ function CheckoutContent({
       return;
     }
 
-    // Validate required fields
-    if (!profile?.email && !platformOpen) {
+    // Validate required fields (silent guest / open platform may still be hydrating)
+    if (!profile?.email && !platformOpen && !guestCheckoutEnabled) {
       toast.error(t("checkout.addProfileFirst"));
       releaseSubmit();
       return;
@@ -3208,6 +3247,7 @@ function CheckoutContent({
     termsAccepted,
     profile,
     platformOpen,
+    guestCheckoutEnabled,
     isValidCart,
     deliveryComplete,
     selectedPallet,
@@ -3838,7 +3878,7 @@ function CheckoutContent({
         aria-busy="true"
         aria-label={t("checkout.loadingCart")}
       >
-        <div className="mx-auto max-w-[1280px] space-y-8 p-6 pt-top-spacing animate-pulse">
+        <div className="mx-auto max-w-[1280px] space-y-8 p-6 pt-[calc(var(--top-spacing)+1.5rem)] animate-pulse">
           <div className="space-y-2">
             <div className="h-8 w-40 rounded bg-muted/60" />
             <div className="h-4 w-64 max-w-full rounded bg-muted/40" />
@@ -3889,7 +3929,7 @@ function CheckoutContent({
 
   if (cart.totalQuantity === 0) {
     return (
-      <div className="max-w-4xl mx-auto p-6 pt-top-spacing">
+      <div className="max-w-4xl mx-auto p-6 pt-[calc(var(--top-spacing)+1.5rem)]">
         <h1 className="text-2xl font-semibold mb-4">{t("checkout.title")}</h1>
         <p className="text-gray-600">{t("checkout.emptyCart")}</p>
         <a
@@ -4000,7 +4040,7 @@ function CheckoutContent({
         transparent fixed site header so scrolled panel text cannot show through
         MENY/PACT. Does not alter global header styles or OFF-checkout.
       */}
-      <div className="mx-auto max-w-[1280px] space-y-8 p-6 pt-top-spacing">
+      <div className="mx-auto max-w-[1280px] space-y-8 p-6 pt-[calc(var(--top-spacing)+1.5rem)]">
         <div>
           <h1 className="mb-2 text-2xl font-medium text-foreground">
             {t("checkout.title")}
@@ -4009,7 +4049,7 @@ function CheckoutContent({
         </div>
 
         <div className="flex flex-col gap-8 min-[1280px]:grid min-[1280px]:grid-cols-[1fr_400px] min-[1280px]:items-start">
-          <aside className="order-1 w-full min-w-0 min-[1280px]:sticky min-[1280px]:top-[calc(var(--top-spacing)+1rem)] min-[1280px]:order-2 min-[1280px]:self-start">
+          <aside className="order-1 w-full min-w-0 min-[1280px]:sticky min-[1280px]:top-[calc(var(--top-spacing)+1.5rem+1rem)] min-[1280px]:order-2 min-[1280px]:self-start">
             <div className="space-y-3">
               {/* <1280: one expandable row; ≥1280: always expanded */}
               <button
@@ -5383,7 +5423,7 @@ function CheckoutContent({
 
                     {hasProducerItems && selectedPallet ? (
                       <>
-                        {authChecked && !authReady && !platformOpen ? (
+                        {authChecked && showCheckoutLoginWall ? (
                           <CheckoutEmailAuth
                             emailHint={t("checkout.otpEmailHint")}
                             checkInbox={t("checkout.otpCheckInbox")}
@@ -5401,13 +5441,15 @@ function CheckoutContent({
                             }}
                           />
                         ) : null}
-                        {authChecked && !authReady && platformOpen ? (
+                        {authChecked &&
+                        !authReady &&
+                        useSilentEnsureSession ? (
                           guestRequiresLogin ? (
                             <CheckoutEmailAuth
                               initialEmail={
                                 (deliveryDraft?.email ?? "").trim().toLowerCase()
                               }
-                              emailHint={t("checkout.otpEmailHint")}
+                              emailHint={t("checkout.requiresLoginBody")}
                               checkInbox={t("checkout.otpCheckInbox")}
                               emailLabel={t("checkout.otpEmailLabel")}
                               sendLinkLabel={t("checkout.otpSendLink")}
@@ -5423,7 +5465,10 @@ function CheckoutContent({
                               }}
                             />
                           ) : (
-                            <div className="space-y-2">
+                            <div
+                              className="space-y-3"
+                              data-testid="guest-checkout-preparing"
+                            >
                               <p className="text-sm text-muted-foreground">
                                 {guestSessionPending
                                   ? t("checkout.preparingCheckout")
@@ -5444,7 +5489,17 @@ function CheckoutContent({
                                 >
                                   {t("checkout.tryAgain")}
                                 </Button>
-                              ) : null}
+                              ) : (
+                                <Button
+                                  type="button"
+                                  data-testid="checkout-place-reservation"
+                                  className="!h-auto min-h-10 w-full !whitespace-normal break-words !rounded-xl border-transparent bg-black !px-5 py-3 text-center text-sm leading-snug text-white shadow-none ring-0 hover:border-transparent hover:bg-black/90 hover:shadow-none focus-visible:border-transparent focus-visible:bg-black/90 focus-visible:ring-white/40 sm:text-base"
+                                  disabled
+                                  aria-busy="true"
+                                >
+                                  {t("checkout.placeReservation")}
+                                </Button>
+                              )}
                             </div>
                           )
                         ) : null}
@@ -5508,12 +5563,14 @@ function CheckoutContent({
                               const cartBlockedHelper = !isValidCart
                                 ? `${t("checkout.orderBlocked")} – ${t("checkout.addBottlesRequirement")}`
                                 : null;
+                              const paymentPreparing =
+                                !stripeConfirmFn ||
+                                !paymentMode ||
+                                !stripeIntentId;
                               const bindDisabled =
                                 !isValidCart ||
                                 !legacySharedPalletPaymentAllowed ||
-                                !stripeConfirmFn ||
-                                !paymentMode ||
-                                !stripeIntentId ||
+                                paymentPreparing ||
                                 !paymentElementComplete ||
                                 isSubmitting ||
                                 zoneLoading ||
@@ -5539,16 +5596,19 @@ function CheckoutContent({
                                     legalLine: bind.legalLine,
                                     disabled: bindDisabled,
                                     loading: bindLoading,
+                                    busy: paymentPreparing || bindLoading,
                                     confirmNote: cartBlockedHelper
                                       ? cartBlockedHelper
-                                      : !paymentElementComplete
-                                        ? dualOfferMsg(
-                                            shopping.locale === "en"
-                                              ? "en"
-                                              : "sv",
-                                            "dualOfferCardIncomplete",
-                                          )
-                                        : null,
+                                      : paymentPreparing
+                                        ? t("checkout.preparingCheckout")
+                                        : !paymentElementComplete
+                                          ? dualOfferMsg(
+                                              shopping.locale === "en"
+                                                ? "en"
+                                                : "sv",
+                                              "dualOfferCardIncomplete",
+                                            )
+                                          : null,
                                     errorNote: stripeError,
                                     onConfirm: () => {
                                       void handlePlaceReservation();
@@ -5592,6 +5652,17 @@ function CheckoutContent({
                                 </p>
                               ) : null}
 
+                              {!stripeConfirmFn ||
+                              !paymentMode ||
+                              !stripeIntentId ? (
+                                <p
+                                  className="text-sm text-muted-foreground"
+                                  data-testid="checkout-preparing-payment"
+                                >
+                                  {t("checkout.preparingCheckout")}
+                                </p>
+                              ) : null}
+
                               <Button
                                 type="button"
                                 data-testid="checkout-place-reservation"
@@ -5611,6 +5682,16 @@ function CheckoutContent({
                                   !authReady ||
                                   displayTotal == null ||
                                   (isUsConditional && !usConditionalAck)
+                                }
+                                aria-busy={
+                                  !stripeConfirmFn ||
+                                  !paymentMode ||
+                                  !stripeIntentId ||
+                                  isSubmitting ||
+                                  isStripeConfirming ||
+                                  isFinalizingReservation
+                                    ? true
+                                    : undefined
                                 }
                                 onClick={handlePlaceReservation}
                               >
@@ -5651,19 +5732,28 @@ function CheckoutContent({
 
 export function CheckoutClient({
   platformOpen = false,
+  guestCheckoutEnabled = false,
   directBoxCheckoutEnabled = false,
   directBoxAvailability,
   dualOfferCompareSurfaceAllowed = false,
+  palletCloseSwitchDirect = null,
 }: {
   platformOpen?: boolean;
+  guestCheckoutEnabled?: boolean;
   directBoxCheckoutEnabled?: boolean;
   directBoxAvailability?: DirectBoxUiAvailability;
   dualOfferCompareSurfaceAllowed?: boolean;
+  palletCloseSwitchDirect?: {
+    reservationId: string;
+    requireNewQuote: true;
+    requireExplicitAcceptance: true;
+    preferredFulfillment: "direct_box";
+  } | null;
 }) {
   return (
     <Suspense
       fallback={
-      <div className="max-w-4xl mx-auto p-6 pt-top-spacing">
+      <div className="max-w-4xl mx-auto p-6 pt-[calc(var(--top-spacing)+1.5rem)]">
         <div className="animate-pulse space-y-6">
           <div className="h-8 bg-gray-200 rounded mb-4"></div>
           <div className="h-4 bg-gray-200 rounded mb-2"></div>
@@ -5674,9 +5764,11 @@ export function CheckoutClient({
     >
       <CheckoutContent
         platformOpen={platformOpen}
+        guestCheckoutEnabled={guestCheckoutEnabled}
         directBoxCheckoutEnabled={directBoxCheckoutEnabled}
         directBoxAvailability={directBoxAvailability}
         dualOfferCompareSurfaceAllowed={dualOfferCompareSurfaceAllowed}
+        palletCloseSwitchDirect={palletCloseSwitchDirect}
       />
       {/* merge modal portal host is inside CheckoutContent */}
     </Suspense>

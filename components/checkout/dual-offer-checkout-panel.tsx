@@ -371,6 +371,8 @@ export type DualOfferPurchaseActionsModel = {
   disabled: boolean;
   /** Show spinner / confirming label on the button. */
   loading?: boolean;
+  /** Payment / session still preparing — sets aria-busy without swapping label. */
+  busy?: boolean;
   confirmNote: string | null;
   /** Inline Stripe / validation error under the button (`bind` only). */
   errorNote?: string | null;
@@ -413,12 +415,23 @@ export function DualOfferPurchaseActions(props: {
         </p>
       ) : null}
 
+      {isBind && model.busy && !model.loading && model.confirmNote ? (
+        <p
+          className="text-sm text-muted-foreground"
+          data-testid="dual-offer-preparing-payment"
+        >
+          {model.confirmNote}
+        </p>
+      ) : null}
+
       <button
         type="button"
         data-testid={isBind ? "dual-offer-final" : "dual-offer-continue"}
         className="w-full rounded-xl bg-foreground text-background px-4 py-3 text-sm font-semibold disabled:opacity-40"
         disabled={model.disabled || model.loading === true}
-        aria-busy={model.loading === true}
+        aria-busy={
+          model.loading === true || model.busy === true ? true : undefined
+        }
         onClick={model.onConfirm}
       >
         {model.loading
@@ -427,7 +440,7 @@ export function DualOfferPurchaseActions(props: {
       </button>
 
       {/* Helper (card incomplete) first, then terms under the bind button. */}
-      {model.confirmNote ? (
+      {model.confirmNote && !(isBind && model.busy && !model.loading) ? (
         <p
           className="text-sm text-foreground"
           data-testid="dual-offer-final-reason"

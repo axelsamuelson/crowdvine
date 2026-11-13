@@ -382,7 +382,7 @@ export const TRACKED_USER_EVENTS_CATALOG: TrackedEventCatalogEntry[] = [
     eventType: "checkout_login_wall_shown",
     category: "checkout",
     description:
-      "Login / magic-link wall shown mid-checkout (anonymous user must authenticate before payment).",
+      "Login / magic-link wall shown mid-checkout (anonymous user must authenticate before payment). Must be 0 for SE guest checkout when GUEST_CHECKOUT_ENABLED (login_wall).",
     sources: ["client"],
   },
   {
@@ -391,6 +391,13 @@ export const TRACKED_USER_EVENTS_CATALOG: TrackedEventCatalogEntry[] = [
     description:
       "Membership / access gate shown that blocks checkout progress.",
     sources: ["client"],
+  },
+  {
+    eventType: "guest_checkout_completed",
+    category: "checkout",
+    description:
+      "Shared-pallet reservation completed by an unclaimed guest checkout identity (GUEST_CHECKOUT_ENABLED). Emitted server-side alongside reservation_completed. Metadata: reservation_id — no PII.",
+    sources: ["server"],
   },
   {
     eventType: "age_confirmation_shown",
@@ -507,6 +514,20 @@ export const TRACKED_USER_EVENTS_CATALOG: TrackedEventCatalogEntry[] = [
     category: "account",
     description: "Notification preferences changed (reserved / wire when UI exists).",
     sources: ["client"],
+  },
+  {
+    eventType: "account_offered_on_confirmation",
+    category: "account",
+    description:
+      "Optional account offer shown on shared-pallet confirmation after guest checkout. Metadata: reservation_id — no PII.",
+    sources: ["client"],
+  },
+  {
+    eventType: "account_created_from_confirmation",
+    category: "account",
+    description:
+      "Guest claimed an account from the confirmation-page offer. Metadata: marketing_opt_in (boolean), reservation_id? — no PII.",
+    sources: ["server", "client"],
   },
   // b2b (Dirty Wine) — funnel events from #113; inquiry mode wires started/submitted
   {

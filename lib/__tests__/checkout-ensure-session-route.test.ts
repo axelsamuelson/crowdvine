@@ -4,6 +4,7 @@ import { NextRequest } from "next/server";
 const getCurrentUser = vi.fn();
 const getSupabaseAdmin = vi.fn();
 const isPlatformOpen = vi.fn(() => true);
+const isGuestCheckoutEnabled = vi.fn(() => false);
 const finalizeSignupAfterAuth = vi.fn();
 const existingCheckoutEmailTaken = vi.fn();
 const signupLimiter = {
@@ -21,6 +22,11 @@ vi.mock("@/lib/supabase-admin", () => ({
 
 vi.mock("@/lib/platform-open", () => ({
   isPlatformOpen: (...args: unknown[]) => isPlatformOpen(...args),
+}));
+
+vi.mock("@/lib/checkout/guest-checkout-flag", () => ({
+  isGuestCheckoutEnabled: (...args: unknown[]) =>
+    isGuestCheckoutEnabled(...args),
 }));
 
 vi.mock("@/lib/auth/finalize-signup", () => ({
@@ -50,12 +56,62 @@ vi.mock("@/lib/rate-limiter", async () => {
   };
 });
 
-function makeRequest(email: string) {
+function makeRequest(
+  email: string,
+  extras?: { fullName?: string; countryCode?: string },
+) {
   return new NextRequest("http://localhost/api/checkout/ensure-session", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ email }),
+    body: JSON.stringify({
+      email,
+      ...(extras?.fullName ? { fullName: extras.fullName } : {}),
+      ...(extras?.countryCode !== undefined
+        ? { countryCode: extras.countryCode }
+        : {}),
+    }),
   });
+}
+
+function mockNewSignupInsert() {
+  const generateLink = vi.fn().mockResolvedValue({
+    data: {
+      user: { id: "new-user-1" },
+      properties: {
+        hashed_token: "hash-token",
+        verification_type: "signup",
+      },
+    },
+    error: null,
+  });
+  const verifyOtp = vi.fn().mockResolvedValue({
+    data: {
+      session: {
+        access_token: "access-xyz",
+        refresh_token: "refresh-xyz",
+      },
+    },
+    error: null,
+  });
+  const insert = vi.fn().mockResolvedValue({ error: null });
+  const maybeSingle = vi.fn().mockResolvedValue({ data: null, error: null });
+  const from = vi.fn((table: string) => {
+    if (table === "profiles") {
+      return {
+        select: () => ({
+          eq: () => ({ maybeSingle }),
+        }),
+        insert,
+        upsert: vi.fn(),
+      };
+    }
+    return { insert: vi.fn(), upsert: vi.fn() };
+  });
+  getSupabaseAdmin.mockReturnValue({
+    auth: { admin: { generateLink }, verifyOtp },
+    from,
+  });
+  return { generateLink, verifyOtp, insert };
 }
 
 describe("POST /api/checkout/ensure-session", () => {
@@ -63,6 +119,7 @@ describe("POST /api/checkout/ensure-session", () => {
     vi.resetModules();
     vi.clearAllMocks();
     isPlatformOpen.mockReturnValue(true);
+    isGuestCheckoutEnabled.mockReturnValue(false);
     getCurrentUser.mockResolvedValue(null);
     signupLimiter.isAllowed.mockReturnValue(true);
     finalizeSignupAfterAuth.mockResolvedValue({ ok: true });
@@ -128,43 +185,7 @@ describe("POST /api/checkout/ensure-session", () => {
 
   it("new email → creates session and inserts profile with role user only", async () => {
     existingCheckoutEmailTaken.mockResolvedValue(false);
-    const generateLink = vi.fn().mockResolvedValue({
-      data: {
-        user: { id: "new-user-1" },
-        properties: {
-          hashed_token: "hash-token",
-          verification_type: "signup",
-        },
-      },
-      error: null,
-    });
-    const verifyOtp = vi.fn().mockResolvedValue({
-      data: {
-        session: {
-          access_token: "access-xyz",
-          refresh_token: "refresh-xyz",
-        },
-      },
-      error: null,
-    });
-    const insert = vi.fn().mockResolvedValue({ error: null });
-    const maybeSingle = vi.fn().mockResolvedValue({ data: null, error: null });
-    const from = vi.fn((table: string) => {
-      if (table === "profiles") {
-        return {
-          select: () => ({
-            eq: () => ({ maybeSingle }),
-          }),
-          insert,
-          upsert: vi.fn(),
-        };
-      }
-      return { insert: vi.fn(), upsert: vi.fn() };
-    });
-    getSupabaseAdmin.mockReturnValue({
-      auth: { admin: { generateLink }, verifyOtp },
-      from,
-    });
+    const { generateLink, verifyOtp, insert } = mockNewSignupInsert();
 
     const { POST } = await import("@/app/api/checkout/ensure-session/route");
     const res = await POST(makeRequest("brand.new@example.com"));
@@ -173,6 +194,7 @@ describe("POST /api/checkout/ensure-session", () => {
     expect(res.status).toBe(200);
     expect(body.ok).toBe(true);
     expect(body.autoSignedIn).toBe(true);
+    expect(body.guest).toBe(false);
     expect(body.session).toEqual({
       access_token: "access-xyz",
       refresh_token: "refresh-xyz",
@@ -190,6 +212,76 @@ describe("POST /api/checkout/ensure-session", () => {
       }),
     );
     expect(finalizeSignupAfterAuth).toHaveBeenCalled();
+  });
+
+  it("flag OFF (PLATFORM_OPEN only): insert payload has no guest_checkout_at", async () => {
+    isPlatformOpen.mockReturnValue(true);
+    isGuestCheckoutEnabled.mockReturnValue(false);
+    existingCheckoutEmailTaken.mockResolvedValue(false);
+    const { insert } = mockNewSignupInsert();
+
+    const { POST } = await import("@/app/api/checkout/ensure-session/route");
+    const res = await POST(makeRequest("safe.before.migrate@example.com"));
+    expect(res.status).toBe(200);
+    expect(insert).toHaveBeenCalledTimes(1);
+    const payload = insert.mock.calls[0][0] as Record<string, unknown>;
+    expect(payload).not.toHaveProperty("guest_checkout_at");
+    expect(payload).not.toHaveProperty("account_claimed_at");
+  });
+
+  it("flag ON: insert payload includes guest_checkout_at", async () => {
+    isPlatformOpen.mockReturnValue(true);
+    isGuestCheckoutEnabled.mockReturnValue(true);
+    existingCheckoutEmailTaken.mockResolvedValue(false);
+    const { insert } = mockNewSignupInsert();
+
+    const { POST } = await import("@/app/api/checkout/ensure-session/route");
+    const res = await POST(
+      makeRequest("guest.on@example.com", { countryCode: "SE" }),
+    );
+    expect(res.status).toBe(200);
+    const payload = insert.mock.calls[0][0] as Record<string, unknown>;
+    expect(payload).toHaveProperty("guest_checkout_at");
+    expect(typeof payload.guest_checkout_at).toBe("string");
+  });
+
+  it("guest flag ON + !platformOpen + missing countryCode → 403 (no fall-through)", async () => {
+    isPlatformOpen.mockReturnValue(false);
+    isGuestCheckoutEnabled.mockReturnValue(true);
+    const generateLink = vi.fn();
+    getSupabaseAdmin.mockReturnValue({
+      auth: { admin: { generateLink }, verifyOtp: vi.fn() },
+      from: vi.fn(),
+    });
+
+    const { POST } = await import("@/app/api/checkout/ensure-session/route");
+    const res = await POST(makeRequest("se.required@example.com"));
+    expect(res.status).toBe(403);
+    expect(existingCheckoutEmailTaken).not.toHaveBeenCalled();
+    expect(generateLink).not.toHaveBeenCalled();
+  });
+
+  it("guest flag ON + !platformOpen + empty countryCode → 403", async () => {
+    isPlatformOpen.mockReturnValue(false);
+    isGuestCheckoutEnabled.mockReturnValue(true);
+
+    const { POST } = await import("@/app/api/checkout/ensure-session/route");
+    const res = await POST(
+      makeRequest("se.required@example.com", { countryCode: "" }),
+    );
+    expect(res.status).toBe(403);
+    expect(existingCheckoutEmailTaken).not.toHaveBeenCalled();
+  });
+
+  it("guest flag ON + !platformOpen + non-SE countryCode → 403", async () => {
+    isPlatformOpen.mockReturnValue(false);
+    isGuestCheckoutEnabled.mockReturnValue(true);
+
+    const { POST } = await import("@/app/api/checkout/ensure-session/route");
+    const res = await POST(
+      makeRequest("no@example.com", { countryCode: "NO" }),
+    );
+    expect(res.status).toBe(403);
   });
 
   it("refuses session when generateLink is magiclink (not signup) even if existence check missed", async () => {
