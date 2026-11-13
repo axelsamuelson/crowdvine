@@ -70,7 +70,7 @@ describe("best white natural wines Systembolaget guide", () => {
       "Vitt naturvin och mat",
     ]);
     expect(bestWhiteNaturalWinesSystembolagetSvArticle.lede?.sv).toContain(
-      "Vi visar inga priser i vår text.",
+      "Priserna på korten är Systembolagets egna.",
     );
     expect(
       bestWhiteNaturalWinesSystembolagetSvArticle.showRankedWineFacts,

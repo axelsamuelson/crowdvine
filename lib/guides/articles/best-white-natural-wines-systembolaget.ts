@@ -42,7 +42,7 @@ export const bestWhiteNaturalWinesSystembolagetArticle: GuideArticleContent = {
   },
   lede: {
     en: "Here is white natural wine at Systembolaget in one list: white natural wines from growers who farm with conviction (biodynamic, organic and low-intervention) that you can actually buy right now. The list is independent: PACT does not sell at Systembolaget and earns nothing from what you choose.",
-    sv: "Letar du efter vitt naturvin på Systembolaget? Här är vårt urval av vita viner från odlare som arbetar ekologiskt eller biodynamiskt och med låg intervention i källaren, från Loire, Alsace, Österrike, Tyskland, Italien, Spanien, Portugal, Tjeckien och Sydafrika. Listan följer Systembolagets sortiment och uppdateras när det ändras. Vi visar inga priser i vår text.",
+    sv: "Letar du efter vitt naturvin på Systembolaget? Här är vårt urval av vita viner från odlare som arbetar ekologiskt eller biodynamiskt och med låg intervention i källaren, från Loire, Alsace, Österrike, Tyskland, Italien, Spanien, Portugal, Tjeckien och Sydafrika. Listan följer Systembolagets sortiment och uppdateras när det ändras. Priserna på korten är Systembolagets egna.",
   },
   breadcrumbShort: {
     en: "Best white natural wines at Systembolaget 2026",
@@ -209,7 +209,7 @@ export const bestWhiteNaturalWinesSystembolagetSvArticle: GuideArticleContent =
     },
     lede: {
       en: "Looking for white natural wine at Systembolaget? Here is our selection of white wines from growers who farm organically or biodynamically with low intervention in the cellar.",
-      sv: "Letar du efter vitt naturvin på Systembolaget? Här är vårt urval av vita viner från odlare som arbetar ekologiskt eller biodynamiskt och med låg intervention i källaren, från Loire, Alsace, Österrike, Tyskland, Italien, Spanien, Portugal, Tjeckien och Sydafrika. Listan följer Systembolagets sortiment och uppdateras när det ändras. Vi visar inga priser i vår text.",
+      sv: "Letar du efter vitt naturvin på Systembolaget? Här är vårt urval av vita viner från odlare som arbetar ekologiskt eller biodynamiskt och med låg intervention i källaren, från Loire, Alsace, Österrike, Tyskland, Italien, Spanien, Portugal, Tjeckien och Sydafrika. Listan följer Systembolagets sortiment och uppdateras när det ändras. Priserna på korten är Systembolagets egna.",
     },
     breadcrumbShort: {
       en: "Best white natural wines at Systembolaget",
