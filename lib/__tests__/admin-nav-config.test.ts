@@ -16,7 +16,7 @@ const REMOVED_HREFS = [
 
 const REMOVED_NAMES = ["Strategy map", "Home concepts", "Strategikarta"] as const;
 
-describe("admin nav config (ops approval 648d5e92)", () => {
+describe("admin nav config (ops approval 648d5e92 / f297c243 step 1)", () => {
   const items = getAdminNavItems();
   const hrefs = items.map((i) => i.href);
   const names = items.map((i) => i.name);
@@ -28,6 +28,22 @@ describe("admin nav config (ops approval 648d5e92)", () => {
     for (const name of REMOVED_NAMES) {
       expect(names).not.toContain(name);
     }
+  });
+
+  it("does not add bulk-upload or bookings as menu items", () => {
+    expect(hrefs).not.toContain("/admin/bulk-upload");
+    expect(hrefs).not.toContain("/admin/bookings");
+    expect(names).not.toContain("Bookings");
+    expect(names).not.toContain("Bokningar-lista");
+  });
+
+  it("keeps Menyextraktion, Hitta vin, and Business in PACT admin menu", () => {
+    expect(hrefs).toContain("/admin/menu-extraction");
+    expect(hrefs).toContain("/admin/wine-search");
+    expect(hrefs).toContain("/admin/users/business");
+    expect(names).toContain("Menyextraktion");
+    expect(names).toContain("Hitta vin");
+    expect(names).toContain("Business");
   });
 
   it("keeps Operations and CMS groups non-empty (no empty headings)", () => {
@@ -43,19 +59,40 @@ describe("admin nav config (ops approval 648d5e92)", () => {
       "/admin/operations/tasks",
       "/admin/operations/my-work",
     ]);
+    expect(ops!.items.map((i) => i.name)).toEqual([
+      "Mål",
+      "Objectives",
+      "Projekt",
+      "Uppgifter",
+      "Min arbetsyta",
+    ]);
 
     const cms = adminNavigationGroups.find((g) => g.name === "CMS");
     expect(cms).toBeDefined();
     expect(cms!.items.map((i) => i.name)).toEqual([
-      "Site content",
+      "Sajtinnehåll",
       "Producentlådor",
       "Systembolaget",
-      "Images",
+      "Bilder",
     ]);
   });
 
-  it("keeps Swedish top-level Översikt and Logga ut in the sidebar shell", () => {
-    expect(adminTopLevelNav.some((i) => i.name === "Översikt")).toBe(true);
+  it("uses Swedish labels for stayed pages (Business stays English)", () => {
+    expect(adminTopLevelNav.map((i) => i.name)).toEqual(["Översikt", "Analys"]);
+    expect(names).toContain("Användare");
+    expect(names).toContain("Producenter");
+    expect(names).toContain("Vinprovningar");
+    expect(names).toContain("Konkurrentpriser");
+    expect(names).toContain("Fulfillment-kostnader");
+    expect(names).toContain("Medlemskap");
+    expect(names).toContain("Åtkomstkontroll");
+    expect(names).not.toContain("Users");
+    expect(names).not.toContain("Wine Tastings");
+    expect(names).not.toContain("Access Control");
+    expect(names).not.toContain("Fulfillment costs");
+  });
+
+  it("keeps Swedish Logga ut in the sidebar shell and no removed hrefs inline", () => {
     const sidebarSrc = readFileSync(
       resolve(process.cwd(), "components/admin/sidebar.tsx"),
       "utf8",

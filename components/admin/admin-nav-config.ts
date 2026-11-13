@@ -44,12 +44,13 @@ export interface AdminNavGroup {
 /** Top-level links (not nested under a folder group). */
 export const adminTopLevelNav: AdminNavItem[] = [
   { name: "Översikt", href: "/admin", icon: LayoutDashboard },
-  { name: "Analytics", href: "/admin/analytics", icon: BarChart3 },
+  { name: "Analys", href: "/admin/analytics", icon: BarChart3 },
 ];
 
 /**
  * Admin sidebar groups (desktop + mobile sheet).
- * Pages may still exist without a menu entry (ops approval 648d5e92).
+ * Pages may still exist without a menu entry (ops approval 648d5e92 / f297c243 step 1).
+ * Labels are Swedish; keep English only where English content is managed (e.g. Business).
  */
 export const adminNavigationGroups: AdminNavGroup[] = [
   {
@@ -63,7 +64,7 @@ export const adminNavigationGroups: AdminNavGroup[] = [
         icon: TrendingUp,
       },
       {
-        name: "Fulfillment costs",
+        name: "Fulfillment-kostnader",
         href: "/admin/finance/fulfillment-costs",
         icon: Truck,
       },
@@ -73,20 +74,24 @@ export const adminNavigationGroups: AdminNavGroup[] = [
     name: "Användare",
     icon: Users,
     items: [
-      { name: "Users", href: "/admin/users", icon: Users },
+      { name: "Användare", href: "/admin/users", icon: Users },
       { name: "Business", href: "/admin/users/business", icon: Building2 },
-      { name: "Memberships", href: "/admin/memberships", icon: Award },
-      { name: "Access Control", href: "/admin/access-control", icon: Shield },
+      { name: "Medlemskap", href: "/admin/memberships", icon: Award },
+      { name: "Åtkomstkontroll", href: "/admin/access-control", icon: Shield },
     ],
   },
   {
     name: "Viner & Produkter",
     icon: Wine,
     items: [
-      { name: "Producers", href: "/admin/producers", icon: Wine },
-      { name: "Wines", href: "/admin/wines", icon: Wine },
-      { name: "Wine Tastings", href: "/admin/wine-tastings", icon: Wine },
-      { name: "Competitor prices", href: "/admin/price-sources", icon: TrendingUp },
+      { name: "Producenter", href: "/admin/producers", icon: Wine },
+      { name: "Viner", href: "/admin/wines", icon: Wine },
+      { name: "Vinprovningar", href: "/admin/wine-tastings", icon: Wine },
+      {
+        name: "Konkurrentpriser",
+        href: "/admin/price-sources",
+        icon: TrendingUp,
+      },
     ],
   },
   {
@@ -128,21 +133,21 @@ export const adminNavigationGroups: AdminNavGroup[] = [
     name: "Operations",
     icon: ListTodo,
     items: [
-      { name: "Goals", href: "/admin/operations/goals", icon: Flag },
+      { name: "Mål", href: "/admin/operations/goals", icon: Flag },
       { name: "Objectives", href: "/admin/operations/objectives", icon: Target },
-      { name: "Projects", href: "/admin/operations/projects", icon: FolderKanban },
-      { name: "Tasks", href: "/admin/operations/tasks", icon: ListTodo },
-      { name: "My Work", href: "/admin/operations/my-work", icon: UserCheck },
+      { name: "Projekt", href: "/admin/operations/projects", icon: FolderKanban },
+      { name: "Uppgifter", href: "/admin/operations/tasks", icon: ListTodo },
+      { name: "Min arbetsyta", href: "/admin/operations/my-work", icon: UserCheck },
     ],
   },
   {
     name: "CMS",
     icon: PenSquare,
     items: [
-      { name: "Site content", href: "/admin/content", icon: FileText },
+      { name: "Sajtinnehåll", href: "/admin/content", icon: FileText },
       { name: "Producentlådor", href: "/admin/producer-boxes", icon: Wine },
       { name: "Systembolaget", href: "/admin/systembolaget", icon: Wine },
-      { name: "Images", href: "/admin/images", icon: Image },
+      { name: "Bilder", href: "/admin/images", icon: Image },
     ],
   },
   {

@@ -20,12 +20,12 @@ interface AdminTopNavProps {
 
 /** Tydliga etiketter för vanliga admin-segment (UUID:er m.m. lämnas som korta stubbar). */
 const SEGMENT_LABELS: Record<string, string> = {
-  analytics: "Analytics",
+  analytics: "Analys",
   operations: "Operations",
   projects: "Projekt",
-  tasks: "Tasks",
+  tasks: "Uppgifter",
   objectives: "Objectives",
-  goals: "Goals",
+  goals: "Mål",
   "my-work": "Min arbetsyta",
   "strategy-map": "Strategikarta",
   "menu-extraction": "Menyextraktion",
@@ -58,8 +58,8 @@ const SEGMENT_LABELS: Record<string, string> = {
   b2b: "Dirty Wine",
   users: "Användare",
   business: "Business",
-  memberships: "Memberships",
-  "access-control": "Access Control",
+  memberships: "Medlemskap",
+  "access-control": "Åtkomstkontroll",
   "producer-boxes": "Producentlådor",
   systembolaget: "Systembolaget",
   email: "E-post",
