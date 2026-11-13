@@ -31,7 +31,7 @@ describe("guest checkout respects ensure-session requiresLogin", () => {
     expect(routeSrc).toContain("existingCheckoutEmailTaken");
     expect(routeSrc).toContain("requiresLoginResponse");
     expect(routeSrc).toContain("Insert-only");
-    expect(routeSrc).toContain(".insert({");
+    expect(routeSrc).toContain(".insert(profileInsert)");
     // Guest flag still allowed alongside PLATFORM_OPEN
     expect(routeSrc).toContain("isGuestCheckoutEnabled");
     expect(routeSrc).toContain("guest_checkout_at");

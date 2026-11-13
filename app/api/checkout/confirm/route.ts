@@ -76,6 +76,7 @@ import { assertClientMarketDropIdAllowed } from "@/lib/market/resolve-market-dro
 import { resolveOrCreateMarketDropIdForCheckout } from "@/lib/market/get-or-create-market-drop";
 import { resolveActiveGeoZoneForUser } from "@/lib/market/resolve-active-geo-zone";
 import { logUserEventServer } from "@/lib/analytics/log-user-event-server";
+import { isGuestCheckoutEnabled } from "@/lib/checkout/guest-checkout-flag";
 import { emitCheckoutCompletedOnce } from "@/lib/analytics/emit-checkout-completed";
 import { readVisitorIdentityFromCookies } from "@/lib/analytics/visitor-identity-server";
 import {
@@ -3166,8 +3167,8 @@ export async function POST(request: Request) {
         },
       });
 
-      // Guest checkout conversion (unclaimed guest identity).
-      if (currentUser?.id) {
+      // Guest checkout conversion — only when flag ON (columns need migration 291).
+      if (currentUser?.id && isGuestCheckoutEnabled()) {
         void (async () => {
           try {
             const { data: guestProfile } = await getSupabaseAdmin()
