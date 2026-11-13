@@ -1,19 +1,44 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { FooterLogoSvg } from "@/components/layout/footer-logo-svg";
 import InfiniteGallery from "@/components/access-request/infinite-gallery";
 import { galleryImages } from "@/components/access-request/gallery-images";
+import { shouldShowNoB2bAccessMessage } from "@/lib/access-request/no-b2b";
+import { useB2BModeServerHint } from "@/lib/context/b2b-mode-context";
+import { useTranslations } from "@/lib/hooks/use-translations";
 
 const PACT_ORIGIN = "https://pactwines.com";
 
 interface AccessRequestClientProps {
   reason?: string;
+  /** SSR host-gated: only pass "no_b2b" when already on Dirty Wine. */
+  showNoB2bFromServer?: boolean;
 }
 
-export function AccessRequestClient({ reason }: AccessRequestClientProps) {
-  const showNoB2BMessage = reason === "no_b2b";
+export function AccessRequestClient({
+  reason,
+  showNoB2bFromServer = false,
+}: AccessRequestClientProps) {
+  const { t } = useTranslations();
+  const serverIsDirtywine = useB2BModeServerHint();
+  const [showNoB2BMessage, setShowNoB2BMessage] = useState(
+    showNoB2bFromServer,
+  );
+
+  // Reconcile with client host + ?b2b=1 (SSR hint cannot see query on localhost).
+  useEffect(() => {
+    const fromClient = shouldShowNoB2bAccessMessage({
+      reason,
+      host: window.location.hostname,
+      searchParams: new URLSearchParams(window.location.search),
+    });
+    // Production dirtywine.se: SSR hint is enough if client host parse fails.
+    setShowNoB2BMessage(
+      fromClient || (reason === "no_b2b" && serverIsDirtywine),
+    );
+  }, [reason, serverIsDirtywine]);
 
   // Smart access check: skip when showing no_b2b (user has PACT access but hit dirtywine.se)
   useEffect(() => {
@@ -40,7 +65,7 @@ export function AccessRequestClient({ reason }: AccessRequestClientProps) {
   }, [showNoB2BMessage]);
 
   return (
-    <main className="min-h-screen">
+    <main className="min-h-screen font-sans">
       <InfiniteGallery
         images={galleryImages}
         speed={1.2}
@@ -59,7 +84,7 @@ export function AccessRequestClient({ reason }: AccessRequestClientProps) {
           {showNoB2BMessage ? (
             <>
               <p className="text-sm text-white/90">
-                Your account is not set up for Dirty Wine.
+                {t("accessRequest.noB2bMessage")}
               </p>
               <Button
                 onClick={() => {
@@ -68,7 +93,7 @@ export function AccessRequestClient({ reason }: AccessRequestClientProps) {
                 className="w-full bg-white/20 hover:bg-white/30 border-white/30 text-white font-semibold backdrop-blur-sm shadow-lg transition-all duration-300 ease-out"
                 size="lg"
               >
-                Go to pactwines.com
+                {t("accessRequest.goToPact")}
               </Button>
             </>
           ) : (
@@ -76,22 +101,24 @@ export function AccessRequestClient({ reason }: AccessRequestClientProps) {
               onClick={() => {
                 const urlParams = new URLSearchParams(window.location.search);
                 const next =
-                  urlParams.get("next") || urlParams.get("redirectedFrom") || "/";
+                  urlParams.get("next") ||
+                  urlParams.get("redirectedFrom") ||
+                  "/";
                 window.location.href = `/log-in?next=${encodeURIComponent(next)}`;
               }}
               className="w-full bg-white/20 hover:bg-white/30 border-white/30 text-white font-semibold backdrop-blur-sm shadow-lg transition-all duration-300 ease-out"
               size="lg"
             >
-              Members only
+              {t("accessRequest.membersOnly")}
             </Button>
           )}
         </div>
       </div>
 
-      {/* Bottom instructions (template style) */}
+      {/* Bottom instructions — uppercase via CSS; strings stay sentence case */}
       <div className="text-center fixed bottom-10 left-0 right-0 font-sans uppercase tracking-[0.04em] text-[11px] font-semibold text-white/90 mix-blend-exclusion">
-        <p>Wine, but not like this.</p>
-        <p className="opacity-60">Membership by invitation.</p>
+        <p>{t("accessRequest.tagline")}</p>
+        <p className="opacity-60">{t("accessRequest.invitationLine")}</p>
       </div>
     </main>
   );

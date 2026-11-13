@@ -1214,5 +1214,13 @@
     "resetFailed": "Failed to reset password. Please try again.",
     "footerLine1": "Wine has never been this accessible and transparent.",
     "footerLine2": "Membership by invitation."
+  },
+  "accessRequest": {
+    "membersOnly": "Members only",
+    "tagline": "Wine, but not like this.",
+    "invitationLine": "Membership by invitation.",
+    "noB2bMessage": "Your account is not set up for Dirty Wine.",
+    "goToPact": "Go to pactwines.com",
+    "metaDescription": "Wine club where members share pallets of natural wine from France."
   }
 }

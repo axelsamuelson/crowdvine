@@ -1214,5 +1214,13 @@
     "resetFailed": "Kunde inte återställa lösenordet. Försök igen.",
     "footerLine1": "Vin har aldrig varit så tillgängligt och transparent.",
     "footerLine2": "Medlemskap via inbjudan."
+  },
+  "accessRequest": {
+    "membersOnly": "Endast för medlemmar",
+    "tagline": "Vin, men inte så här.",
+    "invitationLine": "Medlemskap via inbjudan.",
+    "noB2bMessage": "Ditt konto är inte kopplat till Dirty Wine.",
+    "goToPact": "Gå till pactwines.com",
+    "metaDescription": "Vinklubb där medlemmarna delar pallar med naturvin från Frankrike."
   }
 }
