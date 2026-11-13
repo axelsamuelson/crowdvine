@@ -545,8 +545,8 @@ export function RankedWineRow({
    */
   showMovement?: boolean;
   /**
-   * Systembolaget shelf price on the card. The release calendar turns this off
-   * — we must not compare or display Systembolaget prices there.
+   * Systembolaget shelf price on the card (`price` column, e.g. "179 kr").
+   * Hide when null. Do not show PACT prices or comparisons.
    */
   showPrice?: boolean;
   /** Release-calendar date, e.g. "Släpps 6 nov". Omitted on ranked lists. */

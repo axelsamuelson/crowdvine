@@ -9,7 +9,7 @@ import type {
 /** Cache tag busted when a weekly recommendations issue is published/unpublished. */
 export const SB_RECOMMENDATION_WINES_CACHE_TAG = "sb-recommendation-wines";
 
-/** Paths that render the latest published recommendations issue. */
+/** Paths that render the published recommendations issues. */
 export const SYSTEMBOLAGET_RELEASES_PATHS = {
   sv: "/guider/nya-naturviner-systembolaget",
   en: "/guides/new-natural-wines-systembolaget",
@@ -21,11 +21,24 @@ export type RecommendationIssueWine = SystembolagetGuideWine & {
   published_at: string | null;
 };
 
-export type LatestRecommendationIssue = {
+export type RecommendationIssue = {
   issueYear: number;
   issueWeek: number;
   publishedAt: string | null;
   wines: RecommendationIssueWine[];
+};
+
+/** @deprecated Prefer RecommendationIssue — alias kept for call-site clarity. */
+export type LatestRecommendationIssue = RecommendationIssue;
+
+export type PublishedRecommendationIssues = {
+  /**
+   * Newest published issue's `published_at` (not product `synced_at`) for the
+   * page "Uppdaterad" / "Updated" line.
+   */
+  latestPublishedAt: string | null;
+  /** Issues with at least one qualifying wine, newest week first. */
+  issues: RecommendationIssue[];
 };
 
 type RecommendationWineRow = {
@@ -101,11 +114,98 @@ function mapRow(row: RecommendationWineRow): RecommendationIssueWine {
   };
 }
 
-async function fetchLatestRecommendationIssueUncached(): Promise<LatestRecommendationIssue | null> {
+function issueKey(year: number, week: number): string {
+  return `${year}-W${String(week).padStart(2, "0")}`;
+}
+
+function compareIssueDesc(
+  a: { issueYear: number; issueWeek: number },
+  b: { issueYear: number; issueWeek: number },
+): number {
+  if (a.issueYear !== b.issueYear) return b.issueYear - a.issueYear;
+  return b.issueWeek - a.issueWeek;
+}
+
+/**
+ * Group recommendation rows into published issues (newest first). Issues with
+ * no wines are omitted — sold-out weeks disappear automatically via the view's
+ * availability filter.
+ */
+export function groupRecommendationIssuesByWeek(
+  wines: readonly RecommendationIssueWine[],
+): RecommendationIssue[] {
+  const byIssue = new Map<string, RecommendationIssueWine[]>();
+  for (const wine of wines) {
+    const key = issueKey(wine.issue_year, wine.issue_week);
+    const list = byIssue.get(key) ?? [];
+    list.push(wine);
+    byIssue.set(key, list);
+  }
+
+  const issues: RecommendationIssue[] = [];
+  for (const list of byIssue.values()) {
+    if (list.length === 0) continue;
+    const sorted = [...list].sort((a, b) => {
+      if (a.sort_order !== b.sort_order) return a.sort_order - b.sort_order;
+      return a.id - b.id;
+    });
+    const head = sorted[0]!;
+    const publishedAt =
+      sorted.find((wine) => wine.published_at)?.published_at ?? null;
+    issues.push({
+      issueYear: head.issue_year,
+      issueWeek: head.issue_week,
+      publishedAt,
+      wines: sorted,
+    });
+  }
+
+  return issues.sort(compareIssueDesc);
+}
+
+/** "Vecka 44" / "Week 44". */
+export function formatIssueWeekHeading(
+  issueWeek: number,
+  locale: "en" | "sv",
+): string {
+  return locale === "sv" ? `Vecka ${issueWeek}` : `Week ${issueWeek}`;
+}
+
+const RECOMMENDATION_WINE_COLUMNS = [
+  "id",
+  "issue_year",
+  "issue_week",
+  "product_number",
+  "editorial_note_sv",
+  "editorial_note_en",
+  "sort_order",
+  "published_at",
+  "name_bold",
+  "name_thin",
+  "producer_name",
+  "category_level_2",
+  "country",
+  "origin_level_1",
+  "vintage",
+  "price",
+  "volume",
+  "alcohol_percentage",
+  "grapes",
+  "assortment_text",
+  "is_organic",
+  "image_url",
+  "synced_at",
+  "availability_state",
+  "store_count",
+  "product_launch_date",
+] as const;
+
+async function fetchPublishedRecommendationIssuesUncached(): Promise<PublishedRecommendationIssues> {
   const sb = getSupabaseAdmin();
 
-  // Latest published issue by ISO week (year, then week). Multiple issues may
-  // remain is_published=true; the public calendar shows only the newest.
+  // Latest published issue metadata for the page updated line (issue date, not
+  // product synced_at). May differ from the first listed issue if that week
+  // has no remaining available wines.
   const { data: latestRows, error: latestError } = await sb
     .from("systembolaget_recommendations")
     .select("issue_year, issue_week, published_at")
@@ -115,58 +215,29 @@ async function fetchLatestRecommendationIssueUncached(): Promise<LatestRecommend
     .limit(1);
 
   if (latestError) {
-    console.error("[getLatestRecommendationIssue]", latestError.message);
-    return null;
+    console.error("[getPublishedRecommendationIssues]", latestError.message);
+    return { latestPublishedAt: null, issues: [] };
   }
 
   const latest = latestRows?.[0];
-  if (!latest) return null;
+  const latestPublishedAt =
+    typeof latest?.published_at === "string" ? latest.published_at : null;
 
-  const issueYear = Number(latest.issue_year);
-  const issueWeek = Number(latest.issue_week);
-
-  const columns = [
-    "id",
-    "issue_year",
-    "issue_week",
-    "product_number",
-    "editorial_note_sv",
-    "editorial_note_en",
-    "sort_order",
-    "published_at",
-    "name_bold",
-    "name_thin",
-    "producer_name",
-    "category_level_2",
-    "country",
-    "origin_level_1",
-    "vintage",
-    "price",
-    "volume",
-    "alcohol_percentage",
-    "grapes",
-    "assortment_text",
-    "is_organic",
-    "image_url",
-    "synced_at",
-    "availability_state",
-    "store_count",
-    "product_launch_date",
-  ];
-
-  const run = (cols: string[]) =>
+  const run = (cols: readonly string[]) =>
     sb
       .from("systembolaget_recommendation_wines")
       .select(cols.join(", "))
-      .eq("issue_year", issueYear)
-      .eq("issue_week", issueWeek)
+      .order("issue_year", { ascending: false })
+      .order("issue_week", { ascending: false })
       .order("sort_order", { ascending: true });
 
-  let { data, error } = await run(columns);
+  let { data, error } = await run(RECOMMENDATION_WINE_COLUMNS);
 
-  // Migration 244 may not be applied yet — retry without launch date.
+  // Migration 247 may not be applied yet — retry without launch date.
   if (error && /product_launch_date/i.test(error.message)) {
-    const fallbackCols = columns.filter((c) => c !== "product_launch_date");
+    const fallbackCols = RECOMMENDATION_WINE_COLUMNS.filter(
+      (c) => c !== "product_launch_date",
+    );
     ({ data, error } = await run(fallbackCols));
     if (!error && data) {
       data = (data as unknown as Array<Record<string, unknown>>).map((row) => ({
@@ -177,34 +248,47 @@ async function fetchLatestRecommendationIssueUncached(): Promise<LatestRecommend
   }
 
   if (error) {
-    console.error("[getLatestRecommendationIssue] wines", error.message);
-    return null;
+    console.error("[getPublishedRecommendationIssues] wines", error.message);
+    return { latestPublishedAt, issues: [] };
   }
 
-  const wines = ((data ?? []) as unknown as RecommendationWineRow[]).map(mapRow);
-  const publishedAt =
-    wines.find((wine) => wine.published_at)?.published_at ??
-    (typeof latest.published_at === "string" ? latest.published_at : null);
+  const wines = ((data ?? []) as unknown as RecommendationWineRow[]).map(
+    mapRow,
+  );
+  const issues = groupRecommendationIssuesByWeek(wines);
+
+  // Prefer wine-row published_at from the newest listed issue when present;
+  // fall back to the recommendations table published_at.
+  const latestFromIssues = issues[0]?.publishedAt ?? null;
 
   return {
-    issueYear,
-    issueWeek,
-    publishedAt,
-    wines,
+    latestPublishedAt: latestFromIssues ?? latestPublishedAt,
+    issues,
   };
 }
 
 /**
- * Latest published weekly recommendations issue for the release calendar.
- * Cached 5 minutes; publish path busts the tag immediately.
+ * All published weekly recommendation issues that still have available/limited
+ * wines, newest first. Cached 5 minutes; publish path busts the tag immediately.
+ * Page ISR is also `revalidate = 600`.
  */
-export async function getLatestRecommendationIssue(): Promise<LatestRecommendationIssue | null> {
+export async function getPublishedRecommendationIssues(): Promise<PublishedRecommendationIssues> {
   return unstable_cache(
-    () => fetchLatestRecommendationIssueUncached(),
-    ["systembolaget-recommendation-wines-latest"],
+    () => fetchPublishedRecommendationIssuesUncached(),
+    ["systembolaget-recommendation-wines-all-issues"],
     {
       revalidate: 300,
       tags: [SB_RECOMMENDATION_WINES_CACHE_TAG],
     },
   )();
+}
+
+/**
+ * Latest published weekly recommendations issue for the release calendar.
+ * @deprecated Prefer getPublishedRecommendationIssues — kept for callers that
+ * only need the newest week.
+ */
+export async function getLatestRecommendationIssue(): Promise<LatestRecommendationIssue | null> {
+  const { issues } = await getPublishedRecommendationIssues();
+  return issues[0] ?? null;
 }
