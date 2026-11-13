@@ -206,7 +206,7 @@ describe("what is natural wine", () => {
       });
     }
     expect(bestNaturalWinesSystembolagetArticle.updated).toBe("2026-10-12");
-    expect(bestRedNaturalWinesSystembolagetArticle.updated).toBe("2026-10-12");
+    expect(bestRedNaturalWinesSystembolagetArticle.updated).toBe("2026-11-09");
     expect(bestWhiteNaturalWinesSystembolagetArticle.updated).toBe("2026-10-12");
     expect(bestOrangeNaturalWinesSystembolagetArticle.updated).toBe("2026-11-01");
 

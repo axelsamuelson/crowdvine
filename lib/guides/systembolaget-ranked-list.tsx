@@ -1,6 +1,6 @@
-import Image from "next/image";
 import Link from "next/link";
 
+import { SystembolagetBottleImage } from "@/components/guides/systembolaget-bottle-image";
 import { Footer } from "@/components/layout/footer";
 import {
   ARTICLE_GUIDE_BODY_CLASS,
@@ -35,7 +35,6 @@ import {
   type GuideArticleContent,
 } from "@/lib/guides/guide-types";
 import type { AppLocale } from "@/lib/i18n/locale";
-import { DEFAULT_WINE_IMAGE_PATH } from "@/lib/constants";
 import { getGuideSeoOwnership } from "@/lib/guides/guide-seo-ownership";
 import { resolveRankTokens } from "@/lib/guides/resolve-rank-tokens";
 import {
@@ -45,18 +44,11 @@ import {
   getGuideWines,
   limitedAvailabilityLabel,
   primaryStyleLabel,
-  systembolagetImageUrl,
   systembolagetProductUrl,
   type GuideWineCategory,
   type SystembolagetGuideWine,
 } from "@/lib/systembolaget/guide-wines";
 import type { Metadata } from "next";
-
-const BOTTLE_WIDTH_MOBILE = 64;
-const BOTTLE_HEIGHT_MOBILE = 120;
-/** md+ display size (~2.5× mobile), same 8:15 aspect. */
-const BOTTLE_WIDTH_DESKTOP = 160;
-const BOTTLE_HEIGHT_DESKTOP = 300;
 
 function isDuplicateOfProducer(
   part: string | null | undefined,
@@ -527,36 +519,6 @@ export function answerWithPriceRange(
     .replaceAll("{max}", formatAmount(max));
 }
 
-function BottleImage({
-  wine,
-  priority,
-  size,
-}: {
-  wine: SystembolagetGuideWine;
-  priority: boolean;
-  size: 100 | 200 | 400;
-}) {
-  const { producer, secondary } = wineNameParts(wine);
-  const alt = [producer, secondary].filter(Boolean).join(" ");
-  const src =
-    systembolagetImageUrl(wine.image_url, size) ?? DEFAULT_WINE_IMAGE_PATH;
-
-  return (
-    <div className="flex h-[120px] w-16 shrink-0 items-center justify-center md:h-[300px] md:w-40">
-      <Image
-        src={src}
-        alt={alt}
-        width={BOTTLE_WIDTH_DESKTOP}
-        height={BOTTLE_HEIGHT_DESKTOP}
-        className="block h-full w-full object-contain object-top"
-        sizes="(min-width: 768px) 160px, 64px"
-        priority={priority}
-        loading={priority ? undefined : "lazy"}
-      />
-    </div>
-  );
-}
-
 export function RankedWineRow({
   wine,
   rank,
@@ -636,7 +598,7 @@ export function RankedWineRow({
   const HeadingTag = showFacts ? "h3" : "h2";
 
   return (
-    <article className="border-b border-border py-6 last:border-b-0 md:min-h-[calc(300px+3rem)]">
+    <article className="min-h-[calc(7.5rem+3rem)] border-b border-border py-6 last:border-b-0 md:min-h-[calc(300px+3rem)]">
       <div
         className={
           showRank
@@ -659,7 +621,7 @@ export function RankedWineRow({
         ) : null}
 
         <div className="row-start-1 self-start">
-          <BottleImage
+          <SystembolagetBottleImage
             wine={wine}
             priority={priority}
             size={showRank ? (rank <= 3 ? 400 : 200) : priority ? 400 : 200}
