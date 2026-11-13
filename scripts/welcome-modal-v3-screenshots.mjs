@@ -115,11 +115,12 @@ try {
   for (const { locale, titles, card3, notCard3 } of locales) {
     for (const width of [390, 1440]) {
       for (let step = 1; step <= 3; step++) {
+        const levelLabel = locale === "sv" ? "Brons" : "Bronze";
         const expectText =
           step === 2
             ? [card3]
             : step === 3
-              ? [titles[2], "Brons"]
+              ? [titles[2], levelLabel]
               : [titles[0]];
         const expectNotText = step === 2 ? notCard3 : [];
         await shotModal({
