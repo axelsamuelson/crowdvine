@@ -246,7 +246,7 @@ export function generatePaymentEmailHTML(params: {
           
           <!-- Order Summary -->
           <div style="background-color: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; padding: 20px; margin: 30px 0;">
-            <h3 style="color: #000000; margin: 0 0 15px 0; font-size: 18px; font-weight: 600;">Your Reservation</h3>
+            <h3 style="color: #000000; margin: 0 0 15px 0; font-size: 18px; font-weight: 600;">Your order</h3>
             <div style="display: flex; justify-content: space-between; align-items: center; margin: 10px 0;">
               <span style="color: #666666; font-size: 16px;">${params.bottleCount} bottles</span>
               <span style="color: #000000; font-size: 18px; font-weight: 600;">${params.totalAmount} SEK</span>
@@ -307,7 +307,7 @@ Great news, ${params.name}! 🎉
 
 Your wine pallet "${params.palletName}" has reached 100% and is ready to ship!
 
-Your Reservation:
+Your order:
 - ${params.bottleCount} bottles
 - ${params.totalAmount} SEK
 
@@ -363,14 +363,14 @@ export function buildPaymentReminderHtml(
         <p><strong>Order:</strong> ${params.bottleCount} bottles - ${escapeHtmlBasic(params.totalAmount)} SEK</p>
       </div>
       
-      <p>Please complete your payment to secure your reservation:</p>
+      <p>Please complete your payment to secure your order:</p>
       
       <a href="${escapeHtmlBasic(params.paymentLink)}" 
          style="display: inline-block; background-color: #000000; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 4px; margin: 20px 0;">
         Complete Payment
       </a>
       
-      <p>If you don't complete payment by the deadline, your reservation will be released.</p>
+      <p>If you don't complete payment by the deadline, your order will be released.</p>
     `;
 }
 
@@ -387,9 +387,9 @@ This is a friendly reminder that your payment for "${params.palletName}" is due 
 Time remaining: ${params.hoursRemaining} hours
 Order: ${params.bottleCount} bottles - ${params.totalAmount} SEK
 
-Please complete your payment to secure your reservation:
+Please complete your payment to secure your order:
 ${params.paymentLink}
 
-If you don't complete payment by the deadline, your reservation will be released.
+If you don't complete payment by the deadline, your order will be released.
     `;
 }

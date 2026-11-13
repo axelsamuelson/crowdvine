@@ -136,6 +136,19 @@ function wrapAuthMethods(supabase: SupabaseClient) {
  * detectSessionInUrl: false — we exchange ?code= only on /auth/pkce so a
  * concurrent auto-detect cannot double-consume the auth code.
  */
+export function hasSupabaseBrowserCredentials(): boolean {
+  return Boolean(
+    process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() &&
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim(),
+  );
+}
+
+/** Soft browser client — null when public env is unset (no throw / no overlay). */
+export function tryGetSupabaseBrowserClient(): SupabaseClient | null {
+  if (!hasSupabaseBrowserCredentials()) return null;
+  return getSupabaseBrowserClient();
+}
+
 export function getSupabaseBrowserClient(): SupabaseClient {
   if (!client) {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();

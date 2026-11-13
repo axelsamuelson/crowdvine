@@ -1,6 +1,6 @@
 import { cache } from "react";
 import { unstable_cache } from "next/cache";
-import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { tryGetSupabaseAdmin } from "@/lib/supabase-admin";
 import {
   getExcludedProfileIds,
   isExcludedUserId,
@@ -121,7 +121,8 @@ export function pickTopCollectionsByCtr<
 }
 
 async function loadProducerCtrRecord(): Promise<Record<string, ProducerCtrStats>> {
-  const sb = getSupabaseAdmin();
+  const sb = tryGetSupabaseAdmin();
+  if (!sb) return {};
   const since = new Date(
     Date.now() - DEFAULT_LOOKBACK_DAYS * 24 * 60 * 60 * 1000,
   );

@@ -67,7 +67,7 @@ export function buildExitDiscountEmailHtml(opts: {
   </div>
   <p style="margin:0 0 16px;">Ange koden i kassan.</p>
   <p style="margin:0 0 4px;">
-    Den ger <strong>${opts.percent}&nbsp;%</strong> på vinet i din första reservation
+    Den ger <strong>${opts.percent}&nbsp;%</strong> på vinet i ditt första köp
     och gäller till <strong>${opts.expiresLabel}</strong>.
   </p>
   ${buildChooseWinesButtonHtml()}
