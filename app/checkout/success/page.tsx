@@ -342,8 +342,9 @@ function CheckoutConfirmationContent() {
 
   return (
     <main className="min-h-screen bg-gray-50">
-      <div className="mx-auto w-full max-w-[640px] px-6 pt-top-spacing pb-8 space-y-8">
-        {/* Icon above heading so mobile content shares one column width */}
+      <div className="mx-auto w-full max-w-[640px] px-6 pt-[calc(var(--top-spacing)+1.5rem)] pb-8 space-y-8">
+        {/* Icon above heading so mobile content shares one column width.
+            Extra 1.5rem below fixed checkout header so the check isn't clipped. */}
         <div className="space-y-4">
           <div
             className={`h-12 w-12 rounded-full flex items-center justify-center ${
@@ -741,7 +742,7 @@ export default function CheckoutConfirmationPage() {
   return (
     <Suspense
       fallback={
-        <div className="max-w-4xl mx-auto p-6 pt-top-spacing">
+        <div className="max-w-4xl mx-auto p-6 pt-[calc(var(--top-spacing)+1.5rem)]">
           <div className="animate-pulse space-y-6">
             <div className="h-8 bg-gray-200 rounded mb-4"></div>
             <div className="h-4 bg-gray-200 rounded mb-2"></div>

@@ -25,6 +25,21 @@ describe("GuestAccountOffer consent default", () => {
     );
     expect(src).toContain('eventType: "account_offered_on_confirmation"');
   });
+
+  it("Skapa konto is black primary and not gated on marketing consent", () => {
+    const src = readFileSync(
+      join(process.cwd(), "components/checkout/guest-account-offer.tsx"),
+      "utf8",
+    );
+    expect(src).toMatch(
+      /data-testid="guest-account-create"[\s\S]*?className="bg-black text-white/,
+    );
+    // Create only disables while submitting — not when consent unchecked.
+    expect(src).toMatch(
+      /data-testid="guest-account-create"[\s\S]*?disabled=\{submitting\}/,
+    );
+    expect(src).not.toMatch(/disabled=\{submitting \|\| !consentChecked\}/);
+  });
 });
 
 describe("flag OFF login wall path preserved in checkout-client", () => {

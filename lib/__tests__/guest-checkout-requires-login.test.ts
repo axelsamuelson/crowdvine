@@ -25,6 +25,19 @@ describe("guest checkout respects ensure-session requiresLogin", () => {
     expect(clientSrc).toContain("guestRequiresLogin ? (");
     expect(clientSrc).toContain("initialEmail=");
     expect(clientSrc).toContain("<CheckoutEmailAuth");
+    // Final 409 explanatory copy (magic-link primary)
+    expect(clientSrc).toContain('t("checkout.requiresLoginBody")');
+  });
+
+  it("messages include final requiresLoginBody copy (SV + EN)", () => {
+    const sv = JSON.parse(
+      readFileSync(join(process.cwd(), "messages/sv.json"), "utf8"),
+    ) as { checkout: { requiresLoginBody: string } };
+    const en = JSON.parse(
+      readFileSync(join(process.cwd(), "messages/en.json"), "utf8"),
+    ) as { checkout: { requiresLoginBody: string } };
+    expect(sv.checkout.requiresLoginBody).toContain("inloggningslänk");
+    expect(en.checkout.requiresLoginBody).toContain("sign-in link");
   });
 
   it("ensure-session keeps existingCheckoutEmailTaken → 409 and insert-only profiles", () => {
