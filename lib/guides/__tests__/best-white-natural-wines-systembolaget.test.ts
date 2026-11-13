@@ -7,10 +7,6 @@ import {
   bestWhiteNaturalWinesSystembolagetSvArticle,
 } from "@/lib/guides/articles/best-white-natural-wines-systembolaget";
 import { articlePath } from "@/lib/guides/guide-types";
-import {
-  guideEditorialNoteHadValueJudgement,
-  neutralizeGuideEditorialNote,
-} from "@/lib/guides/neutralize-guide-editorial-note";
 import { categoryPageTitle } from "@/lib/seo/category-page-title";
 
 describe("best white natural wines Systembolaget guide", () => {
@@ -44,6 +40,35 @@ describe("best white natural wines Systembolaget guide", () => {
     ).toBe("Vitt naturvin på Systembolaget 2026: vårt urval");
   });
 
+  it("uses the English handoff H1, meta title and description", () => {
+    expect(bestWhiteNaturalWinesSystembolagetArticle.h1.en).toBe(
+      "White natural wine at Systembolaget",
+    );
+    expect(bestWhiteNaturalWinesSystembolagetArticle.meta.en).toBe(
+      "White natural wine at Systembolaget according to PACT: chenin blanc from the Loire, grüner veltliner from Austria, riesling, Czechia, Portugal and South Africa, with facts on producer and grape and common questions.",
+    );
+    expect(bestWhiteNaturalWinesSystembolagetArticle.title.en).toBe(
+      "White natural wine at Systembolaget 2026: our selection | PACT Wines",
+    );
+    expect(bestWhiteNaturalWinesSystembolagetArticle.lede?.en).toContain(
+      "The prices on the cards are Systembolaget's own.",
+    );
+    expect(bestWhiteNaturalWinesSystembolagetArticle.showRankedWineFacts).toBe(
+      true,
+    );
+    expect(
+      bestWhiteNaturalWinesSystembolagetArticle.sections.map(
+        (section) => section.heading?.en,
+      ),
+    ).toEqual([
+      "Our selection at a glance",
+      "How we chose",
+      "What is white natural wine?",
+      "Demeter and Biodyvin",
+      "White natural wine and food",
+    ]);
+  });
+
   it("credits Axel Samuelson with Person-ready author fields and FAQ schema source", () => {
     const author = bestWhiteNaturalWinesSystembolagetSvArticle.author;
     expect(author?.name).toBe("Axel Samuelson");
@@ -51,13 +76,19 @@ describe("best white natural wines Systembolaget guide", () => {
     expect(author?.byline.sv).toBe(
       "Av Axel Samuelson, grundare av PACT · Senast granskad: 2026-11-10",
     );
+    expect(author?.byline.en).toBe(
+      "By Axel Samuelson, founder of PACT · Last reviewed: 2026-11-10",
+    );
     expect(
       bestWhiteNaturalWinesSystembolagetSvArticle.faqs?.length,
+    ).toBeGreaterThanOrEqual(6);
+    expect(
+      bestWhiteNaturalWinesSystembolagetArticle.faqs?.length,
     ).toBeGreaterThanOrEqual(6);
     expect(bestWhiteNaturalWinesSystembolagetSvArticle.shopCta).toBeNull();
   });
 
-  it("keeps the editorial sections and opts into note neutralization", () => {
+  it("keeps the editorial sections without render-time note scrubbing", () => {
     expect(
       bestWhiteNaturalWinesSystembolagetSvArticle.sections.map(
         (section) => section.heading?.sv,
@@ -75,12 +106,6 @@ describe("best white natural wines Systembolaget guide", () => {
     expect(
       bestWhiteNaturalWinesSystembolagetSvArticle.showRankedWineFacts,
     ).toBe(true);
-    expect(
-      bestWhiteNaturalWinesSystembolagetSvArticle.neutralizeRankedEditorialNotes,
-    ).toBe(true);
-    expect(
-      bestWhiteNaturalWinesSystembolagetArticle.neutralizeRankedEditorialNotes,
-    ).toBeUndefined();
 
     const page = readFileSync(
       "app/guider/basta-vita-naturviner-systembolaget/page.tsx",
@@ -89,39 +114,26 @@ describe("best white natural wines Systembolaget guide", () => {
     expect(page).toContain("bestWhiteNaturalWinesSystembolagetSvArticle");
     expect(page).toContain('"white"');
     expect(page).not.toContain("renderArticleGuidePage");
+    const english = readFileSync(
+      "app/guides/best-white-natural-wines-systembolaget/page.tsx",
+      "utf8",
+    );
+    expect(english).toContain("bestWhiteNaturalWinesSystembolagetArticle");
+    expect(english).not.toContain("bestWhiteNaturalWinesSystembolagetSvArticle");
+    expect(readFileSync("lib/guides/systembolaget-ranked-list.tsx", "utf8")).not.toContain(
+      "neutralizeGuideEditorialNote",
+    );
   });
 
-  it("scrubs value judgements from database-sourced white notes at render time", () => {
-    const samples = [
-      {
-        id: 65,
-        before:
-          "Jean-Laurent och Jean-Dominique Vacheron ställde om hela familjedomänet till biodynamisk odling redan år 2000, tidigt för Sancerre. Les Roches är basvinet, sauvignon blanc från kalkstensjordar med en salthet som sällan finns i appellationen. Ligger i fasta sortimentet, vilket gör den ovanligt tillgänglig för ett vin på den här nivån.",
-      },
-      {
-        id: 66,
-        before:
-          "François Chidaine är tillsammans med Jacky Blot den som satte Montlouis på kartan, biodynamiskt certifierad genom Biodyvin. Les Tuffeaux är chenin blanc från tuffeaujord, torrt och spänstigt, och visar varför Chidaine räknas som en av Loires viktigaste vitvinsproducenter oavsett appellation.",
-      },
-      {
-        id: 134,
-        before:
-          "Craig Hawkins är Sydafrikas mest inflytelserika naturvinsproducent. Testalonga ligger i Swartland där gamla stockar och granit ger viner med spänst och salt mineralitet. Inget tillsatt svavel.",
-      },
-      {
-        id: 135,
-        before:
-          "Meinklang i Burgenland är Demeter-certifierade och driver en av Österrikes största biodynamiska gårdar. Naken är precis vad namnet antyder: grüner veltliner utan tillsatt svavel, okomplicerat och drickligt. Ligger i fasta sortimentet till ett pris som gör den till en självklar vardagsflaska.",
-      },
-    ];
-
-    for (const sample of samples) {
-      expect(guideEditorialNoteHadValueJudgement(sample.before)).toBe(true);
-      const after = neutralizeGuideEditorialNote(sample.before);
-      expect(after.toLocaleLowerCase("sv-SE")).not.toMatch(
-        /bästa|fantastisk|perfekt|mest hyllade|mest inflytelserika|vardagsvin|vardagsflaska|drickligt|satte montlouis|salthet som sällan/,
-      );
-      expect(after.length).toBeGreaterThan(20);
-    }
+  it("keeps shortlist wine names for auto-linking without hard-coded anchors", () => {
+    const shortlist = bestWhiteNaturalWinesSystembolagetArticle.sections[0];
+    const items = shortlist?.blocks?.[0];
+    expect(items?.type).toBe("list");
+    if (items?.type !== "list") return;
+    const joined = items.items.en.join("\n");
+    expect(joined).toContain("François Chidaine Les Tuffeaux");
+    expect(joined).toContain("Meinklang Naken");
+    expect(joined).toContain("Vacheron Sancerre Les Roches");
+    expect(joined).not.toMatch(/\]\(#/);
   });
 });
