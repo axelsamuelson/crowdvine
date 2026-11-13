@@ -141,9 +141,9 @@ Om leveransen blir väsentligt försenad har du rätt att häva köpet och få p
 
 ## 8. Om leverans inte kan genomföras
 
-Vid delad pall: Om du inte är hemma, inte kan legitimera dig eller inte är minst 20 år gör vår transportpartner ett nytt leveransförsök. Kan leveransen inte genomföras då heller returneras varan. För direktleverans gäller punkt 3 b.
+Vid delad pall: Om du inte är hemma, inte kan legitimera dig eller inte är minst 20 år gör vår transportpartner ett nytt leveransförsök. Kan leveransen inte genomföras då heller returneras varan.
 
-Vid retur betalar du den faktiska returfraktkostnaden, utan påslag. Om överlämningen nekas vid ålderskontrollen tar vi inte ut någon avgift.
+Vid retur betalar du den faktiska returfraktkostnaden, utan påslag. Om överlämningen nekas vid ålderskontrollen tar vi inte ut någon avgift. För direktleverans gäller punkt 3 b.
 
 Du får undersöka varan på samma sätt som i en butik, men inte mer än så. Har en flaska öppnats, eller förvarats eller hanterats så att vinet kan ha tagit skada, till exempel i värme eller direkt solljus, ansvarar du för värdeminskningen. Vi får då göra ett avdrag från återbetalningen som motsvarar värdeminskningen, upp till flaskans fulla pris. Detta följer av 2 kap. 14 § lagen (2005:59) om distansavtal och avtal utanför affärslokaler.
 

@@ -135,9 +135,9 @@ If delivery is significantly delayed, you have the right to terminate the purcha
 
 ## 8. If delivery cannot be completed
 
-For shared pallets: If you are not at home, cannot show ID or are not at least 20 years old, our delivery partner will make a new delivery attempt. If delivery cannot be completed then either, the goods are returned. For direct delivery, point 3 b applies.
+For shared pallets: If you are not at home, cannot show ID or are not at least 20 years old, our delivery partner will make a new delivery attempt. If delivery cannot be completed then either, the goods are returned.
 
-In the event of a return, you pay the actual cost of return shipping, without any mark-up. If the handover is refused at the age check, we do not charge any fee.
+In the event of a return, you pay the actual cost of return shipping, without any mark-up. If the handover is refused at the age check, we do not charge any fee. For direct delivery, point 3 b applies.
 
 You may examine the goods in the same way as you would in a shop, but no more than that. If a bottle has been opened, or stored or handled in a way that may have damaged the wine, for example in heat or direct sunlight, you are responsible for the reduction in value. We may then make a deduction from the refund corresponding to the reduction in value, up to the full price of the bottle. This follows from Chapter 2, § 14 of lagen (2005:59) om distansavtal och avtal utanför affärslokaler (the Swedish Distance and Off-Premises Contracts Act).
 

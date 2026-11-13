@@ -342,13 +342,13 @@ export default function KopvillkorContent() {
       <LegalP>
         Vid delad pall: Om du inte är hemma, inte kan legitimera dig eller inte
         är minst 20 år gör vår transportpartner ett nytt leveransförsök. Kan
-        leveransen inte genomföras då heller returneras varan. För
-        direktleverans gäller{" "}
-        <LegalLink href="#punkt-3b">punkt 3 b</LegalLink>.
+        leveransen inte genomföras då heller returneras varan.
       </LegalP>
       <LegalP>
         Vid retur betalar du den faktiska returfraktkostnaden, utan påslag. Om
         överlämningen nekas vid ålderskontrollen tar vi inte ut någon avgift.
+        För direktleverans gäller{" "}
+        <LegalLink href="#punkt-3b">punkt 3 b</LegalLink>.
       </LegalP>
       <LegalP>
         Du får undersöka varan på samma sätt som i en butik, men inte mer än så.

@@ -377,13 +377,13 @@ export default function KopvillkorEnContent() {
         For shared pallets: If you are not at home, cannot show ID or are not
         at least 20 years old, our delivery partner will make a new delivery
         attempt. If delivery cannot be completed then either, the goods are
-        returned. For direct delivery,{" "}
-        <LegalLink href="#punkt-3b">point 3 b</LegalLink> applies.
+        returned.
       </LegalP>
       <LegalP>
         In the event of a return, you pay the actual cost of return shipping,
         without any mark-up. If the handover is refused at the age check, we do
-        not charge any fee.
+        not charge any fee. For direct delivery,{" "}
+        <LegalLink href="#punkt-3b">point 3 b</LegalLink> applies.
       </LegalP>
       <LegalP>
         You may examine the goods in the same way as you would in a shop, but
