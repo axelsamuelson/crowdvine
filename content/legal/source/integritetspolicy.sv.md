@@ -2,7 +2,7 @@
 
 > **UTKAST, ej publiceringsklar.** Framtaget av Daniel Holm (Compliance) med juridisk ram från Sofia Bergström (GC). Ska granskas av extern jurist innan publicering. Alla fält markerade `[FYLL I]` måste fyllas i, och alla punkter markerade **ÖPPEN FRÅGA** måste avgöras, innan sidan går live.
 
-Senast uppdaterad: 2026-11-04
+Senast uppdaterad: 2026-11-13
 
 ---
 
@@ -86,7 +86,8 @@ Vi säljer aldrig dina personuppgifter. Vi delar dem med följande kategorier av
 | Supabase | Personuppgiftsbiträde, databas och autentisering | Konto- och orderdata | [FYLL I REGION] | [BEKRÄFTA] |
 | Vercel | Personuppgiftsbiträde, hosting | Teknisk data, loggar | EU/USA | [BEKRÄFTA] |
 | Resend | Personuppgiftsbiträde, transaktionsmail | Namn, e-post | [FYLL I] | [BEKRÄFTA] |
-| Budbee | Självständigt ansvarig eller biträde, hemleverans med ID-kontroll | Namn, adress, telefon, ordernummer | Sverige | [BEKRÄFTA ROLL OCH AVTAL] |
+| Instabee (Budbee) | Självständigt personuppgiftsansvarig, hemleverans med ålderskontroll vid delad pall | Namn, adress, telefon, ordernummer | Sverige | Instabee ansvarar självt för sin behandling, inget biträdesavtal |
+| UPS | Självständigt personuppgiftsansvarig, transport och ålderskontroll vid direktleverans | Namn, adress, telefon, ordernummer | EU, och länder utanför EU enligt UPS egen integritetspolicy | UPS ansvarar självt för sin behandling, inget biträdesavtal |
 | Producenter i Frankrike | Personuppgiftsbiträde, packning och etikettering av din order | Namn, leveransadress, ordernummer | Frankrike | [BEKRÄFTA, avtal saknas idag] |
 | Fraktpartner för palltransport | Personuppgiftsbiträde eller självständigt ansvarig | Leveransunderlag | Frankrike, Sverige | [BEKRÄFTA] |
 | Skatteverket och andra myndigheter | Mottagare enligt lag | Leverans- och skatteunderlag | Sverige | Ej tillämpligt |

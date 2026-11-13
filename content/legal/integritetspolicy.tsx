@@ -226,14 +226,18 @@ export default function IntegritetspolicyContent() {
             <LegalTd>[BEKRÄFTA]</LegalTd>
           </tr>
           <tr>
-            <LegalTd>Budbee</LegalTd>
-            <LegalTd>
-              Självständigt ansvarig eller biträde, hemleverans med
-              ID-kontroll
-            </LegalTd>
+            <LegalTd>Instabee (Budbee)</LegalTd>
+            <LegalTd>Självständigt personuppgiftsansvarig, hemleverans med ålderskontroll vid delad pall</LegalTd>
             <LegalTd>Namn, adress, telefon, ordernummer</LegalTd>
             <LegalTd>Sverige</LegalTd>
-            <LegalTd>[BEKRÄFTA ROLL OCH AVTAL]</LegalTd>
+            <LegalTd>Instabee ansvarar självt för sin behandling, inget biträdesavtal</LegalTd>
+          </tr>
+          <tr>
+            <LegalTd>UPS</LegalTd>
+            <LegalTd>Självständigt personuppgiftsansvarig, transport och ålderskontroll vid direktleverans</LegalTd>
+            <LegalTd>Namn, adress, telefon, ordernummer</LegalTd>
+            <LegalTd>EU, och länder utanför EU enligt UPS egen integritetspolicy</LegalTd>
+            <LegalTd>UPS ansvarar självt för sin behandling, inget biträdesavtal</LegalTd>
           </tr>
           <tr>
             <LegalTd>Producenter i Frankrike</LegalTd>
