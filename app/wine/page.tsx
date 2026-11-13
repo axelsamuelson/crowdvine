@@ -27,7 +27,7 @@ export async function generateMetadata(props: {
   const description =
     config.baseUrl === DIRTY_WINE_CONFIG.baseUrl
       ? "Natural wines. Organic and biodynamic. For restaurants in Stockholm."
-      : "Browse natural wines. Organic and biodynamic. Home delivery in Stockholm.";
+      : "Browse natural wines. Organic and biodynamic. Home delivery in Sweden.";
 
   return {
     title: { absolute: title },

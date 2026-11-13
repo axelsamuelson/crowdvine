@@ -75,7 +75,7 @@ describe("producer shop meta description", () => {
         region: "Rhône",
       }),
     ).toBe(
-      "Naturviner från Hervé Souhaut (Domaine Romaneaux-Destezet), Rhône. Hemleverans i Stockholm.",
+      "Naturviner från Hervé Souhaut (Domaine Romaneaux-Destezet), Rhône. Hemleverans i Sverige.",
     );
     expect(
       producerShopMetaDescription("en", {
@@ -84,7 +84,7 @@ describe("producer shop meta description", () => {
         region: "Rhône",
       }),
     ).toBe(
-      "Natural wines from Hervé Souhaut (Domaine Romaneaux-Destezet), Rhône. Home delivery in Stockholm.",
+      "Natural wines from Hervé Souhaut (Domaine Romaneaux-Destezet), Rhône. Home delivery in Sweden.",
     );
   });
 
@@ -94,6 +94,6 @@ describe("producer shop meta description", () => {
         producerName: "Clos Fantine",
         region: "Languedoc",
       }),
-    ).toBe("Naturviner från Clos Fantine, Languedoc. Hemleverans i Stockholm.");
+    ).toBe("Naturviner från Clos Fantine, Languedoc. Hemleverans i Sverige.");
   });
 });

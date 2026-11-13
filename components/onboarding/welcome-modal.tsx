@@ -204,7 +204,8 @@ const getSteps = (
               />
             </div>
             <p className="text-xs text-center text-muted-foreground">
-              213 bottles to go — estimated shipping in 2-3 weeks
+              213 bottles to go — Delivered normally 2–3 weeks after the
+              pallet closes
             </p>
           </div>
 

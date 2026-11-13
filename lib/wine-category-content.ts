@@ -80,7 +80,7 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
     sv: {
       title: "Biodynamiskt vin i Sverige | PACT Wines",
       metaDescription:
-        "Köp biodynamiskt vin i Sverige med hemleverans i Stockholm. Producenter som arbetar biodynamiskt — utan mellanhänder via PACT.",
+        "Köp biodynamiskt vin i Sverige med hemleverans i Sverige. Producenter som arbetar biodynamiskt — utan mellanhänder via PACT.",
       contentHeading: "Om biodynamiskt vin",
       longDescription:
         "Biodynamiskt vin bygger på en helhetssyn av vingården som levande ekosystem — inte bara att undvika kemiska medel, utan att aktivt stärka jordhälsa, biodiversitet och balans mellan jord, planta och djur. Odlingsmetoden följer ofta biodynamiska principer: kompostpreparat, dynamiska sprayningar och skörd som planeras efter vingårdens rytm snarare än enbart kalendern.\n\nSkillnaden mot ekologiskt vin ligger i metoden. Ekologiskt fokuserar på vad du inte får använda; biodynamiskt lägger till en aktiv vingårdsfilosofi där jorden, stockarna och till och med månfaserna är en del av besluten. I Languedoc har biodynamisk odling blivit särskilt stark bland små, oberoende producenter som redan arbetar med låga skördar och minimal intervention i källaren.\n\nDu köper flaskor online, och när pallen stänger skickas vinet hem till dig.",
@@ -118,7 +118,7 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
     en: {
       title: "Biodynamic Wine in Sweden | PACT Wines",
       metaDescription:
-        "Buy biodynamic wine in Sweden with home delivery in Stockholm. Producers who farm biodynamically — without middlemen via PACT.",
+        "Buy biodynamic wine in Sweden with home delivery in Sweden. Producers who farm biodynamically — without middlemen via PACT.",
       contentHeading: "About biodynamic wine",
       longDescription:
         "Biodynamic wine is built on seeing the vineyard as a living ecosystem — not just avoiding chemicals, but actively strengthening soil health, biodiversity and balance between soil, plant and animal life. The method often follows biodynamic principles: compost preparations, dynamic sprays and harvest timed to the vineyard's rhythms rather than the calendar alone.\n\nThe difference from organic wine is in the approach. Organic focuses on what you cannot use; biodynamic adds an active vineyard philosophy where soil, vines and even lunar phases inform decisions. In Languedoc, biodynamic farming has become especially strong among small, independent producers already working with low yields and minimal cellar intervention.\n\nYou buy bottles online, and when the pallet closes the wine ships to your door.",
@@ -194,7 +194,7 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
     en: {
       title: "Organic Wine in Sweden | PACT Wines",
       metaDescription:
-        "Buy organic wine in Sweden with home delivery in Stockholm. EU-certified producers — without middlemen via PACT.",
+        "Buy organic wine in Sweden with home delivery in Sweden. EU-certified producers — without middlemen via PACT.",
       contentHeading: "About organic wine",
       longDescription:
         "Organic wine means grapes grown under EU organic rules — no synthetic pesticides, no chemical fertilisers and requirements for soil health and biodiversity in the vineyard. Certification (e.g. the EU organic logo) covers farming; in the cellar producers may still work in different ways, from classic winemaking to minimal intervention.\n\nThe difference from biodynamic wine is clear: organic defines what cannot be used in the vineyard; biodynamic adds a holistic view with compost preparations, dynamic sprays and the vineyard's rhythms. The difference from natural wine matters too — natural wine sets rules in both vineyard and cellar (wild fermentation, no additives), while organic wine primarily concerns how grapes are grown. Many of our producers do both, but they are not the same thing.\n\nBuying organic wine in Sweden through the monopoly or traditional importers often means limited choice and high prices. You buy bottles online, and when the pallet closes the wine ships to your door.",
@@ -415,7 +415,7 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
       h1: "Orange vin",
       title: "Orange vin: köp orange naturvin online",
       metaDescription:
-        "Orange vin är vitt vin som jäst med skalen. Se vårt urval av orange naturvin från små producenter, med hemleverans i Stockholm.",
+        "Orange vin är vitt vin som jäst med skalen. Se vårt urval av orange naturvin från små producenter, med hemleverans i Sverige.",
       description:
         "Orange vin görs av gröna druvor som jäser tillsammans med skalen, vilket ger färg, struktur och en lätt strävhet. Här hittar du våra orange naturviner.",
       descriptionLink: {
@@ -613,7 +613,7 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
     en: {
       title: "Red Biodynamic Wine | PACT Wines",
       metaDescription:
-        "Buy red biodynamic wine online. Red wines from producers who farm biodynamically — home delivery in Stockholm via PACT.",
+        "Buy red biodynamic wine online. Red wines from producers who farm biodynamically — home delivery in Sweden via PACT.",
       contentHeading: "About red biodynamic wine",
       longDescription:
         "Biodynamic wine goes a step beyond organic: the vineyard is managed on biodynamic principles with a focus on soil health, biodiversity and seeing the vineyard as a living system. Red biodynamic wine from Languedoc combines that philosophy with the region's natural strengths — old Carignan vines, Grenache on stony ground and Syrah with peppery precision.\n\nIn the glass you often meet clean fruit, clear minerality and a sense of place that comes from low yields and manual work. That the producer farms biodynamically is no guarantee of taste, but signals deep investment in the vineyard — especially visible in dry, sun-exposed sites in southern France.\n\nAll red biodynamic wines in the range come from producers who farm biodynamically. ",
@@ -655,7 +655,7 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
     en: {
       title: "White Biodynamic Wine | PACT Wines",
       metaDescription:
-        "Buy white biodynamic wine online. White wines from producers who farm biodynamically — home delivery in Stockholm via PACT.",
+        "Buy white biodynamic wine online. White wines from producers who farm biodynamically — home delivery in Sweden via PACT.",
       contentHeading: "About white biodynamic wine",
       longDescription:
         "White biodynamic wine combines biodynamic vineyard philosophy — soil health, biodiversity and farming according to biodynamic principles — with Languedoc's natural strengths for white grapes: long growing season, coastal influence and cooler altitude sites that give freshness and aroma.\n\nIn the glass you'll find everything from clean, citrus-driven wines on Vermentino and Grenache Blanc to more textured bottles with short skin contact or oxidative handling. Biodynamic farming is about the whole vineyard; in the cellar producers often work with low intervention, giving whites with clear sense of place rather than a standardised style.",
@@ -697,7 +697,7 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
     en: {
       title: "Orange Biodynamic Wine | PACT Wines",
       metaDescription:
-        "Buy orange biodynamic wine online. Skin-contact wines from producers who farm biodynamically — home delivery in Stockholm via PACT.",
+        "Buy orange biodynamic wine online. Skin-contact wines from producers who farm biodynamically — home delivery in Sweden via PACT.",
       contentHeading: "About orange biodynamic wine",
       longDescription:
         "Orange biodynamic wine brings together two ideas that suit each other: skin contact on white grapes for colour, tannin and texture — and biodynamic farming that strengthens the vineyard ecosystem and gives sound, concentrated grapes to work with.\n\nIn Languedoc, orange wines are often made from Grenache Blanc, Macabeu and other local varieties with days or weeks on the skins. That the producer farms biodynamically signals deep investment in the vineyard; results can range from light, tea-like wines to more structured bottles with spicy garrigue and firm tannin.\n\nPACT's selection is small and curated. You buy bottles online, and the wine ships to your door when the pallet closes.",
@@ -811,7 +811,7 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
     en: {
       title: "White Organic Wine | PACT Wines",
       metaDescription:
-        "Buy white organic wine online. Certified organic white wines — home delivery in Stockholm via PACT.",
+        "Buy white organic wine online. Certified organic white wines — home delivery in Sweden via PACT.",
       contentHeading: "About white organic wine",
       longDescription:
         "Organic wine means grapes grown without synthetic pesticides or fertilisers, with respect for soil and ecosystem — certified under EU organic rules. White organic wine from Languedoc uses the region's long growing season and coastal or altitude vineyards to produce fresh, aromatic wines with clear fruit.\n\nHere you'll find everything from clean, crisp wines on Vermentino and Grenache Blanc to more textured styles with short skin contact. Many producers also work with minimal intervention in the cellar, even though organic certification itself concerns the vineyard. That gives white wines that are easy to drink but still have personality.\n\nWhen enough people have reserved, a pallet fills and the wine ships to Stockholm.",
@@ -853,7 +853,7 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
     en: {
       title: "Orange Organic Wine | PACT Wines",
       metaDescription:
-        "Buy orange organic wine. Certified organic skin-contact wines — home delivery in Stockholm via PACT.",
+        "Buy orange organic wine. Certified organic skin-contact wines — home delivery in Sweden via PACT.",
       contentHeading: "About orange organic wine",
       longDescription:
         "Orange organic wine combines skin contact on white grapes with organic farming under EU rules — no synthetic pesticides in the vineyard and a focus on soil health and biodiversity. Skin contact gives colour, tannin and texture like a red wine would, but with a white grape's fruit and acidity.\n\nIn Languedoc, orange wines are often made from Grenache Blanc, Macabeu and other local varieties. Organic certification applies to the vineyard; in the cellar many producers work with minimal intervention, giving bottles with clear sense of place. Styles range from light and tea-like to more structured wines with spicy garrigue.",

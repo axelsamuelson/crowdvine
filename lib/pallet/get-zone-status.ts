@@ -5,7 +5,7 @@ import {
   resolvePalletEarlyBirdContext,
   resolveWineIdForProductHandle,
 } from "@/lib/pallet-early-bird-context";
-import { deliveryEstimateLabelFromFillPercent } from "@/lib/pallet-delivery-estimate-label";
+import { palletDeliveryEstimateLabel } from "@/lib/pallet-delivery-estimate-label";
 import { resolvePalletDiscountTier } from "@/lib/pricing/early-bird-config";
 import {
   resolveActiveGeoZoneAnonymous,
@@ -122,7 +122,7 @@ function emptyStatus(body: {
     fillPercent: shipProgress.shipProgressPercent,
     discountTier: 0,
     estimatedDays: null,
-    estimatedDelivery: deliveryEstimateLabelFromFillPercent(0),
+    estimatedDelivery: palletDeliveryEstimateLabel("sv"),
     userZoneName: rawDestination,
     settingsUrl: SETTINGS_URL,
     statusPrimary: "Pallet status",
@@ -330,8 +330,7 @@ export async function getPalletZoneStatusForHandle(
     }
 
     const fillPercent = shipProgress.shipProgressPercent;
-    const estimatedDelivery =
-      deliveryEstimateLabelFromFillPercent(fillPercent);
+    const estimatedDelivery = palletDeliveryEstimateLabel("sv");
 
     if (bottlesVerb === "ordered" && !shipProgress.isReadyToShip) {
       estimatedDays = computeEstimatedDays(

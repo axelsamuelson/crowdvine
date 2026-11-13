@@ -270,13 +270,13 @@ export function wineRegionPageTitle(region: WineRegion, locale: AppLocale): stri
   return `${region.labelEn} Natural Wine – Producers & Styles | PACT`;
 }
 
-/** Meta description — SV ends with Budbee; EN does not. Never "hela Sverige". */
+/** Meta description — SV ends with home delivery in Sweden; EN does not. Never "hela Sverige". */
 export function wineRegionPageMetaDescription(
   region: WineRegion,
   locale: AppLocale,
 ): string {
   if (locale === "sv") {
-    return `Naturvin från ${region.labelSv} – producenter och stil hos PACT. Hemleverans med Budbee.`;
+    return `Naturvin från ${region.labelSv} – producenter och stil hos PACT. Hemleverans i Sverige.`;
   }
   return `${region.labelEn} natural wine – producers and styles at PACT.`;
 }

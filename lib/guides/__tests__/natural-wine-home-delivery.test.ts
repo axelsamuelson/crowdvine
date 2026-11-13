@@ -1,6 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
-import { naturalWineHomeDeliveryArticle } from "@/lib/guides/articles/natural-wine-home-delivery";
+import {
+  naturalWineHomeDeliveryArticle,
+  whereWeDeliverBody,
+  WHERE_WE_DELIVER_DIRECT,
+} from "@/lib/guides/articles/natural-wine-home-delivery";
 import {
   HOME_DELIVERY_GUIDE_PATH,
   resolveHomeDeliveryGuidePath,
@@ -8,7 +12,22 @@ import {
 import { publishedBilingualArticleGuides } from "@/lib/guides/guide-publication";
 import { articlePath, isGuideArticlePublished } from "@/lib/guides/guide-types";
 
+const WHERE_WE_DELIVER_BASE_SV =
+  "Vi levererar hem till dig i hela Budbees leveransområde i Sverige. Om din adress ingår ser du när du anger postnumret i kassan. Leveransen sker normalt inom 2–3 veckor efter att pallen har stängt och alltid senast 30 dagar efter. Vid överlämningen kontrollerar budet din legitimation, och du måste vara minst 20 år. Om du inte kan visa giltig legitimation lämnas inte vinet ut. Fraktkostnaden visas i kassan innan du betalar.";
+const WHERE_WE_DELIVER_BASE_EN =
+  "We deliver to your door anywhere in Budbee's delivery area in Sweden. You can check whether your address is covered by entering your postcode at checkout. Delivery normally takes 2–3 weeks after the pallet has closed and always within 30 days. On delivery, the courier checks your ID and you must be at least 20 years old. If you can't show valid ID, the wine won't be handed over. The shipping cost is shown at checkout before you pay.";
+
 describe("natural wine home delivery guide", () => {
+  const prevDirectBox = process.env.DIRECT_BOX_CHECKOUT_ENABLED;
+
+  afterEach(() => {
+    if (prevDirectBox === undefined) {
+      delete process.env.DIRECT_BOX_CHECKOUT_ENABLED;
+    } else {
+      process.env.DIRECT_BOX_CHECKOUT_ENABLED = prevDirectBox;
+    }
+  });
+
   it("is published with the requested title, meta, h1 and paths", () => {
     expect(isGuideArticlePublished(naturalWineHomeDeliveryArticle)).toBe(true);
     expect(publishedBilingualArticleGuides()).toContain(
@@ -63,7 +82,7 @@ describe("natural wine home delivery guide", () => {
       ])),
     ];
     for (const text of blobs) {
-      // Em dash only — numeric ranges may use en dash (e.g. 1–2 weeks).
+      // Em dash only — numeric ranges may use en dash (e.g. 2–3 weeks).
       expect(text).not.toMatch(/—/);
       expect(text).not.toMatch(/\[FYLL I/);
     }
@@ -104,12 +123,8 @@ describe("natural wine home delivery guide", () => {
     expect(naturalWineHomeDeliveryArticle.meta.en).toBe(
       "Order natural wine online with home delivery in Budbee's Sweden coverage area. How reservation, pallet, delivery time, age check and cost work.",
     );
-    expect(naturalWineHomeDeliveryArticle.sections[0]?.body.sv).toEqual([
-      "Vi levererar hem till dig i hela Budbees leveransområde i Sverige. Om din adress ingår ser du när du anger postnumret i kassan. Leveransen sker normalt inom 2–3 veckor efter att pallen har stängt och alltid senast 30 dagar efter. Vid överlämningen kontrollerar budet din legitimation, och du måste vara minst 20 år. Om du inte kan visa giltig legitimation lämnas inte vinet ut. Fraktkostnaden visas i kassan innan du betalar.",
-    ]);
-    expect(naturalWineHomeDeliveryArticle.sections[0]?.body.en).toEqual([
-      "We deliver to your door anywhere in Budbee's delivery area in Sweden. You can check whether your address is covered by entering your postcode at checkout. Delivery normally takes 2–3 weeks after the pallet has closed and always within 30 days. On delivery, the courier checks your ID and you must be at least 20 years old. If you can't show valid ID, the wine won't be handed over. The shipping cost is shown at checkout before you pay.",
-    ]);
+    expect(whereWeDeliverBody(false).sv).toEqual([WHERE_WE_DELIVER_BASE_SV]);
+    expect(whereWeDeliverBody(false).en).toEqual([WHERE_WE_DELIVER_BASE_EN]);
     expect(naturalWineHomeDeliveryArticle.sections[1]?.body.sv).toEqual([
       "Leveransen sker normalt inom 2–3 veckor efter att pallen stängt och alltid senast 30 dagar efter. När pallen har skickats får du ett beräknat leveransfönster, och leveransdagen när vinet nått Sverige. Hur lång tid det tar innan pallen stänger beror på hur snabbt den fylls.",
     ]);
@@ -133,5 +148,23 @@ describe("natural wine home delivery guide", () => {
     for (const text of guideBlobs) {
       expect(text).not.toMatch(stockholmOnly);
     }
+  });
+
+  it("gates the direct-delivery paragraph behind DIRECT_BOX_CHECKOUT_ENABLED", () => {
+    expect(whereWeDeliverBody(false)).toEqual({
+      sv: [WHERE_WE_DELIVER_BASE_SV],
+      en: [WHERE_WE_DELIVER_BASE_EN],
+    });
+    expect(whereWeDeliverBody(true)).toEqual({
+      sv: [WHERE_WE_DELIVER_BASE_SV, WHERE_WE_DELIVER_DIRECT.sv],
+      en: [WHERE_WE_DELIVER_BASE_EN, WHERE_WE_DELIVER_DIRECT.en],
+    });
+    expect(WHERE_WE_DELIVER_DIRECT.sv).toContain("UPS Standard");
+    expect(WHERE_WE_DELIVER_DIRECT.en).toContain("UPS Standard");
+    expect(WHERE_WE_DELIVER_DIRECT.sv).toContain("5–10 arbetsdagar");
+    expect(WHERE_WE_DELIVER_DIRECT.en).toContain("5–10 working days");
+    // Budbee stays in the shared-pallet paragraph only.
+    expect(WHERE_WE_DELIVER_DIRECT.sv).not.toMatch(/Budbee/i);
+    expect(WHERE_WE_DELIVER_DIRECT.en).not.toMatch(/Budbee/i);
   });
 });
