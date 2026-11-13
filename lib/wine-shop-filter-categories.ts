@@ -173,8 +173,8 @@ function buildCategory(
   // Closing phrase is pact-default; dirtywine rewrites via localizeGeneratedCategoryCopy.
   const metaDescription =
     locale === "sv"
-      ? `Köp ${h1.toLowerCase()} online. Hemleverans Stockholm.`
-      : `Buy ${h1.toLowerCase()} online. Home delivery in Stockholm.`;
+      ? `Köp ${h1.toLowerCase()} online. Hemleverans i Sverige.`
+      : `Buy ${h1.toLowerCase()} online. Home delivery in Sweden.`;
 
   return {
     slug,
@@ -207,22 +207,22 @@ export function localizeShopMetaDescription(
     const restaurantMid = "för restauranger i Stockholm";
     // Mid-sentence "med hemleverans …"
     result = result.replace(
-      /\bmed hemleverans i Stockholm\b/gi,
+      /\bmed hemleverans i (?:Stockholm|Sverige)\b/gi,
       restaurantMid,
     );
     result = result.replace(/\bmed hemleverans Stockholm\b/gi, restaurantMid);
     // Em-dash / comma clauses: "— hemleverans Stockholm via PACT"
     result = result.replace(
-      /\s*[—–-]\s*hemleverans(?:\s+i)?\s+Stockholm(?:\s+via\s+PACT)?\.?/gi,
+      /\s*[—–-]\s*hemleverans(?:\s+i)?\s+(?:Stockholm|Sverige)(?:\s+via\s+PACT)?\.?/gi,
       `. ${restaurant}`,
     );
     result = result.replace(
-      /,\s*hemleverans(?:\s+i)?\s+Stockholm(?:\s+via\s+PACT)?\.?/gi,
+      /,\s*hemleverans(?:\s+i)?\s+(?:Stockholm|Sverige)(?:\s+via\s+PACT)?\.?/gi,
       `. ${restaurant}`,
     );
-    // Standalone sentence: "Hemleverans Stockholm via PACT." / "Hemleverans i Stockholm."
+    // Standalone sentence: "Hemleverans Stockholm via PACT." / "Hemleverans i Sverige."
     result = result.replace(
-      /(?:^|\.\s*)Hemleverans(?:\s+i)?\s+Stockholm(?:\s+via\s+PACT)?\.?/gi,
+      /(?:^|\.\s*)Hemleverans(?:\s+i)?\s+(?:Stockholm|Sverige)(?:\s+via\s+PACT)?\.?/gi,
       (match) => {
         const prefix = match.startsWith(".") ? ". " : "";
         return `${prefix}${restaurant}`;
@@ -230,33 +230,33 @@ export function localizeShopMetaDescription(
     );
     // Trailing buildCategory form
     result = result.replace(
-      /\s*Hemleverans(?:\s+i)?\s+Stockholm\.?\s*$/i,
+      /\s*Hemleverans(?:\s+i)?\s+(?:Stockholm|Sverige)\.?\s*$/i,
       ` ${restaurant}`,
     );
   } else {
     const restaurant = "For restaurants in Stockholm.";
     const restaurantMid = "for restaurants in Stockholm";
     result = result.replace(
-      /\bwith home delivery in Stockholm\b/gi,
+      /\bwith home delivery in (?:Stockholm|Sweden)\b/gi,
       restaurantMid,
     );
     result = result.replace(
-      /\s*[—–-]\s*home delivery(?:\s+in)?\s+Stockholm(?:\s+via\s+PACT)?\.?/gi,
+      /\s*[—–-]\s*home delivery(?:\s+in)?\s+(?:Stockholm|Sweden)(?:\s+via\s+PACT)?\.?/gi,
       `. ${restaurant}`,
     );
     result = result.replace(
-      /,\s*home delivery(?:\s+in)?\s+Stockholm(?:\s+via\s+PACT)?\.?/gi,
+      /,\s*home delivery(?:\s+in)?\s+(?:Stockholm|Sweden)(?:\s+via\s+PACT)?\.?/gi,
       `. ${restaurant}`,
     );
     result = result.replace(
-      /(?:^|\.\s*)Home delivery(?:\s+in)?\s+Stockholm(?:\s+via\s+PACT)?\.?/gi,
+      /(?:^|\.\s*)Home delivery(?:\s+in)?\s+(?:Stockholm|Sweden)(?:\s+via\s+PACT)?\.?/gi,
       (match) => {
         const prefix = match.startsWith(".") ? ". " : "";
         return `${prefix}${restaurant}`;
       },
     );
     result = result.replace(
-      /\s*Home delivery(?:\s+in)?\s+Stockholm\.?\s*$/i,
+      /\s*Home delivery(?:\s+in)?\s+(?:Stockholm|Sweden)\.?\s*$/i,
       ` ${restaurant}`,
     );
   }

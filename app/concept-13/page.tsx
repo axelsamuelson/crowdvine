@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { NOINDEX_PAGE_ROBOTS } from "@/lib/seo/noindex-robots";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { HomeSidebar } from "@/components/layout/sidebar/home-sidebar";
@@ -18,7 +19,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Concept 13",
-  robots: { index: false, follow: false },
+  robots: NOINDEX_PAGE_ROBOTS,
 };
 
 const BACKDROP_IMAGE = "/images/hero_bild_5.webp";

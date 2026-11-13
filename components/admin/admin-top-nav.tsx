@@ -20,26 +20,51 @@ interface AdminTopNavProps {
 
 /** Tydliga etiketter för vanliga admin-segment (UUID:er m.m. lämnas som korta stubbar). */
 const SEGMENT_LABELS: Record<string, string> = {
-  analytics: "Analytics",
-  operations: "Operations",
-  projects: "Projects",
-  tasks: "Tasks",
-  objectives: "Objectives",
-  goals: "Goals",
-  "my-work": "My work",
-  "strategy-map": "Strategy map",
-  "menu-extraction": "Menu extraction",
-  content: "Site content",
-  images: "Images",
+  analytics: "Analys",
+  operations: "Drift",
+  projects: "Projekt",
+  tasks: "Uppgifter",
+  objectives: "Delmål",
+  goals: "Mål",
+  "my-work": "Min arbetsyta",
+  "strategy-map": "Strategikarta",
+  "menu-extraction": "Menyextraktion",
+  content: "Sajtinnehåll",
+  images: "Bilder",
   "home-concepts": "Home concepts",
   rabattkoder: "Rabattkoder",
   "exkluderade-profiler": "Exkluderade profiler",
   finance: "Finans",
   utfall: "Utfall",
   prisscenarier: "Prisscenarier",
-  "fulfillment-costs": "Fulfillment costs",
+  "fulfillment-costs": "Fulfillment-kostnader",
   seo: "SEO",
   "domain-authority": "Domain authority",
+  "b2c-orders": "B2C-ordrar",
+  "b2b-orders": "B2B-ordrar",
+  "b2b-inquiries": "B2B-förfrågningar",
+  producers: "Producenter",
+  wines: "Viner",
+  "wine-tastings": "Vinprovningar",
+  "price-sources": "Konkurrentpriser",
+  "geo-zones": "Vinzoner & leverans",
+  "shipping-regions": "Fraktregioner",
+  freight: "Fraktalternativ",
+  zones: "Upphämtningszoner",
+  pallets: "Pallar",
+  settings: "Inställningar",
+  new: "Ny",
+  edit: "Redigera",
+  b2b: "Dirty Wine",
+  users: "Användare",
+  business: "Företagskonton",
+  memberships: "Medlemskap",
+  "access-control": "Åtkomstkontroll",
+  "producer-boxes": "Producentlådor",
+  systembolaget: "Systembolaget",
+  email: "E-post",
+  "wine-search": "Hitta vin",
+  status: "Status",
 };
 
 function looksLikeUuid(seg: string): boolean {
@@ -57,11 +82,19 @@ function inferResourceLabelForIdSegment(
     case "tasks":
       return "Task";
     case "projects":
-      return "Project";
+      return "Projekt";
     case "objectives":
       return "Objective";
     case "goals":
       return "Goal";
+    case "b2c-orders":
+      return "Order";
+    case "producers":
+      return "Producent";
+    case "wines":
+      return "Vin";
+    case "pallets":
+      return "Pall";
     default:
       return null;
   }
@@ -195,7 +228,7 @@ export function AdminTopNav({ userEmail, onSignOut }: AdminTopNavProps) {
                   onClick={onSignOut}
                 >
                   <LogOut className="h-4 w-4 mr-2" />
-                  Sign out
+                  Logga ut
                 </Button>
               </div>
             </DropdownMenuContent>

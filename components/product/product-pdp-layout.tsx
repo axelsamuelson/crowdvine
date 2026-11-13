@@ -186,8 +186,19 @@ export async function ProductPdpLayout({
                     compareAtPrice={compareAtPrice}
                   />
                   <div className="w-full space-y-3">
+                    <AddToCartConditional
+                      product={product}
+                      className="w-full"
+                      previewDisabled={addToCartPreviewDisabled}
+                      ctaAside={
+                        product.productType === "wine" ? (
+                          <PdpB2BLink locale={locale} />
+                        ) : null
+                      }
+                    />
+                    {/* Info block below buy / ×6 selector: 6-bottle rule + delivery (PACT). */}
                     {!isDirtywine && product.productType === "wine" ? (
-                      <MinSixBottlesHint locale={locale} />
+                      <MinSixBottlesHint locale={locale} trackSurface="pdp_info" />
                     ) : null}
                     {/* SSR direct-box promise; client PalletStatusBar keeps analytics.
                         Hidden unless DIRECT_BOX_CHECKOUT_ENABLED. */}
@@ -203,16 +214,6 @@ export async function ProductPdpLayout({
                     <PalletStatusBar
                       sourceType={product.sourceType}
                       showDirectBoxPromise={isDirectBoxCheckoutEnabled()}
-                    />
-                    <AddToCartConditional
-                      product={product}
-                      className="w-full"
-                      previewDisabled={addToCartPreviewDisabled}
-                      ctaAside={
-                        product.productType === "wine" ? (
-                          <PdpB2BLink locale={locale} />
-                        ) : null
-                      }
                     />
                     {product.productType === "wine" &&
                     (

@@ -12,7 +12,7 @@ export function ArticleShopCta({
   lead?: string;
 }) {
   return (
-    <aside className="space-y-2 border-t border-border pt-8 text-sm">
+    <aside className="mt-6 space-y-2 border-t border-border pt-6 text-sm">
       {lead ? (
         <p className="text-[17px] leading-relaxed text-foreground/80">{lead}</p>
       ) : null}

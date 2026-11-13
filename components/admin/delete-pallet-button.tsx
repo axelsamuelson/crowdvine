@@ -66,7 +66,7 @@ export function DeletePalletButton({
         <Button
           variant="outline"
           size="sm"
-          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+          className="rounded-lg border-gray-200 text-red-600 shadow-none ring-0 ring-offset-0 hover:bg-red-50 hover:text-red-700 focus:ring-0 focus:ring-offset-0 focus-visible:ring-2 focus-visible:ring-red-500/40 focus-visible:ring-offset-0 dark:border-zinc-700 dark:hover:bg-red-950/30"
           disabled={isDeleting}
         >
           <Trash2 className="h-4 w-4" />

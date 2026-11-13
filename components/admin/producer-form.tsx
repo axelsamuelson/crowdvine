@@ -16,11 +16,13 @@ import {
 } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Switch } from "@/components/ui/switch";
+import { MapPin } from "lucide-react";
 import { CreateProducerData, Producer } from "@/lib/actions/producers";
 import {
   ADMIN_ACTIVE_SWITCH_CLASS,
   ADMIN_FORM_FIELDS_CLASS,
   ADMIN_HELP_TEXT_CLASS,
+  ADMIN_NEUTRAL_SWITCH_CLASS,
   ADMIN_OUTLINE_BUTTON_CLASS,
   ADMIN_TOGGLE_ROW_CLASS,
 } from "@/lib/admin-form-styles";
@@ -33,13 +35,17 @@ function StatusToggle({
   description,
   checked,
   onCheckedChange,
+  offTone = "danger",
 }: {
   id: string;
   label: string;
   description: string;
   checked: boolean;
   onCheckedChange: (checked: boolean) => void;
+  /** `neutral` = gray off state (Boost); `danger` = red off (Live / critical). */
+  offTone?: "danger" | "neutral";
 }) {
+  const offIsNeutral = offTone === "neutral";
   return (
     <div
       className={cn(
@@ -47,7 +53,9 @@ function StatusToggle({
         "h-full gap-3",
         checked
           ? "border-emerald-500/40 bg-emerald-500/5 dark:border-emerald-500/30 dark:bg-emerald-500/10"
-          : "border-red-500/40 bg-red-500/5 dark:border-red-500/30 dark:bg-red-500/10",
+          : offIsNeutral
+            ? "border-gray-200 bg-gray-50/80 dark:border-zinc-700 dark:bg-zinc-900/40"
+            : "border-red-500/40 bg-red-500/5 dark:border-red-500/30 dark:bg-red-500/10",
       )}
     >
       <div className="min-w-0">
@@ -65,13 +73,19 @@ function StatusToggle({
             "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium",
             checked
               ? "bg-emerald-500/15 text-emerald-800 dark:text-emerald-300"
-              : "bg-red-500/15 text-red-800 dark:text-red-300",
+              : offIsNeutral
+                ? "bg-gray-200 text-gray-700 dark:bg-zinc-700 dark:text-zinc-300"
+                : "bg-red-500/15 text-red-800 dark:text-red-300",
           )}
         >
           <span
             className={cn(
               "inline-flex h-2 w-2 rounded-full",
-              checked ? "bg-emerald-500" : "bg-red-500",
+              checked
+                ? "bg-emerald-500"
+                : offIsNeutral
+                  ? "bg-gray-400 dark:bg-zinc-400"
+                  : "bg-red-500",
             )}
           />
           {checked ? "På" : "Av"}
@@ -81,7 +95,9 @@ function StatusToggle({
           checked={checked}
           onCheckedChange={onCheckedChange}
           aria-label={label}
-          className={ADMIN_ACTIVE_SWITCH_CLASS}
+          className={
+            offIsNeutral ? ADMIN_NEUTRAL_SWITCH_CLASS : ADMIN_ACTIVE_SWITCH_CLASS
+          }
         />
       </div>
     </div>
@@ -424,16 +440,16 @@ export default function ProducerForm({
         ADMIN_FORM_FIELDS_CLASS,
       )}
     >
-      <div className="mb-6">
-        <h2 className="text-lg font-bold text-gray-900 dark:text-white">
-          {producer ? "Edit Producer" : "Add Producer"}
-        </h2>
-        <p className="text-sm text-gray-500 dark:text-zinc-400 mt-0.5">
-          {producer
-            ? "Update producer information"
-            : "Create a new wine producer"}
-        </p>
-      </div>
+      {producer ? null : (
+        <div className="mb-6">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+            Add Producer
+          </h2>
+          <p className="mt-0.5 text-sm text-gray-500 dark:text-zinc-400">
+            Create a new wine producer
+          </p>
+        </div>
+      )}
       <form
         id={producer ? "producer-edit-form" : undefined}
         action={producer ? `/admin/producers/${producer.id}` : undefined}
@@ -468,6 +484,7 @@ export default function ProducerForm({
             label="Boost Active"
             description="When enabled, PACT Points redeemed against this producer’s wines are worth 2× at checkout."
             checked={formData.boost_active === true}
+            offTone="neutral"
             onCheckedChange={(checked) =>
               setFormData((prev) => ({ ...prev, boost_active: !!checked }))
             }
@@ -582,7 +599,8 @@ export default function ProducerForm({
                   ADMIN_OUTLINE_BUTTON_CLASS,
                 )}
               >
-                {geocoding ? "Geocoding..." : "🌍 Get Coordinates from Address"}
+                <MapPin className="h-3.5 w-3.5 text-gray-500 dark:text-zinc-400" />
+                {geocoding ? "Geocoding..." : "Get Coordinates from Address"}
               </Button>
               {geocodeSuccess && (
                 <span className="text-xs font-medium text-green-600 dark:text-green-400">

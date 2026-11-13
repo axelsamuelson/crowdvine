@@ -1,4 +1,3 @@
--- DRAFT / REVIEW ONLY — do NOT apply without owner + Hugo/Ines approval.
 -- Adds fulfillment_channel + fulfillment_dispatch_status on order_reservations
 -- and allows direct_box rows in customer_shipping_rates.channel.
 -- Does NOT seed any customer price (no 99 SEK for direct_box).

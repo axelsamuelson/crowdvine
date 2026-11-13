@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin-auth-server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { listMenuDocuments, createMenuDocument } from "@/lib/menu-extraction/db";
+import { uploadPdfToStorage } from "@/lib/menu-extraction/storage";
 
 /**
  * GET /api/admin/menu-extraction/documents
@@ -44,13 +45,58 @@ export async function GET(request: NextRequest) {
   }
 }
 
+function slugFromFileName(name: string): string {
+  const base = name.replace(/\.[^.]+$/, "") || "manual";
+  const slug = base
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 48);
+  return slug || "manual";
+}
+
 /**
  * POST /api/admin/menu-extraction/documents
- * Create a new menu document. Body: { file_path, file_name, mime_type? }
+ * JSON body: { file_path, file_name, mime_type? } (existing path-only create)
+ * OR multipart FormData with `file` (PDF) — uploads via uploadPdfToStorage then creates the document.
  */
 export async function POST(request: NextRequest) {
   try {
     await requireAdmin();
+    const contentType = request.headers.get("content-type") || "";
+
+    if (contentType.includes("multipart/form-data")) {
+      const form = await request.formData();
+      const file = form.get("file");
+      if (!(file instanceof File)) {
+        return NextResponse.json(
+          { error: "file is required (PDF)" },
+          { status: 400 },
+        );
+      }
+      const fileName = (file.name || "menu.pdf").trim();
+      if (!fileName.toLowerCase().endsWith(".pdf")) {
+        return NextResponse.json(
+          { error: "Endast PDF stöds" },
+          { status: 400 },
+        );
+      }
+      const buffer = Buffer.from(await file.arrayBuffer());
+      if (buffer.length === 0) {
+        return NextResponse.json({ error: "Tom fil" }, { status: 400 });
+      }
+      const slug = slugFromFileName(fileName);
+      const timestamp = new Date().toISOString();
+      const file_path = await uploadPdfToStorage(slug, buffer, timestamp);
+      const document = await createMenuDocument({
+        file_path,
+        file_name: fileName,
+        mime_type: file.type || "application/pdf",
+        source_slug: slug,
+      });
+      return NextResponse.json({ document });
+    }
+
     const body = await request.json();
     const file_path =
       typeof body.file_path === "string" ? body.file_path.trim() : "";

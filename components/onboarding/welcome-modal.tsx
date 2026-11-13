@@ -15,12 +15,56 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LogoSvg } from "@/components/layout/header/logo-svg";
+import type { AppLocale } from "@/lib/i18n/locale";
 import { normalizeMembershipLevel } from "@/lib/membership/points-engine";
+import { palletDeliveryEstimateLabel } from "@/lib/pallet-delivery-estimate-label";
+import { useTranslations } from "@/lib/hooks/use-translations";
+import { cn } from "@/lib/utils";
 
 interface WelcomeModalProps {
   isOpen: boolean;
   onClose: () => void;
+  /** Override shopping locale (e.g. screenshot preview). */
+  locale?: AppLocale;
 }
+
+const WELCOME_NAV = {
+  sv: { back: "Tillbaka", skip: "Hoppa över", next: "Nästa", close: "Stäng" },
+  en: { back: "Back", skip: "Skip", next: "Next", close: "Close" },
+} as const;
+
+const STEP3_COPY = {
+  sv: {
+    title: "Pallar och status",
+    subtitle: "Följ ditt köp",
+    palletProgress: "Så fylls pallen",
+    bottlesCount: "487 / 700 flaskor",
+    bottlesToGo: "213 flaskor kvar —",
+    orderConfirmed: "Köpet är bekräftat",
+    bottlesBought:
+      "Dina flaskor är köpta och väntar på att pallen fylls",
+    palletComplete: "Pallen är full",
+    waitingCapacity: "Väntar på transport",
+    inTransit: "På väg",
+    shippingToYou: "Skickas till dig",
+    emailUpdates: "Du får ett mejl vid varje steg.",
+  },
+  en: {
+    title: "Pallets & Progress",
+    subtitle: "Follow your order",
+    palletProgress: "Pallet Progress",
+    bottlesCount: "487 / 700 bottles",
+    bottlesToGo: "213 bottles to go —",
+    orderConfirmed: "Order confirmed",
+    bottlesBought:
+      "Your bottles are bought and waiting for the pallet to fill",
+    palletComplete: "Pallet Complete",
+    waitingCapacity: "Waiting for capacity",
+    inTransit: "In Transit",
+    shippingToYou: "Shipping to you",
+    emailUpdates: "You'll receive email updates at each stage",
+  },
+} as const;
 
 type WelcomeModalMembershipLevel =
   | "basic"
@@ -94,8 +138,11 @@ const membershipLevels: Record<WelcomeModalMembershipLevel, MembershipConfig> = 
 const getSteps = (
   membershipLevel: WelcomeModalMembershipLevel,
   earningEnabled: boolean,
+  locale: AppLocale,
 ) => {
   const levelConfig = membershipLevels[membershipLevel];
+  const step3 = STEP3_COPY[locale];
+  const deliveryEstimate = palletDeliveryEstimateLabel(locale);
 
   return [
     {
@@ -129,10 +176,10 @@ const getSteps = (
             </div>
             <div>
               <h4 className="font-medium text-foreground text-sm mb-1">
-                Discover & Reserve
+                Discover & Buy
               </h4>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Browse curated natural wines and reserve bottles.
+                Browse curated natural wines and buy bottles.
               </p>
             </div>
           </div>
@@ -183,16 +230,18 @@ const getSteps = (
     },
     {
       id: 3,
-      title: "Pallets & Progress",
-      subtitle: "Watch your reservation come to life",
+      title: step3.title,
+      subtitle: step3.subtitle,
       icon: Truck,
       content: (
         <div className="space-y-6 max-w-md mx-auto h-[280px] flex flex-col justify-center">
           <div className="space-y-3">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Pallet Progress</span>
+              <span className="text-muted-foreground">
+                {step3.palletProgress}
+              </span>
               <span className="font-medium text-foreground">
-                487 / 700 bottles
+                {step3.bottlesCount}
               </span>
             </div>
             <div className="h-3 bg-muted rounded-full overflow-hidden">
@@ -204,7 +253,7 @@ const getSteps = (
               />
             </div>
             <p className="text-xs text-center text-muted-foreground">
-              213 bottles to go — estimated shipping in 2-3 weeks
+              {step3.bottlesToGo} {deliveryEstimate}
             </p>
           </div>
 
@@ -213,10 +262,10 @@ const getSteps = (
               <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
               <div>
                 <p className="text-sm font-medium text-foreground">
-                  Reservation Confirmed
+                  {step3.orderConfirmed}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Your bottles are reserved
+                  {step3.bottlesBought}
                 </p>
               </div>
             </div>
@@ -224,10 +273,10 @@ const getSteps = (
               <Package className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-0.5" />
               <div>
                 <p className="text-sm font-medium text-muted-foreground">
-                  Pallet Complete
+                  {step3.palletComplete}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Waiting for capacity
+                  {step3.waitingCapacity}
                 </p>
               </div>
             </div>
@@ -235,15 +284,17 @@ const getSteps = (
               <Truck className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-0.5" />
               <div>
                 <p className="text-sm font-medium text-muted-foreground">
-                  In Transit
+                  {step3.inTransit}
                 </p>
-                <p className="text-xs text-muted-foreground">Shipping to you</p>
+                <p className="text-xs text-muted-foreground">
+                  {step3.shippingToYou}
+                </p>
               </div>
             </div>
           </div>
 
           <p className="text-sm text-center text-muted-foreground pt-2">
-            You&apos;ll receive email updates at each stage
+            {step3.emailUpdates}
           </p>
         </div>
       ),
@@ -318,13 +369,13 @@ const getSteps = (
     {
       id: 5,
       title: "Ready to Start?",
-      subtitle: "Explore wines and make your first reservation",
+      subtitle: "Explore wines and make your first order",
       icon: Wine,
       content: (
         <div className="space-y-8 text-center h-[280px] flex flex-col justify-center">
           <div className="space-y-4">
             <p className="text-base text-muted-foreground leading-relaxed max-w-md mx-auto">
-              Browse our curated selection of natural wines, reserve your
+              Browse our curated selection of natural wines, buy your
               bottles, and watch your pallet fill up.
             </p>
             <p className="text-sm text-muted-foreground">
@@ -351,7 +402,13 @@ function welcomeModalTier(raw: string): WelcomeModalMembershipLevel {
   return n as WelcomeModalMembershipLevel;
 }
 
-export function WelcomeModal({ isOpen, onClose }: WelcomeModalProps) {
+export function WelcomeModal({
+  isOpen,
+  onClose,
+  locale: localeProp,
+}: WelcomeModalProps) {
+  const { context } = useTranslations();
+  const locale: AppLocale = localeProp ?? context.locale;
   const [currentStep, setCurrentStep] = useState(0);
   const [direction, setDirection] = useState(0);
   const [membershipLevel, setMembershipLevel] =
@@ -401,9 +458,10 @@ export function WelcomeModal({ isOpen, onClose }: WelcomeModalProps) {
     }
   }, [isOpen]);
 
-  const steps = getSteps(membershipLevel, earningEnabled);
+  const steps = getSteps(membershipLevel, earningEnabled, locale);
   const step = steps[currentStep];
   const Icon = step.icon;
+  const nav = WELCOME_NAV[locale];
 
   const handleNext = () => {
     if (currentStep < steps.length - 1) {
@@ -493,13 +551,18 @@ export function WelcomeModal({ isOpen, onClose }: WelcomeModalProps) {
               <button
                 onClick={handleSkip}
                 className="absolute top-6 right-6 z-10 w-8 h-8 flex items-center justify-center rounded-full bg-muted hover:bg-muted/80 transition-colors"
-                aria-label="Close"
+                aria-label={nav.close}
               >
                 <X className="w-4 h-4 text-muted-foreground" />
               </button>
 
-              {/* Content */}
-              <div className="p-8 md:p-12">
+              {/* Content — SV nav labels need extra horizontal room below md */}
+              <div
+                className={cn(
+                  "p-8 md:p-12",
+                  locale === "sv" && "max-md:px-4 max-md:py-6",
+                )}
+              >
                 {/* Header with Icon */}
                 <div className="flex flex-col items-center text-center mb-8">
                   {currentStep !== 0 && (
@@ -568,35 +631,52 @@ export function WelcomeModal({ isOpen, onClose }: WelcomeModalProps) {
                   ))}
                 </div>
 
-                {/* Navigation */}
-                <div className="flex items-center justify-between gap-4">
+                {/* Navigation — SV labels are longer; compact only below md so 1440/EN stay unchanged */}
+                <div
+                  className={cn(
+                    "flex items-center justify-between whitespace-nowrap",
+                    locale === "sv" ? "gap-0.5 md:gap-4" : "gap-4",
+                  )}
+                >
                   <Button
                     variant="ghost"
                     onClick={handlePrev}
                     disabled={currentStep === 0}
-                    className="gap-2"
+                    className={cn(
+                      "gap-2 shrink-0",
+                      locale === "sv" &&
+                        "gap-0.5 px-1.5 text-[13px] md:gap-2 md:px-4 md:text-sm",
+                    )}
                   >
                     <ArrowLeft className="w-4 h-4" />
-                    Back
+                    {nav.back}
                   </Button>
 
                   <Button
                     onClick={handleSkip}
                     variant="ghost"
-                    className="text-muted-foreground"
+                    className={cn(
+                      "text-muted-foreground min-w-0",
+                      locale === "sv" &&
+                        "shrink px-1.5 text-[13px] md:px-4 md:text-sm",
+                    )}
                   >
-                    Skip
+                    {nav.skip}
                   </Button>
 
                   <Button
                     onClick={handleNext}
-                    className="bg-foreground text-background hover:bg-foreground/90 gap-2"
+                    className={cn(
+                      "bg-foreground text-background hover:bg-foreground/90 gap-2 shrink-0",
+                      locale === "sv" &&
+                        "gap-1 px-2.5 text-[13px] md:gap-2 md:px-4 md:text-sm",
+                    )}
                   >
                     {currentStep === steps.length - 1 ? (
                       "Get Started"
                     ) : (
                       <>
-                        Next
+                        {nav.next}
                         <ArrowRight className="w-4 h-4" />
                       </>
                     )}

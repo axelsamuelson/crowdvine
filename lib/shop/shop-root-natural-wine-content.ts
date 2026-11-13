@@ -17,10 +17,10 @@ export type ShopRootNaturalWineContent = {
 const SV: ShopRootNaturalWineContent = {
   h1: "Naturvin",
   intro:
-    "Här hittar du alla våra naturviner, från rött och vitt till orange och rosé. Du reserverar flaskor online, och vinet levereras till Stockholm när pallen är full.",
+    "Här hittar du alla våra naturviner, från rött och vitt till orange och rosé. Du köper flaskor online, och vinet levereras hem till dig när pallen stänger.",
   contentHeading: "Om naturvin",
   longDescription:
-    "Naturvin är vin gjort som det gjordes innan den industriella vinframställningen tog över — druvor odlade ekologiskt eller biodynamiskt, jäsning med druvans egna vilda jästsvampar, och ingenting tillsatt i källaren. Inga syntetiska bekämpningsmedel i vingården, ingen tillsatt jäst, inget socker, inga enzymer, ingen filtrering. På sin höjd en liten mängd svavel vid buteljering — ofta inte ens det.\n\nResultatet är vin som smakar av sin plats och sin årgång snarare än av en standardiserad process. Naturvin är levande, ibland oförutsägbart, alltid ärligt. Ett rött naturvin från gamla Carignan-stockar i Faugères smakar helt annorlunda än ett från kalkjorden i Puisserguier — och det är hela poängen.\n\nVi säljer naturvin online med leverans i Stockholm. Ingen mellanhand, inget centrallager, inga påslag i onödiga led. När tillräckligt många har reserverat viner för att fylla en pall skickas den till Stockholm.",
+    "Naturvin är vin gjort som det gjordes innan den industriella vinframställningen tog över — druvor odlade ekologiskt eller biodynamiskt, jäsning med druvans egna vilda jästsvampar, och ingenting tillsatt i källaren. Inga syntetiska bekämpningsmedel i vingården, ingen tillsatt jäst, inget socker, inga enzymer, ingen filtrering. På sin höjd en liten mängd svavel vid buteljering — ofta inte ens det.\n\nResultatet är vin som smakar av sin plats och sin årgång snarare än av en standardiserad process. Naturvin är levande, ibland oförutsägbart, alltid ärligt. Ett rött naturvin från gamla Carignan-stockar i Faugères smakar helt annorlunda än ett från kalkjorden i Puisserguier — och det är hela poängen.\n\nVi säljer naturvin online med hemleverans. Ingen mellanhand, inget centrallager, inga påslag i onödiga led. När tillräckligt många har köpt viner för att fylla en pall skickas den hem till dig.",
   tastingProfile: [
     "Levande, ofta ofiltrerat och något grumligt",
     "Smakar av terroir — plats och årgång, inte process",
@@ -31,7 +31,7 @@ const SV: ShopRootNaturalWineContent = {
   foodPairing:
     "Naturvin är gjort för mat. Den höga fräschören och de levande syrorna gör det till ett tacksamt matvin — från lätta röda till chark och grillat, vita till skaldjur och fisk, orange till kryddstark mat och hårdostar. Servera generellt något svalare än konventionellt vin.",
   aboutText:
-    "Här hittar du alla våra naturviner, från rött och vitt till orange och rosé. Du reserverar flaskor online, och vinet levereras till Stockholm när pallen är full.",
+    "Här hittar du alla våra naturviner, från rött och vitt till orange och rosé. Du köper flaskor online, och vinet levereras hem till dig när pallen stänger.",
   faq: [
     {
       question: "Vad är naturvin?",
@@ -51,7 +51,7 @@ const SV: ShopRootNaturalWineContent = {
     {
       question: "Hur köper jag naturvin online?",
       answer:
-        "På PACT reserverar du naturviner du vill ha och får dem levererade hem. Vinerna kommer från små naturvinsproducenter. Varje vin har en produktsida med producent, region och druvor.",
+        "På PACT köper du naturviner du vill ha och får dem levererade hem. Vinerna kommer från små naturvinsproducenter. Varje vin har en produktsida med producent, region och druvor.",
     },
   ],
 };
@@ -59,10 +59,10 @@ const SV: ShopRootNaturalWineContent = {
 const EN: ShopRootNaturalWineContent = {
   h1: "Natural Wine",
   intro:
-    "Here you'll find all our natural wines, from red and white to orange and rosé. You reserve bottles online, and the wine is delivered to Stockholm when the pallet is full.",
+    "Here you'll find all our natural wines, from red and white to orange and rosé. You buy bottles online, and the wine is delivered to your door when the pallet closes.",
   contentHeading: "About natural wine",
   longDescription:
-    "Natural wine is wine made the way it was before industrial winemaking took over — grapes grown organically or biodynamically, fermentation with the grape's own wild yeasts, and nothing added in the cellar. No synthetic pesticides in the vineyard, no added yeast, no sugar, no enzymes, no filtration. At most a small amount of sulphur at bottling — often not even that.\n\nThe result is wine that tastes of its place and its vintage rather than of a standardised process. Natural wine is alive, sometimes unpredictable, always honest. A red natural wine from old Carignan vines in Faugères tastes completely different from one grown on the limestone of Puisserguier — and that is the whole point.\n\nWe sell natural wine online with delivery in Stockholm. No middleman, no central warehouse, no unnecessary markups. When enough people have reserved wines to fill a pallet, it ships to Stockholm.",
+    "Natural wine is wine made the way it was before industrial winemaking took over — grapes grown organically or biodynamically, fermentation with the grape's own wild yeasts, and nothing added in the cellar. No synthetic pesticides in the vineyard, no added yeast, no sugar, no enzymes, no filtration. At most a small amount of sulphur at bottling — often not even that.\n\nThe result is wine that tastes of its place and its vintage rather than of a standardised process. Natural wine is alive, sometimes unpredictable, always honest. A red natural wine from old Carignan vines in Faugères tastes completely different from one grown on the limestone of Puisserguier — and that is the whole point.\n\nWe sell natural wine online with home delivery. No middleman, no central warehouse, no unnecessary markups. When enough people have bought wines to fill a pallet, it ships to your door.",
   tastingProfile: [
     "Alive, often unfiltered and slightly cloudy",
     "Tastes of terroir — place and vintage, not process",
@@ -73,7 +73,7 @@ const EN: ShopRootNaturalWineContent = {
   foodPairing:
     "Natural wine is made for food. The high freshness and living acidity make it a rewarding food wine — from light reds with charcuterie and grilled dishes, whites with shellfish and fish, orange with spiced food and hard cheeses. Serve generally a little cooler than conventional wine.",
   aboutText:
-    "Here you'll find all our natural wines, from red and white to orange and rosé. You reserve bottles online, and the wine is delivered to Stockholm when the pallet is full.",
+    "Here you'll find all our natural wines, from red and white to orange and rosé. You buy bottles online, and the wine is delivered to your door when the pallet closes.",
   faq: [
     {
       question: "What is natural wine?",
@@ -93,13 +93,27 @@ const EN: ShopRootNaturalWineContent = {
     {
       question: "How do I buy natural wine online?",
       answer:
-        "On PACT you reserve the natural wines you want and have them delivered to your door. The wines come from small natural wine producers. Each wine has a product page with the producer, region and grapes.",
+        "On PACT you buy the natural wines you want and have them delivered to your door. The wines come from small natural wine producers. Each wine has a product page with the producer, region and grapes.",
     },
   ],
 };
 
+/** Dirty Wine keeps reserve wording; PACT uses buy/köper on the shop intro. */
+const SV_DIRTYWINE_INTRO =
+  "Här hittar du alla våra naturviner, från rött och vitt till orange och rosé. Du reserverar flaskor online, och vinet levereras till Stockholm när pallen är full.";
+const EN_DIRTYWINE_INTRO =
+  "Here you'll find all our natural wines, from red and white to orange and rosé. You reserve bottles online, and the wine is delivered to Stockholm when the pallet is full.";
+
 export function getShopRootNaturalWineContent(
   locale: AppLocale,
+  options?: { isB2BSite?: boolean },
 ): ShopRootNaturalWineContent {
-  return locale === "sv" ? SV : EN;
+  const base = locale === "sv" ? SV : EN;
+  if (options?.isB2BSite) {
+    return {
+      ...base,
+      intro: locale === "sv" ? SV_DIRTYWINE_INTRO : EN_DIRTYWINE_INTRO,
+    };
+  }
+  return base;
 }

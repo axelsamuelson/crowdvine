@@ -87,9 +87,10 @@ function staticPagesForProfile(
     weeklyEntry(`${baseUrl}/about`, 0.5),
     weeklyEntry(`${baseUrl}/om-oss`, 0.5),
     yearlyEntry(`${baseUrl}/villkor`, 0.3),
+    yearlyEntry(`${baseUrl}/terms`, 0.3),
     yearlyEntry(`${baseUrl}/integritetspolicy`, 0.3),
     yearlyEntry(`${baseUrl}/cookies`, 0.3),
-    // EN legal URLs exist for hreflang but are noindex until English copy ships.
+    // EN /privacy and /cookie-policy remain noindex until English copy ships.
     // /how-it-works permanently redirects to /om-oss — keep it out of the sitemap.
   ];
 

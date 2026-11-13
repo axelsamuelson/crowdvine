@@ -1,19 +1,33 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { DualOfferCheckoutPanel } from "@/components/checkout/dual-offer-checkout-panel";
+import { useShoppingContext } from "@/lib/context/shopping-context-provider";
 import type { DualOfferQuoteSet } from "@/lib/checkout/offer-quote";
 
+/**
+ * Review locale must drive ShoppingContext too — otherwise the site header
+ * (MENU / HOME…) stays on the resolved cookie/Accept-Language locale while
+ * only the dual-offer panel switches. Real /checkout uses shopping.locale for
+ * both; this sync makes the review route match that.
+ */
 export function DualOfferReviewLocales(props: { dual: DualOfferQuoteSet }) {
   const search = useSearchParams();
+  const shopping = useShoppingContext();
   const initial = useMemo(() => {
     const q = String(search.get("locale") ?? "sv")
       .trim()
       .toLowerCase();
     return q === "en" ? "en" : "sv";
   }, [search]);
-  const [locale, setLocale] = useState<"sv" | "en">(initial);
+  const [locale, setLocaleState] = useState<"sv" | "en">(initial);
+
+  useEffect(() => {
+    if (shopping.context.locale === locale) return;
+    void shopping.setLocale(locale);
+  }, [locale, shopping.context.locale, shopping.setLocale]);
+
   return (
     <div
       className="space-y-4 scroll-mt-top-spacing"
@@ -31,7 +45,7 @@ export function DualOfferReviewLocales(props: { dual: DualOfferQuoteSet }) {
           className={`rounded-md border px-3 py-1.5 text-sm ${
             locale === "sv" ? "border-foreground" : "border-border"
           }`}
-          onClick={() => setLocale("sv")}
+          onClick={() => setLocaleState("sv")}
         >
           Svenska
         </button>
@@ -41,7 +55,7 @@ export function DualOfferReviewLocales(props: { dual: DualOfferQuoteSet }) {
           className={`rounded-md border px-3 py-1.5 text-sm ${
             locale === "en" ? "border-foreground" : "border-border"
           }`}
-          onClick={() => setLocale("en")}
+          onClick={() => setLocaleState("en")}
         >
           English
         </button>
@@ -51,7 +65,6 @@ export function DualOfferReviewLocales(props: { dual: DualOfferQuoteSet }) {
         initialDual={props.dual}
         locale={locale}
         showDirectOffer
-        showDiagnostics
         className="scroll-mt-top-spacing"
       />
     </div>

@@ -138,14 +138,35 @@ export function resolveCustomerShippingQuote(input: {
       };
     }
 
-    const gross = Math.max(0, Math.round(rate.flatFeeCents));
+    // direct_box: flat_fee_cents is PER BOX of 6 (Axel 01:24).
+    // Shared pallet (`pact`) keeps a single flat fee per order.
+    let gross = Math.max(0, Math.round(rate.flatFeeCents));
+    let reason = `Configured flat fee ${gross} öre`;
+    if (channel === "direct_box") {
+      if (bottles <= 0 || bottles % 6 !== 0) {
+        return {
+          grossCents: 0,
+          netCents: 0,
+          currency: "SEK",
+          vatRate,
+          source: "missing_config",
+          reason: `direct_box shipping requires bottle count multiple of 6 (got ${bottles})`,
+          freeShipping: false,
+          complete: false,
+          rateChannel: null,
+        };
+      }
+      const boxes = bottles / 6;
+      gross = Math.max(0, Math.round(rate.flatFeeCents)) * boxes;
+      reason = `Configured ${rate.flatFeeCents} öre × ${boxes} box(es) of 6`;
+    }
     return {
       grossCents: gross,
       netCents: grossToNetCents(gross, true, vatRate),
       currency: "SEK",
       vatRate,
       source: "configured_flat",
-      reason: `Configured flat fee ${gross} öre`,
+      reason,
       freeShipping: false,
       complete: true,
       rateChannel: channel,

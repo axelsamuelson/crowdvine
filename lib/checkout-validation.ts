@@ -2,8 +2,7 @@ import {
   B2C_CART_MIN_BOTTLES,
   cartMinimumTrackingMeta,
   computeB2BPackMinimum,
-  computeB2CCartMinimum,
-  sumCartBottles,
+  computeB2CPackingMinimum,
   type CartMinimumChannel,
   type CartMinimumProgress,
 } from "@/lib/cart/cart-minimum";
@@ -19,14 +18,17 @@ export type CartItem = {
       producerId?: string;
       producerName?: string;
       producerDisplayName?: string | null;
+      sourceType?: string | null;
+      sourceName?: string | null;
+      region?: string | null;
     };
   };
 };
 
 /**
  * UI/analytics row for cart minimum progress.
- * B2C: one cart-scoped row (mix any wines).
- * B2B: one row per line that must be a full pack.
+ * B2C: one row per packing source (producer or wholesaler).
+ * B2B: one row per line that must be a valid quantity.
  */
 export type ProducerValidation = {
   producerId: string;
@@ -40,8 +42,12 @@ export type ProducerValidation = {
   required?: number;
   groupId?: string;
   groupName?: string;
-  /** `cart` = whole-cart B2C minimum; `line` = B2B pack line. */
-  scope?: "cart" | "line" | "producer";
+  /** `source` = B2C packing source; `line` = B2B; `cart` = legacy aggregate. */
+  scope?: "cart" | "line" | "producer" | "source";
+  /** producer | wholesaler when scope is source. */
+  sourceKind?: "producer" | "wholesaler";
+  /** Distinct wine regions for wholesaler Blandlåda labels. */
+  regions?: string[];
 };
 
 export type ValidationResult = {
@@ -57,7 +63,7 @@ export type ValidationResult = {
 
 export type ValidateCartMinimumOptions = {
   /**
-   * `b2c` (default): ≥ {@link B2C_CART_MIN_BOTTLES} bottles total, any mix.
+   * `b2c` (default): multiples of {@link B2C_CART_MIN_BOTTLES} per packing source.
    * `b2b`: each line must be quantity ≥ 1 (no pack minimum; see `lib/cart/bottle-pack.ts`).
    */
   channel?: CartMinimumChannel;
@@ -112,6 +118,8 @@ export function validateCartMinimum(
       producerId: item.merchandise?.product?.producerId,
       producerName: item.merchandise?.product?.producerName,
       producerDisplayName: item.merchandise?.product?.producerDisplayName,
+      sourceType: item.merchandise?.product?.sourceType,
+      sourceName: item.merchandise?.product?.sourceName,
     }));
     const { progress, lines: lineRows } = computeB2BPackMinimum(lines);
 
@@ -148,26 +156,46 @@ export function validateCartMinimum(
     return fromProgress(progress, producerValidations, errors);
   }
 
-  // B2C: cart-total minimum — mix any wines / producers.
-  const quantity = sumCartBottles(cartItems);
-  const progress = computeB2CCartMinimum(quantity);
-  const producerValidations: ProducerValidation[] = [
-    {
-      producerId: "cart",
-      producerName: "",
-      producerHandle: "",
-      quantity: progress.quantity,
-      isValid: progress.isValid,
-      needed: progress.needed,
-      required: progress.required,
-      scope: "cart",
-    },
-  ];
-  const errors = progress.isValid
-    ? []
-    : [
-        `Cart has ${progress.quantity} bottles. Add ${progress.needed} more to reach the minimum of ${progress.required}.`,
-      ];
+  // B2C: multiples of 6 per packing source (producer or wholesaler).
+  const lines = cartItems.map((item) => ({
+    id: item.merchandise?.id || item.id,
+    quantity: item.quantity,
+    producerId: item.merchandise?.product?.producerId,
+    producerName: item.merchandise?.product?.producerName,
+    producerDisplayName: item.merchandise?.product?.producerDisplayName,
+    sourceType: item.merchandise?.product?.sourceType,
+    sourceName: item.merchandise?.product?.sourceName,
+    region: item.merchandise?.product?.region,
+  }));
+
+  const { progress, sources } = computeB2CPackingMinimum(lines);
+
+  if (sources.length === 0) {
+    return emptyResult("b2c");
+  }
+
+  const producerValidations: ProducerValidation[] = sources.map((row) => ({
+    producerId: row.id,
+    // Internal / redirect name — UI formats wholesaler as Blandlåda.
+    producerName: row.displayName,
+    producerDisplayName: row.displayName,
+    producerHandle:
+      row.kind === "producer" ? generateProducerSlug(row.displayName) : "",
+    quantity: row.quantity,
+    isValid: row.isValid,
+    needed: row.needed,
+    required: row.required,
+    scope: "source",
+    sourceKind: row.kind,
+    regions: row.regions,
+  }));
+
+  const errors = producerValidations
+    .filter((v) => !v.isValid)
+    .map(
+      (v) =>
+        `${v.producerName}: ${v.quantity} bottles — add ${v.needed} more for a multiple of ${B2C_CART_MIN_BOTTLES}.`,
+    );
 
   return fromProgress(progress, producerValidations, errors);
 }
@@ -176,9 +204,7 @@ export function validateCartMinimum(
  * Validates cart against channel minimum rules.
  * Kept async for call-site compatibility; logic is pure (no DB).
  *
- * Historical bug: this used to require multiples of 6 **per producer**, which
- * made a mixed 6-bottle B2C cart fail (e.g. required 12 / missing 10 for two
- * 1-bottle producers, or required 24 / missing 18 for four mixed lines).
+ * B2C: multiples of 6 per packing source (producer / wholesaler).
  */
 export async function validateSixBottleRule(
   cartItems: CartItem[],

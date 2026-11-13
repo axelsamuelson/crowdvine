@@ -20,6 +20,7 @@ import { producerDisplayName } from "@/lib/producer-display-name";
 import { B2B_PRODUCER_ORDERS_ENABLED } from "@/lib/b2b/flags";
 import { resolveWineImageSrc } from "@/lib/cart/wine-image-url";
 import { localizeCartDiscountLabel } from "@/lib/cart/discount-label";
+import { formatPackingSourceCustomerLabel } from "@/lib/cart/packing-source-display";
 
 type MerchandiseSearchParams = {
   [key: string]: string;
@@ -126,17 +127,31 @@ export function CartItemCard({ item, onCloseCart }: CartItemProps) {
               {item.merchandise.product.title}
             </span>
             <div className="flex flex-wrap items-center gap-2">
-              {producerDisplayName({
-                name: item.merchandise.product.producerName,
-                display_name: item.merchandise.product.producerDisplayName,
-              }) ? (
-                <span className="text-sm text-muted-foreground">
-                  {producerDisplayName({
-                    name: item.merchandise.product.producerName,
-                    display_name: item.merchandise.product.producerDisplayName,
-                  })}
-                </span>
-              ) : null}
+              {(() => {
+                const st = String(
+                  item.merchandise.product.sourceType ?? "producer",
+                )
+                  .trim()
+                  .toLowerCase();
+                const isWholesaler =
+                  st === "wholesaler" || st === "wholesale";
+                const label = isWholesaler
+                  ? formatPackingSourceCustomerLabel({
+                      kind: "wholesaler",
+                      regions: item.merchandise.product.region
+                        ? [item.merchandise.product.region]
+                        : [],
+                      locale: locale === "en" ? "en" : "sv",
+                    })
+                  : producerDisplayName({
+                      name: item.merchandise.product.producerName,
+                      display_name:
+                        item.merchandise.product.producerDisplayName,
+                    });
+                return label ? (
+                  <span className="text-sm text-muted-foreground">{label}</span>
+                ) : null;
+              })()}
               {item.merchandise.product.producerBoostActive === true ? (
                 <BoostBadge />
               ) : null}

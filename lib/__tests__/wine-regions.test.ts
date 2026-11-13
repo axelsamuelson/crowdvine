@@ -31,23 +31,30 @@ import {
 import { getWineRegionContent } from "@/lib/region-content";
 
 describe("wine-regions config", () => {
-  it("exposes the ten allowlisted slugs from the plan", () => {
+  it("exposes the fourteen allowlisted slugs (10 + Corse/Provence/Savoie/Bugey)", () => {
     expect([...WINE_REGION_SLUGS].sort()).toEqual(
       [
         "alsace",
         "beaujolais",
         "bourgogne",
+        "bugey",
         "champagne",
+        "corse",
         "jura",
         "languedoc",
         "loire",
+        "provence",
         "rhone",
         "roussillon",
+        "savoie",
         "sud-ouest",
       ].sort(),
     );
-    expect(WINE_REGIONS).toHaveLength(10);
-    expect(WINE_REGION_VALUES).toHaveLength(10);
+    expect(WINE_REGIONS).toHaveLength(14);
+    expect(WINE_REGION_VALUES).toHaveLength(14);
+    expect(WINE_REGION_VALUES).toEqual(
+      expect.arrayContaining(["Corse", "Provence", "Savoie", "Bugey"]),
+    );
   });
 
   it("uses the specified EN labels", () => {
@@ -88,10 +95,12 @@ describe("mapToWineRegionValue / resolveWineRegionValue", () => {
     expect(mapToWineRegionValue("Languedoc")).toBe("Languedoc");
   });
 
-  it("leaves Corse / Provence / Bugey unmapped", () => {
-    expect(mapToWineRegionValue("Corse")).toBeNull();
-    expect(mapToWineRegionValue("Provence")).toBeNull();
-    expect(mapToWineRegionValue("Bugey")).toBeNull();
+  it("maps Corse / Provence / Savoie / Bugey; leaves others unmapped", () => {
+    expect(mapToWineRegionValue("Corse")).toBe("Corse");
+    expect(mapToWineRegionValue("Provence")).toBe("Provence");
+    expect(mapToWineRegionValue("Savoie")).toBe("Savoie");
+    expect(mapToWineRegionValue("Bugey")).toBe("Bugey");
+    expect(mapToWineRegionValue("Corsica")).toBe("Corse");
     expect(mapToWineRegionValue("Bordeaux")).toBeNull();
     expect(mapToWineRegionValue("Auvergne")).toBeNull();
     expect(mapToWineRegionValue("")).toBeNull();
@@ -119,10 +128,19 @@ describe("mapToWineRegionValue / resolveWineRegionValue", () => {
   it("returns null when neither side maps", () => {
     expect(
       resolveWineRegionValue({
+        wineRegion: "Bordeaux",
+        producerRegion: "Auvergne",
+      }),
+    ).toBeNull();
+  });
+
+  it("accepts newly allowlisted Corse from producer/wine", () => {
+    expect(
+      resolveWineRegionValue({
         wineRegion: "Corse",
         producerRegion: "Corse",
       }),
-    ).toBeNull();
+    ).toBe("Corse");
   });
 });
 
@@ -200,8 +218,15 @@ describe("buildWinePatch region allowlist", () => {
     expect(buildWinePatch({ region: "  " }).region).toBeNull();
   });
 
+  it("accepts newly allowlisted Corse / Provence / Savoie / Bugey", () => {
+    expect(buildWinePatch({ region: "Corse" }).region).toBe("Corse");
+    expect(buildWinePatch({ region: "Provence" }).region).toBe("Provence");
+    expect(buildWinePatch({ region: "Savoie" }).region).toBe("Savoie");
+    expect(buildWinePatch({ region: "Bugey" }).region).toBe("Bugey");
+  });
+
   it("rejects non-allowlisted region strings", () => {
-    expect(() => buildWinePatch({ region: "Corse" })).toThrow(
+    expect(() => buildWinePatch({ region: "Bordeaux" })).toThrow(
       InvalidWineRegionError,
     );
     expect(() => buildWinePatch({ region: "Vallée du Rhône" })).toThrow(
@@ -262,11 +287,11 @@ describe("Margaux region landing copy", () => {
     );
   });
 
-  it("SV meta ends with Budbee; EN meta omits Budbee; never hela Sverige", () => {
+  it("SV meta ends with Hemleverans i Sverige; EN omits home delivery; never hela Sverige", () => {
     for (const region of WINE_REGIONS) {
       const sv = wineRegionPageMetaDescription(region, "sv");
       const en = wineRegionPageMetaDescription(region, "en");
-      expect(sv.endsWith("Hemleverans med Budbee.")).toBe(true);
+      expect(sv.endsWith("Hemleverans i Sverige.")).toBe(true);
       expect(en.endsWith("at PACT.")).toBe(true);
       expect(en.toLowerCase()).not.toContain("budbee");
       expect(en.toLowerCase()).not.toContain("home delivery");

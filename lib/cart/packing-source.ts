@@ -19,6 +19,8 @@ export type PackingSourceInput = {
   producerId?: string | null;
   /** Optional display label (producer name or wholesaler source_name). */
   displayName?: string | null;
+  /** wines.region — used for wholesaler “Blandlåda från {region}”. */
+  region?: string | null;
 };
 
 export type PackingSource = {
@@ -104,41 +106,52 @@ export type PackingSourceProgress = PackingSource & {
   required: number;
   needed: number;
   isValid: boolean;
+  /** Distinct wine regions in this source (for wholesaler Blandlåda label). */
+  regions: string[];
 };
 
 /**
  * Aggregate bottle counts per packing source and report missing bottles.
- * Zero-quantity sources are omitted. Empty cart → empty list (caller decides
- * whether that is valid).
+ * Zero-quantity sources are omitted.
  */
 export function computePackingSourceProgress(
   lines: ReadonlyArray<PackingSourceBottleLine>,
 ): PackingSourceProgress[] {
   const byId = new Map<
     string,
-    { source: PackingSource; quantity: number }
+    { source: PackingSource; quantity: number; regions: string[] }
   >();
 
   for (const line of lines) {
     const quantity = Math.max(0, Math.floor(Number(line.quantity) || 0));
     if (quantity <= 0) continue;
     const source = resolvePackingSource(line);
+    const region = String(line.region ?? "").trim();
     const prev = byId.get(source.id);
     if (prev) {
       prev.quantity += quantity;
       if (
         source.displayName &&
-        source.displayName !== prev.source.displayName &&
         prev.source.displayName.startsWith("Producer ")
       ) {
         prev.source = source;
       }
+      if (
+        region &&
+        !prev.regions.some((r) => r.toLowerCase() === region.toLowerCase())
+      ) {
+        prev.regions.push(region);
+      }
     } else {
-      byId.set(source.id, { source, quantity });
+      byId.set(source.id, {
+        source,
+        quantity,
+        regions: region ? [region] : [],
+      });
     }
   }
 
-  return [...byId.values()].map(({ source, quantity }) => {
+  return [...byId.values()].map(({ source, quantity, regions }) => {
     const needed = bottlesNeededForPack(quantity);
     const required = nextPackBottleTarget(quantity);
     return {
@@ -147,6 +160,7 @@ export function computePackingSourceProgress(
       required,
       needed,
       isValid: needed === 0,
+      regions,
     };
   });
 }

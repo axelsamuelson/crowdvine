@@ -1,0 +1,24 @@
+/*
+ * Legal pages only. Solid site header (no transparency) without editing the
+ * shared header component used by open CRO work.
+ */
+body:has([data-legal-page]) header {
+  background-color: hsl(var(--background));
+  border-bottom: 1px solid hsl(var(--border) / 0.4);
+  /* Flush with the viewport top (esp. 390): no extra offset above the bar */
+  top: 0;
+  margin-top: 0;
+}
+
+/*
+ * Subheadings (H3): 32px above, 8px below. Beat .space-y-6 child margins
+ * and avoid margin collapse with the following paragraph.
+ */
+.legal-prose > h3 {
+  margin-top: 32px !important;
+  margin-bottom: 8px !important;
+}
+
+.legal-prose > h3 + * {
+  margin-top: 0 !important;
+}

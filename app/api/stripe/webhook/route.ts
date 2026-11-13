@@ -296,6 +296,32 @@ async function handlePaymentIntentSucceededWebhook(
             console.log(
               `[Stripe Webhook] marked fulfillment_dispatch_status=${DIRECT_BOX_FULFILLMENT_DISPATCH_PENDING} reservation_id=${reservationId} (manual ops handoff; no carrier invented)`,
             );
+            try {
+              const { sendDirectBoxOpsHandoffEmail } = await import(
+                "@/lib/commerce/direct-box-ops-email"
+              );
+              const addrRaw = resData.user_addresses;
+              const addr = Array.isArray(addrRaw) ? addrRaw[0] : addrRaw;
+              await sendDirectBoxOpsHandoffEmail({
+                reservationId,
+                bottles: Number((resData as { bottles?: number }).bottles) || 0,
+                totalSek:
+                  (resData as { total_sek?: number | null }).total_sek ?? null,
+                customerEmail:
+                  addr && typeof addr === "object"
+                    ? String((addr as { email?: string }).email ?? "")
+                    : null,
+                customerName:
+                  addr && typeof addr === "object"
+                    ? String((addr as { full_name?: string }).full_name ?? "")
+                    : null,
+              });
+            } catch (opsEmailErr) {
+              console.error(
+                `[Stripe Webhook] direct_box ops email failed reservation_id=${reservationId}:`,
+                opsEmailErr,
+              );
+            }
           }
         } else {
           console.log(

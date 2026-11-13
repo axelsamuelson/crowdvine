@@ -1,5 +1,6 @@
 "use client";
 
+import { CircleHelp } from "lucide-react";
 import {
   Popover,
   PopoverContent,
@@ -22,9 +23,10 @@ export function CasePurchaseHelpTrigger({
         <button
           type="button"
           className={cn(
+            "flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition-colors",
             variant === "plain"
-              ? "shrink-0 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-              : "flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-[0.5px] border-black/15 text-xs font-semibold text-[color:var(--color-text-secondary,hsl(var(--muted-foreground)))] transition-colors hover:bg-black/5 hover:text-foreground",
+              ? "text-muted-foreground hover:bg-black/5 hover:text-foreground"
+              : "border-[0.5px] border-black/15 text-[color:var(--color-text-secondary,hsl(var(--muted-foreground)))] hover:bg-black/5 hover:text-foreground",
             className,
           )}
           style={
@@ -37,7 +39,7 @@ export function CasePurchaseHelpTrigger({
           }
           aria-label={t("cart.caseHelpAria")}
         >
-          ?
+          <CircleHelp className="size-4" aria-hidden />
         </button>
       </PopoverTrigger>
       <PopoverContent

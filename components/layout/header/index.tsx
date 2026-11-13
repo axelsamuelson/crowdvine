@@ -60,6 +60,9 @@ export function Header({
     <header
       className={cn(
         "fixed top-0 left-0 z-50 w-full p-sides",
+        // PACT only: solid header (no transparent / overlay chrome over PDP gallery).
+        // Dirty Wine keeps its existing (non-solid) chrome unchanged.
+        !isDirtywineSite && "bg-background border-b border-border/40",
         // Dirtywine mobile: flex + absolutely centered logo (max 24px) so the wide
         // wordmark cannot shove the cart off-screen. Desktop matches previous 12-col grid.
         // pactwines.com keeps the original 3-col / 12-col grid unchanged.
@@ -69,16 +72,10 @@ export function Header({
       )}
     >
       {/*
-        Dirty Wine: wrapper above header cart (z-10) so the open menu panel /
-        «Stäng» are not covered by the cart badge. PACT keeps z-10.
+        Stack the mobile menu above the header cart (nav z-10) so open-panel
+        «Stäng»/Close is never covered by the cart badge. Same for PACT + Dirty Wine.
       */}
-      <div
-        className={
-          isDirtywineSite
-            ? "block flex-none md:hidden relative z-[60]"
-            : "block flex-none md:hidden relative z-10"
-        }
-      >
+      <div className="relative z-[60] block flex-none md:hidden">
         <MobileMenuDynamic
           collections={collections}
           popularCollections={popularCollections}

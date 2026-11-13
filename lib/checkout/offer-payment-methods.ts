@@ -37,13 +37,17 @@ const SHARED_PALLET_METHODS: PaymentMethodCapability[] = [
   { method: "swish", status: "denied", off_session: "verified_no" },
 ];
 
-/** Direct box — immediate charge when enabled; still candidates until live. */
+/** Direct box — immediate charge; card only (Axel 01:24). */
 const DIRECT_BOX_METHODS: PaymentMethodCapability[] = [
-  { method: "card", status: "candidate", off_session: "verified_no" },
-  { method: "link", status: "candidate", off_session: "unknown" },
-  { method: "klarna", status: "candidate", off_session: "unknown" },
-  { method: "amazon_pay", status: "candidate", off_session: "unknown" },
-  { method: "swish", status: "candidate", off_session: "unknown" },
+  {
+    method: "card",
+    status: "verified",
+    off_session: "verified_no",
+  },
+  { method: "link", status: "denied", off_session: "unknown" },
+  { method: "klarna", status: "denied", off_session: "verified_no" },
+  { method: "amazon_pay", status: "denied", off_session: "unknown" },
+  { method: "swish", status: "denied", off_session: "verified_no" },
 ];
 
 export function methodsForOffer(

@@ -51,6 +51,6 @@ export function producerShopMetaDescription(
   const place = region ? `, ${region}` : "";
 
   return locale === "sv"
-    ? `Naturviner från ${who}${place}. Hemleverans i Stockholm.`
-    : `Natural wines from ${who}${place}. Home delivery in Stockholm.`;
+    ? `Naturviner från ${who}${place}. Hemleverans i Sverige.`
+    : `Natural wines from ${who}${place}. Home delivery in Sweden.`;
 }

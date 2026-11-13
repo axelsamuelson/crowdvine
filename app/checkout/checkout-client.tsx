@@ -3779,8 +3779,8 @@ function CheckoutContent({
     );
   }, [cart?.lines]);
 
-  // Customer-facing delivery copy: direct box from producer (no pallet fill).
-  // Hidden unless DIRECT_BOX_CHECKOUT_ENABLED (same gate as dual-offer direct row).
+  // Customer-facing delivery copy: shipping-ordered, direct box, or shared-pallet estimate.
+  // Direct-box line hidden unless DIRECT_BOX_CHECKOUT_ENABLED (same gate as dual-offer).
   // TODO time string only via B2C_DIRECT_BOX_DELIVERY_TIME_TODO — do not invent SLAs.
   const deliveryPromiseLabel = useMemo(() => {
     const timeTodo = B2C_DIRECT_BOX_DELIVERY_TIME_TODO?.trim();
@@ -3789,8 +3789,10 @@ function CheckoutContent({
     if (st === "shipping_ordered") {
       return t("checkout.deliveryEstimateShippingOrdered");
     }
-    if (!directBoxCheckoutEnabled || !producerDirectBoxOnly) return null;
-    return t("commerce.directBoxDeliveryPromise");
+    if (directBoxCheckoutEnabled && producerDirectBoxOnly) {
+      return t("commerce.directBoxDeliveryPromise");
+    }
+    return t("checkout.deliveryEstimate2to3Weeks");
   }, [
     directBoxCheckoutEnabled,
     producerDirectBoxOnly,

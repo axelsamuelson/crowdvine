@@ -1,16 +1,22 @@
 "use client";
 
 import { motion } from "motion/react";
-import { CheckCircle2, ChevronDown, ChevronUp } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { CheckCircle2 } from "lucide-react";
+import { useEffect, useRef } from "react";
 import {
   cartMinimumTrackingMeta,
   type ProducerValidation,
 } from "@/lib/checkout-validation";
-import { WhySixBottlesModal } from "./WhySixBottlesModal";
+import { WhySixBottlesTrigger } from "./WhySixBottlesModal";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
+import { emitOnce } from "@/lib/analytics/emit-once";
 import { useTranslations } from "@/lib/hooks/use-translations";
-import { producerDisplayName } from "@/lib/producer-display-name";
+import {
+  formatPackingSourceCustomerLabel,
+  fullBoxCountFromBottles,
+  packingBoxSummary,
+} from "@/lib/cart/packing-source-display";
+import { PACK_BOTTLES_PER_SOURCE } from "@/lib/cart/packing-source";
 
 interface CartValidationHeaderProps {
   validations: ProducerValidation[];
@@ -20,56 +26,73 @@ interface CartValidationHeaderProps {
   neededTotal?: number;
 }
 
+function sourceLabel(
+  validation: ProducerValidation,
+  locale: "sv" | "en",
+): string {
+  if (validation.sourceKind === "wholesaler") {
+    return formatPackingSourceCustomerLabel({
+      kind: "wholesaler",
+      regions: validation.regions,
+      locale,
+    });
+  }
+  if (validation.scope === "cart") {
+    return "";
+  }
+  return formatPackingSourceCustomerLabel({
+    kind: "producer",
+    producerName:
+      validation.producerDisplayName || validation.producerName || "",
+    locale,
+  });
+}
+
 function BottleProgressRow({
   validation,
+  locale,
 }: {
   validation: ProducerValidation;
+  locale: "sv" | "en";
 }) {
   const { t } = useTranslations();
   const current = validation.quantity || 0;
   const needed = validation.needed || 0;
   const total =
     validation.required ??
-    (current + needed || 6);
+    (current + needed || PACK_BOTTLES_PER_SOURCE);
   const progress = total > 0 ? Math.min((current / total) * 100, 100) : 0;
   const isComplete = validation.isValid;
-  const shownProducer = producerDisplayName({
-    name: validation.producerName,
-    display_name: validation.producerDisplayName,
-  });
-  const label =
-    validation.scope === "cart" || !shownProducer
-      ? t("cart.bottleProgressHint")
-      : shownProducer;
+  const boxes = Math.max(
+    1,
+    fullBoxCountFromBottles(isComplete ? current : total),
+  );
+  const label = sourceLabel(validation, locale);
 
   return (
     <div className="space-y-1">
       <div className="flex items-center justify-between gap-2">
         <span className="text-xs text-muted-foreground font-medium truncate">
-          {label}
+          {label || t("cart.bottleProgressHint")}
         </span>
-        <span
-          className={`text-xs font-semibold tabular-nums shrink-0 ${
-            isComplete ? "text-emerald-700" : "text-amber-700"
-          }`}
-        >
+        <span className="text-xs font-semibold tabular-nums shrink-0 text-foreground">
           {isComplete
-            ? t("cart.bottleProgress", { current, total: current || 6 })
+            ? t("cart.bottleProgressFull", {
+                current,
+                total: current,
+                boxes,
+              })
             : t("cart.bottleProgress", { current, total })}
         </span>
       </div>
       <div className="relative h-2 bg-foreground/[0.08] rounded-full overflow-hidden">
         <div
-          className={`absolute inset-y-0 left-0 rounded-full transition-all duration-500 ease-out ${
-            isComplete
-              ? "bg-gradient-to-r from-green-500 to-green-600"
-              : "bg-gradient-to-r from-amber-500 to-amber-600"
-          }`}
+          className="absolute inset-y-0 left-0 rounded-full bg-[#0A0A0A] transition-all duration-500 ease-out"
           style={{ width: `${progress}%` }}
         />
       </div>
       {!isComplete ? (
-        <p className="text-[11px] text-amber-800/90">
+        <p className="text-[11px] text-muted-foreground">
           {t("cart.needMoreBottlesShort", { needed })}
         </p>
       ) : null}
@@ -83,9 +106,8 @@ export function CartValidationHeader({
   requiredQuantity: requiredQuantityProp,
   neededTotal: neededTotalProp,
 }: CartValidationHeaderProps) {
-  const { t } = useTranslations();
-  const [isExpanded, setIsExpanded] = useState(true);
-  const [showWhyModal, setShowWhyModal] = useState(false);
+  const { t, context } = useTranslations();
+  const locale = context.locale === "en" ? "en" : "sv";
   const shownRef = useRef(false);
   const passedRef = useRef(false);
   const failedRef = useRef(false);
@@ -93,6 +115,10 @@ export function CartValidationHeader({
   const allValid = validations.every((v) => v.isValid);
   const invalidCount = validations.filter((v) => !v.isValid).length;
   const isCartScoped = validations.some((v) => v.scope === "cart");
+  // Count BOXES, not sources: full = Σ floor(n/6), total = Σ ceil(n/6).
+  const { full: fullBoxCount, total: targetBoxCount } = packingBoxSummary(
+    validations.map((v) => v.quantity || 0),
+  );
 
   const derivedNeeded = validations.reduce(
     (sum, v) => sum + (v.isValid ? 0 : v.needed),
@@ -115,6 +141,20 @@ export function CartValidationHeader({
   useEffect(() => {
     if (isValidating) return;
     if (validations.length === 0) return;
+
+    const bottlesInCart = validations.reduce(
+      (s, v) => s + (v.quantity || 0),
+      0,
+    );
+    if (bottlesInCart > 0) {
+      emitOnce("six_pack_rule_viewed:cart", () => {
+        void AnalyticsTracker.trackEvent({
+          eventType: "six_pack_rule_viewed",
+          eventCategory: "engagement",
+          metadata: { surface: "cart" },
+        });
+      });
+    }
 
     const tracking = cartMinimumTrackingMeta(
       {
@@ -173,11 +213,6 @@ export function CartValidationHeader({
     isCartScoped,
   ]);
 
-  // Expand by default whenever there are blocking errors.
-  useEffect(() => {
-    if (invalidCount > 0) setIsExpanded(true);
-  }, [invalidCount]);
-
   if (isValidating) {
     return (
       <motion.div
@@ -197,48 +232,6 @@ export function CartValidationHeader({
     );
   }
 
-  if (allValid && validations.length > 0) {
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="px-3 md:px-4 mb-2"
-      >
-        <div className="bg-background/95 backdrop-blur-md border border-border/30 rounded-lg p-3 space-y-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-              <span className="text-xs text-emerald-700 font-medium">
-                {t("cart.readyToCheckout")}
-              </span>
-            </div>
-            <button
-              onClick={() => {
-                setShowWhyModal(true);
-                AnalyticsTracker.trackEvent({
-                  eventType: "why_modal_opened",
-                  eventCategory: "engagement",
-                });
-              }}
-              className="text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors min-h-9 px-1"
-              title={t("cart.whySixAria")}
-            >
-              {t("cart.why")}
-            </button>
-          </div>
-          <p className="text-[11px] text-muted-foreground">
-            {t("cart.bottleProgressHint")}
-          </p>
-        </div>
-
-        <WhySixBottlesModal
-          isOpen={showWhyModal}
-          onClose={() => setShowWhyModal(false)}
-        />
-      </motion.div>
-    );
-  }
-
   if (validations.length === 0) {
     return (
       <motion.div
@@ -254,114 +247,77 @@ export function CartValidationHeader({
                 {t("cart.learnSixBottleRule")}
               </span>
             </div>
-            <button
-              onClick={() => {
-                setShowWhyModal(true);
-                AnalyticsTracker.trackEvent({
-                  eventType: "why_modal_opened",
-                  eventCategory: "engagement",
-                });
-              }}
-              className="text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors min-h-9 px-1 shrink-0"
-              title={t("cart.whySixAria")}
-            >
-              {t("cart.why")}
-            </button>
+            <WhySixBottlesTrigger />
           </div>
         </div>
-
-        <WhySixBottlesModal
-          isOpen={showWhyModal}
-          onClose={() => setShowWhyModal(false)}
-        />
       </motion.div>
     );
   }
 
-  const invalidValidations = validations.filter((v) => !v.isValid);
-  const validValidations = validations.filter((v) => v.isValid);
-  const allValidations = [...invalidValidations, ...validValidations];
+  // Legacy cart-total scoped progress (pre six-per-source).
+  if (isCartScoped) {
+    const current = validations.reduce((s, v) => s + (v.quantity || 0), 0);
+    const total = requiredQuantity || PACK_BOTTLES_PER_SOURCE;
+    const needed = totalNeeded || Math.max(0, total - current);
+    const progress = total > 0 ? Math.min((current / total) * 100, 100) : 0;
+    const boxes = Math.max(1, fullBoxCountFromBottles(current || total));
 
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="px-3 md:px-4 mb-2"
+      >
+        <div className="bg-background/95 backdrop-blur-md border border-border/30 rounded-lg p-3 space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs font-semibold tabular-nums text-foreground">
+              {allValid
+                ? t("cart.bottleProgressFull", {
+                    current,
+                    total: current,
+                    boxes,
+                  })
+                : t("cart.bottleProgress", { current, total })}
+            </span>
+            <WhySixBottlesTrigger />
+          </div>
+          <div className="relative h-1.5 bg-foreground/[0.08] rounded-full overflow-hidden">
+            <div
+              className="absolute inset-y-0 left-0 rounded-full bg-[#0A0A0A] transition-all duration-500 ease-out"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+          {!allValid ? (
+            <p className="text-[11px] text-muted-foreground">
+              {t("cart.needMoreMixHint", { needed })}
+            </p>
+          ) : null}
+        </div>
+      </motion.div>
+    );
+  }
+
+  // Summary only — per-source progress lives in the grouped list headers.
   return (
     <motion.div
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
       className="px-3 md:px-4 mb-2"
     >
-      <div className="bg-amber-50/90 dark:bg-amber-950/30 backdrop-blur-md border border-amber-200/60 rounded-lg p-3">
-        <div className="space-y-2.5">
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0 space-y-0.5">
-              <p className="text-xs font-semibold text-amber-900 dark:text-amber-100">
-                {isCartScoped
-                  ? t("cart.needMoreBottlesShort", {
-                      needed: totalNeeded || invalidValidations[0]?.needed || 0,
-                    })
-                  : invalidValidations.length === 1
-                    ? t("cart.oneProducerNeedsMore", {
-                        needed: invalidValidations[0].needed,
-                      })
-                    : t("cart.producersNeedMore", {
-                        count: invalidValidations.length,
-                      })}
-              </p>
-              <p className="text-[11px] text-amber-800/80 dark:text-amber-200/80">
-                {t("cart.bottleProgressHint")}
-                {!isCartScoped && totalNeeded > 0
-                  ? ` · ${t("cart.needMoreBottlesShort", { needed: totalNeeded })}`
-                  : ""}
-              </p>
-            </div>
-            <div className="flex items-center gap-1 shrink-0">
-              <button
-                onClick={() => {
-                  setShowWhyModal(true);
-                  AnalyticsTracker.trackEvent({
-                    eventType: "why_modal_opened",
-                    eventCategory: "engagement",
-                  });
-                }}
-                className="text-xs text-amber-800/70 hover:text-amber-900 transition-colors min-h-9 px-1"
-                title={t("cart.whySixAria")}
-              >
-                {t("cart.why")}
-              </button>
-              <button
-                onClick={() => setIsExpanded(!isExpanded)}
-                className="p-2 hover:bg-amber-100/80 rounded transition-colors min-h-9 min-w-9"
-                aria-expanded={isExpanded}
-              >
-                {isExpanded ? (
-                  <ChevronUp className="w-4 h-4 text-amber-800" />
-                ) : (
-                  <ChevronDown className="w-4 h-4 text-amber-800" />
-                )}
-              </button>
-            </div>
-          </div>
-
-          {isExpanded ? (
-            <div className="space-y-2.5 pt-1">
-              {allValidations.map((validation) => (
-                <BottleProgressRow
-                  key={`${validation.scope || "row"}-${validation.producerId}-${validation.producerHandle}`}
-                  validation={validation}
-                />
-              ))}
-              <p className="text-[11px] text-muted-foreground">
-                {isCartScoped
-                  ? t("cart.mixFreelyCart")
-                  : t("cart.mixFreelyWithinProducer")}
-              </p>
-            </div>
-          ) : null}
+      <div className="bg-background/95 backdrop-blur-md border border-border/30 rounded-lg p-3">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-xs font-semibold text-foreground tabular-nums flex items-center gap-1.5 min-w-0">
+            {allValid ? (
+              <CheckCircle2 className="w-3.5 h-3.5 text-foreground/70 shrink-0" />
+            ) : null}
+            {t("cart.fullBoxesSummary", {
+              full: fullBoxCount,
+              total: targetBoxCount,
+            })}
+          </p>
+          <WhySixBottlesTrigger />
         </div>
       </div>
-
-      <WhySixBottlesModal
-        isOpen={showWhyModal}
-        onClose={() => setShowWhyModal(false)}
-      />
     </motion.div>
   );
 }

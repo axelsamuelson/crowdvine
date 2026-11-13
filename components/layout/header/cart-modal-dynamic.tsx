@@ -9,8 +9,9 @@ import dynamic from "next/dynamic";
 const CartModal = dynamic(() => import("@/components/cart/modal"), {
   ssr: false,
   loading: () => (
+    // Invisible spacer — no grey empty cart placeholder in the header.
     <span
-      className="inline-block h-7 w-10 shrink-0 rounded-sm bg-muted/40 animate-pulse md:w-16"
+      className="inline-block h-7 w-10 shrink-0 md:w-16"
       aria-hidden
       data-testid="cart-badge-loading"
     />

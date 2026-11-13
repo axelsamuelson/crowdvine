@@ -27,7 +27,7 @@ export async function generateMetadata(props: {
   const description =
     config.baseUrl === DIRTY_WINE_CONFIG.baseUrl
       ? "Naturvin. Ekologiskt och biodynamiskt. För restauranger i Stockholm."
-      : "Bläddra bland naturviner. Ekologiskt och biodynamiskt. Hemleverans i Stockholm.";
+      : "Bläddra bland naturviner. Ekologiskt och biodynamiskt. Hemleverans i Sverige.";
 
   return {
     title: { absolute: title },

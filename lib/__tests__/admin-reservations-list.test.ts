@@ -15,11 +15,38 @@ describe("resolveAdminFulfillmentDisplay", () => {
     expect(badges).toEqual([
       {
         kind: "fulfillment",
-        label: "Fulfillment: pending_manual_handoff",
+        label: "Direktleverans: Väntar på upphämtning",
         title: "pending_manual_handoff",
       },
     ]);
     expect(badges.some((b) => b?.kind === "charge_hold")).toBe(false);
+  });
+
+  it("uses Swedish nouns for booked / completed / cancelled / skipped", () => {
+    expect(
+      resolveAdminFulfillmentDisplay({
+        fulfillment_channel: "direct_box",
+        fulfillment_dispatch_status: "booked",
+      })[0]?.label,
+    ).toBe("Direktleverans: Bokad");
+    expect(
+      resolveAdminFulfillmentDisplay({
+        fulfillment_channel: "direct_box",
+        fulfillment_dispatch_status: "completed",
+      })[0]?.label,
+    ).toBe("Direktleverans: Levererad");
+    expect(
+      resolveAdminFulfillmentDisplay({
+        fulfillment_channel: "direct_box",
+        fulfillment_dispatch_status: "cancelled",
+      })[0]?.label,
+    ).toBe("Direktleverans: Avbruten");
+    expect(
+      resolveAdminFulfillmentDisplay({
+        fulfillment_channel: "direct_box",
+        fulfillment_dispatch_status: "skipped",
+      })[0]?.label,
+    ).toBe("Direktleverans: Skippad");
   });
 
   it("legacy DIRECT_BOX_FULFILLMENT_PENDING is fulfillment, not charge hold", () => {
