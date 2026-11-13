@@ -580,10 +580,11 @@ export function RankedWineRow({
       : limitedAvailabilityLabel(wine.availability_state, locale);
   const styleLabel = primaryStyleLabel(wine.primary_style, locale);
   const price = showPrice ? formatPrice(wine.price) : null;
-  const note =
+  const rawNote =
     locale === "en"
       ? wine.editorial_note_en?.trim() || wine.editorial_note_sv.trim()
       : wine.editorial_note_sv.trim();
+  const note = rawNote;
   const rawProducerNote =
     locale === "en"
       ? wine.producer_note_en?.trim() || wine.producer_note_sv?.trim() || null
