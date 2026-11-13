@@ -51,7 +51,7 @@ import { getCachedShoppingContextFromRequest } from "@/lib/shopping-context/serv
 import { getCachedWineFewLeftThreshold } from "@/lib/wine-settings-cache";
 import { type SiteConfig } from "@/lib/site-config";
 import { getSiteConfig } from "@/lib/site-config-server";
-import { localeFromShopPath } from "@/lib/i18n/shop-path-locale";
+import { resolveRequestUiLocale } from "@/lib/i18n/request-ui-locale";
 import {
   buildRootTwitterMetadata,
   defaultOpenGraphImages,
@@ -160,8 +160,9 @@ export default async function RootLayout({
       }),
     ]);
 
-  const pathLocale = localeFromShopPath(ssrPathname);
-  const htmlLang = pathLocale ?? shoppingContext.locale;
+  const search = requestHeaders.get("x-search")?.trim() || "";
+  const { uiLocale } = resolveRequestUiLocale(ssrPathname, search);
+  const htmlLang = uiLocale ?? shoppingContext.locale;
 
   return (
     <html lang={htmlLang} suppressHydrationWarning>

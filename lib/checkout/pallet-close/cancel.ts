@@ -15,6 +15,8 @@ export type CloseCancelReason =
   | "customer_cancel"
   | "choice_timeout"
   | "pay_link_timeout"
+  /** Sold-out packing rule: removal would break 6-per-source; no answer → cancel. */
+  | "sold_out_pack_timeout"
   | "other";
 
 export async function cancelReservationAndDetachPaymentMethod(opts: {

@@ -4,6 +4,10 @@
  * Fill count policy: INCLUDE the customer's own cart bottles that will join
  * this shared pallet. Always show the count text (no "opened" prefix).
  * Progress bar: only when fillRatio >= PALLET_BAR_MIN_FILL (default 15%).
+ *
+ * Coverage-close (Axel 2026-11-11): pass `capacity` = bottles needed for the
+ * CURRENT threshold (Y in "X av Y flaskor"), recomputed when the threshold
+ * drops — never a countdown/deadline.
  */
 
 export const CHECKOUT_PALLET_FILL_INCLUDES_CUSTOMER_CART = true as const;

@@ -7,7 +7,13 @@
  */
 export function getAppUrl(): string {
   const explicit = process.env.NEXT_PUBLIC_APP_URL?.trim();
-  if (explicit) return explicit;
+  if (explicit) return explicit.replace(/\/$/, "");
+
+  // Prefer production domain when Vercel marks the deployment as production,
+  // even if NODE_ENV is somehow mis-set (avoids localhost in prod emails).
+  if (process.env.VERCEL_ENV === "production") {
+    return "https://pactwines.com";
+  }
 
   const vercelUrl = process.env.VERCEL_URL;
   if (vercelUrl) return `https://${vercelUrl}`;

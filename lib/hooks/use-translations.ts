@@ -13,6 +13,7 @@ import { fallbackShoppingContext } from "@/lib/shopping-context/defaults";
  * Translations tied to shopping locale when inside {@link ShoppingContextProvider}.
  * URL paths (/vin, /produkt, …) override context during hydration so PLP links
  * stay locale-correct before the client provider is ready.
+ * Explicit `?lang=` is applied server-side via shopping-context / middleware.
  */
 export function useTranslations() {
   const pathname = usePathname();

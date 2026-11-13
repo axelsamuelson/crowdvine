@@ -15,50 +15,194 @@ import {
   chargeCreatedAfterIso,
   isChargeEligible,
 } from "@/lib/legal/charge-eligibility";
+import { sendPaymentCancelledEmail } from "@/lib/sendgrid-service";
+import { createPalletClosePaymentLink } from "@/lib/checkout/pallet-close/payment-link";
+import { resolveAmountOre } from "@/lib/checkout/pallet-close/resolve-amount-ore";
 import {
-  sendPaymentCancelledEmail,
-  sendPaymentConfirmedEmail,
-} from "@/lib/sendgrid-service";
+  decidePaymentRetrySchedule,
+  PAYMENT_RETRY_INTERVAL_MS,
+  PAYMENT_RETRY_PAY_WINDOW_MS,
+  paymentRetryMayWritePayWindow,
+  resolvePaymentRetryPayWindow,
+} from "@/lib/payment-retry-window";
 
-const CANCELLATION_REASON_DB = "Payment failed after maximum retries";
+export {
+  decidePaymentRetrySchedule,
+  PAYMENT_RETRY_INTERVAL_MS,
+  PAYMENT_RETRY_PAY_WINDOW_MS,
+  paymentRetryMayWritePayWindow,
+  resolvePaymentRetryPayWindow,
+} from "@/lib/payment-retry-window";
+
+const CANCELLATION_REASON_DB = "Payment failed after pay window expired";
 const CANCELLATION_REASON_EMAIL =
-  "Your card could not be charged after multiple attempts.";
+  "Payment was not completed within 3 days of the failed charge.";
 
-const MS_24H = 24 * 60 * 60 * 1000;
-const MS_72H = 72 * 60 * 60 * 1000;
+export type SchedulePaymentRetryResult = {
+  action: "scheduled" | "cancelled" | "skipped";
+  payByAt?: string;
+  /** True only when this call opened a new 3-day window (send failed-charge email once). */
+  windowOpened?: boolean;
+  /** Stripe Checkout URL for paying / updating card — only set when windowOpened. */
+  paymentLinkUrl?: string;
+};
 
 /**
- * After a failed charge, schedule the next retry or cancel after max attempts.
- * attemptNumber is payment_attempts after the failure (1 = first failure → 24h).
+ * After a failed charge, schedule the next retry or cancel after the 3-day window.
+ * attemptNumber is kept for call-site compatibility; the window is time-based.
+ *
+ * Never writes offsession_* when pallet-close owns pay_link_pending/charging.
+ * Opens the window (and creates a pay link) only once — subsequent failures reuse
+ * the same pay-by date and do not re-open.
  */
 export async function schedulePaymentRetry(
   reservationId: string,
-  attemptNumber: number,
-): Promise<void> {
-  if (attemptNumber >= 3) {
-    await cancelFailedReservation(reservationId);
-    return;
-  }
-
-  const ms = attemptNumber >= 2 ? MS_72H : MS_24H;
-  const when = new Date(Date.now() + ms).toISOString();
-
+  _attemptNumber: number,
+): Promise<SchedulePaymentRetryResult> {
   const sb = getSupabaseAdmin();
+  const now = new Date();
+
   const { data: existing } = await sb
     .from("order_reservations")
-    .select("status, archived_at")
+    .select(
+      "status, archived_at, cancelled_at, offsession_charge_failed_at, offsession_pay_by, offsession_payment_link_url, pallet_close_state, pallet_id",
+    )
     .eq("id", reservationId)
     .maybeSingle();
+
   if (
     existing &&
-    (String(existing.status) === "archived" || existing.archived_at != null)
+    (String(existing.status) === "archived" ||
+      existing.archived_at != null ||
+      existing.cancelled_at != null ||
+      String(existing.status) === "cancelled")
   ) {
-    return;
+    return { action: "skipped" };
+  }
+
+  const window = resolvePaymentRetryPayWindow({
+    now,
+    palletCloseState: existing?.pallet_close_state,
+    existingFailedAt: existing?.offsession_charge_failed_at,
+    existingPayBy: existing?.offsession_pay_by,
+  });
+
+  if (window.kind === "skip_owned_by_pallet_close") {
+    // Pallet-close cron owns timeout + pay-link email for this reservation.
+    return { action: "skipped" };
+  }
+
+  let paymentLinkUrl: string | undefined;
+  if (window.kind === "open") {
+    if (!paymentRetryMayWritePayWindow(existing?.pallet_close_state)) {
+      return { action: "skipped" };
+    }
+    // Conditional write: never overwrite an existing pay-by (race with pallet-close).
+    const { data: written, error: windowErr } = await sb
+      .from("order_reservations")
+      .update({
+        offsession_charge_failed_at: window.windowStartedAt.toISOString(),
+        offsession_pay_by: window.payByAt.toISOString(),
+      })
+      .eq("id", reservationId)
+      .is("offsession_pay_by", null)
+      .neq("status", "archived")
+      .is("archived_at", null)
+      .select("id")
+      .maybeSingle();
+
+    if (windowErr) {
+      console.error(
+        `[RETRY] schedulePaymentRetry set pay window reservation_id=${reservationId}:`,
+        windowErr.message,
+      );
+      return { action: "skipped" };
+    }
+    if (!written) {
+      // Another writer (e.g. pallet-close) set the window first — reload and reuse.
+      const { data: again } = await sb
+        .from("order_reservations")
+        .select(
+          "offsession_charge_failed_at, offsession_pay_by, offsession_payment_link_url, pallet_close_state",
+        )
+        .eq("id", reservationId)
+        .maybeSingle();
+      const reused = resolvePaymentRetryPayWindow({
+        now,
+        palletCloseState: again?.pallet_close_state,
+        existingFailedAt: again?.offsession_charge_failed_at,
+        existingPayBy: again?.offsession_pay_by,
+      });
+      if (reused.kind === "skip_owned_by_pallet_close") {
+        return { action: "skipped" };
+      }
+      if (reused.kind === "reuse") {
+        const decision = decidePaymentRetrySchedule({
+          now,
+          windowStartedAt: reused.windowStartedAt,
+        });
+        if (decision.action === "cancel") {
+          await cancelFailedReservation(reservationId);
+          return {
+            action: "cancelled",
+            payByAt: decision.payByAt.toISOString(),
+            windowOpened: false,
+          };
+        }
+        await sb
+          .from("order_reservations")
+          .update({ retry_scheduled_at: decision.at.toISOString() })
+          .eq("id", reservationId)
+          .neq("status", "archived")
+          .is("archived_at", null);
+        return {
+          action: "scheduled",
+          payByAt: decision.payByAt.toISOString(),
+          windowOpened: false,
+          paymentLinkUrl:
+            typeof again?.offsession_payment_link_url === "string"
+              ? again.offsession_payment_link_url
+              : undefined,
+        };
+      }
+      return { action: "skipped" };
+    }
+
+    // Create a real Stripe Checkout pay link (profile#payment only manages cards).
+    const amountOre = await resolveAmountOre(reservationId);
+    if (amountOre != null && amountOre > 0) {
+      const link = await createPalletClosePaymentLink({
+        reservationId,
+        amountOre,
+        palletId:
+          typeof existing?.pallet_id === "string" ? existing.pallet_id : null,
+      });
+      if (link.ok) paymentLinkUrl = link.url;
+    }
+  } else if (
+    typeof existing?.offsession_payment_link_url === "string" &&
+    existing.offsession_payment_link_url.trim()
+  ) {
+    paymentLinkUrl = existing.offsession_payment_link_url.trim();
+  }
+
+  const decision = decidePaymentRetrySchedule({
+    now,
+    windowStartedAt: window.windowStartedAt,
+  });
+
+  if (decision.action === "cancel") {
+    await cancelFailedReservation(reservationId);
+    return {
+      action: "cancelled",
+      payByAt: decision.payByAt.toISOString(),
+      windowOpened: false,
+    };
   }
 
   const { error } = await sb
     .from("order_reservations")
-    .update({ retry_scheduled_at: when })
+    .update({ retry_scheduled_at: decision.at.toISOString() })
     .eq("id", reservationId)
     .neq("status", "archived")
     .is("archived_at", null);
@@ -69,6 +213,13 @@ export async function schedulePaymentRetry(
       error.message,
     );
   }
+
+  return {
+    action: "scheduled",
+    payByAt: decision.payByAt.toISOString(),
+    windowOpened: window.windowOpened === true,
+    paymentLinkUrl,
+  };
 }
 
 export async function cancelFailedReservation(
@@ -196,15 +347,22 @@ export async function cancelFailedReservation(
 
   const userId = typeof row.user_id === "string" ? row.user_id : null;
   let toEmail: string | null = null;
+  let locale: "sv" | "en" = "sv";
   if (userId) {
     const { data: prof } = await sb
       .from("profiles")
-      .select("email")
+      .select("email, preferred_locale")
       .eq("id", userId)
       .maybeSingle();
     const em = prof?.email;
     if (typeof em === "string" && em.includes("@")) {
       toEmail = em.trim();
+    }
+    if (
+      typeof prof?.preferred_locale === "string" &&
+      prof.preferred_locale.toLowerCase().startsWith("en")
+    ) {
+      locale = "en";
     }
   }
 
@@ -214,6 +372,7 @@ export async function cancelFailedReservation(
         to: toEmail,
         reservationId,
         reason: CANCELLATION_REASON_EMAIL,
+        locale,
       });
     } catch (e) {
       console.error(
@@ -224,7 +383,7 @@ export async function cancelFailedReservation(
   }
 
   console.log(
-    `[RETRY] Reservation ${reservationId} cancelled after max payment retries`,
+    `[RETRY] Reservation ${reservationId} cancelled after 3-day pay window`,
   );
 }
 
@@ -315,7 +474,7 @@ export async function retryFailedPayments(): Promise<{
         const { data: fresh, error: freshErr } = await sb
           .from("order_reservations")
           .select(
-            "id, user_id, pallet_id, payment_mode, payment_status, payment_method_id, setup_intent_id, payment_attempts, status, terms_version, terms_accepted_at, age_verified_at, created_at",
+            "id, user_id, pallet_id, payment_mode, payment_status, payment_method_id, setup_intent_id, payment_attempts, status, terms_version, terms_accepted_at, age_verified_at, created_at, is_conditional, charge_blocked_reason",
           )
           .eq("id", id)
           .maybeSingle();
@@ -441,53 +600,14 @@ export async function retryFailedPayments(): Promise<{
             }
           }
 
-          let palletName = "Your pallet";
-          const { data: pal } = await sb
-            .from("pallets")
-            .select("name")
-            .eq("id", palletId)
-            .maybeSingle();
-          if (
-            pal?.name &&
-            typeof pal.name === "string" &&
-            pal.name.trim() !== ""
-          ) {
-            palletName = pal.name.trim();
-          }
-
-          const { data: piRow } = await sb
-            .from("order_reservations")
-            .select("payment_intent_id")
-            .eq("id", id)
-            .maybeSingle();
-          const piId =
-            piRow &&
-            typeof piRow.payment_intent_id === "string" &&
-            piRow.payment_intent_id.trim() !== ""
-              ? piRow.payment_intent_id.trim()
-              : null;
-
-          let amountSek = 0;
-          if (piId && stripe) {
-            try {
-              const pi = await stripe.paymentIntents.retrieve(piId);
-              amountSek = Math.round((pi.amount ?? 0) / 100);
-            } catch (e) {
-              console.warn(
-                `[RETRY] retryFailedPayments PI amount reservation_id=${id}:`,
-                e,
-              );
-            }
-          }
-
           if (toEmail) {
             try {
-              await sendPaymentConfirmedEmail({
-                to: toEmail,
-                reservationId: id,
-                amountSek,
-                palletName,
-              });
+              // Shared-pallet retry success → charged email (idempotent), not
+              // the legacy payment_confirmed mail.
+              const { sendPalletClosedChargedEmailOnce } = await import(
+                "@/lib/checkout/pallet-close/send"
+              );
+              await sendPalletClosedChargedEmailOnce({ reservationId: id });
             } catch (e) {
               console.error(
                 `[RETRY] retryFailedPayments email reservation_id=${id}:`,
@@ -504,8 +624,8 @@ export async function retryFailedPayments(): Promise<{
             .eq("id", id)
             .maybeSingle();
           const attempts = Number(after?.payment_attempts) || 0;
-          await schedulePaymentRetry(id, attempts);
-          if (attempts >= 3) cancelled += 1;
+          const scheduled = await schedulePaymentRetry(id, attempts);
+          if (scheduled.action === "cancelled") cancelled += 1;
           else failed += 1;
         } else {
           failed += 1;

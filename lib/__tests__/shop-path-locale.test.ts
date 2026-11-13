@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "fs";
 import { resolve } from "path";
 
+import { localeFromLangQuery } from "@/lib/i18n/locale";
 import { localeFromShopPath } from "@/lib/i18n/shop-path-locale";
 
 describe("localeFromShopPath", () => {
@@ -45,6 +46,18 @@ describe("localeFromShopPath", () => {
     expect(localeFromShopPath("/checkout")).toBeNull();
     expect(localeFromShopPath("/profile")).toBeNull();
     expect(localeFromShopPath("/taste-quiz")).toBeNull();
+    expect(localeFromShopPath("/reservation-extension/confirm")).toBeNull();
+  });
+});
+
+describe("localeFromLangQuery", () => {
+  it("parses explicit ?lang= from email/landing links", () => {
+    expect(localeFromLangQuery("?lang=sv")).toBe("sv");
+    expect(localeFromLangQuery("lang=en")).toBe("en");
+    expect(localeFromLangQuery(new URLSearchParams("lang=sv"))).toBe("sv");
+    expect(localeFromLangQuery("?lang=nope")).toBeNull();
+    expect(localeFromLangQuery("")).toBeNull();
+    expect(localeFromLangQuery(null)).toBeNull();
   });
 });
 
