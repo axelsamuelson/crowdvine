@@ -241,8 +241,8 @@ export const bestRedNaturalWinesSystembolagetArticle: GuideArticleContent = {
   internalLinks: [
     {
       label: {
-        en: "What is natural wine? →",
-        sv: "Vad är naturvin? →",
+        en: "what is natural wine",
+        sv: "vad är naturvin",
       },
       href: {
         en: "/guides/what-is-natural-wine",
@@ -507,8 +507,8 @@ export const bestRedNaturalWinesSystembolagetSvArticle: GuideArticleContent = {
   internalLinks: [
     {
       label: {
-        en: "What is natural wine? →",
-        sv: "Vad är naturvin? →",
+        en: "what is natural wine",
+        sv: "vad är naturvin",
       },
       href: {
         en: "/guides/what-is-natural-wine",
