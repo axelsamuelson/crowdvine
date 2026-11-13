@@ -8,6 +8,7 @@ import {
   NOT_HOME_SHARED,
   PAYMENT_DIRECT,
   deliveryCostBody,
+  homeDeliveryMeta,
   howLongDeliveryBody,
   naturalWineHomeDeliveryArticle,
   notHomeBody,
@@ -220,15 +221,11 @@ describe("natural wine home delivery guide", () => {
   it("prefixes not-home shared paragraph and links direct to terms #punkt-3b", () => {
     expect(NOT_HOME_SHARED.sv.startsWith("Gäller delad pall:")).toBe(true);
     expect(NOT_HOME_SHARED.en.startsWith("For shared pallets:")).toBe(true);
-    expect(NOT_HOME_DIRECT.sv).toContain(
-      "[köpvillkoren, punkt 3 b](/villkor#punkt-3b)",
+    expect(NOT_HOME_DIRECT.sv).toBe(
+      "Gäller direktleverans: Om du inte är hemma får du besked från UPS om ny leverans eller var du kan hämta lådan. UPS lämnar bara ut lådan mot legitimation till någon som fyllt 20 år. Kan UPS inte lämna över lådan, till exempel för att den inte hämtas ut, gäller det som står i [köpvillkoren, punkt 3 b](/villkor#punkt-3b).",
     );
-    expect(NOT_HOME_DIRECT.en).toContain(
-      "[the terms of purchase apply, see point 3 b](/terms#punkt-3b)",
-    );
-    expect(NOT_HOME_DIRECT.sv).not.toMatch(/Hämtas lådan inte inom några dagar/);
-    expect(NOT_HOME_DIRECT.en).not.toMatch(
-      /If the box is not collected within a few days/,
+    expect(NOT_HOME_DIRECT.en).toBe(
+      "Direct delivery: If you're not home, UPS will let you know about a new delivery attempt or where you can collect the box. UPS only hands over the box to someone aged 20 or over who shows ID. If UPS cannot hand over the box, for example because it is not collected, [the terms of purchase apply, see point 3 b](/terms#punkt-3b).",
     );
     expect(PAYMENT_DIRECT.sv).toBe(
       "Vid direktleverans dras beloppet när du lägger ordern.",
@@ -236,5 +233,22 @@ describe("natural wine home delivery guide", () => {
     expect(PAYMENT_DIRECT.en).toBe(
       "With direct delivery, the amount is charged when you place the order.",
     );
+  });
+
+  it("gates meta description direct-delivery phrase behind the checkout flag", () => {
+    expect(homeDeliveryMeta(true)).toEqual({
+      sv: "Beställ naturvin online med hemleverans i Sverige. Så fungerar köp, delad pall, direktleverans, leveranstid, ålderskontroll och kostnad.",
+      en: "Order natural wine online with home delivery in Sweden. How buying, shared pallets, direct delivery, delivery times, age checks and costs work.",
+    });
+    expect(homeDeliveryMeta(false)).toEqual({
+      sv: "Beställ naturvin online med hemleverans i Sverige. Så fungerar köp, delad pall, leveranstid, ålderskontroll och kostnad.",
+      en: "Order natural wine online with home delivery in Sweden. How buying, shared pallets, delivery times, age checks and costs work.",
+    });
+    expect(homeDeliveryMeta(true).sv.length).toBeLessThan(160);
+    expect(homeDeliveryMeta(true).en.length).toBeLessThan(160);
+    expect(homeDeliveryMeta(false).sv).not.toMatch(/direktleverans/);
+    expect(homeDeliveryMeta(false).en).not.toMatch(/direct delivery/);
+    // Article meta getter uses the live flag (same as section bodies).
+    expect(naturalWineHomeDeliveryArticle.meta).toEqual(homeDeliveryMeta());
   });
 });

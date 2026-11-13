@@ -44,13 +44,12 @@ export const NOT_HOME_SHARED = {
 
 /**
  * Direct-delivery not-home body (UPS) — gated by checkout flag.
- * Juliette legal correction: refund/reship sentences replaced with terms link
- * to #punkt-3b (verified on content/legal/kopvillkor.tsx + kopvillkor-en.tsx).
- * Inline markdown links rendered by ArticleParagraph / renderArticleRichText.
+ * Terms link to #punkt-3b (verified on content/legal/kopvillkor.tsx +
+ * kopvillkor-en.tsx). Inline markdown via ArticleParagraph.
  */
 export const NOT_HOME_DIRECT = {
-  en: "For direct delivery: If you are not home, UPS normally makes several delivery attempts on weekdays or leaves the box at a UPS Access Point near you. UPS will tell you where it is. The box is never left outside your door. Bring ID when you collect it; you must be at least 20 years old. If UPS cannot hand over the box, for example because it is not collected, [the terms of purchase apply, see point 3 b](/terms#punkt-3b).",
-  sv: "Gäller direktleverans: Om du inte är hemma gör UPS normalt flera leveransförsök på vardagar eller lämnar lådan på ett UPS Access Point nära dig. Du får besked från UPS om var den finns. Lådan lämnas aldrig utanför dörren. Ta med legitimation när du hämtar den, du måste ha fyllt 20 år. Kan UPS inte lämna över lådan, till exempel för att den inte hämtas ut, gäller det som står i [köpvillkoren, punkt 3 b](/villkor#punkt-3b).",
+  en: "Direct delivery: If you're not home, UPS will let you know about a new delivery attempt or where you can collect the box. UPS only hands over the box to someone aged 20 or over who shows ID. If UPS cannot hand over the box, for example because it is not collected, [the terms of purchase apply, see point 3 b](/terms#punkt-3b).",
+  sv: "Gäller direktleverans: Om du inte är hemma får du besked från UPS om ny leverans eller var du kan hämta lådan. UPS lämnar bara ut lådan mot legitimation till någon som fyllt 20 år. Kan UPS inte lämna över lådan, till exempel för att den inte hämtas ut, gäller det som står i [köpvillkoren, punkt 3 b](/villkor#punkt-3b).",
 } as const;
 
 const PAYMENT_SHARED = {
@@ -143,6 +142,25 @@ export function paymentBody(
   return { en, sv };
 }
 
+/**
+ * Meta description — direct-delivery phrase gated by checkout flag
+ * (same pattern as section bodies; drives generateMetadata + JSON-LD).
+ */
+export function homeDeliveryMeta(
+  includeDirectDelivery = isDirectBoxCheckoutEnabled(),
+): { en: string; sv: string } {
+  if (includeDirectDelivery) {
+    return {
+      en: "Order natural wine online with home delivery in Sweden. How buying, shared pallets, direct delivery, delivery times, age checks and costs work.",
+      sv: "Beställ naturvin online med hemleverans i Sverige. Så fungerar köp, delad pall, direktleverans, leveranstid, ålderskontroll och kostnad.",
+    };
+  }
+  return {
+    en: "Order natural wine online with home delivery in Sweden. How buying, shared pallets, delivery times, age checks and costs work.",
+    sv: "Beställ naturvin online med hemleverans i Sverige. Så fungerar köp, delad pall, leveranstid, ålderskontroll och kostnad.",
+  };
+}
+
 /** How PACT home delivery works (reservation → pallet → door). */
 export const naturalWineHomeDeliveryArticle: GuideArticleContent = {
   published: true,
@@ -155,9 +173,8 @@ export const naturalWineHomeDeliveryArticle: GuideArticleContent = {
     en: "Natural Wine Home Delivery: How It Works",
     sv: "Hemleverans av naturvin: så fungerar det",
   },
-  meta: {
-    en: "Order natural wine online with home delivery in Budbee's Sweden coverage area. How reservation, pallet, delivery time, age check and cost work.",
-    sv: "Beställ naturvin online med hemleverans i Budbees leveransområde i Sverige. Så fungerar reservation, pall, leveranstid, ålderskontroll och kostnad.",
+  get meta() {
+    return homeDeliveryMeta();
   },
   h1: {
     en: "How Natural Wine Home Delivery Works",
