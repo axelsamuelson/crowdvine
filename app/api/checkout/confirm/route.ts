@@ -2878,6 +2878,30 @@ export async function POST(request: Request) {
       }
     }
 
+    // Freeze Skatteverket alcohol-tax lines when charged at confirm
+    // (direct_box / PaymentIntent). Shared-pallet SetupIntent is deferred —
+    // those snapshots are written at pallet close / legacy auto-charge.
+    if (
+      !deferredLinkCheckout &&
+      intentType === "payment_intent" &&
+      siblingPayUpdate.payment_status === "paid"
+    ) {
+      try {
+        const { tryPersistAlcoholTaxReportingSnapshot } = await import(
+          "@/lib/skatteverket/alcohol-tax-reporting-snapshot"
+        );
+        for (const rid of reservationIdsForPayment) {
+          if (!rid) continue;
+          await tryPersistAlcoholTaxReportingSnapshot({
+            reservationId: rid,
+            triggerSource: "direct_box_confirm",
+          });
+        }
+      } catch (taxSnapErr) {
+        console.warn("[Checkout API] alcohol tax snapshot", taxSnapErr);
+      }
+    }
+
     // Clear cart
     console.log("Clearing cart");
     await CartService.clearCart();

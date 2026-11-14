@@ -554,8 +554,23 @@ export async function autoChargeDeferredReservationsForPallet(
   for (const row of list) {
     try {
       const outcome = await chargeOneSetupIntentReservation(palletId, row);
-      if (outcome === "charged") reservationsCharged += 1;
-      else if (typeof outcome === "object") {
+      if (outcome === "charged") {
+        reservationsCharged += 1;
+        try {
+          const { tryPersistAlcoholTaxReportingSnapshot } = await import(
+            "@/lib/skatteverket/alcohol-tax-reporting-snapshot"
+          );
+          await tryPersistAlcoholTaxReportingSnapshot({
+            reservationId: row.id,
+            triggerSource: "legacy_auto_charge",
+          });
+        } catch (snapErr) {
+          console.warn(
+            `[auto-charge] alcohol tax snapshot reservation_id=${row.id}`,
+            snapErr,
+          );
+        }
+      } else if (typeof outcome === "object") {
         if (!skipped.some((item) => item.id === outcome.id)) {
           skipped.push(outcome);
         }
