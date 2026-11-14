@@ -3889,16 +3889,21 @@ function CheckoutContent({
 
   if (cart.totalQuantity === 0) {
     return (
-      <div className="max-w-4xl mx-auto p-6 pt-top-spacing">
-        <h1 className="text-2xl font-semibold mb-4">{t("checkout.title")}</h1>
-        <p className="text-gray-600">{t("checkout.emptyCart")}</p>
-        <a
-          href="/"
-          className="inline-block mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-        >
-          {t("checkout.continueShopping")}
-        </a>
-      </div>
+      <main className="min-h-screen bg-background">
+        {/* Fixed header is h-[var(--top-spacing)]+border; add p-6 (1.5rem) below it. */}
+        <div className="mx-auto max-w-[1280px] space-y-8 px-6 pb-6 pt-[calc(var(--top-spacing)+1.5rem)]">
+          <div>
+            <h1 className="mb-4 text-2xl font-semibold">{t("checkout.title")}</h1>
+            <p className="text-gray-600">{t("checkout.emptyCart")}</p>
+            <Button
+              asChild
+              className="mt-4 border-transparent bg-black text-white shadow-none ring-0 hover:border-transparent hover:bg-black/90 hover:shadow-none focus-visible:border-transparent focus-visible:bg-black/90 focus-visible:ring-white/40"
+            >
+              <a href="/">{t("checkout.continueShopping")}</a>
+            </Button>
+          </div>
+        </div>
+      </main>
     );
   }
 
@@ -4000,7 +4005,7 @@ function CheckoutContent({
         transparent fixed site header so scrolled panel text cannot show through
         MENY/PACT. Does not alter global header styles or OFF-checkout.
       */}
-      <div className="mx-auto max-w-[1280px] space-y-8 p-6 pt-top-spacing">
+      <div className="mx-auto max-w-[1280px] space-y-8 px-6 pb-6 pt-[calc(var(--top-spacing)+1.5rem)]">
         <div>
           <h1 className="mb-2 text-2xl font-medium text-foreground">
             {t("checkout.title")}
