@@ -14,6 +14,7 @@ import {
   WINE_ENRICHMENT_LINE_FRAME_CLASS,
   WINE_ENRICHMENT_SPEC_LABEL_CLASS,
 } from "@/lib/product/wine-enrichment-ui";
+import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 
 export {
   WINE_ENRICHMENT_DROPDOWN_LIST_CLASS,
@@ -26,6 +27,11 @@ interface WineEnrichmentCollapsibleProps {
   children: ReactNode;
   className?: string;
   defaultOpen?: boolean;
+  /**
+   * When set, opening the section logs `pdp_section_opened` with this
+   * identifiable `section` value (engagement). Fired once per open transition.
+   */
+  analyticsSection?: string;
 }
 
 export function WineEnrichmentCollapsible({
@@ -33,14 +39,26 @@ export function WineEnrichmentCollapsible({
   children,
   className,
   defaultOpen = false,
+  analyticsSection,
 }: WineEnrichmentCollapsibleProps) {
   const [open, setOpen] = useState(defaultOpen);
   const reduceMotion = useReducedMotion();
 
+  const handleOpenChange = (next: boolean) => {
+    setOpen(next);
+    if (next && analyticsSection) {
+      void AnalyticsTracker.trackEvent({
+        eventType: "pdp_section_opened",
+        eventCategory: "engagement",
+        metadata: { section: analyticsSection },
+      });
+    }
+  };
+
   return (
     <Collapsible
       open={open}
-      onOpenChange={setOpen}
+      onOpenChange={handleOpenChange}
       className={cn(
         "w-full overflow-hidden",
         WINE_ENRICHMENT_LINE_FRAME_CLASS,

@@ -10,12 +10,13 @@ import { FooterShoppingContext } from "@/components/market/header-shopping-conte
 import { useB2BModeServerHint } from "@/lib/context/b2b-mode-context";
 import { DIRTYWINE_CONTACT_EMAIL } from "@/lib/b2b/brand";
 import type { SiteLogos } from "@/lib/context/site-logo-provider";
+import { PdpB2BLink } from "@/components/product/pdp-b2b-link";
 
 const footerLogoClass =
   "h-[5.5rem] w-auto max-w-[360px] text-background sm:h-28 sm:max-w-[440px] md:h-32 md:max-w-[520px]";
 
 export function Footer({ initialLogos }: { initialLogos?: SiteLogos }) {
-  const { t } = useTranslations();
+  const { t, context } = useTranslations();
   const paths = useLocalizedPaths();
   const isDirtywineSite = useB2BModeServerHint();
   const year = new Date().getFullYear();
@@ -75,6 +76,11 @@ export function Footer({ initialLogos }: { initialLogos?: SiteLogos }) {
                         >
                           {t("common.profile")}
                         </Link>
+                        <PdpB2BLink
+                          locale={context.locale}
+                          variant="footer"
+                          className="w-fit min-w-max"
+                        />
                       </>
                     )}
                   </div>

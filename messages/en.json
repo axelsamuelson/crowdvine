@@ -316,7 +316,7 @@
       "addToCartWarehouse": "Add to cart (Warehouse)",
       "addQuantityToCartProducer": "Add {count} to cart (Producer)",
       "addQuantityToCartWarehouse": "Add {count} to cart (Warehouse)",
-      "priceBreakdownIntro": "This is how the price is made up: bottle cost, alcohol tax{shipping}, business margin, VAT{memberDiscount}",
+      "priceBreakdownIntro": "This is how the price is made up: bottle cost, alcohol tax{shipping}, VAT{memberDiscount}",
       "priceBreakdownIntroShipping": ", shipping",
       "priceBreakdownIntroMemberDiscount": ", and a separate member discount on the list price (same as shop).",
       "priceBreakdownBarCaption": "Strip = share of list price; amount on the right is your member price.",

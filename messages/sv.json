@@ -316,7 +316,7 @@
       "addToCartWarehouse": "Lägg i varukorg (Lager)",
       "addQuantityToCartProducer": "Lägg {count} i varukorg (Producent)",
       "addQuantityToCartWarehouse": "Lägg {count} i varukorg (Lager)",
-      "priceBreakdownIntro": "Så här är priset uppbyggt: flaskkostnad, alkoholskatt{shipping}, marginal, moms{memberDiscount}",
+      "priceBreakdownIntro": "Så här är priset uppbyggt: flaskkostnad, alkoholskatt{shipping}, moms{memberDiscount}",
       "priceBreakdownIntroShipping": ", frakt",
       "priceBreakdownIntroMemberDiscount": " och en separat medlemsrabatt på listpriset (samma som i shoppen).",
       "priceBreakdownBarCaption": "Stapeln = andel av listpris; beloppet till höger är ditt medlemspris.",
