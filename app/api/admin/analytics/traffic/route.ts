@@ -14,10 +14,14 @@ import {
 } from "@/lib/analytics/analytics-channel";
 import { normalizeUtmValue } from "@/lib/analytics/utm-normalize";
 import {
-  eachDateKeyInclusive,
   stockholmTodayDateKey,
   toStockholmDateKey,
 } from "@/lib/analytics/stockholm-time";
+import {
+  buildTrafficDailySeries,
+  fetchEventsInDateChunks,
+  type PageQueryArgs,
+} from "@/lib/analytics/fetch-events-window";
 
 function toDateKey(iso: string): string {
   return toStockholmDateKey(iso);
@@ -205,33 +209,43 @@ export async function GET(request: Request) {
     };
 
     const pageSize = 1000;
-    const maxRows = 20000;
+    /** Safety cap only — when hit, oldest rows are dropped (newest kept). */
+    const maxRows = 100_000;
+    const cleanViewTimeoutMs = 2500;
+    const untilIso = new Date().toISOString();
 
-    async function fetchPaged(
+    async function fetchWindow(
       fromTable: string,
       selectCols: string,
       extra?: (q: any) => any,
-    ): Promise<{ rows: TrafficEvent[]; error: { message: string } | null }> {
-      const out: TrafficEvent[] = [];
-      for (let from = 0; from < maxRows; from += pageSize) {
-        const to = from + pageSize - 1;
-        let q = sb
-          .from(fromTable)
-          .select(selectCols)
-          .gte("created_at", sinceIso)
-          .order("created_at", { ascending: true })
-          .range(from, to);
-        if (extra) q = extra(q);
-        const { data, error } = await q;
-        if (error) return { rows: out, error };
-        const batch = (data ?? []) as TrafficEvent[];
-        out.push(...batch);
-        if (batch.length < pageSize) break;
-      }
-      return { rows: out, error: null };
+      opts?: { signal?: AbortSignal; maxRows?: number },
+    ) {
+      return fetchEventsInDateChunks<TrafficEvent>({
+        sinceIso,
+        untilIso,
+        pageSize,
+        maxRows: opts?.maxRows ?? maxRows,
+        chunkDays: 7,
+        signal: opts?.signal,
+        queryPage: async ({ gteIso, ltIso, from, to, signal }: PageQueryArgs) => {
+          let q = sb
+            .from(fromTable)
+            .select(selectCols)
+            .gte("created_at", gteIso)
+            .order("created_at", { ascending: true })
+            .range(from, to);
+          if (ltIso) q = q.lt("created_at", ltIso);
+          if (extra) q = extra(q);
+          if (signal) q = q.abortSignal(signal);
+          return q;
+        },
+      });
     }
 
     let events: TrafficEvent[] = [];
+    let dataTruncated = false;
+    let earliestCoveredDate: string | null = null;
+    let latestCoveredDate: string | null = null;
     const cleanExtra =
       site === "all" ? undefined : (q: any) => q.eq("site", site);
 
@@ -242,15 +256,48 @@ export async function GET(request: Request) {
       "session_id, event_type, event_metadata, page_url, referrer, created_at, site",
     ];
 
-    let clean: { rows: TrafficEvent[]; error: { message: string } | null } = {
+    let clean: Awaited<ReturnType<typeof fetchWindow>> = {
       rows: [],
+      truncated: false,
+      earliestCoveredDate: null,
+      latestCoveredDate: null,
       error: { message: "not started" },
+      complete: false,
     };
     for (const cols of selects) {
-      clean = await fetchPaged("analytics_sessions_clean", cols, cleanExtra);
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), cleanViewTimeoutMs);
+      try {
+        clean = await fetchWindow("analytics_sessions_clean", cols, cleanExtra, {
+          signal: controller.signal,
+        });
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : "clean view fetch failed";
+        clean = {
+          rows: [],
+          truncated: false,
+          earliestCoveredDate: null,
+          latestCoveredDate: null,
+          error: { message },
+          complete: false,
+        };
+      } finally {
+        clearTimeout(timer);
+      }
+      if (controller.signal.aborted && !clean.error) {
+        clean = {
+          ...clean,
+          rows: [],
+          error: {
+            message: `client timeout after ${cleanViewTimeoutMs}ms`,
+          },
+          complete: false,
+        };
+      }
       if (!clean.error) break;
       if (
-        !/channel|country_code|visitor_id|schema cache|Could not find/i.test(
+        !/channel|country_code|visitor_id|schema cache|Could not find|aborted|timeout/i.test(
           clean.error.message || "",
         )
       ) {
@@ -268,12 +315,16 @@ export async function GET(request: Request) {
         "session_id, visitor_id, event_type, event_metadata, page_url, referrer, created_at, user_agent, user_id",
         "session_id, event_type, event_metadata, page_url, referrer, created_at, user_agent, user_id",
       ];
-      let fallback: {
-        rows: TrafficEvent[];
-        error: { message: string } | null;
-      } = { rows: [], error: { message: "not started" } };
+      let fallback: Awaited<ReturnType<typeof fetchWindow>> = {
+        rows: [],
+        truncated: false,
+        earliestCoveredDate: null,
+        latestCoveredDate: null,
+        error: { message: "not started" },
+        complete: false,
+      };
       for (const cols of fallbackSelects) {
-        fallback = await fetchPaged("user_events", cols, (q) =>
+        fallback = await fetchWindow("user_events", cols, (q) =>
           q.not("session_id", "like", "server_%"),
         );
         if (!fallback.error) break;
@@ -286,6 +337,9 @@ export async function GET(request: Request) {
         }
       }
       if (fallback.error) throw fallback.error;
+      dataTruncated = fallback.truncated;
+      earliestCoveredDate = fallback.earliestCoveredDate;
+      latestCoveredDate = fallback.latestCoveredDate;
       const internalSessions = new Set<string>();
       const urlsBySession = new Map<string, (string | null)[]>();
       for (const e of fallback.rows) {
@@ -321,6 +375,9 @@ export async function GET(request: Request) {
         .map((e) => ({ ...e, site: sessionSite.get(e.session_id) ?? null }));
     } else {
       events = clean.rows;
+      dataTruncated = clean.truncated;
+      earliestCoveredDate = clean.earliestCoveredDate;
+      latestCoveredDate = clean.latestCoveredDate;
     }
 
     const allRows = events;
@@ -497,29 +554,23 @@ export async function GET(request: Request) {
 
     const todayKey = stockholmTodayDateKey();
     const seriesStartKey =
-      firstPageViewDate || toStockholmDateKey(since.toISOString());
+      (dataTruncated && earliestCoveredDate) ||
+      firstPageViewDate ||
+      toStockholmDateKey(since.toISOString());
 
-    const daily: {
-      date: string;
-      visitors: number;
-      sessions: number;
-      rolling7: number | null;
-    }[] = [];
-    const visitorValues: number[] = [];
-
-    for (const key of eachDateKeyInclusive(seriesStartKey, todayKey)) {
-      if (firstPageViewDate && key < firstPageViewDate) continue;
-      const visitors = dailyVisitorSets.get(key)?.size ?? 0;
-      const sessions = dailySessionSets.get(key)?.size ?? 0;
-      visitorValues.push(visitors);
-      const window = visitorValues.slice(-7);
-      const rolling7 =
-        window.length >= 7
-          ? Math.round((window.reduce((a, b) => a + b, 0) / window.length) * 10) /
-            10
-          : null;
-      daily.push({ date: key, visitors, sessions, rolling7 });
-    }
+    const daily = buildTrafficDailySeries({
+      dailyVisitorSets,
+      dailySessionSets,
+      seriesStartKey,
+      todayKey,
+      firstPageViewDate,
+      truncated: dataTruncated,
+      latestCoveredDate:
+        latestCoveredDate ||
+        (chartRows.length > 0
+          ? toDateKey(String(chartRows[chartRows.length - 1].created_at))
+          : null),
+    });
 
     const pageCounts = new Map<string, number>();
     for (const e of rows) {
@@ -556,6 +607,8 @@ export async function GET(request: Request) {
       channel: channelFilter,
       dates: dateFilter ? [...dateFilter].sort() : [],
       firstPageViewDate,
+      truncated: dataTruncated,
+      earliestCoveredDate: dataTruncated ? earliestCoveredDate : null,
       daily,
       totals: {
         visitors: (() => {

@@ -25,6 +25,7 @@ import {
   ANALYTICS_CHANNELS,
   channelLabel,
 } from "@/lib/analytics/analytics-channel";
+import { formatStockholmDisplayDate } from "@/lib/analytics/stockholm-time";
 
 type DailyPoint = {
   date: string;
@@ -54,6 +55,8 @@ type Annotation = {
 
 type TrafficPayload = {
   firstPageViewDate: string | null;
+  truncated?: boolean;
+  earliestCoveredDate?: string | null;
   daily: DailyPoint[];
   totals?: { visitors: number; sessions: number };
   channels: ChannelRow[];
@@ -291,6 +294,12 @@ export function TrafficPanel({
           flera datum för att filtrera kanaler, kampanjer, länder och sidor.
           {filterNote ? ` Filtrerat på ${filterNote}.` : ""}
         </p>
+        {data.truncated && data.earliestCoveredDate ? (
+          <p className="text-xs text-gray-500 dark:text-zinc-500 mb-3">
+            Visar data från{" "}
+            {formatStockholmDisplayDate(data.earliestCoveredDate)}
+          </p>
+        ) : null}
         {selectedDates.length > 0 ? (
           <div className="mb-3 flex flex-wrap items-center gap-2">
             <p className="text-xs text-gray-600 dark:text-zinc-400">
