@@ -1,7 +1,81 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
-import { shouldShowNoB2bAccessMessage } from "@/lib/access-request/no-b2b";
+import {
+  shouldRedirectDirtywineNoB2bAccessRequest,
+  shouldShowNoB2bAccessMessage,
+} from "@/lib/access-request/no-b2b";
 import { translate } from "@/lib/i18n/messages";
+
+describe("shouldRedirectDirtywineNoB2bAccessRequest", () => {
+  it("redirects dirtywine.se / www with reason=no_b2b", () => {
+    expect(
+      shouldRedirectDirtywineNoB2bAccessRequest({
+        pathname: "/access-request",
+        reason: "no_b2b",
+        host: "dirtywine.se",
+      }),
+    ).toBe(true);
+    expect(
+      shouldRedirectDirtywineNoB2bAccessRequest({
+        pathname: "/access-request",
+        reason: "no_b2b",
+        host: "www.dirtywine.se",
+      }),
+    ).toBe(true);
+  });
+
+  it("does not redirect pactwines.com with reason=no_b2b", () => {
+    expect(
+      shouldRedirectDirtywineNoB2bAccessRequest({
+        pathname: "/access-request",
+        reason: "no_b2b",
+        host: "pactwines.com",
+      }),
+    ).toBe(false);
+    expect(
+      shouldRedirectDirtywineNoB2bAccessRequest({
+        pathname: "/access-request",
+        reason: "no_b2b",
+        host: "www.pactwines.com",
+      }),
+    ).toBe(false);
+  });
+
+  it("does not redirect dirtywine without reason=no_b2b", () => {
+    expect(
+      shouldRedirectDirtywineNoB2bAccessRequest({
+        pathname: "/access-request",
+        reason: undefined,
+        host: "dirtywine.se",
+      }),
+    ).toBe(false);
+    expect(
+      shouldRedirectDirtywineNoB2bAccessRequest({
+        pathname: "/access-request",
+        reason: "other",
+        host: "dirtywine.se",
+      }),
+    ).toBe(false);
+    expect(
+      shouldRedirectDirtywineNoB2bAccessRequest({
+        pathname: "/log-in",
+        reason: "no_b2b",
+        host: "dirtywine.se",
+      }),
+    ).toBe(false);
+  });
+
+  it("wires a 308 home redirect in middleware", () => {
+    const src = readFileSync(
+      resolve(process.cwd(), "middleware.ts"),
+      "utf8",
+    );
+    expect(src).toMatch(/shouldRedirectDirtywineNoB2bAccessRequest/);
+    expect(src).toMatch(/NextResponse\.redirect\(\s*home,\s*308\s*\)/);
+  });
+});
 
 describe("shouldShowNoB2bAccessMessage", () => {
   it("is false on pactwines.com even with reason=no_b2b", () => {

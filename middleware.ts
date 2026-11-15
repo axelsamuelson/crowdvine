@@ -41,6 +41,7 @@ import {
   isStockholmDeliveryRedirectPath,
   pactStockholmDeliveryRedirectUrl,
 } from "@/lib/stockholm-delivery-landing/dirtywine-redirect";
+import { shouldRedirectDirtywineNoB2bAccessRequest } from "@/lib/access-request/no-b2b";
 
 const LOCALE_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
 
@@ -151,6 +152,21 @@ async function runMiddleware(req: NextRequest) {
 
   const host = req.headers.get("host");
   const onDirtywineSite = isDirtywineHost(host, req.nextUrl.searchParams);
+
+  // Dirty Wine is open: retire /access-request?reason=no_b2b (stale invite/pact CTA).
+  // Same-host 308 to `/`. pactwines.com and other reasons are unchanged.
+  if (
+    shouldRedirectDirtywineNoB2bAccessRequest({
+      pathname,
+      reason: req.nextUrl.searchParams.get("reason"),
+      host,
+    })
+  ) {
+    const home = req.nextUrl.clone();
+    home.pathname = "/";
+    home.search = "";
+    return NextResponse.redirect(home, 308);
+  }
 
   // Guides are PACT-owned — never serve them on dirtywine.se (301 to pact).
   if (isDirtywineProductionHost(host) && isGuidePath(pathname)) {
