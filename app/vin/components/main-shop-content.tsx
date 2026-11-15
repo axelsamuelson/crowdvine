@@ -3,11 +3,12 @@ import { Suspense } from "react";
 import { headers } from "next/headers";
 
 import ProductList from "@/app/vin/components/product-list";
-import { PactSellerConsumerInfo } from "@/components/commerce/pact-seller-consumer-info";
 import { CategoryFaqSection } from "@/components/shop/category-faq-section";
+import { ShopRegionLinks } from "@/components/shop/shop-region-links";
 import { isB2BHost } from "@/lib/b2b-site";
 import { mapProductDataToShopProducts } from "@/lib/map-product-data-to-shop-product";
 import { getCachedShopProducts } from "@/lib/shop/cached-shop-products";
+import { getIndexableRegionLinks } from "@/lib/shop/indexable-region-links";
 import { getShopRootNaturalWineContent } from "@/lib/shop/shop-root-natural-wine-content";
 import {
   DEFAULT_B2B_SHOP_SORT,
@@ -246,6 +247,7 @@ export async function MainShopContent({
     headerList.get("x-forwarded-host") ?? headerList.get("host"),
   );
   const content = getShopRootNaturalWineContent(locale, { isB2BSite });
+  const regionLinks = await getIndexableRegionLinks(locale);
 
   return (
     <>
@@ -253,15 +255,18 @@ export async function MainShopContent({
         <ShopRootJsonLd locale={locale} />
       </Suspense>
       <div className="p-sides pt-8">
-        <div className="mb-8 max-w-2xl">
-          <h1 className="mb-3 text-3xl font-medium tracking-[-0.02em] text-stone-900">
+        <div className="max-w-2xl">
+          <h1 className="mb-3 text-3xl font-medium tracking-[-0.02em] text-foreground">
             {content.h1}
           </h1>
-          <p className="leading-relaxed text-stone-600">{content.intro}</p>
+          <p className="leading-relaxed text-foreground/75">{content.intro}</p>
         </div>
-        {!isB2BSite ? (
-          <PactSellerConsumerInfo locale={locale} className="mb-8 max-w-2xl" />
-        ) : null}
+        {/* PLP: no seller / ångerrätt / delad-pall rows (link-rules §5). */}
+        <ShopRegionLinks
+          locale={locale}
+          links={regionLinks}
+          className="mt-4 mb-6"
+        />
       </div>
       <ProductList collection={storeCatalog.rootCategoryId} searchParams={sp} />
       <ShopRootBelowFold locale={locale} />
