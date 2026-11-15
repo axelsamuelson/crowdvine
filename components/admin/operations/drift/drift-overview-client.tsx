@@ -3,7 +3,13 @@
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { useEffect, useMemo, useState } from "react"
-import { ChevronDown, ChevronRight, UserRound, X } from "lucide-react"
+import {
+  ArrowLeft,
+  ChevronDown,
+  ChevronRight,
+  UserRound,
+  X,
+} from "lucide-react"
 import { formatQueueDeadlineLabel } from "@/lib/operations/drift/build-overview"
 import {
   focusKlarSummarySuffix,
@@ -836,21 +842,27 @@ export function DriftOverviewClient({
               ["pipeline", "Pipeline"],
               ["fokus", "Fokus"],
             ] as const
-          ).map(([value, label]) => (
-            <button
-              key={value}
-              type="button"
-              className={cn(
-                "border-b-2 pb-2.5 text-sm font-medium",
-                tab === value && listFilter == null
-                  ? "border-gray-900 text-gray-900 dark:border-zinc-100 dark:text-white"
-                  : "border-transparent text-gray-500 hover:text-gray-800 dark:text-zinc-400 dark:hover:text-zinc-200",
-              )}
-              onClick={() => navigate({ tab: value, filter: null })}
-            >
-              {label}
-            </button>
-          ))}
+          ).map(([value, label]) => {
+            const active =
+              value === "fokus"
+                ? tab === "fokus" || listFilter === "utan-poang"
+                : tab === value && listFilter == null
+            return (
+              <button
+                key={value}
+                type="button"
+                className={cn(
+                  "border-b-2 pb-2.5 text-sm font-medium",
+                  active
+                    ? "border-gray-900 text-gray-900 dark:border-zinc-100 dark:text-white"
+                    : "border-transparent text-gray-500 hover:text-gray-800 dark:text-zinc-400 dark:hover:text-zinc-200",
+                )}
+                onClick={() => navigate({ tab: value, filter: null })}
+              >
+                {label}
+              </button>
+            )
+          })}
         </nav>
       </header>
 
@@ -865,9 +877,10 @@ export function DriftOverviewClient({
             </h2>
             <button
               type="button"
-              className="text-sm text-gray-700 underline-offset-2 hover:underline dark:text-zinc-300"
+              className="inline-flex items-center gap-1.5 text-sm text-gray-700 underline-offset-2 hover:underline dark:text-zinc-300"
               onClick={() => navigate({ tab: "fokus", filter: null })}
             >
+              <ArrowLeft className="h-4 w-4" aria-hidden />
               Tillbaka till Fokus
             </button>
           </div>
@@ -876,20 +889,21 @@ export function DriftOverviewClient({
               <li key={t.id}>
                 <button
                   type="button"
-                  className="flex w-full flex-col gap-1 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-zinc-900"
+                  className="flex w-full items-start gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-zinc-900"
                   onClick={() => setDetail(t.detail)}
                 >
-                  <span className="text-sm font-medium text-gray-900 dark:text-white">
-                    {t.heading}
-                  </span>
-                  <span className="text-xs text-gray-600 dark:text-zinc-400">
-                    {[t.owner, t.statusLabel, t.objectiveLabel]
-                      .filter(Boolean)
-                      .join(" · ")}
-                    {" · "}
-                    <span className="rounded border border-dashed border-gray-300 px-1.5 py-0.5 dark:border-zinc-600">
-                      – p
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-medium text-gray-900 dark:text-white">
+                      {t.heading}
                     </span>
+                    <span className="mt-1 block text-xs text-gray-600 dark:text-zinc-400">
+                      {[t.owner, t.statusLabel, t.objectiveLabel]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </span>
+                  </span>
+                  <span className="shrink-0 rounded border border-dashed border-gray-300 px-1.5 py-0.5 text-xs tabular-nums text-gray-600 dark:border-zinc-600 dark:text-zinc-400">
+                    – p
                   </span>
                 </button>
               </li>

@@ -16,14 +16,14 @@ export type FocusGoalColorKey = 1 | 2 | 3 | 4 | 5 | 6
 /**
  * Goal bar colors. Goal 6 uses muted rose/plum (not saturated fuchsia) so it
  * stays distinct from goal 3 indigo at similar saturation. Teknik (5) uses
- * slate-200 in dark mode for short-bar visibility.
+ * slate-400 in dark mode so short bars read as fill, not track/gap.
  */
 export const FOCUS_GOAL_BAR_CLASS: Record<FocusGoalColorKey, string> = {
   1: "bg-sky-600 dark:bg-sky-400",
   2: "bg-teal-800 dark:bg-teal-300",
   3: "bg-indigo-400 dark:bg-indigo-300",
   4: "bg-stone-500 dark:bg-stone-400",
-  5: "bg-blue-900 dark:bg-slate-200",
+  5: "bg-blue-900 dark:bg-slate-400",
   6: "bg-rose-400 dark:bg-rose-300",
 }
 

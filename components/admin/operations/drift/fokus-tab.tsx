@@ -5,8 +5,9 @@ import {
   ChevronLeft,
   ChevronRight,
   HelpCircle,
+  X,
 } from "lucide-react"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { focusGoalColorClass } from "@/lib/operations/drift/focus-constants"
 import type { FocusPeriodKind } from "@/lib/operations/drift/focus-period"
 import type {
@@ -356,6 +357,15 @@ export function FokusTab({
   const [expandedId, setExpandedId] = useState<string | null>(initialExpandId)
   const [helpOpen, setHelpOpen] = useState(initialHelpOpen)
 
+  useEffect(() => {
+    if (!helpOpen) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setHelpOpen(false)
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [helpOpen])
+
   const effectByObjective = useMemo(() => {
     const m = new Map<string, DriftFocusData["effectMetrics"][number]>()
     for (const e of data.effectMetrics) m.set(e.objectiveId, e)
@@ -433,10 +443,27 @@ export function FokusTab({
       </div>
 
       {helpOpen ? (
-        <div className="max-w-2xl rounded-xl border border-gray-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
-          <p className="text-sm font-semibold text-gray-900 dark:text-white">
-            Så räknas poäng
-          </p>
+        <div
+          className="max-w-2xl rounded-xl border border-gray-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900"
+          role="dialog"
+          aria-labelledby="fokus-poang-hjalp"
+        >
+          <div className="flex items-start justify-between gap-3">
+            <p
+              id="fokus-poang-hjalp"
+              className="text-sm font-semibold text-gray-900 dark:text-white"
+            >
+              Så räknas poäng
+            </p>
+            <button
+              type="button"
+              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-white"
+              aria-label="Stäng"
+              onClick={() => setHelpOpen(false)}
+            >
+              <X className="h-4 w-4" aria-hidden />
+            </button>
+          </div>
           <div className="mt-2 max-w-2xl space-y-2 text-xs leading-5 text-gray-700 dark:text-zinc-300">
             <p>
               Skala: 1 ≈ en halv dag, 2 ≈ en dag, 4 ≈ två dagar, 8 ≈ fyra dagar.
@@ -858,8 +885,8 @@ export function FokusTab({
               Klart per vecka, senaste 6 veckorna
             </h2>
 
-            {/* Mobile &lt; sm: stacked week rows — no horizontal scroll at 390. */}
-            <ul className="space-y-3 sm:hidden" data-fokus-trend-mobile>
+            {/* Mobile &lt; sm: one row per week — week | stacked bar | total (≥12px). */}
+            <ul className="space-y-2 sm:hidden" data-fokus-trend-mobile>
               {data.trendWeeks.map((w, weekIdx) => {
                 const future = w.isFuture
                 const segments = data.trendByGoal.map((g) => ({
@@ -869,85 +896,50 @@ export function FokusTab({
                 const total = future
                   ? null
                   : segments.reduce((s, x) => s + (x.points ?? 0), 0)
-                const topPoints = segments
-                  .filter((s) => s.rank === 1 || s.rank === 2)
-                  .reduce((s, x) => s + (x.points ?? 0), 0)
-                const topShare =
-                  total != null && total > 0
-                    ? Math.round((topPoints / total) * 100)
-                    : null
                 return (
                   <li
                     key={w.isoWeek}
-                    className="border-b border-gray-100 pb-3 dark:border-zinc-900"
+                    className="flex items-center gap-3 border-b border-gray-100 py-2 dark:border-zinc-900"
                   >
-                    <div className="flex items-baseline justify-between gap-3 text-sm">
-                      <span
-                        className={cn(
-                          "font-medium",
-                          future
-                            ? "text-gray-400 dark:text-zinc-500"
-                            : "text-gray-900 dark:text-white",
-                        )}
-                      >
-                        {w.shortLabel}
-                      </span>
-                      <span
-                        className={cn(
-                          "tabular-nums",
-                          future
-                            ? "text-gray-400 dark:text-zinc-500"
-                            : "text-gray-900 dark:text-white",
-                        )}
-                      >
-                        {future || total == null ? "–" : `${total} p`}
-                      </span>
+                    <span
+                      className={cn(
+                        "w-12 shrink-0 text-xs font-medium tabular-nums",
+                        future
+                          ? "text-gray-400 dark:text-zinc-500"
+                          : "text-gray-900 dark:text-white",
+                      )}
+                    >
+                      {w.shortLabel}
+                    </span>
+                    <div className="flex h-2 min-w-0 flex-1 overflow-hidden rounded-sm bg-gray-100 dark:bg-zinc-800">
+                      {!future && total != null && total > 0
+                        ? segments
+                            .filter((s) => (s.points ?? 0) > 0)
+                            .map((s) => (
+                              <div
+                                key={s.rank}
+                                className={cn(
+                                  "h-full",
+                                  focusGoalColorClass(s.rank),
+                                )}
+                                style={{
+                                  width: `${((s.points ?? 0) / total) * 100}%`,
+                                }}
+                                title={`Mål ${s.rank}: ${s.points} p`}
+                              />
+                            ))
+                        : null}
                     </div>
-                    {!future && topShare != null ? (
-                      <p className="mt-0.5 text-xs text-gray-600 dark:text-zinc-400">
-                        mål 1–2: {topShare} %
-                      </p>
-                    ) : null}
-                    {!future ? (
-                      <div className="mt-2 flex h-2 overflow-hidden rounded-sm bg-gray-100 dark:bg-zinc-800">
-                        {segments
-                          .filter((s) => (s.points ?? 0) > 0)
-                          .map((s) => (
-                            <div
-                              key={s.rank}
-                              className={cn(
-                                "h-full",
-                                focusGoalColorClass(s.rank),
-                              )}
-                              style={{
-                                width: `${((s.points ?? 0) / Math.max(1, total ?? 1)) * 100}%`,
-                              }}
-                              title={`Mål ${s.rank}: ${s.points} p`}
-                            />
-                          ))}
-                      </div>
-                    ) : null}
-                    <ul className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-gray-600 dark:text-zinc-400">
-                      {segments.map((s) => (
-                        <li
-                          key={s.rank}
-                          className={cn(
-                            "tabular-nums",
-                            future && "text-gray-400 dark:text-zinc-500",
-                          )}
-                        >
-                          <span
-                            className={cn(
-                              "mr-1 inline-block h-2 w-2 rounded-sm align-middle",
-                              focusGoalColorClass(s.rank),
-                              ((s.points ?? 0) === 0 || future) && "opacity-30",
-                            )}
-                            aria-hidden
-                          />
-                          {s.rank}: {future || s.points == null ? "–" : s.points}
-                        </li>
-                      ))}
-                    </ul>
+                    <span
+                      className={cn(
+                        "w-10 shrink-0 text-right text-xs tabular-nums",
+                        future
+                          ? "text-gray-400 dark:text-zinc-500"
+                          : "text-gray-900 dark:text-white",
+                      )}
+                    >
+                      {future || total == null ? "–" : `${total} p`}
+                    </span>
                   </li>
                 )
               })}

@@ -176,6 +176,11 @@ describe("focus goal bar colors", () => {
     expect(FOCUS_GOAL_BAR_CLASS[6]).not.toContain("fuchsia")
     expect(FOCUS_GOAL_BAR_CLASS[3]).toContain("indigo")
   })
+
+  it("uses slate-400 for Teknik (goal 5) in dark mode, not slate-200", () => {
+    expect(FOCUS_GOAL_BAR_CLASS[5]).toContain("slate-400")
+    expect(FOCUS_GOAL_BAR_CLASS[5]).not.toContain("slate-200")
+  })
 })
 
 describe("PACT focus signal", () => {
@@ -527,6 +532,58 @@ describe("buildDriftFocus aggregation", () => {
     expect(data.period.kind).toBe("month")
     expect(data.period.shortLabel).toBe("november")
     expect(data.goals.find((g) => g.rank === 1)?.donePoints).toBe(6)
+  })
+
+  it("owner filter scopes Fokus points to that executor only", () => {
+    const tasks = [
+      doneTask({
+        id: "hugo-done",
+        objectiveId: "o1",
+        points: 4,
+        owner: "Hugo",
+        completedAt: "2026-11-12T12:00:00.000Z",
+        initiativeId: "i1",
+      }),
+      doneTask({
+        id: "juliette-under-hugo-init",
+        objectiveId: "o1",
+        points: 2,
+        owner: "Juliette",
+        completedAt: "2026-11-12T12:00:00.000Z",
+        initiativeId: "i1", // Hugo owns initiative 1.1
+      }),
+    ]
+    const filtered = buildDriftFocus({
+      now: WEEK46,
+      company: "pact",
+      ownerFilter: "Hugo",
+      periodKind: "week",
+      periodAnchor: WEEK46,
+      objectives: PACT_OBJECTIVES,
+      initiatives: INITIATIVES,
+      tasks,
+    })
+    expect(filtered.totalDonePoints).toBe(4)
+    expect(filtered.bots.map((b) => b.name)).toEqual(["Hugo"])
+    expect(filtered.bots.find((b) => b.name === "Juliette")).toBeUndefined()
+    expect(filtered.goals.find((g) => g.rank === 1)?.donePoints).toBe(4)
+    expect(filtered.goals.find((g) => g.rank === 1)?.focusBlurb).toContain(
+      "Prioritet 1 · plats",
+    )
+
+    const unfiltered = buildDriftFocus({
+      now: WEEK46,
+      company: "pact",
+      periodKind: "week",
+      periodAnchor: WEEK46,
+      objectives: PACT_OBJECTIVES,
+      initiatives: INITIATIVES,
+      tasks,
+    })
+    expect(unfiltered.totalDonePoints).toBe(6)
+    expect(unfiltered.bots.find((b) => b.name === "Juliette")?.totalPoints).toBe(
+      2,
+    )
   })
 
   it("month trend shows 6 weeks ending at current week, not future Nov weeks", () => {

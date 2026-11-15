@@ -460,6 +460,14 @@ export function buildDriftOverview(input: DriftBuildInput): DriftOverviewData {
     (t) => t.startedWithoutInitiative,
   )
 
+  const withoutPointsStatusRank = (t: DriftTaskLike): number => {
+    const col = classifyDriftColumn(t)
+    if (col === "pagar") return 0
+    if (col === "pagang" || col === "backlog") return 1
+    if (col === "klart") return 2
+    return 3
+  }
+
   const withoutPointsTasks: DriftUnprioritizedTask[] = tasksFiltered
     .filter((t) => {
       if (t.status === "cancelled") return false
@@ -467,7 +475,19 @@ export function buildDriftOverview(input: DriftBuildInput): DriftOverviewData {
       if (isUnprioritized(t)) return false
       return t.task_points == null
     })
-    .sort((a, b) => a.title.localeCompare(b.title, "sv"))
+    .sort((a, b) => {
+      const oa = a.objective_id
+        ? (objectiveById.get(a.objective_id)?.sort_order ?? 999)
+        : 999
+      const ob = b.objective_id
+        ? (objectiveById.get(b.objective_id)?.sort_order ?? 999)
+        : 999
+      if (oa !== ob) return oa - ob
+      const sa = withoutPointsStatusRank(a)
+      const sb = withoutPointsStatusRank(b)
+      if (sa !== sb) return sa - sb
+      return a.title.localeCompare(b.title, "sv")
+    })
     .map((t) => {
       const objective = t.objective_id
         ? objectiveById.get(t.objective_id)

@@ -1,6 +1,7 @@
 import {
   classifyDriftColumn,
   isPausedTitle,
+  taskMatchesOwnerFilter,
   taskOwnerNames,
   type DriftTaskLike,
 } from "./column-rules"
@@ -25,7 +26,6 @@ import {
   companySubtitle,
   isUnprioritized,
   resolveTaskCompany,
-  taskMatchesBotFilter,
   type DriftCompany,
   type DriftInitiativeLike,
   type DriftObjectiveLike,
@@ -148,16 +148,10 @@ export function buildDriftFocus(input: BuildFocusInput): DriftFocusData {
       projectCompanyById,
     })
     if (company !== input.company) return false
-    if (
-      !taskMatchesBotFilter(
-        t,
-        input.ownerFilter,
-        initiativeById,
-        taskOwnerNames,
-      )
-    ) {
-      return false
-    }
+    // Fokus points follow the executor (owner_agent), not initiative owner —
+    // otherwise other bots' done work under a filtered bot's initiative leaks
+    // into totals and "Poäng per bot".
+    if (!taskMatchesOwnerFilter(t, input.ownerFilter)) return false
     return true
   })
 
@@ -274,11 +268,12 @@ export function buildDriftFocus(input: BuildFocusInput): DriftFocusData {
         .sort((a, b) => b.pts - a.pts)
         .findIndex((x) => x.id === obj.id) + 1
 
+    const placePhrase = `Prioritet ${obj.sort_order} · plats ${placeByPoints} av ${companyObjectives.length} i poäng`
     const focusBlurb = underTarget
-      ? `Under målandelen. ${donePoints} p av ${totalDonePoints} p (${Math.round(share)} %). Målandel ${Math.round(targetShare!)} %. Plats ${placeByPoints} av ${companyObjectives.length} i poäng, rang ${obj.sort_order}.`
+      ? `Under målandelen. ${donePoints} p av ${totalDonePoints} p (${Math.round(share)} %). Målandel ${Math.round(targetShare!)} %. ${placePhrase}.`
       : targetShare != null && !targetGroup
-        ? `På eller över målandelen. ${donePoints} p av ${totalDonePoints} p (${Math.round(share)} %). Målandel ${Math.round(targetShare)} %. Plats ${placeByPoints} av ${companyObjectives.length} i poäng, rang ${obj.sort_order}.`
-        : `${donePoints} p av ${totalDonePoints} p (${Math.round(share)} %). Plats ${placeByPoints} av ${companyObjectives.length} i poäng, rang ${obj.sort_order}.`
+        ? `På eller över målandelen. ${donePoints} p av ${totalDonePoints} p (${Math.round(share)} %). Målandel ${Math.round(targetShare)} %. ${placePhrase}.`
+        : `${donePoints} p av ${totalDonePoints} p (${Math.round(share)} %). ${placePhrase}.`
 
     return {
       id: obj.id,

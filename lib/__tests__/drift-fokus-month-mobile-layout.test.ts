@@ -20,12 +20,14 @@ describe("Drift Fokus month trend mobile layout", () => {
     expect(src).toMatch(/data-fokus-trend-mobile/)
     expect(src).toMatch(/data-fokus-trend-desktop/)
     expect(src).toMatch(
-      /className="space-y-3 sm:hidden" data-fokus-trend-mobile/,
+      /className="space-y-2 sm:hidden" data-fokus-trend-mobile/,
     )
     expect(src).toMatch(/data-fokus-trend-desktop/)
     expect(src).toMatch(/hidden overflow-x-auto sm:block/)
     expect(src).toMatch(/min-w-\[36rem\]/)
-    expect(src).toMatch(/mål 1–2:/)
+    // Mobile: week | stacked bar | total (text-xs = 12px)
+    expect(src).toMatch(/text-xs font-medium tabular-nums/)
+    expect(src).toMatch(/w-10 shrink-0 text-right text-xs tabular-nums/)
   })
 
   it("stacks effect metric weeks below sm and aligns desktop to week columns", () => {
