@@ -18,7 +18,10 @@ import {
 import { guideCopy } from "@/lib/guides/guide-copy";
 import { isGuideHrefVisibleFrom } from "@/lib/guides/guide-publication";
 import { guidePath } from "@/lib/guides/guide-routes";
-import { shouldShowGuideShopCta } from "@/lib/guides/shop-links";
+import {
+  getGuideShopLinks,
+  shouldShowGuideShopCta,
+} from "@/lib/guides/shop-links";
 import {
   articleLinkText,
   articleParagraphs,
@@ -127,25 +130,43 @@ export async function renderArticleGuidePage(
   const shopHref = resolveArticleShopHref(content, locale);
   const shopLabel =
     content.shopCta?.label?.[locale]?.trim() || copy.shopNaturalWine;
+  const shopCtaProps =
+    shopHref === null
+      ? null
+      : {
+          href: shopHref,
+          label: shopLabel,
+          lead: copy.shopCtaLead,
+        };
 
-  const shopLinks = <GuideShopLinksBlock guidePath={pagePath} locale={locale} />;
+  const shopLinks = getGuideShopLinks(pagePath);
 
-  const shopCta =
-    shopHref === null ? null : (
-      <ArticleShopCta
-        href={shopHref}
-        label={shopLabel}
-        lead={copy.shopCtaLead}
-      />
-    );
+  /**
+   * One section: shop links (+ existing CTA when present, no second divider).
+   * Systembolaget / shopCta:null → links only. NONE / no links → CTA only.
+   */
+  const afterBody = shopLinks ? (
+    <GuideShopLinksBlock
+      guidePath={pagePath}
+      locale={locale}
+      links={shopLinks}
+      cta={shopCtaProps}
+    />
+  ) : shopCtaProps ? (
+    <ArticleShopCta
+      href={shopCtaProps.href}
+      label={shopCtaProps.label}
+      lead={shopCtaProps.lead}
+    />
+  ) : undefined;
 
-  /** Contextual shop links before FAQ / existing shop CTA. */
-  const afterBody = (
-    <>
-      {shopLinks}
-      {shopCta}
-    </>
-  );
+  const midArticleShopCta = shopCtaProps ? (
+    <ArticleShopCta
+      href={shopCtaProps.href}
+      label={shopCtaProps.label}
+      lead={shopCtaProps.lead}
+    />
+  ) : null;
 
   const about =
     content.jsonLdAbout.type === "Person"
@@ -321,8 +342,8 @@ export async function renderArticleGuidePage(
         )}
         afterFirstSection={
           articleVisibleForLocale(content.sections, locale).length >= 2 &&
-          shopCta
-            ? shopCta
+          midArticleShopCta
+            ? midArticleShopCta
             : undefined
         }
         afterSections={afterBody}

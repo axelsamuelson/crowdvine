@@ -128,4 +128,25 @@ describe("Systembolaget shop CTA hide", () => {
       /if\s*\(\s*!shouldShowGuideShopCta\(content\.slug\[locale\]\)\s*\)\s*return\s*null/,
     );
   });
+
+  it("merges the existing shop CTA into GuideShopLinksBlock (one section, no sibling CTA)", () => {
+    const renderer = readFileSync(
+      resolve(process.cwd(), "lib/guides/render-article-guide.tsx"),
+      "utf8",
+    );
+    const block = readFileSync(
+      resolve(process.cwd(), "components/guides/guide-shop-links-block.tsx"),
+      "utf8",
+    );
+    expect(renderer).toMatch(/cta=\{shopCtaProps\}/);
+    expect(renderer).not.toMatch(
+      /afterSections=\{[\s\S]*GuideShopLinksBlock[\s\S]*ArticleShopCta/,
+    );
+    expect(block).toMatch(/data-guide-shop-cta/);
+    expect(block).toMatch(/cta\?:/);
+    // Single top divider on the aside; CTA is nested without its own border-t.
+    expect(block).toMatch(/border-t border-border pt-6/);
+    const ctaChunk = block.slice(block.indexOf("{cta ?"));
+    expect(ctaChunk).not.toMatch(/border-t/);
+  });
 });
