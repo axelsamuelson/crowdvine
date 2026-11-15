@@ -3,7 +3,15 @@
 import { requireAdmin } from "@/lib/admin-auth-server"
 import { buildDriftFocus } from "@/lib/operations/drift/build-focus"
 import { buildDriftOverview } from "@/lib/operations/drift/build-overview"
-import type { FocusPeriodKind } from "@/lib/operations/drift/focus-period"
+import { loadFocusEffectSeries } from "@/lib/operations/drift/focus-effect-metrics"
+import {
+  focusMonthPeriod,
+  focusTrendEndWeek,
+  focusWeekPeriod,
+  isFutureFocusWeek,
+  lastNIsoWeeks,
+  type FocusPeriodKind,
+} from "@/lib/operations/drift/focus-period"
 import type {
   DriftCompany,
   DriftPriority,
@@ -128,12 +136,6 @@ export async function getDriftOverview(input?: {
   })
 }
 
-/** Synthetic effect series for Fokus until Saga delivers live metrics. */
-const EXAMPLE_EFFECT_SERIES: Record<string, number[]> = {
-  checkout_completion_rate: [2.4, 2.2, 2.3, 1.9, 1.7, 1.8],
-  plp_pdp_sessions_weekly: [980, 1040, 1120, 1150, 1210, 1240],
-}
-
 export async function getDriftFocus(input?: {
   company?: DriftCompanyFilter
   owner?: string | null
@@ -146,11 +148,24 @@ export async function getDriftFocus(input?: {
   const company = input?.company ?? "pact"
   const periodKind: FocusPeriodKind =
     input?.period === "month" ? "month" : "week"
+  const now = new Date()
   const periodAnchor = input?.periodAnchor
     ? new Date(`${input.periodAnchor}T12:00:00+01:00`)
-    : new Date()
+    : now
 
-  const [objectivesRes, initiativesRes, projectsRes, tasksRes] =
+  const period =
+    periodKind === "month"
+      ? focusMonthPeriod(periodAnchor)
+      : focusWeekPeriod(periodAnchor)
+  const trendEnd = focusTrendEndWeek(period, now)
+  const trendWeekBounds = lastNIsoWeeks(trendEnd, 6)
+  const effectWeeks = trendWeekBounds.map((w) => ({
+    startYmd: w.startYmd,
+    endYmd: w.endYmd,
+    isFuture: isFutureFocusWeek(w, now),
+  }))
+
+  const [objectivesRes, initiativesRes, projectsRes, tasksRes, effectSeriesByKey] =
     await Promise.all([
       sb
         .from("admin_objectives")
@@ -175,6 +190,19 @@ export async function getDriftFocus(input?: {
           "id, title, description, status, due_date, updated_at, completed_at, deleted_at, parent_task_id, owner_agent, assigned_to, project_id, objective_id, initiative_id, sort_order, task_points, points_status",
         )
         .is("deleted_at", null),
+      // PACT first-party analytics only (same clean stream as Trafik).
+      // currentLabel + trend sampleSize use the selected period (week/month).
+      company === "pact"
+        ? loadFocusEffectSeries({
+            sb,
+            weeks: effectWeeks,
+            period: {
+              startYmd: period.startYmd,
+              endYmd: period.endYmd,
+            },
+            site: "pact",
+          })
+        : Promise.resolve({}),
     ])
 
   if (objectivesRes.error) throw new Error(objectivesRes.error.message)
@@ -188,6 +216,7 @@ export async function getDriftFocus(input?: {
   }
 
   return buildDriftFocus({
+    now,
     company,
     ownerFilter: input?.owner ?? null,
     periodKind,
@@ -223,6 +252,6 @@ export async function getDriftFocus(input?: {
           : null,
     })),
     projectCompanyById,
-    effectSeriesByKey: EXAMPLE_EFFECT_SERIES,
+    effectSeriesByKey,
   })
 }
