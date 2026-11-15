@@ -566,4 +566,89 @@ describe("buildDriftOverview v6", () => {
     expect(data.weekItems.map((w) => w.id)).toEqual(["t-pact-done"])
     expect(data.pagarTasks.map((t) => t.id)).not.toContain("t-dw-footer")
   })
+
+  it("utan poäng list sorts by goal then status", () => {
+    const data = buildDriftOverview({
+      now: NOW,
+      companyFilter: "pact",
+      objectives: [
+        {
+          id: "o1",
+          title: "Checkout",
+          company: "pact",
+          sort_order: 1,
+          priority: "high",
+          short_label: "Checkout",
+        },
+        {
+          id: "o2",
+          title: "Trafik",
+          company: "pact",
+          sort_order: 2,
+          priority: "high",
+          short_label: "Trafik",
+        },
+      ],
+      initiatives: [
+        {
+          id: "i1",
+          objective_id: "o1",
+          company: "pact",
+          key: "1.1",
+          title: "Kassan",
+          owner_agent: "Hugo",
+          sort_order: 1,
+        },
+        {
+          id: "i2",
+          objective_id: "o2",
+          company: "pact",
+          key: "2.1",
+          title: "Guider",
+          owner_agent: "Camille",
+          sort_order: 1,
+        },
+      ],
+      tasks: [
+        {
+          id: "g2-pagar",
+          title: "Trafik pågår saknar p",
+          status: "in_progress",
+          owner_agent: "Camille",
+          objective_id: "o2",
+          initiative_id: "i2",
+          task_points: null,
+          updated_at: "2026-11-12T10:00:00Z",
+        },
+        {
+          id: "g1-klart",
+          title: "Checkout klart saknar p",
+          status: "done",
+          owner_agent: "Hugo",
+          objective_id: "o1",
+          initiative_id: "i1",
+          task_points: null,
+          completed_at: "2026-11-12T12:00:00Z",
+        },
+        {
+          id: "g1-pagar",
+          title: "Checkout pågår saknar p",
+          status: "in_progress",
+          owner_agent: "Hugo",
+          objective_id: "o1",
+          initiative_id: "i1",
+          task_points: null,
+          updated_at: "2026-11-12T11:00:00Z",
+        },
+      ],
+      agents: [{ name: "Hugo" }, { name: "Camille" }],
+      queue: [],
+    })
+
+    expect(data.withoutPointsTasks.map((t) => t.id)).toEqual([
+      "g1-pagar",
+      "g1-klart",
+      "g2-pagar",
+    ])
+  })
 })
