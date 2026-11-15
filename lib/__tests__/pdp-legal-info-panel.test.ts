@@ -71,7 +71,12 @@ describe("PDP legal info panel copy", () => {
     expect(src).toMatch(/whitespace-nowrap/);
     expect(src).toMatch(/2–3 veckor/);
     expect(src).toMatch(/min-h-11/);
+    expect(src).toMatch(/flex flex-wrap items-center gap-x-3 gap-y-2/);
+    expect(src).toMatch(/pl-6/);
+    // No orphanable middle-dot separator between links.
+    expect(src).not.toMatch(/>\s*·\s*</);
   });
+
 
   it("PalletStatusBar no longer shows the home-delivery guide link (moved into panel)", () => {
     const bar = readFileSync(

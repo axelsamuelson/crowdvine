@@ -11,6 +11,12 @@ import { cn } from "@/lib/utils";
 const LEGAL_SURFACE = "#ebe8e3";
 const LEGAL_FG = "#4f4f4f";
 
+/**
+ * Icon column is size-4 (16px) + gap-2 (8px) = 24px — match link row to the
+ * text column after the icon (not the icon’s left edge).
+ */
+const TEXT_COLUMN_PL = "pl-6";
+
 /** Keep "2–3 veckor" / "2–3 weeks" on one line without altering locked characters. */
 const NOWRAP_PHRASE = /(2–3 veckor|2–3 weeks)/;
 
@@ -38,7 +44,7 @@ type LegalRow = {
 };
 
 const linkClass =
-  "inline-flex min-h-11 items-center text-sm font-medium leading-[1.45] no-underline hover:text-foreground";
+  "inline-flex min-h-11 shrink-0 items-center whitespace-nowrap text-sm font-medium leading-[1.45] no-underline hover:text-foreground";
 
 /**
  * PACT wine PDP: recessed legal / shipping list under the × 6 lika/blandat
@@ -104,9 +110,16 @@ export function PdpLegalInfoPanel({
           </li>
         ))}
       </ul>
-      {/* Same line with · when width allows; stack under Köpvillkor at 390. */}
+      {/*
+        Link row: flex-wrap + gap-x-3 (no middle ·). A separate · flex item
+        would orphan on wrap; both SV/EN labels fit on one line at 390 with
+        whitespace-nowrap, so gap alone separates them without a dangling dot.
+      */}
       <nav
-        className="ml-[26px] mt-3 flex flex-col gap-0 min-[420px]:flex-row min-[420px]:flex-wrap min-[420px]:items-center min-[420px]:gap-x-2"
+        className={cn(
+          "mt-3 flex flex-wrap items-center gap-x-3 gap-y-2",
+          TEXT_COLUMN_PL,
+        )}
         aria-label={locale === "en" ? "Related links" : "Relaterade länkar"}
       >
         <Link
@@ -117,13 +130,6 @@ export function PdpLegalInfoPanel({
         >
           {termsLabel}
         </Link>
-        <span
-          className="hidden select-none min-[420px]:inline"
-          style={{ color: LEGAL_FG }}
-          aria-hidden
-        >
-          ·
-        </span>
         <Link
           href={deliveryHref}
           className={linkClass}
