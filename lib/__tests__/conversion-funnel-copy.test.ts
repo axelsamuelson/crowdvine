@@ -55,8 +55,10 @@ describe("conversion funnel copy (sv)", () => {
 
   it("uses Margaux PLP intro without Stockholm / Budbee", () => {
     const intro = getShopRootNaturalWineContent("sv").intro;
-    expect(intro).toContain("levereras hem till dig när pallen stänger");
+    expect(intro).toContain("naturvin online från små producenter i hela Frankrike");
+    expect(intro).toContain("levereras inom Sverige");
     expect(intro).not.toMatch(/Stockholm|Budbee/i);
+    expect(getShopRootNaturalWineContent("sv").h1).toBe("Naturvin");
     expect(getShopRootNaturalWineContent("sv").longDescription).toMatch(
       /skickas den hem till dig\.?$/,
     );

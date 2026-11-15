@@ -5,9 +5,11 @@ import { headers } from "next/headers";
 import ProductList from "@/app/vin/components/product-list";
 import { PactSellerConsumerInfo } from "@/components/commerce/pact-seller-consumer-info";
 import { CategoryFaqSection } from "@/components/shop/category-faq-section";
+import { ShopRegionLinks } from "@/components/shop/shop-region-links";
 import { isB2BHost } from "@/lib/b2b-site";
 import { mapProductDataToShopProducts } from "@/lib/map-product-data-to-shop-product";
 import { getCachedShopProducts } from "@/lib/shop/cached-shop-products";
+import { getIndexableRegionLinks } from "@/lib/shop/indexable-region-links";
 import { getShopRootNaturalWineContent } from "@/lib/shop/shop-root-natural-wine-content";
 import {
   DEFAULT_B2B_SHOP_SORT,
@@ -246,6 +248,7 @@ export async function MainShopContent({
     headerList.get("x-forwarded-host") ?? headerList.get("host"),
   );
   const content = getShopRootNaturalWineContent(locale, { isB2BSite });
+  const regionLinks = await getIndexableRegionLinks(locale);
 
   return (
     <>
@@ -262,6 +265,11 @@ export async function MainShopContent({
         {!isB2BSite ? (
           <PactSellerConsumerInfo locale={locale} className="mb-8 max-w-2xl" />
         ) : null}
+        <ShopRegionLinks
+          locale={locale}
+          links={regionLinks}
+          className="mb-8 max-w-3xl"
+        />
       </div>
       <ProductList collection={storeCatalog.rootCategoryId} searchParams={sp} />
       <ShopRootBelowFold locale={locale} />
