@@ -158,6 +158,33 @@ export function lastNIsoWeeks(
   return out
 }
 
+/**
+ * End week for the 6-week trend.
+ * Week period → that week.
+ * Month period → last ISO week of the period, capped at the current week
+ * when the period has not ended (November mid-month → …–v.46, not w47–49).
+ */
+export function focusTrendEndWeek(
+  period: FocusPeriodBounds,
+  now: Date = new Date(),
+): FocusPeriodBounds {
+  if (period.kind === "week") return period
+  const periodLastWeek = focusWeekPeriod(
+    new Date(`${period.endYmd}T12:00:00+01:00`),
+  )
+  const nowWeek = focusWeekPeriod(now)
+  if (periodLastWeek.startYmd > nowWeek.startYmd) return nowWeek
+  return periodLastWeek
+}
+
+/** True if the week starts after the Stockholm calendar day of `now`. */
+export function isFutureFocusWeek(
+  week: Pick<FocusPeriodBounds, "startYmd">,
+  now: Date = new Date(),
+): boolean {
+  return week.startYmd > stockholmYmd(now)
+}
+
 /** True if completed_at falls on a Stockholm calendar day within [start, end]. */
 export function completedAtInPeriod(
   completedAt: string | null | undefined,

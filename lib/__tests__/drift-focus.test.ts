@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest"
 import { buildDriftFocus } from "@/lib/operations/drift/build-focus"
+import { FOCUS_GOAL_BAR_CLASS } from "@/lib/operations/drift/focus-constants"
 import {
   completedAtInPeriod,
   focusKlarSummaryLabel,
   focusKlarSummarySuffix,
+  focusMonthPeriod,
+  focusTrendEndWeek,
   focusWeekPeriod,
+  isFutureFocusWeek,
   lastNIsoWeeks,
   stockholmIsoWeekNumber,
 } from "@/lib/operations/drift/focus-period"
@@ -145,6 +149,32 @@ describe("focus period / Stockholm week bounds", () => {
     const period = focusWeekPeriod(WEEK46)
     const weeks = lastNIsoWeeks(period, 6)
     expect(weeks.map((w) => w.isoWeek)).toEqual([41, 42, 43, 44, 45, 46])
+  })
+
+  it("caps month trend end week at the current week during an open month", () => {
+    const november = focusMonthPeriod(WEEK46)
+    const end = focusTrendEndWeek(november, WEEK46)
+    expect(end.isoWeek).toBe(46)
+    const weeks = lastNIsoWeeks(end, 6)
+    expect(weeks.map((w) => w.isoWeek)).toEqual([41, 42, 43, 44, 45, 46])
+    expect(weeks.every((w) => !isFutureFocusWeek(w, WEEK46))).toBe(true)
+  })
+
+  it("uses the last week of a fully past month for the trend", () => {
+    const october = focusMonthPeriod(WEEK43)
+    // WEEK46 is mid-November → October has ended
+    const end = focusTrendEndWeek(october, WEEK46)
+    expect(end.isoWeek).toBe(44) // 26 Oct–1 Nov 2026 contains Oct 31
+    const weeks = lastNIsoWeeks(end, 6)
+    expect(weeks.map((w) => w.isoWeek)).toEqual([39, 40, 41, 42, 43, 44])
+  })
+})
+
+describe("focus goal bar colors", () => {
+  it("uses muted rose for Juridik (goal 6), not saturated fuchsia", () => {
+    expect(FOCUS_GOAL_BAR_CLASS[6]).toContain("rose")
+    expect(FOCUS_GOAL_BAR_CLASS[6]).not.toContain("fuchsia")
+    expect(FOCUS_GOAL_BAR_CLASS[3]).toContain("indigo")
   })
 })
 
@@ -497,6 +527,44 @@ describe("buildDriftFocus aggregation", () => {
     expect(data.period.kind).toBe("month")
     expect(data.period.shortLabel).toBe("november")
     expect(data.goals.find((g) => g.rank === 1)?.donePoints).toBe(6)
+  })
+
+  it("month trend shows 6 weeks ending at current week, not future Nov weeks", () => {
+    const tasks = [
+      doneTask({
+        id: "w41",
+        objectiveId: "o1",
+        points: 2,
+        owner: "Hugo",
+        completedAt: "2026-10-08T12:00:00.000Z",
+        initiativeId: "i1",
+      }),
+      doneTask({
+        id: "w46",
+        objectiveId: "o1",
+        points: 4,
+        owner: "Hugo",
+        completedAt: "2026-11-12T12:00:00.000Z",
+        initiativeId: "i1",
+      }),
+    ]
+    const data = buildDriftFocus({
+      now: WEEK46,
+      company: "pact",
+      periodKind: "month",
+      periodAnchor: WEEK46,
+      objectives: PACT_OBJECTIVES,
+      initiatives: INITIATIVES,
+      tasks,
+    })
+    expect(data.trendWeeks.map((w) => w.isoWeek)).toEqual([
+      41, 42, 43, 44, 45, 46,
+    ])
+    expect(data.trendWeeks.every((w) => !w.isFuture)).toBe(true)
+    const g1 = data.trendByGoal.find((g) => g.rank === 1)!
+    expect(g1.pointsPerWeek).toEqual([2, 0, 0, 0, 0, 4])
+    expect(g1.deltaVsFirst).toBe(2)
+    expect(g1.pointsPerWeek.every((p) => p !== null)).toBe(true)
   })
 })
 

@@ -8,7 +8,9 @@ import { focusPointsConfirmer } from "./focus-constants"
 import {
   completedAtInPeriod,
   focusMonthPeriod,
+  focusTrendEndWeek,
   focusWeekPeriod,
+  isFutureFocusWeek,
   lastNIsoWeeks,
   shiftFocusPeriod,
   type FocusPeriodBounds,
@@ -420,32 +422,36 @@ export function buildDriftFocus(input: BuildFocusInput): DriftFocusData {
         b.totalPoints - a.totalPoints || a.name.localeCompare(b.name, "sv"),
     )
 
-  // 6-week trend (always relative to selected period's end week)
-  const endWeek =
-    period.kind === "week"
-      ? period
-      : focusWeekPeriod(new Date(`${period.endYmd}T12:00:00+01:00`))
+  // 6-week trend: last completed weeks up to period end, capped at current week
+  const endWeek = focusTrendEndWeek(period, now)
   const weeks = lastNIsoWeeks(endWeek, 6)
   const trendWeeks: DriftFocusTrendWeek[] = weeks.map((w) => ({
     isoWeek: w.isoWeek!,
     shortLabel: w.shortLabel,
     startYmd: w.startYmd,
     endYmd: w.endYmd,
+    isFuture: isFutureFocusWeek(w, now),
   }))
 
   const trendByGoal = companyObjectives.map((obj) => {
-    const points = weeks.map((w) =>
-      scopedTasks
+    const points = weeks.map((w, i) => {
+      if (trendWeeks[i]?.isFuture) return null
+      return scopedTasks
         .filter(
           (t) =>
             t.objective_id === obj.id &&
             t.status === "done" &&
             completedAtInPeriod(t.completed_at, w.startYmd, w.endYmd),
         )
-        .reduce((s, t) => s + pointsOf(t), 0),
-    )
-    const sum = points.reduce((a, b) => a + b, 0)
-    const delta = points[points.length - 1]! - points[0]!
+        .reduce((s, t) => s + pointsOf(t), 0)
+    })
+    const sum = points.reduce<number>((a, b) => a + (b ?? 0), 0)
+    const first = points[0]
+    const last = points[points.length - 1]
+    const delta =
+      typeof first === "number" && typeof last === "number"
+        ? last - first
+        : null
     return {
       objectiveId: obj.id,
       rank: obj.sort_order,

@@ -14,8 +14,9 @@ export function focusPointsConfirmer(company: DriftCompany): string {
 export type FocusGoalColorKey = 1 | 2 | 3 | 4 | 5 | 6
 
 /**
- * Goal bar colors. Goal 6 uses fuchsia (not violet) so it stays distinct from
- * goal 3 indigo. Teknik (5) uses slate-200 in dark mode for short-bar visibility.
+ * Goal bar colors. Goal 6 uses muted rose/plum (not saturated fuchsia) so it
+ * stays distinct from goal 3 indigo at similar saturation. Teknik (5) uses
+ * slate-200 in dark mode for short-bar visibility.
  */
 export const FOCUS_GOAL_BAR_CLASS: Record<FocusGoalColorKey, string> = {
   1: "bg-sky-600 dark:bg-sky-400",
@@ -23,7 +24,7 @@ export const FOCUS_GOAL_BAR_CLASS: Record<FocusGoalColorKey, string> = {
   3: "bg-indigo-400 dark:bg-indigo-300",
   4: "bg-stone-500 dark:bg-stone-400",
   5: "bg-blue-900 dark:bg-slate-200",
-  6: "bg-fuchsia-600 dark:bg-fuchsia-400",
+  6: "bg-rose-400 dark:bg-rose-300",
 }
 
 export function focusGoalColorClass(rank: number): string {

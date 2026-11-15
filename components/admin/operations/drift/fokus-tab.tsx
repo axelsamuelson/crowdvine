@@ -1,6 +1,11 @@
 "use client"
 
-import { ChevronLeft, ChevronRight, HelpCircle } from "lucide-react"
+import {
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  HelpCircle,
+} from "lucide-react"
 import { useMemo, useState } from "react"
 import { focusGoalColorClass } from "@/lib/operations/drift/focus-constants"
 import type { FocusPeriodKind } from "@/lib/operations/drift/focus-period"
@@ -585,16 +590,18 @@ export function FokusTab({
                   {/* Mobile */}
                   <div className="space-y-1.5 lg:hidden">
                     <div className="flex items-start justify-between gap-3">
-                      <div className="flex min-w-0 items-start gap-2">
-                        <span
-                          className={cn(
-                            "mt-0.5 text-gray-400 transition-transform dark:text-zinc-500",
-                            open && "rotate-90",
-                          )}
-                          aria-hidden
-                        >
-                          ▸
-                        </span>
+                      <div className="flex min-w-0 items-center gap-2">
+                        {open ? (
+                          <ChevronDown
+                            className="h-4 w-4 shrink-0 text-gray-400 dark:text-zinc-500"
+                            aria-hidden
+                          />
+                        ) : (
+                          <ChevronRight
+                            className="h-4 w-4 shrink-0 text-gray-400 dark:text-zinc-500"
+                            aria-hidden
+                          />
+                        )}
                         <span className="text-sm font-medium text-gray-900 dark:text-white">
                           {goal.rank} {goal.title}
                         </span>
@@ -634,19 +641,23 @@ export function FokusTab({
                   </div>
 
                   {/* Desktop */}
-                  <div className="hidden lg:grid lg:grid-cols-[minmax(14rem,22rem)_minmax(0,1fr)_3.25rem_3.75rem_3.75rem] lg:items-center lg:gap-3">
-                    <div className="flex min-w-0 items-start gap-2">
-                      <span
-                        className={cn(
-                          "mt-0.5 text-gray-400 transition-transform dark:text-zinc-500",
-                          open && "rotate-90",
+                  <div className="hidden lg:grid lg:grid-cols-[minmax(14rem,22rem)_minmax(0,1fr)_3.25rem_3.75rem_3.75rem] lg:items-start lg:gap-3">
+                    <div className="flex min-w-0 gap-2">
+                      <span className="flex h-5 shrink-0 items-center">
+                        {open ? (
+                          <ChevronDown
+                            className="h-4 w-4 text-gray-400 dark:text-zinc-500"
+                            aria-hidden
+                          />
+                        ) : (
+                          <ChevronRight
+                            className="h-4 w-4 text-gray-400 dark:text-zinc-500"
+                            aria-hidden
+                          />
                         )}
-                        aria-hidden
-                      >
-                        ▸
                       </span>
                       <div className="min-w-0">
-                        <p className="text-sm font-medium text-gray-900 dark:text-white">
+                        <p className="text-sm font-medium leading-5 text-gray-900 dark:text-white">
                           {goal.rank} {goal.title}
                         </p>
                         {effect && !effect.unlinked ? (
@@ -665,7 +676,7 @@ export function FokusTab({
                         ) : null}
                       </div>
                     </div>
-                    <div className="flex min-w-0 items-center gap-3">
+                    <div className="flex min-w-0 items-center gap-3 pt-0.5">
                       <GoalMiniBar
                         sharePct={goal.sharePct}
                         targetShare={goal.targetShare}
@@ -681,10 +692,10 @@ export function FokusTab({
                         </p>
                       </div>
                     </div>
-                    <div className="text-right text-sm tabular-nums text-gray-900 dark:text-white">
+                    <div className="pt-0.5 text-right text-sm tabular-nums text-gray-900 dark:text-white">
                       {goal.doneCount}
                     </div>
-                    <div className="text-right text-sm">
+                    <div className="pt-0.5 text-right text-sm">
                       <p className="tabular-nums text-gray-900 dark:text-white">
                         {goal.pagarCount}
                       </p>
@@ -692,7 +703,7 @@ export function FokusTab({
                         {goal.pagarPoints} p
                       </p>
                     </div>
-                    <div className="text-right text-sm">
+                    <div className="pt-0.5 text-right text-sm">
                       <p className="tabular-nums text-gray-900 dark:text-white">
                         {goal.kvarCount}
                       </p>
@@ -801,22 +812,28 @@ export function FokusTab({
                 {bot.name}
               </span>
               <div
-                className="flex h-2 min-w-0 flex-1 overflow-hidden rounded-sm bg-gray-100 dark:bg-zinc-800"
+                className="h-2 min-w-0 flex-1 overflow-hidden rounded-sm bg-gray-100 dark:bg-zinc-800"
                 role="img"
                 aria-label={`${bot.totalPoints} poäng`}
-                style={{
-                  maxWidth: `${(bot.totalPoints / maxBotPoints) * 100}%`,
-                }}
               >
-                {bot.segments.map((seg) => (
+                {bot.totalPoints > 0 ? (
                   <div
-                    key={seg.rank}
-                    className={cn("h-full", focusGoalColorClass(seg.rank))}
+                    className="flex h-full"
                     style={{
-                      width: `${(seg.points / bot.totalPoints) * 100}%`,
+                      width: `${(bot.totalPoints / maxBotPoints) * 100}%`,
                     }}
-                  />
-                ))}
+                  >
+                    {bot.segments.map((seg) => (
+                      <div
+                        key={seg.rank}
+                        className={cn("h-full", focusGoalColorClass(seg.rank))}
+                        style={{
+                          width: `${(seg.points / bot.totalPoints) * 100}%`,
+                        }}
+                      />
+                    ))}
+                  </div>
+                ) : null}
               </div>
               <span className="w-12 shrink-0 text-right text-sm tabular-nums text-gray-900 dark:text-white">
                 {bot.totalPoints} p
@@ -844,58 +861,90 @@ export function FokusTab({
             {/* Mobile &lt; sm: stacked week rows — no horizontal scroll at 390. */}
             <ul className="space-y-3 sm:hidden" data-fokus-trend-mobile>
               {data.trendWeeks.map((w, weekIdx) => {
+                const future = w.isFuture
                 const segments = data.trendByGoal.map((g) => ({
                   rank: g.rank,
-                  points: g.pointsPerWeek[weekIdx] ?? 0,
+                  points: g.pointsPerWeek[weekIdx],
                 }))
-                const total = segments.reduce((s, x) => s + x.points, 0)
+                const total = future
+                  ? null
+                  : segments.reduce((s, x) => s + (x.points ?? 0), 0)
                 const topPoints = segments
                   .filter((s) => s.rank === 1 || s.rank === 2)
-                  .reduce((s, x) => s + x.points, 0)
+                  .reduce((s, x) => s + (x.points ?? 0), 0)
                 const topShare =
-                  total > 0 ? Math.round((topPoints / total) * 100) : 0
+                  total != null && total > 0
+                    ? Math.round((topPoints / total) * 100)
+                    : null
                 return (
                   <li
                     key={w.isoWeek}
                     className="border-b border-gray-100 pb-3 dark:border-zinc-900"
                   >
                     <div className="flex items-baseline justify-between gap-3 text-sm">
-                      <span className="font-medium text-gray-900 dark:text-white">
+                      <span
+                        className={cn(
+                          "font-medium",
+                          future
+                            ? "text-gray-400 dark:text-zinc-500"
+                            : "text-gray-900 dark:text-white",
+                        )}
+                      >
                         {w.shortLabel}
                       </span>
-                      <span className="tabular-nums text-gray-900 dark:text-white">
-                        {total} p
+                      <span
+                        className={cn(
+                          "tabular-nums",
+                          future
+                            ? "text-gray-400 dark:text-zinc-500"
+                            : "text-gray-900 dark:text-white",
+                        )}
+                      >
+                        {future || total == null ? "–" : `${total} p`}
                       </span>
                     </div>
-                    <p className="mt-0.5 text-xs text-gray-600 dark:text-zinc-400">
-                      mål 1–2: {topShare} %
-                    </p>
-                    <div className="mt-2 flex h-2 overflow-hidden rounded-sm bg-gray-100 dark:bg-zinc-800">
-                      {segments
-                        .filter((s) => s.points > 0)
-                        .map((s) => (
-                          <div
-                            key={s.rank}
-                            className={cn("h-full", focusGoalColorClass(s.rank))}
-                            style={{
-                              width: `${(s.points / Math.max(1, total)) * 100}%`,
-                            }}
-                            title={`Mål ${s.rank}: ${s.points} p`}
-                          />
-                        ))}
-                    </div>
+                    {!future && topShare != null ? (
+                      <p className="mt-0.5 text-xs text-gray-600 dark:text-zinc-400">
+                        mål 1–2: {topShare} %
+                      </p>
+                    ) : null}
+                    {!future ? (
+                      <div className="mt-2 flex h-2 overflow-hidden rounded-sm bg-gray-100 dark:bg-zinc-800">
+                        {segments
+                          .filter((s) => (s.points ?? 0) > 0)
+                          .map((s) => (
+                            <div
+                              key={s.rank}
+                              className={cn(
+                                "h-full",
+                                focusGoalColorClass(s.rank),
+                              )}
+                              style={{
+                                width: `${((s.points ?? 0) / Math.max(1, total ?? 1)) * 100}%`,
+                              }}
+                              title={`Mål ${s.rank}: ${s.points} p`}
+                            />
+                          ))}
+                      </div>
+                    ) : null}
                     <ul className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-gray-600 dark:text-zinc-400">
                       {segments.map((s) => (
-                        <li key={s.rank} className="tabular-nums">
+                        <li
+                          key={s.rank}
+                          className={cn(
+                            "tabular-nums",
+                            future && "text-gray-400 dark:text-zinc-500",
+                          )}
+                        >
                           <span
                             className={cn(
                               "mr-1 inline-block h-2 w-2 rounded-sm align-middle",
                               focusGoalColorClass(s.rank),
-                              s.points === 0 && "opacity-30",
+                              ((s.points ?? 0) === 0 || future) && "opacity-30",
                             )}
                             aria-hidden
                           />
-                          {s.rank}: {s.points}
+                          {s.rank}: {future || s.points == null ? "–" : s.points}
                         </li>
                       ))}
                     </ul>
@@ -904,8 +953,11 @@ export function FokusTab({
               })}
             </ul>
 
-            {/* Desktop sm+: wide goal×week table (unchanged). */}
-            <div className="hidden overflow-x-auto sm:block" data-fokus-trend-desktop>
+            {/* Desktop sm+: wide goal×week table. */}
+            <div
+              className="hidden overflow-x-auto sm:block"
+              data-fokus-trend-desktop
+            >
               <table className="w-full min-w-[36rem] text-left text-xs">
                 <thead>
                   <tr className="border-b border-gray-200 text-gray-500 dark:border-[#1F1F23] dark:text-zinc-400">
@@ -923,7 +975,11 @@ export function FokusTab({
                 </thead>
                 <tbody>
                   {data.trendByGoal.map((row) => {
-                    const max = Math.max(1, ...row.pointsPerWeek)
+                    const numeric = row.pointsPerWeek.filter(
+                      (p): p is number => p != null,
+                    )
+                    const max = Math.max(1, ...numeric)
+                    const lastIdx = row.pointsPerWeek.length - 1
                     return (
                       <tr
                         key={row.objectiveId}
@@ -932,42 +988,53 @@ export function FokusTab({
                         <td className="py-2 pr-3 text-sm text-gray-900 dark:text-zinc-100">
                           {row.rank} {row.shortLabel}
                         </td>
-                        {row.pointsPerWeek.map((p, i) => (
-                          <td key={i} className="px-1 py-2 align-bottom">
-                            <div className="mx-auto flex h-[60px] w-full max-w-[1.75rem] flex-col items-center justify-end gap-1">
-                              <span
-                                className={cn(
-                                  "tabular-nums",
-                                  i === row.pointsPerWeek.length - 1
-                                    ? "font-semibold text-gray-900 dark:text-white"
-                                    : "text-gray-500 dark:text-zinc-400",
+                        {row.pointsPerWeek.map((p, i) => {
+                          const future =
+                            p == null || data.trendWeeks[i]?.isFuture
+                          return (
+                            <td key={i} className="px-1 py-2 align-bottom">
+                              <div className="mx-auto flex h-[60px] w-full max-w-[1.75rem] flex-col items-center justify-end gap-1">
+                                <span
+                                  className={cn(
+                                    "tabular-nums",
+                                    future
+                                      ? "text-gray-400 dark:text-zinc-500"
+                                      : i === lastIdx && p > 0
+                                        ? "font-semibold text-gray-900 dark:text-white"
+                                        : "text-gray-500 dark:text-zinc-400",
+                                  )}
+                                >
+                                  {future ? "–" : p}
+                                </span>
+                                {!future ? (
+                                  <div
+                                    className={cn(
+                                      "w-full rounded-sm",
+                                      focusGoalColorClass(row.rank),
+                                      i < lastIdx && "opacity-40",
+                                    )}
+                                    style={{
+                                      height: `${Math.max(4, (p / max) * 36)}px`,
+                                    }}
+                                  />
+                                ) : (
+                                  <div className="h-1 w-full" aria-hidden />
                                 )}
-                              >
-                                {p}
-                              </span>
-                              <div
-                                className={cn(
-                                  "w-full rounded-sm",
-                                  focusGoalColorClass(row.rank),
-                                  i < row.pointsPerWeek.length - 1 &&
-                                    "opacity-40",
-                                )}
-                                style={{
-                                  height: `${Math.max(4, (p / max) * 36)}px`,
-                                }}
-                              />
-                            </div>
-                          </td>
-                        ))}
+                              </div>
+                            </td>
+                          )
+                        })}
                         <td className="py-2 pl-3 text-sm">
                           <p className="tabular-nums text-gray-900 dark:text-white">
                             {row.sum} p på 6 veckor
                           </p>
-                          <p className="text-xs text-gray-500 dark:text-zinc-400">
-                            {row.deltaVsFirst >= 0 ? "+" : ""}
-                            {row.deltaVsFirst} p mot{" "}
-                            {data.trendWeeks[0]?.shortLabel}
-                          </p>
+                          {row.deltaVsFirst != null ? (
+                            <p className="text-xs text-gray-500 dark:text-zinc-400">
+                              {row.deltaVsFirst >= 0 ? "+" : ""}
+                              {row.deltaVsFirst} p mot{" "}
+                              {data.trendWeeks[0]?.shortLabel}
+                            </p>
+                          ) : null}
                         </td>
                       </tr>
                     )
@@ -994,46 +1061,106 @@ export function FokusTab({
                 Inga effektmått kopplade.
               </p>
             ) : (
-              <ul className="space-y-4">
-                {data.effectMetrics.map((m) => (
-                  <li key={m.metricKey} className="text-sm">
-                    <p className="text-gray-900 dark:text-zinc-100">
-                      {m.rank} {m.label}
-                    </p>
-                    {/* Mobile: stacked week rows */}
-                    <ul className="mt-2 space-y-1 sm:hidden">
-                      {m.values.map((v, i) => (
-                        <li
-                          key={i}
-                          className="flex justify-between gap-3 text-xs tabular-nums text-gray-600 dark:text-zinc-400"
+              <>
+                {/* Mobile: stacked per metric */}
+                <ul className="space-y-4 sm:hidden">
+                  {data.effectMetrics.map((m) => (
+                    <li key={m.metricKey} className="text-sm">
+                      <p className="text-gray-900 dark:text-zinc-100">
+                        {m.rank} {m.label}
+                      </p>
+                      <ul className="mt-2 space-y-1">
+                        {data.trendWeeks.map((w, i) => {
+                          const v = m.values[i]
+                          const future = w.isFuture || v == null
+                          return (
+                            <li
+                              key={w.isoWeek}
+                              className={cn(
+                                "flex justify-between gap-3 text-xs tabular-nums",
+                                future
+                                  ? "text-gray-400 dark:text-zinc-500"
+                                  : "text-gray-600 dark:text-zinc-400",
+                              )}
+                            >
+                              <span>{w.shortLabel}</span>
+                              <span>
+                                {future
+                                  ? "–"
+                                  : m.metricKey === "checkout_completion_rate"
+                                    ? `${String(v).replace(".", ",")}%`
+                                    : v}
+                              </span>
+                            </li>
+                          )
+                        })}
+                      </ul>
+                      <div className="mt-2">
+                        <Sparkline values={m.values} />
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+
+                {/* Desktop: same week columns as Klart per vecka; sparkline in Summa */}
+                <div
+                  className="hidden overflow-x-auto sm:block"
+                  data-fokus-effekt-desktop
+                >
+                  <table className="w-full min-w-[36rem] text-left text-xs">
+                    <thead>
+                      <tr className="border-b border-gray-200 text-gray-500 dark:border-[#1F1F23] dark:text-zinc-400">
+                        <th className="py-2 pr-3 font-medium">Mått</th>
+                        {data.trendWeeks.map((w) => (
+                          <th
+                            key={w.isoWeek}
+                            className="px-1 py-2 text-center font-medium"
+                          >
+                            {w.shortLabel}
+                          </th>
+                        ))}
+                        <th className="py-2 pl-3 font-medium">Summa</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.effectMetrics.map((m) => (
+                        <tr
+                          key={m.metricKey}
+                          className="border-b border-gray-100 dark:border-zinc-900"
                         >
-                          <span>
-                            {data.trendWeeks[i]?.shortLabel ?? `v.${i + 1}`}
-                          </span>
-                          <span>
-                            {m.metricKey === "checkout_completion_rate"
-                              ? `${String(v).replace(".", ",")}%`
-                              : v}
-                          </span>
-                        </li>
+                          <td className="py-2 pr-3 text-sm text-gray-900 dark:text-zinc-100">
+                            {m.rank} {m.label}
+                          </td>
+                          {data.trendWeeks.map((w, i) => {
+                            const v = m.values[i]
+                            const future = w.isFuture || v == null
+                            return (
+                              <td
+                                key={w.isoWeek}
+                                className={cn(
+                                  "px-1 py-2 text-center tabular-nums",
+                                  future
+                                    ? "text-gray-400 dark:text-zinc-500"
+                                    : "text-gray-600 dark:text-zinc-400",
+                                )}
+                              >
+                                {future
+                                  ? "–"
+                                  : m.metricKey === "checkout_completion_rate"
+                                    ? `${String(v).replace(".", ",")}%`
+                                    : v}
+                              </td>
+                            )
+                          })}
+                          <td className="py-2 pl-3 align-middle">
+                            <Sparkline values={m.values} />
+                          </td>
+                        </tr>
                       ))}
-                    </ul>
-                    {/* Desktop: 6-col grid */}
-                    <div className="mt-2 hidden grid-cols-6 gap-1 text-center text-xs tabular-nums text-gray-600 dark:text-zinc-400 sm:grid">
-                      {m.values.map((v, i) => (
-                        <div key={i}>
-                          {m.metricKey === "checkout_completion_rate"
-                            ? `${String(v).replace(".", ",")}%`
-                            : v}
-                        </div>
-                      ))}
-                    </div>
-                    <div className="mt-1 hidden justify-end sm:flex">
-                      <Sparkline values={m.values} />
-                    </div>
-                  </li>
-                ))}
-              </ul>
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
           </section>
         </>

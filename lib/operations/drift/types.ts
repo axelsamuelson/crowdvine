@@ -68,6 +68,8 @@ export interface DriftFocusTrendWeek {
   shortLabel: string
   startYmd: string
   endYmd: string
+  /** Week starts after Stockholm today — show "–", never 0. */
+  isFuture: boolean
 }
 
 export interface DriftFocusTrendGoal {
@@ -75,9 +77,11 @@ export interface DriftFocusTrendGoal {
   rank: number
   shortLabel: string
   title: string
-  pointsPerWeek: number[]
+  /** null = future / unavailable week (render "–"). */
+  pointsPerWeek: Array<number | null>
   sum: number
-  deltaVsFirst: number
+  /** null when first/last week lack a comparable value. */
+  deltaVsFirst: number | null
 }
 
 export interface DriftFocusEffectMetric {
