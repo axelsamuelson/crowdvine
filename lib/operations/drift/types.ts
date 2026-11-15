@@ -97,6 +97,8 @@ export interface DriftPipelineTaskCard {
   heading: string
   owner: string | null
   atLabel: string | null
+  /** Green date only when the card is in Klart; otherwise neutral grey. */
+  atIsDone: boolean
   source: "pr" | "ops_agent_log" | null
   paused: boolean
   unprioritized: boolean
@@ -114,6 +116,7 @@ export interface DriftPipelineInitiative {
   ownerAgent: string
   columns: {
     pagar: DriftPipelineTaskCard[]
+    /** Middle column — UI label "Nästa" (formerly "På gång"). */
     pagang: DriftPipelineTaskCard[]
     klart: DriftPipelineTaskCard[]
   }
@@ -166,6 +169,8 @@ export interface DriftMalObjective {
   priority: DriftPriority
   priorityLabel: string
   initiativeCount: number
+  /** Initiatives hidden by bot filter (neither owner nor any task). */
+  hiddenInitiativesCount: number
   pagarCount: number
   doneCount: number
   totalCount: number

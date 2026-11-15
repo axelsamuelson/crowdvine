@@ -52,7 +52,7 @@ describe("classifyDriftColumn / column rules", () => {
     ).toBe("backlog")
   })
 
-  it("classifies recent todo as På gång and stale todo as Backlog", () => {
+  it("classifies recent todo as pagang (UI: Nästa) and stale todo as Backlog", () => {
     expect(
       classifyDriftColumn(
         {

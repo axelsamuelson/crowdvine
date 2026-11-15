@@ -88,7 +88,6 @@ function statusLabelForTask(task: DriftTaskLike, now: Date): string {
     case "pagar":
       return "Pågår"
     case "pagang":
-      return "På gång"
     case "backlog":
       return "Nästa"
     case "klart":
@@ -179,15 +178,24 @@ function toPipelineCard(
 ): DriftPipelineTaskCard {
   const marker = parseTaskSourceMarker(task.description)
   const owners = taskOwnerNames(task)
+  const done = task.status === "done"
+  const atLabel = done
+    ? task.completed_at
+      ? formatStockholmDateTime(task.completed_at)
+      : task.updated_at
+        ? formatStockholmDateTime(task.updated_at)
+        : null
+    : task.due_date
+      ? formatStockholmDate(task.due_date)
+      : task.updated_at
+        ? formatStockholmDateTime(task.updated_at)
+        : null
   return {
     id: task.id,
     heading: formatDriftTaskHeadingLine(task, objective?.title ?? null),
     owner: owners[0] ?? null,
-    atLabel: task.completed_at
-      ? formatStockholmDateTime(task.completed_at)
-      : task.updated_at
-        ? formatStockholmDateTime(task.updated_at)
-        : null,
+    atLabel,
+    atIsDone: done,
     source: marker?.kind ?? null,
     paused: isPausedTitle(task.title),
     unprioritized: isUnprioritized(task),
@@ -300,8 +308,16 @@ export function buildDriftOverview(input: DriftBuildInput): DriftOverviewData {
   for (const t of tasksFiltered) {
     if (isUnprioritized(t) && t.status !== "cancelled") unprioritizedCount += 1
     if (t.status === "in_progress" && !isPausedTitle(t.title)) pagar += 1
-    else if (classifyDriftColumn(t, now) === "pagang") pagang += 1
-    else if (t.status === "done" && isDoneThisWeek(t, now)) klartWeek += 1
+    else if (
+      t.status !== "done" &&
+      t.status !== "cancelled" &&
+      t.status !== "paused" &&
+      !isPausedTitle(t.title)
+    ) {
+      const col = classifyDriftColumn(t, now)
+      // "Nästa" covers former På gång + backlog todos
+      if (col === "pagang" || col === "backlog") pagang += 1
+    } else if (t.status === "done" && isDoneThisWeek(t, now)) klartWeek += 1
   }
 
   const siblingsByObjective = new Map<string, DriftTaskWithLinks[]>()
@@ -493,77 +509,91 @@ export function buildDriftOverview(input: DriftBuildInput): DriftOverviewData {
 
   const malObjectives: DriftMalObjective[] = sortedObjectives.map((obj) => {
     const initiatives = initiativesByObjective.get(obj.id) ?? []
-    const objTasksAll = tasksInCompany.filter((t) => t.objective_id === obj.id)
     const objTasksFiltered = tasksFiltered.filter(
       (t) => t.objective_id === obj.id,
     )
-    const totalCount = objTasksAll.filter(
+    // Klart-mätare follows bot filter (same scope as header counts).
+    const totalCount = objTasksFiltered.filter(
       (t) => t.status !== "cancelled",
     ).length
-    const doneCount = objTasksAll.filter((t) => t.status === "done").length
+    const doneCount = objTasksFiltered.filter((t) => t.status === "done").length
     const pagarCount = objTasksFiltered.filter(
       (t) => t.status === "in_progress" && !isPausedTitle(t.title),
     ).length
 
-    const malInitiatives: DriftMalInitiative[] = initiatives.map((init) => {
-      const initTasks = tasksFiltered
-        .filter((t) => t.initiative_id === init.id)
-        .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+    const botNeedle = input.ownerFilter?.toLowerCase() ?? null
 
-      const active = initTasks.filter(
-        (t) =>
-          t.status !== "done" &&
-          t.status !== "cancelled" &&
-          !isPausedTitle(t.title) &&
-          t.status !== "paused",
-      )
-      const paused = initTasks.filter(
-        (t) => isPausedTitle(t.title) || t.status === "paused",
-      )
-      const klarWeek = initTasks.filter((t) => isDoneThisWeek(t, now))
+    const malInitiatives: DriftMalInitiative[] = initiatives
+      .map((init) => {
+        const initTasks = tasksFiltered
+          .filter((t) => t.initiative_id === init.id)
+          .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
 
-      const pagarTasksInit = active.filter((t) => t.status === "in_progress")
-      const nastaTasks = active.filter((t) => t.status !== "in_progress")
+        const active = initTasks.filter(
+          (t) =>
+            t.status !== "done" &&
+            t.status !== "cancelled" &&
+            !isPausedTitle(t.title) &&
+            t.status !== "paused",
+        )
+        const paused = initTasks.filter(
+          (t) => isPausedTitle(t.title) || t.status === "paused",
+        )
+        const klarWeek = initTasks.filter((t) => isDoneThisWeek(t, now))
 
-      const visibleSource = [
-        ...pagarTasksInit,
-        ...nastaTasks.slice(0, 3),
-      ]
-      const hiddenTaskCount = Math.max(
-        0,
-        active.length - visibleSource.length,
-      )
+        const pagarTasksInit = active.filter((t) => t.status === "in_progress")
+        const nastaTasks = active.filter((t) => t.status !== "in_progress")
 
-      const allActiveRows = active.map((t, idx) =>
-        buildMalTaskRow(t, (t.sort_order ?? idx + 1) || idx + 1, obj, init),
-      )
+        const visibleSource = [
+          ...pagarTasksInit,
+          ...nastaTasks.slice(0, 3),
+        ]
+        const hiddenTaskCount = Math.max(
+          0,
+          active.length - visibleSource.length,
+        )
 
-      return {
-        id: init.id,
-        key: init.key,
-        title: init.title,
-        ownerAgent: init.owner_agent,
-        pagarCount: pagarTasksInit.length,
-        nastaCount: nastaTasks.length,
-        klartWeekCount: klarWeek.length,
-        pausedCount: paused.length,
-        visibleTasks: visibleSource.map((t, idx) =>
+        const allActiveRows = active.map((t, idx) =>
           buildMalTaskRow(t, (t.sort_order ?? idx + 1) || idx + 1, obj, init),
-        ),
-        hiddenTaskCount,
-        allTasks: allActiveRows,
-      }
-    })
+        )
+
+        return {
+          id: init.id,
+          key: init.key,
+          title: init.title,
+          ownerAgent: init.owner_agent,
+          pagarCount: pagarTasksInit.length,
+          nastaCount: nastaTasks.length,
+          klartWeekCount: klarWeek.length,
+          pausedCount: paused.length,
+          visibleTasks: visibleSource.map((t, idx) =>
+            buildMalTaskRow(t, (t.sort_order ?? idx + 1) || idx + 1, obj, init),
+          ),
+          hiddenTaskCount,
+          allTasks: allActiveRows,
+        }
+      })
+      .filter((init) => {
+        if (!botNeedle) return true
+        // Keep if bot is ansvarig or has any task (incl. done/paused) in scope.
+        if (init.ownerAgent.toLowerCase() === botNeedle) return true
+        return (
+          init.visibleTasks.length > 0 ||
+          init.hiddenTaskCount > 0 ||
+          init.klartWeekCount > 0 ||
+          init.pausedCount > 0
+        )
+      })
+
+    const hiddenInitiativesCount = Math.max(
+      0,
+      initiatives.length - malInitiatives.length,
+    )
 
     const emptyForFilter =
       !!input.ownerFilter &&
-      malInitiatives.every(
-        (i) =>
-          i.visibleTasks.length === 0 &&
-          i.hiddenTaskCount === 0 &&
-          i.klartWeekCount === 0 &&
-          i.pausedCount === 0,
-      )
+      malInitiatives.length === 0 &&
+      hiddenInitiativesCount === 0
 
     return {
       id: obj.id,
@@ -573,6 +603,7 @@ export function buildDriftOverview(input: DriftBuildInput): DriftOverviewData {
       priority: obj.priority,
       priorityLabel: formatPriorityLabel(obj.priority),
       initiativeCount: initiatives.length,
+      hiddenInitiativesCount,
       pagarCount,
       doneCount,
       totalCount,
@@ -635,9 +666,13 @@ export function buildDriftOverview(input: DriftBuildInput): DriftOverviewData {
       const pagarN = objTasks.filter(
         (t) => t.status === "in_progress" && !isPausedTitle(t.title),
       ).length
-      const pagangN = objTasks.filter(
-        (t) => classifyDriftColumn(t, now) === "pagang",
-      ).length
+      const pagangN = objTasks.filter((t) => {
+        if (t.status === "done" || t.status === "cancelled") return false
+        if (t.status === "in_progress") return false
+        if (isPausedTitle(t.title) || t.status === "paused") return false
+        const col = classifyDriftColumn(t, now)
+        return col === "pagang" || col === "backlog"
+      }).length
       const klartN = objTasks.filter((t) => isDoneThisWeek(t, now)).length
 
       const pipeInitiatives = initiatives.map((init) => {
@@ -701,7 +736,7 @@ export function buildDriftOverview(input: DriftBuildInput): DriftOverviewData {
         title: obj.title,
         shortLabel: obj.short_label?.trim() || obj.title,
         defaultExpanded: obj.sort_order <= 2,
-        summaryLine: `${initiatives.length} initiativ · Pågår ${pagarN} · På gång ${pagangN} · Klart ${klartN} den här veckan`,
+        summaryLine: `${initiatives.length} initiativ · Pågår ${pagarN} · Nästa ${pagangN} · Klart ${klartN} den här veckan`,
         initiatives: pipeInitiatives,
       }
     },

@@ -297,12 +297,72 @@ function PipelineCard({
         ) : null}
         <BadgeForTask badge={card.badge} />
         {card.atLabel ? (
-          <span className="text-xs text-emerald-700 dark:text-emerald-400">
+          <span
+            className={cn(
+              "text-xs",
+              card.atIsDone
+                ? "text-emerald-700 dark:text-emerald-400"
+                : "text-gray-500 dark:text-zinc-400",
+            )}
+          >
             {card.atLabel}
           </span>
         ) : null}
       </div>
     </button>
+  )
+}
+
+function PipelineColumnBoard({
+  columns,
+  onOpen,
+  emptyLabel = "Inget just nu",
+}: {
+  columns: {
+    pagar: DriftPipelineTaskCard[]
+    pagang: DriftPipelineTaskCard[]
+    klart: DriftPipelineTaskCard[]
+  }
+  onOpen: (card: DriftPipelineTaskCard) => void
+  emptyLabel?: string
+}) {
+  const total =
+    columns.pagar.length + columns.pagang.length + columns.klart.length
+  if (total === 0) {
+    return (
+      <p className="text-sm text-gray-500 dark:text-zinc-400">{emptyLabel}</p>
+    )
+  }
+
+  return (
+    <div className="flex flex-col gap-4 md:grid md:grid-cols-3">
+      {(
+        [
+          ["Pågår", columns.pagar, "text-blue-600"],
+          ["Nästa", columns.pagang, "text-gray-600"],
+          ["Klart", columns.klart, "text-emerald-600"],
+        ] as const
+      ).map(([title, cards, titleClass]) => (
+        <div key={title}>
+          <h4 className={cn("mb-2 text-xs font-medium", titleClass)}>
+            {title} ({cards.length})
+          </h4>
+          <div className="space-y-2">
+            {cards.length === 0 ? (
+              <p className="text-xs text-gray-500">Inget just nu</p>
+            ) : (
+              cards.map((card) => (
+                <PipelineCard
+                  key={card.id}
+                  card={card}
+                  onOpen={() => onOpen(card)}
+                />
+              ))
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
   )
 }
 
@@ -381,19 +441,20 @@ function MalObjectiveCard({
               Inget för {botFilter} i det här målet.
             </p>
           ) : (
-            objective.initiatives.map((init) => {
+            <>
+            {objective.initiatives.map((init) => {
               const showAll = showAllByInit[init.id]
               const rows = showAll ? init.allTasks : init.visibleTasks
               return (
                 <div key={init.id} className="space-y-2">
-                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <div>
                     <h4 className="text-sm font-semibold text-gray-900 dark:text-zinc-100">
                       <span className="text-gray-500 dark:text-zinc-400">
                         {init.key}
                       </span>{" "}
                       {init.title}
                     </h4>
-                    <p className="text-xs text-gray-500 dark:text-zinc-400">
+                    <p className="mt-0.5 text-xs text-gray-500 dark:text-zinc-400">
                       Ansvarig {init.ownerAgent}
                     </p>
                   </div>
@@ -477,7 +538,13 @@ function MalObjectiveCard({
                   ) : null}
                 </div>
               )
-            })
+            })}
+            {botFilter && objective.hiddenInitiativesCount > 0 ? (
+              <p className="text-sm text-gray-500 dark:text-zinc-400">
+                +{objective.hiddenInitiativesCount} initiativ utan {botFilter}
+              </p>
+            ) : null}
+            </>
           )}
         </div>
       ) : null}
@@ -676,7 +743,7 @@ export function DriftOverviewClient({
           </span>
           <span>
             <strong className="font-semibold">{data.summary.pagang}</strong>{" "}
-            på gång
+            nästa
           </span>
           <span>
             <strong className="font-semibold">{data.summary.klartWeek}</strong>{" "}
@@ -937,42 +1004,10 @@ export function DriftOverviewClient({
                 Ej prioriterat ({data.summary.unprioritized} uppgifter utan
                 initiativ)
               </h2>
-              <div className="grid gap-4 md:grid-cols-3">
-                {(
-                  [
-                    ["Pågår", data.pipelineUnprioritized.pagar, "text-blue-600"],
-                    [
-                      "På gång",
-                      data.pipelineUnprioritized.pagang,
-                      "text-gray-600",
-                    ],
-                    [
-                      "Klart",
-                      data.pipelineUnprioritized.klart,
-                      "text-emerald-600",
-                    ],
-                  ] as const
-                ).map(([title, cards, titleClass]) => (
-                  <div key={title}>
-                    <h3 className={cn("mb-2 text-xs font-medium", titleClass)}>
-                      {title} ({cards.length})
-                    </h3>
-                    <div className="space-y-2">
-                      {cards.length === 0 ? (
-                        <p className="text-xs text-gray-500">Inget just nu</p>
-                      ) : (
-                        cards.map((card) => (
-                          <PipelineCard
-                            key={card.id}
-                            card={card}
-                            onOpen={() => setDetail(card.detail)}
-                          />
-                        ))
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <PipelineColumnBoard
+                columns={data.pipelineUnprioritized}
+                onOpen={(card) => setDetail(card.detail)}
+              />
             </section>
           ) : null}
 
@@ -1007,50 +1042,20 @@ export function DriftOverviewClient({
                   <div className="space-y-6 border-t border-gray-100 px-4 py-4 dark:border-zinc-800">
                     {obj.initiatives.map((init) => (
                       <div key={init.id}>
-                        <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+                        <div className="mb-3">
                           <h3 className="text-sm font-semibold text-gray-900 dark:text-zinc-100">
                             <span className="text-gray-500">{init.key}</span>{" "}
                             {init.title}
                           </h3>
-                          <p className="text-xs text-gray-500">
+                          <p className="mt-0.5 text-xs text-gray-500">
                             Ansvarig: {init.ownerAgent}
                           </p>
                         </div>
-                        <div className="grid gap-4 md:grid-cols-3">
-                          {(
-                            [
-                              ["Pågår", init.columns.pagar, "text-blue-600"],
-                              ["På gång", init.columns.pagang, "text-gray-600"],
-                              ["Klart", init.columns.klart, "text-emerald-600"],
-                            ] as const
-                          ).map(([title, cards, titleClass]) => (
-                            <div key={title}>
-                              <h4
-                                className={cn(
-                                  "mb-2 text-xs font-medium",
-                                  titleClass,
-                                )}
-                              >
-                                {title} ({cards.length})
-                              </h4>
-                              <div className="space-y-2">
-                                {cards.length === 0 ? (
-                                  <p className="text-xs text-gray-500">
-                                    Inget just nu
-                                  </p>
-                                ) : (
-                                  cards.map((card) => (
-                                    <PipelineCard
-                                      key={card.id}
-                                      card={card}
-                                      onOpen={() => setDetail(card.detail)}
-                                    />
-                                  ))
-                                )}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
+                        <PipelineColumnBoard
+                          columns={init.columns}
+                          onOpen={(card) => setDetail(card.detail)}
+                          emptyLabel="Inget i flödet"
+                        />
                       </div>
                     ))}
                   </div>

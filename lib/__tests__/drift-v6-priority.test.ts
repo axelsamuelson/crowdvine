@@ -352,4 +352,218 @@ describe("buildDriftOverview v6", () => {
     // Filtered view still sees Hugo's task because Camille owns the initiative
     expect(data.malObjectives[0]?.initiatives[0]?.nastaCount).toBe(1)
   })
+
+  it("bot filter hides unrelated initiatives and scopes Klart meters", () => {
+    const data = buildDriftOverview({
+      now: NOW,
+      companyFilter: "pact",
+      ownerFilter: "Hugo",
+      objectives: [
+        {
+          id: "o1",
+          title: "Checkout",
+          company: "pact",
+          sort_order: 1,
+          priority: "high",
+          short_label: "Checkout",
+        },
+      ],
+      initiatives: [
+        {
+          id: "i11",
+          objective_id: "o1",
+          company: "pact",
+          key: "1.1",
+          title: "Kassan",
+          owner_agent: "Camille",
+          sort_order: 1,
+        },
+        {
+          id: "i12",
+          objective_id: "o1",
+          company: "pact",
+          key: "1.2",
+          title: "Sök",
+          owner_agent: "Hugo",
+          sort_order: 2,
+        },
+      ],
+      tasks: [
+        {
+          id: "t-camille-only",
+          title: "Camille work",
+          status: "done",
+          owner_agent: "Camille",
+          objective_id: "o1",
+          initiative_id: "i11",
+          completed_at: "2026-11-01T12:00:00Z",
+        },
+        {
+          id: "t-hugo",
+          title: "Hugo search",
+          status: "todo",
+          owner_agent: "Hugo",
+          objective_id: "o1",
+          initiative_id: "i12",
+          updated_at: "2026-11-12T10:00:00Z",
+        },
+        {
+          id: "t-hugo-done",
+          title: "Hugo done",
+          status: "done",
+          owner_agent: "Hugo",
+          objective_id: "o1",
+          initiative_id: "i12",
+          completed_at: "2026-11-12T12:00:00Z",
+        },
+      ],
+      agents: [{ name: "Camille" }, { name: "Hugo" }],
+      queue: [],
+    })
+
+    const mal = data.malObjectives[0]!
+    expect(mal.initiatives.map((i) => i.id)).toEqual(["i12"])
+    expect(mal.hiddenInitiativesCount).toBe(1)
+    expect(mal.doneCount).toBe(1)
+    expect(mal.totalCount).toBe(2)
+    expect(data.summary.pagang).toBe(1)
+  })
+
+  it("uses Pågår / Nästa / Klart status labels and green dates only for Klart", () => {
+    const data = buildDriftOverview({
+      now: NOW,
+      companyFilter: "pact",
+      objectives: [
+        {
+          id: "o1",
+          title: "Checkout",
+          company: "pact",
+          sort_order: 1,
+          priority: "high",
+          short_label: "Checkout",
+        },
+      ],
+      initiatives: [
+        {
+          id: "i11",
+          objective_id: "o1",
+          company: "pact",
+          key: "1.1",
+          title: "Kassan",
+          owner_agent: "Camille",
+          sort_order: 1,
+        },
+      ],
+      tasks: [
+        {
+          id: "t-todo",
+          title: "Analytics: koppla in",
+          status: "todo",
+          owner_agent: "Hugo",
+          objective_id: null,
+          initiative_id: null,
+          updated_at: "2026-11-12T10:00:00Z",
+        },
+        {
+          id: "t-pagar",
+          title: "Active",
+          status: "in_progress",
+          owner_agent: "Camille",
+          objective_id: "o1",
+          initiative_id: "i11",
+          due_date: "2026-11-20",
+          updated_at: "2026-11-12T10:00:00Z",
+        },
+        {
+          id: "t-done",
+          title: "Done",
+          status: "done",
+          owner_agent: "Hugo",
+          objective_id: "o1",
+          initiative_id: "i11",
+          completed_at: "2026-11-12T12:00:00Z",
+        },
+      ],
+      agents: [{ name: "Camille" }, { name: "Hugo" }],
+      queue: [],
+    })
+
+    expect(data.unprioritizedTasks[0]?.statusLabel).toBe("Nästa")
+    expect(data.pipelineUnprioritized.pagang[0]?.id).toBe("t-todo")
+    expect(data.pipelineObjectives[0]?.summaryLine).toContain("Nästa")
+    const pagarCard = data.pipelineObjectives[0]?.initiatives[0]?.columns.pagar[0]
+    const klartCard = data.pipelineObjectives[0]?.initiatives[0]?.columns.klart[0]
+    expect(pagarCard?.atIsDone).toBe(false)
+    expect(klartCard?.atIsDone).toBe(true)
+  })
+
+  it("keeps Dirty Wine week items out of PACT when DW objectives are loaded", () => {
+    const data = buildDriftOverview({
+      now: NOW,
+      companyFilter: "pact",
+      objectives: [
+        {
+          id: "o1",
+          title: "Checkout",
+          company: "pact",
+          sort_order: 1,
+          priority: "high",
+          short_label: "Checkout",
+        },
+        {
+          id: "odw",
+          title: "dirtywine.se",
+          company: "dirtywine",
+          sort_order: 3,
+          priority: "medium",
+          short_label: "DW",
+        },
+      ],
+      initiatives: [
+        {
+          id: "i-dw",
+          objective_id: "odw",
+          company: "dirtywine",
+          key: "3.1",
+          title: "Besökaren möter svensk text och rätt pris",
+          owner_agent: "Léa",
+          sort_order: 1,
+        },
+      ],
+      tasks: [
+        {
+          id: "t-pact-done",
+          title: "PACT done",
+          status: "done",
+          owner_agent: "Hugo",
+          objective_id: "o1",
+          initiative_id: null,
+          completed_at: "2026-11-12T12:00:00Z",
+        },
+        {
+          id: "t-dw-footer",
+          title: "Dirty Wine footer-rad",
+          status: "done",
+          owner_agent: "Léa",
+          objective_id: "odw",
+          initiative_id: "i-dw",
+          completed_at: "2026-11-11T11:00:00Z",
+        },
+        {
+          id: "t-dw-access",
+          title: "Svensk text på /access-request",
+          status: "done",
+          owner_agent: "Léa",
+          objective_id: "odw",
+          initiative_id: "i-dw",
+          completed_at: "2026-11-13T10:00:00Z",
+        },
+      ],
+      agents: [{ name: "Hugo" }, { name: "Léa" }],
+      queue: [],
+    })
+
+    expect(data.weekItems.map((w) => w.id)).toEqual(["t-pact-done"])
+    expect(data.pagarTasks.map((t) => t.id)).not.toContain("t-dw-footer")
+  })
 })

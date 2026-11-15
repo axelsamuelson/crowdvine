@@ -44,20 +44,20 @@ export async function getDriftOverview(input?: {
     agentsRes,
     queueRes,
   ] = await Promise.all([
+    // Load all companies — buildDriftOverview resolves task company via
+    // objective/initiative maps; filtering here would mis-attribute DW tasks to PACT.
     sb
       .from("admin_objectives")
       .select(
         "id, title, company, sort_order, priority, owner, short_label, deleted_at",
       )
       .is("deleted_at", null)
-      .eq("company", company)
       .order("sort_order"),
     sb
       .from("admin_initiatives")
       .select(
         "id, objective_id, company, key, title, owner_agent, sort_order, status",
       )
-      .eq("company", company)
       .order("sort_order"),
     sb
       .from("admin_projects")
