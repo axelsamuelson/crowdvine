@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { ArrowUpDown, ListFilter, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "@/lib/hooks/use-translations";
@@ -12,6 +13,10 @@ type ShopMobileDockProps = {
   className?: string;
 };
 
+/**
+ * Mobile Filter / Sort / Search dock. Hides when the site footer enters the
+ * viewport so it never covers the © / company legal line.
+ */
 export function ShopMobileDock({
   onFilter,
   onSort,
@@ -20,6 +25,31 @@ export function ShopMobileDock({
   className,
 }: ShopMobileDockProps) {
   const { t } = useTranslations();
+  const [footerVisible, setFooterVisible] = useState(false);
+  const reduceMotionRef = useRef(false);
+
+  useEffect(() => {
+    reduceMotionRef.current = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+  }, []);
+
+  useEffect(() => {
+    const footer =
+      document.querySelector("[data-site-footer]") ||
+      document.querySelector("footer");
+    if (!footer || typeof IntersectionObserver === "undefined") return;
+
+    const obs = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        setFooterVisible(Boolean(entry?.isIntersecting));
+      },
+      { threshold: 0, rootMargin: "0px" },
+    );
+    obs.observe(footer);
+    return () => obs.disconnect();
+  }, []);
 
   const items = [
     {
@@ -45,6 +75,9 @@ export function ShopMobileDock({
     },
   ] as const;
 
+  const reduced = reduceMotionRef.current;
+  const shouldShow = !footerVisible;
+
   return (
     <nav
       className={cn(
@@ -53,12 +86,23 @@ export function ShopMobileDock({
         className,
       )}
       aria-label={t("shop.filtersTitle")}
+      aria-hidden={!shouldShow}
+      inert={!shouldShow ? true : undefined}
     >
       <div
         className={cn(
           // Match MENU button glass: bg-background/10 backdrop-blur-lg
           "pointer-events-auto mx-auto flex w-fit max-w-[min(100%-2.5rem,16rem)] items-stretch justify-center gap-0.5",
           "rounded-full border border-border/40 bg-background/10 px-1.5 py-1 shadow-sm backdrop-blur-lg",
+          reduced
+            ? shouldShow
+              ? "opacity-100"
+              : "opacity-0 pointer-events-none"
+            : "transition-[transform,opacity] duration-[350ms] ease-out",
+          !reduced &&
+            (shouldShow
+              ? "translate-y-0 opacity-100"
+              : "translate-y-3 opacity-0 pointer-events-none"),
         )}
       >
         {items.map((item) => {
