@@ -263,7 +263,7 @@ export async function MainShopContent({
           <p className="leading-relaxed text-stone-600">{content.intro}</p>
         </div>
         {!isB2BSite ? (
-          <PactSellerConsumerInfo locale={locale} className="mb-8 max-w-2xl" />
+          <PactSellerConsumerInfo locale={locale} className="mb-4 max-w-2xl" />
         ) : null}
         <ShopRegionLinks
           locale={locale}

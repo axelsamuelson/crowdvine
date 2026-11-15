@@ -45,7 +45,7 @@ describe("indexableRegionLinksFromCounts", () => {
 });
 
 describe("withIndexableShopRegionSection", () => {
-  it("replaces French region guide cards with shop PLPs and keeps Georgia", () => {
+  it("replaces French region guide cards with shop PLPs and keeps Georgia (already on main)", () => {
     const links = indexableRegionLinksFromCounts(
       "sv",
       new Map([
@@ -77,7 +77,7 @@ describe("withIndexableShopRegionSection", () => {
             },
             {
               href: "/guider/georgia-natural-wine",
-              title: "Georgien",
+              title: "Georgien naturvin — världens äldsta tradition",
               description: "Guide",
             },
           ],
@@ -88,6 +88,7 @@ describe("withIndexableShopRegionSection", () => {
     );
 
     const region = sections[0]!;
+    // Georgia was already in SV_REGION_CARDS on main — preserved as guide-only.
     expect(region.cards.map((c) => c.href)).toEqual([
       "/vin/naturvin-languedoc",
       "/vin/naturvin-beaujolais",
