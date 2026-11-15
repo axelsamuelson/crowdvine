@@ -34,6 +34,12 @@ export type FocusEffectWeekBound = {
   isFuture?: boolean
 }
 
+/** Inclusive Stockholm civil date range for the selected Fokus period. */
+export type FocusEffectPeriodBound = {
+  startYmd: string
+  endYmd: string
+}
+
 /** One metric series aligned to Fokus trend weeks (oldest → newest). */
 export type FocusEffectSeries = {
   /** Numeric sparkline values; null when unavailable / future / y=0 rate. */
@@ -42,8 +48,12 @@ export type FocusEffectSeries = {
   labels: Array<string | null>
   /** Per-week secondary (e.g. "1/2"); month grid under percent. */
   secondaryLabels: Array<string | null>
+  /** Label for the selected Fokus period (week or calendar month). */
   currentLabel: string | null
-  /** Sum of started checkouts (checkout) or sessions (PLP) across non-future weeks. */
+  /**
+   * Sample size for the selected period (started checkouts or sessions).
+   * Trend claims require this ≥ FOCUS_EFFECT_TREND_MIN_SAMPLE.
+   */
   sampleSize: number
   exampleData: boolean
 }
@@ -94,6 +104,64 @@ function weekIndexForYmd(
   return weeks.findIndex((w) => ymd >= w.startYmd && ymd <= w.endYmd)
 }
 
+function ymdInPeriod(
+  ymd: string,
+  period: FocusEffectPeriodBound,
+): boolean {
+  return ymd >= period.startYmd && ymd <= period.endYmd
+}
+
+/** Checkout totals for an inclusive Stockholm YMD range (selected period). */
+export function aggregateCheckoutForPeriod(
+  events: FocusEffectEvent[],
+  period: FocusEffectPeriodBound,
+): { completed: number; started: number; label: string; sampleSize: number } {
+  const started = new Set<string>()
+  const completed = new Set<string>()
+  for (const e of events) {
+    if (!e.session_id) continue
+    const ymd = toStockholmDateKey(e.created_at)
+    if (!ymd || !ymdInPeriod(ymd, period)) continue
+    if (e.event_type === "checkout_started") started.add(e.session_id)
+    if (e.event_type === "reservation_completed") completed.add(e.session_id)
+  }
+  const y = started.size
+  const x = completed.size
+  return {
+    completed: x,
+    started: y,
+    label: formatCheckoutStartedLabel(x, y),
+    sampleSize: y,
+  }
+}
+
+/** Unique PLP/PDP sessions in an inclusive Stockholm YMD range. */
+export function aggregatePlpPdpForPeriod(
+  events: FocusEffectEvent[],
+  period: FocusEffectPeriodBound,
+): { sessions: number; label: string; sampleSize: number } {
+  const sessions = new Set<string>()
+  for (const e of events) {
+    if (
+      !FOCUS_PLP_PDP_EVENT_TYPES.includes(
+        e.event_type as (typeof FOCUS_PLP_PDP_EVENT_TYPES)[number],
+      )
+    ) {
+      continue
+    }
+    if (!e.session_id) continue
+    const ymd = toStockholmDateKey(e.created_at)
+    if (!ymd || !ymdInPeriod(ymd, period)) continue
+    sessions.add(e.session_id)
+  }
+  const n = sessions.size
+  return {
+    sessions: n,
+    label: formatPlpPdpCurrentLabel(n),
+    sampleSize: n,
+  }
+}
+
 function emptySeries(
   weeks: FocusEffectWeekBound[],
   exampleData: boolean,
@@ -112,7 +180,7 @@ function emptySeries(
 export function aggregatePlpPdpSessionsWeekly(
   events: FocusEffectEvent[],
   weeks: FocusEffectWeekBound[],
-  opts?: { exampleData?: boolean },
+  opts?: { exampleData?: boolean; period?: FocusEffectPeriodBound },
 ): FocusEffectSeries {
   const exampleData = opts?.exampleData ?? false
   if (weeks.length === 0) {
@@ -147,15 +215,22 @@ export function aggregatePlpPdpSessionsWeekly(
   const values = weeks.map((w, i) => (w.isFuture ? null : sets[i]!.size))
   const labels = values.map((v) => (v == null ? null : String(v)))
   const secondaryLabels = weeks.map(() => null)
-  const sampleSize = values.reduce<number>((s, v) => s + (v ?? 0), 0)
+  const periodAgg = opts?.period
+    ? aggregatePlpPdpForPeriod(events, opts.period)
+    : null
   const lastDefined = [...values].reverse().find((v) => v != null) ?? null
   return {
     values,
     labels,
     secondaryLabels,
-    currentLabel:
-      lastDefined == null ? null : formatPlpPdpCurrentLabel(lastDefined),
-    sampleSize,
+    currentLabel: periodAgg
+      ? periodAgg.label
+      : lastDefined == null
+        ? null
+        : formatPlpPdpCurrentLabel(lastDefined),
+    sampleSize: periodAgg
+      ? periodAgg.sampleSize
+      : values.reduce<number>((s, v) => s + (v ?? 0), 0),
     exampleData,
   }
 }
@@ -167,7 +242,7 @@ export function aggregatePlpPdpSessionsWeekly(
 export function aggregateCheckoutCompletion(
   events: FocusEffectEvent[],
   weeks: FocusEffectWeekBound[],
-  opts?: { exampleData?: boolean },
+  opts?: { exampleData?: boolean; period?: FocusEffectPeriodBound },
 ): FocusEffectSeries {
   const exampleData = opts?.exampleData ?? false
   if (weeks.length === 0) {
@@ -199,7 +274,6 @@ export function aggregateCheckoutCompletion(
   const values: Array<number | null> = []
   const labels: Array<string | null> = []
   const secondaryLabels: Array<string | null> = []
-  let sampleSize = 0
   for (let i = 0; i < weeks.length; i++) {
     if (weeks[i]?.isFuture) {
       values.push(null)
@@ -209,7 +283,6 @@ export function aggregateCheckoutCompletion(
     }
     const y = started[i]!.size
     const x = completed[i]!.size
-    sampleSize += y
     if (y <= 0) {
       values.push(null)
       labels.push(null)
@@ -221,13 +294,19 @@ export function aggregateCheckoutCompletion(
     }
   }
 
-  // Current label from last non-future week
-  let currentLabel: string | null = null
+  const periodAgg = opts?.period
+    ? aggregateCheckoutForPeriod(events, opts.period)
+    : null
+
+  // Fallback current label from last non-future week (when no period given)
+  let fallbackLabel: string | null = null
+  let fallbackSample = 0
   for (let i = weeks.length - 1; i >= 0; i--) {
     if (weeks[i]?.isFuture) continue
     const y = started[i]!.size
     const x = completed[i]!.size
-    currentLabel = formatCheckoutStartedLabel(x, y)
+    fallbackLabel = formatCheckoutStartedLabel(x, y)
+    fallbackSample = y
     break
   }
 
@@ -235,8 +314,8 @@ export function aggregateCheckoutCompletion(
     values,
     labels,
     secondaryLabels,
-    currentLabel,
-    sampleSize,
+    currentLabel: periodAgg ? periodAgg.label : fallbackLabel,
+    sampleSize: periodAgg ? periodAgg.sampleSize : fallbackSample,
     exampleData,
   }
 }
@@ -244,15 +323,18 @@ export function aggregateCheckoutCompletion(
 export function buildFocusEffectSeriesFromEvents(
   events: FocusEffectEvent[],
   weeks: FocusEffectWeekBound[],
-  opts?: { exampleData?: boolean },
+  opts?: { exampleData?: boolean; period?: FocusEffectPeriodBound },
 ): FocusEffectSeriesByKey {
   const exampleData = opts?.exampleData ?? false
+  const period = opts?.period
   return {
     plp_pdp_sessions_weekly: aggregatePlpPdpSessionsWeekly(events, weeks, {
       exampleData,
+      period,
     }),
     checkout_completion_rate: aggregateCheckoutCompletion(events, weeks, {
       exampleData,
+      period,
     }),
   }
 }
@@ -278,14 +360,21 @@ export const EXAMPLE_FOCUS_EFFECT_SERIES: FocusEffectSeriesByKey = {
 }
 
 /** Inclusive Stockholm civil range → ISO bounds for PostgREST. */
-export function focusEffectFetchWindow(weeks: FocusEffectWeekBound[]): {
+export function focusEffectFetchWindow(
+  weeks: FocusEffectWeekBound[],
+  period?: FocusEffectPeriodBound | null,
+): {
   sinceIso: string
   untilIso: string
 } | null {
   const real = weeks.filter((w) => !w.isFuture)
-  if (real.length === 0) return null
-  const start = real[0]!.startYmd
-  const end = real[real.length - 1]!.endYmd
+  let start: string | null = real[0]?.startYmd ?? null
+  let end: string | null = real[real.length - 1]?.endYmd ?? null
+  if (period) {
+    start = start == null || period.startYmd < start ? period.startYmd : start
+    end = end == null || period.endYmd > end ? period.endYmd : end
+  }
+  if (start == null || end == null) return null
   const untilYmd = addStockholmDays(end, 1)
   return {
     sinceIso: `${start}T00:00:00+01:00`,
@@ -304,9 +393,10 @@ type SbLike = {
 export async function fetchFocusEffectEvents(opts: {
   sb: SbLike
   weeks: FocusEffectWeekBound[]
+  period?: FocusEffectPeriodBound | null
   site?: string
 }): Promise<FocusEffectEvent[] | null> {
-  const window = focusEffectFetchWindow(opts.weeks)
+  const window = focusEffectFetchWindow(opts.weeks, opts.period)
   if (!window) return []
 
   const site = opts.site ?? "pact"
@@ -346,12 +436,15 @@ export async function fetchFocusEffectEvents(opts: {
 export async function loadFocusEffectSeries(opts: {
   sb: SbLike
   weeks: FocusEffectWeekBound[]
+  /** Selected Fokus period — drives currentLabel + trend sampleSize. */
+  period?: FocusEffectPeriodBound | null
   site?: string
 }): Promise<FocusEffectSeriesByKey> {
   const events = await fetchFocusEffectEvents(opts)
   if (events == null) return EXAMPLE_FOCUS_EFFECT_SERIES
   return buildFocusEffectSeriesFromEvents(events, opts.weeks, {
     exampleData: false,
+    period: opts.period ?? undefined,
   })
 }
 

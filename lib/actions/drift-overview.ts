@@ -191,8 +191,17 @@ export async function getDriftFocus(input?: {
         )
         .is("deleted_at", null),
       // PACT first-party analytics only (same clean stream as Trafik).
+      // currentLabel + trend sampleSize use the selected period (week/month).
       company === "pact"
-        ? loadFocusEffectSeries({ sb, weeks: effectWeeks, site: "pact" })
+        ? loadFocusEffectSeries({
+            sb,
+            weeks: effectWeeks,
+            period: {
+              startYmd: period.startYmd,
+              endYmd: period.endYmd,
+            },
+            site: "pact",
+          })
         : Promise.resolve({}),
     ])
 

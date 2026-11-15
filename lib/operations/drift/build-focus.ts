@@ -390,7 +390,7 @@ export function buildDriftFocus(input: BuildFocusInput): DriftFocusData {
   })
 
   const markers =
-    input.company === "pact"
+    input.company === "pact" && totalDonePoints > 0
       ? pactCumulativeTargetMarkers(
           goalRows.map((g) => ({
             rank: g.rank,

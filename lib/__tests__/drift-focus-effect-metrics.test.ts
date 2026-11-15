@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest"
 import { FOCUS_EFFECT_TREND_MIN_SAMPLE } from "@/lib/operations/drift/focus-constants"
 import {
   aggregateCheckoutCompletion,
+  aggregateCheckoutForPeriod,
+  aggregatePlpPdpForPeriod,
   aggregatePlpPdpSessionsWeekly,
   buildFocusEffectSeriesFromEvents,
   EXAMPLE_FOCUS_EFFECT_SERIES,
@@ -166,28 +168,138 @@ describe("aggregateCheckoutCompletion", () => {
     expect(series.sampleSize).toBe(0)
   })
 
-  it("sampleSize counts started checkouts across weeks (≥30 large sample)", () => {
+  it("sampleSize + currentLabel use selected period, not last trend week alone", () => {
     const events: FocusEffectEvent[] = []
-    for (let i = 0; i < 35; i++) {
+    // Week 45: 2 starts (small)
+    for (const id of ["s45a", "s45b"]) {
       events.push({
-        session_id: `big-${i}`,
+        session_id: id,
+        event_type: "checkout_started",
+        created_at: "2026-11-05T12:00:00.000Z",
+      })
+    }
+    // Week 46: 120 starts / 34 completed (large, selected period)
+    for (let i = 0; i < 120; i++) {
+      events.push({
+        session_id: `w46-${i}`,
         event_type: "checkout_started",
         created_at: "2026-11-10T12:00:00.000Z",
       })
     }
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 34; i++) {
       events.push({
-        session_id: `big-${i}`,
+        session_id: `w46-${i}`,
         event_type: "reservation_completed",
         created_at: "2026-11-11T12:00:00.000Z",
       })
     }
-    const series = aggregateCheckoutCompletion(events, [W45, W46])
-    expect(series.sampleSize).toBe(35)
-    expect(series.sampleSize).toBeGreaterThanOrEqual(
+    // Empty "current" week bound after W46 — must not steal currentLabel
+    const W47: FocusEffectWeekBound = {
+      startYmd: "2026-11-16",
+      endYmd: "2026-11-22",
+      isFuture: false,
+    }
+    const forWeek46 = aggregateCheckoutCompletion(events, [W45, W46, W47], {
+      period: { startYmd: W46.startYmd, endYmd: W46.endYmd },
+    })
+    expect(forWeek46.sampleSize).toBe(120)
+    expect(forWeek46.sampleSize).toBeGreaterThanOrEqual(
       FOCUS_EFFECT_TREND_MIN_SAMPLE,
     )
-    expect(series.currentLabel).toBe("29 % slutförda · 10 av 35 kassor")
+    expect(forWeek46.currentLabel).toBe(
+      "28 % slutförda · 34 av 120 kassor",
+    )
+    expect(forWeek46.labels[1]).toBe("28 %")
+    expect(forWeek46.secondaryLabels[1]).toBe("34/120")
+
+    const forWeek47 = aggregateCheckoutCompletion(events, [W45, W46, W47], {
+      period: { startYmd: W47.startYmd, endYmd: W47.endYmd },
+    })
+    expect(forWeek47.sampleSize).toBe(0)
+    expect(forWeek47.currentLabel).toBe("Inga påbörjade kassor")
+  })
+})
+
+describe("calendar-month period aggregation (Stockholm)", () => {
+  it("sums checkout starts across November days, not only the last ISO week", () => {
+    const events: FocusEffectEvent[] = [
+      {
+        session_id: "nov-early",
+        event_type: "checkout_started",
+        created_at: "2026-11-05T12:00:00.000Z", // W45
+      },
+      {
+        session_id: "nov-mid-a",
+        event_type: "checkout_started",
+        created_at: "2026-11-10T12:00:00.000Z", // W46
+      },
+      {
+        session_id: "nov-mid-b",
+        event_type: "checkout_started",
+        created_at: "2026-11-11T12:00:00.000Z",
+      },
+      {
+        session_id: "nov-mid-a",
+        event_type: "reservation_completed",
+        created_at: "2026-11-11T14:00:00.000Z",
+      },
+      // December — outside November
+      {
+        session_id: "dec",
+        event_type: "checkout_started",
+        created_at: "2026-12-01T12:00:00.000Z",
+      },
+    ]
+    const november = aggregateCheckoutForPeriod(events, {
+      startYmd: "2026-11-01",
+      endYmd: "2026-11-30",
+    })
+    expect(november.started).toBe(3)
+    expect(november.completed).toBe(1)
+    expect(november.label).toBe("33 % slutförda · 1 av 3 kassor")
+    expect(november.sampleSize).toBe(3)
+
+    // Weekly series ending on empty W47 must still expose November period label
+    const W47: FocusEffectWeekBound = {
+      startYmd: "2026-11-16",
+      endYmd: "2026-11-22",
+    }
+    const series = buildFocusEffectSeriesFromEvents(events, [W45, W46, W47], {
+      period: { startYmd: "2026-11-01", endYmd: "2026-11-30" },
+    })
+    expect(series.checkout_completion_rate.currentLabel).toBe(
+      "33 % slutförda · 1 av 3 kassor",
+    )
+    expect(series.checkout_completion_rate.sampleSize).toBe(3)
+    expect(series.checkout_completion_rate.labels[0]).toBe("0 %") // W45: 0/1
+    expect(series.checkout_completion_rate.secondaryLabels[0]).toBe("0/1")
+    expect(series.checkout_completion_rate.secondaryLabels[1]).toBe("1/2")
+  })
+
+  it("PLP period aggregation counts unique sessions in the month", () => {
+    const events: FocusEffectEvent[] = [
+      {
+        session_id: "p1",
+        event_type: "product_viewed",
+        created_at: "2026-11-05T12:00:00.000Z",
+      },
+      {
+        session_id: "p1",
+        event_type: "product_list_viewed",
+        created_at: "2026-11-10T12:00:00.000Z",
+      },
+      {
+        session_id: "p2",
+        event_type: "collection_viewed",
+        created_at: "2026-11-12T12:00:00.000Z",
+      },
+    ]
+    const agg = aggregatePlpPdpForPeriod(events, {
+      startYmd: "2026-11-01",
+      endYmd: "2026-11-30",
+    })
+    expect(agg.sessions).toBe(2)
+    expect(agg.label).toBe("2 sessioner")
   })
 })
 

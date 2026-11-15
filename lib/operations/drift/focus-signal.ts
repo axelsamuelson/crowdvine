@@ -4,7 +4,7 @@ import {
 } from "./focus-constants"
 import type { DriftCompany } from "./priority-rules"
 
-export type FocusSignalKind = "omfordela" | "i_balans"
+export type FocusSignalKind = "omfordela" | "i_balans" | "inga_poang"
 
 export interface FocusGoalPointsInput {
   rank: number
@@ -22,9 +22,10 @@ export interface FocusSignalResult {
 
 /**
  * PACT signal:
+ * - No done points → neutral "Inga klara poäng än" (do not claim balans/omfördela).
  * - Omfördela if goals 1–2 together get under 60% of period points, OR
  * - any of goals 3–6 gets more points than goal 1 or goal 2.
- * Dirty Wine: "mål 1 fick flest poäng" (always I balans for now; no target shares).
+ * Dirty Wine: "mål 1 fick flest poäng" (I balans when there are points; no target shares).
  */
 export function computeFocusSignal(input: {
   company: DriftCompany
@@ -34,7 +35,17 @@ export function computeFocusSignal(input: {
   /** e.g. "v. 46" or "i november" / "november" */
   periodInPhrase: string
 }): FocusSignalResult {
-  const { company, goals, totalDonePoints, periodInPhrase } = input
+  const { company, goals, totalDonePoints, periodShortLabel, periodInPhrase } =
+    input
+
+  if (totalDonePoints <= 0) {
+    return {
+      kind: "inga_poang",
+      pillLabel: "Inga klara poäng än",
+      headline: `${periodShortLabel} har inga klara uppgifter ännu`,
+      reason: null,
+    }
+  }
 
   if (company === "dirtywine") {
     const sorted = [...goals].sort((a, b) => b.donePoints - a.donePoints)

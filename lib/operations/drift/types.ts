@@ -124,7 +124,7 @@ export interface DriftFocusData {
     rangeHint: string
   }
   signal: {
-    kind: "omfordela" | "i_balans"
+    kind: "omfordela" | "i_balans" | "inga_poang"
     pillLabel: string
     headline: string
     reason: string | null

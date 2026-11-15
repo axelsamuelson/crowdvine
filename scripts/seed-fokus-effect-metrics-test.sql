@@ -125,9 +125,15 @@ INSERT INTO user_events (
   jsonb_build_object('synthetic', true, 'fokus_effect', true)
 );
 
--- Large-sample case: +35 started / +18 completed in week 46 so the 6-week
--- window has ≥30 started checkouts (trend claim allowed). Prefer seeding
--- WITHOUT these rows when demonstrating "För lite data för trend".
+-- Large-sample case for SELECTED week 46: 120 started / 34 completed
+-- → "28 % slutförda · 34 av 120 kassor" (trend claim allowed for that week).
+-- Seed WITHOUT these rows when demonstrating "För lite data för trend".
 -- Session ids: fokus-fx-co-big-*
+--
 -- DELETE FROM user_events WHERE session_id LIKE 'fokus-fx-co-big-%';
+-- Then (TEST only):
+-- WITH series AS (SELECT generate_series(1, 120) AS i)
+-- INSERT INTO user_events (...)
+--   checkout_started for all i at 2026-11-11 …
+--   reservation_completed for i <= 34 …
 

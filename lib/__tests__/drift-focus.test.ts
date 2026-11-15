@@ -186,6 +186,35 @@ describe("focus goal bar colors", () => {
 })
 
 describe("PACT focus signal", () => {
+  it("neutral when period has 0 done points", () => {
+    const signal = computeFocusSignal({
+      company: "pact",
+      totalDonePoints: 0,
+      periodShortLabel: "v. 47",
+      periodInPhrase: "v. 47",
+      goals: [
+        { rank: 1, shortLabel: "Checkout", donePoints: 0 },
+        { rank: 2, shortLabel: "Trafik", donePoints: 0 },
+      ],
+    })
+    expect(signal.kind).toBe("inga_poang")
+    expect(signal.pillLabel).toBe("Inga klara poäng än")
+    expect(signal.headline).toBe("v. 47 har inga klara uppgifter ännu")
+    expect(signal.reason).toBeNull()
+  })
+
+  it("neutral month copy when period has 0 done points", () => {
+    const signal = computeFocusSignal({
+      company: "pact",
+      totalDonePoints: 0,
+      periodShortLabel: "november",
+      periodInPhrase: "i november",
+      goals: [{ rank: 1, shortLabel: "Checkout", donePoints: 0 }],
+    })
+    expect(signal.kind).toBe("inga_poang")
+    expect(signal.headline).toBe("november har inga klara uppgifter ännu")
+  })
+
   it("Omfördela when goals 1–2 under 60%", () => {
     const signal = computeFocusSignal({
       company: "pact",

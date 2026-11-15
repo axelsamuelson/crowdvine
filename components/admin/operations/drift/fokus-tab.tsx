@@ -539,7 +539,9 @@ export function FokusTab({
               "inline-flex h-6 shrink-0 items-center rounded-full border px-2 text-xs font-medium",
               data.signal.kind === "omfordela"
                 ? "border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-700/60 dark:bg-amber-950/40 dark:text-amber-300"
-                : "border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-300",
+                : data.signal.kind === "inga_poang"
+                  ? "border-gray-300 bg-gray-50 text-gray-600 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-300"
+                  : "border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-300",
             )}
           >
             {data.signal.pillLabel}
@@ -872,9 +874,9 @@ export function FokusTab({
           {data.bots.map((bot) => (
             <li
               key={bot.name}
-              className="flex items-center gap-4 border-b border-gray-100 py-2 dark:border-zinc-900"
+              className="flex items-center gap-4 border-b border-gray-100 py-2 text-gray-900 dark:border-zinc-900 dark:text-zinc-100"
             >
-              <span className="w-20 shrink-0 truncate text-sm text-gray-900 dark:text-zinc-100">
+              <span className="w-20 shrink-0 truncate text-sm font-normal text-gray-900 dark:text-zinc-100">
                 {bot.name}
               </span>
               <div
