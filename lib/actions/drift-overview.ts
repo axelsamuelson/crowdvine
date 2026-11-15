@@ -6,44 +6,74 @@ import type {
   DriftCompanyFilter,
   DriftOverviewData,
 } from "@/lib/operations/drift/types"
+import type {
+  DriftCompany,
+  DriftPriority,
+} from "@/lib/operations/drift/priority-rules"
 import { getSupabaseAdmin } from "@/lib/supabase-admin"
+
+function asCompany(raw: string | null | undefined): DriftCompany {
+  return raw === "dirtywine" ? "dirtywine" : "pact"
+}
+
+function asPriority(raw: string | null | undefined): DriftPriority {
+  if (
+    raw === "urgent" ||
+    raw === "high" ||
+    raw === "medium" ||
+    raw === "low"
+  ) {
+    return raw
+  }
+  return "medium"
+}
 
 export async function getDriftOverview(input?: {
   company?: DriftCompanyFilter
   owner?: string | null
-  projectId?: string | null
 }): Promise<DriftOverviewData> {
   await requireAdmin()
   const sb = getSupabaseAdmin()
+  const company = input?.company ?? "pact"
 
   const [
+    objectivesRes,
+    initiativesRes,
     projectsRes,
     tasksRes,
     agentsRes,
-    logsRes,
     queueRes,
   ] = await Promise.all([
     sb
-      .from("admin_projects")
-      .select("id, name, company, status, deleted_at, updated_at")
+      .from("admin_objectives")
+      .select(
+        "id, title, company, sort_order, priority, owner, short_label, deleted_at",
+      )
       .is("deleted_at", null)
-      .order("name"),
+      .eq("company", company)
+      .order("sort_order"),
+    sb
+      .from("admin_initiatives")
+      .select(
+        "id, objective_id, company, key, title, owner_agent, sort_order, status",
+      )
+      .eq("company", company)
+      .order("sort_order"),
+    sb
+      .from("admin_projects")
+      .select("id, company, deleted_at")
+      .is("deleted_at", null),
     sb
       .from("admin_tasks")
       .select(
-        "id, title, description, status, due_date, updated_at, completed_at, deleted_at, parent_task_id, owner_agent, assigned_to, project_id",
+        "id, title, description, status, due_date, updated_at, completed_at, deleted_at, parent_task_id, owner_agent, assigned_to, project_id, objective_id, initiative_id, sort_order",
       )
       .is("deleted_at", null),
     sb
       .from("ops_agents")
-      .select("name, agent_id, company, area, active")
+      .select("name, active")
       .eq("active", true)
       .order("name"),
-    sb
-      .from("ops_agent_log")
-      .select("id, agent, action, detail, created_at, company, project_id")
-      .order("created_at", { ascending: false })
-      .limit(500),
     sb
       .from("ops_approval_queue")
       .select(
@@ -53,20 +83,44 @@ export async function getDriftOverview(input?: {
       .order("created_at", { ascending: true }),
   ])
 
+  if (objectivesRes.error) throw new Error(objectivesRes.error.message)
+  if (initiativesRes.error) throw new Error(initiativesRes.error.message)
   if (projectsRes.error) throw new Error(projectsRes.error.message)
   if (tasksRes.error) throw new Error(tasksRes.error.message)
   if (agentsRes.error) throw new Error(agentsRes.error.message)
-  if (logsRes.error) throw new Error(logsRes.error.message)
   if (queueRes.error) throw new Error(queueRes.error.message)
 
+  const projectCompanyById = new Map<string, DriftCompany>()
+  for (const p of projectsRes.data ?? []) {
+    projectCompanyById.set(p.id, asCompany(p.company))
+  }
+
   return buildDriftOverview({
-    companyFilter: input?.company ?? "both",
+    companyFilter: company,
     ownerFilter: input?.owner ?? null,
-    projectFilter: input?.projectId ?? null,
-    projects: projectsRes.data ?? [],
+    objectives: (objectivesRes.data ?? []).map((o) => ({
+      id: o.id,
+      title: o.title,
+      company: asCompany(o.company),
+      sort_order: o.sort_order ?? 0,
+      priority: asPriority(o.priority),
+      owner: o.owner,
+      short_label: o.short_label,
+      deleted_at: o.deleted_at,
+    })),
+    initiatives: (initiativesRes.data ?? []).map((i) => ({
+      id: i.id,
+      objective_id: i.objective_id,
+      company: asCompany(i.company),
+      key: i.key,
+      title: i.title,
+      owner_agent: i.owner_agent,
+      sort_order: i.sort_order ?? 0,
+      status: i.status,
+    })),
     tasks: tasksRes.data ?? [],
     agents: agentsRes.data ?? [],
-    logs: logsRes.data ?? [],
     queue: queueRes.data ?? [],
+    projectCompanyById,
   })
 }

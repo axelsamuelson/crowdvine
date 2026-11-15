@@ -1,15 +1,9 @@
-import {
-  formatOpsCompanyLabel,
-  parseTaskSourceMarker,
-  type OpsCompany,
-} from "@/lib/operations/ops-agents"
+import { parseTaskSourceMarker } from "@/lib/operations/ops-agents"
 import {
   classifyDriftColumn,
   doneSortKey,
-  isDoneOlderWithin30Days,
   isDoneThisWeek,
   isPausedTitle,
-  taskMatchesOwnerFilter,
   taskOwnerNames,
   type DriftTaskLike,
 } from "./column-rules"
@@ -17,32 +11,39 @@ import {
   deriveDriftTaskBadge,
   extractPrUrlFromDescription,
   formatDriftTaskHeadingLine,
-  formatProjectTagLabel,
   stripDescriptionForPanel,
 } from "./display-title"
 import {
-  deriveJobbarPa,
-  deriveVantarPa,
-  isSilentBot,
-  type DriftAgentLike,
-  type DriftLogLike,
-  type DriftQueueLike,
-} from "./jobbar-vantar"
+  companySubtitle,
+  compareTaskRank,
+  formatPriorityLabel,
+  isBelowRankInObjective,
+  isStartedWithoutInitiative,
+  isUnprioritized,
+  resolveTaskCompany,
+  taskMatchesBotFilter,
+  type DriftCompany,
+  type DriftInitiativeLike,
+  type DriftObjectiveLike,
+  type DriftTaskWithLinks,
+} from "./priority-rules"
 import {
   formatStockholmDate,
   formatStockholmDateTime,
   stockholmYmd,
 } from "./stockholm-time"
 import type {
-  DriftBotRow,
   DriftCompanyFilter,
+  DriftMalInitiative,
+  DriftMalObjective,
+  DriftMalTaskRow,
   DriftOverviewData,
-  DriftPagarBotGroup,
   DriftPagarTask,
-  DriftPipelineProject,
+  DriftPipelineObjective,
   DriftPipelineTaskCard,
   DriftQueueItem,
   DriftTaskDetail,
+  DriftUnprioritizedTask,
   DriftWeekItem,
 } from "./types"
 
@@ -50,50 +51,38 @@ export interface DriftBuildInput {
   now?: Date
   companyFilter: DriftCompanyFilter
   ownerFilter?: string | null
-  projectFilter?: string | null
-  projects: Array<{
-    id: string
-    name: string
-    company: string | null
-    status: string
-    deleted_at?: string | null
-    updated_at?: string | null
-  }>
+  objectives: DriftObjectiveLike[]
+  initiatives: DriftInitiativeLike[]
   tasks: Array<
     DriftTaskLike & {
+      objective_id?: string | null
+      initiative_id?: string | null
       project_id?: string | null
+      sort_order?: number | null
       description?: string | null
     }
   >
-  agents: DriftAgentLike[]
-  logs: DriftLogLike[]
-  queue: Array<
-    DriftQueueLike & {
-      title: string
-      question?: string | null
-      detail?: string | null
-      recommendation?: string | null
-      task_id?: string | null
-    }
-  >
+  agents: Array<{ name: string; active?: boolean | null }>
+  queue: Array<{
+    id: string
+    agent: string
+    kind?: string | null
+    title: string
+    question?: string | null
+    detail?: string | null
+    recommendation?: string | null
+    deadline?: string | null
+    status: string
+    created_at?: string | null
+    company?: string | null
+    project_id?: string | null
+    task_id?: string | null
+  }>
+  projectCompanyById?: Map<string, DriftCompany>
 }
 
-function taskCompany(
-  task: DriftTaskLike & { project_id?: string | null },
-  projectCompanyById: Map<string, OpsCompany>,
-): OpsCompany {
-  if (!task.project_id) return "pact"
-  return projectCompanyById.get(task.project_id) ?? "pact"
-}
-
-function companyOk(c: OpsCompany, filter: DriftCompanyFilter): boolean {
-  return filter === "both" || c === filter
-}
-
-function statusLabelForTask(
-  task: DriftTaskLike,
-  now: Date,
-): string {
+function statusLabelForTask(task: DriftTaskLike, now: Date): string {
+  if (isPausedTitle(task.title) || task.status === "paused") return "Pausad"
   const col = classifyDriftColumn(task, now)
   switch (col) {
     case "pagar":
@@ -101,7 +90,7 @@ function statusLabelForTask(
     case "pagang":
       return "På gång"
     case "backlog":
-      return "Backlog"
+      return "Nästa"
     case "klart":
       return "Klart"
     case "cancelled":
@@ -111,10 +100,7 @@ function statusLabelForTask(
   }
 }
 
-function detailDateLabel(
-  task: DriftTaskLike,
-  now: Date,
-): string {
+function detailDateLabel(task: DriftTaskLike, now: Date): string {
   const col = classifyDriftColumn(task, now)
   if (col === "klart") {
     const stamp = task.completed_at ?? task.updated_at
@@ -124,37 +110,78 @@ function detailDateLabel(
   return "—"
 }
 
+function objectiveChip(
+  obj: DriftObjectiveLike | undefined,
+): DriftPagarTask["objective"] {
+  if (!obj) return null
+  return {
+    id: obj.id,
+    rank: obj.sort_order,
+    shortLabel: obj.short_label?.trim() || obj.title,
+    title: obj.title,
+  }
+}
+
+function initiativeTag(
+  init: DriftInitiativeLike | undefined,
+): DriftPagarTask["initiative"] {
+  if (!init) return null
+  return {
+    id: init.id,
+    key: init.key,
+    title: init.title,
+  }
+}
+
 function toDetail(
-  task: DriftTaskLike & { description?: string | null; project_id?: string | null },
-  projectName: string | null,
+  task: DriftTaskWithLinks & { description?: string | null },
+  objective: DriftObjectiveLike | undefined,
+  initiative: DriftInitiativeLike | undefined,
   now: Date,
 ): DriftTaskDetail {
   const owners = taskOwnerNames(task)
   const marker = parseTaskSourceMarker(task.description)
   const prNumber = marker?.kind === "pr" ? marker.prNumber : null
+  const unprioritized = isUnprioritized(task)
   return {
     id: task.id,
-    heading: formatDriftTaskHeadingLine(task, projectName),
+    heading: formatDriftTaskHeadingLine(task, objective?.title ?? null),
     description: stripDescriptionForPanel(task.description),
     owner: owners[0] ?? null,
-    projectId: task.project_id ?? null,
-    projectName: projectName ? formatProjectTagLabel(projectName) : null,
+    initiativeOwner: initiative?.owner_agent ?? null,
+    objectiveId: objective?.id ?? null,
+    objectiveLabel: objective
+      ? `${objective.sort_order} ${objective.short_label?.trim() || objective.title}`
+      : null,
+    initiativeId: initiative?.id ?? null,
+    initiativeLabel: initiative ? `${initiative.key} ${initiative.title}` : null,
+    priorityLabel: objective ? formatPriorityLabel(objective.priority) : null,
+    sortOrderLabel:
+      task.sort_order != null && task.initiative_id
+        ? String(task.sort_order)
+        : null,
     statusLabel: statusLabelForTask(task, now),
     dateLabel: detailDateLabel(task, now),
     prNumber,
     prUrl: prNumber ? extractPrUrlFromDescription(task.description) : null,
+    unprioritized,
+    startedWithoutInitiative: isStartedWithoutInitiative(task),
   }
 }
 
-function toCard(
-  task: DriftTaskLike & { description?: string | null; project_id?: string | null },
-  projectName: string | null,
+function toPipelineCard(
+  task: DriftTaskWithLinks & { description?: string | null },
+  objective: DriftObjectiveLike | undefined,
+  initiative: DriftInitiativeLike | undefined,
+  waitingQueueTaskIds: Set<string>,
+  now: Date,
+  belowRank: boolean,
 ): DriftPipelineTaskCard {
   const marker = parseTaskSourceMarker(task.description)
   const owners = taskOwnerNames(task)
   return {
     id: task.id,
-    heading: formatDriftTaskHeadingLine(task, projectName),
+    heading: formatDriftTaskHeadingLine(task, objective?.title ?? null),
     owner: owners[0] ?? null,
     atLabel: task.completed_at
       ? formatStockholmDateTime(task.completed_at)
@@ -163,42 +190,71 @@ function toCard(
         : null,
     source: marker?.kind ?? null,
     paused: isPausedTitle(task.title),
+    unprioritized: isUnprioritized(task),
+    startedWithoutInitiative: isStartedWithoutInitiative(task),
+    belowRank,
+    badge: deriveDriftTaskBadge({
+      status: task.status,
+      title: task.title,
+      description: task.description,
+      waitingQueueTaskIds,
+      taskId: task.id,
+    }),
     href: `/admin/operations/tasks/${task.id}`,
+    detail: toDetail(task, objective, initiative, now),
   }
 }
 
-function ownerGroupKey(task: DriftTaskLike): { key: string; label: string } {
-  const owners = taskOwnerNames(task)
-  if (owners.length === 0) return { key: "__none__", label: "Utan ägare" }
-  // Preserve shared ownership as a single group label (e.g. Margaux/Saga)
-  const label = owners.join("/")
-  return { key: label.toLowerCase(), label }
+function malStatus(
+  task: DriftTaskWithLinks,
+  now: Date,
+): DriftMalTaskRow["status"] {
+  if (isPausedTitle(task.title) || task.status === "paused") return "pausad"
+  if (task.status === "done") return "klart"
+  if (task.status === "in_progress") return "pagar"
+  return "nasta"
 }
 
 export function buildDriftOverview(input: DriftBuildInput): DriftOverviewData {
   const now = input.now ?? new Date()
   const today = stockholmYmd(now)
-  const projectCompanyById = new Map<string, OpsCompany>()
-  const projectNameById = new Map<string, string>()
-  for (const p of input.projects) {
-    if (p.deleted_at) continue
-    projectCompanyById.set(
-      p.id,
-      p.company === "dirtywine" ? "dirtywine" : "pact",
-    )
-    projectNameById.set(p.id, p.name)
+  const company = input.companyFilter
+  const projectCompanyById = input.projectCompanyById ?? new Map()
+
+  /** All objectives (any company) — needed so company resolution does not fall back wrongly. */
+  const allObjectiveById = new Map<string, DriftObjectiveLike>()
+  const objectiveById = new Map<string, DriftObjectiveLike>()
+  for (const o of input.objectives) {
+    if (o.deleted_at) continue
+    allObjectiveById.set(o.id, o)
+    if (o.company === company) objectiveById.set(o.id, o)
+  }
+
+  const allInitiativeById = new Map<string, DriftInitiativeLike>()
+  const initiativeById = new Map<string, DriftInitiativeLike>()
+  for (const i of input.initiatives) {
+    allInitiativeById.set(i.id, i)
+    if (i.company !== company) continue
+    if (!objectiveById.has(i.objective_id)) continue
+    initiativeById.set(i.id, i)
   }
 
   const tasksInCompany = input.tasks.filter((t) => {
     if (t.deleted_at) return false
     if (t.parent_task_id) return false
-    return companyOk(taskCompany(t, projectCompanyById), input.companyFilter)
+    return (
+      resolveTaskCompany({
+        task: t,
+        objectiveById: allObjectiveById,
+        initiativeById: allInitiativeById,
+        projectCompanyById,
+      }) === company
+    )
   })
 
-  const tasksFiltered = tasksInCompany.filter((t) => {
-    if (input.projectFilter && t.project_id !== input.projectFilter) return false
-    return taskMatchesOwnerFilter(t, input.ownerFilter)
-  })
+  const tasksFiltered = tasksInCompany.filter((t) =>
+    taskMatchesBotFilter(t, input.ownerFilter, initiativeById, taskOwnerNames),
+  )
 
   const queueInCompany = input.queue.filter((q) => {
     if (q.status !== "väntar") return false
@@ -208,13 +264,11 @@ export function buildDriftOverview(input: DriftBuildInput): DriftOverviewData {
         : q.project_id
           ? (projectCompanyById.get(q.project_id) ?? "pact")
           : "pact"
-    return companyOk(c, input.companyFilter)
+    return c === company
   })
 
   const waitingQueueTaskIds = new Set(
-    queueInCompany
-      .map((q) => q.task_id)
-      .filter((id): id is string => !!id),
+    queueInCompany.map((q) => q.task_id).filter((id): id is string => !!id),
   )
 
   const sortedQueue = [...queueInCompany].sort((a, b) => {
@@ -236,310 +290,455 @@ export function buildDriftOverview(input: DriftBuildInput): DriftOverviewData {
     deadline: q.deadline ?? null,
     recommendation: q.recommendation ?? null,
     overdue: !!(q.deadline && q.deadline < today),
-    openHref: `/admin/operations?godkannande=${q.id}`,
+    openHref: `/admin/operations?company=${company}&godkannande=${q.id}`,
   }))
-
-  const waitingOverdue = queueItems.filter((q) => q.overdue).length
 
   let pagar = 0
   let pagang = 0
   let klartWeek = 0
+  let unprioritizedCount = 0
   for (const t of tasksFiltered) {
-    const col = classifyDriftColumn(t, now)
-    // Summary «Pågår» = in_progress without [PAUSAD] (v4.1)
+    if (isUnprioritized(t) && t.status !== "cancelled") unprioritizedCount += 1
     if (t.status === "in_progress" && !isPausedTitle(t.title)) pagar += 1
-    else if (col === "pagang") pagang += 1
-    else if (col === "klart" && isDoneThisWeek(t, now)) klartWeek += 1
+    else if (classifyDriftColumn(t, now) === "pagang") pagang += 1
+    else if (t.status === "done" && isDoneThisWeek(t, now)) klartWeek += 1
   }
 
-  // Pågår per bot: in_progress without [PAUSAD]
-  const pagarTasks = tasksFiltered.filter(
-    (t) => t.status === "in_progress" && !isPausedTitle(t.title),
-  )
-
-  const pagarByOwner = new Map<string, DriftPagarTask[]>()
-  const ownerLabels = new Map<string, string>()
-  for (const t of pagarTasks) {
-    const { key, label } = ownerGroupKey(t)
-    ownerLabels.set(key, label)
-    const projectName = t.project_id
-      ? (projectNameById.get(t.project_id) ?? null)
-      : null
-    const badge = deriveDriftTaskBadge({
-      status: t.status,
-      title: t.title,
-      description: t.description,
-      waitingQueueTaskIds,
-      taskId: t.id,
-    })
-    const item: DriftPagarTask = {
-      id: t.id,
-      heading: formatDriftTaskHeadingLine(t, projectName),
-      projectTag: formatProjectTagLabel(projectName),
-      dateLabel: t.due_date ? formatStockholmDate(t.due_date) : null,
-      badge,
-      detail: toDetail(t, projectName, now),
-    }
-    const list = pagarByOwner.get(key) ?? []
-    list.push(item)
-    pagarByOwner.set(key, list)
+  const siblingsByObjective = new Map<string, DriftTaskWithLinks[]>()
+  for (const t of tasksInCompany) {
+    if (!t.objective_id) continue
+    const list = siblingsByObjective.get(t.objective_id) ?? []
+    list.push(t)
+    siblingsByObjective.set(t.objective_id, list)
   }
 
-  const pagarGroups: DriftPagarBotGroup[] = Array.from(pagarByOwner.entries())
-    .map(([key, tasks]) => ({
-      ownerKey: key,
-      ownerLabel: ownerLabels.get(key) ?? key,
-      count: tasks.length,
-      hasWaitingForYou: tasks.some((t) => t.badge === "waiting_for_you"),
-      tasks,
-    }))
+  const pagarRaw = tasksFiltered
+    .filter((t) => t.status === "in_progress" && !isPausedTitle(t.title))
     .sort((a, b) => {
-      if (a.ownerKey === "__none__") return 1
-      if (b.ownerKey === "__none__") return -1
-      if (a.hasWaitingForYou !== b.hasWaitingForYou) {
-        return a.hasWaitingForYou ? -1 : 1
-      }
-      return a.ownerLabel.localeCompare(b.ownerLabel, "sv")
+      const oa = a.objective_id ? objectiveById.get(a.objective_id) : undefined
+      const ob = b.objective_id ? objectiveById.get(b.objective_id) : undefined
+      const ra = oa?.sort_order ?? Number.MAX_SAFE_INTEGER
+      const rb = ob?.sort_order ?? Number.MAX_SAFE_INTEGER
+      if (ra !== rb) return ra - rb
+      return compareTaskRank(a, b, initiativeById)
     })
+
+  const pagarTasks: DriftPagarTask[] = pagarRaw.map((t) => {
+    const objective = t.objective_id
+      ? objectiveById.get(t.objective_id)
+      : undefined
+    const initiative = t.initiative_id
+      ? initiativeById.get(t.initiative_id)
+      : undefined
+    const siblings = t.objective_id
+      ? (siblingsByObjective.get(t.objective_id) ?? [])
+      : []
+    const belowRank = isBelowRankInObjective({
+      task: t,
+      siblingsInObjective: siblings,
+      initiativeById,
+      now,
+    })
+    const owners = taskOwnerNames(t)
+    return {
+      id: t.id,
+      heading: formatDriftTaskHeadingLine(t, objective?.title ?? null),
+      owner: owners[0] ?? null,
+      objective: objectiveChip(objective),
+      initiative: initiativeTag(initiative),
+      dateLabel: t.due_date ? formatStockholmDate(t.due_date) : null,
+      badge: deriveDriftTaskBadge({
+        status: t.status,
+        title: t.title,
+        description: t.description,
+        waitingQueueTaskIds,
+        taskId: t.id,
+      }),
+      belowRank,
+      belowRankLabel: belowRank
+        ? `↑ Pågår under rang${t.due_date ? ` ${formatStockholmDate(t.due_date)}` : ""}`
+        : null,
+      unprioritized: isUnprioritized(t),
+      startedWithoutInitiative: isStartedWithoutInitiative(t),
+      detail: toDetail(t, objective, initiative, now),
+    }
+  })
 
   const weekCandidates = tasksFiltered
     .filter((t) => isDoneThisWeek(t, now))
     .sort((a, b) => doneSortKey(b).localeCompare(doneSortKey(a)))
-    .slice(0, 5)
+    .slice(0, 8)
 
   const weekItems: DriftWeekItem[] = weekCandidates.map((t) => {
-    const projectName = t.project_id
-      ? (projectNameById.get(t.project_id) ?? null)
-      : null
+    const objective = t.objective_id
+      ? objectiveById.get(t.objective_id)
+      : undefined
+    const initiative = t.initiative_id
+      ? initiativeById.get(t.initiative_id)
+      : undefined
     const marker = parseTaskSourceMarker(t.description)
     const owners = taskOwnerNames(t)
     const at = t.completed_at ?? t.updated_at ?? ""
     return {
       id: t.id,
-      heading: formatDriftTaskHeadingLine(t, projectName),
+      heading: formatDriftTaskHeadingLine(t, objective?.title ?? null),
       owner: owners[0] ?? null,
       at,
       atLabel: formatStockholmDateTime(at),
       source: marker?.kind ?? null,
-      projectName,
-      projectTag: formatProjectTagLabel(projectName),
-      detail: toDetail(t, projectName, now),
+      objective: objectiveChip(objective),
+      initiative: initiativeTag(initiative),
+      unprioritized: isUnprioritized(t),
+      detail: toDetail(t, objective, initiative, now),
     }
   })
 
-  const logsByAgent = new Map<string, DriftLogLike[]>()
-  for (const log of input.logs) {
-    const key = log.agent.toLowerCase()
-    const list = logsByAgent.get(key) ?? []
-    list.push(log)
-    logsByAgent.set(key, list)
-  }
-
-  const bots: DriftBotRow[] = input.agents
-    .filter((a) => a.active !== false)
-    .filter((a) => {
-      if (input.companyFilter === "both") return true
-      if (!a.company || a.company === "both") return true
-      return a.company === input.companyFilter
-    })
-    .filter((a) => {
-      if (!input.ownerFilter || input.ownerFilter === "__none__") return true
-      return a.name.toLowerCase() === input.ownerFilter.toLowerCase()
-    })
-    .map((a) => {
-      const agentLogs = (logsByAgent.get(a.name.toLowerCase()) ?? []).sort(
-        (x, y) => y.created_at.localeCompare(x.created_at),
-      )
-      const latest = agentLogs[0] ?? null
-      const isElsa = a.name.toLowerCase() === "elsa"
-      const vantar = deriveVantarPa({
-        agentName: a.name,
-        isElsa,
-        queue: queueInCompany,
-        companyFilter: input.companyFilter,
-        projectCompanyById,
-        todayYmd: today,
-      })
-      const jobbar = deriveJobbarPa({
-        agentName: a.name,
-        tasks: tasksInCompany,
-        logs: agentLogs,
-        waitingCount: vantar.count,
-        companyFilter: input.companyFilter,
-        projectCompanyById,
-        taskCompany: (t) => taskCompany(t, projectCompanyById),
-        now,
-      })
-      const silent = isSilentBot({ latestLogAt: latest?.created_at ?? null, now })
-      return {
-        id: a.agent_id,
-        name: a.name,
-        agent_id: a.agent_id,
-        company: (a.company as DriftBotRow["company"]) ?? null,
-        companyLabel: formatOpsCompanyLabel(
-          (a.company as "pact" | "dirtywine" | "both" | null) ?? "pact",
-        ),
-        area: a.area ?? null,
-        latestAt: latest?.created_at ?? null,
-        latestAtLabel: latest
-          ? formatStockholmDateTime(latest.created_at)
-          : "Ingen logg",
-        latestAction: latest
-          ? latest.detail
-            ? `${latest.action}${latest.detail ? ` — ${latest.detail}` : ""}`.slice(
-                0,
-                140,
-              )
-            : latest.action
-          : "Ingen aktivitet loggad",
-        jobbarPa: jobbar,
-        vantarPa: vantar.label,
-        vantarTone: vantar.tone,
-        silent,
-      }
-    })
-    .sort((a, b) => {
-      if (a.silent !== b.silent) return a.silent ? 1 : -1
-      return (b.latestAt ?? "").localeCompare(a.latestAt ?? "")
-    })
-
-  const projectIds = new Set(
-    input.projects
-      .filter((p) => !p.deleted_at)
-      .filter((p) =>
-        companyOk(
-          p.company === "dirtywine" ? "dirtywine" : "pact",
-          input.companyFilter,
-        ),
-      )
-      .map((p) => p.id),
+  const unprioritizedRaw = tasksFiltered.filter(
+    (t) =>
+      isUnprioritized(t) &&
+      t.status !== "cancelled" &&
+      t.status !== "done",
   )
 
-  const UNASSIGNED = "__unassigned__"
-  const groups = new Map<string, typeof input.tasks>()
-  for (const t of tasksFiltered) {
-    const key = t.project_id && projectIds.has(t.project_id) ? t.project_id : UNASSIGNED
-    if (input.projectFilter && key !== input.projectFilter) continue
-    const list = groups.get(key) ?? []
-    list.push(t)
-    groups.set(key, list)
+  const unprioritizedTasks: DriftUnprioritizedTask[] = unprioritizedRaw
+    .sort((a, b) => {
+      const aRed = isStartedWithoutInitiative(a) ? 0 : 1
+      const bRed = isStartedWithoutInitiative(b) ? 0 : 1
+      if (aRed !== bRed) return aRed - bRed
+      return a.title.localeCompare(b.title, "sv")
+    })
+    .map((t) => {
+      const objective = t.objective_id
+        ? objectiveById.get(t.objective_id)
+        : undefined
+      const initiative = t.initiative_id
+        ? initiativeById.get(t.initiative_id)
+        : undefined
+      const owners = taskOwnerNames(t)
+      return {
+        id: t.id,
+        heading: formatDriftTaskHeadingLine(t, objective?.title ?? null),
+        owner: owners[0] ?? null,
+        statusLabel: statusLabelForTask(t, now),
+        startedWithoutInitiative: isStartedWithoutInitiative(t),
+        objectiveLabel: objective
+          ? `${objective.sort_order} ${objective.short_label?.trim() || objective.title}`
+          : null,
+        detail: toDetail(t, objective, initiative, now),
+      }
+    })
+
+  const startedWithout = unprioritizedTasks.filter(
+    (t) => t.startedWithoutInitiative,
+  )
+
+  const sortedObjectives = Array.from(objectiveById.values()).sort(
+    (a, b) => a.sort_order - b.sort_order || a.title.localeCompare(b.title, "sv"),
+  )
+
+  const initiativesByObjective = new Map<string, DriftInitiativeLike[]>()
+  for (const i of initiativeById.values()) {
+    const list = initiativesByObjective.get(i.objective_id) ?? []
+    list.push(i)
+    initiativesByObjective.set(i.objective_id, list)
+  }
+  for (const list of initiativesByObjective.values()) {
+    list.sort(
+      (a, b) => a.sort_order - b.sort_order || a.key.localeCompare(b.key, "sv"),
+    )
   }
 
-  const projectsOut: DriftPipelineProject[] = []
-  const projectMeta = [
-    ...input.projects.filter((p) => projectIds.has(p.id)),
-    {
-      id: UNASSIGNED,
-      name: "Utan projektkoppling",
-      company: "pact",
-      status: "active",
-      updated_at: null as string | null,
-      deleted_at: null as string | null,
-    },
-  ]
+  function buildMalTaskRow(
+    t: DriftTaskWithLinks & { description?: string | null },
+    place: number,
+    objective: DriftObjectiveLike,
+    initiative: DriftInitiativeLike,
+  ): DriftMalTaskRow {
+    const siblings = siblingsByObjective.get(objective.id) ?? []
+    const belowRank = isBelowRankInObjective({
+      task: t,
+      siblingsInObjective: siblings,
+      initiativeById,
+      now,
+    })
+    const status = malStatus(t, now)
+    const owners = taskOwnerNames(t)
+    return {
+      id: t.id,
+      place,
+      heading: formatDriftTaskHeadingLine(t, objective.title),
+      owner: owners[0] ?? null,
+      status,
+      statusLabel:
+        status === "pagar"
+          ? "Pågår"
+          : status === "nasta"
+            ? "Nästa"
+            : status === "pausad"
+              ? "Pausad"
+              : "Klart",
+      badge: deriveDriftTaskBadge({
+        status: t.status,
+        title: t.title,
+        description: t.description,
+        waitingQueueTaskIds,
+        taskId: t.id,
+      }),
+      belowRank,
+      unprioritized: isUnprioritized(t),
+      startedWithoutInitiative: isStartedWithoutInitiative(t),
+      detail: toDetail(t, objective, initiative, now),
+    }
+  }
 
-  for (const p of projectMeta) {
-    const tasks = groups.get(p.id) ?? []
-    if (tasks.length === 0 && p.id === UNASSIGNED) continue
-    if (input.projectFilter && p.id !== input.projectFilter) continue
-    if (tasks.length === 0 && input.ownerFilter) continue
-    if (tasks.length === 0 && input.projectFilter) continue
-    if (tasks.length === 0) continue
-
-    const company: OpsCompany = p.company === "dirtywine" ? "dirtywine" : "pact"
-    const ownerFilterActive = !!input.ownerFilter
-    const klarWeekTasks = tasks.filter((t) => isDoneThisWeek(t, now))
-    const olderTasks = tasks.filter((t) => isDoneOlderWithin30Days(t, now))
-    const pagarColTasks = tasks.filter((t) => classifyDriftColumn(t, now) === "pagar")
-    const pagangTasks = tasks.filter((t) => classifyDriftColumn(t, now) === "pagang")
-    const backlogTasks = tasks.filter(
-      (t) => classifyDriftColumn(t, now) === "backlog",
+  const malObjectives: DriftMalObjective[] = sortedObjectives.map((obj) => {
+    const initiatives = initiativesByObjective.get(obj.id) ?? []
+    const objTasksAll = tasksInCompany.filter((t) => t.objective_id === obj.id)
+    const objTasksFiltered = tasksFiltered.filter(
+      (t) => t.objective_id === obj.id,
     )
-    const cancelled = tasks.filter(
-      (t) => classifyDriftColumn(t, now) === "cancelled",
+    const totalCount = objTasksAll.filter(
+      (t) => t.status !== "cancelled",
+    ).length
+    const doneCount = objTasksAll.filter((t) => t.status === "done").length
+    const pagarCount = objTasksFiltered.filter(
+      (t) => t.status === "in_progress" && !isPausedTitle(t.title),
     ).length
 
-    const lastStamp = [
-      p.updated_at,
-      ...tasks.map((t) => t.completed_at ?? t.updated_at),
-    ]
-      .filter(Boolean)
-      .sort()
-      .at(-1) as string | undefined
+    const malInitiatives: DriftMalInitiative[] = initiatives.map((init) => {
+      const initTasks = tasksFiltered
+        .filter((t) => t.initiative_id === init.id)
+        .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
 
-    projectsOut.push({
-      id: p.id,
-      name: p.name,
-      company,
-      companyLabel: formatOpsCompanyLabel(company),
-      archived: p.status === "archived",
-      counts: {
-        pagar: pagarColTasks.length,
-        pagang: pagangTasks.length,
-        backlog: backlogTasks.length,
-        klartWeek: klarWeekTasks.length,
-        older: ownerFilterActive ? 0 : olderTasks.length,
-        cancelled: ownerFilterActive ? 0 : cancelled,
-      },
-      lastActivityLabel: lastStamp
-        ? formatStockholmDateTime(lastStamp)
-        : null,
-      columns: {
-        klart: klarWeekTasks
-          .sort((a, b) => doneSortKey(b).localeCompare(doneSortKey(a)))
-          .map((t) => toCard(t, p.name)),
-        klartOlder: ownerFilterActive
-          ? []
-          : olderTasks
-              .sort((a, b) => doneSortKey(b).localeCompare(doneSortKey(a)))
-              .map((t) => toCard(t, p.name)),
-        pagar: pagarColTasks.map((t) => toCard(t, p.name)),
-        pagang: pagangTasks.map((t) => toCard(t, p.name)),
-        backlog: backlogTasks.map((t) => toCard(t, p.name)),
-      },
+      const active = initTasks.filter(
+        (t) =>
+          t.status !== "done" &&
+          t.status !== "cancelled" &&
+          !isPausedTitle(t.title) &&
+          t.status !== "paused",
+      )
+      const paused = initTasks.filter(
+        (t) => isPausedTitle(t.title) || t.status === "paused",
+      )
+      const klarWeek = initTasks.filter((t) => isDoneThisWeek(t, now))
+
+      const pagarTasksInit = active.filter((t) => t.status === "in_progress")
+      const nastaTasks = active.filter((t) => t.status !== "in_progress")
+
+      const visibleSource = [
+        ...pagarTasksInit,
+        ...nastaTasks.slice(0, 3),
+      ]
+      const hiddenTaskCount = Math.max(
+        0,
+        active.length - visibleSource.length,
+      )
+
+      const allActiveRows = active.map((t, idx) =>
+        buildMalTaskRow(t, (t.sort_order ?? idx + 1) || idx + 1, obj, init),
+      )
+
+      return {
+        id: init.id,
+        key: init.key,
+        title: init.title,
+        ownerAgent: init.owner_agent,
+        pagarCount: pagarTasksInit.length,
+        nastaCount: nastaTasks.length,
+        klartWeekCount: klarWeek.length,
+        pausedCount: paused.length,
+        visibleTasks: visibleSource.map((t, idx) =>
+          buildMalTaskRow(t, (t.sort_order ?? idx + 1) || idx + 1, obj, init),
+        ),
+        hiddenTaskCount,
+        allTasks: allActiveRows,
+      }
     })
+
+    const emptyForFilter =
+      !!input.ownerFilter &&
+      malInitiatives.every(
+        (i) =>
+          i.visibleTasks.length === 0 &&
+          i.hiddenTaskCount === 0 &&
+          i.klartWeekCount === 0 &&
+          i.pausedCount === 0,
+      )
+
+    return {
+      id: obj.id,
+      rank: obj.sort_order,
+      title: obj.title,
+      shortLabel: obj.short_label?.trim() || obj.title,
+      priority: obj.priority,
+      priorityLabel: formatPriorityLabel(obj.priority),
+      initiativeCount: initiatives.length,
+      pagarCount,
+      doneCount,
+      totalCount,
+      defaultExpanded: obj.sort_order <= 3,
+      emptyForFilter,
+      initiatives: malInitiatives,
+    }
+  })
+
+  const unprioritizedForPipeline = tasksFiltered.filter(
+    (t) => isUnprioritized(t) && t.status !== "cancelled",
+  )
+
+  const pipelineUnprioritized = {
+    pagar: unprioritizedForPipeline
+      .filter((t) => t.status === "in_progress" && !isPausedTitle(t.title))
+      .map((t) =>
+        toPipelineCard(
+          t,
+          t.objective_id ? objectiveById.get(t.objective_id) : undefined,
+          undefined,
+          waitingQueueTaskIds,
+          now,
+          false,
+        ),
+      ),
+    pagang: unprioritizedForPipeline
+      .filter((t) => classifyDriftColumn(t, now) === "pagang" || (t.status === "todo" && !isPausedTitle(t.title)))
+      .filter((t) => t.status !== "in_progress" && t.status !== "done")
+      .map((t) =>
+        toPipelineCard(
+          t,
+          t.objective_id ? objectiveById.get(t.objective_id) : undefined,
+          undefined,
+          waitingQueueTaskIds,
+          now,
+          false,
+        ),
+      ),
+    klart: unprioritizedForPipeline
+      .filter((t) => isDoneThisWeek(t, now))
+      .sort((a, b) => doneSortKey(b).localeCompare(doneSortKey(a)))
+      .slice(0, 3)
+      .map((t) =>
+        toPipelineCard(
+          t,
+          t.objective_id ? objectiveById.get(t.objective_id) : undefined,
+          undefined,
+          waitingQueueTaskIds,
+          now,
+          false,
+        ),
+      ),
   }
 
-  projectsOut.sort((a, b) => a.name.localeCompare(b.name, "sv"))
+  const pipelineObjectives: DriftPipelineObjective[] = sortedObjectives.map(
+    (obj) => {
+      const initiatives = initiativesByObjective.get(obj.id) ?? []
+      const objTasks = tasksFiltered.filter((t) => t.objective_id === obj.id)
+      const pagarN = objTasks.filter(
+        (t) => t.status === "in_progress" && !isPausedTitle(t.title),
+      ).length
+      const pagangN = objTasks.filter(
+        (t) => classifyDriftColumn(t, now) === "pagang",
+      ).length
+      const klartN = objTasks.filter((t) => isDoneThisWeek(t, now)).length
+
+      const pipeInitiatives = initiatives.map((init) => {
+        const initTasks = tasksFiltered.filter(
+          (t) => t.initiative_id === init.id,
+        )
+        const siblings = siblingsByObjective.get(obj.id) ?? []
+        const pagarCards = initTasks
+          .filter((t) => t.status === "in_progress" && !isPausedTitle(t.title))
+          .map((t) =>
+            toPipelineCard(
+              t,
+              obj,
+              init,
+              waitingQueueTaskIds,
+              now,
+              isBelowRankInObjective({
+                task: t,
+                siblingsInObjective: siblings,
+                initiativeById,
+                now,
+              }),
+            ),
+          )
+        const pagangCards = initTasks
+          .filter((t) => {
+            if (t.status === "done" || t.status === "cancelled") return false
+            if (t.status === "in_progress") return false
+            if (isPausedTitle(t.title) || t.status === "paused") return false
+            return true
+          })
+          .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+          .slice(0, 4)
+          .map((t) =>
+            toPipelineCard(t, obj, init, waitingQueueTaskIds, now, false),
+          )
+        const klartCards = initTasks
+          .filter((t) => isDoneThisWeek(t, now))
+          .sort((a, b) => doneSortKey(b).localeCompare(doneSortKey(a)))
+          .slice(0, 3)
+          .map((t) =>
+            toPipelineCard(t, obj, init, waitingQueueTaskIds, now, false),
+          )
+
+        return {
+          id: init.id,
+          key: init.key,
+          title: init.title,
+          ownerAgent: init.owner_agent,
+          columns: {
+            pagar: pagarCards,
+            pagang: pagangCards,
+            klart: klartCards,
+          },
+        }
+      })
+
+      return {
+        id: obj.id,
+        rank: obj.sort_order,
+        title: obj.title,
+        shortLabel: obj.short_label?.trim() || obj.title,
+        defaultExpanded: obj.sort_order <= 2,
+        summaryLine: `${initiatives.length} initiativ · Pågår ${pagarN} · På gång ${pagangN} · Klart ${klartN} den här veckan`,
+        initiatives: pipeInitiatives,
+      }
+    },
+  )
 
   const ownerOptions = Array.from(
-    new Set(
-      input.agents
+    new Set([
+      ...input.agents
         .filter((a) => a.active !== false)
-        .map((a) => a.name)
-        .concat(
-          ...input.tasks.flatMap((t) => taskOwnerNames(t)),
-        ),
-    ),
+        .map((a) => a.name),
+      ...input.initiatives.map((i) => i.owner_agent),
+      ...input.tasks.flatMap((t) => taskOwnerNames(t)),
+    ]),
   ).sort((a, b) => a.localeCompare(b, "sv"))
-
-  const projectOptions = input.projects
-    .filter((p) => !p.deleted_at)
-    .filter((p) =>
-      companyOk(
-        p.company === "dirtywine" ? "dirtywine" : "pact",
-        input.companyFilter,
-      ),
-    )
-    .map((p) => ({ id: p.id, name: p.name }))
-    .sort((a, b) => a.name.localeCompare(b.name, "sv"))
 
   return {
     generatedAtLabel: formatStockholmDateTime(now.toISOString()),
+    company,
+    companySubtitle: companySubtitle(company),
     summary: {
       waiting: queueItems.length,
-      waitingOverdue,
+      waitingOverdue: queueItems.filter((q) => q.overdue).length,
       pagar,
       pagang,
       klartWeek,
+      unprioritized: unprioritizedCount,
     },
     queue: queueItems,
-    pagarGroups,
+    pagarTasks,
     weekItems,
-    bots,
-    projects: projectsOut,
+    unprioritizedTasks,
+    startedWithoutInitiativeCount: startedWithout.length,
+    startedWithoutInitiativePreview: startedWithout[0] ?? null,
+    malObjectives,
+    pipelineUnprioritized,
+    pipelineObjectives,
     ownerOptions,
-    projectOptions,
   }
 }
 
@@ -551,3 +750,4 @@ export function formatQueueDeadlineLabel(
   const label = formatStockholmDate(deadline)
   return overdue ? `Förfallen ${label}` : label
 }
+

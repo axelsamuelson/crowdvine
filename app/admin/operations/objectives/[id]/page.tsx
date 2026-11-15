@@ -15,6 +15,8 @@ import { DetailBreadcrumbTitle } from "@/components/admin/detail-breadcrumb-titl
 import { ObjectiveDetailDelete } from "@/components/admin/operations/objective-detail-delete"
 import { ObjectiveDetailTitleEditor } from "@/components/admin/operations/objective-detail-title-editor"
 import { ObjectiveInsightsPanel } from "@/components/admin/operations/objective-insights-panel"
+import { ObjectiveInitiativesPanel } from "@/components/admin/operations/objective-initiatives-panel"
+import type { DriftCompany } from "@/lib/operations/drift/priority-rules"
 
 const STRATEGY_COLORS: Record<string, string> = {
   Growth:
@@ -165,6 +167,18 @@ export default async function ObjectiveDetailPage({
           insightsTarget={objective.insights_target ?? 1}
         />
       ) : null}
+
+      <ObjectiveInitiativesPanel
+        objectiveId={objective.id}
+        company={
+          ((objective as { company?: string }).company === "dirtywine"
+            ? "dirtywine"
+            : "pact") as DriftCompany
+        }
+        objectiveRank={
+          Number((objective as { sort_order?: number }).sort_order) || 1
+        }
+      />
 
       {/* Tabs */}
       <Tabs defaultValue={defaultTab} key={defaultTab}>

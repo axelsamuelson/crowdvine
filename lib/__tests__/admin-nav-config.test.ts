@@ -44,7 +44,7 @@ describe("admin nav config (ops approval 648d5e92 / f297c243 step 1)", () => {
     expect(names).not.toContain("Business");
   });
 
-  it("uses Drift group with Driftöversikt first, then Mål + Delmål", () => {
+  it("uses Drift group with Driftöversikt first, then Mål (objectives), no Delmål/Projekt", () => {
     for (const group of adminNavigationGroups) {
       expect(group.items.length).toBeGreaterThan(0);
     }
@@ -53,21 +53,19 @@ describe("admin nav config (ops approval 648d5e92 / f297c243 step 1)", () => {
     expect(adminNavigationGroups.find((g) => g.name === "Operations")).toBeUndefined();
     expect(drift!.items.map((i) => i.href)).toEqual([
       "/admin/operations",
-      "/admin/operations/goals",
       "/admin/operations/objectives",
-      "/admin/operations/projects",
       "/admin/operations/tasks",
       "/admin/operations/my-work",
     ]);
     expect(drift!.items.map((i) => i.name)).toEqual([
       "Driftöversikt",
       "Mål",
-      "Delmål",
-      "Projekt",
       "Uppgifter",
       "Min arbetsyta",
     ]);
     expect(drift!.items[0]?.name).toBe("Driftöversikt");
+    expect(names).not.toContain("Delmål");
+    expect(names).not.toContain("Projekt");
     expect(names).not.toContain("Objectives");
   });
 
