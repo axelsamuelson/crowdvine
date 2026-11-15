@@ -5,8 +5,10 @@ import { usePathname, useRouter } from "next/navigation"
 import { useEffect, useMemo, useState } from "react"
 import { ChevronDown, ChevronRight, UserRound, X } from "lucide-react"
 import { formatQueueDeadlineLabel } from "@/lib/operations/drift/build-overview"
+import type { FocusPeriodKind } from "@/lib/operations/drift/focus-period"
 import type {
   DriftCompanyFilter,
+  DriftFocusData,
   DriftMalObjective,
   DriftOverviewData,
   DriftPagarTask,
@@ -20,6 +22,7 @@ import type {
 } from "@/lib/operations/drift/types"
 import { cn } from "@/lib/utils"
 import { DriftDetailPanel } from "./drift-detail-panel"
+import { FokusTab } from "./fokus-tab"
 
 const OPEN_LINK_CLASS =
   "shrink-0 text-sm font-medium text-gray-900 underline underline-offset-2 decoration-gray-300 hover:text-gray-700 dark:text-zinc-100 dark:decoration-zinc-500 dark:hover:text-zinc-200"
@@ -27,8 +30,9 @@ const OPEN_LINK_CLASS =
 const CHIP_CLASS =
   "inline-flex max-w-full items-center gap-1 rounded-md border border-gray-200 bg-transparent px-2 py-0.5 text-xs text-gray-700 dark:border-zinc-600 dark:text-zinc-300"
 
+/** Raised contrast vs v6 (~2.4:1 → ≥4.5:1 on white / dark chrome). */
 const INIT_TAG_CLASS =
-  "inline-flex max-w-full items-center gap-1 text-xs text-gray-600 dark:text-zinc-400"
+  "inline-flex max-w-full items-center gap-1 text-xs text-gray-700 dark:text-zinc-300"
 
 const WAIT_YOU_BADGE_CLASS =
   "inline-flex items-center rounded-md border border-gray-900 px-2 py-0.5 text-xs font-medium text-gray-900 dark:border-zinc-200 dark:text-zinc-100"
@@ -47,10 +51,16 @@ const TITLE_BREAK =
 
 interface Props {
   initialData: DriftOverviewData
+  focusData: DriftFocusData | null
   company: DriftCompanyFilter
   owner: string | null
   tab: DriftTab
   godkannande: string | null
+  period: FocusPeriodKind
+  periodAnchor: string | null
+  listFilter: "utan-poang" | null
+  focusExpandId?: string | null
+  focusHelpOpen?: boolean
 }
 
 function buildQuery(opts: {
@@ -58,12 +68,22 @@ function buildQuery(opts: {
   owner: string | null
   tab: DriftTab
   godkannande?: string | null
+  period?: FocusPeriodKind
+  periodAnchor?: string | null
+  filter?: "utan-poang" | null
 }): string {
   const params = new URLSearchParams()
   if (opts.company !== "pact") params.set("company", opts.company)
   if (opts.owner) params.set("owner", opts.owner)
   if (opts.tab !== "oversikt") params.set("tab", opts.tab)
   if (opts.godkannande) params.set("godkannande", opts.godkannande)
+  if (opts.tab === "fokus" && opts.period === "month") {
+    params.set("period", "month")
+  }
+  if (opts.tab === "fokus" && opts.periodAnchor) {
+    params.set("periodAnchor", opts.periodAnchor)
+  }
+  if (opts.filter === "utan-poang") params.set("filter", "utan-poang")
   const qs = params.toString()
   return qs ? `?${qs}` : ""
 }
@@ -449,12 +469,12 @@ function MalObjectiveCard({
                 <div key={init.id} className="space-y-2">
                   <div>
                     <h4 className="text-sm font-semibold text-gray-900 dark:text-zinc-100">
-                      <span className="text-gray-500 dark:text-zinc-400">
+                      <span className="text-gray-700 dark:text-zinc-300">
                         {init.key}
                       </span>{" "}
                       {init.title}
                     </h4>
-                    <p className="mt-0.5 text-xs text-gray-500 dark:text-zinc-400">
+                    <p className="mt-0.5 text-xs text-gray-600 dark:text-zinc-400">
                       Ansvarig {init.ownerAgent}
                     </p>
                   </div>
@@ -554,10 +574,16 @@ function MalObjectiveCard({
 
 export function DriftOverviewClient({
   initialData,
+  focusData,
   company,
   owner,
   tab,
   godkannande,
+  period,
+  periodAnchor,
+  listFilter,
+  focusExpandId = null,
+  focusHelpOpen = false,
 }: Props) {
   const router = useRouter()
   const pathname = usePathname()
@@ -608,15 +634,24 @@ export function DriftOverviewClient({
     owner?: string | null
     tab?: DriftTab
     godkannande?: string | null
+    period?: FocusPeriodKind
+    periodAnchor?: string | null
+    filter?: "utan-poang" | null
   }) {
     const qs = buildQuery({
       company: next.company ?? company,
       owner: next.owner === undefined ? owner : next.owner,
       tab: next.tab ?? tab,
       godkannande: next.godkannande ?? null,
+      period: next.period ?? period,
+      periodAnchor:
+        next.periodAnchor === undefined ? periodAnchor : next.periodAnchor,
+      filter: next.filter === undefined ? listFilter : next.filter,
     })
     router.push(`${pathname}${qs}`)
   }
+
+  const withoutPointsTasks = data.withoutPointsTasks
 
   const firstName = useMemo(() => {
     // Display-only; queue section title uses Axel as in sketch when unknown.
@@ -660,9 +695,16 @@ export function DriftOverviewClient({
                     "rounded-md px-3 py-1.5 text-sm font-medium",
                     company === value
                       ? "bg-gray-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
-                      : "text-gray-600 hover:bg-gray-50 dark:text-zinc-300 dark:hover:bg-zinc-800",
+                      : "text-gray-700 hover:bg-gray-50 dark:text-zinc-200 dark:hover:bg-zinc-800",
                   )}
-                  onClick={() => navigate({ company: value, owner: null })}
+                  onClick={() =>
+                    navigate({
+                      company: value,
+                      owner: null,
+                      periodAnchor: null,
+                      filter: null,
+                    })
+                  }
                 >
                   {label}
                 </button>
@@ -750,9 +792,20 @@ export function DriftOverviewClient({
             klart denna vecka
           </span>
           {data.summary.unprioritized > 0 ? (
-            <span className="font-medium text-amber-700 dark:text-amber-300">
+            <span>
               {data.summary.unprioritized} ej prioriterade
             </span>
+          ) : null}
+          {data.summary.withoutPoints > 0 ? (
+            <button
+              type="button"
+              className="font-medium underline underline-offset-2 decoration-gray-400 hover:text-gray-900 dark:decoration-zinc-500 dark:hover:text-white"
+              onClick={() =>
+                navigate({ tab: "fokus", filter: "utan-poang" })
+              }
+            >
+              {data.summary.withoutPoints} utan poäng
+            </button>
           ) : null}
         </p>
 
@@ -765,6 +818,7 @@ export function DriftOverviewClient({
               ["oversikt", "Översikt"],
               ["mal", "Mål"],
               ["pipeline", "Pipeline"],
+              ["fokus", "Fokus"],
             ] as const
           ).map(([value, label]) => (
             <button
@@ -772,11 +826,11 @@ export function DriftOverviewClient({
               type="button"
               className={cn(
                 "border-b-2 pb-2.5 text-sm font-medium",
-                tab === value
+                tab === value && listFilter == null
                   ? "border-gray-900 text-gray-900 dark:border-zinc-100 dark:text-white"
                   : "border-transparent text-gray-500 hover:text-gray-800 dark:text-zinc-400 dark:hover:text-zinc-200",
               )}
-              onClick={() => navigate({ tab: value })}
+              onClick={() => navigate({ tab: value, filter: null })}
             >
               {label}
             </button>
@@ -784,7 +838,56 @@ export function DriftOverviewClient({
         </nav>
       </header>
 
-      {tab === "oversikt" ? (
+      {listFilter === "utan-poang" ? (
+        <section className="space-y-4" aria-labelledby="utan-poang-heading">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2
+              id="utan-poang-heading"
+              className="text-sm font-semibold text-gray-900 dark:text-white"
+            >
+              Uppgifter utan poäng ({withoutPointsTasks.length})
+            </h2>
+            <button
+              type="button"
+              className="text-sm text-gray-700 underline-offset-2 hover:underline dark:text-zinc-300"
+              onClick={() => navigate({ tab: "fokus", filter: null })}
+            >
+              Tillbaka till Fokus
+            </button>
+          </div>
+          <ul className="divide-y divide-gray-200 rounded-lg border border-gray-200 dark:divide-zinc-800 dark:border-zinc-800">
+            {withoutPointsTasks.map((t) => (
+              <li key={t.id}>
+                <button
+                  type="button"
+                  className="flex w-full flex-col gap-1 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-zinc-900"
+                  onClick={() => setDetail(t.detail)}
+                >
+                  <span className="text-sm font-medium text-gray-900 dark:text-white">
+                    {t.heading}
+                  </span>
+                  <span className="text-xs text-gray-600 dark:text-zinc-400">
+                    {[t.owner, t.statusLabel, t.objectiveLabel]
+                      .filter(Boolean)
+                      .join(" · ")}
+                    {" · "}
+                    <span className="rounded border border-dashed border-gray-300 px-1.5 py-0.5 dark:border-zinc-600">
+                      – p
+                    </span>
+                  </span>
+                </button>
+              </li>
+            ))}
+            {withoutPointsTasks.length === 0 ? (
+              <li className="px-4 py-6 text-sm text-gray-500 dark:text-zinc-400">
+                Inga uppgifter saknar poäng.
+              </li>
+            ) : null}
+          </ul>
+        </section>
+      ) : null}
+
+      {listFilter == null && tab === "oversikt" ? (
         <div className="space-y-8">
           {data.startedWithoutInitiativeCount > 0 &&
           data.startedWithoutInitiativePreview ? (
@@ -911,7 +1014,7 @@ export function DriftOverviewClient({
         </div>
       ) : null}
 
-      {tab === "mal" ? (
+      {listFilter == null && tab === "mal" ? (
         <div className="space-y-6">
           {data.unprioritizedTasks.length > 0 ? (
             <section className="space-y-3 rounded-xl border border-amber-200 bg-amber-50/60 p-4 dark:border-amber-800 dark:bg-amber-950/20">
@@ -996,7 +1099,7 @@ export function DriftOverviewClient({
         </div>
       ) : null}
 
-      {tab === "pipeline" ? (
+      {listFilter == null && tab === "pipeline" ? (
         <div className="space-y-6">
           {unprioritizedPipelineCount > 0 ? (
             <section className="space-y-3 rounded-xl border border-amber-200 bg-amber-50/40 p-4 dark:border-amber-800 dark:bg-amber-950/20">
@@ -1052,10 +1155,12 @@ export function DriftOverviewClient({
                       <div key={init.id}>
                         <div className="mb-3">
                           <h3 className="text-sm font-semibold text-gray-900 dark:text-zinc-100">
-                            <span className="text-gray-500">{init.key}</span>{" "}
+                            <span className="text-gray-700 dark:text-zinc-300">
+                              {init.key}
+                            </span>{" "}
                             {init.title}
                           </h3>
-                          <p className="mt-0.5 text-xs text-gray-500">
+                          <p className="mt-0.5 text-xs text-gray-600 dark:text-zinc-400">
                             Ansvarig: {init.ownerAgent}
                           </p>
                         </div>
@@ -1074,13 +1179,34 @@ export function DriftOverviewClient({
         </div>
       ) : null}
 
+      {listFilter == null && tab === "fokus" && focusData ? (
+        <FokusTab
+          data={focusData}
+          period={period}
+          onPeriodChange={(next) =>
+            navigate({ tab: "fokus", period: next, filter: null })
+          }
+          onPeriodAnchorChange={(ymd) =>
+            navigate({ tab: "fokus", periodAnchor: ymd, filter: null })
+          }
+          initialExpandId={focusExpandId}
+          initialHelpOpen={focusHelpOpen}
+        />
+      ) : null}
+
+      {listFilter == null && tab === "fokus" && !focusData ? (
+        <p className="text-sm text-gray-500 dark:text-zinc-400">
+          Kunde inte ladda Fokus.
+        </p>
+      ) : null}
+
       <DriftDetailPanel
         detail={detail}
         open={!!detail}
         onClose={() => setDetail(null)}
         onShowInPipeline={() => {
           setDetail(null)
-          navigate({ tab: "pipeline" })
+          navigate({ tab: "pipeline", filter: null })
         }}
       />
 

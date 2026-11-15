@@ -60,6 +60,8 @@ export interface DriftBuildInput {
       project_id?: string | null
       sort_order?: number | null
       description?: string | null
+      task_points?: number | null
+      points_status?: "proposed" | "confirmed" | null
     }
   >
   agents: Array<{ name: string; active?: boolean | null }>
@@ -305,8 +307,18 @@ export function buildDriftOverview(input: DriftBuildInput): DriftOverviewData {
   let pagang = 0
   let klartWeek = 0
   let unprioritizedCount = 0
+  let withoutPointsCount = 0
   for (const t of tasksFiltered) {
     if (isUnprioritized(t) && t.status !== "cancelled") unprioritizedCount += 1
+    const paused = isPausedTitle(t.title) || t.status === "paused"
+    if (
+      !paused &&
+      t.status !== "cancelled" &&
+      !isUnprioritized(t) &&
+      t.task_points == null
+    ) {
+      withoutPointsCount += 1
+    }
     if (t.status === "in_progress" && !isPausedTitle(t.title)) pagar += 1
     else if (
       t.status !== "done" &&
@@ -447,6 +459,35 @@ export function buildDriftOverview(input: DriftBuildInput): DriftOverviewData {
   const startedWithout = unprioritizedTasks.filter(
     (t) => t.startedWithoutInitiative,
   )
+
+  const withoutPointsTasks: DriftUnprioritizedTask[] = tasksFiltered
+    .filter((t) => {
+      if (t.status === "cancelled") return false
+      if (isPausedTitle(t.title) || t.status === "paused") return false
+      if (isUnprioritized(t)) return false
+      return t.task_points == null
+    })
+    .sort((a, b) => a.title.localeCompare(b.title, "sv"))
+    .map((t) => {
+      const objective = t.objective_id
+        ? objectiveById.get(t.objective_id)
+        : undefined
+      const initiative = t.initiative_id
+        ? initiativeById.get(t.initiative_id)
+        : undefined
+      const owners = taskOwnerNames(t)
+      return {
+        id: t.id,
+        heading: formatDriftTaskHeadingLine(t, objective?.title ?? null),
+        owner: owners[0] ?? null,
+        statusLabel: statusLabelForTask(t, now),
+        startedWithoutInitiative: isStartedWithoutInitiative(t),
+        objectiveLabel: objective
+          ? `${objective.sort_order} ${objective.short_label?.trim() || objective.title}`
+          : null,
+        detail: toDetail(t, objective, initiative, now),
+      }
+    })
 
   const sortedObjectives = Array.from(objectiveById.values()).sort(
     (a, b) => a.sort_order - b.sort_order || a.title.localeCompare(b.title, "sv"),
@@ -763,11 +804,13 @@ export function buildDriftOverview(input: DriftBuildInput): DriftOverviewData {
       pagang,
       klartWeek,
       unprioritized: unprioritizedCount,
+      withoutPoints: withoutPointsCount,
     },
     queue: queueItems,
     pagarTasks,
     weekItems,
     unprioritizedTasks,
+    withoutPointsTasks,
     startedWithoutInitiativeCount: startedWithout.length,
     startedWithoutInitiativePreview: startedWithout[0] ?? null,
     malObjectives,

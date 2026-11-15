@@ -4,7 +4,132 @@ import type { DriftPriority } from "./priority-rules"
 
 /** v6: no mixed company view. */
 export type DriftCompanyFilter = OpsCompany
-export type DriftTab = "oversikt" | "mal" | "pipeline"
+export type DriftTab = "oversikt" | "mal" | "pipeline" | "fokus"
+
+export type FocusPeriodKind = "week" | "month"
+
+export interface DriftFocusExpandedTask {
+  id: string
+  heading: string
+  owner: string | null
+  points: number | null
+  pointsStatus: "proposed" | "confirmed" | null
+  proposed: boolean
+  splitHint: boolean
+  initiativeKey: string | null
+  initiativeTitle: string | null
+  atLabel: string | null
+}
+
+export interface DriftFocusGoalRow {
+  id: string
+  rank: number
+  title: string
+  shortLabel: string
+  donePoints: number
+  sharePct: number
+  targetShare: number | null
+  targetGroup: string | null
+  targetLabel: string
+  doneCount: number
+  pagarCount: number
+  pagarPoints: number
+  kvarCount: number
+  kvarPoints: number
+  effectMetricKey: string | null
+  focusBlurb: string
+  botsInGoal: Array<{ name: string; points: number }>
+  doneTasks: DriftFocusExpandedTask[]
+  pagarTasks: DriftFocusExpandedTask[]
+  kvarTasks: DriftFocusExpandedTask[]
+}
+
+export interface DriftFocusGroupSummary {
+  key: string
+  label: string
+  donePoints: number
+  sharePct: number
+  targetShare: number | null
+  doneCount: number
+  pagarCount: number
+  pagarPoints: number
+  kvarCount: number
+  kvarPoints: number
+}
+
+export interface DriftFocusBotRow {
+  name: string
+  totalPoints: number
+  segments: Array<{ rank: number; points: number }>
+}
+
+export interface DriftFocusTrendWeek {
+  isoWeek: number
+  shortLabel: string
+  startYmd: string
+  endYmd: string
+}
+
+export interface DriftFocusTrendGoal {
+  objectiveId: string
+  rank: number
+  shortLabel: string
+  title: string
+  pointsPerWeek: number[]
+  sum: number
+  deltaVsFirst: number
+}
+
+export interface DriftFocusEffectMetric {
+  objectiveId: string
+  rank: number
+  metricKey: string
+  label: string
+  sourceLabel: string
+  exampleData: boolean
+  unlinked: boolean
+  values: number[]
+  currentLabel: string | null
+  trendDirection: "up" | "down" | "flat" | null
+}
+
+export interface DriftFocusData {
+  company: DriftCompanyFilter
+  companySubtitle: string
+  confirmer: string
+  period: {
+    kind: FocusPeriodKind
+    startYmd: string
+    endYmd: string
+    isoWeek?: number
+    isoYear?: number
+    month?: number
+    year?: number
+    shortLabel: string
+    rangeLabel: string
+    rangeHint: string
+  }
+  signal: {
+    kind: "omfordela" | "i_balans"
+    pillLabel: string
+    headline: string
+    reason: string | null
+  }
+  cumulativeTargetMarkers: number[]
+  goals: DriftFocusGoalRow[]
+  groupSummaries: DriftFocusGroupSummary[]
+  bots: DriftFocusBotRow[]
+  totalDonePoints: number
+  totalDoneTasks: number
+  withoutPointsCount: number
+  unprioritizedCount: number
+  pausedCount: number
+  trendWeeks: DriftFocusTrendWeek[]
+  trendByGoal: DriftFocusTrendGoal[]
+  effectMetrics: DriftFocusEffectMetric[]
+  prevPeriodAnchorYmd: string
+  nextPeriodAnchorYmd: string
+}
 
 export interface DriftQueueItem {
   id: string
@@ -190,12 +315,16 @@ export interface DriftOverviewData {
     pagang: number
     klartWeek: number
     unprioritized: number
+    /** Prioritized open tasks missing task_points (Fokus). */
+    withoutPoints: number
   }
   queue: DriftQueueItem[]
   /** Flat Pågår list in goal order (not grouped by bot). */
   pagarTasks: DriftPagarTask[]
   weekItems: DriftWeekItem[]
   unprioritizedTasks: DriftUnprioritizedTask[]
+  /** Prioritized, non-paused tasks missing task_points (Fokus «utan poäng»). */
+  withoutPointsTasks: DriftUnprioritizedTask[]
   startedWithoutInitiativeCount: number
   startedWithoutInitiativePreview: DriftUnprioritizedTask | null
   malObjectives: DriftMalObjective[]
