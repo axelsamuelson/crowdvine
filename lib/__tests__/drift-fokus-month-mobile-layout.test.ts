@@ -5,6 +5,7 @@ import { resolve } from "node:path"
 /**
  * Fokus month trend must not use the wide min-w table below Tailwind `sm`
  * (640px), so 390px viewports have no horizontal scroll.
+ * Effektmått shares the same week-column desktop grid; sparkline lives in Summa.
  */
 describe("Drift Fokus month trend mobile layout", () => {
   const src = readFileSync(
@@ -21,17 +22,21 @@ describe("Drift Fokus month trend mobile layout", () => {
     expect(src).toMatch(
       /className="space-y-3 sm:hidden" data-fokus-trend-mobile/,
     )
-    expect(src).toMatch(
-      /className="hidden overflow-x-auto sm:block" data-fokus-trend-desktop/,
-    )
+    expect(src).toMatch(/data-fokus-trend-desktop/)
+    expect(src).toMatch(/hidden overflow-x-auto sm:block/)
     expect(src).toMatch(/min-w-\[36rem\]/)
     expect(src).toMatch(/mål 1–2:/)
   })
 
-  it("stacks effect metric weeks below sm", () => {
-    expect(src).toMatch(/mt-2 space-y-1 sm:hidden/)
+  it("stacks effect metric weeks below sm and aligns desktop to week columns", () => {
+    expect(src).toMatch(/data-fokus-effekt-desktop/)
+    expect(src).toMatch(/space-y-4 sm:hidden/)
+    expect(src).toMatch(/data-fokus-effekt-desktop/)
+    expect(src).toMatch(/hidden overflow-x-auto sm:block[\s\S]*?data-fokus-effekt-desktop/)
+    // Sparkline belongs in the Summa column, not a detached right float
+    expect(src).toMatch(/<th className="py-2 pl-3 font-medium">Summa<\/th>/)
     expect(src).toMatch(
-      /mt-2 hidden grid-cols-6 gap-1[\s\S]*?sm:grid/,
+      /<td className="py-2 pl-3 align-middle">\s*<Sparkline values=\{m\.values\} \/>/,
     )
   })
 })
