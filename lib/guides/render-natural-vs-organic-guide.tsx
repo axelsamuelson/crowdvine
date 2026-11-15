@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { GuideShopLinksBlock } from "@/components/guides/guide-shop-links-block";
 import { LabelComparisonTable } from "@/components/guides/label-comparison-table";
 import { Footer } from "@/components/layout/footer";
 import {
@@ -364,6 +365,11 @@ export async function renderNaturalVsOrganicGuidePage() {
                 </p>
               </div>
             </section>
+
+            <GuideShopLinksBlock
+              guidePath={NATURAL_VS_ORGANIC_PATH}
+              locale="en"
+            />
 
             <section>
               <h2 className={ARTICLE_GUIDE_H2_CLASS}>

@@ -4,6 +4,7 @@ import {
   ArticleGuideShell,
   type ArticleGuideShellBlock,
 } from "@/lib/guides/article-guide-shell";
+import { GuideShopLinksBlock } from "@/components/guides/guide-shop-links-block";
 import { ArticleShopCta } from "@/lib/guides/article-shop-cta";
 import { buildArticleGuideMeta } from "@/lib/guides/guide-article-seo";
 import {
@@ -17,6 +18,7 @@ import {
 import { guideCopy } from "@/lib/guides/guide-copy";
 import { isGuideHrefVisibleFrom } from "@/lib/guides/guide-publication";
 import { guidePath } from "@/lib/guides/guide-routes";
+import { shouldShowGuideShopCta } from "@/lib/guides/shop-links";
 import {
   articleLinkText,
   articleParagraphs,
@@ -39,6 +41,7 @@ function resolveArticleShopHref(
   content: GuideArticleContent,
   locale: AppLocale,
 ): string | null {
+  if (!shouldShowGuideShopCta(content.slug[locale])) return null;
   if (content.shopCta === null) return null;
   if (content.shopCta?.href[locale]) return content.shopCta.href[locale];
 
@@ -125,6 +128,8 @@ export async function renderArticleGuidePage(
   const shopLabel =
     content.shopCta?.label?.[locale]?.trim() || copy.shopNaturalWine;
 
+  const shopLinks = <GuideShopLinksBlock guidePath={pagePath} locale={locale} />;
+
   const shopCta =
     shopHref === null ? null : (
       <ArticleShopCta
@@ -133,6 +138,14 @@ export async function renderArticleGuidePage(
         lead={copy.shopCtaLead}
       />
     );
+
+  /** Contextual shop links before FAQ / existing shop CTA. */
+  const afterBody = (
+    <>
+      {shopLinks}
+      {shopCta}
+    </>
+  );
 
   const about =
     content.jsonLdAbout.type === "Person"
@@ -312,7 +325,7 @@ export async function renderArticleGuidePage(
             ? shopCta
             : undefined
         }
-        afterSections={shopCta ?? undefined}
+        afterSections={afterBody}
         faqs={faqs}
         faqHeading={locale === "sv" ? "Vanliga frågor" : "Frequently asked questions"}
         furtherReadingHeading={content.furtherReadingHeading[locale]}

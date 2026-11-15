@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { GuideRankEntry } from "@/components/guides/guide-rank-entry";
+import { GuideShopLinksBlock } from "@/components/guides/guide-shop-links-block";
 import { Footer } from "@/components/layout/footer";
 import {
   GuideBreadcrumbs,
@@ -418,6 +419,11 @@ export async function renderWinesGuidePage(locale: AppLocale) {
             ))}
           </ul>
         </section>
+
+        <GuideShopLinksBlock
+          guidePath={guidePath("wines", locale)}
+          locale={locale}
+        />
 
         <nav className="mt-14 space-y-3 border-t border-border pt-8 text-sm">
           <p>

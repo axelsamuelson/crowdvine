@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { GuideRankTable } from "@/components/guides/guide-rank-table";
+import { GuideShopLinksBlock } from "@/components/guides/guide-shop-links-block";
 import { Footer } from "@/components/layout/footer";
 import { renderArticleRichText } from "@/lib/guides/article-guide-shell";
 import {
@@ -174,6 +175,11 @@ export async function renderWorldsBestOrangeWinesPage(locale: AppLocale) {
             }))}
           />
         </section>
+
+        <GuideShopLinksBlock
+          guidePath={guidePath("orangeWines", locale)}
+          locale={locale}
+        />
 
         <nav className="mt-14 space-y-3 border-t border-border pt-8 text-sm">
           {guide.links

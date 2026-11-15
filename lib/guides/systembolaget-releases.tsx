@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { GuideShopLinksBlock } from "@/components/guides/guide-shop-links-block";
 import { SystembolagetGuideNav } from "@/components/guides/systembolaget-guide-nav";
 import { Footer } from "@/components/layout/footer";
 import { newNaturalWinesSystembolagetTitle } from "@/lib/guides/articles/new-natural-wines-systembolaget";
@@ -277,6 +278,8 @@ export async function renderSystembolagetReleasesPage(
           {updatedLabel ? (
             <p className="mt-6 text-sm text-muted-foreground">{updatedLabel}</p>
           ) : null}
+
+          <GuideShopLinksBlock guidePath={pagePath} locale={locale} />
 
           {faqs.length > 0 ? (
             <section className="mt-14 border-t border-border pt-14">

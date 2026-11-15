@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { GuideHubBrowse } from "@/components/guides/guide-hub-browse";
+import { GuideShopLinksBlock } from "@/components/guides/guide-shop-links-block";
 import { Footer } from "@/components/layout/footer";
 import {
   GuideBreadcrumbs,
@@ -82,6 +83,13 @@ export async function renderGuideHubPage(locale: AppLocale) {
             filter: copy.hubFilter,
           }}
         />
+
+        <div className="mx-auto mt-14 max-w-3xl px-sides">
+          <GuideShopLinksBlock
+            guidePath={guidePath("hub", locale)}
+            locale={locale}
+          />
+        </div>
       </div>
 
       <Footer />
