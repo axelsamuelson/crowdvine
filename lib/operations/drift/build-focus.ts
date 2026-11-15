@@ -5,7 +5,10 @@ import {
   taskOwnerNames,
   type DriftTaskLike,
 } from "./column-rules"
-import { focusPointsConfirmer } from "./focus-constants"
+import {
+  FOCUS_EFFECT_TREND_MIN_SAMPLE,
+  focusPointsConfirmer,
+} from "./focus-constants"
 import {
   completedAtInPeriod,
   focusMonthPeriod,
@@ -76,7 +79,9 @@ export interface BuildFocusInput {
     {
       values: Array<number | null>
       labels?: Array<string | null>
+      secondaryLabels?: Array<string | null>
       currentLabel?: string | null
+      sampleSize?: number
       exampleData: boolean
     }
   >
@@ -486,11 +491,25 @@ export function buildDriftFocus(input: BuildFocusInput): DriftFocusData {
             (label, i) => (trendWeeks[i]?.isFuture ? null : label),
           )
         : []
+      const weekSecondaryLabels = linked
+        ? (series!.secondaryLabels ?? values.map(() => null)).map((label, i) =>
+            trendWeeks[i]?.isFuture ? null : label,
+          )
+        : []
       const numeric = values.filter((v): v is number => v != null)
       const first = numeric[0]
       const last = numeric[numeric.length - 1]
+      const sampleSize =
+        linked && typeof series!.sampleSize === "number"
+          ? series!.sampleSize
+          : numeric.reduce((s, v) => s + v, 0)
+      const trendInsufficient =
+        linked && sampleSize < FOCUS_EFFECT_TREND_MIN_SAMPLE
       const trendDirection =
-        linked && first != null && last != null
+        linked &&
+        !trendInsufficient &&
+        first != null &&
+        last != null
           ? last < first
             ? "down"
             : last > first
@@ -502,8 +521,8 @@ export function buildDriftFocus(input: BuildFocusInput): DriftFocusData {
           (last == null
             ? null
             : key === "checkout_completion_rate"
-              ? `${String(last).replace(".", ",")} %`
-              : String(last)))
+              ? `${Math.round(last)} %`
+              : `${last} sessioner`))
         : null
       return {
         objectiveId: o.id,
@@ -520,7 +539,10 @@ export function buildDriftFocus(input: BuildFocusInput): DriftFocusData {
         unlinked: !linked,
         values,
         weekLabels,
+        weekSecondaryLabels,
         currentLabel,
+        sampleSize,
+        trendInsufficient,
         trendDirection,
       }
     })

@@ -95,9 +95,15 @@ export interface DriftFocusEffectMetric {
   unlinked: boolean
   /** Sparkline numerics; null = future / unavailable week. */
   values: Array<number | null>
-  /** Per-week cell text (e.g. "0 av 2 startade"); null → grey "–". */
+  /** Per-week primary cell text (e.g. "50 %", "8"); null → grey "–". */
   weekLabels: Array<string | null>
+  /** Per-week secondary line (e.g. "1/2" under percent); month grid only. */
+  weekSecondaryLabels: Array<string | null>
   currentLabel: string | null
+  /** Sample size used for trend gate (started checkouts or sessions). */
+  sampleSize: number
+  /** True when sampleSize < FOCUS_EFFECT_TREND_MIN_SAMPLE — no trend claim. */
+  trendInsufficient: boolean
   trendDirection: "up" | "down" | "flat" | null
 }
 

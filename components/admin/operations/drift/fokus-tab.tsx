@@ -104,7 +104,7 @@ function Sparkline({
   )
 }
 
-function effectWeekCell(
+function effectWeekPrimary(
   m: DriftFocusData["effectMetrics"][number],
   weekIdx: number,
 ): string | null {
@@ -113,9 +113,16 @@ function effectWeekCell(
   const v = m.values[weekIdx]
   if (v == null) return null
   if (m.metricKey === "checkout_completion_rate") {
-    return `${String(v).replace(".", ",")} %`
+    return `${Math.round(v)} %`
   }
   return String(v)
+}
+
+function effectWeekSecondary(
+  m: DriftFocusData["effectMetrics"][number],
+  weekIdx: number,
+): string | null {
+  return m.weekSecondaryLabels[weekIdx] ?? null
 }
 
 function GoalMiniBar({
@@ -183,15 +190,21 @@ function ExpandedGoal({
               </span>
             ) : null}
           </div>
-          {effect && !effect.unlinked ? (
+          {effect && !effect.unlinked && effect.currentLabel ? (
             <div className="mt-2 space-y-1 text-sm text-gray-800 dark:text-zinc-200">
-              <p className="font-medium">
-                {effect.trendDirection === "down"
-                  ? "Effektmåttet sjunker"
-                  : effect.trendDirection === "up"
-                    ? "Effektmåttet stiger"
-                    : "Effektmåttet oförändrat"}
-              </p>
+              {effect.trendInsufficient ? (
+                <p className="font-medium text-gray-500 dark:text-zinc-400">
+                  För lite data för trend
+                </p>
+              ) : (
+                <p className="font-medium">
+                  {effect.trendDirection === "down"
+                    ? "Effektmåttet sjunker"
+                    : effect.trendDirection === "up"
+                      ? "Effektmåttet stiger"
+                      : "Effektmåttet oförändrat"}
+                </p>
+              )}
               <div className="flex flex-wrap items-center gap-2 text-xs text-gray-600 dark:text-zinc-400">
                 <span>
                   {effect.label}: {effect.currentLabel}{" "}
@@ -201,7 +214,12 @@ function ExpandedGoal({
                     : ""}
                   . Källa {effect.sourceLabel}.
                 </span>
-                <Sparkline values={effect.values} className="hidden sm:block" />
+                {!effect.trendInsufficient ? (
+                  <Sparkline
+                    values={effect.values}
+                    className="hidden sm:block"
+                  />
+                ) : null}
               </div>
             </div>
           ) : (
@@ -570,7 +588,7 @@ export function FokusTab({
             {data.goals.map((g) => (
               <li
                 key={g.id}
-                className="inline-flex items-center gap-2 text-xs text-gray-700 dark:text-zinc-300"
+                className="inline-flex items-center gap-2 text-xs text-gray-900 dark:text-zinc-100"
               >
                 <span
                   className={cn(
@@ -578,7 +596,7 @@ export function FokusTab({
                     focusGoalColorClass(g.rank),
                   )}
                 />
-                <span>
+                <span className="text-gray-900 dark:text-zinc-100">
                   {g.rank} {g.shortLabel}
                 </span>
               </li>
@@ -619,7 +637,7 @@ export function FokusTab({
               >
                 <button
                   type="button"
-                  className="w-full py-3 text-left"
+                  className="w-full py-3 text-left text-gray-900 dark:text-zinc-100"
                   aria-expanded={open}
                   onClick={() =>
                     setExpandedId((id) => (id === goal.id ? null : goal.id))
@@ -640,18 +658,20 @@ export function FokusTab({
                             aria-hidden
                           />
                         )}
-                        <span className="text-sm font-medium text-gray-900 dark:text-white">
+                        <span className="text-sm font-medium text-gray-900 dark:text-zinc-100">
                           {goal.rank} {goal.title}
                         </span>
                       </div>
-                      <span className="shrink-0 text-right text-sm tabular-nums text-gray-900 dark:text-white">
+                      <span className="shrink-0 text-right text-sm tabular-nums text-gray-900 dark:text-zinc-100">
                         {goal.donePoints} p · {pct(goal.sharePct)} ·{" "}
                         {goal.targetLabel}
                       </span>
                     </div>
-                    <div className="flex flex-wrap items-center justify-between gap-2 pl-5 text-xs text-gray-600 dark:text-zinc-400">
-                      <div className="flex flex-wrap items-center gap-2">
-                        {effect && !effect.unlinked ? (
+                    <div className="flex flex-wrap items-center justify-between gap-2 pl-5 pr-3 text-xs text-gray-600 dark:text-zinc-400">
+                      <div className="flex min-w-0 flex-wrap items-center gap-2">
+                        {effect &&
+                        !effect.unlinked &&
+                        effect.currentLabel ? (
                           <>
                             <span>{effect.currentLabel}</span>
                             <span>{data.period.shortLabel}</span>
@@ -660,9 +680,7 @@ export function FokusTab({
                                 Exempeldata
                               </span>
                             ) : (
-                              <span className="rounded border border-dashed border-gray-300 px-1.5 py-0.5 dark:border-zinc-600">
-                                ej kopplat
-                              </span>
+                              <span>{effect.sourceLabel}</span>
                             )}
                           </>
                         ) : goal.effectMetricKey ? (
@@ -671,7 +689,7 @@ export function FokusTab({
                           </span>
                         ) : null}
                       </div>
-                      <span>
+                      <span className="shrink-0">
                         {goal.doneCount} klart · {goal.pagarCount} pågår ·{" "}
                         {goal.kvarCount} kvar
                       </span>
@@ -695,21 +713,31 @@ export function FokusTab({
                         )}
                       </span>
                       <div className="min-w-0">
-                        <p className="text-sm font-medium leading-5 text-gray-900 dark:text-white">
+                        <p className="text-sm font-medium leading-5 text-gray-900 dark:text-zinc-100">
                           {goal.rank} {goal.title}
                         </p>
-                        {effect && !effect.unlinked ? (
+                        {effect &&
+                        !effect.unlinked &&
+                        effect.currentLabel ? (
                           <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-gray-600 dark:text-zinc-400">
                             <span>
                               {effect.currentLabel} {data.period.shortLabel}
                             </span>
-                            <Sparkline values={effect.values} />
+                            {!effect.trendInsufficient ? (
+                              <Sparkline values={effect.values} />
+                            ) : null}
                             <span>{effect.sourceLabel}</span>
                             {effect.exampleData ? (
                               <span className="rounded border border-dashed border-gray-300 px-1.5 py-0.5 dark:border-zinc-600">
                                 Exempeldata
                               </span>
                             ) : null}
+                          </div>
+                        ) : goal.effectMetricKey ? (
+                          <div className="mt-1 text-xs text-gray-500 dark:text-zinc-400">
+                            <span className="rounded border border-dashed border-gray-300 px-1.5 py-0.5 dark:border-zinc-600">
+                              ej kopplat
+                            </span>
                           </div>
                         ) : null}
                       </div>
@@ -988,8 +1016,10 @@ export function FokusTab({
                         key={row.objectiveId}
                         className="border-b border-gray-100 dark:border-zinc-900"
                       >
-                        <td className="py-2 pr-3 text-sm text-gray-900 dark:text-zinc-100">
-                          {row.rank} {row.shortLabel}
+                        <td className="py-2 pr-3 text-sm font-medium text-gray-900 dark:text-zinc-100">
+                          <span className="text-gray-900 dark:text-zinc-100">
+                            {row.rank} {row.shortLabel}
+                          </span>
                         </td>
                         {row.pointsPerWeek.map((p, i) => {
                           const future =
@@ -1076,26 +1106,46 @@ export function FokusTab({
                       </p>
                       <ul className="mt-2 space-y-1">
                         {data.trendWeeks.map((w, i) => {
-                          const cell = effectWeekCell(m, i)
-                          const future = w.isFuture || cell == null
+                          const primary = effectWeekPrimary(m, i)
+                          const secondary = effectWeekSecondary(m, i)
+                          const empty = w.isFuture || primary == null
                           return (
                             <li
                               key={w.isoWeek}
                               className={cn(
                                 "flex justify-between gap-3 text-xs tabular-nums",
-                                future
+                                empty
                                   ? "text-gray-400 dark:text-zinc-500"
                                   : "text-gray-600 dark:text-zinc-400",
                               )}
                             >
                               <span>{w.shortLabel}</span>
-                              <span>{future ? "–" : cell}</span>
+                              {empty ? (
+                                <span>–</span>
+                              ) : (
+                                <span className="text-right">
+                                  <span className="text-gray-800 dark:text-zinc-200">
+                                    {primary}
+                                  </span>
+                                  {secondary ? (
+                                    <span className="mt-0.5 block text-gray-400 dark:text-zinc-500">
+                                      {secondary}
+                                    </span>
+                                  ) : null}
+                                </span>
+                              )}
                             </li>
                           )
                         })}
                       </ul>
                       <div className="mt-2">
-                        <Sparkline values={m.values} />
+                        {!m.trendInsufficient ? (
+                          <Sparkline values={m.values} />
+                        ) : (
+                          <p className="text-xs text-gray-400 dark:text-zinc-500">
+                            För lite data för trend
+                          </p>
+                        )}
                       </div>
                     </li>
                   ))}
@@ -1128,27 +1178,47 @@ export function FokusTab({
                           className="border-b border-gray-100 dark:border-zinc-900"
                         >
                           <td className="py-2 pr-3 text-sm text-gray-900 dark:text-zinc-100">
-                            {m.rank} {m.label}
+                            <span className="text-gray-900 dark:text-zinc-100">
+                              {m.rank} {m.label}
+                            </span>
                           </td>
                           {data.trendWeeks.map((w, i) => {
-                            const cell = effectWeekCell(m, i)
-                            const future = w.isFuture || cell == null
+                            const primary = effectWeekPrimary(m, i)
+                            const secondary = effectWeekSecondary(m, i)
+                            const empty = w.isFuture || primary == null
                             return (
                               <td
                                 key={w.isoWeek}
                                 className={cn(
                                   "px-1 py-2 text-center tabular-nums",
-                                  future
+                                  empty
                                     ? "text-gray-400 dark:text-zinc-500"
-                                    : "text-gray-600 dark:text-zinc-400",
+                                    : "text-gray-800 dark:text-zinc-200",
                                 )}
                               >
-                                {future ? "–" : cell}
+                                {empty ? (
+                                  "–"
+                                ) : (
+                                  <span className="inline-flex flex-col items-center leading-tight">
+                                    <span>{primary}</span>
+                                    {secondary ? (
+                                      <span className="text-[10px] text-gray-400 dark:text-zinc-500">
+                                        {secondary}
+                                      </span>
+                                    ) : null}
+                                  </span>
+                                )}
                               </td>
                             )
                           })}
                           <td className="py-2 pl-3 align-middle">
-                            <Sparkline values={m.values} />
+                            {!m.trendInsufficient ? (
+                              <Sparkline values={m.values} />
+                            ) : (
+                              <span className="text-xs text-gray-400 dark:text-zinc-500">
+                                För lite data för trend
+                              </span>
+                            )}
                           </td>
                         </tr>
                       ))}

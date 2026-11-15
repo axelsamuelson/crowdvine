@@ -6,6 +6,13 @@ export const PACT_TOP_GOALS_MIN_SHARE = 60
 /** PACT sort_order ranks that form the "top" signal group. */
 export const PACT_TOP_GOAL_RANKS = [1, 2] as const
 
+/**
+ * Minimum sample size before Fokus claims an effect trend (sparkline direction).
+ * Checkout: sum of started checkouts across the trend weeks.
+ * PLP/PDP: sum of sessions across the trend weeks.
+ */
+export const FOCUS_EFFECT_TREND_MIN_SAMPLE = 30
+
 /** Confirmer display name for proposed points. */
 export function focusPointsConfirmer(company: DriftCompany): string {
   return company === "dirtywine" ? "Léa" : "Pierre"
@@ -23,7 +30,8 @@ export const FOCUS_GOAL_BAR_CLASS: Record<FocusGoalColorKey, string> = {
   2: "bg-teal-800 dark:bg-teal-300",
   3: "bg-indigo-400 dark:bg-indigo-300",
   4: "bg-stone-500 dark:bg-stone-400",
-  5: "bg-blue-900 dark:bg-slate-400",
+  /** Zinc (not link-blue) so goal names never read as hovered links. */
+  5: "bg-zinc-700 dark:bg-slate-400",
   6: "bg-rose-400 dark:bg-rose-300",
 }
 

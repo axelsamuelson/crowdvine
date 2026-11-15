@@ -177,8 +177,10 @@ describe("focus goal bar colors", () => {
     expect(FOCUS_GOAL_BAR_CLASS[3]).toContain("indigo")
   })
 
-  it("uses slate-400 for Teknik (goal 5) in dark mode, not slate-200", () => {
+  it("uses zinc/slate for Teknik (goal 5), not link-blue", () => {
+    expect(FOCUS_GOAL_BAR_CLASS[5]).toContain("zinc-700")
     expect(FOCUS_GOAL_BAR_CLASS[5]).toContain("slate-400")
+    expect(FOCUS_GOAL_BAR_CLASS[5]).not.toContain("blue-900")
     expect(FOCUS_GOAL_BAR_CLASS[5]).not.toContain("slate-200")
   })
 })
@@ -546,14 +548,17 @@ describe("buildDriftFocus aggregation", () => {
       effectSeriesByKey: {
         checkout_completion_rate: {
           values: [null, null, null, null, null, 50],
-          labels: [null, null, null, null, null, "1 av 2 startade"],
-          currentLabel: "1 av 2 startade",
+          labels: [null, null, null, null, null, "50 %"],
+          secondaryLabels: [null, null, null, null, null, "1/2"],
+          currentLabel: "50 % slutförda · 1 av 2 kassor",
+          sampleSize: 2,
           exampleData: false,
         },
         plp_pdp_sessions_weekly: {
           values: [1, 2, 3, 4, 5, 6],
           labels: ["1", "2", "3", "4", "5", "6"],
-          currentLabel: "6",
+          currentLabel: "6 sessioner",
+          sampleSize: 21,
           exampleData: false,
         },
       },
@@ -565,10 +570,39 @@ describe("buildDriftFocus aggregation", () => {
       (m) => m.metricKey === "plp_pdp_sessions_weekly",
     )!
     expect(checkout.exampleData).toBe(false)
-    expect(checkout.currentLabel).toBe("1 av 2 startade")
-    expect(checkout.weekLabels[5]).toBe("1 av 2 startade")
+    expect(checkout.currentLabel).toBe("50 % slutförda · 1 av 2 kassor")
+    expect(checkout.weekLabels[5]).toBe("50 %")
+    expect(checkout.weekSecondaryLabels[5]).toBe("1/2")
+    expect(checkout.trendInsufficient).toBe(true)
+    expect(checkout.trendDirection).toBeNull()
     expect(plp.exampleData).toBe(false)
-    expect(plp.currentLabel).toBe("6")
+    expect(plp.currentLabel).toBe("6 sessioner")
+    expect(plp.trendInsufficient).toBe(true)
+
+    const large = buildDriftFocus({
+      now: WEEK46,
+      company: "pact",
+      periodKind: "week",
+      periodAnchor: WEEK46,
+      objectives: PACT_OBJECTIVES,
+      initiatives: INITIATIVES,
+      tasks: [],
+      effectSeriesByKey: {
+        checkout_completion_rate: {
+          values: [40, 42, 45, 48, 50, 52],
+          labels: ["40 %", "42 %", "45 %", "48 %", "50 %", "52 %"],
+          secondaryLabels: ["12/30", "13/31", "14/31", "15/31", "16/32", "18/35"],
+          currentLabel: "52 % slutförda · 18 av 35 kassor",
+          sampleSize: 190,
+          exampleData: false,
+        },
+      },
+    })
+    const largeCheckout = large.effectMetrics.find(
+      (m) => m.metricKey === "checkout_completion_rate",
+    )!
+    expect(largeCheckout.trendInsufficient).toBe(false)
+    expect(largeCheckout.trendDirection).toBe("up")
 
     const example = buildDriftFocus({
       now: WEEK46,
@@ -581,8 +615,9 @@ describe("buildDriftFocus aggregation", () => {
       effectSeriesByKey: {
         checkout_completion_rate: {
           values: [1.8],
-          labels: ["1,8 %"],
-          currentLabel: "1,8 %",
+          labels: ["2 %"],
+          currentLabel: "2 % slutförda · 18 av 1000 kassor",
+          sampleSize: 1000,
           exampleData: true,
         },
       },

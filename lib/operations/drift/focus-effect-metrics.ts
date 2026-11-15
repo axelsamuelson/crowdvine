@@ -38,28 +38,53 @@ export type FocusEffectWeekBound = {
 export type FocusEffectSeries = {
   /** Numeric sparkline values; null when unavailable / future / y=0 rate. */
   values: Array<number | null>
-  /** Per-week cell label (e.g. "0 av 2 startade"); null → grey "–". */
+  /** Per-week primary cell (e.g. "50 %", "8"); null → grey "–". */
   labels: Array<string | null>
+  /** Per-week secondary (e.g. "1/2"); month grid under percent. */
+  secondaryLabels: Array<string | null>
   currentLabel: string | null
+  /** Sum of started checkouts (checkout) or sessions (PLP) across non-future weeks. */
+  sampleSize: number
   exampleData: boolean
 }
 
 export type FocusEffectSeriesByKey = Record<string, FocusEffectSeries>
 
+function formatPercentSv(pct: number): string {
+  const rounded = Math.round(pct)
+  return `${rounded} %`
+}
+
+/** Expanded / list current label for checkout completion. */
 export function formatCheckoutStartedLabel(
   completed: number,
   started: number,
 ): string {
-  if (started <= 0) return "inga startade"
-  return `${completed} av ${started} startade`
+  if (started <= 0) return "Inga påbörjade kassor"
+  const pct = (completed / started) * 100
+  return `${formatPercentSv(pct)} slutförda · ${completed} av ${started} kassor`
 }
 
+/** Month-grid primary: "50 %"; null when no checkouts. */
 export function formatCheckoutWeekCell(
   completed: number,
   started: number,
 ): string | null {
   if (started <= 0) return null
-  return `${completed} av ${started} startade`
+  return formatPercentSv((completed / started) * 100)
+}
+
+/** Month-grid secondary under percent: "1/2". */
+export function formatCheckoutWeekSecondary(
+  completed: number,
+  started: number,
+): string | null {
+  if (started <= 0) return null
+  return `${completed}/${started}`
+}
+
+export function formatPlpPdpCurrentLabel(sessions: number): string {
+  return `${sessions} sessioner`
 }
 
 function weekIndexForYmd(
@@ -76,7 +101,9 @@ function emptySeries(
   return {
     values: weeks.map((w) => (w.isFuture ? null : 0)),
     labels: weeks.map((w) => (w.isFuture ? null : "0")),
-    currentLabel: weeks.some((w) => !w.isFuture) ? "0" : null,
+    secondaryLabels: weeks.map(() => null),
+    currentLabel: weeks.some((w) => !w.isFuture) ? formatPlpPdpCurrentLabel(0) : null,
+    sampleSize: 0,
     exampleData,
   }
 }
@@ -89,7 +116,14 @@ export function aggregatePlpPdpSessionsWeekly(
 ): FocusEffectSeries {
   const exampleData = opts?.exampleData ?? false
   if (weeks.length === 0) {
-    return { values: [], labels: [], currentLabel: null, exampleData }
+    return {
+      values: [],
+      labels: [],
+      secondaryLabels: [],
+      currentLabel: null,
+      sampleSize: 0,
+      exampleData,
+    }
   }
 
   const sets = weeks.map(() => new Set<string>())
@@ -112,18 +146,23 @@ export function aggregatePlpPdpSessionsWeekly(
 
   const values = weeks.map((w, i) => (w.isFuture ? null : sets[i]!.size))
   const labels = values.map((v) => (v == null ? null : String(v)))
+  const secondaryLabels = weeks.map(() => null)
+  const sampleSize = values.reduce<number>((s, v) => s + (v ?? 0), 0)
   const lastDefined = [...values].reverse().find((v) => v != null) ?? null
   return {
     values,
     labels,
-    currentLabel: lastDefined == null ? null : String(lastDefined),
+    secondaryLabels,
+    currentLabel:
+      lastDefined == null ? null : formatPlpPdpCurrentLabel(lastDefined),
+    sampleSize,
     exampleData,
   }
 }
 
 /**
  * Checkout completion: reservation_completed sessions / checkout_started
- * sessions per Stockholm week. Sparkline = percent when y>0; label = "x av y".
+ * sessions per Stockholm week. Sparkline = percent when y>0.
  */
 export function aggregateCheckoutCompletion(
   events: FocusEffectEvent[],
@@ -132,7 +171,14 @@ export function aggregateCheckoutCompletion(
 ): FocusEffectSeries {
   const exampleData = opts?.exampleData ?? false
   if (weeks.length === 0) {
-    return { values: [], labels: [], currentLabel: null, exampleData }
+    return {
+      values: [],
+      labels: [],
+      secondaryLabels: [],
+      currentLabel: null,
+      sampleSize: 0,
+      exampleData,
+    }
   }
 
   const started = weeks.map(() => new Set<string>())
@@ -152,20 +198,26 @@ export function aggregateCheckoutCompletion(
 
   const values: Array<number | null> = []
   const labels: Array<string | null> = []
+  const secondaryLabels: Array<string | null> = []
+  let sampleSize = 0
   for (let i = 0; i < weeks.length; i++) {
     if (weeks[i]?.isFuture) {
       values.push(null)
       labels.push(null)
+      secondaryLabels.push(null)
       continue
     }
     const y = started[i]!.size
     const x = completed[i]!.size
+    sampleSize += y
     if (y <= 0) {
       values.push(null)
       labels.push(null)
+      secondaryLabels.push(null)
     } else {
-      values.push(Math.round((x / y) * 1000) / 10) // one decimal %
+      values.push(Math.round((x / y) * 1000) / 10) // one decimal for sparkline
       labels.push(formatCheckoutWeekCell(x, y))
+      secondaryLabels.push(formatCheckoutWeekSecondary(x, y))
     }
   }
 
@@ -179,7 +231,14 @@ export function aggregateCheckoutCompletion(
     break
   }
 
-  return { values, labels, currentLabel, exampleData }
+  return {
+    values,
+    labels,
+    secondaryLabels,
+    currentLabel,
+    sampleSize,
+    exampleData,
+  }
 }
 
 export function buildFocusEffectSeriesFromEvents(
@@ -202,21 +261,18 @@ export function buildFocusEffectSeriesFromEvents(
 export const EXAMPLE_FOCUS_EFFECT_SERIES: FocusEffectSeriesByKey = {
   checkout_completion_rate: {
     values: [2.4, 2.2, 2.3, 1.9, 1.7, 1.8],
-    labels: [
-      "2,4 %",
-      "2,2 %",
-      "2,3 %",
-      "1,9 %",
-      "1,7 %",
-      "1,8 %",
-    ],
-    currentLabel: "1,8 %",
+    labels: ["2 %", "2 %", "2 %", "2 %", "2 %", "2 %"],
+    secondaryLabels: ["24/1000", "22/1000", "23/1000", "19/1000", "17/1000", "18/1000"],
+    currentLabel: "2 % slutförda · 18 av 1000 kassor",
+    sampleSize: 6000,
     exampleData: true,
   },
   plp_pdp_sessions_weekly: {
     values: [980, 1040, 1120, 1150, 1210, 1240],
     labels: ["980", "1040", "1120", "1150", "1210", "1240"],
-    currentLabel: "1240",
+    secondaryLabels: [null, null, null, null, null, null],
+    currentLabel: formatPlpPdpCurrentLabel(1240),
+    sampleSize: 980 + 1040 + 1120 + 1150 + 1210 + 1240,
     exampleData: true,
   },
 }
@@ -230,7 +286,6 @@ export function focusEffectFetchWindow(weeks: FocusEffectWeekBound[]): {
   if (real.length === 0) return null
   const start = real[0]!.startYmd
   const end = real[real.length - 1]!.endYmd
-  // Exclusive end: day after last Sunday, Stockholm midnight ≈ use noon+1 day then start of day via UTC ISO of next day 00:00+01
   const untilYmd = addStockholmDays(end, 1)
   return {
     sinceIso: `${start}T00:00:00+01:00`,
@@ -307,9 +362,11 @@ export function emptyFocusEffectSeries(
   return {
     plp_pdp_sessions_weekly: emptySeries(weeks, false),
     checkout_completion_rate: {
-      values: weeks.map((w) => (w.isFuture ? null : null)),
+      values: weeks.map(() => null),
       labels: weeks.map(() => null),
-      currentLabel: "inga startade",
+      secondaryLabels: weeks.map(() => null),
+      currentLabel: "Inga påbörjade kassor",
+      sampleSize: 0,
       exampleData: false,
     },
   }

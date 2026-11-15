@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest"
+import { FOCUS_EFFECT_TREND_MIN_SAMPLE } from "@/lib/operations/drift/focus-constants"
 import {
   aggregateCheckoutCompletion,
   aggregatePlpPdpSessionsWeekly,
@@ -7,6 +8,8 @@ import {
   focusEffectFetchWindow,
   formatCheckoutStartedLabel,
   formatCheckoutWeekCell,
+  formatCheckoutWeekSecondary,
+  formatPlpPdpCurrentLabel,
   type FocusEffectEvent,
   type FocusEffectWeekBound,
 } from "@/lib/operations/drift/focus-effect-metrics"
@@ -23,12 +26,22 @@ const W45: FocusEffectWeekBound = {
 }
 
 describe("formatCheckoutStartedLabel / week cell", () => {
-  it("formats x av y and handles y=0", () => {
-    expect(formatCheckoutStartedLabel(0, 2)).toBe("0 av 2 startade")
-    expect(formatCheckoutStartedLabel(1, 3)).toBe("1 av 3 startade")
-    expect(formatCheckoutStartedLabel(0, 0)).toBe("inga startade")
-    expect(formatCheckoutWeekCell(0, 2)).toBe("0 av 2 startade")
+  it("formats percent + kassor and handles y=0", () => {
+    expect(formatCheckoutStartedLabel(0, 2)).toBe(
+      "0 % slutförda · 0 av 2 kassor",
+    )
+    expect(formatCheckoutStartedLabel(1, 2)).toBe(
+      "50 % slutförda · 1 av 2 kassor",
+    )
+    expect(formatCheckoutStartedLabel(0, 0)).toBe("Inga påbörjade kassor")
+    expect(formatCheckoutWeekCell(1, 2)).toBe("50 %")
+    expect(formatCheckoutWeekSecondary(1, 2)).toBe("1/2")
     expect(formatCheckoutWeekCell(0, 0)).toBeNull()
+    expect(formatCheckoutWeekSecondary(0, 0)).toBeNull()
+  })
+
+  it("formats PLP current label with unit", () => {
+    expect(formatPlpPdpCurrentLabel(8)).toBe("8 sessioner")
   })
 })
 
@@ -81,7 +94,8 @@ describe("aggregatePlpPdpSessionsWeekly", () => {
     expect(series.exampleData).toBe(false)
     expect(series.values).toEqual([1, 2])
     expect(series.labels).toEqual(["1", "2"])
-    expect(series.currentLabel).toBe("2")
+    expect(series.currentLabel).toBe("2 sessioner")
+    expect(series.sampleSize).toBe(3)
   })
 
   it("renders future weeks as null (grey – in UI)", () => {
@@ -93,7 +107,15 @@ describe("aggregatePlpPdpSessionsWeekly", () => {
           created_at: "2026-11-10T12:00:00.000Z",
         },
       ],
-      [W46, { ...W46, startYmd: "2026-11-16", endYmd: "2026-11-22", isFuture: true }],
+      [
+        W46,
+        {
+          ...W46,
+          startYmd: "2026-11-16",
+          endYmd: "2026-11-22",
+          isFuture: true,
+        },
+      ],
     )
     expect(series.values).toEqual([1, null])
     expect(series.labels).toEqual(["1", null])
@@ -101,7 +123,7 @@ describe("aggregatePlpPdpSessionsWeekly", () => {
 })
 
 describe("aggregateCheckoutCompletion", () => {
-  it("builds rate sparkline and x av y labels", () => {
+  it("builds rate sparkline and percent / fraction labels", () => {
     const events: FocusEffectEvent[] = [
       {
         session_id: "a",
@@ -118,7 +140,6 @@ describe("aggregateCheckoutCompletion", () => {
         event_type: "reservation_completed",
         created_at: "2026-11-11T14:00:00.000Z",
       },
-      // W45: no starts
       {
         session_id: "z",
         event_type: "reservation_completed",
@@ -129,15 +150,44 @@ describe("aggregateCheckoutCompletion", () => {
     expect(series.exampleData).toBe(false)
     expect(series.values[0]).toBeNull()
     expect(series.labels[0]).toBeNull()
+    expect(series.secondaryLabels[0]).toBeNull()
     expect(series.values[1]).toBe(50)
-    expect(series.labels[1]).toBe("1 av 2 startade")
-    expect(series.currentLabel).toBe("1 av 2 startade")
+    expect(series.labels[1]).toBe("50 %")
+    expect(series.secondaryLabels[1]).toBe("1/2")
+    expect(series.currentLabel).toBe("50 % slutförda · 1 av 2 kassor")
+    expect(series.sampleSize).toBe(2)
+    expect(series.sampleSize).toBeLessThan(FOCUS_EFFECT_TREND_MIN_SAMPLE)
   })
 
-  it("currentLabel is inga startade when last week has y=0", () => {
+  it("currentLabel is Inga påbörjade kassor when last week has y=0", () => {
     const series = aggregateCheckoutCompletion([], [W45, W46])
-    expect(series.currentLabel).toBe("inga startade")
+    expect(series.currentLabel).toBe("Inga påbörjade kassor")
     expect(series.values).toEqual([null, null])
+    expect(series.sampleSize).toBe(0)
+  })
+
+  it("sampleSize counts started checkouts across weeks (≥30 large sample)", () => {
+    const events: FocusEffectEvent[] = []
+    for (let i = 0; i < 35; i++) {
+      events.push({
+        session_id: `big-${i}`,
+        event_type: "checkout_started",
+        created_at: "2026-11-10T12:00:00.000Z",
+      })
+    }
+    for (let i = 0; i < 10; i++) {
+      events.push({
+        session_id: `big-${i}`,
+        event_type: "reservation_completed",
+        created_at: "2026-11-11T12:00:00.000Z",
+      })
+    }
+    const series = aggregateCheckoutCompletion(events, [W45, W46])
+    expect(series.sampleSize).toBe(35)
+    expect(series.sampleSize).toBeGreaterThanOrEqual(
+      FOCUS_EFFECT_TREND_MIN_SAMPLE,
+    )
+    expect(series.currentLabel).toBe("29 % slutförda · 10 av 35 kassor")
   })
 })
 
@@ -162,9 +212,9 @@ describe("buildFocusEffectSeriesFromEvents + example flag", () => {
     )
     expect(real.plp_pdp_sessions_weekly.exampleData).toBe(false)
     expect(real.checkout_completion_rate.exampleData).toBe(false)
-    expect(EXAMPLE_FOCUS_EFFECT_SERIES.checkout_completion_rate.exampleData).toBe(
-      true,
-    )
+    expect(
+      EXAMPLE_FOCUS_EFFECT_SERIES.checkout_completion_rate.exampleData,
+    ).toBe(true)
     expect(EXAMPLE_FOCUS_EFFECT_SERIES.plp_pdp_sessions_weekly.exampleData).toBe(
       true,
     )

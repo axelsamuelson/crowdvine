@@ -38,6 +38,8 @@ plp AS (
   JOIN plp_counts c ON c.week = w.week
   CROSS JOIN LATERAL generate_series(1, c.n) AS g(i)
 ),
+-- Small-sample baseline (sum started = 9 < 30). Large-sample boost is a
+-- separate INSERT at the bottom (fokus-fx-co-big-*) for ≥30 started checkouts.
 checkout(week, started, completed) AS (
   VALUES
     (41,0,0),
@@ -122,3 +124,10 @@ INSERT INTO user_events (
   'Mozilla/5.0 FokusFxTest',
   jsonb_build_object('synthetic', true, 'fokus_effect', true)
 );
+
+-- Large-sample case: +35 started / +18 completed in week 46 so the 6-week
+-- window has ≥30 started checkouts (trend claim allowed). Prefer seeding
+-- WITHOUT these rows when demonstrating "För lite data för trend".
+-- Session ids: fokus-fx-co-big-*
+-- DELETE FROM user_events WHERE session_id LIKE 'fokus-fx-co-big-%';
+
