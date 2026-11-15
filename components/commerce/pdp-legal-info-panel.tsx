@@ -10,13 +10,6 @@ import { cn } from "@/lib/utils";
 const LEGAL_SURFACE = "#ebe8e3";
 const LEGAL_FG = "#4f4f4f";
 
-/**
- * SV site wording used in the approved PDP sketch. No matching approved EN
- * string exists in the repo — do not invent one; show this row on SV only.
- */
-export const PDP_AGE_MINIMUM_LINE_SV =
-  "Du måste vara 20 år för att köpa." as const;
-
 type LegalRow = {
   icon: LucideIcon;
   text: string;
@@ -26,7 +19,7 @@ type LegalRow = {
 /**
  * PACT wine PDP: recessed legal / shipping list under the × 6 lika/blandat
  * picker. Always visible (not a modal or collapsible). Copy for the first
- * three rows is locked via `commerce.*` message keys.
+ * three rows plus age line is locked via `commerce.*` message keys.
  */
 export function PdpLegalInfoPanel({
   locale = "sv",
@@ -51,15 +44,12 @@ export function PdpLegalInfoPanel({
       text: translate(locale, "commerce.sellerLine"),
       testId: "pdp-legal-seller",
     },
-  ];
-
-  if (locale === "sv") {
-    rows.push({
+    {
       icon: IdCard,
-      text: PDP_AGE_MINIMUM_LINE_SV,
+      text: translate(locale, "commerce.ageMinimumLine"),
       testId: "pdp-legal-age",
-    });
-  }
+    },
+  ];
 
   const termsHref = termsPath(locale);
   const termsLabel = translate(locale, "commerce.termsLinkArrow");

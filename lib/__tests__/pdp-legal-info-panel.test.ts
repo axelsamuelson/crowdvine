@@ -2,7 +2,6 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
-import { PDP_AGE_MINIMUM_LINE_SV } from "@/components/commerce/pdp-legal-info-panel";
 import { termsPath } from "@/lib/commerce/terms-section-href";
 import { translate } from "@/lib/i18n/messages";
 
@@ -17,11 +16,13 @@ describe("PDP legal info panel copy", () => {
     expect(translate("sv", "commerce.sellerLine")).toBe(
       "Säljare: EURPACT OÜ, Tallinn, Estland",
     );
-    expect(PDP_AGE_MINIMUM_LINE_SV).toBe("Du måste vara 20 år för att köpa.");
+    expect(translate("sv", "commerce.ageMinimumLine")).toBe(
+      "Du måste ha fyllt 20 år för att köpa.",
+    );
     expect(translate("sv", "commerce.termsLinkArrow")).toBe("Köpvillkor →");
   });
 
-  it("reuses existing approved EN commerce strings (no invented EN age line)", () => {
+  it("exposes approved EN commerce strings including age line", () => {
     expect(translate("en", "commerce.sharedPalletDelivery")).toBe(
       "Shared pallet: We deliver within 30 days after the pallet closes, normally within 2–3 weeks.",
     );
@@ -31,12 +32,10 @@ describe("PDP legal info panel copy", () => {
     expect(translate("en", "commerce.sellerLine")).toBe(
       "Seller: EURPACT OÜ, Tallinn, Estonia",
     );
+    expect(translate("en", "commerce.ageMinimumLine")).toBe(
+      "You must be 20 or older to buy.",
+    );
     expect(translate("en", "commerce.termsLinkArrow")).toBe("Terms →");
-    // Age line: sketch SV wording has no matching approved EN key in messages.
-    const enCommerce = JSON.parse(
-      readFileSync(resolve(process.cwd(), "messages/en.json"), "utf8"),
-    ).commerce as Record<string, string>;
-    expect(enCommerce.ageMinimumLine).toBeUndefined();
   });
 
   it("links terms to /villkor (SV) and /terms (EN)", () => {
@@ -59,8 +58,7 @@ describe("PDP legal info panel copy", () => {
     expect(src).toMatch(/gap-2/);
     expect(src).toMatch(/no-underline/);
     expect(src).not.toMatch(/underline-offset/);
-    expect(src).toMatch(/PDP_AGE_MINIMUM_LINE_SV/);
-    expect(src).toMatch(/locale === "sv"/);
+    expect(src).toMatch(/commerce\.ageMinimumLine/);
     expect(src).toMatch(/commerce\.termsLinkArrow/);
   });
 
