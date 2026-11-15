@@ -386,6 +386,7 @@
     "sharedPalletDelivery": "Shared pallet: We deliver within 30 days after the pallet closes, normally within 2–3 weeks.",
     "ageMinimumLine": "You must be 20 or older to buy.",
     "termsLinkArrow": "Terms →",
+    "deliveryGuideLinkArrow": "How delivery works →",
     "palletFillCount": "{filled} of {total} bottles",
     "palletReadyShort": "Ready",
     "palletRemainingShort": "{remaining} left"

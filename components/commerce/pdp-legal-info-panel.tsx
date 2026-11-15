@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Building2, IdCard, Truck, Undo2, type LucideIcon } from "lucide-react";
 
 import { termsPath } from "@/lib/commerce/terms-section-href";
+import { homeDeliveryGuidePath } from "@/lib/guides/home-delivery-guide";
 import type { AppLocale } from "@/lib/i18n/locale";
 import { translate } from "@/lib/i18n/messages";
 import { cn } from "@/lib/utils";
@@ -10,11 +11,34 @@ import { cn } from "@/lib/utils";
 const LEGAL_SURFACE = "#ebe8e3";
 const LEGAL_FG = "#4f4f4f";
 
+/** Keep "2–3 veckor" / "2–3 weeks" on one line without altering locked characters. */
+const NOWRAP_PHRASE = /(2–3 veckor|2–3 weeks)/;
+
+function LegalRowText({ text }: { text: string }) {
+  const parts = text.split(NOWRAP_PHRASE);
+  return (
+    <span className="text-pretty no-underline">
+      {parts.map((part, i) =>
+        part === "2–3 veckor" || part === "2–3 weeks" ? (
+          <span key={i} className="whitespace-nowrap">
+            {part}
+          </span>
+        ) : (
+          <span key={i}>{part}</span>
+        ),
+      )}
+    </span>
+  );
+}
+
 type LegalRow = {
   icon: LucideIcon;
   text: string;
   testId: string;
 };
+
+const linkClass =
+  "inline-flex min-h-11 items-center text-sm font-medium leading-[1.45] no-underline hover:text-foreground";
 
 /**
  * PACT wine PDP: recessed legal / shipping list under the × 6 lika/blandat
@@ -53,6 +77,8 @@ export function PdpLegalInfoPanel({
 
   const termsHref = termsPath(locale);
   const termsLabel = translate(locale, "commerce.termsLinkArrow");
+  const deliveryHref = homeDeliveryGuidePath(locale);
+  const deliveryLabel = translate(locale, "commerce.deliveryGuideLinkArrow");
 
   return (
     <aside
@@ -74,18 +100,39 @@ export function PdpLegalInfoPanel({
               strokeWidth={1.7}
               aria-hidden
             />
-            <span className="text-pretty no-underline">{text}</span>
+            <LegalRowText text={text} />
           </li>
         ))}
       </ul>
-      <Link
-        href={termsHref}
-        className="ml-[26px] mt-3 inline-flex items-center gap-1.5 text-sm font-medium leading-[1.45] no-underline hover:text-foreground"
-        style={{ color: LEGAL_FG }}
-        data-testid="pdp-legal-terms-link"
+      {/* Same line with · when width allows; stack under Köpvillkor at 390. */}
+      <nav
+        className="ml-[26px] mt-3 flex flex-col gap-0 min-[420px]:flex-row min-[420px]:flex-wrap min-[420px]:items-center min-[420px]:gap-x-2"
+        aria-label={locale === "en" ? "Related links" : "Relaterade länkar"}
       >
-        {termsLabel}
-      </Link>
+        <Link
+          href={termsHref}
+          className={linkClass}
+          style={{ color: LEGAL_FG }}
+          data-testid="pdp-legal-terms-link"
+        >
+          {termsLabel}
+        </Link>
+        <span
+          className="hidden select-none min-[420px]:inline"
+          style={{ color: LEGAL_FG }}
+          aria-hidden
+        >
+          ·
+        </span>
+        <Link
+          href={deliveryHref}
+          className={linkClass}
+          style={{ color: LEGAL_FG }}
+          data-testid="pdp-legal-delivery-link"
+        >
+          {deliveryLabel}
+        </Link>
+      </nav>
     </aside>
   );
 }

@@ -20,6 +20,9 @@ describe("PDP legal info panel copy", () => {
       "Du måste ha fyllt 20 år för att köpa.",
     );
     expect(translate("sv", "commerce.termsLinkArrow")).toBe("Köpvillkor →");
+    expect(translate("sv", "commerce.deliveryGuideLinkArrow")).toBe(
+      "Så fungerar leveransen →",
+    );
   });
 
   it("exposes approved EN commerce strings including age line", () => {
@@ -36,6 +39,9 @@ describe("PDP legal info panel copy", () => {
       "You must be 20 or older to buy.",
     );
     expect(translate("en", "commerce.termsLinkArrow")).toBe("Terms →");
+    expect(translate("en", "commerce.deliveryGuideLinkArrow")).toBe(
+      "How delivery works →",
+    );
   });
 
   it("links terms to /villkor (SV) and /terms (EN)", () => {
@@ -60,7 +66,25 @@ describe("PDP legal info panel copy", () => {
     expect(src).not.toMatch(/underline-offset/);
     expect(src).toMatch(/commerce\.ageMinimumLine/);
     expect(src).toMatch(/commerce\.termsLinkArrow/);
+    expect(src).toMatch(/commerce\.deliveryGuideLinkArrow/);
+    expect(src).toMatch(/homeDeliveryGuidePath/);
+    expect(src).toMatch(/whitespace-nowrap/);
+    expect(src).toMatch(/2–3 veckor/);
+    expect(src).toMatch(/min-h-11/);
   });
+
+  it("PalletStatusBar no longer shows the home-delivery guide link (moved into panel)", () => {
+    const bar = readFileSync(
+      resolve(process.cwd(), "components/pdp/pallet-status-bar.tsx"),
+      "utf8",
+    );
+    expect(bar).not.toMatch(/homeDeliveryGuideLink/);
+    expect(bar).not.toMatch(/homeDeliveryGuidePath/);
+    expect(bar).toMatch(/DirectBoxDeliveryPromise/);
+    expect(bar).toMatch(/trackPalletStatusViewed/);
+    expect(bar).toMatch(/unavailableMessage/);
+  });
+
 
   it("is wired under the ×6 hint in the PDP buy card", () => {
     const layout = readFileSync(
