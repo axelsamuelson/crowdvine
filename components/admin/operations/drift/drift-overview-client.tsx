@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { useEffect, useId, useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { ChevronDown, ChevronRight, UserRound, X } from "lucide-react"
 import { formatQueueDeadlineLabel } from "@/lib/operations/drift/build-overview"
 import type {
@@ -497,7 +497,8 @@ export function DriftOverviewClient({
   const data = initialData
   const [detail, setDetail] = useState<DriftTaskDetail | null>(null)
   const [botMenuOpen, setBotMenuOpen] = useState(false)
-  const botMenuId = useId()
+  // Stable id — avoid useId() hydration mismatch on aria-controls across SSR/CSR.
+  const botMenuId = "drift-bot-menu"
 
   const [pipelineExpanded, setPipelineExpanded] = useState<Record<string, boolean>>(
     () =>
@@ -601,7 +602,7 @@ export function DriftOverviewClient({
               ))}
             </div>
 
-            <div className="relative">
+            <div className="relative inline-flex items-center gap-1">
               <button
                 type="button"
                 className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-800 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
@@ -612,30 +613,20 @@ export function DriftOverviewClient({
               >
                 <UserRound className="h-3.5 w-3.5" aria-hidden />
                 {owner ?? "Alla botar"}
-                {owner ? (
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    aria-label="Rensa botfilter"
-                    className="rounded p-0.5 hover:bg-gray-100 dark:hover:bg-zinc-700"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      navigate({ owner: null })
-                      setBotMenuOpen(false)
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault()
-                        e.stopPropagation()
-                        navigate({ owner: null })
-                        setBotMenuOpen(false)
-                      }
-                    }}
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </span>
-                ) : null}
               </button>
+              {owner ? (
+                <button
+                  type="button"
+                  aria-label="Rensa botfilter"
+                  className="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white p-1.5 text-gray-800 hover:bg-gray-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800"
+                  onClick={() => {
+                    navigate({ owner: null })
+                    setBotMenuOpen(false)
+                  }}
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              ) : null}
               {botMenuOpen ? (
                 <ul
                   id={botMenuId}
