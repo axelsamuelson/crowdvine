@@ -260,7 +260,7 @@ export async function MainShopContent({
           <h1 className="mb-3 text-3xl font-medium tracking-[-0.02em] text-foreground">
             {content.h1}
           </h1>
-          <p className="leading-relaxed text-muted-foreground">{content.intro}</p>
+          <p className="leading-relaxed text-foreground/75">{content.intro}</p>
         </div>
         {!isB2BSite ? (
           <PactSellerConsumerInfo locale={locale} className="mb-4 max-w-2xl" />
