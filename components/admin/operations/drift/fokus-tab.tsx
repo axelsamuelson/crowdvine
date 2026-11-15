@@ -69,18 +69,19 @@ function Sparkline({
   values,
   className,
 }: {
-  values: number[]
+  values: Array<number | null>
   className?: string
 }) {
-  if (values.length < 2) return null
-  const min = Math.min(...values)
-  const max = Math.max(...values)
+  const nums = values.filter((v): v is number => v != null)
+  if (nums.length < 2) return null
+  const min = Math.min(...nums)
+  const max = Math.max(...nums)
   const span = max - min || 1
   const w = 48
   const h = 16
-  const pts = values
+  const pts = nums
     .map((v, i) => {
-      const x = (i / (values.length - 1)) * w
+      const x = (i / (nums.length - 1)) * w
       const y = h - ((v - min) / span) * (h - 2) - 1
       return `${x},${y}`
     })
@@ -101,6 +102,20 @@ function Sparkline({
       />
     </svg>
   )
+}
+
+function effectWeekCell(
+  m: DriftFocusData["effectMetrics"][number],
+  weekIdx: number,
+): string | null {
+  const label = m.weekLabels[weekIdx]
+  if (label != null && label !== "") return label
+  const v = m.values[weekIdx]
+  if (v == null) return null
+  if (m.metricKey === "checkout_completion_rate") {
+    return `${String(v).replace(".", ",")} %`
+  }
+  return String(v)
 }
 
 function GoalMiniBar({
@@ -181,12 +196,8 @@ function ExpandedGoal({
                 <span>
                   {effect.label}: {effect.currentLabel}{" "}
                   {data.period.shortLabel}
-                  {effect.values.length >= 2
-                    ? `, ${
-                        effect.metricKey === "checkout_completion_rate"
-                          ? `${String(effect.values[0]).replace(".", ",")} %`
-                          : effect.values[0]
-                      } ${data.trendWeeks[0]?.shortLabel ?? ""}`
+                  {effect.weekLabels[0]
+                    ? `, ${effect.weekLabels[0]} ${data.trendWeeks[0]?.shortLabel ?? ""}`
                     : ""}
                   . Källa {effect.sourceLabel}.
                 </span>
@@ -1042,11 +1053,13 @@ export function FokusTab({
                 id="fokus-effekt"
                 className="text-sm font-semibold text-gray-900 dark:text-white"
               >
-                Effektmått per vecka, källa Saga
+                Effektmått per vecka, källa Analytics
               </h2>
-              <span className="rounded border border-dashed border-gray-300 px-1.5 py-0.5 text-xs text-gray-500 dark:border-zinc-600 dark:text-zinc-400">
-                Exempeldata
-              </span>
+              {data.effectMetrics.some((m) => m.exampleData) ? (
+                <span className="rounded border border-dashed border-gray-300 px-1.5 py-0.5 text-xs text-gray-500 dark:border-zinc-600 dark:text-zinc-400">
+                  Exempeldata
+                </span>
+              ) : null}
             </div>
             {data.effectMetrics.length === 0 ? (
               <p className="text-sm text-gray-500 dark:text-zinc-400">
@@ -1063,8 +1076,8 @@ export function FokusTab({
                       </p>
                       <ul className="mt-2 space-y-1">
                         {data.trendWeeks.map((w, i) => {
-                          const v = m.values[i]
-                          const future = w.isFuture || v == null
+                          const cell = effectWeekCell(m, i)
+                          const future = w.isFuture || cell == null
                           return (
                             <li
                               key={w.isoWeek}
@@ -1076,13 +1089,7 @@ export function FokusTab({
                               )}
                             >
                               <span>{w.shortLabel}</span>
-                              <span>
-                                {future
-                                  ? "–"
-                                  : m.metricKey === "checkout_completion_rate"
-                                    ? `${String(v).replace(".", ",")}%`
-                                    : v}
-                              </span>
+                              <span>{future ? "–" : cell}</span>
                             </li>
                           )
                         })}
@@ -1124,8 +1131,8 @@ export function FokusTab({
                             {m.rank} {m.label}
                           </td>
                           {data.trendWeeks.map((w, i) => {
-                            const v = m.values[i]
-                            const future = w.isFuture || v == null
+                            const cell = effectWeekCell(m, i)
+                            const future = w.isFuture || cell == null
                             return (
                               <td
                                 key={w.isoWeek}
@@ -1136,11 +1143,7 @@ export function FokusTab({
                                     : "text-gray-600 dark:text-zinc-400",
                                 )}
                               >
-                                {future
-                                  ? "–"
-                                  : m.metricKey === "checkout_completion_rate"
-                                    ? `${String(v).replace(".", ",")}%`
-                                    : v}
+                                {future ? "–" : cell}
                               </td>
                             )
                           })}

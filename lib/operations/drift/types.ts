@@ -90,9 +90,13 @@ export interface DriftFocusEffectMetric {
   metricKey: string
   label: string
   sourceLabel: string
+  /** True only when falling back to hardcoded example series. */
   exampleData: boolean
   unlinked: boolean
-  values: number[]
+  /** Sparkline numerics; null = future / unavailable week. */
+  values: Array<number | null>
+  /** Per-week cell text (e.g. "0 av 2 startade"); null → grey "–". */
+  weekLabels: Array<string | null>
   currentLabel: string | null
   trendDirection: "up" | "down" | "flat" | null
 }

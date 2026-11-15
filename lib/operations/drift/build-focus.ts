@@ -67,8 +67,19 @@ export interface BuildFocusInput {
   initiatives: DriftInitiativeLike[]
   tasks: FocusTaskInput[]
   projectCompanyById?: Map<string, DriftCompany>
-  /** Optional synthetic effect series keyed by metric_key → oldest..newest weekly values. */
-  effectSeriesByKey?: Record<string, number[]>
+  /**
+   * Effect series keyed by effect_metric_key (aligned to trend weeks).
+   * Prefer real analytics; mark exampleData only for hardcoded fallback.
+   */
+  effectSeriesByKey?: Record<
+    string,
+    {
+      values: Array<number | null>
+      labels?: Array<string | null>
+      currentLabel?: string | null
+      exampleData: boolean
+    }
+  >
 }
 
 function pointsOf(task: FocusTaskInput): number {
@@ -458,13 +469,42 @@ export function buildDriftFocus(input: BuildFocusInput): DriftFocusData {
     }
   })
 
-  // Effect metrics (synthetic / unlinked)
+  // Effect metrics (real analytics series, or unlinked / example fallback)
   const effectMetrics: DriftFocusEffectMetric[] = companyObjectives
     .filter((o) => o.effect_metric_key)
     .map((o) => {
       const key = o.effect_metric_key!
       const series = input.effectSeriesByKey?.[key] ?? null
-      const linked = !!series && series.length > 0
+      const linked = !!series && series.values.length > 0
+      const values = linked
+        ? series!.values.map((v, i) =>
+            trendWeeks[i]?.isFuture ? null : v,
+          )
+        : []
+      const weekLabels = linked
+        ? (series!.labels ?? values.map((v) => (v == null ? null : String(v)))).map(
+            (label, i) => (trendWeeks[i]?.isFuture ? null : label),
+          )
+        : []
+      const numeric = values.filter((v): v is number => v != null)
+      const first = numeric[0]
+      const last = numeric[numeric.length - 1]
+      const trendDirection =
+        linked && first != null && last != null
+          ? last < first
+            ? "down"
+            : last > first
+              ? "up"
+              : "flat"
+          : null
+      const currentLabel = linked
+        ? (series!.currentLabel ??
+          (last == null
+            ? null
+            : key === "checkout_completion_rate"
+              ? `${String(last).replace(".", ",")} %`
+              : String(last)))
+        : null
       return {
         objectiveId: o.id,
         rank: o.sort_order,
@@ -475,22 +515,13 @@ export function buildDriftFocus(input: BuildFocusInput): DriftFocusData {
             : key === "plp_pdp_sessions_weekly"
               ? "PLP/PDP-sessioner per vecka, direkt och via guider"
               : key,
-        sourceLabel: "Saga",
-        exampleData: linked,
+        sourceLabel: "Analytics",
+        exampleData: linked ? series!.exampleData : false,
         unlinked: !linked,
-        values: linked ? series! : [],
-        currentLabel: linked
-          ? key === "checkout_completion_rate"
-            ? `${String(series![series!.length - 1]!).replace(".", ",")} %`
-            : String(series![series!.length - 1]!)
-          : null,
-        trendDirection: linked
-          ? series![series!.length - 1]! < series![0]!
-            ? "down"
-            : series![series!.length - 1]! > series![0]!
-              ? "up"
-              : "flat"
-          : null,
+        values,
+        weekLabels,
+        currentLabel,
+        trendDirection,
       }
     })
 

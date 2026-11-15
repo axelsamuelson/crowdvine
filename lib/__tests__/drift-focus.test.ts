@@ -534,6 +534,65 @@ describe("buildDriftFocus aggregation", () => {
     expect(data.goals.find((g) => g.rank === 1)?.donePoints).toBe(6)
   })
 
+  it("marks effect metrics exampleData only for fallback series", () => {
+    const real = buildDriftFocus({
+      now: WEEK46,
+      company: "pact",
+      periodKind: "week",
+      periodAnchor: WEEK46,
+      objectives: PACT_OBJECTIVES,
+      initiatives: INITIATIVES,
+      tasks: [],
+      effectSeriesByKey: {
+        checkout_completion_rate: {
+          values: [null, null, null, null, null, 50],
+          labels: [null, null, null, null, null, "1 av 2 startade"],
+          currentLabel: "1 av 2 startade",
+          exampleData: false,
+        },
+        plp_pdp_sessions_weekly: {
+          values: [1, 2, 3, 4, 5, 6],
+          labels: ["1", "2", "3", "4", "5", "6"],
+          currentLabel: "6",
+          exampleData: false,
+        },
+      },
+    })
+    const checkout = real.effectMetrics.find(
+      (m) => m.metricKey === "checkout_completion_rate",
+    )!
+    const plp = real.effectMetrics.find(
+      (m) => m.metricKey === "plp_pdp_sessions_weekly",
+    )!
+    expect(checkout.exampleData).toBe(false)
+    expect(checkout.currentLabel).toBe("1 av 2 startade")
+    expect(checkout.weekLabels[5]).toBe("1 av 2 startade")
+    expect(plp.exampleData).toBe(false)
+    expect(plp.currentLabel).toBe("6")
+
+    const example = buildDriftFocus({
+      now: WEEK46,
+      company: "pact",
+      periodKind: "week",
+      periodAnchor: WEEK46,
+      objectives: PACT_OBJECTIVES,
+      initiatives: INITIATIVES,
+      tasks: [],
+      effectSeriesByKey: {
+        checkout_completion_rate: {
+          values: [1.8],
+          labels: ["1,8 %"],
+          currentLabel: "1,8 %",
+          exampleData: true,
+        },
+      },
+    })
+    expect(
+      example.effectMetrics.find((m) => m.metricKey === "checkout_completion_rate")
+        ?.exampleData,
+    ).toBe(true)
+  })
+
   it("owner filter scopes Fokus points to that executor only", () => {
     const tasks = [
       doneTask({
