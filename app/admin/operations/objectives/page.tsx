@@ -69,10 +69,10 @@ export default async function ObjectivesPage({ searchParams }: PageProps) {
           </div>
           <div className="min-w-0">
             <h1 className="text-xl font-bold text-gray-900 dark:text-white sm:text-2xl">
-              Objectives
+              Mål
             </h1>
             <p className="text-sm text-gray-500 dark:text-zinc-400 mt-0.5">
-              {objectives.length} objective{objectives.length !== 1 ? "s" : ""}
+              {objectives.length} mål
             </p>
           </div>
         </div>
@@ -92,7 +92,7 @@ export default async function ObjectivesPage({ searchParams }: PageProps) {
       {objectives.length === 0 && (
         <div className="rounded-xl border border-gray-200 dark:border-[#1F1F23] bg-white dark:bg-[#0F0F12] p-12 text-center">
           <p className="text-sm text-gray-500 dark:text-zinc-400">
-            No objectives yet
+            Inga mål ännu
           </p>
         </div>
       )}

@@ -10,10 +10,9 @@ interface Props {
   detail: DriftTaskDetail | null
   open: boolean
   onClose: () => void
-  onShowInPipeline: (projectId: string | null) => void
+  onShowInPipeline: () => void
 }
 
-/** Spec v4.1 secondary outline — must include `border` (color alone is invisible). */
 const PANEL_OUTLINE_BUTTON_CLASS =
   "inline-flex h-11 w-full items-center justify-center rounded-lg border border-gray-200 bg-white text-xs font-medium text-gray-900 hover:bg-gray-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700"
 
@@ -44,7 +43,7 @@ export function DriftDetailPanel({
 
   if (!mounted || !open || !detail) return null
 
-  const ownerLabel = detail.owner?.trim() || "Utan ägare"
+  const ownerLabel = detail.owner?.trim() || "Utan utförare"
   const ownerMuted = !detail.owner?.trim()
 
   return createPortal(
@@ -61,7 +60,6 @@ export function DriftDetailPanel({
         onClick={onClose}
       />
 
-      {/* One shell: bottom sheet on mobile, right side panel on lg+ (avoids duplicate ids). */}
       <div
         className={cn(
           "absolute inset-x-0 bottom-0 flex max-h-[85vh] flex-col overflow-hidden rounded-t-xl border border-gray-200 bg-white shadow-xl dark:border-[#1F1F23] dark:bg-[#0F0F12]",
@@ -75,7 +73,8 @@ export function DriftDetailPanel({
         <div className="flex items-start justify-between gap-3 border-b border-gray-200 px-5 py-4 dark:border-[#1F1F23]">
           <h2
             id={titleId}
-            className="min-w-0 flex-1 text-base font-semibold leading-snug text-gray-900 dark:text-white"
+            className="min-w-0 flex-1 break-words text-base font-semibold leading-snug text-gray-900 dark:text-white"
+            style={{ overflowWrap: "anywhere", wordBreak: "normal" }}
           >
             {detail.heading}
           </h2>
@@ -100,9 +99,26 @@ export function DriftDetailPanel({
             </p>
           )}
 
+          {detail.startedWithoutInitiative ? (
+            <p className="mt-3 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-800 dark:bg-red-950/40 dark:text-red-200">
+              Påbörjad utan initiativ. Välj initiativ eller pausa uppgiften.
+            </p>
+          ) : detail.unprioritized ? (
+            <p className="mt-3 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100">
+              Ej prioriterad — saknar mål eller initiativ.
+            </p>
+          ) : null}
+
           <dl className="mt-5 space-y-3 border-t border-gray-200 pt-4 dark:border-[#1F1F23]">
-            <MetaRow label="Ägare" value={ownerLabel} muted={ownerMuted} />
-            <MetaRow label="Projekt" value={detail.projectName || "—"} />
+            <MetaRow label="Mål" value={detail.objectiveLabel || "—"} />
+            <MetaRow label="Initiativ" value={detail.initiativeLabel || "—"} />
+            <MetaRow
+              label="Ansvarig"
+              value={detail.initiativeOwner || "—"}
+            />
+            <MetaRow label="Prioritet" value={detail.priorityLabel || "—"} />
+            <MetaRow label="Ordning" value={detail.sortOrderLabel || "—"} />
+            <MetaRow label="Utförare" value={ownerLabel} muted={ownerMuted} />
             <MetaRow label="Status" value={detail.statusLabel} />
             <MetaRow label="Datum" value={detail.dateLabel || "—"} />
           </dl>
@@ -122,7 +138,7 @@ export function DriftDetailPanel({
           <button
             type="button"
             className={PANEL_PRIMARY_BUTTON_CLASS}
-            onClick={() => onShowInPipeline(detail.projectId)}
+            onClick={onShowInPipeline}
           >
             Visa i Pipeline
           </button>
@@ -147,7 +163,7 @@ function MetaRow({
       <dt className="text-xs text-gray-500 dark:text-zinc-400">{label}</dt>
       <dd
         className={cn(
-          "text-right text-sm font-medium",
+          "text-right text-sm font-medium break-words",
           muted
             ? "text-gray-500 dark:text-zinc-400"
             : "text-gray-900 dark:text-white",
