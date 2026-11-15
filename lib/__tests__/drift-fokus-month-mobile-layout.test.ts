@@ -36,9 +36,11 @@ describe("Drift Fokus month trend mobile layout", () => {
     expect(src).toMatch(/data-fokus-effekt-desktop/)
     expect(src).toMatch(/hidden overflow-x-auto sm:block[\s\S]*?data-fokus-effekt-desktop/)
     // Sparkline belongs in the Summa column, not a detached right float
+    // (hidden when trendInsufficient — "För lite data för trend")
     expect(src).toMatch(/<th className="py-2 pl-3 font-medium">Summa<\/th>/)
     expect(src).toMatch(
-      /<td className="py-2 pl-3 align-middle">\s*<Sparkline values=\{m\.values\} \/>/,
+      /<td className="py-2 pl-3 align-middle">[\s\S]*?\{!m\.trendInsufficient \? \([\s\S]*?<Sparkline values=\{m\.values\} \/>/,
     )
+    expect(src).toMatch(/För lite data för trend/)
   })
 })
