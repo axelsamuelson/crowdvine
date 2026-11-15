@@ -384,6 +384,7 @@
     "sellerLine": "Seller: EURPACT OÜ, Tallinn, Estonia",
     "withdrawalLine": "14-day right of withdrawal",
     "sharedPalletDelivery": "Shared pallet: We deliver within 30 days after the pallet closes, normally within 2–3 weeks.",
+    "termsLinkArrow": "Terms →",
     "palletFillCount": "{filled} of {total} bottles",
     "palletReadyShort": "Ready",
     "palletRemainingShort": "{remaining} left"
