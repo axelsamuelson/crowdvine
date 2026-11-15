@@ -178,6 +178,11 @@ const nextConfig = {
       },
     ];
   },
+  // Streaming metadata can land after </head> under load (esp. with ~290 kB
+  // inline CSS + image preloads). Next's default htmlLimitedBots list does NOT
+  // match Googlebot, so title/canonical/hreflang can stream into the body.
+  // Block streaming metadata for all UAs so those tags stay inside <head>.
+  htmlLimitedBots: /.*/,
   /* Vercel configuration */
   experimental: {
     // Enable experimental features for better performance
