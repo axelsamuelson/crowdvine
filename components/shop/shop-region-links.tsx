@@ -21,6 +21,7 @@ export function ShopRegionLinks({
   if (links.length === 0) return null;
 
   const heading = locale === "sv" ? "Regioner" : "Regions";
+  // Same tokens as PactSellerConsumerInfo (Säljare / ångerrätt).
   const textClass = "text-sm text-muted-foreground";
   const linkClass = cn(
     textClass,
@@ -30,7 +31,7 @@ export function ShopRegionLinks({
   return (
     <nav className={cn("w-full min-w-0", className)} aria-label={heading}>
       <p className={cn(textClass, "leading-relaxed")}>
-        <span className="font-medium text-foreground">{heading}</span>
+        <span className={textClass}>{heading}</span>
         <span aria-hidden="true">{" · "}</span>
         {links.map((link, index) => (
           <span key={link.slug}>
