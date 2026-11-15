@@ -135,15 +135,14 @@ export async function renderArticleGuidePage(
       ? null
       : {
           href: shopHref,
-          label: shopLabel,
           lead: copy.shopCtaLead,
         };
 
   const shopLinks = getGuideShopLinks(pagePath);
 
   /**
-   * One section: shop links (+ existing CTA when present, no second divider).
-   * Systembolaget / shopCta:null → links only. NONE / no links → CTA only.
+   * Shop-links card (+ black primary button when CTA is allowed).
+   * Systembolaget / shopCta:null → pillista only. NONE / no links → legacy CTA.
    */
   const afterBody = shopLinks ? (
     <GuideShopLinksBlock
@@ -155,18 +154,10 @@ export async function renderArticleGuidePage(
   ) : shopCtaProps ? (
     <ArticleShopCta
       href={shopCtaProps.href}
-      label={shopCtaProps.label}
+      label={shopLabel}
       lead={shopCtaProps.lead}
     />
   ) : undefined;
-
-  const midArticleShopCta = shopCtaProps ? (
-    <ArticleShopCta
-      href={shopCtaProps.href}
-      label={shopCtaProps.label}
-      lead={shopCtaProps.lead}
-    />
-  ) : null;
 
   const about =
     content.jsonLdAbout.type === "Person"
@@ -340,12 +331,6 @@ export async function renderArticleGuidePage(
             blocks: shellBlocks(section, locale),
           }),
         )}
-        afterFirstSection={
-          articleVisibleForLocale(content.sections, locale).length >= 2 &&
-          midArticleShopCta
-            ? midArticleShopCta
-            : undefined
-        }
         afterSections={afterBody}
         faqs={faqs}
         faqHeading={locale === "sv" ? "Vanliga frågor" : "Frequently asked questions"}

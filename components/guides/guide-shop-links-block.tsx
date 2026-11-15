@@ -1,17 +1,18 @@
 import Link from "next/link";
 
 import {
+  GUIDE_SHOP_LINKS_BUTTON,
   GUIDE_SHOP_LINKS_HEADING,
   GUIDE_SHOP_LINKS_LEAD,
   getGuideShopLinks,
+  sentenceCaseAnchor,
   type GuideShopLink,
 } from "@/lib/guides/shop-links";
 import type { AppLocale } from "@/lib/i18n/locale";
 
 export type GuideShopLinksCta = {
   href: string;
-  label: string;
-  /** Existing shop CTA lead — keep copy exactly as in guide-copy. */
+  /** Existing shop CTA lead from guide-copy — keep wording exact. */
   lead?: string;
 };
 
@@ -22,17 +23,33 @@ export type GuideShopLinksBlockProps = {
   /** Optional override when links are already resolved. */
   links?: readonly GuideShopLink[] | null;
   /**
-   * When set, renders the existing shop CTA inside this same section
-   * (no second divider). Omit on Systembolaget / hub / NONE paths.
+   * When set, shows the black primary shop button (and lead) inside this card.
+   * Omit on Systembolaget / hub / NONE paths.
    */
   cta?: GuideShopLinksCta | null;
   className?: string;
 };
 
+const ARROW_ICON = (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className="size-[18px] shrink-0 text-[#0a0a0a]"
+    aria-hidden="true"
+  >
+    <path d="M5 12h14" />
+    <path d="m12 5 7 7-7 7" />
+  </svg>
+);
+
 /**
  * Contextual shop links after guide body (before FAQ).
- * Returns null for NONE or unconfigured paths.
- * Optional `cta` merges the existing shop CTA into one section.
+ * Pillista rows + optional black primary CTA. Returns null for NONE / empty.
  */
 export function GuideShopLinksBlock({
   guidePath,
@@ -47,46 +64,48 @@ export function GuideShopLinksBlock({
 
   const heading = GUIDE_SHOP_LINKS_HEADING[locale];
   const lead = GUIDE_SHOP_LINKS_LEAD[locale];
+  const buttonLabel = GUIDE_SHOP_LINKS_BUTTON[locale];
 
   return (
     <aside
       className={
         className ??
-        "space-y-3 border-t border-border pt-6 text-[17px] leading-relaxed text-foreground/80"
+        "rounded-lg border border-[#d4d4d4] bg-[#fafafa] px-5 pb-5 pt-6 text-[#0a0a0a] md:px-7 md:pb-6 md:pt-7"
       }
       data-guide-shop-links={guidePath}
     >
-      <h2 className="text-xl font-medium tracking-[-0.02em] text-foreground">
+      <h2 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-[#0a0a0a]">
         {heading}
       </h2>
-      <p>{lead}</p>
-      <ul className="space-y-2">
+      <p className="mt-2 text-[15px] leading-[1.55] text-[#1a1a1a]">{lead}</p>
+
+      <ul className="mt-3 border-t border-[#d4d4d4]">
         {links.map((link) => (
-          <li key={`${link.href}-${link.anchor}`}>
+          <li key={`${link.href}-${link.anchor}`} className="border-b border-[#d4d4d4]">
             <Link
               href={link.href}
-              className="font-medium underline underline-offset-4 hover:text-foreground"
+              className="flex min-h-11 items-center justify-between gap-4 px-0.5 text-[15px] font-medium tracking-[-0.01em] text-[#0a0a0a] no-underline hover:text-[#0a0a0a]"
             >
-              {link.anchor}
+              <span>{sentenceCaseAnchor(link.anchor)}</span>
+              {ARROW_ICON}
             </Link>
           </li>
         ))}
       </ul>
+
       {cta ? (
-        <div className="space-y-2 text-sm" data-guide-shop-cta="">
+        <div className="mt-5" data-guide-shop-cta="">
           {cta.lead ? (
-            <p className="text-[17px] leading-relaxed text-foreground/80">
+            <p className="mb-3 text-sm leading-normal text-[#1a1a1a]">
               {cta.lead}
             </p>
           ) : null}
-          <p>
-            <Link
-              href={cta.href}
-              className="font-medium underline underline-offset-4 hover:text-foreground"
-            >
-              {cta.label}
-            </Link>
-          </p>
+          <Link
+            href={cta.href}
+            className="inline-flex min-h-11 w-full items-center justify-center rounded-md bg-[#111] px-[22px] text-sm font-semibold tracking-[-0.01em] text-white no-underline hover:bg-[#111]/90 hover:text-white md:w-auto md:min-w-[220px]"
+          >
+            {buttonLabel}
+          </Link>
         </div>
       ) : null}
     </aside>

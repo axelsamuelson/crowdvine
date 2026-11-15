@@ -24,6 +24,23 @@ export const GUIDE_SHOP_LINKS_LEAD = {
 } as const;
 
 /**
+ * Primary button label in the shop block (no arrow).
+ * Distinct from guide-copy `shopNaturalWine` which still uses "→" elsewhere.
+ */
+export const GUIDE_SHOP_LINKS_BUTTON = {
+  sv: "Shoppa naturvin",
+  en: "Shop natural wine",
+} as const;
+
+/** Sentence case for pillista anchors; keeps proper nouns / rest of string. */
+export function sentenceCaseAnchor(anchor: string): string {
+  const trimmed = anchor.trim();
+  if (!trimmed) return trimmed;
+  const first = trimmed.charAt(0);
+  return first.toLocaleUpperCase("sv-SE") + trimmed.slice(1);
+}
+
+/**
  * Shop paths that must not appear as guide → shop targets (noindex / thin /
  * wrong-locale slugs). Includes explicit paths plus pet-nat / sparkling /
  * rose / glouglou / georgia category slugs.

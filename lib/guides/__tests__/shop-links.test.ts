@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   GUIDE_SHOP_LINKS,
+  GUIDE_SHOP_LINKS_BUTTON,
   GUIDE_SHOP_LINKS_LEAD,
   GUIDE_SHOP_LINKS_MAX,
   GUIDE_SHOP_LINK_NOINDEX_TARGETS,
@@ -11,6 +12,7 @@ import {
   guideShopLinkLocale,
   isGuideShopLinkNoindexTarget,
   isSystembolagetGuideSlug,
+  sentenceCaseAnchor,
   shouldShowGuideShopCta,
   type GuideShopLink,
 } from "@/lib/guides/shop-links";
@@ -129,7 +131,7 @@ describe("Systembolaget shop CTA hide", () => {
     );
   });
 
-  it("merges the existing shop CTA into GuideShopLinksBlock (one section, no sibling CTA)", () => {
+  it("merges the shop CTA into GuideShopLinksBlock as a black primary button", () => {
     const renderer = readFileSync(
       resolve(process.cwd(), "lib/guides/render-article-guide.tsx"),
       "utf8",
@@ -139,14 +141,25 @@ describe("Systembolaget shop CTA hide", () => {
       "utf8",
     );
     expect(renderer).toMatch(/cta=\{shopCtaProps\}/);
-    expect(renderer).not.toMatch(
-      /afterSections=\{[\s\S]*GuideShopLinksBlock[\s\S]*ArticleShopCta/,
-    );
+    expect(renderer).not.toMatch(/afterFirstSection/);
     expect(block).toMatch(/data-guide-shop-cta/);
-    expect(block).toMatch(/cta\?:/);
-    // Single top divider on the aside; CTA is nested without its own border-t.
-    expect(block).toMatch(/border-t border-border pt-6/);
-    const ctaChunk = block.slice(block.indexOf("{cta ?"));
-    expect(ctaChunk).not.toMatch(/border-t/);
+    expect(block).toMatch(/GUIDE_SHOP_LINKS_BUTTON/);
+    expect(block).toMatch(/min-h-11/);
+    expect(block).toMatch(/sentenceCaseAnchor/);
+    expect(block).not.toMatch(/underline underline-offset-4/);
+    expect(GUIDE_SHOP_LINKS_BUTTON.sv).toBe("Shoppa naturvin");
+    expect(GUIDE_SHOP_LINKS_BUTTON.en).toBe("Shop natural wine");
+    expect(GUIDE_SHOP_LINKS_BUTTON.sv).not.toMatch(/→/);
+  });
+
+  it("sentence-cases pillista anchors without changing keywords", () => {
+    expect(sentenceCaseAnchor("naturvin online")).toBe("Naturvin online");
+    expect(sentenceCaseAnchor("rött naturvin")).toBe("Rött naturvin");
+    expect(sentenceCaseAnchor("orange vin")).toBe("Orange vin");
+    expect(sentenceCaseAnchor("naturvin från Languedoc")).toBe(
+      "Naturvin från Languedoc",
+    );
+    expect(sentenceCaseAnchor("Jean Foillard")).toBe("Jean Foillard");
+    expect(sentenceCaseAnchor("natural wine")).toBe("Natural wine");
   });
 });
