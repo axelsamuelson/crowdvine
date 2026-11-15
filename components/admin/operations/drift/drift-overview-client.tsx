@@ -1020,21 +1020,29 @@ export function DriftOverviewClient({
               >
                 <button
                   type="button"
-                  className="flex w-full items-center gap-2 px-4 py-3 text-left"
+                  className="flex w-full flex-col gap-1 px-4 py-3 text-left sm:flex-row sm:items-center sm:gap-2"
                   onClick={() =>
                     setPipelineExpanded((s) => ({ ...s, [obj.id]: !open }))
                   }
                 >
-                  {open ? (
-                    <ChevronDown className="h-4 w-4 text-gray-400" />
-                  ) : (
-                    <ChevronRight className="h-4 w-4 text-gray-400" />
-                  )}
-                  <span className="font-semibold text-gray-900 dark:text-white">
-                    {obj.rank} {obj.shortLabel}
+                  {/* Mobile (<sm): stacked rows. Desktop (sm+): single row, unchanged. */}
+                  <span className="flex min-w-0 items-center gap-2">
+                    {open ? (
+                      <ChevronDown className="h-4 w-4 shrink-0 text-gray-400" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4 shrink-0 text-gray-400" />
+                    )}
+                    <span className="whitespace-nowrap font-semibold text-gray-900 dark:text-white">
+                      {obj.rank} {obj.shortLabel}
+                    </span>
+                    <span className="hidden min-w-0 text-sm text-gray-500 sm:inline">
+                      — {obj.title}
+                    </span>
                   </span>
-                  <span className="text-sm text-gray-500">— {obj.title}</span>
-                  <span className="ml-auto text-xs text-gray-500">
+                  <span className="pl-6 text-sm text-gray-500 sm:hidden">
+                    {obj.title}
+                  </span>
+                  <span className="pl-6 text-xs text-gray-500 sm:ml-auto sm:pl-0 sm:shrink-0">
                     {obj.summaryLine}
                   </span>
                 </button>
