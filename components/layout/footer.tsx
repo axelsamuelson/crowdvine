@@ -9,16 +9,29 @@ import { useLocalizedPaths } from "@/lib/hooks/use-localized-paths";
 import { FooterShoppingContext } from "@/components/market/header-shopping-context";
 import { useB2BModeServerHint } from "@/lib/context/b2b-mode-context";
 import { DIRTYWINE_CONTACT_EMAIL } from "@/lib/b2b/brand";
+import {
+  PACT_FOOTER_COMPANY_EMAIL,
+  PACT_FOOTER_COMPANY_SEGMENTS,
+  PACT_FOOTER_COMPANY_SEP,
+  type PactFooterCompanyLocale,
+} from "@/lib/pact-footer-company";
 import type { SiteLogos } from "@/lib/context/site-logo-provider";
 
 const footerLogoClass =
   "h-[5.5rem] w-auto max-w-[360px] text-background sm:h-28 sm:max-w-[440px] md:h-32 md:max-w-[520px]";
 
+/** ≥4.5:1 on footer bg-foreground (~#0A0A0A); avoid text-muted-foreground. */
+const footerCompanyTextClass =
+  "text-sm leading-snug text-background/80";
+
 export function Footer({ initialLogos }: { initialLogos?: SiteLogos }) {
-  const { t } = useTranslations();
+  const { t, context } = useTranslations();
   const paths = useLocalizedPaths();
   const isDirtywineSite = useB2BModeServerHint();
   const year = new Date().getFullYear();
+  const companyLocale: PactFooterCompanyLocale =
+    context.locale === "en" ? "en" : "sv";
+  const companySegments = PACT_FOOTER_COMPANY_SEGMENTS[companyLocale];
 
   return (
     <footer className="bg-background p-sides" data-site-footer="">
@@ -241,16 +254,42 @@ export function Footer({ initialLogos }: { initialLogos?: SiteLogos }) {
           </span>
         </div>
 
-        <div className="flex justify-between max-md:flex-col max-md:gap-6 text-muted-foreground">
-          <SidebarLinks
-            className="max-w-[450px] w-full max-md:flex-col"
-            size="base"
-            invert
-          />
-          <div className="flex items-center gap-4 max-md:flex-col max-md:items-start max-md:gap-3">
-            <p className="text-base text-background/60">
-              {t("home.allRightsReserved", { year })}
+        <div className="flex flex-col gap-4">
+          {!isDirtywineSite ? (
+            <p
+              className={footerCompanyTextClass}
+              data-testid="pact-footer-company"
+            >
+              {companySegments.map((segment, index) => (
+                <span key={segment} className="inline">
+                  {index > 0 ? PACT_FOOTER_COMPANY_SEP : null}
+                  {segment}
+                </span>
+              ))}
+              <span className="inline">
+                {PACT_FOOTER_COMPANY_SEP}
+                <a
+                  href={`mailto:${PACT_FOOTER_COMPANY_EMAIL}`}
+                  className="text-background/80 hover:text-background transition-colors hover:underline"
+                >
+                  {PACT_FOOTER_COMPANY_EMAIL}
+                </a>
+              </span>
             </p>
+          ) : null}
+
+          <div className="flex justify-between max-md:flex-col max-md:gap-6">
+            <SidebarLinks
+              className="max-w-[450px] w-full max-md:flex-col"
+              size="base"
+              invert
+              omitMailto={!isDirtywineSite}
+            />
+            <div className="flex items-center gap-4 max-md:flex-col max-md:items-start max-md:gap-3">
+              <p className="text-base text-background/60">
+                {t("home.allRightsReserved", { year })}
+              </p>
+            </div>
           </div>
         </div>
       </div>
