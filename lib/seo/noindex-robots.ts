@@ -67,13 +67,16 @@ export function categoryPageRobots(
     thinDynamicGrape?: boolean;
     /** Region PLP with fewer than WINE_REGION_INDEX_MIN_LIVE wines. */
     regionBelowIndexMinimum?: boolean;
+    /** Character PLP with fewer than WINE_CHARACTER_INDEX_MIN_LIVE wines. */
+    characterBelowIndexMinimum?: boolean;
   },
 ): NonNullable<Metadata["robots"]> | undefined {
   if (
     isNoindexCategorySlug(slug, locale) ||
     options?.emptyListing ||
     options?.thinDynamicGrape ||
-    options?.regionBelowIndexMinimum
+    options?.regionBelowIndexMinimum ||
+    options?.characterBelowIndexMinimum
   ) {
     return NOINDEX_FOLLOW_ROBOTS;
   }

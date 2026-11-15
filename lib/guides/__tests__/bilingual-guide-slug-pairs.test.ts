@@ -14,10 +14,10 @@ describe("BILINGUAL_GUIDE_SLUG_PAIRS", () => {
 });
 
 describe("switchGuidePath", () => {
-  it("switches glouglou SV → EN", () => {
+  it("switches easy-drinking Systembolaget list SV → EN", () => {
     expect(
-      switchGuidePath("/guider/basta-glouglou-viner-systembolaget", "en"),
-    ).toBe("/guides/best-glou-glou-wines-systembolaget");
+      switchGuidePath("/guider/lattdruckna-naturviner-systembolaget", "en"),
+    ).toBe("/guides/easy-drinking-natural-wines-systembolaget");
   });
 
   it("switches the parent Systembolaget list SV → EN", () => {
@@ -35,10 +35,10 @@ describe("switchGuidePath", () => {
     );
   });
 
-  it("switches glouglou EN → SV", () => {
+  it("switches easy-drinking Systembolaget list EN → SV", () => {
     expect(
-      switchGuidePath("/guides/best-glou-glou-wines-systembolaget", "sv"),
-    ).toBe("/guider/basta-glouglou-viner-systembolaget");
+      switchGuidePath("/guides/easy-drinking-natural-wines-systembolaget", "sv"),
+    ).toBe("/guider/lattdruckna-naturviner-systembolaget");
   });
 
   it("switches hub", () => {
@@ -48,7 +48,10 @@ describe("switchGuidePath", () => {
 
   it("returns null when already on target locale", () => {
     expect(
-      switchGuidePath("/guides/best-glou-glou-wines-systembolaget", "en"),
+      switchGuidePath(
+        "/guides/easy-drinking-natural-wines-systembolaget",
+        "en",
+      ),
     ).toBeNull();
   });
 });

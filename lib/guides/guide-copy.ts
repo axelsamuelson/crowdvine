@@ -3,7 +3,7 @@ import { GUIDE_PATHS } from "@/lib/guides/guide-routes";
 import { beaujolaisNaturalWineArticle } from "@/lib/guides/articles/beaujolais-natural-wine";
 import { buyNaturalWineOnlineSwedenArticle } from "@/lib/guides/articles/buy-natural-wine-online-sweden";
 import { naturalWineHomeDeliveryArticle } from "@/lib/guides/articles/natural-wine-home-delivery";
-import { bestGlouGlouWinesSystembolagetArticle } from "@/lib/guides/articles/best-glou-glou-wines-systembolaget";
+import { easyDrinkingNaturalWinesSystembolagetArticle } from "@/lib/guides/articles/easy-drinking-natural-wines-systembolaget";
 import { bestPetNatWinesSystembolagetArticle } from "@/lib/guides/articles/best-pet-nat-wines-systembolaget";
 import { newNaturalWinesSystembolagetArticle } from "@/lib/guides/articles/new-natural-wines-systembolaget";
 import { bestNaturalWinesSystembolagetArticle } from "@/lib/guides/articles/best-natural-wines-systembolaget";
@@ -185,7 +185,7 @@ const SV_SYSTEMBOLAGET_CARDS: GuideHubCard[] = [
   articleHubCard(bestRoseNaturalWinesSystembolagetArticle, "sv"),
   articleHubCard(bestOrangeNaturalWinesSystembolagetArticle, "sv"),
   articleHubCard(bestNaturalWinesUnder200SystembolagetArticle, "sv"),
-  articleHubCard(bestGlouGlouWinesSystembolagetArticle, "sv"),
+  articleHubCard(easyDrinkingNaturalWinesSystembolagetArticle, "sv"),
   ...(isGuideArticlePublished(bestPetNatWinesSystembolagetArticle)
     ? [articleHubCard(bestPetNatWinesSystembolagetArticle, "sv")]
     : []),
@@ -373,7 +373,7 @@ const EN_SYSTEMBOLAGET_CARDS: GuideHubCard[] = [
   articleHubCard(bestRoseNaturalWinesSystembolagetArticle, "en"),
   articleHubCard(bestOrangeNaturalWinesSystembolagetArticle, "en"),
   articleHubCard(bestNaturalWinesUnder200SystembolagetArticle, "en"),
-  articleHubCard(bestGlouGlouWinesSystembolagetArticle, "en"),
+  articleHubCard(easyDrinkingNaturalWinesSystembolagetArticle, "en"),
   ...(isGuideArticlePublished(bestPetNatWinesSystembolagetArticle)
     ? [articleHubCard(bestPetNatWinesSystembolagetArticle, "en")]
     : []),

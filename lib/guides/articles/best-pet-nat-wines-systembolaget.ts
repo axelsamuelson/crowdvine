@@ -178,12 +178,12 @@ export const bestPetNatWinesSystembolagetArticle: GuideArticleContent = {
     },
     {
       label: {
-        en: "Best glou-glou wines at Systembolaget →",
-        sv: "Bästa glou-glou-vinerna på Systembolaget →",
+        en: "Easy-drinking natural wines at Systembolaget →",
+        sv: "Lättdruckna naturviner på Systembolaget →",
       },
       href: {
-        en: "/guides/best-glou-glou-wines-systembolaget",
-        sv: "/guider/basta-glouglou-viner-systembolaget",
+        en: "/guides/easy-drinking-natural-wines-systembolaget",
+        sv: "/guider/lattdruckna-naturviner-systembolaget",
       },
     },
     {

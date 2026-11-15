@@ -51,12 +51,21 @@ import {
 import { buildFaqPageJsonLd } from "@/lib/wine-category-faq";
 import { CategoryFaqSection } from "@/components/shop/category-faq-section";
 import { RegionProducerLinks } from "@/components/shop/region-producer-links";
+import { renderArticleRichText } from "@/lib/guides/article-guide-shell";
 import { isWineRegionBelowIndexMinimum } from "@/lib/wine-region-live-counts";
 import {
   WINE_CATEGORIES_SV,
   wineCategoryCatalogFilters,
 } from "@/lib/wine-categories";
-import { isWineRegionShopCategory } from "@/lib/wine-shop-filter-categories";
+import {
+  isWineCharacterShopCategory,
+  isWineRegionShopCategory,
+} from "@/lib/wine-shop-filter-categories";
+import { isWineCharacterBelowIndexMinimum } from "@/lib/wine-character-live-counts";
+import {
+  isWineCharacterFilterValue,
+  type WineCharacterFilterValue,
+} from "@/lib/wine-character-tags";
 import { wineRegionLabel } from "@/lib/wine-regions";
 import { resolveGrapeCategoryBySlug } from "@/lib/wine-grape-categories";
 import { ProducerBoxesPage } from "@/components/producer-boxes/producer-boxes-page";
@@ -92,6 +101,15 @@ export async function generateMetadata(props: {
       isWineRegionShopCategory(category) && category.filter.wineRegion
         ? await isWineRegionBelowIndexMinimum(category.filter.wineRegion)
         : false;
+    const characterTag = category.filter.tags?.[0];
+    const characterBelowIndexMinimum =
+      isWineCharacterShopCategory(category) &&
+      characterTag &&
+      isWineCharacterFilterValue(characterTag)
+        ? await isWineCharacterBelowIndexMinimum(
+            characterTag as WineCharacterFilterValue,
+          )
+        : false;
     const [config, hasProducts] = await Promise.all([
       getSiteConfig(),
       catalogHasProducts({
@@ -116,6 +134,7 @@ export async function generateMetadata(props: {
         emptyListing: !hasProducts,
         thinDynamicGrape: isThinDynamicGrapeCategory(category),
         regionBelowIndexMinimum,
+        characterBelowIndexMinimum,
       }),
       alternates: {
         canonical: canonicalUrl,
@@ -387,7 +406,7 @@ export default async function VinCollectionPage(props: {
             <div className="mt-12 pt-12">
               {category.aboutText ? (
                 <p className="mb-8 max-w-xl text-sm text-stone-600">
-                  {category.aboutText}
+                  {renderArticleRichText(category.aboutText, "about")}
                 </p>
               ) : null}
               {exploreLinks.length > 0 || showLanguedocGuideLink ? (

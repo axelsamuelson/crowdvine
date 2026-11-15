@@ -21,6 +21,7 @@ import { producerBoxesSitemapPaths } from "@/lib/producer-boxes/config";
 import { STOCKHOLM_DELIVERY_SITEMAP_SLUGS } from "@/lib/stockholm-delivery-landing/dirtywine-redirect";
 import { WINE_CATEGORIES_EN, WINE_CATEGORIES_SV } from "@/lib/wine-categories";
 import {
+  isWineCharacterShopCategory,
   isWineRegionShopCategory,
   LEGACY_SHOP_REDIRECT_SLUGS,
 } from "@/lib/wine-shop-filter-categories";
@@ -30,6 +31,8 @@ import {
   fetchIndexableWines,
   fetchProducerShopSlugs,
 } from "@/lib/sitemap-urls";
+import { getLiveWineCharacterCountsMap } from "@/lib/wine-character-live-counts";
+import { indexableWineCharacterPaths } from "@/lib/wine-character-tags";
 import { getLiveWineRegionCountsMap } from "@/lib/wine-region-live-counts";
 import { indexableWineRegionPaths } from "@/lib/wine-regions";
 
@@ -255,6 +258,7 @@ async function buildSitemapEntriesUncached(
   const vinCategoryCandidates = WINE_CATEGORIES_SV.filter(
     (c) =>
       !isWineRegionShopCategory(c) &&
+      !isWineCharacterShopCategory(c) &&
       !isNoindexCategorySlug(c.slug, "sv") &&
       !LEGACY_SHOP_REDIRECT_SLUGS.has(c.slug) &&
       !(isDirtyWine && STOCKHOLM_DELIVERY_SITEMAP_SLUGS.has(c.slug)),
@@ -262,6 +266,7 @@ async function buildSitemapEntriesUncached(
   const wineCategoryCandidates = WINE_CATEGORIES_EN.filter(
     (c) =>
       !isWineRegionShopCategory(c) &&
+      !isWineCharacterShopCategory(c) &&
       !isNoindexCategorySlug(c.slug, "en") &&
       !LEGACY_SHOP_REDIRECT_SLUGS.has(c.slug) &&
       !(isDirtyWine && STOCKHOLM_DELIVERY_SITEMAP_SLUGS.has(c.slug)),
@@ -326,12 +331,22 @@ async function buildSitemapEntriesUncached(
     weeklyEntry(`${baseUrl}${en}`, 0.75),
   ]);
 
+  // Character shop pages (light_easy): same ≥3 live-wine gate as regions.
+  const characterCounts = await getLiveWineCharacterCountsMap();
+  const characterPages: MetadataRoute.Sitemap = indexableWineCharacterPaths(
+    characterCounts,
+  ).flatMap(({ sv, en }) => [
+    weeklyEntry(`${baseUrl}${sv}`, 0.75),
+    weeklyEntry(`${baseUrl}${en}`, 0.75),
+  ]);
+
   return dedupeSitemapEntries([
     ...staticPages,
     ...vinCategories,
     ...wineCategories,
     ...producerShopPages,
     ...regionPages,
+    ...characterPages,
     ...winePages,
     ...producerProfilePages,
   ]);

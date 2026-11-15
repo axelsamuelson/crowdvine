@@ -5,6 +5,7 @@ import { useParams, usePathname } from "next/navigation";
 import { isProducerCollectionSegment } from "@/lib/shop/producer-collection-segment";
 import {
   getActiveColorFromPathname,
+  getActiveWineCharacterFromPathname,
   getActiveWineRegionFromPathname,
 } from "@/lib/wine-categories";
 
@@ -51,6 +52,10 @@ export function useFilterCount() {
     "region",
     parseAsArrayOf(parseAsString).withDefault([]),
   );
+  const [characters] = useQueryState(
+    "character",
+    parseAsArrayOf(parseAsString).withDefault([]),
+  );
   const [searchQ] = useQueryState("q", parseAsString);
 
   // Count active filters
@@ -81,6 +86,12 @@ export function useFilterCount() {
   if (regions.length > 0) {
     count += regions.length;
   } else if (getActiveWineRegionFromPathname(pathname)) {
+    count += 1;
+  }
+
+  if (characters.length > 0) {
+    count += characters.length;
+  } else if (getActiveWineCharacterFromPathname(pathname)) {
     count += 1;
   }
 
@@ -147,4 +158,14 @@ export function useRegionFilterCount() {
   );
   if (regions.length > 0) return regions.length;
   return getActiveWineRegionFromPathname(pathname) ? 1 : 0;
+}
+
+export function useCharacterFilterCount() {
+  const pathname = usePathname() || "";
+  const [characters] = useQueryState(
+    "character",
+    parseAsArrayOf(parseAsString).withDefault([]),
+  );
+  if (characters.length > 0) return characters.length;
+  return getActiveWineCharacterFromPathname(pathname) ? 1 : 0;
 }

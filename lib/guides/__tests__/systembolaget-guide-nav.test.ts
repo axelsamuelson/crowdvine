@@ -32,7 +32,7 @@ describe("Systembolaget guide switcher", () => {
       "Mousserande",
       "Rosé",
       "Under 200 kr",
-      "Glou-glou",
+      "Lättdruckna viner",
       "Pet nat",
     ]);
     expect(SYSTEMBOLAGET_GUIDE_NAV_LABEL.sv).toBe("Systembolaget-guider");
@@ -60,7 +60,7 @@ describe("Systembolaget guide switcher", () => {
       "Sparkling",
       "Rosé",
       "Under 200",
-      "Glou-glou",
+      "Easy-drinking wines",
       "Pet nat",
     ]);
 

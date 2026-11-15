@@ -3,6 +3,11 @@ import type {
   WineCategory,
   WineCategoryFilter,
 } from "@/lib/wine-category-types";
+import {
+  WINE_CHARACTER_PATH_VALUE,
+  wineCharacterByValue,
+  wineCharacterPageSlug,
+} from "@/lib/wine-character-tags";
 import { WINE_REGIONS, wineRegionPageH1 } from "@/lib/wine-regions";
 
 type Locale = "sv" | "en";
@@ -354,6 +359,24 @@ function generateForLocale(locale: Locale): WineCategory[] {
     );
   }
 
+  const lightEasy = wineCharacterByValue(WINE_CHARACTER_PATH_VALUE);
+  const lightEasySlug = wineCharacterPageSlug(WINE_CHARACTER_PATH_VALUE, locale);
+  const lightEasyHreflang = wineCharacterPageSlug(
+    WINE_CHARACTER_PATH_VALUE,
+    locale === "sv" ? "en" : "sv",
+  );
+  if (lightEasy && lightEasySlug && lightEasyHreflang) {
+    categories.push(
+      buildCategory(
+        locale,
+        lightEasySlug,
+        locale === "sv" ? "Lättdruckna naturviner" : "Easy-drinking natural wines",
+        { tags: [...lightEasy.tags] },
+        lightEasyHreflang,
+      ),
+    );
+  }
+
   return categories;
 }
 
@@ -368,6 +391,25 @@ export function isWineRegionShopCategory(
       !filter.farming?.length &&
       !filter.filterGrape &&
       !filter.tags?.length,
+  );
+}
+
+/**
+ * Character PLP: taste tags only (currently light_easy), no colour, farming,
+ * grape or region constraint.
+ */
+export function isWineCharacterShopCategory(
+  category: Pick<WineCategory, "filter">,
+): boolean {
+  const filter = category.filter;
+  return Boolean(
+    filter.tags?.length &&
+      !filter.color?.length &&
+      !filter.farming?.length &&
+      !filter.filterGrape &&
+      !filter.wineRegion &&
+      !filter.region &&
+      !filter.countryCode,
   );
 }
 

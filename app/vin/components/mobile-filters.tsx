@@ -13,6 +13,7 @@ import {
   DrawerTitle,
 } from "@/components/ui/drawer";
 import { CategoryFilter } from "./category-filter";
+import { CharacterFilter } from "./character-filter";
 import { ColorFilter } from "./color-filter";
 import { GrapesFilter } from "./grapes-filter";
 import { FarmingFilter } from "./farming-filter";
@@ -45,11 +46,13 @@ import {
   isSameColorSelection,
   isSameFarmingSelection,
   localeFromShopPathname,
+  resolveCharacterFilterNavigationUrl,
   resolveGrapePageFarmingUrl,
   resolveGrapePageUrl,
   finalizeShopFilterNavigationUrl,
   resolveRegionFilterNavigationUrl,
   resolveShopFilterNavigationUrl,
+  selectedWineCharacterValues,
   selectedWineRegionSlugs,
   shouldNavigateGrapeFilter,
   shouldNavigateShopFilters,
@@ -57,6 +60,7 @@ import {
 import type { ShopFarmingFilterValue } from "@/lib/shop/farming-filter";
 import { gateShopFilterHref } from "@/lib/shop/gate-shop-filter-href";
 import { filterProductsByGrapes } from "@/lib/shop/filter-products-by-grape";
+import type { WineCharacterFilterValue } from "@/lib/wine-character-tags";
 import { extractGrapesFromProducts } from "../hooks/use-available-grapes";
 
 interface MobileFiltersProps {
@@ -202,6 +206,25 @@ export function MobileFilters({
     if (!url) return false;
     router.push(url);
     return true;
+  };
+
+  const resolveCharacterHref = (
+    value: WineCharacterFilterValue,
+  ): string | null => {
+    if (!shouldNavigateShopFilters(pathname)) return null;
+    const current = selectedWineCharacterValues(
+      pathname,
+      searchParams.getAll("character"),
+    );
+    const next = current.includes(value)
+      ? current.filter((v) => v !== value)
+      : [...current, value];
+    return resolveCharacterFilterNavigationUrl({
+      locale,
+      currentPath: pathname,
+      search: searchParams.toString(),
+      nextValues: next,
+    });
   };
 
   const handleGrapeSelect = (grapeName: string): boolean => {
@@ -371,6 +394,10 @@ export function MobileFilters({
                   <RegionFilter
                     mode="drawer"
                     linkableRegionSlugs={linkableRegionSlugs}
+                  />
+                  <CharacterFilter
+                    mode="drawer"
+                    getCharacterHref={resolveCharacterHref}
                   />
                   <FarmingFilter
                     products={originalProducts}

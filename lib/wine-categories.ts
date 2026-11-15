@@ -12,7 +12,12 @@ import {
   resolveGrapeNameFromSlug,
 } from "@/lib/wine-grape-categories";
 import type { WineCategory, WineCategoryFilter } from "@/lib/wine-category-types";
+import {
+  isWineCharacterFilterValue,
+  type WineCharacterFilterValue,
+} from "@/lib/wine-character-tags";
 import { wineRegionByValue, type WineRegion } from "@/lib/wine-regions";
+import { isWineCharacterShopCategory } from "@/lib/wine-shop-filter-categories";
 
 export type { WineCategory, WineCategoryFilter } from "@/lib/wine-category-types";
 
@@ -429,6 +434,18 @@ export function getActiveWineRegionFromPathname(
     return null;
   }
   return wineRegionByValue(value) ?? null;
+}
+
+/** Character PLP with no colour, farming, grape or region in the path. */
+export function getActiveWineCharacterFromPathname(
+  path: string,
+): WineCharacterFilterValue | null {
+  const category = getWineCategoryFromPathname(path);
+  if (!category || !isWineCharacterShopCategory(category)) return null;
+  const tag = category.filter.tags?.[0];
+  if (!tag || !isWineCharacterFilterValue(tag)) return null;
+  // light_easy maps 1:1; other filter values are query-only for now.
+  return tag;
 }
 
 export function getActiveColorFromPathname(path: string): string | null {
