@@ -176,4 +176,23 @@ export function formatSharePct(share: number): string {
   return `${rounded} %`
 }
 
+/**
+ * Suffix after the klar count on the Fokus tab header.
+ * Full chip: `${count} ${focusKlarSummarySuffix(period)}`
+ * → "15 klart v. 46" / "15 klart i november"
+ */
+export function focusKlarSummarySuffix(
+  period: Pick<FocusPeriodBounds, "kind" | "shortLabel">,
+): string {
+  if (period.kind === "month") return `klart i ${period.shortLabel}`
+  return `klart ${period.shortLabel}`
+}
+
+export function focusKlarSummaryLabel(
+  period: Pick<FocusPeriodBounds, "kind" | "shortLabel">,
+  doneTaskCount: number,
+): string {
+  return `${doneTaskCount} ${focusKlarSummarySuffix(period)}`
+}
+
 export { STOCKHOLM_TZ }

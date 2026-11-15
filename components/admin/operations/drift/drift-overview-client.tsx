@@ -5,7 +5,10 @@ import { usePathname, useRouter } from "next/navigation"
 import { useEffect, useMemo, useState } from "react"
 import { ChevronDown, ChevronRight, UserRound, X } from "lucide-react"
 import { formatQueueDeadlineLabel } from "@/lib/operations/drift/build-overview"
-import type { FocusPeriodKind } from "@/lib/operations/drift/focus-period"
+import {
+  focusKlarSummarySuffix,
+  type FocusPeriodKind,
+} from "@/lib/operations/drift/focus-period"
 import type {
   DriftCompanyFilter,
   DriftFocusData,
@@ -788,8 +791,21 @@ export function DriftOverviewClient({
             nästa
           </span>
           <span>
-            <strong className="font-semibold">{data.summary.klartWeek}</strong>{" "}
-            klart denna vecka
+            {tab === "fokus" && focusData ? (
+              <>
+                <strong className="font-semibold">
+                  {focusData.totalDoneTasks}
+                </strong>{" "}
+                {focusKlarSummarySuffix(focusData.period)}
+              </>
+            ) : (
+              <>
+                <strong className="font-semibold">
+                  {data.summary.klartWeek}
+                </strong>{" "}
+                klart denna vecka
+              </>
+            )}
           </span>
           {data.summary.unprioritized > 0 ? (
             <span>

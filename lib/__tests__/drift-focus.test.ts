@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest"
 import { buildDriftFocus } from "@/lib/operations/drift/build-focus"
 import {
   completedAtInPeriod,
+  focusKlarSummaryLabel,
+  focusKlarSummarySuffix,
   focusWeekPeriod,
   lastNIsoWeeks,
   stockholmIsoWeekNumber,
@@ -495,6 +497,26 @@ describe("buildDriftFocus aggregation", () => {
     expect(data.period.kind).toBe("month")
     expect(data.period.shortLabel).toBe("november")
     expect(data.goals.find((g) => g.rank === 1)?.donePoints).toBe(6)
+  })
+})
+
+describe("focus klar summary label", () => {
+  it("follows week and month period wording from the sketch", () => {
+    expect(
+      focusKlarSummaryLabel(
+        { kind: "week", shortLabel: "v. 46" },
+        15,
+      ),
+    ).toBe("15 klart v. 46")
+    expect(
+      focusKlarSummarySuffix({ kind: "month", shortLabel: "november" }),
+    ).toBe("klart i november")
+    expect(
+      focusKlarSummaryLabel(
+        { kind: "month", shortLabel: "november" },
+        40,
+      ),
+    ).toBe("40 klart i november")
   })
 })
 

@@ -360,7 +360,7 @@ export function FokusTab({
   const maxBotPoints = Math.max(1, ...data.bots.map((b) => b.totalPoints))
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 overflow-x-clip">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap items-center gap-2">
           <div
@@ -840,7 +840,72 @@ export function FokusTab({
             >
               Klart per vecka, senaste 6 veckorna
             </h2>
-            <div className="overflow-x-auto">
+
+            {/* Mobile &lt; sm: stacked week rows — no horizontal scroll at 390. */}
+            <ul className="space-y-3 sm:hidden" data-fokus-trend-mobile>
+              {data.trendWeeks.map((w, weekIdx) => {
+                const segments = data.trendByGoal.map((g) => ({
+                  rank: g.rank,
+                  points: g.pointsPerWeek[weekIdx] ?? 0,
+                }))
+                const total = segments.reduce((s, x) => s + x.points, 0)
+                const topPoints = segments
+                  .filter((s) => s.rank === 1 || s.rank === 2)
+                  .reduce((s, x) => s + x.points, 0)
+                const topShare =
+                  total > 0 ? Math.round((topPoints / total) * 100) : 0
+                return (
+                  <li
+                    key={w.isoWeek}
+                    className="border-b border-gray-100 pb-3 dark:border-zinc-900"
+                  >
+                    <div className="flex items-baseline justify-between gap-3 text-sm">
+                      <span className="font-medium text-gray-900 dark:text-white">
+                        {w.shortLabel}
+                      </span>
+                      <span className="tabular-nums text-gray-900 dark:text-white">
+                        {total} p
+                      </span>
+                    </div>
+                    <p className="mt-0.5 text-xs text-gray-600 dark:text-zinc-400">
+                      mål 1–2: {topShare} %
+                    </p>
+                    <div className="mt-2 flex h-2 overflow-hidden rounded-sm bg-gray-100 dark:bg-zinc-800">
+                      {segments
+                        .filter((s) => s.points > 0)
+                        .map((s) => (
+                          <div
+                            key={s.rank}
+                            className={cn("h-full", focusGoalColorClass(s.rank))}
+                            style={{
+                              width: `${(s.points / Math.max(1, total)) * 100}%`,
+                            }}
+                            title={`Mål ${s.rank}: ${s.points} p`}
+                          />
+                        ))}
+                    </div>
+                    <ul className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-gray-600 dark:text-zinc-400">
+                      {segments.map((s) => (
+                        <li key={s.rank} className="tabular-nums">
+                          <span
+                            className={cn(
+                              "mr-1 inline-block h-2 w-2 rounded-sm align-middle",
+                              focusGoalColorClass(s.rank),
+                              s.points === 0 && "opacity-30",
+                            )}
+                            aria-hidden
+                          />
+                          {s.rank}: {s.points}
+                        </li>
+                      ))}
+                    </ul>
+                  </li>
+                )
+              })}
+            </ul>
+
+            {/* Desktop sm+: wide goal×week table (unchanged). */}
+            <div className="hidden overflow-x-auto sm:block" data-fokus-trend-desktop>
               <table className="w-full min-w-[36rem] text-left text-xs">
                 <thead>
                   <tr className="border-b border-gray-200 text-gray-500 dark:border-[#1F1F23] dark:text-zinc-400">
@@ -935,7 +1000,26 @@ export function FokusTab({
                     <p className="text-gray-900 dark:text-zinc-100">
                       {m.rank} {m.label}
                     </p>
-                    <div className="mt-2 grid grid-cols-6 gap-1 text-center text-xs tabular-nums text-gray-600 dark:text-zinc-400">
+                    {/* Mobile: stacked week rows */}
+                    <ul className="mt-2 space-y-1 sm:hidden">
+                      {m.values.map((v, i) => (
+                        <li
+                          key={i}
+                          className="flex justify-between gap-3 text-xs tabular-nums text-gray-600 dark:text-zinc-400"
+                        >
+                          <span>
+                            {data.trendWeeks[i]?.shortLabel ?? `v.${i + 1}`}
+                          </span>
+                          <span>
+                            {m.metricKey === "checkout_completion_rate"
+                              ? `${String(v).replace(".", ",")}%`
+                              : v}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                    {/* Desktop: 6-col grid */}
+                    <div className="mt-2 hidden grid-cols-6 gap-1 text-center text-xs tabular-nums text-gray-600 dark:text-zinc-400 sm:grid">
                       {m.values.map((v, i) => (
                         <div key={i}>
                           {m.metricKey === "checkout_completion_rate"
@@ -944,7 +1028,7 @@ export function FokusTab({
                         </div>
                       ))}
                     </div>
-                    <div className="mt-1 flex justify-end">
+                    <div className="mt-1 hidden justify-end sm:flex">
                       <Sparkline values={m.values} />
                     </div>
                   </li>
