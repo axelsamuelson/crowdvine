@@ -260,13 +260,21 @@ export function Footer({ initialLogos }: { initialLogos?: SiteLogos }) {
               className={footerCompanyTextClass}
               data-testid="pact-footer-company"
             >
-              {companySegments.map((segment, index) => (
-                <span key={segment} className="inline">
-                  {index > 0 ? PACT_FOOTER_COMPANY_SEP : null}
-                  {segment}
-                </span>
-              ))}
-              <span className="inline">
+              {/*
+                Below md: three lines, no · between lines.
+                md+: one line joined with " · ".
+                Single DOM text — separators are hidden md:inline, not duplicated.
+              */}
+              <span className="block md:inline">{companySegments[0]}</span>
+              <span className="hidden md:inline">
+                {PACT_FOOTER_COMPANY_SEP}
+              </span>
+              <span className="block md:inline">{companySegments[1]}</span>
+              <span className="hidden md:inline">
+                {PACT_FOOTER_COMPANY_SEP}
+              </span>
+              <span className="block md:inline">
+                {companySegments[2]}
                 {PACT_FOOTER_COMPANY_SEP}
                 <a
                   href={`mailto:${PACT_FOOTER_COMPANY_EMAIL}`}
