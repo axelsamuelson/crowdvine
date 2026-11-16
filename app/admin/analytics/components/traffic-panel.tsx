@@ -167,9 +167,20 @@ export function TrafficPanel({
 
   if (loading && !data) {
     return (
-      <p className="text-sm text-gray-500 dark:text-gray-400">
-        Loading traffic…
-      </p>
+      <div className="space-y-6" aria-busy="true">
+        <div className="grid grid-cols-2 gap-4 max-w-md">
+          <div className="rounded-lg border border-gray-200 dark:border-[#1F1F23] p-3 space-y-2">
+            <div className="admin-skel h-3 w-16 rounded" />
+            <div className="admin-skel h-7 w-14 rounded" />
+          </div>
+          <div className="rounded-lg border border-gray-200 dark:border-[#1F1F23] p-3 space-y-2">
+            <div className="admin-skel h-3 w-16 rounded" />
+            <div className="admin-skel h-7 w-14 rounded" />
+          </div>
+        </div>
+        <div className="admin-skel h-72 w-full rounded-lg" />
+        <p className="sr-only">Laddar trafik…</p>
+      </div>
     );
   }
 

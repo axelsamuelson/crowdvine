@@ -56,20 +56,22 @@ export default async function OperationsDriftPage({ searchParams }: PageProps) {
   const focusExpandRank = params.expand ? Number(params.expand) : null
   const focusHelpOpen = params.help === "1" || params.help === "true"
 
-  const data = await getDriftOverview({
-    company,
-    owner,
-  })
+  const needFocus = tab === "fokus" || listFilter === "utan-poang"
 
-  const focusData =
-    tab === "fokus" || listFilter === "utan-poang"
-      ? await getDriftFocus({
+  const [data, focusData] = await Promise.all([
+    getDriftOverview({
+      company,
+      owner,
+    }),
+    needFocus
+      ? getDriftFocus({
           company,
           owner,
           period,
           periodAnchor,
         })
-      : null
+      : Promise.resolve(null),
+  ])
 
   const focusExpandId =
     focusData && focusExpandRank && Number.isFinite(focusExpandRank)
