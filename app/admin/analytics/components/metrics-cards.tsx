@@ -41,10 +41,17 @@ const DEFINITIONS: Record<string, string> = {
 export function MetricsCards({ data, loading }: MetricsCardsProps) {
   if (loading) {
     return (
-      <div className="bg-white dark:bg-[#0F0F12] rounded-xl p-6 border border-gray-200 dark:border-[#1F1F23]">
-        <p className="text-sm text-gray-500 dark:text-gray-400">
-          Laddar metrics…
-        </p>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div
+            key={i}
+            className="rounded-xl border border-gray-200 dark:border-[#1F1F23] bg-white dark:bg-[#0F0F12] p-6 space-y-3"
+          >
+            <div className="admin-skel h-3 w-20 rounded" />
+            <div className="admin-skel h-8 w-16 rounded" />
+            <div className="admin-skel h-2.5 w-28 rounded" />
+          </div>
+        ))}
       </div>
     );
   }
