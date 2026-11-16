@@ -1,6 +1,6 @@
 /**
  * Loading placeholder that mirrors AnalyticsDashboard proportions:
- * site row → 5 KPI cards → reports card (tabs + chart).
+ * site row → 5 KPI cards → reports card (6 tabs + chart).
  * Rendered inside admin layout content only (never replaces chrome).
  */
 export function AnalyticsDashboardSkeleton() {
@@ -38,7 +38,7 @@ export function AnalyticsDashboardSkeleton() {
         <div className="p-6 border-b border-gray-200 dark:border-[#1F1F23] space-y-4">
           <div className="admin-skel h-5 w-28 rounded" />
           <div className="flex flex-wrap gap-2">
-            {Array.from({ length: 5 }).map((_, i) => (
+            {Array.from({ length: 6 }).map((_, i) => (
               <div key={i} className="admin-skel h-9 w-20 rounded-lg" />
             ))}
           </div>
