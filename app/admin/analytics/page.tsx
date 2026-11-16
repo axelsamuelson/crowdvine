@@ -43,10 +43,22 @@ export default async function AnalyticsPage() {
 
       <Suspense
         fallback={
-          <div className="bg-white dark:bg-[#0F0F12] rounded-xl p-6 border border-gray-200 dark:border-[#1F1F23]">
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Loading analytics...
-            </p>
+          <div
+            className="bg-white dark:bg-[#0F0F12] rounded-xl p-6 border border-gray-200 dark:border-[#1F1F23] space-y-4"
+            aria-busy="true"
+            aria-live="polite"
+          >
+            <div className="h-4 w-40 rounded bg-gray-100 dark:bg-zinc-800 animate-pulse" />
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="h-20 rounded-lg bg-gray-100 dark:bg-zinc-800 animate-pulse"
+                />
+              ))}
+            </div>
+            <div className="h-64 rounded-lg bg-gray-100 dark:bg-zinc-800 animate-pulse" />
+            <p className="sr-only">Laddar analytics…</p>
           </div>
         }
       >

@@ -406,6 +406,7 @@ export async function fetchFocusEffectEvents(opts: {
     pageSize: 1000,
     maxRows: 50_000,
     chunkDays: 7,
+    concurrency: 6,
     queryPage: async ({ gteIso, ltIso, from, to }) => {
       let q = opts.sb
         .from("analytics_sessions_clean")

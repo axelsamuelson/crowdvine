@@ -211,7 +211,8 @@ export async function GET(request: Request) {
     const pageSize = 1000;
     /** Safety cap only — when hit, oldest rows are dropped (newest kept). */
     const maxRows = 100_000;
-    const cleanViewTimeoutMs = 2500;
+    /** Parallel date chunks finish ~2–3s for ~27k rows; keep headroom. */
+    const cleanViewTimeoutMs = 15_000;
     const untilIso = new Date().toISOString();
 
     async function fetchWindow(
@@ -226,6 +227,7 @@ export async function GET(request: Request) {
         pageSize,
         maxRows: opts?.maxRows ?? maxRows,
         chunkDays: 7,
+        concurrency: 6,
         signal: opts?.signal,
         queryPage: async ({ gteIso, ltIso, from, to, signal }: PageQueryArgs) => {
           let q = sb
@@ -249,6 +251,8 @@ export async function GET(request: Request) {
     const cleanExtra =
       site === "all" ? undefined : (q: any) => q.eq("site", site);
 
+    // Prefer leaner selects first on TEST (channel column may be absent).
+    // Only retry on schema-missing errors — not on abort/timeout.
     const selects = [
       "session_id, visitor_id, country_code, channel, event_type, event_metadata, page_url, referrer, created_at, site",
       "session_id, visitor_id, country_code, event_type, event_metadata, page_url, referrer, created_at, site",
@@ -296,8 +300,11 @@ export async function GET(request: Request) {
         };
       }
       if (!clean.error) break;
+      if (/aborted|timeout/i.test(clean.error.message || "")) {
+        break;
+      }
       if (
-        !/channel|country_code|visitor_id|schema cache|Could not find|aborted|timeout/i.test(
+        !/channel|country_code|visitor_id|schema cache|Could not find/i.test(
           clean.error.message || "",
         )
       ) {
