@@ -86,7 +86,7 @@ export const gangOfFourWineArticle: GuideArticleContent = {
           "All four worked from Villié-Morgon in Beaujolais. The collective nature of the project was deliberate — mutual support in a region organised around a different idea of success.",
           "Jean Foillard: Foillard's Morgon is inseparable from Côte du Py — the blue granite volcanic hill that gives his Gamay unusual depth and structure. His wines helped prove that Gamay could age, not only please in the year of release. Among the four he remains the clearest argument for Morgon as a serious cru.",
           "Marcel Lapierre: Widely considered the most influential of the four, Lapierre took Chauvet's ideas and put them into the widest practice. His Morgon became the template for natural Beaujolais — what the wine should taste like and how it should be made. He died in 2010; his son Mathieu now runs the domaine. For many drinkers, Lapierre is still the first name they learn when they ask what natural Beaujolais means.",
-          "Jean-Paul Thévenet (Polpo): Thévenet took over his family domaine and made his first natural wine in the early 1980s under Chauvet's influence. His son Charly now works with him, extending the project into the next generation. Morgon is his heartland — one of the four who held the line when industrial Beaujolais was still the mainstream.",
+          "Jean-Paul Thévenet (Polpo): Thévenet took over his family domaine and made his first [natural wine](/guides/what-is-natural-wine) in the early 1980s under Chauvet's influence. His son Charly now works with him, extending the project into the next generation. Morgon is his heartland — one of the four who held the line when industrial Beaujolais was still the mainstream.",
           "Guy Breton (P'tit Max): Breton took over the family domaine from his grandfather in 1986. His wines are among the most approachable and immediately charming in the group — juicy, light, made to be shared. The nickname has become as recognisable as the name on the label. Where Foillard and Lapierre often carry Morgon's weight, Breton shows how the same philosophy can also be immediate and open.",
         ],
         sv: "Jean Foillard: Morgon och Côte du Py — den blå granitkullen som ger hans viner ovanligt djup och struktur. Hans Gamay bevisade att druvan kan åldras.\n\nMarcel Lapierre: den mest inflytelserike av de fyra. Tog Chauvets idéer och omsatte dem i den bredaste praktiken. Hans Morgon blev mallen för naturligt Beaujolais. Dog 2010; son Mathieu fortsätter.\n\nJean-Paul Thévenet (känd som Polpo): tog över sitt familjedomän och gjorde sitt första naturvin på tidiga 1980-talet under Chauvets inflytande. Hans son Charly arbetar nu med honom. Morgon är hans hjärttrakterna.\n\nGuy Breton (känd som P'tit Max): tog över från sin farfar 1986. Hans viner är bland de mest omedelbart drickbara och charmiga i gruppen — saftiga, lätta, gjorda för att delas. Smeknamnet P'tit Max har blivit lika igenkännbart som etiketten.",
@@ -121,6 +121,16 @@ export const gangOfFourWineArticle: GuideArticleContent = {
     },
   ],
   internalLinks: [
+    {
+      label: {
+        en: "What is natural wine? →",
+        sv: "",
+      },
+      href: {
+        en: "/guides/what-is-natural-wine",
+        sv: "/guider/vad-ar-naturvin",
+      },
+    },
     {
       label: {
         en: "Jean Foillard →",

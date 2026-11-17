@@ -84,7 +84,7 @@ export const thierryAllemandArticle: GuideArticleContent = {
       },
       body: {
         en: [
-          "Allemand's cellar is not a manifesto. The wines are made with very low sulphur and a focus on precision rather than dogma. He is often grouped with natural wine, but the work does not depend on slogans. It depends on farming hard sites cleanly and intervening only as little as the wine requires.",
+          "Allemand's cellar is not a manifesto. The wines are made with very low sulphur and a focus on precision rather than dogma. He is often grouped with [natural wine](/guides/what-is-natural-wine), but the work does not depend on slogans. It depends on farming hard sites cleanly and intervening only as little as the wine requires.",
           "That stance matters. Some domaines make low-intervention wine into an identity first and a bottle second. Allemand's reputation rests on the opposite order: the wines convince, and the method follows as explanation. Sceptics of natural wine can still recognise classical Cornas greatness. Believers can still recognise the restraint.",
           "The argument he makes is therefore quiet. Without needing to lecture, Chaillot and Reynard show that natural wine and classical greatness are not opposites — they can be the same thing when the vineyard and the cellar are aligned. That bridge is a large part of why his Cornas travels so far beyond the natural-wine niche.",
         ],
@@ -107,6 +107,16 @@ export const thierryAllemandArticle: GuideArticleContent = {
     },
   ],
   internalLinks: [
+    {
+      label: {
+        en: "What is natural wine? →",
+        sv: "",
+      },
+      href: {
+        en: "/guides/what-is-natural-wine",
+        sv: "/guider/vad-ar-naturvin",
+      },
+    },
     {
       label: {
         en: "Thierry Allemand is ranked #2 on our list of the world's 100 best natural wine producers →",

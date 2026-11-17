@@ -23,7 +23,7 @@ export const languedocNaturalWineArticle: GuideArticleContent = {
     sv: "Naturvin från Languedoc — Frankrikes mest spännande vinregion",
   },
   lede: {
-    en: "Languedoc-Roussillon stretches along the Mediterranean from the Rhône delta to the Spanish border. With roughly 240,000 hectares of vineyard it is France's largest wine region — and one of Europe's most dynamic for organic and natural wine. Sun, wind and old stone soils produce wines with clear character, often at prices that undercut classic regions.",
+    en: "Languedoc-Roussillon stretches along the Mediterranean from the Rhône delta to the Spanish border. With roughly 240,000 hectares of vineyard it is France's largest wine region — and one of Europe's most dynamic for organic and [natural wine](/guides/what-is-natural-wine). Sun, wind and old stone soils produce wines with clear character, often at prices that undercut classic regions.",
     sv: "Languedoc-Roussillon sträcker sig längs Medelhavskusten från Rhônedeltat till den spanska gränsen. Med runt 240 000 hektar vingårdar är det Frankrikes största vinregion — och en av Europas mest dynamiska när det gäller ekologiskt odlat och naturligt vin. Här möts sol, vind och gamla stenjordar som ger viner med tydlig karaktär till ett pris som ofta slår klassiska regioner.",
   },
   breadcrumbShort: {

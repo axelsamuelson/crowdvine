@@ -41,7 +41,7 @@ export const worldsBestOrangeWinesGuide = {
   intro: {
     en: [
       "[Orange wine](/wine/orange-natural-wine) is not a colour — it is a method. White grapes fermented with their skins, sometimes for days, sometimes for months. The result is amber or deep gold in colour, with tannins, texture and an aromatic world of dried apricots, tea, nuts and spice that is completely unlike either white or red wine.",
-      "The method is ancient — Georgia has been making skin-contact wine in qvevri for eight thousand years. Its modern revival began in Friuli in the 1990s, when Joško Gravner returned from Georgia and Stanko Radikon independently arrived at the same conclusion. From that small village on the Italian-Slovenian border, orange wine spread to become one of the defining categories of natural wine.",
+      "The method is ancient — Georgia has been making skin-contact wine in qvevri for eight thousand years. Its modern revival began in Friuli in the 1990s, when Joško Gravner returned from Georgia and Stanko Radikon independently arrived at the same conclusion. From that small village on the Italian-Slovenian border, orange wine spread to become one of the defining categories of [natural wine](/guides/what-is-natural-wine).",
       "This is our selection of the finest orange wines in the world, drawn from our list of the world's 100 best natural wines.",
     ],
     sv: [

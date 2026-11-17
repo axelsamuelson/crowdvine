@@ -44,7 +44,7 @@ export const georgiaNaturalWineArticle: GuideArticleContent = {
         en: [
           "Georgia, in the South Caucasus, is widely considered the birthplace of wine. Archaeological evidence points to winemaking going back approximately eight thousand years — not a marketing claim, but a depth of practice that few wine regions can approach. The finds matter because they place fermentation culture here long before most European vineyards existed as we know them.",
           "The qvevri is the unbroken thread: clay vessels buried in the ground for fermentation and storage, carrying an ancient method into modern bottles. That continuity matters. The tradition survived invasion, Soviet collectivisation and modernisation pressure without disappearing into museum folklore — a line of practice that kept being used, not merely remembered.",
-          "What drinkers meet today is not a reconstruction. It is a living practice that European natural wine only rediscovered when growers began looking for authenticity beyond stainless steel and temperature control. Eight thousand years is not a slogan here — it is the reason Georgia still sets the terms for what skin-contact wine can mean.",
+          "What drinkers meet today is not a reconstruction. It is a living practice that European [natural wine](/guides/what-is-natural-wine) only rediscovered when growers began looking for authenticity beyond stainless steel and temperature control. Eight thousand years is not a slogan here — it is the reason Georgia still sets the terms for what skin-contact wine can mean.",
         ],
         sv: "Arkeologin — vad som hittats, vad det betyder. Georgiens anspråk på att vara vinets födelseplats. Qvevri som en obruten tråd från urgammal praxis till modern flaska. Vad det betyder att en vinframställningstradition överlevt årtusenden av invasion, sovjetisk kollektivisering och moderniseringstryck.",
       },
@@ -119,6 +119,16 @@ export const georgiaNaturalWineArticle: GuideArticleContent = {
     },
   ],
   internalLinks: [
+    {
+      label: {
+        en: "What is natural wine? →",
+        sv: "",
+      },
+      href: {
+        en: "/guides/what-is-natural-wine",
+        sv: "/guider/vad-ar-naturvin",
+      },
+    },
     {
       label: {
         en: "Explore the world's 100 best natural wine producers →",
