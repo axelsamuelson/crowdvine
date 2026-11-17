@@ -6,7 +6,7 @@
 export const NATURAL_VS_ORGANIC_PATH =
   "/guides/natural-vs-organic-vs-biodynamic-wine" as const;
 
-export const NATURAL_VS_ORGANIC_UPDATED = "2026-11-01";
+export const NATURAL_VS_ORGANIC_UPDATED = "2026-11-07";
 
 /**
  * Root title.template appends ` | PACT Wines`, not ` | PACT`, so keep the
@@ -97,49 +97,6 @@ export const LABEL_COMPARISON_COLUMNS: LabelComparisonColumn[] = [
     addedSulfites: "Only after fermentation",
     maxSo2: "30 mg/L (ppm)",
     legalStatus: "Private charter",
-  },
-];
-
-export type ProducerGroup = {
-  heading: string;
-  producers: { name: string; href: string }[];
-};
-
-export const naturalVsOrganicProducerGroups: ProducerGroup[] = [
-  {
-    heading: "Certified biodynamic",
-    producers: [
-      { name: "Mas des Mesures", href: "/producers/mas-des-mesures" },
-      { name: "Peira Levada", href: "/producers/peira-levada" },
-    ],
-  },
-  {
-    heading: "Certified organic",
-    producers: [
-      { name: "Clos Fantine", href: "/producers/clos-fantine" },
-      { name: "Hors Saison", href: "/producers/hors-saison" },
-      { name: "La Graine Sauvage", href: "/producers/la-graine-sauvage" },
-      { name: "Thomas Chany", href: "/producers/thomas-chany" },
-      { name: "Ugo Lestelle", href: "/producers/ugo-lestelle" },
-      { name: "Château del Ranq", href: "/producers/chateau-del-ranq" },
-      { name: "Mas d'Agalis", href: "/producers/mas-d-agalis" },
-      { name: "Domaine Les Serrals", href: "/producers/domaine-les-serrals" },
-      { name: "Julien Peyras", href: "/producers/julien-peyras" },
-      { name: "Gregory White", href: "/producers/gregory-white" },
-      { name: "Meigoon", href: "/producers/meigoon" },
-      { name: "Pierre et l'Étoile", href: "/producers/pierre-et-l-etoile" },
-    ],
-  },
-  {
-    heading: "Natural, not certified",
-    producers: [
-      { name: "La Marotte", href: "/producers/la-marotte" },
-      { name: "La Robina", href: "/producers/la-robina" },
-      { name: "Le Bouc à Trois Pattes", href: "/producers/le-bouc-a-trois-pattes" },
-      { name: "La Révolte", href: "/producers/la-revolte" },
-      { name: "Grain D'L", href: "/producers/grain-d-l" },
-      { name: "David Behar", href: "/producers/david-behar" },
-    ],
   },
 ];
 
