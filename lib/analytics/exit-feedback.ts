@@ -1,28 +1,33 @@
 /**
  * Exit-intent / abandoned-cart feedback helpers.
- * Persistence is localStorage only (answered + dismiss-until). No sessionStorage.
+ * Shown at most once per visitor: sessionStorage "shown" + sticky localStorage
+ * (answered or dismissed). No session_id is generated or stored server-side.
  */
 
 import { CHECKOUT_STARTED_KEY } from "@/lib/analytics/emit-once";
 import { isInternalDevice } from "@/lib/analytics/internal-device";
 
-/** Anonymous analytics id for the feedback POST (localStorage). */
-export const EXIT_FEEDBACK_SESSION_ID_KEY = "pact_exit_feedback_session_id";
 /** Permanent local flag after a submitted answer. */
 export const EXIT_FEEDBACK_ANSWERED_KEY = "pact_exit_feedback_answered";
 /** ISO timestamp: do not show again until this time (soft dismiss). */
 export const EXIT_FEEDBACK_DISMISS_UNTIL_KEY =
   "pact_exit_feedback_dismiss_until";
-
-/** @deprecated Removed — shown flag used sessionStorage; keep export for test migration. */
+/** Sticky dismiss flag (localStorage) — dismissal sticks across visits. */
+export const EXIT_FEEDBACK_DISMISSED_KEY = "pact_exit_feedback_dismissed";
+/** Session-scoped shown flag — at most once per browser session. */
 export const EXIT_FEEDBACK_SHOWN_KEY = "pact_exit_feedback_shown";
+
+/** @deprecated No longer used — answers are not linked to a session id. */
+export const EXIT_FEEDBACK_SESSION_ID_KEY = "pact_exit_feedback_session_id";
 
 export const EXIT_FEEDBACK_ANSWER_MAX = 1000;
 export const EXIT_FEEDBACK_PAGE_MAX = 500;
-export const EXIT_FEEDBACK_SESSION_ID_MAX = 128;
 export const EXIT_FEEDBACK_DISMISS_DAYS = 30;
 /** Minimum visible/active time on the site before desktop exit-intent may fire. */
 export const EXIT_FEEDBACK_MIN_ACTIVE_MS = 25_000;
+
+export const EXIT_FEEDBACK_PRIVACY_HELPER =
+  "Skriv inte personuppgifter här.";
 
 export type ExitFeedbackStep = "checkout" | "cart";
 
@@ -45,7 +50,7 @@ export const EXIT_FEEDBACK_REASON_OPTIONS: ReadonlyArray<{
   { value: "price", label: "Priset" },
   {
     value: "delivery_unclear",
-    label: "Osäker på hur leverans/pallen fungerar",
+    label: "Osäker på hur leveransen fungerar",
   },
   { value: "wait_too_long", label: "För lång väntan på leverans" },
   { value: "just_browsing", label: "Ville bara titta" },
@@ -79,20 +84,21 @@ function writeLocal(key: string, value: string): void {
   }
 }
 
-export function getExitFeedbackSessionId(): string {
-  if (typeof window === "undefined") return "";
+function readSession(key: string): string | null {
+  if (typeof window === "undefined") return null;
   try {
-    let id = localStorage.getItem(EXIT_FEEDBACK_SESSION_ID_KEY);
-    if (!id) {
-      id =
-        typeof crypto !== "undefined" && "randomUUID" in crypto
-          ? crypto.randomUUID()
-          : `ef_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
-      localStorage.setItem(EXIT_FEEDBACK_SESSION_ID_KEY, id);
-    }
-    return id;
+    return sessionStorage.getItem(key);
   } catch {
-    return "";
+    return null;
+  }
+}
+
+function writeSession(key: string, value: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.setItem(key, value);
+  } catch {
+    // ignore
   }
 }
 
@@ -102,12 +108,26 @@ export function hasAnsweredExitFeedback(): boolean {
 
 export function markExitFeedbackAnswered(): void {
   writeLocal(EXIT_FEEDBACK_ANSWERED_KEY, "1");
+  writeLocal(EXIT_FEEDBACK_DISMISSED_KEY, "1");
   // Clear soft-dismiss so answered wins permanently.
   try {
     localStorage.removeItem(EXIT_FEEDBACK_DISMISS_UNTIL_KEY);
   } catch {
     // ignore
   }
+  markExitFeedbackShown();
+}
+
+export function hasExitFeedbackBeenShown(): boolean {
+  return readSession(EXIT_FEEDBACK_SHOWN_KEY) === "1";
+}
+
+export function markExitFeedbackShown(): void {
+  writeSession(EXIT_FEEDBACK_SHOWN_KEY, "1");
+}
+
+export function hasStickyExitFeedbackDismiss(): boolean {
+  return readLocal(EXIT_FEEDBACK_DISMISSED_KEY) === "1";
 }
 
 export function getExitFeedbackDismissUntilMs(): number | null {
@@ -118,6 +138,7 @@ export function getExitFeedbackDismissUntilMs(): number | null {
 }
 
 export function isExitFeedbackDismissActive(nowMs: number = Date.now()): boolean {
+  if (hasStickyExitFeedbackDismiss()) return true;
   const until = getExitFeedbackDismissUntilMs();
   return until != null && nowMs < until;
 }
@@ -127,8 +148,11 @@ export function markExitFeedbackDismissed(
   days: number = EXIT_FEEDBACK_DISMISS_DAYS,
 ): void {
   if (hasAnsweredExitFeedback()) return;
+  // Sticky local dismiss so a closed popup does not return for this visitor.
+  writeLocal(EXIT_FEEDBACK_DISMISSED_KEY, "1");
   const until = new Date(nowMs + Math.max(1, days) * 24 * 60 * 60 * 1000);
   writeLocal(EXIT_FEEDBACK_DISMISS_UNTIL_KEY, until.toISOString());
+  markExitFeedbackShown();
 }
 
 export function hasCheckoutStartedInSession(): boolean {
@@ -212,6 +236,26 @@ export function hasExitFeedbackTestOverride(search?: string): boolean {
   }
 }
 
+/**
+ * Design-review / agent force-open: `?exit_test=1&exit_open=1`.
+ * Skips active-time + cart gates; still respects answered/dismiss/admin/B2B.
+ */
+export function hasExitFeedbackForceOpen(search?: string): boolean {
+  if (!hasExitFeedbackTestOverride(search)) return false;
+  const raw =
+    search ??
+    (typeof window !== "undefined" ? window.location.search : "");
+  try {
+    const params = new URLSearchParams(
+      raw.startsWith("?") ? raw : `?${raw}`,
+    );
+    const v = params.get("exit_open");
+    return v === "1" || v === "true" || v === "yes";
+  } catch {
+    return false;
+  }
+}
+
 export function isInternalExitFeedbackSession(opts?: {
   hostname?: string;
   search?: string;
@@ -266,7 +310,7 @@ export type ExitFeedbackSuppressOpts = {
   isB2B?: boolean;
   /** Logged-in profile already answered. */
   profileAnswered?: boolean;
-  /** When true, skip answered/dismiss localStorage checks (tests). */
+  /** When true, skip answered/dismiss/shown persistence checks (tests). */
   ignoreLocalPersistence?: boolean;
 };
 
@@ -274,7 +318,8 @@ export type ExitFeedbackSuppressOpts = {
  * Hard suppress gates for the exit popup.
  * Admin / B2B / blocked paths always win.
  * Internal hosts are suppressed unless `?exit_test=1`.
- * Answered (local or profile) and soft-dismiss always suppress (even with exit_test).
+ * Answered / sticky dismiss / session shown always suppress (even with exit_test),
+ * except `exit_open=1` which may reopen for design review after clearing shown.
  */
 export function shouldSuppressExitFeedbackUi(
   opts?: ExitFeedbackSuppressOpts,
@@ -292,6 +337,13 @@ export function shouldSuppressExitFeedbackUi(
   if (!opts?.ignoreLocalPersistence) {
     if (hasAnsweredExitFeedback()) return true;
     if (isExitFeedbackDismissActive()) return true;
+    // Once shown this session, do not open again (unless force-open design review).
+    if (
+      hasExitFeedbackBeenShown() &&
+      !hasExitFeedbackForceOpen(opts?.search)
+    ) {
+      return true;
+    }
   }
 
   if (hasExitFeedbackTestOverride(opts?.search)) return false;
