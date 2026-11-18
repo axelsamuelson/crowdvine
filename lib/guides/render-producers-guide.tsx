@@ -9,6 +9,7 @@ import { ProducerRankChange } from "@/components/guides/producer-rank-change";
 import { SystembolagetBagIcon } from "@/components/guides/systembolaget-bag-icon";
 import { SystembolagetProducerMark } from "@/components/guides/systembolaget-producer-mark";
 import { Footer } from "@/components/layout/footer";
+import { renderArticleRichText } from "@/lib/guides/article-guide-shell";
 import {
   GuideBreadcrumbs,
   buildGuideBreadcrumbJsonLd,
@@ -330,9 +331,11 @@ export async function renderProducersGuidePage(locale: AppLocale) {
         <p className="mt-3 text-sm text-muted-foreground">{updatedLine}</p>
 
         <div className="mt-6 space-y-4 text-base leading-relaxed text-muted-foreground">
-          {copy.producers.intro.map((paragraph) => (
+          {copy.producers.intro.map((paragraph, index) => (
             <p key={paragraph.slice(0, 40)}>
-              {linkLanguedocMentions(paragraph, locale)}
+              {paragraph.includes("](")
+                ? renderArticleRichText(paragraph, `intro-${index}`)
+                : linkLanguedocMentions(paragraph, locale)}
             </p>
           ))}
         </div>

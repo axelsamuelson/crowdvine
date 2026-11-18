@@ -59,7 +59,7 @@ export const beaujolaisNaturalWineArticle: GuideArticleContent = {
         en: [
           "For reds the region is essentially a single grape: Gamay, with only a tiny amount of Chardonnay and Aligoté. Philip the Bold banned Gamay from Burgundy in 1395 — a political rejection that helped push the variety south into Beaujolais, where it found its true home.",
           "On granite in the northern crus Gamay builds depth, fragrance and structure; on clay and limestone further south it tends toward softer, earlier drinking fruit. Few major red grapes show their ground so transparently — thin skins, naturally high acidity, and a fermentation that can run cleanly with indigenous yeasts and little or no added sulphur.",
-          "That is why Gamay suits natural wine philosophy particularly well. When farming and cellar step back, the grape does not hide behind heavy extraction. It shows the hill — or fails honestly. Cru Beaujolais at its best belongs in the same conversation as village Burgundy: not as imitation, but as another argument that a named place and a single grape can carry seriousness.",
+          "That is why Gamay suits [natural wine](/guides/what-is-natural-wine) philosophy particularly well. When farming and cellar step back, the grape does not hide behind heavy extraction. It shows the hill — or fails honestly. Cru Beaujolais at its best belongs in the same conversation as village Burgundy: not as imitation, but as another argument that a named place and a single grape can carry seriousness.",
         ],
         sv: "Vad Gamay faktiskt är — orättvist avfärdad, kapabel till verklig komplexitet på rätt jord. Varför den förbjöds i Bourgogne av Philip den djärve 1395. Hur den trivs på Beaujolais granit. Vad granit ger Gamay som lerjord inte kan: mineralitet, struktur, förmågan att åldras. Varför druvan lämpar sig särskilt väl för naturvinsfilosofin — tunn skalkontakt, naturligt hög syra, jäser lätt utan tillsatser.",
       },
@@ -140,6 +140,16 @@ export const beaujolaisNaturalWineArticle: GuideArticleContent = {
     },
   ],
   internalLinks: [
+    {
+      label: {
+        en: "What is natural wine? →",
+        sv: "",
+      },
+      href: {
+        en: "/guides/what-is-natural-wine",
+        sv: "/guider/vad-ar-naturvin",
+      },
+    },
     {
       label: {
         en: "The Gang of Four →",

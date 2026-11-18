@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 
 import { GuideRankEntry } from "@/components/guides/guide-rank-entry";
 import { Footer } from "@/components/layout/footer";
+import { renderArticleRichText } from "@/lib/guides/article-guide-shell";
 import {
   GuideBreadcrumbs,
   buildGuideBreadcrumbJsonLd,
@@ -220,9 +221,11 @@ export async function renderWinesGuidePage(locale: AppLocale) {
         </p>
 
         <div className="mt-6 space-y-4 text-base leading-relaxed text-muted-foreground">
-          {copy.wines.intro.map((paragraph) => (
+          {copy.wines.intro.map((paragraph, index) => (
             <p key={paragraph.slice(0, 40)}>
-              {linkLanguedocMentions(paragraph, locale)}
+              {paragraph.includes("](")
+                ? renderArticleRichText(paragraph, `intro-${index}`)
+                : linkLanguedocMentions(paragraph, locale)}
             </p>
           ))}
         </div>

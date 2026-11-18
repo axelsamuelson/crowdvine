@@ -356,7 +356,7 @@ export function ArticleGuideShell({
 
           {lede ? (
             <p className="mt-4 text-xl leading-relaxed text-muted-foreground">
-              {lede}
+              {lede.includes("](") ? renderArticleRichText(lede, "lede") : lede}
             </p>
           ) : null}
 

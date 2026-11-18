@@ -111,13 +111,23 @@ export const radikonArticle: GuideArticleContent = {
       body: {
         en: [
           "Radikon proved that white wine could have the structure and longevity of red; that skin contact was not a quirk but a tradition with deep roots; and that bottles could be designed around how wine is actually drunk.",
-          "What the natural wine movement owes to Oslavje is a proof of concept that travelled further than anyone in that village could have imagined in 1995. Orange wine found a home and a language there — partly through Gravner, partly through Radikon, and fully through the argument both domaines kept making. On PACT's list of the world's 100 best natural wine producers, Radikon stands at number eight — a ranking for a family domaine whose work still shapes how the category is understood.",
+          "What the [natural wine](/guides/what-is-natural-wine) movement owes to Oslavje is a proof of concept that travelled further than anyone in that village could have imagined in 1995. Orange wine found a home and a language there — partly through Gravner, partly through Radikon, and fully through the argument both domaines kept making. On PACT's list of the world's 100 best natural wine producers, Radikon stands at number eight — a ranking for a family domaine whose work still shapes how the category is understood.",
         ],
         sv: "Att vitt vin kunde ha röda viners struktur och livslängd. Att skalkontakt inte var en quirk utan en tradition med djupa rötter. Att flaskor kunde designas utifrån hur vin faktiskt dricks. Vad naturvinsrörelsen är skyldig Oslavje — ett existensbevis som reste längre än någon i den byn kunde ha föreställt sig 1995.",
       },
     },
   ],
   internalLinks: [
+    {
+      label: {
+        en: "What is natural wine? →",
+        sv: "",
+      },
+      href: {
+        en: "/guides/what-is-natural-wine",
+        sv: "/guider/vad-ar-naturvin",
+      },
+    },
     {
       label: {
         en: "Radikon is ranked #8 on our list of the world's 100 best natural wine producers →",

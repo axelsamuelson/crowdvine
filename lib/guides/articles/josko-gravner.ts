@@ -58,7 +58,7 @@ export const joskoGravnerArticle: GuideArticleContent = {
         en: [
           "Qvevri are Georgian clay vessels buried in the ground. The tradition behind them is ancient — measured in millennia rather than marketing cycles — and still in use. Whole clusters go into the vessel; skins stay with the juice; fermentation and maceration happen without the temperature dials of a modern cellar.",
           "Burying the vessel matters. The earth steadies temperature more gently than steel tanks and refrigeration. The wine moves at the pace of the season and the clay, not at the pace of a technician's setting. No added sulphur closes the circle: the method trusts fruit, vessel and time.",
-          "That is why qvevri sit so close to natural wine philosophy. Looking backwards here is not nostalgia. It is a refusal to treat the latest cellar as the only legitimate one — and a proof that an ancient technique can still make the most modern argument in the bottle.",
+          "That is why qvevri sit so close to [natural wine](/guides/what-is-natural-wine) philosophy. Looking backwards here is not nostalgia. It is a refusal to treat the latest cellar as the only legitimate one — and a proof that an ancient technique can still make the most modern argument in the bottle.",
         ],
         sv: "Qvevri är georgiska lerkärl täckta med bivax invändigt och nedgrävda i marken. Nedgrävningen är inte tradition för traditionens skull — den ger en naturlig, stabil temperatur utan mekanisk kylning. Hela klasar med skal och stjälkar läggs i, jäsningen sker spontant med druvans egna jästsvampar, och vinet lagras sedan i månader eller år utan syretillförsel.\n\nResultatet är det vi idag kallar orange vin — vitt vin gjort som rött, med skalkontaktens tanniner och bärnstensfärg. Men i Georgien finns ingen kategori. Det är bara vin, gjort som det alltid gjorts.",
       },
@@ -118,6 +118,16 @@ export const joskoGravnerArticle: GuideArticleContent = {
     },
   ],
   internalLinks: [
+    {
+      label: {
+        en: "What is natural wine? →",
+        sv: "",
+      },
+      href: {
+        en: "/guides/what-is-natural-wine",
+        sv: "/guider/vad-ar-naturvin",
+      },
+    },
     {
       label: {
         en: "Joško Gravner is ranked #3 on our list of the world's 100 best natural wine producers →",

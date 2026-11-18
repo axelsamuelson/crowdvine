@@ -113,13 +113,23 @@ export const jeanFrancoisGanevatArticle: GuideArticleContent = {
       body: {
         en: [
           "Ganevat's work helped pull Côtes du Jura out of the shadow of better-known villages. Drinkers who once skipped past Rotalier began treating it as a place that mattered. Other growers took note of the parcellaire seriousness and the low-intervention cellar, even when their own ranges stayed smaller.",
-          "In the broader Jura story he sits alongside Pierre Overnoy, Philippe Bornard and others who made the region impossible to ignore. On PACT's list of the world's 100 best natural wine producers, Jean-François Ganevat stands at number four — not for volume, but for how completely one domaine in a minor village changed what the Jura means to wine lovers.",
+          "In the broader Jura story he sits alongside Pierre Overnoy, Philippe Bornard and others who made the region impossible to ignore. On PACT's list of the world's 100 best [natural wine](/guides/what-is-natural-wine) producers, Jean-François Ganevat stands at number four — not for volume, but for how completely one domaine in a minor village changed what the Jura means to wine lovers.",
         ],
         sv: "Vad Ganevats arbete gjort för Côtes du Jura-subappellationen. De producenter han inspirerat. Hans plats i den bredare Jura-historien bredvid Overnoy, Bornard och andra. Hur ett enda domän i en liten by förändrade vad Jura betyder för vinälskare — och hur det skapade en mall för vad ambitiöst naturvin i en förbisedd region kan åstadkomma.",
       },
     },
   ],
   internalLinks: [
+    {
+      label: {
+        en: "What is natural wine? →",
+        sv: "",
+      },
+      href: {
+        en: "/guides/what-is-natural-wine",
+        sv: "/guider/vad-ar-naturvin",
+      },
+    },
     {
       label: {
         en: "Jean-François Ganevat is ranked #4 on our list of the world's 100 best natural wine producers →",
