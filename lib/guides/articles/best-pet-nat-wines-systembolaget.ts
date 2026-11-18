@@ -356,8 +356,7 @@ export const bestPetNatWinesSystembolagetSvArticle: GuideArticleContent = {
           "Not all pet nat is natural wine. The method says how the bubbles arrive, not how the grapes were farmed or what was added.",
         ],
         sv: [
-          "Pét-nat (pétillant naturel) är mousserande vin gjort med den äldsta metoden, méthode ancestrale. Vinet buteljeras innan första jäsningen är klar, och kolsyran bildas i flaskan av druvans eget socker – utan tillsatt jäst eller socker. Därför är pét-nat ofta lätt grumligt, med mjukare bubblor än champagne, och ibland med kvarvarande jästfällning i flaskan. Läs mer i [Vad är pét-nat?](/guider/vad-ar-pet-nat) och [Vad är naturvin?](/guider/vad-ar-naturvin).",
-          "Allt pét-nat är inte naturvin. Metoden säger hur bubblorna kommer till, inte hur druvorna odlats eller vad som tillsatts.",
+          "Pét-nat (pétillant naturel) är mousserande vin gjort med den äldsta metoden, méthode ancestrale. Vinet buteljeras innan första jäsningen är klar, och kolsyran bildas i flaskan av druvans eget socker – utan tillsatt jäst eller socker. Därför är pét-nat ofta lätt grumligt, med mjukare bubblor än champagne, och ibland med kvarvarande jästfällning i flaskan. Läs mer om vad [pet nat](/guider/vad-ar-pet-nat) är och hur det görs.",
         ],
       },
     },
