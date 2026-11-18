@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { headers } from "next/headers";
-import { notFound, permanentRedirect } from "next/navigation";
+import { permanentRedirect } from "next/navigation";
 
 import ProductList from "@/app/vin/components/product-list";
 import { ProductListShell } from "@/app/vin/components/product-list-shell";
@@ -25,7 +25,8 @@ import {
   producerShopMetaDescription,
   producerShopPageTitle,
 } from "@/lib/seo/producer-shop-metadata";
-import { getCollection, getCollectionProducts } from "@/lib/shopify";
+import { getCollectionProducts } from "@/lib/shopify";
+import { notFoundUnlessShopSlug } from "@/lib/shop/shop-slug-resolution";
 import { isB2BHost } from "@/lib/b2b-site";
 import { getShoppingContextFromRequest } from "@/lib/shopping-context/server";
 import { fallbackShoppingContext } from "@/lib/shopping-context/defaults";
@@ -60,9 +61,7 @@ import {
 } from "@/lib/wine-categories";
 import { isWineRegionShopCategory } from "@/lib/wine-shop-filter-categories";
 import { wineRegionLabel } from "@/lib/wine-regions";
-import { resolveGrapeCategoryBySlug } from "@/lib/wine-grape-categories";
 import { ProducerBoxesPage } from "@/components/producer-boxes/producer-boxes-page";
-import { isProducerBoxesSlug } from "@/lib/producer-boxes/config";
 import { buildProducerBoxesMetadata } from "@/lib/producer-boxes/metadata";
 export const revalidate = 300;
 export const dynamicParams = true;
@@ -80,12 +79,14 @@ export async function generateMetadata(props: {
     props.searchParams ?? Promise.resolve({}),
   ]);
 
-  if (isProducerBoxesSlug(slug, "en")) {
+  const resolved = await notFoundUnlessShopSlug(slug, "en");
+
+  if (resolved.kind === "producer-boxes") {
     return buildProducerBoxesMetadata("en");
   }
 
-  const category = await resolveGrapeCategoryBySlug(slug, "en");
-  if (category) {
+  if (resolved.kind === "category") {
+    const category = resolved.category;
     const headerList = await headers();
     const isB2BSite = isB2BHost(
       headerList.get("x-forwarded-host") ?? headerList.get("host"),
@@ -142,11 +143,7 @@ export async function generateMetadata(props: {
     };
   }
 
-  const collection = await getCollection(slug);
-  if (!collection) {
-    return { robots: { index: false, follow: false } };
-  }
-
+  const collection = resolved.collection;
   const config = await getSiteConfig();
   const shopUrl = `${PACT_PUBLIC_ORIGIN}${producerShopPagePath(collection.title, "en")}`;
   const producer = asProducerCollectionData(collection);
@@ -204,16 +201,14 @@ export default async function WineCategoryPage(props: PageProps) {
   const { category: slug } = await props.params;
   const searchParams = await props.searchParams;
 
-  if (isProducerBoxesSlug(slug, "en")) {
+  const resolved = await notFoundUnlessShopSlug(slug, "en");
+
+  if (resolved.kind === "producer-boxes") {
     return <ProducerBoxesPage locale="en" />;
   }
 
-  const category = await resolveGrapeCategoryBySlug(slug, "en");
-  if (!category) {
-    const collection = await getCollection(slug);
-    if (!collection) {
-      notFound();
-    }
+  if (resolved.kind !== "category") {
+    const collection = resolved.collection;
 
     if (collection.handle !== slug) {
       permanentRedirect(`/wine/${collection.handle}`);
@@ -273,6 +268,8 @@ export default async function WineCategoryPage(props: PageProps) {
       </>
     );
   }
+
+  const category = resolved.category;
 
   const [config, shoppingContext] = await Promise.all([
     getSiteConfig(),
