@@ -235,7 +235,7 @@ describe("English producer region names", () => {
         ["Etna Nord, Sicilien", "Etna Nord, Sicily"],
         [
           "Galicien, Kanarieöarna & Bierzo, Spanien",
-          "Galicien, Kanarieöarna & Bierzo, Spain",
+          "Galicia, Canary Islands & Bierzo, Spain",
         ],
         ["Imereti, Georgien", "Imereti, Georgia"],
         ["Kakheti, Georgien", "Kakheti, Georgia"],
@@ -244,9 +244,11 @@ describe("English producer region names", () => {
           "McLaren Vale / Basket Range, Australien",
           "McLaren Vale / Basket Range, Australia",
         ],
+        ["North Coast, Kalifornien", "North Coast, California"],
         ["Pantelleria, Sicilien", "Pantelleria, Sicily"],
         ["Swartland, Sydafrika", "Swartland, South Africa"],
         ["Südsteiermark, Österrike", "Südsteiermark, Austria"],
+        ["Terra Alta, Katalonien", "Terra Alta, Catalonia"],
         ["Vittoria, Sicilien", "Vittoria, Sicily"],
         ["Weststeiermark, Österrike", "Weststeiermark, Austria"],
       ],
@@ -254,5 +256,49 @@ describe("English producer region names", () => {
     for (const producer of TOP_100_PRODUCERS) {
       expect(regionLabel(producer.region, "sv")).toBe(producer.region);
     }
+
+    const gravner = TOP_100_PRODUCERS.find((producer) => producer.name === "Joško Gravner");
+    expect(gravner?.region).toBe("Oslavia, Collio, Friuli");
+    expect(gravner?.descriptionEn).toContain("until a 2000 trip to Georgia");
+    expect(gravner?.descriptionEn).toContain("From 2001 he has vinified in qvevri");
+    expect(gravner?.descriptionEn).not.toContain("1997");
+    expect(gravner?.description).toContain("2000 gjorde en resa till Georgien");
+    expect(gravner?.description).toContain("Från 2001 vinifierar han i qvevri");
+    expect(gravner?.description).not.toContain("1997");
+
+    const wineChanges = [
+      ...new Set(
+        TOP_100_WINES.map((wine) => wine.region).filter(
+          (region) => regionLabel(region, "en") !== region,
+        ),
+      ),
+    ].sort();
+    expect(
+      wineChanges.map((region) => [region, regionLabel(region, "en")]),
+    ).toEqual([
+      ["Amandi, Ribeira Sacra, Galicien", "Amandi, Ribeira Sacra, Galicia"],
+      ["Brda, Slovenien", "Brda, Slovenia"],
+      ["Burgenland, Österrike", "Burgenland, Austria"],
+      [
+        "Contrada Barbabecchi, Etna Nord, Sicilien",
+        "Contrada Barbabecchi, Etna Nord, Sicily",
+      ],
+      ["Etna, Sicilien", "Etna, Sicily"],
+      ["Kakheti, Georgien", "Kakheti, Georgia"],
+      ["Kartli, Georgien", "Kartli, Georgia"],
+      ["Mosel, Tyskland", "Mosel, Germany"],
+      [
+        "Nakhshirgele, Imereti, Georgien",
+        "Nakhshirgele, Imereti, Georgia",
+      ],
+      ["Oggau, Burgenland, Österrike", "Oggau, Burgenland, Austria"],
+      ["Pantelleria, Sicilien", "Pantelleria, Sicily"],
+      ["Südsteiermark, Österrike", "Südsteiermark, Austria"],
+      [
+        "Valle de La Orotava, Tenerife, Kanarieöarna",
+        "Valle de La Orotava, Tenerife, Canary Islands",
+      ],
+      ["Weststeiermark, Österrike", "Weststeiermark, Austria"],
+    ]);
   });
 });
