@@ -19,7 +19,7 @@ import {
   entryDescription,
   guideCopy,
 } from "@/lib/guides/guide-copy";
-import { countryLabel } from "@/lib/guides/guide-labels";
+import { countryLabel, regionLabel } from "@/lib/guides/guide-labels";
 import {
   guideHreflang,
   guidePath,
@@ -232,7 +232,7 @@ export async function renderProducersGuidePage(locale: AppLocale) {
   const languedoc = filterLanguedocRoussillonEntries(TOP_100_PRODUCERS);
 
   const producerMetaLine = (entry: (typeof TOP_100_PRODUCERS)[number]) =>
-    `${entry.region} · ${countryLabel(entry.country, locale)} · ${entry.grapes}`;
+    `${regionLabel(entry.region, locale)} · ${countryLabel(entry.country, locale)} · ${entry.grapes}`;
   const shopLinkFor = (producer: TopProducer) =>
     producer.producerId ? shopLinks[producer.producerId] : undefined;
 
@@ -467,11 +467,11 @@ export async function renderProducersGuidePage(locale: AppLocale) {
               name: producer.name,
               region: shopLinkFor(producer) ? (
                 <>
-                  {producer.region}
+                  {regionLabel(producer.region, locale)}
                   <ProducerShopLink link={shopLinkFor(producer)} />
                 </>
               ) : (
-                producer.region
+                regionLabel(producer.region, locale)
               ),
               country: countryLabel(producer.country, locale),
               grapes: producer.grapes,
@@ -526,7 +526,7 @@ export async function renderProducersGuidePage(locale: AppLocale) {
                 )}
                 <span className="text-muted-foreground/80">
                   {" "}
-                  — {producer.region}
+                  — {regionLabel(producer.region, locale)}
                 </span>
                 <ProducerShopLink link={shopLinkFor(producer)} />
               </li>

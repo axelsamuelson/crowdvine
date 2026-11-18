@@ -10,7 +10,7 @@ import {
 } from "@/lib/guides/guide-breadcrumbs";
 import { guideHomeAbsoluteUrl } from "@/lib/guides/guide-article-crumbs";
 import { guideCopy } from "@/lib/guides/guide-copy";
-import { countryLabel } from "@/lib/guides/guide-labels";
+import { countryLabel, regionLabel } from "@/lib/guides/guide-labels";
 import { guideHreflang, guidePath } from "@/lib/guides/guide-routes";
 import { homePathForLocale } from "@/lib/i18n/localized-routes";
 import { TOP_100_WINES } from "@/lib/guides/top-100-wines";
@@ -199,7 +199,7 @@ export async function renderWorldsBestNaturalChampagnePage(locale: AppLocale) {
               rank: index + 1,
               wine: wine.wine,
               producer: wine.producer,
-              region: wine.region,
+              region: regionLabel(wine.region, locale),
               country: countryLabel(wine.country, locale),
             }))}
           />
