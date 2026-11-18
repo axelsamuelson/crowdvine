@@ -4,11 +4,13 @@ import { headers } from "next/headers";
 
 import ProductList from "@/app/vin/components/product-list";
 import { CategoryFaqSection } from "@/components/shop/category-faq-section";
+import { CategoryPillLinks } from "@/components/shop/category-pill-links";
 import { ShopRegionLinks } from "@/components/shop/shop-region-links";
 import { isB2BHost } from "@/lib/b2b-site";
 import { mapProductDataToShopProducts } from "@/lib/map-product-data-to-shop-product";
 import { getCachedShopProducts } from "@/lib/shop/cached-shop-products";
 import { getIndexableRegionLinks } from "@/lib/shop/indexable-region-links";
+import { getShopRootStylePillLinks } from "@/lib/shop/style-category-links";
 import { getShopRootNaturalWineContent } from "@/lib/shop/shop-root-natural-wine-content";
 import {
   DEFAULT_B2B_SHOP_SORT,
@@ -247,7 +249,12 @@ export async function MainShopContent({
     headerList.get("x-forwarded-host") ?? headerList.get("host"),
   );
   const content = getShopRootNaturalWineContent(locale, { isB2BSite });
-  const regionLinks = await getIndexableRegionLinks(locale);
+  const [regionLinks, styleLinks] = await Promise.all([
+    getIndexableRegionLinks(locale),
+    getShopRootStylePillLinks(locale, isB2BSite),
+  ]);
+  const styleHeading =
+    locale === "sv" ? "Utforska per stil" : "Explore by style";
 
   return (
     <>
@@ -262,6 +269,13 @@ export async function MainShopContent({
           <p className="leading-relaxed text-foreground/75">{content.intro}</p>
         </div>
         {/* PLP: no seller / ångerrätt / delad-pall rows (link-rules §5). */}
+        <CategoryPillLinks
+          heading={styleHeading}
+          links={styleLinks}
+          ariaLabel={styleHeading}
+          testId="shop-style-chips"
+          className="mt-4"
+        />
         <ShopRegionLinks
           locale={locale}
           links={regionLinks}
