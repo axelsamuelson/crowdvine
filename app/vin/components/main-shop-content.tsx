@@ -10,7 +10,7 @@ import { isB2BHost } from "@/lib/b2b-site";
 import { mapProductDataToShopProducts } from "@/lib/map-product-data-to-shop-product";
 import { getCachedShopProducts } from "@/lib/shop/cached-shop-products";
 import { getIndexableRegionLinks } from "@/lib/shop/indexable-region-links";
-import { getShopRootStylePillLinks } from "@/lib/shop/style-category-links";
+import { getShopRootStylePillLinks } from "@/lib/shop/style-category-links-server";
 import { getShopRootNaturalWineContent } from "@/lib/shop/shop-root-natural-wine-content";
 import {
   DEFAULT_B2B_SHOP_SORT,

@@ -4,7 +4,6 @@ import {
   getWineCategorySv,
   type WineCategory,
 } from "@/lib/wine-categories";
-import { getCachedNavigableShopFilterPaths } from "@/lib/shop/shop-filter-category-availability";
 
 export type StyleCategoryPillLink = {
   href: string;
@@ -120,7 +119,7 @@ export function styleFilterLabel(
   return category ? categoryPillShortLabel(category) : value;
 }
 
-function pillLinksFromSlugs(
+export function pillLinksFromSlugs(
   slugs: readonly string[],
   locale: AppLocale,
   navigablePaths: ReadonlySet<string>,
@@ -137,32 +136,6 @@ function pillLinksFromSlugs(
     });
   }
   return links;
-}
-
-export async function getShopRootStylePillLinks(
-  locale: AppLocale,
-  isB2BSite: boolean,
-): Promise<StyleCategoryPillLink[]> {
-  const paths = await getCachedNavigableShopFilterPaths(isB2BSite);
-  const navigable = new Set(paths);
-  const slugs =
-    locale === "sv"
-      ? SHOP_ROOT_STYLE_PILL_SLUGS_SV
-      : SHOP_ROOT_STYLE_PILL_SLUGS_EN;
-  return pillLinksFromSlugs(slugs, locale, navigable);
-}
-
-export async function getMoreStylesPillLinks(
-  locale: AppLocale,
-  isB2BSite: boolean,
-): Promise<StyleCategoryPillLink[]> {
-  const paths = await getCachedNavigableShopFilterPaths(isB2BSite);
-  const navigable = new Set(paths);
-  const slugs =
-    locale === "sv"
-      ? SHOP_MORE_STYLES_PILL_SLUGS_SV
-      : SHOP_MORE_STYLES_PILL_SLUGS_EN;
-  return pillLinksFromSlugs(slugs, locale, navigable);
 }
 
 /** Pure helper for tests: resolve root style pill links against a path set. */

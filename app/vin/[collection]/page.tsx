@@ -60,7 +60,7 @@ import {
 } from "@/lib/wine-categories";
 import { isWineRegionShopCategory } from "@/lib/wine-shop-filter-categories";
 import { wineRegionLabel } from "@/lib/wine-regions";
-import { getMoreStylesPillLinks } from "@/lib/shop/style-category-links";
+import { getMoreStylesPillLinks } from "@/lib/shop/style-category-links-server";
 import { ProducerBoxesPage } from "@/components/producer-boxes/producer-boxes-page";
 import { buildProducerBoxesMetadata } from "@/lib/producer-boxes/metadata";
 export const revalidate = 300;
