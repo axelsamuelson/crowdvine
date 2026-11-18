@@ -33,6 +33,10 @@ const COLOR_HUB_SLUGS_EN = [
   "orange-natural-wine",
 ] as const;
 
+const STYLE_HUB_SLUGS_SV = ["mousserande-vin", "pet-nat"] as const;
+
+const STYLE_HUB_SLUGS_EN = ["sparkling-wine", "pet-nat"] as const;
+
 const FARMING_HUB_SLUGS_SV = [
   "ekologiskt-vin",
   "biodynamiskt-vin",
@@ -78,6 +82,41 @@ function colorHubSlugs(locale: AppLocale): readonly string[] {
 
 function farmingHubSlugs(locale: AppLocale): readonly string[] {
   return locale === "sv" ? FARMING_HUB_SLUGS_SV : FARMING_HUB_SLUGS_EN;
+}
+
+function styleHubSlugs(locale: AppLocale): readonly string[] {
+  return locale === "sv" ? STYLE_HUB_SLUGS_SV : STYLE_HUB_SLUGS_EN;
+}
+
+function isStyleTagCategory(category: WineCategory): boolean {
+  const tags = category.filter.tags ?? [];
+  return (
+    tags.length > 0 &&
+    !category.filter.color?.length &&
+    !category.filter.farming?.length &&
+    !category.filter.filterGrape &&
+    !category.filter.wineRegion
+  );
+}
+
+function styleTagExploreLinks(category: WineCategory): CategoryExploreLink[] {
+  const locale = category.locale;
+  const links = styleHubSlugs(locale)
+    .filter((slug) => slug !== category.slug)
+    .map((slug) => categoryLink(slug, locale));
+
+  links.push({
+    href: locale === "sv" ? "/vin" : "/wine",
+    label: locale === "sv" ? "Alla naturviner" : "All natural wines",
+  });
+
+  links.push(
+    locale === "sv"
+      ? { href: "/guider/vad-ar-pet-nat", label: "Vad är pet nat? →" }
+      : { href: "/guides/what-is-pet-nat", label: "What is pet nat? →" },
+  );
+
+  return links;
 }
 
 export function isFarmingMethodHub(category: WineCategory): boolean {
@@ -307,6 +346,10 @@ function colorHubExploreLinks(category: WineCategory): CategoryExploreLink[] {
     });
   }
 
+  for (const slug of styleHubSlugs(locale)) {
+    links.push(categoryLink(slug, locale));
+  }
+
   return links;
 }
 
@@ -509,6 +552,10 @@ export function getCategoryExploreLinks(
 
   if (isFarmingMethodHub(category)) {
     return farmingHubExploreLinks(category);
+  }
+
+  if (isStyleTagCategory(category)) {
+    return styleTagExploreLinks(category);
   }
 
   if (isGrapeOnlyCategory(category)) {
