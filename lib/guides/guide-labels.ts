@@ -27,6 +27,27 @@ export function countryLabel(sv: string, locale: "sv" | "en"): string {
   return locale === "en" ? (COUNTRY_EN[sv] ?? sv) : sv;
 }
 
+/**
+ * Swedish country names that appear inside TOP_100_WINES.region
+ * but are not stored in the country column (Sicilien is a region token).
+ */
+const REGION_TOKEN_EN: Record<string, string> = {
+  ...COUNTRY_EN,
+  Sicilien: "Sicily",
+};
+
+/** English pages: translate Swedish country tokens inside a region string. */
+export function regionLabel(region: string, locale: "sv" | "en"): string {
+  if (locale !== "en") return region;
+  return region
+    .split(",")
+    .map((part) => {
+      const trimmed = part.trim();
+      return REGION_TOKEN_EN[trimmed] ?? trimmed;
+    })
+    .join(", ");
+}
+
 export function wineTypeLabel(sv: string, locale: "sv" | "en"): string {
   return locale === "en" ? (WINE_TYPE_EN[sv] ?? sv) : sv;
 }
