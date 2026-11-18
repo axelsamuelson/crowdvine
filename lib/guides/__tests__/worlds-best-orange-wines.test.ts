@@ -8,12 +8,15 @@ vi.mock("next/navigation", () => ({
 }));
 
 import { countryLabel, regionLabel } from "@/lib/guides/guide-labels";
+import { georgiaNaturalWineArticle } from "@/lib/guides/articles/georgia-natural-wine";
+import { joskoGravnerArticle } from "@/lib/guides/articles/josko-gravner";
 import {
   buildWorldsBestOrangeWinesMetadata,
   getOrangeWinesFromTop100,
   renderWorldsBestOrangeWinesPage,
 } from "@/lib/guides/render-worlds-best-orange-wines";
 import { TOP_100_WINES } from "@/lib/guides/top-100-wines";
+import { TOP_100_PRODUCERS } from "@/lib/guides/top-100-producers";
 import {
   ORANGE_WINE_EN_BLURBS,
   worldsBestOrangeWinesGuide,
@@ -176,5 +179,80 @@ describe("TOP_100_WINES orange description corrections", () => {
     expect(pheasant?.descriptionEn).not.toContain("eight thousand years");
     expect(pheasant?.description).toContain("på traditionellt kakhetiskt vis");
     expect(pheasant?.description).not.toContain("åtta tusen år");
+  });
+});
+
+describe("Gravner Georgia trip year", () => {
+  it("dates the trip to 2000 and qvevri to the 2001 vintage", () => {
+    expect(joskoGravnerArticle.meta.en).toContain("In 2000 Joško Gravner visited Georgia");
+    expect(joskoGravnerArticle.meta.en).toContain("qvevri from the 2001 vintage");
+    expect(joskoGravnerArticle.meta.sv).toContain("2000 reste Joško Gravner till Georgien");
+    expect(joskoGravnerArticle.meta.sv).toContain("Från 2001 års skörd använde han qvevri");
+    const gravnerEn = joskoGravnerArticle.sections
+      .flatMap((section) =>
+        Array.isArray(section.body.en) ? section.body.en : [section.body.en],
+      )
+      .join("\n");
+    const gravnerSv = joskoGravnerArticle.sections
+      .map((section) => section.body.sv)
+      .join("\n");
+    expect(gravnerEn).toContain("Then came 2000, and a trip to Georgia");
+    expect(gravnerEn).toContain("From the 2001 vintage he used qvevri");
+    expect(gravnerEn).not.toContain("1997");
+    expect(gravnerSv).toContain("2000 reste han till Georgien");
+    expect(gravnerSv).toContain("Från 2001 års skörd använde han qvevri");
+    expect(gravnerSv).not.toContain("1997");
+
+    const georgiaEn = georgiaNaturalWineArticle.sections
+      .flatMap((section) =>
+        Array.isArray(section.body.en) ? section.body.en : [section.body.en],
+      )
+      .join("\n");
+    const georgiaSv = georgiaNaturalWineArticle.sections
+      .map((section) => section.body.sv)
+      .join("\n");
+    expect(georgiaEn).toContain("Joško Gravner's 2000 trip to Georgia");
+    expect(georgiaEn).toContain("He used qvevri from the 2001 vintage");
+    expect(georgiaEn).not.toContain("1997");
+    expect(georgiaSv).toContain("Gravners resa 2000");
+    expect(georgiaSv).toContain("Från 2001 års skörd använde han qvevri");
+    expect(georgiaSv).not.toContain("1997");
+  });
+});
+
+describe("English producer region names", () => {
+  it("translates Swedish country tokens and leaves the Swedish page unchanged", () => {
+    const changed = [
+      ...new Set(
+        TOP_100_PRODUCERS.map((producer) => producer.region).filter(
+          (region) => regionLabel(region, "en") !== region,
+        ),
+      ),
+    ].sort();
+    expect(changed.map((region) => [region, regionLabel(region, "en")])).toEqual(
+      [
+        ["Brda, Slovenien", "Brda, Slovenia"],
+        ["Etna Nord, Sicilien", "Etna Nord, Sicily"],
+        [
+          "Galicien, Kanarieöarna & Bierzo, Spanien",
+          "Galicien, Kanarieöarna & Bierzo, Spain",
+        ],
+        ["Imereti, Georgien", "Imereti, Georgia"],
+        ["Kakheti, Georgien", "Kakheti, Georgia"],
+        ["Kvemo Kartli, Georgien", "Kvemo Kartli, Georgia"],
+        [
+          "McLaren Vale / Basket Range, Australien",
+          "McLaren Vale / Basket Range, Australia",
+        ],
+        ["Pantelleria, Sicilien", "Pantelleria, Sicily"],
+        ["Swartland, Sydafrika", "Swartland, South Africa"],
+        ["Südsteiermark, Österrike", "Südsteiermark, Austria"],
+        ["Vittoria, Sicilien", "Vittoria, Sicily"],
+        ["Weststeiermark, Österrike", "Weststeiermark, Austria"],
+      ],
+    );
+    for (const producer of TOP_100_PRODUCERS) {
+      expect(regionLabel(producer.region, "sv")).toBe(producer.region);
+    }
   });
 });

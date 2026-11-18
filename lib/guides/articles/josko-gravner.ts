@@ -9,8 +9,8 @@ export const joskoGravnerArticle: GuideArticleContent = {
     sv: "Joško Gravner — hur en resa till Georgien…",
   },
   meta: {
-    en: "In 1997 Joško Gravner visited Georgia and came back with a completely different idea of what white wine could be. The story behind modern orange wine.",
-    sv: "1997 reste Joško Gravner till Georgien och kom tillbaka med en helt ny idé om vad vitt vin kunde vara. Historien bakom det moderna orangevinets ursprung.",
+    en: "In 2000 Joško Gravner visited Georgia and came back with a completely different idea of what white wine could be. He used qvevri from the 2001 vintage. The story behind modern orange wine.",
+    sv: "2000 reste Joško Gravner till Georgien och kom tillbaka med en helt ny idé om vad vitt vin kunde vara. Från 2001 års skörd använde han qvevri. Historien bakom det moderna orangevinets ursprung.",
   },
   h1: {
     en: "Joško Gravner — how one trip to Georgia changed wine forever",
@@ -43,10 +43,10 @@ export const joskoGravnerArticle: GuideArticleContent = {
       body: {
         en: [
           "Before the turn, Joško Gravner was a technically accomplished modernist. In the Italian wine culture of the 1990s, that meant prestige: clean fermentations, controlled cellars, and whites that looked and tasted like the international market wanted them to. Skill was measured in precision equipment and in wines that travelled well.",
-          "Then came 1997, and a trip to Georgia. What he found there was not a trend but an older idea of wine — clay vessels buried in the earth, white grapes left on their skins, no temperature control, no additives. He came home with a completely different picture of what white wine could be.",
-          "Abandoning modernism cost him. Customers and reputation fell away for years while he rebuilt the cellar around a method most of Friuli had no language for. From 2001 he began vinifying in qvevri. The wines that followed would eventually define modern orange wine — but only after the world caught up to a domaine that had already moved on.",
+          "Then came 2000, and a trip to Georgia. What he found there was not a trend but an older idea of wine — clay vessels buried in the earth, white grapes left on their skins, no temperature control, no additives. He came home with a completely different picture of what white wine could be.",
+          "Abandoning modernism cost him. Customers and reputation fell away for years while he rebuilt the cellar around a method most of Friuli had no language for. From the 2001 vintage he used qvevri. The wines that followed would eventually define modern orange wine — but only after the world caught up to a domaine that had already moved on.",
         ],
-        sv: "Gravner var en tekniskt skicklig modernist — en framgångsrik producent i det Friuli som på 1990-talet hyllade stålstankar, temperaturkontroll och internationella druvsorts. 1997 reste han till Georgien. Vad han såg där fick honom att ifrågasätta allt han visste om vin.\n\nDen georgiska traditionen — vin gjort i lerkärl nedgrävda i marken, med skalkontakt och utan temperaturkontroll — var inte modern. Den var åtta tusen år gammal. Och den producerade viner med en textur, djup och äkthet som hans eget moderna hantverk inte kunde replikera. Han kom hem och började göra om allting från grunden.",
+        sv: "Gravner var en tekniskt skicklig modernist — en framgångsrik producent i det Friuli som på 1990-talet hyllade stålstankar, temperaturkontroll och internationella druvsorts. 2000 reste han till Georgien. Vad han såg där fick honom att ifrågasätta allt han visste om vin. Från 2001 års skörd använde han qvevri.\n\nDen georgiska traditionen — vin gjort i lerkärl nedgrävda i marken, med skalkontakt och utan temperaturkontroll — var inte modern. Den var åtta tusen år gammal. Och den producerade viner med en textur, djup och äkthet som hans eget moderna hantverk inte kunde replikera. Han kom hem och började göra om allting från grunden.",
       },
     },
     {

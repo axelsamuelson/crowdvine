@@ -84,10 +84,10 @@ export const georgiaNaturalWineArticle: GuideArticleContent = {
       },
       body: {
         en: [
-          "Joško Gravner's 1997 trip to Georgia was the catalyst for orange wine in Friuli. What he saw — qvevri, skin contact, no temperature control — reshaped how he thought white wine could be made. From that visit, a change in Collio eventually reached drinkers everywhere. Georgian tradition did not stay in Georgia.",
+          "Joško Gravner's 2000 trip to Georgia was the catalyst for orange wine in Friuli. What he saw — qvevri, skin contact, no temperature control — reshaped how he thought white wine could be made. He used qvevri from the 2001 vintage. From that visit, a change in Collio eventually reached drinkers everywhere. Georgian tradition did not stay in Georgia.",
           "European orange wine owes a direct debt to Georgian tradition. When a modern movement looking for authenticity met an ancient method that had never abandoned skin contact, the result was not invention so much as recognition — and then translation into European cellars. Kakheti did not become a fashion; it became a reference point for what orange wine had always been able to be. The debt is historical, not metaphorical.",
         ],
-        sv: "Gravners resa 1997. Vad han såg och vad han tog med hem. Hur ett besök i Kakheti förändrade vinframställningen i Friuli och slutligen överallt. Den skuld europeiskt orange vin är skyldig georgisk tradition. Vad som händer när en urgammal metod möter en modern rörelse som letar efter exakt den typen av äkthet.",
+        sv: "Gravners resa 2000. Från 2001 års skörd använde han qvevri. Vad han såg och vad han tog med hem. Hur ett besök i Kakheti förändrade vinframställningen i Friuli och slutligen överallt. Den skuld europeiskt orange vin är skyldig georgisk tradition. Vad som händer när en urgammal metod möter en modern rörelse som letar efter exakt den typen av äkthet.",
       },
     },
     {

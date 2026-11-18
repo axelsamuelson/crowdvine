@@ -28,8 +28,8 @@ export function countryLabel(sv: string, locale: "sv" | "en"): string {
 }
 
 /**
- * Swedish country names that appear inside TOP_100_WINES.region
- * but are not stored in the country column (Sicilien is a region token).
+ * Swedish country names that appear inside a stored region string
+ * but are not the country column (Sicilien is a region token).
  */
 const REGION_TOKEN_EN: Record<string, string> = {
   ...COUNTRY_EN,
