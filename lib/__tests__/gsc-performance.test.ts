@@ -199,6 +199,52 @@ describe("GSC performance filters and data lag", () => {
     ]);
   });
 
+  it("falls back to UTC today minus 3 days when the unfiltered probe is empty", async () => {
+    const today = isoDateUTC(new Date());
+    query.mockImplementation(async (args: { requestBody: RequestBody }) => {
+      const body = args.requestBody;
+      if (isProbe(body, today)) {
+        return { data: { rows: [] } };
+      }
+      const key = body.dimensions?.[0] ?? "total";
+      return {
+        data: {
+          rows: [
+            {
+              keys: [key],
+              clicks: 1,
+              impressions: 2,
+              ctr: 0.5,
+              position: 4,
+            },
+          ],
+        },
+      };
+    });
+
+    const data = await fetchGscPerformance({
+      country: "swe",
+      query_filter: "pet nat",
+      page_filter: "/vin",
+    });
+    const fallback = addDaysUTC(today, -3);
+
+    expect(data.last_data_date).toBe(fallback);
+    expect(data.end_date).toBe(fallback);
+
+    const probe = requestBodies().find((body) => isProbe(body, today));
+    expect(probe?.dimensionFilterGroups).toBeUndefined();
+    const filtered = requestBodies().filter(
+      (body) => body.dimensionFilterGroups,
+    );
+    expect(filtered.length).toBeGreaterThan(0);
+    expect(filtered[0]?.dimensionFilterGroups?.[0]?.filters).toEqual([
+      { dimension: "page", operator: "contains", expression: "/vin" },
+      { dimension: "country", operator: "equals", expression: "swe" },
+      { dimension: "query", operator: "contains", expression: "pet nat" },
+    ]);
+  });
+
   it("rejects a country code that is not ISO 3166-1 alpha-3", async () => {
     await expect(fetchGscPerformance({ country: "sweden" })).rejects.toThrow(
       /ISO 3166-1 alpha-3/,

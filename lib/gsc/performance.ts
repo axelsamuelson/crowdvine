@@ -189,8 +189,9 @@ async function querySearchAnalytics(params: {
 }
 
 /**
- * Latest date key in the last 7 days. Unfiltered so this is the property's
- * data lag, not the sparsity of a query or country slice.
+ * Latest date key in the last 7 days. The probe is always unfiltered so it
+ * measures the property's data freshness, not a country, query, or page slice.
+ * An empty probe falls back to UTC today minus 3 days.
  */
 async function fetchLastDataDate(site: GscSite): Promise<string> {
   const end = defaultEndDate();
@@ -208,12 +209,7 @@ async function fetchLastDataDate(site: GscSite): Promise<string> {
     if (!key) continue;
     if (!last || key > last) last = key;
   }
-  if (!last) {
-    throw new Error(
-      "Search Console returned no dated rows for the last 7 days",
-    );
-  }
-  return last;
+  return last ?? addDaysUTC(end, -3);
 }
 
 function mapPerformanceRows(rows: GscApiRow[]) {
