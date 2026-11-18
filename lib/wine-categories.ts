@@ -162,6 +162,40 @@ const LONG_TAIL_WINE_CATEGORIES_SV: WineCategory[] = [
     hreflang: "cinsault",
     canonical: "/vin/cinsault",
   },
+  {
+    slug: "mousserande-vin",
+    locale: "sv",
+    h1: "Mousserande vin",
+    title: "Mousserande vin | PACT Wines",
+    metaDescription:
+      "Mousserande naturvin: champagne, crémant, cava och pet nat. Bubblor från en andra jäsning, eller från jäsning som avslutas i flaskan.",
+    description:
+      "Mousserande vin är vin med bubblor. Champagne, crémant och cava får dem av en andra jäsning. Pet nat får dem när samma jäsning avslutas i flaskan.",
+    descriptionLink: {
+      label: "Pet nat",
+      href: "/vin/pet-nat",
+    },
+    filter: { tags: ["sparkling"] },
+    hreflang: "sparkling-wine",
+    canonical: "/vin/mousserande-vin",
+  },
+  {
+    slug: "pet-nat",
+    locale: "sv",
+    h1: "Pet nat",
+    title: "Pet nat | PACT Wines",
+    metaDescription:
+      "Pet nat är mousserande vin på méthode ancestrale, där jäsningen avslutas i flaskan. Pétillant naturel, utan en andra jäsning.",
+    description:
+      "Pet nat, kort för pétillant naturel, är mousserande vin där jäsningen börjar i tank och avslutas i flaskan. Metoden kallas också méthode ancestrale.",
+    descriptionLink: {
+      label: "Vad är pet nat?",
+      href: "/guider/vad-ar-pet-nat",
+    },
+    filter: { tags: ["pet_nat"] },
+    hreflang: "pet-nat",
+    canonical: "/vin/pet-nat",
+  },
 ];
 
 export const WINE_CATEGORIES_SV: WineCategory[] = [
@@ -314,6 +348,40 @@ const LONG_TAIL_WINE_CATEGORIES_EN: WineCategory[] = [
     filter: { filterGrape: "Cinsault" },
     hreflang: "cinsault",
     canonical: "/wine/cinsault",
+  },
+  {
+    slug: "sparkling-wine",
+    locale: "en",
+    h1: "Sparkling wine",
+    title: "Sparkling wine | PACT Wines",
+    metaDescription:
+      "Sparkling natural wine: Champagne, Crémant, Cava and pet nat. Bubbles from a second fermentation, or from a fermentation that finishes in the bottle.",
+    description:
+      "Sparkling wine is wine with bubbles. Champagne, Crémant and Cava get them from a second fermentation. Pet nat gets them when the same fermentation finishes in the bottle.",
+    descriptionLink: {
+      label: "Pet nat",
+      href: "/wine/pet-nat",
+    },
+    filter: { tags: ["sparkling"] },
+    hreflang: "mousserande-vin",
+    canonical: "/wine/sparkling-wine",
+  },
+  {
+    slug: "pet-nat",
+    locale: "en",
+    h1: "Pet nat",
+    title: "Pet nat | PACT Wines",
+    metaDescription:
+      "Pet nat is sparkling wine made by the ancestral method, with fermentation finishing in the bottle. Pétillant naturel, without a second fermentation.",
+    description:
+      "Pet nat, short for pétillant naturel, is sparkling wine whose fermentation starts in tank and finishes in the bottle. The method is also called méthode ancestrale.",
+    descriptionLink: {
+      label: "What is pet nat?",
+      href: "/guides/what-is-pet-nat",
+    },
+    filter: { tags: ["pet_nat"] },
+    hreflang: "pet-nat",
+    canonical: "/wine/pet-nat",
   },
 ];
 

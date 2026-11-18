@@ -207,6 +207,7 @@ export function resolveRegionFilterNavigationUrl(options: {
     category?.filter.color?.length ||
       category?.filter.farming?.length ||
       category?.filter.filterGrape ||
+      category?.filter.tags?.length ||
       getActiveGrapeFromPathname(currentPath),
   );
 

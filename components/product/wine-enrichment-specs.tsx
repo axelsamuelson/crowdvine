@@ -48,6 +48,8 @@ const HIDDEN_TASTE_TAGS = new Set([
   "everyday",
   "collectors_item",
   "winemaker_signature",
+  "sparkling",
+  "pet_nat",
 ]);
 
 const MAX_VISIBLE_TASTE_TAGS = 5;
@@ -58,7 +60,7 @@ function formatTasteTagLabel(tag: string): string {
   return withSpaces.charAt(0).toUpperCase() + withSpaces.slice(1);
 }
 
-function resolveVisibleTasteTags(tags: string[] | null | undefined): string[] {
+export function resolveVisibleTasteTags(tags: string[] | null | undefined): string[] {
   if (!tags?.length) return [];
   return tags.filter((tag) => !HIDDEN_TASTE_TAGS.has(tag));
 }
