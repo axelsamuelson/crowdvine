@@ -12,7 +12,7 @@ const BULLETS = [
   "Kassastegen är: postnummer → leverans → ålder och villkor → betalning.",
   "Köpvärde = vin efter rabatt plus frakt. Aldrig orderns totalsumma-fält.",
   "Bottfilter tar bort kända botar och förladdningar innan siffrorna visas.",
-  "Misstänkta bottar (geo): CN/SG/HK, direkt utan referrer, högst 1 page_view, under 10 s, ingen engagemang/korg/sök/kassa. filter_used räknas inte. Hela länder stängs inte av.",
+  "Misstänkta bottar (geo): Kina/Singapore/Hongkong, direkt utan referrer, högst 1 sidvisning, under 10 sekunder, ingen engagemang/varukorg/sök/kassa. Att använda filter räknas inte som engagemang. Hela länder stängs inte av.",
 ];
 
 export function HowWeCountButton() {

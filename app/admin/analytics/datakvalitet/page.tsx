@@ -5,7 +5,7 @@ import { MoreHorizontal } from "lucide-react";
 import { AnalyticsPageShell } from "../v2/analytics-page-shell";
 import { SimpleFetchPanel } from "../v2/simple-fetch-panel";
 import { formatSvNumber } from "@/lib/analytics/v2/labels";
-import { formatStockholmDateTime } from "@/lib/analytics/stockholm-time";
+import { formatStockholmDateTimeClock } from "@/lib/analytics/stockholm-time";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -179,7 +179,7 @@ function DQBody({ data }: { data: DQData }) {
         <p className="mt-3 text-xs text-gray-500">
           Okänt land: {formatSvNumber(data.unknownCountry)} besök.
           {data.refresh?.last_refresh_at
-            ? ` Senaste uppdatering ${formatStockholmDateTime(data.refresh.last_refresh_at)}.`
+            ? ` Senaste uppdatering ${formatStockholmDateTimeClock(data.refresh.last_refresh_at)}.`
             : ""}
         </p>
       </section>
@@ -235,7 +235,7 @@ function DQBody({ data }: { data: DQData }) {
               <span>{EVENT_LABELS[e.eventType] || e.eventType}</span>
               <span className="tabular-nums text-gray-600 dark:text-gray-400">
                 {e.lastAt
-                  ? formatStockholmDateTime(e.lastAt)
+                  ? formatStockholmDateTimeClock(e.lastAt)
                   : "Ingen tid"}{" "}
                 · {formatSvNumber(e.last14Days)} / 14 dagar
                 {e.alert ? (
@@ -285,7 +285,11 @@ function DQBody({ data }: { data: DQData }) {
         <ul className="max-h-96 space-y-1 overflow-y-auto text-xs">
           {log.map((e) => (
             <li key={String(e.id)} className="font-mono">
-              {String(e.created_at)} · {String(e.event_type)} ·{" "}
+              {e.created_at
+                ? formatStockholmDateTimeClock(String(e.created_at))
+                : "—"}{" "}
+              ·{" "}
+              {EVENT_LABELS[String(e.event_type)] || "Händelse"} ·{" "}
               {String(e.page_url || "")}
             </li>
           ))}
