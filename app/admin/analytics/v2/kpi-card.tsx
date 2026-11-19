@@ -71,15 +71,18 @@ export function KpiCard({
         {display}
       </p>
       {ofTotal ? (
-        <p className="mt-1 flex flex-wrap items-center gap-x-0 text-xs text-gray-500 dark:text-gray-400">
-          <span className="tabular-nums">
-            {formatSvNumber(ofTotal.num)} av {formatSvNumber(ofTotal.den)}
-          </span>
+        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
           {level === "hide" ? (
             <span className="text-amber-700 dark:text-amber-300">
-              {" · "}För få besök för andel
+              {formatSvNumber(ofTotal.num)} av {formatSvNumber(ofTotal.den)}
+              {" \u00b7 "}
+              För få besök för andel
             </span>
-          ) : ofTotal.num === 0 && emptyLabel ? null : (
+          ) : ofTotal.num === 0 && emptyLabel ? (
+            <span className="tabular-nums">
+              {formatSvNumber(ofTotal.num)} av {formatSvNumber(ofTotal.den)}
+            </span>
+          ) : (
             <span
               className={
                 level === "caution"
@@ -87,10 +90,11 @@ export function KpiCard({
                   : "tabular-nums"
               }
             >
-              {" · "}
               {level === "caution" ? (
-                <AlertTriangle className="h-3 w-3" aria-hidden />
+                <AlertTriangle className="h-3 w-3 shrink-0" aria-hidden />
               ) : null}
+              {formatSvNumber(ofTotal.num)} av {formatSvNumber(ofTotal.den)}
+              {" \u00b7 "}
               {formatSvPercent(ofTotal.num / Math.max(1, ofTotal.den))}
             </span>
           )}

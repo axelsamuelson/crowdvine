@@ -149,32 +149,60 @@ function TrattBody({
               (sessions > 0 ? step.count / sessions : null);
             const ofPrevious = step.ofPrevious ?? null;
             const showPct = step.key !== "sessions" && sessions >= 10;
+            const barPct =
+              sessions > 0 ? (step.count / sessions) * 100 : 0;
             return (
-              <li key={step.key} className="flex items-center gap-3 text-sm">
-                <div className="w-44 shrink-0">{step.label}</div>
-                <div className="h-3 flex-1 rounded bg-gray-100 dark:bg-zinc-800">
-                  <div
-                    className="h-3 rounded bg-gray-900 dark:bg-white"
-                    style={{
-                      width: `${Math.max(
-                        2,
-                        (step.count / Math.max(1, sessions)) * 100,
-                      )}%`,
-                    }}
-                  />
+              <li key={step.key} className="space-y-1 text-sm">
+                <div className="flex items-center gap-3">
+                  <div className="w-36 shrink-0 sm:w-44">{step.label}</div>
+                  <div className="h-3 min-w-0 flex-1 rounded bg-gray-100 dark:bg-zinc-800">
+                    {barPct > 0 ? (
+                      <div
+                        className="h-3 rounded bg-gray-900 dark:bg-white"
+                        style={{ width: `${barPct}%` }}
+                      />
+                    ) : null}
+                  </div>
+                  <div className="w-20 shrink-0 text-right text-xs tabular-nums sm:w-24">
+                    {formatSvNumber(step.count)}
+                  </div>
+                  <div className="hidden w-[7.5rem] shrink-0 whitespace-nowrap text-right text-xs tabular-nums text-gray-500 sm:block">
+                    {showPct && ofSessions != null
+                      ? `${formatSvPercent(ofSessions)} av besök`
+                      : step.key !== "sessions" && sessions < 10
+                        ? "För få besök"
+                        : ""}
+                  </div>
+                  <div className="hidden w-[7.5rem] shrink-0 whitespace-nowrap text-right text-xs tabular-nums text-gray-500 sm:block">
+                    {showPct && ofPrevious != null && step.key !== "engaged"
+                      ? `${formatSvPercent(ofPrevious)} av föreg.`
+                      : ""}
+                  </div>
                 </div>
-                <div className="w-44 text-right text-xs tabular-nums">
-                  {formatSvNumber(step.count)}
-                  {showPct && ofSessions != null
-                    ? ` · ${formatSvPercent(ofSessions)} av besök`
-                    : ""}
-                  {showPct && ofPrevious != null && step.key !== "engaged"
-                    ? ` · ${formatSvPercent(ofPrevious)} av föreg.`
-                    : ""}
-                  {step.key !== "sessions" && sessions < 10
-                    ? " · För få besök för andel"
-                    : ""}
-                </div>
+                {(showPct &&
+                  (ofSessions != null ||
+                    (ofPrevious != null && step.key !== "engaged"))) ||
+                (step.key !== "sessions" && sessions < 10) ? (
+                  <div className="flex flex-wrap gap-x-3 gap-y-0.5 pl-0 text-xs tabular-nums text-gray-500 sm:hidden">
+                    {showPct && ofSessions != null ? (
+                      <span className="whitespace-nowrap">
+                        {formatSvPercent(ofSessions)} av besök
+                      </span>
+                    ) : null}
+                    {showPct &&
+                    ofPrevious != null &&
+                    step.key !== "engaged" ? (
+                      <span className="whitespace-nowrap">
+                        {formatSvPercent(ofPrevious)} av föreg.
+                      </span>
+                    ) : null}
+                    {step.key !== "sessions" && sessions < 10 ? (
+                      <span className="whitespace-nowrap">
+                        För få besök för andel
+                      </span>
+                    ) : null}
+                  </div>
+                ) : null}
               </li>
             );
           })}

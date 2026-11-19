@@ -132,14 +132,14 @@ function DQBody({ data }: { data: DQData }) {
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-lg font-bold">Filtertrappa</h2>
           <div className="flex items-center gap-2">
-            <Button
+            <button
               type="button"
-              size="sm"
               disabled={refreshing}
               onClick={() => refresh(false)}
+              className="inline-flex h-9 items-center rounded-md bg-gray-900 px-4 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-60 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100"
             >
-              Räkna om
-            </Button>
+              {refreshing ? "Räknar om …" : "Räkna om"}
+            </button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -186,8 +186,7 @@ function DQBody({ data }: { data: DQData }) {
 
       {data.geoBotHeuristic ? (
         <section className="rounded-xl border border-gray-200 bg-white p-6 dark:border-[#1F1F23] dark:bg-[#0F0F12]">
-          <h2 className="mb-2 text-lg font-bold">Möjliga bottar per land</h2>
-          <p className="mb-3 text-xs text-gray-500">{data.geoBotHeuristic.rule}</p>
+          <h2 className="mb-3 text-lg font-bold">Misstänkta bottar</h2>
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="text-xs font-medium text-gray-600">

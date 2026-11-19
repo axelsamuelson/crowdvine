@@ -69,7 +69,7 @@ export default function ProdukterPage() {
               data.wines.length === 0 ? (
                 <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-[#1F1F23] dark:bg-[#0F0F12]">
                   <p className="text-sm text-gray-600 dark:text-gray-300">
-                    Inga produktvyer med produkt-id i perioden.
+                    Inga produktsidor visade i perioden.
                   </p>
                   {data.unattributedPdp && data.unattributedPdp > 0 ? (
                     <p className="mt-2 text-xs text-gray-500">

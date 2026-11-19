@@ -27,6 +27,7 @@ export async function GET(request: NextRequest) {
       pdp: r.pdp,
       cart: r.cart,
       checkout: r.checkout,
+      purchases: r.purchases,
     }));
     return NextResponse.json({ status, rows });
   } catch {

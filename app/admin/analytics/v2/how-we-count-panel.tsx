@@ -11,7 +11,8 @@ const BULLETS = [
   "Stängd tratt räknar bara besök som gått genom varje steg i ordning.",
   "Kassastegen är: postnummer → leverans → ålder och villkor → betalning.",
   "Köpvärde = vin efter rabatt plus frakt. Aldrig orderns totalsumma-fält.",
-  "Bottfilter tar bort kända botar och förhandsladdningar innan siffrorna visas.",
+  "Bottfilter tar bort kända botar och förladdningar innan siffrorna visas.",
+  "Misstänkta bottar (CN/SG/HK): direkt utan referrer, högst 1 sida, under 10 s, och ingen signal för engagemang, varukorg, sök eller kassa. Filter används räknas inte som engagemang.",
 ];
 
 export function HowWeCountButton() {
