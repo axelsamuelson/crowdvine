@@ -91,6 +91,30 @@ export function formatStockholmDateTime(input: string | Date | number): string {
   return stockholmDateTimeFmt.format(d);
 }
 
+/**
+ * Analytics status / DQ clock: `YYYY-MM-DD HH:MM` in Europe/Stockholm.
+ * Uses ASCII digits and a space separator (not sv-SE prose months).
+ */
+export function formatStockholmDateTimeClock(
+  input: string | Date | number,
+): string {
+  const d = input instanceof Date ? input : new Date(input);
+  if (Number.isNaN(d.getTime())) return "—";
+  const date = new Intl.DateTimeFormat("en-CA", {
+    timeZone: ANALYTICS_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(d);
+  const time = new Intl.DateTimeFormat("en-GB", {
+    timeZone: ANALYTICS_TIMEZONE,
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(d);
+  return `${date} ${time}`;
+}
+
 export function formatStockholmDate(input: string | Date | number): string {
   const d = input instanceof Date ? input : new Date(input);
   if (Number.isNaN(d.getTime())) return "—";

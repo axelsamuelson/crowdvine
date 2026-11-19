@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { formatSvNumber } from "@/lib/analytics/v2/labels";
-import { formatStockholmDateTime } from "@/lib/analytics/stockholm-time";
+import { formatStockholmDateTimeClock } from "@/lib/analytics/stockholm-time";
 
 export type DataStatusProps = {
   beforeFilter: number;
@@ -37,7 +37,7 @@ export function DataStatusLine({
           : ""}
         {` · ${formatSvNumber(geoBotSuspect)} geo-flaggade`}
         {lastRefreshAt
-          ? ` · Uppdaterad ${formatStockholmDateTime(lastRefreshAt)}`
+          ? ` · Uppdaterad ${formatStockholmDateTimeClock(lastRefreshAt)}`
           : " · Ej uppdaterad ännu"}
         {warnings.length > 0 ? ` · ${warnings.length} varning` : ""}
       </Link>

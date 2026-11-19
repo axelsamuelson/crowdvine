@@ -1,37 +1,9 @@
 -- Analytics V2 Saga runda 2 (R2-B1 + geo clear + order-tolerant closed funnel).
--- Apply ONLY in TEST (msdfjrrokcmjifetuwgc). Do NOT apply to prod from this agent.
-
--- TEST may lack prod-only exclusion tables; create empty stubs so refresh works.
-CREATE TABLE IF NOT EXISTS public.admin_metrics_excluded_profiles (
-  profile_id uuid PRIMARY KEY,
-  created_at timestamptz NOT NULL DEFAULT now()
-);
-CREATE TABLE IF NOT EXISTS public.analytics_internal_visitor_ids (
-  visitor_id text PRIMARY KEY,
-  created_at timestamptz NOT NULL DEFAULT now()
-);
-REVOKE ALL ON TABLE public.admin_metrics_excluded_profiles FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON TABLE public.analytics_internal_visitor_ids FROM PUBLIC, anon, authenticated;
-GRANT SELECT ON TABLE public.admin_metrics_excluded_profiles TO service_role;
-GRANT SELECT ON TABLE public.analytics_internal_visitor_ids TO service_role;
-
--- Stub known-bot helper only when missing (never overwrite prod).
-DO $$
-BEGIN
-  IF to_regprocedure('public.is_known_bot_session(text)') IS NULL THEN
-    EXECUTE $fn$
-      CREATE FUNCTION public.is_known_bot_session(p_session_id text)
-      RETURNS boolean
-      LANGUAGE sql
-      STABLE
-      PARALLEL SAFE
-      SET search_path = public
-      AS $body$ SELECT false $body$;
-    $fn$;
-    REVOKE ALL ON FUNCTION public.is_known_bot_session(text) FROM PUBLIC, anon, authenticated;
-    GRANT EXECUTE ON FUNCTION public.is_known_bot_session(text) TO service_role;
-  END IF;
-END $$;
+-- Additive only. Does NOT alter analytics_sessions_clean.
+-- Apply in TEST first; prod apply is owned by Hugo after merge OK.
+--
+-- TEST-only stubs (admin_metrics_excluded_profiles / analytics_internal_visitor_ids /
+-- is_known_bot_session) live in scripts/test-only/ — never REVOKE existing prod grants here.
 
 -- ===========================================================================
 -- R2-B1 — Products RPC: server-side per-wine aggregation (no 1000-row clip)

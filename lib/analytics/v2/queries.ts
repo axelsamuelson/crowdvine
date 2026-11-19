@@ -456,12 +456,22 @@ export async function fetchStatusLine(
   const totals = await fetchRollupTotals(filters);
   const afterFilter = totals.sessions;
   const prerenderSuspect = totals.prerender_suspect;
-  const beforeFilter = afterFilter + prerenderSuspect;
 
   let lastRefreshAt: string | null = null;
   let geoBotSuspect = 0;
+  /** Spec: denominator = all sessions before bot/prerender filter. */
+  let beforeFilter = afterFilter + prerenderSuspect;
   try {
     const sb = getSupabaseAdmin();
+    const { count: allCount } = await sb
+      .from("analytics_session_facts")
+      .select("session_id", { count: "exact", head: true })
+      .eq("site", filters.site)
+      .gte("day_sthlm", filters.from)
+      .lte("day_sthlm", filters.to);
+    if (allCount != null) {
+      beforeFilter = allCount;
+    }
     const { count: geoCount } = await sb
       .from("analytics_session_facts")
       .select("session_id", { count: "exact", head: true })

@@ -1,5 +1,18 @@
 -- TEST ONLY (msdfjrrokcmjifetuwgc). Synthetic analytics events for Saga R2 verification.
 -- Idempotent via session_id / wine id prefixes. Never run against prod.
+--
+-- Required before this file:
+--   SELECT set_config('pact.allow_test_analytics_seed', 'msdfjrrokcmjifetuwgc', true);
+--   \i scripts/test-only/analytics-v2-test-stubs.sql   -- if TEST lacks exclusion tables
+
+DO $$
+BEGIN
+  IF current_setting('pact.allow_test_analytics_seed', true)
+       IS DISTINCT FROM 'msdfjrrokcmjifetuwgc' THEN
+    RAISE EXCEPTION
+      'Refusing synth seed outside TEST (msdfjrrokcmjifetuwgc). Run: SELECT set_config(''pact.allow_test_analytics_seed'', ''msdfjrrokcmjifetuwgc'', true); Never on prod.';
+  END IF;
+END $$;
 
 -- ---------------------------------------------------------------------------
 -- Synthetic wines (40) so day×wine can exceed 1000 in a 28-day window
