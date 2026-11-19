@@ -37,6 +37,9 @@ AS $$
   WHERE ori.reservation_id = p_reservation_id;
 $$;
 
+-- DROP first: CREATE OR REPLACE cannot rename args (e.g. legacy p_total_sek).
+DROP FUNCTION IF EXISTS analytics_purchase_value_sek(numeric, bigint);
+
 CREATE OR REPLACE FUNCTION analytics_purchase_value_sek(
   p_wine_after_discount_sek numeric,
   p_shipping_cents bigint
