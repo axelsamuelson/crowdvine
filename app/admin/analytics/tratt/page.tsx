@@ -5,6 +5,7 @@ import { AnalyticsPageShell } from "../v2/analytics-page-shell";
 import { SimpleFetchPanel } from "../v2/simple-fetch-panel";
 import {
   formatSvNumber,
+  formatSvPercent,
   labelAbandonReason,
   labelCheckoutStep,
   labelChannel,
@@ -20,7 +21,12 @@ type FunnelData = {
     lastRefreshAt: string | null;
     warnings?: string[];
   };
+  mode: "open" | "closed";
+  note: string;
+  definitions?: Record<string, string>;
+  openAnomaly?: boolean;
   funnel: Array<{ key: string; label: string; count: number }>;
+  ratesVsSessions?: Record<string, number | null>;
   checkoutSteps: Array<{ step: string; count: number }>;
   abandonReasons: Array<{ reason: string; count: number }>;
   nearPurchase: Array<Record<string, unknown>>;
@@ -36,31 +42,62 @@ const TABS = [
 
 export default function TrattPage() {
   const [tab, setTab] = useState<(typeof TABS)[number]["id"]>("funnel");
+  const [funnelMode, setFunnelMode] = useState<"open" | "closed">("open");
 
   return (
     <AnalyticsPageShell
       title="Tratt och kassa"
       subtitle="Var tappas besökare mellan lista, produkt, varukorg, kassa och köp?"
     >
-      <div className="flex flex-wrap gap-2">
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            onClick={() => setTab(t.id)}
-            className={
-              tab === t.id
-                ? "rounded-md bg-gray-900 px-3 py-1.5 text-sm text-white dark:bg-white dark:text-gray-900"
-                : "rounded-md border border-gray-200 px-3 py-1.5 text-sm dark:border-[#1F1F23]"
-            }
-          >
-            {t.label}
-          </button>
-        ))}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap gap-2">
+          {TABS.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => setTab(t.id)}
+              className={
+                tab === t.id
+                  ? "rounded-md bg-gray-900 px-3 py-1.5 text-sm text-white dark:bg-white dark:text-gray-900"
+                  : "rounded-md border border-gray-200 px-3 py-1.5 text-sm dark:border-[#1F1F23]"
+              }
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+        {tab === "funnel" ? (
+          <div className="flex gap-1 rounded-md border border-gray-200 p-0.5 text-sm dark:border-[#1F1F23]">
+            <button
+              type="button"
+              className={
+                funnelMode === "open"
+                  ? "rounded bg-gray-900 px-2.5 py-1 text-white dark:bg-white dark:text-gray-900"
+                  : "px-2.5 py-1 text-gray-600"
+              }
+              onClick={() => setFunnelMode("open")}
+            >
+              Öppen
+            </button>
+            <button
+              type="button"
+              className={
+                funnelMode === "closed"
+                  ? "rounded bg-gray-900 px-2.5 py-1 text-white dark:bg-white dark:text-gray-900"
+                  : "px-2.5 py-1 text-gray-600"
+              }
+              onClick={() => setFunnelMode("closed")}
+            >
+              Stängd
+            </button>
+          </div>
+        ) : null}
       </div>
       <Suspense fallback={<div className="admin-skel h-32 rounded-xl" />}>
-        <SimpleFetchPanel<FunnelData> endpoint="/api/admin/analytics/v2/funnel">
-          {(data) => <TrattBody data={data} tab={tab} />}
+        <SimpleFetchPanel<FunnelData>
+          endpoint={`/api/admin/analytics/v2/funnel?funnel_mode=${funnelMode}`}
+        >
+          {(data) => <TrattBody data={data} tab={tab} funnelMode={funnelMode} />}
         </SimpleFetchPanel>
       </Suspense>
     </AnalyticsPageShell>
@@ -70,39 +107,76 @@ export default function TrattPage() {
 function TrattBody({
   data,
   tab,
+  funnelMode,
 }: {
   data: FunnelData;
   tab: (typeof TABS)[number]["id"];
+  funnelMode: "open" | "closed";
 }) {
-  // Re-fetch isn't tab-aware in SimpleFetchPanel URL — include tab via effect override:
-  // For etapp 1 we render all sections from one payload (API returns all).
+  const sessions = data.funnel[0]?.count ?? 0;
+
   if (tab === "funnel") {
     return (
       <section className="rounded-xl border border-gray-200 bg-white p-6 dark:border-[#1F1F23] dark:bg-[#0F0F12]">
-        <h2 className="mb-4 text-lg font-bold">Öppen tratt</h2>
+        <h2 className="mb-4 text-lg font-bold">
+          {funnelMode === "open" ? "Öppen tratt" : "Stängd tratt"}
+        </h2>
+
+        <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
+          {data.note}
+        </p>
+
+        {data.openAnomaly ? (
+          <p className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-100">
+            Kassa ({formatSvNumber(
+              data.funnel.find((s) => s.key === "checkout")?.count ?? 0,
+            )}
+            ) är större än La i varukorg (
+            {formatSvNumber(
+              data.funnel.find((s) => s.key === "cart")?.count ?? 0,
+            )}
+            ). Det är förväntat i öppen tratt:{" "}
+            <code className="text-xs">checkout_started</code> kan ske utan{" "}
+            <code className="text-xs">add_to_cart</code> (sticky ATC / hopp).
+            Växla till Stängd för delmängdskedja.
+          </p>
+        ) : null}
+
         <ul className="space-y-2">
-          {data.funnel.map((step, i) => (
-            <li key={step.key} className="flex items-center gap-3 text-sm">
-              <div className="w-44 shrink-0">{step.label}</div>
-              <div className="h-3 flex-1 rounded bg-gray-100 dark:bg-zinc-800">
-                <div
-                  className="h-3 rounded bg-gray-900 dark:bg-white"
-                  style={{
-                    width: `${Math.max(2, (step.count / Math.max(1, data.funnel[0]?.count || 1)) * 100)}%`,
-                  }}
-                />
-              </div>
-              <div className="w-28 text-right tabular-nums">
-                {formatSvNumber(step.count)}
-                {i > 0
-                  ? ` (${formatSvNumber(data.funnel[i - 1].count)}→)`
-                  : ""}
-              </div>
-            </li>
-          ))}
+          {data.funnel.map((step) => {
+            const vsSessions =
+              sessions > 0 ? step.count / sessions : null;
+            return (
+              <li key={step.key} className="flex items-center gap-3 text-sm">
+                <div className="w-44 shrink-0">{step.label}</div>
+                <div className="h-3 flex-1 rounded bg-gray-100 dark:bg-zinc-800">
+                  <div
+                    className="h-3 rounded bg-gray-900 dark:bg-white"
+                    style={{
+                      width: `${Math.max(
+                        2,
+                        (step.count / Math.max(1, sessions)) * 100,
+                      )}%`,
+                    }}
+                  />
+                </div>
+                <div className="w-36 text-right tabular-nums">
+                  {formatSvNumber(step.count)}
+                  {step.key !== "sessions" && vsSessions != null
+                    ? ` · ${formatSvPercent(vsSessions)}`
+                    : ""}
+                </div>
+              </li>
+            );
+          })}
         </ul>
         <p className="mt-3 text-xs text-gray-500">
-          Köp är ungefärligt kopplade via användare + 24 h tills server-event finns.
+          Andelar mot rena sessioner (inte mot föregående steg)
+          {funnelMode === "closed" ? " inom den stängda kedjan" : ""}. Köp är
+          ungefärligt kopplade via användare + 24 h tills server-event finns.
+          Definitioner: La i varukorg = <code>add_to_cart</code>; kassa ={" "}
+          <code>checkout_started</code> eller <code>checkout_step_viewed</code>{" "}
+          (H4: postal → delivery → age_terms → payment).
         </p>
       </section>
     );
@@ -113,10 +187,17 @@ function TrattBody({
       <div className="space-y-4">
         <section className="rounded-xl border border-gray-200 bg-white p-6 dark:border-[#1F1F23] dark:bg-[#0F0F12]">
           <h2 className="mb-3 text-lg font-bold">Kassasteg</h2>
+          <p className="mb-3 text-xs text-gray-500">
+            Ordning H4: postal → delivery → age_terms → payment. Läses med{" "}
+            <code>analytics_checkout_step()</code> från{" "}
+            <code>checkout_step_viewed</code>.
+          </p>
           <ul className="space-y-2 text-sm">
             {data.checkoutSteps.map((s) => (
               <li key={s.step} className="flex justify-between tabular-nums">
-                <span>{labelCheckoutStep(s.step === "unknown" ? null : s.step)}</span>
+                <span>
+                  {labelCheckoutStep(s.step === "unknown" ? null : s.step)}
+                </span>
                 <span>{formatSvNumber(s.count)}</span>
               </li>
             ))}
@@ -182,35 +263,26 @@ function TrattBody({
             ))}
           </tbody>
         </table>
-        {data.nearPurchase.length === 0 ? (
-          <p className="mt-2 text-sm text-gray-500">Inga sessioner nära köp.</p>
-        ) : null}
       </section>
     );
   }
 
   return (
     <section className="rounded-xl border border-gray-200 bg-white p-6 dark:border-[#1F1F23] dark:bg-[#0F0F12]">
-      <h2 className="mb-3 text-lg font-bold">Röster (exit-feedback)</h2>
+      <h2 className="mb-3 text-lg font-bold">Röster (exit feedback)</h2>
       {data.voices.length === 0 ? (
-        <p className="text-sm text-gray-500">
-          Inga svar i perioden, eller tabellen saknas i denna miljö.
-        </p>
+        <p className="text-sm text-gray-500">Inga röster i perioden.</p>
       ) : (
         <ul className="space-y-3 text-sm">
-          {data.voices.map((v) => (
+          {data.voices.slice(0, 40).map((v) => (
             <li
               key={String(v.id)}
               className="border-t border-gray-100 pt-2 dark:border-zinc-800"
             >
               <div className="text-xs text-gray-500">
-                {String(v.created_at)} · {String(v.step || "—")} ·{" "}
-                {String(v.page || "—")}
+                {String(v.created_at)} · {String(v.step || v.page || "")}
               </div>
-              <div>{String(v.answer || "")}</div>
-              {v.reason ? (
-                <div className="text-xs text-gray-500">{String(v.reason)}</div>
-              ) : null}
+              <div>{String(v.answer || v.reason || "")}</div>
             </li>
           ))}
         </ul>

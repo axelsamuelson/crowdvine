@@ -125,15 +125,15 @@ export function OverviewPanel() {
               : "—"
           }
           ofTotal={{ num: c.cart, den: c.sessions }}
-          definition="Sessioner med add_to_cart / rena sessioner."
-          monoKey="added_to_cart"
+          definition="Sessioner med event add_to_cart / rena sessioner (öppen tratt — kassa kan vara större)."
+          monoKey="add_to_cart→added_to_cart"
         />
         <KpiCard
           label="Påbörjade kassan"
           value={c.checkout}
           ofTotal={{ num: c.checkout, den: c.sessions }}
-          definition="checkout_started eller checkout_step_viewed."
-          monoKey="reached_checkout"
+          definition="checkout_started eller checkout_step_viewed (H4). Öppen tratt: sticky ATC kan hoppa över add_to_cart."
+          monoKey="checkout_started|checkout_step_viewed"
         />
         <KpiCard
           label="Slutförda köp"
@@ -169,7 +169,7 @@ export function OverviewPanel() {
       <section className="rounded-xl border border-gray-200 bg-white p-6 dark:border-[#1F1F23] dark:bg-[#0F0F12]">
         <div className="mb-4 flex items-center justify-between gap-2">
           <h2 className="text-lg font-bold text-gray-900 dark:text-white">
-            Tratt
+            Öppen tratt
           </h2>
           <Link
             href={`/admin/analytics/tratt?${qs}`}
@@ -178,9 +178,13 @@ export function OverviewPanel() {
             Öppna Tratt och kassa
           </Link>
         </div>
+        <p className="mb-3 text-xs text-gray-500">
+          Andelar mot rena sessioner. Stegen är oberoende (sticky ATC kan hoppa
+          över La i varukorg).
+        </p>
         <ul className="space-y-2">
-          {data.funnel.map((step, i) => {
-            const prev = i === 0 ? step.count : data.funnel[i - 1].count;
+          {data.funnel.map((step) => {
+            const den = Math.max(1, data.funnel[0]?.count || 1);
             return (
               <li key={step.key} className="flex items-center gap-3 text-sm">
                 <div className="w-40 shrink-0 text-gray-700 dark:text-gray-300">
@@ -190,13 +194,15 @@ export function OverviewPanel() {
                   <div
                     className="h-3 rounded bg-gray-900 dark:bg-white"
                     style={{
-                      width: `${Math.max(2, (step.count / Math.max(1, data.funnel[0].count)) * 100)}%`,
+                      width: `${Math.max(2, (step.count / den) * 100)}%`,
                     }}
                   />
                 </div>
                 <div className="w-36 shrink-0 text-right tabular-nums text-gray-600 dark:text-gray-400">
                   {formatSvNumber(step.count)}
-                  {i > 0 ? ` · ${formatSvNumber(prev) ? `${step.count}/${prev}` : ""}` : ""}
+                  {step.key !== "sessions"
+                    ? ` · ${((step.count / den) * 100).toFixed(1).replace(".", ",")} %`
+                    : ""}
                 </div>
               </li>
             );
