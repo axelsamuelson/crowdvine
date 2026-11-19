@@ -48,6 +48,7 @@ import {
 } from "@/lib/checkout/shared-pallet-close-delivery-copy";
 import { CheckoutPalletFillStatus } from "@/components/checkout/checkout-pallet-fill-status";
 import type { CheckoutPalletFillInput } from "@/lib/checkout/pallet-fill-display";
+import { coverageCheckoutHint } from "@/lib/pallet-coverage-close/customer-copy";
 
 export { formatOfferSek } from "@/lib/checkout/dual-offer-display";
 
@@ -120,9 +121,14 @@ function offerExplanationBody(
   quote: OfferQuote,
   locale: Locale,
   deadlineLabel: string | null,
+  useCoverageCloseCopy?: boolean,
 ): string {
   if (quote.offer === "direct_box") {
     return dualOfferMsg(locale, "directBoxBody");
+  }
+  // Coverage-close ladder (SV KASSAN approved; EN still TODO in customer-copy).
+  if (useCoverageCloseCopy) {
+    return coverageCheckoutHint(locale);
   }
   if (deadlineLabel) {
     return dualOfferMsg(locale, "dualOfferSharedBody", {
@@ -146,6 +152,8 @@ function OfferRow(props: {
   showPriceBreakdown?: boolean;
   /** Localized shared-pallet charge deadline for explanation body. */
   deadlineLabel?: string | null;
+  /** When true, shared-pallet body uses coverageCheckoutHint (KASSAN). */
+  useCoverageCloseCopy?: boolean;
 }) {
   const { quote, locale } = props;
   if (!quote) {
@@ -247,11 +255,17 @@ function OfferRow(props: {
                   ? "dual-offer-direct-body"
                   : "dual-offer-shared-body"
               }
+              data-coverage-close={
+                quote.offer === "shared_pallet" && props.useCoverageCloseCopy
+                  ? "1"
+                  : "0"
+              }
             >
               {offerExplanationBody(
                 quote,
                 locale,
                 props.deadlineLabel ?? null,
+                props.useCoverageCloseCopy,
               )}
             </p>
             <p data-testid={`dual-offer-age-${quote.offer}`}>
@@ -567,6 +581,12 @@ export type DualOfferCheckoutPanelProps = {
   showPalletFillStatus?: boolean;
   palletFill?: CheckoutPalletFillInput | null;
   /**
+   * Coverage-close UI: SV checkout ladder uses approved KASSAN copy
+   * (`coverageCheckoutHint`); EN still TODO. Capacity = current threshold Y.
+   * No countdown. Default false until PALLET_COVERAGE_CLOSE_ENABLED.
+   */
+  useCoverageCloseCopy?: boolean;
+  /**
    * Shared-pallet buy: after quote acceptance, parent unlocks SetupIntent /
    * Payment Element / confirm→reservation on the same checkout page.
    */
@@ -593,6 +613,7 @@ export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
   const cartBlockedNote = props.cartBlockedNote ?? null;
   const showPalletFillStatus = props.showPalletFillStatus !== false;
   const palletFill = props.palletFill ?? null;
+  const useCoverageCloseCopy = props.useCoverageCloseCopy === true;
   const requestGen = useRef(0);
   const hasHydratedQuoteRef = useRef(Boolean(props.initialDual));
   const [loading, setLoading] = useState(Boolean(props.fetchArgs));
@@ -985,6 +1006,7 @@ export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
                   }
                   selectable
                   deadlineLabel={sharedDeadline}
+                  useCoverageCloseCopy={useCoverageCloseCopy}
                 />
                 <OfferRow
                   title={dualOfferMsg(locale, "dualOfferDirectTitle")}
@@ -1019,20 +1041,30 @@ export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
                   capacity={palletFill.capacity}
                   cartBottles={palletFill.cartBottles}
                   fillAvailable={palletFill.fillAvailable}
+                  useCoverageCloseCopy={useCoverageCloseCopy}
                 />
               ) : null}
 
               {sharedQuote && !sharedQuote.unavailable_reason ? (
                 (() => {
-                  const lines = sharedCheckoutDeliveryLines(
-                    sharedQuote,
-                    locale,
-                    sharedDeadline,
-                  );
+                  const lines = useCoverageCloseCopy
+                    ? {
+                        // KASSAN (SV approved) already includes delivery timing.
+                        // Do not surface coverageTermsPlaceholder here — villkor
+                        // copy is a separate PR.
+                        closeLine: coverageCheckoutHint(locale),
+                        deliveryLine: null as string | null,
+                      }
+                    : sharedCheckoutDeliveryLines(
+                        sharedQuote,
+                        locale,
+                        sharedDeadline,
+                      );
                   return (
                     <div
                       className="space-y-1"
                       data-testid="dual-offer-delivery-shared_pallet"
+                      data-coverage-close={useCoverageCloseCopy ? "1" : "0"}
                     >
                       <p className="text-sm text-foreground/85">
                         {lines?.closeLine}

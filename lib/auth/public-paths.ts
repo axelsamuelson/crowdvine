@@ -56,6 +56,8 @@ const PUBLIC_PATH_PREFIXES = [
   "/taste-quiz",
   "/dev",
   "/boxes",
+  "/reservation-extension",
+  "/pallet-close",
 ] as const;
 
 /**

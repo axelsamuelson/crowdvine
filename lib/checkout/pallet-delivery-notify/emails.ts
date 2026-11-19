@@ -1,58 +1,22 @@
 /**
  * Post-close delivery transactional emails (SV/EN).
- * Same shell/template style as pallet-close emails.
+ * Shared Inès template + Juliette legal footer.
  * Never auto-sends — callers claim via email_sends first.
  */
 
-import { getAppUrl } from "@/lib/app-url";
+import {
+  formatDeliveryWindowLabel,
+  orderCtaLabel,
+  orderReservationsUrl,
+  p,
+  primaryButtonHtml,
+  withOrderEmailTextFooter,
+  wrapOrderEmail,
+  type OrderEmailLocale,
+} from "@/lib/email/order-email-chrome";
+import { escapeHtmlBasic } from "@/lib/email/escape-html";
 
-export type PalletDeliveryEmailLocale = "sv" | "en";
-
-function esc(s: string): string {
-  return String(s)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
-
-function shell(opts: {
-  title: string;
-  bodyHtml: string;
-  reservationId: string;
-}): string {
-  return `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>${esc(opts.title)}</title>
-</head>
-<body style="margin:0;padding:0;background:#f5f5f5;font-family:Geist,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#111;">
-  <div style="max-width:600px;margin:0 auto;background:#fff;">
-    <div style="padding:32px 24px 8px;text-align:center;letter-spacing:2px;font-weight:600;">PACT</div>
-    <div style="padding:8px 28px 32px;">
-      <h1 style="font-size:22px;font-weight:500;margin:0 0 16px;">${esc(opts.title)}</h1>
-      ${opts.bodyHtml}
-      <p style="margin-top:28px;font-size:12px;color:#666;">Säljare: EURPACT OÜ (reg. 17538270), Estland<br/>Reservation ${esc(opts.reservationId)}</p>
-    </div>
-  </div>
-</body>
-</html>`;
-}
-
-function formatWindowLabel(
-  locale: PalletDeliveryEmailLocale,
-  start: string,
-  end: string,
-): string {
-  const s = String(start).trim();
-  const e = String(end).trim();
-  if (s && e && s !== e) {
-    return locale === "sv" ? `${s}–${e}` : `${s}–${e}`;
-  }
-  return s || e;
-}
+export type PalletDeliveryEmailLocale = OrderEmailLocale;
 
 /** (1) Pallen har skickats — estimated delivery window. */
 export function buildPalletShippedEmail(opts: {
@@ -61,32 +25,77 @@ export function buildPalletShippedEmail(opts: {
   reservationId: string;
   windowStart: string;
   windowEnd: string;
+  /** @deprecated Internal pallet names must not appear in customer emails. */
   palletName?: string | null;
 }): { subject: string; html: string; text: string } {
   const name = opts.customerName || (opts.locale === "sv" ? "du" : "there");
-  const window = formatWindowLabel(opts.locale, opts.windowStart, opts.windowEnd);
-  const pallet =
-    opts.palletName && opts.palletName.trim() ? opts.palletName.trim() : null;
+  const window = formatDeliveryWindowLabel(
+    opts.locale,
+    opts.windowStart,
+    opts.windowEnd,
+  );
+  const orderUrl = orderReservationsUrl();
+  const cta = orderCtaLabel(opts.locale);
 
   if (opts.locale === "sv") {
     const subject = "Pallen har skickats";
-    const text = `Hej ${name},\n\nPallen har skickats${pallet ? ` (${pallet})` : ""}. Beräknat leveransfönster: ${window}.\n\nDu får leveransdagen när vinet nått Sverige.\n`;
-    const html = shell({
+    const text = `Hej ${name},
+
+Vinet är på väg till Sverige. Beräknat leveransfönster: ${window}.
+
+Vi mejlar leveransdagen när vinet har nått Sverige.
+
+${cta}: ${orderUrl}
+`;
+    const html = wrapOrderEmail({
+      locale: "sv",
       title: subject,
-      reservationId: opts.reservationId,
-      bodyHtml: `<p>Hej ${esc(name)},</p><p>Pallen har skickats${pallet ? ` (${esc(pallet)})` : ""}.</p><p>Beräknat leveransfönster: <strong>${esc(window)}</strong>.</p><p>Du får leveransdagen när vinet nått Sverige.</p><p><a href="${esc(getAppUrl())}/profile/reservations" style="display:inline-block;margin-top:12px;padding:10px 16px;background:#111;color:#fff;text-decoration:none;border-radius:8px;">Visa reservation</a></p>`,
+      orderId: opts.reservationId,
+      bodyHtml: [
+        p(`Hej ${escapeHtmlBasic(name)},`),
+        p("Vinet är på väg till Sverige."),
+        p(
+          `Beräknat leveransfönster: <strong>${escapeHtmlBasic(window)}</strong>.`,
+        ),
+        p("Vi mejlar leveransdagen när vinet har nått Sverige."),
+        `<p style="margin:24px 0;">${primaryButtonHtml(orderUrl, cta)}</p>`,
+      ].join(""),
     });
-    return { subject, html, text };
+    return {
+      subject,
+      html,
+      text: withOrderEmailTextFooter(text, "sv", opts.reservationId),
+    };
   }
 
   const subject = "The pallet has shipped";
-  const text = `Hi ${name},\n\nThe pallet has shipped${pallet ? ` (${pallet})` : ""}. Estimated delivery window: ${window}.\n\nYou'll get the delivery day once the wine has reached Sweden.\n`;
-  const html = shell({
+  const text = `Hi ${name},
+
+Your wine is on its way to Sweden. Estimated delivery window: ${window}.
+
+We'll email the delivery date once the wine has reached Sweden.
+
+${cta}: ${orderUrl}
+`;
+  const html = wrapOrderEmail({
+    locale: "en",
     title: subject,
-    reservationId: opts.reservationId,
-    bodyHtml: `<p>Hi ${esc(name)},</p><p>The pallet has shipped${pallet ? ` (${esc(pallet)})` : ""}.</p><p>Estimated delivery window: <strong>${esc(window)}</strong>.</p><p>You'll get the delivery day once the wine has reached Sweden.</p><p><a href="${esc(getAppUrl())}/profile/reservations" style="display:inline-block;margin-top:12px;padding:10px 16px;background:#111;color:#fff;text-decoration:none;border-radius:8px;">View reservation</a></p>`,
+    orderId: opts.reservationId,
+    bodyHtml: [
+      p(`Hi ${escapeHtmlBasic(name)},`),
+      p("Your wine is on its way to Sweden."),
+      p(
+        `Estimated delivery window: <strong>${escapeHtmlBasic(window)}</strong>.`,
+      ),
+      p("We'll email the delivery date once the wine has reached Sweden."),
+      `<p style="margin:24px 0;">${primaryButtonHtml(orderUrl, cta)}</p>`,
+    ].join(""),
   });
-  return { subject, html, text };
+  return {
+    subject,
+    html,
+    text: withOrderEmailTextFooter(text, "en", opts.reservationId),
+  };
 }
 
 /** (2) Leveransdag — delivery day after arrived in Sweden. */
@@ -95,32 +104,63 @@ export function buildPalletDeliveryDayEmail(opts: {
   customerName: string;
   reservationId: string;
   deliveryDayLabel: string;
+  /** @deprecated Internal pallet names must not appear in customer emails. */
   palletName?: string | null;
 }): { subject: string; html: string; text: string } {
   const name = opts.customerName || (opts.locale === "sv" ? "du" : "there");
   const day = String(opts.deliveryDayLabel).trim();
-  const pallet =
-    opts.palletName && opts.palletName.trim() ? opts.palletName.trim() : null;
+  const orderUrl = orderReservationsUrl();
+  const cta = orderCtaLabel(opts.locale);
 
   if (opts.locale === "sv") {
     const subject = "Leveransdag";
-    const text = `Hej ${name},\n\nVinet har nått Sverige${pallet ? ` (${pallet})` : ""}. Leveransdag: ${day}.\n`;
-    const html = shell({
+    const text = `Hej ${name},
+
+Vinet har nått Sverige. Leveransdag: ${day}.
+
+${cta}: ${orderUrl}
+`;
+    const html = wrapOrderEmail({
+      locale: "sv",
       title: subject,
-      reservationId: opts.reservationId,
-      bodyHtml: `<p>Hej ${esc(name)},</p><p>Vinet har nått Sverige${pallet ? ` (${esc(pallet)})` : ""}.</p><p>Leveransdag: <strong>${esc(day)}</strong>.</p><p><a href="${esc(getAppUrl())}/profile/reservations" style="display:inline-block;margin-top:12px;padding:10px 16px;background:#111;color:#fff;text-decoration:none;border-radius:8px;">Visa reservation</a></p>`,
+      orderId: opts.reservationId,
+      bodyHtml: [
+        p(`Hej ${escapeHtmlBasic(name)},`),
+        p("Vinet har nått Sverige."),
+        p(`Leveransdag: <strong>${escapeHtmlBasic(day)}</strong>.`),
+        `<p style="margin:24px 0;">${primaryButtonHtml(orderUrl, cta)}</p>`,
+      ].join(""),
     });
-    return { subject, html, text };
+    return {
+      subject,
+      html,
+      text: withOrderEmailTextFooter(text, "sv", opts.reservationId),
+    };
   }
 
   const subject = "Delivery day";
-  const text = `Hi ${name},\n\nThe wine has reached Sweden${pallet ? ` (${pallet})` : ""}. Delivery day: ${day}.\n`;
-  const html = shell({
+  const text = `Hi ${name},
+
+The wine has reached Sweden. Delivery day: ${day}.
+
+${cta}: ${orderUrl}
+`;
+  const html = wrapOrderEmail({
+    locale: "en",
     title: subject,
-    reservationId: opts.reservationId,
-    bodyHtml: `<p>Hi ${esc(name)},</p><p>The wine has reached Sweden${pallet ? ` (${esc(pallet)})` : ""}.</p><p>Delivery day: <strong>${esc(day)}</strong>.</p><p><a href="${esc(getAppUrl())}/profile/reservations" style="display:inline-block;margin-top:12px;padding:10px 16px;background:#111;color:#fff;text-decoration:none;border-radius:8px;">View reservation</a></p>`,
+    orderId: opts.reservationId,
+    bodyHtml: [
+      p(`Hi ${escapeHtmlBasic(name)},`),
+      p("The wine has reached Sweden."),
+      p(`Delivery day: <strong>${escapeHtmlBasic(day)}</strong>.`),
+      `<p style="margin:24px 0;">${primaryButtonHtml(orderUrl, cta)}</p>`,
+    ].join(""),
   });
-  return { subject, html, text };
+  return {
+    subject,
+    html,
+    text: withOrderEmailTextFooter(text, "en", opts.reservationId),
+  };
 }
 
 /** Delay notice — new expected date; optional late-cancel link. */
@@ -130,6 +170,7 @@ export function buildPalletDeliveryDelayEmail(opts: {
   reservationId: string;
   expectedDateLabel: string;
   cancelForRefundUrl?: string | null;
+  /** @deprecated Internal pallet names must not appear in customer emails. */
   palletName?: string | null;
 }): { subject: string; html: string; text: string } {
   const name = opts.customerName || (opts.locale === "sv" ? "du" : "there");
@@ -138,38 +179,64 @@ export function buildPalletDeliveryDelayEmail(opts: {
     opts.cancelForRefundUrl && opts.cancelForRefundUrl.trim()
       ? opts.cancelForRefundUrl.trim()
       : null;
-  const pallet =
-    opts.palletName && opts.palletName.trim() ? opts.palletName.trim() : null;
 
   if (opts.locale === "sv") {
     const subject = "Ny beräknad leveransdag";
     const cancelText = cancelUrl
       ? `\nEftersom det gått mer än 30 dagar sedan pallen stängde kan du avboka med full återbetalning (återbetalning inom 14 dagar):\n${cancelUrl}\n`
       : "";
-    const text = `Hej ${name},\n\nLeveransen är försenad${pallet ? ` (${pallet})` : ""}. Ny beräknad leveransdag: ${date}.${cancelText}`;
+    const text = `Hej ${name},
+
+Leveransen är försenad. Ny beräknad leveransdag: ${date}.${cancelText}`;
     const cancelHtml = cancelUrl
-      ? `<p>Eftersom det gått mer än 30 dagar sedan pallen stängde kan du <a href="${esc(cancelUrl)}">avboka med full återbetalning</a> (återbetalning inom 14 dagar).</p>`
+      ? `<p style="color:#111;font-size:16px;line-height:1.6;margin:0 0 16px 0;">Eftersom det gått mer än 30 dagar sedan pallen stängde kan du <a href="${escapeHtmlBasic(cancelUrl)}" style="color:#0A0A0A;text-decoration:underline;">avboka med full återbetalning</a> (återbetalning inom 14 dagar).</p>`
       : "";
-    const html = shell({
+    const html = wrapOrderEmail({
+      locale: "sv",
       title: subject,
-      reservationId: opts.reservationId,
-      bodyHtml: `<p>Hej ${esc(name)},</p><p>Leveransen är försenad${pallet ? ` (${esc(pallet)})` : ""}.</p><p>Ny beräknad leveransdag: <strong>${esc(date)}</strong>.</p>${cancelHtml}`,
+      orderId: opts.reservationId,
+      bodyHtml: [
+        p(`Hej ${escapeHtmlBasic(name)},`),
+        p("Leveransen är försenad."),
+        p(
+          `Ny beräknad leveransdag: <strong>${escapeHtmlBasic(date)}</strong>.`,
+        ),
+        cancelHtml,
+      ].join(""),
     });
-    return { subject, html, text };
+    return {
+      subject,
+      html,
+      text: withOrderEmailTextFooter(text, "sv", opts.reservationId),
+    };
   }
 
   const subject = "Updated expected delivery date";
   const cancelText = cancelUrl
     ? `\nBecause more than 30 days have passed since the pallet closed, you can cancel for a full refund (refund within 14 days):\n${cancelUrl}\n`
     : "";
-  const text = `Hi ${name},\n\nDelivery is delayed${pallet ? ` (${pallet})` : ""}. New expected delivery date: ${date}.${cancelText}`;
+  const text = `Hi ${name},
+
+Delivery is delayed. New expected delivery date: ${date}.${cancelText}`;
   const cancelHtml = cancelUrl
-    ? `<p>Because more than 30 days have passed since the pallet closed, you can <a href="${esc(cancelUrl)}">cancel for a full refund</a> (refund within 14 days).</p>`
+    ? `<p style="color:#111;font-size:16px;line-height:1.6;margin:0 0 16px 0;">Because more than 30 days have passed since the pallet closed, you can <a href="${escapeHtmlBasic(cancelUrl)}" style="color:#0A0A0A;text-decoration:underline;">cancel for a full refund</a> (refund within 14 days).</p>`
     : "";
-  const html = shell({
+  const html = wrapOrderEmail({
+    locale: "en",
     title: subject,
-    reservationId: opts.reservationId,
-    bodyHtml: `<p>Hi ${esc(name)},</p><p>Delivery is delayed${pallet ? ` (${esc(pallet)})` : ""}.</p><p>New expected delivery date: <strong>${esc(date)}</strong>.</p>${cancelHtml}`,
+    orderId: opts.reservationId,
+    bodyHtml: [
+      p(`Hi ${escapeHtmlBasic(name)},`),
+      p("Delivery is delayed."),
+      p(
+        `New expected delivery date: <strong>${escapeHtmlBasic(date)}</strong>.`,
+      ),
+      cancelHtml,
+    ].join(""),
   });
-  return { subject, html, text };
+  return {
+    subject,
+    html,
+    text: withOrderEmailTextFooter(text, "en", opts.reservationId),
+  };
 }

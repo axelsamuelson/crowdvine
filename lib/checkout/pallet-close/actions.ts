@@ -73,13 +73,27 @@ export async function applyPalletCloseCancel(opts: {
   const row = await loadSnapshot(opts.reservationId);
   if (!row) return { ok: false, reason: "not_found" };
 
+  // Already cancelled — idempotent success.
+  if (row.cancelled_at) return { ok: true };
+
+  // Axel 2026-11-10: free cancel while the pallet is open and charge has not
+  // succeeded. Blocked once paid. Applies for open / extended / null /
+  // choice_pending (and other unpaid close states).
+  if (String(row.payment_status) === "paid") {
+    return { ok: false, reason: "already_paid" };
+  }
+
   const transition = applyPalletCloseTransition(row, {
     type: "choice_cancel",
     nowIso: now.toISOString(),
   });
-  if (!transition.ok && transition.reason !== "terminal_state") {
-    // Allow cancel from choice_pending only; if already cancelled, treat ok.
-    if (row.cancelled_at) return { ok: true };
+  // choice_cancel only validates from choice_pending; other unpaid states
+  // still cancel free of charge (status-email cancel links).
+  if (
+    !transition.ok &&
+    transition.reason !== "terminal_state" &&
+    String(row.pallet_close_state) === "choice_pending"
+  ) {
     return { ok: false, reason: transition.reason };
   }
 

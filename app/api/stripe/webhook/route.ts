@@ -453,10 +453,13 @@ async function handlePaymentIntentSucceededWebhook(
   if (toEmail) {
     const { sendPaymentConfirmedEmail } = await import("@/lib/sendgrid-service");
     const amountSek = Math.round((paymentIntent.amount ?? 0) / 100);
+    // Shared-pallet charges: pallet_closed_charged is the only customer email.
     const sent = await sendPaymentConfirmedEmail({
       to: toEmail,
       reservationId,
       amountSek,
+      palletId,
+      // palletName ignored — never shown in customer copy
       palletName,
     });
     if (!sent) {
@@ -563,8 +566,10 @@ async function handlePaymentIntentPaymentFailedWebhook(
 
   if (!isAuthenticationRequired) {
     const { schedulePaymentRetry } = await import("@/lib/payment-retry");
+    let scheduled: Awaited<ReturnType<typeof schedulePaymentRetry>> | null =
+      null;
     try {
-      await schedulePaymentRetry(reservationId, nextAttempts);
+      scheduled = await schedulePaymentRetry(reservationId, nextAttempts);
     } catch (e) {
       console.error(
         `[Stripe Webhook] reservation_id=${reservationId} schedulePaymentRetry:`,
@@ -572,24 +577,62 @@ async function handlePaymentIntentPaymentFailedWebhook(
       );
     }
 
-    if (toEmail && nextAttempts < 3) {
+    // Exactly one failed-charge email per pay window — only when the window opens.
+    if (toEmail && scheduled?.windowOpened && scheduled.payByAt) {
       const { sendPaymentFailedEmail } = await import("@/lib/sendgrid-service");
-      const profileUrl =
-        process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "https://pact.wine";
-      const retryHours: 24 | 72 = nextAttempts === 1 ? 24 : 72;
-      const sent = await sendPaymentFailedEmail({
-        to: toEmail,
-        reservationId,
-        reason,
-        retryHours,
-        profileUrl,
-      });
-      if (!sent) {
-        console.warn(
-          `[Stripe Webhook] reservation_id=${reservationId} payment failed email not sent`,
-        );
+      const payByAt = new Date(scheduled.payByAt);
+      let locale: "sv" | "en" = "sv";
+      let customerName = "";
+      if (userId) {
+        const { data: profLang } = await supabase
+          .from("profiles")
+          .select("preferred_locale, full_name")
+          .eq("id", userId)
+          .maybeSingle();
+        if (
+          typeof profLang?.preferred_locale === "string" &&
+          profLang.preferred_locale.toLowerCase().startsWith("en")
+        ) {
+          locale = "en";
+        }
+        if (typeof profLang?.full_name === "string") {
+          customerName = profLang.full_name;
+        }
       }
-    } else if (!toEmail) {
+      const payByLabel = new Intl.DateTimeFormat(
+        locale === "sv" ? "sv-SE" : "en-GB",
+        {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+          timeZone: "Europe/Stockholm",
+        },
+      ).format(payByAt);
+      // Stripe Checkout pay link only — never /profile#payment (cannot collect).
+      const paymentUrl = scheduled.paymentLinkUrl?.trim() || "";
+      if (!paymentUrl) {
+        console.error(
+          `[Stripe Webhook] reservation_id=${reservationId} failed-charge email skipped — no Stripe pay link (window opened)`,
+        );
+      } else {
+        const amountSek = Math.round((paymentIntent.amount ?? 0) / 100);
+        const sent = await sendPaymentFailedEmail({
+          to: toEmail,
+          reservationId,
+          payByLabel,
+          paymentUrl,
+          locale,
+          customerName,
+          amountSek,
+          reason,
+        });
+        if (!sent) {
+          console.warn(
+            `[Stripe Webhook] reservation_id=${reservationId} payment failed email not sent`,
+          );
+        }
+      }
+    } else if (!toEmail && scheduled?.windowOpened) {
       console.warn(
         `[Stripe Webhook] reservation_id=${reservationId} no profile email for payment failure`,
       );

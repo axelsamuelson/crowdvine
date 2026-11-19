@@ -14,6 +14,8 @@ import {
   PALLET_ACCEPTING_STATUSES,
 } from "@/lib/pallet-ship-progress";
 import { PALLET_ZONE_PRIORITY_THRESHOLD } from "@/lib/pallet-pickup-suggestion";
+import { getPalletCoverageCloseConfig } from "@/lib/pallet-coverage-close/config";
+import { selectSingleOpenSharedPallet } from "@/lib/pallet-coverage-close/one-open-pallet";
 
 export { PALLET_ZONE_PRIORITY_THRESHOLD };
 
@@ -228,11 +230,11 @@ export async function findOrCreatePalletForRegion(
       // new reservations open a fresh pallet.
       const { data: existingRows, error: findErr } = await sb
         .from("pallets")
-        .select("id, bottle_capacity, status")
+        .select("id, bottle_capacity, status, created_at")
         .eq("shipping_region_id", shippingRegionId)
         .eq("delivery_zone_id", deliveryZoneId)
         .in("status", [...PALLET_ACCEPTING_STATUSES])
-        .order("created_at", { ascending: false })
+        .order("created_at", { ascending: true })
         .limit(8);
 
       if (findErr) {
@@ -240,7 +242,26 @@ export async function findOrCreatePalletForRegion(
         throw findErr;
       }
 
+      const coverageCfg = getPalletCoverageCloseConfig();
       const candidates = existingRows ?? [];
+
+      // Coverage-close: only ONE open shared pallet — always reuse the oldest
+      // accepting pallet for this route (until locked / shipping_ordered).
+      if (coverageCfg.enabled && candidates.length > 0) {
+        const single = selectSingleOpenSharedPallet(
+          candidates.map((c) => ({
+            id: String(c.id),
+            status: String(c.status ?? "open"),
+            createdAt: String(
+              (c as { created_at?: string }).created_at ?? new Date(0).toISOString(),
+            ),
+          })),
+        );
+        if (single.openPalletId) {
+          return { palletId: single.openPalletId, created: false };
+        }
+      }
+
       let foundAssignable: string | null = null;
       let overflowFallback: string | null = null;
 
@@ -295,6 +316,16 @@ export async function findOrCreatePalletForRegion(
         priorCount ?? 0,
       );
 
+      const coverageOnCreate = getPalletCoverageCloseConfig();
+      const bottleCapacity = coverageOnCreate.enabled
+        ? coverageOnCreate.bottleCap
+        : DEFAULT_PHYSICAL_BOTTLE_CAPACITY;
+      // Coverage model uses economic thresholds; keep min_bottles as cap so
+      // legacy ship-ready helpers do not fire early at 270.
+      const minBottles = coverageOnCreate.enabled
+        ? coverageOnCreate.bottleCap
+        : DEFAULT_MIN_BOTTLES_TO_COMPLETE;
+
       const { data: inserted, error: insErr } = await sb
         .from("pallets")
         .insert({
@@ -302,11 +333,14 @@ export async function findOrCreatePalletForRegion(
           shipping_region_id: shippingRegionId,
           delivery_zone_id: deliveryZoneId,
           pickup_zone_id: null,
-          bottle_capacity: DEFAULT_PHYSICAL_BOTTLE_CAPACITY,
-          min_bottles_to_complete: DEFAULT_MIN_BOTTLES_TO_COMPLETE,
-          cost_cents: 50000,
+          bottle_capacity: bottleCapacity,
+          min_bottles_to_complete: minBottles,
+          cost_cents: Math.round(coverageOnCreate.fixedPalletCostOre),
           status: "open",
           current_pickup_producer_id: null,
+          ...(coverageOnCreate.enabled
+            ? { coverage_close_enabled: true }
+            : {}),
         })
         .select("id")
         .single();

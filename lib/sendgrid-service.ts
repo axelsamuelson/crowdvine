@@ -2,11 +2,22 @@ import { sendEmail } from "@/lib/email";
 import { escapeHtmlBasic } from "@/lib/email/escape-html";
 import { formatSharedPalletCloseDeliveryCopy } from "@/lib/checkout/shared-pallet-close-delivery-copy";
 import {
+  formatOrderAmountSek,
+  getEmailAppUrl,
+  inlineLinkHtml,
+  orderCtaLabel,
+  orderReservationsUrl,
+  p,
+  payNowCtaLabel,
+  primaryButtonHtml,
+  withOrderEmailTextFooter,
+  wrapOrderEmail,
+} from "@/lib/email/order-email-chrome";
+import {
   getWelcomeEmailTemplate,
   getWelcomeEmailText,
 } from "./email-templates";
 import { getSiteContentByKey } from "./actions/content";
-import { getAppUrl } from "./app-url";
 
 // Cache for logo to avoid repeated database calls
 let logoCache: { value: string | null; timestamp: number } | null = null;
@@ -303,8 +314,8 @@ export async function buildOrderConfirmationHtml(
               </div>
 
               <div style="text-align: center; margin: 30px 0;">
-                <a href="${getAppUrl()}/profile/reservations" class="button">
-                  View Your Reservations
+                <a href="${getEmailAppUrl()}/profile/reservations" class="button">
+                  View your order
                 </a>
               </div>
 
@@ -530,66 +541,325 @@ export { escapeHtmlBasic };
 export type PaymentConfirmedEmailBody = {
   reservationId: string;
   amountSek: number;
-  palletName: string;
+  /** @deprecated Internal pallet names must not appear in customer emails. */
+  palletName?: string | null;
+  locale?: "sv" | "en";
+  customerName?: string;
 };
 
+/**
+ * Non–shared-pallet payment confirmation (direct/other flows).
+ * Shared-pallet charges use buildPalletClosedChargedEmail only — callers must
+ * skip this when reservation.pallet_id is set.
+ */
 export function buildPaymentConfirmedHtml(
   data: PaymentConfirmedEmailBody,
 ): string {
-  const safePallet = escapeHtmlBasic(data.palletName);
-  return `<p>Great news! Your payment of <strong>${data.amountSek} kr</strong> has been confirmed for reservation <strong>${escapeHtmlBasic(data.reservationId)}</strong>.</p><p>Your wines will be delivered via home delivery once the pallet ships.</p><p>Pallet: <strong>${safePallet}</strong></p>`;
+  const locale = data.locale === "sv" ? "sv" : "en";
+  const amount = escapeHtmlBasic(formatOrderAmountSek(data.amountSek, locale));
+  const orderId = escapeHtmlBasic(data.reservationId);
+  const name = escapeHtmlBasic(
+    (data.customerName || "").trim() || (locale === "sv" ? "du" : "there"),
+  );
+  const cta = orderCtaLabel(locale);
+  const title =
+    locale === "sv"
+      ? "Betalningen är bekräftad"
+      : "Payment confirmed";
+
+  if (locale === "sv") {
+    return wrapOrderEmail({
+      locale: "sv",
+      title,
+      orderId: data.reservationId,
+      bodyHtml: [
+        p(`Hej ${name},`),
+        p(
+          `Din betalning på <strong>${amount}</strong> för order <strong>${orderId}</strong> är bekräftad.`,
+        ),
+        p("Vi mejlar dig när ordern har skickats."),
+        `<p style="margin:24px 0;">${primaryButtonHtml(orderReservationsUrl(), cta)}</p>`,
+      ].join(""),
+    });
+  }
+
+  return wrapOrderEmail({
+    locale: "en",
+    title,
+    orderId: data.reservationId,
+    bodyHtml: [
+      p(`Hi ${name},`),
+      p(
+        `Your payment of <strong>${amount}</strong> for order <strong>${orderId}</strong> has been confirmed.`,
+      ),
+      p("We’ll email you when the order has shipped."),
+      `<p style="margin:24px 0;">${primaryButtonHtml(orderReservationsUrl(), cta)}</p>`,
+    ].join(""),
+  });
 }
 
 export function buildPaymentConfirmedText(
   data: PaymentConfirmedEmailBody,
 ): string {
-  return `Great news! Your payment of ${data.amountSek} kr has been confirmed for reservation ${data.reservationId}. Your wines will be delivered via home delivery once the pallet ships.\n\nPallet: ${data.palletName}`;
+  const locale = data.locale === "sv" ? "sv" : "en";
+  const amount = formatOrderAmountSek(data.amountSek, locale);
+  const name =
+    (data.customerName || "").trim() || (locale === "sv" ? "du" : "there");
+  const cta = orderCtaLabel(locale);
+  const orderUrl = orderReservationsUrl();
+  if (locale === "sv") {
+    return withOrderEmailTextFooter(
+      `Hej ${name},
+
+Din betalning på ${amount} för order ${data.reservationId} är bekräftad.
+
+Vi mejlar dig när ordern har skickats.
+
+${cta}: ${orderUrl}
+`,
+      "sv",
+      data.reservationId,
+    );
+  }
+  return withOrderEmailTextFooter(
+    `Hi ${name},
+
+Your payment of ${amount} for order ${data.reservationId} has been confirmed.
+
+We’ll email you when the order has shipped.
+
+${cta}: ${orderUrl}
+`,
+    "en",
+    data.reservationId,
+  );
+}
+
+/** Shared-pallet reservations must not get payment_confirmed (charged email owns it). */
+export function shouldSendPaymentConfirmedEmail(opts: {
+  palletId?: string | null;
+}): boolean {
+  return !(opts.palletId && String(opts.palletId).trim());
 }
 
 export type PaymentFailedEmailBody = {
   reservationId: string;
-  reason: string;
-  retryHours: 24 | 72;
-  profileUrl: string;
+  /** Display name; empty → Hej/Hi fallback. */
+  customerName?: string;
+  amountSek?: number | null;
+  /** Deadline label, e.g. "13 november 2026". */
+  payByLabel: string;
+  /** Absolute pay / update-card URL. */
+  paymentUrl: string;
+  locale?: "sv" | "en";
+  /** @deprecated Prefer payByLabel + paymentUrl. */
+  reason?: string;
+  /** @deprecated Replaced by 3-day pay window. */
+  retryHours?: 24 | 72;
+  /** @deprecated Prefer paymentUrl. */
+  profileUrl?: string;
 };
 
+/** True Stripe Checkout (or similar) pay URL — never /profile#payment. */
+export function isCollectablePaymentUrl(url: string | null | undefined): boolean {
+  const u = (url || "").trim();
+  if (!u) return false;
+  if (/\/profile#payment/i.test(u) || /#payment\b/i.test(u)) return false;
+  return /^https?:\/\//i.test(u);
+}
+
 export function buildPaymentFailedHtml(data: PaymentFailedEmailBody): string {
-  const safeReason = escapeHtmlBasic(data.reason);
-  const base = data.profileUrl.replace(/\/$/, "");
-  const paymentProfileUrl = `${base}/profile#payment`;
-  return `<p>We tried to charge your card for reservation <strong>${escapeHtmlBasic(data.reservationId)}</strong> but the payment failed: ${safeReason}.</p><p>We will automatically retry your payment in <strong>${data.retryHours}</strong> hours. You can update your payment method at <a href="${paymentProfileUrl}">${paymentProfileUrl}</a>.</p>`;
+  const locale = data.locale === "en" ? "en" : "sv";
+  const name = escapeHtmlBasic(
+    (data.customerName || "").trim() || (locale === "sv" ? "hej" : "hi"),
+  );
+  const orderId = escapeHtmlBasic(data.reservationId);
+  const amount = escapeHtmlBasic(formatOrderAmountSek(data.amountSek, locale));
+  const payBy = escapeHtmlBasic(data.payByLabel);
+  const payUrl = (data.paymentUrl || "").trim();
+  const hasPay = isCollectablePaymentUrl(payUrl);
+  const payLabel = payNowCtaLabel(locale);
+  const title = paymentFailedSubject(locale);
+  const payCta = hasPay
+    ? `<p style="margin:24px 0;">${primaryButtonHtml(payUrl, payLabel)}</p>`
+    : "";
+
+  if (locale === "sv") {
+    return wrapOrderEmail({
+      locale: "sv",
+      title,
+      orderId: data.reservationId,
+      bodyHtml: [
+        p(`Hej ${name},`),
+        p(
+          `Pallen för din order <strong>${orderId}</strong> har stängt, men vi kunde inte dra ${amount} från ditt kort.`,
+        ),
+        p(
+          `Du har till och med <strong>${payBy}</strong> (3 dagar) på dig att betala. Använd länken nedan för att godkänna betalningen eller byta kort. Vi försöker också dra beloppet igen under tiden.`,
+        ),
+        p(
+          `Har betalningen inte gått igenom senast ${payBy} avbryts ordern och inget dras.`,
+        ),
+        payCta,
+      ].join(""),
+    });
+  }
+
+  return wrapOrderEmail({
+    locale: "en",
+    title,
+    orderId: data.reservationId,
+    bodyHtml: [
+      p(`Hi ${name},`),
+      p(
+        `The pallet for your order <strong>${orderId}</strong> has closed, but we couldn't charge ${amount} to your card.`,
+      ),
+      p(
+        `You have until <strong>${payBy}</strong> (3 days) to pay. Use the link below to approve the payment or change card. We'll also try the charge again in the meantime.`,
+      ),
+      p(
+        `If payment hasn't gone through by ${payBy}, the order will be cancelled and nothing will be charged.`,
+      ),
+      payCta,
+    ].join(""),
+  });
 }
 
 export function buildPaymentFailedText(data: PaymentFailedEmailBody): string {
-  const base = data.profileUrl.replace(/\/$/, "");
-  const paymentProfileUrl = `${base}/profile#payment`;
-  return `We tried to charge your card for reservation ${data.reservationId} but the payment failed: ${data.reason}.
+  const locale = data.locale === "en" ? "en" : "sv";
+  const name =
+    (data.customerName || "").trim() || (locale === "sv" ? "hej" : "hi");
+  const amount = formatOrderAmountSek(data.amountSek, locale);
+  const payUrl = (data.paymentUrl || "").trim();
+  const hasPay = isCollectablePaymentUrl(payUrl);
+  const payLabel = payNowCtaLabel(locale);
+  const payLine = hasPay ? `\n${payLabel}: ${payUrl}\n` : "\n";
 
-We will automatically retry your payment in ${data.retryHours} hours. You can update your payment method at ${paymentProfileUrl}`;
+  if (locale === "sv") {
+    return withOrderEmailTextFooter(
+      `Hej ${name},
+
+Pallen för din order ${data.reservationId} har stängt, men vi kunde inte dra ${amount} från ditt kort.
+
+Du har till och med ${data.payByLabel} (3 dagar) på dig att betala. Använd länken nedan för att godkänna betalningen eller byta kort. Vi försöker också dra beloppet igen under tiden.
+
+Har betalningen inte gått igenom senast ${data.payByLabel} avbryts ordern och inget dras.
+${payLine}`,
+      "sv",
+      data.reservationId,
+    );
+  }
+
+  return withOrderEmailTextFooter(
+    `Hi ${name},
+
+The pallet for your order ${data.reservationId} has closed, but we couldn't charge ${amount} to your card.
+
+You have until ${data.payByLabel} (3 days) to pay. Use the link below to approve the payment or change card. We'll also try the charge again in the meantime.
+
+If payment hasn't gone through by ${data.payByLabel}, the order will be cancelled and nothing will be charged.
+${payLine}`,
+    "en",
+    data.reservationId,
+  );
+}
+
+export function paymentFailedSubject(locale: "sv" | "en" = "sv"): string {
+  return locale === "sv"
+    ? "Vi kunde inte dra betalningen"
+    : "We couldn't take payment";
 }
 
 export type PaymentCancelledEmailBody = {
   reservationId: string;
+  /** Kept for call-site compat; not rendered (avoids duplicate 3-day sentence). */
   reason: string;
+  locale?: "sv" | "en";
+  customerName?: string;
 };
 
+/**
+ * Payment-cancelled after 3-day window.
+ * Coupons/discount codes are NOT restored on cancel — no coupon line.
+ * Pending PACT Points are reversed in code, but Juliette: do not mention
+ * a generic points refund line in this email.
+ */
 export function buildPaymentCancelledHtml(
   data: PaymentCancelledEmailBody,
 ): string {
-  const safeReason = escapeHtmlBasic(data.reason);
-  return `<p>Unfortunately we had to cancel your reservation <strong>${escapeHtmlBasic(data.reservationId)}</strong> because we were unable to process your payment after multiple attempts.</p><p>${safeReason}</p><p>Any PACT Points used on this order have been refunded to your account.</p><p>You're welcome to place a new reservation at <a href="https://pact.wine">pact.wine</a>.</p>`;
+  const locale = data.locale === "en" ? "en" : "sv";
+  const name = escapeHtmlBasic(
+    (data.customerName || "").trim() || (locale === "sv" ? "hej" : "hi"),
+  );
+  const orderId = escapeHtmlBasic(data.reservationId);
+  const title =
+    locale === "sv"
+      ? "Din order är avbruten – betalningen gick inte igenom"
+      : "Your order has been cancelled – payment didn't go through";
+
+  if (locale === "sv") {
+    return wrapOrderEmail({
+      locale: "sv",
+      title,
+      orderId: data.reservationId,
+      bodyHtml: [
+        p(`Hej ${name},`),
+        p(
+          `Vi har avbrutit din order <strong>${orderId}</strong> eftersom betalningen inte gick igenom inom 3 dagar. Inget belopp har dragits från ditt kort.`,
+        ),
+        p(
+          `Vill du vara med på en kommande pall hittar du de öppna pallarna på ${inlineLinkHtml("https://pactwines.com", "pactwines.com")}.`,
+        ),
+        `<p style="margin:24px 0;">${primaryButtonHtml(orderReservationsUrl(), "Se din order")}</p>`,
+      ].join(""),
+    });
+  }
+
+  return wrapOrderEmail({
+    locale: "en",
+    title,
+    orderId: data.reservationId,
+    bodyHtml: [
+      p(`Hi ${name},`),
+      p(
+        `We have cancelled your order <strong>${orderId}</strong> because payment did not go through within 3 days. Nothing was charged to your card.`,
+      ),
+      p(
+        `If you’d like to join a future pallet, you’ll find the open pallets at ${inlineLinkHtml("https://pactwines.com", "pactwines.com")}.`,
+      ),
+      `<p style="margin:24px 0;">${primaryButtonHtml(orderReservationsUrl(), "View your order")}</p>`,
+    ].join(""),
+  });
 }
 
 export function buildPaymentCancelledText(
   data: PaymentCancelledEmailBody,
 ): string {
-  return `Unfortunately we had to cancel your reservation ${data.reservationId} because we were unable to process your payment after multiple attempts.
+  const locale = data.locale === "en" ? "en" : "sv";
+  const name =
+    (data.customerName || "").trim() || (locale === "sv" ? "hej" : "hi");
+  if (locale === "sv") {
+    return withOrderEmailTextFooter(
+      `Hej ${name},
 
-${data.reason}
+Vi har avbrutit din order ${data.reservationId} eftersom betalningen inte gick igenom inom 3 dagar. Inget belopp har dragits från ditt kort.
 
-Any PACT Points used on this order have been refunded to your account.
+Vill du vara med på en kommande pall hittar du de öppna pallarna på pactwines.com.
+`,
+      "sv",
+      data.reservationId,
+    );
+  }
+  return withOrderEmailTextFooter(
+    `Hi ${name},
 
-You're welcome to place a new reservation at pact.wine.`;
+We have cancelled your order ${data.reservationId} because payment did not go through within 3 days. Nothing was charged to your card.
+
+If you’d like to join a future pallet, you’ll find the open pallets at pactwines.com.
+`,
+    "en",
+    data.reservationId,
+  );
 }
 
 export async function sendPaymentConfirmedEmail({
@@ -597,21 +867,40 @@ export async function sendPaymentConfirmedEmail({
   reservationId,
   amountSek,
   palletName,
+  locale = "en",
+  customerName,
+  palletId,
 }: {
   to: string;
   reservationId: string;
   amountSek: number;
-  palletName: string;
+  /** @deprecated Ignored — never shown in customer copy. */
+  palletName?: string | null;
+  locale?: "sv" | "en";
+  customerName?: string;
+  /** When set, shared-pallet charge — skip (charged email is the only one). */
+  palletId?: string | null;
 }): Promise<boolean> {
+  if (!shouldSendPaymentConfirmedEmail({ palletId })) {
+    console.log(
+      `[email] skip payment_confirmed for shared-pallet reservation_id=${reservationId}`,
+    );
+    return true;
+  }
   const { sendTransactionalEmailOnce } = await import(
     "@/lib/email/claim-email-send"
   );
-  const subject = "Payment confirmed — your PACT order is on its way";
+  const subject =
+    locale === "sv"
+      ? "Betalningen är bekräftad"
+      : "Payment confirmed — your PACT order is on its way";
   const body: PaymentConfirmedEmailBody = {
     reservationId,
     amountSek,
-    palletName,
+    locale,
+    customerName,
   };
+  void palletName;
   const result = await sendTransactionalEmailOnce({
     emailType: "payment_confirmed",
     recipient: to,
@@ -630,25 +919,49 @@ export async function sendPaymentConfirmedEmail({
 export async function sendPaymentFailedEmail({
   to,
   reservationId,
+  payByLabel,
+  paymentUrl,
+  locale = "sv",
+  customerName,
+  amountSek,
   reason,
   retryHours,
   profileUrl,
 }: {
   to: string;
   reservationId: string;
-  reason: string;
-  retryHours: 24 | 72;
-  profileUrl: string;
+  payByLabel: string;
+  paymentUrl: string;
+  locale?: "sv" | "en";
+  customerName?: string;
+  amountSek?: number | null;
+  /** @deprecated */
+  reason?: string;
+  /** @deprecated */
+  retryHours?: 24 | 72;
+  /** @deprecated */
+  profileUrl?: string;
 }): Promise<boolean> {
+  void profileUrl;
+  void reason;
+  void retryHours;
+  if (!isCollectablePaymentUrl(paymentUrl)) {
+    console.error(
+      `[email] payment_failed refused — missing Stripe pay link reservation_id=${reservationId} paymentUrl=${paymentUrl || "(empty)"}`,
+    );
+    return false;
+  }
   const { sendTransactionalEmailOnce } = await import(
     "@/lib/email/claim-email-send"
   );
-  const subject = "Action required — payment failed for your PACT order";
+  const subject = paymentFailedSubject(locale);
   const body: PaymentFailedEmailBody = {
     reservationId,
-    reason,
-    retryHours,
-    profileUrl,
+    payByLabel,
+    paymentUrl: paymentUrl.trim(),
+    locale,
+    customerName,
+    amountSek,
   };
   const result = await sendTransactionalEmailOnce({
     emailType: "payment_failed",
@@ -669,16 +982,28 @@ export async function sendPaymentCancelledEmail({
   to,
   reservationId,
   reason,
+  locale = "sv",
+  customerName,
 }: {
   to: string;
   reservationId: string;
   reason: string;
+  locale?: "sv" | "en";
+  customerName?: string;
 }): Promise<boolean> {
   const { sendTransactionalEmailOnce } = await import(
     "@/lib/email/claim-email-send"
   );
-  const subject = "Your PACT reservation has been cancelled";
-  const body: PaymentCancelledEmailBody = { reservationId, reason };
+  const subject =
+    locale === "sv"
+      ? "Din order är avbruten – betalningen gick inte igenom"
+      : "Your order has been cancelled – payment didn't go through";
+  const body: PaymentCancelledEmailBody = {
+    reservationId,
+    reason,
+    locale,
+    customerName,
+  };
   const result = await sendTransactionalEmailOnce({
     emailType: "payment_cancelled",
     recipient: to,
@@ -703,13 +1028,13 @@ export function buildPaymentAuthenticationRequiredHtml(
   data: PaymentAuthenticationRequiredBody,
 ): string {
   const safeLink = escapeHtmlBasic(data.authenticateUrl);
-  return `<p>Din bank kräver extra verifiering (3D Secure / BankID) för att slutföra betalningen för din PACT-reservation <strong>${escapeHtmlBasic(data.reservationId)}</strong>.</p><p>Automatiska omförsök räcker inte — du behöver bekräfta betalningen en gång i webbläsaren.</p><p><a href="${data.authenticateUrl}" style="display:inline-block;background:#000000;color:#ffffff;padding:12px 24px;text-decoration:none;border-radius:4px;font-weight:500;">Verifiera betalning</a></p><p style="font-size:14px;color:#666;">Om knappen inte fungerar, kopiera länken:<br/><span style="word-break:break-all;">${safeLink}</span></p>`;
+  return `<p>Din bank kräver extra verifiering (3D Secure / BankID) för att slutföra betalningen för din PACT-order <strong>${escapeHtmlBasic(data.reservationId)}</strong>.</p><p>Automatiska omförsök räcker inte — du behöver bekräfta betalningen en gång i webbläsaren.</p><p><a href="${data.authenticateUrl}" style="display:inline-block;background:#000000;color:#ffffff;padding:12px 24px;text-decoration:none;border-radius:4px;font-weight:500;">Verifiera betalning</a></p><p style="font-size:14px;color:#666;">Om knappen inte fungerar, kopiera länken:<br/><span style="word-break:break-all;">${safeLink}</span></p>`;
 }
 
 export function buildPaymentAuthenticationRequiredText(
   data: PaymentAuthenticationRequiredBody,
 ): string {
-  return `Din bank kräver extra verifiering för att slutföra betalningen för din PACT-reservation ${data.reservationId}.
+  return `Din bank kräver extra verifiering för att slutföra betalningen för din PACT-order ${data.reservationId}.
 
 Automatiska omförsök räcker inte — öppna länken och bekräfta betalningen i webbläsaren:
 

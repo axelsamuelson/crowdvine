@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { isStaleRefreshTokenError, isAuthNetworkError } from "@/lib/auth/session-errors";
-import { createClient } from "@/utils/supabase/client";
+import { tryCreateClient } from "@/utils/supabase/client";
 
 export type UserRole = "user" | "producer" | "admin";
 
@@ -21,7 +21,11 @@ export function useUserRole(): UserRoleState {
 
   useEffect(() => {
     let mounted = true;
-    const supabase = createClient();
+    const supabase = tryCreateClient();
+    if (!supabase) {
+      setState({ loading: false, role: null, producerId: null });
+      return;
+    }
 
     const load = async () => {
       try {

@@ -17,12 +17,18 @@ import {
   resolveCheckoutPalletFillDisplay,
   type CheckoutPalletFillInput,
 } from "@/lib/checkout/pallet-fill-display";
-
 export type CheckoutPalletFillStatusProps = CheckoutPalletFillInput & {
   locale: DualOfferUiLocale;
   /** Default true — flip false for CRO hide without unmounting wiring. */
   enabled?: boolean;
   className?: string;
+  /**
+   * Coverage-close: treat `capacity` as bottles needed for the current
+   * threshold (Y). Progress-label copy stays on the legacy dual-offer string
+   * until separately approved; the long KASSAN ladder lives on the panel
+   * close line, not here.
+   */
+  useCoverageCloseCopy?: boolean;
 };
 
 export function CheckoutPalletFillStatus(props: CheckoutPalletFillStatusProps) {
@@ -55,10 +61,11 @@ export function CheckoutPalletFillStatus(props: CheckoutPalletFillStatusProps) {
     filled: String(display.fillCount),
     total: String(display.capacity),
   });
+  const hint = null;
 
   return (
     <VisibleOnceTracker
-      onceKey={`pallet_status_viewed:checkout:${display.palletId}:${display.fillCount}:${display.capacity}:${display.showBar ? "bar" : "nobar"}`}
+      onceKey={`pallet_status_viewed:checkout:${display.palletId}:${display.fillCount}:${display.capacity}:${display.showBar ? "bar" : "nobar"}:${props.useCoverageCloseCopy ? "cov" : "leg"}`}
       onVisible={onVisible}
       className={props.className}
       threshold={0.25}
@@ -68,10 +75,14 @@ export function CheckoutPalletFillStatus(props: CheckoutPalletFillStatusProps) {
         data-testid="dual-offer-pallet-fill"
         data-includes-cart={display.includesCustomerCart ? "1" : "0"}
         data-show-bar={display.showBar ? "1" : "0"}
+        data-coverage-close={props.useCoverageCloseCopy ? "1" : "0"}
       >
         <p className="text-sm text-foreground/80 leading-snug whitespace-nowrap overflow-hidden text-ellipsis max-[374px]:whitespace-normal">
           {label}
         </p>
+        {hint ? (
+          <p className="text-xs text-muted-foreground leading-snug">{hint}</p>
+        ) : null}
         {display.showBar ? (
           <div
             className="h-1 w-full overflow-hidden rounded-full bg-foreground/10"

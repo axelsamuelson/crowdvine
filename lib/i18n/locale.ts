@@ -35,6 +35,25 @@ export function parseLocaleCookie(
   return isAppLocale(v) ? v : null;
 }
 
+/**
+ * Explicit `?lang=sv|en` from email/landing links.
+ * Used when the path itself is locale-neutral (e.g. /reservation-extension/confirm).
+ */
+export function localeFromLangQuery(
+  search:
+    | string
+    | { get: (key: string) => string | null }
+    | null
+    | undefined,
+): AppLocale | null {
+  if (search == null) return null;
+  if (typeof search === "string") {
+    const q = search.startsWith("?") ? search.slice(1) : search;
+    return parseLocaleCookie(new URLSearchParams(q).get("lang"));
+  }
+  return parseLocaleCookie(search.get("lang"));
+}
+
 export function localeFromAcceptLanguage(
   header: string | null | undefined,
 ): AppLocale | null {
