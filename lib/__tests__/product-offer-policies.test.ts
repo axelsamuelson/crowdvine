@@ -7,7 +7,6 @@ import {
 } from "@/lib/seo/product-json-ld";
 import {
   PACT_B2C_MERCHANT_RETURN_POLICY,
-  PACT_SE_DIRECT_SHIPPING_PRICE,
   productOfferCommerceFields,
 } from "@/lib/seo/product-offer-policies";
 
@@ -29,12 +28,13 @@ describe("PACT_B2C_MERCHANT_RETURN_POLICY", () => {
 describe("productOfferCommerceFields", () => {
   it("adds SE shippingDestination and hasMerchantReturnPolicy for shared pallet", () => {
     const fields = productOfferCommerceFields();
-    expect(fields.shippingDetails["@type"]).toBe("OfferShippingDetails");
-    expect(fields.shippingDetails.shippingDestination.addressCountry).toBe(
-      "SE",
-    );
-    expect(fields.shippingDetails).not.toHaveProperty("shippingRate");
-    expect(fields.shippingDetails).not.toHaveProperty("deliveryTime");
+    const details = fields.shippingDetails;
+    expect(Array.isArray(details)).toBe(false);
+    if (Array.isArray(details)) return;
+    expect(details["@type"]).toBe("OfferShippingDetails");
+    expect(details.shippingDestination.addressCountry).toBe("SE");
+    expect(details).not.toHaveProperty("shippingRate");
+    expect(details).not.toHaveProperty("deliveryTime");
     expect(fields.hasMerchantReturnPolicy).toMatchObject(
       PACT_B2C_MERCHANT_RETURN_POLICY,
     );
@@ -43,30 +43,50 @@ describe("productOfferCommerceFields", () => {
     );
   });
 
-  it("adds terms-backed 149 SEK rate when directDelivery is true", () => {
-    const fields = productOfferCommerceFields({ directDelivery: true });
-    expect(fields.shippingDetails.shippingRate.value).toBe(
-      PACT_SE_DIRECT_SHIPPING_PRICE,
-    );
-    expect(fields.shippingDetails.shippingRate.currency).toBe("SEK");
-    expect(fields.shippingDetails.shippingDestination.addressCountry).toBe(
-      "SE",
-    );
-    expect(fields.shippingDetails).not.toHaveProperty("deliveryTime");
+  it("adds the resolved pact rate and a second direct-box rate when both are passed", () => {
+    const fields = productOfferCommerceFields({
+      shipping: { pactSek: 99, directBoxSek: 149 },
+    });
+    expect(Array.isArray(fields.shippingDetails)).toBe(true);
+    if (!Array.isArray(fields.shippingDetails)) return;
+    expect(fields.shippingDetails).toHaveLength(2);
+    expect(fields.shippingDetails[0]?.shippingRate).toEqual({
+      "@type": "MonetaryAmount",
+      value: "99.00",
+      currency: "SEK",
+    });
+    expect(fields.shippingDetails[1]?.shippingRate).toEqual({
+      "@type": "MonetaryAmount",
+      value: "149.00",
+      currency: "SEK",
+    });
+    expect(fields.shippingDetails[0]).not.toHaveProperty("deliveryTime");
+  });
+
+  it("omits a rate when the lookup did not return an amount", () => {
+    const fields = productOfferCommerceFields({
+      shipping: { pactSek: null, directBoxSek: null },
+    });
+    expect(Array.isArray(fields.shippingDetails)).toBe(false);
+    if (Array.isArray(fields.shippingDetails)) return;
+    expect(fields.shippingDetails).not.toHaveProperty("shippingRate");
   });
 
   it("omits hasMerchantReturnPolicy when includeReturnPolicy is false", () => {
     const fields = productOfferCommerceFields({ includeReturnPolicy: false });
-    expect(fields.shippingDetails["@type"]).toBe("OfferShippingDetails");
+    const details = fields.shippingDetails;
+    expect(Array.isArray(details)).toBe(false);
+    if (Array.isArray(details)) return;
+    expect(details["@type"]).toBe("OfferShippingDetails");
     expect(fields).not.toHaveProperty("hasMerchantReturnPolicy");
   });
 });
 
 describe("resolveProductOfferAvailability", () => {
   it("uses PreOrder for shared-pallet wines available for sale", () => {
-    expect(
-      resolveProductOfferAvailability({ availableForSale: true }),
-    ).toBe("https://schema.org/PreOrder");
+    expect(resolveProductOfferAvailability({ availableForSale: true })).toBe(
+      "https://schema.org/PreOrder",
+    );
     expect(
       resolveProductOfferAvailability({
         availableForSale: true,
@@ -85,9 +105,9 @@ describe("resolveProductOfferAvailability", () => {
   });
 
   it("uses OutOfStock when the wine is sold out", () => {
-    expect(
-      resolveProductOfferAvailability({ availableForSale: false }),
-    ).toBe("https://schema.org/OutOfStock");
+    expect(resolveProductOfferAvailability({ availableForSale: false })).toBe(
+      "https://schema.org/OutOfStock",
+    );
     expect(
       resolveProductOfferAvailability({
         availableForSale: false,
@@ -148,7 +168,33 @@ describe("buildProductPdpJsonLd", () => {
     });
 
     expect(jsonLd.offers.availability).toBe("https://schema.org/InStock");
-    expect(jsonLd.offers.shippingDetails.shippingRate.value).toBe("149.00");
+    const details = jsonLd.offers.shippingDetails;
+    const first = Array.isArray(details) ? details[0] : details;
+    expect(first).not.toHaveProperty("shippingRate");
+  });
+
+  it("emits pact shipping and direct-box shipping only when that rate is passed", () => {
+    const both = buildProductPdpJsonLd({
+      ...baseInput,
+      directDeliveryAvailable: true,
+      includeB2cReturnPolicy: true,
+      shippingSek: { pact: 99, directBox: 149 },
+    });
+    expect(Array.isArray(both.offers.shippingDetails)).toBe(true);
+    if (!Array.isArray(both.offers.shippingDetails)) return;
+    expect(
+      both.offers.shippingDetails.map((d) => d.shippingRate?.value),
+    ).toEqual(["99.00", "149.00"]);
+
+    const pactOnly = buildProductPdpJsonLd({
+      ...baseInput,
+      includeB2cReturnPolicy: true,
+      shippingSek: { pact: 99, directBox: null },
+    });
+    const details = pactOnly.offers.shippingDetails;
+    expect(Array.isArray(details)).toBe(false);
+    if (Array.isArray(details)) return;
+    expect(details.shippingRate?.value).toBe("99.00");
   });
 
   it("uses OutOfStock when sold out", () => {
@@ -221,7 +267,10 @@ describe("buildProductPdpJsonLd", () => {
     expect(jsonLd.offers).not.toHaveProperty("hasMerchantReturnPolicy");
     expect(serialized).not.toContain("hasMerchantReturnPolicy");
     expect(serialized).not.toContain("MerchantReturnFiniteReturnWindow");
-    expect(jsonLd.offers.shippingDetails["@type"]).toBe("OfferShippingDetails");
+    const details = jsonLd.offers.shippingDetails;
+    expect(Array.isArray(details)).toBe(false);
+    if (Array.isArray(details)) return;
+    expect(details["@type"]).toBe("OfferShippingDetails");
   });
 
   it("passes a schema.org structure check for a typical shared-pallet PDP", () => {
@@ -249,12 +298,10 @@ describe("buildProductPdpJsonLd", () => {
     expect(jsonLd.offers.hasMerchantReturnPolicy["@type"]).toBe(
       "MerchantReturnPolicy",
     );
-    expect(jsonLd.offers.shippingDetails["@type"]).toBe(
-      "OfferShippingDetails",
-    );
-    expect(
-      jsonLd.offers.shippingDetails.shippingDestination.addressCountry,
-    ).toBe("SE");
+    const details = jsonLd.offers.shippingDetails;
+    const first = Array.isArray(details) ? details[0] : details;
+    expect(first?.["@type"]).toBe("OfferShippingDetails");
+    expect(first?.shippingDestination.addressCountry).toBe("SE");
     // No invented identifiers
     expect(jsonLd).not.toHaveProperty("gtin");
     expect(jsonLd).not.toHaveProperty("gtin13");

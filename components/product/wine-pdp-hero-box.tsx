@@ -21,6 +21,8 @@ interface WinePdpHeroBoxProps {
   topLeftBadges?: ReactNode;
   /** Show case-purchase help (?) in bottom-right of the white box. */
   showCaseHelp?: boolean;
+  /** Short unit caption under the live price, e.g. "per flaska". */
+  unitLabel?: string | null;
   className?: string;
 }
 
@@ -38,6 +40,7 @@ export function WinePdpHeroBox({
   compareAtPrice,
   topLeftBadges,
   showCaseHelp = false,
+  unitLabel,
   className,
 }: WinePdpHeroBoxProps) {
   const lead = leadText?.trim();
@@ -57,14 +60,11 @@ export function WinePdpHeroBox({
   const leadRowStart = showProducerByline ? "md:row-start-3" : "md:row-start-2";
 
   return (
-    <div
-      className={cn(
-        "relative overflow-visible",
-        topLeftBadges && "mt-5",
-      )}
-    >
+    <div className={cn("relative overflow-visible", topLeftBadges && "mt-5")}>
       {topLeftBadges ? (
-        <PeekTabAnchor className="left-3 md:left-4">{topLeftBadges}</PeekTabAnchor>
+        <PeekTabAnchor className="left-3 md:left-4">
+          {topLeftBadges}
+        </PeekTabAnchor>
       ) : null}
       <div
         className={cn(
@@ -87,16 +87,23 @@ export function WinePdpHeroBox({
               {shownProducerName}
             </Link>
             {showLegalName ? (
-              <p className="mt-0.5 text-xs text-stone-500">{legalProducerName}</p>
+              <p className="mt-0.5 text-xs text-stone-500">
+                {legalProducerName}
+              </p>
             ) : null}
           </div>
         ) : null}
 
-        <div className="flex flex-wrap items-center gap-2 max-md:mt-3 md:col-start-2 md:row-start-1 md:justify-self-end md:self-start">
-          {price}
-          {compareAtPrice}
-          {/* Inline with price so the title box stays tight when there is no lead copy. */}
-          {showCaseHelp ? <CasePurchaseHelpTrigger variant="plain" /> : null}
+        <div className="flex flex-col items-start gap-0.5 max-md:mt-3 md:col-start-2 md:row-start-1 md:items-end md:justify-self-end md:self-start">
+          <div className="flex flex-wrap items-center gap-2">
+            {price}
+            {compareAtPrice}
+            {/* Inline with price so the title box stays tight when there is no lead copy. */}
+            {showCaseHelp ? <CasePurchaseHelpTrigger variant="plain" /> : null}
+          </div>
+          {unitLabel ? (
+            <p className="text-sm text-muted-foreground">{unitLabel}</p>
+          ) : null}
         </div>
 
         {lead ? (

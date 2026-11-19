@@ -20,6 +20,10 @@ export interface CaseModeSelectorProps {
   pending?: boolean;
   /** Optional control rendered beside the primary CTA (e.g. B2B link on PDP). */
   ctaAside?: ReactNode;
+  /** Rendered directly under the buy button (PDP shipping). */
+  afterCta?: ReactNode;
+  /** Rendered under the ×6 selector (PDP box total). */
+  afterSegments?: ReactNode;
   className?: string;
   /** Ref on the primary CTA for sticky-bar IntersectionObserver. */
   ctaRef?: Ref<HTMLButtonElement>;
@@ -36,6 +40,8 @@ export function CaseModeSelector({
   label,
   pending = false,
   ctaAside,
+  afterCta,
+  afterSegments,
   className,
   ctaRef,
 }: CaseModeSelectorProps) {
@@ -73,6 +79,7 @@ export function CaseModeSelector({
           <div className="shrink-0 whitespace-nowrap">{ctaAside}</div>
         ) : null}
       </div>
+      {afterCta}
 
       <div
         className="flex w-full gap-1 rounded-md p-1"
@@ -106,6 +113,7 @@ export function CaseModeSelector({
           {t("cart.caseMixed")}
         </button>
       </div>
+      {afterSegments}
     </div>
   );
 }

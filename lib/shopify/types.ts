@@ -206,6 +206,8 @@ export type Product = {
   variants: ProductVariant[];
   images: Image[];
   availableForSale: boolean;
+  /** wines.product_type / catalog kind, e.g. "wine". */
+  productType?: string;
   /** B2C catalog flag from wines.available_for_sale (ignores B2B stock). */
   catalogAvailableForSale?: boolean;
   producerName?: string;

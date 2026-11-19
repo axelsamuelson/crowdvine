@@ -3,7 +3,6 @@ import dynamic from "next/dynamic";
 import { CartSourceProviderConditional } from "@/components/cart/cart-source-provider-conditional";
 import { AddToCartConditional } from "@/components/cart/add-to-cart-conditional";
 import { DirectBoxDeliveryPromise } from "@/components/commerce/direct-box-delivery-promise";
-import { MinSixBottlesHint } from "@/components/commerce/min-six-bottles-hint";
 import { PactSellerConsumerInfo } from "@/components/commerce/pact-seller-consumer-info";
 import { ServerListPrice } from "@/components/commerce/server-list-price";
 import { PageLayoutServer } from "@/components/layout/page-layout-server";
@@ -49,6 +48,8 @@ import type { AppLocale } from "@/lib/i18n/locale";
 import type { ZoneStatusPayload } from "@/lib/pallet/zone-status";
 import { generateProducerSlug } from "@/lib/producer-handle";
 import { producerDisplayName } from "@/lib/producer-display-name";
+import { translate } from "@/lib/i18n/messages";
+import { formatMoney } from "@/lib/shopping-context/format";
 import type { Product } from "@/lib/shopify/types";
 
 interface ProductPdpLayoutProps {
@@ -65,6 +66,10 @@ interface ProductPdpLayoutProps {
   devPreview?: ReactNode;
   /** Disable add-to-cart on dev preview pages */
   addToCartPreviewDisabled?: boolean;
+  /** Resolved pact shipping fee in SEK. Null hides the line. */
+  shippingPerOrderSek?: number | null;
+  /** Resolved direct-box fee for one box of 6. Null hides the line. */
+  shippingDirectBoxSek?: number | null;
 }
 
 export async function ProductPdpLayout({
@@ -77,6 +82,8 @@ export async function ProductPdpLayout({
   beforeSidebar,
   devPreview,
   addToCartPreviewDisabled = false,
+  shippingPerOrderSek = null,
+  shippingDirectBoxSek = null,
 }: ProductPdpLayoutProps) {
   const isDirtywine = await getIsDirtywineSiteFromHeaders();
   const showProducerMap =
@@ -84,9 +91,9 @@ export async function ProductPdpLayout({
     Boolean(product.producerName) &&
     Boolean(
       product.producerLocation?.lat ||
-        product.producerLocation?.lon ||
-        product.producerLocation?.subregion ||
-        product.producerLocation?.region,
+      product.producerLocation?.lon ||
+      product.producerLocation?.subregion ||
+      product.producerLocation?.region,
     );
 
   const shownProducerName = producerDisplayName({
@@ -110,6 +117,24 @@ export async function ProductPdpLayout({
     product.producerName?.trim() &&
     product.producerName.trim() !== "Unknown Producer"
       ? generateProducerSlug(product.producerName)
+      : null;
+
+  const showB2cPurchase = !isDirtywine && product.productType === "wine";
+  const shippingPerOrder =
+    showB2cPurchase &&
+    shippingPerOrderSek != null &&
+    Number.isFinite(shippingPerOrderSek)
+      ? translate(locale, "commerce.shippingPerOrder", {
+          price: formatMoney(shippingPerOrderSek, "SEK", locale),
+        })
+      : null;
+  const shippingDirectBox =
+    showB2cPurchase &&
+    shippingDirectBoxSek != null &&
+    Number.isFinite(shippingDirectBoxSek)
+      ? translate(locale, "commerce.shippingDirectBox", {
+          price: formatMoney(shippingDirectBoxSek, "SEK", locale),
+        })
       : null;
 
   const siblingWines =
@@ -165,9 +190,12 @@ export async function ProductPdpLayout({
                       />
                     }
                     showCaseHelp={
-                      !isDirtywine &&
-                      product.productType === "wine" &&
-                      Boolean(product.producerId)
+                      showB2cPurchase && Boolean(product.producerId)
+                    }
+                    unitLabel={
+                      showB2cPurchase
+                        ? translate(locale, "product.pdp.perBottle")
+                        : null
                     }
                     price={
                       <>
@@ -196,16 +224,15 @@ export async function ProductPdpLayout({
                           <PdpB2BLink locale={locale} />
                         ) : null
                       }
+                      shippingPerOrder={shippingPerOrder}
+                      shippingDirectBox={shippingDirectBox}
                     />
-                    {/* Info block below buy / ×6 selector: 6-bottle rule + seller/consumer + delivery (PACT). */}
-                    {!isDirtywine && product.productType === "wine" ? (
-                      <>
-                        <MinSixBottlesHint locale={locale} trackSurface="pdp_info" />
-                        <PactSellerConsumerInfo
-                          locale={locale}
-                          showSharedPallet={false}
-                        />
-                      </>
+                    {/* Seller and withdrawal sit under the buy control. The six-bottle line is inside the selector. */}
+                    {showB2cPurchase ? (
+                      <PactSellerConsumerInfo
+                        locale={locale}
+                        showSharedPallet={false}
+                      />
                     ) : null}
                     {/* SSR direct-box promise; client PalletStatusBar keeps analytics.
                         Direct-box row hidden unless DIRECT_BOX_CHECKOUT_ENABLED. */}
@@ -217,7 +244,7 @@ export async function ProductPdpLayout({
                           enabled
                         />
                       ) : null}
-                      {!isDirtywine && product.productType === "wine" ? (
+                      {showB2cPurchase ? (
                         <PactSellerConsumerInfo
                           locale={locale}
                           showSeller={false}
@@ -229,19 +256,15 @@ export async function ProductPdpLayout({
                     <PalletStatusBar
                       sourceType={product.sourceType}
                       showDirectBoxPromise={isDirectBoxCheckoutEnabled()}
-                      showSharedPalletPromise={
-                        !isDirtywine && product.productType === "wine"
-                      }
+                      showSharedPalletPromise={showB2cPurchase}
                     />
                     {product.productType === "wine" &&
-                    (
-                      hasEnrichmentSpecs(
-                        product.wineEnrichment,
-                        undefined,
-                        shownProducerName,
-                      ) ||
-                      (product.wineEnrichment?.taste_tags?.length ?? 0) > 0
-                    ) ? (
+                    (hasEnrichmentSpecs(
+                      product.wineEnrichment,
+                      undefined,
+                      shownProducerName,
+                    ) ||
+                      (product.wineEnrichment?.taste_tags?.length ?? 0) > 0) ? (
                       <WineEnrichmentSpecs
                         enrichment={product.wineEnrichment}
                         producerName={shownProducerName}
@@ -250,7 +273,9 @@ export async function ProductPdpLayout({
                     {product.wineEnrichment?.style_scale != null &&
                     product.wineEnrichment.style_scale >= 1 &&
                     product.wineEnrichment.style_scale <= 5 ? (
-                      <WineStyleScale value={product.wineEnrichment.style_scale} />
+                      <WineStyleScale
+                        value={product.wineEnrichment.style_scale}
+                      />
                     ) : null}
                   </div>
 
@@ -262,7 +287,8 @@ export async function ProductPdpLayout({
                   ) : null}
 
                   <div className={WINE_ENRICHMENT_DROPDOWN_LIST_CLASS}>
-                    {product.productType === "wine" && product.wineEnrichment ? (
+                    {product.productType === "wine" &&
+                    product.wineEnrichment ? (
                       <WinePdpEnrichment enrichment={product.wineEnrichment} />
                     ) : null}
 
@@ -293,16 +319,12 @@ export async function ProductPdpLayout({
               <DesktopGallery product={product} />
             </Suspense>
             {producerMap ? (
-              <div className="pb-sides pt-4 max-md:hidden">
-                {producerMap}
-              </div>
+              <div className="pb-sides pt-4 max-md:hidden">{producerMap}</div>
             ) : null}
           </DesktopGalleryWrapper>
         </div>
 
-        {producerMap ? (
-          <div className="md:hidden">{producerMap}</div>
-        ) : null}
+        {producerMap ? <div className="md:hidden">{producerMap}</div> : null}
 
         {siblingWines.length > 0 && shownProducerName ? (
           <PdpSiblingWinesSection

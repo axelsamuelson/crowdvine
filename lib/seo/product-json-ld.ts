@@ -73,6 +73,14 @@ export type ProductJsonLdInput = {
    * When false (Dirty Wine B2B), omit hasMerchantReturnPolicy.
    */
   includeB2cReturnPolicy: boolean;
+  /**
+   * Checkout shipping fees in SEK. `directBox` is set only for wines that
+   * already show the direct-box promise. Null omits that rate.
+   */
+  shippingSek?: {
+    pact: number | null;
+    directBox: number | null;
+  };
 };
 
 /**
@@ -156,7 +164,10 @@ export function buildProductPdpJsonLd(input: ProductJsonLdInput) {
       },
       ...productOfferCommerceFields({
         includeReturnPolicy: input.includeB2cReturnPolicy,
-        directDelivery: Boolean(input.directDeliveryAvailable),
+        shipping: {
+          pactSek: input.shippingSek?.pact ?? null,
+          directBoxSek: input.shippingSek?.directBox ?? null,
+        },
       }),
     },
     ...(additionalProperty && additionalProperty.length > 0
