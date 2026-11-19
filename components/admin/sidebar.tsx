@@ -27,8 +27,8 @@ export function Sidebar({ userEmail, onSignOut, mobileOpen, onMobileClose }: Sid
 
   const isItemActive = (item: AdminNavItem) => {
     if (pathname === item.href) return true;
-    // Exact-only for /admin so nested admin routes don't light the home item.
-    if (item.href === "/admin") return false;
+    // Exact-only for /admin and Analys overview so nested routes don't light them.
+    if (item.href === "/admin" || item.href === "/admin/analytics") return false;
     return pathname.startsWith(item.href + "/");
   };
 

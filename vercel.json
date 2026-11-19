@@ -60,6 +60,14 @@
     {
       "path": "/api/cron/exit-discount-retention",
       "schedule": "30 4 * * *"
+    },
+    {
+      "path": "/api/cron/analytics-refresh",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/analytics-refresh-nightly",
+      "schedule": "30 2 * * *"
     }
   ]
 }

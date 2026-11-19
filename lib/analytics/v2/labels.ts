@@ -117,8 +117,33 @@ export function fulfillmentLabelSv(
   return FULFILLMENT_LABELS_SV[channel] ?? channel;
 }
 
-/** Alias used by overview panel. */
+/** Aliases used by admin panels. */
 export const labelFulfillment = fulfillmentLabelSv;
+export const labelChannel = channelLabelSv;
+export const labelDevice = deviceLabelSv;
+export const labelCheckoutStep = checkoutStepLabelSv;
+export const labelAbandonReason = abandonReasonLabelSv;
+export const MARKET_LABELS = MARKET_LABELS_SV;
+
+const COUNTRY_NAMES_SV: Record<string, string> = {
+  SE: "Sverige",
+  NO: "Norge",
+  DK: "Danmark",
+  FI: "Finland",
+  DE: "Tyskland",
+  GB: "Storbritannien",
+  US: "USA",
+  CN: "Kina",
+  SG: "Singapore",
+  HK: "Hongkong",
+};
+
+/** ISO country code → Swedish display name. */
+export function countryNameSv(code: string | null | undefined): string {
+  if (!code) return MARKET_LABELS_SV.unknown;
+  const upper = code.toUpperCase();
+  return COUNTRY_NAMES_SV[upper] ?? upper;
+}
 
 const svNumber = new Intl.NumberFormat("sv-SE");
 const svPercent = new Intl.NumberFormat("sv-SE", {
