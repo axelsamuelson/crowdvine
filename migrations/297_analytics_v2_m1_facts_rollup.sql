@@ -5,48 +5,10 @@
 -- ---------------------------------------------------------------------------
 -- Helper functions (CREATE OR REPLACE; safe if already present from earlier migs)
 --
--- B1 / Saga: do NOT CREATE OR REPLACE prod analytics_site() or analytics_channel().
--- V2 facts use analytics_v2_site / analytics_v2_channel (created in migration 305).
--- Prod site stays 177-simple; prod channel stays 187 (restored in 305 if overwritten).
+-- Saga R2: do NOT CREATE OR REPLACE unchanged prod helpers:
+--   analytics_site, analytics_channel, analytics_utm_param, analytics_checkout_step
+-- Those stay as 177 / 187 / 232. V2 uses analytics_v2_site / analytics_v2_channel (305).
 -- ---------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION analytics_utm_param(url text, param text)
-RETURNS text
-LANGUAGE sql
-IMMUTABLE
-PARALLEL SAFE
-AS $$
-  SELECT NULLIF(
-    lower(
-      substring(
-        COALESCE(url, '')
-        FROM ('[?&]' || param || '=([^&#]*)')
-      )
-    ),
-    ''
-  );
-$$;
-
--- analytics_channel intentionally omitted here (B1). See migration 305.
-
-CREATE OR REPLACE FUNCTION analytics_checkout_step(meta jsonb)
-RETURNS text
-LANGUAGE sql
-IMMUTABLE
-SET search_path = public
-AS $$
-  SELECT CASE
-    WHEN meta->>'step' IN ('postal', 'delivery', 'age_terms', 'payment') THEN meta->>'step'
-    WHEN meta->>'step' = '1' THEN 'postal'
-    WHEN meta->>'step' = '2' THEN 'delivery'
-    WHEN meta->>'step' = '3' THEN 'age_terms'
-    WHEN meta->>'step' = '4' THEN 'payment'
-    WHEN meta->>'phase' = 'compliance' THEN 'age_terms'
-    WHEN meta->>'phase' IN ('payment', 'payment_ready') THEN 'payment'
-    WHEN meta->>'phase' = 'delivery' THEN 'delivery'
-    ELSE NULL
-  END;
-$$;
 
 -- Path helpers (H3 / V2 sidtyper)
 CREATE OR REPLACE FUNCTION analytics_path_from_url(page_url text)

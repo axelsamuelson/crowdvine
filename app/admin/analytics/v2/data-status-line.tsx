@@ -8,6 +8,7 @@ export type DataStatusProps = {
   beforeFilter: number;
   afterFilter: number;
   prerenderSuspect: number;
+  geoBotSuspect?: number;
   lastRefreshAt: string | null;
   warnings?: string[];
   queryString?: string;
@@ -17,6 +18,7 @@ export function DataStatusLine({
   beforeFilter,
   afterFilter,
   prerenderSuspect,
+  geoBotSuspect = 0,
   lastRefreshAt,
   warnings = [],
   queryString = "",
@@ -33,6 +35,7 @@ export function DataStatusLine({
         {prerenderSuspect > 0
           ? ` · ${formatSvNumber(prerenderSuspect)} förhandsladdningar borttagna`
           : ""}
+        {` · ${formatSvNumber(geoBotSuspect)} geo-flaggade`}
         {lastRefreshAt
           ? ` · Uppdaterad ${formatStockholmDateTime(lastRefreshAt)}`
           : " · Ej uppdaterad ännu"}

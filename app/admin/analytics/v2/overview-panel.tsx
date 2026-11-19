@@ -14,6 +14,7 @@ type OverviewResponse = {
     beforeFilter: number;
     afterFilter: number;
     prerenderSuspect: number;
+    geoBotSuspect?: number;
     lastRefreshAt: string | null;
     warnings: string[];
   };
@@ -243,8 +244,8 @@ export function OverviewPanel() {
               <tr className="text-xs font-medium text-gray-600 dark:text-gray-400">
                 <th className="py-2">Datum</th>
                 <th className="py-2">Sessioner</th>
-                <th className="hidden py-2 sm:table-cell">PLP</th>
-                <th className="hidden py-2 sm:table-cell">PDP</th>
+                <th className="hidden py-2 sm:table-cell">Lista</th>
+                <th className="hidden py-2 sm:table-cell">Produkt</th>
                 <th className="py-2">Köp</th>
               </tr>
             </thead>
