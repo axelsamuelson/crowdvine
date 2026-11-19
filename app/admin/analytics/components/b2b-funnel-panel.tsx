@@ -7,11 +7,15 @@ import type { AnalyticsSiteFilter } from "@/lib/analytics/analytics-site";
 
 export function B2bFunnelPanel({
   site = "all",
+  from,
+  to,
 }: {
   site?: AnalyticsSiteFilter;
+  from?: string;
+  to?: string;
 }) {
   const [weeks, setWeeks] = useState<B2bWeeklyFunnelRow[]>([]);
-  const [since, setSince] = useState("2026-08-07");
+  const [since, setSince] = useState(from || "2026-08-07");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,11 +31,15 @@ export function B2bFunnelPanel({
     setLoading(true);
     (async () => {
       try {
+        const params = new URLSearchParams();
+        params.set("site", site === "all" ? "dirtywine" : site);
+        if (from) params.set("from", from);
+        if (to) params.set("to", to);
         const res = await fetch(
-          `/api/admin/analytics/b2b-funnel?site=${site === "all" ? "dirtywine" : site}`,
+          `/api/admin/analytics/b2b-funnel?${params.toString()}`,
         );
         const json = await res.json();
-        if (!res.ok) throw new Error(json.error || "Kunde inte ladda B2B-funnel");
+        if (!res.ok) throw new Error(json.error || "Kunde inte ladda B2B-tratt");
         if (!cancelled) {
           setWeeks(json.weeklyFunnel ?? []);
           if (typeof json.since === "string") setSince(json.since);
@@ -48,7 +56,7 @@ export function B2bFunnelPanel({
     return () => {
       cancelled = true;
     };
-  }, [site]);
+  }, [site, from, to]);
 
   if (site !== "dirtywine" && site !== "all") {
     return null;
@@ -57,7 +65,7 @@ export function B2bFunnelPanel({
   if (loading) {
     return (
       <p className="text-sm text-gray-500 dark:text-zinc-400">
-        Laddar B2B-funnel…
+        Laddar B2B-tratt…
       </p>
     );
   }
@@ -74,12 +82,12 @@ export function B2bFunnelPanel({
         <h3 className="text-base font-semibold text-gray-900 dark:text-white">
           Dirty Wine B2B
         </h3>
-        <p className="text-sm text-gray-500 dark:text-zinc-400 mt-0.5">
+        <p className="mt-0.5 text-sm text-gray-500 dark:text-zinc-400">
           Kontakt → förfrågan → provning/offert → order. Konvertering = förfrågan
-          skickad. Känd iPhone-bot (CriOS / iOS 26_6_2) exkluderas.
+          skickad.
         </p>
       </div>
-      <WeeklyB2bFunnel weeks={weeks} since={since} />
+      <WeeklyB2bFunnel weeks={weeks} since={since} from={from} to={to} />
     </div>
   );
 }

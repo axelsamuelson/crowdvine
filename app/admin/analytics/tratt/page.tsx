@@ -12,6 +12,11 @@ import {
   labelDevice,
   countryNameSv,
 } from "@/lib/analytics/v2/labels";
+import {
+  ScrollTable,
+  stickyFirstTd,
+  stickyFirstTh,
+} from "../v2/scroll-table";
 
 type FunnelData = {
   status: {
@@ -23,10 +28,14 @@ type FunnelData = {
   };
   mode: "open" | "closed";
   note: string;
-  definitions?: Record<string, string>;
-  openAnomaly?: boolean;
-  funnel: Array<{ key: string; label: string; count: number }>;
-  ratesVsSessions?: Record<string, number | null>;
+  checkoutCanExceedCart?: boolean;
+  funnel: Array<{
+    key: string;
+    label: string;
+    count: number;
+    ofSessions?: number | null;
+    ofPrevious?: number | null;
+  }>;
   checkoutSteps: Array<{ step: string; count: number }>;
   abandonReasons: Array<{ reason: string; count: number }>;
   nearPurchase: Array<Record<string, unknown>>;
@@ -122,30 +131,24 @@ function TrattBody({
           {funnelMode === "open" ? "Öppen tratt" : "Stängd tratt"}
         </h2>
 
-        <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
-          {data.note}
-        </p>
-
-        {data.openAnomaly ? (
-          <p className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-100">
-            Kassa ({formatSvNumber(
-              data.funnel.find((s) => s.key === "checkout")?.count ?? 0,
-            )}
-            ) är större än La i varukorg (
-            {formatSvNumber(
-              data.funnel.find((s) => s.key === "cart")?.count ?? 0,
-            )}
-            ). Det är förväntat i öppen tratt:{" "}
-            <code className="text-xs">checkout_started</code> kan ske utan{" "}
-            <code className="text-xs">add_to_cart</code> (sticky ATC / hopp).
-            Växla till Stängd för delmängdskedja.
+        {data.checkoutCanExceedCart ? (
+          <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">
+            Kassan kan vara större än varukorgen, eftersom man kan gå direkt till
+            kassan.
           </p>
-        ) : null}
+        ) : (
+          <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">
+            {data.note}
+          </p>
+        )}
 
         <ul className="space-y-2">
           {data.funnel.map((step) => {
-            const vsSessions =
-              sessions > 0 ? step.count / sessions : null;
+            const ofSessions =
+              step.ofSessions ??
+              (sessions > 0 ? step.count / sessions : null);
+            const ofPrevious = step.ofPrevious ?? null;
+            const showPct = step.key !== "sessions" && sessions >= 10;
             return (
               <li key={step.key} className="flex items-center gap-3 text-sm">
                 <div className="w-44 shrink-0">{step.label}</div>
@@ -160,24 +163,22 @@ function TrattBody({
                     }}
                   />
                 </div>
-                <div className="w-36 text-right tabular-nums">
+                <div className="w-44 text-right text-xs tabular-nums">
                   {formatSvNumber(step.count)}
-                  {step.key !== "sessions" && vsSessions != null
-                    ? ` · ${formatSvPercent(vsSessions)}`
+                  {showPct && ofSessions != null
+                    ? ` · ${formatSvPercent(ofSessions)} av besök`
+                    : ""}
+                  {showPct && ofPrevious != null && step.key !== "engaged"
+                    ? ` · ${formatSvPercent(ofPrevious)} av föreg.`
+                    : ""}
+                  {step.key !== "sessions" && sessions < 10
+                    ? " · För få besök för andel"
                     : ""}
                 </div>
               </li>
             );
           })}
         </ul>
-        <p className="mt-3 text-xs text-gray-500">
-          Andelar mot rena sessioner (inte mot föregående steg)
-          {funnelMode === "closed" ? " inom den stängda kedjan" : ""}. Köp är
-          ungefärligt kopplade via användare + 24 h tills server-event finns.
-          Definitioner: La i varukorg = <code>add_to_cart</code>; kassa ={" "}
-          <code>checkout_started</code> eller <code>checkout_step_viewed</code>{" "}
-          (H4: postal → delivery → age_terms → payment).
-        </p>
       </section>
     );
   }
@@ -187,11 +188,6 @@ function TrattBody({
       <div className="space-y-4">
         <section className="rounded-xl border border-gray-200 bg-white p-6 dark:border-[#1F1F23] dark:bg-[#0F0F12]">
           <h2 className="mb-3 text-lg font-bold">Kassasteg</h2>
-          <p className="mb-3 text-xs text-gray-500">
-            Ordning H4: postal → delivery → age_terms → payment. Läses med{" "}
-            <code>analytics_checkout_step()</code> från{" "}
-            <code>checkout_step_viewed</code>.
-          </p>
           <ul className="space-y-2 text-sm">
             {data.checkoutSteps.map((s) => (
               <li key={s.step} className="flex justify-between tabular-nums">
@@ -224,52 +220,51 @@ function TrattBody({
 
   if (tab === "near") {
     return (
-      <section className="overflow-x-auto rounded-xl border border-gray-200 bg-white p-6 dark:border-[#1F1F23] dark:bg-[#0F0F12]">
-        <h2 className="mb-3 text-lg font-bold">Nära köp</h2>
-        <table className="w-full min-w-[640px] text-left text-sm">
-          <thead>
-            <tr className="text-xs font-medium text-gray-600">
-              <th className="py-2">Tid</th>
-              <th className="py-2">Kanal</th>
-              <th className="py-2">Enhet</th>
-              <th className="py-2">Land</th>
-              <th className="py-2">Steg</th>
-              <th className="py-2">Inbjuden</th>
+      <ScrollTable minWidth="640px">
+        <thead>
+          <tr className="text-xs font-medium text-gray-600">
+            <th className={stickyFirstTh}>Tid</th>
+            <th className="py-2">Kanal</th>
+            <th className="py-2">Enhet</th>
+            <th className="py-2">Land</th>
+            <th className="py-2">Steg</th>
+            <th className="py-2">Inbjuden</th>
+          </tr>
+        </thead>
+        <tbody>
+          {data.nearPurchase.map((row) => (
+            <tr
+              key={String(row.session_id)}
+              className="border-t border-gray-100 dark:border-zinc-800"
+            >
+              <td className={`${stickyFirstTd} text-xs`}>
+                {String(row.started_at)}
+              </td>
+              <td className="py-2">{labelChannel(String(row.channel || ""))}</td>
+              <td className="py-2">{labelDevice(String(row.device || ""))}</td>
+              <td className="py-2">
+                {countryNameSv(
+                  row.country_code ? String(row.country_code) : null,
+                )}
+              </td>
+              <td className="py-2">
+                {labelCheckoutStep(
+                  row.last_checkout_step
+                    ? String(row.last_checkout_step)
+                    : null,
+                )}
+              </td>
+              <td className="py-2">{row.is_invited_friend ? "Ja" : "Nej"}</td>
             </tr>
-          </thead>
-          <tbody>
-            {data.nearPurchase.map((row) => (
-              <tr
-                key={String(row.session_id)}
-                className="border-t border-gray-100 dark:border-zinc-800"
-              >
-                <td className="py-2 text-xs">{String(row.started_at)}</td>
-                <td className="py-2">{labelChannel(String(row.channel || ""))}</td>
-                <td className="py-2">{labelDevice(String(row.device || ""))}</td>
-                <td className="py-2">
-                  {countryNameSv(
-                    row.country_code ? String(row.country_code) : null,
-                  )}
-                </td>
-                <td className="py-2">
-                  {labelCheckoutStep(
-                    row.last_checkout_step
-                      ? String(row.last_checkout_step)
-                      : null,
-                  )}
-                </td>
-                <td className="py-2">{row.is_invited_friend ? "Ja" : "Nej"}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </section>
+          ))}
+        </tbody>
+      </ScrollTable>
     );
   }
 
   return (
     <section className="rounded-xl border border-gray-200 bg-white p-6 dark:border-[#1F1F23] dark:bg-[#0F0F12]">
-      <h2 className="mb-3 text-lg font-bold">Röster (exit feedback)</h2>
+      <h2 className="mb-3 text-lg font-bold">Röster</h2>
       {data.voices.length === 0 ? (
         <p className="text-sm text-gray-500">Inga röster i perioden.</p>
       ) : (

@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useState } from "react";
+import { MoreHorizontal, Trash2 } from "lucide-react";
 import { AnalyticsPageShell } from "../v2/analytics-page-shell";
 import { SimpleFetchPanel } from "../v2/simple-fetch-panel";
 import { Button } from "@/components/ui/button";
@@ -9,10 +10,17 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
+  AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 type ReleasesData = {
   status: {
@@ -48,6 +56,25 @@ const CATEGORY_LABELS: Record<string, string> = {
   b2b: "Övrigt",
 };
 
+/** Avoid «PR269 — PR269 — …» when label already includes the PR number. */
+function annotationTitle(
+  label: string,
+  prNumber: number | null | undefined,
+): string {
+  const trimmed = label.trim();
+  if (!prNumber) return trimmed;
+  const re = new RegExp(`^PR\\s*${prNumber}\\s*[—–-]\\s*`, "i");
+  if (re.test(trimmed)) return trimmed;
+  if (new RegExp(`^PR\\s*${prNumber}\\b`, "i").test(trimmed)) return trimmed;
+  return `PR${prNumber} — ${trimmed}`;
+}
+
+function formatDateYmd(raw: string | null | undefined): string {
+  if (!raw) return "—";
+  const m = String(raw).match(/^(\d{4}-\d{2}-\d{2})/);
+  return m ? m[1] : String(raw).slice(0, 10);
+}
+
 export default function ReleaserPage() {
   return (
     <AnalyticsPageShell
@@ -56,14 +83,14 @@ export default function ReleaserPage() {
     >
       <Suspense fallback={<div className="admin-skel h-32 rounded-xl" />}>
         <SimpleFetchPanel<ReleasesData> endpoint="/api/admin/analytics/v2/releases">
-          {(data, qs) => <ReleasesBody data={data} qs={qs} />}
+          {(data) => <ReleasesBody data={data} />}
         </SimpleFetchPanel>
       </Suspense>
     </AnalyticsPageShell>
   );
 }
 
-function ReleasesBody({ data, qs }: { data: ReleasesData; qs: string }) {
+function ReleasesBody({ data }: { data: ReleasesData }) {
   const [date, setDate] = useState("");
   const [label, setLabel] = useState("");
   const [category, setCategory] = useState("release");
@@ -163,15 +190,22 @@ function ReleasesBody({ data, qs }: { data: ReleasesData; qs: string }) {
               key={a.id}
               className="flex flex-wrap items-start justify-between gap-2 border-t border-gray-100 py-2 dark:border-zinc-800"
             >
-              <div>
+              <div className="min-w-0">
                 <div className="font-medium">
-                  {a.date}
-                  {a.pr_number ? ` · PR${a.pr_number}` : ""} — {a.label}
+                  <span className="tabular-nums font-mono text-xs text-gray-500">
+                    {formatDateYmd(a.date)}
+                  </span>
+                  {" · "}
+                  {annotationTitle(a.label, a.pr_number)}
                 </div>
                 <div className="text-xs text-gray-500">
                   {CATEGORY_LABELS[a.category] || a.category}
-                  {a.site ? ` · ${a.site === "pact" ? "PACT" : a.site}` : ""}
-                  {a.source ? ` · ${a.source === "manual" ? "Manuell" : a.source === "backfill" ? "Bakåtfylld" : "Automatisk"}` : ""}
+                  {a.site
+                    ? ` · ${a.site === "pact" ? "PACT" : a.site === "dirtywine" ? "Dirty Wine" : a.site}`
+                    : ""}
+                  {a.source
+                    ? ` · ${a.source === "manual" ? "Manuell" : a.source === "backfill" ? "Bakåtfylld" : "Automatisk"}`
+                    : ""}
                 </div>
                 {a.url ? (
                   <a
@@ -184,14 +218,28 @@ function ReleasesBody({ data, qs }: { data: ReleasesData; qs: string }) {
                   </a>
                 ) : null}
               </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setDeleteId(a.id)}
-              >
-                Ta bort
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 shrink-0 text-gray-500"
+                    aria-label="Åtgärder"
+                  >
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    className="text-red-600 focus:text-red-600"
+                    onClick={() => setDeleteId(a.id)}
+                  >
+                    <Trash2 className="mr-2 h-3.5 w-3.5" />
+                    Ta bort
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </li>
           ))}
         </ul>
@@ -201,6 +249,9 @@ function ReleasesBody({ data, qs }: { data: ReleasesData; qs: string }) {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Ta bort anteckningen?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Anteckningen försvinner från listan och från graferna.
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Avbryt</AlertDialogCancel>
@@ -208,10 +259,6 @@ function ReleasesBody({ data, qs }: { data: ReleasesData; qs: string }) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      <p className="text-xs text-gray-500">
-        Automatiska anteckningar från Vercel deploy READY kopplas av Hugo (webhook
-        route finns i PR:n). Filterqs: {qs ? "aktiva" : "standard"}.
-      </p>
     </div>
   );
 }

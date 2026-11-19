@@ -21,24 +21,17 @@ export function DataStatusLine({
   warnings = [],
   queryString = "",
 }: DataStatusProps) {
-  const amber = warnings.length > 0;
   const href = queryString
     ? `/admin/analytics/datakvalitet?${queryString}`
     : "/admin/analytics/datakvalitet";
 
   return (
-    <div
-      className={
-        amber
-          ? "rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-800/50 dark:bg-amber-900/20 dark:text-amber-100"
-          : "text-xs text-gray-500 dark:text-gray-400"
-      }
-    >
+    <div className="rounded-md bg-gray-100 px-3 py-2 text-xs text-gray-600 dark:bg-zinc-900 dark:text-gray-400">
       <Link href={href} className="hover:underline">
-        Bottfilter på · {formatSvNumber(afterFilter)} rena sessioner av{" "}
+        Bottfilter på · {formatSvNumber(afterFilter)} rena besök av{" "}
         {formatSvNumber(beforeFilter)}
         {prerenderSuspect > 0
-          ? ` · ${formatSvNumber(prerenderSuspect)} förhandsladdningar bortfiltrerade`
+          ? ` · ${formatSvNumber(prerenderSuspect)} förhandsladdningar borttagna`
           : ""}
         {lastRefreshAt
           ? ` · Uppdaterad ${formatStockholmDateTime(lastRefreshAt)}`
