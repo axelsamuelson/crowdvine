@@ -197,18 +197,22 @@ export function OverviewPanel() {
                 <div className="w-40 shrink-0 text-gray-700 dark:text-gray-300">
                   {step.label}
                 </div>
-                <div className="h-3 flex-1 rounded bg-gray-100 dark:bg-zinc-800">
-                  <div
-                    className="h-3 rounded bg-gray-900 dark:bg-white"
-                    style={{
-                      width: `${Math.max(2, (step.count / den) * 100)}%`,
-                    }}
-                  />
+                <div className="h-3 min-w-0 flex-1 rounded bg-gray-100 dark:bg-zinc-800">
+                  {step.count > 0 ? (
+                    <div
+                      className="h-3 rounded bg-gray-900 dark:bg-white"
+                      style={{
+                        width: `${(step.count / den) * 100}%`,
+                      }}
+                    />
+                  ) : null}
                 </div>
-                <div className="w-36 shrink-0 text-right tabular-nums text-gray-600 dark:text-gray-400">
+                <div className="w-16 shrink-0 text-right tabular-nums text-gray-600 dark:text-gray-400">
                   {formatSvNumber(step.count)}
+                </div>
+                <div className="w-20 shrink-0 whitespace-nowrap text-right text-xs tabular-nums text-gray-500">
                   {step.key !== "sessions"
-                    ? ` · ${((step.count / den) * 100).toFixed(1).replace(".", ",")} %`
+                    ? `${((step.count / den) * 100).toFixed(1).replace(".", ",")} %`
                     : ""}
                 </div>
               </li>
@@ -289,7 +293,8 @@ export function OverviewPanel() {
           <ul className="space-y-1 text-sm tabular-nums">
             {data.fulfillment.map((f) => (
               <li key={f.channel || "unknown"}>
-                {labelFulfillment(f.channel)}: {formatSvNumber(f.count)} ·{" "}
+                {labelFulfillment(f.channel)}: {formatSvNumber(f.count)}
+                {" \u00b7 "}
                 {formatSvSek(f.valueSek)}
               </li>
             ))}

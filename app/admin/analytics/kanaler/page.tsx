@@ -3,11 +3,7 @@
 import { Suspense } from "react";
 import { AnalyticsPageShell } from "../v2/analytics-page-shell";
 import { SimpleFetchPanel } from "../v2/simple-fetch-panel";
-import {
-  formatSvNumber,
-  formatSvPercent,
-  labelChannel,
-} from "@/lib/analytics/v2/labels";
+import { formatSvNumber, labelChannel } from "@/lib/analytics/v2/labels";
 import { lowNLevel } from "@/lib/analytics/v2/wilson";
 import { AlertTriangle } from "lucide-react";
 import {
@@ -65,6 +61,7 @@ export default function KanalerPage() {
                       <div>Produkt · {formatSvNumber(r.pdp)}</div>
                       <div>Varukorg · {formatSvNumber(r.cart)}</div>
                       <div>Kassa · {formatSvNumber(r.checkout)}</div>
+                      <div>Köp · {formatSvNumber(r.purchases)}</div>
                     </dl>
                   </div>
                 ))}
@@ -102,10 +99,6 @@ export default function KanalerPage() {
                             {level === "hide" ? (
                               <span className="ml-1 text-[10px] text-amber-700">
                                 för få
-                              </span>
-                            ) : r.sessions >= 10 && r.checkout > 0 ? (
-                              <span className="ml-1 text-[10px] text-gray-400">
-                                {formatSvPercent(r.checkout / r.sessions)} kassa
                               </span>
                             ) : null}
                           </td>

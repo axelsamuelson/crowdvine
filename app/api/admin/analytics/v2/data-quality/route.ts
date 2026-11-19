@@ -172,13 +172,13 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({
     status,
     ladder: [
-      { label: "Alla sessioner i facts", count: allSessions ?? 0 },
+      { label: "Alla besök", count: allSessions ?? 0 },
       {
-        label: "Förhandsladdningar (D1)",
+        label: "Förladdningar (räknas inte)",
         count: prerender ?? 0,
       },
       {
-        label: "Geo-botmisstänkta (CN/SG/HK + beteende)",
+        label: "Misstänkta bottar",
         count: geoBot ?? 0,
       },
       { label: "Rena sessioner", count: clean ?? 0 },
@@ -186,7 +186,7 @@ export async function GET(request: NextRequest) {
     ],
     geoBotHeuristic: {
       rule:
-        "Land CN, SG eller HK OCH kanal=direkt OCH längd < 1 s OCH högst 2 events OCH inte engagerad. Hela länder stängs inte av.",
+        "Land CN, SG eller HK, direkt utan referrer, högst 1 sida, under 10 s, och ingen signal för engagemang, varukorg, sök eller kassa. Filter används räknas inte som engagemang. Hela länder stängs inte av.",
       countries: geoCountryStats,
     },
     unknownCountry: unknownCountry ?? 0,

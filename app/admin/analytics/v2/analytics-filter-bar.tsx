@@ -75,10 +75,17 @@ export function AnalyticsFilterBar({
     return n;
   }, [filters]);
 
+  /** Mobile Filter(n) also counts non-default grain/compare as active extras. */
+  const mobileFilterCount = useMemo(() => {
+    let n = advancedCount;
+    if (filters.compare !== "none" && filters.compare !== "previous") n += 1;
+    return n;
+  }, [advancedCount, filters.compare]);
+
   const siteControl = forceSite ? (
-    <div className="flex h-9 shrink-0 items-center rounded-md border border-gray-200 px-3 text-sm dark:border-[#1F1F23]">
+    <span className="shrink-0 self-center text-sm text-gray-600 dark:text-gray-400">
       {forceSite === "dirtywine" ? "Dirty Wine" : "PACT"}
-    </div>
+    </span>
   ) : (
     <div className="inline-flex h-9 shrink-0 overflow-hidden rounded-md border border-gray-200 dark:border-[#1F1F23]">
       {(["pact", "dirtywine"] as const).map((s) => (
@@ -107,7 +114,7 @@ export function AnalyticsFilterBar({
           inputMode="numeric"
           aria-label="Från"
           placeholder="ÅÅÅÅ-MM-DD"
-          className={`${selectClass} w-[9.5rem] font-mono tabular-nums`}
+          className={`${selectClass} w-full font-mono tabular-nums`}
           value={fromDraft}
           onChange={(e) => setFromDraft(e.target.value)}
           onBlur={() => {
@@ -129,7 +136,7 @@ export function AnalyticsFilterBar({
           inputMode="numeric"
           aria-label="Till"
           placeholder="ÅÅÅÅ-MM-DD"
-          className={`${selectClass} w-[9.5rem] font-mono tabular-nums`}
+          className={`${selectClass} w-full font-mono tabular-nums`}
           value={toDraft}
           onChange={(e) => setToDraft(e.target.value)}
           onBlur={() => {
@@ -329,21 +336,16 @@ export function AnalyticsFilterBar({
         </button>
       </div>
 
-      {/* Mobile: compact trigger → sheet */}
+      {/* Mobile: site + Filter(n) only — no date text that truncates the label */}
       <div className="flex items-center gap-2 md:hidden">
         {siteControl}
         <button
           type="button"
-          className="inline-flex h-9 flex-1 items-center justify-between gap-2 rounded-md border border-gray-200 px-3 text-sm dark:border-[#1F1F23]"
+          className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-md border border-gray-200 px-3 text-sm dark:border-[#1F1F23]"
           onClick={() => setMobileOpen(true)}
         >
-          <span className="truncate tabular-nums text-gray-700 dark:text-gray-200">
-            {filters.from} – {filters.to}
-          </span>
-          <span className="inline-flex items-center gap-1 text-gray-500">
-            <Filter className="h-3.5 w-3.5" aria-hidden />
-            Filter{advancedCount > 0 ? ` (${advancedCount})` : ""}
-          </span>
+          <Filter className="h-3.5 w-3.5" aria-hidden />
+          Filter{mobileFilterCount > 0 ? ` (${mobileFilterCount})` : ""}
         </button>
       </div>
 
