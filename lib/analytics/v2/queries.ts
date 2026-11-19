@@ -226,20 +226,73 @@ export async function fetchRollupTotals(
   return sumRows(rows);
 }
 
+/**
+ * Open funnel (default, spec §6.2 / Shopify): each step is independent —
+ * sticky ATC / cart drawer can skip earlier steps, so Kassa may exceed Varukorg.
+ * Closed funnel: each step requires all prior steps (subset chain).
+ */
+export type FunnelMode = "open" | "closed";
+
 export async function fetchSessionFunnel(
   filters: AnalyticsV2FilterState,
-): Promise<SessionFunnel> {
+  mode: FunnelMode = "open",
+): Promise<SessionFunnel & { mode: FunnelMode; note: string }> {
+  const openNote =
+    "Öppen tratt: varje steg räknas oberoende mot rena sessioner. Sticky köpknapp och varukorgslåda kan hoppa över tidigare steg — Kassa kan därför vara större än La i varukorg. Event: add_to_cart → checkout_started|checkout_step_viewed.";
+  const closedNote =
+    "Stängd tratt: varje steg kräver alla föregående (delmängd). Sessioner som går direkt till kassa utan add_to_cart räknas inte i kassa-steget.";
+
+  if (mode === "closed") {
+    const closed = await fetchClosedFunnelCounts(filters);
+    const steps: FunnelStep[] = [
+      { key: "sessions", label: "Sessioner", count: closed.sessions },
+      { key: "engaged", label: "Engagerade", count: closed.engaged },
+      { key: "plp", label: "Produktlista", count: closed.plp },
+      { key: "pdp", label: "Produktsida", count: closed.pdp },
+      { key: "cart", label: "La i varukorg", count: closed.cart },
+      { key: "checkout", label: "Påbörjade kassan", count: closed.checkout },
+      { key: "purchases", label: "Slutförda köp", count: closed.purchases },
+    ];
+    return {
+      mode,
+      note: closedNote,
+      totals: {
+        sessions: closed.sessions,
+        engaged: closed.engaged,
+        plp: closed.plp,
+        pdp: closed.pdp,
+        cart: closed.cart,
+        checkout: closed.checkout,
+        purchases: closed.purchases,
+        purchase_value_sek: 0,
+        purchaseValueSek: 0,
+        prerender_suspect: 0,
+      },
+      steps,
+      rates: {
+        engaged: rate(closed.engaged, closed.sessions),
+        plp: rate(closed.plp, closed.sessions),
+        pdp: rate(closed.pdp, closed.sessions),
+        cart: rate(closed.cart, closed.sessions),
+        checkout: rate(closed.checkout, closed.sessions),
+        purchases: rate(closed.purchases, closed.sessions),
+      },
+    };
+  }
+
   const totals = await fetchRollupTotals(filters);
   const steps: FunnelStep[] = [
     { key: "sessions", label: "Sessioner", count: totals.sessions },
     { key: "engaged", label: "Engagerade", count: totals.engaged },
     { key: "plp", label: "Produktlista", count: totals.plp },
     { key: "pdp", label: "Produktsida", count: totals.pdp },
-    { key: "cart", label: "Varukorg", count: totals.cart },
-    { key: "checkout", label: "Kassa", count: totals.checkout },
+    { key: "cart", label: "La i varukorg", count: totals.cart },
+    { key: "checkout", label: "Påbörjade kassan", count: totals.checkout },
     { key: "purchases", label: "Slutförda köp", count: totals.purchases },
   ];
   return {
+    mode: "open",
+    note: openNote,
     totals,
     steps,
     rates: {
@@ -251,6 +304,46 @@ export async function fetchSessionFunnel(
       purchases: rate(totals.purchases, totals.sessions),
     },
   };
+}
+
+/** Closed-funnel counts from facts (full prior-step chain). */
+async function fetchClosedFunnelCounts(filters: AnalyticsV2FilterState) {
+  const sb = getSupabaseAdmin();
+  const base = applyCleanFactsFilters(
+    sb
+      .from("analytics_session_facts")
+      .select(
+        "is_engaged, reached_plp, reached_pdp, added_to_cart, reached_checkout, purchased",
+      ),
+    filters,
+  );
+  const { data, error } = await base.limit(50000);
+  if (error) {
+    throw new Error(`closed funnel facts: ${error.message}`);
+  }
+  let sessions = 0;
+  let engaged = 0;
+  let plp = 0;
+  let pdp = 0;
+  let cart = 0;
+  let checkout = 0;
+  let purchases = 0;
+  for (const row of data ?? []) {
+    sessions += 1;
+    const eng = Boolean(row.is_engaged);
+    const rPlp = eng && Boolean(row.reached_plp);
+    const rPdp = rPlp && Boolean(row.reached_pdp);
+    const rCart = rPdp && Boolean(row.added_to_cart);
+    const rCheck = rCart && Boolean(row.reached_checkout);
+    const rBuy = rCheck && Boolean(row.purchased);
+    if (eng) engaged += 1;
+    if (rPlp) plp += 1;
+    if (rPdp) pdp += 1;
+    if (rCart) cart += 1;
+    if (rCheck) checkout += 1;
+    if (rBuy) purchases += 1;
+  }
+  return { sessions, engaged, plp, pdp, cart, checkout, purchases };
 }
 
 export async function fetchStatusLine(

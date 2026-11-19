@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   parseAnalyticsV2Filters,
@@ -13,11 +13,20 @@ import { CHANNEL_LABELS, DEVICE_LABELS } from "@/lib/analytics/v2/labels";
 const selectClass =
   "h-9 rounded-md border border-gray-200 bg-white px-2 text-sm text-gray-900 dark:border-[#1F1F23] dark:bg-[#0F0F12] dark:text-white";
 
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
 export function AnalyticsFilterBar() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const filters = parseAnalyticsV2Filters(searchParams);
+  const [fromDraft, setFromDraft] = useState(filters.from);
+  const [toDraft, setToDraft] = useState(filters.to);
+
+  useEffect(() => {
+    setFromDraft(filters.from);
+    setToDraft(filters.to);
+  }, [filters.from, filters.to]);
 
   const push = useCallback(
     (next: Partial<AnalyticsV2FilterState>) => {
@@ -50,21 +59,43 @@ export function AnalyticsFilterBar() {
         <label className="flex flex-col gap-1 text-xs text-gray-600 dark:text-gray-400">
           Från
           <input
-            type="date"
-            min="2026-08-07"
-            className={selectClass}
-            value={filters.from}
-            onChange={(e) => push({ from: e.target.value || defaults.from })}
+            type="text"
+            inputMode="numeric"
+            placeholder="ÅÅÅÅ-MM-DD"
+            pattern="\d{4}-\d{2}-\d{2}"
+            title="ÅÅÅÅ-MM-DD"
+            className={`${selectClass} w-[9.5rem] font-mono tabular-nums`}
+            value={fromDraft}
+            onChange={(e) => setFromDraft(e.target.value)}
+            onBlur={() => {
+              const v = fromDraft.trim();
+              push({ from: ISO_DATE.test(v) ? v : filters.from || defaults.from });
+              if (!ISO_DATE.test(v)) setFromDraft(filters.from);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+            }}
           />
         </label>
         <label className="flex flex-col gap-1 text-xs text-gray-600 dark:text-gray-400">
           Till
           <input
-            type="date"
-            min="2026-08-07"
-            className={selectClass}
-            value={filters.to}
-            onChange={(e) => push({ to: e.target.value || defaults.to })}
+            type="text"
+            inputMode="numeric"
+            placeholder="ÅÅÅÅ-MM-DD"
+            pattern="\d{4}-\d{2}-\d{2}"
+            title="ÅÅÅÅ-MM-DD"
+            className={`${selectClass} w-[9.5rem] font-mono tabular-nums`}
+            value={toDraft}
+            onChange={(e) => setToDraft(e.target.value)}
+            onBlur={() => {
+              const v = toDraft.trim();
+              push({ to: ISO_DATE.test(v) ? v : filters.to || defaults.to });
+              if (!ISO_DATE.test(v)) setToDraft(filters.to);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+            }}
           />
         </label>
 

@@ -5,6 +5,7 @@ import {
   applyCleanFactsFilters,
   fetchSessionFunnel,
   fetchStatusLine,
+  type FunnelMode,
 } from "@/lib/analytics/v2/queries";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { CHECKOUT_STEP_ORDER } from "@/lib/analytics/v2/checkout-step";
@@ -18,9 +19,12 @@ export async function GET(request: NextRequest) {
   }
 
   const filters = parseAnalyticsV2Filters(request.nextUrl.searchParams);
+  const modeRaw = request.nextUrl.searchParams.get("funnel_mode");
+  const mode: FunnelMode = modeRaw === "closed" ? "closed" : "open";
+
   const [status, funnel] = await Promise.all([
     fetchStatusLine(filters),
-    fetchSessionFunnel(filters),
+    fetchSessionFunnel(filters, mode),
   ]);
 
   const sb = getSupabaseAdmin();
@@ -91,9 +95,28 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  const cartStep = funnel.steps.find((s) => s.key === "cart");
+  const checkoutStep = funnel.steps.find((s) => s.key === "checkout");
+  const openAnomaly =
+    mode === "open" &&
+    cartStep != null &&
+    checkoutStep != null &&
+    checkoutStep.count > cartStep.count;
+
   return NextResponse.json({
     status,
+    mode: funnel.mode,
+    note: funnel.note,
+    definitions: {
+      cart: "add_to_cart (kolumn added_to_cart i facts)",
+      checkout:
+        "checkout_started eller checkout_step_viewed (H4-steg via analytics_checkout_step)",
+      cart_opened: "räknas som engagemang, inte som tratsteg La i varukorg",
+      sticky_atc: "sticky_atc_clicked kan leda till kassa utan separat add_to_cart",
+    },
     funnel: funnel.steps,
+    ratesVsSessions: funnel.rates,
+    openAnomaly,
     checkoutSteps,
     abandonReasons,
     nearPurchase,

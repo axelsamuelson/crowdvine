@@ -28,7 +28,8 @@ export function SimpleFetchPanel<T extends { status: DataStatusProps }>({
     setLoading(true);
     (async () => {
       try {
-        const res = await fetch(`${endpoint}?${qs}`);
+        const join = endpoint.includes("?") ? "&" : "?";
+        const res = await fetch(`${endpoint}${qs ? `${join}${qs}` : ""}`);
         const json = await res.json();
         if (!res.ok) throw new Error(json.error || "Kunde inte hämta data");
         if (!cancelled) setData(json);
