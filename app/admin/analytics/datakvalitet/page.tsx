@@ -186,13 +186,16 @@ function DQBody({ data }: { data: DQData }) {
 
       {data.geoBotHeuristic ? (
         <section className="rounded-xl border border-gray-200 bg-white p-6 dark:border-[#1F1F23] dark:bg-[#0F0F12]">
-          <h2 className="mb-3 text-lg font-bold">Misstänkta bottar</h2>
+          <h2 className="mb-2 text-lg font-bold">Misstänkta bottar</h2>
+          <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
+            {data.geoBotHeuristic.rule}
+          </p>
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="text-xs font-medium text-gray-600">
                 <th className="py-2">Land</th>
                 <th className="py-2">Besök</th>
-                <th className="py-2">Träffade av heuristik</th>
+                <th className="py-2">Flaggade</th>
               </tr>
             </thead>
             <tbody>

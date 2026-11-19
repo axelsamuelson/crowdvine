@@ -1,9 +1,11 @@
 "use client";
 
 import { Suspense, useState } from "react";
+import { AlertTriangle } from "lucide-react";
 import { AnalyticsPageShell } from "../v2/analytics-page-shell";
 import { SimpleFetchPanel } from "../v2/simple-fetch-panel";
 import { formatSvNumber } from "@/lib/analytics/v2/labels";
+import { lowNLevel } from "@/lib/analytics/v2/wilson";
 import {
   ScrollTable,
   stickyFirstTd,
@@ -15,6 +17,7 @@ type ProductsData = {
     beforeFilter: number;
     afterFilter: number;
     prerenderSuspect: number;
+    geoBotSuspect?: number;
     lastRefreshAt: string | null;
     warnings?: string[];
   };
@@ -30,6 +33,21 @@ type ProductsData = {
   lists: Array<{ path: string; sessions: number }>;
   unattributedPdp?: number;
 };
+
+function LowNHint({ n }: { n: number }) {
+  const level = lowNLevel(n);
+  if (level === "caution") {
+    return (
+      <AlertTriangle className="ml-1 inline h-3 w-3 text-amber-600" aria-hidden />
+    );
+  }
+  if (level === "hide") {
+    return (
+      <span className="ml-1 text-[10px] text-amber-700">för få</span>
+    );
+  }
+  return null;
+}
 
 export default function ProdukterPage() {
   const [tab, setTab] = useState<"lists" | "wines">("wines");
@@ -90,7 +108,14 @@ export default function ProdukterPage() {
                           {w.product_name || w.product_id}
                         </div>
                         <dl className="mt-2 grid grid-cols-2 gap-1 text-xs tabular-nums text-gray-600">
-                          <div>Produkt · {formatSvNumber(w.pdp_sessions)}</div>
+                          <div>
+                            Lista · {formatSvNumber(w.list_sessions)}
+                            <LowNHint n={w.list_sessions} />
+                          </div>
+                          <div>
+                            Produkt · {formatSvNumber(w.pdp_sessions)}
+                            <LowNHint n={w.pdp_sessions} />
+                          </div>
                           <div>Varukorg · {formatSvNumber(w.cart_sessions)}</div>
                           <div>
                             Kassa · {formatSvNumber(w.checkout_sessions)}
@@ -103,10 +128,11 @@ export default function ProdukterPage() {
                     ))}
                   </div>
                   <div className="hidden sm:block">
-                    <ScrollTable minWidth="560px">
+                    <ScrollTable minWidth="640px">
                       <thead>
                         <tr className="text-xs font-medium text-gray-600">
                           <th className={`${stickyFirstTh} pl-4`}>Vin</th>
+                          <th className="py-2">Lista</th>
                           <th className="py-2">Produkt</th>
                           <th className="py-2">Varukorg</th>
                           <th className="py-2">Kassa</th>
@@ -123,7 +149,12 @@ export default function ProdukterPage() {
                               {w.product_name || w.product_id}
                             </td>
                             <td className="py-2">
+                              {formatSvNumber(w.list_sessions)}
+                              <LowNHint n={w.list_sessions} />
+                            </td>
+                            <td className="py-2">
                               {formatSvNumber(w.pdp_sessions)}
+                              <LowNHint n={w.pdp_sessions} />
                             </td>
                             <td className="py-2">
                               {formatSvNumber(w.cart_sessions)}
@@ -161,6 +192,7 @@ export default function ProdukterPage() {
                         </td>
                         <td className="py-2 pr-4">
                           {formatSvNumber(l.sessions)}
+                          <LowNHint n={l.sessions} />
                         </td>
                       </tr>
                     ))}

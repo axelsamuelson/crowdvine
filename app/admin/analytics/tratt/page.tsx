@@ -12,6 +12,9 @@ import {
   labelDevice,
   countryNameSv,
 } from "@/lib/analytics/v2/labels";
+import { formatStockholmDateTime } from "@/lib/analytics/stockholm-time";
+import { lowNLevel } from "@/lib/analytics/v2/wilson";
+import { AlertTriangle } from "lucide-react";
 import {
   ScrollTable,
   stickyFirstTd,
@@ -23,6 +26,7 @@ type FunnelData = {
     beforeFilter: number;
     afterFilter: number;
     prerenderSuspect: number;
+    geoBotSuspect?: number;
     lastRefreshAt: string | null;
     warnings?: string[];
   };
@@ -35,12 +39,27 @@ type FunnelData = {
     count: number;
     ofSessions?: number | null;
     ofPrevious?: number | null;
+    ofPreviousDen?: number | null;
   }>;
   checkoutSteps: Array<{ step: string; count: number }>;
   abandonReasons: Array<{ reason: string; count: number }>;
   nearPurchase: Array<Record<string, unknown>>;
   voices: Array<Record<string, unknown>>;
 };
+
+function formatOfPrevious(
+  ofPrevious: number | null,
+  ofPreviousDen: number | null | undefined,
+  count: number,
+): string | null {
+  if (ofPrevious == null || ofPreviousDen == null) return null;
+  const level = lowNLevel(ofPreviousDen);
+  if (level === "hide") {
+    return `${formatSvNumber(count)} av ${formatSvNumber(ofPreviousDen)} (för få)`;
+  }
+  const pct = `${formatSvPercent(ofPrevious)} av föreg. (${formatSvNumber(ofPreviousDen)})`;
+  return level === "caution" ? `⚠ ${pct}` : pct;
+}
 
 const TABS = [
   { id: "funnel", label: "Tratt" },
@@ -148,7 +167,12 @@ function TrattBody({
               step.ofSessions ??
               (sessions > 0 ? step.count / sessions : null);
             const ofPrevious = step.ofPrevious ?? null;
+            const ofPreviousDen = step.ofPreviousDen ?? null;
             const showPct = step.key !== "sessions" && sessions >= 10;
+            const prevLabel =
+              step.key !== "engaged"
+                ? formatOfPrevious(ofPrevious, ofPreviousDen, step.count)
+                : null;
             const barPct =
               sessions > 0 ? (step.count / sessions) * 100 : 0;
             return (
@@ -173,15 +197,19 @@ function TrattBody({
                         ? "För få besök"
                         : ""}
                   </div>
-                  <div className="hidden w-[7.5rem] shrink-0 whitespace-nowrap text-right text-xs tabular-nums text-gray-500 sm:block">
-                    {showPct && ofPrevious != null && step.key !== "engaged"
-                      ? `${formatSvPercent(ofPrevious)} av föreg.`
+                  <div className="hidden min-w-[9rem] shrink-0 whitespace-nowrap text-right text-xs tabular-nums text-gray-500 sm:block">
+                    {showPct && prevLabel
+                      ? prevLabel.replace(/^⚠ /, "")
                       : ""}
+                    {showPct &&
+                    prevLabel?.startsWith("⚠") &&
+                    ofPreviousDen != null &&
+                    lowNLevel(ofPreviousDen) === "caution" ? (
+                      <AlertTriangle className="ml-1 inline h-3 w-3 text-amber-600" />
+                    ) : null}
                   </div>
                 </div>
-                {(showPct &&
-                  (ofSessions != null ||
-                    (ofPrevious != null && step.key !== "engaged"))) ||
+                {(showPct && (ofSessions != null || prevLabel)) ||
                 (step.key !== "sessions" && sessions < 10) ? (
                   <div className="flex flex-wrap gap-x-3 gap-y-0.5 pl-0 text-xs tabular-nums text-gray-500 sm:hidden">
                     {showPct && ofSessions != null ? (
@@ -189,11 +217,16 @@ function TrattBody({
                         {formatSvPercent(ofSessions)} av besök
                       </span>
                     ) : null}
-                    {showPct &&
-                    ofPrevious != null &&
-                    step.key !== "engaged" ? (
-                      <span className="whitespace-nowrap">
-                        {formatSvPercent(ofPrevious)} av föreg.
+                    {showPct && prevLabel ? (
+                      <span className="inline-flex items-center gap-1 whitespace-nowrap">
+                        {ofPreviousDen != null &&
+                        lowNLevel(ofPreviousDen) === "caution" ? (
+                          <AlertTriangle
+                            className="h-3 w-3 text-amber-600"
+                            aria-hidden
+                          />
+                        ) : null}
+                        {prevLabel.replace(/^⚠ /, "")}
                       </span>
                     ) : null}
                     {step.key !== "sessions" && sessions < 10 ? (
@@ -266,7 +299,9 @@ function TrattBody({
               className="border-t border-gray-100 dark:border-zinc-800"
             >
               <td className={`${stickyFirstTd} text-xs`}>
-                {String(row.started_at)}
+                {row.started_at
+                  ? formatStockholmDateTime(String(row.started_at))
+                  : "—"}
               </td>
               <td className="py-2">{labelChannel(String(row.channel || ""))}</td>
               <td className="py-2">{labelDevice(String(row.device || ""))}</td>
@@ -303,7 +338,10 @@ function TrattBody({
               className="border-t border-gray-100 pt-2 dark:border-zinc-800"
             >
               <div className="text-xs text-gray-500">
-                {String(v.created_at)} · {String(v.step || v.page || "")}
+                {v.created_at
+                  ? formatStockholmDateTime(String(v.created_at))
+                  : "—"}{" "}
+                · {String(v.step || v.page || "")}
               </div>
               <div>{String(v.answer || v.reason || "")}</div>
             </li>

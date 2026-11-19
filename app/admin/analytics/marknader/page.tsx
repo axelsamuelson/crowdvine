@@ -17,6 +17,7 @@ type MarketsData = {
     beforeFilter: number;
     afterFilter: number;
     prerenderSuspect: number;
+    geoBotSuspect?: number;
     lastRefreshAt: string | null;
     warnings?: string[];
   };
@@ -93,7 +94,10 @@ export default function MarknaderPage() {
                           <td className="py-2">
                             {formatSvNumber(r.sessions)}
                             {level === "caution" ? (
-                              <AlertTriangle className="ml-1 inline h-3 w-3 text-amber-600" />
+                              <AlertTriangle
+                                className="ml-1 inline h-3 w-3 text-amber-600"
+                                aria-label="Lågt n"
+                              />
                             ) : null}
                             {level === "hide" ? (
                               <span className="ml-1 text-[10px] text-amber-700">

@@ -181,12 +181,12 @@ export async function GET(request: NextRequest) {
         label: "Misstänkta bottar",
         count: geoBot ?? 0,
       },
-      { label: "Rena sessioner", count: clean ?? 0 },
+      { label: "Rena besök", count: clean ?? 0 },
       { label: "Varav engagerade", count: engaged ?? 0 },
     ],
     geoBotHeuristic: {
       rule:
-        "Land CN, SG eller HK, direkt utan referrer, högst 1 sida, under 10 s, och ingen signal för engagemang, varukorg, sök eller kassa. Filter används räknas inte som engagemang. Hela länder stängs inte av.",
+        "CN/SG/HK, direkt utan referrer, högst 1 page_view, under 10 s, och ingen engagemang/korg/sök/kassa. filter_used räknas inte som engagemang. Hela länder stängs inte av.",
       countries: geoCountryStats,
     },
     unknownCountry: unknownCountry ?? 0,

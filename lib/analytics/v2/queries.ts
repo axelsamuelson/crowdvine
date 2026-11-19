@@ -49,6 +49,7 @@ export type StatusLine = {
   beforeFilter: number;
   afterFilter: number;
   prerenderSuspect: number;
+  geoBotSuspect: number;
   lastRefreshAt: string | null;
   warnings: string[];
 };
@@ -61,6 +62,8 @@ export type FunnelStep = {
   ofSessions: number | null;
   /** Share of previous step (0–1). */
   ofPrevious: number | null;
+  /** Previous-step count (denominator for ofPrevious). */
+  ofPreviousDen: number | null;
 };
 
 export type SessionFunnel = {
@@ -349,6 +352,7 @@ function buildFunnelSteps(
       count: c.count,
       ofSessions: rate(c.count, sessions),
       ofPrevious: prev == null ? null : rate(c.count, prev),
+      ofPreviousDen: prev,
     };
   });
 }
@@ -360,7 +364,7 @@ export async function fetchSessionFunnel(
   const openNote =
     "Varje steg räknas för sig mot rena besök. Kassan kan vara större än varukorgen, eftersom man kan gå direkt till kassan.";
   const closedNote =
-    "Stängd tratt i tidsordning: lista → produkt → varukorg → kassa → köp. Besök som hoppar över steg räknas inte vidare.";
+    "Stängd tratt: besöket måste ha nått varje steg (lista → produkt → varukorg → kassa → köp). Ordning och återbesök spelar ingen roll.";
 
   if (mode === "closed") {
     const closed = await fetchClosedFunnelCounts(filters);
@@ -455,8 +459,17 @@ export async function fetchStatusLine(
   const beforeFilter = afterFilter + prerenderSuspect;
 
   let lastRefreshAt: string | null = null;
+  let geoBotSuspect = 0;
   try {
     const sb = getSupabaseAdmin();
+    const { count: geoCount } = await sb
+      .from("analytics_session_facts")
+      .select("session_id", { count: "exact", head: true })
+      .eq("site", filters.site)
+      .gte("day_sthlm", filters.from)
+      .lte("day_sthlm", filters.to)
+      .eq("is_geo_bot_suspect", true);
+    geoBotSuspect = geoCount ?? 0;
     const { data } = await sb
       .from("analytics_refresh_state")
       .select("last_refresh_at")
@@ -480,8 +493,61 @@ export async function fetchStatusLine(
     beforeFilter,
     afterFilter,
     prerenderSuspect,
+    geoBotSuspect,
     lastRefreshAt,
     warnings,
+  };
+}
+
+export type ProductWineRow = {
+  product_id: string;
+  product_name: string | null;
+  list_sessions: number;
+  pdp_sessions: number;
+  cart_sessions: number;
+  checkout_sessions: number;
+  purchase_sessions: number;
+};
+
+export async function fetchProductsReport(
+  filters: AnalyticsV2FilterState,
+): Promise<{
+  wines: ProductWineRow[];
+  lists: Array<{ path: string; sessions: number }>;
+  unattributedPdp: number;
+}> {
+  const sb = getSupabaseAdmin();
+  const { data, error } = await sb.rpc(
+    "analytics_v2_rpc_products",
+    rpcFilterArgs(filters),
+  );
+  if (error) {
+    throw new Error(`analytics_v2_rpc_products: ${error.message}`);
+  }
+  const raw = (data ?? {}) as Record<string, unknown>;
+  const winesRaw = Array.isArray(raw.wines) ? raw.wines : [];
+  const listsRaw = Array.isArray(raw.lists) ? raw.lists : [];
+  return {
+    wines: winesRaw.map((r) => {
+      const row = r as Record<string, unknown>;
+      return {
+        product_id: String(row.product_id ?? ""),
+        product_name: (row.product_name as string | null) ?? null,
+        list_sessions: num(row.list_sessions as number),
+        pdp_sessions: num(row.pdp_sessions as number),
+        cart_sessions: num(row.cart_sessions as number),
+        checkout_sessions: num(row.checkout_sessions as number),
+        purchase_sessions: num(row.purchase_sessions as number),
+      };
+    }),
+    lists: listsRaw.map((r) => {
+      const row = r as Record<string, unknown>;
+      return {
+        path: String(row.path ?? "/"),
+        sessions: num(row.sessions as number),
+      };
+    }),
+    unattributedPdp: num(raw.unattributed_pdp as number),
   };
 }
 

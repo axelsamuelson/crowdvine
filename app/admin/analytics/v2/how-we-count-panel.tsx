@@ -8,11 +8,11 @@ const BULLETS = [
   "Lade i varukorg = besök där någon lade till vin.",
   "Började i kassan = besök som öppnade kassan.",
   "Tratten är öppen som standard: man kan gå direkt till kassan utan att passera varukorgen (till exempel med den fasta köpknappen).",
-  "Stängd tratt räknar bara besök som gått genom varje steg i ordning.",
+  "Stängd tratt kräver att besöket nått varje steg (lista → produkt → varukorg → kassa → köp). Ordning och återbesök spelar ingen roll.",
   "Kassastegen är: postnummer → leverans → ålder och villkor → betalning.",
   "Köpvärde = vin efter rabatt plus frakt. Aldrig orderns totalsumma-fält.",
   "Bottfilter tar bort kända botar och förladdningar innan siffrorna visas.",
-  "Misstänkta bottar (CN/SG/HK): direkt utan referrer, högst 1 sida, under 10 s, och ingen signal för engagemang, varukorg, sök eller kassa. Filter används räknas inte som engagemang.",
+  "Misstänkta bottar (CN/SG/HK): direkt utan referrer, högst 1 page_view, under 10 s, och ingen signal för engagemang, varukorg, sök eller kassa. filter_used räknas inte som engagemang.",
 ];
 
 export function HowWeCountButton() {
