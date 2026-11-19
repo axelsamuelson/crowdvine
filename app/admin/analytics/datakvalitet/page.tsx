@@ -1,11 +1,28 @@
 "use client";
 
 import { Suspense, useState } from "react";
+import { MoreHorizontal } from "lucide-react";
 import { AnalyticsPageShell } from "../v2/analytics-page-shell";
 import { SimpleFetchPanel } from "../v2/simple-fetch-panel";
 import { formatSvNumber } from "@/lib/analytics/v2/labels";
 import { formatStockholmDateTime } from "@/lib/analytics/stockholm-time";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 type DQData = {
   status: {
@@ -78,6 +95,7 @@ function DQBody({ data }: { data: DQData }) {
   const [log, setLog] = useState<Array<Record<string, unknown>>>(data.eventLog);
   const [refreshing, setRefreshing] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [confirmFull, setConfirmFull] = useState(false);
 
   async function loadLog() {
     const res = await fetch(
@@ -90,6 +108,7 @@ function DQBody({ data }: { data: DQData }) {
   async function refresh(full: boolean) {
     setRefreshing(true);
     setMsg(null);
+    setConfirmFull(false);
     try {
       const res = await fetch("/api/admin/analytics/v2/refresh", {
         method: "POST",
@@ -112,25 +131,40 @@ function DQBody({ data }: { data: DQData }) {
       <section className="rounded-xl border border-gray-200 bg-white p-6 dark:border-[#1F1F23] dark:bg-[#0F0F12]">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-lg font-bold">Filtertrappa</h2>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
             <Button
               type="button"
-              variant="outline"
               size="sm"
               disabled={refreshing}
               onClick={() => refresh(false)}
             >
               Räkna om
             </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={refreshing}
-              onClick={() => refresh(true)}
-            >
-              Full omräkning
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-9 w-9"
+                  disabled={refreshing}
+                  aria-label="Fler åtgärder"
+                >
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-64">
+                <DropdownMenuItem
+                  onClick={() => setConfirmFull(true)}
+                  className="flex flex-col items-start gap-1 whitespace-normal"
+                >
+                  <span className="font-medium">Full omräkning</span>
+                  <span className="text-xs text-gray-500">
+                    Bygger om alla besök från 2026-08-07. Tar längre tid.
+                  </span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
         {msg ? <p className="mb-2 text-sm text-gray-600">{msg}</p> : null}
@@ -143,7 +177,7 @@ function DQBody({ data }: { data: DQData }) {
           ))}
         </ul>
         <p className="mt-3 text-xs text-gray-500">
-          Okänt land: {formatSvNumber(data.unknownCountry)} sessioner.
+          Okänt land: {formatSvNumber(data.unknownCountry)} besök.
           {data.refresh?.last_refresh_at
             ? ` Senaste uppdatering ${formatStockholmDateTime(data.refresh.last_refresh_at)}.`
             : ""}
@@ -158,7 +192,7 @@ function DQBody({ data }: { data: DQData }) {
             <thead>
               <tr className="text-xs font-medium text-gray-600">
                 <th className="py-2">Land</th>
-                <th className="py-2">Sessioner</th>
+                <th className="py-2">Besök</th>
                 <th className="py-2">Träffade av heuristik</th>
               </tr>
             </thead>
@@ -231,7 +265,7 @@ function DQBody({ data }: { data: DQData }) {
       <section className="rounded-xl border border-gray-200 bg-white p-6 dark:border-[#1F1F23] dark:bg-[#0F0F12]">
         <h2 className="mb-3 text-lg font-bold">Händelselogg</h2>
         <p className="mb-2 text-xs text-gray-500">
-          Senaste 500 events för en session. Bara för felsökning.
+          Senaste 500 händelser för ett besök. Bara för felsökning.
         </p>
         <div className="mb-3 flex flex-wrap gap-2">
           <input
@@ -253,6 +287,25 @@ function DQBody({ data }: { data: DQData }) {
           ))}
         </ul>
       </section>
+
+      <AlertDialog open={confirmFull} onOpenChange={setConfirmFull}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Köra full omräkning?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bygger om alla besök från 2026-08-07. Tar längre tid än vanlig
+              omräkning. Använd när siffrorna ser trasiga ut efter en stor
+              ändring.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Avbryt</AlertDialogCancel>
+            <AlertDialogAction onClick={() => refresh(true)}>
+              Kör full omräkning
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

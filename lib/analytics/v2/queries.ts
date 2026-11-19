@@ -57,6 +57,10 @@ export type FunnelStep = {
   key: string;
   label: string;
   count: number;
+  /** Share of all sessions (0–1). */
+  ofSessions: number | null;
+  /** Share of previous step (0–1). */
+  ofPrevious: number | null;
 };
 
 export type SessionFunnel = {
@@ -139,6 +143,19 @@ function rate(numera: number, den: number): number | null {
   return numera / den;
 }
 
+/** RPC filter args — null means «all» for that dimension. */
+function rpcFilterArgs(filters: AnalyticsV2FilterState) {
+  return {
+    p_site: filters.site,
+    p_from: filters.from,
+    p_to: filters.to,
+    p_market: filters.market === "all" ? null : filters.market,
+    p_channel: filters.channel,
+    p_device: filters.device,
+    p_invited: filters.invited === "exclude" ? "exclude" : "include",
+  };
+}
+
 /**
  * Apply shared dimension filters. Invited (etapp 1):
  * include = all rows, exclude = is_invited_friend=false.
@@ -202,63 +219,165 @@ export function applyCleanFactsFilters(query: any, filters: AnalyticsV2FilterSta
   return q;
 }
 
+/** Paginate rollup rows (PostgREST max-rows is often 1000). */
 async function fetchRollupRows(
   filters: AnalyticsV2FilterState,
 ): Promise<RollupRow[]> {
   const sb = getSupabaseAdmin();
-  const base = sb
-    .from("analytics_daily_rollup")
-    .select(
-      "day_sthlm, site, market, channel, device, landing_type, is_invited_friend, sessions, engaged, plp, pdp, cart, checkout, purchases, purchase_value_sek, prerender_suspect, refreshed_at",
+  const pageSize = 1000;
+  const all: RollupRow[] = [];
+  for (let from = 0; from < 50_000; from += pageSize) {
+    const base = sb
+      .from("analytics_daily_rollup")
+      .select(
+        "day_sthlm, site, market, channel, device, landing_type, is_invited_friend, sessions, engaged, plp, pdp, cart, checkout, purchases, purchase_value_sek, prerender_suspect, refreshed_at",
+      );
+    const q = applyRollupFilters(base, filters).range(
+      from,
+      from + pageSize - 1,
     );
-  const q = applyRollupFilters(base, filters);
-  const { data, error } = await q;
-  if (error) {
-    throw new Error(`analytics_daily_rollup: ${error.message}`);
+    const { data, error } = await q;
+    if (error) {
+      throw new Error(`analytics_daily_rollup: ${error.message}`);
+    }
+    const batch = (data ?? []) as RollupRow[];
+    all.push(...batch);
+    if (batch.length < pageSize) break;
   }
-  return (data ?? []) as RollupRow[];
+  return all;
 }
 
 export async function fetchRollupTotals(
   filters: AnalyticsV2FilterState,
 ): Promise<RollupTotals> {
-  const rows = await fetchRollupRows(filters);
-  return sumRows(rows);
+  const sb = getSupabaseAdmin();
+  const args = rpcFilterArgs(filters);
+  const { data, error } = await sb.rpc("analytics_v2_rpc_rollup_totals", args);
+  if (error) {
+    // Fallback for environments where 305 is not applied yet.
+    const rows = await fetchRollupRows(filters);
+    return sumRows(rows);
+  }
+  const raw = (data ?? {}) as Record<string, unknown>;
+  const purchase = num(raw.purchase_value_sek as number);
+  return {
+    sessions: num(raw.sessions as number),
+    engaged: num(raw.engaged as number),
+    plp: num(raw.plp as number),
+    pdp: num(raw.pdp as number),
+    cart: num(raw.cart as number),
+    checkout: num(raw.checkout as number),
+    purchases: num(raw.purchases as number),
+    purchase_value_sek: purchase,
+    purchaseValueSek: purchase,
+    prerender_suspect: num(raw.prerender_suspect as number),
+  };
+}
+
+export async function fetchGroupedDimension(
+  dim: "channel" | "market",
+  filters: AnalyticsV2FilterState,
+): Promise<
+  Array<{
+    key: string;
+    sessions: number;
+    engaged: number;
+    plp: number;
+    pdp: number;
+    cart: number;
+    checkout: number;
+    purchases: number;
+  }>
+> {
+  const sb = getSupabaseAdmin();
+  const args = { p_dim: dim, ...rpcFilterArgs(filters) };
+  const { data, error } = await sb.rpc("analytics_v2_rpc_group_by", args);
+  if (error) {
+    throw new Error(`analytics_v2_rpc_group_by: ${error.message}`);
+  }
+  const rows = Array.isArray(data) ? data : [];
+  return rows.map((r) => {
+    const row = r as Record<string, unknown>;
+    return {
+      key: String(row.key ?? row[dim] ?? "unknown"),
+      sessions: num(row.sessions as number),
+      engaged: num(row.engaged as number),
+      plp: num(row.plp as number),
+      pdp: num(row.pdp as number),
+      cart: num(row.cart as number),
+      checkout: num(row.checkout as number),
+      purchases: num(row.purchases as number),
+    };
+  });
+}
+
+export async function fetchCheckoutStepCounts(
+  filters: AnalyticsV2FilterState,
+): Promise<Record<string, number>> {
+  const sb = getSupabaseAdmin();
+  const { data, error } = await sb.rpc(
+    "analytics_v2_rpc_checkout_steps",
+    rpcFilterArgs(filters),
+  );
+  if (error) {
+    throw new Error(`analytics_v2_rpc_checkout_steps: ${error.message}`);
+  }
+  const raw = (data ?? {}) as Record<string, unknown>;
+  return {
+    postal: num(raw.postal as number),
+    delivery: num(raw.delivery as number),
+    age_terms: num(raw.age_terms as number),
+    payment: num(raw.payment as number),
+  };
 }
 
 /**
- * Open funnel (default, spec §6.2 / Shopify): each step is independent —
- * sticky ATC / cart drawer can skip earlier steps, so Kassa may exceed Varukorg.
- * Closed funnel: each step requires all prior steps (subset chain).
+ * Open funnel (default): each step independent — kassa may exceed varukorg.
+ * Closed funnel: 6 time-ordered steps without Engagerad as a required prior.
  */
 export type FunnelMode = "open" | "closed";
+
+function buildFunnelSteps(
+  counts: Array<{ key: string; label: string; count: number }>,
+): FunnelStep[] {
+  const sessions = counts[0]?.count ?? 0;
+  return counts.map((c, i) => {
+    const prev = i === 0 ? null : counts[i - 1]!.count;
+    return {
+      key: c.key,
+      label: c.label,
+      count: c.count,
+      ofSessions: rate(c.count, sessions),
+      ofPrevious: prev == null ? null : rate(c.count, prev),
+    };
+  });
+}
 
 export async function fetchSessionFunnel(
   filters: AnalyticsV2FilterState,
   mode: FunnelMode = "open",
 ): Promise<SessionFunnel & { mode: FunnelMode; note: string }> {
   const openNote =
-    "Öppen tratt: varje steg räknas oberoende mot rena sessioner. Sticky köpknapp och varukorgslåda kan hoppa över tidigare steg — Kassa kan därför vara större än La i varukorg. Event: add_to_cart → checkout_started|checkout_step_viewed.";
+    "Varje steg räknas för sig mot rena besök. Kassan kan vara större än varukorgen, eftersom man kan gå direkt till kassan.";
   const closedNote =
-    "Stängd tratt: varje steg kräver alla föregående (delmängd). Sessioner som går direkt till kassa utan add_to_cart räknas inte i kassa-steget.";
+    "Stängd tratt i tidsordning: lista → produkt → varukorg → kassa → köp. Besök som hoppar över steg räknas inte vidare.";
 
   if (mode === "closed") {
     const closed = await fetchClosedFunnelCounts(filters);
-    const steps: FunnelStep[] = [
-      { key: "sessions", label: "Sessioner", count: closed.sessions },
-      { key: "engaged", label: "Engagerade", count: closed.engaged },
+    const steps = buildFunnelSteps([
+      { key: "sessions", label: "Besök", count: closed.sessions },
       { key: "plp", label: "Produktlista", count: closed.plp },
       { key: "pdp", label: "Produktsida", count: closed.pdp },
-      { key: "cart", label: "La i varukorg", count: closed.cart },
-      { key: "checkout", label: "Påbörjade kassan", count: closed.checkout },
+      { key: "cart", label: "Lade i varukorg", count: closed.cart },
+      { key: "checkout", label: "Började i kassan", count: closed.checkout },
       { key: "purchases", label: "Slutförda köp", count: closed.purchases },
-    ];
+    ]);
     return {
       mode,
       note: closedNote,
       totals: {
         sessions: closed.sessions,
-        engaged: closed.engaged,
+        engaged: 0,
         plp: closed.plp,
         pdp: closed.pdp,
         cart: closed.cart,
@@ -270,7 +389,7 @@ export async function fetchSessionFunnel(
       },
       steps,
       rates: {
-        engaged: rate(closed.engaged, closed.sessions),
+        engaged: null,
         plp: rate(closed.plp, closed.sessions),
         pdp: rate(closed.pdp, closed.sessions),
         cart: rate(closed.cart, closed.sessions),
@@ -281,15 +400,15 @@ export async function fetchSessionFunnel(
   }
 
   const totals = await fetchRollupTotals(filters);
-  const steps: FunnelStep[] = [
-    { key: "sessions", label: "Sessioner", count: totals.sessions },
+  const steps = buildFunnelSteps([
+    { key: "sessions", label: "Besök", count: totals.sessions },
     { key: "engaged", label: "Engagerade", count: totals.engaged },
     { key: "plp", label: "Produktlista", count: totals.plp },
     { key: "pdp", label: "Produktsida", count: totals.pdp },
-    { key: "cart", label: "La i varukorg", count: totals.cart },
-    { key: "checkout", label: "Påbörjade kassan", count: totals.checkout },
+    { key: "cart", label: "Lade i varukorg", count: totals.cart },
+    { key: "checkout", label: "Började i kassan", count: totals.checkout },
     { key: "purchases", label: "Slutförda köp", count: totals.purchases },
-  ];
+  ]);
   return {
     mode: "open",
     note: openNote,
@@ -306,83 +425,54 @@ export async function fetchSessionFunnel(
   };
 }
 
-/** Closed-funnel counts from facts (full prior-step chain). */
+/** Closed funnel via SQL RPC (time-ordered, no Engagerad prior). */
 async function fetchClosedFunnelCounts(filters: AnalyticsV2FilterState) {
   const sb = getSupabaseAdmin();
-  const base = applyCleanFactsFilters(
-    sb
-      .from("analytics_session_facts")
-      .select(
-        "is_engaged, reached_plp, reached_pdp, added_to_cart, reached_checkout, purchased",
-      ),
-    filters,
+  const { data, error } = await sb.rpc(
+    "analytics_v2_rpc_closed_funnel",
+    rpcFilterArgs(filters),
   );
-  const { data, error } = await base.limit(50000);
   if (error) {
-    throw new Error(`closed funnel facts: ${error.message}`);
+    throw new Error(`closed funnel: ${error.message}`);
   }
-  let sessions = 0;
-  let engaged = 0;
-  let plp = 0;
-  let pdp = 0;
-  let cart = 0;
-  let checkout = 0;
-  let purchases = 0;
-  for (const row of data ?? []) {
-    sessions += 1;
-    const eng = Boolean(row.is_engaged);
-    const rPlp = eng && Boolean(row.reached_plp);
-    const rPdp = rPlp && Boolean(row.reached_pdp);
-    const rCart = rPdp && Boolean(row.added_to_cart);
-    const rCheck = rCart && Boolean(row.reached_checkout);
-    const rBuy = rCheck && Boolean(row.purchased);
-    if (eng) engaged += 1;
-    if (rPlp) plp += 1;
-    if (rPdp) pdp += 1;
-    if (rCart) cart += 1;
-    if (rCheck) checkout += 1;
-    if (rBuy) purchases += 1;
-  }
-  return { sessions, engaged, plp, pdp, cart, checkout, purchases };
+  const raw = (data ?? {}) as Record<string, unknown>;
+  return {
+    sessions: num(raw.sessions as number),
+    plp: num(raw.plp as number),
+    pdp: num(raw.pdp as number),
+    cart: num(raw.cart as number),
+    checkout: num(raw.checkout as number),
+    purchases: num(raw.purchases as number),
+  };
 }
 
 export async function fetchStatusLine(
   filters: AnalyticsV2FilterState,
 ): Promise<StatusLine> {
-  const rows = await fetchRollupRows(filters);
-  const totals = sumRows(rows);
+  const totals = await fetchRollupTotals(filters);
   const afterFilter = totals.sessions;
   const prerenderSuspect = totals.prerender_suspect;
   const beforeFilter = afterFilter + prerenderSuspect;
 
   let lastRefreshAt: string | null = null;
-  for (const r of rows) {
-    if (!r.refreshed_at) continue;
-    if (!lastRefreshAt || r.refreshed_at > lastRefreshAt) {
-      lastRefreshAt = r.refreshed_at;
-    }
-  }
-
-  if (!lastRefreshAt) {
-    try {
-      const sb = getSupabaseAdmin();
-      const { data } = await sb
-        .from("analytics_refresh_state")
-        .select("last_refresh_at")
-        .eq("id", "default")
-        .maybeSingle();
-      lastRefreshAt =
-        (data as { last_refresh_at?: string | null } | null)?.last_refresh_at ??
-        null;
-    } catch {
-      // ignore
-    }
+  try {
+    const sb = getSupabaseAdmin();
+    const { data } = await sb
+      .from("analytics_refresh_state")
+      .select("last_refresh_at")
+      .eq("id", "default")
+      .maybeSingle();
+    lastRefreshAt =
+      (data as { last_refresh_at?: string | null } | null)?.last_refresh_at ??
+      null;
+  } catch {
+    // ignore
   }
 
   const warnings: string[] = [];
   if (prerenderSuspect > 0) {
     warnings.push(
-      `${prerenderSuspect} förhandsladdningar bortfiltrerade (D1-regel)`,
+      `${prerenderSuspect} förhandsladdningar bortfiltrerade`,
     );
   }
 

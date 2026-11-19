@@ -120,6 +120,18 @@ export async function GET(request: NextRequest) {
     lists.set(path, (lists.get(path) || 0) + 1);
   }
 
+  const { data: pdpRows } = await applyCleanFactsFilters(
+    sb.from("analytics_session_facts").select("product_ids_viewed"),
+    filters,
+  )
+    .eq("reached_pdp", true)
+    .limit(5000);
+
+  const unattributedPdp = (pdpRows ?? []).filter((r) => {
+    const ids = (r.product_ids_viewed as string[] | null) || [];
+    return ids.length === 0;
+  }).length;
+
   return NextResponse.json({
     status,
     wines: wines.slice(0, 50),
@@ -127,5 +139,6 @@ export async function GET(request: NextRequest) {
       .map(([path, sessions]) => ({ path, sessions }))
       .sort((a, b) => b.sessions - a.sessions)
       .slice(0, 20),
+    unattributedPdp,
   });
 }

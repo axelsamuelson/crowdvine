@@ -32,6 +32,7 @@ type OverviewResponse = {
     sessions: number;
     plp: number;
     pdp: number;
+    plpOrPdp?: number;
     cart: number;
     checkout: number;
     purchases: number;
@@ -96,74 +97,80 @@ export function OverviewPanel() {
   const c = data.current;
   const p = data.previous;
   const toPlpPdp = c.plpOrPdp ?? Math.max(c.plp, c.pdp);
+  const prevPlpPdp = p
+    ? (p.plpOrPdp ?? Math.max(p.plp || 0, p.pdp || 0))
+    : null;
 
   return (
     <div className="space-y-6">
       <DataStatusLine {...data.status} queryString={qs} />
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard
-          label="Rena sessioner"
+          label="Rena besök"
           value={c.sessions}
           compareAbs={p ? c.sessions - p.sessions : null}
-          definition="Sessioner efter bottfilter och utan förhandsladdningar."
-          monoKey="analytics_session_facts.is_clean"
+          definition="Besök efter bottfilter och utan förhandsladdningar."
         />
         <KpiCard
-          label="Sessioner till PLP/PDP"
+          label="Besök till lista eller produkt"
           value={toPlpPdp}
           ofTotal={{ num: toPlpPdp, den: Math.max(1, c.sessions) }}
-          compareAbs={p ? toPlpPdp - (p.plp || 0) : null}
-          definition="Rena sessioner som nådde produktlista eller produktsida (mål 2)."
-          monoKey="reached_plp|reached_pdp"
+          compareAbs={prevPlpPdp != null ? toPlpPdp - prevPlpPdp : null}
+          definition="Rena besök som nådde produktlista eller produktsida."
+          emptyLabel="Inga än"
         />
         <KpiCard
-          label="Andel till varukorg"
+          label="Lade i varukorg"
           value={
-            c.sessions >= 10
-              ? `${((c.cart / Math.max(1, c.sessions)) * 100).toFixed(1).replace(".", ",")} %`
-              : "—"
+            c.cart === 0
+              ? "Inga än"
+              : c.sessions >= 10
+                ? `${((c.cart / Math.max(1, c.sessions)) * 100).toFixed(1).replace(".", ",")} %`
+                : formatSvNumber(c.cart)
           }
           ofTotal={{ num: c.cart, den: c.sessions }}
-          definition="Sessioner med event add_to_cart / rena sessioner (öppen tratt — kassa kan vara större)."
-          monoKey="add_to_cart→added_to_cart"
+          definition="Andel besök där någon lade vin i varukorgen."
+          emptyLabel="Inga än"
         />
         <KpiCard
-          label="Påbörjade kassan"
+          label="Började i kassan"
           value={c.checkout}
           ofTotal={{ num: c.checkout, den: c.sessions }}
-          definition="checkout_started eller checkout_step_viewed (H4). Öppen tratt: sticky ATC kan hoppa över add_to_cart."
-          monoKey="checkout_started|checkout_step_viewed"
+          definition="Besök som öppnade kassan."
+          emptyLabel="Inga än"
         />
         <KpiCard
           label="Slutförda köp"
-          value={formatSvNumber(c.purchases)}
-          definition="order_reservations (inte test). Sessionkoppling är ungefärlig (user_id + 24 h)."
-          monoKey="purchased≈"
+          value={c.purchases}
+          definition="Genomförda reservationer (inte testköp)."
+          emptyLabel="Inga köp än"
         />
         <KpiCard
           label="Köpvärde"
           value={
             c.purchaseValueSek > 0
               ? formatSvSek(c.purchaseValueSek)
-              : c.purchases > 0
-                ? "Saknas"
-                : formatSvSek(0)
+              : "Inga köp än"
           }
-          definition="Vin efter rabatt + frakt (shipping_revenue_gross_cents/100). Använder inte total_sek. Moms ingår i kundpriset."
-          monoKey="köpvärde"
+          definition="Vin efter rabatt plus frakt."
+          emptyLabel="Inga köp än"
         />
         <KpiCard
           label="Kassakonvertering"
           value={
-            c.checkout >= 10
-              ? `${((c.purchases / Math.max(1, c.checkout)) * 100).toFixed(1).replace(".", ",")} %`
-              : "—"
+            c.purchases === 0
+              ? "Inga köp än"
+              : c.checkout >= 10
+                ? `${((c.purchases / Math.max(1, c.checkout)) * 100).toFixed(1).replace(".", ",")} %`
+                : "—"
           }
-          ofTotal={{ num: c.purchases, den: c.checkout }}
-          definition="Slutfört köp / påbörjad kassa (mål 1). Ungefärlig koppling."
-          monoKey="purchases/checkout"
+          ofTotal={{ num: c.purchases, den: Math.max(1, c.checkout) }}
+          definition="Slutfört köp delat med besök som började i kassan."
+          emptyLabel="Inga köp än"
         />
+        {/* Empty slot so 4+4 grid never leaves a lone card */}
+        <div className="hidden lg:block" aria-hidden />
       </div>
 
       <section className="rounded-xl border border-gray-200 bg-white p-6 dark:border-[#1F1F23] dark:bg-[#0F0F12]">
@@ -179,8 +186,8 @@ export function OverviewPanel() {
           </Link>
         </div>
         <p className="mb-3 text-xs text-gray-500">
-          Andelar mot rena sessioner. Stegen är oberoende (sticky ATC kan hoppa
-          över La i varukorg).
+          Andelar mot rena besök. Kassan kan vara större än varukorgen, eftersom
+          man kan gå direkt till kassan.
         </p>
         <ul className="space-y-2">
           {data.funnel.map((step) => {

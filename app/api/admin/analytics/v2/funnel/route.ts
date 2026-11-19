@@ -3,6 +3,7 @@ import { getCurrentAdmin } from "@/lib/admin-auth-server";
 import { parseAnalyticsV2Filters } from "@/lib/analytics/v2/filters";
 import {
   applyCleanFactsFilters,
+  fetchCheckoutStepCounts,
   fetchSessionFunnel,
   fetchStatusLine,
   type FunnelMode,
@@ -34,34 +35,33 @@ export async function GET(request: NextRequest) {
   let nearPurchase: unknown[] = [];
 
   {
-    const { data } = await applyCleanFactsFilters(
-      sb
-        .from("analytics_session_facts")
-        .select("last_checkout_step, abandon_reason"),
-      filters,
-    )
-      .eq("reached_checkout", true)
-      .limit(2000);
+    const stepCounts = await fetchCheckoutStepCounts(filters);
+    checkoutSteps = CHECKOUT_STEP_ORDER.map((step) => ({
+      step,
+      count: stepCounts[step] || 0,
+    }));
 
-    const stepCounts = new Map<string, number>();
+    // Abandon reasons: paginate facts (max 1000/page)
     const reasonCounts = new Map<string, number>();
-    for (const row of data ?? []) {
-      const step = (row.last_checkout_step as string) || "unknown";
-      stepCounts.set(step, (stepCounts.get(step) || 0) + 1);
-      if (row.abandon_reason) {
-        const r = String(row.abandon_reason);
-        reasonCounts.set(r, (reasonCounts.get(r) || 0) + 1);
+    for (let from = 0; from < 10_000; from += 1000) {
+      const { data } = await applyCleanFactsFilters(
+        sb
+          .from("analytics_session_facts")
+          .select("abandon_reason"),
+        filters,
+      )
+        .eq("reached_checkout", true)
+        .not("abandon_reason", "is", null)
+        .range(from, from + 999);
+      const batch = data ?? [];
+      for (const row of batch) {
+        if (row.abandon_reason) {
+          const r = String(row.abandon_reason);
+          reasonCounts.set(r, (reasonCounts.get(r) || 0) + 1);
+        }
       }
+      if (batch.length < 1000) break;
     }
-    checkoutSteps = [
-      ...CHECKOUT_STEP_ORDER.map((step) => ({
-        step,
-        count: stepCounts.get(step) || 0,
-      })),
-      ...(stepCounts.has("unknown")
-        ? [{ step: "unknown", count: stepCounts.get("unknown") || 0 }]
-        : []),
-    ];
     abandonReasons = [...reasonCounts.entries()].map(([reason, count]) => ({
       reason,
       count,
@@ -97,7 +97,7 @@ export async function GET(request: NextRequest) {
 
   const cartStep = funnel.steps.find((s) => s.key === "cart");
   const checkoutStep = funnel.steps.find((s) => s.key === "checkout");
-  const openAnomaly =
+  const checkoutCanExceedCart =
     mode === "open" &&
     cartStep != null &&
     checkoutStep != null &&
@@ -107,16 +107,9 @@ export async function GET(request: NextRequest) {
     status,
     mode: funnel.mode,
     note: funnel.note,
-    definitions: {
-      cart: "add_to_cart (kolumn added_to_cart i facts)",
-      checkout:
-        "checkout_started eller checkout_step_viewed (H4-steg via analytics_checkout_step)",
-      cart_opened: "räknas som engagemang, inte som tratsteg La i varukorg",
-      sticky_atc: "sticky_atc_clicked kan leda till kassa utan separat add_to_cart",
-    },
     funnel: funnel.steps,
     ratesVsSessions: funnel.rates,
-    openAnomaly,
+    checkoutCanExceedCart,
     checkoutSteps,
     abandonReasons,
     nearPurchase,

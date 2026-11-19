@@ -4,6 +4,11 @@ import { Suspense, useState } from "react";
 import { AnalyticsPageShell } from "../v2/analytics-page-shell";
 import { SimpleFetchPanel } from "../v2/simple-fetch-panel";
 import { formatSvNumber } from "@/lib/analytics/v2/labels";
+import {
+  ScrollTable,
+  stickyFirstTd,
+  stickyFirstTh,
+} from "../v2/scroll-table";
 
 type ProductsData = {
   status: {
@@ -23,6 +28,7 @@ type ProductsData = {
     purchase_sessions: number;
   }>;
   lists: Array<{ path: string; sessions: number }>;
+  unattributedPdp?: number;
 };
 
 export default function ProdukterPage() {
@@ -60,51 +66,88 @@ export default function ProdukterPage() {
         <SimpleFetchPanel<ProductsData> endpoint="/api/admin/analytics/v2/products">
           {(data) =>
             tab === "wines" ? (
-              <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white p-4 dark:border-[#1F1F23] dark:bg-[#0F0F12]">
-                <table className="w-full min-w-[640px] text-left text-sm">
-                  <thead>
-                    <tr className="text-xs font-medium text-gray-600">
-                      <th className="py-2">Vin</th>
-                      <th className="py-2">PDP</th>
-                      <th className="py-2">Varukorg</th>
-                      <th className="py-2">Kassa</th>
-                      <th className="py-2">Köp</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.wines.map((w) => (
-                      <tr
-                        key={w.product_id}
-                        className="border-t border-gray-100 tabular-nums dark:border-zinc-800"
-                      >
-                        <td className="py-2">
-                          {w.product_name || w.product_id}
-                        </td>
-                        <td className="py-2">{formatSvNumber(w.pdp_sessions)}</td>
-                        <td className="py-2">{formatSvNumber(w.cart_sessions)}</td>
-                        <td className="py-2">
-                          {formatSvNumber(w.checkout_sessions)}
-                        </td>
-                        <td className="py-2">
-                          {formatSvNumber(w.purchase_sessions)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {data.wines.length === 0 ? (
-                  <p className="mt-2 text-sm text-gray-500">
-                    Inga produktvyer i perioden.
+              data.wines.length === 0 ? (
+                <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-[#1F1F23] dark:bg-[#0F0F12]">
+                  <p className="text-sm text-gray-600 dark:text-gray-300">
+                    Inga produktvyer med produkt-id i perioden.
                   </p>
-                ) : null}
-              </div>
+                  {data.unattributedPdp && data.unattributedPdp > 0 ? (
+                    <p className="mt-2 text-xs text-gray-500">
+                      {formatSvNumber(data.unattributedPdp)} besök hade
+                      produktside-event utan produkt-id (räknas inte här).
+                    </p>
+                  ) : null}
+                </div>
+              ) : (
+                <>
+                  <div className="space-y-3 sm:hidden">
+                    {data.wines.map((w) => (
+                      <div
+                        key={w.product_id}
+                        className="rounded-xl border border-gray-200 p-4 dark:border-[#1F1F23]"
+                      >
+                        <div className="font-medium">
+                          {w.product_name || w.product_id}
+                        </div>
+                        <dl className="mt-2 grid grid-cols-2 gap-1 text-xs tabular-nums text-gray-600">
+                          <div>Produkt · {formatSvNumber(w.pdp_sessions)}</div>
+                          <div>Varukorg · {formatSvNumber(w.cart_sessions)}</div>
+                          <div>
+                            Kassa · {formatSvNumber(w.checkout_sessions)}
+                          </div>
+                          <div>
+                            Köp · {formatSvNumber(w.purchase_sessions)}
+                          </div>
+                        </dl>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="hidden sm:block">
+                    <ScrollTable minWidth="560px">
+                      <thead>
+                        <tr className="text-xs font-medium text-gray-600">
+                          <th className={`${stickyFirstTh} pl-4`}>Vin</th>
+                          <th className="py-2">Produkt</th>
+                          <th className="py-2">Varukorg</th>
+                          <th className="py-2">Kassa</th>
+                          <th className="py-2 pr-4">Köp</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {data.wines.map((w) => (
+                          <tr
+                            key={w.product_id}
+                            className="border-t border-gray-100 tabular-nums dark:border-zinc-800"
+                          >
+                            <td className={`${stickyFirstTd} pl-4`}>
+                              {w.product_name || w.product_id}
+                            </td>
+                            <td className="py-2">
+                              {formatSvNumber(w.pdp_sessions)}
+                            </td>
+                            <td className="py-2">
+                              {formatSvNumber(w.cart_sessions)}
+                            </td>
+                            <td className="py-2">
+                              {formatSvNumber(w.checkout_sessions)}
+                            </td>
+                            <td className="py-2 pr-4">
+                              {formatSvNumber(w.purchase_sessions)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </ScrollTable>
+                  </div>
+                </>
+              )
             ) : (
-              <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white p-4 dark:border-[#1F1F23] dark:bg-[#0F0F12]">
-                <table className="w-full text-left text-sm">
+              <div className="hidden sm:block">
+                <ScrollTable>
                   <thead>
                     <tr className="text-xs font-medium text-gray-600">
-                      <th className="py-2">Sida</th>
-                      <th className="py-2">Sessioner med PLP</th>
+                      <th className={`${stickyFirstTh} pl-4`}>Sida</th>
+                      <th className="py-2 pr-4">Besök till lista</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -113,12 +156,21 @@ export default function ProdukterPage() {
                         key={l.path}
                         className="border-t border-gray-100 tabular-nums dark:border-zinc-800"
                       >
-                        <td className="py-2 font-mono text-xs">{l.path}</td>
-                        <td className="py-2">{formatSvNumber(l.sessions)}</td>
+                        <td className={`${stickyFirstTd} pl-4 font-mono text-xs`}>
+                          {l.path}
+                        </td>
+                        <td className="py-2 pr-4">
+                          {formatSvNumber(l.sessions)}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
-                </table>
+                </ScrollTable>
+                {data.lists.length === 0 ? (
+                  <p className="mt-2 text-sm text-gray-500">
+                    Inga listbesök i perioden.
+                  </p>
+                ) : null}
               </div>
             )
           }

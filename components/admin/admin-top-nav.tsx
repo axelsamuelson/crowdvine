@@ -42,6 +42,13 @@ function AvatarButton({
 /** Tydliga etiketter för vanliga admin-segment (UUID:er m.m. lämnas som korta stubbar). */
 const SEGMENT_LABELS: Record<string, string> = {
   analytics: "Analys",
+  tratt: "Tratt och kassa",
+  kanaler: "Kanaler",
+  marknader: "Marknader",
+  produkter: "Produkter",
+  releaser: "Releaser och anteckningar",
+  datakvalitet: "Datakvalitet",
+  links: "UTM-länkbyggare",
   operations: "Drift",
   projects: "Projekt",
   tasks: "Uppgifter",
@@ -76,7 +83,7 @@ const SEGMENT_LABELS: Record<string, string> = {
   settings: "Inställningar",
   new: "Ny",
   edit: "Redigera",
-  b2b: "Dirty Wine",
+  b2b: "B2B Dirty Wine",
   users: "Användare",
   business: "Företagskonton",
   memberships: "Medlemskap",
@@ -151,6 +158,15 @@ function getBreadcrumbs(
     return [
       { label: "CrowdVine", href: "/admin" },
       { label: "Driftöversikt", href: "/admin/operations" },
+    ];
+  }
+
+  /** Analys översikt — show leaf title under Analys. */
+  if (norm === "/admin/analytics") {
+    return [
+      { label: "CrowdVine", href: "/admin" },
+      { label: "Analys", href: "/admin/analytics" },
+      { label: "Översikt", href: "/admin/analytics" },
     ];
   }
 

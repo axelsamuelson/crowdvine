@@ -37,6 +37,8 @@ export interface AdminNavItem {
   name: string;
   href: string;
   icon: LucideIcon;
+  /** When set, item is shown only for that analytics site (filter/URL). */
+  onlyWhenSite?: "pact" | "dirtywine";
 }
 
 export interface AdminNavGroup {
@@ -100,6 +102,7 @@ export const adminNavigationGroups: AdminNavGroup[] = [
         name: "B2B Dirty Wine",
         href: "/admin/analytics/b2b",
         icon: Building2,
+        onlyWhenSite: "dirtywine",
       },
       {
         name: "UTM-länkbyggare",
