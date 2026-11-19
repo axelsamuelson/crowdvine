@@ -188,7 +188,9 @@ function DQBody({ data }: { data: DQData }) {
         <section className="rounded-xl border border-gray-200 bg-white p-6 dark:border-[#1F1F23] dark:bg-[#0F0F12]">
           <h2 className="mb-2 text-lg font-bold">Misstänkta bottar</h2>
           <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
-            {data.geoBotHeuristic.rule}
+            Besök från Kina, Singapore och Hongkong som kommer direkt, bara ser
+            en sida, stannar under 10 sekunder och inte gör något mer. Hela
+            länder stängs inte av.
           </p>
           <table className="w-full text-left text-sm">
             <thead>

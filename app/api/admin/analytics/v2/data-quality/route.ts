@@ -185,8 +185,10 @@ export async function GET(request: NextRequest) {
       { label: "Varav engagerade", count: engaged ?? 0 },
     ],
     geoBotHeuristic: {
+      // Plain-language copy is hard-coded in the Datakvalitet UI.
+      // Exact rule lives in the shared "Så räknas det" panel.
       rule:
-        "CN/SG/HK, direkt utan referrer, högst 1 page_view, under 10 s, och ingen engagemang/korg/sök/kassa. filter_used räknas inte som engagemang. Hela länder stängs inte av.",
+        "Besök från Kina, Singapore och Hongkong som kommer direkt, bara ser en sida, stannar under 10 sekunder och inte gör något mer. Hela länder stängs inte av.",
       countries: geoCountryStats,
     },
     unknownCountry: unknownCountry ?? 0,
