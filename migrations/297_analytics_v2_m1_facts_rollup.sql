@@ -4,52 +4,11 @@
 
 -- ---------------------------------------------------------------------------
 -- Helper functions (CREATE OR REPLACE; safe if already present from earlier migs)
+--
+-- B1 / Saga: do NOT CREATE OR REPLACE prod analytics_site() or analytics_channel().
+-- V2 facts use analytics_v2_site / analytics_v2_channel (created in migration 305).
+-- Prod site stays 177-simple; prod channel stays 187 (restored in 305 if overwritten).
 -- ---------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION analytics_site(page_url text)
-RETURNS text
-LANGUAGE sql
-IMMUTABLE
-PARALLEL SAFE
-AS $$
-  SELECT CASE
-    WHEN page_url IS NULL OR btrim(page_url) = '' THEN NULL
-    WHEN lower(
-      regexp_replace(
-        COALESCE(
-          substring(page_url FROM '://([^/?#:]+)'),
-          ''
-        ),
-        '^www\.',
-        ''
-      )
-    ) IN ('pactwines.com')
-      OR lower(
-        regexp_replace(
-          COALESCE(substring(page_url FROM '://([^/?#:]+)'), ''),
-          '^www\.',
-          ''
-        )
-      ) LIKE '%.pactwines.com'
-      THEN 'pact'
-    WHEN lower(
-      regexp_replace(
-        COALESCE(substring(page_url FROM '://([^/?#:]+)'), ''),
-        '^www\.',
-        ''
-      )
-    ) IN ('dirtywine.se')
-      OR lower(
-        regexp_replace(
-          COALESCE(substring(page_url FROM '://([^/?#:]+)'), ''),
-          '^www\.',
-          ''
-        )
-      ) LIKE '%.dirtywine.se'
-      THEN 'dirtywine'
-    ELSE NULL
-  END;
-$$;
 
 CREATE OR REPLACE FUNCTION analytics_utm_param(url text, param text)
 RETURNS text
@@ -68,71 +27,7 @@ AS $$
   );
 $$;
 
-CREATE OR REPLACE FUNCTION analytics_channel(
-  referrer text,
-  utm_source text,
-  utm_medium text
-)
-RETURNS text
-LANGUAGE plpgsql
-IMMUTABLE
-PARALLEL SAFE
-AS $$
-DECLARE
-  host text;
-  src text;
-  med text;
-BEGIN
-  host := lower(
-    regexp_replace(
-      COALESCE(
-        substring(nullif(btrim(referrer), '') FROM '://([^/?#:]+)'),
-        CASE
-          WHEN nullif(btrim(referrer), '') IS NULL THEN NULL
-          WHEN btrim(referrer) ~* '^https?://' THEN NULL
-          ELSE split_part(split_part(lower(btrim(referrer)), '/', 1), '?', 1)
-        END
-      ),
-      '^www\.',
-      ''
-    )
-  );
-  IF host = '' THEN host := NULL; END IF;
-  src := nullif(lower(btrim(COALESCE(utm_source, ''))), '');
-  med := nullif(lower(btrim(COALESCE(utm_medium, ''))), '');
-
-  IF host IS NOT NULL AND (
-    host = 'pactwines.com' OR host LIKE '%.pactwines.com'
-    OR host = 'dirtywine.se' OR host LIKE '%.dirtywine.se'
-  ) THEN
-    RETURN 'internal';
-  END IF;
-  IF med IN ('cpc', 'ppc', 'paid', 'paidsocial', 'display') THEN
-    RETURN 'paid';
-  END IF;
-  IF med IN ('social', 'social-organic')
-     OR COALESCE(src, '') ~ '(instagram|facebook|fb|tiktok|linkedin|twitter|x|pinterest|threads|snapchat|reddit)'
-     OR COALESCE(host, '') ~ '(instagram|facebook|fb\.com|tiktok|linkedin|twitter|t\.co|pinterest|threads|snapchat|reddit)'
-  THEN
-    RETURN 'social';
-  END IF;
-  IF COALESCE(src, '') ~ '(chatgpt|openai|perplexity|claude|gemini|copilot|you\.com|phind)'
-     OR COALESCE(host, '') ~ '(chatgpt|openai|perplexity|claude|gemini|copilot|you\.com|phind)'
-  THEN
-    RETURN 'ai';
-  END IF;
-  IF med IN ('organic', 'seo')
-     OR COALESCE(src, '') IN ('google', 'bing', 'duckduckgo', 'yahoo', 'baidu', 'ecosia', 'yandex')
-     OR COALESCE(host, '') ~ '(google\.|bing\.|duckduckgo\.|yahoo\.|baidu\.|ecosia\.|yandex\.)'
-  THEN
-    RETURN 'organic';
-  END IF;
-  IF host IS NOT NULL THEN
-    RETURN 'referral';
-  END IF;
-  RETURN 'direct';
-END;
-$$;
+-- analytics_channel intentionally omitted here (B1). See migration 305.
 
 CREATE OR REPLACE FUNCTION analytics_checkout_step(meta jsonb)
 RETURNS text
@@ -548,8 +443,8 @@ BEGIN
         FILTER (WHERE e.user_id IS NOT NULL))[1] AS user_id,
       COALESCE(
         (ARRAY_AGG(e.site ORDER BY e.created_at DESC) FILTER (WHERE e.site IS NOT NULL))[1],
-        (ARRAY_AGG(analytics_site(e.page_url) ORDER BY e.created_at DESC)
-          FILTER (WHERE analytics_site(e.page_url) IS NOT NULL))[1]
+        (ARRAY_AGG(analytics_v2_site(e.page_url) ORDER BY e.created_at DESC)
+          FILTER (WHERE analytics_v2_site(e.page_url) IS NOT NULL))[1]
       ) AS site,
       (ARRAY_AGG(e.country_code ORDER BY e.created_at DESC)
         FILTER (WHERE e.country_code IS NOT NULL))[1] AS country_code,
@@ -561,7 +456,24 @@ BEGIN
       COUNT(*) FILTER (WHERE e.event_type = 'page_view')::int AS page_views,
       BOOL_OR(e.event_type = 'session_engaged') AS has_engaged_event,
       BOOL_OR(e.event_type IN ('product_list_viewed', 'collection_viewed')) AS reached_plp,
-      BOOL_OR(e.event_type = 'product_viewed') AS reached_pdp,
+      -- PDP only with product id or /produkt|/product path (not synthetic product_viewed on /vin)
+      BOOL_OR(
+        e.event_type = 'product_viewed'
+        AND (
+          COALESCE(
+            NULLIF(e.event_metadata->>'productId', ''),
+            NULLIF(e.event_metadata->>'product_id', ''),
+            NULLIF(e.event_metadata->>'productHandle', ''),
+            NULLIF(e.event_metadata->>'handle', ''),
+            CASE
+              WHEN e.page_url ~* '/(produkt|product)/[^/?#]+'
+                THEN substring(e.page_url from '(?i)/(?:produkt|product)/([^/?#]+)')
+              ELSE NULL
+            END
+          ) IS NOT NULL
+          OR analytics_landing_type(analytics_path_from_url(e.page_url)) = 'pdp'
+        )
+      ) AS reached_pdp,
       BOOL_OR(e.event_type = 'add_to_cart') AS added_to_cart,
       BOOL_OR(e.event_type IN ('checkout_started', 'checkout_step_viewed')) AS reached_checkout,
       BOOL_OR(e.event_type IN ('checkout_error', 'checkout_stripe_confirm_failed')) AS had_checkout_error,
@@ -574,12 +486,48 @@ BEGIN
         OR e.event_type = 'page_view'
       ) AS engagement_signal_raw,
       COUNT(*) FILTER (WHERE e.event_type = 'page_view') AS pv_for_engaged,
-      ARRAY_REMOVE(ARRAY_AGG(DISTINCT e.event_metadata->>'productId')
+      ARRAY_REMOVE(ARRAY_AGG(DISTINCT COALESCE(
+          NULLIF(e.event_metadata->>'productId', ''),
+          NULLIF(e.event_metadata->>'product_id', ''),
+          NULLIF(e.event_metadata->>'productHandle', ''),
+          CASE
+            WHEN e.page_url ~* '/(produkt|product)/[^/?#]+'
+              THEN substring(e.page_url from '(?i)/(?:produkt|product)/([^/?#]+)')
+            ELSE NULL
+          END
+        ))
         FILTER (WHERE e.event_type = 'product_viewed'
-          AND NULLIF(e.event_metadata->>'productId', '') IS NOT NULL), NULL) AS product_ids_viewed,
-      ARRAY_REMOVE(ARRAY_AGG(DISTINCT e.event_metadata->>'productId')
+          AND COALESCE(
+            NULLIF(e.event_metadata->>'productId', ''),
+            NULLIF(e.event_metadata->>'product_id', ''),
+            NULLIF(e.event_metadata->>'productHandle', ''),
+            CASE
+              WHEN e.page_url ~* '/(produkt|product)/[^/?#]+'
+                THEN substring(e.page_url from '(?i)/(?:produkt|product)/([^/?#]+)')
+              ELSE NULL
+            END
+          ) IS NOT NULL), NULL) AS product_ids_viewed,
+      ARRAY_REMOVE(ARRAY_AGG(DISTINCT COALESCE(
+          NULLIF(e.event_metadata->>'productId', ''),
+          NULLIF(e.event_metadata->>'product_id', ''),
+          NULLIF(e.event_metadata->>'productHandle', ''),
+          CASE
+            WHEN e.page_url ~* '/(produkt|product)/[^/?#]+'
+              THEN substring(e.page_url from '(?i)/(?:produkt|product)/([^/?#]+)')
+            ELSE NULL
+          END
+        ))
         FILTER (WHERE e.event_type = 'add_to_cart'
-          AND NULLIF(e.event_metadata->>'productId', '') IS NOT NULL), NULL) AS product_ids_added,
+          AND COALESCE(
+            NULLIF(e.event_metadata->>'productId', ''),
+            NULLIF(e.event_metadata->>'product_id', ''),
+            NULLIF(e.event_metadata->>'productHandle', ''),
+            CASE
+              WHEN e.page_url ~* '/(produkt|product)/[^/?#]+'
+                THEN substring(e.page_url from '(?i)/(?:produkt|product)/([^/?#]+)')
+              ELSE NULL
+            END
+          ) IS NOT NULL), NULL) AS product_ids_added,
       (ARRAY_AGG(analytics_checkout_step(e.event_metadata) ORDER BY e.created_at DESC)
         FILTER (WHERE e.event_type = 'checkout_step_viewed'
           AND analytics_checkout_step(e.event_metadata) IS NOT NULL))[1] AS last_checkout_step,
@@ -603,7 +551,7 @@ BEGIN
           ''
         )
       ) AS referrer_domain,
-      analytics_channel(
+      analytics_v2_channel(
         b.first_referrer,
         COALESCE(
           NULLIF(b.first_meta->>'utm_source', ''),
