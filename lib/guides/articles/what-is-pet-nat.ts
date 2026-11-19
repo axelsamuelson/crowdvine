@@ -130,7 +130,7 @@ export const whatIsPetNatArticle: GuideArticleContent = {
         sv: [
           "På etiketten eller i produkttexten kan det stå pétillant naturel, pet nat, méthode ancestrale eller ancestral-metod. Kronkork är vanligt, men det är ingen garanti, och kork utesluter inte metoden.",
           "Läs producenten, inte bara stilnamnet. Pet nat säger inte hur druvorna odlats eller vad som tillsatts i källaren. Många flaskor jäser ut och är torra. En del viner på ancestral-metoden behåller restsocker med flit. Bugey Cerdon är ett exempel på en appellation som använder ancestral-metoden och som vanligtvis har restsocker.",
-          "På Systembolaget ligger flaskorna bland övriga mousserande viner. Rankningen finns i [Bästa pet nat på Systembolaget 2026](/guider/basta-pet-nat-systembolaget). En bredare mousserande lista är [Bästa mousserande naturviner på Systembolaget](/guider/basta-mousserande-naturviner-systembolaget).",
+          "På Systembolaget ligger flaskorna bland övriga mousserande viner. Rankningen finns i Bästa [pet nat på Systembolaget](/guider/basta-pet-nat-systembolaget) 2026. En bredare mousserande lista är [Bästa mousserande naturviner på Systembolaget](/guider/basta-mousserande-naturviner-systembolaget).",
         ],
       },
     },
