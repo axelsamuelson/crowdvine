@@ -32,13 +32,24 @@ export function wilsonInterval(
 }
 
 /**
+ * Spec 6.6 caution threshold: n below this should be read carefully.
+ * Used in UI copy ("under N besök") and gray-number treatment.
+ */
+export const LOW_N_THRESHOLD = 30;
+
+/**
  * Spec 6.6:
  * - n < 10 → hide percent ("3 av 7")
- * - 10 ≤ n < 30 → caution (grey + amber warning)
- * - n ≥ 30 → ok
+ * - 10 ≤ n < {@link LOW_N_THRESHOLD} → caution
+ * - n ≥ {@link LOW_N_THRESHOLD} → ok
  */
 export function lowNLevel(n: number): LowNLevel {
   if (!Number.isFinite(n) || n < 10) return "hide";
-  if (n < 30) return "caution";
+  if (n < LOW_N_THRESHOLD) return "caution";
   return "ok";
+}
+
+/** True when n is below the caution threshold (hide or caution). */
+export function isLowN(n: number): boolean {
+  return lowNLevel(n) !== "ok";
 }

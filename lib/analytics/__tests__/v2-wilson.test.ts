@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { lowNLevel, wilsonInterval } from "@/lib/analytics/v2/wilson";
+import {
+  isLowN,
+  LOW_N_THRESHOLD,
+  lowNLevel,
+  wilsonInterval,
+} from "@/lib/analytics/v2/wilson";
 
 describe("wilsonInterval", () => {
   it("returns zeros for empty total", () => {
@@ -44,5 +49,11 @@ describe("lowNLevel (spec 6.6)", () => {
   it("ok at 30+", () => {
     expect(lowNLevel(30)).toBe("ok");
     expect(lowNLevel(200)).toBe("ok");
+  });
+
+  it("exposes threshold and isLowN helper", () => {
+    expect(LOW_N_THRESHOLD).toBe(30);
+    expect(isLowN(29)).toBe(true);
+    expect(isLowN(30)).toBe(false);
   });
 });
