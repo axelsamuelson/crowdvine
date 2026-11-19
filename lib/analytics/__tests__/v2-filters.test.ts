@@ -54,7 +54,7 @@ describe("parseAnalyticsV2Filters", () => {
   it("round-trips via toQueryString", () => {
     const f = parseAnalyticsV2Filters(
       new URLSearchParams(
-        "site=dirtywine&from=2026-10-01&to=2026-10-14&grain=day&invited=only&compare=none",
+        "site=dirtywine&from=2026-10-01&to=2026-10-14&grain=day&invited=exclude&compare=none",
       ),
     );
     const again = parseAnalyticsV2Filters(new URLSearchParams(toQueryString(f)));
@@ -62,8 +62,13 @@ describe("parseAnalyticsV2Filters", () => {
     expect(again.from).toBe("2026-10-01");
     expect(again.to).toBe("2026-10-14");
     expect(again.grain).toBe("day");
-    expect(again.invited).toBe("only");
+    expect(again.invited).toBe("exclude");
     expect(again.compare).toBe("none");
+  });
+
+  it("ignores invited=only in etapp 1 (maps to include)", () => {
+    const f = parseAnalyticsV2Filters(new URLSearchParams("invited=only"));
+    expect(f.invited).toBe("include");
   });
 });
 

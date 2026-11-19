@@ -140,8 +140,8 @@ function rate(numera: number, den: number): number | null {
 }
 
 /**
- * Apply shared dimension filters. Invited:
- * include = all rows, exclude = is_invited_friend=false, only = true.
+ * Apply shared dimension filters. Invited (etapp 1):
+ * include = all rows, exclude = is_invited_friend=false.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function applyRollupFilters(query: any, filters: AnalyticsV2FilterState) {
@@ -165,8 +165,38 @@ function applyRollupFilters(query: any, filters: AnalyticsV2FilterState) {
 
   if (filters.invited === "exclude") {
     q = q.eq("is_invited_friend", false);
-  } else if (filters.invited === "only") {
-    q = q.eq("is_invited_friend", true);
+  }
+
+  return q;
+}
+
+/**
+ * Shared clean-session filters for analytics_session_facts queries.
+ * Invited exclude + soft bot flags (prerender / geo).
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function applyCleanFactsFilters(query: any, filters: AnalyticsV2FilterState) {
+  let q = query
+    .eq("site", filters.site)
+    .gte("day_sthlm", filters.from)
+    .lte("day_sthlm", filters.to)
+    .eq("is_clean", true)
+    .eq("is_prerender_suspect", false)
+    .eq("is_geo_bot_suspect", false);
+
+  if (filters.channel) q = q.eq("channel", filters.channel);
+  if (filters.device) q = q.eq("device", filters.device);
+  if (filters.invited === "exclude") {
+    q = q.eq("is_invited_friend", false);
+  }
+  if (filters.market === "SE") {
+    q = q.eq("country_code", "SE");
+  } else if (filters.market === "unknown") {
+    q = q.is("country_code", null);
+  } else if (filters.market === "other") {
+    q = q.neq("country_code", "SE").not("country_code", "is", null);
+  } else if (filters.market !== "all") {
+    q = q.eq("country_code", filters.market);
   }
 
   return q;
