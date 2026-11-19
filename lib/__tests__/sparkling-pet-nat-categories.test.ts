@@ -26,6 +26,15 @@ import {
   isWineRegionShopCategory,
   LEGACY_SHOP_REDIRECT_SLUGS,
 } from "@/lib/wine-shop-filter-categories";
+import {
+  categoryPillShortLabel,
+  getActiveStyleFromPathname,
+  getCategoryUrlForStyle,
+  resolveStylePillLinksForPaths,
+  SHOP_STYLE_FILTER_VALUES,
+  styleFilterCategorySlug,
+  styleFilterLabel,
+} from "@/lib/shop/style-category-links";
 
 type TaggedWine = { id: string; tags: string[] };
 
@@ -232,5 +241,96 @@ describe("sparkling and pet nat categories", () => {
     ];
     expect(guideHrefs.some((href) => href.sv === "/vin/pet-nat")).toBe(true);
     expect(guideHrefs.some((href) => href.en === "/wine/pet-nat")).toBe(true);
+  });
+
+  it("resolves style pills and filter options to locale canonicals and hides empty ones", () => {
+    const svNavigable = [
+      "/vin",
+      "/vin/rott-naturvin",
+      "/vin/vitt-naturvin",
+      "/vin/orange-naturvin",
+      "/vin/mousserande-vin",
+      "/vin/pet-nat",
+    ];
+    const enNavigable = [
+      "/wine",
+      "/wine/red-natural-wine",
+      "/wine/white-natural-wine",
+      "/wine/orange-natural-wine",
+      "/wine/sparkling-wine",
+      "/wine/pet-nat",
+    ];
+
+    const svRoot = resolveStylePillLinksForPaths("sv", svNavigable, "root");
+    expect(svRoot.map((link) => link.href)).toEqual([
+      "/vin/rott-naturvin",
+      "/vin/vitt-naturvin",
+      "/vin/orange-naturvin",
+      "/vin/mousserande-vin",
+      "/vin/pet-nat",
+    ]);
+    expect(svRoot.map((link) => link.label)).toEqual([
+      "Rött",
+      "Vitt",
+      "Orange",
+      "Mousserande",
+      "Pet nat",
+    ]);
+
+    const enRoot = resolveStylePillLinksForPaths("en", enNavigable, "root");
+    expect(enRoot.map((link) => link.href)).toEqual([
+      "/wine/red-natural-wine",
+      "/wine/white-natural-wine",
+      "/wine/orange-natural-wine",
+      "/wine/sparkling-wine",
+      "/wine/pet-nat",
+    ]);
+    expect(enRoot.map((link) => link.label)).toEqual([
+      "Red",
+      "White",
+      "Orange",
+      "Sparkling",
+      "Pet nat",
+    ]);
+
+    // Zero live wines for sparkling → pill hidden.
+    const svWithoutSparkling = resolveStylePillLinksForPaths(
+      "sv",
+      svNavigable.filter((path) => path !== "/vin/mousserande-vin"),
+      "root",
+    );
+    expect(svWithoutSparkling.map((link) => link.href)).not.toContain(
+      "/vin/mousserande-vin",
+    );
+    expect(svWithoutSparkling.map((link) => link.href)).toContain("/vin/pet-nat");
+
+    const moreSv = resolveStylePillLinksForPaths("sv", svNavigable, "more-styles");
+    expect(moreSv.map((link) => link.href)).toEqual([
+      "/vin/mousserande-vin",
+      "/vin/pet-nat",
+    ]);
+
+    for (const value of SHOP_STYLE_FILTER_VALUES) {
+      expect(getCategoryUrlForStyle(value, "sv")).toBe(
+        `/vin/${styleFilterCategorySlug(value, "sv")}`,
+      );
+      expect(getCategoryUrlForStyle(value, "en")).toBe(
+        `/wine/${styleFilterCategorySlug(value, "en")}`,
+      );
+    }
+    expect(styleFilterLabel("sparkling", "sv")).toBe("Mousserande");
+    expect(styleFilterLabel("sparkling", "en")).toBe("Sparkling");
+    expect(styleFilterLabel("pet_nat", "sv")).toBe("Pet nat");
+    expect(styleFilterLabel("pet_nat", "en")).toBe("Pet nat");
+    expect(getActiveStyleFromPathname("/vin/mousserande-vin")).toBe("sparkling");
+    expect(getActiveStyleFromPathname("/wine/pet-nat")).toBe("pet_nat");
+    expect(getActiveStyleFromPathname("/vin/rott-naturvin")).toBeNull();
+
+    expect(
+      categoryPillShortLabel(getWineCategorySv("mousserande-vin")!),
+    ).toBe("Mousserande");
+    expect(
+      categoryPillShortLabel(getWineCategoryEn("sparkling-wine")!),
+    ).toBe("Sparkling");
   });
 });

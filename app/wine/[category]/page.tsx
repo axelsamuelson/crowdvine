@@ -53,6 +53,7 @@ import {
 } from "@/lib/wine-category-explore-links";
 import { buildFaqPageJsonLd } from "@/lib/wine-category-faq";
 import { CategoryFaqSection } from "@/components/shop/category-faq-section";
+import { CategoryPillLinks } from "@/components/shop/category-pill-links";
 import { RegionProducerLinks } from "@/components/shop/region-producer-links";
 import { isWineRegionBelowIndexMinimum } from "@/lib/wine-region-live-counts";
 import {
@@ -61,6 +62,7 @@ import {
 } from "@/lib/wine-categories";
 import { isWineRegionShopCategory } from "@/lib/wine-shop-filter-categories";
 import { wineRegionLabel } from "@/lib/wine-regions";
+import { getMoreStylesPillLinks } from "@/lib/shop/style-category-links-server";
 import { ProducerBoxesPage } from "@/components/producer-boxes/producer-boxes-page";
 import { buildProducerBoxesMetadata } from "@/lib/producer-boxes/metadata";
 export const revalidate = 300;
@@ -331,15 +333,21 @@ export default async function WineCategoryPage(props: PageProps) {
     ],
   };
 
-    const exploreLinks = getCategoryExploreLinks(
-      category,
-      isColorNaturvinHub(category)
-        ? { regionLinks: await getColorHubRegionExploreLinks("en") }
-        : undefined,
-    );
+    const colorHub = isColorNaturvinHub(category);
+    const regionExploreLinks = colorHub
+      ? await getColorHubRegionExploreLinks("en")
+      : undefined;
+    const [moreStylesLinks, exploreLinks] = await Promise.all([
+      colorHub ? getMoreStylesPillLinks("en", isB2BSite) : Promise.resolve([]),
+      Promise.resolve(
+        getCategoryExploreLinks(
+          category,
+          regionExploreLinks ? { regionLinks: regionExploreLinks } : undefined,
+        ),
+      ),
+    ]);
     const showLanguedocGuideLink =
-      isColorNaturvinHub(category) ||
-      category.slug === "languedoc-natural-wine";
+      colorHub || category.slug === "languedoc-natural-wine";
   const regionLabel = category.filter.wineRegion
     ? wineRegionLabel(category.filter.wineRegion, "en")
     : null;
@@ -379,14 +387,26 @@ export default async function WineCategoryPage(props: PageProps) {
             <p className="leading-relaxed text-stone-600">{description}</p>
           ) : null}
           {category.descriptionLink ? (
-            <p className="mt-3 leading-relaxed text-stone-600">
-              <Link
-                href={category.descriptionLink.href}
-                className="underline underline-offset-4 hover:text-stone-900"
-              >
-                {category.descriptionLink.label}
-              </Link>
-            </p>
+            <CategoryPillLinks
+              heading="Explore"
+              links={[
+                {
+                  href: category.descriptionLink.href,
+                  label: category.descriptionLink.label,
+                  slug: "description-link",
+                },
+              ]}
+              testId="category-description-pills"
+              className="mt-4"
+            />
+          ) : null}
+          {moreStylesLinks.length > 0 ? (
+            <CategoryPillLinks
+              heading="More styles"
+              links={moreStylesLinks}
+              testId="category-more-styles-pills"
+              className="mt-4"
+            />
           ) : null}
         </div>
 

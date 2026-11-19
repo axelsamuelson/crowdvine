@@ -28,7 +28,22 @@ import { isCuratedGrape } from "@/lib/curated-grape-categories";
 import { useTranslations } from "@/lib/hooks/use-translations";
 import type { AppLocale } from "@/lib/i18n/locale";
 import { getCategoryUrlForGrape } from "@/lib/wine-categories";
+import { getCategoryUrlForStyle } from "@/lib/shop/style-category-links";
 import { cn } from "@/lib/utils";
+
+function sparklingCategoryHref(
+  tags: string[] | null | undefined,
+  locale: AppLocale,
+): string | null {
+  if (!tags?.length) return null;
+  if (tags.includes("pet_nat")) {
+    return getCategoryUrlForStyle("pet_nat", locale);
+  }
+  if (tags.includes("sparkling")) {
+    return getCategoryUrlForStyle("sparkling", locale);
+  }
+  return null;
+}
 
 const SPEC_ICONS: Record<EnrichmentSpecKey, LucideIcon> = {
   color: Circle,
@@ -108,12 +123,14 @@ function SpecItem({
   value,
   enrichment,
   locale,
+  styleCategoryHref,
 }: {
   specKey: EnrichmentSpecKey;
   label: string;
   value: string;
   enrichment: WineEnrichment | null | undefined;
   locale: AppLocale;
+  styleCategoryHref?: string | null;
 }) {
   const Icon = SPEC_ICONS[specKey] ?? MapPin;
 
@@ -154,6 +171,13 @@ function SpecItem({
               grapes={enrichment?.grapeVarieties ?? []}
               locale={locale}
             />
+          ) : specKey === "color" && styleCategoryHref ? (
+            <Link
+              href={styleCategoryHref}
+              className="underline underline-offset-2 hover:text-foreground"
+            >
+              {value}
+            </Link>
           ) : (
             value
           )}
@@ -206,6 +230,10 @@ export function WineEnrichmentSpecs({
   });
 
   const resolvedTasteTags = tasteTags ?? enrichment?.taste_tags ?? [];
+  const styleCategoryHref = sparklingCategoryHref(
+    resolvedTasteTags,
+    context.locale,
+  );
 
   if (entries.length === 0 && resolvedTasteTags.length === 0) return null;
 
@@ -221,6 +249,7 @@ export function WineEnrichmentSpecs({
               value={value}
               enrichment={enrichment}
               locale={context.locale}
+              styleCategoryHref={styleCategoryHref}
             />
           ))}
         </dl>

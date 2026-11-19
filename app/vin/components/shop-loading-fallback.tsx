@@ -1,11 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { isProducerBoxesPath } from "@/lib/producer-boxes/config";
 import { mergeWineCategoryContent } from "@/lib/wine-category-content";
 import { getWineCategoryEn, getWineCategorySv } from "@/lib/wine-categories";
+import { CategoryPillLinks } from "@/components/shop/category-pill-links";
 import { useProducts } from "@/components/shop/products-provider";
 import ResultsControls from "./results-controls";
 import { ProductGrid } from "./product-grid";
@@ -60,14 +60,18 @@ export function ShopLoadingFallback() {
             {category.description}
           </p>
           {category.descriptionLink ? (
-            <p className="mt-3 leading-relaxed text-stone-600">
-              <Link
-                href={category.descriptionLink.href}
-                className="underline underline-offset-4 hover:text-stone-900"
-              >
-                {category.descriptionLink.label}
-              </Link>
-            </p>
+            <CategoryPillLinks
+              heading={pathname.startsWith("/wine/") ? "Explore" : "Utforska"}
+              links={[
+                {
+                  href: category.descriptionLink.href,
+                  label: category.descriptionLink.label,
+                  slug: "description-link",
+                },
+              ]}
+              testId="category-description-pills"
+              className="mt-4"
+            />
           ) : null}
         </div>
       )}
