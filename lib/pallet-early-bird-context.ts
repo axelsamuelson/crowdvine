@@ -127,18 +127,47 @@ export type PalletEarlyBirdContext = {
   deliveryZoneId: string | null;
   activePalletId: string | null;
   activePalletCreatedAt: string | null;
+  deliveryExpectedDate: string | null;
+  deliveryWindowStart: string | null;
+  deliveryWindowEnd: string | null;
 };
 
 /**
  * Shared zone + pallet + fill resolution for cart pricing and zone-status API.
  * Reuses {@link determineZones}; does not reimplement geocoding or zone geometry.
  */
+const OPEN_PALLET_SELECT =
+  "id, created_at, bottle_capacity, min_bottles_to_complete, delivery_expected_date, delivery_window_start, delivery_window_end";
+
+function isoDateOnly(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const match = /^(\d{4}-\d{2}-\d{2})/.exec(value.trim());
+  return match?.[1] ?? null;
+}
+
 type PalletRow = {
   id: string;
   created_at: string | null;
   bottle_capacity: number | string | null;
   min_bottles_to_complete: number | string | null;
+  delivery_expected_date: string | null;
+  delivery_window_start: string | null;
+  delivery_window_end: string | null;
 };
+
+function mapOpenPallet(data: Record<string, unknown>): PalletRow | null {
+  if (typeof data.id !== "string" || !data.id) return null;
+  return {
+    id: data.id,
+    created_at: typeof data.created_at === "string" ? data.created_at : null,
+    bottle_capacity: (data.bottle_capacity as number | string | null) ?? null,
+    min_bottles_to_complete:
+      (data.min_bottles_to_complete as number | string | null) ?? null,
+    delivery_expected_date: isoDateOnly(data.delivery_expected_date),
+    delivery_window_start: isoDateOnly(data.delivery_window_start),
+    delivery_window_end: isoDateOnly(data.delivery_window_end),
+  };
+}
 
 async function findOpenPalletByShippingRegion(
   shippingRegionId: string,
@@ -147,7 +176,7 @@ async function findOpenPalletByShippingRegion(
   const sb = getSupabaseAdmin();
   const { data, error } = await sb
     .from("pallets")
-    .select("id, created_at, bottle_capacity, min_bottles_to_complete")
+    .select(OPEN_PALLET_SELECT)
     .eq("shipping_region_id", shippingRegionId)
     .eq("delivery_zone_id", deliveryZoneId)
     .in("status", [...PALLET_ACCEPTING_STATUSES])
@@ -158,14 +187,7 @@ async function findOpenPalletByShippingRegion(
   if (error || !data?.id) {
     return null;
   }
-  return {
-    id: data.id,
-    created_at: data.created_at ?? null,
-    bottle_capacity: data.bottle_capacity,
-    min_bottles_to_complete:
-      (data as { min_bottles_to_complete?: number | string | null })
-        .min_bottles_to_complete ?? null,
-  };
+  return mapOpenPallet(data as Record<string, unknown>);
 }
 
 async function findLegacyOpenPalletByPickup(
@@ -175,7 +197,7 @@ async function findLegacyOpenPalletByPickup(
   const sb = getSupabaseAdmin();
   const { data, error } = await sb
     .from("pallets")
-    .select("id, created_at, bottle_capacity, min_bottles_to_complete")
+    .select(OPEN_PALLET_SELECT)
     .eq("pickup_zone_id", pickupZoneId)
     .eq("delivery_zone_id", deliveryZoneId)
     .in("status", [...PALLET_ACCEPTING_STATUSES])
@@ -186,14 +208,7 @@ async function findLegacyOpenPalletByPickup(
   if (error || !data?.id) {
     return null;
   }
-  return {
-    id: data.id,
-    created_at: data.created_at ?? null,
-    bottle_capacity: data.bottle_capacity,
-    min_bottles_to_complete:
-      (data as { min_bottles_to_complete?: number | string | null })
-        .min_bottles_to_complete ?? null,
-  };
+  return mapOpenPallet(data as Record<string, unknown>);
 }
 
 export async function resolvePalletEarlyBirdContext(
@@ -211,6 +226,9 @@ export async function resolvePalletEarlyBirdContext(
     deliveryZoneId: null,
     activePalletId: null,
     activePalletCreatedAt: null,
+    deliveryExpectedDate: null,
+    deliveryWindowStart: null,
+    deliveryWindowEnd: null,
   };
 
   const uniqueWineIds = [...new Set(wineIds.filter(Boolean))];
@@ -278,8 +296,7 @@ export async function resolvePalletEarlyBirdContext(
         prodRows.map((p) => [
           String(p.id),
           {
-            shipping_region_id:
-              (p.shipping_region_id as string | null) ?? null,
+            shipping_region_id: (p.shipping_region_id as string | null) ?? null,
             pickup_zone_id: (p.pickup_zone_id as string | null) ?? null,
           },
         ]),
@@ -332,6 +349,9 @@ export async function resolvePalletEarlyBirdContext(
       deliveryZoneId: ctx.deliveryZoneId,
       activePalletId: palletRow.id,
       activePalletCreatedAt: palletRow.created_at ?? null,
+      deliveryExpectedDate: palletRow.delivery_expected_date,
+      deliveryWindowStart: palletRow.delivery_window_start,
+      deliveryWindowEnd: palletRow.delivery_window_end,
     };
   };
 

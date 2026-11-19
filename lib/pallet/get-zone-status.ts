@@ -25,16 +25,14 @@ import {
   formatPalletDestinationShort,
   formatVirtualDropReadyFromDisplayName,
 } from "@/lib/market/market-drop-destination";
-import {
-  getGeoZoneById,
-  resolveGeoZone,
-} from "@/lib/market/resolve-geo-zone";
+import { getGeoZoneById, resolveGeoZone } from "@/lib/market/resolve-geo-zone";
 import type { MarketDropRow } from "@/lib/market/market-drop-types";
 import {
   DEFAULT_MIN_BOTTLES_TO_COMPLETE,
   DEFAULT_PHYSICAL_BOTTLE_CAPACITY,
   computePalletShipProgress,
 } from "@/lib/pallet-ship-progress";
+import { formatPalletDeliveryWhen } from "@/lib/pdp/pallet-delivery-when";
 import type { ZoneStatusPayload } from "@/lib/pallet/zone-status";
 
 /** Shopping zone settings (PDP pallet destination link). */
@@ -136,6 +134,10 @@ function emptyStatus(body: {
     showProgressBar: true,
     showEarlyBird: false,
     unavailableMessage: null,
+    palletResolved: false,
+    deliveryExpectedDate: null,
+    deliveryWindowStart: null,
+    deliveryWindowEnd: null,
   };
 }
 
@@ -173,10 +175,7 @@ export async function getPalletZoneStatusForHandle(
       });
     }
 
-    const ctx = await resolvePalletEarlyBirdContext(
-      [wineId],
-      user?.id ?? null,
-    );
+    const ctx = await resolvePalletEarlyBirdContext([wineId], user?.id ?? null);
 
     let bottlesFilled = ctx.bottlesFilled;
     const physicalCapacity =
@@ -284,7 +283,9 @@ export async function getPalletZoneStatusForHandle(
         } else if (geo && isVirtualCampaignFromGeoZone(resolvedMarket, geo)) {
           dropState = "virtual_available";
           marketDropId = null;
-          statusPrimary = formatVirtualDropReadyFromDisplayName(geo.displayName);
+          statusPrimary = formatVirtualDropReadyFromDisplayName(
+            geo.displayName,
+          );
           const virtualConditionalCopy =
             geo.eligibilityStatus === "conditional_reservation";
           if (virtualConditionalCopy) {
@@ -330,7 +331,18 @@ export async function getPalletZoneStatusForHandle(
     }
 
     const fillPercent = shipProgress.shipProgressPercent;
-    const estimatedDelivery = palletDeliveryEstimateLabel("sv");
+    const deliveryExpectedDate = ctx.deliveryExpectedDate;
+    const deliveryWindowStart = ctx.deliveryWindowStart;
+    const deliveryWindowEnd = ctx.deliveryWindowEnd;
+    const deliveryWhen = formatPalletDeliveryWhen(
+      {
+        expected: deliveryExpectedDate,
+        start: deliveryWindowStart,
+        end: deliveryWindowEnd,
+      },
+      "sv",
+    );
+    const estimatedDelivery = deliveryWhen ?? palletDeliveryEstimateLabel("sv");
 
     if (bottlesVerb === "ordered" && !shipProgress.isReadyToShip) {
       estimatedDays = computeEstimatedDays(
@@ -345,12 +357,7 @@ export async function getPalletZoneStatusForHandle(
         ? ""
         : shoppingZoneDisplayDestination(activeGeoSlice);
 
-    if (
-      isB2BHost(
-        options.requestHost ?? null,
-        options.searchParams,
-      )
-    ) {
+    if (isB2BHost(options.requestHost ?? null, options.searchParams)) {
       discountTier = 0;
       showEarlyBird = false;
     }
@@ -382,9 +389,16 @@ export async function getPalletZoneStatusForHandle(
       showProgressBar,
       showEarlyBird,
       unavailableMessage,
+      palletResolved: Boolean(ctx.activePalletId),
+      deliveryExpectedDate,
+      deliveryWindowStart,
+      deliveryWindowEnd,
     };
   } catch {
-    return emptyStatus({ userZoneName: "Stockholm, Sweden", countryCode: "SE" });
+    return emptyStatus({
+      userZoneName: "Stockholm, Sweden",
+      countryCode: "SE",
+    });
   }
 }
 

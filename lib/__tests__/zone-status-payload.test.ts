@@ -34,6 +34,28 @@ describe("parseZoneStatusPayload", () => {
     expect(parsed?.minBottlesToShip).toBe(120);
     expect(parsed?.bottlesRemainingToShip).toBe(84);
     expect(parsed?.shipProgressPercent).toBe(30);
+    expect(parsed?.palletResolved).toBe(false);
+    expect(parsed?.deliveryExpectedDate).toBeNull();
+  });
+
+  it("keeps delivery dates only when they are real calendar days", () => {
+    const parsed = parseZoneStatusPayload({
+      bottlesFilled: 0,
+      bottleCapacity: 270,
+      fillPercent: 0,
+      discountTier: 0,
+      estimatedDays: null,
+      userZoneName: "Stockholm",
+      settingsUrl: "/settings/zone",
+      palletResolved: true,
+      deliveryExpectedDate: "2026-12-04",
+      deliveryWindowStart: "not-a-date",
+      deliveryWindowEnd: "2026-12-18",
+    });
+    expect(parsed?.palletResolved).toBe(true);
+    expect(parsed?.deliveryExpectedDate).toBe("2026-12-04");
+    expect(parsed?.deliveryWindowStart).toBeNull();
+    expect(parsed?.deliveryWindowEnd).toBe("2026-12-18");
   });
 
   it("returns null for invalid payloads", () => {
