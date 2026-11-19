@@ -1,5 +1,5 @@
 import { getCountryCodeFromProfileCountry } from "@/lib/countries";
-import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { getSupabaseAdmin, tryGetSupabaseAdmin } from "@/lib/supabase-admin";
 import {
   mapGeoZoneDbRowToResolved,
   resolveGeoZone,
@@ -79,8 +79,26 @@ function dbRowToActive(
 /**
  * Default PDP / anonymous context: Stockholm city geo if seeded, else Sweden country geo.
  */
+const FALLBACK_STOCKHOLM_ZONE: ResolvedActiveGeoZone = {
+  geoZoneId: null,
+  marketCode: "EU",
+  countryCode: "SE",
+  regionCode: null,
+  city: "Stockholm",
+  displayName: "Stockholm, Sweden",
+  zoneType: "city",
+  eligibilityStatus: "normal_checkout",
+  currencyCode: "SEK",
+  defaultDeliveryZoneId: null,
+  source: "default",
+  canStartCampaign: true,
+  canReserveConditionally: false,
+  canCheckoutNormally: true,
+};
+
 export async function resolveDefaultGeoZone(): Promise<ResolvedActiveGeoZone> {
-  const sb = getSupabaseAdmin();
+  const sb = tryGetSupabaseAdmin();
+  if (!sb) return FALLBACK_STOCKHOLM_ZONE;
 
   const { data: cityRows } = await sb
     .from("geo_zones")
@@ -97,22 +115,7 @@ export async function resolveDefaultGeoZone(): Promise<ResolvedActiveGeoZone> {
     return dbRowToActive(cityHit as Record<string, unknown>, "default");
   }
 
-  return {
-    geoZoneId: null,
-    marketCode: "EU",
-    countryCode: "SE",
-    regionCode: null,
-    city: "Stockholm",
-    displayName: "Stockholm, Sweden",
-    zoneType: "city",
-    eligibilityStatus: "normal_checkout",
-    currencyCode: "SEK",
-    defaultDeliveryZoneId: null,
-    source: "default",
-    canStartCampaign: true,
-    canReserveConditionally: false,
-    canCheckoutNormally: true,
-  };
+  return FALLBACK_STOCKHOLM_ZONE;
 }
 
 /**

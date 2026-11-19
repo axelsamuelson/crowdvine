@@ -34,8 +34,8 @@ export async function createPalletClosePaymentLink(opts: {
             product_data: {
               name: opts.palletName
                 ? `PACT — ${opts.palletName}`
-                : "PACT — reservation payment",
-              description: `Reservation ${opts.reservationId}`,
+                : "PACT — order payment",
+              description: `Order ${opts.reservationId}`,
             },
             unit_amount: amount,
           },

@@ -31,7 +31,7 @@ function getSupabaseClient() {
 export async function getCurrentUser(): Promise<User | null> {
   try {
     if (!supabaseUrl || !supabaseAnonKey) {
-      console.error("Missing Supabase auth credentials");
+      // Soft-fail: public pages must render without auth env (no error overlay).
       return null;
     }
     const supabase = await supabaseServer();

@@ -188,18 +188,34 @@ export async function sendPalletClosePaymentFailedEmailOnce(opts: {
   reservationId: string;
   payByIso: string;
   paymentLinkUrl: string;
+  amountSek?: number | null;
 }): Promise<"sent" | "skipped" | "failed"> {
   const r = await resolveRecipient(opts.reservationId);
   if (!r.email) return "failed";
+  const payLink = opts.paymentLinkUrl?.trim() || "";
+  if (!payLink || /#payment\b/i.test(payLink)) {
+    console.error(
+      "[pallet-close] payment_failed refused — missing Stripe pay link",
+      { reservationId: opts.reservationId, paymentLinkUrl: payLink || "(empty)" },
+    );
+    return "failed";
+  }
   const payByLabel =
     formatSharedPalletChargeDeadline(opts.payByIso, r.locale) ||
     opts.payByIso.slice(0, 10);
+  let amountSek = opts.amountSek;
+  if (amountSek == null || !Number.isFinite(Number(amountSek))) {
+    const amountOre = await resolveAmountOre(opts.reservationId);
+    amountSek =
+      amountOre != null && amountOre > 0 ? Math.round(amountOre / 100) : null;
+  }
   const built = buildPalletClosePaymentFailedEmail({
     locale: r.locale,
     customerName: r.name,
     reservationId: opts.reservationId,
     payByLabel,
-    paymentLinkUrl: opts.paymentLinkUrl,
+    paymentLinkUrl: payLink,
+    amountSek,
   });
   return sendTransactionalEmailOnce({
     emailType: "pallet_close_payment_failed",

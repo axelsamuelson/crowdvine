@@ -7,7 +7,8 @@ import {
 
 const baseConfig = {
   maxAgeDays: null as number | null,
-  extensionDays: 30,
+  extensionDays: 28,
+  statusIntervalDays: 28,
   replyDays: 7,
 };
 
@@ -58,7 +59,7 @@ describe("no double-handling: close flow vs reservation-expiry", () => {
     ).toBe(true);
   });
 
-  it("expiry cron skips close-flow-owned reservations at day-30 milestone", () => {
+  it("expiry cron skips close-flow-owned reservations at status-email milestone", () => {
     const withCloseFlow = decideReservationExpiryAction(
       reservation(),
       openPallet,
@@ -71,7 +72,7 @@ describe("no double-handling: close flow vs reservation-expiry", () => {
       reason: "pallet_close_flow_owns",
     });
 
-    // Same row without close flow would still get an extension ask.
+    // Same row without close flow gets a no-action status email (never auto-cancel).
     const withoutCloseFlow = decideReservationExpiryAction(
       reservation(),
       openPallet,
@@ -79,7 +80,7 @@ describe("no double-handling: close flow vs reservation-expiry", () => {
       baseConfig,
       { palletCloseFlowEnabled: false },
     );
-    expect(withoutCloseFlow.action).toBe("send_extension_ask");
+    expect(withoutCloseFlow.action).toBe("send_status_email");
   });
 
   it("expiry never double-handles a choice_pending reservation", () => {

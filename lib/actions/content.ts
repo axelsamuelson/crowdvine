@@ -1,6 +1,6 @@
 "use server";
 
-import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { getSupabaseAdmin, tryGetSupabaseAdmin } from "@/lib/supabase-admin";
 import { revalidatePath } from "next/cache";
 import { getSiteUrl } from "@/lib/app-url";
 import {
@@ -37,9 +37,11 @@ export async function getSiteContent(): Promise<SiteContent[]> {
 }
 
 export async function getSiteContentByKey(key: string): Promise<string | null> {
-  try {
-    const sb = getSupabaseAdmin(); // Use admin client to bypass RLS
+  // Soft-fail when service role is unset — public pages must still render.
+  const sb = tryGetSupabaseAdmin();
+  if (!sb) return null;
 
+  try {
     const { data, error } = await sb
       .from("site_content")
       .select("value")
@@ -56,7 +58,7 @@ export async function getSiteContentByKey(key: string): Promise<string | null> {
     // Supabase Storage URLs are already full URLs, no conversion needed
     return value;
   } catch (error) {
-    console.error(`Error fetching site content for key: ${key}`, error);
+    console.warn(`Error fetching site content for key: ${key}`, error);
     return null;
   }
 }

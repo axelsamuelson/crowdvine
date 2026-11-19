@@ -1,4 +1,4 @@
-import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { tryGetSupabaseAdmin } from "@/lib/supabase-admin";
 import { normalizeProfileCountry, type CountryMarketMode } from "@/lib/countries";
 import { isUsConditionalReservationsEnabledServer } from "@/lib/market/feature-flags";
 
@@ -124,7 +124,23 @@ export async function resolveMarketForCountry(params: {
   }
 
   const cc = normalized.toUpperCase();
-  const sb = getSupabaseAdmin();
+  const sb = tryGetSupabaseAdmin();
+  if (!sb) {
+    // Public/layout soft-fail when service role unset (e.g. local screenshot envs).
+    return {
+      ...DISABLED,
+      countryCode: cc,
+      regionCode: params.regionCode ?? null,
+      marketCode: "EU",
+      marketName: "Europe",
+      currencyCode: "SEK",
+      locale: "sv-SE",
+      checkoutMode: "normal_checkout",
+      isCheckoutEligible: true,
+      countryRole: "checkout_eligible",
+      reason: "Supabase admin credentials unavailable",
+    };
+  }
 
   const { data: mcRow, error: mcErr } = await sb
     .from("market_countries")

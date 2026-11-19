@@ -58,6 +58,10 @@
       "schedule": "15 * * * *"
     },
     {
+      "path": "/api/cron/reservation-expiry",
+      "schedule": "0 9 * * *"
+    },
+    {
       "path": "/api/cron/exit-discount-retention",
       "schedule": "30 4 * * *"
     }

@@ -1,4 +1,4 @@
-import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { tryGetSupabaseAdmin } from "@/lib/supabase-admin";
 import { generateProducerSlug } from "@/lib/producer-handle";
 import { producerDisplayName } from "@/lib/producer-display-name";
 
@@ -35,7 +35,8 @@ const PRODUCER_SELECT =
  * Use this for SSR to avoid HTTP fetch and Vercel Deployment Protection 401.
  */
 export async function fetchCollectionsData(): Promise<CollectionData[]> {
-  const sb = getSupabaseAdmin();
+  const sb = tryGetSupabaseAdmin();
+  if (!sb) return [];
 
   try {
     const { data: producers, error } = await sb

@@ -37,6 +37,8 @@ export const ROBOTS_DISALLOW_PATHS = [
   "/map-topo",
   "/wine-identity",
   "/reservation-status",
+  "/reservation-extension",
+  "/pallet-close",
   "/dev",
   "/payment/",
 ] as const;
