@@ -147,8 +147,10 @@ function ReleasesBody({ data }: { data: ReleasesData }) {
         <h2 className="mb-3 text-lg font-bold">Lägg till anteckning</h2>
         <div className="flex flex-wrap gap-2">
           <input
-            type="date"
-            className="h-9 rounded-md border border-gray-200 px-2 text-sm dark:border-[#1F1F23] dark:bg-[#0F0F12]"
+            type="text"
+            inputMode="numeric"
+            placeholder="ÅÅÅÅ-MM-DD"
+            className="h-9 w-[9.5rem] rounded-md border border-gray-200 px-2 font-mono text-sm tabular-nums dark:border-[#1F1F23] dark:bg-[#0F0F12]"
             value={date}
             onChange={(e) => setDate(e.target.value)}
             aria-label="Datum"
