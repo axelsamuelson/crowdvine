@@ -452,6 +452,7 @@
     "postalCodeHint": "Vi använder postnumret för att visa vilka leveransalternativ som finns.",
     "postalCodeInvalid": "Ange ett giltigt postnummer med 5 siffror.",
     "fieldRequired": "Obligatoriskt fält",
+    "streetIncomplete": "Skriv gatuadress med nummer, t.ex. Drottninggatan 12.",
     "fieldContinue": "Fortsätt",
     "nextFieldHint": "Nästa: {label}",
     "addAddress": "Fyll i leveransadress →",

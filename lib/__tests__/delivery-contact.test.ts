@@ -4,6 +4,7 @@ import {
   isCheckoutContactComplete,
   isCheckoutEmailComplete,
   isCheckoutPhoneComplete,
+  isCheckoutStreetComplete,
 } from "@/lib/checkout/delivery-contact";
 
 describe("checkout delivery contact gates", () => {
@@ -19,6 +20,18 @@ describe("checkout delivery contact gates", () => {
     expect(isCheckoutPhoneComplete("07012")).toBe(false);
     expect(isCheckoutPhoneComplete("070123")).toBe(true);
     expect(isCheckoutPhoneComplete(" 0701234567 ")).toBe(true);
+  });
+
+  it("rejects truncated street mid-typing (Camille D collapse)", () => {
+    expect(isCheckoutStreetComplete("")).toBe(false);
+    expect(isCheckoutStreetComplete("D")).toBe(false);
+    expect(isCheckoutStreetComplete("Dr")).toBe(false);
+    expect(isCheckoutStreetComplete("Dro")).toBe(false);
+    expect(isCheckoutStreetComplete("Drottninggatan")).toBe(false);
+    expect(isCheckoutStreetComplete("Drottninggatan 12")).toBe(true);
+    expect(isCheckoutStreetComplete("Storgatan 1A")).toBe(true);
+    expect(isCheckoutStreetComplete("12a")).toBe(true);
+    expect(isCheckoutStreetComplete("  Drottninggatan   12  ")).toBe(true);
   });
 
   it("address step complete needs name + valid email + phone", () => {
