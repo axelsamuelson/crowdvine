@@ -375,7 +375,7 @@ export const TRACKED_USER_EVENTS_CATALOG: TrackedEventCatalogEntry[] = [
     eventType: "checkout_zone_error",
     category: "checkout",
     description:
-      "Leveranszon kunde inte matchas (NO_DELIVERY_ZONE / UNSUPPORTED_COUNTRY). Metadata: zoneError, postal_digits (digits only), country_code.",
+      "Leveranszon kunde inte matchas (NO_DELIVERY_ZONE / UNSUPPORTED_COUNTRY). Metadata: zoneError, postal_digits (digits only), country_code, available_fulfillment_channels. postal_out_of_zone (checkout_error code) only when no channel remains.",
     sources: ["client"],
   },
   {

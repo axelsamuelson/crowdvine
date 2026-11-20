@@ -706,14 +706,18 @@ export async function POST(request: Request) {
         );
       }
     } else if (!zones.deliveryZoneId) {
-      return NextResponse.json(
-        {
-          error:
-            zones.noDeliveryZone?.message?.trim() ||
-            "No delivery zone matches your address.",
-        },
-        { status: 400 },
-      );
+      // direct_box ships Sweden-wide (UPS) — no pallet delivery-zone match required.
+      // shared_pallet still hard-requires a matched zone (Budbee/Instabee last-mile).
+      if (authorizedFulfillment?.channel !== "direct_box") {
+        return NextResponse.json(
+          {
+            error:
+              zones.noDeliveryZone?.message?.trim() ||
+              "No delivery zone matches your address.",
+          },
+          { status: 400 },
+        );
+      }
     }
 
     // Save customer address
