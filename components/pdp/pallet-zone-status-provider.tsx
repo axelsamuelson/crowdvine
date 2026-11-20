@@ -23,11 +23,12 @@ type PalletZoneStatusContextValue = {
   showBar: boolean;
   allowEarlyBird: boolean;
   allowEta: boolean;
+  /** True after the client no-store fetch, so ISR HTML is not treated as live fill. */
+  hasLiveData: boolean;
 };
 
-const PalletZoneStatusContext = createContext<PalletZoneStatusContextValue | null>(
-  null,
-);
+const PalletZoneStatusContext =
+  createContext<PalletZoneStatusContextValue | null>(null);
 
 export function PalletZoneStatusProvider({
   productHandle,
@@ -43,6 +44,7 @@ export function PalletZoneStatusProvider({
   const [phase, setPhase] = useState<FetchPhase>(
     initialData ? "ready" : "loading",
   );
+  const [hasLiveData, setHasLiveData] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -54,6 +56,8 @@ export function PalletZoneStatusProvider({
       if (e instanceof Error && e.name === "AbortError") return true;
       return false;
     }
+
+    setHasLiveData(false);
 
     async function load() {
       const handle = productHandle.trim();
@@ -80,6 +84,7 @@ export function PalletZoneStatusProvider({
         }
         setData(parsed);
         setPhase("ready");
+        setHasLiveData(true);
       } catch (e) {
         if (isAbortLike(e)) return;
         if (!cancelled) {
@@ -121,8 +126,9 @@ export function PalletZoneStatusProvider({
       showBar,
       allowEarlyBird,
       allowEta,
+      hasLiveData,
     };
-  }, [data, phase]);
+  }, [data, phase, hasLiveData]);
 
   return (
     <PalletZoneStatusContext.Provider value={value}>

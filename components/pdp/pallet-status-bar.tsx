@@ -11,10 +11,11 @@ import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 import { useB2BModeServerHint } from "@/lib/context/b2b-mode-context";
 import { homeDeliveryGuidePath } from "@/lib/guides/home-delivery-guide";
 import { useTranslations } from "@/lib/hooks/use-translations";
+import { formatPalletDeliveryWhen } from "@/lib/pdp/pallet-delivery-when";
 
 /**
- * PDP delivery strip: customer sees direct-box promise (not pallet fill).
- * Still emits `pallet_status_viewed` with fill metadata for funnel analytics.
+ * PDP delivery strip. Fill numbers come from the client zone-status fetch,
+ * not the ISR snapshot. Still emits `pallet_status_viewed` for funnel analytics.
  */
 export function PalletStatusBar({
   sourceType,
@@ -29,7 +30,7 @@ export function PalletStatusBar({
 }) {
   const { t, context } = useTranslations();
   const isDirtywineSite = useB2BModeServerHint();
-  const { data, isUnavailable } = usePalletZoneStatus();
+  const { data, isUnavailable, hasLiveData } = usePalletZoneStatus();
 
   const barPercent = data?.shipProgressPercent ?? data?.fillPercent ?? 0;
 
@@ -44,9 +45,23 @@ export function PalletStatusBar({
   }, [barPercent, data]);
 
   const unavailableMessage =
-    isUnavailable && data?.unavailableMessage
-      ? data.unavailableMessage
+    isUnavailable && data?.unavailableMessage ? data.unavailableMessage : null;
+
+  const livePallet =
+    hasLiveData && data?.palletResolved === true && data.minBottlesToShip > 0
+      ? data
       : null;
+  const showFill = livePallet != null && livePallet.shipProgressPercent >= 25;
+  const deliveryWhen = livePallet
+    ? formatPalletDeliveryWhen(
+        {
+          expected: livePallet.deliveryExpectedDate,
+          start: livePallet.deliveryWindowStart,
+          end: livePallet.deliveryWindowEnd,
+        },
+        context.locale === "en" ? "en" : "sv",
+      )
+    : null;
 
   return (
     <VisibleOnceTracker
@@ -64,12 +79,55 @@ export function PalletStatusBar({
         />
       )}
       {showSharedPalletPromise && !isDirtywineSite ? (
-        <PactSellerConsumerInfo
-          locale={context.locale}
-          showSeller={false}
-          showWithdrawal={false}
-          showSharedPallet
-        />
+        livePallet ? (
+          <div className="space-y-2">
+            <p
+              className="text-sm text-muted-foreground"
+              data-testid="pact-shared-pallet-line"
+            >
+              {t("commerce.sharedPalletDeliveryWhenBooked", {
+                minBottlesToShip: livePallet.minBottlesToShip,
+              })}
+            </p>
+            {showFill ? (
+              <div className="space-y-1">
+                <div
+                  className="h-1 w-full overflow-hidden rounded-full bg-muted"
+                  role="img"
+                  aria-label={t("commerce.palletBookedCount", {
+                    filled: livePallet.bottlesFilled,
+                    total: livePallet.minBottlesToShip,
+                  })}
+                >
+                  <div
+                    className="h-full bg-foreground"
+                    style={{
+                      width: `${Math.min(100, Math.max(0, livePallet.shipProgressPercent))}%`,
+                    }}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {t("commerce.palletBookedCount", {
+                    filled: livePallet.bottlesFilled,
+                    total: livePallet.minBottlesToShip,
+                  })}
+                </p>
+              </div>
+            ) : null}
+            {deliveryWhen ? (
+              <p className="text-sm text-muted-foreground">
+                {t("commerce.estimatedDelivery", { when: deliveryWhen })}
+              </p>
+            ) : null}
+          </div>
+        ) : (
+          <PactSellerConsumerInfo
+            locale={context.locale}
+            showSeller={false}
+            showWithdrawal={false}
+            showSharedPallet
+          />
+        )
       ) : null}
       {!isDirtywineSite ? (
         <p className="text-xs text-muted-foreground">

@@ -9,17 +9,22 @@ const AddToCartCase = dynamic(
   () => import("./AddToCartCase").then((m) => m.AddToCartCase),
   {
     loading: () => (
-      <div className="h-12 w-full animate-pulse rounded-md bg-muted" aria-hidden />
+      <div
+        className="h-12 w-full animate-pulse rounded-md bg-muted"
+        aria-hidden
+      />
     ),
   },
 );
 
 const AddToCartWithSource = dynamic(
-  () =>
-    import("./add-to-cart-with-source").then((m) => m.AddToCartWithSource),
+  () => import("./add-to-cart-with-source").then((m) => m.AddToCartWithSource),
   {
     loading: () => (
-      <div className="h-12 w-full animate-pulse rounded-md bg-muted" aria-hidden />
+      <div
+        className="h-12 w-full animate-pulse rounded-md bg-muted"
+        aria-hidden
+      />
     ),
   },
 );
@@ -31,6 +36,10 @@ interface AddToCartConditionalProps {
   previewDisabled?: boolean;
   /** Rendered beside the B2C Add case CTA. */
   ctaAside?: ReactNode;
+  /** Preformatted shared-pallet shipping line. */
+  shippingPerOrder?: string | null;
+  /** Preformatted direct-box shipping line. */
+  shippingDirectBox?: string | null;
 }
 
 /**
@@ -43,6 +52,8 @@ export function AddToCartConditional({
   className,
   previewDisabled = false,
   ctaAside,
+  shippingPerOrder = null,
+  shippingDirectBox = null,
 }: AddToCartConditionalProps) {
   const isB2B = useB2BPriceMode();
 
@@ -63,6 +74,8 @@ export function AddToCartConditional({
       previewDisabled={previewDisabled}
       ctaAside={ctaAside}
       analyticsSource="product"
+      shippingPerOrder={shippingPerOrder}
+      shippingDirectBox={shippingDirectBox}
     />
   );
 }

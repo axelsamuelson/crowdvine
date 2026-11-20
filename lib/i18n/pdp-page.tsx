@@ -14,6 +14,8 @@ import { buildProductPdpJsonLd } from "@/lib/seo/product-json-ld";
 import { fetchPdpRecommendationsForWine } from "@/lib/crowdvine/pdp-recommendations-data";
 import { getOffersByWineId } from "@/lib/external-prices/db";
 import { buildDirectBoxUiAvailability } from "@/lib/commerce/direct-box-ui-contract";
+import { isProducerSourcedWine } from "@/lib/commerce/direct-box-delivery";
+import { getCachedPdpShippingFees } from "@/lib/pdp/shipping-fees";
 import type { AppLocale } from "@/lib/i18n/locale";
 import {
   PACT_PUBLIC_ORIGIN,
@@ -106,11 +108,7 @@ export async function buildProductPdpMetadata(
       locale: locale === "sv" ? "sv_SE" : "en_US",
       images: ogImages,
     },
-    twitter: pageTwitterCard(
-      title,
-      description,
-      url || DEFAULT_OG_IMAGE_URL,
-    ),
+    twitter: pageTwitterCard(title, description, url || DEFAULT_OG_IMAGE_URL),
   };
 }
 
@@ -121,9 +119,10 @@ export async function renderProductPdpPage(options: {
 }) {
   const { handle, locale, pathSegment } = options;
   const host = await getPdpRequestHost();
-  const [product, config] = await Promise.all([
+  const [product, config, shippingFees] = await Promise.all([
     fetchCachedProductForLocale(handle, locale, host),
     getSiteConfig(),
+    getCachedPdpShippingFees(),
   ]);
 
   if (!product) notFound();
@@ -135,13 +134,14 @@ export async function renderProductPdpPage(options: {
   const directDeliveryAvailable =
     includeB2cReturnPolicy &&
     buildDirectBoxUiAvailability({ countryCode: "SE" }).deliverySelectable;
+  const showDirectBoxShipping =
+    directDeliveryAvailable && isProducerSourcedWine(product.sourceType);
 
   const productJsonLd = buildProductPdpJsonLd({
     title: product.title,
     description: product.seo?.description || product.description || "",
     imageUrl:
-      product.featuredImage?.url ??
-      `${config.baseUrl}/pact-og-uploaded.jpg`,
+      product.featuredImage?.url ?? `${config.baseUrl}/pact-og-uploaded.jpg`,
     productUrl,
     brandName:
       producerDisplayName({
@@ -158,6 +158,10 @@ export async function renderProductPdpPage(options: {
     sellerName: config.name,
     wineEnrichment: product.wineEnrichment,
     includeB2cReturnPolicy,
+    shippingSek: {
+      pact: includeB2cReturnPolicy ? shippingFees.pactPerOrderSek : null,
+      directBox: showDirectBoxShipping ? shippingFees.directBoxPerBoxSek : null,
+    },
   });
 
   const producerName =
@@ -308,6 +312,12 @@ export async function renderProductPdpPage(options: {
         competitorOffers={competitorOffers}
         recommendations={recommendations}
         initialPalletStatus={initialPalletStatus}
+        shippingPerOrderSek={
+          includeB2cReturnPolicy ? shippingFees.pactPerOrderSek : null
+        }
+        shippingDirectBoxSek={
+          showDirectBoxShipping ? shippingFees.directBoxPerBoxSek : null
+        }
         compareAtPrice={
           product.compareAtPrice ? (
             <span className="text-lg line-through opacity-30 lg:text-xl 2xl:text-2xl">

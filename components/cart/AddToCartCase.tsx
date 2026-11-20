@@ -28,6 +28,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { PdpCasePurchaseNotes } from "@/components/pdp/pdp-case-purchase-notes";
 import { AddToCart } from "./add-to-cart";
 import { CaseModeSelector } from "./case-mode-selector";
 import { MixedCaseWineGallery } from "./mixed-case-wine-gallery";
@@ -39,10 +40,7 @@ import { useB2BModeServerHint } from "@/lib/context/b2b-mode-context";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 import { emitOnce } from "@/lib/analytics/emit-once";
 import { pricesFromCartAfterAdd } from "@/lib/analytics/cart-event-prices";
-import {
-  MIX_BOX_OPEN_ATTR,
-  setDocumentFlag,
-} from "@/lib/pdp/overlay-open";
+import { MIX_BOX_OPEN_ATTR, setDocumentFlag } from "@/lib/pdp/overlay-open";
 import { useCartOptional } from "./cart-context";
 import {
   buildOptimisticCaseCart,
@@ -114,7 +112,11 @@ function dispatchCartRefresh(cart: unknown) {
 
 function formatGrapes(g: ProducerWineRow["grape_varieties"]): string | null {
   if (g == null) return null;
-  if (Array.isArray(g)) return g.map((x) => String(x).trim()).filter(Boolean).join(", ");
+  if (Array.isArray(g))
+    return g
+      .map((x) => String(x).trim())
+      .filter(Boolean)
+      .join(", ");
   const s = String(g).trim();
   return s || null;
 }
@@ -227,17 +229,24 @@ function MixedCaseWineDetailBody({
         {!hideTitleBlock ? (
           <h2 className="text-lg font-semibold leading-tight">
             {wine.wine_name}{" "}
-            <span className="text-muted-foreground font-normal">{wine.vintage}</span>
+            <span className="text-muted-foreground font-normal">
+              {wine.vintage}
+            </span>
           </h2>
         ) : null}
         <p className={cn("text-base font-semibold", !hideTitleBlock && "mt-1")}>
           {formatSek(b2cWholeKronorFromOre(wine.base_price_cents))}
-          <span className="text-xs font-normal text-muted-foreground"> / bottle</span>
+          <span className="text-xs font-normal text-muted-foreground">
+            {" "}
+            / bottle
+          </span>
         </p>
       </div>
 
       {wine.summary?.trim() ? (
-        <p className="text-sm font-medium text-foreground/90">{wine.summary.trim()}</p>
+        <p className="text-sm font-medium text-foreground/90">
+          {wine.summary.trim()}
+        </p>
       ) : null}
 
       <WineSpecsList specs={specs} className="text-xs" />
@@ -293,6 +302,10 @@ export interface AddToCartCaseProps {
   ctaAside?: ReactNode;
   /** Analytics surface for add_to_cart.source */
   analyticsSource?: "list" | "product" | "guide";
+  /** Preformatted shared-pallet shipping line. Null hides it. */
+  shippingPerOrder?: string | null;
+  /** Preformatted direct-box shipping line. Null hides it. */
+  shippingDirectBox?: string | null;
 }
 
 /**
@@ -307,6 +320,8 @@ export function AddToCartCase({
   previewDisabled = false,
   ctaAside,
   analyticsSource = "product",
+  shippingPerOrder = null,
+  shippingDirectBox = null,
 }: AddToCartCaseProps) {
   if (!product.producerId || product.productType !== "wine") {
     return (
@@ -627,75 +642,30 @@ export function AddToCartCase({
   }, []);
 
   const mixedCaseSheet = (
-      <Sheet modal={false} open={sheetOpen} onOpenChange={handleSheetOpenChange}>
-        <SheetContent
-          side={sheetSide}
-          className={cn(
-            "flex min-h-0 flex-col gap-0 p-0",
-            sheetSide === "bottom" &&
-              "h-[100dvh] max-h-[100dvh] min-h-0 w-full rounded-t-2xl rounded-b-none border-x-0",
-            sheetSide === "right" &&
-              cn(
-                "h-[100dvh] max-h-[100dvh] w-full transition-[max-width] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
-                detailWineId ? "sm:max-w-4xl" : "sm:max-w-md",
-              ),
-          )}
-        >
-          {sheetSide === "right" ? (
-            <div className="flex min-h-0 min-w-0 flex-1 flex-row overflow-hidden">
-              <div
-                className={cn(
-                  "flex h-full min-h-0 min-w-0 flex-col overflow-hidden transition-[flex-basis] duration-[280ms] ease-[cubic-bezier(0.32,0.72,0,1)]",
-                  detailWineId
-                    ? "basis-1/2 shrink-0 grow-0"
-                    : "min-w-0 basis-full shrink grow",
-                )}
-              >
-                <MixedCaseWineListPanel
-                  loadingWines={loadingWines}
-                  winesError={winesError}
-                  wines={wines}
-                  quantities={quantities}
-                  totalSelected={totalSelected}
-                  bumpQty={bumpQty}
-                  onOpenDetail={openRowDetail}
-                  producerName={producerDisplayName({
-                    name: product.producerName,
-                    display_name: product.producerDisplayName,
-                  })}
-                  mixedCaseHeader
-                  mixedCaseHeaderSheetSide={sheetSide}
-                  showTapRowHint={showTapRowHint}
-                  onCloseMixedCase={closeMixedCaseSheet}
-                />
-              </div>
-              <div
-                className={cn(
-                  "flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-background transition-[flex-basis] duration-[280ms] ease-[cubic-bezier(0.32,0.72,0,1)]",
-                  detailWineId
-                    ? "basis-1/2 shrink-0 grow-0 border-l border-border"
-                    : "basis-0 shrink-0 grow-0 overflow-hidden border-l-0",
-                )}
-              >
-                {detailWine ? (
-                  <MixedCaseWineDetailPanel
-                    wine={detailWine}
-                    specs={detailSpecs}
-                    quantity={quantities[detailWine.id] ?? 0}
-                    totalSelected={totalSelected}
-                    bumpQty={bumpQty}
-                    onBack={() => setDetailWineId(null)}
-                    layout="desktop-split"
-                  />
-                ) : (
-                  <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden p-6 text-sm text-muted-foreground">
-                    Select a wine to view details
-                  </div>
-                )}
-              </div>
-            </div>
-          ) : (
-            <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+    <Sheet modal={false} open={sheetOpen} onOpenChange={handleSheetOpenChange}>
+      <SheetContent
+        side={sheetSide}
+        className={cn(
+          "flex min-h-0 flex-col gap-0 p-0",
+          sheetSide === "bottom" &&
+            "h-[100dvh] max-h-[100dvh] min-h-0 w-full rounded-t-2xl rounded-b-none border-x-0",
+          sheetSide === "right" &&
+            cn(
+              "h-[100dvh] max-h-[100dvh] w-full transition-[max-width] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
+              detailWineId ? "sm:max-w-4xl" : "sm:max-w-md",
+            ),
+        )}
+      >
+        {sheetSide === "right" ? (
+          <div className="flex min-h-0 min-w-0 flex-1 flex-row overflow-hidden">
+            <div
+              className={cn(
+                "flex h-full min-h-0 min-w-0 flex-col overflow-hidden transition-[flex-basis] duration-[280ms] ease-[cubic-bezier(0.32,0.72,0,1)]",
+                detailWineId
+                  ? "basis-1/2 shrink-0 grow-0"
+                  : "min-w-0 basis-full shrink grow",
+              )}
+            >
               <MixedCaseWineListPanel
                 loadingWines={loadingWines}
                 winesError={winesError}
@@ -705,94 +675,140 @@ export function AddToCartCase({
                 bumpQty={bumpQty}
                 onOpenDetail={openRowDetail}
                 producerName={producerDisplayName({
-                    name: product.producerName,
-                    display_name: product.producerDisplayName,
-                  })}
+                  name: product.producerName,
+                  display_name: product.producerDisplayName,
+                })}
                 mixedCaseHeader
                 mixedCaseHeaderSheetSide={sheetSide}
                 showTapRowHint={showTapRowHint}
                 onCloseMixedCase={closeMixedCaseSheet}
               />
-              {/*
+            </div>
+            <div
+              className={cn(
+                "flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-background transition-[flex-basis] duration-[280ms] ease-[cubic-bezier(0.32,0.72,0,1)]",
+                detailWineId
+                  ? "basis-1/2 shrink-0 grow-0 border-l border-border"
+                  : "basis-0 shrink-0 grow-0 overflow-hidden border-l-0",
+              )}
+            >
+              {detailWine ? (
+                <MixedCaseWineDetailPanel
+                  wine={detailWine}
+                  specs={detailSpecs}
+                  quantity={quantities[detailWine.id] ?? 0}
+                  totalSelected={totalSelected}
+                  bumpQty={bumpQty}
+                  onBack={() => setDetailWineId(null)}
+                  layout="desktop-split"
+                />
+              ) : (
+                <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden p-6 text-sm text-muted-foreground">
+                  Select a wine to view details
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+            <MixedCaseWineListPanel
+              loadingWines={loadingWines}
+              winesError={winesError}
+              wines={wines}
+              quantities={quantities}
+              totalSelected={totalSelected}
+              bumpQty={bumpQty}
+              onOpenDetail={openRowDetail}
+              producerName={producerDisplayName({
+                name: product.producerName,
+                display_name: product.producerDisplayName,
+              })}
+              mixedCaseHeader
+              mixedCaseHeaderSheetSide={sheetSide}
+              showTapRowHint={showTapRowHint}
+              onCloseMixedCase={closeMixedCaseSheet}
+            />
+            {/*
                 Must stay under SheetContent in the DOM. Portaling to document.body
                 made Radix treat taps as outside the sheet and closed the whole drawer.
               */}
-              <AnimatePresence>
-                {sheetOpen && sheetSide === "bottom" && detailWineId && detailWine ? (
-                  <motion.div
-                    key="mixed-case-detail-in-sheet"
-                    className="pointer-events-none fixed inset-0 z-[60] flex flex-col"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <button
-                      type="button"
-                      aria-label={t("cart.closeWineDetails")}
-                      className="pointer-events-auto absolute inset-0 bg-black/70"
-                      onClick={() => setDetailWineId(null)}
-                    />
-                    <div className="pointer-events-none relative z-[1] flex min-h-0 flex-1 flex-col justify-end">
-                      <motion.div
-                        role="dialog"
-                        aria-modal="true"
-                        aria-labelledby={`mixed-case-detail-${detailWine.id}`}
-                        initial={{ y: "100%" }}
-                        animate={{ y: 0 }}
-                        exit={{ y: "100%" }}
-                        transition={{
-                          duration: 0.32,
-                          ease: [0.32, 0.72, 0, 1],
-                        }}
-                        className="pointer-events-auto flex h-[100dvh] max-h-[100dvh] w-full min-h-0 flex-col overflow-x-hidden rounded-t-2xl border-t border-border bg-background shadow-[0_-12px_40px_rgba(0,0,0,0.18)]"
-                      >
-                        <div className="flex h-full min-h-0 min-w-0 flex-1 basis-0 flex-col pt-[env(safe-area-inset-top)]">
-                          <MixedCaseWineDetailPanel
-                            wine={detailWine}
-                            specs={detailSpecs}
-                            quantity={quantities[detailWine.id] ?? 0}
-                            totalSelected={totalSelected}
-                            bumpQty={bumpQty}
-                            onBack={() => setDetailWineId(null)}
-                            layout="mobile-fullscreen"
-                          />
-                        </div>
-                      </motion.div>
-                    </div>
-                  </motion.div>
-                ) : null}
-              </AnimatePresence>
-            </div>
-          )}
+            <AnimatePresence>
+              {sheetOpen &&
+              sheetSide === "bottom" &&
+              detailWineId &&
+              detailWine ? (
+                <motion.div
+                  key="mixed-case-detail-in-sheet"
+                  className="pointer-events-none fixed inset-0 z-[60] flex flex-col"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <button
+                    type="button"
+                    aria-label={t("cart.closeWineDetails")}
+                    className="pointer-events-auto absolute inset-0 bg-black/70"
+                    onClick={() => setDetailWineId(null)}
+                  />
+                  <div className="pointer-events-none relative z-[1] flex min-h-0 flex-1 flex-col justify-end">
+                    <motion.div
+                      role="dialog"
+                      aria-modal="true"
+                      aria-labelledby={`mixed-case-detail-${detailWine.id}`}
+                      initial={{ y: "100%" }}
+                      animate={{ y: 0 }}
+                      exit={{ y: "100%" }}
+                      transition={{
+                        duration: 0.32,
+                        ease: [0.32, 0.72, 0, 1],
+                      }}
+                      className="pointer-events-auto flex h-[100dvh] max-h-[100dvh] w-full min-h-0 flex-col overflow-x-hidden rounded-t-2xl border-t border-border bg-background shadow-[0_-12px_40px_rgba(0,0,0,0.18)]"
+                    >
+                      <div className="flex h-full min-h-0 min-w-0 flex-1 basis-0 flex-col pt-[env(safe-area-inset-top)]">
+                        <MixedCaseWineDetailPanel
+                          wine={detailWine}
+                          specs={detailSpecs}
+                          quantity={quantities[detailWine.id] ?? 0}
+                          totalSelected={totalSelected}
+                          bumpQty={bumpQty}
+                          onBack={() => setDetailWineId(null)}
+                          layout="mobile-fullscreen"
+                        />
+                      </div>
+                    </motion.div>
+                  </div>
+                </motion.div>
+              ) : null}
+            </AnimatePresence>
+          </div>
+        )}
 
-          {batchAddError ? (
-            <div
-              className="shrink-0 border-t border-destructive/30 bg-destructive/10 px-6 py-3"
-              role="alert"
-            >
-              <p className="text-sm text-destructive">{batchAddError}</p>
-            </div>
-          ) : null}
+        {batchAddError ? (
+          <div
+            className="shrink-0 border-t border-destructive/30 bg-destructive/10 px-6 py-3"
+            role="alert"
+          >
+            <p className="text-sm text-destructive">{batchAddError}</p>
+          </div>
+        ) : null}
 
-          <SheetFooter className="shrink-0 border-t border-border bg-background px-6 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-            <Button
-              type="button"
-              className="w-full bg-black hover:bg-black/90 text-white"
-              disabled={
-                totalSelected !== 6 || isBatchPending || loadingWines
-              }
-              onClick={handleConfirmMixed}
-            >
-              {isBatchPending ? (
-                <Loader size="default" />
-              ) : (
-                t("cart.addMixedCase")
-              )}
-            </Button>
-          </SheetFooter>
-        </SheetContent>
-      </Sheet>
+        <SheetFooter className="shrink-0 border-t border-border bg-background px-6 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+          <Button
+            type="button"
+            className="w-full bg-black hover:bg-black/90 text-white"
+            disabled={totalSelected !== 6 || isBatchPending || loadingWines}
+            onClick={handleConfirmMixed}
+          >
+            {isBatchPending ? (
+              <Loader size="default" />
+            ) : (
+              t("cart.addMixedCase")
+            )}
+          </Button>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
   );
 
   if (sheetOnly) {
@@ -808,13 +824,24 @@ export function AddToCartCase({
         onModeChange={setMode}
         onConfirm={handleMainCta}
         disabled={
-          !resolvedVariant ||
-          isSoldOut ||
-          (mode === "mixed" && isBatchPending)
+          !resolvedVariant || isSoldOut || (mode === "mixed" && isBatchPending)
         }
         pending={mode === "same" && isSamePending}
         ctaAside={ctaAside}
         ctaRef={mainCtaRef}
+        afterCta={
+          !sheetOnly && (shippingPerOrder || shippingDirectBox) ? (
+            <div className="space-y-1 text-sm text-muted-foreground">
+              {shippingPerOrder ? <p>{shippingPerOrder}</p> : null}
+              {shippingDirectBox ? <p>{shippingDirectBox}</p> : null}
+            </div>
+          ) : null
+        }
+        afterSegments={
+          sheetOnly ? null : (
+            <PdpCasePurchaseNotes product={product} mode={mode} />
+          )
+        }
         label={
           !resolvedVariant
             ? t("product.selectOne")
@@ -945,11 +972,9 @@ function MixedCaseWineListPanel({
                       </span>
                     </p>
                     <p className="mt-0.5 text-xs text-muted-foreground">
-                      {soldOut ? (
-                        t("product.outOfStock")
-                      ) : (
-                        formatSek(b2cWholeKronorFromOre(w.base_price_cents))
-                      )}
+                      {soldOut
+                        ? t("product.outOfStock")
+                        : formatSek(b2cWholeKronorFromOre(w.base_price_cents))}
                     </p>
                   </div>
                   <ChevronRight
@@ -959,12 +984,12 @@ function MixedCaseWineListPanel({
                 </div>
                 <div className="flex shrink-0 items-center pr-2">
                   {!soldOut ? (
-                  <MixedCaseQuantityStepper
-                    wineId={w.id}
-                    quantity={q}
-                    blockPlus={blockPlus}
-                    onBump={bumpQty}
-                  />
+                    <MixedCaseQuantityStepper
+                      wineId={w.id}
+                      quantity={q}
+                      blockPlus={blockPlus}
+                      onBump={bumpQty}
+                    />
                   ) : null}
                 </div>
               </li>
@@ -1017,10 +1042,7 @@ function MixedCaseWineListPanel({
             </span>
           </p>
           {showTapRowHint ? (
-            <p
-              className="mt-2 text-xs text-muted-foreground"
-              role="status"
-            >
+            <p className="mt-2 text-xs text-muted-foreground" role="status">
               Tap a wine to learn more
             </p>
           ) : null}
@@ -1064,9 +1086,7 @@ function MixedCaseWineDetailPanel({
       <div
         className={cn(
           "flex shrink-0 items-center gap-2 border-b border-border px-4",
-          layout === "desktop-split"
-            ? "pb-3 pt-4 pr-12"
-            : "py-3 pr-14 pt-2",
+          layout === "desktop-split" ? "pb-3 pt-4 pr-12" : "py-3 pr-14 pt-2",
         )}
       >
         <Button

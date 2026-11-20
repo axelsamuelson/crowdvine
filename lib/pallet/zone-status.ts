@@ -27,6 +27,14 @@ export type ZoneStatusPayload = {
   showProgressBar: boolean;
   showEarlyBird: boolean;
   unavailableMessage: string | null;
+  /** True when an open pallet was found for this wine and delivery zone. */
+  palletResolved: boolean;
+  /** `pallets.delivery_expected_date` (YYYY-MM-DD) or null. */
+  deliveryExpectedDate: string | null;
+  /** `pallets.delivery_window_start` (YYYY-MM-DD) or null. */
+  deliveryWindowStart: string | null;
+  /** `pallets.delivery_window_end` (YYYY-MM-DD) or null. */
+  deliveryWindowEnd: string | null;
 };
 
 function isDiscountTier(n: number): n is DiscountTier {
@@ -95,8 +103,7 @@ export function parseZoneStatusPayload(raw: unknown): ZoneStatusPayload | null {
     typeof statusPrimaryRaw === "string" && statusPrimaryRaw.trim()
       ? statusPrimaryRaw.trim()
       : "Pallet status";
-  const bottlesVerb =
-    bottlesVerbRaw === "requested" ? "requested" : "ordered";
+  const bottlesVerb = bottlesVerbRaw === "requested" ? "requested" : "ordered";
   const logisticsFootnote =
     footnoteRaw === null || footnoteRaw === undefined
       ? null
@@ -130,6 +137,12 @@ export function parseZoneStatusPayload(raw: unknown): ZoneStatusPayload | null {
       ? o.unavailableMessage.trim()
       : null;
 
+  const isoDate = (value: unknown): string | null => {
+    if (typeof value !== "string") return null;
+    const match = /^(\d{4}-\d{2}-\d{2})$/.exec(value.trim());
+    return match?.[1] ?? null;
+  };
+
   return {
     bottlesFilled,
     bottleCapacity: minBottlesToShip,
@@ -154,5 +167,9 @@ export function parseZoneStatusPayload(raw: unknown): ZoneStatusPayload | null {
     showProgressBar,
     showEarlyBird,
     unavailableMessage,
+    palletResolved: o.palletResolved === true,
+    deliveryExpectedDate: isoDate(o.deliveryExpectedDate),
+    deliveryWindowStart: isoDate(o.deliveryWindowStart),
+    deliveryWindowEnd: isoDate(o.deliveryWindowEnd),
   };
 }

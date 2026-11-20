@@ -15,25 +15,56 @@ import { PACT_PUBLIC_ORIGIN } from "@/lib/i18n/localized-routes";
 export const PACT_B2C_MERCHANT_RETURN_POLICY = {
   "@type": "MerchantReturnPolicy",
   applicableCountry: "SE",
-  returnPolicyCategory:
-    "https://schema.org/MerchantReturnFiniteReturnWindow",
+  returnPolicyCategory: "https://schema.org/MerchantReturnFiniteReturnWindow",
   merchantReturnDays: 14,
   returnMethod: "https://schema.org/ReturnByMail",
   returnFees: "https://schema.org/ReturnFeesCustomerResponsibility",
   refundType: "https://schema.org/FullRefund",
 } as const;
 
-/** Direct-delivery shipping rate stated in purchase terms (149 kr / box of 6). */
-export const PACT_SE_DIRECT_SHIPPING_PRICE = "149.00";
-export const PACT_SE_SHIPPING_CURRENCY = "SEK";
+export type OfferShippingDetailsLd = {
+  "@type": "OfferShippingDetails";
+  shippingDestination: {
+    "@type": "DefinedRegion";
+    addressCountry: "SE";
+  };
+  shippingRate?: {
+    "@type": "MonetaryAmount";
+    value: string;
+    currency: "SEK";
+  };
+};
+
+function schemaSek(amount: number): string {
+  return (Math.round(amount * 100) / 100).toFixed(2);
+}
+
+function offerShippingDetails(
+  sek: number | null | undefined,
+): OfferShippingDetailsLd {
+  const details: OfferShippingDetailsLd = {
+    "@type": "OfferShippingDetails",
+    shippingDestination: {
+      "@type": "DefinedRegion",
+      addressCountry: "SE",
+    },
+  };
+  if (sek != null && Number.isFinite(sek) && sek > 0) {
+    details.shippingRate = {
+      "@type": "MonetaryAmount",
+      value: schemaSek(sek),
+      currency: "SEK",
+    };
+  }
+  return details;
+}
 
 /**
  * Shared Offer shipping + return policy for Product JSON-LD.
  *
- * Shipping fields are included only when clearly stated in the published terms.
- * Shared-pallet shipping amount is not named in the terms, so PreOrder offers
- * get destination SE only (no invented rate or transit window).
- * Direct delivery states 149 kr / box of 6 and normally 5–10 working days.
+ * Rates come from the same customer_shipping_rates rows as checkout.
+ * A missing amount is omitted — never filled with a constant.
+ * deliveryTime stays omitted (terms use working days, not schema.org days).
  */
 export function productOfferCommerceFields(options?: {
   termsUrl?: string;
@@ -43,37 +74,29 @@ export function productOfferCommerceFields(options?: {
    */
   includeReturnPolicy?: boolean;
   /**
-   * When true, attach terms-backed direct-delivery rate and delivery window.
-   * When false (shared pallet / PreOrder), omit rate and deliveryTime.
+   * Resolved SEK fees. `pactSek` is the shared-pallet per-order fee.
+   * `directBoxSek` is included only when the caller already shows direct delivery.
    */
-  directDelivery?: boolean;
+  shipping?: {
+    pactSek?: number | null;
+    directBoxSek?: number | null;
+  };
 }) {
   const termsUrl = options?.termsUrl ?? `${PACT_PUBLIC_ORIGIN}/villkor`;
   const includeReturnPolicy = options?.includeReturnPolicy ?? true;
-  const directDelivery = options?.directDelivery ?? false;
 
-  // Terms state "5–10 working days" for direct delivery; schema.org DAY is not
-  // the same unit, so deliveryTime is omitted rather than guessed as calendar days.
-  const shippingDetails = directDelivery
-    ? {
-        "@type": "OfferShippingDetails" as const,
-        shippingRate: {
-          "@type": "MonetaryAmount" as const,
-          value: PACT_SE_DIRECT_SHIPPING_PRICE,
-          currency: PACT_SE_SHIPPING_CURRENCY,
-        },
-        shippingDestination: {
-          "@type": "DefinedRegion" as const,
-          addressCountry: "SE",
-        },
-      }
-    : {
-        "@type": "OfferShippingDetails" as const,
-        shippingDestination: {
-          "@type": "DefinedRegion" as const,
-          addressCountry: "SE",
-        },
-      };
+  const details: OfferShippingDetailsLd[] = [
+    offerShippingDetails(options?.shipping?.pactSek),
+  ];
+  const directBoxSek = options?.shipping?.directBoxSek;
+  if (
+    directBoxSek != null &&
+    Number.isFinite(directBoxSek) &&
+    directBoxSek > 0
+  ) {
+    details.push(offerShippingDetails(directBoxSek));
+  }
+  const shippingDetails = details.length === 1 ? details[0] : details;
 
   return {
     shippingDetails,
@@ -85,5 +108,5 @@ export function productOfferCommerceFields(options?: {
           },
         }
       : {}),
-  } as const;
+  };
 }
