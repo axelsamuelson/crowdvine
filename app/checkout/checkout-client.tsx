@@ -384,6 +384,11 @@ function CheckoutContent({
         ? "direct_box"
         : defaultFulfillmentChannel(),
     );
+  /** Last quoted shipping SEK per channel (quote / dual-offer — not invented). */
+  const [shippingByChannel, setShippingByChannel] = useState<{
+    shared_pallet?: number;
+    direct_box?: number;
+  }>({});
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   /** Dual-offer purchase bar (sticky under Totalt / mobile after address). */
   const [dualOfferPurchase, setDualOfferPurchase] =
@@ -3352,6 +3357,47 @@ function CheckoutContent({
   const displayShippingSek = serverQuote?.shipping_sek;
   const displayPactOff = serverQuote?.pact_points_sek ?? pactPointsSekOff;
 
+  useEffect(() => {
+    if (
+      quoteStatus === "ready" &&
+      serverQuote &&
+      typeof serverQuote.shipping_sek === "number" &&
+      Number.isFinite(serverQuote.shipping_sek) &&
+      !serverQuote.shipping_pending
+    ) {
+      setShippingByChannel((prev) => ({
+        ...prev,
+        [fulfillmentChannel]: serverQuote.shipping_sek,
+      }));
+    }
+  }, [quoteStatus, serverQuote, fulfillmentChannel]);
+  useEffect(() => {
+    const dual = dualOfferSession?.dual;
+    if (!dual) return;
+    setShippingByChannel((prev) => {
+      const next = { ...prev };
+      const shared = dual.shared_pallet?.shipping_sek;
+      const direct = dual.direct_box?.shipping_sek;
+      if (typeof shared === "number" && Number.isFinite(shared)) {
+        next.shared_pallet = shared;
+      }
+      if (typeof direct === "number" && Number.isFinite(direct)) {
+        next.direct_box = direct;
+      }
+      return next;
+    });
+  }, [dualOfferSession]);
+
+  const sharedShippingSek = shippingByChannel.shared_pallet;
+  const directShippingSek = shippingByChannel.direct_box;
+  const lowestShippingSek = useMemo(() => {
+    const vals = [sharedShippingSek, directShippingSek].filter(
+      (n): n is number => typeof n === "number" && Number.isFinite(n),
+    );
+    if (!vals.length) return null;
+    return Math.min(...vals);
+  }, [sharedShippingSek, directShippingSek]);
+
   const conversionCouponHalfCapReduced = useMemo(() => {
     if (!appliedDiscount) return false;
     const items =
@@ -3412,6 +3458,37 @@ function CheckoutContent({
       : fulfillmentChannel === "direct_box"
         ? null
         : Math.max(0, bottleCost - pactPointsSekOff - promoDiscountSek);
+  // Collapsed mobile header: prefer quote total; else subtotal (+ known ship).
+  // Never show "…" when we can show a number.
+  const collapsedOrderTotalSek = useMemo(() => {
+    if (quoteStatus === "ready" && serverQuote) {
+      return serverQuote.total_sek;
+    }
+    const sub =
+      fulfillmentChannel === "direct_box"
+        ? (serverQuote?.subtotal_sek ?? directBoxClientSubtotalSek)
+        : (serverQuote?.subtotal_sek ?? bottleCost);
+    const ship =
+      fulfillmentChannel === "direct_box"
+        ? directShippingSek
+        : sharedShippingSek;
+    const shipPart =
+      typeof ship === "number" && Number.isFinite(ship) ? ship : 0;
+    return Math.max(
+      0,
+      sub + shipPart - pactPointsSekOff - promoDiscountSek,
+    );
+  }, [
+    quoteStatus,
+    serverQuote,
+    fulfillmentChannel,
+    directBoxClientSubtotalSek,
+    bottleCost,
+    directShippingSek,
+    sharedShippingSek,
+    pactPointsSekOff,
+    promoDiscountSek,
+  ]);
   const commitAppliedDiscount = (data: {
     code: string;
     discount_code_id: string;
@@ -3786,26 +3863,19 @@ function CheckoutContent({
     );
   }, [cart?.lines]);
 
-  // Customer-facing delivery copy: shipping-ordered, direct box, or shared-pallet estimate.
-  // Direct-box line hidden unless DIRECT_BOX_CHECKOUT_ENABLED (same gate as dual-offer).
-  // TODO time string only via B2C_DIRECT_BOX_DELIVERY_TIME_TODO — do not invent SLAs.
-  const deliveryPromiseLabel = useMemo(() => {
-    const timeTodo = B2C_DIRECT_BOX_DELIVERY_TIME_TODO?.trim();
-    if (timeTodo) return timeTodo;
+  // Hemleverans hint: signature/age only. Channel ETA lives on the channel
+  // radios / Leverans summary — never pin direct-box days on Hemleverans.
+  const homeDeliveryHintEstimate = useMemo(() => {
     const st = String(selectedPallet?.status ?? "").toLowerCase();
     if (st === "shipping_ordered") {
       return t("checkout.deliveryEstimateShippingOrdered");
     }
-    if (directBoxCheckoutEnabled && producerDirectBoxOnly) {
-      return t("commerce.directBoxDeliveryPromise");
-    }
-    return t("checkout.deliveryEstimate2to3Weeks");
-  }, [
-    directBoxCheckoutEnabled,
-    producerDirectBoxOnly,
-    selectedPallet?.status,
-    t,
-  ]);
+    return "";
+  }, [selectedPallet?.status, t]);
+
+  const directBoxEtaLabel =
+    B2C_DIRECT_BOX_DELIVERY_TIME_TODO?.trim() ||
+    t("checkout.dualOfferDirectDeliveryFact");
 
   const handleSelectPallet = useCallback(
     (palletId: string) => {
@@ -4025,10 +4095,7 @@ function CheckoutContent({
                       : "checkout.orderSummaryCollapsed",
                     {
                       count: String(cart.totalQuantity),
-                      total:
-                        displayTotal == null
-                          ? "…"
-                          : formatChargedAmount(displayTotal),
+                      total: formatChargedAmount(collapsedOrderTotalSek),
                     },
                   )}
                 </span>
@@ -4443,9 +4510,9 @@ function CheckoutContent({
                                 {t("checkout.homeDeliveryBring")}
                               </p>
                               <p className="mt-0.5 text-xs text-muted-foreground">
-                                {deliveryPromiseLabel
+                                {homeDeliveryHintEstimate
                                   ? t("checkout.deliveryBringHint", {
-                                      estimate: deliveryPromiseLabel,
+                                      estimate: homeDeliveryHintEstimate,
                                     })
                                   : t("checkout.deliveryBringHint", {
                                       estimate: "",
@@ -4460,10 +4527,11 @@ function CheckoutContent({
                               {directBoxCheckoutEnabled &&
                                 directBoxAvailability.offered && (
                                 <div className="mt-3 space-y-2">
-                                  <label className="flex items-center gap-2 text-xs text-foreground">
+                                  <label className="flex items-start gap-2 text-xs text-foreground">
                                     <input
                                       type="radio"
                                       name="fulfillment_channel"
+                                      className="mt-0.5"
                                       checked={
                                         fulfillmentChannel === "shared_pallet"
                                       }
@@ -4471,11 +4539,20 @@ function CheckoutContent({
                                         setFulfillmentChannel("shared_pallet")
                                       }
                                     />
-                                    shared_pallet
+                                    <span className="min-w-0">
+                                      <span className="block font-medium">
+                                        {t("checkout.dualOfferSharedTitle")}
+                                      </span>
+                                      {typeof sharedShippingSek === "number" ? (
+                                        <span className="block text-muted-foreground tabular-nums">
+                                          {formatChargedAmount(sharedShippingSek)}
+                                        </span>
+                                      ) : null}
+                                    </span>
                                   </label>
                                   <label
                                     className={cn(
-                                      "flex items-center gap-2 text-xs text-foreground",
+                                      "flex items-start gap-2 text-xs text-foreground",
                                       !directBoxAvailability.deliverySelectable &&
                                         "opacity-60",
                                     )}
@@ -4483,6 +4560,7 @@ function CheckoutContent({
                                     <input
                                       type="radio"
                                       name="fulfillment_channel"
+                                      className="mt-0.5"
                                       checked={
                                         fulfillmentChannel === "direct_box"
                                       }
@@ -4497,25 +4575,44 @@ function CheckoutContent({
                                         }
                                       }}
                                     />
-                                    direct_box
-                                    {!directBoxAvailability.deliverySelectable
-                                      ? " (unavailable — not quoted / carrier unconfigured)"
-                                      : ""}
+                                    <span className="min-w-0">
+                                      <span className="block font-medium">
+                                        {t("checkout.dualOfferDirectTitle")}
+                                      </span>
+                                      <span className="block text-muted-foreground tabular-nums">
+                                        {[
+                                          typeof directShippingSek === "number"
+                                            ? formatChargedAmount(
+                                                directShippingSek,
+                                              )
+                                            : null,
+                                          directBoxEtaLabel,
+                                        ]
+                                          .filter(Boolean)
+                                          .join(" · ")}
+                                      </span>
+                                      {!directBoxAvailability.deliverySelectable ? (
+                                        <span className="mt-0.5 block text-amber-500">
+                                          {t(
+                                            "checkout.directBoxChannelUnavailable",
+                                          )}
+                                        </span>
+                                      ) : null}
+                                    </span>
                                   </label>
-                                  {fulfillmentChannel === "direct_box" &&
-                                    !directBoxAvailability.deliverySelectable && (
-                                    <p className="text-xs text-amber-500">
-                                      Direct box unavailable until server
-                                      reports carrier + mode-scoped quote ready.
-                                    </p>
-                                  )}
                                 </div>
                               )}
                             </div>
                           </div>
                           <div className="flex shrink-0 items-center gap-2">
                             <span className="whitespace-nowrap text-sm tabular-nums text-foreground">
-                              {chargedShippingLabel ?? "—"}
+                              {chargedShippingLabel ??
+                                (lowestShippingSek != null
+                                  ? t("checkout.shippingFromAmount", {
+                                      amount:
+                                        formatChargedAmount(lowestShippingSek),
+                                    })
+                                  : null)}
                             </span>
                           </div>
                         </div>
@@ -4530,11 +4627,17 @@ function CheckoutContent({
                         <p className="text-xs text-muted-foreground">
                           {t("checkout.deliveryPromiseLabel")}
                         </p>
-                        {directBoxCheckoutEnabled && producerDirectBoxOnly ? (
+                        {fulfillmentChannel === "direct_box" &&
+                        directBoxCheckoutEnabled &&
+                        producerDirectBoxOnly ? (
                           <DirectBoxDeliveryPromise
                             sourceType="producer"
                             enabled={directBoxCheckoutEnabled}
                           />
+                        ) : fulfillmentChannel === "shared_pallet" ? (
+                          <p className="text-sm text-muted-foreground">
+                            {t("commerce.sharedPalletDelivery")}
+                          </p>
                         ) : null}
                         {selectedPallet.current_pickup_producer?.name ? (
                           <p className="text-xs text-muted-foreground">
@@ -4737,19 +4840,19 @@ function CheckoutContent({
                 ) : addressStepComplete && !editingAddress ? (
                   <div className="space-y-3 animate-in fade-in-0 slide-in-from-bottom-1 duration-500 fill-mode-both">
                     <div className="flex items-start justify-between gap-3 py-1">
-                      <div className="min-w-0">
+                      <div className="min-w-0 break-words [overflow-wrap:anywhere]">
                         <p className="text-sm font-medium text-foreground">
                           {effectiveDelivery?.fullName ||
                             profile?.full_name ||
                             "—"}
                         </p>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-sm text-muted-foreground [overflow-wrap:anywhere]">
                           {effectiveDelivery?.email || profile?.email || ""}
                         </p>
-                        <p className="text-sm font-medium text-foreground mt-2">
+                        <p className="text-sm font-medium text-foreground mt-2 [overflow-wrap:anywhere]">
                           {effectiveDelivery?.street ?? "—"}
                         </p>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-sm text-muted-foreground [overflow-wrap:anywhere]">
                           {effectiveDelivery?.postal ?? ""}{" "}
                           {effectiveDelivery?.city ?? ""}
                         </p>

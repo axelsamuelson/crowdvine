@@ -480,6 +480,8 @@
     "homeDeliveryGuideLink": "Så fungerar hemleverans",
     "homeDeliveryBring": "Hemleverans",
     "deliveryBringHint": "{estimate} · Signatur och ålderskontroll krävs",
+    "shippingFromAmount": "från {amount}",
+    "directBoxChannelUnavailable": "Direktleverans är inte tillgänglig just nu (frakt/quote saknas).",
     "budbeeUnavailable": "Hemleverans är inte tillgänglig för ditt postnummer. Kontakta oss för alternativ.",
     "deliveryOptionAria": "Leveransalternativ: hemleverans",
     "deliveryEstimate2to3Weeks": "Levereras normalt 2–3 veckor efter att pallen stänger",

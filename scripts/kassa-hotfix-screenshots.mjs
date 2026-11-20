@@ -22,8 +22,8 @@ const BASE = process.env.APP_URL || "http://localhost:3000";
 const WINE_ID =
   process.env.KASSA_TEST_WINE_ID || "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1";
 /** Agent Store only — never repo artifacts/ */
-const OUT = "/cursor/stores/self/artifacts/kassa-hotfix";
-const OPT = "/opt/cursor/artifacts";
+const OUT = "/cursor/stores/self/artifacts/kassa-hotfix/v2";
+const OPT = "/opt/cursor/artifacts/kassa-hotfix-v2";
 mkdirSync(OUT, { recursive: true });
 mkdirSync(OPT, { recursive: true });
 
@@ -223,14 +223,34 @@ async function run(label, browserType, contextOpts) {
   await page.waitForSelector("#checkout-postal");
   await page.fill("#checkout-postal", "11151");
   await page.waitForTimeout(500);
+  // Capture postal step before channel radios settle / rates load.
   await shot(page, `${label}-postnummer.png`);
 
   await page.waitForSelector("#checkout-fullName", { timeout: 45000 });
+  await page.waitForSelector('input[name="fulfillment_channel"]', {
+    timeout: 45000,
+  });
   await selectMode(page, "shared_pallet");
   try {
     await waitFrakt(page, 99);
   } catch {
     notes.push(`${label}: shared 99 wait soft-fail`);
+  }
+  // Prove shared selection: label + Leverans copy must not be Direktleverans.
+  try {
+    await page.waitForFunction(
+      () => {
+        const t = document.body?.innerText || "";
+        return (
+          /Delad pall/i.test(t) &&
+          /Delad pall:|Levereras normalt 2–3 veckor|Efter stängningen/i.test(t) &&
+          !/Leverans\s*\n\s*Direktleverans/i.test(t)
+        );
+      },
+      { timeout: 20000 },
+    );
+  } catch {
+    notes.push(`${label}: shared Leverans copy wait soft-fail`);
   }
   await shot(page, `${label}-shared_pallet.png`);
 
@@ -239,6 +259,20 @@ async function run(label, browserType, contextOpts) {
     await waitFrakt(page, 149);
   } catch {
     notes.push(`${label}: direct 149 wait soft-fail`);
+  }
+  try {
+    await page.waitForFunction(
+      () => {
+        const t = document.body?.innerText || "";
+        return (
+          /Direktleverans/i.test(t) &&
+          (/149\s*kr/i.test(t) || /5–10 arbetsdagar/i.test(t))
+        );
+      },
+      { timeout: 20000 },
+    );
+  } catch {
+    notes.push(`${label}: direct Leverans copy wait soft-fail`);
   }
   await shot(page, `${label}-direct_box.png`);
 
@@ -319,24 +353,41 @@ async function main() {
   });
   await run("390", webkit, { ...devices["iPhone 13"] });
 
-  const h1 = createHash("md5")
-    .update(readFileSync(join(OUT, "390-postnummer.png")))
-    .digest("hex");
-  const h2 = createHash("md5")
-    .update(readFileSync(join(OUT, "390-shared_pallet.png")))
-    .digest("hex");
-  if (h1 === h2) throw new Error("390 postnummer === shared md5");
+  // Fail hard on duplicate evidence pairs that previously collided.
+  const mustDiffer = [
+    ["390-postnummer.png", "390-shared_pallet.png"],
+    ["390-chromium-postnummer.png", "390-chromium-shared_pallet.png"],
+    ["1440-postnummer.png", "1440-shared_pallet.png"],
+    ["1440-shared_pallet.png", "1440-direct_box.png"],
+    ["390-shared_pallet.png", "390-direct_box.png"],
+    ["390-chromium-shared_pallet.png", "390-chromium-direct_box.png"],
+  ];
+  for (const [a, b] of mustDiffer) {
+    const ha = createHash("md5")
+      .update(readFileSync(join(OUT, a)))
+      .digest("hex");
+    const hb = createHash("md5")
+      .update(readFileSync(join(OUT, b)))
+      .digest("hex");
+    if (ha === hb) throw new Error(`md5 collision: ${a} === ${b}`);
+  }
+  const allHashes = new Map();
+  for (const row of shotMeta) {
+    const prev = allHashes.get(row.md5);
+    if (prev) notes.push(`WARN duplicate md5 ${row.md5.slice(0, 8)}: ${prev} & ${row.file}`);
+    else allHashes.set(row.md5, row.file);
+  }
 
   const captured = new Date().toISOString();
   const body = [
-    `# kassa-hotfix screenshot notes`,
+    `# kassa-hotfix screenshot notes (v2)`,
     ``,
     `- git HEAD (code under test): \`${HEAD}\``,
     `- HEAD committer date: ${HEAD_CI}`,
     `- screenshots captured at (UTC): ${captured}`,
     `- APP_URL: ${BASE}`,
     `- Stripe test keys (pk_test_/rk_test_) vs Supabase TEST msdfjrrokcmjifetuwgc`,
-    `- Evidence location: Agent Store \`/cursor/stores/self/artifacts/kassa-hotfix/\` (NOT in git)`,
+    `- Evidence location: Agent Store \`/cursor/stores/self/artifacts/kassa-hotfix/v2/\` (NOT in git)`,
     ``,
     `## 390 WebKit TLS note`,
     `- Without ignoreHTTPSErrors, Playwright WebKit fails api.stripe.com with **Unacceptable TLS certificate** (environment).`,
