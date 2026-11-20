@@ -306,6 +306,18 @@ async function run(label, browserType, contextOpts) {
     await page.waitForTimeout(200);
   }
   await cont.click({ force: true });
+  try {
+    await page.waitForFunction(
+      () => {
+        const t = document.body?.innerText || "";
+        return /Kortnummer|Card number|Betalkort/i.test(t) &&
+          !/Bekräfta ålder och tryck fortsätt/i.test(t);
+      },
+      { timeout: 20000 },
+    );
+  } catch {
+    notes.push(`${label}: PE unlock after Fortsätt soft-fail`);
+  }
 
   // PE for current mode (direct_box), then shared
   for (const mode of ["direct_box", "shared_pallet"]) {

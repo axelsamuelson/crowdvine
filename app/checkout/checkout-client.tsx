@@ -1909,6 +1909,8 @@ function CheckoutContent({
       });
       return;
     }
+    // Quote gates the final Pay CTA, not revealing Betalkort — guests must
+    // still reach PE after age/terms (401/idle quote must not block the step).
     if (purchaseBlockedByQuote) {
       const gate = shouldBlockCheckoutOnQuote({
         fulfillmentChannel,
@@ -1920,7 +1922,6 @@ function CheckoutContent({
         /^[a-z0-9_]+$/i.test(raw) ? raw : "purchase_disabled"
       ) as CheckoutBlockReason;
       trackCheckoutStepBlocked({ step: "payment", reason });
-      return;
     }
     if (!legacySharedPalletPaymentAllowed) {
       trackCheckoutStepBlocked({
