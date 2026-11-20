@@ -11,6 +11,11 @@ import { LEGAL_VERSIONS } from "@/lib/legal/versions";
 import Link from "next/link";
 import { homeDeliveryGuidePath } from "@/lib/guides/home-delivery-guide";
 import type { Cart, CartItem } from "@/lib/shopify/types";
+import {
+  directBoxUnitPriceSek,
+  directBoxLineTotalSek,
+  getDirectBoxPriceMarkupPercent,
+} from "@/lib/commerce/direct-box-pricing";
 import { producerDisplayName } from "@/lib/producer-display-name";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -125,8 +130,6 @@ import {
 } from "@/lib/commerce/direct-box-delivery";
 import {
   defaultFulfillmentChannel,
-  isDeliveryCompleteForChannel,
-  resolveSharedPalletBudbeeEligibility,
   type FulfillmentChannel,
 } from "@/lib/commerce/fulfillment-channel";
 import type { DirectBoxUiAvailability } from "@/lib/commerce/direct-box-ui-contract";
@@ -153,6 +156,12 @@ import {
   type ZoneDeliveryLines,
 } from "@/lib/checkout/user-zone-delivery-template";
 import {
+  checkoutContactBlockReason,
+  isCheckoutContactComplete,
+  isCheckoutEmailComplete,
+  isCheckoutPhoneComplete,
+} from "@/lib/checkout/delivery-contact";
+import {
   formatCheckoutShippingLabel,
   resolveCheckoutShippingLabelState,
 } from "@/lib/checkout/shipping-label";
@@ -162,6 +171,16 @@ import {
   shouldBlockCheckoutOnQuote,
   type QuoteUiStatus,
 } from "@/lib/commerce/direct-box-quote-ui-contract";
+import {
+  computeDeliveryCompleteForAgeUnlock,
+  isCheckoutPurchaseBlockedByQuote,
+} from "@/lib/commerce/delivery-complete-gates";
+import {
+  trackCheckoutStepBlocked,
+  trackShippingQuoteFailed,
+  type CheckoutBlockReason,
+} from "@/lib/analytics/checkout-block-events";
+import { resolveDisplayShippingSek } from "@/lib/checkout/shipping-preview";
 
 
 interface UserProfile {
@@ -366,6 +385,19 @@ function CheckoutContent({
         ? "direct_box"
         : defaultFulfillmentChannel(),
     );
+  /** Last quoted shipping SEK per channel (quote / dual-offer — not invented). */
+  const [shippingByChannel, setShippingByChannel] = useState<{
+    shared_pallet?: number;
+    direct_box?: number;
+  }>({});
+  /**
+   * Public pre-session shipping preview (POST /api/checkout/shipping-preview).
+   * Fills radios + Frakt/Totalt as soon as postal is known — does not call
+   * authenticated /api/checkout/quote (B1). Quote still wins when ready.
+   */
+  const [shippingPreviewStatus, setShippingPreviewStatus] = useState<
+    "idle" | "loading" | "ready" | "missing"
+  >("idle");
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   /** Dual-offer purchase bar (sticky under Totalt / mobile after address). */
   const [dualOfferPurchase, setDualOfferPurchase] =
@@ -699,18 +731,15 @@ function CheckoutContent({
   ]);
 
   const hasFullAddress = hasZoneDeliveryReady;
-  const hasContactForCheckout = Boolean(
-    (
+  const hasContactForCheckout = isCheckoutContactComplete({
+    fullName:
       effectiveDelivery?.fullName?.trim() ||
       profile?.full_name?.trim() ||
-      ""
-    ).length > 1 &&
-      (
-        effectiveDelivery?.email?.trim() ||
-        profile?.email?.trim() ||
-        ""
-      ).includes("@"),
-  );
+      null,
+    email:
+      effectiveDelivery?.email?.trim() || profile?.email?.trim() || null,
+    phone: effectiveDelivery?.phone?.trim() || profile?.phone?.trim() || null,
+  });
   const addressStepComplete = hasZoneDeliveryReady && hasContactForCheckout;
   /** Address step unlocks as soon as postal is set — zone loading must not lock the form. */
   const deliveryPreviewReady = hasPostalCode;
@@ -768,69 +797,28 @@ function CheckoutContent({
         selectedPallet.delivery_zone_id.trim() !== ""),
     [zoneInfo.selectedDeliveryZoneId, selectedPallet?.delivery_zone_id],
   );
+  // Age/compliance unlock: address + channel only.
+  // Do NOT wait on /api/checkout/quote here — that deadlocked guests when
+  // DIRECT_BOX_CHECKOUT_ENABLED was on (quote needs auth; ensure-session
+  // only ran after deliveryComplete). Quote still gates purchase below.
   const deliveryComplete = useMemo(
-    () => {
-      // Contact (name/email) is collected in payment / auth — do not block step 3.
-      // Default-OFF direct_box: preserve legacy shared_pallet gates byte-for-byte.
-      if (!directBoxCheckoutEnabled) {
-        if (!hasZoneDeliveryReady) return false;
-        if (isUsConditional) {
-          if (!hasUsState) return false;
-          // US conditional always needs an active pallet for SetupIntent.
-          return selectedPallet != null;
-        }
-        if (!deliveryZoneReady) return false;
-        // Producer wines need a matched pallet for shipping + Stripe; warehouse-only can continue.
-        if (hasProducerItems) return selectedPallet != null;
-        return true;
-      }
-
-      // Server-derived availability (page.tsx) — never invent carrier from client.
-      const carrier =
-        fulfillmentChannel === "direct_box"
-          ? directBoxAvailability.deliverySelectable
-            ? {
-                status: "eligible" as const,
-                channel: "direct_box" as const,
-                carrierId: "server_authorized",
-                productCode: "server_authorized",
-              }
-            : {
-                status: "unavailable" as const,
-                channel: "direct_box" as const,
-                reason: "carrier_unconfigured" as const,
-                messageKey:
-                  directBoxAvailability.messageKey ??
-                  "checkout.directBoxCarrierUnconfigured",
-              }
-          : resolveSharedPalletBudbeeEligibility({
-              channel: "shared_pallet",
-              budbeeAvailable,
-            });
-
-      const channelReady = isDeliveryCompleteForChannel({
-        channel: fulfillmentChannel,
+    () =>
+      computeDeliveryCompleteForAgeUnlock({
+        directBoxCheckoutEnabled,
+        fulfillmentChannel,
         hasZoneDeliveryReady,
         deliveryZoneReady,
         hasProducerItems,
         selectedPallet,
         isUsConditional,
         hasUsState,
-        carrier,
-      });
-      if (!channelReady) return false;
-      // Mode-scoped quote must be ready — never pay on stale/pact/missing totals.
-      const quoteGate = shouldBlockCheckoutOnQuote({
-        fulfillmentChannel,
-        quote: serverQuote,
-        quoteStatus,
-      });
-      return !quoteGate.block;
-    },
+        budbeeAvailable,
+        directBoxDeliverySelectable:
+          directBoxAvailability.deliverySelectable,
+      }),
     [
       directBoxCheckoutEnabled,
       directBoxAvailability.deliverySelectable,
-      directBoxAvailability.messageKey,
       fulfillmentChannel,
       budbeeAvailable,
       hasZoneDeliveryReady,
@@ -838,9 +826,23 @@ function CheckoutContent({
       isUsConditional,
       selectedPallet,
       deliveryZoneReady,
+      hasProducerItems,
+    ],
+  );
+
+  const purchaseBlockedByQuote = useMemo(
+    () =>
+      isCheckoutPurchaseBlockedByQuote({
+        directBoxCheckoutEnabled,
+        fulfillmentChannel,
+        quote: serverQuote,
+        quoteStatus,
+      }),
+    [
+      directBoxCheckoutEnabled,
+      fulfillmentChannel,
       serverQuote,
       quoteStatus,
-      hasProducerItems,
     ],
   );
 
@@ -1128,6 +1130,73 @@ function CheckoutContent({
     emitCheckoutStepCompleted("delivery");
   }, [deliveryComplete, cart]);
 
+  // Resolve why age/delivery is still locked (for attempt-time analytics only).
+  const resolveAgeTermsBlockReason = useCallback((): CheckoutBlockReason => {
+    if (!hasZoneDeliveryReady) {
+      const contactReason = checkoutContactBlockReason({
+        fullName:
+          effectiveDelivery?.fullName ??
+          deliveryDraft?.fullName ??
+          profile?.full_name ??
+          null,
+        email:
+          effectiveDelivery?.email ??
+          deliveryDraft?.email ??
+          profile?.email ??
+          null,
+        phone:
+          effectiveDelivery?.phone ??
+          deliveryDraft?.phone ??
+          profile?.phone ??
+          null,
+      });
+      if (contactReason) return contactReason;
+      if (
+        !(
+          effectiveDelivery?.street?.trim() ||
+          deliveryDraft?.street?.trim()
+        )
+      ) {
+        return "address_not_persisted";
+      }
+      return "zone_required";
+    }
+    if (hasProducerItems && !selectedPallet) return "pallet_required";
+    if (!deliveryZoneReady) return "zone_required";
+    if (
+      fulfillmentChannel === "direct_box" &&
+      !directBoxAvailability.deliverySelectable
+    ) {
+      return "direct_box_carrier_unconfigured";
+    }
+    return "delivery_not_selected";
+  }, [
+    hasZoneDeliveryReady,
+    hasProducerItems,
+    selectedPallet,
+    deliveryZoneReady,
+    fulfillmentChannel,
+    directBoxAvailability.deliverySelectable,
+    effectiveDelivery,
+    deliveryDraft,
+    profile?.full_name,
+    profile?.email,
+    profile?.phone,
+  ]);
+
+  const quoteFailReasonRef = useRef<string | null>(null);
+
+  // Shipping quote failure (no PII). auth_required is tracked inline on 401
+  // without setting quoteStatus to error.
+  useEffect(() => {
+    if (quoteStatus !== "error") return;
+    trackShippingQuoteFailed({
+      deliveryType:
+        fulfillmentChannel === "direct_box" ? "direct_box" : "shared_pallet",
+      reason: quoteFailReasonRef.current ?? "quote_error",
+    });
+  }, [quoteStatus, fulfillmentChannel]);
+
   useEffect(() => {
     cartQuantityRef.current = cart?.totalQuantity ?? 0;
   }, [cart?.totalQuantity]);
@@ -1318,7 +1387,7 @@ function CheckoutContent({
     if (guestRequiresLogin) return;
 
     const email = (deliveryDraft?.email ?? "").trim().toLowerCase();
-    if (!email.includes("@")) return;
+    if (!isCheckoutEmailComplete(email)) return;
     if (guestEnsureAttemptedRef.current === email) return;
     guestEnsureAttemptedRef.current = email;
 
@@ -1579,12 +1648,12 @@ function CheckoutContent({
 
     const fromDb = userZoneRowToDeliveryLines(zoneAddressRow);
     const contactOk = Boolean(
-      (
-        fromDb?.fullName?.trim() ||
-        profile?.full_name?.trim() ||
-        ""
-      ).length > 1 &&
-        (fromDb?.email?.trim() || profile?.email?.trim() || "").includes("@"),
+      isCheckoutContactComplete({
+        fullName:
+          fromDb?.fullName?.trim() || profile?.full_name?.trim() || null,
+        email: fromDb?.email?.trim() || profile?.email?.trim() || null,
+        phone: fromDb?.phone?.trim() || profile?.phone?.trim() || null,
+      }),
     );
 
     if (fromDb && contactOk && !editingAddress) {
@@ -1652,9 +1721,7 @@ function CheckoutContent({
     if (complianceStepRevealed || deliveryComplete) return;
     if (addressPersistedRef.current || addressAutoSaveRef.current) return;
 
-    const nameOk = (deliveryDraft.fullName ?? "").trim().length > 1;
-    const emailOk = (deliveryDraft.email ?? "").includes("@");
-    const phoneOk = (deliveryDraft.phone ?? "").trim().length >= 6;
+    const contactOk = isCheckoutContactComplete(deliveryDraft);
     const streetOk = deliveryDraft.street.trim().length > 0;
     const cityOk = deliveryDraft.city.trim().length > 0;
     const postalOk = deliveryDraft.postal.trim().length > 0;
@@ -1662,15 +1729,7 @@ function CheckoutContent({
       !isUsConditional ||
       isValidUsStateCode(deliveryDraft.regionCode?.trim() ?? "");
 
-    if (
-      !nameOk ||
-      !emailOk ||
-      !phoneOk ||
-      !streetOk ||
-      !cityOk ||
-      !postalOk ||
-      !stateOk
-    ) {
+    if (!contactOk || !streetOk || !cityOk || !postalOk || !stateOk) {
       return;
     }
 
@@ -1698,44 +1757,43 @@ function CheckoutContent({
     deliveryComplete,
   ]);
 
-  // After auth in payment: persist guest draft to DB quietly (no toast flash).
+  // After guest ensure-session: persist draft to DB quietly so payment-intent
+  // / SetupIntent can read zone address (must not wait for payment card —
+  // that deadlocked PE behind "Add delivery details…").
   useEffect(() => {
-    if (!authReady || !paymentCardRevealed) return;
+    if (!authReady || !deliveryComplete) return;
     if (editingAddress || addressSaving) return;
     if (!activeShop?.geoZoneId || zoneAddressRow) return;
-    if (!deliveryDraft || authAddressPersistRef.current) return;
+    if (authAddressPersistRef.current) return;
 
-    const nameOk = (deliveryDraft.fullName ?? "").trim().length > 1;
-    const emailOk = (deliveryDraft.email ?? "").includes("@");
-    const phoneOk = (deliveryDraft.phone ?? "").trim().length >= 6;
-    const streetOk = deliveryDraft.street.trim().length > 0;
-    const cityOk = deliveryDraft.city.trim().length > 0;
-    const postalOk = deliveryDraft.postal.trim().length > 0;
+    const lines =
+      deliveryDraft ??
+      deliverySnapshotRef.current ??
+      effectiveDelivery;
+    if (!lines) return;
+
+    const contactOk = isCheckoutContactComplete(lines);
+    const streetOk = lines.street.trim().length > 0;
+    const cityOk = lines.city.trim().length > 0;
+    const postalOk = lines.postal.trim().length > 0;
     const stateOk =
       !isUsConditional ||
-      isValidUsStateCode(deliveryDraft.regionCode?.trim() ?? "");
-    if (
-      !nameOk ||
-      !emailOk ||
-      !phoneOk ||
-      !streetOk ||
-      !cityOk ||
-      !postalOk ||
-      !stateOk
-    ) {
+      isValidUsStateCode(lines.regionCode?.trim() ?? "");
+    if (!contactOk || !streetOk || !cityOk || !postalOk || !stateOk) {
       return;
     }
 
     authAddressPersistRef.current = true;
-    void handleSaveZoneDelivery({ silent: true });
+    void handleSaveZoneDelivery({ silent: true, lines });
   }, [
     authReady,
-    paymentCardRevealed,
+    deliveryComplete,
     editingAddress,
     addressSaving,
     activeShop?.geoZoneId,
     zoneAddressRow,
     deliveryDraft,
+    effectiveDelivery,
     isUsConditional,
   ]);
 
@@ -1805,133 +1863,9 @@ function CheckoutContent({
       return;
     }
 
+    // StripePaymentSection owns /api/checkout/payment-intent create.
+    // A parallel prefetch here caused triple PI calls + Elements remounts.
     warmStripeJs();
-
-    const promoSek = appliedDiscount?.discount_amount_sek ?? 0;
-    const key = [
-      selectedPallet.id,
-      String(redeemPoints),
-      String(promoSek),
-      isUsConditional ? "1" : "0",
-      legalGatePayload.dateOfBirth,
-      legalGatePayload.acceptedTermsVersion,
-    ].join("|");
-    if (stripePrefetchKeyRef.current === key) return;
-    stripePrefetchKeyRef.current = key;
-    setPrefetchedStripeIntent(null);
-
-    const controller = new AbortController();
-    void (async () => {
-      try {
-        const res = await fetch("/api/checkout/payment-intent", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            pallet_id: selectedPallet.id,
-            pact_points_redeem: redeemPoints,
-            dateOfBirth: legalGatePayload.dateOfBirth,
-            ...(legalGatePayload.acceptedTermsVersion
-              ? {
-                  acceptedTermsVersion: legalGatePayload.acceptedTermsVersion,
-                }
-              : {}),
-            ...(promoSek > 0 ? { promo_discount_sek: promoSek } : {}),
-            ...(isUsConditional ? { us_conditional_ack: true } : {}),
-          }),
-          signal: controller.signal,
-        });
-        const data: unknown = await res.json().catch(() => null);
-        if (!res.ok || !data || typeof data !== "object") {
-          if (res.status === 403) {
-            handleLegalGateError({ status: 403 });
-          } else if (res.status === 409) {
-            const currentVersion =
-              data &&
-              typeof data === "object" &&
-              "currentVersion" in data &&
-              typeof (data as { currentVersion?: unknown }).currentVersion ===
-                "string"
-                ? (data as { currentVersion: string }).currentVersion
-                : undefined;
-            handleLegalGateError({ status: 409, currentVersion });
-          }
-          return;
-        }
-
-        const d = data as {
-          paymentMode?: unknown;
-          clientSecret?: unknown;
-          intentId?: unknown;
-          bottlesFilled?: unknown;
-          amountInOre?: unknown;
-          quote?: unknown;
-        };
-        const mode =
-          d.paymentMode === "setup_intent" || d.paymentMode === "payment_intent"
-            ? d.paymentMode
-            : null;
-        const cs = typeof d.clientSecret === "string" ? d.clientSecret : null;
-        const id = typeof d.intentId === "string" ? d.intentId : null;
-        if (!mode || !cs || !id) return;
-
-        const filled =
-          typeof d.bottlesFilled === "number" ? d.bottlesFilled : 0;
-        const ore =
-          typeof d.amountInOre === "number" && Number.isFinite(d.amountInOre)
-            ? d.amountInOre
-            : null;
-
-        let quote: PrefetchedStripeIntent["quote"];
-        if (d.quote && typeof d.quote === "object") {
-          const q = d.quote as Record<string, unknown>;
-          const num = (v: unknown) =>
-            typeof v === "number" && Number.isFinite(v) ? v : 0;
-          quote = {
-            total_sek: num(q.total_sek),
-            total_ore: num(q.total_ore),
-            subtotal_sek: num(q.subtotal_sek),
-            shipping_sek: num(q.shipping_sek),
-            shipping_pending: q.shipping_pending === true,
-            promo_discount_sek: num(q.promo_discount_sek),
-            pact_points_sek: num(q.pact_points_sek),
-          };
-          setServerQuote({
-            subtotal_sek: quote.subtotal_sek,
-            shipping_sek: quote.shipping_sek,
-            shipping_pending: quote.shipping_pending === true,
-            promo_discount_sek: quote.promo_discount_sek,
-            voucher_discount_sek: 0,
-            pact_points_sek: quote.pact_points_sek,
-            pact_points_redeem: redeemPoints,
-            total_sek: quote.total_sek,
-            total_ore: quote.total_ore,
-            fulfillment_channel: fulfillmentChannel,
-            rate_channel:
-              fulfillmentChannel === "direct_box" ? "direct_box" : "pact",
-          });
-          setQuoteStatus("ready");
-        }
-
-        setPrefetchedStripeIntent({
-          paymentMode: mode,
-          clientSecret: cs,
-          intentId: id,
-          bottlesFilled: filled,
-          amountInOre: ore,
-          quote,
-        });
-      } catch (e) {
-        if (e instanceof DOMException && e.name === "AbortError") return;
-        if (e instanceof Error && e.name === "AbortError") return;
-        if (stripePrefetchKeyRef.current === key) {
-          stripePrefetchKeyRef.current = null;
-        }
-      }
-    })();
-
-    return () => {
-      controller.abort();
-    };
   }, [
     legacySharedPalletPaymentAllowed,
     isValidCart,
@@ -1940,11 +1874,8 @@ function CheckoutContent({
     legalGatePayload,
     authReady,
     selectedPallet?.id,
-    redeemPoints,
-    appliedDiscount?.discount_amount_sek,
     isUsConditional,
     usConditionalAck,
-    handleLegalGateError,
   ]);
 
   // If age/terms become incomplete again, collapse payment.
@@ -1972,8 +1903,31 @@ function CheckoutContent({
   }, [dualOfferReviewActive, dualOfferCardStepUnlocked]);
 
   const handleContinueToPayment = useCallback(() => {
-    if (!complianceComplete) return;
-    if (!legacySharedPalletPaymentAllowed) return;
+    // Attempt-time analytics only (never on passive field status).
+    if (!deliveryComplete) {
+      trackCheckoutStepBlocked({
+        step: "age_terms",
+        reason: resolveAgeTermsBlockReason(),
+      });
+      return;
+    }
+    if (!complianceComplete) {
+      trackCheckoutStepBlocked({
+        step: "age_terms",
+        reason: "purchase_disabled",
+      });
+      return;
+    }
+    // Quote gates the final Pay CTA, not Betalkort reveal. Never emit
+    // checkout_step_blocked for payment when Fortsätt still opens the card
+    // step (idle/loading quote is expected for guests before authReady).
+    if (!legacySharedPalletPaymentAllowed) {
+      trackCheckoutStepBlocked({
+        step: "payment",
+        reason: "purchase_disabled",
+      });
+      return;
+    }
     setPaymentCardRevealed(true);
     window.setTimeout(() => {
       paymentSectionRef.current?.scrollIntoView({
@@ -1981,7 +1935,20 @@ function CheckoutContent({
         block: "start",
       });
     }, 80);
-  }, [complianceComplete, legacySharedPalletPaymentAllowed]);
+  }, [
+    deliveryComplete,
+    complianceComplete,
+    legacySharedPalletPaymentAllowed,
+    resolveAgeTermsBlockReason,
+  ]);
+
+  const handleLockedAgeStepAttempt = useCallback(() => {
+    if (deliveryComplete) return;
+    trackCheckoutStepBlocked({
+      step: "age_terms",
+      reason: resolveAgeTermsBlockReason(),
+    });
+  }, [deliveryComplete, resolveAgeTermsBlockReason]);
 
   const handleSharedPalletCardStepRequest = useCallback(() => {
     // Blocked carts must never unlock Payment Element / SetupIntent create.
@@ -2497,9 +2464,12 @@ function CheckoutContent({
     }
   };
 
-  const handleSaveZoneDelivery = async (opts?: { silent?: boolean }) => {
+  const handleSaveZoneDelivery = async (opts?: {
+    silent?: boolean;
+    lines?: ZoneDeliveryLines | null;
+  }) => {
     const silent = opts?.silent === true;
-    const eff = deliveryDraft;
+    const eff = opts?.lines ?? deliveryDraft;
     if (!eff?.street?.trim() || !eff.city?.trim() || !eff.postal?.trim()) {
       return;
     }
@@ -3233,6 +3203,28 @@ function CheckoutContent({
     ? parseFloat(cart.cost.totalAmount.amount)
     : 0;
 
+  // Client preview of direct_box bottle subtotal (catalog × markup) so order
+  // summary lines and Delsumma match before / while quote is loading.
+  const directBoxClientSubtotalSek = useMemo(() => {
+    if (!cart?.lines?.length) return 0;
+    const markupPct = getDirectBoxPriceMarkupPercent();
+    let sum = 0;
+    for (const line of cart.lines) {
+      const totalForLine = parseFloat(line.cost.totalAmount.amount) || 0;
+      const stampedUnit = parseFloat(
+        line.merchandise.product.priceRange?.minVariantPrice?.amount ?? "",
+      );
+      const catalogUnit =
+        Number.isFinite(stampedUnit) && stampedUnit > 0
+          ? stampedUnit
+          : line.quantity > 0
+            ? totalForLine / line.quantity
+            : totalForLine;
+      sum += directBoxLineTotalSek(catalogUnit, line.quantity, markupPct);
+    }
+    return sum;
+  }, [cart?.lines]);
+
   const { boostedLineTotal, nonBoostedLineTotal } = useMemo(() => {
     if (!cart?.lines?.length) {
       return { boostedLineTotal: 0, nonBoostedLineTotal: 0 };
@@ -3274,8 +3266,15 @@ function CheckoutContent({
   const promoDiscountSek = appliedDiscount?.discount_amount_sek ?? 0;
 
   // Authoritative breakdown for display (same mode-scoped math as payment-intent).
+  // Wait for authReady/ensure-session — guests get 401 before that and must not
+  // mark the UI as quote_error (that flooded shipping_quote_failed + blocked CTAs).
   useEffect(() => {
     if (!cart?.lines?.length) {
+      setServerQuote(null);
+      setQuoteStatus("idle");
+      return;
+    }
+    if (!authReady) {
       setServerQuote(null);
       setQuoteStatus("idle");
       return;
@@ -3283,9 +3282,18 @@ function CheckoutContent({
     // Channel switch / dep change → invalidate immediately (no stale pact totals).
     setServerQuote(null);
     setQuoteStatus("loading");
+    quoteFailReasonRef.current = null;
     const controller = new AbortController();
+    let alive = true;
+    let timedOut = false;
+    const timeoutId = window.setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, 15_000);
     const timer = window.setTimeout(() => {
       void (async () => {
+        const deliveryType =
+          fulfillmentChannel === "direct_box" ? "direct_box" : "shared_pallet";
         try {
           const res = await fetch("/api/checkout/quote", {
             method: "POST",
@@ -3301,12 +3309,25 @@ function CheckoutContent({
             ),
             signal: controller.signal,
           });
+          if (!alive) return;
+          if (res.status === 401) {
+            // Session still missing — never treat as quote_error UI failure.
+            trackShippingQuoteFailed({
+              deliveryType,
+              reason: "auth_required",
+            });
+            setServerQuote(null);
+            setQuoteStatus("idle");
+            return;
+          }
           if (!res.ok) {
+            quoteFailReasonRef.current = "quote_error";
             setServerQuote(null);
             setQuoteStatus("error");
             return;
           }
           const data: unknown = await res.json().catch(() => null);
+          if (!alive) return;
           if (
             data &&
             typeof data === "object" &&
@@ -3331,6 +3352,7 @@ function CheckoutContent({
                 gate.reason === "direct_box_shipping_pending" ||
                 gate.reason === "direct_box_shipping_unquoted")
             ) {
+              quoteFailReasonRef.current = gate.reason;
               setServerQuote(null);
               setQuoteStatus("error");
               return;
@@ -3338,20 +3360,36 @@ function CheckoutContent({
             setServerQuote(next);
             setQuoteStatus("ready");
           } else {
+            quoteFailReasonRef.current = "quote_error";
             setServerQuote(null);
             setQuoteStatus("error");
           }
         } catch (e) {
-          if (e instanceof DOMException && e.name === "AbortError") return;
-          if (e instanceof Error && e.name === "AbortError") return;
+          if (!alive) return;
+          const isAbort =
+            (e instanceof DOMException && e.name === "AbortError") ||
+            (e instanceof Error && e.name === "AbortError");
+          if (isAbort) {
+            if (timedOut) {
+              quoteFailReasonRef.current = "quote_timeout";
+              setServerQuote(null);
+              setQuoteStatus("error");
+            }
+            return;
+          }
+          quoteFailReasonRef.current = "quote_error";
           setServerQuote(null);
           setQuoteStatus("error");
+        } finally {
+          window.clearTimeout(timeoutId);
         }
       })();
     }, 150);
     return () => {
+      alive = false;
       controller.abort();
       window.clearTimeout(timer);
+      window.clearTimeout(timeoutId);
     };
   }, [
     cart?.id,
@@ -3362,11 +3400,183 @@ function CheckoutContent({
     promoDiscountSek,
     ageCountryCode,
     fulfillmentChannel,
+    // Guests: fetch only after ensure-session; refetch when authReady flips true.
+    authReady,
   ]);
 
-  const displaySubtotal = serverQuote?.subtotal_sek ?? bottleCost;
+  const displaySubtotal =
+    serverQuote?.subtotal_sek ??
+    (fulfillmentChannel === "direct_box"
+      ? directBoxClientSubtotalSek
+      : bottleCost);
   const displayShippingSek = serverQuote?.shipping_sek;
   const displayPactOff = serverQuote?.pact_points_sek ?? pactPointsSekOff;
+
+  // Public rate preview as soon as postal/country + cart bottles are known.
+  useEffect(() => {
+    if (!hasPostalCode || !cart?.totalQuantity) {
+      setShippingPreviewStatus("idle");
+      return;
+    }
+    const country = String(ageCountryCode || "SE")
+      .trim()
+      .toUpperCase();
+    if (country.length !== 2) {
+      setShippingPreviewStatus("missing");
+      return;
+    }
+    const bottles = Math.max(0, Math.floor(cart.totalQuantity));
+    const subtotalSek = parseFloat(cart.cost?.totalAmount?.amount ?? "0") || 0;
+    let cancelled = false;
+    setShippingPreviewStatus("loading");
+    const timer = window.setTimeout(() => {
+      void (async () => {
+        try {
+          const res = await fetch("/api/checkout/shipping-preview", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              country_code: country,
+              bottle_count: bottles,
+              product_subtotal_sek: subtotalSek,
+            }),
+          });
+          if (cancelled) return;
+          if (!res.ok) {
+            setShippingPreviewStatus("missing");
+            return;
+          }
+          const data: unknown = await res.json().catch(() => null);
+          const preview =
+            data &&
+            typeof data === "object" &&
+            "preview" in data &&
+            (data as { preview?: unknown }).preview &&
+            typeof (data as { preview: unknown }).preview === "object"
+              ? (
+                  data as {
+                    preview: {
+                      shared_pallet?: { shipping_sek?: number; complete?: boolean } | null;
+                      direct_box?: { shipping_sek?: number; complete?: boolean } | null;
+                    };
+                  }
+                ).preview
+              : null;
+          if (!preview) {
+            setShippingPreviewStatus("missing");
+            return;
+          }
+          setShippingByChannel((prev) => {
+            const next = { ...prev };
+            const shared = preview.shared_pallet;
+            const direct = preview.direct_box;
+            if (
+              shared?.complete !== false &&
+              typeof shared?.shipping_sek === "number" &&
+              Number.isFinite(shared.shipping_sek)
+            ) {
+              next.shared_pallet = shared.shipping_sek;
+            }
+            if (
+              direct &&
+              direct.complete !== false &&
+              typeof direct.shipping_sek === "number" &&
+              Number.isFinite(direct.shipping_sek)
+            ) {
+              next.direct_box = direct.shipping_sek;
+            }
+            return next;
+          });
+          const hasAny =
+            (preview.shared_pallet &&
+              typeof preview.shared_pallet.shipping_sek === "number") ||
+            (preview.direct_box &&
+              preview.direct_box.complete !== false &&
+              typeof preview.direct_box.shipping_sek === "number");
+          setShippingPreviewStatus(hasAny ? "ready" : "missing");
+        } catch {
+          if (!cancelled) setShippingPreviewStatus("missing");
+        }
+      })();
+    }, 100);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [
+    hasPostalCode,
+    cart?.totalQuantity,
+    cart?.cost?.totalAmount?.amount,
+    ageCountryCode,
+  ]);
+
+  useEffect(() => {
+    if (
+      quoteStatus === "ready" &&
+      serverQuote &&
+      typeof serverQuote.shipping_sek === "number" &&
+      Number.isFinite(serverQuote.shipping_sek) &&
+      !serverQuote.shipping_pending
+    ) {
+      setShippingByChannel((prev) => ({
+        ...prev,
+        [fulfillmentChannel]: serverQuote.shipping_sek,
+      }));
+    }
+  }, [quoteStatus, serverQuote, fulfillmentChannel]);
+  useEffect(() => {
+    const dual = dualOfferSession?.dual;
+    if (!dual) return;
+    setShippingByChannel((prev) => {
+      const next = { ...prev };
+      const shared = dual.shared_pallet?.shipping_sek;
+      const direct = dual.direct_box?.shipping_sek;
+      if (typeof shared === "number" && Number.isFinite(shared)) {
+        next.shared_pallet = shared;
+      }
+      if (typeof direct === "number" && Number.isFinite(direct)) {
+        next.direct_box = direct;
+      }
+      return next;
+    });
+  }, [dualOfferSession]);
+
+  const sharedShippingSek = shippingByChannel.shared_pallet;
+  const directShippingSek = shippingByChannel.direct_box;
+  const lowestShippingSek = useMemo(() => {
+    const vals = [sharedShippingSek, directShippingSek].filter(
+      (n): n is number => typeof n === "number" && Number.isFinite(n),
+    );
+    if (!vals.length) return null;
+    return Math.min(...vals);
+  }, [sharedShippingSek, directShippingSek]);
+
+  const channelDisplayShippingSek = useMemo(
+    () =>
+      resolveDisplayShippingSek({
+        fulfillmentChannel,
+        quoteShippingSek: serverQuote?.shipping_sek,
+        quoteReady:
+          quoteStatus === "ready" &&
+          !!serverQuote &&
+          serverQuote.shipping_pending !== true,
+        previewSharedSek: sharedShippingSek,
+        previewDirectSek: directShippingSek,
+      }),
+    [
+      fulfillmentChannel,
+      serverQuote,
+      quoteStatus,
+      sharedShippingSek,
+      directShippingSek,
+    ],
+  );
+  const shippingDisplayPending =
+    hasPostalCode &&
+    channelDisplayShippingSek == null &&
+    (shippingPreviewStatus === "loading" ||
+      shippingPreviewStatus === "idle" ||
+      quoteStatus === "loading");
 
   const conversionCouponHalfCapReduced = useMemo(() => {
     if (!appliedDiscount) return false;
@@ -3400,20 +3610,18 @@ function CheckoutContent({
     displayShippingSek,
   ]);
   // Shipping is a SEK rate. formatSek converts it into the active currency.
-  // A missing country rate shows explanatory copy — never a bogus "$99.0".
-  // direct_box must never fall back to shared/pact 99 via client invention.
+  // Prefer authoritative quote; else public preview once postal is known.
+  // Never show "Beräknas efter postnummer" after step 1 — skeleton instead.
   const chargedShippingLabel = formatCheckoutShippingLabel(
     resolveCheckoutShippingLabelState({
-      hasShippingContext: checkoutHasShippingQuoteContext({
-        fulfillmentChannel,
-        selectedPalletId,
-      }),
-      shippingPending:
-        quoteStatus === "loading" ||
-        quoteStatus === "stale" ||
-        serverQuote?.shipping_pending === true,
-      shippingSek:
-        quoteStatus === "ready" && serverQuote ? displayShippingSek : null,
+      hasShippingContext:
+        hasPostalCode ||
+        checkoutHasShippingQuoteContext({
+          fulfillmentChannel,
+          selectedPalletId,
+        }),
+      shippingPending: false,
+      shippingSek: channelDisplayShippingSek,
     }),
     {
       pendingLabel: t("checkout.shippingConfirmedBeforeCharge"),
@@ -3421,13 +3629,39 @@ function CheckoutContent({
       formatSek,
     },
   );
-  // Never invent a total when mode-scoped quote is missing/stale (esp. direct_box).
+  // Prefer quote total; else merchandise + display shipping (preview or quote).
+  const displayTotalSek = useMemo(() => {
+    if (quoteStatus === "ready" && serverQuote) {
+      return serverQuote.total_sek;
+    }
+    const sub =
+      fulfillmentChannel === "direct_box"
+        ? (serverQuote?.subtotal_sek ?? directBoxClientSubtotalSek)
+        : (serverQuote?.subtotal_sek ?? bottleCost);
+    if (channelDisplayShippingSek == null) return null;
+    return Math.max(
+      0,
+      sub + channelDisplayShippingSek - pactPointsSekOff - promoDiscountSek,
+    );
+  }, [
+    quoteStatus,
+    serverQuote,
+    fulfillmentChannel,
+    directBoxClientSubtotalSek,
+    bottleCost,
+    channelDisplayShippingSek,
+    pactPointsSekOff,
+    promoDiscountSek,
+  ]);
+  /** Purchase CTA still uses quote-gated displayTotal; UI uses displayTotalSek. */
   const displayTotal =
     quoteStatus === "ready" && serverQuote
       ? serverQuote.total_sek
       : fulfillmentChannel === "direct_box"
-        ? null
-        : Math.max(0, bottleCost - pactPointsSekOff - promoDiscountSek);
+        ? displayTotalSek
+        : (displayTotalSek ??
+          Math.max(0, bottleCost - pactPointsSekOff - promoDiscountSek));
+  const collapsedOrderTotalSek = displayTotalSek ?? displayTotal;
   const commitAppliedDiscount = (data: {
     code: string;
     discount_code_id: string;
@@ -3601,18 +3835,28 @@ function CheckoutContent({
     const stampedUnit = parseFloat(
       product.priceRange?.minVariantPrice?.amount ?? "",
     );
-    const unitAmount =
+    const catalogUnit =
       Number.isFinite(stampedUnit) && stampedUnit > 0
         ? stampedUnit
         : line.quantity > 0
           ? totalForLine / line.quantity
           : totalForLine;
+    // direct_box quote subtotal includes markup — line row must match (not catalog 172).
+    const markupPct = getDirectBoxPriceMarkupPercent();
+    const unitAmount =
+      fulfillmentChannel === "direct_box"
+        ? directBoxUnitPriceSek(catalogUnit, markupPct)
+        : catalogUnit;
+    const lineAmount =
+      fulfillmentChannel === "direct_box"
+        ? directBoxLineTotalSek(catalogUnit, line.quantity, markupPct)
+        : totalForLine;
     const unitPriceLabel = formatChargedAmount(
       unitAmount,
       line.cost.totalAmount.currencyCode,
     );
     const lineTotalLabel = formatChargedAmount(
-      totalForLine,
+      lineAmount,
       line.cost.totalAmount.currencyCode,
     );
     return (
@@ -3792,26 +4036,19 @@ function CheckoutContent({
     );
   }, [cart?.lines]);
 
-  // Customer-facing delivery copy: shipping-ordered, direct box, or shared-pallet estimate.
-  // Direct-box line hidden unless DIRECT_BOX_CHECKOUT_ENABLED (same gate as dual-offer).
-  // TODO time string only via B2C_DIRECT_BOX_DELIVERY_TIME_TODO — do not invent SLAs.
-  const deliveryPromiseLabel = useMemo(() => {
-    const timeTodo = B2C_DIRECT_BOX_DELIVERY_TIME_TODO?.trim();
-    if (timeTodo) return timeTodo;
+  // Hemleverans hint: signature/age only. Channel ETA lives on the channel
+  // radios / Leverans summary — never pin direct-box days on Hemleverans.
+  const homeDeliveryHintEstimate = useMemo(() => {
     const st = String(selectedPallet?.status ?? "").toLowerCase();
     if (st === "shipping_ordered") {
       return t("checkout.deliveryEstimateShippingOrdered");
     }
-    if (directBoxCheckoutEnabled && producerDirectBoxOnly) {
-      return t("commerce.directBoxDeliveryPromise");
-    }
-    return t("checkout.deliveryEstimate2to3Weeks");
-  }, [
-    directBoxCheckoutEnabled,
-    producerDirectBoxOnly,
-    selectedPallet?.status,
-    t,
-  ]);
+    return "";
+  }, [selectedPallet?.status, t]);
+
+  const directBoxEtaLabel =
+    B2C_DIRECT_BOX_DELIVERY_TIME_TODO?.trim() ||
+    t("checkout.dualOfferDirectDeliveryFact");
 
   const handleSelectPallet = useCallback(
     (palletId: string) => {
@@ -4025,17 +4262,29 @@ function CheckoutContent({
                 onClick={() => setOrderSummaryExpanded((v) => !v)}
               >
                 <span>
-                  {t(
-                    cart.totalQuantity === 1
-                      ? "checkout.orderSummaryCollapsedOne"
-                      : "checkout.orderSummaryCollapsed",
-                    {
-                      count: String(cart.totalQuantity),
-                      total:
-                        displayTotal == null
-                          ? "…"
-                          : formatChargedAmount(displayTotal),
-                    },
+                  {collapsedOrderTotalSek != null ? (
+                    t(
+                      cart.totalQuantity === 1
+                        ? "checkout.orderSummaryCollapsedOne"
+                        : "checkout.orderSummaryCollapsed",
+                      {
+                        count: String(cart.totalQuantity),
+                        total: formatChargedAmount(collapsedOrderTotalSek),
+                      },
+                    )
+                  ) : (
+                    <span className="inline-flex items-center gap-2">
+                      {t("checkout.yourOrder")} ({cart.totalQuantity}{" "}
+                      {cart.totalQuantity === 1
+                        ? t("checkout.bottle")
+                        : t("checkout.bottles")}
+                      )
+                      <span
+                        className="inline-block h-4 w-14 animate-pulse rounded bg-muted"
+                        aria-hidden
+                      />
+                      ▾
+                    </span>
                   )}
                 </span>
               </button>
@@ -4081,7 +4330,14 @@ function CheckoutContent({
                     {t("checkout.shipping")}
                   </span>
                   <span className="text-right tabular-nums text-foreground">
-                    {chargedShippingLabel ?? (
+                    {chargedShippingLabel ? (
+                      chargedShippingLabel
+                    ) : shippingDisplayPending || hasPostalCode ? (
+                      <span
+                        className="inline-block h-4 w-12 animate-pulse rounded bg-muted"
+                        aria-hidden
+                      />
+                    ) : (
                       <span className="text-muted-foreground">
                         {t("checkout.shippingAfterAddress")}
                       </span>
@@ -4259,9 +4515,14 @@ function CheckoutContent({
                 <div className="flex items-center justify-between pt-2 text-base font-medium text-foreground">
                   <span>{t("checkout.total")}</span>
                   <span className="tabular-nums text-foreground">
-                    {displayTotal == null
-                      ? "…"
-                      : formatChargedAmount(displayTotal)}
+                    {displayTotal != null ? (
+                      formatChargedAmount(displayTotal)
+                    ) : (
+                      <span
+                        className="inline-block h-5 w-16 animate-pulse rounded bg-muted"
+                        aria-hidden
+                      />
+                    )}
                   </span>
                 </div>
               </div>
@@ -4449,9 +4710,9 @@ function CheckoutContent({
                                 {t("checkout.homeDeliveryBring")}
                               </p>
                               <p className="mt-0.5 text-xs text-muted-foreground">
-                                {deliveryPromiseLabel
+                                {homeDeliveryHintEstimate
                                   ? t("checkout.deliveryBringHint", {
-                                      estimate: deliveryPromiseLabel,
+                                      estimate: homeDeliveryHintEstimate,
                                     })
                                   : t("checkout.deliveryBringHint", {
                                       estimate: "",
@@ -4466,10 +4727,11 @@ function CheckoutContent({
                               {directBoxCheckoutEnabled &&
                                 directBoxAvailability.offered && (
                                 <div className="mt-3 space-y-2">
-                                  <label className="flex items-center gap-2 text-xs text-foreground">
+                                  <label className="flex items-start gap-2 text-xs text-foreground">
                                     <input
                                       type="radio"
                                       name="fulfillment_channel"
+                                      className="mt-0.5"
                                       checked={
                                         fulfillmentChannel === "shared_pallet"
                                       }
@@ -4477,11 +4739,30 @@ function CheckoutContent({
                                         setFulfillmentChannel("shared_pallet")
                                       }
                                     />
-                                    shared_pallet
+                                    <span className="min-w-0">
+                                      <span className="block font-medium">
+                                        {t("checkout.dualOfferSharedTitle")}
+                                      </span>
+                                      {typeof sharedShippingSek === "number" ? (
+                                        <span className="block text-muted-foreground tabular-nums">
+                                          {t("checkout.fulfillmentSharedSubtitle", {
+                                            shipping:
+                                              formatChargedAmount(
+                                                sharedShippingSek,
+                                              ),
+                                          })}
+                                        </span>
+                                      ) : shippingDisplayPending ? (
+                                        <span
+                                          className="mt-1 inline-block h-3 w-40 animate-pulse rounded bg-muted"
+                                          aria-hidden
+                                        />
+                                      ) : null}
+                                    </span>
                                   </label>
                                   <label
                                     className={cn(
-                                      "flex items-center gap-2 text-xs text-foreground",
+                                      "flex items-start gap-2 text-xs text-foreground",
                                       !directBoxAvailability.deliverySelectable &&
                                         "opacity-60",
                                     )}
@@ -4489,6 +4770,7 @@ function CheckoutContent({
                                     <input
                                       type="radio"
                                       name="fulfillment_channel"
+                                      className="mt-0.5"
                                       checked={
                                         fulfillmentChannel === "direct_box"
                                       }
@@ -4503,25 +4785,61 @@ function CheckoutContent({
                                         }
                                       }}
                                     />
-                                    direct_box
-                                    {!directBoxAvailability.deliverySelectable
-                                      ? " (unavailable — not quoted / carrier unconfigured)"
-                                      : ""}
+                                    <span className="min-w-0">
+                                      <span className="block font-medium">
+                                        {t("checkout.dualOfferDirectTitle")}
+                                      </span>
+                                      {typeof directShippingSek === "number" ? (
+                                        <span className="block text-muted-foreground tabular-nums">
+                                          {t(
+                                            "checkout.fulfillmentDirectSubtitle",
+                                            {
+                                              shipping:
+                                                formatChargedAmount(
+                                                  directShippingSek,
+                                                ),
+                                              estimate: directBoxEtaLabel,
+                                            },
+                                          )}
+                                        </span>
+                                      ) : shippingDisplayPending ? (
+                                        <span
+                                          className="mt-1 inline-block h-3 w-36 animate-pulse rounded bg-muted"
+                                          aria-hidden
+                                        />
+                                      ) : (
+                                        <span className="block text-muted-foreground">
+                                          {directBoxEtaLabel}
+                                        </span>
+                                      )}
+                                      {!directBoxAvailability.deliverySelectable ? (
+                                        <span className="mt-0.5 block text-amber-500">
+                                          {t(
+                                            "checkout.directBoxChannelUnavailable",
+                                          )}
+                                        </span>
+                                      ) : null}
+                                    </span>
                                   </label>
-                                  {fulfillmentChannel === "direct_box" &&
-                                    !directBoxAvailability.deliverySelectable && (
-                                    <p className="text-xs text-amber-500">
-                                      Direct box unavailable until server
-                                      reports carrier + mode-scoped quote ready.
-                                    </p>
-                                  )}
                                 </div>
                               )}
                             </div>
                           </div>
                           <div className="flex shrink-0 items-center gap-2">
                             <span className="whitespace-nowrap text-sm tabular-nums text-foreground">
-                              {chargedShippingLabel ?? "—"}
+                              {chargedShippingLabel ? (
+                                chargedShippingLabel
+                              ) : lowestShippingSek != null ? (
+                                t("checkout.shippingFromAmount", {
+                                  amount:
+                                    formatChargedAmount(lowestShippingSek),
+                                })
+                              ) : shippingDisplayPending || hasPostalCode ? (
+                                <span
+                                  className="inline-block h-4 w-12 animate-pulse rounded bg-muted"
+                                  aria-hidden
+                                />
+                              ) : null}
                             </span>
                           </div>
                         </div>
@@ -4536,11 +4854,17 @@ function CheckoutContent({
                         <p className="text-xs text-muted-foreground">
                           {t("checkout.deliveryPromiseLabel")}
                         </p>
-                        {directBoxCheckoutEnabled && producerDirectBoxOnly ? (
+                        {fulfillmentChannel === "direct_box" &&
+                        directBoxCheckoutEnabled &&
+                        producerDirectBoxOnly ? (
                           <DirectBoxDeliveryPromise
                             sourceType="producer"
                             enabled={directBoxCheckoutEnabled}
                           />
+                        ) : fulfillmentChannel === "shared_pallet" ? (
+                          <p className="text-sm text-muted-foreground">
+                            {t("commerce.sharedPalletDelivery")}
+                          </p>
                         ) : null}
                         {selectedPallet.current_pickup_producer?.name ? (
                           <p className="text-xs text-muted-foreground">
@@ -4676,7 +5000,11 @@ function CheckoutContent({
                             : undefined
                         }
                         inlinePurchase={false}
-                        purchaseEnabled={deliveryComplete && isValidCart}
+                        purchaseEnabled={
+                          deliveryComplete &&
+                          isValidCart &&
+                          !purchaseBlockedByQuote
+                        }
                         cartMinimumMet={isValidCart}
                         cartBlockedNote={
                           isValidCart
@@ -4739,19 +5067,19 @@ function CheckoutContent({
                 ) : addressStepComplete && !editingAddress ? (
                   <div className="space-y-3 animate-in fade-in-0 slide-in-from-bottom-1 duration-500 fill-mode-both">
                     <div className="flex items-start justify-between gap-3 py-1">
-                      <div className="min-w-0">
+                      <div className="min-w-0 break-words [overflow-wrap:anywhere]">
                         <p className="text-sm font-medium text-foreground">
                           {effectiveDelivery?.fullName ||
                             profile?.full_name ||
                             "—"}
                         </p>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-sm text-muted-foreground [overflow-wrap:anywhere]">
                           {effectiveDelivery?.email || profile?.email || ""}
                         </p>
-                        <p className="text-sm font-medium text-foreground mt-2">
+                        <p className="text-sm font-medium text-foreground mt-2 [overflow-wrap:anywhere]">
                           {effectiveDelivery?.street ?? "—"}
                         </p>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-sm text-muted-foreground [overflow-wrap:anywhere]">
                           {effectiveDelivery?.postal ?? ""}{" "}
                           {effectiveDelivery?.city ?? ""}
                         </p>
@@ -4821,11 +5149,12 @@ function CheckoutContent({
                     {(() => {
                       const nameOk =
                         (deliveryDraft.fullName ?? "").trim().length > 1;
-                      const emailOk = (deliveryDraft.email ?? "").includes(
-                        "@",
+                      const emailOk = isCheckoutEmailComplete(
+                        deliveryDraft.email,
                       );
-                      const phoneOk =
-                        (deliveryDraft.phone ?? "").trim().length >= 6;
+                      const phoneOk = isCheckoutPhoneComplete(
+                        deliveryDraft.phone,
+                      );
                       const streetOk = deliveryDraft.street.trim().length > 0;
                       const cityOk = deliveryDraft.city.trim().length > 0;
                       const stateOk =
@@ -4906,11 +5235,15 @@ function CheckoutContent({
                                 (deliveryDraft.fullName ?? "").trim().length ===
                                   1) ||
                               (field.id === "email" &&
-                                (deliveryDraft.email ?? "").length > 0 &&
-                                !(deliveryDraft.email ?? "").includes("@")) ||
+                                (deliveryDraft.email ?? "").trim().length > 0 &&
+                                !isCheckoutEmailComplete(
+                                  deliveryDraft.email,
+                                )) ||
                               (field.id === "phone" &&
                                 (deliveryDraft.phone ?? "").trim().length > 0 &&
-                                (deliveryDraft.phone ?? "").trim().length < 6);
+                                !isCheckoutPhoneComplete(
+                                  deliveryDraft.phone,
+                                ));
 
                             return (
                               <div key={field.id} className="space-y-1.5">
@@ -5112,9 +5445,13 @@ function CheckoutContent({
                 </h2>
 
                 {!deliveryComplete ? (
-                  <p className="text-sm text-muted-foreground">
+                  <button
+                    type="button"
+                    className="text-left text-sm text-muted-foreground"
+                    onClick={handleLockedAgeStepAttempt}
+                  >
                     {t("checkout.stepComplianceLocked")}
-                  </p>
+                  </button>
                 ) : !complianceStepRevealed ? (
                   <p className="text-sm text-muted-foreground animate-in fade-in-0 duration-300">
                     {t("checkout.openingCompliance")}
@@ -5232,8 +5569,11 @@ function CheckoutContent({
                         !dualOfferCardStepUnlocked ? (
                           <Button
                             type="button"
-                            className="w-full border-transparent bg-black text-white shadow-none ring-0 hover:border-transparent hover:bg-black/90 hover:shadow-none focus-visible:border-transparent focus-visible:bg-black/90 focus-visible:ring-white/40"
-                            disabled={!complianceComplete}
+                            className={cn(
+                              "w-full border-transparent bg-black text-white shadow-none ring-0 hover:border-transparent hover:bg-black/90 hover:shadow-none focus-visible:border-transparent focus-visible:bg-black/90 focus-visible:ring-white/40",
+                              !complianceComplete && "opacity-50",
+                            )}
+                            aria-disabled={!complianceComplete}
                             onClick={handleContinueToPayment}
                           >
                             {t("checkout.continueToPayment")}
@@ -5488,6 +5828,7 @@ function CheckoutContent({
                             legalGate={legalGatePayload}
                             onLegalGateError={handleLegalGateError}
                             prefetchedIntent={prefetchedStripeIntent}
+                            fulfillmentChannel={fulfillmentChannel}
                             cardOnly
                             billingCountryCode={ageCountryCode}
                             onPaymentElementComplete={setPaymentElementComplete}
@@ -5580,9 +5921,14 @@ function CheckoutContent({
                                   {t("checkout.total")}
                                 </span>
                                 <span className="text-2xl font-bold tabular-nums text-foreground">
-                                  {displayTotal == null
-                                    ? "…"
-                                    : formatChargedAmount(displayTotal)}
+                                  {displayTotal != null ? (
+                                    formatChargedAmount(displayTotal)
+                                  ) : (
+                                    <span
+                                      className="inline-block h-7 w-20 animate-pulse rounded bg-muted"
+                                      aria-hidden
+                                    />
+                                  )}
                                 </span>
                               </div>
 

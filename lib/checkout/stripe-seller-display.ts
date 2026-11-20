@@ -9,9 +9,13 @@ export function stripePaymentElementBusinessName(): string {
   return "EURPACT OÜ";
 }
 
-/** Public Geist Sans woff2 for Stripe Elements iframes (latin 400). */
-export const STRIPE_GEIST_SANS_WOFF2 =
-  "https://cdn.jsdelivr.net/npm/@fontsource/geist-sans@5.2.5/files/geist-sans-latin-400-normal.woff2";
+/**
+ * Optional custom font for Stripe Elements iframes.
+ * Stripe rejects `src` URLs containing `@` (e.g. jsDelivr `@fontsource/...`),
+ * which produced "Invalid src value in font configuration" and flaky PE loads.
+ * Prefer same-origin / CDN URLs without `@`, or omit fonts (Stripe default).
+ */
+export const STRIPE_GEIST_SANS_WOFF2: string | null = null;
 
-/** Font family registered by Fontsource Geist Sans (@font-face). */
+/** Font family when STRIPE_GEIST_SANS_WOFF2 is set. */
 export const STRIPE_GEIST_FONT_FAMILY = "Geist Sans";

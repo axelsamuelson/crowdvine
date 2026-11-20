@@ -59,8 +59,11 @@ export function shouldBlockCheckoutOnQuote(input: {
   quoteStatus: QuoteUiStatus;
 }): { block: boolean; reason: string | null } {
   const { fulfillmentChannel, quote, quoteStatus } = input;
-  if (quoteStatus === "loading" || quoteStatus === "stale") {
+  if (quoteStatus === "loading") {
     return { block: true, reason: "quote_loading" };
+  }
+  if (quoteStatus === "stale") {
+    return { block: true, reason: "quote_stale" };
   }
   if (quoteStatus === "error") {
     return { block: true, reason: "quote_error" };
