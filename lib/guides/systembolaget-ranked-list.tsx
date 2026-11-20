@@ -35,6 +35,7 @@ import {
   type GuideArticleContent,
 } from "@/lib/guides/guide-types";
 import type { AppLocale } from "@/lib/i18n/locale";
+import { translate } from "@/lib/i18n/messages";
 import { getGuideSeoOwnership } from "@/lib/guides/guide-seo-ownership";
 import { resolveRankTokens } from "@/lib/guides/resolve-rank-tokens";
 import {
@@ -43,6 +44,7 @@ import {
   freshestSyncedAt,
   getGuideWines,
   limitedAvailabilityLabel,
+  placementBadgeForCard,
   primaryStyleLabel,
   systembolagetProductUrl,
   type GuideWineCategory,
@@ -568,10 +570,18 @@ export function RankedWineRow({
   headingClassName?: string;
 }) {
   const { producer, secondary } = wineNameParts(wine);
-  const badge = showMovement
+  const showLaunchBadge = wine.show_launch_badge === true;
+  const launchBadgeLabel = showLaunchBadge
+    ? translate(locale, "systembolagetGuides.launchBadge")
+    : null;
+  const placementBadge = showMovement
     ? formatPlacementBadge(rank, wine.previous_rank, locale)
     : null;
-  const showRankBadge = Boolean(badge);
+  const movementBadge = placementBadgeForCard(
+    placementBadge,
+    showLaunchBadge,
+  );
+  const showRankBadge = Boolean(launchBadgeLabel || movementBadge);
   const meta = wineMetaParts(wine, locale);
   const assortment = assortmentLabel(wine.assortment_text, locale);
   const limitedLabel =
@@ -616,7 +626,18 @@ export function RankedWineRow({
             {rank}
           </span>
           {showRankBadge ? (
-            <span className="text-xs text-muted-foreground">{badge}</span>
+            <span className="flex flex-col items-center gap-0.5">
+              {launchBadgeLabel ? (
+                <span className="text-[10px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+                  {launchBadgeLabel}
+                </span>
+              ) : null}
+              {movementBadge ? (
+                <span className="text-xs text-muted-foreground">
+                  {movementBadge}
+                </span>
+              ) : null}
+            </span>
           ) : null}
         </div>
         ) : null}
