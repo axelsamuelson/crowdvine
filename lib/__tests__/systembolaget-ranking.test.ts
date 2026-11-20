@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  formatPlacementBadge,
-  placementBadgeForCard,
-} from "@/lib/systembolaget/guide-wines";
+import { formatPlacementBadge } from "@/lib/systembolaget/guide-wines";
 import {
   blendScore,
   buildCuratedRanking,
@@ -408,22 +405,14 @@ describe("petnat, glouglou, budget and best", () => {
     ).toEqual(["dear-high", "cheap-low"]);
   });
 
-  it("describes a move between visible places, and a wine that was not on the list", () => {
+  it("describes ↑/↓ between visible places and hides list-Ny entirely", () => {
     expect(formatPlacementBadge(1, 2, "sv")).toBe("↑ 1");
     expect(formatPlacementBadge(4, 2, "sv")).toBe("↓ 2");
     expect(formatPlacementBadge(3, 3, "en")).toBeNull();
-    expect(formatPlacementBadge(5, null, "sv")).toBe("Ny");
-    expect(formatPlacementBadge(5, null, "en")).toBe("New");
+    // New on the list (previous_rank null) — no list-Ny/New on type guides.
+    expect(formatPlacementBadge(5, null, "sv")).toBeNull();
+    expect(formatPlacementBadge(5, null, "en")).toBeNull();
     expect(formatPlacementBadge(5, undefined, "sv")).toBeNull();
-  });
-
-  it("hides list-Ny when the launch badge is on, but keeps up/down", () => {
-    expect(placementBadgeForCard("Ny", true)).toBeNull();
-    expect(placementBadgeForCard("New", true)).toBeNull();
-    expect(placementBadgeForCard("↑ 2", true)).toBe("↑ 2");
-    expect(placementBadgeForCard("↓ 1", true)).toBe("↓ 1");
-    expect(placementBadgeForCard("Ny", false)).toBe("Ny");
-    expect(placementBadgeForCard(null, true)).toBeNull();
   });
 
   it("treats a scored list as score-ordered so sort_order movement is not the visible rank", () => {

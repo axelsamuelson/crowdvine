@@ -186,39 +186,21 @@ export function formatRankBadge(
 }
 
 /**
- * Movement against the place shown on the page.
- * Null previous rank means the wine is new on the list.
- * Undefined means there is no baseline yet, so the badge stays hidden.
+ * Placement movement against the place shown on the page.
+ * Only ↑/↓ — list-«Ny»/«New» is intentionally not shown on type guides
+ * (launch «NY»/«NEW» covers recent arrivals). Null or undefined previous
+ * rank → no movement badge.
  */
 export function formatPlacementBadge(
   currentRank: number,
   previousRank: number | null | undefined,
-  locale: "en" | "sv",
+  _locale: "en" | "sv" = "sv",
 ): string | null {
-  if (previousRank === undefined) return null;
-  if (previousRank === null) return locale === "sv" ? "Ny" : "New";
+  if (previousRank === undefined || previousRank === null) return null;
   const places = previousRank - currentRank;
   if (places > 0) return `↑ ${places}`;
   if (places < 0) return `↓ ${Math.abs(places)}`;
   return null;
-}
-
-/**
- * When the launch «NY»/«NEW» badge is on, hide list-«Ny»/«New» so the card
- * never shows two different new labels. Up/down movement stays visible.
- */
-export function placementBadgeForCard(
-  placementBadge: string | null,
-  showLaunchBadge: boolean,
-): string | null {
-  if (!placementBadge) return null;
-  if (
-    showLaunchBadge &&
-    (placementBadge === "Ny" || placementBadge === "New")
-  ) {
-    return null;
-  }
-  return placementBadge;
 }
 
 /**
