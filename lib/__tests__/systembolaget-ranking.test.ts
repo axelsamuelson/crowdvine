@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { formatPlacementBadge } from "@/lib/systembolaget/guide-wines";
+import {
+  formatPlacementBadge,
+  placementBadgeForCard,
+} from "@/lib/systembolaget/guide-wines";
 import {
   blendScore,
   buildCuratedRanking,
@@ -412,6 +415,15 @@ describe("petnat, glouglou, budget and best", () => {
     expect(formatPlacementBadge(5, null, "sv")).toBe("Ny");
     expect(formatPlacementBadge(5, null, "en")).toBe("New");
     expect(formatPlacementBadge(5, undefined, "sv")).toBeNull();
+  });
+
+  it("hides list-Ny when the launch badge is on, but keeps up/down", () => {
+    expect(placementBadgeForCard("Ny", true)).toBeNull();
+    expect(placementBadgeForCard("New", true)).toBeNull();
+    expect(placementBadgeForCard("↑ 2", true)).toBe("↑ 2");
+    expect(placementBadgeForCard("↓ 1", true)).toBe("↓ 1");
+    expect(placementBadgeForCard("Ny", false)).toBe("Ny");
+    expect(placementBadgeForCard(null, true)).toBeNull();
   });
 
   it("treats a scored list as score-ordered so sort_order movement is not the visible rank", () => {

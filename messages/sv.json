@@ -1229,5 +1229,8 @@
     "noB2bMessage": "Ditt konto är inte kopplat till Dirty Wine.",
     "goToPact": "Gå till pactwines.com",
     "metaDescription": "Vinklubb där medlemmarna delar pallar med naturvin från Frankrike."
+  },
+  "systembolagetGuides": {
+    "launchBadge": "NY"
   }
 }

@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { SystembolagetBottleImage } from "@/components/guides/systembolaget-bottle-image";
+import { SystembolagetRankStatusBadge } from "@/components/guides/systembolaget-rank-status-badge";
 import { Footer } from "@/components/layout/footer";
 import {
   ARTICLE_GUIDE_BODY_CLASS,
@@ -35,6 +36,7 @@ import {
   type GuideArticleContent,
 } from "@/lib/guides/guide-types";
 import type { AppLocale } from "@/lib/i18n/locale";
+import { translate } from "@/lib/i18n/messages";
 import { getGuideSeoOwnership } from "@/lib/guides/guide-seo-ownership";
 import { resolveRankTokens } from "@/lib/guides/resolve-rank-tokens";
 import {
@@ -43,6 +45,7 @@ import {
   freshestSyncedAt,
   getGuideWines,
   limitedAvailabilityLabel,
+  placementBadgeForCard,
   primaryStyleLabel,
   systembolagetProductUrl,
   type GuideWineCategory,
@@ -568,10 +571,26 @@ export function RankedWineRow({
   headingClassName?: string;
 }) {
   const { producer, secondary } = wineNameParts(wine);
-  const badge = showMovement
+  const showLaunchBadge = wine.show_launch_badge === true;
+  const launchBadgeLabel = showLaunchBadge
+    ? translate(locale, "systembolagetGuides.launchBadge")
+    : null;
+  const placementBadge = showMovement
     ? formatPlacementBadge(rank, wine.previous_rank, locale)
     : null;
-  const showRankBadge = Boolean(badge);
+  const movementBadge = placementBadgeForCard(
+    placementBadge,
+    showLaunchBadge,
+  );
+  const isListNewLabel =
+    movementBadge === "Ny" || movementBadge === "New";
+  /** Launch «NY»/«NEW» and list-«Ny»/«New» share one outlined mark. */
+  const statusBadgeLabel =
+    launchBadgeLabel ?? (isListNewLabel ? movementBadge : null);
+  /** ↑/↓ stay as quiet text; not the outlined status mark. */
+  const arrowBadge =
+    movementBadge && !isListNewLabel ? movementBadge : null;
+  const showRankBadge = Boolean(statusBadgeLabel || arrowBadge);
   const meta = wineMetaParts(wine, locale);
   const assortment = assortmentLabel(wine.assortment_text, locale);
   const limitedLabel =
@@ -616,7 +635,18 @@ export function RankedWineRow({
             {rank}
           </span>
           {showRankBadge ? (
-            <span className="text-xs text-muted-foreground">{badge}</span>
+            <span className="flex flex-col items-center gap-1.5">
+              {statusBadgeLabel ? (
+                <SystembolagetRankStatusBadge>
+                  {statusBadgeLabel}
+                </SystembolagetRankStatusBadge>
+              ) : null}
+              {arrowBadge ? (
+                <span className="text-xs text-muted-foreground">
+                  {arrowBadge}
+                </span>
+              ) : null}
+            </span>
           ) : null}
         </div>
         ) : null}
