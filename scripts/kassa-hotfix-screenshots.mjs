@@ -252,9 +252,7 @@ async function run(browserType, prefix, contextOpts) {
   await page.fill("#checkout-email", guestEmail);
   await page.fill("#checkout-phone", "0701234567");
   try {
-    await waitShippingAmount(page, {
-      expectDirect: (await page.locator('input[name="fulfillment_channel"]:checked').getAttribute("value").catch(() => null)) === "direct_box",
-    });
+    await waitShippingAmount(page, { expectDirect: false });
   } catch {
     /* quote may still settle */
   }
@@ -268,35 +266,22 @@ async function run(browserType, prefix, contextOpts) {
   notes.push(`${prefix}: ageLocked=${locked} dobVisible=${dobVisible}`);
   await shot(page, `${prefix}-saved-address-age.png`);
 
-  // Prove PE for BOTH modes: capture shared_pallet PE then direct_box PE
-  for (const mode of ["shared_pallet", "direct_box"]) {
-    await selectFulfillment(page, mode);
-    await page.waitForTimeout(800);
-    if (!(await page.locator("#age-dob").isVisible().catch(() => false))) {
-      // collapsed age? click Ändra then re-open — age should stay
-      notes.push(`${prefix}: age field missing before ${mode} PE`);
-    }
-    await page.fill("#age-dob", "19900115");
-    await acceptTerms(page);
-    await shot(page, `${prefix}-age-terms-${mode}.png`);
+  await page.locator("#age-dob").waitFor({ state: "visible", timeout: 15000 });
+  await page.fill("#age-dob", "19900115");
+  await acceptTerms(page);
+  await shot(page, `${prefix}-age-terms.png`);
 
-    const cont = page.getByRole("button", {
-      name: /Fortsätt till betalkort|Continue to payment/i,
-    });
-    if ((await cont.count()) && (await cont.first().isEnabled())) {
-      await cont.first().click();
-    }
+  const cont = page.getByRole("button", {
+    name: /Fortsätt till betalkort|Continue to payment/i,
+  });
+  if ((await cont.count()) && (await cont.first().isEnabled())) {
+    await cont.first().click();
+  }
 
-    // Wait for payment-intent 200 + Stripe PE iframe
+  async function waitForPeCard(minPiCount) {
     let peOk = false;
-    for (let i = 0; i < 40; i++) {
-      const hasPi200 = piEvents.some((e) => e.status === 200);
-      const iframeCount = await page
-        .locator(
-          'iframe[name*="privateStripeFrame"], iframe[title*="Secure payment"], iframe[title*="Secure"]',
-        )
-        .count();
-      // Stripe mounts controller iframes early; look for payment input fields
+    for (let i = 0; i < 45; i++) {
+      const pi200 = piEvents.filter((e) => e.status === 200).length;
       let hasCardInput = false;
       for (const frame of page.frames()) {
         const n = await frame
@@ -310,22 +295,47 @@ async function run(browserType, prefix, contextOpts) {
           break;
         }
       }
-      if (hasPi200 && (hasCardInput || iframeCount >= 2)) {
-        peOk = hasCardInput;
-        if (hasCardInput) break;
+      if (pi200 >= minPiCount && hasCardInput) {
+        peOk = true;
+        break;
       }
       await page.waitForTimeout(1000);
     }
+    return peOk;
+  }
 
+  // Current mode after earlier direct_box select — prove PE, then switch.
+  const modes = ["direct_box", "shared_pallet"];
+  let piBaseline = 0;
+  for (const mode of modes) {
+    if (mode === "shared_pallet") {
+      piBaseline = piEvents.filter((e) => e.status === 200).length;
+      // Fulfillment radios live in step 1 — scroll up and switch
+      await page.evaluate(() => window.scrollTo(0, 0));
+      await selectFulfillment(page, "shared_pallet");
+      await page.waitForTimeout(1500);
+      try {
+        await waitShippingAmount(page, { expectDirect: false });
+      } catch {
+        notes.push(`${prefix}: shared shipping after switch timed out`);
+      }
+    }
+
+    const peOk = await waitForPeCard(piBaseline + (mode === "shared_pallet" ? 1 : 1));
     const piOk = piEvents.filter((e) => e.status === 200);
     notes.push(
       `${prefix}:${mode} pi200=${piOk.length} lastPi=${piEvents.at(-1)?.status ?? "none"} peCardInput=${peOk}`,
     );
 
     if (peOk) {
+      await page
+        .locator("text=Betalkort")
+        .first()
+        .scrollIntoViewIfNeeded()
+        .catch(() => {});
       const filled = await fillCard4242(page);
       notes.push(`${prefix}:${mode} card4242filled=${filled}`);
-      await page.waitForTimeout(2000);
+      await page.waitForTimeout(2500);
     }
 
     const kopEnabled = await page
@@ -333,11 +343,11 @@ async function run(browserType, prefix, contextOpts) {
       .isEnabled()
       .catch(() => false);
     notes.push(`${prefix}:${mode} kopEnabled=${kopEnabled}`);
+    await page
+      .locator('[data-testid="checkout-place-reservation"]')
+      .scrollIntoViewIfNeeded()
+      .catch(() => {});
     await shot(page, `${prefix}-payment-element-${mode}.png`);
-
-    // Reset payment card for next mode if continue button gone
-    const change = page.getByRole("button", { name: /Ändra|Change/i }).first();
-    // Stay on payment; switching fulfillment should refetch intent
   }
 
   await browser.close();
