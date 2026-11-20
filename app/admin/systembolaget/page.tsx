@@ -975,7 +975,7 @@ export default function SystembolagetAdminPage() {
                 <Label htmlFor="verdict">Verdict</Label>
                 <select
                   id="verdict"
-                  className="mt-1 w-full rounded border border-input bg-background px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 shadow-none dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:[color-scheme:dark]"
                   value={form.verdict}
                   onChange={(e) =>
                     setForm((p) => ({
@@ -994,7 +994,7 @@ export default function SystembolagetAdminPage() {
                 <Label htmlFor="category">Category</Label>
                 <select
                   id="category"
-                  className="mt-1 w-full rounded border border-input bg-background px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 shadow-none dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:[color-scheme:dark]"
                   value={form.category}
                   onChange={(e) =>
                     setForm((p) => ({
@@ -1197,14 +1197,15 @@ export default function SystembolagetAdminPage() {
                           </span>
                         ) : null}
                         {!row.is_published ? (
-                          <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-xs">
-                            draft
+                          <span className="ml-2 rounded bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-800 dark:bg-zinc-700 dark:text-zinc-200">
+                            Utkast
                           </span>
                         ) : null}
                       </div>
                       <div className="mt-1 text-xs text-muted-foreground">
-                        {row.product_number} · {row.verdict} · sort{" "}
-                        {row.sort_order}
+                        {row.product_number} ·{" "}
+                        {row.verdict === "candidate" ? "kandidat" : row.verdict}{" "}
+                        · sort {row.sort_order}
                         {category === "new"
                           ? ` · släpp ${formatLaunchDate(row.product?.product_launch_date)}`
                           : ""}
