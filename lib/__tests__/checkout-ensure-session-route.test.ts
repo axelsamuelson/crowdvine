@@ -3,6 +3,7 @@ import { NextRequest } from "next/server";
 
 const getCurrentUser = vi.fn();
 const getSupabaseAdmin = vi.fn();
+const createEphemeralAuthClient = vi.fn();
 const isPlatformOpen = vi.fn(() => true);
 const finalizeSignupAfterAuth = vi.fn();
 const existingCheckoutEmailTaken = vi.fn();
@@ -17,6 +18,8 @@ vi.mock("@/lib/supabase-server", () => ({
 
 vi.mock("@/lib/supabase-admin", () => ({
   getSupabaseAdmin: (...args: unknown[]) => getSupabaseAdmin(...args),
+  createEphemeralAuthClient: (...args: unknown[]) =>
+    createEphemeralAuthClient(...args),
 }));
 
 vi.mock("@/lib/platform-open", () => ({
@@ -77,6 +80,9 @@ describe("POST /api/checkout/ensure-session", () => {
       auth: { admin: { generateLink }, verifyOtp },
       from,
     });
+    createEphemeralAuthClient.mockReturnValue({
+      auth: { verifyOtp: vi.fn() },
+    });
 
     const { POST } = await import("@/app/api/checkout/ensure-session/route");
     const res = await POST(makeRequest("Existing@Example.com"));
@@ -84,11 +90,13 @@ describe("POST /api/checkout/ensure-session", () => {
 
     expect(res.status).toBe(409);
     expect(body.requiresLogin).toBe(true);
+    expect(body.error).toMatch(/Logga in/);
     expect(body.session).toBeUndefined();
     expect(body.access_token).toBeUndefined();
     expect(generateLink).not.toHaveBeenCalled();
     expect(verifyOtp).not.toHaveBeenCalled();
     expect(from).not.toHaveBeenCalled();
+    expect(createEphemeralAuthClient).not.toHaveBeenCalled();
     expect(existingCheckoutEmailTaken).toHaveBeenCalledWith(
       expect.anything(),
       "existing@example.com",
@@ -138,7 +146,8 @@ describe("POST /api/checkout/ensure-session", () => {
       },
       error: null,
     });
-    const verifyOtp = vi.fn().mockResolvedValue({
+    const adminVerifyOtp = vi.fn();
+    const ephemeralVerifyOtp = vi.fn().mockResolvedValue({
       data: {
         session: {
           access_token: "access-xyz",
@@ -162,8 +171,11 @@ describe("POST /api/checkout/ensure-session", () => {
       return { insert: vi.fn(), upsert: vi.fn() };
     });
     getSupabaseAdmin.mockReturnValue({
-      auth: { admin: { generateLink }, verifyOtp },
+      auth: { admin: { generateLink }, verifyOtp: adminVerifyOtp },
       from,
+    });
+    createEphemeralAuthClient.mockReturnValue({
+      auth: { verifyOtp: ephemeralVerifyOtp },
     });
 
     const { POST } = await import("@/app/api/checkout/ensure-session/route");
@@ -181,7 +193,12 @@ describe("POST /api/checkout/ensure-session", () => {
       type: "magiclink",
       email: "brand.new@example.com",
     });
-    expect(verifyOtp).toHaveBeenCalled();
+    expect(adminVerifyOtp).not.toHaveBeenCalled();
+    expect(createEphemeralAuthClient).toHaveBeenCalled();
+    expect(ephemeralVerifyOtp).toHaveBeenCalledWith({
+      token_hash: "hash-token",
+      type: "email",
+    });
     expect(insert).toHaveBeenCalledWith(
       expect.objectContaining({
         id: "new-user-1",
@@ -189,7 +206,53 @@ describe("POST /api/checkout/ensure-session", () => {
         role: "user",
       }),
     );
+    // Profile insert must happen before verifyOtp (admin still privileged).
+    expect(insert.mock.invocationCallOrder[0]).toBeLessThan(
+      ephemeralVerifyOtp.mock.invocationCallOrder[0],
+    );
     expect(finalizeSignupAfterAuth).toHaveBeenCalled();
+  });
+
+  it("never calls verifyOtp on the admin client used for profiles (RLS session pollution)", async () => {
+    existingCheckoutEmailTaken.mockResolvedValue(false);
+    const generateLink = vi.fn().mockResolvedValue({
+      data: {
+        user: { id: "iso-user" },
+        properties: {
+          hashed_token: "tok",
+          verification_type: "signup",
+        },
+      },
+      error: null,
+    });
+    const adminClient = {
+      auth: { admin: { generateLink }, verifyOtp: vi.fn() },
+      from: vi.fn(() => ({
+        select: () => ({
+          eq: () => ({
+            maybeSingle: async () => ({ data: null, error: null }),
+          }),
+        }),
+        insert: vi.fn().mockResolvedValue({ error: null }),
+      })),
+    };
+    const ephemeralVerifyOtp = vi.fn().mockResolvedValue({
+      data: {
+        session: { access_token: "a", refresh_token: "r" },
+      },
+      error: null,
+    });
+    getSupabaseAdmin.mockReturnValue(adminClient);
+    createEphemeralAuthClient.mockReturnValue({
+      auth: { verifyOtp: ephemeralVerifyOtp },
+    });
+
+    const { POST } = await import("@/app/api/checkout/ensure-session/route");
+    const res = await POST(makeRequest("iso@example.com"));
+    expect(res.status).toBe(200);
+    expect(adminClient.auth.verifyOtp).not.toHaveBeenCalled();
+    expect(ephemeralVerifyOtp).toHaveBeenCalledTimes(1);
+    expect(createEphemeralAuthClient).toHaveBeenCalledTimes(1);
   });
 
   it("refuses session when generateLink is magiclink (not signup) even if existence check missed", async () => {
@@ -204,11 +267,13 @@ describe("POST /api/checkout/ensure-session", () => {
       },
       error: null,
     });
-    const verifyOtp = vi.fn();
     const from = vi.fn();
     getSupabaseAdmin.mockReturnValue({
-      auth: { admin: { generateLink }, verifyOtp },
+      auth: { admin: { generateLink }, verifyOtp: vi.fn() },
       from,
+    });
+    createEphemeralAuthClient.mockReturnValue({
+      auth: { verifyOtp: vi.fn() },
     });
 
     const { POST } = await import("@/app/api/checkout/ensure-session/route");
@@ -217,8 +282,8 @@ describe("POST /api/checkout/ensure-session", () => {
 
     expect(res.status).toBe(409);
     expect(body.requiresLogin).toBe(true);
-    expect(verifyOtp).not.toHaveBeenCalled();
     expect(from).not.toHaveBeenCalled();
+    expect(createEphemeralAuthClient).not.toHaveBeenCalled();
   });
 
   it("does not overwrite an existing profile row (insert skipped when profile exists)", async () => {
@@ -229,15 +294,6 @@ describe("POST /api/checkout/ensure-session", () => {
         properties: {
           hashed_token: "hash-token",
           verification_type: "signup",
-        },
-      },
-      error: null,
-    });
-    const verifyOtp = vi.fn().mockResolvedValue({
-      data: {
-        session: {
-          access_token: "a",
-          refresh_token: "r",
         },
       },
       error: null,
@@ -257,8 +313,18 @@ describe("POST /api/checkout/ensure-session", () => {
       upsert,
     }));
     getSupabaseAdmin.mockReturnValue({
-      auth: { admin: { generateLink }, verifyOtp },
+      auth: { admin: { generateLink }, verifyOtp: vi.fn() },
       from,
+    });
+    createEphemeralAuthClient.mockReturnValue({
+      auth: {
+        verifyOtp: vi.fn().mockResolvedValue({
+          data: {
+            session: { access_token: "a", refresh_token: "r" },
+          },
+          error: null,
+        }),
+      },
     });
 
     const { POST } = await import("@/app/api/checkout/ensure-session/route");
@@ -266,6 +332,41 @@ describe("POST /api/checkout/ensure-session", () => {
     expect(res.status).toBe(200);
     expect(insert).not.toHaveBeenCalled();
     expect(upsert).not.toHaveBeenCalled();
+  });
+
+  it("returns Swedish errors for profile failures", async () => {
+    existingCheckoutEmailTaken.mockResolvedValue(false);
+    const generateLink = vi.fn().mockResolvedValue({
+      data: {
+        user: { id: "fail-user" },
+        properties: {
+          hashed_token: "hash-token",
+          verification_type: "signup",
+        },
+      },
+      error: null,
+    });
+    getSupabaseAdmin.mockReturnValue({
+      auth: { admin: { generateLink }, verifyOtp: vi.fn() },
+      from: vi.fn(() => ({
+        select: () => ({
+          eq: () => ({
+            maybeSingle: async () => ({
+              data: null,
+              error: { message: "permission denied for table profiles", code: "42501" },
+            }),
+          }),
+        }),
+        insert: vi.fn(),
+      })),
+    });
+
+    const { POST } = await import("@/app/api/checkout/ensure-session/route");
+    const res = await POST(makeRequest("fail@example.com"));
+    const body = await res.json();
+    expect(res.status).toBe(500);
+    expect(body.error).toBe("Kunde inte förbereda profilen. Försök igen.");
+    expect(createEphemeralAuthClient).not.toHaveBeenCalled();
   });
 
   it("returns 403 when platform is closed", async () => {
