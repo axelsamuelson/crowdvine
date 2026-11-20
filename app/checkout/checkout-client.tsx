@@ -1,6 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, Suspense, useCallback } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  Suspense,
+  useCallback,
+} from "react";
 import { CartMergeModal } from "@/components/cart/cart-merge-modal";
 import { CheckoutEmailAuth } from "@/components/checkout/checkout-email-auth";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -1390,10 +1398,10 @@ function CheckoutContent({
     }
   }, [fetchProfile, fetchCart]);
 
-  // Juliette: never keep DOB in local/session storage. Scrub legacy drafts on
-  // visit without clearing email/name/phone/address. Server profile DOB still
-  // prefills for signed-in accounts (fetchProfile).
-  useEffect(() => {
+  // Juliette/Camille: never keep DOB in local/session storage. Scrub legacy
+  // drafts (incl. pre-PR289 checkoutFormData) before paint — without clearing
+  // email/name/phone/address. Server profile DOB still prefills when signed in.
+  useLayoutEffect(() => {
     scrubCheckoutDobFromBrowserStorage();
   }, []);
 
@@ -5653,12 +5661,18 @@ function CheckoutContent({
                             </Label>
                             <Input
                               id="age-dob"
+                              name="pact-age-confirm"
                               type="text"
                               inputMode="numeric"
-                              // Juliette: require an active age answer each visit;
-                              // never seed DOB from browser autofill / local draft.
+                              // Require an active age answer each visit; block
+                              // browser autofill / password-manager DOB seeds.
                               // Server profile.date_of_birth still prefills when set.
                               autoComplete="off"
+                              autoCorrect="off"
+                              spellCheck={false}
+                              data-lpignore="true"
+                              data-1p-ignore="true"
+                              data-form-type="other"
                               placeholder={t("checkout.dobPlaceholder")}
                               value={dateOfBirth}
                               onChange={(e) =>
