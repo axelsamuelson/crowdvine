@@ -23,6 +23,8 @@ describe("checkout age-gate / address wiring (hotfix)", () => {
     expect(checkoutSrc).toMatch(/isCheckoutPhoneComplete/);
     expect(checkoutSrc).toMatch(/isCheckoutStreetComplete/);
     expect(checkoutSrc).toMatch(/addressFieldFocused/);
+    expect(checkoutSrc).toMatch(/streetIncomplete/);
+    expect(checkoutSrc).toMatch(/checkout\.streetIncomplete/);
     // Collapse requires !addressFieldFocused — never while the user is typing.
     expect(checkoutSrc).toMatch(
       /addressStepComplete &&\s*!editingAddress &&\s*!addressFieldFocused/,

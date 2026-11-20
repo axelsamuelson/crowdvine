@@ -367,6 +367,9 @@ function CheckoutContent({
   const [editingAddress, setEditingAddress] = useState(false);
   /** True while any progressive address input has focus — blocks auto-save/collapse. */
   const [addressFieldFocused, setAddressFieldFocused] = useState(false);
+  /** Street-specific focus/touch for inline incomplete-address error after blur. */
+  const [streetInputFocused, setStreetInputFocused] = useState(false);
+  const [streetFieldTouched, setStreetFieldTouched] = useState(false);
   const addressFocusBlurTimerRef = useRef<number | null>(null);
   const addressAutoSaveRef = useRef(false);
   const addressPersistedRef = useRef(false);
@@ -5257,7 +5260,15 @@ function CheckoutContent({
                             {t("checkout.addDeliveryHint")}
                           </p>
                           {fields.map((field) => {
+                            const streetValue = deliveryDraft.street.trim();
+                            const streetIncomplete =
+                              field.id === "street" &&
+                              streetFieldTouched &&
+                              !streetInputFocused &&
+                              streetValue.length > 0 &&
+                              !isCheckoutStreetComplete(deliveryDraft.street);
                             const showInlineError =
+                              streetIncomplete ||
                               (field.id === "fullName" &&
                                 (deliveryDraft.fullName ?? "").trim().length ===
                                   1) ||
@@ -5371,6 +5382,9 @@ function CheckoutContent({
                                         addressFocusBlurTimerRef.current = null;
                                       }
                                       setAddressFieldFocused(true);
+                                      if (field.id === "street") {
+                                        setStreetInputFocused(true);
+                                      }
                                     }}
                                     onBlur={() => {
                                       // Delay so tabbing between address fields
@@ -5379,6 +5393,10 @@ function CheckoutContent({
                                         window.clearTimeout(
                                           addressFocusBlurTimerRef.current,
                                         );
+                                      }
+                                      if (field.id === "street") {
+                                        setStreetInputFocused(false);
+                                        setStreetFieldTouched(true);
                                       }
                                       addressFocusBlurTimerRef.current =
                                         window.setTimeout(() => {
@@ -5411,8 +5429,15 @@ function CheckoutContent({
                                   <p
                                     className="text-sm text-destructive"
                                     role="alert"
+                                    data-testid={
+                                      streetIncomplete
+                                        ? "checkout-street-incomplete"
+                                        : undefined
+                                    }
                                   >
-                                    {t("checkout.fieldRequired")}
+                                    {streetIncomplete
+                                      ? t("checkout.streetIncomplete")
+                                      : t("checkout.fieldRequired")}
                                   </p>
                                 ) : null}
                               </div>

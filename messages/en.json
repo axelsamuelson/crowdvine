@@ -452,6 +452,7 @@
     "postalCodeHint": "We use your postal code to show which delivery options are available.",
     "postalCodeInvalid": "Enter a valid 5-digit postal code.",
     "fieldRequired": "Required field",
+    "streetIncomplete": "Enter a street address with a number, e.g. Drottninggatan 12.",
     "fieldContinue": "Continue",
     "nextFieldHint": "Next: {label}",
     "addAddress": "Enter delivery address →",
