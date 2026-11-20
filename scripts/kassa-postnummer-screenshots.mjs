@@ -155,8 +155,16 @@ async function waitPe(page) {
 }
 
 async function reachKirunaPayment(page, label) {
-  await fillPostalAndWait(page, "98131");
-  await fillContact(page, "Kiruna");
+  // Caller already filled Kiruna postal + contact (locked postal UI).
+  // Ensure fields still present if edit mode somehow reopened.
+  const postalVisible = await page
+    .locator("#checkout-postal")
+    .isVisible()
+    .catch(() => false);
+  if (postalVisible) {
+    await fillPostalAndWait(page, "98131");
+    await fillContact(page, "Kiruna");
+  }
   try {
     await page.waitForFunction(
       () => {
