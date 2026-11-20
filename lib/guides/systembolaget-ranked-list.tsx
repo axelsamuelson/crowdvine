@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { SystembolagetBottleImage } from "@/components/guides/systembolaget-bottle-image";
+import { SystembolagetRankStatusBadge } from "@/components/guides/systembolaget-rank-status-badge";
 import { Footer } from "@/components/layout/footer";
 import {
   ARTICLE_GUIDE_BODY_CLASS,
@@ -581,7 +582,15 @@ export function RankedWineRow({
     placementBadge,
     showLaunchBadge,
   );
-  const showRankBadge = Boolean(launchBadgeLabel || movementBadge);
+  const isListNewLabel =
+    movementBadge === "Ny" || movementBadge === "New";
+  /** Launch «NY»/«NEW» and list-«Ny»/«New» share one outlined mark. */
+  const statusBadgeLabel =
+    launchBadgeLabel ?? (isListNewLabel ? movementBadge : null);
+  /** ↑/↓ stay as quiet text; not the outlined status mark. */
+  const arrowBadge =
+    movementBadge && !isListNewLabel ? movementBadge : null;
+  const showRankBadge = Boolean(statusBadgeLabel || arrowBadge);
   const meta = wineMetaParts(wine, locale);
   const assortment = assortmentLabel(wine.assortment_text, locale);
   const limitedLabel =
@@ -626,15 +635,15 @@ export function RankedWineRow({
             {rank}
           </span>
           {showRankBadge ? (
-            <span className="flex flex-col items-center gap-0.5">
-              {launchBadgeLabel ? (
-                <span className="text-[10px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
-                  {launchBadgeLabel}
-                </span>
+            <span className="flex flex-col items-center gap-1.5">
+              {statusBadgeLabel ? (
+                <SystembolagetRankStatusBadge>
+                  {statusBadgeLabel}
+                </SystembolagetRankStatusBadge>
               ) : null}
-              {movementBadge ? (
+              {arrowBadge ? (
                 <span className="text-xs text-muted-foreground">
-                  {movementBadge}
+                  {arrowBadge}
                 </span>
               ) : null}
             </span>
