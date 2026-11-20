@@ -1,6 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, Suspense, useCallback } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  Suspense,
+  useCallback,
+} from "react";
 import { CartMergeModal } from "@/components/cart/cart-merge-modal";
 import { CheckoutEmailAuth } from "@/components/checkout/checkout-email-auth";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -12,6 +20,8 @@ import Link from "next/link";
 import { homeDeliveryGuidePath } from "@/lib/guides/home-delivery-guide";
 import type { Cart, CartItem } from "@/lib/shopify/types";
 import {
+  DIRECT_BOX_DEFAULT_SHIPPING_PER_BOX_ORE,
+  directBoxCountFromBottles,
   directBoxUnitPriceSek,
   directBoxLineTotalSek,
   getDirectBoxPriceMarkupPercent,
@@ -1388,10 +1398,10 @@ function CheckoutContent({
     }
   }, [fetchProfile, fetchCart]);
 
-  // Juliette: never keep DOB in local/session storage. Scrub legacy drafts on
-  // visit without clearing email/name/phone/address. Server profile DOB still
-  // prefills for signed-in accounts (fetchProfile).
-  useEffect(() => {
+  // Juliette/Camille: never keep DOB in local/session storage. Scrub legacy
+  // drafts (incl. pre-PR289 checkoutFormData) before paint — without clearing
+  // email/name/phone/address. Server profile DOB still prefills when signed in.
+  useLayoutEffect(() => {
     scrubCheckoutDobFromBrowserStorage();
   }, []);
 
@@ -3597,6 +3607,19 @@ function CheckoutContent({
 
   const sharedShippingSek = shippingByChannel.shared_pallet;
   const directShippingSek = shippingByChannel.direct_box;
+  // Radio subtitle: per-box rate (149), never cart total (298 for 12 bottles).
+  const directPerBoxShippingSek = useMemo(() => {
+    const bottles = cart?.totalQuantity ?? 0;
+    const boxes = directBoxCountFromBottles(bottles);
+    if (
+      boxes > 0 &&
+      typeof directShippingSek === "number" &&
+      Number.isFinite(directShippingSek)
+    ) {
+      return Math.round(directShippingSek / boxes);
+    }
+    return DIRECT_BOX_DEFAULT_SHIPPING_PER_BOX_ORE / 100;
+  }, [cart?.totalQuantity, directShippingSek]);
   const lowestShippingSek = useMemo(() => {
     const vals = [sharedShippingSek, directShippingSek].filter(
       (n): n is number => typeof n === "number" && Number.isFinite(n),
@@ -3604,6 +3627,10 @@ function CheckoutContent({
     if (!vals.length) return null;
     return Math.min(...vals);
   }, [sharedShippingSek, directShippingSek]);
+  // Dual radios already show each channel's price — hide the Hemleverans
+  // trailing amount so 149 cannot be read as the fee for Delad pall too.
+  const showHemleveransTrailingAmount =
+    !(directBoxCheckoutEnabled && directBoxAvailability.offered);
 
   const channelDisplayShippingSek = useMemo(
     () =>
@@ -4577,7 +4604,12 @@ function CheckoutContent({
                 )}
 
                 <div className="flex items-center justify-between pt-2 text-base font-medium text-foreground">
-                  <span>{t("checkout.total")}</span>
+                  <span>
+                    {t("checkout.total")}{" "}
+                    <span className="text-sm font-normal text-muted-foreground">
+                      {t("checkout.dualOfferInclVat")}
+                    </span>
+                  </span>
                   <span className="tabular-nums text-foreground">
                     {showTotalSkeleton || displayTotal == null ? (
                       <span
@@ -4809,21 +4841,28 @@ function CheckoutContent({
                                       <span className="block font-medium">
                                         {t("checkout.dualOfferSharedTitle")}
                                       </span>
-                                      {typeof sharedShippingSek === "number" ? (
-                                        <span className="block text-muted-foreground tabular-nums">
-                                          {t("checkout.fulfillmentSharedSubtitle", {
-                                            shipping:
-                                              formatChargedAmount(
-                                                sharedShippingSek,
-                                              ),
-                                          })}
-                                        </span>
-                                      ) : shippingDisplayPending ? (
-                                        <span
-                                          className="mt-1 inline-block h-3 w-40 animate-pulse rounded bg-muted"
-                                          aria-hidden
-                                        />
-                                      ) : null}
+                                      {/* min-h keeps 390 layout from jumping when the other option wraps */}
+                                      <span className="mt-0.5 block min-h-[2.75rem] text-muted-foreground tabular-nums leading-snug">
+                                        {typeof sharedShippingSek === "number"
+                                          ? t(
+                                              "checkout.fulfillmentSharedSubtitle",
+                                              {
+                                                shipping: formatChargedAmount(
+                                                  sharedShippingSek,
+                                                ),
+                                              },
+                                            )
+                                          : shippingDisplayPending
+                                            ? null
+                                            : "\u00a0"}
+                                        {typeof sharedShippingSek !== "number" &&
+                                        shippingDisplayPending ? (
+                                          <span
+                                            className="mt-1 inline-block h-3 w-40 animate-pulse rounded bg-muted"
+                                            aria-hidden
+                                          />
+                                        ) : null}
+                                      </span>
                                     </span>
                                   </label>
                                   <label
@@ -4858,32 +4897,31 @@ function CheckoutContent({
                                       <span className="block font-medium">
                                         {t("checkout.dualOfferDirectTitle")}
                                       </span>
-                                      {typeof directShippingSek === "number" ? (
-                                        <span className="block text-muted-foreground tabular-nums">
-                                          {t(
-                                            "checkout.fulfillmentDirectSubtitle",
-                                            {
-                                              shipping:
-                                                formatChargedAmount(
-                                                  directShippingSek,
+                                      <span className="mt-0.5 block min-h-[2.75rem] text-muted-foreground tabular-nums leading-snug">
+                                        {typeof directShippingSek === "number"
+                                          ? t(
+                                              "checkout.fulfillmentDirectSubtitle",
+                                              {
+                                                shipping: formatChargedAmount(
+                                                  directPerBoxShippingSek,
                                                 ),
-                                              estimate: directBoxEtaLabel,
-                                              percent: String(
-                                                directBoxMarkupPercent,
-                                              ),
-                                            },
-                                          )}
-                                        </span>
-                                      ) : shippingDisplayPending ? (
-                                        <span
-                                          className="mt-1 inline-block h-3 w-36 animate-pulse rounded bg-muted"
-                                          aria-hidden
-                                        />
-                                      ) : (
-                                        <span className="block text-muted-foreground">
-                                          {directBoxEtaLabel}
-                                        </span>
-                                      )}
+                                                estimate: directBoxEtaLabel,
+                                                percent: String(
+                                                  directBoxMarkupPercent,
+                                                ),
+                                              },
+                                            )
+                                          : shippingDisplayPending
+                                            ? null
+                                            : directBoxEtaLabel}
+                                        {typeof directShippingSek !==
+                                          "number" && shippingDisplayPending ? (
+                                          <span
+                                            className="mt-1 inline-block h-3 w-36 animate-pulse rounded bg-muted"
+                                            aria-hidden
+                                          />
+                                        ) : null}
+                                      </span>
                                       {!directBoxAvailability.deliverySelectable ? (
                                         <span className="mt-0.5 block text-amber-500">
                                           {t(
@@ -4897,26 +4935,28 @@ function CheckoutContent({
                               )}
                             </div>
                           </div>
-                          <div className="flex shrink-0 items-center gap-2">
-                            <span className="whitespace-nowrap text-sm tabular-nums text-foreground">
-                              {chargedShippingLabel ? (
-                                chargedShippingLabel
-                              ) : channelDisplayShippingSek != null ? (
-                                formatChargedAmount(channelDisplayShippingSek)
-                              ) : shippingDisplayPending || hasPostalCode ? (
-                                <span
-                                  className="inline-block h-4 w-12 animate-pulse rounded bg-muted"
-                                  aria-hidden
-                                  data-testid="checkout-shipping-skeleton"
-                                />
-                              ) : lowestShippingSek != null ? (
-                                t("checkout.shippingFromAmount", {
-                                  amount:
-                                    formatChargedAmount(lowestShippingSek),
-                                })
-                              ) : null}
-                            </span>
-                          </div>
+                          {showHemleveransTrailingAmount ? (
+                            <div className="flex shrink-0 items-center gap-2">
+                              <span className="whitespace-nowrap text-sm tabular-nums text-foreground">
+                                {chargedShippingLabel ? (
+                                  chargedShippingLabel
+                                ) : channelDisplayShippingSek != null ? (
+                                  formatChargedAmount(channelDisplayShippingSek)
+                                ) : shippingDisplayPending || hasPostalCode ? (
+                                  <span
+                                    className="inline-block h-4 w-12 animate-pulse rounded bg-muted"
+                                    aria-hidden
+                                    data-testid="checkout-shipping-skeleton"
+                                  />
+                                ) : lowestShippingSek != null ? (
+                                  t("checkout.shippingFromAmount", {
+                                    amount:
+                                      formatChargedAmount(lowestShippingSek),
+                                  })
+                                ) : null}
+                              </span>
+                            </div>
+                          ) : null}
                         </div>
                       </div>
                     ) : null}
@@ -5621,12 +5661,18 @@ function CheckoutContent({
                             </Label>
                             <Input
                               id="age-dob"
+                              name="pact-age-confirm"
                               type="text"
                               inputMode="numeric"
-                              // Juliette: require an active age answer each visit;
-                              // never seed DOB from browser autofill / local draft.
+                              // Require an active age answer each visit; block
+                              // browser autofill / password-manager DOB seeds.
                               // Server profile.date_of_birth still prefills when set.
                               autoComplete="off"
+                              autoCorrect="off"
+                              spellCheck={false}
+                              data-lpignore="true"
+                              data-1p-ignore="true"
+                              data-form-type="other"
                               placeholder={t("checkout.dobPlaceholder")}
                               value={dateOfBirth}
                               onChange={(e) =>
@@ -6056,7 +6102,10 @@ function CheckoutContent({
                               </p>
                               <div className="flex items-center justify-between py-4">
                                 <span className="text-base font-semibold text-foreground">
-                                  {t("checkout.total")}
+                                  {t("checkout.total")}{" "}
+                                  <span className="text-sm font-normal text-muted-foreground">
+                                    {t("checkout.dualOfferInclVat")}
+                                  </span>
                                 </span>
                                 <span className="text-2xl font-bold tabular-nums text-foreground">
                                   {displayTotal != null ? (

@@ -30,7 +30,7 @@ function memoryStorage(initial: Record<string, string> = {}) {
   };
 }
 
-describe("scrubCheckoutDobFromBrowserStorage (Juliette)", () => {
+describe("scrubCheckoutDobFromBrowserStorage (Camille / Juliette)", () => {
   it("strips DOB fields from a draft object without touching contact/address", () => {
     const draft = {
       email: "guest@example.com",
@@ -57,19 +57,35 @@ describe("scrubCheckoutDobFromBrowserStorage (Juliette)", () => {
     });
   });
 
-  it("scrubs DOB from localStorage draft and deletes standalone DOB keys", () => {
-    const draftKey = CHECKOUT_LOCAL_DRAFT_STORAGE_KEYS[0];
+  it("scrubs Camille 1985-05-15 from pre-PR289 keys (checkoutFormData + standalone)", () => {
     const local = memoryStorage({
-      [draftKey]: JSON.stringify({
-        email: "guest@example.com",
-        street: "Drottninggatan 12",
-        date_of_birth: "1988-05-01",
+      checkoutFormData: JSON.stringify({
+        fullName: "Camille Test",
+        email: "camille@example.com",
+        phone: "0701112233",
+        street: "Gatan 1",
+        postcode: "11151",
+        city: "Stockholm",
+        countryCode: "SE",
+        dateOfBirth: "1985-05-15",
+        date_of_birth: "1985-05-15",
       }),
-      date_of_birth: "1988-05-01",
+      date_of_birth: "1985-05-15",
+      age_dob: "1985-05-15",
+      "age-dob": "1985-05-15",
+      pact_checkout_draft: JSON.stringify({
+        email: "keep@example.com",
+        street: "Keepgatan 2",
+        dob: "1985-05-15",
+      }),
       other_pref: "keep-me",
     });
     const session = memoryStorage({
-      checkout_dateOfBirth: "1988-05-01",
+      checkoutFormData: JSON.stringify({
+        email: "session@example.com",
+        dateOfBirth: "1985-05-15",
+      }),
+      checkout_dateOfBirth: "1985-05-15",
       pact_checkout_started: "1",
     });
 
@@ -79,15 +95,50 @@ describe("scrubCheckoutDobFromBrowserStorage (Juliette)", () => {
     });
 
     expect(result.fieldsRemoved).toBeGreaterThan(0);
+
     const localDump = local._dump();
     expect(localDump.other_pref).toBe("keep-me");
     expect(localDump.date_of_birth).toBeUndefined();
-    expect(JSON.parse(localDump[draftKey])).toEqual({
-      email: "guest@example.com",
-      street: "Drottninggatan 12",
+    expect(localDump.age_dob).toBeUndefined();
+    expect(localDump["age-dob"]).toBeUndefined();
+    expect(JSON.parse(localDump.checkoutFormData)).toEqual({
+      fullName: "Camille Test",
+      email: "camille@example.com",
+      phone: "0701112233",
+      street: "Gatan 1",
+      postcode: "11151",
+      city: "Stockholm",
+      countryCode: "SE",
     });
-    expect(session._dump().pact_checkout_started).toBe("1");
-    expect(session._dump().checkout_dateOfBirth).toBeUndefined();
+    expect(JSON.parse(localDump.pact_checkout_draft)).toEqual({
+      email: "keep@example.com",
+      street: "Keepgatan 2",
+    });
+    expect(draftContainsDobField(JSON.parse(localDump.checkoutFormData))).toBe(
+      false,
+    );
+
+    const sessionDump = session._dump();
+    expect(sessionDump.pact_checkout_started).toBe("1");
+    expect(sessionDump.checkout_dateOfBirth).toBeUndefined();
+    expect(JSON.parse(sessionDump.checkoutFormData).dateOfBirth).toBeUndefined();
+  });
+
+  it("deletes plain ISO date under checkout-ish key names", () => {
+    const local = memoryStorage({
+      checkout_saved_dob: "1985-05-15",
+      random_note: "1985-05-15",
+    });
+    scrubCheckoutDobFromBrowserStorage({ localStorage: local });
+    const dump = local._dump();
+    expect(dump.checkout_saved_dob).toBeUndefined();
+    // Non-checkout key with ISO date alone is left (avoid collateral deletes).
+    expect(dump.random_note).toBe("1985-05-15");
+  });
+
+  it("lists known draft keys including legacy checkoutFormData", () => {
+    expect(CHECKOUT_LOCAL_DRAFT_STORAGE_KEYS).toContain("checkoutFormData");
+    expect(CHECKOUT_LOCAL_DRAFT_STORAGE_KEYS).toContain("pact_checkout_draft");
   });
 
   it("checkout client wires scrub on mount and disables DOB autocomplete", async () => {

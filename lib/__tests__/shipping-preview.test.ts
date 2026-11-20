@@ -54,6 +54,24 @@ describe("buildShippingPreview", () => {
     });
   });
 
+  it("direct_box: 12 bottles = 2 boxes = 298 SEK shipping", () => {
+    const preview = buildShippingPreview({
+      countryCode: "SE",
+      bottleCount: 12,
+      productSubtotalSek: 2064,
+      rates: [PACT_SE_99, DIRECT_SE_149],
+      directBoxEnabled: true,
+    });
+    expect(preview.bottle_count).toBe(12);
+    expect(preview.direct_box).toMatchObject({
+      shipping_sek: 298,
+      complete: true,
+      rate_channel: "direct_box",
+    });
+    // Shared remains flat 99 regardless of bottle count for this rate.
+    expect(preview.shared_pallet?.shipping_sek).toBe(99);
+  });
+
   it("omits direct_box when flag is off", () => {
     const preview = buildShippingPreview({
       countryCode: "SE",

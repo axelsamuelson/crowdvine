@@ -1,10 +1,11 @@
 /**
- * Juliette (2026-11-20): never persist date of birth in browser storage.
- * Scrub any legacy DOB fields from checkout drafts on visit without touching
- * email / name / phone / address. Age must be entered each visit unless the
- * account already has a server-side date_of_birth (profile prefill).
+ * Never persist date of birth in browser storage (Juliette / Camille).
+ * On every checkout visit: delete standalone DOB keys and strip DOB fields from
+ * legacy checkout/form JSON blobs — without clearing email/name/phone/address.
+ * Server profile.date_of_birth may still prefill for signed-in accounts.
  */
 
+/** Known checkout draft / form blob keys (current + pre-PR289 / speculative). */
 export const CHECKOUT_LOCAL_DRAFT_STORAGE_KEYS = [
   "pact_checkout_draft",
   "pact-checkout-draft",
@@ -12,10 +13,27 @@ export const CHECKOUT_LOCAL_DRAFT_STORAGE_KEYS = [
   "checkout-draft",
   "cv_checkout_draft",
   "cv-checkout-draft",
+  // Legacy session blobs (removed from app ~086c6460; may still sit in browsers)
+  "checkoutFormData",
+  "checkoutZoneInfo",
+  "checkoutForm",
+  "checkout_form",
+  "checkout_form_draft",
+  "formDraft",
+  "pact_checkout_form",
+  "pact-checkout-form",
+  "pact_checkout",
+  "pact-checkout",
+  "cv_checkout_form",
+  "cv-checkout-form",
+  "guest_checkout_draft",
+  "guest-checkout-draft",
+  "delivery_draft",
+  "deliveryDraft",
 ] as const;
 
-/** Field names that must never remain in local/session storage. */
-export const CHECKOUT_DOB_FIELD_KEYS = [
+/** Standalone keys that must be deleted entirely if present. */
+export const CHECKOUT_DOB_STANDALONE_KEYS = [
   "date_of_birth",
   "dateOfBirth",
   "dob",
@@ -23,28 +41,79 @@ export const CHECKOUT_DOB_FIELD_KEYS = [
   "birthDate",
   "födelseDatum",
   "fodelsedatum",
+  "födelsedatum",
+  "checkout_date_of_birth",
+  "checkout_dateOfBirth",
+  "checkout_dob",
+  "checkout-dob",
+  "age_dob",
+  "age-dob",
+  "ageDob",
+  "age_date_of_birth",
+  "pact_dob",
+  "pact_date_of_birth",
+  "pact-date-of-birth",
+  "cv_dob",
+  "cv_date_of_birth",
 ] as const;
 
-const DOB_KEY_SET = new Set<string>(
+/** Field names stripped from inside JSON objects. */
+export const CHECKOUT_DOB_FIELD_KEYS = [
+  "date_of_birth",
+  "dateOfBirth",
+  "dob",
+  "birth_date",
+  "birthDate",
+  "birth_year",
+  "birthYear",
+  "födelseDatum",
+  "fodelsedatum",
+  "födelsedatum",
+  "age_dob",
+  "ageDob",
+  "ageDate",
+  "age_date",
+] as const;
+
+const DOB_FIELD_SET = new Set<string>(
   CHECKOUT_DOB_FIELD_KEYS.map((k) => k.toLowerCase()),
 );
 
-function isDobFieldName(key: string): boolean {
-  const k = key.trim().toLowerCase();
-  if (DOB_KEY_SET.has(k)) return true;
-  // Standalone keys like "checkout_date_of_birth"
+const DOB_STANDALONE_SET = new Set<string>(
+  CHECKOUT_DOB_STANDALONE_KEYS.map((k) => k.toLowerCase()),
+);
+
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+function normalizeKey(key: string): string {
+  return key.trim().toLowerCase();
+}
+
+/** True when a storage / JSON field name looks like a DOB carrier. */
+export function isDobFieldName(key: string): boolean {
+  const k = normalizeKey(key);
+  if (DOB_FIELD_SET.has(k) || DOB_STANDALONE_SET.has(k)) return true;
   return (
     k.includes("date_of_birth") ||
     k.includes("dateofbirth") ||
+    k.includes("date-of-birth") ||
     /(^|[._-])dob($|[._-])/.test(k) ||
     k.includes("fodelsedatum") ||
-    k.includes("födelsedatum")
+    k.includes("födelsedatum") ||
+    k.includes("birthdate") ||
+    k.includes("birth_date") ||
+    k.includes("birth-date") ||
+    (k.includes("födelse") && !k.includes("policy")) ||
+    (k.includes("fodelse") && !k.includes("policy"))
   );
+}
+
+function isIsoDateOnly(value: unknown): boolean {
+  return typeof value === "string" && ISO_DATE_RE.test(value.trim());
 }
 
 /**
  * Remove DOB fields from a parsed draft object. Other fields unchanged.
- * Returns whether anything was removed.
  */
 export function stripDobFieldsFromDraft(
   value: unknown,
@@ -60,6 +129,7 @@ export function stripDobFieldsFromDraft(
       removed = true;
       continue;
     }
+    // Nested form bags
     if (v != null && typeof v === "object" && !Array.isArray(v)) {
       const nested = stripDobFieldsFromDraft(v);
       next[key] = nested.next;
@@ -97,9 +167,20 @@ function scrubOneStorage(storage: StorageLike | null | undefined): {
     return { keysTouched, fieldsRemoved };
   }
 
+  // Always try known draft keys even if length enumeration missed them.
+  for (const draftKey of CHECKOUT_LOCAL_DRAFT_STORAGE_KEYS) {
+    if (!keys.includes(draftKey)) keys.push(draftKey);
+  }
+  for (const standalone of CHECKOUT_DOB_STANDALONE_KEYS) {
+    if (!keys.includes(standalone)) keys.push(standalone);
+  }
+
   for (const key of keys) {
     try {
-      // Standalone DOB keys (legacy) — delete entirely.
+      const raw = storage.getItem(key);
+      if (raw == null) continue;
+
+      // Standalone DOB key names — delete entirely.
       if (isDobFieldName(key)) {
         storage.removeItem(key);
         keysTouched.push(key);
@@ -107,20 +188,46 @@ function scrubOneStorage(storage: StorageLike | null | undefined): {
         continue;
       }
 
-      const raw = storage.getItem(key);
-      if (raw == null || raw === "") continue;
-      // Only rewrite JSON objects that look like drafts / form blobs.
       const trimmed = raw.trim();
-      if (!trimmed.startsWith("{")) continue;
+
+      // Plain ISO date stored under a checkout/form-ish key (legacy mistake).
+      if (
+        isIsoDateOnly(trimmed) &&
+        /checkout|form|guest|delivery|address|age|pact|cv[_-]/i.test(key)
+      ) {
+        storage.removeItem(key);
+        keysTouched.push(key);
+        fieldsRemoved += 1;
+        continue;
+      }
+
+      if (!trimmed.startsWith("{") && !trimmed.startsWith("[")) continue;
+
       let parsed: unknown;
       try {
         parsed = JSON.parse(trimmed);
       } catch {
         continue;
       }
+
+      if (Array.isArray(parsed)) {
+        // Rare: array of form steps — strip each object.
+        let anyRemoved = false;
+        const nextArr = parsed.map((item) => {
+          const { next, removed } = stripDobFieldsFromDraft(item);
+          if (removed) anyRemoved = true;
+          return next;
+        });
+        if (anyRemoved) {
+          storage.setItem(key, JSON.stringify(nextArr));
+          keysTouched.push(key);
+          fieldsRemoved += 1;
+        }
+        continue;
+      }
+
       const { next, removed } = stripDobFieldsFromDraft(parsed);
       if (!removed) continue;
-      // Count removed top-level + nested DOB keys approximately.
       fieldsRemoved += 1;
       keysTouched.push(key);
       storage.setItem(key, JSON.stringify(next));
@@ -129,32 +236,11 @@ function scrubOneStorage(storage: StorageLike | null | undefined): {
     }
   }
 
-  // Known draft keys: ensure present even if empty/non-JSON previously.
-  for (const draftKey of CHECKOUT_LOCAL_DRAFT_STORAGE_KEYS) {
-    if (keysTouched.includes(draftKey)) continue;
-    try {
-      const raw = storage.getItem(draftKey);
-      if (raw == null) continue;
-      const trimmed = raw.trim();
-      if (!trimmed.startsWith("{")) continue;
-      const parsed = JSON.parse(trimmed) as unknown;
-      const { next, removed } = stripDobFieldsFromDraft(parsed);
-      if (removed) {
-        storage.setItem(draftKey, JSON.stringify(next));
-        keysTouched.push(draftKey);
-        fieldsRemoved += 1;
-      }
-    } catch {
-      // ignore
-    }
-  }
-
   return { keysTouched, fieldsRemoved };
 }
 
 /**
- * Scrub DOB from localStorage + sessionStorage. Safe to call on every
- * checkout visit. Does not clear cookies or touch non-DOB draft fields.
+ * Scrub DOB from localStorage + sessionStorage. Safe on every checkout visit.
  */
 export function scrubCheckoutDobFromBrowserStorage(
   storages: {
@@ -178,7 +264,9 @@ export function scrubCheckoutDobFromBrowserStorage(
 /** True when a draft payload still contains a DOB field (for tests). */
 export function draftContainsDobField(value: unknown): boolean {
   if (value == null || typeof value !== "object") return false;
-  if (Array.isArray(value)) return false;
+  if (Array.isArray(value)) {
+    return value.some((item) => draftContainsDobField(item));
+  }
   for (const [key, v] of Object.entries(value as Record<string, unknown>)) {
     if (isDobFieldName(key)) return true;
     if (draftContainsDobField(v)) return true;
