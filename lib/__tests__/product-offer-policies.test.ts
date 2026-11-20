@@ -20,11 +20,13 @@ describe("PACT_B2C_MERCHANT_RETURN_POLICY", () => {
     expect(PACT_B2C_MERCHANT_RETURN_POLICY).toEqual({
       "@type": "MerchantReturnPolicy",
       applicableCountry: "SE",
+      returnPolicyCountry: "SE",
       returnPolicyCategory:
         "https://schema.org/MerchantReturnFiniteReturnWindow",
       merchantReturnDays: 14,
       returnMethod: "https://schema.org/ReturnByMail",
-      returnFees: "https://schema.org/ReturnShippingFees",
+      // No fixed fee → ReturnFeesCustomerResponsibility (not ReturnShippingFees)
+      returnFees: "https://schema.org/ReturnFeesCustomerResponsibility",
       refundType: "https://schema.org/FullRefund",
     });
     expect(PACT_B2C_MERCHANT_RETURN_POLICY).not.toHaveProperty(
@@ -241,17 +243,22 @@ describe("buildProductPdpJsonLd", () => {
       "https://pactwines.com/villkor",
     );
     expect(jsonLd.offers.hasMerchantReturnPolicy.applicableCountry).toBe("SE");
+    expect(jsonLd.offers.hasMerchantReturnPolicy.returnPolicyCountry).toBe(
+      "SE",
+    );
     expect(jsonLd.offers.hasMerchantReturnPolicy.merchantReturnDays).toBe(14);
     expect(jsonLd.offers.hasMerchantReturnPolicy.returnFees).toBe(
-      "https://schema.org/ReturnShippingFees",
+      "https://schema.org/ReturnFeesCustomerResponsibility",
     );
     expect(jsonLd.offers.hasMerchantReturnPolicy).not.toHaveProperty(
       "returnShippingFeesAmount",
     );
     expect(serialized).toContain("MerchantReturnFiniteReturnWindow");
     expect(serialized).toContain('"merchantReturnDays":14');
-    expect(serialized).toContain("ReturnShippingFees");
+    expect(serialized).toContain("ReturnFeesCustomerResponsibility");
+    expect(serialized).not.toContain("ReturnShippingFees");
     expect(serialized).toContain("merchantReturnLink");
+    expect(serialized).toContain("returnPolicyCountry");
     expect(serialized).toContain("PreOrder");
   });
 
