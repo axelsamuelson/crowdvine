@@ -16,6 +16,7 @@ import {
 import { resolveActiveGeoZoneForUser } from "@/lib/market/resolve-active-geo-zone";
 import { parseFulfillmentChannel } from "@/lib/commerce/fulfillment-channel";
 import { gateDirectBoxCheckoutRequest } from "@/lib/commerce/fulfillment-channel-server-gates";
+import { isGuestCheckoutEnabled } from "@/lib/checkout/guest-checkout-flag";
 
 type RequestBody = {
   pallet_id?: string;
@@ -33,11 +34,16 @@ type RequestBody = {
  * Authoritative checkout money breakdown for display.
  * Same mode-scoped math as /api/checkout/payment-intent + confirm.
  * direct_box NEVER returns pact/99 SEK shipping.
+ *
+ * When GUEST_CHECKOUT_ENABLED: anonymous carts may quote (0 points) so
+ * deliveryComplete can unlock before silent ensure-session. Flag OFF keeps
+ * the historical auth requirement.
  */
 export async function POST(request: Request) {
   try {
     const user = await getCurrentUser();
-    if (!user) {
+    const guestCheckoutEnabled = isGuestCheckoutEnabled();
+    if (!user && !guestCheckoutEnabled) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -80,17 +86,23 @@ export async function POST(request: Request) {
     const subtotalSek =
       parseFloat(String(cart.cost.totalAmount.amount)) || 0;
 
-    const activeZone = await resolveActiveGeoZoneForUser(user.id);
-    const zoneCountry = normalizeCheckoutShippingCountry(
-      activeZone.countryCode,
-    );
     const bodyCountry = normalizeCheckoutShippingCountry(
       typeof body?.country_code === "string" ? body.country_code : null,
     );
-    const countryCode =
-      bodyCountry && zoneCountry && bodyCountry === zoneCountry
-        ? bodyCountry
-        : zoneCountry;
+    let countryCode: string;
+    if (user?.id) {
+      const activeZone = await resolveActiveGeoZoneForUser(user.id);
+      const zoneCountry = normalizeCheckoutShippingCountry(
+        activeZone.countryCode,
+      );
+      countryCode =
+        bodyCountry && zoneCountry && bodyCountry === zoneCountry
+          ? bodyCountry
+          : zoneCountry;
+    } else {
+      // Anonymous guest quote: trust client country (checkout already SE-gated).
+      countryCode = bodyCountry || "SE";
+    }
 
     let shippingSek = 0;
     let shippingPending = false;
@@ -163,7 +175,10 @@ export async function POST(request: Request) {
       }
     }
 
-    const availablePoints = await getRedeemableBalance(user.id);
+    // Guests have no redeemable balance until ensure-session; keep points at 0.
+    const availablePoints = user?.id
+      ? await getRedeemableBalance(user.id)
+      : 0;
     const { maxPoints } = calculateBoostAwareMaxRedemption(
       boostedLineTotal,
       nonBoostedLineTotal,
@@ -180,7 +195,7 @@ export async function POST(request: Request) {
     );
 
     const { amountOre, components } = await computeExpectedAmountOre({
-      userId: user.id,
+      userId: user?.id ?? "guest",
       cartId: cart.id,
       shippingSek,
       voucherSek: voucherDiscountSek,

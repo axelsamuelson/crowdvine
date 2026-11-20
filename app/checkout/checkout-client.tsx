@@ -791,6 +791,36 @@ function CheckoutContent({
         selectedPallet.delivery_zone_id.trim() !== ""),
     [zoneInfo.selectedDeliveryZoneId, selectedPallet?.delivery_zone_id],
   );
+  /**
+   * Address + channel readiness without the quote gate. Silent ensure-session
+   * must use this — waiting on quote-gated deliveryComplete deadlocks guests
+   * when DIRECT_BOX_CHECKOUT_ENABLED makes /api/checkout/quote auth-required
+   * historically (quote needs session; session waited on deliveryComplete).
+   */
+  const guestEnsureSessionReady = useMemo(() => {
+    if (!hasZoneDeliveryReady) return false;
+    if (isUsConditional) {
+      if (!hasUsState) return false;
+      return selectedPallet != null;
+    }
+    if (directBoxCheckoutEnabled && fulfillmentChannel === "direct_box") {
+      return Boolean(directBoxAvailability.deliverySelectable);
+    }
+    if (!deliveryZoneReady) return false;
+    if (hasProducerItems) return selectedPallet != null;
+    return true;
+  }, [
+    hasZoneDeliveryReady,
+    isUsConditional,
+    hasUsState,
+    selectedPallet,
+    directBoxCheckoutEnabled,
+    fulfillmentChannel,
+    directBoxAvailability.deliverySelectable,
+    deliveryZoneReady,
+    hasProducerItems,
+  ]);
+
   const deliveryComplete = useMemo(
     () => {
       // Contact (name/email) is collected in payment / auth — do not block step 3.
@@ -1338,7 +1368,8 @@ function CheckoutContent({
 
   useEffect(() => {
     if (!useSilentEnsureSession) return;
-    if (!deliveryComplete || authReady || !authChecked) return;
+    // Use quote-free readiness — do not wait on deliveryComplete (quote gate).
+    if (!guestEnsureSessionReady || authReady || !authChecked) return;
     if (guestRequiresLogin) return;
 
     const email = (deliveryDraft?.email ?? "").trim().toLowerCase();
@@ -1428,7 +1459,7 @@ function CheckoutContent({
     };
   }, [
     useSilentEnsureSession,
-    deliveryComplete,
+    guestEnsureSessionReady,
     authReady,
     authChecked,
     deliveryDraft?.email,

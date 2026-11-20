@@ -137,6 +137,7 @@ describe("WIRED POST /api/checkout/quote (mode-scoped)", () => {
     });
     getRedeemableBalance.mockResolvedValue(0);
     delete process.env.DIRECT_BOX_CHECKOUT_ENABLED;
+    delete process.env.GUEST_CHECKOUT_ENABLED;
   });
 
   async function postQuote(body: Record<string, unknown>) {
@@ -213,6 +214,35 @@ describe("WIRED POST /api/checkout/quote (mode-scoped)", () => {
     });
     expect(res.status).toBe(400);
     expect((await res.json()).code).toBe("channel_spoof_rejected");
+  });
+
+  it("anonymous quote rejected when GUEST_CHECKOUT_ENABLED is off", async () => {
+    delete process.env.GUEST_CHECKOUT_ENABLED;
+    getCurrentUser.mockResolvedValue(null);
+    const res = await postQuote({
+      fulfillment_channel: "shared_pallet",
+      pallet_id: "pallet-1",
+      country_code: "SE",
+    });
+    expect(res.status).toBe(401);
+  });
+
+  it("anonymous guest quote allowed when GUEST_CHECKOUT_ENABLED (0 points)", async () => {
+    process.env.GUEST_CHECKOUT_ENABLED = "true";
+    getCurrentUser.mockResolvedValue(null);
+    resolveAndChargeCheckoutShipping.mockResolvedValue(PACT_RATE);
+    const res = await postQuote({
+      fulfillment_channel: "shared_pallet",
+      pallet_id: "pallet-1",
+      country_code: "SE",
+      pact_points_redeem: 500,
+    });
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.quote.shipping_sek).toBe(99);
+    expect(json.quote.pact_points_sek ?? 0).toBe(0);
+    expect(getRedeemableBalance).not.toHaveBeenCalled();
+    expect(resolveActiveGeoZoneForUser).not.toHaveBeenCalled();
   });
 
   it("cross-channel race: sequential shared then direct returns distinct totals", async () => {

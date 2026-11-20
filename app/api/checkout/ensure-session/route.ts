@@ -59,6 +59,17 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Already signed-in shoppers must not consume the signup rate budget —
+  // otherwise guest PE remounts / locale switches 429 after a few tries.
+  const existing = await getCurrentUser();
+  if (existing?.id) {
+    return NextResponse.json({
+      ok: true,
+      alreadyAuthenticated: true,
+      userId: existing.id,
+    });
+  }
+
   const clientId = getClientIdentifier(request);
   if (!signupLimiter.isAllowed(clientId)) {
     const resetTime = signupLimiter.getResetTime(clientId);
@@ -73,15 +84,6 @@ export async function POST(request: NextRequest) {
         headers: { "Retry-After": String(retryAfter) },
       },
     );
-  }
-
-  const existing = await getCurrentUser();
-  if (existing?.id) {
-    return NextResponse.json({
-      ok: true,
-      alreadyAuthenticated: true,
-      userId: existing.id,
-    });
   }
 
   const body = (await request.json().catch(() => null)) as {
