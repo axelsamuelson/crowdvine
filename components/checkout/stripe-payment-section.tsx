@@ -176,6 +176,36 @@ const publishableKey =
 const stripePromise =
   publishableKey.length > 0 ? loadStripe(publishableKey) : null;
 
+
+/** Deduplicate concurrent payment-intent creates for the same logical key. */
+type PaymentIntentHttpResult = {
+  ok: boolean;
+  status: number;
+  data: unknown;
+};
+
+const inflightPaymentIntentByKey = new Map<
+  string,
+  Promise<PaymentIntentHttpResult>
+>();
+
+function fetchPaymentIntentDeduped(
+  key: string,
+  init: RequestInit,
+): Promise<PaymentIntentHttpResult> {
+  const existing = inflightPaymentIntentByKey.get(key);
+  if (existing) return existing;
+  const p = (async (): Promise<PaymentIntentHttpResult> => {
+    const res = await fetch("/api/checkout/payment-intent", init);
+    const data: unknown = await res.json().catch(() => null);
+    return { ok: res.ok, status: res.status, data };
+  })().finally(() => {
+    inflightPaymentIntentByKey.delete(key);
+  });
+  inflightPaymentIntentByKey.set(key, p);
+  return p;
+}
+
 /** Start downloading Stripe.js during earlier checkout steps. */
 export function warmStripeJs(): void {
   void stripePromise;
@@ -665,10 +695,7 @@ export function StripePaymentSection({
       setError(null);
       setPaymentElementLoadError(null);
       try {
-        const res = await fetch("/api/checkout/payment-intent", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+        const intentBody = {
             pallet_id: palletId,
             pact_points_redeem: pactPointsRedeem,
             fulfillment_channel: fulfillmentChannel,
@@ -684,10 +711,23 @@ export function StripePaymentSection({
                   us_conditional_ack: true,
                 }
               : {}),
-          }),
+          };
+        const dedupeKey = [
+          palletId,
+          fulfillmentChannel,
+          String(pactPointsRedeem),
+          String(promoDiscountSek),
+          legalGate!.dateOfBirth,
+          legalGate!.acceptedTermsVersion || "",
+          usConditionalPayment ? "1" : "0",
+        ].join("|");
+        const res = await fetchPaymentIntentDeduped(dedupeKey, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(intentBody),
         });
 
-        const data: unknown = await res.json().catch(() => null);
+        const data = res.data;
         if (cancelled) return;
         if (!res.ok || !data || typeof data !== "object") {
           if (res.status === 403) {
@@ -879,14 +919,19 @@ export function StripePaymentSection({
             clientSecret,
             appearance: pactAppearance,
             locale: stripeLocale,
-            // Stripe iframes load fonts via absolute woff2 (cssSrc CDN path 404'd).
-            fonts: [
-              {
-                family: STRIPE_GEIST_FONT_FAMILY,
-                src: `url(${STRIPE_GEIST_SANS_WOFF2})`,
-                weight: "400",
-              },
-            ],
+            // Only register a custom font when we have a Stripe-safe src
+            // (no `@` in the URL — Stripe rejects those and PE can fail to load).
+            ...(STRIPE_GEIST_SANS_WOFF2
+              ? {
+                  fonts: [
+                    {
+                      family: STRIPE_GEIST_FONT_FAMILY,
+                      src: `url(${STRIPE_GEIST_SANS_WOFF2})`,
+                      weight: "400",
+                    },
+                  ],
+                }
+              : {}),
           }}
         >
           <StripeElementInner

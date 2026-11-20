@@ -11,6 +11,11 @@ import { LEGAL_VERSIONS } from "@/lib/legal/versions";
 import Link from "next/link";
 import { homeDeliveryGuidePath } from "@/lib/guides/home-delivery-guide";
 import type { Cart, CartItem } from "@/lib/shopify/types";
+import {
+  directBoxUnitPriceSek,
+  directBoxLineTotalSek,
+  getDirectBoxPriceMarkupPercent,
+} from "@/lib/commerce/direct-box-pricing";
 import { producerDisplayName } from "@/lib/producer-display-name";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -1880,134 +1885,9 @@ function CheckoutContent({
       return;
     }
 
+    // StripePaymentSection owns /api/checkout/payment-intent create.
+    // A parallel prefetch here caused triple PI calls + Elements remounts.
     warmStripeJs();
-
-    const promoSek = appliedDiscount?.discount_amount_sek ?? 0;
-    const key = [
-      selectedPallet.id,
-      String(redeemPoints),
-      String(promoSek),
-      isUsConditional ? "1" : "0",
-      legalGatePayload.dateOfBirth,
-      legalGatePayload.acceptedTermsVersion,
-    ].join("|");
-    if (stripePrefetchKeyRef.current === key) return;
-    stripePrefetchKeyRef.current = key;
-    // Keep any prior clientSecret mounted while the new intent loads — clearing
-    // here remounted StripePaymentSection and aborted in-flight PI (guest PE empty).
-
-    let cancelled = false;
-    void (async () => {
-      try {
-        const res = await fetch("/api/checkout/payment-intent", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            pallet_id: selectedPallet.id,
-            pact_points_redeem: redeemPoints,
-            fulfillment_channel: fulfillmentChannel,
-            dateOfBirth: legalGatePayload.dateOfBirth,
-            ...(legalGatePayload.acceptedTermsVersion
-              ? {
-                  acceptedTermsVersion: legalGatePayload.acceptedTermsVersion,
-                }
-              : {}),
-            ...(promoSek > 0 ? { promo_discount_sek: promoSek } : {}),
-            ...(isUsConditional ? { us_conditional_ack: true } : {}),
-          }),
-        });
-        const data: unknown = await res.json().catch(() => null);
-        if (cancelled) return;
-        if (!res.ok || !data || typeof data !== "object") {
-          if (res.status === 403) {
-            handleLegalGateError({ status: 403 });
-          } else if (res.status === 409) {
-            const currentVersion =
-              data &&
-              typeof data === "object" &&
-              "currentVersion" in data &&
-              typeof (data as { currentVersion?: unknown }).currentVersion ===
-                "string"
-                ? (data as { currentVersion: string }).currentVersion
-                : undefined;
-            handleLegalGateError({ status: 409, currentVersion });
-          }
-          return;
-        }
-
-        const d = data as {
-          paymentMode?: unknown;
-          clientSecret?: unknown;
-          intentId?: unknown;
-          bottlesFilled?: unknown;
-          amountInOre?: unknown;
-          quote?: unknown;
-        };
-        const mode =
-          d.paymentMode === "setup_intent" || d.paymentMode === "payment_intent"
-            ? d.paymentMode
-            : null;
-        const cs = typeof d.clientSecret === "string" ? d.clientSecret : null;
-        const id = typeof d.intentId === "string" ? d.intentId : null;
-        if (!mode || !cs || !id) return;
-
-        const filled =
-          typeof d.bottlesFilled === "number" ? d.bottlesFilled : 0;
-        const ore =
-          typeof d.amountInOre === "number" && Number.isFinite(d.amountInOre)
-            ? d.amountInOre
-            : null;
-
-        let quote: PrefetchedStripeIntent["quote"];
-        if (d.quote && typeof d.quote === "object") {
-          const q = d.quote as Record<string, unknown>;
-          const num = (v: unknown) =>
-            typeof v === "number" && Number.isFinite(v) ? v : 0;
-          quote = {
-            total_sek: num(q.total_sek),
-            total_ore: num(q.total_ore),
-            subtotal_sek: num(q.subtotal_sek),
-            shipping_sek: num(q.shipping_sek),
-            shipping_pending: q.shipping_pending === true,
-            promo_discount_sek: num(q.promo_discount_sek),
-            pact_points_sek: num(q.pact_points_sek),
-          };
-          setServerQuote({
-            subtotal_sek: quote.subtotal_sek,
-            shipping_sek: quote.shipping_sek,
-            shipping_pending: quote.shipping_pending === true,
-            promo_discount_sek: quote.promo_discount_sek,
-            voucher_discount_sek: 0,
-            pact_points_sek: quote.pact_points_sek,
-            pact_points_redeem: redeemPoints,
-            total_sek: quote.total_sek,
-            total_ore: quote.total_ore,
-            fulfillment_channel: fulfillmentChannel,
-            rate_channel:
-              fulfillmentChannel === "direct_box" ? "direct_box" : "pact",
-          });
-          setQuoteStatus("ready");
-        }
-
-        setPrefetchedStripeIntent({
-          paymentMode: mode,
-          clientSecret: cs,
-          intentId: id,
-          bottlesFilled: filled,
-          amountInOre: ore,
-          quote,
-        });
-      } catch (e) {
-        if (cancelled) return;
-        if (stripePrefetchKeyRef.current === key) {
-          stripePrefetchKeyRef.current = null;
-        }
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
   }, [
     legacySharedPalletPaymentAllowed,
     isValidCart,
@@ -2016,12 +1896,8 @@ function CheckoutContent({
     legalGatePayload,
     authReady,
     selectedPallet?.id,
-    redeemPoints,
-    appliedDiscount?.discount_amount_sek,
     isUsConditional,
     usConditionalAck,
-    handleLegalGateError,
-    fulfillmentChannel,
   ]);
 
   // If age/terms become incomplete again, collapse payment.
@@ -3683,18 +3559,28 @@ function CheckoutContent({
     const stampedUnit = parseFloat(
       product.priceRange?.minVariantPrice?.amount ?? "",
     );
-    const unitAmount =
+    const catalogUnit =
       Number.isFinite(stampedUnit) && stampedUnit > 0
         ? stampedUnit
         : line.quantity > 0
           ? totalForLine / line.quantity
           : totalForLine;
+    // direct_box quote subtotal includes markup — line row must match (not catalog 172).
+    const markupPct = getDirectBoxPriceMarkupPercent();
+    const unitAmount =
+      fulfillmentChannel === "direct_box"
+        ? directBoxUnitPriceSek(catalogUnit, markupPct)
+        : catalogUnit;
+    const lineAmount =
+      fulfillmentChannel === "direct_box"
+        ? directBoxLineTotalSek(catalogUnit, line.quantity, markupPct)
+        : totalForLine;
     const unitPriceLabel = formatChargedAmount(
       unitAmount,
       line.cost.totalAmount.currencyCode,
     );
     const lineTotalLabel = formatChargedAmount(
-      totalForLine,
+      lineAmount,
       line.cost.totalAmount.currencyCode,
     );
     return (
