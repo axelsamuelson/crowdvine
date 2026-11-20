@@ -45,7 +45,6 @@ import {
   freshestSyncedAt,
   getGuideWines,
   limitedAvailabilityLabel,
-  placementBadgeForCard,
   primaryStyleLabel,
   systembolagetProductUrl,
   type GuideWineCategory,
@@ -543,8 +542,8 @@ export function RankedWineRow({
   /** Rank number. Ranked lists leave this on. */
   showRank?: boolean;
   /**
-   * Up/down or "Ny" under the rank, compared with the previous visible place.
-   * The release calendar turns this off.
+   * ↑/↓ under the rank, compared with the previous visible place.
+   * List-«Ny» is not shown. The release calendar turns this off.
    */
   showMovement?: boolean;
   /**
@@ -575,22 +574,11 @@ export function RankedWineRow({
   const launchBadgeLabel = showLaunchBadge
     ? translate(locale, "systembolagetGuides.launchBadge")
     : null;
-  const placementBadge = showMovement
+  /** ↑/↓ only — list-«Ny»/«New» is not shown on type guides. */
+  const arrowBadge = showMovement
     ? formatPlacementBadge(rank, wine.previous_rank, locale)
     : null;
-  const movementBadge = placementBadgeForCard(
-    placementBadge,
-    showLaunchBadge,
-  );
-  const isListNewLabel =
-    movementBadge === "Ny" || movementBadge === "New";
-  /** Launch «NY»/«NEW» and list-«Ny»/«New» share one outlined mark. */
-  const statusBadgeLabel =
-    launchBadgeLabel ?? (isListNewLabel ? movementBadge : null);
-  /** ↑/↓ stay as quiet text; not the outlined status mark. */
-  const arrowBadge =
-    movementBadge && !isListNewLabel ? movementBadge : null;
-  const showRankBadge = Boolean(statusBadgeLabel || arrowBadge);
+  const showRankBadge = Boolean(launchBadgeLabel || arrowBadge);
   const meta = wineMetaParts(wine, locale);
   const assortment = assortmentLabel(wine.assortment_text, locale);
   const limitedLabel =
@@ -636,9 +624,9 @@ export function RankedWineRow({
           </span>
           {showRankBadge ? (
             <span className="flex flex-col items-center gap-1.5">
-              {statusBadgeLabel ? (
+              {launchBadgeLabel ? (
                 <SystembolagetRankStatusBadge>
-                  {statusBadgeLabel}
+                  {launchBadgeLabel}
                 </SystembolagetRankStatusBadge>
               ) : null}
               {arrowBadge ? (

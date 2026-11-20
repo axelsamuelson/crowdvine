@@ -3,9 +3,8 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 /**
- * Shared outline badge for Systembolaget ranked cards:
- * launch «NY»/«NEW» and list-«Ny»/«New» use the same mark.
- * Movement arrows (↑/↓) stay outside this component.
+ * Outline badge for Systembolaget ranked cards: launch «NY»/«NEW» only.
+ * Movement arrows (↑/↓) stay outside this component. List-«Ny» is not shown.
  */
 export function SystembolagetRankStatusBadge({
   children,
