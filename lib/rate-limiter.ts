@@ -66,7 +66,11 @@ class RateLimiter {
 
 // Create rate limiters for different endpoints
 export const accessRequestLimiter = new RateLimiter(15 * 60 * 1000, 5); // 5 requests per 15 minutes
-export const signupLimiter = new RateLimiter(60 * 60 * 1000, 3); // 3 requests per hour
+// Prod stays strict; local/dev needs headroom for guest checkout screenshot loops.
+export const signupLimiter = new RateLimiter(
+  60 * 60 * 1000,
+  process.env.NODE_ENV === "development" ? 50 : 3,
+);
 export const generalLimiter = new RateLimiter(15 * 60 * 1000, 100); // 100 requests per 15 minutes
 /** Dirtywine B2B inquiry form — 5 submits per 15 minutes per IP. */
 export const b2bInquiryLimiter = new RateLimiter(15 * 60 * 1000, 5);

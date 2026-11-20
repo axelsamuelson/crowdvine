@@ -22,15 +22,28 @@ describe("DirectBoxDeliveryPromise gated by DIRECT_BOX_CHECKOUT_ENABLED", () => 
     expect(layout).toMatch(/showDirectBoxPromise=\{isDirectBoxCheckoutEnabled\(\)\}/);
   });
 
-  it("checkout shows direct promise only when directBoxCheckoutEnabled", () => {
+  it("checkout shows direct promise only when direct_box is selected", () => {
     const checkout = readFileSync(
       resolve(process.cwd(), "app/checkout/checkout-client.tsx"),
       "utf8",
     );
     expect(checkout).toMatch(
-      /directBoxCheckoutEnabled && producerDirectBoxOnly/,
+      /fulfillmentChannel === "direct_box" &&\s*directBoxCheckoutEnabled &&\s*producerDirectBoxOnly/,
     );
-    expect(checkout).toMatch(/checkout\.deliveryEstimate2to3Weeks/);
+    expect(checkout).toMatch(/commerce\.sharedPalletDelivery/);
+    expect(checkout).toMatch(/checkout\.dualOfferSharedTitle/);
+    expect(checkout).toMatch(/checkout\.dualOfferDirectTitle/);
+  });
+});
+
+describe("DirectBoxDeliveryPromise does not double the ETA line", () => {
+  it("skips timeTodo when already embedded in the promise string", () => {
+    const src = readFileSync(
+      resolve(process.cwd(), "components/commerce/direct-box-delivery-promise.tsx"),
+      "utf8",
+    );
+    expect(src).toMatch(/showTimeTodo/);
+    expect(src).toMatch(/promise\.toLowerCase\(\)\.includes/);
   });
 });
 

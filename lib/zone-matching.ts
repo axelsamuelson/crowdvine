@@ -636,10 +636,25 @@ type DeliveryZoneRow = {
   country_code?: string | null;
 };
 
+/**
+ * Stockholm county postals are roughly 10xxx–19xxx. Used only when Mapbox
+ * geocoding is down so we do not invent a Stockholm match for Kiruna etc.
+ * Prefer real geocode when available.
+ */
+export function isLikelyStockholmAreaPostal(
+  postcode: string | null | undefined,
+): boolean {
+  const digits = String(postcode ?? "").replace(/\D/g, "");
+  if (digits.length < 2) return false;
+  const prefix = Number.parseInt(digits.slice(0, 2), 10);
+  return Number.isFinite(prefix) && prefix >= 10 && prefix <= 19;
+}
+
 async function resolveSeDeliveryZoneFallback(
   sb: SupabaseAdmin,
   preferredDeliveryZoneId: string | null,
   deliveryZones: DeliveryZoneRow[],
+  postcode?: string | null,
 ): Promise<DeliveryZoneOption | null> {
   const preferred = await loadPreferredDeliveryZone(
     sb,
@@ -653,6 +668,11 @@ async function resolveSeDeliveryZoneFallback(
       centerLon: preferred.center_lon,
       radiusKm: preferred.radius_km,
     };
+  }
+  // Without coordinates, never invent Stockholm coverage for Norrland postals
+  // (e.g. 98131 Kiruna) — that blocked honest direct_box-only checkout.
+  if (!isLikelyStockholmAreaPostal(postcode)) {
+    return null;
   }
   const stockholm =
     deliveryZones.find(
@@ -991,6 +1011,7 @@ export async function determineZones(
           sb,
           preferredDeliveryZoneId,
           deliveryZones,
+          deliveryAddress.postcode,
         );
         if (fallback) {
           deliveryZoneId = fallback.id;
@@ -1022,8 +1043,28 @@ export async function determineZones(
           cacheZoneResultIfSafe(cacheKey, fallbackResult);
           return fallbackResult;
         }
-        deliveryZoneId = null;
-        deliveryZoneName = null;
+        // Geocode down and postal outside Stockholm-area → honest out-of-zone
+        // (direct_box may still fulfill; shared_pallet must not pretend coverage).
+        const noDeliveryOnGeocodeFail: ZoneMatchResult = {
+          pickupZoneId,
+          pickupZoneName,
+          deliveryZoneId: null,
+          deliveryZoneName: null,
+          availableDeliveryZones: [],
+          pallets: [],
+          shippingRegionIdForRouting,
+          noDeliveryZone: {
+            error: "NO_DELIVERY_ZONE",
+            message: "We don't deliver to your area yet.",
+            address: {
+              city: deliveryAddress.city,
+              postcode: deliveryAddress.postcode,
+              countryCode: deliveryAddress.countryCode,
+            },
+          },
+        };
+        cacheZoneResultIfSafe(cacheKey, noDeliveryOnGeocodeFail);
+        return noDeliveryOnGeocodeFail;
       } else {
         const { lat: addressLat, lon: addressLon } = geocodeResult;
         console.log("✅ Geocoding successful:", {

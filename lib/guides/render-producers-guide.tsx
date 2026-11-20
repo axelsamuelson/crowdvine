@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { GuideRankEntry } from "@/components/guides/guide-rank-entry";
 import { GuideRankNumber } from "@/components/guides/guide-rank-number";
 import { GuideRankTable } from "@/components/guides/guide-rank-table";
+import { GuideShopLinksBlock } from "@/components/guides/guide-shop-links-block";
 import { ProducerRankChange } from "@/components/guides/producer-rank-change";
 import { SystembolagetBagIcon } from "@/components/guides/systembolaget-bag-icon";
 import { SystembolagetProducerMark } from "@/components/guides/systembolaget-producer-mark";
@@ -551,6 +552,11 @@ export async function renderProducersGuidePage(locale: AppLocale) {
             ))}
           </ul>
         </section>
+
+        <GuideShopLinksBlock
+          guidePath={guidePath("producers", locale)}
+          locale={locale}
+        />
 
         <nav className="mt-14 space-y-3 border-t border-border pt-8 text-sm">
           <p>

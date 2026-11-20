@@ -77,8 +77,20 @@ export async function POST(request: Request) {
       (s, l) => s + (Number(l.quantity) || 0),
       0,
     );
-    const subtotalSek =
+    const catalogSubtotalSek =
       parseFloat(String(cart.cost.totalAmount.amount)) || 0;
+
+    // direct_box: bottle subtotal is catalog × markup (whole kronor), same as
+    // payment-intent — never paint catalog Delsumma with direct Frakt (Camille).
+    const { sumDirectBoxCartMoney } = await import(
+      "@/lib/commerce/direct-box-cart-subtotal"
+    );
+    const directMoney =
+      fulfillmentChannel === "direct_box"
+        ? sumDirectBoxCartMoney(cart.lines)
+        : null;
+    const productSubtotalSek =
+      directMoney?.subtotalSek ?? catalogSubtotalSek;
 
     const activeZone = await resolveActiveGeoZoneForUser(user.id);
     const zoneCountry = normalizeCheckoutShippingCountry(
@@ -102,7 +114,7 @@ export async function POST(request: Request) {
         selectedPalletId: pallet_id || null,
         countryCode,
         bottleCount,
-        productSubtotalSek: subtotalSek,
+        productSubtotalSek,
       });
       if (!auth.ok) {
         return NextResponse.json(
@@ -137,7 +149,7 @@ export async function POST(request: Request) {
 
       const charge = await resolveAndChargeCheckoutShipping({
         bottleCount,
-        productSubtotalSek: subtotalSek,
+        productSubtotalSek,
         countryCode,
         fulfillmentMode: "shared_pallet",
         pallet: palletRow,
@@ -154,12 +166,17 @@ export async function POST(request: Request) {
 
     let boostedLineTotal = 0;
     let nonBoostedLineTotal = 0;
-    for (const line of cart.lines) {
-      const amt = parseFloat(String(line.cost.totalAmount.amount)) || 0;
-      if (line.merchandise.product.producerBoostActive === true) {
-        boostedLineTotal += amt;
-      } else {
-        nonBoostedLineTotal += amt;
+    if (directMoney) {
+      boostedLineTotal = directMoney.boostedLineTotalSek;
+      nonBoostedLineTotal = directMoney.nonBoostedLineTotalSek;
+    } else {
+      for (const line of cart.lines) {
+        const amt = parseFloat(String(line.cost.totalAmount.amount)) || 0;
+        if (line.merchandise.product.producerBoostActive === true) {
+          boostedLineTotal += amt;
+        } else {
+          nonBoostedLineTotal += amt;
+        }
       }
     }
 
@@ -188,6 +205,7 @@ export async function POST(request: Request) {
       promoSek: promoDiscountSek,
       displayMultiplier: 1,
       cart,
+      subtotalOverrideSek: directMoney?.subtotalSek ?? null,
     });
 
     const quote = buildCheckoutQuote({

@@ -58,10 +58,10 @@ describe("shared pallet close/delivery copy (owner — no Budbee)", () => {
 
   it("direct delivery copy has no carrier brand (Axel/Margaux 5–10 working days)", () => {
     expect(DIRECT_BOX_DELIVERY_COPY_SV).toBe(
-      "Direktleverans – 5–10 arbetsdagar",
+      "Direktleverans – 5–10 arbetsdagar · signatur och ålderskontroll",
     );
     expect(DIRECT_BOX_DELIVERY_COPY_EN).toBe(
-      "Direct delivery – 5–10 working days",
+      "Direct delivery – 5–10 working days · signature and age check",
     );
     expect(directBoxDeliveryTerms().previewLabelSv).toBe(
       DIRECT_BOX_DELIVERY_COPY_SV,
@@ -94,14 +94,14 @@ describe("shared pallet close/delivery copy (owner — no Budbee)", () => {
     expect(sv).toContain("Frakt 149 kr per låda om 6 flaskor");
     expect(sv).toContain("5–10 arbetsdagar");
     expect(sv).toContain(
-      "Vi kontrollerar att du har fyllt 20 år när vinet lämnas över.",
+      "Signatur och ålderskontroll (20+) krävs vid överlämningen.",
     );
     expect(sv).not.toContain("Vid leverans kontrolleras");
     expect(en).toContain("Your card is charged 100 SEK now.");
     expect(en).toContain("SEK 149 per box of 6 bottles");
     expect(en).toContain("5–10 working days");
     expect(en).toContain(
-      "We check that you are 20 or older when the wine is handed over.",
+      "Signature and age verification (20+) are required at handover.",
     );
     expect(en).not.toContain("Proof of age");
     expect(sv).not.toMatch(/UPS|Budbee|Instabee|BankID/i);
@@ -115,10 +115,10 @@ describe("shared pallet close/delivery copy (owner — no Budbee)", () => {
     const sv = dualOfferMsg("sv", "dualOfferAgeCheckLine");
     const en = dualOfferMsg("en", "dualOfferAgeCheckLine");
     expect(sv).toBe(
-      "Vi kontrollerar att du har fyllt 20 år när vinet lämnas över.",
+      "Signatur och ålderskontroll (20+) krävs vid överlämningen.",
     );
     expect(en).toBe(
-      "We check that you are 20 or older when the wine is handed over.",
+      "Signature and age verification (20+) are required at handover.",
     );
     expect(sv).not.toMatch(/UPS|Budbee|Instabee|BankID/i);
     expect(en).not.toMatch(/UPS|Budbee|Instabee|BankID/i);

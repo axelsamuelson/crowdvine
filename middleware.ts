@@ -117,6 +117,17 @@ function nextWithPathname(req: NextRequest): NextResponse {
 async function runMiddleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
+  // Swedish typo/alias for checkout — before membership gate ("Endast för medlemmar").
+  // Preserve query string (NextResponse.redirect keeps search on cloned URL).
+  if (pathname === "/kassan" || pathname.startsWith("/kassan/")) {
+    const u = req.nextUrl.clone();
+    u.pathname =
+      pathname === "/kassan"
+        ? "/checkout"
+        : `/checkout${pathname.slice("/kassan".length)}`;
+    return NextResponse.redirect(u, 308);
+  }
+
   // Supabase auth sometimes lands on Site URL (/) when Redirect URL allow-list
   // rejects emailRedirectTo. Forward PKCE `code` or OTP `token_hash` to callback.
   if (pathname === "/") {
