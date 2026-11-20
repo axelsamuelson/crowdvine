@@ -160,6 +160,7 @@ import {
   isCheckoutContactComplete,
   isCheckoutEmailComplete,
   isCheckoutPhoneComplete,
+  isCheckoutStreetComplete,
 } from "@/lib/checkout/delivery-contact";
 import {
   formatCheckoutShippingLabel,
@@ -364,6 +365,9 @@ function CheckoutContent({
   } | null>(null);
   const [postalCodeDraft, setPostalCodeDraft] = useState("");
   const [editingAddress, setEditingAddress] = useState(false);
+  /** True while any progressive address input has focus — blocks auto-save/collapse. */
+  const [addressFieldFocused, setAddressFieldFocused] = useState(false);
+  const addressFocusBlurTimerRef = useRef<number | null>(null);
   const addressAutoSaveRef = useRef(false);
   const addressPersistedRef = useRef(false);
   const authAddressPersistRef = useRef(false);
@@ -634,17 +638,19 @@ function CheckoutContent({
     if (activeShop?.geoZoneId) {
       return Boolean(
         effectiveDelivery &&
-          effectiveDelivery.street?.trim() &&
+          isCheckoutStreetComplete(effectiveDelivery.street) &&
           effectiveDelivery.city?.trim() &&
           effectiveDelivery.postal?.trim() &&
           isZoneDeliveryCompleteForActiveGeo(activeShop, effectiveDelivery),
       );
     }
     const fromProfile = Boolean(
-      profile?.address && profile?.city && profile?.postal_code,
+      isCheckoutStreetComplete(profile?.address) &&
+        profile?.city &&
+        profile?.postal_code,
     );
     const fromDraft = Boolean(
-      effectiveDelivery?.street?.trim() &&
+      isCheckoutStreetComplete(effectiveDelivery?.street) &&
         effectiveDelivery?.city?.trim() &&
         effectiveDelivery?.postal?.trim(),
     );
@@ -1713,16 +1719,16 @@ function CheckoutContent({
   ]);
 
   // Auto-save progressive address when all required fields are filled.
-  // Short settle delay so the last field doesn't vanish the instant it's typed.
-  // Never auto-save while editing via "Byt", after payment is open, or once persisted.
+  // Never auto-save while a field has focus / user is still typing, while
+  // editing via "Byt", after payment is open, or once persisted.
   useEffect(() => {
     if (!hasPostalCode || !deliveryDraft || addressSaving) return;
-    if (editingAddress) return;
+    if (editingAddress || addressFieldFocused) return;
     if (complianceStepRevealed || deliveryComplete) return;
     if (addressPersistedRef.current || addressAutoSaveRef.current) return;
 
     const contactOk = isCheckoutContactComplete(deliveryDraft);
-    const streetOk = deliveryDraft.street.trim().length > 0;
+    const streetOk = isCheckoutStreetComplete(deliveryDraft.street);
     const cityOk = deliveryDraft.city.trim().length > 0;
     const postalOk = deliveryDraft.postal.trim().length > 0;
     const stateOk =
@@ -1738,13 +1744,14 @@ function CheckoutContent({
         addressAutoSaveRef.current ||
         addressPersistedRef.current ||
         editingAddress ||
+        addressFieldFocused ||
         complianceStepRevealed
       ) {
         return;
       }
       addressAutoSaveRef.current = true;
       void handleSaveZoneDelivery({ silent: false });
-    }, 280);
+    }, 400);
 
     return () => window.clearTimeout(settleTimer);
   }, [
@@ -1752,6 +1759,7 @@ function CheckoutContent({
     deliveryDraft,
     addressSaving,
     editingAddress,
+    addressFieldFocused,
     isUsConditional,
     complianceStepRevealed,
     deliveryComplete,
@@ -1773,7 +1781,7 @@ function CheckoutContent({
     if (!lines) return;
 
     const contactOk = isCheckoutContactComplete(lines);
-    const streetOk = lines.street.trim().length > 0;
+    const streetOk = isCheckoutStreetComplete(lines.street);
     const cityOk = lines.city.trim().length > 0;
     const postalOk = lines.postal.trim().length > 0;
     const stateOk =
@@ -2470,7 +2478,12 @@ function CheckoutContent({
   }) => {
     const silent = opts?.silent === true;
     const eff = opts?.lines ?? deliveryDraft;
-    if (!eff?.street?.trim() || !eff.city?.trim() || !eff.postal?.trim()) {
+    if (
+      !eff ||
+      !isCheckoutStreetComplete(eff.street) ||
+      !eff.city?.trim() ||
+      !eff.postal?.trim()
+    ) {
       return;
     }
     if (
@@ -5064,7 +5077,9 @@ function CheckoutContent({
                   <p className="text-sm text-muted-foreground">
                     {t("checkout.stepAddressWaitingDelivery")}
                   </p>
-                ) : addressStepComplete && !editingAddress ? (
+                ) : addressStepComplete &&
+                  !editingAddress &&
+                  !addressFieldFocused ? (
                   <div className="space-y-3 animate-in fade-in-0 slide-in-from-bottom-1 duration-500 fill-mode-both">
                     <div className="flex items-start justify-between gap-3 py-1">
                       <div className="min-w-0 break-words [overflow-wrap:anywhere]">
@@ -5076,6 +5091,16 @@ function CheckoutContent({
                         <p className="text-sm text-muted-foreground [overflow-wrap:anywhere]">
                           {effectiveDelivery?.email || profile?.email || ""}
                         </p>
+                        {(
+                          effectiveDelivery?.phone?.trim() ||
+                          profile?.phone?.trim() ||
+                          ""
+                        ) ? (
+                          <p className="text-sm text-muted-foreground [overflow-wrap:anywhere]">
+                            {effectiveDelivery?.phone?.trim() ||
+                              profile?.phone?.trim()}
+                          </p>
+                        ) : null}
                         <p className="text-sm font-medium text-foreground mt-2 [overflow-wrap:anywhere]">
                           {effectiveDelivery?.street ?? "—"}
                         </p>
@@ -5155,7 +5180,9 @@ function CheckoutContent({
                       const phoneOk = isCheckoutPhoneComplete(
                         deliveryDraft.phone,
                       );
-                      const streetOk = deliveryDraft.street.trim().length > 0;
+                      const streetOk = isCheckoutStreetComplete(
+                        deliveryDraft.street,
+                      );
                       const cityOk = deliveryDraft.city.trim().length > 0;
                       const stateOk =
                         !isUsConditional ||
@@ -5336,6 +5363,30 @@ function CheckoutContent({
                                       showInlineError ? true : undefined
                                     }
                                     className="h-9 min-h-9 text-sm"
+                                    onFocus={() => {
+                                      if (addressFocusBlurTimerRef.current) {
+                                        window.clearTimeout(
+                                          addressFocusBlurTimerRef.current,
+                                        );
+                                        addressFocusBlurTimerRef.current = null;
+                                      }
+                                      setAddressFieldFocused(true);
+                                    }}
+                                    onBlur={() => {
+                                      // Delay so tabbing between address fields
+                                      // does not flash auto-save mid-form.
+                                      if (addressFocusBlurTimerRef.current) {
+                                        window.clearTimeout(
+                                          addressFocusBlurTimerRef.current,
+                                        );
+                                      }
+                                      addressFocusBlurTimerRef.current =
+                                        window.setTimeout(() => {
+                                          setAddressFieldFocused(false);
+                                          addressFocusBlurTimerRef.current =
+                                            null;
+                                        }, 180);
+                                    }}
                                     onChange={(e) => {
                                       const v = e.target.value;
                                       if (field.id === "fullName")

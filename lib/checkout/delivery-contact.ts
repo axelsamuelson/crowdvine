@@ -2,6 +2,7 @@
  * Checkout delivery/contact field gates (display + auto-save).
  * Keep collapse / save / age-unlock prerequisites aligned — never treat
  * `test@` as a complete email or skip phone when collapsing to "saved".
+ * Never treat a single keystroke street ("D") as complete either.
  */
 
 /** Same shape as ensure-session / common checkout email checks. */
@@ -14,6 +15,25 @@ export function isCheckoutEmailComplete(raw: string | null | undefined): boolean
 /** Delivery phone: at least 6 significant chars after trim (matches form UI). */
 export function isCheckoutPhoneComplete(raw: string | null | undefined): boolean {
   return (raw ?? "").trim().length >= 6;
+}
+
+/**
+ * Street / gatuadress ready for collapse + delivery.
+ * Rejects single-character / mid-typing values that previously auto-saved as "D".
+ *
+ * Reasonable address (either):
+ * - word + house number (e.g. "Drottninggatan 12", "Storgatan 1A"), or
+ * - at least 3 characters that include both a letter and a digit (e.g. "12a", "Box12").
+ */
+export function isCheckoutStreetComplete(
+  raw: string | null | undefined,
+): boolean {
+  const street = (raw ?? "").trim().replace(/\s+/g, " ");
+  if (street.length < 3) return false;
+  // Word + house number (preferred Swedish delivery line).
+  if (/\p{L}{2,}\s+\S*\d/u.test(street)) return true;
+  // Short fallback with both letters and a digit (e.g. "12a", "Box12").
+  return /\p{L}/u.test(street) && /\d/.test(street);
 }
 
 export type CheckoutContactFields = {

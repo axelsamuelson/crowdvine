@@ -21,8 +21,18 @@ describe("checkout age-gate / address wiring (hotfix)", () => {
     expect(checkoutSrc).toMatch(/isCheckoutContactComplete/);
     expect(checkoutSrc).toMatch(/isCheckoutEmailComplete/);
     expect(checkoutSrc).toMatch(/isCheckoutPhoneComplete/);
+    expect(checkoutSrc).toMatch(/isCheckoutStreetComplete/);
+    expect(checkoutSrc).toMatch(/addressFieldFocused/);
+    // Collapse requires !addressFieldFocused — never while the user is typing.
+    expect(checkoutSrc).toMatch(
+      /addressStepComplete &&\s*!editingAddress &&\s*!addressFieldFocused/,
+    );
     expect(checkoutSrc).not.toMatch(
       /addressStepComplete[\s\S]{0,200}includes\("@\"\)/,
+    );
+    // Never treat any non-empty street as complete (Camille "D" collapse).
+    expect(checkoutSrc).not.toMatch(
+      /streetOk = deliveryDraft\.street\.trim\(\)\.length > 0/,
     );
   });
 
