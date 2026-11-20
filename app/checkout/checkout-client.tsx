@@ -125,8 +125,6 @@ import {
 } from "@/lib/commerce/direct-box-delivery";
 import {
   defaultFulfillmentChannel,
-  isDeliveryCompleteForChannel,
-  resolveSharedPalletBudbeeEligibility,
   type FulfillmentChannel,
 } from "@/lib/commerce/fulfillment-channel";
 import type { DirectBoxUiAvailability } from "@/lib/commerce/direct-box-ui-contract";
@@ -153,6 +151,12 @@ import {
   type ZoneDeliveryLines,
 } from "@/lib/checkout/user-zone-delivery-template";
 import {
+  checkoutContactBlockReason,
+  isCheckoutContactComplete,
+  isCheckoutEmailComplete,
+  isCheckoutPhoneComplete,
+} from "@/lib/checkout/delivery-contact";
+import {
   formatCheckoutShippingLabel,
   resolveCheckoutShippingLabelState,
 } from "@/lib/checkout/shipping-label";
@@ -162,6 +166,15 @@ import {
   shouldBlockCheckoutOnQuote,
   type QuoteUiStatus,
 } from "@/lib/commerce/direct-box-quote-ui-contract";
+import {
+  computeDeliveryCompleteForAgeUnlock,
+  isCheckoutPurchaseBlockedByQuote,
+} from "@/lib/commerce/delivery-complete-gates";
+import {
+  trackCheckoutStepBlocked,
+  trackShippingQuoteFailed,
+  type CheckoutBlockReason,
+} from "@/lib/analytics/checkout-block-events";
 
 
 interface UserProfile {
@@ -699,18 +712,15 @@ function CheckoutContent({
   ]);
 
   const hasFullAddress = hasZoneDeliveryReady;
-  const hasContactForCheckout = Boolean(
-    (
+  const hasContactForCheckout = isCheckoutContactComplete({
+    fullName:
       effectiveDelivery?.fullName?.trim() ||
       profile?.full_name?.trim() ||
-      ""
-    ).length > 1 &&
-      (
-        effectiveDelivery?.email?.trim() ||
-        profile?.email?.trim() ||
-        ""
-      ).includes("@"),
-  );
+      null,
+    email:
+      effectiveDelivery?.email?.trim() || profile?.email?.trim() || null,
+    phone: effectiveDelivery?.phone?.trim() || profile?.phone?.trim() || null,
+  });
   const addressStepComplete = hasZoneDeliveryReady && hasContactForCheckout;
   /** Address step unlocks as soon as postal is set — zone loading must not lock the form. */
   const deliveryPreviewReady = hasPostalCode;
@@ -768,69 +778,28 @@ function CheckoutContent({
         selectedPallet.delivery_zone_id.trim() !== ""),
     [zoneInfo.selectedDeliveryZoneId, selectedPallet?.delivery_zone_id],
   );
+  // Age/compliance unlock: address + channel only.
+  // Do NOT wait on /api/checkout/quote here — that deadlocked guests when
+  // DIRECT_BOX_CHECKOUT_ENABLED was on (quote needs auth; ensure-session
+  // only ran after deliveryComplete). Quote still gates purchase below.
   const deliveryComplete = useMemo(
-    () => {
-      // Contact (name/email) is collected in payment / auth — do not block step 3.
-      // Default-OFF direct_box: preserve legacy shared_pallet gates byte-for-byte.
-      if (!directBoxCheckoutEnabled) {
-        if (!hasZoneDeliveryReady) return false;
-        if (isUsConditional) {
-          if (!hasUsState) return false;
-          // US conditional always needs an active pallet for SetupIntent.
-          return selectedPallet != null;
-        }
-        if (!deliveryZoneReady) return false;
-        // Producer wines need a matched pallet for shipping + Stripe; warehouse-only can continue.
-        if (hasProducerItems) return selectedPallet != null;
-        return true;
-      }
-
-      // Server-derived availability (page.tsx) — never invent carrier from client.
-      const carrier =
-        fulfillmentChannel === "direct_box"
-          ? directBoxAvailability.deliverySelectable
-            ? {
-                status: "eligible" as const,
-                channel: "direct_box" as const,
-                carrierId: "server_authorized",
-                productCode: "server_authorized",
-              }
-            : {
-                status: "unavailable" as const,
-                channel: "direct_box" as const,
-                reason: "carrier_unconfigured" as const,
-                messageKey:
-                  directBoxAvailability.messageKey ??
-                  "checkout.directBoxCarrierUnconfigured",
-              }
-          : resolveSharedPalletBudbeeEligibility({
-              channel: "shared_pallet",
-              budbeeAvailable,
-            });
-
-      const channelReady = isDeliveryCompleteForChannel({
-        channel: fulfillmentChannel,
+    () =>
+      computeDeliveryCompleteForAgeUnlock({
+        directBoxCheckoutEnabled,
+        fulfillmentChannel,
         hasZoneDeliveryReady,
         deliveryZoneReady,
         hasProducerItems,
         selectedPallet,
         isUsConditional,
         hasUsState,
-        carrier,
-      });
-      if (!channelReady) return false;
-      // Mode-scoped quote must be ready — never pay on stale/pact/missing totals.
-      const quoteGate = shouldBlockCheckoutOnQuote({
-        fulfillmentChannel,
-        quote: serverQuote,
-        quoteStatus,
-      });
-      return !quoteGate.block;
-    },
+        budbeeAvailable,
+        directBoxDeliverySelectable:
+          directBoxAvailability.deliverySelectable,
+      }),
     [
       directBoxCheckoutEnabled,
       directBoxAvailability.deliverySelectable,
-      directBoxAvailability.messageKey,
       fulfillmentChannel,
       budbeeAvailable,
       hasZoneDeliveryReady,
@@ -838,9 +807,23 @@ function CheckoutContent({
       isUsConditional,
       selectedPallet,
       deliveryZoneReady,
+      hasProducerItems,
+    ],
+  );
+
+  const purchaseBlockedByQuote = useMemo(
+    () =>
+      isCheckoutPurchaseBlockedByQuote({
+        directBoxCheckoutEnabled,
+        fulfillmentChannel,
+        quote: serverQuote,
+        quoteStatus,
+      }),
+    [
+      directBoxCheckoutEnabled,
+      fulfillmentChannel,
       serverQuote,
       quoteStatus,
-      hasProducerItems,
     ],
   );
 
@@ -1128,6 +1111,109 @@ function CheckoutContent({
     emitCheckoutStepCompleted("delivery");
   }, [deliveryComplete, cart]);
 
+  // Age step shown locked despite postal (and often partial address) filled.
+  useEffect(() => {
+    if (!hasPostalCode || deliveryComplete) return;
+    if (!cart || cart.totalQuantity <= 0) return;
+
+    let reason: CheckoutBlockReason | null = null;
+    if (!hasZoneDeliveryReady) {
+      const contactReason = checkoutContactBlockReason({
+        fullName:
+          effectiveDelivery?.fullName ??
+          deliveryDraft?.fullName ??
+          profile?.full_name ??
+          null,
+        email:
+          effectiveDelivery?.email ??
+          deliveryDraft?.email ??
+          profile?.email ??
+          null,
+        phone:
+          effectiveDelivery?.phone ??
+          deliveryDraft?.phone ??
+          profile?.phone ??
+          null,
+      });
+      if (contactReason) {
+        reason = contactReason;
+      } else if (
+        !(
+          effectiveDelivery?.street?.trim() ||
+          deliveryDraft?.street?.trim()
+        )
+      ) {
+        reason = "address_not_persisted";
+      } else {
+        reason = "zone_required";
+      }
+    } else if (hasProducerItems && !selectedPallet) {
+      reason = "pallet_required";
+    } else if (!deliveryZoneReady) {
+      reason = "zone_required";
+    } else if (
+      fulfillmentChannel === "direct_box" &&
+      !directBoxAvailability.deliverySelectable
+    ) {
+      reason = "direct_box_carrier_unconfigured";
+    } else {
+      reason = "delivery_not_selected";
+    }
+
+    trackCheckoutStepBlocked({
+      step: "age_terms",
+      reason,
+    });
+  }, [
+    hasPostalCode,
+    deliveryComplete,
+    cart,
+    hasZoneDeliveryReady,
+    hasProducerItems,
+    selectedPallet,
+    deliveryZoneReady,
+    fulfillmentChannel,
+    directBoxAvailability.deliverySelectable,
+    effectiveDelivery,
+    deliveryDraft,
+    profile?.full_name,
+    profile?.email,
+    profile?.phone,
+  ]);
+
+  // Fortsätt / purchase blocked by quote after delivery is otherwise ready.
+  useEffect(() => {
+    if (!deliveryComplete || !purchaseBlockedByQuote) return;
+    if (!cart || cart.totalQuantity <= 0) return;
+    const gate = shouldBlockCheckoutOnQuote({
+      fulfillmentChannel,
+      quote: serverQuote,
+      quoteStatus,
+    });
+    const reason = (gate.reason ?? "quote_missing") as CheckoutBlockReason;
+    trackCheckoutStepBlocked({
+      step: "continue",
+      reason: /^[a-z0-9_]+$/i.test(reason) ? reason : "purchase_disabled",
+    });
+  }, [
+    deliveryComplete,
+    purchaseBlockedByQuote,
+    cart,
+    fulfillmentChannel,
+    serverQuote,
+    quoteStatus,
+  ]);
+
+  // Shipping quote failure (no PII).
+  useEffect(() => {
+    if (quoteStatus !== "error") return;
+    trackShippingQuoteFailed({
+      deliveryType:
+        fulfillmentChannel === "direct_box" ? "direct_box" : "shared_pallet",
+      reason: "quote_error",
+    });
+  }, [quoteStatus, fulfillmentChannel]);
+
   useEffect(() => {
     cartQuantityRef.current = cart?.totalQuantity ?? 0;
   }, [cart?.totalQuantity]);
@@ -1318,7 +1404,7 @@ function CheckoutContent({
     if (guestRequiresLogin) return;
 
     const email = (deliveryDraft?.email ?? "").trim().toLowerCase();
-    if (!email.includes("@")) return;
+    if (!isCheckoutEmailComplete(email)) return;
     if (guestEnsureAttemptedRef.current === email) return;
     guestEnsureAttemptedRef.current = email;
 
@@ -1579,12 +1665,12 @@ function CheckoutContent({
 
     const fromDb = userZoneRowToDeliveryLines(zoneAddressRow);
     const contactOk = Boolean(
-      (
-        fromDb?.fullName?.trim() ||
-        profile?.full_name?.trim() ||
-        ""
-      ).length > 1 &&
-        (fromDb?.email?.trim() || profile?.email?.trim() || "").includes("@"),
+      isCheckoutContactComplete({
+        fullName:
+          fromDb?.fullName?.trim() || profile?.full_name?.trim() || null,
+        email: fromDb?.email?.trim() || profile?.email?.trim() || null,
+        phone: fromDb?.phone?.trim() || profile?.phone?.trim() || null,
+      }),
     );
 
     if (fromDb && contactOk && !editingAddress) {
@@ -1652,9 +1738,7 @@ function CheckoutContent({
     if (complianceStepRevealed || deliveryComplete) return;
     if (addressPersistedRef.current || addressAutoSaveRef.current) return;
 
-    const nameOk = (deliveryDraft.fullName ?? "").trim().length > 1;
-    const emailOk = (deliveryDraft.email ?? "").includes("@");
-    const phoneOk = (deliveryDraft.phone ?? "").trim().length >= 6;
+    const contactOk = isCheckoutContactComplete(deliveryDraft);
     const streetOk = deliveryDraft.street.trim().length > 0;
     const cityOk = deliveryDraft.city.trim().length > 0;
     const postalOk = deliveryDraft.postal.trim().length > 0;
@@ -1662,15 +1746,7 @@ function CheckoutContent({
       !isUsConditional ||
       isValidUsStateCode(deliveryDraft.regionCode?.trim() ?? "");
 
-    if (
-      !nameOk ||
-      !emailOk ||
-      !phoneOk ||
-      !streetOk ||
-      !cityOk ||
-      !postalOk ||
-      !stateOk
-    ) {
+    if (!contactOk || !streetOk || !cityOk || !postalOk || !stateOk) {
       return;
     }
 
@@ -1698,44 +1774,43 @@ function CheckoutContent({
     deliveryComplete,
   ]);
 
-  // After auth in payment: persist guest draft to DB quietly (no toast flash).
+  // After guest ensure-session: persist draft to DB quietly so payment-intent
+  // / SetupIntent can read zone address (must not wait for payment card —
+  // that deadlocked PE behind "Add delivery details…").
   useEffect(() => {
-    if (!authReady || !paymentCardRevealed) return;
+    if (!authReady || !deliveryComplete) return;
     if (editingAddress || addressSaving) return;
     if (!activeShop?.geoZoneId || zoneAddressRow) return;
-    if (!deliveryDraft || authAddressPersistRef.current) return;
+    if (authAddressPersistRef.current) return;
 
-    const nameOk = (deliveryDraft.fullName ?? "").trim().length > 1;
-    const emailOk = (deliveryDraft.email ?? "").includes("@");
-    const phoneOk = (deliveryDraft.phone ?? "").trim().length >= 6;
-    const streetOk = deliveryDraft.street.trim().length > 0;
-    const cityOk = deliveryDraft.city.trim().length > 0;
-    const postalOk = deliveryDraft.postal.trim().length > 0;
+    const lines =
+      deliveryDraft ??
+      deliverySnapshotRef.current ??
+      effectiveDelivery;
+    if (!lines) return;
+
+    const contactOk = isCheckoutContactComplete(lines);
+    const streetOk = lines.street.trim().length > 0;
+    const cityOk = lines.city.trim().length > 0;
+    const postalOk = lines.postal.trim().length > 0;
     const stateOk =
       !isUsConditional ||
-      isValidUsStateCode(deliveryDraft.regionCode?.trim() ?? "");
-    if (
-      !nameOk ||
-      !emailOk ||
-      !phoneOk ||
-      !streetOk ||
-      !cityOk ||
-      !postalOk ||
-      !stateOk
-    ) {
+      isValidUsStateCode(lines.regionCode?.trim() ?? "");
+    if (!contactOk || !streetOk || !cityOk || !postalOk || !stateOk) {
       return;
     }
 
     authAddressPersistRef.current = true;
-    void handleSaveZoneDelivery({ silent: true });
+    void handleSaveZoneDelivery({ silent: true, lines });
   }, [
     authReady,
-    paymentCardRevealed,
+    deliveryComplete,
     editingAddress,
     addressSaving,
     activeShop?.geoZoneId,
     zoneAddressRow,
     deliveryDraft,
+    effectiveDelivery,
     isUsConditional,
   ]);
 
@@ -2497,9 +2572,12 @@ function CheckoutContent({
     }
   };
 
-  const handleSaveZoneDelivery = async (opts?: { silent?: boolean }) => {
+  const handleSaveZoneDelivery = async (opts?: {
+    silent?: boolean;
+    lines?: ZoneDeliveryLines | null;
+  }) => {
     const silent = opts?.silent === true;
-    const eff = deliveryDraft;
+    const eff = opts?.lines ?? deliveryDraft;
     if (!eff?.street?.trim() || !eff.city?.trim() || !eff.postal?.trim()) {
       return;
     }
@@ -3362,6 +3440,8 @@ function CheckoutContent({
     promoDiscountSek,
     ageCountryCode,
     fulfillmentChannel,
+    // Guests get 401 until ensure-session; refetch once auth is ready.
+    authReady,
   ]);
 
   const displaySubtotal = serverQuote?.subtotal_sek ?? bottleCost;
@@ -4676,7 +4756,11 @@ function CheckoutContent({
                             : undefined
                         }
                         inlinePurchase={false}
-                        purchaseEnabled={deliveryComplete && isValidCart}
+                        purchaseEnabled={
+                          deliveryComplete &&
+                          isValidCart &&
+                          !purchaseBlockedByQuote
+                        }
                         cartMinimumMet={isValidCart}
                         cartBlockedNote={
                           isValidCart
@@ -4821,11 +4905,12 @@ function CheckoutContent({
                     {(() => {
                       const nameOk =
                         (deliveryDraft.fullName ?? "").trim().length > 1;
-                      const emailOk = (deliveryDraft.email ?? "").includes(
-                        "@",
+                      const emailOk = isCheckoutEmailComplete(
+                        deliveryDraft.email,
                       );
-                      const phoneOk =
-                        (deliveryDraft.phone ?? "").trim().length >= 6;
+                      const phoneOk = isCheckoutPhoneComplete(
+                        deliveryDraft.phone,
+                      );
                       const streetOk = deliveryDraft.street.trim().length > 0;
                       const cityOk = deliveryDraft.city.trim().length > 0;
                       const stateOk =
@@ -4906,11 +4991,15 @@ function CheckoutContent({
                                 (deliveryDraft.fullName ?? "").trim().length ===
                                   1) ||
                               (field.id === "email" &&
-                                (deliveryDraft.email ?? "").length > 0 &&
-                                !(deliveryDraft.email ?? "").includes("@")) ||
+                                (deliveryDraft.email ?? "").trim().length > 0 &&
+                                !isCheckoutEmailComplete(
+                                  deliveryDraft.email,
+                                )) ||
                               (field.id === "phone" &&
                                 (deliveryDraft.phone ?? "").trim().length > 0 &&
-                                (deliveryDraft.phone ?? "").trim().length < 6);
+                                !isCheckoutPhoneComplete(
+                                  deliveryDraft.phone,
+                                ));
 
                             return (
                               <div key={field.id} className="space-y-1.5">

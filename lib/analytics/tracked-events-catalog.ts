@@ -330,6 +330,20 @@ export const TRACKED_USER_EVENTS_CATALOG: TrackedEventCatalogEntry[] = [
     sources: ["client"],
   },
   {
+    eventType: "checkout_step_blocked",
+    category: "checkout",
+    description:
+      "Kassasteg visades låst trots föregående stegdata, eller Fortsätt gick inte att använda. Metadata: step (postal|delivery|age_terms|payment|continue), reason (short code e.g. missing_phone, quote_missing, delivery_not_selected). Deduped once per checkout session+step+reason. Never PII.",
+    sources: ["client"],
+  },
+  {
+    eventType: "shipping_quote_failed",
+    category: "checkout",
+    description:
+      "Fraktpris kunde inte beräknas. Metadata: delivery_type (shared_pallet|direct_box), reason (short code). Deduped once per session+delivery_type+reason. Never PII.",
+    sources: ["client"],
+  },
+  {
     eventType: "checkout_error",
     category: "checkout",
     description:
