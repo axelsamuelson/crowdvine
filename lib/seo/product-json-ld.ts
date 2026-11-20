@@ -3,6 +3,7 @@ import { productOfferCommerceFields } from "@/lib/seo/product-offer-policies";
 /** schema.org ItemAvailability URLs used on B2C Product Offers. */
 export type ProductOfferAvailability =
   | "https://schema.org/PreOrder"
+  | "https://schema.org/InStock"
   | "https://schema.org/OutOfStock";
 
 /**
@@ -12,24 +13,25 @@ export type ProductOfferAvailability =
  * - `availableForSale` on the PDP comes from `resolveProductAvailableForSale`
  *   (`lib/wine-availability.ts`), which for B2C is `wines.available_for_sale !== false`
  *   via `isWineAvailableForSale`.
- * - Fulfilment is never immediate: shared-pallet wines ship after the pallet
- *   closes; direct delivery (when `buildDirectBoxUiAvailability` says so) still
- *   ships later (terms: normally 5–10 working days). Both are PreOrder.
+ * - `directDeliveryAvailable` on the PDP is
+ *   `buildDirectBoxUiAvailability({ countryCode: "SE" }).deliverySelectable`
+ *   (and B2C host only).
  *
- * Mapping:
+ * Mapping (product decision — Axel 2026-11-20):
  * - OutOfStock when the wine cannot be ordered (`availableForSale === false`).
- * - PreOrder when it can be ordered (shared pallet and/or later direct delivery).
+ * - InStock when available and direct delivery is selectable.
+ * - PreOrder when available but shared-pallet only (no direct delivery).
  */
 export function resolveProductOfferAvailability(input: {
   availableForSale: boolean;
-  /**
-   * Retained for call-site clarity / shipping. Does not change availability:
-   * direct delivery is still not immediate shipment.
-   */
+  /** True when direct delivery is selectable for this product / market. */
   directDeliveryAvailable?: boolean;
 }): ProductOfferAvailability {
   if (!input.availableForSale) {
     return "https://schema.org/OutOfStock";
+  }
+  if (input.directDeliveryAvailable) {
+    return "https://schema.org/InStock";
   }
   return "https://schema.org/PreOrder";
 }
@@ -64,8 +66,8 @@ export type ProductJsonLdInput = {
   brandName: string;
   availableForSale: boolean;
   /**
-   * When true, direct delivery may be selectable in checkout UI.
-   * Does not flip Offer.availability to InStock (shipment is still delayed).
+   * When true, Offer.availability is InStock (direct delivery selectable).
+   * When false/omitted and available, availability is PreOrder (shared pallet).
    */
   directDeliveryAvailable?: boolean;
   /** Own wine id and/or handle — used for Offer/Product sku. */

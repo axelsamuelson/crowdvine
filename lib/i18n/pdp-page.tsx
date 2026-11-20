@@ -130,9 +130,8 @@ export async function renderProductPdpPage(options: {
 
   const productUrl = `${PACT_PUBLIC_ORIGIN}${productPagePath(handle, pathSegment)}`;
   const includeB2cReturnPolicy = !isB2BHost(host);
-  // Direct delivery may be selectable in checkout UI, but Offer.availability
-  // stays PreOrder: neither shared pallet nor direct box ships immediately.
-  // See resolveProductOfferAvailability in lib/seo/product-json-ld.ts.
+  // InStock when direct delivery is selectable for SE; otherwise PreOrder
+  // (shared pallet only). See resolveProductOfferAvailability.
   const directDeliveryAvailable =
     includeB2cReturnPolicy &&
     buildDirectBoxUiAvailability({ countryCode: "SE" }).deliverySelectable;
