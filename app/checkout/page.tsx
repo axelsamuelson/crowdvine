@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { CheckoutClient } from "./checkout-client";
 import { isPlatformOpen } from "@/lib/platform-open";
+import { isGuestCheckoutEnabled } from "@/lib/checkout/guest-checkout-flag";
 import { isDirtywineInquiryMode } from "@/lib/b2b/flags";
 import { getIsDirtywineSiteFromHeaders } from "@/lib/b2b-site-server";
 import { isDirectBoxCheckoutEnabled } from "@/lib/commerce/fulfillment-channel";
@@ -38,6 +39,7 @@ export default async function CheckoutPage({
   return (
     <CheckoutClient
       platformOpen={isPlatformOpen()}
+      guestCheckoutEnabled={isGuestCheckoutEnabled()}
       directBoxCheckoutEnabled={isDirectBoxCheckoutEnabled()}
       directBoxAvailability={directBoxAvailability}
       dualOfferCompareSurfaceAllowed={dualOfferCompareSurfaceAllowed}

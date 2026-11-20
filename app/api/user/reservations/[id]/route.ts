@@ -12,6 +12,7 @@ import {
 import { b2cWholeKronorFromOre } from "@/lib/cart/b2c-line-pricing";
 import { resolveWineImageSrc } from "@/lib/cart/wine-image-url";
 import { DEFAULT_WINE_IMAGE_PATH } from "@/lib/constants";
+import { isGuestCheckoutEnabled } from "@/lib/checkout/guest-checkout-flag";
 
 export async function GET(
   request: Request,
@@ -146,10 +147,16 @@ export async function GET(
       }
     }
 
-    // Get user profile information for email
+    // Get user profile information for email. Guest-checkout columns (migration
+    // 291) are only selected when GUEST_CHECKOUT_ENABLED — safe before migrate.
+    const guestCheckoutEnabled = isGuestCheckoutEnabled();
     const { data: profile } = await supabase
       .from("profiles")
-      .select("full_name, email")
+      .select(
+        guestCheckoutEnabled
+          ? "full_name, email, guest_checkout_at, account_claimed_at"
+          : "full_name, email",
+      )
       .eq("id", user.id)
       .maybeSingle();
 
@@ -470,6 +477,12 @@ export async function GET(
       shipping_sek: shippingSek,
       customer_email: profile?.email || user.email,
       customer_name: profile?.full_name || null,
+      /** Unclaimed guest checkout identity — show optional account offer. */
+      is_guest_checkout: Boolean(
+        guestCheckoutEnabled &&
+          profile?.guest_checkout_at &&
+          !profile?.account_claimed_at,
+      ),
       order_type: orderType,
       fulfillment_channel: fulfillmentChannel,
       payment_method_type: reservation.payment_method_type || "card",

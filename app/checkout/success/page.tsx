@@ -16,6 +16,7 @@ import { localizedPathsForLocale } from "@/lib/i18n/localized-paths";
 import { producerDisplayName } from "@/lib/producer-display-name";
 import { formatSharedPalletChargeDeadline } from "@/lib/checkout/shared-pallet-deadline";
 import { MarketingConsentCheckbox } from "@/components/checkout/marketing-consent-checkbox";
+import { GuestAccountOffer } from "@/components/checkout/guest-account-offer";
 import {
   confirmationStatusMessageKey,
   shortReservationReference,
@@ -58,6 +59,8 @@ interface ReservationDetails {
   shipping_cost_cents?: number;
   customer_email?: string;
   customer_name?: string;
+  /** Unclaimed guest checkout — optional account offer on confirmation. */
+  is_guest_checkout?: boolean;
   order_type?: "producer" | "warehouse";
   payment_method_type?: "card" | "invoice";
   /** True when order confirmation was claimed/sent (email_sends). */
@@ -339,8 +342,9 @@ function CheckoutConfirmationContent() {
 
   return (
     <main className="min-h-screen bg-gray-50">
-      <div className="mx-auto w-full max-w-[640px] px-6 pt-top-spacing pb-8 space-y-8">
-        {/* Icon above heading so mobile content shares one column width */}
+      <div className="mx-auto w-full max-w-[640px] px-6 pt-[calc(var(--top-spacing)+1.5rem)] pb-8 space-y-8">
+        {/* Icon above heading so mobile content shares one column width.
+            Extra 1.5rem below fixed checkout header so the check isn't clipped. */}
         <div className="space-y-4">
           <div
             className={`h-12 w-12 rounded-full flex items-center justify-center ${
@@ -395,7 +399,12 @@ function CheckoutConfirmationContent() {
                   </p>
                 );
               })()}
-              {reservation ? (
+              {reservation?.is_guest_checkout ? (
+                <GuestAccountOffer
+                  email={reservation.customer_email}
+                  reservationId={reservation.id}
+                />
+              ) : reservation ? (
                 <MarketingConsentCheckbox email={reservation.customer_email} />
               ) : null}
             </>
@@ -733,7 +742,7 @@ export default function CheckoutConfirmationPage() {
   return (
     <Suspense
       fallback={
-        <div className="max-w-4xl mx-auto p-6 pt-top-spacing">
+        <div className="max-w-4xl mx-auto p-6 pt-[calc(var(--top-spacing)+1.5rem)]">
           <div className="animate-pulse space-y-6">
             <div className="h-8 bg-gray-200 rounded mb-4"></div>
             <div className="h-4 bg-gray-200 rounded mb-2"></div>

@@ -99,6 +99,7 @@ export type EventType =
   | "checkout_confirm_failed"
   | "checkout_login_wall_shown"
   | "checkout_membership_wall_shown"
+  | "guest_checkout_completed"
   | "age_confirmation_shown"
   | "age_confirmed"
   | "age_confirmation_failed"
@@ -119,6 +120,8 @@ export type EventType =
   | "profile_updated"
   | "membership_tier_viewed"
   | "notification_settings_changed"
+  | "account_offered_on_confirmation"
+  | "account_created_from_confirmation"
   // B2B (Dirty Wine) — funnel catalog from #113; inquiry mode wires started/submitted
   | "b2b_contact_clicked"
   | "b2b_inquiry_started"
