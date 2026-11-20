@@ -69,7 +69,9 @@ describe("English orange wines guide", () => {
     expect(html).toContain("Frequently asked questions");
     expect(html).not.toContain("Languedoc");
     expect(html).not.toContain("independently arrived");
-    expect(html).not.toContain("/wine/orange-natural-wine");
+    // SEO-002 shop links (pillista) — not body copy or a Languedoc CTA
+    expect(html).toContain('data-guide-shop-links="/guides/worlds-best-orange-wines"');
+    expect(html).toContain('href="/wine/orange-natural-wine"');
 
     for (const [index, wine] of wines.entries()) {
       expect(text).toContain(`${index + 1}. ${wine.producer}, ${wine.wine}`);
